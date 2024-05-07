@@ -9,8 +9,9 @@ constructing new objects, protos, tables, graphs, tensors as an output or during
 intermediate steps. Such transformations and computations can be designed in a
 REPL (e.g. Google Colab), as well compiled and served in C++.
 
-In particular, Koda defines a family of data structures (DataBag, DataSlice)
-that represent and manipulate pieces of data, sets of objects, their attributes
-and their relations, as well as a DSL to work with them.
+In particular, Koda defines a family of data structures (DataBag, DataSlice and
+its subclasses) that represent and manipulate pieces of data, sets of objects,
+their attributes and their relations, as well as a DSL (Koda Expresssions) to
+work with them.
 
 This is not an officially supported Google product.
