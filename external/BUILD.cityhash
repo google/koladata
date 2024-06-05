@@ -1,0 +1,22 @@
+# BUILD file for https://github.com/google/cityhash
+licenses(["notice"])  # MIT
+exports_files(["LICENSE"])
+
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "cityhash",
+    srcs = [
+      "cityhash/city.cc",
+    ],
+    hdrs = [
+        "cityhash/city.h",
+        "cityhash/citycrc.h",
+        "cityhash/config.h",
+    ],
+    copts = [
+        "-O3",
+    ],
+)

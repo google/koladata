@@ -1,0 +1,61 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+#ifndef KOLADATA_INTERNAL_OP_UTILS_SELECT_H_
+#define KOLADATA_INTERNAL_OP_UTILS_SELECT_H_
+
+#include <utility>
+
+#include "absl/log/check.h"
+#include "absl/status/statusor.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "arolla/jagged_shape/dense_array/jagged_shape.h"
+
+namespace koladata::internal {
+
+// Selects elements in the first argument if the filter mask is present and
+// filters out missing items.
+struct SelectOp {
+  template <typename T>
+  struct Result {
+    T data_slice_impl;
+    arolla::JaggedDenseArrayShapePtr shape;
+  };
+
+  absl::StatusOr<Result<DataSliceImpl>> operator()(
+      const DataSliceImpl& ds_impl,
+      const arolla::JaggedDenseArrayShapePtr& ds_shape,
+      const DataSliceImpl& filter,
+      const arolla::JaggedDenseArrayShapePtr& filter_shape);
+
+  absl::StatusOr<Result<DataSliceImpl>> operator()(
+      const DataSliceImpl& ds_impl,
+      const arolla::JaggedDenseArrayShapePtr& ds_shape, const DataItem& filter,
+      const arolla::JaggedDenseArrayShapePtr& filter_size) const;
+
+  absl::StatusOr<Result<DataItem>> operator()(
+      const DataItem& ds_impl, const arolla::JaggedDenseArrayShapePtr& ds_shape,
+      const DataItem& filter,
+      const arolla::JaggedDenseArrayShapePtr& filter_shape) const;
+
+  absl::StatusOr<Result<DataItem>> operator()(
+      const DataItem& ds_impl, const arolla::JaggedDenseArrayShapePtr& ds_shape,
+      const DataSliceImpl& filter,
+      const arolla::JaggedDenseArrayShapePtr& filter_shape) const;
+};
+
+}  // namespace koladata::internal
+
+#endif  // KOLADATA_INTERNAL_OP_UTILS_SELECT_H_

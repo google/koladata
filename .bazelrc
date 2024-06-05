@@ -1,0 +1,16 @@
+# Enable build:{linux,mac} directives in the rc file
+common --enable_platform_specific_config
+
+# Enable Bzlmod for every Bazel command.
+common --enable_bzlmod
+
+# Enable modern C++ features
+build:linux --cxxopt=-std=gnu++20
+build:linux --host_cxxopt=-std=gnu++20
+build:macos --cxxopt=-std=gnu++20
+build:macos --host_cxxopt=-std=gnu++20
+
+# Set the minimum compatible version of macOS (consider consulting
+# https://endoflife.date/macos for versions of macOS that are currently
+# maintained).
+build:macos --macos_minimum_os=12.0

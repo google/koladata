@@ -1,0 +1,515 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Koda, a library for advanced data manipulation.
+
+# Implementation of Koda infrastructure and C++ API. Libraries in this
+# module should not depend on Python C library.
+
+load("@com_google_arolla//arolla/util/testing:testing.bzl", "benchmark_smoke_test")
+
+package(default_visibility = [
+    "//koladata:internal",
+])
+
+licenses(["notice"])
+
+exports_files(["LICENSE"])
+
+package_group(
+    name = "internal",
+    packages = [
+        "//koladata/...",
+        "//py/koladata/...",
+    ],
+)
+
+cc_library(
+    name = "repr_utils",
+    srcs = ["repr_utils.cc"],
+    hdrs = ["repr_utils.h"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_utils",
+        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/jagged_shape/dense_array",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "repr_utils_test",
+    srcs = ["repr_utils_test.cc"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        ":object_factories",
+        ":repr_utils",
+        ":test_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_utils",
+        "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/jagged_shape/dense_array",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "data_bag",
+    srcs = ["data_bag.cc"],
+    hdrs = ["data_bag.h"],
+    deps = [
+        "//koladata/internal:data_bag",
+        "//koladata/internal:triples",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/container:inlined_vector",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "data_bag_test",
+    srcs = ["data_bag_test.cc"],
+    deps = [
+        ":data_bag",
+        "//koladata/internal:data_bag",
+        "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "data_slice_op",
+    hdrs = ["data_slice_op.h"],
+    deps = [
+        ":data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/shape:shape_utils",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "data_slice_op_test",
+    srcs = ["data_slice_op_test.cc"],
+    deps = [
+        ":data_slice",
+        ":data_slice_op",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "data_slice",
+    srcs = [
+        "casting.cc",
+        "data_slice.cc",
+    ],
+    hdrs = [
+        "casting.h",
+        "data_slice.h",
+    ],
+    deps = [
+        ":data_bag",
+        ":data_slice_op",
+        "//koladata/internal:casting",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_utils",
+        "//koladata/internal/op_utils:expand",
+        "//koladata/internal/op_utils:has",
+        "//koladata/internal/op_utils:presence_and",
+        "//koladata/internal/op_utils:presence_or",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/functional:overload",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/ops",
+        "@com_google_arolla//arolla/jagged_shape/dense_array",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "data_slice_qtype",
+    srcs = ["data_slice_qtype.cc"],
+    hdrs = ["data_slice_qtype.h"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        ":repr_utils",
+        "//koladata/internal:data_item",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "data_slice_test",
+    srcs = ["data_slice_test.cc"],
+    deps = [
+        ":adoption_utils",
+        ":data_bag",
+        ":data_slice",
+        ":data_slice_qtype",
+        ":object_factories",
+        ":test_utils",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_utils",
+        "//koladata/internal/testing:matchers",
+        "//koladata/testing:matchers",
+        "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/qtype",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "benchmarks",
+    testonly = 1,
+    srcs = ["benchmarks.cc"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        ":object_factories",
+        ":test_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/shape:shape_utils",
+        "@com_google_absl//absl/log:check",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_library(
+    name = "adoption_utils",
+    srcs = ["adoption_utils.cc"],
+    hdrs = ["adoption_utils.h"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        "//koladata/internal:data_bag",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "adoption_utils_test",
+    srcs = ["adoption_utils_test.cc"],
+    deps = [
+        ":adoption_utils",
+        ":data_bag",
+        ":data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal/testing:matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "arolla_utils",
+    srcs = ["arolla_utils.cc"],
+    hdrs = ["arolla_utils.h"],
+    deps = [
+        ":data_slice",
+        ":data_slice_qtype",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:missing_value",
+        "//koladata/internal:object_id",
+        "//koladata/internal:types",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_arolla//arolla/array",
+        "@com_google_arolla//arolla/array/qtype",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/qtype",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "arolla_utils_test",
+    srcs = ["arolla_utils_test.cc"],
+    deps = [
+        ":arolla_utils",
+        ":data_slice",
+        ":data_slice_qtype",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/testing:matchers",
+        "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_arolla//arolla/array",
+        "@com_google_arolla//arolla/array/qtype",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/qtype",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "schema_constants",
+    srcs = ["schema_constants.cc"],
+    hdrs = ["schema_constants.h"],
+    deps = [
+        ":data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "schema_constants_test",
+    srcs = ["schema_constants_test.cc"],
+    deps = [
+        ":schema_constants",
+        "//koladata/internal:dtype",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "object_factories",
+    srcs = ["object_factories.cc"],
+    hdrs = ["object_factories.h"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_utils",
+        "//koladata/internal:uuid_object",
+        "//koladata/shape:shape_utils",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "object_factories_test",
+    srcs = ["object_factories_test.cc"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        ":object_factories",
+        ":test_utils",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_utils",
+        "//koladata/internal:uuid_object",
+        "//koladata/internal/testing:matchers",
+        "//koladata/testing:matchers",
+        "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/jagged_shape/testing",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "test_utils",
+    testonly = 1,
+    hdrs = ["test_utils.h"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_library(
+    name = "data_bag_comparison",
+    hdrs = ["data_bag_comparison.h"],
+    deps = [
+        ":data_bag",
+        "//koladata/internal:triples",
+    ],
+)
+
+cc_test(
+    name = "test_utils_test",
+    srcs = ["test_utils_test.cc"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        ":test_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/testing:matchers",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "data_bag_comparison_test",
+    srcs = ["data_bag_comparison_test.cc"],
+    deps = [
+        ":data_bag",
+        ":data_bag_comparison",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_slice",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "casting_test",
+    srcs = ["casting_test.cc"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        ":test_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_utils",
+        "//koladata/internal/testing:matchers",
+        "//koladata/testing:matchers",
+        "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

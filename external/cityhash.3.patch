@@ -1,0 +1,20 @@
+--- src/citycrc.h	2019-09-05 09:37:23.733840017 -0700
++++ src/citycrc.h	2019-09-05 09:40:01.333145898 -0700
+@@ -28,7 +28,9 @@
+ #ifndef CITY_HASH_CRC_H_
+ #define CITY_HASH_CRC_H_
+ 
+-#include <city.h>
++#include "city.h"
++
++namespace cityhash {
+ 
+ // Hash function for a byte array.
+ uint128 CityHashCrc128(const char *s, size_t len);
+@@ -40,4 +42,6 @@
+ // Hash function for a byte array.  Sets result[0] ... result[3].
+ void CityHashCrc256(const char *s, size_t len, uint64 *result);
+ 
++}
++
+ #endif  // CITY_HASH_CRC_H_

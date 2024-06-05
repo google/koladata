@@ -1,0 +1,497 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+#include "koladata/internal/op_utils/extract.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <queue>
+#include <string_view>
+#include <type_traits>
+#include <utility>
+
+#include "absl/log/check.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
+#include "koladata/internal/data_bag.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_utils.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/qexpr/eval_context.h"
+#include "arolla/qexpr/operators/dense_array/array_ops.h"
+#include "arolla/qexpr/operators/dense_array/edge_ops.h"
+#include "arolla/qexpr/operators/dense_array/logic_ops.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
+
+namespace koladata::internal {
+
+namespace {
+
+const std::string_view kVisitedAttrName = "u";
+
+enum class SchemaSource { kSchemaDatabag = 1, kDataDatabag = 2 };
+
+struct QueuedSlice {
+  const DataSliceImpl slice;
+  const DataItem schema;
+  const SchemaSource
+      schema_source;  // schema_source indicates which (schema or data) DataBag
+                      // we are using to retrieve schema for the current slice.
+};
+
+class ExtractProcessor {
+  DataSliceImpl FilterToObjects(const DataSliceImpl& ds) {
+    auto bldr = DataSliceImpl::Builder(ds.size());
+    bldr.GetMutableAllocationIds().Insert(ds.allocation_ids());
+    ds.VisitValues([&](const auto& array) {
+      using T = typename std::decay_t<decltype(array)>::base_type;
+      if constexpr (std::is_same_v<T, ObjectId>) {
+        bldr.AddArray(std::move(array));
+      }
+    });
+    return std::move(bldr).Build();
+  }
+
+  absl::StatusOr<DataSliceImpl> FilterToUnvisited(const DataSliceImpl& ds) {
+    if (ds.is_empty_and_unknown()) {
+      return ds;
+    }
+    if (ds.dtype() != arolla::GetQType<ObjectId>()) {
+      return absl::InternalError("Expected a slice of ObjectIds");
+    }
+    arolla::EvaluationContext ctx;
+    // TODO: To improve performance, avoid DenseArrayUniqueOp.
+    // Instead use DataBagImpl methods to get a list of unique ObjectIds.
+    const auto& unique_objects =
+        arolla::DenseArrayUniqueOp()(&ctx, ds.values<ObjectId>());
+    const auto ds_unique = DataSliceImpl::Create(unique_objects);
+    // We use the visited_objects_ to check which items were already explored.
+    // With that, we process each object only once.
+    ASSIGN_OR_RETURN(auto ds_visited,
+                     visited_objects_->GetAttr(ds_unique, kVisitedAttrName));
+    if (ds_visited.present_count() == 0) {
+      return ds_unique;
+    }
+    auto mask_to_keep = arolla::DenseArrayPresenceNotOp()(
+        &ctx, ds_visited.values<arolla::Unit>());
+    ASSIGN_OR_RETURN(auto update_arr, arolla::DenseArraySelectOp()(
+                                          &ctx, unique_objects, mask_to_keep));
+    return DataSliceImpl::Create(update_arr);
+  }
+
+  absl::Status MarkObjectsAsVisited(const DataSliceImpl& slice) {
+    auto update_value = arolla::CreateConstDenseArray<arolla::Unit>(
+        slice.size(), arolla::kUnit);
+    RETURN_IF_ERROR(visited_objects_->SetAttr(
+        slice, kVisitedAttrName, DataSliceImpl::Create(update_value)));
+    return absl::OkStatus();
+  }
+
+  absl::Status MarkSchemaAsVisited(const DataItem& schema_item,
+                                   SchemaSource schema_source) {
+    ASSIGN_OR_RETURN(auto visited,
+                     visited_objects_->GetAttr(schema_item, kVisitedAttrName));
+    // schema_source indicates in which (schema or data) DataBag we are visiting
+    // the current `schema_item`.
+    int visited_mask = static_cast<int>(schema_source);
+    if (visited.has_value()) {
+      if (!visited.holds_value<int>()) {
+        return absl::InternalError("visited attribute should be an int");
+      }
+      visited_mask |= visited.value<int>();
+    }
+    RETURN_IF_ERROR(visited_objects_->SetAttr(schema_item, kVisitedAttrName,
+                                              DataItem(visited_mask)));
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitObjects(const QueuedSlice& slice) {
+    // Filter out objectIds, as Object slice may also contain primitive types.
+    ASSIGN_OR_RETURN(auto update_slice,
+                     FilterToUnvisited(FilterToObjects(slice.slice)));
+    RETURN_IF_ERROR(MarkObjectsAsVisited(update_slice));
+    if (update_slice.present_count() == 0) {
+      return absl::OkStatus();
+    }
+    queued_slices_.push(
+        QueuedSlice{.slice = update_slice,
+                    .schema = slice.schema,
+                    .schema_source = SchemaSource::kDataDatabag});
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitEntities(const QueuedSlice& slice) {
+    ASSIGN_OR_RETURN(auto update_slice, FilterToUnvisited(slice.slice));
+    RETURN_IF_ERROR(MarkObjectsAsVisited(update_slice));
+    if (update_slice.present_count() == 0) {
+      ASSIGN_OR_RETURN(
+          auto schema_is_copied,
+          visited_objects_->GetAttr(slice.schema, kVisitedAttrName));
+      if (schema_is_copied.has_value() &&
+          (schema_is_copied.value<int>() &
+           static_cast<int>(slice.schema_source))) {
+        // Data is copied and Schema is copied from the appropriate DataBag -
+        // schema_source.
+        return absl::OkStatus();
+      }
+    }
+    RETURN_IF_ERROR(MarkSchemaAsVisited(slice.schema, slice.schema_source));
+    queued_slices_.push(QueuedSlice{.slice = update_slice,
+                                    .schema = slice.schema,
+                                    .schema_source = slice.schema_source});
+    return absl::OkStatus();
+  }
+
+  absl::Status Visit(const QueuedSlice& slice) {
+    // TODO: Decide on the behavior, when we come to the same
+    // object with the different schemas.
+    if (slice.schema.holds_value<ObjectId>()) {
+      return VisitEntities(slice);
+    } else if (slice.schema.holds_value<schema::DType>()) {
+      if (slice.schema == schema::kObject) {
+        return VisitObjects(slice);
+      } else if (slice.schema == schema::kAny) {
+        return absl::InternalError(
+            "clone/extract not supported for kAny schema");
+      }
+      // Primitive types, Any and ItemId need no processing.
+    } else {
+      return absl::InternalError("unsupported schema type");
+    }
+    return absl::OkStatus();
+  }
+
+  absl::Status ProcessAttribute(const QueuedSlice& slice,
+                                const std::string_view& attr_name,
+                                const DataItem& attr_schema) {
+    const auto& ds = slice.slice;
+    ASSIGN_OR_RETURN(auto attr_ds, databag_.GetAttr(ds, attr_name, fallbacks_));
+    RETURN_IF_ERROR(new_databag_->SetAttr(ds, attr_name, attr_ds));
+    RETURN_IF_ERROR(Visit({attr_ds, attr_schema, slice.schema_source}));
+    return absl::OkStatus();
+  }
+
+  absl::Status ProcessDictKeysAndValues(const QueuedSlice& slice,
+                                        const DataItem& keys_schema,
+                                        const DataItem& values_schema) {
+    const auto& ds = slice.slice;
+    ASSIGN_OR_RETURN((auto [keys_ds, keys_edge]),
+                     databag_.GetDictKeys(ds, fallbacks_));
+    arolla::EvaluationContext ctx;
+    if (ds.present_count() == 0) {
+      RETURN_IF_ERROR(
+          Visit({DataSliceImpl(), keys_schema, slice.schema_source}));
+      RETURN_IF_ERROR(
+          Visit({DataSliceImpl(), values_schema, slice.schema_source}));
+      return absl::OkStatus();
+    }
+    ASSIGN_OR_RETURN(
+        auto dicts_expanded,
+        arolla::DenseArrayExpandOp()(&ctx, ds.values<ObjectId>(), keys_edge));
+    const auto dict_expanded_ds = DataSliceImpl::Create(dicts_expanded);
+    ASSIGN_OR_RETURN(auto values_ds, databag_.GetFromDict(dict_expanded_ds,
+                                                          keys_ds, fallbacks_));
+    RETURN_IF_ERROR(
+        new_databag_->SetInDict(dict_expanded_ds, keys_ds, values_ds));
+    RETURN_IF_ERROR(Visit({keys_ds, keys_schema, slice.schema_source}));
+    RETURN_IF_ERROR(Visit({values_ds, values_schema, slice.schema_source}));
+    return absl::OkStatus();
+  }
+
+  absl::Status ProcessListItems(const QueuedSlice& slice,
+                                const DataItem& attr_schema) {
+    const auto& ds = slice.slice;
+    ASSIGN_OR_RETURN(
+        auto list_items,
+        databag_.ExplodeLists(ds, DataBagImpl::ListRange(), fallbacks_));
+    const auto& [list_items_ds, list_items_edge] = list_items;
+    RETURN_IF_ERROR(
+        new_databag_->ExtendLists(ds, list_items_ds, list_items_edge));
+    RETURN_IF_ERROR(Visit({list_items_ds, attr_schema, slice.schema_source}));
+    return absl::OkStatus();
+  }
+
+  // Copies schema for attribute `attr_name` of the given `schema_item` from
+  // provided databag `db` (with `fallbacks`) into `new_databag_`.
+  // Returns copied schema and a boolean value indicating if the `new_databag_`
+  // was changed.
+  absl::StatusOr<std::pair<DataItem, bool>> CopyAttrSchema(
+      const DataItem& schema_item, const DataBagImpl& db,
+      const DataBagImpl::FallbackSpan fallbacks,
+      const std::string_view& attr_name) {
+    ASSIGN_OR_RETURN(DataItem attr_schema,
+                     db.GetSchemaAttr(schema_item, attr_name, fallbacks));
+    ASSIGN_OR_RETURN(
+        auto copied_schema,
+        new_databag_->GetSchemaAttrAllowMissing(schema_item, attr_name));
+    if (copied_schema.has_value()) {
+      if (copied_schema != attr_schema) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "conflicting values for schema %v attribute %s: %v != %v",
+            schema_item, attr_name, copied_schema, attr_schema));
+      }
+      return std::make_pair(std::move(attr_schema), false);
+    }
+    RETURN_IF_ERROR(
+        new_databag_->SetSchemaAttr(schema_item, attr_name, attr_schema));
+    return std::make_pair(std::move(attr_schema), true);
+  }
+
+  // Process slice of dicts with entity schema.
+  absl::Status ProcessDicts(const QueuedSlice& ds, const DataBagImpl& db,
+                            const DataBagImpl::FallbackSpan fallbacks) {
+    ASSIGN_OR_RETURN(
+        (auto [keys_schema, was_key_schema_updated]),
+        CopyAttrSchema(ds.schema, db, fallbacks, schema::kDictKeysSchemaAttr));
+    ASSIGN_OR_RETURN((auto [values_schema, was_value_schema_updated]),
+                     CopyAttrSchema(ds.schema, db, fallbacks,
+                                    schema::kDictValuesSchemaAttr));
+    bool was_schema_updated =
+        was_key_schema_updated || was_value_schema_updated;
+    if (was_schema_updated || ds.slice.present_count() > 0) {
+      // Data or schema are not yet copied.
+      return ProcessDictKeysAndValues(ds, keys_schema, values_schema);
+    }
+    return absl::OkStatus();
+  }
+
+  // Process slice of lists with entity schema.
+  absl::Status ProcessLists(const QueuedSlice& ds, const DataBagImpl& db,
+                            const DataBagImpl::FallbackSpan fallbacks) {
+    ASSIGN_OR_RETURN(
+        (auto [attr_schema, was_schema_updated]),
+        CopyAttrSchema(ds.schema, db, fallbacks, schema::kListItemsSchemaAttr));
+    if (was_schema_updated || ds.slice.present_count() > 0) {
+      // Data or schema are not yet copied.
+      return ProcessListItems(ds, attr_schema);
+    }
+    return absl::OkStatus();
+  }
+
+  // Process attributes for the slice with entity schema.
+  absl::Status ProcessEntitySliceAttrs(
+      const QueuedSlice& ds, const DataBagImpl& db,
+      const DataBagImpl::FallbackSpan fallbacks) {
+    ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
+                     db.GetSchemaAttrs(ds.schema, fallbacks));
+    if (attr_names_slice.present_count() != attr_names_slice.size()) {
+      return absl::InternalError("schema attribute names should be present");
+    }
+    const auto& attr_names = attr_names_slice.values<arolla::Text>();
+
+    bool has_list_items_attr = false;
+    bool has_dict_keys_attr = false;
+    bool has_dict_values_attr = false;
+    attr_names.ForEach(
+        [&](int64_t id, bool presence, const std::string_view& attr_name) {
+          DCHECK(presence);
+          if (attr_name == schema::kListItemsSchemaAttr) {
+            has_list_items_attr = true;
+          } else if (attr_name == schema::kDictKeysSchemaAttr) {
+            has_dict_keys_attr = true;
+          } else if (attr_name == schema::kDictValuesSchemaAttr) {
+            has_dict_values_attr = true;
+          }
+        });
+    if (has_list_items_attr) {
+      if (attr_names.size() != 1) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "list schema %v has unexpected attributes", ds.schema));
+      }
+      return ProcessLists(ds, db, fallbacks);
+    } else if (has_dict_keys_attr || has_dict_values_attr) {
+      if (attr_names.size() != 2 || !has_dict_keys_attr ||
+          !has_dict_values_attr) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "dict schema %v has unexpected attributes", ds.schema));
+      }
+      return ProcessDicts(ds, db, fallbacks);
+    }
+    absl::Status status = absl::OkStatus();
+    attr_names.ForEach(
+        [&](int64_t id, bool presence, const std::string_view& attr_name) {
+          DCHECK(presence);
+          if (!status.ok()) {
+            return;
+          }
+          auto status_or_attr_schema =
+              CopyAttrSchema(ds.schema, db, fallbacks, attr_name);
+          if (!status_or_attr_schema.ok()) {
+            status = status_or_attr_schema.status();
+            return;
+          }
+          auto [attr_schema, was_schema_updated] = *status_or_attr_schema;
+          if (was_schema_updated || ds.slice.present_count() > 0) {
+            // Data or schema are not yet copied.
+            status = ProcessAttribute(ds, attr_name, attr_schema);
+          }
+        });
+    return status;
+  }
+
+  // Process slice of objects with entity schema.
+  absl::Status ProcessEntitySlice(const QueuedSlice& ds) {
+    if (!ds.schema.is_entity_schema()) {
+      return absl::InvalidArgumentError("schema object is expected");
+    }
+    if (ds.schema.value<ObjectId>().IsNoFollowSchema()) {
+      // no processing needed for NoFollowSchema.
+      return absl::OkStatus();
+    }
+    if (ds.schema_source == SchemaSource::kDataDatabag) {
+      return ProcessEntitySliceAttrs(ds, databag_, fallbacks_);
+    } else if (ds.schema_source == SchemaSource::kSchemaDatabag) {
+      DCHECK(schema_databag_ != nullptr);
+      return ProcessEntitySliceAttrs(ds, *schema_databag_, schema_fallbacks_);
+    }
+    return absl::InternalError("unsupported schema source");
+  }
+
+  // Process slice of objects with object schema.
+  absl::Status ProcessObjectSlice(const QueuedSlice& ds) {
+    ASSIGN_OR_RETURN(
+        auto slice_schemas,
+        databag_.GetAttr(ds.slice, schema::kSchemaAttr, fallbacks_));
+    RETURN_IF_ERROR(
+        new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, slice_schemas));
+    for (size_t idx = 0; idx < ds.slice.size(); ++idx) {
+      const DataItem& item = ds.slice[idx];
+      const DataItem& schema = slice_schemas[idx];
+      if (!schema.holds_value<ObjectId>()) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "object %v is expected to have a schema ObjectId in %s attribute",
+            item, schema::kSchemaAttr));
+      }
+      auto item_slice =
+          QueuedSlice{.slice = DataSliceImpl::Create(1, item),
+                      .schema = schema,
+                      .schema_source = SchemaSource::kDataDatabag};
+      // TODO: group items with the same schema into slices.
+      RETURN_IF_ERROR(ProcessEntitySlice(item_slice));
+    }
+    return absl::OkStatus();
+  }
+
+ public:
+  ExtractProcessor(const QueuedSlice& slice, const DataBagImpl& databag,
+                   const DataBagImpl::FallbackSpan& fallbacks,
+                   const DataBagImplPtr& new_databag)
+      : queued_slices_(),
+        slice_(slice),
+        databag_(databag),
+        fallbacks_(fallbacks),
+        schema_databag_(nullptr),
+        schema_fallbacks_(),
+        new_databag_(new_databag),
+        visited_objects_(DataBagImpl::CreateEmptyDatabag()) {}
+
+  ExtractProcessor(const QueuedSlice& slice, const DataBagImpl& databag,
+                   const DataBagImpl::FallbackSpan& fallbacks,
+                   const DataBagImpl* schema_databag,
+                   const DataBagImpl::FallbackSpan schema_fallbacks,
+                   const DataBagImplPtr& new_databag)
+      : queued_slices_(),
+        slice_(slice),
+        databag_(databag),
+        fallbacks_(fallbacks),
+        schema_databag_(schema_databag),
+        schema_fallbacks_(schema_fallbacks),
+        new_databag_(new_databag),
+        visited_objects_(DataBagImpl::CreateEmptyDatabag()) {}
+
+  absl::Status ProcessQueue() {
+    RETURN_IF_ERROR(Visit(slice_));
+    while (!queued_slices_.empty()) {
+      QueuedSlice slice = std::move(queued_slices_.front());
+      queued_slices_.pop();
+      if (slice.schema.holds_value<ObjectId>()) {
+        // Entity schema.
+        RETURN_IF_ERROR(ProcessEntitySlice(slice));
+      } else if (slice.schema.holds_value<schema::DType>()) {
+        if (slice.schema == schema::kObject) {
+          // Object schema.
+          RETURN_IF_ERROR(ProcessObjectSlice(slice));
+        } else if (slice.schema == schema::kAny) {
+          return absl::InternalError(
+              "clone/extract not supported for kAny schema");
+        }
+        // Primitive types and ItemId need no processing.
+      } else {
+        return absl::InternalError("unsupported schema type");
+      }
+    }
+    return absl::OkStatus();
+  }
+
+ private:
+  std::queue<QueuedSlice> queued_slices_;
+  const QueuedSlice& slice_;
+  const DataBagImpl& databag_;
+  const DataBagImpl::FallbackSpan fallbacks_;
+  const DataBagImpl* schema_databag_;
+  const DataBagImpl::FallbackSpan schema_fallbacks_;
+  const DataBagImplPtr new_databag_;
+  const DataBagImplPtr visited_objects_;
+};
+
+}  // namespace
+
+absl::StatusOr<DataBagImplPtr> ExtractOp::operator()(
+    const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks) const {
+  auto new_databag = DataBagImpl::CreateEmptyDatabag();
+  auto slice = QueuedSlice{.slice = ds,
+                           .schema = schema,
+                           .schema_source = SchemaSource::kDataDatabag};
+  auto processor = ExtractProcessor(slice, databag, fallbacks, new_databag);
+  RETURN_IF_ERROR(processor.ProcessQueue());
+  return new_databag;
+}
+
+absl::StatusOr<DataBagImplPtr> ExtractOp::operator()(
+    const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks) const {
+  return (*this)(DataSliceImpl::Create(1, item), schema, databag, fallbacks);
+}
+
+absl::StatusOr<DataBagImplPtr> ExtractOp::operator()(
+    const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
+    DataBagImpl::FallbackSpan schema_fallbacks) const {
+  auto new_databag = DataBagImpl::CreateEmptyDatabag();
+  auto slice = QueuedSlice{.slice = ds,
+                           .schema = schema,
+                           .schema_source = SchemaSource::kSchemaDatabag};
+  auto processor = ExtractProcessor(slice, databag, fallbacks, &schema_databag,
+                                    schema_fallbacks, new_databag);
+  RETURN_IF_ERROR(processor.ProcessQueue());
+  return new_databag;
+}
+
+absl::StatusOr<DataBagImplPtr> ExtractOp::operator()(
+    const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
+    DataBagImpl::FallbackSpan schema_fallbacks) const {
+  return (*this)(DataSliceImpl::Create(/*size=*/1, item), schema, databag,
+                 fallbacks, schema_databag, schema_fallbacks);
+}
+
+}  // namespace koladata::internal

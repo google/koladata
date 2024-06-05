@@ -1,0 +1,26 @@
+--- src/city.cc	2019-09-05 09:37:23.733840017 -0700
++++ src/city.cc	2019-09-05 10:11:21.184979629 -0700
+@@ -28,13 +28,15 @@
+ // compromising on hash quality.
+ 
+ #include "config.h"
+-#include <city.h>
++#include "city.h"
+ 
+ #include <algorithm>
+ #include <string.h>  // for memcpy and memset
+ 
+ using namespace std;
+ 
++namespace cityhash {
++
+ static uint64 UNALIGNED_LOAD64(const char *p) {
+   uint64 result;
+   memcpy(&result, p, sizeof(result));
+@@ -644,3 +646,6 @@
+ }
+ 
+ #endif
++
++}
++
