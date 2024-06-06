@@ -2078,7 +2078,7 @@ TEST(DataSliceTest, GetFromList) {
     EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
   }
   {
-    // Empty indices INT64 / INT32 / OBJECT / ANY
+    // Empty indices INT64 / INT32
     auto indices = test::EmptyDataSlice(shape, schema::kInt64);
     ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem()));
@@ -2088,23 +2088,26 @@ TEST(DataSliceTest, GetFromList) {
     ASSERT_OK_AND_ASSIGN(items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem()));
     EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
-
-    indices = test::EmptyDataSlice(shape, schema::kObject);
-    ASSERT_OK_AND_ASSIGN(items, lists.GetFromList(indices));
-    EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem()));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
-
-    indices = test::EmptyDataSlice(shape, schema::kAny);
-    ASSERT_OK_AND_ASSIGN(items, lists.GetFromList(indices));
-    EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem()));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
   }
   {
-    // Error
+    // Errors - only implicit casting is allowed.
     auto indices = test::EmptyDataSlice(shape, schema::kFloat64);
-    EXPECT_THAT(lists.GetFromList(indices),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("expected INT32, got FLOAT64")));
+    EXPECT_THAT(
+        lists.GetFromList(indices),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("unsupported implicit cast from FLOAT64 to INT64")));
+
+    indices = test::EmptyDataSlice(shape, schema::kObject);
+    EXPECT_THAT(
+        lists.GetFromList(indices),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("unsupported implicit cast from OBJECT to INT64")));
+
+    indices = test::EmptyDataSlice(shape, schema::kAny);
+    EXPECT_THAT(
+        lists.GetFromList(indices),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("unsupported implicit cast from ANY to INT64")));
   }
 }
 

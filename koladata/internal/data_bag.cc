@@ -2586,7 +2586,7 @@ DataBagImpl::~DataBagImpl() noexcept {
   // Dependant DataBagImpl's to remove.
   //
   // NOTE(b/343432263): NoDestructor is used to avoid issues with the
-  // destruction order of globals vs thread_locals: b/343432263.
+  // destruction order of globals vs thread_locals.
   thread_local absl::NoDestructor<DataBagImplConstPtr> to_destruct;
 
   if (parent_data_bag_ == nullptr) {

@@ -98,6 +98,17 @@ class DataBag {
   // computing this id.
   uint64_t GetRandomizedDataBagId();
 
+  // Merge additional attributes and objects from `other_db`.
+  // When allow_data_conflicts is true, the data is merged even if there is a
+  // conflict, when allow_data_conflicts is false, we raise on a data conflict.
+  // When allow_schema_conflicts is true, the explicit schemas are merged even
+  // if there is a conflict, and when it is false, we raise on an explicit
+  // schema conflict. The value of the overwrite argument tells whether the new
+  // or the old value is kept in case of a conflict when conflicts are allowed.
+  absl::Status MergeInplace(const DataBagPtr& other_db, bool overwrite,
+                            bool allow_data_conflicts,
+                            bool allow_schema_conflicts);
+
  private:
   explicit DataBag(bool is_mutable)
       : impl_(internal::DataBagImpl::CreateEmptyDatabag()),

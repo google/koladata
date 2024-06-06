@@ -104,6 +104,7 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
     ],
 )
 
@@ -112,9 +113,13 @@ cc_test(
     srcs = ["data_bag_test.cc"],
     deps = [
         ":data_bag",
+        ":object_factories",
+        ":test_utils",
         "//koladata/internal:data_bag",
+        "//koladata/testing:matchers",
         "//koladata/testing:status_matchers",
         "@com_google_absl//absl/status",
+        "@com_google_arolla//arolla/util:status_backport",
         "@com_google_googletest//:gtest_main",
     ],
 )

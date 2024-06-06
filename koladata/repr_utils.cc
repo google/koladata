@@ -32,7 +32,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "absl/types/span.h"
-#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -41,7 +40,6 @@
 #include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
-#include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
@@ -50,6 +48,126 @@ namespace koladata {
 namespace {
 
 absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds);
+
+struct FormatOptions {
+  absl::string_view prefix = "";
+  absl::string_view suffix = "";
+  bool enable_multiline = true;
+  int max_width = 90;
+};
+
+// Returns the string format of DataSlice content with proper (multiline)
+// layout and separators.
+std::string PrettyFormatStr(const std::vector<std::string>& parts,
+                            const FormatOptions& options) {
+  bool parts_multilined =
+      std::find_if(parts.begin(), parts.end(), [](const std::string& str) {
+        return absl::StrContains(str, '\n');
+      }) != parts.end();
+  int total_len = std::accumulate(
+      parts.begin(), parts.end(), 0, [](int sum, const std::string& str) {
+        return sum + str.size() + 2 /*separator has length 2*/;
+      });
+
+  bool use_multiline = options.enable_multiline &&
+                       (parts_multilined || total_len > options.max_width);
+
+  absl::string_view sep = use_multiline ? ",\n" : ", ";
+  absl::string_view indent = "\n";
+  std::string prefix(options.prefix);
+  std::string suffix(options.suffix);
+  if (use_multiline) {
+    indent = "\n  ";
+    prefix = prefix.empty() ? prefix : absl::StrCat(prefix, "\n");
+    suffix = suffix.empty() ? suffix : absl::StrCat(",\n", suffix);
+  }
+  std::string joined_parts = absl::StrCat(prefix, absl::StrJoin(parts, sep));
+  absl::StrReplaceAll({{"\n", indent}}, &joined_parts);
+  return absl::StrCat(joined_parts, suffix);
+}
+
+// Returns the string representation of the element in each edge group.
+absl::StatusOr<std::vector<std::string>> StringifyGroup(
+    const arolla::DenseArrayEdge& edge, const std::vector<std::string>& parts) {
+  std::vector<std::string> result;
+  result.reserve(edge.child_size());
+  const arolla::DenseArray<int64_t>& edge_values = edge.edge_values();
+  if (!edge_values.IsFull()) {
+    return absl::InternalError("Edge contains missing value.");
+  }
+  for (int64_t i = 0; i < edge_values.size() - 1; ++i) {
+    arolla::OptionalValue<int64_t> start = edge_values[i];
+    arolla::OptionalValue<int64_t> end = edge_values[i + 1];
+    std::vector<std::string> elements;
+    elements.reserve(end.value - start.value);
+    for (int64_t offset = start.value; offset < end.value; ++offset) {
+      elements.emplace_back(parts[offset]);
+    }
+    result.emplace_back(
+        PrettyFormatStr(elements, {.prefix = "[", .suffix = "]"}));
+  }
+  return result;
+}
+
+absl::StatusOr<std::vector<std::string>> StringifyByDimension(
+    const DataSlice& slice, int64_t dimension, bool show_content) {
+  const internal::DataSliceImpl& slice_impl = slice.slice();
+  const absl::Span<const arolla::DenseArrayEdge> edges =
+      slice.GetShape().edges();
+  const arolla::DenseArrayEdge& edge = edges[dimension];
+  if (dimension == edges.size() - 1) {
+    // Turns each items in slice into a string.
+    std::vector<std::string> parts;
+    parts.reserve(slice.size());
+    for (const internal::DataItem& item : slice_impl) {
+      // print item content when they are in List.
+      if (show_content) {
+        ASSIGN_OR_RETURN(
+            DataSlice item_slice,
+            DataSlice::Create(item, slice.GetSchemaImpl(), slice.GetDb()));
+        ASSIGN_OR_RETURN(std::string item_str, DataItemToStr(item_slice));
+        parts.push_back(std::move(item_str));
+      } else {
+        absl::string_view item_prefix = "";
+        absl::string_view objid_prefix = "";
+        if (item.holds_value<internal::ObjectId>()) {
+          objid_prefix = "$";
+          if (item.value<internal::ObjectId>().IsUuid()) {
+            objid_prefix = "k";
+          }
+          if (item.is_dict()) {
+            item_prefix = "Dict:";
+          } else if (item.is_list()) {
+            item_prefix = "List:";
+          } else if (slice.GetSchemaImpl() == schema::kObject) {
+            item_prefix = "Obj:";
+          } else if (!item.is_schema()) {
+            item_prefix = "Entity:";
+          }
+        }
+        parts.push_back(absl::StrCat(item_prefix, objid_prefix, item));
+      }
+    }
+    return StringifyGroup(edge, parts);
+  }
+  ASSIGN_OR_RETURN(std::vector<std::string> parts,
+                   StringifyByDimension(slice, dimension + 1, show_content));
+  return StringifyGroup(edge, parts);
+}
+
+// Returns the string for python __str__ and part of __repr__.
+// The DataSlice must have at least 1 dimension. If `show_content` is true, the
+// content of List, Dict, Entity and Object will be printed to the string
+// instead of ItemId representation.
+// TODO: Add recursion depth limit and cycle prevention.
+// TODO: do truncation when ds is too large.
+absl::StatusOr<std::string> DataSliceImplToStr(const DataSlice& ds,
+                                               bool show_content = false) {
+  ASSIGN_OR_RETURN(std::vector<std::string> parts,
+                   StringifyByDimension(ds, 0, show_content));
+  return PrettyFormatStr(
+      parts, {.prefix = "", .suffix = "", .enable_multiline = false});
+}
 
 // Returns the string representation of list schema. `schema` must be schema
 // type and DataItem. Returns empty string if it doesn't contain list item
@@ -91,7 +209,8 @@ absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema) {
 // Returns the string representation of list item.
 absl::StatusOr<std::string> ListToStr(const DataSlice& ds) {
   ASSIGN_OR_RETURN(const DataSlice list, ds.ExplodeList(0, std::nullopt));
-  ASSIGN_OR_RETURN(const std::string str, DataSliceToStr(list));
+  ASSIGN_OR_RETURN(const std::string str,
+                   DataSliceImplToStr(list, /*show_content=*/true));
   return absl::StrCat("List", str);
 }
 
@@ -160,106 +279,6 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds) {
     return absl::StrCat(prefix, schema_str, ")");
   }
   return absl::StrCat(data_item);
-}
-
-struct FormatOptions {
-  absl::string_view prefix = "";
-  absl::string_view suffix = "";
-  bool enable_multiline = true;
-  int max_width = 90;
-};
-
-// Returns the string format of DataSlice content with proper (multiline)
-// layout and separators.
-std::string PrettyFormatStr(const std::vector<std::string>& parts,
-                            const FormatOptions& options) {
-  bool parts_multilined =
-      std::find_if(parts.begin(), parts.end(), [](const std::string& str) {
-        return absl::StrContains(str, '\n');
-      }) != parts.end();
-  int total_len = std::accumulate(
-      parts.begin(), parts.end(), 0, [](int sum, const std::string& str) {
-        return sum + str.size() + 2 /*separator has length 2*/;
-      });
-
-  bool use_multiline = options.enable_multiline &&
-                       (parts_multilined || total_len > options.max_width);
-
-  absl::string_view sep = use_multiline ? ",\n" : ", ";
-  absl::string_view indent = "\n";
-  std::string prefix(options.prefix);
-  std::string suffix(options.suffix);
-  if (use_multiline) {
-    indent = "\n  ";
-    prefix = prefix.empty() ? prefix : absl::StrCat(prefix, "\n");
-    suffix = suffix.empty() ? suffix : absl::StrCat(",\n", suffix);
-  }
-  std::string joined_parts = absl::StrCat(prefix, absl::StrJoin(parts, sep));
-  absl::StrReplaceAll({{"\n", indent}}, &joined_parts);
-  return absl::StrCat(joined_parts, suffix);
-}
-
-// Returns the string representation of the element in each edge group.
-absl::StatusOr<std::vector<std::string>> StringifyGroup(
-    const arolla::DenseArrayEdge& edge, const std::vector<std::string>& parts) {
-  std::vector<std::string> result;
-  result.reserve(edge.child_size());
-  const arolla::DenseArray<int64_t>& edge_values = edge.edge_values();
-  if (!edge_values.IsFull()) {
-    return absl::InternalError("Edge contains missing value.");
-  }
-  for (int64_t i = 0; i < edge_values.size() - 1; ++i) {
-    arolla::OptionalValue<int64_t> start = edge_values[i];
-    arolla::OptionalValue<int64_t> end = edge_values[i + 1];
-    std::vector<std::string> elements;
-    elements.reserve(end.value - start.value);
-    for (int64_t offset = start.value; offset < end.value; ++offset) {
-      elements.emplace_back(parts[offset]);
-    }
-    result.emplace_back(
-        PrettyFormatStr(elements, {.prefix = "[", .suffix = "]"}));
-  }
-  return result;
-}
-
-absl::StatusOr<std::vector<std::string>> StringifyByDimension(
-    const internal::DataSliceImpl& slice,
-    absl::Span<const arolla::DenseArrayEdge> edges, const DataBagPtr& data_bag,
-    int64_t dimension) {
-  const arolla::DenseArrayEdge& edge = edges[dimension];
-  if (dimension == edges.size() - 1) {
-    // Turns each items in slice into a string.
-    std::vector<std::string> parts;
-    parts.reserve(slice.size());
-    for (const internal::DataItem& item : slice) {
-      // print dict/list content when they are elements of DataSlice.
-      if (item.is_list() || item.is_dict()) {
-        ASSIGN_OR_RETURN(DataSlice item_slice,
-                         DataSlice::Create(
-                             item, internal::DataItem(schema::kAny), data_bag));
-        ASSIGN_OR_RETURN(std::string item_str, DataItemToStr(item_slice));
-        parts.emplace_back(std::move(item_str));
-      } else {
-        parts.emplace_back(absl::StrCat(item));
-      }
-    }
-    return StringifyGroup(edge, parts);
-  }
-  ASSIGN_OR_RETURN(std::vector<std::string> parts,
-                   StringifyByDimension(slice, edges, data_bag, dimension + 1));
-  return StringifyGroup(edge, parts);
-}
-
-// Returns the string for python __str__ and part of __repr__.
-// This method requires the DataSlice contains DataSliceImpl.
-// TODO: do truncation when ds is too large.
-absl::StatusOr<std::string> DataSliceImplToStr(const DataSlice& ds) {
-  const arolla::JaggedDenseArrayShape& shape = ds.GetShape();
-  ASSIGN_OR_RETURN(
-      std::vector<std::string> parts,
-      StringifyByDimension(ds.slice(), shape.edges(), ds.GetDb(), 0));
-  return PrettyFormatStr(
-      parts, {.prefix = "", .suffix = "", .enable_multiline = false});
 }
 
 }  // namespace

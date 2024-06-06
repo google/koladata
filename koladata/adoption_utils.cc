@@ -30,21 +30,9 @@ absl::Status AdoptionQueue::AdoptInto(DataBag& db) const {
       continue;
     }
     visited_bags.insert(&other_db->GetImpl());
-    if (other_db->GetFallbacks().empty()) {
-      RETURN_IF_ERROR(db_impl.MergeInplace(other_db->GetImpl()));
-    } else {
-      auto other_db_impl = other_db->GetImpl().PartiallyPersistentFork();
-      FlattenFallbackFinder fallback_finder(*other_db);
-      for (const auto& fallback : fallback_finder.GetFlattenFallbacks()) {
-        RETURN_IF_ERROR(other_db_impl->MergeInplace(
-            *fallback,
-            internal::MergeOptions{
-                .data_conflict_policy = internal::MergeOptions::kKeepOriginal,
-                .schema_conflict_policy =
-                    internal::MergeOptions::kKeepOriginal}));
-      }
-      RETURN_IF_ERROR(db_impl.MergeInplace(*other_db_impl));
-    }
+    RETURN_IF_ERROR(db.MergeInplace(other_db, /*overwrite=*/false,
+                                    /*allow_data_conflicts=*/false,
+                                    /*allow_schema_conflicts=*/false));
   }
   return absl::OkStatus();
 }

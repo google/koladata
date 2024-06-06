@@ -15,16 +15,24 @@
 #include "koladata/data_bag.h"
 
 #include <cstdint>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "koladata/internal/data_bag.h"
+#include "koladata/object_factories.h"
+#include "koladata/test_utils.h"
+#include "koladata/testing/matchers.h"
 #include "koladata/testing/status_matchers_backport.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {
 
+using ::koladata::testing::IsEquivalentTo;
+using ::koladata::testing::IsOkAndHolds;
+using ::koladata::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 
@@ -38,9 +46,9 @@ TEST(DataBagTest, Fallbacks) {
   auto new_db = DataBag::ImmutableEmptyWithFallbacks({db, nullptr, db_fb});
   EXPECT_THAT(new_db->GetFallbacks(), ElementsAre(db, db_fb));
   EXPECT_FALSE(new_db->IsMutable());
-  EXPECT_THAT(new_db->GetMutableImpl(),
-              ::koladata::testing::StatusIs(absl::StatusCode::kInvalidArgument,
-                                            HasSubstr("immutable")));
+  EXPECT_THAT(
+      new_db->GetMutableImpl(),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("immutable")));
 }
 
 TEST(DataBagTest, CommonDataBag_AllEmpty) {
@@ -128,6 +136,103 @@ TEST(DataBagTest, CollectFlattenFallbacks) {
     FlattenFallbackFinder fbf(*db);
     EXPECT_EQ(fbf.GetFlattenFallbacks().size(), kSteps * 2);
   }
+}
+
+TEST(DataBagTest, MergeInplace) {
+  auto db_1 = DataBag::Empty();
+  auto db_2 = DataBag::Empty();
+  auto db_3 = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_1, EntityCreator()(db_1, {std::string("a"), std::string("b")},
+                                 {test::DataItem(1), test::DataItem(2)}));
+  auto ds_2 = ds_1.WithDb(db_2);
+  auto ds_3 = ds_1.WithDb(db_3);
+  ASSERT_OK(ds_2.SetAttrWithUpdateSchema("a", test::DataItem(3)));
+  ASSERT_OK(ds_3.SetAttrWithUpdateSchema("b", test::DataItem("foo")));
+
+  // Some of the MergeInplace calls below do partial modification before
+  // failure, so we recreate it every time.
+  auto recreate = [&db_1, &ds_1]() -> absl::Status {
+    db_1 = DataBag::Empty();
+    ds_1 = ds_1.WithDb(db_1);
+    RETURN_IF_ERROR(ds_1.SetAttrWithUpdateSchema("a", test::DataItem(1)));
+    return ds_1.SetAttrWithUpdateSchema("b", test::DataItem(2));
+  };
+
+  ASSERT_OK(recreate());
+  EXPECT_THAT(db_1->MergeInplace(db_2, /*overwrite=*/false,
+                                 /*allow_data_conflicts=*/false,
+                                 /*allow_schema_conflicts=*/false),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("conflicting values")));
+
+  ASSERT_OK(recreate());
+  EXPECT_THAT(db_1->MergeInplace(db_2, /*overwrite=*/true,
+                                 /*allow_data_conflicts=*/false,
+                                 /*allow_schema_conflicts=*/false),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("conflicting values")));
+
+  ASSERT_OK(recreate());
+  ASSERT_OK(db_1->MergeInplace(db_2, /*overwrite=*/false,
+                               /*allow_data_conflicts=*/true,
+                               /*allow_schema_conflicts=*/false));
+  EXPECT_THAT(ds_1.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(1, db_1))));
+
+  ASSERT_OK(recreate());
+  ASSERT_OK(db_1->MergeInplace(db_2, /*overwrite=*/true,
+                               /*allow_data_conflicts=*/true,
+                               /*allow_schema_conflicts=*/false));
+  EXPECT_THAT(ds_1.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(3, db_1))));
+  EXPECT_THAT(ds_1.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(2, db_1))));
+
+  ASSERT_OK(recreate());
+  EXPECT_THAT(db_1->MergeInplace(db_3, /*overwrite=*/false,
+                                 /*allow_data_conflicts=*/false,
+                                 /*allow_schema_conflicts=*/false),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("conflicting values")));
+
+  ASSERT_OK(recreate());
+  EXPECT_THAT(db_1->MergeInplace(db_3, /*overwrite=*/true,
+                                 /*allow_data_conflicts=*/false,
+                                 /*allow_schema_conflicts=*/false),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("conflicting values")));
+
+  ASSERT_OK(recreate());
+  EXPECT_THAT(db_1->MergeInplace(db_3, /*overwrite=*/false,
+                                 /*allow_data_conflicts=*/true,
+                                 /*allow_schema_conflicts=*/false),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("conflicting dict values")));
+
+  ASSERT_OK(recreate());
+  EXPECT_THAT(db_1->MergeInplace(db_3, /*overwrite=*/true,
+                                 /*allow_data_conflicts=*/true,
+                                 /*allow_schema_conflicts=*/false),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("conflicting dict values")));
+
+  ASSERT_OK(recreate());
+  ASSERT_OK(db_1->MergeInplace(db_3, /*overwrite=*/false,
+                               /*allow_data_conflicts=*/true,
+                               /*allow_schema_conflicts=*/true));
+  EXPECT_THAT(ds_1.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(2, db_1))));
+
+  ASSERT_OK(recreate());
+  ASSERT_OK(db_1->MergeInplace(db_3, /*overwrite=*/true,
+                               /*allow_data_conflicts=*/true,
+                               /*allow_schema_conflicts=*/true));
+  EXPECT_THAT(ds_1.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("foo", db_1))));
+  EXPECT_THAT(ds_1.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(1, db_1))));
 }
 
 }  // namespace

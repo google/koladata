@@ -139,8 +139,6 @@ absl::StatusOr<DataSlice> CreateDictLike(
     const std::optional<DataSlice>& value_schema);
 
 // Creates list schema with the given item schema.
-// Exposed for testing.
-// TODO: Remove this function in favor of CreateUUSchema.
 absl::StatusOr<internal::DataItem> CreateListSchema(
     const DataBagPtr& db, const DataSlice& item_schema);
 

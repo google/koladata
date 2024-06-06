@@ -165,31 +165,20 @@ absl::StatusOr<DataSlice> CreateLike(const std::shared_ptr<DataBag>& db,
 }
 
 // Creates dict schema with the given key and value schemas.
+// TODO: Make this function public. Will be useful for
+// kd.dict_schema.
 absl::StatusOr<internal::DataItem> CreateDictSchema(
     const DataBagPtr& db, const DataSlice& key_schema,
     const DataSlice& value_schema) {
   RETURN_IF_ERROR(key_schema.VerifyIsSchema());
   RETURN_IF_ERROR(value_schema.VerifyIsSchema());
   RETURN_IF_ERROR(schema::VerifyDictKeySchema(key_schema.item()));
-
-  // TODO: Use
-  // db_mutable_impl.CreateUUSchema(
-  //     {"__keys__", "__values__"},
-  //     {key_schema.item(), value_schema.item()})
-  // when it is available.
-  auto fingerprint = arolla::FingerprintHasher("::koladata::::CreateDictSchema")
-                         .Combine(key_schema.item())
-                         .Combine(value_schema.item())
-                         .Finish();
-  auto schema_id =
-      internal::DataItem(internal::CreateUuidExplicitSchema(fingerprint));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
-  RETURN_IF_ERROR(db_mutable_impl.SetSchemaAttr(
-      schema_id, schema::kDictKeysSchemaAttr, key_schema.item()));
-  RETURN_IF_ERROR(db_mutable_impl.SetSchemaAttr(
-      schema_id, schema::kDictValuesSchemaAttr, value_schema.item()));
-  return schema_id;
+  return db_mutable_impl.CreateUuSchemaFromFields(
+      "::koladata::::CreateDictSchema",
+      {"__keys__", "__values__"},
+      {key_schema.item(), value_schema.item()});
 }
 
 }  // namespace
@@ -197,20 +186,11 @@ absl::StatusOr<internal::DataItem> CreateDictSchema(
 absl::StatusOr<internal::DataItem> CreateListSchema(
     const DataBagPtr& db, const DataSlice& item_schema) {
   RETURN_IF_ERROR(item_schema.VerifyIsSchema());
-  auto fingerprint = arolla::FingerprintHasher(
-                         "::koladata::internal::DataBagImpl::CreateListSchema")
-                         .Combine(item_schema.item())
-                         .Finish();
-  // TODO: Use
-  // db_mutable_impl.CreateUUSchema({"__items__"}, {item_schema.item()})
-  // once it is available.
-  auto schema_id =
-      internal::DataItem(internal::CreateUuidExplicitSchema(fingerprint));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
-  RETURN_IF_ERROR(db_mutable_impl.SetSchemaAttr(
-      schema_id, schema::kListItemsSchemaAttr, item_schema.item()));
-  return schema_id;
+  return db_mutable_impl.CreateUuSchemaFromFields(
+      "::koladata::::CreateListSchema",
+      {"__items__"}, {item_schema.item()});
 }
 
 absl::StatusOr<DataSlice> EntityCreator::operator()(

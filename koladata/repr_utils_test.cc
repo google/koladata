@@ -160,6 +160,36 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_DictInList) {
       IsOkAndHolds(StrEq("List[Dict{'a'=1}, Dict{'a'=1}, Dict{'a'=1}]")));
 }
 
+TEST(ReprUtilTest, TestDataItemStringRepresentation_ObjectsInList) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
+                       CreateEmptyList(bag, test::Schema(schema::kAny)));
+
+  DataSlice value_1 = test::DataSlice<int>({1, 2});
+  ASSERT_OK_AND_ASSIGN(DataSlice obj, ObjectCreator()(bag, {"a"}, {value_1}));
+
+  ASSERT_OK_AND_ASSIGN(DataSlice data_slice,
+                       CreateNestedList(bag, obj, std::nullopt));
+  EXPECT_THAT(DataSliceToStr(data_slice),
+              IsOkAndHolds(StrEq("List[Obj(a=1), Obj(a=2)]")));
+}
+
+TEST(ReprUtilTest, TestDataItemStringRepresentation_EntitiesInList) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
+                       CreateEmptyList(bag, test::Schema(schema::kAny)));
+
+  DataSlice value_1 = test::DataSlice<int>({1, 2});
+  ASSERT_OK_AND_ASSIGN(DataSlice obj, EntityCreator()(bag, {"a"}, {value_1}));
+
+  ASSERT_OK_AND_ASSIGN(DataSlice data_slice,
+                       CreateNestedList(bag, obj, std::nullopt));
+  EXPECT_THAT(DataSliceToStr(data_slice),
+              IsOkAndHolds(StrEq("List[Entity(a=1), Entity(a=2)]")));
+}
+
 TEST(ReprUtilTest, TestDataItemStringRepresentation_Object) {
   DataBagPtr bag = DataBag::Empty();
 
@@ -321,7 +351,7 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_SimpleSlice) {
   EXPECT_THAT(DataSliceToStr(ds2), IsOkAndHolds("[1, None, 3]"));
 }
 
-TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_ObjectSlices) {
+TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_EntitiySlices) {
   DataSlice values = test::DataSlice<int>({1, 2, 3});
 
   DataBagPtr db = DataBag::Empty();
@@ -329,7 +359,40 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_ObjectSlices) {
   EXPECT_THAT(
       DataSliceToStr(ds),
       IsOkAndHolds(MatchesRegex(
-          R"regex(\[[a-f0-9]{15}\.[0-9], [a-f0-9]{15}\.[0-9], [a-f0-9]{15}\.[0-9]\])regex")));
+          R"regex(\[Entity:\$[a-f0-9]{15}\.[0-9], Entity:\$[a-f0-9]{15}\.[0-9], Entity:\$[a-f0-9]{15}\.[0-9]\])regex")));
+}
+
+TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_ObjectSlices) {
+  DataSlice values = test::DataSlice<int>({1, 2, 3});
+
+  DataBagPtr db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(DataSlice ds, ObjectCreator()(db, {"a"}, {values}));
+  EXPECT_THAT(
+      DataSliceToStr(ds),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(\[Obj:\$[a-f0-9]{15}\.[0-9], Obj:\$[a-f0-9]{15}\.[0-9], Obj:\$[a-f0-9]{15}\.[0-9]\])regex")));
+}
+
+TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_ListSlices) {
+  ObjectId list_id_1 = internal::AllocateSingleList();
+  ObjectId list_id_2 = internal::AllocateSingleList();
+  DataSlice ds = test::DataSlice<ObjectId>({list_id_1, list_id_2});
+
+  EXPECT_THAT(
+      DataSliceToStr(ds),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(\[List:\$[a-f0-9]{17}\.[0-9], List:\$[a-f0-9]{17}\.[0-9]\])regex")));
+}
+
+TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_DictSlices) {
+  ObjectId dict_id_1 = internal::AllocateSingleDict();
+  ObjectId dict_id_2 = internal::AllocateSingleDict();
+
+  DataSlice ds = test::DataSlice<ObjectId>({dict_id_1, dict_id_2});
+  EXPECT_THAT(
+      DataSliceToStr(ds),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(\[Dict:\$[a-f0-9]{18}\.[0-9], Dict:\$[a-f0-9]{18}\.[0-9]\])regex")));
 }
 
 TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_TwoDimensionsSlice) {

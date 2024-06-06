@@ -18,6 +18,7 @@
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
 
 namespace koladata {
 
@@ -137,6 +138,10 @@ absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,
 // more details.
 absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
                                  const internal::DataItem& schema,
+                                 bool implicit_cast = true,
+                                 bool validate_schema = true);
+
+absl::StatusOr<DataSlice> CastTo(const DataSlice& slice, schema::DType dtype,
                                  bool implicit_cast = true,
                                  bool validate_schema = true);
 

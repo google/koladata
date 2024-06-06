@@ -266,4 +266,10 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
   ABSL_UNREACHABLE();
 }
 
+absl::StatusOr<DataSlice> CastTo(const DataSlice& slice, schema::DType dtype,
+                                 bool implicit_cast, bool validate_schema) {
+  return CastTo(slice, internal::DataItem(dtype), implicit_cast,
+                validate_schema);
+}
+
 }  // namespace koladata

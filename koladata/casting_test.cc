@@ -1433,9 +1433,14 @@ TEST(Casting, CastTo_CoversAllDTypes) {
   // DTypes.
   arolla::meta::foreach_type(schema::supported_dtype_values(), [&](auto tpe) {
     using T = typename decltype(tpe)::type;
-    auto schema = internal::DataItem(schema::GetDType<T>());
-    EXPECT_THAT(CastTo(test::EmptyDataSlice(3, schema::kNone), schema),
-                IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema))));
+    schema::DType schema = schema::GetDType<T>();
+    internal::DataItem schema_item(schema);
+    EXPECT_THAT(
+        CastTo(test::EmptyDataSlice(3, schema::kNone), schema_item),
+        IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema_item))));
+    EXPECT_THAT(
+        CastTo(test::EmptyDataSlice(3, schema::kNone), schema),
+        IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema_item))));
   });
   // Entities.
   auto schema = internal::DataItem(internal::AllocateExplicitSchema());

@@ -24,6 +24,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/random/random.h"
+#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
@@ -32,6 +33,7 @@
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 
@@ -95,6 +97,33 @@ uint64_t DataBag::GetRandomizedDataBagId() {
         ^ reinterpret_cast<uintptr_t>(this);
   }
   return *randomized_data_bag_id_;
+}
+
+absl::Status DataBag::MergeInplace(const DataBagPtr& other_db, bool overwrite,
+                                   bool allow_data_conflicts,
+                                   bool allow_schema_conflicts) {
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_impl, GetMutableImpl());
+  auto conflict_side = overwrite ? internal::MergeOptions::kOverwrite
+                                 : internal::MergeOptions::kKeepOriginal;
+  internal::MergeOptions merge_options;
+  if (allow_data_conflicts) {
+    merge_options.data_conflict_policy = conflict_side;
+  }
+  if (allow_schema_conflicts) {
+    merge_options.schema_conflict_policy = conflict_side;
+  }
+  if (other_db->GetFallbacks().empty()) {
+    return db_impl.MergeInplace(other_db->GetImpl(), merge_options);
+  }
+  auto other_db_impl = other_db->GetImpl().PartiallyPersistentFork();
+  FlattenFallbackFinder fallback_finder(*other_db);
+  auto keep_original = internal::MergeOptions{
+      .data_conflict_policy = internal::MergeOptions::kKeepOriginal,
+      .schema_conflict_policy = internal::MergeOptions::kKeepOriginal};
+  for (const auto& fallback : fallback_finder.GetFlattenFallbacks()) {
+    RETURN_IF_ERROR(other_db_impl->MergeInplace(*fallback, keep_original));
+  }
+  return db_impl.MergeInplace(*other_db_impl, merge_options);
 }
 
 void FlattenFallbackFinder::CollectFlattenFallbacks(

@@ -46,7 +46,6 @@
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -76,47 +75,6 @@ constexpr const char* kExplicitSchemaIncompatibleDictError =
 const internal::DataItem kAnySchema(schema::kAny);
 const internal::DataItem kObjectSchema(schema::kObject);
 const internal::DataItem kSchemaSchema(schema::kSchema);
-
-template <typename SRC, typename DST>
-absl::StatusOr<DataSlice> CastPrimitiveSlice(const DataSlice& slice) {
-  static_assert(std::is_same_v<DST, int64_t> || std::is_same_v<DST, double>);
-  auto dtype = slice.dtype();
-  if (dtype == arolla::GetQType<DST>()) {
-    return slice;
-  }
-  internal::DataItem dst_schema(schema::GetDType<DST>());
-  if (dtype == arolla::GetQType<SRC>()) {
-    return slice.VisitImpl([&]<class T>(const T& impl) {
-      if constexpr (std::is_same_v<T, internal::DataItem>) {
-        return DataSlice::Create(
-            internal::DataItem(DST{impl.template value<SRC>()}),
-            std::move(dst_schema), slice.GetDb());
-      } else {
-        const arolla::DenseArray<SRC>& v_src = impl.template values<SRC>();
-        auto v_dst = arolla::CreateDenseOp([](SRC v) { return DST(v); })(v_src);
-        return DataSlice::Create(
-            internal::DataSliceImpl::Create(std::move(v_dst)),
-            slice.GetShapePtr(), std::move(dst_schema), slice.GetDb());
-      }
-    });
-  }
-  if (slice.impl_empty_and_unknown()) {
-    const auto& slice_schema = slice.GetSchemaImpl();
-    auto v_dst = arolla::CreateEmptyDenseArray<DST>(slice.GetShape().size());
-    if (slice_schema == schema::GetDType<SRC>() ||
-        slice_schema == schema::GetDType<DST>() ||
-        slice_schema == schema::kObject || slice_schema == schema::kAny ||
-        slice_schema == schema::kNone) {
-      return DataSlice::Create(
-          // Gets converted to DataItem if shape.rank() == 0.
-          internal::DataSliceImpl::Create(std::move(v_dst)),
-          slice.GetShapePtr(), std::move(dst_schema), slice.GetDb());
-    }
-  }
-  return absl::InvalidArgumentError(absl::StrFormat(
-      "wrong type in casting: expected %v, got %v",
-      schema::GetDType<SRC>(), slice.GetSchemaImpl()));
-}
 
 const DataSlice::JaggedShapePtr& MaxRankShape(
     const DataSlice::JaggedShapePtr& s1, const DataSlice::JaggedShapePtr& s2) {
@@ -1147,9 +1105,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
   // it.
   BroadcastHelper expanded_this(*this, shape);
   RETURN_IF_ERROR(expanded_this.status());
-  ASSIGN_OR_RETURN(
-      DataSlice indices_int64,
-      (CastPrimitiveSlice</*SRC=*/int32_t, /*DST=*/int64_t>(indices)));
+  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
   BroadcastHelper expanded_indices(indices_int64, shape);
   RETURN_IF_ERROR(expanded_indices.status());
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
@@ -1190,9 +1146,7 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
   // it.
   BroadcastHelper expanded_this(*this, shape);
   RETURN_IF_ERROR(expanded_this.status());
-  ASSIGN_OR_RETURN(
-      DataSlice indices_int64,
-      (CastPrimitiveSlice</*SRC=*/int32_t, /*DST=*/int64_t>(indices)));
+  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
   BroadcastHelper expanded_indices(indices_int64, shape);
   RETURN_IF_ERROR(expanded_indices.status());
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
@@ -1243,9 +1197,7 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
   // it.
   BroadcastHelper expanded_this(*this, shape);
   RETURN_IF_ERROR(expanded_this.status());
-  ASSIGN_OR_RETURN(
-      DataSlice indices_int64,
-      (CastPrimitiveSlice</*SRC=*/int32_t, /*DST=*/int64_t>(indices)));
+  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
   if (indices_int64.present_count() == 0) {
     return absl::OkStatus();
   }
@@ -1281,9 +1233,7 @@ absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
   // it.
   BroadcastHelper expanded_this(*this, shape);
   RETURN_IF_ERROR(expanded_this.status());
-  ASSIGN_OR_RETURN(
-      DataSlice indices_int64,
-      (CastPrimitiveSlice</*SRC=*/int32_t, /*DST=*/int64_t>(indices)));
+  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
   if (indices_int64.present_count() == 0) {
     return absl::OkStatus();
   }
