@@ -14,11 +14,9 @@
 //
 #include "koladata/internal/op_utils/equal.h"
 
-#include <cstdint>
-#include <type_traits>
-
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
@@ -30,17 +28,21 @@
 
 namespace koladata::internal {
 
-template <>
-struct EqualOp::compatible_types<int, int64_t> : std::true_type {};
-
-template <>
-struct EqualOp::compatible_types<int64_t, int> : std::true_type {};
-
-template <>
-struct EqualOp::compatible_types<float, double> : std::true_type {};
-
-template <>
-struct EqualOp::compatible_types<double, float> : std::true_type {};
+DataItem EqualOp::operator()(const DataItem& lhs, const DataItem& rhs) const {
+  if (!lhs.has_value() || !rhs.has_value()) {
+    return DataItem();
+  }
+  return lhs.VisitValue([&]<typename LhsT>(const LhsT& l) {
+    using LhsViewT = arolla::view_type_t<LhsT>;
+    return rhs.VisitValue([&]<typename RhsT>(const RhsT& r) {
+      using RhsViewT = arolla::view_type_t<RhsT>;
+      if constexpr (Comparable<LhsT, RhsT>()) {
+        return DataItem(MaskEqualOp<LhsViewT, RhsViewT>()(l, r));
+      }
+      return DataItem();
+    });
+  });
+}
 
 absl::StatusOr<DataSliceImpl> EqualOp::operator()(
     const DataSliceImpl& lhs, const DataSliceImpl& rhs) const {
@@ -61,7 +63,7 @@ absl::StatusOr<DataSliceImpl> EqualOp::operator()(
                                    const RhsArrayT& r_array) -> absl::Status {
           using RhsValT = typename RhsArrayT::base_type;
           using RhsViewValT = arolla::view_type_t<RhsValT>;
-          if constexpr (compatible_types<LhsValT, RhsValT>::value) {
+          if constexpr (Comparable<LhsValT, RhsValT>()) {
             auto op =
                 arolla::CreateDenseOp<arolla::DenseOpFlags::kNoSizeValidation |
                                       arolla::DenseOpFlags::kRunOnMissing>(

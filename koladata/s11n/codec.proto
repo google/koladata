@@ -25,6 +25,40 @@ message KodaV1Proto {
     optional KodaV1Proto extension = 329924649;
   }
 
+  message ObjectIdProto {
+    optional uint64 hi = 1;
+    optional uint64 lo = 2;
+  }
+
+  message DataItemProto {
+    oneof value {
+      bool missing = 1;
+      ObjectIdProto object_id = 2;
+      int32 i32 = 3;
+      int64 i64 = 4;
+      float f32 = 5;
+      double f64 = 6;
+      bool boolean = 7;
+      bool unit = 8;
+      string text = 9;
+      bytes bytes_ = 10;
+      int32 dtype = 11;
+      bool expr_quote = 12;  // stored in ValueProto.input_value_indices[0]
+    }
+  }
+
+  message DataItemVectorProto {
+    repeated DataItemProto values = 1;
+  }
+
+  message DataSliceImplProto {
+    oneof value {
+      DataItemVectorProto data_item_vector = 1;
+      // Note: later we can add optimized representations e.g.
+      // serialized DenseArrays of each type linked via input_value_indices.
+    }
+  }
+
   oneof value {
     // Represents koladata::expr::LiteralOperator
     //
@@ -32,6 +66,8 @@ message KodaV1Proto {
     //   -- Wrapped TypedValue.
     bool literal_operator = 1;
     bool ellipsis_value = 2;
+    DataItemProto internal_data_item_value = 3;
+    DataSliceImplProto data_slice_impl_value = 4;
 
     // Represents koladata::DataSlice's QType
     bool data_slice_qtype = 10;

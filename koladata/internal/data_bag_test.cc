@@ -1212,6 +1212,8 @@ TEST(DataBagTest, AppendToLists) {
   EXPECT_THAT(
       db2->GetFromLists(lists, arolla::CreateDenseArray<int64_t>({-1, 1, 0})),
       IsOkAndHolds(ElementsAre(1, false, 3.0f)));
+  EXPECT_THAT(db2->ExplodeList(lists[2]),
+              IsOkAndHolds(ElementsAre(3.0, DataItem())));
 
   ASSERT_OK(
       db3->AppendToList(lists, DataSliceImpl::CreateEmptyAndUnknownType(3)));

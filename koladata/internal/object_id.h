@@ -93,7 +93,7 @@ class ObjectId {
 
   // Returns the `uint128` numeric value representation of the object id.
   absl::uint128 ToRawInt128() const {
-    return absl::MakeUint128(High64(), Low64());
+    return absl::MakeUint128(InternalHigh64(), InternalLow64());
   }
 
   static ObjectId NoFollowObjectSchemaId();
@@ -103,16 +103,18 @@ class ObjectId {
   bool IsSmallAlloc() const { return offset_bits_ <= kSmallAllocMaxBits; }
 
   friend bool operator==(ObjectId lhs, ObjectId rhs) {
-    return lhs.High64() == rhs.High64() && lhs.Low64() == rhs.Low64();
+    return lhs.InternalHigh64() == rhs.InternalHigh64() &&
+           lhs.InternalLow64() == rhs.InternalLow64();
   }
   friend std::strong_ordering operator<=>(ObjectId lhs, ObjectId rhs) {
-    return std::tuple{lhs.High64(), lhs.Low64()} <=>
-           std::tuple{rhs.High64(), rhs.Low64()};
+    return std::tuple{lhs.InternalHigh64(), lhs.InternalLow64()} <=>
+           std::tuple{rhs.InternalHigh64(), rhs.InternalLow64()};
   }
 
   std::string DebugString() const {
-    return absl::StrCat(absl::Hex(High64()), absl::Hex(Low64() >> offset_bits_),
-                        ".", absl::Hex(Offset()));
+    return absl::StrCat(absl::Hex(InternalHigh64()),
+                        absl::Hex(InternalLow64() >> offset_bits_), ".",
+                        absl::Hex(Offset()));
   }
 
   friend std::ostream& operator<<(std::ostream& os, const ObjectId& obj) {
@@ -184,6 +186,19 @@ class ObjectId {
   static_assert((kNoFollowSchemaFlag & kUuidExplicitSchemaFlag) !=
                 kNoFollowSchemaFlag);
 
+  // Used in serialization to get the underlying data. There is no guarantee
+  // on what these numbers mean.
+  uint64_t InternalHigh64() const {
+    return *reinterpret_cast<const uint64_t*>(this);
+  }
+  uint64_t InternalLow64() const { return id_; }
+  static ObjectId UnsafeCreateFromInternalHighLow(uint64_t hi, uint64_t lo) {
+    ObjectId id;
+    *reinterpret_cast<uint64_t*>(&id) = hi;
+    id.id_ = lo;
+    return id;
+  }
+
  private:
   friend struct AllocationId;
   friend AllocationId Allocate(size_t size);
@@ -200,10 +215,6 @@ class ObjectId {
   friend AllocationId AllocateDicts(size_t size);
   friend ObjectId AllocateSingleDict();
   friend ObjectId AllocateExplicitSchema();
-
-  uint64_t High64() const { return *reinterpret_cast<const uint64_t*>(this); }
-
-  uint64_t Low64() const { return id_; }
 
 #ifndef ABSL_IS_LITTLE_ENDIAN
 #error "Unsupported byte order: Only ABSL_IS_LITTLE_ENDIAN is supported"
@@ -290,8 +301,8 @@ class AllocationId {
 
   // Returns true if object belongs to the allocation.
   bool Contains(const ObjectId& obj_id) const {
-    return allocation_id_.High64() == obj_id.High64() &&
-           ((obj_id.Low64() ^ allocation_id_.Low64()) >>
+    return allocation_id_.InternalHigh64() == obj_id.InternalHigh64() &&
+           ((obj_id.InternalLow64() ^ allocation_id_.InternalLow64()) >>
             allocation_id_.offset_bits_) == 0;
   }
 
@@ -392,7 +403,7 @@ ObjectId CreateUuidWithMainObject(ObjectId main_object_id,
   static_assert((uuid_flag & ObjectId::kUuidFlag) == ObjectId::kUuidFlag);
   static_assert(sizeof(ObjectId) == sizeof(arolla::Fingerprint));
   ObjectId id;
-  std::memcpy(&id, &fp, sizeof(ObjectId));
+  std::memcpy(&id, reinterpret_cast<const void*>(&fp), sizeof(ObjectId));
   // Replace metadata and offset bits. We assume that bits are well distributed.
   id.metadata_ = uuid_flag;
   id.offset_bits_ = main_object_id.offset_bits_;
@@ -406,7 +417,7 @@ inline ObjectId CreateUuidObjectWithMetadata(arolla::Fingerprint fp,
                                              int64_t flag) {
   static_assert(sizeof(ObjectId) == sizeof(arolla::Fingerprint));
   ObjectId id;
-  std::memcpy(&id, &fp, sizeof(ObjectId));
+  std::memcpy(&id, reinterpret_cast<const void*>(&fp), sizeof(ObjectId));
   // Replace metadata and offset bits. We assume that bits are well distributed.
   id.metadata_ = flag;
   id.offset_bits_ = 0;

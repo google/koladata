@@ -21,17 +21,27 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_operators.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/ellipsis.h"
-#include "koladata/s11n/codec.proto.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
 #include "arolla/expr/expr_operator.h"
+#include "arolla/expr/quote.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/qtype/typed_value.h"
 #include "arolla/serialization/encode.h"
 #include "arolla/serialization_base/encode.h"
+#include "arolla/util/bytes.h"
 #include "arolla/util/fast_dynamic_downcast_final.h"
 #include "arolla/util/init_arolla.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::s11n {
@@ -108,6 +118,76 @@ absl::StatusOr<ValueProto> EncodeEllipsis(arolla::TypedRef value,
   return value_proto;
 }
 
+absl::Status FillItemProto(Encoder& encoder, ValueProto& value_proto,
+                           KodaV1Proto::DataItemProto& item_proto,
+                           const internal::DataItem& item) {
+  return item.VisitValue([&]<typename T>(const T& v) -> absl::Status {
+          if constexpr (std::is_same_v<T, internal::MissingValue>) {
+            item_proto.set_missing(true);
+          } else if constexpr (std::is_same_v<T, internal::ObjectId>) {
+            auto* id_proto = item_proto.mutable_object_id();
+            id_proto->set_hi(v.InternalHigh64());
+            id_proto->set_lo(v.InternalLow64());
+          } else if constexpr (std::is_same_v<T, int32_t>) {
+            item_proto.set_i32(v);
+          } else if constexpr (std::is_same_v<T, int64_t>) {
+            item_proto.set_i64(v);
+          } else if constexpr (std::is_same_v<T, float>) {
+            item_proto.set_f32(v);
+          } else if constexpr (std::is_same_v<T, double>) {
+            item_proto.set_f64(v);
+          } else if constexpr (std::is_same_v<T, bool>) {
+            item_proto.set_boolean(v);
+          } else if constexpr (std::is_same_v<T, arolla::Unit>) {
+            item_proto.set_unit(true);
+          } else if constexpr (std::is_same_v<T, arolla::Text>) {
+            item_proto.set_text(v.view());
+          } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
+            item_proto.set_bytes_(v);
+          } else if constexpr (std::is_same_v<T, schema::DType>) {
+            item_proto.set_dtype(v.type_id());
+          } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
+            item_proto.set_expr_quote(true);
+            ASSIGN_OR_RETURN(
+                auto index,
+                encoder.EncodeValue(arolla::TypedValue::FromValue(v)));
+            value_proto.add_input_value_indices(index);
+          } else {
+            static_assert(false);
+          }
+          return absl::OkStatus();
+        });
+}
+
+absl::StatusOr<ValueProto> EncodeDataItem(arolla::TypedRef value,
+                                          Encoder& encoder) {
+  ASSIGN_OR_RETURN(auto value_proto, GenValueProto(encoder));
+  auto* koda_proto = value_proto.MutableExtension(KodaV1Proto::extension);
+  ASSIGN_OR_RETURN(const internal::DataItem& item,
+                   value.As<internal::DataItem>());
+  RETURN_IF_ERROR(FillItemProto(encoder, value_proto,
+                                *koda_proto->mutable_internal_data_item_value(),
+                                item));
+  return value_proto;
+}
+
+absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
+                                               Encoder& encoder) {
+  ASSIGN_OR_RETURN(auto value_proto, GenValueProto(encoder));
+  auto* koda_proto = value_proto.MutableExtension(KodaV1Proto::extension);
+  ASSIGN_OR_RETURN(const internal::DataSliceImpl& slice,
+                   value.As<internal::DataSliceImpl>());
+  KodaV1Proto::DataSliceImplProto* slice_proto =
+      koda_proto->mutable_data_slice_impl_value();
+  KodaV1Proto::DataItemVectorProto* vector_proto =
+      slice_proto->mutable_data_item_vector();
+  for (int64_t i = 0; i < slice.size(); ++i) {
+    RETURN_IF_ERROR(FillItemProto(encoder, value_proto,
+                                  *vector_proto->add_values(), slice[i]));
+  }
+  return value_proto;
+}
+
 AROLLA_REGISTER_INITIALIZER(
     kRegisterSerializationCodecs, register_serialization_codecs_koda_v1_encoder,
     []() -> absl::Status {
@@ -118,6 +198,10 @@ AROLLA_REGISTER_INITIALIZER(
           arolla::GetQType<DataSlice>(), EncodeDataSlice));
       RETURN_IF_ERROR(arolla::serialization::RegisterValueEncoderByQType(
           arolla::GetQType<internal::Ellipsis>(), EncodeEllipsis));
+      RETURN_IF_ERROR(arolla::serialization::RegisterValueEncoderByQType(
+          arolla::GetQType<internal::DataItem>(), EncodeDataItem));
+      RETURN_IF_ERROR(arolla::serialization::RegisterValueEncoderByQType(
+          arolla::GetQType<internal::DataSliceImpl>(), EncodeDataSliceImpl));
       return absl::OkStatus();
     })
 

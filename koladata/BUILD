@@ -296,6 +296,7 @@ cc_test(
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
         "//koladata/internal/testing:matchers",
+        "//koladata/testing:status_matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

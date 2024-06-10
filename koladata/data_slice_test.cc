@@ -2676,6 +2676,51 @@ TEST(DataSliceTest, AppendToList_Int64Schema) {
                                                 DataItemWith<int64_t>(3)))));
 }
 
+TEST(DataSliceTest, AppendToList_DifferentShapes) {
+  auto db = DataBag::Empty();
+
+  auto values123 = test::DataSlice<int32_t>({1, 2, 3}, schema::kInt32);
+
+  auto edge_1 = CreateEdge({0, 2});
+  auto edge_2 = CreateEdge({0, 1, 3});
+  ASSERT_OK_AND_ASSIGN(auto values_shape,
+                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto values6_78 =
+      test::DataSlice<int32_t>({6, 7, 8}, values_shape, schema::kInt32);
+
+  // single list
+  {
+    ASSERT_OK_AND_ASSIGN(auto list,
+                         CreateEmptyList(db, test::Schema(schema::kInt32)));
+    auto values123 = test::DataSlice<int32_t>({1, 2, 3}, schema::kInt32);
+    ASSERT_OK(list.AppendToList(values123));
+    ASSERT_OK(list.AppendToList(values6_78));
+    EXPECT_THAT(list.ExplodeList(0, std::nullopt),
+                IsOkAndHolds(Property(&DataSlice::slice,
+                                      ElementsAre(1, 2, 3, 6, 7, 8))));
+  }
+
+  // slice of lists
+  {
+    auto lists_shape = DataSlice::JaggedShape::FlatFromSize(2);
+    ASSERT_OK_AND_ASSIGN(
+        auto lists, CreateListShaped(db, lists_shape, /*values=*/std::nullopt,
+                                    test::Schema(schema::kInt32)));
+    ASSERT_OK(lists.AppendToList(*DataSlice::Create(
+        internal::DataItem(1), internal::DataItem(schema::kInt32))));
+    ASSERT_OK(lists.AppendToList(values6_78));
+
+    auto expected_edge_2 = CreateEdge({0, 2, 5});
+    ASSERT_OK_AND_ASSIGN(auto expected_shape, DataSlice::JaggedShape::FromEdges(
+                                                  {edge_1, expected_edge_2}));
+    EXPECT_THAT(
+        lists.ExplodeList(0, std::nullopt),
+        IsOkAndHolds(AllOf(
+            Property(&DataSlice::slice, ElementsAre(1, 6, 1, 7, 8)),
+            Property(&DataSlice::GetShape, IsEquivalentTo(expected_shape)))));
+  }
+}
+
 TEST(DataSliceTest, DictErrors) {
   auto dict = test::DataItem(internal::AllocateSingleObject());
   EXPECT_THAT(dict.GetDictKeys(), StatusIs(absl::StatusCode::kInvalidArgument,

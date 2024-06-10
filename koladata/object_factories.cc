@@ -183,14 +183,23 @@ absl::StatusOr<internal::DataItem> CreateDictSchema(
 
 }  // namespace
 
-absl::StatusOr<internal::DataItem> CreateListSchema(
-    const DataBagPtr& db, const DataSlice& item_schema) {
-  RETURN_IF_ERROR(item_schema.VerifyIsSchema());
+absl::StatusOr<DataSlice> CreateEntitySchema(
+    const DataBagPtr& db,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& schemas) {
+  DCHECK_EQ(attr_names.size(), schemas.size());
+  std::vector<std::reference_wrapper<const internal::DataItem>> schema_items;
+  schema_items.reserve(schemas.size());
+  for (const DataSlice& schema : schemas) {
+    RETURN_IF_ERROR(schema.VerifyIsSchema());
+    schema_items.push_back(std::cref(schema.item()));
+  }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
-  return db_mutable_impl.CreateUuSchemaFromFields(
-      "::koladata::::CreateListSchema",
-      {"__items__"}, {item_schema.item()});
+  ASSIGN_OR_RETURN(
+      auto schema_id,
+      db_mutable_impl.CreateExplicitSchemaFromFields(attr_names, schema_items));
+  return DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db);
 }
 
 absl::StatusOr<DataSlice> EntityCreator::operator()(
@@ -446,6 +455,16 @@ absl::StatusOr<DataSlice> CreateNestedList(
                      CreateListsFromLastDimension(db, res, res.GetSchema()));
   }
   return res;
+}
+
+absl::StatusOr<internal::DataItem> CreateListSchema(
+    const DataBagPtr& db, const DataSlice& item_schema) {
+  RETURN_IF_ERROR(item_schema.VerifyIsSchema());
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  return db_mutable_impl.CreateUuSchemaFromFields(
+      "::koladata::::CreateListSchema",
+      {"__items__"}, {item_schema.item()});
 }
 
 absl::StatusOr<DataSlice> CreateListShaped(

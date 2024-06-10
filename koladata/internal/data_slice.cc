@@ -42,9 +42,11 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/simple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/repr.h"
 
 namespace koladata::internal {
 
@@ -389,3 +391,15 @@ bool DataSliceImpl::IsEquivalentTo(const DataSliceImpl& other) const {
 }
 
 }  // namespace koladata::internal
+
+namespace arolla {
+
+ReprToken ReprTraits<::koladata::internal::DataSliceImpl>::operator()(
+    const ::koladata::internal::DataSliceImpl& value) const {
+  return ReprToken{absl::StrCat(value)};
+}
+
+AROLLA_DEFINE_SIMPLE_QTYPE(INTERNAL_DATA_SLICE,
+                           ::koladata::internal::DataSliceImpl);
+
+}  // namespace arolla

@@ -100,7 +100,7 @@ TEST(EqualTest, DataSlicePrimitiveValues) {
 
     ASSERT_OK_AND_ASSIGN(auto res, EqualOp()(lds, rds));
     EXPECT_THAT(res.values<Unit>(),
-                ElementsAre(kMissing, kMissing, kMissing, kMissing, kMissing));
+                ElementsAre(kPresent, kMissing, kMissing, kMissing, kMissing));
   }
   {
     // Text
@@ -132,7 +132,7 @@ TEST(PresenceOrTest, DataSliceMixedPrimitiveValues) {
 
     ASSERT_OK_AND_ASSIGN(auto res, EqualOp()(lds, rds));
     EXPECT_THAT(res.values<Unit>(),
-                ElementsAre(kPresent, kMissing, kMissing, kMissing));
+                ElementsAre(kPresent, kMissing, kPresent, kMissing));
   }
 }
 
@@ -189,7 +189,7 @@ TEST(EqualTest, DataItem) {
     auto litem = DataItem(5);
     auto ritem = DataItem(5.);
     auto res = EqualOp()(litem, ritem);
-    EXPECT_FALSE(res.has_value());
+    EXPECT_EQ(res.value<Unit>(), kPresent);
   }
   {
     // Int32 and Int64.
@@ -211,7 +211,6 @@ TEST(EqualTest, DataItem) {
     auto res = EqualOp()(litem, ritem);
     EXPECT_FALSE(res.has_value());
   }
-
 }
 
 }  // namespace

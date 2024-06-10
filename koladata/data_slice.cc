@@ -576,8 +576,7 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
     }
     ASSIGN_OR_RETURN(
         res_schema,
-        schema::CommonSchema({std::move(res_schema),
-                              default_value.GetSchemaImpl()}));
+        schema::CommonSchema(res_schema, default_value.GetSchemaImpl()));
     auto res_db = DataBag::CommonDataBag({GetDb(), default_value.GetDb()});
     return DataSlice::Create(
         CoalesceWithFiltered(impl, res, expanded_default->impl<T>()),
@@ -1261,24 +1260,39 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
   }
   const JaggedShapePtr& shape =
       shape_->rank() < values.GetShape().rank() ? values.GetShapePtr() : shape_;
-  // Note: expanding `this` has an overhead. In future we can try to optimize
-  // it.
-  BroadcastHelper expanded_this(*this, shape);
-  RETURN_IF_ERROR(expanded_this.status());
+  if (!shape_->IsBroadcastableTo(*shape)) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Lists DataSlice with shape=%s is not compatible with values shape=%s",
+        arolla::Repr(*shape_), arolla::Repr(*shape)));
+  }
   BroadcastHelper expanded_values(values, shape);
   RETURN_IF_ERROR(expanded_values.status());
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db_->GetMutableImpl());
+  // TODO: Cast values before expanding.
   RhsHandler</*is_readonly=*/false> data_handler(
       RhsHandlerErrorContext::kListItem, *expanded_values,
       schema::kListItemsSchemaAttr);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
-  return expanded_this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
-    // TODO: Cast values before expanding.
-    return db_mutable_impl.AppendToList(impl,
-                                        data_handler.GetValues().impl<T>());
-  });
+
+  if (shape_->rank() < shape->rank()) {
+    return VisitImpl([&]<class T>(const T& impl) -> absl::Status {
+      if constexpr (std::is_same_v<T, internal::DataItem>) {
+        return db_mutable_impl.ExtendList(impl,
+                                          data_handler.GetValues().slice());
+      } else {
+        auto edge = shape_->GetBroadcastEdge(*shape);
+        return db_mutable_impl.ExtendLists(
+            impl, data_handler.GetValues().slice(), edge);
+      }
+    });
+  } else {
+    return VisitImpl([&]<class T>(const T& impl) -> absl::Status {
+      return db_mutable_impl.AppendToList(impl,
+                                          data_handler.GetValues().impl<T>());
+    });
+  }
 }
 
 absl::Status DataSlice::ClearDictOrList() const {

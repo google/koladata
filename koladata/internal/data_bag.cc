@@ -1260,7 +1260,7 @@ absl::Status DataBagImpl::AppendToList(const DataSliceImpl& lists,
         if (opt_v.present) {
           list.Insert(list.size(), T(opt_v.value));
         } else {
-          list.Insert(list.size(), std::make_optional<T>());
+          list.Insert(list.size(), std::optional<T>());
         }
       });
     });

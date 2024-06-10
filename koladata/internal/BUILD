@@ -477,6 +477,7 @@ cc_test(
 cc_test(
     name = "data_bag_benchmarks",
     srcs = ["data_bag_benchmarks.cc"],
+    tags = ["-nooss"],  # Times out in bazel.
     deps = [
         ":benchmark_helpers",
         ":data_bag",
@@ -806,8 +807,10 @@ cc_test(
     name = "schema_utils_benchmarks",
     srcs = ["schema_utils_benchmarks.cc"],
     deps = [
+        ":data_item",
         ":data_slice",
         ":dtype",
+        ":object_id",
         ":schema_utils",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/util",

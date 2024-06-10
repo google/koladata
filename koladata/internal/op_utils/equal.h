@@ -15,6 +15,7 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_EQUAL_H_
 #define KOLADATA_INTERNAL_OP_UTILS_EQUAL_H_
 
+#include <cstdint>
 #include <type_traits>
 
 #include "absl/log/check.h"
@@ -22,6 +23,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/util/meta.h"
 
 namespace koladata::internal {
 
@@ -30,27 +32,28 @@ struct EqualOp {
   absl::StatusOr<DataSliceImpl> operator()(const DataSliceImpl& lhs,
                                            const DataSliceImpl& rhs) const;
 
-  DataItem operator()(const DataItem& lhs, const DataItem& rhs) const {
-    if (lhs.has_value() && lhs == rhs) {
-      return DataItem(arolla::kPresent);
-    }
-    return DataItem();
+  DataItem operator()(const DataItem& lhs, const DataItem& rhs) const;
+
+  // Returns true if the types are comparable (supported using MaskEqualOp).
+  template <typename T1, typename T2>
+  static constexpr bool Comparable() {
+    using numerics = arolla::meta::type_list<int, int64_t, float, double>;
+    return std::is_same_v<T1, T2> || (arolla::meta::contains_v<numerics, T1> &&
+                                      arolla::meta::contains_v<numerics, T2>);
   }
 
  private:
-  // Supports comparing int to int64_t and float to double.
+  // Returns present if the values are present and equal, missing otherwise.
+  //
+  // Requires: Comparable<T1, T2>()
   template <typename T1, typename T2>
   struct MaskEqualOp {
+    static_assert(EqualOp::Comparable<T1, T2>());
+
     arolla::OptionalUnit operator()(T1 l, T2 r) const {
       return arolla::OptionalUnit(l == r);
     }
   };
-
-  template <typename T1, typename T2>
-  struct compatible_types : std::false_type {};
-
-  template <typename T1>
-  struct compatible_types<T1, T1> : std::true_type {};
 };
 
 }  // namespace koladata::internal

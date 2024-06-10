@@ -109,6 +109,14 @@ absl::StatusOr<std::vector<std::string>> StringifyGroup(
   return result;
 }
 
+// Returns the prefix for the ObjectId. UUID has prefix 'k', others are '$'.
+absl::string_view ObjectIdPrefix(const internal::ObjectId& id) {
+  if (id.IsUuid()) {
+    return "k";
+  }
+  return "$";
+}
+
 absl::StatusOr<std::vector<std::string>> StringifyByDimension(
     const DataSlice& slice, int64_t dimension, bool show_content) {
   const internal::DataSliceImpl& slice_impl = slice.slice();
@@ -129,12 +137,9 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
         parts.push_back(std::move(item_str));
       } else {
         absl::string_view item_prefix = "";
-        absl::string_view objid_prefix = "";
+        absl::string_view object_prefix = "";
         if (item.holds_value<internal::ObjectId>()) {
-          objid_prefix = "$";
-          if (item.value<internal::ObjectId>().IsUuid()) {
-            objid_prefix = "k";
-          }
+          object_prefix = ObjectIdPrefix(item.value<internal::ObjectId>());
           if (item.is_dict()) {
             item_prefix = "Dict:";
           } else if (item.is_list()) {
@@ -145,7 +150,7 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
             item_prefix = "Entity:";
           }
         }
-        parts.push_back(absl::StrCat(item_prefix, objid_prefix, item));
+        parts.push_back(absl::StrCat(item_prefix, object_prefix, item));
       }
     }
     return StringifyGroup(edge, parts);
@@ -276,6 +281,9 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds) {
       prefix = "Obj(";
     }
     ASSIGN_OR_RETURN(std::string schema_str, SchemaToStr(ds));
+    if (schema_str.empty() && !obj.IsSchema()) {
+      return absl::StrCat(prefix, "):", ObjectIdPrefix(obj), obj);
+    }
     return absl::StrCat(prefix, schema_str, ")");
   }
   return absl::StrCat(data_item);

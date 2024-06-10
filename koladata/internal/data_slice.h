@@ -42,10 +42,12 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/simple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/iterator.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -438,5 +440,13 @@ DataSliceImpl DataSliceImpl::CreateWithAllocIds(
 using DataSlicePtr = std::unique_ptr<DataSliceImpl>;
 
 }  // namespace koladata::internal
+
+namespace arolla {
+
+AROLLA_DECLARE_REPR(::koladata::internal::DataSliceImpl);
+AROLLA_DECLARE_SIMPLE_QTYPE(INTERNAL_DATA_SLICE,
+                            ::koladata::internal::DataSliceImpl);
+
+}  // namespace arolla
 
 #endif  // KOLADATA_INTERNAL_DATA_SLICE_H_

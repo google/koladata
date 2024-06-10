@@ -146,6 +146,86 @@ INSTANTIATE_TEST_SUITE_P(
                           info.param.expected_dtype);
     });
 
+
+using CommonDTypeBinaryTest = ::testing::TestWithParam<CommonDTypeTestCase>;
+
+TEST_P(CommonDTypeBinaryTest, CommonDTypeBinary) {
+  ASSERT_EQ(GetParam().input_dtypes.size(), 2);
+  DType lhs = GetParam().input_dtypes[0];
+  DType rhs = GetParam().input_dtypes[1];
+  // DType inputs.
+  EXPECT_THAT(CommonSchema(lhs, rhs),
+              IsOkAndHolds(DataItem(GetParam().expected_dtype)));
+  // DataItem inputs.
+  EXPECT_THAT(CommonSchema(DataItem(lhs), DataItem(rhs)),
+              IsOkAndHolds(DataItem(GetParam().expected_dtype)));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    CommonDTypeBinaryTestInit, CommonDTypeBinaryTest, ::testing::ValuesIn([] {
+      // Generate test cases for all immediate connections.
+      std::vector<CommonDTypeTestCase> test_cases;
+      for (const auto& [dtype, descendants] :
+           schema_internal::GetDTypeLattice()) {
+        test_cases.push_back({{dtype, dtype}, dtype});  // Self loop.
+        for (const auto& descendant : descendants) {
+          // Commutative - so we test both directions.
+          test_cases.push_back({{dtype, descendant}, descendant});
+          test_cases.push_back({{descendant, dtype}, descendant});
+        }
+      }
+      // "sibling" types.
+      test_cases.push_back({{schema::kInt32, kText}, schema::kObject});
+      return test_cases;
+    }()),
+    [](const ::testing::TestParamInfo<CommonDTypeTest::ParamType>& info) {
+      return absl::StrCat(absl::StrJoin(info.param.input_dtypes, "_"), "_",
+                          info.param.expected_dtype);
+    });
+
+TEST(SchemaUtilsTest, CommonSchemaBinary) {
+  {
+    // Identical entity schemas.
+    auto explicit_schema = DataItem(internal::AllocateExplicitSchema());
+    EXPECT_THAT(CommonSchema(explicit_schema, explicit_schema),
+                IsOkAndHolds(explicit_schema));
+  }
+  {
+    // Entity schema and None.
+    auto explicit_schema = DataItem(internal::AllocateExplicitSchema());
+    EXPECT_THAT(CommonSchema(explicit_schema, DataItem(kNone)),
+                IsOkAndHolds(explicit_schema));
+    EXPECT_THAT(CommonSchema(DataItem(kNone), explicit_schema),
+                IsOkAndHolds(explicit_schema));
+  }
+  {
+    // Not a schema error.
+    EXPECT_THAT(CommonSchema(DataItem(1), DataItem(kText)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "expected Schemas, got: 1 and TEXT"));
+    EXPECT_THAT(CommonSchema(DataItem(kText), DataItem(1)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "expected Schemas, got: TEXT and 1"));
+  }
+  {
+    // No common schema error.
+    EXPECT_THAT(
+        CommonSchema(kItemId, kText),
+        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
+    auto explicit_schema = DataItem(internal::AllocateExplicitSchema());
+    EXPECT_THAT(
+        CommonSchema(DataItem(kItemId), explicit_schema),
+        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
+    EXPECT_THAT(
+        CommonSchema(explicit_schema, DataItem(kItemId)),
+        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
+    EXPECT_THAT(
+        CommonSchema(explicit_schema,
+                     DataItem(internal::AllocateExplicitSchema())),
+        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
+  }
+}
+
 TEST(SchemaUtilsTest, CommonSchemaNonZeroSizeEmpty) {
   auto schemas = DataSliceImpl::Create(CreateDenseArray<schema::DType>(
       {std::nullopt, std::nullopt, std::nullopt}));

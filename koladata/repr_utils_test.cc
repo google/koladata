@@ -194,7 +194,9 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_Object) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_obj, ObjectCreator()(bag, {}, {}));
-  EXPECT_THAT(DataSliceToStr(empty_obj), IsOkAndHolds(StrEq("Obj()")));
+  EXPECT_THAT(DataSliceToStr(empty_obj),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(Obj\(\):\$[a-f0-9]{13,14}\.[0-9])regex")));
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -208,7 +210,9 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_Entity) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_entity, EntityCreator()(bag, {}, {}));
-  EXPECT_THAT(DataSliceToStr(empty_entity), IsOkAndHolds(StrEq("Entity()")));
+  EXPECT_THAT(DataSliceToStr(empty_entity),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(Entity\(\):\$[a-f0-9]{13,14}\.[0-9])regex")));
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");

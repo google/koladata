@@ -54,15 +54,25 @@ constexpr absl::string_view kNoFollowSchemaSeed = "__nofollow_schema__";
 // Finds the supremum schema of all schemas in `schema_ids` according to the
 // type promotion lattice defined in go/koda-type-promotion. If common /
 // supremum schema cannot be determined, appropriate error is returned.
+// Missing input types must be specified with empty DataItem.
 absl::StatusOr<internal::DataItem> CommonSchema(
-    const internal::DataSliceImpl& schema_ids);
+    absl::Span<const internal::DataItem> schema_ids);
+
+// Finds the supremum schema of lhs and rhs according to the type promotion
+// lattice defined in go/koda-type-promotion. If common / supremum schema cannot
+// be determined, appropriate error is returned.
+//
+// NOTE: This is a performance optimization and has identical behavior as
+// calling CommonSchema with a span of two elements.
+absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs);
+absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
+                                                const internal::DataItem& rhs);
 
 // Finds the supremum schema of all schemas in `schema_ids` according to the
 // type promotion lattice defined in go/koda-type-promotion. If common /
 // supremum schema cannot be determined, appropriate error is returned.
-// Missing input types must be specified with empty DataItem.
 absl::StatusOr<internal::DataItem> CommonSchema(
-    absl::Span<const internal::DataItem> schema_ids);
+    const internal::DataSliceImpl& schema_ids);
 
 // Finds the supremum schema of all schemas in `schema_ids` according to the
 // type promotion lattice defined in go/koda-type-promotion. If common /

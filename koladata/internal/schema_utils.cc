@@ -79,19 +79,14 @@ class DTypeMatrix {
 
  public:
   // Returns the common dtype of `a` and `b`.
+  //
+  // Requires the inputs to be in [0, kNextDTypeId). Returns kUnknownDType if no
+  // common dtype exists.
   static DTypeId CommonDType(DTypeId a, DTypeId b) {
     DCHECK_GE(a, 0);
     DCHECK_LT(a, kNextDTypeId);
     const auto& dtype_matrix = GetMatrixImpl();
     return dtype_matrix[a][b];
-  }
-
-  // Returns the common dtype of `a` and `b`.
-  static std::optional<DType> CommonDType(DType a, DType b) {
-    auto common_dtype = CommonDType(a.type_id(), b.type_id());
-    return common_dtype == kUnknownDType
-               ? std::nullopt
-               : std::make_optional(DType(static_cast<DTypeId>(common_dtype)));
   }
 
  private:
@@ -208,6 +203,37 @@ absl::StatusOr<internal::DataItem> CommonSchema(
     bldr.Set(i++, schema_id);
   }
   return CommonSchema(std::move(bldr).Build());
+}
+
+absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs) {
+  if (auto common_dtype =
+          DTypeMatrix::CommonDType(lhs.type_id(), rhs.type_id());
+      common_dtype != kUnknownDType) {
+    return internal::DataItem(DType(common_dtype));
+  }
+  return absl::InvalidArgumentError("no common schema");
+}
+
+absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
+                                                const internal::DataItem& rhs) {
+  if (lhs.holds_value<DType>() && rhs.holds_value<DType>()) {
+    return CommonSchema(lhs.value<DType>(), rhs.value<DType>());
+  }
+  if (!lhs.is_schema() || !rhs.is_schema()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("expected Schemas, got: %v and %v", lhs, rhs));
+  }
+  if (lhs == rhs) {
+    return lhs;
+  }
+  // NONE is the only dtype that casts to entity.
+  if (lhs == kNone) {
+    return rhs;
+  }
+  if (rhs == kNone) {
+    return lhs;
+  }
+  return absl::InvalidArgumentError("no common schema");
 }
 
 // TODO: Add SchemaConflict::NoCommonSchema or something similar to

@@ -34,10 +34,12 @@
 #include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/qtype/simple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/view_types.h"
 
 namespace koladata::internal {
@@ -351,5 +353,12 @@ inline bool DataItem::Less::LessImpl<float, float>(const DataItem& a,
 }
 
 }  // namespace koladata::internal
+
+namespace arolla {
+
+AROLLA_DECLARE_REPR(koladata::internal::DataItem);
+AROLLA_DECLARE_SIMPLE_QTYPE(INTERNAL_DATA_ITEM, koladata::internal::DataItem);
+
+}  // namespace arolla
 
 #endif  // KOLADATA_INTERNAL_DATA_ITEM_H_

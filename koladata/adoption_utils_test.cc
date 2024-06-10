@@ -23,11 +23,12 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/testing/status_matchers_backport.h"
 
 namespace koladata {
 namespace {
 
-using ::testing::status::IsOkAndHolds;
+using ::koladata::testing::IsOkAndHolds;
 
 TEST(AdoptionQueueTest, Empty) {
   AdoptionQueue q;

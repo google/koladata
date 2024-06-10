@@ -64,6 +64,34 @@ using ::testing::IsTrue;
 using ::testing::Not;
 using ::testing::Property;
 
+TEST(EntitySchemaTest, CreateSchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto float_s = test::Schema(schema::kFloat32);
+
+  ASSERT_OK_AND_ASSIGN(auto entity_schema,
+                       CreateEntitySchema(db, {"a", "b"}, {int_s, float_s}));
+  EXPECT_EQ(entity_schema.GetSchemaImpl(), schema::kSchema);
+  EXPECT_OK(entity_schema.VerifyIsSchema());
+  EXPECT_THAT(entity_schema.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(int_s.WithDb(db))));
+  EXPECT_THAT(entity_schema.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(float_s.WithDb(db))));
+}
+
+TEST(EntitySchemaTest, Error) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto non_schema_1 = test::DataItem(42);
+  EXPECT_THAT(CreateEntitySchema(db, {"a", "b"}, {int_s, non_schema_1}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("must be SCHEMA, got: INT32")));
+  auto non_schema_2 = test::DataSlice<schema::DType>({schema::kInt32});
+  EXPECT_THAT(CreateEntitySchema(db, {"a", "b"}, {int_s, non_schema_2}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("can only be 0-rank")));
+}
+
 TEST(EntityCreatorTest, DataSlice) {
   constexpr int64_t kSize = 3;
   auto db = DataBag::Empty();

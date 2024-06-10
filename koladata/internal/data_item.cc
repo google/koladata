@@ -37,11 +37,13 @@
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/simple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -141,3 +143,14 @@ std::string DataItem::DebugString() const {
 }
 
 }  // namespace koladata::internal
+
+namespace arolla {
+
+ReprToken ReprTraits<::koladata::internal::DataItem>::operator()(
+    const ::koladata::internal::DataItem& value) const {
+  return ReprToken{value.DebugString()};
+}
+
+AROLLA_DEFINE_SIMPLE_QTYPE(INTERNAL_DATA_ITEM, ::koladata::internal::DataItem);
+
+}  // namespace arolla

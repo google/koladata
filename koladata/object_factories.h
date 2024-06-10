@@ -28,6 +28,14 @@
 
 namespace koladata {
 
+// Returns a DataSlice which contains a newly allocated Explicit Schema id whose
+// attributes `attr_names` are set to `schemas` in DataBag `db`. In case
+// `schemas` are not valid schemas, appropriate error is returned.
+absl::StatusOr<DataSlice> CreateEntitySchema(
+    const DataBagPtr& db,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& schemas);
+
 // Functor that provides different factories for Entities. When created,
 // Entities have DataSlice-level explicit schema (which is also stored in the
 // referenced DataBag).
