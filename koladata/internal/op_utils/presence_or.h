@@ -62,7 +62,7 @@ struct PresenceOrOp {
       const auto& lhs_mask = lhs_mask_slice.values<arolla::Unit>();
       lhs_missing_mask = arolla::DenseArrayPresenceNotOp()(&ctx, lhs_mask);
     } else {
-      // lhs is ensured to contain exactly one array.
+      // lhs is guaranteed to contain exactly one array.
       lhs.VisitValues([&](const auto& lhs_array) {
         lhs_missing_mask = arolla::DenseArrayPresenceNotOp()(&ctx, lhs_array);
       });

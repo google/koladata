@@ -79,7 +79,7 @@ DataSliceImpl AllocateSliceOfObjects(int64_t size) {
   auto obj_alloc = internal::Allocate(size);
   DataSliceImpl::Builder bldr(size);
   for (int64_t i = 0; i < size; ++i) {
-    bldr.Set(i, obj_alloc.ObjectByOffset(i));
+    bldr.Insert(i, obj_alloc.ObjectByOffset(i));
   }
   return std::move(bldr).Build();
 }

@@ -52,8 +52,8 @@ TEST(DataListTest, Constructors) {
   }
   {
     DataSliceImpl::Builder bldr(3);
-    bldr.Set(0, DataItem(1.0f));
-    bldr.Set(2, DataItem(5));
+    bldr.Insert(0, DataItem(1.0f));
+    bldr.Insert(2, DataItem(5));
     DataList list(std::move(bldr).Build());
     ASSERT_EQ(list.size(), 3);
     EXPECT_EQ(list.Get(0), DataItem(1.0f));
@@ -62,7 +62,7 @@ TEST(DataListTest, Constructors) {
   }
   {
     DataSliceImpl::Builder bldr(5);
-    bldr.Set(2, DataItem(5));
+    bldr.Insert(2, DataItem(5));
     DataList list(std::move(bldr).Build(), 1, 3);
     ASSERT_EQ(list.size(), 2);
     EXPECT_EQ(list.Get(0), DataItem());
@@ -70,8 +70,8 @@ TEST(DataListTest, Constructors) {
   }
   {
     DataSliceImpl::Builder bldr(5);
-    bldr.Set(0, DataItem(1.0f));
-    bldr.Set(2, DataItem(5));
+    bldr.Insert(0, DataItem(1.0f));
+    bldr.Insert(2, DataItem(5));
     DataList list(std::move(bldr).Build(), 1, 3);
     ASSERT_EQ(list.size(), 2);
     EXPECT_EQ(list.Get(0), DataItem());

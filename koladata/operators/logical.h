@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "absl/status/statusor.h"
+#include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_op.h"
@@ -27,7 +28,6 @@
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/op_utils/presence_or.h"
-#include "koladata/internal/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -42,11 +42,11 @@ inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
 // kde.logical.coalesce.
 inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
                                           const DataSlice& y) {
-  ASSIGN_OR_RETURN(auto schema,
-                   schema::CommonSchema(x.GetSchemaImpl(), y.GetSchemaImpl()));
   auto res_db = DataBag::CommonDataBag({x.GetDb(), y.GetDb()});
-  return DataSliceOp<internal::PresenceOrOp>()(x, y, std::move(schema),
-                                               std::move(res_db));
+  ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}));
+  return DataSliceOp<internal::PresenceOrOp>()(
+      aligned_slices.slices[0], aligned_slices.slices[1],
+      aligned_slices.common_schema, std::move(res_db));
 }
 
 // kde.logical.has.

@@ -69,6 +69,7 @@ cc_library(
         "slice.cc",
         "utils.cc",
         "uuid.cc",
+        "uuobj.cc",
     ],
     hdrs = [
         "assertion.h",
@@ -88,8 +89,10 @@ cc_library(
         "slice.h",
         "utils.h",
         "uuid.h",
+        "uuobj.h",
     ],
     deps = [
+        "//koladata:adoption_utils",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",

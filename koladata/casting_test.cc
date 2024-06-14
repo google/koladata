@@ -15,6 +15,7 @@
 #include "koladata/casting.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <vector>
 
@@ -52,6 +53,7 @@ using ::koladata::internal::testing::DataBagEqual;
 using ::koladata::testing::IsEquivalentTo;
 using ::koladata::testing::IsOkAndHolds;
 using ::koladata::testing::StatusIs;
+using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
 
@@ -1446,6 +1448,77 @@ TEST(Casting, CastTo_CoversAllDTypes) {
   auto schema = internal::DataItem(internal::AllocateExplicitSchema());
   EXPECT_THAT(CastTo(test::EmptyDataSlice(3, schema::kNone), schema),
               IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema))));
+}
+
+TEST(Alignment, AlignSchemas) {
+  auto slice_float =
+      test::DataSlice<float>({3.0f, 2.0f, 1.0f}, schema::kFloat32);
+  auto slice_int = test::DataSlice<int>({1, 2, 3}, schema::kInt32);
+  auto item_int = test::DataItem(1, schema::kInt32);
+  auto item_obj =
+      test::DataItem(internal::AllocateSingleObject(), schema::kObject);
+  {
+    // Single alignment - slice.
+    ASSERT_OK_AND_ASSIGN(auto res, AlignSchemas({slice_int}));
+    EXPECT_THAT(res.slices, ElementsAre(IsEquivalentTo(slice_int)));
+    EXPECT_THAT(res.common_schema,
+                IsEquivalentTo(internal::DataItem(schema::kInt32)));
+  }
+  {
+    // Single alignment - item.
+    ASSERT_OK_AND_ASSIGN(auto res, AlignSchemas({item_int}));
+    EXPECT_THAT(res.slices, ElementsAre(IsEquivalentTo(item_int)));
+    EXPECT_THAT(res.common_schema,
+                IsEquivalentTo(internal::DataItem(schema::kInt32)));
+  }
+  {
+    // Multiple alignment - same schema.
+    ASSERT_OK_AND_ASSIGN(auto res, AlignSchemas({slice_int, item_int}));
+    EXPECT_THAT(res.slices, ElementsAre(IsEquivalentTo(slice_int),
+                                        IsEquivalentTo(item_int)));
+    EXPECT_THAT(res.common_schema,
+                IsEquivalentTo(internal::DataItem(schema::kInt32)));
+  }
+  {
+    // Multiple alignment - different schema.
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         AlignSchemas({slice_int, item_int, slice_float}));
+    EXPECT_THAT(
+        res.slices,
+        ElementsAre(IsEquivalentTo(test::DataSlice<float>({1.0f, 2.0f, 3.0f},
+                                                          schema::kFloat32)),
+                    IsEquivalentTo(test::DataItem(1.0f, schema::kFloat32)),
+                    IsEquivalentTo(slice_float)));
+    EXPECT_THAT(res.common_schema,
+                IsEquivalentTo(internal::DataItem(schema::kFloat32)));
+  }
+  {
+    // Alignment with objects.
+    ASSERT_OK_AND_ASSIGN(auto res, AlignSchemas({item_obj, item_int}));
+    EXPECT_THAT(
+        res.slices,
+        ElementsAre(IsEquivalentTo(item_obj),
+                    IsEquivalentTo(test::DataItem(1, schema::kObject))));
+    EXPECT_THAT(res.common_schema,
+                IsEquivalentTo(internal::DataItem(schema::kObject)));
+  }
+}
+
+TEST(Alignment, AlignSchemas_Errors) {
+  {
+    // Invalid arity.
+    EXPECT_THAT(AlignSchemas({}), StatusIs(absl::StatusCode::kInvalidArgument,
+                                            "expected at least one slice"));
+  }
+  {
+    // No common schema.
+    auto item_int = test::DataItem(1, schema::kInt32);
+    auto item_itemid =
+        test::DataItem(internal::AllocateSingleObject(), schema::kItemId);
+    EXPECT_THAT(
+        AlignSchemas({item_int, item_itemid}),
+        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
+  }
 }
 
 }  // namespace

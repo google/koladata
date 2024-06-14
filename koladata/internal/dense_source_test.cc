@@ -371,12 +371,12 @@ TEST(DenseSourceTest, SimpleValueArrayWithComplexAllocDealloc) {
 TEST(DenseSourceTest, ImmutableWithMixedTypes) {
   AllocationId alloc = Allocate(7);
   DataSliceImpl::Builder bldr(alloc.Capacity());
-  bldr.Set(0, DataItem(5));
-  bldr.Set(1, DataItem(alloc.ObjectByOffset(2)));
-  bldr.Set(3, DataItem(arolla::Bytes("abc")));
-  bldr.Set(4, DataItem(7));
-  bldr.Set(5, DataItem(Unit()));
-  bldr.Set(6, DataItem(schema::kFloat32));
+  bldr.Insert(0, DataItem(5));
+  bldr.Insert(1, DataItem(alloc.ObjectByOffset(2)));
+  bldr.Insert(3, DataItem(arolla::Bytes("abc")));
+  bldr.Insert(4, DataItem(7));
+  bldr.Insert(5, DataItem(Unit()));
+  bldr.Insert(6, DataItem(schema::kFloat32));
   DataSliceImpl attr = std::move(bldr).Build();
   ASSERT_OK_AND_ASSIGN(std::shared_ptr<const DenseSource> ds,
                        DenseSource::CreateReadonly(alloc, attr));
@@ -519,17 +519,17 @@ TEST(DenseSourceTest, MutableCopyOfImmutableWithBitmapBitOffsetUnit) {
 TEST(DenseSourceTest, MutableCopyOfImmutableWithMixedTypes) {
   AllocationId alloc = Allocate(7);
   DataSliceImpl::Builder bldr(alloc.Capacity());
-  bldr.Set(0, DataItem(5));
-  bldr.Set(1, DataItem(alloc.ObjectByOffset(2)));
-  bldr.Set(3, DataItem(arolla::Bytes("abc")));
-  bldr.Set(4, DataItem(7));
-  bldr.Set(5, DataItem(Unit()));
+  bldr.Insert(0, DataItem(5));
+  bldr.Insert(1, DataItem(alloc.ObjectByOffset(2)));
+  bldr.Insert(3, DataItem(arolla::Bytes("abc")));
+  bldr.Insert(4, DataItem(7));
+  bldr.Insert(5, DataItem(Unit()));
   arolla::expr::ExprOperatorPtr op =
       std::make_shared<arolla::expr::testing::DummyOp>(
           "op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
   ASSERT_OK_AND_ASSIGN(auto expr_1,
                        arolla::expr::CallOp(op, {arolla::expr::Leaf("x")}));
-  bldr.Set(6, DataItem(arolla::expr::ExprQuote(expr_1)));
+  bldr.Insert(6, DataItem(arolla::expr::ExprQuote(expr_1)));
   DataSliceImpl attr = std::move(bldr).Build();
   ASSERT_OK_AND_ASSIGN(std::shared_ptr<const DenseSource> immutable_ds,
                        DenseSource::CreateReadonly(alloc, attr));
@@ -590,9 +590,9 @@ TEST(DenseSourceTest, MutableWithMixedTypes) {
     // set several types at once
     {
       DataSliceImpl::Builder bldr(3);
-      bldr.Set(0, DataItem(arolla::Bytes("bytes")));
-      bldr.Set(1, DataItem(arolla::Text("text")));
-      bldr.Set(2, DataItem(Unit()));
+      bldr.Insert(0, DataItem(arolla::Bytes("bytes")));
+      bldr.Insert(1, DataItem(arolla::Text("text")));
+      bldr.Insert(2, DataItem(Unit()));
       ASSERT_OK(
           source->Set(arolla::CreateFullDenseArray<ObjectId>(
                           {alloc.ObjectByOffset(0), alloc.ObjectByOffset(2),

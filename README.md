@@ -1,6 +1,6 @@
 # Koda
 
-Koda (a.ka. Kola Data) is a Python + C++ library that provides a data
+Koda (aka Kola Data) is a Python + C++ library that provides a data
 representation and domain-specific language (a.k.a DSL) for orchestrating data
 transformations and computations on the transformed data, which involve
 structural changes to the data. The data can be in the form of protos, tables,

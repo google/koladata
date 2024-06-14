@@ -165,7 +165,7 @@ absl::StatusOr<DataSlice> DataSliceFromPrimitivesArray(
 absl::StatusOr<arolla::TypedValue> DataSliceToDenseArray(const DataSlice& ds) {
   if (ds.GetShape().rank() == 0) {
     internal::DataSliceImpl::Builder bldr(1);
-    bldr.Set(0, ds.item());
+    bldr.Insert(0, ds.item());
     ASSIGN_OR_RETURN(
         auto flat_ds,
         DataSlice::Create(std::move(bldr).Build(),

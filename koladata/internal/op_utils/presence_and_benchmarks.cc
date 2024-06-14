@@ -61,7 +61,7 @@ void BM_float(benchmark::State& state) {
       benchmark::DoNotOptimize(ds_mask);
       DataSliceImpl::Builder builder(total_size);
       for (int64_t i = 0; i < total_size; ++i) {
-        builder.Set(i, PresenceAndOp()(ds_values[i], ds_mask[i]).value());
+        builder.Insert(i, PresenceAndOp()(ds_values[i], ds_mask[i]).value());
       }
       benchmark::DoNotOptimize(builder);
       auto ds_filtered = std::move(builder).Build();

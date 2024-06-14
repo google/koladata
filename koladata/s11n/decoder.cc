@@ -13,6 +13,8 @@
 // limitations under the License.
 //
 
+#include "arolla/serialization_base/decoder.h"
+
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -37,9 +39,8 @@
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/serialization/decode.h"
 #include "arolla/serialization_base/base.pb.h"
-#include "arolla/serialization_base/decode.h"
+#include "arolla/serialization_codecs/registry.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
@@ -49,10 +50,11 @@
 namespace koladata::s11n {
 namespace {
 
+using ::arolla::TypedValue;
 using ::arolla::serialization_base::NoExtensionFound;
 using ::arolla::serialization_base::ValueDecoderResult;
 using ::arolla::serialization_base::ValueProto;
-using ::arolla::TypedValue;
+using ::arolla::serialization_codecs::RegisterValueDecoder;
 
 absl::StatusOr<ValueDecoderResult> DecodeLiteralOperator(
     absl::Span<const TypedValue> input_values) {
@@ -133,7 +135,7 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceImplValue(
         ASSIGN_OR_RETURN(
             internal::DataItem item,
             DecodeDataItemProto(vec_proto.values(i), input_values));
-        bldr.Set(i, item);
+        bldr.Insert(i, item);
       }
       if (!input_values.empty()) {
         return absl::InvalidArgumentError(
@@ -148,22 +150,19 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceImplValue(
 }
 
 absl::StatusOr<ValueDecoderResult> DecodeKodaValue(
-    const ValueProto& value_proto,
-    absl::Span<const TypedValue> input_values,
+    const ValueProto& value_proto, absl::Span<const TypedValue> input_values,
     absl::Span<const arolla::expr::ExprNodePtr> /* input_exprs*/) {
   if (!value_proto.HasExtension(KodaV1Proto::extension)) {
     return NoExtensionFound();
   }
-  const auto& koda_proto =
-      value_proto.GetExtension(KodaV1Proto::extension);
+  const auto& koda_proto = value_proto.GetExtension(KodaV1Proto::extension);
   switch (koda_proto.value_case()) {
     case KodaV1Proto::kLiteralOperator:
       return DecodeLiteralOperator(input_values);
     case KodaV1Proto::kDataSliceQtype:
       return TypedValue::FromValue(arolla::GetQType<DataSlice>());
     case KodaV1Proto::kEllipsisQtype:
-      return TypedValue::FromValue(
-          arolla::GetQType<internal::Ellipsis>());
+      return TypedValue::FromValue(arolla::GetQType<internal::Ellipsis>());
     case KodaV1Proto::kEllipsisValue:
       return TypedValue::FromValue(internal::Ellipsis{});
     case KodaV1Proto::kInternalDataItemValue:
@@ -179,12 +178,11 @@ absl::StatusOr<ValueDecoderResult> DecodeKodaValue(
       "unexpected value=%d", static_cast<int>(koda_proto.value_case())));
 }
 
-AROLLA_REGISTER_INITIALIZER(
-    kRegisterSerializationCodecs, register_serialization_codecs_koda_v1_decoder,
-    []() -> absl::Status {
-      return arolla::serialization::RegisterValueDecoder(kKodaV1Codec,
-                                                         DecodeKodaValue);
-    })
+AROLLA_REGISTER_INITIALIZER(kRegisterSerializationCodecs,
+                            register_serialization_codecs_koda_v1_decoder, [] {
+                              return RegisterValueDecoder(kKodaV1Codec,
+                                                          DecodeKodaValue);
+                            })
 
 }  // namespace
 }  // namespace koladata::s11n

@@ -125,7 +125,7 @@ DataSliceImpl DataSliceImpl::Create(const arolla::DenseArray<DataItem>& items) {
   }
   DataSliceImpl::Builder bldr(items.size());
   items.ForEachPresent(
-      [&](int64_t id, const auto& value) { bldr.Set(id, value); });
+      [&](int64_t id, const auto& value) { bldr.Insert(id, value); });
   return std::move(bldr).Build();
 }
 
@@ -135,7 +135,7 @@ DataSliceImpl DataSliceImpl::Create(absl::Span<const DataItem> items) {
   }
   DataSliceImpl::Builder bldr(items.size());
   for (int64_t i = 0; i < items.size(); ++i) {
-    bldr.Set(i, items[i]);
+    bldr.Insert(i, items[i]);
   }
   return std::move(bldr).Build();
 }

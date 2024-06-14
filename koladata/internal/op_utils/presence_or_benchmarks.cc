@@ -54,7 +54,7 @@ void run_benchmarks(benchmark::State& state, DataSliceImpl& ds_a,
       benchmark::DoNotOptimize(ds_b);
       DataSliceImpl::Builder builder(total_size);
       for (int64_t i = 0; i < total_size; ++i) {
-        builder.Set(i, PresenceOrOp()(ds_a[i], ds_b[i]).value());
+        builder.Insert(i, PresenceOrOp()(ds_a[i], ds_b[i]).value());
       }
       benchmark::DoNotOptimize(builder);
       auto ds_ab = std::move(builder).Build();

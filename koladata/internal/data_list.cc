@@ -72,7 +72,7 @@ void DataList::AddToDataSlice(DataSliceImpl::Builder& bldr, int64_t offset,
         if constexpr (std::is_same_v<decltype(vec),
                                      const std::vector<DataItem>&>) {
           for (int64_t i = from; i < to; ++i, ++offset) {
-            bldr.Set(offset, vec[i]);
+            bldr.Insert(offset, vec[i]);
           }
         } else if constexpr (!std::is_same_v<decltype(vec),
                                              const AllMissing&>) {

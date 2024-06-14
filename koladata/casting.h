@@ -15,6 +15,9 @@
 #ifndef KOLADATA_CASTING_H_
 #define KOLADATA_CASTING_H_
 
+#include <vector>
+
+#include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -140,10 +143,19 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
                                  const internal::DataItem& schema,
                                  bool implicit_cast = true,
                                  bool validate_schema = true);
-
 absl::StatusOr<DataSlice> CastTo(const DataSlice& slice, schema::DType dtype,
                                  bool implicit_cast = true,
                                  bool validate_schema = true);
+
+struct SchemaAlignedSlices {
+  std::vector<DataSlice> slices;
+  internal::DataItem common_schema;
+};
+
+// Aligns the given slices to a common schema.
+//
+// If a common schema cannot be computed, an error is returned.
+absl::StatusOr<SchemaAlignedSlices> AlignSchemas(std::vector<DataSlice> slices);
 
 }  // namespace koladata
 

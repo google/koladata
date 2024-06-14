@@ -200,7 +200,7 @@ absl::StatusOr<internal::DataItem> CommonSchema(
   internal::DataSliceImpl::Builder bldr(schema_ids.size());
   int i = 0;
   for (const auto& schema_id : schema_ids) {
-    bldr.Set(i++, schema_id);
+    bldr.Insert(i++, schema_id);
   }
   return CommonSchema(std::move(bldr).Build());
 }

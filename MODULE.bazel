@@ -9,7 +9,7 @@ bazel_dep(name = "googletest", version = "1.14.0.bcr.1", repo_name = "com_google
 
 # Transitive from arolla.
 bazel_dep(name = "abseil-py", version = "1.4.0", repo_name = "com_google_absl_py")
-bazel_dep(name = "bazel_skylib", version = "1.5.0")
+bazel_dep(name = "bazel_skylib", version = "1.6.1")
 bazel_dep(name = "eigen", version = "3.4.0.bcr.1")
 bazel_dep(name = "platforms", version = "0.0.9")
 bazel_dep(name = "protobuf", version = "26.0", repo_name = "com_google_protobuf")
@@ -17,3 +17,10 @@ bazel_dep(name = "pybind11_bazel", version = "2.12.0")
 bazel_dep(name = "re2", version = "2023-09-01", repo_name = "com_googlesource_code_re2")
 bazel_dep(name = "rules_cc", version = "0.0.9")
 bazel_dep(name = "rules_python", version = "0.31.0")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    # Required for our containerized CI environments.
+    ignore_root_user_error = True,
+    python_version = "3.11",
+)

@@ -107,7 +107,7 @@ struct TestOp1 {
     internal::DataSliceImpl::Builder bldr(ds.size());
     ds.values<float>().ForEach([&](int64_t id, bool present, float value) {
       if (present && id < arg_1) {
-        bldr.Set(id, internal::DataItem(value + arg_2));
+        bldr.Insert(id, internal::DataItem(value + arg_2));
       }
     });
     return std::move(bldr).Build();
@@ -128,7 +128,7 @@ struct TestOp2 {
     internal::DataSliceImpl::Builder bldr(ds.size());
     ds.values<float>().ForEach([&](int64_t id, bool present, float value) {
       if (present && id < arg_1) {
-        bldr.Set(id, internal::DataItem(value + arg_2));
+        bldr.Insert(id, internal::DataItem(value + arg_2));
       }
     });
     return std::move(bldr).Build();

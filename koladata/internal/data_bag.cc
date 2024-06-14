@@ -238,27 +238,31 @@ absl::Status MergeToMutableDenseSource(
     MergeOptions options) {
   DCHECK(result.IsMutable());
   int64_t size = std::min<int64_t>(result.size(), dense_source.size());
-  if (options.data_conflict_policy == MergeOptions::kOverwrite) {
+  if (options.data_conflict_policy == MergeOptions::kOverwrite &&
+      sparse_sources.empty()) {
     DCHECK_EQ(dense_source.allocation_id(), alloc);
     // TODO: Change to `result.Merge(dense_source, kOverwrite)`
     //   and try to optimize other cases as well.
-    RETURN_IF_ERROR(result.MergeOverwrite(dense_source));
-    for (auto it = sparse_sources.rbegin(); it != sparse_sources.rend(); ++it) {
-      for (const auto& [obj_id, value] : (*it)->GetAll()) {
-        DCHECK_EQ(AllocationId(obj_id), alloc);
-        DCHECK_LT(obj_id.Offset(), size);
-        if (value.has_value()) {
-          RETURN_IF_ERROR(result.Set(obj_id, value));
-        }
-      }
-    }
-    return absl::OkStatus();
+    return result.MergeOverwrite(dense_source);
   }
 
   auto objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
   ASSIGN_OR_RETURN(
       auto other_items,
       GetAttributeFromSources(objects, {&dense_source}, sparse_sources));
+
+  if (options.data_conflict_policy == MergeOptions::kOverwrite) {
+    const auto& objects_array = objects.values<ObjectId>();
+    return other_items.VisitValues([&](const auto& items_array) {
+      return result.Set(
+          arolla::DenseArray<ObjectId>{objects_array.values, items_array.bitmap,
+                                       items_array.bitmap_bit_offset},
+          DataSliceImpl::CreateWithAllocIds(
+              AllocationIdSet(),  // AllocationIdSet is not used.
+              items_array));
+    });
+  }
+
   for (int64_t offset = 0; offset < size; ++offset) {
     auto obj_id = alloc.ObjectByOffset(offset);
     // TODO: try to use batch `GetAttributeFromSources`.
@@ -604,7 +608,7 @@ absl::Status DataBagImpl::CreateMutableDenseSource(
     DataSliceImpl::Builder slice_bldr(data->size());
     for (const auto& [obj, data_item] : *data) {
       objs_bldr.Set(offset, obj);
-      slice_bldr.Set(offset, data_item);
+      slice_bldr.Insert(offset, data_item);
       offset++;
     }
     RETURN_IF_ERROR(collection.mutable_dense_source->Set(
@@ -897,7 +901,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromLists(
       pos += list.size();
     }
     if (pos >= 0 && pos < list.size()) {
-      bldr.Set(offset, list.Get(pos));
+      bldr.Insert(offset, list.Get(pos));
     }
     // Note: we don't return an error if `pos` is out of range.
   };
@@ -945,7 +949,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::PopFromLists(
             pos += list->size();
           }
           if (pos >= 0 && pos < list->size()) {
-            bldr.Set(offset, list->Get(pos));
+            bldr.Insert(offset, list->Get(pos));
             list->Remove(pos, 1);
           }
           // Note: we don't return an error if `pos` is out of range.
@@ -1621,7 +1625,7 @@ DataBagImpl::GetDictKeys(const DataSliceImpl& dicts,
   for (int64_t i = 0; i < keys.size(); ++i) {
     const auto& keys_vec = keys[i];
     for (int64_t j = 0; j < keys_vec.size(); ++j) {
-      bldr.Set(split_points[i] + j, keys_vec[j]);
+      bldr.Insert(split_points[i] + j, keys_vec[j]);
     }
   }
 
@@ -1695,7 +1699,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
 
   if (keys.is_mixed_dtype()) {
     dicts.ForEachPresent([&](int64_t offset, ObjectId dict_id) {
-      bldr.Set(offset, dict_getter(dict_id).Get(keys[offset]));
+      bldr.Insert(offset, dict_getter(dict_id).Get(keys[offset]));
     });
   } else {
     absl::Status status = absl::OkStatus();
@@ -1703,7 +1707,8 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
       using T = typename std::decay_t<decltype(vec)>::base_type;
       status = arolla::DenseArraysForEachPresent(
           [&](int64_t offset, ObjectId dict_id, arolla::view_type_t<T> key) {
-            bldr.Set(offset, dict_getter(dict_id).Get(DataItem::View<T>{key}));
+            bldr.Insert(offset,
+                        dict_getter(dict_id).Get(DataItem::View<T>{key}));
           },
           dicts, vec);
     });
@@ -1723,7 +1728,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
   keys.VisitValue([&](const auto& val) {
     using T = typename std::decay_t<decltype(val)>;
     dicts.ForEachPresent([&](int64_t offset, ObjectId dict_id) {
-      bldr.Set(offset, dict_getter(dict_id).Get(DataItem::View<T>{val}));
+      bldr.Insert(offset, dict_getter(dict_id).Get(DataItem::View<T>{val}));
     });
   });
 

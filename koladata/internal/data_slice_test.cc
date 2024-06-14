@@ -839,11 +839,11 @@ TEST(DataSliceImpl, MixedBuilder) {
   {
     // Mixed types, ObjectIds and missing values.
     DataSliceImpl::Builder bldr(5);
-    bldr.Set(0, 5);
-    bldr.Set(2, DataItem(3.14f));
-    bldr.Set(3, DataItem::View<Bytes>("abc"));
+    bldr.Insert(0, 5);
+    bldr.Insert(2, DataItem(3.14f));
+    bldr.Insert(3, DataItem::View<Bytes>("abc"));
     auto obj = AllocateSingleObject();
-    bldr.Set(1, obj);
+    bldr.Insert(1, obj);
 
     auto ds = std::move(bldr).Build();
     EXPECT_EQ(ds.size(), 5);
@@ -881,9 +881,9 @@ TEST(DataSliceImpl, MixedBuilder) {
     DataSliceImpl::Builder bldr(3);
     auto obj1 = AllocateSingleObject();
     auto obj2 = AllocateSingleObject();
-    bldr.Set(0, DataItem(obj1));
-    bldr.Set(1, DataItem(5));
-    bldr.Set(2, DataItem(obj2));
+    bldr.Insert(0, DataItem(obj1));
+    bldr.Insert(1, DataItem(5));
+    bldr.Insert(2, DataItem(obj2));
     auto ds = std::move(bldr).Build();
 
     EXPECT_THAT(ds, ElementsAre(obj1, 5, obj2));

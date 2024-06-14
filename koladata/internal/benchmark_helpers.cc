@@ -48,9 +48,9 @@ DataSliceImpl RemoveItemsIf(
   int64_t i = 0;
   for (const DataItem& item : ds) {
     if (remove_fn(item)) {
-      i++;
+      ++i;
     } else {
-      builder.Set(i++, item);
+      builder.Insert(i++, item);
     }
   }
   return std::move(builder).Build();

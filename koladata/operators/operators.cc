@@ -30,6 +30,7 @@
 #include "koladata/operators/select.h"
 #include "koladata/operators/slice.h"
 #include "koladata/operators/uuid.h"
+#include "koladata/operators/uuobj.h"
 #include "arolla/qexpr/optools.h"
 
 namespace koladata::ops {
@@ -50,6 +51,7 @@ OPERATOR("kde.core._get_attr", GetAttr);
 OPERATOR("kde.core._get_attr_with_default", GetAttrWithDefault);
 OPERATOR("kde.core._select", Select);
 OPERATOR_FAMILY("kde.core._uuid", UuidOperatorFamily);
+OPERATOR_FAMILY("kde.core._uuobj", UuObjOperatorFamily);
 OPERATOR("kde.core.at", At);
 OPERATOR("kde.core.dict_size", DictSize);
 OPERATOR("kde.core.follow", Follow);

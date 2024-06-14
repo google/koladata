@@ -76,7 +76,7 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_Dict) {
 
   EXPECT_THAT(DataSliceToStr(data_slice),
               IsOkAndHolds(MatchesRegex(
-                  R"regexp(Dict{('x'=4, 'a'=1|'a'=1, 'x'=4)})regexp")));
+                  R"regexp(Dict\{('x'=4, 'a'=1|'a'=1, 'x'=4)\})regexp")));
 }
 
 TEST(ReprUtilTest, TestItemStringRepresentation_NestedDict) {

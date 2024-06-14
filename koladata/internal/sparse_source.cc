@@ -74,7 +74,7 @@ DataSliceImpl SparseSource::Get(const ObjectIdArray& objects) const {
   objects.ForEachPresent([&](int64_t id, ObjectId object) {
     if (auto it = data_item_map_.find(object); it != data_item_map_.end()) {
       const auto& item = it->second;
-      bldr.Set(id, item);
+      bldr.Insert(id, item);
     }
   });
   return std::move(bldr).Build();
@@ -92,7 +92,7 @@ void SparseSource::Get(absl::Span<const ObjectId> objs,
     if (auto it = data_item_map_.find(object); it != data_item_map_.end()) {
       const auto& item = it->second;
       arolla::bitmap::UnsetBit(mask.data(), id);
-      bldr.Set(id, item);
+      bldr.Insert(id, item);
     }
   }
 }

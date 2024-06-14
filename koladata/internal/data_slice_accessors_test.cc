@@ -25,6 +25,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dense_source.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/sparse_source.h"
 #include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
@@ -200,6 +201,101 @@ TEST(DataSliceAccessorsTest, GetAttributeFromSources_EmptyWithAllocationIds) {
   auto ds_empty = DataSliceImpl::CreateEmptyAndUnknownType(kSize);
   ASSERT_OK_AND_ASSIGN(DataSliceImpl ds_res,
                        GetAttributeFromSources(ds_empty, {source.get()}, {}));
+}
+
+TEST(DataSliceAccessorsTest,
+     GetAttributeFromSources_DenseSparseSourcePrimitivesPartial) {
+  constexpr int64_t kSize = 6;
+  auto ds = DataSliceImpl::AllocateEmptyObjects(kSize);
+  ASSERT_EQ(ds.allocation_ids().size(), 1);
+  auto a_values =
+      arolla::CreateDenseArray<int64_t>(std::vector<OptionalValue<int64_t>>{
+          17, std::nullopt, 57, 33, std::nullopt, 21});
+  auto alloc_id = ds.allocation_ids().ids()[0];
+  ASSERT_OK_AND_ASSIGN(
+      auto dense_source,
+      DenseSource::CreateReadonly(alloc_id, DataSliceImpl::Create(a_values)));
+  auto sparse_source = SparseSource(alloc_id);
+  sparse_source.Set(alloc_id.ObjectByOffset(2), DataItem());
+  sparse_source.Set(alloc_id.ObjectByOffset(3), DataItem(int64_t{99}));
+
+  auto ds_f = DataSliceImpl::ObjectsFromAllocation(alloc_id, kSize);
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSliceImpl ds_a_get,
+      GetAttributeFromSources(ds_f, {dense_source.get()}, {&sparse_source}));
+
+  EXPECT_EQ(ds_a_get.size(), kSize);
+  EXPECT_EQ(ds_a_get.dtype(), arolla::GetQType<int64_t>());
+  EXPECT_THAT(ds_a_get.allocation_ids(), IsEmpty());
+  EXPECT_THAT(
+      ds_a_get.values<int64_t>(),
+      ElementsAre(17, std::nullopt, std::nullopt, 99, std::nullopt, 21));
+}
+
+TEST(DataSliceAccessorsTest,
+     GetAttributeFromSources_DenseTwoSparseSourcesPrimitivesPartial) {
+  constexpr int64_t kSize = 6;
+  auto ds = DataSliceImpl::AllocateEmptyObjects(kSize);
+  ASSERT_EQ(ds.allocation_ids().size(), 1);
+  auto a_values =
+      arolla::CreateDenseArray<int64_t>(std::vector<OptionalValue<int64_t>>{
+          17, std::nullopt, 57, 33, std::nullopt, 21});
+  auto alloc_id = ds.allocation_ids().ids()[0];
+  ASSERT_OK_AND_ASSIGN(
+      auto dense_source,
+      DenseSource::CreateReadonly(alloc_id, DataSliceImpl::Create(a_values)));
+  auto sparse_source_old = SparseSource(alloc_id);
+  sparse_source_old.Set(alloc_id.ObjectByOffset(0), DataItem(int64_t{19}));
+  sparse_source_old.Set(alloc_id.ObjectByOffset(2), DataItem());
+  sparse_source_old.Set(alloc_id.ObjectByOffset(3), DataItem(int64_t{99}));
+  auto sparse_source_fresh = SparseSource(alloc_id);
+  sparse_source_fresh.Set(alloc_id.ObjectByOffset(0), DataItem(int64_t{37}));
+  sparse_source_fresh.Set(alloc_id.ObjectByOffset(2), DataItem(int64_t{47}));
+
+  auto ds_f = DataSliceImpl::ObjectsFromAllocation(alloc_id, kSize);
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSliceImpl ds_a_get,
+      GetAttributeFromSources(ds_f, {dense_source.get()},
+                              {&sparse_source_fresh, &sparse_source_old}));
+
+  EXPECT_EQ(ds_a_get.size(), 6);
+  EXPECT_EQ(ds_a_get.dtype(), arolla::GetQType<int64_t>());
+  EXPECT_THAT(ds_a_get.allocation_ids(), IsEmpty());
+  EXPECT_THAT(ds_a_get.values<int64_t>(),
+              ElementsAre(37, std::nullopt, 47, 99, std::nullopt, 21));
+}
+
+TEST(DataSliceAccessorsTest,
+     GetAttributeFromSources_TwoSparseSourcesPrimitivesPartial) {
+  constexpr int64_t kSize = 6;
+  auto ds = DataSliceImpl::AllocateEmptyObjects(kSize);
+  ASSERT_EQ(ds.allocation_ids().size(), 1);
+  auto alloc_id = ds.allocation_ids().ids()[0];
+  auto sparse_source_old = SparseSource(alloc_id);
+  sparse_source_old.Set(alloc_id.ObjectByOffset(0), DataItem(int64_t{19}));
+  sparse_source_old.Set(alloc_id.ObjectByOffset(2), DataItem());
+  sparse_source_old.Set(alloc_id.ObjectByOffset(3), DataItem(int64_t{99}));
+  sparse_source_old.Set(alloc_id.ObjectByOffset(4), DataItem(int64_t{21}));
+  auto sparse_source_fresh = SparseSource(alloc_id);
+  sparse_source_fresh.Set(alloc_id.ObjectByOffset(0), DataItem(int64_t{37}));
+  sparse_source_fresh.Set(alloc_id.ObjectByOffset(2), DataItem(int64_t{47}));
+  sparse_source_fresh.Set(alloc_id.ObjectByOffset(3), DataItem());
+  sparse_source_old.Set(alloc_id.ObjectByOffset(5), DataItem(int64_t{25}));
+
+  auto ds_f = DataSliceImpl::ObjectsFromAllocation(alloc_id, kSize);
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSliceImpl ds_a_get,
+      GetAttributeFromSources(ds_f, {},
+                              {&sparse_source_fresh, &sparse_source_old}));
+
+  EXPECT_EQ(ds_a_get.size(), kSize);
+  EXPECT_EQ(ds_a_get.dtype(), arolla::GetQType<int64_t>());
+  EXPECT_THAT(ds_a_get.allocation_ids(), IsEmpty());
+  EXPECT_THAT(ds_a_get.values<int64_t>(),
+              ElementsAre(37, std::nullopt, 47, std::nullopt, 21, 25));
 }
 
 }  // namespace

@@ -84,10 +84,10 @@ TEST(TriplesTest, SimpleDict) {
   index.dicts.push_back(AllocationId(dict.value<ObjectId>()));
 
   EXPECT_THAT(Triples(*db->ExtractContent(index)).DebugString(),
-              ::testing::MatchesRegex(R"DB(DataBag {
+              ::testing::MatchesRegex(R"DB(DataBag \{
   DictId=[0-9a-f]+\.0 key=1 value=2
   DictId=[0-9a-f]+\.0 key=3 value=4
-})DB"));
+\})DB"));
 
   EXPECT_THAT(db, DataBagEqual(db));
   EXPECT_THAT(db, Not(DataBagEqual(DataBagImpl::CreateEmptyDatabag())));
@@ -103,10 +103,10 @@ TEST(TriplesTest, SimpleList) {
   EXPECT_EQ(Triples(*db->ExtractContent(DataBagIndex())).DebugString(),
             "DataBag {\n}");
   EXPECT_THAT(Triples(*db->ExtractContent()).DebugString(),
-              ::testing::MatchesRegex(R"DB(DataBag {
+              ::testing::MatchesRegex(R"DB(DataBag \{
   ListId=[0-9a-f]+\.0 \[5, 3\]
   ListId=[0-9a-f]+\.0 \[4\]
-})DB"));
+\})DB"));
   EXPECT_THAT(db, DataBagEqual(db));
   EXPECT_THAT(db, Not(DataBagEqual(DataBagImpl::CreateEmptyDatabag())));
 }

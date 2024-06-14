@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include "arolla/serialization_base/encoder.h"
+
 #include <cstdint>
 
 #include "absl/log/check.h"
@@ -35,8 +37,8 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/serialization/encode.h"
-#include "arolla/serialization_base/encode.h"
+#include "arolla/serialization_base/base.pb.h"
+#include "arolla/serialization_codecs/registry.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/fast_dynamic_downcast_final.h"
 #include "arolla/util/init_arolla.h"
@@ -49,6 +51,9 @@ namespace {
 
 using ::arolla::serialization_base::Encoder;
 using ::arolla::serialization_base::ValueProto;
+using ::arolla::serialization_codecs::RegisterValueEncoderByQType;
+using ::arolla::serialization_codecs::
+    RegisterValueEncoderByQValueSpecialisationKey;
 
 absl::StatusOr<ValueProto> GenValueProto(Encoder& encoder) {
   ASSIGN_OR_RETURN(auto codec_index, encoder.EncodeCodec(kKodaV1Codec));
@@ -122,41 +127,40 @@ absl::Status FillItemProto(Encoder& encoder, ValueProto& value_proto,
                            KodaV1Proto::DataItemProto& item_proto,
                            const internal::DataItem& item) {
   return item.VisitValue([&]<typename T>(const T& v) -> absl::Status {
-          if constexpr (std::is_same_v<T, internal::MissingValue>) {
-            item_proto.set_missing(true);
-          } else if constexpr (std::is_same_v<T, internal::ObjectId>) {
-            auto* id_proto = item_proto.mutable_object_id();
-            id_proto->set_hi(v.InternalHigh64());
-            id_proto->set_lo(v.InternalLow64());
-          } else if constexpr (std::is_same_v<T, int32_t>) {
-            item_proto.set_i32(v);
-          } else if constexpr (std::is_same_v<T, int64_t>) {
-            item_proto.set_i64(v);
-          } else if constexpr (std::is_same_v<T, float>) {
-            item_proto.set_f32(v);
-          } else if constexpr (std::is_same_v<T, double>) {
-            item_proto.set_f64(v);
-          } else if constexpr (std::is_same_v<T, bool>) {
-            item_proto.set_boolean(v);
-          } else if constexpr (std::is_same_v<T, arolla::Unit>) {
-            item_proto.set_unit(true);
-          } else if constexpr (std::is_same_v<T, arolla::Text>) {
-            item_proto.set_text(v.view());
-          } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
-            item_proto.set_bytes_(v);
-          } else if constexpr (std::is_same_v<T, schema::DType>) {
-            item_proto.set_dtype(v.type_id());
-          } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
-            item_proto.set_expr_quote(true);
-            ASSIGN_OR_RETURN(
-                auto index,
-                encoder.EncodeValue(arolla::TypedValue::FromValue(v)));
-            value_proto.add_input_value_indices(index);
-          } else {
-            static_assert(false);
-          }
-          return absl::OkStatus();
-        });
+    if constexpr (std::is_same_v<T, internal::MissingValue>) {
+      item_proto.set_missing(true);
+    } else if constexpr (std::is_same_v<T, internal::ObjectId>) {
+      auto* id_proto = item_proto.mutable_object_id();
+      id_proto->set_hi(v.InternalHigh64());
+      id_proto->set_lo(v.InternalLow64());
+    } else if constexpr (std::is_same_v<T, int32_t>) {
+      item_proto.set_i32(v);
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+      item_proto.set_i64(v);
+    } else if constexpr (std::is_same_v<T, float>) {
+      item_proto.set_f32(v);
+    } else if constexpr (std::is_same_v<T, double>) {
+      item_proto.set_f64(v);
+    } else if constexpr (std::is_same_v<T, bool>) {
+      item_proto.set_boolean(v);
+    } else if constexpr (std::is_same_v<T, arolla::Unit>) {
+      item_proto.set_unit(true);
+    } else if constexpr (std::is_same_v<T, arolla::Text>) {
+      item_proto.set_text(v.view());
+    } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
+      item_proto.set_bytes_(v);
+    } else if constexpr (std::is_same_v<T, schema::DType>) {
+      item_proto.set_dtype(v.type_id());
+    } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
+      item_proto.set_expr_quote(true);
+      ASSIGN_OR_RETURN(auto index,
+                       encoder.EncodeValue(arolla::TypedValue::FromValue(v)));
+      value_proto.add_input_value_indices(index);
+    } else {
+      static_assert(false);
+    }
+    return absl::OkStatus();
+  });
 }
 
 absl::StatusOr<ValueProto> EncodeDataItem(arolla::TypedRef value,
@@ -191,16 +195,15 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
 AROLLA_REGISTER_INITIALIZER(
     kRegisterSerializationCodecs, register_serialization_codecs_koda_v1_encoder,
     []() -> absl::Status {
-      RETURN_IF_ERROR(
-          arolla::serialization::RegisterValueEncoderByQValueSpecialisationKey(
-              "::koladata::expr::LiteralOperator", EncodeLiteralOperator));
-      RETURN_IF_ERROR(arolla::serialization::RegisterValueEncoderByQType(
-          arolla::GetQType<DataSlice>(), EncodeDataSlice));
-      RETURN_IF_ERROR(arolla::serialization::RegisterValueEncoderByQType(
+      RETURN_IF_ERROR(RegisterValueEncoderByQValueSpecialisationKey(
+          "::koladata::expr::LiteralOperator", EncodeLiteralOperator));
+      RETURN_IF_ERROR(RegisterValueEncoderByQType(arolla::GetQType<DataSlice>(),
+                                                  EncodeDataSlice));
+      RETURN_IF_ERROR(RegisterValueEncoderByQType(
           arolla::GetQType<internal::Ellipsis>(), EncodeEllipsis));
-      RETURN_IF_ERROR(arolla::serialization::RegisterValueEncoderByQType(
+      RETURN_IF_ERROR(RegisterValueEncoderByQType(
           arolla::GetQType<internal::DataItem>(), EncodeDataItem));
-      RETURN_IF_ERROR(arolla::serialization::RegisterValueEncoderByQType(
+      RETURN_IF_ERROR(RegisterValueEncoderByQType(
           arolla::GetQType<internal::DataSliceImpl>(), EncodeDataSliceImpl));
       return absl::OkStatus();
     })

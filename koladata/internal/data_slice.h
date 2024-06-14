@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -47,6 +48,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/iterator.h"
+#include "arolla/util/refcount_ptr.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
@@ -105,18 +107,6 @@ class DataSliceImpl {
   // Returns 0 dimension DataSliceImpl with specified values.
   // Returns error if type is not supported.
   static absl::StatusOr<DataSliceImpl> Create(arolla::TypedRef values);
-
-  DataSliceImpl() = default;
-
-  DataSliceImpl(const DataSliceImpl& ds)
-      : internal_(std::make_unique<Internal>(*ds.internal_)) {}
-  DataSliceImpl(DataSliceImpl&&) = default;
-
-  DataSliceImpl& operator=(const DataSliceImpl& ds) {
-    internal_ = std::make_unique<Internal>(*ds.internal_);
-    return *this;
-  }
-  DataSliceImpl& operator=(DataSliceImpl&&) = default;
 
   // Returns number of elements in the flat array.
   size_t size() const { return internal_->size; }
@@ -252,7 +242,7 @@ class DataSliceImpl {
                                arolla::DenseArray<arolla::expr::ExprQuote>,  //
                                arolla::DenseArray<schema::DType>             //
                                >;
-  struct Internal {
+  struct Internal : public arolla::RefcountedBase {
     size_t size = 0;
     arolla::QTypePtr dtype = arolla::GetNothingQType();
 
@@ -278,7 +268,8 @@ class DataSliceImpl {
   static void CreateImpl(DataSliceImpl& res, arolla::DenseArray<T> main_values,
                          arolla::DenseArray<Ts>... values);
 
-  std::unique_ptr<Internal> internal_ = std::make_unique<Internal>();
+  arolla::RefcountPtr<Internal> internal_ =
+      arolla::RefcountPtr<Internal>::Make();
 };
 
 class DataSliceImpl::Builder {
@@ -306,19 +297,29 @@ class DataSliceImpl::Builder {
     return slice_.internal_->allocation_ids;
   }
 
+  // Inserts the value of the item with `id`.
+  // Does NOTHING if the value is missing (`DataItem()` or `MissingValue`).
+  // Fails if the `value` for the given `id` was already set, even if the value
+  // was the same and/or one of them were missing.
   template <typename T>
-  void Set(int64_t id, const T& value) {
+  void Insert(int64_t id, const T& value) {
     if constexpr (std::is_same_v<T, DataItem>) {
-      value.VisitValue([&](const auto& v) { Set(id, v); });
-    } else if constexpr (arolla::meta::is_wrapped_with_v<DataItem::View, T>) {
-      GetArrayBuilder<typename T::value_type>().Set(id, value.view);
-      if constexpr (std::is_same_v<typename T::value_type, ObjectId>) {
-        GetMutableAllocationIds().Insert(AllocationId(value.view));
-      }
-    } else if constexpr (!std::is_same_v<T, MissingValue>) {
-      GetArrayBuilder<T>().Set(id, value);
-      if constexpr (std::is_same_v<T, ObjectId>) {
-        GetMutableAllocationIds().Insert(AllocationId(value));
+      value.VisitValue([&](const auto& v) { Insert(id, v); });
+    } else {
+#ifndef NDEBUG
+      DCHECK(inserted_ids_.insert(id).second)
+          << "id " << id << " was already insered.";
+#endif  // NDEBUG
+      if constexpr (arolla::meta::is_wrapped_with_v<DataItem::View, T>) {
+        GetArrayBuilder<typename T::value_type>().Set(id, value.view);
+        if constexpr (std::is_same_v<typename T::value_type, ObjectId>) {
+          GetMutableAllocationIds().Insert(AllocationId(value.view));
+        }
+      } else if constexpr (!std::is_same_v<T, MissingValue>) {
+        GetArrayBuilder<T>().Set(id, value);
+        if constexpr (std::is_same_v<T, ObjectId>) {
+          GetMutableAllocationIds().Insert(AllocationId(value));
+        }
       }
     }
   }
@@ -340,6 +341,10 @@ class DataSliceImpl::Builder {
   ArrayBuilderVariant* current_bldr_ = &first_bldr_;
   int8_t current_type_id_ = ScalarTypeId<MissingValue>();
   absl::flat_hash_map<int8_t, ArrayBuilderVariant> bldrs_;
+#ifndef NDEBUG
+  // Used to check that all ids in Insert are unique.
+  absl::flat_hash_set<int64_t> inserted_ids_;
+#endif  // NDEBUG
 };
 
 namespace data_slice_impl {

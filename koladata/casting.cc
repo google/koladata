@@ -15,6 +15,7 @@
 #include "koladata/casting.h"
 
 #include <utility>
+#include <vector>
 
 #include "absl/base/optimization.h"
 #include "absl/status/status.h"
@@ -270,6 +271,50 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& slice, schema::DType dtype,
                                  bool implicit_cast, bool validate_schema) {
   return CastTo(slice, internal::DataItem(dtype), implicit_cast,
                 validate_schema);
+}
+
+absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
+    std::vector<DataSlice> slices) {
+  auto get_common_schema = [&]() -> absl::StatusOr<internal::DataItem> {
+    if (slices.empty()) {
+      return absl::InvalidArgumentError("expected at least one slice");
+    }
+    if (slices.size() == 1) {
+      return slices[0].GetSchemaImpl();
+    }
+    if (slices.size() == 2) {
+      return schema::CommonSchema(
+          slices[0].GetSchemaImpl(),
+          slices[1].GetSchemaImpl());
+    }
+    std::vector<internal::DataItem> schemas;
+    schemas.reserve(slices.size());
+    for (const auto& slice : slices) {
+      schemas.push_back(slice.GetSchemaImpl());
+    }
+    return schema::CommonSchema(schemas);
+  };
+
+  ASSIGN_OR_RETURN(auto common_schema, get_common_schema());
+  std::vector<DataSlice> res;
+  res.reserve(slices.size());
+  for (auto&& slice : slices) {
+    // Since we cast to a common schema, we don't need to validate implicit
+    // compatibility or validate schema (during casting to OBJECT) as no
+    // embedding occur.
+    if (slice.GetSchemaImpl() == common_schema) {
+      res.push_back(std::move(slice));
+    } else {
+      ASSIGN_OR_RETURN(auto casted_slice, CastTo(slice, common_schema,
+                                                 /*implicit_cast=*/false,
+                                                 /*validate_schema=*/false));
+      res.push_back(std::move(casted_slice));
+    }
+  }
+  return SchemaAlignedSlices{
+      .slices = std::move(res),
+      .common_schema = std::move(common_schema),
+  };
 }
 
 }  // namespace koladata
