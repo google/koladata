@@ -48,11 +48,16 @@ struct EntityCreator {
   // otherwise an error is returned.
   //
   // The returned Entity has an explicit schema whose attributes `attr_names`
-  // are set to schemas of `values`.
+  // are set to schemas of `values`. If `schema` is provided, attributes are
+  // cast to `schema` attributes. In case some schema attribute is missing,
+  // error is returned, unless `update_schema` is provided in which case, the
+  // schema attribute is set from attribute's value.
   absl::StatusOr<DataSlice> operator()(
     const DataBagPtr& db,
     const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values) const;
+    const std::vector<DataSlice>& values,
+    const std::optional<DataSlice>& schema = std::nullopt,
+    bool update_schema = false) const;
 
   // Returns an Entity (DataSlice with a reference to `db`) with shape `shape`.
   // Entities will have slice-level explicit schema with no attributes.

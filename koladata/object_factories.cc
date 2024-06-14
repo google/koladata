@@ -14,8 +14,10 @@
 //
 #include "koladata/object_factories.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -40,6 +42,7 @@
 #include "koladata/shape/shape_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -47,37 +50,82 @@ namespace koladata {
 namespace {
 
 // Returns an entity (with `db` attached) that can be created either from
-// DataSliceImpl(s) or DataItem(s). The returned Entity has explicit schema
-// whose attributes are set to schemas of `values`.
+// DataSliceImpl(s) or DataItem(s).
 template <class ImplT>
 absl::StatusOr<DataSlice> CreateEntitiesFromFields(
     const DataBagPtr& db,
     const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& aligned_values) {
+    const std::vector<DataSlice>& aligned_values, internal::DataItem schema,
+    internal::DataBagImpl& db_mutable_impl) {
+  DCHECK(&db->GetImpl() == &db_mutable_impl);
   std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
   aligned_values_impl.reserve(aligned_values.size());
   for (const auto& val : aligned_values) {
     aligned_values_impl.push_back(std::cref(val.impl<ImplT>()));
   }
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
   ASSIGN_OR_RETURN(auto ds_impl, db_mutable_impl.CreateObjectsFromFields(
                                      attr_names, aligned_values_impl));
-  std::vector<std::reference_wrapper<const internal::DataItem>> schemas;
-  schemas.reserve(aligned_values.size());
-  for (const auto& val : aligned_values) {
-    schemas.push_back(std::cref(val.GetSchemaImpl()));
-  }
-  ASSIGN_OR_RETURN(auto schema, db_mutable_impl.CreateExplicitSchemaFromFields(
-                                    attr_names, schemas));
   return DataSlice::Create(std::move(ds_impl),
                            std::move(aligned_values.begin()->GetShapePtr()),
                            std::move(schema),
                            db);
 }
 
+// Copies all schema attributes for schema `schema_item` from `schema_db` to
+// `db_mutable_impl`. Returns an Error if schema is not Any or Entity or in case
+// internal invariants are broken.
+// TODO: This solution is mid-term, as we will either optimize it
+// to rely on fast copying of dictionaries from one DataBag to another or will
+// apply merging before invoking `EntityCreator`. Invoking merging will allow
+// the full functionality of `update_schema=true`, which is equivalent to the
+// functionality of SetAttrWithUpdateSchema.
+absl::Status CopyEntitySchema(const DataBagPtr& schema_db,
+                              const internal::DataItem& schema_item,
+                              internal::DataBagImpl& db_mutable_impl) {
+  if (schema_item == schema::kAny) {
+    return absl::OkStatus();
+  }
+  if (!schema_item.is_entity_schema()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "processing Entity attributes requires Entity schema, got %v",
+        schema_item));
+  }
+  if (schema_db == nullptr) {
+    // NOTE: If `update_schema=true`, the attribute schemas will just be set at
+    // the point of creating Entities. If `update_schema=false`, the error will
+    // be returned from the caller, as attributes will have missing schema in
+    // the DataBag the caller is creating Entity into.
+    return absl::OkStatus();
+  }
+  const internal::DataBagImpl& schema_db_impl = schema_db->GetImpl();
+  FlattenFallbackFinder fb_finder = FlattenFallbackFinder(*schema_db);
+  auto fallbacks = fb_finder.GetFlattenFallbacks();
+  ASSIGN_OR_RETURN(internal::DataSliceImpl attr_names_slice,
+                   schema_db_impl.GetSchemaAttrs(schema_item, fallbacks));
+
+  std::vector<absl::string_view> attr_names;
+  attr_names.reserve(attr_names_slice.size());
+  // All are present.
+  attr_names_slice.values<arolla::Text>().ForEachPresent(
+      [&](int64_t, absl::string_view attr_name) {
+        attr_names.push_back(attr_name);
+      });
+  std::deque<internal::DataItem> attr_schema_owners;
+  std::vector<std::reference_wrapper<const internal::DataItem>> attr_schemas;
+  attr_schemas.reserve(attr_names_slice.size());
+  for (const auto& attr_name : attr_names) {
+    ASSIGN_OR_RETURN(
+        attr_schema_owners.emplace_back(),
+        schema_db_impl.GetSchemaAttrAllowMissing(schema_item, attr_name,
+                                                 fallbacks));
+    attr_schemas.push_back(std::cref(attr_schema_owners.back()));
+  }
+  return db_mutable_impl.OverwriteSchemaFields(
+      schema_item, attr_names, attr_schemas);
+}
+
 template <class ImplT>
-absl::Status SetSchema(
+absl::Status SetObjectSchema(
     internal::DataBagImpl& db_mutable_impl, const ImplT& ds_impl,
     const std::vector<absl::string_view>& attr_names,
     const std::vector<std::reference_wrapper<const internal::DataItem>>&
@@ -124,7 +172,7 @@ absl::StatusOr<DataSlice> CreateObjectsFromFields(
                                      attr_names, aligned_values_impl));
 
   RETURN_IF_ERROR(
-      SetSchema(db_mutable_impl, ds_impl, attr_names, schemas));
+      SetObjectSchema(db_mutable_impl, ds_impl, attr_names, schemas));
 
   return DataSlice::Create(std::move(ds_impl),
                            std::move(aligned_values.begin()->GetShapePtr()),
@@ -205,22 +253,57 @@ absl::StatusOr<DataSlice> CreateEntitySchema(
 absl::StatusOr<DataSlice> EntityCreator::operator()(
     const DataBagPtr& db,
     const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values) const {
+    const std::vector<DataSlice>& values,
+    const std::optional<DataSlice>& schema,
+    bool update_schema) const {
   DCHECK_EQ(attr_names.size(), values.size());
+  internal::DataItem schema_item;
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  std::vector<DataSlice> aligned_values;
+  if (schema) {
+    RETURN_IF_ERROR(schema->VerifyIsSchema());
+    schema_item = schema->item();
+    RETURN_IF_ERROR(
+        CopyEntitySchema(schema->GetDb(), schema_item, db_mutable_impl));
+  }
   if (values.empty()) {
+    if (!schema_item.has_value()) {
+      schema_item = internal::DataItem(internal::AllocateExplicitSchema());
+    }
     return DataSlice::Create(
         internal::DataItem(internal::AllocateSingleObject()),
-        internal::DataItem(internal::AllocateExplicitSchema()),
-        db);
+        std::move(schema_item), db);
   }
-  // TODO: Add merging of DataBags if values have references to
-  // DataBags.
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align<DataSlice>(values));
+  if (schema_item.has_value() && schema_item != schema::kAny) {
+    std::vector<DataSlice> casted_values;
+    casted_values.reserve(values.size());
+    for (int i = 0; i < values.size(); ++i) {
+      ASSIGN_OR_RETURN(
+          casted_values.emplace_back(),
+          CastOrUpdateSchema(values[i], schema_item, attr_names[i],
+                             update_schema, db_mutable_impl));
+    }
+    ASSIGN_OR_RETURN(aligned_values, shape::Align<DataSlice>(casted_values));
+  } else {
+    std::vector<std::reference_wrapper<const internal::DataItem>> schemas;
+    schemas.reserve(values.size());
+    for (const auto& val : values) {
+      schemas.push_back(std::cref(val.GetSchemaImpl()));
+    }
+    if (!schema_item.has_value()) {
+      ASSIGN_OR_RETURN(
+          schema_item,
+          db_mutable_impl.CreateExplicitSchemaFromFields(attr_names, schemas));
+    }
+    ASSIGN_OR_RETURN(aligned_values, shape::Align<DataSlice>(values));
+  }
   // All DataSlices have the same shape at this point and thus the same internal
   // representation, so we pick any of them to dispatch the object creation by
   // internal implementation type.
   return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
-    return CreateEntitiesFromFields<T>(db, attr_names, aligned_values);
+    return CreateEntitiesFromFields<T>(db, attr_names, aligned_values,
+                                       std::move(schema_item), db_mutable_impl);
   });
 }
 
@@ -240,8 +323,12 @@ absl::StatusOr<DataSlice> ObjectCreator::operator()(
   if (values.empty()) {
     return (*this)(db, DataSlice::JaggedShape::Empty());
   }
-  // TODO: Add merging of DataBags if values have references to
-  // DataBags.
+  if (std::find(attr_names.begin(), attr_names.end(), "schema") !=
+      attr_names.end()) {
+    return absl::InvalidArgumentError(
+        "please use new_...() instead of obj_...() to create items with a given"
+        " schema");
+  }
   ASSIGN_OR_RETURN(auto aligned_values, shape::Align<DataSlice>(values));
   // All DataSlices have the same shape at this point and thus the same internal
   // representation, so we pick any of them to dispatch the object creation by
@@ -287,8 +374,8 @@ absl::StatusOr<DataSlice> UuObjectCreator::operator()(
                   std::reference_wrapper<const internal::DataItem>>{});
     ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                      db->GetMutableImpl());
-    RETURN_IF_ERROR(SetSchema(db_mutable_impl, uuid, {}, {},
-                              /*overwrite_schemas=*/false));
+    RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, uuid, {}, {},
+                                    /*overwrite_schemas=*/false));
     return DataSlice::Create(uuid, internal::DataItem(schema::kObject));
   }
   ASSIGN_OR_RETURN(auto aligned_values, shape::Align<DataSlice>(values));
@@ -326,8 +413,8 @@ absl::StatusOr<DataSlice> UuObjectCreator::operator()(
           RETURN_IF_ERROR(db_mutable_impl.SetAttr(*impl_res, attr_names[i],
                                                   aligned_values_impl[i]));
         }
-        RETURN_IF_ERROR(SetSchema(db_mutable_impl, impl_res.value(),
-                                  attr_names, schemas,
+        RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, impl_res.value(),
+                                        attr_names, schemas,
                                   /*overwrite_schemas=*/false));
         return DataSlice::Create(
             impl_res.value(), std::move(aligned_values.begin()->GetShapePtr()),

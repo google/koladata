@@ -206,5 +206,107 @@ void BM_ExplodeLists(benchmark::State& state) {
 BENCHMARK(BM_ExplodeLists)
   ->ArgPair(5, 5)->ArgPair(100, 100)->ArgPair(10, 10000);
 
+void BM_CreateEntity(benchmark::State& state) {
+  int64_t size = state.range(0);
+  auto db = DataBag::Empty();
+  auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
+  auto a = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(a_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto b_values = arolla::CreateFullDenseArray(std::vector<float>(size, 3.14));
+  auto b = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(b_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto c_values = arolla::CreateFullDenseArray(
+      std::vector<int64_t>(size, 1l << 43));
+  auto c = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(c_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(db);
+    benchmark::DoNotOptimize(a);
+    benchmark::DoNotOptimize(b);
+    benchmark::DoNotOptimize(c);
+    auto entity_or = EntityCreator()(db, {"a", "b", "c"}, {a, b, c});
+    CHECK_OK(entity_or);
+    benchmark::DoNotOptimize(entity_or);
+  }
+}
+
+BENCHMARK(BM_CreateEntity)->Arg(1)->Arg(10)->Arg(10000);
+
+void BM_CreateEntityWithSchema(benchmark::State& state) {
+  int64_t size = state.range(0);
+  auto db = DataBag::Empty();
+  auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
+  auto a = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(a_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto b_values = arolla::CreateFullDenseArray(std::vector<float>(size, 3.14));
+  auto b = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(b_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto c_values = arolla::CreateFullDenseArray(
+      std::vector<int64_t>(size, 1l << 43));
+  auto c = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(c_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+
+  auto schema_db = DataBag::Empty();
+  std::optional<DataSlice> schema = *CreateEntitySchema(
+      schema_db, {"a", "b", "c"},
+      {test::Schema(schema::kInt32), test::Schema(schema::kFloat32),
+       test::Schema(schema::kInt64)});
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(db);
+    benchmark::DoNotOptimize(a);
+    benchmark::DoNotOptimize(b);
+    benchmark::DoNotOptimize(c);
+    auto entity_or = EntityCreator()(db, {"a", "b", "c"}, {a, b, c}, schema);
+    CHECK_OK(entity_or);
+    benchmark::DoNotOptimize(entity_or);
+  }
+}
+
+BENCHMARK(BM_CreateEntityWithSchema)->Arg(1)->Arg(10)->Arg(10000);
+
+void BM_CreateEntityWithSchemaAndCasting(benchmark::State& state) {
+  int64_t size = state.range(0);
+  auto db = DataBag::Empty();
+  auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
+  auto a = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(a_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto b_values = arolla::CreateFullDenseArray(std::vector<float>(size, 3.14));
+  auto b = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(b_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto c_values = arolla::CreateFullDenseArray(
+      std::vector<int64_t>(size, 1l << 43));
+  auto c = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(c_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+
+  auto schema_db = DataBag::Empty();
+  std::optional<DataSlice> schema = *CreateEntitySchema(
+      schema_db, {"a", "b", "c"},
+      {test::Schema(schema::kInt64), test::Schema(schema::kFloat64),
+       test::Schema(schema::kFloat32)});
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(db);
+    benchmark::DoNotOptimize(a);
+    benchmark::DoNotOptimize(b);
+    benchmark::DoNotOptimize(c);
+    auto entity_or = EntityCreator()(db, {"a", "b", "c"}, {a, b, c}, schema);
+    CHECK_OK(entity_or);
+    benchmark::DoNotOptimize(entity_or);
+  }
+}
+
+BENCHMARK(BM_CreateEntityWithSchemaAndCasting)->Arg(1)->Arg(10)->Arg(10000);
+
 }  // namespace
 }  // namespace koladata

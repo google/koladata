@@ -71,6 +71,22 @@ cc_test(
 )
 
 cc_test(
+    name = "object_id_test",
+    srcs = ["object_id_test.cc"],
+    deps = [
+        ":object_id",
+        ":stable_fingerprint",
+        "@com_google_absl//absl/hash:hash_testing",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "object_id_benchmarks",
     srcs = ["object_id_benchmarks.cc"],
     deps = [
@@ -667,6 +683,7 @@ cc_library(
         ":object_id",
         ":stable_fingerprint",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

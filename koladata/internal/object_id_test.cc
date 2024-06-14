@@ -27,7 +27,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/functional/bind_front.h"
 #include "absl/hash/hash_testing.h"
 #include "absl/numeric/int128.h"
 #include "absl/random/random.h"
@@ -459,12 +458,12 @@ TEST(ObjectIdTest, TypedValueRepr) {
   AllocationId alloc_id = Allocate(1024);
   std::string repr0 =
       arolla::TypedValue::FromValue(alloc_id.ObjectByOffset(0)).Repr();
-  EXPECT_THAT(repr0, testing::MatchesRegex("[abcdef\\d]*\\.0"));
+  EXPECT_THAT(repr0, testing::MatchesRegex(R"regexp([a-f0-9]*.0)regexp"));
   std::string repr1 =
       arolla::TypedValue::FromValue(alloc_id.ObjectByOffset(10)).Repr();
-  EXPECT_THAT(repr1, testing::MatchesRegex("[abcdef\\d]*\\.a"));
+  EXPECT_THAT(repr1, testing::MatchesRegex(R"regexp([a-f0-9]*.a)regexp"));
   std::string repr2 = absl::StrCat(alloc_id.ObjectByOffset(0xff));
-  EXPECT_THAT(repr2, testing::MatchesRegex("[abcdef\\d]*\\.ff"));
+  EXPECT_THAT(repr2, testing::MatchesRegex(R"regexp([a-f0-9]*.ff)regexp"));
 
   EXPECT_NE(repr0, repr1);
   // All but last digit (in base 16) should be the same.
@@ -620,7 +619,7 @@ TEST(ObjectIdTest, AllocationIdSetSmallFromSpan) {
         allocs.push_back(AllocationId(uuid));
       }
     }
-    std::shuffle(allocs.begin(), allocs.end(), absl::SharedBitGen());
+    std::shuffle(allocs.begin(), allocs.end(), absl::BitGen());
     AllocationIdSet id_set(allocs);
     EXPECT_THAT(id_set, UnorderedElementsAreArray(expected_allocs));
     EXPECT_TRUE(id_set.contains_small_allocation_id());

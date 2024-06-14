@@ -35,6 +35,7 @@
 #include "koladata/internal/dtype.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/util/refcount_ptr.h"
 #include "arolla/util/text.h"
 
 namespace koladata {
@@ -114,15 +115,15 @@ class DataSlice {
 
   // Default-constructed DataSlice is a single missing item with scalar shape
   // and unknown dtype.
-  DataSlice() : shape_(JaggedShape::Empty()), schema_(schema::kAny) {}
+  DataSlice() : internal_(arolla::RefcountPtr<Internal>::Make()) {};
 
   // Returns a JaggedShapePtr of this slice.
-  const JaggedShapePtr& GetShapePtr() const { return shape_; }
+  const JaggedShapePtr& GetShapePtr() const { return internal_->shape_; }
 
   // Returns a JaggedShape of this slice.
   const JaggedShape& GetShape() const {
-    DCHECK_NE(shape_, nullptr);
-    return *shape_;
+    DCHECK_NE(internal_->shape_, nullptr);
+    return *internal_->shape_;
   }
 
   // Returns a new DataSlice whose values and shape are broadcasted to `shape`.
@@ -138,9 +139,7 @@ class DataSlice {
   DataSlice GetSchema() const;
 
   // Returns a DataItem holding a schema.
-  const internal::DataItem& GetSchemaImpl() const {
-    return schema_;
-  }
+  const internal::DataItem& GetSchemaImpl() const { return internal_->schema_; }
 
   // Returns a new DataSlice with the updated `schema`. In case `schema` cannot
   // be assigned to this DataSlice, the appropriate Error is returned.
@@ -160,11 +159,13 @@ class DataSlice {
   absl::StatusOr<DataSlice> GetNoFollowedSchema() const;
 
   // Returns a reference to a DataBag that this DataSlice has a reference to.
-  const absl::Nullable<std::shared_ptr<DataBag>>& GetDb() const { return db_; }
+  const absl::Nullable<std::shared_ptr<DataBag>>& GetDb() const {
+    return internal_->db_;
+  }
 
   // Returns a new DataSlice with a new reference to DataBag `db`.
   DataSlice WithDb(std::shared_ptr<DataBag> db) const {
-    return DataSlice(impl_, shape_, schema_, db);
+    return DataSlice(internal_->impl_, GetShapePtr(), GetSchemaImpl(), db);
   }
 
   // Returns true iff `other` represents the same DataSlice with same data
@@ -249,8 +250,8 @@ class DataSlice {
 
   // Gets [start, stop) range from each list and returns as a data slice with an
   // additional dimension.
-  absl::StatusOr<DataSlice> ExplodeList(
-      int64_t start, std::optional<int64_t> stop) const;
+  absl::StatusOr<DataSlice> ExplodeList(int64_t start,
+                                        std::optional<int64_t> stop) const;
 
   // Replaces [start, stop) range in each list with given values.
   absl::Status ReplaceInList(int64_t start, std::optional<int64_t> stop,
@@ -279,11 +280,11 @@ class DataSlice {
   // Returns the return value of `visitor`.
   template <class Visitor>
   auto VisitImpl(Visitor&& visitor) const {
-    return std::visit(visitor, impl_);
+    return std::visit(visitor, internal_->impl_);
   }
 
   // Returns total size of DataSlice, including missing items.
-  size_t size() const { return shape_->size(); }
+  size_t size() const { return GetShape().size(); }
 
   // Returns number of present items in DataSlice.
   size_t present_count() const {
@@ -299,9 +300,7 @@ class DataSlice {
   // In case of mixed types, returns NothingQType. While for DataSlice of
   // objects, returns ObjectIdQType.
   arolla::QTypePtr dtype() const {
-    return VisitImpl([&](const auto& impl) {
-      return impl.dtype();
-    });
+    return VisitImpl([&](const auto& impl) { return impl.dtype(); });
   }
 
   // T can be internal::DataSliceImpl or internal::DataItem, depending on what
@@ -309,17 +308,17 @@ class DataSlice {
   // T.
   template <class T>
   const T& impl() const {
-    return std::get<T>(impl_);
+    return std::get<T>(internal_->impl_);
   }
 
   // Returns underlying implementation of DataSlice, if DataSliceImpl.
   const internal::DataSliceImpl& slice() const {
-    return std::get<internal::DataSliceImpl>(impl_);
+    return std::get<internal::DataSliceImpl>(internal_->impl_);
   }
 
   // Returns underlying implementation of DataSlice, if DataItem.
   const internal::DataItem& item() const {
-    return std::get<internal::DataItem>(impl_);
+    return std::get<internal::DataItem>(internal_->impl_);
   }
 
   // Returns true, if the underlying data is owned (DataItem holding a value or
@@ -358,12 +357,12 @@ class DataSlice {
       if constexpr (std::is_same_v<T, internal::DataSliceImpl>) {
         return kDataSliceQValueSpecializationKey;
       } else {
-        DCHECK_EQ(shape_->rank(), 0);
+        DCHECK_EQ(GetShape().rank(), 0);
         if (impl.is_list()) {
           return kListItemQValueSpecializationKey;
         } else if (impl.is_dict()) {
           return kDictItemQValueSpecializationKey;
-        } else if (impl.is_schema() && schema_ == schema::kSchema) {
+        } else if (impl.is_schema() && GetSchemaImpl() == schema::kSchema) {
           return kSchemaItemQValueSpecializationKey;
         }
         return kDataItemQValueSpecializationKey;
@@ -373,6 +372,12 @@ class DataSlice {
 
  private:
   using ImplVariant = std::variant<internal::DataItem, internal::DataSliceImpl>;
+
+  DataSlice(ImplVariant impl, JaggedShapePtr shape, internal::DataItem schema,
+            std::shared_ptr<DataBag> db = nullptr)
+      : internal_(arolla::RefcountPtr<Internal>::Make(
+            std::move(impl), std::move(shape), std::move(schema),
+            std::move(db))) {}
 
   // Returns an Error if `schema` cannot be used for data whose type is defined
   // by `dtype`. `dtype` has a value of NothingQType in case the contents are
@@ -386,32 +391,39 @@ class DataSlice {
   absl::Status SetSchemaAttr(absl::string_view attr_name,
                              const DataSlice& values) const;
 
-  DataSlice(ImplVariant impl,
-            JaggedShapePtr shape,
-            internal::DataItem schema,
-            std::shared_ptr<DataBag> db = nullptr)
-      : impl_(std::move(impl)),
-        shape_(std::move(shape)),
-        schema_(std::move(schema)),
-        db_(std::move(db)) {
-          DCHECK(schema_.has_value());
-        }
+  struct Internal : public arolla::RefcountedBase {
+    ImplVariant impl_;
+    // Can be shared between multiple DataSlice(s) (e.g. getattr, result
+    // of all pointwise operators, as well as aggregation that returns the
+    // same size - rank and similar).
+    JaggedShapePtr shape_;
+    // Schema:
+    // * Primitive DType for primitive slices / items;
+    // * ObjectId (allocated or UUID) for complex schemas, where it
+    // represents a
+    //   pointer to a start of schema definition in a DataBag.
+    // * Special meaning DType. E.g. ANY, OBJECT, ITEM_ID, IMPLICIT,
+    // EXPLICIT,
+    //   etc. Please see go/kola-schema for details.
+    internal::DataItem schema_;
+    // Can be shared between multiple DataSlice(s) and underlying storage
+    // can be changed outside of control of this DataSlice.
+    std::shared_ptr<DataBag> db_;
 
-  ImplVariant impl_;
-  // Can be shared between multiple DataSlice(s) (e.g. getattr, result of all
-  // pointwise operators, as well as aggregation that returns the same size -
-  // rank and similar).
-  JaggedShapePtr shape_;
-  // Schema:
-  // * Primitive DType for primitive slices / items;
-  // * ObjectId (allocated or UUID) for complex schemas, where it represents a
-  //   pointer to a start of schema definition in a DataBag.
-  // * Special meaning DType. E.g. ANY, OBJECT, ITEM_ID, IMPLICIT, EXPLICIT,
-  //   etc. Please see go/kola-schema for details.
-  internal::DataItem schema_;
-  // Can be shared between multiple DataSlice(s) and underlying storage can be
-  // changed outside of control of this DataSlice.
-  std::shared_ptr<DataBag> db_;
+    Internal() : shape_(JaggedShape::Empty()), schema_(schema::kAny) {}
+
+    Internal(ImplVariant impl, JaggedShapePtr shape, internal::DataItem schema,
+             std::shared_ptr<DataBag> db = nullptr)
+        : impl_(std::move(impl)),
+          shape_(std::move(shape)),
+          schema_(std::move(schema)),
+          db_(std::move(db)) {
+      DCHECK(schema_.has_value());
+    }
+  };
+
+  // RefcountPtr is used to ensure cheap DataSlice copying.
+  arolla::RefcountPtr<Internal> internal_;
 };
 
 // Helper class for manipulating broadcasting of a DataSlice to a particular
@@ -447,6 +459,19 @@ class BroadcastHelper {
   std::optional<DataSlice> owned_expanded_;
   absl::Status status_ = absl::OkStatus();
 };
+
+// TODO: Remove this and use SetAttrs that sets (and casts)
+// multiple attributes at the same time.
+//
+// Returns a new DataSlice which is a copy of the current value or casted
+// according to the type of attribute `attr_name` of schema `lhs_schema`. If
+// `update_schema=true` and `attr_name` schema attribute is missing from
+// `lhs_schema`, it will be added. In case of conflicts or unsupported casting,
+// the error is returned.
+absl::StatusOr<DataSlice> CastOrUpdateSchema(
+    const DataSlice& value, const internal::DataItem& lhs_schema,
+    absl::string_view attr_name, bool update_schema,
+    internal::DataBagImpl& db_impl);
 
 }  // namespace koladata
 

@@ -159,6 +159,149 @@ TEST(EntityCreatorTest, DataItem) {
   EXPECT_EQ(schema_b_get.item(), schema::kInt32);
 }
 
+TEST(EntityCreatorTest, SchemaArg) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto text_s = test::Schema(schema::kText);
+  auto entity_schema = *CreateEntitySchema(db, {"a", "b"}, {int_s, text_s});
+
+  ASSERT_OK_AND_ASSIGN(
+      auto entity,
+      EntityCreator()(
+          db,
+          {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+          entity_schema));
+
+  EXPECT_EQ(entity.GetSchemaImpl(), entity_schema.item());
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+  EXPECT_THAT(entity.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+}
+
+TEST(EntityCreatorTest, SchemaArg_InvalidSchema) {
+  auto db = DataBag::Empty();
+  EXPECT_THAT(EntityCreator()(db, {"a", "b"},
+                              {test::DataItem(42), test::DataItem("xyz")},
+                              test::DataItem(42)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("must be SCHEMA, got: INT32")));
+  EXPECT_THAT(EntityCreator()(db, {"a", "b"},
+                              {test::DataItem(42), test::DataItem("xyz")},
+                              test::Schema(schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("requires Entity schema, got OBJECT")));
+}
+
+TEST(EntityCreatorTest, SchemaArg_WithFallback) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  auto fb_db = DataBag::Empty();
+  auto text_s = test::Schema(schema::kText);
+  ASSERT_OK(entity_schema.WithDb(fb_db).SetAttr("b", text_s));
+
+  entity_schema = entity_schema.WithDb(
+      DataBag::ImmutableEmptyWithFallbacks({db, fb_db}));
+
+  auto new_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto entity,
+      EntityCreator()(
+          new_db,
+          {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+          entity_schema));
+
+  EXPECT_EQ(entity.GetSchemaImpl(), entity_schema.item());
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(new_db))));
+  EXPECT_THAT(
+      entity.GetAttr("b"),
+      IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(new_db))));
+}
+
+TEST(EntityCreatorTest, SchemaArg_ImplicitCasting) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kFloat32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  auto ds_a = test::DataItem(42);
+  ASSERT_EQ(ds_a.GetSchemaImpl(), schema::kInt32);
+
+  ASSERT_OK_AND_ASSIGN(auto entity,
+                       EntityCreator()(db, {"a"}, {ds_a}, entity_schema));
+
+  EXPECT_THAT(
+      entity.GetAttr("a"),
+      IsOkAndHolds(
+          AllOf(IsEquivalentTo(test::DataItem(42.0f).WithDb(db)),
+                Property(&DataSlice::GetSchemaImpl, Eq(schema::kFloat32)))));
+}
+
+TEST(EntityCreatorTest, SchemaArg_CastingFails) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kFloat32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  EXPECT_THAT(
+      EntityCreator()(db, {"a"}, {test::DataItem("xyz")}, entity_schema),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("schema for attribute 'a' is incompatible")));
+}
+
+TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kFloat32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  EXPECT_THAT(
+      EntityCreator()(db, {"a", "b"},
+                      {test::DataItem(42), test::DataItem("xyz")},
+                      entity_schema),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("attribute 'b' is missing on the schema")));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto entity,
+      EntityCreator()(db, {"a", "b"},
+                      {test::DataItem(42), test::DataItem("xyz")},
+                      entity_schema, /*update_schema=*/true));
+
+  EXPECT_THAT(entity.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+}
+
+TEST(EntityCreatorTest, SchemaArg_NoDb) {
+  auto schema_db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto entity_schema = *CreateEntitySchema(schema_db, {"a"}, {int_s});
+
+  auto db = DataBag::Empty();
+  EXPECT_THAT(EntityCreator()(db, {"a"}, {test::DataItem(42)},
+                              entity_schema.WithDb(nullptr)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("attribute 'a' is missing on the schema")));
+
+  ASSERT_OK_AND_ASSIGN(auto entity,
+                       EntityCreator()(db, {"a"}, {test::DataItem(42)},
+                                       entity_schema.WithDb(nullptr),
+                                       /*update_schema=*/true));
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+}
+
+TEST(EntityCreatorTest, SchemaArg_Any) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto entity,
+                       EntityCreator()(db, {"a"}, {test::DataItem(42)},
+                                       test::Schema(schema::kAny)));
+
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(
+                  IsEquivalentTo(test::DataItem(42, schema::kAny).WithDb(db))));
+}
+
 TEST(EntityCreatorTest, PrimitiveToEntity) {
   auto db = DataBag::Empty();
   EXPECT_THAT(
@@ -280,6 +423,15 @@ TEST(ObjectCreatorTest, DataItem) {
   // Schema attribute check.
   EXPECT_THAT(db->GetImpl().GetSchemaAttr(schema_item, "b"),
               IsOkAndHolds(schema::kInt32));
+}
+
+TEST(ObjectCreatorTest, InvalidSchemaArg) {
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataItem(42);
+  auto entity_schema = test::Schema(schema::kAny);
+  EXPECT_THAT(ObjectCreator()(db, {"a", "schema"}, {ds_a, entity_schema}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("please use new_...() instead of obj_...()")));
 }
 
 TEST(ObjectCreatorTest, PrimitiveToObject) {

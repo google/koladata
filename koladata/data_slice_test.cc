@@ -3623,5 +3623,19 @@ TEST(BroadcastHelper, BroadcastError) {
                    arolla::Repr(ds.GetShape()), arolla::Repr(*shape)))));
 }
 
+// More extensive tests are in object_factories_test.cc.
+TEST(CastOrUpdateSchema, SimpleTest) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kFloat32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db_mutable_impl,
+                       db->GetMutableImpl());
+  EXPECT_THAT(
+      CastOrUpdateSchema(test::DataItem(42), entity_schema.item(), "a",
+                         /*update_schema=*/false, db_mutable_impl),
+      IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f))));
+}
+
 }  // namespace
 }  // namespace koladata
