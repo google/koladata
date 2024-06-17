@@ -226,6 +226,43 @@ DataSlice DataSlice::GetSchema() const {
   return *DataSlice::Create(GetSchemaImpl(), kSchemaSchema, GetDb());
 }
 
+bool DataSlice::IsEntitySchema() const {
+  return GetSchemaImpl() == kSchemaSchema && GetShape().rank() == 0 &&
+         item().is_entity_schema();
+}
+
+bool DataSlice::IsListSchema() const {
+  if (!IsEntitySchema() || GetDb() == nullptr) {
+    return false;
+  }
+  const auto& db_impl = GetDb()->GetImpl();
+  FlattenFallbackFinder fb_finder(*GetDb());
+  auto fallbacks = fb_finder.GetFlattenFallbacks();
+  auto item_schema_or = db_impl.GetSchemaAttrAllowMissing(
+      item(), schema::kListItemsSchemaAttr, fallbacks);
+  if (!item_schema_or.ok()) {
+    return false;
+  }
+  return item_schema_or->has_value();
+}
+
+bool DataSlice::IsDictSchema() const {
+  if (!IsEntitySchema() || GetDb() == nullptr) {
+    return false;
+  }
+  const auto& db_impl = GetDb()->GetImpl();
+  FlattenFallbackFinder fb_finder(*GetDb());
+  auto fallbacks = fb_finder.GetFlattenFallbacks();
+  auto key_schema_or = db_impl.GetSchemaAttrAllowMissing(
+      item(), schema::kDictKeysSchemaAttr, fallbacks);
+  auto value_schema_or = db_impl.GetSchemaAttrAllowMissing(
+      item(), schema::kDictValuesSchemaAttr, fallbacks);
+  if (!key_schema_or.ok() || !value_schema_or.ok()) {
+    return false;
+  }
+  return key_schema_or->has_value() && value_schema_or->has_value();
+}
+
 absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.GetDb() != nullptr && GetDb() != schema.GetDb()) {
@@ -274,6 +311,24 @@ absl::Status DataSlice::VerifyIsPrimitiveSchema() const {
   return absl::OkStatus();
 }
 
+absl::Status DataSlice::VerifyIsListSchema() const {
+  if (IsListSchema()) {
+    return absl::OkStatus();
+  }
+  RETURN_IF_ERROR(VerifyIsSchema());
+  return absl::InvalidArgumentError(
+      absl::StrFormat("expected List schema, got %v", item()));
+}
+
+absl::Status DataSlice::VerifyIsDictSchema() const {
+  if (IsDictSchema()) {
+    return absl::OkStatus();
+  }
+  RETURN_IF_ERROR(VerifyIsSchema());
+  return absl::InvalidArgumentError(
+      absl::StrFormat("expected Dict schema, got %v", item()));
+}
+
 absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {
   RETURN_IF_ERROR(VerifyIsSchema());
   ASSIGN_OR_RETURN(auto orig_schema_item,
@@ -283,7 +338,7 @@ absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {
 }
 
 bool DataSlice::IsEquivalentTo(const DataSlice& other) const {
-  if (this == &other) {
+  if (this == &other || internal_ == other.internal_) {
     return true;
   }
   if (GetDb() != other.GetDb() ||

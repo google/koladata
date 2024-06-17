@@ -27,17 +27,21 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "absl/types/span.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/triples.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/memory/optional_value.h"
@@ -46,6 +50,11 @@
 
 namespace koladata {
 namespace {
+
+using ::koladata::internal::DataBagContent;
+using ::koladata::internal::debug::AttrTriple;
+using ::koladata::internal::debug::DictItemTriple;
+using ::koladata::internal::debug::Triples;
 
 absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds);
 
@@ -109,12 +118,24 @@ absl::StatusOr<std::vector<std::string>> StringifyGroup(
   return result;
 }
 
-// Returns the prefix for the ObjectId. UUID has prefix 'k', others are '$'.
-absl::string_view ObjectIdPrefix(const internal::ObjectId& id) {
-  if (id.IsUuid()) {
-    return "k";
+// Returns the string representation for the ObjectId. UUID has prefix 'k',
+// others are '$'.
+std::string ObjectIdStr(const internal::ObjectId& id) {
+  absl::string_view prefix = id.IsUuid() ? "k" : "$";
+  return absl::StrCat(prefix, id);
+}
+
+// Returns the string representation for the DataItem.
+std::string DataItemStr(const internal::DataItem& item,
+                        bool strip_text = false) {
+  if (item.holds_value<internal::ObjectId>()) {
+    return ObjectIdStr(item.value<internal::ObjectId>());
   }
-  return "$";
+  if (item.holds_value<arolla::Text>() && strip_text) {
+    return absl::StrCat(
+        absl::StripPrefix(absl::StripSuffix(absl::StrCat(item), "'"), "'"));
+  }
+  return absl::StrCat(item);
 }
 
 absl::StatusOr<std::vector<std::string>> StringifyByDimension(
@@ -136,10 +157,8 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
         ASSIGN_OR_RETURN(std::string item_str, DataItemToStr(item_slice));
         parts.push_back(std::move(item_str));
       } else {
-        absl::string_view item_prefix = "";
-        absl::string_view object_prefix = "";
         if (item.holds_value<internal::ObjectId>()) {
-          object_prefix = ObjectIdPrefix(item.value<internal::ObjectId>());
+          absl::string_view item_prefix = "";
           if (item.is_dict()) {
             item_prefix = "Dict:";
           } else if (item.is_list()) {
@@ -149,8 +168,10 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
           } else if (!item.is_schema()) {
             item_prefix = "Entity:";
           }
+          parts.push_back(absl::StrCat(item_prefix, DataItemStr(item)));
+        } else {
+          parts.push_back(absl::StrCat(item));
         }
-        parts.push_back(absl::StrCat(item_prefix, object_prefix, item));
       }
     }
     return StringifyGroup(edge, parts);
@@ -282,11 +303,23 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds) {
     }
     ASSIGN_OR_RETURN(std::string schema_str, SchemaToStr(ds));
     if (schema_str.empty() && !obj.IsSchema()) {
-      return absl::StrCat(prefix, "):", ObjectIdPrefix(obj), obj);
+      return absl::StrCat(prefix, "):", DataItemStr(data_item));
     }
     return absl::StrCat(prefix, schema_str, ")");
   }
   return absl::StrCat(data_item);
+}
+
+// Returns true if a DataItem holds '__items__', '__keys__', '__values__'
+// These attributes will be hidden when printing the DataBag.
+bool IsInternalAttribute(const internal::DataItem& item) {
+  if (!item.holds_value<arolla::Text>()) {
+    return false;
+  }
+  absl::string_view attr = item.value<arolla::Text>().view();
+  return attr == schema::kListItemsSchemaAttr ||
+         attr == schema::kDictKeysSchemaAttr ||
+         attr == schema::kDictValuesSchemaAttr;
 }
 
 }  // namespace
@@ -296,6 +329,46 @@ absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds) {
     return std::is_same_v<T, internal::DataItem> ? DataItemToStr(ds)
                                                  : DataSliceImplToStr(ds);
   });
+}
+
+// TODO: Reads data from fallback DataBag.
+absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db) {
+  ASSIGN_OR_RETURN(DataBagContent content, db->GetImpl().ExtractContent());
+  Triples main_triples(content);
+  std::string res = absl::StrCat("DataBag ", GetBagIdRepr(db), ":\n");
+  for (const AttrTriple& attr : main_triples.attributes()) {
+    absl::StrAppend(
+        &res, absl::StrFormat("%s.%s => %s\n", ObjectIdStr(attr.object),
+                              attr.attribute,
+                              DataItemStr(attr.value, /*strip_text=*/true)));
+  }
+  for (const auto& [list_id, values] : main_triples.lists()) {
+    absl::StrAppend(
+        &res, absl::StrFormat("%s[:] => [%s]\n", ObjectIdStr(list_id),
+                              absl::StrJoin(values.begin(), values.end(), ", ",
+                                            [](std::string* out,
+                                               const internal::DataItem& item) {
+                                              out->append(DataItemStr(item));
+                                            })));
+  }
+  for (const DictItemTriple& dict : main_triples.dicts()) {
+    if (dict.object.IsDict()) {
+      absl::StrAppend(
+          &res,
+          absl::StrFormat("%s[%s] => %s\n", ObjectIdStr(dict.object),
+                          DataItemStr(dict.key), DataItemStr(dict.value)));
+    }
+  }
+  absl::StrAppend(&res, "\nSchemaBag:\n");
+  for (const DictItemTriple& dict : main_triples.dicts()) {
+    if (dict.object.IsSchema() && !IsInternalAttribute(dict.key)) {
+      absl::StrAppend(
+          &res, absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
+                                DataItemStr(dict.key, /*strip_text=*/true),
+                                DataItemStr(dict.value)));
+    }
+  }
+  return res;
 }
 
 }  // namespace koladata

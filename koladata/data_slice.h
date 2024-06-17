@@ -141,6 +141,15 @@ class DataSlice {
   // Returns a DataItem holding a schema.
   const internal::DataItem& GetSchemaImpl() const { return internal_->schema_; }
 
+  // Returns true, if this DataSlice represents an Entity schema.
+  bool IsEntitySchema() const;
+
+  // Returns true, if this DataSlice represents an List schema.
+  bool IsListSchema() const;
+
+  // Returns true, if this DataSlice represents an Dict schema.
+  bool IsDictSchema() const;
+
   // Returns a new DataSlice with the updated `schema`. In case `schema` cannot
   // be assigned to this DataSlice, the appropriate Error is returned.
   // DataSlice's schema cannot take `schema` as a new value for various reasons,
@@ -153,6 +162,12 @@ class DataSlice {
 
   // Returns OkStatus if this DataSlice represents a primitive Schema.
   absl::Status VerifyIsPrimitiveSchema() const;
+
+  // Returns OkStatus if this DataSlice represents a list Schema.
+  absl::Status VerifyIsListSchema() const;
+
+  // Returns OkStatus if this DataSlice represents a dict Schema.
+  absl::Status VerifyIsDictSchema() const;
 
   // Returns an original schema from NoFollow slice. If this slice is not
   // NoFollow, an error is returned.

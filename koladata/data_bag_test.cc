@@ -35,6 +35,7 @@ using ::koladata::testing::IsOkAndHolds;
 using ::koladata::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
+using ::testing::MatchesRegex;
 
 TEST(DataBagTest, Fallbacks) {
   auto db = DataBag::Empty();
@@ -233,6 +234,11 @@ TEST(DataBagTest, MergeInplace) {
               IsOkAndHolds(IsEquivalentTo(test::DataItem("foo", db_1))));
   EXPECT_THAT(ds_1.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem(1, db_1))));
+}
+
+TEST(DataBagTest, GetBagIdRepr) {
+  DataBagPtr db = DataBag::Empty();
+  EXPECT_THAT(GetBagIdRepr(db), MatchesRegex(R"regex(\$[0-9a-f]{4})regex"));
 }
 
 }  // namespace

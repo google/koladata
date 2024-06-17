@@ -367,6 +367,51 @@ TEST(DataSliceTest, ImplOwnsValue) {
   EXPECT_FALSE(ds.impl_owns_value());
 }
 
+TEST(DataSliceTest, IsEntitySchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+  EXPECT_TRUE(entity_schema.IsEntitySchema());
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kAny, schema::kInt32})
+                   .IsEntitySchema());
+  EXPECT_FALSE(test::Schema(schema::kAny).IsEntitySchema());
+  EXPECT_FALSE(test::DataItem(42).IsEntitySchema());
+}
+
+TEST(DataSliceTest, IsListSchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto list_schema = test::Schema(*CreateListSchema(db, int_s), db);
+  EXPECT_TRUE(list_schema.IsListSchema());
+  ASSERT_OK(list_schema.SetAttr("some_attr", test::Schema(schema::kText)));
+  EXPECT_TRUE(list_schema.IsListSchema());
+  EXPECT_FALSE(list_schema.WithDb(nullptr).IsListSchema());
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+  EXPECT_FALSE(entity_schema.IsListSchema());
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kAny, schema::kInt32})
+                   .IsListSchema());
+  EXPECT_FALSE(test::Schema(schema::kAny).IsListSchema());
+  EXPECT_FALSE(test::DataItem(42).IsListSchema());
+}
+
+TEST(DataSliceTest, IsDictSchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto dict_schema = test::Schema(*CreateDictSchema(db, int_s, int_s), db);
+  EXPECT_TRUE(dict_schema.IsDictSchema());
+  ASSERT_OK(dict_schema.SetAttr("some_attr", test::Schema(schema::kText)));
+  EXPECT_TRUE(dict_schema.IsDictSchema());
+  EXPECT_FALSE(dict_schema.WithDb(nullptr).IsDictSchema());
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+  EXPECT_FALSE(entity_schema.IsDictSchema());
+  entity_schema = *CreateEntitySchema(db, {"__keys__"}, {int_s});
+  EXPECT_FALSE(entity_schema.IsDictSchema());
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kAny, schema::kInt32})
+                   .IsDictSchema());
+  EXPECT_FALSE(test::Schema(schema::kAny).IsDictSchema());
+  EXPECT_FALSE(test::DataItem(42).IsDictSchema());
+}
+
 TEST(DataSliceTest, VerifyIsSchema) {
   EXPECT_THAT(test::Schema(schema::kAny).VerifyIsSchema(), IsOk());
 
@@ -413,6 +458,39 @@ TEST(DataSliceTest, VerifyIsPrimitiveSchema) {
                          HasSubstr("primitive schema must contain a primitive "
                                    "DType, got None")));
   }
+}
+
+TEST(DataSliceTest, VerifyIsListSchema) {
+  auto db = DataBag::Empty();
+  EXPECT_THAT(
+      test::Schema(*CreateListSchema(db, test::Schema(schema::kInt32)), db)
+          .VerifyIsListSchema(),
+      IsOk());
+
+  EXPECT_THAT(test::Schema(schema::kAny).VerifyIsListSchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("expected List schema, got ANY")));
+
+  EXPECT_THAT(test::DataItem(42).VerifyIsListSchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("must be SCHEMA, got: INT32")));
+}
+
+TEST(DataSliceTest, VerifyIsDictSchema) {
+  auto db = DataBag::Empty();
+  EXPECT_THAT(test::Schema(*CreateDictSchema(db, test::Schema(schema::kInt32),
+                                             test::Schema(schema::kFloat32)),
+                           db)
+                  .VerifyIsDictSchema(),
+              IsOk());
+
+  EXPECT_THAT(test::Schema(schema::kAny).VerifyIsDictSchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("expected Dict schema, got ANY")));
+
+  EXPECT_THAT(test::DataItem(42).VerifyIsDictSchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("must be SCHEMA, got: INT32")));
 }
 
 // NOTE: This is also a test for all DataSlice::VerifySchemaConsistency

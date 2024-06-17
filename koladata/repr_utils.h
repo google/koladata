@@ -18,12 +18,16 @@
 #include <string>
 
 #include "absl/status/statusor.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 
 namespace koladata {
 
 // Returns the string for python __str__.
 absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds);
+
+// Returns the string representation of DataBag.
+absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db);
 
 }  // namespace koladata
 

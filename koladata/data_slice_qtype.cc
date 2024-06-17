@@ -26,7 +26,6 @@
 #include "koladata/repr_utils.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/simple_qtype.h"
-#include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/indestructible.h"
 #include "arolla/util/meta.h"
@@ -40,14 +39,6 @@ using ::koladata::DataSliceToStr;
 using ::koladata::internal::DataItem;
 
 namespace {
-
-std::string GetBagId(const DataBagPtr& db) {
-  DCHECK_NE(db, nullptr);
-  std::string fp_hex = TypedValue::FromValue(db).GetFingerprint().AsString();
-  // Use 4 hex digits as a compromise between simplicity and risk of conflicts,
-  // which results in ~2^8 DataBags needed for 50% probability of a clash.
-  return absl::StrCat("$", fp_hex.substr(fp_hex.size() - 4));
-}
 
 // Returns the string format of the content and schema of the DataSlice.
 std::string GetReprInternal(const DataSlice& value) {
@@ -73,7 +64,7 @@ std::string GetItemRepr(const DataSlice& value) {
   std::string result;
   absl::StrAppend(&result, "DataItem(", GetReprInternal(value));
   if (value.GetDb() != nullptr) {
-    absl::StrAppend(&result, ", bag_id: ", GetBagId(value.GetDb()));
+    absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(value.GetDb()));
   }
   absl::StrAppend(&result, ")");
   return result;
@@ -84,7 +75,7 @@ std::string GetSliceRepr(const DataSlice& value) {
   absl::StrAppend(&result, "DataSlice(", GetReprInternal(value),
                   ", shape: ", Repr(value.GetShape()));
   if (value.GetDb() != nullptr) {
-    absl::StrAppend(&result, ", bag_id: ", GetBagId(value.GetDb()));
+    absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(value.GetDb()));
   }
   absl::StrAppend(&result, ")");
   return result;

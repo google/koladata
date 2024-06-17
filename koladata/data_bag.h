@@ -19,6 +19,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
@@ -54,9 +55,7 @@ class DataBag {
   struct immutable_t {};
 
   // Returns a newly created empty DataBag.
-  static DataBagPtr Empty() {
-    return std::make_shared<DataBag>();
-  }
+  static DataBagPtr Empty() { return std::make_shared<DataBag>(); }
 
   DataBag() : DataBag(/*is_mutable=*/true) {}
   explicit DataBag(immutable_t) : DataBag(/*is_mutable=*/false) {}
@@ -73,9 +72,7 @@ class DataBag {
   }
 
   // Returns fallbacks in priority order.
-  const std::vector<DataBagPtr>& GetFallbacks() const {
-    return fallbacks_;
-  }
+  const std::vector<DataBagPtr>& GetFallbacks() const { return fallbacks_; }
 
   // Returns a newly created immutable DataBag with fallbacks.
   static DataBagPtr ImmutableEmptyWithFallbacks(
@@ -142,12 +139,15 @@ class FlattenFallbackFinder {
 
  private:
   // Collect fallbacks in pre order using Depth First Search.
-  void CollectFlattenFallbacks(
-      const DataBag& bag, const std::vector<DataBagPtr>& fallbacks);
+  void CollectFlattenFallbacks(const DataBag& bag,
+                               const std::vector<DataBagPtr>& fallbacks);
 
   absl::InlinedVector<const internal::DataBagImpl*, 2> fallback_holder_;
   internal::DataBagImpl::FallbackSpan fallback_span_;
 };
+
+// Returns the string representation of the DataBag.
+std::string GetBagIdRepr(const DataBagPtr& db);
 
 }  // namespace koladata
 

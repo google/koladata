@@ -212,23 +212,6 @@ absl::StatusOr<DataSlice> CreateLike(const std::shared_ptr<DataBag>& db,
   });
 }
 
-// Creates dict schema with the given key and value schemas.
-// TODO: Make this function public. Will be useful for
-// kd.dict_schema.
-absl::StatusOr<internal::DataItem> CreateDictSchema(
-    const DataBagPtr& db, const DataSlice& key_schema,
-    const DataSlice& value_schema) {
-  RETURN_IF_ERROR(key_schema.VerifyIsSchema());
-  RETURN_IF_ERROR(value_schema.VerifyIsSchema());
-  RETURN_IF_ERROR(schema::VerifyDictKeySchema(key_schema.item()));
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
-  return db_mutable_impl.CreateUuSchemaFromFields(
-      "::koladata::::CreateDictSchema",
-      {"__keys__", "__values__"},
-      {key_schema.item(), value_schema.item()});
-}
-
 }  // namespace
 
 absl::StatusOr<DataSlice> CreateEntitySchema(
@@ -443,6 +426,19 @@ absl::StatusOr<DataSlice> DeduceItemSchema(
 
 }  // namespace
 
+absl::StatusOr<internal::DataItem> CreateDictSchema(
+    const DataBagPtr& db, const DataSlice& key_schema,
+    const DataSlice& value_schema) {
+  RETURN_IF_ERROR(key_schema.VerifyIsSchema());
+  RETURN_IF_ERROR(value_schema.VerifyIsSchema());
+  RETURN_IF_ERROR(schema::VerifyDictKeySchema(key_schema.item()));
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  return db_mutable_impl.CreateUuSchemaFromFields(
+      "::koladata::::CreateDictSchema", {"__keys__", "__values__"},
+      {key_schema.item(), value_schema.item()});
+}
+
 // Implementation of CreateDictLike and CreateDictShaped that handles schema
 // deduction and keys/values assignment. `create_dicts_fn` must create a
 // DataSlice with the provided schema.
@@ -511,6 +507,15 @@ absl::StatusOr<DataSlice> CreateDictShaped(
       keys, values, key_schema, value_schema);
 }
 
+absl::StatusOr<internal::DataItem> CreateListSchema(
+    const DataBagPtr& db, const DataSlice& item_schema) {
+  RETURN_IF_ERROR(item_schema.VerifyIsSchema());
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  return db_mutable_impl.CreateUuSchemaFromFields(
+      "::koladata::::CreateListSchema", {"__items__"}, {item_schema.item()});
+}
+
 absl::StatusOr<DataSlice> CreateEmptyList(
     const std::shared_ptr<DataBag>& db,
     const std::optional<DataSlice>& item_schema) {
@@ -542,16 +547,6 @@ absl::StatusOr<DataSlice> CreateNestedList(
                      CreateListsFromLastDimension(db, res, res.GetSchema()));
   }
   return res;
-}
-
-absl::StatusOr<internal::DataItem> CreateListSchema(
-    const DataBagPtr& db, const DataSlice& item_schema) {
-  RETURN_IF_ERROR(item_schema.VerifyIsSchema());
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
-  return db_mutable_impl.CreateUuSchemaFromFields(
-      "::koladata::::CreateListSchema",
-      {"__items__"}, {item_schema.item()});
 }
 
 absl::StatusOr<DataSlice> CreateListShaped(

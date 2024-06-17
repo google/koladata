@@ -128,6 +128,11 @@ struct UuObjectCreator {
       const std::vector<DataSlice>& values) const;
 };
 
+// Creates dict schema with the given keys and values schemas.
+absl::StatusOr<internal::DataItem> CreateDictSchema(
+    const DataBagPtr& db, const DataSlice& key_schema,
+    const DataSlice& value_schema);
+
 // Creates dicts with the given shape. If `keys` and `values` are provided, they
 // will be set to the dicts after creation (that implies potential type casting
 // and broadcasting). If `key_schema` and `value_schema` are not provided, they

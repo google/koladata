@@ -485,5 +485,84 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_SplitLines) {
 ])"));
 }
 
+TEST(ReprUtilTest, TestDataBagStringRepresentation_Entities) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value_1 = test::DataItem(1);
+  DataSlice value_2 = test::DataItem("b");
+  ASSERT_OK(EntityCreator()(bag, {"a", "b"}, {value_1, value_2}));
+
+  EXPECT_THAT(
+      DataBagToStr(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{13,15}\.[0-9]\.a => 1(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{13,15}\.[0-9]\.b => b(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{18}\.[0-9]\.a => INT32(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{18}\.[0-9]\.b => TEXT(.|\n)*)regex"))));
+}
+
+TEST(ReprUtilTest, TestDataBagStringRepresentation_Objects) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value_1 = test::DataItem(1);
+  DataSlice value_2 = test::DataItem("b");
+  ASSERT_OK(ObjectCreator()(bag, {"a", "b"}, {value_1, value_2}));
+
+  EXPECT_THAT(
+      DataBagToStr(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{13,15}\.[0-9]\.__schema__ => k[0-9a-f]{32}\.[0-9](.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{13,15}\.[0-9]\.a => 1(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{13,15}\.[0-9]\.b => b(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*k[0-9a-f]{32}\.[0-9]\.a => INT32(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*k[0-9a-f]{32}\.[0-9]\.b => TEXT(.|\n)*)regex"))));
+}
+
+TEST(ReprUtilTest, TestDataBagStringRepresentation_Dicts) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ObjectId dict_id = internal::AllocateSingleDict();
+  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice keys = test::DataSlice<arolla::Text>({"a", "x"});
+  DataSlice values = test::DataSlice<int>({1, 4});
+  ASSERT_OK(data_slice.SetInDict(keys, values));
+
+  EXPECT_THAT(
+      DataBagToStr(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{18}\.[0-9]\['a'\] => 1(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{18}\.[0-9]\['x'\] => 4(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"))));
+}
+
+TEST(ReprUtilTest, TestDataBagStringRepresentation_List) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK(CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
+                             test::Schema(schema::kAny)));
+  EXPECT_THAT(
+      DataBagToStr(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{17}\.[0-9]\[:\] => \[1, 2, 3\](.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"))));
+}
 }  // namespace
 }  // namespace koladata

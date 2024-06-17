@@ -31,6 +31,7 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/triples.h"
 #include "arolla/qtype/simple_qtype.h"
+#include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
@@ -158,6 +159,15 @@ void FlattenFallbackFinder::CollectFlattenFallbacks(
     }
   }
   fallback_span_ = absl::MakeConstSpan(fallback_holder_);
+}
+
+std::string GetBagIdRepr(const DataBagPtr& db) {
+  DCHECK_NE(db, nullptr);
+  std::string fp_hex =
+      arolla::TypedValue::FromValue(db).GetFingerprint().AsString();
+  // Use 4 hex digits as a compromise between simplicity and risk of conflicts,
+  // which results in ~2^8 DataBags needed for 50% probability of a clash.
+  return absl::StrCat("$", absl::string_view(fp_hex).substr(fp_hex.size() - 4));
 }
 
 }  // namespace koladata

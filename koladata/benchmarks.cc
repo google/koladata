@@ -53,6 +53,23 @@ void BM_IsEquivalentToSameImpl(benchmark::State& state) {
 
 BENCHMARK(BM_IsEquivalentToSameImpl)->Range(10, 100000);
 
+void BM_IsEquivalentToCopy(benchmark::State& state) {
+  int64_t size = state.range(0);
+  auto values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
+  auto ds = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto ds2 = ds;
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(ds);
+    benchmark::DoNotOptimize(ds2);
+    auto equiv = ds.IsEquivalentTo(ds2);
+    benchmark::DoNotOptimize(equiv);
+  }
+}
+
+BENCHMARK(BM_IsEquivalentToCopy)->Range(10, 100000);
+
 void BM_IsEquivalentToSameJaggedShape(benchmark::State& state) {
   int64_t size = state.range(0);
   auto values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
