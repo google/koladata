@@ -107,6 +107,22 @@ struct ObjectCreator {
                                        const DataSlice& value) const;
 };
 
+// Creates a DataSlice whose items are Fingerprints identifying `args`.
+//
+// In order to create a different "Type" from the same arguments, use `seed` key
+// with the desired value, e.g.
+//
+// db_ops.uuid(seed='type_1', x=[1, 2, 3], y=[4, 5, 6])
+//
+// and
+//
+// db_ops.uuid(seed='type_2', x=[1, 2, 3], y=[4, 5, 6])
+//
+// have different ids.
+absl::StatusOr<DataSlice> CreateUuidFromFields(
+    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values);
+
 struct UuObjectCreator {
   static constexpr absl::string_view kDataBagMethodName = "DataBag.uuobj";
 
@@ -141,8 +157,9 @@ absl::StatusOr<DataSlice> CreateDictShaped(
     const std::shared_ptr<DataBag>& db, DataSlice::JaggedShapePtr shape,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
-    const std::optional<DataSlice>& key_schema,
-    const std::optional<DataSlice>& value_schema);
+    const std::optional<DataSlice>& schema = std::nullopt,
+    const std::optional<DataSlice>& key_schema = std::nullopt,
+    const std::optional<DataSlice>& value_schema = std::nullopt);
 
 // Creates dicts with the given shape_and_mask. If `keys` and `values` are
 // provided, they will be set to the dicts after creation (that implies
@@ -153,8 +170,9 @@ absl::StatusOr<DataSlice> CreateDictLike(
     const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
-    const std::optional<DataSlice>& key_schema,
-    const std::optional<DataSlice>& value_schema);
+    const std::optional<DataSlice>& schema = std::nullopt,
+    const std::optional<DataSlice>& key_schema = std::nullopt,
+    const std::optional<DataSlice>& value_schema = std::nullopt);
 
 // Creates list schema with the given item schema.
 absl::StatusOr<internal::DataItem> CreateListSchema(
@@ -164,21 +182,24 @@ absl::StatusOr<internal::DataItem> CreateListSchema(
 // taken from `values` or defaulted to OBJECT.
 absl::StatusOr<DataSlice> CreateEmptyList(
     const std::shared_ptr<DataBag>& db,
-    const std::optional<DataSlice>& item_schema);
+    const std::optional<DataSlice>& schema = std::nullopt,
+    const std::optional<DataSlice>& item_schema = std::nullopt);
 
 // Creates a slice of lists with given values. The dimension of the resulted
 // slice will be one less than the dimension of the values. If `item_schema` is
 // not provided, it will be taken from `values` or defaulted to OBJECT.
 absl::StatusOr<DataSlice> CreateListsFromLastDimension(
     const std::shared_ptr<DataBag>& db, const DataSlice& values,
-    const std::optional<DataSlice>& item_schema);
+    const std::optional<DataSlice>& schema = std::nullopt,
+    const std::optional<DataSlice>& item_schema = std::nullopt);
 
 // Creates a list from values. If `values` dimension is more than one, the list
 // will contain other lists. If `item_schema` is not provided, it will be
 // taken from `values`.
 absl::StatusOr<DataSlice> CreateNestedList(
     const std::shared_ptr<DataBag>& db, const DataSlice& values,
-    const std::optional<DataSlice>& item_schema);
+    const std::optional<DataSlice>& schema = std::nullopt,
+    const std::optional<DataSlice>& item_schema = std::nullopt);
 
 // Creates a DataSlice of lists with the provided shape. If `values` are
 // provided, they will be appended to the lists after creation (that implies
@@ -187,7 +208,8 @@ absl::StatusOr<DataSlice> CreateNestedList(
 absl::StatusOr<DataSlice> CreateListShaped(
     const std::shared_ptr<DataBag>& db, DataSlice::JaggedShapePtr shape,
     const std::optional<DataSlice>& values,
-    const std::optional<DataSlice>& item_schema);
+    const std::optional<DataSlice>& schema = std::nullopt,
+    const std::optional<DataSlice>& item_schema = std::nullopt);
 
 // Creates empty lists of the given shape_and_mask. If `values` are provided,
 // they will be appended to the lists after creation (that implies potential
@@ -196,12 +218,8 @@ absl::StatusOr<DataSlice> CreateListShaped(
 absl::StatusOr<DataSlice> CreateListLike(
     const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask,
     const std::optional<DataSlice>& values,
-    const std::optional<DataSlice>& item_schema);
-
-absl::StatusOr<DataSlice> CreateUuidFromFields(
-    absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values);
+    const std::optional<DataSlice>& schema = std::nullopt,
+    const std::optional<DataSlice>& item_schema = std::nullopt);
 
 // Creates a NoFollow schema from `target_schema`. `target_schema` must be a
 // valid schema slice. If `target_schema` is NoFollow, primitive, ITEMID or ANY

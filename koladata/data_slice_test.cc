@@ -467,9 +467,11 @@ TEST(DataSliceTest, VerifyIsListSchema) {
           .VerifyIsListSchema(),
       IsOk());
 
-  EXPECT_THAT(test::Schema(schema::kAny).VerifyIsListSchema(),
+  EXPECT_THAT(test::Schema(schema::kAny).VerifyIsListSchema(), IsOk());
+
+  EXPECT_THAT(test::Schema(schema::kInt32).VerifyIsListSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("expected List schema, got ANY")));
+                       HasSubstr("expected List schema, got INT32")));
 
   EXPECT_THAT(test::DataItem(42).VerifyIsListSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -484,9 +486,11 @@ TEST(DataSliceTest, VerifyIsDictSchema) {
                   .VerifyIsDictSchema(),
               IsOk());
 
-  EXPECT_THAT(test::Schema(schema::kAny).VerifyIsDictSchema(),
+  EXPECT_THAT(test::Schema(schema::kAny).VerifyIsDictSchema(), IsOk());
+
+  EXPECT_THAT(test::Schema(schema::kObject).VerifyIsDictSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("expected Dict schema, got ANY")));
+                       HasSubstr("expected Dict schema, got OBJECT")));
 
   EXPECT_THAT(test::DataItem(42).VerifyIsDictSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -833,14 +837,15 @@ TEST(DataSliceTest, PyQValueSpecializationKey) {
             kDataItemQValueSpecializationKey);
 
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(ds_obj, CreateEmptyList(db, test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(ds_obj, CreateEmptyList(db, /*schema=*/std::nullopt,
+                                               test::Schema(schema::kAny)));
   EXPECT_EQ(ds_obj.py_qvalue_specialization_key(),
             kListItemQValueSpecializationKey);
 
   ASSERT_OK_AND_ASSIGN(
       ds_obj, CreateDictShaped(
                   db, DataSlice::JaggedShape::Empty(), /*keys=*/std::nullopt,
-                  /*values=*/std::nullopt,
+                  /*values=*/std::nullopt, /*schema=*/std::nullopt,
                   /*key_schema=*/std::nullopt, /*value_schema=*/std::nullopt));
   EXPECT_EQ(ds_obj.py_qvalue_specialization_key(),
             kDictItemQValueSpecializationKey);
@@ -1552,7 +1557,7 @@ TEST(DataSliceTest, GetNoFollow_ListItems) {
               .IsNoFollowSchema());
   ASSERT_OK_AND_ASSIGN(
       auto lists,
-      CreateListsFromLastDimension(db, nofollow_items,
+      CreateListsFromLastDimension(db, nofollow_items, /*schema=*/std::nullopt,
                                    /*item_schema=*/std::nullopt));
   // Schema stores a NoFollow schema.
   EXPECT_THAT(
@@ -2200,7 +2205,8 @@ TEST(DataSliceTest, GetFromList_Int64Schema) {
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
-                       /*values=*/std::nullopt, test::Schema(schema::kInt64)));
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
+                       test::Schema(schema::kInt64)));
 
   // Note that we assigned int32 items here, but the result is int64 anyway.
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
@@ -2228,7 +2234,8 @@ TEST(DataSliceTest, GetFromList_AnySchema) {
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
-                       /*values=*/std::nullopt, test::Schema(schema::kAny)));
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
+                       test::Schema(schema::kAny)));
 
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
 
@@ -2257,7 +2264,8 @@ TEST(DataSliceTest, GetFromList_ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
-                       /*values=*/std::nullopt, test::Schema(schema::kObject)));
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
+                       test::Schema(schema::kObject)));
 
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
 
@@ -2286,7 +2294,8 @@ TEST(DataSliceTest, PopFromList_Int64Schema) {
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
-                       /*values=*/std::nullopt, test::Schema(schema::kInt64)));
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
+                       test::Schema(schema::kInt64)));
 
   // Note that we assigned int32 items here, but the result is int64 anyway.
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
@@ -2319,7 +2328,8 @@ TEST(DataSliceTest, PopFromList_AnySchema) {
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
-                       /*values=*/std::nullopt, test::Schema(schema::kAny)));
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
+                       test::Schema(schema::kAny)));
 
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
 
@@ -2352,7 +2362,8 @@ TEST(DataSliceTest, PopFromList_ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
-                       /*values=*/std::nullopt, test::Schema(schema::kObject)));
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
+                       test::Schema(schema::kObject)));
 
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
 
@@ -2384,7 +2395,8 @@ TEST(DataSliceTest, ExplodeList_Int32Schema) {
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, items.GetShape().RemoveDims(2),
-                       /*values=*/std::nullopt, test::Schema(schema::kInt32)));
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
+                       test::Schema(schema::kInt32)));
   ASSERT_OK(lists.AppendToList(items));
   ASSERT_OK_AND_ASSIGN(auto exploded_lists, lists.ExplodeList(0, std::nullopt));
   EXPECT_THAT(exploded_lists.slice(), ElementsAre(42, 12, 13));
@@ -2451,9 +2463,10 @@ TEST(DataSliceTest, ReplaceInList_NoDb) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto lists,
-                       CreateListShaped(db, shape, /*values=*/std::nullopt,
-                                        test::Schema(schema::kInt32)));
+  ASSERT_OK_AND_ASSIGN(
+      auto lists,
+      CreateListShaped(db, shape, /*values=*/std::nullopt,
+                       /*schema=*/std::nullopt, test::Schema(schema::kInt32)));
   auto values = test::DataSlice<int>({57, 7, -2}, shape, schema::kInt32);
   lists = lists.WithDb(nullptr);
   EXPECT_THAT(
@@ -2508,9 +2521,10 @@ TEST(DataSliceTest, ReplaceInList_AnySchema) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto lists,
-                       CreateListShaped(db, shape, /*values=*/std::nullopt,
-                                        test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      auto lists,
+      CreateListShaped(db, shape, /*values=*/std::nullopt,
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
   auto initial_values =
       test::DataSlice<int32_t>({0, 0, 0}, shape, schema::kInt32);
   ASSERT_OK(lists.AppendToList(initial_values));
@@ -2546,9 +2560,10 @@ TEST(DataSliceTest, ReplaceInList_Int64Schema) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto lists,
-                       CreateListShaped(db, shape, /*values=*/std::nullopt,
-                                        test::Schema(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(
+      auto lists,
+      CreateListShaped(db, shape, /*values=*/std::nullopt,
+                       /*schema=*/std::nullopt, test::Schema(schema::kInt64)));
   auto initial_values =
       test::DataSlice<int64_t>({0, 0, 0}, shape, schema::kInt64);
   ASSERT_OK(lists.AppendToList(initial_values));
@@ -2592,9 +2607,10 @@ TEST(DataSliceTest, SetInList_NoDb) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto lists,
-                       CreateListShaped(db, shape, /*values=*/std::nullopt,
-                                        test::Schema(schema::kInt32)));
+  ASSERT_OK_AND_ASSIGN(
+      auto lists,
+      CreateListShaped(db, shape, /*values=*/std::nullopt,
+                       /*schema=*/std::nullopt, test::Schema(schema::kInt32)));
   auto ids = test::DataSlice<int>({0, 2, 57}, shape, schema::kInt32);
   auto values = test::DataSlice<int>({57, 7, -2}, shape, schema::kInt32);
   lists = lists.WithDb(nullptr);
@@ -2610,9 +2626,10 @@ TEST(DataSliceTest, SetInList_AnySchema) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto lists,
-                       CreateListShaped(db, shape, /*values=*/std::nullopt,
-                                        test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      auto lists,
+      CreateListShaped(db, shape, /*values=*/std::nullopt,
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
 
   auto initial_values =
       test::DataSlice<int64_t>({0, 0, 0}, shape, schema::kInt64);
@@ -2653,9 +2670,10 @@ TEST(DataSliceTest, SetInList_Int64Schema) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto lists,
-                       CreateListShaped(db, shape, /*values=*/std::nullopt,
-                                        test::Schema(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(
+      auto lists,
+      CreateListShaped(db, shape, /*values=*/std::nullopt,
+                       /*schema=*/std::nullopt, test::Schema(schema::kInt64)));
 
   auto initial_values =
       test::DataSlice<int64_t>({0, 0, 0}, shape, schema::kInt64);
@@ -2697,9 +2715,10 @@ TEST(DataSliceTest, AppendToList_AnySchema) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto lists,
-                       CreateListShaped(db, shape, /*values=*/std::nullopt,
-                                        test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      auto lists,
+      CreateListShaped(db, shape, /*values=*/std::nullopt,
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
 
   ASSERT_OK(lists.AppendToList(
       test::DataSlice<int64_t>({1, 2, 3}, shape, schema::kInt64)));
@@ -2728,9 +2747,10 @@ TEST(DataSliceTest, AppendToList_Int64Schema) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto lists,
-                       CreateListShaped(db, shape, /*values=*/std::nullopt,
-                                        test::Schema(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(
+      auto lists,
+      CreateListShaped(db, shape, /*values=*/std::nullopt,
+                       /*schema=*/std::nullopt, test::Schema(schema::kInt64)));
 
   ASSERT_OK(lists.AppendToList(
       test::DataSlice<int32_t>({1, 2, 3}, shape, schema::kInt32)));
@@ -2769,7 +2789,8 @@ TEST(DataSliceTest, AppendToList_DifferentShapes) {
   // single list
   {
     ASSERT_OK_AND_ASSIGN(auto list,
-                         CreateEmptyList(db, test::Schema(schema::kInt32)));
+                         CreateEmptyList(db, /*schema=*/std::nullopt,
+                                         test::Schema(schema::kInt32)));
     auto values123 = test::DataSlice<int32_t>({1, 2, 3}, schema::kInt32);
     ASSERT_OK(list.AppendToList(values123));
     ASSERT_OK(list.AppendToList(values6_78));
@@ -2783,7 +2804,8 @@ TEST(DataSliceTest, AppendToList_DifferentShapes) {
     auto lists_shape = DataSlice::JaggedShape::FlatFromSize(2);
     ASSERT_OK_AND_ASSIGN(
         auto lists, CreateListShaped(db, lists_shape, /*values=*/std::nullopt,
-                                    test::Schema(schema::kInt32)));
+                                     /*schema=*/std::nullopt,
+                                     test::Schema(schema::kInt32)));
     ASSERT_OK(lists.AppendToList(*DataSlice::Create(
         internal::DataItem(1), internal::DataItem(schema::kInt32))));
     ASSERT_OK(lists.AppendToList(values6_78));
@@ -2824,7 +2846,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_AnySchema) {
   ASSERT_OK_AND_ASSIGN(
       auto dicts,
       CreateDictShaped(db, shape, /*keys=*/std::nullopt,
-                       /*values=*/std::nullopt,
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
                        /*key_schema=*/test::Schema(schema::kAny),
                        /*value_schema=*/test::Schema(schema::kAny)));
 
@@ -2834,7 +2856,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_AnySchema) {
           {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"}, keys_shape,
           schema::kObject)));
 
-  // TODO(b/322117750) Fork `db` when available.
+  // TODO(b/330114257) Fork `db` when available.
   auto immutable_db = DataBag::ImmutableEmptyWithFallbacks({db});
   auto immutable_dicts = dicts.WithDb(immutable_db);
 
@@ -2869,7 +2891,8 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(
       auto dicts,
       CreateDictShaped(db, shape, /*keys=*/std::nullopt,
-                       /*values=*/std::nullopt, /*key_schema=*/std::nullopt,
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
+                       /*key_schema=*/std::nullopt,
                        /*value_schema=*/std::nullopt));
 
   ASSERT_OK(dicts.SetInDict(
@@ -2878,7 +2901,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
           {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"}, keys_shape,
           schema::kObject)));
 
-  // TODO(b/322117750) Fork `db` when available.
+  // TODO(b/330114257) Fork `db` when available.
   auto immutable_db = DataBag::ImmutableEmptyWithFallbacks({db});
   auto immutable_dicts = dicts.WithDb(immutable_db);
 
@@ -2929,7 +2952,8 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(
       auto dicts,
       CreateDictShaped(db, shape, /*keys=*/std::nullopt,
-                       /*values=*/std::nullopt, /*key_schema=*/std::nullopt,
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
+                       /*key_schema=*/std::nullopt,
                        /*value_schema=*/std::nullopt));
 
   ASSERT_OK(dicts.SetInDict(
@@ -2938,7 +2962,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
           {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"}, keys_shape,
           schema::kObject)));
 
-  // TODO(b/322117750) Fork `db` when available.
+  // TODO(b/330114257) Fork `db` when available.
   auto immutable_db = DataBag::ImmutableEmptyWithFallbacks({db});
   auto immutable_dicts = dicts.WithDb(immutable_db);
 
@@ -2987,7 +3011,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
   ASSERT_OK_AND_ASSIGN(
       auto dicts,
       CreateDictShaped(db, shape, /*keys=*/std::nullopt,
-                       /*values=*/std::nullopt,
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
                        /*key_schema=*/test::Schema(schema::kInt64),
                        /*value_schema=*/test::Schema(schema::kInt64)));
 
@@ -3026,7 +3050,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
       test::DataSlice<int32_t>({1, 2, 3}, keys_shape, schema::kInt32),
       test::DataSlice<int32_t>({4, 5, 6}, keys_shape, schema::kInt32)));
 
-  // TODO(b/322117750) Fork `db` when available.
+  // TODO(b/330114257) Fork `db` when available.
   auto immutable_db = DataBag::ImmutableEmptyWithFallbacks({db});
   auto immutable_dicts = dicts.WithDb(immutable_db);
 

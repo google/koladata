@@ -312,7 +312,7 @@ absl::Status DataSlice::VerifyIsPrimitiveSchema() const {
 }
 
 absl::Status DataSlice::VerifyIsListSchema() const {
-  if (IsListSchema()) {
+  if (IsListSchema() || item() == schema::kAny) {
     return absl::OkStatus();
   }
   RETURN_IF_ERROR(VerifyIsSchema());
@@ -321,7 +321,7 @@ absl::Status DataSlice::VerifyIsListSchema() const {
 }
 
 absl::Status DataSlice::VerifyIsDictSchema() const {
-  if (IsDictSchema()) {
+  if (IsDictSchema() || item() == schema::kAny) {
     return absl::OkStatus();
   }
   RETURN_IF_ERROR(VerifyIsSchema());
@@ -1076,7 +1076,6 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
   RhsHandler</*is_readonly=*/true> keys_handler(RhsHandlerErrorContext::kDict,
                                                 *expanded_keys,
                                                 schema::kDictKeysSchemaAttr);
-  // TODO: Cast values before expanding.
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, GetDb()->GetImpl(),
                                              fb_finder.GetFlattenFallbacks()));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
@@ -1119,7 +1118,6 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
   });
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
-  // TODO: Cast values before expanding.
   RhsHandler</*is_readonly=*/false> keys_handler(RhsHandlerErrorContext::kDict,
                                                  *expanded_keys,
                                                  schema::kDictKeysSchemaAttr);
@@ -1348,7 +1346,6 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
   RETURN_IF_ERROR(expanded_values.status());
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
-  // TODO: Cast values before expanding.
   RhsHandler</*is_readonly=*/false> data_handler(
       RhsHandlerErrorContext::kListItem, *expanded_values,
       schema::kListItemsSchemaAttr);

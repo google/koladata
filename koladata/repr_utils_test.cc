@@ -101,11 +101,13 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_List) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
-                       CreateEmptyList(bag, test::Schema(schema::kAny)));
+                       CreateEmptyList(bag, /*schema=*/std::nullopt,
+                                       test::Schema(schema::kAny)));
   EXPECT_THAT(DataSliceToStr(empty_list), IsOkAndHolds(StrEq("List[]")));
-  ASSERT_OK_AND_ASSIGN(DataSlice data_slice,
-                       CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
-                                        test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice data_slice,
+      CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
   EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds(StrEq("List[1, 2, 3]")));
 }
 
@@ -123,9 +125,10 @@ TEST(ReprUtilTest, TestItemStringRepresentation_NestedList) {
                        DataSlice::Create(std::move(ds), std::move(ds_shape),
                                          internal::DataItem(schema::kAny)));
 
-  ASSERT_OK_AND_ASSIGN(DataSlice data_slice,
-                       CreateNestedList(bag, std::move(nested_list),
-                                        test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice data_slice,
+      CreateNestedList(bag, std::move(nested_list),
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
   EXPECT_THAT(DataSliceToStr(data_slice),
               IsOkAndHolds(StrEq("List[List[1], List[2, 3]]")));
 }
@@ -154,7 +157,8 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_DictInList) {
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
-      CreateNestedList(bag, std::move(dict_slice), test::Schema(schema::kAny)));
+      CreateNestedList(bag, std::move(dict_slice), /*schema=*/std::nullopt,
+                       test::Schema(schema::kAny)));
   EXPECT_THAT(
       DataSliceToStr(data_slice),
       IsOkAndHolds(StrEq("List[Dict{'a'=1}, Dict{'a'=1}, Dict{'a'=1}]")));
@@ -164,13 +168,13 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_ObjectsInList) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
-                       CreateEmptyList(bag, test::Schema(schema::kAny)));
+                       CreateEmptyList(bag, /*schema=*/std::nullopt,
+                                       test::Schema(schema::kAny)));
 
   DataSlice value_1 = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(DataSlice obj, ObjectCreator()(bag, {"a"}, {value_1}));
 
-  ASSERT_OK_AND_ASSIGN(DataSlice data_slice,
-                       CreateNestedList(bag, obj, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(DataSlice data_slice, CreateNestedList(bag, obj));
   EXPECT_THAT(DataSliceToStr(data_slice),
               IsOkAndHolds(StrEq("List[Obj(a=1), Obj(a=2)]")));
 }
@@ -179,13 +183,13 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_EntitiesInList) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
-                       CreateEmptyList(bag, test::Schema(schema::kAny)));
+                       CreateEmptyList(bag, /*schema=*/std::nullopt,
+                                       test::Schema(schema::kAny)));
 
   DataSlice value_1 = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(DataSlice obj, EntityCreator()(bag, {"a"}, {value_1}));
 
-  ASSERT_OK_AND_ASSIGN(DataSlice data_slice,
-                       CreateNestedList(bag, obj, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(DataSlice data_slice, CreateNestedList(bag, obj));
   EXPECT_THAT(DataSliceToStr(data_slice),
               IsOkAndHolds(StrEq("List[Entity(a=1), Entity(a=2)]")));
 }
@@ -227,16 +231,16 @@ TEST(ReprUtilTest, TestItemStringRepresentation_ListSchema) {
 
   DataSlice list_item = test::DataItem(1);
 
-  ASSERT_OK_AND_ASSIGN(DataSlice list,
-                       CreateListShaped(bag, DataSlice::JaggedShape::Empty(),
-                                        list_item, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice list,
+      CreateListShaped(bag, DataSlice::JaggedShape::Empty(), list_item));
 
   EXPECT_THAT(DataSliceToStr(list.GetSchema()),
               IsOkAndHolds(StrEq("LIST[INT32]")));
 
-  ASSERT_OK_AND_ASSIGN(DataSlice list_of_list,
-                       CreateListShaped(bag, DataSlice::JaggedShape::Empty(),
-                                        list, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice list_of_list,
+      CreateListShaped(bag, DataSlice::JaggedShape::Empty(), list));
 
   EXPECT_THAT(DataSliceToStr(list_of_list.GetSchema()),
               IsOkAndHolds(StrEq("LIST[LIST[INT32]]")));
@@ -248,10 +252,9 @@ TEST(ReprUtilTest, TestItemStringRepresentation_DictSchema) {
   DataSlice key_item = test::DataItem(1);
   DataSlice value_item = test::DataItem("value");
 
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice dict,
-      CreateDictShaped(bag, DataSlice::JaggedShape::Empty(), key_item,
-                       value_item, std::nullopt, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(DataSlice dict,
+                       CreateDictShaped(bag, DataSlice::JaggedShape::Empty(),
+                                        key_item, value_item));
 
   EXPECT_THAT(DataSliceToStr(dict.GetSchema()),
               IsOkAndHolds(StrEq("DICT{INT32, TEXT}")));
@@ -259,15 +262,13 @@ TEST(ReprUtilTest, TestItemStringRepresentation_DictSchema) {
   DataSlice second_key_item = test::DataItem("foo");
   DataSlice second_value_item =
       test::DataItem(internal::AllocateSingleObject());
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice second_dict,
-      CreateDictShaped(bag, DataSlice::JaggedShape::Empty(), second_key_item,
-                       second_value_item, std::nullopt, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(DataSlice second_dict,
+                       CreateDictShaped(bag, DataSlice::JaggedShape::Empty(),
+                                        second_key_item, second_value_item));
 
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice nested_dict,
-      CreateDictShaped(bag, DataSlice::JaggedShape::Empty(), dict, second_dict,
-                       std::nullopt, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(DataSlice nested_dict,
+                       CreateDictShaped(bag, DataSlice::JaggedShape::Empty(),
+                                        dict, second_dict));
 
   EXPECT_THAT(
       DataSliceToStr(nested_dict.GetSchema()),
@@ -295,10 +296,9 @@ TEST(ReprUtilTest, TestItemStringRepresentation_ExplicitSchema_Nested) {
 
   DataSlice key_item = test::DataItem(1);
   DataSlice value_item = test::DataItem("value");
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice dict,
-      CreateDictShaped(bag, DataSlice::JaggedShape::Empty(), key_item,
-                       value_item, std::nullopt, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(DataSlice dict,
+                       CreateDictShaped(bag, DataSlice::JaggedShape::Empty(),
+                                        key_item, value_item));
 
   ASSERT_OK_AND_ASSIGN(DataSlice entity, EntityCreator()(bag, {"a"}, {dict}));
   EXPECT_THAT(DataSliceToStr(entity.GetSchema()),

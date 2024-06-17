@@ -211,7 +211,8 @@ void BM_ExplodeLists(benchmark::State& state) {
   auto o = *EntityCreator()(
       db, *DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
 
-  auto list = *CreateListsFromLastDimension(db, o, test::Schema(schema::kAny));
+  auto list = *CreateListsFromLastDimension(db, o, /*schema=*/std::nullopt,
+                                            test::Schema(schema::kAny));
 
   for (auto _ : state) {
     benchmark::DoNotOptimize(list);

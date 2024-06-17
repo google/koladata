@@ -193,10 +193,9 @@ class SubsliceOperator : public arolla::InlineOperator {
           auto temp_db = DataBag::Empty();
           auto new_x = x.WithDb(temp_db);
           for (size_t i = 0; i < slice_args.size(); ++i) {
-            ASSIGN_OR_RETURN(
-                new_x,
-                CreateListsFromLastDimension(temp_db, new_x, new_x.GetSchema()),
-                ctx->set_status(std::move(_)));
+            ASSIGN_OR_RETURN(new_x,
+                             CreateListsFromLastDimension(temp_db, new_x),
+                             ctx->set_status(std::move(_)));
           }
 
           for (const auto& slice_arg : slice_args) {

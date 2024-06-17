@@ -175,8 +175,7 @@ absl::StatusOr<DataSlice> ExpandToShape(const DataSlice& x,
   auto temp_db = DataBag::Empty();
   auto new_x = x.WithDb(temp_db);
   for (int64_t i = 0; i < ndim; ++i) {
-    ASSIGN_OR_RETURN(
-        new_x, CreateListsFromLastDimension(temp_db, new_x, new_x.GetSchema()));
+    ASSIGN_OR_RETURN(new_x, CreateListsFromLastDimension(temp_db, new_x));
   }
   ASSIGN_OR_RETURN(
       new_x, new_x.BroadcastToShape(shape),

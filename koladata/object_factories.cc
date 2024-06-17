@@ -124,6 +124,30 @@ absl::Status CopyEntitySchema(const DataBagPtr& schema_db,
       schema_item, attr_names, attr_schemas);
 }
 
+absl::Status CopyListSchema(const DataSlice& list_schema,
+                            const DataBagPtr& db) {
+  RETURN_IF_ERROR(list_schema.VerifyIsListSchema());
+  if (list_schema.GetDb() == db) {
+    return absl::OkStatus();
+  }
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  return CopyEntitySchema(list_schema.GetDb(), list_schema.item(),
+                          db_mutable_impl);
+}
+
+absl::Status CopyDictSchema(const DataSlice& dict_schema,
+                            const DataBagPtr& db) {
+  RETURN_IF_ERROR(dict_schema.VerifyIsDictSchema());
+  if (dict_schema.GetDb() == db) {
+    return absl::OkStatus();
+  }
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  return CopyEntitySchema(dict_schema.GetDb(), dict_schema.item(),
+                          db_mutable_impl);
+}
+
 template <class ImplT>
 absl::Status SetObjectSchema(
     internal::DataBagImpl& db_mutable_impl, const ImplT& ds_impl,
@@ -344,6 +368,32 @@ absl::StatusOr<DataSlice> ObjectCreator::operator()(
   return value.WithDb(db).EmbedSchema();
 }
 
+absl::StatusOr<DataSlice> CreateUuidFromFields(
+    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values) {
+  DCHECK_EQ(attr_names.size(), values.size());
+  if (values.empty()) {
+    return DataSlice::Create(
+        CreateUuidFromFields(
+            seed, absl::flat_hash_map<
+                      absl::string_view,
+                      std::reference_wrapper<const internal::DataItem>>{}),
+        internal::DataItem(schema::kItemId));
+  }
+  ASSIGN_OR_RETURN(auto aligned_values, shape::Align<DataSlice>(values));
+  return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
+    absl::flat_hash_map<absl::string_view, std::reference_wrapper<const T>>
+        field_map;
+    for (int i = 0; i < aligned_values.size(); ++i) {
+      field_map.insert({attr_names[i], std::cref(aligned_values[i].impl<T>())});
+    }
+
+    return DataSlice::Create(internal::CreateUuidFromFields(seed, field_map),
+                             aligned_values.begin()->GetShapePtr(),
+                             internal::DataItem(schema::kItemId), nullptr);
+  });
+}
+
 absl::StatusOr<DataSlice> UuObjectCreator::operator()(
     const DataBagPtr& db, absl::string_view seed,
     const std::vector<absl::string_view>& attr_names,
@@ -447,13 +497,26 @@ absl::StatusOr<DataSlice> CreateDictImpl(
     const std::shared_ptr<DataBag>& db, const CreateDictsFn& create_dicts_fn,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
+    const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& key_schema,
     const std::optional<DataSlice>& value_schema) {
-  ASSIGN_OR_RETURN(auto deduced_key_schema, DeduceItemSchema(keys, key_schema));
-  ASSIGN_OR_RETURN(auto deduced_value_schema,
-                   DeduceItemSchema(values, value_schema));
-  ASSIGN_OR_RETURN(auto dict_schema, CreateDictSchema(db, deduced_key_schema,
-                                                      deduced_value_schema));
+  internal::DataItem dict_schema;
+  if (schema) {
+    if (key_schema.has_value() || value_schema.has_value()) {
+      return absl::InvalidArgumentError(
+          "creating dicts with schema accepts either a dict schema or key/value"
+          " schemas, but not both");
+    }
+    RETURN_IF_ERROR(CopyDictSchema(*schema, db));
+    dict_schema = schema->item();
+  } else {
+    ASSIGN_OR_RETURN(auto deduced_key_schema,
+                     DeduceItemSchema(keys, key_schema));
+    ASSIGN_OR_RETURN(auto deduced_value_schema,
+                     DeduceItemSchema(values, value_schema));
+    ASSIGN_OR_RETURN(dict_schema, CreateDictSchema(db, deduced_key_schema,
+                                                   deduced_value_schema));
+  }
   ASSIGN_OR_RETURN(DataSlice res, create_dicts_fn(dict_schema));
   if (keys.has_value() && values.has_value()) {
     RETURN_IF_ERROR(res.SetInDict(*keys, *values));
@@ -471,6 +534,7 @@ absl::StatusOr<DataSlice> CreateDictLike(
     const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
+    const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& key_schema,
     const std::optional<DataSlice>& value_schema) {
   return CreateDictImpl(
@@ -480,13 +544,14 @@ absl::StatusOr<DataSlice> CreateDictLike(
                           internal::AllocateSingleDict,
                           internal::AllocateDicts);
       },
-      keys, values, key_schema, value_schema);
+      keys, values, schema, key_schema, value_schema);
 }
 
 absl::StatusOr<DataSlice> CreateDictShaped(
     const std::shared_ptr<DataBag>& db, DataSlice::JaggedShapePtr shape,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
+    const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& key_schema,
     const std::optional<DataSlice>& value_schema) {
   return CreateDictImpl(
@@ -504,7 +569,7 @@ absl::StatusOr<DataSlice> CreateDictShaped(
               std::move(shape), schema, db);
         }
       },
-      keys, values, key_schema, value_schema);
+      keys, values, schema, key_schema, value_schema);
 }
 
 absl::StatusOr<internal::DataItem> CreateListSchema(
@@ -513,18 +578,20 @@ absl::StatusOr<internal::DataItem> CreateListSchema(
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
   return db_mutable_impl.CreateUuSchemaFromFields(
-      "::koladata::::CreateListSchema", {"__items__"}, {item_schema.item()});
+      "::koladata::::CreateListSchema",
+      {"__items__"}, {item_schema.item()});
 }
 
 absl::StatusOr<DataSlice> CreateEmptyList(
-    const std::shared_ptr<DataBag>& db,
+    const std::shared_ptr<DataBag>& db, const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& item_schema) {
   return CreateListShaped(db, DataSlice::JaggedShape::Empty(),
-                          /*values=*/std::nullopt, item_schema);
+                          /*values=*/std::nullopt, schema, item_schema);
 }
 
 absl::StatusOr<DataSlice> CreateListsFromLastDimension(
     const std::shared_ptr<DataBag>& db, const DataSlice& values,
+    const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& item_schema) {
   size_t rank = values.GetShape().rank();
   if (rank == 0) {
@@ -532,19 +599,17 @@ absl::StatusOr<DataSlice> CreateListsFromLastDimension(
         "creating a list from values requires at least one dimension");
   }
   return CreateListShaped(db, values.GetShape().RemoveDims(rank - 1), values,
-                          item_schema);
+                          schema, item_schema);
 }
 
 absl::StatusOr<DataSlice> CreateNestedList(
     const std::shared_ptr<DataBag>& db, const DataSlice& values,
+    const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& item_schema) {
-  ASSIGN_OR_RETURN(auto deduced_item_schema,
-                   DeduceItemSchema(values, item_schema));
   ASSIGN_OR_RETURN(DataSlice res, CreateListsFromLastDimension(
-                                      db, values, deduced_item_schema));
+                                      db, values, schema, item_schema));
   while (res.GetShape().rank() > 0) {
-    ASSIGN_OR_RETURN(res,
-                     CreateListsFromLastDimension(db, res, res.GetSchema()));
+    ASSIGN_OR_RETURN(res, CreateListsFromLastDimension(db, res));
   }
   return res;
 }
@@ -552,10 +617,22 @@ absl::StatusOr<DataSlice> CreateNestedList(
 absl::StatusOr<DataSlice> CreateListShaped(
     const std::shared_ptr<DataBag>& db, DataSlice::JaggedShapePtr shape,
     const std::optional<DataSlice>& values,
+    const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& item_schema) {
-  ASSIGN_OR_RETURN(auto deduced_item_schema,
-                   DeduceItemSchema(values, item_schema));
-  ASSIGN_OR_RETURN(auto list_schema, CreateListSchema(db, deduced_item_schema));
+  internal::DataItem list_schema;
+  if (schema) {
+    if (item_schema.has_value()) {
+      return absl::InvalidArgumentError(
+          "creating lists with schema accepts either a list schema or item "
+          "schema, but not both");
+    }
+    RETURN_IF_ERROR(CopyListSchema(*schema, db));
+    list_schema = schema->item();
+  } else {
+    ASSIGN_OR_RETURN(auto deduced_item_schema,
+                     DeduceItemSchema(values, item_schema));
+    ASSIGN_OR_RETURN(list_schema, CreateListSchema(db, deduced_item_schema));
+  }
   size_t size = shape->size();
 
   std::optional<DataSlice> result;
@@ -579,10 +656,22 @@ absl::StatusOr<DataSlice> CreateListShaped(
 absl::StatusOr<DataSlice> CreateListLike(
     const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask,
     const std::optional<DataSlice>& values,
+    const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& item_schema) {
-  ASSIGN_OR_RETURN(auto deduced_item_schema,
-                   DeduceItemSchema(values, item_schema));
-  ASSIGN_OR_RETURN(auto list_schema, CreateListSchema(db, deduced_item_schema));
+  internal::DataItem list_schema;
+  if (schema) {
+    if (item_schema.has_value()) {
+      return absl::InvalidArgumentError(
+          "creating lists with schema accepts either a list schema or item "
+          "schema, but not both");
+    }
+    RETURN_IF_ERROR(CopyListSchema(*schema, db));
+    list_schema = schema->item();
+  } else {
+    ASSIGN_OR_RETURN(auto deduced_item_schema,
+                     DeduceItemSchema(values, item_schema));
+    ASSIGN_OR_RETURN(list_schema, CreateListSchema(db, deduced_item_schema));
+  }
   ASSIGN_OR_RETURN(auto result, CreateLike(db, shape_and_mask, list_schema,
                                            internal::AllocateSingleList,
                                            internal::AllocateLists));
@@ -592,34 +681,6 @@ absl::StatusOr<DataSlice> CreateListLike(
   return result;
 }
 
-absl::StatusOr<DataSlice> CreateUuidFromFields(
-    absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values) {
-  DCHECK_EQ(attr_names.size(), values.size());
-  if (values.empty()) {
-    return DataSlice::Create(
-        CreateUuidFromFields(
-            seed, absl::flat_hash_map<
-                      absl::string_view,
-                      std::reference_wrapper<const internal::DataItem>>{}),
-        internal::DataItem(schema::kItemId));
-  }
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align<DataSlice>(values));
-  return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
-    absl::flat_hash_map<absl::string_view,
-                        std::reference_wrapper<const T>> field_map;
-    for (int i = 0; i < aligned_values.size(); ++i) {
-      field_map.insert({attr_names[i], std::cref(aligned_values[i].impl<T>())});
-    }
-
-    return DataSlice::Create(
-        internal::CreateUuidFromFields(seed, field_map),
-        aligned_values.begin()->GetShapePtr(),
-        internal::DataItem(schema::kItemId),
-        nullptr);
-  });
-}
 absl::StatusOr<DataSlice> CreateNoFollowSchema(const DataSlice& target_schema) {
   RETURN_IF_ERROR(target_schema.VerifyIsSchema());
   ASSIGN_OR_RETURN(auto no_follow_schema_item,
