@@ -14,9 +14,11 @@
 //
 #include "koladata/internal/uuid_object.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <random>
 #include <utility>
 #include <vector>
 
@@ -47,7 +49,7 @@ using ::arolla::Text;
 TEST(UuidTest, CreateUuidFromFields) {
   DataItem x(5);
   DataItem y(7.0f);
-  DataItem q = CreateUuidFromFields("", {{"x", x}, {"y", y}});
+  DataItem q = CreateUuidFromFields("", {"x", "y"}, {x, y});
   ASSERT_EQ(q.dtype(), arolla::GetQType<ObjectId>());
   EXPECT_TRUE(q.value<ObjectId>().IsUuid());
 }
@@ -55,11 +57,10 @@ TEST(UuidTest, CreateUuidFromFields) {
 TEST(UuidTest, CreateUuidFromFields_Seed) {
   DataItem x(5);
   DataItem y(7.0f);
-  DataItem seeded_uuid_1 = CreateUuidFromFields("seed_1", {{"x", x}, {"y", y}});
-  DataItem seeded_uuid_2 = CreateUuidFromFields("seed_2",
-                                                {{"x", x}, {"y", y}});
+  DataItem seeded_uuid_1 = CreateUuidFromFields("seed_1", {"x", "y"}, {x, y});
+  DataItem seeded_uuid_2 = CreateUuidFromFields("seed_2", {"x", "y"}, {x, y});
   DataItem seeded_uuid_2_again = CreateUuidFromFields(
-      "seed_2", {{"x", x}, {"y", y}});
+      "seed_2", {"x", "y"}, {x, y});
 
   ASSERT_EQ(seeded_uuid_1.dtype(), arolla::GetQType<ObjectId>());
   EXPECT_TRUE(seeded_uuid_1.value<ObjectId>().IsUuid());
@@ -72,11 +73,11 @@ TEST(UuidTest, CreateUuidFromFields_Seed) {
 TEST(UuidTest, CreateUuidFromFields_MixedTypes) {
   DataItem x(5);
   DataItem y(7.0f);
-  DataItem q = CreateUuidFromFields("", {{"x", x}, {"y", y}});
+  DataItem q = CreateUuidFromFields("", {"x", "y"}, {x, y});
 
   DataItem a(Text("5"));
   DataItem b(7.0);
-  DataItem w = CreateUuidFromFields("", {{"x", a}, {"y", b}});
+  DataItem w = CreateUuidFromFields("", {"x", "y"}, {a, b});
 
   auto x_slice = DataSliceImpl::Create(
       arolla::CreateDenseArray<int>(
@@ -91,7 +92,7 @@ TEST(UuidTest, CreateUuidFromFields_MixedTypes) {
 
   ASSERT_OK_AND_ASSIGN(DataSliceImpl uuid_slice,
                        CreateUuidFromFields("",
-                                            {{"x", x_slice}, {"y", y_slice}}));
+                                            {"x", "y"}, {x_slice, y_slice}));
 
   EXPECT_EQ(uuid_slice[0], q);
   EXPECT_EQ(uuid_slice[1], w);
@@ -103,11 +104,11 @@ TEST(UuidTest, CreateUuidFromFields_MixedTypes) {
 TEST(UuidTest, CreateUuidFromFields_MixedTypes_Seed) {
   DataItem x(5);
   DataItem y(7.0f);
-  DataItem q = CreateUuidFromFields("", {{"x", x}, {"y", y}});
+  DataItem q = CreateUuidFromFields("", {"x", "y"}, {x, y});
 
   DataItem a(Text("5"));
   DataItem b(7.0);
-  DataItem w = CreateUuidFromFields("seed", {{"x", a}, {"y", b}});
+  DataItem w = CreateUuidFromFields("seed", {"x", "y"}, {a, b});
 
   auto x_slice = DataSliceImpl::Create(
       arolla::CreateDenseArray<int>(
@@ -122,7 +123,7 @@ TEST(UuidTest, CreateUuidFromFields_MixedTypes_Seed) {
 
   ASSERT_OK_AND_ASSIGN(DataSliceImpl uuid_slice,
                        CreateUuidFromFields("seed",
-                                            {{"x", x_slice}, {"y", y_slice}}));
+                                            {"x", "y"}, {x_slice, y_slice}));
 
   EXPECT_NE(uuid_slice[0], q);
   EXPECT_EQ(uuid_slice[1], w);
@@ -132,20 +133,20 @@ TEST(UuidTest, CreateUuidFromFieldsTypesUsed) {
   {
     DataItem x(5);
     DataItem y(int64_t{5});
-    EXPECT_NE(CreateUuidFromFields("", {{"x", x}, {"y", y}}),
-              CreateUuidFromFields("", {{"y", x}, {"x", y}}));
+    EXPECT_NE(CreateUuidFromFields("", {"x", "y"}, {x, y}),
+              CreateUuidFromFields("", {"y", "x"}, {x, y}));
   }
   {
     DataItem x(float{0});
     DataItem y(int32_t{0});
-    EXPECT_NE(CreateUuidFromFields("", {{"x", x}, {"y", y}}),
-              CreateUuidFromFields("", {{"y", x}, {"x", y}}));
+    EXPECT_NE(CreateUuidFromFields("", {"x", "y"}, {x, y}),
+              CreateUuidFromFields("", {"y", "x"}, {x, y}));
   }
   {
     DataItem x(Text("5"));
     DataItem y(arolla::Bytes("5"));
-    EXPECT_NE(CreateUuidFromFields("", {{"x", x}, {"y", y}}),
-              CreateUuidFromFields("", {{"y", x}, {"x", y}}));
+    EXPECT_NE(CreateUuidFromFields("", {"x", "y"}, {x, y}),
+              CreateUuidFromFields("", {"y", "x"}, {x, y}));
   }
 }
 
@@ -158,21 +159,22 @@ TEST(UuidTest, CreateUuidFromFieldsDataItemAllTypesOrderIndependent) {
   DataItem e(arolla::Bytes("75"));
   DataItem r(AllocateSingleObject());
   DataItem t;
-  auto kwargs = absl::flat_hash_map<absl::string_view,
-                                    std::reference_wrapper<const DataItem>>{
-      {"x", x}, {"y", y}, {"z", z}, {"q", q},
-      {"w", w}, {"e", e}, {"r", r}, {"t", t}};
-  DataItem item = CreateUuidFromFields("", kwargs);
+  auto attr_names =
+      std::vector<absl::string_view>{"x", "y", "z", "q", "w", "e", "r", "t"};
+  auto attr_values = std::vector<std::reference_wrapper<const DataItem>>{
+      x, y, z, q, w, e, r, t};
+  DataItem item = CreateUuidFromFields("", attr_names, attr_values);
   ASSERT_EQ(item.dtype(), arolla::GetQType<ObjectId>());
   auto id = item.value<ObjectId>();
   EXPECT_TRUE(id.IsUuid());
 
-  auto kwargs_copies = std::vector{kwargs};
-
   for (int64_t i = 0; i != 11; ++i) {
-    // copy of hash table changes the order
-    kwargs_copies.push_back(kwargs_copies.back());
-    DataItem item2 = CreateUuidFromFields("", kwargs_copies.back());
+    std::random_device rd;
+    std::mt19937 seed1(rd());
+    auto seed2 = seed1;
+    std::shuffle(attr_names.begin(), attr_names.end(), seed1);
+    std::shuffle(attr_values.begin(), attr_values.end(), seed2);
+    DataItem item2 = CreateUuidFromFields("", attr_names, attr_values);
     ASSERT_EQ(item2.dtype(), arolla::GetQType<ObjectId>());
     auto id2 = item2.value<ObjectId>();
     EXPECT_TRUE(id2.IsUuid());

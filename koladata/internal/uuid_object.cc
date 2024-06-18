@@ -20,7 +20,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -44,7 +43,7 @@ namespace {
 
 arolla::Fingerprint ComputeFingerPrintFromKwargs(
     absl::string_view seed,
-    absl::Span<std::pair<absl::string_view, arolla::Fingerprint>>
+    absl::Span<const std::pair<absl::string_view, arolla::Fingerprint>>
         fingerprints) {
   StableFingerprintHasher hasher(absl::StrCat("uuid", seed));
   for (const auto& [attr, value] : fingerprints) {
@@ -54,11 +53,9 @@ arolla::Fingerprint ComputeFingerPrintFromKwargs(
 }
 
 absl::StatusOr<int64_t> CommonKwargsSize(
-    const absl::flat_hash_map<absl::string_view,
-                              std::reference_wrapper<const DataSliceImpl>>&
-        kwargs) {
+    absl::Span<const std::reference_wrapper<const DataSliceImpl>> values) {
   int64_t size = -1;
-  for (const auto& [attr, value] : kwargs) {
+  for (const auto& value : values) {
     if (size == -1) {
       size = value.get().size();
     } else {
@@ -86,33 +83,39 @@ arolla::Fingerprint UuidWithMainObjectFingerprint(ObjectId object_id,
 
 DataItem CreateUuidFromFields(
     absl::string_view seed,
-    const absl::flat_hash_map<absl::string_view,
-                              std::reference_wrapper<const DataItem>>& kwargs) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> values) {
+  DCHECK_EQ(attr_names.size(), values.size());
   std::vector<std::pair<absl::string_view, arolla::Fingerprint>> fingerprints;
-  fingerprints.reserve(kwargs.size() + 1);
-  for (const auto& [attr, value] : kwargs) {
-    fingerprints.emplace_back(attr, value.get().StableFingerprint());
+  fingerprints.reserve(attr_names.size() + 1);
+  for (int64_t i = 0; i < attr_names.size(); ++i) {
+    fingerprints.emplace_back(
+        attr_names[i], values[i].get().StableFingerprint());
   }
   std::sort(fingerprints.begin(), fingerprints.end(),
             [](const auto& x, const auto& y) { return x.first < y.first; });
 
   return DataItem(CreateUuidObject(
-      ComputeFingerPrintFromKwargs(seed,absl::MakeSpan(fingerprints))));
+      ComputeFingerPrintFromKwargs(seed, absl::MakeSpan(fingerprints))));
 }
 
 absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
     absl::string_view seed,
-    const absl::flat_hash_map<absl::string_view,
-                              std::reference_wrapper<const DataSliceImpl>>&
-        kwargs) {
-  ASSIGN_OR_RETURN(int64_t size, CommonKwargsSize(kwargs));
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataSliceImpl>> values) {
+  DCHECK_EQ(attr_names.size(), values.size());
+  ASSIGN_OR_RETURN(int64_t size, CommonKwargsSize(values));
   if (size == 0 || size == -1) {
     return DataSliceImpl::CreateAllMissingObjectDataSlice(0);
   }
 
   std::vector<
       std::pair<absl::string_view, std::reference_wrapper<const DataSliceImpl>>>
-      sorted_kwargs(kwargs.begin(), kwargs.end());
+      sorted_kwargs;
+  sorted_kwargs.reserve(attr_names.size());
+  for (int64_t i = 0; i < attr_names.size(); ++i) {
+    sorted_kwargs.emplace_back(attr_names[i], values[i]);
+  }
   std::sort(sorted_kwargs.begin(), sorted_kwargs.end(),
             [](const auto& x, const auto& y) { return x.first < y.first; });
 
@@ -139,8 +142,8 @@ absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
 }
 
 DataItem CreateSchemaUuidFromFields(absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   DCHECK_EQ(attr_names.size(), items.size());
   std::vector<std::pair<absl::string_view, arolla::Fingerprint>> fingerprints;
   fingerprints.reserve(attr_names.size());

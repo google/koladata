@@ -21,7 +21,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -1556,10 +1555,10 @@ TEST(ObjectFactoriesTest, CreateUuidFromFields_DataSlice) {
   EXPECT_EQ(ds.size(), kSize);
   EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
 
-  ASSERT_OK_AND_ASSIGN(auto expected,
-                       internal::CreateUuidFromFields(
-                           "", {{std::string("a"), ds_a.slice()},
-                                {std::string("b"), ds_b.slice()}}));
+  ASSERT_OK_AND_ASSIGN(
+      auto expected,
+      internal::CreateUuidFromFields("", {std::string("a"), std::string("b")},
+                                     {ds_a.slice(), ds_b.slice()}));
   EXPECT_THAT(ds.slice().values<ObjectId>(), ElementsAreArray(
       expected.values<ObjectId>()));
 
@@ -1574,8 +1573,8 @@ TEST(ObjectFactoriesTest, CreateUuidFromFields_DataSlice) {
                            {ds_a, ds_b}));
   ASSERT_OK_AND_ASSIGN(expected,
                        internal::CreateUuidFromFields(
-                           "seed_1",    {{std::string("a"), ds_a.slice()},
-                                         {std::string("b"), ds_b.slice()}}));
+                           "seed_1", {std::string("a"), std::string("b")},
+                           {ds_a.slice(), ds_b.slice()}));
   EXPECT_THAT(ds_with_seed_1.slice().values<ObjectId>(), ElementsAreArray(
       expected.values<ObjectId>()));
   EXPECT_THAT(ds_with_seed_1.slice().values<ObjectId>(),
@@ -1599,9 +1598,8 @@ TEST(ObjectFactoriesTest, CreateUuidFromFields_DataItem) {
   EXPECT_EQ(ds.size(), 1);
   EXPECT_EQ(ds.GetShape().rank(), 0);
   EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
-  auto expected = internal::CreateUuidFromFields("",
-                           {{std::string("a"), ds_a.item()},
-                            {std::string("b"), ds_b.item()}});
+  auto expected = internal::CreateUuidFromFields(
+      "", {std::string("a"), std::string("b")}, {ds_a.item(), ds_b.item()});
   EXPECT_EQ(ds.item(), expected);
 
   ASSERT_OK_AND_ASSIGN(
@@ -1614,8 +1612,8 @@ TEST(ObjectFactoriesTest, CreateUuidFromFields_DataItem) {
                            {ds_a, ds_b}));
 
   expected = internal::CreateUuidFromFields(
-      "seed_1",
-      {{std::string("a"), ds_a.item()}, {std::string("b"), ds_b.item()}});
+      "seed_1", {std::string("a"), std::string("b")},
+      {ds_a.item(), ds_b.item()});
   EXPECT_EQ(ds_with_seed_1.item(), expected);
   EXPECT_NE(ds_with_seed_1.item(), ds_with_seed_2.item());
 }

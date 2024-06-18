@@ -369,28 +369,29 @@ absl::StatusOr<DataSlice> ObjectCreator::operator()(
 }
 
 absl::StatusOr<DataSlice> CreateUuidFromFields(
-    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
+    absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& values) {
   DCHECK_EQ(attr_names.size(), values.size());
   if (values.empty()) {
     return DataSlice::Create(
         CreateUuidFromFields(
-            seed, absl::flat_hash_map<
-                      absl::string_view,
-                      std::reference_wrapper<const internal::DataItem>>{}),
+            seed, {},
+            std::vector<std::reference_wrapper<const internal::DataItem>>{}),
         internal::DataItem(schema::kItemId));
   }
   ASSIGN_OR_RETURN(auto aligned_values, shape::Align<DataSlice>(values));
   return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
-    absl::flat_hash_map<absl::string_view, std::reference_wrapper<const T>>
-        field_map;
-    for (int i = 0; i < aligned_values.size(); ++i) {
-      field_map.insert({attr_names[i], std::cref(aligned_values[i].impl<T>())});
+    std::vector<std::reference_wrapper<const T>> values_impl;
+    values_impl.reserve(values.size());
+    for (int i = 0; i < attr_names.size(); ++i) {
+      values_impl.push_back(std::cref(aligned_values[i].impl<T>()));
     }
-
-    return DataSlice::Create(internal::CreateUuidFromFields(seed, field_map),
-                             aligned_values.begin()->GetShapePtr(),
-                             internal::DataItem(schema::kItemId), nullptr);
+    return DataSlice::Create(
+        internal::CreateUuidFromFields(seed, attr_names, values_impl),
+        aligned_values.begin()->GetShapePtr(),
+        internal::DataItem(schema::kItemId),
+        nullptr);
   });
 }
 
@@ -402,9 +403,8 @@ absl::StatusOr<DataSlice> UuObjectCreator::operator()(
   DataSlice ds;
   if (values.empty()) {
     auto uuid = internal::CreateUuidFromFields(
-        seed, absl::flat_hash_map<
-                  absl::string_view,
-                  std::reference_wrapper<const internal::DataItem>>{});
+        seed, {},
+        std::vector<std::reference_wrapper<const internal::DataItem>>{});
     ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                      db->GetMutableImpl());
     RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, uuid, {}, {},
@@ -423,22 +423,19 @@ absl::StatusOr<DataSlice> UuObjectCreator::operator()(
       [&]<class ImplT>(ImplT) -> absl::StatusOr<DataSlice> {
         std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
         aligned_values_impl.reserve(aligned_values.size());
-        absl::flat_hash_map<absl::string_view,
-                            std::reference_wrapper<const ImplT>>
-            field_map;
         for (int i = 0; i < attr_names.size(); ++i) {
           aligned_values_impl.push_back(
               std::cref(aligned_values[i].impl<ImplT>()));
-          field_map.insert(
-              {attr_names[i], std::cref(aligned_values[i].impl<ImplT>())});
         }
 
         std::optional<ImplT> impl_res;
         if constexpr (std::is_same_v<internal::DataItem, ImplT>) {
-          impl_res = internal::CreateUuidFromFields(seed, field_map);
+          impl_res = internal::CreateUuidFromFields(seed, attr_names,
+                                                    aligned_values_impl);
         } else {
           ASSIGN_OR_RETURN(impl_res,
-                           internal::CreateUuidFromFields(seed, field_map));
+                           internal::CreateUuidFromFields(seed, attr_names,
+                                                          aligned_values_impl));
         }
         ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                          db->GetMutableImpl());

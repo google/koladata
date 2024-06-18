@@ -974,7 +974,7 @@ TEST(DataBagTest, EmptySliceSetGetWithSparseSource) {
 TEST(DataBagTest, SetGetDataItem) {
   auto ds_a = DataItem(57.0f);
   for (DataItem ds : {
-           CreateUuidFromFields("", {{"a", std::cref(ds_a)}}),
+           CreateUuidFromFields("", {"a"}, {std::cref(ds_a)}),
            DataItem(AllocateSingleObject()),
            DataItem(Allocate(1).ObjectByOffset(0)),
            DataItem(Allocate(2).ObjectByOffset(1)),
@@ -1010,7 +1010,7 @@ TEST(DataBagTest, SetGetDataItem) {
 TEST(DataBagTest, SetGetDataItemWithFallback) {
   auto ds_a = DataItem(57.0f);
   for (DataItem ds : {
-           CreateUuidFromFields("", {{"a", std::cref(ds_a)}}),
+           CreateUuidFromFields("", {"a"}, {std::cref(ds_a)}),
            DataItem(AllocateSingleObject()),
            DataItem(Allocate(1).ObjectByOffset(0)),
            DataItem(Allocate(2).ObjectByOffset(1)),
@@ -1044,7 +1044,7 @@ TEST(DataBagTest, SetGetDataSliceUUid) {
   auto ds_a =
       DataSliceImpl::Create(arolla::CreateFullDenseArray<int>({13, 19, 57}));
   ASSERT_OK_AND_ASSIGN(auto ds, CreateUuidFromFields(
-      "", {{"a", std::cref(ds_a)}}));
+      "", {"a"}, {std::cref(ds_a)}));
 
   auto ds_b =
       DataSliceImpl::Create(arolla::CreateFullDenseArray<int>({23, 29, 75}));

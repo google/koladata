@@ -163,7 +163,7 @@ template <typename Access>
 void BM_ObjAttributeDataBagUUid(benchmark::State& state) {
   int64_t total_size = state.range(0);
   auto ds_obj = DataSliceImpl::AllocateEmptyObjects(total_size);
-  auto ds = CreateUuidFromFields("", {{"Q", std::cref(ds_obj)}}).value();
+  auto ds = CreateUuidFromFields("", {"Q"}, {std::cref(ds_obj)}).value();
   std::vector<DataItem> ds_items(ds.begin(), ds.end());
   auto ds_a = DataSliceImpl::AllocateEmptyObjects(total_size);
 

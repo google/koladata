@@ -15,10 +15,10 @@
 #ifndef KOLADATA_INTERNAL_UUID_OBJECT_H_
 #define KOLADATA_INTERNAL_UUID_OBJECT_H_
 
+#include <vector>
 #include <cstdint>
 #include <functional>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
@@ -30,22 +30,22 @@ namespace koladata::internal {
 // Creates Uuid object based on fingerprint of names and values of the kwargs.
 DataItem CreateUuidFromFields(
     absl::string_view seed,
-    const absl::flat_hash_map<absl::string_view,
-                              std::reference_wrapper<const DataItem>>& kwargs);
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> values);
 
 // Creates Uuid object based on fingerprint of names and values of the kwargs.
 // All DataSliceImpl's in kwargs must have the same size.
 absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
     absl::string_view seed,
-    const absl::flat_hash_map<absl::string_view,
-                              std::reference_wrapper<const DataSliceImpl>>&
-        kwargs);
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataSliceImpl>> values);
 
 // Creates a Uuid object for a schema, based on names and values of the schemas.
 // Does not check that the DataItems are schemas.
-DataItem CreateSchemaUuidFromFields(absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items);
+DataItem CreateSchemaUuidFromFields(
+    absl::string_view seed,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items);
 
 // Creates Uuid object based on the provided salt and the main object.
 // Resulted object will have the same offset and allocation capacity
