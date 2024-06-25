@@ -112,9 +112,8 @@ class ObjectId {
   }
 
   std::string DebugString() const {
-    return absl::StrCat(absl::Hex(InternalHigh64()),
-                        absl::Hex(InternalLow64() >> offset_bits_), ".",
-                        absl::Hex(Offset()));
+    return absl::StrCat(absl::Hex(InternalHigh64(), absl::kZeroPad16),
+                        absl::Hex(InternalLow64(), absl::kZeroPad16));
   }
 
   friend std::ostream& operator<<(std::ostream& os, const ObjectId& obj) {

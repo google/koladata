@@ -59,6 +59,53 @@ message KodaV1Proto {
     }
   }
 
+  // Represents values of some attribute (attribute name not included) for
+  // a sequential range of ObjectIds.
+  // `values` can be either DataItem (in this case first_object_id is
+  // the ObjectId for the item), or DataSliceImpl. In case of DataSliceImpl
+  // first_object_id determines allocation and a starting offset in
+  // the allocation. Currently offset is always zero, but potentially we can
+  // split a huge (> 2GiB) allocation into several chunks and serialize
+  // separately.
+  message AttrChunkProto {
+    optional ObjectIdProto first_object_id = 1;
+    // index of DataSliceImpl/DataItem in DataBag's
+    // ValueProto.input_value_indices
+    optional int32 values_subindex = 2;
+  }
+
+  message AttrProto {
+    optional string name = 1;
+    repeated AttrChunkProto chunks = 2;
+  }
+
+  message DictProto {
+    optional ObjectIdProto dict_id = 1;
+    // index of keys DataSliceImpl (not DataItem) in
+    // DataBag's ValueProto.input_value_indices
+    optional int32 keys_subindex = 2;
+    // index of values DataSliceImpl (not DataItem) in
+    // DataBag's ValueProto.input_value_indices
+    optional int32 values_subindex = 3;
+  }
+
+  message ListProto {
+    optional ObjectIdProto list_id = 1;
+    // index of values DataSliceImpl in DataBag's ValueProto.input_value_indices
+    optional int32 values_subindex = 2;
+  }
+
+  // ValueProto.input_value_indices:
+  //     First fallback_count indices are links to fallbacks (DataBagProto)
+  //     of this DataBag. Other indices are links to
+  //     DataItemProto/DataSliceImplProto referenced in attrs, dicts, lists.
+  message DataBagProto {
+    optional int32 fallback_count = 1;
+    repeated AttrProto attrs = 2;
+    repeated DictProto dicts = 3;
+    repeated ListProto lists = 4;
+  }
+
   oneof value {
     // Represents koladata::expr::LiteralOperator
     //
@@ -69,9 +116,18 @@ message KodaV1Proto {
     DataItemProto internal_data_item_value = 3;
     DataSliceImplProto data_slice_impl_value = 4;
 
+    DataBagProto data_bag_value = 5;
+
+    // ValueProto.input_value_indices[0]: DataSliceImpl or DataItem
+    // ValueProto.input_value_indices[1]: JaggedShape
+    // ValueProto.input_value_indices[2]: Schema (DataItem)
+    // ValueProto.input_value_indices[3]: (optional) DataBag
+    bool data_slice_value = 6;
+
     // Represents koladata::DataSlice's QType
     bool data_slice_qtype = 10;
 
     bool ellipsis_qtype = 11;
+    bool data_bag_qtype = 12;
   }
 }

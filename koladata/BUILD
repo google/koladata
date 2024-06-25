@@ -18,6 +18,8 @@
 # module should not depend on Python C library.
 
 load("@com_google_arolla//arolla/util/testing:testing.bzl", "benchmark_smoke_test")
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+load("@rules_python//python:proto.bzl", "py_proto_library")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -46,6 +48,7 @@ cc_library(
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
+        "//koladata/internal:error_utils",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
         "//koladata/internal:triples",
@@ -74,15 +77,21 @@ cc_test(
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
+        "//koladata/internal:error_cc_proto",
+        "//koladata/internal:error_utils",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
         "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/jagged_shape/dense_array",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -126,25 +135,11 @@ cc_test(
     ],
 )
 
-cc_library(
-    name = "data_slice_op",
-    hdrs = ["data_slice_op.h"],
-    deps = [
-        ":data_bag",
-        "//koladata/internal:data_item",
-        "//koladata/internal:data_slice",
-        "//koladata/shape:shape_utils",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_arolla//arolla/util:status_backport",
-    ],
-)
-
 cc_test(
     name = "data_slice_op_test",
     srcs = ["data_slice_op_test.cc"],
     deps = [
         ":data_slice",
-        ":data_slice_op",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
@@ -161,14 +156,16 @@ cc_library(
     srcs = [
         "casting.cc",
         "data_slice.cc",
+        "shape_utils.cc",
     ],
     hdrs = [
         "casting.h",
         "data_slice.h",
+        "data_slice_op.h",
+        "shape_utils.h",
     ],
     deps = [
         ":data_bag",
-        ":data_slice_op",
         "//koladata/internal:casting",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
@@ -261,7 +258,6 @@ cc_binary(
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
-        "//koladata/shape:shape_utils",
         "@com_google_absl//absl/log:check",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/memory",
@@ -282,6 +278,7 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )
@@ -394,12 +391,10 @@ cc_library(
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
         "//koladata/internal:uuid_object",
-        "//koladata/shape:shape_utils",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/util",
@@ -425,7 +420,6 @@ cc_test(
         "//koladata/internal/testing:matchers",
         "//koladata/testing:matchers",
         "//koladata/testing:status_matchers",
-        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/jagged_shape/testing",
@@ -517,6 +511,22 @@ cc_test(
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "shape_utils_test",
+    srcs = ["shape_utils_test.cc"],
+    deps = [
+        ":data_slice",
+        "//koladata/internal:data_slice",
+        "//koladata/testing:matchers",
+        "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
         "@com_google_googletest//:gtest_main",
     ],
 )

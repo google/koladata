@@ -29,6 +29,7 @@
 #include "koladata/operators/schema.h"
 #include "koladata/operators/select.h"
 #include "koladata/operators/slice.h"
+#include "koladata/operators/uu_schema.h"
 #include "koladata/operators/uuid.h"
 #include "koladata/operators/uuobj.h"
 #include "arolla/qexpr/optools.h"
@@ -67,6 +68,8 @@ OPERATOR_FAMILY("kde.core.subslice", SubsliceOperatorFamily);
 OPERATOR("kde.logical.apply_mask", ApplyMask);
 OPERATOR("kde.logical.coalesce", Coalesce);
 OPERATOR("kde.logical.has", Has);
+//
+OPERATOR_FAMILY("kde.schema._uu_schema", UuSchemaOperatorFamily);
 //
 OPERATOR("kde.shapes._expand_to_shape", ExpandToShape);
 OPERATOR("kde.shapes._reshape", Reshape);

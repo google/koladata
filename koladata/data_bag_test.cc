@@ -241,5 +241,79 @@ TEST(DataBagTest, GetBagIdRepr) {
   EXPECT_THAT(GetBagIdRepr(db), MatchesRegex(R"regex(\$[0-9a-f]{4})regex"));
 }
 
+TEST(DataBagTest, Fork) {
+  auto db1 = DataBag::Empty();
+  auto ds_a_db1 = test::DataItem(42, db1);
+  ASSERT_OK_AND_ASSIGN(auto ds1,
+                       EntityCreator()(db1, {std::string("a")}, {ds_a_db1}));
+
+  ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork());
+  auto ds2 = ds1.WithDb(db2);
+  auto ds_a_db2 = test::DataItem(42, db2);
+  EXPECT_THAT(ds1.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a_db1)));
+  EXPECT_THAT(ds2.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a_db2)));
+
+  auto ds_a1 = test::DataItem(43, db1);
+  ASSERT_OK(ds1.SetAttr("a", ds_a1));
+  EXPECT_THAT(ds1.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a1)));
+  EXPECT_THAT(ds2.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a_db2)));
+
+  auto ds_a2 = test::DataItem(44, db2);
+  ASSERT_OK(ds2.SetAttr("a", ds_a2));
+  EXPECT_THAT(ds1.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a1)));
+  EXPECT_THAT(ds2.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a2)));
+}
+
+TEST(DataBagTest, MergeFallbacks) {
+  auto fallback_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto ds1,
+                       EntityCreator()(fallback_db, {std::string("a")},
+                                       {test::DataItem(42, fallback_db)}));
+  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db});
+  auto ds2 = ds1.WithDb(db);
+
+  ASSERT_OK_AND_ASSIGN(auto db_merged, db->MergeFallbacks());
+
+  // Check that the merged DataBag has the same data as the original one,
+  // but no fallbacks.
+  auto ds1_merged = ds1.WithDb(db_merged);
+  EXPECT_THAT(ds1_merged.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42, db_merged))));
+  ASSERT_EQ(db_merged->GetFallbacks().size(), 0);
+
+  // Check that modifications to the merged DataBag don't affect the original.
+  ASSERT_OK(ds1_merged.SetAttr("a", test::DataItem(43, db_merged)));
+  EXPECT_THAT(ds2.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42, db))));
+
+  // Check that modifications to the fallback db don't affect the merged one.
+  ASSERT_OK(ds1.SetAttr("a", test::DataItem(44, db_merged)));
+  EXPECT_THAT(ds1_merged.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(43, db_merged))));
+}
+
+TEST(DataBagTest, Fork_Mutability) {
+  {
+    auto db1 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork());
+    EXPECT_TRUE(db2->IsMutable());
+  }
+  {
+    auto db1 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork(/*immutable=*/true));
+    EXPECT_FALSE(db2->IsMutable());
+  }
+  {
+    auto db1 = DataBag::ImmutableEmptyWithFallbacks({});
+    ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork());
+    EXPECT_TRUE(db2->IsMutable());
+  }
+  {
+    auto db1 = DataBag::ImmutableEmptyWithFallbacks({});
+    ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork(/*immutable=*/true));
+    EXPECT_FALSE(db2->IsMutable());
+  }
+}
+
 }  // namespace
 }  // namespace koladata

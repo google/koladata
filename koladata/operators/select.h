@@ -42,14 +42,13 @@ inline absl::StatusOr<DataSlice> Select(const DataSlice& ds,
   }
   const DataSlice::JaggedShapePtr& fltr_shape =
       expand_filter ? ds.GetShapePtr() : filter.GetShapePtr();
-  BroadcastHelper fltr(filter, fltr_shape);
-  RETURN_IF_ERROR(fltr.status());
+  ASSIGN_OR_RETURN(auto fltr, BroadcastToShape(filter, fltr_shape));
   return ds.VisitImpl([&](const auto& ds_impl) {
-    return fltr->VisitImpl([&](const auto& filter_impl)
-                               -> absl::StatusOr<DataSlice> {
+    return fltr.VisitImpl([&](const auto& filter_impl)
+                              -> absl::StatusOr<DataSlice> {
       ASSIGN_OR_RETURN((auto [result_ds, result_shape]),
                        internal::SelectOp()(ds_impl, ds.GetShapePtr(),
-                                            filter_impl, fltr->GetShapePtr()));
+                                            filter_impl, fltr.GetShapePtr()));
       return DataSlice::Create(std::move(result_ds), std::move(result_shape),
                                ds.GetSchemaImpl(), ds.GetDb());
     });

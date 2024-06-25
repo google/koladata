@@ -39,7 +39,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/shape/shape_utils.h"
+#include "koladata/shape_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -118,8 +118,7 @@ class EvalCompiler {
   }
 
  private:
-  static absl::NoDestructor<
-      arolla::LruCache<arolla::Fingerprint, CompiledOp>>
+  static absl::NoDestructor<arolla::LruCache<arolla::Fingerprint, CompiledOp>>
       cache_ ABSL_GUARDED_BY(mutex_);
   static absl::Mutex mutex_;
 };
@@ -222,13 +221,13 @@ class ConvertAndEvalBaseOp : public arolla::QExprOperator {
           for (const auto& slot : input_slots) {
             input_refs.push_back(arolla::TypedRef::FromSlot(slot, frame));
           }
-          std::vector<std::reference_wrapper<const DataSlice>> unaligned_ds;
+          std::vector<DataSlice> unaligned_ds;
           unaligned_ds.reserve(ds_input_indices.size());
           for (auto idx : ds_input_indices) {
             unaligned_ds.push_back(input_refs[idx].UnsafeAs<DataSlice>());
           }
           ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
-                           shape::AlignNonScalars<DataSlice>(unaligned_ds),
+                           shape::AlignNonScalars(std::move(unaligned_ds)),
                            ctx->set_status(std::move(_)));
           std::vector<arolla::TypedValue> typed_value_holder;
           typed_value_holder.reserve(ds_input_indices.size());

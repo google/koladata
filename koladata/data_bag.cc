@@ -27,6 +27,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/triples.h"
@@ -39,7 +40,7 @@
 namespace koladata {
 
 DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
-    std::vector<DataBagPtr> fallbacks) {
+    absl::Span<const DataBagPtr> fallbacks) {
   auto res = std::make_shared<DataBag>(DataBag::immutable_t());
   std::vector<DataBagPtr> non_null_fallbacks;
   non_null_fallbacks.reserve(fallbacks.size());
@@ -50,6 +51,23 @@ DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
   }
   res->fallbacks_ = std::move(non_null_fallbacks);
   return res;
+}
+
+absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
+  if (!fallbacks_.empty()) {
+    return absl::FailedPreconditionError(
+        "forking with fallbacks is not supported. Please merge fallbacks "
+        "instead.");
+  }
+  internal::DataBagImplPtr old_impl = impl_;
+  impl_ = old_impl->PartiallyPersistentFork();
+  auto new_impl = old_impl->PartiallyPersistentFork();
+  if (immutable) {
+    auto new_db = std::make_shared<DataBag>(DataBag::immutable_t());
+    new_db->impl_ = std::move(new_impl);
+    return new_db;
+  }
+  return DataBag::FromImpl(std::move(new_impl));
 }
 
 DataBagPtr DataBag::CommonDataBag(absl::Span<const DataBagPtr> databags) {
@@ -100,6 +118,30 @@ uint64_t DataBag::GetRandomizedDataBagId() {
   return *randomized_data_bag_id_;
 }
 
+namespace {
+
+absl::StatusOr<internal::DataBagImplPtr> MergeFallbacksToForkedImpl(
+    const DataBag& db) {
+  auto forked_impl = db.GetImpl().PartiallyPersistentFork();
+  FlattenFallbackFinder fallback_finder(db);
+  auto keep_original = internal::MergeOptions{
+      .data_conflict_policy = internal::MergeOptions::kKeepOriginal,
+      .schema_conflict_policy = internal::MergeOptions::kKeepOriginal};
+  for (const auto& fallback : fallback_finder.GetFlattenFallbacks()) {
+    RETURN_IF_ERROR(forked_impl->MergeInplace(*fallback, keep_original));
+  }
+  return forked_impl;
+}
+
+}  // namespace
+
+absl::StatusOr<DataBagPtr> DataBag::MergeFallbacks() {
+  ASSIGN_OR_RETURN(auto impl_fork, MergeFallbacksToForkedImpl(*this));
+  // Make sure that modifications to the new DataBag don't affect the original.
+  this->impl_ = this->impl_->PartiallyPersistentFork();
+  return FromImpl(std::move(impl_fork));
+}
+
 absl::Status DataBag::MergeInplace(const DataBagPtr& other_db, bool overwrite,
                                    bool allow_data_conflicts,
                                    bool allow_schema_conflicts) {
@@ -116,14 +158,7 @@ absl::Status DataBag::MergeInplace(const DataBagPtr& other_db, bool overwrite,
   if (other_db->GetFallbacks().empty()) {
     return db_impl.MergeInplace(other_db->GetImpl(), merge_options);
   }
-  auto other_db_impl = other_db->GetImpl().PartiallyPersistentFork();
-  FlattenFallbackFinder fallback_finder(*other_db);
-  auto keep_original = internal::MergeOptions{
-      .data_conflict_policy = internal::MergeOptions::kKeepOriginal,
-      .schema_conflict_policy = internal::MergeOptions::kKeepOriginal};
-  for (const auto& fallback : fallback_finder.GetFlattenFallbacks()) {
-    RETURN_IF_ERROR(other_db_impl->MergeInplace(*fallback, keep_original));
-  }
+  ASSIGN_OR_RETURN(auto other_db_impl, MergeFallbacksToForkedImpl(*other_db));
   return db_impl.MergeInplace(*other_db_impl, merge_options);
 }
 

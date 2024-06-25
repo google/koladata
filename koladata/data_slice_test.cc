@@ -337,9 +337,9 @@ TEST(DataSliceTest, IsEquivalentTo) {
   auto edge_2 = CreateEdge({0, 1, 2});
   ASSERT_OK_AND_ASSIGN(auto shape_non_flat,
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-  ASSERT_OK_AND_ASSIGN(ds_2, ds_2.BroadcastToShape(shape_non_flat));
+  ASSERT_OK_AND_ASSIGN(ds_2, BroadcastToShape(ds_2, shape_non_flat));
   EXPECT_FALSE(ds_1.IsEquivalentTo(ds_2));
-  ASSERT_OK_AND_ASSIGN(ds_1, ds_1.BroadcastToShape(shape_non_flat));
+  ASSERT_OK_AND_ASSIGN(ds_1, BroadcastToShape(ds_1, shape_non_flat));
   EXPECT_TRUE(ds_1.IsEquivalentTo(ds_2));
 }
 
@@ -915,14 +915,15 @@ TEST(DataSliceTest, BroadcastToShape) {
     // Same shape.
     auto shape = DataSlice::JaggedShape::FlatFromSize(3);
     auto ds = test::DataSlice<int>({1, 2, 3});
-    EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
+    ASSERT_OK_AND_ASSIGN(auto res_ds, BroadcastToShape(ds, shape));
+    EXPECT_THAT(res_ds.GetShape(), IsEquivalentTo(shape));
   }
   {
     // Incompatible shape.
     auto shape = DataSlice::JaggedShape::FlatFromSize(4);
     auto ds = test::DataSlice<int>({1, 2, 3});
     EXPECT_THAT(
-        ds.BroadcastToShape(shape),
+        BroadcastToShape(ds, shape),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr(absl::StrFormat(
                      "DataSlice with shape=%s cannot be expanded to shape=%s",
@@ -937,7 +938,7 @@ TEST(DataSliceTest, BroadcastToShape) {
                          DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
     auto ds_1 = test::DataSlice<int>({1, 2, 3});
 
-    ASSERT_OK_AND_ASSIGN(auto res_ds, ds_1.BroadcastToShape(shape));
+    ASSERT_OK_AND_ASSIGN(auto res_ds, BroadcastToShape(ds_1, shape));
     EXPECT_THAT(res_ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_THAT(res_ds.slice(), ElementsAre(1, 1, 2, 2, 3, 3));
   }
@@ -3687,42 +3688,6 @@ TEST(DataSliceCastingTest, SchemaAttr_DifferentButCompatibleExplicitSchemas) {
       objects.SetAttr("a", values_float),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("different types: INT64 and INT32")));
-}
-
-TEST(BroadcastHelper, NoBroadcast) {
-  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto ds = test::DataSlice<int>({1, 2, 3});
-  BroadcastHelper expanded_ds(ds, shape);
-  ASSERT_OK(expanded_ds.status());
-  EXPECT_THAT(expanded_ds->GetShape(), IsEquivalentTo(shape));
-  EXPECT_EQ(&(*expanded_ds), &ds);
-}
-
-TEST(BroadcastHelper, SuccessfulBroadcast) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-  auto ds = test::DataSlice<int>({1, 2});
-  BroadcastHelper expanded_ds(ds, shape);
-  ASSERT_OK(expanded_ds.status());
-  EXPECT_THAT(expanded_ds->GetShape(), IsEquivalentTo(shape));
-  EXPECT_THAT(expanded_ds->slice(), ElementsAre(1, 1, 2));
-}
-
-TEST(BroadcastHelper, BroadcastError) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-  auto ds = test::DataSlice<int>({1, 2, 3, 4});
-  BroadcastHelper expanded_ds(ds, shape);
-  EXPECT_THAT(
-      expanded_ds.status(),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr(absl::StrFormat(
-                   "DataSlice with shape=%s cannot be expanded to shape=%s",
-                   arolla::Repr(ds.GetShape()), arolla::Repr(*shape)))));
 }
 
 // More extensive tests are in object_factories_test.cc.

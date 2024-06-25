@@ -14,6 +14,9 @@
 
 # Arolla expression tools for Koda.
 
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+load("@rules_python//python:proto.bzl", "py_proto_library")
+
 package(default_visibility = [
     "//koladata:internal",
 ])

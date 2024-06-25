@@ -21,13 +21,18 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/log/log.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error.pb.h"
+#include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
@@ -37,6 +42,7 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/util/testing/equals_proto.h"
 #include "arolla/util/text.h"
 
 namespace koladata {
@@ -47,6 +53,8 @@ using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
 using ::arolla::JaggedDenseArrayShapePtr;
 using ::arolla::OptionalValue;
+using ::arolla::testing::EqualsProto;
+using ::koladata::internal::Error;
 using ::koladata::internal::ObjectId;
 using ::koladata::testing::IsOkAndHolds;
 using ::testing::MatchesRegex;
@@ -198,9 +206,9 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_Object) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_obj, ObjectCreator()(bag, {}, {}));
-  EXPECT_THAT(DataSliceToStr(empty_obj),
-              IsOkAndHolds(MatchesRegex(
-                  R"regex(Obj\(\):\$[a-f0-9]{13,14}\.[0-9])regex")));
+  EXPECT_THAT(
+      DataSliceToStr(empty_obj),
+      IsOkAndHolds(MatchesRegex(R"regex(Obj\(\):\$[a-f0-9]{32})regex")));
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -214,9 +222,9 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_Entity) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_entity, EntityCreator()(bag, {}, {}));
-  EXPECT_THAT(DataSliceToStr(empty_entity),
-              IsOkAndHolds(MatchesRegex(
-                  R"regex(Entity\(\):\$[a-f0-9]{13,14}\.[0-9])regex")));
+  EXPECT_THAT(
+      DataSliceToStr(empty_entity),
+      IsOkAndHolds(MatchesRegex(R"regex(Entity\(\):\$[a-f0-9]{32})regex")));
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -355,26 +363,25 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_SimpleSlice) {
   EXPECT_THAT(DataSliceToStr(ds2), IsOkAndHolds("[1, None, 3]"));
 }
 
-TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_EntitiySlices) {
-  DataSlice values = test::DataSlice<int>({1, 2, 3});
+TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_EntitySlices) {
+  DataSlice values = test::DataSlice<int>({1, 2});
 
   DataBagPtr db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice ds, EntityCreator()(db, {"a"}, {values}));
   EXPECT_THAT(
       DataSliceToStr(ds),
       IsOkAndHolds(MatchesRegex(
-          R"regex(\[Entity:\$[a-f0-9]{15}\.[0-9], Entity:\$[a-f0-9]{15}\.[0-9], Entity:\$[a-f0-9]{15}\.[0-9]\])regex")));
+          R"regex(\[Entity:\$[a-f0-9]{32}, Entity:\$[a-f0-9]{32}\])regex")));
 }
 
 TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_ObjectSlices) {
-  DataSlice values = test::DataSlice<int>({1, 2, 3});
+  DataSlice values = test::DataSlice<int>({1, 2});
 
   DataBagPtr db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice ds, ObjectCreator()(db, {"a"}, {values}));
-  EXPECT_THAT(
-      DataSliceToStr(ds),
-      IsOkAndHolds(MatchesRegex(
-          R"regex(\[Obj:\$[a-f0-9]{15}\.[0-9], Obj:\$[a-f0-9]{15}\.[0-9], Obj:\$[a-f0-9]{15}\.[0-9]\])regex")));
+  EXPECT_THAT(DataSliceToStr(ds),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(\[Obj:\$[a-f0-9]{32}, Obj:\$[a-f0-9]{32}\])regex")));
 }
 
 TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_ListSlices) {
@@ -385,7 +392,7 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_ListSlices) {
   EXPECT_THAT(
       DataSliceToStr(ds),
       IsOkAndHolds(MatchesRegex(
-          R"regex(\[List:\$[a-f0-9]{17}\.[0-9], List:\$[a-f0-9]{17}\.[0-9]\])regex")));
+          R"regex(\[List:\$[a-f0-9]{32}, List:\$[a-f0-9]{32}\])regex")));
 }
 
 TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_DictSlices) {
@@ -396,7 +403,7 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_DictSlices) {
   EXPECT_THAT(
       DataSliceToStr(ds),
       IsOkAndHolds(MatchesRegex(
-          R"regex(\[Dict:\$[a-f0-9]{18}\.[0-9], Dict:\$[a-f0-9]{18}\.[0-9]\])regex")));
+          R"regex(\[Dict:\$[a-f0-9]{32}, Dict:\$[a-f0-9]{32}\])regex")));
 }
 
 TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_TwoDimensionsSlice) {
@@ -496,15 +503,12 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_Entities) {
       DataBagToStr(bag),
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
-          MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{13,15}\.[0-9]\.a => 1(.|\n)*)regex"),
-          MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{13,15}\.[0-9]\.b => b(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}\.a => 1(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}\.b => b(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}\.a => INT32(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{18}\.[0-9]\.a => INT32(.|\n)*)regex"),
-          MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{18}\.[0-9]\.b => TEXT(.|\n)*)regex"))));
+              R"regex((.|\n)*\$[0-9a-f]{32}\.b => TEXT(.|\n)*)regex"))));
 }
 
 TEST(ReprUtilTest, TestDataBagStringRepresentation_Objects) {
@@ -519,16 +523,13 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_Objects) {
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{13,15}\.[0-9]\.__schema__ => k[0-9a-f]{32}\.[0-9](.|\n)*)regex"),
-          MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{13,15}\.[0-9]\.a => 1(.|\n)*)regex"),
-          MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{13,15}\.[0-9]\.b => b(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-f]{32}\.__schema__ => k[0-9a-f]{32}(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}\.a => 1(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}\.b => b(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*k[0-9a-f]{32}\.a => INT32(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}\.[0-9]\.a => INT32(.|\n)*)regex"),
-          MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}\.[0-9]\.b => TEXT(.|\n)*)regex"))));
+              R"regex((.|\n)*k[0-9a-f]{32}\.b => TEXT(.|\n)*)regex"))));
 }
 
 TEST(ReprUtilTest, TestDataBagStringRepresentation_Dicts) {
@@ -544,10 +545,8 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_Dicts) {
       DataBagToStr(bag),
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
-          MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{18}\.[0-9]\['a'\] => 1(.|\n)*)regex"),
-          MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{18}\.[0-9]\['x'\] => 4(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}\['a'\] => 1(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}\['x'\] => 4(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"))));
 }
 
@@ -561,8 +560,56 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_List) {
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{17}\.[0-9]\[:\] => \[1, 2, 3\](.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-f]{32}\[:\] => \[1, 2, 3\](.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"))));
 }
+
+TEST(ReprUtilTest, TestAssembleError) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value_1 = test::DataItem(1);
+  DataSlice value_2 = test::DataItem("b");
+
+  ASSERT_OK_AND_ASSIGN(DataSlice entity,
+                       EntityCreator()(bag, {"a", "b"}, {value_1, value_2}));
+  schema::DType dtype = schema::GetDType<int>();
+
+  Error error;
+  internal::NoCommonSchema* no_common_schema = error.mutable_no_common_schema();
+  *no_common_schema->mutable_common_schema() =
+      internal::EncodeSchema(entity.GetSchemaImpl());
+  *no_common_schema->mutable_conflicting_schema() =
+      internal::EncodeSchema(internal::DataItem(dtype));
+
+  internal::ObjectId schema_obj =
+      entity.GetSchemaImpl().value<internal::ObjectId>();
+
+  absl::Status status = AssembleErrorMessage(
+      internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
+      {bag});
+  std::optional<Error> payload = internal::GetErrorPayload(status);
+  EXPECT_THAT(payload->cause(),
+              EqualsProto(absl::StrFormat(
+                  R"pb(no_common_schema {
+                         common_schema { object_id { hi: %d lo: %d } }
+                         conflicting_schema { dtype: %d }
+                       })pb",
+                  schema_obj.InternalHigh64(), schema_obj.InternalLow64(),
+                  dtype.type_id())));
+  EXPECT_THAT(
+      payload->error_message(),
+      AllOf(
+          MatchesRegex(
+              R"regex((.|\n)*cannot find a common schema for provided schemas(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*the common schema\(s\) [0-9a-f]{32}: SCHEMA\(a=INT32, b=TEXT\)(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*the first conflicting schema INT32: INT32(.|\n)*)regex")));
+}
+
+TEST(ReprUtilTest, TestAssembleErrorNotHandlingOkStatus) {
+  EXPECT_TRUE(AssembleErrorMessage(absl::OkStatus(), {}).ok());
+}
+
 }  // namespace
 }  // namespace koladata

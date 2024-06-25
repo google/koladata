@@ -38,6 +38,8 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error.pb.h"
+#include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/status_macros_backport.h"
@@ -177,6 +179,7 @@ class CommonDTypeAggregator {
       DTypeId i = absl::countr_zero(mask);
       res_dtype_id = DTypeMatrix::CommonDType(res_dtype_id, i);
       if (ABSL_PREDICT_FALSE(res_dtype_id == kUnknownDType)) {
+        // TODO: Add KodaError for no common schema.
         return absl::InvalidArgumentError("no common schema");
       }
     }
@@ -187,6 +190,18 @@ class CommonDTypeAggregator {
   static_assert(kNextDTypeId <= sizeof(Mask) * 8);
   Mask seen_dtypes_ = 0;
 };
+
+// Creates the no common schema error proto from the given schema id and dtype.
+internal::Error CreateNoCommonSchemaError(
+    const internal::DataItem& common_schema,
+    const internal::DataItem& conflicting_schema) {
+  internal::Error error;
+  *error.mutable_no_common_schema()->mutable_common_schema() =
+      internal::EncodeSchema(common_schema);
+  *error.mutable_no_common_schema()->mutable_conflicting_schema() =
+      internal::EncodeSchema(conflicting_schema);
+  return error;
+}
 
 }  // namespace
 
@@ -211,7 +226,10 @@ absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs) {
       common_dtype != kUnknownDType) {
     return internal::DataItem(DType(common_dtype));
   }
-  return absl::InvalidArgumentError("no common schema");
+  return internal::WithErrorPayload(
+      absl::InvalidArgumentError("no common schema"),
+      CreateNoCommonSchemaError(internal::DataItem(lhs),
+                                internal::DataItem(rhs)));
 }
 
 absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
@@ -220,6 +238,7 @@ absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
     return CommonSchema(lhs.value<DType>(), rhs.value<DType>());
   }
   if (!lhs.is_schema() || !rhs.is_schema()) {
+    // TODO: Add KodaError for no common schema.
     return absl::InvalidArgumentError(
         absl::StrFormat("expected Schemas, got: %v and %v", lhs, rhs));
   }
@@ -233,11 +252,11 @@ absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
   if (rhs == kNone) {
     return lhs;
   }
-  return absl::InvalidArgumentError("no common schema");
+  return internal::WithErrorPayload(
+      absl::InvalidArgumentError("no common schema"),
+      CreateNoCommonSchemaError(lhs, rhs));
 }
 
-// TODO: Add SchemaConflict::NoCommonSchema or something similar to
-// improve error messages and make them on-par with prod-koladata.
 absl::StatusOr<internal::DataItem> CommonSchema(
     const internal::DataSliceImpl& schema_ids,
     internal::DataItem default_if_missing) {
@@ -267,7 +286,10 @@ absl::StatusOr<internal::DataItem> CommonSchema(
             return;
           }
           if (*res_object_id != schema_obj) {
-            maybe_error = absl::InvalidArgumentError("no common schema");
+            maybe_error = internal::WithErrorPayload(
+                absl::InvalidArgumentError("no common schema"),
+                CreateNoCommonSchemaError(internal::DataItem(*res_object_id),
+                                          internal::DataItem(schema_obj)));
           }
         });
         return maybe_error;
@@ -278,6 +300,7 @@ absl::StatusOr<internal::DataItem> CommonSchema(
             absl::StrCat("expected Schema, got: ", GetDType<ValT>()));
       })));
   ASSIGN_OR_RETURN(std::optional<DType> res_dtype, dtype_agg.Get());
+
   if (!res_dtype && !res_object_id) {
     return default_if_missing;
   }
@@ -288,7 +311,11 @@ absl::StatusOr<internal::DataItem> CommonSchema(
   if (!res_object_id) {
     return internal::DataItem(*res_dtype);
   }
-  return absl::InvalidArgumentError("no common schema");
+
+  return WithErrorPayload(
+      absl::InvalidArgumentError("no common schema"),
+      CreateNoCommonSchemaError(internal::DataItem(*res_dtype),
+                                internal::DataItem(*res_object_id)));
 }
 
 absl::StatusOr<internal::DataItem> NoFollowSchemaItem(

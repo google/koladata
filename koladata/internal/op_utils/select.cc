@@ -101,7 +101,7 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
 
   const absl::Span<const DenseArrayEdge> ds_edges = ds_shape->edges();
 
-  std::vector<DenseArrayEdge> new_edges;
+  arolla::JaggedDenseArrayShape::EdgeVec new_edges;
   new_edges.reserve(ds_edges.size());
 
   // The first filter_shape.rank()-1 dimensions are unchanged.

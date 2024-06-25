@@ -13,6 +13,7 @@
 // limitations under the License.
 //
 #include "koladata/adoption_utils.h"
+
 #include <optional>
 
 #include "gmock/gmock.h"
@@ -29,6 +30,7 @@ namespace koladata {
 namespace {
 
 using ::koladata::testing::IsOkAndHolds;
+using ::testing::ElementsAre;
 
 TEST(AdoptionQueueTest, Empty) {
   AdoptionQueue q;
@@ -143,6 +145,18 @@ TEST(AdoptionQueueTest, WithFallbacks) {
               IsOkAndHolds(internal::DataItem(2)));
   EXPECT_THAT(db1->GetImpl().GetAttr(obj, "c"),
               IsOkAndHolds(internal::DataItem(3.0f)));
+}
+
+TEST(AdoptionQueueTest, TestDbVector) {
+  auto db1 = DataBag::Empty();
+  DataBagPtr db2;
+  auto db3 = DataBag::Empty();
+  AdoptionQueue q;
+  q.Add(db1);
+  q.Add(db2);
+  q.Add(db3);
+
+  EXPECT_THAT(q.bags(), ElementsAre(db1, db3));
 }
 
 }  // namespace

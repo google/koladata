@@ -21,6 +21,7 @@
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 
@@ -48,6 +49,9 @@ class AdoptionQueue {
   }
 
   bool empty() const { return bags_to_merge_.empty(); }
+
+  // Gets access to the added DataBagPtr for rendering useful error message.
+  absl::Span<const DataBagPtr> bags() const { return bags_to_merge_; }
 
   // Merges all tracked data into the given DataBag.
   absl::Status AdoptInto(DataBag& db) const;

@@ -39,6 +39,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/triples.h"
@@ -51,7 +52,11 @@
 namespace koladata {
 namespace {
 
+using DataItemProto = ::koladata::s11n::KodaV1Proto::DataItemProto;
+using ::koladata::DataBagPtr;
 using ::koladata::internal::DataBagContent;
+using ::koladata::internal::Error;
+using ::koladata::internal::GetErrorPayload;
 using ::koladata::internal::debug::AttrTriple;
 using ::koladata::internal::debug::DictItemTriple;
 using ::koladata::internal::debug::Triples;
@@ -322,6 +327,52 @@ bool IsInternalAttribute(const internal::DataItem& item) {
          attr == schema::kDictValuesSchemaAttr;
 }
 
+absl::StatusOr<internal::DataItem> DecodeDataItem(
+    const DataItemProto& item_proto) {
+  switch (item_proto.value_case()) {
+    case s11n::KodaV1Proto::DataItemProto::kDtype:
+      return internal::DataItem(schema::DType(item_proto.dtype()));
+    case s11n::KodaV1Proto::DataItemProto::kObjectId:
+      return internal::DataItem(
+          internal::ObjectId::UnsafeCreateFromInternalHighLow(
+              item_proto.object_id().hi(), item_proto.object_id().lo()));
+    default:
+      return absl::InvalidArgumentError("Unsupported proto");
+  }
+}
+
+absl::StatusOr<Error> SetNoCommonSchemaError(
+    Error cause, absl::Span<const koladata::DataBagPtr> dbs) {
+  DataBagPtr db = DataBag::ImmutableEmptyWithFallbacks(dbs);
+  ASSIGN_OR_RETURN(internal::DataItem common_schema_item,
+                   DecodeDataItem(cause.no_common_schema().common_schema()));
+  ASSIGN_OR_RETURN(
+      internal::DataItem conflict_schema_item,
+      DecodeDataItem(cause.no_common_schema().conflicting_schema()));
+
+  ASSIGN_OR_RETURN(DataSlice common_schema,
+                   DataSlice::Create(common_schema_item,
+                                     internal::DataItem(schema::kSchema), db));
+  ASSIGN_OR_RETURN(DataSlice conflict_schema,
+                   DataSlice::Create(conflict_schema_item,
+                                     internal::DataItem(schema::kSchema), db));
+
+  ASSIGN_OR_RETURN(std::string common_schema_str,
+                   DataSliceToStr(common_schema));
+  ASSIGN_OR_RETURN(std::string conflict_schema_str,
+                   DataSliceToStr(conflict_schema));
+
+  Error error;
+  error.set_error_message(
+      absl::StrFormat("\ncannot find a common schema for provided schemas\n\n"
+                      " the common schema(s) %s: %s\n"
+                      " the first conflicting schema %s: %s",
+                      common_schema_item.DebugString(), common_schema_str,
+                      conflict_schema_item.DebugString(), conflict_schema_str));
+  *error.mutable_cause() = std::move(cause);
+  return error;
+}
+
 }  // namespace
 
 absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds) {
@@ -369,6 +420,20 @@ absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db) {
     }
   }
   return res;
+}
+
+absl::Status AssembleErrorMessage(const absl::Status& status,
+                                  absl::Span<const koladata::DataBagPtr> dbs) {
+  std::optional<Error> cause = GetErrorPayload(status);
+  if (!cause) {
+    return status;
+  }
+  if (cause->has_no_common_schema()) {
+    ASSIGN_OR_RETURN(Error error,
+                     SetNoCommonSchemaError(std::move(*cause), dbs));
+    return WithErrorPayload(status, error);
+  }
+  return status;
 }
 
 }  // namespace koladata

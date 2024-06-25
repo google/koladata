@@ -164,7 +164,7 @@ absl::StatusOr<DataSlice> ExpandToShape(const DataSlice& x,
                                         DataSlice::JaggedShapePtr shape,
                                         int64_t ndim) {
   if (ndim == 0) {
-    return x.BroadcastToShape(std::move(shape));
+    return BroadcastToShape(x, std::move(shape));
   }
 
   if (ndim < 0 || ndim > x.GetShape().rank()) {
@@ -178,7 +178,7 @@ absl::StatusOr<DataSlice> ExpandToShape(const DataSlice& x,
     ASSIGN_OR_RETURN(new_x, CreateListsFromLastDimension(temp_db, new_x));
   }
   ASSIGN_OR_RETURN(
-      new_x, new_x.BroadcastToShape(shape),
+      new_x, BroadcastToShape(new_x, shape),
       _ << absl::StrFormat(
           "Cannot expand 'x' imploded with the last %d dimension(s) to "
           "'shape' due to incompatible shapes. Got 'x' shape: %s, imploded "

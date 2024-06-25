@@ -14,7 +14,6 @@
 //
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -28,7 +27,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
-#include "koladata/shape/shape_utils.h"
+#include "koladata/shape_utils.h"
 #include "koladata/test_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
@@ -90,18 +89,17 @@ BENCHMARK(BM_IsEquivalentToSameJaggedShape)->Range(10, 100000);
 
 void BM_Align(benchmark::State& state) {
   size_t size = state.range(0);
-  auto ds = *DataSlice::Create(
-      internal::DataSliceImpl::AllocateEmptyObjects(size),
-      DataSlice::JaggedShape::FlatFromSize(size),
-      internal::DataItem(schema::kAny));
-  auto item = *DataSlice::Create(
-      internal::DataItem(internal::AllocateSingleObject()),
-      internal::DataItem(schema::kAny));
-  std::vector<std::reference_wrapper<const DataSlice>> inputs({
-      std::cref(ds), std::cref(item)});
+  auto ds =
+      *DataSlice::Create(internal::DataSliceImpl::AllocateEmptyObjects(size),
+                         DataSlice::JaggedShape::FlatFromSize(size),
+                         internal::DataItem(schema::kAny));
+  auto item =
+      *DataSlice::Create(internal::DataItem(internal::AllocateSingleObject()),
+                         internal::DataItem(schema::kAny));
+  std::vector<DataSlice> inputs({ds, item});
   for (auto _ : state) {
     benchmark::DoNotOptimize(inputs);
-    auto aligned_inputs = shape::Align<DataSlice>(inputs);
+    auto aligned_inputs = shape::Align(inputs);
     benchmark::DoNotOptimize(aligned_inputs);
   }
 }
@@ -164,11 +162,11 @@ void BM_SetGetAttrMultiDim(benchmark::State& state) {
   auto db = DataBag::Empty();
   auto o = *ObjectFactory()(db, DataSlice::JaggedShape::FlatFromSize(10000));
 
-  auto val = *DataSlice::Create(
-      internal::DataSliceImpl::Create(
-          arolla::CreateConstDenseArray<int>(10000, 12)),
-      DataSlice::JaggedShape::FlatFromSize(10000),
-      internal::DataItem(schema::kInt32));
+  auto val =
+      *DataSlice::Create(internal::DataSliceImpl::Create(
+                             arolla::CreateConstDenseArray<int>(10000, 12)),
+                         DataSlice::JaggedShape::FlatFromSize(10000),
+                         internal::DataItem(schema::kInt32));
   if constexpr (std::is_same_v<ObjectFactory, EntityCreator>) {
     auto status = o.GetSchema().SetAttr("abc", val.GetSchema());
     CHECK_OK(status);
@@ -222,7 +220,49 @@ void BM_ExplodeLists(benchmark::State& state) {
 }
 
 BENCHMARK(BM_ExplodeLists)
-  ->ArgPair(5, 5)->ArgPair(100, 100)->ArgPair(10, 10000);
+    ->ArgPair(5, 5)
+    ->ArgPair(100, 100)
+    ->ArgPair(10, 10000);
+
+void BM_GetFromList(benchmark::State& state) {
+  bool should_broadcast_index = state.range(0);
+  int64_t first_dim = state.range(1);
+  int64_t second_dim = state.range(2);
+  auto db = DataBag::Empty();
+  auto edge_1 = *DataSlice::JaggedShape::Edge::FromSplitPoints(
+      arolla::CreateDenseArray<int64_t>({0, first_dim}));
+  std::vector<arolla::OptionalValue<int64_t>> split_points_2;
+  split_points_2.reserve(first_dim + 1);
+  for (int64_t cur_sp = 0, i = 0; i <= first_dim; ++i, cur_sp += second_dim) {
+    split_points_2.push_back(cur_sp);
+  }
+  auto edge_2 = *DataSlice::JaggedShape::Edge::FromSplitPoints(
+      arolla::CreateDenseArray<int64_t>(split_points_2));
+  auto o = *EntityCreator()(
+      db, *DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+
+  auto list = *CreateListsFromLastDimension(db, o, test::Schema(schema::kAny));
+  auto index = *DataSlice::Create(internal::DataItem(int64_t{0}),
+                                  internal::DataItem(schema::kInt64));
+  if (should_broadcast_index) {
+    index = *BroadcastToShape(index, list.GetShapePtr());
+  }
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(list);
+    benchmark::DoNotOptimize(index);
+    auto res = list.GetFromList(index);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_GetFromList)
+    // should_broadcast_index, first_dim, second_dim
+    ->Args({0, 1, 1})
+    ->Args({0, 100, 100})
+    ->Args({0, 10, 10000})
+    ->Args({1, 1, 1})
+    ->Args({1, 100, 100})
+    ->Args({1, 10, 10000});
 
 void BM_CreateEntity(benchmark::State& state) {
   int64_t size = state.range(0);

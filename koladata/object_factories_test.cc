@@ -78,6 +78,22 @@ TEST(EntitySchemaTest, CreateSchema) {
               IsOkAndHolds(IsEquivalentTo(float_s.WithDb(db))));
 }
 
+TEST(UUSchemaTest, CreateUUSchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto float_s = test::Schema(schema::kFloat32);
+
+  ASSERT_OK_AND_ASSIGN(auto uu_schema,
+                       UuSchemaCreator()(db, "", {"a", "b"}, {int_s, float_s}));
+  EXPECT_EQ(uu_schema.GetSchemaImpl(), schema::kSchema);
+  EXPECT_OK(uu_schema.VerifyIsSchema());
+  EXPECT_TRUE(uu_schema.item().value<ObjectId>().IsUuid());
+  EXPECT_THAT(uu_schema.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(int_s.WithDb(db))));
+  EXPECT_THAT(uu_schema.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(float_s.WithDb(db))));
+}
+
 TEST(EntitySchemaTest, Error) {
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);

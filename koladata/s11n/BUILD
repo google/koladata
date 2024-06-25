@@ -14,6 +14,9 @@
 
 # Koda serialization codecs.
 
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+load("@rules_python//python:proto.bzl", "py_proto_library")
+
 package(default_visibility = [
     "//koladata:internal",
 ])
@@ -30,9 +33,11 @@ cc_library(
     deps = [
         ":codec_cc_proto",
         ":codec_names",
+        "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/expr:expr_operators",
+        "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
@@ -43,9 +48,12 @@ cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/serialization_base",
         "@com_google_arolla//arolla/serialization_base:base_cc_proto",

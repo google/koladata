@@ -32,6 +32,8 @@ load(
     "@com_google_arolla//arolla/qexpr/operators/dense_array:lifter.bzl",
     "make_dense_array_type",
 )
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+load("@rules_python//python:proto.bzl", "py_proto_library")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -41,6 +43,7 @@ licenses(["notice"])
 
 operator_list = [
     # go/keep-sorted start
+    ":operator_to_data_slice",
     # go/keep-sorted end
 ]
 
@@ -50,7 +53,6 @@ cc_library(
     deps = operator_list + [
         ":lib",
         "//koladata:data_slice",
-        "//koladata:data_slice_op",
         "//koladata:data_slice_qtype",
         "//koladata:object_factories",
         "//koladata/internal:data_item",
@@ -68,6 +70,7 @@ cc_library(
         "jagged_shape.cc",
         "slice.cc",
         "utils.cc",
+        "uu_schema.cc",
         "uuid.cc",
         "uuobj.cc",
     ],
@@ -88,6 +91,7 @@ cc_library(
         "select.h",
         "slice.h",
         "utils.h",
+        "uu_schema.h",
         "uuid.h",
         "uuobj.h",
     ],
@@ -96,9 +100,9 @@ cc_library(
         "//koladata:arolla_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
-        "//koladata:data_slice_op",
         "//koladata:data_slice_qtype",
         "//koladata:object_factories",
+        "//koladata:repr_utils",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -115,7 +119,6 @@ cc_library(
         "//koladata/internal/op_utils:presence_or",
         "//koladata/internal/op_utils:reverse_select",
         "//koladata/internal/op_utils:select",
-        "//koladata/shape:shape_utils",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/log:check",
@@ -166,3 +169,16 @@ to_data_slice_types = [
     "::arolla::Text",
     "::arolla::Bytes",
 ]
+
+operator_libraries(
+    name = "operator_to_data_slice",
+    operator_name = "koda_internal._to_data_slice",
+    overloads = operator_overload_list(
+        hdrs = ["convert_and_eval.h"],
+        arg_lists = [[t] for t in to_data_slice_types] +
+                    [[make_optional_type(t)] for t in to_data_slice_types] +
+                    [[make_dense_array_type(t)] for t in to_data_slice_types],
+        op_class = "::koladata::ops::ToDataSliceOp",
+        deps = [":lib"],
+    ),
+)

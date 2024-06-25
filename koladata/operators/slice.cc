@@ -290,7 +290,7 @@ absl::StatusOr<DataSlice> At(const DataSlice& x, const DataSlice& indices) {
   } else {
     // Expand indices if rank(indices_shape) < rank(shape_for_expansion).
     ASSIGN_OR_RETURN(
-        auto expanded_indices, indices.BroadcastToShape(shape_for_expansion),
+        auto expanded_indices, BroadcastToShape(indices, shape_for_expansion),
         _ << "kd.at requires shape(indices) to be broadcastable to "
           << "shape(x)[:-1] when ndim(x) - 1 > ndim(indices)");
     return AtImpl(x, expanded_indices);

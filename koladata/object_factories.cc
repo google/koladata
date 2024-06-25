@@ -28,7 +28,6 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -39,9 +38,8 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/uuid_object.h"
-#include "koladata/shape/shape_utils.h"
+#include "koladata/shape_utils.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -179,8 +177,7 @@ absl::Status SetObjectSchema(
 // DataSlice-level schema is set to `OBJECT`.
 template <class ImplT>
 absl::StatusOr<DataSlice> CreateObjectsFromFields(
-    const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
+    const DataBagPtr& db, const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& aligned_values) {
   std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
   aligned_values_impl.reserve(aligned_values.size());
@@ -200,8 +197,7 @@ absl::StatusOr<DataSlice> CreateObjectsFromFields(
 
   return DataSlice::Create(std::move(ds_impl),
                            std::move(aligned_values.begin()->GetShapePtr()),
-                           internal::DataItem(schema::kObject),
-                           db);
+                           internal::DataItem(schema::kObject), db);
 }
 
 // Creates a DataSlice with objects constructed by allocate_single_func /
@@ -239,8 +235,7 @@ absl::StatusOr<DataSlice> CreateLike(const std::shared_ptr<DataBag>& db,
 }  // namespace
 
 absl::StatusOr<DataSlice> CreateEntitySchema(
-    const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
+    const DataBagPtr& db, const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& schemas) {
   DCHECK_EQ(attr_names.size(), schemas.size());
   std::vector<std::reference_wrapper<const internal::DataItem>> schema_items;
@@ -254,6 +249,26 @@ absl::StatusOr<DataSlice> CreateEntitySchema(
   ASSIGN_OR_RETURN(
       auto schema_id,
       db_mutable_impl.CreateExplicitSchemaFromFields(attr_names, schema_items));
+  return DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db);
+}
+
+absl::StatusOr<DataSlice> UuSchemaCreator::operator()(
+    const DataBagPtr& db,
+    absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& schemas) const {
+  DCHECK_EQ(attr_names.size(), schemas.size());
+  std::vector<std::reference_wrapper<const internal::DataItem>> schema_items;
+  schema_items.reserve(schemas.size());
+  for (const DataSlice& schema : schemas) {
+    RETURN_IF_ERROR(schema.VerifyIsSchema());
+    schema_items.push_back(std::cref(schema.item()));
+  }
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  ASSIGN_OR_RETURN(
+      auto schema_id,
+      db_mutable_impl.CreateUuSchemaFromFields(seed, attr_names, schema_items));
   return DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db);
 }
 
@@ -291,7 +306,7 @@ absl::StatusOr<DataSlice> EntityCreator::operator()(
           CastOrUpdateSchema(values[i], schema_item, attr_names[i],
                              update_schema, db_mutable_impl));
     }
-    ASSIGN_OR_RETURN(aligned_values, shape::Align<DataSlice>(casted_values));
+    ASSIGN_OR_RETURN(aligned_values, shape::Align(std::move(casted_values)));
   } else {
     std::vector<std::reference_wrapper<const internal::DataItem>> schemas;
     schemas.reserve(values.size());
@@ -303,7 +318,7 @@ absl::StatusOr<DataSlice> EntityCreator::operator()(
           schema_item,
           db_mutable_impl.CreateExplicitSchemaFromFields(attr_names, schemas));
     }
-    ASSIGN_OR_RETURN(aligned_values, shape::Align<DataSlice>(values));
+    ASSIGN_OR_RETURN(aligned_values, shape::Align(values));
   }
   // All DataSlices have the same shape at this point and thus the same internal
   // representation, so we pick any of them to dispatch the object creation by
@@ -323,8 +338,7 @@ absl::StatusOr<DataSlice> EntityCreator::operator()(
 }
 
 absl::StatusOr<DataSlice> ObjectCreator::operator()(
-    const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
+    const DataBagPtr& db, const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& values) const {
   DCHECK_EQ(attr_names.size(), values.size());
   if (values.empty()) {
@@ -336,7 +350,7 @@ absl::StatusOr<DataSlice> ObjectCreator::operator()(
         "please use new_...() instead of obj_...() to create items with a given"
         " schema");
   }
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align<DataSlice>(values));
+  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
   // All DataSlices have the same shape at this point and thus the same internal
   // representation, so we pick any of them to dispatch the object creation by
   // internal implementation type.
@@ -380,7 +394,7 @@ absl::StatusOr<DataSlice> CreateUuidFromFields(
             std::vector<std::reference_wrapper<const internal::DataItem>>{}),
         internal::DataItem(schema::kItemId));
   }
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align<DataSlice>(values));
+  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
   return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
     std::vector<std::reference_wrapper<const T>> values_impl;
     values_impl.reserve(values.size());
@@ -411,7 +425,7 @@ absl::StatusOr<DataSlice> UuObjectCreator::operator()(
                                     /*overwrite_schemas=*/false));
     return DataSlice::Create(uuid, internal::DataItem(schema::kObject));
   }
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align<DataSlice>(values));
+  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
 
   std::vector<std::reference_wrapper<const internal::DataItem>> schemas;
   schemas.reserve(aligned_values.size());

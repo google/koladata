@@ -24,18 +24,22 @@
 #include <variant>
 
 #include "absl/base/nullability.h"
+#include "absl/base/optimization.h"
 #include "absl/container/btree_set.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/util/refcount_ptr.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 
 namespace koladata {
@@ -125,11 +129,6 @@ class DataSlice {
     DCHECK_NE(internal_->shape_, nullptr);
     return *internal_->shape_;
   }
-
-  // Returns a new DataSlice whose values and shape are broadcasted to `shape`.
-  // In case DataSlice cannot be broadcasted to `shape`, appropriate Status
-  // error is returned.
-  absl::StatusOr<DataSlice> BroadcastToShape(JaggedShapePtr shape) const;
 
   // Returns a new DataSlice with the same values and a new `shape`. Returns an
   // error if the shape is not compatible with the existing shape.
@@ -441,39 +440,29 @@ class DataSlice {
   arolla::RefcountPtr<Internal> internal_;
 };
 
-// Helper class for manipulating broadcasting of a DataSlice to a particular
-// shape. Encapsulates the status error and the ownership of expanded value.
-// Usage:
-//   BroadcastHelper expanded(slice, shape);
-//   RETURN_IF_ERROR(expanded.status());
-//   expanded->...  // or (*expanded). ...
-class BroadcastHelper {
- public:
-  BroadcastHelper(const DataSlice& slice,
-                  const DataSlice::JaggedShapePtr& shape)
-      : ptr_(&slice) {
-    if (slice.GetShape().IsEquivalentTo(*shape)) {
-      return;
-    }
-    InitWithExpansionSlow(slice, shape);
+namespace internal_broadcast {
+
+absl::StatusOr<DataSlice> BroadcastToShapeSlow(const DataSlice& slice,
+                                               DataSlice::JaggedShapePtr shape);
+}
+
+// Returns a new DataSlice whose values and shape are broadcasted to `shape`.
+// In case DataSlice cannot be broadcasted to `shape`, appropriate Status
+// error is returned.
+inline absl::StatusOr<DataSlice> BroadcastToShape(
+    DataSlice slice, DataSlice::JaggedShapePtr shape) {
+  if (ABSL_PREDICT_FALSE(!slice.GetShape().IsBroadcastableTo(*shape))) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "DataSlice with shape=%s cannot be expanded to shape=%s",
+        arolla::Repr(slice.GetShape()), arolla::Repr(*shape)));
   }
-
-  BroadcastHelper(const BroadcastHelper&) = delete;
-  BroadcastHelper(BroadcastHelper&&) = delete;
-
-  const absl::Status& status() const { return status_; }
-  const DataSlice& operator*() const { return *ptr_; }
-  const DataSlice* operator->() const { return ptr_; }
-
- private:
-  void InitWithExpansionSlow(const DataSlice& slice,
-                             const DataSlice::JaggedShapePtr& shape);
-
-  const DataSlice* ptr_;
-  // Note: we use optional to avoid expensive DataSlice default constructor.
-  std::optional<DataSlice> owned_expanded_;
-  absl::Status status_ = absl::OkStatus();
-};
+  // They are already broadcastable. If ranks are the same, shapes are
+  // equivalent.
+  if (ABSL_PREDICT_TRUE(slice.GetShape().rank() == shape->rank())) {
+    return slice;
+  }
+  return internal_broadcast::BroadcastToShapeSlow(slice, std::move(shape));
+}
 
 // TODO: Remove this and use SetAttrs that sets (and casts)
 // multiple attributes at the same time.

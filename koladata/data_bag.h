@@ -71,12 +71,16 @@ class DataBag {
     return *impl_;
   }
 
+  // Returns a newly created mutable DataBag with the same content as this one.
+  // Changes to either DataBag will not be reflected in the other.
+  absl::StatusOr<DataBagPtr> Fork(bool immutable = false);
+
   // Returns fallbacks in priority order.
   const std::vector<DataBagPtr>& GetFallbacks() const { return fallbacks_; }
 
   // Returns a newly created immutable DataBag with fallbacks.
   static DataBagPtr ImmutableEmptyWithFallbacks(
-      std::vector<DataBagPtr> fallbacks);
+      absl::Span<const DataBagPtr> fallbacks);
 
   // Returns a DataBag that contains all the data its input contain.
   // * If they are all the same or only 1 DataBag is non-nullptr, that DataBag
@@ -94,6 +98,9 @@ class DataBag {
   // Both the address of this DataBag and a random number are included in
   // computing this id.
   uint64_t GetRandomizedDataBagId();
+
+  // Returns a new DataBag with all the fallbacks merged.
+  absl::StatusOr<DataBagPtr> MergeFallbacks();
 
   // Merge additional attributes and objects from `other_db`.
   // When allow_data_conflicts is true, the data is merged even if there is a

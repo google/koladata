@@ -120,7 +120,8 @@ struct ObjectCreator {
 //
 // have different ids.
 absl::StatusOr<DataSlice> CreateUuidFromFields(
-    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
+    absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& values);
 
 struct UuObjectCreator {
@@ -142,6 +143,19 @@ struct UuObjectCreator {
       absl::string_view seed,
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& values) const;
+};
+
+struct UuSchemaCreator {
+  static constexpr absl::string_view kDataBagMethodName = "DataBag.uu_schema";
+
+  // Returns a UuSchema (DataItem generated as a row-wise fingerprint
+  // from attribute names and schemas) with a reference to `db`) and attributes
+  // `attr_names` set to `schemas`.
+  absl::StatusOr<DataSlice> operator()(
+      const DataBagPtr& db,
+      absl::string_view seed,
+      const std::vector<absl::string_view>& attr_names,
+      const std::vector<DataSlice>& schemas) const;
 };
 
 // Creates dict schema with the given keys and values schemas.

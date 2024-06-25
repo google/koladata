@@ -15,12 +15,65 @@
 # C++ libraries for the production quality databag implementation
 
 load("@com_google_arolla//arolla/util/testing:testing.bzl", "benchmark_smoke_test")
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+load("@rules_python//python:proto.bzl", "py_proto_library")
 
 package(default_visibility = [
     "//koladata:internal",
 ])
 
 licenses(["notice"])
+
+proto_library(
+    name = "error_proto",
+    srcs = ["error.proto"],
+    deps = [
+        "//koladata/s11n:codec_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "error_cc_proto",
+    deps = [":error_proto"],
+)
+
+py_proto_library(
+    name = "error_py_proto",
+    deps = [":error_proto"],
+)
+
+cc_library(
+    name = "error_utils",
+    srcs = ["error_utils.cc"],
+    hdrs = ["error_utils.h"],
+    deps = [
+        ":data_item",
+        ":dtype",
+        ":error_cc_proto",
+        ":object_id",
+        "//koladata/s11n:codec_cc_proto",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_test(
+    name = "error_utils_test",
+    srcs = ["error_utils_test.cc"],
+    deps = [
+        ":data_item",
+        ":dtype",
+        ":error_cc_proto",
+        ":error_utils",
+        ":object_id",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
 
 cc_library(
     name = "object_id",
@@ -682,7 +735,6 @@ cc_library(
         ":data_slice",
         ":object_id",
         ":stable_fingerprint",
-        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
@@ -863,6 +915,8 @@ cc_library(
         ":data_item",
         ":data_slice",
         ":dtype",
+        ":error_cc_proto",
+        ":error_utils",
         ":object_id",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:no_destructor",
@@ -888,14 +942,18 @@ cc_test(
         ":data_item",
         ":data_slice",
         ":dtype",
+        ":error_cc_proto",
+        ":error_utils",
         ":object_id",
         ":schema_utils",
         "//koladata/testing:status_matchers",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -51,7 +51,7 @@ using ::arolla::Text;
 
 absl::StatusOr<JaggedDenseArrayShapePtr> CreateJaggedShape(
     const std::vector<std::vector<int64_t>>& split_points) {
-  std::vector<DenseArrayEdge> edges;
+  JaggedDenseArrayShape::EdgeVec edges;
   edges.reserve(split_points.size());
   for (const auto& edge_split_points : split_points) {
     ASSIGN_OR_RETURN(

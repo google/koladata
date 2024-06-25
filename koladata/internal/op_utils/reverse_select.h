@@ -65,7 +65,7 @@ struct ReverseSelectOp {
 
     // Check ds_shape is equivalent to the shape after applying the filter.
     auto filter_edges = filter_shape->edges();
-    std::vector<arolla::DenseArrayEdge> filter_select_edges(
+    arolla::JaggedDenseArrayShape::EdgeVec filter_select_edges(
         filter_edges.begin(), filter_edges.end());
     arolla::DenseGroupOps<arolla::SimpleCountAggregator> agg(
         arolla::GetHeapBufferFactory());

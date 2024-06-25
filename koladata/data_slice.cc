@@ -198,23 +198,6 @@ absl::StatusOr<DataSlice> DataSlice::Create(
                            std::move(schema), std::move(db));
 }
 
-absl::StatusOr<DataSlice> DataSlice::BroadcastToShape(
-    DataSlice::JaggedShapePtr shape) const {
-  if (!GetShape().IsBroadcastableTo(*shape)) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "DataSlice with shape=%s cannot be expanded to shape=%s",
-        arolla::Repr(GetShape()), arolla::Repr(*shape)));
-  }
-  // They are already broadcastable. If ranks are the same, shapes are
-  // equivalent.
-  if (GetShape().rank() == shape->rank()) {
-    return *this;
-  }
-  auto edge = GetShape().GetBroadcastEdge(*shape);
-  return DataSliceOp<internal::ExpandOp>()(*this, std::move(shape),
-                                           GetSchemaImpl(), GetDb(), edge);
-}
-
 absl::StatusOr<DataSlice> DataSlice::Reshape(
     DataSlice::JaggedShapePtr shape) const {
   return VisitImpl([&, shape = std::move(shape)](const auto& impl) {
@@ -616,8 +599,8 @@ absl::StatusOr<ImplT> CoalesceWithFiltered(const ImplT& objects, const ImplT& l,
 
 absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
     absl::string_view attr_name, const DataSlice& default_value) const {
-  BroadcastHelper expanded_default(default_value, GetShapePtr());
-  RETURN_IF_ERROR(expanded_default.status());
+  ASSIGN_OR_RETURN(auto expanded_default,
+                   BroadcastToShape(default_value, GetShapePtr()));
   return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
     internal::DataItem res_schema;
     ASSIGN_OR_RETURN(auto res, GetAttrImpl(GetDb(), impl, GetSchemaImpl(),
@@ -637,7 +620,7 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
         schema::CommonSchema(res_schema, default_value.GetSchemaImpl()));
     auto res_db = DataBag::CommonDataBag({GetDb(), default_value.GetDb()});
     return DataSlice::Create(
-        CoalesceWithFiltered(impl, res, expanded_default->impl<T>()),
+        CoalesceWithFiltered(impl, res, expanded_default.impl<T>()),
         GetShapePtr(), std::move(res_schema), std::move(res_db));
   });
 }
@@ -894,13 +877,15 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
     return absl::InvalidArgumentError(
         "cannot set attributes without a DataBag");
   }
-  BroadcastHelper expanded_values(values, GetShapePtr());
-  RETURN_IF_ERROR(expanded_values.status()).With([&](absl::Status status) {
-    return AssignmentError(std::move(status), GetShape().rank(),
-                           values.GetShape().rank());
-  });
+  ASSIGN_OR_RETURN(auto expanded_values,
+                   BroadcastToShape(values, GetShapePtr()),
+                   _.With([&](auto status) {
+                     return AssignmentError(std::move(status),
+                                            GetShape().rank(),
+                                            values.GetShape().rank());
+                   }));
   if (GetSchemaImpl() == kSchemaSchema) {
-    return SetSchemaAttr(attr_name, *expanded_values);
+    return SetSchemaAttr(attr_name, expanded_values);
   }
   if (GetSchemaImpl().holds_value<schema::DType>()) {
     if (GetSchemaImpl().value<schema::DType>().is_primitive()) {
@@ -915,12 +900,12 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerErrorContext::kAttr,
-                                                 *expanded_values, attr_name);
+                                                 expanded_values, attr_name);
   if (attr_name == schema::kSchemaAttr) {
-    if (expanded_values->GetSchemaImpl() != kSchemaSchema) {
+    if (expanded_values.GetSchemaImpl() != kSchemaSchema) {
       return absl::InvalidArgumentError(absl::StrCat(
           "only schemas can be assigned to the '__schema__' attribute, got ",
-          expanded_values->GetSchemaImpl()));
+          expanded_values.GetSchemaImpl()));
     }
   } else {
     RETURN_IF_ERROR(
@@ -1069,12 +1054,10 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
                                     : GetShapePtr();
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
-  BroadcastHelper expanded_this(*this, shape);
-  RETURN_IF_ERROR(expanded_this.status());
-  BroadcastHelper expanded_keys(keys, shape);
-  RETURN_IF_ERROR(expanded_keys.status());
+  ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
+  ASSIGN_OR_RETURN(auto expanded_keys, BroadcastToShape(keys, shape));
   RhsHandler</*is_readonly=*/true> keys_handler(RhsHandlerErrorContext::kDict,
-                                                *expanded_keys,
+                                                expanded_keys,
                                                 schema::kDictKeysSchemaAttr);
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, GetDb()->GetImpl(),
                                              fb_finder.GetFlattenFallbacks()));
@@ -1085,7 +1068,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
                                             fb_finder.GetFlattenFallbacks(),
                                             /*allow_missing=*/false);
                    }));
-  return expanded_this->VisitImpl(
+  return expanded_this.VisitImpl(
       [&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
         ASSIGN_OR_RETURN(auto res_impl,
                          GetDb()->GetImpl().GetFromDict(
@@ -1107,29 +1090,28 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
                                     : GetShapePtr();
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
-  BroadcastHelper expanded_this(*this, shape);
-  RETURN_IF_ERROR(expanded_this.status());
-  BroadcastHelper expanded_keys(keys, shape);
-  RETURN_IF_ERROR(expanded_keys.status());
-  BroadcastHelper expanded_values(values, shape);
-  RETURN_IF_ERROR(expanded_values.status()).With([&](absl::Status status) {
-    return AssignmentError(std::move(status), shape->rank(),
-                           values.GetShape().rank());
-  });
+  ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
+  ASSIGN_OR_RETURN(auto expanded_keys, BroadcastToShape(keys, shape));
+  ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape),
+                   _.With([&](auto status) {
+                     return AssignmentError(std::move(status), shape->rank(),
+                                            values.GetShape().rank());
+                   }));
+
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> keys_handler(RhsHandlerErrorContext::kDict,
-                                                 *expanded_keys,
+                                                 expanded_keys,
                                                  schema::kDictKeysSchemaAttr);
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
   RhsHandler</*is_readonly=*/false> values_handler(
-      RhsHandlerErrorContext::kDict, *expanded_values,
+      RhsHandlerErrorContext::kDict, expanded_values,
       schema::kDictValuesSchemaAttr);
   RETURN_IF_ERROR(values_handler.ProcessSchema(*this, db_mutable_impl,
                                                /*fallbacks=*/{}));
 
-  return expanded_this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
+  return expanded_this.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
     return db_mutable_impl.SetInDict(impl, keys_handler.GetValues().impl<T>(),
                                      values_handler.GetValues().impl<T>());
   });
@@ -1163,16 +1145,14 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
         "cannot get list items without a DataBag");
   }
   FlattenFallbackFinder fb_finder(*GetDb());
-  const JaggedShapePtr& shape = GetShape().rank() < indices.GetShape().rank()
-                                    ? indices.GetShapePtr()
-                                    : GetShapePtr();
+  const JaggedShapePtr& shape =
+      MaxRankShape(GetShapePtr(), indices.GetShapePtr());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
-  BroadcastHelper expanded_this(*this, shape);
-  RETURN_IF_ERROR(expanded_this.status());
+  ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
-  BroadcastHelper expanded_indices(indices_int64, shape);
-  RETURN_IF_ERROR(expanded_indices.status());
+  ASSIGN_OR_RETURN(auto expanded_indices,
+                   BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
                      return GetResultSchema(GetDb()->GetImpl(), impl,
                                             GetSchemaImpl(),
@@ -1180,14 +1160,14 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
                                             fb_finder.GetFlattenFallbacks(),
                                             /*allow_missing=*/false);
                    }));
-  if (expanded_indices->present_count() == 0) {
-    return EmptyLike(expanded_indices->GetShapePtr(), res_schema, GetDb());
+  if (expanded_indices.present_count() == 0) {
+    return EmptyLike(expanded_indices.GetShapePtr(), res_schema, GetDb());
   }
   if (std::holds_alternative<internal::DataItem>(
-          expanded_this->internal_->impl_)) {
-    int64_t index = expanded_indices->item().value<int64_t>();
+          expanded_this.internal_->impl_)) {
+    int64_t index = expanded_indices.item().value<int64_t>();
     ASSIGN_OR_RETURN(auto res_impl, GetDb()->GetImpl().GetFromList(
-                                        expanded_this->item(), index,
+                                        expanded_this.item(), index,
                                         fb_finder.GetFlattenFallbacks()));
     return DataSlice(std::move(res_impl), shape, std::move(res_schema),
                      GetDb());
@@ -1195,7 +1175,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
     ASSIGN_OR_RETURN(
         auto res_impl,
         GetDb()->GetImpl().GetFromLists(
-            expanded_this->slice(), expanded_indices->slice().values<int64_t>(),
+            expanded_this.slice(), expanded_indices.slice().values<int64_t>(),
             fb_finder.GetFlattenFallbacks()));
     return DataSlice(std::move(res_impl), shape, std::move(res_schema),
                      GetDb());
@@ -1208,16 +1188,14 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
     return absl::InvalidArgumentError(
         "cannot pop items from list without a DataBag");
   }
-  const JaggedShapePtr& shape = GetShape().rank() < indices.GetShape().rank()
-                                    ? indices.GetShapePtr()
-                                    : GetShapePtr();
+  const JaggedShapePtr& shape =
+      MaxRankShape(GetShapePtr(), indices.GetShapePtr());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
-  BroadcastHelper expanded_this(*this, shape);
-  RETURN_IF_ERROR(expanded_this.status());
+  ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
-  BroadcastHelper expanded_indices(indices_int64, shape);
-  RETURN_IF_ERROR(expanded_indices.status());
+  ASSIGN_OR_RETURN(auto expanded_indices,
+                   BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
@@ -1228,21 +1206,21 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
                          {},
                          /*allow_missing=*/false);
                    }));
-  if (expanded_indices->present_count() == 0) {
-    return EmptyLike(expanded_indices->GetShapePtr(), res_schema, GetDb());
+  if (expanded_indices.present_count() == 0) {
+    return EmptyLike(expanded_indices.GetShapePtr(), res_schema, GetDb());
   }
   if (std::holds_alternative<internal::DataItem>(
-          expanded_this->internal_->impl_)) {
-    int64_t index = expanded_indices->item().value<int64_t>();
+          expanded_this.internal_->impl_)) {
+    int64_t index = expanded_indices.item().value<int64_t>();
     ASSIGN_OR_RETURN(auto res_impl,
-                     db_mutable_impl.PopFromList(expanded_this->item(), index));
+                     db_mutable_impl.PopFromList(expanded_this.item(), index));
     return DataSlice(std::move(res_impl), shape, std::move(res_schema),
                      GetDb());
   } else {
-    ASSIGN_OR_RETURN(auto res_impl,
-                     db_mutable_impl.PopFromLists(
-                         expanded_this->slice(),
-                         expanded_indices->slice().values<int64_t>()));
+    ASSIGN_OR_RETURN(
+        auto res_impl,
+        db_mutable_impl.PopFromLists(
+            expanded_this.slice(), expanded_indices.slice().values<int64_t>()));
     return DataSlice(std::move(res_impl), shape, std::move(res_schema),
                      GetDb());
   }
@@ -1262,40 +1240,38 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
     return absl::InvalidArgumentError(
         "cannot set list items without a DataBag");
   }
-  const JaggedShapePtr& shape = GetShape().rank() < indices.GetShape().rank()
-                                    ? indices.GetShapePtr()
-                                    : GetShapePtr();
+  const JaggedShapePtr& shape =
+      MaxRankShape(GetShapePtr(), indices.GetShapePtr());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
-  BroadcastHelper expanded_this(*this, shape);
-  RETURN_IF_ERROR(expanded_this.status());
+  ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
   if (indices_int64.present_count() == 0) {
     return absl::OkStatus();
   }
-  BroadcastHelper expanded_indices(indices_int64, shape);
-  RETURN_IF_ERROR(expanded_indices.status());
-  BroadcastHelper expanded_values(values, shape);
-  RETURN_IF_ERROR(expanded_values.status()).With([&](absl::Status status) {
-    return AssignmentError(std::move(status), shape->rank(),
-                           values.GetShape().rank());
-  });
+  ASSIGN_OR_RETURN(auto expanded_indices,
+                   BroadcastToShape(std::move(indices_int64), shape));
+  ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape),
+                   _.With([&](absl::Status status) {
+                     return AssignmentError(std::move(status), shape->rank(),
+                                            values.GetShape().rank());
+                   }));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(
-      RhsHandlerErrorContext::kListItem, *expanded_values,
+      RhsHandlerErrorContext::kListItem, expanded_values,
       schema::kListItemsSchemaAttr);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
   if (std::holds_alternative<internal::DataItem>(
-          expanded_this->internal_->impl_)) {
-    int64_t index = expanded_indices->item().value<int64_t>();
+          expanded_this.internal_->impl_)) {
+    int64_t index = expanded_indices.item().value<int64_t>();
     return db_mutable_impl.SetInList(
-        expanded_this->item(), index,
+        expanded_this.item(), index,
         data_handler.GetValues().impl<internal::DataItem>());
   } else {
     return db_mutable_impl.SetInLists(
-        expanded_this->slice(), expanded_indices->slice().values<int64_t>(),
+        expanded_this.slice(), expanded_indices.slice().values<int64_t>(),
         data_handler.GetValues().impl<internal::DataSliceImpl>());
   }
 }
@@ -1305,27 +1281,26 @@ absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
       MaxRankShape(GetShapePtr(), indices.GetShapePtr());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
-  BroadcastHelper expanded_this(*this, shape);
-  RETURN_IF_ERROR(expanded_this.status());
+  ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
   if (indices_int64.present_count() == 0) {
     return absl::OkStatus();
   }
-  BroadcastHelper expanded_indices(indices_int64, shape);
-  RETURN_IF_ERROR(expanded_indices.status());
+  ASSIGN_OR_RETURN(auto expanded_indices,
+                   BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
   if (std::holds_alternative<internal::DataItem>(
-          expanded_this->internal_->impl_)) {
-    int64_t index = expanded_indices->item().value<int64_t>();
+          expanded_this.internal_->impl_)) {
+    int64_t index = expanded_indices.item().value<int64_t>();
     internal::DataBagImpl::ListRange range(index, index + 1);
     if (index == -1) {
       range = internal::DataBagImpl::ListRange(index);
     }
-    return db_mutable_impl.RemoveInList(expanded_this->item(), range);
+    return db_mutable_impl.RemoveInList(expanded_this.item(), range);
   } else {
     return db_mutable_impl.RemoveInList(
-        expanded_this->slice(), expanded_indices->slice().values<int64_t>());
+        expanded_this.slice(), expanded_indices.slice().values<int64_t>());
   }
 }
 
@@ -1342,12 +1317,11 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
         "Lists DataSlice with shape=%s is not compatible with values shape=%s",
         arolla::Repr(GetShape()), arolla::Repr(*shape)));
   }
-  BroadcastHelper expanded_values(values, shape);
-  RETURN_IF_ERROR(expanded_values.status());
+  ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(
-      RhsHandlerErrorContext::kListItem, *expanded_values,
+      RhsHandlerErrorContext::kListItem, expanded_values,
       schema::kListItemsSchemaAttr);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
@@ -1442,7 +1416,7 @@ absl::Status DataSlice::ReplaceInList(int64_t start,
         GetShape().rank(), values.GetShape().rank(), GetShape().rank() + 1));
   }
   if (!GetShape().IsBroadcastableTo(values.GetShape())) {
-    return BroadcastToShape(values.GetShapePtr()).status();
+    return BroadcastToShape(*this, values.GetShapePtr()).status();
   }
 
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
@@ -1538,15 +1512,11 @@ absl::Status DataSlice::VerifySchemaConsistency(
   return absl::OkStatus();
 }
 
-void BroadcastHelper::InitWithExpansionSlow(
-    const DataSlice& slice, const DataSlice::JaggedShapePtr& shape) {
-  auto status_or = slice.BroadcastToShape(shape);
-  if (status_or.ok()) {
-    owned_expanded_.emplace(std::move(*status_or));
-    ptr_ = &(*owned_expanded_);
-  } else {
-    status_ = std::move(status_or.status());
-  }
+absl::StatusOr<DataSlice> internal_broadcast::BroadcastToShapeSlow(
+    const DataSlice& slice, DataSlice::JaggedShapePtr shape) {
+  auto edge = slice.GetShape().GetBroadcastEdge(*shape);
+  return DataSliceOp<internal::ExpandOp>()(
+      slice, std::move(shape), slice.GetSchemaImpl(), slice.GetDb(), edge);
 }
 
 absl::StatusOr<DataSlice> CastOrUpdateSchema(

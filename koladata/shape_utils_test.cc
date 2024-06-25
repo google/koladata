@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/shape/shape_utils.h"
+#include "koladata/shape_utils.h"
 
 #include <cstdint>
-#include <functional>
 #include <initializer_list>
 #include <vector>
 
@@ -49,41 +48,15 @@ absl::StatusOr<DataSlice::JaggedShapePtr> ShapeFromEdges(
   return DataSlice::JaggedShape::FromEdges(edges);
 }
 
-struct ValueProvider {
-  using value_type = DataSlice;
-  const DataSlice& operator()(const DataSlice& ds) { return ds; }
-};
-
-struct RefProvider {
-  using value_type = std::reference_wrapper<const DataSlice>;
-  std::reference_wrapper<const DataSlice> operator()(const DataSlice& ds) {
-    return std::cref(ds);
-  }
-};
-
-template <typename Provider>
-class ShapeUtilsTest : public ::testing::Test {
- public:
-  using provider_t = Provider;
-  using value_t = typename Provider::value_type;
-};
-
-using ProviderTestTypes = ::testing::Types<ValueProvider, RefProvider>;
-TYPED_TEST_SUITE(ShapeUtilsTest, ProviderTestTypes);
-
-TYPED_TEST(ShapeUtilsTest, GetCommonShape) {
-  typename TestFixture::provider_t provider;
-  using value_t = typename TestFixture::value_t;
+TEST(ShapeUtilsTest, GetCommonShape) {
   {
     // 1 input.
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
     auto values = CreateFullDenseArray<int>({1, 2, 3});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values), shape_1));
-    std::vector<value_t> slices{provider(ds)};
-    ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape<DataSlice>(slices));
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         DataSlice::CreateWithSchemaFromData(
+                             internal::DataSliceImpl::Create(values), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape({ds}));
     EXPECT_THAT(shape_1, IsEquivalentTo(*common_shape));
   }
   {
@@ -91,16 +64,13 @@ TYPED_TEST(ShapeUtilsTest, GetCommonShape) {
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_1,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_1), shape_1));
+        auto ds_1, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_1), shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_2,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_2), shape_1));
-    std::vector<value_t> slices{provider(ds_1), provider(ds_2)};
-    ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape<DataSlice>(slices));
+        auto ds_2, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_2), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape({ds_1, ds_2}));
     EXPECT_THAT(shape_1, IsEquivalentTo(*common_shape));
   }
   {
@@ -111,16 +81,13 @@ TYPED_TEST(ShapeUtilsTest, GetCommonShape) {
     ASSERT_OK_AND_ASSIGN(auto shape_2, ShapeFromEdges({edge_1, edge_2}));
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_1,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_1), shape_1));
+        auto ds_1, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_1), shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_2,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_2), shape_2));
-    std::vector<value_t> slices{provider(ds_1), provider(ds_2)};
-    ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape<DataSlice>(slices));
+        auto ds_2, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_2), shape_2));
+    ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape({ds_1, ds_2}));
     EXPECT_THAT(shape_2, IsEquivalentTo(*common_shape));
   }
   {
@@ -132,16 +99,13 @@ TYPED_TEST(ShapeUtilsTest, GetCommonShape) {
     ASSERT_OK_AND_ASSIGN(auto shape_2, ShapeFromEdges({edge_1, edge_2_2}));
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_1,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_1), shape_1));
+        auto ds_1, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_1), shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3, 4, 5});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_2,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_2), shape_2));
-    std::vector<value_t> slices{provider(ds_1), provider(ds_2)};
-    EXPECT_THAT(GetCommonShape<DataSlice>(slices),
+        auto ds_2, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_2), shape_2));
+    EXPECT_THAT(GetCommonShape({ds_1, ds_2}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("shapes are not compatible")));
   }
@@ -149,50 +113,40 @@ TYPED_TEST(ShapeUtilsTest, GetCommonShape) {
     // No inputs.
     std::vector<DataSlice> slices;
     EXPECT_THAT(
-        GetCommonShape<DataSlice>(slices),
+        GetCommonShape(slices),
         StatusIs(
             absl::StatusCode::kInvalidArgument,
             HasSubstr("computing a common shape requires at least 1 input")));
   }
 }
 
-TYPED_TEST(ShapeUtilsTest, Align) {
-  typename TestFixture::provider_t provider;
-  using value_t = typename TestFixture::value_t;
+TEST(ShapeUtilsTest, Align) {
   {
     // 1 input.
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
     auto values = CreateFullDenseArray<int>({1, 2, 3});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values), shape_1));
-    std::vector<value_t> slices{provider(ds)};
-    ASSERT_OK_AND_ASSIGN(auto aligned_slices, Align<DataSlice>(slices));
-    EXPECT_EQ(slices.size(), aligned_slices.size());
-    EXPECT_THAT(get_referred_value(slices[0]),
-                IsEquivalentTo(aligned_slices[0]));
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         DataSlice::CreateWithSchemaFromData(
+                             internal::DataSliceImpl::Create(values), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto aligned_slices, Align({ds}));
+    EXPECT_EQ(aligned_slices.size(), 1);
+    EXPECT_THAT(aligned_slices[0], IsEquivalentTo(ds));
   }
   {
     // Same shape.
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_1,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_1), shape_1));
+        auto ds_1, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_1), shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_2,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_2), shape_1));
-    std::vector<value_t> slices{provider(ds_1), provider(ds_2)};
-    ASSERT_OK_AND_ASSIGN(auto aligned_slices, Align<DataSlice>(slices));
-    EXPECT_EQ(slices.size(), aligned_slices.size());
-    EXPECT_THAT(get_referred_value(slices[0]),
-                IsEquivalentTo(aligned_slices[0]));
-    EXPECT_THAT(get_referred_value(slices[1]),
-                IsEquivalentTo(aligned_slices[1]));
+        auto ds_2, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_2), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto aligned_slices, Align({ds_1, ds_2}));
+    EXPECT_EQ(aligned_slices.size(), 2);
+    EXPECT_THAT(aligned_slices[0], IsEquivalentTo(ds_1));
+    EXPECT_THAT(aligned_slices[1], IsEquivalentTo(ds_2));
   }
   {
     // Non-compatible shapes.
@@ -203,16 +157,13 @@ TYPED_TEST(ShapeUtilsTest, Align) {
     ASSERT_OK_AND_ASSIGN(auto shape_2, ShapeFromEdges({edge_1, edge_2_2}));
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_1,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_1), shape_1));
+        auto ds_1, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_1), shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3, 4, 5});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_2,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_2), shape_2));
-    std::vector<value_t> slices{provider(ds_1), provider(ds_2)};
-    EXPECT_THAT(Align<DataSlice>(slices),
+        auto ds_2, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_2), shape_2));
+    EXPECT_THAT(Align({ds_1, ds_2}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("shapes are not compatible")));
   }
@@ -224,17 +175,14 @@ TYPED_TEST(ShapeUtilsTest, Align) {
     ASSERT_OK_AND_ASSIGN(auto shape_2, ShapeFromEdges({edge_1, edge_2}));
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_1,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_1), shape_1));
+        auto ds_1, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_1), shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6});
     ASSERT_OK_AND_ASSIGN(
-        auto ds_2,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(values_2), shape_2));
-    std::vector<value_t> slices{provider(ds_1), provider(ds_2)};
+        auto ds_2, DataSlice::CreateWithSchemaFromData(
+                       internal::DataSliceImpl::Create(values_2), shape_2));
 
-    ASSERT_OK_AND_ASSIGN(auto aligned, Align<DataSlice>(slices));
+    ASSERT_OK_AND_ASSIGN(auto aligned, Align({ds_1, ds_2}));
     EXPECT_THAT(aligned[0].GetShape(), IsEquivalentTo(*shape_2));
     EXPECT_THAT(aligned[0].slice().template values<int>(),
                 ElementsAre(1, 1, 2, 2, 3, 3));
@@ -244,21 +192,17 @@ TYPED_TEST(ShapeUtilsTest, Align) {
   }
 }
 
-TYPED_TEST(ShapeUtilsTest, AlignNonScalars) {
-  typename TestFixture::provider_t provider;
-  using value_t = typename TestFixture::value_t;
+TEST(ShapeUtilsTest, AlignNonScalars) {
   {
     // 1 input - non-scalar.
     ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreateWithSchemaFromData(
                                       internal::DataSliceImpl::Create(
                                           CreateFullDenseArray<int>({1, 2, 3})),
                                       DataSlice::JaggedShape::FlatFromSize(3)));
-    std::vector<value_t> slices{provider(ds)};
     ASSERT_OK_AND_ASSIGN((auto [aligned_slices, aligned_shape]),
-                         AlignNonScalars<DataSlice>(slices));
-    EXPECT_EQ(slices.size(), aligned_slices.size());
-    EXPECT_THAT(get_referred_value(slices[0]),
-                IsEquivalentTo(aligned_slices[0]));
+                         AlignNonScalars({ds}));
+    EXPECT_EQ(aligned_slices.size(), 1);
+    EXPECT_THAT(aligned_slices[0], IsEquivalentTo(ds));
     EXPECT_THAT(aligned_shape, IsEquivalentTo(ds.GetShape()));
   }
   {
@@ -268,12 +212,10 @@ TYPED_TEST(ShapeUtilsTest, AlignNonScalars) {
         DataSlice::CreateWithSchemaFromData(
             internal::DataSliceImpl::Create(CreateFullDenseArray<int>({1})),
             DataSlice::JaggedShape::Empty()));
-    std::vector<value_t> slices{provider(ds)};
     ASSERT_OK_AND_ASSIGN((auto [aligned_slices, aligned_shape]),
-                         AlignNonScalars<DataSlice>(slices));
-    EXPECT_EQ(slices.size(), aligned_slices.size());
-    EXPECT_THAT(get_referred_value(slices[0]),
-                IsEquivalentTo(aligned_slices[0]));
+                         AlignNonScalars({ds}));
+    EXPECT_EQ(aligned_slices.size(), 1);
+    EXPECT_THAT(aligned_slices[0], IsEquivalentTo(ds));
     EXPECT_THAT(aligned_shape, IsEquivalentTo(ds.GetShape()));
   }
   {
@@ -283,10 +225,11 @@ TYPED_TEST(ShapeUtilsTest, AlignNonScalars) {
         DataSlice::CreateWithSchemaFromData(
             internal::DataSliceImpl::Create(CreateFullDenseArray<int>({1})),
             DataSlice::JaggedShape::Empty()));
-    ASSERT_OK_AND_ASSIGN(auto ds_rank_1, DataSlice::CreateWithSchemaFromData(
-                                      internal::DataSliceImpl::Create(
-                                          CreateFullDenseArray<int>({1, 2, 3})),
-                                      DataSlice::JaggedShape::FlatFromSize(3)));
+    ASSERT_OK_AND_ASSIGN(auto ds_rank_1,
+                         DataSlice::CreateWithSchemaFromData(
+                             internal::DataSliceImpl::Create(
+                                 CreateFullDenseArray<int>({1, 2, 3})),
+                             DataSlice::JaggedShape::FlatFromSize(3)));
     ASSERT_OK_AND_ASSIGN(
         auto ds_rank_2,
         DataSlice::CreateWithSchemaFromData(
@@ -301,13 +244,10 @@ TYPED_TEST(ShapeUtilsTest, AlignNonScalars) {
                 })
                 .value()));
 
-    std::vector<value_t> slices{provider(ds_rank_0), provider(ds_rank_1),
-                                provider(ds_rank_2)};
     ASSERT_OK_AND_ASSIGN((auto [aligned_slices, aligned_shape]),
-                         AlignNonScalars<DataSlice>(slices));
-    EXPECT_EQ(slices.size(), aligned_slices.size());
-    EXPECT_THAT(get_referred_value(slices[0]),
-                IsEquivalentTo(aligned_slices[0]));
+                         AlignNonScalars({ds_rank_0, ds_rank_1, ds_rank_2}));
+    EXPECT_EQ(aligned_slices.size(), 3);
+    EXPECT_THAT(aligned_slices[0], IsEquivalentTo(ds_rank_0));
     EXPECT_THAT(aligned_slices[1].GetShape(),
                 IsEquivalentTo(ds_rank_2.GetShape()));
     EXPECT_THAT(aligned_slices[1].slice().template values<int>(),
@@ -330,8 +270,7 @@ TYPED_TEST(ShapeUtilsTest, AlignNonScalars) {
         DataSlice::CreateWithSchemaFromData(
             internal::DataSliceImpl::Create(CreateFullDenseArray<int>({1, 2})),
             DataSlice::JaggedShape::FlatFromSize(2)));
-    std::vector<value_t> slices{provider(ds_1), provider(ds_2)};
-    EXPECT_THAT(AlignNonScalars<DataSlice>(slices),
+    EXPECT_THAT(AlignNonScalars({ds_1, ds_2}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("shapes are not compatible")));
   }

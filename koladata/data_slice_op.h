@@ -15,17 +15,15 @@
 #ifndef KOLADATA_DATA_SLICE_OP_H_
 #define KOLADATA_DATA_SLICE_OP_H_
 
-#include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
-#include "koladata/shape/shape_utils.h"
+#include "koladata/shape_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -42,7 +40,7 @@ struct IsDefinedOnMixedImpl<
                                   std::declval<internal::DataItem>()))>,
     std::void_t<decltype(OpImpl()(std::declval<internal::DataItem>(),
                                   std::declval<internal::DataSliceImpl>()))>>
-        : std::true_type {};
+    : std::true_type {};
 
 // Utility to invoke operator functors on DataSlice args. It dispatches the
 // functor to a correct implementation, depending on what implementations
@@ -59,8 +57,7 @@ struct DataSliceOp {
                                        ArgType&&... args) {
     return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
       return DataSlice::Create(OpImpl()(impl, std::forward<ArgType>(args)...),
-                               std::move(shape),
-                               std::move(schema),
+                               std::move(shape), std::move(schema),
                                std::move(db));
     });
   }
@@ -73,33 +70,28 @@ struct DataSliceOp {
                                        internal::DataItem schema,
                                        std::shared_ptr<DataBag> db,
                                        ArgType&&... args) {
-    std::vector<std::reference_wrapper<const DataSlice>> inputs(
-        {std::cref(ds_1), std::cref(ds_2)});
     if constexpr (IsDefinedOnMixedImpl<OpImpl>::value) {
       ASSIGN_OR_RETURN(auto aligned_inputs,
-                       shape::AlignNonScalars<DataSlice>(inputs));
+                       shape::AlignNonScalars({ds_1, ds_2}));
       const auto& aligned_ds_1 = aligned_inputs.first[0];
       const auto& aligned_ds_2 = aligned_inputs.first[1];
       return aligned_ds_1.VisitImpl([&](const auto& impl_1) {
         return aligned_ds_2.VisitImpl([&](const auto& impl_2) {
           return DataSlice::Create(
               OpImpl()(impl_1, impl_2, std::forward<ArgType>(args)...),
-              std::move(aligned_inputs.second),
-              std::move(schema),
+              std::move(aligned_inputs.second), std::move(schema),
               std::move(db));
         });
       });
     } else {
-      ASSIGN_OR_RETURN(auto aligned_inputs, shape::Align<DataSlice>(inputs));
+      ASSIGN_OR_RETURN(auto aligned_inputs, shape::Align({ds_1, ds_2}));
       const auto& aligned_ds_1 = aligned_inputs[0];
       return aligned_ds_1.VisitImpl([&](const auto& impl_1) {
         using ImplT = typename std::decay_t<decltype(impl_1)>;
         const auto& impl_2 = aligned_inputs[1].template impl<ImplT>();
         return DataSlice::Create(
             OpImpl()(impl_1, impl_2, std::forward<ArgType>(args)...),
-            aligned_ds_1.GetShapePtr(),
-            std::move(schema),
-            std::move(db));
+            aligned_ds_1.GetShapePtr(), std::move(schema), std::move(db));
       });
     }
   }
