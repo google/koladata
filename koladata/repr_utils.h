@@ -17,9 +17,7 @@
 
 #include <string>
 
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 
@@ -31,10 +29,6 @@ absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds);
 // Returns the string representation of DataBag.
 absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db);
 
-// Creates the readable error message and sets it in the payload of Status if
-// the Status is not ok. On OkStatus, returns it unchanged.
-absl::Status AssembleErrorMessage(const absl::Status& status,
-                                  absl::Span<const koladata::DataBagPtr> dbs);
 }  // namespace koladata
 
 #endif  // KOLADATA_REPR_UTILS_H_

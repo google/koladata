@@ -15,16 +15,14 @@
 #ifndef KOLADATA_OPERATORS_EQUAL_H_
 #define KOLADATA_OPERATORS_EQUAL_H_
 
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
-#include "koladata/data_slice_op.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_op.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/equal.h"
 #include "koladata/internal/schema_utils.h"
-#include "koladata/repr_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -35,10 +33,7 @@ inline absl::StatusOr<DataSlice> Equal(const DataSlice& lhs,
   // NOTE: Casting is handled internally by EqualOp. The schema compatibility is
   // still verified to ensure that e.g. ITEMID and OBJECT are not compared.
   RETURN_IF_ERROR(
-      schema::CommonSchema(lhs.GetSchemaImpl(), rhs.GetSchemaImpl()).status())
-      .With([&](const absl::Status& status) {
-        return AssembleErrorMessage(status, {lhs.GetDb(), rhs.GetDb()});
-      });
+      schema::CommonSchema(lhs.GetSchemaImpl(), rhs.GetSchemaImpl()).status());
   return DataSliceOp<internal::EqualOp>()(
       lhs, rhs, internal::DataItem(schema::kMask), nullptr);
 }

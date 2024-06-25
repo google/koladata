@@ -19,8 +19,9 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/s11n/codec.pb.h"
 
 namespace koladata::internal {
@@ -30,9 +31,11 @@ constexpr absl::string_view kErrorUrl = "koladata.internal.Error";
 // Gets the Error proto payload from status.
 std::optional<Error> GetErrorPayload(const absl::Status& status);
 
-// Returns the encoded proto of the Schema. The `item` must contain
-// ObjectId or DType.
-s11n::KodaV1Proto::DataItemProto EncodeSchema(const DataItem& item);
+// Returns the encoded proto of ObjectId.
+s11n::KodaV1Proto::DataItemProto EncodeObjectId(const internal::ObjectId& obj);
+
+// Returns the encoded proto of DType
+s11n::KodaV1Proto::DataItemProto EncodeDType(const schema::DType& dtype);
 
 // Sets the `error` in the payload of the `status` if not ok. Otherwise, returns
 // the `status`.
