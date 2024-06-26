@@ -193,23 +193,13 @@ class CommonDTypeAggregator {
 
 // Creates the no common schema error proto from the given schema id and dtype.
 internal::Error CreateNoCommonSchemaError(
-    const internal::ObjectId& common_schema,
-    const internal::ObjectId& conflicting_schema) {
+    const internal::DataItem& common_schema,
+    const internal::DataItem& conflicting_schema) {
   internal::Error error;
   *error.mutable_no_common_schema()->mutable_common_schema() =
-      internal::EncodeObjectId(common_schema);
+      internal::EncodeSchema(common_schema);
   *error.mutable_no_common_schema()->mutable_conflicting_schema() =
-      internal::EncodeObjectId(conflicting_schema);
-  return error;
-}
-
-internal::Error CreateNoCommonSchemaError(
-    const DType& common_schema, const internal::ObjectId& conflicting_schema) {
-  internal::Error error;
-  *error.mutable_no_common_schema()->mutable_common_schema() =
-      internal::EncodeDType(common_schema);
-  *error.mutable_no_common_schema()->mutable_conflicting_schema() =
-      internal::EncodeObjectId(conflicting_schema);
+      internal::EncodeSchema(conflicting_schema);
   return error;
 }
 
@@ -236,8 +226,10 @@ absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs) {
       common_dtype != kUnknownDType) {
     return internal::DataItem(DType(common_dtype));
   }
-  // TODO: Add KodaError for no common schema.
-  return absl::InvalidArgumentError("no common schema");
+  return internal::WithErrorPayload(
+      absl::InvalidArgumentError("no common schema"),
+      CreateNoCommonSchemaError(internal::DataItem(lhs),
+                                internal::DataItem(rhs)));
 }
 
 absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
@@ -260,12 +252,11 @@ absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
   if (rhs == kNone) {
     return lhs;
   }
-  // TODO: Add KodaError for no common schema.
-  return absl::InvalidArgumentError("no common schema");
+  return internal::WithErrorPayload(
+      absl::InvalidArgumentError("no common schema"),
+      CreateNoCommonSchemaError(lhs, rhs));
 }
 
-// TODO: Add SchemaConflict::NoCommonSchema or something similar to
-// improve error messages and make them on-par with prod-koladata.
 absl::StatusOr<internal::DataItem> CommonSchema(
     const internal::DataSliceImpl& schema_ids,
     internal::DataItem default_if_missing) {
@@ -297,7 +288,8 @@ absl::StatusOr<internal::DataItem> CommonSchema(
           if (*res_object_id != schema_obj) {
             maybe_error = internal::WithErrorPayload(
                 absl::InvalidArgumentError("no common schema"),
-                CreateNoCommonSchemaError(*res_object_id, schema_obj));
+                CreateNoCommonSchemaError(internal::DataItem(*res_object_id),
+                                          internal::DataItem(schema_obj)));
           }
         });
         return maybe_error;
@@ -322,7 +314,8 @@ absl::StatusOr<internal::DataItem> CommonSchema(
 
   return WithErrorPayload(
       absl::InvalidArgumentError("no common schema"),
-      CreateNoCommonSchemaError(*res_dtype, *res_object_id));
+      CreateNoCommonSchemaError(internal::DataItem(*res_dtype),
+                                internal::DataItem(*res_object_id)));
 }
 
 absl::StatusOr<internal::DataItem> NoFollowSchemaItem(

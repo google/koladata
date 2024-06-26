@@ -214,20 +214,55 @@ TEST(SchemaUtilsTest, CommonSchemaBinary) {
   }
   {
     // No common schema error.
-    EXPECT_THAT(
-        CommonSchema(kItemId, kText),
-        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
-    auto explicit_schema = DataItem(internal::AllocateExplicitSchema());
-    EXPECT_THAT(
-        CommonSchema(DataItem(kItemId), explicit_schema),
-        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
-    EXPECT_THAT(
-        CommonSchema(explicit_schema, DataItem(kItemId)),
-        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
-    EXPECT_THAT(
-        CommonSchema(explicit_schema,
-                     DataItem(internal::AllocateExplicitSchema())),
-        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
+    auto result = CommonSchema(kItemId, kText);
+    EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
+                                 "no common schema"));
+    EXPECT_THAT(internal::GetErrorPayload(result.status()),
+                Optional(EqualsProto(absl::StrFormat(
+                    R"pb(no_common_schema {
+                           common_schema { dtype: %d }
+                           conflicting_schema { dtype: %d }
+                         })pb",
+                    kItemId.type_id(), kText.type_id()))));
+    internal::ObjectId obj_id = internal::AllocateExplicitSchema();
+    auto explicit_schema = DataItem(obj_id);
+
+    result = CommonSchema(DataItem(kItemId), explicit_schema);
+    EXPECT_THAT(internal::GetErrorPayload(result.status()),
+                Optional(EqualsProto(absl::StrFormat(
+                    R"pb(no_common_schema {
+                           common_schema { dtype: %d }
+                           conflicting_schema { object_id { hi: %d lo: %d } }
+                         })pb",
+                    kItemId.type_id(), obj_id.InternalHigh64(),
+                    obj_id.InternalLow64()))));
+    EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
+                                 "no common schema"));
+
+    result = CommonSchema(explicit_schema, DataItem(kItemId));
+    EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
+                                 "no common schema"));
+    EXPECT_THAT(internal::GetErrorPayload(result.status()),
+                Optional(EqualsProto(absl::StrFormat(
+                    R"pb(no_common_schema {
+                           common_schema { object_id { hi: %d lo: %d } }
+                           conflicting_schema { dtype: %d }
+                         })pb",
+                    obj_id.InternalHigh64(), obj_id.InternalLow64(),
+                    kItemId.type_id()))));
+
+    internal::ObjectId obj_id2 = internal::AllocateExplicitSchema();
+    result = CommonSchema(explicit_schema, DataItem(obj_id2));
+    EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
+                                 "no common schema"));
+    EXPECT_THAT(internal::GetErrorPayload(result.status()),
+                Optional(EqualsProto(absl::StrFormat(
+                    R"pb(no_common_schema {
+                           common_schema { object_id { hi: %d lo: %d } }
+                           conflicting_schema { object_id { hi: %d lo: %d } }
+                         })pb",
+                    obj_id.InternalHigh64(), obj_id.InternalLow64(),
+                    obj_id2.InternalHigh64(), obj_id2.InternalLow64()))));
   }
 }
 

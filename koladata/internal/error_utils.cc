@@ -16,8 +16,10 @@
 
 #include <optional>
 
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/object_id.h"
@@ -28,15 +30,7 @@ namespace koladata::internal {
 using ObjectIdProto = ::koladata::s11n::KodaV1Proto::ObjectIdProto;
 using DataItemProto = ::koladata::s11n::KodaV1Proto::DataItemProto;
 
-std::optional<Error> GetErrorPayload(const absl::Status& status) {
-  auto error_payload = status.GetPayload(kErrorUrl);
-  if (!error_payload) {
-    return std::nullopt;
-  }
-  Error error;
-  error.ParsePartialFromCord(*error_payload);
-  return error;
-}
+namespace {
 
 DataItemProto EncodeObjectId(const internal::ObjectId& obj) {
   DataItemProto item_proto;
@@ -49,6 +43,26 @@ DataItemProto EncodeDType(const schema::DType& dtype) {
   DataItemProto item_proto;
   item_proto.set_dtype(dtype.type_id());
   return item_proto;
+}
+
+}  // namespace
+
+std::optional<Error> GetErrorPayload(const absl::Status& status) {
+  auto error_payload = status.GetPayload(kErrorUrl);
+  if (!error_payload) {
+    return std::nullopt;
+  }
+  Error error;
+  error.ParsePartialFromCord(*error_payload);
+  return error;
+}
+
+DataItemProto EncodeSchema(const DataItem& item) {
+  DCHECK(item.is_schema());
+  if (item.holds_value<ObjectId>()) {
+    return EncodeObjectId(item.value<ObjectId>());
+  }
+  return EncodeDType(item.value<schema::DType>());
 }
 
 absl::Status WithErrorPayload(absl::Status status, const Error& error) {

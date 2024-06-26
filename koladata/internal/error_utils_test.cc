@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
+#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/object_id.h"
@@ -45,7 +46,7 @@ using ::testing::Optional;
 TEST(ErrorUtilsTest, ObjectId) {
   ObjectId alloc_schema = internal::AllocateExplicitSchema();
 
-  KodaV1Proto::DataItemProto obj_proto = EncodeObjectId(alloc_schema);
+  KodaV1Proto::DataItemProto obj_proto = EncodeSchema(DataItem(alloc_schema));
 
   EXPECT_THAT(obj_proto,
               EqualsProto(absl::StrFormat(R"pb(object_id: { hi: %d lo: %d })pb",
@@ -57,7 +58,7 @@ TEST(ErrorUtilsTest, TestEncodeDtype) {
   arolla::meta::foreach_type(schema::supported_dtype_values(), [](auto tpe) {
     using T = typename decltype(tpe)::type;
     DType dtype = GetDType<T>();
-    KodaV1Proto::DataItemProto item_proto = EncodeDType(dtype);
+    KodaV1Proto::DataItemProto item_proto = EncodeSchema(DataItem(dtype));
     EXPECT_THAT(item_proto, EqualsProto(absl::StrFormat(R"pb(dtype: %d)pb",
                                                         dtype.type_id())));
   });

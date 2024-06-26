@@ -47,10 +47,12 @@ cc_library(
     srcs = ["error_utils.cc"],
     hdrs = ["error_utils.h"],
     deps = [
+        ":data_item",
         ":dtype",
         ":error_cc_proto",
         ":object_id",
         "//koladata/s11n:codec_cc_proto",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:string_view",
     ],
@@ -60,6 +62,7 @@ cc_test(
     name = "error_utils_test",
     srcs = ["error_utils_test.cc"],
     deps = [
+        ":data_item",
         ":dtype",
         ":error_cc_proto",
         ":error_utils",
