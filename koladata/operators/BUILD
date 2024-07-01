@@ -89,6 +89,7 @@ cc_library(
         "nofollow.h",
         "schema.h",
         "select.h",
+        "shallow_clone.h",
         "slice.h",
         "utils.h",
         "uu_schema.h",

@@ -28,6 +28,7 @@
 #include "koladata/operators/nofollow.h"
 #include "koladata/operators/schema.h"
 #include "koladata/operators/select.h"
+#include "koladata/operators/shallow_clone.h"
 #include "koladata/operators/slice.h"
 #include "koladata/operators/uu_schema.h"
 #include "koladata/operators/uuid.h"
@@ -51,6 +52,8 @@ OPERATOR("kde.core._extract_with_schema", ExtractWithSchema);
 OPERATOR("kde.core._get_attr", GetAttr);
 OPERATOR("kde.core._get_attr_with_default", GetAttrWithDefault);
 OPERATOR("kde.core._select", Select);
+OPERATOR("kde.core._shallow_clone", ShallowClone);
+OPERATOR("kde.core._shallow_clone_with_schema", ShallowCloneWithSchema);
 OPERATOR_FAMILY("kde.core._uuid", UuidOperatorFamily);
 OPERATOR_FAMILY("kde.core._uuobj", UuObjOperatorFamily);
 OPERATOR("kde.core.at", At);

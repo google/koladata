@@ -47,6 +47,34 @@ struct ExtractOp {
       DataBagImpl::FallbackSpan schema_fallbacks) const;
 };
 
+// Creates a slice with a shallow copy of the given slice and nothing else. The
+// objects themselves get new ItemIds and their top-level attributes are copied
+// by reference.
+//
+// Returns a tuple of (new DataBag, new DataSlice, new schema).
+struct ShallowCloneOp {
+ public:
+  absl::StatusOr<std::tuple<DataBagImplPtr, DataSliceImpl, DataItem>>
+  operator()(const DataSliceImpl& ds, const DataItem& schema,
+             const DataBagImpl& databag,
+             DataBagImpl::FallbackSpan fallbacks = {}) const;
+
+  absl::StatusOr<std::tuple<DataBagImplPtr, DataItem, DataItem>> operator()(
+      const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
+      DataBagImpl::FallbackSpan fallbacks = {}) const;
+
+  absl::StatusOr<std::tuple<DataBagImplPtr, DataSliceImpl, DataItem>>
+  operator()(const DataSliceImpl& ds, const DataItem& schema,
+             const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
+             const DataBagImpl& schema_databag,
+             DataBagImpl::FallbackSpan schema_fallbacks) const;
+
+  absl::StatusOr<std::tuple<DataBagImplPtr, DataItem, DataItem>> operator()(
+      const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
+      DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
+      DataBagImpl::FallbackSpan schema_fallbacks) const;
+};
+
 }  // namespace koladata::internal
 
 #endif  // KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
