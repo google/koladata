@@ -44,12 +44,11 @@ using ::arolla::CreateDenseArray;
 using ::arolla::CreateFullDenseArray;
 using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
-using ::arolla::JaggedDenseArrayShapePtr;
 using ::arolla::kMissing;
 using ::arolla::kPresent;
 using ::arolla::Text;
 
-absl::StatusOr<JaggedDenseArrayShapePtr> CreateJaggedShape(
+absl::StatusOr<JaggedDenseArrayShape> CreateJaggedShape(
     const std::vector<std::vector<int64_t>>& split_points) {
   JaggedDenseArrayShape::EdgeVec edges;
   edges.reserve(split_points.size());

@@ -51,7 +51,6 @@ namespace {
 using ::arolla::CreateDenseArray;
 using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
-using ::arolla::JaggedDenseArrayShapePtr;
 using ::arolla::OptionalValue;
 using ::arolla::testing::EqualsProto;
 using ::koladata::internal::Error;
@@ -127,7 +126,7 @@ TEST(ReprUtilTest, TestItemStringRepresentation_NestedList) {
   internal::DataSliceImpl ds =
       internal::DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3}));
   ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShapePtr ds_shape,
+      auto ds_shape,
       JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
   ASSERT_OK_AND_ASSIGN(DataSlice nested_list,
                        DataSlice::Create(std::move(ds), std::move(ds_shape),
@@ -160,7 +159,7 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_DictInList) {
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 1, 3}));
   ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShapePtr ds_shape,
+      auto ds_shape,
       JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
 
   ASSERT_OK_AND_ASSIGN(
@@ -410,7 +409,7 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_TwoDimensionsSlice) {
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 3}));
   ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShapePtr ds_shape,
+      auto ds_shape,
       JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
 
   DataSlice ds = test::DataSlice<int>({1, 2, 3}, std::move(ds_shape));
@@ -422,10 +421,9 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_ThreeDimensionsSlice) {
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 3}));
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge3, EdgeFromSplitPoints({0, 2, 3, 4}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShapePtr ds_shape,
-      JaggedDenseArrayShape::FromEdges(
-          {std::move(edge1), std::move(edge2), std::move(edge3)}));
+  ASSERT_OK_AND_ASSIGN(auto ds_shape, JaggedDenseArrayShape::FromEdges(
+                                          {std::move(edge1), std::move(edge2),
+                                           std::move(edge3)}));
 
   DataSlice ds =
       test::DataSlice<int>({1, std::nullopt, 2, 3}, std::move(ds_shape));
@@ -438,10 +436,9 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_SameChildSizeEdges) {
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 5}));
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge3,
                        EdgeFromSplitPoints({0, 1, 2, 3, 4, 5}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShapePtr ds_shape,
-      JaggedDenseArrayShape::FromEdges(
-          {std::move(edge1), std::move(edge2), std::move(edge3)}));
+  ASSERT_OK_AND_ASSIGN(auto ds_shape, JaggedDenseArrayShape::FromEdges(
+                                          {std::move(edge1), std::move(edge2),
+                                           std::move(edge3)}));
 
   EXPECT_THAT(DataSliceToStr(
                   test::DataSlice<int>({1, 2, 3, 4, 5}, std::move(ds_shape))),
@@ -468,7 +465,7 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_SplitLines) {
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2,
                        DenseArrayEdge::FromSplitPoints(std::move(edge2_array)));
   ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShapePtr ds_shape,
+      auto ds_shape,
       JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
 
   arolla::DenseArray<int64_t> ds_array =

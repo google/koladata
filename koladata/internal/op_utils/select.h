@@ -31,29 +31,29 @@ struct SelectOp {
   template <typename T>
   struct Result {
     T data_slice_impl;
-    arolla::JaggedDenseArrayShapePtr shape;
+    arolla::JaggedDenseArrayShape shape;
   };
 
   absl::StatusOr<Result<DataSliceImpl>> operator()(
       const DataSliceImpl& ds_impl,
-      const arolla::JaggedDenseArrayShapePtr& ds_shape,
+      const arolla::JaggedDenseArrayShape& ds_shape,
       const DataSliceImpl& filter,
-      const arolla::JaggedDenseArrayShapePtr& filter_shape);
+      const arolla::JaggedDenseArrayShape& filter_shape);
 
   absl::StatusOr<Result<DataSliceImpl>> operator()(
       const DataSliceImpl& ds_impl,
-      const arolla::JaggedDenseArrayShapePtr& ds_shape, const DataItem& filter,
-      const arolla::JaggedDenseArrayShapePtr& filter_size) const;
+      const arolla::JaggedDenseArrayShape& ds_shape, const DataItem& filter,
+      const arolla::JaggedDenseArrayShape& filter_size) const;
 
   absl::StatusOr<Result<DataItem>> operator()(
-      const DataItem& ds_impl, const arolla::JaggedDenseArrayShapePtr& ds_shape,
+      const DataItem& ds_impl, const arolla::JaggedDenseArrayShape& ds_shape,
       const DataItem& filter,
-      const arolla::JaggedDenseArrayShapePtr& filter_shape) const;
+      const arolla::JaggedDenseArrayShape& filter_shape) const;
 
   absl::StatusOr<Result<DataItem>> operator()(
-      const DataItem& ds_impl, const arolla::JaggedDenseArrayShapePtr& ds_shape,
+      const DataItem& ds_impl, const arolla::JaggedDenseArrayShape& ds_shape,
       const DataSliceImpl& filter,
-      const arolla::JaggedDenseArrayShapePtr& filter_shape) const;
+      const arolla::JaggedDenseArrayShape& filter_shape) const;
 };
 
 }  // namespace koladata::internal

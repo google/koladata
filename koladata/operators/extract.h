@@ -54,7 +54,7 @@ inline absl::StatusOr<DataSlice> ExtractWithSchema(const DataSlice& ds,
                            schema_db->GetImpl(), schema_fallbacks_span));
     }
     const auto result_db = DataBag::FromImpl(std::move(result_db_impl));
-    return DataSlice::Create(impl, ds.GetShapePtr(), schema_impl, result_db);
+    return DataSlice::Create(impl, ds.GetShape(), schema_impl, result_db);
   });
 }
 

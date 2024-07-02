@@ -51,7 +51,6 @@ using ::arolla::DenseArrayEdgeSizesOp;
 using ::arolla::DenseArrayPresentIndicesOp;
 using ::arolla::EvaluationContext;
 using ::arolla::JaggedDenseArrayShape;
-using ::arolla::JaggedDenseArrayShapePtr;
 using ::arolla::Unit;
 
 // Selects the present groups in the `edge` indicated by the
@@ -84,28 +83,28 @@ absl::StatusOr<DenseArrayEdge> CountPresenceInGroup(
 }  // namespace
 
 absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
-    const DataSliceImpl& ds_impl, const JaggedDenseArrayShapePtr& ds_shape,
-    const DataSliceImpl& filter, const JaggedDenseArrayShapePtr& filter_shape) {
-  if (filter_shape->rank() < 1) {
+    const DataSliceImpl& ds_impl, const JaggedDenseArrayShape& ds_shape,
+    const DataSliceImpl& filter, const JaggedDenseArrayShape& filter_shape) {
+  if (filter_shape.rank() < 1) {
     return absl::InvalidArgumentError("filter must have at least 1 dimension");
   }
-  if (filter_shape->rank() > ds_shape->rank()) {
+  if (filter_shape.rank() > ds_shape.rank()) {
     return absl::InvalidArgumentError(
         "filter cannot have a higher rank than the DataSlice.");
   }
 
-  if (!filter_shape->IsBroadcastableTo(*ds_shape)) {
+  if (!filter_shape.IsBroadcastableTo(ds_shape)) {
     return absl::FailedPreconditionError(
         "filter should be broadcastable to the input DataSlice");
   }
 
-  const absl::Span<const DenseArrayEdge> ds_edges = ds_shape->edges();
+  const absl::Span<const DenseArrayEdge> ds_edges = ds_shape.edges();
 
   arolla::JaggedDenseArrayShape::EdgeVec new_edges;
   new_edges.reserve(ds_edges.size());
 
   // The first filter_shape.rank()-1 dimensions are unchanged.
-  std::copy_n(ds_edges.begin(), filter_shape->rank() - 1,
+  std::copy_n(ds_edges.begin(), filter_shape.rank() - 1,
               std::back_inserter(new_edges));
 
   arolla::EvaluationContext ctx;
@@ -122,7 +121,7 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
     presence_mask_array = filter.values<arolla::Unit>();
   }
 
-  auto ds_edge_iterator = ds_edges.begin() + filter_shape->rank() - 1;
+  auto ds_edge_iterator = ds_edges.begin() + filter_shape.rank() - 1;
   {
     // The dimension at filter_shape.rank().
     ASSIGN_OR_RETURN(
@@ -147,7 +146,7 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
     new_edges.push_back(std::move(edge));
   }
 
-  ASSIGN_OR_RETURN(JaggedDenseArrayShapePtr new_shape,
+  ASSIGN_OR_RETURN(JaggedDenseArrayShape new_shape,
                    JaggedDenseArrayShape::FromEdges(std::move(new_edges)));
 
   DataSliceImpl::Builder builder(presence_mask_array.PresentCount());
@@ -171,8 +170,8 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
 }
 
 absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
-    const DataSliceImpl& ds_impl, const JaggedDenseArrayShapePtr& ds_shape,
-    const DataItem& filter, const JaggedDenseArrayShapePtr& filter_size) const {
+    const DataSliceImpl& ds_impl, const JaggedDenseArrayShape& ds_shape,
+    const DataItem& filter, const JaggedDenseArrayShape& filter_size) const {
   if (!filter.has_value()) {
     if (!ds_impl.is_single_dtype()) {
       DataSliceImpl empty_slice = DataSliceImpl::CreateEmptyAndUnknownType(1);
@@ -193,9 +192,8 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
 }
 
 absl::StatusOr<SelectOp::Result<DataItem>> SelectOp::operator()(
-    const DataItem& ds_impl, const JaggedDenseArrayShapePtr& ds_shape,
-    const DataItem& filter,
-    const JaggedDenseArrayShapePtr& filter_shape) const {
+    const DataItem& ds_impl, const JaggedDenseArrayShape& ds_shape,
+    const DataItem& filter, const JaggedDenseArrayShape& filter_shape) const {
   if (!filter.has_value()) {
     return SelectOp::Result<DataItem>(
         {DataItem(), JaggedDenseArrayShape::Empty()});
@@ -209,9 +207,9 @@ absl::StatusOr<SelectOp::Result<DataItem>> SelectOp::operator()(
 }
 
 absl::StatusOr<SelectOp::Result<DataItem>> SelectOp::operator()(
-    const DataItem& ds_impl, const JaggedDenseArrayShapePtr& ds_shape,
+    const DataItem& ds_impl, const JaggedDenseArrayShape& ds_shape,
     const DataSliceImpl& filter,
-    const JaggedDenseArrayShapePtr& filter_shape) const {
+    const JaggedDenseArrayShape& filter_shape) const {
   return absl::InternalError("invalid case");
 }
 

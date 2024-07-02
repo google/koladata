@@ -59,7 +59,7 @@ inline absl::StatusOr<DataSlice> ShallowCloneWithSchema(
                                      schema_fallbacks_span));
     }
     const auto result_db = DataBag::FromImpl(std::move(result_db_impl));
-    return DataSlice::Create(result_slice_impl, ds.GetShapePtr(),
+    return DataSlice::Create(result_slice_impl, ds.GetShape(),
                              result_schema_impl, result_db);
   });
 }

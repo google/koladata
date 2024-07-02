@@ -40,7 +40,7 @@ std::string Explain(const MatcherType& m, const Value& x) {
 
 TEST(MatchersTest, IsEquivalentTo) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  auto objects = internal::DataSliceImpl::AllocateEmptyObjects(shape->size());
+  auto objects = internal::DataSliceImpl::AllocateEmptyObjects(shape.size());
   ASSERT_OK_AND_ASSIGN(
       auto ds_1,
       DataSlice::Create(objects, shape, internal::DataItem(schema::kAny)));
@@ -71,7 +71,7 @@ TEST(MatchersTest, IsEquivalentTo) {
 TEST(MatchersTest, Printing) {
   // NOTE: go/gunitadvanced#teaching-googletest-how-to-print-your-values.
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  auto objects = internal::DataSliceImpl::AllocateEmptyObjects(shape->size());
+  auto objects = internal::DataSliceImpl::AllocateEmptyObjects(shape.size());
   ASSERT_OK_AND_ASSIGN(
       auto ds_1,
       DataSlice::Create(objects, shape, internal::DataItem(schema::kAny)));

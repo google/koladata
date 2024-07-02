@@ -39,7 +39,7 @@ inline absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts) {
   return dicts.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     return DataSlice::Create(
         db->GetImpl().GetDictSize(impl, fb_finder.GetFlattenFallbacks()),
-        dicts.GetShapePtr(), std::move(schema), /*db=*/nullptr);
+        dicts.GetShape(), std::move(schema), /*db=*/nullptr);
   });
 }
 

@@ -76,16 +76,16 @@ const internal::DataItem kAnySchema(schema::kAny);
 const internal::DataItem kObjectSchema(schema::kObject);
 const internal::DataItem kSchemaSchema(schema::kSchema);
 
-const DataSlice::JaggedShapePtr& MaxRankShape(
-    const DataSlice::JaggedShapePtr& s1, const DataSlice::JaggedShapePtr& s2) {
-  return s1->rank() < s2->rank() ? s2 : s1;
+const DataSlice::JaggedShape& MaxRankShape(const DataSlice::JaggedShape& s1,
+                                           const DataSlice::JaggedShape& s2) {
+  return s1.rank() < s2.rank() ? s2 : s1;
 }
 
-absl::StatusOr<DataSlice> EmptyLike(const DataSlice::JaggedShapePtr& shape,
+absl::StatusOr<DataSlice> EmptyLike(const DataSlice::JaggedShape& shape,
                                     internal::DataItem schema,
                                     std::shared_ptr<DataBag> db) {
   return DataSlice::Create(
-      internal::DataSliceImpl::CreateEmptyAndUnknownType(shape->size()), shape,
+      internal::DataSliceImpl::CreateEmptyAndUnknownType(shape.size()), shape,
       std::move(schema), std::move(db));
 }
 
@@ -112,21 +112,20 @@ absl::Status AssignmentError(absl::Status status, size_t lhs_rank,
 }  // namespace
 
 absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
-                                            JaggedShapePtr shape,
+                                            JaggedShape shape,
                                             internal::DataItem schema,
                                             std::shared_ptr<DataBag> db) {
-  DCHECK_NE(shape, nullptr);
-  if (shape->size() != impl.size()) {
+  if (shape.size() != impl.size()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("shape size must be compatible with number of items: "
                         "shape_size=%d != items_size=%d",
-                        shape->size(), impl.size()));
+                        shape.size(), impl.size()));
   }
   // NOTE: Checking the invariant to avoid doing non-trivial verification in
   // prod.
   DCHECK_OK(VerifySchemaConsistency(schema, impl.dtype(),
                                     impl.is_empty_and_unknown()));
-  if (shape->rank() == 0) {
+  if (shape.rank() == 0) {
     return DataSlice(impl[0], std::move(shape), std::move(schema),
                      std::move(db));
   }
@@ -146,7 +145,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
 }
 
 absl::StatusOr<DataSlice> DataSlice::CreateWithSchemaFromData(
-    internal::DataSliceImpl impl, JaggedShapePtr shape,
+    internal::DataSliceImpl impl, JaggedShape shape,
     std::shared_ptr<DataBag> db) {
   if (impl.is_mixed_dtype() ||
       impl.dtype() == arolla::GetQType<internal::ObjectId>()) {
@@ -164,12 +163,12 @@ absl::StatusOr<DataSlice> DataSlice::CreateWithSchemaFromData(
 }
 
 absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
-                                            JaggedShapePtr shape,
+                                            JaggedShape shape,
                                             internal::DataItem schema,
                                             std::shared_ptr<DataBag> db) {
   DCHECK_OK(VerifySchemaConsistency(schema, item.dtype(),
                                     /*empty_and_unknown=*/!item.has_value()));
-  if (shape->rank() == 0) {
+  if (shape.rank() == 0) {
     return DataSlice(item, std::move(shape), std::move(schema), std::move(db));
   } else {
     return DataSlice::Create(internal::DataSliceImpl::Create({item}),
@@ -179,7 +178,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
 }
 
 absl::StatusOr<DataSlice> DataSlice::Create(
-    absl::StatusOr<internal::DataSliceImpl> slice_or, JaggedShapePtr shape,
+    absl::StatusOr<internal::DataSliceImpl> slice_or, JaggedShape shape,
     internal::DataItem schema, std::shared_ptr<DataBag> db) {
   if (!slice_or.ok()) {
     return std::move(slice_or).status();
@@ -189,7 +188,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(
 }
 
 absl::StatusOr<DataSlice> DataSlice::Create(
-    absl::StatusOr<internal::DataItem> item_or, JaggedShapePtr shape,
+    absl::StatusOr<internal::DataItem> item_or, JaggedShape shape,
     internal::DataItem schema, std::shared_ptr<DataBag> db) {
   if (!item_or.ok()) {
     return std::move(item_or).status();
@@ -199,7 +198,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(
 }
 
 absl::StatusOr<DataSlice> DataSlice::Reshape(
-    DataSlice::JaggedShapePtr shape) const {
+    DataSlice::JaggedShape shape) const {
   return VisitImpl([&, shape = std::move(shape)](const auto& impl) {
     return DataSlice::Create(impl, std::move(shape), GetSchemaImpl(), GetDb());
   });
@@ -256,7 +255,7 @@ absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
   const internal::DataItem& schema_item = schema.item();
   RETURN_IF_ERROR(
       VerifySchemaConsistency(schema_item, dtype(), impl_empty_and_unknown()));
-  return DataSlice(internal_->impl_, GetShapePtr(), schema_item, GetDb());
+  return DataSlice(internal_->impl_, GetShape(), schema_item, GetDb());
 }
 
 absl::Status DataSlice::VerifyIsSchema() const {
@@ -316,7 +315,7 @@ absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {
   RETURN_IF_ERROR(VerifyIsSchema());
   ASSIGN_OR_RETURN(auto orig_schema_item,
                    schema::GetNoFollowedSchemaItem(item()));
-  return DataSlice(std::move(orig_schema_item), GetShapePtr(), GetSchemaImpl(),
+  return DataSlice(std::move(orig_schema_item), GetShape(), GetSchemaImpl(),
                    GetDb());
 }
 
@@ -582,7 +581,7 @@ absl::StatusOr<DataSlice> DataSlice::GetAttr(
     ASSIGN_OR_RETURN(auto res, GetAttrImpl(GetDb(), impl, GetSchemaImpl(),
                                            attr_name, res_schema,
                                            /*allow_missing_schema=*/false));
-    return DataSlice(std::move(res), GetShapePtr(), std::move(res_schema),
+    return DataSlice(std::move(res), GetShape(), std::move(res_schema),
                      GetDb());
   });
 }
@@ -600,7 +599,7 @@ absl::StatusOr<ImplT> CoalesceWithFiltered(const ImplT& objects, const ImplT& l,
 absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
     absl::string_view attr_name, const DataSlice& default_value) const {
   ASSIGN_OR_RETURN(auto expanded_default,
-                   BroadcastToShape(default_value, GetShapePtr()));
+                   BroadcastToShape(default_value, GetShape()));
   return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
     internal::DataItem res_schema;
     ASSIGN_OR_RETURN(auto res, GetAttrImpl(GetDb(), impl, GetSchemaImpl(),
@@ -620,8 +619,8 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
         schema::CommonSchema(res_schema, default_value.GetSchemaImpl()));
     auto res_db = DataBag::CommonDataBag({GetDb(), default_value.GetDb()});
     return DataSlice::Create(
-        CoalesceWithFiltered(impl, res, expanded_default.impl<T>()),
-        GetShapePtr(), std::move(res_schema), std::move(res_db));
+        CoalesceWithFiltered(impl, res, expanded_default.impl<T>()), GetShape(),
+        std::move(res_schema), std::move(res_db));
   });
 }
 
@@ -877,8 +876,7 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
     return absl::InvalidArgumentError(
         "cannot set attributes without a DataBag");
   }
-  ASSIGN_OR_RETURN(auto expanded_values,
-                   BroadcastToShape(values, GetShapePtr()),
+  ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, GetShape()),
                    _.With([&](auto status) {
                      return AssignmentError(std::move(status),
                                             GetShape().rank(),
@@ -1049,9 +1047,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
         "cannot get dict values without a DataBag");
   }
   FlattenFallbackFinder fb_finder(*GetDb());
-  const JaggedShapePtr& shape = GetShape().rank() < keys.GetShape().rank()
-                                    ? keys.GetShapePtr()
-                                    : GetShapePtr();
+  const JaggedShape& shape = MaxRankShape(GetShape(), keys.GetShape());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
@@ -1085,16 +1081,14 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
     return absl::InvalidArgumentError(
         "cannot set dict values without a DataBag");
   }
-  const JaggedShapePtr& shape = GetShape().rank() < keys.GetShape().rank()
-                                    ? keys.GetShapePtr()
-                                    : GetShapePtr();
+  const JaggedShape& shape = MaxRankShape(GetShape(), keys.GetShape());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(auto expanded_keys, BroadcastToShape(keys, shape));
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape),
                    _.With([&](auto status) {
-                     return AssignmentError(std::move(status), shape->rank(),
+                     return AssignmentError(std::move(status), shape.rank(),
                                             values.GetShape().rank());
                    }));
 
@@ -1145,8 +1139,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
         "cannot get list items without a DataBag");
   }
   FlattenFallbackFinder fb_finder(*GetDb());
-  const JaggedShapePtr& shape =
-      MaxRankShape(GetShapePtr(), indices.GetShapePtr());
+  const JaggedShape& shape = MaxRankShape(GetShape(), indices.GetShape());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
@@ -1161,7 +1154,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
                                             /*allow_missing=*/false);
                    }));
   if (expanded_indices.present_count() == 0) {
-    return EmptyLike(expanded_indices.GetShapePtr(), res_schema, GetDb());
+    return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
   }
   if (std::holds_alternative<internal::DataItem>(
           expanded_this.internal_->impl_)) {
@@ -1188,8 +1181,7 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
     return absl::InvalidArgumentError(
         "cannot pop items from list without a DataBag");
   }
-  const JaggedShapePtr& shape =
-      MaxRankShape(GetShapePtr(), indices.GetShapePtr());
+  const JaggedShape& shape = MaxRankShape(GetShape(), indices.GetShape());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
@@ -1207,7 +1199,7 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
                          /*allow_missing=*/false);
                    }));
   if (expanded_indices.present_count() == 0) {
-    return EmptyLike(expanded_indices.GetShapePtr(), res_schema, GetDb());
+    return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
   }
   if (std::holds_alternative<internal::DataItem>(
           expanded_this.internal_->impl_)) {
@@ -1240,8 +1232,7 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
     return absl::InvalidArgumentError(
         "cannot set list items without a DataBag");
   }
-  const JaggedShapePtr& shape =
-      MaxRankShape(GetShapePtr(), indices.GetShapePtr());
+  const JaggedShape& shape = MaxRankShape(GetShape(), indices.GetShape());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
@@ -1253,7 +1244,7 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape),
                    _.With([&](absl::Status status) {
-                     return AssignmentError(std::move(status), shape->rank(),
+                     return AssignmentError(std::move(status), shape.rank(),
                                             values.GetShape().rank());
                    }));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
@@ -1277,8 +1268,7 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
 }
 
 absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
-  const JaggedShapePtr& shape =
-      MaxRankShape(GetShapePtr(), indices.GetShapePtr());
+  const JaggedShape& shape = MaxRankShape(GetShape(), indices.GetShape());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
@@ -1309,13 +1299,11 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
     return absl::InvalidArgumentError(
         "cannot append items to list without a DataBag");
   }
-  const JaggedShapePtr& shape = GetShape().rank() < values.GetShape().rank()
-                                    ? values.GetShapePtr()
-                                    : GetShapePtr();
-  if (!GetShape().IsBroadcastableTo(*shape)) {
+  const JaggedShape& shape = MaxRankShape(GetShape(), values.GetShape());
+  if (!GetShape().IsBroadcastableTo(shape)) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "Lists DataSlice with shape=%s is not compatible with values shape=%s",
-        arolla::Repr(GetShape()), arolla::Repr(*shape)));
+        arolla::Repr(GetShape()), arolla::Repr(shape)));
   }
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
@@ -1326,13 +1314,13 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
 
-  if (GetShape().rank() < shape->rank()) {
+  if (GetShape().rank() < shape.rank()) {
     return VisitImpl([&]<class T>(const T& impl) -> absl::Status {
       if constexpr (std::is_same_v<T, internal::DataItem>) {
         return db_mutable_impl.ExtendList(impl,
                                           data_handler.GetValues().slice());
       } else {
-        auto edge = GetShape().GetBroadcastEdge(*shape);
+        auto edge = GetShape().GetBroadcastEdge(shape);
         return db_mutable_impl.ExtendLists(
             impl, data_handler.GetValues().slice(), edge);
       }
@@ -1416,7 +1404,7 @@ absl::Status DataSlice::ReplaceInList(int64_t start,
         GetShape().rank(), values.GetShape().rank(), GetShape().rank() + 1));
   }
   if (!GetShape().IsBroadcastableTo(values.GetShape())) {
-    return BroadcastToShape(*this, values.GetShapePtr()).status();
+    return BroadcastToShape(*this, values.GetShape()).status();
   }
 
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
@@ -1513,8 +1501,8 @@ absl::Status DataSlice::VerifySchemaConsistency(
 }
 
 absl::StatusOr<DataSlice> internal_broadcast::BroadcastToShapeSlow(
-    const DataSlice& slice, DataSlice::JaggedShapePtr shape) {
-  auto edge = slice.GetShape().GetBroadcastEdge(*shape);
+    const DataSlice& slice, DataSlice::JaggedShape shape) {
+  auto edge = slice.GetShape().GetBroadcastEdge(shape);
   return DataSliceOp<internal::ExpandOp>()(
       slice, std::move(shape), slice.GetSchemaImpl(), slice.GetDb(), edge);
 }
@@ -1525,8 +1513,8 @@ absl::StatusOr<DataSlice> CastOrUpdateSchema(
     internal::DataBagImpl& db_impl) {
   RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerErrorContext::kAttr,
                                                  /*rhs=*/value, attr_name);
-  RETURN_IF_ERROR(data_handler.ProcessSchemaObjectAttr(
-      lhs_schema, db_impl, {}, update_schema));
+  RETURN_IF_ERROR(data_handler.ProcessSchemaObjectAttr(lhs_schema, db_impl, {},
+                                                       update_schema));
   return data_handler.GetValues();
 }
 

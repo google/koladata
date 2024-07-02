@@ -283,7 +283,7 @@ class GroupByIndicesQExprOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(
               auto new_shape,
               shape.RemoveDims(/*from=*/shape.rank() - 1)
-                  ->AddDims({group_split_points, item_split_points}),
+                  .AddDims({group_split_points, item_split_points}),
               ctx->set_status(std::move(_)));
           ASSIGN_OR_RETURN(
               auto result,

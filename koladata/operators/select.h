@@ -40,15 +40,15 @@ inline absl::StatusOr<DataSlice> Select(const DataSlice& ds,
         "the schema of the filter DataSlice should only be Any, Object or "
         "Mask");
   }
-  const DataSlice::JaggedShapePtr& fltr_shape =
-      expand_filter ? ds.GetShapePtr() : filter.GetShapePtr();
+  const DataSlice::JaggedShape& fltr_shape =
+      expand_filter ? ds.GetShape() : filter.GetShape();
   ASSIGN_OR_RETURN(auto fltr, BroadcastToShape(filter, fltr_shape));
   return ds.VisitImpl([&](const auto& ds_impl) {
     return fltr.VisitImpl([&](const auto& filter_impl)
                               -> absl::StatusOr<DataSlice> {
       ASSIGN_OR_RETURN((auto [result_ds, result_shape]),
-                       internal::SelectOp()(ds_impl, ds.GetShapePtr(),
-                                            filter_impl, fltr.GetShapePtr()));
+                       internal::SelectOp()(ds_impl, ds.GetShape(), filter_impl,
+                                            fltr.GetShape()));
       return DataSlice::Create(std::move(result_ds), std::move(result_shape),
                                ds.GetSchemaImpl(), ds.GetDb());
     });
@@ -66,13 +66,13 @@ inline absl::StatusOr<DataSlice> ReverseSelect(const DataSlice& ds,
         "the schema of the filter DataSlice should only be Any, Object or "
         "Mask");
   }
-  auto ds_shape = ds.GetShapePtr();
-  auto filter_shape = filter.GetShapePtr();
-  if (ds_shape->rank() != filter_shape->rank()) {
+  auto ds_shape = ds.GetShape();
+  auto filter_shape = filter.GetShape();
+  if (ds_shape.rank() != filter_shape.rank()) {
     return absl::InvalidArgumentError(absl::StrCat(
         "the rank of the ds and filter DataSlice must be the same. Got "
         "rank(ds): ",
-        ds_shape->rank(), ", rank(filter): ", filter_shape->rank()));
+        ds_shape.rank(), ", rank(filter): ", filter_shape.rank()));
   }
   return ds.VisitImpl([&](const auto& ds_impl) {
     return filter.VisitImpl(

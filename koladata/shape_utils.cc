@@ -27,16 +27,16 @@
 
 namespace koladata::shape {
 
-absl::StatusOr<typename DataSlice::JaggedShapePtr> GetCommonShape(
+absl::StatusOr<DataSlice::JaggedShape> GetCommonShape(
     absl::Span<const DataSlice> slices) {
   if (slices.empty()) {
     return absl::InvalidArgumentError(
         "computing a common shape requires at least 1 input");
   }
-  DataSlice::JaggedShapePtr shape = nullptr;
+  const DataSlice::JaggedShape* shape = nullptr;
   for (const auto& slice : slices) {
     if (shape == nullptr || shape->rank() < slice.GetShape().rank()) {
-      shape = slice.GetShapePtr();
+      shape = &slice.GetShape();
     }
   }
   DCHECK_NE(shape, nullptr);
@@ -45,7 +45,7 @@ absl::StatusOr<typename DataSlice::JaggedShapePtr> GetCommonShape(
       return absl::InvalidArgumentError("shapes are not compatible");
     }
   }
-  return shape;
+  return *shape;
 }
 
 absl::StatusOr<std::vector<DataSlice>> Align(std::vector<DataSlice> slices) {
@@ -56,7 +56,7 @@ absl::StatusOr<std::vector<DataSlice>> Align(std::vector<DataSlice> slices) {
   return slices;
 }
 
-absl::StatusOr<std::pair<std::vector<DataSlice>, DataSlice::JaggedShapePtr>>
+absl::StatusOr<std::pair<std::vector<DataSlice>, DataSlice::JaggedShape>>
 AlignNonScalars(std::vector<DataSlice> slices) {
   ASSIGN_OR_RETURN(auto shape, GetCommonShape(slices));
   for (auto& slice : slices) {

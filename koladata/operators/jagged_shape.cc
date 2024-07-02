@@ -87,10 +87,9 @@ absl::StatusOr<DataSlice::JaggedShape::Edge> GetEdgeFromSizes(
 class JaggedShapeCreateOperator : public arolla::InlineOperator {
  public:
   JaggedShapeCreateOperator(absl::Span<const arolla::QTypePtr> types)
-      : InlineOperator(
-            "kde.shapes.create",
-            arolla::QExprOperatorSignature::Get(
-                types, arolla::GetQType<DataSlice::JaggedShapePtr>())) {
+      : InlineOperator("kde.shapes.create",
+                       arolla::QExprOperatorSignature::Get(
+                           types, arolla::GetQType<DataSlice::JaggedShape>())) {
     for (const auto& input_type : types) {
       DCHECK(input_type == arolla::GetQType<DataSlice>() ||
              input_type == arolla::GetQType<DataSlice::JaggedShape::Edge>());
@@ -113,8 +112,8 @@ class JaggedShapeCreateOperator : public arolla::InlineOperator {
         edge_or_slice_slots.push_back(input_slots[i].UnsafeToSlot<DataSlice>());
       }
     }
-    Slot<DataSlice::JaggedShapePtr> shape_slot =
-        output_slot.UnsafeToSlot<DataSlice::JaggedShapePtr>();
+    Slot<DataSlice::JaggedShape> shape_slot =
+        output_slot.UnsafeToSlot<DataSlice::JaggedShape>();
     return arolla::MakeBoundOperator(
         [edge_or_slice_slots = std::move(edge_or_slice_slots),
          shape_slot = std::move(shape_slot)](arolla::EvaluationContext* ctx,
@@ -161,7 +160,7 @@ JaggedShapeCreateOperatorFamily::DoGetOperator(
 }
 
 absl::StatusOr<DataSlice> ExpandToShape(const DataSlice& x,
-                                        DataSlice::JaggedShapePtr shape,
+                                        DataSlice::JaggedShape shape,
                                         int64_t ndim) {
   if (ndim == 0) {
     return BroadcastToShape(x, std::move(shape));

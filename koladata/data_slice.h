@@ -70,7 +70,6 @@ constexpr absl::string_view kSchemaItemQValueSpecializationKey =
 class DataSlice {
  public:
   using JaggedShape = arolla::JaggedDenseArrayShape;
-  using JaggedShapePtr = arolla::JaggedDenseArrayShapePtr;
 
   // Creates a DataSlice with necessary invariant checks:
   // * shape must be compatible with the size of DataSliceImpl;
@@ -80,7 +79,7 @@ class DataSlice {
   // caller does not handle schema itself, it should rely on
   // DataSlice::WithSchema, instead.
   static absl::StatusOr<DataSlice> Create(
-      internal::DataSliceImpl impl, JaggedShapePtr shape,
+      internal::DataSliceImpl impl, JaggedShape shape,
       internal::DataItem schema, std::shared_ptr<DataBag> db = nullptr);
 
   // Same as above, but creates a DataSlice from DataItem. Shape is created
@@ -96,43 +95,39 @@ class DataSlice {
   // Creates a DataSlice with schema built from data's dtype. Supported only for
   // primitive DTypes.
   static absl::StatusOr<DataSlice> CreateWithSchemaFromData(
-      internal::DataSliceImpl impl, JaggedShapePtr shape,
+      internal::DataSliceImpl impl, JaggedShape shape,
       std::shared_ptr<DataBag> db = nullptr);
 
-  // Convenience factory method that accepts JaggedShapePtr, so that we can use
+  // Convenience factory method that accepts JaggedShape, so that we can use
   // implementation-agnostic constructions in visitors passed to VisitImpl.
   static absl::StatusOr<DataSlice> Create(
-      const internal::DataItem& item, JaggedShapePtr shape,
+      const internal::DataItem& item, JaggedShape shape,
       internal::DataItem schema, std::shared_ptr<DataBag> db = nullptr);
 
   // Convenience factory method that creates a DataSlice from StatusOr. Returns
   // the same error in case of error.
   static absl::StatusOr<DataSlice> Create(
-      absl::StatusOr<internal::DataSliceImpl> slice_or, JaggedShapePtr shape,
+      absl::StatusOr<internal::DataSliceImpl> slice_or, JaggedShape shape,
       internal::DataItem schema, std::shared_ptr<DataBag> db = nullptr);
 
   // Convenience factory method that creates a DataSlice from StatusOr. Returns
   // the same error in case of error.
   static absl::StatusOr<DataSlice> Create(
-      absl::StatusOr<internal::DataItem> item_or, JaggedShapePtr shape,
+      absl::StatusOr<internal::DataItem> item_or, JaggedShape shape,
       internal::DataItem schema, std::shared_ptr<DataBag> db = nullptr);
 
   // Default-constructed DataSlice is a single missing item with scalar shape
   // and unknown dtype.
   DataSlice() : internal_(arolla::RefcountPtr<Internal>::Make()) {};
 
-  // Returns a JaggedShapePtr of this slice.
-  const JaggedShapePtr& GetShapePtr() const { return internal_->shape_; }
-
   // Returns a JaggedShape of this slice.
   const JaggedShape& GetShape() const {
-    DCHECK_NE(internal_->shape_, nullptr);
-    return *internal_->shape_;
+    return internal_->shape_;
   }
 
   // Returns a new DataSlice with the same values and a new `shape`. Returns an
   // error if the shape is not compatible with the existing shape.
-  absl::StatusOr<DataSlice> Reshape(JaggedShapePtr shape) const;
+  absl::StatusOr<DataSlice> Reshape(JaggedShape shape) const;
 
   // Returns a DataSlice that represents a Schema.
   DataSlice GetSchema() const;
@@ -179,7 +174,7 @@ class DataSlice {
 
   // Returns a new DataSlice with a new reference to DataBag `db`.
   DataSlice WithDb(std::shared_ptr<DataBag> db) const {
-    return DataSlice(internal_->impl_, GetShapePtr(), GetSchemaImpl(), db);
+    return DataSlice(internal_->impl_, GetShape(), GetSchemaImpl(), db);
   }
 
   // Returns true iff `other` represents the same DataSlice with same data
@@ -387,7 +382,7 @@ class DataSlice {
  private:
   using ImplVariant = std::variant<internal::DataItem, internal::DataSliceImpl>;
 
-  DataSlice(ImplVariant impl, JaggedShapePtr shape, internal::DataItem schema,
+  DataSlice(ImplVariant impl, JaggedShape shape, internal::DataItem schema,
             std::shared_ptr<DataBag> db = nullptr)
       : internal_(arolla::RefcountPtr<Internal>::Make(
             std::move(impl), std::move(shape), std::move(schema),
@@ -410,7 +405,7 @@ class DataSlice {
     // Can be shared between multiple DataSlice(s) (e.g. getattr, result
     // of all pointwise operators, as well as aggregation that returns the
     // same size - rank and similar).
-    JaggedShapePtr shape_;
+    JaggedShape shape_;
     // Schema:
     // * Primitive DType for primitive slices / items;
     // * ObjectId (allocated or UUID) for complex schemas, where it
@@ -426,7 +421,7 @@ class DataSlice {
 
     Internal() : shape_(JaggedShape::Empty()), schema_(schema::kAny) {}
 
-    Internal(ImplVariant impl, JaggedShapePtr shape, internal::DataItem schema,
+    Internal(ImplVariant impl, JaggedShape shape, internal::DataItem schema,
              std::shared_ptr<DataBag> db = nullptr)
         : impl_(std::move(impl)),
           shape_(std::move(shape)),
@@ -443,22 +438,22 @@ class DataSlice {
 namespace internal_broadcast {
 
 absl::StatusOr<DataSlice> BroadcastToShapeSlow(const DataSlice& slice,
-                                               DataSlice::JaggedShapePtr shape);
+                                               DataSlice::JaggedShape shape);
 }
 
 // Returns a new DataSlice whose values and shape are broadcasted to `shape`.
 // In case DataSlice cannot be broadcasted to `shape`, appropriate Status
 // error is returned.
 inline absl::StatusOr<DataSlice> BroadcastToShape(
-    DataSlice slice, DataSlice::JaggedShapePtr shape) {
-  if (ABSL_PREDICT_FALSE(!slice.GetShape().IsBroadcastableTo(*shape))) {
+    DataSlice slice, DataSlice::JaggedShape shape) {
+  if (ABSL_PREDICT_FALSE(!slice.GetShape().IsBroadcastableTo(shape))) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "DataSlice with shape=%s cannot be expanded to shape=%s",
-        arolla::Repr(slice.GetShape()), arolla::Repr(*shape)));
+        arolla::Repr(slice.GetShape()), arolla::Repr(shape)));
   }
   // They are already broadcastable. If ranks are the same, shapes are
   // equivalent.
-  if (ABSL_PREDICT_TRUE(slice.GetShape().rank() == shape->rank())) {
+  if (ABSL_PREDICT_TRUE(slice.GetShape().rank() == shape.rank())) {
     return slice;
   }
   return internal_broadcast::BroadcastToShapeSlow(slice, std::move(shape));

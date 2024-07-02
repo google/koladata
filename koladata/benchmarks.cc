@@ -245,7 +245,7 @@ void BM_GetFromList(benchmark::State& state) {
   auto index = *DataSlice::Create(internal::DataItem(int64_t{0}),
                                   internal::DataItem(schema::kInt64));
   if (should_broadcast_index) {
-    index = *BroadcastToShape(index, list.GetShapePtr());
+    index = *BroadcastToShape(index, list.GetShape());
   }
   for (auto _ : state) {
     benchmark::DoNotOptimize(list);

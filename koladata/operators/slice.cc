@@ -217,8 +217,8 @@ class SubsliceOperator : public arolla::InlineOperator {
 };
 
 absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
-  const auto& x_shape = x.GetShapePtr();
-  const auto& indices_shape = indices.GetShapePtr();
+  const auto& x_shape = x.GetShape();
+  const auto& indices_shape = indices.GetShape();
   // If ndim(indices) == ndim(x) - 1, insert a unit dimension to the end,
   // which is needed by internal::AtOp().
   // If ndim(indices) > ndim(x) - 1, flatten the last ndim(indices) - ndim(x)
@@ -226,13 +226,13 @@ absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
   // The flattened_shape always has the same rank and the same N-1 dimensions
   // as the shape of x.
   auto flattened_shape =
-      indices_shape->FlattenDims(x_shape->rank() - 1, indices_shape->rank());
+      indices_shape.FlattenDims(x_shape.rank() - 1, indices_shape.rank());
 
   std::optional<arolla::DenseArrayEdge> indices_to_common =
-      flattened_shape->edges().empty()
+      flattened_shape.edges().empty()
           ? std::nullopt
-          : std::make_optional(flattened_shape->edges().back());
-  auto x_to_common = x_shape->edges().back();
+          : std::make_optional(flattened_shape.edges().back());
+  auto x_to_common = x_shape.edges().back();
   ASSIGN_OR_RETURN(auto index_array, ToArollaDenseArrayInt64(indices));
 
   return DataSlice::Create(
@@ -272,19 +272,19 @@ absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(
 }
 
 absl::StatusOr<DataSlice> At(const DataSlice& x, const DataSlice& indices) {
-  const auto& x_shape = x.GetShapePtr();
-  if (x_shape->rank() == 0) {
+  const auto& x_shape = x.GetShape();
+  if (x_shape.rank() == 0) {
     return absl::InvalidArgumentError("kd.at is not supported for DataItem.");
   }
-  const auto shape_for_expansion = x_shape->RemoveDims(x_shape->rank() - 1);
-  const auto& indices_shape = indices.GetShapePtr();
-  if (indices_shape->rank() >= shape_for_expansion->rank()) {
-    if (!shape_for_expansion->IsBroadcastableTo(*indices_shape)) {
+  const auto shape_for_expansion = x_shape.RemoveDims(x_shape.rank() - 1);
+  const auto& indices_shape = indices.GetShape();
+  if (indices_shape.rank() >= shape_for_expansion.rank()) {
+    if (!shape_for_expansion.IsBroadcastableTo(indices_shape)) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "DataSlice with shape=%s cannot be expanded to shape=%s; kd.at "
           "requires shape(x)[:-1] to be broadcastable to shape(indices) when "
           "ndim(x) <= ndim(indices)",
-          arolla::Repr(*indices_shape), arolla::Repr(*shape_for_expansion)));
+          arolla::Repr(indices_shape), arolla::Repr(shape_for_expansion)));
     }
     return AtImpl(x, indices);
   } else {

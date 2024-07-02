@@ -43,7 +43,7 @@ DataSlice::JaggedShape::Edge CreateEdge(
       CreateFullDenseArray(std::vector<int64_t>(split_points)));
 }
 
-absl::StatusOr<DataSlice::JaggedShapePtr> ShapeFromEdges(
+absl::StatusOr<DataSlice::JaggedShape> ShapeFromEdges(
     std::initializer_list<DataSlice::JaggedShape::Edge> edges) {
   return DataSlice::JaggedShape::FromEdges(edges);
 }
@@ -57,7 +57,7 @@ TEST(ShapeUtilsTest, GetCommonShape) {
                          DataSlice::CreateWithSchemaFromData(
                              internal::DataSliceImpl::Create(values), shape_1));
     ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape({ds}));
-    EXPECT_THAT(shape_1, IsEquivalentTo(*common_shape));
+    EXPECT_THAT(shape_1, IsEquivalentTo(common_shape));
   }
   {
     // Same shape.
@@ -71,7 +71,7 @@ TEST(ShapeUtilsTest, GetCommonShape) {
         auto ds_2, DataSlice::CreateWithSchemaFromData(
                        internal::DataSliceImpl::Create(values_2), shape_1));
     ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape({ds_1, ds_2}));
-    EXPECT_THAT(shape_1, IsEquivalentTo(*common_shape));
+    EXPECT_THAT(shape_1, IsEquivalentTo(common_shape));
   }
   {
     // Normal expansion required.
@@ -88,7 +88,7 @@ TEST(ShapeUtilsTest, GetCommonShape) {
         auto ds_2, DataSlice::CreateWithSchemaFromData(
                        internal::DataSliceImpl::Create(values_2), shape_2));
     ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape({ds_1, ds_2}));
-    EXPECT_THAT(shape_2, IsEquivalentTo(*common_shape));
+    EXPECT_THAT(shape_2, IsEquivalentTo(common_shape));
   }
   {
     // Non-compatible shapes.
@@ -183,10 +183,10 @@ TEST(ShapeUtilsTest, Align) {
                        internal::DataSliceImpl::Create(values_2), shape_2));
 
     ASSERT_OK_AND_ASSIGN(auto aligned, Align({ds_1, ds_2}));
-    EXPECT_THAT(aligned[0].GetShape(), IsEquivalentTo(*shape_2));
+    EXPECT_THAT(aligned[0].GetShape(), IsEquivalentTo(shape_2));
     EXPECT_THAT(aligned[0].slice().template values<int>(),
                 ElementsAre(1, 1, 2, 2, 3, 3));
-    EXPECT_THAT(aligned[1].GetShape(), IsEquivalentTo(*shape_2));
+    EXPECT_THAT(aligned[1].GetShape(), IsEquivalentTo(shape_2));
     EXPECT_THAT(aligned[1].slice().template values<int>(),
                 ElementsAre(1, 2, 3, 4, 5, 6));
   }

@@ -45,9 +45,9 @@ namespace koladata::internal {
 struct ReverseSelectOp {
   absl::StatusOr<DataSliceImpl> operator()(
       const DataSliceImpl& ds_impl,
-      const arolla::JaggedDenseArrayShapePtr& ds_shape,
+      const arolla::JaggedDenseArrayShape& ds_shape,
       const DataSliceImpl& filter,
-      const arolla::JaggedDenseArrayShapePtr& filter_shape) const {
+      const arolla::JaggedDenseArrayShape& filter_shape) const {
     arolla::EvaluationContext ctx;
     std::optional<arolla::DenseArray<arolla::Unit>> presence_mask_array;
 
@@ -64,7 +64,7 @@ struct ReverseSelectOp {
     }
 
     // Check ds_shape is equivalent to the shape after applying the filter.
-    auto filter_edges = filter_shape->edges();
+    auto filter_edges = filter_shape.edges();
     arolla::JaggedDenseArrayShape::EdgeVec filter_select_edges(
         filter_edges.begin(), filter_edges.end());
     arolla::DenseGroupOps<arolla::SimpleCountAggregator> agg(
@@ -77,7 +77,7 @@ struct ReverseSelectOp {
     ASSIGN_OR_RETURN(auto filter_select_shape,
                      arolla::JaggedDenseArrayShape::FromEdges(
                          std::move(filter_select_edges)));
-    if (!filter_select_shape->IsEquivalentTo(*ds_shape)) {
+    if (!filter_select_shape.IsEquivalentTo(ds_shape)) {
       return absl::InvalidArgumentError(absl::StrCat(
           "it is not possible to get the provided DataSlice after applying the "
           "filter because the shape of the DataSlice is different from the "
@@ -105,15 +105,15 @@ struct ReverseSelectOp {
 
   absl::StatusOr<DataSliceImpl> operator()(
       const DataSliceImpl& ds_impl,
-      const arolla::JaggedDenseArrayShapePtr& ds_shape, const DataItem& filter,
-      const arolla::JaggedDenseArrayShapePtr& filter_size) const {
+      const arolla::JaggedDenseArrayShape& ds_shape, const DataItem& filter,
+      const arolla::JaggedDenseArrayShape& filter_size) const {
     return absl::InternalError("invalid case ensured by the caller");
   };
 
   absl::StatusOr<DataItem> operator()(
-      const DataItem& ds_impl, const arolla::JaggedDenseArrayShapePtr& ds_shape,
+      const DataItem& ds_impl, const arolla::JaggedDenseArrayShape& ds_shape,
       const DataItem& filter,
-      const arolla::JaggedDenseArrayShapePtr& filter_shape) const {
+      const arolla::JaggedDenseArrayShape& filter_shape) const {
     if (filter.has_value() && !filter.holds_value<arolla::Unit>()) {
       return absl::InvalidArgumentError(
           "second argument to operator reverse_select must have all items "
@@ -128,9 +128,9 @@ struct ReverseSelectOp {
   };
 
   absl::StatusOr<DataItem> operator()(
-      const DataItem& ds_impl, const arolla::JaggedDenseArrayShapePtr& ds_shape,
+      const DataItem& ds_impl, const arolla::JaggedDenseArrayShape& ds_shape,
       const DataSliceImpl& filter,
-      const arolla::JaggedDenseArrayShapePtr& filter_shape) const {
+      const arolla::JaggedDenseArrayShape& filter_shape) const {
     return absl::InternalError("invalid case ensured by the caller");
   }
 };

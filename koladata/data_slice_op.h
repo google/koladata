@@ -51,7 +51,7 @@ struct DataSliceOp {
   // ArgType&& args... are passed unmodified to the underlying OpImpl.
   template <class DataSlice, class... ArgType>
   absl::StatusOr<DataSlice> operator()(const DataSlice& ds,
-                                       DataSlice::JaggedShapePtr shape,
+                                       DataSlice::JaggedShape shape,
                                        internal::DataItem schema,
                                        std::shared_ptr<DataBag> db,
                                        ArgType&&... args) {
@@ -91,7 +91,7 @@ struct DataSliceOp {
         const auto& impl_2 = aligned_inputs[1].template impl<ImplT>();
         return DataSlice::Create(
             OpImpl()(impl_1, impl_2, std::forward<ArgType>(args)...),
-            aligned_ds_1.GetShapePtr(), std::move(schema), std::move(db));
+            aligned_ds_1.GetShape(), std::move(schema), std::move(db));
       });
     }
   }

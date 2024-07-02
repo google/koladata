@@ -64,7 +64,7 @@ absl::StatusOr<DataSlice> CreateEntitiesFromFields(
   ASSIGN_OR_RETURN(auto ds_impl, db_mutable_impl.CreateObjectsFromFields(
                                      attr_names, aligned_values_impl));
   return DataSlice::Create(std::move(ds_impl),
-                           std::move(aligned_values.begin()->GetShapePtr()),
+                           std::move(aligned_values.begin()->GetShape()),
                            std::move(schema),
                            db);
 }
@@ -196,7 +196,7 @@ absl::StatusOr<DataSlice> CreateObjectsFromFields(
       SetObjectSchema(db_mutable_impl, ds_impl, attr_names, schemas));
 
   return DataSlice::Create(std::move(ds_impl),
-                           std::move(aligned_values.begin()->GetShapePtr()),
+                           std::move(aligned_values.begin()->GetShape()),
                            internal::DataItem(schema::kObject), db);
 }
 
@@ -227,7 +227,7 @@ absl::StatusOr<DataSlice> CreateLike(const std::shared_ptr<DataBag>& db,
       return DataSlice::Create(internal::DataSliceImpl::CreateObjectsDataSlice(
                                    std::move(result_impl_builder).Build(),
                                    internal::AllocationIdSet(alloc_id)),
-                               shape_and_mask.GetShapePtr(), schema, db);
+                               shape_and_mask.GetShape(), schema, db);
     }
   });
 }
@@ -330,8 +330,8 @@ absl::StatusOr<DataSlice> EntityCreator::operator()(
 }
 
 absl::StatusOr<DataSlice> EntityCreator::operator()(
-    const DataBagPtr& db, DataSlice::JaggedShapePtr shape) const {
-  auto ds_impl = internal::DataSliceImpl::AllocateEmptyObjects(shape->size());
+    const DataBagPtr& db, DataSlice::JaggedShape shape) const {
+  auto ds_impl = internal::DataSliceImpl::AllocateEmptyObjects(shape.size());
   return DataSlice::Create(
       std::move(ds_impl), std::move(shape),
       internal::DataItem(internal::AllocateExplicitSchema()), db);
@@ -360,8 +360,8 @@ absl::StatusOr<DataSlice> ObjectCreator::operator()(
 }
 
 absl::StatusOr<DataSlice> ObjectCreator::operator()(
-    const DataBagPtr& db, DataSlice::JaggedShapePtr shape) const {
-  auto ds_impl = internal::DataSliceImpl::AllocateEmptyObjects(shape->size());
+    const DataBagPtr& db, DataSlice::JaggedShape shape) const {
+  auto ds_impl = internal::DataSliceImpl::AllocateEmptyObjects(shape.size());
   ASSIGN_OR_RETURN(
       auto schema_impl,
       CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
@@ -403,7 +403,7 @@ absl::StatusOr<DataSlice> CreateUuidFromFields(
     }
     return DataSlice::Create(
         internal::CreateUuidFromFields(seed, attr_names, values_impl),
-        aligned_values.begin()->GetShapePtr(),
+        aligned_values.begin()->GetShape(),
         internal::DataItem(schema::kItemId),
         nullptr);
   });
@@ -461,7 +461,7 @@ absl::StatusOr<DataSlice> UuObjectCreator::operator()(
                                         attr_names, schemas,
                                   /*overwrite_schemas=*/false));
         return DataSlice::Create(
-            impl_res.value(), std::move(aligned_values.begin()->GetShapePtr()),
+            impl_res.value(), std::move(aligned_values.begin()->GetShape()),
             internal::DataItem(schema::kObject), db);
       });
 }
@@ -559,7 +559,7 @@ absl::StatusOr<DataSlice> CreateDictLike(
 }
 
 absl::StatusOr<DataSlice> CreateDictShaped(
-    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShapePtr shape,
+    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShape shape,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema,
@@ -568,12 +568,12 @@ absl::StatusOr<DataSlice> CreateDictShaped(
   return CreateDictImpl(
       db,
       [&](const auto& schema) {
-        if (shape->rank() == 0) {
+        if (shape.rank() == 0) {
           return DataSlice::Create(
               internal::DataItem(internal::AllocateSingleDict()),
               std::move(shape), schema, db);
         } else {
-          size_t size = shape->size();
+          size_t size = shape.size();
           return DataSlice::Create(
               internal::DataSliceImpl::ObjectsFromAllocation(
                   internal::AllocateDicts(size), size),
@@ -626,7 +626,7 @@ absl::StatusOr<DataSlice> CreateNestedList(
 }
 
 absl::StatusOr<DataSlice> CreateListShaped(
-    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShapePtr shape,
+    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShape shape,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& item_schema) {
@@ -644,10 +644,10 @@ absl::StatusOr<DataSlice> CreateListShaped(
                      DeduceItemSchema(values, item_schema));
     ASSIGN_OR_RETURN(list_schema, CreateListSchema(db, deduced_item_schema));
   }
-  size_t size = shape->size();
+  size_t size = shape.size();
 
   std::optional<DataSlice> result;
-  if (shape->rank() == 0) {
+  if (shape.rank() == 0) {
     ASSIGN_OR_RETURN(
         result,
         DataSlice::Create(internal::DataItem(internal::AllocateSingleList()),

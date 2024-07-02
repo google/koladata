@@ -43,12 +43,12 @@ inline absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
     ASSIGN_OR_RETURN(auto res_impl, db->GetImpl().GetListSize(
                                         impl, fb_finder.GetFlattenFallbacks()));
     if constexpr (std::is_same_v<T, internal::DataItem>) {
-      return DataSlice::Create(std::move(res_impl), lists.GetShapePtr(),
+      return DataSlice::Create(std::move(res_impl), lists.GetShape(),
                                std::move(schema), /*db=*/nullptr);
     } else {
       return DataSlice::Create(
           internal::DataSliceImpl::Create(std::move(res_impl)),
-          lists.GetShapePtr(), std::move(schema), /*db=*/nullptr);
+          lists.GetShape(), std::move(schema), /*db=*/nullptr);
     }
   });
 }

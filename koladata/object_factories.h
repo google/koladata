@@ -65,7 +65,7 @@ struct EntityCreator {
   // attribute. In order to set data attributes, schema attributes need to be
   // set first. Otherwise, errors would be raised on setattr.
   absl::StatusOr<DataSlice> operator()(const DataBagPtr& db,
-                                       DataSlice::JaggedShapePtr shape) const;
+                                       DataSlice::JaggedShape shape) const;
 
   // Assigns DataBag `db` to `value`.
   absl::StatusOr<DataSlice> operator()(const DataBagPtr& db,
@@ -97,7 +97,7 @@ struct ObjectCreator {
   // object item has its own different allocated schema object, under __schema__
   // attribute).
   absl::StatusOr<DataSlice> operator()(const DataBagPtr& db,
-                                       DataSlice::JaggedShapePtr shape) const;
+                                       DataSlice::JaggedShape shape) const;
 
   // Convert a DataSlice into an Object. If DataSlice is primitive or an entity,
   // it converts it into an Object. If it is already an Object, it returns this
@@ -168,7 +168,7 @@ absl::StatusOr<internal::DataItem> CreateDictSchema(
 // and broadcasting). If `key_schema` and `value_schema` are not provided, they
 // will be taken from `keys` and `values` or defaulted to OBJECT.
 absl::StatusOr<DataSlice> CreateDictShaped(
-    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShapePtr shape,
+    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShape shape,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema = std::nullopt,
@@ -220,7 +220,7 @@ absl::StatusOr<DataSlice> CreateNestedList(
 // potential type casting and broadcasting). If `item_schema` is not provided,
 // it will be taken from `values` or defaulted to OBJECT.
 absl::StatusOr<DataSlice> CreateListShaped(
-    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShapePtr shape,
+    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShape shape,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema = std::nullopt,
     const std::optional<DataSlice>& item_schema = std::nullopt);

@@ -229,7 +229,7 @@ TEST(DataSliceUtils, FromDenseArray) {
                        DataSliceFromPrimitivesDenseArray(typed_value.AsRef()));
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   EXPECT_EQ(ds.size(), values.size());
-  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(*shape));
+  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_EQ(ds.dtype(), arolla::GetQType<int>());
 
   ASSERT_OK_AND_ASSIGN(auto darray, DataSliceToDenseArray(ds));
@@ -320,7 +320,7 @@ TEST(DataSliceUtils, FromArray) {
                        DataSliceFromPrimitivesArray(typed_value.AsRef()));
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   EXPECT_EQ(ds.size(), values.size());
-  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(*shape));
+  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_EQ(ds.dtype(), arolla::GetQType<int>());
 
   ASSERT_OK_AND_ASSIGN(auto darray, DataSliceToDenseArray(ds));

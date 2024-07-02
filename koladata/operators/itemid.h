@@ -51,8 +51,7 @@ inline absl::StatusOr<DataSlice> ItemIdBits(const DataSlice& ds,
   int64_t val =
       item.holds_value<int>() ? item.value<int>() : item.value<int64_t>();
   return ds.VisitImpl([&](const auto& impl) {
-    return DataSlice::Create(internal::ItemIdBits()(impl, val),
-                             ds.GetShapePtr(),
+    return DataSlice::Create(internal::ItemIdBits()(impl, val), ds.GetShape(),
                              internal::DataItem(schema::kInt64), ds.GetDb());
   });
 }

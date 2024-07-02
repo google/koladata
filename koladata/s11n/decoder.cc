@@ -169,7 +169,7 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceValue(
         absl::StrCat("wrong number of input_values in DecodeDataSliceValue: ",
                      input_values.size()));
   }
-  ASSIGN_OR_RETURN(auto shape, input_values[1].As<DataSlice::JaggedShapePtr>());
+  ASSIGN_OR_RETURN(auto shape, input_values[1].As<DataSlice::JaggedShape>());
   ASSIGN_OR_RETURN(auto schema, input_values[2].As<internal::DataItem>());
   DataBagPtr db = nullptr;
   if (input_values.size() == 4) {

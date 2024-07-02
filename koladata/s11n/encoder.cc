@@ -131,7 +131,7 @@ absl::StatusOr<ValueProto> EncodeDataSlice(arolla::TypedRef value,
   }));
   ASSIGN_OR_RETURN(
       auto shape_index,
-      encoder.EncodeValue(arolla::TypedValue::FromValue(slice.GetShapePtr())));
+      encoder.EncodeValue(arolla::TypedValue::FromValue(slice.GetShape())));
   ASSIGN_OR_RETURN(auto schema_index,
                    encoder.EncodeValue(
                        arolla::TypedValue::FromValue(slice.GetSchemaImpl())));

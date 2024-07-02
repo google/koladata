@@ -789,7 +789,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension_FromDataSlice) {
   ASSERT_OK_AND_ASSIGN(auto edge, DenseArrayEdge::FromSplitPoints(
                                       CreateDenseArray<int64_t>({0, 3, 5})));
   ASSERT_OK_AND_ASSIGN(
-      auto shape, DataSlice::JaggedShape::FlatFromSize(2)->AddDims({edge}));
+      auto shape, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge}));
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
 
   {
@@ -886,7 +886,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_WithValues) {
   ASSERT_OK_AND_ASSIGN(auto edge, DenseArrayEdge::FromSplitPoints(
                                       CreateDenseArray<int64_t>({0, 1, 3})));
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto values_shape, shape->AddDims({edge}));
+  ASSERT_OK_AND_ASSIGN(auto values_shape, shape.AddDims({edge}));
   auto values = test::DataSlice<int>({1, 2, 3}, values_shape, db);
 
   ASSERT_OK_AND_ASSIGN(auto ds, CreateListShaped(db, shape, values));
@@ -971,7 +971,7 @@ TEST(ObjectFactoriesTest, CreateNestedList) {
   ASSERT_OK_AND_ASSIGN(auto edge, DenseArrayEdge::FromSplitPoints(
                                       CreateDenseArray<int64_t>({0, 3, 5})));
   ASSERT_OK_AND_ASSIGN(
-      auto shape, DataSlice::JaggedShape::FlatFromSize(2)->AddDims({edge}));
+      auto shape, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge}));
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
 
   {
@@ -1045,7 +1045,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_WithValues) {
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt64)));
   ASSERT_OK_AND_ASSIGN(
       auto expected_keys_shape,
-      shape->AddDims({DenseArrayEdge::FromUniformGroups(3, 1).value()}));
+      shape.AddDims({DenseArrayEdge::FromUniformGroups(3, 1).value()}));
   EXPECT_THAT(
       ds.GetDictKeys(),
       IsOkAndHolds(AllOf(
@@ -1078,7 +1078,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_WithValues_WithSchema) {
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt64)));
   ASSERT_OK_AND_ASSIGN(
       auto expected_keys_shape,
-      shape->AddDims({DenseArrayEdge::FromUniformGroups(3, 1).value()}));
+      shape.AddDims({DenseArrayEdge::FromUniformGroups(3, 1).value()}));
   EXPECT_THAT(
       ds.GetDictKeys(),
       IsOkAndHolds(AllOf(Property(&DataSlice::slice,
@@ -1265,7 +1265,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues) {
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(
       auto expected_keys_shape,
-      shape->AddDims({DenseArrayEdge::FromSplitPoints(
+      shape.AddDims({DenseArrayEdge::FromSplitPoints(
                           CreateDenseArray<int64_t>({0, 1, 2, 2, 3}))
                           .value()}));
   EXPECT_THAT(
@@ -1313,9 +1313,9 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues_WithSchema) {
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt64)));
   ASSERT_OK_AND_ASSIGN(
       auto expected_keys_shape,
-      shape->AddDims({DenseArrayEdge::FromSplitPoints(
-                          CreateDenseArray<int64_t>({0, 1, 2, 2, 3}))
-                          .value()}));
+      shape.AddDims({DenseArrayEdge::FromSplitPoints(
+                         CreateDenseArray<int64_t>({0, 1, 2, 2, 3}))
+                         .value()}));
   EXPECT_THAT(
       ds.GetDictKeys(),
       IsOkAndHolds(AllOf(Property(&DataSlice::slice,
@@ -1334,7 +1334,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_DataItem) {
   EXPECT_THAT(ds.item(),
               DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())));
   EXPECT_EQ(ds.GetDb(), db);
-  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(*DataSlice::JaggedShape::Empty()));
+  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kObject)));
   EXPECT_THAT(ds.GetSchema().GetAttr("__values__"),
@@ -1460,7 +1460,7 @@ TEST(ObjectFactoriesTest, CreateListLike_DataItem) {
   EXPECT_THAT(ds.item(),
               DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
   EXPECT_EQ(ds.GetDb(), db);
-  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(*DataSlice::JaggedShape::Empty()));
+  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
 }

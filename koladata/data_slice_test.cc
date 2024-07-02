@@ -104,8 +104,6 @@ TEST(DataSliceTest, Create_DataSliceImpl) {
     auto shape = DataSlice::JaggedShape::FlatFromSize(3);
     ASSERT_OK_AND_ASSIGN(auto ds,
                          DataSlice::Create(ds_impl, shape, int_schema, db));
-    EXPECT_NE(ds.GetShapePtr().get(), nullptr);
-    EXPECT_EQ(ds.GetShapePtr().get(), &ds.GetShape());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetDb(), db);
     EXPECT_THAT(ds.slice(), IsEquivalentTo(ds_impl));
@@ -117,8 +115,6 @@ TEST(DataSliceTest, Create_DataSliceImpl) {
         DataSliceImpl::Create(CreateFullDenseArray<int>({1}));
     ASSERT_OK_AND_ASSIGN(
         auto ds, DataSlice::Create(ds_impl_single_item, shape, int_schema, db));
-    EXPECT_NE(ds.GetShapePtr().get(), nullptr);
-    EXPECT_EQ(ds.GetShapePtr().get(), &ds.GetShape());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetDb(), db);
     EXPECT_THAT(ds.item(), IsEquivalentTo(ds_impl[0]));
@@ -174,8 +170,6 @@ TEST(DataSliceTest, Create_DataItem) {
     auto shape = DataSlice::JaggedShape::Empty();
     ASSERT_OK_AND_ASSIGN(auto ds,
                          DataSlice::Create(data_item, shape, int_schema, db));
-    EXPECT_NE(ds.GetShapePtr().get(), nullptr);
-    EXPECT_EQ(ds.GetShapePtr().get(), &ds.GetShape());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetDb(), db);
     EXPECT_THAT(ds.item(), IsEquivalentTo(data_item));
@@ -184,8 +178,6 @@ TEST(DataSliceTest, Create_DataItem) {
     // DataItem with implicit shape -> holds DataItem.
     ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::Create(data_item, int_schema, db));
     auto shape = DataSlice::JaggedShape::Empty();
-    EXPECT_NE(ds.GetShapePtr().get(), nullptr);
-    EXPECT_EQ(ds.GetShapePtr().get(), &ds.GetShape());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetDb(), db);
     EXPECT_THAT(ds.item(), IsEquivalentTo(data_item));
@@ -197,8 +189,6 @@ TEST(DataSliceTest, Create_DataItem) {
                          DataSlice::JaggedShape::FromEdges({edge, edge, edge}));
     ASSERT_OK_AND_ASSIGN(auto ds,
                          DataSlice::Create(data_item, shape, int_schema, db));
-    EXPECT_NE(ds.GetShapePtr().get(), nullptr);
-    EXPECT_EQ(ds.GetShapePtr().get(), &ds.GetShape());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetDb(), db);
     EXPECT_THAT(ds.slice(), IsEquivalentTo(ds_impl));
@@ -251,8 +241,6 @@ TEST(DataSliceTest, CreateWithSchemaFromData) {
     auto ds_impl = DataSliceImpl::Create(CreateFullDenseArray<int>({1, 2, 3}));
     ASSERT_OK_AND_ASSIGN(
         auto ds, DataSlice::CreateWithSchemaFromData(ds_impl, shape, db));
-    EXPECT_NE(ds.GetShapePtr().get(), nullptr);
-    EXPECT_EQ(ds.GetShapePtr().get(), &ds.GetShape());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetDb(), db);
     EXPECT_EQ(ds.GetSchemaImpl(), internal::DataItem(schema::kInt32));
@@ -287,7 +275,7 @@ TEST(DataSliceTest, CreateWithSchemaFromData) {
 
 TEST(DataSliceTest, IsEquivalentTo) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  auto objects = DataSliceImpl::AllocateEmptyObjects(shape->size());
+  auto objects = DataSliceImpl::AllocateEmptyObjects(shape.size());
   ASSERT_OK_AND_ASSIGN(auto ds_1,
                        DataSlice::Create(objects, shape, kAnySchema));
   // Same DataSlice instance.
@@ -927,7 +915,7 @@ TEST(DataSliceTest, BroadcastToShape) {
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr(absl::StrFormat(
                      "DataSlice with shape=%s cannot be expanded to shape=%s",
-                     arolla::Repr(ds.GetShape()), arolla::Repr(*shape)))));
+                     arolla::Repr(ds.GetShape()), arolla::Repr(shape)))));
   }
   {
     // Actual expansion. More extensive tests are in:
@@ -1266,14 +1254,14 @@ TEST(DataSliceTest, SetGetObjectAttributesSameDb) {
   auto db = DataBag::Empty();
 
   for (auto other_db : {db, std::shared_ptr<DataBag>(nullptr)}) {
-    auto ds_a = test::AllocateDataSlice(shape->size(), schema::kAny, other_db);
+    auto ds_a = test::AllocateDataSlice(shape.size(), schema::kAny, other_db);
 
     ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
     ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
     ASSERT_OK(ds.SetAttr("a", ds_a));
     ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
     EXPECT_EQ(ds_a_get.GetDb(), db);
-    EXPECT_EQ(ds_a_get.size(), shape->size());
+    EXPECT_EQ(ds_a_get.size(), shape.size());
     EXPECT_THAT(ds_a_get.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds_a_get.dtype(), GetQType<ObjectId>());
     EXPECT_THAT(ds_a_get.slice().allocation_ids(),
@@ -1347,7 +1335,7 @@ TEST(DataSliceTest, SetGetObjectAttributesWithFallback) {
   ds = ds.WithDb(db);
 
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
-  EXPECT_EQ(ds_a_get.size(), shape->size());
+  EXPECT_EQ(ds_a_get.size(), shape.size());
   EXPECT_THAT(ds_a_get.GetShape(), IsEquivalentTo(shape));
   EXPECT_EQ(ds_a_get.dtype(), GetQType<ObjectId>());
   EXPECT_THAT(ds_a_get.slice().allocation_ids(),
@@ -1415,7 +1403,7 @@ TEST(DataSliceTest, SetGetObjectAttributes_ObjectCreator) {
   ASSERT_OK(adoption_queue.AdoptInto(*db2));
 
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
-  EXPECT_EQ(ds_a_get.size(), shape->size());
+  EXPECT_EQ(ds_a_get.size(), shape.size());
   EXPECT_THAT(ds_a_get.GetShape(), IsEquivalentTo(shape));
   EXPECT_EQ(ds_a_get.dtype(), GetQType<ObjectId>());
   EXPECT_THAT(ds_a_get.slice().allocation_ids(),
@@ -2841,7 +2829,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_AnySchema) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   ASSERT_OK_AND_ASSIGN(auto edge_3,
                        DataSlice::JaggedShape::Edge::FromUniformGroups(3, 1));
-  ASSERT_OK_AND_ASSIGN(auto keys_shape, shape->AddDims({edge_3}));
+  ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({edge_3}));
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
@@ -2886,7 +2874,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_AnySchema) {
 
 TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges({}));
-  ASSERT_OK_AND_ASSIGN(auto keys_shape, shape->AddDims({CreateEdge({0, 3})}));
+  ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({CreateEdge({0, 3})}));
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
@@ -2947,7 +2935,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   ASSERT_OK_AND_ASSIGN(auto edge_3,
                        DataSlice::JaggedShape::Edge::FromUniformGroups(3, 1));
-  ASSERT_OK_AND_ASSIGN(auto keys_shape, shape->AddDims({edge_3}));
+  ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({edge_3}));
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
@@ -3006,7 +2994,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   ASSERT_OK_AND_ASSIGN(auto edge_3,
                        DataSlice::JaggedShape::Edge::FromUniformGroups(3, 1));
-  ASSERT_OK_AND_ASSIGN(auto keys_shape, shape->AddDims({edge_3}));
+  ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({edge_3}));
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(

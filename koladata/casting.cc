@@ -55,7 +55,7 @@ absl::StatusOr<DataSlice> ToNumeric(const DataSlice& slice,
               schema::kFloat64, schema::kBool, schema::kObject, schema::kAny}));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, ToNumericImpl()(impl));
-    return DataSlice::Create(std::move(impl_res), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(dst_dtype), slice.GetDb());
   });
 }
@@ -81,7 +81,7 @@ absl::StatusOr<DataSlice> ToFloat64(const DataSlice& slice) {
 absl::StatusOr<DataSlice> ToNone(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToNone()(impl));
-    return DataSlice::Create(std::move(impl_res), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kNone), slice.GetDb());
   });
 }
@@ -91,7 +91,7 @@ absl::StatusOr<DataSlice> ToExpr(const DataSlice& slice) {
       slice, {schema::kNone, schema::kExpr, schema::kObject, schema::kAny}));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToExpr()(impl));
-    return DataSlice::Create(std::move(impl_res), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kExpr), slice.GetDb());
   });
 }
@@ -102,7 +102,7 @@ absl::StatusOr<DataSlice> ToText(const DataSlice& slice) {
               schema::kAny}));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToText()(impl));
-    return DataSlice::Create(std::move(impl_res), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kText), slice.GetDb());
   });
 }
@@ -113,7 +113,7 @@ absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice) {
               schema::kAny}));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToBytes()(impl));
-    return DataSlice::Create(std::move(impl_res), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kBytes), slice.GetDb());
   });
 }
@@ -123,7 +123,7 @@ absl::StatusOr<DataSlice> ToMask(const DataSlice& slice) {
       slice, {schema::kNone, schema::kMask, schema::kObject, schema::kAny}));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToMask()(impl));
-    return DataSlice::Create(std::move(impl_res), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kMask), slice.GetDb());
   });
 }
@@ -133,14 +133,14 @@ absl::StatusOr<DataSlice> ToBool(const DataSlice& slice) {
       slice, {schema::kNone, schema::kBool, schema::kObject, schema::kAny}));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToBool()(impl));
-    return DataSlice::Create(std::move(impl_res), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kBool), slice.GetDb());
   });
 }
 
 absl::StatusOr<DataSlice> ToAny(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) {
-    return DataSlice::Create(std::move(impl), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl), slice.GetShape(),
                              internal::DataItem(schema::kAny), slice.GetDb());
   });
 }
@@ -153,7 +153,7 @@ absl::StatusOr<DataSlice> ToItemId(const DataSlice& slice) {
   }
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToItemId()(impl));
-    return DataSlice::Create(std::move(impl_res), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kItemId),
                              slice.GetDb());
   });
@@ -167,7 +167,7 @@ absl::StatusOr<DataSlice> ToSchema(const DataSlice& slice) {
   }
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToSchema()(impl));
-    return DataSlice::Create(std::move(impl_res), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kSchema),
                              slice.GetDb());
   });
@@ -187,7 +187,7 @@ absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToItemId()(impl),
                      _ << "while casting to entity schema: " << entity_schema);
-    return DataSlice::Create(std::move(impl_res), slice.GetShapePtr(),
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              entity_schema, slice.GetDb());
   });
 }
@@ -207,7 +207,7 @@ absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,
                                           validate_schema, db_impl_ptr));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     RETURN_IF_ERROR(to_object(impl));
-    return DataSlice::Create(impl, slice.GetShapePtr(),
+    return DataSlice::Create(impl, slice.GetShape(),
                              internal::DataItem(schema::kObject), db);
   });
 }
@@ -283,9 +283,8 @@ absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
       return slices[0].GetSchemaImpl();
     }
     if (slices.size() == 2) {
-      return schema::CommonSchema(
-          slices[0].GetSchemaImpl(),
-          slices[1].GetSchemaImpl());
+      return schema::CommonSchema(slices[0].GetSchemaImpl(),
+                                  slices[1].GetSchemaImpl());
     }
     std::vector<internal::DataItem> schemas;
     schemas.reserve(slices.size());

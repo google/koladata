@@ -129,7 +129,7 @@ absl::NoDestructor<arolla::LruCache<arolla::Fingerprint, CompiledOp>>
 absl::Mutex EvalCompiler::mutex_{absl::kConstInit};
 
 absl::StatusOr<DataSlice> DataSliceFromArollaValue(
-    arolla::TypedRef arolla_value, DataSlice::JaggedShapePtr shape) {
+    arolla::TypedRef arolla_value, DataSlice::JaggedShape shape) {
   if (arolla::IsDenseArrayQType(arolla_value.GetType())) {
     ASSIGN_OR_RETURN(auto ds_impl,
                      internal::DataSliceImpl::Create(arolla_value));
@@ -140,10 +140,10 @@ absl::StatusOr<DataSlice> DataSliceFromArollaValue(
     return DataSlice::CreateWithSchemaFromData(std::move(ds_impl),
                                                std::move(shape));
   } else {
-    if (shape->rank() != 0) {
+    if (shape.rank() != 0) {
       return absl::FailedPreconditionError(absl::StrFormat(
           "output with type %s is incompatible with rank(shape)=%d",
-          arolla_value.GetType()->name(), shape->rank()));
+          arolla_value.GetType()->name(), shape.rank()));
     }
     auto arolla_value_type = arolla_value.GetType();
     if (arolla::IsOptionalQType(arolla_value_type)) {
@@ -308,10 +308,9 @@ absl::StatusOr<arolla::OperatorPtr> ConvertAndEvalFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
   RETURN_IF_ERROR(VerifyConvertAndEvalInputs(input_types));
-  auto execute =
-      [](const arolla::expr::ExprOperatorPtr& expr_op,
-         absl::Span<const arolla::TypedRef> inputs,
-         DataSlice::JaggedShapePtr shape) -> absl::StatusOr<DataSlice> {
+  auto execute = [](const arolla::expr::ExprOperatorPtr& expr_op,
+                    absl::Span<const arolla::TypedRef> inputs,
+                    DataSlice::JaggedShape shape) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto fn, EvalCompiler::Compile(expr_op, inputs));
     ASSIGN_OR_RETURN(auto result, fn(inputs));
     return DataSliceFromArollaValue(result.AsRef(), std::move(shape));
@@ -328,10 +327,9 @@ ConvertAndEvalWithShapeFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
   RETURN_IF_ERROR(VerifyConvertAndEvalInputs(input_types));
-  auto execute =
-      [](const arolla::expr::ExprOperatorPtr& expr_op,
-         std::vector<arolla::TypedRef>&& inputs,
-         DataSlice::JaggedShapePtr shape) -> absl::StatusOr<DataSlice> {
+  auto execute = [](const arolla::expr::ExprOperatorPtr& expr_op,
+                    std::vector<arolla::TypedRef>&& inputs,
+                    DataSlice::JaggedShape shape) -> absl::StatusOr<DataSlice> {
     DCHECK_GT(inputs.capacity(), inputs.size());
     auto aligned_shape_tv = arolla::TypedValue::FromValue(std::move(shape));
     inputs.push_back(aligned_shape_tv.AsRef());
@@ -343,7 +341,7 @@ ConvertAndEvalWithShapeFamily::DoGetOperator(
           "expected a 2-tuple output, got ", result.GetType()->name()));
     }
     ASSIGN_OR_RETURN(auto shape_ref,
-                     result.GetField(1).As<DataSlice::JaggedShapePtr>());
+                     result.GetField(1).As<DataSlice::JaggedShape>());
     return DataSliceFromArollaValue(result.GetField(0), shape_ref.get());
   };
   return arolla::EnsureOutputQTypeMatches(

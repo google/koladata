@@ -136,7 +136,7 @@ template <typename T,
 koladata::DataSlice DataSlice(
     std::initializer_list<
         arolla::OptionalValue<typename test_val<T>::t>> values,
-    DataSlice::JaggedShapePtr shape, SchemaT schema, DataBagPtr db = nullptr) {
+    DataSlice::JaggedShape shape, SchemaT schema, DataBagPtr db = nullptr) {
   auto vec_values = ToVector<T>(values);
   return *koladata::DataSlice::Create(
       internal::DataSliceImpl::Create(
@@ -171,7 +171,7 @@ template <typename T>
 koladata::DataSlice DataSlice(
     std::initializer_list<
         arolla::OptionalValue<typename test_val<T>::t>> values,
-    DataSlice::JaggedShapePtr shape, DataBagPtr db = nullptr) {
+    DataSlice::JaggedShape shape, DataBagPtr db = nullptr) {
   return DataSlice<T, schema::DType>(values, shape, DeduceSchema<T>());
 }
 
@@ -183,7 +183,7 @@ koladata::DataSlice MixedDataSlice(
         arolla::OptionalValue<typename test_val<U>::t>> items_2,
     std::initializer_list<
         arolla::OptionalValue<typename test_val<V>::t>> items_3,
-    DataSlice::JaggedShapePtr shape, schema::DType schema = schema::kObject,
+    DataSlice::JaggedShape shape, schema::DType schema = schema::kObject,
     DataBagPtr db = nullptr) {
   DCHECK_EQ(items_1.size(), items_2.size());
   if constexpr (!std::is_same_v<V, void>) {
@@ -225,7 +225,7 @@ koladata::DataSlice MixedDataSlice(
         arolla::OptionalValue<typename test_val<T>::t>> items_1,
     std::initializer_list<
         arolla::OptionalValue<typename test_val<U>::t>> items_2,
-    DataSlice::JaggedShapePtr shape, schema::DType schema = schema::kObject,
+    DataSlice::JaggedShape shape, schema::DType schema = schema::kObject,
     DataBagPtr db = nullptr) {
   return MixedDataSlice<T, U>(items_1, items_2, {}, shape, schema, db);
 }
@@ -253,10 +253,10 @@ koladata::DataSlice EmptyDataSlice(size_t size, SchemaT schema,
 }
 
 template <typename SchemaT>
-koladata::DataSlice EmptyDataSlice(DataSlice::JaggedShapePtr shape,
+koladata::DataSlice EmptyDataSlice(DataSlice::JaggedShape shape,
                                    SchemaT schema, DataBagPtr db = nullptr) {
   return *DataSlice::Create(
-      internal::DataSliceImpl::CreateEmptyAndUnknownType(shape->size()), shape,
+      internal::DataSliceImpl::CreateEmptyAndUnknownType(shape.size()), shape,
       internal::DataItem(schema), db);
 }
 
@@ -270,10 +270,10 @@ koladata::DataSlice AllocateDataSlice(size_t size, SchemaT schema,
 }
 
 template <typename SchemaT>
-koladata::DataSlice AllocateDataSlice(DataSlice::JaggedShapePtr shape,
+koladata::DataSlice AllocateDataSlice(DataSlice::JaggedShape shape,
                                       SchemaT schema, DataBagPtr db = nullptr) {
   return *DataSlice::Create(
-      internal::DataSliceImpl::AllocateEmptyObjects(shape->size()),
+      internal::DataSliceImpl::AllocateEmptyObjects(shape.size()),
       shape, internal::DataItem(schema), db);
 }
 

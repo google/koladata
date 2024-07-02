@@ -54,7 +54,7 @@ inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
 // kde.logical.has.
 inline absl::StatusOr<DataSlice> Has(const DataSlice& obj) {
   return DataSliceOp<internal::HasOp>()(
-      obj, obj.GetShapePtr(), internal::DataItem(schema::kMask), obj.GetDb());
+      obj, obj.GetShape(), internal::DataItem(schema::kMask), obj.GetDb());
 }
 
 }  // namespace koladata::ops

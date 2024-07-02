@@ -29,19 +29,19 @@
 namespace koladata::ops {
 
 // kde.shapes.get_shape operator.
-inline DataSlice::JaggedShapePtr GetShape(const DataSlice& x) {
-  return x.GetShapePtr();
+inline DataSlice::JaggedShape GetShape(const DataSlice& x) {
+  return x.GetShape();
 }
 
 // kde.shapes._reshape operator.
 inline absl::StatusOr<DataSlice> Reshape(const DataSlice& x,
-                                         DataSlice::JaggedShapePtr shape) {
+                                         DataSlice::JaggedShape shape) {
   return x.Reshape(std::move(shape));
 }
 
 // kde.shapes._expand_to_shape operator.
 absl::StatusOr<DataSlice> ExpandToShape(const DataSlice& x,
-                                        DataSlice::JaggedShapePtr shape,
+                                        DataSlice::JaggedShape shape,
                                         int64_t ndim);
 
 // kde.shapes.create operator.

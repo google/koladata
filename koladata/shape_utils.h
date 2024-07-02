@@ -28,7 +28,7 @@ namespace koladata::shape {
 // Returns a shape with the highest rank. All shapes must be broadcastable to
 // this resulting shape. In case they are not, the appropriate Status error is
 // returned.
-absl::StatusOr<DataSlice::JaggedShapePtr> GetCommonShape(
+absl::StatusOr<DataSlice::JaggedShape> GetCommonShape(
     absl::Span<const DataSlice> slices);
 
 // Returns the collection of broadcasted DataSlices to a common shape, i.e. a
@@ -40,7 +40,7 @@ absl::StatusOr<std::vector<DataSlice>> Align(std::vector<DataSlice> slices);
 // shape with a highest rank (among the slices) that all slices are
 // broadcastable to. Unlike `Align`, scalars (rank-0) are left as-is and are not
 // broadcasted.
-absl::StatusOr<std::pair<std::vector<DataSlice>, DataSlice::JaggedShapePtr>>
+absl::StatusOr<std::pair<std::vector<DataSlice>, DataSlice::JaggedShape>>
 AlignNonScalars(std::vector<DataSlice> slices);
 
 }  // namespace koladata::shape
