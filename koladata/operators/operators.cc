@@ -21,6 +21,7 @@
 #include "koladata/operators/equal.h"
 #include "koladata/operators/extract.h"
 #include "koladata/operators/get_attr.h"
+#include "koladata/operators/group_by.h"
 #include "koladata/operators/itemid.h"
 #include "koladata/operators/jagged_shape.h"
 #include "koladata/operators/list.h"
@@ -61,6 +62,7 @@ OPERATOR("kde.core.dict_size", DictSize);
 OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR("kde.core.get_primitive_schema", GetPrimitiveSchema);
+OPERATOR_FAMILY("kde.core.group_by_indices", GroupByIndicesFamily);
 OPERATOR("kde.core.itemid_bits", ItemIdBits);
 OPERATOR("kde.core.list_size", ListSize);
 OPERATOR("kde.core.nofollow", NoFollow);
