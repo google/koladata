@@ -15,16 +15,18 @@
 #ifndef KOLADATA_INTERNAL_SCHEMA_UTILS_H_
 #define KOLADATA_INTERNAL_SCHEMA_UTILS_H_
 
+#include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata::schema {
 
@@ -41,6 +43,21 @@ using DTypeLattice =
 // Exposed mainly for testing.
 const DTypeLattice& GetDTypeLattice();
 
+// A helper class to aggregate seen dtypes and return the common dtype.
+class CommonDTypeAggregator {
+ public:
+  // Marks the dtype as seen.
+  void Add(DType dtype) { seen_dtypes_ |= (Mask{1} << dtype.type_id()); }
+
+  // Returns the common dtype out of the seen dtypes.
+  absl::StatusOr<std::optional<DType>> Get() const;
+
+ private:
+  using Mask = uint16_t;
+  static_assert(kNextDTypeId <= sizeof(Mask) * 8);
+  Mask seen_dtypes_ = 0;
+};
+
 }  // namespace schema_internal
 
 constexpr absl::string_view kSchemaAttr = "__schema__";
@@ -51,28 +68,39 @@ constexpr absl::string_view kDictValuesSchemaAttr = "__values__";
 constexpr absl::string_view kImplicitSchemaSeed = "__implicit_schema__";
 constexpr absl::string_view kNoFollowSchemaSeed = "__nofollow_schema__";
 
-// Finds the supremum schema of all schemas in `schema_ids` according to the
-// type promotion lattice defined in go/koda-type-promotion. If common /
-// supremum schema cannot be determined, appropriate error is returned.
-// Missing input types must be specified with empty DataItem.
-absl::StatusOr<internal::DataItem> CommonSchema(
-    absl::Span<const internal::DataItem> schema_ids);
+// Finds the supremum schema of all seen schemas according to the type promotion
+// lattice defined in go/koda-type-promotion.
+class CommonSchemaAggregator {
+ public:
+  // Marks the schema as seen.
+  void Add(const internal::DataItem& schema);
+
+  // Marks the dtype as seen.
+  void Add(DType dtype) { dtype_agg_.Add(dtype); }
+
+  // Marks the schema_obj as seen.
+  void Add(internal::ObjectId schema_obj);
+
+  // Returns the common schema or an appropriate error. If no common schema can
+  // be found because no schemas were seen, `default_if_missing` is returned.
+  absl::StatusOr<internal::DataItem> Get(
+      internal::DataItem default_if_missing = internal::DataItem(kObject)) &&;
+
+ private:
+  schema_internal::CommonDTypeAggregator dtype_agg_;
+  std::optional<internal::ObjectId> res_object_id_;
+  absl::Status status_;
+};
 
 // Finds the supremum schema of lhs and rhs according to the type promotion
 // lattice defined in go/koda-type-promotion. If common / supremum schema cannot
 // be determined, appropriate error is returned.
 //
 // NOTE: This is a performance optimization and has identical behavior as
-// calling CommonSchema with a span of two elements.
+// using CommonSchemaAggregator on two elements.
 absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs);
 absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
                                                 const internal::DataItem& rhs);
-
-// Finds the supremum schema of all schemas in `schema_ids` according to the
-// type promotion lattice defined in go/koda-type-promotion. If common /
-// supremum schema cannot be determined, appropriate error is returned.
-absl::StatusOr<internal::DataItem> CommonSchema(
-    const internal::DataSliceImpl& schema_ids);
 
 // Finds the supremum schema of all schemas in `schema_ids` according to the
 // type promotion lattice defined in go/koda-type-promotion. If common /
@@ -81,7 +109,7 @@ absl::StatusOr<internal::DataItem> CommonSchema(
 // `default_if_missing` is returned.
 absl::StatusOr<internal::DataItem> CommonSchema(
     const internal::DataSliceImpl& schema_ids,
-    internal::DataItem default_if_missing);
+    internal::DataItem default_if_missing = internal::DataItem(kObject));
 
 // Returns a NoFollow schema item that wraps `schema_item`. In case
 // `schema_item` is not schema, or it is a schema for which NoFollow is not

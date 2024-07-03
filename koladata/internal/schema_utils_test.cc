@@ -16,6 +16,7 @@
 
 #include <functional>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -89,17 +90,6 @@ TEST(SchemaUtilsTest, DTypeLatticeIsAcyclic) {
   }
 }
 
-TEST(SchemaUtilsTest, CommonSchemaSimple) {
-  auto schemas = DataSliceImpl::Create(CreateDenseArray<schema::DType>(
-      {schema::kInt32, schema::kInt32, std::nullopt}));
-  EXPECT_THAT(CommonSchema(schemas), IsOkAndHolds(DataItem(schema::kInt32)));
-}
-
-TEST(SchemaUtilsTest, CommonSchemaSimple_InitList) {
-  EXPECT_THAT(CommonSchema({DataItem(schema::kInt32), DataItem(),
-                            DataItem(schema::kInt32)}),
-              IsOkAndHolds(DataItem(schema::kInt32)));
-}
 
 struct CommonDTypeTestCase {
   std::vector<schema::DType> input_dtypes;
@@ -110,11 +100,11 @@ using CommonDTypeTest = ::testing::TestWithParam<CommonDTypeTestCase>;
 
 TEST_P(CommonDTypeTest, CommonDTypePairwise) {
   const CommonDTypeTestCase& test_case = GetParam();
-  std::vector<DataItem> input_data_items;
+  CommonSchemaAggregator agg;
   for (const auto& dtype : test_case.input_dtypes) {
-    input_data_items.emplace_back(dtype);
+    agg.Add(dtype);
   }
-  EXPECT_THAT(CommonSchema(input_data_items),
+  EXPECT_THAT(std::move(agg).Get(),
               IsOkAndHolds(DataItem(test_case.expected_dtype)));
 }
 
@@ -266,44 +256,63 @@ TEST(SchemaUtilsTest, CommonSchemaBinary) {
   }
 }
 
-TEST(SchemaUtilsTest, CommonSchemaNonZeroSizeEmpty) {
-  auto schemas = DataSliceImpl::Create(CreateDenseArray<schema::DType>(
-      {std::nullopt, std::nullopt, std::nullopt}));
-  EXPECT_THAT(CommonSchema(schemas), IsOkAndHolds(DataItem(schema::kObject)));
+TEST(SchemaUtilsTest, CommonSchemaSimple_DTypes) {
+  {
+    // DTypes.
+    CommonSchemaAggregator agg;
+    agg.Add(schema::kInt32);
+    agg.Add(schema::kInt64);
+    EXPECT_THAT(std::move(agg).Get(), IsOkAndHolds(DataItem(schema::kInt64)));
+  }
+  {
+    // DataItems with DTypes.
+    CommonSchemaAggregator agg;
+    agg.Add(DataItem(schema::kInt32));
+    agg.Add(DataItem(schema::kInt64));
+    EXPECT_THAT(std::move(agg).Get(), IsOkAndHolds(DataItem(schema::kInt64)));
+  }
 }
 
-TEST(SchemaUtilsTest, CommonSchemaObjectIdSchema) {
-  auto explicit_schema = internal::AllocateExplicitSchema();
-  auto schemas = DataSliceImpl::Create(CreateDenseArray<internal::ObjectId>(
-      {std::nullopt, explicit_schema, explicit_schema}));
-  EXPECT_THAT(CommonSchema(schemas), IsOkAndHolds(explicit_schema));
+TEST(SchemaUtilsTest, CommonSchemaSimple_ObjectIds) {
+  auto obj = internal::AllocateExplicitSchema();
+  {
+    // ObjectIds.
+    CommonSchemaAggregator agg;
+    agg.Add(obj);
+    agg.Add(obj);
+    EXPECT_THAT(std::move(agg).Get(), IsOkAndHolds(DataItem(obj)));
+  }
+  {
+    // DataItems with ObjectIds.
+    CommonSchemaAggregator agg;
+    agg.Add(DataItem(obj));
+    agg.Add(DataItem(obj));
+    EXPECT_THAT(std::move(agg).Get(), IsOkAndHolds(DataItem(obj)));
+  }
 }
 
 TEST(SchemaUtilsTest, CommonSchemaWrongTypeInSchemas) {
-  auto schemas = DataSliceImpl::Create(
-      CreateDenseArray<schema::DType>({schema::kAny, std::nullopt}),
-      CreateDenseArray<int>({std::nullopt, 42}));
-  EXPECT_THAT(CommonSchema(schemas),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "expected Schema, got: INT32"));
+  CommonSchemaAggregator agg;
+  agg.Add(DataItem(42));
+  EXPECT_THAT(std::move(agg).Get(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                             "expected Schema, got: 42"));
 }
 
 TEST(SchemaUtilsTest, CommonSchemaNonTypeInSchemas) {
-  auto schemas = DataSliceImpl::Create(CreateDenseArray<internal::ObjectId>(
-      {internal::AllocateExplicitSchema(),
-       /*non-schema=*/internal::AllocateSingleObject()}));
-  EXPECT_THAT(CommonSchema(schemas),
+  CommonSchemaAggregator agg;
+  agg.Add(DataItem(internal::AllocateSingleObject()));
+  EXPECT_THAT(std::move(agg).Get(),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("Schema slice with ObjectId schema can accept "
-                                 "only schema ObjectIds")));
+                       HasSubstr("expected a schema ObjectId")));
 }
 
 TEST(SchemaUtilsTest, CommonSchemaConflict) {
+  CommonSchemaAggregator agg;
   internal::ObjectId schema1 = internal::AllocateExplicitSchema();
   internal::ObjectId schema2 = internal::AllocateExplicitSchema();
-  auto schemas = DataSliceImpl::Create(
-      CreateDenseArray<internal::ObjectId>({schema1, schema2}));
-  const auto result = CommonSchema(schemas);
+  agg.Add(DataItem(schema1));
+  agg.Add(DataItem(schema2));
+  const auto result = std::move(agg).Get();
   EXPECT_THAT(result,
               StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
   EXPECT_THAT(internal::GetErrorPayload(result.status()),
@@ -317,23 +326,19 @@ TEST(SchemaUtilsTest, CommonSchemaConflict) {
 }
 
 TEST(SchemaUtilsTest, CommonSchemaObjectAndPrimitiveNone) {
+  CommonSchemaAggregator agg;
   auto explicit_schema = internal::AllocateExplicitSchema();
-  auto schemas =
-      DataSliceImpl::Create(CreateDenseArray<internal::ObjectId>(
-                                {std::nullopt, explicit_schema, std::nullopt}),
-                            CreateDenseArray<schema::DType>(
-                                {schema::kNone, std::nullopt, std::nullopt}));
-  EXPECT_THAT(CommonSchema(schemas), IsOkAndHolds(explicit_schema));
+  agg.Add(explicit_schema);
+  agg.Add(schema::kNone);
+  EXPECT_THAT(std::move(agg).Get(), IsOkAndHolds(explicit_schema));
 }
 
 TEST(SchemaUtilsTest, CommonSchemaObjectAndPrimitiveConflict) {
   internal::ObjectId schema = internal::AllocateExplicitSchema();
-  auto schemas =
-      DataSliceImpl::Create(CreateDenseArray<internal::ObjectId>(
-                                {std::nullopt, schema, std::nullopt}),
-                            CreateDenseArray<schema::DType>(
-                                {schema::kInt32, std::nullopt, std::nullopt}));
-  const auto result = CommonSchema(schemas);
+  CommonSchemaAggregator agg;
+  agg.Add(schema);
+  agg.Add(schema::kInt32);
+  const auto result = std::move(agg).Get();
   EXPECT_THAT(result,
               StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
   EXPECT_THAT(internal::GetErrorPayload(result.status()),
@@ -349,47 +354,56 @@ TEST(SchemaUtilsTest, CommonSchemaObjectAndPrimitiveConflict) {
 TEST(SchemaUtilsTest, CommonSchemaPrimitiveConflict) {
   auto schemas = DataSliceImpl::Create(
       CreateDenseArray<schema::DType>({schema::kInt32, schema::kItemId}));
-  EXPECT_THAT(CommonSchema(schemas),
+  CommonSchemaAggregator agg;
+  agg.Add(schema::kInt32);
+  agg.Add(schema::kItemId);
+  EXPECT_THAT(std::move(agg).Get(),
               StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
 }
 
-TEST(SchemaUtilsTest, CommonSchemaPrimitiveAndObjectConflict) {
+TEST(SchemaUtilsTest, CommonSchema_DataSliceImpl_Simple) {
+  auto schemas = DataSliceImpl::Create(CreateDenseArray<schema::DType>(
+      {schema::kInt32, schema::kInt32, std::nullopt}));
+  EXPECT_THAT(CommonSchema(schemas), IsOkAndHolds(DataItem(schema::kInt32)));
+}
+
+TEST(SchemaUtilsTest, CommonSchema_ObjectId) {
   internal::ObjectId schema = internal::AllocateExplicitSchema();
-  auto schemas =
-      DataSliceImpl::Create(CreateDenseArray<schema::DType>(
-                                {schema::kInt32, std::nullopt, std::nullopt}),
-                            CreateDenseArray<internal::ObjectId>(
-                                {std::nullopt, schema, std::nullopt}));
-  auto result = CommonSchema(schemas);
-  EXPECT_THAT(result,
-              StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
-  EXPECT_THAT(internal::GetErrorPayload(result.status()),
-              Optional(EqualsProto(absl::StrFormat(
-                  R"pb(no_common_schema {
-                         common_schema { dtype: %d }
-                         conflicting_schema { object_id { hi: %d lo: %d } }
-                       })pb",
-                  schema::kInt32.type_id(), schema.InternalHigh64(),
-                  schema.InternalLow64()))));
+  auto schemas = DataSliceImpl::Create(
+      CreateDenseArray<internal::ObjectId>({schema, schema, std::nullopt}));
+  EXPECT_THAT(CommonSchema(schemas), IsOkAndHolds(DataItem(schema)));
+}
+
+TEST(SchemaUtilsTest, CommonSchema_InvalidInput) {
+  auto schemas = DataSliceImpl::Create(
+      CreateDenseArray<schema::DType>({schema::kAny, std::nullopt}),
+      CreateDenseArray<int>({std::nullopt, 42}));
+  EXPECT_THAT(CommonSchema(schemas),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "expected Schema, got: INT32"));
+}
+
+TEST(SchemaUtilsTest, DefaultIfMissing_Default) {
+  CommonSchemaAggregator agg;
+  EXPECT_THAT(CommonSchemaAggregator().Get(),
+              IsOkAndHolds(DataItem(schema::kObject)));
 }
 
 TEST(SchemaUtilsTest, DefaultIfMissing_Object) {
-  auto schemas = DataSliceImpl::Create(CreateDenseArray<schema::DType>(
-      {std::nullopt, std::nullopt, std::nullopt}));
-  EXPECT_THAT(CommonSchema(schemas, DataItem(schema::kObject)),
+  CommonSchemaAggregator agg;
+  EXPECT_THAT(CommonSchemaAggregator().Get(DataItem(schema::kObject)),
               IsOkAndHolds(DataItem(schema::kObject)));
 }
 
 TEST(SchemaUtilsTest, DefaultIfMissing_Empty) {
-  auto schemas = DataSliceImpl::Create(CreateDenseArray<schema::DType>(
-      {std::nullopt, std::nullopt, std::nullopt}));
-  EXPECT_THAT(CommonSchema(schemas, DataItem()), IsOkAndHolds(DataItem()));
+  CommonSchemaAggregator agg;
+  EXPECT_THAT(CommonSchemaAggregator().Get(DataItem()),
+              IsOkAndHolds(DataItem()));
 }
 
 TEST(SchemaUtilsTest, DefaultIfMissing_Any) {
-  auto schemas = DataSliceImpl::Create(CreateDenseArray<schema::DType>(
-      {std::nullopt, std::nullopt, std::nullopt}));
-  EXPECT_THAT(CommonSchema(schemas, DataItem(schema::kAny)),
+  CommonSchemaAggregator agg;
+  EXPECT_THAT(CommonSchemaAggregator().Get(DataItem(schema::kAny)),
               IsOkAndHolds(DataItem(schema::kAny)));
 }
 

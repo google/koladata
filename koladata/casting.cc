@@ -279,19 +279,11 @@ absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
     if (slices.empty()) {
       return absl::InvalidArgumentError("expected at least one slice");
     }
-    if (slices.size() == 1) {
-      return slices[0].GetSchemaImpl();
-    }
-    if (slices.size() == 2) {
-      return schema::CommonSchema(slices[0].GetSchemaImpl(),
-                                  slices[1].GetSchemaImpl());
-    }
-    std::vector<internal::DataItem> schemas;
-    schemas.reserve(slices.size());
+    schema::CommonSchemaAggregator schema_agg;
     for (const auto& slice : slices) {
-      schemas.push_back(slice.GetSchemaImpl());
+      schema_agg.Add(slice.GetSchemaImpl());
     }
-    return schema::CommonSchema(schemas);
+    return std::move(schema_agg).Get();
   };
 
   ASSIGN_OR_RETURN(auto common_schema, get_common_schema());

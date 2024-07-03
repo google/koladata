@@ -74,8 +74,8 @@ const absl::flat_hash_set<schema::DType>& GetDTypesCastableTo(
                     using T2 = typename decltype(tpe2)::type;
                     auto dtype_2 = schema::GetDType<T2>();
                     auto maybe_schema =
-                        schema::CommonSchema({internal::DataItem(dtype_1),
-                                              internal::DataItem(dtype_2)});
+                        schema::CommonSchema(internal::DataItem(dtype_1),
+                                             internal::DataItem(dtype_2));
                     if (maybe_schema.ok() &&
                         *maybe_schema == internal::DataItem(dtype_1)) {
                       lower_bounds[dtype_1].insert(dtype_2);

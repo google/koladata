@@ -34,7 +34,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
-#include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -158,38 +157,6 @@ class DTypeMatrix {
   }
 };
 
-// A helper class to aggregate seen dtypes and return the common dtype.
-class CommonDTypeAggregator {
- public:
-  // Marks the dtype as seen.
-  void Add(DType dtype) { seen_dtypes_ |= (Mask{1} << dtype.type_id()); }
-
-  // Returns the common dtype out of the seen dtypes.
-  absl::StatusOr<std::optional<DType>> Get() const {
-    if (seen_dtypes_ == 0) {
-      return std::nullopt;
-    }
-    DTypeId res_dtype_id = absl::countr_zero(seen_dtypes_);
-
-    for (auto mask = seen_dtypes_; true;) {
-      mask &= (mask - 1);  // remove the least significant bit.
-      if (mask == 0) {
-        return DType(res_dtype_id);
-      }
-      DTypeId i = absl::countr_zero(mask);
-      res_dtype_id = DTypeMatrix::CommonDType(res_dtype_id, i);
-      if (ABSL_PREDICT_FALSE(res_dtype_id == kUnknownDType)) {
-        // TODO: Add KodaError for no common schema.
-        return absl::InvalidArgumentError("no common schema");
-      }
-    }
-  }
-
- private:
-  using Mask = uint16_t;
-  static_assert(kNextDTypeId <= sizeof(Mask) * 8);
-  Mask seen_dtypes_ = 0;
-};
 
 // Creates the no common schema error proto from the given schema id and dtype.
 internal::Error CreateNoCommonSchemaError(
@@ -205,19 +172,77 @@ internal::Error CreateNoCommonSchemaError(
 
 }  // namespace
 
-absl::StatusOr<internal::DataItem> CommonSchema(
-    const internal::DataSliceImpl& schema_ids) {
-  return CommonSchema(schema_ids, internal::DataItem(kObject));
+absl::StatusOr<std::optional<DType>>
+schema_internal::CommonDTypeAggregator::Get() const {
+  if (seen_dtypes_ == 0) {
+    return std::nullopt;
+  }
+  DTypeId res_dtype_id = absl::countr_zero(seen_dtypes_);
+
+  for (auto mask = seen_dtypes_; true;) {
+    mask &= (mask - 1);  // remove the least significant bit.
+    if (mask == 0) {
+      return DType(res_dtype_id);
+    }
+    DTypeId i = absl::countr_zero(mask);
+    res_dtype_id = DTypeMatrix::CommonDType(res_dtype_id, i);
+    if (ABSL_PREDICT_FALSE(res_dtype_id == kUnknownDType)) {
+      // TODO: Add KodaError for no common schema.
+      return absl::InvalidArgumentError("no common schema");
+    }
+  }
 }
 
-absl::StatusOr<internal::DataItem> CommonSchema(
-    absl::Span<const internal::DataItem> schema_ids) {
-  internal::DataSliceImpl::Builder bldr(schema_ids.size());
-  int i = 0;
-  for (const auto& schema_id : schema_ids) {
-    bldr.Insert(i++, schema_id);
+void CommonSchemaAggregator::Add(const internal::DataItem& schema) {
+  if (schema.holds_value<DType>()) {
+    return Add(schema.value<DType>());
   }
-  return CommonSchema(std::move(bldr).Build());
+  if (schema.holds_value<internal::ObjectId>()) {
+    return Add(schema.value<internal::ObjectId>());
+  }
+  status_ = absl::InvalidArgumentError(
+      absl::StrFormat("expected Schema, got: %v", schema));
+}
+
+void CommonSchemaAggregator::Add(internal::ObjectId schema_obj) {
+  if (!schema_obj.IsSchema()) {
+    status_ = absl::InvalidArgumentError(
+        absl::StrFormat("expected a schema ObjectId, got: %v", schema_obj));
+    return;
+  }
+  if (!res_object_id_) {
+    res_object_id_ = std::move(schema_obj);
+    return;
+  }
+  if (*res_object_id_ != schema_obj) {
+    status_ = internal::WithErrorPayload(
+        absl::InvalidArgumentError("no common schema"),
+        CreateNoCommonSchemaError(internal::DataItem(*res_object_id_),
+                                  internal::DataItem(schema_obj)));
+  }
+}
+
+absl::StatusOr<internal::DataItem> CommonSchemaAggregator::Get(
+    internal::DataItem default_if_missing) && {
+  if (!status_.ok()) {
+    return std::move(status_);
+  }
+  ASSIGN_OR_RETURN(std::optional<DType> res_dtype, dtype_agg_.Get());
+  if (!res_dtype && !res_object_id_) {
+    return default_if_missing;
+  }
+  // NONE is the only dtype that casts to entity.
+  if ((!res_dtype || res_dtype == kNone) && res_object_id_.has_value()) {
+    return internal::DataItem(*res_object_id_);
+  }
+  if (!res_object_id_) {
+    return internal::DataItem(*res_dtype);
+  }
+
+  return WithErrorPayload(
+      absl::InvalidArgumentError("no common schema"),
+      CreateNoCommonSchemaError(internal::DataItem(*res_dtype),
+                                internal::DataItem(*res_object_id_)));
 }
 
 absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs) {
@@ -260,62 +285,26 @@ absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
 absl::StatusOr<internal::DataItem> CommonSchema(
     const internal::DataSliceImpl& schema_ids,
     internal::DataItem default_if_missing) {
-  CommonDTypeAggregator dtype_agg;
-  std::optional<internal::ObjectId> res_object_id;
+  CommonSchemaAggregator schema_agg;
 
   RETURN_IF_ERROR(schema_ids.VisitValues(absl::Overload(
       [&](const arolla::DenseArray<DType>& array) {
         array.ForEachPresent(
-            [&](int64_t id, DType dtype) { dtype_agg.Add(dtype); });
+            [&](int64_t id, DType dtype) { schema_agg.Add(dtype); });
         return absl::OkStatus();
       },
       [&](const arolla::DenseArray<internal::ObjectId>& array) {
-        absl::Status maybe_error = absl::OkStatus();
         array.ForEachPresent([&](int64_t id, internal::ObjectId schema_obj) {
-          if (!maybe_error.ok()) {
-            return;
-          }
-          if (!schema_obj.IsSchema()) {
-            maybe_error = absl::InvalidArgumentError(
-                "Schema slice with ObjectId schema can accept only schema "
-                "ObjectIds");
-            return;
-          }
-          if (!res_object_id) {
-            res_object_id = schema_obj;
-            return;
-          }
-          if (*res_object_id != schema_obj) {
-            maybe_error = internal::WithErrorPayload(
-                absl::InvalidArgumentError("no common schema"),
-                CreateNoCommonSchemaError(internal::DataItem(*res_object_id),
-                                          internal::DataItem(schema_obj)));
-          }
+          schema_agg.Add(schema_obj);
         });
-        return maybe_error;
+        return absl::OkStatus();
       },
       [&](const auto& array) {
         using ValT = typename std::decay_t<decltype(array)>::base_type;
         return absl::InvalidArgumentError(
             absl::StrCat("expected Schema, got: ", GetDType<ValT>()));
       })));
-  ASSIGN_OR_RETURN(std::optional<DType> res_dtype, dtype_agg.Get());
-
-  if (!res_dtype && !res_object_id) {
-    return default_if_missing;
-  }
-  // NONE is the only dtype that casts to entity.
-  if ((!res_dtype || res_dtype == kNone) && res_object_id) {
-    return internal::DataItem(*res_object_id);
-  }
-  if (!res_object_id) {
-    return internal::DataItem(*res_dtype);
-  }
-
-  return WithErrorPayload(
-      absl::InvalidArgumentError("no common schema"),
-      CreateNoCommonSchemaError(internal::DataItem(*res_dtype),
-                                internal::DataItem(*res_object_id)));
+  return std::move(schema_agg).Get(std::move(default_if_missing));
 }
 
 absl::StatusOr<internal::DataItem> NoFollowSchemaItem(
