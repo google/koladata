@@ -34,6 +34,7 @@
 #include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -279,6 +280,20 @@ class DataItem {
  private:
   ScalarVariant data_;
 };
+
+// Returns true if the type is sortable.
+template <typename T>
+constexpr bool IsKodaScalarSortable() {
+  return !std::is_same_v<T, DataItem> &&
+         !std::is_same_v<T, arolla::expr::ExprQuote> &&
+         !std::is_same_v<T, schema::DType> && !std::is_same_v<T, MissingValue>;
+}
+
+// Returns true if the type is sortable based on QType.
+inline bool IsKodaScalarQTypeSortable(arolla::QTypePtr qtype) {
+  return qtype != arolla::GetQType<arolla::expr::ExprQuote>() &&
+         qtype != arolla::GetQType<schema::DType>();
+}
 
 template <>
 inline bool DataItem::Eq::EqImpl<int64_t, int64_t>(const DataItem& a,

@@ -79,10 +79,7 @@ class GroupByIndicesProcessor {
                           bool sort)
       : split_points_(edge_to_parent.edge_values().values.span()),
         group_id_(edge_to_parent.child_size(), 0),
-        sort_(sort) {
-    // TODO: implement sorting.
-    CHECK(!sort_) << "sort is not implemented yet";
-  }
+        sort_(sort) {}
 
   // Update groups with a new key data slice. The shape must correspond to
   // the `edge_to_parent` passed to the constructor.
@@ -92,6 +89,7 @@ class GroupByIndicesProcessor {
       return;
     }
     if (ds.is_mixed_dtype()) {
+      DCHECK(!sort_) << "sort is not supported for mixed dtype";
       ProcessMixedType(ds);
       return;
     }
@@ -194,6 +192,60 @@ class GroupByIndicesProcessor {
     }
   };
 
+  template <typename T>
+  class SortingData {
+   public:
+    explicit SortingData(bool sort) : sort_(sort) {}
+
+    void Clear() {
+      if (!sort_) {
+        return;
+      }
+      keys_to_sort_.clear();
+    }
+
+    void AddUnique(size_t group, const T& value) {
+      if (!sort_) {
+        return;
+      }
+      keys_to_sort_.emplace_back(group, value);
+    }
+
+    void Sort(size_t start_group_id, absl::Span<size_t> group_ids) {
+      if (!sort_) {
+        return;
+      }
+      group_index_.resize(keys_to_sort_.size());
+      group_to_sorted_index_.resize(keys_to_sort_.size());
+      for (size_t i = 0; i < keys_to_sort_.size(); ++i) {
+        group_index_[i] = i;
+      }
+      absl::c_sort(group_index_, [this](size_t a, size_t b) {
+        if constexpr (internal::IsKodaScalarSortable<T>()) {
+          return this->keys_to_sort_[a] < this->keys_to_sort_[b];
+        } else {
+          LOG(FATAL) << "sort for mixed type and ExprQuote is not allowed";
+          return false;
+        }
+      });
+      for (size_t i = 0; i < group_index_.size(); ++i) {
+        group_to_sorted_index_[group_index_[i]] = i;
+      }
+      for (size_t& group_id : group_ids) {
+        if (group_id != kUndefinedGroup) {
+          group_id = group_to_sorted_index_[group_id - start_group_id] +
+                     start_group_id;
+        }
+      }
+    }
+
+   private:
+    bool sort_;
+    std::vector<std::pair<size_t, T>> keys_to_sort_;
+    std::vector<size_t> group_index_;
+    std::vector<size_t> group_to_sorted_index_;
+  };
+
   void ProcessMixedType(const internal::DataSliceImpl& ds) {
     using Key = std::pair<size_t, internal::DataItem>;
     absl::flat_hash_map<Key, size_t, DataItemPairHash, DataItemPairEq>
@@ -212,12 +264,16 @@ class GroupByIndicesProcessor {
   void ProcessArray(const arolla::DenseArray<T>& value, Map& key_to_group_id) {
     using Key = typename Map::key_type;
 
+    SortingData<arolla::view_type_t<T>> sorting_data(sort_);
+
     size_t new_group_id = 0;
     for (size_t split_id = 1; split_id < split_points_.size(); ++split_id) {
       size_t begin = split_points_[split_id - 1];
       size_t end = split_points_[split_id];
       // avoid clear to keep the memory.
       key_to_group_id.erase(key_to_group_id.begin(), key_to_group_id.end());
+      sorting_data.Clear();
+      size_t start_group_id = new_group_id;
       for (size_t i = begin; i < end; ++i) {
         size_t& group = group_id_[i];
         if (!value.present(i) || group == kUndefinedGroup) {
@@ -227,10 +283,13 @@ class GroupByIndicesProcessor {
         auto [it, inserted] =
             key_to_group_id.emplace(Key{group, value.values[i]}, new_group_id);
         if (inserted) {
+          sorting_data.AddUnique(group, value.values[i]);
           ++new_group_id;
         }
         group_id_[i] = it->second;
       }
+      sorting_data.Sort(start_group_id,
+                        absl::MakeSpan(group_id_).subspan(begin, end - begin));
     }
   }
 
@@ -241,10 +300,12 @@ class GroupByIndicesProcessor {
 
 class GroupByIndicesQExprOperator : public arolla::QExprOperator {
  public:
-  GroupByIndicesQExprOperator(absl::Span<const arolla::QTypePtr> types)
+  GroupByIndicesQExprOperator(absl::Span<const arolla::QTypePtr> types,
+                              bool sort)
       : arolla::QExprOperator("kde.group_by_indices",
                               arolla::QExprOperatorSignature::Get(
-                                  types, arolla::GetQType<DataSlice>())) {
+                                  types, arolla::GetQType<DataSlice>())),
+        sort_(sort) {
     DCHECK(!types.empty());
   }
 
@@ -258,7 +319,7 @@ class GroupByIndicesQExprOperator : public arolla::QExprOperator {
       ds_slots.push_back(input_slot.UnsafeToSlot<DataSlice>());
     }
     return arolla::MakeBoundOperator(
-        [output_slot = output_slot.UnsafeToSlot<DataSlice>(),
+        [sort(sort_), output_slot = output_slot.UnsafeToSlot<DataSlice>(),
          ds_slots(std::move(ds_slots))](arolla::EvaluationContext* ctx,
                                         arolla::FramePtr frame) {
           const auto& shape = frame.Get(ds_slots[0]).GetShape();
@@ -268,13 +329,25 @@ class GroupByIndicesQExprOperator : public arolla::QExprOperator {
             return;
           }
           GroupByIndicesProcessor processor(shape.edges().back(),
-                                            /*sort=*/false);
+                                            /*sort=*/sort);
           for (const auto& ds_slot : ds_slots) {
             const auto& ds = frame.Get(ds_slot);
             if (!ds.GetShape().IsEquivalentTo(shape)) {
               ctx->set_status(absl::FailedPreconditionError(
                   "all arguments must have the same shape"));
               return;
+            }
+            if (sort) {
+              if (ds.slice().is_mixed_dtype()) {
+                ctx->set_status(absl::FailedPreconditionError(
+                    "sort is not supported for mixed dtype"));
+                return;
+              }
+              if (!internal::IsKodaScalarQTypeSortable(ds.slice().dtype())) {
+                ctx->set_status(absl::FailedPreconditionError(absl::StrCat(
+                    "sort is not supported for ", ds.slice().dtype()->name())));
+                return;
+              }
             }
             processor.ProcessGroupKey(ds.slice());
           }
@@ -294,6 +367,8 @@ class GroupByIndicesQExprOperator : public arolla::QExprOperator {
           frame.Set(output_slot, result);
         });
   }
+
+  bool sort_;
 };
 
 }  // namespace
@@ -308,7 +383,22 @@ absl::StatusOr<arolla::OperatorPtr> GroupByIndicesFamily::DoGetOperator(
     return absl::InvalidArgumentError(absl::StrCat(
         "the output must be a DataSlice, but got ", output_type->name()));
   }
-  return std::make_unique<GroupByIndicesQExprOperator>(input_types);
+  return std::make_unique<GroupByIndicesQExprOperator>(input_types,
+                                                       /*sort=*/false);
+}
+
+// kde.group_by_indices_sorted.
+//
+absl::StatusOr<arolla::OperatorPtr> GroupByIndicesSortedFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  RETURN_IF_ERROR(VerifyGroupByIndicesInputs(input_types));
+  if (output_type != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "the output must be a DataSlice, but got ", output_type->name()));
+  }
+  return std::make_unique<GroupByIndicesQExprOperator>(input_types,
+                                                       /*sort=*/true);
 }
 
 }  // namespace koladata::ops

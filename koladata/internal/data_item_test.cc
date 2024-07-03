@@ -268,6 +268,28 @@ TEST(DataItemTest, Less) {
   EXPECT_TRUE(less(DataItem(5.), DataItem(6.f)));
 }
 
+TEST(DataItemTest, IsKodaScalarSortable) {
+  EXPECT_TRUE(IsKodaScalarSortable<int64_t>());
+  EXPECT_TRUE(IsKodaScalarSortable<float>());
+  EXPECT_TRUE(IsKodaScalarSortable<double>());
+  EXPECT_TRUE(IsKodaScalarSortable<arolla::Text>());
+  EXPECT_TRUE(IsKodaScalarSortable<arolla::Bytes>());
+  EXPECT_TRUE(IsKodaScalarSortable<absl::string_view>());
+  EXPECT_FALSE(IsKodaScalarSortable<arolla::expr::ExprQuote>());
+  EXPECT_FALSE(IsKodaScalarSortable<schema::DType>());
+}
+
+TEST(DataItemTest, IsKodaScalarQTypeSortable) {
+  EXPECT_TRUE(IsKodaScalarQTypeSortable(arolla::GetQType<int64_t>()));
+  EXPECT_TRUE(IsKodaScalarQTypeSortable(arolla::GetQType<float>()));
+  EXPECT_TRUE(IsKodaScalarQTypeSortable(arolla::GetQType<double>()));
+  EXPECT_TRUE(IsKodaScalarQTypeSortable(arolla::GetQType<arolla::Text>()));
+  EXPECT_TRUE(IsKodaScalarQTypeSortable(arolla::GetQType<arolla::Bytes>()));
+  EXPECT_FALSE(
+      IsKodaScalarQTypeSortable(arolla::GetQType<arolla::expr::ExprQuote>()));
+  EXPECT_FALSE(IsKodaScalarQTypeSortable(arolla::GetQType<schema::DType>()));
+}
+
 TEST(DataItemTest, IsList) {
   EXPECT_TRUE(DataItem(AllocateSingleList()).is_list());
   EXPECT_FALSE(DataItem(AllocateSingleObject()).is_list());

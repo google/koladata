@@ -63,6 +63,7 @@ OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR("kde.core.get_primitive_schema", GetPrimitiveSchema);
 OPERATOR_FAMILY("kde.core.group_by_indices", GroupByIndicesFamily);
+OPERATOR_FAMILY("kde.core.group_by_indices_sorted", GroupByIndicesSortedFamily);
 OPERATOR("kde.core.itemid_bits", ItemIdBits);
 OPERATOR("kde.core.list_size", ListSize);
 OPERATOR("kde.core.nofollow", NoFollow);
