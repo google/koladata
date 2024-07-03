@@ -35,6 +35,7 @@
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice_op.h"
+#include "koladata/internal/casting.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -804,8 +805,15 @@ class RhsHandler {
     if (cast_to == schema::kObject && value_schema.is_entity_schema()) {
       if constexpr (!is_readonly) {
         // Need to embed the schema, so we attach it to the DataBag.
-        auto res = ToObject(rhs_.WithDb(
-            DataBag::FromImpl(internal::DataBagImplPtr::NewRef(&db_impl))));
+        ASSIGN_OR_RETURN(auto to_object,
+                         schema::ToObject::Make(value_schema, true, &db_impl));
+        auto res =
+            rhs_.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+              RETURN_IF_ERROR(to_object(impl));
+              return DataSlice::Create(impl, rhs_.GetShape(),
+                                       internal::DataItem(schema::kObject),
+                                       nullptr);
+            });
         if (res.ok()) {
           casted_rhs_ = *std::move(res);
           return absl::OkStatus();

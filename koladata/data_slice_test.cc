@@ -3513,7 +3513,8 @@ TEST(DataSliceCastingTest, ToObject_EmbedSchema_Entity) {
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
-  ASSERT_OK_AND_ASSIGN(auto val_entity, EntityCreator()(db, shape));
+  auto val_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto val_entity, EntityCreator()(val_db, shape));
   ASSERT_OK(entity.SetAttr("a", val_entity));
   ASSERT_OK_AND_ASSIGN(auto ds_a, entity.GetAttr("a"));
   EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kObject);
