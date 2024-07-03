@@ -185,11 +185,15 @@ schema_internal::CommonDTypeAggregator::Get() const {
       return DType(res_dtype_id);
     }
     DTypeId i = absl::countr_zero(mask);
-    res_dtype_id = DTypeMatrix::CommonDType(res_dtype_id, i);
-    if (ABSL_PREDICT_FALSE(res_dtype_id == kUnknownDType)) {
-      // TODO: Add KodaError for no common schema.
-      return absl::InvalidArgumentError("no common schema");
+    DTypeId common_dtype_id = DTypeMatrix::CommonDType(res_dtype_id, i);
+    if (ABSL_PREDICT_FALSE(common_dtype_id == kUnknownDType)) {
+      return internal::WithErrorPayload(
+          absl::InvalidArgumentError("no common schema"),
+          CreateNoCommonSchemaError(
+              /*common_schema=*/internal::DataItem(DType(res_dtype_id)),
+              /*conflicting_schema=*/internal::DataItem(DType(i))));
     }
+    res_dtype_id = common_dtype_id;
   }
 }
 
@@ -217,8 +221,9 @@ void CommonSchemaAggregator::Add(internal::ObjectId schema_obj) {
   if (*res_object_id_ != schema_obj) {
     status_ = internal::WithErrorPayload(
         absl::InvalidArgumentError("no common schema"),
-        CreateNoCommonSchemaError(internal::DataItem(*res_object_id_),
-                                  internal::DataItem(schema_obj)));
+        CreateNoCommonSchemaError(
+            /*common_schema=*/internal::DataItem(*res_object_id_),
+            /*conflicting_schema=*/internal::DataItem(schema_obj)));
   }
 }
 
@@ -238,48 +243,11 @@ absl::StatusOr<internal::DataItem> CommonSchemaAggregator::Get(
   if (!res_object_id_) {
     return internal::DataItem(*res_dtype);
   }
-
   return WithErrorPayload(
       absl::InvalidArgumentError("no common schema"),
-      CreateNoCommonSchemaError(internal::DataItem(*res_dtype),
-                                internal::DataItem(*res_object_id_)));
-}
-
-absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs) {
-  if (auto common_dtype =
-          DTypeMatrix::CommonDType(lhs.type_id(), rhs.type_id());
-      common_dtype != kUnknownDType) {
-    return internal::DataItem(DType(common_dtype));
-  }
-  return internal::WithErrorPayload(
-      absl::InvalidArgumentError("no common schema"),
-      CreateNoCommonSchemaError(internal::DataItem(lhs),
-                                internal::DataItem(rhs)));
-}
-
-absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
-                                                const internal::DataItem& rhs) {
-  if (lhs.holds_value<DType>() && rhs.holds_value<DType>()) {
-    return CommonSchema(lhs.value<DType>(), rhs.value<DType>());
-  }
-  if (!lhs.is_schema() || !rhs.is_schema()) {
-    // TODO: Add KodaError for no common schema.
-    return absl::InvalidArgumentError(
-        absl::StrFormat("expected Schemas, got: %v and %v", lhs, rhs));
-  }
-  if (lhs == rhs) {
-    return lhs;
-  }
-  // NONE is the only dtype that casts to entity.
-  if (lhs == kNone) {
-    return rhs;
-  }
-  if (rhs == kNone) {
-    return lhs;
-  }
-  return internal::WithErrorPayload(
-      absl::InvalidArgumentError("no common schema"),
-      CreateNoCommonSchemaError(lhs, rhs));
+      CreateNoCommonSchemaError(
+          /*common_schema=*/internal::DataItem(*res_dtype),
+          /*conflicting_schema=*/internal::DataItem(*res_object_id_)));
 }
 
 absl::StatusOr<internal::DataItem> CommonSchema(

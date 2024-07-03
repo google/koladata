@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -96,11 +97,22 @@ class CommonSchemaAggregator {
 // lattice defined in go/koda-type-promotion. If common / supremum schema cannot
 // be determined, appropriate error is returned.
 //
-// NOTE: This is a performance optimization and has identical behavior as
-// using CommonSchemaAggregator on two elements.
-absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs);
-absl::StatusOr<internal::DataItem> CommonSchema(const internal::DataItem& lhs,
-                                                const internal::DataItem& rhs);
+// This is a convenience wrapper around CommonSchemaAggregator on two elements.
+inline absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs) {
+  // NOTE: implementing manual equality checks can save ~10ns and is an
+  // available performance optimization.
+  CommonSchemaAggregator agg;
+  agg.Add(lhs);
+  agg.Add(rhs);
+  return std::move(agg).Get();
+}
+inline absl::StatusOr<internal::DataItem> CommonSchema(
+    const internal::DataItem& lhs, const internal::DataItem& rhs) {
+  CommonSchemaAggregator agg;
+  agg.Add(lhs);
+  agg.Add(rhs);
+  return std::move(agg).Get();
+}
 
 // Finds the supremum schema of all schemas in `schema_ids` according to the
 // type promotion lattice defined in go/koda-type-promotion. If common /
