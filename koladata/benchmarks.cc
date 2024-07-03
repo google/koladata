@@ -20,6 +20,7 @@
 
 #include "benchmark/benchmark.h"
 #include "absl/log/check.h"
+#include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -264,6 +265,39 @@ BENCHMARK(BM_GetFromList)
     ->Args({1, 100, 100})
     ->Args({1, 10, 10000});
 
+void BM_SetMultipleAttrs(benchmark::State& state) {
+  int64_t size = state.range(0);
+  auto db = DataBag::Empty();
+  auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
+  auto a = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(a_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto b_values = arolla::CreateFullDenseArray(std::vector<float>(size, 3.14));
+  auto b = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(b_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto c_values = arolla::CreateFullDenseArray(
+      std::vector<int64_t>(size, 1l << 43));
+  auto c = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(c_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+
+  auto entity = *EntityCreator()(db, a.GetShape());
+
+  std::vector<absl::string_view> attr_names{"a", "b", "c"};
+  std::vector<DataSlice> values{a, b, c};
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(db);
+    benchmark::DoNotOptimize(attr_names);
+    benchmark::DoNotOptimize(values);
+    CHECK_OK(entity.SetAttrs(attr_names, values, /*update_schema=*/true));
+    benchmark::DoNotOptimize(entity);
+  }
+}
+
+BENCHMARK(BM_SetMultipleAttrs)->Arg(1)->Arg(10)->Arg(10000);
+
 void BM_CreateEntity(benchmark::State& state) {
   int64_t size = state.range(0);
   auto db = DataBag::Empty();
@@ -281,12 +315,14 @@ void BM_CreateEntity(benchmark::State& state) {
       DataSliceImpl::Create(c_values),
       DataSlice::JaggedShape::FlatFromSize(size));
 
+  std::vector<absl::string_view> attr_names{"a", "b", "c"};
+  std::vector<DataSlice> values{a, b, c};
+
   for (auto _ : state) {
     benchmark::DoNotOptimize(db);
-    benchmark::DoNotOptimize(a);
-    benchmark::DoNotOptimize(b);
-    benchmark::DoNotOptimize(c);
-    auto entity_or = EntityCreator()(db, {"a", "b", "c"}, {a, b, c});
+    benchmark::DoNotOptimize(attr_names);
+    benchmark::DoNotOptimize(values);
+    auto entity_or = EntityCreator()(db, attr_names, values);
     CHECK_OK(entity_or);
     benchmark::DoNotOptimize(entity_or);
   }
@@ -317,12 +353,15 @@ void BM_CreateEntityWithSchema(benchmark::State& state) {
       {test::Schema(schema::kInt32), test::Schema(schema::kFloat32),
        test::Schema(schema::kInt64)});
 
+  std::vector<absl::string_view> attr_names{"a", "b", "c"};
+  std::vector<DataSlice> values{a, b, c};
+
   for (auto _ : state) {
     benchmark::DoNotOptimize(db);
-    benchmark::DoNotOptimize(a);
-    benchmark::DoNotOptimize(b);
-    benchmark::DoNotOptimize(c);
-    auto entity_or = EntityCreator()(db, {"a", "b", "c"}, {a, b, c}, schema);
+    benchmark::DoNotOptimize(attr_names);
+    benchmark::DoNotOptimize(values);
+    benchmark::DoNotOptimize(schema);
+    auto entity_or = EntityCreator()(db, attr_names, values, schema);
     CHECK_OK(entity_or);
     benchmark::DoNotOptimize(entity_or);
   }
@@ -353,12 +392,15 @@ void BM_CreateEntityWithSchemaAndCasting(benchmark::State& state) {
       {test::Schema(schema::kInt64), test::Schema(schema::kFloat64),
        test::Schema(schema::kFloat32)});
 
+  std::vector<absl::string_view> attr_names{"a", "b", "c"};
+  std::vector<DataSlice> values{a, b, c};
+
   for (auto _ : state) {
     benchmark::DoNotOptimize(db);
-    benchmark::DoNotOptimize(a);
-    benchmark::DoNotOptimize(b);
-    benchmark::DoNotOptimize(c);
-    auto entity_or = EntityCreator()(db, {"a", "b", "c"}, {a, b, c}, schema);
+    benchmark::DoNotOptimize(attr_names);
+    benchmark::DoNotOptimize(values);
+    benchmark::DoNotOptimize(schema);
+    auto entity_or = EntityCreator()(db, attr_names, values, schema);
     CHECK_OK(entity_or);
     benchmark::DoNotOptimize(entity_or);
   }

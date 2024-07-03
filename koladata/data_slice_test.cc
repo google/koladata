@@ -1218,6 +1218,76 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectsWithExplicitSchema) {
   EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
 }
 
+TEST(DataSliceTest, SetMultipleAttrs_Entity) {
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataItem(1);
+  auto ds_b = test::DataItem("a");
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, {"a", "b"}, {ds_a, ds_b}));
+
+  ds_a = test::DataItem(42);
+  ds_b = test::DataItem("abc");
+  ASSERT_OK(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}));
+  EXPECT_THAT(ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::item, Eq(42))));
+  EXPECT_THAT(
+      ds.GetAttr("b"),
+      IsOkAndHolds(Property(&DataSlice::item, Eq(arolla::Text("abc")))));
+}
+
+TEST(DataSliceTest, SetMultipleAttrs_Object) {
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataItem(1);
+  auto ds_b = test::DataItem("a");
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, {"a", "b"}, {ds_a, ds_b}));
+
+  ds_a = test::DataItem(42);
+  ds_b = test::DataItem("abc");
+  ASSERT_OK(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}));
+  EXPECT_THAT(ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::item, Eq(42))));
+  EXPECT_THAT(
+      ds.GetAttr("b"),
+      IsOkAndHolds(Property(&DataSlice::item, Eq(arolla::Text("abc")))));
+}
+
+TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Entity) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       EntityCreator()(db, DataSlice::JaggedShape::Empty()));
+  auto ds_a = test::DataItem(42);
+  auto ds_b = test::DataItem("abc");
+  EXPECT_THAT(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("attribute 'a' is missing on the schema")));
+
+  ASSERT_OK(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}, /*update_schema=*/true));
+  EXPECT_THAT(ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::item, Eq(42))));
+  EXPECT_THAT(
+      ds.GetAttr("b"),
+      IsOkAndHolds(Property(&DataSlice::item, Eq(arolla::Text("abc")))));
+}
+
+TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Object) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       ObjectCreator()(db, DataSlice::JaggedShape::Empty()));
+  ASSERT_OK(ds.SetAttr(schema::kSchemaAttr,
+                       test::Schema(internal::AllocateExplicitSchema())));
+  auto ds_a = test::DataItem(42);
+  auto ds_b = test::DataItem("abc");
+  EXPECT_THAT(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("attribute 'a' is missing on the schema")));
+
+  ASSERT_OK(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}, /*update_schema=*/true));
+  EXPECT_THAT(ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::item, Eq(42))));
+  EXPECT_THAT(
+      ds.GetAttr("b"),
+      IsOkAndHolds(Property(&DataSlice::item, Eq(arolla::Text("abc")))));
+}
+
 TEST(DataSliceTest, SetGetSchemaSlice) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   auto db = DataBag::Empty();

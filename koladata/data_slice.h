@@ -208,6 +208,14 @@ class DataSlice {
   absl::Status SetAttrWithUpdateSchema(absl::string_view attr_name,
                                        const DataSlice& values) const;
 
+  // Sets multiple attributes at the same time. Attributes `attr_names` of
+  // Object / Entity are set to `values`. If `update_schema` is true, schemas
+  // will also be updated, otherwise incompatible schema errors can be raised.
+  // Possible only if it contains a reference to a DataBag.
+  absl::Status SetAttrs(absl::Span<const absl::string_view> attr_names,
+                        absl::Span<const DataSlice> values,
+                        bool update_schema = false) const;
+
   // Removes an attribute `attr_name` of this object. Entity Schema is not
   // updated, while Object Schema is. If attribute is being deleted on Schema
   // itself, Entity schema is updated. Returns error if attribute does not exist

@@ -935,6 +935,18 @@ absl::Status DataSlice::SetAttrWithUpdateSchema(absl::string_view attr_name,
   return SetAttr(attr_name, values);
 }
 
+absl::Status DataSlice::SetAttrs(absl::Span<const absl::string_view> attr_names,
+                                 absl::Span<const DataSlice> values,
+                                 bool update_schema) const {
+  DCHECK_EQ(attr_names.size(), values.size());
+  auto set_attr_fn = update_schema ?
+      &DataSlice::SetAttrWithUpdateSchema : &DataSlice::SetAttr;
+  for (int i = 0; i < attr_names.size(); ++i) {
+    RETURN_IF_ERROR((this->*set_attr_fn)(attr_names[i], values[i]));
+  }
+  return absl::OkStatus();
+}
+
 namespace {
 
 // Deletes a schema attribute for the single item in case of IMPLICIT schemas
