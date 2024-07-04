@@ -232,6 +232,64 @@ absl::StatusOr<DataSlice> CreateLike(const std::shared_ptr<DataBag>& db,
   });
 }
 
+// Deduces result item schema for the factory functions that accept `values` and
+// `item_schema`.
+// NOTE: the function does not verify that `values` and `item_schema` are
+// compatible, it is done later during assignment.
+absl::StatusOr<DataSlice> DeduceItemSchema(
+    const std::optional<DataSlice>& values,
+    const std::optional<DataSlice>& item_schema) {
+  if (item_schema.has_value()) {
+    return *item_schema;
+  }
+  if (values.has_value()) {
+    return values->GetSchema();
+  }
+  return DataSlice::Create(internal::DataItem(schema::kObject),
+                           internal::DataItem(schema::kSchema));
+}
+
+// Implementation of CreateDictLike and CreateDictShaped that handles schema
+// deduction and keys/values assignment. `create_dicts_fn` must create a
+// DataSlice with the provided schema.
+template <typename CreateDictsFn>
+absl::StatusOr<DataSlice> CreateDictImpl(
+    const std::shared_ptr<DataBag>& db, const CreateDictsFn& create_dicts_fn,
+    const std::optional<DataSlice>& keys,
+    const std::optional<DataSlice>& values,
+    const std::optional<DataSlice>& schema,
+    const std::optional<DataSlice>& key_schema,
+    const std::optional<DataSlice>& value_schema) {
+  internal::DataItem dict_schema;
+  if (schema) {
+    if (key_schema.has_value() || value_schema.has_value()) {
+      return absl::InvalidArgumentError(
+          "creating dicts with schema accepts either a dict schema or key/value"
+          " schemas, but not both");
+    }
+    RETURN_IF_ERROR(CopyDictSchema(*schema, db));
+    dict_schema = schema->item();
+  } else {
+    ASSIGN_OR_RETURN(auto deduced_key_schema,
+                     DeduceItemSchema(keys, key_schema));
+    ASSIGN_OR_RETURN(auto deduced_value_schema,
+                     DeduceItemSchema(values, value_schema));
+    ASSIGN_OR_RETURN(dict_schema, CreateDictSchema(db, deduced_key_schema,
+                                                   deduced_value_schema));
+  }
+  ASSIGN_OR_RETURN(DataSlice res, create_dicts_fn(dict_schema));
+  if (keys.has_value() && values.has_value()) {
+    RETURN_IF_ERROR(res.SetInDict(*keys, *values));
+  } else if (keys.has_value()) {
+    return absl::InvalidArgumentError(
+        "creating a dict requires both keys and values, got only keys");
+  } else if (values.has_value()) {
+    return absl::InvalidArgumentError(
+        "creating a dict requires both keys and values, got only values");
+  }
+  return res;
+}
+
 }  // namespace
 
 absl::StatusOr<DataSlice> CreateEntitySchema(
@@ -466,27 +524,6 @@ absl::StatusOr<DataSlice> UuObjectCreator::operator()(
       });
 }
 
-namespace {
-
-// Deduces result item schema for the factory functions that accept `values` and
-// `item_schema`.
-// NOTE: the function does not verify that `values` and `item_schema` are
-// compatible, it is done later during assignment.
-absl::StatusOr<DataSlice> DeduceItemSchema(
-    const std::optional<DataSlice>& values,
-    const std::optional<DataSlice>& item_schema) {
-  if (item_schema.has_value()) {
-    return *item_schema;
-  }
-  if (values.has_value()) {
-    return values->GetSchema();
-  }
-  return DataSlice::Create(internal::DataItem(schema::kObject),
-                           internal::DataItem(schema::kSchema));
-}
-
-}  // namespace
-
 absl::StatusOr<internal::DataItem> CreateDictSchema(
     const DataBagPtr& db, const DataSlice& key_schema,
     const DataSlice& value_schema) {
@@ -498,47 +535,6 @@ absl::StatusOr<internal::DataItem> CreateDictSchema(
   return db_mutable_impl.CreateUuSchemaFromFields(
       "::koladata::::CreateDictSchema", {"__keys__", "__values__"},
       {key_schema.item(), value_schema.item()});
-}
-
-// Implementation of CreateDictLike and CreateDictShaped that handles schema
-// deduction and keys/values assignment. `create_dicts_fn` must create a
-// DataSlice with the provided schema.
-template <typename CreateDictsFn>
-absl::StatusOr<DataSlice> CreateDictImpl(
-    const std::shared_ptr<DataBag>& db, const CreateDictsFn& create_dicts_fn,
-    const std::optional<DataSlice>& keys,
-    const std::optional<DataSlice>& values,
-    const std::optional<DataSlice>& schema,
-    const std::optional<DataSlice>& key_schema,
-    const std::optional<DataSlice>& value_schema) {
-  internal::DataItem dict_schema;
-  if (schema) {
-    if (key_schema.has_value() || value_schema.has_value()) {
-      return absl::InvalidArgumentError(
-          "creating dicts with schema accepts either a dict schema or key/value"
-          " schemas, but not both");
-    }
-    RETURN_IF_ERROR(CopyDictSchema(*schema, db));
-    dict_schema = schema->item();
-  } else {
-    ASSIGN_OR_RETURN(auto deduced_key_schema,
-                     DeduceItemSchema(keys, key_schema));
-    ASSIGN_OR_RETURN(auto deduced_value_schema,
-                     DeduceItemSchema(values, value_schema));
-    ASSIGN_OR_RETURN(dict_schema, CreateDictSchema(db, deduced_key_schema,
-                                                   deduced_value_schema));
-  }
-  ASSIGN_OR_RETURN(DataSlice res, create_dicts_fn(dict_schema));
-  if (keys.has_value() && values.has_value()) {
-    RETURN_IF_ERROR(res.SetInDict(*keys, *values));
-  } else if (keys.has_value()) {
-    return absl::InvalidArgumentError(
-        "creating a dict requires both keys and values, got only keys");
-  } else if (values.has_value()) {
-    return absl::InvalidArgumentError(
-        "creating a dict requires both keys and values, got only values");
-  }
-  return res;
 }
 
 absl::StatusOr<DataSlice> CreateDictLike(

@@ -37,7 +37,9 @@
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
+namespace koladata::internal {
 namespace {
+
 // Note SelectWithOffsets is almost the same as Arolla TakeOverOverOp but
 // supports negative indices and ignores out-of-bound indices.
 template <typename T>
@@ -74,9 +76,8 @@ absl::StatusOr<arolla::DenseArray<T>> SelectWithOffsets(
       arolla::meta::type_list<int64_t>{}, offsets);
   return res;
 }
-}  // namespace
 
-namespace koladata::internal {
+}  // namespace
 
 absl::StatusOr<DataSliceImpl> AtOp(
     const DataSliceImpl& ds, const arolla::DenseArray<int64_t>& indices,
