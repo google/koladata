@@ -391,28 +391,10 @@ TEST(SchemaUtilsTest, CommonSchema_InvalidInput) {
                        "expected Schema, got: INT32"));
 }
 
-TEST(SchemaUtilsTest, DefaultIfMissing_Default) {
+TEST(SchemaUtilsTest, DefaultIfMissing) {
   CommonSchemaAggregator agg;
   EXPECT_THAT(CommonSchemaAggregator().Get(),
               IsOkAndHolds(DataItem(schema::kObject)));
-}
-
-TEST(SchemaUtilsTest, DefaultIfMissing_Object) {
-  CommonSchemaAggregator agg;
-  EXPECT_THAT(CommonSchemaAggregator().Get(DataItem(schema::kObject)),
-              IsOkAndHolds(DataItem(schema::kObject)));
-}
-
-TEST(SchemaUtilsTest, DefaultIfMissing_Empty) {
-  CommonSchemaAggregator agg;
-  EXPECT_THAT(CommonSchemaAggregator().Get(DataItem()),
-              IsOkAndHolds(DataItem()));
-}
-
-TEST(SchemaUtilsTest, DefaultIfMissing_Any) {
-  CommonSchemaAggregator agg;
-  EXPECT_THAT(CommonSchemaAggregator().Get(DataItem(schema::kAny)),
-              IsOkAndHolds(DataItem(schema::kAny)));
 }
 
 TEST(SchemaUtilsTest, NoFollow_Roundtrip_OBJECT) {

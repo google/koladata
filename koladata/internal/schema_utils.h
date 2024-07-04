@@ -83,10 +83,8 @@ class CommonSchemaAggregator {
   void Add(internal::ObjectId schema_obj);
 
   // Returns the common schema or an appropriate error. If no common schema can
-  // be found because no schemas were seen, `default_if_missing` is returned.
-  absl::StatusOr<internal::DataItem> Get(
-      const internal::DataItem& default_if_missing =
-          internal::DataItem(kObject)) &&;
+  // be found because no schemas were seen, `kObject` is returned.
+  absl::StatusOr<internal::DataItem> Get() &&;
 
  private:
   schema_internal::CommonDTypeAggregator dtype_agg_;
@@ -118,11 +116,10 @@ inline absl::StatusOr<internal::DataItem> CommonSchema(
 // Finds the supremum schema of all schemas in `schema_ids` according to the
 // type promotion lattice defined in go/koda-type-promotion. If common /
 // supremum schema cannot be determined, appropriate error is returned. If
-// schema cannot be found, because all `schema_ids` are missing,
-// `default_if_missing` is returned.
+// schema cannot be found, because all `schema_ids` are missing, `kObject` is
+// returned.
 absl::StatusOr<internal::DataItem> CommonSchema(
-    const internal::DataSliceImpl& schema_ids,
-    const internal::DataItem& default_if_missing = internal::DataItem(kObject));
+    const internal::DataSliceImpl& schema_ids);
 
 // Returns a NoFollow schema item that wraps `schema_item`. In case
 // `schema_item` is not schema, or it is a schema for which NoFollow is not

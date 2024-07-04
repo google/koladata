@@ -254,8 +254,11 @@ absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
   if constexpr (std::is_same_v<ImplT, internal::DataItem>) {
     return per_item_types;
   } else {
-    return schema::CommonSchema(
-        per_item_types, allow_missing ? internal::DataItem() : kObjectSchema);
+    if (allow_missing && per_item_types.present_count() == 0) {
+      return internal::DataItem();
+    } else {
+      return schema::CommonSchema(per_item_types);
+    }
   }
 }
 
