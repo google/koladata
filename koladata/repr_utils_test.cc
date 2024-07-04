@@ -561,6 +561,37 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_List) {
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"))));
 }
 
+TEST(ReprUtilTest, TestDataBagStringRepresentation_FallbackBags) {
+  auto fallback_db1 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds1,
+      EntityCreator()(fallback_db1, {"a"}, {test::DataItem(42, fallback_db1)}));
+
+  auto fallback_db2 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto ds2,
+                       EntityCreator()(fallback_db2, {"b"},
+                                       {test::DataItem(123, fallback_db2)}));
+
+  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
+  auto ds3 = ds1.WithDb(db);
+
+  EXPECT_THAT(
+      DataBagToStr(ds3.GetDb()),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}\.a => 42(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-f]{32}\.a => INT32(.|\n)*  fallback #1 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}\.b => 123(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-f]{32}\.b => INT32(.|\n)*)regex")));
+}
+
+TEST(ReprUtilTest, TestDataBagStringRepresentation_DuplicatedFallbackBags) {
+  auto fallback_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds1, EntityCreator()(fallback_db, {"a"}, {test::DataItem(42)}));
+  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db, fallback_db});
+  EXPECT_THAT(
+      DataBagToStr(db),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}\.a => 42(.|\n)*  SchemaBag:(.|\n)*  fallback #1 duplicated, see db with id: \$[0-9a-f]{4})regex")));
+}
+
 TEST(ReprUtilTest, TestAssembleError) {
   DataBagPtr bag = DataBag::Empty();
 

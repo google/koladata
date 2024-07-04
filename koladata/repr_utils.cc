@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
@@ -60,6 +61,8 @@ using ::koladata::internal::GetErrorPayload;
 using ::koladata::internal::debug::AttrTriple;
 using ::koladata::internal::debug::DictItemTriple;
 using ::koladata::internal::debug::Triples;
+
+constexpr int kTwoSpaceIndentation = 2;
 
 absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds);
 
@@ -373,6 +376,82 @@ absl::StatusOr<Error> SetNoCommonSchemaError(
   return error;
 }
 
+struct DataBagFormatOption {
+  int indentation = 0;
+  std::optional<int> fallback_index;
+};
+
+absl::StatusOr<std::string> DataBagToStrInternal(
+    const DataBagPtr& db, absl::flat_hash_set<const DataBag*>& seen_db,
+    const DataBagFormatOption& format_opt) {
+  std::string line_indent(format_opt.indentation * kTwoSpaceIndentation, ' ');
+  if (seen_db.contains(db.get())) {
+    return absl::StrCat(line_indent, "fallback #", *format_opt.fallback_index,
+                        " duplicated, see db with id: ", GetBagIdRepr(db));
+  }
+  seen_db.emplace(db.get());
+
+  std::string res =
+      format_opt.fallback_index
+          ? absl::StrCat(line_indent, "fallback #", *format_opt.fallback_index,
+                         " ", GetBagIdRepr(db), ":\n", line_indent,
+                         "DataBag:\n")
+          : absl::StrCat(line_indent, "DataBag ", GetBagIdRepr(db), ":\n");
+  ASSIGN_OR_RETURN(DataBagContent content, db->GetImpl().ExtractContent());
+  Triples main_triples(content);
+  for (const AttrTriple& attr : main_triples.attributes()) {
+    absl::StrAppend(
+        &res, line_indent,
+        absl::StrFormat("%s.%s => %s\n", ObjectIdStr(attr.object),
+                        attr.attribute,
+                        DataItemStr(attr.value, /*strip_text=*/true)));
+  }
+  for (const auto& [list_id, values] : main_triples.lists()) {
+    absl::StrAppend(
+        &res, line_indent,
+        absl::StrFormat(
+            "%s[:] => [%s]\n", ObjectIdStr(list_id),
+            absl::StrJoin(values.begin(), values.end(), ", ",
+                          [](std::string* out, const internal::DataItem& item) {
+                            out->append(DataItemStr(item));
+                          })));
+  }
+  for (const DictItemTriple& dict : main_triples.dicts()) {
+    if (dict.object.IsDict()) {
+      absl::StrAppend(
+          &res, line_indent,
+          absl::StrFormat("%s[%s] => %s\n", ObjectIdStr(dict.object),
+                          DataItemStr(dict.key), DataItemStr(dict.value)));
+    }
+  }
+  absl::StrAppend(&res, "\n", line_indent, "SchemaBag:\n");
+  for (const DictItemTriple& dict : main_triples.dicts()) {
+    if (dict.object.IsSchema() && !IsInternalAttribute(dict.key)) {
+      absl::StrAppend(
+          &res, line_indent,
+          absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
+                          DataItemStr(dict.key, /*strip_text=*/true),
+                          DataItemStr(dict.value)));
+    }
+  }
+  const std::vector<DataBagPtr>& fallbacks = db->GetFallbacks();
+  if (!fallbacks.empty()) {
+    absl::StrAppend(&res, "\n", line_indent, fallbacks.size(),
+                    " fallback DataBag(s):\n");
+  }
+  absl::string_view sep = "";
+  for (int i = 0; i < fallbacks.size(); ++i) {
+    ASSIGN_OR_RETURN(
+        std::string content,
+        DataBagToStrInternal(
+            fallbacks.at(i), seen_db,
+            {.indentation = format_opt.indentation + 1, .fallback_index = i}));
+    absl::StrAppend(&res, sep, content);
+    sep = "\n";
+  }
+  return res;
+}
+
 }  // namespace
 
 absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds) {
@@ -382,43 +461,10 @@ absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds) {
   });
 }
 
-// TODO: Reads data from fallback DataBag.
 absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db) {
-  ASSIGN_OR_RETURN(DataBagContent content, db->GetImpl().ExtractContent());
-  Triples main_triples(content);
-  std::string res = absl::StrCat("DataBag ", GetBagIdRepr(db), ":\n");
-  for (const AttrTriple& attr : main_triples.attributes()) {
-    absl::StrAppend(
-        &res, absl::StrFormat("%s.%s => %s\n", ObjectIdStr(attr.object),
-                              attr.attribute,
-                              DataItemStr(attr.value, /*strip_text=*/true)));
-  }
-  for (const auto& [list_id, values] : main_triples.lists()) {
-    absl::StrAppend(
-        &res, absl::StrFormat("%s[:] => [%s]\n", ObjectIdStr(list_id),
-                              absl::StrJoin(values.begin(), values.end(), ", ",
-                                            [](std::string* out,
-                                               const internal::DataItem& item) {
-                                              out->append(DataItemStr(item));
-                                            })));
-  }
-  for (const DictItemTriple& dict : main_triples.dicts()) {
-    if (dict.object.IsDict()) {
-      absl::StrAppend(
-          &res,
-          absl::StrFormat("%s[%s] => %s\n", ObjectIdStr(dict.object),
-                          DataItemStr(dict.key), DataItemStr(dict.value)));
-    }
-  }
-  absl::StrAppend(&res, "\nSchemaBag:\n");
-  for (const DictItemTriple& dict : main_triples.dicts()) {
-    if (dict.object.IsSchema() && !IsInternalAttribute(dict.key)) {
-      absl::StrAppend(
-          &res, absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
-                                DataItemStr(dict.key, /*strip_text=*/true),
-                                DataItemStr(dict.value)));
-    }
-  }
+  absl::flat_hash_set<const DataBag*> seen_db;
+  ASSIGN_OR_RETURN(std::string res,
+                   DataBagToStrInternal(db, seen_db, {.indentation = 0}));
   return res;
 }
 
