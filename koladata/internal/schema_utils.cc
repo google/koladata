@@ -172,8 +172,8 @@ internal::Error CreateNoCommonSchemaError(
 
 }  // namespace
 
-absl::StatusOr<std::optional<DType>>
-schema_internal::CommonDTypeAggregator::Get() const {
+std::optional<DType> schema_internal::CommonDTypeAggregator::Get(
+    absl::Status& status) const {
   if (seen_dtypes_ == 0) {
     return std::nullopt;
   }
@@ -187,11 +187,12 @@ schema_internal::CommonDTypeAggregator::Get() const {
     DTypeId i = absl::countr_zero(mask);
     DTypeId common_dtype_id = DTypeMatrix::CommonDType(res_dtype_id, i);
     if (ABSL_PREDICT_FALSE(common_dtype_id == kUnknownDType)) {
-      return internal::WithErrorPayload(
+      status = internal::WithErrorPayload(
           absl::InvalidArgumentError("no common schema"),
           CreateNoCommonSchemaError(
               /*common_schema=*/internal::DataItem(DType(res_dtype_id)),
               /*conflicting_schema=*/internal::DataItem(DType(i))));
+      return std::nullopt;
     }
     res_dtype_id = common_dtype_id;
   }
@@ -228,20 +229,22 @@ void CommonSchemaAggregator::Add(internal::ObjectId schema_obj) {
 }
 
 absl::StatusOr<internal::DataItem> CommonSchemaAggregator::Get(
-    internal::DataItem default_if_missing) && {
+    const internal::DataItem& default_if_missing) && {
+  std::optional<DType> res_dtype = dtype_agg_.Get(status_);
   if (!status_.ok()) {
     return std::move(status_);
   }
-  ASSIGN_OR_RETURN(std::optional<DType> res_dtype, dtype_agg_.Get());
-  if (!res_dtype && !res_object_id_) {
-    return default_if_missing;
+  if (res_dtype.has_value() && !res_object_id_) {
+    return internal::DataItem(*res_dtype);
   }
   // NONE is the only dtype that casts to entity.
   if ((!res_dtype || res_dtype == kNone) && res_object_id_.has_value()) {
     return internal::DataItem(*res_object_id_);
   }
+
   if (!res_object_id_) {
-    return internal::DataItem(*res_dtype);
+    DCHECK(!res_dtype);
+    return default_if_missing;
   }
   return WithErrorPayload(
       absl::InvalidArgumentError("no common schema"),
@@ -252,7 +255,7 @@ absl::StatusOr<internal::DataItem> CommonSchemaAggregator::Get(
 
 absl::StatusOr<internal::DataItem> CommonSchema(
     const internal::DataSliceImpl& schema_ids,
-    internal::DataItem default_if_missing) {
+    const internal::DataItem& default_if_missing) {
   CommonSchemaAggregator schema_agg;
 
   RETURN_IF_ERROR(schema_ids.VisitValues(absl::Overload(
@@ -272,7 +275,7 @@ absl::StatusOr<internal::DataItem> CommonSchema(
         return absl::InvalidArgumentError(
             absl::StrCat("expected Schema, got: ", GetDType<ValT>()));
       })));
-  return std::move(schema_agg).Get(std::move(default_if_missing));
+  return std::move(schema_agg).Get(default_if_missing);
 }
 
 absl::StatusOr<internal::DataItem> NoFollowSchemaItem(

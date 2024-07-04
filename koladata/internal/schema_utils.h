@@ -51,7 +51,7 @@ class CommonDTypeAggregator {
   void Add(DType dtype) { seen_dtypes_ |= (Mask{1} << dtype.type_id()); }
 
   // Returns the common dtype out of the seen dtypes.
-  absl::StatusOr<std::optional<DType>> Get() const;
+  std::optional<DType> Get(absl::Status& status) const;
 
  private:
   using Mask = uint16_t;
@@ -85,7 +85,8 @@ class CommonSchemaAggregator {
   // Returns the common schema or an appropriate error. If no common schema can
   // be found because no schemas were seen, `default_if_missing` is returned.
   absl::StatusOr<internal::DataItem> Get(
-      internal::DataItem default_if_missing = internal::DataItem(kObject)) &&;
+      const internal::DataItem& default_if_missing =
+          internal::DataItem(kObject)) &&;
 
  private:
   schema_internal::CommonDTypeAggregator dtype_agg_;
@@ -121,7 +122,7 @@ inline absl::StatusOr<internal::DataItem> CommonSchema(
 // `default_if_missing` is returned.
 absl::StatusOr<internal::DataItem> CommonSchema(
     const internal::DataSliceImpl& schema_ids,
-    internal::DataItem default_if_missing = internal::DataItem(kObject));
+    const internal::DataItem& default_if_missing = internal::DataItem(kObject));
 
 // Returns a NoFollow schema item that wraps `schema_item`. In case
 // `schema_item` is not schema, or it is a schema for which NoFollow is not
