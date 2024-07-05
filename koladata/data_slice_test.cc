@@ -1095,7 +1095,7 @@ TEST(DataSliceTest, SetGetPrimitiveAttributes_EntityCreator) {
 
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
   // Setting attributes on DataSlices with Explicit Schema requires schema attr
   // to be already present.
   ASSERT_OK(ds.GetSchema().SetAttr("a", ds_primitive.GetSchema()));
@@ -1122,7 +1122,7 @@ TEST(DataSliceTest, SetGetPrimitiveAttributes_ObjectCreator) {
 
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get, ds.GetAttr("a"));
   EXPECT_EQ(ds_primitive_get.size(), 3);
@@ -1252,8 +1252,7 @@ TEST(DataSliceTest, SetMultipleAttrs_Object) {
 
 TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Entity) {
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       EntityCreator()(db, DataSlice::JaggedShape::Empty()));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, {}, {}));
   auto ds_a = test::DataItem(42);
   auto ds_b = test::DataItem("abc");
   EXPECT_THAT(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}),
@@ -1270,8 +1269,7 @@ TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Entity) {
 
 TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Object) {
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       ObjectCreator()(db, DataSlice::JaggedShape::Empty()));
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, {}, {}));
   ASSERT_OK(ds.SetAttr(schema::kSchemaAttr,
                        test::Schema(internal::AllocateExplicitSchema())));
   auto ds_a = test::DataItem(42);
@@ -1326,7 +1324,7 @@ TEST(DataSliceTest, SetGetObjectAttributesSameDb) {
   for (auto other_db : {db, std::shared_ptr<DataBag>(nullptr)}) {
     auto ds_a = test::AllocateDataSlice(shape.size(), schema::kAny, other_db);
 
-    ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
+    ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
     ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
     ASSERT_OK(ds.SetAttr("a", ds_a));
     ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
@@ -1351,7 +1349,7 @@ TEST(DataSliceTest, SetGetObjectAttributesOtherDb_EntityCreator) {
   ASSERT_OK(ds_a.SetAttr("x", ds_x));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
   ASSERT_OK(ds.SetAttr("a", ds_a));
 
@@ -1384,7 +1382,7 @@ TEST(DataSliceTest, SetGetObjectAttributesOtherDbConflict) {
   ASSERT_OK(ds_a_conflict.SetAttr("x", ds_a_conflict));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
 
   AdoptionQueue adoption_queue;
   adoption_queue.Add(ds_a);
@@ -1398,7 +1396,7 @@ TEST(DataSliceTest, SetGetObjectAttributesWithFallback) {
 
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
   ASSERT_OK(ds.SetAttr("a", ds_a));
   db = DataBag::ImmutableEmptyWithFallbacks({db});
@@ -1421,7 +1419,7 @@ TEST(DataSliceTest, SetGetObjectAttributesWithOtherDbWithFallback) {
 
   auto db1 = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds_x, EntityCreator()(db1, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds_x, EntityCreator()(db1, shape, {}, {}));
   ASSERT_OK(ds_x.GetSchema().SetAttr("a", ds_a.GetSchema()));
   ASSERT_OK(ds_x.SetAttr("a", ds_a));
   ASSERT_OK(ds_x.GetSchema().SetAttr("b", ds_a.GetSchema()));
@@ -1433,7 +1431,7 @@ TEST(DataSliceTest, SetGetObjectAttributesWithOtherDbWithFallback) {
   ASSERT_OK(ds_x.GetSchema().SetAttr("b", ds_b.GetSchema()));
 
   auto db2 = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds2, EntityCreator()(db2, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds2, EntityCreator()(db2, shape, {}, {}));
   ASSERT_OK(ds2.GetSchema().SetAttr("x", ds_x.GetSchema()));
   ASSERT_OK(ds2.SetAttr("x", ds_x));
 
@@ -1461,11 +1459,11 @@ TEST(DataSliceTest, SetGetObjectAttributes_ObjectCreator) {
   auto ds_b = test::DataSlice<int>({1, 2, 3});
   auto db1 = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds_a, ObjectCreator()(db1, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds_a, ObjectCreator()(db1, shape, {}, {}));
   ASSERT_OK(ds_a.SetAttr("b", ds_b));
 
   auto db2 = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db2, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db2, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_a));
 
   AdoptionQueue adoption_queue;
@@ -1500,7 +1498,7 @@ TEST(DataSliceTest, OverwriteSchemaAndAttributes_ObjectCreator) {
   auto ds_a = test::DataSlice<int>({1, 2, 3});
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_a));
 
   // Overwriting overwrites schema, too.
@@ -1537,7 +1535,7 @@ TEST(DataSliceTest, OverwriteSchemaAndAttributes_ObjectCreator) {
 TEST(DataSliceTest, SetAttr_NoFollowSchema_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
 
   ASSERT_OK_AND_ASSIGN(ds, NoFollow(ds));
 
@@ -1549,7 +1547,7 @@ TEST(DataSliceTest, SetAttr_NoFollowSchema_Entity) {
 TEST(DataSliceTest, SetAttr_NoFollowSchema_Object) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape, {}, {}));
 
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema());
   ASSERT_OK_AND_ASSIGN(auto nofollow_schema,
@@ -1639,7 +1637,7 @@ TEST(DataSliceTest, SetAttr_AutoBroadcasting) {
   ASSERT_OK_AND_ASSIGN(auto res_shape,
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, res_shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, res_shape, {}, {}));
   ASSERT_OK(ds.GetSchema().SetAttr("a", ds_primitive.GetSchema()));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
 
@@ -1661,7 +1659,8 @@ TEST(DataSliceTest, SetAttr_BroadcastingError) {
 
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
-      auto ds, ObjectCreator()(db, DataSlice::JaggedShape::FlatFromSize(3)));
+      auto ds,
+      ObjectCreator()(db, DataSlice::JaggedShape::FlatFromSize(3), {}, {}));
   EXPECT_THAT(ds.SetAttr("a", ds_primitive),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("trying to assign a slice with 2 dim")));
@@ -1718,7 +1717,7 @@ TEST(DataSliceTest, MissingAttribute_EntityCreator) {
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
   EXPECT_THAT(
       ds.SetAttr("a", ds_int32),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1728,7 +1727,7 @@ TEST(DataSliceTest, MissingAttribute_EntityCreator) {
 TEST(DataSliceTest, SetGetError_ObjectCreator) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto implicit_schema,
                        objects.GetAttr(schema::kSchemaAttr));
   auto mixed_implicit_explicit_schema = test::DataSlice<ObjectId>(
@@ -1784,7 +1783,7 @@ TEST(DataSliceTest, GetAttrWithDefault_Primitives_EntityCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttrWithUpdateSchema("a", ds_primitive));
 
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
@@ -1797,7 +1796,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_EntityCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
   auto object_id_1 = internal::AllocateSingleObject();
   auto object_id_2 = internal::AllocateSingleObject();
   auto explicit_schema = internal::AllocateExplicitSchema();
@@ -1806,9 +1805,8 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_EntityCreator) {
   ASSERT_OK(ds_object.SetAttrWithUpdateSchema("attr", ds_primitive));
   ASSERT_OK(ds.SetAttrWithUpdateSchema("a", ds_object));
 
-  ASSERT_OK_AND_ASSIGN(
-      auto default_val,
-      EntityCreator()(DataBag::Empty(), DataSlice::JaggedShape::Empty()));
+  ASSERT_OK_AND_ASSIGN(auto default_val,
+                       EntityCreator()(DataBag::Empty(), {}, {}));
   ASSERT_OK_AND_ASSIGN(default_val,
                        default_val.WithSchema(test::Schema(explicit_schema)));
   ASSERT_OK(default_val.SetAttrWithUpdateSchema("attr", test::DataItem(42)));
@@ -1829,7 +1827,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_EntityCreator) {
 TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_EntityCreator) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
 
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
                        ds.GetAttrWithDefault("a", test::DataItem(4)));
@@ -1841,7 +1839,7 @@ TEST(DataSliceTest, GetAttrWithDefault_Primitives_ObjectCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
 
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
@@ -1855,7 +1853,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_ObjectCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape, {}, {}));
   auto object_id_1 = internal::AllocateSingleObject();
   auto object_id_2 = internal::AllocateSingleObject();
   auto explicit_schema = internal::AllocateExplicitSchema();
@@ -1864,9 +1862,8 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_ObjectCreator) {
   ASSERT_OK(ds_object.SetAttrWithUpdateSchema("attr", ds_primitive));
   ASSERT_OK(ds.SetAttr("a", ds_object));
 
-  ASSERT_OK_AND_ASSIGN(
-      auto default_val,
-      EntityCreator()(DataBag::Empty(), DataSlice::JaggedShape::Empty()));
+  ASSERT_OK_AND_ASSIGN(auto default_val,
+                       EntityCreator()(DataBag::Empty(), {}, {}));
   ASSERT_OK_AND_ASSIGN(default_val,
                        default_val.WithSchema(test::Schema(explicit_schema)));
   ASSERT_OK(default_val.SetAttrWithUpdateSchema("attr", test::DataItem(42)));
@@ -1887,7 +1884,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_ObjectCreator) {
 TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_ObjectCreator) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, shape, {}, {}));
 
   auto default_val = test::DataSlice<arolla::Text>(
       {std::nullopt, "a", std::nullopt});
@@ -1899,9 +1896,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_ObjectCreator) {
 }
 
 TEST(DataSliceTest, GetAttrWithDefault_SchemaSlice) {
-  ASSERT_OK_AND_ASSIGN(
-      auto entity,
-      EntityCreator()(DataBag::Empty(), DataSlice::JaggedShape::Empty()));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(DataBag::Empty(), {}, {}));
   auto entity_schema = entity.GetSchema();
   ASSERT_OK_AND_ASSIGN(
       auto schema_attr,
@@ -2023,8 +2018,7 @@ TEST(DataSliceTest, DelAttr_Item_ObjectCreator) {
 
 TEST(DataSliceTest, DelAttr_Object_ExplicitSchema) {
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       ObjectCreator()(db, DataSlice::JaggedShape::Empty()));
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, {}, {}));
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kInt32)));
   ASSERT_OK(ds.SetAttr(schema::kSchemaAttr, explicit_schema));
@@ -2119,7 +2113,7 @@ TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaDTypeMatch) {
       schema::kAny);
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   auto mixed_implicit_explicit_schema = test::DataSlice<ObjectId>(
       {implicit_schema_id, internal::AllocateExplicitSchema()}, schema::kSchema,
       db);
@@ -2138,12 +2132,12 @@ TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaDTypeMatch) {
 TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaObjectIdMatch) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds_a, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds_a, EntityCreator()(db, shape, {}, {}));
   EXPECT_TRUE(ds_a.GetSchemaImpl().value<ObjectId>().IsExplicitSchema());
   auto schema_a = test::MixedDataSlice<ObjectId, schema::DType>(
       {ds_a.GetSchemaImpl().value<ObjectId>(), std::nullopt},
       {std::nullopt, schema::kInt32}, schema::kAny);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   auto implicit_schema_id = GenerateImplicitSchema();
   auto mixed_implicit_explicit_schema = test::DataSlice<ObjectId>(
       {internal::AllocateExplicitSchema(), implicit_schema_id}, schema::kSchema,
@@ -3313,7 +3307,7 @@ TEST(DataSliceTest, Repr) {
 TEST(DataSliceCastingTest, ToIn64_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kInt64)));
 
   auto values_int32 = test::DataSlice<int>({42, 12});
@@ -3336,7 +3330,7 @@ TEST(DataSliceCastingTest, ToIn64_Object) {
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kInt64)));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
   auto values_int32 = test::DataSlice<int>({42, 12});
@@ -3356,7 +3350,7 @@ TEST(DataSliceCastingTest, ToIn64_Object) {
 TEST(DataSliceCastingTest, ToFloat64_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kFloat64)));
 
   auto values_float32 = test::DataSlice<float>({3.1, 2.7});
@@ -3373,7 +3367,7 @@ TEST(DataSliceCastingTest, ToFloat64_Object) {
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kFloat64)));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
   auto values_float32 = test::DataSlice<float>({3.1, 2.7});
@@ -3387,7 +3381,7 @@ TEST(DataSliceCastingTest, ToFloat64_Object) {
 TEST(DataSliceCastingTest, EmptyToOther_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kText)));
 
   auto empty_values_any = test::EmptyDataSlice(shape, schema::kAny);
@@ -3411,7 +3405,7 @@ TEST(DataSliceCastingTest, EmptyToOther_Object) {
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kText)));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
   auto empty_values_any = test::EmptyDataSlice(shape, schema::kAny);
@@ -3432,7 +3426,7 @@ TEST(DataSliceCastingTest, EmptyToOther_Object) {
 TEST(DataSliceCastingTest, SameUnderlying_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kText)));
 
   auto values_any_text =
@@ -3457,7 +3451,7 @@ TEST(DataSliceCastingTest, SameUnderlying_Object) {
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kText)));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
   auto values_any_text =
@@ -3479,7 +3473,7 @@ TEST(DataSliceCastingTest, SameUnderlying_Object) {
 TEST(DataSliceCastingTest, ToAny_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
 
   auto values_text = test::DataSlice<arolla::Text>({"abc", std::nullopt});
@@ -3495,7 +3489,7 @@ TEST(DataSliceCastingTest, ToAny_Object) {
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kAny)));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
   auto values_text = test::DataSlice<arolla::Text>({"abc", std::nullopt});
@@ -3508,7 +3502,7 @@ TEST(DataSliceCastingTest, ToAny_Object) {
 TEST(DataSliceCastingTest, IncompatibleSchema_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kText)));
 
   EXPECT_THAT(
@@ -3524,7 +3518,7 @@ TEST(DataSliceCastingTest, IncompatibleSchema_Object) {
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kText)));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
   EXPECT_THAT(
@@ -3537,7 +3531,7 @@ TEST(DataSliceCastingTest, IncompatibleSchema_Object) {
 TEST(DataSliceCastingTest, PrimitiveToObject_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
   auto values_text = test::DataSlice<arolla::Text>({"abc", std::nullopt});
@@ -3553,7 +3547,7 @@ TEST(DataSliceCastingTest, PrimitiveToObject_Object) {
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kObject)));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
   auto values_text = test::DataSlice<arolla::Text>({"abc", std::nullopt});
@@ -3565,8 +3559,7 @@ TEST(DataSliceCastingTest, PrimitiveToObject_Object) {
 
 TEST(DataSliceCastingTest, SchemaToObject) {
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto entity,
-                       EntityCreator()(db, DataSlice::JaggedShape::Empty()));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
   auto schema_item = test::Schema(schema::kAny);
@@ -3580,11 +3573,11 @@ TEST(DataSliceCastingTest, SchemaToObject) {
 TEST(DataSliceCastingTest, ToObject_EmbedSchema_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
   auto val_db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto val_entity, EntityCreator()(val_db, shape));
+  ASSERT_OK_AND_ASSIGN(auto val_entity, EntityCreator()(val_db, shape, {}, {}));
   ASSERT_OK(entity.SetAttr("a", val_entity));
   ASSERT_OK_AND_ASSIGN(auto ds_a, entity.GetAttr("a"));
   EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kObject);
@@ -3607,11 +3600,11 @@ TEST(DataSliceCastingTest, ToObject_EmbedSchema_Entity) {
 TEST(DataSliceCastingTest, ToObject_NoEmbed_Object) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
   auto db_2 = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto val_objects, ObjectCreator()(db_2, shape));
+  ASSERT_OK_AND_ASSIGN(auto val_objects, ObjectCreator()(db_2, shape, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto val_object_schemas,
                        val_objects.GetAttr(schema::kSchemaAttr));
 
@@ -3639,7 +3632,7 @@ TEST(DataSliceCastingTest, ToObject_NoEmbed_Object) {
 TEST(DataSliceCastingTest, ToObject_Any_Error) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
   auto values_int32_any = test::DataSlice<int>({42, 12}, schema::kAny);
@@ -3666,7 +3659,7 @@ TEST(DataSliceCastingTest, Implicit_And_Explicit_CastingAndSchemaUpdate) {
       {explicit_schema, implicit_schema}, schema::kSchema);
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, schema_slice));
 
   // Now objects have the following:
@@ -3713,7 +3706,7 @@ TEST(DataSliceCastingTest, SchemaAttr_DifferentExplicitSchemas) {
       {schema_1, schema_2}, schema::kSchema);
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, schema_slice));
 
   auto values_float = test::DataSlice<float>({2.71, 3.14});
@@ -3739,7 +3732,7 @@ TEST(DataSliceCastingTest, SchemaAttr_DifferentButCompatibleExplicitSchemas) {
       {schema_1, schema_2}, schema::kSchema);
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator()(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, schema_slice));
 
   auto values_float = test::DataSlice<float>({2.71, 3.14});

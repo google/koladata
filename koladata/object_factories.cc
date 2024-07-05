@@ -29,6 +29,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_bag.h"
@@ -46,6 +47,16 @@
 namespace koladata {
 
 namespace {
+
+absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names) {
+  if (std::find(attr_names.begin(), attr_names.end(), "schema") !=
+      attr_names.end()) {
+    return absl::InvalidArgumentError(
+        "please use new_...() instead of obj_...() to create items with a given"
+        " schema");
+  }
+  return absl::OkStatus();
+}
 
 // Returns an entity (with `db` attached) that can be created either from
 // DataSliceImpl(s) or DataItem(s).
@@ -290,6 +301,62 @@ absl::StatusOr<DataSlice> CreateDictImpl(
   return res;
 }
 
+// Implementation of EntityCreator -Shaped and -Like that handles assignment of
+// attributes and provided schema. `create_entities_fn` must create a DataSlice
+// with appropriate shape and sparsity with the provided schema item.
+template <typename CreateEntitiesFn>
+absl::StatusOr<DataSlice> CreateEntitiesImpl(
+    const std::shared_ptr<DataBag>& db,
+    const CreateEntitiesFn& create_entities_fn,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values,
+    const std::optional<DataSlice>& schema,
+    bool update_schema) {
+  internal::DataItem schema_item;
+  if (schema) {
+    RETURN_IF_ERROR(schema->VerifyIsSchema());
+    schema_item = schema->item();
+    ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                     db->GetMutableImpl());
+    RETURN_IF_ERROR(
+        CopyEntitySchema(schema->GetDb(), schema_item, db_mutable_impl));
+  } else {
+    schema_item = internal::DataItem(internal::AllocateExplicitSchema());
+    // New schema is allocated, so attributes should be written to it
+    // successfully below.
+    update_schema = true;
+  }
+  ASSIGN_OR_RETURN(DataSlice res, create_entities_fn(schema_item));
+  RETURN_IF_ERROR(res.SetAttrs(attr_names, values, update_schema));
+  return res;
+}
+
+// Implementation of ObjectCreator -Shaped and -Like that handles assignment of
+// attributes. `create_objects_fn` must create a DataSlice with appropriate
+// shape and sparsity with OBJECT schema.
+template <typename CreateObjectsFn>
+absl::StatusOr<DataSlice> CreateObjectsImpl(
+    const std::shared_ptr<DataBag>& db,
+    const CreateObjectsFn& create_objects_fn,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) {
+  RETURN_IF_ERROR(VerifyNoSchemaArg(attr_names));
+  ASSIGN_OR_RETURN(DataSlice res, create_objects_fn());
+  RETURN_IF_ERROR(res.VisitImpl([&](const auto& impl) -> absl::Status {
+    ASSIGN_OR_RETURN(
+        auto schema_impl,
+        CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+            impl, schema::kImplicitSchemaSeed));
+    ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                     db->GetMutableImpl());
+    RETURN_IF_ERROR(
+        db_mutable_impl.SetAttr(impl, schema::kSchemaAttr, schema_impl));
+    return absl::OkStatus();
+  }));
+  RETURN_IF_ERROR(res.SetAttrs(attr_names, values));
+  return res;
+}
+
 }  // namespace
 
 absl::StatusOr<DataSlice> CreateEntitySchema(
@@ -330,6 +397,8 @@ absl::StatusOr<DataSlice> UuSchemaCreator::operator()(
   return DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db);
 }
 
+// TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
+// and -Like creation and forward to -Shaped here.
 absl::StatusOr<DataSlice> EntityCreator::operator()(
     const DataBagPtr& db,
     const std::vector<absl::string_view>& attr_names,
@@ -388,26 +457,31 @@ absl::StatusOr<DataSlice> EntityCreator::operator()(
 }
 
 absl::StatusOr<DataSlice> EntityCreator::operator()(
-    const DataBagPtr& db, DataSlice::JaggedShape shape) const {
-  auto ds_impl = internal::DataSliceImpl::AllocateEmptyObjects(shape.size());
-  return DataSlice::Create(
-      std::move(ds_impl), std::move(shape),
-      internal::DataItem(internal::AllocateExplicitSchema()), db);
+    const DataBagPtr& db, DataSlice::JaggedShape shape,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values,
+    const std::optional<DataSlice>& schema,
+    bool update_schema) const {
+  return CreateEntitiesImpl(
+      db,
+      [&](const internal::DataItem& schema_item) {
+        size_t size = shape.size();
+        return DataSlice::Create(
+            internal::DataSliceImpl::AllocateEmptyObjects(size),
+            std::move(shape), schema_item, db);
+      }, attr_names, values, schema, update_schema);
 }
 
+// TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
+// and -Like creation and forward to -Shaped here.
 absl::StatusOr<DataSlice> ObjectCreator::operator()(
     const DataBagPtr& db, const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& values) const {
   DCHECK_EQ(attr_names.size(), values.size());
   if (values.empty()) {
-    return (*this)(db, DataSlice::JaggedShape::Empty());
+    return (*this)(db, DataSlice::JaggedShape::Empty(), {}, {});
   }
-  if (std::find(attr_names.begin(), attr_names.end(), "schema") !=
-      attr_names.end()) {
-    return absl::InvalidArgumentError(
-        "please use new_...() instead of obj_...() to create items with a given"
-        " schema");
-  }
+  RETURN_IF_ERROR(VerifyNoSchemaArg(attr_names));
   ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
   // All DataSlices have the same shape at this point and thus the same internal
   // representation, so we pick any of them to dispatch the object creation by
@@ -418,18 +492,17 @@ absl::StatusOr<DataSlice> ObjectCreator::operator()(
 }
 
 absl::StatusOr<DataSlice> ObjectCreator::operator()(
-    const DataBagPtr& db, DataSlice::JaggedShape shape) const {
-  auto ds_impl = internal::DataSliceImpl::AllocateEmptyObjects(shape.size());
-  ASSIGN_OR_RETURN(
-      auto schema_impl,
-      CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
-          ds_impl, schema::kImplicitSchemaSeed));
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
-  RETURN_IF_ERROR(
-      db_mutable_impl.SetAttr(ds_impl, schema::kSchemaAttr, schema_impl));
-  return DataSlice::Create(std::move(ds_impl), std::move(shape),
-                           internal::DataItem(schema::kObject), db);
+    const DataBagPtr& db, DataSlice::JaggedShape shape,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) const {
+  return CreateObjectsImpl(
+      db,
+      [&]() {
+        size_t size = shape.size();
+        return DataSlice::Create(
+            internal::DataSliceImpl::AllocateEmptyObjects(size),
+            std::move(shape), internal::DataItem(schema::kObject), db);
+      }, attr_names, values);
 }
 
 absl::StatusOr<DataSlice> ObjectCreator::operator()(

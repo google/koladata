@@ -110,7 +110,7 @@ BENCHMARK(BM_Align)->Arg(0)->Arg(1000)->Arg(100000);
 template <typename ObjectFactory>
 void BM_SetGetAttrItem(benchmark::State& state) {
   auto db = DataBag::Empty();
-  auto o = *ObjectFactory()(db, DataSlice::JaggedShape::Empty());
+  auto o = *ObjectFactory()(db, {}, {});
   auto val = *DataSlice::Create(internal::DataItem(12),
                                 internal::DataItem(schema::kInt32));
   if constexpr (std::is_same_v<ObjectFactory, EntityCreator>) {
@@ -133,7 +133,8 @@ void BM_SetGetAttrItem(benchmark::State& state) {
 template <typename ObjectFactory>
 void BM_SetGetAttrOneDimSingle(benchmark::State& state) {
   auto db = DataBag::Empty();
-  auto o = *ObjectFactory()(db, DataSlice::JaggedShape::FlatFromSize(1));
+  auto o = *ObjectFactory()(
+      db, DataSlice::JaggedShape::FlatFromSize(1), {}, {});
 
   internal::DataSliceImpl::Builder bldr_val(1);
   bldr_val.Insert(0, internal::DataItem(12));
@@ -161,7 +162,8 @@ void BM_SetGetAttrOneDimSingle(benchmark::State& state) {
 template <typename ObjectFactory>
 void BM_SetGetAttrMultiDim(benchmark::State& state) {
   auto db = DataBag::Empty();
-  auto o = *ObjectFactory()(db, DataSlice::JaggedShape::FlatFromSize(10000));
+  auto o = *ObjectFactory()(
+      db, DataSlice::JaggedShape::FlatFromSize(10000), {}, {});
 
   auto val =
       *DataSlice::Create(internal::DataSliceImpl::Create(
@@ -208,7 +210,7 @@ void BM_ExplodeLists(benchmark::State& state) {
   auto edge_2 = *DataSlice::JaggedShape::Edge::FromSplitPoints(
       arolla::CreateDenseArray<int64_t>(split_points_2));
   auto o = *EntityCreator()(
-      db, *DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+      db, *DataSlice::JaggedShape::FromEdges({edge_1, edge_2}), {}, {});
 
   auto list = *CreateListsFromLastDimension(db, o, /*schema=*/std::nullopt,
                                             test::Schema(schema::kAny));
@@ -240,7 +242,7 @@ void BM_GetFromList(benchmark::State& state) {
   auto edge_2 = *DataSlice::JaggedShape::Edge::FromSplitPoints(
       arolla::CreateDenseArray<int64_t>(split_points_2));
   auto o = *EntityCreator()(
-      db, *DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+      db, *DataSlice::JaggedShape::FromEdges({edge_1, edge_2}), {}, {});
 
   auto list = *CreateListsFromLastDimension(db, o, test::Schema(schema::kAny));
   auto index = *DataSlice::Create(internal::DataItem(int64_t{0}),
@@ -282,7 +284,7 @@ void BM_SetMultipleAttrs(benchmark::State& state) {
       DataSliceImpl::Create(c_values),
       DataSlice::JaggedShape::FlatFromSize(size));
 
-  auto entity = *EntityCreator()(db, a.GetShape());
+  auto entity = *EntityCreator()(db, a.GetShape(), {}, {});
 
   std::vector<absl::string_view> attr_names{"a", "b", "c"};
   std::vector<DataSlice> values{a, b, c};

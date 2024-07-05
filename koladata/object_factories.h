@@ -21,6 +21,7 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -40,6 +41,8 @@ absl::StatusOr<DataSlice> CreateEntitySchema(
 // Entities have DataSlice-level explicit schema (which is also stored in the
 // referenced DataBag).
 struct EntityCreator {
+  // Implements kd.new function / operator.
+  //
   // Returns an Entity (DataSlice with a reference to `db`) and attributes
   // `attr_names` set to `values`. The output DataSlice is a DataItem if all
   // `values` are DataItems or `attr_names` and `values` are empty. Otherwise,
@@ -53,19 +56,30 @@ struct EntityCreator {
   // error is returned, unless `update_schema` is provided in which case, the
   // schema attribute is set from attribute's value.
   absl::StatusOr<DataSlice> operator()(
-    const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values,
-    const std::optional<DataSlice>& schema = std::nullopt,
-    bool update_schema = false) const;
+      const DataBagPtr& db,
+      const std::vector<absl::string_view>& attr_names,
+      const std::vector<DataSlice>& values,
+      const std::optional<DataSlice>& schema = std::nullopt,
+      bool update_schema = false) const;
 
+  // Implements kd.new_shaped function / operator.
+  //
   // Returns an Entity (DataSlice with a reference to `db`) with shape `shape`.
-  // Entities will have slice-level explicit schema with no attributes.
-  // Attributes cannot be set on entities if there is no associated schema
-  // attribute. In order to set data attributes, schema attributes need to be
-  // set first. Otherwise, errors would be raised on setattr.
-  absl::StatusOr<DataSlice> operator()(const DataBagPtr& db,
-                                       DataSlice::JaggedShape shape) const;
+  //
+  // If `attr_names` and `values` are non-empty, they are added as attributes.
+  // All `values` must be broadcastable to `shape` or have the same `shape`.
+  //
+  // The returned Entity has an explicit schema whose attributes `attr_names`
+  // are set to schemas of `values`. If `schema` is provided, attributes are
+  // cast to `schema` attributes. In case some schema attribute is missing,
+  // error is returned, unless `update_schema` is provided in which case, the
+  // schema attribute is set from attribute's value.
+  absl::StatusOr<DataSlice> operator()(
+      const DataBagPtr& db, DataSlice::JaggedShape shape,
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const DataSlice> values,
+      const std::optional<DataSlice>& schema = std::nullopt,
+      bool update_schema = false) const;
 
   // Assigns DataBag `db` to `value`.
   absl::StatusOr<DataSlice> operator()(const DataBagPtr& db,
@@ -77,6 +91,8 @@ struct EntityCreator {
 // Functor that provides different factories for Objects. When created, Objects
 // have Object/Item-level implicit schemas.
 struct ObjectCreator {
+  // Implements kd.obj function / operator.
+  //
   // Returns an Object (DataSlice with a reference to `db`) and attributes
   // `attr_names` set to `values`. The output DataSlice is a DataItem if all
   // `values` are DataItems or `attr_names` and `values` are empty. Otherwise,
@@ -92,12 +108,20 @@ struct ObjectCreator {
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& values) const;
 
+  // Implements kd.obj_shaped function / operator.
+  //
   // Returns an Object (DataSlice with a reference to `db`) with shape `shape`.
-  // Objects will have object-level implicit schemas with no attributes (each
-  // object item has its own different allocated schema object, under __schema__
-  // attribute).
-  absl::StatusOr<DataSlice> operator()(const DataBagPtr& db,
-                                       DataSlice::JaggedShape shape) const;
+  //
+  // If `attr_names` and `values` are non-empty, they are added as attributes.
+  // All `values` must be broadcastable to `shape` or have the same `shape`.
+  //
+  // The returned Object's __schema__ attribute is implicit schema slice (each
+  // schema item in this schema slice is a different allocated schema object).
+  // Each of them has `attr_names` attributes set to schemas of `values`.
+  absl::StatusOr<DataSlice> operator()(
+      const DataBagPtr& db, DataSlice::JaggedShape shape,
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const DataSlice> values) const;
 
   // Convert a DataSlice into an Object. If DataSlice is primitive or an entity,
   // it converts it into an Object. If it is already an Object, it returns this

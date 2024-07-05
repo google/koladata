@@ -287,6 +287,28 @@ TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
 }
 
+TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kFloat32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  EXPECT_THAT(
+      EntityCreator()(db, DataSlice::JaggedShape::Empty(),
+                      {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+                      entity_schema),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("attribute 'b' is missing on the schema")));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto entity,
+      EntityCreator()(db, DataSlice::JaggedShape::Empty(),
+                      {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+                      entity_schema, /*update_schema=*/true));
+
+  EXPECT_THAT(entity.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+}
+
 TEST(EntityCreatorTest, SchemaArg_NoDb) {
   auto schema_db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);
@@ -445,6 +467,10 @@ TEST(ObjectCreatorTest, InvalidSchemaArg) {
   auto ds_a = test::DataItem(42);
   auto entity_schema = test::Schema(schema::kAny);
   EXPECT_THAT(ObjectCreator()(db, {"a", "schema"}, {ds_a, entity_schema}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("please use new_...() instead of obj_...()")));
+  EXPECT_THAT(ObjectCreator()(db, DataSlice::JaggedShape::Empty(),
+                              {"a", "schema"}, {ds_a, entity_schema}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("please use new_...() instead of obj_...()")));
 }
@@ -671,7 +697,7 @@ TYPED_TEST(CreatorTest, Shaped) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto ds, creator(db, shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, creator(db, shape, {}, {}));
   EXPECT_EQ(ds.GetDb(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   TestFixture::VerifyDataSliceSchema(*db, ds);
@@ -701,6 +727,44 @@ TYPED_TEST(CreatorTest, AutoBroadcasting) {
       creator(db, {std::string("a"), std::string("b")}, {ds_a, ds_b}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("shapes are not compatible")));
+}
+
+TYPED_TEST(CreatorTest, ShapedWithAttrs) {
+  typename TestFixture::CreatorT creator;
+  constexpr int64_t kSize = 3;
+  auto shape = DataSlice::JaggedShape::FlatFromSize(kSize);
+  auto db = DataBag::Empty();
+  auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
+  auto ds_b = test::DataItem(internal::AllocateSingleObject());
+
+  ASSERT_OK_AND_ASSIGN(auto ds, creator(
+      db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
+  EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
+  TestFixture::VerifyDataSliceSchema(*db, ds);
+
+  ASSERT_OK_AND_ASSIGN(auto ds_b_get, db->GetImpl().GetAttr(ds.slice(), "b"));
+  auto obj_id = ds_b.item().value<ObjectId>();
+  EXPECT_THAT(ds_b_get.template values<ObjectId>(),
+              ElementsAre(obj_id, obj_id, obj_id));
+
+  ds_b = test::AllocateDataSlice(2, schema::kObject);
+  EXPECT_THAT(
+      creator(db, {std::string("a"), std::string("b")}, {ds_a, ds_b}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("shapes are not compatible")));
+}
+
+TYPED_TEST(CreatorTest, ShapedNoAutoPacking) {
+  typename TestFixture::CreatorT creator;
+  constexpr int64_t kSize = 3;
+  auto db = DataBag::Empty();
+  auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
+
+  EXPECT_THAT(creator(db, DataSlice::JaggedShape::Empty(), {"a"}, {ds_a}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("trying to assign a slice with 1 dim")));
 }
 
 TEST(ObjectFactoriesTest, CreateEmptyList) {
