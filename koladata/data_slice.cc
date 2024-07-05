@@ -257,14 +257,10 @@ absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
   ASSIGN_OR_RETURN(ImplT per_item_types,
                    GetSchemaAttrImpl(db_impl, schema_attr, attr_name, fallbacks,
                                      allow_missing));
-  if constexpr (std::is_same_v<ImplT, internal::DataItem>) {
-    return per_item_types;
-  } else {
-    if (allow_missing && per_item_types.present_count() == 0) {
+  if (allow_missing && per_item_types.present_count() == 0) {
       return internal::DataItem();
-    } else {
+  } else {
       return schema::CommonSchema(per_item_types);
-    }
   }
 }
 

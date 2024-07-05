@@ -205,8 +205,11 @@ void CommonSchemaAggregator::Add(const internal::DataItem& schema) {
   if (schema.holds_value<internal::ObjectId>()) {
     return Add(schema.value<internal::ObjectId>());
   }
-  status_ = absl::InvalidArgumentError(
-      absl::StrFormat("expected Schema, got: %v", schema));
+  // Allow missing values to pass through.
+  if (schema.has_value()) {
+    status_ = absl::InvalidArgumentError(
+        absl::StrFormat("expected Schema, got: %v", schema));
+  }
 }
 
 void CommonSchemaAggregator::Add(internal::ObjectId schema_obj) {

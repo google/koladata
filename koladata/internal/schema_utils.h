@@ -92,14 +92,26 @@ class CommonSchemaAggregator {
   absl::Status status_;
 };
 
+// Validates and returns the schema according to the type promotion lattice
+// defined in go/koda-type-promotion. If the `schema` is not a schema, an error
+// is returned. If `schema` is missing, `kObject` is returned.
+//
+// This is a convenience wrapper around CommonSchemaAggregator on a single
+// value.
+inline absl::StatusOr<internal::DataItem> CommonSchema(
+    const internal::DataItem& schema) {
+  CommonSchemaAggregator agg;
+  agg.Add(schema);
+  return std::move(agg).Get();
+}
+
 // Finds the supremum schema of lhs and rhs according to the type promotion
 // lattice defined in go/koda-type-promotion. If common / supremum schema cannot
-// be determined, appropriate error is returned.
+// be determined, appropriate error is returned. If both lhs and rhs are
+// missing, `kObject` is returned.
 //
 // This is a convenience wrapper around CommonSchemaAggregator on two elements.
 inline absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs) {
-  // NOTE: implementing manual equality checks can save ~10ns and is an
-  // available performance optimization.
   CommonSchemaAggregator agg;
   agg.Add(lhs);
   agg.Add(rhs);

@@ -178,7 +178,36 @@ INSTANTIATE_TEST_SUITE_P(
                           info.param.expected_dtype);
     });
 
+TEST(SchemaUtilsTest, CommonSchemaUnary) {
+  {
+    // Simple.
+    EXPECT_THAT(CommonSchema(DataItem(schema::kInt32)),
+                IsOkAndHolds(schema::kInt32));
+    EXPECT_THAT(CommonSchema(DataItem(schema::kAny)),
+                IsOkAndHolds(schema::kAny));
+    auto explicit_schema = DataItem(internal::AllocateExplicitSchema());
+    EXPECT_THAT(CommonSchema(DataItem(explicit_schema)),
+                IsOkAndHolds(explicit_schema));
+    EXPECT_THAT(CommonSchema(DataItem()), IsOkAndHolds(schema::kObject));
+  }
+  {
+    // Not a schema error.
+    EXPECT_THAT(CommonSchema(DataItem(1)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "expected Schema, got: 1"));
+  }
+}
+
 TEST(SchemaUtilsTest, CommonSchemaBinary) {
+  {
+    // Empty items.
+    EXPECT_THAT(CommonSchema(DataItem(schema::kInt32), DataItem()),
+                IsOkAndHolds(schema::kInt32));
+    EXPECT_THAT(CommonSchema(DataItem(), DataItem(schema::kInt32)),
+                IsOkAndHolds(schema::kInt32));
+    EXPECT_THAT(CommonSchema(DataItem(), DataItem()),
+                IsOkAndHolds(schema::kObject));
+  }
   {
     // Identical entity schemas.
     auto explicit_schema = DataItem(internal::AllocateExplicitSchema());
@@ -269,6 +298,7 @@ TEST(SchemaUtilsTest, CommonSchemaSimple_DTypes) {
     CommonSchemaAggregator agg;
     agg.Add(DataItem(schema::kInt32));
     agg.Add(DataItem(schema::kInt64));
+    agg.Add(DataItem());
     EXPECT_THAT(std::move(agg).Get(), IsOkAndHolds(DataItem(schema::kInt64)));
   }
 }
@@ -287,6 +317,7 @@ TEST(SchemaUtilsTest, CommonSchemaSimple_ObjectIds) {
     CommonSchemaAggregator agg;
     agg.Add(DataItem(obj));
     agg.Add(DataItem(obj));
+    agg.Add(DataItem());
     EXPECT_THAT(std::move(agg).Get(), IsOkAndHolds(DataItem(obj)));
   }
 }
@@ -369,10 +400,18 @@ TEST(SchemaUtilsTest, CommonSchemaPrimitiveConflict) {
                   kInt32.type_id(), kItemId.type_id()))));
 }
 
-TEST(SchemaUtilsTest, CommonSchema_DataSliceImpl_Simple) {
+TEST(SchemaUtilsTest, CommonSchema_DataSliceImpl_DTypes) {
   auto schemas = DataSliceImpl::Create(CreateDenseArray<schema::DType>(
       {schema::kInt32, schema::kInt32, std::nullopt}));
   EXPECT_THAT(CommonSchema(schemas), IsOkAndHolds(DataItem(schema::kInt32)));
+
+  // Behaves the same as CommonSchemaAggregator on DataItems.
+  CommonSchemaAggregator agg;
+  for (int i = 0; i < schemas.size(); ++i) {
+    agg.Add(schemas[i]);
+  }
+  ASSERT_OK_AND_ASSIGN(auto agg_res, std::move(agg).Get());
+  EXPECT_THAT(CommonSchema(schemas), IsOkAndHolds(agg_res));
 }
 
 TEST(SchemaUtilsTest, CommonSchema_ObjectId) {
@@ -392,9 +431,17 @@ TEST(SchemaUtilsTest, CommonSchema_InvalidInput) {
 }
 
 TEST(SchemaUtilsTest, DefaultIfMissing) {
-  CommonSchemaAggregator agg;
-  EXPECT_THAT(CommonSchemaAggregator().Get(),
-              IsOkAndHolds(DataItem(schema::kObject)));
+  {
+    CommonSchemaAggregator agg;
+    EXPECT_THAT(CommonSchemaAggregator().Get(),
+                IsOkAndHolds(DataItem(schema::kObject)));
+  }
+  {
+    CommonSchemaAggregator agg;
+    agg.Add(DataItem());
+    EXPECT_THAT(CommonSchemaAggregator().Get(),
+                IsOkAndHolds(DataItem(schema::kObject)));
+  }
 }
 
 TEST(SchemaUtilsTest, NoFollow_Roundtrip_OBJECT) {
