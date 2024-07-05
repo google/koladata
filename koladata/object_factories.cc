@@ -397,6 +397,13 @@ absl::StatusOr<DataSlice> UuSchemaCreator::operator()(
   return DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db);
 }
 
+absl::StatusOr<DataSlice> SchemaCreator::operator()(
+    const DataBagPtr& db,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& schemas) const {
+  return CreateEntitySchema(db, attr_names, schemas);
+}
+
 // TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
 // and -Like creation and forward to -Shaped here.
 absl::StatusOr<DataSlice> EntityCreator::operator()(

@@ -189,8 +189,6 @@ absl::StatusOr<DataSlice> CreateUuidFromFields(
     const std::vector<DataSlice>& values);
 
 struct UuObjectCreator {
-  static constexpr absl::string_view kDataBagMethodName = "DataBag.uuobj";
-
   // Returns a UuObject (DataSlice of UuIds generated as row-wise fingerprints
   // from attribute names and values) with a reference to `db`) and attributes
   // `attr_names` set to `values`. The output DataSlice is a DataItem if all
@@ -210,14 +208,21 @@ struct UuObjectCreator {
 };
 
 struct UuSchemaCreator {
-  static constexpr absl::string_view kDataBagMethodName = "DataBag.uu_schema";
-
   // Returns a UuSchema (DataItem generated as a row-wise fingerprint
   // from attribute names and schemas) with a reference to `db`) and attributes
   // `attr_names` set to `schemas`.
   absl::StatusOr<DataSlice> operator()(
       const DataBagPtr& db,
       absl::string_view seed,
+      const std::vector<absl::string_view>& attr_names,
+      const std::vector<DataSlice>& schemas) const;
+};
+
+struct SchemaCreator {
+  // Returns an allocated schema with attributes
+  // `attr_names` set to `schemas` in `db`.
+  absl::StatusOr<DataSlice> operator()(
+      const DataBagPtr& db,
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& schemas) const;
 };
