@@ -116,8 +116,9 @@ absl::StatusOr<AttrNamesSet> GetAttrsFromSchemaItem(
     const internal::DataItem& schema_item, const internal::DataBagImpl& db_impl,
     internal::DataBagImpl::FallbackSpan fallbacks) {
   if (schema_item.holds_value<schema::DType>()) {
-    // Primitive and special meaning schemas are ignored.
-    return absl::OkStatus();
+    // Primitive and special meaning schemas are ignored and empty set is
+    // returned.
+    return AttrNamesSet();
   }
   ASSIGN_OR_RETURN(auto attrs, db_impl.GetSchemaAttrs(schema_item, fallbacks));
   if (attrs.dtype() != arolla::GetQType<arolla::Text>()) {

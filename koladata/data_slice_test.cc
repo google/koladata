@@ -744,6 +744,8 @@ TEST(DataSliceTest, GetAttrNames_SchemaItem) {
   auto schema_ds = ds.GetSchema();
   EXPECT_THAT(schema_ds.GetAttrNames(),
               IsOkAndHolds(ElementsAre("a", "b", "c")));
+  EXPECT_THAT(test::Schema(schema::kInt32, db).GetAttrNames(),
+              IsOkAndHolds(ElementsAre()));
 }
 
 TEST(DataSliceTest, GetAttrNames_SchemaSlice) {
@@ -764,6 +766,10 @@ TEST(DataSliceTest, GetAttrNames_SchemaSlice) {
   ASSERT_OK_AND_ASSIGN(auto schema_ds, ds.GetAttr(schema::kSchemaAttr));
   ASSERT_EQ(schema_ds.GetSchemaImpl(), schema::kSchema);
   EXPECT_THAT(schema_ds.GetAttrNames(), IsOkAndHolds(ElementsAre("b")));
+  EXPECT_THAT(
+      test::DataSlice<schema::DType>({schema::kInt32, schema::kText}, db)
+      .GetAttrNames(),
+      IsOkAndHolds(ElementsAre()));
 }
 
 TEST(DataSliceTest, GetAttrNames_SchemaSliceMixed) {
