@@ -3253,21 +3253,21 @@ TEST(DataSliceTest, SchemaSlice) {
   // Getting and Setting attributes on Schema constants is not allowed.
   EXPECT_THAT(x_schema.GetAttr("not_allowed"),
               StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("Cannot get or set attributes on schema "
+                       HasSubstr("cannot get or set attributes on schema "
                                  "constants: INT32")));
   EXPECT_THAT(x_schema.SetAttr("not_allowed", y_schema),
               StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("Cannot get or set attributes on schema "
+                       HasSubstr("cannot get or set attributes on schema "
                                  "constants: INT32")));
 
   auto any_schema = test::DataItem(schema::kAny, schema::kSchema, db);
   EXPECT_THAT(any_schema.GetAttr("not_allowed"),
               StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("Cannot get or set attributes on schema "
+                       HasSubstr("cannot get or set attributes on schema "
                                  "constants: ANY")));
   EXPECT_THAT(any_schema.SetAttr("not_allowed", schema),
               StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("Cannot get or set attributes on schema "
+                       HasSubstr("cannot get or set attributes on schema "
                                  "constants: ANY")));
 
   // Setting a non-schema as a schema attribute.

@@ -92,19 +92,24 @@ absl::StatusOr<ObjectId> ItemToDictObjectId(const DataItem& dict) {
       absl::StrCat("dict expected, got ", dict));
 }
 
-absl::StatusOr<ObjectId> ItemToSchemaObjectId(const DataItem& schema) {
-  if (schema.holds_value<ObjectId>()) {
-    if (ObjectId schema_id = schema.value<ObjectId>(); schema_id.IsSchema()) {
+absl::Status InvalidSchemaObjectId(const DataItem& schema_item) {
+  if (schema_item.holds_value<schema::DType>()) {
+    return absl::FailedPreconditionError(
+        absl::StrCat("cannot get or set attributes on schema constants: ",
+                     schema_item));
+  }
+  return absl::FailedPreconditionError(
+      absl::StrCat("schema expected, got ", schema_item));
+}
+
+absl::StatusOr<ObjectId> ItemToSchemaObjectId(const DataItem& schema_item) {
+  if (schema_item.holds_value<ObjectId>()) {
+    if (ObjectId schema_id = schema_item.value<ObjectId>();
+        schema_id.IsSchema()) {
       return schema_id;
     }
   }
-  if (schema.holds_value<schema::DType>()) {
-    return absl::FailedPreconditionError(
-        absl::StrCat("Cannot get or set attributes on schema constants: ",
-                     schema.DebugString()));
-  }
-  return absl::FailedPreconditionError(
-      absl::StrCat("schema expected, got ", schema));
+  return InvalidSchemaObjectId(schema_item);
 }
 
 absl::Status VerifyIsSchema(const DataItem& item) {
@@ -1986,8 +1991,14 @@ absl::Status DataBagImpl::ClearDict(const DataItem& dict) {
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrs(
-    const DataItem& schema, FallbackSpan fallbacks) const {
-  ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema));
+    const DataItem& schema_item, FallbackSpan fallbacks) const {
+  if (!schema_item.holds_value<ObjectId>()) {
+    if (!schema_item.has_value()) {
+      return DataSliceImpl::CreateEmptyAndUnknownType(0);
+    }
+    return InvalidSchemaObjectId(schema_item);
+  }
+  ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
   std::vector<DataItem> keys = GetDictKeysAsVector(schema_id, fallbacks);
   if (keys.empty()) {
     return DataSliceImpl::Create(
@@ -1997,11 +2008,11 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrs(
 }
 
 absl::StatusOr<DataItem> DataBagImpl::GetSchemaAttr(
-    const DataItem& schema, absl::string_view attr,
+    const DataItem& schema_item, absl::string_view attr,
     FallbackSpan fallbacks) const {
   ASSIGN_OR_RETURN(auto res,
-                   GetSchemaAttrAllowMissing(schema, attr, fallbacks));
-  if (!res.has_value()) {
+                   GetSchemaAttrAllowMissing(schema_item, attr, fallbacks));
+  if (!res.has_value() && schema_item.has_value()) {
     return absl::InvalidArgumentError(
         absl::StrCat("the attribute '", attr, "' is missing"));
   }
@@ -2009,20 +2020,26 @@ absl::StatusOr<DataItem> DataBagImpl::GetSchemaAttr(
 }
 
 absl::StatusOr<DataItem> DataBagImpl::GetSchemaAttrAllowMissing(
-    const DataItem& schema, absl::string_view attr,
+    const DataItem& schema_item, absl::string_view attr,
     FallbackSpan fallbacks) const {
-  ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema));
+  if (!schema_item.holds_value<ObjectId>()) {
+    if (!schema_item.has_value()) {
+      return DataItem();
+    }
+    return InvalidSchemaObjectId(schema_item);
+  }
+  ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
   return GetFromDictObjectWithFallbacks(schema_id,
                                         DataItem::View<arolla::Text>(attr),
                                         fallbacks);
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttr(
-    const DataSliceImpl& schema, absl::string_view attr,
+    const DataSliceImpl& schema_slice, absl::string_view attr,
     FallbackSpan fallbacks) const {
   ASSIGN_OR_RETURN(auto result,
-                   GetSchemaAttrAllowMissing(schema, attr, fallbacks));
-  if (result.present_count() != schema.present_count()) {
+                   GetSchemaAttrAllowMissing(schema_slice, attr, fallbacks));
+  if (result.present_count() != schema_slice.present_count()) {
     return absl::InvalidArgumentError(
         absl::StrCat("the attribute '", attr, "' is missing"));
   }
@@ -2030,17 +2047,17 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttr(
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrAllowMissing(
-    const DataSliceImpl& schema, absl::string_view attr,
+    const DataSliceImpl& schema_slice, absl::string_view attr,
     FallbackSpan fallbacks) const {
-  if (schema.is_empty_and_unknown()) {
-    return DataSliceImpl::CreateEmptyAndUnknownType(schema.size());
+  if (schema_slice.is_empty_and_unknown()) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(schema_slice.size());
   }
-  if (schema.dtype() != arolla::GetQType<ObjectId>()) {
+  if (schema_slice.dtype() != arolla::GetQType<ObjectId>()) {
     return absl::InvalidArgumentError(absl::StrFormat(
-        "cannot get schema attribute of a non-schema slice %v", schema));
+        "cannot get schema attribute of a non-schema slice %v", schema_slice));
   }
   return GetFromDictImpl<SchemasAllocCheckFn>(
-      schema, DataItem(arolla::Text(attr)), fallbacks);
+      schema_slice, DataItem(arolla::Text(attr)), fallbacks);
 }
 
 namespace {
@@ -2057,34 +2074,40 @@ absl::Status InvalidRhsSetSchemaAttrError(const DataSliceImpl& not_a_schema) {
 
 }  // namespace
 
-absl::Status DataBagImpl::SetSchemaAttr(const DataItem& schema,
+absl::Status DataBagImpl::SetSchemaAttr(const DataItem& schema_item,
                                         absl::string_view attr,
                                         const DataItem& value) {
+  if (!schema_item.holds_value<ObjectId>()) {
+    if (!schema_item.has_value()) {
+      return absl::OkStatus();
+    }
+    return InvalidSchemaObjectId(schema_item);
+  }
   RETURN_IF_ERROR(VerifyIsSchema(value));
-  ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema));
+  ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
   GetOrCreateMutableDict(schema_id).Set(DataItem::View<arolla::Text>(attr),
                                         value);
   return absl::OkStatus();
 }
 
-absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema,
+absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
                                         absl::string_view attr,
                                         const DataItem& value) {
   RETURN_IF_ERROR(VerifyIsSchema(value));
-  if (schema.is_empty_and_unknown()) {
+  if (schema_slice.is_empty_and_unknown()) {
     return absl::OkStatus();
   }
-  if (schema.dtype() != arolla::GetQType<ObjectId>()) {
-    return InvalidLhsSetSchemaAttrError(schema);
+  if (schema_slice.dtype() != arolla::GetQType<ObjectId>()) {
+    return InvalidLhsSetSchemaAttrError(schema_slice);
   }
 
   MutableDictGetter<SchemasAllocCheckFn> schema_dict_getter(this);
   absl::Status status = absl::OkStatus();
-  schema.values<ObjectId>().ForEachPresent(
+  schema_slice.values<ObjectId>().ForEachPresent(
       [&](int64_t /*id*/, ObjectId schema_id) {
         Dict* schema_dict = schema_dict_getter(schema_id);
         if (ABSL_PREDICT_FALSE(schema_dict == nullptr)) {
-          status = InvalidLhsSetSchemaAttrError(schema);
+          status = InvalidLhsSetSchemaAttrError(schema_slice);
           return;
         }
         schema_dict->Set(DataItem::View<arolla::Text>(attr), value);
@@ -2092,14 +2115,14 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema,
   return status;
 }
 
-absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema,
+absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
                                         absl::string_view attr,
                                         const DataSliceImpl& values) {
-  if (schema.is_empty_and_unknown()) {
+  if (schema_slice.is_empty_and_unknown()) {
     return absl::OkStatus();
   }
-  if (schema.dtype() != arolla::GetQType<ObjectId>()) {
-    return InvalidLhsSetSchemaAttrError(schema);
+  if (schema_slice.dtype() != arolla::GetQType<ObjectId>()) {
+    return InvalidLhsSetSchemaAttrError(schema_slice);
   }
 
   MutableDictGetter<SchemasAllocCheckFn> schema_dict_getter(this);
@@ -2121,13 +2144,13 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema,
               }
               Dict* schema_dict = schema_dict_getter(schema_id);
               if (ABSL_PREDICT_FALSE(schema_dict == nullptr)) {
-                status = InvalidLhsSetSchemaAttrError(schema);
+                status = InvalidLhsSetSchemaAttrError(schema_slice);
                 return;
               }
               schema_dict->Set(
                   DataItem::View<arolla::Text>(attr),
                   value.present ? DataItem(value.value) : DataItem());
-            }, schema.values<ObjectId>(), vec));
+            }, schema_slice.values<ObjectId>(), vec));
         return status;
       } else {
         return InvalidRhsSetSchemaAttrError(values);
@@ -2135,7 +2158,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema,
     });
   } else {
     absl::Status status = absl::OkStatus();
-    schema.values<ObjectId>().ForEachPresent(
+    schema_slice.values<ObjectId>().ForEachPresent(
         [&](int64_t offset, ObjectId schema_id) {
           DataItem value = values[offset];
           if (value.has_value() && !VerifyIsSchema(value).ok()) {
@@ -2144,7 +2167,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema,
           }
           Dict* schema_dict = schema_dict_getter(schema_id);
           if (ABSL_PREDICT_FALSE(schema_dict == nullptr)) {
-            status = InvalidLhsSetSchemaAttrError(schema);
+            status = InvalidLhsSetSchemaAttrError(schema_slice);
             return;
           }
           schema_dict->Set(DataItem::View<arolla::Text>(attr), value);
@@ -2153,10 +2176,13 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema,
   }
 }
 
-absl::Status DataBagImpl::DelSchemaAttr(const DataItem& schema,
+absl::Status DataBagImpl::DelSchemaAttr(const DataItem& schema_item,
                                         absl::string_view attr) {
-  RETURN_IF_ERROR(GetSchemaAttr(schema, attr).status());
-  ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema));
+  RETURN_IF_ERROR(GetSchemaAttr(schema_item, attr).status());
+  if (!schema_item.has_value()) {
+    return absl::OkStatus();
+  }
+  ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
   // Setting None as a schema attribute is not allowed through SetSchemaAttr
   // API, only through `del schema.attr`.
   GetOrCreateMutableDict(schema_id).Set(DataItem::View<arolla::Text>(attr),
@@ -2164,11 +2190,11 @@ absl::Status DataBagImpl::DelSchemaAttr(const DataItem& schema,
   return absl::OkStatus();
 }
 
-absl::Status DataBagImpl::DelSchemaAttr(const DataSliceImpl& schema,
+absl::Status DataBagImpl::DelSchemaAttr(const DataSliceImpl& schema_slice,
                                         absl::string_view attr) {
-  RETURN_IF_ERROR(GetSchemaAttr(schema, attr).status());
-  return SetSchemaAttr(schema, attr,
-                       DataSliceImpl::Create(schema.size(), DataItem()));
+  RETURN_IF_ERROR(GetSchemaAttr(schema_slice, attr).status());
+  return SetSchemaAttr(schema_slice, attr,
+                       DataSliceImpl::Create(schema_slice.size(), DataItem()));
 }
 
 template <typename ImplT>
@@ -2185,6 +2211,12 @@ absl::Status DataBagImpl::SetSchemaFields(
     const DataItem& schema_item,
     const std::vector<absl::string_view>& attr_names,
     const std::vector<std::reference_wrapper<const DataItem>>& items) {
+  if (!schema_item.holds_value<ObjectId>()) {
+    if (!schema_item.has_value()) {
+      return absl::OkStatus();
+    }
+    return InvalidSchemaObjectId(schema_item);
+  }
   DCHECK_EQ(attr_names.size(), items.size());
   for (const auto& item : items) {
     RETURN_IF_ERROR(VerifyIsSchema(item.get()));
@@ -2202,6 +2234,9 @@ absl::Status DataBagImpl::SetSchemaFields(
     const std::vector<absl::string_view>& attr_names,
     const std::vector<std::reference_wrapper<const DataItem>>& items) {
   DCHECK_EQ(attr_names.size(), items.size());
+  if (schema_slice.is_empty_and_unknown()) {
+    return absl::OkStatus();
+  }
   for (const auto& item : items) {
     RETURN_IF_ERROR(VerifyIsSchema(item.get()));
   }
@@ -2243,7 +2278,12 @@ absl::Status DataBagImpl::OverwriteSchemaFields(
     const DataItem& schema_item,
     const std::vector<absl::string_view>& attr_names,
     const std::vector<std::reference_wrapper<const DataItem>>& items) {
-  DCHECK(schema_item.dtype() == arolla::GetQType<ObjectId>());
+  if (!schema_item.holds_value<ObjectId>()) {
+    if (!schema_item.has_value()) {
+      return absl::OkStatus();
+    }
+    return InvalidSchemaObjectId(schema_item);
+  }
   DCHECK_EQ(attr_names.size(), items.size());
   for (const auto& item : items) {
     RETURN_IF_ERROR(VerifyIsSchema(item.get()));
@@ -2262,6 +2302,9 @@ absl::Status DataBagImpl::OverwriteSchemaFields(
     const std::vector<absl::string_view>& attr_names,
     const std::vector<std::reference_wrapper<const DataItem>>& items) {
   DCHECK_EQ(attr_names.size(), items.size());
+  if (schema_slice.is_empty_and_unknown()) {
+    return absl::OkStatus();
+  }
   for (const auto& item : items) {
     RETURN_IF_ERROR(VerifyIsSchema(item.get()));
   }

@@ -130,6 +130,10 @@ TEST(DataBagTest, GetSetSchemaAttr_Item) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto schema = DataItem(AllocateExplicitSchema());
 
+  // Setting on an empty item is a no-op.
+  ASSERT_OK(db->SetSchemaAttr(DataItem(), "a", GetFloatSchema()));
+  EXPECT_THAT(db->GetSchemaAttr(DataItem(), "a"), IsOkAndHolds(DataItem()));
+
   ASSERT_OK(db->SetSchemaAttr(schema, "a", GetIntSchema()));
   EXPECT_THAT(db->GetSchemaAttr(schema, "a"), IsOkAndHolds(GetIntSchema()));
   EXPECT_THAT(db->GetSchemaAttrs(schema),
@@ -158,6 +162,8 @@ TEST(DataBagTest, GetSetSchemaAttr_Item) {
       db->GetSchemaAttrs(schema, {fb_db.get()}),
       IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"), arolla::Text("b"),
                                         arolla::Text("c"), arolla::Text("d"))));
+
+  EXPECT_THAT(db->GetSchemaAttrs(DataItem(), {}), IsOkAndHolds(ElementsAre()));
 }
 
 TEST(DataBagTest, GetSetSchemaAttr_Slice) {
@@ -174,8 +180,25 @@ TEST(DataBagTest, GetSetSchemaAttr_Slice) {
       arolla::CreateDenseArray<ObjectId>({
         std::nullopt, std::nullopt, AllocateExplicitSchema()}));
 
+  // Setting on an empty slice is a no-op.
   ASSERT_OK(db->SetSchemaAttr(DataSliceImpl::CreateEmptyAndUnknownType(2), "a",
                               values_a));
+  ASSERT_OK(
+      db->SetSchemaAttr(
+          DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(
+              {std::nullopt, std::nullopt})), "a",
+      values_a));
+  EXPECT_THAT(
+      db->GetSchemaAttr(DataSliceImpl::CreateEmptyAndUnknownType(2), "a"),
+      IsOkAndHolds(
+          IsEquivalentTo(DataSliceImpl::CreateEmptyAndUnknownType(2))));
+  EXPECT_THAT(
+      db->GetSchemaAttr(
+          DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(
+              {std::nullopt, std::nullopt})), "a"),
+      IsOkAndHolds(
+          IsEquivalentTo(DataSliceImpl::CreateEmptyAndUnknownType(2))));
+
   ASSERT_OK(db->SetSchemaAttr(schema, "a", values_a));
   EXPECT_THAT(db->GetSchemaAttr(schema, "a"),
               IsOkAndHolds(
@@ -304,11 +327,11 @@ TEST(DataBagTest, SetSchemaAttrErrors_Item) {
 
   EXPECT_THAT(db->GetSchemaAttr(GetAnySchema(), "any_attr"),
               StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("Cannot get or set attributes on schema "
+                       HasSubstr("cannot get or set attributes on schema "
                                  "constants: ANY")));
   EXPECT_THAT(db->SetSchemaAttr(GetIntSchema(), "any_attr", GetIntSchema()),
               StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("Cannot get or set attributes on schema "
+                       HasSubstr("cannot get or set attributes on schema "
                                  "constants: INT32")));
 }
 
@@ -414,6 +437,9 @@ TEST(DataBagTest, DelSchemaAttr_Item) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the attribute 'a' is missing")));
   EXPECT_THAT(db->GetSchemaAttrs(schema), IsOkAndHolds(ElementsAre()));
+
+  // Deleting on an empty object is a no-op.
+  ASSERT_OK(db->DelSchemaAttr(DataItem(), "a"));
 }
 
 TEST(DataBagTest, DelSchemaAttr_Slice) {
@@ -444,6 +470,10 @@ TEST(DataBagTest, DelSchemaAttr_Slice) {
   for (int i = 0; i < schema.size(); ++i) {
     EXPECT_THAT(db->GetSchemaAttrs(schema[i]), IsOkAndHolds(ElementsAre()));
   }
+
+  // Deleting on an empty slice is a no-op.
+  ASSERT_OK(
+      db->DelSchemaAttr(DataSliceImpl::CreateEmptyAndUnknownType(2), "a"));
 }
 
 TEST(DataBagTest, CreateExplicitSchemaFromFields) {
@@ -609,6 +639,12 @@ TEST(DataBagTest, OverwriteSchemaFields) {
                 IsOkAndHolds(ElementsAre(schema_s, schema_s)));
   }
   {
+    // Empty item / slice.
+    ASSERT_OK(db->OverwriteSchemaFields(DataItem(), attrs, items));
+    ASSERT_OK(db->OverwriteSchemaFields(
+        DataSliceImpl::CreateEmptyAndUnknownType(2), attrs, items));
+  }
+  {
     // Error.
     ASSERT_OK_AND_ASSIGN(
         auto schema_item,
@@ -712,6 +748,12 @@ TEST(DataBagTest, SetSchemaFields) {
                 IsOkAndHolds(ElementsAre(schema_s, schema_s)));
     EXPECT_THAT(db->GetSchemaAttr(schema_slice, "c"),
                 IsOkAndHolds(ElementsAre(float_s, float_s)));
+  }
+  {
+    // Empty item / slice.
+    ASSERT_OK(db->SetSchemaFields(DataItem(), attrs_1, items_1));
+    ASSERT_OK(db->SetSchemaFields(DataSliceImpl::CreateEmptyAndUnknownType(2),
+                                  attrs_1, items_1));
   }
   {
     // Error.

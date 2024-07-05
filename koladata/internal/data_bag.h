@@ -419,36 +419,37 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Equivalent to functions above, but work for DataItems holding Schema
   // ObjectId(s).
   //
-  // Returns attribute names of all attributes of the given `schema`.
+  // Returns attribute names of all attributes of the given `schema_item`.
   absl::StatusOr<DataSliceImpl> GetSchemaAttrs(
-      const DataItem& schema, FallbackSpan fallbacks = {}) const;
+      const DataItem& schema_item, FallbackSpan fallbacks = {}) const;
 
   // Returns a DataItem that represents schema of an attribute `attr` in the
-  // given `schema`. In case the attribute is missing appropriate error is
-  // returned. In case `schema` does not contain a schema object, error is
+  // given `schema_item`. In case the attribute is missing appropriate error is
+  // returned. In case `schema_item` does not contain a schema object, error is
   // returned.
-  absl::StatusOr<DataItem> GetSchemaAttr(const DataItem& schema,
+  absl::StatusOr<DataItem> GetSchemaAttr(const DataItem& schema_item,
                                          absl::string_view attr,
                                          FallbackSpan fallbacks = {}) const;
 
   // Returns a DataItem that represents schema of an attribute `attr` in the
-  // given `schema`. In case the attribute is missing, an empty DataItem is
+  // given `schema_item`. In case the attribute is missing, an empty DataItem is
   // returned.
   absl::StatusOr<DataItem> GetSchemaAttrAllowMissing(
-      const DataItem& schema, absl::string_view attr,
+      const DataItem& schema_item, absl::string_view attr,
       FallbackSpan fallbacks = {}) const;
 
   // Returns a DataSliceImpl that represents schema of an attribute `attr` in
-  // the given `schema` slice. In case the attribute is missing appropriate
-  // error is returned. In case `schema` does not contain a schema object, error
-  // is returned.
+  // the given `schema_slice` slice. In case the attribute is missing
+  // appropriate error is returned. In case `schema_slice` does not contain a
+  // schema object, error is returned.
   absl::StatusOr<DataSliceImpl> GetSchemaAttr(
-      const DataSliceImpl& schema, absl::string_view attr,
+      const DataSliceImpl& schema_slice, absl::string_view attr,
       FallbackSpan fallbacks = {}) const;
 
   // Returns a DataSliceImpl that represents schema of an attribute `attr` in
-  // the given `schema` slice. The attribute is returned as is, even if some
-  // elements are missing where schema contains a valid schema ObjectId. E.g.
+  // the given `schema_slice` slice. The attribute is returned as is, even if
+  // some elements are missing where schema contains a valid schema ObjectId.
+  // E.g.
   //
   // [schema_id_0, None, schema_id_2].GetSchemAttrAllowMissing("a")
   // Returns: [INT32, None, None]
@@ -456,33 +457,35 @@ class DataBagImpl : public arolla::RefcountedBase {
   // The GetSchemaAttr (that does not allow missing where schema_id is present)
   // returns an Error.
   absl::StatusOr<DataSliceImpl> GetSchemaAttrAllowMissing(
-      const DataSliceImpl& schema, absl::string_view attr,
+      const DataSliceImpl& schema_slice, absl::string_view attr,
       FallbackSpan fallbacks = {}) const;
 
-  // Sets attribute to the provided `schema`. In case `value` is not a schema or
-  // `schema` is not a schema object, appropriate error is returned.
-  absl::Status SetSchemaAttr(const DataItem& schema, absl::string_view attr,
-                             const DataItem& value);
-
-  // Sets attribute to the provided `schema` slice. `value` is always an item
-  // and set as an attribute to each schema object in `schema`. In case `value`
-  // is not a schema or `schema` does not contain all schema objects,
-  // appropriate error is returned.
-  absl::Status SetSchemaAttr(const DataSliceImpl& schema,
+  // Sets attribute to the provided `schema_item`. In case `value` is not a
+  // schema or `schema_item` is not a schema object, appropriate error is
+  // returned.
+  absl::Status SetSchemaAttr(const DataItem& schema_item,
                              absl::string_view attr, const DataItem& value);
 
-  // Sets attribute to the provided `schema` slice. In case `value` is not a
-  // schema or `schema` does not contain all schema objects, appropriate error
-  // is returned.
-  absl::Status SetSchemaAttr(const DataSliceImpl& schema,
+  // Sets attribute to the provided `schema_slice` slice. `value` is always an
+  // item and set as an attribute to each schema object in `schema_slice`. In
+  // case `value` is not a schema or `schema_slice` does not contain all schema
+  // objects, appropriate error is returned.
+  absl::Status SetSchemaAttr(const DataSliceImpl& schema_slice,
+                             absl::string_view attr, const DataItem& value);
+
+  // Sets attribute to the provided `schema_slice` slice. In case `value` is not
+  // a schema or `schema_slice` does not contain all schema objects, appropriate
+  // error is returned.
+  absl::Status SetSchemaAttr(const DataSliceImpl& schema_slice,
                              absl::string_view attr,
                              const DataSliceImpl& value);
 
-  // Removes a schema attribute `attr`, when `schema` is a DataItem.
-  absl::Status DelSchemaAttr(const DataItem& schema, absl::string_view attr);
+  // Removes a schema attribute `attr`, when `schema_item` is a DataItem.
+  absl::Status DelSchemaAttr(const DataItem& schema_item,
+                             absl::string_view attr);
 
-  // Removes a schema attribute `attr`, when `schema` is a DataSlice.
-  absl::Status DelSchemaAttr(const DataSliceImpl& schema,
+  // Removes a schema attribute `attr`, when `schema_slice` is a DataSlice.
+  absl::Status DelSchemaAttr(const DataSliceImpl& schema_slice,
                              absl::string_view attr);
 
   // Returns a new Schema DataItem with attributes from `attr_names` set to
