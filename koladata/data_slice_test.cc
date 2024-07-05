@@ -1139,6 +1139,84 @@ TEST(DataSliceTest, SetGetPrimitiveAttributes_ObjectCreator) {
   }
 }
 
+TEST(DataSliceTest, SetGetAttr_FromEmptyItem_EntityCreator) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto entity_schema,
+      CreateEntitySchema(db, {"a"}, {test::Schema(schema::kInt32)}));
+
+  auto ds = test::DataItem(internal::MissingValue(), entity_schema.item(), db);
+  EXPECT_THAT(
+      ds.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::DataItem(internal::MissingValue(), schema::kInt32, db))));
+
+  ASSERT_OK(ds.SetAttr("a", test::DataItem(42)));
+  EXPECT_THAT(
+      ds.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::DataItem(internal::MissingValue(), schema::kInt32, db))));
+}
+
+TEST(DataSliceTest, SetGetAttr_FromEmptySlice_EntityCreator) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto entity_schema,
+      CreateEntitySchema(db, {"a"}, {test::Schema(schema::kInt32)}));
+
+  auto ds = test::EmptyDataSlice(DataSlice::JaggedShape::FlatFromSize(3),
+                                 entity_schema.item(), db);
+  EXPECT_THAT(
+      ds.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::EmptyDataSlice(ds.GetShape(), schema::kInt32, db))));
+
+  ASSERT_OK(ds.SetAttr("a", test::DataItem(42)));
+  EXPECT_THAT(
+      ds.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::EmptyDataSlice(ds.GetShape(), schema::kInt32, db))));
+}
+
+TEST(DataSliceTest, SetGetAttr_FromEmptyItem_ObjectCreator) {
+  auto db = DataBag::Empty();
+  auto ds = test::DataItem(internal::MissingValue(), schema::kObject, db);
+  EXPECT_THAT(
+      ds.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::DataItem(internal::MissingValue(), schema::kObject, db))));
+
+  ASSERT_OK(ds.SetAttr("a", test::DataItem(42)));
+  EXPECT_THAT(
+      ds.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::DataItem(internal::MissingValue(), schema::kObject, db))));
+  EXPECT_THAT(
+      ds.GetAttrWithDefault("a", test::DataItem(42)),
+      IsOkAndHolds(IsEquivalentTo(
+          test::DataItem(internal::MissingValue(), schema::kInt32, db))));
+}
+
+TEST(DataSliceTest, SetGetAttr_FromEmptySlice_ObjectCreator) {
+  auto db = DataBag::Empty();
+  auto ds = test::EmptyDataSlice(DataSlice::JaggedShape::FlatFromSize(3),
+                                 schema::kObject, db);
+  EXPECT_THAT(
+      ds.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::EmptyDataSlice(ds.GetShape(), schema::kObject, db))));
+
+  ASSERT_OK(ds.SetAttr("a", test::DataItem(42)));
+  EXPECT_THAT(
+      ds.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::EmptyDataSlice(ds.GetShape(), schema::kObject, db))));
+  EXPECT_THAT(
+      ds.GetAttrWithDefault("a", test::DataItem(42)),
+      IsOkAndHolds(IsEquivalentTo(
+          test::EmptyDataSlice(ds.GetShape(), schema::kInt32, db))));
+}
+
 TEST(DataSliceTest, ObjectMissingSchemaAttr) {
   auto ds_a = test::DataSlice<int>({1, 2, 3});
   auto db = DataBag::Empty();
@@ -1146,6 +1224,9 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr) {
 
   auto ds_2 = ds.WithDb(DataBag::Empty());
   EXPECT_THAT(ds_2.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("missing __schema__ attribute")));
+  EXPECT_THAT(ds_2.GetAttrWithDefault("a", test::DataItem(42)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("missing __schema__ attribute")));
   EXPECT_THAT(ds_2.SetAttr("a", test::DataSlice<int>({1, 1, 1})),
@@ -1829,6 +1910,9 @@ TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_EntityCreator) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, shape, {}, {}));
 
+  EXPECT_THAT(ds.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("attribute 'a' is missing")));
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
                        ds.GetAttrWithDefault("a", test::DataItem(4)));
   EXPECT_THAT(ds_primitive_get.slice(), ElementsAre(4, 4, 4));
@@ -1888,6 +1972,9 @@ TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_ObjectCreator) {
 
   auto default_val = test::DataSlice<arolla::Text>(
       {std::nullopt, "a", std::nullopt});
+  EXPECT_THAT(ds.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("attribute 'a' is missing")));
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
                        ds.GetAttrWithDefault("a", default_val));
   EXPECT_THAT(ds_primitive_get.slice(),

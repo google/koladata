@@ -238,13 +238,19 @@ absl::StatusOr<ImplT> GetSchemaAttrImpl(
 // * In case such common schema does not exist and `allow_missing` is false, an
 //   error is returned.
 // * Otherwise, if "__schema__" attribute is missing for some objects (or all)
-//   they are used for inferring the common schema. If all are missing, `ANY`
+//   they are used for inferring the common schema. If all are missing, `OBJECT`
 //   is used.
 template <typename ImplT>
 absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
     const internal::DataBagImpl& db_impl, const ImplT& impl,
     absl::string_view attr_name, internal::DataBagImpl::FallbackSpan fallbacks,
     bool allow_missing) {
+  // TODO: When we allow Schema operations on MissingValue, we
+  // could avoid this special case and defer to `CommonSchema` to return
+  // schema::kObject, instead.
+  if (impl.present_count() == 0) {
+    return allow_missing ? internal::DataItem() : kObjectSchema;
+  }
   ASSIGN_OR_RETURN(auto schema_attr,
                    db_impl.GetAttr(impl, schema::kSchemaAttr, fallbacks));
   RETURN_IF_ERROR(VerifySchemaAttr(impl, schema_attr));
@@ -381,6 +387,12 @@ class RhsHandler {
 
     if (lhs.GetSchemaImpl() == kObjectSchema) {
       return lhs.VisitImpl([&](const auto& impl) -> absl::Status {
+        // TODO: When we allow Schema operations on MissingValue,
+        // we could avoid this special case and defer to code below to handle it
+        // uniformly.
+        if (impl.present_count() == 0) {
+          return absl::OkStatus();
+        }
         ASSIGN_OR_RETURN(auto obj_schema,
                          db_impl.GetAttr(impl, schema::kSchemaAttr, fallbacks));
         RETURN_IF_ERROR(VerifySchemaAttr(impl, obj_schema));
