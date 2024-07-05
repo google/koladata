@@ -212,14 +212,14 @@ absl::StatusOr<DataSlice> CreateObjectsFromFields(
 }
 
 // Creates a DataSlice with objects constructed by allocate_single_func /
-// allocate_many_func and shape + sparsity of shape_and_mask.
+// allocate_many_func and shape + sparsity of shape_and_mask_from.
 template <typename AllocateSingleFunc, typename AllocateManyFunc>
 absl::StatusOr<DataSlice> CreateLike(const std::shared_ptr<DataBag>& db,
-                                     const DataSlice& shape_and_mask,
+                                     const DataSlice& shape_and_mask_from,
                                      const internal::DataItem& schema,
                                      AllocateSingleFunc allocate_single_func,
                                      AllocateManyFunc allocate_many_func) {
-  return shape_and_mask.VisitImpl([&]<class T>(const T& impl) {
+  return shape_and_mask_from.VisitImpl([&]<class T>(const T& impl) {
     if constexpr (std::is_same_v<T, internal::DataItem>) {
       return DataSlice::Create(impl.has_value()
                                    ? internal::DataItem(allocate_single_func())
@@ -238,7 +238,7 @@ absl::StatusOr<DataSlice> CreateLike(const std::shared_ptr<DataBag>& db,
       return DataSlice::Create(internal::DataSliceImpl::CreateObjectsDataSlice(
                                    std::move(result_impl_builder).Build(),
                                    internal::AllocationIdSet(alloc_id)),
-                               shape_and_mask.GetShape(), schema, db);
+                               shape_and_mask_from.GetShape(), schema, db);
     }
   });
 }
@@ -472,6 +472,21 @@ absl::StatusOr<DataSlice> EntityCreator::operator()(
       }, attr_names, values, schema, update_schema);
 }
 
+absl::StatusOr<DataSlice> EntityCreator::operator()(
+    const DataBagPtr& db, const DataSlice& shape_and_mask_from,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values,
+    const std::optional<DataSlice>& schema,
+    bool update_schema) const {
+  return CreateEntitiesImpl(
+      db,
+      [&](const internal::DataItem& schema_item) {
+        return CreateLike(db, shape_and_mask_from, schema_item,
+                          internal::AllocateSingleObject,
+                          internal::Allocate);
+      }, attr_names, values, schema, update_schema);
+}
+
 // TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
 // and -Like creation and forward to -Shaped here.
 absl::StatusOr<DataSlice> ObjectCreator::operator()(
@@ -502,6 +517,20 @@ absl::StatusOr<DataSlice> ObjectCreator::operator()(
         return DataSlice::Create(
             internal::DataSliceImpl::AllocateEmptyObjects(size),
             std::move(shape), internal::DataItem(schema::kObject), db);
+      }, attr_names, values);
+}
+
+absl::StatusOr<DataSlice> ObjectCreator::operator()(
+    const DataBagPtr& db, const DataSlice& shape_and_mask_from,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) const {
+  return CreateObjectsImpl(
+      db,
+      [&]() {
+        return CreateLike(db, shape_and_mask_from,
+                          internal::DataItem(schema::kObject),
+                          internal::AllocateSingleObject,
+                          internal::Allocate);
       }, attr_names, values);
 }
 
@@ -611,7 +640,7 @@ absl::StatusOr<internal::DataItem> CreateDictSchema(
 }
 
 absl::StatusOr<DataSlice> CreateDictLike(
-    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask,
+    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask_from,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema,
@@ -620,7 +649,7 @@ absl::StatusOr<DataSlice> CreateDictLike(
   return CreateDictImpl(
       db,
       [&](const auto& schema) {
-        return CreateLike(db, shape_and_mask, schema,
+        return CreateLike(db, shape_and_mask_from, schema,
                           internal::AllocateSingleDict,
                           internal::AllocateDicts);
       },
@@ -734,7 +763,7 @@ absl::StatusOr<DataSlice> CreateListShaped(
 }
 
 absl::StatusOr<DataSlice> CreateListLike(
-    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask,
+    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask_from,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& item_schema) {
@@ -752,7 +781,7 @@ absl::StatusOr<DataSlice> CreateListLike(
                      DeduceItemSchema(values, item_schema));
     ASSIGN_OR_RETURN(list_schema, CreateListSchema(db, deduced_item_schema));
   }
-  ASSIGN_OR_RETURN(auto result, CreateLike(db, shape_and_mask, list_schema,
+  ASSIGN_OR_RETURN(auto result, CreateLike(db, shape_and_mask_from, list_schema,
                                            internal::AllocateSingleList,
                                            internal::AllocateLists));
   if (values.has_value()) {

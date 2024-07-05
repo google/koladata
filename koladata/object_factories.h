@@ -75,7 +75,29 @@ struct EntityCreator {
   // error is returned, unless `update_schema` is provided in which case, the
   // schema attribute is set from attribute's value.
   absl::StatusOr<DataSlice> operator()(
-      const DataBagPtr& db, DataSlice::JaggedShape shape,
+      const DataBagPtr& db,
+      DataSlice::JaggedShape shape,
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const DataSlice> values,
+      const std::optional<DataSlice>& schema = std::nullopt,
+      bool update_schema = false) const;
+
+  // Implements kd.new_like function / operator.
+  //
+  // Returns an Entity (DataSlice with a reference to `db`) with shape and
+  // sparsity from `shape_and_mask_from`.
+  //
+  // If `attr_names` and `values` are non-empty, they are added as attributes.
+  // All `values` must be broadcastable to `shape_and_mask_from.GetShape()`.
+  //
+  // The returned Entity has an explicit schema whose attributes `attr_names`
+  // are set to schemas of `values`. If `schema` is provided, attributes are
+  // cast to `schema` attributes. In case some schema attribute is missing,
+  // error is returned, unless `update_schema` is provided in which case, the
+  // schema attribute is set from attribute's value.
+  absl::StatusOr<DataSlice> operator()(
+      const DataBagPtr& db,
+      const DataSlice& shape_and_mask_from,
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema = std::nullopt,
@@ -119,7 +141,25 @@ struct ObjectCreator {
   // schema item in this schema slice is a different allocated schema object).
   // Each of them has `attr_names` attributes set to schemas of `values`.
   absl::StatusOr<DataSlice> operator()(
-      const DataBagPtr& db, DataSlice::JaggedShape shape,
+      const DataBagPtr& db,
+      DataSlice::JaggedShape shape,
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const DataSlice> values) const;
+
+  // Implements kd.obj_like function / operator.
+  //
+  // Returns an Object (DataSlice with a reference to `db`) with shape and
+  // sparsity from `shape_and_mask_from`.
+  //
+  // If `attr_names` and `values` are non-empty, they are added as attributes.
+  // All `values` must be broadcastable to `shape_and_mask_from.GetShape()`.
+  //
+  // The returned Object's __schema__ attribute is implicit schema slice (each
+  // schema item in this schema slice is a different allocated schema object).
+  // Each of them has `attr_names` attributes set to schemas of `values`.
+  absl::StatusOr<DataSlice> operator()(
+      const DataBagPtr& db,
+      const DataSlice& shape_and_mask_from,
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values) const;
 
@@ -199,13 +239,13 @@ absl::StatusOr<DataSlice> CreateDictShaped(
     const std::optional<DataSlice>& key_schema = std::nullopt,
     const std::optional<DataSlice>& value_schema = std::nullopt);
 
-// Creates dicts with the given shape_and_mask. If `keys` and `values` are
+// Creates dicts with the given shape_and_mask_from. If `keys` and `values` are
 // provided, they will be set to the dicts after creation (that implies
 // potential type casting and broadcasting). If `key_schema` and `value_schema`
 // are not provided, they will be taken from `keys` and `values` or defaulted to
 // OBJECT.
 absl::StatusOr<DataSlice> CreateDictLike(
-    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask,
+    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask_from,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema = std::nullopt,
@@ -249,12 +289,12 @@ absl::StatusOr<DataSlice> CreateListShaped(
     const std::optional<DataSlice>& schema = std::nullopt,
     const std::optional<DataSlice>& item_schema = std::nullopt);
 
-// Creates empty lists of the given shape_and_mask. If `values` are provided,
-// they will be appended to the lists after creation (that implies potential
-// type casting and broadcasting). If `item_schema` is not provided, it will be
-// taken from `values` or defaulted to OBJECT.
+// Creates empty lists of the given shape_and_mask_from. If `values` are
+// provided, they will be appended to the lists after creation (that implies
+// potential type casting and broadcasting). If `item_schema` is not provided,
+// it will be taken from `values` or defaulted to OBJECT.
 absl::StatusOr<DataSlice> CreateListLike(
-    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask,
+    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask_from,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema = std::nullopt,
     const std::optional<DataSlice>& item_schema = std::nullopt);

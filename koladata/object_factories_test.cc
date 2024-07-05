@@ -309,6 +309,36 @@ TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
 }
 
+TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kFloat32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  auto shape_and_mask_from = test::DataSlice<int>({1, std::nullopt, 2});
+  EXPECT_THAT(
+      EntityCreator()(db, shape_and_mask_from,
+                      {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+                      entity_schema),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("attribute 'b' is missing on the schema")));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto entity,
+      EntityCreator()(db, shape_and_mask_from,
+                      {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+                      entity_schema, /*update_schema=*/true));
+
+  EXPECT_THAT(
+      entity.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(test::DataSlice<int>({42, std::nullopt, 42})
+                                  .WithDb(db))));
+  EXPECT_THAT(
+      entity.GetAttr("b"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::DataSlice<arolla::Text>({"xyz", std::nullopt, "xyz"})
+          .WithDb(db))));
+}
+
 TEST(EntityCreatorTest, SchemaArg_NoDb) {
   auto schema_db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);
@@ -471,6 +501,10 @@ TEST(ObjectCreatorTest, InvalidSchemaArg) {
                        HasSubstr("please use new_...() instead of obj_...()")));
   EXPECT_THAT(ObjectCreator()(db, DataSlice::JaggedShape::Empty(),
                               {"a", "schema"}, {ds_a, entity_schema}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("please use new_...() instead of obj_...()")));
+  EXPECT_THAT(ObjectCreator()(db, test::DataItem(42), {"a", "schema"},
+                              {ds_a, entity_schema}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("please use new_...() instead of obj_...()")));
 }
@@ -658,6 +692,9 @@ class CreatorTest : public ::testing::Test {
     } else {
       EXPECT_EQ(ds.GetSchemaImpl(), schema::kObject);
       ds.VisitImpl([&]<class ImplT>(const ImplT& impl) {
+        if (impl.present_count() == 0) {
+          return;
+        }
         ASSERT_OK_AND_ASSIGN(auto schema_attr,
                              db.GetImpl().GetAttr(impl, schema::kSchemaAttr));
         // Verify __schema__ attribute contains implicit schemas in case of
@@ -729,7 +766,7 @@ TYPED_TEST(CreatorTest, AutoBroadcasting) {
                HasSubstr("shapes are not compatible")));
 }
 
-TYPED_TEST(CreatorTest, ShapedWithAttrs) {
+TYPED_TEST(CreatorTest, Shaped_WithAttrs) {
   typename TestFixture::CreatorT creator;
   constexpr int64_t kSize = 3;
   auto shape = DataSlice::JaggedShape::FlatFromSize(kSize);
@@ -756,13 +793,82 @@ TYPED_TEST(CreatorTest, ShapedWithAttrs) {
                HasSubstr("shapes are not compatible")));
 }
 
-TYPED_TEST(CreatorTest, ShapedNoAutoPacking) {
+TYPED_TEST(CreatorTest, Shaped_NoAutoPacking) {
   typename TestFixture::CreatorT creator;
   constexpr int64_t kSize = 3;
   auto db = DataBag::Empty();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
 
   EXPECT_THAT(creator(db, DataSlice::JaggedShape::Empty(), {"a"}, {ds_a}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("trying to assign a slice with 1 dim")));
+}
+
+TYPED_TEST(CreatorTest, Like_WithAttrs) {
+  typename TestFixture::CreatorT creator;
+  constexpr int64_t kSize = 3;
+  auto shape_and_mask_from = test::DataSlice<int>({1, std::nullopt, 2});
+  auto db = DataBag::Empty();
+  auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
+  auto ds_b = test::DataItem(internal::AllocateSingleObject());
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      creator(db, shape_and_mask_from,
+              {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
+  EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
+  TestFixture::VerifyDataSliceSchema(*db, ds);
+
+  ASSERT_OK_AND_ASSIGN(auto ds_b_get, db->GetImpl().GetAttr(ds.slice(), "b"));
+  auto obj_id = ds_b.item().value<ObjectId>();
+  EXPECT_THAT(ds_b_get.template values<ObjectId>(),
+              ElementsAre(obj_id, std::nullopt, obj_id));
+
+  ds_b = test::AllocateDataSlice(2, schema::kObject);
+  EXPECT_THAT(
+      creator(db, {std::string("a"), std::string("b")}, {ds_a, ds_b}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("shapes are not compatible")));
+}
+
+TYPED_TEST(CreatorTest, Like_EmptyItem) {
+  typename TestFixture::CreatorT creator;
+  auto shape_and_mask_from = test::DataItem(internal::DataItem());
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataItem(42);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, creator(db, shape_and_mask_from, {std::string("a")}, {ds_a}));
+  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_THAT(ds, Property(&DataSlice::item, internal::MissingValue()));
+  TestFixture::VerifyDataSliceSchema(*db, ds);
+}
+
+TYPED_TEST(CreatorTest, Like_EmptySlice) {
+  typename TestFixture::CreatorT creator;
+  auto shape_and_mask_from = test::EmptyDataSlice(
+      DataSlice::JaggedShape::FlatFromSize(3), schema::kInt32);
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataItem(42);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, creator(db, shape_and_mask_from, {std::string("a")}, {ds_a}));
+  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_THAT(ds,
+              Property(&DataSlice::slice,
+                       ElementsAre(std::nullopt, std::nullopt, std::nullopt)));
+  TestFixture::VerifyDataSliceSchema(*db, ds);
+}
+
+TYPED_TEST(CreatorTest, Like_NoAutoPacking) {
+  typename TestFixture::CreatorT creator;
+  constexpr int64_t kSize = 3;
+  auto db = DataBag::Empty();
+  auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
+
+  EXPECT_THAT(creator(db, test::DataItem(42), {"a"}, {ds_a}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("trying to assign a slice with 1 dim")));
 }
@@ -1270,12 +1376,13 @@ TEST(ObjectFactoriesTest, CreateDictLike) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
                                        {std::move(edge1), std::move(edge2)}));
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::MixedDataSlice<int, Text>(
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
 
   ASSERT_OK_AND_ASSIGN(auto ds,
-                       CreateDictLike(db, shape_and_mask, /*keys=*/std::nullopt,
+                       CreateDictLike(db, shape_and_mask_from,
+                                      /*keys=*/std::nullopt,
                                       /*values=*/std::nullopt));
   EXPECT_THAT(
       ds.slice(),
@@ -1303,12 +1410,12 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
                                        {std::move(edge1), std::move(edge2)}));
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::MixedDataSlice<int, Text>(
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
 
   ASSERT_OK_AND_ASSIGN(
-      auto ds, CreateDictLike(db, shape_and_mask,
+      auto ds, CreateDictLike(db, shape_and_mask_from,
                               /*keys=*/test::DataSlice<int>({1, 2}),
                               /*values=*/test::DataSlice<int>({57, 58})));
   EXPECT_THAT(
@@ -1348,12 +1455,12 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues_WithSchema) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
                                        {std::move(edge1), std::move(edge2)}));
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::MixedDataSlice<int, Text>(
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
 
   ASSERT_OK_AND_ASSIGN(
-      auto ds, CreateDictLike(db, shape_and_mask,
+      auto ds, CreateDictLike(db, shape_and_mask_from,
                               /*keys=*/test::DataSlice<int>({1, 2}),
                               /*values=*/test::DataSlice<int>({57, 58}),
                               /*schema=*/std::nullopt,
@@ -1390,11 +1497,11 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues_WithSchema) {
 
 TEST(ObjectFactoriesTest, CreateDictLike_DataItem) {
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::DataItem(57, schema::kAny, db);
+  auto shape_and_mask_from = test::DataItem(57, schema::kAny, db);
 
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       CreateDictLike(db, shape_and_mask, /*keys=*/std::nullopt,
-                                      /*values=*/std::nullopt));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, CreateDictLike(db, shape_and_mask_from, /*keys=*/std::nullopt,
+                              /*values=*/std::nullopt));
   EXPECT_THAT(ds.item(),
               DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())));
   EXPECT_EQ(ds.GetDb(), db);
@@ -1407,14 +1514,15 @@ TEST(ObjectFactoriesTest, CreateDictLike_DataItem) {
 
 TEST(ObjectFactoriesTest, CreateDictLike_MissingDataItem) {
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::DataItem(internal::DataItem(), schema::kAny, db);
+  auto shape_and_mask_from = test::DataItem(
+      internal::DataItem(), schema::kAny, db);
 
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       CreateDictLike(db, shape_and_mask, /*keys=*/std::nullopt,
-                                      /*values=*/std::nullopt));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, CreateDictLike(db, shape_and_mask_from, /*keys=*/std::nullopt,
+                              /*values=*/std::nullopt));
   EXPECT_THAT(ds.item(), MissingDataItem());
   EXPECT_EQ(ds.GetDb(), db);
-  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape_and_mask.GetShape()));
+  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape_and_mask_from.GetShape()));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kObject)));
   EXPECT_THAT(ds.GetSchema().GetAttr("__values__"),
@@ -1423,21 +1531,22 @@ TEST(ObjectFactoriesTest, CreateDictLike_MissingDataItem) {
 
 TEST(ObjectFactoriesTest, CreateDictLike_Errors) {
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::DataItem(internal::DataItem(), schema::kAny, db);
+  auto shape_and_mask_from = test::DataItem(
+      internal::DataItem(), schema::kAny, db);
 
   EXPECT_THAT(
-      CreateDictLike(db, shape_and_mask,
+      CreateDictLike(db, shape_and_mask_from,
                      /*keys=*/test::DataSlice<int>({1, 2}),
                      /*values=*/std::nullopt),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "creating a dict requires both keys and values, got only keys"));
   EXPECT_THAT(
-      CreateDictLike(db, shape_and_mask, /*keys=*/std::nullopt,
+      CreateDictLike(db, shape_and_mask_from, /*keys=*/std::nullopt,
                      /*values=*/test::DataSlice<int>({1, 2})),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "creating a dict requires both keys and values, got only values"));
-  EXPECT_THAT(CreateDictLike(db, shape_and_mask,
+  EXPECT_THAT(CreateDictLike(db, shape_and_mask_from,
                              /*keys=*/std::nullopt,
                              /*values=*/std::nullopt,
                              /*schema=*/std::nullopt,
@@ -1455,11 +1564,11 @@ TEST(ObjectFactoriesTest, CreateListLike) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
                                        {std::move(edge1), std::move(edge2)}));
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::MixedDataSlice<int, Text>(
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
 
-  ASSERT_OK_AND_ASSIGN(auto ds, CreateListLike(db, shape_and_mask,
+  ASSERT_OK_AND_ASSIGN(auto ds, CreateListLike(db, shape_and_mask_from,
                                                /*values=*/std::nullopt,
                                                /*schema=*/std::nullopt,
                                                test::Schema(schema::kInt32)));
@@ -1487,12 +1596,12 @@ TEST(ObjectFactoriesTest, CreateListLike_WithValues) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
                                        {std::move(edge1), std::move(edge2)}));
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::MixedDataSlice<int, Text>(
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
 
   ASSERT_OK_AND_ASSIGN(auto ds,
-                       CreateListLike(db, shape_and_mask,
+                       CreateListLike(db, shape_and_mask_from,
                                       /*values=*/test::DataSlice<int>({1, 2})));
   EXPECT_THAT(
       ds.slice(),
@@ -1515,11 +1624,11 @@ TEST(ObjectFactoriesTest, CreateListLike_WithValues) {
 
 TEST(ObjectFactoriesTest, CreateListLike_DataItem) {
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::DataItem(57);
+  auto shape_and_mask_from = test::DataItem(57);
 
   ASSERT_OK_AND_ASSIGN(
       auto ds,
-      CreateListLike(db, shape_and_mask, /*values=*/std::nullopt,
+      CreateListLike(db, shape_and_mask_from, /*values=*/std::nullopt,
                      /*schema=*/std::nullopt, test::Schema(schema::kInt32)));
   EXPECT_THAT(ds.item(),
               DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
@@ -1532,9 +1641,9 @@ TEST(ObjectFactoriesTest, CreateListLike_DataItem) {
 TEST(ObjectFactoriesTest, CreateListLike_MissingDataItem) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges({}));
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::DataItem(internal::DataItem());
+  auto shape_and_mask_from = test::DataItem(internal::DataItem());
 
-  ASSERT_OK_AND_ASSIGN(auto ds, CreateListLike(db, shape_and_mask,
+  ASSERT_OK_AND_ASSIGN(auto ds, CreateListLike(db, shape_and_mask_from,
                                                /*values=*/std::nullopt,
                                                /*schema=*/std::nullopt,
                                                test::Schema(schema::kInt32)));
@@ -1553,7 +1662,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
                                        {std::move(edge1), std::move(edge2)}));
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::MixedDataSlice<int, Text>(
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
 
@@ -1563,7 +1672,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema) {
       CreateListSchema(schema_db, test::Schema(schema::kInt32)));
   auto list_schema = test::Schema(list_schema_item, schema_db);
   ASSERT_OK_AND_ASSIGN(auto ds,
-                       CreateListLike(db, shape_and_mask,
+                       CreateListLike(db, shape_and_mask_from,
                                       /*values=*/test::DataSlice<int>({1, 2}),
                                       /*schema=*/list_schema));
   EXPECT_THAT(
@@ -1577,9 +1686,9 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema) {
 
 TEST(ObjectFactoriesTest, CreateListLike_ListSchemaAny) {
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::DataItem(57);
+  auto shape_and_mask_from = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(auto ds,
-                       CreateListLike(db, shape_and_mask,
+                       CreateListLike(db, shape_and_mask_from,
                                       /*values=*/test::DataSlice<int>({1, 2}),
                                       /*schema=*/test::Schema(schema::kAny)));
   EXPECT_THAT(ds.item(),
@@ -1592,14 +1701,14 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchemaAny) {
 
 TEST(ObjectFactoriesTest, CreateListLike_ListSchemaError) {
   auto db = DataBag::Empty();
-  auto shape_and_mask = test::DataItem(57);
+  auto shape_and_mask_from = test::DataItem(57);
 
-  EXPECT_THAT(CreateListLike(db, shape_and_mask, /*values=*/std::nullopt,
+  EXPECT_THAT(CreateListLike(db, shape_and_mask_from, /*values=*/std::nullopt,
                              /*schema=*/test::Schema(schema::kInt32)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("expected List schema, got INT32")));
 
-  EXPECT_THAT(CreateListLike(db, shape_and_mask, /*values=*/std::nullopt,
+  EXPECT_THAT(CreateListLike(db, shape_and_mask_from, /*values=*/std::nullopt,
                              /*schema=*/test::Schema(schema::kAny),
                              /*item_schema=*/test::Schema(schema::kInt32)),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1610,7 +1719,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchemaError) {
       auto list_schema_item,
       CreateListSchema(schema_db, test::Schema(schema::kInt32)));
 
-  EXPECT_THAT(CreateListLike(db, shape_and_mask,
+  EXPECT_THAT(CreateListLike(db, shape_and_mask_from,
                              test::DataSlice<arolla::Text>({"abc", "xyz"}),
                              test::Schema(list_schema_item, schema_db)),
               StatusIs(absl::StatusCode::kInvalidArgument,
