@@ -18,6 +18,7 @@
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/qexpr/operators.h"
@@ -40,6 +41,8 @@ class GroupByIndicesSortedFamily : public arolla::OperatorFamily {
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
+
+absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort);
 
 }  // namespace koladata::ops
 

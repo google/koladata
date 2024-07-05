@@ -70,6 +70,7 @@ OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
 OPERATOR("kde.core.reverse_select", ReverseSelect);
 OPERATOR_FAMILY("kde.core.subslice", SubsliceOperatorFamily);
+OPERATOR("kde.core.unique", Unique);
 //
 OPERATOR("kde.logical.apply_mask", ApplyMask);
 OPERATOR("kde.logical.coalesce", Coalesce);

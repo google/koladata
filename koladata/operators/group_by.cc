@@ -20,10 +20,12 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/base/attributes.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
@@ -31,6 +33,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -40,6 +43,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
+#include "arolla/expr/quote.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
@@ -71,6 +75,19 @@ absl::Status VerifyGroupByIndicesInputs(
 }
 
 static constexpr size_t kUndefinedGroup = ~size_t{};
+
+struct DataItemPairHash {
+  size_t operator()(const std::pair<size_t, internal::DataItem>& p) const {
+    return absl::HashOf(p.first, internal::DataItem::Hash()(p.second));
+  }
+};
+
+struct DataItemPairEq {
+  size_t operator()(const std::pair<size_t, internal::DataItem>& a,
+                    const std::pair<size_t, internal::DataItem>& b) const {
+    return a.first == b.first && internal::DataItem::Eq()(a.second, b.second);
+  }
+};
 
 // Helper class to process key data slices and find group indices.
 class GroupByIndicesProcessor {
@@ -179,19 +196,6 @@ class GroupByIndicesProcessor {
   }
 
  private:
-  struct DataItemPairHash {
-    size_t operator()(const std::pair<size_t, internal::DataItem>& p) const {
-      return absl::HashOf(p.first, internal::DataItem::Hash()(p.second));
-    }
-  };
-
-  struct DataItemPairEq {
-    size_t operator()(const std::pair<size_t, internal::DataItem>& a,
-                      const std::pair<size_t, internal::DataItem>& b) const {
-      return a.first == b.first && internal::DataItem::Eq()(a.second, b.second);
-    }
-  };
-
   template <typename T>
   class SortingData {
    public:
@@ -399,6 +403,101 @@ absl::StatusOr<arolla::OperatorPtr> GroupByIndicesSortedFamily::DoGetOperator(
   }
   return std::make_unique<GroupByIndicesQExprOperator>(input_types,
                                                        /*sort=*/true);
+}
+
+absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
+  if (x.GetShape().rank() == 0) {
+    return x;
+  }
+  if (sort.GetShape().rank() != 0 || !sort.item().holds_value<bool>()) {
+    return absl::FailedPreconditionError("sort must be a boolean scalar");
+  }
+  bool sort_bool = sort.item().value<bool>();
+  if (sort_bool && x.slice().is_mixed_dtype()) {
+    return absl::FailedPreconditionError(
+        "sort is not supported for mixed dtype");
+  }
+
+  const auto& split_points =
+      x.GetShape().edges().back().edge_values().values.span();
+  arolla::DenseArrayBuilder<int64_t> split_points_builder(split_points.size());
+  split_points_builder.Set(0, 0);
+
+  auto process_values =
+      [&]<class T, class Map>(
+          const arolla::DenseArray<T>& values,
+          Map& map) -> absl::StatusOr<internal::DataSliceImpl> {
+    std::vector<arolla::view_type_t<T>> unique_values;
+    unique_values.reserve(values.size());
+    map.reserve(values.size());
+
+    for (size_t split_id = 1; split_id < split_points.size(); ++split_id) {
+      size_t begin = split_points[split_id - 1];
+      size_t end = split_points[split_id];
+      size_t unique_values_group_begin = unique_values.size();
+      for (size_t i = begin; i < end; ++i) {
+        if (!values.present(i)) {
+          continue;
+        }
+        // We reuse the map to minimize amount of successful inserts.
+        auto [it, inserted] = map.emplace(values.values[i], split_id);
+        if (inserted || it->second != split_id) {
+          unique_values.push_back(values.values[i]);
+          it->second = split_id;
+        }
+      }
+      split_points_builder.Set(split_id, unique_values.size());
+      if (sort_bool) {
+        if constexpr (internal::IsKodaScalarSortable<T>()) {
+          std::sort(unique_values.begin() + unique_values_group_begin,
+                    unique_values.end());
+        } else {
+          return absl::FailedPreconditionError(absl::StrCat(
+              "sort is not supported for ", arolla::GetQType<T>()->name()));
+        }
+      }
+    }
+    internal::DataSliceImpl::Builder builder(unique_values.size());
+    for (size_t i = 0; i < unique_values.size(); ++i) {
+      if constexpr (std::is_same_v<T, internal::DataItem>) {
+        builder.Insert(i, unique_values[i]);
+      } else {
+        builder.Insert(i, internal::DataItem::View<T>(unique_values[i]));
+      }
+    }
+    return std::move(builder).Build();
+  };
+
+  absl::StatusOr<internal::DataSliceImpl> res_impl;
+  if (x.slice().is_empty_and_unknown()) {
+    res_impl = internal::DataSliceImpl::CreateEmptyAndUnknownType(0);
+    for (size_t split_id = 1; split_id < split_points.size(); ++split_id) {
+      split_points_builder.Set(split_id, 0);
+    }
+  } else if (x.slice().is_mixed_dtype()) {
+    absl::flat_hash_map<internal::DataItem, size_t, internal::DataItem::Hash,
+                        internal::DataItem::Eq>
+        map;
+    res_impl = process_values(x.slice().AsDataItemDenseArray(), map);
+  } else {
+    // TODO: Remove this unused builder. It prevents from a linker
+    // error that is not yet explained.
+    ABSL_ATTRIBUTE_UNUSED arolla::DenseArrayBuilder<arolla::expr::ExprQuote>
+        unused(0);
+    x.slice().VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
+      absl::flat_hash_map<arolla::view_type_t<T>, size_t> map;
+      res_impl = process_values(values, map);
+    });
+  }
+
+  RETURN_IF_ERROR(res_impl.status());
+  ASSIGN_OR_RETURN(auto new_shape,
+                   x.GetShape()
+                       .RemoveDims(/*from=*/x.GetShape().rank() - 1)
+                       .AddDims({arolla::DenseArrayEdge::UnsafeFromSplitPoints(
+                           std::move(split_points_builder).Build())}));
+  return DataSlice::Create(*std::move(res_impl), std::move(new_shape),
+                           x.GetSchemaImpl());
 }
 
 }  // namespace koladata::ops

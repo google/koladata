@@ -32,6 +32,8 @@
 #include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
+#include "arolla/expr/expr.h"
+#include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -833,6 +835,18 @@ TEST(DataSliceImpl, BuilderAddArrayWithEmpty) {
     EXPECT_THAT(ds, ElementsAre(DataItem(), DataItem(), DataItem(),
                                 DataItem(Bytes("abc"))));
   }
+}
+
+TEST(DataSliceImpl, BuilderExprQuoteView) {
+  DataSliceImpl::Builder bldr(2);
+  auto expr_quote = arolla::expr::ExprQuote(arolla::expr::Literal(1.5f));
+  const auto& expr_quote_ref = expr_quote;
+  bldr.Insert(0, DataItem::View<arolla::expr::ExprQuote>(expr_quote));
+  bldr.Insert(1, DataItem::View<arolla::expr::ExprQuote>(expr_quote_ref));
+  auto ds = std::move(bldr).Build();
+  EXPECT_EQ(ds.size(), 2);
+  EXPECT_EQ(ds.dtype(), arolla::GetQType<arolla::expr::ExprQuote>());
+  EXPECT_THAT(ds, ElementsAre(DataItem(expr_quote), DataItem(expr_quote)));
 }
 
 TEST(DataSliceImpl, MixedBuilder) {
