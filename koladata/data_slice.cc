@@ -246,12 +246,6 @@ absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
     const internal::DataBagImpl& db_impl, const ImplT& impl,
     absl::string_view attr_name, internal::DataBagImpl::FallbackSpan fallbacks,
     bool allow_missing) {
-  // TODO: When we allow Schema operations on MissingValue, we
-  // could avoid this special case and defer to `CommonSchema` to return
-  // schema::kObject, instead.
-  if (impl.present_count() == 0) {
-    return allow_missing ? internal::DataItem() : kObjectSchema;
-  }
   ASSIGN_OR_RETURN(auto schema_attr,
                    db_impl.GetAttr(impl, schema::kSchemaAttr, fallbacks));
   RETURN_IF_ERROR(VerifySchemaAttr(impl, schema_attr));
@@ -384,12 +378,6 @@ class RhsHandler {
 
     if (lhs.GetSchemaImpl() == kObjectSchema) {
       return lhs.VisitImpl([&](const auto& impl) -> absl::Status {
-        // TODO: When we allow Schema operations on MissingValue,
-        // we could avoid this special case and defer to code below to handle it
-        // uniformly.
-        if (impl.present_count() == 0) {
-          return absl::OkStatus();
-        }
         ASSIGN_OR_RETURN(auto obj_schema,
                          db_impl.GetAttr(impl, schema::kSchemaAttr, fallbacks));
         RETURN_IF_ERROR(VerifySchemaAttr(impl, obj_schema));
@@ -420,6 +408,11 @@ class RhsHandler {
     ASSIGN_OR_RETURN(
         auto attr_stored_schema,
         db_impl.GetSchemaAttrAllowMissing(lhs_schema, attr_name_, fallbacks));
+    // Error is returned in GetSchemaAttrAllowMissing if `lhs_schema` is not an
+    // ObjectId (or empty).
+    if (!lhs_schema.has_value()) {
+      return absl::OkStatus();
+    }
     if (lhs_schema.value<internal::ObjectId>().IsImplicitSchema() ||
         update_schema) {
       if constexpr (is_readonly) {
@@ -451,7 +444,9 @@ class RhsHandler {
         db_impl.GetSchemaAttrAllowMissing(lhs_schema, attr_name_, fallbacks));
     // Error is returned in GetSchemaAttrAllowMissing if `lhs_schema`'s items
     // are not ObjectIds.
-    DCHECK_EQ(lhs_schema.dtype(), arolla::GetQType<internal::ObjectId>());
+    if (lhs_schema.is_empty_and_unknown()) {
+      return absl::OkStatus();
+    }
 
     internal::DataItem value_schema = rhs_.GetSchemaImpl();
     bool has_implicit_schema = false;
