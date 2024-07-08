@@ -145,8 +145,10 @@ TEST(DataBagTest, MergeInplace) {
   auto db_3 = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
-      auto ds_1, EntityCreator()(db_1, {std::string("a"), std::string("b")},
-                                 {test::DataItem(1), test::DataItem(2)}));
+      auto ds_1, EntityCreator::FromAttrs(
+          db_1,
+          {std::string("a"), std::string("b")},
+          {test::DataItem(1), test::DataItem(2)}));
   auto ds_2 = ds_1.WithDb(db_2);
   auto ds_3 = ds_1.WithDb(db_3);
   ASSERT_OK(ds_2.SetAttrWithUpdateSchema("a", test::DataItem(3)));
@@ -244,8 +246,9 @@ TEST(DataBagTest, GetBagIdRepr) {
 TEST(DataBagTest, Fork) {
   auto db1 = DataBag::Empty();
   auto ds_a_db1 = test::DataItem(42, db1);
-  ASSERT_OK_AND_ASSIGN(auto ds1,
-                       EntityCreator()(db1, {std::string("a")}, {ds_a_db1}));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds1,
+      EntityCreator::FromAttrs(db1, {std::string("a")}, {ds_a_db1}));
 
   ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork());
   auto ds2 = ds1.WithDb(db2);
@@ -266,9 +269,10 @@ TEST(DataBagTest, Fork) {
 
 TEST(DataBagTest, MergeFallbacks) {
   auto fallback_db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds1,
-                       EntityCreator()(fallback_db, {std::string("a")},
-                                       {test::DataItem(42, fallback_db)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds1,
+      EntityCreator::FromAttrs(fallback_db, {std::string("a")},
+                               {test::DataItem(42, fallback_db)}));
   auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db});
   auto ds2 = ds1.WithDb(db);
 

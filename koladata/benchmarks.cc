@@ -110,7 +110,7 @@ BENCHMARK(BM_Align)->Arg(0)->Arg(1000)->Arg(100000);
 template <typename ObjectFactory>
 void BM_SetGetAttrItem(benchmark::State& state) {
   auto db = DataBag::Empty();
-  auto o = *ObjectFactory()(db, {}, {});
+  auto o = *ObjectFactory::FromAttrs(db, {}, {});
   auto val = *DataSlice::Create(internal::DataItem(12),
                                 internal::DataItem(schema::kInt32));
   if constexpr (std::is_same_v<ObjectFactory, EntityCreator>) {
@@ -133,7 +133,7 @@ void BM_SetGetAttrItem(benchmark::State& state) {
 template <typename ObjectFactory>
 void BM_SetGetAttrOneDimSingle(benchmark::State& state) {
   auto db = DataBag::Empty();
-  auto o = *ObjectFactory()(
+  auto o = *ObjectFactory::Shaped(
       db, DataSlice::JaggedShape::FlatFromSize(1), {}, {});
 
   internal::DataSliceImpl::Builder bldr_val(1);
@@ -162,7 +162,7 @@ void BM_SetGetAttrOneDimSingle(benchmark::State& state) {
 template <typename ObjectFactory>
 void BM_SetGetAttrMultiDim(benchmark::State& state) {
   auto db = DataBag::Empty();
-  auto o = *ObjectFactory()(
+  auto o = *ObjectFactory::Shaped(
       db, DataSlice::JaggedShape::FlatFromSize(10000), {}, {});
 
   auto val =
@@ -209,7 +209,7 @@ void BM_ExplodeLists(benchmark::State& state) {
   }
   auto edge_2 = *DataSlice::JaggedShape::Edge::FromSplitPoints(
       arolla::CreateDenseArray<int64_t>(split_points_2));
-  auto o = *EntityCreator()(
+  auto o = *EntityCreator::Shaped(
       db, *DataSlice::JaggedShape::FromEdges({edge_1, edge_2}), {}, {});
 
   auto list = *CreateListsFromLastDimension(db, o, /*schema=*/std::nullopt,
@@ -241,7 +241,7 @@ void BM_GetFromList(benchmark::State& state) {
   }
   auto edge_2 = *DataSlice::JaggedShape::Edge::FromSplitPoints(
       arolla::CreateDenseArray<int64_t>(split_points_2));
-  auto o = *EntityCreator()(
+  auto o = *EntityCreator::Shaped(
       db, *DataSlice::JaggedShape::FromEdges({edge_1, edge_2}), {}, {});
 
   auto list = *CreateListsFromLastDimension(db, o, test::Schema(schema::kAny));
@@ -284,7 +284,7 @@ void BM_SetMultipleAttrs(benchmark::State& state) {
       DataSliceImpl::Create(c_values),
       DataSlice::JaggedShape::FlatFromSize(size));
 
-  auto entity = *EntityCreator()(db, a.GetShape(), {}, {});
+  auto entity = *EntityCreator::Shaped(db, a.GetShape(), {}, {});
 
   std::vector<absl::string_view> attr_names{"a", "b", "c"};
   std::vector<DataSlice> values{a, b, c};
@@ -324,7 +324,7 @@ void BM_CreateEntity(benchmark::State& state) {
     benchmark::DoNotOptimize(db);
     benchmark::DoNotOptimize(attr_names);
     benchmark::DoNotOptimize(values);
-    auto entity_or = EntityCreator()(db, attr_names, values);
+    auto entity_or = EntityCreator::FromAttrs(db, attr_names, values);
     CHECK_OK(entity_or);
     benchmark::DoNotOptimize(entity_or);
   }
@@ -363,7 +363,7 @@ void BM_CreateEntityWithSchema(benchmark::State& state) {
     benchmark::DoNotOptimize(attr_names);
     benchmark::DoNotOptimize(values);
     benchmark::DoNotOptimize(schema);
-    auto entity_or = EntityCreator()(db, attr_names, values, schema);
+    auto entity_or = EntityCreator::FromAttrs(db, attr_names, values, schema);
     CHECK_OK(entity_or);
     benchmark::DoNotOptimize(entity_or);
   }
@@ -402,7 +402,7 @@ void BM_CreateEntityWithSchemaAndCasting(benchmark::State& state) {
     benchmark::DoNotOptimize(attr_names);
     benchmark::DoNotOptimize(values);
     benchmark::DoNotOptimize(schema);
-    auto entity_or = EntityCreator()(db, attr_names, values, schema);
+    auto entity_or = EntityCreator::FromAttrs(db, attr_names, values, schema);
     CHECK_OK(entity_or);
     benchmark::DoNotOptimize(entity_or);
   }

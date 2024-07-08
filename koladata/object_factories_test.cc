@@ -116,7 +116,8 @@ TEST(EntityCreatorTest, DataSlice) {
 
   ASSERT_OK_AND_ASSIGN(
       auto ds,
-      EntityCreator()(db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+      EntityCreator::FromAttrs(
+          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetDb(), db);
   // Schema check.
   EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsSchema());
@@ -151,7 +152,8 @@ TEST(EntityCreatorTest, DataItem) {
 
   ASSERT_OK_AND_ASSIGN(
       auto ds,
-      EntityCreator()(db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+      EntityCreator::FromAttrs(
+          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetDb(), db);
   EXPECT_EQ(ds.size(), 1);
   EXPECT_EQ(ds.GetShape().rank(), 0);
@@ -182,7 +184,7 @@ TEST(EntityCreatorTest, SchemaArg) {
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
-      EntityCreator()(
+      EntityCreator::FromAttrs(
           db,
           {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
           entity_schema));
@@ -196,16 +198,18 @@ TEST(EntityCreatorTest, SchemaArg) {
 
 TEST(EntityCreatorTest, SchemaArg_InvalidSchema) {
   auto db = DataBag::Empty();
-  EXPECT_THAT(EntityCreator()(db, {"a", "b"},
-                              {test::DataItem(42), test::DataItem("xyz")},
-                              test::DataItem(42)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("must be SCHEMA, got: INT32")));
-  EXPECT_THAT(EntityCreator()(db, {"a", "b"},
-                              {test::DataItem(42), test::DataItem("xyz")},
-                              test::Schema(schema::kObject)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("requires Entity schema, got OBJECT")));
+  EXPECT_THAT(
+      EntityCreator::FromAttrs(db, {"a", "b"},
+                               {test::DataItem(42), test::DataItem("xyz")},
+                               test::DataItem(42)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("must be SCHEMA, got: INT32")));
+  EXPECT_THAT(
+      EntityCreator::FromAttrs(db, {"a", "b"},
+                               {test::DataItem(42), test::DataItem("xyz")},
+                               test::Schema(schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("requires Entity schema, got OBJECT")));
 }
 
 TEST(EntityCreatorTest, SchemaArg_WithFallback) {
@@ -223,7 +227,7 @@ TEST(EntityCreatorTest, SchemaArg_WithFallback) {
   auto new_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto entity,
-      EntityCreator()(
+      EntityCreator::FromAttrs(
           new_db,
           {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
           entity_schema));
@@ -244,8 +248,9 @@ TEST(EntityCreatorTest, SchemaArg_ImplicitCasting) {
   auto ds_a = test::DataItem(42);
   ASSERT_EQ(ds_a.GetSchemaImpl(), schema::kInt32);
 
-  ASSERT_OK_AND_ASSIGN(auto entity,
-                       EntityCreator()(db, {"a"}, {ds_a}, entity_schema));
+  ASSERT_OK_AND_ASSIGN(
+      auto entity,
+      EntityCreator::FromAttrs(db, {"a"}, {ds_a}, entity_schema));
 
   EXPECT_THAT(
       entity.GetAttr("a"),
@@ -260,7 +265,8 @@ TEST(EntityCreatorTest, SchemaArg_CastingFails) {
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
   EXPECT_THAT(
-      EntityCreator()(db, {"a"}, {test::DataItem("xyz")}, entity_schema),
+      EntityCreator::FromAttrs(
+          db, {"a"}, {test::DataItem("xyz")}, entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("schema for attribute 'a' is incompatible")));
 }
@@ -271,17 +277,17 @@ TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
   EXPECT_THAT(
-      EntityCreator()(db, {"a", "b"},
-                      {test::DataItem(42), test::DataItem("xyz")},
-                      entity_schema),
+      EntityCreator::FromAttrs(db, {"a", "b"},
+                               {test::DataItem(42), test::DataItem("xyz")},
+                               entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("attribute 'b' is missing on the schema")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
-      EntityCreator()(db, {"a", "b"},
-                      {test::DataItem(42), test::DataItem("xyz")},
-                      entity_schema, /*update_schema=*/true));
+      EntityCreator::FromAttrs(db, {"a", "b"},
+                               {test::DataItem(42), test::DataItem("xyz")},
+                               entity_schema, /*update_schema=*/true));
 
   EXPECT_THAT(entity.GetAttr("b"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
@@ -293,17 +299,19 @@ TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
   EXPECT_THAT(
-      EntityCreator()(db, DataSlice::JaggedShape::Empty(),
-                      {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
-                      entity_schema),
+      EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
+                            {"a", "b"},
+                            {test::DataItem(42), test::DataItem("xyz")},
+                            entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("attribute 'b' is missing on the schema")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
-      EntityCreator()(db, DataSlice::JaggedShape::Empty(),
-                      {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
-                      entity_schema, /*update_schema=*/true));
+      EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
+                            {"a", "b"},
+                            {test::DataItem(42), test::DataItem("xyz")},
+                            entity_schema, /*update_schema=*/true));
 
   EXPECT_THAT(entity.GetAttr("b"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
@@ -316,17 +324,19 @@ TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
 
   auto shape_and_mask_from = test::DataSlice<int>({1, std::nullopt, 2});
   EXPECT_THAT(
-      EntityCreator()(db, shape_and_mask_from,
-                      {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
-                      entity_schema),
+      EntityCreator::Like(db, shape_and_mask_from,
+                          {"a", "b"},
+                          {test::DataItem(42), test::DataItem("xyz")},
+                          entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("attribute 'b' is missing on the schema")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
-      EntityCreator()(db, shape_and_mask_from,
-                      {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
-                      entity_schema, /*update_schema=*/true));
+      EntityCreator::Like(db, shape_and_mask_from,
+                          {"a", "b"},
+                          {test::DataItem(42), test::DataItem("xyz")},
+                          entity_schema, /*update_schema=*/true));
 
   EXPECT_THAT(
       entity.GetAttr("a"),
@@ -345,15 +355,15 @@ TEST(EntityCreatorTest, SchemaArg_NoDb) {
   auto entity_schema = *CreateEntitySchema(schema_db, {"a"}, {int_s});
 
   auto db = DataBag::Empty();
-  EXPECT_THAT(EntityCreator()(db, {"a"}, {test::DataItem(42)},
-                              entity_schema.WithDb(nullptr)),
+  EXPECT_THAT(EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)},
+                                       entity_schema.WithDb(nullptr)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("attribute 'a' is missing on the schema")));
 
   ASSERT_OK_AND_ASSIGN(auto entity,
-                       EntityCreator()(db, {"a"}, {test::DataItem(42)},
-                                       entity_schema.WithDb(nullptr),
-                                       /*update_schema=*/true));
+                       EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)},
+                                                entity_schema.WithDb(nullptr),
+                                                /*update_schema=*/true));
   EXPECT_THAT(entity.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
 }
@@ -361,8 +371,8 @@ TEST(EntityCreatorTest, SchemaArg_NoDb) {
 TEST(EntityCreatorTest, SchemaArg_Any) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto entity,
-                       EntityCreator()(db, {"a"}, {test::DataItem(42)},
-                                       test::Schema(schema::kAny)));
+                       EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)},
+                                                test::Schema(schema::kAny)));
 
   EXPECT_THAT(entity.GetAttr("a"),
               IsOkAndHolds(
@@ -372,13 +382,13 @@ TEST(EntityCreatorTest, SchemaArg_Any) {
 TEST(EntityCreatorTest, PrimitiveToEntity) {
   auto db = DataBag::Empty();
   EXPECT_THAT(
-      EntityCreator()(db, test::DataSlice<int>({1, 2, 3})),
+      EntityCreator::Convert(db, test::DataSlice<int>({1, 2, 3})),
       IsOkAndHolds(
           AllOf(Property(&DataSlice::slice, ElementsAre(1, 2, 3)),
                 Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
                 Property(&DataSlice::GetDb, Eq(db)))));
   EXPECT_THAT(
-      EntityCreator()(db, test::DataItem(42)),
+      EntityCreator::Convert(db, test::DataItem(42)),
       IsOkAndHolds(
           AllOf(Property(&DataSlice::item, Eq(42)),
                 Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
@@ -390,13 +400,14 @@ TEST(EntityCreatorTest, EntityToEntity) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto entity_val,
-      EntityCreator()(db_val, {std::string("a")}, {test::DataItem(42)}));
+      EntityCreator::FromAttrs(
+          db_val, {std::string("a")}, {test::DataItem(42)}));
 
   // NOTE: The caller must take care of proper adoption of `value` DataBag.
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db_impl, db->GetMutableImpl());
   ASSERT_OK(db_impl.MergeInplace(db_val->GetImpl()));
 
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator()(db, entity_val));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Convert(db, entity_val));
   EXPECT_EQ(entity.item(), entity_val.item());
   EXPECT_EQ(entity.GetSchemaImpl(), entity_val.GetSchemaImpl());
 }
@@ -405,7 +416,8 @@ TEST(ObjectCreatorTest, ObjectToEntity) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();
   EXPECT_THAT(
-      EntityCreator()(db, *ObjectCreator()(db_val, test::DataSlice<int>({1}))),
+      EntityCreator::Convert(
+          db, *ObjectCreator::Convert(db_val, test::DataSlice<int>({1}))),
       IsOkAndHolds(
           AllOf(Property(&DataSlice::slice, ElementsAre(1)),
                 Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
@@ -421,7 +433,8 @@ TEST(ObjectCreatorTest, DataSlice) {
 
   ASSERT_OK_AND_ASSIGN(
       auto ds,
-      ObjectCreator()(db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+      ObjectCreator::FromAttrs(
+          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetDb(), db);
   // Implicit schema stored in __schema__ "normal" attribute.
   EXPECT_EQ(ds.GetSchemaImpl(), schema::kObject);
@@ -466,7 +479,8 @@ TEST(ObjectCreatorTest, DataItem) {
 
   ASSERT_OK_AND_ASSIGN(
       auto ds,
-      ObjectCreator()(db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+      ObjectCreator::FromAttrs(
+          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetDb(), db);
   EXPECT_EQ(ds.size(), 1);
   EXPECT_EQ(ds.GetShape().rank(), 0);
@@ -496,15 +510,16 @@ TEST(ObjectCreatorTest, InvalidSchemaArg) {
   auto db = DataBag::Empty();
   auto ds_a = test::DataItem(42);
   auto entity_schema = test::Schema(schema::kAny);
-  EXPECT_THAT(ObjectCreator()(db, {"a", "schema"}, {ds_a, entity_schema}),
+  EXPECT_THAT(
+      ObjectCreator::FromAttrs(db, {"a", "schema"}, {ds_a, entity_schema}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("please use new_...() instead of obj_...()")));
+  EXPECT_THAT(ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
+                                    {"a", "schema"}, {ds_a, entity_schema}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("please use new_...() instead of obj_...()")));
-  EXPECT_THAT(ObjectCreator()(db, DataSlice::JaggedShape::Empty(),
-                              {"a", "schema"}, {ds_a, entity_schema}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("please use new_...() instead of obj_...()")));
-  EXPECT_THAT(ObjectCreator()(db, test::DataItem(42), {"a", "schema"},
-                              {ds_a, entity_schema}),
+  EXPECT_THAT(ObjectCreator::Like(db, test::DataItem(42), {"a", "schema"},
+                                  {ds_a, entity_schema}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("please use new_...() instead of obj_...()")));
 }
@@ -512,13 +527,13 @@ TEST(ObjectCreatorTest, InvalidSchemaArg) {
 TEST(ObjectCreatorTest, PrimitiveToObject) {
   auto db = DataBag::Empty();
   EXPECT_THAT(
-      ObjectCreator()(db, test::DataSlice<int>({1, 2, 3})),
+      ObjectCreator::Convert(db, test::DataSlice<int>({1, 2, 3})),
       IsOkAndHolds(
           AllOf(Property(&DataSlice::slice, ElementsAre(1, 2, 3)),
                 Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
                 Property(&DataSlice::GetDb, Eq(db)))));
   EXPECT_THAT(
-      ObjectCreator()(db, test::DataItem(42)),
+      ObjectCreator::Convert(db, test::DataItem(42)),
       IsOkAndHolds(
           AllOf(Property(&DataSlice::item, Eq(42)),
                 Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
@@ -530,13 +545,14 @@ TEST(ObjectCreatorTest, EntityToObject) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto entity,
-      EntityCreator()(db_val, {std::string("a")}, {test::DataItem(42)}));
+      EntityCreator::FromAttrs(
+          db_val, {std::string("a")}, {test::DataItem(42)}));
 
   // NOTE: The caller must take care of proper adoption of `value` DataBag.
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db_impl, db->GetMutableImpl());
   ASSERT_OK(db_impl.MergeInplace(db_val->GetImpl()));
 
-  ASSERT_OK_AND_ASSIGN(auto obj, ObjectCreator()(db, entity));
+  ASSERT_OK_AND_ASSIGN(auto obj, ObjectCreator::Convert(db, entity));
   EXPECT_EQ(obj.item(), entity.item());
   EXPECT_EQ(obj.GetSchemaImpl(), schema::kObject);
 
@@ -556,7 +572,8 @@ TEST(ObjectCreatorTest, ObjectToObject) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();
   EXPECT_THAT(
-      ObjectCreator()(db, *ObjectCreator()(db_val, test::DataSlice<int>({1}))),
+      ObjectCreator::Convert(
+          db, *ObjectCreator::Convert(db_val, test::DataSlice<int>({1}))),
       IsOkAndHolds(
           AllOf(Property(&DataSlice::slice, ElementsAre(1)),
                 Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
@@ -565,10 +582,11 @@ TEST(ObjectCreatorTest, ObjectToObject) {
 
 TEST(ObjectCreatorTest, ObjectConverterError) {
   auto db = DataBag::Empty();
-  EXPECT_THAT(ObjectCreator()(db, test::DataSlice<int>({1}, schema::kAny)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "schema embedding is only supported for primitive and "
-                       "entity schemas, got ANY"));
+  EXPECT_THAT(
+      ObjectCreator::Convert(db, test::DataSlice<int>({1}, schema::kAny)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "schema embedding is only supported for primitive and "
+               "entity schemas, got ANY"));
 }
 
 TEST(UuObjectCreatorTest, DataSlice) {
@@ -720,34 +738,34 @@ using CreatorTestTypes = ::testing::Types<EntityCreator, ObjectCreator>;
 TYPED_TEST_SUITE(CreatorTest, CreatorTestTypes);
 
 TYPED_TEST(CreatorTest, NoInputs) {
-  typename TestFixture::CreatorT creator;
+  using CreatorT = typename TestFixture::CreatorT;
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto ds, creator(db, {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::FromAttrs(db, {}, {}));
   EXPECT_EQ(ds.GetDb(), db);
   EXPECT_EQ(ds.GetShape().rank(), 0);
   TestFixture::VerifyDataSliceSchema(*db, ds);
 }
 
 TYPED_TEST(CreatorTest, Shaped) {
-  typename TestFixture::CreatorT creator;
+  using CreatorT = typename TestFixture::CreatorT;
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto ds, creator(db, shape, {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::Shaped(db, shape, {}, {}));
   EXPECT_EQ(ds.GetDb(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   TestFixture::VerifyDataSliceSchema(*db, ds);
 }
 
 TYPED_TEST(CreatorTest, AutoBroadcasting) {
-  typename TestFixture::CreatorT creator;
+  using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
   auto db = DataBag::Empty();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataItem(internal::AllocateSingleObject());
 
-  ASSERT_OK_AND_ASSIGN(auto ds, creator(
+  ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::FromAttrs(
       db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetDb(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
@@ -761,20 +779,21 @@ TYPED_TEST(CreatorTest, AutoBroadcasting) {
 
   ds_b = test::AllocateDataSlice(2, schema::kObject);
   EXPECT_THAT(
-      creator(db, {std::string("a"), std::string("b")}, {ds_a, ds_b}),
+      CreatorT::FromAttrs(
+          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("shapes are not compatible")));
 }
 
 TYPED_TEST(CreatorTest, Shaped_WithAttrs) {
-  typename TestFixture::CreatorT creator;
+  using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
   auto shape = DataSlice::JaggedShape::FlatFromSize(kSize);
   auto db = DataBag::Empty();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataItem(internal::AllocateSingleObject());
 
-  ASSERT_OK_AND_ASSIGN(auto ds, creator(
+  ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::Shaped(
       db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetDb(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
@@ -785,27 +804,22 @@ TYPED_TEST(CreatorTest, Shaped_WithAttrs) {
   auto obj_id = ds_b.item().value<ObjectId>();
   EXPECT_THAT(ds_b_get.template values<ObjectId>(),
               ElementsAre(obj_id, obj_id, obj_id));
-
-  ds_b = test::AllocateDataSlice(2, schema::kObject);
-  EXPECT_THAT(
-      creator(db, {std::string("a"), std::string("b")}, {ds_a, ds_b}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("shapes are not compatible")));
 }
 
 TYPED_TEST(CreatorTest, Shaped_NoAutoPacking) {
-  typename TestFixture::CreatorT creator;
+  using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
   auto db = DataBag::Empty();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
 
-  EXPECT_THAT(creator(db, DataSlice::JaggedShape::Empty(), {"a"}, {ds_a}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("trying to assign a slice with 1 dim")));
+  EXPECT_THAT(
+      CreatorT::Shaped(db, DataSlice::JaggedShape::Empty(), {"a"}, {ds_a}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("trying to assign a slice with 1 dim")));
 }
 
 TYPED_TEST(CreatorTest, Like_WithAttrs) {
-  typename TestFixture::CreatorT creator;
+  using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
   auto shape_and_mask_from = test::DataSlice<int>({1, std::nullopt, 2});
   auto db = DataBag::Empty();
@@ -814,8 +828,8 @@ TYPED_TEST(CreatorTest, Like_WithAttrs) {
 
   ASSERT_OK_AND_ASSIGN(
       auto ds,
-      creator(db, shape_and_mask_from,
-              {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+      CreatorT::Like(db, shape_and_mask_from,
+                     {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetDb(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
   EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
@@ -825,36 +839,32 @@ TYPED_TEST(CreatorTest, Like_WithAttrs) {
   auto obj_id = ds_b.item().value<ObjectId>();
   EXPECT_THAT(ds_b_get.template values<ObjectId>(),
               ElementsAre(obj_id, std::nullopt, obj_id));
-
-  ds_b = test::AllocateDataSlice(2, schema::kObject);
-  EXPECT_THAT(
-      creator(db, {std::string("a"), std::string("b")}, {ds_a, ds_b}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("shapes are not compatible")));
 }
 
 TYPED_TEST(CreatorTest, Like_EmptyItem) {
-  typename TestFixture::CreatorT creator;
+  using CreatorT = typename TestFixture::CreatorT;
   auto shape_and_mask_from = test::DataItem(internal::DataItem());
   auto db = DataBag::Empty();
   auto ds_a = test::DataItem(42);
 
   ASSERT_OK_AND_ASSIGN(
-      auto ds, creator(db, shape_and_mask_from, {std::string("a")}, {ds_a}));
+      auto ds,
+      CreatorT::Like(db, shape_and_mask_from, {std::string("a")}, {ds_a}));
   EXPECT_EQ(ds.GetDb(), db);
   EXPECT_THAT(ds, Property(&DataSlice::item, internal::MissingValue()));
   TestFixture::VerifyDataSliceSchema(*db, ds);
 }
 
 TYPED_TEST(CreatorTest, Like_EmptySlice) {
-  typename TestFixture::CreatorT creator;
+  using CreatorT = typename TestFixture::CreatorT;
   auto shape_and_mask_from = test::EmptyDataSlice(
       DataSlice::JaggedShape::FlatFromSize(3), schema::kInt32);
   auto db = DataBag::Empty();
   auto ds_a = test::DataItem(42);
 
   ASSERT_OK_AND_ASSIGN(
-      auto ds, creator(db, shape_and_mask_from, {std::string("a")}, {ds_a}));
+      auto ds,
+      CreatorT::Like(db, shape_and_mask_from, {std::string("a")}, {ds_a}));
   EXPECT_EQ(ds.GetDb(), db);
   EXPECT_THAT(ds,
               Property(&DataSlice::slice,
@@ -863,12 +873,12 @@ TYPED_TEST(CreatorTest, Like_EmptySlice) {
 }
 
 TYPED_TEST(CreatorTest, Like_NoAutoPacking) {
-  typename TestFixture::CreatorT creator;
+  using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
   auto db = DataBag::Empty();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
 
-  EXPECT_THAT(creator(db, test::DataItem(42), {"a"}, {ds_a}),
+  EXPECT_THAT(CreatorT::Like(db, test::DataItem(42), {"a"}, {ds_a}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("trying to assign a slice with 1 dim")));
 }
@@ -1822,7 +1832,8 @@ TEST(ObjectFactoriesTest, CreateUuidFromFields_Empty) {
 TEST(ObjectFactoriesTest, CreateNoFollowSchema_EntitySchema) {
   auto db = DataBag::Empty();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, {"a"}, {ds_primitives}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       EntityCreator::FromAttrs(db, {"a"}, {ds_primitives}));
   ASSERT_OK_AND_ASSIGN(auto nofollow_schema,
                        CreateNoFollowSchema(ds.GetSchema()));
   ASSERT_TRUE(nofollow_schema.item().holds_value<internal::ObjectId>());
@@ -1835,7 +1846,8 @@ TEST(ObjectFactoriesTest, CreateNoFollowSchema_EntitySchema) {
 TEST(ObjectFactoriesTest, CreateNoFollowSchema_ObjectSchema) {
   auto db = DataBag::Empty();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, {"a"}, {ds_primitives}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       ObjectCreator::FromAttrs(db, {"a"}, {ds_primitives}));
   ASSERT_OK_AND_ASSIGN(auto nofollow_schema,
                        CreateNoFollowSchema(ds.GetSchema()));
   ASSERT_TRUE(nofollow_schema.item().holds_value<internal::ObjectId>());
@@ -1879,7 +1891,8 @@ TEST(ObjectFactoriesTest, CreateNoFollowSchema_NonSchema) {
 TEST(ObjectFactoriesTest, NoFollow_Entity) {
   auto db = DataBag::Empty();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, {"a"}, {ds_primitives}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       EntityCreator::FromAttrs(db, {"a"}, {ds_primitives}));
   ASSERT_OK_AND_ASSIGN(auto nofollow, NoFollow(ds));
   EXPECT_THAT(nofollow.slice(), IsEquivalentTo(ds.slice()));
   EXPECT_TRUE(
@@ -1891,7 +1904,8 @@ TEST(ObjectFactoriesTest, NoFollow_Entity) {
 TEST(ObjectFactoriesTest, NoFollow_Objects) {
   auto db = DataBag::Empty();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, {"a"}, {ds_primitives}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       ObjectCreator::FromAttrs(db, {"a"}, {ds_primitives}));
   ASSERT_OK_AND_ASSIGN(auto nofollow, NoFollow(ds));
   EXPECT_THAT(nofollow.slice(), IsEquivalentTo(ds.slice()));
   EXPECT_TRUE(
@@ -1903,7 +1917,8 @@ TEST(ObjectFactoriesTest, NoFollow_Objects) {
 TEST(ObjectFactoriesTest, NoFollow_On_NoFollow) {
   auto db = DataBag::Empty();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator()(db, {"a"}, {ds_primitives}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       EntityCreator::FromAttrs(db, {"a"}, {ds_primitives}));
   ASSERT_OK_AND_ASSIGN(auto nofollow, NoFollow(ds));
   EXPECT_THAT(
       NoFollow(nofollow),
@@ -1923,7 +1938,8 @@ TEST(ObjectFactoriesTest, NoFollow_Primitives) {
 TEST(ObjectFactoriesTest, NoFollow_Any) {
   auto db = DataBag::Empty();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator()(db, {"a"}, {ds_primitives}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       ObjectCreator::FromAttrs(db, {"a"}, {ds_primitives}));
   ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(test::Schema(schema::kAny)));
   EXPECT_THAT(
       NoFollow(ds),

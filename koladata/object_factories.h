@@ -55,12 +55,12 @@ struct EntityCreator {
   // cast to `schema` attributes. In case some schema attribute is missing,
   // error is returned, unless `update_schema` is provided in which case, the
   // schema attribute is set from attribute's value.
-  absl::StatusOr<DataSlice> operator()(
+  static absl::StatusOr<DataSlice> FromAttrs(
       const DataBagPtr& db,
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& values,
       const std::optional<DataSlice>& schema = std::nullopt,
-      bool update_schema = false) const;
+      bool update_schema = false);
 
   // Implements kd.new_shaped function / operator.
   //
@@ -74,13 +74,13 @@ struct EntityCreator {
   // cast to `schema` attributes. In case some schema attribute is missing,
   // error is returned, unless `update_schema` is provided in which case, the
   // schema attribute is set from attribute's value.
-  absl::StatusOr<DataSlice> operator()(
+  static absl::StatusOr<DataSlice> Shaped(
       const DataBagPtr& db,
       DataSlice::JaggedShape shape,
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema = std::nullopt,
-      bool update_schema = false) const;
+      bool update_schema = false);
 
   // Implements kd.new_like function / operator.
   //
@@ -95,17 +95,17 @@ struct EntityCreator {
   // cast to `schema` attributes. In case some schema attribute is missing,
   // error is returned, unless `update_schema` is provided in which case, the
   // schema attribute is set from attribute's value.
-  absl::StatusOr<DataSlice> operator()(
+  static absl::StatusOr<DataSlice> Like(
       const DataBagPtr& db,
       const DataSlice& shape_and_mask_from,
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema = std::nullopt,
-      bool update_schema = false) const;
+      bool update_schema = false);
 
   // Assigns DataBag `db` to `value`.
-  absl::StatusOr<DataSlice> operator()(const DataBagPtr& db,
-                                       const DataSlice& value) const {
+  static absl::StatusOr<DataSlice> Convert(const DataBagPtr& db,
+                                           const DataSlice& value) {
     return value.WithDb(db);
   }
 };
@@ -125,10 +125,10 @@ struct ObjectCreator {
   // The returned Object's __schema__ attribute is implicit schema slice (each
   // schema item in this schema slice is a different allocated schema object).
   // Each of them has `attr_names` attributes set to schemas of `values`.
-  absl::StatusOr<DataSlice> operator()(
+  static absl::StatusOr<DataSlice> FromAttrs(
       const DataBagPtr& db,
       const std::vector<absl::string_view>& attr_names,
-      const std::vector<DataSlice>& values) const;
+      const std::vector<DataSlice>& values);
 
   // Implements kd.obj_shaped function / operator.
   //
@@ -140,11 +140,11 @@ struct ObjectCreator {
   // The returned Object's __schema__ attribute is implicit schema slice (each
   // schema item in this schema slice is a different allocated schema object).
   // Each of them has `attr_names` attributes set to schemas of `values`.
-  absl::StatusOr<DataSlice> operator()(
+  static absl::StatusOr<DataSlice> Shaped(
       const DataBagPtr& db,
       DataSlice::JaggedShape shape,
       absl::Span<const absl::string_view> attr_names,
-      absl::Span<const DataSlice> values) const;
+      absl::Span<const DataSlice> values);
 
   // Implements kd.obj_like function / operator.
   //
@@ -157,18 +157,18 @@ struct ObjectCreator {
   // The returned Object's __schema__ attribute is implicit schema slice (each
   // schema item in this schema slice is a different allocated schema object).
   // Each of them has `attr_names` attributes set to schemas of `values`.
-  absl::StatusOr<DataSlice> operator()(
+  static absl::StatusOr<DataSlice> Like(
       const DataBagPtr& db,
       const DataSlice& shape_and_mask_from,
       absl::Span<const absl::string_view> attr_names,
-      absl::Span<const DataSlice> values) const;
+      absl::Span<const DataSlice> values);
 
   // Convert a DataSlice into an Object. If DataSlice is primitive or an entity,
   // it converts it into an Object. If it is already an Object, it returns this
   // DataSlice. Otherwise, returns an appropriate error.
   // NOTE: Adoption of `value.GetDb()` is the caller's responsibility.
-  absl::StatusOr<DataSlice> operator()(const DataBagPtr& db,
-                                       const DataSlice& value) const;
+  static absl::StatusOr<DataSlice> Convert(const DataBagPtr& db,
+                                           const DataSlice& value);
 };
 
 // Creates a DataSlice whose items are Fingerprints identifying `args`.

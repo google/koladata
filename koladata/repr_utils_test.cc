@@ -179,7 +179,8 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_ObjectsInList) {
                                        test::Schema(schema::kAny)));
 
   DataSlice value_1 = test::DataSlice<int>({1, 2});
-  ASSERT_OK_AND_ASSIGN(DataSlice obj, ObjectCreator()(bag, {"a"}, {value_1}));
+  ASSERT_OK_AND_ASSIGN(DataSlice obj,
+                       ObjectCreator::FromAttrs(bag, {"a"}, {value_1}));
 
   ASSERT_OK_AND_ASSIGN(DataSlice data_slice, CreateNestedList(bag, obj));
   EXPECT_THAT(DataSliceToStr(data_slice),
@@ -194,7 +195,8 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_EntitiesInList) {
                                        test::Schema(schema::kAny)));
 
   DataSlice value_1 = test::DataSlice<int>({1, 2});
-  ASSERT_OK_AND_ASSIGN(DataSlice obj, EntityCreator()(bag, {"a"}, {value_1}));
+  ASSERT_OK_AND_ASSIGN(DataSlice obj,
+                       EntityCreator::FromAttrs(bag, {"a"}, {value_1}));
 
   ASSERT_OK_AND_ASSIGN(DataSlice data_slice, CreateNestedList(bag, obj));
   EXPECT_THAT(DataSliceToStr(data_slice),
@@ -204,7 +206,8 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_EntitiesInList) {
 TEST(ReprUtilTest, TestDataItemStringRepresentation_Object) {
   DataBagPtr bag = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(DataSlice empty_obj, ObjectCreator()(bag, {}, {}));
+  ASSERT_OK_AND_ASSIGN(DataSlice empty_obj,
+                       ObjectCreator::FromAttrs(bag, {}, {}));
   EXPECT_THAT(
       DataSliceToStr(empty_obj),
       IsOkAndHolds(MatchesRegex(R"regex(Obj\(\):\$[a-f0-9]{32})regex")));
@@ -212,15 +215,17 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_Object) {
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
 
-  ASSERT_OK_AND_ASSIGN(DataSlice obj,
-                       ObjectCreator()(bag, {"a", "b"}, {value_1, value_2}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice obj,
+      ObjectCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
   EXPECT_THAT(DataSliceToStr(obj), IsOkAndHolds("Obj(a=1, b='b')"));
 }
 
 TEST(ReprUtilTest, TestDataItemStringRepresentation_Entity) {
   DataBagPtr bag = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(DataSlice empty_entity, EntityCreator()(bag, {}, {}));
+  ASSERT_OK_AND_ASSIGN(DataSlice empty_entity,
+                       EntityCreator::FromAttrs(bag, {}, {}));
   EXPECT_THAT(
       DataSliceToStr(empty_entity),
       IsOkAndHolds(MatchesRegex(R"regex(Entity\(\):\$[a-f0-9]{32})regex")));
@@ -228,8 +233,9 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_Entity) {
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
 
-  ASSERT_OK_AND_ASSIGN(DataSlice entity,
-                       EntityCreator()(bag, {"a", "b"}, {value_1, value_2}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
   EXPECT_THAT(DataSliceToStr(entity), IsOkAndHolds("Entity(a=1, b='b')"));
 }
 
@@ -285,15 +291,17 @@ TEST(ReprUtilTest, TestItemStringRepresentation_DictSchema) {
 TEST(ReprUtilTest, TestItemStringRepresentation_ExplicitSchema) {
   DataBagPtr bag = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(DataSlice empty_entity, EntityCreator()(bag, {}, {}));
+  ASSERT_OK_AND_ASSIGN(DataSlice empty_entity,
+                       EntityCreator::FromAttrs(bag, {}, {}));
   EXPECT_THAT(DataSliceToStr(empty_entity.GetSchema()),
               IsOkAndHolds("SCHEMA()"));
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
 
-  ASSERT_OK_AND_ASSIGN(DataSlice entity,
-                       EntityCreator()(bag, {"a", "b"}, {value_1, value_2}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
   EXPECT_THAT(DataSliceToStr(entity.GetSchema()),
               IsOkAndHolds("SCHEMA(a=INT32, b=TEXT)"));
 }
@@ -307,7 +315,8 @@ TEST(ReprUtilTest, TestItemStringRepresentation_ExplicitSchema_Nested) {
                        CreateDictShaped(bag, DataSlice::JaggedShape::Empty(),
                                         key_item, value_item));
 
-  ASSERT_OK_AND_ASSIGN(DataSlice entity, EntityCreator()(bag, {"a"}, {dict}));
+  ASSERT_OK_AND_ASSIGN(DataSlice entity,
+                       EntityCreator::FromAttrs(bag, {"a"}, {dict}));
   EXPECT_THAT(DataSliceToStr(entity.GetSchema()),
               IsOkAndHolds("SCHEMA(a=DICT{INT32, TEXT})"));
 }
@@ -315,15 +324,17 @@ TEST(ReprUtilTest, TestItemStringRepresentation_ExplicitSchema_Nested) {
 TEST(ReprUtilTest, TestItemStringRepresentation_ImplicitSchema) {
   DataBagPtr bag = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(DataSlice empty_obj, ObjectCreator()(bag, {}, {}));
+  ASSERT_OK_AND_ASSIGN(DataSlice empty_obj,
+                       ObjectCreator::FromAttrs(bag, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto schema, empty_obj.GetAttr(schema::kSchemaAttr));
   EXPECT_THAT(DataSliceToStr(schema), IsOkAndHolds("IMPLICIT_SCHEMA()"));
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
 
-  ASSERT_OK_AND_ASSIGN(DataSlice obj,
-                       ObjectCreator()(bag, {"a", "b"}, {value_1, value_2}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice obj,
+      ObjectCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
 
   EXPECT_THAT(DataSliceToStr(obj.GetSchema()), IsOkAndHolds("OBJECT"));
   ASSERT_OK_AND_ASSIGN(schema, obj.GetAttr(schema::kSchemaAttr));
@@ -335,7 +346,7 @@ TEST(ReprUtilTest, TestItemStringReprWithFallbackDB) {
   DataSlice ds_a = test::DataItem(1);
 
   DataBagPtr db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(DataSlice ds, EntityCreator()(db, {}, {}));
+  ASSERT_OK_AND_ASSIGN(DataSlice ds, EntityCreator::FromAttrs(db, {}, {}));
   ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
   ASSERT_OK(ds.SetAttr("a", ds_a));
 
@@ -366,7 +377,8 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_EntitySlices) {
   DataSlice values = test::DataSlice<int>({1, 2});
 
   DataBagPtr db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(DataSlice ds, EntityCreator()(db, {"a"}, {values}));
+  ASSERT_OK_AND_ASSIGN(DataSlice ds,
+                       EntityCreator::FromAttrs(db, {"a"}, {values}));
   EXPECT_THAT(
       DataSliceToStr(ds),
       IsOkAndHolds(MatchesRegex(
@@ -377,7 +389,8 @@ TEST(ReprUtilTest, TestDataSliceImplStringRepresentation_ObjectSlices) {
   DataSlice values = test::DataSlice<int>({1, 2});
 
   DataBagPtr db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(DataSlice ds, ObjectCreator()(db, {"a"}, {values}));
+  ASSERT_OK_AND_ASSIGN(DataSlice ds,
+                       ObjectCreator::FromAttrs(db, {"a"}, {values}));
   EXPECT_THAT(DataSliceToStr(ds),
               IsOkAndHolds(MatchesRegex(
                   R"regex(\[Obj:\$[a-f0-9]{32}, Obj:\$[a-f0-9]{32}\])regex")));
@@ -494,7 +507,7 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_Entities) {
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
-  ASSERT_OK(EntityCreator()(bag, {"a", "b"}, {value_1, value_2}));
+  ASSERT_OK(EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
 
   EXPECT_THAT(
       DataBagToStr(bag),
@@ -513,7 +526,7 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_Objects) {
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
-  ASSERT_OK(ObjectCreator()(bag, {"a", "b"}, {value_1, value_2}));
+  ASSERT_OK(ObjectCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
 
   EXPECT_THAT(
       DataBagToStr(bag),
@@ -565,12 +578,14 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_FallbackBags) {
   auto fallback_db1 = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto ds1,
-      EntityCreator()(fallback_db1, {"a"}, {test::DataItem(42, fallback_db1)}));
+      EntityCreator::FromAttrs(
+          fallback_db1, {"a"}, {test::DataItem(42, fallback_db1)}));
 
   auto fallback_db2 = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds2,
-                       EntityCreator()(fallback_db2, {"b"},
-                                       {test::DataItem(123, fallback_db2)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds2,
+      EntityCreator::FromAttrs(fallback_db2, {"b"},
+                               {test::DataItem(123, fallback_db2)}));
 
   auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
   auto ds3 = ds1.WithDb(db);
@@ -584,7 +599,8 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_FallbackBags) {
 TEST(ReprUtilTest, TestDataBagStringRepresentation_DuplicatedFallbackBags) {
   auto fallback_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
-      auto ds1, EntityCreator()(fallback_db, {"a"}, {test::DataItem(42)}));
+      auto ds1,
+      EntityCreator::FromAttrs(fallback_db, {"a"}, {test::DataItem(42)}));
   auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db, fallback_db});
   EXPECT_THAT(
       DataBagToStr(db),
@@ -598,8 +614,9 @@ TEST(ReprUtilTest, TestAssembleError) {
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
 
-  ASSERT_OK_AND_ASSIGN(DataSlice entity,
-                       EntityCreator()(bag, {"a", "b"}, {value_1, value_2}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
   schema::DType dtype = schema::GetDType<int>();
 
   Error error;

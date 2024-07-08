@@ -406,12 +406,12 @@ absl::StatusOr<DataSlice> SchemaCreator::operator()(
 
 // TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
 // and -Like creation and forward to -Shaped here.
-absl::StatusOr<DataSlice> EntityCreator::operator()(
+absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
     const DataBagPtr& db,
     const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& values,
     const std::optional<DataSlice>& schema,
-    bool update_schema) const {
+    bool update_schema) {
   DCHECK_EQ(attr_names.size(), values.size());
   internal::DataItem schema_item;
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
@@ -463,12 +463,12 @@ absl::StatusOr<DataSlice> EntityCreator::operator()(
   });
 }
 
-absl::StatusOr<DataSlice> EntityCreator::operator()(
+absl::StatusOr<DataSlice> EntityCreator::Shaped(
     const DataBagPtr& db, DataSlice::JaggedShape shape,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema,
-    bool update_schema) const {
+    bool update_schema) {
   return CreateEntitiesImpl(
       db,
       [&](const internal::DataItem& schema_item) {
@@ -479,12 +479,12 @@ absl::StatusOr<DataSlice> EntityCreator::operator()(
       }, attr_names, values, schema, update_schema);
 }
 
-absl::StatusOr<DataSlice> EntityCreator::operator()(
+absl::StatusOr<DataSlice> EntityCreator::Like(
     const DataBagPtr& db, const DataSlice& shape_and_mask_from,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema,
-    bool update_schema) const {
+    bool update_schema) {
   return CreateEntitiesImpl(
       db,
       [&](const internal::DataItem& schema_item) {
@@ -496,12 +496,12 @@ absl::StatusOr<DataSlice> EntityCreator::operator()(
 
 // TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
 // and -Like creation and forward to -Shaped here.
-absl::StatusOr<DataSlice> ObjectCreator::operator()(
+absl::StatusOr<DataSlice> ObjectCreator::FromAttrs(
     const DataBagPtr& db, const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values) const {
+    const std::vector<DataSlice>& values) {
   DCHECK_EQ(attr_names.size(), values.size());
   if (values.empty()) {
-    return (*this)(db, DataSlice::JaggedShape::Empty(), {}, {});
+    return ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {}, {});
   }
   RETURN_IF_ERROR(VerifyNoSchemaArg(attr_names));
   ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
@@ -513,10 +513,10 @@ absl::StatusOr<DataSlice> ObjectCreator::operator()(
   });
 }
 
-absl::StatusOr<DataSlice> ObjectCreator::operator()(
+absl::StatusOr<DataSlice> ObjectCreator::Shaped(
     const DataBagPtr& db, DataSlice::JaggedShape shape,
     absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values) const {
+    absl::Span<const DataSlice> values) {
   return CreateObjectsImpl(
       db,
       [&]() {
@@ -527,10 +527,10 @@ absl::StatusOr<DataSlice> ObjectCreator::operator()(
       }, attr_names, values);
 }
 
-absl::StatusOr<DataSlice> ObjectCreator::operator()(
+absl::StatusOr<DataSlice> ObjectCreator::Like(
     const DataBagPtr& db, const DataSlice& shape_and_mask_from,
     absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values) const {
+    absl::Span<const DataSlice> values) {
   return CreateObjectsImpl(
       db,
       [&]() {
@@ -541,8 +541,8 @@ absl::StatusOr<DataSlice> ObjectCreator::operator()(
       }, attr_names, values);
 }
 
-absl::StatusOr<DataSlice> ObjectCreator::operator()(
-    const DataBagPtr& db, const DataSlice& value) const {
+absl::StatusOr<DataSlice> ObjectCreator::Convert(const DataBagPtr& db,
+                                                 const DataSlice& value) {
   if (value.GetSchemaImpl() == schema::kObject) {
     return value.WithDb(db);
   }
