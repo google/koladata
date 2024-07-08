@@ -578,17 +578,33 @@ class RhsHandler {
   std::optional<DataSlice> casted_rhs_ = std::nullopt;
 };
 
+// Verify List Schema is valid for removal operations.
+absl::Status VerifyListSchemaValid(const DataSlice& list,
+                                   const internal::DataBagImpl& db_impl) {
+  return list.VisitImpl([&](const auto& impl) -> absl::Status {
+    // Call (and ignore the returned DataItem) to verify that the list has
+    // appropriate schema (e.g. in case of OBJECT, all ListIds have __schema__
+    // attribute).
+    return GetResultSchema(db_impl, impl, list.GetSchemaImpl(),
+                           schema::kListItemsSchemaAttr,
+                           /*fallbacks=*/{},  // mutable db.
+                           /*allow_missing=*/false).status();
+  });
+}
+
 // Deletes a schema attribute for the single item in case of IMPLICIT schemas
 // and verifies the attribute exists in case of EXPLICIT schemas. Returns an
 // error if the schema is missing.
 absl::Status DelSchemaAttrItem(const internal::DataItem& schema_item,
                                absl::string_view attr_name,
                                internal::DataBagImpl& db_impl) {
-  if (!schema_item.holds_value<internal::ObjectId>()) {
-    return absl::InternalError(
-        "objects must have ObjectId(s) as __schema__ attribute");
+  if (schema_item.has_value() &&
+      !schema_item.holds_value<internal::ObjectId>()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "objects must have ObjectId(s) as __schema__ attribute, got %v",
+        schema_item));
   }
-  if (schema_item.value<internal::ObjectId>().IsImplicitSchema()) {
+  if (schema_item.is_implicit_schema()) {
     return db_impl.DelSchemaAttr(schema_item, attr_name);
   }
   // In case of EXPLICIT schemas, verify that it is not missing.
@@ -969,6 +985,7 @@ absl::Status DelObjSchemaAttr(const ImplT& impl, absl::string_view attr_name,
                               internal::DataBagImpl& db_impl) {
   ASSIGN_OR_RETURN(auto schema_attr,
                    db_impl.GetAttr(impl, schema::kSchemaAttr));
+  RETURN_IF_ERROR(VerifySchemaAttr(impl, schema_attr));
   if constexpr (std::is_same_v<ImplT, internal::DataItem>) {
     return DelSchemaAttrItem(schema_attr, attr_name, db_impl);
   } else {
@@ -1189,6 +1206,41 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
   }
 }
 
+absl::StatusOr<DataSlice> DataSlice::ExplodeList(
+    int64_t start, std::optional<int64_t> stop) const {
+  if (GetDb() == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot get list items without a DataBag");
+  }
+  FlattenFallbackFinder fb_finder(*GetDb());
+
+  return this->VisitImpl([&]<class T>(
+                             const T& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto schema,
+                     GetResultSchema(GetDb()->GetImpl(), impl, GetSchemaImpl(),
+                                     schema::kListItemsSchemaAttr,
+                                     fb_finder.GetFlattenFallbacks(),
+                                     /*allow_missing=*/false));
+    if constexpr (std::is_same_v<T, internal::DataItem>) {
+      ASSIGN_OR_RETURN(auto values,
+                       GetDb()->GetImpl().ExplodeList(
+                           impl, internal::DataBagImpl::ListRange(start, stop),
+                           fb_finder.GetFlattenFallbacks()));
+      auto shape = JaggedShape::FlatFromSize(values.size());
+      return DataSlice::Create(std::move(values), std::move(shape),
+                               std::move(schema), GetDb());
+    } else {
+      ASSIGN_OR_RETURN((auto [values, edge]),
+                       GetDb()->GetImpl().ExplodeLists(
+                           impl, internal::DataBagImpl::ListRange(start, stop),
+                           fb_finder.GetFlattenFallbacks()));
+      ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({edge}));
+      return DataSlice::Create(std::move(values), std::move(shape),
+                               std::move(schema), GetDb());
+    }
+  });
+}
+
 absl::StatusOr<DataSlice> DataSlice::PopFromList(
     const DataSlice& indices) const {
   if (GetDb() == nullptr) {
@@ -1240,74 +1292,6 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList() const {
   return PopFromList(indices);
 }
 
-absl::Status DataSlice::SetInList(const DataSlice& indices,
-                                  const DataSlice& values) const {
-  if (GetDb() == nullptr) {
-    return absl::InvalidArgumentError(
-        "cannot set list items without a DataBag");
-  }
-  const JaggedShape& shape = MaxRankShape(GetShape(), indices.GetShape());
-  // Note: expanding `this` has an overhead. In future we can try to optimize
-  // it.
-  ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
-  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
-  if (indices_int64.present_count() == 0) {
-    return absl::OkStatus();
-  }
-  ASSIGN_OR_RETURN(auto expanded_indices,
-                   BroadcastToShape(std::move(indices_int64), shape));
-  ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape),
-                   _.With([&](absl::Status status) {
-                     return AssignmentError(std::move(status), shape.rank(),
-                                            values.GetShape().rank());
-                   }));
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
-  RhsHandler</*is_readonly=*/false> data_handler(
-      RhsHandlerErrorContext::kListItem, expanded_values,
-      schema::kListItemsSchemaAttr);
-  RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
-                                             /*fallbacks=*/{}));
-  if (std::holds_alternative<internal::DataItem>(
-          expanded_this.internal_->impl_)) {
-    int64_t index = expanded_indices.item().value<int64_t>();
-    return db_mutable_impl.SetInList(
-        expanded_this.item(), index,
-        data_handler.GetValues().impl<internal::DataItem>());
-  } else {
-    return db_mutable_impl.SetInLists(
-        expanded_this.slice(), expanded_indices.slice().values<int64_t>(),
-        data_handler.GetValues().impl<internal::DataSliceImpl>());
-  }
-}
-
-absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
-  const JaggedShape& shape = MaxRankShape(GetShape(), indices.GetShape());
-  // Note: expanding `this` has an overhead. In future we can try to optimize
-  // it.
-  ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
-  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
-  if (indices_int64.present_count() == 0) {
-    return absl::OkStatus();
-  }
-  ASSIGN_OR_RETURN(auto expanded_indices,
-                   BroadcastToShape(std::move(indices_int64), shape));
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
-  if (std::holds_alternative<internal::DataItem>(
-          expanded_this.internal_->impl_)) {
-    int64_t index = expanded_indices.item().value<int64_t>();
-    internal::DataBagImpl::ListRange range(index, index + 1);
-    if (index == -1) {
-      range = internal::DataBagImpl::ListRange(index);
-    }
-    return db_mutable_impl.RemoveInList(expanded_this.item(), range);
-  } else {
-    return db_mutable_impl.RemoveInList(
-        expanded_this.slice(), expanded_indices.slice().values<int64_t>());
-  }
-}
-
 absl::Status DataSlice::AppendToList(const DataSlice& values) const {
   if (GetDb() == nullptr) {
     return absl::InvalidArgumentError(
@@ -1347,58 +1331,45 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
   }
 }
 
-absl::Status DataSlice::ClearDictOrList() const {
+absl::Status DataSlice::SetInList(const DataSlice& indices,
+                                  const DataSlice& values) const {
   if (GetDb() == nullptr) {
     return absl::InvalidArgumentError(
-        "cannot clear lists or dicts without a DataBag");
+        "cannot set list items without a DataBag");
   }
+  const JaggedShape& shape = MaxRankShape(GetShape(), indices.GetShape());
+  // Note: expanding `this` has an overhead. In future we can try to optimize
+  // it.
+  ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
+  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
+  if (indices_int64.present_count() == 0) {
+    return absl::OkStatus();
+  }
+  ASSIGN_OR_RETURN(auto expanded_indices,
+                   BroadcastToShape(std::move(indices_int64), shape));
+  ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape),
+                   _.With([&](absl::Status status) {
+                     return AssignmentError(std::move(status), shape.rank(),
+                                            values.GetShape().rank());
+                   }));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
-  if (IsFirstPresentAList()) {
-    return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
-      return db_mutable_impl.RemoveInList(impl,
-                                          internal::DataBagImpl::ListRange());
-    });
+  RhsHandler</*is_readonly=*/false> data_handler(
+      RhsHandlerErrorContext::kListItem, expanded_values,
+      schema::kListItemsSchemaAttr);
+  RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
+                                             /*fallbacks=*/{}));
+  if (std::holds_alternative<internal::DataItem>(
+          expanded_this.internal_->impl_)) {
+    int64_t index = expanded_indices.item().value<int64_t>();
+    return db_mutable_impl.SetInList(
+        expanded_this.item(), index,
+        data_handler.GetValues().impl<internal::DataItem>());
   } else {
-    return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
-      return db_mutable_impl.ClearDict(impl);
-    });
+    return db_mutable_impl.SetInLists(
+        expanded_this.slice(), expanded_indices.slice().values<int64_t>(),
+        data_handler.GetValues().impl<internal::DataSliceImpl>());
   }
-}
-
-absl::StatusOr<DataSlice> DataSlice::ExplodeList(
-    int64_t start, std::optional<int64_t> stop) const {
-  if (GetDb() == nullptr) {
-    return absl::InvalidArgumentError(
-        "cannot get list items without a DataBag");
-  }
-  FlattenFallbackFinder fb_finder(*GetDb());
-
-  return this->VisitImpl([&]<class T>(
-                             const T& impl) -> absl::StatusOr<DataSlice> {
-    ASSIGN_OR_RETURN(auto schema,
-                     GetResultSchema(GetDb()->GetImpl(), impl, GetSchemaImpl(),
-                                     schema::kListItemsSchemaAttr,
-                                     fb_finder.GetFlattenFallbacks(),
-                                     /*allow_missing=*/false));
-    if constexpr (std::is_same_v<T, internal::DataItem>) {
-      ASSIGN_OR_RETURN(auto values,
-                       GetDb()->GetImpl().ExplodeList(
-                           impl, internal::DataBagImpl::ListRange(start, stop),
-                           fb_finder.GetFlattenFallbacks()));
-      auto shape = JaggedShape::FlatFromSize(values.size());
-      return DataSlice::Create(std::move(values), std::move(shape),
-                               std::move(schema), GetDb());
-    } else {
-      ASSIGN_OR_RETURN((auto [values, edge]),
-                       GetDb()->GetImpl().ExplodeLists(
-                           impl, internal::DataBagImpl::ListRange(start, stop),
-                           fb_finder.GetFlattenFallbacks()));
-      ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({edge}));
-      return DataSlice::Create(std::move(values), std::move(shape),
-                               std::move(schema), GetDb());
-    }
-  });
 }
 
 absl::Status DataSlice::ReplaceInList(int64_t start,
@@ -1442,14 +1413,62 @@ absl::Status DataSlice::ReplaceInList(int64_t start,
   });
 }
 
+absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
+  const JaggedShape& shape = MaxRankShape(GetShape(), indices.GetShape());
+  // Note: expanding `this` has an overhead. In future we can try to optimize
+  // it.
+  ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
+  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
+  if (indices_int64.present_count() == 0) {
+    return absl::OkStatus();
+  }
+  ASSIGN_OR_RETURN(auto expanded_indices,
+                   BroadcastToShape(std::move(indices_int64), shape));
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   GetDb()->GetMutableImpl());
+  RETURN_IF_ERROR(VerifyListSchemaValid(*this, db_mutable_impl));
+  if (std::holds_alternative<internal::DataItem>(
+          expanded_this.internal_->impl_)) {
+    int64_t index = expanded_indices.item().value<int64_t>();
+    internal::DataBagImpl::ListRange range(index, index + 1);
+    if (index == -1) {
+      range = internal::DataBagImpl::ListRange(index);
+    }
+    return db_mutable_impl.RemoveInList(expanded_this.item(), range);
+  } else {
+    return db_mutable_impl.RemoveInList(
+        expanded_this.slice(), expanded_indices.slice().values<int64_t>());
+  }
+}
+
 absl::Status DataSlice::RemoveInList(int64_t start,
                                      std::optional<int64_t> stop) const {
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
+  RETURN_IF_ERROR(VerifyListSchemaValid(*this, db_mutable_impl));
   internal::DataBagImpl::ListRange list_range(start, stop);
   return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
     return db_mutable_impl.RemoveInList(impl, list_range);
   });
+}
+
+absl::Status DataSlice::ClearDictOrList() const {
+  if (GetDb() == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot clear lists or dicts without a DataBag");
+  }
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   GetDb()->GetMutableImpl());
+  if (IsFirstPresentAList()) {
+    return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
+      return db_mutable_impl.RemoveInList(impl,
+                                          internal::DataBagImpl::ListRange());
+    });
+  } else {
+    return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
+      return db_mutable_impl.ClearDict(impl);
+    });
+  }
 }
 
 // TODO: Explore whether deep schema verification through alloc_ids

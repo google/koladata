@@ -342,6 +342,24 @@ TEST(DataItemTest, IsEntitySchema) {
           .is_entity_schema());
 }
 
+TEST(DataItemTest, IsImplicitSchema) {
+  EXPECT_FALSE(DataItem(schema::kMask).is_implicit_schema());
+  EXPECT_FALSE(DataItem(schema::kObject).is_implicit_schema());
+  EXPECT_FALSE(DataItem(schema::kAny).is_implicit_schema());
+  EXPECT_FALSE(DataItem(AllocateSingleObject()).is_implicit_schema());
+  EXPECT_FALSE(DataItem(0).is_implicit_schema());
+  EXPECT_FALSE(DataItem(4.f).is_implicit_schema());
+  EXPECT_FALSE(DataItem(AllocateExplicitSchema()).is_implicit_schema());
+  // Implicit entity schema.
+  EXPECT_TRUE(
+      DataItem(
+          internal::CreateUuidWithMainObject<
+              internal::ObjectId::kUuidImplicitSchemaFlag>(
+              internal::AllocateSingleObject(),
+              arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()))
+          .is_implicit_schema());
+}
+
 TEST(DataItemTest, ItemView) {
   // Equality
   EXPECT_EQ(DataItem(0), DataItem::View<int>{0});
