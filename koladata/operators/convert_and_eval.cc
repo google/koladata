@@ -382,6 +382,23 @@ absl::StatusOr<int64_t> ToArollaInt64(const DataSlice& x) {
       absl::StrCat("unsupported dtype: ", GetQTypeName(x.dtype())));
 }
 
+absl::StatusOr<double> ToArollaFloat64(const DataSlice& x) {
+  RETURN_IF_ERROR(VerifyRank(x, 0));
+  RETURN_IF_ERROR(VerifyCompatibleSchema(
+      x, {schema::kFloat32, schema::kFloat64, schema::kAny, schema::kObject}));
+  if (!x.item().has_value()) {
+    return absl::InvalidArgumentError("expected a present value");
+  }
+  if (x.dtype() == arolla::GetQType<float>()) {
+    return static_cast<double>(x.item().value<float>());
+  }
+  if (x.dtype() == arolla::GetQType<double>()) {
+    return x.item().value<double>();
+  }
+  return absl::InvalidArgumentError(
+      absl::StrCat("unsupported dtype: ", GetQTypeName(x.dtype())));
+}
+
 absl::StatusOr<arolla::DenseArray<int64_t>> ToArollaDenseArrayInt64(
     const DataSlice& x) {
   RETURN_IF_ERROR(VerifyCompatibleSchema(

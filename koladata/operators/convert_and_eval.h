@@ -71,6 +71,12 @@ absl::StatusOr<bool> ToArollaBoolean(const DataSlice& x);
 // Attempts to cast the provided DataSlice (only rank=0 is supported) to int64.
 absl::StatusOr<int64_t> ToArollaInt64(const DataSlice& x);
 
+// koda_internal.to_arolla_float64 operator.
+//
+// Attempts to cast the provided DataSlice (only rank=0 is supported) to
+// float64.
+absl::StatusOr<double> ToArollaFloat64(const DataSlice& x);
+
 // koda_internal.to_arolla_dense_array_int64 operator.
 //
 // Attempts to cast the provided DataSlice to DenseArray<int64>.
