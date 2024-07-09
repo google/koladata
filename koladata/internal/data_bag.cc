@@ -1321,6 +1321,9 @@ absl::StatusOr<DataItem> DataBagImpl::GetListSize(
 
 absl::StatusOr<DataItem> DataBagImpl::GetFromList(
     const DataItem& list, int64_t index, FallbackSpan fallbacks) const {
+  if (!list.has_value()) {
+    return DataItem();
+  }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
   const DataList& dlist = GetFirstPresentList(list_id, fallbacks);
   if (index < 0) {
@@ -1334,6 +1337,9 @@ absl::StatusOr<DataItem> DataBagImpl::GetFromList(
 
 absl::StatusOr<DataItem> DataBagImpl::PopFromList(const DataItem& list,
                                                   int64_t index) {
+  if (!list.has_value()) {
+    return DataItem();
+  }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
   DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
                         .GetMutable(list_id.Offset());
@@ -1350,6 +1356,9 @@ absl::StatusOr<DataItem> DataBagImpl::PopFromList(const DataItem& list,
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::ExplodeList(
     const DataItem& list, ListRange range, FallbackSpan fallbacks) const {
+  if (!list.has_value()) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(0);
+  }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
   const DataList& dlist = GetFirstPresentList(list_id, fallbacks);
   auto [from, to] = range.Calculate(dlist.size());
@@ -1363,6 +1372,9 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::ExplodeList(
 
 absl::Status DataBagImpl::SetInList(const DataItem& list, int64_t index,
                                     DataItem value) {
+  if (!list.has_value()) {
+    return absl::OkStatus();
+  }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
   DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
                         .GetMutable(list_id.Offset());
@@ -1376,6 +1388,9 @@ absl::Status DataBagImpl::SetInList(const DataItem& list, int64_t index,
 }
 
 absl::Status DataBagImpl::AppendToList(const DataItem& list, DataItem value) {
+  if (!list.has_value()) {
+    return absl::OkStatus();
+  }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
   DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
                         .GetMutable(list_id.Offset());
@@ -1385,6 +1400,9 @@ absl::Status DataBagImpl::AppendToList(const DataItem& list, DataItem value) {
 
 absl::Status DataBagImpl::ExtendList(const DataItem& list,
                                      const DataSliceImpl& values) {
+  if (!list.has_value()) {
+    return absl::OkStatus();
+  }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
   if (values.size() == 0) {
     return absl::OkStatus();
@@ -1404,6 +1422,9 @@ absl::Status DataBagImpl::ExtendList(const DataItem& list,
 
 absl::Status DataBagImpl::ReplaceInList(const DataItem& list, ListRange range,
                                         const DataSliceImpl& values) {
+  if (!list.has_value()) {
+    return absl::OkStatus();
+  }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
   DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
                         .GetMutable(list_id.Offset());
@@ -1440,6 +1461,9 @@ int64_t DataBagImpl::RemoveAndReserveInList(DataList& list, ListRange range,
 }
 
 absl::Status DataBagImpl::RemoveInList(const DataItem& list, ListRange range) {
+  if (!list.has_value()) {
+    return absl::OkStatus();
+  }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
   DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
                         .GetMutable(list_id.Offset());
@@ -1905,6 +1929,12 @@ std::vector<DataItem> DataBagImpl::GetDictKeysAsVector(
 
 absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
 DataBagImpl::GetDictKeys(const DataItem& dict, FallbackSpan fallbacks) const {
+  if (!dict.has_value()) {
+    ASSIGN_OR_RETURN(auto empty_edge,
+                     arolla::DenseArrayEdge::FromUniformGroups(1, 0));
+    return std::make_pair(DataSliceImpl::CreateEmptyAndUnknownType(0),
+                          empty_edge);
+  }
   ASSIGN_OR_RETURN(ObjectId dict_id, ItemToDictObjectId(dict));
   auto keys = GetDictKeysAsVector(dict_id, fallbacks);
   ASSIGN_OR_RETURN(auto edge,
@@ -1915,6 +1945,9 @@ DataBagImpl::GetDictKeys(const DataItem& dict, FallbackSpan fallbacks) const {
 
 absl::StatusOr<DataItem> DataBagImpl::GetDictSize(
     const DataItem& dict, FallbackSpan fallbacks) const {
+  if (!dict.has_value()) {
+    return DataItem();
+  }
   ASSIGN_OR_RETURN(ObjectId dict_id, ItemToDictObjectId(dict));
   size_t size;
   if (fallbacks.empty()) {
@@ -1969,12 +2002,18 @@ DataBagImpl::GetFromDictObjectWithFallbacks(ObjectId dict_id, const Key& key,
 
 absl::StatusOr<DataItem> DataBagImpl::GetFromDict(
     const DataItem& dict, const DataItem& key, FallbackSpan fallbacks) const {
+  if (!dict.has_value()) {
+    return DataItem();
+  }
   ASSIGN_OR_RETURN(ObjectId dict_id, ItemToDictObjectId(dict));
   return GetFromDictObjectWithFallbacks(dict_id, key, fallbacks);
 }
 
 absl::Status DataBagImpl::SetInDict(const DataItem& dict, const DataItem& key,
                                     const DataItem& value) {
+  if (!dict.has_value()) {
+    return absl::OkStatus();
+  }
   ASSIGN_OR_RETURN(ObjectId dict_id, ItemToDictObjectId(dict));
   if (Dict::IsUnsupportedDataItemKeyType(key)) {
     return absl::InvalidArgumentError(
@@ -1985,10 +2024,15 @@ absl::Status DataBagImpl::SetInDict(const DataItem& dict, const DataItem& key,
 }
 
 absl::Status DataBagImpl::ClearDict(const DataItem& dict) {
+  if (!dict.has_value()) {
+    return absl::OkStatus();
+  }
   ASSIGN_OR_RETURN(ObjectId dict_id, ItemToDictObjectId(dict));
   GetOrCreateMutableDict(dict_id).Clear();
   return absl::OkStatus();
 }
+
+// ************************* Schema functions
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrs(
     const DataItem& schema_item, FallbackSpan fallbacks) const {

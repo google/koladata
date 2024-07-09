@@ -24,6 +24,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
@@ -39,6 +40,7 @@ namespace {
 
 using ::arolla::DenseArrayEdge;
 using ::koladata::testing::IsOkAndHolds;
+using ::koladata::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 
@@ -483,6 +485,35 @@ TEST(DataBagTest, SingleListOps) {
 
   EXPECT_THAT(db->ExplodeList(list),
               IsOkAndHolds(ElementsAre(0, DataItem(), 0, 5.0f)));
+}
+
+TEST(DataBagTest, EmptySingleListOps) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(db->GetListSize(DataItem()), IsOkAndHolds(DataItem()));
+  EXPECT_THAT(db->GetFromList(DataItem(), 0), IsOkAndHolds(DataItem()));
+  EXPECT_THAT(db->PopFromList(DataItem(), 0), IsOkAndHolds(DataItem()));
+  EXPECT_THAT(db->ExplodeList(DataItem()), IsOkAndHolds(ElementsAre()));
+
+  EXPECT_OK(db->SetInList(DataItem(), 0, DataItem(42)));
+  EXPECT_OK(db->AppendToList(DataItem(), DataItem()));
+  EXPECT_OK(
+      db->ExtendList(DataItem(), DataSliceImpl::CreateEmptyAndUnknownType(0)));
+  EXPECT_OK(db->ReplaceInList(DataItem(), DataBagImpl::ListRange(),
+                              DataSliceImpl::CreateEmptyAndUnknownType(0)));
+  EXPECT_OK(db->RemoveInList(DataItem(), DataBagImpl::ListRange()));
+}
+
+TEST(DataBagTest, NotListError) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  EXPECT_THAT(db->GetFromList(DataItem(42), 0),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       "list expected, got 42"));
+
+  EXPECT_THAT(
+      db->GetListSize(DataSliceImpl::Create(
+          arolla::CreateDenseArray<int>({1, 2}))),
+      StatusIs(absl::StatusCode::kFailedPrecondition, "lists expected"));
 }
 
 TEST(DataBagTest, ListWithFallback) {

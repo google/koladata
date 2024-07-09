@@ -574,6 +574,7 @@ cc_test(
         ":data_slice",
         ":object_id",
         "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/status",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/dense_array/qtype",
         "@com_google_arolla//arolla/qtype",

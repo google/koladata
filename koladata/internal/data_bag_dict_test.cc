@@ -142,8 +142,7 @@ TEST(DataBagTest, Dicts) {
   EXPECT_THAT(db2->GetFromDict(all_dicts[2], DataItem(3)),
               IsOkAndHolds(DataItem()));
   EXPECT_THAT(db2->GetFromDict(all_dicts[3], DataItem(4)),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       "dict expected, got None"));
+              IsOkAndHolds(DataItem()));
 
   ASSERT_OK(db2->SetInDict(
       all_dicts,
@@ -159,8 +158,7 @@ TEST(DataBagTest, Dicts) {
   EXPECT_THAT(db->GetFromDict(all_dicts[2], DataItem(3)),
               IsOkAndHolds(DataItem(7)));
   EXPECT_THAT(db->GetFromDict(all_dicts[3], DataItem(4)),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       "dict expected, got None"));
+              IsOkAndHolds(DataItem()));
 }
 
 TEST(DataBagTest, EmptyAndUnknownDicts) {
@@ -177,6 +175,32 @@ TEST(DataBagTest, EmptyAndUnknownDicts) {
       IsOkAndHolds(ElementsAre(std::nullopt, std::nullopt, std::nullopt)));
   EXPECT_THAT(db->GetFromDict(empty, empty),
               IsOkAndHolds(ElementsAre(DataItem(), DataItem(), DataItem())));
+}
+
+TEST(DataBagTest, EmptySingleDict) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN((auto [keys, edge]), db->GetDictKeys(DataItem()));
+  EXPECT_EQ(keys.size(), 0);
+  EXPECT_EQ(edge.edge_type(), DenseArrayEdge::SPLIT_POINTS);
+  EXPECT_THAT(edge.edge_values(), ElementsAre(0, 0));
+  EXPECT_OK(db->ClearDict(DataItem()));
+  EXPECT_OK(db->SetInDict(DataItem(), DataItem(42), DataItem(3.14)));
+  EXPECT_THAT(db->GetDictSize(DataItem()), IsOkAndHolds(DataItem()));
+  EXPECT_THAT(db->GetFromDict(DataItem(), DataItem(42)),
+              IsOkAndHolds(DataItem()));
+}
+
+TEST(DataBagTest, NotDictError) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  EXPECT_THAT(db->GetFromDict(DataItem(42), DataItem(42)),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       "dict expected, got 42"));
+
+  EXPECT_THAT(
+      db->GetDictSize(DataSliceImpl::Create(
+          arolla::CreateDenseArray<int>({1, 2}))),
+      StatusIs(absl::StatusCode::kFailedPrecondition, "dicts expected"));
 }
 
 TEST(DataBagTest, DictFallbacks) {
