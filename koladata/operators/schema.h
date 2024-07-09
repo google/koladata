@@ -22,8 +22,19 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "arolla/util/status_macros_backport.h"
+#include "absl/types/span.h"
+#include "arolla/qexpr/operators.h"
+#include "arolla/qtype/qtype.h"
 
 namespace koladata::ops {
+
+// kde.schema.new_schema operator.
+// Creates a new allocated schema.
+class NewSchemaOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
 
 // kde.core.get_primitive_schema.
 inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {

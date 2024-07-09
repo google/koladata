@@ -69,6 +69,7 @@ cc_library(
         "get_attr.cc",
         "group_by.cc",
         "jagged_shape.cc",
+        "schema.cc",
         "slice.cc",
         "utils.cc",
         "uu_schema.cc",

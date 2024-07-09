@@ -76,6 +76,7 @@ OPERATOR("kde.logical.apply_mask", ApplyMask);
 OPERATOR("kde.logical.coalesce", Coalesce);
 OPERATOR("kde.logical.has", Has);
 //
+OPERATOR_FAMILY("kde.schema._new_schema", NewSchemaOperatorFamily);
 OPERATOR_FAMILY("kde.schema._uu_schema", UuSchemaOperatorFamily);
 //
 OPERATOR("kde.shapes._expand_to_shape", ExpandToShape);

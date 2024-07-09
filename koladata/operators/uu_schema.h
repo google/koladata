@@ -22,7 +22,7 @@
 
 namespace koladata::ops {
 
-// kde.core.uu_schema operator.
+// kde.schema.uu_schema operator.
 // Creates a UuSchema.
 class UuSchemaOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
