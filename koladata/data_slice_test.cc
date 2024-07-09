@@ -3343,6 +3343,80 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
                        "Assigned schema for 'Keys': ANY"));
 }
 
+TEST(DataSliceTest, ShouldApplyListOp_DataItem) {
+  auto db = DataBag::Empty();
+  auto list_items = test::DataSlice<int>({1, 2, 3});
+  ASSERT_OK_AND_ASSIGN(auto list, CreateListsFromLastDimension(db, list_items));
+  EXPECT_TRUE(list.ShouldApplyListOp());
+  EXPECT_TRUE(test::DataItem(internal::DataItem(), list.GetSchemaImpl(), db)
+              .ShouldApplyListOp());
+  ASSERT_OK_AND_ASSIGN(auto list_any,
+                       list.WithSchema(test::Schema(schema::kAny)));
+  EXPECT_TRUE(list_any.ShouldApplyListOp());
+
+  ASSERT_OK_AND_ASSIGN(auto list_embedded, list.EmbedSchema());
+  EXPECT_TRUE(list_embedded.ShouldApplyListOp());
+
+  EXPECT_FALSE(test::DataItem(internal::DataItem(), schema::kObject, db)
+               .ShouldApplyListOp());
+  EXPECT_FALSE(test::DataItem(internal::DataItem(), schema::kAny, db)
+               .ShouldApplyListOp());
+
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
+  EXPECT_FALSE(entity.ShouldApplyListOp());
+  EXPECT_FALSE(test::DataItem(internal::DataItem(), entity.GetSchemaImpl(), db)
+               .ShouldApplyListOp());
+
+  ASSERT_OK_AND_ASSIGN(
+      auto dict,
+      CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                       /*keys=*/std::nullopt, /*values=*/std::nullopt));
+  EXPECT_FALSE(dict.ShouldApplyListOp());
+  EXPECT_FALSE(test::DataItem(internal::DataItem(), dict.GetSchemaImpl(), db)
+               .ShouldApplyListOp());
+}
+
+TEST(DataSliceTest, ShouldApplyListOp_DataSlice) {
+  auto db = DataBag::Empty();
+  auto edge_1 = CreateEdge({0, 2});
+  auto edge_2 = CreateEdge({0, 1, 3});
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto list_items = test::DataSlice<int>({1, 2, 3}, shape);
+  ASSERT_OK_AND_ASSIGN(auto lists,
+                       CreateListsFromLastDimension(db, list_items));
+  EXPECT_TRUE(lists.ShouldApplyListOp());
+  EXPECT_TRUE(test::EmptyDataSlice(lists.GetShape(), lists.GetSchemaImpl(), db)
+              .ShouldApplyListOp());
+  ASSERT_OK_AND_ASSIGN(auto lists_any,
+                       lists.WithSchema(test::Schema(schema::kAny)));
+  EXPECT_TRUE(lists_any.ShouldApplyListOp());
+
+  ASSERT_OK_AND_ASSIGN(auto lists_embedded, lists.EmbedSchema());
+  EXPECT_TRUE(lists_embedded.ShouldApplyListOp());
+
+  EXPECT_FALSE(test::EmptyDataSlice(3, schema::kObject, db)
+               .ShouldApplyListOp());
+  EXPECT_FALSE(test::EmptyDataSlice(3, schema::kAny, db).ShouldApplyListOp());
+
+  ASSERT_OK_AND_ASSIGN(
+      auto entities,
+      EntityCreator::Shaped(
+          db, DataSlice::JaggedShape::FlatFromSize(3), {}, {}));
+  EXPECT_FALSE(entities.ShouldApplyListOp());
+  EXPECT_FALSE(
+      test::EmptyDataSlice(entities.GetShape(), entities.GetSchemaImpl(), db)
+      .ShouldApplyListOp());
+
+  ASSERT_OK_AND_ASSIGN(
+      auto dicts,
+      CreateDictShaped(db, DataSlice::JaggedShape::FlatFromSize(3),
+                       /*keys=*/std::nullopt, /*values=*/std::nullopt));
+  EXPECT_FALSE(dicts.ShouldApplyListOp());
+  EXPECT_FALSE(test::EmptyDataSlice(dicts.GetShape(), dicts.GetSchemaImpl(), db)
+               .ShouldApplyListOp());
+}
+
 TEST(DataSliceTest, SchemaSlice) {
   auto x = test::DataItem(42);
   auto a = test::DataItem(3.14);

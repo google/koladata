@@ -1055,21 +1055,24 @@ absl::StatusOr<DataSlice> DataSlice::EmbedSchema(bool overwrite) const {
   return ToObject(*this, /*validate_schema=*/!overwrite);
 }
 
-bool DataSlice::IsFirstPresentAList() const {
+bool DataSlice::ShouldApplyListOp() const {
   if (std::holds_alternative<internal::DataItem>(internal_->impl_)) {
-    const internal::DataItem& it = item();
-    return it.holds_value<internal::ObjectId>() &&
-           it.value<internal::ObjectId>().IsList();
-  }
-  if (slice().dtype() != arolla::GetQType<internal::ObjectId>()) {
-    return false;
-  }
-  for (auto opt_id : slice().values<internal::ObjectId>()) {
-    if (opt_id.present) {
-      return opt_id.value.IsList();
+    if (item().is_list()) {
+      return true;
+    }
+  } else {
+    if (slice().dtype() == arolla::GetQType<internal::ObjectId>()) {
+      for (auto opt_id : slice().values<internal::ObjectId>()) {
+        if (opt_id.present && opt_id.value.IsList()) {
+          return true;
+        }
+      }
     }
   }
-  return false;
+  // Regardless of what the actual data is (in case it is empty_and_unknown,
+  // operation will be successful, if it is non-ObjectId, error will be returned
+  // from the op / method).
+  return GetSchema().IsListSchema();
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
@@ -1459,7 +1462,7 @@ absl::Status DataSlice::ClearDictOrList() const {
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
-  if (IsFirstPresentAList()) {
+  if (ShouldApplyListOp()) {
     return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
       return db_mutable_impl.RemoveInList(impl,
                                           internal::DataBagImpl::ListRange());

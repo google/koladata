@@ -223,9 +223,9 @@ class DataSlice {
   // on the schema.
   absl::Status DelAttr(absl::string_view attr_name) const;
 
-  // Returns true if the slice contains ObjectIds and the first present ObjectId
-  // is a list. Used to choose whether to apply list or dict operation.
-  bool IsFirstPresentAList() const;
+  // Returns true if the slice can be considered a list DataSlice. Used to
+  // choose whether to apply list or dict operation.
+  bool ShouldApplyListOp() const;
 
   // Gets a value from each dict in this slice (it must be slice of dicts) using
   // the corresponding keys (the shape of `keys` must be compatible with shape
