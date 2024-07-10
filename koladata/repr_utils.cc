@@ -16,13 +16,16 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <numeric>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -58,6 +61,7 @@ namespace {
 using DataItemProto = ::koladata::s11n::KodaV1Proto::DataItemProto;
 using ::koladata::DataBagPtr;
 using ::koladata::internal::DataBagContent;
+using ::koladata::internal::DataItem;
 using ::koladata::internal::Error;
 using ::koladata::internal::GetErrorPayload;
 using ::koladata::internal::debug::AttrTriple;
@@ -65,6 +69,10 @@ using ::koladata::internal::debug::DictItemTriple;
 using ::koladata::internal::debug::Triples;
 
 constexpr int kTwoSpaceIndentation = 2;
+
+constexpr absl::string_view kDictValuesNameReplacement = "<dict value>";
+constexpr absl::string_view kListItemsNameReplacement = "<list items>";
+constexpr absl::string_view kSchemaNameReplacement = "<object schemas>";
 
 absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds);
 
@@ -482,6 +490,102 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
     return WithErrorPayload(status, error);
   }
   return status;
+}
+
+template <typename Map>
+void UpdateCountMap(const typename Map::key_type& val, Map& count_dict) {
+  static_assert(std::is_same<typename Map::mapped_type, int64_t>::value,
+                "mapped_type must be int64_t");
+  auto [it, inserted] = count_dict.emplace(val, 1);
+  if (!inserted) {
+    ++it->second;
+  }
+}
+
+absl::StatusOr<std::string> DataBagStatistics(const DataBagPtr& db,
+                                              int64_t top_attr_limit) {
+  ASSIGN_OR_RETURN(DataBagContent content, db->GetImpl().ExtractContent());
+  Triples main_triples(content);
+
+  std::vector<std::pair<int, std::string>> top_attrs;
+
+  // counts the number of attrs.
+  {
+    absl::flat_hash_map<std::string, int64_t> attribute_count;
+    for (const AttrTriple& triple : main_triples.attributes()) {
+      if (triple.attribute == schema::kSchemaAttr) {
+        UpdateCountMap(std::string(kSchemaNameReplacement), attribute_count);
+      } else {
+        UpdateCountMap(triple.attribute, attribute_count);
+      }
+    }
+    for (const auto& [attr, count] : attribute_count) {
+      top_attrs.emplace_back(count, attr);
+    }
+  }
+
+  // counts the number of lists.
+  {
+    int64_t list_item_count = std::accumulate(
+        main_triples.lists().begin(), main_triples.lists().end(), 0,
+        [](int64_t acc,
+           const std::pair<const internal::ObjectId,
+                           std::vector<internal::DataItem>>& list) {
+          return acc + list.second.size();
+        });
+    if (list_item_count > 0) {
+      top_attrs.emplace_back(list_item_count, kListItemsNameReplacement);
+    }
+  }
+
+  // counts the number of keys in dicts.
+  {
+    absl::flat_hash_map<DataItem, int64_t, DataItem::Hash, DataItem::Eq>
+        key_count;
+
+    for (const DictItemTriple& dict_triple : main_triples.dicts()) {
+      if (!dict_triple.object.IsDict()) {
+        continue;
+      }
+      UpdateCountMap(dict_triple.key, key_count);
+    }
+
+    if (!key_count.empty()) {
+      for (const auto& [key, count] : key_count) {
+        top_attrs.emplace_back(count, kDictValuesNameReplacement);
+      }
+    }
+  }
+
+  int64_t schema_count = std::count_if(
+      main_triples.dicts().begin(), main_triples.dicts().end(),
+      [](const DictItemTriple& item) { return item.object.IsSchema(); });
+
+  int64_t value_count = std::accumulate(
+      top_attrs.begin(), top_attrs.end(), 0,
+      [](int64_t acc, const std::pair<int, std::string>& attr_count) {
+        return acc + attr_count.first;
+      });
+
+  std::string res = absl::StrFormat(
+      "DataBag %s with %d values in %d attrs, plus %d schema values and %d "
+      "fallbacks. Top attrs:\n",
+      GetBagIdRepr(db), value_count, top_attrs.size(), schema_count,
+      db->GetFallbacks().size());
+
+  std::sort(top_attrs.begin(), top_attrs.end(),
+            std::greater<std::pair<int64_t, std::string>>());
+
+  if (top_attrs.size() > top_attr_limit) {
+    top_attrs.resize(top_attr_limit);
+  }
+
+  for (const auto& [count, attr] : top_attrs) {
+    absl::StrAppend(&res, absl::StrFormat("  %s: %d values\n", attr, count));
+  }
+  absl::StrAppend(&res, "Use db.contents_repr() to see the actual values.");
+
+  return res;
 }
 
 }  // namespace koladata

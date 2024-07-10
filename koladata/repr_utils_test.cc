@@ -126,7 +126,7 @@ TEST(ReprUtilTest, TestItemStringRepresentation_NestedList) {
   internal::DataSliceImpl ds =
       internal::DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3}));
   ASSERT_OK_AND_ASSIGN(
-      auto ds_shape,
+      JaggedDenseArrayShape ds_shape,
       JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
   ASSERT_OK_AND_ASSIGN(DataSlice nested_list,
                        DataSlice::Create(std::move(ds), std::move(ds_shape),
@@ -159,7 +159,7 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_DictInList) {
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 1, 3}));
   ASSERT_OK_AND_ASSIGN(
-      auto ds_shape,
+      JaggedDenseArrayShape ds_shape,
       JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
 
   ASSERT_OK_AND_ASSIGN(
@@ -215,9 +215,8 @@ TEST(ReprUtilTest, TestDataItemStringRepresentation_Object) {
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
 
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice obj,
-      ObjectCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
+  ASSERT_OK_AND_ASSIGN(DataSlice obj, ObjectCreator::FromAttrs(
+                                          bag, {"a", "b"}, {value_1, value_2}));
   EXPECT_THAT(DataSliceToStr(obj), IsOkAndHolds("Obj(a=1, b='b')"));
 }
 
@@ -332,9 +331,8 @@ TEST(ReprUtilTest, TestItemStringRepresentation_ImplicitSchema) {
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
 
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice obj,
-      ObjectCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
+  ASSERT_OK_AND_ASSIGN(DataSlice obj, ObjectCreator::FromAttrs(
+                                          bag, {"a", "b"}, {value_1, value_2}));
 
   EXPECT_THAT(DataSliceToStr(obj.GetSchema()), IsOkAndHolds("OBJECT"));
   ASSERT_OK_AND_ASSIGN(schema, obj.GetAttr(schema::kSchemaAttr));
@@ -577,15 +575,13 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_List) {
 TEST(ReprUtilTest, TestDataBagStringRepresentation_FallbackBags) {
   auto fallback_db1 = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
-      auto ds1,
-      EntityCreator::FromAttrs(
-          fallback_db1, {"a"}, {test::DataItem(42, fallback_db1)}));
+      auto ds1, EntityCreator::FromAttrs(fallback_db1, {"a"},
+                                         {test::DataItem(42, fallback_db1)}));
 
   auto fallback_db2 = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
-      auto ds2,
-      EntityCreator::FromAttrs(fallback_db2, {"b"},
-                               {test::DataItem(123, fallback_db2)}));
+      auto ds2, EntityCreator::FromAttrs(fallback_db2, {"b"},
+                                         {test::DataItem(123, fallback_db2)}));
 
   auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
   auto ds3 = ds1.WithDb(db);
@@ -598,9 +594,8 @@ TEST(ReprUtilTest, TestDataBagStringRepresentation_FallbackBags) {
 
 TEST(ReprUtilTest, TestDataBagStringRepresentation_DuplicatedFallbackBags) {
   auto fallback_db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      auto ds1,
-      EntityCreator::FromAttrs(fallback_db, {"a"}, {test::DataItem(42)}));
+  ASSERT_OK_AND_ASSIGN(auto ds1, EntityCreator::FromAttrs(
+                                     fallback_db, {"a"}, {test::DataItem(42)}));
   auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db, fallback_db});
   EXPECT_THAT(
       DataBagToStr(db),
@@ -654,6 +649,128 @@ TEST(ReprUtilTest, TestAssembleError) {
 
 TEST(ReprUtilTest, TestAssembleErrorNotHandlingOkStatus) {
   EXPECT_TRUE(AssembleErrorMessage(absl::OkStatus(), {}).ok());
+}
+
+TEST(ReprUtilTest, TestDataBagStatistics_Dict) {
+  DataBagPtr bag = DataBag::Empty();
+
+  JaggedDenseArrayShape shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice dicts,
+      CreateDictShaped(bag, shape, /*keys=*/test::DataSlice<int>({1, 2, 3}),
+                       /*values=*/test::DataSlice<int64_t>({57, 58, 59})));
+
+  EXPECT_THAT(
+      DataBagStatistics(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(
+              R"regex(DataBag \$[0-9a-f]{4} with 3 values in 3 attrs, plus 2 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*<dict value>: 1 values(.|\n)*<dict value>: 1 values(.|\n)*<dict value>: 1 values(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*Use db\.contents_repr\(\) to see the actual values\.)regex"))));
+}
+
+TEST(ReprUtilTest, TestDataBagStatistics_TwoDicts) {
+  DataBagPtr bag = DataBag::Empty();
+
+  JaggedDenseArrayShape shape = DataSlice::JaggedShape::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice dict1,
+      CreateDictShaped(bag, shape, /*keys=*/test::DataSlice<int>({1, 3}),
+                       /*values=*/test::DataSlice<int64_t>({2, 4})));
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice dict2,
+      CreateDictShaped(bag, shape, /*keys=*/test::DataSlice<int>({3, 5}),
+                       /*values=*/test::DataSlice<int64_t>({5, 6})));
+
+  EXPECT_THAT(
+      DataBagStatistics(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(
+              R"regex(DataBag \$[0-9a-f]{4} with 4 values in 3 attrs, plus 2 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*<dict value>: 2 values(.|\n)*<dict value>: 1 values(.|\n)*<dict value>: 1 values(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*Use db\.contents_repr\(\) to see the actual values\.)regex"))));
+}
+
+TEST(ReprUtilTest, TestDataBagStatistics_Entity) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value_1 = test::DataSlice<int>({1, std::nullopt});
+  DataSlice value_2 = test::DataSlice<int>({2, 3});
+  ASSERT_OK(EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
+
+  EXPECT_THAT(
+      DataBagStatistics(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(
+              R"regex(DataBag \$[0-9a-f]{4} with 3 values in 2 attrs, plus 2 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*b: 2 values(.|\n)*a: 1 values(.|\n)*)regex"))));
+}
+
+TEST(ReprUtilTest, TestDataBagStatistics_Object) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value_1 = test::DataSlice<int>({1, std::nullopt, std::nullopt});
+  DataSlice value_2 = test::DataSlice<int>({2, 3, std::nullopt});
+  ASSERT_OK(ObjectCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
+
+  EXPECT_THAT(
+      DataBagStatistics(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(
+              R"regex(DataBag \$[0-9a-f]{4} with 6 values in 3 attrs, plus 6 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*<object schemas>: 3 values(.|\n)*b: 2 values(.|\n)*a: 1 values(.|\n)*)regex"))));
+}
+
+TEST(ReprUtilTest, TestDataBagStatistics_NestedList) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 4}));
+  internal::DataSliceImpl ds =
+      internal::DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3, 4}));
+  ASSERT_OK_AND_ASSIGN(
+      JaggedDenseArrayShape ds_shape,
+      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  ASSERT_OK_AND_ASSIGN(DataSlice nested_list,
+                       DataSlice::Create(std::move(ds), std::move(ds_shape),
+                                         internal::DataItem(schema::kAny)));
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice data_slice,
+      CreateNestedList(bag, std::move(nested_list),
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+
+  EXPECT_THAT(
+      DataBagStatistics(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(
+              R"regex(DataBag \$[0-9a-f]{4} with 6 values in 1 attrs, plus 2 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*<list items>: 6 values(.|\n)*)regex"))));
+}
+
+TEST(ReprUtilTest, TestDataBagStatistics_List) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
+                       CreateEmptyList(bag, /*schema=*/std::nullopt,
+                                       test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice data_slice,
+      CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+  EXPECT_THAT(
+      DataBagStatistics(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(
+              R"regex(DataBag \$[0-9a-f]{4} with 3 values in 1 attrs, plus 1 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*<list items>: 3 values(.|\n)*)regex"))));
 }
 
 }  // namespace

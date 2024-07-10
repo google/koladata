@@ -15,6 +15,7 @@
 #ifndef KOLADATA_REPR_UTILS_H_
 #define KOLADATA_REPR_UTILS_H_
 
+#include <cstdint>
 #include <string>
 
 #include "absl/status/status.h"
@@ -35,6 +36,17 @@ absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db);
 // the Status is not ok. On OkStatus, returns it unchanged.
 absl::Status AssembleErrorMessage(const absl::Status& status,
                                   absl::Span<const koladata::DataBagPtr> dbs);
+
+// Returns the stats string about the triples and attributes in the DataBag.
+//
+// Items in the list are counted as multiple triples: one for each item. E.g.
+// $123[:] -> [1, 2, 3] counts as three triples. A key/value pair in the dict is
+// counted as one triple for the attribute derived from the key. For
+// example, a dict with two values $456[1] = 2 and $456[3] = 4 counts as one
+// triples for the 1->2 pair, one triples for the 3->4 pair.
+absl::StatusOr<std::string> DataBagStatistics(const DataBagPtr& db,
+                                              int64_t top_attr_limit = 5);
+
 }  // namespace koladata
 
 #endif  // KOLADATA_REPR_UTILS_H_
