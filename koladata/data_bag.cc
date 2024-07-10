@@ -29,6 +29,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "koladata/data_bag_repr.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/triples.h"
 #include "arolla/qtype/simple_qtype.h"
@@ -214,23 +215,13 @@ void FingerprintHasherTraits<::koladata::DataBagPtr>::operator()(
   hasher->Combine(value->GetRandomizedDataBagId());
 }
 
-// TODO: Implement proper Repr for DataBag(s). The current version
-// is useful for debugging during development.
 ReprToken ReprTraits<::koladata::DataBagPtr>::operator()(
     const ::koladata::DataBagPtr& value) const {
-  std::string result;
-  using Triples = ::koladata::internal::debug::Triples;
-  Triples main_triples(value->GetImpl().ExtractContent().value());
-  absl::StrAppend(&result, main_triples);
-  ::koladata::FlattenFallbackFinder fb_finder(*value);
-  auto fallbacks = fb_finder.GetFlattenFallbacks();
-  for (int i = 0; i < fallbacks.size(); ++i) {
-    absl::StrAppend(
-        &result,
-        absl::StrFormat("\n\nfallback #%d:\n%v", i + 1,
-                        Triples(fallbacks[i]->ExtractContent().value())));
+  absl::StatusOr<std::string> statistics = koladata::DataBagStatistics(value);
+  if (statistics.ok()) {
+    return ReprToken{statistics.value()};
   }
-  return ReprToken{result};
+  return ReprToken{std::string(statistics.status().message())};
 }
 
 AROLLA_DEFINE_SIMPLE_QTYPE(DATA_BAG, ::koladata::DataBagPtr);
