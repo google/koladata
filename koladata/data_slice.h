@@ -231,6 +231,14 @@ class DataSlice {
   // choose whether to apply list or dict operation.
   bool ShouldApplyListOp() const;
 
+  // Returns true iff the schema of this slice is LIST[T], or the schema of this
+  // slice is ANY or OBJECT and all present values in this slice are lists.
+  bool ContainsOnlyLists() const;
+
+  // Returns true iff the schema of this slice is DICT{K, V}, or the schema of
+  // this slice is ANY or OBJECT and all present values in this slice are dicts.
+  bool ContainsOnlyDicts() const;
+
   // Gets a value from each dict in this slice (it must be slice of dicts) using
   // the corresponding keys (the shape of `keys` must be compatible with shape
   // if the dicts slice) and returns them as a DataSlice of the same size.

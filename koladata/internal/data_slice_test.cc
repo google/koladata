@@ -487,6 +487,62 @@ TEST(DataSliceImpl, PresentCount) {
   EXPECT_EQ(DataSliceImpl::AllocateEmptyObjects(12).present_count(), 12);
 }
 
+TEST(DataSliceImpl, ContainsOnlyLists) {
+  EXPECT_TRUE(DataSliceImpl().ContainsOnlyLists());
+  EXPECT_TRUE(
+      DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({std::nullopt}))
+          .ContainsOnlyLists());
+  EXPECT_TRUE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+                                        std::nullopt,
+                                        AllocateSingleList(),
+                                        AllocateSingleList(),
+                                    }))
+                  .ContainsOnlyLists());
+  EXPECT_FALSE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+                                         std::nullopt,
+                                         AllocateSingleList(),
+                                         AllocateSingleObject(),
+                                     }))
+                   .ContainsOnlyLists());
+  EXPECT_FALSE(DataSliceImpl::Create(arolla::CreateDenseArray<int>({42}))
+                   .ContainsOnlyLists());
+  EXPECT_TRUE(
+      DataSliceImpl::Create(arolla::CreateDenseArray<int>({std::nullopt}))
+          .ContainsOnlyLists());
+  EXPECT_TRUE(DataSliceImpl::Create(
+                  arolla::CreateDenseArray<int>({std::nullopt}),
+                  arolla::CreateDenseArray<ObjectId>({AllocateSingleList()}))
+                  .ContainsOnlyLists());
+}
+
+TEST(DataSliceImpl, ContainsOnlyDicts) {
+  EXPECT_TRUE(DataSliceImpl().ContainsOnlyDicts());
+  EXPECT_TRUE(
+      DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({std::nullopt}))
+          .ContainsOnlyDicts());
+  EXPECT_TRUE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+                                        std::nullopt,
+                                        AllocateSingleDict(),
+                                        AllocateSingleDict(),
+                                    }))
+                  .ContainsOnlyDicts());
+  EXPECT_FALSE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+                                         std::nullopt,
+                                         AllocateSingleDict(),
+                                         AllocateSingleObject(),
+                                     }))
+                   .ContainsOnlyDicts());
+  EXPECT_FALSE(DataSliceImpl::Create(arolla::CreateDenseArray<int>({42}))
+                   .ContainsOnlyDicts());
+  EXPECT_TRUE(
+      DataSliceImpl::Create(arolla::CreateDenseArray<int>({std::nullopt}))
+          .ContainsOnlyDicts());
+  EXPECT_TRUE(DataSliceImpl::Create(
+                  arolla::CreateDenseArray<int>({std::nullopt}),
+                  arolla::CreateDenseArray<ObjectId>({AllocateSingleDict()}))
+                  .ContainsOnlyDicts());
+}
+
 TEST(DataSliceImpl, IsEquivalentTo) {
   auto empty = DataSliceImpl();
   auto empty_and_unknown = DataSliceImpl::CreateEmptyAndUnknownType(2);

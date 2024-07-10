@@ -18,7 +18,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <memory>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -47,6 +46,7 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/view_types.h"
 
 namespace koladata::internal {
 
@@ -183,10 +183,46 @@ absl::StatusOr<DataSliceImpl> DataSliceImpl::Create(arolla::TypedRef values) {
 
 size_t DataSliceImpl::present_count() const {
   size_t res = 0;
-  VisitValues([&](const auto& array) {
-    res += array.PresentCount();
-  });
+  VisitValues([&](const auto& array) { res += array.PresentCount(); });
   return res;
+}
+
+bool DataSliceImpl::ContainsOnlyLists() const {
+  bool result = true;
+  VisitValues([&result]<typename T>(const arolla::DenseArray<T>& array) {
+    if constexpr (!std::is_same<T, ObjectId>()) {
+      if (!array.IsAllMissing()) {
+        result = false;
+      }
+    } else {
+      array.ForEachPresent(
+          [&result](int64_t id, arolla::view_type_t<ObjectId> value) {
+            if (!value.IsList()) {
+              result = false;
+            }
+          });
+    }
+  });
+  return result;
+}
+
+bool DataSliceImpl::ContainsOnlyDicts() const {
+  bool result = true;
+  VisitValues([&result]<typename T>(const arolla::DenseArray<T>& array) {
+    if constexpr (!std::is_same<T, ObjectId>()) {
+      if (!array.IsAllMissing()) {
+        result = false;
+      }
+    } else {
+      array.ForEachPresent(
+          [&result](int64_t id, arolla::view_type_t<ObjectId> value) {
+            if (!value.IsDict()) {
+              result = false;
+            }
+          });
+    }
+  });
+  return result;
 }
 
 DataItem DataSliceImpl::operator[](int64_t offset) const {

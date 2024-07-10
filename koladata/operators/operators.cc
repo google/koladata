@@ -19,6 +19,7 @@
 #include "koladata/operators/convert_and_eval.h"
 #include "koladata/operators/dict.h"
 #include "koladata/operators/equal.h"
+#include "koladata/operators/explode.h"
 #include "koladata/operators/extract.h"
 #include "koladata/operators/get_attr.h"
 #include "koladata/operators/group_by.h"
@@ -48,6 +49,7 @@ OPERATOR("kde.assertion.assert_ds_has_primitives_of", AssertDsHasPrimitivesOf);
 OPERATOR("kde.comparison.equal", Equal);
 //
 OPERATOR("kde.core._collapse", Collapse);
+OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);
 OPERATOR("kde.core._extract_with_schema", ExtractWithSchema);
 OPERATOR("kde.core._get_attr", GetAttr);

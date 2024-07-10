@@ -151,6 +151,12 @@ class DataItem {
   // Returns number of present elements in DataItem (can be 0 or 1).
   size_t present_count() const { return has_value() ? 1 : 0; }
 
+  // Returns true iff all present values are lists.
+  bool ContainsOnlyLists() const { return !has_value() || is_list(); }
+
+  // Returns true iff all present values are dicts.
+  bool ContainsOnlyDicts() const { return !has_value() || is_dict(); }
+
   bool IsEquivalentTo(const DataItem& other) const {
     return data_ == other.data_;
   }

@@ -66,6 +66,7 @@ cc_library(
     name = "lib",
     srcs = [
         "convert_and_eval.cc",
+        "explode.cc",
         "get_attr.cc",
         "group_by.cc",
         "jagged_shape.cc",
@@ -82,6 +83,7 @@ cc_library(
         "convert_and_eval.h",
         "dict.h",
         "equal.h",
+        "explode.h",
         "extract.h",
         "get_attr.h",
         "group_by.h",

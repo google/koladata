@@ -128,6 +128,12 @@ class DataSliceImpl {
   // either is_mixed_dtype() or is_empty_and_unknown() is true.
   arolla::QTypePtr dtype() const { return internal_->dtype; }
 
+  // Returns true iff all present values are list objects.
+  bool ContainsOnlyLists() const;
+
+  // Returns true iff all present values are dict objects.
+  bool ContainsOnlyDicts() const;
+
   // Get values from the data slice.
   // Can be used only if dtype() == GetQType<T>().
   template <class T>

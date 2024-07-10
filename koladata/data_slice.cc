@@ -1085,6 +1085,26 @@ bool DataSlice::ShouldApplyListOp() const {
   return GetSchema().IsListSchema();
 }
 
+bool DataSlice::ContainsOnlyLists() const {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny) {
+    return VisitImpl([]<typename T>(const T& impl) -> bool {
+      return impl.ContainsOnlyLists();
+    });
+  } else {
+    return GetSchema().IsListSchema();
+  }
+}
+
+bool DataSlice::ContainsOnlyDicts() const {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny) {
+    return VisitImpl([]<typename T>(const T& impl) -> bool {
+      return impl.ContainsOnlyDicts();
+    });
+  } else {
+    return GetSchema().IsDictSchema();
+  }
+}
+
 absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
   if (GetDb() == nullptr) {
     return absl::InvalidArgumentError(

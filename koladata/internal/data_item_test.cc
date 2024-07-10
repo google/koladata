@@ -296,6 +296,7 @@ TEST(DataItemTest, IsList) {
   EXPECT_FALSE(DataItem(AllocateSingleObject()).is_list());
   EXPECT_FALSE(DataItem(0).is_list());
   EXPECT_FALSE(DataItem(4.f).is_list());
+  EXPECT_FALSE(DataItem().is_list());
 }
 
 TEST(DataItemTest, IsDict) {
@@ -303,6 +304,7 @@ TEST(DataItemTest, IsDict) {
   EXPECT_FALSE(DataItem(AllocateSingleObject()).is_dict());
   EXPECT_FALSE(DataItem(0).is_dict());
   EXPECT_FALSE(DataItem(4.f).is_dict());
+  EXPECT_FALSE(DataItem().is_dict());
 }
 
 TEST(DataItemTest, IsSchema) {
@@ -359,6 +361,22 @@ TEST(DataItemTest, IsImplicitSchema) {
               internal::AllocateSingleObject(),
               arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()))
           .is_implicit_schema());
+}
+
+TEST(DataItemTest, ContainsOnlyLists) {
+  EXPECT_TRUE(DataItem(AllocateSingleList()).ContainsOnlyLists());
+  EXPECT_TRUE(DataItem().ContainsOnlyLists());
+  EXPECT_FALSE(DataItem(AllocateSingleObject()).ContainsOnlyLists());
+  EXPECT_FALSE(DataItem(0).ContainsOnlyLists());
+  EXPECT_FALSE(DataItem(4.f).ContainsOnlyLists());
+}
+
+TEST(DataItemTest, ContainsOnlyDicts) {
+  EXPECT_TRUE(DataItem(AllocateSingleDict()).ContainsOnlyDicts());
+  EXPECT_TRUE(DataItem().ContainsOnlyDicts());
+  EXPECT_FALSE(DataItem(AllocateSingleObject()).ContainsOnlyDicts());
+  EXPECT_FALSE(DataItem(0).ContainsOnlyDicts());
+  EXPECT_FALSE(DataItem(4.f).ContainsOnlyDicts());
 }
 
 TEST(DataItemTest, ItemView) {
