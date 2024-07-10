@@ -51,6 +51,7 @@ namespace {
 using ::arolla::GetQType;
 using ::arolla::TypedRef;
 using ::arolla::TypedValue;
+using ::testing::MatchesRegex;
 
 TEST(DataItemTest, EmptyObject) {
   DataItem item = DataItem(AllocateSingleObject());
@@ -446,6 +447,18 @@ TEST(DataItemTest, ArollaFingerprint) {
           DataItem(schema::DType())).Finish(),
       arolla::FingerprintHasher("salt").Combine(
           DataItem(schema::kInt32)).Finish());
+}
+
+TEST(DataItemTest, TestRepr) {
+  EXPECT_EQ(DataItemRepr(DataItem(0)), "0");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("a"))), "'a'");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("a")), /*strip_text=*/true),
+            "a");
+  EXPECT_THAT(DataItemRepr(DataItem(AllocateSingleObject())),
+              MatchesRegex(R"regex(\$[0-9a-f]{32})regex"));
+  EXPECT_THAT(DataItemRepr(DataItem(CreateUuidObject(
+                  arolla::FingerprintHasher("").Combine(57).Finish()))),
+              MatchesRegex(R"regex(k[0-9a-f]{32})regex"));
 }
 
 }  // namespace

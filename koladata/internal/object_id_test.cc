@@ -40,6 +40,7 @@ namespace koladata::internal {
 namespace {
 
 using ::testing::IsEmpty;
+using ::testing::MatchesRegex;
 using ::testing::UnorderedElementsAre;
 using ::testing::UnorderedElementsAreArray;
 
@@ -645,6 +646,14 @@ TEST(ObjectIdTest, AllocationIdSetUnionSmall) {
     id_set.Insert(id_set1);
     EXPECT_TRUE(id_set.contains_small_allocation_id());
   }
+}
+
+TEST(ObjectIdTest, ObjectIdStringFormat) {
+  EXPECT_THAT(ObjectIdStr(CreateUuidObject(
+                  arolla::FingerprintHasher("").Combine(57).Finish())),
+              MatchesRegex(R"regex(k[0-9a-f]{32})regex"));
+  EXPECT_THAT(ObjectIdStr(AllocateSingleObject()),
+              MatchesRegex(R"regex(\$[0-9a-f]{32})regex"));
 }
 
 }  // namespace
