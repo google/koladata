@@ -151,6 +151,10 @@ class DataSlice {
   // e.g. schema points to objects, but the contents are primitives, etc.
   absl::StatusOr<DataSlice> WithSchema(const DataSlice& schema) const;
 
+  // Returns a new DataSlice with the updated `schema_item`. Lower-level version
+  // of the API above.
+  absl::StatusOr<DataSlice> WithSchema(internal::DataItem schema_item) const;
+
   // Returns OkStatus if this DataSlice represents a Schema. In particular, it
   // means that .item() can be safely called.
   absl::Status VerifyIsSchema() const;

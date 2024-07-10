@@ -807,9 +807,9 @@ absl::StatusOr<DataSlice> CreateNoFollowSchema(const DataSlice& target_schema) {
 }
 
 absl::StatusOr<DataSlice> NoFollow(const DataSlice& target) {
-  ASSIGN_OR_RETURN(auto no_follow_schema,
-                   CreateNoFollowSchema(target.GetSchema()));
-  return target.WithSchema(no_follow_schema);
+  ASSIGN_OR_RETURN(auto no_follow_schema_item,
+                   schema::NoFollowSchemaItem(target.GetSchemaImpl()));
+  return target.WithSchema(no_follow_schema_item);
 }
 
 }  // namespace koladata

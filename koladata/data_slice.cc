@@ -754,10 +754,20 @@ absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
         "with_schema does not accept schemas with different DataBag attached. "
         "Please use `set_schema`");
   }
-  const internal::DataItem& schema_item = schema.item();
+  return WithSchema(schema.item());
+}
+
+absl::StatusOr<DataSlice> DataSlice::WithSchema(
+    internal::DataItem schema_item) const {
+  if (!schema_item.is_schema()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "schema must contain either a DType or valid schema ItemId, got %v",
+        schema_item));
+  }
   RETURN_IF_ERROR(
       VerifySchemaConsistency(schema_item, dtype(), impl_empty_and_unknown()));
-  return DataSlice(internal_->impl_, GetShape(), schema_item, GetDb());
+  return DataSlice(internal_->impl_, GetShape(), std::move(schema_item),
+                   GetDb());
 }
 
 absl::Status DataSlice::VerifyIsSchema() const {

@@ -18,6 +18,7 @@
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -30,9 +31,9 @@ inline absl::StatusOr<DataSlice> GetNoFollowedSchema(
 
 // kde.core.follow.
 inline absl::StatusOr<DataSlice> Follow(const DataSlice& ds) {
-  ASSIGN_OR_RETURN(auto nofollowed_schema,
-                   ds.GetSchema().GetNoFollowedSchema());
-  return ds.WithSchema(nofollowed_schema);
+  ASSIGN_OR_RETURN(auto nofollowed_schema_item,
+                   schema::GetNoFollowedSchemaItem(ds.GetSchemaImpl()));
+  return ds.WithSchema(nofollowed_schema_item);
 }
 
 }  // namespace koladata::ops
