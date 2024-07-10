@@ -30,6 +30,7 @@
 #include "absl/log/check.h"
 #include "absl/numeric/int128.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/simple_qtype.h"
@@ -453,6 +454,13 @@ inline ObjectId GetOriginalFromNoFollow(ObjectId nofollow_object_id) {
   id.metadata_ &=
       ~(ObjectId::kNoFollowSchemaFlag & ~ObjectId::kStartSchemaFlag);
   return id;
+}
+
+// Returns the string representation for the ObjectId. UUID has prefix 'k',
+// others are '$'.
+inline std::string ObjectIdStr(const ObjectId& id) {
+  absl::string_view prefix = id.IsUuid() ? "k" : "$";
+  return absl::StrCat(prefix, id);
 }
 
 // Represents set of unique allocation ids.

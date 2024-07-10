@@ -27,8 +27,10 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/strings/strip.h"
 #include "koladata/internal/expr_quote_utils.h"
 #include "koladata/internal/missing_value.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/stable_fingerprint.h"
 #include "koladata/internal/types.h"
 #include "arolla/expr/quote.h"
@@ -140,6 +142,17 @@ std::string DataItem::DebugString() const {
         }
       },
       data_);
+}
+
+std::string DataItemRepr(const DataItem& item, bool strip_text) {
+  if (item.holds_value<ObjectId>()) {
+    return ObjectIdStr(item.value<ObjectId>());
+  }
+  if (item.holds_value<arolla::Text>() && strip_text) {
+    return absl::StrCat(
+        absl::StripPrefix(absl::StripSuffix(absl::StrCat(item), "'"), "'"));
+  }
+  return absl::StrCat(item);
 }
 
 }  // namespace koladata::internal

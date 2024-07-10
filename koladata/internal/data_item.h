@@ -124,8 +124,8 @@ class DataItem {
   }
 
   bool is_schema() const {
-    return holds_value<schema::DType>() || (
-        holds_value<ObjectId>() && value<ObjectId>().IsSchema());
+    return holds_value<schema::DType>() ||
+           (holds_value<ObjectId>() && value<ObjectId>().IsSchema());
   }
 
   bool is_primitive_schema() const {
@@ -149,9 +149,7 @@ class DataItem {
   }
 
   // Returns number of present elements in DataItem (can be 0 or 1).
-  size_t present_count() const {
-    return has_value() ? 1 : 0;
-  }
+  size_t present_count() const { return has_value() ? 1 : 0; }
 
   bool IsEquivalentTo(const DataItem& other) const {
     return data_ == other.data_;
@@ -163,7 +161,9 @@ class DataItem {
   }
 
   template <typename T>
-  bool operator!=(const T& other) const { return !(*this == other); }
+  bool operator!=(const T& other) const {
+    return !(*this == other);
+  }
 
   // Returns stable 128 bit Fingerprint.
   arolla::Fingerprint StableFingerprint() const;
@@ -370,6 +370,9 @@ inline bool DataItem::Less::LessImpl<float, float>(const DataItem& a,
                                                    const float& b) const {
   return LessImpl(a, double{b});
 }
+
+// Returns the string representation for the DataItem.
+std::string DataItemRepr(const DataItem& item, bool strip_text = false);
 
 }  // namespace koladata::internal
 

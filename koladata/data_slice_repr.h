@@ -12,21 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_REPR_UTILS_H_
-#define KOLADATA_REPR_UTILS_H_
+#ifndef KOLADATA_DATA_SLICE_REPR_H_
+#define KOLADATA_DATA_SLICE_REPR_H_
 
-
-#include "absl/status/status.h"
-#include "absl/types/span.h"
-#include "koladata/data_bag.h"
+#include <string>
+#include "absl/status/statusor.h"
+#include "koladata/data_slice.h"
 
 namespace koladata {
 
-// Creates the readable error message and sets it in the payload of Status if
-// the Status is not ok. On OkStatus, returns it unchanged.
-absl::Status AssembleErrorMessage(const absl::Status& status,
-                                  absl::Span<const koladata::DataBagPtr> dbs);
+// Returns the string for python __str__.
+absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds);
 
 }  // namespace koladata
 
-#endif  // KOLADATA_REPR_UTILS_H_
+#endif  // KOLADATA_DATA_SLICE_REPR_H_
