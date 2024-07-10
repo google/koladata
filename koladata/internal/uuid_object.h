@@ -15,12 +15,13 @@
 #ifndef KOLADATA_INTERNAL_UUID_OBJECT_H_
 #define KOLADATA_INTERNAL_UUID_OBJECT_H_
 
-#include <vector>
 #include <cstdint>
 #include <functional>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"

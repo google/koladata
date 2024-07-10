@@ -25,6 +25,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/s11n/codec.pb.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/testing/equals_proto.h"
 
