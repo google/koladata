@@ -158,8 +158,52 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_DuplicatedFallbackBags) {
           R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}\.a => 42(.|\n)*  SchemaBag:(.|\n)*  fallback #1 duplicated, see db with id: \$[0-9a-f]{4})regex")));
 }
 
+TEST(DataBagReprTest, TestDataBagStringRepresentation_ListSchema) {
+  DataBagPtr bag = DataBag::Empty();
 
-TEST(ReprUtilTest, TestDataBagStatistics_Dict) {
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 4}));
+  internal::DataSliceImpl ds =
+      internal::DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3, 4}));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_shape,
+      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  ASSERT_OK_AND_ASSIGN(DataSlice nested_list,
+                       DataSlice::Create(std::move(ds), std::move(ds_shape),
+                                         internal::DataItem(schema::kInt32)));
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice data_slice,
+      CreateNestedList(bag, std::move(nested_list),
+                       /*schema=*/std::nullopt, /*item_schema=*/std::nullopt));
+
+  ASSERT_OK(EntityCreator::FromAttrs(bag, {"a"}, {data_slice}));
+
+  EXPECT_THAT(
+      DataBagToStr(bag),
+      IsOkAndHolds(MatchesRegex(
+          R"regex((\n|.)*\$[0-9a-f]{32}\.a => list<list<INT32>>(\n|.)*)regex")));
+}
+
+TEST(DataBagReprTest, TestDataBagStringRepresentation_DictSchema) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice dict,
+      CreateDictShaped(bag, JaggedDenseArrayShape::Empty(), test::DataItem(114),
+                       test::DataItem(514)));
+  ASSERT_OK_AND_ASSIGN(DataSlice nested_dict,
+                       CreateDictShaped(bag, JaggedDenseArrayShape::Empty(),
+                                        test::DataItem(114), dict));
+  ASSERT_OK(EntityCreator::FromAttrs(bag, {"dudulu"}, {nested_dict}));
+
+  EXPECT_THAT(
+      DataBagToStr(bag),
+      IsOkAndHolds(MatchesRegex(
+          R"regex((\n|.)*\$[0-9a-f]{32}\.dudulu => k[0-9a-f]{32}\[dict<INT32, k[0-9a-f]{32}\[dict<INT32, INT32>\]>\](\n|.)*)regex")));
+}
+
+TEST(DataBagReprTest, TestDataBagStatistics_Dict) {
   DataBagPtr bag = DataBag::Empty();
 
   JaggedDenseArrayShape shape = DataSlice::JaggedShape::FlatFromSize(3);

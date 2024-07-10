@@ -26,11 +26,13 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -45,9 +47,13 @@ namespace {
 
 using ::koladata::internal::DataBagContent;
 using ::koladata::internal::DataItem;
+using ::koladata::internal::ObjectId;
 using ::koladata::internal::debug::AttrTriple;
 using ::koladata::internal::debug::DictItemTriple;
 using ::koladata::internal::debug::Triples;
+
+using AttrMap =
+    absl::flat_hash_map<DataItem, DataItem, DataItem::Hash, DataItem::Eq>;
 
 constexpr int kTwoSpaceIndentation = 2;
 
@@ -59,6 +65,80 @@ struct DataBagFormatOption {
   int indentation = 0;
   std::optional<int> fallback_index;
 };
+
+// Builds the schema attr triples of __items__, __keys__, __values__ into a map.
+absl::flat_hash_map<ObjectId, AttrMap> BuildListOrDictSchemaAttrMap(
+    absl::Span<const DictItemTriple> schemas) {
+  absl::flat_hash_map<ObjectId, AttrMap> result;
+  for (const DictItemTriple& triple : schemas) {
+    if (!triple.object.IsSchema()) {
+      continue;
+    }
+    // Skip the attributes that are not __items__, __keys__ or __values__.
+    if (!triple.key.holds_value<arolla::Text>()) {
+      continue;
+    }
+    absl::string_view attr = triple.key.value<arolla::Text>().view();
+    if (attr != schema::kListItemsSchemaAttr &&
+        attr != schema::kDictKeysSchemaAttr &&
+        attr != schema::kDictValuesSchemaAttr) {
+      continue;
+    }
+    auto [it, _] = result.try_emplace(triple.object, AttrMap());
+    it->second.emplace(triple.key, triple.value);
+  }
+  return result;
+}
+
+// Returns the string representation of the schema. The schema is
+// recursively expanded if it's nested list or dict schema.
+// TODO: add depth limit for avoiding cycle.
+absl::StatusOr<std::string> SchemaToStr(
+    const DataItem& schema_item,
+    const absl::flat_hash_map<ObjectId, AttrMap>& triple_map);
+
+// Returns the string representation of the schema attribute value. Returns
+// empty string if the attribute is not found.
+absl::StatusOr<std::string> AttrValueToStr(
+    absl::string_view attr, const AttrMap& attr_map,
+    const absl::flat_hash_map<ObjectId, AttrMap>& triple_map) {
+  auto it = attr_map.find(DataItem(arolla::Text(attr)));
+  if (it == attr_map.end()) {
+    return "";
+  }
+  ASSIGN_OR_RETURN(std::string res, SchemaToStr(it->second, triple_map));
+  return res;
+}
+
+absl::StatusOr<std::string> SchemaToStr(
+    const DataItem& schema_item,
+    const absl::flat_hash_map<ObjectId, AttrMap>& triple_map) {
+  if (!schema_item.holds_value<ObjectId>()) {
+    return absl::StrCat(schema_item);
+  }
+  const ObjectId& schema = schema_item.value<ObjectId>();
+  auto it = triple_map.find(schema);
+  if (it == triple_map.end()) {
+    return absl::InternalError("schema is not in the triple map");
+  }
+  ASSIGN_OR_RETURN(
+      std::string list_schema_str,
+      AttrValueToStr(schema::kListItemsSchemaAttr, it->second, triple_map));
+  if (!list_schema_str.empty()) {
+    return absl::StrCat("list<", list_schema_str, ">");
+  }
+  ASSIGN_OR_RETURN(
+      std::string key_schema_str,
+      AttrValueToStr(schema::kDictKeysSchemaAttr, it->second, triple_map));
+  ASSIGN_OR_RETURN(
+      std::string value_schema_str,
+      AttrValueToStr(schema::kDictValuesSchemaAttr, it->second, triple_map));
+  if (!key_schema_str.empty() && !value_schema_str.empty()) {
+    return absl::StrCat(internal::DataItemRepr(schema_item), "[dict<",
+                        key_schema_str, ", ", value_schema_str, ">]");
+  }
+  return absl::StrCat(schema_item);
+}
 
 // Returns true if a DataItem holds '__items__', '__keys__', '__values__'
 // These attributes will be hidden when printing the DataBag.
@@ -117,13 +197,18 @@ absl::StatusOr<std::string> DataBagToStrInternal(
     }
   }
   absl::StrAppend(&res, "\n", line_indent, "SchemaBag:\n");
+
+  absl::flat_hash_map<ObjectId, AttrMap> schema_triple_map =
+      BuildListOrDictSchemaAttrMap(main_triples.dicts());
   for (const DictItemTriple& dict : main_triples.dicts()) {
     if (dict.object.IsSchema() && !IsInternalAttribute(dict.key)) {
+      ASSIGN_OR_RETURN(std::string value_str,
+                       SchemaToStr(dict.value, schema_triple_map));
       absl::StrAppend(
           &res, line_indent,
           absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
                           internal::DataItemRepr(dict.key, /*strip_text=*/true),
-                          internal::DataItemRepr(dict.value)));
+                          value_str));
     }
   }
   const std::vector<DataBagPtr>& fallbacks = db->GetFallbacks();
@@ -190,10 +275,8 @@ absl::StatusOr<std::string> DataBagStatistics(const DataBagPtr& db,
     int64_t list_item_count = std::accumulate(
         main_triples.lists().begin(), main_triples.lists().end(), 0,
         [](int64_t acc,
-           const std::pair<const internal::ObjectId,
-                           std::vector<internal::DataItem>>& list) {
-          return acc + list.second.size();
-        });
+           const std::pair<const ObjectId, std::vector<internal::DataItem>>&
+               list) { return acc + list.second.size(); });
     if (list_item_count > 0) {
       top_attrs.emplace_back(list_item_count, kListItemsNameReplacement);
     }
