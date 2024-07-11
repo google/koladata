@@ -76,9 +76,9 @@ class ObjectId {
   // Returns true if object was constructed from Fingerprint.
   bool IsUuid() const { return (metadata_ & kUuidFlag) != 0; }
   // Returns true if the object is a list.
-  bool IsList() const { return metadata_ == kListFlag; }
+  bool IsList() const { return (metadata_ & ~kUuidFlag) == kListFlag; }
   // Returns true if the object is a dict.
-  bool IsDict() const { return metadata_ == kDictFlag; }
+  bool IsDict() const { return (metadata_ & ~kUuidFlag) == kDictFlag; }
   // Returns true if the object is a schema.
   bool IsSchema() const { return metadata_ >= kStartSchemaFlag; }
   // Returns true if the object is an explicit schema.

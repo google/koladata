@@ -161,6 +161,30 @@ TEST(ObjectIdTest, DictAllocation) {
   EXPECT_TRUE(AllocateSingleDict().IsDict());
 }
 
+TEST(ObjectIdTest, ListUuid) {
+  ObjectId list_id = CreateUuidObjectWithMetadata(
+      arolla::FingerprintHasher("list-uuid").Combine(57).Finish(),
+      ObjectId::kListFlag | ObjectId::kUuidFlag);
+
+  EXPECT_TRUE(list_id.IsList());
+  EXPECT_TRUE(list_id.IsUuid());
+  EXPECT_FALSE(list_id.IsAllocated());
+  EXPECT_FALSE(list_id.IsDict());
+  EXPECT_FALSE(list_id.IsSchema());
+}
+
+TEST(ObjectIdTest, DictUuid) {
+  ObjectId dict_id = CreateUuidObjectWithMetadata(
+      arolla::FingerprintHasher("dict-uuid").Combine(57).Finish(),
+      ObjectId::kDictFlag | ObjectId::kUuidFlag);
+
+  EXPECT_TRUE(dict_id.IsDict());
+  EXPECT_TRUE(dict_id.IsUuid());
+  EXPECT_FALSE(dict_id.IsAllocated());
+  EXPECT_FALSE(dict_id.IsList());
+  EXPECT_FALSE(dict_id.IsSchema());
+}
+
 TEST(ObjectIdTest, ExplicitSchemaAllocation) {
   EXPECT_FALSE(Allocate(3).IsSchemasAlloc());
   EXPECT_FALSE(Allocate(3).IsExplicitSchemasAlloc());
