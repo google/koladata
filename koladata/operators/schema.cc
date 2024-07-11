@@ -22,10 +22,13 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
+#include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/convert_and_eval.h"
 #include "koladata/operators/utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
@@ -87,6 +90,20 @@ absl::StatusOr<arolla::OperatorPtr> NewSchemaOperatorFamily::DoGetOperator(
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<NewSchemaOperator>(input_types),
       input_types, output_type);
+}
+
+absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema,
+                                 const DataSlice& implicit_cast) {
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  if (schema.item() == schema::kObject &&
+      x.GetSchemaImpl().is_entity_schema()) {
+    return absl::InvalidArgumentError(
+        "entity to object casting is unsupported - consider using `kd.obj(x)` "
+        "instead");
+  }
+  ASSIGN_OR_RETURN(bool implicit_cast_unwrapped,
+                   ToArollaBoolean(implicit_cast));
+  return ::koladata::CastTo(x, schema.item(), implicit_cast_unwrapped);
 }
 
 }  // namespace koladata::ops

@@ -48,6 +48,10 @@ inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
                            internal::DataItem(schema::kSchema));
 }
 
+// kde.schema._cast_to operator.
+absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema,
+                                 const DataSlice& implicit_cast);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_SCHEMA_H_
