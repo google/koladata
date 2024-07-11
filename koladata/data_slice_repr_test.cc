@@ -496,5 +496,114 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SplitLines) {
 ])"));
 }
 
+TEST(DataSliceReprTest, CycleInDict) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice key_item = test::DataItem(1);
+  DataSlice value_item = test::DataItem("value");
+
+  ASSERT_OK_AND_ASSIGN(DataSlice dict,
+                       CreateDictShaped(bag, DataSlice::JaggedShape::Empty(),
+                                        key_item, value_item));
+  // Set dict value schema to self.
+  DataSlice schema = dict.GetSchema();
+  ASSERT_OK(schema.SetAttr(schema::kDictValuesSchemaAttr, dict.GetSchema()));
+
+  EXPECT_THAT(
+      DataSliceToStr(schema),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(DICT\{INT32, DICT\{INT32, DICT\{INT32, DICT\{INT32, DICT\{INT32, k[0-9a-f]{32}\}\}\}\}\})regex")));
+
+  // Set dict value to self.
+  ASSERT_OK(dict.SetInDict(key_item, dict));
+
+  EXPECT_THAT(
+      DataSliceToStr(dict),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(Dict\{1=Dict\{1=Dict\{1=Dict\{1=Dict\{1=\$[0-9a-f]{32}\}\}\}\}\})regex")));
+
+  EXPECT_THAT(DataSliceToStr(dict, {.depth = 2}),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(Dict\{1=Dict\{1=\$[0-9a-f]{32}\}\})regex")));
+}
+
+TEST(DataSliceReprTest, CycleInList) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(DataSlice list,
+                       CreateListShaped(bag, DataSlice::JaggedShape::Empty(),
+                                        test::DataItem(1)));
+
+  DataSlice schema = list.GetSchema();
+  ASSERT_OK(schema.SetAttr(schema::kListItemsSchemaAttr, list.GetSchema()));
+
+  EXPECT_THAT(
+      DataSliceToStr(schema),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(LIST\[LIST\[LIST\[LIST\[LIST\[k[0-9a-f]{32}\]\]\]\]\])regex")));
+
+  ASSERT_OK(list.SetInList(test::DataItem(0), list));
+
+  EXPECT_THAT(
+      DataSliceToStr(list),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(List\[List\[List\[List\[List\[\$[0-9a-f]{32}\]\]\]\]\])regex")));
+}
+
+TEST(DataSliceReprTest, CycleInEntity) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value_1 = test::DataItem(1);
+  ASSERT_OK_AND_ASSIGN(DataSlice entity,
+                       EntityCreator::FromAttrs(bag, {"a"}, {value_1}));
+  DataSlice schema = entity.GetSchema();
+
+  ASSERT_OK(schema.SetAttr("a", schema));
+
+  EXPECT_THAT(
+      DataSliceToStr(schema),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=\$[0-9a-f]{32}\)\)\)\)\))regex")));
+
+  ASSERT_OK(entity.SetAttr("a", entity));
+  EXPECT_THAT(
+      DataSliceToStr(entity),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(Entity\(a=Entity\(a=Entity\(a=Entity\(a=Entity\(a=\$[0-9a-f]{32}\)\)\)\)\))regex")));
+}
+
+TEST(DataSliceReprTest, CycleInObject) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value_1 = test::DataItem(1);
+  ASSERT_OK_AND_ASSIGN(DataSlice obj,
+                       ObjectCreator::FromAttrs(bag, {"a"}, {value_1}));
+  ASSERT_OK_AND_ASSIGN(DataSlice schema, obj.GetAttr(schema::kSchemaAttr));
+
+  ASSERT_OK(schema.SetAttr("a", schema));
+
+  EXPECT_THAT(
+      DataSliceToStr(schema),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=k[0-9a-f]{32}\)\)\)\)\))regex")));
+
+  ASSERT_OK(obj.SetAttr("a", obj));
+  EXPECT_THAT(
+      DataSliceToStr(obj),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(Obj\(a=Obj\(a=Obj\(a=Obj\(a=Obj\(a=\$[0-9a-f]{32}\)\)\)\)\))regex")));
+}
+
+TEST(DataSliceReprTest, ShowContentFromDataSlice) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::Shaped(bag, JaggedDenseArrayShape::FlatFromSize(2), {"a"},
+                            {test::DataItem(1)}));
+
+  EXPECT_THAT(DataSliceToStr(entity, {.show_content = true}),
+              IsOkAndHolds(StrEq("[Entity(a=1), Entity(a=1)]")));
+}
+
 }  // namespace
 }  // namespace koladata

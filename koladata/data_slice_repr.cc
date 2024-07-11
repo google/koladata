@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "absl/container/btree_set.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
@@ -113,10 +114,11 @@ absl::StatusOr<std::vector<std::string>> StringifyGroup(
 
 // Returns the string representation for the DataSlice. It requires the
 // DataSlice contains only DataItem.
-absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds);
+absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds, int64_t depth);
 
 absl::StatusOr<std::vector<std::string>> StringifyByDimension(
-    const DataSlice& slice, int64_t dimension, bool show_content) {
+    const DataSlice& slice, int64_t dimension, bool show_content,
+    int64_t depth) {
   const internal::DataSliceImpl& slice_impl = slice.slice();
   const absl::Span<const arolla::DenseArrayEdge> edges =
       slice.GetShape().edges();
@@ -131,7 +133,8 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
         ASSIGN_OR_RETURN(
             DataSlice item_slice,
             DataSlice::Create(item, slice.GetSchemaImpl(), slice.GetDb()));
-        ASSIGN_OR_RETURN(std::string item_str, DataItemToStr(item_slice));
+        ASSIGN_OR_RETURN(std::string item_str,
+                         DataItemToStr(item_slice, depth));
         parts.push_back(std::move(item_str));
       } else {
         if (item.holds_value<ObjectId>()) {
@@ -153,8 +156,9 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
     }
     return StringifyGroup(edge, parts);
   }
-  ASSIGN_OR_RETURN(std::vector<std::string> parts,
-                   StringifyByDimension(slice, dimension + 1, show_content));
+  ASSIGN_OR_RETURN(
+      std::vector<std::string> parts,
+      StringifyByDimension(slice, dimension + 1, show_content, depth - 1));
   return StringifyGroup(edge, parts);
 }
 
@@ -162,12 +166,12 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
 // The DataSlice must have at least 1 dimension. If `show_content` is true, the
 // content of List, Dict, Entity and Object will be printed to the string
 // instead of ItemId representation.
-// TODO: Add recursion depth limit and cycle prevention.
 // TODO: do truncation when ds is too large.
-absl::StatusOr<std::string> DataSliceImplToStr(const DataSlice& ds,
-                                               bool show_content = false) {
-  ASSIGN_OR_RETURN(std::vector<std::string> parts,
-                   StringifyByDimension(ds, 0, show_content));
+absl::StatusOr<std::string> DataSliceImplToStr(
+    const DataSlice& ds, const ReprOption& option = ReprOption{}) {
+  ASSIGN_OR_RETURN(
+      std::vector<std::string> parts,
+      StringifyByDimension(ds, 0, option.show_content, option.depth));
   return PrettyFormatStr(
       parts, {.prefix = "", .suffix = "", .enable_multiline = false});
 }
@@ -175,7 +179,8 @@ absl::StatusOr<std::string> DataSliceImplToStr(const DataSlice& ds,
 // Returns the string representation of list schema. `schema` must be schema
 // type and DataItem. Returns empty string if it doesn't contain list item
 // schema attr.
-absl::StatusOr<std::string> ListSchemaStr(const DataSlice& schema) {
+absl::StatusOr<std::string> ListSchemaStr(const DataSlice& schema,
+                                          int64_t depth) {
   ASSIGN_OR_RETURN(
       DataSlice empty,
       DataSlice::Create(DataItem(std::nullopt), schema.GetSchema().item()));
@@ -184,14 +189,15 @@ absl::StatusOr<std::string> ListSchemaStr(const DataSlice& schema) {
   if (attr.impl_empty_and_unknown()) {
     return "";
   }
-  ASSIGN_OR_RETURN(std::string str, DataItemToStr(attr));
+  ASSIGN_OR_RETURN(std::string str, DataItemToStr(attr, depth));
   return absl::StrCat("LIST[", str, "]");
 }
 
 // Returns the string representation of list schema. `schema` must be schema
 // type and DataItem. Returns empty string if it doesn't contain list item
 // schema attr.
-absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema) {
+absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
+                                          int64_t depth) {
   ASSIGN_OR_RETURN(
       DataSlice empty,
       DataSlice::Create(DataItem(std::nullopt), schema.GetSchema().item()));
@@ -204,21 +210,23 @@ absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema) {
       value_attr.impl_empty_and_unknown()) {
     return "";
   }
-  ASSIGN_OR_RETURN(std::string key_attr_str, DataItemToStr(key_attr));
-  ASSIGN_OR_RETURN(std::string value_attr_str, DataItemToStr(value_attr));
+  ASSIGN_OR_RETURN(std::string key_attr_str, DataItemToStr(key_attr, depth));
+  ASSIGN_OR_RETURN(std::string value_attr_str,
+                   DataItemToStr(value_attr, depth));
   return absl::StrCat("DICT{", key_attr_str, ", ", value_attr_str, "}");
 }
 
 // Returns the string representation of list item.
-absl::StatusOr<std::string> ListToStr(const DataSlice& ds) {
+absl::StatusOr<std::string> ListToStr(const DataSlice& ds, int64_t depth) {
   ASSIGN_OR_RETURN(const DataSlice list, ds.ExplodeList(0, std::nullopt));
-  ASSIGN_OR_RETURN(const std::string str,
-                   DataSliceImplToStr(list, /*show_content=*/true));
+  ASSIGN_OR_RETURN(
+      const std::string str,
+      DataSliceImplToStr(list, {.depth = depth, .show_content = true}));
   return absl::StrCat("List", str);
 }
 
 // Returns the string representation of dict item.
-absl::StatusOr<std::string> DictToStr(const DataSlice& ds) {
+absl::StatusOr<std::string> DictToStr(const DataSlice& ds, int64_t depth) {
   ASSIGN_OR_RETURN(const DataSlice keys, ds.GetDictKeys());
   const internal::DataSliceImpl& key_slice = keys.slice();
   std::vector<std::string> elements;
@@ -227,21 +235,21 @@ absl::StatusOr<std::string> DictToStr(const DataSlice& ds) {
     ASSIGN_OR_RETURN(DataSlice key,
                      DataSlice::Create(item, keys.GetSchemaImpl(), ds.GetDb()));
     ASSIGN_OR_RETURN(DataSlice value, ds.GetFromDict(key));
-    ASSIGN_OR_RETURN(std::string key_str, DataItemToStr(key));
-    ASSIGN_OR_RETURN(std::string value_str, DataItemToStr(value));
+    ASSIGN_OR_RETURN(std::string key_str, DataItemToStr(key, depth));
+    ASSIGN_OR_RETURN(std::string value_str, DataItemToStr(value, depth));
     elements.emplace_back(absl::StrCat(key_str, "=", value_str));
   }
   return absl::StrCat("Dict{", absl::StrJoin(elements, ", "), "}");
 }
 
 // Returns the string representation of schema item.
-absl::StatusOr<std::string> SchemaToStr(const DataSlice& ds) {
+absl::StatusOr<std::string> SchemaToStr(const DataSlice& ds, int64_t depth) {
   ASSIGN_OR_RETURN(absl::btree_set<arolla::Text> attr_names, ds.GetAttrNames());
   std::vector<std::string> parts;
   parts.reserve(attr_names.size());
   for (const arolla::Text& attr_name : attr_names) {
     ASSIGN_OR_RETURN(DataSlice value, ds.GetAttr(attr_name));
-    ASSIGN_OR_RETURN(std::string value_str, DataItemToStr(value));
+    ASSIGN_OR_RETURN(std::string value_str, DataItemToStr(value, depth));
 
     parts.emplace_back(
         absl::StrCat(absl::StripPrefix(absl::StripSuffix(attr_name, "'"), "'"),
@@ -250,24 +258,30 @@ absl::StatusOr<std::string> SchemaToStr(const DataSlice& ds) {
   return absl::StrJoin(parts, ", ");
 }
 
-absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds) {
+absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds, int64_t depth) {
   const DataItem& data_item = ds.item();
+  DCHECK_GE(depth, 0);
+  if (depth == 0) {
+    return DataItemRepr(data_item);
+  }
 
   if (data_item.template holds_value<ObjectId>()) {
     const ObjectId& obj = data_item.template value<ObjectId>();
     if (obj.IsList()) {
-      return ListToStr(ds);
+      return ListToStr(ds, depth - 1);
     }
     if (obj.IsDict()) {
-      return DictToStr(ds);
+      return DictToStr(ds, depth - 1);
     }
     absl::string_view prefix = "Entity(";
     if (obj.IsExplicitSchema()) {
-      ASSIGN_OR_RETURN(std::string list_schema_str, ListSchemaStr(ds));
+      ASSIGN_OR_RETURN(std::string list_schema_str,
+                       ListSchemaStr(ds, depth - 1));
       if (!list_schema_str.empty()) {
         return list_schema_str;
       }
-      ASSIGN_OR_RETURN(std::string dict_schema_str, DictSchemaStr(ds));
+      ASSIGN_OR_RETURN(std::string dict_schema_str,
+                       DictSchemaStr(ds, depth - 1));
       if (!dict_schema_str.empty()) {
         return dict_schema_str;
       }
@@ -277,7 +291,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds) {
     } else if (ds.GetSchemaImpl() == schema::kObject) {
       prefix = "Obj(";
     }
-    ASSIGN_OR_RETURN(std::string schema_str, SchemaToStr(ds));
+    ASSIGN_OR_RETURN(std::string schema_str, SchemaToStr(ds, depth - 1));
     if (schema_str.empty() && !obj.IsSchema()) {
       return absl::StrCat(prefix, "):", DataItemRepr(data_item));
     }
@@ -288,10 +302,12 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds) {
 
 }  // namespace
 
-absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds) {
-  return ds.VisitImpl([&ds]<typename T>(const T& impl) {
-    return std::is_same_v<T, DataItem> ? DataItemToStr(ds)
-                                       : DataSliceImplToStr(ds);
+absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds,
+                                           const ReprOption& option) {
+  DCHECK_GE(option.depth, 0);
+  return ds.VisitImpl([&ds, &option]<typename T>(const T& impl) {
+    return std::is_same_v<T, DataItem> ? DataItemToStr(ds, option.depth)
+                                       : DataSliceImplToStr(ds, option);
   });
 }
 

@@ -15,14 +15,25 @@
 #ifndef KOLADATA_DATA_SLICE_REPR_H_
 #define KOLADATA_DATA_SLICE_REPR_H_
 
+#include <cstdint>
 #include <string>
+
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 
 namespace koladata {
 
+struct ReprOption {
+  // The maximum depth when printing nested DataItem.
+  int64_t depth = 5;
+  // Print the corresponding content of an item id.
+  bool show_content = false;
+  // TODO: Add option to control truncation.
+};
+
 // Returns the string for python __str__.
-absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds);
+absl::StatusOr<std::string> DataSliceToStr(
+    const DataSlice& ds, const ReprOption& option = ReprOption{});
 
 }  // namespace koladata
 
