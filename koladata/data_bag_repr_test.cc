@@ -29,6 +29,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/status_matchers_backport.h"
@@ -201,6 +202,26 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_DictSchema) {
       DataBagToStr(bag),
       IsOkAndHolds(MatchesRegex(
           R"regex((\n|.)*\$[0-9a-f]{32}\.dudulu => k[0-9a-f]{32}\[dict<INT32, k[0-9a-f]{32}\[dict<INT32, INT32>\]>\](\n|.)*)regex")));
+}
+
+TEST(DataBagReprTest, TestDataBagStringRepresentation_SchemaCycle) {
+  DataBagPtr bag = DataBag::Empty();
+  DataSlice key_item = test::DataItem(114);
+
+  ASSERT_OK_AND_ASSIGN(DataSlice dict,
+                       CreateDictShaped(bag, JaggedDenseArrayShape::Empty(),
+                                        key_item, test::DataItem(514)));
+
+  DataSlice schema = dict.GetSchema();
+  ASSERT_OK(schema.SetAttr(schema::kDictValuesSchemaAttr, dict.GetSchema()));
+  ASSERT_OK(dict.SetInDict(key_item, dict));
+
+  ASSERT_OK(EntityCreator::FromAttrs(bag, {"dudulu"}, {dict}));
+
+  EXPECT_THAT(
+      DataBagToStr(bag),
+      IsOkAndHolds(MatchesRegex(
+          R"regex((\n|.)*\$[0-9a-f]{32}\.dudulu => k[0-9a-f]{32}\[dict<INT32, k[0-9a-f]{32}\[dict<INT32, k[0-9a-f]{32}\[dict<INT32, k[0-9a-f]{32}\[dict<INT32, k[0-9a-f]{32}\[dict<INT32, \.\.\.>\]>\]>\]>\]>\](\n|.)*)regex")));
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_Dict) {

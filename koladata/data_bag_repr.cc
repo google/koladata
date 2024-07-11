@@ -26,6 +26,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -92,47 +93,52 @@ absl::flat_hash_map<ObjectId, AttrMap> BuildListOrDictSchemaAttrMap(
 
 // Returns the string representation of the schema. The schema is
 // recursively expanded if it's nested list or dict schema.
-// TODO: add depth limit for avoiding cycle.
 absl::StatusOr<std::string> SchemaToStr(
     const DataItem& schema_item,
-    const absl::flat_hash_map<ObjectId, AttrMap>& triple_map);
+    const absl::flat_hash_map<ObjectId, AttrMap>& triple_map,
+    int64_t depth = 5);
 
 // Returns the string representation of the schema attribute value. Returns
 // empty string if the attribute is not found.
 absl::StatusOr<std::string> AttrValueToStr(
     absl::string_view attr, const AttrMap& attr_map,
-    const absl::flat_hash_map<ObjectId, AttrMap>& triple_map) {
+    const absl::flat_hash_map<ObjectId, AttrMap>& triple_map, int64_t depth) {
   auto it = attr_map.find(DataItem(arolla::Text(attr)));
   if (it == attr_map.end()) {
     return "";
   }
-  ASSIGN_OR_RETURN(std::string res, SchemaToStr(it->second, triple_map));
+  ASSIGN_OR_RETURN(std::string res,
+                   SchemaToStr(it->second, triple_map, depth - 1));
   return res;
 }
 
 absl::StatusOr<std::string> SchemaToStr(
     const DataItem& schema_item,
-    const absl::flat_hash_map<ObjectId, AttrMap>& triple_map) {
+    const absl::flat_hash_map<ObjectId, AttrMap>& triple_map, int64_t depth) {
   if (!schema_item.holds_value<ObjectId>()) {
     return absl::StrCat(schema_item);
+  }
+  DCHECK_GE(depth, 0);
+  if (depth == 0) {
+    return "...";
   }
   const ObjectId& schema = schema_item.value<ObjectId>();
   auto it = triple_map.find(schema);
   if (it == triple_map.end()) {
     return absl::InternalError("schema is not in the triple map");
   }
-  ASSIGN_OR_RETURN(
-      std::string list_schema_str,
-      AttrValueToStr(schema::kListItemsSchemaAttr, it->second, triple_map));
+  ASSIGN_OR_RETURN(std::string list_schema_str,
+                   AttrValueToStr(schema::kListItemsSchemaAttr, it->second,
+                                  triple_map, depth));
   if (!list_schema_str.empty()) {
     return absl::StrCat("list<", list_schema_str, ">");
   }
-  ASSIGN_OR_RETURN(
-      std::string key_schema_str,
-      AttrValueToStr(schema::kDictKeysSchemaAttr, it->second, triple_map));
-  ASSIGN_OR_RETURN(
-      std::string value_schema_str,
-      AttrValueToStr(schema::kDictValuesSchemaAttr, it->second, triple_map));
+  ASSIGN_OR_RETURN(std::string key_schema_str,
+                   AttrValueToStr(schema::kDictKeysSchemaAttr, it->second,
+                                  triple_map, depth));
+  ASSIGN_OR_RETURN(std::string value_schema_str,
+                   AttrValueToStr(schema::kDictValuesSchemaAttr, it->second,
+                                  triple_map, depth));
   if (!key_schema_str.empty() && !value_schema_str.empty()) {
     return absl::StrCat(internal::DataItemRepr(schema_item), "[dict<",
                         key_schema_str, ", ", value_schema_str, ">]");

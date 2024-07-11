@@ -142,6 +142,7 @@ cc_test(
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
+        "//koladata/internal:schema_utils",
         "//koladata/testing:status_matchers",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/status:statusor",
