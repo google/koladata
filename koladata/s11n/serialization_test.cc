@@ -39,7 +39,7 @@ using internal::DataSliceImpl;
 
 class SerializationTest : public ::testing::Test {
  protected:
-  void SetUp() override { ASSERT_OK(arolla::InitArolla()); }
+  void SetUp() override { arolla::InitArolla(); }
 };
 
 TEST_F(SerializationTest, DataItem) {

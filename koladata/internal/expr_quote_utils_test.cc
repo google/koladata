@@ -29,7 +29,7 @@ namespace koladata::internal {
 namespace {
 
 TEST(ExprQuoteUtils, StableFingerprint) {
-  ASSERT_OK(arolla::InitArolla());
+  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr_1,
       arolla::expr::CallOp("math.add",
