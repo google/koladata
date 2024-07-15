@@ -594,15 +594,93 @@ TEST(DataSliceReprTest, CycleInObject) {
           R"regex(Obj\(a=Obj\(a=Obj\(a=Obj\(a=Obj\(a=\$[0-9a-f]{32}\)\)\)\)\))regex")));
 }
 
-TEST(DataSliceReprTest, ShowContentFromDataSlice) {
+TEST(DataSliceReprTest, DictExceedReprItemLimit) {
   DataBagPtr bag = DataBag::Empty();
+  DataSlice key_item = test::DataSlice<int>({1, 2, 3, 4, 5, 6});
+  DataSlice value_item = test::DataSlice<int>({1, 2, 3, 4, 5, 6});
+
+  ASSERT_OK_AND_ASSIGN(DataSlice dict,
+                       CreateDictShaped(bag, DataSlice::JaggedShape::Empty(),
+                                        key_item, value_item));
+  EXPECT_THAT(DataSliceToStr(dict, {.item_limit = 5}),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(Dict\{([0-9]=[0-9], ){5}\.\.\.\})regex")));
+}
+
+TEST(DataSliceReprTest, ListExceedReprItemLimit) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice list_item = test::DataSlice<int>({1, 2, 3, 4, 5, 6});
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice list,
+      CreateListShaped(bag, DataSlice::JaggedShape::Empty(), list_item));
+
+  EXPECT_THAT(DataSliceToStr(list, {.item_limit = 5}),
+              IsOkAndHolds(StrEq("List[1, 2, 3, 4, 5, ...]")));
+}
+
+TEST(DataSliceReprTest, NestedListExceedReprItemLimit) {
+  DataBagPtr bag = DataBag::Empty();
+
+  std::vector<arolla::OptionalValue<int64_t>> input;
+  for (int i = 0; i < 10; ++i) {
+    for (int j = 0; j < 10; ++j) {
+      input.emplace_back(j);
+    }
+  }
+
+  std::vector<arolla::OptionalValue<int64_t>> edge2_input;
+  for (int i = 0; i <= 10; ++i) {
+    edge2_input.emplace_back(i * 10);
+  }
+
+  arolla::DenseArray<int64_t> edge2_array =
+      arolla::CreateDenseArray<int64_t>(edge2_input);
+
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 10}));
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2,
+                       DenseArrayEdge::FromSplitPoints(std::move(edge2_array)));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_shape,
+      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+
+  arolla::DenseArray<int64_t> ds_array =
+      arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
+  ASSERT_OK_AND_ASSIGN(DataSlice ds,
+                       DataSlice::CreateWithSchemaFromData(
+                           internal::DataSliceImpl::Create(std::move(ds_array)),
+                           std::move(ds_shape)));
+  ASSERT_OK_AND_ASSIGN(DataSlice list, CreateNestedList(bag, ds));
+  EXPECT_THAT(DataSliceToStr(list, {.item_limit = 5}),
+              IsOkAndHolds(StrEq(R"(List[
+  List[0, 1, 2, 3, 4, ...],
+  List[0, 1, 2, 3, 4, ...],
+  List[0, 1, 2, 3, 4, ...],
+  List[0, 1, 2, 3, 4, ...],
+  List[0, 1, 2, 3, 4, ...],
+  ...,
+])")));
+}
+
+TEST(DataSliceReprTest, ObjEntityExceedReprItemLimit) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice obj,
+      ObjectCreator::FromAttrs(bag, {"a", "b", "c", "d", "e", "f"},
+                               std::vector<DataSlice>(6, test::DataItem(1))));
+
+  EXPECT_THAT(DataSliceToStr(obj, {.item_limit = 5}),
+              IsOkAndHolds(StrEq("Obj(a=1, b=1, c=1, d=1, e=1, ...)")));
+
   ASSERT_OK_AND_ASSIGN(
       DataSlice entity,
-      EntityCreator::Shaped(bag, JaggedDenseArrayShape::FlatFromSize(2), {"a"},
-                            {test::DataItem(1)}));
+      EntityCreator::FromAttrs(bag, {"a", "b", "c", "d", "e", "f"},
+                               std::vector<DataSlice>(6, test::DataItem(1))));
 
-  EXPECT_THAT(DataSliceToStr(entity, {.show_content = true}),
-              IsOkAndHolds(StrEq("[Entity(a=1), Entity(a=1)]")));
+  EXPECT_THAT(DataSliceToStr(entity, {.item_limit = 5}),
+              IsOkAndHolds(StrEq("Entity(a=1, b=1, c=1, d=1, e=1, ...)")));
 }
 
 }  // namespace

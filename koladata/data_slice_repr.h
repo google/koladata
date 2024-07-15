@@ -15,6 +15,7 @@
 #ifndef KOLADATA_DATA_SLICE_REPR_H_
 #define KOLADATA_DATA_SLICE_REPR_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
@@ -26,9 +27,11 @@ namespace koladata {
 struct ReprOption {
   // The maximum depth when printing nested DataItem.
   int64_t depth = 5;
-  // Print the corresponding content of an item id.
-  bool show_content = false;
-  // TODO: Add option to control truncation.
+  // When it is a DataSlice, it means the maximum number of items to show across
+  // all dimensions. When it is a DataItem, it means the maximum number of
+  // entity/object attributes, list items, or dict key/value pairs to show.
+  size_t item_limit = 20;
+  // TODO: Add option to control DataSlice truncation.
 };
 
 // Returns the string for python __str__.
