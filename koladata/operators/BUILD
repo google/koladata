@@ -32,8 +32,6 @@ load(
     "@com_google_arolla//arolla/qexpr/operators/dense_array:lifter.bzl",
     "make_dense_array_type",
 )
-load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
-load("@rules_python//python:proto.bzl", "py_proto_library")
 
 package(default_visibility = [
     "//koladata:internal",

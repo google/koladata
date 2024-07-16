@@ -1,0 +1,15 @@
+{{$class_name := FilenameStem | UpperCamelCase -}}
+"""Tests for {{PythonModule}}."""
+
+from absl.testing import absltest
+from {{PythonPackage}} import {{PythonModule}}
+
+
+class {{$class_name}}(absltest.TestCase):
+
+  def test_give_me_a_name(self):
+    pass
+
+
+if __name__ == '__main__':
+  absltest.main()

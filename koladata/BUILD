@@ -17,10 +17,6 @@
 # Implementation of Koda infrastructure and C++ API. Libraries in this
 # module should not depend on Python C library.
 
-load("@com_google_arolla//arolla/util/testing:testing.bzl", "benchmark_smoke_test")
-load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
-load("@rules_python//python:proto.bzl", "py_proto_library")
-
 package(default_visibility = [
     "//koladata:internal",
 ])
@@ -573,7 +569,6 @@ cc_test(
         "//koladata/testing:status_matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_googletest//:gtest_main",
     ],

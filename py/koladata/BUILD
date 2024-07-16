@@ -1,0 +1,118 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Koda, a library for advanced data manipulation.
+
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+
+package(default_visibility = ["//py/koladata:__subpackages__"])
+
+licenses(["notice"])
+
+exports_files(["LICENSE"])
+
+py_library(
+    name = "koladata",
+    visibility = ["//visibility:public"],
+    deps = [":kd"],
+)
+
+py_library(
+    name = "kd",
+    srcs = ["kd.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/functions",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_item",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:dict_item",
+        "//py/koladata/types:list_item",
+        "//py/koladata/types:literal_operator",
+        "//py/koladata/types:schema_constants",
+        "//py/koladata/types:schema_item",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "kd_test",
+    srcs = ["kd_test.py"],
+    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
+    deps = [
+        ":kd",
+        "//py/koladata/types:jagged_shape",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "benchmarks",
+    srcs = ["benchmarks.py"],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        ":kd",
+        "//py/google_benchmark",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+cc_test(
+    name = "cc_benchmarks",
+    srcs = ["cc_benchmarks.cc"],
+    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
+    deps = [
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/operators",
+        "//koladata/s11n",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/operators/all",
+        "@com_google_arolla//arolla/io",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/serialization_codecs",
+        "@com_google_arolla//arolla/jagged_shape/expr",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr/operators/all",
+        "@com_google_arolla//arolla/serialization_codecs:all_decoders",
+        "@com_google_arolla//arolla/serving",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//py/arolla/jagged_shape/operators:jagged_qexpr_ops",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+bzl_library(
+    name = "py_extension_bzl",
+    srcs = ["py_extension.bzl"],
+    visibility = ["//koladata:internal"],
+)

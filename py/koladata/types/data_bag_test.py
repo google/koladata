@@ -1,0 +1,1122 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Tests for data_bag."""
+
+import gc
+import sys
+
+from absl.testing import absltest
+from absl.testing import parameterized
+from arolla import arolla
+from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
+from koladata.operators import comparison as _  # pylint: disable=unused-import
+from koladata.operators import kde_operators
+from koladata.testing import testing
+from koladata.types import data_bag
+from koladata.types import data_item
+from koladata.types import data_slice
+from koladata.types import dict_item
+from koladata.types import jagged_shape
+from koladata.types import list_item
+from koladata.types import schema_constants
+
+
+kde = kde_operators.kde
+bag = data_bag.DataBag.empty
+ds = data_slice.DataSlice.from_vals
+
+
+class DataBagTest(parameterized.TestCase):
+
+  def test_ref_count(self):
+    gc.collect()
+    diff_count = 10
+    base_count = sys.getrefcount(data_bag.DataBag)
+    dbs = []
+    for _ in range(diff_count):
+      dbs.append(bag())
+
+    self.assertEqual(sys.getrefcount(data_bag.DataBag), base_count + diff_count)
+
+    del dbs
+    gc.collect()
+    # NOTE: bag() invokes `PyDataBag_Type()` C Python function multiple times
+    # and this verifies there are no leaking references.
+    self.assertEqual(sys.getrefcount(data_bag.DataBag), base_count)
+
+    # NOTE: _exactly_equal() invokes `PyDataBag_Type()` C Python function
+    # and this verifies there are no leaking references.
+    bag()._exactly_equal(bag())
+    self.assertEqual(sys.getrefcount(data_bag.DataBag), base_count)
+
+    x = bag().obj()
+    self.assertEqual(sys.getrefcount(data_bag.DataBag), base_count)
+    db = x.db
+    self.assertEqual(sys.getrefcount(data_bag.DataBag), base_count + 1)
+    del x
+    gc.collect()
+    self.assertEqual(sys.getrefcount(data_bag.DataBag), base_count + 1)
+    del db
+    gc.collect()
+    self.assertEqual(sys.getrefcount(data_bag.DataBag), base_count)
+
+  def test_qvalue(self):
+    self.assertIsInstance(bag(), arolla.QValue)
+
+  def test_fingerprint(self):
+    db1 = bag()
+    fp1 = db1.fingerprint
+    del db1
+    db2 = bag()
+    self.assertNotEqual(db2.fingerprint, fp1)
+
+    x = db2.obj()
+    self.assertIsNot(x.db, db2)
+    self.assertEqual(x.db.fingerprint, db2.fingerprint)
+
+  def test_getitem(self):
+    db = bag()
+    x = db[ds([1, 2, 3])]
+    testing.assert_equal(x.db, db)
+
+    x = db[ds(42)]
+    testing.assert_equal(x.db, db)
+
+    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got list'):
+      _ = db[[1, 2, 3]]
+
+  @parameterized.named_parameters(
+      (
+          'empty',
+          bag(),
+          (
+              r'^DataBag \$[0-9a-f]{4} with 0 values in 0 attrs, plus 0 schema'
+              r' values and 0 fallbacks. Top attrs:\n'
+              r'Use db.contents_repr\(\) to see the actual values\.$'
+          ),
+      ),
+      (
+          'attributes',
+          bag().new(a=1, b='a').db,
+          (
+              r'^DataBag \$[0-9a-f]{4} with 2 values in 2 attrs, plus 2 schema'
+              r' values and 0 fallbacks. Top attrs:\n'
+              r'  b: 1 values\n'
+              r'  a: 1 values\n'
+              r'Use db.contents_repr\(\) to see the actual values\.$'
+          ),
+      ),
+      (
+          'lists',
+          bag().list([[1, 2], [3]]).db,
+          (
+              r'DataBag \$[0-9a-f]{4} with 5 values in 1 attrs, plus 2 schema'
+              r' values and 0 fallbacks. Top attrs:\n'
+              r'  <list items>: 5 values\n'
+              r'Use db.contents_repr\(\) to see the actual values\.$'
+          ),
+      ),
+      (
+          'dicts',
+          bag().dict({'a': {'inner': 42}}).db,
+          (
+              r'^DataBag \$[0-9a-f]{4} with 2 values in 2 attrs, plus 4 schema'
+              r' values and 0 fallbacks. Top attrs:\n'
+              r'  <dict value>: 1 values\n'
+              r'  <dict value>: 1 values\n'
+              r'Use db.contents_repr\(\) to see the actual values\.$'
+          ),
+      ),
+      (
+          'fallback',
+          bag().new(a=1).with_fallback(bag().list([1, 2]).db).db,
+          (
+              r'^DataBag \$[0-9a-f]{4} with 0 values in 0 attrs, plus 0 schema'
+              r' values and 2 fallbacks. Top attrs:\n'
+              r'Use db.contents_repr\(\) to see the actual values.$'
+          ),
+      ),
+      (
+          'two_fallbacks',
+          bag()
+          .new(a=1)
+          .with_fallback(bag().list([1, 2]).db)
+          .with_fallback(bag().dict({'a': 42}).db)
+          .db,
+          (
+              r'^DataBag \$[0-9a-f]{4} with 0 values in 0 attrs, plus 0 schema'
+              r' values and 2 fallbacks. Top attrs:\n'
+              r'Use db.contents_repr\(\) to see the actual values\.$'
+          ),
+      ),
+  )
+  def test_repr(self, db, expected_repr):
+    # Repr may not be deterministic, so we save it into a variable in order to
+    # include it in the error message.
+    db_repr = repr(db)
+    self.assertRegex(
+        db_repr,
+        expected_repr,
+        msg=f'\n\nregex={expected_repr}\n\ndb={db_repr}',
+    )
+
+  @parameterized.named_parameters(
+      (
+          'empty',
+          bag(),
+          r"""DataBag \$[0-9a-f]{4}:
+
+SchemaBag:
+""",
+      ),
+      (
+          'lists',
+          bag().list([1, 2, 3]).db,
+          r"""DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}\[:\] => \[1, 2, 3\]
+
+SchemaBag:
+""",
+      ),
+      (
+          'dicts',
+          bag().dict({'a': 1, 2: 'b'}).db,
+          r"""DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}\[2\] => 'b'
+\$[0-9a-f]{32}\['a'\] => 1
+
+SchemaBag:
+""",
+      ),
+      (
+          'entity',
+          bag().new(a=1, b='a').db,
+          r"""DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}\.a => 1
+\$[0-9a-f]{32}\.b => a
+
+SchemaBag:
+\$[0-9a-f]{32}\.a => INT32
+\$[0-9a-f]{32}\.b => TEXT
+""",
+      ),
+      (
+          'object',
+          bag().obj(a=1, b='a').db,
+          r"""DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}\.__schema__ => k[0-9a-f]{32}
+\$[0-9a-f]{32}\.a => 1
+\$[0-9a-f]{32}\.b => a
+
+SchemaBag:
+k[0-9a-f]{32}\.a => INT32
+k[0-9a-f]{32}\.b => TEXT
+""",
+      ),
+  )
+  def test_contents_repr(self, db, expected_repr_regex):
+    db_repr = db.contents_repr()
+    self.assertRegex(
+        db_repr,
+        expected_repr_regex,
+        msg=f'\n\nregex={expected_repr_regex}\n\ndb={db_repr}',
+    )
+
+  def test_contents_repr_fallback(self):
+    db = bag()
+    entity = db.new(x=1)
+    ds2 = entity.with_db(bag()).with_fallback(db)
+    db_repr = ds2.db.contents_repr()
+    expected_repr = r"""DataBag \$[0-9a-f]{4}:
+
+SchemaBag:
+
+2 fallback DataBag\(s\):
+  fallback #0 \$[0-9a-f]{4}:
+  DataBag:
+
+  SchemaBag:
+
+  fallback #1 \$[0-9a-f]{4}:
+  DataBag:
+  \$[0-9a-f]{32}\.x => 1
+
+  SchemaBag:
+  \$[0-9a-f]{32}\.x => INT32
+"""
+    self.assertRegex(
+        db_repr, expected_repr, msg=f'\n\nregex={expected_repr}\n\ndb={db_repr}'
+    )
+    with self.subTest('nested-fallbacks'):
+      db = bag()
+      entity = db.new(x=1)
+      db2 = bag()
+      db2.new(y=2)
+      entity2 = entity.with_db(db2).with_fallback(db)
+      entity3 = entity2.with_db(bag()).with_fallback(entity2.db)
+      db_repr = entity3.db.contents_repr()
+      expected_repr = r"""DataBag \$[0-9a-f]{4}:
+
+SchemaBag:
+
+2 fallback DataBag\(s\):
+  fallback #0 \$[0-9a-f]{4}:
+  DataBag:
+
+  SchemaBag:
+
+  fallback #1 \$[0-9a-f]{4}:
+  DataBag:
+
+  SchemaBag:
+
+  2 fallback DataBag\(s\):
+    fallback #0 \$[0-9a-f]{4}:
+    DataBag:
+    \$[0-9a-f]{32}\.y => 2
+
+    SchemaBag:
+    \$[0-9a-f]{32}\.y => INT32
+
+    fallback #1 \$[0-9a-f]{4}:
+    DataBag:
+    \$[0-9a-f]{32}\.x => 1
+
+    SchemaBag:
+    \$[0-9a-f]{32}\.x => INT32
+"""
+      self.assertRegex(
+          db_repr,
+          expected_repr,
+          msg=f'\n\nregex={expected_repr}\n\ndb={db_repr}',
+      )
+
+  def test_new(self):
+    db = bag()
+    x = db.new(
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.TEXT),
+    )
+    y = db.new(x=x)
+    testing.assert_allclose(
+        y.x.a, ds([3.14], schema_constants.FLOAT64).with_db(db)
+    )
+    testing.assert_equal(y.x.b, ds(['abc']).with_db(db))
+    testing.assert_equal(x.get_schema(), y.get_schema().x)
+    testing.assert_equal(x.a.get_schema(), schema_constants.FLOAT64.with_db(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_db(db))
+
+  def test_obj(self):
+    db = bag()
+    x = db.obj(
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.TEXT),
+    )
+    y = db.obj(x=x)
+    testing.assert_equal(y.get_schema(), schema_constants.OBJECT.with_db(db))
+    testing.assert_equal(y.x.get_schema(), schema_constants.OBJECT.with_db(db))
+    testing.assert_equal(
+        y.get_attr('__schema__').x,
+        ds([schema_constants.OBJECT]).with_db(db),
+    )
+    testing.assert_allclose(
+        y.x.a, ds([3.14], schema_constants.FLOAT64).with_db(db)
+    )
+    testing.assert_equal(y.x.b, ds(['abc']).with_db(db))
+    testing.assert_equal(x.get_schema(), schema_constants.OBJECT.with_db(db))
+    testing.assert_equal(x.a.get_schema(), schema_constants.FLOAT64.with_db(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_db(db))
+    testing.assert_allclose(
+        x.a, ds([3.14], schema_constants.FLOAT64).with_db(db)
+    )
+    testing.assert_equal(x.b, ds(['abc']).with_db(db))
+
+    with self.assertRaises(AttributeError):
+      # NOTE: Not possible through __getattr__.
+      _ = x.__schema__
+
+    testing.assert_equal(
+        x.get_attr('__schema__').a, ds([schema_constants.FLOAT64]).with_db(db)
+    )
+    testing.assert_equal(
+        x.get_attr('__schema__').b, ds([schema_constants.TEXT]).with_db(db)
+    )
+
+  def test_uuobj(self):
+    db = bag()
+    x = db.uuobj(
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.TEXT),
+    )
+    testing.assert_equal(x.get_schema(), schema_constants.OBJECT.with_db(db))
+    testing.assert_equal(x.a.get_schema(), schema_constants.FLOAT64.with_db(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_db(db))
+    testing.assert_allclose(
+        x.a, ds([3.14], schema_constants.FLOAT64).with_db(db)
+    )
+    testing.assert_equal(x.b, ds(['abc']).with_db(db))
+
+    testing.assert_equal(
+        x.get_attr('__schema__').a, ds([schema_constants.FLOAT64]).with_db(db)
+    )
+    testing.assert_equal(
+        x.get_attr('__schema__').b, ds([schema_constants.TEXT]).with_db(db)
+    )
+
+    z = db.uuobj(
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.TEXT),
+    )
+    testing.assert_equal(x, z)
+    u = db.uuobj(
+        'seed',
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.TEXT),
+    )
+    self.assertNotEqual(x.fingerprint, u.fingerprint)
+
+    v = db.uuobj(
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.TEXT),
+        seed='seed'
+    )
+    testing.assert_equal(u, v)
+    with self.assertRaises(ValueError):
+      # seed is not an attribute.
+      _ = v.seed
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, 'seed must be a utf8 string, got bytes'
+    ):
+      _ = db.uuobj(
+          a=ds([3.14], schema_constants.FLOAT64),
+          b=ds(['abc'], schema_constants.TEXT),
+          seed=b'seed',
+      )
+
+  def test_uu_schema(self):
+    db = bag()
+    x = db.uu_schema(
+        a=schema_constants.INT32,
+        b=schema_constants.TEXT)
+
+    testing.assert_equal(x.a, schema_constants.INT32.with_db(db))
+    testing.assert_equal(x.b, schema_constants.TEXT.with_db(db))
+
+    y = db.uu_schema(
+        a=schema_constants.FLOAT32,
+        b=schema_constants.TEXT,
+    )
+    self.assertNotEqual(x.fingerprint, y.fingerprint)
+
+    z = db.uu_schema(
+        a=schema_constants.INT32,
+        b=schema_constants.TEXT,
+    )
+    testing.assert_equal(x, z)
+    u = db.uu_schema(
+        'seed',
+        a=schema_constants.INT32,
+        b=schema_constants.TEXT,
+    )
+    self.assertNotEqual(x.fingerprint, u.fingerprint)
+
+    v = db.uu_schema(
+        a=schema_constants.INT32,
+        b=schema_constants.TEXT,
+        seed='seed'
+    )
+    testing.assert_equal(u, v)
+    with self.assertRaises(ValueError):
+      # seed is not an attribute.
+      _ = v.seed
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, 'seed must be a utf8 string, got bytes'
+    ):
+      _ = db.uu_schema(
+          a=schema_constants.INT32,
+          b=schema_constants.TEXT,
+          seed=b'seed',
+      )
+
+  def test_new_schema(self):
+    db = bag()
+    db2 = bag()
+    x = db.new_schema(
+        a=schema_constants.INT32,
+        b=schema_constants.TEXT
+    )
+
+    testing.assert_equal(x.a, schema_constants.INT32.with_db(db))
+    testing.assert_equal(x.b, schema_constants.TEXT.with_db(db))
+
+    y = db.new_schema(
+        a=schema_constants.INT32,
+        b=schema_constants.TEXT,
+    )
+    self.assertNotEqual(x, y)
+
+    # Testing DataBag adoption.
+    z = db.new_schema(
+        a=schema_constants.INT32,
+        b=db2.new_schema(a=schema_constants.INT32),
+    )
+    testing.assert_equal(z.a, schema_constants.INT32.with_db(db))
+    testing.assert_equal(z.b.a, schema_constants.INT32.with_db(db))
+
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError,
+        'expected DataSlice argument, got list;',
+    ):
+      _ = db.new_schema(
+          a=schema_constants.INT32,
+          b=[1, 2, 3],
+      )
+    testing.assert_equivalent(db, bag())
+
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError,
+        'expected DataSlice argument, got dict;',
+    ):
+      _ = db.new_schema(
+          a=schema_constants.INT32,
+          b={'a': 1},
+      )
+    testing.assert_equivalent(db, bag())
+
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError,
+        'expected DataSlice argument, got Text;',
+    ):
+      _ = db.new_schema(
+          a=schema_constants.INT32,
+          b=arolla.text('hello'),
+      )
+    testing.assert_equivalent(db, bag())
+
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError,
+        'schema\'s schema must be SCHEMA, got: OBJECT;',
+    ):
+      db2 = bag()
+      _ = db.new_schema(
+          a=schema_constants.INT32,
+          b=db2.obj(a=schema_constants.INT32),
+      )
+    testing.assert_equivalent(db, bag())
+
+  def test_new_auto_broadcasting(self):
+    db = bag()
+    x = db.new(a=ds(12), b=ds([[1, None, 6], [None], [123]]))
+    testing.assert_equal(x.a, ds([[12, 12, 12], [12], [12]]).with_db(db))
+    testing.assert_equal(x.b, ds([[1, None, 6], [None], [123]]).with_db(db))
+
+    with self.assertRaisesRegex(ValueError, 'shapes are not compatible'):
+      db.new(a=ds([1, 2, 3]), b=ds([3.14, 3.14]))
+
+  def test_obj_auto_broadcasting(self):
+    db = bag()
+    x = db.obj(a=ds(b'a'), b=ds([[1, None, 6], [None], [123]]))
+    testing.assert_equal(
+        x.a, ds([[b'a', b'a', b'a'], [b'a'], [b'a']]).with_db(db)
+    )
+    testing.assert_equal(x.b, ds([[1, None, 6], [None], [123]]).with_db(db))
+    testing.assert_equal(x.a.get_schema(), schema_constants.BYTES.with_db(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.INT32.with_db(db))
+
+    with self.assertRaisesRegex(ValueError, 'shapes are not compatible'):
+      db.obj(a=ds([1, 2, 3]), b=ds([3.14, 3.14]))
+    testing.assert_equal(
+        x.get_attr('__schema__').a,
+        ds([
+            [schema_constants.BYTES] * 3,
+            [schema_constants.BYTES],
+            [schema_constants.BYTES],
+        ]).with_db(db),
+    )
+    testing.assert_equal(
+        x.get_attr('__schema__').b,
+        ds([
+            [schema_constants.INT32] * 3,
+            [schema_constants.INT32],
+            [schema_constants.INT32],
+        ]).with_db(db),
+    )
+
+  def test_new_shaped(self):
+    db = bag()
+    shape = jagged_shape.create_shape([3])
+    x = db.new_shaped(shape)
+    with self.assertRaisesRegex(
+        ValueError, r'The attribute \'a\' is missing on the schema'
+    ):
+      x.a = ds([1, 2, 3])
+    x.get_schema().a = schema_constants.INT32
+    self.assertIsInstance(x, data_slice.DataSlice)
+    x.a = ds([1, 2, 3])
+    testing.assert_equal(x.a, ds([1, 2, 3]).with_db(db))
+
+    # Rank 0.
+    shape = jagged_shape.create_shape()
+    self.assertIsInstance(db.new_shaped(shape), data_item.DataItem)
+
+    with self.assertRaisesRegex(
+        TypeError, r'expected mandatory \'shape\' argument'
+    ):
+      db.new_shaped()
+    with self.assertRaisesRegex(TypeError, 'expected JaggedShape, got int'):
+      db.new_shaped(4)
+    with self.assertRaisesRegex(
+        TypeError, 'expected JaggedShape, got .*DataBag'
+    ):
+      db.new_shaped(db)
+    with self.assertRaisesRegex(
+        TypeError,
+        'expected JaggedShape, got JaggedArrayShape',
+    ):
+      # Using JaggedArrayShape, instead of JaggedDenseArrayShape
+      shape = arolla_jagged_shape.JaggedArrayShape.from_edges(
+          arolla.types.ArrayEdge.from_sizes(arolla.array([3]))
+      )
+      db.new_shaped(shape)
+
+  def test_new_like(self):
+    db = bag()
+    shape_and_mask_from = ds([[1, None, 1], [None, 2]])
+    x = db.new_like(shape_and_mask_from)
+    testing.assert_equal(
+        kde.has._eval(x).with_db(None),  # pylint: disable=protected-access
+        ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]])
+    )
+    with self.assertRaisesRegex(
+        ValueError, r'The attribute \'a\' is missing on the schema'
+    ):
+      x.a = ds([1, 2])
+    x.get_schema().a = schema_constants.INT32
+    self.assertIsInstance(x, data_slice.DataSlice)
+    x.a = ds([[1, 2, 3], [4, 5]])
+    testing.assert_equal(x.a, ds([[1, None, 3], [None, 5]]).with_db(db))
+
+    # Rank 0.
+    shape_and_mask_from = ds(1)
+    self.assertIsInstance(db.new_like(shape_and_mask_from), data_item.DataItem)
+    shape_and_mask_from = ds(None)
+    self.assertIsInstance(db.new_like(shape_and_mask_from), data_item.DataItem)
+
+    with self.assertRaisesRegex(
+        TypeError, r'expected mandatory \'shape_and_mask_from\' argument'
+    ):
+      db.new_like()
+    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got int'):
+      db.new_like(4)
+
+  def test_obj_shaped(self):
+    db = bag()
+    shape = jagged_shape.create_shape([3])
+    x = db.obj_shaped(shape)
+    self.assertIsInstance(x, data_slice.DataSlice)
+    # Allows assignment without touching schema first.
+    x.a = ds([1, 2, 3])
+    testing.assert_equal(x.a.get_schema(), schema_constants.INT32.with_db(db))
+    testing.assert_equal(x.a, ds([1, 2, 3]).with_db(db))
+    testing.assert_equal(
+        x.get_attr('__schema__').a,
+        ds([schema_constants.INT32] * 3).with_db(db),
+    )
+
+    with self.assertRaisesRegex(
+        TypeError, r'expected mandatory \'shape\' argument'
+    ):
+      db.obj_shaped()
+    with self.assertRaisesRegex(TypeError, 'expected JaggedShape, got int'):
+      db.obj_shaped(1)
+
+  def test_obj_like(self):
+    db = bag()
+    shape_and_mask_from = ds([[1, None, 1], [None, 2]])
+    x = db.obj_like(shape_and_mask_from)
+    testing.assert_equal(
+        kde.has._eval(x).with_db(None),  # pylint: disable=protected-access
+        ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]])
+    )
+    x.a = ds([[1, 2, 3], [4, 5]])
+    testing.assert_equal(x.a, ds([[1, None, 3], [None, 5]]).with_db(db))
+
+    # Rank 0.
+    shape_and_mask_from = ds(1)
+    self.assertIsInstance(db.obj_like(shape_and_mask_from), data_item.DataItem)
+    shape_and_mask_from = ds(None)
+    self.assertIsInstance(db.obj_like(shape_and_mask_from), data_item.DataItem)
+
+    with self.assertRaisesRegex(
+        TypeError, r'expected mandatory \'shape_and_mask_from\' argument'
+    ):
+      db.obj_like()
+    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got int'):
+      db.obj_like(4)
+
+  def test_obj_merging(self):
+    db = bag()
+    x = db.obj(a=bag().list([1, 2, 3]), b=bag().list([4, 5, 6]))
+    testing.assert_equal(x.a[:], ds([1, 2, 3]).with_db(db))
+    testing.assert_equal(x.b[:], ds([4, 5, 6]).with_db(db))
+
+  def test_dict(self):
+    db = bag()
+
+    # 0-arg
+    x = db.dict()
+    x['a'] = 1
+    testing.assert_dicts_equal(
+        x,
+        db.dict(
+            {'a': 1},
+            key_schema=schema_constants.OBJECT,
+            value_schema=schema_constants.OBJECT,
+        ),
+    )
+
+    x = db.dict(
+        key_schema=schema_constants.INT64, value_schema=schema_constants.TEXT
+    )
+    self.assertEqual(
+        x.get_schema().get_attr('__keys__'), schema_constants.INT64
+    )
+    self.assertEqual(
+        x.get_schema().get_attr('__values__'), schema_constants.TEXT
+    )
+
+    # 1-arg
+    x = db.dict({'a': 42})
+    testing.assert_equal(x['a'], ds(42).with_db(db))
+    x = db.dict({'a': {b'x': 42, b'y': 12}, 'b': {b'z': 15}})
+    testing.assert_equal(
+        x[['a', 'b']][[b'x', b'x'], [b'z']],
+        ds([[42, 42], [15]]).with_db(db),
+    )
+
+    # 2-arg
+    x = db.dict(ds(['a', 'b']), 1)
+    self.assertEqual(x.get_shape().rank(), 0)
+    testing.assert_equal(x[['a', 'b']], ds([1, 1]).with_db(db))
+
+    x = db.dict(ds([['a', 'b'], ['c']]), 1)
+    # NOTE: Dimension of dicts is reduced by 1.
+    self.assertEqual(x.get_shape().rank(), 1)
+    testing.assert_equal(
+        x[['a', 'b'], ['d']],
+        ds([[1, 1], [None]]).with_db(db),
+    )
+
+  def test_dict_errors(self):
+    db = bag()
+    with self.assertRaisesRegex(
+        TypeError,
+        r'`items_or_keys` must be a DataSlice or DataItem \(or convertible '
+        r'to DataItem\) if `values` is provided, but got dict',
+    ):
+      db.dict({'a': 42}, 12)
+    with self.assertRaisesRegex(
+        TypeError,
+        '`items_or_keys` must be a Python dict if `values` is not provided,'
+        ' but got str',
+    ):
+      db.dict('a')
+
+  def test_dict_shaped(self):
+    # NOTE: more tests for dict_shaped in
+    # //py/koladata/impure_function_tests/dict_shaped_test.py
+
+    db = bag()
+    shape = jagged_shape.create_shape([3])
+    x = db.dict_shaped(
+        shape, ds('a'), ds([1, 2, 3]), value_schema=schema_constants.INT64
+    )
+    self.assertIsInstance(x, data_slice.DataSlice)
+    testing.assert_dicts_keys_equal(x, ds([['a'], ['a'], ['a']]).with_db(db))
+    testing.assert_equal(
+        x['a'], ds([1, 2, 3], schema_constants.INT64).with_db(db)
+    )
+
+  def test_dict_like(self):
+    # NOTE: more tests for dict_like in
+    # //py/koladata/impure_function_tests/dict_like_test.py
+
+    db = bag()
+    x = db.dict_like(
+        ds([None, 0]),
+        ds([['a'], ['b', 'c']]),
+        ds(42),
+        value_schema=schema_constants.INT64,
+    )
+    testing.assert_dicts_keys_equal(x, ds([[], ['b', 'c']]))
+    testing.assert_equal(
+        x['a'], ds([None, None], schema_constants.INT64).with_db(db)
+    )
+    testing.assert_equal(
+        x['b'], ds([None, 42], schema_constants.INT64).with_db(db)
+    )
+
+  def test_empty_list(self):
+    db = bag()
+    l = db.list()
+    self.assertEqual(l.get_shape().rank(), 0)
+    testing.assert_equal(l[:], ds([]).with_db(db))
+    testing.assert_equal(
+        l.get_schema().get_attr('__items__'),
+        schema_constants.OBJECT.with_db(db),
+    )
+
+  def test_list_errors(self):
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError,
+        'creating a list from values requires at least one dimension',
+    ):
+      db.list(42)
+    with self.assertRaisesRegex(
+        ValueError,
+        'creating a list from values requires at least one dimension',
+    ):
+      db.list(data_item.DataItem.from_vals('a'))
+    with self.assertRaisesRegex(
+        ValueError, 'DataBag._list accepts exactly 3 arguments, got 4'
+    ):
+      db._list(ds([]), ds([]), ds([]), ds([]))
+
+  @parameterized.parameters(
+      ([], 1),
+      ([1, 2, 3], 1),
+      ([1, 2, None, 4], 1),
+      ([[1, 2, 3], [4, 5]], 2),
+      ([[[1, 2, 3]], [[4, 5]]], 3),
+  )
+  def test_list_from_python_list(self, values, depth):
+    db = bag()
+    l = db.list(values)
+    self.assertEqual(l.get_shape().rank(), 0)
+
+    item_schema = l.get_schema()
+    for _ in range(depth):
+      item_schema = item_schema.get_attr('__items__')
+    testing.assert_equal(item_schema.db, db)
+    testing.assert_equal(
+        item_schema.with_db(None),
+        schema_constants.INT32 if values else schema_constants.OBJECT,
+    )
+
+    exploded_ds = l
+    for _ in range(depth):
+      exploded_ds = exploded_ds[:]
+    testing.assert_equal(exploded_ds, ds(values).with_db(db))
+
+  @parameterized.parameters(
+      ([], []),
+      ([1, 2, 3], []),
+      ([[1, 2, 3], [4, 5]], [[2]]),
+      ([[[1, 2, 3]], [[4, 5]]], [[2], [1, 1]]),
+  )
+  def test_list_from_slice(self, values, shape_sizes):
+    db = bag()
+    values_ds = ds(values)
+    l = db.list(values_ds)
+    testing.assert_equal(
+        l.get_schema().get_attr('__items__'),
+        values_ds.get_schema().with_db(db),
+    )
+    exploded_ds = l[:]
+    testing.assert_equal(exploded_ds, ds(values).with_db(db))
+    testing.assert_equal(l.get_shape(), jagged_shape.create_shape(*shape_sizes))
+
+  def test_list_shaped(self):
+    # NOTE: more tests for list_shaped in
+    # //py/koladata/impure_function_tests/list_shaped_test.py
+
+    db = bag()
+    shape = jagged_shape.create_shape([3])
+    l = db.list_shaped(shape, ds([[1, 2], [3], []]))
+    self.assertIsInstance(l, data_slice.DataSlice)
+    testing.assert_equal(l[:], ds([[1, 2], [3], []]).with_db(db))
+
+  def test_list_like(self):
+    # NOTE: more tests for list_like in
+    # //py/koladata/impure_function_tests/list_like_test.py
+
+    db = bag()
+    l = db.list_like(ds([[1, None], [1]]), ds([[[1, 2], [3]], [[4, 5]]]))
+    testing.assert_equal(l[:], ds([[[1, 2], []], [[4, 5]]]).with_db(db))
+
+  def test_list_like_impl(self):
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError, 'DataBag._list_like accepts exactly 4 arguments, got 3'
+    ):
+      db._list_like(ds([]), ds([]), ds([]))
+    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got int'):
+      db._list_like(56, 57, 58, 59)
+    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got Int'):
+      db._list_like(arolla.int32(56), 57, 58, 59)
+
+  def test_exactly_equal_impl_raises(self):
+    with self.assertRaisesRegex(
+        ValueError, 'DataBag._exactly_equal accepts exactly 1 argument, got 2'
+    ):
+      bag()._exactly_equal(42, 42)
+
+    with self.assertRaisesRegex(
+        ValueError, 'DataBag._exactly_equal accepts exactly 1 argument, got 0'
+    ):
+      bag()._exactly_equal()
+
+    with self.assertRaisesRegex(TypeError, 'cannot compare DataBag with int'):
+      bag()._exactly_equal(42)
+
+  def test_get_fallbacks(self):
+    db1 = bag()
+    db2 = bag()
+    o = db1.obj(a=1)
+    res = o.with_db(db2).with_fallback(db1)
+    fallbacks = res.db.get_fallbacks()
+    self.assertLen(fallbacks, 2)
+    testing.assert_equal(fallbacks[0], db2)
+    testing.assert_equal(fallbacks[1], db1)
+
+    with self.subTest('three-fallbacks'):
+      db1 = bag()
+      db2 = bag()
+      db3 = bag()
+      o = db1.obj(a=1)
+      res1 = o.with_fallback(db2)
+      db4 = res1.db
+      res2 = res1.with_fallback(db3)
+      fallbacks = res2.db.get_fallbacks()
+      self.assertLen(fallbacks, 2)
+      testing.assert_equal(fallbacks[0], db4)
+      testing.assert_equal(fallbacks[1], db3)
+      self.assertLen(db4.get_fallbacks(), 2)
+      testing.assert_equal(db4.get_fallbacks()[0], db1)
+      testing.assert_equal(db4.get_fallbacks()[1], db2)
+
+    with self.subTest('no-fallbacks'):
+      db = bag()
+      self.assertEmpty(db.get_fallbacks())
+
+  def test_exactly_equal_impl(self):
+    db1 = bag()
+    db2 = bag()
+    self.assertTrue(db1._exactly_equal(db2))
+    _ = db1.obj(a=1)
+    self.assertFalse(db1._exactly_equal(db2))
+    _ = db2.obj(a=1)
+    self.assertFalse(db1._exactly_equal(db2))
+
+  def test_exactly_equal_impl_fallbacks(self):
+    db1 = bag()
+    db2 = bag()
+    x = data_slice.DataSlice.from_vals([1, 2, 3])
+    ds12 = x.with_db(db1).with_fallback(db2)
+    ds1 = x.with_db(db1)
+    self.assertFalse(ds12.db._exactly_equal(ds1.db))
+
+    ds21 = x.with_db(db2).with_fallback(db1)
+    self.assertTrue(ds12.db._exactly_equal(ds21.db))
+
+    _ = db1.obj(x=1)
+    self.assertFalse(ds12.db._exactly_equal(ds21.db))
+
+  def test_kwargs_to_namedtuple_no_ds(self):
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        bag()._kwargs_to_namedtuple(a=1, b=2, c=3),
+        arolla.namedtuple(a=ds(1), b=ds(2), c=ds(3))
+    )
+
+  def test_kwargs_to_namedtuple_no_list_or_dict(self):
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        bag()._kwargs_to_namedtuple(a=1, b=ds(2), c=3),
+        arolla.namedtuple(a=ds(1), b=ds(2), c=ds(3))
+    )
+
+  def test_kwargs_to_namedtuple_list_and_dict(self):
+    db = bag()
+    res = db._kwargs_to_namedtuple(a=[1, 2, 3], b=ds(2), c={'a': 43})
+    self.assertTrue(arolla.types.is_namedtuple_qtype(res.qtype))
+    self.assertEqual(res.keys(), ['a', 'b', 'c'])
+    self.assertIsInstance(res['a'], list_item.ListItem)
+    self.assertIsInstance(res['c'], dict_item.DictItem)
+    testing.assert_equal(res['a'][:], ds([1, 2, 3]).with_db(db))
+    testing.assert_equal(res['b'], ds(2))
+    testing.assert_dicts_keys_equal(res['c'], ds(['a']))
+
+  def test_kwargs_to_namedtuple_empty(self):
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        bag()._kwargs_to_namedtuple(), arolla.namedtuple()
+    )
+
+  def test_kwargs_to_namedtuple_errors(self):
+    with self.assertRaisesRegex(ValueError, 'assigning a Python list/tuple'):
+      bag()._kwargs_to_namedtuple(a=[1, 2, 3], b=ds([1, 2, 3]))
+    with self.assertRaisesRegex(ValueError, 'assigning a Python dict'):
+      bag()._kwargs_to_namedtuple(a={'a': 42}, b=ds([1, 2, 3]))
+
+  def test_merge_inplace(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    db2 = bag()
+    x2 = x1.with_db(db2)
+    x2.set_attr('a', 3, update_schema=True)
+    self.assertIs(db1.merge_inplace(db2), db1)
+    self.assertEqual(x1.a, ds(3))
+    self.assertEqual(x1.b, ds(2))
+
+  def test_merge_inplace_no_overwrite(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    db2 = bag()
+    x2 = x1.with_db(db2)
+    x2.set_attr('a', 3, update_schema=True)
+    db1.merge_inplace(db2, overwrite=False)
+    self.assertEqual(x1.a, ds(1))
+    self.assertEqual(x1.b, ds(2))
+
+  def test_merge_inplace_conflict(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    db2 = bag()
+    x2 = x1.with_db(db2)
+    x2.set_attr('a', 3, update_schema=True)
+    with self.assertRaisesRegex(ValueError, 'conflicting values'):
+      db1.merge_inplace(db2, allow_data_conflicts=False)
+
+  def test_merge_inplace_schema_conflict(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    db2 = bag()
+    x2 = x1.with_db(db2)
+    x2.set_attr('a', 'foo', update_schema=True)
+    with self.assertRaisesRegex(ValueError, 'conflicting dict values'):
+      db1.merge_inplace(db2)
+
+  def test_merge_inplace_schema_overwrite(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    db2 = bag()
+    x2 = x1.with_db(db2)
+    x2.set_attr('a', 'foo', update_schema=True)
+    db1.merge_inplace(db2, allow_schema_conflicts=True)
+    self.assertEqual(x1.a, ds('foo'))
+    self.assertEqual(x1.b, ds(2))
+
+  def test_merge_inplace_zero_bags(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    db1.merge_inplace([])
+    self.assertEqual(x1.a, ds(1))
+    self.assertEqual(x1.b, ds(2))
+    db1.merge_inplace([], overwrite=False)
+    self.assertEqual(x1.a, ds(1))
+    self.assertEqual(x1.b, ds(2))
+
+  def test_merge_inplace_two_bags(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    db2 = bag()
+    x2 = x1.with_db(db2)
+    x2.set_attr('a', 3, update_schema=True)
+    x2.set_attr('b', 5, update_schema=True)
+    db3 = bag()
+    x3 = x1.with_db(db3)
+    x3.set_attr('a', 4, update_schema=True)
+    db1.merge_inplace([db2, db3])
+    self.assertEqual(x1.a, ds(4))
+    self.assertEqual(x1.b, ds(5))
+
+  def test_merge_inplace_two_bags_no_overwrite(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    db2 = bag()
+    x2 = x1.with_db(db2)
+    x2.set_attr('a', 3, update_schema=True)
+    x2.set_attr('c', 5, update_schema=True)
+    db3 = bag()
+    x3 = x1.with_db(db3)
+    x3.set_attr('c', 4, update_schema=True)
+    db1.merge_inplace([db2, db3], overwrite=False)
+    self.assertEqual(x1.a, ds(1))
+    self.assertEqual(x1.b, ds(2))
+    self.assertEqual(x1.c, ds(5))
+
+  def test_merge_inplace_nonbools(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    db2 = bag()
+    x2 = x1.with_db(db2)
+    x2.set_attr('a', 3, update_schema=True)
+    db1.merge_inplace(db2, overwrite=0)
+    self.assertEqual(x1.a, ds(1))
+    db1.merge_inplace(db2, overwrite=1)
+    self.assertEqual(x1.a, ds(3))
+    with self.assertRaisesRegex(TypeError, '__bool__ disabled'):
+      db1.merge_inplace(db2, overwrite=arolla.L.x)
+
+  def test_merge_inplace_not_databags(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    with self.assertRaisesRegex(TypeError, 'must be an iterable'):
+      db1.merge_inplace(57)
+    with self.assertRaisesRegex(TypeError, 'expected DataBag, got int'):
+      db1.merge_inplace([57])
+    with self.assertRaisesRegex(
+        TypeError, 'expected DataBag, got data_item.DataItem'
+    ):
+      db1.merge_inplace([x1])
+
+  def test_merge_fallbacks(self):
+    db1 = bag()
+    x1 = db1.new(a=1)
+    x2 = x1.with_db(bag()).with_fallback(db1)
+    db2 = x2.db
+
+    db3 = db2.merge_fallbacks()
+    self.assertIsInstance(db3, data_bag.DataBag)
+    x3 = x2.with_db(db3)
+
+    # Check that subsequent modifications of x1 and x3 are independent.
+    x3.set_attr('a', 2)
+    self.assertEqual(x2.a, ds(1))
+
+    x1.set_attr('a', 3)
+    self.assertEqual(x3.a, ds(2))
+
+  def test_fork(self):
+    db1 = bag()
+    x1 = db1.new(a=1)
+
+    db2 = db1.fork()
+    self.assertIsInstance(db2, data_bag.DataBag)
+    x2 = x1.with_db(db2)
+
+    x2.set_attr('a', 2)
+    self.assertEqual(x1.a, ds(1))
+
+    x1.set_attr('a', 3)
+    self.assertEqual(x2.a, ds(2))
+
+if __name__ == '__main__':
+  absltest.main()

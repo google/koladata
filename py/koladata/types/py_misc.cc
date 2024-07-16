@@ -1,0 +1,98 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+#include "py/koladata/types/py_misc.h"
+
+#include <Python.h>  // IWYU pragma: keep
+
+#include <memory>
+#include <optional>
+#include <utility>
+
+#include "absl/base/nullability.h"
+#include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"
+#include "koladata/expr/expr_operators.h"
+#include "koladata/schema_constants.h"
+#include "py/arolla/abc/py_expr.h"
+#include "py/arolla/abc/py_qvalue.h"
+#include "py/arolla/abc/py_qvalue_specialization.h"
+#include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/types/wrap_utils.h"
+#include "arolla/expr/expr.h"
+#include "arolla/expr/expr_operator.h"
+#include "arolla/qtype/typed_value.h"
+#include "arolla/util/status_macros_backport.h"
+
+namespace koladata::python {
+
+namespace {
+
+arolla::expr::ExprOperatorPtr MakeLiteralOperator(PyObject* value) {
+  if (!arolla::python::IsPyQValueInstance(value)) {
+    PyErr_Format(PyExc_TypeError,
+                 "`value` must be a QValue to be wrapped into a "
+                 "LiteralOperator, got: %s",
+                 Py_TYPE(value)->tp_name);
+    return nullptr;
+  }
+  return std::make_shared<expr::LiteralOperator>(
+      arolla::python::UnsafeUnwrapPyQValue(value));
+}
+
+}  // namespace
+
+absl::Nullable<PyObject*> PyMakeLiteralOperator(PyObject* /*module*/,
+                                                PyObject* value) {
+  arolla::python::DCheckPyGIL();
+  arolla::expr::ExprOperatorPtr op = MakeLiteralOperator(value);
+  if (op == nullptr) {
+    return nullptr;
+  }
+  return arolla::python::WrapAsPyQValue(
+      arolla::TypedValue::FromValue(std::move(op)));
+}
+
+// NOTE: kd.literal does not do any implicit boxing of Python values into
+// QValues. In future, implicit boxing that matches that of auto-boxing applied
+// during Koda Expr evaluation may be added.
+absl::Nullable<PyObject*> PyMakeLiteralExpr(PyObject* /*module*/,
+                                            PyObject* value) {
+  arolla::python::DCheckPyGIL();
+  arolla::expr::ExprOperatorPtr op = MakeLiteralOperator(value);
+  if (op == nullptr) {
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(auto node, arolla::expr::MakeOpNode(std::move(op), {}),
+                   arolla::python::SetPyErrFromStatus(_));
+  return arolla::python::WrapAsPyExpr(std::move(node));
+}
+
+absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m) {
+  arolla::python::DCheckPyGIL();
+  for (const auto& schema_const : SupportedSchemas()) {
+    PyObject* py_schema_const = WrapPyDataSlice(DataSlice(schema_const));
+    if (py_schema_const == nullptr) {
+      return nullptr;
+    }
+    // Takes ownership of py_schema_const.
+    if (PyModule_AddObject(m, schema_const.item().DebugString().c_str(),
+                           py_schema_const) < 0) {
+      return nullptr;
+    }
+  }
+  Py_RETURN_NONE;
+}
+
+}  // namespace koladata::python
