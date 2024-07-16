@@ -172,7 +172,7 @@ class CopyingProcessor {
     if (slice.schema.holds_value<ObjectId>()) {
       return VisitEntities(slice);
     } else if (slice.schema.holds_value<schema::DType>()) {
-      if (slice.schema == schema::kObject) {
+      if (slice.schema == schema::kObject || slice.schema == schema::kSchema) {
         return VisitObjects(slice);
       } else if (slice.schema == schema::kAny) {
         return absl::InternalError(
@@ -281,9 +281,8 @@ class CopyingProcessor {
       const std::string_view& attr_name) {
     DataItem old_schema_item;
     if (is_shallow_clone_) {
-      ASSIGN_OR_RETURN(old_schema_item,
-                       objects_tracker_->GetSchemaAttrAllowMissing(
-                           schema_item, kMappingAttrName));
+      ASSIGN_OR_RETURN(old_schema_item, objects_tracker_->GetAttr(
+                                            schema_item, kMappingAttrName));
       if (!old_schema_item.has_value()) {
         // In case of Object slice we don't copy schemas in ShallowClone.
         return std::make_pair(schema_item, false);
@@ -346,8 +345,8 @@ class CopyingProcessor {
       const DataBagImpl::FallbackSpan fallbacks) {
     DataItem old_schema;
     if (is_shallow_clone_ && ds.schema.holds_value<ObjectId>()) {
-      ASSIGN_OR_RETURN(old_schema, objects_tracker_->GetSchemaAttrAllowMissing(
-                                       ds.schema, kMappingAttrName));
+      ASSIGN_OR_RETURN(old_schema,
+                       objects_tracker_->GetAttr(ds.schema, kMappingAttrName));
       if (!old_schema.has_value()) {
         // In case of Object slice we will have schemaId from the old databag.
         old_schema = ds.schema;
@@ -430,6 +429,25 @@ class CopyingProcessor {
     return absl::InternalError("unsupported schema source");
   }
 
+  // Process slice of schemas.
+  absl::Status ProcessSchemaSlice(const QueuedSlice& ds) {
+    if (ds.schema != schema::kSchema) {
+      return absl::InvalidArgumentError("slice of schemas is expected");
+    }
+    for (size_t idx = 0; idx < ds.slice.size(); ++idx) {
+      const DataItem& item = ds.slice[idx];
+      if (!item.has_value() || !item.holds_value<ObjectId>()) {
+        continue;
+      }
+      auto item_slice =
+          QueuedSlice{.slice = DataSliceImpl::CreateEmptyAndUnknownType(0),
+                      .schema = item,
+                      .schema_source = SchemaSource::kDataDatabag};
+      RETURN_IF_ERROR(ProcessEntitySlice(item_slice));
+    }
+    return absl::OkStatus();
+  }
+
   // Process slice of objects with object schema.
   absl::Status ProcessObjectSlice(const QueuedSlice& ds) {
     DataSliceImpl old_ds;
@@ -462,6 +480,7 @@ class CopyingProcessor {
   }
 
   absl::Status ProcessQueue() {
+    // TODO: support implicit schemas.
     while (!queued_slices_.empty()) {
       QueuedSlice slice = std::move(queued_slices_.front());
       queued_slices_.pop();
@@ -475,6 +494,8 @@ class CopyingProcessor {
         } else if (slice.schema == schema::kAny) {
           return absl::InternalError(
               "clone/extract not supported for kAny schema");
+        } else if (slice.schema == schema::kSchema) {
+          RETURN_IF_ERROR(ProcessSchemaSlice(slice));
         }
         // Primitive types and ItemId need no processing.
       } else {
@@ -529,11 +550,14 @@ class CopyingProcessor {
         int64_t count_objects = 0;
         int64_t count_dicts = 0;
         int64_t count_lists = 0;
+        int64_t count_schemas = 0;
         array.ForEachPresent([&](int64_t id, const ObjectId& obj_id) {
           if (obj_id.IsDict()) {
             count_dicts += 1;
           } else if (obj_id.IsList()) {
             count_lists += 1;
+          } else if (obj_id.IsExplicitSchema() && !obj_id.IsUuid()){
+            count_schemas += 1;
           } else {
             count_objects += 1;
           }
@@ -541,6 +565,7 @@ class CopyingProcessor {
         AllocationId new_objects = Allocate(count_objects);
         AllocationId new_dicts = AllocateDicts(count_dicts);
         AllocationId new_lists = AllocateLists(count_lists);
+        AllocationId new_schemas = AllocateExplicitSchemas(count_schemas);
         if (count_objects > 0) {
           bldr.GetMutableAllocationIds().Insert(new_objects);
         }
@@ -550,9 +575,13 @@ class CopyingProcessor {
         if (count_lists > 0) {
           bldr.GetMutableAllocationIds().Insert(new_lists);
         }
+        if (count_schemas > 0) {
+          bldr.GetMutableAllocationIds().Insert(new_schemas);
+        }
         count_objects = 0;
         count_dicts = 0;
         count_lists = 0;
+        count_schemas = 0;
         auto cloned_ids_bldr =
             arolla::DenseArrayBuilder<ObjectId>(array.size());
         array.ForEachPresent([&](int64_t id, const ObjectId& obj_id) {
@@ -560,6 +589,13 @@ class CopyingProcessor {
             cloned_ids_bldr.Set(id, new_dicts.ObjectByOffset(count_dicts++));
           } else if (obj_id.IsList()) {
             cloned_ids_bldr.Set(id, new_lists.ObjectByOffset(count_lists++));
+          } else if (obj_id.IsExplicitSchema()) {
+            if (obj_id.IsUuid()) {
+              cloned_ids_bldr.Set(id, obj_id);
+            } else {
+              cloned_ids_bldr.Set(id,
+                                  new_schemas.ObjectByOffset(count_schemas++));
+            }
           } else {
             cloned_ids_bldr.Set(id,
                                 new_objects.ObjectByOffset(count_objects++));
@@ -581,12 +617,12 @@ class CopyingProcessor {
     return std::move(bldr).Build();
   }
 
-  absl::StatusOr<DataItem> CloneSchema(const DataItem& schema) {
+  // Set the mapping attribute of the schema to the schema itself.
+  absl::StatusOr<DataItem> ReflectSchema(const DataItem& schema) {
     if (schema.holds_value<ObjectId>()) {
-      auto result = DataItem(AllocateExplicitSchema());
       RETURN_IF_ERROR(
-          objects_tracker_->SetSchemaAttr(result, kMappingAttrName, schema));
-      return result;
+          objects_tracker_->SetAttr(schema, kMappingAttrName, schema));
+      return schema;
     }
     return schema;
   }
@@ -652,7 +688,7 @@ ShallowCloneOp::operator()(const DataSliceImpl& ds, const DataItem& schema,
   auto processor = CopyingProcessor(databag, fallbacks, new_databag,
                                     /*is_shallow_clone=*/true);
   ASSIGN_OR_RETURN(const auto result_ds, processor.CloneObjects(ds));
-  ASSIGN_OR_RETURN(const auto result_schema, processor.CloneSchema(schema));
+  ASSIGN_OR_RETURN(const auto result_schema, processor.ReflectSchema(schema));
   auto slice = QueuedSlice{.slice = result_ds,
                            .schema = result_schema,
                            .schema_source = SchemaSource::kDataDatabag};
@@ -682,7 +718,7 @@ ShallowCloneOp::operator()(const DataItem& item, const DataItem& schema,
                                       schema_fallbacks, new_databag,
                                       /*is_shallow_clone=*/true);
     ASSIGN_OR_RETURN(const auto result_ds, processor.CloneObjects(ds));
-    ASSIGN_OR_RETURN(const auto result_schema, processor.CloneSchema(schema));
+    ASSIGN_OR_RETURN(const auto result_schema, processor.ReflectSchema(schema));
     auto slice = QueuedSlice{.slice = result_ds,
                             .schema = result_schema,
                             .schema_source = SchemaSource::kSchemaDatabag};

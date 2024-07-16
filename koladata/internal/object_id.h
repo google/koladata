@@ -214,6 +214,7 @@ class ObjectId {
   friend ObjectId AllocateSingleList();
   friend AllocationId AllocateDicts(size_t size);
   friend ObjectId AllocateSingleDict();
+  friend AllocationId AllocateExplicitSchemas(size_t size);
   friend ObjectId AllocateExplicitSchema();
 
 #ifndef ABSL_IS_LITTLE_ENDIAN
@@ -335,6 +336,7 @@ class AllocationId {
  private:
   friend AllocationId AllocateLists(size_t size);
   friend AllocationId AllocateDicts(size_t size);
+  friend AllocationId AllocateExplicitSchemas(size_t size);
 
   ObjectId allocation_id_;
 };
@@ -377,6 +379,13 @@ inline AllocationId AllocateDicts(size_t size) {
 inline ObjectId AllocateExplicitSchema() {
   ObjectId res = AllocateSingleObject();
   res.metadata_ |= ObjectId::kExplicitSchemaFlag;
+  return res;
+}
+
+// Returns new explicit schemas allocation.
+inline AllocationId AllocateExplicitSchemas(size_t size) {
+  AllocationId res = Allocate(size);
+  res.allocation_id_.metadata_ |= ObjectId::kExplicitSchemaFlag;
   return res;
 }
 
