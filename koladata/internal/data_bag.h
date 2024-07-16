@@ -51,11 +51,10 @@
 namespace koladata::internal {
 
 struct MergeOptions {
-  enum ConflictHandlingOption {
-    kRaiseOnConflict = 0,
-    kOverwrite = 1,
-    kKeepOriginal = 2,
-  };
+  using ConflictHandlingOption = DenseSource::ConflictHandlingOption;
+  using ConflictHandlingOption::kRaiseOnConflict;
+  using ConflictHandlingOption::kKeepOriginal;
+  using ConflictHandlingOption::kOverwrite;
   // Policy for merging data, i. e. object attributes, lists, dicts and
   // implicit schemas.
   ConflictHandlingOption data_conflict_policy = kRaiseOnConflict;

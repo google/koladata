@@ -243,12 +243,9 @@ absl::Status MergeToMutableDenseSource(
     MergeOptions options) {
   DCHECK(result.IsMutable());
   int64_t size = std::min<int64_t>(result.size(), dense_source.size());
-  if (options.data_conflict_policy == MergeOptions::kOverwrite &&
-      sparse_sources.empty()) {
+  if (sparse_sources.empty()) {
     DCHECK_EQ(dense_source.allocation_id(), alloc);
-    // TODO: Change to `result.Merge(dense_source, kOverwrite)`
-    //   and try to optimize other cases as well.
-    return result.MergeOverwrite(dense_source);
+    return result.Merge(dense_source, options.data_conflict_policy);
   }
 
   auto objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
@@ -269,12 +266,12 @@ absl::Status MergeToMutableDenseSource(
   }
 
   for (int64_t offset = 0; offset < size; ++offset) {
-    auto obj_id = alloc.ObjectByOffset(offset);
     // TODO: try to use batch `GetAttributeFromSources`.
     auto other_item = other_items[offset];
     if (!other_item.has_value()) {
       continue;
     }
+    auto obj_id = alloc.ObjectByOffset(offset);
     if (auto this_result = result.Get(obj_id); !this_result.has_value()) {
       RETURN_IF_ERROR(result.Set(obj_id, other_item));
     } else {
@@ -298,7 +295,7 @@ MergeOptions::ConflictHandlingOption ReverseConflictHandlingOption(
     case MergeOptions::kKeepOriginal:
       return MergeOptions::kOverwrite;
   }
-  LOG(FATAL) << "Invalid enum value encountered: " << option;
+  LOG(FATAL) << "Invalid enum value encountered: " << static_cast<int>(option);
   return MergeOptions::kRaiseOnConflict;
 }
 

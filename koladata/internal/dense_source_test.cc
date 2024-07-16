@@ -621,7 +621,7 @@ TEST(DenseSourceTest, ReadonlyFromEmptyAndUnknownSlice) {
                        HasSubstr("Empty and unknown slices")));
 }
 
-TEST(DenseSourceTest, MergeOverwrite) {
+TEST(DenseSourceTest, Merge) {
   auto gen_data = [&]<typename T>(T value, int size, int step, int offset) {
     arolla::DenseArrayBuilder<T> bldr(size);
     for (int i = offset; i < size; i += step) {
@@ -631,9 +631,6 @@ TEST(DenseSourceTest, MergeOverwrite) {
   };
   int size = 25;
   AllocationId alloc = Allocate(size);
-  ASSERT_OK_AND_ASSIGN(auto dst,
-                       DenseSource::CreateMutable(
-                           alloc, size, /*main_type=*/arolla::GetQType<int>()));
   ASSERT_OK_AND_ASSIGN(
       auto src1,
       DenseSource::CreateReadonly(
@@ -651,10 +648,6 @@ TEST(DenseSourceTest, MergeOverwrite) {
       DenseSource::CreateReadonly(
           alloc, DataSliceImpl::Create(gen_data(arolla::Text("a"), size, 7, 1),
                                        gen_data(int64_t{42}, size, 7, 2))));
-  ASSERT_OK(dst->MergeOverwrite(*src1));
-  ASSERT_OK(dst->MergeOverwrite(*src2));
-  ASSERT_OK(dst->MergeOverwrite(*src3));
-  ASSERT_OK(dst->MergeOverwrite(*src4));
 
   DataItem i1(int{1});
   DataItem i2(int{2});
@@ -664,9 +657,69 @@ TEST(DenseSourceTest, MergeOverwrite) {
   DataItem None;
   auto ids =
       DataSliceImpl::ObjectsFromAllocation(alloc, size).values<ObjectId>();
-  EXPECT_THAT(dst->Get(ids),
-              ElementsAre(f, t, i42, f, i1, None, f, None, t, i42, i2, None, f,
-                          None, i2, t, i42, None, f, None, i1, f, t, i42, f));
+
+  {  // kOverwrite
+    ASSERT_OK_AND_ASSIGN(
+        auto dst, DenseSource::CreateMutable(
+                      alloc, size, /*main_type=*/arolla::GetQType<int>()));
+    ASSERT_OK(
+        dst->Merge(*src1, DenseSource::ConflictHandlingOption::kOverwrite));
+    ASSERT_OK(
+        dst->Merge(*src2, DenseSource::ConflictHandlingOption::kOverwrite));
+    ASSERT_OK(
+        dst->Merge(*src3, DenseSource::ConflictHandlingOption::kOverwrite));
+    ASSERT_OK(
+        dst->Merge(*src4, DenseSource::ConflictHandlingOption::kOverwrite));
+
+    EXPECT_THAT(dst->Get(ids), ElementsAre(f, t, i42, f, i1, None, f, None, t,
+                                           i42, i2, None, f, None, i2, t, i42,
+                                           None, f, None, i1, f, t, i42, f));
+  }
+  {  // kKeepOriginal
+    ASSERT_OK_AND_ASSIGN(
+        auto dst, DenseSource::CreateMutable(
+                      alloc, size, /*main_type=*/arolla::GetQType<int>()));
+    ASSERT_OK(
+        dst->Merge(*src1, DenseSource::ConflictHandlingOption::kKeepOriginal));
+    ASSERT_OK(
+        dst->Merge(*src2, DenseSource::ConflictHandlingOption::kKeepOriginal));
+    ASSERT_OK(
+        dst->Merge(*src3, DenseSource::ConflictHandlingOption::kKeepOriginal));
+    ASSERT_OK(
+        dst->Merge(*src4, DenseSource::ConflictHandlingOption::kKeepOriginal));
+
+    EXPECT_THAT(dst->Get(ids), ElementsAre(i1, t, i1, f, i1, None, i1, None, i1,
+                                           f, i1, None, i1, None, i1, f, i1,
+                                           None, i1, None, i1, f, i1, i42, i1));
+  }
+  {  // kRaiseOnConflict, single type
+    ASSERT_OK_AND_ASSIGN(
+        auto dst, DenseSource::CreateMutable(
+                      alloc, size, /*main_type=*/arolla::GetQType<int>()));
+    ASSERT_OK(dst->Merge(
+        *src1, DenseSource::ConflictHandlingOption::kRaiseOnConflict));
+    EXPECT_THAT(
+        dst->Merge(*src2,
+                   DenseSource::ConflictHandlingOption::kRaiseOnConflict),
+        StatusIs(absl::StatusCode::kFailedPrecondition,
+                 HasSubstr("merge conflict: 1 != 2")));
+  }
+  {  // kRaiseOnConflict, multitype
+    ASSERT_OK_AND_ASSIGN(
+        auto dst, DenseSource::CreateMutable(
+                      alloc, size, /*main_type=*/arolla::GetQType<int>()));
+    ASSERT_OK(
+        dst->Merge(*src1, DenseSource::ConflictHandlingOption::kOverwrite));
+    ASSERT_OK(
+        dst->Merge(*src2, DenseSource::ConflictHandlingOption::kKeepOriginal));
+    ASSERT_OK(
+        dst->Merge(*src3, DenseSource::ConflictHandlingOption::kOverwrite));
+    EXPECT_THAT(
+        dst->Merge(*src4,
+                   DenseSource::ConflictHandlingOption::kRaiseOnConflict),
+        StatusIs(absl::StatusCode::kFailedPrecondition,
+                 HasSubstr("merge conflict: 'a' != 1")));
+  }
 }
 
 }  // namespace

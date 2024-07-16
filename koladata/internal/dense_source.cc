@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "absl/base/nullability.h"
+#include "absl/base/optimization.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -168,6 +169,28 @@ class SimpleValueArray {
     arolla::bitmap::UnsetBit(mutable_presence_, offset);
   }
 
+  void MergeKeepOriginal(const DenseArray<T>& vals) {
+    vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
+      if (!arolla::bitmap::GetBit(mutable_presence_, offset)) {
+        Set(offset, v);
+      }
+    });
+  }
+
+  absl::Status MergeRaiseOnConflict(const DenseArray<T>& vals) {
+    absl::Status status = absl::OkStatus();
+    vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
+      if (!arolla::bitmap::GetBit(mutable_presence_, offset)) {
+        Set(offset, v);
+      } else if (mutable_values_[offset] != v && status.ok()) {
+        status = absl::FailedPreconditionError(
+            absl::StrCat("merge conflict: ", DataItem(mutable_values_[offset]),
+                         " != ", DataItem(v)));
+      }
+    });
+    return status;
+  }
+
   SimpleValueArray<T> CreateMutableCopy() const {
     SimpleValueArray<T> res(data_.size());
     if (data_.bitmap.empty()) {
@@ -185,6 +208,17 @@ class SimpleValueArray {
     }
     std::copy(data_.values.begin(), data_.values.end(), res.mutable_values_);
     return res;
+  }
+
+  // Applies bitwise or to the arrays's presence and the given bitmap.
+  // Stores result back to the `bitmap` argument.
+  // ValueArray must be mutable.
+  void ReadBitmapOr(Word* bitmap) const {
+    DCHECK(mutable_presence_);
+    size_t size = arolla::bitmap::BitmapSize(data_.size());
+    for (size_t i = 0; i < size; ++i) {
+      bitmap[i] |= mutable_presence_[i];
+    }
   }
 
  private:
@@ -260,6 +294,17 @@ class MaskValueArray {
     arolla::bitmap::UnsetBit(mutable_presence_, offset);
   }
 
+  void MergeKeepOriginal(const DenseArray<Unit>& vals) {
+    vals.ForEachPresent([&](int64_t offset, Unit) {
+      arolla::bitmap::SetBit(mutable_presence_, offset);
+    });
+  }
+
+  absl::Status MergeRaiseOnConflict(const DenseArray<Unit>& vals) {
+    MergeKeepOriginal(vals);
+    return absl::OkStatus();
+  }
+
   MaskValueArray CreateMutableCopy() const {
     MaskValueArray res(data_.size());
     if (data_.bitmap.empty()) {
@@ -276,6 +321,17 @@ class MaskValueArray {
       }
     }
     return res;
+  }
+
+  // Applies bitwise or to the arrays's presence and the given bitmap.
+  // Stores result back to the `bitmap` argument.
+  // ValueArray must be mutable.
+  void ReadBitmapOr(Word* bitmap) const {
+    DCHECK(mutable_presence_);
+    size_t size = arolla::bitmap::BitmapSize(data_.size());
+    for (size_t i = 0; i < size; ++i) {
+      bitmap[i] |= mutable_presence_[i];
+    }
   }
 
  private:
@@ -356,11 +412,44 @@ class MutableStringArray {
   }
 
   void Set(size_t offset, absl::string_view value) {
-    data_[offset] = std::string(value);
+    data_[offset].emplace(value);
   }
   void Unset(size_t offset) { data_[offset] = std::nullopt; }
 
+  void MergeKeepOriginal(const DenseArray<T>& vals) {
+    vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
+      auto& dst = data_[offset];
+      if (!dst.has_value()) {
+        dst.emplace(v);
+      }
+    });
+  }
+
+  absl::Status MergeRaiseOnConflict(const DenseArray<T>& vals) {
+    absl::Status status = absl::OkStatus();
+    vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
+      auto& dst = data_[offset];
+      if (!dst.has_value()) {
+        dst.emplace(v);
+      } else if (*dst != v && status.ok()) {
+        status = absl::FailedPreconditionError(
+            absl::StrCat("merge conflict: ", *dst, " != ", v));
+      }
+    });
+    return status;
+  }
+
   MutableStringArray<T> CreateMutableCopy() const { return *this; }
+
+  // Applies bitwise or to the arrays's presence and the given bitmap.
+  // Stores result back to the `bitmap` argument.
+  void ReadBitmapOr(Word* bitmap) const {
+    for (size_t i = 0; i < data_.size(); ++i) {
+      if (data_[i]) {
+        arolla::bitmap::SetBit(bitmap, i);
+      }
+    }
+  }
 
  private:
   std::vector<std::optional<std::string>> data_;
@@ -415,6 +504,10 @@ class ImmutableStringArray {
 
   void Set(size_t offset, absl::string_view value) {}
   void Unset(size_t offset) {}
+  void MergeKeepOriginal(const DenseArray<T>& vals) {}
+  absl::Status MergeRaiseOnConflict(const DenseArray<T>& vals) {
+    return absl::OkStatus();
+  }
 
   MutableStringArray<T> CreateMutableCopy() const {
     MutableStringArray<T> res(data_.size());
@@ -670,48 +763,92 @@ class MultitypeDenseSource : public DenseSource {
     return absl::OkStatus();
   }
 
-  absl::Status SetAllSkipMissing(const DataSliceImpl& values) final {
+  absl::Status SetAllSkipMissing(const DataSliceImpl& values,
+                                 ConflictHandlingOption option) final {
     if (!IsMutable()) {
       return absl::FailedPreconditionError(
           "SetAttr is not allowed for an immutable DenseSource.");
     }
+    absl::Status status = absl::OkStatus();
     if constexpr (can_be_mutable) {
+      if (option == ConflictHandlingOption::kOverwrite) {
+        OverwriteAllSkipMissing(values);
+        return absl::OkStatus();
+      }
+
+      std::vector<arolla::bitmap::Word> presence_vec(
+          arolla::bitmap::BitmapSize(values_.size()));
+      arolla::bitmap::Word* presence = presence_vec.data();
+      for (ValueArrayVariant& vals : values_) {
+        std::visit([&](const auto& av) { av.ReadBitmapOr(presence); }, vals);
+      }
       attr_allocation_ids_.Insert(values.allocation_ids());
       values.VisitValues([&](const auto& array) {
         auto sliced_array = array.MakeUnowned().Slice(
             0, std::min<int64_t>(array.size(), size_));
         using T = typename std::decay_t<decltype(array)>::base_type;
-        bool found = false;
+        bool found_the_same_type = false;
         for (ValueArrayVariant& vals : values_) {
           if (std::holds_alternative<ValueArray<T, true>>(vals)) {
             auto& dst_vals = std::get<ValueArray<T, true>>(vals);
-            sliced_array.ForEachPresent(
-                [&](int64_t offset, arolla::view_type_t<T> value) {
-                  dst_vals.Set(offset, value);
-                });
-            found = true;
-          } else {
+            if (option == ConflictHandlingOption::kKeepOriginal) {
+              sliced_array.ForEachPresent(
+                  [&](int64_t offset, arolla::view_type_t<T> value) {
+                    if (!arolla::bitmap::GetBit(presence, offset)) {
+                      dst_vals.Set(offset, value);
+                    }
+                  });
+            } else {  // kRaiseOnConflict
+              sliced_array.ForEachPresent(
+                  [&](int64_t offset, arolla::view_type_t<T> value) {
+                    if (!arolla::bitmap::GetBit(presence, offset)) {
+                      dst_vals.Set(offset, value);
+                    } else if (value != dst_vals.Get(offset) && status.ok()) {
+                      status = absl::FailedPreconditionError(absl::StrCat(
+                          "merge conflict: ", DataItem(T(value)),
+                          " != ", DataItem(T(dst_vals.Get(offset).value))));
+                    }
+                  });
+            }
+            found_the_same_type = true;
+            continue;
+          }
+          if (option == ConflictHandlingOption::kRaiseOnConflict) {
+            // `vals` and `array` have different type, so if some index present
+            // in both, it is merge conflict.
             std::visit(
                 [&](auto& dst_vals) {
+                  using VT =
+                      typename std::decay_t<decltype(dst_vals)>::base_type;
                   sliced_array.ForEachPresent(
                       [&](int64_t offset, arolla::view_type_t<T> value) {
-                        dst_vals.Unset(offset);
+                        if (dst_vals.Get(offset).present && status.ok()) {
+                          status = absl::FailedPreconditionError(absl::StrCat(
+                              "merge conflict: ", DataItem(T(value)), " != ",
+                              DataItem(VT(dst_vals.Get(offset).value))));
+                        }
                       });
                 },
                 vals);
           }
         }
-        if (!found) {
+        if (!found_the_same_type) {
+          bool non_empty = false;
           ValueArray<T, /*can_be_mutable=*/true> dst_vals(size_);
           sliced_array.ForEachPresent(
               [&](int64_t offset, arolla::view_type_t<T> value) {
-                dst_vals.Set(offset, value);
+                if (!arolla::bitmap::GetBit(presence, offset)) {
+                  dst_vals.Set(offset, value);
+                  non_empty = true;
+                }
               });
-          values_.emplace_back(std::move(dst_vals));
+          if (non_empty) {
+            values_.emplace_back(std::move(dst_vals));
+          }
         }
       });
     }
-    return absl::OkStatus();
+    return status;
   }
 
   std::shared_ptr<DenseSource> CreateMutableCopy() const final {
@@ -733,6 +870,45 @@ class MultitypeDenseSource : public DenseSource {
 
   template <class T, class ValueArray>
   friend class TypedDenseSource;
+
+  void OverwriteAllSkipMissing(const DataSliceImpl& values) {
+    if constexpr (can_be_mutable) {
+      attr_allocation_ids_.Insert(values.allocation_ids());
+      values.VisitValues([&](const auto& array) {
+        auto sliced_array = array.MakeUnowned().Slice(
+            0, std::min<int64_t>(array.size(), size_));
+        using T = typename std::decay_t<decltype(array)>::base_type;
+        bool found_the_same_type = false;
+        for (ValueArrayVariant& vals : values_) {
+          if (std::holds_alternative<ValueArray<T, true>>(vals)) {
+            auto& dst_vals = std::get<ValueArray<T, true>>(vals);
+            sliced_array.ForEachPresent(
+                [&](int64_t offset, arolla::view_type_t<T> value) {
+                  dst_vals.Set(offset, value);
+                });
+            found_the_same_type = true;
+          } else {
+            std::visit(
+                [&](auto& dst_vals) {
+                  sliced_array.ForEachPresent(
+                      [&](int64_t offset, arolla::view_type_t<T> value) {
+                        dst_vals.Unset(offset);
+                      });
+                },
+                vals);
+          }
+        }
+        if (!found_the_same_type) {
+          ValueArray<T, /*can_be_mutable=*/true> dst_vals(size_);
+          sliced_array.ForEachPresent(
+              [&](int64_t offset, arolla::view_type_t<T> value) {
+                dst_vals.Set(offset, value);
+              });
+          values_.emplace_back(std::move(dst_vals));
+        }
+      });
+    }
+  }
 
   bool is_mutable_;
 
@@ -894,7 +1070,8 @@ class TypedDenseSource final : public DenseSource {
     return absl::OkStatus();
   }
 
-  absl::Status SetAllSkipMissing(const DataSliceImpl& values) final {
+  absl::Status SetAllSkipMissing(const DataSliceImpl& values,
+                                 ConflictHandlingOption option) final {
     if (!IsMutable() && !multitype_) {
       return absl::FailedPreconditionError(
           "SetAttr is not allowed for an immutable DenseSource.");
@@ -904,7 +1081,7 @@ class TypedDenseSource final : public DenseSource {
       if (!multitype_) {
         CreateMultitype();
       }
-      return multitype_->SetAllSkipMissing(values);
+      return multitype_->SetAllSkipMissing(values, option);
     }
     if constexpr (std::is_same_v<T, ObjectId>) {
       attr_allocation_ids_.Insert(values.allocation_ids());
@@ -912,11 +1089,20 @@ class TypedDenseSource final : public DenseSource {
     const DenseArray<T>& values_array = values.values<T>();
     auto sliced_array = values_array.MakeUnowned().Slice(
         0, std::min<int64_t>(values_array.size(), values_.size()));
-    sliced_array.ForEachPresent(
-        [&](int64_t offset, arolla::view_type_t<T> value) {
-          values_.Set(offset, value);
-        });
-    return absl::OkStatus();
+    switch (option) {
+      case DenseSource::ConflictHandlingOption::kOverwrite:
+        sliced_array.ForEachPresent(
+            [&](int64_t offset, arolla::view_type_t<T> value) {
+              values_.Set(offset, value);
+            });
+        return absl::OkStatus();
+      case DenseSource::ConflictHandlingOption::kKeepOriginal:
+        values_.MergeKeepOriginal(values_array);
+        return absl::OkStatus();
+      case DenseSource::ConflictHandlingOption::kRaiseOnConflict:
+        return values_.MergeRaiseOnConflict(values_array);
+    }
+    ABSL_UNREACHABLE();
   }
 
   std::shared_ptr<DenseSource> CreateMutableCopy() const final;

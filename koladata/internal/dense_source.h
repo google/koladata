@@ -79,8 +79,14 @@ class DenseSource {
   virtual absl::Status Set(const ObjectIdArray& objects,
                            const DataSliceImpl& values) = 0;
 
-  absl::Status MergeOverwrite(const DenseSource& source) {
-    return SetAllSkipMissing(source.GetAll());
+  enum class ConflictHandlingOption {
+    kRaiseOnConflict = 0,
+    kOverwrite = 1,
+    kKeepOriginal = 2,
+  };
+
+  absl::Status Merge(const DenseSource& source, ConflictHandlingOption option) {
+    return SetAllSkipMissing(source.GetAll(), option);
   }
 
   virtual std::shared_ptr<DenseSource> CreateMutableCopy() const = 0;
@@ -100,7 +106,12 @@ class DenseSource {
   // Used in `MergeOverwrite`.
   virtual DataSliceImpl GetAll() const = 0;
 
-  virtual absl::Status SetAllSkipMissing(const DataSliceImpl& values) = 0;
+  // Add all present items from `values` to this DenseSource. Depending on
+  // `options` in case of conflicts (i.e. another value for the same index
+  // already present in the source) it can either overwrite, keep original, or
+  // return an error.
+  virtual absl::Status SetAllSkipMissing(const DataSliceImpl& values,
+                                         ConflictHandlingOption option) = 0;
 };
 
 }  // namespace koladata::internal
