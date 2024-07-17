@@ -185,7 +185,7 @@ SchemaBag:
           'lists',
           bag().list([1, 2, 3]).db,
           r"""DataBag \$[0-9a-f]{4}:
-\$[0-9a-f]{32}\[:\] => \[1, 2, 3\]
+\$[0-9a-f]{32}:0\[:\] => \[1, 2, 3\]
 
 SchemaBag:
 """,
@@ -194,8 +194,8 @@ SchemaBag:
           'dicts',
           bag().dict({'a': 1, 2: 'b'}).db,
           r"""DataBag \$[0-9a-f]{4}:
-\$[0-9a-f]{32}\[2\] => 'b'
-\$[0-9a-f]{32}\['a'\] => 1
+\$[0-9a-f]{32}:0\[2\] => 'b'
+\$[0-9a-f]{32}:0\['a'\] => 1
 
 SchemaBag:
 """,
@@ -204,25 +204,25 @@ SchemaBag:
           'entity',
           bag().new(a=1, b='a').db,
           r"""DataBag \$[0-9a-f]{4}:
-\$[0-9a-f]{32}\.a => 1
-\$[0-9a-f]{32}\.b => a
+\$[0-9a-f]{32}:0\.a => 1
+\$[0-9a-f]{32}:0\.b => a
 
 SchemaBag:
-\$[0-9a-f]{32}\.a => INT32
-\$[0-9a-f]{32}\.b => TEXT
+\$[0-9a-f]{32}:0\.a => INT32
+\$[0-9a-f]{32}:0\.b => TEXT
 """,
       ),
       (
           'object',
           bag().obj(a=1, b='a').db,
           r"""DataBag \$[0-9a-f]{4}:
-\$[0-9a-f]{32}\.__schema__ => k[0-9a-f]{32}
-\$[0-9a-f]{32}\.a => 1
-\$[0-9a-f]{32}\.b => a
+\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0
+\$[0-9a-f]{32}:0\.a => 1
+\$[0-9a-f]{32}:0\.b => a
 
 SchemaBag:
-k[0-9a-f]{32}\.a => INT32
-k[0-9a-f]{32}\.b => TEXT
+k[0-9a-f]{32}:0\.a => INT32
+k[0-9a-f]{32}:0\.b => TEXT
 """,
       ),
   )
@@ -251,10 +251,10 @@ SchemaBag:
 
   fallback #1 \$[0-9a-f]{4}:
   DataBag:
-  \$[0-9a-f]{32}\.x => 1
+  \$[0-9a-f]{32}:0\.x => 1
 
   SchemaBag:
-  \$[0-9a-f]{32}\.x => INT32
+  \$[0-9a-f]{32}:0\.x => INT32
 """
     self.assertRegex(
         db_repr, expected_repr, msg=f'\n\nregex={expected_repr}\n\ndb={db_repr}'
@@ -285,17 +285,17 @@ SchemaBag:
   2 fallback DataBag\(s\):
     fallback #0 \$[0-9a-f]{4}:
     DataBag:
-    \$[0-9a-f]{32}\.y => 2
+    \$[0-9a-f]{32}:0\.y => 2
 
     SchemaBag:
-    \$[0-9a-f]{32}\.y => INT32
+    \$[0-9a-f]{32}:0\.y => INT32
 
     fallback #1 \$[0-9a-f]{4}:
     DataBag:
-    \$[0-9a-f]{32}\.x => 1
+    \$[0-9a-f]{32}:0\.x => 1
 
     SchemaBag:
-    \$[0-9a-f]{32}\.x => INT32
+    \$[0-9a-f]{32}:0\.x => INT32
 """
       self.assertRegex(
           db_repr,

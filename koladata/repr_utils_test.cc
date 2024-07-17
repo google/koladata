@@ -81,7 +81,7 @@ TEST(ReprUtilTest, TestAssembleError) {
           MatchesRegex(
               R"regex((.|\n)*cannot find a common schema for provided schemas(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*the common schema\(s\) [0-9a-f]{32}: SCHEMA\(a=INT32, b=TEXT\)(.|\n)*)regex"),
+              R"regex((.|\n)*the common schema\(s\) [0-9a-f]{32}:0: SCHEMA\(a=INT32, b=TEXT\)(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*the first conflicting schema INT32: INT32(.|\n)*)regex")));
 }

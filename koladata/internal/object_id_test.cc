@@ -101,20 +101,20 @@ TEST(ObjectIdTest, AllocationIdNotContains) {
 
 TEST(ObjectIdTest, UuidAndAllocatedFlagsAreExclusive) {
   std::vector uuid_cases{
-    CreateUuidObject(arolla::FingerprintHasher("").Combine(42).Finish()),
-    CreateUuidExplicitSchema(
-        arolla::FingerprintHasher("").Combine(42).Finish()),
-    // Uuid implicit schema.
-    CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-        AllocateSingleObject(),
-        arolla::FingerprintHasher("").Combine(42).Finish()),
-    // Uuid nofollow schema.
-    CreateNoFollowWithMainObject(CreateUuidExplicitSchema(
-        arolla::FingerprintHasher("").Combine(42).Finish())),
-    CreateNoFollowWithMainObject(
-        CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-            AllocateSingleObject(),
-            arolla::FingerprintHasher("").Combine(42).Finish())),
+      CreateUuidObject(arolla::FingerprintHasher("").Combine(42).Finish()),
+      CreateUuidExplicitSchema(
+          arolla::FingerprintHasher("").Combine(42).Finish()),
+      // Uuid implicit schema.
+      CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          AllocateSingleObject(),
+          arolla::FingerprintHasher("").Combine(42).Finish()),
+      // Uuid nofollow schema.
+      CreateNoFollowWithMainObject(CreateUuidExplicitSchema(
+          arolla::FingerprintHasher("").Combine(42).Finish())),
+      CreateNoFollowWithMainObject(
+          CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+              AllocateSingleObject(),
+              arolla::FingerprintHasher("").Combine(42).Finish())),
   };
   for (auto uuid_obj : uuid_cases) {
     EXPECT_TRUE(uuid_obj.IsUuid());
@@ -123,14 +123,14 @@ TEST(ObjectIdTest, UuidAndAllocatedFlagsAreExclusive) {
     EXPECT_FALSE(uuid_obj.IsDict());
   }
   std::vector alloc_cases{
-    AllocateSingleList(),
-    AllocateSingleDict(),
-    AllocateExplicitSchema(),
+      AllocateSingleList(),
+      AllocateSingleDict(),
+      AllocateExplicitSchema(),
   };
   std::vector checks{
-    &ObjectId::IsList,
-    &ObjectId::IsDict,
-    &ObjectId::IsSchema,
+      &ObjectId::IsList,
+      &ObjectId::IsDict,
+      &ObjectId::IsSchema,
   };
   for (int i = 0; i < alloc_cases.size(); ++i) {
     EXPECT_FALSE(alloc_cases[i].IsUuid());
@@ -200,12 +200,12 @@ TEST(ObjectIdTest, ExplicitSchemaAllocation) {
 TEST(ObjectIdTest, SchemaObjects) {
   auto uuid_explicit_schema = CreateUuidExplicitSchema(
       arolla::FingerprintHasher("").Combine(42).Finish());
-    // Uuid implicit schema.
+  // Uuid implicit schema.
   auto uuid_implicit_schema =
       CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
           AllocateSingleObject(),
           arolla::FingerprintHasher("").Combine(42).Finish());
-    // nofollow schema.
+  // nofollow schema.
   auto nofollow_of_implicit_schema = CreateNoFollowWithMainObject(
       CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
           AllocateSingleObject(),
@@ -280,10 +280,9 @@ TEST(ObjectIdTest, NoFollow_Errors) {
   EXPECT_DEBUG_DEATH(CreateNoFollowWithMainObject(AllocateSingleObject()), "");
   EXPECT_DEBUG_DEATH(CreateNoFollowWithMainObject(AllocateSingleList()), "");
   EXPECT_DEBUG_DEATH(CreateNoFollowWithMainObject(AllocateSingleDict()), "");
-  EXPECT_DEBUG_DEATH(
-      CreateNoFollowWithMainObject(
-          CreateUuidObject(arolla::FingerprintHasher("").Combine(57).Finish())),
-      "");
+  EXPECT_DEBUG_DEATH(CreateNoFollowWithMainObject(CreateUuidObject(
+                         arolla::FingerprintHasher("").Combine(57).Finish())),
+                     "");
 
   EXPECT_DEBUG_DEATH(GetOriginalFromNoFollow(AllocateExplicitSchema()), "");
   EXPECT_DEBUG_DEATH(GetOriginalFromNoFollow(AllocateSingleObject()), "");
@@ -483,12 +482,12 @@ TEST(ObjectIdTest, TypedValueRepr) {
   AllocationId alloc_id = Allocate(1024);
   std::string repr0 =
       arolla::TypedValue::FromValue(alloc_id.ObjectByOffset(0)).Repr();
-  EXPECT_THAT(repr0, testing::MatchesRegex(R"regexp([a-f0-9]*.0)regexp"));
+  EXPECT_THAT(repr0, testing::MatchesRegex(R"regexp([a-f0-9]*.000)regexp"));
   std::string repr1 =
       arolla::TypedValue::FromValue(alloc_id.ObjectByOffset(10)).Repr();
-  EXPECT_THAT(repr1, testing::MatchesRegex(R"regexp([a-f0-9]*.a)regexp"));
+  EXPECT_THAT(repr1, testing::MatchesRegex(R"regexp([a-f0-9]*.00a)regexp"));
   std::string repr2 = absl::StrCat(alloc_id.ObjectByOffset(0xff));
-  EXPECT_THAT(repr2, testing::MatchesRegex(R"regexp([a-f0-9]*.ff)regexp"));
+  EXPECT_THAT(repr2, testing::MatchesRegex(R"regexp([a-f0-9]*.0ff)regexp"));
 
   EXPECT_NE(repr0, repr1);
   // All but last digit (in base 16) should be the same.
@@ -672,12 +671,24 @@ TEST(ObjectIdTest, AllocationIdSetUnionSmall) {
   }
 }
 
+TEST(ObjectIdTest, ObjectIdDebugStringFormatBoundaryCondition) {
+  EXPECT_THAT(Allocate(0).ObjectByOffset(0).DebugString(),
+              MatchesRegex(R"regex([0-9a-f]{32}:0)regex"));
+
+  for (size_t i = 1; i <= 10; i++) {
+    AllocationId alloc_id = Allocate(1ull << (i * 4));
+    EXPECT_THAT(alloc_id.ObjectByOffset((1ull << (i * 4)) - 1).DebugString(),
+                MatchesRegex(absl::StrFormat(
+                    R"regex([0-9a-f]{%d}:[f]{%d})regex", (32 - i), i)));
+  }
+}
+
 TEST(ObjectIdTest, ObjectIdStringFormat) {
   EXPECT_THAT(ObjectIdStr(CreateUuidObject(
                   arolla::FingerprintHasher("").Combine(57).Finish())),
-              MatchesRegex(R"regex(k[0-9a-f]{32})regex"));
+              MatchesRegex(R"regex(k[0-9a-f]{32}:0)regex"));
   EXPECT_THAT(ObjectIdStr(AllocateSingleObject()),
-              MatchesRegex(R"regex(\$[0-9a-f]{32})regex"));
+              MatchesRegex(R"regex(\$[0-9a-f]{32}:0)regex"));
 }
 
 }  // namespace

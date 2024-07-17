@@ -203,7 +203,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Object) {
                        ObjectCreator::FromAttrs(bag, {}, {}));
   EXPECT_THAT(
       DataSliceToStr(empty_obj),
-      IsOkAndHolds(MatchesRegex(R"regex(Obj\(\):\$[a-f0-9]{32})regex")));
+      IsOkAndHolds(MatchesRegex(R"regex(Obj\(\):\$[a-f0-9]{32}:0)regex")));
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -220,7 +220,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Entity) {
                        EntityCreator::FromAttrs(bag, {}, {}));
   EXPECT_THAT(
       DataSliceToStr(empty_entity),
-      IsOkAndHolds(MatchesRegex(R"regex(Entity\(\):\$[a-f0-9]{32})regex")));
+      IsOkAndHolds(MatchesRegex(R"regex(Entity\(\):\$[a-f0-9]{32}:0)regex")));
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -373,7 +373,7 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_EntitySlices) {
   EXPECT_THAT(
       DataSliceToStr(ds),
       IsOkAndHolds(MatchesRegex(
-          R"regex(\[Entity:\$[a-f0-9]{32}, Entity:\$[a-f0-9]{32}\])regex")));
+          R"regex(\[Entity:\$[a-f0-9]{32}:0, Entity:\$[a-f0-9]{32}:1\])regex")));
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_ObjectSlices) {
@@ -382,9 +382,10 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_ObjectSlices) {
   DataBagPtr db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice ds,
                        ObjectCreator::FromAttrs(db, {"a"}, {values}));
-  EXPECT_THAT(DataSliceToStr(ds),
-              IsOkAndHolds(MatchesRegex(
-                  R"regex(\[Obj:\$[a-f0-9]{32}, Obj:\$[a-f0-9]{32}\])regex")));
+  EXPECT_THAT(
+      DataSliceToStr(ds),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(\[Obj:\$[a-f0-9]{32}:0, Obj:\$[a-f0-9]{32}:1\])regex")));
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_ListSlices) {
@@ -395,7 +396,7 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_ListSlices) {
   EXPECT_THAT(
       DataSliceToStr(ds),
       IsOkAndHolds(MatchesRegex(
-          R"regex(\[List:\$[a-f0-9]{32}, List:\$[a-f0-9]{32}\])regex")));
+          R"regex(\[List:\$[a-f0-9]{32}:0, List:\$[a-f0-9]{32}:0\])regex")));
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_DictSlices) {
@@ -406,7 +407,7 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_DictSlices) {
   EXPECT_THAT(
       DataSliceToStr(ds),
       IsOkAndHolds(MatchesRegex(
-          R"regex(\[Dict:\$[a-f0-9]{32}, Dict:\$[a-f0-9]{32}\])regex")));
+          R"regex(\[Dict:\$[a-f0-9]{32}:0, Dict:\$[a-f0-9]{32}:0\])regex")));
 }
 
 TEST(DataSliceReprTest,
@@ -512,7 +513,7 @@ TEST(DataSliceReprTest, CycleInDict) {
   EXPECT_THAT(
       DataSliceToStr(schema),
       IsOkAndHolds(MatchesRegex(
-          R"regex(DICT\{INT32, DICT\{INT32, DICT\{INT32, DICT\{INT32, DICT\{INT32, k[0-9a-f]{32}\}\}\}\}\})regex")));
+          R"regex(DICT\{INT32, DICT\{INT32, DICT\{INT32, DICT\{INT32, DICT\{INT32, k[0-9a-f]{32}:0\}\}\}\}\})regex")));
 
   // Set dict value to self.
   ASSERT_OK(dict.SetInDict(key_item, dict));
@@ -520,11 +521,11 @@ TEST(DataSliceReprTest, CycleInDict) {
   EXPECT_THAT(
       DataSliceToStr(dict),
       IsOkAndHolds(MatchesRegex(
-          R"regex(Dict\{1=Dict\{1=Dict\{1=Dict\{1=Dict\{1=\$[0-9a-f]{32}\}\}\}\}\})regex")));
+          R"regex(Dict\{1=Dict\{1=Dict\{1=Dict\{1=Dict\{1=\$[0-9a-f]{32}:0\}\}\}\}\})regex")));
 
   EXPECT_THAT(DataSliceToStr(dict, {.depth = 2}),
               IsOkAndHolds(MatchesRegex(
-                  R"regex(Dict\{1=Dict\{1=\$[0-9a-f]{32}\}\})regex")));
+                  R"regex(Dict\{1=Dict\{1=\$[0-9a-f]{32}:0\}\})regex")));
 }
 
 TEST(DataSliceReprTest, CycleInList) {
@@ -540,14 +541,14 @@ TEST(DataSliceReprTest, CycleInList) {
   EXPECT_THAT(
       DataSliceToStr(schema),
       IsOkAndHolds(MatchesRegex(
-          R"regex(LIST\[LIST\[LIST\[LIST\[LIST\[k[0-9a-f]{32}\]\]\]\]\])regex")));
+          R"regex(LIST\[LIST\[LIST\[LIST\[LIST\[k[0-9a-f]{32}:0\]\]\]\]\])regex")));
 
   ASSERT_OK(list.SetInList(test::DataItem(0), list));
 
   EXPECT_THAT(
       DataSliceToStr(list),
       IsOkAndHolds(MatchesRegex(
-          R"regex(List\[List\[List\[List\[List\[\$[0-9a-f]{32}\]\]\]\]\])regex")));
+          R"regex(List\[List\[List\[List\[List\[\$[0-9a-f]{32}:0\]\]\]\]\])regex")));
 }
 
 TEST(DataSliceReprTest, CycleInEntity) {
@@ -563,13 +564,13 @@ TEST(DataSliceReprTest, CycleInEntity) {
   EXPECT_THAT(
       DataSliceToStr(schema),
       IsOkAndHolds(MatchesRegex(
-          R"regex(SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=\$[0-9a-f]{32}\)\)\)\)\))regex")));
+          R"regex(SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=\$[0-9a-f]{32}:0\)\)\)\)\))regex")));
 
   ASSERT_OK(entity.SetAttr("a", entity));
   EXPECT_THAT(
       DataSliceToStr(entity),
       IsOkAndHolds(MatchesRegex(
-          R"regex(Entity\(a=Entity\(a=Entity\(a=Entity\(a=Entity\(a=\$[0-9a-f]{32}\)\)\)\)\))regex")));
+          R"regex(Entity\(a=Entity\(a=Entity\(a=Entity\(a=Entity\(a=\$[0-9a-f]{32}:0\)\)\)\)\))regex")));
 }
 
 TEST(DataSliceReprTest, CycleInObject) {
@@ -585,13 +586,13 @@ TEST(DataSliceReprTest, CycleInObject) {
   EXPECT_THAT(
       DataSliceToStr(schema),
       IsOkAndHolds(MatchesRegex(
-          R"regex(IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=k[0-9a-f]{32}\)\)\)\)\))regex")));
+          R"regex(IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=k[0-9a-f]{32}:0\)\)\)\)\))regex")));
 
   ASSERT_OK(obj.SetAttr("a", obj));
   EXPECT_THAT(
       DataSliceToStr(obj),
       IsOkAndHolds(MatchesRegex(
-          R"regex(Obj\(a=Obj\(a=Obj\(a=Obj\(a=Obj\(a=\$[0-9a-f]{32}\)\)\)\)\))regex")));
+          R"regex(Obj\(a=Obj\(a=Obj\(a=Obj\(a=Obj\(a=\$[0-9a-f]{32}:0\)\)\)\)\))regex")));
 }
 
 TEST(DataSliceReprTest, DictExceedReprItemLimit) {

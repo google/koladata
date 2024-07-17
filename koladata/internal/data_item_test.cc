@@ -93,8 +93,8 @@ TEST(DataItemTest, DType) {
   EXPECT_EQ(item.dtype(), GetQType<schema::DType>());
   EXPECT_TRUE(item.holds_value<schema::DType>());
 
-  EXPECT_TRUE(DataItem::Less()(DataItem(schema::kInt32),
-                               schema::DType(schema::kBool)));
+  EXPECT_TRUE(
+      DataItem::Less()(DataItem(schema::kInt32), schema::DType(schema::kBool)));
 }
 
 TEST(DataItemTest, Object) {
@@ -406,9 +406,9 @@ TEST(DataItemTest, ItemView) {
   EXPECT_TRUE(less(DataItem(5.), DataItem::View<float>{6.f}));
 
   EXPECT_FALSE(less(DataItem(arolla::Bytes("abc")),
-                   DataItem::View<arolla::Bytes>{absl::string_view("abc")}));
+                    DataItem::View<arolla::Bytes>{absl::string_view("abc")}));
   EXPECT_FALSE(less(DataItem(arolla::Bytes("abc")),
-                   DataItem::View<arolla::Text>{absl::string_view("abc")}));
+                    DataItem::View<arolla::Text>{absl::string_view("abc")}));
   EXPECT_TRUE(less(DataItem(arolla::Bytes("abc")),
                    DataItem::View<arolla::Bytes>{absl::string_view("cde")}));
 
@@ -445,26 +445,30 @@ TEST(DataItemTest, ArollaFingerprint) {
             arolla::FingerprintHasher("salt").Combine(DataItem(1.0f)).Finish());
   EXPECT_NE(arolla::FingerprintHasher("salt").Combine(DataItem(0.0f)).Finish(),
             arolla::FingerprintHasher("salt").Combine(DataItem(0)).Finish());
-  EXPECT_EQ(
-      arolla::FingerprintHasher("salt").Combine(
-          DataItem(schema::DType())).Finish(),
-      arolla::FingerprintHasher("salt").Combine(
-          DataItem(schema::DType())).Finish());
-  EXPECT_EQ(
-      arolla::FingerprintHasher("salt").Combine(
-          DataItem(schema::kInt32)).Finish(),
-      arolla::FingerprintHasher("salt").Combine(
-          DataItem(schema::kInt32)).Finish());
-  EXPECT_NE(
-      arolla::FingerprintHasher("salt").Combine(
-          DataItem(schema::kFloat32)).Finish(),
-      arolla::FingerprintHasher("salt").Combine(
-          DataItem(schema::kInt32)).Finish());
-  EXPECT_NE(
-      arolla::FingerprintHasher("salt").Combine(
-          DataItem(schema::DType())).Finish(),
-      arolla::FingerprintHasher("salt").Combine(
-          DataItem(schema::kInt32)).Finish());
+  EXPECT_EQ(arolla::FingerprintHasher("salt")
+                .Combine(DataItem(schema::DType()))
+                .Finish(),
+            arolla::FingerprintHasher("salt")
+                .Combine(DataItem(schema::DType()))
+                .Finish());
+  EXPECT_EQ(arolla::FingerprintHasher("salt")
+                .Combine(DataItem(schema::kInt32))
+                .Finish(),
+            arolla::FingerprintHasher("salt")
+                .Combine(DataItem(schema::kInt32))
+                .Finish());
+  EXPECT_NE(arolla::FingerprintHasher("salt")
+                .Combine(DataItem(schema::kFloat32))
+                .Finish(),
+            arolla::FingerprintHasher("salt")
+                .Combine(DataItem(schema::kInt32))
+                .Finish());
+  EXPECT_NE(arolla::FingerprintHasher("salt")
+                .Combine(DataItem(schema::DType()))
+                .Finish(),
+            arolla::FingerprintHasher("salt")
+                .Combine(DataItem(schema::kInt32))
+                .Finish());
 }
 
 TEST(DataItemTest, TestRepr) {
@@ -473,10 +477,10 @@ TEST(DataItemTest, TestRepr) {
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("a")), /*strip_text=*/true),
             "a");
   EXPECT_THAT(DataItemRepr(DataItem(AllocateSingleObject())),
-              MatchesRegex(R"regex(\$[0-9a-f]{32})regex"));
+              MatchesRegex(R"regex(\$[0-9a-f]{32}:0)regex"));
   EXPECT_THAT(DataItemRepr(DataItem(CreateUuidObject(
                   arolla::FingerprintHasher("").Combine(57).Finish()))),
-              MatchesRegex(R"regex(k[0-9a-f]{32})regex"));
+              MatchesRegex(R"regex(k[0-9a-f]{32}:0)regex"));
 }
 
 }  // namespace
