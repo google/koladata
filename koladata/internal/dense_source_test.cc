@@ -23,6 +23,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -719,6 +720,83 @@ TEST(DenseSourceTest, Merge) {
                    DenseSource::ConflictHandlingOption::kRaiseOnConflict),
         StatusIs(absl::StatusCode::kFailedPrecondition,
                  HasSubstr("merge conflict: 'a' != 1")));
+  }
+}
+
+TEST(DenseSourceTest, MergeUnit) {
+  int size = 7;
+  AllocationId alloc = Allocate(size);
+  ASSERT_OK_AND_ASSIGN(
+      auto src1,
+      DenseSource::CreateReadonly(
+          alloc, DataSliceImpl::Create(arolla::CreateDenseArray<Unit>(
+                     {Unit(), std::nullopt, Unit(), Unit(), std::nullopt,
+                      Unit(), Unit()}))));
+  ASSERT_OK_AND_ASSIGN(
+      auto src2,
+      DenseSource::CreateReadonly(
+          alloc, DataSliceImpl::Create(arolla::CreateDenseArray<Unit>(
+                     {Unit(), Unit(), std::nullopt, Unit(), std::nullopt,
+                      Unit(), std::nullopt}))));
+
+  auto ids =
+      DataSliceImpl::ObjectsFromAllocation(alloc, size).values<ObjectId>();
+
+  auto options = {DenseSource::ConflictHandlingOption::kOverwrite,
+                  DenseSource::ConflictHandlingOption::kKeepOriginal,
+                  DenseSource::ConflictHandlingOption::kRaiseOnConflict};
+
+  for (auto option1 : options) {
+    for (auto option2 : options) {
+      SCOPED_TRACE(absl::StrCat("option1: ", option1, " option2: ", option2));
+      ASSERT_OK_AND_ASSIGN(
+          auto dst, DenseSource::CreateMutable(
+                        alloc, size, /*main_type=*/arolla::GetQType<Unit>()));
+      ASSERT_OK(dst->Merge(*src1, option1));
+      EXPECT_THAT(dst->Get(ids),
+                  ElementsAre(Unit(), std::nullopt, Unit(), Unit(),
+                              std::nullopt, Unit(), Unit()));
+      ASSERT_OK(dst->Merge(*src2, option2));
+      EXPECT_THAT(dst->Get(ids), ElementsAre(Unit(), Unit(), Unit(), Unit(),
+                                             std::nullopt, Unit(), Unit()));
+    }
+  }
+}
+
+TEST(DenseSourceTest, MergeFullReadOnly) {
+  int size = 7;
+  AllocationId alloc = Allocate(size);
+  ASSERT_OK_AND_ASSIGN(
+      auto src,
+      DenseSource::CreateReadonly(
+          alloc, DataSliceImpl::Create(arolla::CreateFullDenseArray<int>(
+                     {1, 2, 3, 4, 5, 6, 7}))));
+  ASSERT_OK_AND_ASSIGN(
+      auto src_inverse,
+      DenseSource::CreateReadonly(
+          alloc, DataSliceImpl::Create(arolla::CreateFullDenseArray<int>(
+                     {7, 6, 5, 4, 3, 2, 1}))));
+
+  auto ids =
+      DataSliceImpl::ObjectsFromAllocation(alloc, size).values<ObjectId>();
+
+  auto options = {DenseSource::ConflictHandlingOption::kOverwrite,
+                  DenseSource::ConflictHandlingOption::kKeepOriginal,
+                  DenseSource::ConflictHandlingOption::kRaiseOnConflict};
+
+  for (auto option : options) {
+    SCOPED_TRACE(absl::StrCat("option: ", option));
+    ASSERT_OK_AND_ASSIGN(
+        auto dst, DenseSource::CreateMutable(
+                      alloc, size, /*main_type=*/arolla::GetQType<int>()));
+    ASSERT_OK(dst->Merge(*src, option));
+    EXPECT_THAT(dst->Get(ids), ElementsAre(1, 2, 3, 4, 5, 6, 7));
+    ASSERT_OK(dst->Merge(*src_inverse,
+                         DenseSource::ConflictHandlingOption::kKeepOriginal));
+    EXPECT_THAT(dst->Get(ids), ElementsAre(1, 2, 3, 4, 5, 6, 7));
+    ASSERT_OK(dst->Merge(*src_inverse,
+                         DenseSource::ConflictHandlingOption::kOverwrite));
+    EXPECT_THAT(dst->Get(ids), ElementsAre(7, 6, 5, 4, 3, 2, 1));
   }
 }
 

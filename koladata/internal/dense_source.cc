@@ -15,6 +15,7 @@
 #include "koladata/internal/dense_source.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -31,6 +32,7 @@
 #include "absl/base/optimization.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -164,33 +166,47 @@ class SimpleValueArray {
   const DenseArray<T>& GetAll() const { return data_; }
 
   void Set(size_t offset, T value) {
+    DCHECK(IsMutable());
     arolla::bitmap::SetBit(mutable_presence_, offset);
     mutable_values_[offset] = value;
   }
 
   void Unset(size_t offset) {
+    DCHECK(IsMutable());
     arolla::bitmap::UnsetBit(mutable_presence_, offset);
   }
 
+  void MergeOverwrite(const DenseArray<T>& vals) {
+    DCHECK(IsMutable());
+    vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
+      mutable_values_[offset] = v;
+    });
+    UpdatePresenceOr(vals);
+  }
+
   void MergeKeepOriginal(const DenseArray<T>& vals) {
+    DCHECK(IsMutable());
     vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
       if (!arolla::bitmap::GetBit(mutable_presence_, offset)) {
-        Set(offset, v);
+        mutable_values_[offset] = v;
       }
     });
+    UpdatePresenceOr(vals);
   }
 
   absl::Status MergeRaiseOnConflict(const DenseArray<T>& vals) {
+    DCHECK(IsMutable());
     absl::Status status = absl::OkStatus();
     vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
       if (!arolla::bitmap::GetBit(mutable_presence_, offset)) {
-        Set(offset, v);
+        mutable_values_[offset] = v;
       } else if (mutable_values_[offset] != v && status.ok()) {
         status = absl::FailedPreconditionError(
             absl::StrCat("merge conflict: ", DataItem(mutable_values_[offset]),
                          " != ", DataItem(v)));
       }
     });
+    UpdatePresenceOr(vals);
     return status;
   }
 
@@ -225,6 +241,20 @@ class SimpleValueArray {
   }
 
  private:
+  // Updates presence bitmap of the array with new values computed from `vals`.
+  void UpdatePresenceOr(const DenseArray<T>& vals) {
+    size_t bitmap_size = arolla::bitmap::BitmapSize(size());
+    if (vals.bitmap.empty()) {
+      std::fill(mutable_presence_, mutable_presence_ + bitmap_size,
+                arolla::bitmap::kFullWord);
+    } else {
+      for (size_t i = 0; i < bitmap_size; ++i) {
+        mutable_presence_[i] |= arolla::bitmap::GetWordWithOffset(
+            vals.bitmap, i, vals.bitmap_bit_offset);
+      }
+    }
+  }
+
   Word* mutable_presence_ = nullptr;
   T* mutable_values_ = nullptr;
   DenseArray<T> data_;
@@ -290,20 +320,28 @@ class MaskValueArray {
   const DenseArray<Unit>& GetAll() const { return data_; }
 
   void Set(size_t offset, Unit value) {
+    DCHECK(IsMutable());
     arolla::bitmap::SetBit(mutable_presence_, offset);
   }
 
   void Unset(size_t offset) {
+    DCHECK(IsMutable());
     arolla::bitmap::UnsetBit(mutable_presence_, offset);
   }
 
+  void MergeOverwrite(const DenseArray<Unit>& vals) {
+    DCHECK(IsMutable());
+    MergeKeepOriginal(vals); }
+
   void MergeKeepOriginal(const DenseArray<Unit>& vals) {
+    DCHECK(IsMutable());
     vals.ForEachPresent([&](int64_t offset, Unit) {
       arolla::bitmap::SetBit(mutable_presence_, offset);
     });
   }
 
   absl::Status MergeRaiseOnConflict(const DenseArray<Unit>& vals) {
+    DCHECK(IsMutable());
     MergeKeepOriginal(vals);
     return absl::OkStatus();
   }
@@ -419,6 +457,12 @@ class MutableStringArray {
   }
   void Unset(size_t offset) { data_[offset] = std::nullopt; }
 
+  void MergeOverwrite(const DenseArray<T>& vals) {
+    vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> value) {
+      Set(offset, value);
+    });
+  }
+
   void MergeKeepOriginal(const DenseArray<T>& vals) {
     vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
       auto& dst = data_[offset];
@@ -505,11 +549,21 @@ class ImmutableStringArray {
 
   const DenseArray<T>& GetAll() const { return data_; }
 
-  void Set(size_t offset, absl::string_view value) {}
-  void Unset(size_t offset) {}
-  void MergeKeepOriginal(const DenseArray<T>& vals) {}
+  void Set(size_t offset, absl::string_view value) {
+    LOG(FATAL) << "ImmutableStringArray::Set is not allowed";
+  }
+  void Unset(size_t offset) {
+    LOG(FATAL) << "ImmutableStringArray::Unset is not allowed";
+  }
+  void MergeOverwrite(const DenseArray<T>& vals) {
+    LOG(FATAL) << "ImmutableStringArray::MergeOverwrite is not allowed";
+  }
+  void MergeKeepOriginal(const DenseArray<T>& vals) {
+    LOG(FATAL) << "ImmutableStringArray::MergeKeepOriginal is not allowed";
+  }
   absl::Status MergeRaiseOnConflict(const DenseArray<T>& vals) {
-    return absl::OkStatus();
+    return absl::FailedPreconditionError(
+        "ImmutableStringArray::MergeRaiseOnConflict is not allowed");
   }
 
   MutableStringArray<T> CreateMutableCopy() const {
@@ -1094,16 +1148,13 @@ class TypedDenseSource final : public DenseSource {
         0, std::min<int64_t>(values_array.size(), values_.size()));
     switch (option) {
       case DenseSource::ConflictHandlingOption::kOverwrite:
-        sliced_array.ForEachPresent(
-            [&](int64_t offset, arolla::view_type_t<T> value) {
-              values_.Set(offset, value);
-            });
+        values_.MergeOverwrite(sliced_array);
         return absl::OkStatus();
       case DenseSource::ConflictHandlingOption::kKeepOriginal:
-        values_.MergeKeepOriginal(values_array);
+        values_.MergeKeepOriginal(sliced_array);
         return absl::OkStatus();
       case DenseSource::ConflictHandlingOption::kRaiseOnConflict:
-        return values_.MergeRaiseOnConflict(values_array);
+        return values_.MergeRaiseOnConflict(sliced_array);
     }
     ABSL_UNREACHABLE();
   }
