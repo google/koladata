@@ -27,6 +27,7 @@
 #include <variant>
 #include <vector>
 
+#include "absl/base/attributes.h"
 #include "absl/base/dynamic_annotations.h"
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
@@ -80,6 +81,26 @@ class ImmutableStringArray;
 
 template <class T>
 class MutableStringArray;
+
+ABSL_ATTRIBUTE_NOINLINE void UpdateMergeConflictStatusWithDataItem(
+    absl::Status& status, const DataItem& value, const DataItem& other_value) {
+  if (!status.ok()) {
+    return;
+  }
+  status = absl::FailedPreconditionError(
+      absl::StrCat("merge conflict: ", value, " != ", other_value));
+}
+
+template <class T>
+ABSL_ATTRIBUTE_NOINLINE void UpdateMergeConflictStatus(
+    absl::Status& status, arolla::view_type_t<T> value,
+    arolla::view_type_t<T> other_value) {
+  if (!status.ok()) {
+    return;
+  }
+  UpdateMergeConflictStatusWithDataItem(status, DataItem(T(value)),
+                                        DataItem(T(other_value)));
+}
 
 // ValueArray is used as an internal storage in MultitypeDenseSource and
 // TypedDenseSource.
@@ -200,10 +221,8 @@ class SimpleValueArray {
     vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
       if (!arolla::bitmap::GetBit(mutable_presence_, offset)) {
         mutable_values_[offset] = v;
-      } else if (mutable_values_[offset] != v && status.ok()) {
-        status = absl::FailedPreconditionError(
-            absl::StrCat("merge conflict: ", DataItem(mutable_values_[offset]),
-                         " != ", DataItem(v)));
+      } else if (mutable_values_[offset] != v) {
+        UpdateMergeConflictStatus<T>(status, mutable_values_[offset], v);
       }
     });
     UpdatePresenceOr(vals);
@@ -478,9 +497,8 @@ class MutableStringArray {
       auto& dst = data_[offset];
       if (!dst.has_value()) {
         dst.emplace(v);
-      } else if (*dst != v && status.ok()) {
-        status = absl::FailedPreconditionError(
-            absl::StrCat("merge conflict: ", *dst, " != ", v));
+      } else if (*dst != v) {
+        UpdateMergeConflictStatus<T>(status, *dst, v);
       }
     });
     return status;
@@ -860,10 +878,9 @@ class MultitypeDenseSource : public DenseSource {
                   [&](int64_t offset, arolla::view_type_t<T> value) {
                     if (!arolla::bitmap::GetBit(presence, offset)) {
                       dst_vals.Set(offset, value);
-                    } else if (value != dst_vals.Get(offset) && status.ok()) {
-                      status = absl::FailedPreconditionError(absl::StrCat(
-                          "merge conflict: ", DataItem(T(value)),
-                          " != ", DataItem(T(dst_vals.Get(offset).value))));
+                    } else if (value != dst_vals.Get(offset)) {
+                      UpdateMergeConflictStatus<T>(status, value,
+                                                   dst_vals.Get(offset).value);
                     }
                   });
             }
@@ -879,10 +896,10 @@ class MultitypeDenseSource : public DenseSource {
                       typename std::decay_t<decltype(dst_vals)>::base_type;
                   sliced_array.ForEachPresent(
                       [&](int64_t offset, arolla::view_type_t<T> value) {
-                        if (dst_vals.Get(offset).present && status.ok()) {
-                          status = absl::FailedPreconditionError(absl::StrCat(
-                              "merge conflict: ", DataItem(T(value)), " != ",
-                              DataItem(VT(dst_vals.Get(offset).value))));
+                        if (dst_vals.Get(offset).present) {
+                          UpdateMergeConflictStatusWithDataItem(
+                              status, DataItem(T(value)),
+                              DataItem(VT(dst_vals.Get(offset).value)));
                         }
                       });
                 },
