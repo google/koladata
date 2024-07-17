@@ -38,13 +38,7 @@ def _get_input_fingerprint(
 class InputContainer:
   """Helper container to create Koda specific inputs.
 
-  Supports __getattr__, __getitem__ and is always a DATA_SLICE QType.
-
-  E.g.:
-    I = InputContainer('I')
-    I.x + I.y -> DATA_SLICE
-    I.x.some_attribute -> DATA_SLICE
-    I.x[:] -> DATA_SLICE
+  Supports __getattr__ and __getitem__.
 
   Note that I.x is not an Arolla leaf and arolla.get_leaf_keys will not include
   'x' - use `get_input_names` instead. Similarly, `arolla.sub_leaves` should not

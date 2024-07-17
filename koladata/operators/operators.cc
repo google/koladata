@@ -14,6 +14,7 @@
 //
 #include "koladata/data_slice_qtype.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/align.h"
 #include "koladata/operators/assertion.h"
 #include "koladata/operators/collapse.h"
 #include "koladata/operators/convert_and_eval.h"
@@ -59,6 +60,7 @@ OPERATOR("kde.core._shallow_clone", ShallowClone);
 OPERATOR("kde.core._shallow_clone_with_schema", ShallowCloneWithSchema);
 OPERATOR_FAMILY("kde.core._uuid", UuidOperatorFamily);
 OPERATOR_FAMILY("kde.core._uuobj", UuObjOperatorFamily);
+OPERATOR_FAMILY("kde.core.align", AlignOperatorFamily);
 OPERATOR("kde.core.at", At);
 OPERATOR("kde.core.dict_size", DictSize);
 OPERATOR("kde.core.follow", Follow);

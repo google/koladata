@@ -63,6 +63,7 @@ cc_library(
 cc_library(
     name = "lib",
     srcs = [
+        "align.cc",
         "convert_and_eval.cc",
         "explode.cc",
         "get_attr.cc",
@@ -76,6 +77,7 @@ cc_library(
         "uuobj.cc",
     ],
     hdrs = [
+        "align.h",
         "assertion.h",
         "collapse.h",
         "convert_and_eval.h",
