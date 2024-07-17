@@ -26,6 +26,7 @@
 #include <variant>
 #include <vector>
 
+#include "absl/base/dynamic_annotations.h"
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/container/inlined_vector.h"
@@ -105,7 +106,9 @@ class SimpleValueArray {
         data_({Buffer<T>(nullptr, absl::Span<T>(mutable_values_, size)),
                Buffer<Word>(nullptr, absl::Span<Word>(
                                          mutable_presence_,
-                                         arolla::bitmap::BitmapSize(size)))}) {}
+                                         arolla::bitmap::BitmapSize(size)))}) {
+    ABSL_ANNOTATE_MEMORY_IS_INITIALIZED(mutable_values_, size * sizeof(T));
+  }
 
   SimpleValueArray(const SimpleValueArray&) = delete;
   SimpleValueArray(SimpleValueArray&& other)
