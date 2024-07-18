@@ -148,6 +148,7 @@ def has_basic_koda_view(node: arolla.Expr) -> bool:
       hasattr(node, '_basic_koda_view_tag')
       and not hasattr(node, '_data_bag_view_tag')
       and not hasattr(node, '_data_slice_view_tag')
+      and not hasattr(node, '_koda_multiple_return_data_slice_tuple_view_tag')
   )
 
 

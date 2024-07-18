@@ -23,6 +23,7 @@ from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import ellipsis
+from koladata.types import qtypes
 
 kde = kde_operators.kde
 C = input_container.InputContainer('C')
@@ -31,10 +32,10 @@ C = input_container.InputContainer('C')
 @arolla.optools.add_to_registry()
 @arolla.optools.as_lambda_operator('test.op')
 def op(*args):
-  return args
+  return args[0]
 
 
-class BasicKodaView(parameterized.TestCase):
+class BasicKodaViewTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -51,12 +52,13 @@ class BasicKodaView(parameterized.TestCase):
     self.assertTrue(view.has_basic_koda_view(op()))
     self.assertFalse(view.has_data_slice_view(op()))
     self.assertFalse(view.has_data_bag_view(op()))
+    self.assertFalse(view.has_koda_multiple_return_data_slice_tuple_view(op()))
 
   def test_eval(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         op(I.x).eval(x=1),
-        arolla.tuple(arolla.tuple(data_slice.DataSlice.from_vals(1))),
+        arolla.tuple(data_slice.DataSlice.from_vals(1)),
     )
 
   def test_inputs(self):
@@ -64,7 +66,7 @@ class BasicKodaView(parameterized.TestCase):
     self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
 
 
-class DataBagView(parameterized.TestCase):
+class DataBagViewTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -81,6 +83,7 @@ class DataBagView(parameterized.TestCase):
     self.assertFalse(view.has_basic_koda_view(op()))
     self.assertFalse(view.has_data_slice_view(op()))
     self.assertTrue(view.has_data_bag_view(op()))
+    self.assertFalse(view.has_koda_multiple_return_data_slice_tuple_view(op()))
 
   def test_basic_koda_view_subclass(self):
     # Allows both views to be registered simultaneously without issue.
@@ -90,7 +93,7 @@ class DataBagView(parameterized.TestCase):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         op(I.x).eval(x=1),
-        arolla.tuple(arolla.tuple(data_slice.DataSlice.from_vals(1))),
+        arolla.tuple(data_slice.DataSlice.from_vals(1)),
     )
 
   def test_inputs(self):
@@ -115,6 +118,7 @@ class DataSliceViewTest(parameterized.TestCase):
     self.assertFalse(view.has_basic_koda_view(op()))
     self.assertTrue(view.has_data_slice_view(op()))
     self.assertFalse(view.has_data_bag_view(op()))
+    self.assertFalse(view.has_koda_multiple_return_data_slice_tuple_view(op()))
     # Check that C.x has the DataSliceView, meaning we can use it for further
     # tests instead of `op(...)`.
     self.assertTrue(view.has_data_slice_view(C.x))
@@ -254,6 +258,72 @@ class DataSliceViewTest(parameterized.TestCase):
   )
   def test_repr(self, expr, expected_repr):
     self.assertEqual(repr(expr), expected_repr)
+
+
+class KodaMultipleReturnDataSliceTupleViewTest(parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    arolla.abc.set_expr_view_for_registered_operator(
+        'test.op', view.KodaMultipleReturnDataSliceTupleView
+    )
+
+  def tearDown(self):
+    # Clear the view.
+    arolla.abc.set_expr_view_for_registered_operator('test.op', None)
+    super().tearDown()
+
+  def test_expr_view_tag(self):
+    self.assertFalse(view.has_basic_koda_view(op()))
+    self.assertFalse(view.has_data_slice_view(op()))
+    self.assertFalse(view.has_data_bag_view(op()))
+    self.assertTrue(view.has_koda_multiple_return_data_slice_tuple_view(op()))
+
+  def test_basic_koda_view_subclass(self):
+    # Allows both views to be registered simultaneously without issue.
+    self.assertTrue(
+        issubclass(
+            view.KodaMultipleReturnDataSliceTupleView, view.BasicKodaView
+        )
+    )
+
+  def test_eval(self):
+    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        op(I.x).eval(x=1),
+        arolla.tuple(data_slice.DataSlice.from_vals(1)),
+    )
+
+  def test_inputs(self):
+    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+    self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
+
+  def test_unpacking(self):
+    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+    expr = op(I.x, I.y)
+    x, y = expr
+    self.assertTrue(view.has_data_slice_view(x))
+    self.assertTrue(view.has_data_slice_view(y))
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        x,
+        arolla.M.annotation.qtype(
+            arolla.M.core.get_nth(expr, arolla.int64(0)), qtypes.DATA_SLICE
+        ),
+    )
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        y,
+        arolla.M.annotation.qtype(
+            arolla.M.core.get_nth(expr, arolla.int64(1)), qtypes.DATA_SLICE
+        ),
+    )
+    x_val = data_slice.DataSlice.from_vals(1)
+    y_val = data_slice.DataSlice.from_vals(2)
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        x.eval(x=x_val, y=y_val), x_val
+    )
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        y.eval(x=x_val, y=y_val), y_val
+    )
 
 
 if __name__ == '__main__':
