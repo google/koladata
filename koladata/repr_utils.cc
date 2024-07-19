@@ -31,6 +31,7 @@
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/s11n/codec.pb.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
