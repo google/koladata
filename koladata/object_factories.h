@@ -227,6 +227,13 @@ struct SchemaCreator {
       const std::vector<DataSlice>& schemas) const;
 };
 
+struct ListSchemaCreator {
+  // Returns a list schema from a given `item_schema`.
+  absl::StatusOr<DataSlice> operator()(
+      const DataBagPtr& db,
+      const DataSlice& item_schema) const;
+};
+
 // Creates dict schema with the given keys and values schemas.
 absl::StatusOr<internal::DataItem> CreateDictSchema(
     const DataBagPtr& db, const DataSlice& key_schema,

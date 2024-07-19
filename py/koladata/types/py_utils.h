@@ -57,7 +57,7 @@ absl::StatusOr<std::vector<DataSlice>> ConvertArgsToDataSlices(
 // Unwraps DataSlices from PyObject* arguments or throws an error if something
 // other than a DataSlice is encountered.
 absl::StatusOr<std::vector<DataSlice>> UnwrapDataSlices(
-    const DataBagPtr& db, const std::vector<PyObject*>& args,
+    const std::vector<PyObject*>& args,
     AdoptionQueue& adoption_queue);
 
 // Same as above, but if `prohibit_boxing_to_multi_dim_slice` is true (meaning

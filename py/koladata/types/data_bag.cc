@@ -299,16 +299,19 @@ absl::Nullable<PyObject*> PyDataBag_schema_factory(
   }
   auto db = UnsafeDataBagPtr(self);
   AdoptionQueue adoption_queue;
-  std::optional<DataSlice> res;
+  DataSlice res;
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
-      UnwrapDataSlices(db, args.kw_values, adoption_queue),
+      UnwrapDataSlices(args.kw_values, adoption_queue),
       SetPyErrFromStatus(_));
+  for (const auto& value : values) {
+    adoption_queue.Add(value);
+  }
   ASSIGN_OR_RETURN(
       res, SchemaCreator()(db, args.kw_names, values),
       SetPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
-  return WrapPyDataSlice(*std::move(res));
+  return WrapPyDataSlice(std::move(res));
 }
 
 // Returns a DataSlice that represents an entity with the given DataBag
@@ -547,7 +550,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_factory(PyObject* self,
   }
   auto db = UnsafeDataBagPtr(self);
   AdoptionQueue adoption_queue;
-  std::optional<DataSlice> res;
+  DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
                    SetPyErrFromStatus(_));
@@ -570,7 +573,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_factory(PyObject* self,
         SetPyErrFromStatus(_));
   }
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
-  return WrapPyDataSlice(*std::move(res));
+  return WrapPyDataSlice(std::move(res));
 }
 
 // Converts `py_items_or_keys` and `py_values` into DataSlices `keys` and
@@ -795,6 +798,38 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
 
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db)).With(SetPyErrFromStatus);
   return WrapPyDataSlice(*std::move(res));
+}
+
+absl::Nullable<PyObject*> PyDataBag_list_schema(
+    PyObject* self, PyObject* const* py_args, Py_ssize_t nargs,
+    PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/false, "item_schema");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  if (args.pos_kw_values[0] == nullptr) {
+    PyErr_Format(
+        PyExc_ValueError,
+        "missing required argument to DataBag._list_schema: `item_schema`");
+    return nullptr;
+  }
+
+  auto db = UnsafeDataBagPtr(self);
+  AdoptionQueue adoption_queue;
+  absl::Nullable<const DataSlice*> item_schema =
+      UnwrapDataSlice(args.pos_kw_values[0]);
+  if (item_schema == nullptr) {
+    return nullptr;
+  }
+  adoption_queue.Add(*item_schema);
+  ASSIGN_OR_RETURN(DataSlice res, ListSchemaCreator()(db, *item_schema),
+                   SetPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
+  return WrapPyDataSlice(std::move(res));
 }
 
 absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
@@ -1072,6 +1107,9 @@ Returns:
     {"_dict_like", (PyCFunction)PyDataBag_dict_like, METH_FASTCALL,
      "DataBag._dict_like"},
     {"_list", (PyCFunction)PyDataBag_list, METH_FASTCALL, "DataBag._list"},
+    {"list_schema", (PyCFunction)PyDataBag_list_schema,
+     METH_FASTCALL | METH_KEYWORDS,
+     "Returns a list schema from the schema of the items"},
     {"_list_shaped", (PyCFunction)PyDataBag_list_shaped, METH_FASTCALL,
      "DataBag._list_shaped"},
     {"_list_like", (PyCFunction)PyDataBag_list_like, METH_FASTCALL,

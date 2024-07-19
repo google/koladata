@@ -522,6 +522,53 @@ SchemaBag:
       )
     testing.assert_equivalent(db, bag())
 
+  def test_list_schema(self):
+    db = bag()
+    schema = db.list_schema(schema_constants.INT32)
+    testing.assert_equal(schema, db.list([1, 2, 3]).get_schema())
+    testing.assert_equal(
+        schema.get_attr('__items__'), schema_constants.INT32.with_db(db)
+    )
+
+    # Keyword works.
+    schema = db.list_schema(item_schema=schema_constants.INT32)
+    testing.assert_equal(schema, db.list([1, 2, 3]).get_schema())
+    testing.assert_equal(
+        schema.get_attr('__items__'), schema_constants.INT32.with_db(db)
+    )
+
+    # Nested schema with databag adoption.
+    db2 = bag()
+    schema = db.list_schema(
+        db2.uu_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
+    )
+    testing.assert_equal(
+        schema.get_attr('__items__').a, schema_constants.INT32.with_db(db)
+    )
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, "got an unexpected keyword 'seed'"
+    ):
+      _ = db.list_schema(seed='')
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'missing required argument to DataBag._list_schema: `item_schema`',
+    ):
+      _ = db.list_schema()
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'accepts 0 to 1 positional arguments but 2 were given',
+    ):
+      _ = db.list_schema(1, 2)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'expected DataSlice, got NoneType',
+    ):
+      _ = db.list_schema(item_schema=None)
+
   def test_new_auto_broadcasting(self):
     db = bag()
     x = db.new(a=ds(12), b=ds([[1, None, 6], [None], [123]]))

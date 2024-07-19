@@ -404,6 +404,14 @@ absl::StatusOr<DataSlice> SchemaCreator::operator()(
   return CreateEntitySchema(db, attr_names, schemas);
 }
 
+absl::StatusOr<DataSlice> ListSchemaCreator::operator()(
+    const DataBagPtr& db,
+    const DataSlice& item_schema) const {
+  ASSIGN_OR_RETURN(auto schema_item, CreateListSchema(db, item_schema));
+  return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema),
+                           db);
+}
+
 // TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
 // and -Like creation and forward to -Shaped here.
 absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
