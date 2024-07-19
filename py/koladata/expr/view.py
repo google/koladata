@@ -169,3 +169,9 @@ def has_koda_multiple_return_data_slice_tuple_view(node: arolla.Expr) -> bool:
 
 arolla.abc.set_expr_view_for_qtype(qtypes.DATA_SLICE, DataSliceView)
 arolla.abc.set_expr_view_for_qtype(qtypes.DATA_BAG, DataBagView)
+arolla.abc.set_expr_view_for_registered_operator(
+    'koda_internal.input', DataSliceView
+)
+arolla.abc.set_expr_view_for_operator_family(
+    '::koladata::expr::LiteralOperator', BasicKodaView
+)
