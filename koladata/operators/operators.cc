@@ -29,6 +29,7 @@
 #include "koladata/operators/list.h"
 #include "koladata/operators/logical.h"
 #include "koladata/operators/nofollow.h"
+#include "koladata/operators/reverse.h"
 #include "koladata/operators/schema.h"
 #include "koladata/operators/select.h"
 #include "koladata/operators/shallow_clone.h"
@@ -72,6 +73,7 @@ OPERATOR("kde.core.itemid_bits", ItemIdBits);
 OPERATOR("kde.core.list_size", ListSize);
 OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
+OPERATOR("kde.core.reverse", Reverse);
 OPERATOR("kde.core.reverse_select", ReverseSelect);
 OPERATOR_FAMILY("kde.core.subslice", SubsliceOperatorFamily);
 OPERATOR("kde.core.unique", Unique);
