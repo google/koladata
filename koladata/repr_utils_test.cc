@@ -22,7 +22,6 @@
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
-#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -32,6 +31,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
+#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/util/testing/equals_proto.h"
 
 namespace koladata {
@@ -40,6 +40,7 @@ namespace {
 using ::arolla::testing::EqualsProto;
 using ::koladata::internal::Error;
 using ::koladata::internal::ObjectId;
+using ::koladata::testing::StatusIs;
 using ::testing::MatchesRegex;
 
 TEST(ReprUtilTest, TestAssembleError) {
@@ -84,6 +85,17 @@ TEST(ReprUtilTest, TestAssembleError) {
               R"regex((.|\n)*the common schema\(s\) [0-9a-f]{32}:0: SCHEMA\(a=INT32, b=TEXT\)(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*the first conflicting schema INT32: INT32(.|\n)*)regex")));
+}
+
+TEST(ReprUtilTest, TestAssembleErrorMissingContextData) {
+  Error error;
+  internal::NoCommonSchema* no_common_schema = error.mutable_no_common_schema();
+  *no_common_schema->mutable_conflicting_schema() =
+      internal::EncodeSchema(internal::DataItem(schema::GetDType<int>()));
+  EXPECT_THAT(
+      AssembleErrorMessage(
+          internal::WithErrorPayload(absl::InternalError("error"), error), {}),
+      StatusIs(absl::StatusCode::kInvalidArgument, "db is missing"));
 }
 
 TEST(ReprUtilTest, TestAssembleErrorNotHandlingOkStatus) {

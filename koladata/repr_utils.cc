@@ -18,11 +18,11 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
@@ -55,9 +55,11 @@ absl::StatusOr<internal::DataItem> DecodeDataItem(
   }
 }
 
-absl::StatusOr<Error> SetNoCommonSchemaError(Error cause,
-                                             absl::Span<const DataBagPtr> dbs) {
-  DataBagPtr db = DataBag::ImmutableEmptyWithFallbacks(dbs);
+absl::StatusOr<Error> SetNoCommonSchemaError(
+    Error cause, absl::Nullable<const DataBagPtr>& db) {
+  if (!db) {
+    return absl::InvalidArgumentError("db is missing");
+  }
   ASSIGN_OR_RETURN(internal::DataItem common_schema_item,
                    DecodeDataItem(cause.no_common_schema().common_schema()));
   ASSIGN_OR_RETURN(
@@ -90,14 +92,14 @@ absl::StatusOr<Error> SetNoCommonSchemaError(Error cause,
 }  // namespace
 
 absl::Status AssembleErrorMessage(const absl::Status& status,
-                                  absl::Span<const koladata::DataBagPtr> dbs) {
+                                  const SupplementalData& data) {
   std::optional<Error> cause = GetErrorPayload(status);
   if (!cause) {
     return status;
   }
   if (cause->has_no_common_schema()) {
     ASSIGN_OR_RETURN(Error error,
-                     SetNoCommonSchemaError(*std::move(cause), dbs));
+                     SetNoCommonSchemaError(*std::move(cause), data.db));
     return WithErrorPayload(status, error);
   }
   return status;

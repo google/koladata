@@ -15,17 +15,22 @@
 #ifndef KOLADATA_REPR_UTILS_H_
 #define KOLADATA_REPR_UTILS_H_
 
-
+#include "absl/base/nullability.h"
 #include "absl/status/status.h"
-#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 
 namespace koladata {
 
+// The additional data collected for assemble a more user friendly error
+// message.
+struct SupplementalData {
+  absl::Nullable<const koladata::DataBagPtr> db;
+};
+
 // Creates the readable error message and sets it in the payload of Status if
 // the Status is not ok. On OkStatus, returns it unchanged.
 absl::Status AssembleErrorMessage(const absl::Status& status,
-                                  absl::Span<const koladata::DataBagPtr> dbs);
+                                  const SupplementalData& data);
 
 }  // namespace koladata
 

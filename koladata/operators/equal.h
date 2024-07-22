@@ -17,6 +17,7 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_op.h"
 #include "koladata/data_slice_qtype.h"
@@ -37,7 +38,9 @@ inline absl::StatusOr<DataSlice> Equal(const DataSlice& lhs,
   RETURN_IF_ERROR(
       schema::CommonSchema(lhs.GetSchemaImpl(), rhs.GetSchemaImpl()).status())
       .With([&](const absl::Status& status) {
-        return AssembleErrorMessage(status, {lhs.GetDb(), rhs.GetDb()});
+        return AssembleErrorMessage(status,
+                                    {.db = DataBag::ImmutableEmptyWithFallbacks(
+                                         {lhs.GetDb(), rhs.GetDb()})});
       });
   return DataSliceOp<internal::EqualOp>()(
       lhs, rhs, internal::DataItem(schema::kMask), nullptr);

@@ -251,8 +251,10 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
       bldr.Insert(i, std::move(item));
     }
     if constexpr (!explicit_cast) {
-      ASSIGN_OR_RETURN(schema, std::move(schema_agg).Get(),
-                       AssembleErrorMessage(_, adoption_queue.bags()));
+      ASSIGN_OR_RETURN(
+          schema, std::move(schema_agg).Get(),
+          AssembleErrorMessage(_, {.db = DataBag::ImmutableEmptyWithFallbacks(
+                                       adoption_queue.bags())}));
     }
     ASSIGN_OR_RETURN(auto shape,
                      DataSlice::JaggedShape::FromEdges(std::move(edges)));

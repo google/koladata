@@ -45,7 +45,7 @@ inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
                                           const DataSlice& y) {
   auto res_db = DataBag::CommonDataBag({x.GetDb(), y.GetDb()});
   ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}),
-                   AssembleErrorMessage(_, {res_db}));
+                   AssembleErrorMessage(_, {.db = res_db}));
   return DataSliceOp<internal::PresenceOrOp>()(
       aligned_slices.slices[0], aligned_slices.slices[1],
       aligned_slices.common_schema, std::move(res_db));
