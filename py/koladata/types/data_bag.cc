@@ -927,6 +927,34 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
+absl::Nullable<PyObject*> PyDataBag_implode(PyObject* self,
+                                            PyObject* const* args,
+                                            Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  if (nargs != 2) {
+    PyErr_Format(PyExc_ValueError,
+                 "DataBag._implode accepts exactly 2 arguments, got %d", nargs);
+    return nullptr;
+  }
+
+  const auto& self_db = UnsafeDataBagPtr(self);
+  PyObject* const py_x = args[0];
+  PyObject* const py_ndim = args[1];
+
+  const DataSlice* x_ptr = UnwrapDataSlice(py_x);
+  if (x_ptr == nullptr) {
+    return nullptr;
+  }
+  Py_ssize_t ndim = PyLong_AsSsize_t(py_ndim);
+  if (ndim == -1 && PyErr_Occurred() != nullptr) {
+    return nullptr;
+  }
+
+  ASSIGN_OR_RETURN(DataSlice result, Implode(self_db, *x_ptr, ndim),
+                   SetPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(result));
+}
+
 absl::Nullable<PyObject*> PyDataBag_exactly_equal(PyObject* self,
                                                   PyObject* const* args,
                                                   Py_ssize_t nargs) {
@@ -1114,6 +1142,8 @@ Returns:
      "DataBag._list_shaped"},
     {"_list_like", (PyCFunction)PyDataBag_list_like, METH_FASTCALL,
      "DataBag._list_like"},
+    {"_implode", (PyCFunction)PyDataBag_implode, METH_FASTCALL,
+     "DataBag._implode"},
     {"_exactly_equal", (PyCFunction)PyDataBag_exactly_equal, METH_FASTCALL,
      "DataBag._exactly_equal"},
     {"_kwargs_to_namedtuple", (PyCFunction)PyDataBag_kwargs_to_namedtuple,

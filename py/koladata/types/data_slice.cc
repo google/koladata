@@ -492,6 +492,11 @@ absl::Nullable<PyObject*> PyDataSlice_get_size(PyObject* self) {
   return PyLong_FromSize_t(UnsafeDataSliceRef(self).size());
 }
 
+absl::Nullable<PyObject*> PyDataSlice_get_ndim(PyObject* self) {
+  arolla::python::DCheckPyGIL();
+  return PyLong_FromSize_t(UnsafeDataSliceRef(self).GetShape().rank());
+}
+
 absl::Nullable<PyObject*> PyDataSlice_get_shape(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
@@ -625,6 +630,12 @@ Returns:
     {"as_dense_array", (PyCFunction)PyDataSlice_as_dense_array, METH_NOARGS,
      "Converts primitive slice to an arolla.dense_array with appropriate "
      "qtype."},
+    {"get_ndim", (PyCFunction)PyDataSlice_get_ndim, METH_NOARGS,
+     "Returns the number of dimensions of the DataSlice, a.k.a. the rank or "
+     "nesting level."},
+    {"rank", (PyCFunction)PyDataSlice_get_ndim, METH_NOARGS,
+     "Returns the number of dimensions of the DataSlice, a.k.a. the rank or "
+     "nesting level."},
     {"get_shape", (PyCFunction)PyDataSlice_get_shape, METH_NOARGS,
      "Returns the shape of the DataSlice."},
     {"get_schema", (PyCFunction)PyDataSlice_get_schema, METH_NOARGS,

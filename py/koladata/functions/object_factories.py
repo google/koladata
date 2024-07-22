@@ -433,3 +433,39 @@ def obj_like(
   if db is None:
     db = bag()
   return db.obj_like(shape_and_mask_from, **attrs)
+
+
+def implode(
+    x: data_slice.DataSlice,
+    ndim: int = 1,
+    db: data_bag.DataBag | None = None,
+) -> data_slice.DataSlice:
+  """Implodes a Dataslice `x` a specified number of times.
+
+  A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
+  DataSlice of LIST[T], by folding the items in the last dimension of the
+  original DataSlice into newly-created Lists.
+
+  A single list implosion is equivalent to `kd.list(x, db)`.
+
+  If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
+
+  If `ndim` is set to a negative integer, implodes as many times as possible,
+  until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
+  nested List.
+
+  The specified `db` is used to create any new Lists, and is the DataBag of the
+  result DataSlice. If `db` is not specified, a new DataBag is created for this
+  purpose.
+
+  Args:
+    x: the DataSlice to implode
+    ndim: the number of implosion operations to perform
+    db: optional DataBag where Lists are created from
+
+  Returns:
+    DataSlice of nested Lists
+  """
+  if db is None:
+    db = bag()
+  return db.implode(x, ndim)

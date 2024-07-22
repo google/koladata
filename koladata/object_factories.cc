@@ -28,8 +28,10 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_bag.h"
@@ -736,6 +738,34 @@ absl::StatusOr<DataSlice> CreateNestedList(
     ASSIGN_OR_RETURN(res, CreateListsFromLastDimension(db, res));
   }
   return res;
+}
+
+absl::StatusOr<DataSlice> Implode(const std::shared_ptr<DataBag>& db,
+                                  const DataSlice& values, int ndim) {
+  const size_t rank = values.GetShape().rank();
+  if (ndim < 0) {
+    ndim = values.GetShape().rank();  // ndim < 0 means implode all dimensions.
+  }
+  if (rank < ndim) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("cannot implode 'x' to fold the last %d dimension(s) "
+                        "because 'x' only has %d dimensions",
+                        ndim, rank));
+  }
+
+  // Adopt `values` into `db`.
+  AdoptionQueue adoption_queue;
+  adoption_queue.Add(values);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
+
+  if (ndim == 0) {
+    return values.WithDb(db);
+  }
+  ASSIGN_OR_RETURN(DataSlice result, CreateListsFromLastDimension(db, values));
+  for (int i = 1; i < ndim; ++i) {
+    ASSIGN_OR_RETURN(result, CreateListsFromLastDimension(db, result));
+  }
+  return result;
 }
 
 absl::StatusOr<DataSlice> CreateListShaped(

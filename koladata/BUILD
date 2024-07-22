@@ -427,6 +427,7 @@ cc_library(
     srcs = ["object_factories.cc"],
     hdrs = ["object_factories.h"],
     deps = [
+        ":adoption_utils",
         ":data_bag",
         ":data_slice",
         "//koladata/internal:data_bag",
@@ -440,6 +441,7 @@ cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",

@@ -24,6 +24,7 @@ bag = _object_factories.bag
 list = _object_factories._list  # pylint: disable=redefined-builtin,protected-access
 list_like = _object_factories.list_like
 list_shaped = _object_factories.list_shaped
+implode = _object_factories.implode
 
 dict = _object_factories._dict  # pylint: disable=redefined-builtin,protected-access
 dict_like = _object_factories.dict_like

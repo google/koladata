@@ -1042,6 +1042,133 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension_FromDataSlice) {
   }
 }
 
+TEST(ObjectFactoriesTest, Implode) {
+  auto db = DataBag::Empty();
+
+  // values: [[1, 2, 3], [4, 5]]
+  ASSERT_OK_AND_ASSIGN(auto edge, DenseArrayEdge::FromSplitPoints(
+                                      CreateDenseArray<int64_t>({0, 3, 5})));
+  ASSERT_OK_AND_ASSIGN(
+      auto shape, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge}));
+  auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
+
+  {
+    // ndim=-1, same db
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         Implode(db, values, -1));
+    EXPECT_EQ(lists.GetShape().rank(), 0);
+    EXPECT_EQ(lists.GetDb(), db);
+
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists1,
+                         lists.ExplodeList(0, std::nullopt));
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists2,
+                         exploded_lists1.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(exploded_lists2.slice(), ElementsAreArray(values.slice()));
+    EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists2.GetShape()));
+  }
+  {
+    // ndim=-1, new db
+    auto db2 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         Implode(db2, values, -1));
+    EXPECT_EQ(lists.GetShape().rank(), 0);
+    EXPECT_EQ(lists.GetDb(), db2);
+
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists1,
+                         lists.ExplodeList(0, std::nullopt));
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists2,
+                         exploded_lists1.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(exploded_lists2.slice(), ElementsAreArray(values.slice()));
+    EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists2.GetShape()));
+  }
+  {
+    // ndim=0, same db
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         Implode(db, values, 0));
+    EXPECT_EQ(lists.GetShape().rank(), 2);
+    EXPECT_EQ(lists.GetDb(), db);
+
+    EXPECT_EQ(lists.GetShape().rank(), 2);
+    EXPECT_THAT(lists.GetSchemaImpl(), Eq(schema::kInt32));
+    EXPECT_THAT(lists.slice(), ElementsAreArray(values.slice()));
+    EXPECT_THAT(values.GetShape(), IsEquivalentTo(lists.GetShape()));
+  }
+  {
+    // ndim=0, new db
+    auto db2 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         Implode(db2, values, 0));
+    EXPECT_EQ(lists.GetShape().rank(), 2);
+    EXPECT_EQ(lists.GetDb(), db2);
+
+    EXPECT_THAT(lists.GetSchemaImpl(), Eq(schema::kInt32));
+    EXPECT_THAT(lists.slice(), ElementsAreArray(values.slice()));
+    EXPECT_THAT(values.GetShape(), IsEquivalentTo(lists.GetShape()));
+  }
+  {
+    // ndim=1, same db
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         Implode(db, values, 1));
+    EXPECT_EQ(lists.GetShape().rank(), 1);
+    EXPECT_EQ(lists.GetDb(), db);
+
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists,
+                         lists.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(exploded_lists.slice(), ElementsAreArray(values.slice()));
+    EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists.GetShape()));
+  }
+  {
+    // ndim=1, new db
+    auto db2 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         Implode(db2, values, 1));
+    EXPECT_EQ(lists.GetShape().rank(), 1);
+    EXPECT_EQ(lists.GetDb(), db2);
+
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists,
+                         lists.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(exploded_lists.slice(), ElementsAreArray(values.slice()));
+    EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists.GetShape()));
+  }
+  {
+    // ndim=2, same db
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         Implode(db, values, 2));
+    EXPECT_EQ(lists.GetShape().rank(), 0);
+    EXPECT_EQ(lists.GetDb(), db);
+
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists1,
+                         lists.ExplodeList(0, std::nullopt));
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists2,
+                         exploded_lists1.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(exploded_lists2.slice(), ElementsAreArray(values.slice()));
+    EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists2.GetShape()));
+  }
+  {
+    // ndim=2, new db
+    auto db2 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         Implode(db2, values, 2));
+    EXPECT_EQ(lists.GetShape().rank(), 0);
+    EXPECT_EQ(lists.GetDb(), db2);
+
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists1,
+                         lists.ExplodeList(0, std::nullopt));
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists2,
+                         exploded_lists1.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(exploded_lists2.slice(), ElementsAreArray(values.slice()));
+    EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists2.GetShape()));
+  }
+  {
+    // ndim=3, same db
+    EXPECT_THAT(
+        Implode(db, values, 3),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("cannot implode 'x' to fold the last 3 dimension(s) "
+                           "because 'x' only has 2 dimensions")));
+  }
+}
+
 TEST(ObjectFactoriesTest, CreateListShaped) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();

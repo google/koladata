@@ -25,7 +25,6 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
 
 namespace koladata {
 
@@ -275,9 +274,9 @@ absl::StatusOr<DataSlice> CreateEmptyList(
     const std::optional<DataSlice>& schema = std::nullopt,
     const std::optional<DataSlice>& item_schema = std::nullopt);
 
-// Creates a slice of lists with given values. The dimension of the resulted
-// slice will be one less than the dimension of the values. If `item_schema` is
-// not provided, it will be taken from `values` or defaulted to OBJECT.
+// Creates a DataSlice of lists with given values. The dimension of the resulted
+// DataSlice will be one less than the dimension of the values. If `item_schema`
+// is not provided, it will be taken from `values` or defaulted to OBJECT.
 absl::StatusOr<DataSlice> CreateListsFromLastDimension(
     const std::shared_ptr<DataBag>& db, const DataSlice& values,
     const std::optional<DataSlice>& schema = std::nullopt,
@@ -290,6 +289,12 @@ absl::StatusOr<DataSlice> CreateNestedList(
     const std::shared_ptr<DataBag>& db, const DataSlice& values,
     const std::optional<DataSlice>& schema = std::nullopt,
     const std::optional<DataSlice>& item_schema = std::nullopt);
+
+// Creates a DataSlice of nested lists from the last `ndim` dimensions of
+// `values` if `ndim` >= 0, or from all dimensions of `values` if `ndim` < 0.
+// The contents of `values` are adopted into `db`.
+absl::StatusOr<DataSlice> Implode(
+    const std::shared_ptr<DataBag>& db, const DataSlice& values, int ndim);
 
 // Creates a DataSlice of lists with the provided shape. If `values` are
 // provided, they will be appended to the lists after creation (that implies

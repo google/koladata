@@ -17,6 +17,7 @@
 from typing import Any
 
 from arolla import arolla as _arolla
+from koladata.operators import kde_operators
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _  # pylint: disable=unused-import
@@ -316,4 +317,34 @@ def assert_dicts_equal(
       # different.
       actual_dict[same_order_keys].with_db(None),
       expected_dict[same_order_keys].with_db(None),
+  )
+
+
+def assert_nested_lists_equal(
+    actual_list: _data_slice.DataSlice,
+    expected_list: _data_slice.DataSlice,
+):
+  """Koda check for nested List equality.
+
+  This checks that the DataSlices have the same shape and schema, and that the
+  corresponding values are either the same, or are nested Lists with the same
+  structure containing equivalent non-List values.
+
+  Args:
+    actual_list: DataSlice.
+    expected_list: DataSlice.
+
+  Raises:
+    AssertionError: If actual_dict and expected_dict do not represent equal Koda
+      nested Lists.
+  """
+  _expect_data_slice(actual_list)
+  _expect_data_slice(expected_list)
+  _assert_equal_schema(actual_list, expected_list)
+  _assert_equal_shape(actual_list, expected_list)
+  assert_equivalent(
+      # We need to skip checking the DataBags, as list ItemId(s) are usually
+      # different.
+      kde_operators.kde.explode(actual_list, -1).eval().with_db(None),
+      kde_operators.kde.explode(expected_list, -1).eval().with_db(None),
   )

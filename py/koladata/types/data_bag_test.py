@@ -921,6 +921,16 @@ SchemaBag:
     with self.assertRaisesRegex(TypeError, 'expected DataSlice, got Int'):
       db._list_like(arolla.int32(56), 57, 58, 59)
 
+  def test_implode_impl(self):
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError, 'DataBag._implode accepts exactly 2 arguments, got 3'):
+      db._implode(ds([]), 1, 2)
+    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got int'):
+      db._implode(1, 2)
+    with self.assertRaisesRegex(TypeError, 'an integer is required'):
+      db._implode(ds([]), ds([]))
+
   def test_exactly_equal_impl_raises(self):
     with self.assertRaisesRegex(
         ValueError, 'DataBag._exactly_equal accepts exactly 1 argument, got 2'

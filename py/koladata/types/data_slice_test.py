@@ -1846,6 +1846,12 @@ class DataSliceFallbackTest(parameterized.TestCase):
     self.assertEqual(ds([3.14, None, 57.0]).get_size(), 3)
     self.assertEqual(ds([[1, 2], [3, None], [None]]).get_size(), 5)
 
+  def test_get_ndim(self):
+    self.assertEqual(ds(57).get_ndim(), 0)
+    self.assertEqual(ds([1, 2, 3]).get_ndim(), 1)
+    self.assertEqual(ds([[1, 2], [3, 4, 5]]).get_ndim(), 2)
+    self.assertEqual(ds([[[[[]]]]]).get_ndim(), 5)
+
   # More comprehensive tests are in the test_core_subslice.py.
   @parameterized.parameters(
       # x.ndim=1

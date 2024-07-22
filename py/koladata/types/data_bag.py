@@ -265,6 +265,40 @@ def _list_like(
   return self._list_like(shape_and_mask_from, items, item_schema, schema)  # pylint: disable=protected-access
 
 
+def _implode(
+    self: DataBag,
+    x: _DataSlice,
+    ndim: int,
+) -> _DataSlice:  # pylint: disable=g-doc-args
+  """Implodes a Dataslice `x` a specified number of times.
+
+  A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
+  DataSlice of LIST[T], by folding the items in the last dimension of the
+  original DataSlice into newly-created Lists.
+
+  A single list implosion is equivalent to `kd.list(x, db)`.
+
+  If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
+
+  If `ndim` is set to a negative integer, implodes as many times as possible,
+  until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
+  nested List.
+
+  The specified `db` is used to create any new Lists, and is the DataBag of the
+  result DataSlice. If `db` is not specified, a new, empty DataBag is created
+  for this purpose.
+
+  Args:
+    x: the DataSlice to implode
+    ndim: the number of implosion operations to perform
+    db: optional DataBag where Lists are created from
+
+  Returns:
+    DataSlice of nested Lists
+  """
+  return self._implode(x, ndim)  # pylint: disable=protected-access
+
+
 def _merge_inplace(
     self: DataBag,
     other_dbs: DataBag | Iterable[DataBag],
@@ -314,4 +348,5 @@ DataBag.dict_shaped = _dict_shaped
 DataBag.list = _list
 DataBag.list_shaped = _list_shaped
 DataBag.list_like = _list_like
+DataBag.implode = _implode
 DataBag.merge_inplace = _merge_inplace

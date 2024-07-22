@@ -238,6 +238,17 @@ class TestUtilsTest(absltest.TestCase):
     with self.assertRaisesRegex(AssertionError, 'have different shapes'):
       test_utils.assert_dicts_equal(d1, d2)
 
+  def test_assert_nested_lists_equal(self):
+    l1 = bag().list([[1], [2, 3]])
+    l2 = bag().list([[1], [2, 3]])
+    test_utils.assert_nested_lists_equal(l1, l2)
+
+  def test_assert_nested_lists_equal_error(self):
+    l1 = bag().list([[1], [2, 3]])
+    l2 = bag().list([[1, 2], [3]])
+    with self.assertRaisesRegex(AssertionError, 'QValues not equal'):
+      test_utils.assert_nested_lists_equal(l1, l2)
+
 
 if __name__ == '__main__':
   absltest.main()
