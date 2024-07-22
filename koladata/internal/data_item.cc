@@ -89,7 +89,7 @@ absl::StatusOr<DataItem> DataItem::Create(const arolla::TypedRef& value) {
         absl::StrFormat("DataItem cannot be created from value with type %s",
                         value.GetType()->name()));
   }
-  return std::move(*result);
+  return *std::move(result);
 }
 
 absl::StatusOr<DataItem> DataItem::Create(const arolla::TypedValue& value) {

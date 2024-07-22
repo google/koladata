@@ -97,7 +97,7 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
   }
   if (cause->has_no_common_schema()) {
     ASSIGN_OR_RETURN(Error error,
-                     SetNoCommonSchemaError(std::move(*cause), dbs));
+                     SetNoCommonSchemaError(*std::move(cause), dbs));
     return WithErrorPayload(status, error);
   }
   return status;

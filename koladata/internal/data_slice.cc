@@ -178,7 +178,7 @@ absl::StatusOr<DataSliceImpl> DataSliceImpl::Create(arolla::TypedRef values) {
           absl::StrCat("unsupported type: ", array_type->name()));
     }
   }
-  return std::move(*result);
+  return *std::move(result);
 }
 
 size_t DataSliceImpl::present_count() const {

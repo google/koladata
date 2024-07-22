@@ -56,7 +56,7 @@ class DataItem {
   template <class T>
   explicit DataItem(std::optional<T> value) {
     if (value) {
-      data_ = std::move(*value);
+      data_ = *std::move(value);
     } else {
       data_ = MissingValue();
     }
