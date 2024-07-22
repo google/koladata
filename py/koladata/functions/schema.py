@@ -28,7 +28,8 @@ def new_schema(
   """Creates new schema in the given DataBag.
 
   Args:
-    db: optional DataBag where the schema is created.
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
     **attrs: attrs to set on the schema. Must be schemas.
 
   Returns:
@@ -37,3 +38,21 @@ def new_schema(
   if db is None:
     db = bag()
   return db.new_schema(**attrs)
+
+
+def list_schema(
+    item_schema: data_slice.DataSlice, db: data_bag.DataBag | None = None
+) -> data_slice.DataSlice:
+  """Creates a list schema in the given DataBag.
+
+  Args:
+    item_schema: schema of the items in the list.
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
+
+  Returns:
+    data_slice.DataSlice representing a list schema.
+  """
+  if db is None:
+    db = bag()
+  return db.list_schema(item_schema)
