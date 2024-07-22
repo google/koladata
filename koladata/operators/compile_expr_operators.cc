@@ -65,15 +65,15 @@ absl::StatusOr<arolla::expr::ExprNodePtr> TransformLiteralOperatorNode(
   }
 }
 
+AROLLA_INITIALIZER(
+        .reverse_deps = ("@phony/operators,"
+                         "@phony/operators:qexpr,"),
+        .init_fn = [] {
+          arolla::expr::eval_internal::CompilerExtensionRegistry::GetInstance()
+              .RegisterNodeTransformationFn(TransformInputOperatorNode);
+          arolla::expr::eval_internal::CompilerExtensionRegistry::GetInstance()
+              .RegisterNodeTransformationFn(TransformLiteralOperatorNode);
+        })
+
 }  // namespace
-
-AROLLA_REGISTER_INITIALIZER(
-    kRegisterQExprOperators, compile_koda_expr_operator, []() -> absl::Status {
-      arolla::expr::eval_internal::CompilerExtensionRegistry::GetInstance()
-          .RegisterNodeTransformationFn(TransformInputOperatorNode);
-      arolla::expr::eval_internal::CompilerExtensionRegistry::GetInstance()
-          .RegisterNodeTransformationFn(TransformLiteralOperatorNode);
-      return absl::OkStatus();
-    });
-
 }  // namespace koladata::expr
