@@ -345,23 +345,23 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
   return value_proto;
 }
 
-AROLLA_REGISTER_INITIALIZER(
-    kRegisterSerializationCodecs, register_serialization_codecs_koda_v1_encoder,
-    []() -> absl::Status {
-      RETURN_IF_ERROR(RegisterValueEncoderByQValueSpecialisationKey(
-          "::koladata::expr::LiteralOperator", EncodeLiteralOperator));
-      RETURN_IF_ERROR(RegisterValueEncoderByQType(arolla::GetQType<DataSlice>(),
-                                                  EncodeDataSlice));
-      RETURN_IF_ERROR(RegisterValueEncoderByQType(
-          arolla::GetQType<internal::Ellipsis>(), EncodeEllipsis));
-      RETURN_IF_ERROR(RegisterValueEncoderByQType(
-          arolla::GetQType<DataBagPtr>(), EncodeDataBag));
-      RETURN_IF_ERROR(RegisterValueEncoderByQType(
-          arolla::GetQType<internal::DataItem>(), EncodeDataItem));
-      RETURN_IF_ERROR(RegisterValueEncoderByQType(
-          arolla::GetQType<internal::DataSliceImpl>(), EncodeDataSliceImpl));
-      return absl::OkStatus();
-    })
+AROLLA_INITIALIZER(
+        .reverse_deps = ("@phony/s11n,"), .init_fn = []() -> absl::Status {
+          RETURN_IF_ERROR(RegisterValueEncoderByQValueSpecialisationKey(
+              "::koladata::expr::LiteralOperator", EncodeLiteralOperator));
+          RETURN_IF_ERROR(RegisterValueEncoderByQType(
+              arolla::GetQType<DataSlice>(), EncodeDataSlice));
+          RETURN_IF_ERROR(RegisterValueEncoderByQType(
+              arolla::GetQType<internal::Ellipsis>(), EncodeEllipsis));
+          RETURN_IF_ERROR(RegisterValueEncoderByQType(
+              arolla::GetQType<DataBagPtr>(), EncodeDataBag));
+          RETURN_IF_ERROR(RegisterValueEncoderByQType(
+              arolla::GetQType<internal::DataItem>(), EncodeDataItem));
+          RETURN_IF_ERROR(RegisterValueEncoderByQType(
+              arolla::GetQType<internal::DataSliceImpl>(),
+              EncodeDataSliceImpl));
+          return absl::OkStatus();
+        })
 
 }  // namespace
 }  // namespace koladata::s11n

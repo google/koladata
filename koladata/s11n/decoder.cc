@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-
 #include "arolla/serialization_base/decoder.h"
 
 #include <cstddef>
@@ -295,7 +294,7 @@ absl::StatusOr<ValueDecoderResult> DecodeDataBagValue(
         DataBag::ImmutableEmptyWithFallbacks(std::move(fallbacks)));
   }
   DataBagPtr db = DataBag::Empty();
-  ASSIGN_OR_RETURN(internal::DataBagImpl& impl, db->GetMutableImpl());
+  ASSIGN_OR_RETURN(internal::DataBagImpl & impl, db->GetMutableImpl());
   for (const KodaV1Proto::AttrProto& attr_proto : db_proto.attrs()) {
     RETURN_IF_ERROR(DecodeAttrProto(attr_proto, input_values, impl));
   }
@@ -343,11 +342,10 @@ absl::StatusOr<ValueDecoderResult> DecodeKodaValue(
       "unexpected value=%d", static_cast<int>(koda_proto.value_case())));
 }
 
-AROLLA_REGISTER_INITIALIZER(kRegisterSerializationCodecs,
-                            register_serialization_codecs_koda_v1_decoder, [] {
-                              return RegisterValueDecoder(kKodaV1Codec,
-                                                          DecodeKodaValue);
-                            })
+AROLLA_INITIALIZER(
+        .reverse_deps = ("@phony/s11n,"), .init_fn = [] {
+          return RegisterValueDecoder(kKodaV1Codec, DecodeKodaValue);
+        })
 
 }  // namespace
 }  // namespace koladata::s11n
