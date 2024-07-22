@@ -85,6 +85,7 @@ OPERATOR("kde.logical.has", Has);
 OPERATOR_FAMILY("kde.schema._new_schema", NewSchemaOperatorFamily);
 OPERATOR_FAMILY("kde.schema._uu_schema", UuSchemaOperatorFamily);
 OPERATOR("kde.schema.cast_to", CastTo);
+OPERATOR("kde.schema.with_schema", WithSchema);
 //
 OPERATOR("kde.shapes._expand_to_shape", ExpandToShape);
 OPERATOR("kde.shapes._reshape", Reshape);
