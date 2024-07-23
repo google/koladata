@@ -525,16 +525,16 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
                  HasSubstr("schema's schema must be SCHEMA, got: ANY")));
   }
   {
-    // Object slice consistency.
-    auto some_obj_schema = test::Schema(internal::AllocateExplicitSchema());
+    // Entity slice consistency.
+    auto entity_schema = test::Schema(internal::AllocateExplicitSchema());
     auto ds = test::AllocateDataSlice(3, schema::kAny);
 
-    ASSERT_OK_AND_ASSIGN(auto obj_ds, ds.WithSchema(some_obj_schema));
-    EXPECT_THAT(obj_ds.GetSchema(), IsEquivalentTo(some_obj_schema));
+    ASSERT_OK_AND_ASSIGN(auto res, ds.WithSchema(entity_schema));
+    EXPECT_THAT(res.GetSchema(), IsEquivalentTo(entity_schema));
 
     auto db1 = DataBag::Empty();
     auto db2 = DataBag::Empty();
-    auto schema_with_db = some_obj_schema.WithDb(db1);
+    auto schema_with_db = entity_schema.WithDb(db1);
     EXPECT_THAT(ds.WithSchema(schema_with_db),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("with_schema does not accept schemas with "
@@ -544,8 +544,8 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
                          HasSubstr("with_schema does not accept schemas with "
                                    "different DataBag attached")));
 
-    ASSERT_OK_AND_ASSIGN(obj_ds, ds.WithDb(db1).WithSchema(schema_with_db));
-    EXPECT_THAT(obj_ds.GetSchema(), IsEquivalentTo(schema_with_db));
+    ASSERT_OK_AND_ASSIGN(res, ds.WithDb(db1).WithSchema(schema_with_db));
+    EXPECT_THAT(res.GetSchema(), IsEquivalentTo(schema_with_db));
 
     auto int_schema = test::Schema(schema::kInt32);
     EXPECT_THAT(ds.WithSchema(int_schema),
@@ -555,7 +555,7 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
                                    "INT32")));
 
     ds = test::DataSlice<int>({1, 2, 3});
-    EXPECT_THAT(ds.WithSchema(some_obj_schema),
+    EXPECT_THAT(ds.WithSchema(entity_schema),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("DataSlice with an Entity schema must hold "
                                    "Entities or Objects")));
@@ -572,6 +572,11 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
     auto values = CreateDenseArray<int>({1, std::nullopt, 5});
     auto ds = test::DataSlice<int>({1, std::nullopt, 5});
     ASSERT_OK_AND_ASSIGN(auto int_ds, ds.WithSchema(int_schema));
+    EXPECT_THAT(int_ds.GetSchema(), IsEquivalentTo(int_schema));
+
+    // INT32 schema with a db.
+    ASSERT_OK_AND_ASSIGN(int_ds,
+                         ds.WithSchema(int_schema.WithDb(DataBag::Empty())));
     EXPECT_THAT(int_ds.GetSchema(), IsEquivalentTo(int_schema));
 
     auto float_schema = test::Schema(schema::kFloat32);
@@ -632,6 +637,44 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
         {std::nullopt, internal::AllocateExplicitSchema()}, schema::kAny);
     EXPECT_OK(ds.WithSchema(schema_schema));
   }
+}
+
+// Only test differences between SetSchema and WithSchema. More extensive tests
+// are in VerifySchemaConsistency_WithGetSchema.
+TEST(DataSliceTest, SetSchema) {
+  auto db1 = DataBag::Empty();
+  auto db2 = DataBag::Empty();
+  auto entity_schema1 =
+      test::Schema(internal::AllocateExplicitSchema()).WithDb(db1);
+  auto entity_schema2 =
+      test::Schema(internal::AllocateExplicitSchema()).WithDb(db2);
+  auto schema_without_db = test::Schema(internal::AllocateExplicitSchema());
+  auto entity_ds = test::AllocateDataSlice(3, schema::kAny);
+  auto int_schema = test::Schema(schema::kInt32);
+  auto primitive_ds = test::DataSlice<int>({1, std::nullopt, 5});
+
+  ASSERT_OK_AND_ASSIGN(auto res, primitive_ds.SetSchema(int_schema));
+  EXPECT_THAT(res.GetSchema(), IsEquivalentTo(int_schema));
+
+  ASSERT_OK_AND_ASSIGN(res, entity_ds.SetSchema(schema_without_db));
+  EXPECT_THAT(res.GetSchema(), IsEquivalentTo(schema_without_db));
+
+  EXPECT_THAT(entity_ds.SetSchema(entity_schema1),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("cannot set an Entity schema on a DataSlice "
+                                 "without a DataBag.")));
+
+  entity_ds = entity_ds.WithDb(db1);
+  ASSERT_OK_AND_ASSIGN(res, entity_ds.SetSchema(entity_schema1));
+  EXPECT_THAT(res.GetSchema(), IsEquivalentTo(entity_schema1));
+
+  ASSERT_OK_AND_ASSIGN(res, entity_ds.SetSchema(entity_schema2));
+  EXPECT_THAT(res.GetSchema().WithDb(nullptr),
+              IsEquivalentTo(entity_schema2.WithDb(nullptr)));
+
+  ASSERT_OK_AND_ASSIGN(res, entity_ds.SetSchema(schema_without_db));
+  EXPECT_THAT(res.GetSchema().WithDb(nullptr),
+              IsEquivalentTo(schema_without_db));
 }
 
 TEST(DataSliceTest, GetAttrNames_Entity) {

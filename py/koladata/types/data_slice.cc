@@ -16,6 +16,7 @@
 
 #include <Python.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -525,12 +526,25 @@ absl::Nullable<PyObject*> PyDataSlice_with_schema(PyObject* self,
                                                   PyObject* schema) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  if (!PyType_IsSubtype(Py_TYPE(schema), PyDataSlice_Type())) {
-    PyErr_SetString(PyExc_TypeError, "schema must be a DataItem");
+  auto schema_ds = UnwrapDataSlice(schema);
+  // TODO (b/335113566): improve error message.
+  if (schema_ds == nullptr) {
     return nullptr;
   }
-  const auto& schema_ds = UnsafeDataSliceRef(schema);
-  ASSIGN_OR_RETURN(auto res, ds.WithSchema(schema_ds), SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res, ds.WithSchema(*schema_ds), SetPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(res));
+}
+
+absl::Nullable<PyObject*> PyDataSlice_set_schema(PyObject* self,
+                                                 PyObject* schema) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  auto schema_ds = UnwrapDataSlice(schema);
+  // TODO (b/335113566): improve error message.
+  if (schema_ds == nullptr) {
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(auto res, ds.SetSchema(*schema_ds), SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -645,7 +659,28 @@ Returns:
     {"is_dict_schema", (PyCFunction)PyDataSlice_is_dict_schema, METH_NOARGS,
      "Returns True, if this DataSlice is a Dict Schema."},
     {"with_schema", (PyCFunction)PyDataSlice_with_schema, METH_O,
-     "Returns a DataSlice with explicitly assigned schema/types."},
+     R"""(Returns a copy of DataSlice with the provided `schema`.
+
+`schema` must have no DataBag or the same DataBag as the DataSlice. If `schema`
+has a different DataBag, use `set_schema` instead. See kd.with_schema for more
+details.
+
+Args:
+  schema: schema DataSlice to set.
+Returns:
+  DataSlice with the provided `schema`.
+)"""},
+    {"set_schema", (PyCFunction)PyDataSlice_set_schema, METH_O,
+     R"""(Returns a copy of DataSlice with the provided `schema`.
+
+If `schema` has a different DataBag than the DataSlice, `schema` is merged into
+the DataBag of the DataSlice. See kd.set_schema for more details.
+
+Args:
+  schema: schema DataSlice to set.
+Returns:
+  DataSlice with the provided `schema`.
+)"""},
     {"as_any", (PyCFunction)PyDataSlice_as_any, METH_NOARGS,
      "Returns a DataSlice with ANY schema."},
     {"get_keys", (PyCFunction)PyDataSlice_get_keys, METH_NOARGS,

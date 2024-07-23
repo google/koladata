@@ -969,7 +969,9 @@ class DataSliceTest(parameterized.TestCase):
     testing.assert_equal(x.get_schema().x, schema_constants.INT32.with_db(db))
     testing.assert_equal(x.get_schema().y, schema_constants.TEXT.with_db(db))
 
-    with self.assertRaisesRegex(TypeError, 'schema must be a DataItem'):
+    with self.assertRaisesRegex(
+        TypeError, 'expected DataSlice, got data_bag.DataBag'
+    ):
       x.with_schema(db)
 
     with self.assertRaisesRegex(ValueError, "schema's schema must be SCHEMA"):
@@ -998,6 +1000,47 @@ class DataSliceTest(parameterized.TestCase):
 
     # NOTE: Works without deep schema verification.
     ds([1, 'abc']).with_schema(schema_constants.SCHEMA)
+
+  def test_set_schema(self):
+    db = bag()
+    x = db.new(x=ds([1, 2, 3]))
+
+    with self.assertRaisesRegex(
+        TypeError, 'expected DataSlice, got data_bag.DataBag'
+    ):
+      x.set_schema(db)
+
+    with self.assertRaisesRegex(ValueError, "schema's schema must be SCHEMA"):
+      x.set_schema(x)
+
+    schema = db.new(x=1, y='abc').get_schema()
+    testing.assert_equal(x.set_schema(schema).get_schema(), schema)
+
+    db_2 = bag()
+    schema = db_2.new(x=1, y='abc').get_schema()
+    res_schema = x.set_schema(schema).get_schema()
+    testing.assert_equal(res_schema, schema.with_db(db))
+    testing.assert_equal(res_schema.y, schema_constants.TEXT.with_db(db))
+
+    non_schema = db.new().set_schema(schema_constants.SCHEMA)
+    with self.assertRaisesRegex(
+        ValueError, 'schema must contain either a DType or valid schema ItemId'
+    ):
+      x.set_schema(non_schema)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot set an Entity schema on a DataSlice without a DataBag.',
+    ):
+      ds(1).set_schema(schema)
+
+    with self.assertRaisesRegex(
+        ValueError, 'a non-schema item cannot be present in a schema DataSlice'
+    ):
+      ds(1).with_db(db).set_schema(schema_constants.SCHEMA)
+
+    # NOTE: Works without deep schema verification.
+    ds([1, 'abc']).with_db(db).set_schema(schema_constants.SCHEMA)
 
   def test_dict_slice(self):
     db = bag()

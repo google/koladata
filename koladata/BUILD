@@ -171,12 +171,14 @@ cc_test(
 cc_library(
     name = "data_slice",
     srcs = [
+        "adoption_utils.cc",
         "casting.cc",
         "data_slice.cc",
         "data_slice_repr.cc",
         "shape_utils.cc",
     ],
     hdrs = [
+        "adoption_utils.h",
         "casting.h",
         "data_slice.h",
         "data_slice_op.h",
@@ -199,6 +201,7 @@ cc_library(
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:overload",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
@@ -235,7 +238,6 @@ cc_test(
     name = "data_slice_test",
     srcs = ["data_slice_test.cc"],
     deps = [
-        ":adoption_utils",
         ":data_bag",
         ":data_slice",
         ":data_slice_qtype",
@@ -311,28 +313,10 @@ cc_binary(
     ],
 )
 
-cc_library(
-    name = "adoption_utils",
-    srcs = ["adoption_utils.cc"],
-    hdrs = ["adoption_utils.h"],
-    deps = [
-        ":data_bag",
-        ":data_slice",
-        "//koladata/internal:data_bag",
-        "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/types:span",
-        "@com_google_arolla//arolla/util:status_backport",
-    ],
-)
-
 cc_test(
     name = "adoption_utils_test",
     srcs = ["adoption_utils_test.cc"],
     deps = [
-        ":adoption_utils",
         ":data_bag",
         ":data_slice",
         "//koladata/internal:data_item",
@@ -427,7 +411,6 @@ cc_library(
     srcs = ["object_factories.cc"],
     hdrs = ["object_factories.h"],
     deps = [
-        ":adoption_utils",
         ":data_bag",
         ":data_slice",
         "//koladata/internal:data_bag",

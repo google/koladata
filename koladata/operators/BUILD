@@ -104,7 +104,6 @@ cc_library(
         "uuobj.h",
     ],
     deps = [
-        "//koladata:adoption_utils",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",

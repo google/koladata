@@ -56,7 +56,6 @@ cc_library(
     hdrs = ["boxing.h"],
     deps = [
         ":wrap_utils",
-        "//koladata:adoption_utils",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -116,7 +115,6 @@ cc_library(
     hdrs = ["py_utils.h"],
     deps = [
         ":boxing",
-        "//koladata:adoption_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -191,7 +189,6 @@ cc_library(
         ":boxing",
         ":py_utils",
         ":wrap_utils",
-        "//koladata:adoption_utils",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -442,7 +439,6 @@ cc_library(
         ":boxing",
         ":py_utils",
         ":wrap_utils",
-        "//koladata:adoption_utils",
         "//koladata:data_bag",
         "//koladata:data_bag_comparison",
         "//koladata:data_slice",

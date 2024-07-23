@@ -145,15 +145,31 @@ class DataSlice {
   // Returns true, if this DataSlice represents an Dict schema.
   bool IsDictSchema() const;
 
-  // Returns a new DataSlice with the updated `schema`. In case `schema` cannot
-  // be assigned to this DataSlice, the appropriate Error is returned.
-  // DataSlice's schema cannot take `schema` as a new value for various reasons,
-  // e.g. schema points to objects, but the contents are primitives, etc.
+  // Returns a new DataSlice with the provided `schema`.
+  // It only changes the schemas of `x` and does not change the items in `x`. To
+  // change the items in `x`, use `kd.cast_to` instead.
+  // When items in `x` are primitives or `schema` is a primitive schema, it
+  // checks items and schema are compatible. When items are ItemIds and `schema`
+  // is a non-primitive schema, it does not check the underlying data matches
+  // the schema.
+  // If `schema` is an Entity schema, it must have no DataBag or the same
+  // DataBag as this DataSlice. Otherwise, use SetSchema.
   absl::StatusOr<DataSlice> WithSchema(const DataSlice& schema) const;
 
   // Returns a new DataSlice with the updated `schema_item`. Lower-level version
   // of the API above.
   absl::StatusOr<DataSlice> WithSchema(internal::DataItem schema_item) const;
+
+  // Returns a new DataSlice with the provided `schema`.
+  // It only changes the schemas of `x` and does not change the items in `x`. To
+  // change the items in `x`, use `kd.cast_to` instead.
+  // When items in `x` are primitives or `schema` is a primitive schema, it
+  // checks items and schema are compatible. When items are ItemIds and `schema`
+  // is a non-primitive schema, it does not check the underlying data matches
+  // the schema.
+  // If `schema` is an Entity schema, it is adopted into the DataBag of this
+  // DataSlice.
+  absl::StatusOr<DataSlice> SetSchema(const DataSlice& schema) const;
 
   // Returns OkStatus if this DataSlice represents a Schema. In particular, it
   // means that .item() can be safely called.

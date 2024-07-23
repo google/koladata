@@ -42,6 +42,7 @@ obj_shaped = _object_factories.obj_shaped
 obj_like = _object_factories.obj_like
 
 embed_schema = _attrs.embed_schema
+set_schema = _attrs.set_schema
 set_attr = _attrs.set_attr
 set_attrs = _attrs.set_attrs
 

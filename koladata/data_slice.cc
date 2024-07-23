@@ -32,6 +32,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice_op.h"
@@ -749,7 +750,8 @@ bool DataSlice::IsDictSchema() const {
 
 absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  if (schema.GetDb() != nullptr && GetDb() != schema.GetDb()) {
+  if (schema.item().is_entity_schema() && schema.GetDb() != nullptr &&
+      GetDb() != schema.GetDb()) {
     return absl::InvalidArgumentError(
         "with_schema does not accept schemas with different DataBag attached. "
         "Please use `set_schema`");
@@ -768,6 +770,20 @@ absl::StatusOr<DataSlice> DataSlice::WithSchema(
       VerifySchemaConsistency(schema_item, dtype(), impl_empty_and_unknown()));
   return DataSlice(internal_->impl_, GetShape(), std::move(schema_item),
                    GetDb());
+}
+
+absl::StatusOr<DataSlice> DataSlice::SetSchema(const DataSlice& schema) const {
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  if (schema.item().is_entity_schema() && schema.GetDb() != nullptr) {
+    if (GetDb() == nullptr) {
+      return absl::InvalidArgumentError(
+          "cannot set an Entity schema on a DataSlice without a DataBag.");
+    }
+    AdoptionQueue adoption_queue;
+    adoption_queue.Add(schema);
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*GetDb()));
+  }
+  return WithSchema(schema.item());
 }
 
 absl::Status DataSlice::VerifyIsSchema() const {
