@@ -56,3 +56,24 @@ def list_schema(
   if db is None:
     db = bag()
   return db.list_schema(item_schema)
+
+
+def dict_schema(
+    key_schema: data_slice.DataSlice,
+    value_schema: data_slice.DataSlice,
+    db: data_bag.DataBag | None = None,
+) -> data_slice.DataSlice:
+  """Creates a dict schema in the given DataBag.
+
+  Args:
+    key_schema: schema of the keys in the list.
+    value_schema: schema of the values in the list.
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
+
+  Returns:
+    data_slice.DataSlice representing a dict schema.
+  """
+  if db is None:
+    db = bag()
+  return db.dict_schema(key_schema, value_schema)
