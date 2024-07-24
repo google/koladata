@@ -20,6 +20,7 @@
 #include <Python.h>
 
 #include "absl/base/nullability.h"
+#include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 
@@ -28,7 +29,9 @@ namespace koladata::python {
 // Returns a pointer to a DataSlice held by `py_obj`. This is a safe way to
 // access the DataSlice from PyObject*. In case `py_obj` does not hold
 // DataSlice, appropriate error is set and nullptr returned.
-absl::Nullable<const DataSlice*> UnwrapDataSlice(PyObject* py_obj);
+// `name_for_error` is used to format an informative error message.
+absl::Nullable<const DataSlice*> UnwrapDataSlice(
+    PyObject* py_obj, absl::string_view name_for_error);
 
 // Returns a new PyQValue that wraps DataSlice `ds`. In case of errors in Python
 // runtime during allocations, this function can return nullptr.
@@ -44,7 +47,9 @@ absl::Nullable<PyObject*> WrapDataBagPtr(DataBagPtr db);
 // Returns a copy of shared_ptr to DataBag held by `py_obj`. This is a safe way
 // to access the DataBag from PyObject*. In case `py_obj` does not hold DataBag,
 // appropriate error is set and nullptr returned.
-absl::Nullable<DataBagPtr> UnwrapDataBagPtr(PyObject* py_obj);
+// `name_for_error` is used to format an informative error message.
+absl::Nullable<DataBagPtr> UnwrapDataBagPtr(PyObject* py_obj,
+                                            absl::string_view name_for_error);
 
 // Returns a const reference to underlying DataBagPtr object without any checks.
 const DataBagPtr& UnsafeDataBagPtr(PyObject* py_obj);
@@ -52,8 +57,9 @@ const DataBagPtr& UnsafeDataBagPtr(PyObject* py_obj);
 // Returns a pointer to the JaggedShape held by `py_obj`. This is a safe way to
 // access the JaggedShape from PyObject*. In case `py_obj` does not hold
 // JaggedShape, appropriate error is set and nullptr returned.
+// `name_for_error` is used to format an informative error message.
 absl::Nullable<const DataSlice::JaggedShape*> UnwrapJaggedShape(
-    PyObject* py_obj);
+    PyObject* py_obj, absl::string_view name_for_error);
 
 // Returns a new PyQValue that wraps JaggedShape `shape`. In case of errors in
 // Python runtime during allocations, this function can return nullptr.

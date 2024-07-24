@@ -565,7 +565,7 @@ SchemaBag:
 
     with self.assertRaisesRegex(
         TypeError,
-        'expected DataSlice, got NoneType',
+        'expecting item_schema to be a DataSlice, got NoneType',
     ):
       _ = db.list_schema(item_schema=None)
 
@@ -630,9 +630,15 @@ SchemaBag:
 
     with self.assertRaisesRegex(
         TypeError,
-        'expected DataSlice, got NoneType',
+        'expecting key_schema to be a DataSlice, got NoneType',
     ):
       _ = db.dict_schema(key_schema=None, value_schema=None)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'expecting value_schema to be a DataSlice, got NoneType',
+    ):
+      _ = db.dict_schema(key_schema=schema_constants.INT32, value_schema=None)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -699,15 +705,17 @@ SchemaBag:
         TypeError, r'expected mandatory \'shape\' argument'
     ):
       db.new_shaped()
-    with self.assertRaisesRegex(TypeError, 'expected JaggedShape, got int'):
+    with self.assertRaisesRegex(
+        TypeError, 'expecting shape to be a JaggedShape, got int'
+    ):
       db.new_shaped(4)
     with self.assertRaisesRegex(
-        TypeError, 'expected JaggedShape, got .*DataBag'
+        TypeError, 'expecting shape to be a JaggedShape, got .*DataBag'
     ):
       db.new_shaped(db)
     with self.assertRaisesRegex(
         TypeError,
-        'expected JaggedShape, got JaggedArrayShape',
+        'expecting shape to be a JaggedShape, got JaggedArrayShape',
     ):
       # Using JaggedArrayShape, instead of JaggedDenseArrayShape
       shape = arolla_jagged_shape.JaggedArrayShape.from_edges(
@@ -742,7 +750,9 @@ SchemaBag:
         TypeError, r'expected mandatory \'shape_and_mask_from\' argument'
     ):
       db.new_like()
-    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got int'):
+    with self.assertRaisesRegex(
+        TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
+    ):
       db.new_like(4)
 
   def test_obj_shaped(self):
@@ -763,7 +773,9 @@ SchemaBag:
         TypeError, r'expected mandatory \'shape\' argument'
     ):
       db.obj_shaped()
-    with self.assertRaisesRegex(TypeError, 'expected JaggedShape, got int'):
+    with self.assertRaisesRegex(
+        TypeError, 'expecting shape to be a JaggedShape, got int'
+    ):
       db.obj_shaped(1)
 
   def test_obj_like(self):
@@ -787,7 +799,9 @@ SchemaBag:
         TypeError, r'expected mandatory \'shape_and_mask_from\' argument'
     ):
       db.obj_like()
-    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got int'):
+    with self.assertRaisesRegex(
+        TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
+    ):
       db.obj_like(4)
 
   def test_obj_merging(self):
@@ -987,9 +1001,13 @@ SchemaBag:
         ValueError, 'DataBag._list_like accepts exactly 4 arguments, got 3'
     ):
       db._list_like(ds([]), ds([]), ds([]))
-    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got int'):
+    with self.assertRaisesRegex(
+        TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
+    ):
       db._list_like(56, 57, 58, 59)
-    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got Int'):
+    with self.assertRaisesRegex(
+        TypeError, 'expecting shape_and_mask_from to be a DataSlice, got Int'
+    ):
       db._list_like(arolla.int32(56), 57, 58, 59)
 
   def test_implode_impl(self):
@@ -997,7 +1015,9 @@ SchemaBag:
     with self.assertRaisesRegex(
         ValueError, 'DataBag._implode accepts exactly 2 arguments, got 3'):
       db._implode(ds([]), 1, 2)
-    with self.assertRaisesRegex(TypeError, 'expected DataSlice, got int'):
+    with self.assertRaisesRegex(
+        TypeError, 'expecting x to be a DataSlice, got int'
+    ):
       db._implode(1, 2)
     with self.assertRaisesRegex(TypeError, 'an integer is required'):
       db._implode(ds([]), ds([]))
@@ -1208,10 +1228,15 @@ SchemaBag:
     x1 = db1.new(a=1, b=2)
     with self.assertRaisesRegex(TypeError, 'must be an iterable'):
       db1.merge_inplace(57)
-    with self.assertRaisesRegex(TypeError, 'expected DataBag, got int'):
+    with self.assertRaisesRegex(
+        TypeError,
+        'expecting each DataBag to be merged to be a DataBag, got int',
+    ):
       db1.merge_inplace([57])
     with self.assertRaisesRegex(
-        TypeError, 'expected DataBag, got data_item.DataItem'
+        TypeError,
+        'expecting each DataBag to be merged to be a DataBag, got'
+        ' data_item.DataItem',
     ):
       db1.merge_inplace([x1])
 

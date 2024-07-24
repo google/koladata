@@ -14,10 +14,12 @@
 //
 #include "py/koladata/types/wrap_utils.h"
 
+#include <cstddef>
 #include <string>
 #include <utility>
 
 #include "absl/base/nullability.h"
+#include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -32,34 +34,37 @@ namespace koladata::python {
 
 namespace {
 
-absl::Nullable<const DataSlice*> NotDataSliceError(PyObject* py_obj) {
-  PyErr_Format(PyExc_TypeError, "expected DataSlice, got %s",
-               Py_TYPE(py_obj)->tp_name);
+std::nullptr_t NotDataSliceError(PyObject* py_obj,
+                                 absl::string_view name_for_error) {
+  PyErr_Format(PyExc_TypeError, "expecting %s to be a DataSlice, got %s",
+               std::string(name_for_error).c_str(), Py_TYPE(py_obj)->tp_name);
   return nullptr;
 }
 
-absl::Nullable<DataBagPtr> NotDataBagError(PyObject* py_obj) {
-  PyErr_Format(PyExc_TypeError, "expected DataBag, got %s",
-               Py_TYPE(py_obj)->tp_name);
+std::nullptr_t NotDataBagError(PyObject* py_obj,
+                               absl::string_view name_for_error) {
+  PyErr_Format(PyExc_TypeError, "expecting %s to be a DataBag, got %s",
+               std::string(name_for_error).c_str(), Py_TYPE(py_obj)->tp_name);
   return nullptr;
 }
 
-absl::Nullable<const DataSlice::JaggedShape*> NotJaggedShapeError(
-    PyObject* py_obj) {
-  PyErr_Format(PyExc_TypeError, "expected JaggedShape, got %s",
-               Py_TYPE(py_obj)->tp_name);
+std::nullptr_t NotJaggedShapeError(PyObject* py_obj,
+                                   absl::string_view name_for_error) {
+  PyErr_Format(PyExc_TypeError, "expecting %s to be a JaggedShape, got %s",
+               std::string(name_for_error).c_str(), Py_TYPE(py_obj)->tp_name);
   return nullptr;
 }
 
 }  // namespace
 
-absl::Nullable<const DataSlice*> UnwrapDataSlice(PyObject* py_obj) {
+absl::Nullable<const DataSlice*> UnwrapDataSlice(
+    PyObject* py_obj, absl::string_view name_for_error) {
   if (!arolla::python::IsPyQValueInstance(py_obj)) {
-    return NotDataSliceError(py_obj);
+    return NotDataSliceError(py_obj, name_for_error);
   }
   const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
   if (typed_value.GetType() != arolla::GetQType<DataSlice>()) {
-    return NotDataSliceError(py_obj);
+    return NotDataSliceError(py_obj, name_for_error);
   }
   return &typed_value.UnsafeAs<DataSlice>();
 }
@@ -78,13 +83,14 @@ absl::Nullable<PyObject*> WrapDataBagPtr(DataBagPtr db) {
       arolla::TypedValue::FromValue(std::move(db)));
 }
 
-absl::Nullable<DataBagPtr> UnwrapDataBagPtr(PyObject* py_obj) {
+absl::Nullable<DataBagPtr> UnwrapDataBagPtr(PyObject* py_obj,
+                                            absl::string_view name_for_error) {
   if (!arolla::python::IsPyQValueInstance(py_obj)) {
-    return NotDataBagError(py_obj);
+    return NotDataBagError(py_obj, name_for_error);
   }
   const auto& db_typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
   if (db_typed_value.GetType() != arolla::GetQType<DataBagPtr>()) {
-    return NotDataBagError(py_obj);
+    return NotDataBagError(py_obj, name_for_error);
   }
   return db_typed_value.UnsafeAs<DataBagPtr>();
 }
@@ -94,14 +100,14 @@ const DataBagPtr& UnsafeDataBagPtr(PyObject* py_obj) {
 }
 
 absl::Nullable<const DataSlice::JaggedShape*> UnwrapJaggedShape(
-    PyObject* py_obj) {
+    PyObject* py_obj, absl::string_view name_for_error) {
   if (!arolla::python::IsPyQValueInstance(py_obj)) {
-    return NotJaggedShapeError(py_obj);
+    return NotJaggedShapeError(py_obj, name_for_error);
   }
   const auto& shape_typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
   if (shape_typed_value.GetType() !=
       arolla::GetQType<DataSlice::JaggedShape>()) {
-    return NotJaggedShapeError(py_obj);
+    return NotJaggedShapeError(py_obj, name_for_error);
   }
   return &shape_typed_value.UnsafeAs<DataSlice::JaggedShape>();
 }

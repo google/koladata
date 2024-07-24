@@ -16,7 +16,6 @@
 
 #include <Python.h>
 
-#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -69,9 +68,8 @@ absl::Nullable<PyObject*> PyDataSlice_with_db(PyObject* self, PyObject* db) {
   if (db == Py_None) {
     return WrapPyDataSlice(UnsafeDataSliceRef(self).WithDb(nullptr));
   }
-  DataBagPtr db_ptr = UnwrapDataBagPtr(db);
+  DataBagPtr db_ptr = UnwrapDataBagPtr(db, "db");
   if (db_ptr == nullptr) {
-    // Error message is set up in UnwrapDataBagPtr.
     return nullptr;
   }
   return WrapPyDataSlice(UnsafeDataSliceRef(self).WithDb(std::move(db_ptr)));
@@ -85,9 +83,8 @@ absl::Nullable<PyObject*> PyDataSlice_no_db(PyObject* self) {
 absl::Nullable<PyObject*> PyDataSlice_with_fallback(PyObject* self,
                                                     PyObject* db) {
   arolla::python::DCheckPyGIL();
-  DataBagPtr db_ptr = UnwrapDataBagPtr(db);
+  DataBagPtr db_ptr = UnwrapDataBagPtr(db, "db");
   if (db_ptr == nullptr) {
-    // Error message is set up in UnwrapDataBagPtr.
     return nullptr;
   }
   const DataSlice& self_slice = UnsafeDataSliceRef(self);
@@ -526,8 +523,7 @@ absl::Nullable<PyObject*> PyDataSlice_with_schema(PyObject* self,
                                                   PyObject* schema) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  auto schema_ds = UnwrapDataSlice(schema);
-  // TODO (b/335113566): improve error message.
+  auto schema_ds = UnwrapDataSlice(schema, "schema");
   if (schema_ds == nullptr) {
     return nullptr;
   }
@@ -539,8 +535,7 @@ absl::Nullable<PyObject*> PyDataSlice_set_schema(PyObject* self,
                                                  PyObject* schema) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  auto schema_ds = UnwrapDataSlice(schema);
-  // TODO (b/335113566): improve error message.
+  auto schema_ds = UnwrapDataSlice(schema, "schema");
   if (schema_ds == nullptr) {
     return nullptr;
   }

@@ -229,7 +229,7 @@ bool ParseSchemaArg(const FastcallArgParser::Args& args,
       args.pos_kw_values[1] == Py_None) {
     return true;
   }
-  const DataSlice* schema = UnwrapDataSlice(args.pos_kw_values[1]);
+  const DataSlice* schema = UnwrapDataSlice(args.pos_kw_values[1], "schema");
   if (schema == nullptr) {
     return false;
   }
@@ -373,10 +373,9 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
     PyErr_SetString(PyExc_TypeError, "expected mandatory 'shape' argument");
     return nullptr;
   }
-  const DataSlice::JaggedShape* shape = UnwrapJaggedShape(
-      args.pos_kw_values[0]);
+  const DataSlice::JaggedShape* shape =
+      UnwrapJaggedShape(args.pos_kw_values[0], "shape");
   if (shape == nullptr) {
-    // Error message is set up in UnwrapJaggedShape.
     return nullptr;
   }
   std::optional<DataSlice> schema_arg;
@@ -458,9 +457,9 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
                     "expected mandatory 'shape_and_mask_from' argument");
     return nullptr;
   }
-  const DataSlice* shape_and_mask_from = UnwrapDataSlice(args.pos_kw_values[0]);
+  const DataSlice* shape_and_mask_from =
+      UnwrapDataSlice(args.pos_kw_values[0], "shape_and_mask_from");
   if (shape_and_mask_from == nullptr) {
-    // Error message is set up in UnwrapJaggedShape.
     return nullptr;
   }
   std::optional<DataSlice> schema_arg;
@@ -652,9 +651,8 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
   PyObject* py_value_schema = args[4];
   PyObject* py_schema = args[5];
 
-  const DataSlice::JaggedShape* shape = UnwrapJaggedShape(py_shape);
+  const DataSlice::JaggedShape* shape = UnwrapJaggedShape(py_shape, "shape");
   if (shape == nullptr) {
-    // Error message is set up in UnwrapJaggedShape.
     return nullptr;
   }
   AdoptionQueue adoption_queue;
@@ -709,7 +707,8 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
   PyObject* py_value_schema = args[4];
   PyObject* py_schema = args[5];
 
-  auto shape_and_mask_from = UnwrapDataSlice(py_shape_and_mask_from);
+  auto shape_and_mask_from =
+      UnwrapDataSlice(py_shape_and_mask_from, "shape_and_mask_from");
   if (shape_and_mask_from == nullptr) {
     return nullptr;
   }
@@ -820,7 +819,8 @@ absl::Nullable<PyObject*> PyDataBag_list_schema(
 
   auto db = UnsafeDataBagPtr(self);
   AdoptionQueue adoption_queue;
-  const DataSlice* item_schema = UnwrapDataSlice(args.pos_kw_values[0]);
+  const DataSlice* item_schema =
+      UnwrapDataSlice(args.pos_kw_values[0], "item_schema");
   if (item_schema == nullptr) {
     return nullptr;
   }
@@ -858,9 +858,14 @@ absl::Nullable<PyObject*> PyDataBag_dict_schema(PyObject* self,
 
   auto db = UnsafeDataBagPtr(self);
   AdoptionQueue adoption_queue;
-  const DataSlice* key_schema = UnwrapDataSlice(args.pos_kw_values[0]);
-  const DataSlice* value_schema = UnwrapDataSlice(args.pos_kw_values[1]);
-  if (key_schema == nullptr || value_schema == nullptr) {
+  const DataSlice* key_schema =
+      UnwrapDataSlice(args.pos_kw_values[0], "key_schema");
+  if (key_schema == nullptr) {
+    return nullptr;
+  }
+  const DataSlice* value_schema =
+      UnwrapDataSlice(args.pos_kw_values[1], "value_schema");
+  if (value_schema == nullptr) {
     return nullptr;
   }
   adoption_queue.Add(*key_schema);
@@ -888,9 +893,9 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
   PyObject* const py_item_schema = args[2];
   PyObject* const py_schema = args[3];
 
-  const DataSlice::JaggedShape* shape = UnwrapJaggedShape(py_shape);
+  const DataSlice::JaggedShape* shape = UnwrapJaggedShape(py_shape, "shape");
   if (shape == nullptr) {
-    return nullptr;  // Error message is set by UnwrapJaggedShape.
+    return nullptr;
   }
 
   AdoptionQueue adoption_queue;
@@ -938,9 +943,10 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
 
   AdoptionQueue adoption_queue;
 
-  auto shape_and_mask_from = UnwrapDataSlice(py_shape_and_mask_from);
+  auto shape_and_mask_from =
+      UnwrapDataSlice(py_shape_and_mask_from, "shape_and_mask_from");
   if (shape_and_mask_from == nullptr) {
-    return nullptr;  // Error is set up by UnwrapDataSlice.
+    return nullptr;
   }
   std::optional<DataSlice> values;
   if (!Py_IsNone(py_values)) {
@@ -981,7 +987,7 @@ absl::Nullable<PyObject*> PyDataBag_implode(PyObject* self,
   PyObject* const py_x = args[0];
   PyObject* const py_ndim = args[1];
 
-  const DataSlice* x_ptr = UnwrapDataSlice(py_x);
+  const DataSlice* x_ptr = UnwrapDataSlice(py_x, "x");
   if (x_ptr == nullptr) {
     return nullptr;
   }
@@ -1032,7 +1038,7 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
   if (allow_schema_conflicts == -1) return nullptr;
   const auto& db = UnsafeDataBagPtr(self);
   for (int i = 3; i < nargs; ++i) {
-    auto other = UnwrapDataBagPtr(args[i]);
+    auto other = UnwrapDataBagPtr(args[i], "each DataBag to be merged");
     if (other == nullptr) return nullptr;
     RETURN_IF_ERROR(db->MergeInplace(other, overwrite, allow_data_conflicts,
                                      allow_schema_conflicts))

@@ -32,6 +32,7 @@ cc_library(
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/jagged_shape/array/qtype",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
         "@com_google_arolla//arolla/qtype",

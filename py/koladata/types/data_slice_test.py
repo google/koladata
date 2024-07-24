@@ -305,10 +305,14 @@ class DataSliceTest(parameterized.TestCase):
     # PyObject points to, is the same.
     self.assertIsNot(x.db, db)
 
-    with self.assertRaisesRegex(TypeError, 'expected DataBag, got list'):
+    with self.assertRaisesRegex(
+        TypeError, 'expecting db to be a DataBag, got list'
+    ):
       x.with_db([1, 2, 3])
 
-    with self.assertRaisesRegex(TypeError, 'expected DataBag, got DenseArray'):
+    with self.assertRaisesRegex(
+        TypeError, 'expecting db to be a DataBag, got DenseArray'
+    ):
       x.with_db(arolla.dense_array([1, 2, 3]))
 
   def test_fork_db(self):
@@ -970,7 +974,7 @@ class DataSliceTest(parameterized.TestCase):
     testing.assert_equal(x.get_schema().y, schema_constants.TEXT.with_db(db))
 
     with self.assertRaisesRegex(
-        TypeError, 'expected DataSlice, got data_bag.DataBag'
+        TypeError, 'expecting schema to be a DataSlice, got data_bag.DataBag'
     ):
       x.with_schema(db)
 
@@ -1006,7 +1010,7 @@ class DataSliceTest(parameterized.TestCase):
     x = db.new(x=ds([1, 2, 3]))
 
     with self.assertRaisesRegex(
-        TypeError, 'expected DataSlice, got data_bag.DataBag'
+        TypeError, 'expecting schema to be a DataSlice, got data_bag.DataBag'
     ):
       x.set_schema(db)
 
@@ -1710,7 +1714,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
       (None,), ([1, 2, 3],), (bag().new(x=1),)
   )
   def test_errors(self, db):
-    with self.assertRaisesRegex(TypeError, 'expected DataBag'):
+    with self.assertRaisesRegex(TypeError, 'expecting db to be a DataBag'):
       ds([1, 2, 3]).with_fallback(db)
 
   def test_immutable(self):
