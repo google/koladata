@@ -569,6 +569,77 @@ SchemaBag:
     ):
       _ = db.list_schema(item_schema=None)
 
+  def test_dict_schema(self):
+    db = bag()
+    schema = db.dict_schema(schema_constants.TEXT, schema_constants.INT32)
+    testing.assert_equal(schema, db.dict({'a': 1}).get_schema())
+    testing.assert_equal(
+        schema.get_attr('__keys__'), schema_constants.TEXT.with_db(db)
+    )
+    testing.assert_equal(
+        schema.get_attr('__values__'), schema_constants.INT32.with_db(db)
+    )
+
+    # Keywords work.
+    schema = db.dict_schema(
+        key_schema=schema_constants.TEXT, value_schema=schema_constants.INT32
+    )
+    testing.assert_equal(schema, db.dict({'a': 1}).get_schema())
+    testing.assert_equal(
+        schema.get_attr('__keys__'), schema_constants.TEXT.with_db(db)
+    )
+    testing.assert_equal(
+        schema.get_attr('__values__'), schema_constants.INT32.with_db(db)
+    )
+
+    # Nested schema with databag adoption.
+    db2 = bag()
+    schema = db.dict_schema(
+        db2.uu_schema(a=schema_constants.INT32),
+        db2.uu_schema(a=schema_constants.FLOAT32),
+    )
+    testing.assert_equal(
+        schema.get_attr('__keys__').a, schema_constants.INT32.with_db(db)
+    )
+    testing.assert_equal(
+        schema.get_attr('__values__').a, schema_constants.FLOAT32.with_db(db)
+    )
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, "got an unexpected keyword 'seed'"
+    ):
+      _ = db.dict_schema(seed='')
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'missing required argument to DataBag._dict_schema: `key_schema`',
+    ):
+      _ = db.dict_schema()
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'missing required argument to DataBag._dict_schema: `value_schema`',
+    ):
+      _ = db.dict_schema(schema_constants.INT32)
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'accepts 0 to 2 positional arguments but 3 were given',
+    ):
+      _ = db.dict_schema(1, 2, 3)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'expected DataSlice, got NoneType',
+    ):
+      _ = db.dict_schema(key_schema=None, value_schema=None)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'dict keys cannot be FLOAT32',
+    ):
+      _ = db.dict_schema(schema_constants.FLOAT32, schema_constants.FLOAT32)
+
   def test_new_auto_broadcasting(self):
     db = bag()
     x = db.new(a=ds(12), b=ds([[1, None, 6], [None], [123]]))

@@ -820,13 +820,53 @@ absl::Nullable<PyObject*> PyDataBag_list_schema(
 
   auto db = UnsafeDataBagPtr(self);
   AdoptionQueue adoption_queue;
-  absl::Nullable<const DataSlice*> item_schema =
-      UnwrapDataSlice(args.pos_kw_values[0]);
+  const DataSlice* item_schema = UnwrapDataSlice(args.pos_kw_values[0]);
   if (item_schema == nullptr) {
     return nullptr;
   }
   adoption_queue.Add(*item_schema);
   ASSIGN_OR_RETURN(DataSlice res, ListSchemaCreator()(db, *item_schema),
+                   SetPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
+  return WrapPyDataSlice(std::move(res));
+}
+
+absl::Nullable<PyObject*> PyDataBag_dict_schema(PyObject* self,
+                                                PyObject* const* py_args,
+                                                Py_ssize_t nargs,
+                                                PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/false, "key_schema", "value_schema");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  if (args.pos_kw_values[0] == nullptr) {
+    PyErr_Format(
+        PyExc_ValueError,
+        "missing required argument to DataBag._dict_schema: `key_schema`");
+    return nullptr;
+  }
+  if (args.pos_kw_values[1] == nullptr) {
+    PyErr_Format(
+        PyExc_ValueError,
+        "missing required argument to DataBag._dict_schema: `value_schema`");
+    return nullptr;
+  }
+
+  auto db = UnsafeDataBagPtr(self);
+  AdoptionQueue adoption_queue;
+  const DataSlice* key_schema = UnwrapDataSlice(args.pos_kw_values[0]);
+  const DataSlice* value_schema = UnwrapDataSlice(args.pos_kw_values[1]);
+  if (key_schema == nullptr || value_schema == nullptr) {
+    return nullptr;
+  }
+  adoption_queue.Add(*key_schema);
+  adoption_queue.Add(*value_schema);
+  ASSIGN_OR_RETURN(DataSlice res,
+                   DictSchemaCreator()(db, *key_schema, *value_schema),
                    SetPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
@@ -1138,6 +1178,9 @@ Returns:
     {"list_schema", (PyCFunction)PyDataBag_list_schema,
      METH_FASTCALL | METH_KEYWORDS,
      "Returns a list schema from the schema of the items"},
+    {"dict_schema", (PyCFunction)PyDataBag_dict_schema,
+     METH_FASTCALL | METH_KEYWORDS,
+     "Returns a dict schema from the schemas of the keys and values"},
     {"_list_shaped", (PyCFunction)PyDataBag_list_shaped, METH_FASTCALL,
      "DataBag._list_shaped"},
     {"_list_like", (PyCFunction)PyDataBag_list_like, METH_FASTCALL,
