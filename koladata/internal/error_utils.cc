@@ -18,6 +18,7 @@
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
@@ -70,6 +71,17 @@ absl::Status WithErrorPayload(absl::Status status, const Error& error) {
     return status;
   }
   status.SetPayload(kErrorUrl, error.SerializePartialAsCord());
+  return status;
+}
+
+absl::Status Annotate(absl::Status status, absl::string_view msg) {
+  if (!status.ok()) {
+    absl::Status ret_status = absl::Status(
+        status.code(),
+        absl::StrCat(status.message(),
+                     "; Error happend when creating KodaError: ", msg));
+    return ret_status;
+  }
   return status;
 }
 

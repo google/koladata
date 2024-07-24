@@ -38,6 +38,9 @@ s11n::KodaV1Proto::DataItemProto EncodeSchema(const DataItem& item);
 // the `status`.
 absl::Status WithErrorPayload(absl::Status status, const Error& error);
 
+// Returns a Status that is identical to `s` except that the error_message()
+// has been augmented by adding `msg` to the end of the original error message.
+absl::Status Annotate(absl::Status status, absl::string_view msg);
 }  // namespace koladata::internal
 
 #endif  // KOLADATA_INTERNAL_ERROR_UTILS_H_

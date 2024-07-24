@@ -14,7 +14,6 @@
 
 """koladata exceptions."""
 
-
 from koladata.exceptions import py_exceptions_py_ext as _py_exceptions_py_ext
 
 
@@ -28,8 +27,10 @@ class KodaError(Exception):
     return self.err.error_message
 
 
-def _create_koda_error(proto: bytes) -> KodaError:
+def _create_koda_error(proto: bytes) -> KodaError | None:
   error = error_pb2.Error.FromString(proto)
+  if not error.error_message:
+    return None
   return KodaError(error)
 
 

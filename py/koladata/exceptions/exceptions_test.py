@@ -29,6 +29,15 @@ class ExceptionsTest(absltest.TestCase):
         cm.exception.err, error_pb2.Error(error_message='test error')
     )
 
+  def test_missing_koda_error_message(self):
+    with self.assertRaises(ValueError) as cm:
+      testing_pybind.raise_from_status_with_payload('')
+    self.assertRegex(
+        str(cm.exception),
+        '.*error message is empty. A code path failed to generate user readable'
+        ' error message.*',
+    )
+
   def test_raise_by_arolla(self):
     with self.assertRaises(ValueError) as cm:
       testing_pybind.raise_from_status_without_payload('test error')

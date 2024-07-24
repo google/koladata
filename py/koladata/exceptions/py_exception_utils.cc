@@ -14,6 +14,8 @@
 //
 #include "py/koladata/exceptions/py_exception_utils.h"
 
+#include <Python.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <optional>
@@ -66,6 +68,12 @@ std::nullptr_t SetKodaPyErrFromStatus(const absl::Status& status) {
     return arolla::python::SetPyErrFromStatus(status);
   }
   PyObject* py_exception = CreateKodaException(payload.value());
+  if (Py_IsNone(py_exception)) {
+    return arolla::python::SetPyErrFromStatus(
+        internal::Annotate(status,
+                           "error message is empty. A code path failed to "
+                           "generate user readable error message."));
+  }
   if (py_exception != nullptr) {
     PyErr_SetObject((PyObject*)Py_TYPE(py_exception), py_exception);
   }

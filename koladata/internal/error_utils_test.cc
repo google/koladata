@@ -26,6 +26,7 @@
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/s11n/codec.pb.h"
+#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/testing/equals_proto.h"
 
@@ -42,6 +43,8 @@ using ::koladata::schema::ItemIdDType;
 using ::koladata::schema::NoneDType;
 using ::koladata::schema::ObjectDType;
 using ::koladata::schema::SchemaDType;
+using ::koladata::testing::StatusIs;
+using ::testing::HasSubstr;
 using ::testing::Optional;
 
 TEST(ErrorUtilsTest, ObjectId) {
@@ -88,5 +91,12 @@ TEST(ErrorUtilsTest, SetAndGetPayload) {
   EXPECT_EQ(GetErrorPayload(ok_status_with_payload), std::nullopt);
 }
 
+TEST(ErrorUtilsTest, Annotate) {
+  absl::Status status = absl::UnimplementedError("Test error");
+  absl::Status annotated_status = Annotate(status, "Extra error message");
+
+  EXPECT_THAT(annotated_status, StatusIs(absl::StatusCode::kUnimplemented,
+                                         HasSubstr("Extra error message")));
+}
 }  // namespace
 }  // namespace koladata::internal
