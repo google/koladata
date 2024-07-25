@@ -287,23 +287,18 @@ absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
   };
 
   ASSIGN_OR_RETURN(auto common_schema, get_common_schema());
-  std::vector<DataSlice> res;
-  res.reserve(slices.size());
-  for (auto&& slice : slices) {
+  for (auto& slice : slices) {
     // Since we cast to a common schema, we don't need to validate implicit
     // compatibility or validate schema (during casting to OBJECT) as no
     // embedding occur.
-    if (slice.GetSchemaImpl() == common_schema) {
-      res.push_back(std::move(slice));
-    } else {
-      ASSIGN_OR_RETURN(auto casted_slice, CastTo(slice, common_schema,
-                                                 /*implicit_cast=*/false,
-                                                 /*validate_schema=*/false));
-      res.push_back(std::move(casted_slice));
+    if (slice.GetSchemaImpl() != common_schema) {
+      ASSIGN_OR_RETURN(slice, CastTo(slice, common_schema,
+                                     /*implicit_cast=*/false,
+                                     /*validate_schema=*/false));
     }
   }
   return SchemaAlignedSlices{
-      .slices = std::move(res),
+      .slices = std::move(slices),
       .common_schema = std::move(common_schema),
   };
 }
