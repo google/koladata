@@ -27,11 +27,18 @@ message NoCommonSchema {
   optional arolla.serialization_base.ContainerProto conflicting_schema = 2;
 }
 
+// Error for cases when objects with schema OBJECT are missing
+// __schema__ attributes.
+message MissingObjectSchema {
+  optional arolla.serialization_base.ContainerProto missing_schema_item = 1;
+}
+
 // Koda error message transportation proto.
 message Error {
   optional string error_message = 1;
   optional Error cause = 2;
   oneof error {
     NoCommonSchema no_common_schema = 3;
+    MissingObjectSchema missing_object_schema = 4;
   }
 }

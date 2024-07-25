@@ -41,6 +41,8 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error.pb.h"
+#include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/expand.h"
 #include "koladata/internal/op_utils/has.h"
@@ -48,6 +50,7 @@
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -209,12 +212,45 @@ absl::StatusOr<AttrNamesSet> GetAttrsFromDataSlice(
 // Creates an Error for cases when objects with schema OBJECT are missing
 // __schema__ attributes.
 template <typename ImplT>
-absl::Status VerifySchemaAttr(const ImplT& impl, const ImplT& schema_attr) {
-  if (schema_attr.present_count() < impl.present_count()) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("object %v is missing __schema__ attribute", impl));
+absl::Status VerifyObjectSchemaAttr(const ImplT& impl,
+                                    const ImplT& schema_attr) {
+  if (schema_attr.present_count() >= impl.present_count()) {
+    return absl::OkStatus();
   }
-  return absl::OkStatus();
+
+  internal::Error error;
+  internal::MissingObjectSchema* missing_schema =
+      error.mutable_missing_object_schema();
+  // Finds the first item without schema attr.
+  ASSIGN_OR_RETURN(
+      *missing_schema->mutable_missing_schema_item(),
+      absl::Overload(
+          [](const internal::DataItem& impl, const internal::DataItem& attr)
+              -> absl::StatusOr<arolla::serialization_base::ContainerProto> {
+            return internal::EncodeDataItem(impl);
+          },
+          [](const internal::DataSliceImpl& impl,
+             const internal::DataSliceImpl& attr)
+              -> absl::StatusOr<arolla::serialization_base::ContainerProto> {
+            internal::DataItem item_missing_schema;
+            RETURN_IF_ERROR(arolla::DenseArraysForEach(
+                [&](int64_t id, bool valid, internal::DataItem item,
+                    arolla::OptionalValue<internal::DataItem> attr) {
+                  if (!item_missing_schema.has_value() && valid &&
+                      item.has_value() && !attr.present) {
+                    item_missing_schema = item;
+                  }
+                },
+                impl.AsDataItemDenseArray(), attr.AsDataItemDenseArray()));
+            if (!item_missing_schema.has_value()) {
+              return absl::InternalError("all items have schema.");
+            }
+            return internal::EncodeDataItem(item_missing_schema);
+          })(impl, schema_attr));
+  return internal::WithErrorPayload(
+      absl::InvalidArgumentError(
+          absl::StrFormat("object %v is missing __schema__ attribute", impl)),
+      error);
 }
 
 // Helper method for fetching an attribute as if this DataSlice is a Schema
@@ -249,14 +285,14 @@ absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
     bool allow_missing) {
   ASSIGN_OR_RETURN(auto schema_attr,
                    db_impl.GetAttr(impl, schema::kSchemaAttr, fallbacks));
-  RETURN_IF_ERROR(VerifySchemaAttr(impl, schema_attr));
+  RETURN_IF_ERROR(VerifyObjectSchemaAttr(impl, schema_attr));
   ASSIGN_OR_RETURN(ImplT per_item_types,
                    GetSchemaAttrImpl(db_impl, schema_attr, attr_name, fallbacks,
                                      allow_missing));
   if (allow_missing && per_item_types.present_count() == 0) {
-      return internal::DataItem();
+    return internal::DataItem();
   } else {
-      return schema::CommonSchema(per_item_types);
+    return schema::CommonSchema(per_item_types);
   }
 }
 
@@ -381,7 +417,7 @@ class RhsHandler {
       return lhs.VisitImpl([&](const auto& impl) -> absl::Status {
         ASSIGN_OR_RETURN(auto obj_schema,
                          db_impl.GetAttr(impl, schema::kSchemaAttr, fallbacks));
-        RETURN_IF_ERROR(VerifySchemaAttr(impl, obj_schema));
+        RETURN_IF_ERROR(VerifyObjectSchemaAttr(impl, obj_schema));
         return this->ProcessSchemaObjectAttr(obj_schema, db_impl, fallbacks);
       });
     }
@@ -589,7 +625,8 @@ absl::Status VerifyListSchemaValid(const DataSlice& list,
     return GetResultSchema(db_impl, impl, list.GetSchemaImpl(),
                            schema::kListItemsSchemaAttr,
                            /*fallbacks=*/{},  // mutable db.
-                           /*allow_missing=*/false).status();
+                           /*allow_missing=*/false)
+        .status();
   });
 }
 
@@ -996,8 +1033,8 @@ absl::Status DataSlice::SetAttrs(absl::Span<const absl::string_view> attr_names,
                                  absl::Span<const DataSlice> values,
                                  bool update_schema) const {
   DCHECK_EQ(attr_names.size(), values.size());
-  auto set_attr_fn = update_schema ?
-      &DataSlice::SetAttrWithUpdateSchema : &DataSlice::SetAttr;
+  auto set_attr_fn =
+      update_schema ? &DataSlice::SetAttrWithUpdateSchema : &DataSlice::SetAttr;
   for (int i = 0; i < attr_names.size(); ++i) {
     RETURN_IF_ERROR((this->*set_attr_fn)(attr_names[i], values[i]));
   }
@@ -1011,7 +1048,7 @@ absl::Status DelObjSchemaAttr(const ImplT& impl, absl::string_view attr_name,
                               internal::DataBagImpl& db_impl) {
   ASSIGN_OR_RETURN(auto schema_attr,
                    db_impl.GetAttr(impl, schema::kSchemaAttr));
-  RETURN_IF_ERROR(VerifySchemaAttr(impl, schema_attr));
+  RETURN_IF_ERROR(VerifyObjectSchemaAttr(impl, schema_attr));
   if constexpr (std::is_same_v<ImplT, internal::DataItem>) {
     return DelSchemaAttrItem(schema_attr, attr_name, db_impl);
   } else {

@@ -21,6 +21,7 @@ import sys
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -541,12 +542,16 @@ class DataSliceTest(parameterized.TestCase):
 
   def test_set_get_attr_object_missing_schema_attr(self):
     obj = bag().obj(a=1)
-    with self.assertRaisesRegex(ValueError, 'missing __schema__ attribute'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'object schema is missing for the DataItem'
+    ):
       _ = obj.with_db(bag()).a
-    with self.assertRaisesRegex(ValueError, 'missing __schema__ attribute'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'object schema is missing for the DataItem'
+    ):
       obj.with_db(bag()).a = 1
     with self.assertRaisesRegex(
-        ValueError, r'object .* is missing __schema__ attribute'
+        exceptions.KodaError, r'object schema is missing for the DataItem'
     ):
       del obj.with_db(bag()).a
 
@@ -554,12 +559,16 @@ class DataSliceTest(parameterized.TestCase):
     obj_1 = bag().obj(a=1)
     obj_2 = bag().new(a=1).with_schema(schema_constants.OBJECT)
     obj = ds([obj_1, obj_2])
-    with self.assertRaisesRegex(ValueError, 'missing __schema__ attribute'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, re.escape('object schema(s) are missing')
+    ):
       _ = obj.a
-    with self.assertRaisesRegex(ValueError, 'missing __schema__ attribute'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, re.escape('object schema(s) are missing')
+    ):
       obj.a = 1
     with self.assertRaisesRegex(
-        ValueError, r'object .* is missing __schema__ attribute'
+        exceptions.KodaError, re.escape('object schema(s) are missing')
     ):
       del obj.a
 
@@ -1129,17 +1138,17 @@ class DataSliceTest(parameterized.TestCase):
     d = ds([d1, d2])
 
     with self.assertRaisesRegex(
-        ValueError, 'object .* is missing __schema__ attribute'
+        exceptions.KodaError, re.escape('object schema(s) are missing')
     ):
       _ = d['a']
 
     with self.assertRaisesRegex(
-        ValueError, 'object .* is missing __schema__ attribute'
+        exceptions.KodaError, re.escape('object schema(s) are missing')
     ):
       d['a'] = 101
 
     with self.assertRaisesRegex(
-        ValueError, 'object .* is missing __schema__ attribute'
+        exceptions.KodaError, re.escape('object schema(s) are missing')
     ):
       del d['a']
 
@@ -1333,29 +1342,29 @@ class DataSliceTest(parameterized.TestCase):
     l = ds([l1, l2])
 
     with self.assertRaisesRegex(
-        ValueError, 'object .* is missing __schema__ attribute'
+        exceptions.KodaError, re.escape('object schema(s) are missing')
     ):
       _ = l[0]
     with self.assertRaisesRegex(
-        ValueError, 'object .* is missing __schema__ attribute'
+        exceptions.KodaError, re.escape('object schema(s) are missing')
     ):
       _ = l[0:2]
 
     with self.assertRaisesRegex(
-        ValueError, 'object .* is missing __schema__ attribute'
+        exceptions.KodaError, re.escape('object schema(s) are missing')
     ):
       l[0] = 42
     with self.assertRaisesRegex(
-        ValueError, 'object .* is missing __schema__ attribute'
+        exceptions.KodaError, re.escape('object schema(s) are missing')
     ):
       l[0:2] = ds([[42], [12, 15]])
 
     with self.assertRaisesRegex(
-        ValueError, 'object .* is missing __schema__ attribute'
+        exceptions.KodaError, re.escape('object schema(s) are missing')
     ):
       del l[0]
     with self.assertRaisesRegex(
-        ValueError, 'object .* is missing __schema__ attribute'
+        exceptions.KodaError, re.escape('object schema(s) are missing')
     ):
       del l[0:2]
 

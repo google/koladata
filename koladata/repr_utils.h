@@ -15,9 +15,12 @@
 #ifndef KOLADATA_REPR_UTILS_H_
 #define KOLADATA_REPR_UTILS_H_
 
+#include <optional>
+
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 
 namespace koladata {
 
@@ -25,6 +28,7 @@ namespace koladata {
 // message.
 struct SupplementalData {
   absl::Nullable<const koladata::DataBagPtr> db;
+  std::optional<const koladata::DataSlice> ds;
 };
 
 // Creates the readable error message and sets it in the payload of Status if

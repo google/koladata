@@ -75,6 +75,43 @@ absl::StatusOr<Error> SetNoCommonSchemaError(
   return error;
 }
 
+absl::StatusOr<Error> SetMissingObjectAttributeError(
+    Error cause, std::optional<const DataSlice> ds) {
+  if (!ds) {
+    return absl::InvalidArgumentError("missing data slice");
+  }
+  ASSIGN_OR_RETURN(
+      internal::DataItem missing_schema_item,
+      DecodeDataItem(cause.missing_object_schema().missing_schema_item()));
+
+  std::string item_str = internal::DataItemRepr(missing_schema_item);
+  Error error;
+  if (ds->GetShape().rank() == 0) {
+    error.set_error_message(absl::StrFormat(
+        "object schema is missing for the DataItem whose item is: %s\n\n"
+        "  DataItem with the kd.OBJECT schema usually store its schema as an "
+        "attribute or implicitly hold the type information when it's a "
+        "primitive type. Perhaps, the OBJECT schema is set by mistake with\n"
+        "  foo.with_schema(kd.OBJECT) when 'foo' "
+        "does not have stored schema attribute.\n",
+        item_str));
+  } else {
+    ASSIGN_OR_RETURN(std::string ds_str, DataSliceToStr(*ds));
+    error.set_error_message(absl::StrFormat(
+        "object schema(s) are missing for some Object(s) in the DataSlice "
+        "whose items are: %s\n\n "
+        "  objects in the kd.OBJECT DataSlice usually store their schemas as "
+        "an attribute or implicitly hold the type information when they are "
+        "primitive types. Perhaps, the OBJECT schema is set by mistake with\n"
+        "  foo.with_schema(kd.OBJECT) when 'foo' "
+        "does not have stored schema attributes.\n"
+        "The first Object without schema: %s\n",
+        ds_str, item_str));
+  }
+  *error.mutable_cause() = std::move(cause);
+  return error;
+}
+
 }  // namespace
 
 absl::Status AssembleErrorMessage(const absl::Status& status,
@@ -86,6 +123,11 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
   if (cause->has_no_common_schema()) {
     ASSIGN_OR_RETURN(Error error,
                      SetNoCommonSchemaError(*std::move(cause), data.db));
+    return WithErrorPayload(status, error);
+  }
+  if (cause->has_missing_object_schema()) {
+    ASSIGN_OR_RETURN(Error error, SetMissingObjectAttributeError(
+                                      *std::move(cause), data.ds));
     return WithErrorPayload(status, error);
   }
   return status;

@@ -94,10 +94,21 @@ TEST_F(ReprUtilTest, TestAssembleErrorMissingContextData) {
       AssembleErrorMessage(
           internal::WithErrorPayload(absl::InternalError("error"), error), {}),
       StatusIs(absl::StatusCode::kInvalidArgument, "db is missing"));
+
+  Error error2;
+  ASSERT_OK_AND_ASSIGN(
+      *error2.mutable_missing_object_schema()->mutable_missing_schema_item(),
+      internal::EncodeDataItem(
+          internal::DataItem(internal::AllocateSingleObject())));
+  EXPECT_THAT(
+      AssembleErrorMessage(
+          internal::WithErrorPayload(absl::InternalError("error"), error2), {}),
+      StatusIs(absl::StatusCode::kInvalidArgument, "missing data slice"));
 }
 
 TEST_F(ReprUtilTest, TestAssembleErrorNotHandlingOkStatus) {
-  EXPECT_TRUE(AssembleErrorMessage(absl::OkStatus(), {}).ok());
+  EXPECT_TRUE(
+      AssembleErrorMessage(absl::OkStatus(), {.db = DataBag::Empty()}).ok());
 }
 
 }  // namespace
