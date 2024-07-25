@@ -41,6 +41,7 @@
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/init_arolla.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
@@ -138,6 +139,7 @@ TEST_P(CastingToInt32Test, Casting) {
 
 INSTANTIATE_TEST_SUITE_P(
     CastingToInt32TestSuite, CastingToInt32Test, ::testing::ValuesIn([] {
+      arolla::InitArolla();
       auto int32_slice =
           test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
       std::vector<CastingTestCase> test_cases = {
@@ -1361,6 +1363,7 @@ TEST(Casting, ToObjectErrors) {
 }
 
 TEST(Casting, CastTo) {
+  arolla::InitArolla();
   {
     // Invalid schema error.
     EXPECT_THAT(CastTo(test::DataItem(std::nullopt, schema::kNone),
@@ -1505,6 +1508,7 @@ TEST(Alignment, AlignSchemas) {
 }
 
 TEST(Alignment, AlignSchemas_Errors) {
+  arolla::InitArolla();
   {
     // Invalid arity.
     EXPECT_THAT(AlignSchemas({}), StatusIs(absl::StatusCode::kInvalidArgument,

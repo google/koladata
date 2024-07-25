@@ -16,15 +16,15 @@ syntax = "proto2";
 
 package koladata.internal;
 
-import "koladata/s11n/codec.proto";
+import "arolla/serialization_base/base.proto";
 
 // Error for not finding a common schema when creating DataSlice. This is used
 // for carrying error information and rendering readable error message to user.
 message NoCommonSchema {
   // The most common schema fund in the input.
-  optional s11n.KodaV1Proto.DataItemProto common_schema = 1;
+  optional arolla.serialization_base.ContainerProto common_schema = 1;
   // The conflict schema that cannot be converted to the common schema.
-  optional s11n.KodaV1Proto.DataItemProto conflicting_schema = 2;
+  optional arolla.serialization_base.ContainerProto conflicting_schema = 2;
 }
 
 // Koda error message transportation proto.

@@ -26,7 +26,7 @@ proto_library(
     name = "error_proto",
     srcs = ["error.proto"],
     deps = [
-        "//koladata/s11n:codec_proto",
+        "@com_google_arolla//arolla/serialization_base:base_proto",
     ],
 )
 
@@ -46,14 +46,17 @@ cc_library(
     hdrs = ["error_utils.h"],
     deps = [
         ":data_item",
-        ":dtype",
         ":error_cc_proto",
-        ":object_id",
         "//koladata/s11n:codec_cc_proto",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/serialization",
+        "@com_google_arolla//arolla/serialization_base:base_cc_proto",
+        "@com_google_arolla//arolla/util:status_backport",
     ],
 )
 
@@ -66,10 +69,10 @@ cc_test(
         ":error_cc_proto",
         ":error_utils",
         ":object_id",
+        "//koladata/s11n",
         "//koladata/s11n:codec_cc_proto",
         "//koladata/testing:status_matchers",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
@@ -952,11 +955,11 @@ cc_test(
         ":error_utils",
         ":object_id",
         ":schema_utils",
+        "//koladata/s11n",
         "//koladata/testing:status_matchers",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util/testing",

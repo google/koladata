@@ -157,19 +157,6 @@ class DTypeMatrix {
   }
 };
 
-
-// Creates the no common schema error proto from the given schema id and dtype.
-internal::Error CreateNoCommonSchemaError(
-    const internal::DataItem& common_schema,
-    const internal::DataItem& conflicting_schema) {
-  internal::Error error;
-  *error.mutable_no_common_schema()->mutable_common_schema() =
-      internal::EncodeSchema(common_schema);
-  *error.mutable_no_common_schema()->mutable_conflicting_schema() =
-      internal::EncodeSchema(conflicting_schema);
-  return error;
-}
-
 }  // namespace
 
 std::optional<DType> schema_internal::CommonDTypeAggregator::Get(

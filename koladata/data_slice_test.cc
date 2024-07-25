@@ -49,6 +49,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/init_arolla.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/testing/repr_token_eq.h"
 #include "arolla/util/text.h"
@@ -4031,6 +4032,7 @@ TEST(DataSliceCastingTest, PrimitiveToObject_Object) {
 }
 
 TEST(DataSliceCastingTest, SchemaToObject) {
+  arolla::InitArolla();
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));

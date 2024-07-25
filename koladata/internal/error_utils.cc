@@ -15,38 +15,25 @@
 #include "koladata/internal/error_utils.h"
 
 #include <optional>
+#include <string>
+#include <utility>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
-#include "koladata/internal/object_id.h"
 #include "koladata/s11n/codec.pb.h"
+#include "arolla/qtype/typed_value.h"
+#include "arolla/serialization/encode.h"
+#include "arolla/serialization/utils.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 
-using ObjectIdProto = ::koladata::s11n::KodaV1Proto::ObjectIdProto;
-using DataItemProto = ::koladata::s11n::KodaV1Proto::DataItemProto;
-
-namespace {
-
-DataItemProto EncodeObjectId(const internal::ObjectId& obj) {
-  DataItemProto item_proto;
-  item_proto.mutable_object_id()->set_hi(obj.InternalHigh64());
-  item_proto.mutable_object_id()->set_lo(obj.InternalLow64());
-  return item_proto;
-}
-
-DataItemProto EncodeDType(const schema::DType& dtype) {
-  DataItemProto item_proto;
-  item_proto.set_dtype(dtype.type_id());
-  return item_proto;
-}
-
-}  // namespace
+using arolla::TypedValue;
+using arolla::serialization_base::ContainerProto;
 
 std::optional<Error> GetErrorPayload(const absl::Status& status) {
   auto error_payload = status.GetPayload(kErrorUrl);
@@ -58,20 +45,48 @@ std::optional<Error> GetErrorPayload(const absl::Status& status) {
   return error;
 }
 
-DataItemProto EncodeSchema(const DataItem& item) {
-  DCHECK(item.is_schema());
-  if (item.holds_value<ObjectId>()) {
-    return EncodeObjectId(item.value<ObjectId>());
-  }
-  return EncodeDType(item.value<schema::DType>());
-}
-
 absl::Status WithErrorPayload(absl::Status status, const Error& error) {
   if (status.ok()) {
     return status;
   }
   status.SetPayload(kErrorUrl, error.SerializePartialAsCord());
   return status;
+}
+
+absl::Status WithErrorPayload(absl::Status status,
+                              absl::StatusOr<Error> error) {
+  if (!error.ok()) {
+    std::string annotated;
+    absl::StrAppend(
+        &annotated, status.message(),
+        "; Error when creating KodaError: ", error.status().message());
+    absl::Status ret_status = absl::Status(status.code(), annotated);
+    return ret_status;
+  }
+  return WithErrorPayload(std::move(status), error.value());
+}
+
+absl::StatusOr<Error> CreateNoCommonSchemaError(
+    const internal::DataItem& common_schema,
+    const internal::DataItem& conflicting_schema) {
+  internal::Error error;
+  ASSIGN_OR_RETURN(*error.mutable_no_common_schema()->mutable_common_schema(),
+                   internal::EncodeDataItem(common_schema));
+  ASSIGN_OR_RETURN(
+      *error.mutable_no_common_schema()->mutable_conflicting_schema(),
+      internal::EncodeDataItem(conflicting_schema));
+  return error;
+}
+
+absl::StatusOr<ContainerProto> EncodeDataItem(const DataItem& item) {
+  return arolla::serialization::Encode({TypedValue::FromValue(item)}, {});
+}
+
+absl::StatusOr<DataItem> DecodeDataItem(const ContainerProto& item_proto) {
+  ASSIGN_OR_RETURN(TypedValue result,
+                   arolla::serialization::DecodeValue(item_proto));
+  ASSIGN_OR_RETURN(DataItem item, result.As<DataItem>());
+  return item;
 }
 
 absl::Status Annotate(absl::Status status, absl::string_view msg) {

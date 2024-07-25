@@ -18,10 +18,12 @@
 #include <optional>
 
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/s11n/codec.pb.h"
+#include "arolla/serialization_base/base.pb.h"
 
 namespace koladata::internal {
 
@@ -30,17 +32,30 @@ constexpr absl::string_view kErrorUrl = "koladata.internal.Error";
 // Gets the Error proto payload from status.
 std::optional<Error> GetErrorPayload(const absl::Status& status);
 
-// Returns the encoded proto of the Schema. The `item` must contain
-// ObjectId or DType.
-s11n::KodaV1Proto::DataItemProto EncodeSchema(const DataItem& item);
-
 // Sets the `error` in the payload of the `status` if not ok. Otherwise, returns
 // the `status`.
 absl::Status WithErrorPayload(absl::Status status, const Error& error);
 
+// Sets the `error` in the payload of the `status` if not ok. If `error` is not
+// ok, the error message of `error` will be appended to the `status`.
+absl::Status WithErrorPayload(absl::Status status, absl::StatusOr<Error> error);
+
+// Creates the no common schema error proto from the given schema id and dtype.
+absl::StatusOr<Error> CreateNoCommonSchemaError(
+    const DataItem& common_schema, const DataItem& conflicting_schema);
+
+// Encodes the DataItem to ContainerProto.
+absl::StatusOr<arolla::serialization_base::ContainerProto> EncodeDataItem(
+    const DataItem& item);
+
+// Decodes the ContainerProto to DataItem.
+absl::StatusOr<DataItem> DecodeDataItem(
+    const arolla::serialization_base::ContainerProto& item_proto);
+
 // Returns a Status that is identical to `s` except that the error_message()
 // has been augmented by adding `msg` to the end of the original error message.
 absl::Status Annotate(absl::Status status, absl::string_view msg);
+
 }  // namespace koladata::internal
 
 #endif  // KOLADATA_INTERNAL_ERROR_UTILS_H_

@@ -30,7 +30,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
-#include "koladata/internal/object_id.h"
 #include "koladata/s11n/codec.pb.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -38,22 +37,9 @@ namespace koladata {
 namespace {
 
 using DataItemProto = ::koladata::s11n::KodaV1Proto::DataItemProto;
+using ::koladata::internal::DecodeDataItem;
 using ::koladata::internal::Error;
 using ::koladata::internal::GetErrorPayload;
-
-absl::StatusOr<internal::DataItem> DecodeDataItem(
-    const DataItemProto& item_proto) {
-  switch (item_proto.value_case()) {
-    case s11n::KodaV1Proto::DataItemProto::kDtype:
-      return internal::DataItem(schema::DType(item_proto.dtype()));
-    case s11n::KodaV1Proto::DataItemProto::kObjectId:
-      return internal::DataItem(
-          internal::ObjectId::UnsafeCreateFromInternalHighLow(
-              item_proto.object_id().hi(), item_proto.object_id().lo()));
-    default:
-      return absl::InvalidArgumentError("Unsupported proto");
-  }
-}
 
 absl::StatusOr<Error> SetNoCommonSchemaError(
     Error cause, absl::Nullable<const DataBagPtr>& db) {
