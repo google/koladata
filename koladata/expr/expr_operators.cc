@@ -107,19 +107,19 @@ absl::string_view LiteralOperator::py_qvalue_specialization_key() const {
 
 const arolla::TypedValue& LiteralOperator::value() const { return value_; }
 
-AROLLA_REGISTER_INITIALIZER(
-    kRegisterExprOperatorsLowest, register_koda_expr_operator,
-    []() -> absl::Status {
-      RETURN_IF_ERROR(
-          arolla::expr::RegisterOperator<InputOperator>("koda_internal.input")
-              .status());
-      RETURN_IF_ERROR(
-          RegisterOperator("koda_internal.ellipsis",
-                           arolla::expr::MakeLambdaOperator(
-                               arolla::expr::ExprOperatorSignature{},
-                               arolla::expr::Literal(internal::Ellipsis{})))
-              .status());
-      return absl::OkStatus();
-    })
+AROLLA_INITIALIZER(
+        .reverse_deps = {arolla::initializer_dep::kOperators},
+        .init_fn = []() -> absl::Status {
+          RETURN_IF_ERROR(arolla::expr::RegisterOperator<InputOperator>(
+                              "koda_internal.input")
+                              .status());
+          RETURN_IF_ERROR(
+              RegisterOperator("koda_internal.ellipsis",
+                               arolla::expr::MakeLambdaOperator(
+                                   arolla::expr::ExprOperatorSignature{},
+                                   arolla::expr::Literal(internal::Ellipsis{})))
+                  .status());
+          return absl::OkStatus();
+        })
 
 }  // namespace koladata::expr

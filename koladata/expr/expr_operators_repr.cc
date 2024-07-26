@@ -65,7 +65,7 @@ std::optional<arolla::ReprToken> KodaLiteralOpRepr(
 
 }  // namespace
 
-AROLLA_REGISTER_INITIALIZER(kLowest, register_koda_expr_operator_repr, [] {
+AROLLA_INITIALIZER(.init_fn = [] {
   arolla::expr::RegisterOpReprFnByByRegistrationName("koda_internal.input",
                                                      KodaInputOpRepr);
   arolla::expr::RegisterOpReprFnByQValueSpecializationKey(
