@@ -346,7 +346,7 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
 }
 
 AROLLA_INITIALIZER(
-        .reverse_deps = ("@phony/s11n,"), .init_fn = []() -> absl::Status {
+        .reverse_deps = {"@phony/s11n"}, .init_fn = []() -> absl::Status {
           RETURN_IF_ERROR(RegisterValueEncoderByQValueSpecialisationKey(
               "::koladata::expr::LiteralOperator", EncodeLiteralOperator));
           RETURN_IF_ERROR(RegisterValueEncoderByQType(

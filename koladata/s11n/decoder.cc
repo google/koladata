@@ -343,7 +343,7 @@ absl::StatusOr<ValueDecoderResult> DecodeKodaValue(
 }
 
 AROLLA_INITIALIZER(
-        .reverse_deps = ("@phony/s11n,"), .init_fn = [] {
+        .reverse_deps = {"@phony/s11n"}, .init_fn = [] {
           return RegisterValueDecoder(kKodaV1Codec, DecodeKodaValue);
         })
 

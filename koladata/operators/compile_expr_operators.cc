@@ -66,9 +66,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> TransformLiteralOperatorNode(
 }
 
 AROLLA_INITIALIZER(
-        .reverse_deps = ("@phony/operators,"
-                         "@phony/operators:qexpr,"),
-        .init_fn = [] {
+        .reverse_deps = {"@phony/operators:qexpr"}, .init_fn = [] {
           arolla::expr::eval_internal::CompilerExtensionRegistry::GetInstance()
               .RegisterNodeTransformationFn(TransformInputOperatorNode);
           arolla::expr::eval_internal::CompilerExtensionRegistry::GetInstance()
