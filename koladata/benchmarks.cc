@@ -21,6 +21,7 @@
 #include "benchmark/benchmark.h"
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
+#include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -409,6 +410,37 @@ void BM_CreateEntityWithSchemaAndCasting(benchmark::State& state) {
 }
 
 BENCHMARK(BM_CreateEntityWithSchemaAndCasting)->Arg(1)->Arg(10)->Arg(10000);
+
+
+void BM_ToInt32_Int32Data_AnySchema(benchmark::State& state) {
+  int64_t size = state.range(0);
+  auto values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
+  auto ds = *DataSlice::Create(DataSliceImpl::Create(values),
+                               DataSlice::JaggedShape::FlatFromSize(size),
+                               internal::DataItem(schema::kAny));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(ds);
+    auto res = *ToInt32(ds);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_ToInt32_Int32Data_AnySchema)->Arg(1)->Arg(10)->Arg(10000);
+
+void BM_ToInt32_Float32Data_AnySchema(benchmark::State& state) {
+  int64_t size = state.range(0);
+  auto values = arolla::CreateFullDenseArray(std::vector<float>(size, 12.0));
+  auto ds = *DataSlice::Create(DataSliceImpl::Create(values),
+                               DataSlice::JaggedShape::FlatFromSize(size),
+                               internal::DataItem(schema::kAny));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(ds);
+    auto res = *ToInt32(ds);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_ToInt32_Float32Data_AnySchema)->Arg(1)->Arg(10)->Arg(10000);
 
 }  // namespace
 }  // namespace koladata
