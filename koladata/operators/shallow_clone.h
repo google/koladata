@@ -41,24 +41,23 @@ inline absl::StatusOr<DataSlice> ShallowCloneWithSchema(
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks_span = fb_finder.GetFlattenFallbacks();
   return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    internal::DataBagImplPtr result_db_impl;
     auto result_slice_impl = impl;
     internal::DataItem result_schema_impl;
+    auto result_db = DataBag::Empty();
+    ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
+    internal::ShallowCloneOp clone_op(&result_db_impl.get());
     if (schema_db == nullptr || schema_db == db) {
       ASSIGN_OR_RETURN(
-          std::tie(result_db_impl, result_slice_impl, result_schema_impl),
-          internal::ShallowCloneOp()(impl, schema_impl, db->GetImpl(),
-                                     fallbacks_span));
+          std::tie(result_slice_impl, result_schema_impl),
+          clone_op(impl, schema_impl, db->GetImpl(), fallbacks_span));
     } else {
       FlattenFallbackFinder schema_fb_finder(*schema_db);
       auto schema_fallbacks_span = schema_fb_finder.GetFlattenFallbacks();
       ASSIGN_OR_RETURN(
-          std::tie(result_db_impl, result_slice_impl, result_schema_impl),
-          internal::ShallowCloneOp()(impl, schema_impl, db->GetImpl(),
-                                     fallbacks_span, schema_db->GetImpl(),
-                                     schema_fallbacks_span));
+          std::tie(result_slice_impl, result_schema_impl),
+          clone_op(impl, schema_impl, db->GetImpl(), fallbacks_span,
+                   schema_db->GetImpl(), schema_fallbacks_span));
     }
-    const auto result_db = DataBag::FromImpl(std::move(result_db_impl));
     return DataSlice::Create(result_slice_impl, ds.GetShape(),
                              result_schema_impl, result_db);
   });

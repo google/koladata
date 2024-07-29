@@ -15,6 +15,8 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
 #define KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
 
+#include <tuple>
+
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "koladata/internal/data_bag.h"
@@ -26,25 +28,30 @@ namespace koladata::internal {
 // Extracts DataSliceImpl / DataItem.
 struct ExtractOp {
  public:
-  absl::StatusOr<DataBagImplPtr> operator()(
-      const DataSliceImpl& ds, const DataItem& schema,
-      const DataBagImpl& databag,
-      DataBagImpl::FallbackSpan fallbacks = {}) const;
+  ExtractOp(DataBagImpl* new_databag) : new_databag_(new_databag) {}
 
-  absl::StatusOr<DataBagImplPtr> operator()(
-      const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
-      DataBagImpl::FallbackSpan fallbacks = {}) const;
+  absl::Status operator()(const DataSliceImpl& ds, const DataItem& schema,
+                          const DataBagImpl& databag,
+                          DataBagImpl::FallbackSpan fallbacks = {}) const;
 
-  absl::StatusOr<DataBagImplPtr> operator()(
-      const DataSliceImpl& ds, const DataItem& schema,
-      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
-      const DataBagImpl& schema_databag,
-      DataBagImpl::FallbackSpan schema_fallbacks) const;
+  absl::Status operator()(const DataItem& item, const DataItem& schema,
+                          const DataBagImpl& databag,
+                          DataBagImpl::FallbackSpan fallbacks = {}) const;
 
-  absl::StatusOr<DataBagImplPtr> operator()(
-      const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
-      DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
-      DataBagImpl::FallbackSpan schema_fallbacks) const;
+  absl::Status operator()(const DataSliceImpl& ds, const DataItem& schema,
+                          const DataBagImpl& databag,
+                          DataBagImpl::FallbackSpan fallbacks,
+                          const DataBagImpl& schema_databag,
+                          DataBagImpl::FallbackSpan schema_fallbacks) const;
+
+  absl::Status operator()(const DataItem& item, const DataItem& schema,
+                          const DataBagImpl& databag,
+                          DataBagImpl::FallbackSpan fallbacks,
+                          const DataBagImpl& schema_databag,
+                          DataBagImpl::FallbackSpan schema_fallbacks) const;
+
+ private:
+  DataBagImpl* new_databag_;
 };
 
 // Creates a slice with a shallow copy of the given slice and nothing else. The
@@ -54,25 +61,30 @@ struct ExtractOp {
 // Returns a tuple of (new DataBag, new DataSlice, new schema).
 struct ShallowCloneOp {
  public:
-  absl::StatusOr<std::tuple<DataBagImplPtr, DataSliceImpl, DataItem>>
-  operator()(const DataSliceImpl& ds, const DataItem& schema,
-             const DataBagImpl& databag,
-             DataBagImpl::FallbackSpan fallbacks = {}) const;
+  ShallowCloneOp(DataBagImpl* new_databag) : new_databag_(new_databag) {}
 
-  absl::StatusOr<std::tuple<DataBagImplPtr, DataItem, DataItem>> operator()(
+  absl::StatusOr<std::tuple<DataSliceImpl, DataItem>> operator()(
+      const DataSliceImpl& ds, const DataItem& schema,
+      const DataBagImpl& databag,
+      DataBagImpl::FallbackSpan fallbacks = {}) const;
+
+  absl::StatusOr<std::tuple<DataItem, DataItem>> operator()(
       const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks = {}) const;
 
-  absl::StatusOr<std::tuple<DataBagImplPtr, DataSliceImpl, DataItem>>
-  operator()(const DataSliceImpl& ds, const DataItem& schema,
-             const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
-             const DataBagImpl& schema_databag,
-             DataBagImpl::FallbackSpan schema_fallbacks) const;
+  absl::StatusOr<std::tuple<DataSliceImpl, DataItem>> operator()(
+      const DataSliceImpl& ds, const DataItem& schema,
+      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
+      const DataBagImpl& schema_databag,
+      DataBagImpl::FallbackSpan schema_fallbacks) const;
 
-  absl::StatusOr<std::tuple<DataBagImplPtr, DataItem, DataItem>> operator()(
+  absl::StatusOr<std::tuple<DataItem, DataItem>> operator()(
       const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks) const;
+
+ private:
+  DataBagImpl* new_databag_;
 };
 
 }  // namespace koladata::internal

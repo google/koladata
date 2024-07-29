@@ -23,25 +23,18 @@
 namespace koladata {
 namespace {
 
-TEST(DataBagComparisonTest, ExactlyEqual_Empty) {
-  auto db1 = DataBag::Empty();
-  auto impl_db = internal::DataBagImpl::CreateEmptyDatabag();
-  auto db2 = DataBag::FromImpl(impl_db);
-  EXPECT_TRUE(DataBagComparison::ExactlyEqual(db1, db2));
-}
-
 TEST(DataBagComparisonTest, ExactlyEqual_NoFallbacks) {
   auto ds1 = internal::DataSliceImpl::AllocateEmptyObjects(3);
   auto ds2 = internal::DataSliceImpl::AllocateEmptyObjects(3);
-  auto db1_impl = internal::DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(db1_impl->SetAttr(ds1, "self", ds1));
-  auto db2_impl = internal::DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(db2_impl->SetAttr(ds1, "self", ds1));
-  auto db3_impl = internal::DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(db3_impl->SetAttr(ds2, "self", ds2));
-  auto db1 = DataBag::FromImpl(db1_impl);
-  auto db2 = DataBag::FromImpl(db2_impl);
-  auto db3 = DataBag::FromImpl(db3_impl);
+  auto db1 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db1_impl, db1->GetMutableImpl());
+  ASSERT_OK(db1_impl.SetAttr(ds1, "self", ds1));
+  auto db2 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db2_impl, db2->GetMutableImpl());
+  ASSERT_OK(db2_impl.SetAttr(ds1, "self", ds1));
+  auto db3 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db3_impl, db3->GetMutableImpl());
+  ASSERT_OK(db3_impl.SetAttr(ds2, "self", ds2));
 
   EXPECT_TRUE(DataBagComparison::ExactlyEqual(db1, db2));
   EXPECT_FALSE(DataBagComparison::ExactlyEqual(db1, db3));
@@ -50,13 +43,13 @@ TEST(DataBagComparisonTest, ExactlyEqual_NoFallbacks) {
 TEST(DataBagComparisonTest, ExactlyEqual_Fallbacks) {
   auto ds1 = internal::DataSliceImpl::AllocateEmptyObjects(3);
   auto ds2 = internal::DataSliceImpl::AllocateEmptyObjects(3);
-  auto db1_impl = internal::DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(db1_impl->SetAttr(ds1, "other", ds2));
-  auto db2_impl = internal::DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(db2_impl->SetAttr(ds2, "other", ds1));
 
-  auto db1 = DataBag::FromImpl(db1_impl);
-  auto db2 = DataBag::FromImpl(db2_impl);
+  auto db1 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db1_impl, db1->GetMutableImpl());
+  ASSERT_OK(db1_impl.SetAttr(ds1, "other", ds2));
+  auto db2 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db2_impl, db2->GetMutableImpl());
+  ASSERT_OK(db2_impl.SetAttr(ds2, "other", ds1));
 
   auto db_f1 = DataBag::ImmutableEmptyWithFallbacks({db1});
   auto db_f12 = DataBag::ImmutableEmptyWithFallbacks({db1, db2});

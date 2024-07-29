@@ -60,10 +60,12 @@ absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
   }
   internal::DataBagImplPtr old_impl = impl_;
   impl_ = old_impl->PartiallyPersistentFork();
+  impl_->AssignToDataBag();
   auto new_impl = old_impl->PartiallyPersistentFork();
   if (immutable) {
     auto new_db = std::make_shared<DataBag>(DataBag::immutable_t());
     new_db->impl_ = std::move(new_impl);
+    new_db->impl_->AssignToDataBag();
     return new_db;
   }
   return DataBag::FromImpl(std::move(new_impl));
@@ -98,6 +100,7 @@ DataBagPtr DataBag::CommonDataBag(absl::Span<const DataBagPtr> databags) {
 DataBagPtr DataBag::FromImpl(internal::DataBagImplPtr impl) {
   auto res = std::make_shared<DataBag>();
   res->impl_ = std::move(impl);
+  res->impl_->AssignToDataBag();
   return res;
 }
 

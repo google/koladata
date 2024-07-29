@@ -71,14 +71,6 @@ TEST(DataBagTest, CommonDataBag_NewWithFallbacks) {
   EXPECT_FALSE(new_db->IsMutable());
 }
 
-TEST(DataBagTest, FromImpl) {
-  auto impl_db = internal::DataBagImpl::CreateEmptyDatabag();
-  auto db = DataBag::FromImpl(impl_db);
-  EXPECT_TRUE(db->IsMutable());
-  EXPECT_EQ(&db->GetImpl(), impl_db.get());
-  EXPECT_THAT(db->GetFallbacks(), ElementsAre());
-}
-
 TEST(DataBagTest, CollectFlattenFallbacks) {
   auto db = DataBag::Empty();
   {

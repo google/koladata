@@ -32,6 +32,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/hash/hash.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -534,6 +535,18 @@ class DataBagImpl : public arolla::RefcountedBase {
   absl::Status MergeInplace(const DataBagImpl& other,
                             MergeOptions options = MergeOptions());
 
+  // Assigns this DataBagImpl to a DataBag. This should called every time a
+  // DataBag is created from this DataBagImpl to make sure DataBagImpl is never
+  // reused.
+  void AssignToDataBag() {
+    if (is_assigned_) {
+      LOG(FATAL) << "attempting to re-use DataBagImpl that is already used in "
+                     "another DataBag; DataBagImpl can only belong to one "
+                     "DataBag at a time";
+    }
+    is_assigned_ = true;
+  }
+
  private:
   DataBagImpl() = default;
 
@@ -617,6 +630,7 @@ class DataBagImpl : public arolla::RefcountedBase {
                                  MergeOptions options);
 
   DataBagImplConstPtr parent_data_bag_ = nullptr;
+  bool is_assigned_ = false;
 
   struct SourceKey {
     AllocationId alloc;

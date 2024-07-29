@@ -640,39 +640,40 @@ class CopyingProcessor {
 
 }  // namespace
 
-absl::StatusOr<DataBagImplPtr> ExtractOp::operator()(
-    const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
-    DataBagImpl::FallbackSpan fallbacks) const {
-  auto new_databag = DataBagImpl::CreateEmptyDatabag();
+absl::Status ExtractOp::operator()(const DataSliceImpl& ds,
+                                   const DataItem& schema,
+                                   const DataBagImpl& databag,
+                                   DataBagImpl::FallbackSpan fallbacks) const {
   auto slice = QueuedSlice{.slice = ds,
                            .schema = schema,
                            .schema_source = SchemaSource::kDataDatabag};
-  auto processor = CopyingProcessor(databag, fallbacks, new_databag);
+  auto processor = CopyingProcessor(databag, fallbacks,
+                                    DataBagImplPtr::NewRef(new_databag_));
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
-  return new_databag;
+  return absl::OkStatus();
 }
 
-absl::StatusOr<DataBagImplPtr> ExtractOp::operator()(
-    const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
-    DataBagImpl::FallbackSpan fallbacks) const {
+absl::Status ExtractOp::operator()(const DataItem& item, const DataItem& schema,
+                                   const DataBagImpl& databag,
+                                   DataBagImpl::FallbackSpan fallbacks) const {
   return (*this)(DataSliceImpl::Create(1, item), schema, databag, fallbacks);
 }
 
-absl::StatusOr<DataBagImplPtr> ExtractOp::operator()(
+absl::Status ExtractOp::operator()(
     const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
     DataBagImpl::FallbackSpan schema_fallbacks) const {
-  auto new_databag = DataBagImpl::CreateEmptyDatabag();
   auto slice = QueuedSlice{.slice = ds,
                            .schema = schema,
                            .schema_source = SchemaSource::kSchemaDatabag};
-  auto processor = CopyingProcessor(databag, fallbacks, &schema_databag,
-                                    schema_fallbacks, new_databag);
+  auto processor =
+      CopyingProcessor(databag, fallbacks, &schema_databag, schema_fallbacks,
+                       DataBagImplPtr::NewRef(new_databag_));
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
-  return new_databag;
+  return absl::OkStatus();
 }
 
-absl::StatusOr<DataBagImplPtr> ExtractOp::operator()(
+absl::Status ExtractOp::operator()(
     const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
     DataBagImpl::FallbackSpan schema_fallbacks) const {
@@ -680,64 +681,57 @@ absl::StatusOr<DataBagImplPtr> ExtractOp::operator()(
                  fallbacks, schema_databag, schema_fallbacks);
 }
 
-absl::StatusOr<std::tuple<DataBagImplPtr, DataSliceImpl, DataItem>>
-ShallowCloneOp::operator()(const DataSliceImpl& ds, const DataItem& schema,
-                           const DataBagImpl& databag,
-                           DataBagImpl::FallbackSpan fallbacks) const {
-  auto new_databag = DataBagImpl::CreateEmptyDatabag();
-  auto processor = CopyingProcessor(databag, fallbacks, new_databag,
-                                    /*is_shallow_clone=*/true);
+absl::StatusOr<std::tuple<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
+    const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks) const {
+  auto processor =
+      CopyingProcessor(databag, fallbacks, DataBagImplPtr::NewRef(new_databag_),
+                       /*is_shallow_clone=*/true);
   ASSIGN_OR_RETURN(const auto result_ds, processor.CloneObjects(ds));
   ASSIGN_OR_RETURN(const auto result_schema, processor.ReflectSchema(schema));
   auto slice = QueuedSlice{.slice = result_ds,
                            .schema = result_schema,
                            .schema_source = SchemaSource::kDataDatabag};
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
-  return std::make_tuple(new_databag, result_ds, result_schema);
+  return std::make_tuple(result_ds, result_schema);
 }
 
-absl::StatusOr<std::tuple<DataBagImplPtr, DataItem, DataItem>>
-ShallowCloneOp::operator()(const DataItem& item, const DataItem& schema,
-                           const DataBagImpl& databag,
-                           DataBagImpl::FallbackSpan fallbacks) const {
+absl::StatusOr<std::tuple<DataItem, DataItem>> ShallowCloneOp::operator()(
+    const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks) const {
+  internal::ShallowCloneOp clone_op(new_databag_);
   ASSIGN_OR_RETURN(
-          (auto [result_db_impl, result_slice_impl, result_schema_impl]),
-          ShallowCloneOp()(DataSliceImpl::Create(1, item), schema, databag,
-                           fallbacks));
-  return std::make_tuple(result_db_impl, result_slice_impl[0],
-                         result_schema_impl);
+      (auto [result_slice_impl, result_schema_impl]),
+      clone_op(DataSliceImpl::Create(1, item), schema, databag, fallbacks));
+  return std::make_tuple(result_slice_impl[0], result_schema_impl);
 }
 
-  absl::StatusOr<std::tuple<DataBagImplPtr, DataSliceImpl, DataItem>>
-  ShallowCloneOp::operator()(const DataSliceImpl& ds, const DataItem& schema,
-             const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
-             const DataBagImpl& schema_databag,
-             DataBagImpl::FallbackSpan schema_fallbacks) const {
-    auto new_databag = DataBagImpl::CreateEmptyDatabag();
-    auto processor = CopyingProcessor(databag, fallbacks, &schema_databag,
-                                      schema_fallbacks, new_databag,
-                                      /*is_shallow_clone=*/true);
-    ASSIGN_OR_RETURN(const auto result_ds, processor.CloneObjects(ds));
-    ASSIGN_OR_RETURN(const auto result_schema, processor.ReflectSchema(schema));
-    auto slice = QueuedSlice{.slice = result_ds,
-                            .schema = result_schema,
-                            .schema_source = SchemaSource::kSchemaDatabag};
-    RETURN_IF_ERROR(processor.ExtractSlice(slice));
-    return std::make_tuple(new_databag, result_ds, result_schema);
-  }
+absl::StatusOr<std::tuple<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
+    const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
+    DataBagImpl::FallbackSpan schema_fallbacks) const {
+  auto processor =
+      CopyingProcessor(databag, fallbacks, &schema_databag, schema_fallbacks,
+                       DataBagImplPtr::NewRef(new_databag_),
+                       /*is_shallow_clone=*/true);
+  ASSIGN_OR_RETURN(const auto result_ds, processor.CloneObjects(ds));
+  ASSIGN_OR_RETURN(const auto result_schema, processor.ReflectSchema(schema));
+  auto slice = QueuedSlice{.slice = result_ds,
+                           .schema = result_schema,
+                           .schema_source = SchemaSource::kSchemaDatabag};
+  RETURN_IF_ERROR(processor.ExtractSlice(slice));
+  return std::make_tuple(result_ds, result_schema);
+}
 
-  absl::StatusOr<std::tuple<DataBagImplPtr, DataItem, DataItem>>
-  ShallowCloneOp::operator()(
-      const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
-      DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
-      DataBagImpl::FallbackSpan schema_fallbacks) const {
-  ASSIGN_OR_RETURN(
-          (auto [result_db_impl, result_slice_impl, result_schema_impl]),
-          ShallowCloneOp()(DataSliceImpl::Create(1, item), schema, databag,
-                           fallbacks, schema_databag, schema_fallbacks));
-  return std::make_tuple(result_db_impl, result_slice_impl[0],
-                         result_schema_impl);
-  }
-
+absl::StatusOr<std::tuple<DataItem, DataItem>> ShallowCloneOp::operator()(
+    const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
+    DataBagImpl::FallbackSpan schema_fallbacks) const {
+  internal::ShallowCloneOp clone_op(new_databag_);
+  ASSIGN_OR_RETURN((auto [result_slice_impl, result_schema_impl]),
+                   clone_op(DataSliceImpl::Create(1, item), schema, databag,
+                            fallbacks, schema_databag, schema_fallbacks));
+  return std::make_tuple(result_slice_impl[0], result_schema_impl);
+}
 
 }  // namespace koladata::internal

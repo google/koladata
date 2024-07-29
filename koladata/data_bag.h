@@ -90,9 +90,6 @@ class DataBag {
   // * In case of no DataBags, nullptr is returned.
   static DataBagPtr CommonDataBag(absl::Span<const DataBagPtr> databags);
 
-  // Returns a mutable DataBag that wraps provided low-level DataBagImpl.
-  static DataBagPtr FromImpl(internal::DataBagImplPtr impl);
-
   // Returns an id of this DataBag. On each call it returns the same id for that
   // DataBag. Different DataBags have different ids.
   // Both the address of this DataBag and a random number are included in
@@ -117,6 +114,9 @@ class DataBag {
   explicit DataBag(bool is_mutable)
       : impl_(internal::DataBagImpl::CreateEmptyDatabag()),
         is_mutable_(is_mutable) {}
+
+  // Returns a mutable DataBag that wraps provided low-level DataBagImpl.
+  static DataBagPtr FromImpl(internal::DataBagImplPtr impl);
 
   internal::DataBagImplPtr impl_;
   std::vector<DataBagPtr> fallbacks_;

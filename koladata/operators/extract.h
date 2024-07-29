@@ -40,20 +40,19 @@ inline absl::StatusOr<DataSlice> ExtractWithSchema(const DataSlice& ds,
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks_span = fb_finder.GetFlattenFallbacks();
   return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    internal::DataBagImplPtr result_db_impl;
+    auto result_db = DataBag::Empty();
+    ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
+    internal::ExtractOp extract_op(&result_db_impl.get());
     if (schema_db == nullptr || schema_db == db) {
-      ASSIGN_OR_RETURN(result_db_impl,
-                       internal::ExtractOp()(impl, schema_impl, db->GetImpl(),
-                                             fallbacks_span));
+      RETURN_IF_ERROR(
+          extract_op(impl, schema_impl, db->GetImpl(), fallbacks_span));
     } else {
       FlattenFallbackFinder schema_fb_finder(*schema_db);
       auto schema_fallbacks_span = schema_fb_finder.GetFlattenFallbacks();
-      ASSIGN_OR_RETURN(result_db_impl,
-                       internal::ExtractOp()(
-                           impl, schema_impl, db->GetImpl(), fallbacks_span,
-                           schema_db->GetImpl(), schema_fallbacks_span));
+      RETURN_IF_ERROR(extract_op(impl, schema_impl, db->GetImpl(),
+                                 fallbacks_span, schema_db->GetImpl(),
+                                 schema_fallbacks_span));
     }
-    const auto result_db = DataBag::FromImpl(std::move(result_db_impl));
     return DataSlice::Create(impl, ds.GetShape(), schema_impl, result_db);
   });
 }
