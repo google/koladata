@@ -60,6 +60,7 @@
 #include "arolla/serving/expr_compiler.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/lru_cache.h"
+#include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -434,6 +435,24 @@ absl::StatusOr<arolla::DenseArray<arolla::Unit>> ToArollaDenseArrayUnit(
   }
   if (x.dtype() == arolla::GetQType<arolla::Unit>()) {
     return slice_impl.values<arolla::Unit>();
+  }
+  return absl::InvalidArgumentError(
+      absl::StrCat("unsupported dtype: ", GetQTypeName(x.dtype())));
+}
+
+absl::StatusOr<arolla::DenseArray<arolla::Text>> ToArollaDenseArrayText(
+    const DataSlice& x) {
+  RETURN_IF_ERROR(VerifyCompatibleSchema(
+      x, {schema::kText, schema::kAny, schema::kObject}));
+  auto slice_impl = GetSliceImpl(x);
+  if (slice_impl.is_empty_and_unknown()) {
+    return arolla::CreateEmptyDenseArray<arolla::Text>(x.GetShape().size());
+  }
+  if (slice_impl.is_mixed_dtype()) {
+    return absl::InvalidArgumentError("mixed slices are not supported");
+  }
+  if (x.dtype() == arolla::GetQType<arolla::Text>()) {
+    return slice_impl.values<arolla::Text>();
   }
   return absl::InvalidArgumentError(
       absl::StrCat("unsupported dtype: ", GetQTypeName(x.dtype())));

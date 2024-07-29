@@ -30,6 +30,7 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
 namespace koladata::ops {
@@ -87,6 +88,12 @@ absl::StatusOr<arolla::DenseArray<int64_t>> ToArollaDenseArrayInt64(
 //
 // Attempts to cast the provided DataSlice to DenseArray<Unit>.
 absl::StatusOr<arolla::DenseArray<arolla::Unit>> ToArollaDenseArrayUnit(
+    const DataSlice& x);
+
+// koda_internal.to_arolla_dense_array_unit operator.
+//
+// Attempts to cast the provided DataSlice to DenseArray<Text>.
+absl::StatusOr<arolla::DenseArray<arolla::Text>> ToArollaDenseArrayText(
     const DataSlice& x);
 
 // koda_internal._to_data_slice operator.

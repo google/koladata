@@ -103,6 +103,7 @@ OPERATOR_FAMILY("koda_internal.convert_and_eval_with_shape",
                 ConvertAndEvalWithShapeFamily);
 OPERATOR("koda_internal.to_arolla_boolean", ToArollaBoolean);
 OPERATOR("koda_internal.to_arolla_dense_array_int64", ToArollaDenseArrayInt64);
+OPERATOR("koda_internal.to_arolla_dense_array_text", ToArollaDenseArrayText);
 OPERATOR("koda_internal.to_arolla_dense_array_unit", ToArollaDenseArrayUnit);
 OPERATOR("koda_internal.to_arolla_float64", ToArollaFloat64);
 OPERATOR("koda_internal.to_arolla_int64", ToArollaInt64);
