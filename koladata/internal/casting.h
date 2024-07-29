@@ -252,6 +252,15 @@ struct ToBytes : schema_internal::ToSelf<arolla::Bytes> {};
 struct Decode : schema_internal::ToDST<arolla::DecodeOp, arolla::Text,
                                        schema_internal::kStrings> {};
 
+// Encodes the given item/slice to Text.
+//
+// The following cases are supported:
+// - BYTES -> BYTES.
+// - TEXT -> BYTES, using UTF-8 encoding.
+// - Empty -> empty.
+struct Encode : schema_internal::ToDST<arolla::EncodeOp, arolla::Bytes,
+                                       schema_internal::kStrings> {};
+
 // Casts the given item/slice to Unit.
 //
 // The following cases are supported:

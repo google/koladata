@@ -123,6 +123,7 @@ using CastingToExprTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToTextTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToBytesTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingDecodeTest = ::testing::TestWithParam<CastingTestCase>;
+using CastingEncodeTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToMaskTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToBoolTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToAnyTest = ::testing::TestWithParam<CastingTestCase>;
@@ -747,6 +748,67 @@ TEST(Casting, DecodeErrors) {
       Decode(test::DataItem(arolla::Bytes("te\xC0\0xt"), schema::kBytes)),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "invalid UTF-8 sequence at position 2"));
+}
+
+TEST_P(CastingEncodeTest, Casting) {
+  const auto& input = GetParam().input;
+  const auto& output = GetParam().output;
+  ASSERT_OK_AND_ASSIGN(auto bytes_slice, Encode(input));
+  EXPECT_THAT(bytes_slice, IsEquivalentTo(output));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    CastingEncodeTestSuite, CastingEncodeTest, ::testing::ValuesIn([] {
+      auto bytes_slice = test::DataSlice<arolla::Bytes>(
+          {"fo\0o", "bar", std::nullopt}, schema::kBytes);
+      std::vector<CastingTestCase> test_cases = {
+          // DataSliceImpl cases.
+          {test::EmptyDataSlice(3, schema::kNone),
+           test::EmptyDataSlice(3, schema::kBytes)},
+          {bytes_slice, bytes_slice},
+          {test::DataSlice<arolla::Text>({"fo\0o", "bar", std::nullopt},
+                                         schema::kText),
+           bytes_slice},
+          {test::DataSlice<arolla::Text>({"fo\0o", "bar", std::nullopt},
+                                         schema::kObject),
+           bytes_slice},
+          {test::DataSlice<arolla::Text>({"fo\0o", "bar", std::nullopt},
+                                         schema::kAny),
+           bytes_slice},
+          {test::MixedDataSlice<arolla::Bytes, arolla::Text>(
+               {"fo\0o", std::nullopt, std::nullopt},
+               {std::nullopt, "bar", std::nullopt}),
+           bytes_slice},
+          // DataItem cases.
+          {test::DataItem(std::nullopt, schema::kNone),
+           test::DataItem(std::nullopt, schema::kBytes)},
+          {test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes),
+           test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes)},
+          {test::DataItem(arolla::Bytes("fo\0o"), schema::kObject),
+           test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes)},
+          {test::DataItem(arolla::Bytes("fo\0o"), schema::kAny),
+           test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes)},
+      };
+      AssertLowerBoundDTypesAreTested(schema::kBytes, test_cases);
+      return test_cases;
+    }()));
+
+TEST(Casting, EncodeErrors) {
+  EXPECT_THAT(
+      Encode(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
+                                           schema::kMask)),
+      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+  EXPECT_THAT(Encode(test::MixedDataSlice<arolla::Text, arolla::Unit>(
+                  {"foo", std::nullopt, std::nullopt},
+                  {std::nullopt, arolla::kUnit, std::nullopt})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast MASK to BYTES"));
+  EXPECT_THAT(
+      Encode(test::DataItem(arolla::kUnit, schema::kMask)),
+      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+  EXPECT_THAT(Encode(test::DataItem(arolla::kUnit, schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast MASK to BYTES"));
 }
 
 TEST_P(CastingToMaskTest, Casting) {
