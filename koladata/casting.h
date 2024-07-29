@@ -80,6 +80,13 @@ absl::StatusOr<DataSlice> ToText(const DataSlice& slice);
 // Use `Encode` to encode TEXT to BYTES using the UTF-8 encoding.
 absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice);
 
+// Casts the given slice to TEXT using UTF-8 decoding.
+//
+// The following schemas are supported: {NONE, TEXT, BYTES, OBJECT, ANY}. Slices
+// with non-primitive schemas are required to only contain the previously listed
+// values.
+absl::StatusOr<DataSlice> Decode(const DataSlice& slice);
+
 // Casts the given slice to MASK.
 //
 // The following schemas are supported: {NONE, MASK, OBJECT, ANY}. Slices with

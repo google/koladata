@@ -129,6 +129,18 @@ absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice) {
   });
 }
 
+absl::StatusOr<DataSlice> Decode(const DataSlice& slice) {
+  constexpr DTypeMask kAllowedSchemas =
+      GetDTypeMask(schema::kNone, schema::kText, schema::kBytes,
+                   schema::kObject, schema::kAny);
+  RETURN_IF_ERROR(VerifyCompatibleSchema(slice, kAllowedSchemas));
+  return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto impl_res, schema::Decode()(impl));
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
+                             internal::DataItem(schema::kText), slice.GetDb());
+  });
+}
+
 absl::StatusOr<DataSlice> ToMask(const DataSlice& slice) {
   constexpr DTypeMask kAllowedSchemas =
       GetDTypeMask(schema::kNone, schema::kMask, schema::kObject, schema::kAny);

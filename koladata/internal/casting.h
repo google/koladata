@@ -243,6 +243,15 @@ struct ToText
 // - Empty -> empty.
 struct ToBytes : schema_internal::ToSelf<arolla::Bytes> {};
 
+// Decodes the given item/slice to Text.
+//
+// The following cases are supported:
+// - TEXT -> TEXT.
+// - BYTES -> TEXT, using UTF-8 decoding.
+// - Empty -> empty.
+struct Decode : schema_internal::ToDST<arolla::DecodeOp, arolla::Text,
+                                       schema_internal::kStrings> {};
+
 // Casts the given item/slice to Unit.
 //
 // The following cases are supported:

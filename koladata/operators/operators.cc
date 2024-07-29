@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include "koladata/casting.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/align.h"
@@ -88,6 +89,7 @@ OPERATOR("kde.logical.has", Has);
 OPERATOR_FAMILY("kde.schema._new_schema", NewSchemaOperatorFamily);
 OPERATOR_FAMILY("kde.schema._uu_schema", UuSchemaOperatorFamily);
 OPERATOR("kde.schema.cast_to", CastTo);
+OPERATOR("kde.schema.decode", Decode);
 OPERATOR("kde.schema.with_schema", WithSchema);
 //
 OPERATOR("kde.shapes._expand_to_shape", ExpandToShape);
