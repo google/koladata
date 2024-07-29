@@ -1274,6 +1274,85 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaError) {
                HasSubstr("schema for List Items is incompatible")));
 }
 
+TEST(ObjectFactoriesTest, CreateEmptyShaped) {
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  {
+    // primitive schema
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        CreateEmptyShaped(shape, test::Schema(schema::kInt32), nullptr));
+    EXPECT_EQ(ds.GetDb(), nullptr);
+    EXPECT_EQ(ds.present_count(), 0);
+    EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
+    EXPECT_EQ(ds.GetSchemaImpl(), schema::kInt32);
+  }
+  {
+    // OBJECT schema
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        CreateEmptyShaped(shape, test::Schema(schema::kObject), nullptr));
+    EXPECT_EQ(ds.GetDb(), nullptr);
+    EXPECT_TRUE(ds.impl_empty_and_unknown());
+    EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
+    EXPECT_EQ(ds.GetSchemaImpl(), schema::kObject);
+  }
+  {
+    // OBJECT schema + db
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, CreateEmptyShaped(shape, test::Schema(schema::kObject), db));
+    EXPECT_EQ(ds.GetDb(), db);
+    EXPECT_TRUE(ds.impl_empty_and_unknown());
+    EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
+    EXPECT_EQ(ds.GetSchemaImpl(), schema::kObject);
+  }
+  {
+    // Entity schema + no db
+    auto db = DataBag::Empty();
+    auto int_s = test::Schema(schema::kInt32);
+    ASSERT_OK_AND_ASSIGN(auto entity_schema,
+                         CreateEntitySchema(db, {"a"}, {int_s}));
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         CreateEmptyShaped(shape, entity_schema, nullptr));
+    EXPECT_NE(ds.GetDb(), db);
+    EXPECT_TRUE(ds.impl_empty_and_unknown());
+    EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
+    auto res_db = ds.GetDb();
+    EXPECT_THAT(ds.GetSchema(), IsEquivalentTo(entity_schema.WithDb(res_db)));
+    EXPECT_THAT(ds.GetSchema().GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(int_s.WithDb(res_db))));
+  }
+  {
+    // Entity schema + same db
+    auto db = DataBag::Empty();
+    auto int_s = test::Schema(schema::kInt32);
+    ASSERT_OK_AND_ASSIGN(auto entity_schema,
+                         CreateEntitySchema(db, {"a"}, {int_s}));
+    ASSERT_OK_AND_ASSIGN(auto ds, CreateEmptyShaped(shape, entity_schema, db));
+    EXPECT_EQ(ds.GetDb(), db);
+    EXPECT_TRUE(ds.impl_empty_and_unknown());
+    EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
+    EXPECT_THAT(ds.GetSchema(), IsEquivalentTo(entity_schema));
+    EXPECT_THAT(ds.GetSchema().GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(int_s.WithDb(db))));
+  }
+  {
+    // Entity schema + different dbs
+    auto db1 = DataBag::Empty();
+    auto db2 = DataBag::Empty();
+    auto int_s = test::Schema(schema::kInt32);
+    ASSERT_OK_AND_ASSIGN(auto entity_schema,
+                         CreateEntitySchema(db1, {"a"}, {int_s}));
+    ASSERT_OK_AND_ASSIGN(auto ds, CreateEmptyShaped(shape, entity_schema, db2));
+    EXPECT_EQ(ds.GetDb(), db2);
+    EXPECT_TRUE(ds.impl_empty_and_unknown());
+    EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
+    EXPECT_THAT(ds.GetSchema(), IsEquivalentTo(entity_schema.WithDb(db2)));
+    EXPECT_THAT(ds.GetSchema().GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(int_s.WithDb(db2))));
+  }
+}
+
 TEST(ObjectFactoriesTest, CreateNestedList) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto edge, DenseArrayEdge::FromSplitPoints(

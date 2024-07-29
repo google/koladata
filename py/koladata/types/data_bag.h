@@ -17,10 +17,17 @@
 
 #include <Python.h>
 
+#include "absl/base/nullability.h"
+
 namespace koladata::python {
 
 // Returns a PyType of PyDataBagObject(s).
 PyTypeObject* PyDataBag_Type();
+
+// Creates a DataSlice of missing items with the given shape and schema.
+absl::Nullable<PyObject*> PyEmptyShaped(PyObject* /*module*/,
+                                        PyObject* const* py_args,
+                                        Py_ssize_t nargs, PyObject* py_kwnames);
 
 }  // namespace koladata::python
 

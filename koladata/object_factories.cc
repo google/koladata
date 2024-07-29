@@ -24,6 +24,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -38,6 +39,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/uuid_object.h"
@@ -857,6 +859,20 @@ absl::StatusOr<DataSlice> NoFollow(const DataSlice& target) {
   ASSIGN_OR_RETURN(auto no_follow_schema_item,
                    schema::NoFollowSchemaItem(target.GetSchemaImpl()));
   return target.WithSchema(no_follow_schema_item);
+}
+
+absl::StatusOr<DataSlice> CreateEmptyShaped(const DataSlice::JaggedShape& shape,
+                                            const DataSlice& schema,
+                                            absl::Nullable<DataBagPtr> db) {
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  if (db == nullptr && schema.IsEntitySchema()) {
+    db = DataBag::Empty();
+  }
+  ASSIGN_OR_RETURN(
+      auto ds, DataSlice::Create(internal::DataItem(internal::MissingValue()),
+                                 internal::DataItem(schema::kMask), db));
+  ASSIGN_OR_RETURN(ds, BroadcastToShape(ds, shape));
+  return ds.SetSchema(schema);
 }
 
 }  // namespace koladata

@@ -19,6 +19,7 @@
 #include <optional>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -322,6 +323,13 @@ absl::StatusOr<DataSlice> CreateListLike(
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema = std::nullopt,
     const std::optional<DataSlice>& item_schema = std::nullopt);
+
+// Creates a DataSlice of missing items with the given shape and schema.
+// If `schema` is an Entity schema and db is missing, an empty DataBag is
+// created and attached to the resulting DataSlice.
+absl::StatusOr<DataSlice> CreateEmptyShaped(const DataSlice::JaggedShape& shape,
+                                            const DataSlice& schema,
+                                            absl::Nullable<DataBagPtr> db);
 
 // Creates a NoFollow schema from `target_schema`. `target_schema` must be a
 // valid schema slice. If `target_schema` is NoFollow, primitive, ITEMID or ANY

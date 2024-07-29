@@ -20,6 +20,7 @@ from koladata.types import data_bag
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
 from koladata.types import jagged_shape
+from koladata.types import schema_constants
 
 
 bag = data_bag.DataBag.empty
@@ -433,6 +434,29 @@ def obj_like(
   if db is None:
     db = bag()
   return db.obj_like(shape_and_mask_from, **attrs)
+
+
+def empty_shaped(
+    shape: data_slice.DataSlice,
+    *,
+    schema: data_slice.DataSlice = schema_constants.MASK,
+    db: data_bag.DataBag | None = None,
+) -> data_slice.DataSlice:
+  """Creates a DataSlice of missing items with the given shape.
+
+  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
+  created and attached to the resulting DataSlice and `schema` is adopted into
+  the DataBag.
+
+  Args:
+    shape: Shape of the resulting DataSlice.
+    schema: optional schema of the resulting DataSlice.
+    db: optional DataBag to hold the schema if applicable.
+
+  Returns:
+    A DataSlice with the given shape.
+  """
+  return data_bag._empty_shaped(shape, schema, db)  # pylint: disable=protected-access
 
 
 def implode(
