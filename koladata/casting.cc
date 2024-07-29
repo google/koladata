@@ -106,9 +106,10 @@ absl::StatusOr<DataSlice> ToExpr(const DataSlice& slice) {
 }
 
 absl::StatusOr<DataSlice> ToText(const DataSlice& slice) {
-  constexpr DTypeMask kAllowedSchemas =
-      GetDTypeMask(schema::kNone, schema::kText, schema::kBytes,
-                   schema::kObject, schema::kAny);
+  constexpr DTypeMask kAllowedSchemas = GetDTypeMask(
+      schema::kNone, schema::kText, schema::kBytes, schema::kMask,
+      schema::kBool, schema::kInt32, schema::kInt64, schema::kFloat32,
+      schema::kFloat64, schema::kObject, schema::kAny);
   RETURN_IF_ERROR(VerifyCompatibleSchema(slice, kAllowedSchemas));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToText()(impl));
@@ -118,9 +119,8 @@ absl::StatusOr<DataSlice> ToText(const DataSlice& slice) {
 }
 
 absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice) {
-  constexpr DTypeMask kAllowedSchemas =
-      GetDTypeMask(schema::kNone, schema::kText, schema::kBytes,
-                   schema::kObject, schema::kAny);
+  constexpr DTypeMask kAllowedSchemas = GetDTypeMask(
+      schema::kNone, schema::kBytes, schema::kObject, schema::kAny);
   RETURN_IF_ERROR(VerifyCompatibleSchema(slice, kAllowedSchemas));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToBytes()(impl));

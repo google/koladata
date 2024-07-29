@@ -17,17 +17,21 @@
 
 #include <cstdint>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/expr/quote.h"
 #include "arolla/qexpr/operators/core/cast_operator.h"
 #include "arolla/qexpr/operators/strings/strings.h"
 #include "arolla/qtype/qtype.h"
@@ -35,6 +39,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -47,6 +52,47 @@ using kStrings = arolla::meta::type_list<arolla::Text, arolla::Bytes>;
 
 std::string GetQTypeName(arolla::QTypePtr qtype);
 
+// Casts the given item/slice to the provided type T ("self") without any data
+// conversion. Asserts that the provided data is empty-and-unknown or only holds
+// values of type T.
+template <typename T>
+struct ToSelf {
+  absl::StatusOr<internal::DataItem> operator()(
+      const internal::DataItem& item) const {
+    if (!item.has_value() || item.holds_value<T>()) {
+      return item;
+    }
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "cannot cast %s to %v", schema_internal::GetQTypeName(item.dtype()),
+        schema_internal::GetQTypeName(arolla::GetQType<T>())));
+  }
+
+  absl::StatusOr<internal::DataSliceImpl> operator()(
+      const internal::DataSliceImpl& slice) const {
+    if (slice.is_empty_and_unknown() ||
+        slice.dtype() == arolla::GetQType<T>()) {
+      return slice;
+    }
+    RETURN_IF_ERROR(
+        slice.VisitValues([&]<class T2>(const arolla::DenseArray<T2>& values) {
+          if constexpr (std::is_same_v<T, T2>) {
+            return absl::OkStatus();
+          } else {
+            return absl::InvalidArgumentError(absl::StrFormat(
+                "cannot cast %s to %v",
+                schema_internal::GetQTypeName(arolla::GetQType<T2>()),
+                schema_internal::GetQTypeName(arolla::GetQType<T>())));
+          }
+        }));
+    return absl::UnknownError(
+        absl::StrCat("unexpected DataSlice state", slice));
+  }
+};
+
+// Casts the given item/slice to the provided type DST ("self") with potential
+// data conversion using `CastOp`. The provided data is expected to be
+// empty-and-unknown or hold (potentially mixed) values of the types listed in
+// `SRCs`.
 template <typename CastOp, typename DST, typename SRCs>
 struct ToDST {
   absl::StatusOr<internal::DataItem> operator()(
@@ -170,66 +216,53 @@ struct ToNone {
 // The following cases are supported:
 // - EXPR -> EXPR.
 // - Empty -> empty.
-struct ToExpr {
-  absl::StatusOr<internal::DataItem> operator()(
-      const internal::DataItem& item) const;
-  absl::StatusOr<internal::DataSliceImpl> operator()(
-      const internal::DataSliceImpl& slice) const;
-};
+struct ToExpr : schema_internal::ToSelf<arolla::expr::ExprQuote> {};
 
 // Casts the given item/slice to Text.
 //
 // The following cases are supported:
 // - TEXT -> TEXT.
-// - BYTES -> TEXT, by decoding the bytes as UTF-8.
+// - BYTES -> TEXT, by `b'foo'` -> `"b'foo'"`.
+// - MASK -> TEXT.
+// - BOOL -> TEXT.
+// - INT32 -> TEXT.
+// - INT64 -> TEXT.
+// - FLOAT32 -> TEXT.
+// - FLOAT64 -> TEXT.
 // - Empty -> empty.
-struct ToText : schema_internal::ToDST<arolla::DecodeOp, arolla::Text,
-                                       schema_internal::kStrings> {};
+struct ToText
+    : schema_internal::ToDST<
+          arolla::AsTextOp, arolla::Text,
+          arolla::meta::type_list<arolla::Text, arolla::Bytes, arolla::Unit,
+                                  bool, int, int64_t, float, double>> {};
 
 // Casts the given item/slice to Bytes.
 //
 // The following cases are supported:
 // - BYTES -> BYTES.
-// - TEXT -> BYTES, by encoding as UTF-8.
 // - Empty -> empty.
-struct ToBytes : schema_internal::ToDST<arolla::EncodeOp, arolla::Bytes,
-                                        schema_internal::kStrings> {};
+struct ToBytes : schema_internal::ToSelf<arolla::Bytes> {};
 
 // Casts the given item/slice to Unit.
 //
 // The following cases are supported:
 // - MASK -> MASK.
 // - Empty -> empty.
-struct ToMask {
-  absl::StatusOr<internal::DataItem> operator()(
-      const internal::DataItem& item) const;
-  absl::StatusOr<internal::DataSliceImpl> operator()(
-      const internal::DataSliceImpl& slice) const;
-};
+struct ToMask : schema_internal::ToSelf<arolla::Unit> {};
 
 // Casts the given item/slice to bool.
 //
 // The following cases are supported:
 // - BOOL -> BOOL.
 // - Empty -> empty.
-struct ToBool {
-  absl::StatusOr<internal::DataItem> operator()(
-      const internal::DataItem& item) const;
-  absl::StatusOr<internal::DataSliceImpl> operator()(
-      const internal::DataSliceImpl& slice) const;
-};
+struct ToBool : schema_internal::ToSelf<bool> {};
 
 // Casts the given item/slice to ItemId.
 //
 // The following cases are supported:
 // - OBJECT_ID -> OBJECT_ID.
 // - Empty -> empty.
-struct ToItemId {
-  absl::StatusOr<internal::DataItem> operator()(
-      const internal::DataItem& item) const;
-  absl::StatusOr<internal::DataSliceImpl> operator()(
-      const internal::DataSliceImpl& slice) const;
-};
+struct ToItemId : schema_internal::ToSelf<internal::ObjectId> {};
 
 // Casts the given item/slice to schema.
 //

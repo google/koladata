@@ -66,16 +66,18 @@ absl::StatusOr<DataSlice> ToExpr(const DataSlice& slice);
 
 // Casts the given slice to TEXT.
 //
-// The following schemas are supported: {NONE, TEXT, BYTES, OBJECT, ANY}.
-// Slices with non-primitive schemas are required to only contain Text or Bytes
-// values. Note that Bytes values are decoded as UTF-8.
+// The following schemas are supported: {NONE, TEXT, BYTES, MASK, BOOL, INT32,
+// INT64, FLOAT32, FLOAT64, OBJECT, ANY}. Slices with non-primitive schemas are
+// required to only contain the previously listed values. Note that Bytes values
+// are converted through b'foo' -> "b'foo'". Use `Decode` to decode BYTES to
+// TEXT using the UTF-8 encoding.
 absl::StatusOr<DataSlice> ToText(const DataSlice& slice);
 
 // Casts the given slice to BYTES.
 //
-// The following schemas are supported: {NONE, TEXT, BYTES, OBJECT, ANY}.
-// Slices with non-primitive schemas are required to only contain Text or Bytes
-// values. Note that Text values are encoded as UTF-8.
+// The following schemas are supported: {NONE, BYTES, OBJECT, ANY}.
+// Slices with non-primitive schemas are required to only contain Bytes values.
+// Use `Encode` to encode TEXT to BYTES using the UTF-8 encoding.
 absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice);
 
 // Casts the given slice to MASK.

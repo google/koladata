@@ -31,17 +31,18 @@
 #include "koladata/internal/op_utils/equal.h"
 #include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/expr/quote.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/util/meta.h"
-#include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::schema {
 namespace schema_internal {
 
 std::string GetQTypeName(arolla::QTypePtr qtype) {
+  // TODO: Consider renaming the OBJECT_ID QType to ITEMID.
+  if (qtype == arolla::GetQType<internal::ObjectId>()) {
+    return "ITEMID";
+  }
   return DType::VerifyQTypeSupported(qtype)
              ? absl::StrCat(DType::FromQType(qtype)->name())
              : absl::StrCat(qtype->name());
@@ -50,22 +51,6 @@ std::string GetQTypeName(arolla::QTypePtr qtype) {
 }  // namespace schema_internal
 
 namespace {
-
-template <typename AllowedTypes>
-absl::Status AssertInternalType(const internal::DataSliceImpl& slice,
-                                DType allowed_dtype) {
-  RETURN_IF_ERROR(slice.VisitValues([&]<class T>(
-                                        const arolla::DenseArray<T>& values) {
-    if constexpr (arolla::meta::contains_v<AllowedTypes, T>) {
-      return absl::OkStatus();
-    } else {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "cannot cast %s to %v",
-          schema_internal::GetQTypeName(arolla::GetQType<T>()), allowed_dtype));
-    }
-  }));
-  return absl::OkStatus();
-}
 
 absl::Status AssertDbImpl(internal::DataBagImpl* db_impl) {
   if (!db_impl) {
@@ -93,92 +78,6 @@ absl::StatusOr<internal::DataSliceImpl> ToNone::operator()(
         "only empty slices can be converted to NONE");
   }
   return internal::DataSliceImpl::CreateEmptyAndUnknownType(slice.size());
-}
-
-absl::StatusOr<internal::DataItem> ToExpr::operator()(
-    const internal::DataItem& item) const {
-  if (!item.has_value() || item.holds_value<arolla::expr::ExprQuote>()) {
-    return item;
-  }
-  return absl::InvalidArgumentError(absl::StrFormat(
-      "cannot cast %s to %v", schema_internal::GetQTypeName(item.dtype()),
-      GetDType<arolla::expr::ExprQuote>()));
-}
-
-absl::StatusOr<internal::DataSliceImpl> ToExpr::operator()(
-    const internal::DataSliceImpl& slice) const {
-  if (slice.is_empty_and_unknown() ||
-      slice.dtype() == arolla::GetQType<arolla::expr::ExprQuote>()) {
-    return slice;
-  }
-  RETURN_IF_ERROR(
-      AssertInternalType<arolla::meta::type_list<arolla::expr::ExprQuote>>(
-          slice, schema::kExpr));
-  return absl::UnknownError(absl::StrCat("unexpected DataSlice state", slice));
-}
-
-absl::StatusOr<internal::DataItem> ToMask::operator()(
-    const internal::DataItem& item) const {
-  if (!item.has_value() || item.holds_value<arolla::Unit>()) {
-    return item;
-  }
-  return absl::InvalidArgumentError(absl::StrFormat(
-      "cannot cast %s to %v", schema_internal::GetQTypeName(item.dtype()),
-      schema::kMask));
-}
-
-absl::StatusOr<internal::DataSliceImpl> ToMask::operator()(
-    const internal::DataSliceImpl& slice) const {
-  if (slice.is_empty_and_unknown() ||
-      slice.dtype() == arolla::GetQType<arolla::Unit>()) {
-    return slice;
-  }
-  RETURN_IF_ERROR(AssertInternalType<arolla::meta::type_list<arolla::Unit>>(
-      slice, schema::kMask));
-  return absl::UnknownError(absl::StrCat("unexpected DataSlice state", slice));
-}
-
-absl::StatusOr<internal::DataItem> ToBool::operator()(
-    const internal::DataItem& item) const {
-  if (!item.has_value() || item.holds_value<bool>()) {
-    return item;
-  }
-  return absl::InvalidArgumentError(absl::StrFormat(
-      "cannot cast %s to %v", schema_internal::GetQTypeName(item.dtype()),
-      schema::kBool));
-}
-
-absl::StatusOr<internal::DataSliceImpl> ToBool::operator()(
-    const internal::DataSliceImpl& slice) const {
-  if (slice.is_empty_and_unknown() ||
-      slice.dtype() == arolla::GetQType<bool>()) {
-    return slice;
-  }
-  RETURN_IF_ERROR(
-      AssertInternalType<arolla::meta::type_list<bool>>(slice, schema::kBool));
-  return absl::UnknownError(absl::StrCat("unexpected DataSlice state", slice));
-}
-
-absl::StatusOr<internal::DataItem> ToItemId::operator()(
-    const internal::DataItem& item) const {
-  if (!item.has_value() || item.holds_value<internal::ObjectId>()) {
-    return item;
-  }
-  return absl::InvalidArgumentError(absl::StrFormat(
-      "cannot cast %s to %v", schema_internal::GetQTypeName(item.dtype()),
-      schema::kItemId));
-}
-
-absl::StatusOr<internal::DataSliceImpl> ToItemId::operator()(
-    const internal::DataSliceImpl& slice) const {
-  if (slice.is_empty_and_unknown() ||
-      slice.dtype() == arolla::GetQType<internal::ObjectId>()) {
-    return slice;
-  }
-  RETURN_IF_ERROR(
-      AssertInternalType<arolla::meta::type_list<internal::ObjectId>>(
-          slice, schema::kItemId));
-  return absl::UnknownError(absl::StrCat("unexpected DataSlice state", slice));
 }
 
 absl::StatusOr<internal::DataItem> ToSchema::operator()(

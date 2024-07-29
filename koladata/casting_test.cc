@@ -546,24 +546,55 @@ INSTANTIATE_TEST_SUITE_P(
           {test::EmptyDataSlice(3, schema::kNone),
            test::EmptyDataSlice(3, schema::kText)},
           {text_slice, text_slice},
+          {test::DataSlice<int>({1, 2, 3}, schema::kInt32),
+           test::DataSlice<arolla::Text>({"1", "2", "3"}, schema::kText)},
+          {test::DataSlice<int64_t>({1, 2, 3}, schema::kInt64),
+           test::DataSlice<arolla::Text>({"1", "2", "3"}, schema::kText)},
+          {test::DataSlice<float>({1.5f, 2.5f, 3.5f}, schema::kFloat32),
+           test::DataSlice<arolla::Text>({"1.5", "2.5", "3.5"}, schema::kText)},
+          {test::DataSlice<double>({1.5, 2.5, 3.5}, schema::kFloat64),
+           test::DataSlice<arolla::Text>({"1.5", "2.5", "3.5"}, schema::kText)},
+          {test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
+                                         schema::kMask),
+           test::DataSlice<arolla::Text>({"present", std::nullopt},
+                                         schema::kText)},
+          {test::DataSlice<bool>({true, false, std::nullopt}, schema::kBool),
+           test::DataSlice<arolla::Text>({"true", "false", std::nullopt},
+                                         schema::kText)},
           {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
                                           schema::kBytes),
-           text_slice},
+           test::DataSlice<arolla::Text>({"b'fo'", "b'bar'", std::nullopt},
+                                         schema::kText)},
           {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
                                           schema::kObject),
-           text_slice},
+           test::DataSlice<arolla::Text>({"b'fo'", "b'bar'", std::nullopt},
+                                         schema::kText)},
           {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
                                           schema::kAny),
-           text_slice},
+           test::DataSlice<arolla::Text>({"b'fo'", "b'bar'", std::nullopt},
+                                         schema::kText)},
           {test::MixedDataSlice<arolla::Text, arolla::Bytes>(
                {"fo\0o", std::nullopt, std::nullopt},
                {std::nullopt, "bar", std::nullopt}),
-           text_slice},
+           test::DataSlice<arolla::Text>({"fo\0o", "b'bar'", std::nullopt},
+                                         schema::kText)},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kText)},
           {test::DataItem("fo\0o", schema::kText),
            test::DataItem("fo\0o", schema::kText)},
+          {test::DataItem(1, schema::kInt32),
+           test::DataItem("1", schema::kText)},
+          {test::DataItem(int64_t{1}, schema::kInt64),
+           test::DataItem("1", schema::kText)},
+          {test::DataItem(1.5f, schema::kFloat32),
+           test::DataItem("1.5", schema::kText)},
+          {test::DataItem(1.5, schema::kFloat64),
+           test::DataItem("1.5", schema::kText)},
+          {test::DataItem(arolla::kUnit, schema::kMask),
+           test::DataItem("present", schema::kText)},
+          {test::DataItem(true, schema::kBool),
+           test::DataItem("true", schema::kText)},
           {test::DataItem("fo\0o", schema::kObject),
            test::DataItem("fo\0o", schema::kText)},
           {test::DataItem("fo\0o", schema::kAny),
@@ -574,30 +605,23 @@ INSTANTIATE_TEST_SUITE_P(
     }()));
 
 TEST(Casting, TextErrors) {
-  EXPECT_THAT(
-      ToText(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
-                                           schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(
-      ToText(test::MixedDataSlice<arolla::Text, arolla::Unit>(
-          {"foo", std::nullopt, std::nullopt},
-          {std::nullopt, arolla::kUnit, std::nullopt})),
-      StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to TEXT"));
-  EXPECT_THAT(ToText(test::MixedDataSlice<arolla::Text, arolla::Bytes>(
-                  {"foo", std::nullopt, std::nullopt},
-                  {std::nullopt, "te\xC0\0xt", std::nullopt})),
+  EXPECT_THAT(ToText(test::DataSlice<internal::ObjectId>(
+                  {std::nullopt, std::nullopt}, schema::kItemId)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "invalid UTF-8 sequence at position 2"));
+                       "unsupported schema: ITEMID"));
   EXPECT_THAT(
-      ToText(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(
-      ToText(test::DataItem(arolla::kUnit, schema::kObject)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to TEXT"));
-  EXPECT_THAT(
-      ToText(test::DataItem(arolla::Bytes("te\xC0\0xt"), schema::kBytes)),
+      ToText(test::MixedDataSlice<arolla::Text, internal::ObjectId>(
+          {"foo", std::nullopt, std::nullopt},
+          {std::nullopt, internal::AllocateSingleObject(), std::nullopt})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "invalid UTF-8 sequence at position 2"));
+               "cannot cast ITEMID to TEXT"));
+  EXPECT_THAT(ToText(test::DataItem(std::nullopt, schema::kItemId)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unsupported schema: ITEMID"));
+  EXPECT_THAT(
+      ToText(test::DataItem(internal::AllocateSingleObject(), schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "cannot cast ITEMID to TEXT"));
 }
 
 TEST_P(CastingToBytesTest, Casting) {
@@ -616,18 +640,11 @@ INSTANTIATE_TEST_SUITE_P(
           {test::EmptyDataSlice(3, schema::kNone),
            test::EmptyDataSlice(3, schema::kBytes)},
           {bytes_slice, bytes_slice},
-          {test::DataSlice<arolla::Text>({"fo\0o", "bar", std::nullopt},
-                                         schema::kText),
+          {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
+                                          schema::kObject),
            bytes_slice},
-          {test::DataSlice<arolla::Text>({"fo\0o", "bar", std::nullopt},
-                                         schema::kObject),
-           bytes_slice},
-          {test::DataSlice<arolla::Text>({"fo\0o", "bar", std::nullopt},
-                                         schema::kAny),
-           bytes_slice},
-          {test::MixedDataSlice<arolla::Bytes, arolla::Text>(
-               {"fo\0o", std::nullopt, std::nullopt},
-               {std::nullopt, "bar", std::nullopt}),
+          {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
+                                          schema::kAny),
            bytes_slice},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
@@ -648,7 +665,7 @@ TEST(Casting, BytesErrors) {
       ToBytes(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                             schema::kMask)),
       StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(ToBytes(test::MixedDataSlice<arolla::Text, arolla::Unit>(
+  EXPECT_THAT(ToBytes(test::MixedDataSlice<arolla::Bytes, arolla::Unit>(
                   {"foo", std::nullopt, std::nullopt},
                   {std::nullopt, arolla::kUnit, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,

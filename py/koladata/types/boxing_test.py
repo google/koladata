@@ -174,8 +174,7 @@ class BoxingTest(parameterized.TestCase):
   @parameterized.parameters(
       ('abc', None, 'abc', TEXT),
       (b'abc', None, b'abc', BYTES),
-      ('abc', BYTES, b'abc', BYTES),
-      (b'abc', TEXT, 'abc', TEXT),
+      (b'abc', TEXT, "b'abc'", TEXT),
       (12, None, 12, INT32),
       (12, INT32, 12, INT32),
       # The following needs arolla.INT64 to succeed.
@@ -450,6 +449,8 @@ class BoxingTest(parameterized.TestCase):
       ds([ds([1, 2])])
     with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to BYTES'):
       ds(12, BYTES)
+    with self.assertRaisesRegex(ValueError, 'cannot cast TEXT to BYTES'):
+      ds('foo', BYTES)
     with self.assertRaisesRegex(
         ValueError, 'schema can only be 0-rank schema slice, got: rank: 1'
     ):

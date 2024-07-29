@@ -332,19 +332,28 @@ TEST(CastingTest, ToText_DataItem) {
   EXPECT_THAT(to_text(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
   EXPECT_THAT(to_text(DataItem(arolla::Text("foo"))),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("foo")))));
+  EXPECT_THAT(to_text(DataItem(1)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("1")))));
+  EXPECT_THAT(to_text(DataItem(int64_t{1})),
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("1")))));
+  EXPECT_THAT(to_text(DataItem(1.5f)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("1.5")))));
+  EXPECT_THAT(to_text(DataItem(1.5)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("1.5")))));
+  EXPECT_THAT(to_text(DataItem(true)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("true")))));
+  EXPECT_THAT(to_text(DataItem(arolla::kUnit)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("present")))));
   EXPECT_THAT(to_text(DataItem(arolla::Bytes("foo"))),
-              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("foo")))));
-  EXPECT_THAT(to_text(DataItem(arolla::Bytes("te\0xt"))),
-              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("te\0xt")))));
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("b'foo'")))));
   EXPECT_THAT(
-      to_text(DataItem(arolla::Bytes("\xEF\xBF\xBD"))),
-      IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("\xEF\xBF\xBD")))));
+      to_text(DataItem(arolla::Bytes("te\0xt"))),
+      IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("b'te'")))));
   EXPECT_THAT(to_text(DataItem(arolla::Bytes("te\xC0\0xt"))),
+      IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("b'te\xC0'")))));
+  EXPECT_THAT(to_text(DataItem(internal::AllocateSingleObject())),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "invalid UTF-8 sequence at position 2"));
-  EXPECT_THAT(
-      to_text(DataItem(arolla::kUnit)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to TEXT"));
+                       "cannot cast ITEMID to TEXT"));
 }
 
 TEST(CastingTest, ToText_DataSlice) {
@@ -356,24 +365,40 @@ TEST(CastingTest, ToText_DataSlice) {
                   {DataItem(arolla::Text("foo")), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("foo")), DataItem()}))));
+  EXPECT_THAT(to_text(DataSliceImpl::Create({DataItem(1), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("1")), DataItem()}))));
+  EXPECT_THAT(
+      to_text(DataSliceImpl::Create({DataItem(int64_t{1}), DataItem()})),
+      IsOkAndHolds(IsEquivalentTo(
+          DataSliceImpl::Create({DataItem(arolla::Text("1")), DataItem()}))));
+  EXPECT_THAT(to_text(DataSliceImpl::Create({DataItem(1.5f), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("1.5")), DataItem()}))));
+  EXPECT_THAT(to_text(DataSliceImpl::Create({DataItem(1.5), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("1.5")), DataItem()}))));
+  EXPECT_THAT(to_text(DataSliceImpl::Create({DataItem(true), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("true")), DataItem()}))));
+  EXPECT_THAT(
+      to_text(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
+      IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
+          {DataItem(arolla::Text("present")), DataItem()}))));
   EXPECT_THAT(to_text(DataSliceImpl::Create(
                   {DataItem(arolla::Bytes("te\0xt")), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
-                  {DataItem(arolla::Text("te\0xt")), DataItem()}))));
+                  {DataItem(arolla::Text("b'te'")), DataItem()}))));
   EXPECT_THAT(to_text(DataSliceImpl::Create({DataItem(arolla::Text("foo")),
                                              DataItem(arolla::Bytes("te\0xt")),
                                              DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("foo")),
-                   DataItem(arolla::Text("te\0xt")), DataItem()}))));
+                   DataItem(arolla::Text("b'te'")), DataItem()}))));
   EXPECT_THAT(to_text(DataSliceImpl::Create(
-                  {DataItem(arolla::Text("foo")),
-                   DataItem(arolla::Bytes("te\xC0\0xt")), DataItem()})),
+                  {DataItem(internal::AllocateSingleObject()), DataItem()})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "invalid UTF-8 sequence at position 2"));
-  EXPECT_THAT(
-      to_text(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
-      StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to TEXT"));
+                       "cannot cast ITEMID to TEXT"));
 }
 
 TEST(CastingTest, ToBytes_DataItem) {
@@ -381,19 +406,12 @@ TEST(CastingTest, ToBytes_DataItem) {
   EXPECT_THAT(to_bytes(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
   EXPECT_THAT(to_bytes(DataItem(arolla::Bytes("foo"))),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Bytes("foo")))));
-  EXPECT_THAT(to_bytes(DataItem(arolla::Text("foo"))),
-              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Bytes("foo")))));
-  EXPECT_THAT(to_bytes(DataItem(arolla::Text("te\0xt"))),
-              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Bytes("te\0xt")))));
-  EXPECT_THAT(
-      to_bytes(DataItem(arolla::Text("\xEF\xBF\xBD"))),
-      IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Bytes("\xEF\xBF\xBD")))));
   EXPECT_THAT(
       to_bytes(DataItem(arolla::Bytes("te\xC0\0xt"))),
       IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Bytes("te\xC0\0xt")))));
-  EXPECT_THAT(to_bytes(DataItem(arolla::kUnit)),
+  EXPECT_THAT(to_bytes(DataItem(arolla::Text("foo"))),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to BYTES"));
+                       "cannot cast TEXT to BYTES"));
 }
 
 TEST(CastingTest, ToBytes_DataSlice) {
@@ -406,25 +424,9 @@ TEST(CastingTest, ToBytes_DataSlice) {
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Bytes("foo")), DataItem()}))));
   EXPECT_THAT(to_bytes(DataSliceImpl::Create(
-                  {DataItem(arolla::Text("te\0xt")), DataItem()})),
-              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
-                  {DataItem(arolla::Bytes("te\0xt")), DataItem()}))));
-  EXPECT_THAT(to_bytes(DataSliceImpl::Create({DataItem(arolla::Bytes("foo")),
-                                              DataItem(arolla::Text("te\0xt")),
-                                              DataItem()})),
-              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
-                  {DataItem(arolla::Bytes("foo")),
-                   DataItem(arolla::Bytes("te\0xt")), DataItem()}))));
-  EXPECT_THAT(to_bytes(DataSliceImpl::Create(
-                  {DataItem(arolla::Bytes("foo")),
-                   DataItem(arolla::Text("te\xC0\0xt")), DataItem()})),
-              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
-                  {DataItem(arolla::Bytes("foo")),
-                   DataItem(arolla::Bytes("te\xC0\0xt")), DataItem()}))));
-  EXPECT_THAT(
-      to_bytes(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast MASK to BYTES"));
+                  {DataItem(arolla::Text("foo")), DataItem()})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast TEXT to BYTES"));
 }
 
 TEST(CastingTest, ToMask_DataItem) {
