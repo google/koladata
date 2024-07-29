@@ -16,6 +16,7 @@
 #include "koladata/object_factories.h"
 #include "koladata/operators/align.h"
 #include "koladata/operators/assertion.h"
+#include "koladata/operators/clone.h"
 #include "koladata/operators/collapse.h"
 #include "koladata/operators/convert_and_eval.h"
 #include "koladata/operators/dict.h"
@@ -50,6 +51,8 @@ OPERATOR("kde.assertion.assert_ds_has_primitives_of", AssertDsHasPrimitivesOf);
 //
 OPERATOR("kde.comparison.equal", Equal);
 //
+OPERATOR("kde.core._clone", Clone);
+OPERATOR("kde.core._clone_with_schema", CloneWithSchema);
 OPERATOR("kde.core._collapse", Collapse);
 OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);

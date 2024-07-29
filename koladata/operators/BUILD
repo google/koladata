@@ -80,6 +80,7 @@ cc_library(
     hdrs = [
         "align.h",
         "assertion.h",
+        "clone.h",
         "collapse.h",
         "convert_and_eval.h",
         "dict.h",
