@@ -55,8 +55,8 @@ absl::Status VerifyCompatibleSchema(const DataSlice& slice,
 }
 
 template <typename ToNumericImpl>
-absl::StatusOr<DataSlice> ToNumeric(const DataSlice& slice,
-                                    schema::DType dst_dtype) {
+absl::StatusOr<DataSlice> ToNumericLike(const DataSlice& slice,
+                                        schema::DType dst_dtype) {
   constexpr DTypeMask kAllowedSchemas = GetDTypeMask(
       schema::kNone, schema::kInt32, schema::kInt64, schema::kFloat32,
       schema::kFloat64, schema::kBool, schema::kObject, schema::kAny);
@@ -71,19 +71,19 @@ absl::StatusOr<DataSlice> ToNumeric(const DataSlice& slice,
 }  // namespace
 
 absl::StatusOr<DataSlice> ToInt32(const DataSlice& slice) {
-  return ToNumeric<schema::ToInt32>(slice, schema::kInt32);
+  return ToNumericLike<schema::ToInt32>(slice, schema::kInt32);
 }
 
 absl::StatusOr<DataSlice> ToInt64(const DataSlice& slice) {
-  return ToNumeric<schema::ToInt64>(slice, schema::kInt64);
+  return ToNumericLike<schema::ToInt64>(slice, schema::kInt64);
 }
 
 absl::StatusOr<DataSlice> ToFloat32(const DataSlice& slice) {
-  return ToNumeric<schema::ToFloat32>(slice, schema::kFloat32);
+  return ToNumericLike<schema::ToFloat32>(slice, schema::kFloat32);
 }
 
 absl::StatusOr<DataSlice> ToFloat64(const DataSlice& slice) {
-  return ToNumeric<schema::ToFloat64>(slice, schema::kFloat64);
+  return ToNumericLike<schema::ToFloat64>(slice, schema::kFloat64);
 }
 
 absl::StatusOr<DataSlice> ToNone(const DataSlice& slice) {
@@ -165,14 +165,7 @@ absl::StatusOr<DataSlice> ToMask(const DataSlice& slice) {
 }
 
 absl::StatusOr<DataSlice> ToBool(const DataSlice& slice) {
-  constexpr DTypeMask kAllowedSchemas =
-      GetDTypeMask(schema::kNone, schema::kBool, schema::kObject, schema::kAny);
-  RETURN_IF_ERROR(VerifyCompatibleSchema(slice, kAllowedSchemas));
-  return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    ASSIGN_OR_RETURN(auto impl_res, schema::ToBool()(impl));
-    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             internal::DataItem(schema::kBool), slice.GetDb());
-  });
+  return ToNumericLike<schema::ToBool>(slice, schema::kBool);
 }
 
 absl::StatusOr<DataSlice> ToAny(const DataSlice& slice) {

@@ -270,10 +270,12 @@ struct ToMask : schema_internal::ToSelf<arolla::Unit> {};
 
 // Casts the given item/slice to bool.
 //
-// The following cases are supported:
-// - BOOL -> BOOL.
+// - {INT32, INT64, FLOAT32, FLOAT64, BOOL} QType -> BOOL.
 // - Empty -> empty.
-struct ToBool : schema_internal::ToSelf<bool> {};
+// - Mixed types -> BOOL if all items are in {INT32, INT64, FLOAT32, FLOAT64,
+//   BOOL}.
+struct ToBool : schema_internal::ToDST<arolla::ToBoolOp, bool,
+                                       schema_internal::kNumericsCompatible> {};
 
 // Casts the given item/slice to ItemId.
 //

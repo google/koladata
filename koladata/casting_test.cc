@@ -880,6 +880,15 @@ INSTANTIATE_TEST_SUITE_P(
           {test::EmptyDataSlice(3, schema::kNone),
            test::EmptyDataSlice(3, schema::kBool)},
           {bool_slice, bool_slice},
+          {test::DataSlice<int>({1, 0, std::nullopt}, schema::kInt32),
+           bool_slice},
+          {test::DataSlice<int64_t>({int64_t{1}, int64_t{0}, std::nullopt},
+                                    schema::kInt64),
+           bool_slice},
+          {test::DataSlice<float>({1.0f, 0.0f, std::nullopt}, schema::kFloat32),
+           bool_slice},
+          {test::DataSlice<double>({1.0, 0.0, std::nullopt}, schema::kFloat64),
+           bool_slice},
           {test::DataSlice<bool>({true, false, std::nullopt}, schema::kObject),
            bool_slice},
           {test::DataSlice<bool>({true, false, std::nullopt}, schema::kAny),
@@ -888,6 +897,14 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kBool)},
           {test::DataItem(true, schema::kBool),
+           test::DataItem(true, schema::kBool)},
+          {test::DataItem(1, schema::kInt32),
+           test::DataItem(true, schema::kBool)},
+          {test::DataItem(int64_t{1}, schema::kInt64),
+           test::DataItem(true, schema::kBool)},
+          {test::DataItem(1.0f, schema::kFloat32),
+           test::DataItem(true, schema::kBool)},
+          {test::DataItem(1.0, schema::kFloat64),
            test::DataItem(true, schema::kBool)},
           {test::DataItem(true, schema::kObject),
            test::DataItem(true, schema::kBool)},
@@ -899,20 +916,21 @@ INSTANTIATE_TEST_SUITE_P(
     }()));
 
 TEST(Casting, BoolErrors) {
-  EXPECT_THAT(ToBool(test::DataSlice<int>({1, std::nullopt}, schema::kInt32)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unsupported schema: INT32"));
   EXPECT_THAT(
-      ToBool(test::MixedDataSlice<int64_t, bool>(
-          {1, std::nullopt, std::nullopt}, {std::nullopt, true, std::nullopt})),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast INT64 to BOOLEAN"));
-  EXPECT_THAT(ToBool(test::DataItem(1, schema::kInt32)),
+      ToBool(
+          test::DataSlice<arolla::Text>({"foo", std::nullopt}, schema::kText)),
+      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: TEXT"));
+  EXPECT_THAT(ToBool(test::MixedDataSlice<arolla::Text, bool>(
+                  {"foo", std::nullopt, std::nullopt},
+                  {std::nullopt, true, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unsupported schema: INT32"));
-  EXPECT_THAT(ToBool(test::DataItem(1, schema::kObject)),
+                       "cannot cast TEXT to BOOLEAN"));
+  EXPECT_THAT(
+      ToBool(test::DataItem(arolla::Text("foo"), schema::kText)),
+      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: TEXT"));
+  EXPECT_THAT(ToBool(test::DataItem(arolla::Text("foo"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast INT32 to BOOLEAN"));
+                       "cannot cast TEXT to BOOLEAN"));
 }
 
 TEST_P(CastingToAnyTest, Casting) {

@@ -557,6 +557,24 @@ TEST(CastingTest, ToBool_DataItem) {
   EXPECT_THAT(to_bool(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
   EXPECT_THAT(to_bool(DataItem(true)),
               IsOkAndHolds(IsEquivalentTo(DataItem(true))));
+  EXPECT_THAT(to_bool(DataItem(false)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(false))));
+  EXPECT_THAT(to_bool(DataItem(0)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(false))));
+  EXPECT_THAT(to_bool(DataItem(1)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(true))));
+  EXPECT_THAT(to_bool(DataItem(int64_t{0})),
+              IsOkAndHolds(IsEquivalentTo(DataItem(false))));
+  EXPECT_THAT(to_bool(DataItem(int64_t{1})),
+              IsOkAndHolds(IsEquivalentTo(DataItem(true))));
+  EXPECT_THAT(to_bool(DataItem(0.0f)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(false))));
+  EXPECT_THAT(to_bool(DataItem(1.0f)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(true))));
+  EXPECT_THAT(to_bool(DataItem(0.0)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(false))));
+  EXPECT_THAT(to_bool(DataItem(1.0)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(true))));
   EXPECT_THAT(to_bool(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to BOOLEAN"));
@@ -570,6 +588,22 @@ TEST(CastingTest, ToBool_DataSlice) {
   EXPECT_THAT(to_bool(DataSliceImpl::Create({DataItem(true), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(
                   DataSliceImpl::Create({DataItem(true), DataItem()}))));
+  EXPECT_THAT(to_bool(DataSliceImpl::Create({DataItem(1), DataItem(0)})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(true), DataItem(false)}))));
+  EXPECT_THAT(to_bool(DataSliceImpl::Create(
+                  {DataItem(int64_t{1}), DataItem(int64_t{0})})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(true), DataItem(false)}))));
+  EXPECT_THAT(to_bool(DataSliceImpl::Create({DataItem(1.0f), DataItem(0.0f)})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(true), DataItem(false)}))));
+  EXPECT_THAT(to_bool(DataSliceImpl::Create({DataItem(1.0), DataItem(0.0)})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(true), DataItem(false)}))));
+  EXPECT_THAT(to_bool(DataSliceImpl::Create({DataItem(false), DataItem(1.0)})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(false), DataItem(true)}))));
   EXPECT_THAT(
       to_bool(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
       StatusIs(absl::StatusCode::kInvalidArgument,
