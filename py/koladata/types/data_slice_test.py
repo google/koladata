@@ -1066,6 +1066,9 @@ class DataSliceTest(parameterized.TestCase):
     values678 = ds([6, 7, 8], schema_constants.INT32)
     many_dicts[keys345] = values678
 
+    with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
+      many_dicts[ds([['a', 'b'], ['c']])] = 42
+
     testing.assert_equal(single_dict.get_shape(), jagged_shape.create_shape())
     testing.assert_equal(many_dicts.get_shape(), jagged_shape.create_shape([3]))
 
@@ -1195,6 +1198,9 @@ class DataSliceTest(parameterized.TestCase):
         'slice with 1 dimensions, while 2 dimensions are required',
     ):
       many_lists[:] = ds([1, 2, 3])
+
+    with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
+      many_lists[:] = ds([[1, 2, 3], [4, 5, 6]])
 
     single_list[:] = ds([1, 2, 3])
     many_lists[ds(None)] = ds([1, 2, 3])
