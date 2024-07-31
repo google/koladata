@@ -53,8 +53,6 @@ namespace koladata::python {
 
 namespace {
 
-using arolla::python::SetPyErrFromStatus;
-
 absl::Nullable<PyObject*> PyDataSlice_get_db(PyObject* self, void*) {
   arolla::python::DCheckPyGIL();
   auto db = UnsafeDataSliceRef(self).GetDb();
@@ -141,7 +139,7 @@ absl::Nullable<PyObject*> PyDataSlice_as_arolla_value(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   ASSIGN_OR_RETURN(auto value, DataSliceToArollaValue(ds),
-                   SetPyErrFromStatus(_));
+                   SetKodaPyErrFromStatus(_));
   return arolla::python::WrapAsPyQValue(value);
 }
 
@@ -149,7 +147,7 @@ absl::Nullable<PyObject*> PyDataSlice_as_dense_array(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   ASSIGN_OR_RETURN(auto array, DataSliceToDenseArray(ds),
-                   SetPyErrFromStatus(_));
+                   SetKodaPyErrFromStatus(_));
   return arolla::python::WrapAsPyQValue(array);
 }
 
@@ -211,7 +209,7 @@ absl::Nullable<PyObject*> PyDataSlice_get_attr(PyObject* self,
   } else {
     ASSIGN_OR_RETURN(auto default_value,
                      DataSliceFromPyValueNoAdoption(args.pos_kw_values[0]),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
     ASSIGN_OR_RETURN(
         res, self_ds.GetAttrWithDefault(attr_name_view, default_value),
         SetKodaPyErrFromStatus(AssembleErrorMessage(_, {.ds = self_ds})));
@@ -246,7 +244,7 @@ int PyDataSlice_setattro(PyObject* self, PyObject* attr_name, PyObject* value) {
   AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(auto value_ds,
                    AssignmentRhsFromPyValue(self_ds, value, adoption_queue),
-                   (SetPyErrFromStatus(_), -1));
+                   (SetKodaPyErrFromStatus(_), -1));
   auto status = self_ds.SetAttr(attr_name_view, value_ds);
   if (status.ok()) {
     status = adoption_queue.AdoptInto(*self_ds.GetDb());
@@ -280,7 +278,7 @@ absl::Nullable<PyObject*> PyDataSlice_set_attr(PyObject* self,
   ASSIGN_OR_RETURN(
       auto value_ds,
       AssignmentRhsFromPyValue(self_ds, py_args[1], adoption_queue),
-      SetPyErrFromStatus(_));
+      SetKodaPyErrFromStatus(_));
   bool update_schema = false;
   if (PyObject* py_update_schema = args.pos_kw_values[0];
       py_update_schema != nullptr) {
@@ -294,13 +292,13 @@ absl::Nullable<PyObject*> PyDataSlice_set_attr(PyObject* self,
   }
   if (update_schema) {
     RETURN_IF_ERROR(self_ds.SetAttrWithUpdateSchema(attr_name_view, value_ds))
-        .With(SetPyErrFromStatus);
+        .With(SetKodaPyErrFromStatus);
   } else {
     RETURN_IF_ERROR(self_ds.SetAttr(attr_name_view, value_ds))
-        .With(SetPyErrFromStatus);
+        .With(SetKodaPyErrFromStatus);
   }
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetDb()))
-      .With(SetPyErrFromStatus);
+      .With(SetKodaPyErrFromStatus);
   Py_RETURN_NONE;
 }
 
@@ -324,11 +322,11 @@ absl::Nullable<PyObject*> PyDataSlice_set_attrs(PyObject* self,
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
       ConvertArgsToDataSlices(self_ds.GetDb(), args.kw_values, adoption_queue),
-      SetPyErrFromStatus(_));
+      SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(self_ds.SetAttrs(args.kw_names, values, update_schema))
-      .With(SetPyErrFromStatus);
+      .With(SetKodaPyErrFromStatus);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetDb()))
-      .With(SetPyErrFromStatus);
+      .With(SetKodaPyErrFromStatus);
   Py_RETURN_NONE;
 }
 
@@ -354,7 +352,7 @@ absl::Nullable<PyObject*> PyDataSlice_subscript(PyObject* self, PyObject* key) {
     return WrapPyDataSlice(std::move(res));
   }
   ASSIGN_OR_RETURN(auto key_ds, DataSliceFromPyValueNoAdoption(key),
-                   SetPyErrFromStatus(_));
+                   SetKodaPyErrFromStatus(_));
   ASSIGN_OR_RETURN(
       auto res,
       self_ds.ShouldApplyListOp() ? self_ds.GetFromList(key_ds)
@@ -371,7 +369,7 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
   if (value) {
     ASSIGN_OR_RETURN(value_ds,
                      AssignmentRhsFromPyValue(self_ds, value, adoption_queue),
-                     (SetPyErrFromStatus(_), -1));
+                     (SetKodaPyErrFromStatus(_), -1));
   }
   absl::Status status;
   if (key && PySlice_Check(key)) {
@@ -394,7 +392,7 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
     }
   } else {
     ASSIGN_OR_RETURN(auto key_ds, DataSliceFromPyValue(key, adoption_queue),
-                     (SetPyErrFromStatus(_), -1));
+                     (SetKodaPyErrFromStatus(_), -1));
     if (self_ds.ShouldApplyListOp()) {
       if (value_ds.has_value()) {
         status = self_ds.SetInList(key_ds, *value_ds);
@@ -406,7 +404,7 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
         ASSIGN_OR_RETURN(value_ds,
                          DataSlice::Create(internal::DataItem(),
                                            internal::DataItem(schema::kNone)),
-                         (SetPyErrFromStatus(_), -1));
+                         (SetKodaPyErrFromStatus(_), -1));
       }
       status = self_ds.SetInDict(key_ds, *value_ds);
     }
@@ -425,7 +423,7 @@ PyObject* PyDataSlice_str(PyObject* self) {
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
 
   ASSIGN_OR_RETURN(std::string s, DataSliceToStr(self_ds),
-                   SetPyErrFromStatus(_));
+                   SetKodaPyErrFromStatus(_));
   return PyUnicode_FromStringAndSize(s.c_str(), s.size());
 }
 
@@ -452,10 +450,10 @@ absl::Nullable<PyObject*> PyDataSlice_append(PyObject* self,
   AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(auto ds,
                    AssignmentRhsFromPyValue(self_ds, args[0], adoption_queue),
-                   SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(self_ds.AppendToList(ds)).With(SetPyErrFromStatus);
+                   SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(self_ds.AppendToList(ds)).With(SetKodaPyErrFromStatus);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetDb()))
-      .With(SetPyErrFromStatus);
+      .With(SetKodaPyErrFromStatus);
   Py_RETURN_NONE;
 }
 
@@ -471,7 +469,7 @@ absl::Nullable<PyObject*> PyDataSlice_pop(PyObject* self, PyObject* const* args,
   DataSlice self_ds = UnsafeDataSliceRef(self);
   if (nargs == 1) {
     ASSIGN_OR_RETURN(auto index, DataSliceFromPyValueNoAdoption(args[0]),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
     ASSIGN_OR_RETURN(
         res, self_ds.PopFromList(index),
         SetKodaPyErrFromStatus(AssembleErrorMessage(_, {.ds = self_ds})));
@@ -486,7 +484,7 @@ absl::Nullable<PyObject*> PyDataSlice_pop(PyObject* self, PyObject* const* args,
 absl::Nullable<PyObject*> PyDataSlice_clear(PyObject* self) {
   arolla::python::DCheckPyGIL();
   RETURN_IF_ERROR(UnsafeDataSliceRef(self).ClearDictOrList())
-      .With(SetPyErrFromStatus);
+      .With(SetKodaPyErrFromStatus);
   Py_RETURN_NONE;
 }
 
@@ -537,7 +535,8 @@ absl::Nullable<PyObject*> PyDataSlice_with_schema(PyObject* self,
   if (schema_ds == nullptr) {
     return nullptr;
   }
-  ASSIGN_OR_RETURN(auto res, ds.WithSchema(*schema_ds), SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res, ds.WithSchema(*schema_ds),
+                   SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -549,7 +548,8 @@ absl::Nullable<PyObject*> PyDataSlice_set_schema(PyObject* self,
   if (schema_ds == nullptr) {
     return nullptr;
   }
-  ASSIGN_OR_RETURN(auto res, ds.SetSchema(*schema_ds), SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res, ds.SetSchema(*schema_ds),
+                   SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -558,21 +558,21 @@ absl::Nullable<PyObject*> PyDataSlice_as_any(PyObject* self) {
   ASSIGN_OR_RETURN(
       auto res,
       UnsafeDataSliceRef(self).WithSchema(internal::DataItem(schema::kAny)),
-      SetPyErrFromStatus(_));
+      SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_embed_schema(PyObject* self) {
   arolla::python::DCheckPyGIL();
   auto& self_ds = UnsafeDataSliceRef(self);
-  ASSIGN_OR_RETURN(auto res, self_ds.EmbedSchema(), SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res, self_ds.EmbedSchema(), SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_dir(PyObject* self) {
   arolla::python::DCheckPyGIL();
   ASSIGN_OR_RETURN(auto attr_names, UnsafeDataSliceRef(self).GetAttrNames(),
-                   SetPyErrFromStatus(_));
+                   SetKodaPyErrFromStatus(_));
   auto attr_name_list =
       arolla::python::PyObjectPtr::Own(PyList_New(/*len=*/attr_names.size()));
   int i = 0;

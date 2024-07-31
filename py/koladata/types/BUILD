@@ -446,6 +446,7 @@ cc_library(
         "//koladata:object_factories",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
+        "//py/koladata/exceptions:py_exception_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/log:check",

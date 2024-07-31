@@ -39,6 +39,7 @@
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/exceptions/py_exception_utils.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/wrap_utils.h"
@@ -52,7 +53,6 @@
 namespace koladata::python {
 namespace {
 
-using arolla::python::SetPyErrFromStatus;
 
 // classmethod
 absl::Nullable<PyObject*> PyDataBag_empty(PyTypeObject* cls) {
@@ -85,8 +85,9 @@ absl::Nullable<PyObject*> PyDataBag_kwargs_to_namedtuple(
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
       ConvertArgsToDataSlices(self_db, args.kw_values, adoption_queue),
-      SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db)).With(SetPyErrFromStatus);
+      SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
+      .With(SetKodaPyErrFromStatus);
   std::vector<arolla::TypedRef> typed_refs;
   typed_refs.reserve(values.size());
   for (const auto& value : values) {
@@ -100,11 +101,11 @@ absl::Nullable<PyObject*> PyDataBag_kwargs_to_namedtuple(
       arolla::MakeNamedTupleQType(
           std::vector<std::string>(args.kw_names.begin(), args.kw_names.end()),
           tuple_qtype),
-      SetPyErrFromStatus(_));
+      SetKodaPyErrFromStatus(_));
   ASSIGN_OR_RETURN(
       arolla::TypedValue named_tuple,
       arolla::TypedValue::FromFields(named_tuple_qtype, typed_refs),
-      SetPyErrFromStatus(_));
+      SetKodaPyErrFromStatus(_));
   return arolla::python::WrapAsPyQValue(named_tuple);
 }
 
@@ -235,7 +236,7 @@ bool ParseSchemaArg(const FastcallArgParser::Args& args,
   }
   auto status = schema->VerifyIsSchema();
   if (!status.ok()) {
-    SetPyErrFromStatus(status);
+    SetKodaPyErrFromStatus(status);
     return false;
   }
   schema_arg = *schema;
@@ -271,19 +272,19 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
     ASSIGN_OR_RETURN(res,
                      FactoryHelperT::FromPyObject(
                          args.pos_kw_values[0], schema_arg, db, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   } else {
     ASSIGN_OR_RETURN(
         std::vector<DataSlice> values,
         ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
-        SetPyErrFromStatus(_));
+        SetKodaPyErrFromStatus(_));
     ASSIGN_OR_RETURN(
         res,
         FactoryHelperT::FromAttributes(args.kw_names, values, schema_arg,
                                        update_schema, db, adoption_queue),
-        SetPyErrFromStatus(_));
+        SetKodaPyErrFromStatus(_));
   }
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -300,17 +301,15 @@ absl::Nullable<PyObject*> PyDataBag_schema_factory(
   auto db = UnsafeDataBagPtr(self);
   AdoptionQueue adoption_queue;
   DataSlice res;
-  ASSIGN_OR_RETURN(
-      std::vector<DataSlice> values,
-      UnwrapDataSlices(args.kw_values, adoption_queue),
-      SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(std::vector<DataSlice> values,
+                   UnwrapDataSlices(args.kw_values, adoption_queue),
+                   SetKodaPyErrFromStatus(_));
   for (const auto& value : values) {
     adoption_queue.Add(value);
   }
-  ASSIGN_OR_RETURN(
-      res, SchemaCreator()(db, args.kw_names, values),
-      SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
+  ASSIGN_OR_RETURN(res, SchemaCreator()(db, args.kw_names, values),
+                   SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -391,13 +390,13 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
       ConvertArgsToDataSlices(
           db, /*prohibit_boxing_to_multi_dim_slice=*/shape->rank() != 0,
           args.kw_values, adoption_queue),
-      SetPyErrFromStatus(_));
+      SetKodaPyErrFromStatus(_));
   ASSIGN_OR_RETURN(
       res,
       FactoryHelperT::Shaped(*std::move(shape), args.kw_names, values,
                              schema_arg, update_schema, db, adoption_queue),
-      SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
+      SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -472,18 +471,17 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
   }
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
-      ConvertArgsToDataSlices(
-          db,
-          /*prohibit_boxing_to_multi_dim_slice=*/shape_and_mask_from->GetShape()
-          .rank() != 0,
-          args.kw_values, adoption_queue),
-      SetPyErrFromStatus(_));
+      ConvertArgsToDataSlices(db,
+                              /*prohibit_boxing_to_multi_dim_slice=*/
+                              shape_and_mask_from->GetShape().rank() != 0,
+                              args.kw_values, adoption_queue),
+      SetKodaPyErrFromStatus(_));
   ASSIGN_OR_RETURN(
       res,
       FactoryHelperT::Like(*shape_and_mask_from, args.kw_names, values,
                            schema_arg, update_schema, db, adoption_queue),
-      SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
+      SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -552,7 +550,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_factory(PyObject* self,
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
-                   SetPyErrFromStatus(_));
+                   SetKodaPyErrFromStatus(_));
   if (args.pos_kw_values[0] && args.pos_kw_values[0] != Py_None) {
     auto seed_py_object = args.pos_kw_values[0];
     Py_ssize_t seed_size;
@@ -565,13 +563,13 @@ absl::Nullable<PyObject*> PyDataBag_uu_factory(PyObject* self,
     auto seed_view = absl::string_view(seed_ptr, seed_size);
     ASSIGN_OR_RETURN(res,
                      FactoryHelperT()(db, seed_view, args.kw_names, values),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   } else {
     ASSIGN_OR_RETURN(
         res, FactoryHelperT()(db, absl::string_view(""), args.kw_names, values),
-        SetPyErrFromStatus(_));
+        SetKodaPyErrFromStatus(_));
   }
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -594,18 +592,16 @@ bool NormalizeDictKeysAndValues(PyObject* py_items_or_keys, PyObject* py_values,
           Py_TYPE(py_items_or_keys)->tp_name);
       return false;
     }
-    ASSIGN_OR_RETURN(
-        keys,
-        AssignmentRhsFromPyValue(py_items_or_keys,
-                                 prohibit_boxing_to_multi_dim_slice, db,
-                                 adoption_queue),
-        (SetPyErrFromStatus(_), false));
+    ASSIGN_OR_RETURN(keys,
+                     AssignmentRhsFromPyValue(
+                         py_items_or_keys, prohibit_boxing_to_multi_dim_slice,
+                         db, adoption_queue),
+                     (SetKodaPyErrFromStatus(_), false));
     ASSIGN_OR_RETURN(
         values,
-        AssignmentRhsFromPyValue(py_values,
-                                 prohibit_boxing_to_multi_dim_slice, db,
-                                 adoption_queue),
-        (SetPyErrFromStatus(_), false));
+        AssignmentRhsFromPyValue(py_values, prohibit_boxing_to_multi_dim_slice,
+                                 db, adoption_queue),
+        (SetKodaPyErrFromStatus(_), false));
     return true;
   }
   if (py_items_or_keys && py_items_or_keys != Py_None) {
@@ -627,7 +623,7 @@ bool NormalizeDictKeysAndValues(PyObject* py_items_or_keys, PyObject* py_values,
     if (auto status = ConvertDictKeysAndValues(py_items_or_keys, db,
                                                adoption_queue, keys, values);
         !status.ok()) {
-      SetPyErrFromStatus(status);
+      SetKodaPyErrFromStatus(status);
       return false;
     }
   }
@@ -668,25 +664,26 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
   if (!Py_IsNone(py_key_schema)) {
     ASSIGN_OR_RETURN(key_schema,
                      DataSliceFromPyValue(py_key_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
   std::optional<DataSlice> value_schema;
   if (!Py_IsNone(py_value_schema)) {
     ASSIGN_OR_RETURN(value_schema,
                      DataSliceFromPyValue(py_value_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
   std::optional<DataSlice> schema;
   if (!Py_IsNone(py_schema)) {
     ASSIGN_OR_RETURN(schema, DataSliceFromPyValue(py_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db)).With(SetPyErrFromStatus);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
+      .With(SetKodaPyErrFromStatus);
 
   ASSIGN_OR_RETURN(auto res,
                    CreateDictShaped(self_db, *std::move(shape), keys, values,
                                     schema, key_schema, value_schema),
-                   arolla::python::SetPyErrFromStatus(_));
+                   SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -725,26 +722,27 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
   if (!Py_IsNone(py_key_schema)) {
     ASSIGN_OR_RETURN(key_schema,
                      DataSliceFromPyValue(py_key_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
   std::optional<DataSlice> value_schema;
   if (!Py_IsNone(py_value_schema)) {
     ASSIGN_OR_RETURN(value_schema,
                      DataSliceFromPyValue(py_value_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
   std::optional<DataSlice> schema;
   if (!Py_IsNone(py_schema)) {
     ASSIGN_OR_RETURN(schema, DataSliceFromPyValue(py_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
 
   ASSIGN_OR_RETURN(
       auto res,
       CreateDictLike(UnsafeDataBagPtr(self), *shape_and_mask_from, keys, values,
                      schema, key_schema, value_schema),
-      arolla::python::SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db)).With(SetPyErrFromStatus);
+      SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
+      .With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -767,35 +765,36 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
   if (!Py_IsNone(py_item_schema)) {
     ASSIGN_OR_RETURN(item_schema,
                      DataSliceFromPyValue(py_item_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
   std::optional<DataSlice> schema;
   if (!Py_IsNone(py_schema)) {
     ASSIGN_OR_RETURN(schema, DataSliceFromPyValue(py_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
 
   std::optional<DataSlice> res;
   if (Py_IsNone(py_values)) {
     ASSIGN_OR_RETURN(res, CreateEmptyList(self_db, schema, item_schema),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   } else {
     ASSIGN_OR_RETURN(auto values,
                      DataSliceFromPyValue(py_values, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
     if (PyList_Check(py_values)) {
       ASSIGN_OR_RETURN(res,
                        CreateNestedList(self_db, values, schema, item_schema),
-                       SetPyErrFromStatus(_));
+                       SetKodaPyErrFromStatus(_));
     } else {
       ASSIGN_OR_RETURN(
           res,
           CreateListsFromLastDimension(self_db, values, schema, item_schema),
-          SetPyErrFromStatus(_));
+          SetKodaPyErrFromStatus(_));
     }
   }
 
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db)).With(SetPyErrFromStatus);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
+      .With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -826,8 +825,8 @@ absl::Nullable<PyObject*> PyDataBag_list_schema(
   }
   adoption_queue.Add(*item_schema);
   ASSIGN_OR_RETURN(DataSlice res, ListSchemaCreator()(db, *item_schema),
-                   SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
+                   SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -872,8 +871,8 @@ absl::Nullable<PyObject*> PyDataBag_dict_schema(PyObject* self,
   adoption_queue.Add(*value_schema);
   ASSIGN_OR_RETURN(DataSlice res,
                    DictSchemaCreator()(db, *key_schema, *value_schema),
-                   SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetPyErrFromStatus);
+                   SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -902,26 +901,27 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
   std::optional<DataSlice> values;
   if (!Py_IsNone(py_values)) {
     ASSIGN_OR_RETURN(values, DataSliceFromPyValue(py_values, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
 
   std::optional<DataSlice> item_schema;
   if (!Py_IsNone(py_item_schema)) {
     ASSIGN_OR_RETURN(item_schema,
                      DataSliceFromPyValue(py_item_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
   std::optional<DataSlice> schema;
   if (!Py_IsNone(py_schema)) {
     ASSIGN_OR_RETURN(schema, DataSliceFromPyValue(py_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
 
   ASSIGN_OR_RETURN(
       auto res, CreateListShaped(self_db, *shape, values, schema, item_schema),
-      SetPyErrFromStatus(_));
+      SetKodaPyErrFromStatus(_));
 
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db)).With(SetPyErrFromStatus);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
+      .With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -951,25 +951,26 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
   std::optional<DataSlice> values;
   if (!Py_IsNone(py_values)) {
     ASSIGN_OR_RETURN(values, DataSliceFromPyValue(py_values, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
   std::optional<DataSlice> item_schema;
   if (!Py_IsNone(py_item_schema)) {
     ASSIGN_OR_RETURN(item_schema,
                      DataSliceFromPyValue(py_item_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
   std::optional<DataSlice> schema;
   if (!Py_IsNone(py_schema)) {
     ASSIGN_OR_RETURN(schema, DataSliceFromPyValue(py_schema, adoption_queue),
-                     SetPyErrFromStatus(_));
+                     SetKodaPyErrFromStatus(_));
   }
 
   ASSIGN_OR_RETURN(auto res,
                    CreateListLike(self_db, *shape_and_mask_from, values, schema,
                                   item_schema),
-                   arolla::python::SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db)).With(SetPyErrFromStatus);
+                   SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
+      .With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -997,7 +998,7 @@ absl::Nullable<PyObject*> PyDataBag_implode(PyObject* self,
   }
 
   ASSIGN_OR_RETURN(DataSlice result, Implode(self_db, *x_ptr, ndim),
-                   SetPyErrFromStatus(_));
+                   SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
 }
 
@@ -1042,7 +1043,7 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
     if (other == nullptr) return nullptr;
     RETURN_IF_ERROR(db->MergeInplace(other, overwrite, allow_data_conflicts,
                                      allow_schema_conflicts))
-        .With(SetPyErrFromStatus);
+        .With(SetKodaPyErrFromStatus);
   }
   Py_RETURN_NONE;
 }
@@ -1050,22 +1051,22 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
 absl::Nullable<PyObject*> PyDataBag_merge_fallbacks(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& db = UnsafeDataBagPtr(self);
-  ASSIGN_OR_RETURN(auto res, db->MergeFallbacks(),
-                   arolla::python::SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res, db->MergeFallbacks(), SetKodaPyErrFromStatus(_));
   return WrapDataBagPtr(std::move(res));
 }
 
 absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& db = UnsafeDataBagPtr(self);
-  ASSIGN_OR_RETURN(auto res, db->Fork(), arolla::python::SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res, db->Fork(), SetKodaPyErrFromStatus(_));
   return WrapDataBagPtr(std::move(res));
 }
 
 absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self) {
   const DataBagPtr db = UnsafeDataBagPtr(self);
 
-  ASSIGN_OR_RETURN(std::string str, DataBagToStr(db), SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(std::string str, DataBagToStr(db),
+                   SetKodaPyErrFromStatus(_));
   return PyUnicode_FromStringAndSize(str.c_str(), str.size());
 }
 
@@ -1298,7 +1299,7 @@ absl::Nullable<PyObject*> PyEmptyShaped(PyObject* /*module*/,
   }
 
   ASSIGN_OR_RETURN(auto res, CreateEmptyShaped(*shape, *schema, db),
-                   SetPyErrFromStatus(_));
+                   SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
