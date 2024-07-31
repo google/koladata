@@ -33,27 +33,6 @@ package_group(
     ],
 )
 
-cc_library(
-    name = "repr_utils",
-    srcs = ["repr_utils.cc"],
-    hdrs = ["repr_utils.h"],
-    deps = [
-        ":data_bag",
-        ":data_slice",
-        "//koladata/internal:data_item",
-        "//koladata/internal:dtype",
-        "//koladata/internal:error_cc_proto",
-        "//koladata/internal:error_utils",
-        "//koladata/s11n:codec_cc_proto",
-        "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_arolla//arolla/util:status_backport",
-    ],
-)
-
 cc_test(
     name = "repr_utils_test",
     srcs = ["repr_utils_test.cc"],
@@ -61,7 +40,6 @@ cc_test(
         ":data_bag",
         ":data_slice",
         ":object_factories",
-        ":repr_utils",
         ":test_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
@@ -175,6 +153,7 @@ cc_library(
         "casting.cc",
         "data_slice.cc",
         "data_slice_repr.cc",
+        "repr_utils.cc",
         "shape_utils.cc",
     ],
     hdrs = [
@@ -183,6 +162,7 @@ cc_library(
         "data_slice.h",
         "data_slice_op.h",
         "data_slice_repr.h",
+        "repr_utils.h",
         "shape_utils.h",
     ],
     deps = [
@@ -200,6 +180,7 @@ cc_library(
         "//koladata/internal/op_utils:has",
         "//koladata/internal/op_utils:presence_and",
         "//koladata/internal/op_utils:presence_or",
+        "//koladata/s11n:codec_cc_proto",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:btree",

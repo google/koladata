@@ -43,34 +43,39 @@ using ::koladata::internal::GetErrorPayload;
 
 absl::StatusOr<Error> SetNoCommonSchemaError(
     Error cause, absl::Nullable<const DataBagPtr>& db) {
-  if (!db) {
-    return absl::InvalidArgumentError("db is missing");
-  }
   ASSIGN_OR_RETURN(internal::DataItem common_schema_item,
                    DecodeDataItem(cause.no_common_schema().common_schema()));
   ASSIGN_OR_RETURN(
       internal::DataItem conflict_schema_item,
       DecodeDataItem(cause.no_common_schema().conflicting_schema()));
 
-  ASSIGN_OR_RETURN(DataSlice common_schema,
-                   DataSlice::Create(common_schema_item,
-                                     internal::DataItem(schema::kSchema), db));
-  ASSIGN_OR_RETURN(DataSlice conflict_schema,
-                   DataSlice::Create(conflict_schema_item,
-                                     internal::DataItem(schema::kSchema), db));
-
-  ASSIGN_OR_RETURN(std::string common_schema_str,
-                   DataSliceToStr(common_schema));
-  ASSIGN_OR_RETURN(std::string conflict_schema_str,
-                   DataSliceToStr(conflict_schema));
-
   Error error;
-  error.set_error_message(
-      absl::StrFormat("\ncannot find a common schema for provided schemas\n\n"
-                      " the common schema(s) %s: %s\n"
-                      " the first conflicting schema %s: %s",
-                      common_schema_item.DebugString(), common_schema_str,
-                      conflict_schema_item.DebugString(), conflict_schema_str));
+  if (db) {
+    ASSIGN_OR_RETURN(DataSlice common_schema,
+                    DataSlice::Create(common_schema_item,
+                                      internal::DataItem(schema::kSchema), db));
+    ASSIGN_OR_RETURN(std::string common_schema_str,
+                    DataSliceToStr(common_schema));
+    ASSIGN_OR_RETURN(DataSlice conflict_schema,
+                    DataSlice::Create(conflict_schema_item,
+                                      internal::DataItem(schema::kSchema), db));
+    ASSIGN_OR_RETURN(std::string conflict_schema_str,
+                    DataSliceToStr(conflict_schema));
+    error.set_error_message(absl::StrFormat(
+        "\ncannot find a common schema for provided schemas\n\n"
+        " the common schema(s) %s: %s\n"
+        " the first conflicting schema %s: %s",
+        common_schema_item.DebugString(), common_schema_str,
+        conflict_schema_item.DebugString(), conflict_schema_str));
+  } else {
+    error.set_error_message(
+        absl::StrFormat("\ncannot find a common schema for provided schemas\n\n"
+                        " the common schema(s) %s\n"
+                        " the first conflicting schema %s",
+                        internal::DataItemRepr(common_schema_item),
+                        internal::DataItemRepr(conflict_schema_item)));
+  }
+
   *error.mutable_cause() = std::move(cause);
   return error;
 }

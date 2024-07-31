@@ -90,10 +90,21 @@ TEST_F(ReprUtilTest, TestAssembleErrorMissingContextData) {
   ASSERT_OK_AND_ASSIGN(
       *no_common_schema->mutable_conflicting_schema(),
       internal::EncodeDataItem(internal::DataItem(schema::GetDType<int>())));
+  ASSERT_OK_AND_ASSIGN(*no_common_schema->mutable_common_schema(),
+                       internal::EncodeDataItem(internal::DataItem(
+                           internal::AllocateSingleObject())));
+  absl::Status status = AssembleErrorMessage(
+          internal::WithErrorPayload(absl::InternalError("error"), error), {});
+  std::optional<Error> payload = internal::GetErrorPayload(status);
+  EXPECT_TRUE(payload.has_value());
+  EXPECT_TRUE(payload->has_cause());
+  EXPECT_TRUE(payload->cause().has_no_common_schema());
   EXPECT_THAT(
-      AssembleErrorMessage(
-          internal::WithErrorPayload(absl::InternalError("error"), error), {}),
-      StatusIs(absl::StatusCode::kInvalidArgument, "db is missing"));
+      payload->error_message(),
+      AllOf(
+          MatchesRegex(R"regex((.|\n)*conflicting schema INT32(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*the common schema\(s\) \$[0-9a-f]{32}:0(.|\n)*)regex")));
 
   Error error2;
   ASSERT_OK_AND_ASSIGN(

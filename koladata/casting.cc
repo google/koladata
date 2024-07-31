@@ -30,6 +30,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/repr_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -254,7 +255,8 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
   }
   if (implicit_cast) {
     ASSIGN_OR_RETURN(auto common_schema,
-                     schema::CommonSchema(slice.GetSchemaImpl(), schema));
+                     schema::CommonSchema(slice.GetSchemaImpl(), schema),
+                     AssembleErrorMessage(_, {.db = slice.GetDb()}));
     if (common_schema != schema) {
       return absl::InvalidArgumentError(
           absl::StrFormat("unsupported implicit cast from %v to %v",
