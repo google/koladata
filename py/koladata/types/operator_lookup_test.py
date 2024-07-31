@@ -16,7 +16,7 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.operators import convert_and_eval
+from koladata.operators import arolla_bridge
 from koladata.operators import optools
 from koladata.types import operator_lookup
 
@@ -24,7 +24,7 @@ from koladata.types import operator_lookup
 @optools.add_to_registry()
 @optools.as_lambda_operator('kde.test_add')
 def test_add(x, y):
-  return convert_and_eval.convert_and_eval(arolla.M.math.add, x, y)
+  return arolla_bridge.convert_and_eval(arolla.M.math.add, x, y)
 
 
 class OperatorImplLookupTest(absltest.TestCase):
@@ -44,7 +44,7 @@ class OperatorImplLookupTest(absltest.TestCase):
     @optools.add_to_registry()
     @optools.as_lambda_operator('kde.test_subtract')
     def test_subtract(x, y):
-      return convert_and_eval.convert_and_eval(arolla.M.math.subtract, x, y)
+      return arolla_bridge.convert_and_eval(arolla.M.math.subtract, x, y)
 
     self.assertTrue(hasattr(op_impl_lookup, 'test_subtract'))
 
