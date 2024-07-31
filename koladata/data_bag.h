@@ -66,7 +66,8 @@ class DataBag {
   absl::StatusOr<std::reference_wrapper<internal::DataBagImpl>>
   GetMutableImpl() {
     if (!is_mutable_) {
-      return absl::InvalidArgumentError("DataBag is immutable.");
+      return absl::InvalidArgumentError(
+          "DataBag is immutable, try DataSlice.fork_db()");
     }
     return *impl_;
   }

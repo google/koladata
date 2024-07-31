@@ -884,6 +884,16 @@ absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {
                    GetDb());
 }
 
+absl::StatusOr<DataSlice> DataSlice::ForkDb() const {
+  ASSIGN_OR_RETURN(auto forked_db, GetDb()->Fork());
+  return DataSlice(internal_->impl_, GetShape(), GetSchemaImpl(), forked_db);
+}
+
+absl::StatusOr<DataSlice> DataSlice::Freeze() const {
+  ASSIGN_OR_RETURN(auto frozen_db, GetDb()->Fork(/*immutable=*/true));
+  return DataSlice(internal_->impl_, GetShape(), GetSchemaImpl(), frozen_db);
+}
+
 bool DataSlice::IsEquivalentTo(const DataSlice& other) const {
   if (this == &other || internal_ == other.internal_) {
     return true;

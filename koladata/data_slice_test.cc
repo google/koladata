@@ -276,6 +276,57 @@ TEST(DataSliceTest, CreateWithSchemaFromData) {
   }
 }
 
+TEST(DataSliceTest, ForkDb) {
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataSlice<int>({1, 2});
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
+  auto immutable_db = *db->Fork(/*immutable=*/true);
+  auto immutable_ds = ds.WithDb(immutable_db);
+
+  EXPECT_THAT(immutable_ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(1, 2))));
+
+  EXPECT_THAT(immutable_ds.SetAttr("a", ds_a),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("DataBag is immutable")));
+
+  ASSERT_OK_AND_ASSIGN(auto forked_ds, immutable_ds.ForkDb());
+  ASSERT_OK(forked_ds.SetAttr("a", test::DataSlice<int>({42, 37})));
+  EXPECT_THAT(forked_ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(42, 37))));
+  // The update is not reflected in the old DataBag.
+  EXPECT_THAT(immutable_ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(1, 2))));
+  EXPECT_THAT(ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(1, 2))));
+}
+
+TEST(DataSliceTest, Freeze) {
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataSlice<int>({1, 2});
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
+  ASSERT_TRUE(ds.GetDb()->IsMutable());
+
+  ASSERT_OK_AND_ASSIGN(auto frozen_ds, ds.Freeze());
+  EXPECT_THAT(frozen_ds.SetAttr("a", ds_a),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("DataBag is immutable")));
+}
+
+TEST(DataSliceTest, ForkErrors) {
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataSlice<int>({1, 2});
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
+
+  ds = ds.WithDb(DataBag::ImmutableEmptyWithFallbacks({db}));
+  EXPECT_THAT(ds.ForkDb(),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("forking with fallbacks is not supported")));
+  EXPECT_THAT(ds.Freeze(),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("forking with fallbacks is not supported")));
+}
+
 TEST(DataSliceTest, IsEquivalentTo) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   auto objects = DataSliceImpl::AllocateEmptyObjects(shape.size());
@@ -3442,9 +3493,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_AnySchema) {
           {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"}, keys_shape,
           schema::kObject)));
 
-  // TODO(b/330114257) Fork `db` when available.
-  auto immutable_db = DataBag::ImmutableEmptyWithFallbacks({db});
-  auto immutable_dicts = dicts.WithDb(immutable_db);
+  ASSERT_OK_AND_ASSIGN(auto immutable_dicts, dicts.Freeze());
 
   ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
   EXPECT_THAT(keys.slice(), ElementsAre(DataItemWith<int>(1), 2, 3));
@@ -3487,9 +3536,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
           {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"}, keys_shape,
           schema::kObject)));
 
-  // TODO(b/330114257) Fork `db` when available.
-  auto immutable_db = DataBag::ImmutableEmptyWithFallbacks({db});
-  auto immutable_dicts = dicts.WithDb(immutable_db);
+  ASSERT_OK_AND_ASSIGN(auto immutable_dicts, dicts.Freeze());
 
   ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
   EXPECT_THAT(keys.slice(),
@@ -3522,7 +3569,8 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
       immutable_dicts.SetInDict(
           test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
           test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kObject)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "DataBag is immutable."));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("DataBag is immutable")));
 }
 
 TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
@@ -3548,9 +3596,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
           {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"}, keys_shape,
           schema::kObject)));
 
-  // TODO(b/330114257) Fork `db` when available.
-  auto immutable_db = DataBag::ImmutableEmptyWithFallbacks({db});
-  auto immutable_dicts = dicts.WithDb(immutable_db);
+  ASSERT_OK_AND_ASSIGN(auto immutable_dicts, dicts.Freeze());
 
   ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
   EXPECT_THAT(keys.slice(), ElementsAre(DataItemWith<int>(1), 2, 3));
@@ -3581,7 +3627,8 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
       immutable_dicts.SetInDict(
           test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
           test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kObject)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "DataBag is immutable."));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("DataBag is immutable")));
 }
 
 TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
@@ -3636,9 +3683,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
       test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
       test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kInt32)));
 
-  // TODO(b/330114257) Fork `db` when available.
-  auto immutable_db = DataBag::ImmutableEmptyWithFallbacks({db});
-  auto immutable_dicts = dicts.WithDb(immutable_db);
+  ASSERT_OK_AND_ASSIGN(auto immutable_dicts, dicts.Freeze());
 
   ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
   EXPECT_THAT(keys.slice(),

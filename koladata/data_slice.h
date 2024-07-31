@@ -198,6 +198,14 @@ class DataSlice {
     return DataSlice(internal_->impl_, GetShape(), GetSchemaImpl(), db);
   }
 
+  // Returns a new DataSlice with forked DataBag. Mutations are allowed after
+  // this operation.
+  absl::StatusOr<DataSlice> ForkDb() const;
+
+  // Returns a new DataSlice with frozen copy of a DataBag. Mutations are NOT
+  // allowed on the returned value.
+  absl::StatusOr<DataSlice> Freeze() const;
+
   // Returns true iff `other` represents the same DataSlice with same data
   // contents as well as members (db, schema, shape).
   bool IsEquivalentTo(const DataSlice& other) const;
