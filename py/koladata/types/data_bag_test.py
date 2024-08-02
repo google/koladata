@@ -234,6 +234,35 @@ k[0-9a-f]{32}:0\.b => TEXT
         msg=f'\n\nregex={expected_repr_regex}\n\ndb={db_repr}',
     )
 
+  def test_contents_repr_schema(self):
+    db = bag()
+    db.new(a=db.new(b=1))
+    self.assertRegex(
+        db.contents_repr(),
+        r"""DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}:0\.b => 1
+\$[0-9a-f]{32}:0\.a => \$[0-9a-f]{32}:0
+
+SchemaBag:
+\$[0-9a-f]{32}:0\.b => INT32
+\$[0-9a-f]{32}:0\.a => \$[0-9a-f]{32}:0
+""")
+
+    db = bag()
+    db.obj(a=db.obj(b=1))
+    self.assertRegex(
+        db.contents_repr(),
+        r"""DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0
+\$[0-9a-f]{32}:0\.b => 1
+\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0
+\$[0-9a-f]{32}:0\.a => \$[0-9a-f]{32}:0
+
+SchemaBag:
+k[0-9a-f]{32}:0\.(b|a) => (INT32|OBJECT)
+k[0-9a-f]{32}:0\.(b|a) => (OBJECT|INT32)
+""")
+
   def test_contents_repr_fallback(self):
     db = bag()
     entity = db.new(x=1)

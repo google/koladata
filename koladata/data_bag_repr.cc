@@ -67,22 +67,12 @@ struct DataBagFormatOption {
   std::optional<int> fallback_index;
 };
 
-// Builds the schema attr triples of __items__, __keys__, __values__ into a map.
-absl::flat_hash_map<ObjectId, AttrMap> BuildListOrDictSchemaAttrMap(
+// Builds the schema attr triples into a map.
+absl::flat_hash_map<ObjectId, AttrMap> BuildSchemaAttrMap(
     absl::Span<const DictItemTriple> schemas) {
   absl::flat_hash_map<ObjectId, AttrMap> result;
   for (const DictItemTriple& triple : schemas) {
     if (!triple.object.IsSchema()) {
-      continue;
-    }
-    // Skip the attributes that are not __items__, __keys__ or __values__.
-    if (!triple.key.holds_value<arolla::Text>()) {
-      continue;
-    }
-    absl::string_view attr = triple.key.value<arolla::Text>().view();
-    if (attr != schema::kListItemsSchemaAttr &&
-        attr != schema::kDictKeysSchemaAttr &&
-        attr != schema::kDictValuesSchemaAttr) {
       continue;
     }
     auto [it, _] = result.try_emplace(triple.object, AttrMap());
@@ -125,7 +115,8 @@ absl::StatusOr<std::string> SchemaToStr(
   const ObjectId& schema = schema_item.value<ObjectId>();
   auto it = triple_map.find(schema);
   if (it == triple_map.end()) {
-    return absl::InternalError("schema is not in the triple map");
+    return absl::InternalError(
+        absl::StrCat("schema is not in the triple map: ", schema));
   }
   ASSIGN_OR_RETURN(std::string list_schema_str,
                    AttrValueToStr(schema::kListItemsSchemaAttr, it->second,
@@ -143,7 +134,7 @@ absl::StatusOr<std::string> SchemaToStr(
     return absl::StrCat(internal::DataItemRepr(schema_item), "[dict<",
                         key_schema_str, ", ", value_schema_str, ">]");
   }
-  return absl::StrCat(schema_item);
+  return DataItemRepr(schema_item);
 }
 
 // Returns true if a DataItem holds '__items__', '__keys__', '__values__'
@@ -205,7 +196,7 @@ absl::StatusOr<std::string> DataBagToStrInternal(
   absl::StrAppend(&res, "\n", line_indent, "SchemaBag:\n");
 
   absl::flat_hash_map<ObjectId, AttrMap> schema_triple_map =
-      BuildListOrDictSchemaAttrMap(main_triples.dicts());
+      BuildSchemaAttrMap(main_triples.dicts());
   for (const DictItemTriple& dict : main_triples.dicts()) {
     if (dict.object.IsSchema() && !IsInternalAttribute(dict.key)) {
       ASSIGN_OR_RETURN(std::string value_str,

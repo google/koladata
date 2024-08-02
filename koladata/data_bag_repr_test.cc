@@ -76,6 +76,27 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Entities) {
               R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => TEXT(.|\n)*)regex"))));
 }
 
+TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedEntities) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value = test::DataItem(1);
+
+  ASSERT_OK_AND_ASSIGN(DataSlice entity_1,
+                       EntityCreator::FromAttrs(bag, {"a"}, {value}));
+  ASSERT_OK(EntityCreator::FromAttrs(bag, {"b"}, {entity_1}));
+  EXPECT_THAT(
+      DataBagToStr(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => 1(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"))));
+}
+
 TEST(DataBagReprTest, TestDataBagStringRepresentation_Objects) {
   DataBagPtr bag = DataBag::Empty();
 
@@ -96,6 +117,31 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Objects) {
               R"regex((.|\n)*k[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*k[0-9a-f]{32}:0\.b => TEXT(.|\n)*)regex"))));
+}
+
+TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedObjects) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value = test::DataItem(1);
+
+  ASSERT_OK_AND_ASSIGN(DataSlice entity_1,
+                       ObjectCreator::FromAttrs(bag, {"a"}, {value}));
+  ASSERT_OK(ObjectCreator::FromAttrs(bag, {"b"}, {entity_1}));
+  EXPECT_THAT(
+      DataBagToStr(bag),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => 1(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*k[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*k[0-9a-f]{32}:0\.b => OBJECT(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
