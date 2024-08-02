@@ -36,6 +36,7 @@
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice_op.h"
+#include "koladata/repr_utils.h"
 #include "koladata/internal/casting.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -412,19 +413,21 @@ class RhsHandler {
   absl::Status ProcessSchema(const DataSlice& lhs, DataBagImplT& db_impl,
                              internal::DataBagImpl::FallbackSpan fallbacks) {
     DCHECK(&lhs.GetDb()->GetImpl() == &db_impl);
-
+    absl::Status status = absl::OkStatus();
     if (lhs.GetSchemaImpl() == kObjectSchema) {
-      return lhs.VisitImpl([&](const auto& impl) -> absl::Status {
+      status = lhs.VisitImpl([&](const auto& impl) -> absl::Status {
         ASSIGN_OR_RETURN(auto obj_schema,
                          db_impl.GetAttr(impl, schema::kSchemaAttr, fallbacks));
         RETURN_IF_ERROR(VerifyObjectSchemaAttr(impl, obj_schema));
         return this->ProcessSchemaObjectAttr(obj_schema, db_impl, fallbacks);
       });
+    } else if (lhs.GetSchemaImpl() != kAnySchema) {
+      status = ProcessSchemaObjectAttr(lhs.GetSchemaImpl(), db_impl, fallbacks);
     }
-    if (lhs.GetSchemaImpl() != kAnySchema) {
-      return ProcessSchemaObjectAttr(lhs.GetSchemaImpl(), db_impl, fallbacks);
+    if (!status.ok()) {
+      return AssembleErrorMessage(status, {.ds = lhs});
     }
-    return absl::OkStatus();
+    return status;
   }
 
   // Fetches the attribute `attr_name_` from `lhs_schema` from `db_impl`,
@@ -622,11 +625,12 @@ absl::Status VerifyListSchemaValid(const DataSlice& list,
     // Call (and ignore the returned DataItem) to verify that the list has
     // appropriate schema (e.g. in case of OBJECT, all ListIds have __schema__
     // attribute).
-    return GetResultSchema(db_impl, impl, list.GetSchemaImpl(),
+    absl::Status status = GetResultSchema(db_impl, impl, list.GetSchemaImpl(),
                            schema::kListItemsSchemaAttr,
                            /*fallbacks=*/{},  // mutable db.
                            /*allow_missing=*/false)
         .status();
+    return AssembleErrorMessage(status, {.ds = list});
   });
 }
 
@@ -935,9 +939,11 @@ absl::StatusOr<DataSlice> DataSlice::GetAttr(
     absl::string_view attr_name) const {
   return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
     internal::DataItem res_schema;
-    ASSIGN_OR_RETURN(auto res, GetAttrImpl(GetDb(), impl, GetSchemaImpl(),
-                                           attr_name, res_schema,
-                                           /*allow_missing_schema=*/false));
+    ASSIGN_OR_RETURN(
+        auto res,
+        GetAttrImpl(GetDb(), impl, GetSchemaImpl(), attr_name, res_schema,
+                    /*allow_missing_schema=*/false),
+        AssembleErrorMessage(_, {.ds = *this}));
     return DataSlice(std::move(res), GetShape(), std::move(res_schema),
                      GetDb());
   });
@@ -963,7 +969,8 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
     }
     ASSIGN_OR_RETURN(
         res_schema,
-        schema::CommonSchema(res_schema, default_value.GetSchemaImpl()));
+        schema::CommonSchema(res_schema, default_value.GetSchemaImpl()),
+        AssembleErrorMessage(_, {.ds = *this}));
     auto res_db = DataBag::CommonDataBag({GetDb(), default_value.GetDb()});
     return DataSlice::Create(
         CoalesceWithFiltered(impl, res, expanded_default.impl<T>()), GetShape(),
@@ -1096,7 +1103,10 @@ absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
       return db_mutable_impl.DelSchemaAttr(impl, attr_name);
     }
     if (GetSchemaImpl() == schema::kObject) {
-      RETURN_IF_ERROR(DelObjSchemaAttr(impl, attr_name, db_mutable_impl));
+      RETURN_IF_ERROR(DelObjSchemaAttr(impl, attr_name, db_mutable_impl))
+          .With([&](const absl::Status& status) {
+            return AssembleErrorMessage(status, {.ds = *this});
+          });
     } else if (GetSchemaImpl().holds_value<internal::ObjectId>()) {
       // Entity schema.
       RETURN_IF_ERROR(
@@ -1190,7 +1200,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
                                             schema::kDictValuesSchemaAttr,
                                             fb_finder.GetFlattenFallbacks(),
                                             /*allow_missing=*/false);
-                   }));
+                   }), AssembleErrorMessage(_, {.ds = *this}));
   return expanded_this.VisitImpl(
       [&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
         ASSIGN_OR_RETURN(auto res_impl,
@@ -1249,7 +1259,8 @@ absl::StatusOr<DataSlice> DataSlice::GetDictKeys() const {
                      GetResultSchema(GetDb()->GetImpl(), impl, GetSchemaImpl(),
                                      schema::kDictKeysSchemaAttr,
                                      fb_finder.GetFlattenFallbacks(),
-                                     /*allow_missing=*/false));
+                                     /*allow_missing=*/false),
+                     AssembleErrorMessage(_, {.ds = *this}));
     ASSIGN_OR_RETURN(
         (auto [slice, edge]),
         GetDb()->GetImpl().GetDictKeys(impl, fb_finder.GetFlattenFallbacks()));
@@ -1279,7 +1290,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
                                             schema::kListItemsSchemaAttr,
                                             fb_finder.GetFlattenFallbacks(),
                                             /*allow_missing=*/false);
-                   }));
+                   }), AssembleErrorMessage(_, {.ds = *this}));
   if (expanded_indices.present_count() == 0) {
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
   }
@@ -1316,7 +1327,8 @@ absl::StatusOr<DataSlice> DataSlice::ExplodeList(
                      GetResultSchema(GetDb()->GetImpl(), impl, GetSchemaImpl(),
                                      schema::kListItemsSchemaAttr,
                                      fb_finder.GetFlattenFallbacks(),
-                                     /*allow_missing=*/false));
+                                     /*allow_missing=*/false),
+                     AssembleErrorMessage(_, {.ds = *this}));
     if constexpr (std::is_same_v<T, internal::DataItem>) {
       ASSIGN_OR_RETURN(auto values,
                        GetDb()->GetImpl().ExplodeList(
@@ -1359,7 +1371,8 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
                          // No fallback finder for the mutable operation.
                          {},
                          /*allow_missing=*/false);
-                   }));
+                   }),
+                   AssembleErrorMessage(_, {.ds = *this}));
   if (expanded_indices.present_count() == 0) {
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
   }
