@@ -71,8 +71,7 @@ TEST_F(ReprUtilTest, TestAssembleError) {
       {bag});
   std::optional<Error> payload = internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
-  EXPECT_TRUE(payload->has_cause());
-  EXPECT_TRUE(payload->cause().has_no_common_schema());
+  EXPECT_TRUE(payload->has_no_common_schema());
   EXPECT_THAT(
       payload->error_message(),
       AllOf(
@@ -97,8 +96,7 @@ TEST_F(ReprUtilTest, TestAssembleErrorMissingContextData) {
           internal::WithErrorPayload(absl::InternalError("error"), error), {});
   std::optional<Error> payload = internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
-  EXPECT_TRUE(payload->has_cause());
-  EXPECT_TRUE(payload->cause().has_no_common_schema());
+  EXPECT_TRUE(payload->has_no_common_schema());
   EXPECT_THAT(
       payload->error_message(),
       AllOf(

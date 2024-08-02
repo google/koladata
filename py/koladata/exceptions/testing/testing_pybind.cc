@@ -40,5 +40,14 @@ PYBIND11_MODULE(testing_pybind, m) {
     SetKodaPyErrFromStatus(absl::InternalError(message));
     throw pybind11::error_already_set();
   });
+
+  m.def("raise_from_status_with_serialized_payload",
+        [](absl::string_view message) {
+          Error error;
+          error.ParseFromString(message);
+          SetKodaPyErrFromStatus(
+              WithErrorPayload(absl::InternalError("fail"), error));
+          throw pybind11::error_already_set();
+        });
 };
 }  // namespace koladata::python

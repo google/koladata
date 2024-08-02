@@ -49,7 +49,6 @@ absl::StatusOr<Error> SetNoCommonSchemaError(
       internal::DataItem conflict_schema_item,
       DecodeDataItem(cause.no_common_schema().conflicting_schema()));
 
-  Error error;
   if (db) {
     ASSIGN_OR_RETURN(DataSlice common_schema,
                     DataSlice::Create(common_schema_item,
@@ -61,14 +60,14 @@ absl::StatusOr<Error> SetNoCommonSchemaError(
                                       internal::DataItem(schema::kSchema), db));
     ASSIGN_OR_RETURN(std::string conflict_schema_str,
                     DataSliceToStr(conflict_schema));
-    error.set_error_message(absl::StrFormat(
+    cause.set_error_message(absl::StrFormat(
         "\ncannot find a common schema for provided schemas\n\n"
         " the common schema(s) %s: %s\n"
         " the first conflicting schema %s: %s",
         common_schema_item.DebugString(), common_schema_str,
         conflict_schema_item.DebugString(), conflict_schema_str));
   } else {
-    error.set_error_message(
+    cause.set_error_message(
         absl::StrFormat("\ncannot find a common schema for provided schemas\n\n"
                         " the common schema(s) %s\n"
                         " the first conflicting schema %s",
@@ -76,8 +75,7 @@ absl::StatusOr<Error> SetNoCommonSchemaError(
                         internal::DataItemRepr(conflict_schema_item)));
   }
 
-  *error.mutable_cause() = std::move(cause);
-  return error;
+  return cause;
 }
 
 absl::StatusOr<Error> SetMissingObjectAttributeError(
@@ -90,9 +88,9 @@ absl::StatusOr<Error> SetMissingObjectAttributeError(
       DecodeDataItem(cause.missing_object_schema().missing_schema_item()));
 
   std::string item_str = internal::DataItemRepr(missing_schema_item);
-  Error error;
+
   if (ds->GetShape().rank() == 0) {
-    error.set_error_message(absl::StrFormat(
+    cause.set_error_message(absl::StrFormat(
         "object schema is missing for the DataItem whose item is: %s\n\n"
         "  DataItem with the kd.OBJECT schema usually store its schema as an "
         "attribute or implicitly hold the type information when it's a "
@@ -102,7 +100,7 @@ absl::StatusOr<Error> SetMissingObjectAttributeError(
         item_str));
   } else {
     ASSIGN_OR_RETURN(std::string ds_str, DataSliceToStr(*ds));
-    error.set_error_message(absl::StrFormat(
+    cause.set_error_message(absl::StrFormat(
         "object schema(s) are missing for some Object(s) in the DataSlice "
         "whose items are: %s\n\n "
         "  objects in the kd.OBJECT DataSlice usually store their schemas as "
@@ -113,8 +111,7 @@ absl::StatusOr<Error> SetMissingObjectAttributeError(
         "The first Object without schema: %s\n",
         ds_str, item_str));
   }
-  *error.mutable_cause() = std::move(cause);
-  return error;
+  return cause;
 }
 
 }  // namespace

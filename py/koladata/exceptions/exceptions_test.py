@@ -43,6 +43,29 @@ class ExceptionsTest(absltest.TestCase):
       testing_pybind.raise_from_status_without_payload('test error')
     self.assertStartsWith(str(cm.exception), '[INTERNAL] test error;')
 
+  def test_nested_koda_error(self):
+    err_proto = error_pb2.Error(error_message='test error')
+    err_proto.cause.error_message = 'cause error'
+    with self.assertRaises(exceptions.KodaError) as cm:
+      testing_pybind.raise_from_status_with_serialized_payload(
+          err_proto.SerializeToString()
+      )
+    self.assertRegex(str(cm.exception), r'''test error
+
+The cause is: cause error''')
+
+  def test_koda_error_create_fail(self):
+    err_proto = error_pb2.Error(error_message='test error')
+    err_proto.cause.error_message = ''
+    with self.assertRaises(ValueError) as cm:
+      testing_pybind.raise_from_status_with_serialized_payload(
+          err_proto.SerializeToString()
+      )
+    self.assertRegex(
+        str(cm.exception),
+        'error message is empty. A code path failed to generate user readable'
+        ' error message',
+    )
 
 if __name__ == '__main__':
   absltest.main()
