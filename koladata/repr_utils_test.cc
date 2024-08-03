@@ -37,9 +37,7 @@
 namespace koladata {
 namespace {
 
-using ::arolla::testing::EqualsProto;
 using ::koladata::internal::Error;
-using ::koladata::internal::ObjectId;
 using ::koladata::testing::StatusIs;
 using ::testing::MatchesRegex;
 
