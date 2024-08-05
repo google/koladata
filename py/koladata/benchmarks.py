@@ -451,6 +451,25 @@ def agg_sum(state):
 
 
 @google_benchmark.register
+def translate(state):
+  ds = kd.slice([[list(range(100))] * 10] * 10)
+  keys_from = kd.bag().uuobj(x=ds)
+  values_from = ds
+  keys_to = kd.bag().uuobj(x=kd.slice([[list(range(0, 100, 2))] * 10] * 10))
+  while state:
+    _ = kd.translate(keys_to, keys_from, values_from)
+
+
+@google_benchmark.register
+def translate_group(state):
+  keys_from = kd.bag().uuobj(x=kd.slice([[list(range(100)) * 3] * 10] * 10))
+  values_from = kd.slice([[list(range(300))] * 10] * 10)
+  keys_to = kd.bag().uuobj(x=kd.slice([[list(range(0, 100, 2))] * 10] * 10))
+  while state:
+    _ = kd.translate_group(keys_to, keys_from, values_from)
+
+
+@google_benchmark.register
 def extract_entity(state):
   db = kd.bag()
   ds = db.new(a=db.new(b=34), b=12)

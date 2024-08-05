@@ -99,6 +99,7 @@ cc_library(
         "select.h",
         "shallow_clone.h",
         "slice.h",
+        "translate.h",
         "utils.h",
         "uu_schema.h",
         "uuid.h",
@@ -169,6 +170,22 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
     ],
     alwayslink = 1,
+)
+
+cc_library(
+    name = "translate",
+    hdrs = ["translate.h"],
+    deps = [
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata:object_factories",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
 )
 
 to_data_slice_types = [

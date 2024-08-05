@@ -36,6 +36,7 @@
 #include "koladata/operators/select.h"
 #include "koladata/operators/shallow_clone.h"
 #include "koladata/operators/slice.h"
+#include "koladata/operators/translate.h"
 #include "koladata/operators/uu_schema.h"
 #include "koladata/operators/uuid.h"
 #include "koladata/operators/uuobj.h"
@@ -80,6 +81,7 @@ OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
 OPERATOR("kde.core.reverse", Reverse);
 OPERATOR("kde.core.reverse_select", ReverseSelect);
 OPERATOR_FAMILY("kde.core.subslice", SubsliceOperatorFamily);
+OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
 //
 OPERATOR("kde.logical.apply_mask", ApplyMask);
