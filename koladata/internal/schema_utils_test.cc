@@ -40,7 +40,6 @@
 namespace koladata::schema {
 namespace {
 
-using ::arolla::testing::EqualsProto;
 using ::koladata::internal::Error;
 using ::koladata::testing::IsOk;
 using ::koladata::testing::IsOkAndHolds;
@@ -48,7 +47,6 @@ using ::koladata::testing::StatusIs;
 using ::testing::Contains;
 using ::testing::HasSubstr;
 using ::testing::Not;
-using ::testing::Optional;
 using ::testing::UnorderedElementsAreArray;
 
 using arolla::CreateDenseArray;

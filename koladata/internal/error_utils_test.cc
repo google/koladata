@@ -38,7 +38,6 @@ namespace koladata::internal {
 namespace {
 
 using ::arolla::testing::EqualsProto;
-using ::koladata::internal::ObjectId;
 using ::koladata::schema::AnyDType;
 using ::koladata::schema::DType;
 using ::koladata::schema::GetDType;
