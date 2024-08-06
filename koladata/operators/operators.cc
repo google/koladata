@@ -88,6 +88,7 @@ OPERATOR("kde.logical.apply_mask", ApplyMask);
 OPERATOR("kde.logical.coalesce", Coalesce);
 OPERATOR("kde.logical.has", Has);
 //
+OPERATOR("kde.schema._list_schema", ListSchema);
 OPERATOR_FAMILY("kde.schema._new_schema", NewSchemaOperatorFamily);
 OPERATOR_FAMILY("kde.schema._uu_schema", UuSchemaOperatorFamily);
 OPERATOR("kde.schema.cast_to", CastTo);

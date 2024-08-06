@@ -106,4 +106,13 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema,
   return ::koladata::CastTo(x, schema.item(), implicit_cast_unwrapped);
 }
 
+absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema) {
+  auto db = koladata::DataBag::Empty();
+  koladata::AdoptionQueue adoption_queue;
+  adoption_queue.Add(item_schema);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
+  ASSIGN_OR_RETURN(auto list_schema, ListSchemaCreator()(db, item_schema));
+  return list_schema;
+}
+
 }  // namespace koladata::ops

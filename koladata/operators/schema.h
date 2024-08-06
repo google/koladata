@@ -52,6 +52,9 @@ inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
 absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema,
                                  const DataSlice& implicit_cast);
 
+// kde.schema.list_schema operator.
+absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema);
+
 // kde.schema.with_schema operator.
 inline absl::StatusOr<DataSlice> WithSchema(const DataSlice& ds,
                                             const DataSlice& schema) {
