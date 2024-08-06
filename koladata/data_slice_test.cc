@@ -1665,7 +1665,7 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_EntityCreator) {
   EXPECT_THAT(
       ds.SetAttr("a", ds_int64_primitive),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               AllOf(HasSubstr("The schema for attribute 'a' is incompatible"),
+               AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("INT32"), HasSubstr("INT64"))));
   ASSERT_OK(ds.SetAttrWithUpdateSchema("a", ds_int64_primitive));
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
@@ -1701,7 +1701,7 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectsWithExplicitSchema) {
   EXPECT_THAT(
       ds.SetAttr("a", ds_int64_primitive),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               AllOf(HasSubstr("The schema for attribute 'a' is incompatible"),
+               AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("INT32"), HasSubstr("INT64"))));
   ASSERT_OK(ds.SetAttrWithUpdateSchema("a", ds_int64_primitive));
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
@@ -2220,7 +2220,7 @@ TEST(DataSliceTest, MissingAttribute_EntityCreator) {
   EXPECT_THAT(
       ds.SetAttr("a", ds_int32),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("The attribute 'a' is missing on the schema")));
+               HasSubstr("the attribute 'a' is missing on the schema")));
 }
 
 TEST(DataSliceTest, SetGetError_ObjectCreator) {
@@ -2244,26 +2244,34 @@ TEST(DataSliceTest, SetGetError_ObjectCreator) {
   EXPECT_THAT(
       objects.SetAttr("a", ds_a),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("The attribute 'a' is missing on the schema")));
+               HasSubstr("the attribute 'a' is missing on the schema")));
 
   auto float_schema = test::Schema(schema::kFloat32);
   ASSERT_OK(mixed_implicit_explicit_schema.SetAttr("a", float_schema));
+  absl::Status status = objects.SetAttr("a", ds_a);
   EXPECT_THAT(
-      objects.SetAttr("a", ds_a),
+      status,
       StatusIs(absl::StatusCode::kInvalidArgument,
-               AllOf(HasSubstr("The schema for attribute 'a' is incompatible"),
+               AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("FLOAT32"), HasSubstr("TEXT"))));
+  std::optional<internal::Error> error = internal::GetErrorPayload(status);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error->has_incompatible_schema());
 
   // NOTE: If we overwrote IMPLICIT schemas above (regardless of error on
   // EXPLICIT schemas), this would not raise as we would overwrite EXPLICIT
   // schema too. Tests that IMPLICIT schema overwriting happens after all
   // EXPLICIT schemas have been processed.
   auto object_1 = test::DataItem(objects.slice()[1], db);
+  status = object_1.SetAttr("a", ds_a);
   EXPECT_THAT(
-      object_1.SetAttr("a", ds_a),
+      status,
       StatusIs(absl::StatusCode::kInvalidArgument,
-               AllOf(HasSubstr("The schema for attribute 'a' is incompatible"),
+               AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("FLOAT32"), HasSubstr("TEXT"))));
+  error = internal::GetErrorPayload(status);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error->has_incompatible_schema());
 
   // Implicit schema gets overwritten when there are no errors and attr schema
   // is not the same.
@@ -3149,12 +3157,16 @@ TEST(DataSliceTest, ReplaceInList_Int64Schema) {
                                                 DataItemWith<int64_t>(1), 0, 0,
                                                 DataItemWith<int64_t>(2), 0, 0,
                                                 DataItemWith<int64_t>(3), 0))));
-
+  absl::Status status = lists.ReplaceInList(
+      1, 2, test::DataSlice<float>({5, 6, 7}, subshape, schema::kFloat32));
   EXPECT_THAT(
-      lists.ReplaceInList(
-          1, 2, test::DataSlice<float>({5, 6, 7}, subshape, schema::kFloat32)),
+      status,
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("The schema for List Items is incompatible.")));
+               HasSubstr("the schema for List Items is incompatible.")));
+  std::optional<internal::Error> error = internal::GetErrorPayload(status);
+  ASSERT_TRUE(error);
+  EXPECT_TRUE(error->has_incompatible_schema());
+
   // Lists are not modified.
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
               IsOkAndHolds(Property(&DataSlice::slice,
@@ -3262,10 +3274,15 @@ TEST(DataSliceTest, SetInList_Int64Schema) {
   // Float32 values are not casted to Int64.
   auto float_values =
       test::DataSlice<float>({42., 43., 44.}, shape, schema::kFloat32);
+  absl::Status status = lists.SetInList(ids, float_values);
   EXPECT_THAT(
-      lists.SetInList(ids, float_values),
+      status,
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("The schema for List Items is incompatible.")));
+               HasSubstr("the schema for List Items is incompatible.")));
+  std::optional<internal::Error> error = internal::GetErrorPayload(status);
+  ASSERT_TRUE(error);
+  EXPECT_TRUE(error->has_incompatible_schema());
+
   // The lists were not modified.
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
               IsOkAndHolds(Property(&DataSlice::slice,
@@ -3325,11 +3342,16 @@ TEST(DataSliceTest, AppendToList_Int64Schema) {
                                                 DataItemWith<int64_t>(2),
                                                 DataItemWith<int64_t>(3)))));
 
+  absl::Status status = lists.AppendToList(
+      test::DataSlice<float>({5, 6, 7}, shape, schema::kFloat32));
   EXPECT_THAT(
-      lists.AppendToList(
-          test::DataSlice<float>({5, 6, 7}, shape, schema::kFloat32)),
+      status,
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("The schema for List Items is incompatible.")));
+               HasSubstr("the schema for List Items is incompatible.")));
+  std::optional<internal::Error> error = internal::GetErrorPayload(status);
+  ASSERT_TRUE(error);
+  EXPECT_TRUE(error->has_incompatible_schema());
+
   // Lists are not modified.
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
               IsOkAndHolds(Property(&DataSlice::slice,
@@ -3560,11 +3582,14 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
 
   ASSERT_OK_AND_ASSIGN(auto any_type_keys,
                        keys.WithSchema(test::Schema(schema::kAny)));
-  EXPECT_THAT(immutable_dicts.GetFromDict(any_type_keys),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for Dict Keys is incompatible.\n\n"
-                       "Expected schema for 'Keys': OBJECT\n"
-                       "Assigned schema for 'Keys': ANY"));
+  absl::Status status = immutable_dicts.GetFromDict(any_type_keys).status();
+  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
+                               "the schema for Dict Keys is incompatible.\n\n"
+                               "Expected schema for 'Keys': OBJECT\n"
+                               "Assigned schema for 'Keys': ANY"));
+  std::optional<internal::Error> error = internal::GetErrorPayload(status);
+  ASSERT_TRUE(error);
+  EXPECT_TRUE(error->has_incompatible_schema());
 
   EXPECT_THAT(
       immutable_dicts.SetInDict(
@@ -3620,7 +3645,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
                        keys.WithSchema(test::Schema(schema::kAny)));
   EXPECT_THAT(immutable_dicts.GetFromDict(any_type_keys),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for Dict Keys is incompatible.\n\n"
+                       "the schema for Dict Keys is incompatible.\n\n"
                        "Expected schema for 'Keys': OBJECT\n"
                        "Assigned schema for 'Keys': ANY"));
 
@@ -3649,36 +3674,34 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
                        /*key_schema=*/test::Schema(schema::kInt64),
                        /*value_schema=*/test::Schema(schema::kInt64)));
 
-  EXPECT_THAT(
-      dicts.SetInDict(
-          test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
-          test::MixedDataSlice<int, arolla::Bytes>(
-              {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"},
-              keys_shape, schema::kObject)),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               // TODO: The error message seems to be misleading
-               // here: the same assignment below passes, despite having OBJECT
-               // schema as well.
-               "The schema for Dict Values is incompatible.\n\n"
-               "Expected schema for 'Values': INT64\n"
-               "Assigned schema for 'Values': OBJECT"));
+  EXPECT_THAT(dicts.SetInDict(
+                  test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
+                  test::MixedDataSlice<int, arolla::Bytes>(
+                      {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"},
+                      keys_shape, schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       // TODO: The error message seems to be
+                       // misleading here: the same assignment below passes,
+                       // despite having OBJECT schema as well.
+                       "the schema for Dict Values is incompatible.\n\n"
+                       "Expected schema for 'Values': INT64\n"
+                       "Assigned schema for 'Values': OBJECT"));
   EXPECT_THAT(
       dicts.SetInDict(
           test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
           test::DataSlice<float>({4, 5, 6}, keys_shape, schema::kFloat32)),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "The schema for Dict Values is incompatible.\n\n"
+               "the schema for Dict Values is incompatible.\n\n"
                "Expected schema for 'Values': INT64\n"
                "Assigned schema for 'Values': FLOAT32"));
 
-  EXPECT_THAT(
-      dicts.SetInDict(
-          test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
-          test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kObject)),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "The schema for Dict Values is incompatible.\n\n"
-               "Expected schema for 'Values': INT64\n"
-               "Assigned schema for 'Values': OBJECT"));
+  EXPECT_THAT(dicts.SetInDict(
+                  test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
+                  test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "the schema for Dict Values is incompatible.\n\n"
+                       "Expected schema for 'Values': INT64\n"
+                       "Assigned schema for 'Values': OBJECT"));
 
   ASSERT_OK(dicts.SetInDict(
       test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
@@ -3706,7 +3729,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
                        keys.WithSchema(test::Schema(schema::kObject)));
   EXPECT_THAT(immutable_dicts.GetFromDict(object_type_keys),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for Dict Keys is incompatible.\n\n"
+                       "the schema for Dict Keys is incompatible.\n\n"
                        "Expected schema for 'Keys': INT64\n"
                        "Assigned schema for 'Keys': OBJECT"));
 
@@ -3714,7 +3737,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
                        keys.WithSchema(test::Schema(schema::kAny)));
   EXPECT_THAT(immutable_dicts.GetFromDict(any_type_keys),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for Dict Keys is incompatible.\n\n"
+                       "the schema for Dict Keys is incompatible.\n\n"
                        "Expected schema for 'Keys': INT64\n"
                        "Assigned schema for 'Keys': ANY"));
 }
@@ -4042,14 +4065,14 @@ TEST(DataSliceCastingTest, EmptyToOther_Entity) {
   auto empty_values_any = test::EmptyDataSlice(shape, schema::kAny);
   EXPECT_THAT(entity.SetAttr("a", empty_values_any),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for attribute 'a' is incompatible.\n\n"
+                       "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': TEXT\n"
                        "Assigned schema for 'a': ANY"));
 
   auto empty_values_object = test::EmptyDataSlice(shape, schema::kObject);
   EXPECT_THAT(entity.SetAttr("a", empty_values_object),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for attribute 'a' is incompatible.\n\n"
+                       "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': TEXT\n"
                        "Assigned schema for 'a': OBJECT"));
 }
@@ -4066,14 +4089,14 @@ TEST(DataSliceCastingTest, EmptyToOther_Object) {
   auto empty_values_any = test::EmptyDataSlice(shape, schema::kAny);
   EXPECT_THAT(objects.SetAttr("a", empty_values_any),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for attribute 'a' is incompatible.\n\n"
+                       "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': TEXT\n"
                        "Assigned schema for 'a': ANY"));
 
   auto empty_values_object = test::EmptyDataSlice(shape, schema::kObject);
   EXPECT_THAT(objects.SetAttr("a", empty_values_object),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for attribute 'a' is incompatible.\n\n"
+                       "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': TEXT\n"
                        "Assigned schema for 'a': OBJECT"));
 }
@@ -4088,7 +4111,7 @@ TEST(DataSliceCastingTest, SameUnderlying_Entity) {
       test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kAny);
   EXPECT_THAT(entity.SetAttr("a", values_any_text),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for attribute 'a' is incompatible.\n\n"
+                       "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': TEXT\n"
                        "Assigned schema for 'a': ANY"));
 
@@ -4113,7 +4136,7 @@ TEST(DataSliceCastingTest, SameUnderlying_Object) {
       test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kAny);
   EXPECT_THAT(objects.SetAttr("a", values_any_text),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for attribute 'a' is incompatible.\n\n"
+                       "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': TEXT\n"
                        "Assigned schema for 'a': ANY"));
 
@@ -4163,7 +4186,7 @@ TEST(DataSliceCastingTest, IncompatibleSchema_Entity) {
   EXPECT_THAT(
       entity.SetAttr("a", test::DataSlice<int>({12, 42})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               AllOf(HasSubstr("The schema for attribute 'a' is incompatible"),
+               AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("TEXT"), HasSubstr("INT32"))));
 }
 
@@ -4179,7 +4202,7 @@ TEST(DataSliceCastingTest, IncompatibleSchema_Object) {
   EXPECT_THAT(
       objects.SetAttr("a", test::DataSlice<int>({12, 42})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               AllOf(HasSubstr("The schema for attribute 'a' is incompatible"),
+               AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("TEXT"), HasSubstr("INT32"))));
 }
 
@@ -4221,7 +4244,7 @@ TEST(DataSliceCastingTest, SchemaToObject) {
   auto schema_item = test::Schema(schema::kAny);
   EXPECT_THAT(entity.SetAttr("a", test::Schema(schema::kAny)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for attribute 'a' is incompatible.\n\n"
+                       "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': OBJECT\n"
                        "Assigned schema for 'a': SCHEMA"));
 }
@@ -4248,7 +4271,7 @@ TEST(DataSliceCastingTest, ToObject_EmbedSchema_Entity) {
   EXPECT_THAT(entity.SetAttr("a", val_entity),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        absl::StrFormat(
-                           "The schema for attribute 'a' is incompatible.\n\n"
+                           "the schema for attribute 'a' is incompatible.\n\n"
                            "Expected schema for 'a': OBJECT\n"
                            "Assigned schema for 'a': %v",
                            val_entity.GetSchemaImpl())));
@@ -4296,7 +4319,7 @@ TEST(DataSliceCastingTest, ToObject_Any_Error) {
   auto values_int32_any = test::DataSlice<int>({42, 12}, schema::kAny);
   EXPECT_THAT(entity.SetAttr("a", values_int32_any),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for attribute 'a' is incompatible.\n\n"
+                       "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': OBJECT\n"
                        "Assigned schema for 'a': ANY"));
 }
@@ -4344,7 +4367,7 @@ TEST(DataSliceCastingTest, Implicit_And_Explicit_CastingAndSchemaUpdate) {
   ASSERT_EQ(values_int32.GetSchemaImpl(), schema::kObject);
   EXPECT_THAT(objects.SetAttr("a", values_int32),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "The schema for attribute 'a' is incompatible.\n\n"
+                       "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': INT64\n"
                        "Assigned schema for 'a': OBJECT"));
 }

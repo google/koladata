@@ -40,6 +40,7 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/testing/matchers.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 
 namespace koladata {
@@ -261,6 +262,7 @@ TEST(EntityCreatorTest, SchemaArg_ImplicitCasting) {
 }
 
 TEST(EntityCreatorTest, SchemaArg_CastingFails) {
+  arolla::InitArolla();
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kFloat32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
@@ -961,7 +963,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension) {
         CreateListsFromLastDimension(db, values, /*schema=*/std::nullopt,
                                      test::Schema(schema::kInt32)),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("The schema for List Items is incompatible")));
+                 HasSubstr("the schema for List Items is incompatible")));
   }
 }
 
@@ -1029,7 +1031,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension_FromDataSlice) {
         CreateListsFromLastDimension(db, values, /*schema=*/std::nullopt,
                                      test::Schema(schema::kText)),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("The schema for List Items is incompatible.")));
+                 HasSubstr("the schema for List Items is incompatible.")));
   }
   {
     EXPECT_THAT(
@@ -1386,7 +1388,7 @@ TEST(ObjectFactoriesTest, CreateNestedList) {
         CreateNestedList(db, values, /*schema=*/std::nullopt,
                          test::Schema(schema::kText)),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("The schema for List Items is incompatible.")));
+                 HasSubstr("the schema for List Items is incompatible.")));
   }
 }
 

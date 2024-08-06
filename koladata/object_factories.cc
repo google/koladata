@@ -25,7 +25,6 @@
 #include <vector>
 
 #include "absl/base/nullability.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -43,6 +42,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/uuid_object.h"
+#include "koladata/repr_utils.h"
 #include "koladata/shape_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
@@ -459,7 +459,11 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
       ASSIGN_OR_RETURN(
           casted_values.emplace_back(),
           CastOrUpdateSchema(values[i], schema_item, attr_names[i],
-                             update_schema, db_mutable_impl));
+                             update_schema, db_mutable_impl),
+          // Adds the db from schema to assemble readable error message.
+          AssembleErrorMessage(_, {.db = DataBag::ImmutableEmptyWithFallbacks(
+                                       {schema ? schema->GetDb() : nullptr,
+                                        values[i].GetDb()})}));
     }
     ASSIGN_OR_RETURN(aligned_values, shape::Align(std::move(casted_values)));
   } else {

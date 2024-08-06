@@ -33,6 +33,13 @@ message MissingObjectSchema {
   optional arolla.serialization_base.ContainerProto missing_schema_item = 1;
 }
 
+// Error when the assigned value has a different schema than the expected one.
+message IncompatibleSchema {
+  optional string attr = 1;
+  optional arolla.serialization_base.ContainerProto expected_schema = 2;
+  optional arolla.serialization_base.ContainerProto assigned_schema = 3;
+}
+
 // Koda error message transportation proto.
 message Error {
   optional string error_message = 1;
@@ -40,5 +47,6 @@ message Error {
   oneof error {
     NoCommonSchema no_common_schema = 3;
     MissingObjectSchema missing_object_schema = 4;
+    IncompatibleSchema incompatible_schema = 5;
   }
 }

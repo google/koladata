@@ -411,7 +411,7 @@ class DataSliceTest(parameterized.TestCase):
       testing.assert_equal(x.get_attr('xyz', b'b'), ds([b'b']).with_db(db))
 
       with self.assertRaisesRegex(
-          ValueError, r'The attribute \'xyz\' is missing on the schema'
+          ValueError, r'the attribute \'xyz\' is missing on the schema'
       ):
         x.set_attr('xyz', ds([12]), update_schema=False)
 
@@ -473,7 +473,8 @@ class DataSliceTest(parameterized.TestCase):
       )
 
       with self.assertRaisesRegex(
-          ValueError, r'The schema for attribute \'abc\' is incompatible'
+          exceptions.KodaError,
+          r'the schema for attribute \'abc\' is incompatible',
       ):
         x.set_attr('abc', ds([b'x', b'y']), update_schema=False)
       # Overwrite with overwriting schema.
@@ -499,6 +500,19 @@ class DataSliceTest(parameterized.TestCase):
           TypeError, 'accepts 2 to 3 positional arguments'
       ):
         x.set_attr('invalid__update_schema_type', 1, False, 42)
+
+    db2 = bag()
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape("""the schema for attribute 'x' is incompatible.
+
+Expected schema for 'x': SCHEMA(c=INT32)
+Assigned schema for 'x': SCHEMA(b=TEXT)
+
+To fix this, explicitly override schema of x in the Object schema. For example,
+foo.get_obj_schema().x = <desired_schema>"""),
+    ):
+      db.new(x=db.new(c=1)).x = db2.new(b='a')
 
   def test_set_get_attr_empty_attr_name(self):
     db = bag()
@@ -659,7 +673,8 @@ class DataSliceTest(parameterized.TestCase):
 
     with self.subTest('incompatible schema'):
       with self.assertRaisesRegex(
-          ValueError, r'The schema for attribute \'x\' is incompatible'
+          exceptions.KodaError,
+          r'the schema for attribute \'x\' is incompatible',
       ):
         db = bag()
         db.new(x=db.new()).x = ds(None, schema_constants.OBJECT)
@@ -745,7 +760,7 @@ class DataSliceTest(parameterized.TestCase):
       x.set_attrs(a=2, b='abc', c=15)
 
     with self.assertRaisesRegex(
-        ValueError, r'schema for attribute \'b\' is incompatible'
+        exceptions.KodaError, r'schema for attribute \'b\' is incompatible'
     ):
       x.set_attrs(a=2, b=b'abc')
 
@@ -1166,12 +1181,12 @@ class DataSliceTest(parameterized.TestCase):
       non_dicts['a'] = ValueError
     # TODO: Better error message.
     with self.assertRaisesRegex(
-        ValueError, "The attribute '__keys__' is missing on the schema."
+        ValueError, "the attribute '__keys__' is missing on the schema."
     ):
       non_dicts['a'] = 'b'
     # TODO: Better error message.
     with self.assertRaisesRegex(
-        ValueError, "The attribute '__keys__' is missing on the schema."
+        ValueError, "the attribute '__keys__' is missing on the schema."
     ):
       _ = non_dicts['a']
     with self.assertRaisesRegex(
@@ -1179,6 +1194,58 @@ class DataSliceTest(parameterized.TestCase):
         'trying to assign a slice with 1 dimension',
     ):
       db.dict()[1] = ds([1, 2, 3])
+
+  def test_dict_op_schema_errors(self):
+    db = bag()
+    db2 = bag()
+    d = db.dict({'a': 1, 'b': 2})
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for Dict key is incompatible.
+
+Expected schema for Dict key: TEXT
+Assigned schema for Dict key: INT32"""),
+    ):
+      _ = d[1]
+
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for Dict value is incompatible.
+
+Expected schema for Dict value: INT32
+Assigned schema for Dict value: TEXT"""),
+    ):
+      d['a'] = 'a'
+
+    d2 = db.dict(db.new(x=ds([1, 2]), y=ds([3, 4])), ds(1))
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for Dict key is incompatible.
+
+Expected schema for Dict key: SCHEMA(x=INT32, y=INT32)
+Assigned schema for Dict key: SCHEMA(x=FLOAT32, y=INT32)"""),
+    ):
+      _ = d2[db.new(x=ds(3.0), y=ds(5))]
+
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for Dict key is incompatible.
+
+Expected schema for Dict key: SCHEMA(x=INT32, y=INT32)
+Assigned schema for Dict key: SCHEMA(x=TEXT)"""),
+    ):
+      _ = d2[db2.new(x=ds('a'))]
+
+    e = db.new(x=1)
+    d3 = db.dict(e, db.new(x='a'))
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for Dict value is incompatible.
+
+Expected schema for Dict value: SCHEMA(x=TEXT)
+Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
+    ):
+      d3[e] = db.new(y=1.0)
 
   def test_list_slice(self):
     db = bag()
@@ -1374,6 +1441,48 @@ class DataSliceTest(parameterized.TestCase):
     ):
       del l[0:2]
 
+  def test_list_op_schema_error(self):
+    db = bag()
+    l = db.list([1, 2, 3])
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'the schema for List item is incompatible.\n\n'
+            'Expected schema for List item: INT32\n'
+            'Assigned schema for List item: TEXT'
+        ),
+    ):
+      l[:] = ds(['el', 'psy', 'congroo'])
+
+    l = db.list([db.new(x=1)])
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for List item is incompatible.
+
+Expected schema for List item: SCHEMA(x=INT32)
+Assigned schema for List item: SCHEMA(y=INT32)"""),
+    ):
+      l[0] = db.new(y=1)
+
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for List item is incompatible.
+
+Expected schema for List item: SCHEMA(x=INT32)
+Assigned schema for List item: SCHEMA(y=INT32)"""),
+    ):
+      l[0] = bag().new(y=1)
+
+    l2 = db.list([db.new(x=1)])
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for List item is incompatible.
+
+Expected schema for List item: SCHEMA(x=INT32)
+Assigned schema for List item: SCHEMA(a=TEXT)"""),
+    ):
+      l2[0] = bag().new(a='x')
+
   def test_list_size(self):
     db = bag()
     l = db.list([[1, 2, 3], [4, 5]])
@@ -1441,7 +1550,7 @@ class DataSliceTest(parameterized.TestCase):
         ds(None, schema_constants.INT32).with_db(db)
     )
     with self.assertRaisesRegex(
-        ValueError, 'schema for Dict Keys is incompatible'
+        exceptions.KodaError, 'the schema for Dict key is incompatible'
     ):
       _ = (db.dict({'a': 42}) & ds(None))[42]
 

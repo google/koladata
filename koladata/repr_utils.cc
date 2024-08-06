@@ -30,6 +30,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "koladata/internal/schema_utils.h"
 #include "koladata/s11n/codec.pb.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -114,6 +115,65 @@ absl::StatusOr<Error> SetMissingObjectAttributeError(
   return cause;
 }
 
+constexpr absl::string_view kExplicitSchemaIncompatibleAttrError =
+    "the schema for attribute '%s' is incompatible.\n\n"
+    "Expected schema for '%s': %v\n"
+    "Assigned schema for '%s': %v\n\n"
+    "To fix this, explicitly override schema of %s in the Object schema. "
+    "For example,\n"
+    "foo.get_obj_schema().%s = <desired_schema>";
+
+constexpr const char* kExplicitSchemaIncompatibleListItemError =
+    "the schema for List item is incompatible.\n\n"
+    "Expected schema for List item: %v\n"
+    "Assigned schema for List item: %v";
+constexpr const char* kExplicitSchemaIncompatibleDictError =
+    "the schema for Dict %s is incompatible.\n\n"
+    "Expected schema for Dict %s: %v\n"
+    "Assigned schema for Dict %s: %v";
+
+absl::StatusOr<Error> SetIncompatibleSchemaError(
+    Error cause, absl::Nullable<const DataBagPtr>& db) {
+  ASSIGN_OR_RETURN(
+      internal::DataItem assigned_schema_item,
+      DecodeDataItem(cause.incompatible_schema().assigned_schema()));
+  ASSIGN_OR_RETURN(
+      internal::DataItem expected_schema_item,
+      DecodeDataItem(cause.incompatible_schema().expected_schema()));
+
+  ASSIGN_OR_RETURN(DataSlice assigned_schema,
+                   DataSlice::Create(assigned_schema_item,
+                                     internal::DataItem(schema::kSchema), db));
+  ASSIGN_OR_RETURN(std::string assigned_schema_str,
+                   DataSliceToStr(assigned_schema));
+  ASSIGN_OR_RETURN(DataSlice expected_schema,
+                   DataSlice::Create(expected_schema_item,
+                                     internal::DataItem(schema::kSchema), db));
+  ASSIGN_OR_RETURN(std::string expected_schema_str,
+                   DataSliceToStr(expected_schema));
+
+  std::string attr_str = cause.incompatible_schema().attr();
+  if (attr_str == schema::kListItemsSchemaAttr) {
+    cause.set_error_message(
+        absl::StrFormat(kExplicitSchemaIncompatibleListItemError,
+                        expected_schema_str, assigned_schema_str));
+  } else if (attr_str == schema::kDictKeysSchemaAttr) {
+    cause.set_error_message(
+        absl::StrFormat(kExplicitSchemaIncompatibleDictError, "key", "key",
+                        expected_schema_str, "key", assigned_schema_str));
+  } else if (attr_str == schema::kDictValuesSchemaAttr) {
+    cause.set_error_message(
+        absl::StrFormat(kExplicitSchemaIncompatibleDictError, "value", "value",
+                        expected_schema_str, "value", assigned_schema_str));
+  } else {
+    cause.set_error_message(
+        absl::StrFormat(kExplicitSchemaIncompatibleAttrError, attr_str,
+                        attr_str, expected_schema_str, attr_str,
+                        assigned_schema_str, attr_str, attr_str));
+  }
+  return cause;
+}
+
 }  // namespace
 
 absl::Status AssembleErrorMessage(const absl::Status& status,
@@ -130,6 +190,11 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
   if (cause->has_missing_object_schema()) {
     ASSIGN_OR_RETURN(Error error, SetMissingObjectAttributeError(
                                       *std::move(cause), data.ds));
+    return WithErrorPayload(status, error);
+  }
+  if (cause->has_incompatible_schema()) {
+    ASSIGN_OR_RETURN(Error error,
+                     SetIncompatibleSchemaError(*std::move(cause), data.db));
     return WithErrorPayload(status, error);
   }
   return status;

@@ -65,17 +65,17 @@ namespace {
 using AttrNamesSet = absl::btree_set<arolla::Text>;
 
 constexpr absl::string_view kExplicitSchemaIsMissingError =
-    "The attribute '%s' is missing on the schema.";
+    "the attribute '%s' is missing on the schema.";
 constexpr const char* kExplicitSchemaIncompatibleAttrError =
-    "The schema for attribute '%s' is incompatible.\n\n"
+    "the schema for attribute '%s' is incompatible.\n\n"
     "Expected schema for '%s': %v\n"
     "Assigned schema for '%s': %v";
 constexpr const char* kExplicitSchemaIncompatibleListItemError =
-    "The schema for List %s is incompatible.\n\n"
+    "the schema for List %s is incompatible.\n\n"
     "Expected schema for '%s': %v\n"
     "Assigned schema for '%s': %v";
 constexpr const char* kExplicitSchemaIncompatibleDictError =
-    "The schema for Dict %s is incompatible.\n\n"
+    "the schema for Dict %s is incompatible.\n\n"
     "Expected schema for '%s': %v\n"
     "Assigned schema for '%s': %v";
 
@@ -425,7 +425,10 @@ class RhsHandler {
       status = ProcessSchemaObjectAttr(lhs.GetSchemaImpl(), db_impl, fallbacks);
     }
     if (!status.ok()) {
-      return AssembleErrorMessage(status, {.ds = lhs});
+      return AssembleErrorMessage(status,
+                                  {.db = DataBag::ImmutableEmptyWithFallbacks(
+                                       {rhs_.GetDb(), lhs.GetDb()}),
+                                   .ds = lhs});
     }
     return status;
   }
@@ -585,20 +588,34 @@ class RhsHandler {
   absl::Status IncompatibleSchemaError(
       const internal::DataItem& attr_stored_schema) const {
     absl::string_view attr = describe_attr();
+    internal::Error error;
+    error.mutable_incompatible_schema()->set_attr(attr_name_);
+    ASSIGN_OR_RETURN(
+        *error.mutable_incompatible_schema()->mutable_expected_schema(),
+        internal::EncodeDataItem(attr_stored_schema));
+    ASSIGN_OR_RETURN(
+        *error.mutable_incompatible_schema()->mutable_assigned_schema(),
+        internal::EncodeDataItem(rhs_.GetSchemaImpl()));
+
+    absl::Status status = absl::OkStatus();
     switch (error_context_) {
       case RhsHandlerErrorContext::kAttr:
-        return absl::InvalidArgumentError(
+        status = absl::InvalidArgumentError(
             absl::StrFormat(kExplicitSchemaIncompatibleAttrError, attr, attr,
                             attr_stored_schema, attr, rhs_.GetSchemaImpl()));
+        break;
       case RhsHandlerErrorContext::kListItem:
-        return absl::InvalidArgumentError(absl::StrFormat(
+        status = absl::InvalidArgumentError(absl::StrFormat(
             kExplicitSchemaIncompatibleListItemError, attr, attr,
             attr_stored_schema, attr, rhs_.GetSchemaImpl()));
+        break;
       case RhsHandlerErrorContext::kDict:
-        return absl::InvalidArgumentError(
+        status = absl::InvalidArgumentError(
             absl::StrFormat(kExplicitSchemaIncompatibleDictError, attr, attr,
                             attr_stored_schema, attr, rhs_.GetSchemaImpl()));
+        break;
     }
+    return WithErrorPayload(status, error);
   }
 
   absl::string_view describe_attr() const {

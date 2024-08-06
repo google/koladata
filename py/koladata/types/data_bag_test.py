@@ -15,12 +15,14 @@
 """Tests for data_bag."""
 
 import gc
+import re
 import sys
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
+from koladata.exceptions import exceptions
 from koladata.operators import comparison as _  # pylint: disable=unused-import
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -551,6 +553,17 @@ SchemaBag:
       )
     testing.assert_equivalent(db, bag())
 
+    db = bag()
+    schema = db.new_schema(a=db.new_schema(b=schema_constants.INT32))
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for attribute 'a' is incompatible.
+
+Expected schema for 'a': SCHEMA(b=INT32)
+Assigned schema for 'a': SCHEMA(c=TEXT)"""),
+    ):
+      _ = schema(a=bag().new(c='dudulu'))
+
   def test_list_schema(self):
     db = bag()
     schema = db.list_schema(schema_constants.INT32)
@@ -597,6 +610,18 @@ SchemaBag:
         'expecting item_schema to be a DataSlice, got NoneType',
     ):
       _ = db.list_schema(item_schema=None)
+
+  def test_list_schema_errors(self):
+    db = bag()
+    schema = db.list_schema(schema_constants.INT32)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""the schema for List item is incompatible.
+
+Expected schema for List item: INT32
+Assigned schema for List item: TEXT""",
+    ):
+      _ = schema(['a'])
 
   def test_dict_schema(self):
     db = bag()
@@ -675,6 +700,27 @@ SchemaBag:
     ):
       _ = db.dict_schema(schema_constants.FLOAT32, schema_constants.FLOAT32)
 
+  def test_dict_schema_errors(self):
+    db = bag()
+    schema = db.dict_schema(schema_constants.TEXT, schema_constants.INT32)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""the schema for Dict value is incompatible.
+
+Expected schema for Dict value: INT32
+Assigned schema for Dict value: TEXT""",
+    ):
+      _ = schema({'a': 'steins;gate'})
+
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""the schema for Dict key is incompatible.
+
+Expected schema for Dict key: TEXT
+Assigned schema for Dict key: INT32""",
+    ):
+      _ = schema({1: 'steins;gate'})
+
   def test_new_auto_broadcasting(self):
     db = bag()
     x = db.new(a=ds(12), b=ds([[1, None, 6], [None], [123]]))
@@ -718,7 +764,7 @@ SchemaBag:
     shape = jagged_shape.create_shape([3])
     x = db.new_shaped(shape)
     with self.assertRaisesRegex(
-        ValueError, r'The attribute \'a\' is missing on the schema'
+        ValueError, r'the attribute \'a\' is missing on the schema'
     ):
       x.a = ds([1, 2, 3])
     x.get_schema().a = schema_constants.INT32
@@ -761,7 +807,7 @@ SchemaBag:
         ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]])
     )
     with self.assertRaisesRegex(
-        ValueError, r'The attribute \'a\' is missing on the schema'
+        ValueError, r'the attribute \'a\' is missing on the schema'
     ):
       x.a = ds([1, 2])
     x.get_schema().a = schema_constants.INT32
