@@ -22,6 +22,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext as py_expr_eval
 from koladata.expr import view as _
+from koladata.functions import functions as fns
 from koladata.operators import kde_operators as _
 from koladata.testing import testing
 from koladata.types import data_item
@@ -30,6 +31,7 @@ from koladata.types import ellipsis
 
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
+S = I.self
 ds = data_slice.DataSlice.from_vals
 
 
@@ -201,6 +203,49 @@ class ExprEvalTest(absltest.TestCase):
     # After lowering (which should not be done by kd.eval).
     testing.assert_equal(
         expr_eval.eval(arolla.abc.to_lowest(foo_bar()), x=x), ds([1, 2, 3])
+    )
+
+  def test_self(self):
+    testing.assert_equal(expr_eval.eval(I.self, 5), ds(5))
+    testing.assert_equal(expr_eval.eval(S, 5), ds(5))
+    testing.assert_equal(expr_eval.eval(S.foo, fns.new(foo=5)).no_db(), ds(5))
+
+  def test_self_positional_only(self):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'I.self must be passed as a positional argument to kd.eval()',
+    ):
+      _ = expr_eval.eval(I.self, self=5)
+
+  def test_self_when_not_specified(self):
+    res = expr_eval.eval(I.self)
+    testing.assert_equal(res, arolla.unspecified())
+    # We can improve this error message later if needed.
+    with self.assertRaisesRegex(
+        ValueError, 'expected DATA_SLICE, got obj: UNSPECIFIED'
+    ):
+      expr_eval.eval(I.self.foo)
+
+  def test_self_is_ok_when_just_forwarding(self):
+    # This tests helps provide some motivation on why just "S" should work
+    # even when no positional argument is passed to kd.eval(). This looks a bit
+    # artificial, but will become more natural when we have kde.call (we have
+    # no plans to have kde.eval).
+    def simple_metric(score, label):
+      return (score - label) * (score - label)
+
+    def weighted_metric(score, label):
+      return S.weight * simple_metric(score, label)
+
+    def compute_delta(metric_func, score1, score2, label, *eval_args):
+      self_input = expr_eval.eval(S, *eval_args)
+      m1 = expr_eval.eval(metric_func(score1, label), self_input)
+      m2 = expr_eval.eval(metric_func(score2, label), self_input)
+      return m2 - m1
+
+    self.assertEqual(compute_delta(simple_metric, 0, 1, 2), -3)
+    self.assertEqual(
+        compute_delta(weighted_metric, 0, 1, 2, fns.new(weight=2)), -6
     )
 
 

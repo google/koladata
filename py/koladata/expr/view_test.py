@@ -60,6 +60,10 @@ class BasicKodaViewTest(parameterized.TestCase):
         op(I.x).eval(x=1),
         arolla.tuple(data_slice.DataSlice.from_vals(1)),
     )
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        op(I.self).eval(1),
+        arolla.tuple(data_slice.DataSlice.from_vals(1)),
+    )
 
   def test_inputs(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name

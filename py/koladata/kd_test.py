@@ -25,6 +25,7 @@ from koladata.types import schema_constants
 
 kde = kd.kde
 I = kd.I
+S = kd.S
 
 
 class KdTest(absltest.TestCase):
@@ -110,7 +111,9 @@ class KdTest(absltest.TestCase):
 
   def test_expr(self):
     kd.testing.assert_equal(
-        kd.eval(kde.add(I.x, I.y), x=kd.slice([1, 2]), y=kd.slice([3, 4])),
+        kd.eval(
+            kde.add(S.x, I.y), kd.new(x=kd.slice([1, 2])), y=kd.slice([3, 4])
+        ),
         kd.slice([4, 6]),
     )
 

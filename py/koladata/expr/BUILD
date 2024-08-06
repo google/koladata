@@ -101,6 +101,7 @@ py_test(
         ":input_container",
         ":py_expr_eval_py_ext",
         ":view",
+        "//py/koladata/functions",
         "//py/koladata/testing",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",

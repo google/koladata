@@ -31,8 +31,10 @@ class BasicKodaView(arolla.abc.ExprView):
 
   _basic_koda_view_tag = True
 
-  def eval(self, **input_values: Any) -> arolla.AnyQValue:
-    return expr_eval.eval(self, **input_values)
+  def eval(
+      self, self_input: Any = arolla.unspecified(), /, **input_values: Any
+  ) -> arolla.AnyQValue:
+    return expr_eval.eval(self, self_input, **input_values)
 
   def inputs(self) -> list[str]:
     return input_container.get_input_names(typing.cast(arolla.Expr, self), I)

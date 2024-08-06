@@ -79,6 +79,7 @@ _LoadImpureFunctions()
 ### Expr-related functions, Input/Variable containers and operator container.
 I = _input_container.InputContainer('I')
 V = _input_container.InputContainer('V')
+S = I.self
 eval = _expr_eval.eval  # pylint: disable=redefined-builtin
 kde = _kde_operators.kde
 literal = _literal_operator.literal
