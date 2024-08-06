@@ -79,7 +79,7 @@ absl::StatusOr<DataSlice> CreateEntitiesFromFields(
   ASSIGN_OR_RETURN(auto ds_impl, db_mutable_impl.CreateObjectsFromFields(
                                      attr_names, aligned_values_impl));
   return DataSlice::Create(std::move(ds_impl),
-                           std::move(aligned_values.begin()->GetShape()),
+                           aligned_values.begin()->GetShape(),
                            std::move(schema),
                            db);
 }
@@ -211,7 +211,7 @@ absl::StatusOr<DataSlice> CreateObjectsFromFields(
       SetObjectSchema(db_mutable_impl, ds_impl, attr_names, schemas));
 
   return DataSlice::Create(std::move(ds_impl),
-                           std::move(aligned_values.begin()->GetShape()),
+                           aligned_values.begin()->GetShape(),
                            internal::DataItem(schema::kObject), db);
 }
 
@@ -649,7 +649,7 @@ absl::StatusOr<DataSlice> UuObjectCreator::operator()(
                                         attr_names, schemas,
                                   /*overwrite_schemas=*/false));
         return DataSlice::Create(
-            impl_res.value(), std::move(aligned_values.begin()->GetShape()),
+            impl_res.value(), aligned_values.begin()->GetShape(),
             internal::DataItem(schema::kObject), db);
       });
 }
