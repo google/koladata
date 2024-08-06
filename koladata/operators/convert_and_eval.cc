@@ -80,6 +80,8 @@ class EvalCompiler {
   static absl::StatusOr<CompiledOp> Compile(
       const arolla::expr::ExprOperatorPtr& expr_op,
       absl::Span<const arolla::TypedRef> inputs) {
+    // TODO: Instead of creating a fingerprint, we can use a tuple
+    // as key.
     arolla::FingerprintHasher hasher("koladata.convert_and_eval");
     hasher.Combine(expr_op->fingerprint());
     for (const auto& input : inputs) {

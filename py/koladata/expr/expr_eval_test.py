@@ -63,15 +63,13 @@ class PyExprEvalTest(absltest.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'kd.eval() expects all inputs to be QValues, got: x=int'
     ):
-      py_expr_eval.eval_expr(arolla.L.x, x=1)
+      py_expr_eval.eval_expr(I.x, x=1)
 
   def test_missing_input(self):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'kd.eval() has missing inputs for: [x, z]'
+    with self.assertRaisesRegex(
+        ValueError, re.escape('kd.eval() has missing inputs for: [I.x, I.z]')
     ):
-      py_expr_eval.eval_expr(
-          arolla.L.x + arolla.L.y + arolla.L.z, y=arolla.int32(1)
-      )
+      py_expr_eval.eval_expr(I.x + I.y + I.z, y=arolla.int32(1))
 
   def test_transformation_cache(self):
     # Sanity check that the transformation cache is working. Without, this test
@@ -101,17 +99,27 @@ class ExprEvalTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'the expression provided to kd.eval() contains placeholders for:'
-            ' [x, y]'
+            'the inputs to kd.eval() must be specified as I.x, but the provided'
+            ' expression has placeholders: [x, y]'
         ),
     ):
       expr_eval.eval(arolla.P.x + arolla.P.y)
+
+  def test_has_leaves_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'the inputs to kd.eval() must be specified as I.x, but the provided'
+            ' expression has leaves: [x, y]'
+        ),
+    ):
+      expr_eval.eval(arolla.L.x + arolla.L.y)
 
   def test_missing_input_error(self):
     expr = I.x + I.y
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('kd.eval() has missing inputs for: [y]'),
+        re.escape('kd.eval() has missing inputs for: [I.y]'),
     ):
       expr_eval.eval(expr, x=ds([1, 2, 3]))
 
@@ -158,7 +166,7 @@ class ExprEvalTest(absltest.TestCase):
 
   def test_pure_arolla_expr_not_allowed(self):
     with self.assertRaisesRegex(ValueError, 'expected a QValue, got an Expr'):
-      expr_eval.eval(I.x, x=arolla.L.x + arolla.L.y)
+      expr_eval.eval(I.x, x=I.x + I.y)
 
   def test_not_evaluable_py_type_error(self):
     # Should never be possible to eval.
@@ -168,15 +176,12 @@ class ExprEvalTest(absltest.TestCase):
     ):
       expr_eval.eval(I.x, x=obj)
 
-  def test_non_evaluable_input_error(self):
+  def test_missing_variable_error(self):
     x = data_slice.DataSlice.from_vals([1, 2, 3])
     expr = V.x
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'V.x cannot be evaluated - please provide data to `I` inputs and'
-            ' substitute all `V` variables'
-        ),
+        re.escape('kd.eval() has missing inputs for: [V.x]'),
     ):
       expr_eval.eval(expr, x=x)
 

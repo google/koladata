@@ -55,3 +55,46 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )
+
+cc_library(
+    name = "expr_eval",
+    srcs = ["expr_eval.cc"],
+    hdrs = ["expr_eval.h"],
+    deps = [
+        ":expr_operators",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/io",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/serving",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "expr_eval_test",
+    srcs = ["expr_eval_test.cc"],
+    deps = [
+        ":expr_eval",
+        ":expr_operators",
+        "//koladata/operators:compile_expr_operators",
+        "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/operators/all",
+        "@com_google_arolla//arolla/qexpr/operators/all",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
