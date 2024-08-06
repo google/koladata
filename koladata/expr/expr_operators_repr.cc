@@ -37,6 +37,7 @@ namespace {
 // koda_internal.input(container_name, input_key) repr. Printed as:
 //   - koda_internal.input('V', 'foo') is printed as V.foo.
 //   - koda_internal.input('V', 'foo.bar') is printed as V['foo.bar'].
+//   - as a special case, kode_internal.input('I', 'self') is printed as S.
 std::optional<arolla::ReprToken> KodaInputOpRepr(
     const arolla::expr::ExprNodePtr& node,
     const absl::flat_hash_map<arolla::Fingerprint, arolla::ReprToken>&) {
@@ -44,6 +45,9 @@ std::optional<arolla::ReprToken> KodaInputOpRepr(
       node->node_deps()[0]->qvalue().value().UnsafeAs<arolla::Text>().view();
   absl::string_view input_key =
       node->node_deps()[1]->qvalue().value().UnsafeAs<arolla::Text>().view();
+  if (container_name == "I" && input_key == "self") {
+    return arolla::ReprToken{"S"};
+  }
   return arolla::ReprToken{
       absl::StrCat(container_name, arolla::ContainerAccessString(input_key))};
 }

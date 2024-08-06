@@ -46,6 +46,8 @@ class InputContainerTest(parameterized.TestCase):
     self.assertEqual(repr(I.x), 'I.x')
     self.assertEqual(repr(I['-x']), "I['-x']")
     self.assertEqual(repr((I.x + I.y).attr), '(I.x + I.y).attr')
+    self.assertEqual(repr(I.self), 'S')
+    self.assertEqual(repr(I.self.x), 'S.x')
 
   def test_arolla_eval(self):
     I = input_container.InputContainer('I')
