@@ -87,8 +87,7 @@ class SchemaItemTest(absltest.TestCase):
       testing.assert_equal(entity.db, s.db)
 
   def test_creating_list(self):
-    # TODO: Replace with kd.list_schema operator.
-    l = fns.list(item_schema=schema_constants.FLOAT32).get_schema()
+    l = fns.list_schema(item_schema=schema_constants.FLOAT32)
     self.assertTrue(l.is_list_schema())
     lst = l([[1, 2], [3]])
     testing.assert_equal(lst[:][:], ds([[1., 2.], [3.]]).with_db(lst.db))
@@ -96,10 +95,9 @@ class SchemaItemTest(absltest.TestCase):
       testing.assert_equal(lst.db, l.db)
 
   def test_creating_dict(self):
-    # TODO: Replace with kd.dict_schema operator.
-    d = fns.dict(
+    d = fns.dict_schema(
         key_schema=schema_constants.TEXT, value_schema=schema_constants.FLOAT32
-    ).get_schema()
+    )
     self.assertTrue(d.is_dict_schema())
     dct = d({'a': 42, 'b': 37})
     testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
@@ -108,10 +106,9 @@ class SchemaItemTest(absltest.TestCase):
       testing.assert_equal(dct.db, d.db)
 
   def test_creating_dict_keys_and_values_separately(self):
-    # TODO: Replace with kd.dict_schema operator.
-    d = fns.dict(
+    d = fns.dict_schema(
         key_schema=schema_constants.TEXT, value_schema=schema_constants.FLOAT32
-    ).get_schema()
+    )
     self.assertTrue(d.is_dict_schema())
 
     dct = d(ds(['a', 'b']), ds([42, 37]))
