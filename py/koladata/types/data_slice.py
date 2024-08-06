@@ -207,6 +207,16 @@ def _rsub(self, other: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.subtract, other, self)
 
 
+@DataSlice.add_method('__mul__')
+def _mul(self, other: Any) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.multiply, self, other)
+
+
+@DataSlice.add_method('__rmul__')
+def _rmul(self, other: Any) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.multiply, other, self)
+
+
 @DataSlice.add_method('__and__')
 def _and(self, other: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.apply_mask, self, other)

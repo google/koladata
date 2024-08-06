@@ -1462,6 +1462,12 @@ class DataSliceTest(parameterized.TestCase):
       testing.assert_equal(x - 4, ds([-3, -2, -1]))
       # __radd__ with auto-boxing
       testing.assert_equal(4 - x, ds([3, 2, 1]))
+    with self.subTest('mul'):
+      testing.assert_equal(x * y, ds([4, 10, 18]))
+      # With auto-boxing
+      testing.assert_equal(x * 4, ds([4, 8, 12]))
+      # __radd__ with auto-boxing
+      testing.assert_equal(4 * x, ds([4, 8, 12]))
     with self.subTest('and'):
       testing.assert_equal(x & mask, ds([1, None, 3]))
       # only __rand__ with auto-boxing

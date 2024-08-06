@@ -163,6 +163,14 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_rsub(self):
     testing.assert_equal(C.x.__rsub__(C.y), kde.subtract(C.y, C.x))
 
+  def test_mul(self):
+    testing.assert_equal(
+        C.x.val * C.y, kde.multiply(kde.get_attr(C.x, 'val'), C.y)
+    )
+
+  def test_rmul(self):
+    testing.assert_equal(C.x.__rmul__(C.y), kde.multiply(C.y, C.x))
+
   def test_eq(self):
     testing.assert_equal(C.x == C.y, kde.equal(C.x, C.y))
 

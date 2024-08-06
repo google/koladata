@@ -93,6 +93,12 @@ class DataSliceView(BasicKodaView):
   def __rsub__(self, other: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.subtract', other, self)
 
+  def __mul__(self, other: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.multiply', self, other)
+
+  def __rmul__(self, other: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.multiply', other, self)
+
   def __eq__(self, other: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.equal', self, other)
 
