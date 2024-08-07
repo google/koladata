@@ -50,6 +50,8 @@
 
 namespace koladata {
 
+// TODO: b/357803216 - Use absl::Span instead of std::vector.
+
 namespace {
 
 absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names) {
@@ -656,6 +658,66 @@ absl::StatusOr<DataSlice> UuObjectCreator::operator()(
             impl_res.value(), aligned_values.begin()->GetShape(),
             internal::DataItem(schema::kObject), db);
       });
+}
+
+absl::StatusOr<DataSlice> CreateUu(
+    const DataBagPtr& db, absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values,
+    const std::optional<DataSlice>& schema, bool update_schema) {
+  CHECK_EQ(attr_names.size(), values.size());
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  internal::DataItem schema_item;
+  if (schema) {
+    RETURN_IF_ERROR(schema->VerifyIsSchema());
+    schema_item = schema->item();
+    RETURN_IF_ERROR(
+        CopyEntitySchema(schema->GetDb(), schema_item, db_mutable_impl));
+  }
+  if (!schema_item.has_value()) {
+    // Construct schema_item from values.
+    std::vector<std::reference_wrapper<const internal::DataItem>> schemas;
+    schemas.reserve(values.size());
+    for (const auto& val : values) {
+      schemas.push_back(std::cref(val.GetSchemaImpl()));
+    }
+    ASSIGN_OR_RETURN(schema_item, db_mutable_impl.CreateUuSchemaFromFields(
+                                      seed, attr_names, schemas));
+  }
+  // schema_item is finalized at this point.
+  if (values.empty()) {
+    return DataSlice::Create(
+        internal::DataItem(internal::AllocateSingleObject()),
+        std::move(schema_item), db);
+  }
+  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
+  // All DataSlices have the same shape at this point and thus the same internal
+  // representation, so we pick any of them to dispatch the object creation by
+  // internal implementation type.
+  return aligned_values.begin()->VisitImpl([&]<class ImplT>(const ImplT& impl)
+                                               -> absl::StatusOr<DataSlice> {
+    std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
+    aligned_values_impl.reserve(aligned_values.size());
+    for (int i = 0; i < attr_names.size(); ++i) {
+      aligned_values_impl.push_back(std::cref(aligned_values[i].impl<ImplT>()));
+    }
+
+    std::optional<ImplT> impl_res;
+    if constexpr (std::is_same_v<internal::DataItem, ImplT>) {
+      impl_res =
+          internal::CreateUuidFromFields(seed, attr_names, aligned_values_impl);
+    } else {
+      ASSIGN_OR_RETURN(impl_res, internal::CreateUuidFromFields(
+                                     seed, attr_names, aligned_values_impl));
+    }
+    ASSIGN_OR_RETURN(auto ds, DataSlice::Create(
+                                  impl_res.value(),
+                                  aligned_values.begin()->GetShape(),
+                                  std::move(schema_item), db));
+    RETURN_IF_ERROR(ds.SetAttrs(attr_names, aligned_values, update_schema));
+    return ds;
+  });
 }
 
 absl::StatusOr<internal::DataItem> CreateDictSchema(

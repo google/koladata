@@ -333,6 +333,44 @@ void BM_CreateEntity(benchmark::State& state) {
 
 BENCHMARK(BM_CreateEntity)->Arg(1)->Arg(10)->Arg(10000);
 
+void BM_CreateUuEntity(benchmark::State& state) {
+  int64_t size = state.range(0);
+  auto db = DataBag::Empty();
+  auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
+  auto a = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(a_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto b_values = arolla::CreateFullDenseArray(std::vector<float>(size, 3.14));
+  auto b = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(b_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+  auto c_values = arolla::CreateFullDenseArray(
+      std::vector<int64_t>(size, 1l << 43));
+  auto c = *DataSlice::CreateWithSchemaFromData(
+      DataSliceImpl::Create(c_values),
+      DataSlice::JaggedShape::FlatFromSize(size));
+
+  auto schema_db = DataBag::Empty();
+  std::optional<DataSlice> schema = *CreateEntitySchema(
+      schema_db, {"a", "b", "c"},
+      {test::Schema(schema::kInt32), test::Schema(schema::kFloat32),
+       test::Schema(schema::kInt64)});
+
+  std::vector<absl::string_view> attr_names{"a", "b", "c"};
+  std::vector<DataSlice> values{a, b, c};
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(db);
+    benchmark::DoNotOptimize(attr_names);
+    benchmark::DoNotOptimize(values);
+    auto entity_or = CreateUu(db, "", attr_names, values, schema, false);
+    CHECK_OK(entity_or);
+    benchmark::DoNotOptimize(entity_or);
+  }
+}
+
+BENCHMARK(BM_CreateUuEntity)->Arg(1)->Arg(10)->Arg(10000);
+
 void BM_CreateEntityWithSchema(benchmark::State& state) {
   int64_t size = state.range(0);
   auto db = DataBag::Empty();

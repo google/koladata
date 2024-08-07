@@ -415,6 +415,205 @@ TEST(EntityCreatorTest, EntityToEntity) {
   EXPECT_EQ(entity.GetSchemaImpl(), entity_val.GetSchemaImpl());
 }
 
+TEST(UuCreatorTest, DataSlice) {
+  constexpr int64_t kSize = 3;
+  auto db = DataBag::Empty();
+
+  auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
+  auto ds_b = test::DataSlice<int>({42, std::nullopt, 12});
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      CreateUu(
+          db, "", {"a", "b"}, {ds_a, ds_b}));
+  EXPECT_EQ(ds.GetDb(), db);
+  // Schema check.
+  EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsSchema());
+  EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsExplicitSchema());
+  EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsUuid());
+
+  // Produces uuids.
+  ds.slice().values<ObjectId>().ForEach(
+      [&](int64_t id, bool present, ObjectId object_id) {
+        EXPECT_TRUE(object_id.IsUuid());
+      });
+
+  // Attributes are set.
+  EXPECT_THAT(ds.GetAttr("a"),
+            IsOkAndHolds(IsEquivalentTo(ds_a.WithDb(ds.GetDb()))));
+
+  EXPECT_THAT(ds.GetAttr("b"),
+            IsOkAndHolds(IsEquivalentTo(ds_b.WithDb(ds.GetDb()))));
+
+  // Different objects have different uuids.
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_2,
+      UuObjectCreator()(
+          db, "", {"a", "b"}, {ds_b, ds_a}));
+  EXPECT_THAT(ds.slice(), Not(IsEquivalentTo(ds_2.slice())));
+  // Different seeds lead to different uuids.
+  ASSERT_OK_AND_ASSIGN(auto ds_3,
+                       UuObjectCreator()(db, "seed", {"a", "b"}, {ds_a, ds_b}));
+  EXPECT_THAT(ds.slice(), Not(IsEquivalentTo(ds_3.slice())));
+}
+
+TEST(CreateUuTest, DataItem) {
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataItem(internal::AllocateSingleObject());
+  auto ds_b = test::DataItem(42);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      CreateUu(
+          db, "", {"a", "b"}, {ds_a, ds_b}));
+  EXPECT_EQ(ds.GetDb(), db);
+
+  // Schema check.
+  EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsSchema());
+  EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsExplicitSchema());
+  EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsUuid());
+
+  // Produces uuids.
+  EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
+
+  // Attributes are set.
+  EXPECT_THAT(ds.GetAttr("a"),
+            IsOkAndHolds(IsEquivalentTo(ds_a.WithDb(ds.GetDb()))));
+
+  EXPECT_THAT(ds.GetAttr("b"),
+            IsOkAndHolds(IsEquivalentTo(ds_b.WithDb(ds.GetDb()))));
+
+  // Different objects have different uuids.
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_2,
+      CreateUu(
+          db, "", {"a", "b"}, {ds_b, ds_a}));
+  EXPECT_THAT(ds.item(), Not(IsEquivalentTo(ds_2.item())));
+  // Different seeds lead to different uuids.
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_3,
+      CreateUu(
+          db, "seed", {"a", "b"}, {ds_a, ds_b}));
+  EXPECT_THAT(ds.item(), Not(IsEquivalentTo(ds_3.item())));
+}
+
+TEST(CreateUuTest, SchemaArg) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto text_s = test::Schema(schema::kText);
+  auto entity_schema = *CreateEntitySchema(db, {"a", "b"}, {int_s, text_s});
+
+  ASSERT_OK_AND_ASSIGN(
+      auto entity,
+      CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+               entity_schema));
+
+  EXPECT_EQ(entity.GetSchemaImpl(), entity_schema.item());
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+  EXPECT_THAT(entity.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+}
+
+TEST(UuCreatorTest, SchemaArg_InvalidSchema) {
+  auto db = DataBag::Empty();
+  EXPECT_THAT(
+      CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+               test::DataItem(42)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("must be SCHEMA, got: INT32")));
+  EXPECT_THAT(
+      CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+               test::Schema(schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("requires Entity schema, got OBJECT")));
+}
+
+TEST(CreateUuTest, SchemaArg_WithFallback) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  auto fb_db = DataBag::Empty();
+  auto text_s = test::Schema(schema::kText);
+  ASSERT_OK(entity_schema.WithDb(fb_db).SetAttr("b", text_s));
+
+  entity_schema = entity_schema.WithDb(
+      DataBag::ImmutableEmptyWithFallbacks({db, fb_db}));
+
+  auto new_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto entity,
+      CreateUu(new_db, "", {"a", "b"},
+               {test::DataItem(42), test::DataItem("xyz")}, entity_schema));
+
+  EXPECT_EQ(entity.GetSchemaImpl(), entity_schema.item());
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(new_db))));
+  EXPECT_THAT(
+      entity.GetAttr("b"),
+      IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(new_db))));
+}
+
+TEST(CreateUuTest, SchemaArg_ImplicitCasting) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kFloat32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  auto ds_a = test::DataItem(42);
+  ASSERT_EQ(ds_a.GetSchemaImpl(), schema::kInt32);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto entity,
+      CreateUu(db, "", {"a"}, {ds_a}, entity_schema));
+
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(AllOf(
+                  IsEquivalentTo(test::DataItem(42.0f).WithDb(db)),
+                  Property(&DataSlice::GetSchemaImpl, Eq(schema::kFloat32)))));
+}
+
+TEST(CreateUuTest, SchemaArg_CastingFails) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kFloat32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  EXPECT_THAT(CreateUu(db, "", {"a"}, {test::DataItem("xyz")}, entity_schema),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("schema for attribute 'a' is incompatible")));
+}
+
+TEST(CreatUuTest, SchemaArg_UpdateSchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kFloat32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  EXPECT_THAT(
+      CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+               entity_schema),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("attribute 'b' is missing on the schema")));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto entity,
+      CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+               entity_schema, /*update_schema=*/true));
+
+  EXPECT_THAT(entity.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+}
+
+TEST(CreateUuTest, SchemaArg_Any) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto entity,
+                       CreateUu(db, "", {"a"}, {test::DataItem(42)},
+                                test::Schema(schema::kAny)));
+
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(
+                  IsEquivalentTo(test::DataItem(42, schema::kAny).WithDb(db))));
+}
+
 TEST(ObjectCreatorTest, ObjectToEntity) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();

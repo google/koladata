@@ -241,6 +241,30 @@ struct DictSchemaCreator {
     const DataSlice& value_schema) const;
 };
 
+  // Returns a UuEntity ((DataSlice of UuIds generated as row-wise fingerprints
+  // from attribute names and values) with a reference to `db`) and attributes
+  // `attr_names` set to `values`. The output DataSlice is a DataItem if all
+  // `values` are DataItems or `attr_names` and `values` are empty. Otherwise,
+  // the result has the shape of an input DataSlice with the highest rank. All
+  // inputs have to be "broadcastable" to a DataSlice with the highest rank,
+  // otherwise an error is returned.
+  //
+  // Also supports the following arguments:
+  // - `seed` for uuid computation.
+  // - `schema`, the schema for the entity. If missing, it will be inferred from
+  // the argument values.
+  // - `update_schema`, if true, will overwrite schema attributes in the
+  // schema's corresponding db from the argument values.
+  //
+  // The schema of the entities is stored on the returned DataSlice.
+absl::StatusOr<DataSlice> CreateUu(
+    const DataBagPtr& db,
+    absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values,
+    const std::optional<DataSlice>& schema = std::nullopt,
+    bool update_schema = false);
+
 // Creates dict schema with the given keys and values schemas.
 absl::StatusOr<internal::DataItem> CreateDictSchema(
     const DataBagPtr& db, const DataSlice& key_schema,
@@ -342,6 +366,7 @@ absl::StatusOr<DataSlice> CreateNoFollowSchema(const DataSlice& target_schema);
 // schema created from `target.GetSchema()` slice. NoFollow, Primitive, ITEMID
 // and ANY slices are not accepted and the appropriate error is returned.
 absl::StatusOr<DataSlice> NoFollow(const DataSlice& target);
+
 
 }  // namespace koladata
 
