@@ -232,6 +232,9 @@ class DataSliceViewTest(parameterized.TestCase):
       # Subtract.
       (C.x - 1, 'C.x - DataItem(1, schema: INT32)'),
       (1 - C.x, 'DataItem(1, schema: INT32) - C.x'),
+      # Multiply.
+      (C.x * 1, 'C.x * DataItem(1, schema: INT32)'),
+      (1 * C.x, 'DataItem(1, schema: INT32) * C.x'),
       # Getattr.
       (C.x.attr, 'C.x.attr'),
       (
