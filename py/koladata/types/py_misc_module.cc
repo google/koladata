@@ -22,11 +22,11 @@ namespace {
 constexpr const char* kThisModuleName = "koladata.types.py_misc";
 
 PyMethodDef kPyMiscModule_methods[] = {
-    {"make_literal_operator", (PyCFunction)PyMakeLiteralOperator, METH_O,
+    {"make_literal_operator", PyMakeLiteralOperator, METH_O,
      "Constructs an operator holding the provided QValue."},
-    {"literal", (PyCFunction)PyMakeLiteralExpr, METH_O,
+    {"literal", PyMakeLiteralExpr, METH_O,
      "Constructs an expr with a LiteralOperator wrapping the provided QValue."},
-    {"add_schema_constants", (PyCFunction)PyModule_AddSchemaConstants,
+    {"add_schema_constants", PyModule_AddSchemaConstants,
      METH_NOARGS, "Creates schema constants and adds them to the module."},
     {nullptr} /* sentinel */
 };

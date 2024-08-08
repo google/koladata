@@ -17,7 +17,6 @@
 #include <Python.h>  // IWYU pragma: keep
 
 #include <memory>
-#include <optional>
 #include <utility>
 
 #include "absl/base/nullability.h"
@@ -79,7 +78,7 @@ absl::Nullable<PyObject*> PyMakeLiteralExpr(PyObject* /*module*/,
   return arolla::python::WrapAsPyExpr(std::move(node));
 }
 
-absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m) {
+absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m, PyObject*) {
   arolla::python::DCheckPyGIL();
   for (const auto& schema_const : SupportedSchemas()) {
     PyObject* py_schema_const = WrapPyDataSlice(DataSlice(schema_const));

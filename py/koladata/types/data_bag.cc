@@ -53,9 +53,8 @@
 namespace koladata::python {
 namespace {
 
-
 // classmethod
-absl::Nullable<PyObject*> PyDataBag_empty(PyTypeObject* cls) {
+absl::Nullable<PyObject*> PyDataBag_empty(PyTypeObject* cls, PyObject*) {
   arolla::python::DCheckPyGIL();
   return arolla::python::MakePyQValue(
       PyDataBag_Type(), arolla::TypedValue::FromValue(DataBag::Empty()));
@@ -1048,21 +1047,21 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*> PyDataBag_merge_fallbacks(PyObject* self) {
+absl::Nullable<PyObject*> PyDataBag_merge_fallbacks(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& db = UnsafeDataBagPtr(self);
   ASSIGN_OR_RETURN(auto res, db->MergeFallbacks(), SetKodaPyErrFromStatus(_));
   return WrapDataBagPtr(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self) {
+absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& db = UnsafeDataBagPtr(self);
   ASSIGN_OR_RETURN(auto res, db->Fork(), SetKodaPyErrFromStatus(_));
   return WrapDataBagPtr(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self) {
+absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self, PyObject*) {
   const DataBagPtr db = UnsafeDataBagPtr(self);
 
   ASSIGN_OR_RETURN(std::string str, DataBagToStr(db),
@@ -1070,7 +1069,7 @@ absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self) {
   return PyUnicode_FromStringAndSize(str.c_str(), str.size());
 }
 
-absl::Nullable<PyObject*> PyDataBag_get_fallbacks(PyObject* self) {
+absl::Nullable<PyObject*> PyDataBag_get_fallbacks(PyObject* self, PyObject*) {
   const DataBagPtr& db = UnsafeDataBagPtr(self);
 
   const std::vector<DataBagPtr>& fallbacks = db->GetFallbacks();
@@ -1201,16 +1200,16 @@ Returns:
      "Converts **kwargs into an Arolla NamedTuple of DataSlices."},
     {"_merge_inplace", (PyCFunction)PyDataBag_merge_inplace, METH_FASTCALL,
      "DataBag._merge_inplace"},
-    {"merge_fallbacks", (PyCFunction)PyDataBag_merge_fallbacks, METH_NOARGS,
+    {"merge_fallbacks", PyDataBag_merge_fallbacks, METH_NOARGS,
      "Returns a new DataBag with all the fallbacks merged."},
-    {"fork", (PyCFunction)PyDataBag_fork, METH_NOARGS,
+    {"fork", PyDataBag_fork, METH_NOARGS,
      R"""(Returns a newly created mutable DataBag with the same content as self.
 
 Changes to either DataBag will not be reflected in the other.
 )"""},
-    {"contents_repr", (PyCFunction)PyDataBag_contents_repr, METH_NOARGS,
+    {"contents_repr", PyDataBag_contents_repr, METH_NOARGS,
      "Returns a string representation of the contents of this DataBag."},
-    {"get_fallbacks", (PyCFunction)PyDataBag_get_fallbacks, METH_NOARGS,
+    {"get_fallbacks", PyDataBag_get_fallbacks, METH_NOARGS,
      R"""(Returns the list of fallback DataBags in this DataBag.
 
 The list will be empty if the DataBag does not have fallbacks. When

@@ -36,7 +36,6 @@
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/repr_utils.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -74,7 +73,7 @@ absl::Nullable<PyObject*> PyDataSlice_with_db(PyObject* self, PyObject* db) {
   return WrapPyDataSlice(UnsafeDataSliceRef(self).WithDb(std::move(db_ptr)));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_no_db(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_no_db(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   return WrapPyDataSlice(UnsafeDataSliceRef(self).WithDb(nullptr));
 }
@@ -129,13 +128,15 @@ absl::Nullable<PyObject*> PyDataSlice_from_vals(PyTypeObject* cls,
   return WrapPyDataSlice(std::move(ds));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_internal_as_py(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_internal_as_py(PyObject* self,
+                                                     PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   return DataSliceToPyValue(ds);
 }
 
-absl::Nullable<PyObject*> PyDataSlice_as_arolla_value(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_as_arolla_value(PyObject* self,
+                                                      PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   ASSIGN_OR_RETURN(auto value, DataSliceToArollaValue(ds),
@@ -143,7 +144,8 @@ absl::Nullable<PyObject*> PyDataSlice_as_arolla_value(PyObject* self) {
   return arolla::python::WrapAsPyQValue(value);
 }
 
-absl::Nullable<PyObject*> PyDataSlice_as_dense_array(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_as_dense_array(PyObject* self,
+                                                     PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   ASSIGN_OR_RETURN(auto array, DataSliceToDenseArray(ds),
@@ -427,7 +429,7 @@ PyObject* PyDataSlice_str(PyObject* self) {
   return PyUnicode_FromStringAndSize(s.c_str(), s.size());
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   DataSlice self_ds = UnsafeDataSliceRef(self);
   ASSIGN_OR_RETURN(
@@ -481,47 +483,50 @@ absl::Nullable<PyObject*> PyDataSlice_pop(PyObject* self, PyObject* const* args,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_clear(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_clear(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   RETURN_IF_ERROR(UnsafeDataSliceRef(self).ClearDictOrList())
       .With(SetKodaPyErrFromStatus);
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_present_count(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_get_present_count(PyObject* self,
+                                                        PyObject*) {
   arolla::python::DCheckPyGIL();
   return PyLong_FromSize_t(UnsafeDataSliceRef(self).present_count());
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_size(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_get_size(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   return PyLong_FromSize_t(UnsafeDataSliceRef(self).size());
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_ndim(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_get_ndim(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   return PyLong_FromSize_t(UnsafeDataSliceRef(self).GetShape().rank());
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_shape(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_get_shape(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyJaggedShape(ds.GetShape());
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_schema(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_get_schema(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(ds.GetSchema());
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_list_schema(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_is_list_schema(PyObject* self,
+                                                     PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   return PyBool_FromLong(ds.IsListSchema());
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self,
+                                                     PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   return PyBool_FromLong(ds.IsDictSchema());
@@ -553,7 +558,7 @@ absl::Nullable<PyObject*> PyDataSlice_set_schema(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_as_any(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_as_any(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   ASSIGN_OR_RETURN(
       auto res,
@@ -562,14 +567,14 @@ absl::Nullable<PyObject*> PyDataSlice_as_any(PyObject* self) {
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_embed_schema(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_embed_schema(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   auto& self_ds = UnsafeDataSliceRef(self);
   ASSIGN_OR_RETURN(auto res, self_ds.EmbedSchema(), SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_dir(PyObject* self) {
+absl::Nullable<PyObject*> PyDataSlice_dir(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   ASSIGN_OR_RETURN(auto attr_names, UnsafeDataSliceRef(self).GetAttrNames(),
                    SetKodaPyErrFromStatus(_));
@@ -619,11 +624,11 @@ PyGetSetDef kPyDataSlice_getset[] = {
 };
 
 PyMethodDef kPyDataSlice_methods[] = {
-    {"with_db", (PyCFunction)PyDataSlice_with_db, METH_O,
+    {"with_db", PyDataSlice_with_db, METH_O,
      "Returns a copy of DataSlice with DataBag `db`."},
-    {"no_db", (PyCFunction)PyDataSlice_no_db, METH_NOARGS,
+    {"no_db", PyDataSlice_no_db, METH_NOARGS,
      "Returns a copy of DataSlice without DataBag."},
-    {"with_fallback", (PyCFunction)PyDataSlice_with_fallback, METH_O,
+    {"with_fallback", PyDataSlice_with_fallback, METH_O,
      R"""(Returns a copy of DataSlice with DataBag with two fallbacks.
 
 Original and provided DataBags are used as fallbacks. Modifications of
@@ -639,31 +644,31 @@ Returns:
     {"from_vals", (PyCFunction)PyDataSlice_from_vals,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
      "Creates a DataSlice from `value`"},
-    {"internal_as_py", (PyCFunction)PyDataSlice_internal_as_py, METH_NOARGS,
+    {"internal_as_py", PyDataSlice_internal_as_py, METH_NOARGS,
      "Returns a Python object equivalent to this DataSlice.\n"
      "\n"
      "If the values in this slice represent objects, then the returned python\n"
      "structure will contain DataItems.\n"},
-    {"as_arolla_value", (PyCFunction)PyDataSlice_as_arolla_value, METH_NOARGS,
+    {"as_arolla_value", PyDataSlice_as_arolla_value, METH_NOARGS,
      "Converts primitive slice / item into an equivalent Arolla value."},
-    {"as_dense_array", (PyCFunction)PyDataSlice_as_dense_array, METH_NOARGS,
+    {"as_dense_array", PyDataSlice_as_dense_array, METH_NOARGS,
      "Converts primitive slice to an arolla.dense_array with appropriate "
      "qtype."},
-    {"get_ndim", (PyCFunction)PyDataSlice_get_ndim, METH_NOARGS,
+    {"get_ndim", PyDataSlice_get_ndim, METH_NOARGS,
      "Returns the number of dimensions of the DataSlice, a.k.a. the rank or "
      "nesting level."},
-    {"rank", (PyCFunction)PyDataSlice_get_ndim, METH_NOARGS,
+    {"rank", PyDataSlice_get_ndim, METH_NOARGS,
      "Returns the number of dimensions of the DataSlice, a.k.a. the rank or "
      "nesting level."},
-    {"get_shape", (PyCFunction)PyDataSlice_get_shape, METH_NOARGS,
+    {"get_shape", PyDataSlice_get_shape, METH_NOARGS,
      "Returns the shape of the DataSlice."},
-    {"get_schema", (PyCFunction)PyDataSlice_get_schema, METH_NOARGS,
+    {"get_schema", PyDataSlice_get_schema, METH_NOARGS,
      "Returns a schema slice with type information about this DataSlice."},
-    {"is_list_schema", (PyCFunction)PyDataSlice_is_list_schema, METH_NOARGS,
+    {"is_list_schema", PyDataSlice_is_list_schema, METH_NOARGS,
      "Returns True, if this DataSlice is a List Schema."},
-    {"is_dict_schema", (PyCFunction)PyDataSlice_is_dict_schema, METH_NOARGS,
+    {"is_dict_schema", PyDataSlice_is_dict_schema, METH_NOARGS,
      "Returns True, if this DataSlice is a Dict Schema."},
-    {"with_schema", (PyCFunction)PyDataSlice_with_schema, METH_O,
+    {"with_schema", PyDataSlice_with_schema, METH_O,
      R"""(Returns a copy of DataSlice with the provided `schema`.
 
 `schema` must have no DataBag or the same DataBag as the DataSlice. If `schema`
@@ -675,7 +680,7 @@ Args:
 Returns:
   DataSlice with the provided `schema`.
 )"""},
-    {"set_schema", (PyCFunction)PyDataSlice_set_schema, METH_O,
+    {"set_schema", PyDataSlice_set_schema, METH_O,
      R"""(Returns a copy of DataSlice with the provided `schema`.
 
 If `schema` has a different DataBag than the DataSlice, `schema` is merged into
@@ -686,13 +691,13 @@ Args:
 Returns:
   DataSlice with the provided `schema`.
 )"""},
-    {"as_any", (PyCFunction)PyDataSlice_as_any, METH_NOARGS,
+    {"as_any", PyDataSlice_as_any, METH_NOARGS,
      "Returns a DataSlice with ANY schema."},
-    {"get_keys", (PyCFunction)PyDataSlice_get_keys, METH_NOARGS,
+    {"get_keys", PyDataSlice_get_keys, METH_NOARGS,
      "Returns a slice with all keys from all dicts in this DataSlice."},
-    {"get_present_count", (PyCFunction)PyDataSlice_get_present_count,
-     METH_NOARGS, "Returns number of present items in DataSlice."},
-    {"get_size", (PyCFunction)PyDataSlice_get_size, METH_NOARGS,
+    {"get_present_count", PyDataSlice_get_present_count, METH_NOARGS,
+     "Returns number of present items in DataSlice."},
+    {"get_size", PyDataSlice_get_size, METH_NOARGS,
      "Returns number of items in DataSlice."},
     {"get_attr", (PyCFunction)PyDataSlice_get_attr,
      METH_FASTCALL | METH_KEYWORDS,
@@ -717,16 +722,16 @@ Args:
      "Append a value to each list in this DataSlice"},
     {"_internal_pop", (PyCFunction)PyDataSlice_pop, METH_FASTCALL,
      "Pop a value from each list in this DataSlice"},
-    {"clear", (PyCFunction)PyDataSlice_clear, METH_NOARGS,
+    {"clear", PyDataSlice_clear, METH_NOARGS,
      "Clears all dicts or lists in this DataSlice"},
-    {"embed_schema", (PyCFunction)PyDataSlice_embed_schema, METH_NOARGS,
+    {"embed_schema", PyDataSlice_embed_schema, METH_NOARGS,
      R"""(Returns a DataSlice with OBJECT schema.
 
 * For primitives no data change is done.
 * For Entities schema is stored as '__schema__' attribute.
 * Embedding Entities requires a DataSlice to be associated with a DataBag.
 )"""},
-    {"__dir__", (PyCFunction)PyDataSlice_dir, METH_NOARGS,
+    {"__dir__", PyDataSlice_dir, METH_NOARGS,
      "Returns a list of attributes available."},
     {"internal_register_reserved_class_method_name",
      (PyCFunction)PyDataSlice_internal_register_reserved_class_method_name,
@@ -770,8 +775,8 @@ PyObject* PyDataSlice_richcompare_not_implemented(PyObject* self,
   // raising an Error, because then Python runtime tries to find other type's
   // richcompare method to compare it with. Given that we overwrite these magic
   // methods in Python and just erase QValue's (base class) richcompare method,
-  // raising TypeError here to prevent Python's interpration of NotImplemented,
-  // is justified.
+  // raising TypeError here to prevent Python's interpretation of
+  // NotImplemented, is justified.
   PyErr_SetString(PyExc_TypeError,
                   "RichCompare methods are overwritten in Python");
   return nullptr;

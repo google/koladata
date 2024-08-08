@@ -24,7 +24,7 @@ constexpr const char* kThisModuleName = "koladata.expr.py_expr_eval";
 PyMethodDef kPyExprEvalModule_methods[] = {
     {"eval_expr", (PyCFunction)PyEvalExpr, METH_FASTCALL | METH_KEYWORDS,
      "Evaluates an expression on provided input QValues."},
-    {"clear_eval_cache", (PyCFunction)PyClearEvalCache, METH_NOARGS,
+    {"clear_eval_cache", PyClearEvalCache, METH_NOARGS,
      "Clears Koda specific eval caches."},
     {nullptr} /* sentinel */
 };

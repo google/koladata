@@ -31,7 +31,7 @@ absl::Nullable<PyObject*> PyMakeLiteralExpr(PyObject* /*module*/,
 
 // Registers all Schema Constants as Python objects into module `m`. Returns
 // Py_None, but raises Error on failure.
-absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m);
+absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m, PyObject*);
 
 }  // namespace koladata::python
 

@@ -22,7 +22,7 @@ namespace {
 constexpr const char* kThisModuleName = "koladata.exceptions.py_exceptions";
 
 PyMethodDef kPyExceptionsModule_methods[] = {
-    {"register_koda_exception", (PyCFunction)PyRegisterExceptionFactory, METH_O,
+    {"register_koda_exception", PyRegisterExceptionFactory, METH_O,
      "Register the KodaError factory function in C++."},
     {nullptr} /* sentinel */
 };
