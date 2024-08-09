@@ -30,6 +30,7 @@
 #include "koladata/operators/jagged_shape.h"
 #include "koladata/operators/list.h"
 #include "koladata/operators/logical.h"
+#include "koladata/operators/math.h"
 #include "koladata/operators/nofollow.h"
 #include "koladata/operators/reverse.h"
 #include "koladata/operators/schema.h"
@@ -87,6 +88,8 @@ OPERATOR("kde.core.unique", Unique);
 OPERATOR("kde.logical.apply_mask", ApplyMask);
 OPERATOR("kde.logical.coalesce", Coalesce);
 OPERATOR("kde.logical.has", Has);
+//
+OPERATOR("kde.math.subtract", Subtract);
 //
 OPERATOR("kde.schema._list_schema", ListSchema);
 OPERATOR_FAMILY("kde.schema._new_schema", NewSchemaOperatorFamily);

@@ -46,7 +46,8 @@
 
 namespace koladata {
 
-absl::StatusOr<arolla::TypedValue> DataSliceToArollaValue(const DataSlice& ds) {
+absl::StatusOr<arolla::TypedValue> DataSliceToArollaValue(
+    const DataSlice& ds, const internal::DataItem& fallback_schema) {
   if (ds.impl_owns_value()) {
     // In this case, DataSlice owns underlying DenseArray / scalar value which
     // can be returned through TypedRef.
@@ -55,14 +56,13 @@ absl::StatusOr<arolla::TypedValue> DataSliceToArollaValue(const DataSlice& ds) {
   }
   // The following code creates empty Arolla value with appropriate type if
   // possible. Otherwise returns appropriate error.
-  if (ds.impl_has_mixed_dtype()) {
-    return absl::FailedPreconditionError(
-        "only DataSlices with primitive values of the same type can be "
-        "converted to Arolla value, got: MIXED");
+  //
+  // NONE, OBJECT, ANY need to get a primitive schema.
+  auto schema_item = ds.GetSchemaImpl();
+  if (!schema_item.is_entity_schema() && !schema_item.is_primitive_schema()) {
+    schema_item = fallback_schema;
   }
-  const auto& schema_item = ds.GetSchemaImpl();
-  if (!schema_item.holds_value<schema::DType>() ||
-      !schema_item.value<schema::DType>().is_primitive()) {
+  if (!schema_item.is_primitive_schema()) {
     return absl::FailedPreconditionError(
         "empty slices can be converted to Arolla value only if they have "
         "primitive schema");

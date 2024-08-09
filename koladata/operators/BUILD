@@ -69,6 +69,7 @@ cc_library(
         "get_attr.cc",
         "group_by.cc",
         "jagged_shape.cc",
+        "math.cc",
         "reverse.cc",
         "schema.cc",
         "slice.cc",
@@ -93,6 +94,7 @@ cc_library(
         "jagged_shape.h",
         "list.h",
         "logical.h",
+        "math.h",
         "nofollow.h",
         "reverse.h",
         "schema.h",
@@ -210,4 +212,26 @@ operator_libraries(
         op_class = "::koladata::ops::ToDataSliceOp",
         deps = [":lib"],
     ),
+)
+
+cc_test(
+    name = "convert_and_eval_test",
+    srcs = ["convert_and_eval_test.cc"],
+    deps = [
+        ":lib",
+        "//koladata:data_slice",
+        "//koladata:test_utils",
+        "//koladata/internal:dtype",
+        "//koladata/testing:matchers",
+        "//koladata/testing:status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/operators/all",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr/operators/all",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
 )

@@ -17,6 +17,7 @@
 
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_item.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -27,7 +28,12 @@ namespace koladata {
 // scalar value, while in case of DataSlice it returns a DenseArray. If this is
 // not possible, it raises an appropriate error. This method is supported only
 // if all primitives in DataSlice have the same dtype.
-absl::StatusOr<arolla::TypedValue> DataSliceToArollaValue(const DataSlice& ds);
+//
+// If `fallback_schema` is provided as a primitive schema, it is used to create
+// an arolla value in case `ds` is empty-and-unknown.
+absl::StatusOr<arolla::TypedValue> DataSliceToArollaValue(
+    const DataSlice& ds,
+    const internal::DataItem& fallback_schema = internal::DataItem());
 
 // The same as above, but returns a TypedRef. This means it doesn't work for
 // empty slices.

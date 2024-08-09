@@ -15,7 +15,6 @@
 #include "koladata/arolla_utils.h"
 
 #include <cstdint>
-#include <memory>
 #include <optional>
 
 #include "gmock/gmock.h"
@@ -139,6 +138,22 @@ TEST(DataSliceUtils, ToArollaValueEmptyMultidimSlice) {
                        HasSubstr("empty slices can be converted to Arolla value"
                                  " only if they have primitive schema")));
 
+  // We can pass a fallback schema.
+  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(ds_impl, shape, kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      arolla_val,
+      DataSliceToArollaValue(
+          ds, /*fallback_schema=*/internal::DataItem(schema::kInt32)));
+  EXPECT_THAT(arolla_val.UnsafeAs<DenseArray<int>>(),
+              ElementsAre(std::nullopt, std::nullopt, std::nullopt));
+
+  // The fallback schema must be a primitive schema.
+  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(ds_impl, shape, kAnySchema));
+  EXPECT_THAT(DataSliceToArollaValue(ds, /*fallback_schema=*/kAnySchema),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("empty slices can be converted to Arolla value"
+                                 " only if they have primitive schema")));
+
   ASSERT_OK_AND_ASSIGN(
       ds,
       DataSlice::Create(
@@ -215,11 +230,19 @@ TEST(DataSliceUtils, ToArollaValueScalar) {
 
   // Error - empty, untyped, without primitive Schema.
   ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(internal::DataItem(), kAnySchema));
-
   EXPECT_THAT(DataSliceToArollaValue(ds),
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("empty slices can be converted to Arolla value"
                                  " only if they have primitive schema")));
+
+  // Optional - empty, untyped, without primitive Schema, but with fallback.
+  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(internal::DataItem(), kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      arolla_val,
+      DataSliceToArollaValue(
+          ds, /*fallback_schema=*/internal::DataItem(schema::kInt32)));
+  EXPECT_EQ(arolla_val.UnsafeAs<arolla::OptionalValue<int>>(),
+            arolla::OptionalValue<int>{});
 }
 
 TEST(DataSliceUtils, FromDenseArray) {

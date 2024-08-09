@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -27,6 +28,7 @@
 #include "koladata/internal/dtype.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
+#include "arolla/expr/expr_operator.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
@@ -62,9 +64,19 @@ class ConvertAndEvalWithShapeFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// Evaluates the given expression on the given inputs and returns the result.
+// The expr_op is expected to be a pointwise operator that should be evaluated
+// on the given inputs extracted as Arolla values. The output DataSlice has the
+// the common shape and schema of the inputs. If one or more inputs are
+// empty-and-unknown, the `expr_op` is not evaluated.
+absl::StatusOr<DataSlice> SimplePointwiseEval(
+    const arolla::expr::ExprOperatorPtr& expr_op,
+    std::vector<DataSlice> inputs);
+
 // koda_internal.to_arolla_boolean operator.
 //
-// Attempts to cast the provided DataSlice (only rank=0 is supported) to boolean
+// Attempts to cast the provided DataSlice (only rank=0 is supported) to
+// boolean.
 absl::StatusOr<bool> ToArollaBoolean(const DataSlice& x);
 
 // koda_internal.to_arolla_int64 operator.
