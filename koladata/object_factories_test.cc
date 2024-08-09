@@ -870,11 +870,14 @@ TEST(UuObjectCreatorTest, DataItem) {
 TEST(UuObjectCreatorTest, Empty) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto ds_1, UuObjectCreator()(db, "seed1", {}, {}));
+  EXPECT_EQ(ds_1.GetDb(), db);
   EXPECT_TRUE(ds_1.item().value<ObjectId>().IsUuid());
   ASSERT_OK_AND_ASSIGN(auto ds_2, UuObjectCreator()(db, "seed2", {}, {}));
+  EXPECT_EQ(ds_2.GetDb(), db);
   EXPECT_TRUE(ds_2.item().value<ObjectId>().IsUuid());
   EXPECT_THAT(ds_1.item(), Not(IsEquivalentTo(ds_2.item())));
   ASSERT_OK_AND_ASSIGN(auto ds_3, UuObjectCreator()(db, "seed1", {}, {}));
+  EXPECT_EQ(ds_3.GetDb(), db);
   EXPECT_THAT(ds_1.item(), IsEquivalentTo(ds_3.item()));
 }
 

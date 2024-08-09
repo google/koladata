@@ -617,7 +617,7 @@ absl::StatusOr<DataSlice> UuObjectCreator::operator()(
                      db->GetMutableImpl());
     RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, uuid, {}, {},
                                     /*overwrite_schemas=*/false));
-    return DataSlice::Create(uuid, internal::DataItem(schema::kObject));
+    return DataSlice::Create(uuid, internal::DataItem(schema::kObject), db);
   }
   ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
 
