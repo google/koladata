@@ -36,6 +36,12 @@ struct SupplementalData {
 absl::Status AssembleErrorMessage(const absl::Status& status,
                                   const SupplementalData& data);
 
+// Creates an KodaError that further explains why creating items fails.
+// If it is caused by another KodaError, the cause is propagated. Otherwise,
+// the error message of the status is set in the cause.
+absl::Status CreateItemCreationError(const absl::Status& status,
+                                     const std::optional<DataSlice>& schema);
+
 }  // namespace koladata
 
 #endif  // KOLADATA_REPR_UTILS_H_

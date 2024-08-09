@@ -216,4 +216,28 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
   return status;
 }
 
+absl::Status CreateItemCreationError(const absl::Status& status,
+                                     const std::optional<DataSlice>& schema) {
+  internal::Error error;
+  if (schema) {
+    std::string schema_str;
+    if (schema->GetDb() != nullptr) {
+      ASSIGN_OR_RETURN(schema_str, DataSliceToStr(*schema));
+    } else {
+      schema_str = schema->item().DebugString();
+    }
+    error.set_error_message(absl::StrFormat(
+        "cannot create Item(s) with the provided schema: %s", schema_str));
+  } else {
+    error.set_error_message(absl::StrFormat("cannot create Item(s)"));
+  }
+  std::optional<internal::Error> cause = internal::GetErrorPayload(status);
+  if (cause) {
+    *error.mutable_cause() = *std::move(cause);
+  } else {
+    error.mutable_cause()->set_error_message(status.message());
+  }
+  return internal::WithErrorPayload(status, error);
+}
+
 }  // namespace koladata

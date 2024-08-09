@@ -36,6 +36,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
+#include "koladata/repr_utils.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -281,9 +282,13 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
         res,
         FactoryHelperT::FromAttributes(args.kw_names, values, schema_arg,
                                        update_schema, db, adoption_queue),
-        SetKodaPyErrFromStatus(_));
+        SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
   }
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
+      .With([&](const absl::Status& status) {
+        return SetKodaPyErrFromStatus(
+            CreateItemCreationError(status, schema_arg));
+      });
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -394,8 +399,12 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
       res,
       FactoryHelperT::Shaped(*std::move(shape), args.kw_names, values,
                              schema_arg, update_schema, db, adoption_queue),
-      SetKodaPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
+      .With([&](const absl::Status& status) {
+        return SetKodaPyErrFromStatus(
+            CreateItemCreationError(status, schema_arg));
+      });
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -479,8 +488,12 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
       res,
       FactoryHelperT::Like(*shape_and_mask_from, args.kw_names, values,
                            schema_arg, update_schema, db, adoption_queue),
-      SetKodaPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
+      .With([&](const absl::Status& status) {
+        return SetKodaPyErrFromStatus(
+            CreateItemCreationError(status, schema_arg));
+      });
   return WrapPyDataSlice(*std::move(res));
 }
 

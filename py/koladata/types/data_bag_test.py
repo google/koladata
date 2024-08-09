@@ -727,7 +727,9 @@ Assigned schema for Dict key: INT32""",
     testing.assert_equal(x.a, ds([[12, 12, 12], [12], [12]]).with_db(db))
     testing.assert_equal(x.b, ds([[1, None, 6], [None], [123]]).with_db(db))
 
-    with self.assertRaisesRegex(ValueError, 'shapes are not compatible'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'shapes are not compatible'
+    ):
       db.new(a=ds([1, 2, 3]), b=ds([3.14, 3.14]))
 
   def test_obj_auto_broadcasting(self):
@@ -740,7 +742,9 @@ Assigned schema for Dict key: INT32""",
     testing.assert_equal(x.a.get_schema(), schema_constants.BYTES.with_db(db))
     testing.assert_equal(x.b.get_schema(), schema_constants.INT32.with_db(db))
 
-    with self.assertRaisesRegex(ValueError, 'shapes are not compatible'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'shapes are not compatible'
+    ):
       db.obj(a=ds([1, 2, 3]), b=ds([3.14, 3.14]))
     testing.assert_equal(
         x.get_attr('__schema__').a,

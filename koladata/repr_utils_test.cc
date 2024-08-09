@@ -40,6 +40,7 @@ namespace {
 using ::koladata::internal::Error;
 using ::koladata::testing::StatusIs;
 using ::testing::MatchesRegex;
+using ::testing::StrEq;
 
 class ReprUtilTest : public ::testing::Test {
  protected:
@@ -116,6 +117,40 @@ TEST_F(ReprUtilTest, TestAssembleErrorMissingContextData) {
 TEST_F(ReprUtilTest, TestAssembleErrorNotHandlingOkStatus) {
   EXPECT_TRUE(
       AssembleErrorMessage(absl::OkStatus(), {.db = DataBag::Empty()}).ok());
+}
+
+TEST_F(ReprUtilTest, TestCreateItemCreationError) {
+  DataSlice value = test::DataItem(schema::kInt32);
+
+  absl::Status status =
+      CreateItemCreationError(absl::InvalidArgumentError("error"), value);
+
+  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument, "error"));
+  std::optional<Error> payload = internal::GetErrorPayload(status);
+  EXPECT_TRUE(payload.has_value());
+  EXPECT_THAT(payload->error_message(),
+              StrEq("cannot create Item(s) with the provided schema: INT32"));
+  EXPECT_THAT(payload->cause().error_message(), ::testing::StrEq("error"));
+
+  Error error;
+  error.set_error_message("cause");
+  status = CreateItemCreationError(
+      internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
+      value);
+  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument, "error"));
+  payload = internal::GetErrorPayload(status);
+  EXPECT_TRUE(payload.has_value());
+  EXPECT_THAT(payload->error_message(),
+              StrEq("cannot create Item(s) with the provided schema: INT32"));
+  EXPECT_THAT(payload->cause().error_message(), ::testing::StrEq("cause"));
+
+  status = CreateItemCreationError(
+      internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
+      std::nullopt);
+  payload = internal::GetErrorPayload(status);
+  EXPECT_TRUE(payload.has_value());
+  EXPECT_THAT(payload->error_message(),
+              ::testing::StrEq("cannot create Item(s)"));
 }
 
 }  // namespace
