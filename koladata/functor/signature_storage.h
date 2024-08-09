@@ -37,14 +37,14 @@ absl::StatusOr<Signature> KodaSignatureToCppSignature(
     const DataSlice& signature);
 
 // Return the constants used to store the parameter kinds in the Koda signature.
-const absl::StatusOr<DataSlice>& PositionalOnlyParameterKind();
-const absl::StatusOr<DataSlice>& PositionalOrKeywordParameterKind();
-const absl::StatusOr<DataSlice>& VarPositionalParameterKind();
-const absl::StatusOr<DataSlice>& KeywordOnlyParameterKind();
-const absl::StatusOr<DataSlice>& VarKeywordParameterKind();
+const DataSlice& PositionalOnlyParameterKind();
+const DataSlice& PositionalOrKeywordParameterKind();
+const DataSlice& VarPositionalParameterKind();
+const DataSlice& KeywordOnlyParameterKind();
+const DataSlice& VarKeywordParameterKind();
 
 // Returns the constant used to indicate that a parameter has no default value.
-const absl::StatusOr<DataSlice>& NoDefaultValueMarker();
+const DataSlice& NoDefaultValueMarker();
 
 }  // namespace koladata::functor
 

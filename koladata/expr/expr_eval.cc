@@ -14,7 +14,8 @@
 //
 #include "koladata/expr/expr_eval.h"
 
-#include <cstddef>
+#include <algorithm>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -54,7 +55,7 @@ namespace {
 
 // We use the same size for expr transformations and compilation caches
 // since in most cases we have 1:1 correspondence between them.
-static constexpr size_t kCacheSize = 4096;
+static constexpr int64_t kCacheSize = 4096;
 
 // Information about an expression for fetching inputs for evaluation.
 struct ExprInfo {
@@ -246,7 +247,7 @@ absl::StatusOr<CompiledExpr> Compile(
   if (!fn) {
     std::vector<std::pair<std::string, arolla::QTypePtr>> args(
         leaf_values.size());
-    for (size_t i = 0; i < leaf_values.size(); ++i) {
+    for (int64_t i = 0; i < leaf_values.size(); ++i) {
       args[i] = {leaf_keys[i], leaf_values[i].GetType()};
     }
     ASSIGN_OR_RETURN(
@@ -275,7 +276,7 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
   std::vector<arolla::TypedRef> input_qvalues(
       expr_info.leaf_keys.size(), arolla::TypedRef::UnsafeFromRawPointer(
                                       arolla::GetNothingQType(), nullptr));
-  int input_count = 0;
+  int64_t input_count = 0;
   for (const auto& [input_name, input_value] : inputs) {
     auto it = expr_info.input_leaf_index.find(input_name);
     if (it == expr_info.input_leaf_index.end()) {
@@ -304,7 +305,7 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
   // Validate inputs w.r.t. the expression.
   if (input_count != expr_info.leaf_keys.size()) {
     std::vector<absl::string_view> missing_leaf_keys;
-    for (int i = 0; i < expr_info.leaf_keys.size(); ++i) {
+    for (int64_t i = 0; i < expr_info.leaf_keys.size(); ++i) {
       if (input_qvalues[i].GetRawPointer() == nullptr) {
         missing_leaf_keys.push_back(expr_info.leaf_keys[i]);
       }
@@ -318,6 +319,20 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
       auto compiled_expr,
       Compile(transformed_expr->expr, expr_info.leaf_keys, input_qvalues));
   return compiled_expr(input_qvalues);
+}
+
+absl::StatusOr<std::vector<std::string>> GetExprVariables(
+    const arolla::expr::ExprNodePtr& expr) {
+  ASSIGN_OR_RETURN(auto transformed_expr, TransformExprForEval(expr));
+  const auto& expr_info = transformed_expr->info;
+  std::vector<std::string> res;
+  res.reserve(expr_info.variable_leaf_index.size());
+  for (const auto& [variable_name, _] : expr_info.variable_leaf_index) {
+    res.push_back(variable_name);
+  }
+  // To avoid exposing the non-deterministic order of hash map iteration.
+  std::sort(res.begin(), res.end());
+  return res;
 }
 
 void ClearCompilationCache() {

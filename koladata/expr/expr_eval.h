@@ -17,6 +17,7 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -34,6 +35,12 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
     const arolla::expr::ExprNodePtr& expr,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> inputs,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> variables);
+
+// Retrieves the list of variables used in the given expression.
+// This reuses the same cache as EvalExprWithCompilationCache, so it is cheap
+// to call this method before/after evaluating the expression.
+absl::StatusOr<std::vector<std::string>> GetExprVariables(
+    const arolla::expr::ExprNodePtr& expr);
 
 // Clears the expr transformation and compilation caches.
 void ClearCompilationCache();

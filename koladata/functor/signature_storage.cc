@@ -86,25 +86,19 @@ absl::StatusOr<Signature::Parameter::Kind> KodaToParameterKind(
         absl::StrFormat("kind must be a data item, but has shape: %s",
                         arolla::Repr(kind.GetShape())));
   }
-  ASSIGN_OR_RETURN(auto positional_only, PositionalOnlyParameterKind());
-  if (kind.item() == positional_only.item()) {
+  if (kind.item() == PositionalOnlyParameterKind().item()) {
     return kPositionalOnly;
   }
-  ASSIGN_OR_RETURN(auto positional_or_keyword,
-                   PositionalOrKeywordParameterKind());
-  if (kind.item() == positional_or_keyword.item()) {
+  if (kind.item() == PositionalOrKeywordParameterKind().item()) {
     return kPositionalOrKeyword;
   }
-  ASSIGN_OR_RETURN(auto var_positional, VarPositionalParameterKind());
-  if (kind.item() == var_positional.item()) {
+  if (kind.item() == VarPositionalParameterKind().item()) {
     return kVarPositional;
   }
-  ASSIGN_OR_RETURN(auto keyword_only, KeywordOnlyParameterKind());
-  if (kind.item() == keyword_only.item()) {
+  if (kind.item() == KeywordOnlyParameterKind().item()) {
     return kKeywordOnly;
   }
-  ASSIGN_OR_RETURN(auto var_keyword, VarKeywordParameterKind());
-  if (kind.item() == var_keyword.item()) {
+  if (kind.item() == VarKeywordParameterKind().item()) {
     return kVarKeyword;
   }
   return absl::InvalidArgumentError(
@@ -128,7 +122,7 @@ absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
     if (param.default_value.has_value()) {
       default_value = param.default_value.value();
     } else {
-      ASSIGN_OR_RETURN(default_value, NoDefaultValueMarker());
+      default_value = NoDefaultValueMarker();
     }
     adoption_queue.Add(kind);
     adoption_queue.Add(default_value);
@@ -172,7 +166,6 @@ absl::StatusOr<Signature> KodaSignatureToCppSignature(
     return absl::InternalError("ListSize did not return an int64_t scalar");
   }
   auto list_size_val = list_size.item().value<int64_t>();
-  ASSIGN_OR_RETURN(auto no_default_value, NoDefaultValueMarker());
   std::vector<Signature::Parameter> res;
   for (int64_t i = 0; i < list_size_val; ++i) {
     ASSIGN_OR_RETURN(auto param_as_1d, parameter_list.ExplodeList(i, i + 1));
@@ -192,7 +185,7 @@ absl::StatusOr<Signature> KodaSignatureToCppSignature(
     ASSIGN_OR_RETURN(auto kind_enum, KodaToParameterKind(kind));
     ASSIGN_OR_RETURN(auto default_value, param.GetAttr("default_value"));
     std::optional<DataSlice> default_value_opt = std::nullopt;
-    if (default_value.item() != no_default_value.item()) {
+    if (default_value.item() != NoDefaultValueMarker().item()) {
       default_value_opt = default_value;
     }
     res.push_back(Signature::Parameter{.name = std::string(name_str),
@@ -202,39 +195,44 @@ absl::StatusOr<Signature> KodaSignatureToCppSignature(
   return Signature::Create(res);
 }
 
-const absl::StatusOr<DataSlice>& PositionalOnlyParameterKind() {
-  static absl::NoDestructor<absl::StatusOr<DataSlice>> val{
-      MakeParameterKindConstant("positional_only")};
+const DataSlice& PositionalOnlyParameterKind() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{
+      *MakeParameterKindConstant("positional_only")};
   return *val;
 }
 
-const absl::StatusOr<DataSlice>& PositionalOrKeywordParameterKind() {
-  static absl::NoDestructor<absl::StatusOr<DataSlice>> val{
-      MakeParameterKindConstant("positional_or_keyword")};
+const DataSlice& PositionalOrKeywordParameterKind() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{
+      *MakeParameterKindConstant("positional_or_keyword")};
   return *val;
 }
 
-const absl::StatusOr<DataSlice>& VarPositionalParameterKind() {
-  static absl::NoDestructor<absl::StatusOr<DataSlice>> val{
-      MakeParameterKindConstant("var_positional")};
+const DataSlice& VarPositionalParameterKind() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{
+      *MakeParameterKindConstant("var_positional")};
   return *val;
 }
 
-const absl::StatusOr<DataSlice>& KeywordOnlyParameterKind() {
-  static absl::NoDestructor<absl::StatusOr<DataSlice>> val{
-      MakeParameterKindConstant("keyword_only")};
+const DataSlice& KeywordOnlyParameterKind() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{
+      *MakeParameterKindConstant("keyword_only")};
   return *val;
 }
 
-const absl::StatusOr<DataSlice>& VarKeywordParameterKind() {
-  static absl::NoDestructor<absl::StatusOr<DataSlice>> val{
-      MakeParameterKindConstant("var_keyword")};
+const DataSlice& VarKeywordParameterKind() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{
+      *MakeParameterKindConstant("var_keyword")};
   return *val;
 }
 
-const absl::StatusOr<DataSlice>& NoDefaultValueMarker() {
-  static absl::NoDestructor<absl::StatusOr<DataSlice>> val{
-      MakeNoDefaultValueMarker()};
+const DataSlice& NoDefaultValueMarker() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{*MakeNoDefaultValueMarker()};
   return *val;
 }
 

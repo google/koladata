@@ -34,6 +34,7 @@ namespace {
 
 using ::koladata::testing::IsOkAndHolds;
 using ::koladata::testing::StatusIs;
+using ::testing::ElementsAre;
 
 TEST(ExprEvalTest, Basic) {
   arolla::InitArolla();
@@ -136,6 +137,28 @@ TEST(ExprEvalTest, UnknownContainer) {
       EvalExprWithCompilationCache(expr, {{"foo", foo_value.AsRef()}}, {}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "unknown input container: [Z]"));
+}
+
+TEST(GetExprVariablesTest, Basic) {
+  arolla::InitArolla();
+  ASSERT_OK_AND_ASSIGN(
+      auto expr,
+      arolla::expr::CallOp(
+          "math.add",
+          {arolla::expr::CallOp("koda_internal.input",
+                                {arolla::expr::Literal(arolla::Text("V")),
+                                 arolla::expr::Literal(arolla::Text("foo"))}),
+           arolla::expr::CallOp(
+               "math.add",
+               {arolla::expr::CallOp(
+                    "koda_internal.input",
+                    {arolla::expr::Literal(arolla::Text("V")),
+                     arolla::expr::Literal(arolla::Text("bar"))}),
+                arolla::expr::CallOp(
+                    "koda_internal.input",
+                    {arolla::expr::Literal(arolla::Text("I")),
+                     arolla::expr::Literal(arolla::Text("baz"))})})}));
+  EXPECT_THAT(GetExprVariables(expr), IsOkAndHolds(ElementsAre("bar", "foo")));
 }
 
 }  // namespace
