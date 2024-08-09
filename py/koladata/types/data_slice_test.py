@@ -501,6 +501,8 @@ class DataSliceTest(parameterized.TestCase):
       ):
         x.set_attr('invalid__update_schema_type', 1, False, 42)
 
+  def test_set_attr_incompatible_schema(self):
+    db = bag()
     db2 = bag()
     with self.assertRaisesRegex(
         exceptions.KodaError,
@@ -509,10 +511,38 @@ class DataSliceTest(parameterized.TestCase):
 Expected schema for 'x': SCHEMA(c=INT32)
 Assigned schema for 'x': SCHEMA(b=TEXT)
 
+To fix this, explicitly override schema of x in the original schema. For example,
+schema.x = <desired_schema>"""),
+    ):
+      db.new(x=db.new(c=1)).x = db2.new(b='a')
+
+    o = db.new(x='a').embed_schema()
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape("""the schema for attribute 'x' is incompatible.
+
+Expected schema for 'x': TEXT
+Assigned schema for 'x': INT32
+
 To fix this, explicitly override schema of x in the Object schema. For example,
 foo.get_obj_schema().x = <desired_schema>"""),
     ):
-      db.new(x=db.new(c=1)).x = db2.new(b='a')
+      o.x = 1
+
+    o1 = db.new(x=1).embed_schema()
+    o2 = db.new(x=1.0).embed_schema()
+    o = ds([o1, o2])
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape("""the schema for attribute 'x' is incompatible.
+
+Expected schema for 'x': FLOAT32
+Assigned schema for 'x': INT32
+
+To fix this, explicitly override schema of x in the Object schema. For example,
+foo.get_obj_schema().x = <desired_schema>"""),
+    ):
+      o.x = 1
 
   def test_set_get_attr_empty_attr_name(self):
     db = bag()

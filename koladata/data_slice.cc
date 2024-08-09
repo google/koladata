@@ -518,11 +518,12 @@ class RhsHandler {
           if (cast_to.has_value() && *cast_to != attr_stored_schema) {
             // NOTE: If cast_to and attr_stored_schema are different, but
             // compatible, we are still returning an error.
-            // TODO: Should this be changed?
-            status = absl::InvalidArgumentError(absl::StrFormat(
-                "Assignment would require to cast values to two different "
-                "types: %v and %v",
-                attr_stored_schema, *cast_to));
+            status = internal::WithErrorPayload(
+                absl::InvalidArgumentError(absl::StrFormat(
+                    "Assignment would require to cast values to two different "
+                    "types: %v and %v",
+                    attr_stored_schema, *cast_to)),
+                MakeIncompatibleSchemaError(attr_stored_schema));
             return;
           }
           cast_to = std::move(attr_stored_schema);
@@ -574,7 +575,7 @@ class RhsHandler {
           casted_rhs_ = *std::move(res);
           return absl::OkStatus();
         }
-        return IncompatibleSchemaError(cast_to);
+        return RhsCastingErrorStatus(cast_to);
       }
       return absl::OkStatus();
     }
@@ -582,20 +583,12 @@ class RhsHandler {
       casted_rhs_ = *std::move(res);
       return absl::OkStatus();
     }
-    return IncompatibleSchemaError(cast_to);
+    return RhsCastingErrorStatus(cast_to);
   }
 
-  absl::Status IncompatibleSchemaError(
+  absl::Status RhsCastingErrorStatus(
       const internal::DataItem& attr_stored_schema) const {
     absl::string_view attr = describe_attr();
-    internal::Error error;
-    error.mutable_incompatible_schema()->set_attr(attr_name_);
-    ASSIGN_OR_RETURN(
-        *error.mutable_incompatible_schema()->mutable_expected_schema(),
-        internal::EncodeDataItem(attr_stored_schema));
-    ASSIGN_OR_RETURN(
-        *error.mutable_incompatible_schema()->mutable_assigned_schema(),
-        internal::EncodeDataItem(rhs_.GetSchemaImpl()));
 
     absl::Status status = absl::OkStatus();
     switch (error_context_) {
@@ -615,7 +608,21 @@ class RhsHandler {
                             attr_stored_schema, attr, rhs_.GetSchemaImpl()));
         break;
     }
-    return WithErrorPayload(status, error);
+    return WithErrorPayload(status,
+                            MakeIncompatibleSchemaError(attr_stored_schema));
+  }
+
+  absl::StatusOr<internal::Error> MakeIncompatibleSchemaError(
+      const internal::DataItem& attr_stored_schema) const {
+    internal::Error error;
+    internal::IncompatibleSchema* incompatible_schema =
+        error.mutable_incompatible_schema();
+    incompatible_schema->set_attr(attr_name_);
+    ASSIGN_OR_RETURN(*incompatible_schema->mutable_expected_schema(),
+                     internal::EncodeDataItem(attr_stored_schema));
+    ASSIGN_OR_RETURN(*incompatible_schema->mutable_assigned_schema(),
+                     internal::EncodeDataItem(rhs_.GetSchemaImpl()));
+    return error;
   }
 
   absl::string_view describe_attr() const {

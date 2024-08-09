@@ -21,6 +21,7 @@
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
@@ -118,10 +119,7 @@ absl::StatusOr<Error> SetMissingObjectAttributeError(
 constexpr absl::string_view kExplicitSchemaIncompatibleAttrError =
     "the schema for attribute '%s' is incompatible.\n\n"
     "Expected schema for '%s': %v\n"
-    "Assigned schema for '%s': %v\n\n"
-    "To fix this, explicitly override schema of %s in the Object schema. "
-    "For example,\n"
-    "foo.get_obj_schema().%s = <desired_schema>";
+    "Assigned schema for '%s': %v";
 
 constexpr const char* kExplicitSchemaIncompatibleListItemError =
     "the schema for List item is incompatible.\n\n"
@@ -133,7 +131,8 @@ constexpr const char* kExplicitSchemaIncompatibleDictError =
     "Assigned schema for Dict %s: %v";
 
 absl::StatusOr<Error> SetIncompatibleSchemaError(
-    Error cause, absl::Nullable<const DataBagPtr>& db) {
+    Error cause, absl::Nullable<const DataBagPtr>& db,
+    std::optional<const DataSlice> ds) {
   ASSIGN_OR_RETURN(
       internal::DataItem assigned_schema_item,
       DecodeDataItem(cause.incompatible_schema().assigned_schema()));
@@ -166,10 +165,27 @@ absl::StatusOr<Error> SetIncompatibleSchemaError(
         absl::StrFormat(kExplicitSchemaIncompatibleDictError, "value", "value",
                         expected_schema_str, "value", assigned_schema_str));
   } else {
-    cause.set_error_message(
-        absl::StrFormat(kExplicitSchemaIncompatibleAttrError, attr_str,
-                        attr_str, expected_schema_str, attr_str,
-                        assigned_schema_str, attr_str, attr_str));
+    std::string error_str = absl::StrFormat(
+        kExplicitSchemaIncompatibleAttrError, attr_str, attr_str,
+        expected_schema_str, attr_str, assigned_schema_str);
+    if (ds && ds->GetSchemaImpl() == internal::DataItem(schema::kObject)) {
+      absl::StrAppend(
+          &error_str,
+          absl::StrFormat(
+              "\n\nTo fix this, explicitly override schema of %s in the Object "
+              "schema. For example,\n"
+              "foo.get_obj_schema().%s = <desired_schema>",
+              attr_str, attr_str));
+    } else {
+      absl::StrAppend(
+          &error_str,
+          absl::StrFormat(
+              "\n\nTo fix this, explicitly override schema of %s in the "
+              "original schema. For example,\n"
+              "schema.%s = <desired_schema>",
+              attr_str, attr_str));
+    }
+    cause.set_error_message(std::move(error_str));
   }
   return cause;
 }
@@ -193,8 +209,8 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
     return WithErrorPayload(status, error);
   }
   if (cause->has_incompatible_schema()) {
-    ASSIGN_OR_RETURN(Error error,
-                     SetIncompatibleSchemaError(*std::move(cause), data.db));
+    ASSIGN_OR_RETURN(Error error, SetIncompatibleSchemaError(*std::move(cause),
+                                                             data.db, data.ds));
     return WithErrorPayload(status, error);
   }
   return status;

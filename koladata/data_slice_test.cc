@@ -1654,6 +1654,32 @@ TEST(DataSliceTest, SetAttr_OnItemIdNotAllowed) {
                                  "allowed")));
 }
 
+TEST(DataSliceTest, SetAttr_ObjectWithExplicitSchema_Incompatible) {
+  arolla::InitArolla();
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_1, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+  ASSERT_OK_AND_ASSIGN(ds_1, ds_1.EmbedSchema());
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_2, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1.0)}));
+  ASSERT_OK_AND_ASSIGN(ds_2, ds_2.EmbedSchema());
+
+  ObjectId obj_id_1 = ds_1.item().value<ObjectId>();
+  ObjectId obj_id_2 = ds_2.item().value<ObjectId>();
+  auto ds_object_id = test::DataSlice<ObjectId>({obj_id_1, obj_id_2}, db);
+
+  absl::Status status = ds_object_id.SetAttr("a", test::DataItem(1));
+  EXPECT_THAT(status,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("two different types: FLOAT64 and INT32")));
+  std::optional<internal::Error> error = internal::GetErrorPayload(status);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error->has_incompatible_schema());
+  EXPECT_THAT(
+      error->error_message(),
+      HasSubstr("explicitly override schema of a in the Object schema."));
+}
+
 TEST(DataSliceTest, SetAttrWithUpdateSchema_EntityCreator) {
   auto db = DataBag::Empty();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
