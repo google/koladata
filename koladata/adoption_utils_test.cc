@@ -18,18 +18,18 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 
 namespace koladata {
 namespace {
 
-using ::koladata::testing::IsOkAndHolds;
+using ::absl_testing::IsOkAndHolds;
 using ::testing::ElementsAre;
 
 TEST(AdoptionQueueTest, Empty) {

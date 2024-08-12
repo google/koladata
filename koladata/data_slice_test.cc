@@ -26,6 +26,7 @@
 #include "gtest/gtest.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "koladata/adoption_utils.h"
@@ -44,7 +45,6 @@
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -61,6 +61,9 @@ namespace {
 
 using ObjectId = ::koladata::internal::ObjectId;
 
+using ::absl_testing::IsOk;
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 using ::arolla::CreateFullDenseArray;
 using ::arolla::GetQType;
@@ -71,9 +74,6 @@ using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::testing::DataItemWith;
 using ::koladata::schema::DType;
 using ::koladata::testing::IsEquivalentTo;
-using ::koladata::testing::IsOk;
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
 using ::testing::AllOf;
 using ::testing::ContainsRegex;
 using ::testing::DoubleNear;

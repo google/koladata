@@ -21,12 +21,12 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 
 namespace koladata {
@@ -158,8 +158,8 @@ TEST(DataSliceOp, SingleDataSliceArg_DataItem) {
   // Error propagation.
   EXPECT_THAT(
       DataSliceOp<TestOp1>()(ds, shape, schema, nullptr, 42, 2.71),
-      ::koladata::testing::StatusIs(absl::StatusCode::kInvalidArgument,
-                                    ::testing::HasSubstr("Error is raised")));
+      ::absl_testing::StatusIs(absl::StatusCode::kInvalidArgument,
+                               ::testing::HasSubstr("Error is raised")));
 }
 
 TEST(DataSliceOp, SingleDataSliceArg_DataSlice) {
@@ -184,8 +184,8 @@ TEST(DataSliceOp, SingleDataSliceArg_DataSlice) {
   // Error propagation.
   EXPECT_THAT(
       DataSliceOp<TestOp1>()(ds, shape, schema, nullptr, 42, 2.71),
-      ::koladata::testing::StatusIs(absl::StatusCode::kInvalidArgument,
-                                    ::testing::HasSubstr("Error is raised")));
+      ::absl_testing::StatusIs(absl::StatusCode::kInvalidArgument,
+                               ::testing::HasSubstr("Error is raised")));
 }
 
 struct TestOp2Args {

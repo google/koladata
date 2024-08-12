@@ -21,11 +21,11 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 
@@ -33,9 +33,9 @@ namespace koladata::functor {
 
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::FieldsAre;

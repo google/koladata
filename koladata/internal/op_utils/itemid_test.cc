@@ -19,19 +19,19 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
 
 namespace koladata::internal {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 

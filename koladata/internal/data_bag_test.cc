@@ -27,13 +27,13 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/optional_value.h"
@@ -45,9 +45,9 @@
 namespace koladata::internal {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
 using ::arolla::OptionalValue;
 using ::koladata::internal::testing::IsEquivalentTo;
-using ::koladata::testing::IsOkAndHolds;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::IsEmpty;

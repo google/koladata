@@ -20,6 +20,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/str_format.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -28,7 +29,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
@@ -39,12 +39,12 @@
 namespace koladata::schema {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::koladata::internal::DataItem;
 using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::testing::DataBagEqual;
 using ::koladata::internal::testing::IsEquivalentTo;
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
 using ::testing::HasSubstr;
 
 TEST(CastingTest, ToInt32_DataItem) {

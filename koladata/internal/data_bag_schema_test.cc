@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/internal/data_bag.h"
-
 #include <cstddef>
 #include <functional>
 #include <initializer_list>
@@ -24,7 +22,9 @@
 #include "gtest/gtest.h"
 #include "absl/base/no_destructor.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/string_view.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -32,7 +32,6 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/qtype/base_types.h"
@@ -43,9 +42,9 @@
 namespace koladata::internal {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::koladata::internal::testing::IsEquivalentTo;
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 using ::testing::MatchesRegex;

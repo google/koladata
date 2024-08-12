@@ -24,12 +24,12 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/types.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/expr.h"
@@ -331,13 +331,12 @@ TEST(DataSliceImpl, CreatePolymorfic) {
   auto array = arolla::CreateConstDenseArray<uint64_t>(kSize, 0);
   EXPECT_THAT(
       DataSliceImpl::Create(arolla::TypedRef::FromValue(array)).status(),
-      ::koladata::testing::StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          ::testing::HasSubstr("element type: UINT64")));
+      ::absl_testing::StatusIs(absl::StatusCode::kInvalidArgument,
+                               ::testing::HasSubstr("element type: UINT64")));
 
   EXPECT_THAT(
       DataSliceImpl::Create(arolla::TypedRef::FromValue(ObjectId())).status(),
-      ::koladata::testing::StatusIs(
+      ::absl_testing::StatusIs(
           absl::StatusCode::kInvalidArgument,
           ::testing::HasSubstr("unsupported type: OBJECT_ID")));
 }
@@ -367,7 +366,7 @@ TEST(DataSliceImpl, CreateEmptyWithType) {
   });
   EXPECT_THAT(
       DataSliceImpl::CreateEmptyWithType(kSize, arolla::GetNothingQType()),
-      ::koladata::testing::StatusIs(
+      ::absl_testing::StatusIs(
           absl::StatusCode::kInvalidArgument,
           ::testing::HasSubstr("unsupported type: NOTHING")));
 }

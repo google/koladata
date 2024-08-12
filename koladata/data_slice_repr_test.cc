@@ -22,6 +22,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/log/log.h"
+#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
@@ -33,7 +34,6 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
@@ -43,12 +43,12 @@
 namespace koladata {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
 using ::arolla::CreateDenseArray;
 using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
 using ::arolla::OptionalValue;
 using ::koladata::internal::ObjectId;
-using ::koladata::testing::IsOkAndHolds;
 using ::testing::MatchesRegex;
 using ::testing::StrEq;
 

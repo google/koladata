@@ -22,6 +22,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_bag.h"
@@ -35,7 +36,6 @@
 #include "koladata/internal/uuid_object.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/testing/matchers.h"
@@ -48,6 +48,8 @@ namespace {
 
 using ObjectId = internal::ObjectId;
 
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 using ::arolla::DenseArrayEdge;
 using ::arolla::Text;
@@ -55,8 +57,6 @@ using ::arolla::testing::IsEquivalentTo;
 using ::koladata::internal::testing::DataItemWith;
 using ::koladata::internal::testing::MissingDataItem;
 using ::koladata::testing::IsEquivalentTo;
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::Eq;

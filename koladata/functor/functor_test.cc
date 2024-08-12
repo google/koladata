@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
@@ -29,7 +30,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/quote.h"
@@ -41,9 +41,9 @@ namespace koladata::functor {
 
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
 using ::testing::HasSubstr;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {

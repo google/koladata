@@ -21,12 +21,12 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/s11n/codec.pb.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/meta.h"
@@ -37,6 +37,8 @@
 namespace koladata::internal {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::arolla::testing::EqualsProto;
 using ::koladata::schema::AnyDType;
 using ::koladata::schema::DType;
@@ -45,8 +47,6 @@ using ::koladata::schema::ItemIdDType;
 using ::koladata::schema::NoneDType;
 using ::koladata::schema::ObjectDType;
 using ::koladata::schema::SchemaDType;
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
 using ::testing::HasSubstr;
 using ::testing::Optional;
 

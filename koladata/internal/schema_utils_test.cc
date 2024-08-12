@@ -23,6 +23,7 @@
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "koladata/internal/data_item.h"
@@ -31,7 +32,6 @@
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/meta.h"
@@ -39,10 +39,10 @@
 namespace koladata::schema {
 namespace {
 
+using ::absl_testing::IsOk;
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::koladata::internal::Error;
-using ::koladata::testing::IsOk;
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
 using ::testing::Contains;
 using ::testing::HasSubstr;
 using ::testing::Not;

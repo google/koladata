@@ -22,13 +22,13 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/uuid_object.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_operator.h"
@@ -174,10 +174,10 @@ TEST(DataItemTest, InvalidTypedValue) {
   auto value = arolla::DenseArray<int>();
   for (auto item_or_status : {DataItem::Create(TypedRef::FromValue(value)),
                               DataItem::Create(TypedValue::FromValue(value))}) {
-    EXPECT_THAT(item_or_status, ::koladata::testing::StatusIs(
-                                    absl::StatusCode::kInvalidArgument,
-                                    "DataItem cannot be created from "
-                                    "value with type DENSE_ARRAY_INT32"));
+    EXPECT_THAT(item_or_status,
+                ::absl_testing::StatusIs(absl::StatusCode::kInvalidArgument,
+                                         "DataItem cannot be created from "
+                                         "value with type DENSE_ARRAY_INT32"));
   }
 }
 

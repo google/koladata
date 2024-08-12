@@ -46,23 +46,3 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
-
-cc_library(
-    name = "status_matchers",
-    testonly = 1,
-    srcs = [
-        "status_matchers_backport.cc",
-    ],
-    hdrs = [
-        "status_matchers_backport.h",
-    ],
-    visibility = [
-        "//koladata:internal",
-    ],
-    deps = [
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_arolla//arolla/util:status_backport",
-        "@com_google_googletest//:gtest",
-    ],
-)

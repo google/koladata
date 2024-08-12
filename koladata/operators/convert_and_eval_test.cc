@@ -22,13 +22,13 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/memory/optional_value.h"
@@ -38,8 +38,8 @@
 namespace koladata::ops {
 namespace {
 
+using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
-using ::koladata::testing::StatusIs;
 using ::testing::HasSubstr;
 using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
 

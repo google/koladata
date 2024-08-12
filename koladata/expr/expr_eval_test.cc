@@ -22,7 +22,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
-#include "koladata/testing/status_matchers_backport.h"
+#include "absl/status/status_matchers.h"
 #include "arolla/expr/expr.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/init_arolla.h"
@@ -32,8 +32,8 @@ namespace koladata::expr {
 
 namespace {
 
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::testing::ElementsAre;
 
 TEST(ExprEvalTest, Basic) {

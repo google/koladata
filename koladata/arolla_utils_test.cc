@@ -20,6 +20,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
@@ -27,7 +28,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/array/array.h"
 #include "arolla/array/qtype/types.h"
 #include "arolla/dense_array/dense_array.h"
@@ -52,12 +52,12 @@ AROLLA_DEFINE_DENSE_ARRAY_QTYPE(DENSE_ARRAY_OBJECT_ID,
 namespace koladata {
 namespace {
 
+using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 using ::arolla::CreateFullDenseArray;
 using ::arolla::DenseArray;
 using ::arolla::Text;
 using ::koladata::testing::IsEquivalentTo;
-using ::koladata::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;

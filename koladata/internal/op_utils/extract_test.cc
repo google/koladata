@@ -24,6 +24,7 @@
 #include "gtest/gtest.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -32,7 +33,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/memory/optional_value.h"
@@ -41,7 +41,7 @@
 namespace koladata::internal {
 namespace {
 
-using ::koladata::testing::StatusIs;
+using ::absl_testing::StatusIs;
 
 using ::arolla::CreateDenseArray;
 using ::koladata::internal::testing::DataBagEqual;

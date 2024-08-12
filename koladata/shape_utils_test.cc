@@ -21,19 +21,19 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 
 namespace koladata::shape {
 namespace {
 
+using ::absl_testing::StatusIs;
 using ::arolla::CreateFullDenseArray;
 using ::koladata::testing::IsEquivalentTo;
-using ::koladata::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 

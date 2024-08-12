@@ -21,10 +21,10 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -33,7 +33,7 @@
 
 namespace koladata::internal {
 namespace {
-using ::koladata::testing::StatusIs;
+using ::absl_testing::StatusIs;
 using ::testing::ElementsAre;
 
 using ::arolla::CreateDenseArray;

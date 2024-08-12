@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -30,15 +31,13 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/util/init_arolla.h"
-#include "arolla/util/testing/equals_proto.h"
 
 namespace koladata {
 namespace {
 
+using ::absl_testing::StatusIs;
 using ::koladata::internal::Error;
-using ::koladata::testing::StatusIs;
 using ::testing::MatchesRegex;
 using ::testing::StrEq;
 

@@ -22,10 +22,10 @@
 #include "gtest/gtest.h"
 #include "absl/hash/hash_testing.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "koladata/internal/stable_fingerprint.h"
 #include "koladata/internal/types.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/quote.h"
@@ -61,7 +61,7 @@ AROLLA_DEFINE_SIMPLE_QTYPE(NEW, New);
 namespace koladata::schema {
 namespace {
 
-using ::koladata::testing::StatusIs;
+using ::absl_testing::StatusIs;
 using ::testing::HasSubstr;
 
 using arolla::CreateDenseArray;

@@ -25,6 +25,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
@@ -37,7 +38,6 @@
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "koladata/testing/status_matchers_backport.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
 #include "arolla/util/bytes.h"
@@ -49,11 +49,11 @@
 namespace koladata {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::koladata::internal::ObjectId;
 using ::koladata::internal::testing::DataBagEqual;
 using ::koladata::testing::IsEquivalentTo;
-using ::koladata::testing::IsOkAndHolds;
-using ::koladata::testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
