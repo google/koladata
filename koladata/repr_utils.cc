@@ -168,19 +168,19 @@ absl::StatusOr<Error> SetIncompatibleSchemaError(
     std::string error_str = absl::StrFormat(
         kExplicitSchemaIncompatibleAttrError, attr_str, attr_str,
         expected_schema_str, attr_str, assigned_schema_str);
-    if (ds && ds->GetSchemaImpl() == internal::DataItem(schema::kObject)) {
+    if (ds && ds->GetSchemaImpl() == schema::kObject) {
       absl::StrAppend(
           &error_str,
-          absl::StrFormat(
-              "\n\nTo fix this, explicitly override schema of %s in the Object "
-              "schema. For example,\n"
-              "foo.get_obj_schema().%s = <desired_schema>",
-              attr_str, attr_str));
+          absl::StrFormat("\n\nTo fix this, explicitly override schema of '%s' "
+                          "in the Object "
+                          "schema. For example,\n"
+                          "foo.get_obj_schema().%s = <desired_schema>",
+                          attr_str, attr_str));
     } else {
       absl::StrAppend(
           &error_str,
           absl::StrFormat(
-              "\n\nTo fix this, explicitly override schema of %s in the "
+              "\n\nTo fix this, explicitly override schema of '%s' in the "
               "original schema. For example,\n"
               "schema.%s = <desired_schema>",
               attr_str, attr_str));

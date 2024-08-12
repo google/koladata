@@ -511,7 +511,7 @@ class DataSliceTest(parameterized.TestCase):
 Expected schema for 'x': SCHEMA(c=INT32)
 Assigned schema for 'x': SCHEMA(b=TEXT)
 
-To fix this, explicitly override schema of x in the original schema. For example,
+To fix this, explicitly override schema of 'x' in the original schema. For example,
 schema.x = <desired_schema>"""),
     ):
       db.new(x=db.new(c=1)).x = db2.new(b='a')
@@ -524,7 +524,7 @@ schema.x = <desired_schema>"""),
 Expected schema for 'x': TEXT
 Assigned schema for 'x': INT32
 
-To fix this, explicitly override schema of x in the Object schema. For example,
+To fix this, explicitly override schema of 'x' in the Object schema. For example,
 foo.get_obj_schema().x = <desired_schema>"""),
     ):
       o.x = 1
@@ -539,7 +539,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
 Expected schema for 'x': FLOAT32
 Assigned schema for 'x': INT32
 
-To fix this, explicitly override schema of x in the Object schema. For example,
+To fix this, explicitly override schema of 'x' in the Object schema. For example,
 foo.get_obj_schema().x = <desired_schema>"""),
     ):
       o.x = 1

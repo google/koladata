@@ -1677,7 +1677,7 @@ TEST(DataSliceTest, SetAttr_ObjectWithExplicitSchema_Incompatible) {
   EXPECT_TRUE(error->has_incompatible_schema());
   EXPECT_THAT(
       error->error_message(),
-      HasSubstr("explicitly override schema of a in the Object schema."));
+      HasSubstr("explicitly override schema of 'a' in the Object schema."));
 }
 
 TEST(DataSliceTest, SetAttrWithUpdateSchema_EntityCreator) {
