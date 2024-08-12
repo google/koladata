@@ -132,5 +132,18 @@ void BM_IsEquivalentTo(benchmark::State& state) {
 
 BENCHMARK(BM_IsEquivalentTo)->Range(10, 100000);
 
+void BM_ContainsOnlyLists(benchmark::State& state) {
+  int64_t size = state.range(0);
+  AllocationId alloc_id = AllocateLists(size);
+  auto ds = DataSliceImpl::ObjectsFromAllocation(alloc_id, size);
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(ds);
+    bool res = ds.ContainsOnlyLists();
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_ContainsOnlyLists)->Arg(1)->Arg(10)->Arg(1000)->Arg(100000);
+
 }  // namespace
 }  // namespace koladata::internal
