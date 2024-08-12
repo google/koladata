@@ -23,6 +23,15 @@ namespace koladata::ops {
 // kde.math.subtract.
 absl::StatusOr<DataSlice> Subtract(const DataSlice& x, const DataSlice& y);
 
+// kde.math.multiply.
+absl::StatusOr<DataSlice> Multiply(const DataSlice& x, const DataSlice& y);
+
+// kde.math.maximum.
+absl::StatusOr<DataSlice> Maximum(const DataSlice& x, const DataSlice& y);
+
+// kde.math.minimum.
+absl::StatusOr<DataSlice> Minimum(const DataSlice& x, const DataSlice& y);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATH_H_

@@ -89,6 +89,9 @@ OPERATOR("kde.logical.apply_mask", ApplyMask);
 OPERATOR("kde.logical.coalesce", Coalesce);
 OPERATOR("kde.logical.has", Has);
 //
+OPERATOR("kde.math.maximum", Maximum);
+OPERATOR("kde.math.minimum", Minimum);
+OPERATOR("kde.math.multiply", Multiply);
 OPERATOR("kde.math.subtract", Subtract);
 //
 OPERATOR("kde.schema._list_schema", ListSchema);

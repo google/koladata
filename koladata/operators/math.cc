@@ -29,4 +29,22 @@ absl::StatusOr<DataSlice> Subtract(const DataSlice& x, const DataSlice& y) {
       {x, y});
 }
 
+absl::StatusOr<DataSlice> Multiply(const DataSlice& x, const DataSlice& y) {
+  return SimplePointwiseEval(
+      std::make_shared<arolla::expr::RegisteredOperator>("math.multiply"),
+      {x, y});
+}
+
+absl::StatusOr<DataSlice> Maximum(const DataSlice& x, const DataSlice& y) {
+  return SimplePointwiseEval(
+      std::make_shared<arolla::expr::RegisteredOperator>("math.maximum"),
+      {x, y});
+}
+
+absl::StatusOr<DataSlice> Minimum(const DataSlice& x, const DataSlice& y) {
+  return SimplePointwiseEval(
+      std::make_shared<arolla::expr::RegisteredOperator>("math.minimum"),
+      {x, y});
+}
+
 }  // namespace koladata::ops
