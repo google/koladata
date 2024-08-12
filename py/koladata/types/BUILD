@@ -15,7 +15,7 @@
 # Custom C++/Python bindings for Kola types.
 
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
-load("//py/koladata:py_extension.bzl", "py_extension")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -101,6 +101,7 @@ py_test(
         ":data_slice",
         ":qtypes",
         ":schema_constants",
+        "//py/koladata/exceptions",
         "//py/koladata/testing",
         "//py/koladata/types/testing:operator_test_invalid_unicode_op",  # buildcleaner: keep
         "@com_google_absl_py//absl/testing:absltest",
@@ -211,7 +212,7 @@ cc_library(
     ],
 )
 
-py_extension(
+koladata_py_extension(
     name = "data_slice_py_ext",
     srcs = ["data_slice_module.cc"],
     deps = [":data_slice_cc_lib"],
@@ -241,6 +242,7 @@ py_test(
         ":list_item",
         ":qtypes",
         ":schema_constants",
+        "//py/koladata/exceptions",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -264,7 +266,7 @@ cc_library(
     ],
 )
 
-py_extension(
+koladata_py_extension(
     name = "data_item_py_ext",
     srcs = ["data_item_module.cc"],
     deps = [":data_item_cc_lib"],
@@ -459,7 +461,7 @@ cc_library(
     ],
 )
 
-py_extension(
+koladata_py_extension(
     name = "data_bag_py_ext",
     srcs = ["data_bag_module.cc"],
     deps = [":data_bag_cc_lib"],
@@ -498,7 +500,7 @@ cc_library(
     ],
 )
 
-py_extension(
+koladata_py_extension(
     name = "py_misc_py_ext",
     srcs = ["py_misc_module.cc"],
     deps = [":py_misc_cc_lib"],
@@ -552,6 +554,7 @@ py_test(
         ":jagged_shape",
         ":list_item",
         ":schema_constants",
+        "//py/koladata/exceptions",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",

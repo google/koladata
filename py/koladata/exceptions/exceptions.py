@@ -16,6 +16,7 @@
 
 from typing import Self
 
+from koladata.exceptions import error_pb2
 from koladata.exceptions import py_exceptions_py_ext as _py_exceptions_py_ext
 
 

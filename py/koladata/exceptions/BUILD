@@ -14,7 +14,10 @@
 
 # Custom C++/Python bindings for Koda errors.
 
-load("//py/koladata:py_extension.bzl", "py_extension")
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+load("@rules_python//python:proto.bzl", "py_proto_library")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -22,10 +25,51 @@ package(default_visibility = [
 
 licenses(["notice"])
 
-py_extension(
+koladata_py_extension(
     name = "py_exceptions_py_ext",
     srcs = ["py_exceptions_module.cc"],
     deps = [":py_exception_utils"],
+)
+
+# NOTE: b/352697901 - We copy the proto file here to make in available in the OSS py package.
+copy_file(
+    name = "error_proto_copy",
+    src = "//koladata/internal:error.proto",
+    out = "error.proto",
+)
+
+proto_library(
+    name = "error_proto",
+    srcs = ["error.proto"],
+    deps = [
+        "@com_google_arolla//arolla/serialization_base:base_proto",
+    ],
+)
+
+py_proto_library(
+    name = "error_py_proto",
+    deps = [":error_proto"],
+)
+
+py_library(
+    name = "exceptions",
+    srcs = ["exceptions.py"],
+    deps = [
+        ":error_py_proto",
+        ":py_exceptions_py_ext",
+        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+    ],
+)
+
+py_test(
+    name = "exceptions_test",
+    srcs = ["exceptions_test.py"],
+    deps = [
+        ":error_py_proto",
+        ":exceptions",
+        "//py/koladata/exceptions/testing:testing_pybind",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
 )
 
 cc_library(

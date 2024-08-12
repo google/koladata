@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Package for utilities and fakes in testing.
-
-load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_pybind_extension")
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -22,15 +20,27 @@ package(default_visibility = [
 
 licenses(["notice"])
 
-koladata_pybind_extension(
-    name = "testing_pybind",
-    testonly = True,
-    srcs = ["testing_pybind.cc"],
-    deps = [
-        "//koladata/internal:error_cc_proto",
-        "//koladata/internal:error_utils",
-        "//py/koladata/exceptions:py_exception_utils",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings:string_view",
+cc_shared_library(
+    name = "koladata_so",
+    dynamic_deps = [
+        "@com_google_arolla//py/arolla/dynamic_deps:base_so",
+        "@com_google_arolla//py/arolla/dynamic_deps:arolla_so",
+        "@com_google_arolla//py/arolla/dynamic_deps:py_abc_so",
     ],
+    exports_filter = [
+        "//koladata:__subpackages__",
+        "//py/koladata:__subpackages__",
+    ],
+    deps = [
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/s11n",
+        "//py/koladata/exceptions:py_exception_utils",
+    ],
+)
+
+bzl_library(
+    name = "py_extension_bzl",
+    srcs = ["py_extension.bzl"],
+    visibility = ["//koladata:internal"],
 )

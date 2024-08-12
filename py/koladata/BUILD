@@ -14,7 +14,6 @@
 
 # Koda, a library for advanced data manipulation.
 
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
 package(default_visibility = ["//py/koladata:__subpackages__"])
@@ -35,6 +34,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/functions",
@@ -111,10 +111,4 @@ cc_test(
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
-)
-
-bzl_library(
-    name = "py_extension_bzl",
-    srcs = ["py_extension.bzl"],
-    visibility = ["//koladata:internal"],
 )

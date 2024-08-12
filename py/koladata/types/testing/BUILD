@@ -20,7 +20,7 @@ load(
     "operator_overload_list",
 )
 load("@rules_python//python:defs.bzl", "py_test")
-load("//py/koladata:py_extension.bzl", "py_extension")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -55,7 +55,7 @@ operator_libraries(
     ),
 )
 
-py_extension(
+koladata_py_extension(
     name = "py_utils_py_ext",
     srcs = ["py_utils_module.cc"],
     deps = [

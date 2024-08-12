@@ -15,6 +15,7 @@
 """Tests for Koda exceptions."""
 
 from absl.testing import absltest
+from koladata.exceptions import error_pb2
 from koladata.exceptions import exceptions
 from koladata.exceptions.testing import testing_pybind
 
@@ -41,7 +42,10 @@ class ExceptionsTest(absltest.TestCase):
   def test_raise_by_arolla(self):
     with self.assertRaises(ValueError) as cm:
       testing_pybind.raise_from_status_without_payload('test error')
-    self.assertStartsWith(str(cm.exception), '[INTERNAL] test error;')
+    self.assertStartsWith(
+        str(cm.exception),
+        '[INTERNAL] test error'
+    )
 
   def test_nested_koda_error(self):
     err_proto = error_pb2.Error(error_message='test error')

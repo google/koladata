@@ -30,6 +30,8 @@ proto_library(
     ],
 )
 
+exports_files(["error.proto"])
+
 cc_proto_library(
     name = "error_cc_proto",
     deps = [":error_proto"],

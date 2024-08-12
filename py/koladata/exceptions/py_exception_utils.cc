@@ -41,14 +41,17 @@ using ::arolla::python::PyObjectPtr;
 absl::NoDestructor<arolla::python::PyObjectPtr> exception_factory;
 
 absl::Nullable<PyObject*> CreateKodaException(const absl::Cord& payload) {
+  // TODO: Add a test where Koda exceptions are not registered.
+  if (exception_factory->get() == nullptr) {
+    PyErr_SetString(PyExc_Exception, "Koda exception factory is not set");
+    return nullptr;
+  }
   PyObjectPtr py_bytes =
       PyObjectPtr::Own(PyBytes_FromStringAndSize(nullptr, payload.size()));
   auto dest = PyBytes_AS_STRING(py_bytes.get());
   for (const absl::string_view chunk : payload.Chunks()) {
     dest = std::copy_n(chunk.data(), chunk.size(), dest);
   }
-  // NOTE: If the exception_factory is not set, i.e. the python module is not
-  // loaded, the process will crash.
   return PyObject_CallOneArg(exception_factory->get(), py_bytes.release());
 }
 

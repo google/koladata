@@ -17,6 +17,7 @@
 from typing import Any
 
 from arolla import arolla as _arolla
+from koladata.exceptions import exceptions as _
 from koladata.operators import kde_operators
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_slice as _data_slice

@@ -15,7 +15,7 @@
 # Utlities for Koda Expr(s).
 
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
-load("//py/koladata:py_extension.bzl", "py_extension")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -131,7 +131,7 @@ cc_library(
     ],
 )
 
-py_extension(
+koladata_py_extension(
     name = "py_expr_eval_py_ext",
     srcs = ["py_expr_eval_module.cc"],
     deps = [":py_expr_eval_cc_lib"],

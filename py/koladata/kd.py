@@ -17,6 +17,7 @@
 import types as _py_types
 
 from arolla import arolla as _arolla
+from koladata.exceptions import exceptions as _exceptions
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.functions import functions as _functions
