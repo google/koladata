@@ -95,6 +95,7 @@ OPERATOR_FAMILY("kde.core.subslice", SubsliceOperatorFamily);
 OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
 //
+OPERATOR("kde.logical._has_not", HasNot);
 OPERATOR("kde.logical.apply_mask", ApplyMask);
 OPERATOR("kde.logical.coalesce", Coalesce);
 OPERATOR("kde.logical.has", Has);
