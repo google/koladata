@@ -321,19 +321,15 @@ internal::DataSliceImpl GetSliceImpl(const DataSlice& slice) {
              : internal::DataSliceImpl::Create({slice.item()});
 }
 
-// Returns true iff the DataSlice implementation is empty-and-unknown and it
-// doesn't have a primitive schema.
-bool IsEmptyAndUnknown(const DataSlice& x) {
+// Returns a schema corresponding to the data of the provided slice. If the
+// slice is empty-and-unknown, returns an empty schema.
+internal::DataItem GetPrimitiveSchema(const DataSlice& x) {
   const auto& schema = x.GetSchemaImpl();
-  return !schema.is_entity_schema() && !schema.is_primitive_schema() &&
-         x.impl_empty_and_unknown();
-}
-
-// Returns a primitive schema if the given QType is supported by schema, or an
-// empty DataItem otherwise.
-internal::DataItem GetSchemaOrEmpty(const arolla::QTypePtr& qtype) {
-  return schema::DType::VerifyQTypeSupported(qtype)
-             ? internal::DataItem(*schema::DType::FromQType(qtype))
+  if (schema.is_primitive_schema()) {
+    return schema;
+  }
+  return schema::DType::VerifyQTypeSupported(x.dtype())
+             ? internal::DataItem(*schema::DType::FromQType(x.dtype()))
              : internal::DataItem();
 }
 
@@ -397,10 +393,8 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
       return absl::InvalidArgumentError("mixed slices are not supported");
     }
     schema_agg.Add(x.GetSchemaImpl());
-    if (!first_primitive_schema.has_value() && !IsEmptyAndUnknown(x)) {
-      first_primitive_schema = x.GetSchemaImpl().is_primitive_schema()
-                                   ? x.GetSchemaImpl()
-                                   : GetSchemaOrEmpty(x.dtype());
+    if (!first_primitive_schema.has_value()) {
+      first_primitive_schema = GetPrimitiveSchema(x);
     }
   }
   if (!output_schema.has_value()) {
@@ -414,8 +408,8 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
                      DataSlice::Create(internal::DataItem(), output_schema));
     return BroadcastToShape(ds, std::move(common_shape));
   }
-  // From here on, we know that no inputs are empty-and-unknown and we should
-  // eval.
+  // From here on, we know that at least one input has known schema and we
+  // should eval.
   ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
                    shape::AlignNonScalars(std::move(inputs)));
   std::vector<arolla::TypedValue> typed_value_holder;

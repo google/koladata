@@ -22,6 +22,7 @@
 #include "koladata/operators/collapse.h"
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/convert_and_eval.h"
+#include "koladata/operators/core.h"
 #include "koladata/operators/dict.h"
 #include "koladata/operators/equal.h"
 #include "koladata/operators/explode.h"
@@ -64,6 +65,7 @@ OPERATOR("kde.comparison.greater_equal", GreaterEqual);
 OPERATOR("kde.comparison.less", Less);
 OPERATOR("kde.comparison.less_equal", LessEqual);
 //
+OPERATOR("kde.core._add", Add);
 OPERATOR("kde.core._clone", Clone);
 OPERATOR("kde.core._clone_with_schema", CloneWithSchema);
 OPERATOR("kde.core._collapse", Collapse);
