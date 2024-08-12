@@ -81,6 +81,7 @@ cc_library(
     ],
     hdrs = [
         "align.h",
+        "allocation.h",
         "assertion.h",
         "clone.h",
         "collapse.h",
@@ -120,6 +121,7 @@ cc_library(
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/internal:ellipsis",
+        "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
         "//koladata/internal/op_utils:at",
         "//koladata/internal/op_utils:collapse",

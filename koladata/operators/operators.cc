@@ -16,6 +16,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/align.h"
+#include "koladata/operators/allocation.h"
 #include "koladata/operators/assertion.h"
 #include "koladata/operators/clone.h"
 #include "koladata/operators/collapse.h"
@@ -51,6 +52,10 @@ namespace {
 #define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
+OPERATOR("kde.allocation.new_dictid_shaped", NewDictIdShaped);
+OPERATOR("kde.allocation.new_itemid_shaped", NewItemIdShaped);
+OPERATOR("kde.allocation.new_listid_shaped", NewListIdShaped);
+//
 OPERATOR("kde.assertion.assert_ds_has_primitives_of", AssertDsHasPrimitivesOf);
 //
 OPERATOR("kde.comparison.equal", Equal);
