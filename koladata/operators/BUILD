@@ -64,6 +64,7 @@ cc_library(
     name = "lib",
     srcs = [
         "align.cc",
+        "comparison.cc",
         "convert_and_eval.cc",
         "explode.cc",
         "get_attr.cc",
@@ -83,6 +84,7 @@ cc_library(
         "assertion.h",
         "clone.h",
         "collapse.h",
+        "comparison.h",
         "convert_and_eval.h",
         "dict.h",
         "equal.h",
@@ -221,6 +223,7 @@ cc_test(
         ":lib",
         "//koladata:data_slice",
         "//koladata:test_utils",
+        "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "//koladata/testing:matchers",
         "//koladata/testing:status_matchers",

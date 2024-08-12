@@ -387,8 +387,8 @@ ConvertAndEvalWithShapeFamily::DoGetOperator(
 }
 
 absl::StatusOr<DataSlice> SimplePointwiseEval(
-    const arolla::expr::ExprOperatorPtr& expr_op,
-    std::vector<DataSlice> inputs) {
+    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema) {
   DCHECK_GE(inputs.size(), 1);
   schema::CommonSchemaAggregator schema_agg;
   internal::DataItem first_primitive_schema;
@@ -403,13 +403,15 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
                                    : GetSchemaOrEmpty(x.dtype());
     }
   }
-  ASSIGN_OR_RETURN(auto common_schema, std::move(schema_agg).Get());
+  if (!output_schema.has_value()) {
+    ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
+  }
   // All empty-and-unknown inputs. We then skip evaluation and just broadcast
   // the first input to the common shape and common schema.
   if (!first_primitive_schema.has_value()) {
     ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(inputs));
     ASSIGN_OR_RETURN(auto ds,
-                     DataSlice::Create(internal::DataItem(), common_schema));
+                     DataSlice::Create(internal::DataItem(), output_schema));
     return BroadcastToShape(ds, std::move(common_shape));
   }
   // From here on, we know that no inputs are empty-and-unknown and we should
@@ -429,7 +431,7 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
   ASSIGN_OR_RETURN(auto fn, EvalCompiler::Compile(expr_op, typed_refs));
   ASSIGN_OR_RETURN(auto result, fn(typed_refs));
   return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
-                                  std::move(common_schema));
+                                  std::move(output_schema));
 }
 
 absl::StatusOr<bool> ToArollaBoolean(const DataSlice& x) {

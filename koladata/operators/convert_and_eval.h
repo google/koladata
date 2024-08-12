@@ -67,11 +67,11 @@ class ConvertAndEvalWithShapeFamily : public arolla::OperatorFamily {
 // Evaluates the given expression on the given inputs and returns the result.
 // The expr_op is expected to be a pointwise operator that should be evaluated
 // on the given inputs extracted as Arolla values. The output DataSlice has the
-// the common shape and schema of the inputs. If one or more inputs are
-// empty-and-unknown, the `expr_op` is not evaluated.
+// the common shape and schema of the inputs, or `output_schema` if provided. If
+// one or more inputs are empty-and-unknown, the `expr_op` is not evaluated.
 absl::StatusOr<DataSlice> SimplePointwiseEval(
-    const arolla::expr::ExprOperatorPtr& expr_op,
-    std::vector<DataSlice> inputs);
+    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema = internal::DataItem());
 
 // koda_internal.to_arolla_boolean operator.
 //

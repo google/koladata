@@ -24,6 +24,7 @@
 #include "absl/status/status.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
@@ -72,6 +73,16 @@ TEST(SimplePointwiseEvalTest, SimpleEval) {
                 IsEquivalentTo(test::DataSlice<int64_t>(
                     {int64_t{4}, int64_t{-2}, std::nullopt, std::nullopt},
                     y_shape, schema::kObject)));
+    // With output schema set.
+    ASSERT_OK_AND_ASSIGN(
+        result,
+        SimplePointwiseEval(
+            std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
+            {x, y}, internal::DataItem(schema::kAny)));
+    EXPECT_THAT(result,
+                IsEquivalentTo(test::DataSlice<int64_t>(
+                    {int64_t{4}, int64_t{-2}, std::nullopt, std::nullopt},
+                    y_shape, schema::kAny)));
   }
   {
     // One empty and unknown slice.
@@ -124,6 +135,15 @@ TEST(SimplePointwiseEvalTest, SimpleEval) {
         result,
         IsEquivalentTo(
             *test::EmptyDataSlice(4, schema::kObject).Reshape(y_shape)));
+    // With output schema set.
+    ASSERT_OK_AND_ASSIGN(
+        result,
+        SimplePointwiseEval(
+            std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
+            {x, y}, internal::DataItem(schema::kAny)));
+    EXPECT_THAT(result,
+                IsEquivalentTo(
+                    *test::EmptyDataSlice(4, schema::kAny).Reshape(y_shape)));
   }
 }
 
