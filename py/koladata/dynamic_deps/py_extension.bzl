@@ -91,9 +91,9 @@ def koladata_py_extension(
         hdrs = hdrs,
         dynamic_deps = [
              "//py/koladata/dynamic_deps:koladata_so",
+             "@com_google_arolla//py/arolla/dynamic_deps:arolla_py_abc_so",
              "@com_google_arolla//py/arolla/dynamic_deps:arolla_so",
              "@com_google_arolla//py/arolla/dynamic_deps:base_so",
-             "@com_google_arolla//py/arolla/dynamic_deps:py_abc_so",
         ],
         visibility = visibility,
         testonly = testonly,
@@ -129,9 +129,9 @@ def koladata_pybind_extension(
         srcs = srcs,
         dynamic_deps = [
              "//py/koladata/dynamic_deps:koladata_so",
+             "@com_google_arolla//py/arolla/dynamic_deps:arolla_py_abc_so",
              "@com_google_arolla//py/arolla/dynamic_deps:arolla_so",
              "@com_google_arolla//py/arolla/dynamic_deps:base_so",
-             "@com_google_arolla//py/arolla/dynamic_deps:py_abc_so",
         ],
         visibility = visibility,
         testonly = testonly,
