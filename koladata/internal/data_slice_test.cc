@@ -515,6 +515,31 @@ TEST(DataSliceImpl, ContainsOnlyLists) {
                   .ContainsOnlyLists());
 }
 
+TEST(DataSliceImpl, ContainsOnlyListsBigAlloc) {
+  AllocationId lists_alloc = AllocateLists(kSmallAllocMaxCapacity + 10);
+  EXPECT_TRUE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+                                        std::nullopt,
+                                        lists_alloc.ObjectByOffset(0),
+                                        lists_alloc.ObjectByOffset(1),
+                                        lists_alloc.ObjectByOffset(2),
+                                        lists_alloc.ObjectByOffset(7),
+                                    }))
+                  .ContainsOnlyLists());
+
+  AllocationId other_alloc = Allocate(kSmallAllocMaxCapacity + 10);
+  EXPECT_FALSE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+                                         std::nullopt,
+                                         lists_alloc.ObjectByOffset(0),
+                                         lists_alloc.ObjectByOffset(1),
+                                         lists_alloc.ObjectByOffset(2),
+                                         other_alloc.ObjectByOffset(7),
+                                         other_alloc.ObjectByOffset(1),
+                                         other_alloc.ObjectByOffset(0),
+                                         other_alloc.ObjectByOffset(9),
+                                     }))
+               .ContainsOnlyLists());
+}
+
 TEST(DataSliceImpl, ContainsOnlyDicts) {
   EXPECT_TRUE(DataSliceImpl().ContainsOnlyDicts());
   EXPECT_TRUE(
@@ -541,6 +566,31 @@ TEST(DataSliceImpl, ContainsOnlyDicts) {
                   arolla::CreateDenseArray<int>({std::nullopt}),
                   arolla::CreateDenseArray<ObjectId>({AllocateSingleDict()}))
                   .ContainsOnlyDicts());
+}
+
+TEST(DataSliceImpl, ContainsOnlyDictsBigAlloc) {
+  AllocationId dicts_alloc = AllocateDicts(kSmallAllocMaxCapacity + 10);
+  EXPECT_TRUE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+                                        std::nullopt,
+                                        dicts_alloc.ObjectByOffset(0),
+                                        dicts_alloc.ObjectByOffset(1),
+                                        dicts_alloc.ObjectByOffset(2),
+                                        dicts_alloc.ObjectByOffset(7),
+                                    }))
+                  .ContainsOnlyDicts());
+
+  AllocationId other_alloc = Allocate(kSmallAllocMaxCapacity + 10);
+  EXPECT_FALSE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+                                         std::nullopt,
+                                         dicts_alloc.ObjectByOffset(0),
+                                         dicts_alloc.ObjectByOffset(1),
+                                         dicts_alloc.ObjectByOffset(2),
+                                         other_alloc.ObjectByOffset(7),
+                                         other_alloc.ObjectByOffset(1),
+                                         other_alloc.ObjectByOffset(0),
+                                         other_alloc.ObjectByOffset(9),
+                                     }))
+               .ContainsOnlyDicts());
 }
 
 TEST(DataSliceImpl, IsEquivalentTo) {

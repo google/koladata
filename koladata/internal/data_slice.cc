@@ -189,18 +189,29 @@ size_t DataSliceImpl::present_count() const {
 
 bool DataSliceImpl::ContainsOnlyLists() const {
   bool result = true;
-  VisitValues([&result]<typename T>(const arolla::DenseArray<T>& array) {
+  VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
     if constexpr (!std::is_same<T, ObjectId>()) {
       if (!array.IsAllMissing()) {
         result = false;
       }
     } else {
-      array.ForEachPresent(
-          [&result](int64_t id, arolla::view_type_t<ObjectId> value) {
-            if (!value.IsList()) {
-              result = false;
-            }
-          });
+      if (allocation_ids().contains_small_allocation_id()) {
+        array.ForEachPresent(
+            [&result](int64_t id, arolla::view_type_t<ObjectId> value) {
+              if (!value.IsList()) {
+                result = false;
+              }
+            });
+      } else {
+        // NOTE: It is sufficient (and much cheaper) to check AllocationId(s),
+        // instead of checking all ObjectId(s).
+        for (AllocationId alloc_id : allocation_ids()) {
+          if (!alloc_id.IsListsAlloc()) {
+            result = false;
+            break;
+          }
+        }
+      }
     }
   });
   return result;
@@ -208,18 +219,29 @@ bool DataSliceImpl::ContainsOnlyLists() const {
 
 bool DataSliceImpl::ContainsOnlyDicts() const {
   bool result = true;
-  VisitValues([&result]<typename T>(const arolla::DenseArray<T>& array) {
+  VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
     if constexpr (!std::is_same<T, ObjectId>()) {
       if (!array.IsAllMissing()) {
         result = false;
       }
     } else {
-      array.ForEachPresent(
-          [&result](int64_t id, arolla::view_type_t<ObjectId> value) {
-            if (!value.IsDict()) {
-              result = false;
-            }
-          });
+      if (allocation_ids().contains_small_allocation_id()) {
+        array.ForEachPresent(
+            [&result](int64_t id, arolla::view_type_t<ObjectId> value) {
+              if (!value.IsDict()) {
+                result = false;
+              }
+            });
+      } else {
+        // NOTE: It is sufficient (and much cheaper) to check AllocationId(s),
+        // instead of checking all ObjectId(s).
+        for (AllocationId alloc_id : allocation_ids()) {
+          if (!alloc_id.IsDictsAlloc()) {
+            result = false;
+            break;
+          }
+        }
+      }
     }
   });
   return result;
