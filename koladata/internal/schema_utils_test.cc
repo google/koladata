@@ -35,7 +35,6 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/meta.h"
-#include "arolla/util/testing/equals_proto.h"
 
 namespace koladata::schema {
 namespace {
