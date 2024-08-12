@@ -102,7 +102,9 @@ TEST(ObjectIdTest, AllocationIdNotContains) {
 
 TEST(ObjectIdTest, UuidAndAllocatedFlagsAreExclusive) {
   std::vector uuid_cases{
-      CreateUuidObject(arolla::FingerprintHasher("").Combine(42).Finish()),
+      CreateUuidObjectWithMetadata(
+          arolla::FingerprintHasher("").Combine(42).Finish(),
+          ObjectId::kUuidFlag),
       CreateUuidExplicitSchema(
           arolla::FingerprintHasher("").Combine(42).Finish()),
       // Uuid implicit schema.
@@ -281,8 +283,9 @@ TEST(ObjectIdTest, NoFollow_Errors) {
   EXPECT_DEBUG_DEATH(CreateNoFollowWithMainObject(AllocateSingleObject()), "");
   EXPECT_DEBUG_DEATH(CreateNoFollowWithMainObject(AllocateSingleList()), "");
   EXPECT_DEBUG_DEATH(CreateNoFollowWithMainObject(AllocateSingleDict()), "");
-  EXPECT_DEBUG_DEATH(CreateNoFollowWithMainObject(CreateUuidObject(
-                         arolla::FingerprintHasher("").Combine(57).Finish())),
+  EXPECT_DEBUG_DEATH(CreateNoFollowWithMainObject(CreateUuidObjectWithMetadata(
+                         arolla::FingerprintHasher("").Combine(57).Finish(),
+                         ObjectId::kUuidFlag)),
                      "");
 
   EXPECT_DEBUG_DEATH(GetOriginalFromNoFollow(AllocateExplicitSchema()), "");
@@ -299,18 +302,19 @@ TEST(ObjectIdTest, NoFollowObjectSchemaId) {
 }
 
 TEST(ObjectIdTest, CreateUuidObject) {
-  ObjectId id1 =
-      CreateUuidObject(arolla::FingerprintHasher("").Combine(57).Finish());
+  ObjectId id1 = CreateUuidObjectWithMetadata(
+      arolla::FingerprintHasher("").Combine(57).Finish(), ObjectId::kUuidFlag);
   EXPECT_FALSE(id1.IsAllocated());
   EXPECT_TRUE(id1.IsUuid());
   std::set<ObjectId> id_set = {id1};
   for (absl::uint128 x = 75;
        x < absl::MakeUint128(std::numeric_limits<uint64_t>::max() / 2, 0);
        x *= 2) {
-    ObjectId id2 = CreateUuidObject(
+    ObjectId id2 = CreateUuidObjectWithMetadata(
         arolla::FingerprintHasher("")
             .Combine(absl::Uint128Low64(x), absl::Uint128High64(x))
-            .Finish());
+            .Finish(),
+        ObjectId::kUuidFlag);
     ASSERT_FALSE(id2.IsAllocated());
     ASSERT_TRUE(id2.IsUuid());
     ASSERT_NE(id1, id2);
@@ -602,7 +606,9 @@ TEST(ObjectIdTest, AllocationIdSetWithSmall) {
   {
     AllocationIdSet id_set;
     ObjectId id =
-        CreateUuidObject(arolla::FingerprintHasher("").Combine(57).Finish());
+        CreateUuidObjectWithMetadata(
+            arolla::FingerprintHasher("").Combine(57).Finish(),
+            ObjectId::kUuidFlag);
     EXPECT_TRUE(id_set.Insert(AllocationId(id)));
     EXPECT_TRUE(id_set.contains_small_allocation_id());
     EXPECT_TRUE(id_set.empty());
@@ -613,8 +619,9 @@ TEST(ObjectIdTest, AllocationIdSetWithSmall) {
     allocs.push_back(Allocate(7 << i));
     id_set.Insert(allocs.back());
     if (i % 3 == 2) {
-      ObjectId id = CreateUuidObject(
-          arolla::FingerprintHasher("").Combine(57 * i).Finish());
+      ObjectId id = CreateUuidObjectWithMetadata(
+          arolla::FingerprintHasher("").Combine(57 * i).Finish(),
+          ObjectId::kUuidFlag);
       EXPECT_EQ(id_set.Insert(AllocationId(id)), i == 2);
       EXPECT_FALSE(
           id_set.Insert(AllocationId(Allocate(kSmallAllocMaxCapacity))));
@@ -627,7 +634,9 @@ TEST(ObjectIdTest, AllocationIdSetWithSmall) {
 
 TEST(ObjectIdTest, AllocationIdSetSmallFromSpan) {
   ObjectId uuid =
-      CreateUuidObject(arolla::FingerprintHasher("").Combine(57).Finish());
+      CreateUuidObjectWithMetadata(
+          arolla::FingerprintHasher("").Combine(57).Finish(),
+          ObjectId::kUuidFlag);
   {
     auto alloc = Allocate(17);
     AllocationIdSet id_set({alloc, AllocationId(uuid)});
@@ -653,7 +662,9 @@ TEST(ObjectIdTest, AllocationIdSetSmallFromSpan) {
 
 TEST(ObjectIdTest, AllocationIdSetUnionSmall) {
   ObjectId uuid =
-      CreateUuidObject(arolla::FingerprintHasher("").Combine(57).Finish());
+      CreateUuidObjectWithMetadata(
+          arolla::FingerprintHasher("").Combine(57).Finish(),
+          ObjectId::kUuidFlag);
   auto alloc1 = Allocate(17);
   auto alloc2 = Allocate(170);
   AllocationIdSet id_set1(alloc1);
@@ -685,8 +696,9 @@ TEST(ObjectIdTest, ObjectIdDebugStringFormatBoundaryCondition) {
 }
 
 TEST(ObjectIdTest, ObjectIdStringFormat) {
-  EXPECT_THAT(ObjectIdStr(CreateUuidObject(
-                  arolla::FingerprintHasher("").Combine(57).Finish())),
+  EXPECT_THAT(ObjectIdStr(CreateUuidObjectWithMetadata(
+                  arolla::FingerprintHasher("").Combine(57).Finish(),
+                  ObjectId::kUuidFlag)),
               MatchesRegex(R"regex(k[0-9a-f]{32}:0)regex"));
   EXPECT_THAT(ObjectIdStr(AllocateSingleObject()),
               MatchesRegex(R"regex(\$[0-9a-f]{32}:0)regex"));

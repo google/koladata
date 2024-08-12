@@ -441,12 +441,6 @@ inline ObjectId CreateUuidObjectWithMetadata(arolla::Fingerprint fp,
   return id;
 }
 
-// Returns UUID object from the provided FingerPrint.
-// IsUuid() will be true. AllocationId capacity will be 1.
-inline ObjectId CreateUuidObject(arolla::Fingerprint fp) {
-  return CreateUuidObjectWithMetadata(fp, ObjectId::kUuidFlag);
-}
-
 // Returns UUID Explicit Schema object from the provided FingerPrint.
 // IsUuid(), IsSchema() and IsExplicitSchema() will all be true. AllocationId
 // capacity will be 1.

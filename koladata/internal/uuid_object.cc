@@ -81,10 +81,25 @@ arolla::Fingerprint UuidWithMainObjectFingerprint(ObjectId object_id,
 
 }  // namespace
 
+ObjectId CreateUuidObject(arolla::Fingerprint fingerprint, UuidType uuid_type) {
+  int64_t flags = 0;
+  if (uuid_type == UuidType::kList) {
+    flags = ObjectId::kUuidFlag | ObjectId::kListFlag;
+  } else if (uuid_type == UuidType::kDict) {
+    flags = ObjectId::kUuidFlag | ObjectId::kDictFlag;
+  } else {
+    // Default uuid. Only uuid metadata is set.
+    CHECK(uuid_type == UuidType::kDefault);
+    flags = ObjectId::kUuidFlag;
+  }
+  return CreateUuidObjectWithMetadata(std::move(fingerprint), flags);
+}
+
 DataItem CreateUuidFromFields(
     absl::string_view seed,
     absl::Span<const absl::string_view> attr_names,
-    absl::Span<const std::reference_wrapper<const DataItem>> values) {
+    absl::Span<const std::reference_wrapper<const DataItem>> values,
+    UuidType uuid_type) {
   DCHECK_EQ(attr_names.size(), values.size());
   std::vector<std::pair<absl::string_view, arolla::Fingerprint>> fingerprints;
   fingerprints.reserve(attr_names.size() + 1);
@@ -96,13 +111,15 @@ DataItem CreateUuidFromFields(
             [](const auto& x, const auto& y) { return x.first < y.first; });
 
   return DataItem(CreateUuidObject(
-      ComputeFingerPrintFromKwargs(seed, absl::MakeSpan(fingerprints))));
+      ComputeFingerPrintFromKwargs(seed, absl::MakeSpan(fingerprints)),
+      uuid_type));
 }
 
 absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
     absl::string_view seed,
     absl::Span<const absl::string_view> attr_names,
-    absl::Span<const std::reference_wrapper<const DataSliceImpl>> values) {
+    absl::Span<const std::reference_wrapper<const DataSliceImpl>> values,
+    UuidType uuid_type) {
   DCHECK_EQ(attr_names.size(), values.size());
   ASSIGN_OR_RETURN(int64_t size, CommonKwargsSize(values));
   if (size == 0 || size == -1) {
@@ -132,8 +149,10 @@ absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
       fingerprints[i].second =
           sorted_kwargs[i].second.get()[offset].StableFingerprint();
     }
-    values_builder.Set(offset, CreateUuidObject(ComputeFingerPrintFromKwargs(
-                                   seed, absl::MakeSpan(fingerprints))));
+    values_builder.Set(offset,
+                       CreateUuidObject(ComputeFingerPrintFromKwargs(
+                                            seed, absl::MakeSpan(fingerprints)),
+                                        uuid_type));
   }
 
   return DataSliceImpl::CreateObjectsDataSlice(

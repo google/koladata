@@ -27,6 +27,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/uuid_object.h"
 #include "koladata/testing/status_matchers_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"

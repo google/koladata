@@ -45,12 +45,95 @@ using ::testing::Not;
 using ::arolla::OptionalValue;
 using ::arolla::Text;
 
+TEST(UuidTest, CreateUuidObject) {
+  std::vector<ObjectId> uuids = {
+      CreateUuidObject(arolla::FingerprintHasher("").Combine(42).Finish()),
+      CreateUuidObject(arolla::FingerprintHasher("").Combine(42).Finish(),
+                       UuidType::kList),
+      CreateUuidObject(arolla::FingerprintHasher("").Combine(42).Finish(),
+                       UuidType::kDict)};
+  for (int i = 0; i < uuids.size(); ++i) {
+    EXPECT_FALSE(uuids[i].IsAllocated());
+    EXPECT_TRUE(uuids[i].IsUuid());
+  }
+  EXPECT_TRUE(uuids[1].IsList());
+  EXPECT_TRUE(uuids[2].IsDict());
+
+  EXPECT_NE(uuids[0], uuids[1]);
+  EXPECT_NE(uuids[0], uuids[2]);
+  EXPECT_NE(uuids[1], uuids[2]);
+}
+
 TEST(UuidTest, CreateUuidFromFields) {
   DataItem x(5);
   DataItem y(7.0f);
   DataItem q = CreateUuidFromFields("", {"x", "y"}, {x, y});
   ASSERT_EQ(q.dtype(), arolla::GetQType<ObjectId>());
   EXPECT_TRUE(q.value<ObjectId>().IsUuid());
+}
+
+TEST(UuidTest, CreateUuidFromFields_List_DataItem) {
+  DataItem x(5);
+  DataItem y(7.0f);
+  DataItem l = CreateUuidFromFields("", {"x", "y"}, {x, y}, UuidType::kList);
+  ASSERT_EQ(l.dtype(), arolla::GetQType<ObjectId>());
+  EXPECT_TRUE(l.value<ObjectId>().IsUuid());
+  EXPECT_TRUE(l.value<ObjectId>().IsList());
+
+  // Not equal to regular uuid.
+  EXPECT_NE(l, CreateUuidFromFields("", {"x", "y"}, {x, y}));
+  // Not equal to seeded uuid.
+  EXPECT_NE(l, CreateUuidFromFields("seed", {"x", "y"}, {x, y},
+                                           UuidType::kList));
+}
+
+TEST(UuidTest, CreateUuidFromFields_List_DataSliceImpl) {
+  auto x_slice = DataSliceImpl::Create(
+      arolla::CreateDenseArray<int>(std::vector<OptionalValue<int>>{5}));
+  auto y_slice = DataSliceImpl::Create(
+      arolla::CreateDenseArray<float>(std::vector<OptionalValue<float>>{7.0f}));
+
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl l_slice,
+                       CreateUuidFromFields("", {"x", "y"}, {x_slice, y_slice},
+                                            UuidType::kList));
+
+  DataItem x(5);
+  DataItem y(7.0f);
+  // DataSliceImpl result is just broadcasted DataItem result.
+  EXPECT_EQ(l_slice[0],
+            CreateUuidFromFields("", {"x", "y"}, {x, y}, UuidType::kList));
+}
+
+TEST(UuidTest, CreateUuidFromFields_Dict_DataItem) {
+  DataItem x(5);
+  DataItem y(7.0f);
+  DataItem d = CreateUuidFromFields("", {"x", "y"}, {x, y}, UuidType::kDict);
+  ASSERT_EQ(d.dtype(), arolla::GetQType<ObjectId>());
+  EXPECT_TRUE(d.value<ObjectId>().IsUuid());
+  EXPECT_TRUE(d.value<ObjectId>().IsDict());
+
+  // Not equal to regular uuid.
+  EXPECT_NE(d, CreateUuidFromFields("", {"x", "y"}, {x, y}));
+  // Not equal to seeded uuid.
+  EXPECT_NE(d,
+            CreateUuidFromFields("seed", {"x", "y"}, {x, y}, UuidType::kDict));
+}
+
+TEST(UuidTest, CreateUuidFromFields_Dict_DataSliceImpl) {
+  auto x_slice = DataSliceImpl::Create(
+      arolla::CreateDenseArray<int>(std::vector<OptionalValue<int>>{5}));
+  auto y_slice = DataSliceImpl::Create(
+      arolla::CreateDenseArray<float>(std::vector<OptionalValue<float>>{7.0f}));
+
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl d_slice,
+                       CreateUuidFromFields("", {"x", "y"}, {x_slice, y_slice},
+                                            UuidType::kDict));
+
+  DataItem x(5);
+  DataItem y(7.0f);
+  // DataSliceImpl result is just broadcasted DataItem result.
+  EXPECT_EQ(d_slice[0],
+            CreateUuidFromFields("", {"x", "y"}, {x, y}, UuidType::kDict));
 }
 
 TEST(UuidTest, CreateUuidFromFields_Seed) {

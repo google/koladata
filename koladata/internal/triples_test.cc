@@ -21,6 +21,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/internal/uuid_object.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"

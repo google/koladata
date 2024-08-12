@@ -28,18 +28,31 @@
 
 namespace koladata::internal {
 
+// Used to dispatch which Uuids to create(referring to data included to be
+// included in the ObjectId, not schemas).
+enum class UuidType {
+  kDefault = 0,
+  kList,
+  kDict,
+};
+
+ObjectId CreateUuidObject(arolla::Fingerprint fingerprint,
+                          UuidType uuid_type = UuidType::kDefault);
+
 // Creates Uuid object based on fingerprint of names and values of the kwargs.
 DataItem CreateUuidFromFields(
     absl::string_view seed,
     absl::Span<const absl::string_view> attr_names,
-    absl::Span<const std::reference_wrapper<const DataItem>> values);
+    absl::Span<const std::reference_wrapper<const DataItem>> values,
+    UuidType uuid_type = UuidType::kDefault);
 
 // Creates Uuid object based on fingerprint of names and values of the kwargs.
 // All DataSliceImpl's in kwargs must have the same size.
 absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
     absl::string_view seed,
     absl::Span<const absl::string_view> attr_names,
-    absl::Span<const std::reference_wrapper<const DataSliceImpl>> values);
+    absl::Span<const std::reference_wrapper<const DataSliceImpl>> values,
+    UuidType uuid_type = UuidType::kDefault);
 
 // Creates a Uuid object for a schema, based on names and values of the schemas.
 // Does not check that the DataItems are schemas.
