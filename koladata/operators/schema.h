@@ -15,13 +15,14 @@
 #ifndef KOLADATA_OPERATORS_SCHEMA_H_
 #define KOLADATA_OPERATORS_SCHEMA_H_
 
+#include <utility>
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "arolla/util/status_macros_backport.h"
 #include "absl/types/span.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
@@ -38,13 +39,14 @@ class NewSchemaOperatorFamily : public arolla::OperatorFamily {
 
 // kde.core.get_primitive_schema.
 inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
-  if (!schema::DType::VerifyQTypeSupported(ds.dtype())) {
+  auto primitive_schema = ds.GetPrimitiveSchemaImpl();
+  if (!primitive_schema.has_value()) {
     return absl::FailedPreconditionError(
-        "DataSlice does not have any items or has non-primitive items or has "
-        "items of mixed primitive dtypes.");
+        "the primitive schema of the DataSlice cannot be inferred - it is "
+        "empty with no primitive schema, has non-primitive items, or it has "
+        "items of mixed primitive dtypes");
   }
-  ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(ds.dtype()));
-  return DataSlice::Create(internal::DataItem(dtype),
+  return DataSlice::Create(std::move(primitive_schema),
                            internal::DataItem(schema::kSchema));
 }
 
