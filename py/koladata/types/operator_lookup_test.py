@@ -16,22 +16,22 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.operators import arolla_bridge
 from koladata.operators import optools
 from koladata.types import operator_lookup
 
 
 @optools.add_to_registry()
-@optools.as_lambda_operator('kde.test_add')
-def test_add(x, y):
-  return arolla_bridge.convert_and_eval(arolla.M.math.add, x, y)
+@optools.as_lambda_operator('kde.test_first')
+def test_first(x, y):
+  del y
+  return x
 
 
 class OperatorImplLookupTest(absltest.TestCase):
 
   def test_contains(self):
     op_impl_lookup = operator_lookup.OperatorLookup()
-    self.assertTrue(hasattr(op_impl_lookup, 'test_add'))
+    self.assertTrue(hasattr(op_impl_lookup, 'test_first'))
     # Does not exist.
     with self.assertRaises(LookupError):
       _ = op_impl_lookup.whatever
@@ -39,24 +39,25 @@ class OperatorImplLookupTest(absltest.TestCase):
   def test_contains_after_loading(self):
     op_impl_lookup = operator_lookup.OperatorLookup()
     with self.assertRaises(LookupError):
-      _ = op_impl_lookup.test_subtract
+      _ = op_impl_lookup.test_second
 
     @optools.add_to_registry()
-    @optools.as_lambda_operator('kde.test_subtract')
-    def test_subtract(x, y):
-      return arolla_bridge.convert_and_eval(arolla.M.math.subtract, x, y)
+    @optools.as_lambda_operator('kde.test_second')
+    def test_second(x, y):
+      del x
+      return y
 
-    self.assertTrue(hasattr(op_impl_lookup, 'test_subtract'))
+    self.assertTrue(hasattr(op_impl_lookup, 'test_second'))
 
   def test_lookup_is_correct(self):
     op_impl_lookup = operator_lookup.OperatorLookup()
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        op_impl_lookup.test_add, arolla.abc.lookup_operator('kde.test_add')
+        op_impl_lookup.test_first, arolla.abc.lookup_operator('kde.test_first')
     )
     # Verify that it is cached.
-    self.assertIs(op_impl_lookup.test_add, op_impl_lookup.test_add)
+    self.assertIs(op_impl_lookup.test_first, op_impl_lookup.test_first)
     self.assertIsNot(
-        op_impl_lookup.test_add, arolla.abc.lookup_operator('kde.test_add')
+        op_impl_lookup.test_first, arolla.abc.lookup_operator('kde.test_first')
     )
 
 

@@ -45,20 +45,6 @@ absl::StatusOr<arolla::TypedValue> EvalExpr(
     const arolla::expr::ExprOperatorPtr& expr_op,
     absl::Span<const arolla::TypedRef> inputs);
 
-// koda_internal.convert_and_eval operator.
-//
-// Accepts an Arolla ExprOperator as an input that works on core Arolla data
-// structures. converts arguments from DataSlice(s) to core Arolla data
-// structures and passes them to the Expr and evaluates it.
-//
-// This is used to adjust large library of operators on core Arolla data
-// structures to work on DataSlice(s).
-class ConvertAndEvalFamily : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const final;
-};
-
 // koda_internal.convert_and_eval_with_shape operator.
 //
 // Accepts an Arolla ExprOperator as an input that works on core Arolla data

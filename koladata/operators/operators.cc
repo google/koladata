@@ -123,7 +123,6 @@ OPERATOR("kde.shapes.get_shape", GetShape);
 //
 OPERATOR("kde.strings.substr", Substr);
 //
-OPERATOR_FAMILY("koda_internal.convert_and_eval", ConvertAndEvalFamily);
 OPERATOR_FAMILY("koda_internal.convert_and_eval_with_shape",
                 ConvertAndEvalWithShapeFamily);
 OPERATOR("koda_internal.to_arolla_boolean", ToArollaBoolean);

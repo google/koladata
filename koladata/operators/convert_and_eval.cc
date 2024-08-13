@@ -273,23 +273,6 @@ absl::StatusOr<arolla::TypedValue> EvalExpr(
   return fn(inputs);
 }
 
-absl::StatusOr<arolla::OperatorPtr> ConvertAndEvalFamily::DoGetOperator(
-    absl::Span<const arolla::QTypePtr> input_types,
-    arolla::QTypePtr output_type) const {
-  RETURN_IF_ERROR(VerifyConvertAndEvalInputs(input_types));
-  auto execute = [](const arolla::expr::ExprOperatorPtr& expr_op,
-                    absl::Span<const arolla::TypedRef> inputs,
-                    DataSlice::JaggedShape shape) -> absl::StatusOr<DataSlice> {
-    ASSIGN_OR_RETURN(auto result, EvalExpr(expr_op, inputs));
-    return DataSliceFromArollaValue(result.AsRef(), std::move(shape));
-  };
-
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<ConvertAndEvalBaseOp<decltype(execute)>>(
-          "koda_internal.convert_and_eval", input_types, std::move(execute)),
-      input_types, output_type);
-}
-
 absl::StatusOr<arolla::OperatorPtr>
 ConvertAndEvalWithShapeFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
