@@ -136,6 +136,10 @@ class DataSlice {
   // Returns a DataItem holding a schema.
   const internal::DataItem& GetSchemaImpl() const { return internal_->schema_; }
 
+  // Returns a schema corresponding to the data of the slice. If no primitive
+  // schema can be inferred, an empty internal::DataItem is returned.
+  internal::DataItem GetPrimitiveSchemaImpl() const;
+
   // Returns true, if this DataSlice represents an Entity schema.
   bool IsEntitySchema() const;
 

@@ -133,63 +133,6 @@ absl::NoDestructor<arolla::LruCache<arolla::Fingerprint, CompiledOp>>
 
 absl::Mutex EvalCompiler::mutex_{absl::kConstInit};
 
-absl::StatusOr<DataSlice> DataSliceFromArollaValue(
-    arolla::TypedRef arolla_value, DataSlice::JaggedShape shape,
-    const internal::DataItem& schema = internal::DataItem()) {
-  if (arolla::IsDenseArrayQType(arolla_value.GetType())) {
-    ASSIGN_OR_RETURN(auto ds_impl,
-                     internal::DataSliceImpl::Create(arolla_value));
-    // TODO: Note that the DataSlice creation below cannot be
-    // used for operators such as `kd.coalesce`, `kd.cond`, etc. Schema
-    // inference should either be updated or a different `convert_and_eval`
-    // used for operators on non-primitive slices.
-    if (schema.has_value()) {
-      return DataSlice::Create(std::move(ds_impl), std::move(shape), schema);
-    } else {
-      return DataSlice::CreateWithSchemaFromData(std::move(ds_impl),
-                                                 std::move(shape));
-    }
-  } else {
-    if (shape.rank() != 0) {
-      return absl::FailedPreconditionError(absl::StrFormat(
-          "output with type %s is incompatible with rank(shape)=%d",
-          arolla_value.GetType()->name(), shape.rank()));
-    }
-    auto arolla_value_type = arolla_value.GetType();
-    if (arolla::IsOptionalQType(arolla_value_type)) {
-      arolla_value_type = arolla::DecayOptionalQType(arolla_value_type);
-    }
-    ASSIGN_OR_RETURN(auto data_item_value,
-                     internal::DataItem::Create(arolla_value));
-    if (schema.has_value()) {
-      return DataSlice::Create(std::move(data_item_value), schema);
-    } else {
-      ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(arolla_value_type));
-      return DataSlice::Create(std::move(data_item_value),
-                               internal::DataItem(dtype));
-    }
-  }
-}
-
-// Returns a TypedRef to a DataSlice. If the DataSlice owns its value, the
-// returned TypedRef refers the provided DataSlice. Otherwise, it refers to a
-// TypedValue that is appended to `typed_value_holder`.
-//
-// If `fallback_schema` is provided as a primitive schema, it is used to create
-// an arolla value in case `ds` is empty-and-unknown.
-absl::StatusOr<arolla::TypedRef> GetTypedRefFromDataSlice(
-    const DataSlice& slice,
-    std::vector<arolla::TypedValue>& typed_value_holder,
-    const internal::DataItem& fallback_schema = internal::DataItem()) {
-  if (slice.impl_owns_value()) {
-    return DataSliceToArollaRef(slice);
-  } else {
-    ASSIGN_OR_RETURN(auto value,
-                     DataSliceToArollaValue(slice, fallback_schema));
-    return typed_value_holder.emplace_back(std::move(value)).AsRef();
-  }
-}
-
 // Returns the slot indices that holds DataSlices.
 std::vector<size_t> GetDataSliceSlotIndices(
     absl::Span<const arolla::TypedSlot> slots) {
@@ -253,7 +196,7 @@ class ConvertAndEvalBaseOp : public arolla::QExprOperator {
           for (size_t i = 0; i < ds_input_indices.size(); ++i) {
             ASSIGN_OR_RETURN(
                 input_refs[ds_input_indices[i]],
-                GetTypedRefFromDataSlice(aligned_ds[i], typed_value_holder),
+                DataSliceToOwnedArollaRef(aligned_ds[i], typed_value_holder),
                 ctx->set_status(std::move(_)));
           }
           // Pass ownership of `input_refs`, including the extra reserved
@@ -321,19 +264,14 @@ internal::DataSliceImpl GetSliceImpl(const DataSlice& slice) {
              : internal::DataSliceImpl::Create({slice.item()});
 }
 
-// Returns a schema corresponding to the data of the provided slice. If the
-// slice is empty-and-unknown, returns an empty schema.
-internal::DataItem GetPrimitiveSchema(const DataSlice& x) {
-  const auto& schema = x.GetSchemaImpl();
-  if (schema.is_primitive_schema()) {
-    return schema;
-  }
-  return schema::DType::VerifyQTypeSupported(x.dtype())
-             ? internal::DataItem(*schema::DType::FromQType(x.dtype()))
-             : internal::DataItem();
-}
-
 }  // namespace
+
+absl::StatusOr<arolla::TypedValue> EvalExpr(
+    const arolla::expr::ExprOperatorPtr& expr_op,
+    absl::Span<const arolla::TypedRef> inputs) {
+  ASSIGN_OR_RETURN(auto fn, EvalCompiler::Compile(expr_op, inputs));
+  return fn(inputs);
+}
 
 absl::StatusOr<arolla::OperatorPtr> ConvertAndEvalFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
@@ -342,8 +280,7 @@ absl::StatusOr<arolla::OperatorPtr> ConvertAndEvalFamily::DoGetOperator(
   auto execute = [](const arolla::expr::ExprOperatorPtr& expr_op,
                     absl::Span<const arolla::TypedRef> inputs,
                     DataSlice::JaggedShape shape) -> absl::StatusOr<DataSlice> {
-    ASSIGN_OR_RETURN(auto fn, EvalCompiler::Compile(expr_op, inputs));
-    ASSIGN_OR_RETURN(auto result, fn(inputs));
+    ASSIGN_OR_RETURN(auto result, EvalExpr(expr_op, inputs));
     return DataSliceFromArollaValue(result.AsRef(), std::move(shape));
   };
 
@@ -364,8 +301,7 @@ ConvertAndEvalWithShapeFamily::DoGetOperator(
     DCHECK_GT(inputs.capacity(), inputs.size());
     auto aligned_shape_tv = arolla::TypedValue::FromValue(std::move(shape));
     inputs.push_back(aligned_shape_tv.AsRef());
-    ASSIGN_OR_RETURN(auto fn, EvalCompiler::Compile(expr_op, inputs));
-    ASSIGN_OR_RETURN(auto result, fn(inputs));
+    ASSIGN_OR_RETURN(auto result, EvalExpr(expr_op, inputs));
     if (!arolla::IsTupleQType(result.GetType()) ||
         result.GetFieldCount() != 2) {
       return absl::FailedPreconditionError(absl::StrCat(
@@ -394,7 +330,7 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     }
     schema_agg.Add(x.GetSchemaImpl());
     if (!first_primitive_schema.has_value()) {
-      first_primitive_schema = GetPrimitiveSchema(x);
+      first_primitive_schema = x.GetPrimitiveSchemaImpl();
     }
   }
   if (!output_schema.has_value()) {
@@ -418,12 +354,11 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
   typed_refs.reserve(aligned_ds.size());
   for (const auto& x : aligned_ds) {
     ASSIGN_OR_RETURN(auto ref,
-                     GetTypedRefFromDataSlice(x, typed_value_holder,
-                                              first_primitive_schema));
+                     DataSliceToOwnedArollaRef(x, typed_value_holder,
+                                               first_primitive_schema));
     typed_refs.push_back(std::move(ref));
   }
-  ASSIGN_OR_RETURN(auto fn, EvalCompiler::Compile(expr_op, typed_refs));
-  ASSIGN_OR_RETURN(auto result, fn(typed_refs));
+  ASSIGN_OR_RETURN(auto result, EvalExpr(expr_op, typed_refs));
   return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
                                   std::move(output_schema));
 }

@@ -21,7 +21,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
@@ -32,14 +31,17 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qtype/typed_value.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 
 namespace koladata::ops {
 namespace {
 
 using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
+using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
 
@@ -144,6 +146,45 @@ TEST(SimplePointwiseEvalTest, SimpleEval) {
     EXPECT_THAT(result,
                 IsEquivalentTo(
                     *test::EmptyDataSlice(4, schema::kAny).Reshape(y_shape)));
+  }
+}
+
+TEST(EvalExpr, SimpleEval) {
+  {
+    // Success.
+    auto x = arolla::CreateDenseArray<int>({1, 2, std::nullopt});
+    auto y = arolla::CreateDenseArray<int>({2, 3, 4});
+    auto x_tv = arolla::TypedValue::FromValue(x);
+    auto y_tv = arolla::TypedValue::FromValue(y);
+    ASSERT_OK_AND_ASSIGN(
+        auto result,
+        EvalExpr(std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
+                 {x_tv.AsRef(), y_tv.AsRef()}));
+    EXPECT_THAT(result.UnsafeAs<arolla::DenseArray<int>>(),
+                ElementsAre(3, 5, std::nullopt));
+  }
+  {
+    // Compilation error.
+    auto x = arolla::CreateDenseArray<int>({1, 2, std::nullopt});
+    auto y = arolla::CreateDenseArray<arolla::Unit>(
+        {arolla::kUnit, arolla::kUnit, arolla::kUnit});
+    auto x_tv = arolla::TypedValue::FromValue(x);
+    auto y_tv = arolla::TypedValue::FromValue(y);
+    EXPECT_THAT(
+        EvalExpr(std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
+                 {x_tv.AsRef(), y_tv.AsRef()}),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("expected numerics, got y: DENSE_ARRAY_UNIT")));
+  }
+  {
+    // Runtime error.
+    auto x_tv = arolla::TypedValue::FromValue(1);
+    auto y_tv = arolla::TypedValue::FromValue(0);
+    EXPECT_THAT(EvalExpr(std::make_shared<arolla::expr::RegisteredOperator>(
+                             "math.floordiv"),
+                         {x_tv.AsRef(), y_tv.AsRef()}),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("division by zero")));
   }
 }
 

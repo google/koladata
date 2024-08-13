@@ -40,6 +40,7 @@
 #include "koladata/operators/select.h"
 #include "koladata/operators/shallow_clone.h"
 #include "koladata/operators/slice.h"
+#include "koladata/operators/strings.h"
 #include "koladata/operators/translate.h"
 #include "koladata/operators/uu_schema.h"
 #include "koladata/operators/uuid.h"
@@ -119,6 +120,8 @@ OPERATOR("kde.shapes._expand_to_shape", ExpandToShape);
 OPERATOR("kde.shapes._reshape", Reshape);
 OPERATOR_FAMILY("kde.shapes.create", JaggedShapeCreateOperatorFamily);
 OPERATOR("kde.shapes.get_shape", GetShape);
+//
+OPERATOR("kde.strings.substr", Substr);
 //
 OPERATOR_FAMILY("koda_internal.convert_and_eval", ConvertAndEvalFamily);
 OPERATOR_FAMILY("koda_internal.convert_and_eval_with_shape",

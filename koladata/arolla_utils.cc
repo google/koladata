@@ -18,11 +18,13 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
@@ -37,6 +39,7 @@
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
+#include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
@@ -121,6 +124,18 @@ absl::StatusOr<arolla::TypedRef> DataSliceToArollaRef(const DataSlice& ds) {
   return *std::move(result);
 }
 
+absl::StatusOr<arolla::TypedRef> DataSliceToOwnedArollaRef(
+    const DataSlice& slice, std::vector<arolla::TypedValue>& typed_value_holder,
+    const internal::DataItem& fallback_schema) {
+  if (slice.impl_owns_value()) {
+    return DataSliceToArollaRef(slice);
+  } else {
+    ASSIGN_OR_RETURN(auto value,
+                     DataSliceToArollaValue(slice, fallback_schema));
+    return typed_value_holder.emplace_back(std::move(value)).AsRef();
+  }
+}
+
 absl::StatusOr<DataSlice> DataSliceFromPrimitivesDenseArray(
     arolla::TypedRef values) {
   if (!arolla::IsDenseArrayQType(values.GetType())) {
@@ -160,6 +175,40 @@ absl::StatusOr<DataSlice> DataSliceFromPrimitivesArray(
                      values.GetType()->value_qtype()->name()));
   }
   return *std::move(res);
+}
+
+absl::StatusOr<DataSlice> DataSliceFromArollaValue(
+    arolla::TypedRef arolla_value, DataSlice::JaggedShape shape,
+    const internal::DataItem& schema) {
+  if (arolla::IsDenseArrayQType(arolla_value.GetType())) {
+    ASSIGN_OR_RETURN(auto ds_impl,
+                     internal::DataSliceImpl::Create(arolla_value));
+    if (schema.has_value()) {
+      return DataSlice::Create(std::move(ds_impl), std::move(shape), schema);
+    } else {
+      return DataSlice::CreateWithSchemaFromData(std::move(ds_impl),
+                                                 std::move(shape));
+    }
+  } else {
+    if (shape.rank() != 0) {
+      return absl::FailedPreconditionError(absl::StrFormat(
+          "output with type %s is incompatible with rank(shape)=%d",
+          arolla_value.GetType()->name(), shape.rank()));
+    }
+    auto arolla_value_type = arolla_value.GetType();
+    if (arolla::IsOptionalQType(arolla_value_type)) {
+      arolla_value_type = arolla::DecayOptionalQType(arolla_value_type);
+    }
+    ASSIGN_OR_RETURN(auto data_item_value,
+                     internal::DataItem::Create(arolla_value));
+    if (schema.has_value()) {
+      return DataSlice::Create(std::move(data_item_value), schema);
+    } else {
+      ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(arolla_value_type));
+      return DataSlice::Create(std::move(data_item_value),
+                               internal::DataItem(dtype));
+    }
+  }
 }
 
 absl::StatusOr<arolla::TypedValue> DataSliceToDenseArray(const DataSlice& ds) {

@@ -32,10 +32,18 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/qtype/typed_ref.h"
+#include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
 namespace koladata::ops {
+
+// Evaluates the given expression on the given inputs, using a compilation
+// cache.
+absl::StatusOr<arolla::TypedValue> EvalExpr(
+    const arolla::expr::ExprOperatorPtr& expr_op,
+    absl::Span<const arolla::TypedRef> inputs);
 
 // koda_internal.convert_and_eval operator.
 //

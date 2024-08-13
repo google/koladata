@@ -16,17 +16,20 @@
 
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/array/array.h"
 #include "arolla/array/qtype/types.h"
@@ -61,10 +64,24 @@ using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
+using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
+
 
 internal::DataItem kAnySchema(schema::kAny);
 
+DataSliceEdge EdgeFromSizes(absl::Span<const int64_t> sizes) {
+  std::vector<arolla::OptionalValue<int64_t>> split_points;
+  split_points.reserve(sizes.size() + 1);
+  split_points.push_back(0);
+  for (int64_t size : sizes) {
+    split_points.push_back(split_points.back().value + size);
+  }
+  return *DataSliceEdge::FromSplitPoints(
+      arolla::CreateDenseArray<int64_t>(split_points));
+}
+
 TEST(DataSliceUtils, ToArollaArray) {
+  std::vector<arolla::TypedValue> typed_value_holder;
   auto values_1 = CreateDenseArray<int>({1, std::nullopt, 3});
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(
@@ -79,6 +96,12 @@ TEST(DataSliceUtils, ToArollaArray) {
   ASSERT_OK_AND_ASSIGN(auto arolla_ref, DataSliceToArollaRef(ds));
   EXPECT_THAT(arolla_ref.UnsafeAs<DenseArray<int>>(),
               ElementsAreArray(values_1));
+
+  ASSERT_OK_AND_ASSIGN(auto arolla_res,
+                       DataSliceToOwnedArollaRef(ds, typed_value_holder));
+  EXPECT_THAT(arolla_res.UnsafeAs<DenseArray<int>>(),
+              ElementsAreArray(values_1));
+  EXPECT_TRUE(typed_value_holder.empty());
 
   auto values_2 = CreateDenseArray<Text>(
       {Text("abc"), std::nullopt, Text("xyz")});
@@ -95,6 +118,12 @@ TEST(DataSliceUtils, ToArollaArray) {
   EXPECT_THAT(arolla_ref.UnsafeAs<DenseArray<Text>>(),
               ElementsAreArray(values_2));
 
+  ASSERT_OK_AND_ASSIGN(arolla_res,
+                       DataSliceToOwnedArollaRef(ds, typed_value_holder));
+  EXPECT_THAT(arolla_res.UnsafeAs<DenseArray<Text>>(),
+              ElementsAreArray(values_2));
+  EXPECT_TRUE(typed_value_holder.empty());
+
   // Empty array, but not "empty" slice, i.e. it has a typed array inside.
   auto values_3 = CreateDenseArray<int>(
       {std::nullopt, std::nullopt, std::nullopt});
@@ -110,6 +139,12 @@ TEST(DataSliceUtils, ToArollaArray) {
   ASSERT_OK_AND_ASSIGN(arolla_ref, DataSliceToArollaRef(ds));
   EXPECT_THAT(arolla_ref.UnsafeAs<DenseArray<int>>(),
               ElementsAreArray(values_3));
+
+  ASSERT_OK_AND_ASSIGN(arolla_res,
+                       DataSliceToOwnedArollaRef(ds, typed_value_holder));
+  EXPECT_THAT(arolla_res.UnsafeAs<DenseArray<int>>(),
+              ElementsAreArray(values_3));
+  EXPECT_TRUE(typed_value_holder.empty());
 }
 
 // NOTE: Empty and unknown slices work only with TypedValue and not TypedRef.
@@ -185,6 +220,13 @@ TEST(DataSliceUtils, ToArollaValueMixedSlice) {
                        HasSubstr("only DataSlices with primitive values of the "
                                  "same type can be converted to Arolla value, "
                                  "got: MIXED")));
+
+  std::vector<arolla::TypedValue> typed_value_holder;
+  EXPECT_THAT(DataSliceToOwnedArollaRef(ds, typed_value_holder),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("only DataSlices with primitive values of the "
+                                 "same type can be converted to Arolla value, "
+                                 "got: MIXED")));
 }
 
 TEST(DataSliceUtils, ToArollaValueScalar) {
@@ -245,6 +287,52 @@ TEST(DataSliceUtils, ToArollaValueScalar) {
             arolla::OptionalValue<int>{});
 }
 
+TEST(DataSliceUtils, ToArollaOwnedRef) {
+  auto values_1 = CreateDenseArray<int>({1});
+  auto shape = DataSlice::JaggedShape::Empty();
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       DataSlice::CreateWithSchemaFromData(
+                           internal::DataSliceImpl::Create(values_1), shape));
+  {
+    // Without fallback - making it owned.
+    std::vector<arolla::TypedValue> typed_value_holder;
+    ASSERT_OK_AND_ASSIGN(ds,
+                         DataSlice::Create(internal::DataItem(),
+                                           internal::DataItem(schema::kInt32)));
+    ASSERT_OK_AND_ASSIGN(auto ref,
+                         DataSliceToOwnedArollaRef(ds, typed_value_holder));
+    EXPECT_EQ(ref.UnsafeAs<arolla::OptionalValue<int>>(),
+              arolla::OptionalValue<int>{});
+    EXPECT_EQ(typed_value_holder.size(), 1);
+    EXPECT_EQ(typed_value_holder[0].GetRawPointer(), ref.GetRawPointer());
+  }
+  {
+    // With fallback - making it owned.
+    std::vector<arolla::TypedValue> typed_value_holder;
+    ASSERT_OK_AND_ASSIGN(ds,
+                         DataSlice::Create(internal::DataItem(), kAnySchema));
+    ASSERT_OK_AND_ASSIGN(
+        auto ref, DataSliceToOwnedArollaRef(
+                      ds, typed_value_holder,
+                      /*fallback_schema=*/internal::DataItem(schema::kInt32)));
+    EXPECT_EQ(ref.UnsafeAs<arolla::OptionalValue<int>>(),
+              arolla::OptionalValue<int>{});
+    EXPECT_EQ(typed_value_holder.size(), 1);
+    EXPECT_EQ(typed_value_holder[0].GetRawPointer(), ref.GetRawPointer());
+  }
+  {
+    // Without fallback - error.
+    std::vector<arolla::TypedValue> typed_value_holder;
+    ASSERT_OK_AND_ASSIGN(ds,
+                         DataSlice::Create(internal::DataItem(), kAnySchema));
+    EXPECT_THAT(
+        DataSliceToOwnedArollaRef(ds, typed_value_holder),
+        StatusIs(absl::StatusCode::kFailedPrecondition,
+                 HasSubstr("empty slices can be converted to Arolla "
+                           "value only if they have primitive schema")));
+  }
+}
+
 TEST(DataSliceUtils, FromDenseArray) {
   auto values = CreateFullDenseArray<int>({1, 2, 3});
   auto typed_value = arolla::TypedValue::FromValue(values);
@@ -271,6 +359,82 @@ TEST(DataSliceUtils, FromDenseArrayError) {
   EXPECT_THAT(DataSliceFromPrimitivesDenseArray(typed_value.AsRef()),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("unsupported array element type: OBJECT_ID")));
+}
+
+TEST(DataSliceUtils, FromArollaValue) {
+  {
+    // DenseArray: Schema from data.
+    auto values = CreateFullDenseArray<int>({1, 2, 3});
+    auto typed_value = arolla::TypedValue::FromValue(values);
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({2}), EdgeFromSizes({2, 1})});
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         DataSliceFromArollaValue(typed_value.AsRef(), shape));
+    EXPECT_THAT(ds, IsEquivalentTo(test::DataSlice<int>({1, 2, 3}, shape,
+                                                        schema::kInt32)));
+  }
+  {
+    // DenseArray: Explicitly set schema.
+    auto values = CreateFullDenseArray<int>({1, 2, 3});
+    auto typed_value = arolla::TypedValue::FromValue(values);
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({2}), EdgeFromSizes({2, 1})});
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, DataSliceFromArollaValue(typed_value.AsRef(), shape,
+                                          internal::DataItem(schema::kObject)));
+    EXPECT_THAT(ds, IsEquivalentTo(test::DataSlice<int>({1, 2, 3}, shape,
+                                                        schema::kObject)));
+  }
+  {
+    // Scalar: Schema from data.
+    auto typed_value = arolla::TypedValue::FromValue(1);
+    DataSlice::JaggedShape shape = DataSlice::JaggedShape::Empty();
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         DataSliceFromArollaValue(typed_value.AsRef(), shape));
+    EXPECT_THAT(ds, IsEquivalentTo(test::DataItem(1, schema::kInt32)));
+  }
+  {
+    // OptionalScalar: Schema from data.
+    auto typed_value =
+        arolla::TypedValue::FromValue(arolla::OptionalValue<int>(1));
+    DataSlice::JaggedShape shape = DataSlice::JaggedShape::Empty();
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         DataSliceFromArollaValue(typed_value.AsRef(), shape));
+    EXPECT_THAT(ds, IsEquivalentTo(test::DataItem(1, schema::kInt32)));
+  }
+  {
+    // Scalar: Explicitly set schema.
+    auto typed_value = arolla::TypedValue::FromValue(1);
+    DataSlice::JaggedShape shape = DataSlice::JaggedShape::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, DataSliceFromArollaValue(typed_value.AsRef(), shape,
+                                          internal::DataItem(schema::kObject)));
+    EXPECT_THAT(ds, IsEquivalentTo(test::DataItem(1, schema::kObject)));
+  }
+  {
+    // Scalar error: Not a scalar shape.
+    auto typed_value = arolla::TypedValue::FromValue(1);
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({2}), EdgeFromSizes({2, 1})});
+    EXPECT_THAT(
+        DataSliceFromArollaValue(typed_value.AsRef(), shape),
+        StatusIs(
+            absl::StatusCode::kFailedPrecondition,
+            HasSubstr(
+                "output with type INT32 is incompatible with rank(shape)=2")));
+  }
+  {
+    // DenseArray error: Incompatible shape.
+    auto values = CreateFullDenseArray<int>({1, 2, 3});
+    auto typed_value = arolla::TypedValue::FromValue(values);
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({2}), EdgeFromSizes({2, 2})});
+    EXPECT_THAT(
+        DataSliceFromArollaValue(typed_value.AsRef(), shape),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            HasSubstr("shape size must be compatible with number of items")));
+  }
 }
 
 TEST(DataSliceUtils, ToEmptyDenseArray) {

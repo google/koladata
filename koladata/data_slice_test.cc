@@ -731,6 +731,19 @@ TEST(DataSliceTest, SetSchema) {
               IsEquivalentTo(schema_without_db));
 }
 
+TEST(DataSliceTest, GetPrimitiveSchemaImpl) {
+  EXPECT_THAT(
+      test::DataSlice<int>({1, 2, 3}, schema::kInt32).GetPrimitiveSchemaImpl(),
+      IsEquivalentTo(internal::DataItem(schema::kInt32)));
+  EXPECT_THAT(
+      test::DataSlice<int>({1, 2, 3}, schema::kObject).GetPrimitiveSchemaImpl(),
+      IsEquivalentTo(internal::DataItem(schema::kInt32)));
+  EXPECT_THAT(test::EmptyDataSlice(3, schema::kInt32).GetPrimitiveSchemaImpl(),
+              IsEquivalentTo(internal::DataItem(schema::kInt32)));
+  EXPECT_THAT(test::EmptyDataSlice(3, schema::kObject).GetPrimitiveSchemaImpl(),
+              IsEquivalentTo(internal::DataItem()));
+}
+
 TEST(DataSliceTest, GetAttrNames_Entity) {
   auto db = DataBag::Empty();
   auto a = test::DataSlice<int>({1});

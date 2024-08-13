@@ -912,6 +912,16 @@ absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {
                    GetDb());
 }
 
+internal::DataItem DataSlice::GetPrimitiveSchemaImpl() const {
+  const auto& schema = GetSchemaImpl();
+  if (schema.is_primitive_schema()) {
+    return schema;
+  }
+  return schema::DType::VerifyQTypeSupported(dtype())
+             ? internal::DataItem(*schema::DType::FromQType(dtype()))
+             : internal::DataItem();
+}
+
 absl::StatusOr<DataSlice> DataSlice::ForkDb() const {
   ASSIGN_OR_RETURN(auto forked_db, GetDb()->Fork());
   return DataSlice(internal_->impl_, GetShape(), GetSchemaImpl(), forked_db);
