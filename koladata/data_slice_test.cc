@@ -1267,6 +1267,9 @@ TEST(DataSliceTest, ContainsOnlyLists_NonEmpty) {
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
                   .WithSchema(test::DataItem(schema::kObject))
                   ->ContainsOnlyLists());
+  EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
+                  .WithSchema(test::DataItem(schema::kItemId))
+                  ->ContainsOnlyLists());
 
   // Note: behavior if list_schema is used with non-list values is unspecified.
   // Do not rely on the following line's implications in other code.
@@ -1279,6 +1282,9 @@ TEST(DataSliceTest, ContainsOnlyLists_NonEmpty) {
                    ->ContainsOnlyLists());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kObject))
+                   ->ContainsOnlyLists());
+  EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
+                   .WithSchema(test::DataItem(schema::kItemId))
                    ->ContainsOnlyLists());
 }
 
@@ -1344,6 +1350,9 @@ TEST(DataSliceTest, ContainsOnlyDicts_NonEmpty) {
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                   .WithSchema(test::DataItem(schema::kObject))
                   ->ContainsOnlyDicts());
+  EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
+                  .WithSchema(test::DataItem(schema::kItemId))
+                  ->ContainsOnlyDicts());
 
   // Note: behavior if dict_schema is used with non-dict values is unspecified.
   // Do not rely on the following line's implications in other code.
@@ -1356,6 +1365,9 @@ TEST(DataSliceTest, ContainsOnlyDicts_NonEmpty) {
                    ->ContainsOnlyDicts());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kObject))
+                   ->ContainsOnlyDicts());
+  EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
+                   .WithSchema(test::DataItem(schema::kItemId))
                    ->ContainsOnlyDicts());
 }
 
