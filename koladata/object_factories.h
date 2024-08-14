@@ -274,26 +274,36 @@ absl::StatusOr<internal::DataItem> CreateDictSchema(
 // will be set to the dicts after creation (that implies potential type casting
 // and broadcasting). If `key_schema` and `value_schema` are not provided, they
 // will be taken from `keys` and `values` or defaulted to OBJECT.
+//
+// `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+// allocating them. If `itemid` already had dicts in `db`, those will be
+// overwritten.
 absl::StatusOr<DataSlice> CreateDictShaped(
-    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShape shape,
+    const DataBagPtr& db, DataSlice::JaggedShape shape,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema = std::nullopt,
     const std::optional<DataSlice>& key_schema = std::nullopt,
-    const std::optional<DataSlice>& value_schema = std::nullopt);
+    const std::optional<DataSlice>& value_schema = std::nullopt,
+    const std::optional<DataSlice>& itemid = std::nullopt);
 
 // Creates dicts with the given shape_and_mask_from. If `keys` and `values` are
 // provided, they will be set to the dicts after creation (that implies
 // potential type casting and broadcasting). If `key_schema` and `value_schema`
 // are not provided, they will be taken from `keys` and `values` or defaulted to
 // OBJECT.
+//
+// `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+// allocating them. They will be filtered based on `shape_and_mask_from`. If
+// `itemid` already had dicts in `db`, those will overwritten.
 absl::StatusOr<DataSlice> CreateDictLike(
-    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask_from,
+    const DataBagPtr& db, const DataSlice& shape_and_mask_from,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema = std::nullopt,
     const std::optional<DataSlice>& key_schema = std::nullopt,
-    const std::optional<DataSlice>& value_schema = std::nullopt);
+    const std::optional<DataSlice>& value_schema = std::nullopt,
+    const std::optional<DataSlice>& itemid = std::nullopt);
 
 // Creates list schema with the given item schema.
 absl::StatusOr<internal::DataItem> CreateListSchema(
@@ -301,52 +311,72 @@ absl::StatusOr<internal::DataItem> CreateListSchema(
 
 // Creates a single empty list. If `item_schema` is not provided, it will be
 // taken from `values` or defaulted to OBJECT.
+//
+// `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+// allocating them. If `itemid` already had lists in `db`, those will be
+// overwritten.
 absl::StatusOr<DataSlice> CreateEmptyList(
-    const std::shared_ptr<DataBag>& db,
+    const DataBagPtr& db,
     const std::optional<DataSlice>& schema = std::nullopt,
-    const std::optional<DataSlice>& item_schema = std::nullopt);
+    const std::optional<DataSlice>& item_schema = std::nullopt,
+    const std::optional<DataSlice>& itemid = std::nullopt);
 
 // Creates a DataSlice of lists with given values. The dimension of the resulted
 // DataSlice will be one less than the dimension of the values. If `item_schema`
 // is not provided, it will be taken from `values` or defaulted to OBJECT.
+//
+// `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+// allocating them. If `itemid` already had lists in `db`, those will be
+// overwritten.
 absl::StatusOr<DataSlice> CreateListsFromLastDimension(
-    const std::shared_ptr<DataBag>& db, const DataSlice& values,
+    const DataBagPtr& db, const DataSlice& values,
     const std::optional<DataSlice>& schema = std::nullopt,
-    const std::optional<DataSlice>& item_schema = std::nullopt);
+    const std::optional<DataSlice>& item_schema = std::nullopt,
+    const std::optional<DataSlice>& itemid = std::nullopt);
 
 // Creates a list from values. If `values` dimension is more than one, the list
 // will contain other lists. If `item_schema` is not provided, it will be
 // taken from `values`.
 absl::StatusOr<DataSlice> CreateNestedList(
-    const std::shared_ptr<DataBag>& db, const DataSlice& values,
+    const DataBagPtr& db, const DataSlice& values,
     const std::optional<DataSlice>& schema = std::nullopt,
     const std::optional<DataSlice>& item_schema = std::nullopt);
 
 // Creates a DataSlice of nested lists from the last `ndim` dimensions of
 // `values` if `ndim` >= 0, or from all dimensions of `values` if `ndim` < 0.
 // The contents of `values` are adopted into `db`.
-absl::StatusOr<DataSlice> Implode(
-    const std::shared_ptr<DataBag>& db, const DataSlice& values, int ndim);
+absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
+                                  int ndim);
 
 // Creates a DataSlice of lists with the provided shape. If `values` are
 // provided, they will be appended to the lists after creation (that implies
 // potential type casting and broadcasting). If `item_schema` is not provided,
 // it will be taken from `values` or defaulted to OBJECT.
+//
+// `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+// allocating them. If `itemid` already had lists in `db`, those will be
+// overwritten.
 absl::StatusOr<DataSlice> CreateListShaped(
-    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShape shape,
+    const DataBagPtr& db, DataSlice::JaggedShape shape,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema = std::nullopt,
-    const std::optional<DataSlice>& item_schema = std::nullopt);
+    const std::optional<DataSlice>& item_schema = std::nullopt,
+    const std::optional<DataSlice>& itemid = std::nullopt);
 
 // Creates empty lists of the given shape_and_mask_from. If `values` are
 // provided, they will be appended to the lists after creation (that implies
 // potential type casting and broadcasting). If `item_schema` is not provided,
 // it will be taken from `values` or defaulted to OBJECT.
+//
+// `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+// allocating them. If `itemid` already had lists in `db`, those will be
+// overwritten.
 absl::StatusOr<DataSlice> CreateListLike(
-    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask_from,
+    const DataBagPtr& db, const DataSlice& shape_and_mask_from,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema = std::nullopt,
-    const std::optional<DataSlice>& item_schema = std::nullopt);
+    const std::optional<DataSlice>& item_schema = std::nullopt,
+    const std::optional<DataSlice>& itemid = std::nullopt);
 
 // Creates a DataSlice of missing items with the given shape and schema.
 // If `schema` is an Entity schema and db is missing, an empty DataBag is

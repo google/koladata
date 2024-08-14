@@ -34,6 +34,7 @@
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -46,6 +47,10 @@
 #include "koladata/repr_utils.h"
 #include "koladata/shape_utils.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/qexpr/eval_context.h"
+#include "arolla/qexpr/operators/dense_array/array_ops.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -218,36 +223,167 @@ absl::StatusOr<DataSlice> CreateObjectsFromFields(
                            internal::DataItem(schema::kObject), db);
 }
 
-// Creates a DataSlice with objects constructed by allocate_single_func /
-// allocate_many_func and shape + sparsity of shape_and_mask_from.
-template <typename AllocateSingleFunc, typename AllocateManyFunc>
-absl::StatusOr<DataSlice> CreateLike(const std::shared_ptr<DataBag>& db,
+absl::Status DefaultInitItemIdType(const DataSlice& itemid,
+                                   const DataBagPtr& db) {
+  return absl::OkStatus();
+}
+
+absl::Status InitItemIdsForLists(const DataSlice& itemid,
+                                 const DataBagPtr& db) {
+  if (!itemid.ContainsOnlyLists()) {
+    return absl::InvalidArgumentError(
+        "itemid argument to list creation, requires List ItemIds");
+  }
+  return itemid.WithDb(db).ClearDictOrList();
+}
+
+absl::Status InitItemIdsForDicts(const DataSlice& itemid,
+                                 const DataBagPtr& db) {
+  if (!itemid.ContainsOnlyDicts()) {
+    return absl::InvalidArgumentError(
+        "itemid argument to dict creation, requires Dict ItemIds");
+  }
+  return itemid.WithDb(db).ClearDictOrList();
+}
+
+// Verifies that the given itemid is valid for creating Koda Items.
+// `check_item_id_type_fn should accept a function pointer that accepts a
+// DataSlice and returns an `absl::Status`. To check that itemid(s) are Lists,
+// pass `VerifyItemIdsAreLists` and to check they are Dicts, pass
+// `VerifyItemIdsAreDicts`.
+template <typename InitItemIdFn>
+absl::Status VerifyAndInitItemId(
+    const DataSlice& itemid, const DataSlice::JaggedShape& shape,
+    InitItemIdFn init_itemid_fn, const DataBagPtr& db) {
+  if (itemid.GetSchemaImpl() != schema::kItemId) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "itemid expected ITEMID schema, got %v",
+        itemid.GetSchemaImpl()));
+  }
+  if (!itemid.GetShape().IsEquivalentTo(shape)) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "cannot create Koda Items with provided ItemIds %s as its shape is "
+        "different from the shape of the resulting DataSlice: %s",
+        arolla::Repr(itemid), arolla::Repr(shape)));
+  }
+  if (itemid.GetDb() != nullptr && itemid.GetDb() != db) {
+    return absl::InvalidArgumentError(
+        "itemid should not have attached DataBag");
+  }
+  if (itemid.size() == 0) {
+    return absl::OkStatus();
+  }
+  if (itemid.dtype() != arolla::GetQType<internal::ObjectId>()) {
+    return absl::InternalError("ITEMID slices must have ObjectId items");
+  }
+  RETURN_IF_ERROR(init_itemid_fn(itemid, db));
+  if (itemid.GetShape().rank() == 0) {
+    return absl::OkStatus();
+  }
+  arolla::EvaluationContext ctx;
+  const auto& unique_items = arolla::DenseArrayUniqueOp()(
+      &ctx, itemid.slice().values<internal::ObjectId>());
+  RETURN_IF_ERROR(ctx.status());
+  if (unique_items.PresentCount() != itemid.size()) {
+    return absl::InvalidArgumentError(
+        "itemid cannot have missing or duplicate items");
+  }
+  return absl::OkStatus();
+}
+
+// Creates a DataSlice with objects constructed by allocate_single_fn /
+// allocate_many_fn and shape + sparsity of shape_and_mask_from.
+template <typename AllocateSingleFn, typename AllocateManyFn,
+          typename InitItemIdFn>
+absl::StatusOr<DataSlice> CreateLike(const DataBagPtr& db,
                                      const DataSlice& shape_and_mask_from,
                                      const internal::DataItem& schema,
-                                     AllocateSingleFunc allocate_single_func,
-                                     AllocateManyFunc allocate_many_func) {
-  return shape_and_mask_from.VisitImpl([&]<class T>(const T& impl) {
-    if constexpr (std::is_same_v<T, internal::DataItem>) {
-      return DataSlice::Create(impl.has_value()
-                                   ? internal::DataItem(allocate_single_func())
-                                   : internal::DataItem(),
-                               schema, db);
-    } else {
-      auto alloc_id = allocate_many_func(impl.present_count());
-      arolla::DenseArrayBuilder<internal::ObjectId> result_impl_builder(
-          impl.size());
-      int64_t i = 0;
-      impl.VisitValues([&](const auto& array) {
-        array.ForEachPresent([&](int64_t id, auto _) {
-          result_impl_builder.Set(id, alloc_id.ObjectByOffset(i++));
+                                     AllocateSingleFn allocate_single_fn,
+                                     AllocateManyFn allocate_many_fn,
+                                     const std::optional<DataSlice>& itemid,
+                                     InitItemIdFn init_itemid_fn) {
+  if (itemid) {
+    RETURN_IF_ERROR(
+        VerifyAndInitItemId(*itemid, shape_and_mask_from.GetShape(),
+                            init_itemid_fn, db));
+    return shape_and_mask_from.VisitImpl([&]<class T>(const T& impl) {
+      if constexpr (std::is_same_v<T, internal::DataItem>) {
+        return DataSlice::Create(impl.has_value()
+                                     ? itemid->item() : internal::DataItem(),
+                                 schema, db);
+      } else {
+        arolla::DenseArrayBuilder<internal::ObjectId> result_impl_builder(
+            itemid->size());
+        const arolla::DenseArray<internal::ObjectId>& item_ids =
+            itemid->slice().values<internal::ObjectId>();
+        impl.VisitValues([&](const auto& array) {
+          array.ForEachPresent([&](int64_t id, const auto& _) {
+            // NOTE: VerifyAndInitItemId makes sure `itemid` is full.
+            result_impl_builder.Set(id, item_ids[id].value);
+          });
         });
-      });
-      return DataSlice::Create(internal::DataSliceImpl::CreateObjectsDataSlice(
-                                   std::move(result_impl_builder).Build(),
-                                   internal::AllocationIdSet(alloc_id)),
-                               shape_and_mask_from.GetShape(), schema, db);
-    }
-  });
+        return DataSlice::Create(
+            internal::DataSliceImpl::CreateObjectsDataSlice(
+                std::move(result_impl_builder).Build(),
+                itemid->slice().allocation_ids()),
+            shape_and_mask_from.GetShape(), schema, db);
+      }
+    });
+  } else {
+    return shape_and_mask_from.VisitImpl([&]<class T>(const T& impl) {
+      if constexpr (std::is_same_v<T, internal::DataItem>) {
+        return DataSlice::Create(impl.has_value()
+                                     ? internal::DataItem(allocate_single_fn())
+                                     : internal::DataItem(),
+                                 schema, db);
+      } else {
+        auto alloc_id = allocate_many_fn(impl.present_count());
+        arolla::DenseArrayBuilder<internal::ObjectId> result_impl_builder(
+            impl.size());
+        int64_t i = 0;
+        impl.VisitValues([&](const auto& array) {
+          array.ForEachPresent([&](int64_t id, const auto& _) {
+            result_impl_builder.Set(id, alloc_id.ObjectByOffset(i++));
+          });
+        });
+        return DataSlice::Create(
+            internal::DataSliceImpl::CreateObjectsDataSlice(
+                std::move(result_impl_builder).Build(),
+                internal::AllocationIdSet(alloc_id)),
+            shape_and_mask_from.GetShape(), schema, db);
+      }
+    });
+  }
+}
+
+// Creates a DataSlice with objects constructed by allocate_single_fn /
+// allocate_many_fn and shape.
+template <typename AllocateSingleFn, typename AllocateManyFn,
+          typename InitItemIdFn>
+absl::StatusOr<DataSlice> CreateShaped(const DataBagPtr& db,
+                                       DataSlice::JaggedShape shape,
+                                       const internal::DataItem& schema,
+                                       AllocateSingleFn allocate_single_fn,
+                                       AllocateManyFn allocate_many_fn,
+                                       const std::optional<DataSlice>& itemid,
+                                       InitItemIdFn init_itemid_fn) {
+  if (itemid) {
+    RETURN_IF_ERROR(VerifyAndInitItemId(*itemid, shape, init_itemid_fn, db));
+    return itemid->VisitImpl([&](const auto& impl) {
+      return DataSlice::Create(impl, itemid->GetShape(), schema, db);
+    });
+  }
+  if (shape.rank() == 0) {
+    return DataSlice::Create(
+        internal::DataItem(allocate_single_fn()),
+        std::move(shape), schema, db);
+  } else {
+    size_t size = shape.size();
+    return DataSlice::Create(
+        internal::DataSliceImpl::ObjectsFromAllocation(
+            allocate_many_fn(size), size),
+        std::move(shape), schema, db);
+  }
 }
 
 // Deduces result item schema for the factory functions that accept `values` and
@@ -272,7 +408,8 @@ absl::StatusOr<DataSlice> DeduceItemSchema(
 // DataSlice with the provided schema.
 template <typename CreateDictsFn>
 absl::StatusOr<DataSlice> CreateDictImpl(
-    const std::shared_ptr<DataBag>& db, const CreateDictsFn& create_dicts_fn,
+    const DataBagPtr& db,
+    const CreateDictsFn& create_dicts_fn,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema,
@@ -313,7 +450,7 @@ absl::StatusOr<DataSlice> CreateDictImpl(
 // with appropriate shape and sparsity with the provided schema item.
 template <typename CreateEntitiesFn>
 absl::StatusOr<DataSlice> CreateEntitiesImpl(
-    const std::shared_ptr<DataBag>& db,
+    const DataBagPtr& db,
     const CreateEntitiesFn& create_entities_fn,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
@@ -343,7 +480,7 @@ absl::StatusOr<DataSlice> CreateEntitiesImpl(
 // shape and sparsity with OBJECT schema.
 template <typename CreateObjectsFn>
 absl::StatusOr<DataSlice> CreateObjectsImpl(
-    const std::shared_ptr<DataBag>& db,
+    const DataBagPtr& db,
     const CreateObjectsFn& create_objects_fn,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values) {
@@ -367,7 +504,8 @@ absl::StatusOr<DataSlice> CreateObjectsImpl(
 }  // namespace
 
 absl::StatusOr<DataSlice> CreateEntitySchema(
-    const DataBagPtr& db, const std::vector<absl::string_view>& attr_names,
+    const DataBagPtr& db,
+    const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& schemas) {
   DCHECK_EQ(attr_names.size(), schemas.size());
   std::vector<std::reference_wrapper<const internal::DataItem>> schema_items;
@@ -412,8 +550,7 @@ absl::StatusOr<DataSlice> SchemaCreator::operator()(
 }
 
 absl::StatusOr<DataSlice> ListSchemaCreator::operator()(
-    const DataBagPtr& db,
-    const DataSlice& item_schema) const {
+    const DataBagPtr& db, const DataSlice& item_schema) const {
   ASSIGN_OR_RETURN(auto schema_item, CreateListSchema(db, item_schema));
   return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema),
                            db);
@@ -518,7 +655,9 @@ absl::StatusOr<DataSlice> EntityCreator::Like(
       [&](const internal::DataItem& schema_item) {
         return CreateLike(db, shape_and_mask_from, schema_item,
                           internal::AllocateSingleObject,
-                          internal::Allocate);
+                          internal::Allocate,
+                          /*itemid=*/std::nullopt,
+                          DefaultInitItemIdType);
       }, attr_names, values, schema, update_schema);
 }
 
@@ -565,7 +704,9 @@ absl::StatusOr<DataSlice> ObjectCreator::Like(
         return CreateLike(db, shape_and_mask_from,
                           internal::DataItem(schema::kObject),
                           internal::AllocateSingleObject,
-                          internal::Allocate);
+                          internal::Allocate,
+                          /*itemid=*/std::nullopt,
+                          DefaultInitItemIdType);
       }, attr_names, values);
 }
 
@@ -735,43 +876,41 @@ absl::StatusOr<internal::DataItem> CreateDictSchema(
 }
 
 absl::StatusOr<DataSlice> CreateDictLike(
-    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask_from,
+    const DataBagPtr& db, const DataSlice& shape_and_mask_from,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& key_schema,
-    const std::optional<DataSlice>& value_schema) {
+    const std::optional<DataSlice>& value_schema,
+    const std::optional<DataSlice>& itemid) {
   return CreateDictImpl(
       db,
       [&](const auto& schema) {
         return CreateLike(db, shape_and_mask_from, schema,
                           internal::AllocateSingleDict,
-                          internal::AllocateDicts);
+                          internal::AllocateDicts,
+                          itemid,
+                          InitItemIdsForDicts);
       },
       keys, values, schema, key_schema, value_schema);
 }
 
 absl::StatusOr<DataSlice> CreateDictShaped(
-    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShape shape,
+    const DataBagPtr& db, DataSlice::JaggedShape shape,
     const std::optional<DataSlice>& keys,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& key_schema,
-    const std::optional<DataSlice>& value_schema) {
+    const std::optional<DataSlice>& value_schema,
+    const std::optional<DataSlice>& itemid) {
   return CreateDictImpl(
       db,
       [&](const auto& schema) {
-        if (shape.rank() == 0) {
-          return DataSlice::Create(
-              internal::DataItem(internal::AllocateSingleDict()),
-              std::move(shape), schema, db);
-        } else {
-          size_t size = shape.size();
-          return DataSlice::Create(
-              internal::DataSliceImpl::ObjectsFromAllocation(
-                  internal::AllocateDicts(size), size),
-              std::move(shape), schema, db);
-        }
+        return CreateShaped(db, std::move(shape), schema,
+                            internal::AllocateSingleDict,
+                            internal::AllocateDicts,
+                            itemid,
+                            InitItemIdsForDicts);
       },
       keys, values, schema, key_schema, value_schema);
 }
@@ -787,27 +926,30 @@ absl::StatusOr<internal::DataItem> CreateListSchema(
 }
 
 absl::StatusOr<DataSlice> CreateEmptyList(
-    const std::shared_ptr<DataBag>& db, const std::optional<DataSlice>& schema,
-    const std::optional<DataSlice>& item_schema) {
-  return CreateListShaped(db, DataSlice::JaggedShape::Empty(),
-                          /*values=*/std::nullopt, schema, item_schema);
+    const DataBagPtr& db, const std::optional<DataSlice>& schema,
+    const std::optional<DataSlice>& item_schema,
+    const std::optional<DataSlice>& itemid) {
+  auto shape = itemid ? itemid->GetShape() : DataSlice::JaggedShape::Empty();
+  return CreateListShaped(db, std::move(shape), /*values=*/std::nullopt, schema,
+                          item_schema, itemid);
 }
 
 absl::StatusOr<DataSlice> CreateListsFromLastDimension(
-    const std::shared_ptr<DataBag>& db, const DataSlice& values,
+    const DataBagPtr& db, const DataSlice& values,
     const std::optional<DataSlice>& schema,
-    const std::optional<DataSlice>& item_schema) {
+    const std::optional<DataSlice>& item_schema,
+    const std::optional<DataSlice>& itemid) {
   size_t rank = values.GetShape().rank();
   if (rank == 0) {
     return absl::InvalidArgumentError(
         "creating a list from values requires at least one dimension");
   }
   return CreateListShaped(db, values.GetShape().RemoveDims(rank - 1), values,
-                          schema, item_schema);
+                          schema, item_schema, itemid);
 }
 
 absl::StatusOr<DataSlice> CreateNestedList(
-    const std::shared_ptr<DataBag>& db, const DataSlice& values,
+    const DataBagPtr& db, const DataSlice& values,
     const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& item_schema) {
   ASSIGN_OR_RETURN(DataSlice res, CreateListsFromLastDimension(
@@ -818,8 +960,8 @@ absl::StatusOr<DataSlice> CreateNestedList(
   return res;
 }
 
-absl::StatusOr<DataSlice> Implode(const std::shared_ptr<DataBag>& db,
-                                  const DataSlice& values, int ndim) {
+absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
+                                  int ndim) {
   const size_t rank = values.GetShape().rank();
   if (ndim < 0) {
     ndim = values.GetShape().rank();  // ndim < 0 means implode all dimensions.
@@ -847,10 +989,11 @@ absl::StatusOr<DataSlice> Implode(const std::shared_ptr<DataBag>& db,
 }
 
 absl::StatusOr<DataSlice> CreateListShaped(
-    const std::shared_ptr<DataBag>& db, DataSlice::JaggedShape shape,
+    const DataBagPtr& db, DataSlice::JaggedShape shape,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema,
-    const std::optional<DataSlice>& item_schema) {
+    const std::optional<DataSlice>& item_schema,
+    const std::optional<DataSlice>& itemid) {
   internal::DataItem list_schema;
   if (schema) {
     if (item_schema.has_value()) {
@@ -865,31 +1008,23 @@ absl::StatusOr<DataSlice> CreateListShaped(
                      DeduceItemSchema(values, item_schema));
     ASSIGN_OR_RETURN(list_schema, CreateListSchema(db, deduced_item_schema));
   }
-  size_t size = shape.size();
-
-  std::optional<DataSlice> result;
-  if (shape.rank() == 0) {
-    ASSIGN_OR_RETURN(
-        result,
-        DataSlice::Create(internal::DataItem(internal::AllocateSingleList()),
-                          list_schema, db));
-  } else {
-    ASSIGN_OR_RETURN(result, DataSlice::Create(
-                                 internal::DataSliceImpl::ObjectsFromAllocation(
-                                     internal::AllocateLists(size), size),
-                                 std::move(shape), list_schema, db));
-  }
+  ASSIGN_OR_RETURN(auto result, CreateShaped(db, std::move(shape), list_schema,
+                                             internal::AllocateSingleList,
+                                             internal::AllocateLists,
+                                             itemid,
+                                             InitItemIdsForLists));
   if (values.has_value()) {
-    RETURN_IF_ERROR(result->AppendToList(*values));
+    RETURN_IF_ERROR(result.AppendToList(*values));
   }
-  return *std::move(result);
+  return std::move(result);
 }
 
 absl::StatusOr<DataSlice> CreateListLike(
-    const std::shared_ptr<DataBag>& db, const DataSlice& shape_and_mask_from,
+    const DataBagPtr& db, const DataSlice& shape_and_mask_from,
     const std::optional<DataSlice>& values,
     const std::optional<DataSlice>& schema,
-    const std::optional<DataSlice>& item_schema) {
+    const std::optional<DataSlice>& item_schema,
+    const std::optional<DataSlice>& itemid) {
   internal::DataItem list_schema;
   if (schema) {
     if (item_schema.has_value()) {
@@ -906,7 +1041,9 @@ absl::StatusOr<DataSlice> CreateListLike(
   }
   ASSIGN_OR_RETURN(auto result, CreateLike(db, shape_and_mask_from, list_schema,
                                            internal::AllocateSingleList,
-                                           internal::AllocateLists));
+                                           internal::AllocateLists,
+                                           itemid,
+                                           InitItemIdsForLists));
   if (values.has_value()) {
     RETURN_IF_ERROR(result.AppendToList(*values));
   }
