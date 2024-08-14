@@ -19,6 +19,7 @@
 #include "koladata/operators/allocation.h"
 #include "koladata/operators/assertion.h"
 #include "koladata/operators/clone.h"
+#include "koladata/operators/concat_or_stack.h"
 #include "koladata/operators/collapse.h"
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/convert_and_eval.h"
@@ -69,6 +70,7 @@ OPERATOR("kde.comparison.less_equal", LessEqual);
 OPERATOR("kde.core._clone", Clone);
 OPERATOR("kde.core._clone_with_schema", CloneWithSchema);
 OPERATOR("kde.core._collapse", Collapse);
+OPERATOR_FAMILY("kde.core._concat_or_stack", ConcatOrStackOperatorFamily);
 OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);
 OPERATOR("kde.core._extract_with_schema", ExtractWithSchema);
