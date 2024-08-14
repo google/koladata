@@ -166,6 +166,22 @@ class FastcallArgParser {
   const absl::flat_hash_map<absl::string_view, size_t> pos_kw_to_pos_;
 };
 
+// Populates `seed_arg` output argument if `args` contain a valid "seed"
+// argument. Returns true on success, false on error, in which case it also sets
+// Python Exception.
+// Returned string_view is valid as long as `args` are not deallocated.
+bool ParseSeedArg(const FastcallArgParser::Args& args, size_t arg_pos,
+                  absl::string_view& seed_arg);
+
+// Populates `schema_arg` output argument if `args` contain a valid "schema"
+// argument. Returns true on success, false on error, in which case it also sets
+// Python Exception.
+//
+// TODO: Consider making "schema" and "itemid" keyword-only
+// arguments in FastcallArgParser.
+bool ParseSchemaArg(const FastcallArgParser::Args& args, size_t arg_pos,
+                    std::optional<DataSlice>& schema_arg);
+
 // TODO: Consider making `update_schema` a keyword-only argument,
 // when it becomes supported (will be safer in terms of argument position).
 // Verifies that 'update_schema' argument is present in parsed `args` and stores

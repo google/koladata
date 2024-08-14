@@ -385,6 +385,85 @@ SchemaBag:
         x.get_attr('__schema__').b, ds([schema_constants.TEXT]).with_db(db)
     )
 
+  def test_uu(self):
+    db = bag()
+    x = db.uu(
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.TEXT),
+    )
+    testing.assert_equal(
+        x.get_schema(),
+        db.uu_schema(a=schema_constants.FLOAT64, b=schema_constants.TEXT),
+    )
+    testing.assert_equal(x.a.get_schema(), schema_constants.FLOAT64.with_db(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_db(db))
+    testing.assert_allclose(
+        x.a, ds([3.14], schema_constants.FLOAT64).with_db(db)
+    )
+    testing.assert_equal(x.b, ds(['abc']).with_db(db))
+
+    # Uuids are the same.
+    z = db.uu(
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.TEXT),
+    )
+    testing.assert_equal(x, z)
+
+    # Seed arg.
+    u = db.uu(
+        'seed',
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.TEXT),
+    )
+    self.assertNotEqual(x.fingerprint, u.fingerprint)
+
+    v = db.uu(
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.TEXT),
+        seed='seed',
+    )
+    testing.assert_equal(u, v)
+    with self.assertRaises(ValueError):
+      # seed is not an attribute.
+      _ = v.seed
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, 'seed must be a utf8 string, got bytes'
+    ):
+      _ = db.uu(
+          a=ds([3.14], schema_constants.FLOAT64),
+          b=ds(['abc'], schema_constants.TEXT),
+          seed=b'seed',
+      )
+
+    # schema arg
+    x = db.uu(
+        a=ds([3.14], schema_constants.FLOAT32),
+        schema=db.uu_schema(a=schema_constants.FLOAT64),
+    )
+    testing.assert_equal(
+        x.get_schema(),
+        db.uu_schema(a=schema_constants.FLOAT64),
+    )
+    testing.assert_equal(x.a.get_schema(), schema_constants.FLOAT64.with_db(db))
+    testing.assert_allclose(
+        x.a, ds([3.14], schema_constants.FLOAT64).with_db(db), atol=1e-6
+    )
+
+    # update_schema arg
+    x = db.uu(
+        a=ds([3.14], schema_constants.FLOAT32),
+        schema=db.uu_schema(a=schema_constants.FLOAT64),
+        update_schema=True,
+    )
+    testing.assert_equal(x.a.get_schema(), schema_constants.FLOAT32.with_db(db))
+    testing.assert_allclose(
+        x.a, ds([3.14], schema_constants.FLOAT32).with_db(db)
+    )
+
+    # no args
+    _ = db.uu()
+
   def test_uuobj(self):
     db = bag()
     x = db.uuobj(
@@ -421,7 +500,7 @@ SchemaBag:
     v = db.uuobj(
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.TEXT),
-        seed='seed'
+        seed='seed',
     )
     testing.assert_equal(u, v)
     with self.assertRaises(ValueError):
@@ -436,6 +515,9 @@ SchemaBag:
           b=ds(['abc'], schema_constants.TEXT),
           seed=b'seed',
       )
+
+    # no args
+    _ = db.uuobj()
 
   def test_uu_schema(self):
     db = bag()
@@ -482,6 +564,9 @@ SchemaBag:
           b=schema_constants.TEXT,
           seed=b'seed',
       )
+
+    # no args
+    _ = db.uu_schema()
 
   def test_new_schema(self):
     db = bag()

@@ -116,10 +116,12 @@ cc_library(
     hdrs = ["py_utils.h"],
     deps = [
         ":boxing",
+        ":wrap_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata:object_factories",
+        "//py/koladata/exceptions:py_exception_utils",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",

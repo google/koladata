@@ -30,7 +30,9 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/object_factories.h"
 #include "py/arolla/abc/py_qvalue.h"
+#include "py/koladata/exceptions/py_exception_utils.h"
 #include "py/koladata/types/boxing.h"
+#include "py/koladata/types/wrap_utils.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -146,6 +148,51 @@ absl::StatusOr<std::vector<DataSlice>> ConvertArgsToDataSlices(
     values.push_back(std::move(value));
   }
   return std::move(values);
+}
+
+bool ParseSeedArg(const FastcallArgParser::Args& args,
+                  size_t arg_pos,
+                  absl::string_view& seed_arg) {
+  if (args.pos_kw_values.size() <= arg_pos || !args.pos_kw_values[arg_pos] ||
+      args.pos_kw_values[arg_pos] == Py_None) {
+    // The argument was not specified and seed_arg will retain its value from
+    // the caller.
+    return true;
+  }
+  auto seed_py_object = args.pos_kw_values[arg_pos];
+  Py_ssize_t seed_size;
+  auto seed_ptr = PyUnicode_AsUTF8AndSize(seed_py_object, &seed_size);
+  if (seed_ptr == nullptr) {
+    PyErr_Format(PyExc_TypeError, "seed must be a utf8 string, got %s",
+                 Py_TYPE(seed_py_object)->tp_name);
+    return false;
+  }
+  // seed_ptr is valid as long as seed_py_object is not garbage collected.
+  seed_arg = absl::string_view(seed_ptr, seed_size);
+  return true;
+}
+
+bool ParseSchemaArg(const FastcallArgParser::Args& args, size_t arg_pos,
+                    std::optional<DataSlice>& schema_arg) {
+  // args.pos_kw_values[arg_pos] is "schema" optional positional-keyword
+  // argument.
+  if (args.pos_kw_values.size() <= arg_pos ||
+      args.pos_kw_values[arg_pos] == nullptr ||
+      args.pos_kw_values[arg_pos] == Py_None) {
+    return true;
+  }
+  const DataSlice* schema =
+      UnwrapDataSlice(args.pos_kw_values[arg_pos], "schema");
+  if (schema == nullptr) {
+    return false;
+  }
+  auto status = schema->VerifyIsSchema();
+  if (!status.ok()) {
+    SetKodaPyErrFromStatus(status);
+    return false;
+  }
+  schema_arg = *schema;
+  return true;
 }
 
 bool ParseUpdateSchemaArg(const FastcallArgParser::Args& args, size_t arg_pos,

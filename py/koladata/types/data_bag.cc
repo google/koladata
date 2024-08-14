@@ -217,32 +217,6 @@ struct ObjectCreatorHelper {
   }
 };
 
-// Populates `schema_arg` output argument if `args` contain a valid "schema"
-// argument. Returns true on success, false on error, in which case it also sets
-// Python Exception.
-//
-// TODO: Consider making "schema" and "itemid" keyword-only
-// arguments in FastcallArgParser.
-bool ParseSchemaArg(const FastcallArgParser::Args& args,
-                    std::optional<DataSlice>& schema_arg) {
-  // args.pos_kw_values[1] is "schema" optional positional-keyword argument.
-  if (args.pos_kw_values.size() <= 1 || args.pos_kw_values[1] == nullptr ||
-      args.pos_kw_values[1] == Py_None) {
-    return true;
-  }
-  const DataSlice* schema = UnwrapDataSlice(args.pos_kw_values[1], "schema");
-  if (schema == nullptr) {
-    return false;
-  }
-  auto status = schema->VerifyIsSchema();
-  if (!status.ok()) {
-    SetKodaPyErrFromStatus(status);
-    return false;
-  }
-  schema_arg = *schema;
-  return true;
-}
-
 // Helper function that processes arguments for Entity / Object creators and
 // dispatches to different implementation depending on the presence of those
 // arguments.
@@ -252,7 +226,7 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
   AdoptionQueue adoption_queue;
   std::optional<DataSlice> res;
   std::optional<DataSlice> schema_arg;
-  if (!ParseSchemaArg(args, schema_arg)) {
+  if (!ParseSchemaArg(args, /*arg_pos=*/1, schema_arg)) {
     return nullptr;
   }
   bool update_schema = false;
@@ -341,6 +315,55 @@ absl::Nullable<PyObject*> PyDataBag_new_factory(PyObject* self,
                                                     args);
 }
 
+// Returns a DataSlice that represents an entity with the given DataBag
+// associated with it.
+//
+// For single argument `arg`, a new Entity is created for it, e.g. converting a
+// Python dictionary or list to Koda Entity.
+//
+// `kwargs` are traversed and key-value pairs are extracted and added as
+// attributes of the newly created entity.
+absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
+                                               PyObject* const* py_args,
+                                               Py_ssize_t nargs,
+                                               PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, "seed", "schema",
+      "update_schema");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  auto db = UnsafeDataBagPtr(self);
+  AdoptionQueue adoption_queue;
+  DataSlice res;
+  ASSIGN_OR_RETURN(std::vector<DataSlice> values,
+                   ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
+                   SetKodaPyErrFromStatus(_));
+  absl::string_view seed_arg("");
+  if (!ParseSeedArg(args, /*arg_pos=*/0, seed_arg)) {
+    return nullptr;
+  }
+  std::optional<DataSlice> schema_arg;
+  if (!ParseSchemaArg(args, /*arg_pos=*/1, schema_arg)) {
+    return nullptr;
+  }
+  bool update_schema = false;
+  if (!ParseUpdateSchemaArg(args, /*arg_pos=*/2, update_schema)) {
+    return nullptr;
+  }
+  if (schema_arg) {
+    adoption_queue.Add(*schema_arg);
+  }
+  ASSIGN_OR_RETURN(
+      res,
+      CreateUu(db, seed_arg, args.kw_names, values, schema_arg, update_schema),
+      SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+  return WrapPyDataSlice(std::move(res));
+}
+
 // Returns a DataSlice that represents an object with the given DataBag
 // associated with it.
 //
@@ -382,7 +405,7 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
     return nullptr;
   }
   std::optional<DataSlice> schema_arg;
-  if (!ParseSchemaArg(args, schema_arg)) {
+  if (!ParseSchemaArg(args, /*arg_pos=*/1, schema_arg)) {
     return nullptr;
   }
   bool update_schema = false;
@@ -470,7 +493,7 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
     return nullptr;
   }
   std::optional<DataSlice> schema_arg;
-  if (!ParseSchemaArg(args, schema_arg)) {
+  if (!ParseSchemaArg(args, /*arg_pos=*/1, schema_arg)) {
     return nullptr;
   }
   bool update_schema = false;
@@ -563,24 +586,12 @@ absl::Nullable<PyObject*> PyDataBag_uu_factory(PyObject* self,
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
                    SetKodaPyErrFromStatus(_));
-  if (args.pos_kw_values[0] && args.pos_kw_values[0] != Py_None) {
-    auto seed_py_object = args.pos_kw_values[0];
-    Py_ssize_t seed_size;
-    auto seed_ptr = PyUnicode_AsUTF8AndSize(seed_py_object, &seed_size);
-    if (seed_ptr == nullptr) {
-      PyErr_Format(PyExc_TypeError, "seed must be a utf8 string, got %s",
-                   Py_TYPE(seed_py_object)->tp_name);
-      return nullptr;
-    }
-    auto seed_view = absl::string_view(seed_ptr, seed_size);
-    ASSIGN_OR_RETURN(res,
-                     FactoryHelperT()(db, seed_view, args.kw_names, values),
-                     SetKodaPyErrFromStatus(_));
-  } else {
-    ASSIGN_OR_RETURN(
-        res, FactoryHelperT()(db, absl::string_view(""), args.kw_names, values),
-        SetKodaPyErrFromStatus(_));
+  absl::string_view seed("");
+  if (!ParseSeedArg(args, /*arg_pos=*/0, seed)) {
+    return nullptr;
   }
+  ASSIGN_OR_RETURN(res, FactoryHelperT()(db, seed, args.kw_names, values),
+                   SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
@@ -1189,6 +1200,8 @@ Returns:
      METH_FASTCALL | METH_KEYWORDS, "DataBag.new_schema"},
     {"uu_schema", (PyCFunction)PyDataBag_uu_factory<UuSchemaCreator>,
      METH_FASTCALL | METH_KEYWORDS, "DataBag.uu_schema"},
+    {"uu", (PyCFunction)PyDataBag_uu_entity_factory,
+     METH_FASTCALL | METH_KEYWORDS, "DataBag.uu"},
     {"_dict_shaped", (PyCFunction)PyDataBag_dict_shaped, METH_FASTCALL,
      "DataBag._dict_shaped"},
     {"_dict_like", (PyCFunction)PyDataBag_dict_like, METH_FASTCALL,
