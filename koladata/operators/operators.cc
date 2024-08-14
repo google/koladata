@@ -66,7 +66,6 @@ OPERATOR("kde.comparison.greater_equal", GreaterEqual);
 OPERATOR("kde.comparison.less", Less);
 OPERATOR("kde.comparison.less_equal", LessEqual);
 //
-OPERATOR("kde.core._add", Add);
 OPERATOR("kde.core._clone", Clone);
 OPERATOR("kde.core._clone_with_schema", CloneWithSchema);
 OPERATOR("kde.core._collapse", Collapse);
@@ -80,6 +79,7 @@ OPERATOR("kde.core._shallow_clone", ShallowClone);
 OPERATOR("kde.core._shallow_clone_with_schema", ShallowCloneWithSchema);
 OPERATOR_FAMILY("kde.core._uuid", UuidOperatorFamily);
 OPERATOR_FAMILY("kde.core._uuobj", UuObjOperatorFamily);
+OPERATOR("kde.core.add", Add);
 OPERATOR_FAMILY("kde.core.align", AlignOperatorFamily);
 OPERATOR("kde.core.at", At);
 OPERATOR("kde.core.dict_size", DictSize);

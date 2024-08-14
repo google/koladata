@@ -17,13 +17,11 @@
 
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
-#include "arolla/expr/expr_operator.h"
 
 namespace koladata::ops {
 
 // kde.core._add.
-absl::StatusOr<DataSlice> Add(const arolla::expr::ExprOperatorPtr& expr_op,
-                              const DataSlice& x, const DataSlice& y);
+absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y);
 
 }  // namespace koladata::ops
 
