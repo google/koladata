@@ -337,10 +337,15 @@ absl::StatusOr<DataSlice> CreateListsFromLastDimension(
 // Creates a list from values. If `values` dimension is more than one, the list
 // will contain other lists. If `item_schema` is not provided, it will be
 // taken from `values`.
+//
+// `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+// allocating them. If `itemid` already had lists in `db`, those will be
+// overwritten.
 absl::StatusOr<DataSlice> CreateNestedList(
     const DataBagPtr& db, const DataSlice& values,
     const std::optional<DataSlice>& schema = std::nullopt,
-    const std::optional<DataSlice>& item_schema = std::nullopt);
+    const std::optional<DataSlice>& item_schema = std::nullopt,
+    const std::optional<DataSlice>& itemid = std::nullopt);
 
 // Creates a DataSlice of nested lists from the last `ndim` dimensions of
 // `values` if `ndim` >= 0, or from all dimensions of `values` if `ndim` < 0.

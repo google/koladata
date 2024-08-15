@@ -1665,10 +1665,15 @@ TEST(ObjectFactoriesTest, CreateEmptyShaped) {
 
 TEST(ObjectFactoriesTest, CreateNestedList) {
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto edge, DenseArrayEdge::FromSplitPoints(
-                                      CreateDenseArray<int64_t>({0, 3, 5})));
   ASSERT_OK_AND_ASSIGN(
-      auto shape, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge}));
+      auto edge_1,
+      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3})));
+  ASSERT_OK_AND_ASSIGN(
+      auto edge_2,
+      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3, 5})));
+  ASSERT_OK_AND_ASSIGN(
+      auto shape,
+      DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge_1, edge_2}));
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
 
   {
@@ -1681,10 +1686,13 @@ TEST(ObjectFactoriesTest, CreateNestedList) {
     ASSERT_OK_AND_ASSIGN(auto item_schema,
                          lists.GetSchema().GetAttr("__items__"));
     ASSERT_OK_AND_ASSIGN(item_schema, item_schema.GetAttr("__items__"));
+    ASSERT_OK_AND_ASSIGN(item_schema, item_schema.GetAttr("__items__"));
     EXPECT_EQ(item_schema.item(), schema::kInt32);
 
     ASSERT_OK_AND_ASSIGN(auto exploded_lists,
                          lists.ExplodeList(0, std::nullopt));
+    ASSERT_OK_AND_ASSIGN(exploded_lists,
+                         exploded_lists.ExplodeList(0, std::nullopt));
     ASSERT_OK_AND_ASSIGN(exploded_lists,
                          exploded_lists.ExplodeList(0, std::nullopt));
     EXPECT_EQ(exploded_lists.GetSchemaImpl(), schema::kInt32);
@@ -1698,6 +1706,118 @@ TEST(ObjectFactoriesTest, CreateNestedList) {
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("the schema for List Items is incompatible.")));
   }
+}
+
+TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Nested) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto edge_1,
+      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3})));
+  ASSERT_OK_AND_ASSIGN(
+      auto edge_2,
+      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3, 5})));
+  ASSERT_OK_AND_ASSIGN(
+      auto shape,
+      DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge_1, edge_2}));
+  auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
+
+  auto itemid = *DataSlice::Create(
+      internal::DataItem(internal::AllocateSingleList()),
+      internal::DataItem(schema::kItemId));
+
+  ASSERT_OK_AND_ASSIGN(auto lists,
+                       CreateNestedList(db, values, /*schema=*/std::nullopt,
+                                        /*item_schema=*/std::nullopt, itemid));
+  EXPECT_THAT(lists.item(),
+              DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
+  EXPECT_EQ(lists.item(), itemid.item());
+
+  ASSERT_OK_AND_ASSIGN(auto item_schema,
+                       lists.GetSchema().GetAttr("__items__"));
+  ASSERT_OK_AND_ASSIGN(item_schema, item_schema.GetAttr("__items__"));
+  ASSERT_OK_AND_ASSIGN(item_schema, item_schema.GetAttr("__items__"));
+  EXPECT_EQ(item_schema.item(), schema::kInt32);
+
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists,
+                       lists.ExplodeList(0, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(exploded_lists,
+                       exploded_lists.ExplodeList(0, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(exploded_lists,
+                       exploded_lists.ExplodeList(0, std::nullopt));
+  EXPECT_EQ(exploded_lists.GetSchemaImpl(), schema::kInt32);
+  EXPECT_THAT(values.slice(), IsEquivalentTo(exploded_lists.slice()));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists.GetShape()));
+}
+
+TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Flat) {
+  auto db = DataBag::Empty();
+  auto values = test::DataSlice<int>({1, 2, 3, 4, 5});
+
+  auto itemid = *DataSlice::Create(
+      internal::DataItem(internal::AllocateSingleList()),
+      internal::DataItem(schema::kItemId));
+
+  ASSERT_OK_AND_ASSIGN(auto lists,
+                       CreateNestedList(db, values, /*schema=*/std::nullopt,
+                                        /*item_schema=*/std::nullopt, itemid));
+  EXPECT_THAT(lists.item(),
+              DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
+  EXPECT_EQ(lists.item(), itemid.item());
+
+  ASSERT_OK_AND_ASSIGN(auto item_schema,
+                       lists.GetSchema().GetAttr("__items__"));
+  EXPECT_EQ(item_schema.item(), schema::kInt32);
+
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists,
+                       lists.ExplodeList(0, std::nullopt));
+  EXPECT_EQ(exploded_lists.GetSchemaImpl(), schema::kInt32);
+  EXPECT_THAT(values.slice(), IsEquivalentTo(exploded_lists.slice()));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists.GetShape()));
+}
+
+TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ShapeError) {
+  auto db = DataBag::Empty();
+  auto values = test::DataSlice<int>({1, 2, 3, 4, 5});
+
+  auto itemid = *DataSlice::Create(
+      internal::DataSliceImpl::ObjectsFromAllocation(
+          internal::AllocateLists(2), 2),
+      DataSlice::JaggedShape::FlatFromSize(2),
+      internal::DataItem(schema::kItemId));
+
+  EXPECT_THAT(CreateNestedList(db, values, /*schema=*/std::nullopt,
+                               /*item_schema=*/std::nullopt, itemid),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("shape is different")));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto edge_1,
+      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3})));
+  ASSERT_OK_AND_ASSIGN(
+      auto edge_2,
+      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3, 5})));
+  ASSERT_OK_AND_ASSIGN(
+      auto shape,
+      DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge_1, edge_2}));
+  ASSERT_OK_AND_ASSIGN(values, values.Reshape(shape));
+
+  EXPECT_THAT(CreateNestedList(db, values, /*schema=*/std::nullopt,
+                               /*item_schema=*/std::nullopt, itemid),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("shape is different")));
+}
+
+TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ItemIdTypeError) {
+  auto db = DataBag::Empty();
+  auto values = test::DataSlice<int>({1, 2, 3, 4, 5});
+
+  auto itemid = *DataSlice::Create(
+      internal::DataItem(internal::AllocateSingleDict()),
+      internal::DataItem(schema::kItemId));
+  EXPECT_THAT(CreateNestedList(db, values, /*schema=*/std::nullopt,
+                               /*item_schema=*/std::nullopt, itemid),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("requires List ItemIds")));
 }
 
 TEST(ObjectFactoriesTest, CreateDictShaped) {

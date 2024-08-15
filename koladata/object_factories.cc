@@ -951,13 +951,26 @@ absl::StatusOr<DataSlice> CreateListsFromLastDimension(
 absl::StatusOr<DataSlice> CreateNestedList(
     const DataBagPtr& db, const DataSlice& values,
     const std::optional<DataSlice>& schema,
-    const std::optional<DataSlice>& item_schema) {
-  ASSIGN_OR_RETURN(DataSlice res, CreateListsFromLastDimension(
-                                      db, values, schema, item_schema));
-  while (res.GetShape().rank() > 0) {
-    ASSIGN_OR_RETURN(res, CreateListsFromLastDimension(db, res));
+    const std::optional<DataSlice>& item_schema,
+    const std::optional<DataSlice>& itemid) {
+  // NOTE: CreateListShaped deals with consistency of values and passed schema
+  // args (called from CreateListsFromLastDimension below).
+  ASSIGN_OR_RETURN(
+      DataSlice res,
+      CreateListsFromLastDimension(
+          db, values, schema, item_schema,
+          values.GetShape().rank() <= 1 && itemid ? itemid : std::nullopt));
+  for (size_t rank = res.GetShape().rank(); rank > 0;
+       rank = res.GetShape().rank()) {
+    // NOTE: If `itemid` is present, the last "implosion" of a list needs to
+    // happen to `itemid` ObjectIds.
+    ASSIGN_OR_RETURN(
+        res,
+        CreateListsFromLastDimension(
+            db, res, /*schema=*/std::nullopt, /*item_schema=*/std::nullopt,
+            rank == 1 && itemid ? itemid : std::nullopt));
   }
-  return res;
+  return std::move(res);
 }
 
 absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
