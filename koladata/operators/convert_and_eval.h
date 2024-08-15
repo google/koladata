@@ -45,6 +45,15 @@ absl::StatusOr<arolla::TypedValue> EvalExpr(
     const arolla::expr::ExprOperatorPtr& expr_op,
     absl::Span<const arolla::TypedRef> inputs);
 
+// Returns the schema of the data of `x` that is compatible with Arolla.
+// * If the schema of `x` is a primitive schema, returns it.
+// * If the schema is given by the data (e.g. in the case of `OBJECT`), the
+//   type of the data is returned as a primitive schema if possible.
+// * If the slice is empty and the type cannot be inferred from its schema,
+//   an empty internal::DataItem is returned.
+// * Otherwise, an error is returned.
+absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(const DataSlice& x);
+
 // koda_internal.convert_and_eval_with_shape operator.
 //
 // Accepts an Arolla ExprOperator as an input that works on core Arolla data

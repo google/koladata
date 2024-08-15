@@ -15,7 +15,6 @@
 #include "koladata/operators/strings.h"
 
 #include <memory>
-#include <utility>
 #include <vector>
 
 #include "absl/status/statusor.h"
@@ -35,7 +34,8 @@ absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
                                  const DataSlice& end) {
   // If `x` is empty-and-unknown, the output will be too. In all other cases,
   // we evaluate M.strings.substr on the provided inputs.
-  if (!x.GetPrimitiveSchemaImpl().has_value()) {
+  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
+  if (!primitive_schema.has_value()) {
     ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape({x, start, end}));
     return BroadcastToShape(x, std::move(common_shape));
   }

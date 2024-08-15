@@ -21,11 +21,13 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/dense_array/dense_array.h"
@@ -40,6 +42,7 @@ namespace koladata::ops {
 namespace {
 
 using ::absl_testing::StatusIs;
+using ::absl_testing::IsOkAndHolds;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
@@ -185,6 +188,128 @@ TEST(EvalExpr, SimpleEval) {
                          {x_tv.AsRef(), y_tv.AsRef()}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("division by zero")));
+  }
+}
+
+TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataItem) {
+  {
+    // Empty and unknown.
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::DataItem(std::nullopt, schema::kNone)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem())));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::DataItem(std::nullopt, schema::kObject)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem())));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::DataItem(std::nullopt, schema::kAny)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem())));
+  }
+  {
+    // Missing with primitive schema.
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::DataItem(std::nullopt, schema::kInt32)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::DataItem(std::nullopt, schema::kText)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+  }
+  {
+    // Present values with OBJECT / ANY schema.
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::DataItem(1, schema::kObject)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(
+            test::DataItem(arolla::Text("foo"), schema::kAny)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+  }
+  {
+    // Present values with corresponding schema schema.
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::DataItem(1, schema::kInt32)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(
+            test::DataItem(arolla::Text("foo"), schema::kText)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+  }
+  {
+    // Entity schema error.
+    EXPECT_THAT(GetPrimitiveArollaSchema(test::DataItem(
+                    std::nullopt, internal::AllocateExplicitSchema())),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("entity slices are not supported")));
+  }
+  {
+    // Unsupported internal data.
+    EXPECT_THAT(GetPrimitiveArollaSchema(test::DataItem(
+                    internal::AllocateSingleObject(), schema::kObject)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("the slice has no primitive schema")));
+  }
+}
+
+TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataSlice) {
+  {
+    // Empty and unknown.
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::EmptyDataSlice(3, schema::kNone)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem())));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::EmptyDataSlice(3, schema::kObject)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem())));
+    EXPECT_THAT(GetPrimitiveArollaSchema(test::EmptyDataSlice(3, schema::kAny)),
+                IsOkAndHolds(IsEquivalentTo(internal::DataItem())));
+  }
+  {
+    // Missing with primitive schema.
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::EmptyDataSlice(3, schema::kInt32)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::EmptyDataSlice(3, schema::kText)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+  }
+  {
+    // Present values with OBJECT / ANY schema.
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::DataSlice<int>({1}, schema::kObject)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(
+            test::DataSlice<arolla::Text>({"foo"}, schema::kAny)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+  }
+  {
+    // Present values with corresponding schema schema.
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::DataSlice<int>({1}, schema::kInt32)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(
+            test::DataSlice<arolla::Text>({"foo"}, schema::kText)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+  }
+  {
+    // Entity schema error.
+    EXPECT_THAT(GetPrimitiveArollaSchema(test::EmptyDataSlice(
+                    3, internal::AllocateExplicitSchema())),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("entity slices are not supported")));
+  }
+  {
+    // Unsupported internal data.
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::AllocateDataSlice(3, schema::kObject)),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("the slice has no primitive schema")));
+  }
+  {
+    // Mixed data.
+    EXPECT_THAT(GetPrimitiveArollaSchema(test::MixedDataSlice<int, float>(
+                    {1, std::nullopt}, {std::nullopt, 2.0f}, schema::kObject)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("mixed slices are not supported")));
   }
 }
 

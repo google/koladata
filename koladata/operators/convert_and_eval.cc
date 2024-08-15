@@ -62,6 +62,7 @@
 #include "arolla/serving/expr_compiler.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/lru_cache.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
@@ -273,6 +274,28 @@ absl::StatusOr<arolla::TypedValue> EvalExpr(
   return fn(inputs);
 }
 
+absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
+    const DataSlice& x) {
+  const auto& schema = x.GetSchemaImpl();
+  if (schema.is_primitive_schema()) {
+    return schema;
+  }
+  if (schema.is_entity_schema()) {
+    return absl::InvalidArgumentError("entity slices are not supported");
+  }
+  if (x.impl_empty_and_unknown()) {
+    return internal::DataItem();
+  }
+  if (schema::DType::VerifyQTypeSupported(x.dtype())) {
+    return internal::DataItem(*schema::DType::FromQType(x.dtype()));
+  }
+  if (x.impl_has_mixed_dtype()) {
+    return absl::InvalidArgumentError("mixed slices are not supported");
+  }
+  return absl::InvalidArgumentError(
+      absl::StrCat("the slice has no primitive schema: ", arolla::Repr(x)));
+}
+
 absl::StatusOr<arolla::OperatorPtr>
 ConvertAndEvalWithShapeFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
@@ -313,7 +336,7 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     }
     schema_agg.Add(x.GetSchemaImpl());
     if (!first_primitive_schema.has_value()) {
-      first_primitive_schema = x.GetPrimitiveSchemaImpl();
+      ASSIGN_OR_RETURN(first_primitive_schema, GetPrimitiveArollaSchema(x));
     }
   }
   if (!output_schema.has_value()) {
