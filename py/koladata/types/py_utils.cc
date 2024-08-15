@@ -179,6 +179,7 @@ bool ParseSchemaArg(const FastcallArgParser::Args& args, size_t arg_pos,
   if (args.pos_kw_values.size() <= arg_pos ||
       args.pos_kw_values[arg_pos] == nullptr ||
       args.pos_kw_values[arg_pos] == Py_None) {
+    schema_arg = std::nullopt;
     return true;
   }
   const DataSlice* schema =

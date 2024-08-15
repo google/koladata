@@ -37,6 +37,15 @@ absl::Nullable<const DataSlice*> UnwrapDataSlice(
 // runtime during allocations, this function can return nullptr.
 absl::Nullable<PyObject*> WrapPyDataSlice(DataSlice&& ds);
 
+// Unwraps a DataSlice from `py_obj` into `arg` if `py_obj` contains a
+// DataSlice. Returns true on success and false on failure. On failure, this
+// function sets Python exception. In case `py_obj` is None, `arg` will be
+// assigned std::nullopt and true will be returned. `name_for_error` should
+// accept the argument name of the argument that is being parsed.
+bool UnwrapDataSliceOptionalArg(PyObject* py_obj,
+                                absl::string_view name_for_error,
+                                std::optional<DataSlice>& arg);
+
 // Returns a const reference to underlying DataSlice object without any checks.
 const DataSlice& UnsafeDataSliceRef(PyObject* py_obj);
 

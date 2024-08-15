@@ -684,29 +684,20 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
     return nullptr;
   }
   std::optional<DataSlice> key_schema;
-  if (!Py_IsNone(py_key_schema)) {
-    ASSIGN_OR_RETURN(key_schema,
-                     DataSliceFromPyValue(py_key_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
-  }
   std::optional<DataSlice> value_schema;
-  if (!Py_IsNone(py_value_schema)) {
-    ASSIGN_OR_RETURN(value_schema,
-                     DataSliceFromPyValue(py_value_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
-  }
   std::optional<DataSlice> schema;
-  if (!Py_IsNone(py_schema)) {
-    ASSIGN_OR_RETURN(schema, DataSliceFromPyValue(py_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
+  if (!UnwrapDataSliceOptionalArg(py_key_schema, "key_schema", key_schema) ||
+      !UnwrapDataSliceOptionalArg(py_value_schema, "value_schema",
+                                  value_schema) ||
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+    return nullptr;
   }
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
-      .With(SetKodaPyErrFromStatus);
-
   ASSIGN_OR_RETURN(auto res,
                    CreateDictShaped(self_db, *std::move(shape), keys, values,
                                     schema, key_schema, value_schema),
                    SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
+      .With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -742,23 +733,14 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
     return nullptr;
   }
   std::optional<DataSlice> key_schema;
-  if (!Py_IsNone(py_key_schema)) {
-    ASSIGN_OR_RETURN(key_schema,
-                     DataSliceFromPyValue(py_key_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
-  }
   std::optional<DataSlice> value_schema;
-  if (!Py_IsNone(py_value_schema)) {
-    ASSIGN_OR_RETURN(value_schema,
-                     DataSliceFromPyValue(py_value_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
-  }
   std::optional<DataSlice> schema;
-  if (!Py_IsNone(py_schema)) {
-    ASSIGN_OR_RETURN(schema, DataSliceFromPyValue(py_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
+  if (!UnwrapDataSliceOptionalArg(py_key_schema, "key_schema", key_schema) ||
+      !UnwrapDataSliceOptionalArg(py_value_schema, "value_schema",
+                                  value_schema) ||
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+    return nullptr;
   }
-
   ASSIGN_OR_RETURN(
       auto res,
       CreateDictLike(UnsafeDataBagPtr(self), *shape_and_mask_from, keys, values,
@@ -785,15 +767,10 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
   AdoptionQueue adoption_queue;
 
   std::optional<DataSlice> item_schema;
-  if (!Py_IsNone(py_item_schema)) {
-    ASSIGN_OR_RETURN(item_schema,
-                     DataSliceFromPyValue(py_item_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
-  }
   std::optional<DataSlice> schema;
-  if (!Py_IsNone(py_schema)) {
-    ASSIGN_OR_RETURN(schema, DataSliceFromPyValue(py_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
+  if (!UnwrapDataSliceOptionalArg(py_item_schema, "item_schema", item_schema) ||
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+    return nullptr;
   }
 
   std::optional<DataSlice> res;
@@ -926,17 +903,11 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
     ASSIGN_OR_RETURN(values, DataSliceFromPyValue(py_values, adoption_queue),
                      SetKodaPyErrFromStatus(_));
   }
-
   std::optional<DataSlice> item_schema;
-  if (!Py_IsNone(py_item_schema)) {
-    ASSIGN_OR_RETURN(item_schema,
-                     DataSliceFromPyValue(py_item_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
-  }
   std::optional<DataSlice> schema;
-  if (!Py_IsNone(py_schema)) {
-    ASSIGN_OR_RETURN(schema, DataSliceFromPyValue(py_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
+  if (!UnwrapDataSliceOptionalArg(py_item_schema, "item_schema", item_schema) ||
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+    return nullptr;
   }
 
   ASSIGN_OR_RETURN(
@@ -977,15 +948,10 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
                      SetKodaPyErrFromStatus(_));
   }
   std::optional<DataSlice> item_schema;
-  if (!Py_IsNone(py_item_schema)) {
-    ASSIGN_OR_RETURN(item_schema,
-                     DataSliceFromPyValue(py_item_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
-  }
   std::optional<DataSlice> schema;
-  if (!Py_IsNone(py_schema)) {
-    ASSIGN_OR_RETURN(schema, DataSliceFromPyValue(py_schema, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
+  if (!UnwrapDataSliceOptionalArg(py_item_schema, "item_schema", item_schema) ||
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+    return nullptr;
   }
 
   ASSIGN_OR_RETURN(auto res,

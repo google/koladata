@@ -15,6 +15,7 @@
 #include "py/koladata/types/wrap_utils.h"
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -72,6 +73,21 @@ absl::Nullable<const DataSlice*> UnwrapDataSlice(
 absl::Nullable<PyObject*> WrapPyDataSlice(DataSlice&& ds) {
   return arolla::python::WrapAsPyQValue(
       arolla::TypedValue::FromValue(std::move(ds)));
+}
+
+bool UnwrapDataSliceOptionalArg(PyObject* py_obj,
+                                absl::string_view name_for_error,
+                                std::optional<DataSlice>& arg) {
+  if (Py_IsNone(py_obj)) {
+    arg = std::nullopt;
+    return true;
+  }
+  const DataSlice* ds = UnwrapDataSlice(py_obj, name_for_error);
+  if (ds == nullptr) {
+    return false;
+  }
+  arg = std::move(*ds);
+  return true;
 }
 
 const DataSlice& UnsafeDataSliceRef(PyObject* py_obj) {
