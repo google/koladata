@@ -639,8 +639,8 @@ cc_test(
 
 cc_test(
     name = "data_bag_benchmarks",
+    timeout = "long",  # Times out in bazel.
     srcs = ["data_bag_benchmarks.cc"],
-    tags = ["nooss"],  # Times out in bazel.
     deps = [
         ":benchmark_helpers",
         ":data_bag",

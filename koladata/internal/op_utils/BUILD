@@ -313,8 +313,8 @@ cc_test(
 
 cc_test(
     name = "extract_benchmarks",
+    timeout = "long",  # Times out in bazel.
     srcs = ["extract_benchmarks.cc"],
-    tags = ["nooss"],  # Times out in bazel.
     deps = [
         ":extract",
         ":presence_and",
