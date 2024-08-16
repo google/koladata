@@ -16,7 +16,9 @@
 
 #include <memory>
 
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/operators/convert_and_eval.h"
 #include "arolla/expr/expr_operator.h"
@@ -28,6 +30,19 @@ absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
   return SimplePointwiseEval(
       std::make_shared<arolla::expr::RegisteredOperator>("kde.core._add_impl"),
       {x, y});
+}
+
+DataSlice NoDb(const DataSlice& ds) { return ds.WithDb(nullptr); }
+
+absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds) {
+  if (auto result = ds.GetDb()) {
+    return result;
+  }
+  return absl::InvalidArgumentError("DataSlice has no associated DataBag");
+}
+
+DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db) {
+  return ds.WithDb(db);
 }
 
 }  // namespace koladata::ops

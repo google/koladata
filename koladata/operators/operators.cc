@@ -19,9 +19,9 @@
 #include "koladata/operators/allocation.h"
 #include "koladata/operators/assertion.h"
 #include "koladata/operators/clone.h"
-#include "koladata/operators/concat_or_stack.h"
 #include "koladata/operators/collapse.h"
 #include "koladata/operators/comparison.h"
+#include "koladata/operators/concat_or_stack.h"
 #include "koladata/operators/convert_and_eval.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/dict.h"
@@ -86,12 +86,14 @@ OPERATOR_FAMILY("kde.core.align", AlignOperatorFamily);
 OPERATOR("kde.core.at", At);
 OPERATOR("kde.core.dict_size", DictSize);
 OPERATOR("kde.core.follow", Follow);
+OPERATOR("kde.core.get_db", GetDb);
 OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR("kde.core.get_primitive_schema", GetPrimitiveSchema);
 OPERATOR_FAMILY("kde.core.group_by_indices", GroupByIndicesFamily);
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted", GroupByIndicesSortedFamily);
 OPERATOR("kde.core.itemid_bits", ItemIdBits);
 OPERATOR("kde.core.list_size", ListSize);
+OPERATOR("kde.core.no_db", NoDb);
 OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
 OPERATOR("kde.core.reverse", Reverse);
@@ -99,6 +101,7 @@ OPERATOR("kde.core.reverse_select", ReverseSelect);
 OPERATOR_FAMILY("kde.core.subslice", SubsliceOperatorFamily);
 OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
+OPERATOR("kde.core.with_db", WithDb);
 //
 OPERATOR("kde.logical._has_not", HasNot);
 OPERATOR("kde.logical.apply_mask", ApplyMask);

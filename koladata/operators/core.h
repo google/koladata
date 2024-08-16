@@ -23,6 +23,15 @@ namespace koladata::ops {
 // kde.core._add.
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y);
 
+// kde.core.no_db.
+DataSlice NoDb(const DataSlice& ds);
+
+// kde.core.get_db.
+absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds);
+
+// kde.core.with_db.
+DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_H_
