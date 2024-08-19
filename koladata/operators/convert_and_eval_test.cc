@@ -218,6 +218,75 @@ TEST(ArollaEval, SimpleAggIntoEval) {
   }
 }
 
+TEST(ArollaEval, SimpleAggOverEval) {
+  arolla::InitArolla();
+  {
+    // Eval through operator.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({2}), EdgeFromSizes({3, 2})});
+    DataSlice x = test::DataSlice<int>({1, 2, 0, 1, std::nullopt}, shape,
+                                       schema::kObject);
+    ASSERT_OK_AND_ASSIGN(
+        auto result,
+        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
+                              "array.inverse_mapping"),
+                          x));
+    EXPECT_THAT(result,
+                IsEquivalentTo(test::DataSlice<int>({2, 0, 1, std::nullopt, 0},
+                                                    shape, schema::kObject)));
+    // With output schema set.
+    ASSERT_OK_AND_ASSIGN(
+        result,
+        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
+                              "array.inverse_mapping"),
+                          x, internal::DataItem(schema::kAny)));
+    EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int>(
+                            {2, 0, 1, std::nullopt, 0}, shape, schema::kAny)));
+  }
+  {
+    // Empty and unknown slice.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({2}), EdgeFromSizes({3, 2})});
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice x, test::EmptyDataSlice(5, schema::kObject).Reshape(shape));
+    ASSERT_OK_AND_ASSIGN(
+        auto result,
+        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
+                              "array.inverse_mapping"),
+                          x));
+    EXPECT_THAT(result, IsEquivalentTo(x));
+    // With output schema set.
+    ASSERT_OK_AND_ASSIGN(
+        result,
+        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
+                              "array.inverse_mapping"),
+                          x, internal::DataItem(schema::kAny)));
+    EXPECT_THAT(result, IsEquivalentTo(
+                            *x.WithSchema(internal::DataItem(schema::kAny))));
+  }
+  {
+    // Scalar input error.
+    DataSlice x = test::DataItem(1, schema::kObject);
+    EXPECT_THAT(
+        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
+                              "array.inverse_mapping"),
+                          x),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("expected rank(x) > 0")));
+  }
+  {
+    // Mixed input error.
+    DataSlice x = test::MixedDataSlice<int, int64_t>(
+        {1, std::nullopt}, {std::nullopt, int64_t{2}}, schema::kObject);
+    EXPECT_THAT(
+        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
+                              "array.inverse_mapping"),
+                          x),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("mixed slices are not supported")));
+  }
+}
+
 TEST(ArollaEval, EvalExpr) {
   {
     // Success.

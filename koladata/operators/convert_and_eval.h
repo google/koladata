@@ -90,6 +90,16 @@ absl::StatusOr<DataSlice> SimpleAggIntoEval(
     const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
     internal::DataItem output_schema = internal::DataItem());
 
+// Evaluates the given expression on the given input and returns the result. The
+// expr_op is expected to be an agg-over operator that should be evaluated on
+// `x` extracted as an Arolla value and the edge of the last dimension. The
+// output DataSlice has the the shape of `x` and the schema of `x`, or
+// `output_schema` if provided. If `x` is empty-and-unknown, the `expr_op` is
+// not evaluated.
+absl::StatusOr<DataSlice> SimpleAggOverEval(
+    const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
+    internal::DataItem output_schema = internal::DataItem());
+
 // koda_internal.to_arolla_boolean operator.
 //
 // Attempts to cast the provided DataSlice (only rank=0 is supported) to

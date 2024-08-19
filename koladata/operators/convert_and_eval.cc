@@ -267,6 +267,34 @@ internal::DataSliceImpl GetSliceImpl(const DataSlice& slice) {
              : internal::DataSliceImpl::Create({slice.item()});
 }
 
+absl::StatusOr<DataSlice> SimpleAggEval(
+    const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
+    internal::DataItem output_schema, bool is_agg_into) {
+  const auto& shape = x.GetShape();
+  if (shape.rank() == 0) {
+    return absl::InvalidArgumentError("expected rank(x) > 0");
+  }
+  auto result_shape = is_agg_into ? shape.RemoveDims(shape.rank() - 1) : shape;
+  if (!output_schema.has_value()) {
+    output_schema = x.GetSchemaImpl();
+  }
+  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
+  if (!primitive_schema.has_value()) {
+    ASSIGN_OR_RETURN(auto ds, DataSlice::Create(internal::DataItem(),
+                                                std::move(output_schema)));
+    return BroadcastToShape(ds, std::move(result_shape));
+  }
+  std::vector<arolla::TypedValue> typed_value_holder;
+  typed_value_holder.reserve(1);
+  ASSIGN_OR_RETURN(auto x_ref,
+                   DataSliceToOwnedArollaRef(x, typed_value_holder));
+  auto edge_tv = arolla::TypedValue::FromValue(shape.edges().back());
+  ASSIGN_OR_RETURN(auto result,
+                   EvalExpr(expr_op, {std::move(x_ref), edge_tv.AsRef()}));
+  return DataSliceFromArollaValue(result.AsRef(), std::move(result_shape),
+                                  std::move(output_schema));
+}
+
 }  // namespace
 
 absl::StatusOr<arolla::TypedValue> EvalExpr(
@@ -374,29 +402,15 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
 absl::StatusOr<DataSlice> SimpleAggIntoEval(
     const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
     internal::DataItem output_schema) {
-  const auto& shape = x.GetShape();
-  if (shape.rank() == 0) {
-    return absl::InvalidArgumentError("expected rank(x) > 0");
-  }
-  auto result_shape = shape.RemoveDims(shape.rank() - 1);
-  if (!output_schema.has_value()) {
-    output_schema = x.GetSchemaImpl();
-  }
-  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
-  if (!primitive_schema.has_value()) {
-    ASSIGN_OR_RETURN(auto ds, DataSlice::Create(internal::DataItem(),
-                                                std::move(output_schema)));
-    return BroadcastToShape(ds, std::move(result_shape));
-  }
-  std::vector<arolla::TypedValue> typed_value_holder;
-  typed_value_holder.reserve(1);
-  ASSIGN_OR_RETURN(auto x_ref,
-                   DataSliceToOwnedArollaRef(x, typed_value_holder));
-  auto edge_tv = arolla::TypedValue::FromValue(shape.edges().back());
-  ASSIGN_OR_RETURN(auto result,
-                   EvalExpr(expr_op, {std::move(x_ref), edge_tv.AsRef()}));
-  return DataSliceFromArollaValue(result.AsRef(), std::move(result_shape),
-                                  std::move(output_schema));
+  return SimpleAggEval(expr_op, x, std::move(output_schema),
+                       /*is_agg_into=*/true);
+}
+
+absl::StatusOr<DataSlice> SimpleAggOverEval(
+    const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
+    internal::DataItem output_schema) {
+  return SimpleAggEval(expr_op, x, std::move(output_schema),
+                       /*is_agg_into=*/false);
 }
 
 absl::StatusOr<bool> ToArollaBoolean(const DataSlice& x) {

@@ -38,6 +38,9 @@ absl::StatusOr<DataSlice> AggAny(const DataSlice& x);
 // kde.core._agg_all.
 absl::StatusOr<DataSlice> AggAll(const DataSlice& x);
 
+// kde.core._inverse_mapping.
+absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_H_

@@ -59,4 +59,10 @@ absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
       internal::DataItem(schema::kMask));
 }
 
+absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x) {
+  return SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
+                               "array.inverse_mapping"),
+                           x);
+}
+
 }  // namespace koladata::ops
