@@ -35,6 +35,7 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
 
 namespace koladata::internal {
