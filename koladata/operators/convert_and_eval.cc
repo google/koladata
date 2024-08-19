@@ -311,7 +311,8 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
     return schema;
   }
   if (schema.is_entity_schema()) {
-    return absl::InvalidArgumentError("entity slices are not supported");
+    return absl::InvalidArgumentError(
+        "DataSlice with Entity schema is not supported");
   }
   if (x.impl_empty_and_unknown()) {
     return internal::DataItem();
@@ -320,10 +321,11 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
     return internal::DataItem(*schema::DType::FromQType(x.dtype()));
   }
   if (x.impl_has_mixed_dtype()) {
-    return absl::InvalidArgumentError("mixed slices are not supported");
+    return absl::InvalidArgumentError(
+        "DataSlice with mixed types is not supported");
   }
   return absl::InvalidArgumentError(
-      absl::StrCat("the slice has no primitive schema: ", arolla::Repr(x)));
+      absl::StrCat("DataSlice has no primitive schema: ", arolla::Repr(x)));
 }
 
 absl::StatusOr<arolla::OperatorPtr>

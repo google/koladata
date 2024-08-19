@@ -41,8 +41,8 @@
 namespace koladata::ops {
 namespace {
 
-using ::absl_testing::StatusIs;
 using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
@@ -214,7 +214,7 @@ TEST(ArollaEval, SimpleAggIntoEval) {
         SimpleAggIntoEval(
             std::make_shared<arolla::expr::RegisteredOperator>("math.sum"), x),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("mixed slices are not supported")));
+                 HasSubstr("DataSlice with mixed types is not supported")));
   }
 }
 
@@ -283,7 +283,7 @@ TEST(ArollaEval, SimpleAggOverEval) {
                               "array.inverse_mapping"),
                           x),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("mixed slices are not supported")));
+                 HasSubstr("DataSlice with mixed types is not supported")));
   }
 }
 
@@ -370,17 +370,18 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataItem) {
   }
   {
     // Entity schema error.
-    EXPECT_THAT(GetPrimitiveArollaSchema(test::DataItem(
-                    std::nullopt, internal::AllocateExplicitSchema())),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("entity slices are not supported")));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(
+            test::DataItem(std::nullopt, internal::AllocateExplicitSchema())),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("DataSlice with Entity schema is not supported")));
   }
   {
     // Unsupported internal data.
     EXPECT_THAT(GetPrimitiveArollaSchema(test::DataItem(
                     internal::AllocateSingleObject(), schema::kObject)),
                 StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("the slice has no primitive schema")));
+                         HasSubstr("DataSlice has no primitive schema")));
   }
 }
 
@@ -427,24 +428,26 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataSlice) {
   }
   {
     // Entity schema error.
-    EXPECT_THAT(GetPrimitiveArollaSchema(test::EmptyDataSlice(
-                    3, internal::AllocateExplicitSchema())),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("entity slices are not supported")));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(
+            test::EmptyDataSlice(3, internal::AllocateExplicitSchema())),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("DataSlice with Entity schema is not supported")));
   }
   {
     // Unsupported internal data.
     EXPECT_THAT(
         GetPrimitiveArollaSchema(test::AllocateDataSlice(3, schema::kObject)),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("the slice has no primitive schema")));
+                 HasSubstr("DataSlice has no primitive schema")));
   }
   {
     // Mixed data.
-    EXPECT_THAT(GetPrimitiveArollaSchema(test::MixedDataSlice<int, float>(
-                    {1, std::nullopt}, {std::nullopt, 2.0f}, schema::kObject)),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("mixed slices are not supported")));
+    EXPECT_THAT(
+        GetPrimitiveArollaSchema(test::MixedDataSlice<int, float>(
+            {1, std::nullopt}, {std::nullopt, 2.0f}, schema::kObject)),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("DataSlice with mixed types is not supported")));
   }
 }
 
