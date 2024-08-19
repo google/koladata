@@ -24,6 +24,9 @@ namespace koladata::ops {
 absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
                                  const DataSlice& end);
 
+// kde.strings.agg_join.
+absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_STRINGS_H_

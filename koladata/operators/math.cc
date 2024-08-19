@@ -15,6 +15,7 @@
 #include "koladata/operators/math.h"
 
 #include <memory>
+#include <utility>
 
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
@@ -56,7 +57,7 @@ absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
   // The input has primitive schema or OBJECT/ANY schema with a single primitive
   // dtype.
   if (primitive_schema.has_value()) {
-    return SimpleAggIntoEval(op, x);
+    return SimpleAggIntoEval(op, {x});
   }
   // If the input is fully empty and unknown, we fix the schema to INT32. We
   // cannot skip evaluation even if the input is empty-and-unknown because the
@@ -68,7 +69,8 @@ absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
   auto output_schema = x.GetSchemaImpl() == schema::kNone
                            ? internal::DataItem(schema::kInt32)
                            : x.GetSchemaImpl();
-  return SimpleAggIntoEval(op, x_int32, /*output_schema=*/output_schema);
+  return SimpleAggIntoEval(op, {std::move(x_int32)},
+                           /*output_schema=*/output_schema);
 }
 
 }  // namespace koladata::ops

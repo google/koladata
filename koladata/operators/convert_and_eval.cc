@@ -268,29 +268,57 @@ internal::DataSliceImpl GetSliceImpl(const DataSlice& slice) {
 }
 
 absl::StatusOr<DataSlice> SimpleAggEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
-    internal::DataItem output_schema, bool is_agg_into) {
-  const auto& shape = x.GetShape();
-  if (shape.rank() == 0) {
+    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema, int edge_arg_index, bool is_agg_into) {
+  DCHECK_GE(inputs.size(), 1);
+  DCHECK_GE(edge_arg_index, 0);
+  DCHECK_LE(edge_arg_index, inputs.size());
+  schema::CommonSchemaAggregator schema_agg;
+  internal::DataItem first_primitive_schema;
+  for (const auto& x : inputs) {
+    schema_agg.Add(x.GetSchemaImpl());
+    // Validate that it has a primitive schema. We additionally use it as a
+    // fallback schema for empty-and-unknown inputs.
+    ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
+    if (!first_primitive_schema.has_value()) {
+      first_primitive_schema = std::move(primitive_schema);
+    }
+  }
+  if (!output_schema.has_value()) {
+    ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
+  }
+  ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
+                   shape::AlignNonScalars(std::move(inputs)));
+  if (aligned_shape.rank() == 0) {
     return absl::InvalidArgumentError("expected rank(x) > 0");
   }
-  auto result_shape = is_agg_into ? shape.RemoveDims(shape.rank() - 1) : shape;
-  if (!output_schema.has_value()) {
-    output_schema = x.GetSchemaImpl();
-  }
-  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
-  if (!primitive_schema.has_value()) {
-    ASSIGN_OR_RETURN(auto ds, DataSlice::Create(internal::DataItem(),
-                                                std::move(output_schema)));
+  auto result_shape = is_agg_into
+                          ? aligned_shape.RemoveDims(aligned_shape.rank() - 1)
+                          : aligned_shape;
+  // All empty-and-unknown inputs. We then skip evaluation and just broadcast
+  // the first input to the common shape and common schema.
+  if (!first_primitive_schema.has_value()) {
+    ASSIGN_OR_RETURN(auto ds,
+                     DataSlice::Create(internal::DataItem(), output_schema));
     return BroadcastToShape(ds, std::move(result_shape));
   }
+  // From here on, we know that at least one input has known schema and we
+  // should eval.
   std::vector<arolla::TypedValue> typed_value_holder;
-  typed_value_holder.reserve(1);
-  ASSIGN_OR_RETURN(auto x_ref,
-                   DataSliceToOwnedArollaRef(x, typed_value_holder));
-  auto edge_tv = arolla::TypedValue::FromValue(shape.edges().back());
-  ASSIGN_OR_RETURN(auto result,
-                   EvalExpr(expr_op, {std::move(x_ref), edge_tv.AsRef()}));
+  std::vector<arolla::TypedRef> typed_refs(
+      aligned_ds.size() + 1, arolla::TypedRef::UnsafeFromRawPointer(
+                                 arolla::GetNothingQType(), nullptr));
+  typed_value_holder.reserve(aligned_ds.size());
+  for (int i = 0; i < aligned_ds.size(); ++i) {
+    int typed_ref_i = i < edge_arg_index ? i : i + 1;
+    ASSIGN_OR_RETURN(
+        typed_refs[typed_ref_i],
+        DataSliceToOwnedArollaRef(aligned_ds[i], typed_value_holder,
+                                  first_primitive_schema));
+  }
+  auto edge_tv = arolla::TypedValue::FromValue(aligned_shape.edges().back());
+  typed_refs[edge_arg_index] = edge_tv.AsRef();
+  ASSIGN_OR_RETURN(auto result, EvalExpr(expr_op, typed_refs));
   return DataSliceFromArollaValue(result.AsRef(), std::move(result_shape),
                                   std::move(output_schema));
 }
@@ -363,12 +391,12 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
   schema::CommonSchemaAggregator schema_agg;
   internal::DataItem first_primitive_schema;
   for (const auto& x : inputs) {
-    if (x.impl_has_mixed_dtype()) {
-      return absl::InvalidArgumentError("mixed slices are not supported");
-    }
     schema_agg.Add(x.GetSchemaImpl());
+    // Validate that it has a primitive schema. We additionally use it as a
+    // fallback schema for empty-and-unknown inputs.
+    ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
     if (!first_primitive_schema.has_value()) {
-      ASSIGN_OR_RETURN(first_primitive_schema, GetPrimitiveArollaSchema(x));
+      first_primitive_schema = std::move(primitive_schema);
     }
   }
   if (!output_schema.has_value()) {
@@ -402,16 +430,18 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
 }
 
 absl::StatusOr<DataSlice> SimpleAggIntoEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
-    internal::DataItem output_schema) {
-  return SimpleAggEval(expr_op, x, std::move(output_schema),
+    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema, int edge_arg_index) {
+  return SimpleAggEval(expr_op, std::move(inputs), std::move(output_schema),
+                       edge_arg_index,
                        /*is_agg_into=*/true);
 }
 
 absl::StatusOr<DataSlice> SimpleAggOverEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
-    internal::DataItem output_schema) {
-  return SimpleAggEval(expr_op, x, std::move(output_schema),
+    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema, int edge_arg_index) {
+  return SimpleAggEval(expr_op, std::move(inputs), std::move(output_schema),
+                       edge_arg_index,
                        /*is_agg_into=*/false);
 }
 

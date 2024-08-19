@@ -17,6 +17,7 @@
 #include <memory>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
@@ -58,6 +59,15 @@ absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
           {std::move(x_ref), std::move(start_ref), std::move(end_ref)}));
   return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
                                   x.GetSchemaImpl());
+}
+
+absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep) {
+  if (sep.GetShape().rank() != 0) {
+    return absl::InvalidArgumentError("expected rank(sep) == 0");
+  }
+  return SimpleAggIntoEval(
+      std::make_shared<arolla::expr::RegisteredOperator>("strings.agg_join"),
+      {x, sep});
 }
 
 }  // namespace koladata::ops

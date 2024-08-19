@@ -49,20 +49,20 @@ DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db) {
 
 absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
   return SimpleAggIntoEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("core.any"), x,
+      std::make_shared<arolla::expr::RegisteredOperator>("core.any"), {x},
       internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
   return SimpleAggIntoEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("core.all"), x,
+      std::make_shared<arolla::expr::RegisteredOperator>("core.all"), {x},
       internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x) {
   return SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
                                "array.inverse_mapping"),
-                           x);
+                           {x});
 }
 
 }  // namespace koladata::ops

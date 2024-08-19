@@ -85,20 +85,24 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
 // `x` extracted as an Arolla value and the edge of the last dimension. The
 // output DataSlice has the shape of `x` with the last dimension removed and the
 // schema of `x`, or `output_schema` if provided. If `x` is empty-and-unknown,
-// the `expr_op` is not evaluated.
+// the `expr_op` is not evaluated. The `edge_arg_index` specifies the index of
+// the argument where to insert the edge when passed to the `expr_op`.
 absl::StatusOr<DataSlice> SimpleAggIntoEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
-    internal::DataItem output_schema = internal::DataItem());
+    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema = internal::DataItem(),
+    int edge_arg_index = 1);
 
 // Evaluates the given expression on the given input and returns the result. The
 // expr_op is expected to be an agg-over operator that should be evaluated on
 // `x` extracted as an Arolla value and the edge of the last dimension. The
 // output DataSlice has the the shape of `x` and the schema of `x`, or
 // `output_schema` if provided. If `x` is empty-and-unknown, the `expr_op` is
-// not evaluated.
+// not evaluated. The `edge_arg_index` specifies the index of the argument where
+// to insert the edge when passed to the `expr_op`.
 absl::StatusOr<DataSlice> SimpleAggOverEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
-    internal::DataItem output_schema = internal::DataItem());
+    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema = internal::DataItem(),
+    int edge_arg_index = 1);
 
 // koda_internal.to_arolla_boolean operator.
 //
