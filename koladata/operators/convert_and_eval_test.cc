@@ -59,7 +59,7 @@ DataSliceEdge EdgeFromSizes(absl::Span<const int64_t> sizes) {
       arolla::CreateDenseArray<int64_t>(split_points));
 }
 
-TEST(SimplePointwiseEvalTest, SimpleEval) {
+TEST(ArollaEval, SimplePointwiseEval) {
   arolla::InitArolla();
   {
     // Eval through operator.
@@ -152,7 +152,73 @@ TEST(SimplePointwiseEvalTest, SimpleEval) {
   }
 }
 
-TEST(EvalExpr, SimpleEval) {
+TEST(ArollaEval, SimpleAggIntoEval) {
+  arolla::InitArolla();
+  {
+    // Eval through operator.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice x =
+        test::DataSlice<int>({1, 2, 3, std::nullopt}, shape, schema::kObject);
+    ASSERT_OK_AND_ASSIGN(
+        auto result,
+        SimpleAggIntoEval(
+            std::make_shared<arolla::expr::RegisteredOperator>("math.sum"), x));
+    EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int>(
+                            {3, 3, 0}, shape.RemoveDims(1), schema::kObject)));
+    // With output schema set.
+    ASSERT_OK_AND_ASSIGN(
+        result,
+        SimpleAggIntoEval(
+            std::make_shared<arolla::expr::RegisteredOperator>("math.sum"), x,
+            internal::DataItem(schema::kAny)));
+    EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int>(
+                            {3, 3, 0}, shape.RemoveDims(1), schema::kAny)));
+  }
+  {
+    // Empty and unknown slice.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice x, test::EmptyDataSlice(4, schema::kObject).Reshape(shape));
+    ASSERT_OK_AND_ASSIGN(
+        auto result,
+        SimpleAggIntoEval(std::make_shared<arolla::expr::RegisteredOperator>(
+                              "core.agg_count"),
+                          x));
+    EXPECT_THAT(result, IsEquivalentTo(*test::EmptyDataSlice(3, schema::kObject)
+                                            .Reshape(shape.RemoveDims(1))));
+    // With output schema set.
+    ASSERT_OK_AND_ASSIGN(
+        result,
+        SimpleAggIntoEval(std::make_shared<arolla::expr::RegisteredOperator>(
+                              "core.agg_count"),
+                          x, internal::DataItem(schema::kMask)));
+    EXPECT_THAT(result, IsEquivalentTo(*test::EmptyDataSlice(3, schema::kMask)
+                                            .Reshape(shape.RemoveDims(1))));
+  }
+  {
+    // Scalar input error.
+    DataSlice x = test::DataItem(1, schema::kObject);
+    EXPECT_THAT(
+        SimpleAggIntoEval(
+            std::make_shared<arolla::expr::RegisteredOperator>("math.sum"), x),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("expected rank(x) > 0")));
+  }
+  {
+    // Mixed input error.
+    DataSlice x = test::MixedDataSlice<int, float>(
+        {1, std::nullopt}, {std::nullopt, 2.0f}, schema::kObject);
+    EXPECT_THAT(
+        SimpleAggIntoEval(
+            std::make_shared<arolla::expr::RegisteredOperator>("math.sum"), x),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("mixed slices are not supported")));
+  }
+}
+
+TEST(ArollaEval, EvalExpr) {
   {
     // Success.
     auto x = arolla::CreateDenseArray<int>({1, 2, std::nullopt});

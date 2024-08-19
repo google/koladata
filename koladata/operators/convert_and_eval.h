@@ -16,7 +16,6 @@
 #define KOLADATA_OPERATORS_CONVERT_AND_EVAL_H_
 
 #include <cstdint>
-#include <utility>
 #include <vector>
 
 #include "absl/status/statusor.h"
@@ -39,7 +38,10 @@
 
 namespace koladata::ops {
 
-// Evaluates the given expression on the given inputs, using a compilation
+// TODO: Accept an operator name instead once
+// convert_and_eval_with_shape has been removed.
+//
+// Evaluates the given operator on the given inputs, using a compilation
 // cache.
 absl::StatusOr<arolla::TypedValue> EvalExpr(
     const arolla::expr::ExprOperatorPtr& expr_op,
@@ -71,9 +73,21 @@ class ConvertAndEvalWithShapeFamily : public arolla::OperatorFamily {
 // The expr_op is expected to be a pointwise operator that should be evaluated
 // on the given inputs extracted as Arolla values. The output DataSlice has the
 // the common shape and schema of the inputs, or `output_schema` if provided. If
-// one or more inputs are empty-and-unknown, the `expr_op` is not evaluated.
+// all inputs are empty-and-unknown, the `expr_op` is not evaluated. In other
+// cases the first primitive schema of the present inputs is used to construct
+// inputs.
 absl::StatusOr<DataSlice> SimplePointwiseEval(
     const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema = internal::DataItem());
+
+// Evaluates the given expression on the given input and returns the result. The
+// expr_op is expected to be an agg-into operator that should be evaluated on
+// `x` extracted as an Arolla value and the edge of the last dimension. The
+// output DataSlice has the shape of `x` with the last dimension removed and the
+// schema of `x`, or `output_schema` if provided. If `x` is empty-and-unknown,
+// the `expr_op` is not evaluated.
+absl::StatusOr<DataSlice> SimpleAggIntoEval(
+    const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
     internal::DataItem output_schema = internal::DataItem());
 
 // koda_internal.to_arolla_boolean operator.

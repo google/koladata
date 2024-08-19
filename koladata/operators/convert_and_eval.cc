@@ -80,6 +80,8 @@ using Compiler = ::arolla::ExprCompiler<absl::Span<const ::arolla::TypedRef>,
 
 class EvalCompiler {
  public:
+  // TODO: Only allow operators to be passed by name, and place
+  // ExprOperatorPtr construction inside of the cached scope.
   static absl::StatusOr<CompiledOp> Compile(
       const arolla::expr::ExprOperatorPtr& expr_op,
       absl::Span<const arolla::TypedRef> inputs) {
@@ -366,6 +368,34 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
   }
   ASSIGN_OR_RETURN(auto result, EvalExpr(expr_op, typed_refs));
   return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
+                                  std::move(output_schema));
+}
+
+absl::StatusOr<DataSlice> SimpleAggIntoEval(
+    const arolla::expr::ExprOperatorPtr& expr_op, const DataSlice& x,
+    internal::DataItem output_schema) {
+  const auto& shape = x.GetShape();
+  if (shape.rank() == 0) {
+    return absl::InvalidArgumentError("expected rank(x) > 0");
+  }
+  auto result_shape = shape.RemoveDims(shape.rank() - 1);
+  if (!output_schema.has_value()) {
+    output_schema = x.GetSchemaImpl();
+  }
+  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
+  if (!primitive_schema.has_value()) {
+    ASSIGN_OR_RETURN(auto ds, DataSlice::Create(internal::DataItem(),
+                                                std::move(output_schema)));
+    return BroadcastToShape(ds, std::move(result_shape));
+  }
+  std::vector<arolla::TypedValue> typed_value_holder;
+  typed_value_holder.reserve(1);
+  ASSIGN_OR_RETURN(auto x_ref,
+                   DataSliceToOwnedArollaRef(x, typed_value_holder));
+  auto edge_tv = arolla::TypedValue::FromValue(shape.edges().back());
+  ASSIGN_OR_RETURN(auto result,
+                   EvalExpr(expr_op, {std::move(x_ref), edge_tv.AsRef()}));
+  return DataSliceFromArollaValue(result.AsRef(), std::move(result_shape),
                                   std::move(output_schema));
 }
 
