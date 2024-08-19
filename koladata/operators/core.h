@@ -32,6 +32,12 @@ absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds);
 // kde.core.with_db.
 DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db);
 
+// kde.core._agg_any.
+absl::StatusOr<DataSlice> AggAny(const DataSlice& x);
+
+// kde.core._agg_all.
+absl::StatusOr<DataSlice> AggAll(const DataSlice& x);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_H_

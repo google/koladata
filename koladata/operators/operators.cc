@@ -67,6 +67,8 @@ OPERATOR("kde.comparison.greater_equal", GreaterEqual);
 OPERATOR("kde.comparison.less", Less);
 OPERATOR("kde.comparison.less_equal", LessEqual);
 //
+OPERATOR("kde.core._agg_all", AggAll);
+OPERATOR("kde.core._agg_any", AggAny);
 OPERATOR("kde.core._clone", Clone);
 OPERATOR("kde.core._clone_with_schema", CloneWithSchema);
 OPERATOR("kde.core._collapse", Collapse);

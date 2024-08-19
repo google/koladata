@@ -20,6 +20,8 @@
 #include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/operators/convert_and_eval.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/expr/registered_expr_operator.h"
@@ -43,6 +45,18 @@ absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds) {
 
 DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db) {
   return ds.WithDb(db);
+}
+
+absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
+  return SimpleAggIntoEval(
+      std::make_shared<arolla::expr::RegisteredOperator>("core.any"), x,
+      internal::DataItem(schema::kMask));
+}
+
+absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
+  return SimpleAggIntoEval(
+      std::make_shared<arolla::expr::RegisteredOperator>("core.all"), x,
+      internal::DataItem(schema::kMask));
 }
 
 }  // namespace koladata::ops
