@@ -37,6 +37,7 @@ new_like = _object_factories.new_like
 new_schema = _schema.new_schema
 list_schema = _schema.list_schema
 dict_schema = _schema.dict_schema
+uu_schema = _schema.uu_schema
 
 obj = _object_factories.obj
 obj_shaped = _object_factories.obj_shaped

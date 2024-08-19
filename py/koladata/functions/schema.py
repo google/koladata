@@ -77,3 +77,24 @@ def dict_schema(
   if db is None:
     db = bag()
   return db.dict_schema(key_schema, value_schema)
+
+
+def uu_schema(
+    seed: str | None = None,
+    db: data_bag.DataBag | None = None,
+    **attrs: data_slice.DataSlice
+) -> data_slice.DataSlice:
+  """Creates a uu_schema in the given DataBag.
+
+  Args:
+    seed: optional string to seed the uuid computation with.
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
+    **attrs: attrs to set on the schema. Must be schemas.
+
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
+  """
+  if db is None:
+    db = bag()
+  return db.uu_schema(seed=seed, **attrs)
