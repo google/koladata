@@ -424,7 +424,7 @@ TEST(DataSliceTest, IsEntitySchema) {
 TEST(DataSliceTest, IsListSchema) {
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);
-  auto list_schema = test::Schema(*CreateListSchema(db, int_s), db);
+  auto list_schema = *CreateListSchema(db, int_s);
   EXPECT_TRUE(list_schema.IsListSchema());
   ASSERT_OK(list_schema.SetAttr("some_attr", test::Schema(schema::kText)));
   EXPECT_TRUE(list_schema.IsListSchema());
@@ -440,7 +440,7 @@ TEST(DataSliceTest, IsListSchema) {
 TEST(DataSliceTest, IsDictSchema) {
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);
-  auto dict_schema = test::Schema(*CreateDictSchema(db, int_s, int_s), db);
+  auto dict_schema = *CreateDictSchema(db, int_s, int_s);
   EXPECT_TRUE(dict_schema.IsDictSchema());
   ASSERT_OK(dict_schema.SetAttr("some_attr", test::Schema(schema::kText)));
   EXPECT_TRUE(dict_schema.IsDictSchema());
@@ -505,10 +505,9 @@ TEST(DataSliceTest, VerifyIsPrimitiveSchema) {
 
 TEST(DataSliceTest, VerifyIsListSchema) {
   auto db = DataBag::Empty();
-  EXPECT_THAT(
-      test::Schema(*CreateListSchema(db, test::Schema(schema::kInt32)), db)
-          .VerifyIsListSchema(),
-      IsOk());
+  EXPECT_THAT(CreateListSchema(db, test::Schema(schema::kInt32))
+              ->VerifyIsListSchema(),
+              IsOk());
 
   EXPECT_THAT(test::Schema(schema::kAny).VerifyIsListSchema(), IsOk());
 
@@ -523,10 +522,9 @@ TEST(DataSliceTest, VerifyIsListSchema) {
 
 TEST(DataSliceTest, VerifyIsDictSchema) {
   auto db = DataBag::Empty();
-  EXPECT_THAT(test::Schema(*CreateDictSchema(db, test::Schema(schema::kInt32),
-                                             test::Schema(schema::kFloat32)),
-                           db)
-                  .VerifyIsDictSchema(),
+  EXPECT_THAT(CreateDictSchema(db, test::Schema(schema::kInt32),
+                               test::Schema(schema::kFloat32))
+              ->VerifyIsDictSchema(),
               IsOk());
 
   EXPECT_THAT(test::Schema(schema::kAny).VerifyIsDictSchema(), IsOk());
@@ -1240,8 +1238,7 @@ TEST(DataSliceTest, ContainsOnlyLists_Empty) {
 
   // schema LIST[INT32]
   auto db = DataBag::Empty();
-  auto list_schema =
-      test::Schema(*CreateListSchema(db, test::Schema(schema::kInt32)), db);
+  auto list_schema = *CreateListSchema(db, test::Schema(schema::kInt32));
 
   EXPECT_TRUE(test::DataSlice<ObjectId>({}, db)
                   .WithSchema(list_schema)
@@ -1255,8 +1252,7 @@ TEST(DataSliceTest, ContainsOnlyLists_Empty) {
 
 TEST(DataSliceTest, ContainsOnlyLists_NonEmpty) {
   auto db = DataBag::Empty();
-  auto list_schema =
-      test::Schema(*CreateListSchema(db, test::Schema(schema::kInt32)), db);
+  auto list_schema = *CreateListSchema(db, test::Schema(schema::kInt32));
 
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
                   .WithSchema(list_schema)
@@ -1319,10 +1315,8 @@ TEST(DataSliceTest, ContainsOnlyDicts_Empty) {
 
   // schema DICT{INT32, INT32}
   auto db = DataBag::Empty();
-  auto dict_schema =
-      test::Schema(*CreateDictSchema(db, test::Schema(schema::kInt32),
-                                     test::Schema(schema::kInt32)),
-                   db);
+  auto dict_schema = *CreateDictSchema(db, test::Schema(schema::kInt32),
+                                       test::Schema(schema::kInt32));
 
   EXPECT_TRUE(test::DataSlice<ObjectId>({}, db)
                   .WithSchema(dict_schema)
@@ -1336,10 +1330,8 @@ TEST(DataSliceTest, ContainsOnlyDicts_Empty) {
 
 TEST(DataSliceTest, ContainsOnlyDicts_NonEmpty) {
   auto db = DataBag::Empty();
-  auto dict_schema =
-      test::Schema(*CreateDictSchema(db, test::Schema(schema::kInt32),
-                                     test::Schema(schema::kInt32)),
-                   db);
+  auto dict_schema = *CreateDictSchema(db, test::Schema(schema::kInt32),
+                                       test::Schema(schema::kInt32));
 
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                   .WithSchema(dict_schema)
@@ -3048,8 +3040,7 @@ TEST(DataSliceTest, ExplodeList_ObjectSchema) {
                        CreateListSchema(db, test::Schema(schema::kInt64)));
 
   // All the item schemas are INT32.
-  ASSERT_OK(
-      lists.SetAttr(schema::kSchemaAttr, test::Schema(list_int32_schema)));
+  ASSERT_OK(lists.SetAttr(schema::kSchemaAttr, list_int32_schema));
   EXPECT_THAT(
       lists.ExplodeList(0, std::nullopt),
       IsOkAndHolds(Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32))));
@@ -3057,9 +3048,9 @@ TEST(DataSliceTest, ExplodeList_ObjectSchema) {
   // Item schemas have different types.
   ASSERT_OK(lists.SetAttr(
       schema::kSchemaAttr,
-      test::DataSlice<ObjectId>({list_int32_schema.value<ObjectId>(),
-                                 list_int64_schema.value<ObjectId>(),
-                                 list_int32_schema.value<ObjectId>()},
+      test::DataSlice<ObjectId>({list_int32_schema.item().value<ObjectId>(),
+                                 list_int64_schema.item().value<ObjectId>(),
+                                 list_int32_schema.item().value<ObjectId>()},
                                 schema::kSchema, db)));
   EXPECT_THAT(
       lists.ExplodeList(0, std::nullopt),

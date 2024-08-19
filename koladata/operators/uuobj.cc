@@ -81,7 +81,7 @@ class UuObjOperator : public arolla::QExprOperator {
             return;
           }
           ASSIGN_OR_RETURN(auto result,
-                           UuObjectCreator()(db, seed, attr_names, values),
+                           CreateUuObject(db, seed, attr_names, values),
                            ctx->set_status(std::move(_)));
           frame.Set(output_slot, std::move(result));
         });

@@ -429,8 +429,8 @@ absl::StatusOr<DataSlice> CreateDictImpl(
                      DeduceItemSchema(keys, key_schema));
     ASSIGN_OR_RETURN(auto deduced_value_schema,
                      DeduceItemSchema(values, value_schema));
-    ASSIGN_OR_RETURN(dict_schema, CreateDictSchema(db, deduced_key_schema,
-                                                   deduced_value_schema));
+    ASSIGN_OR_RETURN(dict_schema, CreateDictSchemaItem(db, deduced_key_schema,
+                                                       deduced_value_schema));
   }
   ASSIGN_OR_RETURN(DataSlice res, create_dicts_fn(dict_schema));
   if (keys.has_value() && values.has_value()) {
@@ -502,68 +502,6 @@ absl::StatusOr<DataSlice> CreateObjectsImpl(
 }
 
 }  // namespace
-
-absl::StatusOr<DataSlice> CreateEntitySchema(
-    const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& schemas) {
-  DCHECK_EQ(attr_names.size(), schemas.size());
-  std::vector<std::reference_wrapper<const internal::DataItem>> schema_items;
-  schema_items.reserve(schemas.size());
-  for (const DataSlice& schema : schemas) {
-    RETURN_IF_ERROR(schema.VerifyIsSchema());
-    schema_items.push_back(std::cref(schema.item()));
-  }
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
-  ASSIGN_OR_RETURN(
-      auto schema_id,
-      db_mutable_impl.CreateExplicitSchemaFromFields(attr_names, schema_items));
-  return DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db);
-}
-
-absl::StatusOr<DataSlice> UuSchemaCreator::operator()(
-    const DataBagPtr& db,
-    absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& schemas) const {
-  DCHECK_EQ(attr_names.size(), schemas.size());
-  std::vector<std::reference_wrapper<const internal::DataItem>> schema_items;
-  schema_items.reserve(schemas.size());
-  for (const DataSlice& schema : schemas) {
-    RETURN_IF_ERROR(schema.VerifyIsSchema());
-    schema_items.push_back(std::cref(schema.item()));
-  }
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
-  ASSIGN_OR_RETURN(
-      auto schema_id,
-      db_mutable_impl.CreateUuSchemaFromFields(seed, attr_names, schema_items));
-  return DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db);
-}
-
-absl::StatusOr<DataSlice> SchemaCreator::operator()(
-    const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& schemas) const {
-  return CreateEntitySchema(db, attr_names, schemas);
-}
-
-absl::StatusOr<DataSlice> ListSchemaCreator::operator()(
-    const DataBagPtr& db, const DataSlice& item_schema) const {
-  ASSIGN_OR_RETURN(auto schema_item, CreateListSchema(db, item_schema));
-  return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema),
-                           db);
-}
-
-absl::StatusOr<DataSlice> DictSchemaCreator::operator()(
-    const DataBagPtr& db,
-    const DataSlice& key_schema, const DataSlice& value_schema) const {
-  ASSIGN_OR_RETURN(auto schema_item,
-                   CreateDictSchema(db, key_schema, value_schema));
-  return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema),
-                           db);
-}
 
 // TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
 // and -Like creation and forward to -Shaped here.
@@ -745,63 +683,6 @@ absl::StatusOr<DataSlice> CreateUuidFromFields(
   });
 }
 
-absl::StatusOr<DataSlice> UuObjectCreator::operator()(
-    const DataBagPtr& db, absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values) const {
-  DCHECK_EQ(attr_names.size(), values.size());
-  DataSlice ds;
-  if (values.empty()) {
-    auto uuid = internal::CreateUuidFromFields(
-        seed, {},
-        std::vector<std::reference_wrapper<const internal::DataItem>>{});
-    ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                     db->GetMutableImpl());
-    RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, uuid, {}, {},
-                                    /*overwrite_schemas=*/false));
-    return DataSlice::Create(uuid, internal::DataItem(schema::kObject), db);
-  }
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
-
-  std::vector<std::reference_wrapper<const internal::DataItem>> schemas;
-  schemas.reserve(aligned_values.size());
-  for (const auto& slice : aligned_values) {
-    schemas.push_back(std::cref(slice.GetSchemaImpl()));
-  }
-
-  return aligned_values.begin()->VisitImpl(
-      [&]<class ImplT>(ImplT) -> absl::StatusOr<DataSlice> {
-        std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
-        aligned_values_impl.reserve(aligned_values.size());
-        for (int i = 0; i < attr_names.size(); ++i) {
-          aligned_values_impl.push_back(
-              std::cref(aligned_values[i].impl<ImplT>()));
-        }
-
-        std::optional<ImplT> impl_res;
-        if constexpr (std::is_same_v<internal::DataItem, ImplT>) {
-          impl_res = internal::CreateUuidFromFields(seed, attr_names,
-                                                    aligned_values_impl);
-        } else {
-          ASSIGN_OR_RETURN(impl_res,
-                           internal::CreateUuidFromFields(seed, attr_names,
-                                                          aligned_values_impl));
-        }
-        ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                         db->GetMutableImpl());
-        for (int i = 0; i < attr_names.size(); ++i) {
-          RETURN_IF_ERROR(db_mutable_impl.SetAttr(*impl_res, attr_names[i],
-                                                  aligned_values_impl[i]));
-        }
-        RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, impl_res.value(),
-                                        attr_names, schemas,
-                                  /*overwrite_schemas=*/false));
-        return DataSlice::Create(
-            impl_res.value(), aligned_values.begin()->GetShape(),
-            internal::DataItem(schema::kObject), db);
-      });
-}
-
 absl::StatusOr<DataSlice> CreateUu(
     const DataBagPtr& db, absl::string_view seed,
     const std::vector<absl::string_view>& attr_names,
@@ -862,7 +743,74 @@ absl::StatusOr<DataSlice> CreateUu(
   });
 }
 
-absl::StatusOr<internal::DataItem> CreateDictSchema(
+absl::StatusOr<DataSlice> CreateUuObject(
+    const DataBagPtr& db, absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values) {
+  DCHECK_EQ(attr_names.size(), values.size());
+  DataSlice ds;
+  if (values.empty()) {
+    auto uuid = internal::CreateUuidFromFields(
+        seed, {},
+        std::vector<std::reference_wrapper<const internal::DataItem>>{});
+    ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                     db->GetMutableImpl());
+    RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, uuid, {}, {},
+                                    /*overwrite_schemas=*/false));
+    return DataSlice::Create(uuid, internal::DataItem(schema::kObject), db);
+  }
+  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
+
+  std::vector<std::reference_wrapper<const internal::DataItem>> schemas;
+  schemas.reserve(aligned_values.size());
+  for (const auto& slice : aligned_values) {
+    schemas.push_back(std::cref(slice.GetSchemaImpl()));
+  }
+
+  return aligned_values.begin()->VisitImpl(
+      [&]<class ImplT>(ImplT) -> absl::StatusOr<DataSlice> {
+        std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
+        aligned_values_impl.reserve(aligned_values.size());
+        for (int i = 0; i < attr_names.size(); ++i) {
+          aligned_values_impl.push_back(
+              std::cref(aligned_values[i].impl<ImplT>()));
+        }
+
+        std::optional<ImplT> impl_res;
+        if constexpr (std::is_same_v<internal::DataItem, ImplT>) {
+          impl_res = internal::CreateUuidFromFields(seed, attr_names,
+                                                    aligned_values_impl);
+        } else {
+          ASSIGN_OR_RETURN(impl_res,
+                           internal::CreateUuidFromFields(seed, attr_names,
+                                                          aligned_values_impl));
+        }
+        ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                         db->GetMutableImpl());
+        for (int i = 0; i < attr_names.size(); ++i) {
+          RETURN_IF_ERROR(db_mutable_impl.SetAttr(*impl_res, attr_names[i],
+                                                  aligned_values_impl[i]));
+        }
+        RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, impl_res.value(),
+                                        attr_names, schemas,
+                                  /*overwrite_schemas=*/false));
+        return DataSlice::Create(
+            impl_res.value(), aligned_values.begin()->GetShape(),
+            internal::DataItem(schema::kObject), db);
+      });
+}
+
+absl::StatusOr<internal::DataItem> CreateListSchemaItem(
+    const DataBagPtr& db, const DataSlice& item_schema) {
+  RETURN_IF_ERROR(item_schema.VerifyIsSchema());
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  return db_mutable_impl.CreateUuSchemaFromFields(
+      "::koladata::::CreateListSchemaItem",
+      {"__items__"}, {item_schema.item()});
+}
+
+absl::StatusOr<internal::DataItem> CreateDictSchemaItem(
     const DataBagPtr& db, const DataSlice& key_schema,
     const DataSlice& value_schema) {
   RETURN_IF_ERROR(key_schema.VerifyIsSchema());
@@ -871,8 +819,70 @@ absl::StatusOr<internal::DataItem> CreateDictSchema(
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
   return db_mutable_impl.CreateUuSchemaFromFields(
-      "::koladata::::CreateDictSchema", {"__keys__", "__values__"},
+      "::koladata::::CreateDictSchemaItem", {"__keys__", "__values__"},
       {key_schema.item(), value_schema.item()});
+}
+
+absl::StatusOr<DataSlice> CreateEntitySchema(
+    const DataBagPtr& db,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& schemas) {
+  DCHECK_EQ(attr_names.size(), schemas.size());
+  std::vector<std::reference_wrapper<const internal::DataItem>> schema_items;
+  schema_items.reserve(schemas.size());
+  for (const DataSlice& schema : schemas) {
+    RETURN_IF_ERROR(schema.VerifyIsSchema());
+    schema_items.push_back(std::cref(schema.item()));
+  }
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  ASSIGN_OR_RETURN(
+      auto schema_id,
+      db_mutable_impl.CreateExplicitSchemaFromFields(attr_names, schema_items));
+  return DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db);
+}
+
+absl::StatusOr<DataSlice> CreateUuSchema(
+    const DataBagPtr& db,
+    absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& schemas) {
+  DCHECK_EQ(attr_names.size(), schemas.size());
+  std::vector<std::reference_wrapper<const internal::DataItem>> schema_items;
+  schema_items.reserve(schemas.size());
+  for (const DataSlice& schema : schemas) {
+    RETURN_IF_ERROR(schema.VerifyIsSchema());
+    schema_items.push_back(std::cref(schema.item()));
+  }
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  ASSIGN_OR_RETURN(
+      auto schema_id,
+      db_mutable_impl.CreateUuSchemaFromFields(seed, attr_names, schema_items));
+  return DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db);
+}
+
+absl::StatusOr<DataSlice> CreateSchema(
+    const DataBagPtr& db,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& schemas) {
+  return CreateEntitySchema(db, attr_names, schemas);
+}
+
+absl::StatusOr<DataSlice> CreateListSchema(const DataBagPtr& db,
+                                           const DataSlice& item_schema) {
+  ASSIGN_OR_RETURN(auto schema_item, CreateListSchemaItem(db, item_schema));
+  return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema),
+                           db);
+}
+
+absl::StatusOr<DataSlice> CreateDictSchema(const DataBagPtr& db,
+                                           const DataSlice& key_schema,
+                                           const DataSlice& value_schema) {
+  ASSIGN_OR_RETURN(auto schema_item,
+                   CreateDictSchemaItem(db, key_schema, value_schema));
+  return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema),
+                           db);
 }
 
 absl::StatusOr<DataSlice> CreateDictLike(
@@ -913,16 +923,6 @@ absl::StatusOr<DataSlice> CreateDictShaped(
                             InitItemIdsForDicts);
       },
       keys, values, schema, key_schema, value_schema);
-}
-
-absl::StatusOr<internal::DataItem> CreateListSchema(
-    const DataBagPtr& db, const DataSlice& item_schema) {
-  RETURN_IF_ERROR(item_schema.VerifyIsSchema());
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
-  return db_mutable_impl.CreateUuSchemaFromFields(
-      "::koladata::::CreateListSchema",
-      {"__items__"}, {item_schema.item()});
 }
 
 absl::StatusOr<DataSlice> CreateEmptyList(
@@ -1019,7 +1019,8 @@ absl::StatusOr<DataSlice> CreateListShaped(
   } else {
     ASSIGN_OR_RETURN(auto deduced_item_schema,
                      DeduceItemSchema(values, item_schema));
-    ASSIGN_OR_RETURN(list_schema, CreateListSchema(db, deduced_item_schema));
+    ASSIGN_OR_RETURN(list_schema,
+                     CreateListSchemaItem(db, deduced_item_schema));
   }
   ASSIGN_OR_RETURN(auto result, CreateShaped(db, std::move(shape), list_schema,
                                              internal::AllocateSingleList,
@@ -1050,7 +1051,8 @@ absl::StatusOr<DataSlice> CreateListLike(
   } else {
     ASSIGN_OR_RETURN(auto deduced_item_schema,
                      DeduceItemSchema(values, item_schema));
-    ASSIGN_OR_RETURN(list_schema, CreateListSchema(db, deduced_item_schema));
+    ASSIGN_OR_RETURN(list_schema,
+                     CreateListSchemaItem(db, deduced_item_schema));
   }
   ASSIGN_OR_RETURN(auto result, CreateLike(db, shape_and_mask_from, list_schema,
                                            internal::AllocateSingleList,

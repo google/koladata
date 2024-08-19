@@ -81,7 +81,7 @@ class UuSchemaOperator : public arolla::QExprOperator {
             return;
           }
           ASSIGN_OR_RETURN(auto result,
-                           UuSchemaCreator()(db, seed, attr_names, values),
+                           CreateUuSchema(db, seed, attr_names, values),
                            ctx->set_status(std::move(_)));
           frame.Set(output_slot, std::move(result));
         });

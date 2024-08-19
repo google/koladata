@@ -65,8 +65,7 @@ class NewSchemaOperator : public arolla::QExprOperator {
           for (const auto &ds : values) {
             adoption_queue.Add(ds);
           }
-          ASSIGN_OR_RETURN(auto result,
-                           SchemaCreator()(db, attr_names, values),
+          ASSIGN_OR_RETURN(auto result, CreateSchema(db, attr_names, values),
                            ctx->set_status(std::move(_)));
           auto status = adoption_queue.AdoptInto(*db);
           if (!status.ok()) {
@@ -111,7 +110,7 @@ absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema) {
   koladata::AdoptionQueue adoption_queue;
   adoption_queue.Add(item_schema);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
-  ASSIGN_OR_RETURN(auto list_schema, ListSchemaCreator()(db, item_schema));
+  ASSIGN_OR_RETURN(auto list_schema, CreateListSchema(db, item_schema));
   return list_schema;
 }
 

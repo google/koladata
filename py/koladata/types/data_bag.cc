@@ -266,6 +266,10 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
   return WrapPyDataSlice(*std::move(res));
 }
 
+// Returns a DataSlice that represents an allocated Entity Schema.
+//
+// `kwargs` are traversed and key-value pairs are extracted and added as Schema
+// attributes of the newly created Schema.
 absl::Nullable<PyObject*> PyDataBag_schema_factory(
     PyObject* self, PyObject* const* py_args, Py_ssize_t nargs,
     PyObject* py_kwnames) {
@@ -285,7 +289,39 @@ absl::Nullable<PyObject*> PyDataBag_schema_factory(
   for (const auto& value : values) {
     adoption_queue.Add(value);
   }
-  ASSIGN_OR_RETURN(res, SchemaCreator()(db, args.kw_names, values),
+  ASSIGN_OR_RETURN(res, CreateSchema(db, args.kw_names, values),
+                   SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+  return WrapPyDataSlice(std::move(res));
+}
+
+// Returns a DataSlice that represents a UU Schema computed as a fingerprint of
+// its arguments.
+//
+// Handles `seed` argument. `kwargs` are traversed and key-value pairs are
+// extracted and added as Schema attributes of the newly created Schema.
+absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
+                                                      PyObject* const* py_args,
+                                                      Py_ssize_t nargs,
+                                                      PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, "seed");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  auto db = UnsafeDataBagPtr(self);
+  AdoptionQueue adoption_queue;
+  DataSlice res;
+  ASSIGN_OR_RETURN(std::vector<DataSlice> values,
+                   UnwrapDataSlices(args.kw_values, adoption_queue),
+                   SetKodaPyErrFromStatus(_));
+  absl::string_view seed("");
+  if (!ParseSeedArg(args, /*arg_pos=*/0, seed)) {
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(res, CreateUuSchema(db, seed, args.kw_names, values),
                    SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
@@ -313,55 +349,6 @@ absl::Nullable<PyObject*> PyDataBag_new_factory(PyObject* self,
   }
   return ProcessObjectCreation<EntityCreatorHelper>(UnsafeDataBagPtr(self),
                                                     args);
-}
-
-// Returns a DataSlice that represents an entity with the given DataBag
-// associated with it.
-//
-// For single argument `arg`, a new Entity is created for it, e.g. converting a
-// Python dictionary or list to Koda Entity.
-//
-// `kwargs` are traversed and key-value pairs are extracted and added as
-// attributes of the newly created entity.
-absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
-                                               PyObject* const* py_args,
-                                               Py_ssize_t nargs,
-                                               PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "seed", "schema",
-      "update_schema");
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
-  }
-  auto db = UnsafeDataBagPtr(self);
-  AdoptionQueue adoption_queue;
-  DataSlice res;
-  ASSIGN_OR_RETURN(std::vector<DataSlice> values,
-                   ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
-                   SetKodaPyErrFromStatus(_));
-  absl::string_view seed_arg("");
-  if (!ParseSeedArg(args, /*arg_pos=*/0, seed_arg)) {
-    return nullptr;
-  }
-  std::optional<DataSlice> schema_arg;
-  if (!ParseSchemaArg(args, /*arg_pos=*/1, schema_arg)) {
-    return nullptr;
-  }
-  bool update_schema = false;
-  if (!ParseUpdateSchemaArg(args, /*arg_pos=*/2, update_schema)) {
-    return nullptr;
-  }
-  if (schema_arg) {
-    adoption_queue.Add(*schema_arg);
-  }
-  ASSIGN_OR_RETURN(
-      res,
-      CreateUu(db, seed_arg, args.kw_names, values, schema_arg, update_schema),
-      SetKodaPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
-  return WrapPyDataSlice(std::move(res));
 }
 
 // Returns a DataSlice that represents an object with the given DataBag
@@ -563,16 +550,66 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_like(PyObject* self,
       UnsafeDataBagPtr(self), args);
 }
 
+// Returns a DataSlice that represents an entity with the given DataBag
+// associated with it.
+//
+// Entity IDs are UUIDs computed as fingerprints from the arguments (pointwise).
+//
+// For single argument `arg`, a new Entity is created for it, e.g. converting a
+// Python dictionary or list to Koda Entity.
+//
+// `kwargs` are traversed and key-value pairs are extracted and added as
+// attributes of the newly created entity.
+absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
+                                                      PyObject* const* py_args,
+                                                      Py_ssize_t nargs,
+                                                      PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, "seed", "schema",
+      "update_schema");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  auto db = UnsafeDataBagPtr(self);
+  AdoptionQueue adoption_queue;
+  DataSlice res;
+  ASSIGN_OR_RETURN(std::vector<DataSlice> values,
+                   ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
+                   SetKodaPyErrFromStatus(_));
+  absl::string_view seed_arg("");
+  if (!ParseSeedArg(args, /*arg_pos=*/0, seed_arg)) {
+    return nullptr;
+  }
+  std::optional<DataSlice> schema_arg;
+  if (!ParseSchemaArg(args, /*arg_pos=*/1, schema_arg)) {
+    return nullptr;
+  }
+  bool update_schema = false;
+  if (!ParseUpdateSchemaArg(args, /*arg_pos=*/2, update_schema)) {
+    return nullptr;
+  }
+  if (schema_arg) {
+    adoption_queue.Add(*schema_arg);
+  }
+  ASSIGN_OR_RETURN(
+      res,
+      CreateUu(db, seed_arg, args.kw_names, values, schema_arg, update_schema),
+      SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+  return WrapPyDataSlice(std::move(res));
+}
+
 // Returns a DataSlice that represents a uu construct (depending on the factory
 // helper) with the given DataBag associated with it. Handles `seed` argument.
 //
 // `kwargs` are traversed and key-value pairs are extracted and added as
 // attributes of the newly created object.
-template <typename FactoryHelperT>
-absl::Nullable<PyObject*> PyDataBag_uu_factory(PyObject* self,
-                                               PyObject* const* py_args,
-                                               Py_ssize_t nargs,
-                                               PyObject* py_kwnames) {
+absl::Nullable<PyObject*> PyDataBag_uu_obj_factory(PyObject* self,
+                                                   PyObject* const* py_args,
+                                                   Py_ssize_t nargs,
+                                                   PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/true, "seed");
@@ -590,7 +627,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_factory(PyObject* self,
   if (!ParseSeedArg(args, /*arg_pos=*/0, seed)) {
     return nullptr;
   }
-  ASSIGN_OR_RETURN(res, FactoryHelperT()(db, seed, args.kw_names, values),
+  ASSIGN_OR_RETURN(res, CreateUuObject(db, seed, args.kw_names, values),
                    SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
@@ -824,7 +861,7 @@ absl::Nullable<PyObject*> PyDataBag_list_schema(
     return nullptr;
   }
   adoption_queue.Add(*item_schema);
-  ASSIGN_OR_RETURN(DataSlice res, ListSchemaCreator()(db, *item_schema),
+  ASSIGN_OR_RETURN(DataSlice res, CreateListSchema(db, *item_schema),
                    SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
@@ -870,7 +907,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_schema(PyObject* self,
   adoption_queue.Add(*key_schema);
   adoption_queue.Add(*value_schema);
   ASSIGN_OR_RETURN(DataSlice res,
-                   DictSchemaCreator()(db, *key_schema, *value_schema),
+                   CreateDictSchema(db, *key_schema, *value_schema),
                    SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
@@ -1160,14 +1197,64 @@ Args:
 
 Returns:
   data_slice.DataSlice with the given attrs.)"""},
-    {"uuobj", (PyCFunction)PyDataBag_uu_factory<UuObjectCreator>,
-     METH_FASTCALL | METH_KEYWORDS, "DataBag.uuobj"},
-    {"new_schema", (PyCFunction)PyDataBag_schema_factory,
-     METH_FASTCALL | METH_KEYWORDS, "DataBag.new_schema"},
-    {"uu_schema", (PyCFunction)PyDataBag_uu_factory<UuSchemaCreator>,
-     METH_FASTCALL | METH_KEYWORDS, "DataBag.uu_schema"},
     {"uu", (PyCFunction)PyDataBag_uu_entity_factory,
-     METH_FASTCALL | METH_KEYWORDS, "DataBag.uu"},
+     METH_FASTCALL | METH_KEYWORDS,
+ R"""(Creates an item whose ids are uuid(s) with the set attributes.
+
+In order to create a different "Type" from the same arguments, use
+`seed` key with the desired value, e.g.
+
+kd.uu(seed='type_1', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+
+and
+
+kd.uu(seed='type_2', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+
+have different ids.
+
+If 'schema' is provided, the resulting DataSlice has the provided schema.
+Otherwise, uses the corresponding uuschema instead.
+
+Args:
+  seed: (str) Allows different item(s) to have different ids when created
+    from the same inputs.
+  schema: schema for the resulting DataSlice
+  **kwargs: key-value pairs of object attributes where values are DataSlices
+    or can be converted to DataSlices using kd.new.
+
+Returns:
+  data_slice.DataSlice
+    )"""},
+    {"uuobj", (PyCFunction)PyDataBag_uu_obj_factory,
+     METH_FASTCALL | METH_KEYWORDS,
+     R"""(Creates object(s) whose ids are uuid(s) with the provided attributes.
+
+In order to create a different "Type" from the same arguments, use
+`seed` key with the desired value, e.g.
+
+kd.uuobj(seed='type_1', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+
+and
+
+kd.uuobj(seed='type_2', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+
+have different ids.
+
+Args:
+  seed: (str) Allows different uuobj(s) to have different ids when created
+    from the same inputs.
+  **kwargs: key-value pairs of object attributes where values are DataSlices
+    or can be converted to DataSlices using kd.new.
+
+Returns:
+  data_slice.DataSlice
+    )"""},
+    {"new_schema", (PyCFunction)PyDataBag_schema_factory,
+     METH_FASTCALL | METH_KEYWORDS,
+     "Creates new schema object with given types of attrs."},
+    {"uu_schema", (PyCFunction)PyDataBag_uu_schema_factory,
+     METH_FASTCALL | METH_KEYWORDS,
+     "Creates new uuschema from given types of attrs."},
     {"_dict_shaped", (PyCFunction)PyDataBag_dict_shaped, METH_FASTCALL,
      "DataBag._dict_shaped"},
     {"_dict_like", (PyCFunction)PyDataBag_dict_like, METH_FASTCALL,

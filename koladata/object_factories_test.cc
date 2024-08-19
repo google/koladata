@@ -86,7 +86,7 @@ TEST(UUSchemaTest, CreateUUSchema) {
   auto float_s = test::Schema(schema::kFloat32);
 
   ASSERT_OK_AND_ASSIGN(auto uu_schema,
-                       UuSchemaCreator()(db, "", {"a", "b"}, {int_s, float_s}));
+                       CreateUuSchema(db, "", {"a", "b"}, {int_s, float_s}));
   EXPECT_EQ(uu_schema.GetSchemaImpl(), schema::kSchema);
   EXPECT_OK(uu_schema.VerifyIsSchema());
   EXPECT_TRUE(uu_schema.item().value<ObjectId>().IsUuid());
@@ -446,14 +446,12 @@ TEST(UuCreatorTest, DataSlice) {
             IsOkAndHolds(IsEquivalentTo(ds_b.WithDb(ds.GetDb()))));
 
   // Different objects have different uuids.
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_2,
-      UuObjectCreator()(
-          db, "", {"a", "b"}, {ds_b, ds_a}));
+  ASSERT_OK_AND_ASSIGN(auto ds_2,
+                       CreateUuObject(db, "", {"a", "b"}, {ds_b, ds_a}));
   EXPECT_THAT(ds.slice(), Not(IsEquivalentTo(ds_2.slice())));
   // Different seeds lead to different uuids.
   ASSERT_OK_AND_ASSIGN(auto ds_3,
-                       UuObjectCreator()(db, "seed", {"a", "b"}, {ds_a, ds_b}));
+                       CreateUuObject(db, "seed", {"a", "b"}, {ds_a, ds_b}));
   EXPECT_THAT(ds.slice(), Not(IsEquivalentTo(ds_3.slice())));
 }
 
@@ -799,7 +797,7 @@ TEST(UuObjectCreatorTest, DataSlice) {
 
   ASSERT_OK_AND_ASSIGN(
       auto ds,
-      UuObjectCreator()(
+      CreateUuObject(
           db, "", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetDb(), db);
   // Implicit schema stored in __schema__ "normal" attribute.
@@ -822,13 +820,13 @@ TEST(UuObjectCreatorTest, DataSlice) {
   // Different objects have different uuids.
   ASSERT_OK_AND_ASSIGN(
       auto ds_2,
-      UuObjectCreator()(
+      CreateUuObject(
           db, "", {std::string("a"), std::string("b")}, {ds_b, ds_a}));
   EXPECT_THAT(ds.slice(), Not(IsEquivalentTo(ds_2.slice())));
   // Different seeds lead to different uuids.
   ASSERT_OK_AND_ASSIGN(
       auto ds_3,
-      UuObjectCreator()(
+      CreateUuObject(
           db, "seed", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_THAT(ds.slice(), Not(IsEquivalentTo(ds_3.slice())));
 }
@@ -840,7 +838,7 @@ TEST(UuObjectCreatorTest, DataItem) {
 
   ASSERT_OK_AND_ASSIGN(
       auto ds,
-      UuObjectCreator()(
+      CreateUuObject(
           db, "" , {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
@@ -856,27 +854,27 @@ TEST(UuObjectCreatorTest, DataItem) {
   // Different objects have different uuids.
   ASSERT_OK_AND_ASSIGN(
       auto ds_2,
-      UuObjectCreator()(
+      CreateUuObject(
           db, "", {std::string("a"), std::string("b")}, {ds_b, ds_a}));
   EXPECT_THAT(ds.item(), Not(IsEquivalentTo(ds_2.item())));
   // Different seeds lead to different uuids.
   ASSERT_OK_AND_ASSIGN(
       auto ds_3,
-      UuObjectCreator()(
+      CreateUuObject(
           db, "seed", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_THAT(ds.item(), Not(IsEquivalentTo(ds_3.item())));
 }
 
 TEST(UuObjectCreatorTest, Empty) {
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds_1, UuObjectCreator()(db, "seed1", {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto ds_1, CreateUuObject(db, "seed1", {}, {}));
   EXPECT_EQ(ds_1.GetDb(), db);
   EXPECT_TRUE(ds_1.item().value<ObjectId>().IsUuid());
-  ASSERT_OK_AND_ASSIGN(auto ds_2, UuObjectCreator()(db, "seed2", {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto ds_2, CreateUuObject(db, "seed2", {}, {}));
   EXPECT_EQ(ds_2.GetDb(), db);
   EXPECT_TRUE(ds_2.item().value<ObjectId>().IsUuid());
   EXPECT_THAT(ds_1.item(), Not(IsEquivalentTo(ds_2.item())));
-  ASSERT_OK_AND_ASSIGN(auto ds_3, UuObjectCreator()(db, "seed1", {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto ds_3, CreateUuObject(db, "seed1", {}, {}));
   EXPECT_EQ(ds_3.GetDb(), db);
   EXPECT_THAT(ds_1.item(), IsEquivalentTo(ds_3.item()));
 }
@@ -889,14 +887,14 @@ TEST(UuObjectCreatorTest, UuObjectCreationAfterModification) {
 
   ASSERT_OK_AND_ASSIGN(
       auto ds,
-      UuObjectCreator()(
+      CreateUuObject(
           db, "" , {std::string("a"), std::string("b")}, {ds_a, ds_b}));
 
   ASSERT_OK(ds.SetAttr("c", ds_c));
 
   ASSERT_OK_AND_ASSIGN(
       auto new_ds_fetch,
-      UuObjectCreator()(
+      CreateUuObject(
           db, "" , {std::string("a"), std::string("b")}, {ds_a, ds_b}));
 
   ASSERT_OK_AND_ASSIGN(auto ds_c_get, new_ds_fetch.GetAttr("c"));
@@ -1534,7 +1532,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchema) {
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto list_schema_item,
-      CreateListSchema(schema_db, test::Schema(schema::kInt32)));
+      CreateListSchemaItem(schema_db, test::Schema(schema::kInt32)));
   auto list_schema = test::Schema(list_schema_item, schema_db);
   ASSERT_OK_AND_ASSIGN(auto ds,
                        CreateListShaped(db, shape,
@@ -1575,7 +1573,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaError) {
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto list_schema_item,
-      CreateListSchema(schema_db, test::Schema(schema::kInt32)));
+      CreateListSchemaItem(schema_db, test::Schema(schema::kInt32)));
 
   EXPECT_THAT(
       CreateListShaped(db, shape, test::DataSlice<arolla::Text>({"abc", "xyz"}),
@@ -1909,9 +1907,10 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema) {
   auto db = DataBag::Empty();
 
   auto schema_db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto dict_schema_item,
-                       CreateDictSchema(schema_db, test::Schema(schema::kText),
-                                        test::Schema(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(
+      auto dict_schema_item,
+      CreateDictSchemaItem(schema_db, test::Schema(schema::kText),
+                           test::Schema(schema::kInt64)));
   auto dict_schema = test::Schema(dict_schema_item, schema_db);
   auto keys = test::DataSlice<arolla::Text>({"a", "b", "c"});
   ASSERT_OK_AND_ASSIGN(
@@ -2196,9 +2195,10 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
                   HasSubstr("dict schema or key/value schemas, but not both")));
 
   auto schema_db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto dict_schema_item,
-                       CreateDictSchema(schema_db, test::Schema(schema::kInt32),
-                                        test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      auto dict_schema_item,
+      CreateDictSchemaItem(schema_db, test::Schema(schema::kInt32),
+                           test::Schema(schema::kAny)));
 
   EXPECT_THAT(CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
                                test::DataSlice<arolla::Text>({"abc", "xyz"}),
@@ -2625,7 +2625,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema) {
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto list_schema_item,
-      CreateListSchema(schema_db, test::Schema(schema::kInt32)));
+      CreateListSchemaItem(schema_db, test::Schema(schema::kInt32)));
   auto list_schema = test::Schema(list_schema_item, schema_db);
   ASSERT_OK_AND_ASSIGN(auto ds,
                        CreateListLike(db, shape_and_mask_from,
@@ -2773,7 +2773,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchemaError) {
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto list_schema_item,
-      CreateListSchema(schema_db, test::Schema(schema::kInt32)));
+      CreateListSchemaItem(schema_db, test::Schema(schema::kInt32)));
 
   EXPECT_THAT(CreateListLike(db, shape_and_mask_from,
                              test::DataSlice<arolla::Text>({"abc", "xyz"}),

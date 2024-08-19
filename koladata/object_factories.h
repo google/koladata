@@ -188,75 +188,22 @@ absl::StatusOr<DataSlice> CreateUuidFromFields(
     const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& values);
 
-struct UuObjectCreator {
-  // Returns a UuObject (DataSlice of UuIds generated as row-wise fingerprints
-  // from attribute names and values) with a reference to `db`) and attributes
-  // `attr_names` set to `values`. The output DataSlice is a DataItem if all
-  // `values` are DataItems or `attr_names` and `values` are empty. Otherwise,
-  // the result has the shape of an input DataSlice with the highest rank. All
-  // inputs have to be "broadcastable" to a DataSlice with the highest rank,
-  // otherwise an error is returned.
-  //
-  // The returned Object's __schema__ attribute is implicit schema slice (each
-  // schema item in this schema slice is a different allocated schema object).
-  // Each of them has `attr_names` attributes set to schemas of `values`.
-  absl::StatusOr<DataSlice> operator()(
-      const DataBagPtr& db,
-      absl::string_view seed,
-      const std::vector<absl::string_view>& attr_names,
-      const std::vector<DataSlice>& values) const;
-};
-
-struct UuSchemaCreator {
-  // Returns a UuSchema (DataItem generated as a row-wise fingerprint
-  // from attribute names and schemas) with a reference to `db`) and attributes
-  // `attr_names` set to `schemas`.
-  absl::StatusOr<DataSlice> operator()(
-      const DataBagPtr& db,
-      absl::string_view seed,
-      const std::vector<absl::string_view>& attr_names,
-      const std::vector<DataSlice>& schemas) const;
-};
-
-struct SchemaCreator {
-  // Returns an allocated schema with attributes
-  // `attr_names` set to `schemas` in `db`.
-  absl::StatusOr<DataSlice> operator()(
-      const DataBagPtr& db,
-      const std::vector<absl::string_view>& attr_names,
-      const std::vector<DataSlice>& schemas) const;
-};
-
-struct ListSchemaCreator {
-  // Returns a list schema from a given `item_schema`.
-  absl::StatusOr<DataSlice> operator()(
-      const DataBagPtr& db,
-      const DataSlice& item_schema) const;
-};
-
-struct DictSchemaCreator {
-  // Returns a dict schema given `key_schema` and `value_schema`.
-  absl::StatusOr<DataSlice> operator()(
-    const DataBagPtr& db, const DataSlice& key_schema,
-    const DataSlice& value_schema) const;
-};
-
-  // Returns a UuEntity ((DataSlice of UuIds generated as row-wise fingerprints
-  // from attribute names and values) with a reference to `db`) and attributes
-  // `attr_names` set to `values`. The output DataSlice is a DataItem if all
-  // `values` are DataItems or `attr_names` and `values` are empty. Otherwise,
-  // the result has the shape of an input DataSlice with the highest rank. All
-  // inputs have to be "broadcastable" to a DataSlice with the highest rank,
-  // otherwise an error is returned.
-  //
-  // Also supports the following arguments:
-  // - `seed` for uuid computation.
-  // - `schema`, the schema for the entity. If missing, it will be inferred from
-  // the argument values.
-  // - `update_schema`, if true, will overwrite schema attributes in the
-  // schema's corresponding db from the argument values.
-  //
-  // The schema of the entities is stored on the returned DataSlice.
+// Returns a UuEntity ((DataSlice of UuIds generated as row-wise fingerprints
+// from attribute names and values) with a reference to `db`) and attributes
+// `attr_names` set to `values`. The output DataSlice is a DataItem if all
+// `values` are DataItems or `attr_names` and `values` are empty. Otherwise, the
+// result has the shape of an input DataSlice with the highest rank. All inputs
+// have to be "broadcastable" to a DataSlice with the highest rank, otherwise an
+// error is returned.
+//
+// Also supports the following arguments:
+// - `seed` for uuid computation.
+// - `schema`, the schema for the entity. If missing, it will be inferred from
+// the argument values.
+// - `update_schema`, if true, will overwrite schema attributes in the schema's
+// corresponding db from the argument values.
+//
+// The schema of the entities is stored on the returned DataSlice.
 absl::StatusOr<DataSlice> CreateUu(
     const DataBagPtr& db,
     absl::string_view seed,
@@ -265,10 +212,56 @@ absl::StatusOr<DataSlice> CreateUu(
     const std::optional<DataSlice>& schema = std::nullopt,
     bool update_schema = false);
 
+// Returns a UuObject (DataSlice of UuIds generated as row-wise fingerprints
+// from attribute names and values) with a reference to `db`) and attributes
+// `attr_names` set to `values`. The output DataSlice is a DataItem if all
+// `values` are DataItems or `attr_names` and `values` are empty. Otherwise, the
+// result has the shape of an input DataSlice with the highest rank. All inputs
+// have to be "broadcastable" to a DataSlice with the highest rank, otherwise an
+// error is returned.
+//
+// The returned Object's __schema__ attribute is implicit schema slice (each
+// schema item in this schema slice is a different allocated schema object).
+// Each of them has `attr_names` attributes set to schemas of `values`.
+absl::StatusOr<DataSlice> CreateUuObject(
+    const DataBagPtr& db,
+    absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values);
+
+// Returns a UuSchema (DataItem generated as a row-wise fingerprint from
+// attribute names and schemas) with a reference to `db`) and attributes
+// `attr_names` set to `schemas`.
+absl::StatusOr<DataSlice> CreateUuSchema(
+    const DataBagPtr& db,
+    absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& schemas);
+
+// Returns an allocated schema with attributes `attr_names` set to `schemas` in
+// `db`.
+absl::StatusOr<DataSlice> CreateSchema(
+    const DataBagPtr& db,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& schemas);
+
+// Creates list schema with the given item schema.
+absl::StatusOr<internal::DataItem> CreateListSchemaItem(
+    const DataBagPtr& db, const DataSlice& item_schema);
+
 // Creates dict schema with the given keys and values schemas.
-absl::StatusOr<internal::DataItem> CreateDictSchema(
+absl::StatusOr<internal::DataItem> CreateDictSchemaItem(
     const DataBagPtr& db, const DataSlice& key_schema,
     const DataSlice& value_schema);
+
+// Returns a list schema from a given `item_schema`.
+absl::StatusOr<DataSlice> CreateListSchema(const DataBagPtr& db,
+                                           const DataSlice& item_schema);
+
+// Returns a dict schema given `key_schema` and `value_schema`.
+absl::StatusOr<DataSlice> CreateDictSchema(const DataBagPtr& db,
+                                           const DataSlice& key_schema,
+                                           const DataSlice& value_schema);
 
 // Creates dicts with the given shape. If `keys` and `values` are provided, they
 // will be set to the dicts after creation (that implies potential type casting
@@ -304,10 +297,6 @@ absl::StatusOr<DataSlice> CreateDictLike(
     const std::optional<DataSlice>& key_schema = std::nullopt,
     const std::optional<DataSlice>& value_schema = std::nullopt,
     const std::optional<DataSlice>& itemid = std::nullopt);
-
-// Creates list schema with the given item schema.
-absl::StatusOr<internal::DataItem> CreateListSchema(
-    const DataBagPtr& db, const DataSlice& item_schema);
 
 // Creates a single empty list. If `item_schema` is not provided, it will be
 // taken from `values` or defaulted to OBJECT.
