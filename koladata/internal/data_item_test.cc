@@ -15,6 +15,7 @@
 #include "koladata/internal/data_item.h"
 
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -184,7 +185,7 @@ TEST(DataItemTest, InvalidTypedValue) {
 TEST(DataItemTest, DebugString) {
   EXPECT_EQ(DataItem(5).DebugString(), "5");
   EXPECT_EQ(DataItem(static_cast<int64_t>(5)).DebugString(), "5");
-  EXPECT_EQ(DataItem(3.14).DebugString(), "3.14");
+  EXPECT_EQ(DataItem(float{3.14}).DebugString(), "3.14");
   EXPECT_EQ(DataItem(static_cast<double>(3.14)).DebugString(), "3.14");
   EXPECT_EQ(DataItem(arolla::Text("abc")).DebugString(), "'abc'");
   EXPECT_EQ(DataItem(arolla::Text("a'b\"c with \" quotes")).DebugString(),
@@ -195,10 +196,54 @@ TEST(DataItemTest, DebugString) {
   EXPECT_NE(DataItem(AllocateSingleObject()).DebugString(), "");
 }
 
+TEST(DataItemTest, DebugString_float) {
+  EXPECT_EQ(DataItem(std::numeric_limits<float>::quiet_NaN()).DebugString(),
+            "nan");
+  EXPECT_EQ(DataItem(float{-1.}).DebugString(), "-1.0");
+  EXPECT_EQ(DataItem(float{-0.}).DebugString(), "-0.0");
+  EXPECT_THAT(DataItem(float{1}).DebugString(), "1.0");
+  EXPECT_THAT(DataItem(float{0.2}).DebugString(), "0.2");
+  EXPECT_THAT(DataItem(float{1e30}).DebugString(), "1e30");
+  EXPECT_THAT(DataItem(float{1e-30}).DebugString(), "1e-30");
+  EXPECT_THAT(DataItem(std::numeric_limits<float>::infinity()).DebugString(),
+              "inf");
+  EXPECT_THAT(DataItem(-std::numeric_limits<float>::infinity()).DebugString(),
+              "-inf");
+  EXPECT_THAT(DataItem(std::numeric_limits<float>::quiet_NaN()).DebugString(),
+              "nan");
+  EXPECT_THAT(DataItem(-std::numeric_limits<float>::quiet_NaN()).DebugString(),
+              "nan");
+  EXPECT_THAT(
+      DataItem(std::numeric_limits<float>::signaling_NaN()).DebugString(),
+      "nan");
+  EXPECT_THAT(
+      DataItem(-std::numeric_limits<float>::signaling_NaN()).DebugString(),
+      "nan");
+}
+
+TEST(DataItem, DebugString_float64) {
+  EXPECT_THAT(DataItem(double{-1.}).DebugString(), "-1.0");
+  EXPECT_THAT(DataItem(double{-0.}).DebugString(), "-0.0");
+  EXPECT_THAT(DataItem(double{0.}).DebugString(), "0.0");
+  EXPECT_THAT(DataItem(double{1}).DebugString(), "1.0");
+  EXPECT_THAT(DataItem(double{0.2}).DebugString(), "0.2");
+  EXPECT_THAT(DataItem(double{1e30}).DebugString(), "1e30");
+  EXPECT_THAT(DataItem(double{1e-30}).DebugString(), "1e-30");
+  EXPECT_THAT(DataItem(std::numeric_limits<double>::infinity()).DebugString(),
+              "inf");
+  EXPECT_THAT(DataItem(-std::numeric_limits<double>::infinity()).DebugString(),
+              "-inf");
+  EXPECT_THAT(DataItem(std::numeric_limits<double>::quiet_NaN()).DebugString(),
+              "nan");
+  EXPECT_THAT(DataItem(-std::numeric_limits<double>::quiet_NaN()).DebugString(),
+              "nan");
+  EXPECT_THAT(DataItem(double{0.2f}).DebugString(), "0.2");
+}
+
 TEST(DataItemTest, AbslStringify) {
   EXPECT_EQ(absl::StrCat(DataItem(5)), "5");
   EXPECT_EQ(absl::StrCat(DataItem(static_cast<int64_t>(5))), "5");
-  EXPECT_EQ(absl::StrCat(DataItem(3.14)), "3.14");
+  EXPECT_EQ(absl::StrCat(DataItem(float{3.14})), "3.14");
   EXPECT_EQ(absl::StrCat(DataItem(static_cast<double>(3.14))), "3.14");
   EXPECT_EQ(absl::StrCat(DataItem(arolla::Text("abc"))), "'abc'");
   EXPECT_EQ(absl::StrCat(DataItem(arolla::Text("a'b\"c with \" quotes"))),

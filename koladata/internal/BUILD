@@ -684,6 +684,7 @@ cc_library(
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
+        "@com_google_double_conversion//:double-conversion",
     ],
 )
 

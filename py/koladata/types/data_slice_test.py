@@ -205,7 +205,36 @@ class DataSliceTest(parameterized.TestCase):
       (
           'float64',
           ds([1.0, 1.5], schema_constants.FLOAT64),
-          'DataSlice([1.0, 1.5], schema: FLOAT64, shape: JaggedShape(2))',
+          (
+              'DataSlice([1.0, 1.5], schema: FLOAT64, shape:'
+              ' JaggedShape(2))'
+          ),
+      ),
+      (
+          'float32_as_object',
+          bag().obj(ds([1.0, 1.5], schema_constants.FLOAT32)).no_db(),
+          'DataSlice([1.0, 1.5], schema: OBJECT, shape: JaggedShape(2))',
+      ),
+      (
+          'float64_as_object',
+          bag().obj(ds([1.0, 1.5], schema_constants.FLOAT64)).no_db(),
+          (
+              'DataSlice([1.0, 1.5], schema: OBJECT, shape:'
+              ' JaggedShape(2))'
+          ),
+      ),
+      (
+          'float32_as_any',
+          ds([1.0, 1.5], schema_constants.FLOAT32).as_any(),
+          'DataSlice([1.0, 1.5], schema: ANY, shape: JaggedShape(2))',
+      ),
+      (
+          'float64_as_any',
+          ds([1.0, 1.5], schema_constants.FLOAT64).as_any(),
+          (
+              'DataSlice([1.0, 1.5], schema: ANY, shape:'
+              ' JaggedShape(2))'
+          ),
       ),
       (
           'boolean',

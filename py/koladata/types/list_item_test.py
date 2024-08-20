@@ -135,8 +135,8 @@ class ListItemTest(parameterized.TestCase):
           [arolla.float64(0.618), arolla.float64(114.514)],
           "List[0.618, 114.514]",
           (
-              r"DataItem\(List\[0.618, 114.514\], schema: LIST\[FLOAT64\],"
-              r" bag_id: \$\w{4}\)"
+              r"DataItem\(List\[0.618, 114.514\], schema:"
+              r" LIST\[FLOAT64\], bag_id: \$\w{4}\)"
           ),
       ),
       (

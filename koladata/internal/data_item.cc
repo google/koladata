@@ -23,7 +23,6 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
-#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
@@ -33,6 +32,8 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/stable_fingerprint.h"
 #include "koladata/internal/types.h"
+#include "double-conversion/double-to-string.h"
+#include "double-conversion/utils.h"
 #include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
@@ -135,8 +136,16 @@ std::string DataItem::DebugString() const {
           return val ? "True" : "False";
         } else if constexpr (std::is_same_v<T, float> ||
                              std::is_same_v<T, double>) {
-          std::string str = absl::StrCat(val);
-          return absl::StrContains(str, ".") ? str : absl::StrCat(str, ".0");
+          static const double_conversion::DoubleToStringConverter converter(
+              double_conversion::DoubleToStringConverter::
+                      EMIT_TRAILING_ZERO_AFTER_POINT |
+                  double_conversion::DoubleToStringConverter::
+                      EMIT_TRAILING_DECIMAL_POINT,
+              "inf", "nan", 'e', -6, 21, 6, 0);
+          char buf[128];
+          double_conversion::StringBuilder builder(buf, sizeof(buf));
+          converter.ToShortestSingle(val, &builder);
+          return std::string(builder.Finalize());
         } else {
           return absl::StrCat(val);
         }
