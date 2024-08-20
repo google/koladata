@@ -321,6 +321,35 @@ def new(
   return db.new(arg=arg, schema=schema, update_schema=update_schema, **attrs)
 
 
+def uu(
+    *,
+    seed: str | None = None,
+    schema: data_slice.DataSlice | None = None,
+    update_schema: bool = False,
+    db: data_bag.DataBag | None = None,
+    **attrs: Any,
+) -> data_slice.DataSlice:
+  """Creates UuEntities with given attrs.
+
+  Args:
+    seed: string to seed the uuid computation with.
+    schema: optional DataSlice schema. If not specified, a UuSchema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead.
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
+  if db is None:
+    db = bag()
+  return db.uu(seed=seed, schema=schema, update_schema=update_schema, **attrs)
+
+
 def new_shaped(
     shape: jagged_shape.JaggedShape,
     *,

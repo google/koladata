@@ -31,6 +31,7 @@ dict_like = _object_factories.dict_like
 dict_shaped = _object_factories.dict_shaped
 
 new = _object_factories.new
+uu = _object_factories.uu
 new_shaped = _object_factories.new_shaped
 new_like = _object_factories.new_like
 
