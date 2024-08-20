@@ -14,6 +14,7 @@
 //
 #include "koladata/operators/convert_and_eval.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -26,6 +27,7 @@
 #include "absl/base/no_destructor.h"
 #include "absl/base/optimization.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -45,7 +47,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/dense_array/qtype/types.h"
-#include "arolla/expr/expr_operator.h"
+#include "arolla/expr/registered_expr_operator.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
@@ -53,7 +55,6 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serving/expr_compiler.h"
-#include "arolla/util/fingerprint.h"
 #include "arolla/util/lru_cache.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
@@ -65,27 +66,16 @@ namespace {
 
 constexpr size_t kCompilationCacheSize = 4096;
 
-using CompiledOp = std::function<absl::StatusOr<::arolla::TypedValue>(
-    absl::Span<const arolla::TypedRef>)>;
-
-using Compiler = ::arolla::ExprCompiler<absl::Span<const ::arolla::TypedRef>,
-                                        arolla::TypedValue>;
-
 class EvalCompiler {
+  using CompiledOp = std::function<absl::StatusOr<::arolla::TypedValue>(
+      absl::Span<const arolla::TypedRef>)>;
+
+  using Compiler = ::arolla::ExprCompiler<absl::Span<const ::arolla::TypedRef>,
+                                          arolla::TypedValue>;
+
  public:
-  // TODO: Only allow operators to be passed by name, and place
-  // ExprOperatorPtr construction inside of the cached scope.
   static absl::StatusOr<CompiledOp> Compile(
-      const arolla::expr::ExprOperatorPtr& expr_op,
-      absl::Span<const arolla::TypedRef> inputs) {
-    // TODO: Instead of creating a fingerprint, we can use a tuple
-    // as key.
-    arolla::FingerprintHasher hasher("koladata.convert_and_eval");
-    hasher.Combine(expr_op->fingerprint());
-    for (const auto& input : inputs) {
-      hasher.Combine(input.GetType());
-    }
-    arolla::Fingerprint key = std::move(hasher).Finish();
+      absl::string_view op_name, absl::Span<const arolla::TypedRef> inputs) {
     CompiledOp fn;
     {
       // Copying std::function is expensive, but given that we use cache, we
@@ -96,7 +86,8 @@ class EvalCompiler {
       // Alternatively, we could consider having a thread-local cache that
       // requires no mutex and no function copying.
       absl::MutexLock lock(&mutex_);
-      if (auto* hit = cache_->LookupOrNull(key); hit != nullptr) {
+      if (auto* hit = cache_->LookupOrNull(LookupKey{op_name, inputs});
+          hit != nullptr) {
         fn = *hit;
       }
     }
@@ -105,6 +96,8 @@ class EvalCompiler {
       for (size_t i = 0; i < inputs.size(); ++i) {
         input_types[i] = inputs[i].GetType();
       }
+      auto expr_op =
+          std::make_shared<arolla::expr::RegisteredOperator>(op_name);
       ASSIGN_OR_RETURN(
           fn, Compiler()
                   // Most of the operators are compiled into rather small
@@ -113,19 +106,75 @@ class EvalCompiler {
                   .SetAlwaysCloneThreadSafetyPolicy()
                   .CompileOperator(expr_op, input_types));
       absl::MutexLock lock(&mutex_);
-      fn = *cache_->Put(key, std::move(fn));
+      fn = *cache_->Put(Key{std::string(op_name), std::move(input_types)},
+                        std::move(fn));
     }
     return fn;
   }
 
  private:
-  static absl::NoDestructor<arolla::LruCache<arolla::Fingerprint, CompiledOp>>
-      cache_ ABSL_GUARDED_BY(mutex_);
+  struct Key {
+    std::string op_name;
+    std::vector<arolla::QTypePtr> input_qtypes;
+
+    template <typename H>
+    friend H AbslHashValue(H h, const Key& key) {
+      // NOTE: Must be compatible with `LookupKey` below.
+      h = H::combine(std::move(h), key.op_name, key.input_qtypes.size());
+      for (const auto& input_qtype : key.input_qtypes) {
+        h = H::combine(std::move(h), input_qtype);
+      }
+      return h;
+    }
+  };
+
+  struct LookupKey {
+    absl::string_view op_name;
+    absl::Span<const arolla::TypedRef> input_qvalues;
+
+    template <typename H>
+    friend H AbslHashValue(H h, const LookupKey& lookup_key) {
+      // NOTE: Must be compatible with `Key` above.
+      h = H::combine(std::move(h), lookup_key.op_name,
+                     lookup_key.input_qvalues.size());
+      for (const auto& input_qvalue : lookup_key.input_qvalues) {
+        h = H::combine(std::move(h), input_qvalue.GetType());
+      }
+      return h;
+    }
+  };
+
+  struct KeyHash {
+    using is_transparent = void;
+
+    size_t operator()(const Key& key) const { return absl::HashOf(key); }
+    size_t operator()(const LookupKey& key) const { return absl::HashOf(key); }
+  };
+
+  struct KeyEq {
+    using is_transparent = void;
+
+    bool operator()(const Key& lhs, const Key& rhs) const {
+      return lhs.op_name == rhs.op_name && lhs.input_qtypes == rhs.input_qtypes;
+    }
+    bool operator()(const Key& lhs, const LookupKey& rhs) const {
+      return lhs.op_name == rhs.op_name &&
+             std::equal(lhs.input_qtypes.begin(), lhs.input_qtypes.end(),
+                        rhs.input_qvalues.begin(), rhs.input_qvalues.end(),
+                        [](const arolla::QTypePtr& ltype,
+                           const arolla::TypedRef& rvalue) {
+                          return ltype == rvalue.GetType();
+                        });
+    }
+  };
+
+  using Impl = arolla::LruCache<Key, CompiledOp, KeyHash, KeyEq>;
+  static absl::NoDestructor<Impl> cache_ ABSL_GUARDED_BY(mutex_);
   static absl::Mutex mutex_;
 };
 
-absl::NoDestructor<arolla::LruCache<arolla::Fingerprint, CompiledOp>>
-    EvalCompiler::cache_(kCompilationCacheSize);
+absl::NoDestructor<EvalCompiler::Impl> EvalCompiler::cache_(
+    kCompilationCacheSize);
 
 absl::Mutex EvalCompiler::mutex_{absl::kConstInit};
 
@@ -161,9 +210,10 @@ internal::DataSliceImpl GetSliceImpl(const DataSlice& slice) {
              : internal::DataSliceImpl::Create({slice.item()});
 }
 
-absl::StatusOr<DataSlice> SimpleAggEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
-    internal::DataItem output_schema, int edge_arg_index, bool is_agg_into) {
+absl::StatusOr<DataSlice> SimpleAggEval(absl::string_view op_name,
+                                        std::vector<DataSlice> inputs,
+                                        internal::DataItem output_schema,
+                                        int edge_arg_index, bool is_agg_into) {
   DCHECK_GE(inputs.size(), 1);
   DCHECK_GE(edge_arg_index, 0);
   DCHECK_LE(edge_arg_index, inputs.size());
@@ -212,7 +262,7 @@ absl::StatusOr<DataSlice> SimpleAggEval(
   }
   auto edge_tv = arolla::TypedValue::FromValue(aligned_shape.edges().back());
   typed_refs[edge_arg_index] = edge_tv.AsRef();
-  ASSIGN_OR_RETURN(auto result, EvalExpr(expr_op, typed_refs));
+  ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs));
   return DataSliceFromArollaValue(result.AsRef(), std::move(result_shape),
                                   std::move(output_schema));
 }
@@ -220,9 +270,8 @@ absl::StatusOr<DataSlice> SimpleAggEval(
 }  // namespace
 
 absl::StatusOr<arolla::TypedValue> EvalExpr(
-    const arolla::expr::ExprOperatorPtr& expr_op,
-    absl::Span<const arolla::TypedRef> inputs) {
-  ASSIGN_OR_RETURN(auto fn, EvalCompiler::Compile(expr_op, inputs));
+    absl::string_view op_name, absl::Span<const arolla::TypedRef> inputs) {
+  ASSIGN_OR_RETURN(auto fn, EvalCompiler::Compile(op_name, inputs));
   return fn(inputs);
 }
 
@@ -251,7 +300,7 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
 }
 
 absl::StatusOr<DataSlice> SimplePointwiseEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema) {
   DCHECK_GE(inputs.size(), 1);
   schema::CommonSchemaAggregator schema_agg;
@@ -290,23 +339,25 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
                                                first_primitive_schema));
     typed_refs.push_back(std::move(ref));
   }
-  ASSIGN_OR_RETURN(auto result, EvalExpr(expr_op, typed_refs));
+  ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs));
   return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
                                   std::move(output_schema));
 }
 
-absl::StatusOr<DataSlice> SimpleAggIntoEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
-    internal::DataItem output_schema, int edge_arg_index) {
-  return SimpleAggEval(expr_op, std::move(inputs), std::move(output_schema),
+absl::StatusOr<DataSlice> SimpleAggIntoEval(absl::string_view op_name,
+                                            std::vector<DataSlice> inputs,
+                                            internal::DataItem output_schema,
+                                            int edge_arg_index) {
+  return SimpleAggEval(op_name, std::move(inputs), std::move(output_schema),
                        edge_arg_index,
                        /*is_agg_into=*/true);
 }
 
-absl::StatusOr<DataSlice> SimpleAggOverEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
-    internal::DataItem output_schema, int edge_arg_index) {
-  return SimpleAggEval(expr_op, std::move(inputs), std::move(output_schema),
+absl::StatusOr<DataSlice> SimpleAggOverEval(absl::string_view op_name,
+                                            std::vector<DataSlice> inputs,
+                                            internal::DataItem output_schema,
+                                            int edge_arg_index) {
+  return SimpleAggEval(op_name, std::move(inputs), std::move(output_schema),
                        edge_arg_index,
                        /*is_agg_into=*/false);
 }

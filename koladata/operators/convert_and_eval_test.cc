@@ -15,7 +15,6 @@
 #include "koladata/operators/convert_and_eval.h"
 
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <vector>
 
@@ -31,7 +30,6 @@
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/expr/registered_expr_operator.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/init_arolla.h"
@@ -42,6 +40,7 @@ namespace koladata::ops {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
@@ -69,21 +68,15 @@ TEST(ArollaEval, SimplePointwiseEval) {
     DataSlice y = test::DataSlice<int64_t>(
         {int64_t{3}, int64_t{-3}, std::nullopt, int64_t{-1}}, y_shape,
         schema::kObject);
-    ASSERT_OK_AND_ASSIGN(
-        auto result,
-        SimplePointwiseEval(
-            std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
-            {x, y}));
+    ASSERT_OK_AND_ASSIGN(auto result, SimplePointwiseEval("math.add", {x, y}));
     EXPECT_THAT(result,
                 IsEquivalentTo(test::DataSlice<int64_t>(
                     {int64_t{4}, int64_t{-2}, std::nullopt, std::nullopt},
                     y_shape, schema::kObject)));
     // With output schema set.
-    ASSERT_OK_AND_ASSIGN(
-        result,
-        SimplePointwiseEval(
-            std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
-            {x, y}, internal::DataItem(schema::kAny)));
+    ASSERT_OK_AND_ASSIGN(result,
+                         SimplePointwiseEval("math.add", {x, y},
+                                             internal::DataItem(schema::kAny)));
     EXPECT_THAT(result,
                 IsEquivalentTo(test::DataSlice<int64_t>(
                     {int64_t{4}, int64_t{-2}, std::nullopt, std::nullopt},
@@ -97,11 +90,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
     DataSlice y = test::DataSlice<int64_t>(
         {int64_t{3}, int64_t{-3}, std::nullopt, int64_t{-1}}, y_shape,
         schema::kObject);
-    ASSERT_OK_AND_ASSIGN(
-        auto result,
-        SimplePointwiseEval(
-            std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
-            {x, y}));
+    ASSERT_OK_AND_ASSIGN(auto result, SimplePointwiseEval("math.add", {x, y}));
     EXPECT_THAT(
         result,
         IsEquivalentTo(
@@ -119,9 +108,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
     DataSlice y = test::DataSlice<arolla::Text>(
         {"foo", "bar", std::nullopt, "baz"}, y_shape, schema::kObject);
     EXPECT_THAT(
-        SimplePointwiseEval(
-            std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
-            {x, y}),
+        SimplePointwiseEval("math.add", {x, y}),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("expected numerics, got x: DENSE_ARRAY_TEXT")));
   }
@@ -131,21 +118,15 @@ TEST(ArollaEval, SimplePointwiseEval) {
     DataSlice::JaggedShape y_shape = *DataSlice::JaggedShape::FromEdges(
         {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
     DataSlice y = *test::EmptyDataSlice(4, schema::kInt32).Reshape(y_shape);
-    ASSERT_OK_AND_ASSIGN(
-        auto result,
-        SimplePointwiseEval(
-            std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
-            {x, y}));
+    ASSERT_OK_AND_ASSIGN(auto result, SimplePointwiseEval("math.add", {x, y}));
     EXPECT_THAT(
         result,
         IsEquivalentTo(
             *test::EmptyDataSlice(4, schema::kObject).Reshape(y_shape)));
     // With output schema set.
-    ASSERT_OK_AND_ASSIGN(
-        result,
-        SimplePointwiseEval(
-            std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
-            {x, y}, internal::DataItem(schema::kAny)));
+    ASSERT_OK_AND_ASSIGN(result,
+                         SimplePointwiseEval("math.add", {x, y},
+                                             internal::DataItem(schema::kAny)));
     EXPECT_THAT(result,
                 IsEquivalentTo(
                     *test::EmptyDataSlice(4, schema::kAny).Reshape(y_shape)));
@@ -160,19 +141,13 @@ TEST(ArollaEval, SimpleAggIntoEval) {
         {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
     DataSlice x =
         test::DataSlice<int>({1, 2, 3, std::nullopt}, shape, schema::kObject);
-    ASSERT_OK_AND_ASSIGN(
-        auto result,
-        SimpleAggIntoEval(
-            std::make_shared<arolla::expr::RegisteredOperator>("math.sum"),
-            {x}));
+    ASSERT_OK_AND_ASSIGN(auto result, SimpleAggIntoEval("math.sum", {x}));
     EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int>(
                             {3, 3, 0}, shape.RemoveDims(1), schema::kObject)));
     // With output schema set.
     ASSERT_OK_AND_ASSIGN(
         result,
-        SimpleAggIntoEval(
-            std::make_shared<arolla::expr::RegisteredOperator>("math.sum"), {x},
-            internal::DataItem(schema::kAny)));
+        SimpleAggIntoEval("math.sum", {x}, internal::DataItem(schema::kAny)));
     EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int>(
                             {3, 3, 0}, shape.RemoveDims(1), schema::kAny)));
   }
@@ -182,40 +157,29 @@ TEST(ArollaEval, SimpleAggIntoEval) {
         {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
     ASSERT_OK_AND_ASSIGN(
         DataSlice x, test::EmptyDataSlice(4, schema::kObject).Reshape(shape));
-    ASSERT_OK_AND_ASSIGN(
-        auto result,
-        SimpleAggIntoEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "core.agg_count"),
-                          {x}));
+    ASSERT_OK_AND_ASSIGN(auto result, SimpleAggIntoEval("core.agg_count", {x}));
     EXPECT_THAT(result, IsEquivalentTo(*test::EmptyDataSlice(3, schema::kObject)
                                             .Reshape(shape.RemoveDims(1))));
     // With output schema set.
-    ASSERT_OK_AND_ASSIGN(
-        result,
-        SimpleAggIntoEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "core.agg_count"),
-                          {x}, internal::DataItem(schema::kMask)));
+    ASSERT_OK_AND_ASSIGN(result,
+                         SimpleAggIntoEval("core.agg_count", {x},
+                                           internal::DataItem(schema::kMask)));
     EXPECT_THAT(result, IsEquivalentTo(*test::EmptyDataSlice(3, schema::kMask)
                                             .Reshape(shape.RemoveDims(1))));
   }
   {
     // Scalar input error.
     DataSlice x = test::DataItem(1, schema::kObject);
-    EXPECT_THAT(
-        SimpleAggIntoEval(
-            std::make_shared<arolla::expr::RegisteredOperator>("math.sum"),
-            {x}),
-        StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("expected rank(x) > 0")));
+    EXPECT_THAT(SimpleAggIntoEval("math.sum", {x}),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("expected rank(x) > 0")));
   }
   {
     // Mixed input error.
     DataSlice x = test::MixedDataSlice<int, float>(
         {1, std::nullopt}, {std::nullopt, 2.0f}, schema::kObject);
     EXPECT_THAT(
-        SimpleAggIntoEval(
-            std::make_shared<arolla::expr::RegisteredOperator>("math.sum"),
-            {x}),
+        SimpleAggIntoEval("math.sum", {x}),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("DataSlice with mixed types is not supported")));
   }
@@ -227,11 +191,8 @@ TEST(ArollaEval, SimpleAggIntoEval) {
         {"foo", "bar", "baz", std::nullopt}, x_shape);
     DataSlice sep = test::DataItem(arolla::Text(","));
     // `strings.agg_join` takes args: (x, edge, sep).
-    ASSERT_OK_AND_ASSIGN(
-        auto result,
-        SimpleAggIntoEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "strings.agg_join"),
-                          {x, sep}));
+    ASSERT_OK_AND_ASSIGN(auto result,
+                         SimpleAggIntoEval("strings.agg_join", {x, sep}));
     EXPECT_THAT(result,
                 IsEquivalentTo(test::DataSlice<arolla::Text>(
                     {"foo,bar", "baz", std::nullopt}, x_shape.RemoveDims(1))));
@@ -244,11 +205,9 @@ TEST(ArollaEval, SimpleAggIntoEval) {
         test::DataSlice<float>({1.0f, 2.0f, 3.0f, 4.0f, std::nullopt}, x_shape);
     // `math.correlation` takes args: (x, y, edge).
     ASSERT_OK_AND_ASSIGN(
-        auto result,
-        SimpleAggIntoEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "math.correlation"),
-                          {x, x}, /*output_schema=*/internal::DataItem(),
-                          /*edge_arg_index=*/2));
+        auto result, SimpleAggIntoEval("math.correlation", {x, x},
+                                       /*output_schema=*/internal::DataItem(),
+                                       /*edge_arg_index=*/2));
     EXPECT_THAT(result,
                 IsEquivalentTo(test::DataSlice<float>(
                     {1.0f, 1.0f, std::nullopt}, x_shape.RemoveDims(1))));
@@ -263,20 +222,15 @@ TEST(ArollaEval, SimpleAggOverEval) {
         {EdgeFromSizes({2}), EdgeFromSizes({3, 2})});
     DataSlice x = test::DataSlice<int>({1, 2, 0, 1, std::nullopt}, shape,
                                        schema::kObject);
-    ASSERT_OK_AND_ASSIGN(
-        auto result,
-        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "array.inverse_mapping"),
-                          {x}));
+    ASSERT_OK_AND_ASSIGN(auto result,
+                         SimpleAggOverEval("array.inverse_mapping", {x}));
     EXPECT_THAT(result,
                 IsEquivalentTo(test::DataSlice<int>({2, 0, 1, std::nullopt, 0},
                                                     shape, schema::kObject)));
     // With output schema set.
-    ASSERT_OK_AND_ASSIGN(
-        result,
-        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "array.inverse_mapping"),
-                          {x}, internal::DataItem(schema::kAny)));
+    ASSERT_OK_AND_ASSIGN(result,
+                         SimpleAggOverEval("array.inverse_mapping", {x},
+                                           internal::DataItem(schema::kAny)));
     EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int>(
                             {2, 0, 1, std::nullopt, 0}, shape, schema::kAny)));
   }
@@ -286,39 +240,29 @@ TEST(ArollaEval, SimpleAggOverEval) {
         {EdgeFromSizes({2}), EdgeFromSizes({3, 2})});
     ASSERT_OK_AND_ASSIGN(
         DataSlice x, test::EmptyDataSlice(5, schema::kObject).Reshape(shape));
-    ASSERT_OK_AND_ASSIGN(
-        auto result,
-        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "array.inverse_mapping"),
-                          {x}));
+    ASSERT_OK_AND_ASSIGN(auto result,
+                         SimpleAggOverEval("array.inverse_mapping", {x}));
     EXPECT_THAT(result, IsEquivalentTo(x));
     // With output schema set.
-    ASSERT_OK_AND_ASSIGN(
-        result,
-        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "array.inverse_mapping"),
-                          {x}, internal::DataItem(schema::kAny)));
+    ASSERT_OK_AND_ASSIGN(result,
+                         SimpleAggOverEval("array.inverse_mapping", {x},
+                                           internal::DataItem(schema::kAny)));
     EXPECT_THAT(result, IsEquivalentTo(
                             *x.WithSchema(internal::DataItem(schema::kAny))));
   }
   {
     // Scalar input error.
     DataSlice x = test::DataItem(1, schema::kObject);
-    EXPECT_THAT(
-        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "array.inverse_mapping"),
-                          {x}),
-        StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("expected rank(x) > 0")));
+    EXPECT_THAT(SimpleAggOverEval("array.inverse_mapping", {x}),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("expected rank(x) > 0")));
   }
   {
     // Mixed input error.
     DataSlice x = test::MixedDataSlice<int, int64_t>(
         {1, std::nullopt}, {std::nullopt, int64_t{2}}, schema::kObject);
     EXPECT_THAT(
-        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "array.inverse_mapping"),
-                          {x}),
+        SimpleAggOverEval("array.inverse_mapping", {x}),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("DataSlice with mixed types is not supported")));
   }
@@ -330,11 +274,9 @@ TEST(ArollaEval, SimpleAggOverEval) {
     DataSlice desc = test::DataItem(true);
     // `array.dense_rank` takes args: (x, edge, descending).
     ASSERT_OK_AND_ASSIGN(
-        auto result,
-        SimpleAggOverEval(
-            std::make_shared<arolla::expr::RegisteredOperator>(
-                "array.dense_rank"),
-            {x, desc}, /*output_schema=*/internal::DataItem(schema::kInt64)));
+        auto result, SimpleAggOverEval(
+                         "array.dense_rank", {x, desc},
+                         /*output_schema=*/internal::DataItem(schema::kInt64)));
     EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int64_t>(
                             {int64_t{1}, int64_t{0}, int64_t{0}, std::nullopt},
                             x_shape)));
@@ -348,9 +290,7 @@ TEST(ArollaEval, SimpleAggOverEval) {
     // `array.ordinal_rank` takes args: (x, tie_breaker, edge, descending).
     ASSERT_OK_AND_ASSIGN(
         auto result,
-        SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                              "array.ordinal_rank"),
-                          {x, x, desc},
+        SimpleAggOverEval("array.ordinal_rank", {x, x, desc},
                           /*output_schema=*/internal::DataItem(schema::kInt64),
                           /*edge_arg_index=*/2));
     EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int64_t>(
@@ -366,10 +306,8 @@ TEST(ArollaEval, EvalExpr) {
     auto y = arolla::CreateDenseArray<int>({2, 3, 4});
     auto x_tv = arolla::TypedValue::FromValue(x);
     auto y_tv = arolla::TypedValue::FromValue(y);
-    ASSERT_OK_AND_ASSIGN(
-        auto result,
-        EvalExpr(std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
-                 {x_tv.AsRef(), y_tv.AsRef()}));
+    ASSERT_OK_AND_ASSIGN(auto result,
+                         EvalExpr("math.add", {x_tv.AsRef(), y_tv.AsRef()}));
     EXPECT_THAT(result.UnsafeAs<arolla::DenseArray<int>>(),
                 ElementsAre(3, 5, std::nullopt));
   }
@@ -381,8 +319,7 @@ TEST(ArollaEval, EvalExpr) {
     auto x_tv = arolla::TypedValue::FromValue(x);
     auto y_tv = arolla::TypedValue::FromValue(y);
     EXPECT_THAT(
-        EvalExpr(std::make_shared<arolla::expr::RegisteredOperator>("math.add"),
-                 {x_tv.AsRef(), y_tv.AsRef()}),
+        EvalExpr("math.add", {x_tv.AsRef(), y_tv.AsRef()}),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("expected numerics, got y: DENSE_ARRAY_UNIT")));
   }
@@ -390,9 +327,7 @@ TEST(ArollaEval, EvalExpr) {
     // Runtime error.
     auto x_tv = arolla::TypedValue::FromValue(1);
     auto y_tv = arolla::TypedValue::FromValue(0);
-    EXPECT_THAT(EvalExpr(std::make_shared<arolla::expr::RegisteredOperator>(
-                             "math.floordiv"),
-                         {x_tv.AsRef(), y_tv.AsRef()}),
+    EXPECT_THAT(EvalExpr("math.floordiv", {x_tv.AsRef(), y_tv.AsRef()}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("division by zero")));
   }

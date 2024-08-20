@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -27,7 +28,6 @@
 #include "koladata/internal/dtype.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
-#include "arolla/expr/expr_operator.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -36,14 +36,10 @@
 
 namespace koladata::ops {
 
-// TODO: Accept an operator name instead once
-// convert_and_eval_with_shape has been removed.
-//
-// Evaluates the given operator on the given inputs, using a compilation
-// cache.
+// Evaluates the registered operator of the given name on the given inputs,
+// using a compilation cache.
 absl::StatusOr<arolla::TypedValue> EvalExpr(
-    const arolla::expr::ExprOperatorPtr& expr_op,
-    absl::Span<const arolla::TypedRef> inputs);
+    absl::string_view op_name, absl::Span<const arolla::TypedRef> inputs);
 
 // Returns the schema of the data of `x` that is compatible with Arolla.
 // * If the schema of `x` is a primitive schema, returns it.
@@ -54,38 +50,39 @@ absl::StatusOr<arolla::TypedValue> EvalExpr(
 // * Otherwise, an error is returned.
 absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(const DataSlice& x);
 
-// Evaluates the given expression on the given inputs and returns the result.
-// The expr_op is expected to be a pointwise operator that should be evaluated
-// on the given inputs extracted as Arolla values. The output DataSlice has the
-// the common shape and schema of the inputs, or `output_schema` if provided. If
-// all inputs are empty-and-unknown, the `expr_op` is not evaluated. In other
-// cases the first primitive schema of the present inputs is used to construct
-// inputs.
+// Evaluates the registered operator of the given name on the given inputs and
+// returns the result. The expr_op is expected to be a pointwise operator that
+// should be evaluated on the given inputs extracted as Arolla values. The
+// output DataSlice has the the common shape and schema of the inputs, or
+// `output_schema` if provided. If all inputs are empty-and-unknown, the
+// `expr_op` is not evaluated. In other cases the first primitive schema of the
+// present inputs is used to construct inputs.
 absl::StatusOr<DataSlice> SimplePointwiseEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema = internal::DataItem());
 
-// Evaluates the given expression on the given input and returns the result. The
-// expr_op is expected to be an agg-into operator that should be evaluated on
-// `x` extracted as an Arolla value and the edge of the last dimension. The
-// output DataSlice has the shape of `x` with the last dimension removed and the
-// schema of `x`, or `output_schema` if provided. If `x` is empty-and-unknown,
-// the `expr_op` is not evaluated. The `edge_arg_index` specifies the index of
-// the argument where to insert the edge when passed to the `expr_op`.
+// Evaluates the registered operator of the given name on the given input and
+// returns the result. The expr_op is expected to be an agg-into operator that
+// should be evaluated on `x` extracted as an Arolla value and the edge of the
+// last dimension. The output DataSlice has the shape of `x` with the last
+// dimension removed and the schema of `x`, or `output_schema` if provided. If
+// `x` is empty-and-unknown, the `expr_op` is not evaluated. The
+// `edge_arg_index` specifies the index of the argument where to insert the edge
+// when passed to the `expr_op`.
 absl::StatusOr<DataSlice> SimpleAggIntoEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema = internal::DataItem(),
     int edge_arg_index = 1);
 
-// Evaluates the given expression on the given input and returns the result. The
-// expr_op is expected to be an agg-over operator that should be evaluated on
-// `x` extracted as an Arolla value and the edge of the last dimension. The
-// output DataSlice has the the shape of `x` and the schema of `x`, or
-// `output_schema` if provided. If `x` is empty-and-unknown, the `expr_op` is
-// not evaluated. The `edge_arg_index` specifies the index of the argument where
-// to insert the edge when passed to the `expr_op`.
+// Evaluates the registered operator of the given name on the given input and
+// returns the result. The expr_op is expected to be an agg-over operator that
+// should be evaluated on `x` extracted as an Arolla value and the edge of the
+// last dimension. The output DataSlice has the the shape of `x` and the schema
+// of `x`, or `output_schema` if provided. If `x` is empty-and-unknown, the
+// `expr_op` is not evaluated. The `edge_arg_index` specifies the index of the
+// argument where to insert the edge when passed to the `expr_op`.
 absl::StatusOr<DataSlice> SimpleAggOverEval(
-    const arolla::expr::ExprOperatorPtr& expr_op, std::vector<DataSlice> inputs,
+    absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema = internal::DataItem(),
     int edge_arg_index = 1);
 

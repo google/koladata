@@ -26,8 +26,8 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
-#include "koladata/shape_utils.h"
 #include "koladata/operators/convert_and_eval.h"
+#include "koladata/shape_utils.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_value.h"
@@ -58,9 +58,8 @@ absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
                                      internal::DataItem(schema::kInt64)));
   ASSIGN_OR_RETURN(
       auto result,
-      EvalExpr(
-          std::make_shared<arolla::expr::RegisteredOperator>("strings.substr"),
-          {std::move(x_ref), std::move(start_ref), std::move(end_ref)}));
+      EvalExpr("strings.substr",
+               {std::move(x_ref), std::move(start_ref), std::move(end_ref)}));
   return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
                                   x.GetSchemaImpl());
 }
@@ -69,9 +68,7 @@ absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep) {
   if (sep.GetShape().rank() != 0) {
     return absl::InvalidArgumentError("expected rank(sep) == 0");
   }
-  return SimpleAggIntoEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("strings.agg_join"),
-      {x, sep});
+  return SimpleAggIntoEval("strings.agg_join", {x, sep});
 }
 
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
@@ -106,10 +103,9 @@ absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
   ASSIGN_OR_RETURN(
       auto sep_ref,
       DataSliceToOwnedArollaRef(sep, typed_value_holder, x_primitive_schema));
-  ASSIGN_OR_RETURN(auto result,
-                   EvalExpr(std::make_shared<arolla::expr::RegisteredOperator>(
-                                "strings.split"),
-                            {std::move(x_ref), std::move(sep_ref)}));
+  ASSIGN_OR_RETURN(
+      auto result,
+      EvalExpr("strings.split", {std::move(x_ref), std::move(sep_ref)}));
   DCHECK(arolla::IsTupleQType(result.GetType()) && result.GetFieldCount() == 2);
   ASSIGN_OR_RETURN(auto edge_ref,
                    result.GetField(1).As<DataSlice::JaggedShape::Edge>());

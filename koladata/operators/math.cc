@@ -14,7 +14,6 @@
 //
 #include "koladata/operators/math.h"
 
-#include <memory>
 #include <utility>
 
 #include "absl/status/statusor.h"
@@ -22,42 +21,32 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/operators/convert_and_eval.h"
-#include "arolla/expr/registered_expr_operator.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
 absl::StatusOr<DataSlice> Subtract(const DataSlice& x, const DataSlice& y) {
-  return SimplePointwiseEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("math.subtract"),
-      {x, y});
+  return SimplePointwiseEval("math.subtract", {x, y});
 }
 
 absl::StatusOr<DataSlice> Multiply(const DataSlice& x, const DataSlice& y) {
-  return SimplePointwiseEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("math.multiply"),
-      {x, y});
+  return SimplePointwiseEval("math.multiply", {x, y});
 }
 
 absl::StatusOr<DataSlice> Maximum(const DataSlice& x, const DataSlice& y) {
-  return SimplePointwiseEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("math.maximum"),
-      {x, y});
+  return SimplePointwiseEval("math.maximum", {x, y});
 }
 
 absl::StatusOr<DataSlice> Minimum(const DataSlice& x, const DataSlice& y) {
-  return SimplePointwiseEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("math.minimum"),
-      {x, y});
+  return SimplePointwiseEval("math.minimum", {x, y});
 }
 
 absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
-  auto op = std::make_shared<arolla::expr::RegisteredOperator>("math.sum");
   ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
   // The input has primitive schema or OBJECT/ANY schema with a single primitive
   // dtype.
   if (primitive_schema.has_value()) {
-    return SimpleAggIntoEval(op, {x});
+    return SimpleAggIntoEval("math.sum", {x});
   }
   // If the input is fully empty and unknown, we fix the schema to INT32. We
   // cannot skip evaluation even if the input is empty-and-unknown because the
@@ -69,7 +58,7 @@ absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
   auto output_schema = x.GetSchemaImpl() == schema::kNone
                            ? internal::DataItem(schema::kInt32)
                            : x.GetSchemaImpl();
-  return SimpleAggIntoEval(op, {std::move(x_int32)},
+  return SimpleAggIntoEval("math.sum", {std::move(x_int32)},
                            /*output_schema=*/output_schema);
 }
 

@@ -19,23 +19,19 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "koladata/data_bag.h"
 #include "absl/strings/str_format.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/operators/convert_and_eval.h"
-#include "arolla/expr/expr_operator.h"
-#include "arolla/expr/registered_expr_operator.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
-  return SimplePointwiseEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("kde.core._add_impl"),
-      {x, y});
+  return SimplePointwiseEval("kde.core._add_impl", {x, y});
 }
 
 DataSlice NoDb(const DataSlice& ds) { return ds.WithDb(nullptr); }
@@ -52,28 +48,20 @@ DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db) {
 }
 
 absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
-  return SimpleAggIntoEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("core.any"), {x},
-      internal::DataItem(schema::kMask));
+  return SimpleAggIntoEval("core.any", {x}, internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
-  return SimpleAggIntoEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("core.all"), {x},
-      internal::DataItem(schema::kMask));
+  return SimpleAggIntoEval("core.all", {x}, internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x) {
-  return SimpleAggOverEval(std::make_shared<arolla::expr::RegisteredOperator>(
-                               "array.inverse_mapping"),
-                           {x});
+  return SimpleAggOverEval("array.inverse_mapping", {x});
 }
 
 absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
                                       const DataSlice& tie_breaker,
                                       const DataSlice& descending) {
-  auto op =
-      std::make_shared<arolla::expr::RegisteredOperator>("array.ordinal_rank");
   if (descending.GetShape().rank() != 0 ||
       !descending.item().holds_value<bool>()) {
     return absl::InvalidArgumentError(absl::StrFormat(
@@ -84,7 +72,7 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
                    GetPrimitiveArollaSchema(tie_breaker));
   if (tie_breaker_primitive_schema.has_value()) {
     return SimpleAggOverEval(
-        op, {x, tie_breaker, descending},
+        "array.ordinal_rank", {x, tie_breaker, descending},
         /*output_schema=*/internal::DataItem(schema::kInt64), /*edge_index=*/2);
   } else {
     // `tie_breaker` _must_ be an integral, while the other data can be of other
@@ -94,7 +82,7 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
         auto tie_breaker_int64,
         tie_breaker.WithSchema(internal::DataItem(schema::kInt64)));
     return SimpleAggOverEval(
-        op, {x, std::move(tie_breaker_int64), descending},
+        "array.ordinal_rank", {x, std::move(tie_breaker_int64), descending},
         /*output_schema=*/internal::DataItem(schema::kInt64), /*edge_index=*/2);
   }
 }

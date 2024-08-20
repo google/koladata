@@ -32,7 +32,6 @@
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/operators/convert_and_eval.h"
 #include "koladata/repr_utils.h"
-#include "arolla/expr/registered_expr_operator.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -66,9 +65,8 @@ inline absl::StatusOr<DataSlice> HasNot(const DataSlice& x) {
   // Must be a mask, which is normally guaranteed by `x` being constructed from
   // kde.logical.has. This ensures that M.core.presence_not is always called.
   DCHECK_EQ(x.GetSchemaImpl(), internal::DataItem(schema::kMask));
-  return SimplePointwiseEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("core.presence_not"),
-      {x}, internal::DataItem(schema::kMask));
+  return SimplePointwiseEval("core.presence_not", {x},
+                             internal::DataItem(schema::kMask));
 }
 
 }  // namespace koladata::ops

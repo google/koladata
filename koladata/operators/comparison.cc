@@ -14,39 +14,32 @@
 //
 #include "koladata/operators/comparison.h"
 
-#include <memory>
-
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/operators/convert_and_eval.h"
-#include "arolla/expr/registered_expr_operator.h"
 
 namespace koladata::ops {
 
 absl::StatusOr<DataSlice> Less(const DataSlice& x, const DataSlice& y) {
-  return SimplePointwiseEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("core.less"), {x, y},
-      internal::DataItem(schema::kMask));
+  return SimplePointwiseEval("core.less", {x, y},
+                             internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> Greater(const DataSlice& x, const DataSlice& y) {
-  return SimplePointwiseEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("core.greater"),
-      {x, y}, internal::DataItem(schema::kMask));
+  return SimplePointwiseEval("core.greater", {x, y},
+                             internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> LessEqual(const DataSlice& x, const DataSlice& y) {
-  return SimplePointwiseEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("core.less_equal"),
-      {x, y}, internal::DataItem(schema::kMask));
+  return SimplePointwiseEval("core.less_equal", {x, y},
+                             internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> GreaterEqual(const DataSlice& x, const DataSlice& y) {
-  return SimplePointwiseEval(
-      std::make_shared<arolla::expr::RegisteredOperator>("core.greater_equal"),
-      {x, y}, internal::DataItem(schema::kMask));
+  return SimplePointwiseEval("core.greater_equal", {x, y},
+                             internal::DataItem(schema::kMask));
 }
 
 }  // namespace koladata::ops
