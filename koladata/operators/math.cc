@@ -62,4 +62,8 @@ absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
                            /*output_schema=*/output_schema);
 }
 
+absl::StatusOr<DataSlice> AggMax(const DataSlice& x) {
+  return SimpleAggIntoEval("math.max", {x});
+}
+
 }  // namespace koladata::ops
