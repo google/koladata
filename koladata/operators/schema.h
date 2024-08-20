@@ -65,6 +65,9 @@ inline absl::StatusOr<DataSlice> WithSchema(const DataSlice& ds,
   return ds.WithSchema(schema);
 }
 
+// kde.schema.get_schema operator.
+inline DataSlice GetSchema(const DataSlice& ds) { return ds.GetSchema(); }
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_SCHEMA_H_
