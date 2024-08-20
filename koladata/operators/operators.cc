@@ -79,6 +79,7 @@ OPERATOR("kde.core._extract_with_schema", ExtractWithSchema);
 OPERATOR("kde.core._get_attr", GetAttr);
 OPERATOR("kde.core._get_attr_with_default", GetAttrWithDefault);
 OPERATOR("kde.core._inverse_mapping", InverseMapping);
+OPERATOR("kde.core._ordinal_rank", OrdinalRank);
 OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
 OPERATOR("kde.core._shallow_clone_with_schema", ShallowCloneWithSchema);

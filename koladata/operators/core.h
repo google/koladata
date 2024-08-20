@@ -41,6 +41,11 @@ absl::StatusOr<DataSlice> AggAll(const DataSlice& x);
 // kde.core._inverse_mapping.
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x);
 
+// kde.core._ordinal_rank.
+absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
+                                      const DataSlice& tie_breaker,
+                                      const DataSlice& descending);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_H_
