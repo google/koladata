@@ -1129,9 +1129,9 @@ Assigned schema for Dict key: INT32""",
     ):
       db.list(data_item.DataItem.from_vals('a'))
     with self.assertRaisesRegex(
-        ValueError, 'DataBag._list accepts exactly 3 arguments, got 4'
+        ValueError, 'DataBag._list accepts exactly 4 arguments, got 3'
     ):
-      db._list(ds([]), ds([]), ds([]), ds([]))
+      db._list(ds([]), ds([]), ds([]))
 
   @parameterized.parameters(
       ([], 1),
@@ -1198,17 +1198,17 @@ Assigned schema for Dict key: INT32""",
   def test_list_like_impl(self):
     db = bag()
     with self.assertRaisesRegex(
-        ValueError, 'DataBag._list_like accepts exactly 4 arguments, got 3'
+        ValueError, 'DataBag._list_like accepts exactly 5 arguments, got 3'
     ):
       db._list_like(ds([]), ds([]), ds([]))
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
-      db._list_like(56, 57, 58, 59)
+      db._list_like(56, 57, 58, 59, 60)
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got Int'
     ):
-      db._list_like(arolla.int32(56), 57, 58, 59)
+      db._list_like(arolla.int32(56), 57, 58, 59, 60)
 
   def test_implode_impl(self):
     db = bag()

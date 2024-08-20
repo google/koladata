@@ -44,6 +44,7 @@ def _dict(
     key_schema: _DataSlice | None = None,
     value_schema: _DataSlice | None = None,
     schema: _DataSlice | None = None,
+    itemid: _DataSlice | None = None,
 ) -> _DataSlice:  # pylint: disable=g-doc-args
   """Creates a Koda dict.
 
@@ -80,12 +81,15 @@ def _dict(
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
     A DataSlice with the dict.
   """
   dict_shape = _jagged_shape.JaggedShape.from_edges()
-  if (
+  if itemid is not None:
+    dict_shape = itemid.get_shape()
+  elif (
       isinstance(items_or_keys, _DataSlice)
       and items_or_keys.get_shape().rank() != 0
   ):
@@ -98,6 +102,7 @@ def _dict(
       key_schema=key_schema,
       value_schema=value_schema,
       schema=schema,
+      itemid=itemid,
   )
 
 
@@ -110,6 +115,7 @@ def _dict_like(
     key_schema: _DataSlice | None = None,
     value_schema: _DataSlice | None = None,
     schema: _DataSlice | None = None,
+    itemid: _DataSlice | None = None,
 ) -> _DataSlice:
   """Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 
@@ -132,13 +138,14 @@ def _dict_like(
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
     A DataSlice with the dicts.
   """
   return self._dict_like(  # pylint: disable=protected-access
       shape_and_mask_from, items_or_keys, values,
-      key_schema, value_schema, schema
+      key_schema, value_schema, schema, itemid
   )
 
 
@@ -151,6 +158,7 @@ def _dict_shaped(
     key_schema: _DataSlice | None = None,
     value_schema: _DataSlice | None = None,
     schema: _DataSlice | None = None,
+    itemid: _DataSlice | None = None,
 ) -> _DataSlice:
   """Creates new Koda dicts with the given shape.
 
@@ -171,12 +179,13 @@ def _dict_shaped(
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
     A DataSlice with the dicts.
   """
   return self._dict_shaped(  # pylint: disable=protected-access
-      shape, items_or_keys, values, key_schema, value_schema, schema
+      shape, items_or_keys, values, key_schema, value_schema, schema, itemid
   )
 
 
@@ -186,6 +195,7 @@ def _list(
     *,
     item_schema: _DataSlice | None = None,
     schema: _DataSlice | None = None,
+    itemid: _DataSlice | None = None,
 ) -> _DataSlice:  # pylint: disable=g-doc-args
   """Creates list(s) by collapsing `items`.
 
@@ -208,11 +218,12 @@ def _list(
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
 
   Returns:
     A DataSlice with the list/lists.
   """
-  return self._list(items, item_schema, schema)  # pylint: disable=protected-access
+  return self._list(items, item_schema, schema, itemid)  # pylint: disable=protected-access
 
 
 def _list_shaped(
@@ -222,6 +233,7 @@ def _list_shaped(
     *,
     item_schema: _DataSlice | None = None,
     schema: _DataSlice | None = None,
+    itemid: _DataSlice | None = None,
 ) -> _DataSlice:  # pylint: disable=g-doc-args
   """Creates new Koda lists with the given shape.
 
@@ -233,11 +245,12 @@ def _list_shaped(
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
 
   Returns:
     A DataSlice with the lists.
   """
-  return self._list_shaped(shape, items, item_schema, schema)  # pylint: disable=protected-access
+  return self._list_shaped(shape, items, item_schema, schema, itemid)  # pylint: disable=protected-access
 
 
 def _list_like(
@@ -247,6 +260,7 @@ def _list_like(
     *,
     item_schema: _DataSlice | None = None,
     schema: _DataSlice | None = None,
+    itemid: _DataSlice | None = None,
 ) -> _DataSlice:  # pylint: disable=g-doc-args
   """Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
@@ -259,11 +273,14 @@ def _list_like(
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
 
   Returns:
     A DataSlice with the lists.
   """
-  return self._list_like(shape_and_mask_from, items, item_schema, schema)  # pylint: disable=protected-access
+  return self._list_like(  # pylint: disable=protected-access
+      shape_and_mask_from, items, item_schema, schema, itemid,
+  )
 
 
 def _implode(

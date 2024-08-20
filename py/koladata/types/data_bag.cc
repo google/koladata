@@ -694,7 +694,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
                                                 PyObject* const* args,
                                                 Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
-  if (nargs != 6) {
+  if (nargs != 7) {
     PyErr_SetString(PyExc_ValueError,
                     "DataBag.dict_shaped accepts exactly 6 arguments");
     return nullptr;
@@ -706,6 +706,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
   PyObject* py_key_schema = args[3];
   PyObject* py_value_schema = args[4];
   PyObject* py_schema = args[5];
+  PyObject* py_itemid = args[6];
 
   const DataSlice::JaggedShape* shape = UnwrapJaggedShape(py_shape, "shape");
   if (shape == nullptr) {
@@ -723,15 +724,17 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
   std::optional<DataSlice> key_schema;
   std::optional<DataSlice> value_schema;
   std::optional<DataSlice> schema;
+  std::optional<DataSlice> itemid;
   if (!UnwrapDataSliceOptionalArg(py_key_schema, "key_schema", key_schema) ||
       !UnwrapDataSliceOptionalArg(py_value_schema, "value_schema",
                                   value_schema) ||
-      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema) ||
+      !UnwrapDataSliceOptionalArg(py_itemid, "itemid", itemid)) {
     return nullptr;
   }
   ASSIGN_OR_RETURN(auto res,
                    CreateDictShaped(self_db, *std::move(shape), keys, values,
-                                    schema, key_schema, value_schema),
+                                    schema, key_schema, value_schema, itemid),
                    SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
       .With(SetKodaPyErrFromStatus);
@@ -742,7 +745,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
                                               PyObject* const* args,
                                               Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
-  if (nargs != 6) {
+  if (nargs != 7) {
     PyErr_SetString(PyExc_ValueError,
                     "DataBag._dict_like accepts exactly 6 arguments");
     return nullptr;
@@ -754,6 +757,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
   PyObject* py_key_schema = args[3];
   PyObject* py_value_schema = args[4];
   PyObject* py_schema = args[5];
+  PyObject* py_itemid = args[6];
 
   auto shape_and_mask_from =
       UnwrapDataSlice(py_shape_and_mask_from, "shape_and_mask_from");
@@ -772,16 +776,18 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
   std::optional<DataSlice> key_schema;
   std::optional<DataSlice> value_schema;
   std::optional<DataSlice> schema;
+  std::optional<DataSlice> itemid;
   if (!UnwrapDataSliceOptionalArg(py_key_schema, "key_schema", key_schema) ||
       !UnwrapDataSliceOptionalArg(py_value_schema, "value_schema",
                                   value_schema) ||
-      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema) ||
+      !UnwrapDataSliceOptionalArg(py_itemid, "itemid", itemid)) {
     return nullptr;
   }
   ASSIGN_OR_RETURN(
       auto res,
       CreateDictLike(UnsafeDataBagPtr(self), *shape_and_mask_from, keys, values,
-                     schema, key_schema, value_schema),
+                     schema, key_schema, value_schema, itemid),
       SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
       .With(SetKodaPyErrFromStatus);
@@ -791,41 +797,45 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
 absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
                                          Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
-  if (nargs != 3) {
+  if (nargs != 4) {
     PyErr_Format(PyExc_ValueError,
-                 "DataBag._list accepts exactly 3 arguments, got %d", nargs);
+                 "DataBag._list accepts exactly 4 arguments, got %d", nargs);
     return nullptr;
   }
   const auto& self_db = UnsafeDataBagPtr(self);
   PyObject* const py_values = args[0];
   PyObject* const py_item_schema = args[1];
   PyObject* const py_schema = args[2];
+  PyObject* const py_itemid = args[3];
 
   AdoptionQueue adoption_queue;
 
   std::optional<DataSlice> item_schema;
   std::optional<DataSlice> schema;
+  std::optional<DataSlice> itemid;
   if (!UnwrapDataSliceOptionalArg(py_item_schema, "item_schema", item_schema) ||
-      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema) ||
+      !UnwrapDataSliceOptionalArg(py_itemid, "itemid", itemid)) {
     return nullptr;
   }
 
   std::optional<DataSlice> res;
   if (Py_IsNone(py_values)) {
-    ASSIGN_OR_RETURN(res, CreateEmptyList(self_db, schema, item_schema),
+    ASSIGN_OR_RETURN(res, CreateEmptyList(self_db, schema, item_schema, itemid),
                      SetKodaPyErrFromStatus(_));
   } else {
     ASSIGN_OR_RETURN(auto values,
                      DataSliceFromPyValue(py_values, adoption_queue),
                      SetKodaPyErrFromStatus(_));
     if (PyList_Check(py_values)) {
-      ASSIGN_OR_RETURN(res,
-                       CreateNestedList(self_db, values, schema, item_schema),
-                       SetKodaPyErrFromStatus(_));
+      ASSIGN_OR_RETURN(
+          res, CreateNestedList(self_db, values, schema, item_schema, itemid),
+          SetKodaPyErrFromStatus(_));
     } else {
       ASSIGN_OR_RETURN(
           res,
-          CreateListsFromLastDimension(self_db, values, schema, item_schema),
+          CreateListsFromLastDimension(self_db, values, schema, item_schema,
+                                       itemid),
           SetKodaPyErrFromStatus(_));
     }
   }
@@ -917,7 +927,7 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
                                                 PyObject* const* args,
                                                 Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
-  if (nargs != 4) {
+  if (nargs != 5) {
     PyErr_Format(PyExc_ValueError,
                  "DataBag._list_shaped accepts exactly 4 arguments, got %d",
                  nargs);
@@ -928,6 +938,7 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
   PyObject* const py_values = args[1];
   PyObject* const py_item_schema = args[2];
   PyObject* const py_schema = args[3];
+  PyObject* const py_itemid = args[4];
 
   const DataSlice::JaggedShape* shape = UnwrapJaggedShape(py_shape, "shape");
   if (shape == nullptr) {
@@ -942,13 +953,16 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
   }
   std::optional<DataSlice> item_schema;
   std::optional<DataSlice> schema;
+  std::optional<DataSlice> itemid;
   if (!UnwrapDataSliceOptionalArg(py_item_schema, "item_schema", item_schema) ||
-      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema) ||
+      !UnwrapDataSliceOptionalArg(py_itemid, "itemid", itemid)) {
     return nullptr;
   }
 
   ASSIGN_OR_RETURN(
-      auto res, CreateListShaped(self_db, *shape, values, schema, item_schema),
+      auto res,
+      CreateListShaped(self_db, *shape, values, schema, item_schema, itemid),
       SetKodaPyErrFromStatus(_));
 
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
@@ -960,9 +974,9 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
                                               PyObject* const* args,
                                               Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
-  if (nargs != 4) {
+  if (nargs != 5) {
     PyErr_Format(PyExc_ValueError,
-                 "DataBag._list_like accepts exactly 4 arguments, got %d",
+                 "DataBag._list_like accepts exactly 5 arguments, got %d",
                  nargs);
     return nullptr;
   }
@@ -971,6 +985,7 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
   PyObject* const py_values = args[1];
   PyObject* const py_item_schema = args[2];
   PyObject* const py_schema = args[3];
+  PyObject* const py_itemid = args[4];
 
   AdoptionQueue adoption_queue;
 
@@ -986,15 +1001,18 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
   }
   std::optional<DataSlice> item_schema;
   std::optional<DataSlice> schema;
+  std::optional<DataSlice> itemid;
   if (!UnwrapDataSliceOptionalArg(py_item_schema, "item_schema", item_schema) ||
-      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema) ||
+      !UnwrapDataSliceOptionalArg(py_itemid, "itemid", itemid)) {
     return nullptr;
   }
 
-  ASSIGN_OR_RETURN(auto res,
-                   CreateListLike(self_db, *shape_and_mask_from, values, schema,
-                                  item_schema),
-                   SetKodaPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(
+      auto res,
+      CreateListLike(self_db, *shape_and_mask_from, values, schema, item_schema,
+                     itemid),
+      SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
       .With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));

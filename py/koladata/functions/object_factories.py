@@ -31,6 +31,7 @@ def _list(
     *,
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
+    itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None
 ) -> data_slice.DataSlice:
   """Creates list(s) by collapsing `items`.
@@ -54,6 +55,7 @@ def _list(
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
     db: optional DataBag where list(s) are created.
 
   Returns:
@@ -61,7 +63,9 @@ def _list(
   """
   if db is None:
     db = bag()
-  return db.list(items=items, item_schema=item_schema, schema=schema)
+  return db.list(
+      items=items, item_schema=item_schema, schema=schema, itemid=itemid,
+  )
 
 
 def list_like(
@@ -70,6 +74,7 @@ def list_like(
     *,
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
+    itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
@@ -83,6 +88,7 @@ def list_like(
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
     db: optional DataBag where lists are created.
 
   Returns:
@@ -92,6 +98,7 @@ def list_like(
     db = bag()
   return db.list_like(
       shape_and_mask_from, items=items, item_schema=item_schema, schema=schema,
+      itemid=itemid,
   )
 
 
@@ -101,6 +108,7 @@ def list_shaped(
     *,
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
+    itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates new Koda lists with the given shape.
@@ -113,6 +121,7 @@ def list_shaped(
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
     db: optional DataBag where lists are created.
 
   Returns:
@@ -121,7 +130,7 @@ def list_shaped(
   if db is None:
     db = bag()
   return db.list_shaped(
-      shape, items=items, item_schema=item_schema, schema=schema,
+      shape, items=items, item_schema=item_schema, schema=schema, itemid=itemid,
   )
 
 
@@ -131,6 +140,7 @@ def _dict(
     key_schema: data_slice.DataSlice | None = None,
     value_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
+    itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None
 ) -> data_slice.DataSlice:
   """Creates a Koda dict.
@@ -167,6 +177,7 @@ def _dict(
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
     db: optional DataBag where dict(s) are created.
 
   Returns:
@@ -180,6 +191,7 @@ def _dict(
       key_schema=key_schema,
       value_schema=value_schema,
       schema=schema,
+      itemid=itemid,
   )
 
 
@@ -191,6 +203,7 @@ def dict_like(
     key_schema: data_slice.DataSlice | None = None,
     value_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
+    itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
@@ -213,6 +226,7 @@ def dict_like(
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
     db: optional DataBag where dicts are created.
 
   Returns:
@@ -227,6 +241,7 @@ def dict_like(
       key_schema=key_schema,
       value_schema=value_schema,
       schema=schema,
+      itemid=itemid,
   )
 
 
@@ -237,6 +252,7 @@ def dict_shaped(
     key_schema: data_slice.DataSlice | None = None,
     value_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
+    itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates new Koda dicts with the given shape.
@@ -257,6 +273,7 @@ def dict_shaped(
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
     db: Optional DataBag where dicts are created.
 
   Returns:
@@ -271,6 +288,7 @@ def dict_shaped(
       key_schema=key_schema,
       value_schema=value_schema,
       schema=schema,
+      itemid=itemid,
   )
 
 
