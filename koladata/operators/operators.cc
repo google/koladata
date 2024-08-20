@@ -135,8 +135,6 @@ OPERATOR("kde.strings._agg_join", AggJoin);
 OPERATOR("kde.strings._split", Split);
 OPERATOR("kde.strings.substr", Substr);
 //
-OPERATOR_FAMILY("koda_internal.convert_and_eval_with_shape",
-                ConvertAndEvalWithShapeFamily);
 OPERATOR("koda_internal.to_arolla_boolean", ToArollaBoolean);
 OPERATOR("koda_internal.to_arolla_dense_array_int64", ToArollaDenseArrayInt64);
 OPERATOR("koda_internal.to_arolla_dense_array_text", ToArollaDenseArrayText);

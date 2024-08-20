@@ -47,17 +47,10 @@
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
-#include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
-#include "arolla/qexpr/eval_context.h"
-#include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
-#include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serving/expr_compiler.h"
 #include "arolla/util/fingerprint.h"
@@ -135,105 +128,6 @@ absl::NoDestructor<arolla::LruCache<arolla::Fingerprint, CompiledOp>>
     EvalCompiler::cache_(kCompilationCacheSize);
 
 absl::Mutex EvalCompiler::mutex_{absl::kConstInit};
-
-// Returns the slot indices that holds DataSlices.
-std::vector<size_t> GetDataSliceSlotIndices(
-    absl::Span<const arolla::TypedSlot> slots) {
-  std::vector<size_t> result;
-  result.reserve(slots.size());
-  for (size_t i = 0; i < slots.size(); ++i) {
-    if (slots[i].GetType() == arolla::GetQType<DataSlice>()) {
-      result.emplace_back(i);
-    }
-  }
-  return result;
-}
-
-template <typename ExecuteFn>
-class ConvertAndEvalBaseOp : public arolla::QExprOperator {
- public:
-  // Constructs ConvertAndEvalBaseOp with the provided execute_fn. extra_inputs
-  // is used to reserve additional capacity to the TypedRef vector passed to the
-  // executor.
-  ConvertAndEvalBaseOp(std::string name,
-                       absl::Span<const arolla::QTypePtr> types,
-                       ExecuteFn execute_fn, size_t extra_inputs = 0)
-      : arolla::QExprOperator(std::move(name),
-                              arolla::QExprOperatorSignature::Get(
-                                  types, arolla::GetQType<DataSlice>())),
-        execute_fn_(std::move(execute_fn)),
-        extra_inputs_(extra_inputs) {
-    DCHECK(!types.empty());
-    DCHECK(types[0] == arolla::GetQType<arolla::expr::ExprOperatorPtr>());
-  }
-
-  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
-      absl::Span<const arolla::TypedSlot> expr_and_input_slots,
-      arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
-        [expr_slot = expr_and_input_slots[0]
-                         .UnsafeToSlot<arolla::expr::ExprOperatorPtr>(),
-         ds_input_indices =
-             GetDataSliceSlotIndices(expr_and_input_slots.subspan(1)),
-         input_slots = std::vector(expr_and_input_slots.begin() + 1,
-                                   expr_and_input_slots.end()),
-         output_slot = output_slot.UnsafeToSlot<DataSlice>(),
-         execute_fn = execute_fn_, extra_inputs = extra_inputs_](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          const auto& expr_op = frame.Get(expr_slot);
-          std::vector<arolla::TypedRef> input_refs;
-          input_refs.reserve(input_slots.size() + extra_inputs);
-          for (const auto& slot : input_slots) {
-            input_refs.push_back(arolla::TypedRef::FromSlot(slot, frame));
-          }
-          std::vector<DataSlice> unaligned_ds;
-          unaligned_ds.reserve(ds_input_indices.size());
-          for (auto idx : ds_input_indices) {
-            unaligned_ds.push_back(input_refs[idx].UnsafeAs<DataSlice>());
-          }
-          ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
-                           shape::AlignNonScalars(std::move(unaligned_ds)),
-                           ctx->set_status(std::move(_)));
-          std::vector<arolla::TypedValue> typed_value_holder;
-          typed_value_holder.reserve(ds_input_indices.size());
-          for (size_t i = 0; i < ds_input_indices.size(); ++i) {
-            ASSIGN_OR_RETURN(
-                input_refs[ds_input_indices[i]],
-                DataSliceToOwnedArollaRef(aligned_ds[i], typed_value_holder),
-                ctx->set_status(std::move(_)));
-          }
-          // Pass ownership of `input_refs`, including the extra reserved
-          // capacity, to the executor.
-          ASSIGN_OR_RETURN(auto result,
-                           execute_fn(expr_op, std::move(input_refs),
-                                      std::move(aligned_shape)),
-                           ctx->set_status(std::move(_)));
-          frame.Set(output_slot, std::move(result));
-        });
-  }
-
- private:
-  ExecuteFn execute_fn_;
-  size_t extra_inputs_;
-};
-
-absl::Status VerifyConvertAndEvalInputs(
-    absl::Span<const arolla::QTypePtr> input_types) {
-  if (input_types.empty()) {
-    return absl::InvalidArgumentError("requires at least 1 arguments");
-  }
-  if (input_types[0] != arolla::GetQType<arolla::expr::ExprOperatorPtr>()) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("the first argument must be an ExprOperator, but got ",
-                     input_types[0]->name()));
-  }
-  for (int i = 1; i < input_types.size(); ++i) {
-    if (input_types[i] == arolla::GetQType<DataSlice>()) {
-      return absl::OkStatus();
-    }
-  }
-  return absl::InvalidArgumentError("at least one input must be a DataSlice");
-}
 
 std::string GetQTypeName(arolla::QTypePtr qtype) {
   return schema::DType::VerifyQTypeSupported(qtype)
@@ -354,34 +248,6 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
   }
   return absl::InvalidArgumentError(
       absl::StrCat("DataSlice has no primitive schema: ", arolla::Repr(x)));
-}
-
-absl::StatusOr<arolla::OperatorPtr>
-ConvertAndEvalWithShapeFamily::DoGetOperator(
-    absl::Span<const arolla::QTypePtr> input_types,
-    arolla::QTypePtr output_type) const {
-  RETURN_IF_ERROR(VerifyConvertAndEvalInputs(input_types));
-  auto execute = [](const arolla::expr::ExprOperatorPtr& expr_op,
-                    std::vector<arolla::TypedRef>&& inputs,
-                    DataSlice::JaggedShape shape) -> absl::StatusOr<DataSlice> {
-    DCHECK_GT(inputs.capacity(), inputs.size());
-    auto aligned_shape_tv = arolla::TypedValue::FromValue(std::move(shape));
-    inputs.push_back(aligned_shape_tv.AsRef());
-    ASSIGN_OR_RETURN(auto result, EvalExpr(expr_op, inputs));
-    if (!arolla::IsTupleQType(result.GetType()) ||
-        result.GetFieldCount() != 2) {
-      return absl::FailedPreconditionError(absl::StrCat(
-          "expected a 2-tuple output, got ", result.GetType()->name()));
-    }
-    ASSIGN_OR_RETURN(auto shape_ref,
-                     result.GetField(1).As<DataSlice::JaggedShape>());
-    return DataSliceFromArollaValue(result.GetField(0), shape_ref.get());
-  };
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<ConvertAndEvalBaseOp<decltype(execute)>>(
-          "koda_internal.convert_and_eval_with_shape", input_types,
-          std::move(execute), /*extra_inputs=*/1),
-      input_types, output_type);
 }
 
 absl::StatusOr<DataSlice> SimplePointwiseEval(
