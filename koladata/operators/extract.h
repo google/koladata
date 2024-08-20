@@ -20,16 +20,15 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
-// kde.core._extract_with_schema
-inline absl::StatusOr<DataSlice> ExtractWithSchema(const DataSlice& ds,
-                                                   const DataSlice& schema) {
+// kde.core._extract
+inline absl::StatusOr<DataSlice> Extract(const DataSlice& ds,
+                                         const DataSlice& schema) {
   const auto& db = ds.GetDb();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot extract without a DataBag");
@@ -55,11 +54,6 @@ inline absl::StatusOr<DataSlice> ExtractWithSchema(const DataSlice& ds,
     }
     return DataSlice::Create(impl, ds.GetShape(), schema_impl, result_db);
   });
-}
-
-// kde.core._extract
-inline absl::StatusOr<DataSlice> Extract(const DataSlice& ds) {
-  return ExtractWithSchema(ds, ds.GetSchema());
 }
 
 }  // namespace koladata::ops

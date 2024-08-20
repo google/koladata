@@ -27,22 +27,17 @@
 
 namespace koladata::ops {
 
-// kde.core._clone_with_schema
-inline absl::StatusOr<DataSlice> CloneWithSchema(const DataSlice& ds,
-                                                 const DataSlice& schema) {
+// kde.core._clone
+inline absl::StatusOr<DataSlice> Clone(const DataSlice& ds,
+                                       const DataSlice& schema) {
   const auto& db = ds.GetDb();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
   }
-  ASSIGN_OR_RETURN(DataSlice shallow_clone, ShallowCloneWithSchema(ds, schema));
+  ASSIGN_OR_RETURN(DataSlice shallow_clone, ShallowClone(ds, schema));
   DataSlice shallow_clone_with_fallback = shallow_clone.WithDb(
       DataBag::ImmutableEmptyWithFallbacks({shallow_clone.GetDb(), db}));
-  return ExtractWithSchema(std::move(shallow_clone_with_fallback), schema);
-}
-
-// kde.core._clone
-inline absl::StatusOr<DataSlice> Clone(const DataSlice& ds) {
-  return CloneWithSchema(ds, ds.GetSchema());
+  return Extract(std::move(shallow_clone_with_fallback), schema);
 }
 
 }  // namespace koladata::ops

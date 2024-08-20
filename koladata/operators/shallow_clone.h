@@ -15,22 +15,20 @@
 #ifndef KOLADATA_OPERATORS_SHALLOW_CLONE_H_
 #define KOLADATA_OPERATORS_SHALLOW_CLONE_H_
 
-#include <utility>
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
-// kde.core._shallow_clone_with_schema
-inline absl::StatusOr<DataSlice> ShallowCloneWithSchema(
-    const DataSlice& ds, const DataSlice& schema) {
+// kde.core._shallow_clone
+inline absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds,
+                                              const DataSlice& schema) {
   const auto& db = ds.GetDb();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
@@ -61,11 +59,6 @@ inline absl::StatusOr<DataSlice> ShallowCloneWithSchema(
     return DataSlice::Create(result_slice_impl, ds.GetShape(),
                              result_schema_impl, result_db);
   });
-}
-
-// kde.core._shallow_clone
-inline absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds) {
-  return ShallowCloneWithSchema(ds, ds.GetSchema());
 }
 
 }  // namespace koladata::ops
