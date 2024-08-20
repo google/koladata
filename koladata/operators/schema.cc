@@ -28,7 +28,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/convert_and_eval.h"
+#include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"

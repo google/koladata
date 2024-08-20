@@ -20,7 +20,7 @@
 # Operators that are available in public namespace, should be stored in `kde`
 # namespace, while internal operators used to implement various functionality
 # should be under `koda_internal` namespace
-# (e.g. `koda_internal.convert_and_eval`).
+# (e.g. `koda_internal.to_arolla_boolean`).
 
 load(
     "@com_google_arolla//arolla/codegen/qexpr:register_operator.bzl",
@@ -64,9 +64,9 @@ cc_library(
     name = "lib",
     srcs = [
         "align.cc",
+        "arolla_bridge.cc",
         "comparison.cc",
         "concat_or_stack.cc",
-        "convert_and_eval.cc",
         "core.cc",
         "explode.cc",
         "get_attr.cc",
@@ -85,12 +85,12 @@ cc_library(
     hdrs = [
         "align.h",
         "allocation.h",
+        "arolla_bridge.h",
         "assertion.h",
         "clone.h",
         "collapse.h",
         "comparison.h",
         "concat_or_stack.h",
-        "convert_and_eval.h",
         "core.h",
         "dict.h",
         "equal.h",
@@ -217,7 +217,7 @@ operator_libraries(
     name = "operator_to_data_slice",
     operator_name = "koda_internal._to_data_slice",
     overloads = operator_overload_list(
-        hdrs = ["convert_and_eval.h"],
+        hdrs = ["arolla_bridge.h"],
         arg_lists = [[t] for t in to_data_slice_types] +
                     [[make_optional_type(t)] for t in to_data_slice_types] +
                     [[make_dense_array_type(t)] for t in to_data_slice_types],
@@ -227,8 +227,8 @@ operator_libraries(
 )
 
 cc_test(
-    name = "convert_and_eval_test",
-    srcs = ["convert_and_eval_test.cc"],
+    name = "arolla_bridge_test",
+    srcs = ["arolla_bridge_test.cc"],
     deps = [
         ":lib",
         "//koladata:data_slice",

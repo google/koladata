@@ -33,7 +33,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/convert_and_eval.h"
+#include "koladata/operators/arolla_bridge.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_OPERATORS_CONVERT_AND_EVAL_H_
-#define KOLADATA_OPERATORS_CONVERT_AND_EVAL_H_
+#ifndef KOLADATA_OPERATORS_AROLLA_BRIDGE_H_
+#define KOLADATA_OPERATORS_AROLLA_BRIDGE_H_
 
 #include <cstdint>
 #include <vector>
@@ -151,4 +151,4 @@ struct ToDataSliceOp {
 
 }  // namespace koladata::ops
 
-#endif  // KOLADATA_OPERATORS_CONVERT_AND_EVAL_H_
+#endif  // KOLADATA_OPERATORS_AROLLA_BRIDGE_H_

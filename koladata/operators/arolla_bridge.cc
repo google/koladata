@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/operators/convert_and_eval.h"
+#include "koladata/operators/arolla_bridge.h"
 
 #include <algorithm>
 #include <cstddef>

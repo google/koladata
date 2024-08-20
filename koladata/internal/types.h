@@ -59,7 +59,7 @@ using ScalarVariant = std::variant<  //
 // intentionally omitted (for now).
 // LINT.ThenChange(
 //     //koladata/operators/BUILD,
-//     //py/koladata/operators/convert_and_eval.py,
+//     //py/koladata/operators/arolla_bridge.py,
 // )
 
 using ArrayBuilderVariant = std::variant<                //

@@ -30,7 +30,7 @@
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/op_utils/presence_or.h"
-#include "koladata/operators/convert_and_eval.h"
+#include "koladata/operators/arolla_bridge.h"
 #include "koladata/repr_utils.h"
 #include "arolla/util/status_macros_backport.h"
 

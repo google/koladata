@@ -26,7 +26,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
-#include "koladata/operators/convert_and_eval.h"
+#include "koladata/operators/arolla_bridge.h"
 #include "koladata/shape_utils.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qtype/tuple_qtype.h"

@@ -33,7 +33,7 @@
 #include "koladata/internal/ellipsis.h"
 #include "koladata/internal/op_utils/at.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/convert_and_eval.h"
+#include "koladata/operators/arolla_bridge.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
