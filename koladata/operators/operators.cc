@@ -131,6 +131,7 @@ OPERATOR_FAMILY("kde.shapes.create", JaggedShapeCreateOperatorFamily);
 OPERATOR("kde.shapes.get_shape", GetShape);
 //
 OPERATOR("kde.strings._agg_join", AggJoin);
+OPERATOR("kde.strings._split", Split);
 OPERATOR("kde.strings.substr", Substr);
 //
 OPERATOR_FAMILY("koda_internal.convert_and_eval_with_shape",

@@ -15,17 +15,21 @@
 #include "koladata/operators/strings.h"
 
 #include <memory>
+#include <utility>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/schema_utils.h"
 #include "koladata/shape_utils.h"
 #include "koladata/operators/convert_and_eval.h"
 #include "arolla/expr/registered_expr_operator.h"
+#include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -68,6 +72,50 @@ absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep) {
   return SimpleAggIntoEval(
       std::make_shared<arolla::expr::RegisteredOperator>("strings.agg_join"),
       {x, sep});
+}
+
+absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
+  const auto& x_shape = x.GetShape();
+  if (sep.GetShape().rank() != 0) {
+    return absl::InvalidArgumentError("expected rank(sep) == 0");
+  }
+  ASSIGN_OR_RETURN(
+      auto common_schema,
+      schema::CommonSchema(x.GetSchemaImpl(), sep.GetSchemaImpl()));
+  ASSIGN_OR_RETURN(auto x_primitive_schema, GetPrimitiveArollaSchema(x));
+  ASSIGN_OR_RETURN(auto sep_primitive_schema, GetPrimitiveArollaSchema(sep));
+  // If all inputs are empty-and-unknown, the output will be too.
+  if (!x_primitive_schema.has_value() && !sep_primitive_schema.has_value()) {
+    ASSIGN_OR_RETURN(auto ds, DataSlice::Create(internal::DataItem(),
+                                                std::move(common_schema)));
+    ASSIGN_OR_RETURN(
+        auto out_edge,
+        DataSlice::JaggedShape::Edge::FromUniformGroups(x_shape.size(), 0));
+    ASSIGN_OR_RETURN(auto out_shape, x_shape.AddDims({std::move(out_edge)}));
+    return BroadcastToShape(ds, std::move(out_shape));
+  }
+  // Otherwise, we should eval. `strings.split` requires a dense array input, so
+  // we flatten to avoid scalar inputs.
+  std::vector<arolla::TypedValue> typed_value_holder;
+  typed_value_holder.reserve(2);
+  ASSIGN_OR_RETURN(auto flat_x,
+                   x.Reshape(x_shape.FlattenDims(0, x_shape.rank())));
+  ASSIGN_OR_RETURN(auto x_ref,
+                   DataSliceToOwnedArollaRef(flat_x, typed_value_holder,
+                                             sep_primitive_schema));
+  ASSIGN_OR_RETURN(
+      auto sep_ref,
+      DataSliceToOwnedArollaRef(sep, typed_value_holder, x_primitive_schema));
+  ASSIGN_OR_RETURN(auto result,
+                   EvalExpr(std::make_shared<arolla::expr::RegisteredOperator>(
+                                "strings.split"),
+                            {std::move(x_ref), std::move(sep_ref)}));
+  DCHECK(arolla::IsTupleQType(result.GetType()) && result.GetFieldCount() == 2);
+  ASSIGN_OR_RETURN(auto edge_ref,
+                   result.GetField(1).As<DataSlice::JaggedShape::Edge>());
+  ASSIGN_OR_RETURN(auto out_shape, x_shape.AddDims({std::move(edge_ref)}));
+  return DataSliceFromArollaValue(result.GetField(0), std::move(out_shape),
+                                  std::move(common_schema));
 }
 
 }  // namespace koladata::ops
