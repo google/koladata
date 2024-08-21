@@ -21,7 +21,7 @@ from typing import Any
 from arolla import arolla
 from koladata.types import data_bag
 # NOTE: To allow Python scalar values to have DataItem Python type.
-from koladata.types import data_item as _  # pylint: disable=unused-import
+from koladata.types import data_item as _
 from koladata.types import data_slice
 from koladata.types import ellipsis
 from koladata.types import literal_operator
@@ -44,6 +44,12 @@ LIST_BOXING_POLICY = 'koladata_list_boxing'
 
 KWARGS_POLICY = 'koladata_kwargs'
 OBJ_KWARGS_POLICY = 'koladata_obj_kwargs'
+
+# NOTE: Recreating this object invalidates all existing references. Thus after
+# reloading this module, any Exprs using this codec must be recreated.
+# If this causes issues, we'll need to find a workaround.
+_REF_CODEC_OBJECT = arolla.types.PyObjectReferenceCodec()
+REF_CODEC = _REF_CODEC_OBJECT.name
 
 
 # NOTE: This function should prefer to return QValues whenever possible to be as
@@ -68,6 +74,8 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
         'use kd.slice(...) to create a slice or a multi-dimensional slice, and '
         'kd.list(...) to create a single Koda list.'
     )
+  if callable(arg):
+    return arolla.abc.PyObject(arg, codec=REF_CODEC)
   return data_slice.DataSlice.from_vals(arg)
 
 

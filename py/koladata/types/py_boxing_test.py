@@ -15,15 +15,16 @@
 """Tests for py_boxing."""
 
 import inspect
+import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.operators import kde_operators as _  # pylint: disable=unused-import
+from koladata.operators import kde_operators as _
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import dict_item as _  # pylint: disable=unused-import
+from koladata.types import dict_item as _
 from koladata.types import ellipsis
 from koladata.types import literal_operator
 from koladata.types import py_boxing
@@ -84,7 +85,9 @@ class PyBoxingTest(parameterized.TestCase):
   def test_as_qvalue_or_expr_raises_on_list_or_tuple(self, value):
     with self.assertRaisesRegex(
         ValueError,
-        'passing a Python list/tuple to a Koda operation is ambiguous',
+        re.escape(
+            'passing a Python list/tuple to a Koda operation is ambiguous'
+        ),
     ):
       py_boxing.as_qvalue_or_expr(value)
 
@@ -99,6 +102,15 @@ class PyBoxingTest(parameterized.TestCase):
         py_boxing.as_qvalue_or_expr_with_list_support(value).fingerprint,
         expected_res.fingerprint,
     )
+
+  def test_as_qvalue_or_expr_for_callable(self):
+    fn = lambda x: x
+    qvalue = py_boxing.as_qvalue_or_expr(fn)
+    self.assertIs(qvalue.py_value(), fn)
+
+  def test_as_qvalue_raises_on_unsupported_type(self):
+    with self.assertRaisesRegex(ValueError, re.escape('unsupported type')):
+      _ = py_boxing.as_qvalue_or_expr(object())
 
   @parameterized.parameters(
       (1, ds(1)),
@@ -120,7 +132,9 @@ class PyBoxingTest(parameterized.TestCase):
   def test_as_qvalue_raises_on_list_or_tuple(self, value):
     with self.assertRaisesRegex(
         ValueError,
-        'passing a Python list/tuple to a Koda operation is ambiguous',
+        re.escape(
+            'passing a Python list/tuple to a Koda operation is ambiguous'
+        ),
     ):
       py_boxing.as_qvalue(value)
 
@@ -191,7 +205,7 @@ class DefaultBoxingPolicyTest(absltest.TestCase):
       op_with_default_boxing(1)
 
   def test_default_boxing_list_unsupported(self):
-    with self.assertRaisesRegex(ValueError, 'list'):
+    with self.assertRaisesRegex(ValueError, re.escape('list')):
       op_with_default_boxing(1, [2, 3, 4])
 
 
@@ -429,9 +443,7 @@ class ObjectKwargsBoxingPolicyTest(absltest.TestCase):
     self.op = op_with_obj_kwargs
 
   def test_binding_item(self):
-    x = arolla.eval(
-        self.op(a=1, lst=[1, 2, 3], dct={'a': 42, 'b': 37})
-    )
+    x = arolla.eval(self.op(a=1, lst=[1, 2, 3], dct={'a': 42, 'b': 37}))
     testing.assert_equal(x['a'], ds(1))
     testing.assert_equal(x['lst'][:], ds([1, 2, 3]).with_db(x['lst'].db))
     testing.assert_dicts_equal(x['dct'], bag().dict({'a': 42, 'b': 37}))
@@ -444,14 +456,19 @@ class ObjectKwargsBoxingPolicyTest(absltest.TestCase):
     testing.assert_equal(x['c'], ds(42))
 
   def test_binding_slice_error(self):
-    with self.assertRaisesRegex(ValueError, 'assigning a Python list'):
+    with self.assertRaisesRegex(
+        ValueError, re.escape('assigning a Python list')
+    ):
       self.op(a=ds([1, 2]), lst=[1, 2, 3])
-    with self.assertRaisesRegex(ValueError, 'assigning a Python dict'):
+    with self.assertRaisesRegex(
+        ValueError, re.escape('assigning a Python dict')
+    ):
       self.op(a=ds([1, 2]), dct={'a': 42})
 
   def test_args_binding_error(self):
-    with self.assertRaisesRegex(TypeError,
-                                'unexpected number of positional args: 3'):
+    with self.assertRaisesRegex(
+        TypeError, re.escape('unexpected number of positional args: 3')
+    ):
       self.op(1, 2, 3)
 
   def test_signature(self):
@@ -484,9 +501,7 @@ class ObjectKwargsBoxingPolicyTest(absltest.TestCase):
     def op_with_positional(b, kwargs):
       return kwargs
 
-    x = arolla.eval(
-        op_with_positional(a=ds([1, 2]), b='wrap me in a ds', c=42)
-    )
+    x = arolla.eval(op_with_positional(a=ds([1, 2]), b='wrap me in a ds', c=42))
     testing.assert_equal(x['a'], ds([1, 2]))
     testing.assert_equal(x['c'], ds(42))
     with self.assertRaises(KeyError):
