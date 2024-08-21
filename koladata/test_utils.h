@@ -25,6 +25,7 @@
 #include <utility>
 
 #include "absl/log/check.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -32,6 +33,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/object_factories.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -90,6 +92,13 @@ koladata::DataSlice Schema(T schema, DataBagPtr db = nullptr) {
            schema.template value<internal::ObjectId>().IsSchema());
   }
   return DataItem(schema, schema::kSchema, db);
+}
+
+inline koladata::DataSlice EntitySchema(
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<koladata::DataSlice>& attr_schemas,
+    DataBagPtr db = nullptr) {
+  return koladata::CreateEntitySchema(db, attr_names, attr_schemas).value();
 }
 
 template <typename T>

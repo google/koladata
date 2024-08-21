@@ -21,7 +21,6 @@
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 
@@ -35,33 +34,46 @@ class AdoptionQueue {
   AdoptionQueue(const AdoptionQueue&) = delete;
   AdoptionQueue(AdoptionQueue&&) = delete;
 
+  // Tracks triples reachable from `slice` (including via its schema), which
+  // will be present in the result DataBag. The DataBag used by `slice` must not
+  // be mutated before calling `AdoptInto` or `GetCommonOrMergedDb`.
   void Add(const DataSlice& slice) {
-    if (auto db = slice.GetDb();
-        db != nullptr && (empty() || bags_to_merge_.back() != db)) {
-      bags_to_merge_.emplace_back(std::move(db));
+    if (slice.GetDb() != nullptr) {
+      slices_to_merge_.emplace_back(slice);
     }
   }
 
+  // Tracks all triples in `db`, which will be present in the result databag.
   void Add(absl::Nullable<DataBagPtr> db) {
     if (db != nullptr) {
       bags_to_merge_.push_back(std::move(db));
     }
   }
 
-  bool empty() const { return bags_to_merge_.empty(); }
+  bool empty() const {
+    return slices_to_merge_.empty() && bags_to_merge_.empty();
+  }
 
-  // Gets access to the added DataBagPtr for rendering useful error message.
-  absl::Span<const DataBagPtr> bags() const { return bags_to_merge_; }
-
-  // Merges all tracked data into the given DataBag.
+  // Merges all tracked triples into the given DataBag, which must be mutable.
+  // Returns an error on merge conflicts.
   absl::Status AdoptInto(DataBag& db) const;
 
-  // Returns nullptr if no DataBag was added, or returns the tracked DataBag (if
-  // it is a single DataBag), or creates a new DataBag merging all the tracked
-  // data.
-  absl::StatusOr<DataBagPtr> GetDbOrMerge() const;
+  // Returns the result common or merged DataBag. There are three cases:
+  // 1. If no non-null DataBags have been tracked, returns nullptr.
+  // 2. If all tracked triples are from the same DataBag, returns that DataBag.
+  // 3. Else, returns a new DataBag containing all tracked triples, or an error
+  //    if this causes a merge conflict.
+  absl::StatusOr<absl::Nullable<DataBagPtr>> GetCommonOrMergedDb() const;
+
+  // Returns a new empty immutable DataBag with all tracked DataBags and tracked
+  // slices' DataBags as fallbacks. The fallback order is unspecified but
+  // deterministic. This is useful for cheaply and reliably getting a complete
+  // DataBag for error messages, but does not check for merge conflicts, and
+  // should not be used to define user-facing operator behavior.
+  absl::Nonnull<DataBagPtr> GetDbWithFallbacks() const;
 
  private:
+  std::vector<DataSlice> slices_to_merge_;
   std::vector<DataBagPtr> bags_to_merge_;
 };
 

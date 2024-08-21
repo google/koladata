@@ -253,8 +253,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     if constexpr (!explicit_cast) {
       ASSIGN_OR_RETURN(
           schema, std::move(schema_agg).Get(),
-          AssembleErrorMessage(_, {.db = DataBag::ImmutableEmptyWithFallbacks(
-                                       adoption_queue.bags())}));
+          AssembleErrorMessage(_, {.db = adoption_queue.GetDbWithFallbacks()}));
     }
     ASSIGN_OR_RETURN(auto shape,
                      DataSlice::JaggedShape::FromEdges(std::move(edges)));
@@ -511,7 +510,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
   AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(DataSlice res_no_db,
                    DataSliceFromPyValue(py_obj, adoption_queue, dtype));
-  ASSIGN_OR_RETURN(auto db, adoption_queue.GetDbOrMerge());
+  ASSIGN_OR_RETURN(auto db, adoption_queue.GetCommonOrMergedDb());
   return res_no_db.WithDb(std::move(db));
 }
 

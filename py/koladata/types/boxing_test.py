@@ -343,7 +343,7 @@ class BoxingTest(parameterized.TestCase):
         ValueError, 'conflicting values for __schema__'
     ):
       # Try to embed a schema that conflicts with the existing one.
-      ds([e1.with_schema(db1.new().get_schema())], OBJECT)
+      ds([e1, e1.with_schema(db1.new().get_schema())], OBJECT)
 
   def test_objects(self):
     db = data_bag.DataBag.empty()

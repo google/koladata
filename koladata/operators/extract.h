@@ -15,45 +15,17 @@
 #ifndef KOLADATA_OPERATORS_EXTRACT_H_
 #define KOLADATA_OPERATORS_EXTRACT_H_
 
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/op_utils/extract.h"
-#include "arolla/util/status_macros_backport.h"
+#include "koladata/extract_utils.h"
 
 namespace koladata::ops {
 
 // kde.core._extract
 inline absl::StatusOr<DataSlice> Extract(const DataSlice& ds,
                                          const DataSlice& schema) {
-  const auto& db = ds.GetDb();
-  if (db == nullptr) {
-    return absl::InvalidArgumentError("cannot extract without a DataBag");
-  }
-  const auto& schema_db = schema.GetDb();
-  RETURN_IF_ERROR(schema.VerifyIsSchema());
-  const auto& schema_impl = schema.impl<internal::DataItem>();
-  FlattenFallbackFinder fb_finder(*db);
-  auto fallbacks_span = fb_finder.GetFlattenFallbacks();
-  return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    auto result_db = DataBag::Empty();
-    ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
-    internal::ExtractOp extract_op(&result_db_impl.get());
-    if (schema_db == nullptr || schema_db == db) {
-      RETURN_IF_ERROR(
-          extract_op(impl, schema_impl, db->GetImpl(), fallbacks_span));
-    } else {
-      FlattenFallbackFinder schema_fb_finder(*schema_db);
-      auto schema_fallbacks_span = schema_fb_finder.GetFlattenFallbacks();
-      RETURN_IF_ERROR(extract_op(impl, schema_impl, db->GetImpl(),
-                                 fallbacks_span, schema_db->GetImpl(),
-                                 schema_fallbacks_span));
-    }
-    return DataSlice::Create(impl, ds.GetShape(), schema_impl, result_db);
-  });
+  return koladata::extract_utils_internal::ExtractWithSchema(ds, schema);
 }
 
 }  // namespace koladata::ops

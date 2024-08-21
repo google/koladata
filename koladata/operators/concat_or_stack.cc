@@ -99,7 +99,7 @@ absl::StatusOr<DataSlice> ConcatOrStack(
     for (const DataSlice& ds : args) {
       adoption_queue.Add(ds);
     }
-    return adoption_queue.GetDbOrMerge();
+    return adoption_queue.GetCommonOrMergedDb();
   }());
 
   if (rank == 0) {

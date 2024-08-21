@@ -1867,8 +1867,10 @@ TEST(DataSliceTest, SetGetObjectAttributesOtherDb_EntityCreator) {
   auto db = DataBag::Empty();
   auto db2 = DataBag::Empty();
 
-  auto ds_a = test::AllocateDataSlice(3, schema::kAny, db2);
-  auto ds_x = test::AllocateDataSlice(3, schema::kAny);
+  DataSlice ds_a_schema =
+      test::EntitySchema({"x"}, {test::Schema(schema::kItemId)}, db2);
+  auto ds_a = test::AllocateDataSlice(3, ds_a_schema.item(), db2);
+  auto ds_x = test::AllocateDataSlice(3, schema::kItemId);
   ASSERT_OK(ds_a.SetAttr("x", ds_x));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
@@ -1897,9 +1899,13 @@ TEST(DataSliceTest, SetGetObjectAttributesOtherDbConflict) {
   auto db = DataBag::Empty();
   auto db2 = DataBag::Empty();
 
-  auto ds_a = test::AllocateDataSlice(3, schema::kAny, db2);
+  auto ds_a_schema =
+      test::EntitySchema({"x"}, {test::Schema(schema::kItemId)}, db2);
+  auto ds_a = test::AllocateDataSlice(3, ds_a_schema.item(), db2);
+  auto ds_a_conflict_schema =
+      test::EntitySchema({"x"}, {test::Schema(schema::kItemId)}, db);
   auto ds_a_conflict = test::DataItem(ds_a.slice()[1], schema::kAny, db);
-  auto ds_x = test::AllocateDataSlice(3, schema::kAny);
+  auto ds_x = test::AllocateDataSlice(3, schema::kItemId);
   ASSERT_OK(ds_a.SetAttr("x", ds_x));
   // Adding a conflict as self reference.
   ASSERT_OK(ds_a_conflict.SetAttr("x", ds_a_conflict));
@@ -1937,8 +1943,8 @@ TEST(DataSliceTest, SetGetObjectAttributesWithFallback) {
 }
 
 TEST(DataSliceTest, SetGetObjectAttributesWithOtherDbWithFallback) {
-  auto ds_a = test::AllocateDataSlice(3, schema::kAny);
-  auto ds_b = test::AllocateDataSlice(3, schema::kAny);
+  auto ds_a = test::AllocateDataSlice(3, schema::kItemId);
+  auto ds_b = test::AllocateDataSlice(3, schema::kItemId);
 
   auto db1 = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
@@ -1968,13 +1974,13 @@ TEST(DataSliceTest, SetGetObjectAttributesWithOtherDbWithFallback) {
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds_x_get.GetAttr("a"));
   EXPECT_THAT(ds_a_get.slice(), ElementsAreArray(ds_a.slice()));
   // Setting an attribute updates schema.
-  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kAny);
+  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kItemId);
   EXPECT_EQ(ds_a_get.dtype(), GetQType<ObjectId>());
 
   ASSERT_OK_AND_ASSIGN(auto ds_b_get, ds_x_get.GetAttr("b"));
   EXPECT_THAT(ds_b_get.slice(), ElementsAreArray(ds_b.slice()));
   // Setting an attribute updates schema.
-  EXPECT_EQ(ds_b_get.GetSchemaImpl(), schema::kAny);
+  EXPECT_EQ(ds_b_get.GetSchemaImpl(), schema::kItemId);
   EXPECT_EQ(ds_b_get.dtype(), GetQType<ObjectId>());
 }
 

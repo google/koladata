@@ -629,8 +629,9 @@ foo.get_obj_schema().x = <desired_schema>"""),
       del obj.with_db(bag()).a
 
   def test_set_get_attr_slice_of_objects_missing_schema_attr(self):
-    obj_1 = bag().obj(a=1)
-    obj_2 = bag().new(a=1).with_schema(schema_constants.OBJECT)
+    db = bag()
+    obj_1 = db.obj(a=1)
+    obj_2 = db.new(a=1).with_schema(schema_constants.OBJECT)
     obj = ds([obj_1, obj_2])
     with self.assertRaisesRegex(
         exceptions.KodaError, re.escape('object schema(s) are missing')
@@ -1210,8 +1211,9 @@ foo.get_obj_schema().x = <desired_schema>"""),
     )
 
   def test_dict_objects_del_key_values(self):
-    d1 = bag().dict({'a': 42, 'b': 37}).embed_schema()
-    d2 = bag().dict({'a': 53, 'c': 12}).with_schema(schema_constants.OBJECT)
+    db = bag()
+    d1 = db.dict({'a': 42, 'b': 37}).embed_schema()
+    d2 = db.dict({'a': 53, 'c': 12}).with_schema(schema_constants.OBJECT)
     d = ds([d1, d2])
 
     with self.assertRaisesRegex(
@@ -1469,8 +1471,9 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     )
 
   def test_list_objects_del_items(self):
-    l1 = bag().list([1, 2, 3]).embed_schema()
-    l2 = bag().list([4, 5]).with_schema(schema_constants.OBJECT)
+    db = bag()
+    l1 = db.list([1, 2, 3]).embed_schema()
+    l2 = db.list([4, 5]).with_schema(schema_constants.OBJECT)
     l = ds([l1, l2])
 
     with self.assertRaisesRegex(
@@ -1998,6 +2001,9 @@ class DataSliceFallbackTest(parameterized.TestCase):
     x.get_schema().with_db(fb_db).set_attr(
         '__keys__', x.get_schema().get_attr('__keys__')
     )
+    x.get_schema().with_db(fb_db).set_attr(
+        '__values__', x.get_schema().get_attr('__values__')
+    )
     fb_x['abc'] = ds([None, 2.71])
     fb_x['qwe'] = ds([None, 'pi'])
     fb_x['asd'] = ds(['e', None])
@@ -2022,6 +2028,9 @@ class DataSliceFallbackTest(parameterized.TestCase):
     merged_x.get_schema().with_db(new_db).set_attr(
         '__keys__', x.get_schema().get_attr('__keys__')
     )
+    merged_x.get_schema().with_db(new_db).set_attr(
+        '__values__', x.get_schema().get_attr('__values__')
+    )
     merged_x['xyz'] = ds([None, 3.14])
     merged_x = merged_x.with_fallback(db).with_fallback(fb_db)
     testing.assert_allclose(
@@ -2039,6 +2048,9 @@ class DataSliceFallbackTest(parameterized.TestCase):
     for i, db in enumerate(dbs):
       dct_schema.with_db(db).set_attr(
           '__keys__', dct_schema.get_attr('__keys__')
+      )
+      dct_schema.with_db(db).set_attr(
+          '__values__', dct_schema.get_attr('__values__')
       )
       dct.with_db(db)[f'd{i}'] = i
       setattr(obj.get_schema().with_db(db), f'a{i}', schema_constants.INT32)
