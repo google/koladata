@@ -15,9 +15,14 @@
 #ifndef KOLADATA_OPERATORS_AROLLA_BRIDGE_H_
 #define KOLADATA_OPERATORS_AROLLA_BRIDGE_H_
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <string>
 #include <vector>
 
+#include "absl/hash/hash.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -29,12 +34,117 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
 namespace koladata::ops {
+namespace compiler_internal {
+
+using CompiledOp = std::function<absl::StatusOr<::arolla::TypedValue>(
+    absl::Span<const arolla::TypedRef>)>;
+
+// Key for the compilation cache consisting of:
+// * op_name: the name of the operator.
+// * input_qtypes: the QTypes of the inputs.
+//
+// Exposed for testing purposes.
+struct Key {
+  std::string op_name;
+  std::vector<arolla::QTypePtr> input_qtypes;
+
+  template <typename H>
+  friend H AbslHashValue(H h, const Key& key) {
+    // NOTE: Must be compatible with `LookupKey` below.
+    h = H::combine(std::move(h), key.op_name, key.input_qtypes.size());
+    for (const auto& input_qtype : key.input_qtypes) {
+      h = H::combine(std::move(h), input_qtype);
+    }
+    return h;
+  }
+};
+
+// Lookup-key for the compilation cache consisting of:
+// * op_name: the name of the operator.
+// * input_qvalues: the TypedRef inputs.
+//
+// NOTE: Must be compatible with `Key` above. The type of each
+// input, together with the op_name, is used to compared with the stored keys.
+//
+// Exposed for testing purposes.
+struct LookupKey {
+  absl::string_view op_name;
+  absl::Span<const arolla::TypedRef> input_qvalues;
+
+  template <typename H>
+  friend H AbslHashValue(H h, const LookupKey& lookup_key) {
+    // NOTE: Must be compatible with `Key` above.
+    h = H::combine(std::move(h), lookup_key.op_name,
+                   lookup_key.input_qvalues.size());
+    for (const auto& input_qvalue : lookup_key.input_qvalues) {
+      h = H::combine(std::move(h), input_qvalue.GetType());
+    }
+    return h;
+  }
+};
+
+// Hashing functor for the compilation cache. Supports both
+// `Key` and `LookupKey`.
+//
+// Exposed for testing purposes.
+struct KeyHash {
+  using is_transparent = void;
+
+  size_t operator()(const Key& key) const { return absl::HashOf(key); }
+  size_t operator()(const LookupKey& key) const { return absl::HashOf(key); }
+};
+
+// Equality functor for the compilation cache. Supports both
+// `Key` and `LookupKey`.
+struct KeyEq {
+  using is_transparent = void;
+
+  bool operator()(const Key& lhs, const Key& rhs) const {
+    return lhs.op_name == rhs.op_name && lhs.input_qtypes == rhs.input_qtypes;
+  }
+  bool operator()(const Key& lhs, const LookupKey& rhs) const {
+    return lhs.op_name == rhs.op_name &&
+           std::equal(lhs.input_qtypes.begin(), lhs.input_qtypes.end(),
+                      rhs.input_qvalues.begin(), rhs.input_qvalues.end(),
+                      [](const arolla::QTypePtr& ltype,
+                         const arolla::TypedRef& rvalue) {
+                        return ltype == rvalue.GetType();
+                      });
+  }
+  bool operator()(const LookupKey& lhs, const Key& rhs) const {
+    return this->operator()(rhs, lhs);
+  }
+  bool operator()(const LookupKey& lhs, const LookupKey& rhs) const {
+    return lhs.op_name == rhs.op_name &&
+           std::equal(lhs.input_qvalues.begin(), lhs.input_qvalues.end(),
+                      rhs.input_qvalues.begin(), rhs.input_qvalues.end(),
+                      [](const arolla::TypedRef& lvalue,
+                         const arolla::TypedRef& rvalue) {
+                        return lvalue.GetType() == rvalue.GetType();
+                      });
+  }
+};
+
+// Returns the compilation cache entry for the given op_name and inputs. May be
+// null if the entry is not found.
+//
+// Exposed for testing purposes.
+CompiledOp Lookup(absl::string_view op_name,
+                  absl::Span<const arolla::TypedRef> inputs);
+
+// Clears the compilation cache.
+//
+// Exposed for testing purposes.
+void ClearCache();
+
+}  // namespace compiler_internal
 
 // Evaluates the registered operator of the given name on the given inputs,
 // using a compilation cache.

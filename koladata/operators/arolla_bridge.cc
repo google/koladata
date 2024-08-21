@@ -14,7 +14,6 @@
 //
 #include "koladata/operators/arolla_bridge.h"
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -27,7 +26,6 @@
 #include "absl/base/no_destructor.h"
 #include "absl/base/optimization.h"
 #include "absl/base/thread_annotations.h"
-#include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -67,108 +65,61 @@ namespace {
 constexpr size_t kCompilationCacheSize = 4096;
 
 class EvalCompiler {
-  using CompiledOp = std::function<absl::StatusOr<::arolla::TypedValue>(
-      absl::Span<const arolla::TypedRef>)>;
-
   using Compiler = ::arolla::ExprCompiler<absl::Span<const ::arolla::TypedRef>,
                                           arolla::TypedValue>;
+  using Impl =
+      arolla::LruCache<compiler_internal::Key, compiler_internal::CompiledOp,
+                       compiler_internal::KeyHash, compiler_internal::KeyEq>;
 
  public:
-  static absl::StatusOr<CompiledOp> Compile(
+  static compiler_internal::CompiledOp Lookup(
       absl::string_view op_name, absl::Span<const arolla::TypedRef> inputs) {
-    CompiledOp fn;
-    {
-      // Copying std::function is expensive, but given that we use cache, we
-      // cannot use std::move.
-      //
-      // NOTE: If copying a function is more expensive than copying
-      // a `std::shared_ptr`, we could use `std::shared_ptr<std::function<>>`.
-      // Alternatively, we could consider having a thread-local cache that
-      // requires no mutex and no function copying.
-      absl::MutexLock lock(&mutex_);
-      if (auto* hit = cache_->LookupOrNull(LookupKey{op_name, inputs});
-          hit != nullptr) {
-        fn = *hit;
-      }
+    // Copying std::function is expensive, but given that we use cache, we
+    // cannot use std::move.
+    //
+    // NOTE: If copying a function is more expensive than copying
+    // a `std::shared_ptr`, we could use `std::shared_ptr<std::function<>>`.
+    // Alternatively, we could consider having a thread-local cache that
+    // requires no mutex and no function copying.
+    absl::MutexLock lock(&mutex_);
+    if (auto* hit =
+            cache_->LookupOrNull(compiler_internal::LookupKey{op_name, inputs});
+        hit != nullptr) {
+      return *hit;
     }
-    if (ABSL_PREDICT_FALSE(!fn)) {
-      std::vector<arolla::QTypePtr> input_types(inputs.size());
-      for (size_t i = 0; i < inputs.size(); ++i) {
-        input_types[i] = inputs[i].GetType();
-      }
-      auto expr_op =
-          std::make_shared<arolla::expr::RegisteredOperator>(op_name);
-      ASSIGN_OR_RETURN(
-          fn, Compiler()
-                  // Most of the operators are compiled into rather small
-                  // instruction sequences and don't contain many literals. In
-                  // such cases the always clone thread safety policy is faster.
-                  .SetAlwaysCloneThreadSafetyPolicy()
-                  .CompileOperator(expr_op, input_types));
-      absl::MutexLock lock(&mutex_);
-      fn = *cache_->Put(Key{std::string(op_name), std::move(input_types)},
-                        std::move(fn));
+    return {};
+  }
+
+  static absl::StatusOr<compiler_internal::CompiledOp> Compile(
+      absl::string_view op_name, absl::Span<const arolla::TypedRef> inputs) {
+    compiler_internal::CompiledOp fn = Lookup(op_name, inputs);
+    if (ABSL_PREDICT_TRUE(fn)) {
+      return fn;
     }
-    return fn;
+    std::vector<arolla::QTypePtr> input_types(inputs.size());
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      input_types[i] = inputs[i].GetType();
+    }
+    auto expr_op = std::make_shared<arolla::expr::RegisteredOperator>(op_name);
+    ASSIGN_OR_RETURN(
+        fn, Compiler()
+                // Most of the operators are compiled into rather small
+                // instruction sequences and don't contain many literals. In
+                // such cases the always clone thread safety policy is faster.
+                .SetAlwaysCloneThreadSafetyPolicy()
+                .CompileOperator(expr_op, input_types));
+    absl::MutexLock lock(&mutex_);
+    return *cache_->Put(
+        compiler_internal::Key{std::string(op_name), std::move(input_types)},
+        std::move(fn));
+  }
+
+  static void Clear() {
+    absl::MutexLock lock(&mutex_);
+    cache_->Clear();
   }
 
  private:
-  struct Key {
-    std::string op_name;
-    std::vector<arolla::QTypePtr> input_qtypes;
-
-    template <typename H>
-    friend H AbslHashValue(H h, const Key& key) {
-      // NOTE: Must be compatible with `LookupKey` below.
-      h = H::combine(std::move(h), key.op_name, key.input_qtypes.size());
-      for (const auto& input_qtype : key.input_qtypes) {
-        h = H::combine(std::move(h), input_qtype);
-      }
-      return h;
-    }
-  };
-
-  struct LookupKey {
-    absl::string_view op_name;
-    absl::Span<const arolla::TypedRef> input_qvalues;
-
-    template <typename H>
-    friend H AbslHashValue(H h, const LookupKey& lookup_key) {
-      // NOTE: Must be compatible with `Key` above.
-      h = H::combine(std::move(h), lookup_key.op_name,
-                     lookup_key.input_qvalues.size());
-      for (const auto& input_qvalue : lookup_key.input_qvalues) {
-        h = H::combine(std::move(h), input_qvalue.GetType());
-      }
-      return h;
-    }
-  };
-
-  struct KeyHash {
-    using is_transparent = void;
-
-    size_t operator()(const Key& key) const { return absl::HashOf(key); }
-    size_t operator()(const LookupKey& key) const { return absl::HashOf(key); }
-  };
-
-  struct KeyEq {
-    using is_transparent = void;
-
-    bool operator()(const Key& lhs, const Key& rhs) const {
-      return lhs.op_name == rhs.op_name && lhs.input_qtypes == rhs.input_qtypes;
-    }
-    bool operator()(const Key& lhs, const LookupKey& rhs) const {
-      return lhs.op_name == rhs.op_name &&
-             std::equal(lhs.input_qtypes.begin(), lhs.input_qtypes.end(),
-                        rhs.input_qvalues.begin(), rhs.input_qvalues.end(),
-                        [](const arolla::QTypePtr& ltype,
-                           const arolla::TypedRef& rvalue) {
-                          return ltype == rvalue.GetType();
-                        });
-    }
-  };
-
-  using Impl = arolla::LruCache<Key, CompiledOp, KeyHash, KeyEq>;
   static absl::NoDestructor<Impl> cache_ ABSL_GUARDED_BY(mutex_);
   static absl::Mutex mutex_;
 };
@@ -268,6 +219,17 @@ absl::StatusOr<DataSlice> SimpleAggEval(absl::string_view op_name,
 }
 
 }  // namespace
+
+namespace compiler_internal {
+
+CompiledOp Lookup(absl::string_view op_name,
+                  absl::Span<const arolla::TypedRef> inputs) {
+  return EvalCompiler::Lookup(op_name, inputs);
+}
+
+void ClearCache() { return EvalCompiler::Clear(); }
+
+}  // namespace compiler_internal
 
 absl::StatusOr<arolla::TypedValue> EvalExpr(
     absl::string_view op_name, absl::Span<const arolla::TypedRef> inputs) {

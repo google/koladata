@@ -236,6 +236,7 @@ cc_test(
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
         "//koladata/testing:matchers",
+        "@com_google_absl//absl/hash:hash_testing",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/types:span",

@@ -16,10 +16,13 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
+#include <tuple>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/hash/hash_testing.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
@@ -31,6 +34,7 @@
 #include "koladata/testing/matchers.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
@@ -40,7 +44,6 @@ namespace koladata::ops {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
-using ::absl_testing::StatusIs;
 using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
@@ -456,6 +459,156 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataSlice) {
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("DataSlice with mixed types is not supported")));
   }
+}
+
+TEST(EvalCompilerCacheTest, Equal) {
+  using compiler_internal::Key;
+  using compiler_internal::KeyEq;
+  using compiler_internal::LookupKey;
+  KeyEq eq;
+
+  auto tv_int_1 = arolla::TypedValue::FromValue(1);
+  auto tv_int_2 = arolla::TypedValue::FromValue(2);
+  auto tv_float_1 = arolla::TypedValue::FromValue(1.0f);
+  auto int_1 = tv_int_1.AsRef();
+  auto int_2 = tv_int_2.AsRef();
+  auto float_1 = tv_float_1.AsRef();
+  auto int_qtype = int_1.GetType();
+  auto float_qtype = float_1.GetType();
+  std::string foo = "foo";
+  {
+    // <Key, Key>.
+    // Equal.
+    std::string foo = "foo";
+    EXPECT_TRUE(eq(Key{"foo", {}}, Key{"foo", {}}));
+    EXPECT_TRUE(eq(Key{foo, {}}, Key{"foo", {}}));
+    EXPECT_TRUE(eq(Key{"foo", {arolla::GetQType<int>()}},
+                   Key{"foo", {arolla::GetQType<int>()}}));
+    EXPECT_TRUE(
+        eq(Key{"foo", {arolla::GetQType<int>(), arolla::GetQType<float>()}},
+           Key{"foo", {arolla::GetQType<int>(), arolla::GetQType<float>()}}));
+    // Not equal.
+    EXPECT_FALSE(eq(Key{"foo", {}}, Key{"bar", {}}));
+    EXPECT_FALSE(eq(Key{"foo", {arolla::GetQType<int>()}},
+                    Key{"foo", {arolla::GetQType<float>()}}));
+    EXPECT_FALSE(
+        eq(Key{"foo", {arolla::GetQType<int>(), arolla::GetQType<int>()}},
+           Key{"foo", {arolla::GetQType<int>()}}));
+    EXPECT_FALSE(
+        eq(Key{"foo", {arolla::GetQType<float>(), arolla::GetQType<int>()}},
+           Key{"foo", {arolla::GetQType<int>(), arolla::GetQType<float>()}}));
+  }
+  {
+    // <Key, LookupKey>.
+    // Equal.
+    EXPECT_TRUE(eq(Key{"foo", {}}, LookupKey{"foo", {}}));
+    EXPECT_TRUE(eq(Key{foo, {}}, LookupKey{"foo", {}}));
+    EXPECT_TRUE(eq(Key{"foo", {int_qtype}}, LookupKey{"foo", {int_1}}));
+    EXPECT_TRUE(eq(Key{"foo", {int_qtype}}, LookupKey{"foo", {int_2}}));
+    EXPECT_TRUE(eq(Key{"foo", {int_qtype, float_qtype}},
+                   LookupKey{"foo", {int_1, float_1}}));
+    // Not equal.
+    EXPECT_FALSE(eq(Key{"foo", {}}, LookupKey{"bar", {}}));
+    EXPECT_FALSE(eq(Key{"foo", {int_qtype}}, LookupKey{"foo", {float_1}}));
+    EXPECT_FALSE(
+        eq(Key{"foo", {int_qtype, int_qtype}}, LookupKey{"foo", {int_1}}));
+    EXPECT_FALSE(eq(Key{"foo", {float_qtype, int_qtype}},
+                    LookupKey{"foo", {int_1, float_1}}));
+  }
+  {
+    // <LookupKey, Key>.
+    // Equal.
+    EXPECT_TRUE(eq(LookupKey{"foo", {}}, Key{"foo", {}}));
+    EXPECT_TRUE(eq(LookupKey{foo, {}}, Key{"foo", {}}));
+    EXPECT_TRUE(eq(LookupKey{"foo", {int_1}}, Key{"foo", {int_qtype}}));
+    EXPECT_TRUE(eq(LookupKey{"foo", {int_2}}, Key{"foo", {int_qtype}}));
+    EXPECT_TRUE(eq(LookupKey{"foo", {int_1, float_1}},
+                   Key{"foo", {int_qtype, float_qtype}}));
+    // Not equal.
+    EXPECT_FALSE(eq(LookupKey{"foo", {}}, Key{"bar", {}}));
+    EXPECT_FALSE(eq(LookupKey{"foo", {float_1}}, Key{"foo", {int_qtype}}));
+    EXPECT_FALSE(eq(LookupKey{"foo", {int_1, int_1}}, Key{"foo", {int_qtype}}));
+    EXPECT_FALSE(eq(LookupKey{"foo", {int_1, float_1}},
+                    Key{"foo", {float_qtype, int_qtype}}));
+  }
+  {
+    // <LookupKey, LookupKey>.
+    // Equal.
+    EXPECT_TRUE(eq(LookupKey{"foo", {}}, LookupKey{"foo", {}}));
+    EXPECT_TRUE(eq(LookupKey{foo, {}}, LookupKey{"foo", {}}));
+    EXPECT_TRUE(eq(LookupKey{"foo", {int_1}}, LookupKey{"foo", {int_1}}));
+    EXPECT_TRUE(eq(LookupKey{"foo", {int_2}}, LookupKey{"foo", {int_1}}));
+    EXPECT_TRUE(eq(LookupKey{"foo", {int_1, float_1}},
+                   LookupKey{"foo", {int_2, float_1}}));
+    // Not equal.
+    EXPECT_FALSE(eq(LookupKey{"foo", {}}, LookupKey{"bar", {}}));
+    EXPECT_FALSE(eq(LookupKey{"foo", {float_1}}, LookupKey{"foo", {int_1}}));
+    EXPECT_FALSE(
+        eq(LookupKey{"foo", {int_1, int_1}}, LookupKey{"foo", {int_1}}));
+    EXPECT_FALSE(eq(LookupKey{"foo", {int_1, float_1}},
+                    LookupKey{"foo", {float_1, int_1}}));
+  }
+}
+
+TEST(EvalCompilerCacheTest, Hash) {
+  using compiler_internal::Key;
+  using compiler_internal::LookupKey;
+
+  auto tv_int_1 = arolla::TypedValue::FromValue(1);
+  auto tv_int_2 = arolla::TypedValue::FromValue(2);
+  auto tv_float_1 = arolla::TypedValue::FromValue(1.0f);
+  auto int_1 = tv_int_1.AsRef();
+  auto int_2 = tv_int_2.AsRef();
+  auto float_1 = tv_float_1.AsRef();
+  auto int_qtype = int_1.GetType();
+  auto float_qtype = float_1.GetType();
+  std::string foo = "foo";
+  {
+    // Verify that the hash is consistent with the equality.
+    EXPECT_TRUE(absl::VerifyTypeImplementsAbslHashCorrectly(
+        std::make_tuple(
+            // Keys.
+            Key{"foo", {}}, Key{"bar", {}}, Key{foo, {}},
+            Key{"foo", {int_qtype}}, Key{"foo", {int_qtype, float_qtype}},
+            Key{"foo", {float_qtype, int_qtype}},
+            Key{"foo", {int_qtype, int_qtype}},
+            // LookupKeys.
+            LookupKey{"foo", {}}, LookupKey{"bar", {}}, LookupKey{foo, {}},
+            LookupKey{"foo", {int_1}}, LookupKey{"foo", {int_2}},
+            LookupKey{"foo", {int_1, int_1}},
+            LookupKey{"foo", {int_1, float_1}},
+            LookupKey{"foo", {int_2, float_1}},
+            LookupKey{"foo", {float_1, int_1}}),
+        compiler_internal::KeyEq()));
+  }
+  {
+    // Sanity check that KeyHash works as expected.
+    compiler_internal::KeyHash hash;
+    EXPECT_EQ(hash(Key{"foo", {int_qtype, float_qtype}}),
+              hash(LookupKey({"foo", {int_1, float_1}})));
+    EXPECT_NE(hash(Key{"foo", {int_qtype, float_qtype}}),
+              hash(LookupKey({"foo", {float_1, int_1}})));
+  }
+}
+
+TEST(EvalCompilerCacheTest, CacheHits) {
+  auto tv_int_1 = arolla::TypedValue::FromValue(1);
+  auto tv_int_2 = arolla::TypedValue::FromValue(2);
+  auto tv_float_1 = arolla::TypedValue::FromValue(1.0f);
+  auto int_1 = tv_int_1.AsRef();
+  auto int_2 = tv_int_2.AsRef();
+  auto float_1 = tv_float_1.AsRef();
+
+  compiler_internal::ClearCache();
+
+  EXPECT_FALSE(compiler_internal::Lookup("math.add", {int_1, float_1}));
+  EXPECT_OK(EvalExpr("math.add", {int_1, float_1}).status());
+  EXPECT_TRUE(compiler_internal::Lookup("math.add", {int_1, float_1}));
+  EXPECT_TRUE(compiler_internal::Lookup("math.add", {int_2, float_1}));
+
+  EXPECT_FALSE(compiler_internal::Lookup("math.add", {float_1, int_1}));
+  EXPECT_OK(EvalExpr("math.add", {float_1, int_1}).status());
+  EXPECT_TRUE(compiler_internal::Lookup("math.add", {float_1, int_1}));
 }
 
 }  // namespace
