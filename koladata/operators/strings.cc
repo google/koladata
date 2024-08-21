@@ -114,4 +114,9 @@ absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
                                   std::move(common_schema));
 }
 
+absl::StatusOr<DataSlice> Length(const DataSlice& x) {
+  return SimplePointwiseEval("strings.length", {x},
+                             internal::DataItem(schema::kInt32));
+}
+
 }  // namespace koladata::ops

@@ -30,6 +30,9 @@ absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep);
 // kde.strings.split.
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep);
 
+// kde.strings.length.
+absl::StatusOr<DataSlice> Length(const DataSlice& x);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_STRINGS_H_

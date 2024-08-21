@@ -132,6 +132,7 @@ OPERATOR("kde.shapes.get_shape", GetShape);
 //
 OPERATOR("kde.strings._agg_join", AggJoin);
 OPERATOR("kde.strings._split", Split);
+OPERATOR("kde.strings.length", Length);
 OPERATOR("kde.strings.substr", Substr);
 //
 OPERATOR("koda_internal.to_arolla_boolean", ToArollaBoolean);
