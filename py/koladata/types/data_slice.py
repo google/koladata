@@ -287,7 +287,37 @@ class SlicingHelper:
     return arolla.abc.aux_eval_op(_op_impl_lookup.subslice, self._ds, *slices)
 
 
+class ListSlicingHelper:
+  """ListSlicing helper for DataSlice.
+
+  x.L on DataSlice returns a ListSlicingHelper, which treats the first dimension
+  of DataSlice x as a a list.
+  """
+
+  def __init__(self, ds: DataSlice):
+    self._ds = ds
+
+  def __getitem__(self, s):
+    return arolla.abc.aux_eval_op(_op_impl_lookup.subslice, self._ds, s, ...)
+
+  def __len__(self) -> int:
+    if not self._ds.get_ndim():
+      raise ValueError(
+          'DataSlice must have at least one dimension to retrieve length.'
+      )
+    return arolla.abc.aux_eval_op(
+        getattr(_op_impl_lookup, 'shapes.dim_sizes'),
+        arolla.abc.aux_eval_op(_op_impl_lookup.get_shape, self._ds),
+        0,
+    ).to_py()[0]
+
+  def __iter__(self):
+    return (self[i] for i in range(len(self)))
+
+
 # NOTE: we can create a decorator for adding property similar to add_method, if
 # we need it for more properties.
 DataSlice.internal_register_reserved_class_method_name('S')
 DataSlice.S = property(SlicingHelper)
+DataSlice.internal_register_reserved_class_method_name('L')
+DataSlice.L = property(ListSlicingHelper)

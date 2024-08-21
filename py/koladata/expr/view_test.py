@@ -153,6 +153,24 @@ class DataSliceViewTest(parameterized.TestCase):
         kde.core._subslice_for_slicing_helper(C.x, C.s1, ellipsis.ellipsis()),
     )
 
+  def test_list_slicing_helper(self):
+    _ = C.x.L[C.s1]
+    testing.assert_equal(
+        C.x.L[C.s1], kde.core.subslice(C.x, C.s1, ...)
+    )
+    testing.assert_equal(
+        C.x.L[1:2],
+        kde.core.subslice(
+            C.x, arolla.types.Slice(1, 2), ...
+        ),
+    )
+    testing.assert_equal(
+        C.x.L[1:],
+        kde.core.subslice(
+            C.x, arolla.types.Slice(1, None), ...
+        ),
+    )
+
   def test_add(self):
     testing.assert_equal(C.x.val + C.y, kde.add(kde.get_attr(C.x, 'val'), C.y))
 

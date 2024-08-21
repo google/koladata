@@ -63,6 +63,21 @@ class SlicingHelper:
     )
 
 
+class ListSlicingHelper:
+  """ListSlicing helper for DataSliceViews.
+
+  x.L on DataSliceView returns a ListSlicingHelper, which treats the first
+  dimension
+  of DataSliceView x as a a list.
+  """
+
+  def __init__(self, ds: 'DataSliceView'):
+    self._ds = ds
+
+  def __getitem__(self, s):
+    return arolla.abc.aux_bind_op('kde.core.subslice', self._ds, s, ...)
+
+
 class DataSliceView(BasicKodaView):
   """ExprView for DataSlices."""
 
@@ -80,6 +95,10 @@ class DataSliceView(BasicKodaView):
   @property
   def S(self) -> SlicingHelper:
     return SlicingHelper(self)
+
+  @property
+  def L(self) -> ListSlicingHelper:
+    return ListSlicingHelper(self)
 
   # TODO: Overload Python's magic methods as we add functionality
   # in operators.

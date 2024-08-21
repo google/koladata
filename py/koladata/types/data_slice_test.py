@@ -2118,5 +2118,39 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_equal(x.S[*slices], expected)
 
 
+class DataSliceListSlicingTest(parameterized.TestCase):
+
+  @parameterized.parameters(
+      (ds([1, 2, 3]), 0, ds(1)),
+      (ds([1, 2, 3]), 1, ds(2)),
+      (ds([1, 2, 3]), 2, ds(3)),
+      (ds([1, 2, 3]), 3, ds(None, dtype=schema_constants.INT32)),
+      (ds([1, 2, 3]), -1, ds(3)),
+      (ds([1, 2, 3]), slice(None), ds([1, 2, 3])),
+      (ds([1, 2, 3]), slice(None, 2), ds([1, 2])),
+      (ds([[1, 2], [3], [4, 5, 6]]), 0, ds([1, 2])),
+      (ds([[1, 2], [3], [4, 5, 6]]), 1, ds([3])),
+      (ds([[1, 2], [3], [4, 5, 6]]), 2, ds([4, 5, 6])),
+      (ds([[1, 2], [3], [4, 5, 6]]), slice(1, 2), ds([[3]])),
+      (ds([[1, 2], [3], [4, 5, 6]]), slice(1, None), ds([[3], [4, 5, 6]])),
+  )
+  def test_get_item(self, x, i, expected):
+    testing.assert_equal(x.L[i], expected)
+
+  @parameterized.parameters(
+      (ds([]), 0),
+      (ds([1]), 1),
+      (ds([1, 2, 3]), 3),
+      (ds([[1, 2], [3], [4, 5, 6]]), 3),
+  )
+  def test_len(self, x, expected):
+    self.assertLen(x.L, expected)
+
+  def test_iter(self):
+    d = ds([1, 2, 3])
+    for idx, el in enumerate(d.L):
+      self.assertEqual(el, d.L[idx])
+
+
 if __name__ == '__main__':
   absltest.main()
