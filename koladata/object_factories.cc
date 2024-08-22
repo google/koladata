@@ -501,6 +501,32 @@ absl::StatusOr<DataSlice> CreateObjectsImpl(
   return res;
 }
 
+absl::StatusOr<DataSlice> CreateUuidFromFieldsImpl(
+    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values,
+    internal::UuidType uuid_type) {
+  DCHECK_EQ(attr_names.size(), values.size());
+  if (values.empty()) {
+    return DataSlice::Create(
+        CreateUuidFromFields(
+            seed, {},
+            std::vector<std::reference_wrapper<const internal::DataItem>>{}),
+        internal::DataItem(schema::kItemId));
+  }
+  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
+  return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
+    std::vector<std::reference_wrapper<const T>> values_impl;
+    values_impl.reserve(values.size());
+    for (int i = 0; i < attr_names.size(); ++i) {
+      values_impl.push_back(std::cref(aligned_values[i].impl<T>()));
+    }
+    return DataSlice::Create(internal::CreateUuidFromFields(
+                                 seed, attr_names, values_impl, uuid_type),
+                             aligned_values.begin()->GetShape(),
+                             internal::DataItem(schema::kItemId), nullptr);
+  });
+}
+
 }  // namespace
 
 // TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
@@ -665,30 +691,24 @@ absl::StatusOr<DataSlice> ObjectCreator::Convert(const DataBagPtr& db,
 }
 
 absl::StatusOr<DataSlice> CreateUuidFromFields(
-    absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
+    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& values) {
-  DCHECK_EQ(attr_names.size(), values.size());
-  if (values.empty()) {
-    return DataSlice::Create(
-        CreateUuidFromFields(
-            seed, {},
-            std::vector<std::reference_wrapper<const internal::DataItem>>{}),
-        internal::DataItem(schema::kItemId));
-  }
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
-  return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
-    std::vector<std::reference_wrapper<const T>> values_impl;
-    values_impl.reserve(values.size());
-    for (int i = 0; i < attr_names.size(); ++i) {
-      values_impl.push_back(std::cref(aligned_values[i].impl<T>()));
-    }
-    return DataSlice::Create(
-        internal::CreateUuidFromFields(seed, attr_names, values_impl),
-        aligned_values.begin()->GetShape(),
-        internal::DataItem(schema::kItemId),
-        nullptr);
-  });
+  return CreateUuidFromFieldsImpl(seed, attr_names, values,
+                                  internal::UuidType::kDefault);
+}
+
+absl::StatusOr<DataSlice> CreateListUuidFromFields(
+    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values) {
+  return CreateUuidFromFieldsImpl(seed, attr_names, values,
+                                  internal::UuidType::kList);
+}
+
+absl::StatusOr<DataSlice> CreateDictUuidFromFields(
+    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values) {
+  return CreateUuidFromFieldsImpl(seed, attr_names, values,
+                                  internal::UuidType::kDict);
 }
 
 absl::StatusOr<DataSlice> CreateUu(

@@ -3087,6 +3087,38 @@ TEST(ObjectFactoriesTest, CreateUuidFromFields_DataSlice) {
                   ds_with_seed_2.slice().values<ObjectId>())));
 }
 
+TEST(ObjectFactoriesTest, CreateUuidFromFields_DataSlice_List) {
+  auto ds_a = test::AllocateDataSlice(3, schema::kObject);
+  auto ds_b = test::AllocateDataSlice(3, schema::kObject);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, CreateListUuidFromFields(
+                   "", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  EXPECT_EQ(ds.GetSchemaImpl(), schema::kItemId);
+
+  ds.slice().values<ObjectId>().ForEach(
+      [&](int64_t id, bool present, ObjectId object_id) {
+        EXPECT_TRUE(object_id.IsUuid());
+        EXPECT_TRUE(object_id.IsList());
+      });
+}
+
+TEST(ObjectFactoriesTest, CreateUuidFromFields_DataSlice_Dict) {
+  auto ds_a = test::AllocateDataSlice(3, schema::kObject);
+  auto ds_b = test::AllocateDataSlice(3, schema::kObject);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, CreateDictUuidFromFields(
+                   "", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  EXPECT_EQ(ds.GetSchemaImpl(), schema::kItemId);
+
+  ds.slice().values<ObjectId>().ForEach(
+      [&](int64_t id, bool present, ObjectId object_id) {
+        EXPECT_TRUE(object_id.IsUuid());
+        EXPECT_TRUE(object_id.IsDict());
+      });
+}
+
 TEST(ObjectFactoriesTest, CreateUuidFromFields_DataItem) {
   auto ds_a = test::DataItem(internal::AllocateSingleObject());
   auto ds_b = test::DataItem(42);
@@ -3121,6 +3153,32 @@ TEST(ObjectFactoriesTest, CreateUuidFromFields_DataItem) {
       {ds_a.item(), ds_b.item()});
   EXPECT_EQ(ds_with_seed_1.item(), expected);
   EXPECT_NE(ds_with_seed_1.item(), ds_with_seed_2.item());
+}
+
+TEST(ObjectFactoriesTest, CreateUuidFromFields_DataItem_List) {
+  auto ds_a = test::DataItem(internal::AllocateSingleObject());
+  auto ds_b = test::DataItem(42);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, CreateListUuidFromFields(
+                   "", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  EXPECT_EQ(ds.GetSchemaImpl(), schema::kItemId);
+
+  EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
+  EXPECT_TRUE(ds.item().value<ObjectId>().IsList());
+}
+
+TEST(ObjectFactoriesTest, CreateUuidFromFields_DataItem_Dict) {
+  auto ds_a = test::DataItem(internal::AllocateSingleObject());
+  auto ds_b = test::DataItem(42);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, CreateDictUuidFromFields(
+                   "", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  EXPECT_EQ(ds.GetSchemaImpl(), schema::kItemId);
+
+  EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
+  EXPECT_TRUE(ds.item().value<ObjectId>().IsDict());
 }
 
 TEST(ObjectFactoriesTest, CreateUuidFromFields_Empty) {

@@ -26,6 +26,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/uuid_object.h"
 
 namespace koladata {
 
@@ -188,6 +189,18 @@ struct ObjectCreator {
 //
 // have different ids.
 absl::StatusOr<DataSlice> CreateUuidFromFields(
+    absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values);
+
+// Creates a DataSlice of uuids with list flag set.
+absl::StatusOr<DataSlice> CreateListUuidFromFields(
+    absl::string_view seed,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<DataSlice>& values);
+
+// Creates a DataSlice of uuids with dict flag set.
+absl::StatusOr<DataSlice> CreateDictUuidFromFields(
     absl::string_view seed,
     const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& values);
