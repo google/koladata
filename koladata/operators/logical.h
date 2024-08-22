@@ -36,7 +36,7 @@
 
 namespace koladata::ops {
 
-// kde.core.apply_mask.
+// kde.logical.apply_mask.
 inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
                                            const DataSlice& mask) {
   return DataSliceOp<internal::PresenceAndOp>()(obj, mask, obj.GetSchemaImpl(),

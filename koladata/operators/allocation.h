@@ -28,6 +28,7 @@
 
 namespace koladata::ops {
 
+// kde.allocation.new_itemid_shaped.
 // Allocates new ItemIds of the given shape without any DataBag attached.
 inline absl::StatusOr<DataSlice> NewItemIdShaped(DataSlice::JaggedShape shape) {
   size_t size = shape.size();
@@ -36,6 +37,7 @@ inline absl::StatusOr<DataSlice> NewItemIdShaped(DataSlice::JaggedShape shape) {
                            internal::DataItem(schema::kItemId));
 }
 
+// kde.allocation.new_listid_shaped.
 // Allocates new List ItemIds of the given shape.
 inline absl::StatusOr<DataSlice> NewListIdShaped(DataSlice::JaggedShape shape) {
   size_t size = shape.size();
@@ -45,6 +47,7 @@ inline absl::StatusOr<DataSlice> NewListIdShaped(DataSlice::JaggedShape shape) {
       std::move(shape), internal::DataItem(schema::kItemId));
 }
 
+// kde.allocation.new_dictid_shaped.
 // Allocates new Dict ItemIds of the given shape.
 inline absl::StatusOr<DataSlice> NewDictIdShaped(DataSlice::JaggedShape shape) {
   size_t size = shape.size();

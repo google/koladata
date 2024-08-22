@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/operators/jagged_shape.h"
+#include "koladata/operators/shapes.h"
 
 #include <cstddef>
 #include <cstdint>

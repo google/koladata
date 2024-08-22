@@ -47,6 +47,7 @@ cc_library(
         ":signature",
         "//koladata:data_bag",
         "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
         "//koladata:object_factories",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
