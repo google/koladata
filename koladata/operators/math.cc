@@ -66,4 +66,8 @@ absl::StatusOr<DataSlice> AggMax(const DataSlice& x) {
   return SimpleAggIntoEval("math.max", {x});
 }
 
+absl::StatusOr<DataSlice> AggMin(const DataSlice& x) {
+  return SimpleAggIntoEval("math.min", {x});
+}
+
 }  // namespace koladata::ops

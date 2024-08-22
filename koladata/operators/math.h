@@ -38,6 +38,9 @@ absl::StatusOr<DataSlice> AggSum(const DataSlice& x);
 // kde.math._agg_max.
 absl::StatusOr<DataSlice> AggMax(const DataSlice& x);
 
+// kde.math._agg_min.
+absl::StatusOr<DataSlice> AggMin(const DataSlice& x);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATH_H_
