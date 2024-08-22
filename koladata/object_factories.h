@@ -80,7 +80,8 @@ struct EntityCreator {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema = std::nullopt,
-      bool update_schema = false);
+      bool update_schema = false,
+      const std::optional<DataSlice>& itemid = std::nullopt);
 
   // Implements kd.new_like function / operator.
   //
@@ -101,7 +102,8 @@ struct EntityCreator {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema = std::nullopt,
-      bool update_schema = false);
+      bool update_schema = false,
+      const std::optional<DataSlice>& itemid = std::nullopt);
 
   // Assigns DataBag `db` to `value`.
   static absl::StatusOr<DataSlice> Convert(const DataBagPtr& db,
@@ -144,7 +146,8 @@ struct ObjectCreator {
       const DataBagPtr& db,
       DataSlice::JaggedShape shape,
       absl::Span<const absl::string_view> attr_names,
-      absl::Span<const DataSlice> values);
+      absl::Span<const DataSlice> values,
+      const std::optional<DataSlice>& itemid = std::nullopt);
 
   // Implements kd.obj_like function / operator.
   //
@@ -161,7 +164,8 @@ struct ObjectCreator {
       const DataBagPtr& db,
       const DataSlice& shape_and_mask_from,
       absl::Span<const absl::string_view> attr_names,
-      absl::Span<const DataSlice> values);
+      absl::Span<const DataSlice> values,
+      const std::optional<DataSlice>& itemid = std::nullopt);
 
   // Convert a DataSlice into an Object. If DataSlice is primitive or an entity,
   // it converts it into an Object. If it is already an Object, it returns this

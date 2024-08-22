@@ -571,15 +571,18 @@ absl::StatusOr<DataSlice> EntityCreator::Shaped(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema,
-    bool update_schema) {
+    bool update_schema,
+    const std::optional<DataSlice>& itemid) {
   return CreateEntitiesImpl(
       db,
       [&](const internal::DataItem& schema_item) {
-        size_t size = shape.size();
-        return DataSlice::Create(
-            internal::DataSliceImpl::AllocateEmptyObjects(size),
-            std::move(shape), schema_item, db);
-      }, attr_names, values, schema, update_schema);
+        return CreateShaped(db, std::move(shape), schema_item,
+                            internal::AllocateSingleObject,
+                            internal::Allocate,
+                            itemid,
+                            DefaultInitItemIdType);
+      },
+      attr_names, values, schema, update_schema);
 }
 
 absl::StatusOr<DataSlice> EntityCreator::Like(
@@ -587,14 +590,15 @@ absl::StatusOr<DataSlice> EntityCreator::Like(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema,
-    bool update_schema) {
+    bool update_schema,
+    const std::optional<DataSlice>& itemid) {
   return CreateEntitiesImpl(
       db,
       [&](const internal::DataItem& schema_item) {
         return CreateLike(db, shape_and_mask_from, schema_item,
                           internal::AllocateSingleObject,
                           internal::Allocate,
-                          /*itemid=*/std::nullopt,
+                          itemid,
                           DefaultInitItemIdType);
       }, attr_names, values, schema, update_schema);
 }
@@ -621,21 +625,25 @@ absl::StatusOr<DataSlice> ObjectCreator::FromAttrs(
 absl::StatusOr<DataSlice> ObjectCreator::Shaped(
     const DataBagPtr& db, DataSlice::JaggedShape shape,
     absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values) {
+    absl::Span<const DataSlice> values,
+    const std::optional<DataSlice>& itemid) {
   return CreateObjectsImpl(
       db,
       [&]() {
-        size_t size = shape.size();
-        return DataSlice::Create(
-            internal::DataSliceImpl::AllocateEmptyObjects(size),
-            std::move(shape), internal::DataItem(schema::kObject), db);
+        return CreateShaped(db, std::move(shape),
+                            internal::DataItem(schema::kObject),
+                            internal::AllocateSingleObject,
+                            internal::Allocate,
+                            itemid,
+                            DefaultInitItemIdType);
       }, attr_names, values);
 }
 
 absl::StatusOr<DataSlice> ObjectCreator::Like(
     const DataBagPtr& db, const DataSlice& shape_and_mask_from,
     absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values) {
+    absl::Span<const DataSlice> values,
+    const std::optional<DataSlice>& itemid) {
   return CreateObjectsImpl(
       db,
       [&]() {
@@ -643,7 +651,7 @@ absl::StatusOr<DataSlice> ObjectCreator::Like(
                           internal::DataItem(schema::kObject),
                           internal::AllocateSingleObject,
                           internal::Allocate,
-                          /*itemid=*/std::nullopt,
+                          itemid,
                           DefaultInitItemIdType);
       }, attr_names, values);
 }

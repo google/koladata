@@ -22,6 +22,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/status/status_matchers.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -1021,6 +1022,101 @@ TYPED_TEST(CreatorTest, Shaped_NoAutoPacking) {
                HasSubstr("trying to assign a slice with 1 dim")));
 }
 
+TYPED_TEST(CreatorTest, Shaped_ItemId) {
+  using CreatorT = typename TestFixture::CreatorT;
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  auto db = DataBag::Empty();
+  auto ds_a = test::AllocateDataSlice(shape.size(), schema::kObject);
+  auto ds_b = test::DataItem(internal::AllocateSingleObject());
+
+  auto itemid = *DataSlice::Create(
+      internal::DataSliceImpl::AllocateEmptyObjects(3),
+      shape, internal::DataItem(schema::kItemId), db);
+
+  DataSlice ds;
+  if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
+        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b},
+        /*schema=*/std::nullopt, /*update_schema=*/false, itemid));
+  } else {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
+        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
+  }
+  EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
+  EXPECT_THAT(ds.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a.WithDb(db))));
+  EXPECT_THAT(ds.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(
+                  BroadcastToShape(ds_b, ds_a.GetShape())->WithDb(db))));
+}
+
+TYPED_TEST(CreatorTest, Shaped_ItemId_Overwrite) {
+  using CreatorT = typename TestFixture::CreatorT;
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  auto db = DataBag::Empty();
+
+  auto itemid = *DataSlice::Create(
+      internal::DataSliceImpl::AllocateEmptyObjects(3),
+      shape, internal::DataItem(schema::kItemId), db);
+
+  // Initial values for attributes 'a' and 'b'.
+  auto ds_a = test::AllocateDataSlice(shape.size(), schema::kObject);
+  auto ds_b = test::DataItem(internal::AllocateSingleObject());
+
+  DataSlice ds;
+  if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
+        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b},
+        /*schema=*/std::nullopt, /*update_schema=*/false, itemid));
+  } else {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
+        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
+  }
+
+  // Overwriting is successful.
+  ds_a = test::DataSlice<int>({1, 2, 3});
+  ds_b = test::DataSlice<int64_t>({42, 43, 44});
+  if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
+        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b},
+        /*schema=*/std::nullopt, /*update_schema=*/false, itemid));
+  } else {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
+        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
+  }
+  EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
+  EXPECT_THAT(ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(1, 2, 3))));
+  EXPECT_THAT(ds.GetAttr("b"),
+              IsOkAndHolds(Property(&DataSlice::slice,
+                                    ElementsAre(DataItemWith<int64_t>(42),
+                                                DataItemWith<int64_t>(43),
+                                                DataItemWith<int64_t>(44)))));
+}
+
+TYPED_TEST(CreatorTest, Shaped_ItemId_Error) {
+  using CreatorT = typename TestFixture::CreatorT;
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  auto db = DataBag::Empty();
+
+  auto itemid = *DataSlice::Create(
+      internal::DataSliceImpl::AllocateEmptyObjects(2),
+      DataSlice::JaggedShape::FlatFromSize(2),
+      internal::DataItem(schema::kItemId), db);
+
+  absl::StatusOr<DataSlice> res_or;
+  if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
+    res_or = CreatorT::Shaped(
+        db, shape, {std::string("a")}, {test::DataItem(42)},
+        /*schema=*/std::nullopt, /*update_schema=*/false, itemid);
+  } else {
+    res_or = CreatorT::Shaped(
+        db, shape, {std::string("a")}, {test::DataItem(42)}, itemid);
+  }
+  EXPECT_THAT(res_or,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("shape is different")));
+}
+
 TYPED_TEST(CreatorTest, Like_WithAttrs) {
   using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
@@ -1084,6 +1180,127 @@ TYPED_TEST(CreatorTest, Like_NoAutoPacking) {
   EXPECT_THAT(CreatorT::Like(db, test::DataItem(42), {"a"}, {ds_a}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("trying to assign a slice with 1 dim")));
+}
+
+TYPED_TEST(CreatorTest, Like_ItemId) {
+  using CreatorT = typename TestFixture::CreatorT;
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataSlice<int>({1, 2, 3});
+  auto ds_b = test::DataSlice<int64_t>({42, 43, 44});
+
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
+      {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
+      shape);
+
+  auto itemid = *DataSlice::Create(
+      internal::DataSliceImpl::AllocateEmptyObjects(3),
+      shape, internal::DataItem(schema::kItemId), db);
+
+  DataSlice ds;
+  if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
+        db, shape_and_mask_from, {std::string("a"), std::string("b")},
+        {ds_a, ds_b}, /*schema=*/std::nullopt, /*update_schema=*/false,
+        itemid));
+  } else {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
+        db, shape_and_mask_from, {std::string("a"), std::string("b")},
+        {ds_a, ds_b}, itemid));
+  }
+  EXPECT_EQ(ds.slice()[0], itemid.slice()[0]);
+  EXPECT_EQ(ds.slice()[1], itemid.slice()[1]);
+  EXPECT_THAT(ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::slice,
+                                    ElementsAre(1, 2, std::nullopt))));
+  EXPECT_THAT(ds.GetAttr("b"),
+              IsOkAndHolds(Property(&DataSlice::slice,
+                                    ElementsAre(DataItemWith<int64_t>(42),
+                                                DataItemWith<int64_t>(43),
+                                                std::nullopt))));
+}
+
+TYPED_TEST(CreatorTest, Like_ItemId_Overwrite) {
+  using CreatorT = typename TestFixture::CreatorT;
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  auto db = DataBag::Empty();
+
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
+      {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
+      shape);
+
+  auto itemid = *DataSlice::Create(
+      internal::DataSliceImpl::AllocateEmptyObjects(3),
+      shape, internal::DataItem(schema::kItemId), db);
+
+  // Initial values for attributes 'a' and 'b'.
+  auto ds_a = test::AllocateDataSlice(shape.size(), schema::kObject);
+  auto ds_b = test::DataItem(internal::AllocateSingleObject());
+
+  DataSlice ds;
+  if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
+        db, shape_and_mask_from, {std::string("a"), std::string("b")},
+        {ds_a, ds_b}, /*schema=*/std::nullopt, /*update_schema=*/false,
+        itemid));
+  } else {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
+        db, shape_and_mask_from, {std::string("a"), std::string("b")},
+        {ds_a, ds_b}, itemid));
+  }
+
+  // Overwriting is successful.
+  ds_a = test::DataSlice<int>({1, 2, 3});
+  ds_b = test::DataSlice<int64_t>({42, 43, 44});
+  if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
+        db, shape_and_mask_from, {std::string("a"), std::string("b")},
+        {ds_a, ds_b}, /*schema=*/std::nullopt, /*update_schema=*/false,
+        itemid));
+  } else {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
+        db, shape_and_mask_from, {std::string("a"), std::string("b")},
+        {ds_a, ds_b}, itemid));
+  }
+  EXPECT_EQ(ds.slice()[0], itemid.slice()[0]);
+  EXPECT_EQ(ds.slice()[1], itemid.slice()[1]);
+  EXPECT_THAT(ds.GetAttr("a"),
+              IsOkAndHolds(Property(&DataSlice::slice,
+                                    ElementsAre(1, 2, std::nullopt))));
+  EXPECT_THAT(ds.GetAttr("b"),
+              IsOkAndHolds(Property(&DataSlice::slice,
+                                    ElementsAre(DataItemWith<int64_t>(42),
+                                                DataItemWith<int64_t>(43),
+                                                std::nullopt))));
+}
+
+TYPED_TEST(CreatorTest, Like_ItemId_Error) {
+  using CreatorT = typename TestFixture::CreatorT;
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  auto db = DataBag::Empty();
+
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
+      {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
+      shape);
+
+  auto itemid = *DataSlice::Create(
+      internal::DataSliceImpl::AllocateEmptyObjects(2),
+      DataSlice::JaggedShape::FlatFromSize(2),
+      internal::DataItem(schema::kItemId), db);
+
+  absl::StatusOr<DataSlice> res_or;
+  if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
+    res_or = CreatorT::Like(
+        db, shape_and_mask_from, {std::string("a")}, {test::DataItem(42)},
+        /*schema=*/std::nullopt, /*update_schema=*/false, itemid);
+  } else {
+    res_or = CreatorT::Like(
+        db, shape_and_mask_from, {std::string("a")}, {test::DataItem(42)},
+        itemid);
+  }
+  EXPECT_THAT(res_or,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("shape is different")));
 }
 
 TEST(ObjectFactoriesTest, CreateEmptyList) {
