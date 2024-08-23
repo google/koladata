@@ -15,10 +15,8 @@
 #ifndef KOLADATA_DATA_BAG_H_
 #define KOLADATA_DATA_BAG_H_
 
-#include <cstdint>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -91,12 +89,6 @@ class DataBag {
   // * In case of no DataBags, nullptr is returned.
   static DataBagPtr CommonDataBag(absl::Span<const DataBagPtr> databags);
 
-  // Returns an id of this DataBag. On each call it returns the same id for that
-  // DataBag. Different DataBags have different ids.
-  // Both the address of this DataBag and a random number are included in
-  // computing this id.
-  uint64_t GetRandomizedDataBagId();
-
   // Returns a new DataBag with all the fallbacks merged.
   absl::StatusOr<DataBagPtr> MergeFallbacks();
 
@@ -111,18 +103,24 @@ class DataBag {
                             bool allow_data_conflicts,
                             bool allow_schema_conflicts);
 
+  // Fingerprint of the DataBag (randomized).
+  arolla::Fingerprint fingerprint() const { return fingerprint_; }
+
  private:
   explicit DataBag(bool is_mutable)
       : impl_(internal::DataBagImpl::CreateEmptyDatabag()),
-        is_mutable_(is_mutable) {}
+        is_mutable_(is_mutable),
+        // NOTE: consider lazy initialization of the fingerprint if it becomes
+        // expensive to compute.
+        fingerprint_(arolla::RandomFingerprint()) {}
 
   // Returns a mutable DataBag that wraps provided low-level DataBagImpl.
   static DataBagPtr FromImpl(internal::DataBagImplPtr impl);
 
   internal::DataBagImplPtr impl_;
   std::vector<DataBagPtr> fallbacks_;
-  bool is_mutable_ = true;
-  std::optional<uint64_t> randomized_data_bag_id_;
+  bool is_mutable_;
+  arolla::Fingerprint fingerprint_;
 };
 
 class FlattenFallbackFinder {

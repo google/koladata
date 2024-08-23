@@ -14,16 +14,13 @@
 //
 #include "koladata/data_bag.h"
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
-#include "absl/random/random.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -102,22 +99,6 @@ DataBagPtr DataBag::FromImpl(internal::DataBagImplPtr impl) {
   res->impl_ = std::move(impl);
   res->impl_->AssignToDataBag();
   return res;
-}
-
-uint64_t DataBag::GetRandomizedDataBagId() {
-  static absl::NoDestructor<absl::BitGen> bitgen;
-  if (!randomized_data_bag_id_.has_value()) {
-    randomized_data_bag_id_ =
-        // NOTE: Given that we use address of a DataBag for its fingerprint,
-        // this has a problem of allocating a different DataBag at the same
-        // address if the first one gets deallocated. In order to prevent these
-        // 2 DataBags to have same fingerprints, we inject a random portion to
-        // the fingerprint.
-        (*bitgen)()
-        // Also using Address of DataBag as part of its fingerprint value.
-        ^ reinterpret_cast<uintptr_t>(this);
-  }
-  return *randomized_data_bag_id_;
 }
 
 namespace {
@@ -213,7 +194,7 @@ namespace arolla {
 
 void FingerprintHasherTraits<::koladata::DataBagPtr>::operator()(
     FingerprintHasher* hasher, const ::koladata::DataBagPtr& value) const {
-  hasher->Combine(value->GetRandomizedDataBagId());
+  hasher->Combine(value->fingerprint());
 }
 
 ReprToken ReprTraits<::koladata::DataBagPtr>::operator()(
