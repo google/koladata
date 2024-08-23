@@ -69,6 +69,16 @@ inline absl::StatusOr<DataSlice> HasNot(const DataSlice& x) {
                              internal::DataItem(schema::kMask));
 }
 
+// kde.logical._agg_any.
+inline absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
+  return SimpleAggIntoEval("core.any", {x}, internal::DataItem(schema::kMask));
+}
+
+// kde.logical._agg_all.
+inline absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
+  return SimpleAggIntoEval("core.all", {x}, internal::DataItem(schema::kMask));
+}
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_LOGICAL_H_

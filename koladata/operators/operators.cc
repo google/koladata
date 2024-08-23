@@ -46,8 +46,6 @@ OPERATOR("kde.comparison.greater_equal", GreaterEqual);
 OPERATOR("kde.comparison.less", Less);
 OPERATOR("kde.comparison.less_equal", LessEqual);
 //
-OPERATOR("kde.core._agg_all", AggAll);
-OPERATOR("kde.core._agg_any", AggAny);
 OPERATOR("kde.core._clone", Clone);
 OPERATOR("kde.core._collapse", Collapse);
 OPERATOR_FAMILY("kde.core._concat_or_stack", ConcatOrStackOperatorFamily);
@@ -83,6 +81,8 @@ OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
 OPERATOR("kde.core.with_db", WithDb);
 //
+OPERATOR("kde.logical._agg_all", AggAll);
+OPERATOR("kde.logical._agg_any", AggAny);
 OPERATOR("kde.logical._has_not", HasNot);
 OPERATOR("kde.logical.apply_mask", ApplyMask);
 OPERATOR("kde.logical.coalesce", Coalesce);
