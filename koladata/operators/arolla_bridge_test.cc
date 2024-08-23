@@ -134,6 +134,27 @@ TEST(ArollaEval, SimplePointwiseEval) {
                 IsEquivalentTo(
                     *test::EmptyDataSlice(4, schema::kAny).Reshape(y_shape)));
   }
+  {
+    // Schema derived from Arolla output is different from inputs' schemas.
+    DataSlice x = test::DataSlice<int>({6, 6, std::nullopt}, schema::kInt32);
+    DataSlice::JaggedShape y_shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice y = test::DataSlice<int64_t>(
+        {int64_t{2}, int64_t{3}, std::nullopt, int64_t{-1}}, y_shape,
+        schema::kInt64);
+    ASSERT_OK_AND_ASSIGN(auto result,
+                         SimplePointwiseEval("math.divide", {x, y}));
+    EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<float>(
+                            {3.0, 2.0, std::nullopt, std::nullopt}, y_shape,
+                            schema::kFloat32)));
+    // With output schema set.
+    ASSERT_OK_AND_ASSIGN(result,
+                         SimplePointwiseEval("math.divide", {x, y},
+                                             internal::DataItem(schema::kAny)));
+    EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<float>(
+                            {3.0, 2.0, std::nullopt, std::nullopt}, y_shape,
+                            schema::kAny)));
+  }
 }
 
 TEST(ArollaEval, SimpleAggIntoEval) {

@@ -163,10 +163,11 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(const DataSlice& x);
 // Evaluates the registered operator of the given name on the given inputs and
 // returns the result. The expr_op is expected to be a pointwise operator that
 // should be evaluated on the given inputs extracted as Arolla values. The
-// output DataSlice has the the common shape and schema of the inputs, or
-// `output_schema` if provided. If all inputs are empty-and-unknown, the
-// `expr_op` is not evaluated. In other cases the first primitive schema of the
-// present inputs is used to construct inputs.
+// output DataSlice's shape is the common shape of the inputs. Its schema is
+// either the common schema of the inputs' schemas and schema derived from
+// Arolla output, or `output_schema` if provided. If all inputs are
+// empty-and-unknown, the `expr_op` is not evaluated. In other cases the first
+// primitive schema of the present inputs is used to construct inputs.
 absl::StatusOr<DataSlice> SimplePointwiseEval(
     absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema = internal::DataItem());

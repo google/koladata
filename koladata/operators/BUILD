@@ -133,6 +133,7 @@ cc_library(
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/qtype/standard_type_properties",
         "@com_google_arolla//arolla/serving",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",

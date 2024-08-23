@@ -50,6 +50,7 @@
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/standard_type_properties/properties.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serving/expr_compiler.h"
@@ -276,15 +277,15 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
       first_primitive_schema = std::move(primitive_schema);
     }
   }
-  if (!output_schema.has_value()) {
-    ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
-  }
   // All empty-and-unknown inputs. We then skip evaluation and just broadcast
   // the first input to the common shape and common schema.
   if (!first_primitive_schema.has_value()) {
     ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(inputs));
-    ASSIGN_OR_RETURN(auto ds,
-                     DataSlice::Create(internal::DataItem(), output_schema));
+    if (!output_schema.has_value()) {
+      ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
+    }
+    ASSIGN_OR_RETURN(auto ds, DataSlice::Create(internal::DataItem(),
+                                                std::move(output_schema)));
     return BroadcastToShape(ds, std::move(common_shape));
   }
   // From here on, we know that at least one input has known schema and we
@@ -302,6 +303,15 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     typed_refs.push_back(std::move(ref));
   }
   ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs));
+  if (output_schema.has_value()) {
+    return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
+                                    std::move(output_schema));
+  }
+  // Get the common schema from both inputs and outputs.
+  ASSIGN_OR_RETURN(auto output_qtype, arolla::GetScalarQType(result.GetType()));
+  ASSIGN_OR_RETURN(auto result_dtype, schema::DType::FromQType(output_qtype));
+  schema_agg.Add(result_dtype);
+  ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
   return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
                                   std::move(output_schema));
 }
