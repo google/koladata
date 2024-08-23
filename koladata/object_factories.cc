@@ -403,6 +403,31 @@ absl::StatusOr<DataSlice> DeduceItemSchema(
                            internal::DataItem(schema::kSchema));
 }
 
+// Creates list schema with the given item schema.
+absl::StatusOr<internal::DataItem> CreateListSchemaItem(
+    const DataBagPtr& db, const DataSlice& item_schema) {
+  RETURN_IF_ERROR(item_schema.VerifyIsSchema());
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  return db_mutable_impl.CreateUuSchemaFromFields(
+      "::koladata::::CreateListSchemaItem",
+      {"__items__"}, {item_schema.item()});
+}
+
+// Creates dict schema with the given keys and values schemas.
+absl::StatusOr<internal::DataItem> CreateDictSchemaItem(
+    const DataBagPtr& db, const DataSlice& key_schema,
+    const DataSlice& value_schema) {
+  RETURN_IF_ERROR(key_schema.VerifyIsSchema());
+  RETURN_IF_ERROR(value_schema.VerifyIsSchema());
+  RETURN_IF_ERROR(schema::VerifyDictKeySchema(key_schema.item()));
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  return db_mutable_impl.CreateUuSchemaFromFields(
+      "::koladata::::CreateDictSchemaItem", {"__keys__", "__values__"},
+      {key_schema.item(), value_schema.item()});
+}
+
 // Implementation of CreateDictLike and CreateDictShaped that handles schema
 // deduction and keys/values assignment. `create_dicts_fn` must create a
 // DataSlice with the provided schema.
@@ -826,29 +851,6 @@ absl::StatusOr<DataSlice> CreateUuObject(
             impl_res.value(), aligned_values.begin()->GetShape(),
             internal::DataItem(schema::kObject), db);
       });
-}
-
-absl::StatusOr<internal::DataItem> CreateListSchemaItem(
-    const DataBagPtr& db, const DataSlice& item_schema) {
-  RETURN_IF_ERROR(item_schema.VerifyIsSchema());
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
-  return db_mutable_impl.CreateUuSchemaFromFields(
-      "::koladata::::CreateListSchemaItem",
-      {"__items__"}, {item_schema.item()});
-}
-
-absl::StatusOr<internal::DataItem> CreateDictSchemaItem(
-    const DataBagPtr& db, const DataSlice& key_schema,
-    const DataSlice& value_schema) {
-  RETURN_IF_ERROR(key_schema.VerifyIsSchema());
-  RETURN_IF_ERROR(value_schema.VerifyIsSchema());
-  RETURN_IF_ERROR(schema::VerifyDictKeySchema(key_schema.item()));
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
-  return db_mutable_impl.CreateUuSchemaFromFields(
-      "::koladata::::CreateDictSchemaItem", {"__keys__", "__values__"},
-      {key_schema.item(), value_schema.item()});
 }
 
 absl::StatusOr<DataSlice> CreateEntitySchema(

@@ -25,7 +25,6 @@
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "koladata/internal/data_item.h"
 #include "koladata/internal/uuid_object.h"
 
 namespace koladata {
@@ -261,15 +260,6 @@ absl::StatusOr<DataSlice> CreateSchema(
     const DataBagPtr& db,
     const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& schemas);
-
-// Creates list schema with the given item schema.
-absl::StatusOr<internal::DataItem> CreateListSchemaItem(
-    const DataBagPtr& db, const DataSlice& item_schema);
-
-// Creates dict schema with the given keys and values schemas.
-absl::StatusOr<internal::DataItem> CreateDictSchemaItem(
-    const DataBagPtr& db, const DataSlice& key_schema,
-    const DataSlice& value_schema);
 
 // Returns a list schema from a given `item_schema`.
 absl::StatusOr<DataSlice> CreateListSchema(const DataBagPtr& db,

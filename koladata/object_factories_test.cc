@@ -1748,9 +1748,8 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchema) {
 
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
-      auto list_schema_item,
-      CreateListSchemaItem(schema_db, test::Schema(schema::kInt32)));
-  auto list_schema = test::Schema(list_schema_item, schema_db);
+      auto list_schema,
+      CreateListSchema(schema_db, test::Schema(schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(auto ds,
                        CreateListShaped(db, shape,
                                         /*values=*/test::DataSlice<int>({1, 2}),
@@ -1789,12 +1788,12 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaError) {
 
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
-      auto list_schema_item,
-      CreateListSchemaItem(schema_db, test::Schema(schema::kInt32)));
+      auto list_schema,
+      CreateListSchema(schema_db, test::Schema(schema::kInt32)));
 
   EXPECT_THAT(
       CreateListShaped(db, shape, test::DataSlice<arolla::Text>({"abc", "xyz"}),
-                       test::Schema(list_schema_item, schema_db)),
+                       list_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("schema for List Items is incompatible")));
 }
@@ -2125,10 +2124,9 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema) {
 
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
-      auto dict_schema_item,
-      CreateDictSchemaItem(schema_db, test::Schema(schema::kText),
-                           test::Schema(schema::kInt64)));
-  auto dict_schema = test::Schema(dict_schema_item, schema_db);
+      auto dict_schema,
+      CreateDictSchema(schema_db, test::Schema(schema::kText),
+                       test::Schema(schema::kInt64)));
   auto keys = test::DataSlice<arolla::Text>({"a", "b", "c"});
   ASSERT_OK_AND_ASSIGN(
       auto ds, CreateDictShaped(db, shape,
@@ -2413,14 +2411,14 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
 
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
-      auto dict_schema_item,
-      CreateDictSchemaItem(schema_db, test::Schema(schema::kInt32),
-                           test::Schema(schema::kAny)));
+      auto dict_schema,
+      CreateDictSchema(schema_db, test::Schema(schema::kInt32),
+                       test::Schema(schema::kAny)));
 
   EXPECT_THAT(CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
                                test::DataSlice<arolla::Text>({"abc", "xyz"}),
                                test::DataSlice<int>({1, 2}),
-                               test::Schema(dict_schema_item, schema_db)),
+                               dict_schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("schema for Dict Keys is incompatible")));
 }
@@ -2841,9 +2839,8 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema) {
 
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
-      auto list_schema_item,
-      CreateListSchemaItem(schema_db, test::Schema(schema::kInt32)));
-  auto list_schema = test::Schema(list_schema_item, schema_db);
+      auto list_schema,
+      CreateListSchema(schema_db, test::Schema(schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(auto ds,
                        CreateListLike(db, shape_and_mask_from,
                                       /*values=*/test::DataSlice<int>({1, 2}),
@@ -2989,12 +2986,12 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchemaError) {
 
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
-      auto list_schema_item,
-      CreateListSchemaItem(schema_db, test::Schema(schema::kInt32)));
+      auto list_schema,
+      CreateListSchema(schema_db, test::Schema(schema::kInt32)));
 
   EXPECT_THAT(CreateListLike(db, shape_and_mask_from,
                              test::DataSlice<arolla::Text>({"abc", "xyz"}),
-                             test::Schema(list_schema_item, schema_db)),
+                             list_schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("schema for List Items is incompatible")));
 }
