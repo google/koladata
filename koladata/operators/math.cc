@@ -37,6 +37,10 @@ absl::StatusOr<DataSlice> Divide(const DataSlice& x, const DataSlice& y) {
   return SimplePointwiseEval("math.divide", {x, y});
 }
 
+absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y) {
+  return SimplePointwiseEval("math.pow", {x, y});
+}
+
 absl::StatusOr<DataSlice> Maximum(const DataSlice& x, const DataSlice& y) {
   return SimplePointwiseEval("math.maximum", {x, y});
 }

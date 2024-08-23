@@ -95,6 +95,7 @@ OPERATOR("kde.math.divide", Divide);
 OPERATOR("kde.math.maximum", Maximum);
 OPERATOR("kde.math.minimum", Minimum);
 OPERATOR("kde.math.multiply", Multiply);
+OPERATOR("kde.math.pow", Pow);
 OPERATOR("kde.math.subtract", Subtract);
 //
 OPERATOR("kde.schema._list_schema", ListSchema);

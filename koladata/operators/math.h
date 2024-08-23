@@ -29,6 +29,9 @@ absl::StatusOr<DataSlice> Multiply(const DataSlice& x, const DataSlice& y);
 // kde.math.divide.
 absl::StatusOr<DataSlice> Divide(const DataSlice& x, const DataSlice& y);
 
+// kde.math.pow.
+absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y);
+
 // kde.math.maximum.
 absl::StatusOr<DataSlice> Maximum(const DataSlice& x, const DataSlice& y);
 
