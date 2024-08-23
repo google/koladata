@@ -20,6 +20,7 @@
 #include "absl/random/random.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/op_utils/benchmark_util.h"
 #include "koladata/internal/op_utils/presence_or.h"
 #include "arolla/dense_array/testing/util.h"
 #include "arolla/qexpr/eval_context.h"
@@ -32,8 +33,6 @@ namespace {
 struct DataSliceOp {};
 struct DataItemOp {};
 struct DenseArrayOp {};
-
-using ::arolla::testing::RandomDenseArray;
 
 constexpr auto kBenchmarkFn = [](auto* b) {
   b->Arg(1)->Arg(10)->Arg(10000)->Arg(1000000);
@@ -77,8 +76,10 @@ template <typename Access>
 void BM_float(benchmark::State& state) {
   int64_t total_size = state.range(0);
   absl::BitGen gen;
-  auto values_a = RandomDenseArray<float>(total_size, /*full=*/false, 0, gen);
-  auto values_b = RandomDenseArray<float>(total_size, /*full=*/false, 0, gen);
+  auto values_a =
+      RandomNonEmptyDenseArray<float>(total_size, /*full=*/false, 0, gen);
+  auto values_b =
+      RandomNonEmptyDenseArray<float>(total_size, /*full=*/false, 0, gen);
 
   auto ds_a = DataSliceImpl::Create(values_a);
   auto ds_b = DataSliceImpl::Create(values_b);
@@ -90,8 +91,10 @@ template <typename Access>
 void BM_float_int32(benchmark::State& state) {
   int64_t total_size = state.range(0);
   absl::BitGen gen;
-  auto values_a = RandomDenseArray<float>(total_size, /*full=*/false, 0, gen);
-  auto values_b = RandomDenseArray<int32_t>(total_size, /*full=*/false, 0, gen);
+  auto values_a =
+      RandomNonEmptyDenseArray<float>(total_size, /*full=*/false, 0, gen);
+  auto values_b =
+      RandomNonEmptyDenseArray<int32_t>(total_size, /*full=*/false, 0, gen);
 
   auto ds_a = DataSliceImpl::Create(values_a);
   auto ds_b = DataSliceImpl::Create(values_b);
@@ -109,7 +112,8 @@ BENCHMARK(BM_float_int32<DataItemOp>)->Apply(kBenchmarkFn);
 void BM_DataSliceOrDataItem(benchmark::State& state) {
   int64_t total_size = state.range(0);
   absl::BitGen gen;
-  auto values_a = RandomDenseArray<float>(total_size, /*full=*/false, 0, gen);
+  auto values_a =
+      RandomNonEmptyDenseArray<float>(total_size, /*full=*/false, 0, gen);
   auto ds_a = DataSliceImpl::Create(values_a);
 
   auto di_b = DataItem(3.14);

@@ -201,6 +201,9 @@ CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
 template <int64_t uuid_flag>
 absl::StatusOr<DataSliceImpl> CreateUuidWithMainObject(
     const DataSliceImpl& main_objects, absl::string_view salt) {
+  if (main_objects.is_empty_and_unknown()) {
+    return main_objects;
+  }
   if (main_objects.dtype() != arolla::GetQType<ObjectId>()) {
     return absl::FailedPreconditionError("Main objects must be ObjectId");
   }

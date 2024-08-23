@@ -203,16 +203,18 @@ void BM_Coalesce(benchmark::State& state) {
     }
   }
   auto db = DataBag::Empty();
-  auto ds_x = DataSlice::CreateWithSchemaFromData(
-                  internal::DataSliceImpl::Create(
-                      arolla::CreateDenseArray<X>(values_x)),
-                  DataSlice::JaggedShape::FlatFromSize(slice_size), db)
-                  .value();
-  auto ds_y = DataSlice::CreateWithSchemaFromData(
-                  internal::DataSliceImpl::Create(
-                      arolla::CreateDenseArray<Y>(values_y)),
-                  DataSlice::JaggedShape::FlatFromSize(slice_size), db)
-                  .value();
+  auto ds_x =
+      DataSlice::Create(internal::DataSliceImpl::Create(
+                            arolla::CreateDenseArray<X>(values_x)),
+                        DataSlice::JaggedShape::FlatFromSize(slice_size),
+                        internal::DataItem(schema::GetDType<X>()), db)
+          .value();
+  auto ds_y =
+      DataSlice::Create(internal::DataSliceImpl::Create(
+                            arolla::CreateDenseArray<Y>(values_y)),
+                        DataSlice::JaggedShape::FlatFromSize(slice_size),
+                        internal::DataItem(schema::GetDType<Y>()), db)
+          .value();
 
   auto expr = CallOp("kde.coalesce", {Leaf("x"), Leaf("y")}).value();
 

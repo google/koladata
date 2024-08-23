@@ -61,11 +61,11 @@ cc_test(
     name = "equal_benchmarks",
     srcs = ["equal_benchmarks.cc"],
     deps = [
+        ":benchmark_util",
         ":equal",
         "//koladata/internal:data_slice",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/random",
-        "@com_google_arolla//arolla/dense_array/testing",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qexpr/operators/bool:lib",
         "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
@@ -311,6 +311,17 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "benchmark_util",
+    testonly = 1,
+    hdrs = ["benchmark_util.h"],
+    deps = [
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/random",
+        "@com_google_arolla//arolla/dense_array/testing",
+    ],
+)
+
 cc_test(
     name = "extract_benchmarks",
     timeout = "long",  # Times out in bazel.
@@ -340,6 +351,7 @@ cc_test(
     name = "presence_or_benchmarks",
     srcs = ["presence_or_benchmarks.cc"],
     deps = [
+        ":benchmark_util",
         ":presence_or",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -358,11 +370,10 @@ cc_test(
     name = "presence_and_benchmarks",
     srcs = ["presence_and_benchmarks.cc"],
     deps = [
+        ":benchmark_util",
         ":presence_and",
         "//koladata/internal:data_slice",
-        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/random",
-        "@com_google_arolla//arolla/dense_array/testing",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
         "@com_google_arolla//arolla/qtype",

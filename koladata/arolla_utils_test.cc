@@ -123,28 +123,6 @@ TEST(DataSliceUtils, ToArollaArray) {
   EXPECT_THAT(arolla_res.UnsafeAs<DenseArray<Text>>(),
               ElementsAreArray(values_2));
   EXPECT_TRUE(typed_value_holder.empty());
-
-  // Empty array, but not "empty" slice, i.e. it has a typed array inside.
-  auto values_3 = CreateDenseArray<int>(
-      {std::nullopt, std::nullopt, std::nullopt});
-  ASSERT_OK_AND_ASSIGN(
-      ds,
-      DataSlice::CreateWithSchemaFromData(
-          internal::DataSliceImpl::Create(values_3), shape));
-
-  ASSERT_OK_AND_ASSIGN(arolla_val, DataSliceToArollaValue(ds));
-  EXPECT_THAT(arolla_val.UnsafeAs<DenseArray<int>>(),
-              ElementsAreArray(values_3));
-
-  ASSERT_OK_AND_ASSIGN(arolla_ref, DataSliceToArollaRef(ds));
-  EXPECT_THAT(arolla_ref.UnsafeAs<DenseArray<int>>(),
-              ElementsAreArray(values_3));
-
-  ASSERT_OK_AND_ASSIGN(arolla_res,
-                       DataSliceToOwnedArollaRef(ds, typed_value_holder));
-  EXPECT_THAT(arolla_res.UnsafeAs<DenseArray<int>>(),
-              ElementsAreArray(values_3));
-  EXPECT_TRUE(typed_value_holder.empty());
 }
 
 // NOTE: Empty and unknown slices work only with TypedValue and not TypedRef.
@@ -249,17 +227,6 @@ TEST(DataSliceUtils, ToArollaValueScalar) {
   ASSERT_OK_AND_ASSIGN(arolla_val, DataSliceToArollaValue(ds));
   EXPECT_EQ(arolla_val.UnsafeAs<Text>(), Text("abc"));
 
-  // Optional - empty, but typed
-  auto values_3 = CreateDenseArray<int>({std::nullopt});
-  ASSERT_OK_AND_ASSIGN(
-      ds,
-      DataSlice::CreateWithSchemaFromData(
-          internal::DataSliceImpl::Create(values_3), shape));
-
-  ASSERT_OK_AND_ASSIGN(arolla_val, DataSliceToArollaValue(ds));
-  EXPECT_EQ(arolla_val.UnsafeAs<arolla::OptionalValue<int>>(),
-            arolla::OptionalValue<int>{});
-
   // Optional - empty, untyped, but with primitive Schema.
   ASSERT_OK_AND_ASSIGN(
       ds,
@@ -345,6 +312,23 @@ TEST(DataSliceUtils, FromDenseArray) {
 
   ASSERT_OK_AND_ASSIGN(auto darray, DataSliceToDenseArray(ds));
   EXPECT_THAT(darray.UnsafeAs<DenseArray<int>>(), ElementsAreArray(values));
+}
+
+TEST(DataSliceUtils, FromDenseArrayEmpty) {
+  auto values =
+      CreateDenseArray<int>({std::nullopt, std::nullopt, std::nullopt});
+  auto typed_value = arolla::TypedValue::FromValue(values);
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       DataSliceFromPrimitivesDenseArray(typed_value.AsRef()));
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  EXPECT_EQ(ds.size(), values.size());
+  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
+  EXPECT_EQ(ds.GetSchema().item(), schema::kInt32);
+  EXPECT_TRUE(ds.impl_empty_and_unknown());
+
+  EXPECT_THAT(ds.slice(),
+              ElementsAre(internal::DataItem(), internal::DataItem(),
+                          internal::DataItem()));
 }
 
 TEST(DataSliceUtils, FromDenseArrayError) {
@@ -514,17 +498,37 @@ TEST(DataSliceUtils, FromArray) {
   EXPECT_THAT(darray.UnsafeAs<DenseArray<int>>(), ElementsAre(1, 2, 3));
 }
 
+TEST(DataSliceUtils, FromArrayEmpty) {
+  auto values =
+      arolla::CreateArray<int>({std::nullopt, std::nullopt, std::nullopt});
+  auto typed_value = arolla::TypedValue::FromValue(values);
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       DataSliceFromPrimitivesArray(typed_value.AsRef()));
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  EXPECT_EQ(ds.size(), values.size());
+  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
+  EXPECT_EQ(ds.GetSchema().item(), schema::kInt32);
+
+  EXPECT_TRUE(ds.impl_empty_and_unknown());
+  EXPECT_THAT(ds.slice(),
+              ElementsAre(internal::DataItem(), internal::DataItem(),
+                          internal::DataItem()));
+}
+
 TEST(DataSliceUtils, FromArrayError) {
   auto object = arolla::TypedValue::FromValue(internal::ObjectId());
   EXPECT_THAT(DataSliceFromPrimitivesArray(object.AsRef()),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("expected Arolla Array, but got: OBJECT_ID")));
 
-  auto values = arolla::CreateArray<uint64_t>({1234, std::nullopt});
-  auto typed_value = arolla::TypedValue::FromValue(values);
-  EXPECT_THAT(DataSliceFromPrimitivesArray(typed_value.AsRef()),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("unsupported array element type: UINT64")));
+  {
+    SCOPED_TRACE("uint64 value");
+    auto values = arolla::CreateArray<uint64_t>({1234, std::nullopt});
+    auto typed_value = arolla::TypedValue::FromValue(values);
+    EXPECT_THAT(DataSliceFromPrimitivesArray(typed_value.AsRef()),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("unsupported array element type: UINT64")));
+  }
 }
 
 }  // namespace

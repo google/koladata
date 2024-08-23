@@ -70,7 +70,8 @@ TEST(HasTest, DataSlicePrimitiveValues) {
     auto ds = DataSliceImpl::Builder(3).Build();
 
     ASSERT_OK_AND_ASSIGN(auto res, HasOp()(ds));
-    EXPECT_THAT(res.values<Unit>(), ElementsAre(kMissing, kMissing, kMissing));
+    EXPECT_TRUE(res.is_empty_and_unknown());
+    EXPECT_EQ(res.size(), 3);
   }
   {
     // Empty result.
@@ -78,7 +79,8 @@ TEST(HasTest, DataSlicePrimitiveValues) {
     auto ds = DataSliceImpl::Create(values);
 
     ASSERT_OK_AND_ASSIGN(auto res, HasOp()(ds));
-    EXPECT_THAT(res.values<Unit>(), ElementsAre(kMissing, kMissing));
+    EXPECT_TRUE(res.is_empty_and_unknown());
+    EXPECT_EQ(res.size(), 2);
   }
 }
 
@@ -130,8 +132,7 @@ TEST(HasTest, DataSliceObjectId) {
 
     ASSERT_OK_AND_ASSIGN(auto res, HasOp()(ds));
     EXPECT_EQ(res.size(), 4);
-    EXPECT_THAT(res.values<Unit>(),
-                ElementsAre(kMissing, kMissing, kMissing, kMissing));
+    EXPECT_TRUE(res.is_empty_and_unknown());
   }
 }
 

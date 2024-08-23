@@ -58,6 +58,11 @@ namespace koladata::internal {
 // Multidimensional Jagged Array storing ObjectId's or primitives.
 class DataSliceImpl {
  public:
+  // Creates empty DataSliceImpl with `size` equal to zero and unknown type.
+  // TODO: avoid allocation in default constructor and create a
+  // private constructor for Builder and factory methods.
+  DataSliceImpl() = default;
+
   // Returns DataSliceImpl with `size` newly allocated objects
   // in a single AllocationId.
   static DataSliceImpl AllocateEmptyObjects(size_t size);
@@ -68,12 +73,6 @@ class DataSliceImpl {
 
   // Returns DataSliceImpl with `size` missing ObjectId's.
   static DataSliceImpl CreateAllMissingObjectDataSlice(size_t size);
-
-  // Returns DataSliceImpl that is empty, but has type. This also means that
-  // underlying empty storage is owned. I.e. `is_empty_and_unknown` will return
-  // False.
-  static absl::StatusOr<DataSliceImpl> CreateEmptyWithType(
-      size_t size, arolla::QTypePtr dtype);
 
   // Returns empty DataSliceImpl with given `size` and unknown type.
   static DataSliceImpl CreateEmptyAndUnknownType(size_t size);
@@ -406,10 +405,13 @@ void DataSliceImpl::CreateImpl(DataSliceImpl& res,
   if constexpr (sizeof...(values) > 0) {
     impl.values.reserve(sizeof...(values) + 1);
     DCHECK(((values.size() == main_values.size()) && ...));
-  } else {
+  }
+  // We avoid calling RemoveEmptyValues for single type to minimize
+  // overhead in runtime and the binary size.
+  if (!main_values.IsAllMissing()) {
+    impl.values.emplace_back(std::move(main_values));
     impl.dtype = arolla::GetQType<T>();
   }
-  impl.values.emplace_back(std::move(main_values));
   if constexpr (sizeof...(values) > 0) {
     (impl.values.emplace_back(std::move(values)), ...);
     res.RemoveEmptyValues();

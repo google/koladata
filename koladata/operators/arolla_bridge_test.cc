@@ -98,10 +98,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
         result,
         IsEquivalentTo(
             *test::EmptyDataSlice(4, schema::kObject).Reshape(y_shape)));
-    // TODO: This should be true once fully empty DenseArrays are
-    // represented as empty-and-unknown. This check is kept to ensure that this
-    // is changed in the future.
-    EXPECT_FALSE(result.impl_empty_and_unknown());
+    EXPECT_TRUE(result.impl_empty_and_unknown());
   }
   {
     // One empty and unknown slice - not supported type error.

@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -145,8 +146,12 @@ absl::StatusOr<DataSlice> DataSliceFromPrimitivesDenseArray(
   }
   ASSIGN_OR_RETURN(auto ds_impl, internal::DataSliceImpl::Create(values));
   size_t size = ds_impl.size();
-  return DataSlice::CreateWithSchemaFromData(
-      std::move(ds_impl), DataSlice::JaggedShape::FlatFromSize(size));
+  ASSIGN_OR_RETURN(auto dtype,
+                   schema::DType::FromQType(values.GetType()->value_qtype()));
+  return DataSlice::Create(std::move(ds_impl),
+                           DataSlice::JaggedShape::FlatFromSize(size),
+                           internal::DataItem(dtype),
+                           /*db=*/nullptr);
 }
 
 absl::StatusOr<DataSlice> DataSliceFromPrimitivesArray(
@@ -165,8 +170,20 @@ absl::StatusOr<DataSlice> DataSliceFromPrimitivesArray(
               values.UnsafeAs<arolla::Array<T>>().ToDenseForm().dense_data()
               .ForceNoBitmapBitOffset());
           size_t size = ds_impl.size();
-          res = DataSlice::CreateWithSchemaFromData(
-              std::move(ds_impl), DataSlice::JaggedShape::FlatFromSize(size));
+          internal::DataItem dtype;
+          if constexpr (std::is_same_v<T, internal::MissingValue> ||
+                        std::is_same_v<T, schema::DType>) {
+            // These types are not supported in schema::GetDType<T>.
+            LOG(FATAL) << "InternalError: unsupported type that couldn't be "
+                          "stored in TypedRef";
+            return;
+          } else {
+            dtype = internal::DataItem(schema::GetDType<T>());
+          }
+          res = DataSlice::Create(std::move(ds_impl),
+                                  DataSlice::JaggedShape::FlatFromSize(size),
+                                  dtype,
+                                  /*db=*/nullptr);
         }
       });
   if (!res.has_value()) {

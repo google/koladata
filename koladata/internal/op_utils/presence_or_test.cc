@@ -102,9 +102,7 @@ TEST(PresenceOrTest, EmptyInputs) {
     // Empty and typed rhs.
     auto l = CreateDenseArray<int>({1, 2, std::nullopt});
     auto lds = DataSliceImpl::Create(l);
-    ASSERT_OK_AND_ASSIGN(
-        auto rds,
-        DataSliceImpl::CreateEmptyWithType(3, arolla::GetQType<float>()));
+    auto rds = DataSliceImpl::CreateEmptyAndUnknownType(3);
 
     ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
     EXPECT_THAT(res, ElementsAre(1, 2, std::nullopt));

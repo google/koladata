@@ -356,6 +356,9 @@ class CopyingProcessor {
     }
     ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
                      db.GetSchemaAttrs(old_schema, fallbacks));
+    if (attr_names_slice.size() == 0) {
+      return absl::OkStatus();
+    }
     if (attr_names_slice.present_count() != attr_names_slice.size()) {
       return absl::InternalError("schema attribute names should be present");
     }

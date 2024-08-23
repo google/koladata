@@ -16,11 +16,10 @@
 #include <utility>
 
 #include "benchmark/benchmark.h"
-#include "absl/log/check.h"
 #include "absl/random/random.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/op_utils/benchmark_util.h"
 #include "koladata/internal/op_utils/presence_and.h"
-#include "arolla/dense_array/testing/util.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/qtype/base_types.h"
@@ -33,8 +32,6 @@ struct DataSliceOp {};
 struct DataItemOp {};
 struct DenseArrayOp {};
 
-using ::arolla::testing::RandomDenseArray;
-
 constexpr auto kBenchmarkFn = [](auto* b) {
   b->Arg(1)->Arg(10)->Arg(10000)->Arg(1000000);
 };
@@ -43,8 +40,10 @@ template <typename Access>
 void BM_float(benchmark::State& state) {
   int64_t total_size = state.range(0);
   absl::BitGen gen;
-  auto values = RandomDenseArray<float>(total_size, /*full=*/false, 0, gen);
-  auto values_b = RandomDenseArray<float>(total_size, /*full=*/false, 0, gen);
+  auto values =
+      RandomNonEmptyDenseArray<float>(total_size, /*full=*/false, 0, gen);
+  auto values_b =
+      RandomNonEmptyDenseArray<float>(total_size, /*full=*/false, 0, gen);
   auto mask = arolla::DenseArrayHasOp()(values_b);
 
   auto ds_values = DataSliceImpl::Create(values);

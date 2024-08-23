@@ -221,18 +221,6 @@ TEST(AtTest, EmptyDataSlice) {
     EXPECT_THAT(res, ElementsAre(DataItem(), DataItem(), DataItem()));
   }
   {
-    // Single variant.
-    ASSERT_OK_AND_ASSIGN(auto ds, DataSliceImpl::CreateEmptyWithType(
-                                      7, arolla::GetQType<int>()));
-    auto indices = CreateDenseArray<int64_t>({0, std::nullopt, 4});
-    auto ds_to_common = CreateEdge({0, 7});
-
-    ASSERT_OK_AND_ASSIGN(auto res,
-                         AtOp(ds, indices, ds_to_common, std::nullopt));
-    ASSERT_TRUE(res.is_single_dtype());
-    EXPECT_THAT(res, ElementsAre(DataItem(), DataItem(), DataItem()));
-  }
-  {
     // Multiple variants.
     auto int_values = arolla::CreateEmptyDenseArray<int>(/*size=*/7);
     auto float_values = arolla::CreateEmptyDenseArray<float>(/*size=*/7);
@@ -442,15 +430,14 @@ TEST(AtTest, MultiDimEmptyDataSlice) {
   }
   {
     // Single variant.
-    ASSERT_OK_AND_ASSIGN(auto ds, DataSliceImpl::CreateEmptyWithType(
-                                      7, arolla::GetQType<int>()));
+    auto ds = DataSliceImpl::CreateEmptyAndUnknownType(7);
     auto indices = CreateDenseArray<int64_t>({0, std::nullopt, 2});
     auto ds_to_common = CreateEdge({0, 2, 7});
     auto indices_to_common = CreateEdge({0, 2, 3});
 
     ASSERT_OK_AND_ASSIGN(auto res,
                          AtOp(ds, indices, ds_to_common, indices_to_common));
-    ASSERT_TRUE(res.is_single_dtype());
+    ASSERT_TRUE(res.is_empty_and_unknown());
     EXPECT_THAT(res, ElementsAre(DataItem(), DataItem(), DataItem()));
   }
   {

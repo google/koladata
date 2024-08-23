@@ -277,6 +277,25 @@ TEST(DataSliceTest, CreateWithSchemaFromData) {
   }
 }
 
+TEST(DataSliceUtils, CreateWithSchemaFromDataError) {
+  EXPECT_THAT(DataSlice::CreateWithSchemaFromData(
+                  internal::DataSliceImpl::Create(
+                      CreateDenseArray<int>({})),
+                  DataSlice::JaggedShape::Empty())
+                  .status(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("for primitive types")));
+
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  auto values =
+      CreateDenseArray<int>({std::nullopt, std::nullopt, std::nullopt});
+  EXPECT_THAT(DataSlice::CreateWithSchemaFromData(
+                  internal::DataSliceImpl::Create(values), shape)
+                  .status(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("for primitive types")));
+}
+
 TEST(DataSliceTest, ForkDb) {
   auto db = DataBag::Empty();
   auto ds_a = test::DataSlice<int>({1, 2});
@@ -2514,7 +2533,7 @@ TEST(DataSliceTest, DelAttr_EntityCreator) {
   // Empty result.
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get, ds.GetAttr("a"));
   EXPECT_THAT(ds_primitive_get.GetShape(), IsEquivalentTo(ds.GetShape()));
-  EXPECT_EQ(ds_primitive_get.dtype(), GetQType<int>());
+  EXPECT_TRUE(ds_primitive_get.impl_empty_and_unknown());
   EXPECT_EQ(ds_primitive_get.slice().allocation_ids().size(), 0);
   EXPECT_EQ(ds_primitive_get.slice().present_count(), 0);
   // Deleting an attribute does not touch schema.
@@ -2601,7 +2620,7 @@ TEST(DataSliceTest, DelAttr_Any) {
   ASSERT_OK(ds.DelAttr("a"));
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get, ds.GetAttr("a"));
   EXPECT_THAT(ds_primitive_get.GetShape(), IsEquivalentTo(ds.GetShape()));
-  EXPECT_EQ(ds_primitive_get.dtype(), GetQType<int>());
+  EXPECT_TRUE(ds_primitive_get.impl_empty_and_unknown());
   EXPECT_EQ(ds_primitive_get.slice().allocation_ids().size(), 0);
   EXPECT_EQ(ds_primitive_get.slice().present_count(), 0);
   EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kAny);

@@ -126,6 +126,10 @@ absl::StatusOr<AttrNamesSet> GetAttrsFromSchemaItem(
     return AttrNamesSet();
   }
   ASSIGN_OR_RETURN(auto attrs, db_impl.GetSchemaAttrs(schema_item, fallbacks));
+  // Note: Empty attribute slice is empty_and_unknown.
+  if (attrs.size() == 0) {
+    return AttrNamesSet();
+  }
   if (attrs.dtype() != arolla::GetQType<arolla::Text>()) {
     return absl::InternalError("dtype of attribute names must be TEXT");
   }
@@ -715,7 +719,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
 absl::StatusOr<DataSlice> DataSlice::CreateWithSchemaFromData(
     internal::DataSliceImpl impl, JaggedShape shape,
     std::shared_ptr<DataBag> db) {
-  if (impl.is_mixed_dtype() ||
+  if (impl.is_empty_and_unknown() || impl.is_mixed_dtype() ||
       impl.dtype() == arolla::GetQType<internal::ObjectId>()) {
     return absl::InvalidArgumentError(
         "creating a DataSlice without passing schema is supported only for "

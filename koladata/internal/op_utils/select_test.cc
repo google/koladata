@@ -218,8 +218,7 @@ TEST(SelectTest, DataSlicePrimitiveValues_EmptyFilter_UnkownDataSliceImpl) {
 }
 
 TEST(SelectTest, DataSlicePrimitiveValues_EmptyFilter_TypedDataSliceImpl) {
-  ASSERT_OK_AND_ASSIGN(auto ds, DataSliceImpl::CreateEmptyWithType(
-                                    3, arolla::GetQType<arolla::Text>()));
+  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(3);
   arolla::JaggedDenseArrayShape shape =
       JaggedDenseArrayShape::FlatFromSize(3);
 
@@ -229,7 +228,7 @@ TEST(SelectTest, DataSlicePrimitiveValues_EmptyFilter_TypedDataSliceImpl) {
                        SelectOp()(ds, shape, filter, shape));
 
   EXPECT_EQ(res_ds.size(), 0);
-  EXPECT_EQ(res_ds.dtype(), arolla::GetQType<arolla::Text>());
+  EXPECT_TRUE(res_ds.is_empty_and_unknown());
   EXPECT_EQ(res_shape.rank(), 1);
   EXPECT_EQ(res_shape.size(), 0);
 }
@@ -284,15 +283,14 @@ TEST(SelectTest, DataSlicePrimitiveValues_AllMissingFilter) {
   arolla::JaggedDenseArrayShape ds_shape =
       JaggedDenseArrayShape::FlatFromSize(3);
 
-  ASSERT_OK_AND_ASSIGN(auto filter, DataSliceImpl::CreateEmptyWithType(
-                                        3, arolla::GetQType<Unit>()));
+  auto filter = DataSliceImpl::CreateEmptyAndUnknownType(3);
   arolla::JaggedDenseArrayShape filter_shape =
       JaggedDenseArrayShape::FlatFromSize(3);
 
   ASSERT_OK_AND_ASSIGN((auto [res_ds, res_shape]),
                        SelectOp()(ds, ds_shape, filter, filter_shape));
   EXPECT_EQ(res_ds.size(), 0);
-  EXPECT_EQ(res_ds.dtype(), arolla::GetQType<Text>());
+  EXPECT_TRUE(res_ds.is_empty_and_unknown());
   EXPECT_EQ(res_shape.rank(), 1);
   EXPECT_EQ(res_shape.size(), 0);
 }
@@ -306,8 +304,7 @@ TEST(SelectTest, DataSlicePrimitiveValues_EmptyResult_MultiDimension) {
       JaggedDenseArrayShape ds_shape,
       JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
 
-  ASSERT_OK_AND_ASSIGN(auto filter, DataSliceImpl::CreateEmptyWithType(
-                                        3, arolla::GetQType<Unit>()));
+  auto filter = DataSliceImpl::CreateEmptyAndUnknownType(3);
   ASSERT_OK_AND_ASSIGN(edge1, EdgeFromSplitPoints({0, 3}));
   ASSERT_OK_AND_ASSIGN(edge2, EdgeFromSplitPoints({0, 1, 2, 3}));
   ASSERT_OK_AND_ASSIGN(
@@ -318,7 +315,7 @@ TEST(SelectTest, DataSlicePrimitiveValues_EmptyResult_MultiDimension) {
                        SelectOp()(ds, ds_shape, filter, filter_shape));
 
   EXPECT_EQ(res_ds.size(), 0);
-  EXPECT_EQ(res_ds.dtype(), arolla::GetQType<Text>());
+  EXPECT_TRUE(res_ds.is_empty_and_unknown());
 
   EXPECT_EQ(res_shape.rank(), 2);
   EXPECT_EQ(res_shape.size(), 0);
@@ -553,8 +550,7 @@ TEST(SelectTest, DataSliceAndDataItemObjectId_EmptyDataSlice_NonEmptyFilter) {
   auto mask = DataItem(arolla::Unit());
   JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto ds, DataSliceImpl::CreateEmptyWithType(
-                                    2, arolla::GetQType<ObjectId>()));
+  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(2);
 
   JaggedDenseArrayShape ds_shape = JaggedDenseArrayShape::FlatFromSize(2);
 
@@ -584,8 +580,7 @@ TEST(SelectTest, DataSliceAndDataItemObjectId_EmptyFilter) {
 
 TEST(SelectTest, DataSliceAndDataItemObjectId_EmptyDataSlice_EmptyFilter) {
   // Empty object and mask.
-  ASSERT_OK_AND_ASSIGN(auto ds, DataSliceImpl::CreateEmptyWithType(
-                                    2, arolla::GetQType<ObjectId>()));
+  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(2);
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
   ASSERT_OK_AND_ASSIGN(JaggedDenseArrayShape ds_shape,
                        JaggedDenseArrayShape::FromEdges({std::move(edge1)}));

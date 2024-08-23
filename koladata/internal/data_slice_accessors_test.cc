@@ -181,14 +181,11 @@ TEST(DataSliceAccessorsTest,
                          GetAttributeFromSources(ds_req, {source.get()}, {}));
 
     EXPECT_EQ(ds_a_get.size(), kSize);
-    EXPECT_EQ(ds_a_get.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_TRUE(ds_a_get.is_empty_and_unknown());
     EXPECT_THAT(ds_a_get.allocation_ids(),
                 ElementsAre(ds_a.allocation_ids().ids()[0]));
 
-    EXPECT_EQ(ds_a_get.values<ObjectId>().size(), kSize);
-    EXPECT_THAT(ds_a_get.values<ObjectId>(),
-                ElementsAreArray(
-                    std::vector<OptionalValue<ObjectId>>(kSize, std::nullopt)));
+    EXPECT_THAT(ds_a_get, ElementsAreArray(std::vector<DataItem>(kSize)));
   }
 }
 

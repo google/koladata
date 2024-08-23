@@ -145,9 +145,12 @@ TEST(SparseSourceTest, Empty) {
   auto ds = std::make_shared<SparseSource>();
   EXPECT_EQ(ds->Get(AllocateSingleObject()), std::nullopt);
   for (size_t size : {0, 1, 13, 57}) {
-    for (auto objs :
-         {arolla::CreateEmptyDenseArray<ObjectId>(size),
-          DataSliceImpl::AllocateEmptyObjects(size).values<ObjectId>()}) {
+    auto obj_cases = std::vector{arolla::CreateEmptyDenseArray<ObjectId>(size)};
+    if (size != 0) {
+      obj_cases.push_back(
+          DataSliceImpl::AllocateEmptyObjects(size).values<ObjectId>());
+    }
+    for (auto objs : obj_cases) {
       auto slice = ds->Get(objs);
       EXPECT_EQ(slice.size(), size);
       EXPECT_TRUE(slice.is_empty_and_unknown());

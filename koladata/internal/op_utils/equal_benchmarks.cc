@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <cstdint>
 #include <utility>
 
 #include "benchmark/benchmark.h"
 #include "absl/log/check.h"
 #include "absl/random/random.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/op_utils/benchmark_util.h"
 #include "koladata/internal/op_utils/equal.h"
-#include "arolla/dense_array/testing/util.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/bool/comparison.h"
 #include "arolla/qexpr/operators/dense_array/lifter.h"
@@ -31,8 +32,6 @@ namespace {
 
 struct DataSliceOp {};
 struct DenseArrayOp {};
-
-using ::arolla::testing::RandomDenseArray;
 
 constexpr auto kBenchmarkFn = [](auto* b) {
   b->Arg(1)->Arg(10)->Arg(10000)->Arg(1000000);
@@ -67,8 +66,10 @@ template <typename Access>
 void BM_float(benchmark::State& state) {
   int64_t total_size = state.range(0);
   absl::BitGen gen;
-  auto values_a = RandomDenseArray<float>(total_size, /*full=*/false, 0, gen);
-  auto values_b = RandomDenseArray<float>(total_size, /*full=*/false, 0, gen);
+  auto values_a =
+      RandomNonEmptyDenseArray<float>(total_size, /*full=*/false, 0, gen);
+  auto values_b =
+      RandomNonEmptyDenseArray<float>(total_size, /*full=*/false, 0, gen);
 
   auto ds_a = DataSliceImpl::Create(values_a);
   auto ds_b = DataSliceImpl::Create(values_b);
@@ -80,8 +81,10 @@ template <typename Access>
 void BM_float_int32(benchmark::State& state) {
   int64_t total_size = state.range(0);
   absl::BitGen gen;
-  auto values_a = RandomDenseArray<float>(total_size, /*full=*/false, 0, gen);
-  auto values_b = RandomDenseArray<int>(total_size, /*full=*/false, 0, gen);
+  auto values_a =
+      RandomNonEmptyDenseArray<float>(total_size, /*full=*/false, 0, gen);
+  auto values_b =
+      RandomNonEmptyDenseArray<int>(total_size, /*full=*/false, 0, gen);
 
   auto ds_a = DataSliceImpl::Create(values_a);
   auto ds_b = DataSliceImpl::Create(values_b);
@@ -93,8 +96,10 @@ template <typename Access>
 void BM_int32_int64(benchmark::State& state) {
   int64_t total_size = state.range(0);
   absl::BitGen gen;
-  auto values_a = RandomDenseArray<int>(total_size, /*full=*/false, 0, gen);
-  auto values_b = RandomDenseArray<int64_t>(total_size, /*full=*/false, 0, gen);
+  auto values_a =
+      RandomNonEmptyDenseArray<int>(total_size, /*full=*/false, 0, gen);
+  auto values_b =
+      RandomNonEmptyDenseArray<int64_t>(total_size, /*full=*/false, 0, gen);
 
   auto ds_a = DataSliceImpl::Create(values_a);
   auto ds_b = DataSliceImpl::Create(values_b);

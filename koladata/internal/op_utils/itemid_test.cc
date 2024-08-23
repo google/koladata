@@ -92,21 +92,15 @@ TEST(ItemIdBits, TestEmptyAndUnknownDataSliceImpl) {
   ASSERT_OK_AND_ASSIGN(DataSliceImpl result, ItemIdBits()(slice, 10));
   EXPECT_EQ(result.present_count(), 0);
   EXPECT_EQ(result.size(), 2);
-  EXPECT_EQ(result.dtype(), arolla::GetQType<int64_t>());
+  EXPECT_TRUE(result.is_empty_and_unknown());
 }
 
 TEST(ItemIdBits, TestEmptyDataSliceImplNotObjectIdType) {
-  DataSliceImpl empty =
-      DataSliceImpl::Create(arolla::CreateEmptyDenseArray<int64_t>(2));
-  EXPECT_THAT(ItemIdBits()(empty, 10),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("itemid_bits on primitives")));
-
-  empty = DataSliceImpl::CreateEmptyAndUnknownType(2);
+  auto empty = DataSliceImpl::CreateEmptyAndUnknownType(2);
   ASSERT_OK_AND_ASSIGN(DataSliceImpl result, ItemIdBits()(empty, 10));
   EXPECT_EQ(result.present_count(), 0);
   EXPECT_EQ(result.size(), 2);
-  EXPECT_EQ(result.dtype(), arolla::GetQType<int64_t>());
+  EXPECT_TRUE(result.is_empty_and_unknown());
 }
 
 TEST(ItemIdBits, TestEmptyDataSliceImpl) {
@@ -115,7 +109,7 @@ TEST(ItemIdBits, TestEmptyDataSliceImpl) {
   ASSERT_OK_AND_ASSIGN(DataSliceImpl result, ItemIdBits()(empty, 10));
   EXPECT_EQ(result.present_count(), 0);
   EXPECT_EQ(result.size(), 2);
-  EXPECT_EQ(result.dtype(), arolla::GetQType<int64_t>());
+  EXPECT_TRUE(result.is_empty_and_unknown());
 }
 
 TEST(ItemIdBits, TestDataSliceImplBits) {

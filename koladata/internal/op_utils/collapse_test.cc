@@ -91,9 +91,7 @@ TEST(CollapseTest, DataSlicePrimitiveValues) {
     auto edge = CreateEdge({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
-    ASSERT_TRUE(res.is_single_dtype());
-    EXPECT_THAT(res.values<int>(),
-                ElementsAre(std::nullopt, std::nullopt, std::nullopt));
+    ASSERT_TRUE(res.is_empty_and_unknown());
   }
 }
 
@@ -227,7 +225,7 @@ TEST(CollapseTest, EmptyDataSlice) {
     auto edge = CreateEdge({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
-    ASSERT_TRUE(res.is_single_dtype());
+    ASSERT_TRUE(res.is_empty_and_unknown());
     EXPECT_THAT(res, ElementsAre(DataItem(), DataItem(), DataItem()));
   }
   {

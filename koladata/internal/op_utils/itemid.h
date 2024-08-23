@@ -56,8 +56,7 @@ struct ItemIdBits {
           "the number of last bits must be between 0 and 64");
     }
     if (ds.is_empty_and_unknown()) {
-      return DataSliceImpl::CreateEmptyWithType(ds.size(),
-                                                arolla::GetQType<int64_t>());
+      return DataSliceImpl::CreateEmptyAndUnknownType(ds.size());
     }
     if (ds.dtype() != arolla::GetQType<internal::ObjectId>()) {
       return absl::InvalidArgumentError("cannot use itemid_bits on primitives");

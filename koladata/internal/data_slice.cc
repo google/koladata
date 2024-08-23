@@ -67,27 +67,34 @@ struct VariantArgsMetaFn {
 
 DataSliceImpl DataSliceImpl::ObjectsFromAllocation(AllocationId alloc_id,
                                                    size_t size) {
+  if (size == 0) {
+    return DataSliceImpl();
+  }
   DataSliceImpl result;
   auto& impl = *result.internal_;
   impl.size = size;
   impl.dtype = GetQType<ObjectId>();
 
   Buffer<ObjectId>::Builder values_builder(size);
-  if (size > 0) {
-    impl.allocation_ids = AllocationIdSet(alloc_id);
-    for (int64_t i = 0; i < size; ++i) {
-      values_builder.Set(i, alloc_id.ObjectByOffset(i));
-    }
+  impl.allocation_ids = AllocationIdSet(alloc_id);
+  for (int64_t i = 0; i < size; ++i) {
+    values_builder.Set(i, alloc_id.ObjectByOffset(i));
   }
   impl.values.emplace_back(ObjectIdArray{std::move(values_builder).Build()});
   return result;
 }
 
 DataSliceImpl DataSliceImpl::AllocateEmptyObjects(size_t size) {
+  if (size == 0) {
+    return DataSliceImpl();
+  }
   return ObjectsFromAllocation(Allocate(size), size);
 }
 
 DataSliceImpl DataSliceImpl::CreateAllMissingObjectDataSlice(size_t size) {
+  if (size == 0) {
+    return DataSliceImpl();
+  }
   DataSliceImpl result;
   auto& impl = *result.internal_;
   impl.size = size;
@@ -96,32 +103,18 @@ DataSliceImpl DataSliceImpl::CreateAllMissingObjectDataSlice(size_t size) {
   return result;
 }
 
-absl::StatusOr<DataSliceImpl> DataSliceImpl::CreateEmptyWithType(
-    size_t size, QTypePtr dtype) {
-  std::optional<DataSliceImpl> result;
-  arolla::meta::foreach_type<std::invoke_result_t<VariantArgsMetaFn, Variant>>(
-      [&](auto meta_type) {
-        using ValT = typename decltype(meta_type)::type::base_type;
-        if (dtype == GetQType<ValT>()) {
-          result = Create(CreateEmptyDenseArray<ValT>(size));
-        }
-      });
-  if (result.has_value()) {
-    return *result;
-  }
-  return absl::InvalidArgumentError(
-      absl::StrCat("unsupported type: ", dtype->name()));
-}
-
 DataSliceImpl DataSliceImpl::CreateEmptyAndUnknownType(size_t size) {
+  if (size == 0) {
+    return DataSliceImpl();
+  }
   DataSliceImpl result;
   result.internal_->size = size;
   return result;
 }
 
 DataSliceImpl DataSliceImpl::Create(const arolla::DenseArray<DataItem>& items) {
-  if (items.empty()) {
-    return DataSliceImpl();
+  if (items.IsAllMissing()) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(items.size());
   }
   DataSliceImpl::Builder bldr(items.size());
   items.ForEachPresent(
@@ -417,9 +410,7 @@ DataSliceImpl DataSliceImpl::Builder::Build() && {
       }
     }
   }
-  if (impl.values.size() != 1) {
-    slice_.RemoveEmptyValues();
-  }
+  slice_.RemoveEmptyValues();
   return std::move(slice_);
 }
 

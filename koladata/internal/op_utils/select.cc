@@ -173,13 +173,7 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
     const DataSliceImpl& ds_impl, const JaggedDenseArrayShape& ds_shape,
     const DataItem& filter, const JaggedDenseArrayShape& filter_size) const {
   if (!filter.has_value()) {
-    if (!ds_impl.is_single_dtype()) {
-      DataSliceImpl empty_slice = DataSliceImpl::CreateEmptyAndUnknownType(1);
-      return SelectOp::Result<DataSliceImpl>(
-          {std::move(empty_slice), JaggedDenseArrayShape::Empty()});
-    }
-    ASSIGN_OR_RETURN(DataSliceImpl empty_slice,
-                     DataSliceImpl::CreateEmptyWithType(1, ds_impl.dtype()));
+    DataSliceImpl empty_slice = DataSliceImpl::CreateEmptyAndUnknownType(1);
     return SelectOp::Result<DataSliceImpl>(
         {std::move(empty_slice), JaggedDenseArrayShape::Empty()});
   }

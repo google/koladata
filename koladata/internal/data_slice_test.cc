@@ -68,13 +68,45 @@ struct TryCompileAssignment {
 // Test that `array[i] = value` doesn't compile (DataSlice is immutable).
 static_assert(!std::is_invocable_v<TryCompileAssignment, DataSliceImpl>);
 
+TEST(DataSliceImpl, EmptyArrayConstructionMustBeEmptyAndUnknown) {
+  EXPECT_TRUE(DataSliceImpl::AllocateEmptyObjects(0).is_empty_and_unknown());
+  EXPECT_TRUE(DataSliceImpl::ObjectsFromAllocation(Allocate(0), 0)
+                  .is_empty_and_unknown());
+  EXPECT_TRUE(
+      DataSliceImpl::CreateAllMissingObjectDataSlice(0).is_empty_and_unknown());
+  EXPECT_TRUE(
+      DataSliceImpl::CreateEmptyAndUnknownType(0).is_empty_and_unknown());
+  EXPECT_TRUE(
+      DataSliceImpl::CreateEmptyAndUnknownType(77).is_empty_and_unknown());
+  {
+    SCOPED_TRACE("from empty single dense array");
+    EXPECT_TRUE(
+        DataSliceImpl::CreateObjectsDataSlice(
+            arolla::CreateEmptyDenseArray<ObjectId>(17), AllocationIdSet())
+            .is_empty_and_unknown());
+    EXPECT_TRUE(
+        DataSliceImpl::CreateWithAllocIds(
+            AllocationIdSet(), arolla::CreateEmptyDenseArray<ObjectId>(17))
+            .is_empty_and_unknown());
+    EXPECT_TRUE(
+        DataSliceImpl::Create(arolla::CreateEmptyDenseArray<DataItem>(17))
+            .is_empty_and_unknown());
+    EXPECT_TRUE(
+        DataSliceImpl::Create(arolla::CreateEmptyDenseArray<ObjectId>(17))
+            .is_empty_and_unknown());
+    EXPECT_TRUE(
+        DataSliceImpl::Create(arolla::CreateEmptyDenseArray<float>(17))
+            .is_empty_and_unknown());
+  }
+}
+
 TEST(DataSliceImpl, AllocateEmptyObjects) {
   {
     DataSliceImpl ds = DataSliceImpl::AllocateEmptyObjects(0);
     EXPECT_EQ(ds.size(), 0);
-    EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
     EXPECT_EQ(ds.allocation_ids().size(), 0);
-    EXPECT_EQ(ds.values<ObjectId>().size(), 0);
+    EXPECT_TRUE(ds.is_empty_and_unknown());
   }
   {
     constexpr int64_t kSize = 57;
@@ -96,9 +128,9 @@ TEST(DataSliceImpl, CreateAllMissingObjectDataSlice) {
   {
     DataSliceImpl ds = DataSliceImpl::CreateAllMissingObjectDataSlice(0);
     EXPECT_EQ(ds.size(), 0);
-    EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
     EXPECT_EQ(ds.allocation_ids().size(), 0);
-    EXPECT_EQ(ds.values<ObjectId>().size(), 0);
+    EXPECT_TRUE(ds.is_empty_and_unknown());
   }
   {
     constexpr int64_t kSize = 75;
@@ -147,6 +179,12 @@ TEST(DataSliceImpl, CreateFromDataItemSpan) {
     auto array = std::vector<DataItem>{};
     DataSliceImpl ds = DataSliceImpl::Create(array);
     EXPECT_EQ(ds.size(), 0);
+    EXPECT_TRUE(ds.is_empty_and_unknown());
+  }
+  {
+    auto array = std::vector<DataItem>{DataItem(), DataItem()};
+    DataSliceImpl ds = DataSliceImpl::Create(array);
+    EXPECT_EQ(ds.size(), 2);
     EXPECT_TRUE(ds.is_empty_and_unknown());
   }
   {
@@ -353,41 +391,11 @@ TEST(DataSliceImpl, IntersectingIdsCheck) {
       data_slice_impl::VerifyNonIntersectingIds(values_1, values_2, values_3));
 }
 
-TEST(DataSliceImpl, CreateEmptyWithType) {
-  constexpr size_t kSize = 57;
-  arolla::meta::foreach_type(supported_types_list(), [&](auto tpe) {
-    using T = typename decltype(tpe)::type;
-    ASSERT_OK_AND_ASSIGN(
-        auto ds,
-        DataSliceImpl::CreateEmptyWithType(kSize, arolla::GetQType<T>()));
-    EXPECT_EQ(ds.size(), kSize);
-    EXPECT_EQ(ds.dtype(), arolla::GetQType<T>());
-    EXPECT_TRUE(ds.is_single_dtype());
-  });
-  EXPECT_THAT(
-      DataSliceImpl::CreateEmptyWithType(kSize, arolla::GetNothingQType()),
-      ::absl_testing::StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          ::testing::HasSubstr("unsupported type: NOTHING")));
-}
 
 TEST(DataSliceImpl, CreateEmptyAndUnknownType) {
   constexpr size_t kSize = 57;
   DataSliceImpl ds = DataSliceImpl::CreateEmptyAndUnknownType(kSize);
   EXPECT_EQ(ds.size(), kSize);
-  EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
-  EXPECT_TRUE(ds.is_empty_and_unknown());
-}
-
-TEST(DataSliceImpl, CreateEmpty) {
-  auto array = arolla::CreateEmptyDenseArray<int>(2);
-  DataSliceImpl ds = DataSliceImpl::Create(array);
-  EXPECT_EQ(ds.dtype(), arolla::GetQType<int>());
-  EXPECT_FALSE(ds.is_empty_and_unknown());  // It is known type.
-  EXPECT_THAT(ds.values<int>(), ElementsAre(std::nullopt, std::nullopt));
-
-  // Empty non-typed.
-  ds = std::move(DataSliceImpl::Builder(2)).Build();
   EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
   EXPECT_TRUE(ds.is_empty_and_unknown());
 }
@@ -885,7 +893,17 @@ TEST(DataSliceImpl, BuilderAddArray) {
   }
 }
 
+
 TEST(DataSliceImpl, BuilderAddArrayWithEmpty) {
+  {
+    SCOPED_TRACE("1 is missing");
+    DataSliceImpl::Builder bldr(4);
+    bldr.AddArray(arolla::CreateEmptyDenseArray<float>(4));
+    DataSliceImpl ds = std::move(bldr).Build();
+    EXPECT_TRUE(ds.is_empty_and_unknown());
+    EXPECT_THAT(ds,
+                ElementsAre(DataItem(), DataItem(), DataItem(), DataItem()));
+  }
   {
     SCOPED_TRACE("2 arrays, second is missing");
     DataSliceImpl::Builder bldr(4);

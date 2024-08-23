@@ -88,7 +88,7 @@ TEST(DataBagTest, EmptySchema) {
 
   ASSERT_OK_AND_ASSIGN(auto schema_attrs, db->GetSchemaAttrs(schema_item));
   EXPECT_THAT(schema_attrs, ElementsAre());
-  EXPECT_EQ(schema_attrs.dtype(), arolla::GetQType<arolla::Text>());
+  EXPECT_TRUE(schema_attrs.is_empty_and_unknown());
 
   EXPECT_THAT(db->GetSchemaAttr(schema_item, "a"),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -110,7 +110,7 @@ TEST(DataBagTest, EmptySchema) {
   ASSERT_OK_AND_ASSIGN(schema_attrs,
                        db->GetSchemaAttrs(schema_item, {fb_db.get()}));
   EXPECT_THAT(schema_attrs, ElementsAre());
-  EXPECT_EQ(schema_attrs.dtype(), arolla::GetQType<arolla::Text>());
+  EXPECT_TRUE(schema_attrs.is_empty_and_unknown());
   EXPECT_THAT(db->GetSchemaAttr(schema_item, "a", {fb_db.get()}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the attribute 'a' is missing")));
