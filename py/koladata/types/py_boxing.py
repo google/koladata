@@ -14,6 +14,7 @@
 
 """Utilities for advanced Python values conversion to Koda abstractions."""
 
+import collections
 import inspect
 import types as py_types
 from typing import Any
@@ -43,6 +44,7 @@ DEFAULT_BOXING_POLICY = 'koladata_default_boxing'
 LIST_BOXING_POLICY = 'koladata_list_boxing'
 
 KWARGS_POLICY = 'koladata_kwargs'
+FULL_SIGNATURE_POLICY = 'koladata_full_signature'
 OBJ_KWARGS_POLICY = 'koladata_obj_kwargs'
 
 # NOTE: Recreating this object invalidates all existing references. Thus after
@@ -50,6 +52,122 @@ OBJ_KWARGS_POLICY = 'koladata_obj_kwargs'
 # If this causes issues, we'll need to find a workaround.
 _REF_CODEC_OBJECT = arolla.types.PyObjectReferenceCodec()
 REF_CODEC = _REF_CODEC_OBJECT.name
+
+
+# Param markers used by FULL_SIGNATURE_POLICY. A param marker is an Arolla tuple
+# of length 2 or 3 where the first element is `_PARAM_MARKER`, the second
+# element is the marker type (`_*_MARKER_TYPE`), and the optional third element
+# is the default value.
+_PARAM_MARKER = arolla.text('__koladata_param_marker__')
+
+_POSITIONAL_ONLY_MARKER_TYPE = arolla.text('positional_only')
+_POSITIONAL_OR_KEYWORD_MARKER_TYPE = arolla.text('positional_or_keyword')
+_VAR_POSITIONAL_MARKER_TYPE = arolla.text('var_positional')
+_KEYWORD_ONLY_MARKER_TYPE = arolla.text('keyword_only')
+_VAR_KEYWORD_MARKER_TYPE = arolla.text('var_keyword')
+
+_NO_DEFAULT_VALUE = object()
+
+
+def positional_only(default_value=_NO_DEFAULT_VALUE) -> arolla.abc.QValue:
+  """Marks a parameter as positional-only (with optional default)."""
+  if default_value is _NO_DEFAULT_VALUE:
+    return arolla.tuple(_PARAM_MARKER, _POSITIONAL_ONLY_MARKER_TYPE)
+  return arolla.tuple(
+      _PARAM_MARKER, _POSITIONAL_ONLY_MARKER_TYPE, as_qvalue(default_value)
+  )
+
+
+def positional_or_keyword(default_value=_NO_DEFAULT_VALUE) -> arolla.abc.QValue:
+  """Marks a parameter as positional-or-keyword (with optional default)."""
+  if default_value is _NO_DEFAULT_VALUE:
+    return arolla.tuple(_PARAM_MARKER, _POSITIONAL_OR_KEYWORD_MARKER_TYPE)
+  return arolla.tuple(
+      _PARAM_MARKER,
+      _POSITIONAL_OR_KEYWORD_MARKER_TYPE,
+      as_qvalue(default_value),
+  )
+
+
+def var_positional() -> arolla.abc.QValue:
+  """Marks a parameter as variadic-positional."""
+  return arolla.tuple(_PARAM_MARKER, _VAR_POSITIONAL_MARKER_TYPE)
+
+
+def keyword_only(default_value=_NO_DEFAULT_VALUE) -> arolla.abc.QValue:
+  """Marks a parameter as keyword-only (with optional default)."""
+  if default_value is _NO_DEFAULT_VALUE:
+    return arolla.tuple(_PARAM_MARKER, _KEYWORD_ONLY_MARKER_TYPE)
+  return arolla.tuple(
+      _PARAM_MARKER, _KEYWORD_ONLY_MARKER_TYPE, as_qvalue(default_value)
+  )
+
+
+def var_keyword() -> arolla.abc.QValue:
+  """Marks a parameter as variadic-keyword."""
+  return arolla.tuple(_PARAM_MARKER, _VAR_KEYWORD_MARKER_TYPE)
+
+
+def _get_marker_type_and_default_value(
+    param: arolla.abc.SignatureParameter,
+) -> tuple[arolla.abc.QValue | None, arolla.abc.QValue | None]:
+  """Unpacks an Arolla expr signature param into (marker_type, default_value).
+
+  Args:
+    param: Signature parameter.
+
+  Returns:
+    (marker, default_value)
+    marker_type: If this is a marker, the marker type, else None.
+    default_value: The default value for this param, regardless of whether it
+      is a marker. If None, the param has no default value (so it is required).
+  """
+  param_default = param.default
+  if param_default is None:
+    return None, None
+  if (not arolla.is_tuple_qtype(param_default.qtype) or
+      param_default.field_count not in (2, 3) or  # pytype: disable=attribute-error
+      param_default[0].fingerprint != _PARAM_MARKER.fingerprint):  # pytype: disable=unsupported-operands
+    return None, param_default
+  if param_default.field_count == 2:  # pytype: disable=attribute-error
+    return param_default[1], None  # pytype: disable=unsupported-operands
+  return param_default[1], param_default[2]  # pytype: disable=unsupported-operands
+
+
+def _is_positional_only(marker_type: arolla.abc.QValue | None) -> bool:
+  return (
+      marker_type is not None
+      and marker_type.fingerprint == _POSITIONAL_ONLY_MARKER_TYPE.fingerprint
+  )
+
+
+def _is_positional_or_keyword(marker_type: arolla.abc.QValue | None) -> bool:
+  return (
+      marker_type is not None
+      and marker_type.fingerprint
+      == _POSITIONAL_OR_KEYWORD_MARKER_TYPE.fingerprint
+  )
+
+
+def _is_var_positional(marker_type: arolla.abc.QValue | None) -> bool:
+  return (
+      marker_type is not None
+      and marker_type.fingerprint == _VAR_POSITIONAL_MARKER_TYPE.fingerprint
+  )
+
+
+def _is_keyword_only(marker_type: arolla.abc.QValue | None) -> bool:
+  return (
+      marker_type is not None
+      and marker_type.fingerprint == _KEYWORD_ONLY_MARKER_TYPE.fingerprint
+  )
+
+
+def _is_var_keyword(marker_type: arolla.abc.QValue | None) -> bool:
+  return (
+      marker_type is not None
+      and marker_type.fingerprint == _VAR_KEYWORD_MARKER_TYPE.fingerprint
+  )
 
 
 # NOTE: This function should prefer to return QValues whenever possible to be as
@@ -223,6 +341,184 @@ class _KwargsBindingPolicy(arolla.abc.AuxBindingPolicy):
     return literal_operator.literal(value)
 
 
+class _FullSignatureBindingPolicy(arolla.abc.AuxBindingPolicy):
+  """Argument binding policy for Koda operators with an arbitrary signature.
+
+  This policy maps Python signatures to Expr operator signatures and vice versa.
+  The underlying Expr signature is expected to have all positional-or-keyword
+  parametrers. Special default values are used to mark Expr parameters that
+  should be converted to other kinds of parameters for the Python signature.
+
+  For example, if you wanted a lambda operator to have the Python signature:
+
+    def op(x, /, y, *args, z, **kwargs):
+      ...
+
+  then the lambda operator would be defined as:
+
+    def op(
+        x=positional_only(),
+        y=positional_or_keyword(),
+        args=var_positional(),
+        z=keyword_only(),
+        kwargs=var_keyword()):
+      ...
+
+  and we would convert the Python call `op(a, b, c, d, z=e, x=f, y=g)` to the
+  Expr call `op(a, b, arolla.tuple(c, d), e, arolla.namedtuple(x=f, y=g))`.
+
+  The following marker values are supported:
+  - `var_positional()` marks an parameter as variadic-positional (like `*args`).
+    The corresponding Expr parameter must accept an Arolla tuple.
+  - `var_keyword()` marks an parameter as variadic-keyword (like `**kwargs`).
+    The corresponding Expr parameter must accept an Arolla namedtuple.
+  - `keyword_only()` marks a parameter as keyword-only, with an optional
+    default value (which will be boxed if necessary).
+  - `positional_only()` marks a parameter as positional-only, with an optional
+    default value (which will be boxed if necessary).
+  - `positional_or_keyword()` marks a parameter as positional-or-keyword, with
+    an optional default value. Even though this is the default behavior, it may
+    be necessary because earlier arguments in the signature have default values
+    used for markers.
+
+  The implied Python signature must be a valid Python signature (`**kwargs`
+  must be last, args after `*` must be keyword-only, etc.)
+
+  This policy *also* applies default Koda value boxing, including to the values
+  in the tuple/namedtuple passed to *args/**kwargs.
+  """
+
+  def make_python_signature(
+      self, signature: arolla.abc.Signature,
+  ) -> inspect.Signature:
+    params = []
+    visited_var_positional_param = False
+    for param in signature.parameters:
+      if param.kind != 'positional-or-keyword':
+        raise ValueError(
+            'only positional-or-keyword arguments are supported in the '
+            'underlying Expr signature'
+        )
+
+      marker_type, default_value = _get_marker_type_and_default_value(param)
+      python_param_default = (
+          default_value
+          if default_value is not None
+          else inspect.Parameter.empty
+      )
+
+      if _is_positional_only(marker_type):
+        python_param_kind = inspect.Parameter.POSITIONAL_ONLY
+      elif _is_positional_or_keyword(marker_type):
+        python_param_kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+      elif _is_var_positional(marker_type):
+        if visited_var_positional_param:
+          # This is not enforced by inspect.Signature for some reason.
+          raise ValueError('multiple variadic positional arguments')
+        python_param_kind = inspect.Parameter.VAR_POSITIONAL
+        visited_var_positional_param = True
+      elif _is_keyword_only(marker_type):
+        python_param_kind = inspect.Parameter.KEYWORD_ONLY
+      elif _is_var_keyword(marker_type):
+        python_param_kind = inspect.Parameter.VAR_KEYWORD
+      elif marker_type is None:
+        if visited_var_positional_param:
+          # keyword-only (after var-positional)
+          python_param_kind = inspect.Parameter.KEYWORD_ONLY
+        else:
+          # positional-or-keyword (before var-positional)
+          python_param_kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+      else:
+        raise ValueError(f'unknown param marker type {marker_type}')
+
+      params.append(
+          inspect.Parameter(
+              param.name, python_param_kind, default=python_param_default
+          )
+      )
+
+    return inspect.Signature(params)  # Performs validation.
+
+  def bind_arguments(
+      self,
+      signature: arolla.abc.Signature,
+      *args: Any,
+      **kwargs: Any,
+  ) -> tuple[arolla.QValue | arolla.Expr, ...]:
+    args_queue = collections.deque([as_qvalue_or_expr(arg) for arg in args])
+    kwargs = {name: as_qvalue_or_expr(value) for name, value in kwargs.items()}
+
+    bound_values: list[arolla.QValue | arolla.Expr] = []
+    for param in signature.parameters:
+      marker_type, default_value = _get_marker_type_and_default_value(param)
+
+      if _is_positional_only(marker_type):
+        if args_queue:
+          bound_values.append(args_queue.popleft())
+        elif default_value is not None:
+          bound_values.append(default_value)
+        else:
+          raise TypeError(
+              f"missing required positional argument: '{param.name}'"
+          )
+      elif _is_positional_or_keyword(marker_type) or marker_type is None:
+        if args_queue:
+          if param.name in kwargs:
+            raise TypeError(f"got multiple values for argument '{param.name}'")
+          bound_values.append(args_queue.popleft())
+        elif param.name in kwargs:
+          bound_values.append(kwargs.pop(param.name))
+        elif default_value is not None:
+          bound_values.append(default_value)
+        else:
+          raise TypeError(
+              f"missing required positional argument: '{param.name}'"
+          )
+      elif _is_var_positional(marker_type):
+        if all(isinstance(value, arolla.QValue) for value in args_queue):
+          bound_values.append(arolla.tuple(*args_queue))
+        else:
+          bound_values.append(
+              arolla.abc.bind_op('core.make_tuple', *map(as_expr, args_queue)))
+        args_queue.clear()
+      elif _is_keyword_only(marker_type):
+        if param.name in kwargs:
+          bound_values.append(kwargs.pop(param.name))
+        elif default_value is not None:
+          bound_values.append(default_value)
+        else:
+          raise TypeError(f"missing required keyword argument: '{param.name}'")
+      elif _is_var_keyword(marker_type):
+        if all(isinstance(value, arolla.QValue) for value in kwargs.values()):
+          bound_values.append(arolla.namedtuple(**kwargs))
+        else:
+          bound_values.append(
+              arolla.abc.bind_op(
+                  'namedtuple.make',
+                  arolla.text(','.join(kwargs.keys())),
+                  *map(as_expr, kwargs.values()),
+              )
+          )
+        kwargs.clear()
+      else:
+        raise TypeError(f'unknown param marker type {marker_type}')
+
+    if args_queue:
+      raise TypeError(
+          f'expected {len(args) - len(args_queue)} positional arguments but '
+          f'{len(args)} were given'
+      )
+
+    if kwargs:
+      raise TypeError(
+          f"got an unexpected keyword argument '{next(iter(kwargs.keys()))}'")
+
+    return tuple(bound_values)
+
+  def make_literal(self, value: arolla.QValue) -> arolla.Expr:
+    return literal_operator.literal(value)
+
+
 # TODO: Support single arg for `kd.obj` and `kd.new` and
 # positional-keyword args: 'seed' for `kd.uuobj`, 'schema', etc for `kd.new`.
 # This might mean splitting this policy into multiple similar ones with shared
@@ -253,4 +549,7 @@ arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
     make_literal_fn=literal_operator.literal,
 )
 arolla.abc.register_aux_binding_policy(KWARGS_POLICY, _KwargsBindingPolicy())
+arolla.abc.register_aux_binding_policy(
+    FULL_SIGNATURE_POLICY, _FullSignatureBindingPolicy()
+)
 arolla.abc.register_aux_binding_policy(OBJ_KWARGS_POLICY, _ObjectKwargsPolicy())

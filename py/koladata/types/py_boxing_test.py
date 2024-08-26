@@ -357,7 +357,7 @@ class KwargsBoxingPolicyTest(absltest.TestCase):
         'op_with_kwargs',
         experimental_aux_policy=py_boxing.KWARGS_POLICY,
     )
-    def op_with_kwargs(x, kwargs):
+    def op_with_kwargs(x, kwargs):  # pylint: disable=unused-argument
       return x
 
     testing.assert_equal(
@@ -369,7 +369,7 @@ class KwargsBoxingPolicyTest(absltest.TestCase):
         'op_with_varargs',
         experimental_aux_policy=py_boxing.KWARGS_POLICY,
     )
-    def op_with_varargs(x, *args):
+    def op_with_varargs(x, *args):  # pylint: disable=unused-argument
       return args
 
     with self.assertRaisesWithLiteralMatch(
@@ -406,7 +406,7 @@ class KwargsBoxingPolicyTest(absltest.TestCase):
         'op_with_wrong_default',
         experimental_aux_policy=py_boxing.KWARGS_POLICY,
     )
-    def op_with_wrong_default(x=1, kwargs=1):
+    def op_with_wrong_default(x=1, kwargs=1):  # pylint: disable=unused-argument
       return x
 
     with self.assertRaisesWithLiteralMatch(
@@ -430,9 +430,421 @@ class KwargsBoxingPolicyTest(absltest.TestCase):
       _ = op_with_kwargs(x=5, y=10)
 
 
+class FullSignatureBoxingPolicyTest(absltest.TestCase):
+
+  def test_policy(self):
+    # (x, *args, y, z='z', **kwargs)
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(
+        x,
+        args=py_boxing.var_positional(),
+        y=py_boxing.keyword_only(),
+        z=py_boxing.keyword_only(ds('z')),
+        kwargs=py_boxing.var_keyword(),
+    ):
+      return x, args, y, z, kwargs
+
+    self.assertEqual(
+        inspect.signature(op),
+        inspect.Signature([
+            inspect.Parameter('x', inspect.Parameter.POSITIONAL_OR_KEYWORD),
+            inspect.Parameter('args', inspect.Parameter.VAR_POSITIONAL),
+            inspect.Parameter('y', inspect.Parameter.KEYWORD_ONLY),
+            inspect.Parameter(
+                'z', inspect.Parameter.KEYWORD_ONLY, default=ds('z')
+            ),
+            inspect.Parameter('kwargs', inspect.Parameter.VAR_KEYWORD),
+        ]),
+    )
+
+    testing.assert_equal(
+        op(1, y=2),
+        arolla.abc.bind_op(
+            op,
+            literal_operator.literal(ds(1)),
+            literal_operator.literal(arolla.tuple()),
+            literal_operator.literal(ds(2)),
+            literal_operator.literal(ds('z')),
+            literal_operator.literal(arolla.namedtuple()),
+        ),
+    )
+
+    testing.assert_equal(
+        op(1, 2, 3, w=5, y=4, z=6, a=7),
+        arolla.abc.bind_op(
+            op,
+            literal_operator.literal(ds(1)),
+            literal_operator.literal(arolla.tuple(ds(2), ds(3))),
+            literal_operator.literal(ds(4)),
+            literal_operator.literal(ds(6)),
+            literal_operator.literal(
+                arolla.namedtuple(
+                    w=ds(5),
+                    a=ds(7),
+                )
+            ),
+        ),
+    )
+
+    testing.assert_equal(
+        op(w=5, y=4, z=6, x=1),
+        arolla.abc.bind_op(
+            op,
+            literal_operator.literal(ds(1)),
+            literal_operator.literal(arolla.tuple()),
+            literal_operator.literal(ds(4)),
+            literal_operator.literal(ds(6)),
+            literal_operator.literal(
+                arolla.namedtuple(
+                    w=ds(5),
+                )
+            ),
+        ),
+    )
+
+  def test_policy_with_positional_only_and_default_values(self):
+    # (a, /, x='x', *, y='y', **kwargs)
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(
+        a=py_boxing.positional_only(),
+        b=py_boxing.positional_only(ds('b')),
+        x=py_boxing.positional_or_keyword(ds('x')),
+        y=py_boxing.keyword_only(ds('y')),
+        kwargs=py_boxing.var_keyword(),
+    ):
+      return a, b, x, y, kwargs
+
+    self.assertEqual(
+        inspect.signature(op),
+        inspect.Signature([
+            inspect.Parameter('a', inspect.Parameter.POSITIONAL_ONLY),
+            inspect.Parameter(
+                'b', inspect.Parameter.POSITIONAL_ONLY, default=ds('b')
+            ),
+            inspect.Parameter(
+                'x', inspect.Parameter.POSITIONAL_OR_KEYWORD, default=ds('x')
+            ),
+            inspect.Parameter(
+                'y', inspect.Parameter.KEYWORD_ONLY, default=ds('y')
+            ),
+            inspect.Parameter('kwargs', inspect.Parameter.VAR_KEYWORD),
+        ]),
+    )
+
+    testing.assert_equal(
+        op(1, w=2, z=3, a=4),
+        arolla.abc.bind_op(
+            op,
+            literal_operator.literal(ds(1)),
+            literal_operator.literal(ds('b')),
+            literal_operator.literal(ds('x')),
+            literal_operator.literal(ds('y')),
+            literal_operator.literal(
+                arolla.namedtuple(
+                    w=ds(2),
+                    z=ds(3),
+                    a=ds(4),
+                )
+            ),
+        ),
+    )
+
+  def test_with_exprs(self):
+    # (x, *args, y, **kwargs)
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(
+        x,
+        args=py_boxing.var_positional(),
+        y=py_boxing.keyword_only(),
+        kwargs=py_boxing.var_keyword(),
+    ):
+      return x, args, y, kwargs
+
+    self.assertEqual(
+        inspect.signature(op),
+        inspect.signature(lambda x, *args, y, **kwargs: None))
+
+    testing.assert_equal(
+        op(
+            arolla.M.math.add(1, 2),
+            arolla.M.math.add(2, 3),
+            arolla.M.math.add(3, 4),
+            w=arolla.M.math.add(4, 5),
+            y=arolla.M.math.add(5, 6),
+            z=arolla.M.math.add(7, 8),
+        ),
+        arolla.abc.bind_op(
+            op,
+            arolla.M.math.add(1, 2),
+            arolla.M.core.make_tuple(
+                arolla.M.math.add(2, 3),
+                arolla.M.math.add(3, 4),
+            ),
+            arolla.M.math.add(5, 6),
+            arolla.M.namedtuple.make(
+                w=arolla.M.math.add(4, 5),
+                z=arolla.M.math.add(7, 8),
+            ),
+        ),
+    )
+
+    # Mixture of values and exprs.
+    testing.assert_equal(
+        op(
+            10,
+            arolla.M.math.add(2, 3),
+            11,
+            w=arolla.M.math.add(4, 5),
+            y=12,
+            z=13,
+        ),
+        arolla.abc.bind_op(
+            op,
+            literal_operator.literal(ds(10)),
+            arolla.M.core.make_tuple(
+                arolla.M.math.add(2, 3),
+                literal_operator.literal(ds(11)),
+            ),
+            literal_operator.literal(ds(12)),
+            arolla.M.namedtuple.make(
+                w=arolla.M.math.add(4, 5),
+                z=literal_operator.literal(ds(13)),
+            ),
+        ),
+    )
+
+  def test_with_default_values(self):
+    # (x=1, *args, y=2, **kwargs)
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(
+        x=ds(1),
+        args=py_boxing.var_positional(),
+        y=ds(2),
+        kwargs=py_boxing.var_keyword(),
+    ):
+      return x, args, y, kwargs
+
+    self.assertEqual(
+        inspect.signature(op),
+        inspect.Signature([
+            inspect.Parameter(
+                'x', inspect.Parameter.POSITIONAL_OR_KEYWORD, default=ds(1)
+            ),
+            inspect.Parameter('args', inspect.Parameter.VAR_POSITIONAL),
+            inspect.Parameter(
+                'y', inspect.Parameter.KEYWORD_ONLY, default=ds(2)
+            ),
+            inspect.Parameter('kwargs', inspect.Parameter.VAR_KEYWORD),
+        ]),
+    )
+
+    testing.assert_equal(
+        op(),
+        arolla.abc.bind_op(
+            op,
+            literal_operator.literal(ds(1)),
+            literal_operator.literal(arolla.tuple()),
+            literal_operator.literal(ds(2)),
+            literal_operator.literal(arolla.namedtuple()),
+        ),
+    )
+
+    testing.assert_equal(
+        op(3, y=4),
+        arolla.abc.bind_op(
+            op,
+            literal_operator.literal(ds(3)),
+            literal_operator.literal(arolla.tuple()),
+            literal_operator.literal(ds(4)),
+            literal_operator.literal(arolla.namedtuple()),
+        ),
+    )
+
+  def test_with_expr_eval(self):
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(
+        x,
+        args=py_boxing.var_positional(),
+        y=py_boxing.keyword_only(),
+        kwargs=py_boxing.var_keyword(),
+    ):
+      return arolla.M.core.make_tuple(x, args, y, kwargs)
+
+    self.assertEqual(
+        inspect.signature(op),
+        inspect.Signature([
+            inspect.Parameter('x', inspect.Parameter.POSITIONAL_OR_KEYWORD),
+            inspect.Parameter('args', inspect.Parameter.VAR_POSITIONAL),
+            inspect.Parameter('y', inspect.Parameter.KEYWORD_ONLY),
+            inspect.Parameter('kwargs', inspect.Parameter.VAR_KEYWORD),
+        ]),
+    )
+
+    testing.assert_equal(
+        arolla.abc.aux_eval_op(op, 1, 2, y=3, z=4),
+        arolla.tuple(
+            ds(1),
+            arolla.tuple(ds(2)),
+            ds(3),
+            arolla.namedtuple(z=ds(4)),
+        ),
+    )
+
+  def test_no_arguments(self):
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op():
+      return 1
+
+    self.assertEqual(inspect.signature(op), inspect.Signature())
+
+    testing.assert_equal(op(), arolla.abc.bind_op(op))
+
+  def test_invalid_signature_non_positional_or_keyword_expr_parameters(self):
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(x, *args):
+      return x, args
+
+    with self.assertRaises(RuntimeError) as cm:
+      _ = inspect.signature(op)
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'only positional-or-keyword arguments are supported in the underlying'
+        ' Expr signature',
+    ):
+      raise cm.exception.__cause__
+
+  def test_invalid_signature_var_keyword_parameter_not_last(self):
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(x, kwargs=py_boxing.var_keyword(), z=py_boxing.keyword_only()):
+      return x, kwargs, z
+
+    with self.assertRaises(RuntimeError) as cm:
+      _ = inspect.signature(op)
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'wrong parameter order: variadic keyword parameter before keyword-only'
+        ' parameter',
+    ):
+      raise cm.exception.__cause__
+
+  def test_invalid_signature_repeated_var_positional_parameter(self):
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(
+        x, args1=py_boxing.var_positional(), args2=py_boxing.var_positional()
+    ):
+      return x, args1, args2
+
+    with self.assertRaises(RuntimeError) as cm:
+      _ = inspect.signature(op)
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'multiple variadic positional arguments',
+    ):
+      raise cm.exception.__cause__
+
+  def test_invalid_signature_keyword_only_parameter_before_var_positional(self):
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(x=py_boxing.keyword_only(), args=py_boxing.var_positional()):
+      return x, args
+
+    with self.assertRaises(RuntimeError) as cm:
+      _ = inspect.signature(op)
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'wrong parameter order: keyword-only parameter before variadic'
+        ' positional parameter',
+    ):
+      raise cm.exception.__cause__
+
+  def test_type_errors(self):
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(
+        x=py_boxing.positional_only(),
+        y=py_boxing.positional_or_keyword(),
+        args=py_boxing.var_positional(),
+        z=py_boxing.keyword_only(),
+        kwargs=py_boxing.var_keyword(),
+    ):
+      return x, y, args, z, kwargs
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, "missing required positional argument: 'x'"):
+      _ = op()
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, "missing required positional argument: 'y'"):
+      _ = op(1)
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, "missing required keyword argument: 'z'"):
+      _ = op(1, 2)
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, "got multiple values for argument 'y'"):
+      _ = op(1, 2, y=3, z=4)
+
+    @arolla.optools.as_lambda_operator(
+        'op_with_kwargs',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op_with_kwargs(x, y, kwargs=py_boxing.var_keyword()):
+      return x, y, kwargs
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, 'expected 2 positional arguments but 3 were given'):
+      _ = op_with_kwargs(1, 2, 3)
+
+    @arolla.optools.as_lambda_operator(
+        'op_with_args',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op_with_args(
+        x, args=py_boxing.var_positional(), y=py_boxing.keyword_only()
+    ):
+      return x, args, y
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, "got an unexpected keyword argument 'z'"):
+      _ = op_with_args(1, 2, y=3, z=4, w=5)
+
+
 class ObjectKwargsBoxingPolicyTest(absltest.TestCase):
 
   def setUp(self):
+    super().setUp()
     @arolla.optools.as_lambda_operator(
         'op_with_obj_kwargs',
         experimental_aux_policy=py_boxing.OBJ_KWARGS_POLICY,
@@ -483,7 +895,7 @@ class ObjectKwargsBoxingPolicyTest(absltest.TestCase):
         'op_with_wrong_default',
         experimental_aux_policy=py_boxing.OBJ_KWARGS_POLICY,
     )
-    def op_with_wrong_default(x=1, kwargs=1):
+    def op_with_wrong_default(x=1, kwargs=1):  # pylint: disable=unused-argument
       return x
 
     with self.assertRaisesWithLiteralMatch(
@@ -498,7 +910,7 @@ class ObjectKwargsBoxingPolicyTest(absltest.TestCase):
         'op_with_positional',
         experimental_aux_policy=py_boxing.OBJ_KWARGS_POLICY,
     )
-    def op_with_positional(b, kwargs):
+    def op_with_positional(b, kwargs):  # pylint: disable=unused-argument
       return kwargs
 
     x = arolla.eval(op_with_positional(a=ds([1, 2]), b='wrap me in a ds', c=42))
