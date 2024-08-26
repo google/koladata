@@ -28,7 +28,6 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/shape_utils.h"
-#include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/status_macros_backport.h"

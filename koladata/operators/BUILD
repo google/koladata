@@ -190,6 +190,7 @@ cc_test(
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
+        "//koladata/internal/testing:matchers",
         "//koladata/testing:matchers",
         "@com_google_absl//absl/hash:hash_testing",
         "@com_google_absl//absl/status",
