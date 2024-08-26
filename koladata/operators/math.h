@@ -35,6 +35,9 @@ absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y);
 // kde.math.floordiv.
 absl::StatusOr<DataSlice> FloorDiv(const DataSlice& x, const DataSlice& y);
 
+// kde.math.mod.
+absl::StatusOr<DataSlice> Mod(const DataSlice& x, const DataSlice& y);
+
 // kde.math.maximum.
 absl::StatusOr<DataSlice> Maximum(const DataSlice& x, const DataSlice& y);
 

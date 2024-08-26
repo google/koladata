@@ -45,6 +45,10 @@ absl::StatusOr<DataSlice> FloorDiv(const DataSlice& x, const DataSlice& y) {
   return SimplePointwiseEval("math.floordiv", {x, y});
 }
 
+absl::StatusOr<DataSlice> Mod(const DataSlice& x, const DataSlice& y) {
+  return SimplePointwiseEval("math.mod", {x, y});
+}
+
 absl::StatusOr<DataSlice> Maximum(const DataSlice& x, const DataSlice& y) {
   return SimplePointwiseEval("math.maximum", {x, y});
 }
