@@ -217,6 +217,46 @@ def _rmul(self, other: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.multiply, other, self)
 
 
+@DataSlice.add_method('__truediv__')
+def _truediv(self, other):
+  return arolla.abc.aux_eval_op(_op_impl_lookup.divide, self, other)
+
+
+@DataSlice.add_method('__rtruediv__')
+def _rtruediv(self, other):
+  return arolla.abc.aux_eval_op(_op_impl_lookup.divide, other, self)
+
+
+@DataSlice.add_method('__floordiv__')
+def _floordiv(self, other):
+  return arolla.abc.aux_eval_op(_op_impl_lookup.floordiv, self, other)
+
+
+@DataSlice.add_method('__rfloordiv__')
+def _rfloordiv(self, other):
+  return arolla.abc.aux_eval_op(_op_impl_lookup.floordiv, other, self)
+
+
+@DataSlice.add_method('__mod__')
+def _mod(self, other):
+  return arolla.abc.aux_eval_op(_op_impl_lookup.mod, self, other)
+
+
+@DataSlice.add_method('__rmod__')
+def _rmod(self, other):
+  return arolla.abc.aux_eval_op(_op_impl_lookup.mod, other, self)
+
+
+@DataSlice.add_method('__pow__')
+def _pow(self, other):
+  return arolla.abc.aux_eval_op(_op_impl_lookup.pow, self, other)
+
+
+@DataSlice.add_method('__rpow__')
+def _rpow(self, other):
+  return arolla.abc.aux_eval_op(_op_impl_lookup.pow, other, self)
+
+
 @DataSlice.add_method('__and__')
 def _and(self, other: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.apply_mask, self, other)

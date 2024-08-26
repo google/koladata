@@ -1631,14 +1631,38 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
       testing.assert_equal(x - y, ds([-3, -3, -3]))
       # With auto-boxing
       testing.assert_equal(x - 4, ds([-3, -2, -1]))
-      # __radd__ with auto-boxing
+      # __rsub__ with auto-boxing
       testing.assert_equal(4 - x, ds([3, 2, 1]))
     with self.subTest('mul'):
       testing.assert_equal(x * y, ds([4, 10, 18]))
       # With auto-boxing
       testing.assert_equal(x * 4, ds([4, 8, 12]))
-      # __radd__ with auto-boxing
+      # __rmul__ with auto-boxing
       testing.assert_equal(4 * x, ds([4, 8, 12]))
+    with self.subTest('div'):
+      testing.assert_equal(y / x, ds([4, 2.5, 2]))
+      # With auto-boxing
+      testing.assert_equal(z / 2, ds([0.5, 1, None]))
+      # __rtruediv__ with auto-boxing
+      testing.assert_equal(2 / z, ds([2.0, 1.0, None]))
+    with self.subTest('floordiv'):
+      testing.assert_equal(y // x, ds([4, 2, 2]))
+      # With auto-boxing
+      testing.assert_equal(z // 2, ds([0, 1, None]))
+      # __rfloordiv__ with auto-boxing
+      testing.assert_equal(2 // z, ds([2, 1, None]))
+    with self.subTest('mod'):
+      testing.assert_equal(y % x, ds([0, 1, 0]))
+      # With auto-boxing
+      testing.assert_equal(z % 2, ds([1, 0, None]))
+      # __rmod__ with auto-boxing
+      testing.assert_equal(2 % z, ds([0, 0, None]))
+    with self.subTest('pow'):
+      testing.assert_equal(x**z, ds([1.0, 4.0, None]))
+      # With auto-boxing
+      testing.assert_equal(z**2, ds([1.0, 4.0, None]))
+      # __rpow__ with auto-boxing
+      testing.assert_equal(2**z, ds([2.0, 4.0, None]))
     with self.subTest('and'):
       testing.assert_equal(x & mask, ds([1, None, 3]))
       # only __rand__ with auto-boxing

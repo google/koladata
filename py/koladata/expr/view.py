@@ -100,8 +100,6 @@ class DataSliceView(BasicKodaView):
   def L(self) -> ListSlicingHelper:
     return ListSlicingHelper(self)
 
-  # TODO: Overload Python's magic methods as we add functionality
-  # in operators.
   def __add__(self, other: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.add', self, other)
 
@@ -119,6 +117,30 @@ class DataSliceView(BasicKodaView):
 
   def __rmul__(self, other: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.multiply', other, self)
+
+  def __truediv__(self, other) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.divide', self, other)
+
+  def __rtruediv__(self, other) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.divide', other, self)
+
+  def __floordiv__(self, other) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.floordiv', self, other)
+
+  def __rfloordiv__(self, other) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.floordiv', other, self)
+
+  def __mod__(self, other) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.mod', self, other)
+
+  def __rmod__(self, other) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.mod', other, self)
+
+  def __pow__(self, other) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.pow', self, other)
+
+  def __rpow__(self, other) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.pow', other, self)
 
   def __eq__(self, other: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.equal', self, other)

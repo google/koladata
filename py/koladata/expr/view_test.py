@@ -193,6 +193,34 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_rmul(self):
     testing.assert_equal(C.x.__rmul__(C.y), kde.multiply(C.y, C.x))
 
+  def test_div(self):
+    testing.assert_equal(
+        C.x.val / C.y, kde.divide(kde.get_attr(C.x, 'val'), C.y)
+    )
+
+  def test_rdiv(self):
+    testing.assert_equal(C.x.__rtruediv__(C.y), kde.divide(C.y, C.x))
+
+  def test_floordiv(self):
+    testing.assert_equal(
+        C.x.val // C.y, kde.floordiv(kde.get_attr(C.x, 'val'), C.y)
+    )
+
+  def test_rfloordiv(self):
+    testing.assert_equal(C.x.__rfloordiv__(C.y), kde.floordiv(C.y, C.x))
+
+  def test_mod(self):
+    testing.assert_equal(C.x.val % C.y, kde.mod(kde.get_attr(C.x, 'val'), C.y))
+
+  def test_rmod(self):
+    testing.assert_equal(C.x.__rmod__(C.y), kde.mod(C.y, C.x))
+
+  def test_pow(self):
+    testing.assert_equal(C.x.val**C.y, kde.pow(kde.get_attr(C.x, 'val'), C.y))
+
+  def test_rpow(self):
+    testing.assert_equal(C.x.__rpow__(C.y), kde.pow(C.y, C.x))
+
   def test_eq(self):
     testing.assert_equal(C.x == C.y, kde.equal(C.x, C.y))
 
@@ -253,6 +281,18 @@ class DataSliceViewTest(parameterized.TestCase):
       # Multiply.
       (C.x * 1, 'C.x * DataItem(1, schema: INT32)'),
       (1 * C.x, 'DataItem(1, schema: INT32) * C.x'),
+      # Divide.
+      (C.x / 1, 'C.x / DataItem(1, schema: INT32)'),
+      (1 / C.x, 'DataItem(1, schema: INT32) / C.x'),
+      # FloorDivide.
+      (C.x // 1, 'C.x // DataItem(1, schema: INT32)'),
+      (1 // C.x, 'DataItem(1, schema: INT32) // C.x'),
+      # Mod.
+      (C.x % 1, 'C.x % DataItem(1, schema: INT32)'),
+      (1 % C.x, 'DataItem(1, schema: INT32) % C.x'),
+      # Pow.
+      (C.x**1, 'C.x ** DataItem(1, schema: INT32)'),
+      (1**C.x, 'DataItem(1, schema: INT32) ** C.x'),
       # Getattr.
       (C.x.attr, 'C.x.attr'),
       (
