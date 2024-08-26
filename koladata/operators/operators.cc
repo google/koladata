@@ -92,6 +92,7 @@ OPERATOR("kde.math._agg_max", AggMax);
 OPERATOR("kde.math._agg_min", AggMin);
 OPERATOR("kde.math._agg_sum", AggSum);
 OPERATOR("kde.math.divide", Divide);
+OPERATOR("kde.math.floordiv", FloorDiv);
 OPERATOR("kde.math.maximum", Maximum);
 OPERATOR("kde.math.minimum", Minimum);
 OPERATOR("kde.math.multiply", Multiply);
