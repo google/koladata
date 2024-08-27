@@ -91,18 +91,6 @@ DataSliceImpl DataSliceImpl::AllocateEmptyObjects(size_t size) {
   return ObjectsFromAllocation(Allocate(size), size);
 }
 
-DataSliceImpl DataSliceImpl::CreateAllMissingObjectDataSlice(size_t size) {
-  if (size == 0) {
-    return DataSliceImpl();
-  }
-  DataSliceImpl result;
-  auto& impl = *result.internal_;
-  impl.size = size;
-  impl.dtype = GetQType<ObjectId>();
-  impl.values.emplace_back(CreateEmptyDenseArray<ObjectId>(size));
-  return result;
-}
-
 DataSliceImpl DataSliceImpl::CreateEmptyAndUnknownType(size_t size) {
   if (size == 0) {
     return DataSliceImpl();

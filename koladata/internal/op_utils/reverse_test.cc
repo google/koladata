@@ -41,13 +41,13 @@ TEST(ReverseTest, Empty) {
 }
 
 TEST(ReverseTest, EmptyWithTypeAndRank1) {
-  EXPECT_THAT(ReverseOp{}(DataSliceImpl::CreateAllMissingObjectDataSlice(0),
+  EXPECT_THAT(ReverseOp{}(DataSliceImpl::CreateEmptyAndUnknownType(0),
                           arolla::JaggedDenseArrayShape::FlatFromSize(0)),
               ElementsAreArray(std::vector<DataItem>(0)));
 }
 
 TEST(ReverseTest, EmptyWithTypeAndRank2NoParent) {
-  EXPECT_THAT(ReverseOp{}(DataSliceImpl::CreateAllMissingObjectDataSlice(0),
+  EXPECT_THAT(ReverseOp{}(DataSliceImpl::CreateEmptyAndUnknownType(0),
                           *arolla::JaggedDenseArrayShape::FromEdges(
                               {arolla::DenseArrayEdge::UnsafeFromSplitPoints(
                                    arolla::CreateDenseArray<int64_t>({0, 0})),

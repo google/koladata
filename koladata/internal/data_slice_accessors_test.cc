@@ -176,14 +176,12 @@ TEST(DataSliceAccessorsTest,
     ASSERT_OK_AND_ASSIGN(
         std::shared_ptr<const DenseSource> source,
         DenseSource::CreateReadonly(ds.allocation_ids().ids()[0], ds_a));
-    auto ds_req = DataSliceImpl::CreateAllMissingObjectDataSlice(kSize);
+    auto ds_req = DataSliceImpl::CreateEmptyAndUnknownType(kSize);
     ASSERT_OK_AND_ASSIGN(DataSliceImpl ds_a_get,
                          GetAttributeFromSources(ds_req, {source.get()}, {}));
 
     EXPECT_EQ(ds_a_get.size(), kSize);
     EXPECT_TRUE(ds_a_get.is_empty_and_unknown());
-    EXPECT_THAT(ds_a_get.allocation_ids(),
-                ElementsAre(ds_a.allocation_ids().ids()[0]));
 
     EXPECT_THAT(ds_a_get, ElementsAreArray(std::vector<DataItem>(kSize)));
   }

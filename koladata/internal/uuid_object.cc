@@ -123,7 +123,7 @@ absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
   DCHECK_EQ(attr_names.size(), values.size());
   ASSIGN_OR_RETURN(int64_t size, CommonKwargsSize(values));
   if (size == 0 || size == -1) {
-    return DataSliceImpl::CreateAllMissingObjectDataSlice(0);
+    return DataSliceImpl::CreateEmptyAndUnknownType(0);
   }
 
   std::vector<

@@ -71,9 +71,6 @@ class DataSliceImpl {
   static DataSliceImpl ObjectsFromAllocation(AllocationId alloc_id,
                                              size_t size);
 
-  // Returns DataSliceImpl with `size` missing ObjectId's.
-  static DataSliceImpl CreateAllMissingObjectDataSlice(size_t size);
-
   // Returns empty DataSliceImpl with given `size` and unknown type.
   static DataSliceImpl CreateEmptyAndUnknownType(size_t size);
 

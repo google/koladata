@@ -303,7 +303,7 @@ TEST(DataBagTest, ExtendAndReplaceInLists) {
                                        57, 57)));
 
   {  // replace [1:] with 2 missing
-    auto values = DataSliceImpl::CreateAllMissingObjectDataSlice(6);
+    auto values = DataSliceImpl::CreateEmptyAndUnknownType(6);
     ASSERT_OK_AND_ASSIGN(auto edge,
                          arolla::DenseArrayEdge::FromSplitPoints(
                              arolla::CreateDenseArray<int64_t>({0, 2, 4, 6})));

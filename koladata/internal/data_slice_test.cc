@@ -73,8 +73,6 @@ TEST(DataSliceImpl, EmptyArrayConstructionMustBeEmptyAndUnknown) {
   EXPECT_TRUE(DataSliceImpl::ObjectsFromAllocation(Allocate(0), 0)
                   .is_empty_and_unknown());
   EXPECT_TRUE(
-      DataSliceImpl::CreateAllMissingObjectDataSlice(0).is_empty_and_unknown());
-  EXPECT_TRUE(
       DataSliceImpl::CreateEmptyAndUnknownType(0).is_empty_and_unknown());
   EXPECT_TRUE(
       DataSliceImpl::CreateEmptyAndUnknownType(77).is_empty_and_unknown());
@@ -120,27 +118,6 @@ TEST(DataSliceImpl, AllocateEmptyObjects) {
       EXPECT_TRUE(present) << id;
       EXPECT_EQ(AllocationId(obj), alloc_id) << id;
       EXPECT_EQ(obj, alloc_id.ObjectByOffset(id)) << id;
-    });
-  }
-}
-
-TEST(DataSliceImpl, CreateAllMissingObjectDataSlice) {
-  {
-    DataSliceImpl ds = DataSliceImpl::CreateAllMissingObjectDataSlice(0);
-    EXPECT_EQ(ds.size(), 0);
-    EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
-    EXPECT_EQ(ds.allocation_ids().size(), 0);
-    EXPECT_TRUE(ds.is_empty_and_unknown());
-  }
-  {
-    constexpr int64_t kSize = 75;
-    DataSliceImpl ds = DataSliceImpl::CreateAllMissingObjectDataSlice(kSize);
-    EXPECT_EQ(ds.size(), kSize);
-    EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
-    EXPECT_THAT(ds.allocation_ids(), IsEmpty());
-    EXPECT_EQ(ds.values<ObjectId>().size(), kSize);
-    ds.values<ObjectId>().ForEach([&](int64_t id, bool present, ObjectId obj) {
-      EXPECT_FALSE(present) << id;
     });
   }
 }
@@ -1030,9 +1007,9 @@ TEST(DataSliceImpl, MixedBuilder) {
 }
 
 TEST(DataSliceImpl, AbslStringify) {
-  EXPECT_THAT(absl::StrCat(DataSliceImpl::CreateAllMissingObjectDataSlice(0)),
+  EXPECT_THAT(absl::StrCat(DataSliceImpl::CreateEmptyAndUnknownType(0)),
               Eq("[]"));
-  EXPECT_THAT(absl::StrCat(DataSliceImpl::CreateAllMissingObjectDataSlice(1)),
+  EXPECT_THAT(absl::StrCat(DataSliceImpl::CreateEmptyAndUnknownType(1)),
               Eq("[None]"));
   EXPECT_THAT(absl::StrCat(DataSliceImpl::Create(
                   {DataItem(AllocateSingleObject()), DataItem(5), DataItem()})),

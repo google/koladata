@@ -521,7 +521,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::CreateObjectsFromFields(
     }
   }
   if (ds_size == 0 || ds_size == -1) {
-    return DataSliceImpl::CreateAllMissingObjectDataSlice(0);
+    return DataSliceImpl::CreateEmptyAndUnknownType(0);
   }
   AllocationId alloc_id = Allocate(ds_size);
   auto objects = DataSliceImpl::ObjectsFromAllocation(alloc_id, ds_size);
