@@ -35,7 +35,6 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/qtype/base_types.h"
-#include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
 
