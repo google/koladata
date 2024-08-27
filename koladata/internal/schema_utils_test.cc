@@ -489,5 +489,39 @@ TEST(SchemaUtilsTest, VerifyDictKeySchema) {
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
+TEST(SchemaUtilsTest, GetDataSchema) {
+  {  // Item.
+    EXPECT_EQ(GetDataSchema(DataItem(1)), DataItem(schema::kInt32));
+    EXPECT_EQ(GetDataSchema(DataItem()), DataItem(schema::kNone));
+    EXPECT_EQ(GetDataSchema(DataItem(internal::AllocateSingleObject())),
+              DataItem());
+  }
+  {
+    // Slice.
+    EXPECT_EQ(GetDataSchema(DataSliceImpl::Create({DataItem(1), DataItem()})),
+              DataItem(schema::kInt32));
+    EXPECT_EQ(GetDataSchema(DataSliceImpl::CreateEmptyAndUnknownType(3)),
+              DataItem(schema::kNone));
+    EXPECT_EQ(GetDataSchema(DataItem(internal::AllocateSingleObject())),
+              DataItem());
+    EXPECT_EQ(GetDataSchema(DataSliceImpl::Create(
+                  {DataItem(internal::AllocateSingleObject()), DataItem()})),
+              DataItem());
+    EXPECT_EQ(GetDataSchema(DataSliceImpl::Create(
+                  {DataItem(1), DataItem(DataItem(1.0f))})),
+              DataItem(schema::kFloat32));
+    EXPECT_EQ(GetDataSchema(DataSliceImpl::Create(
+                  {DataItem(1), DataItem(DataItem("foo"))})),
+              DataItem(schema::kObject));
+    EXPECT_EQ(GetDataSchema(DataSliceImpl::Create(
+                  {DataItem(schema::kInt32), DataItem(schema::kFloat32)})),
+              DataItem(schema::kSchema));
+    // No common type between int and DType.
+    EXPECT_EQ(GetDataSchema(DataSliceImpl::Create(
+                  {DataItem(1), DataItem(schema::kInt32)})),
+              DataItem());
+  }
+}
+
 }  // namespace
 }  // namespace koladata::schema

@@ -39,8 +39,10 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/util/meta.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::schema {
@@ -318,12 +320,54 @@ bool VerifySchemaForItemIds(const internal::DataItem& schema_item) {
 }
 
 absl::Status VerifyDictKeySchema(const internal::DataItem& schema_item) {
-  if (schema_item == schema::kNone || schema_item == schema::kFloat32 ||
-      schema_item == schema::kFloat64 || schema_item == schema::kExpr) {
+  if (schema_item == kNone || schema_item == kFloat32 ||
+      schema_item == kFloat64 || schema_item == kExpr) {
     return absl::InvalidArgumentError(
         absl::StrFormat("dict keys cannot be %v", schema_item));
   }
   return absl::OkStatus();
+}
+
+internal::DataItem GetDataSchema(const internal::DataItem& item) {
+  return item.VisitValue([&]<class T>(const T& value) {
+    if constexpr (arolla::meta::contains_v<supported_primitive_dtypes, T>) {
+      return internal::DataItem(GetDType<T>());
+    } else if constexpr (std::is_same_v<T, DType>) {
+      return internal::DataItem(kSchema);
+    } else if constexpr (std::is_same_v<T, internal::MissingValue>) {
+      return internal::DataItem(kNone);
+    } else {
+      // Ambiguous for ObjectId.
+      static_assert(std::is_same_v<T, internal::ObjectId>);
+      return internal::DataItem();
+    }
+  });
+}
+
+internal::DataItem GetDataSchema(const internal::DataSliceImpl& slice) {
+  CommonSchemaAggregator schema_agg;
+  schema_agg.Add(kNone);  // All missing -> NONE.
+  bool contains_non_primitives = false;
+  slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
+    if constexpr (arolla::meta::contains_v<supported_primitive_dtypes, T>) {
+      schema_agg.Add(GetDType<T>());
+    } else if constexpr (std::is_same_v<T, DType>) {
+      schema_agg.Add(kSchema);
+    } else {
+      // Ambiguous for ObjectId.
+      static_assert(std::is_same_v<T, internal::ObjectId>);
+      contains_non_primitives = true;
+    }
+  });
+  if (contains_non_primitives) {
+    return internal::DataItem();
+  }
+  auto result_schema = std::move(schema_agg).Get();
+  if (result_schema.ok()) {
+    return *std::move(result_schema);
+  } else {
+    return internal::DataItem();
+  }
 }
 
 }  // namespace koladata::schema

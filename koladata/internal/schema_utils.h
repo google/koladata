@@ -155,6 +155,11 @@ bool VerifySchemaForItemIds(const internal::DataItem& schema_item);
 // guarantee that the argument is a schema.
 absl::Status VerifyDictKeySchema(const internal::DataItem& schema_item);
 
+// Returns the schema of the underlying data. If the schema is ambiguous (e.g.
+// the slice holds ObjectIds), and empty internal::DataItem is returned.
+internal::DataItem GetDataSchema(const internal::DataItem& item);
+internal::DataItem GetDataSchema(const internal::DataSliceImpl& slice);
+
 }  // namespace koladata::schema
 
 #endif  // KOLADATA_INTERNAL_SCHEMA_UTILS_H_

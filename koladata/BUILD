@@ -152,6 +152,7 @@ cc_library(
         "data_slice_repr.cc",
         "extract_utils.cc",
         "repr_utils.cc",
+        "schema_utils.cc",
         "shape_utils.cc",
     ],
     hdrs = [
@@ -162,6 +163,7 @@ cc_library(
         "data_slice_repr.h",
         "extract_utils.h",
         "repr_utils.h",
+        "schema_utils.h",
         "shape_utils.h",
     ],
     deps = [
@@ -562,6 +564,22 @@ cc_test(
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/status:statusor",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "schema_utils_test",
+    srcs = ["schema_utils_test.cc"],
+    deps = [
+        ":data_slice",
+        ":test_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal/testing:matchers",
+        "//koladata/testing:matchers",
+        "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],
 )
