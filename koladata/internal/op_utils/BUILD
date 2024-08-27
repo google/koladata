@@ -357,7 +357,6 @@ cc_test(
         "//koladata/internal:data_slice",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/random",
-        "@com_google_arolla//arolla/dense_array/testing",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
         "@com_google_arolla//arolla/qtype",
@@ -533,7 +532,6 @@ cc_test(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/dense_array",
-        "@com_google_arolla//arolla/qtype",
         "@com_google_googletest//:gtest_main",
     ],
 )

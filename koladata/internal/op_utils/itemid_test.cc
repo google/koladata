@@ -24,7 +24,6 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/qtype/qtype_traits.h"
 
 namespace koladata::internal {
 namespace {

@@ -22,7 +22,6 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/op_utils/benchmark_util.h"
 #include "koladata/internal/op_utils/presence_or.h"
-#include "arolla/dense_array/testing/util.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/qtype/base_types.h"
