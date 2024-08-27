@@ -54,6 +54,12 @@
 namespace koladata::python {
 namespace {
 
+absl::Nullable<PyObject*> PyDataBag_is_mutable(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  const DataBagPtr& db = UnsafeDataBagPtr(self);
+  return PyBool_FromLong(db->IsMutable());
+}
+
 // classmethod
 absl::Nullable<PyObject*> PyDataBag_empty(PyTypeObject* cls, PyObject*) {
   arolla::python::DCheckPyGIL();
@@ -1099,10 +1105,25 @@ absl::Nullable<PyObject*> PyDataBag_merge_fallbacks(PyObject* self, PyObject*) {
   return WrapDataBagPtr(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self, PyObject*) {
+absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self,
+                                         PyObject* const* py_args,
+                                         Py_ssize_t nargs,
+                                         PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/false, "mutable");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  bool _mutable = true;
+  if (args.pos_kw_values[0] != nullptr) {
+    _mutable = PyObject_IsTrue(args.pos_kw_values[0]);
+  }
+
   const auto& db = UnsafeDataBagPtr(self);
-  ASSIGN_OR_RETURN(auto res, db->Fork(), SetKodaPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res, db->Fork(/*immutable=*/!_mutable),
+                   SetKodaPyErrFromStatus(_));
   return WrapDataBagPtr(std::move(res));
 }
 
@@ -1128,6 +1149,8 @@ absl::Nullable<PyObject*> PyDataBag_get_fallbacks(PyObject* self, PyObject*) {
 }
 
 PyMethodDef kPyDataBag_methods[] = {
+    {"is_mutable", (PyCFunction)PyDataBag_is_mutable, METH_NOARGS,
+     "DataBag.is_mutable"},
     {"empty", (PyCFunction)PyDataBag_empty, METH_CLASS | METH_NOARGS,
      "Returns an empty DataBag."},
     {"new", (PyCFunction)PyDataBag_new_factory, METH_FASTCALL | METH_KEYWORDS,
@@ -1217,7 +1240,7 @@ Returns:
   data_slice.DataSlice with the given attrs.)"""},
     {"uu", (PyCFunction)PyDataBag_uu_entity_factory,
      METH_FASTCALL | METH_KEYWORDS,
- R"""(Creates an item whose ids are uuid(s) with the set attributes.
+     R"""(Creates an item whose ids are uuid(s) with the set attributes.
 
 In order to create a different "Type" from the same arguments, use
 `seed` key with the desired value, e.g.
@@ -1299,10 +1322,16 @@ Returns:
      "DataBag._merge_inplace"},
     {"merge_fallbacks", PyDataBag_merge_fallbacks, METH_NOARGS,
      "Returns a new DataBag with all the fallbacks merged."},
-    {"fork", PyDataBag_fork, METH_NOARGS,
-     R"""(Returns a newly created mutable DataBag with the same content as self.
+    {"fork", (PyCFunction)PyDataBag_fork, METH_FASTCALL | METH_KEYWORDS,
+     R"""(Returns a newly created DataBag with the same content as self.
 
 Changes to either DataBag will not be reflected in the other.
+
+Args:
+  mutable: If true (default), returns a mutable DataBag. If false, the DataBag
+    will be immutable.
+Returns:
+  data_bag.DataBag
 )"""},
     {"contents_repr", PyDataBag_contents_repr, METH_NOARGS,
      "Returns a string representation of the contents of this DataBag."},

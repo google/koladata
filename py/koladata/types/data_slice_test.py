@@ -360,6 +360,14 @@ class DataSliceTest(parameterized.TestCase):
     self.assertIsNot(x, x1)
     self.assertIsNot(x1.db, x.db)
     self.assertIsNot(x1.db, db)
+    self.assertTrue(x1.db.is_mutable())
+
+    x2 = x.fork_db(mutable=False)
+    self.assertIsNot(x, x2)
+    self.assertIsNot(x1, x2)
+    self.assertIsNot(x2.db, x.db)
+    self.assertIsNot(x2.db, x1.db)
+    self.assertFalse(x2.db.is_mutable())
 
   def test_reserved_ipython_method_names(self):
     db = bag()

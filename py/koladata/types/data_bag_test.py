@@ -334,6 +334,13 @@ SchemaBag:
           msg=f'\n\nregex={expected_repr}\n\ndb={db_repr}',
       )
 
+  def test_is_mutable(self):
+    db = bag()
+    self.assertTrue(db.is_mutable())
+    self.assertTrue(db.fork().is_mutable())
+    self.assertTrue(db.fork(mutable=True).is_mutable())
+    self.assertFalse(db.fork(mutable=False).is_mutable())
+
   def test_new(self):
     db = bag()
     x = db.new(
@@ -1470,6 +1477,23 @@ Assigned schema for Dict key: INT32""",
 
     x1.set_attr('a', 3)
     self.assertEqual(x2.a, ds(2))
+
+  def test_fork_immutable(self):
+    db1 = bag()
+    x1 = db1.new(a=1)
+
+    db2 = db1.fork(mutable=False)
+    self.assertIsInstance(db2, data_bag.DataBag)
+    x2 = x1.with_db(db2)
+
+    with self.assertRaisesRegex(
+        ValueError, re.escape('DataBag is immutable')):
+      x2.set_attr('a', 2)
+
+    with self.assertRaisesRegex(
+        TypeError, re.escape("got an unexpected keyword 'foo'")):
+      _ = db1.fork(foo=True)
+
 
 if __name__ == '__main__':
   absltest.main()

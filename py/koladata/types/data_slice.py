@@ -178,10 +178,10 @@ def _to_py(self) -> DataSlice:
 
 
 @DataSlice.add_method('fork_db')
-def _fork_db(self) -> DataSlice:
+def _fork_db(self, mutable=True) -> DataSlice:
   if self.db is None:
     raise ValueError('fork_db expects the DataSlice to have a DataBag attached')
-  return self.with_db(self.db.fork())
+  return self.with_db(self.db.fork(mutable=mutable))
 
 
 ##### DataSlice Magic methods. #####
