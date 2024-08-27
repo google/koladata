@@ -449,15 +449,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     self.assertEqual(
         inspect.signature(op),
-        inspect.Signature([
-            inspect.Parameter('x', inspect.Parameter.POSITIONAL_OR_KEYWORD),
-            inspect.Parameter('args', inspect.Parameter.VAR_POSITIONAL),
-            inspect.Parameter('y', inspect.Parameter.KEYWORD_ONLY),
-            inspect.Parameter(
-                'z', inspect.Parameter.KEYWORD_ONLY, default=ds('z')
-            ),
-            inspect.Parameter('kwargs', inspect.Parameter.VAR_KEYWORD),
-        ]),
+        inspect.signature(lambda x, *args, y, z=ds('z'), **kwargs: None),
     )
 
     testing.assert_equal(
@@ -522,19 +514,9 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     self.assertEqual(
         inspect.signature(op),
-        inspect.Signature([
-            inspect.Parameter('a', inspect.Parameter.POSITIONAL_ONLY),
-            inspect.Parameter(
-                'b', inspect.Parameter.POSITIONAL_ONLY, default=ds('b')
-            ),
-            inspect.Parameter(
-                'x', inspect.Parameter.POSITIONAL_OR_KEYWORD, default=ds('x')
-            ),
-            inspect.Parameter(
-                'y', inspect.Parameter.KEYWORD_ONLY, default=ds('y')
-            ),
-            inspect.Parameter('kwargs', inspect.Parameter.VAR_KEYWORD),
-        ]),
+        inspect.signature(
+            lambda a, b=ds('b'), /, x=ds('x'), *, y=ds('y'), **kwargs: None
+        ),
     )
 
     testing.assert_equal(
@@ -638,16 +620,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     self.assertEqual(
         inspect.signature(op),
-        inspect.Signature([
-            inspect.Parameter(
-                'x', inspect.Parameter.POSITIONAL_OR_KEYWORD, default=ds(1)
-            ),
-            inspect.Parameter('args', inspect.Parameter.VAR_POSITIONAL),
-            inspect.Parameter(
-                'y', inspect.Parameter.KEYWORD_ONLY, default=ds(2)
-            ),
-            inspect.Parameter('kwargs', inspect.Parameter.VAR_KEYWORD),
-        ]),
+        inspect.signature(lambda x=ds(1), *args, y=ds(2), **kwargs: None),
     )
 
     testing.assert_equal(
@@ -687,12 +660,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     self.assertEqual(
         inspect.signature(op),
-        inspect.Signature([
-            inspect.Parameter('x', inspect.Parameter.POSITIONAL_OR_KEYWORD),
-            inspect.Parameter('args', inspect.Parameter.VAR_POSITIONAL),
-            inspect.Parameter('y', inspect.Parameter.KEYWORD_ONLY),
-            inspect.Parameter('kwargs', inspect.Parameter.VAR_KEYWORD),
-        ]),
+        inspect.signature(lambda x, *args, y, **kwargs: None),
     )
 
     testing.assert_equal(
