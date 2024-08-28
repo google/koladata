@@ -1316,6 +1316,13 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     ):
       d3[e] = db.new(y=1.0)
 
+  def test_dict_size(self):
+    db = bag()
+    d = ds([db.dict({1: 2}), db.dict({3: 4, 5: 6})])
+    testing.assert_equal(d.dict_size(), ds([1, 2], schema_constants.INT64))
+    testing.assert_equal(d.S[0].dict_size(), ds(1, schema_constants.INT64))
+    testing.assert_equal(d.S[1].dict_size(), ds(2, schema_constants.INT64))
+
   def test_list_slice(self):
     db = bag()
     indices210 = ds([2, 1, 0])

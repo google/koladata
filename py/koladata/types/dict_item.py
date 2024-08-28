@@ -23,7 +23,12 @@ from koladata.types import data_slice
 class DictItem(data_item.DataItem):
   """DictItem is a DataItem representing a Koda Dict."""
 
-  pass
+  def __len__(self) -> int:
+    return self.dict_size().internal_as_py()
+
+  def __iter__(self):
+    return (data_slice.DataSlice.from_vals(k)
+            for k in self.get_keys().internal_as_py())
 
 
 arolla.abc.register_qvalue_specialization(

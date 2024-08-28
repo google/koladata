@@ -95,6 +95,23 @@ class DictItemTest(parameterized.TestCase):
           f' bag_id: {bag_id})',
       )
 
+  def test_len(self):
+    db = data_bag.DataBag.empty()
+
+    d1 = db.dict()
+    self.assertEmpty(d1)
+
+    d2 = db.dict({1: 2, 3: 4})
+    self.assertLen(d2, 2)
+
+  def test_iter(self):
+    db = data_bag.DataBag.empty()
+    d = db.dict({1: 2, 3: 4})
+    self.assertCountEqual(list(d), [ds(1), ds(3)])
+    self.assertIn(1, d)
+    self.assertIn(3, d)
+    self.assertNotIn(2, d)
+
 
 if __name__ == '__main__':
   absltest.main()

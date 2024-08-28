@@ -166,6 +166,11 @@ def _list_size(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.list_size, self)
 
 
+@DataSlice.add_method('dict_size')
+def _dict_size(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.dict_size, self)
+
+
 @DataSlice.add_method('follow')
 def _follow(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.follow, self)
