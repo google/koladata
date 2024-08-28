@@ -17,11 +17,13 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
+#include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "absl/types/span.h"
+#include "koladata/internal/schema_utils.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
@@ -67,6 +69,16 @@ inline absl::StatusOr<DataSlice> WithSchema(const DataSlice& ds,
 
 // kde.schema.get_schema operator.
 inline DataSlice GetSchema(const DataSlice& ds) { return ds.GetSchema(); }
+
+// kde.schema.get_item_schema operator.
+inline absl::StatusOr<DataSlice> GetItemSchema(const DataSlice& list_schema) {
+  if (!list_schema.IsListSchema()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("expected List schema for get_item_schema, got %v",
+                        list_schema.item()));
+  }
+  return list_schema.GetAttr(schema::kListItemsSchemaAttr);
+}
 
 }  // namespace koladata::ops
 

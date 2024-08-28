@@ -106,6 +106,7 @@ OPERATOR_FAMILY("kde.schema._uu_schema", UuSchemaOperatorFamily);
 OPERATOR("kde.schema.cast_to", CastTo);
 OPERATOR("kde.schema.decode", Decode);
 OPERATOR("kde.schema.encode", Encode);
+OPERATOR("kde.schema.get_item_schema", GetItemSchema);
 OPERATOR("kde.schema.get_schema", GetSchema);
 OPERATOR("kde.schema.with_schema", WithSchema);
 //
