@@ -258,6 +258,38 @@ TEST(DataBagTest, Fork) {
   EXPECT_THAT(ds2.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a2)));
 }
 
+TEST(DataBagTest, Fork_Immutable) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto immutable_db, db->Fork(/*immutable=*/true));
+  const internal::DataBagImpl* immutable_db_impl_ptr = &immutable_db->GetImpl();
+
+  // Check that forking an immutable DataBag doesn't change its DataBagImpl.
+  {
+    auto forked_db = immutable_db->Fork(true);
+    EXPECT_EQ(immutable_db_impl_ptr, &immutable_db->GetImpl());
+  }
+  {
+    auto forked_db = immutable_db->Fork(false);
+    EXPECT_EQ(immutable_db_impl_ptr, &immutable_db->GetImpl());
+  }
+}
+
+TEST(DataBagTest, Fork_Mutable) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto mutable_db, db->Fork(/*immutable=*/false));
+  const internal::DataBagImpl* mutable_db_impl_ptr = &mutable_db->GetImpl();
+
+  // Check that forking a mutable DataBag *does* change its DataBagImpl.
+  {
+    auto forked_db = mutable_db->Fork(true);
+    EXPECT_NE(mutable_db_impl_ptr, &mutable_db->GetImpl());
+  }
+  {
+    auto forked_db = mutable_db->Fork(false);
+    EXPECT_NE(mutable_db_impl_ptr, &mutable_db->GetImpl());
+  }
+}
+
 TEST(DataBagTest, MergeFallbacks) {
   auto fallback_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(

@@ -55,17 +55,26 @@ absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
         "forking with fallbacks is not supported. Please merge fallbacks "
         "instead.");
   }
-  internal::DataBagImplPtr old_impl = impl_;
-  impl_ = old_impl->PartiallyPersistentFork();
-  impl_->AssignToDataBag();
-  auto new_impl = old_impl->PartiallyPersistentFork();
+
+  DataBagPtr new_db;
   if (immutable) {
-    auto new_db = std::make_shared<DataBag>(DataBag::immutable_t());
-    new_db->impl_ = std::move(new_impl);
-    new_db->impl_->AssignToDataBag();
-    return new_db;
+    new_db = std::make_shared<DataBag>(DataBag::immutable_t());
+  } else {
+    new_db = std::make_shared<DataBag>();
   }
-  return DataBag::FromImpl(std::move(new_impl));
+  new_db->impl_ = impl_->PartiallyPersistentFork();
+  new_db->impl_->AssignToDataBag();
+
+  // If the original DataBag is mutable, we need to assign a new implementation
+  // to it, because it can be modified and the modifications will affect the
+  // new DataBag.
+  // Forking an immutable DataBag is thread-safe, because it is read-only.
+  // This is not the case for a mutable DataBag (see http://b/362457876).
+  if (is_mutable_) {
+    impl_ = impl_->PartiallyPersistentFork();
+    impl_->AssignToDataBag();
+  }
+  return new_db;
 }
 
 DataBagPtr DataBag::CommonDataBag(absl::Span<const DataBagPtr> databags) {
