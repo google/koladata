@@ -118,4 +118,9 @@ absl::StatusOr<DataSlice> Length(const DataSlice& x) {
                              internal::DataItem(schema::kInt32));
 }
 
+absl::StatusOr<DataSlice> Upper(const DataSlice& x) {
+  return SimplePointwiseEval("strings.upper", {x},
+                             internal::DataItem(schema::kText));
+}
+
 }  // namespace koladata::ops

@@ -121,6 +121,7 @@ OPERATOR("kde.strings._agg_join", AggJoin);
 OPERATOR("kde.strings._split", Split);
 OPERATOR("kde.strings.length", Length);
 OPERATOR("kde.strings.substr", Substr);
+OPERATOR("kde.strings.upper", Upper);
 //
 OPERATOR("koda_internal.to_arolla_boolean", ToArollaBoolean);
 OPERATOR("koda_internal.to_arolla_dense_array_int64", ToArollaDenseArrayInt64);
