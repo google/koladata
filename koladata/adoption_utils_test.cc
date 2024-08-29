@@ -121,6 +121,7 @@ TEST(AdoptionQueueTest, GetCommonOrMergedDb) {
   q.Add(slice2);
   q.Add(slice1);
   ASSERT_OK_AND_ASSIGN(DataBagPtr db3, q.GetCommonOrMergedDb());
+  EXPECT_FALSE(db3->IsMutable());
 
   EXPECT_THAT(db3->GetImpl().GetAttr(obj, "a"),
               IsOkAndHolds(internal::DataItem(1)));

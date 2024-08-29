@@ -92,7 +92,7 @@ absl::StatusOr<absl::Nullable<DataBagPtr>> AdoptionQueue::GetCommonOrMergedDb()
   } else {
     auto res = DataBag::Empty();
     RETURN_IF_ERROR(AdoptInto(*res));
-    return std::move(res);
+    return std::move(res)->Fork(/*immutable=*/true);
   }
 }
 

@@ -61,8 +61,8 @@ class AdoptionQueue {
   // Returns the result common or merged DataBag. There are three cases:
   // 1. If no non-null DataBags have been tracked, returns nullptr.
   // 2. If all tracked triples are from the same DataBag, returns that DataBag.
-  // 3. Else, returns a new DataBag containing all tracked triples, or an error
-  //    if this causes a merge conflict.
+  // 3. Else, returns a new immutable DataBag containing all tracked triples, or
+  //    an error if this causes a merge conflict.
   absl::StatusOr<absl::Nullable<DataBagPtr>> GetCommonOrMergedDb() const;
 
   // Returns a new empty immutable DataBag with all tracked DataBags and tracked
