@@ -86,7 +86,7 @@ bool UnwrapDataSliceOptionalArg(PyObject* py_obj,
   if (ds == nullptr) {
     return false;
   }
-  arg = std::move(*ds);
+  arg = *ds;
   return true;
 }
 

@@ -232,11 +232,11 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
   AdoptionQueue adoption_queue;
   std::optional<DataSlice> res;
   std::optional<DataSlice> schema_arg;
-  if (!ParseSchemaArg(args, /*arg_pos=*/1, schema_arg)) {
+  if (!ParseDataSliceArg(args, "schema", schema_arg)) {
     return nullptr;
   }
   bool update_schema = false;
-  if (!ParseUpdateSchemaArg(args, /*arg_pos=*/2, update_schema)) {
+  if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
   }
   // args.pos_kw_values[0] is "arg" positional-keyword argument.
@@ -270,6 +270,231 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
             CreateItemCreationError(status, schema_arg));
       });
   return WrapPyDataSlice(*std::move(res));
+}
+
+// Returns a DataSlice that represents an entity with the given DataBag
+// associated with it.
+//
+// For single argument `arg`, a new Entity is created for it, e.g. converting a
+// Python dictionary or list to Koda Entity.
+//
+// `kwargs` are traversed and key-value pairs are extracted and added as
+// attributes of the newly created entity.
+absl::Nullable<PyObject*> PyDataBag_new_factory(PyObject* self,
+                                                PyObject* const* py_args,
+                                                Py_ssize_t nargs,
+                                                PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"schema", "update_schema"},
+      /*pos_kw_args=*/"arg"));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  return ProcessObjectCreation<EntityCreatorHelper>(UnsafeDataBagPtr(self),
+                                                    args);
+}
+
+// Returns a DataSlice that represents an object with the given DataBag
+// associated with it.
+//
+// For single argument `arg`, a new object is created for it, e.g. converting a
+// Python dictionary or list to Koda Object.
+//
+// `kwargs` are traversed and key-value pairs are extracted and added as
+// attributes of the newly created object.
+absl::Nullable<PyObject*> PyDataBag_obj_factory(PyObject* self,
+                                                PyObject* const* py_args,
+                                                Py_ssize_t nargs,
+                                                PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, "arg");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  return ProcessObjectCreation<ObjectCreatorHelper>(UnsafeDataBagPtr(self),
+                                                    args);
+}
+
+// Helper function that processes arguments for Entity / Object creators and
+// dispatches implementation to -Shaped behavior.
+template <class FactoryHelperT>
+absl::Nullable<PyObject*> ProcessObjectShapedCreation(
+    const DataBagPtr& db, const FastcallArgParser::Args& args) {
+  AdoptionQueue adoption_queue;
+  std::optional<DataSlice> res;
+  // args.pos_kw_values[0] is "shape" positional-keyword argument.
+  if (args.pos_kw_values[0] == nullptr) {
+    PyErr_SetString(PyExc_TypeError, "expected mandatory 'shape' argument");
+    return nullptr;
+  }
+  const DataSlice::JaggedShape* shape =
+      UnwrapJaggedShape(args.pos_kw_values[0], "shape");
+  if (shape == nullptr) {
+    return nullptr;
+  }
+  std::optional<DataSlice> schema_arg;
+  if (!ParseDataSliceArg(args, "schema", schema_arg)) {
+    return nullptr;
+  }
+  bool update_schema = false;
+  if (!ParseBoolArg(args, "update_schema", update_schema)) {
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(
+      std::vector<DataSlice> values,
+      ConvertArgsToDataSlices(
+          db, /*prohibit_boxing_to_multi_dim_slice=*/shape->rank() != 0,
+          args.kw_values, adoption_queue),
+      SetKodaPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(
+      res,
+      FactoryHelperT::Shaped(
+          *std::move(shape), args.kw_names, values, schema_arg, update_schema,
+          db, adoption_queue),
+      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
+      .With([&](const absl::Status& status) {
+        return SetKodaPyErrFromStatus(
+            CreateItemCreationError(status, schema_arg));
+      });
+  return WrapPyDataSlice(*std::move(res));
+}
+
+// Returns a DataSlice that represents an Entity with the given DataBag
+// associated with it.
+//
+// It accepts `shape` as an argument to indicate the shape of returned
+// DataSlice. The returned DataSlice has a reference to a DataBag and thus can
+// have attributes set.
+absl::Nullable<PyObject*> PyDataBag_new_factory_shaped(PyObject* self,
+                                                       PyObject* const* py_args,
+                                                       Py_ssize_t nargs,
+                                                       PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"schema", "update_schema"},
+      /*pos_kw_args=*/"shape"));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  return ProcessObjectShapedCreation<EntityCreatorHelper>(
+      UnsafeDataBagPtr(self), args);
+}
+
+// Returns a DataSlice that represents an Object with the given DataBag
+// associated with it.
+//
+// It accepts `shape` as an argument to indicate the shape of returned
+// DataSlice. The returned DataSlice has a reference to a DataBag and thus can
+// have attributes set.
+absl::Nullable<PyObject*> PyDataBag_obj_factory_shaped(PyObject* self,
+                                                       PyObject* const* py_args,
+                                                       Py_ssize_t nargs,
+                                                       PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, "shape");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  return ProcessObjectShapedCreation<ObjectCreatorHelper>(
+      UnsafeDataBagPtr(self), args);
+}
+
+// Helper function that processes arguments for Entity / Object creators and
+// dispatches implementation to -Like behavior.
+template <class FactoryHelperT>
+absl::Nullable<PyObject*> ProcessObjectLikeCreation(
+    const DataBagPtr& db, const FastcallArgParser::Args& args) {
+  AdoptionQueue adoption_queue;
+  std::optional<DataSlice> res;
+  // args.pos_kw_values[0] is "shape_and_mask_from" positional-keyword argument.
+  if (args.pos_kw_values[0] == nullptr) {
+    PyErr_SetString(PyExc_TypeError,
+                    "expected mandatory 'shape_and_mask_from' argument");
+    return nullptr;
+  }
+  const DataSlice* shape_and_mask_from =
+      UnwrapDataSlice(args.pos_kw_values[0], "shape_and_mask_from");
+  if (shape_and_mask_from == nullptr) {
+    return nullptr;
+  }
+  std::optional<DataSlice> schema_arg;
+  if (!ParseDataSliceArg(args, "schema", schema_arg)) {
+    return nullptr;
+  }
+  bool update_schema = false;
+  if (!ParseBoolArg(args, "update_schema", update_schema)) {
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(
+      std::vector<DataSlice> values,
+      ConvertArgsToDataSlices(db,
+                              /*prohibit_boxing_to_multi_dim_slice=*/
+                              shape_and_mask_from->GetShape().rank() != 0,
+                              args.kw_values, adoption_queue),
+      SetKodaPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(
+      res,
+      FactoryHelperT::Like(
+          *shape_and_mask_from, args.kw_names, values, schema_arg,
+          update_schema, db, adoption_queue),
+      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
+      .With([&](const absl::Status& status) {
+        return SetKodaPyErrFromStatus(
+            CreateItemCreationError(status, schema_arg));
+      });
+  return WrapPyDataSlice(*std::move(res));
+}
+
+// Returns a DataSlice that represents an Entity with the given DataBag
+// associated with it.
+//
+// It accepts `shape_and_mask_from` as an argument from which shape and sparsity
+// are used to create a DataSlice. The returned DataSlice has a reference to a
+// DataBag and thus can have attributes set.
+absl::Nullable<PyObject*> PyDataBag_new_factory_like(PyObject* self,
+                                                     PyObject* const* py_args,
+                                                     Py_ssize_t nargs,
+                                                     PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"schema", "update_schema"},
+      /*pos_kw_args=*/"shape_and_mask_from"));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  return ProcessObjectLikeCreation<EntityCreatorHelper>(
+      UnsafeDataBagPtr(self), args);
+}
+
+// Returns a DataSlice that represents an Ontity with the given DataBag
+// associated with it.
+//
+// It accepts `shape_and_mask_from` as an argument from which shape and sparsity
+// are used to create a DataSlice. The returned DataSlice has a reference to a
+// DataBag and thus can have attributes set.
+absl::Nullable<PyObject*> PyDataBag_obj_factory_like(PyObject* self,
+                                                     PyObject* const* py_args,
+                                                     Py_ssize_t nargs,
+                                                     PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, "shape_and_mask_from");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  return ProcessObjectLikeCreation<ObjectCreatorHelper>(
+      UnsafeDataBagPtr(self), args);
 }
 
 // Returns a DataSlice that represents an allocated Entity Schema.
@@ -324,236 +549,13 @@ absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
                    UnwrapDataSlices(args.kw_values, adoption_queue),
                    SetKodaPyErrFromStatus(_));
   absl::string_view seed("");
-  if (!ParseSeedArg(args, /*arg_pos=*/0, seed)) {
+  if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed)) {
     return nullptr;
   }
   ASSIGN_OR_RETURN(res, CreateUuSchema(db, seed, args.kw_names, values),
                    SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
-}
-
-// Returns a DataSlice that represents an entity with the given DataBag
-// associated with it.
-//
-// For single argument `arg`, a new Entity is created for it, e.g. converting a
-// Python dictionary or list to Koda Entity.
-//
-// `kwargs` are traversed and key-value pairs are extracted and added as
-// attributes of the newly created entity.
-absl::Nullable<PyObject*> PyDataBag_new_factory(PyObject* self,
-                                                PyObject* const* py_args,
-                                                Py_ssize_t nargs,
-                                                PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "arg", "schema",
-      "update_schema");
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
-  }
-  return ProcessObjectCreation<EntityCreatorHelper>(UnsafeDataBagPtr(self),
-                                                    args);
-}
-
-// Returns a DataSlice that represents an object with the given DataBag
-// associated with it.
-//
-// For single argument `arg`, a new object is created for it, e.g. converting a
-// Python dictionary or list to Koda Object.
-//
-// `kwargs` are traversed and key-value pairs are extracted and added as
-// attributes of the newly created object.
-absl::Nullable<PyObject*> PyDataBag_obj_factory(PyObject* self,
-                                                PyObject* const* py_args,
-                                                Py_ssize_t nargs,
-                                                PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "arg");
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
-  }
-  return ProcessObjectCreation<ObjectCreatorHelper>(UnsafeDataBagPtr(self),
-                                                    args);
-}
-
-// Helper function that processes arguments for Entity / Object creators and
-// dispatches implementation to -Shaped behavior.
-template <class FactoryHelperT>
-absl::Nullable<PyObject*> ProcessObjectShapedCreation(
-    const DataBagPtr& db, const FastcallArgParser::Args& args) {
-  AdoptionQueue adoption_queue;
-  std::optional<DataSlice> res;
-  // args.pos_kw_values[0] is "shape" positional-keyword argument.
-  if (args.pos_kw_values[0] == nullptr) {
-    PyErr_SetString(PyExc_TypeError, "expected mandatory 'shape' argument");
-    return nullptr;
-  }
-  const DataSlice::JaggedShape* shape =
-      UnwrapJaggedShape(args.pos_kw_values[0], "shape");
-  if (shape == nullptr) {
-    return nullptr;
-  }
-  std::optional<DataSlice> schema_arg;
-  if (!ParseSchemaArg(args, /*arg_pos=*/1, schema_arg)) {
-    return nullptr;
-  }
-  bool update_schema = false;
-  if (!ParseUpdateSchemaArg(args, /*arg_pos=*/2, update_schema)) {
-    return nullptr;
-  }
-  ASSIGN_OR_RETURN(
-      std::vector<DataSlice> values,
-      ConvertArgsToDataSlices(
-          db, /*prohibit_boxing_to_multi_dim_slice=*/shape->rank() != 0,
-          args.kw_values, adoption_queue),
-      SetKodaPyErrFromStatus(_));
-  ASSIGN_OR_RETURN(
-      res,
-      FactoryHelperT::Shaped(*std::move(shape), args.kw_names, values,
-                             schema_arg, update_schema, db, adoption_queue),
-      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
-      .With([&](const absl::Status& status) {
-        return SetKodaPyErrFromStatus(
-            CreateItemCreationError(status, schema_arg));
-      });
-  return WrapPyDataSlice(*std::move(res));
-}
-
-// Returns a DataSlice that represents an Entity with the given DataBag
-// associated with it.
-//
-// It accepts `shape` as an argument to indicate the shape of returned
-// DataSlice. The returned DataSlice has a reference to a DataBag and thus can
-// have attributes set.
-absl::Nullable<PyObject*> PyDataBag_new_factory_shaped(PyObject* self,
-                                                       PyObject* const* py_args,
-                                                       Py_ssize_t nargs,
-                                                       PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "shape", "schema",
-      "update_schema");
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
-  }
-  return ProcessObjectShapedCreation<EntityCreatorHelper>(
-      UnsafeDataBagPtr(self), args);
-}
-
-// Returns a DataSlice that represents an Object with the given DataBag
-// associated with it.
-//
-// It accepts `shape` as an argument to indicate the shape of returned
-// DataSlice. The returned DataSlice has a reference to a DataBag and thus can
-// have attributes set.
-absl::Nullable<PyObject*> PyDataBag_obj_factory_shaped(PyObject* self,
-                                                       PyObject* const* py_args,
-                                                       Py_ssize_t nargs,
-                                                       PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "shape");
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
-  }
-  return ProcessObjectShapedCreation<ObjectCreatorHelper>(
-      UnsafeDataBagPtr(self), args);
-}
-
-// Helper function that processes arguments for Entity / Object creators and
-// dispatches implementation to -Like behavior.
-template <class FactoryHelperT>
-absl::Nullable<PyObject*> ProcessObjectLikeCreation(
-    const DataBagPtr& db, const FastcallArgParser::Args& args) {
-  AdoptionQueue adoption_queue;
-  std::optional<DataSlice> res;
-  // args.pos_kw_values[0] is "shape_and_mask_from" positional-keyword argument.
-  if (args.pos_kw_values[0] == nullptr) {
-    PyErr_SetString(PyExc_TypeError,
-                    "expected mandatory 'shape_and_mask_from' argument");
-    return nullptr;
-  }
-  const DataSlice* shape_and_mask_from =
-      UnwrapDataSlice(args.pos_kw_values[0], "shape_and_mask_from");
-  if (shape_and_mask_from == nullptr) {
-    return nullptr;
-  }
-  std::optional<DataSlice> schema_arg;
-  if (!ParseSchemaArg(args, /*arg_pos=*/1, schema_arg)) {
-    return nullptr;
-  }
-  bool update_schema = false;
-  if (!ParseUpdateSchemaArg(args, /*arg_pos=*/2, update_schema)) {
-    return nullptr;
-  }
-  ASSIGN_OR_RETURN(
-      std::vector<DataSlice> values,
-      ConvertArgsToDataSlices(db,
-                              /*prohibit_boxing_to_multi_dim_slice=*/
-                              shape_and_mask_from->GetShape().rank() != 0,
-                              args.kw_values, adoption_queue),
-      SetKodaPyErrFromStatus(_));
-  ASSIGN_OR_RETURN(
-      res,
-      FactoryHelperT::Like(*shape_and_mask_from, args.kw_names, values,
-                           schema_arg, update_schema, db, adoption_queue),
-      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
-      .With([&](const absl::Status& status) {
-        return SetKodaPyErrFromStatus(
-            CreateItemCreationError(status, schema_arg));
-      });
-  return WrapPyDataSlice(*std::move(res));
-}
-
-// Returns a DataSlice that represents an Entity with the given DataBag
-// associated with it.
-//
-// It accepts `shape_and_mask_from` as an argument from which shape and sparsity
-// are used to create a DataSlice. The returned DataSlice has a reference to a
-// DataBag and thus can have attributes set.
-absl::Nullable<PyObject*> PyDataBag_new_factory_like(PyObject* self,
-                                                     PyObject* const* py_args,
-                                                     Py_ssize_t nargs,
-                                                     PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "shape_and_mask_from", "schema",
-      "update_schema");
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
-  }
-  return ProcessObjectLikeCreation<EntityCreatorHelper>(
-      UnsafeDataBagPtr(self), args);
-}
-
-// Returns a DataSlice that represents an Ontity with the given DataBag
-// associated with it.
-//
-// It accepts `shape_and_mask_from` as an argument from which shape and sparsity
-// are used to create a DataSlice. The returned DataSlice has a reference to a
-// DataBag and thus can have attributes set.
-absl::Nullable<PyObject*> PyDataBag_obj_factory_like(PyObject* self,
-                                                     PyObject* const* py_args,
-                                                     Py_ssize_t nargs,
-                                                     PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "shape_and_mask_from");
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
-  }
-  return ProcessObjectLikeCreation<ObjectCreatorHelper>(
-      UnsafeDataBagPtr(self), args);
 }
 
 // Returns a DataSlice that represents an entity with the given DataBag
@@ -571,9 +573,9 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
                                                       Py_ssize_t nargs,
                                                       PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "seed", "schema",
-      "update_schema");
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"schema", "update_schema"},
+      /*pos_kw_args=*/"seed"));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -585,15 +587,15 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
                    SetKodaPyErrFromStatus(_));
   absl::string_view seed_arg("");
-  if (!ParseSeedArg(args, /*arg_pos=*/0, seed_arg)) {
+  if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed_arg)) {
     return nullptr;
   }
   std::optional<DataSlice> schema_arg;
-  if (!ParseSchemaArg(args, /*arg_pos=*/1, schema_arg)) {
+  if (!ParseDataSliceArg(args, "schema", schema_arg)) {
     return nullptr;
   }
   bool update_schema = false;
-  if (!ParseUpdateSchemaArg(args, /*arg_pos=*/2, update_schema)) {
+  if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
   }
   if (schema_arg) {
@@ -630,7 +632,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_obj_factory(PyObject* self,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
                    SetKodaPyErrFromStatus(_));
   absl::string_view seed("");
-  if (!ParseSeedArg(args, /*arg_pos=*/0, seed)) {
+  if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed)) {
     return nullptr;
   }
   ASSIGN_OR_RETURN(res, CreateUuObject(db, seed, args.kw_names, values),

@@ -150,68 +150,81 @@ absl::StatusOr<std::vector<DataSlice>> ConvertArgsToDataSlices(
   return std::move(values);
 }
 
-bool ParseSeedArg(const FastcallArgParser::Args& args,
-                  size_t arg_pos,
-                  absl::string_view& seed_arg) {
+bool ParseUnicodeArg(const FastcallArgParser::Args& args, size_t arg_pos,
+                     absl::string_view arg_name_for_error,
+                     absl::string_view& arg) {
   if (args.pos_kw_values.size() <= arg_pos || !args.pos_kw_values[arg_pos] ||
       args.pos_kw_values[arg_pos] == Py_None) {
-    // The argument was not specified and seed_arg will retain its value from
-    // the caller.
+    // The argument was not specified and arg will retain its value from the
+    // caller.
     return true;
   }
-  auto seed_py_object = args.pos_kw_values[arg_pos];
-  Py_ssize_t seed_size;
-  auto seed_ptr = PyUnicode_AsUTF8AndSize(seed_py_object, &seed_size);
-  if (seed_ptr == nullptr) {
-    PyErr_Format(PyExc_TypeError, "seed must be a utf8 string, got %s",
-                 Py_TYPE(seed_py_object)->tp_name);
+  auto arg_py = args.pos_kw_values[arg_pos];
+  Py_ssize_t unicode_size;
+  auto unicode_ptr = PyUnicode_AsUTF8AndSize(arg_py, &unicode_size);
+  if (unicode_ptr == nullptr) {
+    PyErr_Format(
+        PyExc_TypeError, "%s must be a utf8 string, got %s",
+        std::string(arg_name_for_error).c_str(), Py_TYPE(arg_py)->tp_name);
     return false;
   }
-  // seed_ptr is valid as long as seed_py_object is not garbage collected.
-  seed_arg = absl::string_view(seed_ptr, seed_size);
+  // unicode_ptr is valid as long as arg_py is not garbage collected.
+  arg = absl::string_view(unicode_ptr, unicode_size);
   return true;
 }
 
-bool ParseSchemaArg(const FastcallArgParser::Args& args, size_t arg_pos,
-                    std::optional<DataSlice>& schema_arg) {
-  // args.pos_kw_values[arg_pos] is "schema" optional positional-keyword
+bool ParseDataSliceArg(const FastcallArgParser::Args& args,
+                       absl::string_view arg_name,
+                       std::optional<DataSlice>& arg) {
+  // args.pos_kw_values[arg_pos] is "arg_name" optional positional-keyword
+  // argument.
+  auto arg_it = args.kw_only_args.find(arg_name);
+  if (arg_it == args.kw_only_args.end() || arg_it->second == Py_None) {
+    arg = std::nullopt;
+    return true;
+  }
+  const DataSlice* arg_ptr = UnwrapDataSlice(arg_it->second, arg_name);
+  if (arg_ptr == nullptr) {
+    return false;
+  }
+  arg = *arg_ptr;
+  return true;
+}
+
+bool ParseBoolArg(const FastcallArgParser::Args& args, size_t arg_pos,
+                  absl::string_view arg_name_for_error, bool& arg) {
+  // args.pos_kw_values[arg_pos] is "arg_name" optional positional-keyword
   // argument.
   if (args.pos_kw_values.size() <= arg_pos ||
       args.pos_kw_values[arg_pos] == nullptr ||
       args.pos_kw_values[arg_pos] == Py_None) {
-    schema_arg = std::nullopt;
-    return true;
-  }
-  const DataSlice* schema =
-      UnwrapDataSlice(args.pos_kw_values[arg_pos], "schema");
-  if (schema == nullptr) {
-    return false;
-  }
-  auto status = schema->VerifyIsSchema();
-  if (!status.ok()) {
-    SetKodaPyErrFromStatus(status);
-    return false;
-  }
-  schema_arg = *schema;
-  return true;
-}
-
-bool ParseUpdateSchemaArg(const FastcallArgParser::Args& args, size_t arg_pos,
-                          bool& update_schema) {
-  // args.pos_kw_values[arg_pos] is "update_schema" optional positional-keyword
-  // argument.
-  if (args.pos_kw_values.size() <= arg_pos ||
-      args.pos_kw_values[arg_pos] == nullptr ||
-      args.pos_kw_values[arg_pos] == Py_None) {
-    update_schema = false;
+    arg = false;
     return true;
   }
   if (!PyBool_Check(args.pos_kw_values[arg_pos])) {
-    PyErr_Format(PyExc_TypeError, "expected bool for update_schema, got %s",
+    PyErr_Format(PyExc_TypeError, "expected bool for %s, got %s",
+                 std::string(arg_name_for_error).c_str(),
                  Py_TYPE(args.pos_kw_values[arg_pos])->tp_name);
     return false;
   }
-  update_schema = PyObject_IsTrue(args.pos_kw_values[arg_pos]);
+  arg = PyObject_IsTrue(args.pos_kw_values[arg_pos]);
+  return true;
+}
+
+bool ParseBoolArg(const FastcallArgParser::Args& args,
+                  absl::string_view arg_name, bool& arg) {
+  auto arg_it = args.kw_only_args.find(arg_name);
+  if (arg_it == args.kw_only_args.end() || arg_it->second == Py_None) {
+    arg = false;
+    return true;
+  }
+  if (!PyBool_Check(arg_it->second)) {
+    PyErr_Format(PyExc_TypeError, "expected bool for %s, got %s",
+                 std::string(arg_name).c_str(),
+                 Py_TYPE(arg_it->second)->tp_name);
+    return false;
+  }
+  arg = PyObject_IsTrue(arg_it->second);
   return true;
 }
 
@@ -220,12 +233,19 @@ namespace {
 // Sets Python TypeError if inadequate number of positional arguments have been
 // passed to a function / method.
 bool InvalidPosArgCountError(Py_ssize_t nargs, size_t pos_only_n,
-                                size_t pos_keyword_n) {
+                             size_t pos_keyword_n) {
   if (pos_only_n > 0 || pos_keyword_n > 0) {
-    PyErr_Format(PyExc_TypeError,
-                 "accepts %d to %d positional arguments but %d %s given",
-                 pos_only_n, pos_only_n + pos_keyword_n, nargs,
-                 nargs == 1 ? "was" : "were");
+    if (pos_keyword_n == 0) {
+      PyErr_Format(PyExc_TypeError,
+                   "accepts %d positional-only argument%s but %d %s given",
+                   pos_only_n, pos_only_n == 1 ? "" : "s", nargs,
+                   nargs == 1 ? "was" : "were");
+    } else {
+      PyErr_Format(PyExc_TypeError,
+                   "accepts %d to %d positional arguments but %d %s given",
+                   pos_only_n, pos_only_n + pos_keyword_n, nargs,
+                   nargs == 1 ? "was" : "were");
+    }
   } else {
     PyErr_Format(PyExc_TypeError,
                  "accepts 0 positional arguments but %d %s given",
@@ -242,12 +262,11 @@ bool FastcallArgParser::Parse(PyObject* const* py_args, Py_ssize_t nargs,
     args.kw_names.reserve(kKwargsVectorCapacity);
     args.kw_values.reserve(kKwargsVectorCapacity);
   }
-  args.pos_kw_values.assign(pos_kw_to_pos_.size(), nullptr);
-  if (pos_only_n_ > nargs) {
-    // The caller should process all missing positional-keyword arguments.
-    return true;
+  if (!kw_only_arg_names_.empty()) {
+    args.kw_only_args.reserve(kw_only_arg_names_.size());
   }
-  if (nargs > pos_kw_to_pos_.size() + pos_only_n_) {
+  args.pos_kw_values.assign(pos_kw_to_pos_.size(), nullptr);
+  if (nargs < pos_only_n_ || nargs > pos_kw_to_pos_.size() + pos_only_n_) {
     return InvalidPosArgCountError(nargs, pos_only_n_, pos_kw_to_pos_.size());
   }
   for (size_t i = pos_only_n_; i < nargs; ++i) {
@@ -269,23 +288,33 @@ bool FastcallArgParser::Parse(PyObject* const* py_args, Py_ssize_t nargs,
       return false;
     }
     absl::string_view arg_name(key_data, key_size);
-    auto arg_pos_it = pos_kw_to_pos_.find(
-        absl::string_view(key_data, key_size));
-    if (arg_pos_it == pos_kw_to_pos_.end()) {
-      if (parse_kwargs_) {
-        args.kw_names.push_back(arg_name);
-        args.kw_values.push_back(py_args[nargs + i]);
-        continue;
+    // Positional-keyword argument.
+    if (auto arg_pos_it = pos_kw_to_pos_.find(arg_name);
+        arg_pos_it != pos_kw_to_pos_.end()) {
+      if (args.pos_kw_values[arg_pos_it->second] != nullptr) {
+        PyErr_Format(PyExc_TypeError,
+                     "got multiple values for argument %R", py_key);
+        return false;
       }
-      PyErr_Format(PyExc_TypeError, "got an unexpected keyword %R", py_key);
-      return false;
+      args.pos_kw_values[arg_pos_it->second] = py_args[nargs + i];
+      continue;
     }
-    if (args.pos_kw_values[arg_pos_it->second] != nullptr) {
-      PyErr_Format(PyExc_TypeError,
-                   "got multiple values for argument %R", py_key);
-      return false;
+    // Keyword-only argument.
+    if (kw_only_arg_names_.contains(arg_name)) {
+      auto [it, inserted] = args.kw_only_args.emplace(arg_name,
+                                                      py_args[nargs + i]);
+      // NOTE: In Python 3.11 does not support duplicate kwargs.
+      DCHECK(inserted);
+      continue;
     }
-    args.pos_kw_values[arg_pos_it->second] = py_args[nargs + i];
+    // Variadic-keyword argument.
+    if (parse_kwargs_) {
+      args.kw_names.push_back(arg_name);
+      args.kw_values.push_back(py_args[nargs + i]);
+      continue;
+    }
+    PyErr_Format(PyExc_TypeError, "got an unexpected keyword %R", py_key);
+    return false;
   }
   return true;
 }

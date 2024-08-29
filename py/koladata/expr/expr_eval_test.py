@@ -41,13 +41,13 @@ class PyExprEvalTest(absltest.TestCase):
 
   def test_no_inputs_error(self):
     with self.assertRaisesWithLiteralMatch(
-        ValueError, 'kd.eval() expects exactly one positional input'
+        TypeError, 'accepts 1 positional-only argument but 0 were given'
     ):
       py_expr_eval.eval_expr()
 
   def test_given_kwarg(self):
     with self.assertRaisesWithLiteralMatch(
-        ValueError, 'kd.eval() expects exactly one positional input'
+        TypeError, 'accepts 1 positional-only argument but 0 were given'
     ):
       py_expr_eval.eval_expr(expr=I.x)
 

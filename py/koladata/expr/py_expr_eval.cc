@@ -22,6 +22,7 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
+#include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_eval.h"
@@ -48,10 +49,7 @@ absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
   }
 
   // Parse expr.
-  if (nargs < 1) {
-    return PyErr_Format(PyExc_ValueError,
-                        "kd.eval() expects exactly one positional input");
-  }
+  DCHECK_GE(nargs, 1);  // Checked above in FastcallArgParser::Parse.
   auto expr = arolla::python::UnwrapPyExpr(py_args[0]);
   if (expr == nullptr) {
     PyErr_Clear();

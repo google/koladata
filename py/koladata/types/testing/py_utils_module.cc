@@ -127,6 +127,100 @@ PyObject* PositionalKeyword_2_Args_And_Kwargs(
   return tuple;
 }
 
+// Tests keyword-only arguments without the support for positional and or
+// variadic-keyword args.
+PyObject* KeywordOnly(PyObject* /*self*/, PyObject* const* py_args,
+                      Py_ssize_t nargs, PyObject* py_kwnames) {
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/false, {"a", "b"}));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  PyObject* tuple = PyTuple_New(2);
+  PyTuple_SetItem(tuple, 0, args.kw_only_args["a"] ? args.kw_only_args["a"]
+                                                   : Py_NewRef(Py_None));
+  PyTuple_SetItem(tuple, 1, args.kw_only_args["b"] ? args.kw_only_args["b"]
+                                                   : Py_NewRef(Py_None));
+  return tuple;
+}
+
+PyObject* KeywordOnly_And_PositionalOnly(
+    PyObject* /*self*/, PyObject* const* py_args, Py_ssize_t nargs,
+    PyObject* py_kwnames) {
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/2, /*parse_kwargs=*/false, {"a", "b"}));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  PyObject* tuple = PyTuple_New(4);
+  PyTuple_SetItem(tuple, 0, py_args[0]);
+  PyTuple_SetItem(tuple, 1, py_args[1]);
+  PyTuple_SetItem(tuple, 2, args.kw_only_args["a"] ? args.kw_only_args["a"]
+                                                   : Py_NewRef(Py_None));
+  PyTuple_SetItem(tuple, 3, args.kw_only_args["b"] ? args.kw_only_args["b"]
+                                                   : Py_NewRef(Py_None));
+  return tuple;
+}
+
+PyObject* KeywordOnly_And_VariadicKwargs(
+    PyObject* /*self*/, PyObject* const* py_args, Py_ssize_t nargs,
+    PyObject* py_kwnames) {
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"a", "b"}));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  PyObject* tuple = PyTuple_New(4);
+  PyTuple_SetItem(tuple, 0, args.kw_only_args["a"] ? args.kw_only_args["a"]
+                                                   : Py_NewRef(Py_None));
+  PyTuple_SetItem(tuple, 1, args.kw_only_args["b"] ? args.kw_only_args["b"]
+                                                   : Py_NewRef(Py_None));
+  PyTuple_SetItem(tuple, 2, PyTuple_New(args.kw_names.size()));
+  PyTuple_SetItem(tuple, 3, PyTuple_New(args.kw_values.size()));
+  for (size_t i = 0; i < args.kw_names.size(); ++i) {
+    PyTuple_SetItem(
+        PyTuple_GetItem(tuple, 2), i,
+        PyUnicode_DecodeUTF8(args.kw_names[i].data(),
+                             args.kw_names[i].size(), nullptr));
+    PyTuple_SetItem(PyTuple_GetItem(tuple, 3), i, Py_NewRef(args.kw_values[i]));
+  }
+  return tuple;
+}
+
+PyObject* KeywordOnly_PositionalKeyword_And_VariadicKwargs(
+    PyObject* /*self*/, PyObject* const* py_args, Py_ssize_t nargs,
+    PyObject* py_kwnames) {
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"a", "b"}, "pos_1", "pos_2"));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  PyObject* tuple = PyTuple_New(4 + args.pos_kw_values.size());
+  PyTuple_SetItem(tuple, 0, args.kw_only_args["a"] ? args.kw_only_args["a"]
+                                                   : Py_NewRef(Py_None));
+  PyTuple_SetItem(tuple, 1, args.kw_only_args["b"] ? args.kw_only_args["b"]
+                                                   : Py_NewRef(Py_None));
+  PyTuple_SetItem(tuple, 2, PyTuple_New(args.kw_names.size()));
+  PyTuple_SetItem(tuple, 3, PyTuple_New(args.kw_values.size()));
+  for (size_t i = 0; i < args.kw_names.size(); ++i) {
+    PyTuple_SetItem(
+        PyTuple_GetItem(tuple, 2), i,
+        PyUnicode_DecodeUTF8(args.kw_names[i].data(),
+                             args.kw_names[i].size(), nullptr));
+    PyTuple_SetItem(PyTuple_GetItem(tuple, 3), i, Py_NewRef(args.kw_values[i]));
+  }
+  for (size_t i = 0; i < args.pos_kw_values.size(); ++i) {
+    PyTuple_SetItem(
+        tuple, 4 + i,
+        Py_NewRef(args.pos_kw_values[i] ? args.pos_kw_values[i] : Py_None));
+  }
+  return tuple;
+}
+
 PyMethodDef kPyUtilsModule_methods[] = {
     {"pos_kw_2_args", (PyCFunction)PositionalKeyword_2_Args,
      METH_FASTCALL | METH_KEYWORDS,
@@ -138,6 +232,18 @@ PyMethodDef kPyUtilsModule_methods[] = {
     {"kwargs", (PyCFunction)Kwargs, METH_FASTCALL | METH_KEYWORDS,
      "Test function."},
     {"pos_kw_2_and_kwargs", (PyCFunction)PositionalKeyword_2_Args_And_Kwargs,
+     METH_FASTCALL | METH_KEYWORDS,
+     "Test function."},
+    {"kw_only", (PyCFunction)KeywordOnly, METH_FASTCALL | METH_KEYWORDS,
+     "Test function."},
+    {"kw_only_and_pos_only", (PyCFunction)KeywordOnly_And_PositionalOnly,
+     METH_FASTCALL | METH_KEYWORDS,
+     "Test function."},
+    {"kw_only_and_var_kwargs", (PyCFunction)KeywordOnly_And_VariadicKwargs,
+     METH_FASTCALL | METH_KEYWORDS,
+     "Test function."},
+    {"kw_only_pos_only_and_var_kwargs",
+     (PyCFunction)KeywordOnly_PositionalKeyword_And_VariadicKwargs,
      METH_FASTCALL | METH_KEYWORDS,
      "Test function."},
     {nullptr} /* sentinel */

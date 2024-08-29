@@ -64,8 +64,14 @@ class ParseArgsTest(absltest.TestCase):
         pos_only_and_pos_kw_3_args(None, None, c=5, a=12), (12, None, 5)
     )
     self.assertEqual(pos_only_and_pos_kw_3_args(None, None), (None, None, None))
-    self.assertEqual(pos_only_and_pos_kw_3_args(None), (None, None, None))
-    self.assertEqual(pos_only_and_pos_kw_3_args(), (None, None, None))
+    with self.assertRaisesRegex(
+        TypeError, 'accepts 2 to 5 positional arguments but 1 was given'
+    ):
+      pos_only_and_pos_kw_3_args(None)
+    with self.assertRaisesRegex(
+        TypeError, 'accepts 2 to 5 positional arguments but 0 were given'
+    ):
+      pos_only_and_pos_kw_3_args()
 
     with self.assertRaisesRegex(
         TypeError, 'got multiple values for argument \'b\''
@@ -129,6 +135,71 @@ class ParseArgsTest(absltest.TestCase):
         TypeError, 'got multiple values for argument \'b\''
     ):
       pos_kw_2_and_kwargs(None, None, b=1, p=4)
+
+  def test_keyword_only(self):
+    kw_only = py_utils_py_ext.kw_only
+
+    self.assertEqual(kw_only(a=42), (42, None))
+    self.assertEqual(kw_only(b=42), (None, 42))
+    self.assertEqual(kw_only(b=12, a=42), (42, 12))
+    with self.assertRaisesRegex(TypeError, 'got an unexpected keyword \'c\''):
+      _ = kw_only(b=12, a=42, c=57)
+    with self.assertRaisesRegex(TypeError, 'accepts 0 positional arguments'):
+      _ = kw_only(15, b=12, a=42)
+
+  def test_keyword_only_and_positional_only(self):
+    kw_only_and_pos_only = py_utils_py_ext.kw_only_and_pos_only
+
+    self.assertEqual(kw_only_and_pos_only(12, 15), (12, 15, None, None))
+    self.assertEqual(kw_only_and_pos_only(12, 15, b=17), (12, 15, None, 17))
+    with self.assertRaisesRegex(TypeError, 'got an unexpected keyword \'c\''):
+      _ = kw_only_and_pos_only(12, 42, c=57)
+    with self.assertRaisesRegex(
+        TypeError, 'accepts 2 positional-only arguments but 1 was given'
+    ):
+      _ = kw_only_and_pos_only(15, a=42)
+
+  def test_keyword_only_and_variadic_kwargs(self):
+    kw_only_and_var_kwargs = py_utils_py_ext.kw_only_and_var_kwargs
+
+    self.assertEqual(
+        kw_only_and_var_kwargs(c=12, d='abc', b=42),
+        (None, 42, ('c', 'd'), (12, 'abc'))
+    )
+    self.assertEqual(
+        kw_only_and_var_kwargs(c=12, a=57, d='abc', b=42),
+        (57, 42, ('c', 'd'), (12, 'abc'))
+    )
+    with self.assertRaisesRegex(
+        TypeError, 'accepts 0 positional arguments but 1 was given'
+    ):
+      _ = kw_only_and_var_kwargs(15, a=42)
+
+  def test_keyword_only_positional_kwargs_and_variadic_kwargs(self):
+    kw_only_pos_only_and_var_kwargs = (
+        py_utils_py_ext.kw_only_pos_only_and_var_kwargs
+    )
+
+    self.assertEqual(
+        kw_only_pos_only_and_var_kwargs(12, 42, b=57, c='abc'),
+        (None, 57, ('c',), ('abc',), 12, 42)
+    )
+    self.assertEqual(
+        kw_only_pos_only_and_var_kwargs(None, 42, b=57, c='abc', a=42),
+        (42, 57, ('c',), ('abc',), None, 42)
+    )
+    self.assertEqual(
+        kw_only_pos_only_and_var_kwargs(None, b=57, c='abc', a=42),
+        (42, 57, ('c',), ('abc',), None, None)
+    )
+    self.assertEqual(
+        kw_only_pos_only_and_var_kwargs(b=57, c='abc', a=42),
+        (42, 57, ('c',), ('abc',), None, None)
+    )
+    with self.assertRaisesRegex(
+        TypeError, 'accepts 0 to 2 positional arguments but 3 were given'
+    ):
+      _ = kw_only_pos_only_and_var_kwargs(15, 52, 37, a=42)
 
 
 if __name__ == '__main__':

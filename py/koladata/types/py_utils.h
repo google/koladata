@@ -18,6 +18,7 @@
 #include <Python.h>
 
 #include <cstddef>
+#include <initializer_list>
 #include <memory>
 #include <vector>
 
@@ -75,6 +76,7 @@ absl::StatusOr<std::vector<DataSlice>> ConvertArgsToDataSlices(
 // * pos_only_n - number of positional only arguments;
 // * parse_kwargs - whether keyword only arguments passed as **kwargs are parsed
 //     into the result or unexpected keyword argument Error is reported.
+// * kw_only_arg_names [optional] - initializer_list of keyword-only arguments.
 // * vararg literal strings - names of positional-keyword arguments where their
 //     order determines which argument name is used when arguments are passed by
 //     position.
@@ -95,10 +97,13 @@ class FastcallArgParser {
     // TODO: Consider if all arguments should be stored in this
     // structure, including positional-only, as well. Although they are rare.
     std::vector<PyObject*> pos_kw_values;
+    absl::flat_hash_map<absl::string_view, PyObject*> kw_only_args;
     std::vector<absl::string_view> kw_names;
     std::vector<PyObject*> kw_values;
   };
 
+  // TODO: Consider deprecating `ArgNames` variadic signature and
+  // support mutliple initializer_list signature.
   template <typename... ArgName>
   FastcallArgParser(size_t pos_only_n, bool parse_kwargs,
                     ArgName... pos_kw_arg_names)
@@ -106,30 +111,46 @@ class FastcallArgParser {
         parse_kwargs_(parse_kwargs),
         pos_kw_to_pos_(ArgNames(pos_kw_arg_names...).to_pos) {}
 
-  // Parses the positional-keyword and keyword arguments for FASTCALL methods
-  // into FastcallArgParser::Args, which contains:
+  template <typename... ArgName>
+  FastcallArgParser(size_t pos_only_n, bool parse_kwargs,
+                    std::initializer_list<absl::string_view> kw_only_arg_names,
+                    ArgName... pos_kw_arg_names)
+      : pos_only_n_(pos_only_n),
+        parse_kwargs_(parse_kwargs),
+        pos_kw_to_pos_(ArgNames(pos_kw_arg_names...).to_pos),
+        kw_only_arg_names_(kw_only_arg_names) {}
+
+  // Parses the positional-keyword, keyword-only and variadic keyword arguments
+  // for FASTCALL methods into FastcallArgParser::Args, which contains:
   // * pos_kw_values - values of positional-keyword arguments;
+  // * kw_only_args - a map from argument names to their values for keyword-only
+  //     arguments;
   // * kw_names - names of keyword arguments, present only if
   //     `FastcallArgParser` was initialized with parse_kwargs=true.
   // * kw_values - values of keyword arguments, present only if
   //     `FastcallArgParser` was initialized with parse_kwargs=true.
   //
   // NOTE: All values are collected as borrowed pointers to `PyObject`s or
-  // nullptr, if they are missing (can happen only for positional-keyword).
+  // nullptr, if they are missing (can happen only for positional-keyword). For
+  // keyword-only arguments, the value is just missing for the argument name for
+  // missing argument values.
   //
   // The method parses positional-keyword arguments by their names and position,
   // depending on how the Python caller specified them. If FastcallArgParser was
-  // initialized with `parse_kwargs=true`, the rest of the keyword arguments are
-  // collected into `*kw_names` and `*kw_values`. Otherwise, unexpected-keyword
-  // error is raised. Positional-only arguments are ignored, while for missing
-  // arguments, the caller should decide after calling this method if they are
-  // optional or mandatory.
+  // initialized with an initializer_list of keyword-only argument names, those
+  // arguments will be parsed into a `kw_only_args` map. If FastcallArgParser
+  // was initialized with `parse_kwargs=true`, the rest of the keyword arguments
+  // are collected into `*kw_names` and `*kw_values`. Otherwise,
+  // unexpected-keyword error is raised. Positional-only arguments are ignored,
+  // while for missing arguments, the caller should decide after calling this
+  // method if they are optional or mandatory.
   //
   // `py_args`, `nargs` and `py_kwnames` should just be passed down from the
   // method / functions arguments that are registered as FASTCALL | KEYWORDS.
   //
-  // If `nargs` < number of positional-only arguments, all positional-keyword
-  // arguments are missing and the caller should process this special case.
+  // If `nargs` < number of positional-only arguments or `nargs` is larger than
+  // the total number of expected positional arguments, an appropriate Error is
+  // set.
   //
   // Returns true if Python arguments were collected into `args` and false in
   // case of an error, in which case appropriate Python error is set.
@@ -164,32 +185,43 @@ class FastcallArgParser {
   // NOTE: Safe to use `absl::string_view` as those are literals and set in the
   // same scope in which this function is called.
   const absl::flat_hash_map<absl::string_view, size_t> pos_kw_to_pos_;
+  const absl::flat_hash_set<absl::string_view> kw_only_arg_names_;
 };
 
-// Populates `seed_arg` output argument if `args` contain a valid "seed"
-// argument. Returns true on success, false on error, in which case it also sets
-// Python Exception.
-// Returned string_view is valid as long as `args` are not deallocated.
-bool ParseSeedArg(const FastcallArgParser::Args& args, size_t arg_pos,
-                  absl::string_view& seed_arg);
+/****************** Utility functions for fetching arguments ******************/
 
-// Populates `schema_arg` output argument if `args` contain a valid "schema"
-// argument. Returns true on success, false on error, in which case it also sets
-// Python Exception.
+// NOTE: The following utility functions fetch PyObject* argument values either
+// by `arg_pos` for positional-keyword arguments or by `arg_name` for
+// keyword-only arguments.
+
+// Populates `arg` output argument if `args` contain a valid argument at
+// position `arg_pos`. Returns true on success, false on error, in which case it
+// also sets Python Exception.
 //
-// TODO: Consider making "schema" and "itemid" keyword-only
-// arguments in FastcallArgParser.
-bool ParseSchemaArg(const FastcallArgParser::Args& args, size_t arg_pos,
-                    std::optional<DataSlice>& schema_arg);
+// Returned string_view is valid as long as `args` are not deallocated.
+bool ParseUnicodeArg(const FastcallArgParser::Args& args, size_t arg_pos,
+                     absl::string_view arg_name_for_error,
+                     absl::string_view& arg);
 
-// TODO: Consider making `update_schema` a keyword-only argument,
-// when it becomes supported (will be safer in terms of argument position).
-// Verifies that 'update_schema' argument is present in parsed `args` and stores
-// this value into `update_schema`. If not present at the correct position or
-// not boolean, sets Python exception and returns false. On success, returns
+// Populates `arg` DataSlice output argument if `args` contain a valid argument
+// named `arg_name`. Returns true on success, false on error, in which case it
+// also sets Python Exception.
+bool ParseDataSliceArg(const FastcallArgParser::Args& args,
+                       absl::string_view arg_name,
+                       std::optional<DataSlice>& arg);
+
+// Verifies that argument at position `arg_pos` is present in parsed `args` and
+// stores this value into `arg`. If not present at the correct position or not a
+// boolean, sets Python exception and returns false. On success, returns
 // true.
-bool ParseUpdateSchemaArg(const FastcallArgParser::Args& args, size_t arg_pos,
-                          bool& update_schema);
+bool ParseBoolArg(const FastcallArgParser::Args& args, size_t arg_pos,
+                  absl::string_view arg_name_for_error, bool& arg);
+
+// Populates `arg` boolean output argument if `args` contain a valid argument
+// named `arg_name`. Returns true on success, false on error, in which case it
+// also sets Python Exception.
+bool ParseBoolArg(const FastcallArgParser::Args& args,
+                  absl::string_view arg_name, bool& arg);
 
 }  // namespace koladata::python
 

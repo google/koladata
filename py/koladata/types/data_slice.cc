@@ -316,7 +316,7 @@ absl::Nullable<PyObject*> PyDataSlice_set_attrs(PyObject* self,
     return nullptr;
   }
   bool update_schema = false;
-  if (!ParseUpdateSchemaArg(args, /*arg_pos=*/0, update_schema)) {
+  if (!ParseBoolArg(args, /*arg_pos=*/0, "update_schema", update_schema)) {
     return nullptr;
   }
   AdoptionQueue adoption_queue;

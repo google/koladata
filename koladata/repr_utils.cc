@@ -220,6 +220,7 @@ absl::Status CreateItemCreationError(const absl::Status& status,
                                      const std::optional<DataSlice>& schema) {
   internal::Error error;
   if (schema) {
+    RETURN_IF_ERROR(schema->VerifyIsSchema());
     std::string schema_str;
     if (schema->GetDb() != nullptr) {
       ASSIGN_OR_RETURN(schema_str, DataSliceToStr(*schema));
