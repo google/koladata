@@ -27,6 +27,7 @@
 #include "koladata/operators/schema.h"
 #include "koladata/operators/shapes.h"
 #include "koladata/operators/strings.h"
+#include "arolla/qexpr/operator_factory.h"
 #include "arolla/qexpr/optools.h"
 
 namespace koladata::ops {
@@ -128,6 +129,9 @@ OPERATOR("kde.shapes.get_shape", GetShape);
 //
 OPERATOR("kde.strings._agg_join", AggJoin);
 OPERATOR("kde.strings._split", Split);
+OPERATOR_FAMILY("kde.strings.format",
+                arolla::MakeVariadicInputOperatorFamily("kde.strings.format",
+                                                        Format));
 OPERATOR("kde.strings.length", Length);
 OPERATOR("kde.strings.substr", Substr);
 OPERATOR("kde.strings.upper", Upper);

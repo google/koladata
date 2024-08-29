@@ -56,6 +56,7 @@ cc_library(
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/util",
     ],
     alwayslink = 1,
 )

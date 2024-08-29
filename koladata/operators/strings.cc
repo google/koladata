@@ -14,13 +14,13 @@
 //
 #include "koladata/operators/strings.h"
 
-#include <memory>
 #include <utility>
 #include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/types/span.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -121,6 +121,26 @@ absl::StatusOr<DataSlice> Length(const DataSlice& x) {
 absl::StatusOr<DataSlice> Upper(const DataSlice& x) {
   return SimplePointwiseEval("strings.upper", {x},
                              internal::DataItem(schema::kText));
+}
+
+absl::StatusOr<DataSlice> Format(absl::Span<const DataSlice> slices) {
+  if (slices.empty()) {
+    return absl::InvalidArgumentError("expected at least one input");
+  }
+  const auto& fmt = slices[0];
+  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(fmt));
+  // If `fmt` is empty, we avoid calling the implementation altogether. Calling
+  // SimplePointwiseEval when `fmt` is empty would resolve it to the type of the
+  // first present value, which can be of any type.
+  if (!primitive_schema.has_value()) {
+    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(slices));
+    return BroadcastToShape(fmt, std::move(common_shape));
+  }
+  // From here on, we know that at least one input has known schema and we
+  // should eval.
+  return SimplePointwiseEval("strings.format",
+                             std::vector(slices.begin(), slices.end()),
+                             /*output_schema=*/fmt.GetSchemaImpl());
 }
 
 }  // namespace koladata::ops
