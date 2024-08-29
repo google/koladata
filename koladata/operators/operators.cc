@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <memory>
+
 #include "koladata/casting.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/object_factories.h"
@@ -48,7 +50,8 @@ OPERATOR("kde.comparison.less_equal", LessEqual);
 //
 OPERATOR("kde.core._clone", Clone);
 OPERATOR("kde.core._collapse", Collapse);
-OPERATOR_FAMILY("kde.core._concat_or_stack", ConcatOrStackOperatorFamily);
+OPERATOR_FAMILY("kde.core._concat_or_stack",
+                std::make_unique<ConcatOrStackOperatorFamily>());
 OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);
 OPERATOR("kde.core._get_attr", GetAttr);
@@ -57,18 +60,20 @@ OPERATOR("kde.core._inverse_mapping", InverseMapping);
 OPERATOR("kde.core._ordinal_rank", OrdinalRank);
 OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
-OPERATOR_FAMILY("kde.core._uuid", UuidOperatorFamily);
-OPERATOR_FAMILY("kde.core._uuobj", UuObjOperatorFamily);
+OPERATOR_FAMILY("kde.core._uuid", std::make_unique<UuidOperatorFamily>());
+OPERATOR_FAMILY("kde.core._uuobj", std::make_unique<UuObjOperatorFamily>());
 OPERATOR("kde.core.add", Add);
-OPERATOR_FAMILY("kde.core.align", AlignOperatorFamily);
+OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kde.core.at", At);
 OPERATOR("kde.core.dict_size", DictSize);
 OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.get_db", GetDb);
 OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR("kde.core.get_primitive_schema", GetPrimitiveSchema);
-OPERATOR_FAMILY("kde.core.group_by_indices", GroupByIndicesFamily);
-OPERATOR_FAMILY("kde.core.group_by_indices_sorted", GroupByIndicesSortedFamily);
+OPERATOR_FAMILY("kde.core.group_by_indices",
+                std::make_unique<GroupByIndicesFamily>());
+OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
+                std::make_unique<GroupByIndicesSortedFamily>());
 OPERATOR("kde.core.itemid_bits", ItemIdBits);
 OPERATOR("kde.core.list_size", ListSize);
 OPERATOR("kde.core.no_db", NoDb);
@@ -76,7 +81,8 @@ OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
 OPERATOR("kde.core.reverse", Reverse);
 OPERATOR("kde.core.reverse_select", ReverseSelect);
-OPERATOR_FAMILY("kde.core.subslice", SubsliceOperatorFamily);
+OPERATOR_FAMILY("kde.core.subslice",
+                std::make_unique<SubsliceOperatorFamily>());
 OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
 OPERATOR("kde.core.with_db", WithDb);
@@ -101,8 +107,10 @@ OPERATOR("kde.math.pow", Pow);
 OPERATOR("kde.math.subtract", Subtract);
 //
 OPERATOR("kde.schema._list_schema", ListSchema);
-OPERATOR_FAMILY("kde.schema._new_schema", NewSchemaOperatorFamily);
-OPERATOR_FAMILY("kde.schema._uu_schema", UuSchemaOperatorFamily);
+OPERATOR_FAMILY("kde.schema._new_schema",
+                std::make_unique<NewSchemaOperatorFamily>());
+OPERATOR_FAMILY("kde.schema._uu_schema",
+                std::make_unique<UuSchemaOperatorFamily>());
 OPERATOR("kde.schema.cast_to", CastTo);
 OPERATOR("kde.schema.decode", Decode);
 OPERATOR("kde.schema.encode", Encode);
@@ -114,7 +122,8 @@ OPERATOR("kde.schema.with_schema", WithSchema);
 //
 OPERATOR("kde.shapes._expand_to_shape", ExpandToShape);
 OPERATOR("kde.shapes._reshape", Reshape);
-OPERATOR_FAMILY("kde.shapes.create", JaggedShapeCreateOperatorFamily);
+OPERATOR_FAMILY("kde.shapes.create",
+                std::make_unique<JaggedShapeCreateOperatorFamily>());
 OPERATOR("kde.shapes.get_shape", GetShape);
 //
 OPERATOR("kde.strings._agg_join", AggJoin);
