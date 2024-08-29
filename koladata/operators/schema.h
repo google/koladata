@@ -80,6 +80,26 @@ inline absl::StatusOr<DataSlice> GetItemSchema(const DataSlice& list_schema) {
   return list_schema.GetAttr(schema::kListItemsSchemaAttr);
 }
 
+// kde.schema.get_key_schema operator.
+inline absl::StatusOr<DataSlice> GetKeySchema(const DataSlice& dict_schema) {
+  if (!dict_schema.IsDictSchema()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("expected Dict schema for get_key_schema, got %v",
+                        dict_schema.item()));
+  }
+  return dict_schema.GetAttr(schema::kDictKeysSchemaAttr);
+}
+
+// kde.schema.get_value_schema operator.
+inline absl::StatusOr<DataSlice> GetValueSchema(const DataSlice& dict_schema) {
+  if (!dict_schema.IsDictSchema()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("expected Dict schema for get_value_schema, got %v",
+                        dict_schema.item()));
+  }
+  return dict_schema.GetAttr(schema::kDictValuesSchemaAttr);
+}
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_SCHEMA_H_

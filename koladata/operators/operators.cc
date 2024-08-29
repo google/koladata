@@ -107,7 +107,9 @@ OPERATOR("kde.schema.cast_to", CastTo);
 OPERATOR("kde.schema.decode", Decode);
 OPERATOR("kde.schema.encode", Encode);
 OPERATOR("kde.schema.get_item_schema", GetItemSchema);
+OPERATOR("kde.schema.get_key_schema", GetKeySchema);
 OPERATOR("kde.schema.get_schema", GetSchema);
+OPERATOR("kde.schema.get_value_schema", GetValueSchema);
 OPERATOR("kde.schema.with_schema", WithSchema);
 //
 OPERATOR("kde.shapes._expand_to_shape", ExpandToShape);
