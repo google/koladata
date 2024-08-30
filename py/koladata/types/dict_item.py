@@ -14,6 +14,8 @@
 
 """DictItem."""
 
+from typing import Any
+
 from arolla import arolla
 from koladata.types import data_item
 from koladata.types import data_slice
@@ -23,6 +25,12 @@ from koladata.types import data_slice
 class DictItem(data_item.DataItem):
   """DictItem is a DataItem representing a Koda Dict."""
 
+  def pop(self, key: Any) -> data_item.DataItem:
+    """Removes an item from the DictItem."""
+    if key not in self:
+      raise KeyError(key)
+    self[key] = None
+
   def __len__(self) -> int:
     return self.dict_size().internal_as_py()
 
@@ -30,6 +38,8 @@ class DictItem(data_item.DataItem):
     return (data_slice.DataSlice.from_vals(k)
             for k in self.get_keys().internal_as_py())
 
+  def __contains__(self, key: Any):
+    return not self[key].is_empty()
 
 arolla.abc.register_qvalue_specialization(
     '::koladata::python::DictItem', DictItem

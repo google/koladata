@@ -137,7 +137,7 @@ class Dict {
       absl::Span<const Dict* const> fallbacks = {}) const;
 
   size_t GetSizeNoFallbacks() const {
-    return parent_ ? GetKeys().size() : data_.size();
+    return GetKeys().size();
   }
 
  private:

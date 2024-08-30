@@ -187,8 +187,10 @@ TEST(DictTest, GetKeysOnMissing) {
   Dict dict;
   dict.Set(int64_t{1}, DataItem());
   EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre());
+  EXPECT_EQ(dict.GetSizeNoFallbacks(), 0);
   dict.Set(int64_t{1}, DataItem(3));
   EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre(1));
+  EXPECT_EQ(dict.GetSizeNoFallbacks(), 1);
 }
 
 }  // namespace

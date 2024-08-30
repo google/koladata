@@ -2168,6 +2168,15 @@ class DataSliceFallbackTest(parameterized.TestCase):
   def test_subslice(self, x, slices, expected):
     testing.assert_equal(x.S[*slices], expected)
 
+  def test_is_empty(self):
+    self.assertTrue(ds(None).is_empty())
+    self.assertTrue(ds([]).is_empty())
+    self.assertTrue(ds([None]).is_empty())
+    self.assertTrue(ds([None, None]).is_empty())
+    self.assertFalse(ds(1).is_empty())
+    self.assertFalse(ds([1]).is_empty())
+    self.assertFalse(ds([1, None]).is_empty())
+
 
 class DataSliceListSlicingTest(parameterized.TestCase):
 

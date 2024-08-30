@@ -474,6 +474,28 @@ TEST(DataSliceTest, IsDictSchema) {
   EXPECT_FALSE(test::DataItem(42).IsDictSchema());
 }
 
+TEST(DataSliceTest, IsEmpty) {
+  auto db = DataBag::Empty();
+  auto int_schema = DataItem(schema::kInt32);
+
+  {
+    auto ds_impl = DataSliceImpl::Create(CreateFullDenseArray<int>({1, 2}));
+    auto shape = DataSlice::JaggedShape::FlatFromSize(2);
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         DataSlice::Create(ds_impl, shape, int_schema, db));
+    EXPECT_FALSE(ds.IsEmpty());
+  }
+
+  {
+    auto ds_impl = DataSliceImpl::Create(
+        CreateDenseArray<int>({std::nullopt, std::nullopt}));
+    auto shape = DataSlice::JaggedShape::FlatFromSize(2);
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         DataSlice::Create(ds_impl, shape, int_schema, db));
+    EXPECT_TRUE(ds.IsEmpty());
+  }
+}
+
 TEST(DataSliceTest, VerifyIsSchema) {
   EXPECT_THAT(test::Schema(schema::kAny).VerifyIsSchema(), IsOk());
 

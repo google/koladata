@@ -112,6 +112,50 @@ class DictItemTest(parameterized.TestCase):
     self.assertIn(3, d)
     self.assertNotIn(2, d)
 
+  def test_pop(self):
+    db = data_bag.DataBag.empty()
+    d = db.dict({1: 2, 3: 4})
+    self.assertLen(d, 2)
+    d.pop(1)
+    self.assertNotIn(1, d)
+    self.assertLen(d, 1)
+
+    with self.assertRaises(KeyError):
+      d.pop(2)
+
+  def test_del(self):
+    db = data_bag.DataBag.empty()
+    d = db.dict({1: 2, 3: 4})
+    self.assertLen(d, 2)
+
+    del d[1]
+    self.assertNotIn(1, d)
+    self.assertLen(d, 1)
+
+    self.assertNotIn(2, d)
+    del d[2]
+    self.assertNotIn(2, d)
+    self.assertLen(d, 1)
+
+  def test_assign_none(self):
+    db = data_bag.DataBag.empty()
+    d = db.dict({1: 2, 3: 4})
+    self.assertLen(d, 2)
+
+    d[1] = None
+    self.assertNotIn(1, d)
+    self.assertLen(d, 1)
+
+    self.assertNotIn(2, d)
+    d[2] = None
+    self.assertNotIn(2, d)
+    self.assertLen(d, 1)
+
+  def test_empty_dict(self):
+    db = data_bag.DataBag.empty()
+    d = db.dict({'x': None})
+    self.assertEmpty(d)
+
 
 if __name__ == '__main__':
   absltest.main()

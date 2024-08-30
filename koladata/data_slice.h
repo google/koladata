@@ -145,6 +145,9 @@ class DataSlice {
   // Returns true, if this DataSlice represents an Dict schema.
   bool IsDictSchema() const;
 
+  // Return true, if this DataSlice is empty (has all missing values).
+  bool IsEmpty() const { return impl_empty_and_unknown(); }
+
   // Returns a new DataSlice with the provided `schema`.
   // It only changes the schemas of `x` and does not change the items in `x`. To
   // change the items in `x`, use `kd.cast_to` instead.
