@@ -141,12 +141,13 @@ struct EntityCreatorHelper {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& itemid,
       const DataBagPtr& db, AdoptionQueue& adoption_queue) {
     if (schema_arg) {
       adoption_queue.Add(*schema_arg);
     }
     return EntityCreator::Shaped(db, std::move(shape), attr_names, values,
-                                 schema_arg, update_schema);
+                                 schema_arg, update_schema, itemid);
   }
 
   static absl::StatusOr<DataSlice> Like(
@@ -154,12 +155,13 @@ struct EntityCreatorHelper {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& itemid,
       const DataBagPtr& db, AdoptionQueue& adoption_queue) {
     if (schema_arg) {
       adoption_queue.Add(*schema_arg);
     }
     return EntityCreator::Like(db, shape_and_mask_from, attr_names, values,
-                               schema_arg, update_schema);
+                               schema_arg, update_schema, itemid);
   }
 
   static absl::StatusOr<DataSlice> FromPyObject(
@@ -190,13 +192,15 @@ struct ObjectCreatorHelper {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& itemid,
       const DataBagPtr& db, [[maybe_unused]] AdoptionQueue& adoption_queue) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!update_schema) << "unused and not filled";
-    return ObjectCreator::Shaped(db, std::move(shape), attr_names, values);
+    return ObjectCreator::Shaped(db, std::move(shape), attr_names, values,
+                                 itemid);
   }
 
   static absl::StatusOr<DataSlice> Like(
@@ -204,13 +208,15 @@ struct ObjectCreatorHelper {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& itemid,
       const DataBagPtr& db, AdoptionQueue& adoption_queue) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!update_schema) << "unused and not filled";
-    return ObjectCreator::Like(db, shape_and_mask_from, attr_names, values);
+    return ObjectCreator::Like(db, shape_and_mask_from, attr_names, values,
+                               itemid);
   }
 
   static absl::StatusOr<DataSlice> FromPyObject(
@@ -344,6 +350,10 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
   }
+  std::optional<DataSlice> itemid;
+  if (!ParseDataSliceArg(args, "itemid", itemid)) {
+    return nullptr;
+  }
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
       ConvertArgsToDataSlices(
@@ -354,7 +364,7 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
       res,
       FactoryHelperT::Shaped(
           *std::move(shape), args.kw_names, values, schema_arg, update_schema,
-          db, adoption_queue),
+          itemid, db, adoption_queue),
       SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
       .With([&](const absl::Status& status) {
@@ -376,8 +386,8 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_shaped(PyObject* self,
                                                        PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"schema", "update_schema"},
-      /*pos_kw_args=*/"shape"));
+      /*pos_only_n=*/0, /*parse_kwargs=*/true,
+      {"schema", "update_schema", "itemid"}, /*pos_kw_args=*/"shape"));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -397,8 +407,9 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_shaped(PyObject* self,
                                                        Py_ssize_t nargs,
                                                        PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "shape");
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"itemid"},
+      /*pos_kw_args=*/"shape"));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -433,6 +444,10 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
   }
+  std::optional<DataSlice> itemid;
+  if (!ParseDataSliceArg(args, "itemid", itemid)) {
+    return nullptr;
+  }
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
       ConvertArgsToDataSlices(db,
@@ -444,7 +459,7 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
       res,
       FactoryHelperT::Like(
           *shape_and_mask_from, args.kw_names, values, schema_arg,
-          update_schema, db, adoption_queue),
+          update_schema, itemid, db, adoption_queue),
       SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
       .With([&](const absl::Status& status) {
@@ -466,7 +481,8 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_like(PyObject* self,
                                                      PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"schema", "update_schema"},
+      /*pos_only_n=*/0, /*parse_kwargs=*/true,
+      {"schema", "update_schema", "itemid"},
       /*pos_kw_args=*/"shape_and_mask_from"));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
@@ -487,8 +503,9 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_like(PyObject* self,
                                                      Py_ssize_t nargs,
                                                      PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "shape_and_mask_from");
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"itemid"},
+      /*pos_kw_args=*/"shape_and_mask_from"));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
