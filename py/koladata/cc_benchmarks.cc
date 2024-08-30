@@ -24,21 +24,27 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/functor/call.h"
+#include "koladata/functor/functor.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
+#include "arolla/expr/quote.h"
 #include "arolla/io/tuple_input_loader.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qtype/typed_ref.h"
 #include "arolla/serving/expr_compiler.h"
 #include "arolla/util/init_arolla.h"
+#include "arolla/util/text.h"
 
 namespace koladata {
 namespace {
 
 using ::arolla::expr::CallOp;
 using ::arolla::expr::Leaf;
+using ::arolla::expr::Literal;
 
 void BM_Add(benchmark::State& state) {
   arolla::InitArolla();
@@ -243,6 +249,65 @@ void BM_Coalesce(benchmark::State& state) {
 BENCHMARK(BM_Coalesce<int32_t, int32_t>)->Range(1, 1 << 20);
 // With casting.
 BENCHMARK(BM_Coalesce<int32_t, float>)->Range(1, 1 << 20);
+
+void BM_AddViaFunctor(benchmark::State& state) {
+  arolla::InitArolla();
+  size_t slice_size = state.range(0);
+  size_t num_operators = state.range(1);
+  state.SetLabel(absl::StrFormat("slice_size=%d, num_operators=%d", slice_size,
+                                 num_operators));
+
+  std::vector<int> values(slice_size);
+  for (int i = 0; i < slice_size; ++i) {
+    values[i] = i;
+  }
+
+  auto db = DataBag::Empty();
+  auto ds = DataSlice::CreateWithSchemaFromData(
+                internal::DataSliceImpl::Create(
+                    arolla::CreateFullDenseArray<int>(values)),
+                DataSlice::JaggedShape::FlatFromSize(slice_size), db)
+                .value();
+
+  auto input = CallOp("koda_internal.input", {Literal(arolla::Text("I")),
+                                              Literal(arolla::Text("self"))})
+                   .value();
+  auto expr = input;
+  for (size_t i = 0; i < num_operators; ++i) {
+    expr = CallOp("kde.add", {expr, input}).value();
+  }
+  auto expr_slice =
+      DataSlice::Create(internal::DataItem(arolla::expr::ExprQuote(expr)),
+                        internal::DataItem(schema::kExpr))
+          .value();
+  auto functor = functor::CreateFunctor(expr_slice, std::nullopt, {}).value();
+
+  auto fn = [&functor](const auto& ds) {
+    return functor::CallFunctorWithCompilationCache(
+        functor, {arolla::TypedRef::FromValue(ds)}, {});
+  };
+
+  {
+    auto result = fn(ds);  // Preheat caches;
+    benchmark::DoNotOptimize(result);
+  }
+
+  for (auto s : state) {
+    benchmark::DoNotOptimize(ds);
+    auto result = fn(ds);
+    benchmark::DoNotOptimize(result);
+  }
+
+  state.SetItemsProcessed(slice_size * num_operators * state.iterations());
+}
+
+BENCHMARK(BM_AddViaFunctor)
+    // {slice size, number of operators}
+    ->Args({1, 1})
+    ->Args({1, 100})
+    ->Args({10000, 1})
+    ->Args({10000, 100})
+    ->ThreadRange(1, 16);
 
 }  // namespace
 }  // namespace koladata

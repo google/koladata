@@ -19,7 +19,10 @@ import google_benchmark
 from koladata import kd
 
 I = kd.I
+V = kd.V
+S = kd.S
 kde = kd.kde
+kdf = kd.kdf
 
 
 # pylint: disable=missing-function-docstring
@@ -208,12 +211,14 @@ def create_list(state):
   while (state):
     _ = kd.list(data)
 
+
 @google_benchmark.register
 def create_list_shaped(state):
   data = [list(range(100))] * 10
   shape = kd.shapes.create([10])
   while (state):
     _ = kd.list_shaped(shape, data)
+
 
 @google_benchmark.register
 def create_dict(state):
@@ -364,6 +369,28 @@ def add_10000_kd_eval(state):
   _ = kd.eval(expr, x=x, y=y)
   while state:
     kd.eval(expr, x=x, y=y)
+
+
+@google_benchmark.register
+def add_kd_call(state):
+  x = kd.slice([1])
+  y = kd.slice([2])
+  # To initialize all lazy initializers and reduce variance.
+  fn = kdf.fn(kde.add(I.x, I.y))
+  _ = kdf.call(fn, x=x, y=y)
+  while state:
+    kdf.call(fn, x=x, y=y)
+
+
+@google_benchmark.register
+def add_10000_kd_call(state):
+  x = kd.slice([1] * 10000)
+  y = kd.slice([2] * 10000)
+  # To initialize all lazy initializers and reduce variance.
+  fn = kdf.fn(kde.add(I.x, I.y))
+  _ = kdf.call(fn, x=x, y=y)
+  while state:
+    kdf.call(fn, x=x, y=y)
 
 
 @google_benchmark.register
@@ -752,6 +779,24 @@ def set_get_multiple_attrs_10000_entity_via_fallback(state):
     for arg_name, update_ds in updates:
       merged_ds = update_ds.with_fallback(merged_ds.db)
       _ = getattr(merged_ds, arg_name)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['nvars'])
+@google_benchmark.option.args([1])
+@google_benchmark.option.args([10])
+@google_benchmark.option.args([100])
+@google_benchmark.option.args([1000])
+def kd_call_with_many_variables(state):
+  """Benchmark for a functor with a long variable chain."""
+  nvars = state.range(0)
+  vars_ = {f'v{i}': V[f'v{i+1}'] for i in range(nvars - 1)}
+  vars_[f'v{nvars-1}'] = S
+  fn = kdf.fn(V.v0, **vars_)
+  # To initialize all lazy initializers and reduce variance.
+  _ = kdf.call(fn, 57)
+  while state:
+    kdf.call(fn, 57)
 
 
 if __name__ == '__main__':
