@@ -31,7 +31,6 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
-#include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
@@ -41,9 +40,10 @@ namespace koladata::functor {
 absl::StatusOr<DataSlice> CreateFunctor(
     const DataSlice& returns, const DataSlice& signature,
     absl::Span<const std::pair<std::string, DataSlice>> variables) {
-  if (returns.GetShape().rank() != 0 ||
-      !returns.item().holds_value<arolla::expr::ExprQuote>()) {
-    return absl::InvalidArgumentError("returns must hold a quoted Expr");
+  if (returns.GetShape().rank() != 0) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("returns must be a data item, but has shape: %s",
+                        arolla::Repr(returns.GetShape())));
   }
   // Verify that the signature is valid.
   RETURN_IF_ERROR(KodaSignatureToCppSignature(signature).status());

@@ -588,6 +588,29 @@ py_library(
     ],
 )
 
+py_library(
+    name = "mask_constants",
+    srcs = ["mask_constants.py"],
+    deps = [
+        ":data_item",
+        ":schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "mask_constants_test",
+    srcs = ["mask_constants_test.py"],
+    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
+    deps = [
+        ":data_item",
+        ":mask_constants",
+        ":schema_constants",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 py_test(
     name = "ellipsis_test",
     srcs = ["ellipsis_test.py"],

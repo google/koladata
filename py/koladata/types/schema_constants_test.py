@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for schema."""
+"""Tests for schema_constants."""
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -20,7 +20,7 @@ from koladata.types import schema_constants
 from koladata.types import schema_item
 
 
-class SchemaTest(parameterized.TestCase):
+class SchemaConstantsTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (schema_constants.INT32, 'DataItem(INT32, schema: SCHEMA)'),

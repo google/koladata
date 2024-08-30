@@ -112,9 +112,26 @@ TEST(CreateFunctorTest, NonExprReturns) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  EXPECT_THAT(CreateFunctor(slice_57, koda_signature, {}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "returns must hold a quoted Expr"));
+  ASSERT_OK_AND_ASSIGN(auto fn, CreateFunctor(slice_57, koda_signature, {}));
+  EXPECT_THAT(fn.GetAttr(kReturnsAttrName),
+              IsOkAndHolds(IsEquivalentTo(slice_57.WithDb(fn.GetDb()))));
+}
+
+TEST(CreateFunctorTest, Non0RankReturns) {
+  arolla::InitArolla();
+  ASSERT_OK_AND_ASSIGN(auto slice_57,
+                       DataSlice::Create(internal::DataItem(57),
+                                         internal::DataItem(schema::kInt32)));
+  ASSERT_OK_AND_ASSIGN(
+      auto slice_57_1dim,
+      slice_57.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  EXPECT_THAT(
+      CreateFunctor(slice_57_1dim, koda_signature, {}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "returns must be a data item, but has shape: JaggedShape(1)"));
 }
 
 TEST(CreateFunctorTest, InvalidSignature) {

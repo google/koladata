@@ -16,11 +16,11 @@
 
 import types as _py_types
 
-from arolla import arolla as _arolla
 from koladata.exceptions import exceptions as _exceptions
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.functions import functions as _functions
+from koladata.functor import kdf as _kdf
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators as _kde_operators
 from koladata.testing import testing as _testing
@@ -30,6 +30,7 @@ from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _dict_item
 from koladata.types import list_item as _list_item
 from koladata.types import literal_operator as _literal_operator
+from koladata.types import mask_constants as _mask_constants
 from koladata.types import schema_constants as _schema_constants
 from koladata.types import schema_item as _schema_item
 
@@ -107,12 +108,13 @@ SCHEMA = _schema_constants.SCHEMA
 NONE = _schema_constants.NONE
 
 # Mask constants.
-missing = item(None, _schema_constants.MASK)
-present = item(_arolla.present(), _schema_constants.MASK)
+missing = _mask_constants.missing
+present = _mask_constants.present
 
 
 ### Public submodules.
 
+kdf = _kdf
 testing = _testing
 
 __all__ = [api for api in globals().keys() if not api.startswith('_')]

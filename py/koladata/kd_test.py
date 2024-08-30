@@ -20,12 +20,15 @@ import types
 from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
+from koladata.functor import signature_utils
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
 
 kde = kd.kde
 I = kd.I
+V = kd.V
 S = kd.S
+kdf = kd.kdf
 
 
 class KdTest(absltest.TestCase):
@@ -137,6 +140,21 @@ class KdTest(absltest.TestCase):
 
     sig = inspect.signature(f)
     self.assertIs(sig.parameters['e'].annotation, kd.exceptions.KodaError)
+
+  def test_kdf(self):
+    fn = kdf.fn(
+        returns=I.x + V.foo,
+        signature=signature_utils.signature([
+            signature_utils.parameter(
+                'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
+            ),
+            signature_utils.parameter(
+                'y', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
+            ),
+        ]),
+        foo=I.y,
+    )
+    self.assertEqual(kdf.call(fn, 1, 2), 3)
 
 
 if __name__ == '__main__':
