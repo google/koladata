@@ -18,6 +18,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
@@ -73,6 +74,15 @@ class DataBag {
   // Returns a newly created mutable DataBag with the same content as this one.
   // Changes to either DataBag will not be reflected in the other.
   absl::StatusOr<DataBagPtr> Fork(bool immutable = false);
+
+  // Returns a new immutable DataBag with contents moved from this one. This
+  // DataBag is invalidated.
+  DataBagPtr ToImmutable() && {
+    auto new_db = std::make_shared<DataBag>(immutable_t{});
+    new_db->impl_ = std::move(impl_);
+    new_db->fallbacks_ = std::move(fallbacks_);
+    return new_db;
+  }
 
   // Returns fallbacks in priority order.
   const std::vector<DataBagPtr>& GetFallbacks() const { return fallbacks_; }

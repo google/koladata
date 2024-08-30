@@ -15,6 +15,7 @@
 #include "koladata/data_bag.h"
 
 #include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -340,6 +341,13 @@ TEST(DataBagTest, Fork_Mutability) {
     ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork(/*immutable=*/true));
     EXPECT_FALSE(db2->IsMutable());
   }
+}
+
+TEST(DataBagTest, ToImmutable) {
+  DataBag db1;
+  EXPECT_TRUE(db1.IsMutable());
+  DataBagPtr db2 = std::move(db1).ToImmutable();
+  EXPECT_FALSE(db2->IsMutable());
 }
 
 }  // namespace
