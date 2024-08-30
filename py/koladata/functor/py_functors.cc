@@ -16,6 +16,7 @@
 
 #include <Python.h>  // IWYU pragma: keep
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -108,9 +109,13 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
   if (returns == nullptr) {
     return nullptr;
   }
-  const auto* signature = UnwrapDataSlice(py_args[1], "signature");
-  if (signature == nullptr) {
-    return nullptr;
+  std::optional<DataSlice> signature = std::nullopt;
+  if (py_args[1] != Py_None) {
+    const auto* signature_ptr = UnwrapDataSlice(py_args[1], "signature");
+    if (signature_ptr == nullptr) {
+      return nullptr;
+    }
+    signature = *signature_ptr;
   }
   std::vector<std::pair<std::string, DataSlice>> variables;
   variables.reserve(args.kw_names.size());
@@ -123,7 +128,7 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
     variables.emplace_back(args.kw_names[i], *variable);
   }
   ASSIGN_OR_RETURN(auto result,
-                   functor::CreateFunctor(*returns, *signature, variables),
+                   functor::CreateFunctor(*returns, signature, variables),
                    (koladata::python::SetKodaPyErrFromStatus(_), nullptr));
   return WrapPyDataSlice(std::move(result));
 }

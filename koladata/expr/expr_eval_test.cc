@@ -161,6 +161,28 @@ TEST(GetExprVariablesTest, Basic) {
   EXPECT_THAT(GetExprVariables(expr), IsOkAndHolds(ElementsAre("bar", "foo")));
 }
 
+TEST(GetExprInputsTest, Basic) {
+  arolla::InitArolla();
+  ASSERT_OK_AND_ASSIGN(
+      auto expr,
+      arolla::expr::CallOp(
+          "math.add",
+          {arolla::expr::CallOp("koda_internal.input",
+                                {arolla::expr::Literal(arolla::Text("I")),
+                                 arolla::expr::Literal(arolla::Text("foo"))}),
+           arolla::expr::CallOp(
+               "math.add",
+               {arolla::expr::CallOp(
+                    "koda_internal.input",
+                    {arolla::expr::Literal(arolla::Text("I")),
+                     arolla::expr::Literal(arolla::Text("bar"))}),
+                arolla::expr::CallOp(
+                    "koda_internal.input",
+                    {arolla::expr::Literal(arolla::Text("V")),
+                     arolla::expr::Literal(arolla::Text("baz"))})})}));
+  EXPECT_THAT(GetExprInputs(expr), IsOkAndHolds(ElementsAre("bar", "foo")));
+}
+
 }  // namespace
 
 }  // namespace koladata::expr

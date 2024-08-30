@@ -31,7 +31,10 @@ def _maybe_wrap_expr(arg: Any) -> arolla.QValue:
 
 
 def fn(
-    returns: Any, *, signature: data_slice.DataSlice, **variables: Any
+    returns: Any,
+    *,
+    signature: data_slice.DataSlice | None = None,
+    **variables: Any
 ) -> data_slice.DataSlice:
   """Creates a functor.
 
@@ -40,7 +43,9 @@ def fn(
       be evaluated, but can also be a DataItem in which case calling will just
       return this DataItem, or a primitive that will be wrapped as a DataItem.
     signature: The signature of the functor. Will be used to map from args/
-      kwargs passed at calling time to I.smth inputs of the expressions.
+      kwargs passed at calling time to I.smth inputs of the expressions. When
+      None, the default signature will be created based on the inputs from the
+      expressions involved.
     **variables: The variables of the functor. Each variable can either be an
       expression to be evaluated, or a DataItem, or a primitive that will be
       wrapped as a DataItem. The result of evaluating the variable can be

@@ -42,6 +42,12 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
 absl::StatusOr<std::vector<std::string>> GetExprVariables(
     const arolla::expr::ExprNodePtr& expr);
 
+// Retrieves the list of inputs used in the given expression.
+// This reuses the same cache as EvalExprWithCompilationCache, so it is cheap
+// to call this method before/after evaluating the expression.
+absl::StatusOr<std::vector<std::string>> GetExprInputs(
+    const arolla::expr::ExprNodePtr& expr);
+
 // Clears the expr transformation and compilation caches.
 void ClearCompilationCache();
 

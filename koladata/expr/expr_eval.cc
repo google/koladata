@@ -335,6 +335,20 @@ absl::StatusOr<std::vector<std::string>> GetExprVariables(
   return res;
 }
 
+absl::StatusOr<std::vector<std::string>> GetExprInputs(
+    const arolla::expr::ExprNodePtr& expr) {
+  ASSIGN_OR_RETURN(auto transformed_expr, TransformExprForEval(expr));
+  const auto& expr_info = transformed_expr->info;
+  std::vector<std::string> res;
+  res.reserve(expr_info.input_leaf_index.size());
+  for (const auto& [input_name, _] : expr_info.input_leaf_index) {
+    res.push_back(input_name);
+  }
+  // To avoid exposing the non-deterministic order of hash map iteration.
+  std::sort(res.begin(), res.end());
+  return res;
+}
+
 void ClearCompilationCache() {
   ExprTransformationCache::Instance().Clear();
   CompilationCache::Instance().Clear();

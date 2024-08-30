@@ -149,7 +149,6 @@ py_test(
     tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":kdf",
-        ":signature_utils",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "@com_google_absl_py//absl/testing:absltest",

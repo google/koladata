@@ -14,6 +14,8 @@
 //
 #include "koladata/functor/functor.h"
 
+#include <algorithm>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -27,10 +29,13 @@
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/expr/expr_eval.h"
+#include "koladata/functor/default_signature.h"
 #include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
+#include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
@@ -38,23 +43,20 @@
 namespace koladata::functor {
 
 absl::StatusOr<DataSlice> CreateFunctor(
-    const DataSlice& returns, const DataSlice& signature,
+    const DataSlice& returns, const std::optional<DataSlice>& signature,
     absl::Span<const std::pair<std::string, DataSlice>> variables) {
   if (returns.GetShape().rank() != 0) {
     return absl::InvalidArgumentError(
         absl::StrFormat("returns must be a data item, but has shape: %s",
                         arolla::Repr(returns.GetShape())));
   }
-  // Verify that the signature is valid.
-  RETURN_IF_ERROR(KodaSignatureToCppSignature(signature).status());
+
   std::vector<absl::string_view> variable_names;
   std::vector<DataSlice> variable_values;
   variable_names.reserve(variables.size() + 2);
   variable_values.reserve(variables.size() + 2);
   variable_names.push_back(kReturnsAttrName);
   variable_values.push_back(returns);
-  variable_names.push_back(kSignatureAttrName);
-  variable_values.push_back(signature);
   for (const auto& [name, value] : variables) {
     if (value.GetShape().rank() != 0) {
       return absl::InvalidArgumentError(absl::StrFormat(
@@ -64,6 +66,30 @@ absl::StatusOr<DataSlice> CreateFunctor(
     variable_names.push_back(name);
     variable_values.push_back(value);
   }
+
+  if (!signature.has_value()) {
+    std::vector<std::string> inputs;
+    for (const auto& value : variable_values) {
+      if (value.item().holds_value<arolla::expr::ExprQuote>()) {
+        ASSIGN_OR_RETURN(auto var_expr,
+                         value.item().value<arolla::expr::ExprQuote>().expr());
+        ASSIGN_OR_RETURN(auto var_inputs, expr::GetExprInputs(var_expr));
+        inputs.insert(inputs.end(), var_inputs.begin(), var_inputs.end());
+      }
+    }
+    std::sort(inputs.begin(), inputs.end());
+    inputs.erase(std::unique(inputs.begin(), inputs.end()), inputs.end());
+    ASSIGN_OR_RETURN(auto default_signature,
+                     DefaultKodaSignatureFromInputs(inputs));
+    variable_names.push_back(kSignatureAttrName);
+    variable_values.push_back(std::move(default_signature));
+  } else {
+    // Verify that the signature is valid.
+    RETURN_IF_ERROR(KodaSignatureToCppSignature(signature.value()).status());
+    variable_names.push_back(kSignatureAttrName);
+    variable_values.push_back(signature.value());
+  }
+
   AdoptionQueue adoption_queue;
   for (const auto& value : variable_values) {
     adoption_queue.Add(value);

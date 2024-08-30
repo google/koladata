@@ -25,6 +25,9 @@ namespace koladata::python {
 absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
                                      Py_ssize_t nargs, PyObject* py_kwnames);
 
+// Returns the constant representing the unspecified self input.
+PyObject* PyUnspecifiedSelfInput(PyObject* /*self*/, PyObject* /*py_args*/);
+
 // Clears the Koda-specific eval cache.
 PyObject* PyClearEvalCache(PyObject* /*self*/, PyObject* /*py_args*/);
 

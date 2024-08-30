@@ -22,10 +22,14 @@ from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import py_boxing
 
 I = input_container.InputContainer('I')
+UNSPECIFIED_SELF_INPUT = _py_expr_eval_py_ext.unspecified_self_input()
 
 
 def eval_(
-    expr: Any, self_input: Any = arolla.unspecified(), /, **input_values: Any
+    expr: Any,
+    self_input: Any = UNSPECIFIED_SELF_INPUT,
+    /,
+    **input_values: Any,
 ) -> arolla.abc.AnyQValue:
   """Returns the expr evaluated on the given `input_values`.
 

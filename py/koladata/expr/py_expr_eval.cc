@@ -24,7 +24,9 @@
 #include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/expr/constants.h"
 #include "koladata/expr/expr_eval.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
@@ -32,6 +34,7 @@
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/exceptions/py_exception_utils.h"
 #include "py/koladata/types/py_utils.h"
+#include "py/koladata/types/wrap_utils.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/status_macros_backport.h"
@@ -85,6 +88,13 @@ absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
   ASSIGN_OR_RETURN(auto result, std::move(result_or_error),
                    (koladata::python::SetKodaPyErrFromStatus(_), nullptr));
   return arolla::python::WrapAsPyQValue(std::move(result));
+}
+
+PyObject* PyUnspecifiedSelfInput(PyObject* /*self*/, PyObject* /*py_args*/) {
+  arolla::python::DCheckPyGIL();
+  // We make a copy since WrapPyDataSlice takes ownership.
+  DataSlice unspecified_self_input = expr::UnspecifiedSelfInput();
+  return WrapPyDataSlice(std::move(unspecified_self_input));
 }
 
 PyObject* PyClearEvalCache(PyObject* /*self*/, PyObject* /*py_args*/) {

@@ -54,6 +54,24 @@ class FunctorFactoriesTest(absltest.TestCase):
     self.assertEqual(fn.bar, v)
     self.assertEqual(fn.bar.foo, 57)
 
+  def test_fn_default_signature(self):
+    v = fns.new(foo=57)
+    fn = functor_factories.fn(returns=I.x + V.foo, foo=I.y, bar=v)
+    signature = fn.get_attr('__signature__')
+    self.assertEqual(
+        signature.parameters[:].name.to_py(),
+        ['self', 'x', 'y', '__extra_inputs__'],
+    )
+    self.assertEqual(
+        signature.parameters[:].kind.to_py(),
+        [
+            signature_utils.ParameterKind.POSITIONAL_ONLY,
+            signature_utils.ParameterKind.KEYWORD_ONLY,
+            signature_utils.ParameterKind.KEYWORD_ONLY,
+            signature_utils.ParameterKind.VAR_KEYWORD,
+        ],
+    )
+
   def test_fn_with_slice(self):
     with self.assertRaisesRegex(ValueError, 'returns must be a data item'):
       _ = functor_factories.fn(

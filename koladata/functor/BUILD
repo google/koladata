@@ -69,10 +69,12 @@ cc_library(
     srcs = ["functor.cc"],
     hdrs = ["functor.h"],
     deps = [
+        ":default_signature",
         ":signature_storage",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:object_factories",
+        "//koladata/expr:expr_eval",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "@com_google_absl//absl/base:no_destructor",
@@ -81,6 +83,7 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
@@ -97,6 +100,7 @@ cc_test(
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:object_factories",
+        "//koladata/expr:constants",
         "//koladata/expr:expr_operators",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
@@ -135,6 +139,35 @@ cc_library(
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "default_signature",
+    srcs = ["default_signature.cc"],
+    hdrs = ["default_signature.h"],
+    deps = [
+        ":signature",
+        ":signature_storage",
+        "//koladata:data_slice",
+        "//koladata/expr:constants",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "default_signature_test",
+    srcs = ["default_signature_test.cc"],
+    deps = [
+        ":default_signature",
+        ":signature",
+        ":signature_storage",
+        "//koladata/expr:constants",
+        "//koladata/testing:matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

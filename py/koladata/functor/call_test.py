@@ -38,6 +38,22 @@ class CallTest(absltest.TestCase):
   def test_call_simple(self):
     fn = functor_factories.fn(
         returns=I.x + V.foo,
+        foo=I.y * I.x,
+    )
+    self.assertEqual(call.call(fn, x=2, y=3), 8)
+    # Unused inputs are ignored with the "default" signature.
+    self.assertEqual(call.call(fn, x=2, y=3, z=4), 8)
+
+  def test_call_with_self(self):
+    fn = functor_factories.fn(
+        returns=S.x + V.foo,
+        foo=S.y * S.x,
+    )
+    self.assertEqual(call.call(fn, fns.new(x=2, y=3)), 8)
+
+  def test_call_explicit_signature(self):
+    fn = functor_factories.fn(
+        returns=I.x + V.foo,
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD

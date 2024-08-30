@@ -18,7 +18,6 @@ from absl.testing import absltest
 from koladata.expr import input_container
 from koladata.expr import view as _
 from koladata.functor import kdf
-from koladata.functor import signature_utils
 from koladata.operators import kde_operators as _
 
 I = input_container.InputContainer('I')
@@ -28,20 +27,8 @@ V = input_container.InputContainer('V')
 class KdfTest(absltest.TestCase):
 
   def test_simple(self):
-    fn = kdf.fn(
-        returns=I.x + V.foo,
-        signature=signature_utils.signature([
-            signature_utils.parameter(
-                'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
-            ),
-            signature_utils.parameter(
-                'y', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
-            ),
-        ]),
-        foo=I.y,
-    )
-    self.assertEqual(kdf.call(fn, 1, 2), 3)
-    self.assertEqual(kdf.call(fn, 1, y=2), 3)
+    fn = kdf.fn(returns=I.x + V.foo, foo=I.y)
+    self.assertEqual(kdf.call(fn, x=1, y=2), 3)
     self.assertTrue(kdf.is_fn(fn))
     self.assertFalse(kdf.is_fn(57))
 

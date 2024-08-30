@@ -219,11 +219,9 @@ class ExprEvalTest(absltest.TestCase):
 
   def test_self_when_not_specified(self):
     res = expr_eval.eval(I.self)
-    testing.assert_equal(res, arolla.unspecified())
+    testing.assert_equal(res, expr_eval.UNSPECIFIED_SELF_INPUT)
     # We can improve this error message later if needed.
-    with self.assertRaisesRegex(
-        ValueError, 'expected DATA_SLICE, got obj: UNSPECIFIED'
-    ):
+    with self.assertRaisesRegex(ValueError, "the attribute 'foo' is missing"):
       expr_eval.eval(I.self.foo)
 
   def test_self_is_ok_when_just_forwarding(self):
@@ -246,6 +244,14 @@ class ExprEvalTest(absltest.TestCase):
     self.assertEqual(compute_delta(simple_metric, 0, 1, 2), -3)
     self.assertEqual(
         compute_delta(weighted_metric, 0, 1, 2, fns.new(weight=2)), -6
+    )
+
+  def test_unspecified_default_value_str(self):
+    # We can improve this later if needed, this is the best we could do without
+    # custom repr code.
+    self.assertEqual(
+        str(expr_eval.UNSPECIFIED_SELF_INPUT),
+        'Entity(self_not_specified=present)',
     )
 
 

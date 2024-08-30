@@ -14,6 +14,7 @@
 //
 #include "koladata/functor/functor.h"
 
+#include <optional>
 #include <utility>
 
 #include "gmock/gmock.h"
@@ -24,6 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/expr/constants.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
@@ -44,7 +46,11 @@ namespace {
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
+using ::testing::ElementsAre;
+using ::testing::Eq;
+using ::testing::FieldsAre;
 using ::testing::HasSubstr;
+using ::testing::Optional;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {
   return arolla::expr::CallOp("koda_internal.input",
@@ -102,6 +108,33 @@ TEST(CreateFunctorTest, Basic) {
   ASSERT_OK_AND_ASSIGN(auto my_obj_in_fn, fn.GetAttr("my_obj"));
   EXPECT_THAT(my_obj_in_fn.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(slice_57.WithDb(fn.GetDb()))));
+}
+
+TEST(CreateFunctorTest, DefaultSignature) {
+  using enum Signature::Parameter::Kind;
+  arolla::InitArolla();
+  ASSERT_OK_AND_ASSIGN(
+      auto returns_expr,
+      WrapExpr(arolla::expr::CallOp("math.multiply",
+                                    {CreateInput("a"), CreateVariable("a")})));
+  ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateInput("b")));
+  ASSERT_OK_AND_ASSIGN(auto slice_57,
+                       DataSlice::Create(internal::DataItem(57),
+                                         internal::DataItem(schema::kInt32)));
+  ASSERT_OK_AND_ASSIGN(
+      auto fn, CreateFunctor(returns_expr, std::nullopt, {{"a", var_a_expr}}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature, fn.GetAttr(kSignatureAttrName));
+  ASSERT_OK_AND_ASSIGN(auto signature,
+                       KodaSignatureToCppSignature(koda_signature));
+  EXPECT_THAT(
+      signature.parameters(),
+      ElementsAre(
+          FieldsAre("self", kPositionalOnly,
+                    Optional(IsEquivalentTo(expr::UnspecifiedSelfInput().WithDb(
+                        koda_signature.GetDb())))),
+          FieldsAre("a", kKeywordOnly, Eq(std::nullopt)),
+          FieldsAre("b", kKeywordOnly, Eq(std::nullopt)),
+          FieldsAre("__extra_inputs__", kVarKeyword, Eq(std::nullopt))));
 }
 
 TEST(CreateFunctorTest, NonExprReturns) {

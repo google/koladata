@@ -15,6 +15,7 @@
 #ifndef KOLADATA_FUNCTOR_FUNCTOR_H_
 #define KOLADATA_FUNCTOR_FUNCTOR_H_
 
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -35,12 +36,14 @@ constexpr absl::string_view kSignatureAttrName = "__signature__";
 // and variables.
 // returns must contain a DataItem holding a quoted Expr.
 // signature must contain a DataItem holding a signature as created by
-// methods from signature_storage.h.
+// methods from signature_storage.h, or be nullopt. When signature is nullopt,
+// we create the default signature (see default_signature.h for more details)
+// based on the inputs found in the functor.
 // Each DataSlice in variables must be a DataItem. When it holds a quoted
 // Expr, it will also be evaluated when the functor is called, otherwise
 // it will be treated as a literal value for the corresponding variable.
 absl::StatusOr<DataSlice> CreateFunctor(
-    const DataSlice& returns, const DataSlice& signature,
+    const DataSlice& returns, const std::optional<DataSlice>& signature,
     absl::Span<const std::pair<std::string, DataSlice>> variables);
 
 // Checks if a given DataSlice represents a functor. This only does a basic
