@@ -37,6 +37,9 @@ absl::StatusOr<DataSlice> Length(const DataSlice& x);
 // kde.strings.upper.
 absl::StatusOr<DataSlice> Upper(const DataSlice& x);
 
+// kde.strings.lower.
+absl::StatusOr<DataSlice> Lower(const DataSlice& x);
+
 // kde.strings.format.
 absl::StatusOr<DataSlice> Format(absl::Span<const DataSlice> slices);
 

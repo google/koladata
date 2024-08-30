@@ -133,6 +133,7 @@ OPERATOR_FAMILY("kde.strings.format",
                 arolla::MakeVariadicInputOperatorFamily("kde.strings.format",
                                                         Format));
 OPERATOR("kde.strings.length", Length);
+OPERATOR("kde.strings.lower", Lower);
 OPERATOR("kde.strings.substr", Substr);
 OPERATOR("kde.strings.upper", Upper);
 //

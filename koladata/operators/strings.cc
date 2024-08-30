@@ -118,7 +118,14 @@ absl::StatusOr<DataSlice> Length(const DataSlice& x) {
                              internal::DataItem(schema::kInt32));
 }
 
+absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
+  // TODO: Add support for BYTES.
+  return SimplePointwiseEval("strings.lower", {x},
+                             internal::DataItem(schema::kText));
+}
+
 absl::StatusOr<DataSlice> Upper(const DataSlice& x) {
+  // TODO: Add support for BYTES.
   return SimplePointwiseEval("strings.upper", {x},
                              internal::DataItem(schema::kText));
 }
