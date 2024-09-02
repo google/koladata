@@ -96,6 +96,7 @@ OPERATOR("kde.logical.coalesce", Coalesce);
 OPERATOR("kde.logical.has", Has);
 //
 OPERATOR("kde.math._agg_max", AggMax);
+OPERATOR("kde.math._agg_mean", AggMean);
 OPERATOR("kde.math._agg_min", AggMin);
 OPERATOR("kde.math._agg_sum", AggSum);
 OPERATOR("kde.math.abs", Abs);

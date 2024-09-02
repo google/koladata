@@ -180,9 +180,7 @@ absl::StatusOr<DataSlice> SimpleAggEval(absl::string_view op_name,
       first_primitive_schema = std::move(primitive_schema);
     }
   }
-  if (!output_schema.has_value()) {
-    ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
-  }
+
   ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
                    shape::AlignNonScalars(std::move(inputs)));
   if (aligned_shape.rank() == 0) {
@@ -194,6 +192,9 @@ absl::StatusOr<DataSlice> SimpleAggEval(absl::string_view op_name,
   // All empty-and-unknown inputs. We then skip evaluation and just broadcast
   // the first input to the common shape and common schema.
   if (!first_primitive_schema.has_value()) {
+    if (!output_schema.has_value()) {
+      ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
+    }
     ASSIGN_OR_RETURN(auto ds,
                      DataSlice::Create(internal::DataItem(), output_schema));
     return BroadcastToShape(ds, std::move(result_shape));
@@ -215,6 +216,14 @@ absl::StatusOr<DataSlice> SimpleAggEval(absl::string_view op_name,
   auto edge_tv = arolla::TypedValue::FromValue(aligned_shape.edges().back());
   typed_refs[edge_arg_index] = edge_tv.AsRef();
   ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs));
+  if (!output_schema.has_value()) {
+    // Get the common schema from both inputs and outputs.
+    ASSIGN_OR_RETURN(auto output_qtype,
+                     arolla::GetScalarQType(result.GetType()));
+    ASSIGN_OR_RETURN(auto result_dtype, schema::DType::FromQType(output_qtype));
+    schema_agg.Add(result_dtype);
+    ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
+  }
   return DataSliceFromArollaValue(result.AsRef(), std::move(result_shape),
                                   std::move(output_schema));
 }

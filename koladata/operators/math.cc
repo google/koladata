@@ -102,6 +102,10 @@ absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
                            /*output_schema=*/output_schema);
 }
 
+absl::StatusOr<DataSlice> AggMean(const DataSlice& x) {
+  return SimpleAggIntoEval("math.mean", {x});
+}
+
 absl::StatusOr<DataSlice> AggMax(const DataSlice& x) {
   return SimpleAggIntoEval("math.max", {x});
 }

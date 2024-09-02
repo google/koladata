@@ -174,6 +174,17 @@ TEST(ArollaEval, SimpleAggIntoEval) {
                             {3, 3, 0}, shape.RemoveDims(1), schema::kAny)));
   }
   {
+    // Computes common schema for input and output
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice x =
+        test::DataSlice<int>({1, 2, 3, std::nullopt}, shape, schema::kInt32);
+    ASSERT_OK_AND_ASSIGN(auto result, SimpleAggIntoEval("math.mean", {x}));
+    EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<float>(
+                            {1.5, 3.0, std::nullopt}, shape.RemoveDims(1),
+                            schema::kFloat32)));
+  }
+  {
     // Empty and unknown slice.
     DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
         {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
