@@ -102,8 +102,10 @@ OPERATOR("kde.math._agg_max", AggMax);
 OPERATOR("kde.math._agg_min", AggMin);
 OPERATOR("kde.math._agg_sum", AggSum);
 OPERATOR("kde.math.abs", Abs);
+OPERATOR("kde.math.ceil", Ceil);
 OPERATOR("kde.math.divide", Divide);
 OPERATOR("kde.math.exp", Exp);
+OPERATOR("kde.math.floor", Floor);
 OPERATOR("kde.math.floordiv", FloorDiv);
 OPERATOR("kde.math.log", Log);
 OPERATOR("kde.math.maximum", Maximum);
@@ -111,6 +113,7 @@ OPERATOR("kde.math.minimum", Minimum);
 OPERATOR("kde.math.mod", Mod);
 OPERATOR("kde.math.multiply", Multiply);
 OPERATOR("kde.math.pow", Pow);
+OPERATOR("kde.math.round", Round);
 OPERATOR("kde.math.subtract", Subtract);
 //
 OPERATOR("kde.schema._list_schema", ListSchema);

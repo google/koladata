@@ -38,6 +38,15 @@ absl::StatusOr<DataSlice> Exp(const DataSlice& x);
 // kde.math.abs.
 absl::StatusOr<DataSlice> Abs(const DataSlice& x);
 
+// kde.math.ceil.
+absl::StatusOr<DataSlice> Ceil(const DataSlice& x);
+
+// kde.math.floor.
+absl::StatusOr<DataSlice> Floor(const DataSlice& x);
+
+// kde.math.round.
+absl::StatusOr<DataSlice> Round(const DataSlice& x);
+
 // kde.math.pow.
 absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y);
 
