@@ -132,8 +132,8 @@ class AlignOperator : public arolla::QExprOperator {
   }
 };
 
-absl::StatusOr<DataSlice> ConcatOrStack(bool stack, int64_t ndim,
-                                        std::vector<DataSlice> args) {
+absl::StatusOr<DataSlice> ConcatOrStackImpl(bool stack, int64_t ndim,
+                                            std::vector<DataSlice> args) {
   if (args.empty()) {
     // Special case: no arguments returns kd.slice([]).
     return DataSlice::Create(
@@ -267,45 +267,6 @@ absl::StatusOr<DataSlice> ConcatOrStack(bool stack, int64_t ndim,
   }
 }
 
-class ConcatOrStackOperator : public arolla::QExprOperator {
- public:
-  explicit ConcatOrStackOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : arolla::QExprOperator("kde.core._concat_or_stack",
-                              arolla::QExprOperatorSignature::Get(
-                                  input_types, arolla::GetQType<DataSlice>())) {
-  }
-
- private:
-  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
-      absl::Span<const arolla::TypedSlot> input_slots,
-      arolla::TypedSlot output_slot) const final override {
-    DCHECK_GE(input_slots.size(), 2);
-    std::vector<arolla::FrameLayout::Slot<DataSlice>> ds_input_slots;
-    ds_input_slots.reserve(input_slots.size() - 2);
-    for (const auto& input_slot : input_slots.subspan(2)) {
-      ds_input_slots.push_back(input_slot.UnsafeToSlot<DataSlice>());
-    }
-    return arolla::MakeBoundOperator(
-        [stack_slot = input_slots[0].UnsafeToSlot<bool>(),
-         ndim_slot = input_slots[1].UnsafeToSlot<int64_t>(),
-         ds_input_slots(std::move(ds_input_slots)),
-         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          const bool stack = frame.Get(stack_slot);
-          const int64_t ndim = frame.Get(ndim_slot);
-          std::vector<DataSlice> args;
-          args.reserve(ds_input_slots.size());
-          for (const auto& ds_input_slot : ds_input_slots) {
-            args.push_back(frame.Get(ds_input_slot));
-          }
-          ASSIGN_OR_RETURN(DataSlice output,
-                           ConcatOrStack(stack, ndim, std::move(args)),
-                           ctx->set_status(std::move(_)));
-          frame.Set(output_slot, std::move(output));
-        });
-  }
-};
-
 absl::StatusOr<absl::string_view> GetAttrNameAsStr(const DataSlice& attr_name) {
   if (attr_name.GetShape().rank() != 0 ||
       attr_name.dtype() != schema::kText.qtype()) {
@@ -314,21 +275,6 @@ absl::StatusOr<absl::string_view> GetAttrNameAsStr(const DataSlice& attr_name) {
                      arolla::Repr(attr_name)));
   }
   return attr_name.item().value<arolla::Text>().view();
-}
-
-absl::Status VerifyGroupByIndicesInputs(
-    absl::Span<const arolla::QTypePtr> input_types) {
-  if (input_types.empty()) {
-    return absl::InvalidArgumentError("requires at least 1 argument");
-  }
-
-  for (const auto& args_type : input_types) {
-    if (args_type != arolla::GetQType<DataSlice>()) {
-      return absl::InvalidArgumentError(absl::StrCat(
-          "arguments must be DataSlices, but got ", args_type->name()));
-    }
-  }
-  return absl::OkStatus();
 }
 
 static constexpr size_t kUndefinedGroup = ~size_t{};
@@ -560,78 +506,45 @@ class GroupByIndicesProcessor {
   bool sort_;
 };
 
-class GroupByIndicesQExprOperator : public arolla::QExprOperator {
- public:
-  GroupByIndicesQExprOperator(absl::Span<const arolla::QTypePtr> types,
-                              bool sort)
-      : arolla::QExprOperator("kde.group_by_indices",
-                              arolla::QExprOperatorSignature::Get(
-                                  types, arolla::GetQType<DataSlice>())),
-        sort_(sort) {
-    DCHECK(!types.empty());
+absl::StatusOr<DataSlice> GroupByIndicesImpl(
+    absl::Span<const DataSlice* const> slices, bool sort) {
+  if (slices.empty()) {
+    return absl::InvalidArgumentError("requires at least 1 argument");
   }
-
- private:
-  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
-      absl::Span<const arolla::TypedSlot> input_slots,
-      arolla::TypedSlot output_slot) const final {
-    std::vector<arolla::FrameLayout::Slot<DataSlice>> ds_slots;
-    ds_slots.reserve(input_slots.size());
-    for (const auto& input_slot : input_slots) {
-      ds_slots.push_back(input_slot.UnsafeToSlot<DataSlice>());
+  const auto& shape = slices[0]->GetShape();
+  if (shape.rank() == 0) {
+    return absl::FailedPreconditionError(
+        "group_by is not supported for scalar data");
+  }
+  GroupByIndicesProcessor processor(shape.edges().back(),
+                                    /*sort=*/sort);
+  for (const auto* const ds_ptr : slices) {
+    const auto& ds = *ds_ptr;
+    if (!ds.GetShape().IsEquivalentTo(shape)) {
+      return absl::FailedPreconditionError(
+          "all arguments must have the same shape");
     }
-    return arolla::MakeBoundOperator(
-        [sort(sort_), output_slot = output_slot.UnsafeToSlot<DataSlice>(),
-         ds_slots(std::move(ds_slots))](arolla::EvaluationContext* ctx,
-                                        arolla::FramePtr frame) {
-          const auto& shape = frame.Get(ds_slots[0]).GetShape();
-          if (shape.rank() == 0) {
-            ctx->set_status(absl::FailedPreconditionError(
-                "group_by is not supported for scalar data"));
-            return;
-          }
-          GroupByIndicesProcessor processor(shape.edges().back(),
-                                            /*sort=*/sort);
-          for (const auto& ds_slot : ds_slots) {
-            const auto& ds = frame.Get(ds_slot);
-            if (!ds.GetShape().IsEquivalentTo(shape)) {
-              ctx->set_status(absl::FailedPreconditionError(
-                  "all arguments must have the same shape"));
-              return;
-            }
-            if (sort) {
-              if (ds.slice().is_mixed_dtype()) {
-                ctx->set_status(absl::FailedPreconditionError(
-                    "sort is not supported for mixed dtype"));
-                return;
-              }
-              if (!internal::IsKodaScalarQTypeSortable(ds.slice().dtype())) {
-                ctx->set_status(absl::FailedPreconditionError(absl::StrCat(
-                    "sort is not supported for ", ds.slice().dtype()->name())));
-                return;
-              }
-            }
-            processor.ProcessGroupKey(ds.slice());
-          }
-          auto [indices_array, group_split_points, item_split_points] =
-              processor.CreateFinalDataSlice();
-          ASSIGN_OR_RETURN(
-              auto new_shape,
-              shape.RemoveDims(/*from=*/shape.rank() - 1)
-                  .AddDims({group_split_points, item_split_points}),
-              ctx->set_status(std::move(_)));
-          ASSIGN_OR_RETURN(
-              auto result,
-              DataSlice::Create(
-                  internal::DataSliceImpl::Create(std::move(indices_array)),
-                  std::move(new_shape), internal::DataItem(schema::kInt64)),
-              ctx->set_status(std::move(_)));
-          frame.Set(output_slot, result);
-        });
+    if (sort) {
+      if (ds.slice().is_mixed_dtype()) {
+        return absl::FailedPreconditionError(
+            "sort is not supported for mixed dtype");
+      }
+      if (!internal::IsKodaScalarQTypeSortable(ds.slice().dtype())) {
+        return absl::FailedPreconditionError(absl::StrCat(
+            "sort is not supported for ", ds.slice().dtype()->name()));
+      }
+    }
+    processor.ProcessGroupKey(ds.slice());
   }
-
-  bool sort_;
-};
+  auto [indices_array, group_split_points, item_split_points] =
+      processor.CreateFinalDataSlice();
+  ASSIGN_OR_RETURN(auto new_shape,
+                   shape.RemoveDims(/*from=*/shape.rank() - 1)
+                       .AddDims({group_split_points, item_split_points}));
+  return DataSlice::Create(
+      internal::DataSliceImpl::Create(std::move(indices_array)),
+      std::move(new_shape), internal::DataItem(schema::kInt64));
+}
 
 struct Slice {
   int64_t start;
@@ -1031,34 +944,25 @@ absl::StatusOr<DataSlice> Collapse(const DataSlice& ds) {
       shape.RemoveDims(rank - 1), ds.GetSchemaImpl(), ds.GetDb());
 }
 
-absl::StatusOr<arolla::OperatorPtr> ConcatOrStackOperatorFamily::DoGetOperator(
-    absl::Span<const arolla::QTypePtr> input_types,
-    arolla::QTypePtr output_type) const {
-  if (input_types.size() < 2) {
+absl::StatusOr<DataSlice> ConcatOrStack(
+    absl::Span<const DataSlice* const> slices) {
+  if (slices.size() < 2) {
     return absl::InvalidArgumentError(
         absl::StrCat("_concat_or_stack expected at least 2 arguments, but got ",
-                     input_types.size()));
+                     slices.size()));
   }
-
-  if (input_types[0] != arolla::GetQType<bool>()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "`stack` argument must be BOOLEAN, but got ", input_types[0]->name()));
+  ASSIGN_OR_RETURN(auto stack, ToArollaBoolean(*slices[0]),
+                   _ << "`stack` argument must be a scalar BOOLEAN, but got "
+                     << arolla::Repr(*slices[0]));
+  ASSIGN_OR_RETURN(auto ndim, ToArollaInt64(*slices[1]),
+                   _ << "`ndim` argument must be a scalar INT64, but got "
+                     << arolla::Repr(*slices[1]));
+  std::vector<DataSlice> args;
+  args.reserve(slices.size() - 2);
+  for (const auto* const ds : slices.subspan(2)) {
+    args.push_back(*ds);
   }
-  if (input_types[1] != arolla::GetQType<int64_t>()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "`ndim` argument must be INT64, but got ", input_types[1]->name()));
-  }
-
-  for (const auto& args_type : input_types.subspan(2)) {
-    if (args_type != arolla::GetQType<DataSlice>()) {
-      return absl::InvalidArgumentError(absl::StrCat(
-          "arguments must be DataSlices, but got ", args_type->name()));
-    }
-  }
-
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<ConcatOrStackOperator>(input_types), input_types,
-      output_type);
+  return ConcatOrStackImpl(stack, ndim, std::move(args));
 }
 
 absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts) {
@@ -1134,28 +1038,14 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
   return obj.GetAttrWithDefault(attr_name_str, default_value);
 }
 
-absl::StatusOr<arolla::OperatorPtr> GroupByIndicesFamily::DoGetOperator(
-    absl::Span<const arolla::QTypePtr> input_types,
-    arolla::QTypePtr output_type) const {
-  RETURN_IF_ERROR(VerifyGroupByIndicesInputs(input_types));
-  if (output_type != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "the output must be a DataSlice, but got ", output_type->name()));
-  }
-  return std::make_unique<GroupByIndicesQExprOperator>(input_types,
-                                                       /*sort=*/false);
+absl::StatusOr<DataSlice> GroupByIndices(
+    absl::Span<const DataSlice* const> slices) {
+  return GroupByIndicesImpl(slices, /*sort=*/false);
 }
 
-absl::StatusOr<arolla::OperatorPtr> GroupByIndicesSortedFamily::DoGetOperator(
-    absl::Span<const arolla::QTypePtr> input_types,
-    arolla::QTypePtr output_type) const {
-  RETURN_IF_ERROR(VerifyGroupByIndicesInputs(input_types));
-  if (output_type != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "the output must be a DataSlice, but got ", output_type->name()));
-  }
-  return std::make_unique<GroupByIndicesQExprOperator>(input_types,
-                                                       /*sort=*/true);
+absl::StatusOr<DataSlice> GroupByIndicesSorted(
+    absl::Span<const DataSlice* const> slices) {
+  return GroupByIndicesImpl(slices, /*sort=*/true);
 }
 
 absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {

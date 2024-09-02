@@ -52,7 +52,8 @@ OPERATOR("kde.comparison.less_equal", LessEqual);
 OPERATOR("kde.core._clone", Clone);
 OPERATOR("kde.core._collapse", Collapse);
 OPERATOR_FAMILY("kde.core._concat_or_stack",
-                std::make_unique<ConcatOrStackOperatorFamily>());
+                arolla::MakeVariadicInputOperatorFamily(
+                    "kde.core._concat_or_stack", ConcatOrStack));
 OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);
 OPERATOR("kde.core._get_attr", GetAttr);
@@ -72,9 +73,11 @@ OPERATOR("kde.core.get_db", GetDb);
 OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR("kde.core.get_primitive_schema", GetPrimitiveSchema);
 OPERATOR_FAMILY("kde.core.group_by_indices",
-                std::make_unique<GroupByIndicesFamily>());
+                arolla::MakeVariadicInputOperatorFamily(
+                    "kde.core.group_by_indices", GroupByIndices));
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
-                std::make_unique<GroupByIndicesSortedFamily>());
+                arolla::MakeVariadicInputOperatorFamily(
+                    "kde.core.group_by_indices_sorted", GroupByIndicesSorted));
 OPERATOR("kde.core.itemid_bits", ItemIdBits);
 OPERATOR("kde.core.list_size", ListSize);
 OPERATOR("kde.core.no_db", NoDb);

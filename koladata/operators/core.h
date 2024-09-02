@@ -16,6 +16,7 @@
 #define KOLADATA_OPERATORS_CORE_H_
 
 #include <cstdint>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -60,11 +61,8 @@ absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& schema);
 absl::StatusOr<DataSlice> Collapse(const DataSlice& ds);
 
 // kde.core._concat_or_stack
-class ConcatOrStackOperatorFamily final : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const override;
-};
+absl::StatusOr<DataSlice> ConcatOrStack(
+    absl::Span<const DataSlice* const> slices);
 
 // kde.core.dict_size.
 absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts);
@@ -85,18 +83,12 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
                                              const DataSlice& default_value);
 
 // kde.core.group_by_indices.
-class GroupByIndicesFamily : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const final;
-};
+absl::StatusOr<DataSlice> GroupByIndices(
+    absl::Span<const DataSlice* const> slices);
 
 // kde.core.group_by_indices_sorted.
-class GroupByIndicesSortedFamily : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const final;
-};
+absl::StatusOr<DataSlice> GroupByIndicesSorted(
+    absl::Span<const DataSlice* const> slices);
 
 // kde.core.unique.
 absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort);
