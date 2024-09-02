@@ -989,6 +989,35 @@ TYPED_TEST(CreatorTest, AutoBroadcasting) {
                HasSubstr("shapes are not compatible")));
 }
 
+TYPED_TEST(CreatorTest, FromAttrs_ItemId) {
+  using CreatorT = typename TestFixture::CreatorT;
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataItem(42);  // Both will be broadcasted to ItemId.
+  auto ds_b = test::DataItem("abc");
+
+  auto itemid = *DataSlice::Create(
+      internal::DataSliceImpl::AllocateEmptyObjects(3),
+      shape, internal::DataItem(schema::kItemId), db);
+
+  DataSlice ds;
+  if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::FromAttrs(
+        db, {std::string("a"), std::string("b")}, {ds_a, ds_b},
+        /*schema=*/std::nullopt, /*update_schema=*/false, itemid));
+  } else {
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::FromAttrs(
+        db, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
+  }
+  EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
+  EXPECT_THAT(ds.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(
+                  BroadcastToShape(ds_a, ds.GetShape())->WithDb(db))));
+  EXPECT_THAT(ds.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(
+                  BroadcastToShape(ds_b, ds.GetShape())->WithDb(db))));
+}
+
 TYPED_TEST(CreatorTest, Shaped_WithAttrs) {
   using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;

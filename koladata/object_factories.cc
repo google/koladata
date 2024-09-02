@@ -56,7 +56,7 @@
 
 namespace koladata {
 
-// TODO: b/357803216 - Use absl::Span instead of std::vector.
+// TODO: Use absl::Span instead of std::vector.
 
 namespace {
 
@@ -561,7 +561,12 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
     const std::vector<absl::string_view>& attr_names,
     const std::vector<DataSlice>& values,
     const std::optional<DataSlice>& schema,
-    bool update_schema) {
+    bool update_schema,
+    const std::optional<DataSlice>& itemid) {
+  if (itemid) {
+    return EntityCreator::Shaped(db, itemid->GetShape(), attr_names, values,
+                                 schema, update_schema, itemid);
+  }
   DCHECK_EQ(attr_names.size(), values.size());
   internal::DataItem schema_item;
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
@@ -658,8 +663,13 @@ absl::StatusOr<DataSlice> EntityCreator::Like(
 // and -Like creation and forward to -Shaped here.
 absl::StatusOr<DataSlice> ObjectCreator::FromAttrs(
     const DataBagPtr& db, const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values) {
+    const std::vector<DataSlice>& values,
+    const std::optional<DataSlice>& itemid) {
   DCHECK_EQ(attr_names.size(), values.size());
+  if (itemid) {
+    return ObjectCreator::Shaped(db, itemid->GetShape(), attr_names, values,
+                                 itemid);
+  }
   if (values.empty()) {
     return ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {}, {});
   }
@@ -846,7 +856,7 @@ absl::StatusOr<DataSlice> CreateUuObject(
         }
         RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, impl_res.value(),
                                         attr_names, schemas,
-                                  /*overwrite_schemas=*/false));
+                                        /*overwrite_schemas=*/false));
         return DataSlice::Create(
             impl_res.value(), aligned_values.begin()->GetShape(),
             internal::DataItem(schema::kObject), db);

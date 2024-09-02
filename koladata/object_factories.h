@@ -55,12 +55,16 @@ struct EntityCreator {
   // cast to `schema` attributes. In case some schema attribute is missing,
   // error is returned, unless `update_schema` is provided in which case, the
   // schema attribute is set from attribute's value.
+  //
+  // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+  // allocating them.
   static absl::StatusOr<DataSlice> FromAttrs(
       const DataBagPtr& db,
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& values,
       const std::optional<DataSlice>& schema = std::nullopt,
-      bool update_schema = false);
+      bool update_schema = false,
+      const std::optional<DataSlice>& itemid = std::nullopt);
 
   // Implements kd.new_shaped function / operator.
   //
@@ -74,6 +78,9 @@ struct EntityCreator {
   // cast to `schema` attributes. In case some schema attribute is missing,
   // error is returned, unless `update_schema` is provided in which case, the
   // schema attribute is set from attribute's value.
+  //
+  // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+  // allocating them.
   static absl::StatusOr<DataSlice> Shaped(
       const DataBagPtr& db,
       DataSlice::JaggedShape shape,
@@ -96,6 +103,9 @@ struct EntityCreator {
   // cast to `schema` attributes. In case some schema attribute is missing,
   // error is returned, unless `update_schema` is provided in which case, the
   // schema attribute is set from attribute's value.
+  //
+  // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+  // allocating them.
   static absl::StatusOr<DataSlice> Like(
       const DataBagPtr& db,
       const DataSlice& shape_and_mask_from,
@@ -127,10 +137,14 @@ struct ObjectCreator {
   // The returned Object's __schema__ attribute is implicit schema slice (each
   // schema item in this schema slice is a different allocated schema object).
   // Each of them has `attr_names` attributes set to schemas of `values`.
+  //
+  // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+  // allocating them.
   static absl::StatusOr<DataSlice> FromAttrs(
       const DataBagPtr& db,
       const std::vector<absl::string_view>& attr_names,
-      const std::vector<DataSlice>& values);
+      const std::vector<DataSlice>& values,
+      const std::optional<DataSlice>& itemid = std::nullopt);
 
   // Implements kd.obj_shaped function / operator.
   //
@@ -142,6 +156,9 @@ struct ObjectCreator {
   // The returned Object's __schema__ attribute is implicit schema slice (each
   // schema item in this schema slice is a different allocated schema object).
   // Each of them has `attr_names` attributes set to schemas of `values`.
+  //
+  // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+  // allocating them.
   static absl::StatusOr<DataSlice> Shaped(
       const DataBagPtr& db,
       DataSlice::JaggedShape shape,
@@ -160,6 +177,9 @@ struct ObjectCreator {
   // The returned Object's __schema__ attribute is implicit schema slice (each
   // schema item in this schema slice is a different allocated schema object).
   // Each of them has `attr_names` attributes set to schemas of `values`.
+  //
+  // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+  // allocating them.
   static absl::StatusOr<DataSlice> Like(
       const DataBagPtr& db,
       const DataSlice& shape_and_mask_from,
