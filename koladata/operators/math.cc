@@ -45,6 +45,10 @@ absl::StatusOr<DataSlice> Exp(const DataSlice& x) {
   return SimplePointwiseEval("math.exp", {x});
 }
 
+absl::StatusOr<DataSlice> Abs(const DataSlice& x) {
+  return SimplePointwiseEval("math.abs", {x});
+}
+
 absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y) {
   return SimplePointwiseEval("math.pow", {x, y});
 }

@@ -35,6 +35,9 @@ absl::StatusOr<DataSlice> Log(const DataSlice& x);
 // kde.math.exp.
 absl::StatusOr<DataSlice> Exp(const DataSlice& x);
 
+// kde.math.abs.
+absl::StatusOr<DataSlice> Abs(const DataSlice& x);
+
 // kde.math.pow.
 absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y);
 
