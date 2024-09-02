@@ -91,10 +91,8 @@ namespace {
 class AlignOperator : public arolla::QExprOperator {
  public:
   explicit AlignOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : arolla::QExprOperator(
-            "kde.core.align",
-            arolla::QExprOperatorSignature::Get(
-                input_types, arolla::MakeTupleQType(input_types))) {}
+      : arolla::QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::MakeTupleQType(input_types))) {}
 
  private:
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
@@ -662,9 +660,8 @@ absl::StatusOr<std::vector<SlicingArgType>> ExtractSlicingArgs(
 class SubsliceOperator : public arolla::InlineOperator {
  public:
   SubsliceOperator(absl::Span<const arolla::QTypePtr> types)
-      : InlineOperator("kde.core.subslice",
-                       arolla::QExprOperatorSignature::Get(
-                           types, arolla::GetQType<DataSlice>())) {}
+      : InlineOperator(arolla::QExprOperatorSignature::Get(
+            types, arolla::GetQType<DataSlice>())) {}
 
  private:
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
@@ -736,9 +733,8 @@ absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
 class UuSchemaOperator : public arolla::QExprOperator {
  public:
   explicit UuSchemaOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator("kde.schema._uu_schema",
-                      arolla::QExprOperatorSignature::Get(
-                          input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -780,9 +776,8 @@ class UuSchemaOperator : public arolla::QExprOperator {
 class UuidOperator : public arolla::QExprOperator {
  public:
   explicit UuidOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator("kde.core._uuid",
-                      arolla::QExprOperatorSignature::Get(
-                          input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -815,9 +810,8 @@ class UuidOperator : public arolla::QExprOperator {
 class UuObjOperator : public arolla::QExprOperator {
  public:
   explicit UuObjOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator("kde.core._uuobj",
-                      arolla::QExprOperatorSignature::Get(
-                          input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,

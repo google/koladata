@@ -52,8 +52,7 @@ OPERATOR("kde.comparison.less_equal", LessEqual);
 OPERATOR("kde.core._clone", Clone);
 OPERATOR("kde.core._collapse", Collapse);
 OPERATOR_FAMILY("kde.core._concat_or_stack",
-                arolla::MakeVariadicInputOperatorFamily(
-                    "kde.core._concat_or_stack", ConcatOrStack));
+                arolla::MakeVariadicInputOperatorFamily(ConcatOrStack));
 OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);
 OPERATOR("kde.core._get_attr", GetAttr);
@@ -73,11 +72,9 @@ OPERATOR("kde.core.get_db", GetDb);
 OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR("kde.core.get_primitive_schema", GetPrimitiveSchema);
 OPERATOR_FAMILY("kde.core.group_by_indices",
-                arolla::MakeVariadicInputOperatorFamily(
-                    "kde.core.group_by_indices", GroupByIndices));
+                arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
-                arolla::MakeVariadicInputOperatorFamily(
-                    "kde.core.group_by_indices_sorted", GroupByIndicesSorted));
+                arolla::MakeVariadicInputOperatorFamily(GroupByIndicesSorted));
 OPERATOR("kde.core.itemid_bits", ItemIdBits);
 OPERATOR("kde.core.list_size", ListSize);
 OPERATOR("kde.core.no_db", NoDb);
@@ -139,8 +136,7 @@ OPERATOR("kde.shapes.get_shape", GetShape);
 OPERATOR("kde.strings._agg_join", AggJoin);
 OPERATOR("kde.strings._split", Split);
 OPERATOR_FAMILY("kde.strings.format",
-                arolla::MakeVariadicInputOperatorFamily("kde.strings.format",
-                                                        Format));
+                arolla::MakeVariadicInputOperatorFamily(Format));
 OPERATOR("kde.strings.length", Length);
 OPERATOR("kde.strings.lower", Lower);
 OPERATOR("kde.strings.substr", Substr);

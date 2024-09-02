@@ -47,9 +47,8 @@ namespace {
 class NewSchemaOperator : public arolla::QExprOperator {
  public:
   explicit NewSchemaOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator("kde.schema._new_schema",
-                      arolla::QExprOperatorSignature::Get(
-                          input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,

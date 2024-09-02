@@ -84,12 +84,11 @@ absl::StatusOr<DataSlice::JaggedShape::Edge> GetEdgeFromSizes(
 // which have the same child size for all parent elements.  DataSlices (of ints)
 // are interpreted as a list of sizes, where `ds[i]` is the child size of parent
 // `i`. Only rank-0 or rank-1 int DataSlices are supported.
-class JaggedShapeCreateOperator : public arolla::InlineOperator {
+class JaggedShapeCreateOperator : public arolla::QExprOperator {
  public:
   JaggedShapeCreateOperator(absl::Span<const arolla::QTypePtr> types)
-      : InlineOperator("kde.shapes.create",
-                       arolla::QExprOperatorSignature::Get(
-                           types, arolla::GetQType<DataSlice::JaggedShape>())) {
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            types, arolla::GetQType<DataSlice::JaggedShape>())) {
     for (const auto& input_type : types) {
       DCHECK(input_type == arolla::GetQType<DataSlice>() ||
              input_type == arolla::GetQType<DataSlice::JaggedShape::Edge>());
