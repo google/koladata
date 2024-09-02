@@ -128,12 +128,13 @@ struct EntityCreatorHelper {
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& itemid,
       const DataBagPtr& db, AdoptionQueue& adoption_queue) {
     if (schema_arg) {
       adoption_queue.Add(*schema_arg);
     }
     return EntityCreator::FromAttrs(db, attr_names, values, schema_arg,
-                                    update_schema);
+                                    update_schema, itemid);
   }
 
   static absl::StatusOr<DataSlice> Shaped(
@@ -178,13 +179,14 @@ struct ObjectCreatorHelper {
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& itemid,
       const DataBagPtr& db, [[maybe_unused]] AdoptionQueue& adoption_queue) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!update_schema) << "unused and not filled";
-    return ObjectCreator::FromAttrs(db, attr_names, values);
+    return ObjectCreator::FromAttrs(db, attr_names, values, itemid);
   }
 
   static absl::StatusOr<DataSlice> Shaped(
@@ -245,6 +247,10 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
   }
+  std::optional<DataSlice> itemid;
+  if (!ParseDataSliceArg(args, "itemid", itemid)) {
+    return nullptr;
+  }
   // args.pos_kw_values[0] is "arg" positional-keyword argument.
   if (args.pos_kw_values[0] && args.pos_kw_values[0] != Py_None) {
     if (!args.kw_values.empty()) {
@@ -253,6 +259,12 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
           absl::StrCat("cannot set extra attributes when converting to ",
                        FactoryHelperT::kKodaName)
               .c_str());
+      return nullptr;
+    }
+    if (itemid) {
+      PyErr_SetString(
+          PyExc_NotImplementedError,
+          "kd.new and kd.obj do not support `itemid` in converter mode");
       return nullptr;
     }
     ASSIGN_OR_RETURN(res,
@@ -266,8 +278,9 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
         SetKodaPyErrFromStatus(_));
     ASSIGN_OR_RETURN(
         res,
-        FactoryHelperT::FromAttributes(args.kw_names, values, schema_arg,
-                                       update_schema, db, adoption_queue),
+        FactoryHelperT::FromAttributes(
+            args.kw_names, values, schema_arg, update_schema, itemid, db,
+            adoption_queue),
         SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
   }
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
@@ -292,8 +305,8 @@ absl::Nullable<PyObject*> PyDataBag_new_factory(PyObject* self,
                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"schema", "update_schema"},
-      /*pos_kw_args=*/"arg"));
+      /*pos_only_n=*/0, /*parse_kwargs=*/true,
+      {"schema", "update_schema", "itemid"}, /*pos_kw_args=*/"arg"));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -315,8 +328,9 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory(PyObject* self,
                                                 Py_ssize_t nargs,
                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "arg");
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"itemid"},
+      /*pos_kw_args=*/"arg"));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -1183,6 +1197,9 @@ Args:
     schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
+  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    itemid will only be set when the args is not a primitive or primitive slice
+    if args present.
   **attrs: attrs to set in the returned Entity.
 
 Returns:
@@ -1199,6 +1216,7 @@ Args:
     schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
+  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
   **attrs: attrs to set in the returned Entity.
 
 Returns:
@@ -1216,6 +1234,7 @@ Args:
     schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
+  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
   **attrs: attrs to set in the returned Entity.
 
 Returns:
@@ -1227,6 +1246,9 @@ Returned DataSlice has OBJECT schema.
 
 Args:
   arg: optional Python object to be converted to an Object.
+  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    itemid will only be set when the args is not a primitive or primitive slice
+    if args presents.
   **attrs: attrs to set on the returned object.
 
 Returns:
@@ -1239,6 +1261,7 @@ Returned DataSlice has OBJECT schema.
 
 Args:
   shape: mandatory JaggedShape that the returned DataSlice will have.
+  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
   **attrs: attrs to set in the returned Entity.
 
 Returns:
@@ -1252,6 +1275,7 @@ Returned DataSlice has OBJECT schema.
 Args:
   shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
     returned DataSlice will have.
+  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
   db: optional DataBag where entities are created.
   **attrs: attrs to set in the returned Entity.
 

@@ -297,6 +297,7 @@ def new(
     *,
     schema: data_slice.DataSlice | None = None,
     update_schema: bool = False,
+    itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
     **attrs: Any
 ) -> data_slice.DataSlice:
@@ -310,6 +311,9 @@ def new(
       schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+      itemid will only be set when the args is not a primitive or primitive
+      slice if args present.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -318,7 +322,156 @@ def new(
   """
   if db is None:
     db = bag()
-  return db.new(arg=arg, schema=schema, update_schema=update_schema, **attrs)
+  return db.new(
+      arg=arg, schema=schema, update_schema=update_schema, itemid=itemid,
+      **attrs
+  )
+
+
+def new_shaped(
+    shape: jagged_shape.JaggedShape,
+    *,
+    schema: data_slice.DataSlice | None = None,
+    update_schema: bool = False,
+    itemid: data_slice.DataSlice | None = None,
+    db: data_bag.DataBag | None = None,
+    **attrs: Any,
+) -> data_slice.DataSlice:
+  """Creates new Entities with the given shape.
+
+  Args:
+    shape: mandatory JaggedShape that the returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead.
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
+  if db is None:
+    db = bag()
+  return db.new_shaped(
+      shape, schema=schema, update_schema=update_schema, itemid=itemid, **attrs
+  )
+
+
+def new_like(
+    shape_and_mask_from: data_slice.DataSlice,
+    *,
+    schema: data_slice.DataSlice | None = None,
+    update_schema: bool = False,
+    itemid: data_slice.DataSlice | None = None,
+    db: data_bag.DataBag | None = None,
+    **attrs: Any,
+) -> data_slice.DataSlice:
+  """Creates new Entities with the shape and sparsity from shape_and_mask_from.
+
+  Args:
+    shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
+      returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead.
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
+  if db is None:
+    db = bag()
+  return db.new_like(
+      shape_and_mask_from, schema=schema, update_schema=update_schema,
+      itemid=itemid, **attrs
+  )
+
+
+def obj(
+    arg: Any = None,
+    *,
+    itemid: data_slice.DataSlice | None = None,
+    db: data_bag.DataBag | None = None,
+    **attrs: Any
+) -> data_slice.DataSlice:
+  """Creates new Objects with an implicit stored schema.
+
+  Returned DataSlice has OBJECT schema.
+
+  Args:
+    arg: optional Python object to be converted to an Object.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+      itemid will only be set when the args is not a primitive or primitive
+      slice if args presents.
+    db: optional DataBag where object are created.
+    **attrs: attrs to set on the returned object.
+
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
+  """
+  if db is None:
+    db = bag()
+  return db.obj(arg=arg, itemid=itemid, **attrs)
+
+
+def obj_shaped(
+    shape: jagged_shape.JaggedShape,
+    *,
+    itemid: data_slice.DataSlice | None = None,
+    db: data_bag.DataBag | None = None,
+    **attrs: Any,
+) -> data_slice.DataSlice:
+  """Creates Objects with the given shape.
+
+  Returned DataSlice has OBJECT schema.
+
+  Args:
+    shape: mandatory JaggedShape that the returned DataSlice will have.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
+  if db is None:
+    db = bag()
+  return db.obj_shaped(shape, itemid=itemid, **attrs)
+
+
+def obj_like(
+    shape_and_mask_from: data_slice.DataSlice,
+    *,
+    itemid: data_slice.DataSlice | None = None,
+    db: data_bag.DataBag | None = None,
+    **attrs: Any,
+) -> data_slice.DataSlice:
+  """Creates Objects with shape and sparsity from shape_and_mask_from.
+
+  Returned DataSlice has OBJECT schema.
+
+  Args:
+    shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
+      returned DataSlice will have.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
+  if db is None:
+    db = bag()
+  return db.obj_like(shape_and_mask_from, itemid=itemid, **attrs)
 
 
 def uu(
@@ -348,139 +501,6 @@ def uu(
   if db is None:
     db = bag()
   return db.uu(seed=seed, schema=schema, update_schema=update_schema, **attrs)
-
-
-def new_shaped(
-    shape: jagged_shape.JaggedShape,
-    *,
-    schema: data_slice.DataSlice | None = None,
-    update_schema: bool = False,
-    db: data_bag.DataBag | None = None,
-    **attrs: Any,
-) -> data_slice.DataSlice:
-  """Creates new Entities with the given shape.
-
-  Args:
-    shape: mandatory JaggedShape that the returned DataSlice will have.
-    schema: optional DataSlice schema. If not specified, a new explicit schema
-      will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-  """
-  if db is None:
-    db = bag()
-  return db.new_shaped(
-      shape, schema=schema, update_schema=update_schema, **attrs
-  )
-
-
-def new_like(
-    shape_and_mask_from: data_slice.DataSlice,
-    *,
-    schema: data_slice.DataSlice | None = None,
-    update_schema: bool = False,
-    db: data_bag.DataBag | None = None,
-    **attrs: Any,
-) -> data_slice.DataSlice:
-  """Creates new Entities with the shape and sparsity from shape_and_mask_from.
-
-  Args:
-    shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-      returned DataSlice will have.
-    schema: optional DataSlice schema. If not specified, a new explicit schema
-      will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-  """
-  if db is None:
-    db = bag()
-  return db.new_like(
-      shape_and_mask_from, schema=schema, update_schema=update_schema, **attrs
-  )
-
-
-def obj(
-    arg: Any = None,
-    *,
-    db: data_bag.DataBag | None = None,
-    **attrs: Any
-) -> data_slice.DataSlice:
-  """Creates new Objects with an implicit stored schema.
-
-  Returned DataSlice has OBJECT schema.
-
-  Args:
-    arg: optional Python object to be converted to an Object.
-    db: optional DataBag where object are created.
-    **attrs: attrs to set on the returned object.
-
-  Returns:
-    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
-  """
-  if db is None:
-    db = bag()
-  return db.obj(arg=arg, **attrs)
-
-
-def obj_shaped(
-    shape: jagged_shape.JaggedShape,
-    *,
-    db: data_bag.DataBag | None = None,
-    **attrs: Any,
-) -> data_slice.DataSlice:
-  """Creates Objects with the given shape.
-
-  Returned DataSlice has OBJECT schema.
-
-  Args:
-    shape: mandatory JaggedShape that the returned DataSlice will have.
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-  """
-  if db is None:
-    db = bag()
-  return db.obj_shaped(shape, **attrs)
-
-
-def obj_like(
-    shape_and_mask_from: data_slice.DataSlice,
-    *,
-    db: data_bag.DataBag | None = None,
-    **attrs: Any,
-) -> data_slice.DataSlice:
-  """Creates Objects with shape and sparsity from shape_and_mask_from.
-
-  Returned DataSlice has OBJECT schema.
-
-  Args:
-    shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-      returned DataSlice will have.
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-  """
-  if db is None:
-    db = bag()
-  return db.obj_like(shape_and_mask_from, **attrs)
 
 
 def empty_shaped(
