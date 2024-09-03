@@ -14,9 +14,11 @@
 
 """User-facing module for Koda functor related APIs."""
 
-from koladata.functor import call as _call
 from koladata.functor import functor_factories as _functor_factories
+from koladata.operators import eager_op_utils as _eager_op_utils
+
+_kd = _eager_op_utils.operators_container('kde')
 
 fn = _functor_factories.fn
 is_fn = _functor_factories.is_fn
-call = _call.call
+call = _kd.call

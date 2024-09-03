@@ -40,8 +40,6 @@ PyMethodDef kPyFunctorsModule_methods[] = {
      "parameter."},
     {"create_functor", (PyCFunction)PyCreateFunctor,
      METH_FASTCALL | METH_KEYWORDS, "Creates a new functor."},
-    {"call", (PyCFunction)PyCall, METH_FASTCALL | METH_KEYWORDS,
-     "Calls the given functor with the given arguments."},
     {"is_fn", PyIsFn, METH_O,
      "Checks if a given DataSlice represents a functor."},
     {nullptr} /* sentinel */

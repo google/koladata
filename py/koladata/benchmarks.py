@@ -377,9 +377,9 @@ def add_kd_call(state):
   y = kd.slice([2])
   # To initialize all lazy initializers and reduce variance.
   fn = kdf.fn(kde.add(I.x, I.y))
-  _ = kdf.call(fn, x=x, y=y)
+  _ = kd.call(fn, x=x, y=y)
   while state:
-    kdf.call(fn, x=x, y=y)
+    kd.call(fn, x=x, y=y)
 
 
 @google_benchmark.register
@@ -388,9 +388,9 @@ def add_10000_kd_call(state):
   y = kd.slice([2] * 10000)
   # To initialize all lazy initializers and reduce variance.
   fn = kdf.fn(kde.add(I.x, I.y))
-  _ = kdf.call(fn, x=x, y=y)
+  _ = kd.call(fn, x=x, y=y)
   while state:
-    kdf.call(fn, x=x, y=y)
+    kd.call(fn, x=x, y=y)
 
 
 @google_benchmark.register
@@ -794,9 +794,9 @@ def kd_call_with_many_variables(state):
   vars_[f'v{nvars-1}'] = S
   fn = kdf.fn(V.v0, **vars_)
   # To initialize all lazy initializers and reduce variance.
-  _ = kdf.call(fn, 57)
+  _ = kd.call(fn, 57)
   while state:
-    kdf.call(fn, 57)
+    kd.call(fn, 57)
 
 
 if __name__ == '__main__':

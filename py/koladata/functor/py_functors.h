@@ -39,9 +39,6 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
                                           PyObject** py_args, Py_ssize_t nargs,
                                           PyObject* py_kwnames);
 
-absl::Nullable<PyObject*> PyCall(PyObject* /*self*/, PyObject** py_args,
-                                 Py_ssize_t nargs, PyObject* py_kwnames);
-
 absl::Nullable<PyObject*> PyIsFn(PyObject* /*self*/, PyObject* fn);
 }  // namespace koladata::python
 

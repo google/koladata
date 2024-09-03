@@ -42,6 +42,7 @@ def fn(
     returns: What should calling a functor return. Will typically be an Expr to
       be evaluated, but can also be a DataItem in which case calling will just
       return this DataItem, or a primitive that will be wrapped as a DataItem.
+      When this is an Expr, it must evaluate to a DataSlice/DataItem.
     signature: The signature of the functor. Will be used to map from args/
       kwargs passed at calling time to I.smth inputs of the expressions. When
       None, the default signature will be created based on the inputs from the

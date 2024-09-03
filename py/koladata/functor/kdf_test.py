@@ -18,10 +18,11 @@ from absl.testing import absltest
 from koladata.expr import input_container
 from koladata.expr import view as _
 from koladata.functor import kdf
-from koladata.operators import kde_operators as _
+from koladata.operators import kde_operators
 
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
+kde = kde_operators.kde
 
 
 class KdfTest(absltest.TestCase):
@@ -31,6 +32,15 @@ class KdfTest(absltest.TestCase):
     self.assertEqual(kdf.call(fn, x=1, y=2), 3)
     self.assertTrue(kdf.is_fn(fn))
     self.assertFalse(kdf.is_fn(57))
+
+  def test_factorial(self):
+    fn = kdf.fn(
+        kde.call(kde.cond(I.n == 0, V.stop, V.go), n=I.n),
+        go=kdf.fn(I.n * kde.call(V.rec, n=I.n - 1)),
+        stop=kdf.fn(1),
+    )
+    fn.go.rec = fn
+    self.assertEqual(kdf.call(fn, n=5), 120)
 
 
 if __name__ == '__main__':

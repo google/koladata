@@ -32,18 +32,14 @@ cc_library(
         "//koladata:data_slice_qtype",
         "//koladata/expr:expr_operators",
         "//koladata/functor",
-        "//koladata/functor:call",
         "//koladata/functor:signature_storage",
         "//py/koladata/exceptions:py_exception_utils",
         "//py/koladata/types:py_utils",
         "//py/koladata/types:wrap_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",
-        "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
-        "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
     ],
 )
@@ -58,7 +54,6 @@ py_library(
     name = "kdf",
     srcs = ["kdf.py"],
     deps = [
-        ":call",
         ":functor_factories",
     ],
 )
@@ -110,34 +105,6 @@ py_test(
         ":signature_utils",
         "//py/koladata/functions",
         "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_library(
-    name = "call",
-    srcs = ["call.py"],
-    deps = [
-        ":py_functors_py_ext",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:py_boxing",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "call_test",
-    srcs = ["call_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
-    deps = [
-        ":call",
-        ":functor_factories",
-        ":signature_utils",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
-        "//py/koladata/functions",
-        "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],

@@ -158,6 +158,35 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "call_operator",
+    srcs = ["call_operator.cc"],
+    hdrs = ["call_operator.h"],
+    deps = [
+        ":call",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "operators",
+    srcs = ["operators.cc"],
+    deps = [
+        ":call_operator",
+        "@com_google_arolla//arolla/qexpr",
+    ],
+    alwayslink = 1,
+)
+
 cc_test(
     name = "default_signature_test",
     srcs = ["default_signature_test.cc"],
