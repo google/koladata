@@ -34,35 +34,6 @@
 
 namespace koladata::ops {
 
-absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
-                                 const DataSlice& end) {
-  // If `x` is empty-and-unknown, the output will be too. In all other cases,
-  // we evaluate M.strings.substr on the provided inputs.
-  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
-  if (!primitive_schema.has_value()) {
-    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape({x, start, end}));
-    return BroadcastToShape(x, std::move(common_shape));
-  }
-  ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
-                   shape::AlignNonScalars({x, start, end}));
-  std::vector<arolla::TypedValue> typed_value_holder;
-  typed_value_holder.reserve(3);
-  ASSIGN_OR_RETURN(
-      auto x_ref, DataSliceToOwnedArollaRef(aligned_ds[0], typed_value_holder));
-  ASSIGN_OR_RETURN(auto start_ref, DataSliceToOwnedArollaRef(
-                                       aligned_ds[1], typed_value_holder,
-                                       internal::DataItem(schema::kInt64)));
-  ASSIGN_OR_RETURN(auto end_ref, DataSliceToOwnedArollaRef(
-                                     aligned_ds[2], typed_value_holder,
-                                     internal::DataItem(schema::kInt64)));
-  ASSIGN_OR_RETURN(
-      auto result,
-      EvalExpr("strings.substr",
-               {std::move(x_ref), std::move(start_ref), std::move(end_ref)}));
-  return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
-                                  x.GetSchemaImpl());
-}
-
 absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep) {
   if (sep.GetShape().rank() != 0) {
     return absl::InvalidArgumentError("expected rank(sep) == 0");
@@ -75,6 +46,43 @@ absl::StatusOr<DataSlice> Contains(const DataSlice& x,
   return SimplePointwiseEval(
       "strings.contains", {x, substr},
       /*output_schema=*/internal::DataItem(schema::kMask));
+}
+
+absl::StatusOr<DataSlice> Format(std::vector<DataSlice> slices) {
+  if (slices.empty()) {
+    return absl::InvalidArgumentError("expected at least one input");
+  }
+  const auto& fmt = slices[0];
+  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(fmt));
+  // If `fmt` is empty, we avoid calling the implementation altogether. Calling
+  // SimplePointwiseEval when `fmt` is empty would resolve it to the type of the
+  // first present value, which can be of any type.
+  if (!primitive_schema.has_value()) {
+    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(slices));
+    return BroadcastToShape(fmt, std::move(common_shape));
+  }
+  // From here on, we know that at least one input has known schema and we
+  // should eval.
+  return SimplePointwiseEval("strings.format", std::move(slices),
+                             /*output_schema=*/fmt.GetSchemaImpl());
+}
+
+absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices) {
+  if (slices.empty()) {
+    return absl::InvalidArgumentError("expected at least one input");
+  }
+  return SimplePointwiseEval("strings.join", std::move(slices));
+}
+
+absl::StatusOr<DataSlice> Length(const DataSlice& x) {
+  return SimplePointwiseEval("strings.length", {x},
+                             internal::DataItem(schema::kInt32));
+}
+
+absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
+  // TODO: Add support for BYTES.
+  return SimplePointwiseEval("strings.lower", {x},
+                             internal::DataItem(schema::kText));
 }
 
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
@@ -120,47 +128,39 @@ absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
                                   std::move(common_schema));
 }
 
-absl::StatusOr<DataSlice> Length(const DataSlice& x) {
-  return SimplePointwiseEval("strings.length", {x},
-                             internal::DataItem(schema::kInt32));
-}
-
-absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
-  // TODO: Add support for BYTES.
-  return SimplePointwiseEval("strings.lower", {x},
-                             internal::DataItem(schema::kText));
+absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
+                                 const DataSlice& end) {
+  // If `x` is empty-and-unknown, the output will be too. In all other cases,
+  // we evaluate M.strings.substr on the provided inputs.
+  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
+  if (!primitive_schema.has_value()) {
+    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape({x, start, end}));
+    return BroadcastToShape(x, std::move(common_shape));
+  }
+  ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
+                   shape::AlignNonScalars({x, start, end}));
+  std::vector<arolla::TypedValue> typed_value_holder;
+  typed_value_holder.reserve(3);
+  ASSIGN_OR_RETURN(
+      auto x_ref, DataSliceToOwnedArollaRef(aligned_ds[0], typed_value_holder));
+  ASSIGN_OR_RETURN(auto start_ref, DataSliceToOwnedArollaRef(
+                                       aligned_ds[1], typed_value_holder,
+                                       internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(auto end_ref, DataSliceToOwnedArollaRef(
+                                     aligned_ds[2], typed_value_holder,
+                                     internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(
+      auto result,
+      EvalExpr("strings.substr",
+               {std::move(x_ref), std::move(start_ref), std::move(end_ref)}));
+  return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
+                                  x.GetSchemaImpl());
 }
 
 absl::StatusOr<DataSlice> Upper(const DataSlice& x) {
   // TODO: Add support for BYTES.
   return SimplePointwiseEval("strings.upper", {x},
                              internal::DataItem(schema::kText));
-}
-
-absl::StatusOr<DataSlice> Format(std::vector<DataSlice> slices) {
-  if (slices.empty()) {
-    return absl::InvalidArgumentError("expected at least one input");
-  }
-  const auto& fmt = slices[0];
-  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(fmt));
-  // If `fmt` is empty, we avoid calling the implementation altogether. Calling
-  // SimplePointwiseEval when `fmt` is empty would resolve it to the type of the
-  // first present value, which can be of any type.
-  if (!primitive_schema.has_value()) {
-    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(slices));
-    return BroadcastToShape(fmt, std::move(common_shape));
-  }
-  // From here on, we know that at least one input has known schema and we
-  // should eval.
-  return SimplePointwiseEval("strings.format", std::move(slices),
-                             /*output_schema=*/fmt.GetSchemaImpl());
-}
-
-absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices) {
-  if (slices.empty()) {
-    return absl::InvalidArgumentError("expected at least one input");
-  }
-  return SimplePointwiseEval("strings.join", std::move(slices));
 }
 
 }  // namespace koladata::ops

@@ -22,33 +22,35 @@
 
 namespace koladata::ops {
 
+// go/keep-sorted start ignore_prefixes=absl::StatusOr<DataSlice>
+// kde.strings.agg_join.
+absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep);
+//
+// kde.strings.contains.
+absl::StatusOr<DataSlice> Contains(const DataSlice& x, const DataSlice& substr);
+//
+// kde.strings.format.
+absl::StatusOr<DataSlice> Format(std::vector<DataSlice> slices);
+//
+// kde.strings.join.
+absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices);
+//
+// kde.strings.length.
+absl::StatusOr<DataSlice> Length(const DataSlice& x);
+//
+// kde.strings.lower.
+absl::StatusOr<DataSlice> Lower(const DataSlice& x);
+//
+// kde.strings.split.
+absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep);
+//
 // kde.strings.substr.
 absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
                                  const DataSlice& end);
-
-// kde.strings.agg_join.
-absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep);
-
-// kde.strings.contains.
-absl::StatusOr<DataSlice> Contains(const DataSlice& x, const DataSlice& substr);
-
-// kde.strings.split.
-absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep);
-
-// kde.strings.length.
-absl::StatusOr<DataSlice> Length(const DataSlice& x);
-
+//
 // kde.strings.upper.
 absl::StatusOr<DataSlice> Upper(const DataSlice& x);
-
-// kde.strings.lower.
-absl::StatusOr<DataSlice> Lower(const DataSlice& x);
-
-// kde.strings.format.
-absl::StatusOr<DataSlice> Format(std::vector<DataSlice> slices);
-
-// kde.strings.join.
-absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices);
+// go/keep-sorted end
 
 }  // namespace koladata::ops
 
