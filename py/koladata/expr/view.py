@@ -178,6 +178,9 @@ class DataSliceView(BasicKodaView):
   def __invert__(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.has_not', self)
 
+  def __call__(self, *args: Any, **kwargs: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.call', self, *args, **kwargs)
+
 
 class KodaMultipleReturnDataSliceTupleView(BasicKodaView):
   """ExprView for tuples of DataSlice, for operators returning multiple values.

@@ -1775,6 +1775,12 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
       ds([1, 2, 3]).follow()
 
+  def test_call(self):
+    with self.assertRaisesRegex(
+        TypeError, "'data_slice.DataSlice' object is not callable"
+    ):
+      _ = ds([1, 2, 3])()
+
 
 class DataSliceMergingTest(parameterized.TestCase):
 

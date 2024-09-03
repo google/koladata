@@ -16,11 +16,14 @@
 
 import gc
 import itertools
+import re
 import sys
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.expr import input_container
+from koladata.functor import functor_factories
 # Register kde ops for e.g. jagged_shape.create_shape().
 from koladata.operators import kde_operators as _
 from koladata.testing import testing
@@ -31,6 +34,9 @@ from koladata.types import jagged_shape
 from koladata.types import schema_constants
 
 ds = data_slice.DataSlice.from_vals
+I = input_container.InputContainer('I')
+S = I.self
+bag = data_bag.DataBag.empty
 
 
 class DataItemTest(parameterized.TestCase):
@@ -227,6 +233,20 @@ class DataItemTest(parameterized.TestCase):
     self.assertEqual(
         repr(item), f'DataItem(12, schema: INT32, bag_id: {bag_id})'
     )
+
+  def test_call(self):
+    fn = functor_factories.fn(I.x * I.y)
+    self.assertEqual(fn(x=2, y=3), 6)
+    self.assertIsInstance(fn(x=2, y=I.z), arolla.Expr)
+    self.assertEqual(fn(x=2, y=I.z).eval(z=3), 6)
+
+    fn = functor_factories.fn(S.x * S.y)
+    self.assertEqual(fn(bag().new(x=2, y=3)), 6)
+
+    with self.assertRaisesRegex(
+        ValueError, re.escape('the first argument of kd.call must be a functor')
+    ):
+      ds(1)()
 
 
 if __name__ == '__main__':

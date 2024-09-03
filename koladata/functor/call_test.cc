@@ -175,7 +175,20 @@ TEST(CallTest, MustBeScalar) {
   ASSERT_OK_AND_ASSIGN(fn, fn.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
   EXPECT_THAT(CallFunctorWithCompilationCache(fn, {}, {}),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "trying to call a non-functor"));
+                       "the first argument of kd.call must be a functor"));
+}
+
+TEST(CallTest, NoDb) {
+  arolla::InitArolla();
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
+  ASSERT_OK_AND_ASSIGN(auto fn,
+                       CreateFunctor(returns_expr, koda_signature, {}));
+  EXPECT_THAT(CallFunctorWithCompilationCache(fn.WithDb(nullptr), {}, {}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "the first argument of kd.call must be a functor"));
 }
 
 TEST(CallTest, DataSliceVariable) {

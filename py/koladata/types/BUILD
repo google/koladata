@@ -280,6 +280,8 @@ py_library(
     deps = [
         ":data_item_py_ext",
         ":data_slice",
+        ":operator_lookup",
+        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -293,6 +295,8 @@ py_test(
         ":data_slice",
         ":jagged_shape",
         ":schema_constants",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/functor:functor_factories",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",

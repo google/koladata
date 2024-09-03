@@ -108,9 +108,9 @@ absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> kwargs) {
-  ASSIGN_OR_RETURN(auto is_functor, IsFunctor(functor));
-  if (!is_functor) {
-    return absl::InvalidArgumentError("trying to call a non-functor");
+  if (!IsFunctor(functor).value_or(false)) {
+    return absl::InvalidArgumentError(
+        "the first argument of kd.call must be a functor");
   }
   ASSIGN_OR_RETURN(auto signature_item, functor.GetAttr(kSignatureAttrName));
   ASSIGN_OR_RETURN(auto signature, KodaSignatureToCppSignature(signature_item));

@@ -254,6 +254,9 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_invert(self):
     testing.assert_equal(~C.x, kde.has_not(C.x))
 
+  def test_call(self):
+    testing.assert_equal(C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z))
+
   def test_eval(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     testing.assert_equal(I.x.eval(x=1), data_slice.DataSlice.from_vals(1))
@@ -328,6 +331,14 @@ class DataSliceViewTest(parameterized.TestCase):
       (1 | C.x, 'DataItem(1, schema: INT32) | C.x'),
       # Has not.
       (~C.x, '~C.x'),
+      # Call. TODO: make this print as C.x(C.y, foo=C.z).
+      (
+          C.x(C.y, foo=C.z),
+          (
+              "kde.call(C.x, M.core.make_tuple(C.y), M.namedtuple.make('foo',"
+              ' C.z))'
+          ),
+      ),
   )
   def test_repr(self, expr, expected_repr):
     self.assertEqual(repr(expr), expected_repr)

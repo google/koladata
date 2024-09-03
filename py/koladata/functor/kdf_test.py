@@ -30,13 +30,14 @@ class KdfTest(absltest.TestCase):
   def test_simple(self):
     fn = kdf.fn(returns=I.x + V.foo, foo=I.y)
     self.assertEqual(kdf.call(fn, x=1, y=2), 3)
+    self.assertEqual(fn(x=1, y=2), 3)
     self.assertTrue(kdf.is_fn(fn))
     self.assertFalse(kdf.is_fn(57))
 
   def test_factorial(self):
     fn = kdf.fn(
-        kde.call(kde.cond(I.n == 0, V.stop, V.go), n=I.n),
-        go=kdf.fn(I.n * kde.call(V.rec, n=I.n - 1)),
+        kde.cond(I.n == 0, V.stop, V.go)(n=I.n),
+        go=kdf.fn(I.n * V.rec(n=I.n - 1)),
         stop=kdf.fn(1),
     )
     fn.go.rec = fn
