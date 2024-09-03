@@ -205,6 +205,14 @@ class ListItemTest(parameterized.TestCase):
     self.assertEqual(str(db.list(x)), expected_str)
     self.assertRegex(repr(db.list(x)), expected_repr)
 
+  def test_str_and_repr_obj_list(self):
+    db = data_bag.DataBag.empty()
+    x = db.obj(db.list([1, 2, 3]))
+    self.assertEqual(str(x), "List[1, 2, 3]")
+    self.assertRegex(
+        repr(x),
+        r"DataItem\(List\[1, 2, 3\], schema: OBJECT, bag_id: \$\w{4}\)")
+
 
 if __name__ == "__main__":
   absltest.main()

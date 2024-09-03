@@ -221,20 +221,20 @@ absl::StatusOr<std::string> ListToStr(const DataSlice& ds,
   ASSIGN_OR_RETURN(const DataSlice list, ds.ExplodeList(0, std::nullopt));
 
   auto stringfy_list_items =
-      [&option, &ds](
-          const internal::DataSliceImpl& list) -> absl::StatusOr<std::string> {
+      [&option, &list](const internal::DataSliceImpl& list_impl)
+      -> absl::StatusOr<std::string> {
     std::vector<std::string> elements;
-    elements.reserve(list.size());
+    elements.reserve(list_impl.size());
     size_t item_count = 0;
-    for (const internal::DataItem& item : list) {
+    for (const internal::DataItem& item : list_impl) {
       if (item_count >= option.item_limit) {
         elements.emplace_back(kEllipsis);
         break;
       }
-      ASSIGN_OR_RETURN(DataSlice item_schema,
-                       ds.GetSchema().GetAttr(schema::kListItemsSchemaAttr));
-      ASSIGN_OR_RETURN(DataSlice item_slice,
-                       DataSlice::Create(item, item_schema.item(), ds.GetDb()));
+      auto item_schema = list.GetSchema();
+      ASSIGN_OR_RETURN(
+          DataSlice item_slice,
+          DataSlice::Create(item, item_schema.item(), list.GetDb()));
       ASSIGN_OR_RETURN(std::string item_str, DataItemToStr(item_slice, option));
       elements.emplace_back(std::move(item_str));
       ++item_count;
