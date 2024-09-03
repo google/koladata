@@ -1530,12 +1530,12 @@ TEST(Casting, ToObjectErrors) {
   }
 }
 
-TEST(Casting, CastTo) {
+TEST(Casting, CastToImplicit) {
   arolla::InitArolla();
   {
     // Invalid schema error.
-    EXPECT_THAT(CastTo(test::DataItem(std::nullopt, schema::kNone),
-                       internal::DataItem(1)),
+    EXPECT_THAT(CastToImplicit(test::DataItem(std::nullopt, schema::kNone),
+                               internal::DataItem(1)),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          "expected a schema, got 1"));
   }
@@ -1543,31 +1543,62 @@ TEST(Casting, CastTo) {
     // Casting errors and successes.
     // No common schema.
     EXPECT_THAT(
-        CastTo(test::DataItem(1, schema::kInt32),
-               internal::DataItem(internal::AllocateExplicitSchema())),
+        CastToImplicit(test::DataItem(1, schema::kInt32),
+                       internal::DataItem(internal::AllocateExplicitSchema())),
         StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
     // Common schema is not the provided schema.
-    EXPECT_THAT(CastTo(test::DataItem(1.0f, schema::kFloat32),
-                       internal::DataItem(schema::kInt32)),
+    EXPECT_THAT(CastToImplicit(test::DataItem(1.0f, schema::kFloat32),
+                               internal::DataItem(schema::kInt32)),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          "unsupported implicit cast from FLOAT32 to INT32"));
     // Implicit casting succeeds if the common schema is the provided schema.
     EXPECT_THAT(
-        CastTo(test::DataItem(1, schema::kInt32),
-               internal::DataItem(schema::kFloat32)),
+        CastToImplicit(test::DataItem(1, schema::kInt32),
+                       internal::DataItem(schema::kFloat32)),
         IsOkAndHolds(IsEquivalentTo(test::DataItem(1.0f, schema::kFloat32))));
+  }
+}
+
+TEST(Casting, CastToImplicit_CoversAllDTypes) {
+  // Ensures that all schemas are supported by CastToImplicit.
+  // DTypes.
+  arolla::meta::foreach_type(schema::supported_dtype_values(), [&](auto tpe) {
+    using T = typename decltype(tpe)::type;
+    schema::DType schema = schema::GetDType<T>();
+    internal::DataItem schema_item(schema);
+    EXPECT_THAT(
+        CastToImplicit(test::EmptyDataSlice(3, schema::kNone), schema_item),
+        IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema_item))));
+  });
+  // Entities.
+  auto schema = internal::DataItem(internal::AllocateExplicitSchema());
+  EXPECT_THAT(CastToImplicit(test::EmptyDataSlice(3, schema::kNone), schema),
+              IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema))));
+}
+
+TEST(Casting, CastToExplicit) {
+  arolla::InitArolla();
+  {
+    // Invalid schema error.
+    EXPECT_THAT(CastToExplicit(test::DataItem(std::nullopt, schema::kNone),
+                               internal::DataItem(1)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "expected a schema, got 1"));
+  }
+  {
+    // Casting errors and successes.
     // Explicit cast is allowed (if possible) even if the common schema is not
     // the provided schema.
     EXPECT_THAT(
-        CastTo(test::DataItem(1.0f, schema::kFloat32),
-               internal::DataItem(schema::kInt32), /*implicit_cast=*/false),
+        CastToExplicit(test::DataItem(1.0f, schema::kFloat32),
+                       internal::DataItem(schema::kInt32)),
         IsOkAndHolds(IsEquivalentTo(test::DataItem(1, schema::kInt32))));
     // But it can also fail if the explicit cast is not allowed.
-    EXPECT_THAT(CastTo(test::DataItem(1, schema::kInt32),
-                       internal::DataItem(internal::AllocateExplicitSchema()),
-                       /*implicit_cast=*/false),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         "unsupported schema: INT32"));
+    EXPECT_THAT(
+        CastToExplicit(test::DataItem(1, schema::kInt32),
+                       internal::DataItem(internal::AllocateExplicitSchema())),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "unsupported schema: INT32"));
   }
   {
     // Casting to OBJECT with embedding.
@@ -1582,8 +1613,7 @@ TEST(Casting, CastTo) {
     auto item = test::DataItem(obj, schema_2, db);
     // With validation -> failure.
     EXPECT_THAT(
-        CastTo(item, internal::DataItem(schema::kObject),
-               /*implicit_cast=*/false),
+        CastToExplicit(item, internal::DataItem(schema::kObject)),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  absl::StrFormat(
                      "existing schema %v differs from the provided schema %v",
@@ -1591,8 +1621,8 @@ TEST(Casting, CastTo) {
 
     // Without validation -> success.
     EXPECT_THAT(
-        CastTo(item, internal::DataItem(schema::kObject),
-               /*implicit_cast=*/false, /*validate_schema=*/false),
+        CastToExplicit(item, internal::DataItem(schema::kObject),
+                       /*validate_schema=*/false),
         IsOkAndHolds(IsEquivalentTo(test::DataItem(obj, schema::kObject, db))));
     auto expected_db = DataBag::Empty();
     auto& expected_db_impl = expected_db->GetMutableImpl().value().get();
@@ -1601,23 +1631,77 @@ TEST(Casting, CastTo) {
   }
 }
 
-TEST(Casting, CastTo_CoversAllDTypes) {
-  // Ensures that all schemas are supported by CastTo.
+TEST(Casting, CastToExplicit_CoversAllDTypes) {
+  // Ensures that all schemas are supported by CastToExplicit.
   // DTypes.
   arolla::meta::foreach_type(schema::supported_dtype_values(), [&](auto tpe) {
     using T = typename decltype(tpe)::type;
     schema::DType schema = schema::GetDType<T>();
     internal::DataItem schema_item(schema);
     EXPECT_THAT(
-        CastTo(test::EmptyDataSlice(3, schema::kNone), schema_item),
-        IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema_item))));
-    EXPECT_THAT(
-        CastTo(test::EmptyDataSlice(3, schema::kNone), schema),
+        CastToExplicit(test::EmptyDataSlice(3, schema::kNone), schema_item),
         IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema_item))));
   });
   // Entities.
   auto schema = internal::DataItem(internal::AllocateExplicitSchema());
-  EXPECT_THAT(CastTo(test::EmptyDataSlice(3, schema::kNone), schema),
+  EXPECT_THAT(CastToExplicit(test::EmptyDataSlice(3, schema::kNone), schema),
+              IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema))));
+}
+
+TEST(Casting, CastToNarrow) {
+  arolla::InitArolla();
+  {
+    // Invalid schema error.
+    EXPECT_THAT(CastToNarrow(test::DataItem(std::nullopt, schema::kNone),
+                             internal::DataItem(1)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "expected a schema, got 1"));
+  }
+  {
+    // Casting errors and successes.
+    // No common schema.
+    EXPECT_THAT(
+        CastToNarrow(test::DataItem(1, schema::kInt32),
+                     internal::DataItem(internal::AllocateExplicitSchema())),
+        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
+    // Common schema is not the provided schema.
+    EXPECT_THAT(CastToNarrow(test::DataItem(1.0f, schema::kFloat32),
+                             internal::DataItem(schema::kInt32)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "unsupported narrowing cast to INT32"));
+    // Narrowed schema is not implicitly castable to provided schema.
+    EXPECT_THAT(CastToNarrow(test::DataItem(1.0f, schema::kObject),
+                             internal::DataItem(schema::kInt32)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "unsupported narrowing cast to INT32"));
+    // Casting succeeds if the common schema is the provided schema.
+    EXPECT_THAT(
+        CastToNarrow(test::DataItem(1, schema::kInt32),
+                     internal::DataItem(schema::kFloat32)),
+        IsOkAndHolds(IsEquivalentTo(test::DataItem(1.0f, schema::kFloat32))));
+    // Casting succeeds if the narrowed schema is implicitly castable to the
+    // provided schema.
+    EXPECT_THAT(
+        CastToNarrow(test::DataItem(1, schema::kObject),
+                     internal::DataItem(schema::kFloat32)),
+        IsOkAndHolds(IsEquivalentTo(test::DataItem(1.0f, schema::kFloat32))));
+  }
+}
+
+TEST(Casting, CastToNarrow_CoversAllDTypes) {
+  // Ensures that all schemas are supported by CastToNarrow.
+  // DTypes.
+  arolla::meta::foreach_type(schema::supported_dtype_values(), [&](auto tpe) {
+    using T = typename decltype(tpe)::type;
+    schema::DType schema = schema::GetDType<T>();
+    internal::DataItem schema_item(schema);
+    EXPECT_THAT(
+        CastToNarrow(test::EmptyDataSlice(3, schema::kNone), schema_item),
+        IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema_item))));
+  });
+  // Entities.
+  auto schema = internal::DataItem(internal::AllocateExplicitSchema());
+  EXPECT_THAT(CastToNarrow(test::EmptyDataSlice(3, schema::kNone), schema),
               IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema))));
 }
 
@@ -1680,7 +1764,7 @@ TEST(Alignment, AlignSchemas_Errors) {
   {
     // Invalid arity.
     EXPECT_THAT(AlignSchemas({}), StatusIs(absl::StatusCode::kInvalidArgument,
-                                            "expected at least one slice"));
+                                           "expected at least one slice"));
   }
   {
     // No common schema.

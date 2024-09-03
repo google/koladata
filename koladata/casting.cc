@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "absl/base/optimization.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -31,6 +32,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/repr_utils.h"
+#include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -67,6 +69,46 @@ absl::StatusOr<DataSlice> ToNumericLike(const DataSlice& slice,
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(dst_dtype), slice.GetDb());
   });
+}
+
+absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
+                                 const internal::DataItem& schema,
+                                 bool validate_schema) {
+  DCHECK(schema.is_schema());
+  if (schema.holds_value<internal::ObjectId>()) {
+    return ToEntity(slice, schema);
+  }
+  switch (schema.value<schema::DType>().type_id()) {
+    case schema::kNone.type_id():
+      return ToNone(slice);
+    case schema::kInt32.type_id():
+      return ToInt32(slice);
+    case schema::kInt64.type_id():
+      return ToInt64(slice);
+    case schema::kFloat32.type_id():
+      return ToFloat32(slice);
+    case schema::kFloat64.type_id():
+      return ToFloat64(slice);
+    case schema::kBool.type_id():
+      return ToBool(slice);
+    case schema::kMask.type_id():
+      return ToMask(slice);
+    case schema::kText.type_id():
+      return ToText(slice);
+    case schema::kBytes.type_id():
+      return ToBytes(slice);
+    case schema::kExpr.type_id():
+      return ToExpr(slice);
+    case schema::kItemId.type_id():
+      return ToItemId(slice);
+    case schema::kSchema.type_id():
+      return ToSchema(slice);
+    case schema::kObject.type_id():
+      return ToObject(slice, validate_schema);
+    case schema::kAny.type_id():
+      return ToAny(slice);
+  }
+  ABSL_UNREACHABLE();
 }
 
 }  // namespace
@@ -243,66 +285,56 @@ absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,
   });
 }
 
-absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
-                                 const internal::DataItem& schema,
-                                 bool implicit_cast, bool validate_schema) {
+absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& slice,
+                                         const internal::DataItem& schema) {
+  if (slice.GetSchemaImpl() == schema) {
+    return slice;
+  }
   if (!schema.is_schema()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("expected a schema, got %v", schema));
   }
+  ASSIGN_OR_RETURN(auto common_schema,
+                   schema::CommonSchema(slice.GetSchemaImpl(), schema),
+                   AssembleErrorMessage(_, {.db = slice.GetDb()}));
+  if (common_schema != schema) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("unsupported implicit cast from %v to %v",
+                        slice.GetSchemaImpl(), schema));
+  }
+  return CastTo(slice, schema, /*validate_schema=*/false);
+}
+
+absl::StatusOr<DataSlice> CastToExplicit(const DataSlice& slice,
+                                         const internal::DataItem& schema,
+                                         bool validate_schema) {
   if (slice.GetSchemaImpl() == schema) {
     return slice;
   }
-  if (implicit_cast) {
-    ASSIGN_OR_RETURN(auto common_schema,
-                     schema::CommonSchema(slice.GetSchemaImpl(), schema),
-                     AssembleErrorMessage(_, {.db = slice.GetDb()}));
-    if (common_schema != schema) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("unsupported implicit cast from %v to %v",
-                          slice.GetSchemaImpl(), schema));
-    }
+  if (!schema.is_schema()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("expected a schema, got %v", schema));
   }
-  if (schema.holds_value<internal::ObjectId>()) {
-    return ToEntity(slice, schema);
-  }
-  switch (schema.value<schema::DType>().type_id()) {
-    case schema::kNone.type_id():
-      return ToNone(slice);
-    case schema::kInt32.type_id():
-      return ToInt32(slice);
-    case schema::kInt64.type_id():
-      return ToInt64(slice);
-    case schema::kFloat32.type_id():
-      return ToFloat32(slice);
-    case schema::kFloat64.type_id():
-      return ToFloat64(slice);
-    case schema::kBool.type_id():
-      return ToBool(slice);
-    case schema::kMask.type_id():
-      return ToMask(slice);
-    case schema::kText.type_id():
-      return ToText(slice);
-    case schema::kBytes.type_id():
-      return ToBytes(slice);
-    case schema::kExpr.type_id():
-      return ToExpr(slice);
-    case schema::kItemId.type_id():
-      return ToItemId(slice);
-    case schema::kSchema.type_id():
-      return ToSchema(slice);
-    case schema::kObject.type_id():
-      return ToObject(slice, validate_schema);
-    case schema::kAny.type_id():
-      return ToAny(slice);
-  }
-  ABSL_UNREACHABLE();
+  return CastTo(slice, schema, validate_schema);
 }
 
-absl::StatusOr<DataSlice> CastTo(const DataSlice& slice, schema::DType dtype,
-                                 bool implicit_cast, bool validate_schema) {
-  return CastTo(slice, internal::DataItem(dtype), implicit_cast,
-                validate_schema);
+absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& slice,
+                                       const internal::DataItem& schema) {
+  if (slice.GetSchemaImpl() == schema) {
+    return slice;
+  }
+  if (!schema.is_schema()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("expected a schema, got %v", schema));
+  }
+  ASSIGN_OR_RETURN(auto common_schema,
+                   schema::CommonSchema(GetNarrowedSchema(slice), schema),
+                   AssembleErrorMessage(_, {.db = slice.GetDb()}));
+  if (common_schema != schema) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("unsupported narrowing cast to %v", schema));
+  }
+  return CastTo(slice, schema, /*validate_schema=*/false);
 }
 
 absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
@@ -325,7 +357,6 @@ absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
     // embedding occur.
     if (slice.GetSchemaImpl() != common_schema) {
       ASSIGN_OR_RETURN(slice, CastTo(slice, common_schema,
-                                     /*implicit_cast=*/false,
                                      /*validate_schema=*/false));
     }
   }

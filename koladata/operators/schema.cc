@@ -15,7 +15,6 @@
 #include "koladata/operators/schema.h"
 
 #include <memory>
-#include <string>
 #include <utility>
 
 #include "absl/status/status.h"
@@ -28,7 +27,6 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
@@ -90,8 +88,7 @@ absl::StatusOr<arolla::OperatorPtr> NewSchemaOperatorFamily::DoGetOperator(
       input_types, output_type);
 }
 
-absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema,
-                                 const DataSlice& implicit_cast) {
+absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item() == schema::kObject &&
       x.GetSchemaImpl().is_entity_schema()) {
@@ -99,9 +96,19 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema,
         "entity to object casting is unsupported - consider using `kd.obj(x)` "
         "instead");
   }
-  ASSIGN_OR_RETURN(bool implicit_cast_unwrapped,
-                   ToArollaBoolean(implicit_cast));
-  return ::koladata::CastTo(x, schema.item(), implicit_cast_unwrapped);
+  return ::koladata::CastToExplicit(x, schema.item());
+}
+
+absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,
+                                         const DataSlice& schema) {
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  return ::koladata::CastToImplicit(x, schema.item());
+}
+
+absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
+                                       const DataSlice& schema) {
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  return ::koladata::CastToNarrow(x, schema.item());
 }
 
 absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema) {

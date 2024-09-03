@@ -120,6 +120,8 @@ OPERATOR_FAMILY("kde.schema._new_schema",
 OPERATOR_FAMILY("kde.schema._uu_schema",
                 std::make_unique<UuSchemaOperatorFamily>());
 OPERATOR("kde.schema.cast_to", CastTo);
+OPERATOR("kde.schema.cast_to_implicit", CastToImplicit);
+OPERATOR("kde.schema.cast_to_narrow", CastToNarrow);
 OPERATOR("kde.schema.decode", Decode);
 OPERATOR("kde.schema.encode", Encode);
 OPERATOR("kde.schema.get_item_schema", GetItemSchema);

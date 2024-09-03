@@ -21,7 +21,6 @@
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
 
 namespace koladata {
 
@@ -87,7 +86,6 @@ absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice);
 // values.
 absl::StatusOr<DataSlice> Decode(const DataSlice& slice);
 
-
 // Converts the given slice to BYTES using UTF-8 encoding.
 //
 // The following schemas are supported: {NONE, TEXT, BYTES, OBJECT, ANY}. Slices
@@ -144,26 +142,37 @@ absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
 absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,
                                    bool validate_schema = true);
 
-// Casts the given slice to the given schema.
+// Casts the given slice to the given schema using implicit casting rules.
 //
-// If `implict_cast` is true, CommonSchema(schema, slice.GetSchema()) == schema
-// is required to be true. Otherwise, attempts to explicitly cast slice to the
-// provided schema using more relaxed rules.
+// Requires that `CommonSchema(schema, slice.GetSchema()) == schema`. Note that
+// the casting may _not_ fail, assuming this condition is satisfied.
+absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& slice,
+                                         const internal::DataItem& schema);
+
+// Casts the given slice to the given schema using explicit casting rules.
+//
+// `CastToExplicit(slice, schema)` dispatches to the appropriate To<Schema>
+// function and allows for more relaxed casting rules. Note that the casting may
+// fail.
 //
 // If `validate_schema` is true, the schema is validated to match existing
 // schema attributes if the slice is casted to OBJECT. If false, the schema
 // attributes are set to the new schema without any validation.
+absl::StatusOr<DataSlice> CastToExplicit(const DataSlice& slice,
+                                         const internal::DataItem& schema,
+                                         bool validate_schema = true);
+
+// Casts the given slice to the given schema.
 //
-// Note that implicit casts cannot fail, assuming an appropriate schema is
-// provided. Explicit casts can fail. See the relevant ToSCHEMA function for
-// more details.
-absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
-                                 const internal::DataItem& schema,
-                                 bool implicit_cast = true,
-                                 bool validate_schema = true);
-absl::StatusOr<DataSlice> CastTo(const DataSlice& slice, schema::DType dtype,
-                                 bool implicit_cast = true,
-                                 bool validate_schema = true);
+// Requires that `CommonSchema(schema, GetNarrowedSchema(slice.GetSchema())) ==
+// schema`. Note that the casting may _not_ fail, assuming this condition is
+// satisfied.
+//
+// This is a more relaxed version of `CastToImplicit` that allows for schema
+// narrowing (e.g. casting an OBJECT slice to INT64 as long as the data is
+// implicitly castable to INT64).
+absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& slice,
+                                       const internal::DataItem& schema);
 
 struct SchemaAlignedSlices {
   std::vector<DataSlice> slices;

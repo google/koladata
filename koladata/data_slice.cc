@@ -583,7 +583,7 @@ class RhsHandler {
       }
       return absl::OkStatus();
     }
-    if (auto res = CastTo(rhs_, cast_to); res.ok()) {
+    if (auto res = CastToImplicit(rhs_, cast_to); res.ok()) {
       casted_rhs_ = *std::move(res);
       return absl::OkStatus();
     }
@@ -654,10 +654,10 @@ absl::Status VerifyListSchemaValid(const DataSlice& list,
     // appropriate schema (e.g. in case of OBJECT, all ListIds have __schema__
     // attribute).
     absl::Status status = GetResultSchema(db_impl, impl, list.GetSchemaImpl(),
-                           schema::kListItemsSchemaAttr,
-                           /*fallbacks=*/{},  // mutable db.
-                           /*allow_missing=*/false)
-        .status();
+                                          schema::kListItemsSchemaAttr,
+                                          /*fallbacks=*/{},  // mutable db.
+                                          /*allow_missing=*/false)
+                              .status();
     return AssembleErrorMessage(status, {.ds = list});
   });
 }
@@ -1230,7 +1230,8 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
                                             schema::kDictValuesSchemaAttr,
                                             fb_finder.GetFlattenFallbacks(),
                                             /*allow_missing=*/false);
-                   }), AssembleErrorMessage(_, {.ds = *this}));
+                   }),
+                   AssembleErrorMessage(_, {.ds = *this}));
   return expanded_this.VisitImpl(
       [&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
         ASSIGN_OR_RETURN(auto res_impl,
@@ -1311,7 +1312,8 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
-  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
+  ASSIGN_OR_RETURN(DataSlice indices_int64,
+                   CastToImplicit(indices, internal::DataItem(schema::kInt64)));
   ASSIGN_OR_RETURN(auto expanded_indices,
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
@@ -1320,7 +1322,8 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
                                             schema::kListItemsSchemaAttr,
                                             fb_finder.GetFlattenFallbacks(),
                                             /*allow_missing=*/false);
-                   }), AssembleErrorMessage(_, {.ds = *this}));
+                   }),
+                   AssembleErrorMessage(_, {.ds = *this}));
   if (expanded_indices.present_count() == 0) {
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
   }
@@ -1389,7 +1392,8 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
-  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
+  ASSIGN_OR_RETURN(DataSlice indices_int64,
+                   CastToImplicit(indices, internal::DataItem(schema::kInt64)));
   ASSIGN_OR_RETURN(auto expanded_indices,
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
@@ -1480,7 +1484,8 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
-  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
+  ASSIGN_OR_RETURN(DataSlice indices_int64,
+                   CastToImplicit(indices, internal::DataItem(schema::kInt64)));
   if (indices_int64.present_count() == 0) {
     return absl::OkStatus();
   }
@@ -1557,7 +1562,8 @@ absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
-  ASSIGN_OR_RETURN(DataSlice indices_int64, CastTo(indices, schema::kInt64));
+  ASSIGN_OR_RETURN(DataSlice indices_int64,
+                   CastToImplicit(indices, internal::DataItem(schema::kInt64)));
   if (indices_int64.present_count() == 0) {
     return absl::OkStatus();
   }

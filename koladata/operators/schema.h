@@ -54,9 +54,16 @@ inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
       "items of mixed primitive dtypes");
 }
 
-// kde.schema._cast_to operator.
-absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema,
-                                 const DataSlice& implicit_cast);
+// kde.schema.cast_to operator.
+absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema);
+
+// kde.schema.cast_to_implicit operator.
+absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,
+                                         const DataSlice& schema);
+
+// kde.schema.cast_to_narrow operator.
+absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
+                                       const DataSlice& schema);
 
 // kde.schema.list_schema operator.
 absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema);

@@ -264,8 +264,8 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     // user. If this is gathered from data, it is validated to be implicitly
     // castable when finding the common schema. The schema attributes are not
     // validated, and are instead assumed to be part of the adoption queue.
-    ASSIGN_OR_RETURN(auto res, CastTo(ds, schema, /*implicit_cast=*/false,
-                                      /*validate_schema=*/false));
+    ASSIGN_OR_RETURN(auto res,
+                     CastToExplicit(ds, schema, /*validate_schema=*/false));
     // Entity slices embedded to the aux db should be part of the final merged
     // db.
     if (const auto& db = embedding_db.GetDb()) {
@@ -434,8 +434,8 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(PyObject* py_obj,
           adoption_queue.Add(db);
         }
         // Schema attr validation is handled during adoption queue merging.
-        return CastTo(res.WithDb(db), dtype->item(), /*implicit_cast=*/false,
-                      /*validate_schema=*/false);
+        return CastToExplicit(res.WithDb(db), dtype->item(),
+                              /*validate_schema=*/false);
       } else {
         // Makes a copy of DataSlice object. Keeps the reference to DataBag.
         return res;
