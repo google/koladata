@@ -41,7 +41,6 @@ using ::arolla::python::PyObjectPtr;
 absl::NoDestructor<arolla::python::PyObjectPtr> exception_factory;
 
 absl::Nullable<PyObject*> CreateKodaException(const absl::Cord& payload) {
-  // TODO: Add a test where Koda exceptions are not registered.
   if (exception_factory->get() == nullptr) {
     PyErr_SetString(PyExc_Exception, "Koda exception factory is not set");
     return nullptr;
