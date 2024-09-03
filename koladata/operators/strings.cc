@@ -70,6 +70,13 @@ absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep) {
   return SimpleAggIntoEval("strings.agg_join", {x, sep});
 }
 
+absl::StatusOr<DataSlice> Contains(const DataSlice& x,
+                                   const DataSlice& substr) {
+  return SimplePointwiseEval(
+      "strings.contains", {x, substr},
+      /*output_schema=*/internal::DataItem(schema::kMask));
+}
+
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
   const auto& x_shape = x.GetShape();
   if (sep.GetShape().rank() != 0) {
