@@ -20,7 +20,10 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.expr import expr_eval
+from koladata.expr import input_container
 from koladata.operators import kde_operators as _
+from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -672,6 +675,121 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
             arolla.namedtuple(z=ds(4)),
         ),
     )
+
+  def test_hidden_seed_no_arguments(self):
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(hidden_seed=py_boxing.hidden_seed()):
+      return hidden_seed
+
+    # hidden_seed parameter is stripped from the Python signature.
+    self.assertEqual(
+        inspect.signature(op),
+        inspect.signature(lambda: None),
+    )
+
+    expr = op()
+
+    # Two different operator evaluations have different results.
+    self.assertNotEqual(
+        arolla.eval(py_boxing.with_unique_hidden_seed(expr)).fingerprint,
+        arolla.eval(py_boxing.with_unique_hidden_seed(expr)).fingerprint,
+    )
+
+    # Two different operator instances with the same (Python-side) arguments
+    # have different fingerprints.
+    self.assertNotEqual(
+        op().fingerprint,
+        op().fingerprint,
+    )
+
+  def test_hidden_seed_with_args(self):
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(
+        x,
+        args=py_boxing.var_positional(),
+        y=py_boxing.keyword_only(),
+        kwargs=py_boxing.var_keyword(),
+        hidden_seed=py_boxing.hidden_seed(),
+    ):
+      _ = hidden_seed
+      return arolla.M.core.make_tuple(x, args, y, kwargs)
+
+    # hidden_seed parameter is stripped from the Python signature.
+    self.assertEqual(
+        inspect.signature(op),
+        inspect.signature(lambda x, *args, y, **kwargs: None),
+    )
+
+    expr = py_boxing.with_unique_hidden_seed(op(1, 2, y=3, z=4))
+
+    testing.assert_equal(
+        arolla.eval(expr),
+        arolla.tuple(
+            ds(1),
+            arolla.tuple(ds(2)),
+            ds(3),
+            arolla.namedtuple(z=ds(4)),
+        ),
+    )
+
+    # Two different operator invocations with the same arguments have different
+    # fingerprints.
+    self.assertNotEqual(
+        op(1, y=2).fingerprint,
+        op(1, y=2).fingerprint,
+    )
+
+  def test_nested_operators(self):
+    num_calls = 0
+
+    @arolla.optools.as_py_function_operator(
+        'py_fn_with_seed',
+        qtype_inference_expr=arolla.P.x,
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def py_fn_with_seed(x, hidden_seed=py_boxing.hidden_seed()):
+      _ = hidden_seed
+      nonlocal num_calls
+      num_calls += 1
+      return x
+
+    @optools.as_lambda_operator(
+        'fn',
+        qtype_constraints=[],
+        aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def fn(x, hidden_seed=py_boxing.hidden_seed()):
+      _ = hidden_seed
+      return py_fn_with_seed(x)
+
+    i = input_container.InputContainer('I')
+    expr = py_boxing.with_unique_hidden_seed(
+        arolla.M.core.make_tuple(fn(i.x), fn(i.x))
+    )
+    _ = expr_eval.eval(expr, x=1)
+
+    self.assertEqual(num_calls, 2)
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'unexpected placeholders in lambda operator definition:'
+        ' P._koladata_hidden_seed_placeholder',
+    ):
+
+      # Pure lambda operator that calls impure `py_fn_with_seed``.
+      @optools.as_lambda_operator(
+          'fn2',
+          qtype_constraints=[],
+          aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+      )
+      def fn2(x):
+        return py_fn_with_seed(x)
 
   def test_no_arguments(self):
     @arolla.optools.as_lambda_operator(

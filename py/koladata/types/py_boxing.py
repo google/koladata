@@ -16,6 +16,7 @@
 
 import collections
 import inspect
+import random
 import types as py_types
 from typing import Any
 
@@ -65,6 +66,7 @@ _POSITIONAL_OR_KEYWORD_MARKER_TYPE = arolla.text('positional_or_keyword')
 _VAR_POSITIONAL_MARKER_TYPE = arolla.text('var_positional')
 _KEYWORD_ONLY_MARKER_TYPE = arolla.text('keyword_only')
 _VAR_KEYWORD_MARKER_TYPE = arolla.text('var_keyword')
+_HIDDEN_SEED_MARKER_TYPE = arolla.text('hidden_seed')
 
 _NO_DEFAULT_VALUE = object()
 
@@ -108,6 +110,21 @@ def var_keyword() -> arolla.abc.QValue:
   return arolla.tuple(_PARAM_MARKER, _VAR_KEYWORD_MARKER_TYPE)
 
 
+def hidden_seed() -> arolla.abc.QValue:
+  """Marks a parameter as a hidden seed parameter."""
+  return arolla.tuple(_PARAM_MARKER, _HIDDEN_SEED_MARKER_TYPE)
+
+
+def _is_marker_param_default(param_default: arolla.abc.QValue) -> bool:
+  if not arolla.is_tuple_qtype(param_default.qtype):
+    return False
+  if param_default.field_count not in (2, 3):  # pytype: disable=attribute-error
+    return False
+  if param_default[0].fingerprint != _PARAM_MARKER.fingerprint:  # pytype: disable=unsupported-operands
+    return False
+  return True
+
+
 def _get_marker_type_and_default_value(
     param: arolla.abc.SignatureParameter,
 ) -> tuple[arolla.abc.QValue | None, arolla.abc.QValue | None]:
@@ -125,9 +142,7 @@ def _get_marker_type_and_default_value(
   param_default = param.default
   if param_default is None:
     return None, None
-  if (not arolla.is_tuple_qtype(param_default.qtype) or
-      param_default.field_count not in (2, 3) or  # pytype: disable=attribute-error
-      param_default[0].fingerprint != _PARAM_MARKER.fingerprint):  # pytype: disable=unsupported-operands
+  if not _is_marker_param_default(param_default):
     return None, param_default
   if param_default.field_count == 2:  # pytype: disable=attribute-error
     return param_default[1], None  # pytype: disable=unsupported-operands
@@ -167,6 +182,45 @@ def _is_var_keyword(marker_type: arolla.abc.QValue | None) -> bool:
   return (
       marker_type is not None
       and marker_type.fingerprint == _VAR_KEYWORD_MARKER_TYPE.fingerprint
+  )
+
+
+def _is_hidden_seed(marker_type: arolla.abc.QValue | None) -> bool:
+  return (
+      marker_type is not None
+      and marker_type.fingerprint == _HIDDEN_SEED_MARKER_TYPE.fingerprint
+  )
+
+
+def find_hidden_seed_param(signature: inspect.Signature) -> int | None:
+  """Returns the index of the hidden seed param, or None if there isn't one."""
+  for i_param, param in enumerate(signature.parameters.values()):
+    if (
+        isinstance(param.default, arolla.QValue)
+        and _is_marker_param_default(param.default)
+        and _is_hidden_seed(param.default[1])
+    ):
+      return i_param
+  return None
+
+
+HIDDEN_SEED_PLACEHOLDER = arolla.abc.placeholder(
+    '_koladata_hidden_seed_placeholder'
+)
+
+
+# Isolated PRNG instance. Global to avoid overhead of repeated instantiation.
+_RANDOM = random.Random()
+
+
+def _random_int64() -> arolla.QValue:
+  return arolla.int64(_RANDOM.randint(-(2**63), 2**63 - 1))
+
+
+def with_unique_hidden_seed(expr: arolla.Expr) -> arolla.Expr:
+  return arolla.sub_by_fingerprint(
+      expr,
+      {HIDDEN_SEED_PLACEHOLDER.fingerprint: arolla.literal(_random_int64())},
   )
 
 
@@ -380,6 +434,9 @@ class _FullSignatureBindingPolicy(arolla.abc.AuxBindingPolicy):
     an optional default value. Even though this is the default behavior, it may
     be necessary because earlier arguments in the signature have default values
     used for markers.
+  - `hidden_seed()` marks a parameter as a hidden seed parameter, which will
+    be removed from the Python signature, and will be populated with a random
+    Arolla int64 value on every invocation.
 
   The implied Python signature must be a valid Python signature (`**kwargs`
   must be last, args after `*` must be keyword-only, etc.)
@@ -428,6 +485,11 @@ class _FullSignatureBindingPolicy(arolla.abc.AuxBindingPolicy):
         else:
           # positional-or-keyword (before var-positional)
           python_param_kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+      elif _is_hidden_seed(marker_type):
+        # Strip hidden_seed params from the Python signature. These params will
+        # be automatically populated by bind_arguments, and we don't want the
+        # caller to accidentally pass in a value (which would be ignored).
+        continue
       else:
         raise ValueError(f'unknown param marker type {marker_type}')
 
@@ -500,6 +562,10 @@ class _FullSignatureBindingPolicy(arolla.abc.AuxBindingPolicy):
               )
           )
         kwargs.clear()
+      elif _is_hidden_seed(marker_type):
+        bound_values.append(
+            arolla.M.math.add(HIDDEN_SEED_PLACEHOLDER, _random_int64())
+        )
       else:
         raise TypeError(f'unknown param marker type {marker_type}')
 

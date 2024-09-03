@@ -158,6 +158,8 @@ py_test(
         ":ellipsis",
         ":literal_operator",
         ":py_boxing",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
