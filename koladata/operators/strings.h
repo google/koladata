@@ -44,6 +44,9 @@ absl::StatusOr<DataSlice> Lower(const DataSlice& x);
 // kde.strings.format.
 absl::StatusOr<DataSlice> Format(std::vector<DataSlice> slices);
 
+// kde.strings.join.
+absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_STRINGS_H_

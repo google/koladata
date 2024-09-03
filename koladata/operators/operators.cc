@@ -140,6 +140,8 @@ OPERATOR("kde.strings._agg_join", AggJoin);
 OPERATOR("kde.strings._split", Split);
 OPERATOR_FAMILY("kde.strings.format",
                 arolla::MakeVariadicInputOperatorFamily(Format));
+OPERATOR_FAMILY("kde.strings.join",
+                arolla::MakeVariadicInputOperatorFamily(Join));
 OPERATOR("kde.strings.length", Length);
 OPERATOR("kde.strings.lower", Lower);
 OPERATOR("kde.strings.substr", Substr);

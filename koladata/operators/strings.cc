@@ -149,4 +149,11 @@ absl::StatusOr<DataSlice> Format(std::vector<DataSlice> slices) {
                              /*output_schema=*/fmt.GetSchemaImpl());
 }
 
+absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices) {
+  if (slices.empty()) {
+    return absl::InvalidArgumentError("expected at least one input");
+  }
+  return SimplePointwiseEval("strings.join", std::move(slices));
+}
+
 }  // namespace koladata::ops
