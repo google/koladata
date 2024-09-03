@@ -583,7 +583,7 @@ class RhsHandler {
       }
       return absl::OkStatus();
     }
-    if (auto res = CastToImplicit(rhs_, cast_to); res.ok()) {
+    if (auto res = CastToNarrow(rhs_, cast_to); res.ok()) {
       casted_rhs_ = *std::move(res);
       return absl::OkStatus();
     }
@@ -1313,7 +1313,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(DataSlice indices_int64,
-                   CastToImplicit(indices, internal::DataItem(schema::kInt64)));
+                   CastToNarrow(indices, internal::DataItem(schema::kInt64)));
   ASSIGN_OR_RETURN(auto expanded_indices,
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
@@ -1393,7 +1393,7 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(DataSlice indices_int64,
-                   CastToImplicit(indices, internal::DataItem(schema::kInt64)));
+                   CastToNarrow(indices, internal::DataItem(schema::kInt64)));
   ASSIGN_OR_RETURN(auto expanded_indices,
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
@@ -1485,7 +1485,7 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(DataSlice indices_int64,
-                   CastToImplicit(indices, internal::DataItem(schema::kInt64)));
+                   CastToNarrow(indices, internal::DataItem(schema::kInt64)));
   if (indices_int64.present_count() == 0) {
     return absl::OkStatus();
   }
@@ -1563,7 +1563,7 @@ absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(DataSlice indices_int64,
-                   CastToImplicit(indices, internal::DataItem(schema::kInt64)));
+                   CastToNarrow(indices, internal::DataItem(schema::kInt64)));
   if (indices_int64.present_count() == 0) {
     return absl::OkStatus();
   }

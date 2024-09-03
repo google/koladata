@@ -2822,24 +2822,23 @@ TEST(DataSliceTest, GetFromList) {
     EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
   }
   {
-    // Errors - only implicit casting is allowed.
-    auto indices = test::EmptyDataSlice(shape, schema::kFloat64);
-    EXPECT_THAT(
-        lists.GetFromList(indices),
-        StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("unsupported implicit cast from FLOAT64 to INT64")));
-
-    indices = test::EmptyDataSlice(shape, schema::kObject);
-    EXPECT_THAT(
-        lists.GetFromList(indices),
-        StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("unsupported implicit cast from OBJECT to INT64")));
+    // Narrowing is supported.
+    auto indices = test::EmptyDataSlice(shape, schema::kObject);
+    ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
+    EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem()));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
 
     indices = test::EmptyDataSlice(shape, schema::kAny);
-    EXPECT_THAT(
-        lists.GetFromList(indices),
-        StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("unsupported implicit cast from ANY to INT64")));
+    ASSERT_OK_AND_ASSIGN(items, lists.GetFromList(indices));
+    EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem()));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
+  }
+  {
+    // Errors - float64 -> int64 is not supported.
+    auto indices = test::EmptyDataSlice(shape, schema::kFloat64);
+    EXPECT_THAT(lists.GetFromList(indices),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("unsupported narrowing cast to INT64")));
   }
 }
 
@@ -3656,13 +3655,19 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
   EXPECT_THAT(immutable_dicts.GetFromDict(typed_keys),
               IsOkAndHolds(IsEquivalentTo(values)));
 
+  // Narrowing is supported.
   ASSERT_OK_AND_ASSIGN(auto any_type_keys,
                        keys.WithSchema(test::Schema(schema::kAny)));
-  absl::Status status = immutable_dicts.GetFromDict(any_type_keys).status();
+  EXPECT_THAT(immutable_dicts.GetFromDict(any_type_keys),
+              IsOkAndHolds(IsEquivalentTo(values)));
+
+  auto itemid_keys = test::DataSlice<internal::ObjectId>(
+      {internal::AllocateSingleObject()}, schema::kItemId);
+  absl::Status status = immutable_dicts.GetFromDict(itemid_keys).status();
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                "the schema for Dict Keys is incompatible.\n\n"
                                "Expected schema for 'Keys': OBJECT\n"
-                               "Assigned schema for 'Keys': ANY"));
+                               "Assigned schema for 'Keys': ITEMID"));
   std::optional<internal::Error> error = internal::GetErrorPayload(status);
   ASSERT_TRUE(error);
   EXPECT_TRUE(error->has_incompatible_schema());
@@ -3676,6 +3681,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
 }
 
 TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
+  arolla::InitArolla();
   auto edge_1 = CreateEdge({0, 2});
   auto edge_2 = CreateEdge({0, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto shape,
@@ -3717,13 +3723,23 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
   EXPECT_THAT(immutable_dicts.GetFromDict(typed_keys),
               IsOkAndHolds(IsEquivalentTo(values)));
 
+  // Narrowing is supported.
   ASSERT_OK_AND_ASSIGN(auto any_type_keys,
                        keys.WithSchema(test::Schema(schema::kAny)));
   EXPECT_THAT(immutable_dicts.GetFromDict(any_type_keys),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the schema for Dict Keys is incompatible.\n\n"
-                       "Expected schema for 'Keys': OBJECT\n"
-                       "Assigned schema for 'Keys': ANY"));
+              IsOkAndHolds(IsEquivalentTo(values)));
+
+  auto itemid_keys = test::DataSlice<internal::ObjectId>(
+      {internal::AllocateSingleObject(), internal::AllocateSingleObject()},
+      schema::kItemId);
+  absl::Status status = immutable_dicts.GetFromDict(itemid_keys).status();
+  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
+                               "the schema for Dict Keys is incompatible.\n\n"
+                               "Expected schema for 'Keys': OBJECT\n"
+                               "Assigned schema for 'Keys': ITEMID"));
+  std::optional<internal::Error> error = internal::GetErrorPayload(status);
+  ASSERT_TRUE(error);
+  EXPECT_TRUE(error->has_incompatible_schema());
 
   EXPECT_THAT(
       immutable_dicts.SetInDict(
@@ -3771,21 +3787,26 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
                "Expected schema for 'Values': INT64\n"
                "Assigned schema for 'Values': FLOAT32"));
 
-  EXPECT_THAT(dicts.SetInDict(
-                  test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
-                  test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kObject)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the schema for Dict Values is incompatible.\n\n"
-                       "Expected schema for 'Values': INT64\n"
-                       "Assigned schema for 'Values': OBJECT"));
+  // Narrowing is supported.
+  ASSERT_OK(dicts.SetInDict(
+      test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
+      test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kObject)));
+
+  ASSERT_OK_AND_ASSIGN(auto immutable_dicts, dicts.Freeze());
+  ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
+  EXPECT_THAT(keys.slice(),
+              // Keys are casted to int64.
+              ElementsAre(DataItemWith<int64_t>(1), DataItemWith<int64_t>(2),
+                          DataItemWith<int64_t>(3)));
+  EXPECT_THAT(keys.GetShape(), IsEquivalentTo(keys_shape));
+  EXPECT_THAT(keys.GetSchemaImpl(), Eq(schema::kInt64));
 
   ASSERT_OK(dicts.SetInDict(
       test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
       test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kInt32)));
 
-  ASSERT_OK_AND_ASSIGN(auto immutable_dicts, dicts.Freeze());
-
-  ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
+  ASSERT_OK_AND_ASSIGN(immutable_dicts, dicts.Freeze());
+  ASSERT_OK_AND_ASSIGN(keys, immutable_dicts.GetDictKeys());
   EXPECT_THAT(keys.slice(),
               // Keys are casted to int64.
               ElementsAre(DataItemWith<int64_t>(1), DataItemWith<int64_t>(2),
@@ -3801,21 +3822,25 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
   EXPECT_THAT(values.GetShape(), IsEquivalentTo(keys_shape));
   EXPECT_THAT(values.GetSchemaImpl(), Eq(schema::kInt64));
 
+  // Narrowing is supported.
   ASSERT_OK_AND_ASSIGN(auto object_type_keys,
                        keys.WithSchema(test::Schema(schema::kObject)));
-  EXPECT_THAT(immutable_dicts.GetFromDict(object_type_keys),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the schema for Dict Keys is incompatible.\n\n"
-                       "Expected schema for 'Keys': INT64\n"
-                       "Assigned schema for 'Keys': OBJECT"));
+  ASSERT_OK_AND_ASSIGN(values, immutable_dicts.GetFromDict(object_type_keys));
+  EXPECT_THAT(values.slice(),
+              // Values are casted to int64.
+              ElementsAre(DataItemWith<int64_t>(4), DataItemWith<int64_t>(5),
+                          DataItemWith<int64_t>(6)));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(keys_shape));
+  EXPECT_THAT(values.GetSchemaImpl(), Eq(schema::kInt64));
 
-  ASSERT_OK_AND_ASSIGN(auto any_type_keys,
-                       keys.WithSchema(test::Schema(schema::kAny)));
-  EXPECT_THAT(immutable_dicts.GetFromDict(any_type_keys),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the schema for Dict Keys is incompatible.\n\n"
-                       "Expected schema for 'Keys': INT64\n"
-                       "Assigned schema for 'Keys': ANY"));
+  auto itemid_keys = test::DataSlice<internal::ObjectId>(
+      {internal::AllocateSingleObject(), internal::AllocateSingleObject()},
+      schema::kItemId);
+  absl::Status status = immutable_dicts.GetFromDict(itemid_keys).status();
+  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
+                               "the schema for Dict Keys is incompatible.\n\n"
+                               "Expected schema for 'Keys': INT64\n"
+                               "Assigned schema for 'Keys': ITEMID"));
 }
 
 TEST(DataSliceTest, ShouldApplyListOp_DataItem) {
@@ -4138,19 +4163,16 @@ TEST(DataSliceCastingTest, EmptyToOther_Entity) {
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kText)));
 
+  // Narrowing is allowed.
   auto empty_values_any = test::EmptyDataSlice(shape, schema::kAny);
-  EXPECT_THAT(entity.SetAttr("a", empty_values_any),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the schema for attribute 'a' is incompatible.\n\n"
-                       "Expected schema for 'a': TEXT\n"
-                       "Assigned schema for 'a': ANY"));
+  ASSERT_OK(entity.SetAttr("a", empty_values_any));
 
-  auto empty_values_object = test::EmptyDataSlice(shape, schema::kObject);
-  EXPECT_THAT(entity.SetAttr("a", empty_values_object),
+  auto empty_values_itemid = test::EmptyDataSlice(shape, schema::kItemId);
+  EXPECT_THAT(entity.SetAttr("a", empty_values_itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': TEXT\n"
-                       "Assigned schema for 'a': OBJECT"));
+                       "Assigned schema for 'a': ITEMID"));
 }
 
 TEST(DataSliceCastingTest, EmptyToOther_Object) {
@@ -4162,19 +4184,16 @@ TEST(DataSliceCastingTest, EmptyToOther_Object) {
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
+  // Narrowing is allowed.
   auto empty_values_any = test::EmptyDataSlice(shape, schema::kAny);
-  EXPECT_THAT(objects.SetAttr("a", empty_values_any),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the schema for attribute 'a' is incompatible.\n\n"
-                       "Expected schema for 'a': TEXT\n"
-                       "Assigned schema for 'a': ANY"));
+  ASSERT_OK(objects.SetAttr("a", empty_values_any));
 
-  auto empty_values_object = test::EmptyDataSlice(shape, schema::kObject);
-  EXPECT_THAT(objects.SetAttr("a", empty_values_object),
+  auto empty_values_itemid = test::EmptyDataSlice(shape, schema::kItemId);
+  EXPECT_THAT(objects.SetAttr("a", empty_values_itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': TEXT\n"
-                       "Assigned schema for 'a': OBJECT"));
+                       "Assigned schema for 'a': ITEMID"));
 }
 
 TEST(DataSliceCastingTest, SameUnderlying_Entity) {
@@ -4183,13 +4202,17 @@ TEST(DataSliceCastingTest, SameUnderlying_Entity) {
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kText)));
 
+  // Narrowing is allowed.
   auto values_any_text =
       test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kAny);
-  EXPECT_THAT(entity.SetAttr("a", values_any_text),
+  ASSERT_OK(entity.SetAttr("a", values_any_text));
+
+  auto empty_values_itemid = test::EmptyDataSlice(shape, schema::kItemId);
+  EXPECT_THAT(entity.SetAttr("a", empty_values_itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': TEXT\n"
-                       "Assigned schema for 'a': ANY"));
+                       "Assigned schema for 'a': ITEMID"));
 
   auto values_text =
       test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kText);
@@ -4208,13 +4231,17 @@ TEST(DataSliceCastingTest, SameUnderlying_Object) {
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
+  // Narrowing is allowed.
   auto values_any_text =
       test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kAny);
-  EXPECT_THAT(objects.SetAttr("a", values_any_text),
+  ASSERT_OK(objects.SetAttr("a", values_any_text));
+
+  auto empty_values_itemid = test::EmptyDataSlice(shape, schema::kItemId);
+  EXPECT_THAT(objects.SetAttr("a", empty_values_itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the schema for attribute 'a' is incompatible.\n\n"
                        "Expected schema for 'a': TEXT\n"
-                       "Assigned schema for 'a': ANY"));
+                       "Assigned schema for 'a': ITEMID"));
 
   auto values_text =
       test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kText);
@@ -4386,18 +4413,15 @@ TEST(DataSliceCastingTest, ToObject_NoEmbed_Object) {
   EXPECT_THAT(ds_a.slice(), IsEquivalentTo(values_int32_obj.slice()));
 }
 
-TEST(DataSliceCastingTest, ToObject_Any_Error) {
+TEST(DataSliceCastingTest, ToObject_Any) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
+  // Narrowing is allowed.
   auto values_int32_any = test::DataSlice<int>({42, 12}, schema::kAny);
-  EXPECT_THAT(entity.SetAttr("a", values_int32_any),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the schema for attribute 'a' is incompatible.\n\n"
-                       "Expected schema for 'a': OBJECT\n"
-                       "Assigned schema for 'a': ANY"));
+  ASSERT_OK(entity.SetAttr("a", values_int32_any));
 }
 
 
@@ -4437,15 +4461,10 @@ TEST(DataSliceCastingTest, Implicit_And_Explicit_CastingAndSchemaUpdate) {
   EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kInt64);
   EXPECT_THAT(ds_a.slice(), ElementsAre(42l, 12l));
 
-  // Casting does not work on OBJECTs, and requires an explicit call to
-  // ToObject.
+  // Casting does not work on OBJECTs as long as it is possible to narrow.
   values_int32 = test::DataSlice<int>({42, 12}, schema::kObject);
   ASSERT_EQ(values_int32.GetSchemaImpl(), schema::kObject);
-  EXPECT_THAT(objects.SetAttr("a", values_int32),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the schema for attribute 'a' is incompatible.\n\n"
-                       "Expected schema for 'a': INT64\n"
-                       "Assigned schema for 'a': OBJECT"));
+  ASSERT_OK(objects.SetAttr("a", values_int32));
 }
 
 TEST(DataSliceCastingTest, SchemaAttr_DifferentExplicitSchemas) {

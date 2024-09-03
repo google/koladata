@@ -745,7 +745,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
           r'the schema for attribute \'x\' is incompatible',
       ):
         db = bag()
-        db.new(x=db.new()).x = ds(None, schema_constants.OBJECT)
+        db.new(x=db.new()).x = ds(None, schema_constants.ITEMID)
 
     with self.subTest('schema'):
       with self.assertRaisesRegex(
@@ -1614,11 +1614,11 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
         ds(None, schema_constants.INT32).with_db(db)
     )
     with self.assertRaisesRegex(
-        ValueError, 'unsupported implicit cast from TEXT to INT64'
+        ValueError, 'unsupported narrowing cast to INT64'
     ):
       _ = (db.list() & ds(None))['abc']
     with self.assertRaisesRegex(
-        ValueError, 'unsupported implicit cast from TEXT to INT64'
+        ValueError, 'unsupported narrowing cast to INT64'
     ):
       (db.list() & ds(None))['abc'] = 42
 
