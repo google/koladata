@@ -15,8 +15,9 @@
 #ifndef KOLADATA_OPERATORS_STRINGS_H_
 #define KOLADATA_OPERATORS_STRINGS_H_
 
+#include <vector>
+
 #include "absl/status/statusor.h"
-#include "absl/types/span.h"
 #include "koladata/data_slice.h"
 
 namespace koladata::ops {
@@ -41,7 +42,7 @@ absl::StatusOr<DataSlice> Upper(const DataSlice& x);
 absl::StatusOr<DataSlice> Lower(const DataSlice& x);
 
 // kde.strings.format.
-absl::StatusOr<DataSlice> Format(absl::Span<const DataSlice> slices);
+absl::StatusOr<DataSlice> Format(std::vector<DataSlice> slices);
 
 }  // namespace koladata::ops
 

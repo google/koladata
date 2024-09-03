@@ -130,7 +130,7 @@ absl::StatusOr<DataSlice> Upper(const DataSlice& x) {
                              internal::DataItem(schema::kText));
 }
 
-absl::StatusOr<DataSlice> Format(absl::Span<const DataSlice> slices) {
+absl::StatusOr<DataSlice> Format(std::vector<DataSlice> slices) {
   if (slices.empty()) {
     return absl::InvalidArgumentError("expected at least one input");
   }
@@ -145,8 +145,7 @@ absl::StatusOr<DataSlice> Format(absl::Span<const DataSlice> slices) {
   }
   // From here on, we know that at least one input has known schema and we
   // should eval.
-  return SimplePointwiseEval("strings.format",
-                             std::vector(slices.begin(), slices.end()),
+  return SimplePointwiseEval("strings.format", std::move(slices),
                              /*output_schema=*/fmt.GetSchemaImpl());
 }
 
