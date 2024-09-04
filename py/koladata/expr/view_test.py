@@ -27,6 +27,7 @@ from koladata.types import qtypes
 
 kde = kde_operators.kde
 C = input_container.InputContainer('C')
+ds = data_slice.DataSlice.from_vals
 
 
 @arolla.optools.add_to_registry()
@@ -173,6 +174,7 @@ class DataSliceViewTest(parameterized.TestCase):
 
   def test_add(self):
     testing.assert_equal(C.x.val + C.y, kde.add(kde.get_attr(C.x, 'val'), C.y))
+    testing.assert_equal(ds(1) + C.y, kde.add(1, C.y))
 
   def test_radd(self):
     testing.assert_equal(C.x.__radd__(C.y), kde.add(C.y, C.x))
@@ -181,6 +183,7 @@ class DataSliceViewTest(parameterized.TestCase):
     testing.assert_equal(
         C.x.val - C.y, kde.subtract(kde.get_attr(C.x, 'val'), C.y)
     )
+    testing.assert_equal(ds(1) - C.y, kde.subtract(1, C.y))
 
   def test_rsub(self):
     testing.assert_equal(C.x.__rsub__(C.y), kde.subtract(C.y, C.x))
@@ -189,6 +192,7 @@ class DataSliceViewTest(parameterized.TestCase):
     testing.assert_equal(
         C.x.val * C.y, kde.multiply(kde.get_attr(C.x, 'val'), C.y)
     )
+    testing.assert_equal(ds(1) * C.y, kde.multiply(1, C.y))
 
   def test_rmul(self):
     testing.assert_equal(C.x.__rmul__(C.y), kde.multiply(C.y, C.x))
@@ -197,6 +201,7 @@ class DataSliceViewTest(parameterized.TestCase):
     testing.assert_equal(
         C.x.val / C.y, kde.divide(kde.get_attr(C.x, 'val'), C.y)
     )
+    testing.assert_equal(ds(1) / C.y, kde.divide(1, C.y))
 
   def test_rdiv(self):
     testing.assert_equal(C.x.__rtruediv__(C.y), kde.divide(C.y, C.x))
@@ -205,48 +210,59 @@ class DataSliceViewTest(parameterized.TestCase):
     testing.assert_equal(
         C.x.val // C.y, kde.floordiv(kde.get_attr(C.x, 'val'), C.y)
     )
+    testing.assert_equal(ds(1) // C.y, kde.floordiv(1, C.y))
 
   def test_rfloordiv(self):
     testing.assert_equal(C.x.__rfloordiv__(C.y), kde.floordiv(C.y, C.x))
 
   def test_mod(self):
     testing.assert_equal(C.x.val % C.y, kde.mod(kde.get_attr(C.x, 'val'), C.y))
+    testing.assert_equal(ds(1) % C.y, kde.mod(1, C.y))
 
   def test_rmod(self):
     testing.assert_equal(C.x.__rmod__(C.y), kde.mod(C.y, C.x))
 
   def test_pow(self):
     testing.assert_equal(C.x.val**C.y, kde.pow(kde.get_attr(C.x, 'val'), C.y))
+    testing.assert_equal(ds(1) ** C.y, kde.pow(1, C.y))
 
   def test_rpow(self):
     testing.assert_equal(C.x.__rpow__(C.y), kde.pow(C.y, C.x))
 
   def test_eq(self):
     testing.assert_equal(C.x == C.y, kde.equal(C.x, C.y))
+    testing.assert_equal(ds(1) == C.y, kde.equal(C.y, 1))
 
   def test_ne(self):
     testing.assert_equal(C.x != C.y, kde.not_equal(C.x, C.y))
+    testing.assert_equal(ds(1) != C.y, kde.not_equal(C.y, 1))
 
   def test_gt(self):
     testing.assert_equal(C.x > C.y, kde.greater(C.x, C.y))
+    testing.assert_equal(ds(1) > C.y, kde.less(C.y, 1))
 
   def test_ge(self):
     testing.assert_equal(C.x >= C.y, kde.greater_equal(C.x, C.y))
+    testing.assert_equal(ds(1) >= C.y, kde.less_equal(C.y, 1))
 
   def test_lt(self):
     testing.assert_equal(C.x < C.y, kde.less(C.x, C.y))
+    testing.assert_equal(ds(1) < C.y, kde.greater(C.y, 1))
 
   def test_le(self):
     testing.assert_equal(C.x <= C.y, kde.less_equal(C.x, C.y))
+    testing.assert_equal(ds(1) <= C.y, kde.greater_equal(C.y, 1))
 
   def test_and(self):
     testing.assert_equal(C.x & C.y, kde.apply_mask(C.x, C.y))
+    testing.assert_equal(ds(1) & C.y, kde.apply_mask(1, C.y))
 
   def test_rand(self):
     testing.assert_equal(C.x.__rand__(C.y), kde.apply_mask(C.y, C.x))
 
   def test_or(self):
     testing.assert_equal(C.x | C.y, kde.coalesce(C.x, C.y))
+    testing.assert_equal(ds(1) | C.y, kde.coalesce(1, C.y))
 
   def test_ror(self):
     testing.assert_equal(C.x.__ror__(C.y), kde.coalesce(C.y, C.x))

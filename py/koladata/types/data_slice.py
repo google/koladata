@@ -201,121 +201,169 @@ def _freeze(self) -> DataSlice:
 
 @DataSlice.add_method('__add__')
 def _add(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.add, self, other)
 
 
 @DataSlice.add_method('__radd__')
 def _radd(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.add, other, self)
 
 
 @DataSlice.add_method('__sub__')
 def _sub(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.subtract, self, other)
 
 
 @DataSlice.add_method('__rsub__')
 def _rsub(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.subtract, other, self)
 
 
 @DataSlice.add_method('__mul__')
 def _mul(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.multiply, self, other)
 
 
 @DataSlice.add_method('__rmul__')
 def _rmul(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.multiply, other, self)
 
 
 @DataSlice.add_method('__truediv__')
 def _truediv(self, other):
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.divide, self, other)
 
 
 @DataSlice.add_method('__rtruediv__')
 def _rtruediv(self, other):
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.divide, other, self)
 
 
 @DataSlice.add_method('__floordiv__')
 def _floordiv(self, other):
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.floordiv, self, other)
 
 
 @DataSlice.add_method('__rfloordiv__')
 def _rfloordiv(self, other):
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.floordiv, other, self)
 
 
 @DataSlice.add_method('__mod__')
 def _mod(self, other):
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.mod, self, other)
 
 
 @DataSlice.add_method('__rmod__')
 def _rmod(self, other):
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.mod, other, self)
 
 
 @DataSlice.add_method('__pow__')
 def _pow(self, other):
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.pow, self, other)
 
 
 @DataSlice.add_method('__rpow__')
 def _rpow(self, other):
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.pow, other, self)
 
 
 @DataSlice.add_method('__and__')
 def _and(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.apply_mask, self, other)
 
 
 @DataSlice.add_method('__rand__')
 def _rand(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.apply_mask, other, self)
 
 
 @DataSlice.add_method('__eq__')
 def _eq(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.equal, self, other)
 
 
 @DataSlice.add_method('__ne__')
 def _ne(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.not_equal, self, other)
 
 
 @DataSlice.add_method('__gt__')
 def _gt(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.greater, self, other)
 
 
 @DataSlice.add_method('__ge__')
 def _ge(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.greater_equal, self, other)
 
 
 @DataSlice.add_method('__lt__')
 def _lt(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.less, self, other)
 
 
 @DataSlice.add_method('__le__')
 def _le(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.less_equal, self, other)
 
 
 @DataSlice.add_method('__or__')
 def _or(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.coalesce, self, other)
 
 
 @DataSlice.add_method('__ror__')
 def _ror(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.coalesce, other, self)
 
 
