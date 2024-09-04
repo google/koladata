@@ -78,6 +78,19 @@ using ::arolla::OptionalUnit;
 using ::arolla::Text;
 using ::arolla::Unit;
 
+// Creates a DataSlice and optionally casts data according to `schema`
+// argument.
+absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
+                                           DataSlice::JaggedShape shape,
+                                           const internal::DataItem& schema,
+                                           DataBagPtr db = nullptr) {
+  ASSIGN_OR_RETURN(
+      auto res_any,
+      DataSlice::Create(std::move(impl), std::move(shape),
+                        internal::DataItem(schema::kAny), std::move(db)));
+  return CastToExplicit(res_any, schema, /*validate_schema=*/false);
+}
+
 // Helper class for embedding schemas into an auxiliary DataBag.
 class EmbeddingDataBag {
  public:
@@ -257,15 +270,13 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     }
     ASSIGN_OR_RETURN(auto shape,
                      DataSlice::JaggedShape::FromEdges(std::move(edges)));
-    ASSIGN_OR_RETURN(
-        auto ds, DataSlice::Create(std::move(bldr).Build(), std::move(shape),
-                                   internal::DataItem(schema::kAny)));
     // The slice should be casted explicitly if the schema is provided by the
     // user. If this is gathered from data, it is validated to be implicitly
     // castable when finding the common schema. The schema attributes are not
     // validated, and are instead assumed to be part of the adoption queue.
-    ASSIGN_OR_RETURN(auto res,
-                     CastToExplicit(ds, schema, /*validate_schema=*/false));
+    ASSIGN_OR_RETURN(
+        auto res,
+        CreateWithSchema(std::move(bldr).Build(), std::move(shape), schema));
     // Entity slices embedded to the aux db should be part of the final merged
     // db.
     if (const auto& db = embedding_db.GetDb()) {
@@ -751,14 +762,16 @@ class UniversalConverterImpl {
       kv_bldr.Insert(index, input.item());
       kv_schema_agg.Add(input.GetSchemaImpl());
     }
-    ASSIGN_OR_RETURN(auto kv_schema, std::move(kv_schema_agg).Get());
+    ASSIGN_OR_RETURN(
+        auto kv_schema, std::move(kv_schema_agg).Get(),
+        AssembleErrorMessage(_, {.db = adoption_queue_.GetDbWithFallbacks()}));
     // NOTE: Factory is not applied on keys and values DataSlices (just on their
     // elements and dict created from those keys and values).
     ASSIGN_OR_RETURN(
         return_stack.emplace(),
-        DataSlice::Create(std::move(kv_bldr).Build(),
-                          DataSlice::JaggedShape::FlatFromSize(dict_size),
-                          kv_schema, db_));
+        CreateWithSchema(std::move(kv_bldr).Build(),
+                         DataSlice::JaggedShape::FlatFromSize(dict_size),
+                         kv_schema, db_));
     return absl::OkStatus();
   }
 
