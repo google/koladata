@@ -526,6 +526,29 @@ def empty_shaped(
   return data_bag._empty_shaped(shape, schema, db)  # pylint: disable=protected-access
 
 
+def empty_shaped_as(
+    shape_from: data_slice.DataSlice,
+    *,
+    schema: data_slice.DataSlice = schema_constants.MASK,
+    db: data_bag.DataBag | None = None,
+) -> data_slice.DataSlice:
+  """Creates a DataSlice of missing items with the shape of `shape_from`.
+
+  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
+  created and attached to the resulting DataSlice and `schema` is adopted into
+  the DataBag.
+
+  Args:
+    shape_from: used for the shape of the resulting DataSlice.
+    schema: optional schema of the resulting DataSlice.
+    db: optional DataBag to hold the schema if applicable.
+
+  Returns:
+    A DataSlice with the shape of the given DataSlice.
+  """
+  return empty_shaped(shape_from.get_shape(), schema=schema, db=db)
+
+
 def implode(
     x: data_slice.DataSlice,
     ndim: int = 1,
