@@ -14,6 +14,8 @@
 
 """Benchmarks for Kola Data library."""
 
+import copy
+
 from arolla import arolla
 import google_benchmark
 from koladata import kd
@@ -230,7 +232,7 @@ def create_dict(state):
 @google_benchmark.register
 def universal_converter(state):
   d = {'abc': 42}
-  for i in range(10):
+  for _ in range(10):
     d = {12: d, 42: d}
   obj = kd.obj()
   while (state):
@@ -240,11 +242,21 @@ def universal_converter(state):
 @google_benchmark.register
 def deep_universal_converter(state):
   d = {'abc': 42}
-  for i in range(1000):
+  for _ in range(1000):
     d = {12: d.copy()}
   obj = kd.obj()
   while (state):
     obj.d = d
+
+
+@google_benchmark.register
+def universal_converter_list(state):
+  l = [1, 2, 3]
+  for _ in range(10):
+    l = [copy.deepcopy(l), copy.deepcopy(l), copy.deepcopy(l)]
+  obj = kd.obj()
+  while (state):
+    obj.l = l
 
 
 @google_benchmark.register
