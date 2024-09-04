@@ -858,6 +858,11 @@ absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
 
 DataSlice NoDb(const DataSlice& ds) { return ds.WithDb(nullptr); }
 
+absl::StatusOr<DataSlice> Ref(const DataSlice& ds) {
+  RETURN_IF_ERROR(ToItemId(ds).status());  // Reuse casting logic to validate.
+  return ds.WithDb(nullptr);
+}
+
 absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds) {
   if (auto result = ds.GetDb()) {
     return result;

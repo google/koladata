@@ -16,7 +16,6 @@
 #define KOLADATA_OPERATORS_CORE_H_
 
 #include <cstdint>
-#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -32,6 +31,9 @@ absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y);
 
 // kde.core.no_db.
 DataSlice NoDb(const DataSlice& ds);
+
+// kde.core.ref.
+absl::StatusOr<DataSlice> Ref(const DataSlice& ds);
 
 // kde.core.get_db.
 absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds);

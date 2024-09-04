@@ -98,7 +98,7 @@ RESERVED_ATTRIBUTES_WITHOUT_LEADING_UNDERSCORE = frozenset([
 ])
 
 
-def _InitDataSliceClass():
+def _init_data_slice_class():
   """Initializes DataSlice class."""
   if hasattr(DataSlice, 'add_method'):
     return
@@ -111,7 +111,7 @@ def _InitDataSliceClass():
 ### Implementation of the DataSlice's additional functionality.
 
 
-_InitDataSliceClass()
+_init_data_slice_class()
 # NOTE: Using OperatorLookup supports caching of already looked-up operators and
 # thus provides quicker access to operators, compared to looking up operators by
 # their names.
@@ -198,6 +198,11 @@ def _freeze(self) -> DataSlice:
 
 
 DataSlice.add_method('with_name')(general_eager_ops.with_name)
+
+
+@DataSlice.add_method('ref')
+def _ref(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.ref, self)
 
 
 ##### DataSlice Magic methods. #####

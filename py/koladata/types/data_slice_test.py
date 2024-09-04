@@ -378,6 +378,18 @@ class DataSliceTest(parameterized.TestCase):
     self.assertIsNot(x1.db, x1.db)
     self.assertFalse(x1.db.is_mutable())
 
+  def test_ref(self):
+    x = ds([1, 2, 3])
+
+    with self.assertRaisesRegex(
+        ValueError, 'unsupported schema: INT32'
+    ):
+      x.ref()
+
+    db = data_bag.DataBag.empty()
+    x = db.obj(x=x)
+    testing.assert_equal(x.ref(), x.with_db(None))
+
   def test_reserved_ipython_method_names(self):
     db = bag()
     x = db.new(getdoc=1, trait_names=2, normal=3)

@@ -83,6 +83,7 @@ OPERATOR("kde.core.list_size", ListSize);
 OPERATOR("kde.core.no_db", NoDb);
 OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
+OPERATOR("kde.core.ref", Ref);
 OPERATOR("kde.core.reverse", Reverse);
 OPERATOR("kde.core.reverse_select", ReverseSelect);
 OPERATOR_FAMILY("kde.core.subslice",
