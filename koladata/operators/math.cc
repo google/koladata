@@ -106,6 +106,10 @@ absl::StatusOr<DataSlice> AggMean(const DataSlice& x) {
   return SimpleAggIntoEval("math.mean", {x});
 }
 
+absl::StatusOr<DataSlice> AggMedian(const DataSlice& x) {
+  return SimpleAggIntoEval("math.median", {x});
+}
+
 absl::StatusOr<DataSlice> AggMax(const DataSlice& x) {
   return SimpleAggIntoEval("math.max", {x});
 }
