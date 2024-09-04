@@ -183,10 +183,17 @@ def _to_py(self) -> DataSlice:
 
 
 @DataSlice.add_method('fork_db')
-def _fork_db(self, mutable=True) -> DataSlice:
+def _fork_db(self) -> DataSlice:
   if self.db is None:
     raise ValueError('fork_db expects the DataSlice to have a DataBag attached')
-  return self.with_db(self.db.fork(mutable=mutable))
+  return self.with_db(self.db.fork(mutable=True))
+
+
+@DataSlice.add_method('freeze')
+def _freeze(self) -> DataSlice:
+  if self.db is None:
+    raise ValueError('freeze expects the DataSlice to have a DataBag attached')
+  return self.with_db(self.db.fork(mutable=False))
 
 
 ##### DataSlice Magic methods. #####
