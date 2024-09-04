@@ -31,7 +31,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
-#include "arolla/util/init_arolla.h"
 
 namespace koladata {
 namespace {
@@ -41,12 +40,7 @@ using ::koladata::internal::Error;
 using ::testing::MatchesRegex;
 using ::testing::StrEq;
 
-class ReprUtilTest : public ::testing::Test {
- protected:
-  void SetUp() override { arolla::InitArolla(); }
-};
-
-TEST_F(ReprUtilTest, TestAssembleError) {
+TEST(ReprUtilTest, TestAssembleError) {
   DataBagPtr bag = DataBag::Empty();
 
   DataSlice value_1 = test::DataItem(1);
@@ -81,7 +75,7 @@ TEST_F(ReprUtilTest, TestAssembleError) {
               R"regex((.|\n)*the first conflicting schema INT32: INT32(.|\n)*)regex")));
 }
 
-TEST_F(ReprUtilTest, TestAssembleErrorMissingContextData) {
+TEST(ReprUtilTest, TestAssembleErrorMissingContextData) {
   Error error;
   internal::NoCommonSchema* no_common_schema = error.mutable_no_common_schema();
   ASSERT_OK_AND_ASSIGN(
@@ -113,12 +107,12 @@ TEST_F(ReprUtilTest, TestAssembleErrorMissingContextData) {
       StatusIs(absl::StatusCode::kInvalidArgument, "missing data slice"));
 }
 
-TEST_F(ReprUtilTest, TestAssembleErrorNotHandlingOkStatus) {
+TEST(ReprUtilTest, TestAssembleErrorNotHandlingOkStatus) {
   EXPECT_TRUE(
       AssembleErrorMessage(absl::OkStatus(), {.db = DataBag::Empty()}).ok());
 }
 
-TEST_F(ReprUtilTest, TestCreateItemCreationError) {
+TEST(ReprUtilTest, TestCreateItemCreationError) {
   DataSlice value = test::DataItem(schema::kInt32);
 
   absl::Status status =

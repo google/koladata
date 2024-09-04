@@ -1547,7 +1547,6 @@ TEST(DataSliceTest, SetGetAttr_FromEmptySlice_ObjectCreator) {
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr) {
-  arolla::InitArolla();
   auto ds_a = test::DataSlice<int>({1, 2, 3});
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::FromAttrs(db, {"a"}, {ds_a}));
@@ -1603,7 +1602,6 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_Primitive) {
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_List) {
-  arolla::InitArolla();
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
@@ -1665,7 +1663,6 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_List) {
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_Dict) {
-  arolla::InitArolla();
   DataBagPtr bag = DataBag::Empty();
 
   DataSlice key_item = test::DataItem(1);
@@ -1715,7 +1712,6 @@ TEST(DataSliceTest, SetAttr_OnItemIdNotAllowed) {
 }
 
 TEST(DataSliceTest, SetAttr_ObjectWithExplicitSchema_Incompatible) {
-  arolla::InitArolla();
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto ds_1, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
@@ -4354,7 +4350,6 @@ TEST(DataSliceCastingTest, PrimitiveToObject_Object) {
 }
 
 TEST(DataSliceCastingTest, SchemaToObject) {
-  arolla::InitArolla();
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));

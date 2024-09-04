@@ -74,7 +74,6 @@ absl::StatusOr<DataSlice> WrapExpr(
 }
 
 TEST(CreateFunctorTest, Basic) {
-  arolla::InitArolla();
   Signature::Parameter p1 = {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOrKeyword,
@@ -112,7 +111,6 @@ TEST(CreateFunctorTest, Basic) {
 
 TEST(CreateFunctorTest, DefaultSignature) {
   using enum Signature::Parameter::Kind;
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto returns_expr,
       WrapExpr(arolla::expr::CallOp("math.multiply",
@@ -138,7 +136,6 @@ TEST(CreateFunctorTest, DefaultSignature) {
 }
 
 TEST(CreateFunctorTest, NonExprReturns) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto slice_57,
                        DataSlice::Create(internal::DataItem(57),
                                          internal::DataItem(schema::kInt32)));
@@ -151,7 +148,6 @@ TEST(CreateFunctorTest, NonExprReturns) {
 }
 
 TEST(CreateFunctorTest, Non0RankReturns) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto slice_57,
                        DataSlice::Create(internal::DataItem(57),
                                          internal::DataItem(schema::kInt32)));
@@ -168,7 +164,6 @@ TEST(CreateFunctorTest, Non0RankReturns) {
 }
 
 TEST(CreateFunctorTest, InvalidSignature) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   ASSERT_OK_AND_ASSIGN(auto slice_57,
                        DataSlice::Create(internal::DataItem(57),
@@ -180,7 +175,6 @@ TEST(CreateFunctorTest, InvalidSignature) {
 }
 
 TEST(CreateFunctorTest, VariablesWithNon0Rank) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
@@ -199,7 +193,6 @@ TEST(CreateFunctorTest, VariablesWithNon0Rank) {
 }
 
 TEST(IsFunctorTest, Basic) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,

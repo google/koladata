@@ -72,7 +72,6 @@ absl::StatusOr<DataSlice> WrapExpr(
 }
 
 TEST(CallTest, VariableRhombus) {
-  arolla::InitArolla();
   Signature::Parameter p1 = {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOrKeyword,
@@ -136,7 +135,6 @@ TEST(CallTest, VariableRhombus) {
 }
 
 TEST(CallTest, VariableCycle) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
@@ -152,7 +150,6 @@ TEST(CallTest, VariableCycle) {
 }
 
 TEST(CallTest, JustLiteral) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
@@ -165,7 +162,6 @@ TEST(CallTest, JustLiteral) {
 }
 
 TEST(CallTest, MustBeScalar) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
@@ -192,7 +188,6 @@ TEST(CallTest, NoDb) {
 }
 
 TEST(CallTest, DataSliceVariable) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
@@ -209,7 +204,6 @@ TEST(CallTest, DataSliceVariable) {
 }
 
 TEST(CallTest, EvalError) {
-  arolla::InitArolla();
   Signature::Parameter p1 = {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOrKeyword,

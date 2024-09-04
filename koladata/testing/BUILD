@@ -46,3 +46,14 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "test_env",
+    testonly = True,
+    srcs = ["test_env.cc"],
+    deps = [
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest",
+    ],
+    alwayslink = True,
+)

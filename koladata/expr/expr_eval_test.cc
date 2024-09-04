@@ -37,7 +37,6 @@ using ::absl_testing::StatusIs;
 using ::testing::ElementsAre;
 
 TEST(ExprEvalTest, Basic) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr,
       arolla::expr::CallOp("koda_internal.input",
@@ -51,7 +50,6 @@ TEST(ExprEvalTest, Basic) {
 }
 
 TEST(ExprEvalTest, Variables) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr,
       arolla::expr::CallOp(
@@ -72,7 +70,6 @@ TEST(ExprEvalTest, Variables) {
 }
 
 TEST(ExprEvalTest, MissingInput) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr,
       arolla::expr::CallOp("koda_internal.input",
@@ -84,7 +81,6 @@ TEST(ExprEvalTest, MissingInput) {
 }
 
 TEST(ExprEvalTest, DuplicateInput) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr,
       arolla::expr::CallOp("koda_internal.input",
@@ -99,7 +95,6 @@ TEST(ExprEvalTest, DuplicateInput) {
 }
 
 TEST(ExprEvalTest, MissingVariable) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr,
       arolla::expr::CallOp("koda_internal.input",
@@ -111,7 +106,6 @@ TEST(ExprEvalTest, MissingVariable) {
 }
 
 TEST(ExprEvalTest, DuplicateVariable) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr,
       arolla::expr::CallOp("koda_internal.input",
@@ -126,7 +120,6 @@ TEST(ExprEvalTest, DuplicateVariable) {
 }
 
 TEST(ExprEvalTest, UnknownContainer) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr,
       arolla::expr::CallOp("koda_internal.input",
@@ -140,7 +133,6 @@ TEST(ExprEvalTest, UnknownContainer) {
 }
 
 TEST(GetExprVariablesTest, Basic) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr,
       arolla::expr::CallOp(
@@ -162,7 +154,6 @@ TEST(GetExprVariablesTest, Basic) {
 }
 
 TEST(GetExprInputsTest, Basic) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr,
       arolla::expr::CallOp(

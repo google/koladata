@@ -48,7 +48,6 @@ using ::testing::HasSubstr;
 using ::testing::Optional;
 
 TEST(CppSignatureToKodaSignatureTest, Basic) {
-  arolla::InitArolla();
   Signature::Parameter p1 = {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOnly,
@@ -95,7 +94,6 @@ TEST(CppSignatureToKodaSignatureTest, Basic) {
 }
 
 TEST(RoundTripTest, Basic) {
-  arolla::InitArolla();
   Signature::Parameter p1 = {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOnly,
@@ -145,7 +143,6 @@ TEST(RoundTripTest, Basic) {
 }
 
 TEST(KodaSignatureToCppSignatureTest, NonScalar) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
@@ -159,7 +156,6 @@ TEST(KodaSignatureToCppSignatureTest, NonScalar) {
 }
 
 TEST(KodaSignatureToCppSignatureTest, Missing) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
@@ -174,7 +170,6 @@ TEST(KodaSignatureToCppSignatureTest, Missing) {
 }
 
 TEST(KodaSignatureToCppSignatureTest, MissingParameterList) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
@@ -192,7 +187,6 @@ TEST(KodaSignatureToCppSignatureTest, MissingParameterList) {
 }
 
 TEST(KodaSignatureToCppSignatureTest, MissingParameter) {
-  arolla::InitArolla();
   Signature::Parameter p1 = {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOnly,
@@ -212,7 +206,6 @@ TEST(KodaSignatureToCppSignatureTest, MissingParameter) {
 }
 
 TEST(KodaSignatureToCppSignatureTest, NonTextParameterName) {
-  arolla::InitArolla();
   Signature::Parameter p1 = {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOnly,
@@ -234,7 +227,6 @@ TEST(KodaSignatureToCppSignatureTest, NonTextParameterName) {
 }
 
 TEST(KodaSignatureToCppSignatureTest, DuplicateParameterName) {
-  arolla::InitArolla();
   Signature::Parameter p1 = {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOnly,
@@ -260,7 +252,6 @@ TEST(KodaSignatureToCppSignatureTest, DuplicateParameterName) {
 }
 
 TEST(KodaSignatureToCppSignatureTest, InvalidKind) {
-  arolla::InitArolla();
   Signature::Parameter p1 = {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOnly,

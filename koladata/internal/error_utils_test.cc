@@ -50,12 +50,7 @@ using ::koladata::schema::SchemaDType;
 using ::testing::HasSubstr;
 using ::testing::Optional;
 
-class ErrorUtilsTest : public ::testing::Test {
- protected:
-  void SetUp() override { arolla::InitArolla(); }
-};
-
-TEST_F(ErrorUtilsTest, TestEncodeDataItem) {
+TEST(ErrorUtilsTest, TestEncodeDataItem) {
   std::vector<DataItem> items{DataItem(1),
                               DataItem(2.f),
                               DataItem(3l),
@@ -72,7 +67,7 @@ TEST_F(ErrorUtilsTest, TestEncodeDataItem) {
   }
 }
 
-TEST_F(ErrorUtilsTest, TestEncodeDtype) {
+TEST(ErrorUtilsTest, TestEncodeDtype) {
   arolla::meta::foreach_type(schema::supported_dtype_values(), [](auto tpe) {
     using T = typename decltype(tpe)::type;
     DType dtype = GetDType<T>();
@@ -82,13 +77,13 @@ TEST_F(ErrorUtilsTest, TestEncodeDtype) {
   });
 }
 
-TEST_F(ErrorUtilsTest, GetEmptyPayload) {
+TEST(ErrorUtilsTest, GetEmptyPayload) {
   absl::Status status = absl::UnimplementedError("Test error");
 
   EXPECT_EQ(GetErrorPayload(status), std::nullopt);
 }
 
-TEST_F(ErrorUtilsTest, SetAndGetPayload) {
+TEST(ErrorUtilsTest, SetAndGetPayload) {
   Error error;
   error.set_error_message("test error message");
 
@@ -105,7 +100,7 @@ TEST_F(ErrorUtilsTest, SetAndGetPayload) {
   EXPECT_EQ(GetErrorPayload(ok_status_with_payload), std::nullopt);
 }
 
-TEST_F(ErrorUtilsTest, WithErrorPayloadHandleError) {
+TEST(ErrorUtilsTest, WithErrorPayloadHandleError) {
   absl::Status status =
       WithErrorPayload(absl::UnimplementedError("Test error"),
                        absl::InternalError("Create error proto error"));
@@ -116,7 +111,7 @@ TEST_F(ErrorUtilsTest, WithErrorPayloadHandleError) {
                HasSubstr("; Error when creating KodaError")));
 }
 
-TEST_F(ErrorUtilsTest, Annotate) {
+TEST(ErrorUtilsTest, Annotate) {
   absl::Status status = absl::UnimplementedError("Test error");
   absl::Status annotated_status = Annotate(status, "Extra error message");
 

@@ -230,7 +230,6 @@ TEST(SchemaUtilsTest, CommonSchemaBinary) {
                          "expected Schema, got: 1"));
   }
   {
-    arolla::InitArolla();
     // No common schema error.
     auto result = CommonSchema(kItemId, kText);
     EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
@@ -318,7 +317,6 @@ TEST(SchemaUtilsTest, CommonSchemaNonTypeInSchemas) {
 }
 
 TEST(SchemaUtilsTest, CommonSchemaConflict) {
-  arolla::InitArolla();
   CommonSchemaAggregator agg;
   internal::ObjectId schema1 = internal::AllocateExplicitSchema();
   internal::ObjectId schema2 = internal::AllocateExplicitSchema();
@@ -341,7 +339,6 @@ TEST(SchemaUtilsTest, CommonSchemaObjectAndPrimitiveNone) {
 }
 
 TEST(SchemaUtilsTest, CommonSchemaObjectAndPrimitiveConflict) {
-  arolla::InitArolla();
   internal::ObjectId schema = internal::AllocateExplicitSchema();
   CommonSchemaAggregator agg;
   agg.Add(schema);
@@ -355,7 +352,6 @@ TEST(SchemaUtilsTest, CommonSchemaObjectAndPrimitiveConflict) {
 }
 
 TEST(SchemaUtilsTest, CommonSchemaPrimitiveConflict) {
-  arolla::InitArolla();
   auto schemas = DataSliceImpl::Create(
       CreateDenseArray<schema::DType>({schema::kInt32, schema::kItemId}));
   CommonSchemaAggregator agg;

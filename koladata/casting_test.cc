@@ -1531,7 +1531,6 @@ TEST(Casting, ToObjectErrors) {
 }
 
 TEST(Casting, CastToImplicit) {
-  arolla::InitArolla();
   {
     // Invalid schema error.
     EXPECT_THAT(CastToImplicit(test::DataItem(std::nullopt, schema::kNone),
@@ -1577,7 +1576,6 @@ TEST(Casting, CastToImplicit_CoversAllDTypes) {
 }
 
 TEST(Casting, CastToExplicit) {
-  arolla::InitArolla();
   {
     // Invalid schema error.
     EXPECT_THAT(CastToExplicit(test::DataItem(std::nullopt, schema::kNone),
@@ -1649,7 +1647,6 @@ TEST(Casting, CastToExplicit_CoversAllDTypes) {
 }
 
 TEST(Casting, CastToNarrow) {
-  arolla::InitArolla();
   {
     // Invalid schema error.
     EXPECT_THAT(CastToNarrow(test::DataItem(std::nullopt, schema::kNone),
@@ -1762,7 +1759,6 @@ TEST(Alignment, AlignSchemas) {
 }
 
 TEST(Alignment, AlignSchemas_Errors) {
-  arolla::InitArolla();
   {
     // Invalid arity.
     EXPECT_THAT(AlignSchemas({}), StatusIs(absl::StatusCode::kInvalidArgument,

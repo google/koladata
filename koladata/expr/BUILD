@@ -114,6 +114,7 @@ cc_test(
         ":expr_eval",
         ":expr_operators",
         "//koladata/operators:compile_expr_operators",
+        "//koladata/testing:test_env",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/expr",

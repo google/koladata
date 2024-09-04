@@ -263,7 +263,6 @@ TEST(EntityCreatorTest, SchemaArg_ImplicitCasting) {
 }
 
 TEST(EntityCreatorTest, SchemaArg_CastingFails) {
-  arolla::InitArolla();
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kFloat32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
