@@ -19,6 +19,7 @@ import types as _py_types
 from koladata.exceptions import exceptions as _exceptions
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
+from koladata.expr import introspection as _introspection
 from koladata.functions import functions as _functions
 from koladata.functor import kdf as _kdf
 from koladata.operators import eager_op_utils as _eager_op_utils
@@ -28,6 +29,7 @@ from koladata.types import data_bag as _data_bag
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _dict_item
+from koladata.types import general_eager_ops as _general_eager_ops
 from koladata.types import list_item as _list_item
 from koladata.types import literal_operator as _literal_operator
 from koladata.types import mask_constants as _mask_constants
@@ -85,6 +87,11 @@ S = I.self
 eval = _expr_eval.eval  # pylint: disable=redefined-builtin
 kde = _kde_operators.kde
 literal = _literal_operator.literal
+get_name = _introspection.get_name
+unwrap_named = _introspection.unwrap_named
+# This overrides the eager_op_utils implementation which unfortunately
+# fails because M.annotation.name requires a literal as second argument.
+with_name = _general_eager_ops.with_name
 
 
 ### Koda constants.

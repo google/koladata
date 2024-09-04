@@ -156,6 +156,22 @@ class KdTest(absltest.TestCase):
     )
     self.assertEqual(kdf.call(fn, 1, 2), 3)
 
+  def test_with_name(self):
+    x = kd.slice([1, 2, 3])
+    y = kd.with_name(x, 'foo')
+    self.assertIs(y, x)
+
+  def test_get_name(self):
+    expr = kde.with_name(I.x + I.y, 'foo')
+    self.assertEqual(kd.get_name(expr), 'foo')
+    self.assertIsNone(kd.get_name(expr + I.z))
+
+  def test_unwrap_named(self):
+    expr = kde.with_name(I.x + I.y, 'foo')
+    kd.testing.assert_equal(kd.unwrap_named(expr), I.x + I.y)
+    with self.assertRaisesRegex(ValueError, 'non-named'):
+      _ = kd.unwrap_named(expr + I.z)
+
 
 if __name__ == '__main__':
   absltest.main()

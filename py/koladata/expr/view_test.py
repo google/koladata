@@ -18,6 +18,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
+from koladata.expr import introspection
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -69,6 +70,11 @@ class BasicKodaViewTest(parameterized.TestCase):
   def test_inputs(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
+
+  def test_with_name(self):
+    expr = op(1, 2, 3).with_name('my_op')
+    self.assertEqual(introspection.get_name(expr), 'my_op')
+    testing.assert_equal(introspection.unwrap_named(expr), op(1, 2, 3))
 
 
 class DataBagViewTest(parameterized.TestCase):

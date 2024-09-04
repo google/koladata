@@ -18,6 +18,7 @@ from typing import Any, Iterable
 
 from koladata.types import data_bag_py_ext as _data_bag_py_ext
 from koladata.types import data_slice_py_ext as _data_slice_py_ext
+from koladata.types import general_eager_ops as _general_eager_ops
 from koladata.types import jagged_shape as _jagged_shape
 
 
@@ -368,3 +369,4 @@ DataBag.list_shaped = _list_shaped
 DataBag.list_like = _list_like
 DataBag.implode = _implode
 DataBag.merge_inplace = _merge_inplace
+DataBag.with_name = _general_eager_ops.with_name

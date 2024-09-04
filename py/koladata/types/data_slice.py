@@ -18,6 +18,7 @@ from typing import Any
 
 from arolla import arolla
 from koladata.types import data_slice_py_ext as _data_slice_py_ext
+from koladata.types import general_eager_ops
 from koladata.types import jagged_shape
 from koladata.types import operator_lookup
 
@@ -194,6 +195,9 @@ def _freeze(self) -> DataSlice:
   if self.db is None:
     raise ValueError('freeze expects the DataSlice to have a DataBag attached')
   return self.with_db(self.db.fork(mutable=False))
+
+
+DataSlice.add_method('with_name')(general_eager_ops.with_name)
 
 
 ##### DataSlice Magic methods. #####

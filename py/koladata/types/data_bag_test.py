@@ -1494,6 +1494,11 @@ Assigned schema for Dict key: INT32""",
         TypeError, re.escape("got an unexpected keyword 'foo'")):
       _ = db1.fork(foo=True)
 
+  def test_with_name(self):
+    x = bag()
+    y = x.with_name('foo')
+    self.assertIs(y, x)
+
 
 if __name__ == '__main__':
   absltest.main()

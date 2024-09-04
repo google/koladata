@@ -75,12 +75,34 @@ py_library(
     ],
 )
 
+py_library(
+    name = "introspection",
+    srcs = ["introspection.py"],
+    deps = [
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "introspection_test",
+    srcs = ["introspection_test.py"],
+    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
+    deps = [
+        ":input_container",
+        ":introspection",
+        "//py/koladata/testing",
+        "//py/koladata/types:py_boxing",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 py_test(
     name = "view_test",
     srcs = ["view_test.py"],
     tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":input_container",
+        ":introspection",
         ":view",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",

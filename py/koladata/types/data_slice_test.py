@@ -1790,6 +1790,11 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     ):
       _ = ds([1, 2, 3])()
 
+  def test_with_name(self):
+    x = ds([1, 2, 3])
+    y = x.with_name('foo')
+    self.assertIs(y, x)
+
 
 class DataSliceMergingTest(parameterized.TestCase):
 

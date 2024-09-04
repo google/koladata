@@ -42,6 +42,9 @@ class BasicKodaView(arolla.abc.ExprView):
   def inputs(self) -> list[str]:
     return input_container.get_input_names(typing.cast(arolla.Expr, self), I)
 
+  def with_name(self, name: str | arolla.types.Text) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.with_name', self, name)
+
 
 class DataBagView(BasicKodaView):
   """ExprView for DataBags."""

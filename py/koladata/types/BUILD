@@ -227,6 +227,7 @@ py_library(
     srcs = ["data_slice.py"],
     deps = [
         ":data_slice_py_ext",
+        ":general_eager_ops",
         ":jagged_shape",
         ":operator_lookup",
         "@com_google_arolla//py/arolla",
@@ -482,6 +483,7 @@ py_library(
     deps = [
         ":data_bag_py_ext",
         ":data_slice_py_ext",
+        ":general_eager_ops",
         ":jagged_shape",
         "@com_google_arolla//py/arolla",
     ],
@@ -601,6 +603,24 @@ py_library(
     deps = [
         ":data_item",
         ":schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "general_eager_ops",
+    srcs = ["general_eager_ops.py"],
+    deps = ["@com_google_arolla//py/arolla"],
+)
+
+py_test(
+    name = "general_eager_ops_test",
+    srcs = ["general_eager_ops_test.py"],
+    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
+    deps = [
+        ":data_slice",
+        ":general_eager_ops",
+        "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
 )
