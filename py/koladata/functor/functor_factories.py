@@ -14,14 +14,25 @@
 
 """Tools to create functors."""
 
+import typing
 from typing import Any
 
 from arolla import arolla
+from koladata.expr import input_container
 from koladata.expr import introspection
+from koladata.functions import functions as fns
 from koladata.functor import py_functors_py_ext as _py_functors_py_ext
+from koladata.operators import kde_operators
 from koladata.types import data_slice
+from koladata.types import literal_operator
 from koladata.types import mask_constants
 from koladata.types import py_boxing
+from koladata.types import qtypes
+from koladata.types import schema_constants
+
+I = input_container.InputContainer('I')
+V = input_container.InputContainer('V')
+kde = kde_operators.kde
 
 
 # We can move this wrapping inside the CPython layer if needed for performance.
@@ -31,11 +42,86 @@ def _maybe_wrap_expr(arg: Any) -> arolla.QValue:
   return py_boxing.as_qvalue(arg)
 
 
+def _extract_auto_variables(variables: dict[str, Any]) -> dict[str, Any]:
+  """Creates additional variables for DataSlices and named nodes."""
+  variables = dict(variables)
+  aux_variable_fingerprints = set()
+  prefix_to_counter = {}
+
+  def create_unique_variable(prefix: str) -> str:
+    if prefix not in prefix_to_counter:
+      prefix_to_counter[prefix] = 0
+    while True:
+      var_name = f'{prefix}_{prefix_to_counter[prefix]}'
+      prefix_to_counter[prefix] += 1
+      if var_name not in variables:
+        return var_name
+
+  def transform_node(node: arolla.Expr) -> arolla.Expr:
+    if node.is_literal or isinstance(node.op, literal_operator.LiteralOperator):
+      val = typing.cast(arolla.QValue, node.qvalue)
+      if val.qtype == qtypes.DATA_SLICE:
+        val = typing.cast(data_slice.DataSlice, val)
+        # Keep simple constants inlined, to avoid too many variables.
+        if (
+            val.db is None
+            and val.get_ndim() == 0
+            and val.get_schema().is_primitive_schema()
+        ):
+          return node
+        # We need to implode the DataSlice into lists if it is not a DataItem.
+        var_name = create_unique_variable('aux')
+        var = V[var_name]
+        ndim = val.get_ndim()
+        if ndim:
+          val = fns.implode(val, ndim=ndim)
+          var = kde.explode(var, ndim=ndim)
+        variables[var_name] = val
+        aux_variable_fingerprints.add(var.fingerprint)
+        return var
+
+    if (expr_name := introspection.get_name(node)) is not None:
+      name = (
+          create_unique_variable(expr_name)
+          if expr_name in variables
+          else expr_name
+      )
+      child = introspection.unwrap_named(node)
+      if child.fingerprint in aux_variable_fingerprints:
+        # If a literal DataSlice was named, avoid creating a temporary name
+        # and use the real name instead. The auxiliary variable might have
+        # been wrapped with kde.explode(), so we do a sub_inputs instead of
+        # just replacing with V[name].
+        var_names = input_container.get_input_names(child, V)
+        assert len(var_names) == 1
+        variables[name] = variables.pop(var_names[0])
+        return input_container.sub_inputs(child, V, **{var_names[0]: V[name]})
+      variables[name] = introspection.pack_expr(child)
+      return V[name]
+
+    return node
+
+  all_exprs = {}
+  for k, v in variables.items():
+    if v.get_schema() == schema_constants.EXPR:
+      v = introspection.unpack_expr(v)
+      all_exprs[k] = v
+  combined = arolla.M.core.make_tuple(*all_exprs.values())
+  # It is important to transform everything at once if there is some shared
+  # named subtree.
+  combined = arolla.abc.transform(combined, transform_node)
+  assert len(combined.node_deps) == len(all_exprs)
+  for k, v in zip(all_exprs, combined.node_deps):
+    variables[k] = introspection.pack_expr(v)
+  return variables
+
+
 def fn(
     returns: Any,
     *,
     signature: data_slice.DataSlice | None = None,
-    **variables: Any
+    auto_variables: bool = False,
+    **variables: Any,
 ) -> data_slice.DataSlice:
   """Creates a functor.
 
@@ -48,6 +134,11 @@ def fn(
       kwargs passed at calling time to I.smth inputs of the expressions. When
       None, the default signature will be created based on the inputs from the
       expressions involved.
+    auto_variables: When true, we create additional variables automatically
+      based on the provided expressions for 'returns' and user-provided
+      variables. All non-scalar DataSlice literals become their own variables,
+      and all named subexpressions become their own variables. This helps
+      readability and manipulation of the resulting functor.
     **variables: The variables of the functor. Each variable can either be an
       expression to be evaluated, or a DataItem, or a primitive that will be
       wrapped as a DataItem. The result of evaluating the variable can be
@@ -56,11 +147,13 @@ def fn(
   Returns:
     A DataSlice with an item representing the functor.
   """
-  return _py_functors_py_ext.create_functor(
-      _maybe_wrap_expr(returns),
-      signature,
-      **{k: _maybe_wrap_expr(v) for k, v in variables.items()}
-  )
+  returns = _maybe_wrap_expr(returns)
+  variables = {k: _maybe_wrap_expr(v) for k, v in variables.items()}
+  if auto_variables:
+    variables['returns'] = returns
+    variables = _extract_auto_variables(variables)
+    returns = variables.pop('returns')
+  return _py_functors_py_ext.create_functor(returns, signature, **variables)
 
 
 def is_fn(obj: Any) -> data_slice.DataSlice:

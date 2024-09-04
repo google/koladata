@@ -15,19 +15,23 @@
 """Tests for functor_factories."""
 
 from absl.testing import absltest
+from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import view as _
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor import signature_utils
-from koladata.operators import kde_operators as _
+from koladata.operators import kde_operators
+from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
 pack_expr = introspection.pack_expr
 
 
@@ -100,6 +104,77 @@ class FunctorFactoriesTest(absltest.TestCase):
         functor_factories.is_fn(fn).get_schema(), schema_constants.MASK
     )
     self.assertFalse(functor_factories.is_fn(57))
+
+  def test_auto_variables(self):
+    x = ds([1, -2, 3, -4])
+    fn = functor_factories.fn(I.x * x)
+    self.assertEqual(fn(x=x).to_py(), [1, 4, 9, 16])
+    self.assertNotIn('aux_0', dir(fn))
+
+    fn = functor_factories.fn(I.x * x, auto_variables=True)
+    self.assertEqual(fn(x=x).to_py(), [1, 4, 9, 16])
+    self.assertEqual(fn.aux_0[:].to_py(), [1, -2, 3, -4])
+
+    fn2 = functor_factories.fn(kde.call(fn, x=I.y), auto_variables=True)
+    self.assertEqual(fn2(y=x).to_py(), [1, 4, 9, 16])
+    self.assertEqual(fn2.aux_0, fn)
+
+    fn3 = functor_factories.fn(
+        kde.with_name(fn, 'foo')(x=I.y), auto_variables=True
+    )
+    self.assertEqual(fn3(y=x).to_py(), [1, 4, 9, 16])
+    self.assertEqual(fn3.foo, fn)
+
+    fn4 = functor_factories.fn(
+        kde.with_name(py_boxing.as_expr(fn), 'foo')(x=I.y)
+        + kde.with_name(py_boxing.as_expr(1) + py_boxing.as_expr(2), 'bar'),
+        auto_variables=True,
+    )
+    self.assertEqual(fn4(y=x).to_py(), [4, 7, 12, 19])
+    self.assertEqual(fn4.foo, fn)
+    self.assertEqual(expr_eval.eval(fn4.bar.internal_as_py().unquote()), 3)
+
+    fn5 = functor_factories.fn(
+        kde.with_name(py_boxing.as_expr(ds([[1, 2], [3]])), 'foo'),
+        auto_variables=True,
+    )
+    self.assertEqual(fn5().to_py(), [[1, 2], [3]])
+    self.assertEqual(fn5.foo[:][:].to_py(), [[1, 2], [3]])
+    self.assertNotIn('aux_0', dir(fn5))
+
+    # TODO: Make this work.
+    # fn6 = functor_factories.fn(
+    #     kde.slice([1, 2, 3]).with_name('foo'), auto_variables=True
+    # )
+    # self.assertEqual(fn6().to_py(), [1, 2, 3])
+    # self.assertEqual(fn6.foo[:].to_py(), [1, 2, 3])
+    # self.assertNotIn('aux_0', dir(fn6))
+
+  def test_auto_variables_nested_names(self):
+    x = kde.with_name(kde.with_name(I.x, 'foo'), 'bar')
+    fn = functor_factories.fn(x, auto_variables=True)
+    self.assertEqual(fn(x=1), 1)
+    testing.assert_equal(fn.returns.internal_as_py().unquote(), V.bar)
+    testing.assert_equal(fn.bar.internal_as_py().unquote(), V.foo)
+    testing.assert_equal(fn.foo.internal_as_py().unquote(), I.x)
+
+  def test_auto_variables_and_existing_variables(self):
+    x = ds([1, -2, 3, -4])
+    y = ds([2, -2, -3, -4])
+    shared = kde.with_name(x, 'foo')
+    fn = functor_factories.fn(
+        shared + kde.with_name(y, 'foo') + V.foo,
+        # TODO: Make V.foo_1[:] work.
+        foo=kde.explode(V.foo_1) + shared,
+        foo_1=fns.list([4, 5, -1, 7]),
+        auto_variables=True,
+    )
+    self.assertEqual(fn().to_py(), [8, -1, 2, -5])
+    self.assertIn('foo_0', dir(fn))
+    self.assertIn('foo_2', dir(fn))
+    self.assertNotIn(
+        'foo_3', dir(fn)
+    )  # To make sure we don't have too many copies.
 
 
 if __name__ == '__main__':

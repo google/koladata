@@ -811,5 +811,42 @@ def kd_call_with_many_variables(state):
     kd.call(fn, 57)
 
 
+def _create_large_expr():
+  expr = I.x
+  for i in range(100):
+    for _ in range(100):
+      expr += kd.slice([1, 2, 3])
+    expr = arolla.M.annotation.name(expr, f'step{i}')
+  return expr
+
+
+@google_benchmark.register
+def create_large_expr(state):
+  # To initialize all lazy initializers and reduce variance.
+  _create_large_expr()
+  while state:
+    _create_large_expr()
+
+
+@google_benchmark.register
+def create_large_functor(state):
+  # To initialize all lazy initializers and reduce variance.
+  expr = _create_large_expr()
+  _ = kdf.fn(expr)
+  while state:
+    expr = _create_large_expr()
+    _ = kdf.fn(expr)
+
+
+@google_benchmark.register
+def create_large_functor_auto_variables(state):
+  # To initialize all lazy initializers and reduce variance.
+  expr = _create_large_expr()
+  _ = kdf.fn(expr, auto_variables=True)
+  while state:
+    expr = _create_large_expr()
+    _ = kdf.fn(expr, auto_variables=True)
+
+
 if __name__ == '__main__':
   google_benchmark.main()
