@@ -15,7 +15,7 @@
 # Arolla Operators on Koda abstractions.
 #
 # Note: tests for code here are located under
-# //py/koladata/operator_tests.
+# py/koladata/operators/tests.
 #
 # Operators that are available in public namespace, should be stored in `kde`
 # namespace, while internal operators used to implement various functionality
