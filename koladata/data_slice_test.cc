@@ -474,6 +474,21 @@ TEST(DataSliceTest, IsDictSchema) {
   EXPECT_FALSE(test::DataItem(42).IsDictSchema());
 }
 
+TEST(DataSliceTest, IsPrimitiveSchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto list_schema = *CreateListSchema(db, int_s);
+  EXPECT_TRUE(int_s.IsPrimitiveSchema());
+  EXPECT_FALSE(list_schema.IsPrimitiveSchema());
+  EXPECT_FALSE(list_schema.WithDb(nullptr).IsPrimitiveSchema());
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+  EXPECT_FALSE(entity_schema.IsPrimitiveSchema());
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kInt64, schema::kInt32})
+                   .IsPrimitiveSchema());
+  EXPECT_FALSE(test::Schema(schema::kAny).IsPrimitiveSchema());
+  EXPECT_FALSE(test::DataItem(42).IsPrimitiveSchema());
+}
+
 TEST(DataSliceTest, IsEmpty) {
   auto db = DataBag::Empty();
   auto int_schema = DataItem(schema::kInt32);

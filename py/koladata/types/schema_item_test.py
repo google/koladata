@@ -141,6 +141,16 @@ class SchemaItemTest(absltest.TestCase):
     ):
       schema_constants.INT32.with_db(bag())(a=1, b=2)
 
+  def test_is_primitive_schema(self):
+    a = ds(1)
+    self.assertFalse(a.is_primitive_schema())
+    self.assertTrue(a.get_schema().is_primitive_schema())
+    self.assertFalse(ds([a.get_schema()]).is_primitive_schema())
+    self.assertTrue(ds([a.get_schema()]).S[0].is_primitive_schema())
+    self.assertTrue(ds('a').get_schema().is_primitive_schema())
+    self.assertFalse(fns.list([1, 2]).get_schema().is_primitive_schema())
+    self.assertFalse(fns.new(a=1).get_schema().is_primitive_schema())
+
 
 if __name__ == '__main__':
   absltest.main()

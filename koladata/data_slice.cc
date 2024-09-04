@@ -817,6 +817,11 @@ bool DataSlice::IsDictSchema() const {
   return key_schema_or->has_value() && value_schema_or->has_value();
 }
 
+bool DataSlice::IsPrimitiveSchema() const {
+  return (GetSchemaImpl() == kSchemaSchema) && (GetShape().rank() == 0) &&
+         item().is_primitive_schema();
+}
+
 absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item().is_entity_schema() && schema.GetDb() != nullptr &&

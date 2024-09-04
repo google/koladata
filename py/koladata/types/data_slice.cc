@@ -532,6 +532,13 @@ absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self,
   return PyBool_FromLong(ds.IsDictSchema());
 }
 
+absl::Nullable<PyObject*> PyDataSlice_is_primitive_schema(PyObject* self,
+                                                          PyObject*) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  return PyBool_FromLong(ds.IsPrimitiveSchema());
+}
+
 absl::Nullable<PyObject*> PyDataSlice_is_empty(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
@@ -674,6 +681,8 @@ Returns:
      "Returns True, if this DataSlice is a List Schema."},
     {"is_dict_schema", PyDataSlice_is_dict_schema, METH_NOARGS,
      "Returns True, if this DataSlice is a Dict Schema."},
+    {"is_primitive_schema", PyDataSlice_is_primitive_schema, METH_NOARGS,
+     "Returns True, if this DataSlice is a primitive (scalar) Schema."},
     {"is_empty", PyDataSlice_is_empty, METH_NOARGS,
      "Returns True, if this DataSlice is empty."},
     {"with_schema", PyDataSlice_with_schema, METH_O,

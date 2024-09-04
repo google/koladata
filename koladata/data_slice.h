@@ -145,6 +145,9 @@ class DataSlice {
   // Returns true, if this DataSlice represents an Dict schema.
   bool IsDictSchema() const;
 
+  // Returns true, if this DataSlice represents a primitive schema.
+  bool IsPrimitiveSchema() const;
+
   // Return true, if this DataSlice is empty (has all missing values).
   bool IsEmpty() const { return impl_empty_and_unknown(); }
 
