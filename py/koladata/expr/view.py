@@ -185,19 +185,19 @@ class DataSliceView(BasicKodaView):
     return arolla.abc.aux_bind_op('kde.call', self, *args, **kwargs)
 
 
-class KodaMultipleReturnDataSliceTupleView(BasicKodaView):
-  """ExprView for tuples of DataSlice, for operators returning multiple values.
-  """
+class KodaTupleView(BasicKodaView):
+  """ExprView for tuples of Koda values, for operators returning tuples."""
 
-  _koda_multiple_return_data_slice_tuple_view_tag = True
+  _koda_tuple_view_tag = True
+
+  def __getitem__(self, index: int) -> arolla.Expr:
+    return self._arolla_sequence_getitem_(index)
 
   # Support sequence contract, for tuple unpacking.
   def _arolla_sequence_getitem_(self, index: int) -> arolla.Expr:
     if index < 0 or index >= len(self.node_deps):
       raise IndexError('tuple index out of range')
-    return arolla.M.annotation.qtype(
-        arolla.M.core.get_nth(self, arolla.int64(index)), qtypes.DATA_SLICE
-    )
+    return arolla.M.core.get_nth(self, arolla.int64(index))
 
 
 def has_basic_koda_view(node: arolla.Expr) -> bool:
@@ -206,7 +206,7 @@ def has_basic_koda_view(node: arolla.Expr) -> bool:
       hasattr(node, '_basic_koda_view_tag')
       and not hasattr(node, '_data_bag_view_tag')
       and not hasattr(node, '_data_slice_view_tag')
-      and not hasattr(node, '_koda_multiple_return_data_slice_tuple_view_tag')
+      and not hasattr(node, '_koda_tuple_view_tag')
   )
 
 
@@ -220,9 +220,9 @@ def has_data_slice_view(node: arolla.Expr) -> bool:
   return hasattr(node, '_data_slice_view_tag')
 
 
-def has_koda_multiple_return_data_slice_tuple_view(node: arolla.Expr) -> bool:
-  """Returns true iff the node has a data slice tuple view (only)."""
-  return hasattr(node, '_koda_multiple_return_data_slice_tuple_view_tag')
+def has_koda_tuple_view(node: arolla.Expr) -> bool:
+  """Returns true iff the node has a tuple view (only)."""
+  return hasattr(node, '_koda_tuple_view_tag')
 
 
 arolla.abc.set_expr_view_for_qtype(qtypes.DATA_SLICE, DataSliceView)

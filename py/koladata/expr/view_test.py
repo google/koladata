@@ -54,7 +54,7 @@ class BasicKodaViewTest(parameterized.TestCase):
     self.assertTrue(view.has_basic_koda_view(op()))
     self.assertFalse(view.has_data_slice_view(op()))
     self.assertFalse(view.has_data_bag_view(op()))
-    self.assertFalse(view.has_koda_multiple_return_data_slice_tuple_view(op()))
+    self.assertFalse(view.has_koda_tuple_view(op()))
 
   def test_eval(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
@@ -94,7 +94,7 @@ class DataBagViewTest(parameterized.TestCase):
     self.assertFalse(view.has_basic_koda_view(op()))
     self.assertFalse(view.has_data_slice_view(op()))
     self.assertTrue(view.has_data_bag_view(op()))
-    self.assertFalse(view.has_koda_multiple_return_data_slice_tuple_view(op()))
+    self.assertFalse(view.has_koda_tuple_view(op()))
 
   def test_basic_koda_view_subclass(self):
     # Allows both views to be registered simultaneously without issue.
@@ -129,7 +129,7 @@ class DataSliceViewTest(parameterized.TestCase):
     self.assertFalse(view.has_basic_koda_view(op()))
     self.assertTrue(view.has_data_slice_view(op()))
     self.assertFalse(view.has_data_bag_view(op()))
-    self.assertFalse(view.has_koda_multiple_return_data_slice_tuple_view(op()))
+    self.assertFalse(view.has_koda_tuple_view(op()))
     # Check that C.x has the DataSliceView, meaning we can use it for further
     # tests instead of `op(...)`.
     self.assertTrue(view.has_data_slice_view(C.x))
@@ -366,12 +366,12 @@ class DataSliceViewTest(parameterized.TestCase):
     self.assertEqual(repr(expr), expected_repr)
 
 
-class KodaMultipleReturnDataSliceTupleViewTest(parameterized.TestCase):
+class KodaTupleViewTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
     arolla.abc.set_expr_view_for_registered_operator(
-        'test.op', view.KodaMultipleReturnDataSliceTupleView
+        'test.op', view.KodaTupleView
     )
 
   def tearDown(self):
@@ -383,13 +383,13 @@ class KodaMultipleReturnDataSliceTupleViewTest(parameterized.TestCase):
     self.assertFalse(view.has_basic_koda_view(op()))
     self.assertFalse(view.has_data_slice_view(op()))
     self.assertFalse(view.has_data_bag_view(op()))
-    self.assertTrue(view.has_koda_multiple_return_data_slice_tuple_view(op()))
+    self.assertTrue(view.has_koda_tuple_view(op()))
 
   def test_basic_koda_view_subclass(self):
     # Allows both views to be registered simultaneously without issue.
     self.assertTrue(
         issubclass(
-            view.KodaMultipleReturnDataSliceTupleView, view.BasicKodaView
+            view.KodaTupleView, view.BasicKodaView
         )
     )
 
@@ -406,22 +406,24 @@ class KodaMultipleReturnDataSliceTupleViewTest(parameterized.TestCase):
 
   def test_unpacking(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-    expr = op(I.x, I.y)
+    expr = op(
+        arolla.M.annotation.qtype(I.x, qtypes.DATA_SLICE),
+        arolla.M.annotation.qtype(I.y, qtypes.DATA_SLICE),
+    )
+
     x, y = expr
     self.assertTrue(view.has_data_slice_view(x))
     self.assertTrue(view.has_data_slice_view(y))
     arolla.testing.assert_expr_equal_by_fingerprint(
-        x,
-        arolla.M.annotation.qtype(
-            arolla.M.core.get_nth(expr, arolla.int64(0)), qtypes.DATA_SLICE
-        ),
+        x, arolla.M.core.get_nth(expr, arolla.int64(0)),
     )
     arolla.testing.assert_expr_equal_by_fingerprint(
-        y,
-        arolla.M.annotation.qtype(
-            arolla.M.core.get_nth(expr, arolla.int64(1)), qtypes.DATA_SLICE
-        ),
+        y, arolla.M.core.get_nth(expr, arolla.int64(1))
     )
+
+    arolla.testing.assert_expr_equal_by_fingerprint(x, expr[0])
+    arolla.testing.assert_expr_equal_by_fingerprint(y, expr[1])
+
     x_val = data_slice.DataSlice.from_vals(1)
     y_val = data_slice.DataSlice.from_vals(2)
     arolla.testing.assert_qvalue_equal_by_fingerprint(
