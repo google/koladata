@@ -29,6 +29,7 @@ from koladata.types import dict_item
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
 
+bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 
 
@@ -38,12 +39,12 @@ class DictItemTest(parameterized.TestCase):
     self.assertTrue(issubclass(dict_item.DictItem, arolla.QValue))
     self.assertTrue(issubclass(dict_item.DictItem, data_slice.DataSlice))
     self.assertTrue(issubclass(dict_item.DictItem, data_item.DataItem))
-    l = data_bag.DataBag.empty().dict()
+    l = bag().dict()
     self.assertIsInstance(l, dict_item.DictItem)
     self.assertIsInstance(l, arolla.QValue)
 
   def test_hash(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     py_dicts = [
         None,
         {'a': 42},
@@ -53,15 +54,15 @@ class DictItemTest(parameterized.TestCase):
       self.assertNotEqual(hash(db.dict(py_dict_1)), hash(db.dict(py_dict_2)))
 
   def test_db(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     testing.assert_equal(db.dict({'a': 42}).db, db)
 
   def test_get_shape(self):
-    d = data_bag.DataBag.empty().dict({'a': 42})
+    d = bag().dict({'a': 42})
     testing.assert_equal(d.get_shape(), jagged_shape.create_shape())
 
   def test_str_and_repr(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     # float32, float64 and expr are not allowed in dict keys
     py_keys = [
         ds(1),
@@ -96,7 +97,7 @@ class DictItemTest(parameterized.TestCase):
       )
 
   def test_len(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
 
     d1 = db.dict()
     self.assertEmpty(d1)
@@ -105,15 +106,22 @@ class DictItemTest(parameterized.TestCase):
     self.assertLen(d2, 2)
 
   def test_iter(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     d = db.dict({1: 2, 3: 4})
     self.assertCountEqual(list(d), [ds(1), ds(3)])
     self.assertIn(1, d)
     self.assertIn(3, d)
     self.assertNotIn(2, d)
 
+  def test_contains(self):
+    db = bag()
+    self.assertIn(1, db.dict({1: 2, 3: 42}))
+    self.assertIn(ds(1), db.dict({1: 2, 3: 42}))
+    self.assertNotIn(1, db.dict({42: 2, 3: 42}))
+    self.assertNotIn(ds(1), db.dict({42: 2, 3: 42}))
+
   def test_pop(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     d = db.dict({1: 2, 3: 4})
     self.assertLen(d, 2)
     d.pop(1)
@@ -124,7 +132,7 @@ class DictItemTest(parameterized.TestCase):
       d.pop(2)
 
   def test_del(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     d = db.dict({1: 2, 3: 4})
     self.assertLen(d, 2)
 
@@ -138,7 +146,7 @@ class DictItemTest(parameterized.TestCase):
     self.assertLen(d, 1)
 
   def test_assign_none(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     d = db.dict({1: 2, 3: 4})
     self.assertLen(d, 2)
 
@@ -152,7 +160,7 @@ class DictItemTest(parameterized.TestCase):
     self.assertLen(d, 1)
 
   def test_empty_dict(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     d = db.dict({'x': None})
     self.assertEmpty(d)
 

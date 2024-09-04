@@ -14,9 +14,15 @@
 
 """ListItem."""
 
+from typing import Any
+
 from arolla import arolla
 from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import operator_lookup
+
+
+_op_impl_lookup = operator_lookup.OperatorLookup()
 
 
 @data_slice.register_reserved_class_method_names
@@ -40,6 +46,11 @@ class ListItem(data_item.DataItem):
 
   def __iter__(self):
     return (self[i] for i in range(len(self)))
+
+  def __contains__(self, key: Any) -> bool:
+    return bool(arolla.abc.aux_eval_op(_op_impl_lookup.isin, key, self[:]))
+
+  # NOTE: ListItem.clear is inherited from DataSlice.clear.
 
 
 arolla.abc.register_qvalue_specialization(

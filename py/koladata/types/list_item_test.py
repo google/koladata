@@ -29,6 +29,7 @@ from koladata.types import data_slice
 from koladata.types import jagged_shape
 from koladata.types import list_item
 
+bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 
 
@@ -38,12 +39,12 @@ class ListItemTest(parameterized.TestCase):
     self.assertTrue(issubclass(list_item.ListItem, arolla.QValue))
     self.assertTrue(issubclass(list_item.ListItem, data_slice.DataSlice))
     self.assertTrue(issubclass(list_item.ListItem, data_item.DataItem))
-    l = data_bag.DataBag.empty().list()
+    l = bag().list()
     self.assertIsInstance(l, list_item.ListItem)
     self.assertIsInstance(l, arolla.QValue)
 
   def test_hash(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     py_lists = [
         None,
         [1, 2, 3],
@@ -53,15 +54,15 @@ class ListItemTest(parameterized.TestCase):
       self.assertNotEqual(hash(db.list(py_list_1)), hash(db.list(py_list_2)))
 
   def test_db(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     testing.assert_equal(db.list([1, 2, 3]).db, db)
 
   def test_get_shape(self):
-    l = data_bag.DataBag.empty().list([1, 2, 3])
+    l = bag().list([1, 2, 3])
     testing.assert_equal(l.get_shape(), jagged_shape.create_shape())
 
   def test_len(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
 
     l1 = db.list()
     self.assertEmpty(l1, 0)
@@ -70,7 +71,7 @@ class ListItemTest(parameterized.TestCase):
     self.assertLen(l2, 3)
 
   def test_pop(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     l = db.list([1, 2, 3, 4, 5, 6])
     testing.assert_equal(l.pop(), ds(6).with_db(db))
     testing.assert_equal(l[:], ds([1, 2, 3, 4, 5]).with_db(db))
@@ -97,10 +98,17 @@ class ListItemTest(parameterized.TestCase):
       l.pop("a")
 
   def test_iter(self):
-    db = data_bag.DataBag.empty()
+    db = bag()
     l = db.list([1, "2", 1.1])
     self.assertTrue(inspect.isgenerator(iter(l)))
     self.assertEqual([i.internal_as_py() for i in l], l[:].internal_as_py())
+
+  def test_contains(self):
+    db = bag()
+    self.assertIn(1, db.list([1, 2, 3]))
+    self.assertIn(ds(1), db.list([1, 2, 3]))
+    self.assertNotIn(1, db.list([None, 2, 3]))
+    self.assertNotIn(ds(1), db.list([None, 2, 3]))
 
   @parameterized.named_parameters(
       (
@@ -201,7 +209,7 @@ class ListItemTest(parameterized.TestCase):
       ),
   )
   def test_str_and_repr(self, x, expected_str, expected_repr):
-    db = data_bag.DataBag.empty()
+    db = bag()
     self.assertEqual(str(db.list(x)), expected_str)
     self.assertRegex(repr(db.list(x)), expected_repr)
 

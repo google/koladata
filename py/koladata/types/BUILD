@@ -312,6 +312,7 @@ py_library(
     deps = [
         ":data_item",
         ":data_slice",
+        ":operator_lookup",
         "@com_google_arolla//py/arolla",
     ],
 )

@@ -41,6 +41,9 @@ class DictItem(data_item.DataItem):
   def __contains__(self, key: Any):
     return not self[key].is_empty()
 
+  # NOTE: DictItem.clear is inherited from DataSlice.clear.
+
+
 arolla.abc.register_qvalue_specialization(
     '::koladata::python::DictItem', DictItem
 )
