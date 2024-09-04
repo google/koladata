@@ -50,6 +50,7 @@ cc_library(
     srcs = ["operators.cc"],
     deps = operator_list + [
         ":lib",
+        "//koladata:arolla_utils",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata:object_factories",
@@ -124,7 +125,6 @@ cc_library(
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
-        "@com_google_arolla//arolla/dense_array/ops",
         "@com_google_arolla//arolla/dense_array/qtype",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",

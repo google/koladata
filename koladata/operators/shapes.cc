@@ -29,6 +29,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
+#include "koladata/arolla_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_slice.h"
@@ -67,10 +68,10 @@ absl::StatusOr<DataSlice::JaggedShape::Edge> GetEdgeFromSizes(
         return absl::InvalidArgumentError(absl::StrCat(
             "unsupported DataSlice rank: ", slice.GetShape().rank()));
       }
-      ASSIGN_OR_RETURN(auto sizes, ToArollaDenseArrayInt64(slice));
+      ASSIGN_OR_RETURN(auto sizes, ToArollaDenseArray<int64_t>(slice));
       return arolla::DenseArrayEdgeFromSizesOp()(ctx, sizes);
     } else {
-      ASSIGN_OR_RETURN(auto child_size, ToArollaInt64(slice));
+      ASSIGN_OR_RETURN(auto child_size, ToArollaScalar<int64_t>(slice));
       return Edge::FromUniformGroups(parent_size, child_size);
     }
   });

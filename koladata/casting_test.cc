@@ -1668,12 +1668,14 @@ TEST(Casting, CastToNarrow) {
     EXPECT_THAT(CastToNarrow(test::DataItem(1.0f, schema::kFloat32),
                              internal::DataItem(schema::kInt32)),
                 StatusIs(absl::StatusCode::kInvalidArgument,
-                         "unsupported narrowing cast to INT32"));
+                         "unsupported narrowing cast to INT32 for the given "
+                         "FLOAT32 DataSlice"));
     // Narrowed schema is not implicitly castable to provided schema.
     EXPECT_THAT(CastToNarrow(test::DataItem(1.0f, schema::kObject),
                              internal::DataItem(schema::kInt32)),
                 StatusIs(absl::StatusCode::kInvalidArgument,
-                         "unsupported narrowing cast to INT32"));
+                         "unsupported narrowing cast to INT32 for the given "
+                         "OBJECT DataSlice"));
     // Casting succeeds if the common schema is the provided schema.
     EXPECT_THAT(
         CastToNarrow(test::DataItem(1, schema::kInt32),

@@ -15,7 +15,6 @@
 #include "koladata/operators/arolla_bridge.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -30,7 +29,6 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
@@ -38,26 +36,20 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/shape_utils.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
-#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/standard_type_properties/properties.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serving/expr_compiler.h"
 #include "arolla/util/lru_cache.h"
 #include "arolla/util/repr.h"
-#include "arolla/util/text.h"
-#include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -129,38 +121,6 @@ absl::NoDestructor<EvalCompiler::Impl> EvalCompiler::cache_(
     kCompilationCacheSize);
 
 absl::Mutex EvalCompiler::mutex_{absl::kConstInit};
-
-std::string GetQTypeName(arolla::QTypePtr qtype) {
-  return schema::DType::VerifyQTypeSupported(qtype)
-             ? absl::StrCat(schema::DType::FromQType(qtype)->name())
-             : absl::StrCat(qtype->name());
-}
-
-absl::Status VerifyCompatibleSchema(
-    const DataSlice& slice, absl::Span<const schema::DType> allowed_dtypes) {
-  const auto& schema_item = slice.GetSchemaImpl();
-  for (const auto& allowed_dtype : allowed_dtypes) {
-    if (schema_item == allowed_dtype) {
-      return absl::OkStatus();
-    }
-  }
-  return absl::InvalidArgumentError(
-      absl::StrCat("unsupported schema: ", schema_item.DebugString()));
-}
-
-absl::Status VerifyRank(const DataSlice& slice, size_t rank) {
-  if (slice.GetShape().rank() != rank) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "expected rank %d, but got rank=%d", rank, slice.GetShape().rank()));
-  }
-  return absl::OkStatus();
-}
-
-internal::DataSliceImpl GetSliceImpl(const DataSlice& slice) {
-  return slice.GetShape().rank()
-             ? slice.slice()
-             : internal::DataSliceImpl::Create({slice.item()});
-}
 
 absl::StatusOr<DataSlice> SimpleAggEval(absl::string_view op_name,
                                         std::vector<DataSlice> inputs,
@@ -341,112 +301,6 @@ absl::StatusOr<DataSlice> SimpleAggOverEval(absl::string_view op_name,
   return SimpleAggEval(op_name, std::move(inputs), std::move(output_schema),
                        edge_arg_index,
                        /*is_agg_into=*/false);
-}
-
-absl::StatusOr<bool> ToArollaBoolean(const DataSlice& x) {
-  RETURN_IF_ERROR(VerifyRank(x, 0));
-  RETURN_IF_ERROR(VerifyCompatibleSchema(
-      x, {schema::kBool, schema::kAny, schema::kObject}));
-  if (!x.item().has_value()) {
-    return absl::InvalidArgumentError("expected a present value");
-  }
-  if (x.dtype() == arolla::GetQType<bool>()) {
-    return x.item().value<bool>();
-  }
-  return absl::InvalidArgumentError(
-      absl::StrCat("unsupported dtype: ", GetQTypeName(x.dtype())));
-}
-
-absl::StatusOr<int64_t> ToArollaInt64(const DataSlice& x) {
-  RETURN_IF_ERROR(VerifyRank(x, 0));
-  RETURN_IF_ERROR(VerifyCompatibleSchema(
-      x, {schema::kInt32, schema::kInt64, schema::kAny, schema::kObject}));
-  if (!x.item().has_value()) {
-    return absl::InvalidArgumentError("expected a present value");
-  }
-  if (x.dtype() == arolla::GetQType<int32_t>()) {
-    return static_cast<int64_t>(x.item().value<int32_t>());
-  }
-  if (x.dtype() == arolla::GetQType<int64_t>()) {
-    return x.item().value<int64_t>();
-  }
-  return absl::InvalidArgumentError(
-      absl::StrCat("unsupported dtype: ", GetQTypeName(x.dtype())));
-}
-
-absl::StatusOr<double> ToArollaFloat64(const DataSlice& x) {
-  RETURN_IF_ERROR(VerifyRank(x, 0));
-  RETURN_IF_ERROR(VerifyCompatibleSchema(
-      x, {schema::kFloat32, schema::kFloat64, schema::kAny, schema::kObject}));
-  if (!x.item().has_value()) {
-    return absl::InvalidArgumentError("expected a present value");
-  }
-  if (x.dtype() == arolla::GetQType<float>()) {
-    return static_cast<double>(x.item().value<float>());
-  }
-  if (x.dtype() == arolla::GetQType<double>()) {
-    return x.item().value<double>();
-  }
-  return absl::InvalidArgumentError(
-      absl::StrCat("unsupported dtype: ", GetQTypeName(x.dtype())));
-}
-
-absl::StatusOr<arolla::DenseArray<int64_t>> ToArollaDenseArrayInt64(
-    const DataSlice& x) {
-  RETURN_IF_ERROR(VerifyCompatibleSchema(
-      x, {schema::kInt32, schema::kInt64, schema::kAny, schema::kObject}));
-  auto slice_impl = GetSliceImpl(x);
-  if (slice_impl.is_empty_and_unknown()) {
-    return arolla::CreateEmptyDenseArray<int64_t>(x.GetShape().size());
-  }
-  if (slice_impl.is_mixed_dtype()) {
-    return absl::InvalidArgumentError("mixed slices are not supported");
-  }
-  if (x.dtype() == arolla::GetQType<int32_t>()) {
-    return arolla::CreateDenseOp([](int32_t v) -> int64_t { return v; })(
-        slice_impl.values<int32_t>());
-  }
-  if (x.dtype() == arolla::GetQType<int64_t>()) {
-    return slice_impl.values<int64_t>();
-  }
-  return absl::InvalidArgumentError(
-      absl::StrCat("unsupported dtype: ", GetQTypeName(x.dtype())));
-}
-
-absl::StatusOr<arolla::DenseArray<arolla::Unit>> ToArollaDenseArrayUnit(
-    const DataSlice& x) {
-  RETURN_IF_ERROR(VerifyCompatibleSchema(
-      x, {schema::kMask, schema::kAny, schema::kObject}));
-  auto slice_impl = GetSliceImpl(x);
-  if (slice_impl.is_empty_and_unknown()) {
-    return arolla::CreateEmptyDenseArray<arolla::Unit>(x.GetShape().size());
-  }
-  if (slice_impl.is_mixed_dtype()) {
-    return absl::InvalidArgumentError("mixed slices are not supported");
-  }
-  if (x.dtype() == arolla::GetQType<arolla::Unit>()) {
-    return slice_impl.values<arolla::Unit>();
-  }
-  return absl::InvalidArgumentError(
-      absl::StrCat("unsupported dtype: ", GetQTypeName(x.dtype())));
-}
-
-absl::StatusOr<arolla::DenseArray<arolla::Text>> ToArollaDenseArrayText(
-    const DataSlice& x) {
-  RETURN_IF_ERROR(VerifyCompatibleSchema(
-      x, {schema::kText, schema::kAny, schema::kObject}));
-  auto slice_impl = GetSliceImpl(x);
-  if (slice_impl.is_empty_and_unknown()) {
-    return arolla::CreateEmptyDenseArray<arolla::Text>(x.GetShape().size());
-  }
-  if (slice_impl.is_mixed_dtype()) {
-    return absl::InvalidArgumentError("mixed slices are not supported");
-  }
-  if (x.dtype() == arolla::GetQType<arolla::Text>()) {
-    return slice_impl.values<arolla::Text>();
-  }
-  return absl::InvalidArgumentError(
-      absl::StrCat("unsupported dtype: ", GetQTypeName(x.dtype())));
 }
 
 }  // namespace koladata::ops

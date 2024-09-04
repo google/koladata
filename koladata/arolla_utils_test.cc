@@ -55,6 +55,7 @@ AROLLA_DEFINE_DENSE_ARRAY_QTYPE(DENSE_ARRAY_OBJECT_ID,
 namespace koladata {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 using ::arolla::CreateFullDenseArray;
@@ -65,7 +66,6 @@ using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
 using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
-
 
 internal::DataItem kAnySchema(schema::kAny);
 
@@ -528,6 +528,68 @@ TEST(DataSliceUtils, FromArrayError) {
     EXPECT_THAT(DataSliceFromPrimitivesArray(typed_value.AsRef()),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("unsupported array element type: UINT64")));
+  }
+}
+
+TEST(DataSliceUtils, ToArollaScalar) {
+  {
+    // Successful eval.
+    EXPECT_THAT(ToArollaScalar<int64_t>(test::DataItem(1)),
+                IsOkAndHolds(int64_t{1}));
+    EXPECT_THAT(ToArollaScalar<int64_t>(test::DataItem(1, schema::kObject)),
+                IsOkAndHolds(int64_t{1}));
+  }
+  {
+    // Errors.
+    EXPECT_THAT(
+        ToArollaScalar<int64_t>(test::DataItem(std::nullopt, schema::kInt64)),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("expected a present value")));
+    EXPECT_THAT(ToArollaScalar<int64_t>(test::DataItem(1.0f)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("unsupported narrowing")));
+    EXPECT_THAT(ToArollaScalar<int64_t>(test::DataSlice<int64_t>({1})),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "expected rank 0, but got rank=1"));
+  }
+}
+
+TEST(DataSliceUtils, ToArollaDenseArray) {
+  {
+    // Successful eval.
+    //
+    // Scalars.
+    EXPECT_THAT(ToArollaDenseArray<int64_t>(test::DataItem(1)),
+                IsOkAndHolds(ElementsAre(int64_t{1})));
+    EXPECT_THAT(ToArollaDenseArray<int64_t>(
+                    test::DataItem(std::nullopt, schema::kInt64)),
+                IsOkAndHolds(ElementsAre(std::nullopt)));
+    // One dimensional.
+    EXPECT_THAT(ToArollaDenseArray<int64_t>(
+                    test::DataSlice<int32_t>({1, std::nullopt})),
+                IsOkAndHolds(ElementsAre(int64_t{1}, std::nullopt)));
+    // Multi-dimensional.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    auto x = test::DataSlice<int32_t>({1, 2, 3, 4}, shape);
+    EXPECT_THAT(ToArollaDenseArray<int64_t>(x),
+                IsOkAndHolds(ElementsAre(int64_t{1}, int64_t{2}, int64_t{3},
+                                         int64_t{4})));
+    // Mixed data.
+    EXPECT_THAT(
+        ToArollaDenseArray<int64_t>(test::MixedDataSlice<int32_t, int64_t>(
+            {1, std::nullopt}, {std::nullopt, 2})),
+        IsOkAndHolds(ElementsAre(int64_t{1}, int64_t{2})));
+    // Empty and unknown.
+    EXPECT_THAT(
+        ToArollaDenseArray<int64_t>(test::DataSlice<int32_t>({std::nullopt})),
+        IsOkAndHolds(ElementsAre(std::nullopt)));
+  }
+  {
+    // Errors.
+    EXPECT_THAT(ToArollaDenseArray<int64_t>(test::DataSlice<float>({1.0f})),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("unsupported narrowing")));
   }
 }
 

@@ -16,12 +16,18 @@
 #define KOLADATA_AROLLA_UTILS_H_
 
 #include <vector>
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
+#include "koladata/casting.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 
@@ -72,6 +78,37 @@ absl::StatusOr<DataSlice> DataSliceFromArollaValue(
 // DataSlice have the same dtype or DataSlice has primitive schema and all-empty
 // items.
 absl::StatusOr<arolla::TypedValue> DataSliceToDenseArray(const DataSlice& ds);
+
+// Casts `x` to type `T` using narrow casting (allowing OBJECT -> T casts).
+template <typename T>
+absl::StatusOr<T> ToArollaScalar(const DataSlice& x) {
+  if (x.GetShape().rank() != 0) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected rank 0, but got rank=%d", x.GetShape().rank()));
+  }
+  if (!x.item().has_value()) {
+    return absl::InvalidArgumentError("expected a present value");
+  }
+  ASSIGN_OR_RETURN(auto x_casted,
+                   CastToNarrow(x, internal::DataItem(schema::GetDType<T>())));
+  return x_casted.item().value<T>();
+}
+
+// Casts `x` to `DenseArray<T>` using narrow casting (allowing OBJECT -> T
+// casts).
+template <typename T>
+absl::StatusOr<arolla::DenseArray<T>> ToArollaDenseArray(const DataSlice& x) {
+  ASSIGN_OR_RETURN(auto x_casted,
+                   CastToNarrow(x, internal::DataItem(schema::GetDType<T>())));
+  if (x_casted.IsEmpty()) {
+    return arolla::CreateEmptyDenseArray<T>(x.GetShape().size());
+  }
+  if (x_casted.GetShape().rank() == 0) {
+    return internal::DataSliceImpl::Create(1, x_casted.item()).values<T>();
+  } else {
+    return x_casted.slice().values<T>();
+  }
+}
 
 }  // namespace koladata
 

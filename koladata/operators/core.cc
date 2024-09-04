@@ -19,7 +19,6 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
-#include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -39,6 +38,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
+#include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -723,7 +723,7 @@ absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
           ? std::nullopt
           : std::make_optional(flattened_shape.edges().back());
   auto x_to_common = x_shape.edges().back();
-  ASSIGN_OR_RETURN(auto index_array, ToArollaDenseArrayInt64(indices));
+  ASSIGN_OR_RETURN(auto index_array, ToArollaDenseArray<int64_t>(indices));
 
   return DataSlice::Create(
       internal::AtOp(x.slice(), index_array, x_to_common, indices_to_common),
@@ -945,10 +945,10 @@ absl::StatusOr<DataSlice> ConcatOrStack(
         absl::StrCat("_concat_or_stack expected at least 2 arguments, but got ",
                      slices.size()));
   }
-  ASSIGN_OR_RETURN(auto stack, ToArollaBoolean(*slices[0]),
+  ASSIGN_OR_RETURN(auto stack, ToArollaScalar<bool>(*slices[0]),
                    _ << "`stack` argument must be a scalar BOOLEAN, but got "
                      << arolla::Repr(*slices[0]));
-  ASSIGN_OR_RETURN(auto ndim, ToArollaInt64(*slices[1]),
+  ASSIGN_OR_RETURN(auto ndim, ToArollaScalar<int64_t>(*slices[1]),
                    _ << "`ndim` argument must be a scalar INT64, but got "
                      << arolla::Repr(*slices[1]));
   std::vector<DataSlice> args;

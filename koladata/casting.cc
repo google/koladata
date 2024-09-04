@@ -331,8 +331,9 @@ absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& slice,
                    schema::CommonSchema(GetNarrowedSchema(slice), schema),
                    AssembleErrorMessage(_, {.db = slice.GetDb()}));
   if (common_schema != schema) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("unsupported narrowing cast to %v", schema));
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "unsupported narrowing cast to %v for the given %v DataSlice", schema,
+        slice.GetSchemaImpl()));
   }
   return CastTo(slice, schema, /*validate_schema=*/false);
 }

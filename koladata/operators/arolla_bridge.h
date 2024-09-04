@@ -17,7 +17,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
@@ -37,8 +36,6 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/text.h"
-#include "arolla/util/unit.h"
 
 namespace koladata::ops {
 namespace compiler_internal {
@@ -196,41 +193,6 @@ absl::StatusOr<DataSlice> SimpleAggOverEval(
     absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema = internal::DataItem(),
     int edge_arg_index = 1);
-
-// koda_internal.to_arolla_boolean operator.
-//
-// Attempts to cast the provided DataSlice (only rank=0 is supported) to
-// boolean.
-absl::StatusOr<bool> ToArollaBoolean(const DataSlice& x);
-
-// koda_internal.to_arolla_int64 operator.
-//
-// Attempts to cast the provided DataSlice (only rank=0 is supported) to int64.
-absl::StatusOr<int64_t> ToArollaInt64(const DataSlice& x);
-
-// koda_internal.to_arolla_float64 operator.
-//
-// Attempts to cast the provided DataSlice (only rank=0 is supported) to
-// float64.
-absl::StatusOr<double> ToArollaFloat64(const DataSlice& x);
-
-// koda_internal.to_arolla_dense_array_int64 operator.
-//
-// Attempts to cast the provided DataSlice to DenseArray<int64>.
-absl::StatusOr<arolla::DenseArray<int64_t>> ToArollaDenseArrayInt64(
-    const DataSlice& x);
-
-// koda_internal.to_arolla_dense_array_unit operator.
-//
-// Attempts to cast the provided DataSlice to DenseArray<Unit>.
-absl::StatusOr<arolla::DenseArray<arolla::Unit>> ToArollaDenseArrayUnit(
-    const DataSlice& x);
-
-// koda_internal.to_arolla_dense_array_unit operator.
-//
-// Attempts to cast the provided DataSlice to DenseArray<Text>.
-absl::StatusOr<arolla::DenseArray<arolla::Text>> ToArollaDenseArrayText(
-    const DataSlice& x);
 
 // koda_internal._to_data_slice operator.
 //

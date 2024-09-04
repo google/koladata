@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <cstdint>
 #include <memory>
 
+#include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/allocation.h"
-#include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/assertion.h"
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/core.h"
@@ -29,6 +30,8 @@
 #include "koladata/operators/strings.h"
 #include "arolla/qexpr/operator_factory.h"
 #include "arolla/qexpr/optools.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 
 namespace koladata::ops {
 namespace {
@@ -149,12 +152,15 @@ OPERATOR("kde.strings.lower", Lower);
 OPERATOR("kde.strings.substr", Substr);
 OPERATOR("kde.strings.upper", Upper);
 //
-OPERATOR("koda_internal.to_arolla_boolean", ToArollaBoolean);
-OPERATOR("koda_internal.to_arolla_dense_array_int64", ToArollaDenseArrayInt64);
-OPERATOR("koda_internal.to_arolla_dense_array_text", ToArollaDenseArrayText);
-OPERATOR("koda_internal.to_arolla_dense_array_unit", ToArollaDenseArrayUnit);
-OPERATOR("koda_internal.to_arolla_float64", ToArollaFloat64);
-OPERATOR("koda_internal.to_arolla_int64", ToArollaInt64);
+OPERATOR("koda_internal.to_arolla_boolean", ToArollaScalar<bool>);
+OPERATOR("koda_internal.to_arolla_dense_array_int64",
+         ToArollaDenseArray<int64_t>);
+OPERATOR("koda_internal.to_arolla_dense_array_text",
+         ToArollaDenseArray<arolla::Text>);
+OPERATOR("koda_internal.to_arolla_dense_array_unit",
+         ToArollaDenseArray<arolla::Unit>);
+OPERATOR("koda_internal.to_arolla_float64", ToArollaScalar<double>);
+OPERATOR("koda_internal.to_arolla_int64", ToArollaScalar<int64_t>);
 // go/keep-sorted end
 
 }  // namespace
