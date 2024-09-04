@@ -709,7 +709,14 @@ class UniversalConverterImpl {
             res, CreateNestedList(db_, res,
                                   call_stack.empty() ? schema_ : std::nullopt));
       }
-      ASSIGN_OR_RETURN(return_stack.emplace(), Factory::Convert(db_, res));
+      // Only Entities are converted using Factory, while primitives are kept as
+      // is, unless they are the ones being converted explicitly (e.g.
+      // kd.obj(42), in which case `call_stack` is empty).
+      if (res.GetSchemaImpl().is_entity_schema() || call_stack.empty()) {
+        ASSIGN_OR_RETURN(return_stack.emplace(), Factory::Convert(db_, res));
+      } else {
+        return_stack.emplace(std::move(res));
+      }
       computed_iter->second = return_stack.top();
       return absl::OkStatus();
     }
