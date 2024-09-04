@@ -17,6 +17,7 @@
 from typing import Any
 
 from arolla import arolla
+from koladata.expr import introspection
 from koladata.functor import py_functors_py_ext as _py_functors_py_ext
 from koladata.types import data_slice
 from koladata.types import mask_constants
@@ -26,7 +27,7 @@ from koladata.types import py_boxing
 # We can move this wrapping inside the CPython layer if needed for performance.
 def _maybe_wrap_expr(arg: Any) -> arolla.QValue:
   if isinstance(arg, arolla.Expr):
-    arg = data_slice.DataSlice.from_vals(arolla.quote(arg))
+    arg = introspection.pack_expr(arg)
   return py_boxing.as_qvalue(arg)
 
 

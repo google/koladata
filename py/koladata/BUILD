@@ -62,6 +62,7 @@ py_test(
     deps = [
         ":kd",
         "//py/koladata/functor:signature_utils",
+        "//py/koladata/testing",
         "//py/koladata/types:jagged_shape",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",

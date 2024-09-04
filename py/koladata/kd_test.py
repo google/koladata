@@ -21,6 +21,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
 from koladata.functor import signature_utils
+from koladata.testing import testing
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
 
@@ -171,6 +172,11 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.unwrap_named(expr), I.x + I.y)
     with self.assertRaisesRegex(ValueError, 'non-named'):
       _ = kd.unwrap_named(expr + I.z)
+
+  def test_pack_unpack_expr(self):
+    testing.assert_equal(kd.unpack_expr(kd.pack_expr(I.x + I.y)), I.x + I.y)
+    with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
+      kd.unpack_expr(kd.item(1))
 
 
 if __name__ == '__main__':

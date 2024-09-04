@@ -15,8 +15,8 @@
 """Tests for functor_factories."""
 
 from absl.testing import absltest
-from arolla import arolla
 from koladata.expr import input_container
+from koladata.expr import introspection
 from koladata.expr import view as _
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
@@ -28,6 +28,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
+pack_expr = introspection.pack_expr
 
 
 class FunctorFactoriesTest(absltest.TestCase):
@@ -45,12 +46,12 @@ class FunctorFactoriesTest(absltest.TestCase):
     fn = functor_factories.fn(
         returns=I.x + V.foo, signature=signature, foo=I.y, bar=v
     )
-    self.assertEqual(fn.returns, ds(arolla.quote(I.x + V.foo)))
+    self.assertEqual(fn.returns, pack_expr(I.x + V.foo))
     self.assertEqual(fn.get_attr('__signature__'), signature)
     self.assertEqual(
         fn.get_attr('__signature__').parameters[:].name.to_py(), ['x', 'y']
     )
-    self.assertEqual(fn.foo, ds(arolla.quote(I.y)))
+    self.assertEqual(fn.foo, pack_expr(I.y))
     self.assertEqual(fn.bar, v)
     self.assertEqual(fn.bar.foo, 57)
 

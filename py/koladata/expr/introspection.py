@@ -18,6 +18,8 @@ import typing
 
 from arolla import arolla
 from koladata.operators import optools
+from koladata.types import data_slice
+from koladata.types import schema_constants
 
 
 def get_name(expr: arolla.Expr) -> str | None:
@@ -34,3 +36,19 @@ def unwrap_named(expr: arolla.Expr) -> arolla.Expr:
     return expr.node_deps[0]
   else:
     raise ValueError('trying to remove the name from a non-named Expr')
+
+
+def pack_expr(expr: arolla.Expr) -> data_slice.DataSlice:
+  """Packs the given Expr into a DataItem."""
+  return data_slice.DataSlice.from_vals(arolla.quote(expr))
+
+
+def unpack_expr(ds: data_slice.DataSlice) -> arolla.Expr:
+  """Unpacks an Expr stored in a DataItem."""
+  if (
+      ds.get_ndim() != 0
+      or ds.get_schema() != schema_constants.EXPR
+      or not ds.get_present_count()
+  ):
+    raise ValueError('only present EXPR DataItems can be unpacked')
+  return ds.internal_as_py().unquote()

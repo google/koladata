@@ -89,6 +89,8 @@ kde = _kde_operators.kde
 literal = _literal_operator.literal
 get_name = _introspection.get_name
 unwrap_named = _introspection.unwrap_named
+pack_expr = _introspection.pack_expr
+unpack_expr = _introspection.unpack_expr
 # This overrides the eager_op_utils implementation which unfortunately
 # fails because M.annotation.name requires a literal as second argument.
 with_name = _general_eager_ops.with_name

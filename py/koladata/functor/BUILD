@@ -63,6 +63,7 @@ py_library(
     srcs = ["functor_factories.py"],
     deps = [
         ":py_functors_py_ext",
+        "//py/koladata/expr:introspection",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:mask_constants",
         "//py/koladata/types:py_boxing",
@@ -78,12 +79,12 @@ py_test(
         ":functor_factories",
         ":signature_utils",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:introspection",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )
 

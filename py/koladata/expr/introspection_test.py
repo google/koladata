@@ -17,12 +17,16 @@
 from absl.testing import absltest
 from koladata.expr import input_container
 from koladata.expr import introspection
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
+from koladata.types import mask_constants
 from koladata.types import py_boxing
+from koladata.types import schema_constants
 
 kde = kde_operators.kde
 I = input_container.InputContainer('I')
+kd = eager_op_utils.operators_container('kde')
 
 
 class IntrospectionTest(absltest.TestCase):
@@ -50,6 +54,24 @@ class IntrospectionTest(absltest.TestCase):
     )
     with self.assertRaisesRegex(ValueError, 'non-named'):
       introspection.unwrap_named(kde.with_name(I.x + I.y, 'foo') + I.z)
+
+  def test_pack_expr(self):
+    ds = introspection.pack_expr(I.x + I.y)
+    self.assertEqual(ds.get_schema(), schema_constants.EXPR)
+    self.assertEqual(ds.get_ndim(), 0)
+    testing.assert_equal(introspection.unpack_expr(ds), I.x + I.y)
+
+  def test_unpack_expr(self):
+    ds = introspection.pack_expr(I.x + I.y)
+    testing.assert_equal(introspection.unpack_expr(ds), I.x + I.y)
+    with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
+      introspection.unpack_expr(ds & mask_constants.missing)
+    with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
+      introspection.unpack_expr(ds.with_schema(schema_constants.ANY))
+    with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
+      introspection.unpack_expr(ds.with_schema(schema_constants.OBJECT))
+    with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
+      introspection.unpack_expr(ds.repeat(1))
 
 
 if __name__ == '__main__':
