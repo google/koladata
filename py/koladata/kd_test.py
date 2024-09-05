@@ -20,12 +20,13 @@ import types
 from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
+from koladata.expr import tracing_mode
 from koladata.functor import signature_utils
-from koladata.testing import testing
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
 
 kde = kd.kde
+kdi = kd.kdi
 I = kd.I
 V = kd.V
 S = kd.S
@@ -174,9 +175,65 @@ class KdTest(absltest.TestCase):
       _ = kd.unwrap_named(expr + I.z)
 
   def test_pack_unpack_expr(self):
-    testing.assert_equal(kd.unpack_expr(kd.pack_expr(I.x + I.y)), I.x + I.y)
+    kd.testing.assert_equal(kd.unpack_expr(kd.pack_expr(I.x + I.y)), I.x + I.y)
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
       kd.unpack_expr(kd.item(1))
+
+  def test_kdi(self):
+    self.assertCountEqual(kdi.__all__, dir(kdi))
+    self.assertCountEqual(set(dir(kd)) - set(dir(kdi)), ['kdi'])
+    self.assertCountEqual(set(dir(kdi)) - set(dir(kd)), [])
+    for name in kdi.__all__:
+      self.assertIs(getattr(kdi, name), getattr(kd, name))
+
+  def test_missing_attribute_error_message(self):
+    with self.assertRaisesRegex(
+        AttributeError,
+        "'koladata.kd' object has no attribute 'nonexisting_method'",
+    ):
+      _ = kd.nonexisting_method
+    with self.assertRaisesRegex(
+        AttributeError,
+        "'koladata.kd' object has no attribute 'nonexisting_method'",
+    ):
+      with tracing_mode.enable_tracing():
+        _ = kd.nonexisting_method
+
+  def test_unavailable_in_tracing_error_message(self):
+    with tracing_mode.enable_tracing():
+      with self.assertRaisesRegex(
+          AttributeError,
+          "Attribute 'eval' is not available in tracing mode on 'koladata.kd'",
+      ):
+        _ = kd.eval
+
+  def test_tracing_for_ops(self):
+    with tracing_mode.enable_tracing():
+      abs_op = kd.abs
+    kd.testing.assert_equal(abs_op, kde.abs)
+    with tracing_mode.enable_tracing():
+      math_abs_op = kd.math.abs
+    kd.testing.assert_equal(math_abs_op, kde.math.abs)
+
+  def test_tracing_for_functions(self):
+    with tracing_mode.enable_tracing():
+      with self.assertRaisesRegex(
+          AttributeError,
+          "Attribute 'new' is not available in tracing mode on 'koladata.kd'",
+      ):
+        _ = kd.new
+
+  def test_tracing_for_with_name(self):
+    with tracing_mode.enable_tracing():
+      with_name_expr = kd.with_name(1, 'foo')
+    kd.testing.assert_equal(with_name_expr, kde.with_name(1, 'foo'))
+
+  def test_tracing_for_constants(self):
+    with tracing_mode.enable_tracing():
+      int32_val = kd.INT32
+      present_val = kd.present
+    self.assertIs(int32_val, kd.INT32)
+    self.assertIs(present_val, kd.present)
 
 
 if __name__ == '__main__':

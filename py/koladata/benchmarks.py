@@ -24,6 +24,7 @@ I = kd.I
 V = kd.V
 S = kd.S
 kde = kd.kde
+kdi = kd.kdi
 kdf = kd.kdf
 
 
@@ -32,6 +33,12 @@ kdf = kd.kdf
 def create_empty_data_bag(state):
   while state:
     _ = kd.bag()
+
+
+@google_benchmark.register
+def create_empty_data_bag_via_kdi(state):
+  while state:
+    _ = kdi.bag()
 
 
 @google_benchmark.register

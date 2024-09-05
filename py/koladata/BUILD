@@ -38,6 +38,7 @@ py_library(
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
+        "//py/koladata/expr:tracing_mode",
         "//py/koladata/functions",
         "//py/koladata/functor:kdf",
         "//py/koladata/testing",
@@ -61,8 +62,8 @@ py_test(
     tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":kd",
+        "//py/koladata/expr:tracing_mode",
         "//py/koladata/functor:signature_utils",
-        "//py/koladata/testing",
         "//py/koladata/types:jagged_shape",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",

@@ -85,6 +85,45 @@ py_library(
     ],
 )
 
+py_library(
+    name = "tracing_mode",
+    srcs = ["tracing_mode.py"],
+)
+
+py_test(
+    name = "tracing_mode_test",
+    srcs = ["tracing_mode_test.py"],
+    deps = [
+        ":tracing_mode",
+        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "tracing",
+    srcs = ["tracing.py"],
+    deps = [
+        ":input_container",
+        ":tracing_mode",
+        "//py/koladata/types:py_boxing",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "tracing_test",
+    srcs = ["tracing_test.py"],
+    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
+    deps = [
+        ":tracing",
+        "//py/koladata:kd",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 py_test(
     name = "introspection_test",
     srcs = ["introspection_test.py"],
