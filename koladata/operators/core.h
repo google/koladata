@@ -49,6 +49,10 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
                                       const DataSlice& tie_breaker,
                                       const DataSlice& descending);
 
+// kde.core._dense_rank.
+absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,
+                                    const DataSlice& descending);
+
 // kde.core.align.
 class AlignOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

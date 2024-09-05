@@ -906,6 +906,19 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
   }
 }
 
+absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,
+                                    const DataSlice& descending) {
+  if (descending.GetShape().rank() != 0 ||
+      !descending.item().holds_value<bool>()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected `descending` to be a scalar boolean value, got %s",
+        arolla::Repr(descending)));
+  }
+  return SimpleAggOverEval(
+      "array.dense_rank", {x, descending},
+      /*output_schema=*/internal::DataItem(schema::kInt64));
+}
+
 absl::StatusOr<arolla::OperatorPtr> AlignOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
