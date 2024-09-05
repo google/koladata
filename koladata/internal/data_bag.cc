@@ -387,6 +387,10 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttr(
   if (objects.is_empty_and_unknown()) {
     return DataSliceImpl::CreateEmptyAndUnknownType(objects.size());
   }
+  if (objects.dtype() != arolla::GetQType<ObjectId>()) {
+    return absl::FailedPreconditionError(
+        "getting attributes of primitives is not allowed");
+  }
   ASSIGN_OR_RETURN(auto result, GetAttrFromSources(objects, attr));
   if (fallbacks.empty()) {
     return result;

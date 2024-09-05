@@ -347,6 +347,10 @@ absl::StatusOr<ImplT> GetAttrImpl(const std::shared_ptr<DataBag>& db,
     return absl::InvalidArgumentError(
         absl::StrCat("cannot fetch attributes without a DataBag: ", attr_name));
   }
+  if (schema.is_primitive_schema()) {
+    return absl::InvalidArgumentError(
+        "getting attributes from primitive values is not supported");
+  }
   const auto& db_impl = db->GetImpl();
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();

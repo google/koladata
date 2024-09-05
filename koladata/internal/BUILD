@@ -543,6 +543,7 @@ cc_test(
         ":object_id",
         ":uuid_object",
         "//koladata/internal/testing:matchers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/dense_array",

@@ -27,6 +27,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
@@ -46,6 +47,7 @@ namespace koladata::internal {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::arolla::OptionalValue;
 using ::koladata::internal::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
@@ -146,6 +148,36 @@ TEST(DataBagTest, SetGet) {
   EXPECT_EQ(ds_a_get.values<ObjectId>().size(), kSize);
   EXPECT_THAT(ds_a_get.values<ObjectId>(),
               ElementsAreArray(ds_a.values<ObjectId>()));
+}
+
+TEST(DataBagTest, GetAttrPrimitivesErrors) {
+  {
+    // DataSliceImpl - only primitives.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db_f = DataBagImpl::CreateEmptyDatabag();
+    auto ds = DataSliceImpl::Create({internal::DataItem(1)});
+    EXPECT_THAT(db->GetAttr(ds, "a", {db_f.get()}),
+                StatusIs(absl::StatusCode::kFailedPrecondition,
+                         "getting attributes of primitives is not allowed"));
+  }
+  {
+    // DataSliceImpl - mix.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db_f = DataBagImpl::CreateEmptyDatabag();
+    auto ds = DataSliceImpl::Create(
+        {DataItem(1), DataItem(internal::AllocateSingleObject())});
+    EXPECT_THAT(db->GetAttr(ds, "a", {db_f.get()}),
+                StatusIs(absl::StatusCode::kFailedPrecondition,
+                         "getting attributes of primitives is not allowed"));
+  }
+  {
+    // DataItem.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db_f = DataBagImpl::CreateEmptyDatabag();
+    EXPECT_THAT(db->GetAttr(internal::DataItem(1), "a", {db_f.get()}),
+                StatusIs(absl::StatusCode::kFailedPrecondition,
+                         "getting attribute of a primitive is not allowed"));
+  }
 }
 
 TEST(DataBagTest, SetGetWithFallbackObjectId) {

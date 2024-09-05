@@ -896,6 +896,34 @@ TEST(DataSliceTest, GetAttrNames_MixedObjectAndPrimitive) {
   EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b", "c")));
 }
 
+TEST(DataSliceTest, GetAttrErrors) {
+  {
+    // No db.
+    auto x =
+        test::DataSlice<internal::ObjectId>({std::nullopt}, schema::kObject);
+    EXPECT_THAT(x.GetAttr("a"),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "cannot fetch attributes without a DataBag: a"));
+  }
+  {
+    // Primitive schema.
+    auto db = DataBag::Empty();
+    auto x = test::DataSlice<int>({std::nullopt}, schema::kInt32, db);
+    EXPECT_THAT(
+        x.GetAttr("a"),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "getting attributes from primitive values is not supported"));
+  }
+  {  // Primitive data.
+    auto db = DataBag::Empty();
+    auto x = test::DataSlice<int>({1}, schema::kObject, db);
+    EXPECT_THAT(
+        x.GetAttr("a"),
+        StatusIs(absl::StatusCode::kFailedPrecondition,
+                 "getting attributes of primitives is not allowed"));
+  }
+}
+
 TEST(DataSliceTest, GetAttrNames_SchemaItem) {
   auto db = DataBag::Empty();
   auto a = test::DataSlice<int>({1});
@@ -1592,13 +1620,10 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_Primitive) {
                        ds_a.WithSchema(test::Schema(schema::kObject)));
   DataSlice obj = ds.WithDb(DataBag::Empty());
 
-  absl::StatusOr<DataSlice> result = obj.GetAttr("a");
-  EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  std::optional<internal::Error> error =
-      internal::GetErrorPayload(result.status());
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_THAT(
+      obj.GetAttr("a"),
+      StatusIs(absl::StatusCode::kFailedPrecondition,
+               HasSubstr("getting attributes of primitives is not allowed")));
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_List) {
