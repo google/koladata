@@ -14,28 +14,21 @@
 
 """Tools to introspect and manipulate Exprs."""
 
-import typing
-
 from arolla import arolla
-from koladata.operators import optools
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
 
 def get_name(expr: arolla.Expr) -> str | None:
   """Returns the name of the given Expr, or None if it does not have one."""
-  if expr.is_operator and optools.equiv_to_op(expr.op, 'kde.with_name'):
-    return typing.cast(arolla.types.Text, expr.node_deps[1].qvalue).py_value()
-  else:
-    return None
+  return arolla.abc.read_name_annotation(expr)
 
 
 def unwrap_named(expr: arolla.Expr) -> arolla.Expr:
   """Unwraps a named Expr, raising if it is not named."""
-  if expr.is_operator and optools.equiv_to_op(expr.op, 'kde.with_name'):
-    return expr.node_deps[0]
-  else:
+  if arolla.abc.read_name_annotation(expr) is None:
     raise ValueError('trying to remove the name from a non-named Expr')
+  return expr.node_deps[0]
 
 
 def pack_expr(expr: arolla.Expr) -> data_slice.DataSlice:

@@ -337,7 +337,14 @@ def _determine_positional_args_and_kwargs(
   return tuple(positional_args), kwargs
 
 
-class _KwargsBindingPolicy(arolla.abc.AuxBindingPolicy):
+class BasicBindingPolicy(arolla.abc.AuxBindingPolicy):
+  """A base class for binding policies with the Koladata method make_literal."""
+
+  def make_literal(self, value: arolla.QValue) -> arolla.Expr:
+    return literal_operator.literal(value)
+
+
+class _KwargsBindingPolicy(BasicBindingPolicy):
   """Argument binding policy for Koda operators that take arbitrary kwargs.
 
   This policy maps Python signatures to Expr operator signatures and vice versa.
@@ -391,11 +398,8 @@ class _KwargsBindingPolicy(arolla.abc.AuxBindingPolicy):
           arolla.M.namedtuple.make(**dict(zip(kwargs.keys(), kwarg_values))),
       )
 
-  def make_literal(self, value: arolla.QValue) -> arolla.Expr:
-    return literal_operator.literal(value)
 
-
-class _FullSignatureBindingPolicy(arolla.abc.AuxBindingPolicy):
+class _FullSignatureBindingPolicy(BasicBindingPolicy):
   """Argument binding policy for Koda operators with an arbitrary signature.
 
   This policy maps Python signatures to Expr operator signatures and vice versa.
@@ -580,9 +584,6 @@ class _FullSignatureBindingPolicy(arolla.abc.AuxBindingPolicy):
           f"got an unexpected keyword argument '{next(iter(kwargs.keys()))}'")
 
     return tuple(bound_values)
-
-  def make_literal(self, value: arolla.QValue) -> arolla.Expr:
-    return literal_operator.literal(value)
 
 
 # TODO: Support single arg for `kd.obj` and `kd.new` and

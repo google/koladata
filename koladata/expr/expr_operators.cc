@@ -14,6 +14,7 @@
 //
 #include "koladata/expr/expr_operators.h"
 
+#include <memory>
 #include <utility>
 
 #include "absl/status/status.h"
@@ -23,6 +24,7 @@
 #include "absl/types/span.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
 #include "koladata/internal/ellipsis.h"
+#include "arolla/expr/annotation_expr_operators.h"
 #include "arolla/expr/basic_expr_operator.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_attributes.h"
@@ -118,6 +120,12 @@ AROLLA_INITIALIZER(
                                arolla::expr::MakeLambdaOperator(
                                    arolla::expr::ExprOperatorSignature{},
                                    arolla::expr::Literal(internal::Ellipsis{})))
+                  .status());
+          RETURN_IF_ERROR(
+              RegisterOperator(
+                  "koda_internal.with_name",
+                  std::make_shared<arolla::expr::NameAnnotation>(
+                      /*aux_policy=*/"_koladata_annotation_with_name"))
                   .status());
           return absl::OkStatus();
         })
