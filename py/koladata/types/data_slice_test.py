@@ -1446,11 +1446,13 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     single_list[1] = None
     testing.assert_equal(single_list[:], ds([1, None, 3]).with_db(db))
 
-    with self.assertRaisesRegex(
-        ValueError,
-        'slice with 0 dimensions, while 1 dimensions are required',
-    ):
-      single_list[1:] = None
+    single_list[1:] = None
+    testing.assert_equal(single_list[:], ds([1, None, None]).with_db(db))
+
+    single_list[:] = None
+    testing.assert_equal(
+        single_list[:],
+        ds([None, None, None]).with_schema(schema_constants.INT32).with_db(db))
 
     many_lists[:] = ds([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     many_lists[1] = None
@@ -1460,11 +1462,11 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
         ds([['a', None, 3], ['b', None, 6], [7, None, None]]).with_db(db),
     )
 
-    with self.assertRaisesRegex(
-        ValueError,
-        'slice with 0 dimensions, while 2 dimensions are required',
-    ):
-      many_lists[1:] = None
+    many_lists[1:] = None
+    testing.assert_equal(
+        many_lists[:],
+        ds([['a', None, None], ['b', None, None], [7, None, None]]).with_db(db),
+    )
 
   def test_del_list_items(self):
     db = bag()

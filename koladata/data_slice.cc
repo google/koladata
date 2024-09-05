@@ -1532,14 +1532,23 @@ absl::Status DataSlice::ReplaceInList(int64_t start,
     return absl::InvalidArgumentError(
         "cannot set items of a list without a DataBag");
   }
-  if (values.GetShape().rank() != GetShape().rank() + 1) {
+  auto rank = GetShape().rank();
+  auto values_rank = values.GetShape().rank();
+  if (values_rank == 0) {
+    ASSIGN_OR_RETURN(auto exploded_list, ExplodeList(start, stop));
+    ASSIGN_OR_RETURN(auto values_broadcasted,
+                     BroadcastToShape(values, exploded_list.GetShape()));
+    return ReplaceInList(start, stop, values_broadcasted);
+  }
+
+  if (values_rank != rank + 1) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "trying to modify a slice of lists with %d "
         "dimensions using a slice with %d "
         "dimensions, while %d dimensions are required. "
         "For example, instead of foo[1:3] = bar where bar is a list, write "
         "foo[1:3] = bar[:]",
-        GetShape().rank(), values.GetShape().rank(), GetShape().rank() + 1));
+        rank, values_rank, rank + 1));
   }
   if (!GetShape().IsBroadcastableTo(values.GetShape())) {
     return BroadcastToShape(*this, values.GetShape()).status();
