@@ -451,6 +451,25 @@ class DataSliceTest(parameterized.TestCase):
     testing.assert_equal(x.xyz, ds([12], schema_constants.INT64).with_db(db))
     testing.assert_equal(x.xyz.get_schema(), schema_constants.INT64.with_db(db))
 
+  def test_as_any(self):
+    testing.assert_equal(
+        ds([1, 2, 3]).as_any(), ds([1, 2, 3]).with_schema(schema_constants.ANY)
+    )
+    o = bag().obj(x=ds([1, 2, 3]))
+    testing.assert_equal(
+        o.as_any(), o.with_schema(schema_constants.ANY)
+    )
+
+  def test_as_itemid(self):
+    o = bag().obj(x=ds([1, 2, 3]))
+    testing.assert_equal(
+        o.as_itemid(), o.with_schema(schema_constants.ITEMID)
+    )
+    with self.assertRaisesRegex(ValueError, 'unsupported schema: INT32'):
+      ds([1, 2, 3]).as_itemid()
+    with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to ITEMID'):
+      ds([1, 2, 3], schema_constants.OBJECT).as_itemid()
+
   def test_set_get_attr_methods(self):
     db = bag()
 
