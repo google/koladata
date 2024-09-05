@@ -179,6 +179,137 @@ TEST(EntityCreatorTest, DataItem) {
   EXPECT_EQ(schema_b_get.item(), schema::kInt32);
 }
 
+TEST(EntityCreatorTest, DatabagAdoption) {
+  arolla::InitArolla();
+  auto db_nested = DataBag::Empty();
+  auto ds_a = test::DataItem(42);
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_nested,
+      EntityCreator::FromAttrs(
+          db_nested, {"a"}, {ds_a}));
+
+  // FromAttrs
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        EntityCreator::FromAttrs(db, {"nested"}, {ds_nested}));
+    ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
+    EXPECT_THAT(ds_get_attr.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+  }
+
+  // Like
+  {
+    auto db = DataBag::Empty();
+    auto shape_and_mask_from = test::DataItem(1);
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, EntityCreator::Like(db, shape_and_mask_from, {"nested"},
+                                     {ds_nested}));
+    ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
+    EXPECT_THAT(ds_get_attr.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+  }
+
+  // Shaped
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        EntityCreator::Shaped(db, DataSlice::JaggedShape::FlatFromSize(3),
+                              {"nested"}, {ds_nested}));
+    ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
+    EXPECT_THAT(ds_get_attr.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({42, 42, 42}).WithDb(db))));
+  }
+}
+
+TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
+  arolla::InitArolla();
+  auto schema_db = DataBag::Empty();
+  auto alt_schema = *CreateEntitySchema(schema_db, {"a"},
+                                          {test::Schema(schema::kFloat32)});
+
+  // FromAttrs
+  // Schema comes from different db and takes effect.
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)}, alt_schema));
+    EXPECT_THAT(ds.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f).WithDb(db))));
+  }
+
+  // FromAttrs
+  // Schema comes from different db and gets overwritten
+  {
+    auto db = DataBag::Empty();
+    auto schema_db = DataBag::Empty();
+    auto alt_schema = *CreateEntitySchema(schema_db, {"a"},
+                                            {test::Schema(schema::kFloat32)});
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)}, alt_schema,
+                                /*update_schema=*/true));
+    EXPECT_THAT(ds.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+  }
+
+  // Like
+  // Schema comes from different db and takes effect.
+  {
+    auto shape_and_mask_from = test::DataItem(1);
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, EntityCreator::Like(db, shape_and_mask_from, {"a"},
+                                     {test::DataItem(42)}, alt_schema));
+    EXPECT_THAT(ds.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f).WithDb(db))));
+  }
+
+  // Like
+  // Schema comes from different db and gets overwritten
+  {
+    auto shape_and_mask_from = test::DataItem(1);
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         EntityCreator::Like(db, shape_and_mask_from, {"a"},
+                                             {test::DataItem(42)}, alt_schema,
+                                             /*update_schema=*/true));
+    EXPECT_THAT(ds.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+  }
+
+  // Shaped
+  // Schema comes from different db and takes effect.
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        EntityCreator::Shaped(db, DataSlice::JaggedShape::FlatFromSize(3),
+                              {"a"}, {test::DataItem(42)}, alt_schema));
+    EXPECT_THAT(ds.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<float>({42.0f, 42.0f, 42.0f}).WithDb(db))));
+  }
+
+  // Shaped
+  // Schema comes from different db and gets overwritten
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        EntityCreator::Shaped(db, DataSlice::JaggedShape::FlatFromSize(3),
+                              {"a"}, {test::DataItem(42)}, alt_schema,
+                              /*update_schema=*/true));
+    EXPECT_THAT(ds.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({42, 42, 42}).WithDb(db))));
+  }
+}
+
 TEST(EntityCreatorTest, SchemaArg) {
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);
@@ -279,12 +410,11 @@ TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
   auto int_s = test::Schema(schema::kFloat32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
-  EXPECT_THAT(
-      EntityCreator::FromAttrs(db, {"a", "b"},
-                               {test::DataItem(42), test::DataItem("xyz")},
-                               entity_schema),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("attribute 'b' is missing on the schema")));
+  EXPECT_THAT(EntityCreator::FromAttrs(
+                  db, {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+                  entity_schema),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("attribute 'b' is missing on the schema")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
@@ -294,6 +424,14 @@ TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
 
   EXPECT_THAT(entity.GetAttr("b"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+
+  EXPECT_THAT(
+      EntityCreator::FromAttrs(
+          db, {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
+          test::DataSlice<schema::DType>({schema::kInt32})),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("schema can only be 0-rank schema slice, got: rank(1)")));
 }
 
 TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
@@ -318,6 +456,15 @@ TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
 
   EXPECT_THAT(entity.GetAttr("b"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+
+  EXPECT_THAT(
+    EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
+                        {"a", "b"},
+                        {test::DataItem(42), test::DataItem("xyz")},
+                        test::DataSlice<schema::DType>({schema::kInt32})),
+    StatusIs(absl::StatusCode::kInvalidArgument,
+             HasSubstr("schema can only be 0-rank schema slice, got: rank(1)"))
+  );
 }
 
 TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
@@ -350,6 +497,15 @@ TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
       IsOkAndHolds(IsEquivalentTo(
           test::DataSlice<arolla::Text>({"xyz", std::nullopt, "xyz"})
           .WithDb(db))));
+
+  EXPECT_THAT(
+    EntityCreator::Like(db, shape_and_mask_from,
+                        {"a", "b"},
+                        {test::DataItem(42), test::DataItem("xyz")},
+                        test::DataSlice<schema::DType>({schema::kInt32})),
+    StatusIs(absl::StatusCode::kInvalidArgument,
+             HasSubstr("schema can only be 0-rank schema slice, got: rank(1)"))
+  );
 }
 
 TEST(EntityCreatorTest, SchemaArg_NoDb) {
@@ -704,6 +860,51 @@ TEST(ObjectCreatorTest, DataItem) {
   // Schema attribute check.
   EXPECT_THAT(db->GetImpl().GetSchemaAttr(schema_item, "b"),
               IsOkAndHolds(schema::kInt32));
+}
+
+TEST(ObjectCreatorTest, DatabagAdoption) {
+  auto db_nested = DataBag::Empty();
+  auto ds_a = test::DataItem(42);
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_nested,
+      ObjectCreator::FromAttrs(
+          db_nested, {"a"}, {ds_a}));
+
+  // FromAttrs
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        ObjectCreator::FromAttrs(db, {"nested"}, {ds_nested}));
+    ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
+    EXPECT_THAT(ds_get_attr.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+  }
+
+  // Like
+  {
+    auto db = DataBag::Empty();
+    auto shape_and_mask_from = test::DataItem(1);
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, ObjectCreator::Like(db, shape_and_mask_from, {"nested"},
+                                     {ds_nested}));
+    ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
+    EXPECT_THAT(ds_get_attr.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+  }
+
+  // Shaped
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        ObjectCreator::Shaped(db, DataSlice::JaggedShape::FlatFromSize(3),
+                              {"nested"}, {ds_nested}));
+    ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
+    EXPECT_THAT(ds_get_attr.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({42, 42, 42}).WithDb(db))));
+  }
 }
 
 TEST(ObjectCreatorTest, InvalidSchemaArg) {

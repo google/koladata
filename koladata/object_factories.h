@@ -58,6 +58,8 @@ struct EntityCreator {
   //
   // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
   // allocating them.
+  //
+  // Adopts `values` and `schema`(if present) into `db`.
   static absl::StatusOr<DataSlice> FromAttrs(
       const DataBagPtr& db,
       const std::vector<absl::string_view>& attr_names,
@@ -81,6 +83,8 @@ struct EntityCreator {
   //
   // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
   // allocating them.
+  //
+  // Adopts `values` and `schema`(if present) into `db`.
   static absl::StatusOr<DataSlice> Shaped(
       const DataBagPtr& db,
       DataSlice::JaggedShape shape,
@@ -106,6 +110,8 @@ struct EntityCreator {
   //
   // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
   // allocating them.
+  //
+  // Adopts `values` and `schema`(if present) into `db`.
   static absl::StatusOr<DataSlice> Like(
       const DataBagPtr& db,
       const DataSlice& shape_and_mask_from,
@@ -140,6 +146,8 @@ struct ObjectCreator {
   //
   // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
   // allocating them.
+  //
+  // Adopts `values` and `schema`(if present) into `db`.
   static absl::StatusOr<DataSlice> FromAttrs(
       const DataBagPtr& db,
       const std::vector<absl::string_view>& attr_names,
@@ -159,6 +167,8 @@ struct ObjectCreator {
   //
   // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
   // allocating them.
+  //
+  // Adopts `values` and `schema`(if present) into `db`.
   static absl::StatusOr<DataSlice> Shaped(
       const DataBagPtr& db,
       DataSlice::JaggedShape shape,
@@ -180,6 +190,8 @@ struct ObjectCreator {
   //
   // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
   // allocating them.
+  //
+  // Adopts `values` and `schema`(if present) into `db`.
   static absl::StatusOr<DataSlice> Like(
       const DataBagPtr& db,
       const DataSlice& shape_and_mask_from,

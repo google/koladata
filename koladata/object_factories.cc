@@ -470,6 +470,16 @@ absl::StatusOr<DataSlice> CreateDictImpl(
   return res;
 }
 
+// Adopts elements of first arg into `db`.
+absl::Status AdoptValuesInto(absl::Span<const DataSlice> values,
+                             DataBag& db) {
+  AdoptionQueue adoption_queue;
+  for (size_t i = 0; i < values.size(); ++i) {
+    adoption_queue.Add(values[i]);
+  }
+  return adoption_queue.AdoptInto(db);
+}
+
 // Implementation of EntityCreator -Shaped and -Like that handles assignment of
 // attributes and provided schema. `create_entities_fn` must create a DataSlice
 // with appropriate shape and sparsity with the provided schema item.
@@ -485,10 +495,18 @@ absl::StatusOr<DataSlice> CreateEntitiesImpl(
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     schema_item = schema->item();
-    ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                     db->GetMutableImpl());
-    RETURN_IF_ERROR(
-        CopyEntitySchema(schema->GetDb(), schema_item, db_mutable_impl));
+    if (!schema_item.is_entity_schema() && schema_item != schema::kAny) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "processing Entity attributes requires Entity schema, got %v",
+          schema_item));
+    }
+    if (schema_item != schema::kAny) {
+      // Copy schema into db before setting attributes for proper casting /
+      // error reporting.
+      AdoptionQueue schema_adoption_queue;
+      schema_adoption_queue.Add(*schema);
+      RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
+    }
   } else {
     schema_item = internal::DataItem(internal::AllocateExplicitSchema());
     // New schema is allocated, so attributes should be written to it
@@ -497,6 +515,11 @@ absl::StatusOr<DataSlice> CreateEntitiesImpl(
   }
   ASSIGN_OR_RETURN(DataSlice res, create_entities_fn(schema_item));
   RETURN_IF_ERROR(res.SetAttrs(attr_names, values, update_schema));
+  // Adopt into the databag only at the end to avoid garbage in the databag in
+  // case of error.
+  // NOTE: This will cause 2 merges of the same DataBag, if schema comes from
+  // the same DataBag as values.
+  RETURN_IF_ERROR(AdoptValuesInto(values, *db));
   return res;
 }
 
@@ -523,6 +546,9 @@ absl::StatusOr<DataSlice> CreateObjectsImpl(
     return absl::OkStatus();
   }));
   RETURN_IF_ERROR(res.SetAttrs(attr_names, values));
+  // Adopt into the databag only at the end to avoid garbage in the databag in
+  // case of error.
+  RETURN_IF_ERROR(AdoptValuesInto(values, *db));
   return res;
 }
 
@@ -575,8 +601,18 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     schema_item = schema->item();
-    RETURN_IF_ERROR(
-        CopyEntitySchema(schema->GetDb(), schema_item, db_mutable_impl));
+    if (!schema_item.is_entity_schema() && schema_item != schema::kAny) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "processing Entity attributes requires Entity schema, got %v",
+          schema_item));
+    }
+    if (schema_item != schema::kAny) {
+      // Copy schema into db before setting attributes for proper casting /
+      // error reporting.
+      AdoptionQueue schema_adoption_queue;
+      schema_adoption_queue.Add(*schema);
+      RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
+    }
   }
   if (values.empty()) {
     if (!schema_item.has_value()) {
@@ -613,13 +649,23 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
     }
     ASSIGN_OR_RETURN(aligned_values, shape::Align(values));
   }
+  std::optional<DataSlice> res;
   // All DataSlices have the same shape at this point and thus the same internal
   // representation, so we pick any of them to dispatch the object creation by
   // internal implementation type.
-  return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
-    return CreateEntitiesFromFields<T>(db, attr_names, aligned_values,
-                                       std::move(schema_item), db_mutable_impl);
-  });
+  RETURN_IF_ERROR(aligned_values.begin()->VisitImpl(
+      [&]<class T>(const T& impl) -> absl::Status {
+        ASSIGN_OR_RETURN(res, CreateEntitiesFromFields<T>(
+                                  db, attr_names, aligned_values,
+                                  std::move(schema_item), db_mutable_impl));
+        return absl::OkStatus();
+      }));
+  // Adopt into the databag only at the end to avoid garbage in the databag in
+  // case of error.
+  // NOTE: This will cause 2 merges of the same DataBag, if schema comes from
+  // the same DataBag as values.
+  RETURN_IF_ERROR(AdoptValuesInto(aligned_values, *db));
+  return *std::move(res);
 }
 
 absl::StatusOr<DataSlice> EntityCreator::Shaped(
@@ -675,12 +721,20 @@ absl::StatusOr<DataSlice> ObjectCreator::FromAttrs(
   }
   RETURN_IF_ERROR(VerifyNoSchemaArg(attr_names));
   ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
+  std::optional<DataSlice> res;
   // All DataSlices have the same shape at this point and thus the same internal
   // representation, so we pick any of them to dispatch the object creation by
   // internal implementation type.
-  return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
-    return CreateObjectsFromFields<T>(db, attr_names, aligned_values);
-  });
+  RETURN_IF_ERROR(aligned_values.begin()->VisitImpl(
+      [&]<class T>(const T& impl) -> absl::Status {
+        ASSIGN_OR_RETURN(
+            res, CreateObjectsFromFields<T>(db, attr_names, aligned_values));
+        return absl::OkStatus();
+      }));
+  // Adopt into the databag only at the end to avoid garbage in the databag in
+  // case of error.
+  RETURN_IF_ERROR(AdoptValuesInto(aligned_values, *db));
+  return *std::move(res);
 }
 
 absl::StatusOr<DataSlice> ObjectCreator::Shaped(

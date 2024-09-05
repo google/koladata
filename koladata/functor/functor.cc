@@ -89,13 +89,7 @@ absl::StatusOr<DataSlice> CreateFunctor(
     variable_names.push_back(kSignatureAttrName);
     variable_values.push_back(signature.value());
   }
-
-  AdoptionQueue adoption_queue;
-  for (const auto& value : variable_values) {
-    adoption_queue.Add(value);
-  }
   auto db = DataBag::Empty();
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
   return ObjectCreator::FromAttrs(db, variable_names, variable_values);
 }
 

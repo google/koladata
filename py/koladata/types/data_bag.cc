@@ -16,6 +16,7 @@
 
 #include <Python.h>
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <utility>
@@ -115,6 +116,17 @@ absl::Nullable<PyObject*> PyDataBag_kwargs_to_namedtuple(
   return arolla::python::WrapAsPyQValue(named_tuple);
 }
 
+// Attach `db` to each DataSlice in `values`.
+std::vector<DataSlice> ManyWithDb(absl::Span<const DataSlice> values,
+                                  const DataBagPtr& db) {
+  std::vector<DataSlice> values_with_db;
+  values_with_db.reserve(values.size());
+  for (size_t i = 0; i < values.size(); ++i) {
+    values_with_db.push_back(values[i].WithDb(db));
+  }
+  return values_with_db;
+}
+
 // Helper factory functors to adapt interface of EntityCreator / ObjectCreator
 // to ProcessObjectCreation:
 // * EntityCreatorHelper
@@ -129,11 +141,10 @@ struct EntityCreatorHelper {
       const std::vector<DataSlice>& values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
       const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db, AdoptionQueue& adoption_queue) {
-    if (schema_arg) {
-      adoption_queue.Add(*schema_arg);
-    }
-    return EntityCreator::FromAttrs(db, attr_names, values, schema_arg,
+      const DataBagPtr& db) {
+    // Add `db` to each DataSlice value to avoid double adoption work.
+    auto adopted_values = ManyWithDb(values, db);
+    return EntityCreator::FromAttrs(db, attr_names, adopted_values, schema_arg,
                                     update_schema, itemid);
   }
 
@@ -143,12 +154,12 @@ struct EntityCreatorHelper {
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
       const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db, AdoptionQueue& adoption_queue) {
-    if (schema_arg) {
-      adoption_queue.Add(*schema_arg);
-    }
-    return EntityCreator::Shaped(db, std::move(shape), attr_names, values,
-                                 schema_arg, update_schema, itemid);
+      const DataBagPtr& db) {
+    // Add `db` to each DataSlice value to avoid double adoption work.
+    auto adopted_values = ManyWithDb(values, db);
+    return EntityCreator::Shaped(db, std::move(shape), attr_names,
+                                 adopted_values, schema_arg, update_schema,
+                                 itemid);
   }
 
   static absl::StatusOr<DataSlice> Like(
@@ -157,18 +168,20 @@ struct EntityCreatorHelper {
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
       const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db, AdoptionQueue& adoption_queue) {
-    if (schema_arg) {
-      adoption_queue.Add(*schema_arg);
-    }
-    return EntityCreator::Like(db, shape_and_mask_from, attr_names, values,
-                               schema_arg, update_schema, itemid);
+      const DataBagPtr& db) {
+    // Add `db` to each DataSlice value to avoid double adoption work.
+    auto adopted_values = ManyWithDb(values, db);
+    return EntityCreator::Like(db, shape_and_mask_from, attr_names,
+                               adopted_values, schema_arg, update_schema,
+                               itemid);
   }
 
   static absl::StatusOr<DataSlice> FromPyObject(
       PyObject* py_obj, const std::optional<DataSlice>& schema_arg,
       const DataBagPtr& db, AdoptionQueue& adoption_queue) {
-    return EntitiesFromPyObject(py_obj, schema_arg, db, adoption_queue);
+    ASSIGN_OR_RETURN(DataSlice res, EntitiesFromPyObject(py_obj, schema_arg, db,
+                                                         adoption_queue));
+    return res;
   }
 };
 
@@ -180,13 +193,15 @@ struct ObjectCreatorHelper {
       const std::vector<DataSlice>& values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
       const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db, [[maybe_unused]] AdoptionQueue& adoption_queue) {
+      const DataBagPtr& db) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!update_schema) << "unused and not filled";
-    return ObjectCreator::FromAttrs(db, attr_names, values, itemid);
+    // Add `db` to each DataSlice value to avoid double adoption work.
+    auto adopted_values = ManyWithDb(values, db);
+    return ObjectCreator::FromAttrs(db, attr_names, adopted_values, itemid);
   }
 
   static absl::StatusOr<DataSlice> Shaped(
@@ -195,12 +210,14 @@ struct ObjectCreatorHelper {
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
       const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db, [[maybe_unused]] AdoptionQueue& adoption_queue) {
+      const DataBagPtr& db) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!update_schema) << "unused and not filled";
+    // Add `db` to each DataSlice value to avoid double adoption work.
+    auto adopted_values = ManyWithDb(values, db);
     return ObjectCreator::Shaped(db, std::move(shape), attr_names, values,
                                  itemid);
   }
@@ -211,12 +228,13 @@ struct ObjectCreatorHelper {
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool update_schema,
       const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db, AdoptionQueue& adoption_queue) {
+      const DataBagPtr& db) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!update_schema) << "unused and not filled";
+    auto adopted_values = ManyWithDb(values, db);
     return ObjectCreator::Like(db, shape_and_mask_from, attr_names, values,
                                itemid);
   }
@@ -227,7 +245,9 @@ struct ObjectCreatorHelper {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
-    return ObjectsFromPyObject(py_obj, db, adoption_queue);
+    ASSIGN_OR_RETURN(DataSlice res,
+                     ObjectsFromPyObject(py_obj, db, adoption_queue));
+    return res;
   }
 };
 
@@ -237,7 +257,6 @@ struct ObjectCreatorHelper {
 template <class FactoryHelperT>
 absl::Nullable<PyObject*> ProcessObjectCreation(
     const DataBagPtr& db, const FastcallArgParser::Args& args) {
-  AdoptionQueue adoption_queue;
   std::optional<DataSlice> res;
   std::optional<DataSlice> schema_arg;
   if (!ParseDataSliceArg(args, "schema", schema_arg)) {
@@ -267,27 +286,37 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
           "kd.new and kd.obj do not support `itemid` in converter mode");
       return nullptr;
     }
+    AdoptionQueue adoption_queue;
     ASSIGN_OR_RETURN(res,
                      FactoryHelperT::FromPyObject(
                          args.pos_kw_values[0], schema_arg, db, adoption_queue),
                      SetKodaPyErrFromStatus(_));
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
+        .With([&](const absl::Status& status) {
+          return SetKodaPyErrFromStatus(
+              CreateItemCreationError(status, schema_arg));
+        });
   } else {
+    AdoptionQueue adoption_queue;
     ASSIGN_OR_RETURN(
         std::vector<DataSlice> values,
         ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
         SetKodaPyErrFromStatus(_));
+    // Because `EntityCreator` relies on accurate databags of attrs for error
+    // messages, and because `EntityCreatorHelper` strips attr databags to avoid
+    // double adoption, we need to do adoption before calling the helper to have
+    // accurate databags for error messages.
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
+        .With([&](const absl::Status& status) {
+          return SetKodaPyErrFromStatus(
+              CreateItemCreationError(status, schema_arg));
+        });
     ASSIGN_OR_RETURN(
         res,
         FactoryHelperT::FromAttributes(
-            args.kw_names, values, schema_arg, update_schema, itemid, db,
-            adoption_queue),
+            args.kw_names, values, schema_arg, update_schema, itemid, db),
         SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
   }
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
-      .With([&](const absl::Status& status) {
-        return SetKodaPyErrFromStatus(
-            CreateItemCreationError(status, schema_arg));
-      });
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -344,7 +373,6 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory(PyObject* self,
 template <class FactoryHelperT>
 absl::Nullable<PyObject*> ProcessObjectShapedCreation(
     const DataBagPtr& db, const FastcallArgParser::Args& args) {
-  AdoptionQueue adoption_queue;
   std::optional<DataSlice> res;
   // args.pos_kw_values[0] is "shape" positional-keyword argument.
   if (args.pos_kw_values[0] == nullptr) {
@@ -368,23 +396,29 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
   if (!ParseDataSliceArg(args, "itemid", itemid)) {
     return nullptr;
   }
+  AdoptionQueue adoption_queue;
+
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
       ConvertArgsToDataSlices(
           db, /*prohibit_boxing_to_multi_dim_slice=*/shape->rank() != 0,
           args.kw_values, adoption_queue),
       SetKodaPyErrFromStatus(_));
-  ASSIGN_OR_RETURN(
-      res,
-      FactoryHelperT::Shaped(
-          *std::move(shape), args.kw_names, values, schema_arg, update_schema,
-          itemid, db, adoption_queue),
-      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
+  // Because `EntityCreator` relies on accurate databags of attrs for error
+  // messages, and because `EntityCreatorHelper` strips attr databags to avoid
+  // double adoption, we need to do adoption before calling the helper to have
+  // accurate databags for error messages.
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
       .With([&](const absl::Status& status) {
         return SetKodaPyErrFromStatus(
             CreateItemCreationError(status, schema_arg));
       });
+  ASSIGN_OR_RETURN(
+      res,
+      FactoryHelperT::Shaped(
+          *std::move(shape), args.kw_names, values, schema_arg, update_schema,
+          itemid, db),
+      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -437,7 +471,6 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_shaped(PyObject* self,
 template <class FactoryHelperT>
 absl::Nullable<PyObject*> ProcessObjectLikeCreation(
     const DataBagPtr& db, const FastcallArgParser::Args& args) {
-  AdoptionQueue adoption_queue;
   std::optional<DataSlice> res;
   // args.pos_kw_values[0] is "shape_and_mask_from" positional-keyword argument.
   if (args.pos_kw_values[0] == nullptr) {
@@ -462,6 +495,7 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
   if (!ParseDataSliceArg(args, "itemid", itemid)) {
     return nullptr;
   }
+  AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
       ConvertArgsToDataSlices(db,
@@ -469,17 +503,21 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
                               shape_and_mask_from->GetShape().rank() != 0,
                               args.kw_values, adoption_queue),
       SetKodaPyErrFromStatus(_));
-  ASSIGN_OR_RETURN(
-      res,
-      FactoryHelperT::Like(
-          *shape_and_mask_from, args.kw_names, values, schema_arg,
-          update_schema, itemid, db, adoption_queue),
-      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
+  // Because `EntityCreator` relies on accurate databags of attrs for error
+  // messages, and because `EntityCreatorHelper` strips attr databags to avoid
+  // double adoption, we need to do adoption before calling the helper to have
+  // accurate databags for error messages.
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
       .With([&](const absl::Status& status) {
         return SetKodaPyErrFromStatus(
             CreateItemCreationError(status, schema_arg));
       });
+  ASSIGN_OR_RETURN(
+      res,
+      FactoryHelperT::Like(
+          *shape_and_mask_from, args.kw_names, values, schema_arg,
+          update_schema, itemid, db),
+      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
   return WrapPyDataSlice(*std::move(res));
 }
 
