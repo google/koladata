@@ -153,6 +153,14 @@ absl::StatusOr<DataSlice> CumMax(const DataSlice& x) {
   return SimpleAggOverEval("math.cum_max", {x});
 }
 
+absl::StatusOr<DataSlice> CumMin(const DataSlice& x) {
+  return SimpleAggOverEval("math.cum_min", {x});
+}
+
+absl::StatusOr<DataSlice> CumSum(const DataSlice& x) {
+  return SimpleAggOverEval("math.cum_sum", {x});
+}
+
 absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
   ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
   // The input has primitive schema or OBJECT/ANY schema with a single primitive

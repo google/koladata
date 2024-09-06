@@ -65,8 +65,14 @@ absl::StatusOr<DataSlice> CumMax(const DataSlice& x);
 // kde.math.minimum.
 absl::StatusOr<DataSlice> Minimum(const DataSlice& x, const DataSlice& y);
 
+// kde.math.cum_min.
+absl::StatusOr<DataSlice> CumMin(const DataSlice& x);
+
 // kde.math._agg_sum.
 absl::StatusOr<DataSlice> AggSum(const DataSlice& x);
+
+// kde.math._cum_sum.
+absl::StatusOr<DataSlice> CumSum(const DataSlice& x);
 
 // kde.math._agg_mean.
 absl::StatusOr<DataSlice> AggMean(const DataSlice& x);
