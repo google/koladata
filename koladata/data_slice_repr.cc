@@ -305,6 +305,9 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
   --next_option.depth;
 
   if (data_item.template holds_value<ObjectId>()) {
+    if (ds.GetDb() == nullptr) {
+      return DataItemRepr(data_item);
+    }
     const ObjectId& obj = data_item.template value<ObjectId>();
     if (obj.IsList()) {
       return ListToStr(ds, next_option);

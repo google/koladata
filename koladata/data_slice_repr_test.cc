@@ -333,6 +333,22 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ImplicitSchema) {
               IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=TEXT)"));
 }
 
+TEST(DataSliceReprTest, TestItemStringRepresentation_NoDb) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value_1 = test::DataItem(1);
+  DataSlice value_2 = test::DataItem("b");
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
+
+  entity = entity.WithDb(/*db=*/nullptr);
+
+  EXPECT_THAT(DataSliceToStr(entity),
+              IsOkAndHolds(MatchesRegex(R"regex(\$[a-f0-9]{32}:0)regex")));
+}
+
 TEST(DataSliceReprTest, TestItemStringReprWithFallbackDB) {
   DataSlice ds_a = test::DataItem(1);
 
