@@ -19,6 +19,7 @@
 #include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <stack>
@@ -35,6 +36,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
@@ -274,9 +276,8 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     // user. If this is gathered from data, it is validated to be implicitly
     // castable when finding the common schema. The schema attributes are not
     // validated, and are instead assumed to be part of the adoption queue.
-    ASSIGN_OR_RETURN(
-        auto res,
-        CreateWithSchema(std::move(bldr).Build(), std::move(shape), schema));
+    ASSIGN_OR_RETURN(auto res, CreateWithSchema(std::move(bldr).Build(),
+                                                std::move(shape), schema));
     // Entity slices embedded to the aux db should be part of the final merged
     // db.
     if (const auto& db = embedding_db.GetDb()) {
@@ -546,99 +547,59 @@ namespace {
 // TODO: Support dicts nested inside lists. This is best done in
 // DataSliceFromPyValue to invoke UniversalConverter when PyDict is reached.
 template <typename Factory>
-class UniversalConverterImpl {
+class UniversalConverter {
  public:
-  UniversalConverterImpl(const DataBagPtr& db, AdoptionQueue& adoption_queue,
-                         const std::optional<DataSlice>& schema = std::nullopt)
+  UniversalConverter(const DataBagPtr& db, AdoptionQueue& adoption_queue,
+                     const std::optional<DataSlice>& schema = std::nullopt)
       : db_(db), adoption_queue_(adoption_queue), schema_(schema) {
     computed_.reserve(kInitialCapacity);
   }
 
   absl::StatusOr<DataSlice> Convert(PyObject* py_obj) && {
-    std::stack<DataSlice> return_stack;
-    std::stack<CallStackFrame> call_stack;
-    call_stack.push(CallStackFrame{.py_obj = py_obj,
-                                   .action = CallStackFrame::kParsePyObject});
-    RETURN_IF_ERROR(Process(call_stack, return_stack));
-    return std::move(return_stack.top());
+    cmd_stack_.push([=] { return CmdParsePyObject(py_obj, /*is_root=*/true); });
+    RETURN_IF_ERROR(Run());
+    return std::move(value_stack_.top());
   }
 
   absl::Status ConvertDictKeysAndValues(PyObject* py_obj,
                                         std::optional<DataSlice>& keys,
                                         std::optional<DataSlice>& values) && {
-    std::stack<DataSlice> return_stack;
-    std::stack<CallStackFrame> call_stack;
-    CollectDictInputs(py_obj, call_stack);
-    RETURN_IF_ERROR(Process(call_stack, return_stack));
-    keys = std::move(return_stack.top());
-    return_stack.pop();
-    values = std::move(return_stack.top());
+    CollectDictInputs(py_obj);
+    RETURN_IF_ERROR(Run());
+    keys = std::move(value_stack_.top());
+    value_stack_.pop();
+    values = std::move(value_stack_).top();
     return absl::OkStatus();
   }
 
  private:
   static constexpr size_t kInitialCapacity = 1024;
 
-  // Record that is put on stack to be processed, instead of using recursion.
-  struct CallStackFrame {
-    PyObject* py_obj;
-    size_t num_inputs;
-    enum {
-      // Processes py_obj, and depending on its type, either immediately
-      // converts it to a Koda value (and pushes the result to `return_stack`),
-      // or schedules additional actions for the conversion (by pushing them to
-      // `call_stack`).
-      kParsePyObject,
-      // Takes preconstructed keys and values slices from `result_stack`,
-      // assembles them into a dictionary and pushes it back to `return_stack`.
-      kComputeDict,
-      // Takes `num_inputs` preconstructed Koda values from `result_stack` and
-      // computes a DataSlice from them and pushes it back to `return_stack`.
-      kComputeDictKeysOrValues,
-    } action;
-  };
-
-  // Main method of UniversalConverterImpl, which actually traverses the Python
-  // structure `py_obj`, by simulating recursion using a stack.
+  // Main loop of UniversalConverter, which executes a stack of commands.
   //
-  // The method is used in 2 ways:
+  // This allows traversal of the Python structure of py_obj to be expressed
+  // without using recursion, which could cause a stack overflow.
+  //
+  // Currently there are two workflows:
+  //
   // * When we need the Koda abstraction result from PyObject, regardless what
-  //   it is. In that case the caller should push PyObject to the stack. In this
-  //   case the caller should expect the top of `return_stack` to represent the
-  //   final converted PyObject into Koda object;
+  //   it is. In that case the caller should push CmdParsePyObject to the stack.
+  //   In this case the caller should expect the top of `value_stack_` to
+  //   represent the final converted PyObject into Koda object;
+  //
   // * when we want to convert keys and values of a dict, but not dict itself
   //   (we do NOT want garbage triples in a DataBag that won't be used), the
   //   caller should call `CollectDictInputs`, which will push "keys" and
   //   "values" arguments to the stack for processing. The caller should expect
-  //   2 top values on the `return_stack` to represent converted `keys` and
+  //   the top values on the `value_stack_` to represent converted `keys` and
   //   `values` (keys are on the top, while values are accessible after popping
   //   the keys).
   //
-  // The algorithm works with 2 stacks:
-  // * Input stack: `call_stack`;
-  // * Output stack: `return_stack`.
-  //
-  // See `CallStackFrame::action` for details on different actions performed by
-  // the algorithm.
-  absl::Status Process(std::stack<CallStackFrame>& call_stack,
-                       std::stack<DataSlice>& return_stack) {
-    while (!call_stack.empty()) {
-      CallStackFrame cur_arg = call_stack.top();
-      call_stack.pop();
-      switch (cur_arg.action) {
-        case CallStackFrame::kParsePyObject:
-          RETURN_IF_ERROR(
-              ParsePyObject(cur_arg.py_obj, call_stack, return_stack));
-          break;
-        case CallStackFrame::kComputeDict:
-          RETURN_IF_ERROR(ComputeDict(
-              cur_arg.py_obj, /*is_root=*/call_stack.empty(), return_stack));
-          break;
-        case CallStackFrame::kComputeDictKeysOrValues:
-          RETURN_IF_ERROR(
-              ComputeDictKeysOrValues(cur_arg.num_inputs, return_stack));
-          break;
-      }
+  absl::Status Run() {
+    while (!cmd_stack_.empty()) {
+      auto cmd = std::move(cmd_stack_.top());
+      cmd_stack_.pop();
+      RETURN_IF_ERROR(cmd());
     }
     return absl::OkStatus();
   }
@@ -648,66 +609,44 @@ class UniversalConverterImpl {
   //
   // Utility is very useful to initialze a stack state for processing only keys
   // and values, without the main PyDict root object `py_obj`.
-  void CollectDictInputs(PyObject* py_obj,
-                         std::stack<CallStackFrame>& call_stack) {
-    size_t dict_size = PyDict_Size(py_obj);
-
-    std::vector<PyObject*> keys;
-    keys.reserve(dict_size);
-    std::vector<PyObject*> values;
-    values.reserve(dict_size);
-    PyObject* key;
-    PyObject* value;
-    Py_ssize_t pos = 0;
+  void CollectDictInputs(PyObject* py_obj) {
+    const size_t dict_size = PyDict_Size(py_obj);
     // All Py references are borrowed.
-    while (PyDict_Next(py_obj, &pos, &key, &value)) {
-      keys.push_back(key);
-      values.push_back(value);
+    std::vector<PyObject*> keys(dict_size);
+    std::vector<PyObject*> values(dict_size);
+    // Note: We collect `keys` and `values` in reverse order, so it's easier to
+    // push them onto the stack later.
+    Py_ssize_t pos = 0;
+    for (size_t i = dict_size; i > 0; --i) {
+      CHECK(PyDict_Next(py_obj, &pos, &keys[i - 1], &values[i - 1]));
     }
-
-    call_stack.push(
-        CallStackFrame{.py_obj = nullptr,
-                       .num_inputs = dict_size,
-                       .action = CallStackFrame::kComputeDictKeysOrValues});
-    for (auto it = keys.rbegin(); it != keys.rend(); ++it) {
-      call_stack.push(CallStackFrame{.py_obj = *it,
-                                     .action = CallStackFrame::kParsePyObject});
+    DCHECK(!PyDict_Next(py_obj, &pos, nullptr, nullptr));
+    cmd_stack_.push([=] { return CmdComputeDictKeysOrValues(dict_size); });
+    for (auto* py_key : keys) {
+      cmd_stack_.push([=] { return CmdParsePyObject(py_key); });
     }
-
-    call_stack.push(
-        CallStackFrame{.py_obj = nullptr,
-                       .num_inputs = dict_size,
-                       .action = CallStackFrame::kComputeDictKeysOrValues});
-    for (auto it = values.rbegin(); it != values.rend(); ++it) {
-      call_stack.push(CallStackFrame{.py_obj = *it,
-                                     .action = CallStackFrame::kParsePyObject});
+    cmd_stack_.push([=] { return CmdComputeDictKeysOrValues(dict_size); });
+    for (auto* py_value : values) {
+      cmd_stack_.push([=] { return CmdParsePyObject(py_value); });
     }
   }
 
-  // Implements `kParsePyObject` action (see the comment on the enum).
-  absl::Status ParsePyObject(PyObject* py_obj,
-                             std::stack<CallStackFrame>& call_stack,
-                             std::stack<DataSlice>& return_stack) {
+  // Processes py_obj, and depending on its type, either immediately
+  // converts it to a Koda value (and pushes the result to `value_stack_`),
+  // or schedules additional actions for the conversion (by pushing them to
+  // `cmd_stack_`).
+  absl::Status CmdParsePyObject(PyObject* py_obj, bool is_root = false) {
     // Push `std::nullopt` to detect recrusive Python structures.
     auto [computed_iter, emplaced] = computed_.emplace(py_obj, std::nullopt);
     if (!emplaced) {
       if (!computed_iter->second.has_value()) {
         return absl::InvalidArgumentError(
-            "recursive Python structures cannot be converted to Koda "
-            "object");
+            "recursive Python structures cannot be converted to Koda object");
       }
-      return_stack.push(*computed_iter->second);
-      return absl::OkStatus();
-    }
-
-    if (PyDict_CheckExact(py_obj)) {
-      call_stack.push(CallStackFrame{.py_obj = py_obj,
-                                     .num_inputs = 2,
-                                     .action = CallStackFrame::kComputeDict});
-      CollectDictInputs(py_obj, call_stack);
-      // The object will be put to `return_stack` later by the kComputeDict
-      // action.
-      return absl::OkStatus();
+      value_stack_.push(*computed_iter->second);
+    } else if (PyDict_CheckExact(py_obj)) {
+      cmd_stack_.push([=] { return CmdComputeDict(py_obj, is_root); });
+      CollectDictInputs(py_obj);
     } else {
       ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue_));
       if (res.GetShape().rank() > 0) {
@@ -717,50 +656,44 @@ class UniversalConverterImpl {
               "a DataSlice");
         }
         ASSIGN_OR_RETURN(
-            res, CreateNestedList(db_, res,
-                                  call_stack.empty() ? schema_ : std::nullopt));
+            res, CreateNestedList(db_, res, is_root ? schema_ : std::nullopt));
       }
       // Only Entities are converted using Factory, while primitives are kept as
       // is, unless they are the ones being converted explicitly (e.g.
       // kd.obj(42), in which case `call_stack` is empty).
-      if (res.GetSchemaImpl().is_entity_schema() || call_stack.empty()) {
-        ASSIGN_OR_RETURN(return_stack.emplace(), Factory::Convert(db_, res));
-      } else {
-        return_stack.emplace(std::move(res));
+      if (res.GetSchemaImpl().is_entity_schema() || is_root) {
+        ASSIGN_OR_RETURN(res, Factory::Convert(db_, res));
       }
-      computed_iter->second = return_stack.top();
-      return absl::OkStatus();
+      value_stack_.push(res);
+      computed_iter->second = std::move(res);
     }
-  }
-
-  // Implements `kComputeDict` action (see the comment on the enum).
-  absl::Status ComputeDict(PyObject* py_obj, bool is_root,
-                           std::stack<DataSlice>& return_stack) {
-    DataSlice keys = std::move(return_stack.top());
-    return_stack.pop();
-    DataSlice values = std::move(return_stack.top());
-    return_stack.pop();
-
-    ASSIGN_OR_RETURN(
-        auto res, CreateDictShaped(db_, DataSlice::JaggedShape::Empty(), keys,
-                                   values, is_root ? schema_ : std::nullopt));
-    ASSIGN_OR_RETURN(return_stack.emplace(),
-                     Factory::Convert(db_, std::move(res)));
-    computed_.insert_or_assign(py_obj, return_stack.top());
     return absl::OkStatus();
   }
 
-  // Implements `kComputeDictKeysOrValues` action (see the comment on the enum).
-  absl::Status ComputeDictKeysOrValues(size_t dict_size,
-                                       std::stack<DataSlice>& return_stack) {
+  // Takes preconstructed keys and values slices from `value_stack_`,
+  // assembles them into a dictionary and pushes it back to `value_stack_`.
+  absl::Status CmdComputeDict(PyObject* py_obj, bool is_root = false) {
+    auto keys = std::move(value_stack_.top());
+    value_stack_.pop();
+    auto values = std::move(value_stack_.top());
+    ASSIGN_OR_RETURN(
+        auto res, CreateDictShaped(db_, DataSlice::JaggedShape::Empty(), keys,
+                                   values, is_root ? schema_ : std::nullopt));
+    ASSIGN_OR_RETURN(value_stack_.top(), Factory::Convert(db_, std::move(res)));
+    computed_.insert_or_assign(py_obj, value_stack_.top());
+    return absl::OkStatus();
+  }
+
+  // Takes `dict_size` preconstructed Koda values from `value_stack_` and
+  // computes a DataSlice from them and pushes it back to `value_stack_`.
+  absl::Status CmdComputeDictKeysOrValues(size_t dict_size) {
     // Dict keys or values.
     internal::DataSliceImpl::Builder kv_bldr(dict_size);
     schema::CommonSchemaAggregator kv_schema_agg;
-    for (int64_t index = 0; index < dict_size; ++index) {
-      DataSlice input = std::move(return_stack.top());
-      return_stack.pop();
-      kv_bldr.Insert(index, input.item());
-      kv_schema_agg.Add(input.GetSchemaImpl());
+    for (size_t i = 0; i < dict_size; ++i) {
+      kv_bldr.Insert(i, value_stack_.top().item());
+      kv_schema_agg.Add(value_stack_.top().GetSchemaImpl());
+      value_stack_.pop();
     }
     ASSIGN_OR_RETURN(
         auto kv_schema, std::move(kv_schema_agg).Get(),
@@ -768,7 +701,7 @@ class UniversalConverterImpl {
     // NOTE: Factory is not applied on keys and values DataSlices (just on their
     // elements and dict created from those keys and values).
     ASSIGN_OR_RETURN(
-        return_stack.emplace(),
+        value_stack_.emplace(),
         CreateWithSchema(std::move(kv_bldr).Build(),
                          DataSlice::JaggedShape::FlatFromSize(dict_size),
                          kv_schema, db_));
@@ -779,10 +712,15 @@ class UniversalConverterImpl {
   AdoptionQueue& adoption_queue_;
   const std::optional<DataSlice>& schema_;
 
+  using Cmd = std::function<absl::Status()>;
+  std::stack<Cmd> cmd_stack_;
+
+  std::stack<DataSlice> value_stack_;
+
   // Maps Python object to a computed DataSlice that is returned from the
   // "simulated recursive call". It is also used to detect recursive Python
-  // structures (e.g. a Python object is already visited, but not computed, the
-  // stored value is `std::nullopt`).
+  // structures (e.g. a Python object is already visited, but not computed,
+  // the stored value is `std::nullopt`).
   absl::flat_hash_map<PyObject*, std::optional<DataSlice>> computed_;
 };
 
@@ -795,8 +733,7 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(PyObject* py_obj,
     ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue));
     return EntityCreator::Convert(db, res);
   }
-  return UniversalConverterImpl<EntityCreator>(db, adoption_queue)
-      .Convert(py_obj);
+  return UniversalConverter<EntityCreator>(db, adoption_queue).Convert(py_obj);
 }
 
 absl::StatusOr<DataSlice> EntitiesFromPyObject(
@@ -806,7 +743,7 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
     ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue));
     return EntityCreator::Convert(db, res);
   }
-  return UniversalConverterImpl<EntityCreator>(db, adoption_queue, schema)
+  return UniversalConverter<EntityCreator>(db, adoption_queue, schema)
       .Convert(py_obj);
 }
 
@@ -817,15 +754,14 @@ absl::StatusOr<DataSlice> ObjectsFromPyObject(PyObject* py_obj,
     ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue));
     return ObjectCreator::Convert(db, res);
   }
-  return UniversalConverterImpl<ObjectCreator>(db, adoption_queue)
-      .Convert(py_obj);
+  return UniversalConverter<ObjectCreator>(db, adoption_queue).Convert(py_obj);
 }
 
 absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
                                       AdoptionQueue& adoption_queue,
                                       std::optional<DataSlice>& keys,
                                       std::optional<DataSlice>& values) {
-  return UniversalConverterImpl<EntityCreator>(db, adoption_queue)
+  return UniversalConverter<EntityCreator>(db, adoption_queue)
       .ConvertDictKeysAndValues(py_obj, keys, values);
 }
 
