@@ -103,7 +103,9 @@ py_library(
     deps = [
         ":py_functors_py_ext",
         "//py/koladata/functions",
+        "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
     ],
 )
 
@@ -114,6 +116,8 @@ py_test(
     deps = [
         ":signature_utils",
         "//py/koladata/functions",
+        "//py/koladata/types:data_item",
+        "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
