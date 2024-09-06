@@ -59,6 +59,9 @@ absl::StatusOr<DataSlice> Mod(const DataSlice& x, const DataSlice& y);
 // kde.math.maximum.
 absl::StatusOr<DataSlice> Maximum(const DataSlice& x, const DataSlice& y);
 
+// kde.math.cum_max.
+absl::StatusOr<DataSlice> CumMax(const DataSlice& x);
+
 // kde.math.minimum.
 absl::StatusOr<DataSlice> Minimum(const DataSlice& x, const DataSlice& y);
 
