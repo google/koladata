@@ -74,6 +74,9 @@ absl::StatusOr<DataSlice> AggMedian(const DataSlice& x);
 // kde.math._agg_std.
 absl::StatusOr<DataSlice> AggStd(const DataSlice& x, const DataSlice& unbiased);
 
+// kde.math._agg_var.
+absl::StatusOr<DataSlice> AggVar(const DataSlice& x, const DataSlice& unbiased);
+
 // kde.math._agg_max.
 absl::StatusOr<DataSlice> AggMax(const DataSlice& x);
 

@@ -183,6 +183,11 @@ absl::StatusOr<DataSlice> AggStd(const DataSlice& x,
   return AggStatistical(x, unbiased, "math.std");
 }
 
+absl::StatusOr<DataSlice> AggVar(const DataSlice& x,
+                                 const DataSlice& unbiased) {
+  return AggStatistical(x, unbiased, "math.var");
+}
+
 absl::StatusOr<DataSlice> AggMax(const DataSlice& x) {
   return SimpleAggIntoEval("math.max", {x});
 }

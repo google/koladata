@@ -106,6 +106,7 @@ OPERATOR("kde.math._agg_median", AggMedian);
 OPERATOR("kde.math._agg_min", AggMin);
 OPERATOR("kde.math._agg_std", AggStd);
 OPERATOR("kde.math._agg_sum", AggSum);
+OPERATOR("kde.math._agg_var", AggVar);
 OPERATOR("kde.math.abs", Abs);
 OPERATOR("kde.math.ceil", Ceil);
 OPERATOR("kde.math.divide", Divide);
