@@ -18,7 +18,6 @@ from typing import Any
 
 from arolla import arolla as _arolla
 from koladata.exceptions import exceptions as _
-from koladata.operators import kde_operators
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _  # pylint: disable=unused-import
@@ -343,9 +342,14 @@ def assert_nested_lists_equal(
   _expect_data_slice(expected_list)
   _assert_equal_schema(actual_list, expected_list)
   _assert_equal_shape(actual_list, expected_list)
-  assert_equivalent(
-      # We need to skip checking the DataBags, as list ItemId(s) are usually
-      # different.
-      kde_operators.kde.explode(actual_list, -1).eval().with_db(None),
-      kde_operators.kde.explode(expected_list, -1).eval().with_db(None),
-  )
+
+  # Explode as many times as both actual and expected will allow, except if
+  # both are empty, which would allow infinite explosion.
+  while not (actual_list.is_empty() or expected_list.is_empty()):
+    try:
+      actual_list = actual_list[:]
+      expected_list = expected_list[:]
+    except ValueError:
+      break
+
+  assert_equivalent(actual_list.no_db(), expected_list.no_db())

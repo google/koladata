@@ -583,3 +583,31 @@ def implode(
   if db is None:
     db = bag()
   return db.implode(x, ndim)
+
+
+def concat_lists(
+    *lists: data_slice.DataSlice,
+    db: data_bag.DataBag | None = None
+) -> data_slice.DataSlice:
+  """Returns a DataSlice of Lists concatenated from the List items of `lists`.
+
+  Each input DataSlice must contain only present List items, and the item
+  schemas of each input must be compatible. Input DataSlices are aligned (see
+  `kde.align`) automatically before concatenation.
+
+  If `lists` is empty, this returns a single empty list with OBJECT item schema.
+
+  The specified `db` is used to create the new concatenated lists, and is the
+  DataBag used by the result DataSlice. If `db` is not specified, a new DataBag
+  is created for this purpose.
+
+  Args:
+    *lists: the DataSlices of Lists to concatenate
+    db: optional DataBag to populate with the result
+
+  Returns:
+    DataSlice of concatenated Lists
+  """
+  if db is None:
+    db = bag()
+  return db.concat_lists(*lists)

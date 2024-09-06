@@ -1123,6 +1123,27 @@ absl::Nullable<PyObject*> PyDataBag_implode(PyObject* self,
   return WrapPyDataSlice(std::move(result));
 }
 
+absl::Nullable<PyObject*> PyDataBag_concat_lists(PyObject* self,
+                                                 PyObject* const* args,
+                                                 Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  const auto& self_db = UnsafeDataBagPtr(self);
+
+  std::vector<DataSlice> inputs;
+  inputs.reserve(nargs);
+  for (Py_ssize_t i = 0; i < nargs; ++i) {
+    const DataSlice* input = UnwrapDataSlice(args[i], "*lists");
+    if (input == nullptr) {
+      return nullptr;
+    }
+    inputs.push_back(*input);
+  }
+
+  ASSIGN_OR_RETURN(DataSlice result, ConcatLists(self_db, std::move(inputs)),
+                   SetKodaPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(result));
+}
+
 absl::Nullable<PyObject*> PyDataBag_exactly_equal(PyObject* self,
                                                   PyObject* const* args,
                                                   Py_ssize_t nargs) {
@@ -1394,6 +1415,8 @@ Returns:
      "DataBag._list_like"},
     {"_implode", (PyCFunction)PyDataBag_implode, METH_FASTCALL,
      "DataBag._implode"},
+    {"_concat_lists", (PyCFunction)PyDataBag_concat_lists, METH_FASTCALL,
+     "DataBag._concat_lists"},
     {"_exactly_equal", (PyCFunction)PyDataBag_exactly_equal, METH_FASTCALL,
      "DataBag._exactly_equal"},
     {"_kwargs_to_namedtuple", (PyCFunction)PyDataBag_kwargs_to_namedtuple,

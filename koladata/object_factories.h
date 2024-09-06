@@ -381,6 +381,16 @@ absl::StatusOr<DataSlice> CreateNestedList(
 absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
                                   int ndim);
 
+// Creates a DataSlice of lists concatenated from the lists in `inputs`, All
+// input DataSlices must contain lists with compatible item schemas, and are
+// aligned before being concatenated. If `inputs` is empty, returns a DataSlice
+// with a single empty list.
+//
+// The input DataSlices are adopted into `db`, except for the lists they
+// directly contain, because those lists are not in the output.
+absl::StatusOr<DataSlice> ConcatLists(const DataBagPtr& db,
+                                      std::vector<DataSlice> inputs);
+
 // Creates a DataSlice of lists with the provided shape. If `values` are
 // provided, they will be appended to the lists after creation (that implies
 // potential type casting and broadcasting). If `item_schema` is not provided,

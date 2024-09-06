@@ -318,6 +318,29 @@ def _implode(
   return self._implode(x, ndim)  # pylint: disable=protected-access
 
 
+def _concat_lists(self: DataBag, *lists: _DataSlice) -> _DataSlice:  # pylint: disable=g-doc-args
+  """Returns a DataSlice of Lists concatenated from the List items of `lists`.
+
+  Each input DataSlice must contain only present List items, and the item
+  schemas of each input must be compatible. Input DataSlices are aligned (see
+  `kde.align`) automatically before concatenation.
+
+  If `lists` is empty, this returns a single empty list.
+
+  The specified `db` is used to create the new concatenated lists, and is the
+  DataBag used by the result DataSlice. If `db` is not specified, a new DataBag
+  is created for this purpose.
+
+  Args:
+    *lists: the DataSlices of Lists to concatenate
+    db: optional DataBag to populate with the result
+
+  Returns:
+    DataSlice of concatenated Lists
+  """
+  return self._concat_lists(*lists)  # pylint: disable=protected-access
+
+
 def _merge_inplace(
     self: DataBag,
     other_dbs: DataBag | Iterable[DataBag],
@@ -368,5 +391,6 @@ DataBag.list = _list
 DataBag.list_shaped = _list_shaped
 DataBag.list_like = _list_like
 DataBag.implode = _implode
+DataBag.concat_lists = _concat_lists
 DataBag.merge_inplace = _merge_inplace
 DataBag.with_name = _general_eager_ops.with_name

@@ -32,6 +32,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
+#include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -1092,6 +1093,67 @@ absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
   for (int i = 1; i < ndim; ++i) {
     ASSIGN_OR_RETURN(result, CreateListsFromLastDimension(db, result));
   }
+  return result;
+}
+
+absl::StatusOr<DataSlice> ConcatLists(const DataBagPtr& db,
+                                      std::vector<DataSlice> inputs) {
+  if (inputs.empty()) {
+    return CreateEmptyList(db);
+  }
+
+  for (const DataSlice& input_slice : inputs) {
+    if (!input_slice.ContainsOnlyLists()) {
+      return absl::InvalidArgumentError(
+          "concat_lists expects all input slices to contain lists");
+    }
+  }
+
+  ASSIGN_OR_RETURN(inputs, shape::Align(std::move(inputs)));
+  auto result_shape = inputs[0].GetShape();
+  const auto result_rank = result_shape.rank();
+
+  // Explode each input slice once, because DataBagImpl::ExtendLists expects
+  // values to come from the last DataSlice dimension, not from list objects.
+  for (DataSlice& input_slice : inputs) {
+    ASSIGN_OR_RETURN(input_slice, input_slice.ExplodeList(0, std::nullopt));
+  }
+
+  // Align input schemas. Because we exploded once first, this aligns the item
+  // schema in the result.
+  ASSIGN_OR_RETURN(auto aligned_inputs, AlignSchemas(std::move(inputs)));
+  inputs = std::move(aligned_inputs.slices);
+
+  AdoptionQueue adoption_queue;
+  for (DataSlice& input_slice : inputs) {
+    adoption_queue.Add(input_slice);
+  }
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
+
+  ASSIGN_OR_RETURN(const std::optional<DataSlice> item_schema,
+                   DataSlice::Create(aligned_inputs.common_schema,
+                                     internal::DataItem(schema::kSchema), db));
+  ASSIGN_OR_RETURN(
+      DataSlice result,
+      CreateListShaped(db, std::move(result_shape), /*values=*/std::nullopt,
+                       /*schema=*/std::nullopt,
+                       /*item_schema=*/item_schema));
+
+  // Note: Ideally, this would preallocate the backing vectors in the result
+  // lists based on the type and size information we can get from the inputs.
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_impl, db->GetMutableImpl());
+  if (result_rank > 0) {
+    for (const auto& input_slice : inputs) {
+      const auto& input_exploded_edge = input_slice.GetShape().edges().back();
+      RETURN_IF_ERROR(db_impl.ExtendLists(result.slice(), input_slice.slice(),
+                                          input_exploded_edge));
+    }
+  } else {
+    for (const auto& input_slice : inputs) {
+      RETURN_IF_ERROR(db_impl.ExtendList(result.item(), input_slice.slice()));
+    }
+  }
+
   return result;
 }
 

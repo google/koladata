@@ -25,6 +25,7 @@ list = _object_factories._list  # pylint: disable=redefined-builtin,protected-ac
 list_like = _object_factories.list_like
 list_shaped = _object_factories.list_shaped
 implode = _object_factories.implode
+concat_lists = _object_factories.concat_lists
 
 dict = _object_factories._dict  # pylint: disable=redefined-builtin,protected-access
 dict_like = _object_factories.dict_like

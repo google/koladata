@@ -1081,7 +1081,7 @@ Assigned schema for Dict key: INT32""",
 
   def test_dict_shaped(self):
     # NOTE: more tests for dict_shaped in
-    # //py/koladata/impure_function_tests/dict_shaped_test.py
+    # //py/koladata/functions/tests/dict_shaped_test.py
 
     db = bag()
     shape = jagged_shape.create_shape([3])
@@ -1096,7 +1096,7 @@ Assigned schema for Dict key: INT32""",
 
   def test_dict_like(self):
     # NOTE: more tests for dict_like in
-    # //py/koladata/impure_function_tests/dict_like_test.py
+    # //py/koladata/functions/tests/dict_like_test.py
 
     db = bag()
     x = db.dict_like(
@@ -1186,7 +1186,7 @@ Assigned schema for Dict key: INT32""",
 
   def test_list_shaped(self):
     # NOTE: more tests for list_shaped in
-    # //py/koladata/impure_function_tests/list_shaped_test.py
+    # //py/koladata/functions/tests/list_shaped_test.py
 
     db = bag()
     shape = jagged_shape.create_shape([3])
@@ -1196,7 +1196,7 @@ Assigned schema for Dict key: INT32""",
 
   def test_list_like(self):
     # NOTE: more tests for list_like in
-    # //py/koladata/impure_function_tests/list_like_test.py
+    # //py/koladata/functions/tests/list_like_test.py
 
     db = bag()
     l = db.list_like(ds([[1, None], [1]]), ds([[[1, 2], [3]], [[4, 5]]]))
@@ -1218,6 +1218,9 @@ Assigned schema for Dict key: INT32""",
       db._list_like(arolla.int32(56), 57, 58, 59, 60)
 
   def test_implode_impl(self):
+    # NOTE: more tests for implode in
+    # //py/koladata/functions/tests/implode_test.py
+
     db = bag()
     with self.assertRaisesRegex(
         ValueError, 'DataBag._implode accepts exactly 2 arguments, got 3'):
@@ -1228,6 +1231,16 @@ Assigned schema for Dict key: INT32""",
       db._implode(1, 2)
     with self.assertRaisesRegex(TypeError, 'an integer is required'):
       db._implode(ds([]), ds([]))
+
+  def test_concat_lists_impl(self):
+    # NOTE: more tests for concat_lists in
+    # //py/koladata/functions/tests/concat_lists_test.py
+
+    db = bag()
+    with self.assertRaisesRegex(
+        TypeError, re.escape('expecting *lists to be a DataSlice, got NoneType')
+    ):
+      db.concat_lists(ds(0), None)
 
   def test_exactly_equal_impl_raises(self):
     with self.assertRaisesRegex(

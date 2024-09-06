@@ -35,6 +35,7 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
+#include "koladata/operators/core.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/dense_array/dense_array.h"
@@ -1921,6 +1922,71 @@ TEST(ObjectFactoriesTest, Implode) {
                  HasSubstr("cannot implode 'x' to fold the last 3 dimension(s) "
                            "because 'x' only has 2 dimensions")));
   }
+}
+
+TEST(ObjectFactoriesTest, ConcatLists_NoInputs) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto result, ConcatLists(db, {}));
+  EXPECT_EQ(result.GetShape().rank(), 0);
+  EXPECT_EQ(result.GetDb(), db);
+  EXPECT_THAT(result.item(),
+              DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
+  EXPECT_THAT(result.GetSchema().GetAttr("__items__"),
+              IsOkAndHolds(Property(&DataSlice::item, schema::kObject)));
+}
+
+TEST(ObjectFactoriesTest, ConcatLists_InputsAreNotLists) {
+  auto db = DataBag::Empty();
+
+  // values: [1, 2, 3]
+  auto values = test::DataSlice<int>(
+      {1, 2, 3}, DataSlice::JaggedShape::FlatFromSize(3), db);
+
+  EXPECT_THAT(
+      ConcatLists(db, {values}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "concat_lists expects all input slices to contain lists"));
+}
+
+TEST(ObjectFactoriesTest, ConcatLists) {
+  // values1: [[1, 2, 3], [4, 5]]
+  auto db1 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
+                                      CreateDenseArray<int64_t>({0, 3, 5})));
+  ASSERT_OK_AND_ASSIGN(
+      auto shape1, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge1}));
+  auto values1 = test::DataSlice<int>({1, 2, 3, 4, 5}, shape1);
+  ASSERT_OK_AND_ASSIGN(values1, Implode(db1, values1, 1));
+
+  // values2: [[6, 7], [8, 9]]
+  auto db2 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
+                                      CreateDenseArray<int64_t>({0, 2, 4})));
+  ASSERT_OK_AND_ASSIGN(
+      auto shape2, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge2}));
+  auto values2 = test::DataSlice<int>({6, 7, 8, 9}, shape2);
+  ASSERT_OK_AND_ASSIGN(values2, Implode(db2, values2, 1));
+
+  auto db3 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto result, ConcatLists(db3, {values1, values2}));
+
+  EXPECT_EQ(result.GetDb(), db3);
+  EXPECT_THAT(result.slice(),
+              ElementsAre(
+                DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+                DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue()))));
+  EXPECT_THAT(result.GetSchema().GetAttr("__items__"),
+              IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
+
+  // values3: [[1, 2, 3, 6, 7], [4, 5, 8, 9]]
+  ASSERT_OK_AND_ASSIGN(auto edge3, DenseArrayEdge::FromSplitPoints(
+                                      CreateDenseArray<int64_t>({0, 5, 9})));
+  ASSERT_OK_AND_ASSIGN(
+      auto shape3, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge3}));
+  auto values3 = test::DataSlice<int>({1, 2, 3, 6, 7, 4, 5, 8, 9}, shape3);
+
+  EXPECT_THAT(ops::Explode(result, 1)->WithDb(nullptr),
+              IsEquivalentTo(values3));
 }
 
 TEST(ObjectFactoriesTest, CreateListShaped) {
