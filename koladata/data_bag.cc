@@ -68,11 +68,11 @@ absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
   // If the original DataBag is mutable, we need to assign a new implementation
   // to it, because it can be modified and the modifications will affect the
   // new DataBag.
-  // Forking an immutable DataBag is thread-safe, because it is read-only.
-  // This is not the case for a mutable DataBag (see http://b/362457876).
+  // We do it lazily to ensure thread safety: the new implementation is only
+  // assigned when GetMutableImpl() is called. Clients are expected to ensure
+  // thread safety for GetMutableImpl() calls externally.
   if (is_mutable_) {
-    impl_ = impl_->PartiallyPersistentFork();
-    impl_->AssignToDataBag();
+    forked_ = true;
   }
   return new_db;
 }

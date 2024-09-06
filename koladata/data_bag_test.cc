@@ -278,15 +278,22 @@ TEST(DataBagTest, Fork_Immutable) {
 TEST(DataBagTest, Fork_Mutable) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto mutable_db, db->Fork(/*immutable=*/false));
-  const internal::DataBagImpl* mutable_db_impl_ptr = &mutable_db->GetImpl();
 
   // Check that forking a mutable DataBag *does* change its DataBagImpl.
   {
+    const internal::DataBagImpl* mutable_db_impl_ptr = &mutable_db->GetImpl();
     auto forked_db = mutable_db->Fork(true);
+    EXPECT_EQ(mutable_db_impl_ptr, &mutable_db->GetImpl());
+    // Forking a mutable DataBag is delayed until GetMutableImpl() is called.
+    auto _ = mutable_db->GetMutableImpl();
     EXPECT_NE(mutable_db_impl_ptr, &mutable_db->GetImpl());
   }
   {
+    const internal::DataBagImpl* mutable_db_impl_ptr = &mutable_db->GetImpl();
     auto forked_db = mutable_db->Fork(false);
+    // Forking a mutable DataBag is delayed until GetMutableImpl() is called.
+    EXPECT_EQ(mutable_db_impl_ptr, &mutable_db->GetImpl());
+    auto _ = mutable_db->GetMutableImpl();
     EXPECT_NE(mutable_db_impl_ptr, &mutable_db->GetImpl());
   }
 }

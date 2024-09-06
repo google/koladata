@@ -15,6 +15,7 @@
 #ifndef KOLADATA_DATA_BAG_H_
 #define KOLADATA_DATA_BAG_H_
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <string>
@@ -67,6 +68,12 @@ class DataBag {
     if (!is_mutable_) {
       return absl::InvalidArgumentError(
           "DataBag is immutable, try DataSlice.fork_db()");
+    }
+    // We check forked_ first without exchanging to be more efficient when it is
+    // already false (which is the common case).
+    if (forked_ && forked_.exchange(false)) {
+      impl_ = impl_->PartiallyPersistentFork();
+      impl_->AssignToDataBag();
     }
     return *impl_;
   }
@@ -131,6 +138,9 @@ class DataBag {
   std::vector<DataBagPtr> fallbacks_;
   bool is_mutable_;
   arolla::Fingerprint fingerprint_;
+
+  // Used to implement lazy forking for immutable DataBags.
+  std::atomic<bool> forked_ = false;
 };
 
 class FlattenFallbackFinder {
