@@ -150,7 +150,11 @@ absl::StatusOr<DataSlice> ConcatOrStackImpl(bool stack, int64_t ndim,
   }
 
   if (!stack) {  // concat
-    if (ndim < 1 || ndim > rank) {
+    if (rank == 0) {
+      return absl::InvalidArgumentError(
+          "concatentation of DataItems (rank=0) is not supported - use stack "
+          "instead");
+    } else if (ndim < 1 || ndim > rank) {
       return absl::InvalidArgumentError(
           absl::StrFormat("invalid ndim=%d for rank=%d concat", ndim, rank));
     }
