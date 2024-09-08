@@ -30,7 +30,6 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/object_factories.h"
 #include "py/arolla/abc/py_qvalue.h"
-#include "py/koladata/exceptions/py_exception_utils.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/qtype/qtype_traits.h"
