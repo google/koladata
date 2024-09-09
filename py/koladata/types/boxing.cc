@@ -645,6 +645,16 @@ class UniversalConverter {
     }
   }
 
+  // Collects the keys and values of the python list/tuple `py_obj`, and
+  // arranges the appropriate commands on the stack for their processing.
+  void ParsePyList(PyObject* py_obj) {
+    DCHECK(PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj));
+    for (auto* py_item : absl::Span<PyObject*>(
+             PySequence_Fast_ITEMS(py_obj), PySequence_Fast_GET_SIZE(py_obj))) {
+      cmd_stack_.push([=] { return CmdConvertPyObject(py_item); });
+    }
+  }
+
   // Processes py_obj, and depending on its type, either immediately
   // converts it to a Koda value (and pushes the result to `value_stack_`),
   // or schedules additional actions for the conversion (by pushing them to
@@ -661,16 +671,15 @@ class UniversalConverter {
     } else if (PyDict_CheckExact(py_obj)) {
       cmd_stack_.push([=] { return CmdComputeDict(py_obj, is_root); });
       ParsePyDict(py_obj);
+    } else if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
+      cmd_stack_.push([=] { return CmdComputeList(py_obj, is_root); });
+      ParsePyList(py_obj);
     } else {
       ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue_));
       if (res.GetShape().rank() > 0) {
-        if (arolla::python::IsPyQValueInstance(py_obj)) {
-          return absl::InvalidArgumentError(
-              "dict containing multi-dim DataSlice(s) is not convertible to"
-              "a DataSlice");
-        }
-        ASSIGN_OR_RETURN(
-            res, CreateNestedList(db_, res, is_root ? schema_ : std::nullopt));
+        return absl::InvalidArgumentError(
+            "dict / list containing multi-dim DataSlice(s) is not convertible"
+            " to a DataSlice");
       }
       // Only Entities are converted using Factory, while primitives are kept as
       // is, unless they are the ones being converted explicitly (e.g.
@@ -685,7 +694,7 @@ class UniversalConverter {
   }
 
   // Takes preconstructed keys and values from `value_stack_`, assembles them
-  // into a dictionary and pushes it back to `value_stack_`.
+  // into a dictionary and pushes it to `value_stack_`.
   absl::Status CmdComputeDict(PyObject* py_obj, bool is_root) {
     size_t dict_size = PyDict_Size(py_obj);
     ASSIGN_OR_RETURN(auto keys, ComputeDataSlice(dict_size));
@@ -696,6 +705,21 @@ class UniversalConverter {
                          std::move(values), is_root ? schema_ : std::nullopt));
     // NOTE: Factory is not applied on keys and values DataSlices (just on their
     // elements and dict created from those keys and values).
+    ASSIGN_OR_RETURN(value_stack_.emplace(),
+                     Factory::Convert(db_, std::move(res)));
+    computed_.insert_or_assign(py_obj, value_stack_.top());
+    return absl::OkStatus();
+  }
+
+  // Takes preconstructed items from `value_stack_`, assembles them into a list
+  // and pushes it to `value_stack_`.
+  absl::Status CmdComputeList(PyObject* py_obj, bool is_root) {
+    const size_t list_size = PySequence_Fast_GET_SIZE(py_obj);
+    ASSIGN_OR_RETURN(auto items, ComputeDataSlice(list_size));
+    ASSIGN_OR_RETURN(
+        auto res,
+        CreateListShaped(db_, DataSlice::JaggedShape::Empty(), std::move(items),
+                         is_root ? schema_ : std::nullopt));
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::Convert(db_, std::move(res)));
     computed_.insert_or_assign(py_obj, value_stack_.top());

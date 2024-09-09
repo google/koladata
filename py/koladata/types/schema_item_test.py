@@ -51,7 +51,7 @@ class SchemaItemTest(absltest.TestCase):
   def test_hash(self):
     schema_1 = bag().new().get_schema()
     schema_2 = bag().new().get_schema()
-    schema_3 = schema_1.with_db(None)
+    schema_3 = schema_1.no_db()
     schema_4 = schema_constants.INT32
     schema_5 = schema_constants.ANY
     for s_1, s_2 in itertools.combinations(
@@ -88,9 +88,11 @@ class SchemaItemTest(absltest.TestCase):
       testing.assert_equal(entity.db, s.db)
 
   def test_creating_list(self):
-    l = fns.list_schema(item_schema=schema_constants.FLOAT32)
+    l = fns.list_schema(item_schema=fns.list_schema(schema_constants.FLOAT32))
     self.assertTrue(l.is_list_schema())
-    lst = l([[1, 2], [3]])
+    # TODO: Replace 3. with 3, when parsing nested schema is
+    # supported.
+    lst = l([[1., 2], [3.]])
     testing.assert_equal(lst[:][:], ds([[1., 2.], [3.]]).with_db(lst.db))
     with self.assertRaises(AssertionError):
       testing.assert_equal(lst.db, l.db)
