@@ -14,8 +14,12 @@
 
 """Tools to introspect and manipulate Exprs."""
 
+from typing import Any
+
 from arolla import arolla
+from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 
@@ -45,3 +49,15 @@ def unpack_expr(ds: data_slice.DataSlice) -> arolla.Expr:
   ):
     raise ValueError('only present EXPR DataItems can be unpacked')
   return ds.internal_as_py().unquote()
+
+
+def is_packed_expr(ds: Any) -> data_slice.DataSlice:
+  """Returns kd.present if the argument is a DataItem containing an Expr."""
+  if (
+      isinstance(ds, data_item.DataItem)
+      and ds.get_schema() == schema_constants.EXPR
+      and ds.get_present_count()
+  ):
+    return mask_constants.present
+  else:
+    return mask_constants.missing

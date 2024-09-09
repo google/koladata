@@ -79,7 +79,9 @@ py_library(
     name = "introspection",
     srcs = ["introspection.py"],
     deps = [
+        "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
     ],

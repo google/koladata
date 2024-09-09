@@ -73,6 +73,30 @@ class IntrospectionTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
       introspection.unpack_expr(ds.repeat(1))
 
+  def test_is_packed_expr(self):
+    ds = introspection.pack_expr(I.x + I.y)
+    testing.assert_equal(
+        introspection.is_packed_expr(ds), mask_constants.present
+    )
+    testing.assert_equal(
+        introspection.is_packed_expr(ds & mask_constants.missing),
+        mask_constants.missing,
+    )
+    testing.assert_equal(
+        introspection.is_packed_expr(ds.with_schema(schema_constants.ANY)),
+        mask_constants.missing,
+    )
+    testing.assert_equal(
+        introspection.is_packed_expr(ds.with_schema(schema_constants.OBJECT)),
+        mask_constants.missing,
+    )
+    testing.assert_equal(
+        introspection.is_packed_expr(ds.repeat(1)), mask_constants.missing
+    )
+    testing.assert_equal(
+        introspection.is_packed_expr(I.x + I.y), mask_constants.missing
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

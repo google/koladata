@@ -122,6 +122,7 @@ get_name = _eager_only(_introspection.get_name)
 unwrap_named = _eager_only(_introspection.unwrap_named)
 pack_expr = _eager_only(_introspection.pack_expr)
 unpack_expr = _eager_only(_introspection.unpack_expr)
+is_packed_expr = _eager_only(_introspection.is_packed_expr)
 # This overrides the eager_op_utils implementation which unfortunately
 # fails because M.annotation.name requires a literal as second argument.
 with_name = _dispatch(

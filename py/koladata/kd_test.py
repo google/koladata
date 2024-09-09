@@ -179,6 +179,12 @@ class KdTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
       kd.unpack_expr(kd.item(1))
 
+  def test_is_packed_expr(self):
+    ds = kd.pack_expr(I.x + I.y)
+    kd.testing.assert_equal(kd.is_packed_expr(ds), kd.present)
+    kd.testing.assert_equal(kd.is_packed_expr(kd.slice(1)), kd.missing)
+    kd.testing.assert_equal(kd.is_packed_expr(I.x + I.y), kd.missing)
+
   def test_kdi(self):
     self.assertCountEqual(kdi.__all__, dir(kdi))
     self.assertCountEqual(set(dir(kd)) - set(dir(kdi)), ['kdi'])
