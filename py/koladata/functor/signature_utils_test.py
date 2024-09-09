@@ -79,6 +79,7 @@ class SignatureUtilsTest(absltest.TestCase):
     self.assertEqual(s.get_schema(), schema_constants.OBJECT)
     self.assertEqual(s.parameters[:].name.to_py(), ['x', 'y'])
     self.assertEqual(s.parameters[:].to_py(), [p1, p2])
+    self.assertFalse(s.db.is_mutable())
 
   def test_from_py_signature(self):
     entity = fns.new(foo=57)
@@ -130,6 +131,20 @@ class SignatureUtilsTest(absltest.TestCase):
         ValueError, 'only DataItems can be used as default values'
     ):
       _ = signature_utils.from_py_signature(py_sig)
+
+  def test_arg_kwargs_signature(self):
+    sig = signature_utils.ARGS_KWARGS_SIGNATURE
+    self.assertEqual(
+        sig.parameters[:].name.to_py(),
+        ['args', 'kwargs'],
+    )
+    self.assertEqual(
+        sig.parameters[:].kind.to_py(),
+        [
+            signature_utils.ParameterKind.VAR_POSITIONAL,
+            signature_utils.ParameterKind.VAR_KEYWORD,
+        ],
+    )
 
 
 if __name__ == '__main__':

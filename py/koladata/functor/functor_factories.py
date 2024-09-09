@@ -199,3 +199,38 @@ def trace_py_fn(
   traced_expr = tracing.trace(f)
   signature = signature_utils.from_py_signature(inspect.signature(f))
   return fn(traced_expr, signature=signature, auto_variables=auto_variables)
+
+
+def py_fn(f: Callable[..., Any]) -> data_slice.DataSlice:
+  """Returns a Koda functor wrapping a python function.
+
+  This is the most flexible way to wrap a python function and is recommended
+  for large, complex code.
+
+  Functions wrapped with py_fn are not serializable.
+
+  Note that unlike the functors created by kdf.fn from an Expr, this functor
+  will have exactly the same signature as the original function. In particular,
+  if the original function does not accept variadic keyword arguments and
+  and unknown argument is passed when calling the functor, an exception will
+  occur.
+
+  Args:
+    f: Python function. It is required that this function returns a
+      DataSlice/DataItem or a primitive that will be automatically wrapped into
+      a DataItem.
+
+  Returns:
+    A DataItem representing the functor.
+  """
+  return fn(
+      # Note: we bypass the binding policy of apply_py since we already
+      # have the args/kwargs as tuple and namedtuple.
+      arolla.abc.bind_op(
+          arolla.abc.lookup_operator('kde.py.apply_py'),
+          py_boxing.as_qvalue(f),
+          I.args,
+          I.kwargs,
+      ),
+      signature=signature_utils.ARGS_KWARGS_SIGNATURE,
+  )

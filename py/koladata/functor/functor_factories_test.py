@@ -23,6 +23,7 @@ from koladata.expr import view as _
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor import signature_utils
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -32,6 +33,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kde')
 kde = kde_operators.kde
 kdi = user_facing_kd.kdi
 pack_expr = introspection.pack_expr
@@ -224,6 +226,139 @@ class FunctorFactoriesTest(absltest.TestCase):
     fn = functor_factories.trace_py_fn(lambda x, **unused_kwargs: x + 1)
     self.assertEqual(fn(2), 3)
     self.assertEqual(fn(2, foo=3), 3)
+
+  def test_py_fn_simple(self):
+    def f(x, y):
+      return x + y
+
+    self.assertEqual(kd.call(functor_factories.py_fn(f), x=1, y=2).to_py(), 3)
+    self.assertEqual(
+        kd.call(
+            functor_factories.py_fn(f),
+            x=ds([1, 2, 3]),
+            y=ds([4, 5, 6]),
+        ).to_py(),
+        [5, 7, 9],
+    )
+
+  def test_py_fn_var_keyword(self):
+    def f_kwargs(x, y, **kwargs):
+      return x + y + kwargs['z']
+
+    fn = functor_factories.py_fn(f_kwargs)
+    self.assertEqual(kd.call(fn, x=1, y=2, z=3), 6)
+    self.assertEqual(
+        kd.call(fn, x=ds([1, 2]), y=ds([3, 4]), z=ds([5, 6])).to_py(),
+        [9, 12],
+    )
+    # Extra kwargs are ignored
+    self.assertEqual(kd.call(fn, x=1, y=2, z=3, w=4), 6)
+
+  def test_py_fn_default_arguments(self):
+    self.assertEqual(
+        kd.call(functor_factories.py_fn(lambda x, y=1: x + y), x=5).to_py(), 6
+    )
+    self.assertEqual(
+        kd.call(
+            functor_factories.py_fn(lambda x, y=1: x + y), x=5, y=2
+        ).to_py(),
+        7,
+    )
+
+    def default_none(x, y=None):
+      if y is None:
+        y = 1
+      return x + y
+
+    self.assertEqual(
+        kd.call(functor_factories.py_fn(default_none), x=5).to_py(), 6
+    )
+
+  def test_py_fn_positional_params(self):
+    def var_positional(*args):
+      return sum(args)
+
+    self.assertEqual(
+        kd.call(functor_factories.py_fn(var_positional), 1, 2, 3), 6
+    )
+
+    def positional_only(args, /):
+      return args
+
+    self.assertEqual(kd.call(functor_factories.py_fn(positional_only), 1), 1)
+    with self.assertRaisesRegex(
+        TypeError, 'positional-only arguments passed as keyword'
+    ):
+      _ = kd.call(functor_factories.py_fn(positional_only), args=1)
+
+    with self.assertRaisesRegex(
+        TypeError, "missing 1 required positional argument: 'y'"
+    ):
+      _ = kd.call(
+          functor_factories.py_fn(lambda x, y: x + y), fns.obj(x=1, y=2)
+      )
+    self.assertEqual(
+        kd.call(
+            functor_factories.py_fn(lambda foo: foo.x + foo.y),
+            fns.obj(x=1, y=2),
+        ),
+        3,
+    )
+    self.assertEqual(
+        kd.call(
+            functor_factories.py_fn(lambda foo, /: foo.x + foo.y),
+            fns.obj(x=1, y=2),
+        ),
+        3,
+    )
+    with self.assertRaisesRegex(TypeError, "unexpected keyword argument 'y'"):
+      _ = (
+          kd.call(
+              functor_factories.py_fn(lambda foo: foo.x + foo.y),
+              fns.obj(x=1, y=2),
+              y=5,
+          ),
+          6,
+      )
+    self.assertEqual(
+        kd.call(functor_factories.py_fn(lambda foo, bar=1, /: foo + bar), 2),
+        3,
+    )
+    self.assertEqual(
+        kd.call(functor_factories.py_fn(lambda foo, bar=1, /: foo + bar), 2, 4),
+        6,
+    )
+
+  def test_py_fn_no_params(self):
+    def no_params():
+      return 1
+
+    f = functor_factories.py_fn(no_params)
+    self.assertEqual(kd.call(f).to_py(), 1)
+
+  def test_py_fn_after_clone(self):
+    def after_clone(x, y):
+      return x + y + 1
+
+    fn = kd.clone(functor_factories.py_fn(after_clone))
+    self.assertEqual(kd.call(fn, x=1, y=1).to_py(), 3)
+
+    def after_clone2(x, y=None, z=2):
+      if y is None:
+        y = 0
+      return x + y + z
+
+    fn = kd.clone(functor_factories.py_fn(after_clone2))
+    self.assertEqual(kd.call(fn, x=1).to_py(), 3)
+    self.assertEqual(kd.call(fn, x=1, z=1).to_py(), 2)
+    self.assertEqual(kd.call(fn, x=1, y=1).to_py(), 4)
+    self.assertEqual(kd.call(fn, x=1, y=1, z=3).to_py(), 5)
+
+  def test_py_fn_list_as_param_default(self):
+    def list_default(x=[1, 2]):  # pylint: disable=dangerous-default-value
+      return len(x)
+
+    self.assertEqual(kd.call(functor_factories.py_fn(list_default)), 2)
 
 
 if __name__ == '__main__':

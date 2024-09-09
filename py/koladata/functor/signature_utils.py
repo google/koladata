@@ -77,7 +77,7 @@ def signature(parameters: list[data_slice.DataSlice]) -> data_slice.DataSlice:
   Returns:
     A DataSlice representing the signature.
   """
-  return functions.obj(parameters=functions.list(parameters))
+  return functions.obj(parameters=functions.list(parameters)).freeze()
 
 
 def _parameter_from_py_parameter(
@@ -114,3 +114,9 @@ def from_py_signature(sig: inspect.Signature) -> data_slice.DataSlice:
           for param in sig.parameters.values()
       ]
   )
+
+
+ARGS_KWARGS_SIGNATURE = signature([
+    parameter('args', ParameterKind.VAR_POSITIONAL),
+    parameter('kwargs', ParameterKind.VAR_KEYWORD),
+])

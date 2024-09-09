@@ -50,6 +50,11 @@ class KdfTest(absltest.TestCase):
     self.assertEqual(kdf.call(fn, x=1, y=2), 3)
     testing.assert_equal(introspection.unpack_expr(fn.returns), I.x + I.y)
 
+  def test_py_fn(self):
+    fn = kdf.py_fn(lambda x, y: x + 1 if y == 2 else x + 3)
+    self.assertEqual(kdf.call(fn, x=1, y=2), 2)
+    self.assertEqual(kdf.call(fn, x=1, y=3), 4)
+
 
 if __name__ == '__main__':
   absltest.main()
