@@ -22,3 +22,4 @@ _kd = _eager_op_utils.operators_container('kde')
 fn = _functor_factories.fn
 is_fn = _functor_factories.is_fn
 call = _kd.call
+trace_py_fn = _functor_factories.trace_py_fn

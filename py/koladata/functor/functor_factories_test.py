@@ -15,6 +15,7 @@
 """Tests for functor_factories."""
 
 from absl.testing import absltest
+from koladata import kd as user_facing_kd
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import introspection
@@ -32,6 +33,7 @@ I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kdi = user_facing_kd.kdi
 pack_expr = introspection.pack_expr
 
 
@@ -175,6 +177,53 @@ class FunctorFactoriesTest(absltest.TestCase):
     self.assertNotIn(
         'foo_3', dir(fn)
     )  # To make sure we don't have too many copies.
+
+  def test_trace_py_fn(self):
+
+    def my_model(x):
+      # TODO: Make this work with
+      # kd.slice([1.0, 0.5, 1.5]).with_name('weights')
+      weights = user_facing_kd.with_name(kdi.slice([1.0, 0.5, 1.5]), 'weights')
+      return user_facing_kd.agg_sum(
+          user_facing_kd.stack(x.a, x.b, x.c) * weights
+      )
+
+    self.assertEqual(
+        my_model(fns.obj(a=1.0, b=2.0, c=3.0)),
+        1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5,
+    )
+
+    fn = functor_factories.trace_py_fn(my_model)
+    self.assertEqual(
+        fn(x=fns.obj(a=1.0, b=2.0, c=3.0)), 1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5
+    )
+    self.assertEqual(fn.weights[:].to_py(), [1.0, 0.5, 1.5])
+    fn.weights = fns.list([2.0, 3.0, 4.0])
+    self.assertEqual(
+        fn(x=fns.obj(a=1.0, b=2.0, c=3.0)), 1.0 * 2.0 + 2.0 * 3.0 + 3.0 * 4.0
+    )
+
+    fn = functor_factories.trace_py_fn(my_model, auto_variables=False)
+    self.assertEqual(
+        fn(x=fns.obj(a=1.0, b=2.0, c=3.0)), 1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5
+    )
+    self.assertNotIn('weights', dir(fn))
+
+    fn = functor_factories.trace_py_fn(lambda x, y=1: x + y)
+    self.assertEqual(fn(2), 3)
+    self.assertEqual(fn(2, 3), 5)
+
+    fn = functor_factories.trace_py_fn(lambda x, y=1, /: x + y)
+    self.assertEqual(fn(2), 3)
+    self.assertEqual(fn(2, 3), 5)
+
+    fn = functor_factories.trace_py_fn(lambda x, *unused: x + 1)
+    self.assertEqual(fn(2), 3)
+    self.assertEqual(fn(2, 3), 3)
+
+    fn = functor_factories.trace_py_fn(lambda x, **unused_kwargs: x + 1)
+    self.assertEqual(fn(2), 3)
+    self.assertEqual(fn(2, foo=3), 3)
 
 
 if __name__ == '__main__':

@@ -63,9 +63,11 @@ py_library(
     srcs = ["functor_factories.py"],
     deps = [
         ":py_functors_py_ext",
+        ":signature_utils",
         "//koladata/expr:expr_operators",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
+        "//py/koladata/expr:tracing",
         "//py/koladata/functions",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:literal_operator",
@@ -84,6 +86,7 @@ py_test(
     deps = [
         ":functor_factories",
         ":signature_utils",
+        "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
@@ -131,7 +134,9 @@ py_test(
     deps = [
         ":kdf",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:introspection",
         "//py/koladata/expr:view",
+        "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],

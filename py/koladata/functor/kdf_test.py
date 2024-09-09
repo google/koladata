@@ -16,9 +16,11 @@
 
 from absl.testing import absltest
 from koladata.expr import input_container
+from koladata.expr import introspection
 from koladata.expr import view as _
 from koladata.functor import kdf
 from koladata.operators import kde_operators
+from koladata.testing import testing
 
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
@@ -42,6 +44,11 @@ class KdfTest(absltest.TestCase):
     )
     fn.go.rec = fn
     self.assertEqual(kdf.call(fn, n=5), 120)
+
+  def test_trace_py_fn(self):
+    fn = kdf.trace_py_fn(lambda x, y: x + y)
+    self.assertEqual(kdf.call(fn, x=1, y=2), 3)
+    testing.assert_equal(introspection.unpack_expr(fn.returns), I.x + I.y)
 
 
 if __name__ == '__main__':

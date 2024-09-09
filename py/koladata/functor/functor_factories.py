@@ -14,14 +14,17 @@
 
 """Tools to create functors."""
 
+import inspect
 import typing
-from typing import Any
+from typing import Any, Callable
 
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import introspection
+from koladata.expr import tracing
 from koladata.functions import functions as fns
 from koladata.functor import py_functors_py_ext as _py_functors_py_ext
+from koladata.functor import signature_utils
 from koladata.operators import kde_operators
 from koladata.types import data_slice
 from koladata.types import literal_operator
@@ -145,7 +148,7 @@ def fn(
       accessed as V.smth in other expressions.
 
   Returns:
-    A DataSlice with an item representing the functor.
+    A DataItem representing the functor.
   """
   returns = _maybe_wrap_expr(returns)
   variables = {k: _maybe_wrap_expr(v) for k, v in variables.items()}
@@ -170,3 +173,29 @@ def is_fn(obj: Any) -> data_slice.DataSlice:
     return mask_constants.present
   else:
     return mask_constants.missing
+
+
+def trace_py_fn(
+    f: Callable[..., Any], *, auto_variables: bool = True
+) -> data_slice.DataSlice:
+  """Returns a Koda functor created by tracing a given Python function.
+
+  When 'f' has variadic positional (*args) or variadic keyword
+  (**kwargs) arguments, their name must start with 'unused', and they
+  must actually be unused inside 'f'.
+  'f' must not use Python control flow operations such as if or for.
+
+  Args:
+    f: Python function.
+    auto_variables: When true, we create additional variables automatically
+      based on the traced expression. All DataSlice literals become their own
+      variables, and all named subexpressions become their own variables. This
+      helps readability and manipulation of the resulting functor. Note that
+      this defaults to True here, while it defaults to False in kdf.fn.
+
+  Returns:
+    A DataItem representing the functor.
+  """
+  traced_expr = tracing.trace(f)
+  signature = signature_utils.from_py_signature(inspect.signature(f))
+  return fn(traced_expr, signature=signature, auto_variables=auto_variables)
