@@ -72,7 +72,6 @@
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
-
 namespace {
 
 using ::arolla::Bytes;
@@ -556,7 +555,7 @@ class UniversalConverter {
   }
 
   absl::StatusOr<DataSlice> Convert(PyObject* py_obj) && {
-    cmd_stack_.push([=] { return CmdParsePyObject(py_obj, /*is_root=*/true); });
+    RETURN_IF_ERROR(CmdConvertPyObject(py_obj, /*is_root=*/true));
     RETURN_IF_ERROR(Run());
     return std::move(value_stack_.top());
   }
@@ -564,11 +563,11 @@ class UniversalConverter {
   absl::Status ConvertDictKeysAndValues(PyObject* py_obj,
                                         std::optional<DataSlice>& keys,
                                         std::optional<DataSlice>& values) && {
-    CollectDictInputs(py_obj);
+    ParsePyDict(py_obj);
     RETURN_IF_ERROR(Run());
-    keys = std::move(value_stack_.top());
-    value_stack_.pop();
-    values = std::move(value_stack_).top();
+    size_t dict_size = PyDict_Size(py_obj);
+    ASSIGN_OR_RETURN(keys, ComputeDataSlice(dict_size));
+    ASSIGN_OR_RETURN(values, ComputeDataSlice(dict_size));
     return absl::OkStatus();
   }
 
@@ -604,30 +603,45 @@ class UniversalConverter {
     return absl::OkStatus();
   }
 
-  // Collects keys and values of `py_obj` Python dict. It pushes appropriate
-  // arguments to stack in appropriate state (first / second time on stack).
-  //
-  // Utility is very useful to initialze a stack state for processing only keys
-  // and values, without the main PyDict root object `py_obj`.
-  void CollectDictInputs(PyObject* py_obj) {
+  // Takes `size` preconstructed DataItems from `value_stack_` and constructs
+  // a DataSlice.
+  absl::StatusOr<DataSlice> ComputeDataSlice(size_t size) {
+    internal::DataSliceImpl::Builder bldr(size);
+    schema::CommonSchemaAggregator schema_agg;
+    for (size_t i = 0; i < size; ++i) {
+      bldr.Insert(i, value_stack_.top().item());
+      schema_agg.Add(value_stack_.top().GetSchemaImpl());
+      value_stack_.pop();
+    }
+    ASSIGN_OR_RETURN(
+        auto schema, std::move(schema_agg).Get(),
+        AssembleErrorMessage(_, {.db = adoption_queue_.GetDbWithFallbacks()}));
+    return CreateWithSchema(std::move(bldr).Build(),
+                            DataSlice::JaggedShape::FlatFromSize(size),
+                            std::move(schema), db_);
+  }
+
+  // Collects the keys and values of the python dictionary `py_obj`, and
+  // arranges the appropriate commands on the stack for their processing.
+  void ParsePyDict(PyObject* py_obj) {
+    DCHECK(PyDict_CheckExact(py_obj));
     const size_t dict_size = PyDict_Size(py_obj);
-    // All Py references are borrowed.
+    // Notes:
+    //  * All Py references are borrowed.
+    //  * We collect `keys` and `values` in reverse order, so it's easier
+    //    to push them onto the stack later.
     std::vector<PyObject*> keys(dict_size);
     std::vector<PyObject*> values(dict_size);
-    // Note: We collect `keys` and `values` in reverse order, so it's easier to
-    // push them onto the stack later.
     Py_ssize_t pos = 0;
     for (size_t i = dict_size; i > 0; --i) {
       CHECK(PyDict_Next(py_obj, &pos, &keys[i - 1], &values[i - 1]));
     }
     DCHECK(!PyDict_Next(py_obj, &pos, nullptr, nullptr));
-    cmd_stack_.push([=] { return CmdComputeDictKeysOrValues(dict_size); });
     for (auto* py_key : keys) {
-      cmd_stack_.push([=] { return CmdParsePyObject(py_key); });
+      cmd_stack_.push([=] { return CmdConvertPyObject(py_key); });
     }
-    cmd_stack_.push([=] { return CmdComputeDictKeysOrValues(dict_size); });
     for (auto* py_value : values) {
-      cmd_stack_.push([=] { return CmdParsePyObject(py_value); });
+      cmd_stack_.push([=] { return CmdConvertPyObject(py_value); });
     }
   }
 
@@ -635,7 +649,7 @@ class UniversalConverter {
   // converts it to a Koda value (and pushes the result to `value_stack_`),
   // or schedules additional actions for the conversion (by pushing them to
   // `cmd_stack_`).
-  absl::Status CmdParsePyObject(PyObject* py_obj, bool is_root = false) {
+  absl::Status CmdConvertPyObject(PyObject* py_obj, bool is_root = false) {
     // Push `std::nullopt` to detect recrusive Python structures.
     auto [computed_iter, emplaced] = computed_.emplace(py_obj, std::nullopt);
     if (!emplaced) {
@@ -646,7 +660,7 @@ class UniversalConverter {
       value_stack_.push(*computed_iter->second);
     } else if (PyDict_CheckExact(py_obj)) {
       cmd_stack_.push([=] { return CmdComputeDict(py_obj, is_root); });
-      CollectDictInputs(py_obj);
+      ParsePyDict(py_obj);
     } else {
       ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue_));
       if (res.GetShape().rank() > 0) {
@@ -660,7 +674,7 @@ class UniversalConverter {
       }
       // Only Entities are converted using Factory, while primitives are kept as
       // is, unless they are the ones being converted explicitly (e.g.
-      // kd.obj(42), in which case `call_stack` is empty).
+      // kd.obj(42), in which case `is_root` is true).
       if (res.GetSchemaImpl().is_entity_schema() || is_root) {
         ASSIGN_OR_RETURN(res, Factory::Convert(db_, res));
       }
@@ -670,41 +684,21 @@ class UniversalConverter {
     return absl::OkStatus();
   }
 
-  // Takes preconstructed keys and values slices from `value_stack_`,
-  // assembles them into a dictionary and pushes it back to `value_stack_`.
-  absl::Status CmdComputeDict(PyObject* py_obj, bool is_root = false) {
-    auto keys = std::move(value_stack_.top());
-    value_stack_.pop();
-    auto values = std::move(value_stack_.top());
+  // Takes preconstructed keys and values from `value_stack_`, assembles them
+  // into a dictionary and pushes it back to `value_stack_`.
+  absl::Status CmdComputeDict(PyObject* py_obj, bool is_root) {
+    size_t dict_size = PyDict_Size(py_obj);
+    ASSIGN_OR_RETURN(auto keys, ComputeDataSlice(dict_size));
+    ASSIGN_OR_RETURN(auto values, ComputeDataSlice(dict_size));
     ASSIGN_OR_RETURN(
-        auto res, CreateDictShaped(db_, DataSlice::JaggedShape::Empty(), keys,
-                                   values, is_root ? schema_ : std::nullopt));
-    ASSIGN_OR_RETURN(value_stack_.top(), Factory::Convert(db_, std::move(res)));
-    computed_.insert_or_assign(py_obj, value_stack_.top());
-    return absl::OkStatus();
-  }
-
-  // Takes `dict_size` preconstructed Koda values from `value_stack_` and
-  // computes a DataSlice from them and pushes it back to `value_stack_`.
-  absl::Status CmdComputeDictKeysOrValues(size_t dict_size) {
-    // Dict keys or values.
-    internal::DataSliceImpl::Builder kv_bldr(dict_size);
-    schema::CommonSchemaAggregator kv_schema_agg;
-    for (size_t i = 0; i < dict_size; ++i) {
-      kv_bldr.Insert(i, value_stack_.top().item());
-      kv_schema_agg.Add(value_stack_.top().GetSchemaImpl());
-      value_stack_.pop();
-    }
-    ASSIGN_OR_RETURN(
-        auto kv_schema, std::move(kv_schema_agg).Get(),
-        AssembleErrorMessage(_, {.db = adoption_queue_.GetDbWithFallbacks()}));
+        auto res,
+        CreateDictShaped(db_, DataSlice::JaggedShape::Empty(), std::move(keys),
+                         std::move(values), is_root ? schema_ : std::nullopt));
     // NOTE: Factory is not applied on keys and values DataSlices (just on their
     // elements and dict created from those keys and values).
-    ASSIGN_OR_RETURN(
-        value_stack_.emplace(),
-        CreateWithSchema(std::move(kv_bldr).Build(),
-                         DataSlice::JaggedShape::FlatFromSize(dict_size),
-                         kv_schema, db_));
+    ASSIGN_OR_RETURN(value_stack_.emplace(),
+                     Factory::Convert(db_, std::move(res)));
+    computed_.insert_or_assign(py_obj, value_stack_.top());
     return absl::OkStatus();
   }
 
