@@ -378,7 +378,7 @@ inline bool DataItem::Less::LessImpl<float, float>(const DataItem& a,
 }
 
 // Returns the string representation for the DataItem.
-std::string DataItemRepr(const DataItem& item, bool strip_text = false);
+std::string DataItemRepr(const DataItem& item, bool strip_quotes = false);
 
 }  // namespace koladata::internal
 

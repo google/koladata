@@ -153,13 +153,12 @@ std::string DataItem::DebugString() const {
       data_);
 }
 
-std::string DataItemRepr(const DataItem& item, bool strip_text) {
+std::string DataItemRepr(const DataItem& item, bool strip_quotes) {
   if (item.holds_value<ObjectId>()) {
     return ObjectIdStr(item.value<ObjectId>());
   }
-  if (item.holds_value<arolla::Text>() && strip_text) {
-    return absl::StrCat(
-        absl::StripPrefix(absl::StripSuffix(absl::StrCat(item), "'"), "'"));
+  if (item.holds_value<arolla::Text>() && strip_quotes) {
+    return std::string(item.value<arolla::Text>());
   }
   return absl::StrCat(item);
 }

@@ -79,6 +79,21 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
                   R"regexp(Dict\{('x'=4, 'a'=1|'a'=1, 'x'=4)\})regexp")));
 }
 
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict_Text) {
+  DataBagPtr bag = DataBag::Empty();
+  ObjectId dict_id = internal::AllocateSingleDict();
+
+  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice keys = test::DataSlice<arolla::Text>({"a", "x"});
+  DataSlice values = test::DataSlice<arolla::Text>({"a", "4"});
+  ASSERT_OK(data_slice.SetInDict(keys, values));
+
+  EXPECT_THAT(
+      DataSliceToStr(data_slice),
+      IsOkAndHolds(MatchesRegex(
+          R"regexp(Dict\{('x'='4', 'a'='a'|'a'='a', 'x'='4')\})regexp")));
+}
+
 TEST(DataSliceReprTest, TestItemStringRepresentation_NestedDict) {
   DataBagPtr bag = DataBag::Empty();
   ObjectId dict_id = internal::AllocateSingleDict();
@@ -109,6 +124,20 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_List) {
       CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
                        /*schema=*/std::nullopt, test::Schema(schema::kAny)));
   EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds(StrEq("List[1, 2, 3]")));
+}
+
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_List_Text) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
+                       CreateEmptyList(bag, /*schema=*/std::nullopt,
+                                       test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice data_slice,
+      CreateNestedList(bag, test::DataSlice<arolla::Text>({"a", "b", "c"}),
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+  EXPECT_THAT(DataSliceToStr(data_slice),
+              IsOkAndHolds(StrEq("List['a', 'b', 'c']")));
 }
 
 TEST(DataSliceReprTest, TestItemStringRepresentation_NestedList) {

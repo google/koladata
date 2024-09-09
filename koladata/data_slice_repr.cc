@@ -305,6 +305,8 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
   --next_option.depth;
 
   if (data_item.template holds_value<ObjectId>()) {
+    // TEXT items inside Lists and Dicts are quoted.
+    next_option.strip_quotes = false;
     if (ds.GetDb() == nullptr) {
       return DataItemRepr(data_item);
     }
@@ -339,7 +341,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
     }
     return absl::StrCat(prefix, schema_str, ")");
   }
-  return absl::StrCat(data_item);
+  return DataItemRepr(data_item, /*strip_quotes=*/option.strip_quotes);
 }
 
 }  // namespace

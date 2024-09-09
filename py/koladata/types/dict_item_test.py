@@ -88,10 +88,14 @@ class DictItemTest(parameterized.TestCase):
     bag_id = '$' + str(db.fingerprint)[-4:]
     for key, value in itertools.product(py_keys, py_values):
       d = db.dict({key: value})
-      self.assertEqual(str(d), f'Dict{{{str(key)}={str(value)}}}')
+      key_str = str(key)
+      key_str = key_str if key_str != 'a' else "'a'"
+      value_str = str(value)
+      value_str = value_str if value_str != 'a' else "'a'"
+      self.assertEqual(str(d), f'Dict{{{key_str}={value_str}}}')
       self.assertEqual(
           repr(d),
-          f'DataItem(Dict{{{str(key)}={str(value)}}}, schema:'
+          f'DataItem(Dict{{{key_str}={value_str}}}, schema:'
           f' DICT{{{str(key.get_schema())}, {str(value.get_schema())}}},'
           f' bag_id: {bag_id})',
       )

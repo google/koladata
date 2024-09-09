@@ -424,7 +424,8 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
 PyObject* PyDataSlice_str(PyObject* self) {
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
 
-  ASSIGN_OR_RETURN(std::string s, DataSliceToStr(self_ds),
+  ASSIGN_OR_RETURN(std::string s,
+                   DataSliceToStr(self_ds, ReprOption{.strip_quotes = true}),
                    SetKodaPyErrFromStatus(_));
   return PyUnicode_FromStringAndSize(s.c_str(), s.size());
 }
