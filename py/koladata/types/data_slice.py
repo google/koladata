@@ -210,6 +210,11 @@ def _as_itemid(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.as_itemid, self)
 
 
+@DataSlice.add_method('get_obj_schema')
+def _get_obj_schema(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.get_obj_schema, self)
+
+
 ##### DataSlice Magic methods. #####
 
 

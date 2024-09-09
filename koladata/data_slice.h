@@ -133,6 +133,11 @@ class DataSlice {
   // Returns a DataSlice that represents a Schema.
   DataSlice GetSchema() const;
 
+  // Returns a DataSlice of embedded schemas for Objects and primitives in this
+  // DataSlice. Returns an error if this DataSlice does not have OBJECT schema
+  // or __schema__ attributes are missing for any Objects.
+  absl::StatusOr<DataSlice> GetObjSchema() const;
+
   // Returns a DataItem holding a schema.
   const internal::DataItem& GetSchemaImpl() const { return internal_->schema_; }
 

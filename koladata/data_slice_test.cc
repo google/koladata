@@ -785,6 +785,84 @@ TEST(DataSliceTest, SetSchema) {
               IsEquivalentTo(schema_without_db));
 }
 
+TEST(DataSliceTest, GetObjSchema) {
+  {
+    // Missing DataItem
+    auto item = test::DataItem(internal::MissingValue(), schema::kObject);
+    EXPECT_THAT(item.GetObjSchema(),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(
+                    internal::MissingValue(), schema::kSchema))));
+  }
+
+  {
+    // Primitive DataItem
+    auto item = test::DataItem(42, schema::kObject);
+    EXPECT_THAT(item.GetObjSchema(),
+                IsOkAndHolds(IsEquivalentTo(test::Schema(schema::kInt32))));
+  }
+
+  {
+    // Object DataItem
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto item, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+    auto schema = item.GetSchema();
+    ASSERT_OK_AND_ASSIGN(item, item.EmbedSchema());
+    EXPECT_THAT(item.GetObjSchema(), IsOkAndHolds(IsEquivalentTo(schema)));
+  }
+
+  {
+    // Primitive DataSlice
+    auto ds = test::MixedDataSlice<float, int>(
+        {std::nullopt, 3.14, std::nullopt}, {1, std::nullopt, std::nullopt});
+    auto schema_ds = test::DataSlice<schema::DType>(
+        {schema::kInt32, schema::kFloat32, std::nullopt});
+    EXPECT_THAT(ds.GetObjSchema(), IsOkAndHolds(IsEquivalentTo(schema_ds)));
+  }
+
+  {
+    // Object DataSlice
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, EntityCreator::FromAttrs(
+                     db, {"a"}, {test::DataSlice<int>({1, std::nullopt, 2})}));
+    ASSERT_OK_AND_ASSIGN(auto schema,
+                         BroadcastToShape(ds.GetSchema(), ds.GetShape()));
+    ASSERT_OK_AND_ASSIGN(ds, ds.EmbedSchema());
+    EXPECT_THAT(ds.GetObjSchema(), IsOkAndHolds(IsEquivalentTo(schema)));
+  }
+
+  {
+    // Non-OBJECT schema
+    auto item = test::DataItem(42);
+    EXPECT_THAT(item.GetObjSchema(),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("DataSlice must have OBJECT schema")));
+  }
+
+  {
+    // DType DataItem
+    auto item = test::DataItem(schema::kInt32, schema::kObject);
+    EXPECT_THAT(
+        item.GetObjSchema(),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("DataSlice cannot contain primitive schema")));
+  }
+
+  {
+    // No db
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto item, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+    ASSERT_OK_AND_ASSIGN(item, item.EmbedSchema());
+    EXPECT_THAT(
+        item.WithDb(nullptr).GetObjSchema(),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            HasSubstr("DataSlice with Objects must have a DataBag attached")));
+  }
+}
+
 TEST(DataSliceTest, GetAttrNames_Entity) {
   auto db = DataBag::Empty();
   auto a = test::DataSlice<int>({1});

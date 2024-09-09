@@ -175,6 +175,7 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal:error_cc_proto",
         "//koladata/internal:error_utils",
+        "//koladata/internal:missing_value",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
         "//koladata/internal/op_utils:expand",

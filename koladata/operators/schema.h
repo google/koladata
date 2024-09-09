@@ -77,6 +77,11 @@ inline absl::StatusOr<DataSlice> WithSchema(const DataSlice& ds,
 // kde.schema.get_schema operator.
 inline DataSlice GetSchema(const DataSlice& ds) { return ds.GetSchema(); }
 
+// kde.schema.get_obj_schema operator.
+inline absl::StatusOr<DataSlice> GetObjSchema(const DataSlice& ds) {
+  return ds.GetObjSchema();
+}
+
 // kde.schema.get_item_schema operator.
 inline absl::StatusOr<DataSlice> GetItemSchema(const DataSlice& list_schema) {
   if (!list_schema.IsListSchema()) {

@@ -1811,6 +1811,22 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
         ds([1, 2, 3]).embed_schema(), ds([1, 2, 3], schema_constants.OBJECT)
     )
 
+  def test_get_obj_schema(self):
+    x = ds([1, None, 1.1], schema_constants.OBJECT)
+    expected = ds([schema_constants.INT32, None, schema_constants.FLOAT32])
+    testing.assert_equal(x.get_obj_schema(), expected)
+
+    db = data_bag.DataBag.empty()
+    obj = db.obj(x=1)
+    x = ds([1, 1.2, obj, 'a'])
+    expected = ds([
+        schema_constants.INT32,
+        schema_constants.FLOAT32,
+        obj.get_attr('__schema__'),
+        schema_constants.TEXT,
+    ])
+    testing.assert_equal(x.get_obj_schema(), expected)
+
   def test_follow(self):
     x = bag().new()
     testing.assert_equal(kde.nofollow._eval(x).follow(), x)
