@@ -442,7 +442,11 @@ class DataSlice {
             std::shared_ptr<DataBag> db = nullptr)
       : internal_(arolla::RefcountPtr<Internal>::Make(
             std::move(impl), std::move(shape), std::move(schema),
-            std::move(db))) {}
+            std::move(db))) { DCHECK(!schema.is_implicit_schema())
+        << "implicit schemas are not allowed to be used as a DataSlice schema. "
+           "Prefer using DataSlice::Create instead of directly using the "
+           "DataSlice constructor to assert this through a Status";
+  }
 
   // Returns an Error if `schema` cannot be used for data whose type is defined
   // by `dtype`. `dtype` has a value of NothingQType in case the contents are

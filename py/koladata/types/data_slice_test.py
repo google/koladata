@@ -759,6 +759,17 @@ foo.get_obj_schema().x = <desired_schema>"""),
     with self.assertRaisesRegex(TypeError, r'attribute name must be string'):
       getattr(x, 12345)  # pytype: disable=wrong-arg-types
 
+  def test_set_get_attr_implicit_schema_slice_error(self):
+    # NOTE: Regression test for b/364826956.
+    db = bag()
+    obj = db.obj(a=db.obj(x=1, y=3.14))
+    entity = db.new(a=db.new(x=1, y=3.14))
+    entity.get_schema().a = obj.a.get_attr('__schema__')
+    with self.assertRaisesRegex(
+        ValueError, 'DataSlice cannot have an implicit schema as its schema'
+    ):
+      _ = entity.a  # Has implicit schema.
+
   def test_set_attr_none(self):
     with self.subTest('entity'):
       e = bag().new(x=42)

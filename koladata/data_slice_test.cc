@@ -162,6 +162,28 @@ TEST(DataSliceTest, Create_DataSliceImpl) {
                  HasSubstr("shape size must be compatible with number of "
                            "items: shape_size=2 != items_size=3")));
   }
+  {
+    // Implicit schemas are not allowed.
+    auto implicit_schema = internal::DataItem(GenerateImplicitSchema());
+    auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+    auto ds_impl_objects = DataSliceImpl::AllocateEmptyObjects(3);
+    EXPECT_THAT(
+        DataSlice::Create(ds_impl_objects, shape, implicit_schema, db),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "DataSlice cannot have an implicit schema as its schema"));
+  }
+  {
+    // Empty "schemas" are not allowed.
+    auto implicit_schema = internal::DataItem();
+    auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+    auto ds_impl_objects = DataSliceImpl::AllocateEmptyObjects(3);
+    EXPECT_THAT(
+        DataSlice::Create(ds_impl_objects, shape, implicit_schema, db),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            HasSubstr(
+                "schema must contain either a DType or valid schema ItemId")));
+  }
 }
 
 TEST(DataSliceTest, Create_DataItem) {
@@ -235,6 +257,20 @@ TEST(DataSliceTest, Create_DataItem) {
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("shape size must be compatible with number of "
                            "items: shape_size=2 != items_size=1")));
+  }
+  {
+    // Implicit schemas are not allowed.
+    auto implicit_schema = internal::DataItem(GenerateImplicitSchema());
+    auto shape = DataSlice::JaggedShape::Empty();
+    auto object = internal::DataItem(internal::AllocateSingleObject());
+    EXPECT_THAT(
+        DataSlice::Create(object, shape, implicit_schema, db),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "DataSlice cannot have an implicit schema as its schema"));
+    EXPECT_THAT(
+        DataSlice::Create(object, implicit_schema, db),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "DataSlice cannot have an implicit schema as its schema"));
   }
 }
 
@@ -745,6 +781,16 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
         {std::nullopt, internal::AllocateExplicitSchema()}, schema::kAny);
     EXPECT_OK(ds.WithSchema(schema_schema));
   }
+  {
+    // Implicit entity schema is disallowed.
+    auto ds =
+        test::DataSlice<internal::ObjectId>({internal::AllocateSingleObject()});
+    auto implicit_schema = internal::DataItem(GenerateImplicitSchema());
+    EXPECT_THAT(
+        ds.WithSchema(implicit_schema),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "DataSlice cannot have an implicit schema as its schema"));
+  }
 }
 
 // Only test differences between SetSchema and WithSchema. More extensive tests
@@ -1228,7 +1274,6 @@ TEST(DataSliceTest, EmbedSchema_Primitive) {
 TEST(DataSliceTest, EmbedSchema_Object) {
   auto db = DataBag::Empty();
   auto explicit_schema = internal::AllocateExplicitSchema();
-  auto implicit_schema = GenerateImplicitSchema();
 
   // Item
   auto value_item =
@@ -1241,14 +1286,14 @@ TEST(DataSliceTest, EmbedSchema_Object) {
   EXPECT_EQ(schema_attr.item(), explicit_schema);
 
   // Slice
-  auto value_slice = test::AllocateDataSlice(2, implicit_schema, db);
+  auto value_slice = test::AllocateDataSlice(2, explicit_schema, db);
   ASSERT_OK_AND_ASSIGN(auto embedded_slice, value_slice.EmbedSchema());
   EXPECT_EQ(embedded_slice.GetSchemaImpl(), schema::kObject);
   EXPECT_THAT(embedded_slice.slice(), IsEquivalentTo(value_slice.slice()));
   ASSERT_OK_AND_ASSIGN(schema_attr,
                        embedded_slice.GetAttr(schema::kSchemaAttr));
   EXPECT_THAT(schema_attr.slice(),
-              ElementsAre(implicit_schema, implicit_schema));
+              ElementsAre(explicit_schema, explicit_schema));
 }
 
 TEST(DataSliceTest, EmbedSchema_ObjectNoDataBag) {

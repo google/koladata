@@ -782,6 +782,20 @@ absl::Status DelSchemaAttrItem(const internal::DataItem& schema_item,
   return db_impl.GetSchemaAttr(schema_item, attr_name).status();
 }
 
+absl::Status AssertIsSliceSchema(const internal::DataItem& schema) {
+  if (!schema.is_schema()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("schema must contain either a DType or valid schema "
+                        "ItemId, got %v",
+                        schema));
+  }
+  if (schema.is_implicit_schema()) {
+    return absl::InvalidArgumentError(
+        "DataSlice cannot have an implicit schema as its schema");
+  }
+  return absl::OkStatus();
+}
+
 }  // namespace
 
 absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
@@ -794,6 +808,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
                         "shape_size=%d != items_size=%d",
                         shape.size(), impl.size()));
   }
+  RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   // NOTE: Checking the invariant to avoid doing non-trivial verification in
   // prod.
   DCHECK_OK(VerifySchemaConsistency(schema, impl.dtype(),
@@ -809,6 +824,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
 absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             internal::DataItem schema,
                                             std::shared_ptr<DataBag> db) {
+  RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   // NOTE: Checking the invariant to avoid doing non-trivial verification in
   // prod.
   DCHECK_OK(VerifySchemaConsistency(schema, item.dtype(),
@@ -839,6 +855,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             JaggedShape shape,
                                             internal::DataItem schema,
                                             std::shared_ptr<DataBag> db) {
+  RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   DCHECK_OK(VerifySchemaConsistency(schema, item.dtype(),
                                     /*empty_and_unknown=*/!item.has_value()));
   if (shape.rank() == 0) {
@@ -948,11 +965,7 @@ absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
 
 absl::StatusOr<DataSlice> DataSlice::WithSchema(
     internal::DataItem schema_item) const {
-  if (!schema_item.is_schema()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "schema must contain either a DType or valid schema ItemId, got %v",
-        schema_item));
-  }
+  RETURN_IF_ERROR(AssertIsSliceSchema(schema_item));
   RETURN_IF_ERROR(
       VerifySchemaConsistency(schema_item, dtype(), impl_empty_and_unknown()));
   return DataSlice(internal_->impl_, GetShape(), std::move(schema_item),
@@ -1090,6 +1103,8 @@ absl::StatusOr<DataSlice> DataSlice::GetAttr(
         GetAttrImpl(GetDb(), impl, GetSchemaImpl(), attr_name, res_schema,
                     /*allow_missing_schema=*/false),
         AssembleErrorMessage(_, {.ds = *this}));
+    // TODO: Use DataSlice::Create instead of verifying manually.
+    RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
     return DataSlice(std::move(res), GetShape(), std::move(res_schema),
                      GetDb());
   });
@@ -1348,6 +1363,8 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
                                             /*allow_missing=*/false);
                    }),
                    AssembleErrorMessage(_, {.ds = *this}));
+  // TODO: Use DataSlice::Create instead of verifying manually.
+  RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
   return expanded_this.VisitImpl(
       [&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
         ASSIGN_OR_RETURN(auto res_impl,
@@ -1408,12 +1425,14 @@ absl::StatusOr<DataSlice> DataSlice::GetDictKeys() const {
                                      fb_finder.GetFlattenFallbacks(),
                                      /*allow_missing=*/false),
                      AssembleErrorMessage(_, {.ds = *this}));
+    // TODO: Use DataSlice::Create instead of verifying manually.
+    RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
     ASSIGN_OR_RETURN(
         (auto [slice, edge]),
         GetDb()->GetImpl().GetDictKeys(impl, fb_finder.GetFlattenFallbacks()));
     ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({edge}));
-    return DataSlice(std::move(slice), std::move(shape), std::move(res_schema),
-                     GetDb());
+    return DataSlice::Create(std::move(slice), std::move(shape),
+                             std::move(res_schema), GetDb());
   });
 }
 
@@ -1440,6 +1459,8 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
                                             /*allow_missing=*/false);
                    }),
                    AssembleErrorMessage(_, {.ds = *this}));
+  // TODO: Use DataSlice::Create instead of verifying manually.
+  RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
   if (expanded_indices.present_count() == 0) {
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
   }
@@ -1523,6 +1544,8 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
                          /*allow_missing=*/false);
                    }),
                    AssembleErrorMessage(_, {.ds = *this}));
+  // TODO: Use DataSlice::Create instead of verifying manually.
+  RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
   if (expanded_indices.present_count() == 0) {
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
   }
