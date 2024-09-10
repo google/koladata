@@ -878,6 +878,14 @@ DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db) {
   return ds.WithDb(db);
 }
 
+DataSlice Enriched(const DataSlice& ds, const DataBagPtr& db) {
+  return ds.WithDb(DataBag::CommonDataBag({ds.GetDb(), db}));
+}
+
+DataSlice Updated(const DataSlice& ds, const DataBagPtr& db) {
+  return ds.WithDb(DataBag::CommonDataBag({db, ds.GetDb()}));
+}
+
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x) {
   return SimpleAggOverEval("array.inverse_mapping", {x});
 }

@@ -227,6 +227,7 @@ py_library(
     name = "data_slice",
     srcs = ["data_slice.py"],
     deps = [
+        ":data_bag_py_ext",
         ":data_slice_py_ext",
         ":general_eager_ops",
         ":jagged_shape",
@@ -249,6 +250,7 @@ py_test(
         ":qtypes",
         ":schema_constants",
         "//py/koladata/exceptions",
+        "//py/koladata/functions",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",

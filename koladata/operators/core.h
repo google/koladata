@@ -41,6 +41,12 @@ absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds);
 // kde.core.with_db.
 DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db);
 
+// kde.core.enriched.
+DataSlice Enriched(const DataSlice& ds, const DataBagPtr& db);
+
+// kde.core.updated.
+DataSlice Updated(const DataSlice& ds, const DataBagPtr& db);
+
 // kde.core._inverse_mapping.
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x);
 

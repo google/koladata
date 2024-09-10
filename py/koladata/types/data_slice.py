@@ -17,6 +17,7 @@
 from typing import Any
 
 from arolla import arolla
+from koladata.types import data_bag_py_ext as _data_bag_py_ext
 from koladata.types import data_slice_py_ext as _data_slice_py_ext
 from koladata.types import general_eager_ops
 from koladata.types import jagged_shape
@@ -195,6 +196,16 @@ def _freeze(self) -> DataSlice:
   if self.db is None:
     raise ValueError('freeze expects the DataSlice to have a DataBag attached')
   return self.with_db(self.db.fork(mutable=False))
+
+
+@DataSlice.add_method('enriched')
+def _enriched(self, db: _data_bag_py_ext.DataBag) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.enriched, self, db)
+
+
+@DataSlice.add_method('updated')
+def _updated(self, db: _data_bag_py_ext.DataBag) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.updated, self, db)
 
 
 DataSlice.add_method('with_name')(general_eager_ops.with_name)

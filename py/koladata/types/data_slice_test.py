@@ -22,6 +22,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.exceptions import exceptions
+from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -403,6 +404,35 @@ class DataSliceTest(parameterized.TestCase):
     self.assertIsNot(x1.db, x.db)
     self.assertIsNot(x1.db, x1.db)
     self.assertFalse(x1.db.is_mutable())
+
+  def test_enriched(self):
+    db1 = data_bag.DataBag.empty()
+    schema = db1.new_schema(a=schema_constants.INT32)
+    x = db1.new(a=1, schema=schema)
+
+    db2 = data_bag.DataBag.empty()
+    x = x.with_db(db2)
+
+    x = x.enriched(db1)
+    self.assertNotEqual(x.db.fingerprint, db1.fingerprint)
+    self.assertNotEqual(x.db.fingerprint, db2.fingerprint)
+    testing.assert_equivalent(x.a.no_db(), ds(1).no_db())
+
+  def test_updated(self):
+    schema = fns.new_schema(a=schema_constants.INT32)
+
+    db1 = data_bag.DataBag.empty()
+    db1.merge_inplace(schema.db)
+    x = db1.new(a=1, schema=schema)
+
+    db2 = data_bag.DataBag.empty()
+    db2.merge_inplace(schema.db)
+    x.with_db(db2).a = 2
+
+    x = x.updated(db2)
+    self.assertNotEqual(x.db.fingerprint, db1.fingerprint)
+    self.assertNotEqual(x.db.fingerprint, db2.fingerprint)
+    testing.assert_equivalent(x.a.no_db(), ds(2).no_db())
 
   def test_ref(self):
     x = ds([1, 2, 3])

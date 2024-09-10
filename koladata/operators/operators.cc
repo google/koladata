@@ -71,6 +71,7 @@ OPERATOR("kde.core.add", Add);
 OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kde.core.at", At);
 OPERATOR("kde.core.dict_size", DictSize);
+OPERATOR("kde.core.enriched", Enriched);
 OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.get_db", GetDb);
 OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
@@ -91,6 +92,7 @@ OPERATOR_FAMILY("kde.core.subslice",
                 std::make_unique<SubsliceOperatorFamily>());
 OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
+OPERATOR("kde.core.updated", Updated);
 OPERATOR("kde.core.with_db", WithDb);
 //
 OPERATOR("kde.logical._agg_all", AggAll);
