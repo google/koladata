@@ -33,7 +33,6 @@
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/meta.h"
 
 namespace koladata::schema {

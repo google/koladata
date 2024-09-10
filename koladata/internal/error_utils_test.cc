@@ -28,7 +28,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/s11n/codec.pb.h"
 #include "arolla/util/bytes.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/testing/equals_proto.h"
 #include "arolla/util/text.h"
