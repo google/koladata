@@ -1003,6 +1003,44 @@ TEST(DataBagTest, EmptySliceSetGetWithSparseSource) {
   EXPECT_EQ(obj1_a.value<int>(), 1);
 }
 
+TEST(DataBagTest, InternalSetUnitAttrAndReturnMissingObjects) {
+  constexpr int64_t kSize = 3;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto ds_a = DataSliceImpl::AllocateEmptyObjects(kSize);
+  auto ds_b = DataSliceImpl::AllocateEmptyObjects(kSize);
+  auto ds1 = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(
+      {ds_a.values<ObjectId>()[0], ds_b.values<ObjectId>()[1]}));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds1_result,
+      db->InternalSetUnitAttrAndReturnMissingObjects(ds1, "a"));
+  EXPECT_THAT(ds1_result.values<ObjectId>(),
+              ElementsAreArray(ds1.values<ObjectId>()));
+
+  auto ds_union = DataSliceImpl::CreateObjectsDataSlice(
+      arolla::CreateDenseArray<ObjectId>(ConcatObjects(ds_a, ds_b)),
+      ConcatAllocations(ds_a, ds_b));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_result,
+      db->InternalSetUnitAttrAndReturnMissingObjects(ds_union, "a"));
+  EXPECT_THAT(ds_result.allocation_ids(),
+              ElementsAreArray(ConcatAllocations(ds_a, ds_b)));
+  EXPECT_THAT(
+      ds_result.values<ObjectId>(),
+      ElementsAreArray({ds_a.values<ObjectId>()[1], ds_a.values<ObjectId>()[2],
+                   ds_b.values<ObjectId>()[0], ds_b.values<ObjectId>()[2]}));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_oth,
+      db->InternalSetUnitAttrAndReturnMissingObjects(ds_union, "oth"));
+  EXPECT_THAT(ds_oth.allocation_ids(),
+              ElementsAreArray(ConcatAllocations(ds_a, ds_b)));
+  EXPECT_THAT(ds_oth.allocation_ids(),
+              ElementsAreArray(ConcatAllocations(ds_a, ds_b)));
+  EXPECT_THAT(ds_oth.values<ObjectId>(),
+              ElementsAreArray(ds_union.values<ObjectId>()));
+}
+
 TEST(DataBagTest, SetGetDataItem) {
   auto ds_a = DataItem(57.0f);
   for (DataItem ds : {

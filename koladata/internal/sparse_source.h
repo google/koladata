@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
@@ -74,6 +75,13 @@ class SparseSource {
   // Items with missing ObjectId in `objects` will be ignored
   // Items with present ObjectId, but missing value in `values` will be removed.
   absl::Status Set(const ObjectIdArray& objects, const DataSliceImpl& values);
+
+  // Sets the value to kPresent for the specified objects.
+  // Returns an error if IsMutable is false.
+  // Items with missing ObjectId in `objects` will be ignored.
+  // Updates missing_objects with the list of objects that were missing.
+  absl::Status SetUnitAndUpdateMissingObjects(
+      const ObjectIdArray& objects, std::vector<ObjectId>& missing_objects);
 
  private:
   bool ObjectBelongs(ObjectId object) const {

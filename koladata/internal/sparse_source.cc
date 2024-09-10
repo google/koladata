@@ -19,6 +19,7 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -29,6 +30,7 @@
 #include "koladata/internal/object_id.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/util/status.h"
 
 namespace koladata::internal {
@@ -116,5 +118,18 @@ absl::Status SparseSource::Set(const ObjectIdArray& objects,
   });
   return absl::OkStatus();
 }
+
+absl::Status SparseSource::SetUnitAndUpdateMissingObjects(
+    const ObjectIdArray& objects, std::vector<ObjectId>& missing_objects) {
+  objects.ForEachPresent([&](int64_t id, ObjectId object) {
+    if (ObjectBelongs(object)) {
+      if (data_item_map_.emplace(object, arolla::kPresent).second) {
+        missing_objects.push_back(object);
+      }
+    }
+  });
+  return absl::OkStatus();
+}
+
 
 }  // namespace koladata::internal

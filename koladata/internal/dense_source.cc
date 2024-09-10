@@ -838,6 +838,14 @@ class MultitypeDenseSource : public DenseSource {
     return absl::OkStatus();
   }
 
+  absl::Status SetUnitAndUpdateMissingObjects(
+      const ObjectIdArray& objects,
+      std::vector<ObjectId>& missing_objects) final {
+    return absl::FailedPreconditionError(
+        "SetUnitAndUpdateMissingObjects is not allowed for a multitype "
+        "DenseSource.");
+  }
+
   absl::Status SetAllSkipMissing(const DataSliceImpl& values,
                                  ConflictHandlingOption option) final {
     if (!IsMutable()) {
@@ -1141,6 +1149,38 @@ class TypedDenseSource final : public DenseSource {
     const DenseArray<T>& values_array = values.values<T>();
 
     ValueArraySet(obj_allocation_id_, values_, objects, values_array);
+    return absl::OkStatus();
+  }
+
+  absl::Status SetUnitAndUpdateMissingObjects(
+      const ObjectIdArray& objects,
+      std::vector<ObjectId>& missing_objects) final {
+    // TODO: support a flag to mark that all objects are from the
+    // current allocation.
+    if (!IsMutable()) {
+      return absl::FailedPreconditionError(
+          "SetUnitAndUpdateMissingObjects is not allowed for an immutable "
+          "DenseSource.");
+    }
+    if (multitype_) {
+      return absl::FailedPreconditionError(
+          "SetUnitAndUpdateMissingObjects is not allowed for a multitype "
+          "DenseSource.");
+    }
+    if (!std::is_same_v<T, arolla::Unit>) {
+      return absl::FailedPreconditionError(
+          "SetUnitAndUpdateMissingObjects is only allowed for OptionalUnit "
+          "DenseSource.");
+    }
+    if constexpr (std::is_same_v<T, arolla::Unit>) {
+      objects.ForEach([&](int64_t id, bool present, ObjectId object) {
+        if (present && obj_allocation_id_.Contains(object) &&
+            !values_.Get(object.Offset()).present) {
+          values_.Set(object.Offset(), arolla::kUnit);
+          missing_objects.push_back(object);
+        }
+      });
+    }
     return absl::OkStatus();
   }
 

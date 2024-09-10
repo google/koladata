@@ -233,6 +233,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/util",
     ],
 )

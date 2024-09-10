@@ -253,5 +253,35 @@ TEST(SparseSourceTest, SetGet) {
   }
 }
 
+TEST(SparseSourceTest, SetUnitAttrAndReturnMissingObjectsInternal) {
+  auto oth0 = AllocateSingleObject();
+  auto oth1 = AllocateSingleObject();
+  auto oth2 = Allocate(1027).ObjectByOffset(77);
+
+  AllocationId alloc = Allocate(4);
+  auto ds = std::make_shared<SparseSource>(alloc);
+  auto a0 = alloc.ObjectByOffset(0);
+  auto a1 = alloc.ObjectByOffset(1);
+  auto a2 = alloc.ObjectByOffset(2);
+  auto a3 = alloc.ObjectByOffset(3);
+
+  std::vector<ObjectId> missing_objects;
+  EXPECT_OK(ds->SetUnitAndUpdateMissingObjects(
+      arolla::CreateDenseArray<ObjectId>({}), missing_objects));
+  EXPECT_TRUE(missing_objects.empty());
+
+  EXPECT_OK(ds->SetUnitAndUpdateMissingObjects(
+      arolla::CreateDenseArray<ObjectId>(
+          {a0, a2, a2, std::nullopt, std::nullopt, a0, oth0}),
+      missing_objects));
+  EXPECT_THAT(missing_objects, ElementsAre(a0, a2));
+
+  missing_objects.clear();
+  EXPECT_OK(ds->SetUnitAndUpdateMissingObjects(
+      arolla::CreateDenseArray<ObjectId>({oth0, oth1, oth2, a3, a2, a1, a0}),
+      missing_objects));
+  EXPECT_THAT(missing_objects, ElementsAre(a3, a1));
+}
+
 }  // namespace
 }  // namespace koladata::internal

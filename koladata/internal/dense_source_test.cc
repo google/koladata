@@ -622,6 +622,38 @@ TEST(DenseSourceTest, ReadonlyFromEmptyAndUnknownSlice) {
                        HasSubstr("Empty and unknown slices")));
 }
 
+TEST(DenseSourceTest, SetUnitAttrAndReturnMissingObjectsInternal) {
+  auto oth0 = AllocateSingleObject();
+  auto oth1 = AllocateSingleObject();
+  auto oth2 = Allocate(1027).ObjectByOffset(77);
+
+  AllocationId alloc = Allocate(4);
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, DenseSource::CreateMutable(alloc, 4, arolla::GetQType<Unit>()));
+
+  auto a0 = alloc.ObjectByOffset(0);
+  auto a1 = alloc.ObjectByOffset(1);
+  auto a2 = alloc.ObjectByOffset(2);
+  auto a3 = alloc.ObjectByOffset(3);
+
+  std::vector<ObjectId> missing_objects;
+  EXPECT_OK(ds->SetUnitAndUpdateMissingObjects(
+      arolla::CreateDenseArray<ObjectId>({}), missing_objects));
+  EXPECT_TRUE(missing_objects.empty());
+
+  EXPECT_OK(ds->SetUnitAndUpdateMissingObjects(
+      arolla::CreateDenseArray<ObjectId>(
+          {a0, a2, a2, std::nullopt, std::nullopt, a0, oth0}),
+      missing_objects));
+  EXPECT_THAT(missing_objects, ElementsAre(a0, a2));
+
+  missing_objects.clear();
+  EXPECT_OK(ds->SetUnitAndUpdateMissingObjects(
+      arolla::CreateDenseArray<ObjectId>({oth0, oth1, oth2, a3, a2, a1, a0}),
+      missing_objects));
+  EXPECT_THAT(missing_objects, ElementsAre(a3, a1));
+}
+
 TEST(DenseSourceTest, Merge) {
   auto gen_data = [&]<typename T>(T value, int size, int step, int offset) {
     arolla::DenseArrayBuilder<T> bldr(size);

@@ -209,6 +209,12 @@ class DataBagImpl : public arolla::RefcountedBase {
   absl::Status SetAttr(const DataItem& object, absl::string_view attr,
                        DataItem value);
 
+  // Updates DataBagImpl by setting attribute to present for specified objects.
+  // Returns a slice of unique ObjectIds that had an attribute missing before.
+  absl::StatusOr<DataSliceImpl>
+  InternalSetUnitAttrAndReturnMissingObjects(const DataSliceImpl& objects,
+                                             absl::string_view attr);
+
   // ListRange{a, b} represent python-style slicing [a:b]. Negative indices mean
   // offset from the end of a list.
   // Unspecified or nullopt `to` means the end of the list.
@@ -732,6 +738,13 @@ class DataBagImpl : public arolla::RefcountedBase {
   // in `this->lists_`. Uses a corresponding DataListVector from
   // parent_data_bag_ as a parent if available.
   DataListVector& GetOrCreateMutableLists(AllocationId alloc_id);
+
+  // Create (if not yet created) a mutable source in the given `collection`.
+  // Modified collection will have either mutable_dense_source or
+  // mutable_sparse_source.
+  absl::Status GetOrCreateMutableSourceInCollection(
+      SourceCollection& collection, AllocationId alloc_id,
+      absl::string_view attr, const arolla::QType* qtype, size_t update_size);
 
   // Replaces `range` with `new_values_count` values (uninitialized).
   // Returns index of the first affected value.

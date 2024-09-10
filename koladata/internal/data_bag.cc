@@ -62,6 +62,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/refcount_ptr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -509,6 +510,83 @@ int64_t DataBagImpl::GetAttributeDataSources(
 
 // *******  Mutable interface
 
+absl::Status DataBagImpl::GetOrCreateMutableSourceInCollection(
+    SourceCollection& collection, AllocationId alloc_id, absl::string_view attr,
+    const arolla::QType* qtype, size_t update_size) {
+  if (!collection.mutable_dense_source) {
+    if (update_size <= alloc_id.Capacity() / kSparseSourceSparsityCoef) {
+      if (!collection.mutable_sparse_source) {
+        collection.mutable_sparse_source =
+            std::make_shared<SparseSource>(alloc_id);
+      }
+      return absl::OkStatus();
+    }
+    RETURN_IF_ERROR(CreateMutableDenseSource(collection, alloc_id, attr, qtype,
+                                             alloc_id.Capacity()));
+  }
+  return absl::OkStatus();
+}
+
+absl::StatusOr<DataSliceImpl>
+DataBagImpl::InternalSetUnitAttrAndReturnMissingObjects(
+    const DataSliceImpl& objects, absl::string_view attr) {
+  if (objects.is_empty_and_unknown()) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(0);
+  }
+  if (objects.dtype() != arolla::GetQType<ObjectId>()) {
+    return absl::FailedPreconditionError(
+        "getting unique objects out of primitives is not allowed");
+  }
+  if (parent_data_bag_ != nullptr) {
+    return absl::FailedPreconditionError(
+        "getting unique objects out of a DataBag with parent is not allowed");
+  }
+  std::vector<ObjectId> missing_objects;
+  missing_objects.reserve(objects.size());
+  AllocationIdSet missing_objects_alloc_ids;
+  for (AllocationId alloc_id : objects.allocation_ids()) {
+    absl::Cleanup complete_processing_allocation =
+        [&, missing_objects_sz = missing_objects.size()] {
+          if (missing_objects.size() != missing_objects_sz) {
+            missing_objects_alloc_ids.Insert(alloc_id);
+          }
+        };
+    SourceCollection& collection = GetOrCreateSourceCollection(alloc_id, attr);
+    if (collection.const_dense_source) {
+      return absl::InvalidArgumentError("const source is not supported");
+    }
+    RETURN_IF_ERROR(GetOrCreateMutableSourceInCollection(
+        collection, alloc_id, attr, arolla::GetQType<arolla::Unit>(),
+        /*update_size=*/objects.size()));
+    if (collection.mutable_dense_source) {
+      RETURN_IF_ERROR(
+          collection.mutable_dense_source->SetUnitAndUpdateMissingObjects(
+              objects.values<ObjectId>(), missing_objects));
+    } else {
+      DCHECK(collection.mutable_sparse_source);
+      RETURN_IF_ERROR(
+          collection.mutable_sparse_source->SetUnitAndUpdateMissingObjects(
+              objects.values<ObjectId>(), missing_objects));
+    }
+  }
+  if (objects.allocation_ids().contains_small_allocation_id()) {
+    const auto missing_objects_sz = missing_objects.size();
+    auto& source = GetMutableSmallAllocSource(attr);
+    RETURN_IF_ERROR(source.SetUnitAndUpdateMissingObjects(
+        objects.values<ObjectId>(), missing_objects));
+    if (missing_objects.size() != missing_objects_sz) {
+      missing_objects_alloc_ids.InsertSmallAllocationId();
+    }
+  }
+  if (missing_objects.size() == objects.size()) {
+    return objects;
+  }
+  return DataSliceImpl::CreateObjectsDataSlice(
+      arolla::DenseArray<ObjectId>{
+          arolla::Buffer<ObjectId>::Create(std::move(missing_objects))},
+      missing_objects_alloc_ids);
+}
+
 absl::StatusOr<DataSliceImpl> DataBagImpl::CreateObjectsFromFields(
     const std::vector<absl::string_view>& attr_names,
     const std::vector<std::reference_wrapper<const DataSliceImpl>>& slices) {
@@ -650,22 +728,16 @@ absl::Status DataBagImpl::SetAttr(const DataSliceImpl& objects,
   }
   for (AllocationId alloc_id : objects.allocation_ids()) {
     SourceCollection& collection = GetOrCreateSourceCollection(alloc_id, attr);
-    if (!collection.mutable_dense_source) {
-      if (objects.size() <= alloc_id.Capacity() / kSparseSourceSparsityCoef) {
-        if (!collection.mutable_sparse_source) {
-          collection.mutable_sparse_source =
-              std::make_shared<SparseSource>(alloc_id);
-        }
-        RETURN_IF_ERROR(collection.mutable_sparse_source->Set(
-            objects.values<ObjectId>(), values));
-        continue;
-      }
-      const arolla::QType* qtype = values.dtype() == arolla::GetNothingQType() ?
-          nullptr : values.dtype();
-      RETURN_IF_ERROR(CreateMutableDenseSource(collection, alloc_id, attr,
-                                               qtype, alloc_id.Capacity()));
+    const arolla::QType* qtype =
+        values.dtype() == arolla::GetNothingQType() ? nullptr : values.dtype();
+    RETURN_IF_ERROR(GetOrCreateMutableSourceInCollection(
+        collection, alloc_id, attr, qtype, /*update_size=*/objects.size()));
+    if (collection.mutable_dense_source) {
+      RETURN_IF_ERROR(collection.mutable_dense_source->Set(
+          objects.values<ObjectId>(), values));
+      continue;
     }
-    RETURN_IF_ERROR(collection.mutable_dense_source->Set(
+    RETURN_IF_ERROR(collection.mutable_sparse_source->Set(
         objects.values<ObjectId>(), values));
   }
   if (objects.allocation_ids().contains_small_allocation_id()) {
@@ -693,16 +765,11 @@ absl::Status DataBagImpl::SetAttr(const DataItem& object,
   }
   AllocationId alloc_id(object_id);
   SourceCollection& collection = GetOrCreateSourceCollection(alloc_id, attr);
+  const arolla::QType* qtype = value.has_value() ? value.dtype() : nullptr;
+  RETURN_IF_ERROR(GetOrCreateMutableSourceInCollection(
+      collection, alloc_id, attr, qtype, /*update_size=*/1));
   if (collection.mutable_dense_source) {
     return collection.mutable_dense_source->Set(object_id, value);
-  } else if (alloc_id.Capacity() < kSparseSourceSparsityCoef) {
-    const arolla::QType* qtype = value.has_value() ? value.dtype() : nullptr;
-    RETURN_IF_ERROR(CreateMutableDenseSource(collection, alloc_id, attr, qtype,
-                                             alloc_id.Capacity()));
-    return collection.mutable_dense_source->Set(object_id, value);
-  }
-  if (!collection.mutable_sparse_source) {
-    collection.mutable_sparse_source = std::make_shared<SparseSource>(alloc_id);
   }
   collection.mutable_sparse_source->Set(object_id, value);
   return absl::OkStatus();

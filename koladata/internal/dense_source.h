@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/log/check.h"
@@ -78,6 +79,14 @@ class DenseSource {
   // Items with present ObjectId, but missing value in `values` will be removed.
   virtual absl::Status Set(const ObjectIdArray& objects,
                            const DataSliceImpl& values) = 0;
+
+  // Sets the value to kPresent for the specified objects.
+  // Returns an error if IsMutable is false.
+  // Items with missing ObjectId in `objects` will be ignored.
+  // Updates missing_objects with the list of objects that were missing.
+  virtual absl::Status SetUnitAndUpdateMissingObjects(
+      const ObjectIdArray& objects, std::vector<ObjectId>& missing_objects) = 0;
+
 
   enum class ConflictHandlingOption {
     kRaiseOnConflict = 0,
