@@ -423,11 +423,17 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
 
 PyObject* PyDataSlice_str(PyObject* self) {
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
+  std::string result;
+  absl::StatusOr<std::string> item_str =
+      DataSliceToStr(self_ds, ReprOption{.strip_quotes = true});
+  if (item_str.ok()) {
+    result = item_str.value();
+  } else {
+    self_ds.VisitImpl(
+        [&](const auto& impl) { return absl::StrAppend(&result, impl); });
+  }
 
-  ASSIGN_OR_RETURN(std::string s,
-                   DataSliceToStr(self_ds, ReprOption{.strip_quotes = true}),
-                   SetKodaPyErrFromStatus(_));
-  return PyUnicode_FromStringAndSize(s.c_str(), s.size());
+  return PyUnicode_FromStringAndSize(result.c_str(), result.size());
 }
 
 absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {

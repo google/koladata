@@ -186,85 +186,97 @@ class DataSliceTest(parameterized.TestCase):
           'data_item',
           ds(12),
           'DataItem(12, schema: INT32)',
+          '12',
       ),
       (
           'int32',
           ds([1, 2]),
           'DataSlice([1, 2], schema: INT32, shape: JaggedShape(2))',
+          '[1, 2]',
       ),
       (
           'int64',
           ds([1, 2], schema_constants.INT64),
           'DataSlice([1, 2], schema: INT64, shape: JaggedShape(2))',
+          '[1, 2]',
       ),
       (
           'float32',
           ds([1.0, 1.5]),
           'DataSlice([1.0, 1.5], schema: FLOAT32, shape: JaggedShape(2))',
+          '[1.0, 1.5]',
       ),
       (
           'float64',
           ds([1.0, 1.5], schema_constants.FLOAT64),
-          (
-              'DataSlice([1.0, 1.5], schema: FLOAT64, shape:'
-              ' JaggedShape(2))'
-          ),
+          'DataSlice([1.0, 1.5], schema: FLOAT64, shape: JaggedShape(2))',
+          '[1.0, 1.5]',
       ),
       (
           'float32_as_object',
           bag().obj(ds([1.0, 1.5], schema_constants.FLOAT32)).no_db(),
           'DataSlice([1.0, 1.5], schema: OBJECT, shape: JaggedShape(2))',
+          '[1.0, 1.5]',
       ),
       (
           'float64_as_object',
           bag().obj(ds([1.0, 1.5], schema_constants.FLOAT64)).no_db(),
-          (
-              'DataSlice([1.0, 1.5], schema: OBJECT, shape:'
-              ' JaggedShape(2))'
-          ),
+          'DataSlice([1.0, 1.5], schema: OBJECT, shape: JaggedShape(2))',
+          '[1.0, 1.5]',
       ),
       (
           'float32_as_any',
           ds([1.0, 1.5], schema_constants.FLOAT32).as_any(),
           'DataSlice([1.0, 1.5], schema: ANY, shape: JaggedShape(2))',
+          '[1.0, 1.5]',
       ),
       (
           'float64_as_any',
           ds([1.0, 1.5], schema_constants.FLOAT64).as_any(),
-          (
-              'DataSlice([1.0, 1.5], schema: ANY, shape:'
-              ' JaggedShape(2))'
-          ),
+          'DataSlice([1.0, 1.5], schema: ANY, shape: JaggedShape(2))',
+          '[1.0, 1.5]',
       ),
       (
           'boolean',
           ds([True, False]),
           'DataSlice([True, False], schema: BOOLEAN, shape: JaggedShape(2))',
+          '[True, False]',
       ),
       (
           'mask',
           ds([arolla.unit(), arolla.optional_unit(None)]),
           'DataSlice([present, None], schema: MASK, shape: JaggedShape(2))',
+          '[present, None]',
       ),
       (
           'text',
+          ds('a'),
+          "DataItem('a', schema: TEXT)",
+          'a',
+      ),
+      (
+          'text list',
           ds(['a', 'b']),
           "DataSlice(['a', 'b'], schema: TEXT, shape: JaggedShape(2))",
+          "['a', 'b']",
       ),
       (
           'bytes',
           ds([b'a', b'b']),
           "DataSlice([b'a', b'b'], schema: BYTES, shape: JaggedShape(2))",
+          "[b'a', b'b']",
       ),
       (
           'int32_with_any',
           ds([1, 2]).as_any(),
           'DataSlice([1, 2], schema: ANY, shape: JaggedShape(2))',
+          '[1, 2]',
       ),
       (
           'int32_with_object',
           ds([1, 2]).with_schema(schema_constants.OBJECT),
           'DataSlice([1, 2], schema: OBJECT, shape: JaggedShape(2))',
+          '[1, 2]',
       ),
       (
           'mixed_data',
@@ -273,21 +285,25 @@ class DataSliceTest(parameterized.TestCase):
               "DataSlice([1, 'abc', True, 1.0, 1], schema: OBJECT, shape:"
               ' JaggedShape(5))'
           ),
+          "[1, 'abc', True, 1.0, 1]",
       ),
       (
           'int32_with_none',
           ds([1, None]),
           'DataSlice([1, None], schema: INT32, shape: JaggedShape(2))',
+          '[1, None]',
       ),
       (
           'empty',
           ds([], schema_constants.INT64),
           'DataSlice([], schema: INT64, shape: JaggedShape(0))',
+          '[]',
       ),
       (
           'empty_int64_internal',
           ds(arolla.dense_array_int64([])),
           'DataSlice([], schema: INT64, shape: JaggedShape(0))',
+          '[]',
       ),
       (
           'multidim',
@@ -296,10 +312,12 @@ class DataSliceTest(parameterized.TestCase):
               'DataSlice([[[1], [2]], [[3], [4], [5]]], schema: INT32, '
               'shape: JaggedShape(2, [2, 3], 1))'
           ),
+          '[[[1], [2]], [[3], [4], [5]]]',
       ),
   )
-  def test_repr_no_db(self, x, expected_repr):
+  def test_repr_and_str_no_db(self, x, expected_repr, expected_str):
     self.assertEqual(repr(x), expected_repr)
+    self.assertEqual(str(x), expected_str)
 
   def test_repr_with_db(self):
     db = bag()
@@ -309,6 +327,14 @@ class DataSliceTest(parameterized.TestCase):
         repr(x),
         'DataSlice([1, 2], schema: INT32, shape: JaggedShape(2), '
         f'bag_id: {bag_id})',
+    )
+
+  # Special case for itemid, since it includes a non-deterministic id.
+  def test_str_repr_itemid_works(self):
+    x = bag().list()
+    self.assertRegex(str(x.as_itemid()), r'.*:.*')
+    self.assertRegex(
+        repr(x.as_itemid()), r'DataItem(.*:.*, schema: ITEMID, bag_id: .*)'
     )
 
   # NOTE: DataSlice has custom __eq__ which works pointwise and returns another
