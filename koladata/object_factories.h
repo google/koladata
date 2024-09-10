@@ -252,6 +252,8 @@ absl::StatusOr<DataSlice> CreateDictUuidFromFields(
 // corresponding db from the argument values.
 //
 // The schema of the entities is stored on the returned DataSlice.
+//
+// Adopts `values` and `schema`(if present) into `db`.
 absl::StatusOr<DataSlice> CreateUu(
     const DataBagPtr& db,
     absl::string_view seed,

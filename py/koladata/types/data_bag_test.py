@@ -471,6 +471,17 @@ SchemaBag:
     # no args
     _ = db.uu()
 
+    # incompatible schema error message
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for attribute 'a' is incompatible.
+
+Expected schema for 'a': SCHEMA(b=INT32)
+Assigned schema for 'a': SCHEMA(b=TEXT)"""),
+    ):
+      schema = db.uu_schema(a=db.uu_schema(b=schema_constants.INT32))
+      _ = db.uu(a=bag().uu(b='dudulu'), schema=schema)
+
   def test_uuobj(self):
     db = bag()
     x = db.uuobj(

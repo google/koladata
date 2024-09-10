@@ -667,14 +667,16 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
   }
-  if (schema_arg) {
-    adoption_queue.Add(*schema_arg);
-  }
-  ASSIGN_OR_RETURN(
-      res,
-      CreateUu(db, seed_arg, args.kw_names, values, schema_arg, update_schema),
-      SetKodaPyErrFromStatus(_));
+  auto adopted_values = ManyWithDb(values, db);
+  // Because `EntityCreator` relies on accurate databags of attrs for error
+  // messages, and because `EntityCreatorHelper` strips attr databags to avoid
+  // double adoption, we need to do adoption before calling the helper to have
+  // accurate databags for error messages.
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+  ASSIGN_OR_RETURN(res,
+                   CreateUu(db, seed_arg, args.kw_names, adopted_values,
+                            schema_arg, update_schema),
+                   SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 

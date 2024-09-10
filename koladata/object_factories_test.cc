@@ -769,6 +769,53 @@ TEST(CreateUuTest, SchemaArg_Any) {
                   IsEquivalentTo(test::DataItem(42, schema::kAny).WithDb(db))));
 }
 
+TEST(CreateUuTest, DatabagAdoption) {
+  arolla::InitArolla();
+  auto db_nested = DataBag::Empty();
+  auto ds_a = test::DataItem(42);
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_nested,
+      EntityCreator::FromAttrs(
+          db_nested, {"a"}, {ds_a}));
+
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      CreateUu(db, "", {"nested"}, {ds_nested}));
+  ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
+  EXPECT_THAT(ds_get_attr.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+}
+
+TEST(CreateUuTest, DatabagAdoption_WithSchema) {
+  arolla::InitArolla();
+  auto schema_db = DataBag::Empty();
+  auto alt_schema = *CreateEntitySchema(schema_db, {"a"},
+                                          {test::Schema(schema::kFloat32)});
+
+  // Schema comes from different db and takes effect.
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, CreateUu(db, "", {"a"}, {test::DataItem(42)}, alt_schema));
+    EXPECT_THAT(ds.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f).WithDb(db))));
+  }
+
+  // Schema comes from different db and gets overwritten
+  {
+    auto db = DataBag::Empty();
+    auto schema_db = DataBag::Empty();
+    auto alt_schema =
+        *CreateEntitySchema(schema_db, {"a"}, {test::Schema(schema::kFloat32)});
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, CreateUu(db, "", {"a"}, {test::DataItem(42)}, alt_schema,
+                          /*update_schema=*/true));
+    EXPECT_THAT(ds.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+  }
+}
+
 TEST(ObjectCreatorTest, ObjectToEntity) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();

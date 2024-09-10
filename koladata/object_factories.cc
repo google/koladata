@@ -813,8 +813,18 @@ absl::StatusOr<DataSlice> CreateUu(
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     schema_item = schema->item();
-    RETURN_IF_ERROR(
-        CopyEntitySchema(schema->GetDb(), schema_item, db_mutable_impl));
+    if (!schema_item.is_entity_schema() && schema_item != schema::kAny) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "processing Entity attributes requires Entity schema, got %v",
+          schema_item));
+    }
+    if (schema_item != schema::kAny) {
+      // Copy schema into db before setting attributes for proper casting /
+      // error reporting.
+      AdoptionQueue schema_adoption_queue;
+      schema_adoption_queue.Add(*schema);
+      RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
+    }
   }
   if (!schema_item.has_value()) {
     // Construct schema_item from values.
@@ -857,6 +867,11 @@ absl::StatusOr<DataSlice> CreateUu(
                                   aligned_values.begin()->GetShape(),
                                   std::move(schema_item), db));
     RETURN_IF_ERROR(ds.SetAttrs(attr_names, aligned_values, update_schema));
+    // Adopt into the databag only at the end to avoid garbage in the databag in
+    // case of error.
+    // NOTE: This will cause 2 merges of the same DataBag, if schema comes from
+    // the same DataBag as values.
+    RETURN_IF_ERROR(AdoptValuesInto(aligned_values, *db));
     return ds;
   });
 }
