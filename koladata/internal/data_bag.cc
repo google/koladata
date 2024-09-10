@@ -48,9 +48,12 @@
 #include "koladata/internal/dense_source.h"
 #include "koladata/internal/dict.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error.pb.h"
+#include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_or.h"
+#include "koladata/internal/schema_utils.h"
 #include "koladata/internal/sparse_source.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
@@ -452,6 +455,61 @@ absl::StatusOr<DataItem> DataBagImpl::GetAttr(const DataItem& object,
     }
   }
   return DataItem();
+}
+
+template <typename ImplT>
+absl::StatusOr<ImplT> DataBagImpl::GetObjSchemaAttr(
+    const ImplT&, FallbackSpan fallbacks) const {
+  static_assert(sizeof(ImplT) == 0,
+                "GetObjSchemaAttr is not supported for ImplT not in "
+                "{DataSliceImpl, DataItem}");
+}
+
+template <>
+absl::StatusOr<DataItem> DataBagImpl::GetObjSchemaAttr(
+    const DataItem& item, FallbackSpan fallbacks) const {
+  ASSIGN_OR_RETURN(auto schema, GetAttr(item, schema::kSchemaAttr, fallbacks));
+  if (schema.has_value() || !item.has_value()) {
+    return schema;
+  }
+
+  internal::Error error;
+  ASSIGN_OR_RETURN(
+      *error.mutable_missing_object_schema()->mutable_missing_schema_item(),
+      internal::EncodeDataItem(item));
+  return internal::WithErrorPayload(
+      absl::InvalidArgumentError(
+          absl::StrFormat("object %v is missing __schema__ attribute", item)),
+      error);
+}
+
+template <>
+absl::StatusOr<DataSliceImpl> DataBagImpl::GetObjSchemaAttr(
+    const DataSliceImpl& slice, FallbackSpan fallbacks) const {
+  ASSIGN_OR_RETURN(auto schema, GetAttr(slice, schema::kSchemaAttr, fallbacks));
+  if (schema.present_count() >= slice.present_count()) {
+    return schema;
+  }
+
+  internal::DataItem item_missing_schema;
+  RETURN_IF_ERROR(arolla::DenseArraysForEach(
+      [&](int64_t id, bool valid, internal::DataItem item,
+          arolla::OptionalValue<internal::DataItem> attr) {
+        if (!item_missing_schema.has_value() && valid && item.has_value() &&
+            !attr.present) {
+          item_missing_schema = item;
+        }
+      },
+      slice.AsDataItemDenseArray(), schema.AsDataItemDenseArray()));
+  internal::Error error;
+  ASSIGN_OR_RETURN(
+      *error.mutable_missing_object_schema()->mutable_missing_schema_item(),
+      internal::EncodeDataItem(item_missing_schema));
+
+  return internal::WithErrorPayload(
+      absl::InvalidArgumentError(
+          absl::StrFormat("object %v is missing __schema__ attribute", slice)),
+      error);
 }
 
 void DataBagImpl::GetSmallAllocDataSources(
@@ -2313,7 +2371,7 @@ template <typename ImplT>
 absl::Status SetSchemaFields(
     const ImplT&,  const std::vector<absl::string_view>& attr_names,
     const std::vector<std::reference_wrapper<const DataItem>>& items) {
-  static_assert(false,
+  static_assert(sizeof(ImplT) == 0,
                 "SetSchemaFields is not supported for ImplT not in "
                 "{DataSliceImpl, DataItem}");
 }
@@ -2380,7 +2438,7 @@ template <typename ImplT>
 absl::Status OverwriteSchemaFields(
     const ImplT&,  const std::vector<absl::string_view>& attr_names,
     const std::vector<std::reference_wrapper<const DataItem>>& items) {
-  static_assert(false,
+  static_assert(sizeof(ImplT) == 0,
                 "OverwriteSchemaFields is not supported for ImplT not in "
                 "{DataSliceImpl, DataItem}");
 }

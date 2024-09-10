@@ -53,7 +53,6 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/repr_utils.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -119,62 +118,6 @@ absl::Status AssignmentError(absl::Status status, size_t lhs_rank,
   return status;
 }
 
-// Creates an Error for cases when objects with schema OBJECT are missing
-// __schema__ attributes.
-template <typename ImplT>
-absl::Status VerifyObjectSchemaAttr(const ImplT& impl,
-                                    const ImplT& schema_attr) {
-  if (schema_attr.present_count() >= impl.present_count()) {
-    return absl::OkStatus();
-  }
-
-  internal::Error error;
-  internal::MissingObjectSchema* missing_schema =
-      error.mutable_missing_object_schema();
-  // Finds the first item without schema attr.
-  ASSIGN_OR_RETURN(
-      *missing_schema->mutable_missing_schema_item(),
-      absl::Overload(
-          [](const internal::DataItem& impl, const internal::DataItem& attr)
-              -> absl::StatusOr<arolla::serialization_base::ContainerProto> {
-            return internal::EncodeDataItem(impl);
-          },
-          [](const internal::DataSliceImpl& impl,
-             const internal::DataSliceImpl& attr)
-              -> absl::StatusOr<arolla::serialization_base::ContainerProto> {
-            internal::DataItem item_missing_schema;
-            RETURN_IF_ERROR(arolla::DenseArraysForEach(
-                [&](int64_t id, bool valid, internal::DataItem item,
-                    arolla::OptionalValue<internal::DataItem> attr) {
-                  if (!item_missing_schema.has_value() && valid &&
-                      item.has_value() && !attr.present) {
-                    item_missing_schema = item;
-                  }
-                },
-                impl.AsDataItemDenseArray(), attr.AsDataItemDenseArray()));
-            if (!item_missing_schema.has_value()) {
-              return absl::InternalError("all items have schema.");
-            }
-            return internal::EncodeDataItem(item_missing_schema);
-          })(impl, schema_attr));
-  return internal::WithErrorPayload(
-      absl::InvalidArgumentError(
-          absl::StrFormat("object %v is missing __schema__ attribute", impl)),
-      error);
-}
-
-// Gets __schema__ attribute for objects and returns an Error if DataSlice has
-// primitives or objects do not have __schema__ attribute.
-template <typename ImplT>
-absl::StatusOr<ImplT> GetObjSchemaAttr(
-    const internal::DataBagImpl& db_impl, const ImplT& impl,
-    internal::DataBagImpl::FallbackSpan fallbacks = {}) {
-  ASSIGN_OR_RETURN(auto schema,
-                   db_impl.GetAttr(impl, schema::kSchemaAttr, fallbacks));
-  RETURN_IF_ERROR(VerifyObjectSchemaAttr(impl, schema));
-  return schema;
-}
-
 // Gets embedded schema from DataItem for primitives and objects.
 absl::StatusOr<internal::DataItem> GetObjSchemaImpl(
     const internal::DataItem& item,
@@ -196,7 +139,7 @@ absl::StatusOr<internal::DataItem> GetObjSchemaImpl(
       const auto& db_impl = db->GetImpl();
       FlattenFallbackFinder fb_finder(*db);
       auto fallbacks = fb_finder.GetFlattenFallbacks();
-      ASSIGN_OR_RETURN(res, GetObjSchemaAttr(db_impl, item, fallbacks));
+      ASSIGN_OR_RETURN(res, db_impl.GetObjSchemaAttr(item, fallbacks));
       return absl::OkStatus();
     } else if constexpr (std::is_same_v<T, internal::MissingValue>) {
       // Missing value
@@ -239,10 +182,9 @@ absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
       const auto& db_impl = db->GetImpl();
       FlattenFallbackFinder fb_finder(*db);
       auto fallbacks = fb_finder.GetFlattenFallbacks();
-      ASSIGN_OR_RETURN(
-          auto obj_schemas,
-          GetObjSchemaAttr(db_impl, internal::DataSliceImpl::Create(array),
-                           fallbacks));
+      ASSIGN_OR_RETURN(auto obj_schemas,
+                       db_impl.GetObjSchemaAttr(
+                           internal::DataSliceImpl::Create(array), fallbacks));
       builder.GetMutableAllocationIds().Insert(obj_schemas.allocation_ids());
       builder.AddArray(obj_schemas.template values<internal::ObjectId>());
       return absl::OkStatus();
@@ -295,7 +237,7 @@ absl::StatusOr<AttrNamesSet> GetAttrsFromDataItem(
   if (ds_schema == schema::kSchema) {
     schema_item = item;
   } else if (ds_schema == schema::kObject) {
-    ASSIGN_OR_RETURN(schema_item, GetObjSchemaAttr(db_impl, item, fallbacks));
+    ASSIGN_OR_RETURN(schema_item, db_impl.GetObjSchemaAttr(item, fallbacks));
   } else {
     // Empty set.
     return AttrNamesSet();
@@ -323,9 +265,9 @@ absl::StatusOr<AttrNamesSet> GetAttrsFromDataSlice(
       return AttrNamesSet();
     }
     ASSIGN_OR_RETURN(
-        schemas, GetObjSchemaAttr(
-                     db_impl, internal::DataSliceImpl::Create(*objects_only),
-                     fallbacks));
+        schemas,
+        db_impl.GetObjSchemaAttr(internal::DataSliceImpl::Create(*objects_only),
+                                 fallbacks));
   } else {
     // Empty set.
     return AttrNamesSet();
@@ -387,8 +329,7 @@ absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
     const internal::DataBagImpl& db_impl, const ImplT& impl,
     absl::string_view attr_name, internal::DataBagImpl::FallbackSpan fallbacks,
     bool allow_missing) {
-  ASSIGN_OR_RETURN(auto schema_attr,
-                   GetObjSchemaAttr(db_impl, impl, fallbacks));
+  ASSIGN_OR_RETURN(auto schema_attr, db_impl.GetObjSchemaAttr(impl, fallbacks));
   ASSIGN_OR_RETURN(ImplT per_item_types,
                    GetSchemaAttrImpl(db_impl, schema_attr, attr_name, fallbacks,
                                      allow_missing));
@@ -523,7 +464,7 @@ class RhsHandler {
     if (lhs.GetSchemaImpl() == kObjectSchema) {
       status = lhs.VisitImpl([&](const auto& impl) -> absl::Status {
         ASSIGN_OR_RETURN(auto obj_schema,
-                         GetObjSchemaAttr(db_impl, impl, fallbacks));
+                         db_impl.GetObjSchemaAttr(impl, fallbacks));
         return this->ProcessSchemaObjectAttr(obj_schema, db_impl, fallbacks);
       });
     } else if (lhs.GetSchemaImpl() != kAnySchema) {
@@ -1224,7 +1165,7 @@ absl::Status DataSlice::SetAttrs(absl::Span<const absl::string_view> attr_names,
 template <typename ImplT>
 absl::Status DelObjSchemaAttr(const ImplT& impl, absl::string_view attr_name,
                               internal::DataBagImpl& db_impl) {
-  ASSIGN_OR_RETURN(auto schema_attr, GetObjSchemaAttr(db_impl, impl));
+  ASSIGN_OR_RETURN(auto schema_attr, db_impl.GetObjSchemaAttr(impl));
   if constexpr (std::is_same_v<ImplT, internal::DataItem>) {
     return DelSchemaAttrItem(schema_attr, attr_name, db_impl);
   } else {

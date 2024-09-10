@@ -41,6 +41,7 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 
 namespace koladata::internal {
@@ -52,6 +53,7 @@ using ::arolla::OptionalValue;
 using ::koladata::internal::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
+using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 using ::testing::Ne;
 using ::testing::UnorderedElementsAre;
@@ -148,6 +150,47 @@ TEST(DataBagTest, SetGet) {
   EXPECT_EQ(ds_a_get.values<ObjectId>().size(), kSize);
   EXPECT_THAT(ds_a_get.values<ObjectId>(),
               ElementsAreArray(ds_a.values<ObjectId>()));
+}
+
+TEST(DataBagTest, GetObjSchemaAttr) {
+  constexpr int64_t kSize = 13;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto ds = DataSliceImpl::AllocateEmptyObjects(kSize);
+  auto ds_a = DataSliceImpl::AllocateEmptyObjects(kSize);
+
+  ASSERT_OK(db->SetAttr(ds, "__schema__", ds_a));
+  ASSERT_OK_AND_ASSIGN(
+      DataItem ds_a_5_item,
+      db->GetObjSchemaAttr(DataItem(ds.values<ObjectId>()[5])));
+  EXPECT_EQ(ds_a_5_item.dtype(), arolla::GetQType<ObjectId>());
+  EXPECT_EQ(ds_a_5_item.value<ObjectId>(), ds_a.values<ObjectId>()[5].value);
+
+  ASSERT_OK_AND_ASSIGN(DataItem ds_a_null_item,
+                       db->GetObjSchemaAttr(DataItem()));
+  EXPECT_FALSE(ds_a_null_item.has_value());
+
+  EXPECT_THAT(db->GetObjSchemaAttr(DataSliceImpl::CreateEmptyAndUnknownType(3)),
+              IsOkAndHolds(ElementsAre(DataItem(), DataItem(), DataItem())));
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl ds_a_get, db->GetObjSchemaAttr(ds));
+
+  EXPECT_EQ(ds_a_get.size(), kSize);
+  EXPECT_EQ(ds_a_get.dtype(), arolla::GetQType<ObjectId>());
+  EXPECT_THAT(ds_a_get.allocation_ids(),
+              ElementsAreArray(ds_a.allocation_ids()));
+  EXPECT_EQ(ds_a_get.values<ObjectId>().size(), kSize);
+  EXPECT_THAT(ds_a_get.values<ObjectId>(),
+              ElementsAreArray(ds_a.values<ObjectId>()));
+
+  arolla::InitArolla();
+  auto ds_missing_schema = DataSliceImpl::AllocateEmptyObjects(kSize);
+
+  EXPECT_THAT(
+      db->GetObjSchemaAttr(DataItem(ds_missing_schema.values<ObjectId>()[5])),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("missing __schema__ attribute")));
+  EXPECT_THAT(db->GetObjSchemaAttr(ds_missing_schema),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("missing __schema__ attribute")));
 }
 
 TEST(DataBagTest, GetAttrPrimitivesErrors) {
