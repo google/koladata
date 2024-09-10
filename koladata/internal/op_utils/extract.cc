@@ -76,39 +76,16 @@ class CopyingProcessor {
     return std::move(bldr).Build();
   }
 
-  absl::StatusOr<DataSliceImpl> FilterToUnvisited(const DataSliceImpl& ds) {
-    if (ds.is_empty_and_unknown()) {
-      return ds;
+  absl::StatusOr<DataSliceImpl> MarkObjectsAsVisited(
+      const DataSliceImpl& slice) {
+    if (slice.is_empty_and_unknown()) {
+      return slice;
     }
-    if (ds.dtype() != arolla::GetQType<ObjectId>()) {
+    if (slice.dtype() != arolla::GetQType<ObjectId>()) {
       return absl::InternalError("Expected a slice of ObjectIds");
     }
-    arolla::EvaluationContext ctx;
-    // TODO: To improve performance, avoid DenseArrayUniqueOp.
-    // Instead use DataBagImpl methods to get a list of unique ObjectIds.
-    const auto& unique_objects =
-        arolla::DenseArrayUniqueOp()(&ctx, ds.values<ObjectId>());
-    const auto ds_unique = DataSliceImpl::Create(unique_objects);
-    // We use the visited_objects_ to check which items were already explored.
-    // With that, we process each object only once.
-    ASSIGN_OR_RETURN(auto ds_visited,
-                     objects_tracker_->GetAttr(ds_unique, kVisitedAttrName));
-    if (ds_visited.present_count() == 0) {
-      return ds_unique;
-    }
-    auto mask_to_keep = arolla::DenseArrayPresenceNotOp()(
-        &ctx, ds_visited.values<arolla::Unit>());
-    ASSIGN_OR_RETURN(auto update_arr, arolla::DenseArraySelectOp()(
-                                          &ctx, unique_objects, mask_to_keep));
-    return DataSliceImpl::Create(update_arr);
-  }
-
-  absl::Status MarkObjectsAsVisited(const DataSliceImpl& slice) {
-    auto update_value = arolla::CreateConstDenseArray<arolla::Unit>(
-        slice.size(), arolla::kUnit);
-    RETURN_IF_ERROR(objects_tracker_->SetAttr(
-        slice, kVisitedAttrName, DataSliceImpl::Create(update_value)));
-    return absl::OkStatus();
+    return objects_tracker_->InternalSetUnitAttrAndReturnMissingObjects(
+        slice, kVisitedAttrName);
   }
 
   absl::Status MarkSchemaAsVisited(const DataItem& schema_item,
@@ -131,9 +108,8 @@ class CopyingProcessor {
 
   absl::Status VisitObjects(const QueuedSlice& slice) {
     // Filter out objectIds, as Object slice may also contain primitive types.
-    ASSIGN_OR_RETURN(auto update_slice,
-                     FilterToUnvisited(FilterToObjects(slice.slice)));
-    RETURN_IF_ERROR(MarkObjectsAsVisited(update_slice));
+    DataSliceImpl objects_slice = FilterToObjects(slice.slice);
+    ASSIGN_OR_RETURN(auto update_slice, MarkObjectsAsVisited(objects_slice));
     if (update_slice.present_count() == 0) {
       return absl::OkStatus();
     }
@@ -145,8 +121,7 @@ class CopyingProcessor {
   }
 
   absl::Status VisitEntities(const QueuedSlice& slice) {
-    ASSIGN_OR_RETURN(auto update_slice, FilterToUnvisited(slice.slice));
-    RETURN_IF_ERROR(MarkObjectsAsVisited(update_slice));
+    ASSIGN_OR_RETURN(auto update_slice, MarkObjectsAsVisited(slice.slice));
     if (update_slice.present_count() == 0) {
       ASSIGN_OR_RETURN(
           auto schema_is_copied,
