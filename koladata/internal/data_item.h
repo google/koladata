@@ -51,6 +51,15 @@ class DataItem {
 
   explicit DataItem(std::nullopt_t) : data_(MissingValue()) {}
 
+  DataItem(const DataItem& other) = default;
+  DataItem& operator=(const DataItem& other) & = default;
+  DataItem(DataItem&& other) = default;
+  DataItem& operator=(DataItem&& other) & = default;
+
+  // Intentionally forbid assigning to temporary objects to avoid common bugs.
+  DataItem& operator=(DataItem&& other) && = delete;
+  DataItem& operator=(const DataItem& other) && = delete;
+
   template <class T>
   explicit DataItem(T value) : data_(std::move(value)) {}
   template <class T>
@@ -90,9 +99,6 @@ class DataItem {
 
   template <class T>
   explicit DataItem(View<T> value_view) : data_(T(value_view.view)) {}
-
-  DataItem& operator=(const DataItem& other) & = default;
-  DataItem& operator=(const DataItem& other) && = delete;
 
   // Returns DataItem with specified primitive value.
   // Returns default constructed DataItem in case of unsupported type.
