@@ -51,11 +51,23 @@ class TestUtilsTest(absltest.TestCase):
       )
 
   def test_assert_equal_expr(self):
+    # Success.
     test_utils.assert_equal(kde.add(1, 3), kde.add(1, 3))
-    with self.assertRaises(AssertionError):
-      test_utils.assert_equal(kde.add(1, 3), kde.subtract(1, 3))
+    # Failure.
+    lhs = kde.add(kde.with_name(kde.add(1, 3), 'x'), 4)
+    rhs = kde.subtract(1, 3)
+    with self.assertRaisesWithLiteralMatch(
+        AssertionError,
+        f"""Exprs not equal by fingerprint:
+  actual_fingerprint={lhs.fingerprint}, expected_fingerprint={rhs.fingerprint}
+  actual:
+    x = DataItem(1, schema: INT32) + DataItem(3, schema: INT32)
+    x + DataItem(4, schema: INT32)
+  expected:
+    DataItem(1, schema: INT32) - DataItem(3, schema: INT32)"""):
+      test_utils.assert_equal(lhs, rhs)
     with self.assertRaisesRegex(AssertionError, 'my error'):
-      test_utils.assert_equal(kde.add(1, 3), kde.subtract(1, 3), msg='my error')
+      test_utils.assert_equal(lhs, rhs, msg='my error')
 
   def test_assert_equal_diff_data_bag(self):
     with self.assertRaises(AssertionError):

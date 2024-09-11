@@ -40,9 +40,34 @@ def _expect_data_slice(ds: Any):
     raise TypeError('expected DataSlice, got ', type(ds))
 
 
+def _assert_expr_equal_by_fingerprint(
+    actual_value: _arolla.Expr,
+    expected_value: _arolla.Expr,
+    *,
+    msg: str | None = None,
+) -> None:
+  """Koda specific expr equality check."""
+  # This implementation uses the prettified expr representation rather than the
+  # raw string representation to make Koda constructs such as kd.literal()
+  # easier to understand.
+  if actual_value.fingerprint == expected_value.fingerprint:
+    return
+  if not msg:
+    msg = (
+        'Exprs not equal by fingerprint:\n'
+        + f'  actual_fingerprint={actual_value.fingerprint}, '
+        + f'expected_fingerprint={expected_value.fingerprint}\n'
+        + '  actual:\n    '
+        + '\n    '.join(f'{actual_value!r}'.split('\n'))
+        + '\n  expected:\n    '
+        + '\n    '.join(f'{expected_value!r}'.split('\n'))
+    )
+  raise AssertionError(msg)
+
+
 def assert_equal(
     actual_value: _KodaVal, expected_value: _KodaVal, *, msg: str | None = None
-):
+) -> None:
   """Koda equality check.
 
   Compares the argument by their fingerprint:
@@ -68,9 +93,7 @@ def assert_equal(
   if isinstance(actual_value, _arolla.Expr) and isinstance(
       expected_value, _arolla.Expr
   ):
-    _arolla.testing.assert_expr_equal_by_fingerprint(
-        actual_value, expected_value, msg=msg
-    )
+    _assert_expr_equal_by_fingerprint(actual_value, expected_value, msg=msg)
     return
   _arolla.testing.assert_qvalue_equal_by_fingerprint(
       actual_value, expected_value, msg=msg
