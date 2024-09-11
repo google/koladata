@@ -457,15 +457,6 @@ absl::StatusOr<DataItem> DataBagImpl::GetAttr(const DataItem& object,
   return DataItem();
 }
 
-template <typename ImplT>
-absl::StatusOr<ImplT> DataBagImpl::GetObjSchemaAttr(
-    const ImplT&, FallbackSpan fallbacks) const {
-  static_assert(sizeof(ImplT) == 0,
-                "GetObjSchemaAttr is not supported for ImplT not in "
-                "{DataSliceImpl, DataItem}");
-}
-
-template <>
 absl::StatusOr<DataItem> DataBagImpl::GetObjSchemaAttr(
     const DataItem& item, FallbackSpan fallbacks) const {
   ASSIGN_OR_RETURN(auto schema, GetAttr(item, schema::kSchemaAttr, fallbacks));
@@ -483,7 +474,6 @@ absl::StatusOr<DataItem> DataBagImpl::GetObjSchemaAttr(
       error);
 }
 
-template <>
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetObjSchemaAttr(
     const DataSliceImpl& slice, FallbackSpan fallbacks) const {
   ASSIGN_OR_RETURN(auto schema, GetAttr(slice, schema::kSchemaAttr, fallbacks));

@@ -149,9 +149,10 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   // Gets __schema__ attribute for objects and returns an Error if DataSlice has
   // primitives or objects do not have __schema__ attribute.
-  template <typename ImplT>
-  absl::StatusOr<ImplT> GetObjSchemaAttr(const ImplT&,
-                                         FallbackSpan fallbacks = {}) const;
+  absl::StatusOr<DataItem> GetObjSchemaAttr(const DataItem& item,
+                                            FallbackSpan fallbacks = {}) const;
+  absl::StatusOr<DataSliceImpl> GetObjSchemaAttr(
+      const DataSliceImpl& slice, FallbackSpan fallbacks = {}) const;
 
   // Gets DataSources for given allocation id and attribute.
   // Appends DataSources to preallocated vectors of dense and sparse sources.
