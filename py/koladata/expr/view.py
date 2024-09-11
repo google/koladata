@@ -98,6 +98,9 @@ class DataSliceView(BasicKodaView):
       raise AttributeError(attr_name)
     return arolla.abc.aux_bind_op('kde.get_attr', self, attr_name)
 
+  def __getitem__(self, s):
+    return arolla.abc.aux_bind_op('kde.get_item', self, s)
+
   @property
   def S(self) -> SlicingHelper:
     return SlicingHelper(self)

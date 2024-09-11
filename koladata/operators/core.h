@@ -94,6 +94,19 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
                                              const DataSlice& attr_name,
                                              const DataSlice& default_value);
 
+// kde.core._get_list_item_by_range.
+inline absl::StatusOr<DataSlice> GetListItemByRange(const DataSlice& ds,
+                                                    int64_t start,
+                                                    int64_t stop) {
+  return ds.ExplodeList(start, stop);
+}
+
+// kde.core._get_item.
+inline absl::StatusOr<DataSlice> GetItem(const DataSlice& ds,
+                                         const DataSlice& key_or_index) {
+  return ds.GetItem(key_or_index);
+}
+
 // kde.core.group_by_indices.
 absl::StatusOr<DataSlice> GroupByIndices(
     absl::Span<const DataSlice* const> slices);

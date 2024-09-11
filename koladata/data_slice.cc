@@ -1686,6 +1686,12 @@ absl::Status DataSlice::RemoveInList(int64_t start,
   });
 }
 
+absl::StatusOr<DataSlice> DataSlice::GetItem(
+    const DataSlice& key_or_index) const {
+  return ShouldApplyListOp() ? GetFromList(key_or_index)
+                             : GetFromDict(key_or_index);
+}
+
 absl::Status DataSlice::ClearDictOrList() const {
   if (GetDb() == nullptr) {
     return absl::InvalidArgumentError(

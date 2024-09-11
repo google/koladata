@@ -342,7 +342,7 @@ absl::Nullable<PyObject*> PyDataSlice_subscript(PyObject* self, PyObject* key) {
     }
     if (step != 1) {
       PyErr_SetString(PyExc_ValueError,
-                      "slices with step != 1 are not supported");
+                      "Slice with step != 1 is not supported");
       return nullptr;
     }
     std::optional<int64_t> stop_or_end =
@@ -355,11 +355,8 @@ absl::Nullable<PyObject*> PyDataSlice_subscript(PyObject* self, PyObject* key) {
   }
   ASSIGN_OR_RETURN(auto key_ds, DataSliceFromPyValueNoAdoption(key),
                    SetKodaPyErrFromStatus(_));
-  ASSIGN_OR_RETURN(
-      auto res,
-      self_ds.ShouldApplyListOp() ? self_ds.GetFromList(key_ds)
-                                  : self_ds.GetFromDict(key_ds),
-      SetKodaPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res, self_ds.GetItem(key_ds),
+                   SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 

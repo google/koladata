@@ -178,6 +178,12 @@ class DataSliceViewTest(parameterized.TestCase):
         ),
     )
 
+  def test_get_item(self):
+    testing.assert_equal(C.x[C.s], kde.get_item(C.x, C.s))
+    testing.assert_equal(
+        C.x[slice(1, 2)], kde.get_item(C.x, arolla.types.Slice(1, 2))
+    )
+
   def test_add(self):
     testing.assert_equal(C.x.val + C.y, kde.add(kde.get_attr(C.x, 'val'), C.y))
     testing.assert_equal(ds(1) + C.y, kde.add(1, C.y))
@@ -297,6 +303,12 @@ class DataSliceViewTest(parameterized.TestCase):
       (C.x.S[C.s1, :], 'C.x.S[C.s1, :]'),
       (C.x.S[C.s1, ...], 'C.x.S[C.s1, ...]'),
       (C.x.S[C.s1, ..., C.s2.S[C.s3]], 'C.x.S[C.s1, ..., C.s2.S[C.s3]]'),
+      # get_item
+      (C.x[:1], 'C.x[:1]'),
+      (C.x[1:], 'C.x[1:]'),
+      (C.x[1:-1], 'C.x[1:-1]'),
+      (C.x[C.s], 'C.x[C.s]'),
+      (C.x[slice(1, -1)], 'C.x[1:-1]'),
       # Add.
       (C.x + 1, 'C.x + DataItem(1, schema: INT32)'),
       (1 + C.x, 'DataItem(1, schema: INT32) + C.x'),

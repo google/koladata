@@ -4076,6 +4076,58 @@ TEST(DataSliceTest, ShouldApplyListOp_DataSlice) {
                .ShouldApplyListOp());
 }
 
+// More extensive tests are in core_get_item_test.py.
+TEST(DataSliceTest, GetItem_DataItem) {
+  auto db = DataBag::Empty();
+  auto ds = test::DataSlice<int>({1, 2, 3});
+  auto indices = test::DataSlice<int>({1, 2});
+  auto expected_res = test::DataSlice<int>({2, 3}).WithDb(db);
+  ASSERT_OK_AND_ASSIGN(auto list, CreateListsFromLastDimension(db, ds));
+  EXPECT_THAT(list.GetItem(indices),
+              IsOkAndHolds(IsEquivalentTo(expected_res)));
+
+  auto keys = test::DataSlice<int>({1, 2, 3});
+  auto values = test::DataSlice<int>({4, 5, 6});
+  ASSERT_OK_AND_ASSIGN(
+      auto dict,
+      CreateDictShaped(db, DataSlice::JaggedShape::Empty(), keys, values));
+  EXPECT_THAT(dict.GetItem(keys),
+              IsOkAndHolds(IsEquivalentTo(values.WithDb(db))));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto entity, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+  EXPECT_THAT(entity.GetItem(test::DataItem("a")),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "the attribute '__keys__' is missing on the schema."));
+}
+
+TEST(DataSliceTest, GetItem_DataSlice) {
+  auto db = DataBag::Empty();
+  auto edge_1 = CreateEdge({0, 2});
+  auto edge_2 = CreateEdge({0, 1, 3});
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto list_items = test::DataSlice<int>({1, 2, 3}, shape);
+  auto indices = test::DataSlice<int>({1, 1, 0}, shape);
+  auto expected_res =
+      test::DataSlice<int>({std::nullopt, 3, 2}, shape).WithDb(db);
+
+  auto keys = test::DataSlice<int>({1, 2, 3}, shape);
+  auto values = test::DataSlice<int>({4, 5, 6}, shape);
+  ASSERT_OK_AND_ASSIGN(
+      auto dicts, CreateDictShaped(db, DataSlice::JaggedShape::FlatFromSize(2),
+                                   keys, values));
+  EXPECT_THAT(dicts.GetItem(keys),
+              IsOkAndHolds(IsEquivalentTo(values.WithDb(db))));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto entities,
+      EntityCreator::FromAttrs(db, {"a"}, {test::DataSlice<int>({1, 2, 3})}));
+  EXPECT_THAT(entities.GetItem(test::DataItem("a")),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "the attribute '__keys__' is missing on the schema."));
+}
+
 TEST(DataSliceTest, SchemaSlice) {
   auto x = test::DataItem(42);
   auto a = test::DataItem(3.14);

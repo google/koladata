@@ -328,6 +328,9 @@ class DataSlice {
   // Removes a value with given index in each list.
   absl::Status RemoveInList(const DataSlice& indices) const;
 
+  // Get items from Lists or Dicts.
+  absl::StatusOr<DataSlice> GetItem(const DataSlice& key_or_index) const;
+
   // Returns a DataSlice with OBJECT schema.
   // * For primitives no data change is done.
   // * For Entities schema is stored as '__schema__' attribute.

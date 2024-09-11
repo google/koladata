@@ -61,6 +61,8 @@ OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);
 OPERATOR("kde.core._get_attr", GetAttr);
 OPERATOR("kde.core._get_attr_with_default", GetAttrWithDefault);
+OPERATOR("kde.core._get_item", GetItem);
+OPERATOR("kde.core._get_list_item_by_range", GetListItemByRange);
 OPERATOR("kde.core._inverse_mapping", InverseMapping);
 OPERATOR("kde.core._ordinal_rank", OrdinalRank);
 OPERATOR("kde.core._select", Select);
