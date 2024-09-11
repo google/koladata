@@ -310,7 +310,13 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
     if (ds.GetDb() == nullptr) {
       return DataItemRepr(data_item);
     }
+
     const ObjectId& obj = data_item.template value<ObjectId>();
+    const DataItem& schema = ds.GetSchemaImpl();
+    if (schema.holds_value<ObjectId>() &&
+        schema.template value<ObjectId>().IsNoFollowSchema()) {
+      return absl::StrCat("Nofollow(Entity:", DataItemRepr(data_item), ")");
+    }
     if (obj.IsList()) {
       return ListToStr(ds, next_option);
     }
@@ -318,7 +324,14 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
       return DictToStr(ds, next_option);
     }
     absl::string_view prefix = "Entity(";
-    if (obj.IsExplicitSchema()) {
+    if (obj.IsNoFollowSchema()) {
+      if (obj == ObjectId::NoFollowObjectSchemaId()) {
+        return "NOFOLLOW(OBJECT)";
+      }
+      const DataItem original =
+          DataItem(internal::GetOriginalFromNoFollow(obj));
+      return absl::StrCat("NOFOLLOW(", DataItemRepr(original), ")");
+    } else if (obj.IsExplicitSchema()) {
       ASSIGN_OR_RETURN(std::string list_schema_str,
                        ListSchemaStr(ds, next_option.depth));
       if (!list_schema_str.empty()) {
@@ -332,7 +345,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
       prefix = "SCHEMA(";
     } else if (obj.IsImplicitSchema()) {
       prefix = "IMPLICIT_SCHEMA(";
-    } else if (ds.GetSchemaImpl() == schema::kObject) {
+    } else if (schema == schema::kObject) {
       prefix = "Obj(";
     }
     ASSIGN_OR_RETURN(std::string schema_str, SchemaToStr(ds, next_option));

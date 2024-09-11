@@ -542,6 +542,56 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SplitLines) {
 ])"));
 }
 
+TEST(DataSliceReprTest, TestStringRepresentation_NoFollow) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::FromAttrs(bag, {"y"}, {test::DataItem<int>(1)}));
+  ASSERT_OK_AND_ASSIGN(DataSlice nofollow_entity, NoFollow(entity));
+
+  EXPECT_THAT(DataSliceToStr(nofollow_entity),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(Nofollow\(Entity:\$[0-9a-f]{32}:0\))regex")));
+
+  EXPECT_THAT(
+      DataSliceToStr(nofollow_entity.GetSchema()),
+      IsOkAndHolds(MatchesRegex(R"regex(NOFOLLOW\(\$[0-9a-f]{32}:0\))regex")));
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice obj,
+      ObjectCreator::FromAttrs(bag, {"y"}, {test::DataItem<int>(1)}));
+  ASSERT_OK_AND_ASSIGN(DataSlice nofollow_obj, NoFollow(obj));
+
+  EXPECT_THAT(DataSliceToStr(nofollow_obj),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(Nofollow\(Entity:\$[0-9a-f]{32}:0\))regex")));
+  EXPECT_THAT(DataSliceToStr(nofollow_obj.GetSchema()),
+              IsOkAndHolds("NOFOLLOW(OBJECT)"));
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice dict,
+      CreateDictShaped(bag, DataSlice::JaggedShape::Empty(), test::DataItem(1),
+                       test::DataItem("value")));
+  ASSERT_OK_AND_ASSIGN(DataSlice nofollow_dict, NoFollow(dict));
+  EXPECT_THAT(DataSliceToStr(nofollow_dict),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(Nofollow\(Entity:\$[0-9a-f]{32}:0\))regex")));
+  EXPECT_THAT(
+      DataSliceToStr(nofollow_dict.GetSchema()),
+      IsOkAndHolds(MatchesRegex(R"regex(NOFOLLOW\(k[0-9a-f]{32}:0\))regex")));
+
+  ASSERT_OK_AND_ASSIGN(DataSlice list,
+                       CreateListShaped(bag, DataSlice::JaggedShape::Empty(),
+                                        test::DataItem(1)));
+  ASSERT_OK_AND_ASSIGN(DataSlice nofollow_list, NoFollow(list));
+  EXPECT_THAT(DataSliceToStr(nofollow_list),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(Nofollow\(Entity:\$[0-9a-f]{32}:0\))regex")));
+  EXPECT_THAT(
+      DataSliceToStr(nofollow_list.GetSchema()),
+      IsOkAndHolds(MatchesRegex(R"regex(NOFOLLOW\(k[0-9a-f]{32}:0\))regex")));
+}
+
 TEST(DataSliceReprTest, CycleInDict) {
   DataBagPtr bag = DataBag::Empty();
 
