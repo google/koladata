@@ -36,6 +36,7 @@ from koladata.types import general_eager_ops as _general_eager_ops
 from koladata.types import list_item as _list_item
 from koladata.types import literal_operator as _literal_operator
 from koladata.types import mask_constants as _mask_constants
+from koladata.types import py_boxing as _py_boxing
 from koladata.types import schema_constants as _schema_constants
 from koladata.types import schema_item as _schema_item
 
@@ -120,6 +121,7 @@ kde = _eager_only(_kde_operators.kde)
 literal = _eager_only(_literal_operator.literal)
 get_name = _eager_only(_introspection.get_name)
 unwrap_named = _eager_only(_introspection.unwrap_named)
+as_expr = _eager_only(_py_boxing.as_expr)
 pack_expr = _eager_only(_introspection.pack_expr)
 unpack_expr = _eager_only(_introspection.unpack_expr)
 is_packed_expr = _eager_only(_introspection.is_packed_expr)

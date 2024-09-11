@@ -50,6 +50,7 @@ py_library(
         "//py/koladata/types:list_item",
         "//py/koladata/types:literal_operator",
         "//py/koladata/types:mask_constants",
+        "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
         "//py/koladata/types:schema_item",
         "@com_google_arolla//py/arolla",

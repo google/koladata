@@ -185,6 +185,10 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.is_packed_expr(kd.slice(1)), kd.missing)
     kd.testing.assert_equal(kd.is_packed_expr(I.x + I.y), kd.missing)
 
+  def test_as_expr(self):
+    kd.testing.assert_equal(kd.as_expr(1), kd.literal(kd.slice(1)))
+    kd.testing.assert_equal(kd.as_expr(I.x), I.x)
+
   def test_kdi(self):
     self.assertCountEqual(kdi.__all__, dir(kdi))
     self.assertCountEqual(set(dir(kd)) - set(dir(kdi)), ['kdi'])
