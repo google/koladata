@@ -25,7 +25,6 @@
 #include "absl/status/status_matchers.h"
 #include "arolla/expr/expr.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 
 namespace koladata::expr {
