@@ -23,6 +23,7 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.types import data_slice
 from koladata.types import qtypes
+from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 
@@ -187,6 +188,95 @@ class DataSliceView(BasicKodaView):
 
   def __call__(self, *args: Any, **kwargs: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.call', self, *args, **kwargs)
+
+  def reshape(self, shape: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.reshape', self, shape)
+
+  def flatten(
+      self,
+      from_dim: Any = data_slice.DataSlice.from_vals(0, schema_constants.INT64),
+      to_dim: Any = arolla.unspecified(),
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.flatten', self, from_dim, to_dim)
+
+  def add_dim(self, sizes: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.add_dim', self, sizes)
+
+  def repeat(self, sizes: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.repeat', self, sizes)
+
+  def select(self, filter_ds: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.select', self, filter_ds)
+
+  def select_present(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.select_present', self)
+
+  def expand_to(
+      self, target: Any, ndim: Any = arolla.unspecified()
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.expand_to', self, target, ndim)
+
+  def list_size(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.list_size', self)
+
+  def dict_size(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.dict_size', self)
+
+  def follow(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.follow', self)
+
+  def ref(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.ref', self)
+
+  def as_itemid(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.as_itemid', self)
+
+  def as_any(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.as_any', self)
+
+  def get_obj_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_obj_schema', self)
+
+  def with_schema_from_obj(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.with_schema_from_obj', self)
+
+  def with_schema(self, schema: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.with_schema', self, schema)
+
+  def get_shape(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_shape', self)
+
+  def get_ndim(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_ndim', self)
+
+  def rank(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.rank', self)
+
+  def get_size(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.size', self)
+
+  def get_attr(
+      self, attr_name: Any, default: Any = arolla.unspecified()
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_attr', self, attr_name, default)
+
+  def with_db(self, db: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.with_db', self, db)
+
+  def db(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_db', self)
+
+  def no_db(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.no_db', self)
+
+  def enriched(self, db: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.enriched', self, db)
+
+  def updated(self, db: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.updated', self, db)
+
+  def get_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_schema', self)
 
 
 class KodaTupleView(BasicKodaView):

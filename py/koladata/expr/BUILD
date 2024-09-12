@@ -61,6 +61,7 @@ py_library(
         ":introspection",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -153,6 +154,7 @@ py_test(
         ":introspection",
         ":view",
         "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:ellipsis",
         "//py/koladata/types:qtypes",

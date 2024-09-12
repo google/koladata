@@ -22,6 +22,7 @@ from koladata.expr import introspection
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import ellipsis
 from koladata.types import qtypes
@@ -111,6 +112,68 @@ class DataBagViewTest(parameterized.TestCase):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
 
+  def test_data_bag_attrs_are_in_view(self):
+    # Asserts that all attrs / methods of DataBag are present in the
+    # DataBagView, or that they are explicitly skipped.
+    #
+    # attrs / methods should be skipped iff they cannot be added by design, not
+    # because of laziness.
+    skipped_data_bag_attrs = {
+        'dict',
+        'get_fallbacks',
+        'fingerprint',
+        'contents_repr',
+        'new_shaped',
+        'concat_lists',
+        'dict_schema',
+        'is_mutable',
+        'list_schema',
+        'obj_shaped',
+        'empty',
+        'dict_like',
+        'list_shaped',
+        'uu_schema',
+        'merge_fallbacks',
+        'obj',
+        'implode',
+        'uuobj',
+        'fork',
+        'list_like',
+        'dict_shaped',
+        'new_like',
+        'merge_inplace',
+        'qtype',
+        'list',
+        'new_schema',
+        'new',
+        'uu',
+        'obj_like',
+    }
+    view_attrs = {m for m in dir(view.DataBagView) if not m.startswith('_')}
+    data_bag_attrs = {m for m in dir(data_bag.DataBag) if not m.startswith('_')}
+    # Only skip those attrs that are absolutely necessary.
+    self.assertEmpty(skipped_data_bag_attrs - data_bag_attrs)
+    self.assertEmpty(skipped_data_bag_attrs & view_attrs)
+    # Check that all required attrs are present.
+    missing_attrs = data_bag_attrs - view_attrs - skipped_data_bag_attrs
+    self.assertEmpty(missing_attrs)
+
+  def test_view_attrs_are_in_data_bag(self):
+    # Asserts that all attrs / methods of DataBagView are present in the
+    # DataBagView, or that they are explicitly skipped.
+    #
+    # attrs / methods should be skipped iff they cannot be added by design, not
+    # because of laziness.
+    skipped_view_attrs = {'eval', 'inputs'}
+    view_attrs = {m for m in dir(view.DataBagView) if not m.startswith('_')}
+    data_bag_attrs = {m for m in dir(data_bag.DataBag) if not m.startswith('_')}
+    # Only skip those attrs that are absolutely necessary.
+    self.assertEmpty(skipped_view_attrs - view_attrs)
+    self.assertEmpty(skipped_view_attrs & data_bag_attrs)
+    # Check that all required attrs are present.
+    missing_attrs = view_attrs - data_bag_attrs - skipped_view_attrs
+    self.assertEmpty(missing_attrs)
+
 
 class DataSliceViewTest(parameterized.TestCase):
 
@@ -162,20 +225,14 @@ class DataSliceViewTest(parameterized.TestCase):
 
   def test_list_slicing_helper(self):
     _ = C.x.L[C.s1]
-    testing.assert_equal(
-        C.x.L[C.s1], kde.core.subslice(C.x, C.s1, ...)
-    )
+    testing.assert_equal(C.x.L[C.s1], kde.core.subslice(C.x, C.s1, ...))
     testing.assert_equal(
         C.x.L[1:2],
-        kde.core.subslice(
-            C.x, arolla.types.Slice(1, 2), ...
-        ),
+        kde.core.subslice(C.x, arolla.types.Slice(1, 2), ...),
     )
     testing.assert_equal(
         C.x.L[1:],
-        kde.core.subslice(
-            C.x, arolla.types.Slice(1, None), ...
-        ),
+        kde.core.subslice(C.x, arolla.types.Slice(1, None), ...),
     )
 
   def test_get_item(self):
@@ -285,6 +342,103 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_call(self):
     testing.assert_equal(C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z))
 
+  def test_reshape(self):
+    testing.assert_equal(C.x.reshape(C.y), kde.reshape(C.x, C.y))
+
+  def test_flatten(self):
+    testing.assert_equal(C.x.flatten(), kde.flatten(C.x))
+    testing.assert_equal(C.x.flatten(C.from_dim), kde.flatten(C.x, C.from_dim))
+    testing.assert_equal(
+        C.x.flatten(to_dim=C.to_dim), kde.flatten(C.x, to_dim=C.to_dim)
+    )
+
+  def test_add_dim(self):
+    testing.assert_equal(C.x.add_dim(C.sizes), kde.add_dim(C.x, C.sizes))
+
+  def test_repeat(self):
+    testing.assert_equal(C.x.repeat(C.sizes), kde.repeat(C.x, C.sizes))
+
+  def test_select(self):
+    testing.assert_equal(C.x.select(C.fltr), kde.select(C.x, C.fltr))
+
+  def test_select_present(self):
+    testing.assert_equal(C.x.select_present(), kde.select_present(C.x))
+
+  def test_expand_to(self):
+    testing.assert_equal(C.x.expand_to(C.target), kde.expand_to(C.x, C.target))
+    testing.assert_equal(
+        C.x.expand_to(C.target, ndim=C.ndim),
+        kde.expand_to(C.x, C.target, ndim=C.ndim),
+    )
+
+  def test_list_size(self):
+    testing.assert_equal(C.x.list_size(), kde.list_size(C.x))
+
+  def test_dict_size(self):
+    testing.assert_equal(C.x.dict_size(), kde.dict_size(C.x))
+
+  def test_follow(self):
+    testing.assert_equal(C.x.follow(), kde.follow(C.x))
+
+  def test_ref(self):
+    testing.assert_equal(C.x.ref(), kde.ref(C.x))
+
+  def test_as_itemid(self):
+    testing.assert_equal(C.x.as_itemid(), kde.as_itemid(C.x))
+
+  def test_as_any(self):
+    testing.assert_equal(C.x.as_any(), kde.as_any(C.x))
+
+  def test_get_obj_schema(self):
+    testing.assert_equal(C.x.get_obj_schema(), kde.get_obj_schema(C.x))
+
+  def test_with_schema_from_obj(self):
+    testing.assert_equal(
+        C.x.with_schema_from_obj(), kde.with_schema_from_obj(C.x)
+    )
+
+  def test_with_schema(self):
+    testing.assert_equal(
+        C.x.with_schema(C.schema), kde.with_schema(C.x, C.schema)
+    )
+
+  def test_get_schema(self):
+    testing.assert_equal(C.x.get_schema(), kde.get_schema(C.x))
+
+  def test_get_shape(self):
+    testing.assert_equal(C.x.get_shape(), kde.get_shape(C.x))
+
+  def test_get_ndim(self):
+    testing.assert_equal(C.x.get_ndim(), kde.get_ndim(C.x))
+
+  def test_rank(self):
+    testing.assert_equal(C.x.rank(), kde.rank(C.x))
+
+  def test_get_attr_with_default(self):
+    testing.assert_equal(C.x.get_attr(C.attr), kde.get_attr(C.x, C.attr))
+    testing.assert_equal(
+        C.x.get_attr(C.attr, default=C.default),
+        kde.get_attr(C.x, C.attr, default=C.default),
+    )
+
+  def test_with_db(self):
+    testing.assert_equal(C.x.with_db(C.db), kde.with_db(C.x, C.db))
+
+  def test_get_size(self):
+    testing.assert_equal(C.x.get_size(), kde.size(C.x))
+
+  def test_db(self):
+    testing.assert_equal(C.x.db(), kde.get_db(C.x))
+
+  def test_no_db(self):
+    testing.assert_equal(C.x.no_db(), kde.no_db(C.x))
+
+  def test_enriched(self):
+    testing.assert_equal(C.x.enriched(C.db), kde.enriched(C.x, C.db))
+
+  def test_updated(self):
+    testing.assert_equal(C.x.updated(C.db), kde.updated(C.x, C.db))
+
   def test_eval(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     testing.assert_equal(I.x.eval(x=1), data_slice.DataSlice.from_vals(1))
@@ -377,6 +531,71 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_repr(self, expr, expected_repr):
     self.assertEqual(repr(expr), expected_repr)
 
+  def test_data_slice_attrs_are_in_view(self):
+    # Asserts that all attrs / methods of DataSlice are present in the
+    # DataSliceView, or that they are explicitly skipped.
+    #
+    # attrs / methods should be skipped iff they cannot be added by design, not
+    # because of laziness.
+    skipped_data_slice_attrs = {
+        # TODO: Add the following as operators with present/missing
+        # results.
+        'is_primitive_schema',
+        'is_empty',
+        'is_dict_schema',
+        'is_list_schema',
+        # TODO: Add the following as operators.
+        'get_keys',
+        'get_present_count',
+        'with_fallback',
+        'freeze',
+        # Attrs / methods that should _not_ be added to the view.
+        'clear',
+        'fork_db',
+        'as_dense_array',
+        'add_method',
+        'embed_schema',
+        'as_arolla_value',
+        'qtype',
+        'set_attr',
+        'internal_register_reserved_class_method_name',
+        'fingerprint',
+        'set_attrs',
+        'append',
+        'set_schema',
+        'internal_as_py',
+        'to_py',
+        'from_vals',
+    }
+    view_attrs = {m for m in dir(view.DataSliceView) if not m.startswith('_')}
+    data_slice_attrs = {
+        m for m in dir(data_slice.DataSlice) if not m.startswith('_')
+    }
+    # Only skip those attrs that are absolutely necessary.
+    self.assertEmpty(skipped_data_slice_attrs - data_slice_attrs)
+    self.assertEmpty(skipped_data_slice_attrs & view_attrs)
+    # Check that all required attrs are present.
+    missing_attrs = data_slice_attrs - view_attrs - skipped_data_slice_attrs
+    self.assertEmpty(missing_attrs)
+
+  def test_view_attrs_are_in_data_slice(self):
+    # Asserts that all attrs / methods of DataSliceView are present in the
+    # DataSlice, or that they are explicitly skipped.
+    #
+    # attrs / methods should be skipped iff they cannot be added by design, not
+    # because of laziness.
+    skipped_view_attrs = {'eval', 'inputs'}
+    view_attrs = {m for m in dir(view.DataSliceView) if not m.startswith('_')}
+    data_slice_attrs = {
+        m for m in dir(data_slice.DataSlice) if not m.startswith('_')
+    }
+    # Only skip those attrs that are absolutely necessary.
+    self.assertEmpty(skipped_view_attrs - view_attrs)
+    self.assertEmpty(skipped_view_attrs & data_slice_attrs)
+    # Check that all required attrs are present.
+    missing_attrs = view_attrs - data_slice_attrs - skipped_view_attrs
+    self.assertEmpty(missing_attrs)
+
 
 class KodaTupleViewTest(parameterized.TestCase):
 
@@ -399,11 +618,7 @@ class KodaTupleViewTest(parameterized.TestCase):
 
   def test_basic_koda_view_subclass(self):
     # Allows both views to be registered simultaneously without issue.
-    self.assertTrue(
-        issubclass(
-            view.KodaTupleView, view.BasicKodaView
-        )
-    )
+    self.assertTrue(issubclass(view.KodaTupleView, view.BasicKodaView))
 
   def test_eval(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
@@ -427,7 +642,8 @@ class KodaTupleViewTest(parameterized.TestCase):
     self.assertTrue(view.has_data_slice_view(x))
     self.assertTrue(view.has_data_slice_view(y))
     arolla.testing.assert_expr_equal_by_fingerprint(
-        x, arolla.M.core.get_nth(expr, arolla.int64(0)),
+        x,
+        arolla.M.core.get_nth(expr, arolla.int64(0)),
     )
     arolla.testing.assert_expr_equal_by_fingerprint(
         y, arolla.M.core.get_nth(expr, arolla.int64(1))
