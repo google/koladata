@@ -77,63 +77,12 @@ class InputContainerTest(parameterized.TestCase):
     self.assertEqual(arolla.get_leaf_keys(I.x + I.y), [])
     self.assertEqual(arolla.abc.get_placeholder_keys(I.x + I.y), [])
 
-  def test_get_input_names(self):
-    decayed_input_op = arolla.abc.decay_registered_operator(
-        'koda_internal.input'
-    )
+  def test_get_input_name(self):
     I = input_container.InputContainer('I')
     V = input_container.InputContainer('V')
-    expr = I.x + I.y + I.z.val + V.w + decayed_input_op('V', 'v')
-    self.assertEqual(input_container.get_input_names(expr, I), ['x', 'y', 'z'])
-    # Note: decayed inputs are _not_ supported.
-    self.assertEqual(input_container.get_input_names(expr, V), ['w'])
-
-  def test_sub_inputs(self):
-    decayed_input_op = arolla.abc.decay_registered_operator(
-        'koda_internal.input'
-    )
-    I = input_container.InputContainer('I')
-    V = input_container.InputContainer('V')
-    expr = I.x + I.y + I.z.val + V.x + decayed_input_op('V', 'v')
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        input_container.sub_inputs(expr, I, x=I.a, z=I.o),
-        I.a + I.y + I.o.val + V.x + decayed_input_op('V', 'v'),
-    )
-    # Note: decayed inputs are _not_ supported.
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        input_container.sub_inputs(expr, V, x=I.a, y=I.o, v=I.z),
-        I.x + I.y + I.z.val + I.a + decayed_input_op('V', 'v'),
-    )
-
-  def test_get_input_names_in_lambda(self):
-    I = input_container.InputContainer('I')
-
-    @arolla.optools.as_lambda_operator('foo.bar')
-    def foo_bar():
-      return I.x
-
-    self.assertEmpty(input_container.get_input_names(foo_bar(), I))
-    self.assertEqual(
-        input_container.get_input_names(arolla.abc.to_lowest(foo_bar()), I),
-        ['x'],
-    )
-
-  def test_sub_inputs_in_lambda(self):
-    I = input_container.InputContainer('I')
-
-    @arolla.optools.as_lambda_operator('foo.bar')
-    def foo_bar():
-      return I.x
-
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        input_container.sub_inputs(foo_bar(), I, x=arolla.L.x), foo_bar()
-    )
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        input_container.sub_inputs(
-            arolla.abc.to_lowest(foo_bar()), I, x=arolla.L.x
-        ),
-        arolla.L.x,
-    )
+    self.assertEqual(input_container.get_input_name(I.x, I), 'x')
+    self.assertIsNone(input_container.get_input_name(I.x, V))
+    self.assertIsNone(input_container.get_input_name(I.x + I.y, I))
 
 
 # pylint: enable=invalid-name

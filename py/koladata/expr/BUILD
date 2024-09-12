@@ -58,6 +58,7 @@ py_library(
     deps = [
         ":expr_eval",
         ":input_container",
+        ":introspection",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
@@ -79,6 +80,7 @@ py_library(
     name = "introspection",
     srcs = ["introspection.py"],
     deps = [
+        ":input_container",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:mask_constants",
@@ -138,6 +140,7 @@ py_test(
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
     ],
 )
 

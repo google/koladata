@@ -15,6 +15,7 @@
 """Tests for introspection."""
 
 from absl.testing import absltest
+from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.operators import eager_op_utils
@@ -26,6 +27,7 @@ from koladata.types import schema_constants
 
 kde = kde_operators.kde
 I = input_container.InputContainer('I')
+V = input_container.InputContainer('V')
 kd = eager_op_utils.operators_container('kde')
 
 
@@ -95,6 +97,65 @@ class IntrospectionTest(absltest.TestCase):
     )
     testing.assert_equal(
         introspection.is_packed_expr(I.x + I.y), mask_constants.missing
+    )
+
+  def test_get_input_names(self):
+    decayed_input_op = arolla.abc.decay_registered_operator(
+        'koda_internal.input'
+    )
+    expr = I.x + I.y + I.z.val + V.w + decayed_input_op('V', 'v')
+    self.assertEqual(introspection.get_input_names(expr), ['x', 'y', 'z'])
+    self.assertEqual(introspection.get_input_names(expr, I), ['x', 'y', 'z'])
+    # Note: decayed inputs are _not_ supported.
+    self.assertEqual(introspection.get_input_names(expr, V), ['w'])
+
+  def test_sub_inputs(self):
+    decayed_input_op = arolla.abc.decay_registered_operator(
+        'koda_internal.input'
+    )
+    expr = I.x + I.y + I.z.val + V.x + decayed_input_op('V', 'v')
+    testing.assert_equal(
+        introspection.sub_inputs(expr, x=I.a, z=I.o),
+        I.a + I.y + I.o.val + V.x + decayed_input_op('V', 'v'),
+    )
+    testing.assert_equal(
+        introspection.sub_inputs(expr, I, x=I.a, z=I.o),
+        I.a + I.y + I.o.val + V.x + decayed_input_op('V', 'v'),
+    )
+    # Note: decayed inputs are _not_ supported.
+    testing.assert_equal(
+        introspection.sub_inputs(expr, V, x=I.a, y=I.o, v=I.z),
+        I.x + I.y + I.z.val + I.a + decayed_input_op('V', 'v'),
+    )
+
+  def test_sub_inputs_non_identifier(self):
+    expr = I['123']
+    testing.assert_equal(introspection.sub_inputs(expr, **{'123': I.x}), I.x)
+
+  def test_get_input_names_in_lambda(self):
+    @arolla.optools.as_lambda_operator('foo.bar')
+    def foo_bar():
+      return I.x
+
+    self.assertEmpty(introspection.get_input_names(foo_bar(), I))
+    self.assertEqual(
+        introspection.get_input_names(arolla.abc.to_lowest(foo_bar()), I),
+        ['x'],
+    )
+
+  def test_sub_inputs_in_lambda(self):
+    @arolla.optools.as_lambda_operator('foo.bar')
+    def foo_bar():
+      return I.x
+
+    testing.assert_equal(
+        introspection.sub_inputs(foo_bar(), I, x=arolla.L.x), foo_bar()
+    )
+    testing.assert_equal(
+        introspection.sub_inputs(
+            arolla.abc.to_lowest(foo_bar()), I, x=arolla.L.x
+        ),
+        arolla.L.x,
     )
 
 

@@ -189,6 +189,16 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.as_expr(1), kd.literal(kd.slice(1)))
     kd.testing.assert_equal(kd.as_expr(I.x), I.x)
 
+  def test_get_input_names(self):
+    expr = I.x + I.y + V.z
+    self.assertEqual(kd.get_input_names(expr), ['x', 'y'])
+    self.assertEqual(kd.get_input_names(expr, container=V), ['z'])
+
+  def test_sub_inputs(self):
+    expr = I.x + I.y + V.x
+    kd.testing.assert_equal(kd.sub_inputs(expr, x=I.w), I.w + I.y + V.x)
+    kd.testing.assert_equal(kd.sub_inputs(expr, V, x=I.w), I.x + I.y + I.w)
+
   def test_kdi(self):
     self.assertCountEqual(kdi.__all__, dir(kdi))
     self.assertCountEqual(set(dir(kd)) - set(dir(kdi)), ['kdi'])

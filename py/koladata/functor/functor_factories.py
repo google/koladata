@@ -95,10 +95,10 @@ def _extract_auto_variables(variables: dict[str, Any]) -> dict[str, Any]:
         # and use the real name instead. The auxiliary variable might have
         # been wrapped with kde.explode(), so we do a sub_inputs instead of
         # just replacing with V[name].
-        var_names = input_container.get_input_names(child, V)
+        var_names = introspection.get_input_names(child, V)
         assert len(var_names) == 1
         variables[name] = variables.pop(var_names[0])
-        return input_container.sub_inputs(child, V, **{var_names[0]: V[name]})
+        return introspection.sub_inputs(child, V, **{var_names[0]: V[name]})
       variables[name] = introspection.pack_expr(child)
       return V[name]
 

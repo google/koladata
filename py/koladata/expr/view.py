@@ -20,6 +20,7 @@ from typing import Any
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import introspection
 from koladata.types import data_slice
 from koladata.types import qtypes
 
@@ -40,7 +41,7 @@ class BasicKodaView(arolla.abc.ExprView):
     return expr_eval.eval(self, self_input, **input_values)
 
   def inputs(self) -> list[str]:
-    return input_container.get_input_names(typing.cast(arolla.Expr, self), I)
+    return introspection.get_input_names(typing.cast(arolla.Expr, self))
 
   def with_name(self, name: str | arolla.types.Text) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.with_name', self, name)

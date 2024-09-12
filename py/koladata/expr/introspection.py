@@ -17,10 +17,14 @@
 from typing import Any
 
 from arolla import arolla
+from koladata.expr import input_container
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import mask_constants
 from koladata.types import schema_constants
+
+I = input_container.InputContainer('I')
+_KODA_INPUT_OP = arolla.abc.lookup_operator('koda_internal.input')
 
 
 def get_name(expr: arolla.Expr) -> str | None:
@@ -61,3 +65,27 @@ def is_packed_expr(ds: Any) -> data_slice.DataSlice:
     return mask_constants.present
   else:
     return mask_constants.missing
+
+
+def get_input_names(
+    expr: arolla.Expr, container: input_container.InputContainer = I
+) -> list[str]:
+  """Returns names of `container` inputs used in `expr`."""
+  input_names = []
+  for node in arolla.abc.post_order(expr):
+    if (
+        input_name := input_container.get_input_name(node, container)
+    ) is not None:
+      input_names.append(input_name)
+  return sorted(input_names)
+
+
+def sub_inputs(
+    expr: arolla.Expr,
+    container: input_container.InputContainer = I,
+    /,
+    **subs: arolla.Expr,
+) -> arolla.Expr:
+  """Returns an expression with `container` inputs replaced with Expr(s)."""
+  subs = {container[k].fingerprint: v for k, v in subs.items()}
+  return arolla.sub_by_fingerprint(expr, subs)

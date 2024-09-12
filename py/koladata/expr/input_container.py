@@ -22,17 +22,11 @@ from koladata.types import literal_operator
 _KODA_INPUT_OP = arolla.abc.lookup_operator('koda_internal.input')
 
 
+@functools.lru_cache()
 def _get_input(container_name: str, input_key: str) -> arolla.Expr:
   container_name = literal_operator.literal(arolla.text(container_name))
   input_key = literal_operator.literal(arolla.text(input_key))
   return _KODA_INPUT_OP(container_name, input_key)
-
-
-@functools.lru_cache()
-def _get_input_fingerprint(
-    container_name: str, input_key: str
-) -> arolla.abc.Fingerprint:
-  return _get_input(container_name, input_key).fingerprint
 
 
 class InputContainer:
@@ -62,28 +56,12 @@ class InputContainer:
     return _get_input(self.name, input_key)
 
 
-def _get_input_name(expr: arolla.Expr, container: InputContainer) -> str | None:
+def get_input_name(expr: arolla.Expr, container: InputContainer) -> str | None:
+  """Returns the input name of `expr` if it comes from `container` else None."""
   if (
       expr.op == _KODA_INPUT_OP
-      and expr.node_deps[0].qvalue.py_value() == container.name
+      and expr.node_deps[0].qvalue.py_value() == container.name  # pytype: disable=attribute-error
   ):
-    return expr.node_deps[1].qvalue.py_value()
+    return expr.node_deps[1].qvalue.py_value()  # pytype: disable=attribute-error
   else:
     return None
-
-
-def get_input_names(expr: arolla.Expr, container: InputContainer) -> list[str]:
-  """Returns names of `container` inputs used in `expr`."""
-  input_names = []
-  for node in arolla.abc.post_order(expr):
-    if (input_name := _get_input_name(node, container)) is not None:
-      input_names.append(input_name)
-  return sorted(input_names)
-
-
-def sub_inputs(
-    expr: arolla.Expr, container: InputContainer, /, **subs: arolla.Expr
-) -> arolla.Expr:
-  """Returns an expression with `container` inputs replaced with Expr(s)."""
-  subs = {_get_input_fingerprint(container.name, k): v for k, v in subs.items()}
-  return arolla.sub_by_fingerprint(expr, subs)

@@ -125,6 +125,8 @@ as_expr = _eager_only(_py_boxing.as_expr)
 pack_expr = _eager_only(_introspection.pack_expr)
 unpack_expr = _eager_only(_introspection.unpack_expr)
 is_packed_expr = _eager_only(_introspection.is_packed_expr)
+sub_inputs = _eager_only(_introspection.sub_inputs)
+get_input_names = _eager_only(_introspection.get_input_names)
 # This overrides the eager_op_utils implementation which unfortunately
 # fails because M.annotation.name requires a literal as second argument.
 with_name = _dispatch(
