@@ -45,6 +45,12 @@ obj = _object_factories.obj
 obj_shaped = _object_factories.obj_shaped
 obj_like = _object_factories.obj_like
 
+# Currently mutable_obj.* operations are aliases for obj.* operations.
+# In the future, we may change obj.* to return immutable results.
+mutable_obj = _object_factories.obj
+mutable_obj_shaped = _object_factories.obj_shaped
+mutable_obj_like = _object_factories.obj_like
+
 empty_shaped = _object_factories.empty_shaped
 empty_shaped_as = _object_factories.empty_shaped_as
 
