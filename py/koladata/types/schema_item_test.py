@@ -90,9 +90,7 @@ class SchemaItemTest(absltest.TestCase):
   def test_creating_list(self):
     l = fns.list_schema(item_schema=fns.list_schema(schema_constants.FLOAT32))
     self.assertTrue(l.is_list_schema())
-    # TODO: Replace 3. with 3, when parsing nested schema is
-    # supported.
-    lst = l([[1., 2], [3.]])
+    lst = l([[1., 2], [3]])
     testing.assert_equal(lst[:][:], ds([[1., 2.], [3.]]).with_db(lst.db))
     with self.assertRaises(AssertionError):
       testing.assert_equal(lst.db, l.db)
@@ -138,6 +136,10 @@ class SchemaItemTest(absltest.TestCase):
         ValueError, 'expected List schema, got INT32'
     ):
       schema_constants.INT32.with_db(bag())([1, 2, 3])
+    with self.assertRaisesRegex(
+        ValueError, 'expected Dict schema, got INT32'
+    ):
+      schema_constants.INT32.with_db(bag())({'a': 42})
     with self.assertRaisesRegex(
         exceptions.KodaError, 'requires Entity schema, got INT32'
     ):

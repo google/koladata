@@ -240,6 +240,8 @@ def create_dict(state):
 def universal_converter(state):
   d = {'abc': 42}
   for _ in range(10):
+    # NOTE: Here we use the same instance `d` to make sure we re-use them from
+    # cache and avoid duplicate computation on each level.
     d = {12: d, 42: d}
   obj = kd.obj()
   while (state):
@@ -264,6 +266,14 @@ def universal_converter_list(state):
   obj = kd.obj()
   while (state):
     obj.l = l
+
+
+@google_benchmark.register
+def universal_converter_list_of_obj_primitives(state):
+  l = [42] * 10000
+  s = kd.list_schema(kd.OBJECT)
+  while (state):
+    kd.new(l, schema=s)
 
 
 @google_benchmark.register
