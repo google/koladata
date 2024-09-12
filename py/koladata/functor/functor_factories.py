@@ -15,6 +15,7 @@
 """Tools to create functors."""
 
 import inspect
+import types as py_types
 import typing
 from typing import Any, Callable
 
@@ -322,3 +323,39 @@ def bind(
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
       **variables,
   )
+
+
+# TODO: Add support for format strings here.
+def as_fn(
+    f: Any, *, use_tracing: bool = True, **kwargs: Any
+) -> data_slice.DataSlice:
+  """Returns a Koda functor representing `f`.
+
+  This is the most generic version of the kdf builder functions.
+  It accepts all kdf supported function types including python functions,
+  Koda Expr.
+
+  Args:
+    f: Python function, Koda Expr, Expr packed into a DataItem, or a Koda
+      functor (the latter will be just returned unchanged).
+    use_tracing: Whether tracing should be used for Python functions.
+    **kwargs: Either variables or defaults to pass to the function. See the
+      documentation of `fn` and `py_fn` for more details.
+
+  Returns:
+    A Koda functor representing `f`.
+  """
+  if isinstance(f, arolla.Expr) or introspection.is_packed_expr(f):
+    return fn(f, **kwargs)
+  if isinstance(f, py_types.FunctionType):
+    if use_tracing:
+      return trace_py_fn(f, **kwargs)
+    else:
+      return py_fn(f, **kwargs)
+  if is_fn(f):
+    if kwargs:
+      raise ValueError(
+          'passed kwargs when calling as_fn on an existing functor'
+      )
+    return f
+  raise TypeError(f'cannot convert {f} into a functor')

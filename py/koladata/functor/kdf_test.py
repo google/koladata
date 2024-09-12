@@ -62,6 +62,12 @@ class KdfTest(absltest.TestCase):
     f = kdf.bind(fn, x=1)
     testing.assert_equal(kdf.call(f, y=2), ds(3))
 
+  def test_as_fn(self):
+    fn = kdf.as_fn(lambda x, y: x + y)
+    testing.assert_equal(kdf.call(fn, x=1, y=2), ds(3))
+    fn = kdf.as_fn(I.x + I.y)
+    testing.assert_equal(kdf.call(fn, x=1, y=2), ds(3))
+
 
 if __name__ == '__main__':
   absltest.main()

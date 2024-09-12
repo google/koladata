@@ -505,6 +505,76 @@ class FunctorFactoriesTest(absltest.TestCase):
     ):
       _ = f(1)
 
+  def test_as_fn_expr(self):
+    testing.assert_equal(
+        kd.call(functor_factories.as_fn(I.x + I.y), x=ds([1, 2]), y=ds([3, 4])),
+        ds([4, 6]),
+    )
+    testing.assert_equal(
+        kd.call(
+            functor_factories.as_fn(I.x + kde.explode(V.y), y=fns.list([3, 4])),
+            x=ds([1, 2]),
+        ),
+        ds([4, 6]),
+    )
+
+  def test_as_fn_packed_expr(self):
+    testing.assert_equal(
+        kd.call(
+            functor_factories.as_fn(introspection.pack_expr(I.x + I.y)),
+            x=ds([1, 2]),
+            y=ds([3, 4]),
+        ),
+        ds([4, 6]),
+    )
+
+  def test_as_fn_expr_dataslice(self):
+    testing.assert_equal(
+        kd.call(functor_factories.as_fn(I.x + I.y), x=ds([1, 2]), y=ds([3, 4])),
+        ds([4, 6]),
+    )
+
+  def test_as_fn_python_function(self):
+    fn1 = functor_factories.as_fn(lambda x, y: x + y)
+    fn2 = functor_factories.as_fn(lambda x, y: x + y, use_tracing=True)
+    fn3 = functor_factories.as_fn(
+        lambda x, y: ds([a + b for a, b in zip(x.to_py(), y.to_py())]),
+        use_tracing=False,
+    )
+    testing.assert_equal(kd.call(fn1, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
+    testing.assert_equal(kd.call(fn2, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
+    testing.assert_equal(kd.call(fn3, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
+    testing.assert_equal(introspection.unpack_expr(fn2.returns), I.x + I.y)
+    testing.assert_equal(introspection.unpack_expr(fn1.returns), I.x + I.y)
+
+    fn4 = functor_factories.as_fn(lambda x, y: x + y, use_tracing=True, y=5)
+    fn5 = functor_factories.as_fn(lambda x, y: x + y, use_tracing=False, y=5)
+    testing.assert_equal(kd.call(fn4, x=ds([1, 2])), ds([6, 7]))
+    testing.assert_equal(kd.call(fn5, x=ds([1, 2])), ds([6, 7]))
+
+  def test_as_fn_existing_fn(self):
+    existing_fn = functor_factories.fn(I.x + I.y)
+    testing.assert_equal(
+        kd.call(
+            functor_factories.as_fn(existing_fn), x=ds([1, 2]), y=ds([3, 4])
+        ),
+        ds([4, 6]),
+    )
+
+  def test_as_fn_existing_fn_fails(self):
+    existing_fn = functor_factories.fn(I.x + I.y)
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'passed kwargs when calling as_fn on an existing functor'
+    ):
+      functor_factories.as_fn(existing_fn, x=1)
+
+  def test_as_fn_unknown_type(self):
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, 'cannot convert 57 into a functor'
+    ):
+      functor_factories.as_fn(57)
+
 
 if __name__ == '__main__':
   absltest.main()
