@@ -89,3 +89,22 @@ def sub_inputs(
   """Returns an expression with `container` inputs replaced with Expr(s)."""
   subs = {container[k].fingerprint: v for k, v in subs.items()}
   return arolla.sub_by_fingerprint(expr, subs)
+
+
+def sub_by_name(expr: arolla.Expr, /, **subs: arolla.Expr) -> arolla.Expr:
+  """Returns `expr` with named subexpressions replaced.
+
+  Use `kde.with_name(expr, name)` to create a named subexpression.
+
+  Example:
+    foo = kde.with_name(I.x, 'foo')
+    bar = kde.with_name(I.y, 'bar')
+    expr = foo + bar
+    kd.sub_by_name(expr, foo=I.z)
+    # -> I.z + kde.with_name(I.y, 'bar')
+
+  Args:
+    expr: an expression.
+    **subs: mapping from subexpression name to replacement node.
+  """
+  return arolla.sub_by_name(expr, **subs)

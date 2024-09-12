@@ -102,18 +102,15 @@ class TracingTest(absltest.TestCase):
     e = tracing.trace(fn)
     self.assertEqual(e.eval(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)
     self.assertIn('foo = ', str(e))
-    # TODO: reenable this when we have kd.sub_by_name.
-    # self.assertEqual(
-    #     kd.sub_by_name(e, foo=kd.as_expr(4)).eval(z=kd.item(3)), 7)
+    self.assertEqual(kd.sub_by_name(e, foo=kd.as_expr(4)).eval(z=kd.item(3)), 7)
 
     fn = lambda x, y, z: (x + y).with_name('foo') + z
     self.assertEqual(fn(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)
     e = tracing.trace(fn)
     self.assertEqual(e.eval(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)
     self.assertIn('foo = ', str(e))
-    # TODO: reenable this when we have kd.sub_by_name.
-    # self.assertEqual(
-    #     kd.sub_by_name(e, foo=kd.as_expr(4)).eval(z=kd.item(3)), 7)
+    self.assertEqual(
+        kd.sub_by_name(e, foo=kd.as_expr(4)).eval(z=kd.item(3)), 7)
 
   def test_functor_call(self):
     fn = kdf.fn(I.x + I.y)

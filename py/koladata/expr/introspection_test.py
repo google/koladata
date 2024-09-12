@@ -158,6 +158,14 @@ class IntrospectionTest(absltest.TestCase):
         arolla.L.x,
     )
 
+  def test_sub_by_name(self):
+    foo = kde.with_name(I.x, 'foo')
+    bar = kde.with_name(I.y, 'bar')
+    expr = foo + bar
+    testing.assert_equal(
+        introspection.sub_by_name(expr, foo=I.z, baz=I.w), I.z + bar
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
