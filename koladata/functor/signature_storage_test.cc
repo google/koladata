@@ -30,7 +30,6 @@
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 
