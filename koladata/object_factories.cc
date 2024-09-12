@@ -252,6 +252,8 @@ absl::Status InitItemIdsForDicts(const DataSlice& itemid,
 // DataSlice and returns an `absl::Status`. To check that itemid(s) are Lists,
 // pass `VerifyItemIdsAreLists` and to check they are Dicts, pass
 // `VerifyItemIdsAreDicts`.
+//
+// NOTE: itemid's attached DataBag is ignored if present.
 template <typename InitItemIdFn>
 absl::Status VerifyAndInitItemId(
     const DataSlice& itemid, const DataSlice::JaggedShape& shape,
@@ -266,10 +268,6 @@ absl::Status VerifyAndInitItemId(
         "cannot create Koda Items with provided ItemIds %s as its shape is "
         "different from the shape of the resulting DataSlice: %s",
         arolla::Repr(itemid), arolla::Repr(shape)));
-  }
-  if (itemid.GetDb() != nullptr && itemid.GetDb() != db) {
-    return absl::InvalidArgumentError(
-        "itemid should not have attached DataBag");
   }
   if (itemid.size() == 0) {
     return absl::OkStatus();

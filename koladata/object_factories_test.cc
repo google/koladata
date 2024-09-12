@@ -2571,25 +2571,6 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Empty) {
   EXPECT_THAT(ds.slice(), ElementsAre());
 }
 
-TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_WithDb) {
-  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
-
-  auto itemid = *DataSlice::Create(
-      internal::DataSliceImpl::ObjectsFromAllocation(
-          internal::AllocateDicts(3), 3),
-      shape, internal::DataItem(schema::kItemId), DataBag::Empty());
-
-  EXPECT_THAT(CreateDictShaped(db, shape,
-                               /*keys=*/std::nullopt, /*values=*/std::nullopt,
-                               /*schema=*/std::nullopt,
-                               /*key_schema=*/std::nullopt,
-                               /*value_schema=*/std::nullopt,
-                               itemid),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("itemid should not have attached DataBag")));
-}
-
 TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_WithValues) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();
