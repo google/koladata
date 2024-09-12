@@ -212,6 +212,7 @@ cc_library(
         ":data_bag",
         ":data_slice",
         "//koladata/internal:data_item",
+        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",

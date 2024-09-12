@@ -17,6 +17,7 @@
 #include <string>
 #include <type_traits>
 
+#include "absl/base/no_destructor.h"
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -27,7 +28,6 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
-#include "arolla/util/indestructible.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/repr.h"
 
@@ -92,7 +92,7 @@ QTypePtr QTypeTraits<DataSlice>::type() {
           ->py_qvalue_specialization_key();
     }
   };
-  static const Indestructible<DataSliceQType> result;
+  static const absl::NoDestructor<DataSliceQType> result;
   return result.get();
 }
 
