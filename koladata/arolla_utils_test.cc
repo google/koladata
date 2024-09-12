@@ -554,6 +554,43 @@ TEST(DataSliceUtils, ToArollaScalar) {
   }
 }
 
+TEST(DataSliceUtils, ToArollaOptionalScalar) {
+  {
+    // Successful eval.
+    EXPECT_THAT(ToArollaOptionalScalar<int64_t>(test::DataItem(1)),
+                IsOkAndHolds(int64_t{1}));
+    EXPECT_THAT(
+        ToArollaOptionalScalar<int64_t>(test::DataItem(1, schema::kObject)),
+        IsOkAndHolds(int64_t{1}));
+    EXPECT_THAT(ToArollaOptionalScalar<int64_t>(
+                    test::DataItem(std::nullopt, schema::kInt64)),
+                IsOkAndHolds(std::nullopt));
+    EXPECT_THAT(ToArollaOptionalScalar<int64_t>(
+                    test::DataItem(std::nullopt, schema::kObject)),
+                IsOkAndHolds(std::nullopt));
+    EXPECT_THAT(ToArollaOptionalScalar<int64_t>(
+                    test::DataItem(std::nullopt, schema::kNone)),
+                IsOkAndHolds(std::nullopt));
+  }
+  {
+    // Errors.
+    EXPECT_THAT(ToArollaOptionalScalar<int64_t>(test::DataItem(1.0f)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("unsupported narrowing")));
+    EXPECT_THAT(ToArollaOptionalScalar<int64_t>(
+                    test::DataItem(std::nullopt, schema::kFloat32)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("unsupported narrowing")));
+    EXPECT_THAT(
+        ToArollaOptionalScalar<int64_t>(test::DataItem(1.0f, schema::kObject)),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("unsupported narrowing")));
+    EXPECT_THAT(ToArollaOptionalScalar<int64_t>(test::DataSlice<int64_t>({1})),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "expected rank 0, but got rank=1"));
+  }
+}
+
 TEST(DataSliceUtils, ToArollaDenseArray) {
   {
     // Successful eval.

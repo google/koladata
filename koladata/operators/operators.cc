@@ -174,6 +174,8 @@ OPERATOR("koda_internal.to_arolla_dense_array_unit",
          ToArollaDenseArray<arolla::Unit>);
 OPERATOR("koda_internal.to_arolla_float64", ToArollaScalar<double>);
 OPERATOR("koda_internal.to_arolla_int64", ToArollaScalar<int64_t>);
+OPERATOR("koda_internal.to_arolla_optional_unit",
+         ToArollaOptionalScalar<arolla::Unit>);
 // go/keep-sorted end
 
 }  // namespace

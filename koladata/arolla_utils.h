@@ -25,6 +25,7 @@
 #include "koladata/internal/data_slice.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/status_macros_backport.h"
@@ -92,6 +93,24 @@ absl::StatusOr<T> ToArollaScalar(const DataSlice& x) {
   ASSIGN_OR_RETURN(auto x_casted,
                    CastToNarrow(x, internal::DataItem(schema::GetDType<T>())));
   return x_casted.item().value<T>();
+}
+
+// Casts `x` to type `OptionalValue<T>` using narrow casting (allowing OBJECT ->
+// T casts).
+template <typename T>
+absl::StatusOr<arolla::OptionalValue<T>> ToArollaOptionalScalar(
+    const DataSlice& x) {
+  if (x.GetShape().rank() != 0) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected rank 0, but got rank=%d", x.GetShape().rank()));
+  }
+  ASSIGN_OR_RETURN(auto x_casted,
+                   CastToNarrow(x, internal::DataItem(schema::GetDType<T>())));
+  if (x_casted.item().has_value()) {
+    return x_casted.item().value<T>();
+  } else {
+    return arolla::OptionalValue<T>();
+  }
 }
 
 // Casts `x` to `DenseArray<T>` using narrow casting (allowing OBJECT -> T
