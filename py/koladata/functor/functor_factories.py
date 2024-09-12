@@ -176,7 +176,7 @@ def is_fn(obj: Any) -> data_slice.DataSlice:
 
 
 def trace_py_fn(
-    f: Callable[..., Any], *, auto_variables: bool = True
+    f: Callable[..., Any], *, auto_variables: bool = True, **defaults: Any
 ) -> data_slice.DataSlice:
   """Returns a Koda functor created by tracing a given Python function.
 
@@ -192,16 +192,23 @@ def trace_py_fn(
       variables, and all named subexpressions become their own variables. This
       helps readability and manipulation of the resulting functor. Note that
       this defaults to True here, while it defaults to False in kdf.fn.
+    **defaults: Keyword defaults to bind to the function. The values in this map
+      may be Koda expressions or DataItems (see docstring for kdf.bind for more
+      details). Defaults can be overridden through kd.call arguments. **defaults
+      and inputs to kd.call will be combined and passed through to the function.
+      If a parameter that is not passed does not have a default value defined by
+      the function then an exception will occur.
 
   Returns:
     A DataItem representing the functor.
   """
   traced_expr = tracing.trace(f)
   signature = signature_utils.from_py_signature(inspect.signature(f))
-  return fn(traced_expr, signature=signature, auto_variables=auto_variables)
+  f = fn(traced_expr, signature=signature, auto_variables=auto_variables)
+  return bind(f, **defaults) if defaults else f
 
 
-def py_fn(f: Callable[..., Any]) -> data_slice.DataSlice:
+def py_fn(f: Callable[..., Any], **defaults: Any) -> data_slice.DataSlice:
   """Returns a Koda functor wrapping a python function.
 
   This is the most flexible way to wrap a python function and is recommended
@@ -219,11 +226,17 @@ def py_fn(f: Callable[..., Any]) -> data_slice.DataSlice:
     f: Python function. It is required that this function returns a
       DataSlice/DataItem or a primitive that will be automatically wrapped into
       a DataItem.
+    **defaults: Keyword defaults to bind to the function. The values in this map
+      may be Koda expressions or DataItems (see docstring for kdf.bind for more
+      details). Defaults can be overridden through kd.call arguments. **defaults
+      and inputs to kd.call will be combined and passed through to the function.
+      If a parameter that is not passed does not have a default value defined by
+      the function then an exception will occur.
 
   Returns:
     A DataItem representing the functor.
   """
-  return fn(
+  f = fn(
       # Note: we bypass the binding policy of apply_py since we already
       # have the args/kwargs as tuple and namedtuple.
       arolla.abc.bind_op(
@@ -234,6 +247,7 @@ def py_fn(f: Callable[..., Any]) -> data_slice.DataSlice:
       ),
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
   )
+  return bind(f, **defaults) if defaults else f
 
 
 def bind(

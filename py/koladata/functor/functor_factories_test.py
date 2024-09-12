@@ -218,6 +218,13 @@ class FunctorFactoriesTest(absltest.TestCase):
     )
     self.assertNotIn('weights', dir(fn))
 
+    fn = functor_factories.trace_py_fn(my_model, x=fns.obj(a=3.0, b=4.0, c=5.0))
+    testing.assert_equal(fn(), ds(3.0 * 1.0 + 4.0 * 0.5 + 5.0 * 1.5))
+    testing.assert_equal(
+        fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
+        ds(1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5),
+    )
+
     fn = functor_factories.trace_py_fn(lambda x, y=1: x + y)
     testing.assert_equal(fn(2), ds(3))
     testing.assert_equal(fn(2, 3), ds(5))
@@ -233,6 +240,10 @@ class FunctorFactoriesTest(absltest.TestCase):
     fn = functor_factories.trace_py_fn(lambda x, **unused_kwargs: x + 1)
     testing.assert_equal(fn(2), ds(3))
     testing.assert_equal(fn(2, foo=3), ds(3))
+
+  def test_trace_py_fn_expr_defaults(self):
+    fn = functor_factories.trace_py_fn(lambda x, y, **unused: x + y, y=2 * I.z)
+    testing.assert_equal(fn(x=2, z=3), ds(8))
 
   def test_py_fn_simple(self):
     def f(x, y):
@@ -258,6 +269,9 @@ class FunctorFactoriesTest(absltest.TestCase):
         kd.call(fn, x=ds([1, 2]), y=ds([3, 4]), z=ds([5, 6])),
         ds([9, 12]),
     )
+    testing.assert_equal(
+        kd.call(functor_factories.py_fn(f_kwargs, x=1, y=2, z=3)), ds(6)
+    )
     # Extra kwargs are ignored
     testing.assert_equal(kd.call(fn, x=1, y=2, z=3, w=4), ds(6))
 
@@ -268,6 +282,18 @@ class FunctorFactoriesTest(absltest.TestCase):
     testing.assert_equal(
         kd.call(functor_factories.py_fn(lambda x, y=1: x + y), x=5, y=2),
         ds(7),
+    )
+    testing.assert_equal(
+        kd.call(functor_factories.py_fn(lambda x, y: x + y, y=1), x=5),
+        ds(6),
+    )
+    testing.assert_equal(
+        kd.call(functor_factories.py_fn(lambda x, y: x + y, y=1), x=5, y=2),
+        ds(7),
+    )
+    testing.assert_equal(
+        kd.call(functor_factories.py_fn(lambda x, y: x + y, y=2 * I.x), x=5),
+        ds(15),
     )
 
     def default_none(x, y=None):
@@ -360,6 +386,10 @@ class FunctorFactoriesTest(absltest.TestCase):
     testing.assert_equal(kd.call(fn, x=1, z=1), ds(2))
     testing.assert_equal(kd.call(fn, x=1, y=1), ds(4))
     testing.assert_equal(kd.call(fn, x=1, y=1, z=3), ds(5))
+
+  def test_py_fn_partial_params(self):
+    f = functor_factories.py_fn(lambda x, y, z: x + y + z, x=1)
+    testing.assert_equal(kd.call(f, y=2, z=3), ds(6))
 
   def test_py_fn_list_as_param_default(self):
     def list_default(x=[1, 2]):  # pylint: disable=dangerous-default-value
