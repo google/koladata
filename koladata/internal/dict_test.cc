@@ -248,6 +248,25 @@ TEST(DictTest, GetKeysWithFallback) {
       UnorderedElementsAre(1, 2, 3, arolla::Text("a"), arolla::Text("b")));
 }
 
+TEST(DictTest, GetKeysWithFallbackEmptyMain) {
+  std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
+  auto& dict = (*dicts)[0];
+  EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre());
+
+  std::shared_ptr<DictVector> fb_dicts = std::make_shared<DictVector>(1);
+  auto& fb_dict = (*fb_dicts)[0];
+  fb_dict.Set(1, DataItem(2));
+
+  EXPECT_THAT(dict.GetKeys({&fb_dict}), UnorderedElementsAre(1));
+
+  std::shared_ptr<DictVector> fb2_dicts = std::make_shared<DictVector>(1);
+  auto& fb2_dict = (*fb2_dicts)[0];
+
+  EXPECT_THAT(dict.GetKeys({&fb2_dict}), UnorderedElementsAre());
+  EXPECT_THAT(dict.GetKeys({&fb2_dict, &fb_dict}), UnorderedElementsAre(1));
+  EXPECT_THAT(dict.GetKeys({&fb_dict, &fb2_dict}), UnorderedElementsAre(1));
+}
+
 TEST(DictTest, IntegerKeyTypes) {
   Dict dict;
   dict.Set(int{1}, DataItem(1));

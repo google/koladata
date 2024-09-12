@@ -143,10 +143,7 @@ class Dict {
       absl::Span<const Dict* const> fallbacks = {}) const;
 
   size_t GetSizeNoFallbacks() const {
-    auto* dict = this;
-    while (dict != nullptr && dict->data_.empty()) {
-      dict = dict->parent_;
-    }
+    auto* dict = FindFirstNonEmpty();
     if (dict == nullptr) {
       return 0;
     }
@@ -160,6 +157,14 @@ class Dict {
   friend class DictVector;
   using InternalMap =
       absl::flat_hash_map<DataItem, DataItem, DataItem::Hash, DataItem::Eq>;
+
+  const Dict* FindFirstNonEmpty() const {
+    auto* dict = this;
+    while (dict != nullptr && dict->data_.empty()) {
+      dict = dict->parent_;
+    }
+    return dict;
+  }
 
   // Add extra keys from parents and fallbacks.
   // Keys from the main dict are not added.

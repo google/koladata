@@ -71,15 +71,22 @@ ABSL_ATTRIBUTE_NOINLINE void Dict::CollectKeysFromParentAndFallbacks(
 
 std::vector<DataItem> Dict::GetKeys(
     absl::Span<const Dict* const> fallbacks) const {
+  auto* dict = FindFirstNonEmpty();
+  if (dict == nullptr) {
+    if (fallbacks.empty()) {
+      return {};
+    }
+    return fallbacks[0]->GetKeys(fallbacks.subspan(1));
+  }
   std::vector<DataItem> keys;
-  keys.reserve(data_.size());
-  for (const auto& [key, value] : data_) {
+  keys.reserve(dict->data_.size());
+  for (const auto& [key, value] : dict->data_) {
     if (value.has_value()) {
       keys.push_back(key);
     }
   }
-  if (parent_ != nullptr || !fallbacks.empty()) {
-    CollectKeysFromParentAndFallbacks(fallbacks, keys);
+  if (dict->parent_ != nullptr || !fallbacks.empty()) {
+    dict->CollectKeysFromParentAndFallbacks(fallbacks, keys);
   }
   return keys;
 }
