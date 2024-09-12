@@ -81,10 +81,6 @@ constexpr const char* kExplicitSchemaIncompatibleDictError =
     "Expected schema for '%s': %v\n"
     "Assigned schema for '%s': %v";
 
-const internal::DataItem kAnySchema(schema::kAny);
-const internal::DataItem kObjectSchema(schema::kObject);
-const internal::DataItem kSchemaSchema(schema::kSchema);
-
 const DataSlice::JaggedShape& MaxRankShape(const DataSlice::JaggedShape& s1,
                                            const DataSlice::JaggedShape& s2) {
   return s1.rank() < s2.rank() ? s2 : s1;
@@ -393,13 +389,13 @@ absl::StatusOr<ImplT> GetAttrImpl(const std::shared_ptr<DataBag>& db,
   const auto& db_impl = db->GetImpl();
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
-  if (schema == kSchemaSchema) {
-    res_schema = kSchemaSchema;
+  if (schema == schema::kSchema) {
+    res_schema = internal::DataItem(schema::kSchema);
     return GetSchemaAttrImpl(db_impl, impl, attr_name, fallbacks,
                              allow_missing_schema);
   }
   if (attr_name == schema::kSchemaAttr) {
-    res_schema = kSchemaSchema;
+    res_schema = internal::DataItem(schema::kSchema);
   } else {
     ASSIGN_OR_RETURN(
         res_schema, GetResultSchema(db_impl, impl, schema, attr_name, fallbacks,
@@ -461,13 +457,13 @@ class RhsHandler {
                              internal::DataBagImpl::FallbackSpan fallbacks) {
     DCHECK(&lhs.GetDb()->GetImpl() == &db_impl);
     absl::Status status = absl::OkStatus();
-    if (lhs.GetSchemaImpl() == kObjectSchema) {
+    if (lhs.GetSchemaImpl() == schema::kObject) {
       status = lhs.VisitImpl([&](const auto& impl) -> absl::Status {
         ASSIGN_OR_RETURN(auto obj_schema,
                          db_impl.GetObjSchemaAttr(impl, fallbacks));
         return this->ProcessSchemaObjectAttr(obj_schema, db_impl, fallbacks);
       });
-    } else if (lhs.GetSchemaImpl() != kAnySchema) {
+    } else if (lhs.GetSchemaImpl() != schema::kAny) {
       status = ProcessSchemaObjectAttr(lhs.GetSchemaImpl(), db_impl, fallbacks);
     }
     if (!status.ok()) {
@@ -830,29 +826,31 @@ absl::StatusOr<DataSlice> DataSlice::Create(
 
 absl::StatusOr<DataSlice> DataSlice::Reshape(
     DataSlice::JaggedShape shape) const {
-  return VisitImpl([&, shape = std::move(shape)](const auto& impl) {
+  return VisitImpl([&, shape = std::move(shape)](const auto& impl) mutable {
     return DataSlice::Create(impl, std::move(shape), GetSchemaImpl(), GetDb());
   });
 }
 
 DataSlice DataSlice::GetSchema() const {
-  return *DataSlice::Create(GetSchemaImpl(), kSchemaSchema, GetDb());
+  return *DataSlice::Create(GetSchemaImpl(),
+                            internal::DataItem(schema::kSchema), GetDb());
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetObjSchema() const {
-  if (GetSchemaImpl() != kObjectSchema) {
+  if (GetSchemaImpl() != schema::kObject) {
     return absl::InvalidArgumentError(
         "DataSlice must have OBJECT schema for get_obj_schema");
   }
 
   return VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto res, GetObjSchemaImpl(impl, GetDb()));
-    return DataSlice(std::move(res), GetShape(), kSchemaSchema, GetDb());
+    return DataSlice(std::move(res), GetShape(),
+                     internal::DataItem(schema::kSchema), GetDb());
   });
 }
 
 bool DataSlice::IsEntitySchema() const {
-  return GetSchemaImpl() == kSchemaSchema && GetShape().rank() == 0 &&
+  return GetSchemaImpl() == schema::kSchema && GetShape().rank() == 0 &&
          item().is_entity_schema();
 }
 
@@ -889,7 +887,7 @@ bool DataSlice::IsDictSchema() const {
 }
 
 bool DataSlice::IsPrimitiveSchema() const {
-  return (GetSchemaImpl() == kSchemaSchema) && (GetShape().rank() == 0) &&
+  return (GetSchemaImpl() == schema::kSchema) && (GetShape().rank() == 0) &&
          item().is_primitive_schema();
 }
 
@@ -909,7 +907,7 @@ absl::StatusOr<DataSlice> DataSlice::WithSchema(
   RETURN_IF_ERROR(AssertIsSliceSchema(schema_item));
   RETURN_IF_ERROR(
       VerifySchemaConsistency(schema_item, dtype(), impl_empty_and_unknown()));
-  return DataSlice(internal_->impl_, GetShape(), std::move(schema_item),
+  return DataSlice(internal_->impl, GetShape(), std::move(schema_item),
                    GetDb());
 }
 
@@ -928,7 +926,7 @@ absl::StatusOr<DataSlice> DataSlice::SetSchema(const DataSlice& schema) const {
 }
 
 absl::Status DataSlice::VerifyIsSchema() const {
-  if (GetSchemaImpl() != kSchemaSchema) {
+  if (GetSchemaImpl() != schema::kSchema) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "schema's schema must be SCHEMA, got: %v", GetSchemaImpl()));
   }
@@ -946,7 +944,7 @@ absl::Status DataSlice::VerifyIsSchema() const {
 }
 
 absl::Status DataSlice::VerifyIsPrimitiveSchema() const {
-  if (GetSchemaImpl() != kSchemaSchema) {
+  if (GetSchemaImpl() != schema::kSchema) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "primitive schema's schema must be SCHEMA, got: %v", GetSchemaImpl()));
   }
@@ -990,12 +988,14 @@ absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {
 
 absl::StatusOr<DataSlice> DataSlice::ForkDb() const {
   ASSIGN_OR_RETURN(auto forked_db, GetDb()->Fork());
-  return DataSlice(internal_->impl_, GetShape(), GetSchemaImpl(), forked_db);
+  return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(),
+                   std::move(forked_db));
 }
 
 absl::StatusOr<DataSlice> DataSlice::Freeze() const {
   ASSIGN_OR_RETURN(auto frozen_db, GetDb()->Fork(/*immutable=*/true));
-  return DataSlice(internal_->impl_, GetShape(), GetSchemaImpl(), frozen_db);
+  return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(),
+                   std::move(frozen_db));
 }
 
 bool DataSlice::IsEquivalentTo(const DataSlice& other) const {
@@ -1061,8 +1061,8 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
                                            attr_name, res_schema,
                                            /*allow_missing_schema=*/true));
     if (!res_schema.has_value()) {
-      res_schema = kAnySchema;
-      if (res.present_count() == 0 && GetSchemaImpl() != kAnySchema) {
+      res_schema = internal::DataItem(schema::kAny);
+      if (res.present_count() == 0 && GetSchemaImpl() != schema::kAny) {
         res_schema = default_value.GetSchemaImpl();
       } else if (res.dtype() != arolla::GetNothingQType()) {
         ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(res.dtype()));
@@ -1085,7 +1085,7 @@ absl::Status DataSlice::SetSchemaAttr(absl::string_view attr_name,
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetDb()->GetMutableImpl());
   return VisitImpl([&]<class T>(const T& impl) {
-    // NOTE: It is guaranteed that shape_ and values.GetShape() are equivalent
+    // NOTE: It is guaranteed that shape and values.GetShape() are equivalent
     // at this point and thus `impl` is also the same type.
     return db_mutable_impl.SetSchemaAttr(impl, attr_name, values.impl<T>());
   });
@@ -1103,7 +1103,7 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
                                             GetShape().rank(),
                                             values.GetShape().rank());
                    }));
-  if (GetSchemaImpl() == kSchemaSchema) {
+  if (GetSchemaImpl() == schema::kSchema) {
     return SetSchemaAttr(attr_name, expanded_values);
   }
   if (GetSchemaImpl().holds_value<schema::DType>()) {
@@ -1121,7 +1121,7 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
   RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerErrorContext::kAttr,
                                                  expanded_values, attr_name);
   if (attr_name == schema::kSchemaAttr) {
-    if (expanded_values.GetSchemaImpl() != kSchemaSchema) {
+    if (expanded_values.GetSchemaImpl() != schema::kSchema) {
       return absl::InvalidArgumentError(absl::StrCat(
           "only schemas can be assigned to the '__schema__' attribute, got ",
           expanded_values.GetSchemaImpl()));
@@ -1239,7 +1239,7 @@ absl::StatusOr<DataSlice> DataSlice::EmbedSchema(bool overwrite) const {
 }
 
 bool DataSlice::ShouldApplyListOp() const {
-  if (std::holds_alternative<internal::DataItem>(internal_->impl_)) {
+  if (std::holds_alternative<internal::DataItem>(internal_->impl)) {
     if (item().is_list()) {
       return true;
     }
@@ -1406,7 +1406,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
   }
   if (std::holds_alternative<internal::DataItem>(
-          expanded_this.internal_->impl_)) {
+          expanded_this.internal_->impl)) {
     int64_t index = expanded_indices.item().value<int64_t>();
     ASSIGN_OR_RETURN(auto res_impl, GetDb()->GetImpl().GetFromList(
                                         expanded_this.item(), index,
@@ -1491,7 +1491,7 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
   }
   if (std::holds_alternative<internal::DataItem>(
-          expanded_this.internal_->impl_)) {
+          expanded_this.internal_->impl)) {
     int64_t index = expanded_indices.item().value<int64_t>();
     ASSIGN_OR_RETURN(auto res_impl,
                      db_mutable_impl.PopFromList(expanded_this.item(), index));
@@ -1584,7 +1584,7 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
   if (std::holds_alternative<internal::DataItem>(
-          expanded_this.internal_->impl_)) {
+          expanded_this.internal_->impl)) {
     int64_t index = expanded_indices.item().value<int64_t>();
     return db_mutable_impl.SetInList(
         expanded_this.item(), index,
@@ -1662,7 +1662,7 @@ absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
                    GetDb()->GetMutableImpl());
   RETURN_IF_ERROR(VerifyListSchemaValid(*this, db_mutable_impl));
   if (std::holds_alternative<internal::DataItem>(
-          expanded_this.internal_->impl_)) {
+          expanded_this.internal_->impl)) {
     int64_t index = expanded_indices.item().value<int64_t>();
     internal::DataBagImpl::ListRange range(index, index + 1);
     if (index == -1) {

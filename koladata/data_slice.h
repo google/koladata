@@ -122,9 +122,7 @@ class DataSlice {
   DataSlice() : internal_(arolla::RefcountPtr<Internal>::Make()) {};
 
   // Returns a JaggedShape of this slice.
-  const JaggedShape& GetShape() const {
-    return internal_->shape_;
-  }
+  const JaggedShape& GetShape() const { return internal_->shape; }
 
   // Returns a new DataSlice with the same values and a new `shape`. Returns an
   // error if the shape is not compatible with the existing shape.
@@ -139,7 +137,7 @@ class DataSlice {
   absl::StatusOr<DataSlice> GetObjSchema() const;
 
   // Returns a DataItem holding a schema.
-  const internal::DataItem& GetSchemaImpl() const { return internal_->schema_; }
+  const internal::DataItem& GetSchemaImpl() const { return internal_->schema; }
 
   // Returns true, if this DataSlice represents an Entity schema.
   bool IsEntitySchema() const;
@@ -201,12 +199,12 @@ class DataSlice {
 
   // Returns a reference to a DataBag that this DataSlice has a reference to.
   const absl::Nullable<std::shared_ptr<DataBag>>& GetDb() const {
-    return internal_->db_;
+    return internal_->db;
   }
 
   // Returns a new DataSlice with a new reference to DataBag `db`.
   DataSlice WithDb(std::shared_ptr<DataBag> db) const {
-    return DataSlice(internal_->impl_, GetShape(), GetSchemaImpl(), db);
+    return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(), db);
   }
 
   // Returns a new DataSlice with forked DataBag. Mutations are allowed after
@@ -348,7 +346,7 @@ class DataSlice {
   // Returns the return value of `visitor`.
   template <class Visitor>
   auto VisitImpl(Visitor&& visitor) const {
-    return std::visit(visitor, internal_->impl_);
+    return std::visit(visitor, internal_->impl);
   }
 
   // Returns total size of DataSlice, including missing items.
@@ -376,17 +374,17 @@ class DataSlice {
   // T.
   template <class T>
   const T& impl() const {
-    return std::get<T>(internal_->impl_);
+    return std::get<T>(internal_->impl);
   }
 
   // Returns underlying implementation of DataSlice, if DataSliceImpl.
   const internal::DataSliceImpl& slice() const {
-    return std::get<internal::DataSliceImpl>(internal_->impl_);
+    return std::get<internal::DataSliceImpl>(internal_->impl);
   }
 
   // Returns underlying implementation of DataSlice, if DataItem.
   const internal::DataItem& item() const {
-    return std::get<internal::DataItem>(internal_->impl_);
+    return std::get<internal::DataItem>(internal_->impl);
   }
 
   // Returns true, if the underlying data is owned (DataItem holding a value or
@@ -445,11 +443,7 @@ class DataSlice {
             std::shared_ptr<DataBag> db = nullptr)
       : internal_(arolla::RefcountPtr<Internal>::Make(
             std::move(impl), std::move(shape), std::move(schema),
-            std::move(db))) { DCHECK(!schema.is_implicit_schema())
-        << "implicit schemas are not allowed to be used as a DataSlice schema. "
-           "Prefer using DataSlice::Create instead of directly using the "
-           "DataSlice constructor to assert this through a Status";
-  }
+            std::move(db))) {}
 
   // Returns an Error if `schema` cannot be used for data whose type is defined
   // by `dtype`. `dtype` has a value of NothingQType in case the contents are
@@ -464,11 +458,11 @@ class DataSlice {
                              const DataSlice& values) const;
 
   struct Internal : public arolla::RefcountedBase {
-    ImplVariant impl_;
+    ImplVariant impl;
     // Can be shared between multiple DataSlice(s) (e.g. getattr, result
     // of all pointwise operators, as well as aggregation that returns the
     // same size - rank and similar).
-    JaggedShape shape_;
+    JaggedShape shape;
     // Schema:
     // * Primitive DType for primitive slices / items;
     // * ObjectId (allocated or UUID) for complex schemas, where it
@@ -477,20 +471,24 @@ class DataSlice {
     // * Special meaning DType. E.g. ANY, OBJECT, ITEM_ID, IMPLICIT,
     // EXPLICIT,
     //   etc. Please see go/kola-schema for details.
-    internal::DataItem schema_;
+    internal::DataItem schema;
     // Can be shared between multiple DataSlice(s) and underlying storage
     // can be changed outside of control of this DataSlice.
-    std::shared_ptr<DataBag> db_;
+    std::shared_ptr<DataBag> db;
 
-    Internal() : shape_(JaggedShape::Empty()), schema_(schema::kAny) {}
+    Internal() : shape(JaggedShape::Empty()), schema(schema::kAny) {}
 
     Internal(ImplVariant impl, JaggedShape shape, internal::DataItem schema,
              std::shared_ptr<DataBag> db = nullptr)
-        : impl_(std::move(impl)),
-          shape_(std::move(shape)),
-          schema_(std::move(schema)),
-          db_(std::move(db)) {
-      DCHECK(schema_.has_value());
+        : impl(std::move(impl)),
+          shape(std::move(shape)),
+          schema(std::move(schema)),
+          db(std::move(db)) {
+      DCHECK(schema.has_value());
+      DCHECK(!schema.is_implicit_schema())
+          << "implicit schemas are not allowed to be used as a DataSlice "
+             "schema. Prefer using DataSlice::Create instead of directly using "
+             "the DataSlice constructor to assert this through a Status";
     }
   };
 
