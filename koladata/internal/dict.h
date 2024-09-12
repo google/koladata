@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "absl/base/no_destructor.h"
+#include "absl/base/optimization.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/types/span.h"
@@ -68,7 +69,11 @@ class Dict {
     using KeyT = arolla::meta::strip_template_t<DataItem::View, T>;
     DCHECK(!IsUnsupportedKeyType<KeyT>());
     if constexpr (!IsUnsupportedKeyType<KeyT>()) {
-      data_[key] = std::move(value);
+      if (parent_ == nullptr && !value.has_value()) {
+        data_.erase(key);
+      } else {
+        data_[key] = std::move(value);
+      }
     }
   }
 
@@ -108,11 +113,12 @@ class Dict {
       return *empty_item_;
     }
     if (parent_ == nullptr) {
-      DataItem& this_value = data_[key];
-      if (!this_value.has_value()) {
-        this_value = std::forward<ValueT>(value);
+      auto [it, _] = data_.try_emplace(key, std::forward<ValueT>(value));
+      if (ABSL_PREDICT_FALSE(!it->second.has_value())) {
+        data_.erase(it);
+        return *empty_item_;
       }
-      return this_value;
+      return it->second;
     }
     auto key_hash = DataItem::Hash()(key);
     if (auto it = data_.find(key, key_hash); it != data_.end()) {
@@ -137,7 +143,17 @@ class Dict {
       absl::Span<const Dict* const> fallbacks = {}) const;
 
   size_t GetSizeNoFallbacks() const {
-    return GetKeys().size();
+    auto* dict = this;
+    while (dict != nullptr && dict->data_.empty()) {
+      dict = dict->parent_;
+    }
+    if (dict == nullptr) {
+      return 0;
+    }
+    if (dict->parent_ == nullptr) {
+      return dict->data_.size();
+    }
+    return dict->GetKeys().size();
   }
 
  private:
@@ -151,6 +167,7 @@ class Dict {
       absl::Span<const Dict* const> fallbacks,
       std::vector<DataItem>& keys) const;
 
+  // If parent is nullptr we do not store missing values.
   InternalMap data_;
 
   // It can be set only by DictVector, and DictVector holds shared_ptr
@@ -165,6 +182,10 @@ class Dict {
 class DictVector {
  public:
   explicit DictVector(size_t size) : data_(size) {}
+
+  // Non copyable to avoid confusion with constructor from shared_ptr.
+  DictVector(const DictVector&) = delete;
+  DictVector& operator=(const DictVector&) = delete;
 
   explicit DictVector(std::shared_ptr<const DictVector> parent)
       : data_(parent->size()), parent_(std::move(parent)) {

@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -27,7 +28,7 @@
 namespace koladata::internal {
 namespace {
 
-using testing::UnorderedElementsAre;
+using ::testing::UnorderedElementsAre;
 
 TEST(DictTest, Dict) {
   std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(3);
@@ -95,14 +96,85 @@ TEST(DictTest, Dict) {
   EXPECT_EQ((*dicts)[0].GetOrAssign(DataItem(13), DataItem(9.f)), 9.f);
 }
 
+TEST(DictTest, OverrideWithEmptyNoParent) {
+  std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
+  auto& dict = (*dicts)[0];
+  dict.Set(DataItem(1), DataItem(5.f));
+  dict.Set(DataItem(1), DataItem());
+  EXPECT_EQ(dict.Get(1), DataItem());
+}
+
+TEST(DictTest, OverrideWithEmptyWithParent) {
+  std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
+  auto& parent_dict = (*dicts)[0];
+  parent_dict.Set(DataItem(1), DataItem(5.f));
+  parent_dict.Set(DataItem(2), DataItem(7.f));
+
+  DictVector derived_dicts(dicts);
+  auto& derived_dict = derived_dicts[0];
+  derived_dict.Set(1, DataItem());
+  EXPECT_EQ(derived_dict.Get(1), DataItem());
+  EXPECT_EQ(derived_dict.Get(2), 7.f);
+
+  derived_dict.Set(1, DataItem(9.f));
+  EXPECT_EQ(derived_dict.Get(1), 9.f);
+}
+
+TEST(DictTest, GetOrAssignWithEmptyNoParent) {
+  std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
+  auto& dict = (*dicts)[0];
+  EXPECT_EQ(dict.GetOrAssign(DataItem(1), DataItem()), DataItem());
+  EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre());
+  EXPECT_EQ(dict.GetSizeNoFallbacks(), 0);
+
+  dict.Set(DataItem(1), DataItem(5.f));
+  EXPECT_EQ(dict.GetOrAssign(DataItem(1), DataItem()), DataItem(5.f));
+  EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre(DataItem(1)));
+  EXPECT_EQ(dict.GetSizeNoFallbacks(), 1);
+}
+
+TEST(DictTest, GetOrAssignWithEmptyWithParent) {
+  std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
+  auto& parent_dict = (*dicts)[0];
+  parent_dict.Set(DataItem(1), DataItem(5.f));
+  parent_dict.Set(DataItem(2), DataItem(7.f));
+
+  DictVector derived_dicts(dicts);
+  auto& derived_dict = derived_dicts[0];
+  EXPECT_THAT(derived_dict.GetKeys(),
+              UnorderedElementsAre(DataItem(1), DataItem(2)));
+  EXPECT_EQ(derived_dict.GetSizeNoFallbacks(), 2);
+  EXPECT_EQ(derived_dict.GetOrAssign(DataItem(7), DataItem()), DataItem());
+  EXPECT_EQ(derived_dict.GetOrAssign(DataItem(1), DataItem()), DataItem(5.f));
+  // repeat to be sure we do not override
+  EXPECT_EQ(derived_dict.GetOrAssign(DataItem(1), DataItem()), DataItem(5.f));
+  EXPECT_EQ(derived_dict.GetOrAssign(DataItem(2), DataItem()), DataItem(7.f));
+  EXPECT_THAT(derived_dict.GetKeys(),
+              UnorderedElementsAre(DataItem(1), DataItem(2)));
+  EXPECT_EQ(derived_dict.GetSizeNoFallbacks(), 2);
+
+  parent_dict.Set(DataItem(1), DataItem(9.f));
+  parent_dict.Set(DataItem(3), DataItem(2.f));
+  EXPECT_EQ(derived_dict.GetOrAssign(DataItem(1), DataItem()), DataItem(9.f));
+  // repeat to be sure we do not override
+  EXPECT_EQ(derived_dict.GetOrAssign(DataItem(1), DataItem()), DataItem(9.f));
+  EXPECT_EQ(derived_dict.GetOrAssign(DataItem(3), DataItem()), DataItem(2.f));
+  // repeat to be sure we do not override
+  EXPECT_EQ(derived_dict.GetOrAssign(DataItem(3), DataItem()), DataItem(2.f));
+  EXPECT_THAT(derived_dict.GetKeys(),
+              UnorderedElementsAre(DataItem(1), DataItem(2), DataItem(3)));
+  EXPECT_EQ(derived_dict.GetSizeNoFallbacks(), 3);
+}
+
 TEST(DictTest, DerivedDictExtra) {
   std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
   auto& dict = (*dicts)[0];
   dict.Set(arolla::Text("a"), DataItem(7.f));
   dict.Set(1, DataItem(8));
 
-  DictVector derived_dicts(dicts);
-  auto& derived_dict = derived_dicts[0];
+  std::shared_ptr<DictVector> derived_dicts =
+      std::make_shared<DictVector>(std::move(dicts));
+  auto& derived_dict = (*derived_dicts)[0];
   derived_dict.Set(1, DataItem(9));
   derived_dict.Set(2, DataItem(10));
 
@@ -113,8 +185,9 @@ TEST(DictTest, DerivedDictExtra) {
   EXPECT_EQ(derived_dict.Get(1), 9);
   EXPECT_EQ(derived_dict.Get(2), 10);
 
-  DictVector derived_dicts2(derived_dicts);
-  auto& derived_dict2 = derived_dicts2[0];
+  std::shared_ptr<DictVector> derived_dicts2 =
+      std::make_shared<DictVector>(std::move(derived_dicts));
+  auto& derived_dict2 = (*derived_dicts2)[0];
   derived_dict2.Set(0, DataItem(5));
   derived_dict2.Set(2, DataItem(7));
 
