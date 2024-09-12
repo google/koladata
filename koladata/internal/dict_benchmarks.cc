@@ -13,6 +13,7 @@
 // limitations under the License.
 //
 #include <cstdint>
+#include <memory>
 
 #include "benchmark/benchmark.h"
 #include "koladata/internal/data_item.h"
@@ -20,6 +21,39 @@
 
 namespace koladata::internal {
 namespace {
+
+void BM_SizeNoFallbacksNoParent(benchmark::State& state) {
+  int64_t key_count = state.range(0);
+  Dict dict;
+  for (int64_t i = 0; i < key_count; ++i) {
+    dict.Set(i, DataItem(i));
+  }
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(dict);
+    int64_t size = dict.GetSizeNoFallbacks();
+    benchmark::DoNotOptimize(size);
+  }
+}
+
+void BM_SizeNoFallbacksWithParent(benchmark::State& state) {
+  int64_t key_count = state.range(0);
+  std::shared_ptr<DictVector> base_dict_vector =
+      std::make_shared<DictVector>(1);
+  auto& base_dict = (*base_dict_vector)[0];
+  for (int64_t i = 0; i < key_count; i += 2) {
+    base_dict.Set(i, DataItem(i));
+  }
+  DictVector dict_vector(base_dict_vector);
+  auto& dict = dict_vector[0];
+  for (int64_t i = 1; i < key_count; i += 2) {
+    dict.Set(i, DataItem(i));
+  }
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(dict);
+    int64_t size = dict.GetSizeNoFallbacks();
+    benchmark::DoNotOptimize(size);
+  }
+}
 
 void BM_GetKeys(benchmark::State& state) {
   int64_t key_count = state.range(0);
@@ -54,8 +88,9 @@ void BM_GetKeysAfterRemoval(benchmark::State& state) {
 
 void BM_GetKeysDerived(benchmark::State& state) {
   int64_t key_count = state.range(0);
-  DictVector base_dict_vector(1);
-  auto& base_dict = base_dict_vector[0];
+  std::shared_ptr<DictVector> base_dict_vector =
+      std::make_shared<DictVector>(1);
+  auto& base_dict = (*base_dict_vector)[0];
   for (int64_t i = 0; i < key_count; i += 2) {
     base_dict.Set(i, DataItem(i));
   }
@@ -93,6 +128,8 @@ void BM_GetKeysFallback(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * key_count);
 }
 
+BENCHMARK(BM_SizeNoFallbacksNoParent)->Arg(4)->Arg(10)->Arg(100);
+BENCHMARK(BM_SizeNoFallbacksWithParent)->Arg(4)->Arg(10)->Arg(100);
 BENCHMARK(BM_GetKeys)->Arg(1)->Arg(10)->Arg(100);
 BENCHMARK(BM_GetKeysAfterRemoval)->Arg(1)->Arg(10)->Arg(100);
 BENCHMARK(BM_GetKeysDerived)->Arg(1)->Arg(10)->Arg(100);
