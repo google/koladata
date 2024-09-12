@@ -149,7 +149,7 @@ class FlattenFallbackFinder {
   FlattenFallbackFinder() = default;
 
   // Constructs fallback list from the provided databag.
-  FlattenFallbackFinder(const DataBag& bag) {
+  explicit FlattenFallbackFinder(const DataBag& bag) {
     const auto& fallbacks = bag.GetFallbacks();
     if (fallbacks.empty()) {
       return;

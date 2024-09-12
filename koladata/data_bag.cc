@@ -42,7 +42,7 @@ DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
   non_null_fallbacks.reserve(fallbacks.size());
   for (int i = 0; i < fallbacks.size(); ++i) {
     if (fallbacks[i] != nullptr) {
-      non_null_fallbacks.push_back(std::move(fallbacks[i]));
+      non_null_fallbacks.push_back(fallbacks[i]);
     }
   }
   res->fallbacks_ = std::move(non_null_fallbacks);
@@ -100,7 +100,7 @@ DataBagPtr DataBag::CommonDataBag(absl::Span<const DataBagPtr> databags) {
   if (non_null_databags.empty()) {
     return nullptr;
   }
-  return ImmutableEmptyWithFallbacks(std::move(non_null_databags));
+  return ImmutableEmptyWithFallbacks(non_null_databags);
 }
 
 DataBagPtr DataBag::FromImpl(internal::DataBagImplPtr impl) {
