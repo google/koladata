@@ -227,10 +227,84 @@ def py_fn(f: Callable[..., Any]) -> data_slice.DataSlice:
       # Note: we bypass the binding policy of apply_py since we already
       # have the args/kwargs as tuple and namedtuple.
       arolla.abc.bind_op(
-          arolla.abc.lookup_operator('kde.py.apply_py'),
+          'kde.py.apply_py',
           py_boxing.as_qvalue(f),
           I.args,
           I.kwargs,
       ),
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
+  )
+
+
+def bind(
+    fn_def: data_slice.DataSlice, /, **kwargs: Any
+) -> data_slice.DataSlice:
+  """Returns a Koda functor that partially binds a function to `kwargs`.
+
+  This function is intended to work the same as functools.partial in Python.
+  More specifically, for every "k=something" argument that you pass to this
+  function, whenever the resulting functor is called, if the user did not
+  provide "k=something_else" at call time, we will add "k=something".
+
+  Note that you can only provide defaults for the arguments passed as keyword
+  arguments this way. Positional arguments must still be provided at call time.
+  Moreover, if the user provides a value for a positional-or-keyword argument
+  positionally, and it was previously bound using this method, an exception
+  will occur.
+
+  You can pass expressions with their own inputs as values in `kwargs`. Those
+  inputs will become inputs of the resulting functor, will be used to compute
+  those expressions, _and_ they will also be passed to the underying functor.
+  Use kdf.call_fn for a more clear separation of those inputs.
+
+  Example:
+    f = kdf.bind(kdf.fn(I.x + I.y), x=0)
+    kd.call(f, y=1)  # 1
+
+  Args:
+    fn_def: A Koda functor.
+    **kwargs: Partial parameter binding. The values in this map may be Koda
+      expressions or DataItems. When they are expressions, they must evaluate to
+      a DataSlice/DataItem or a primitive that will be automatically wrapped
+      into a DataItem. This function creates auxiliary variables with names
+      starting with '_aux_fn', so it is not recommended to pass variables with
+      such names.
+
+  Returns:
+    A new Koda functor with some parameters bound.
+  """
+  variables = {'_aux_fn': fn_def}
+  for k, v in kwargs.items():
+    if isinstance(v, arolla.Expr) or introspection.is_packed_expr(v):
+      # We create a sub-functor to take care of proper input binding while
+      # being able to forward all arguments to the original functor.
+      # TODO: It would be more efficient to create just one
+      # sub-functor for all expressions in kwargs, but then it would have to
+      # return a tuple which is currently not supported.
+      aux_fn_name = '_aux_fn_{k}'
+      variables[aux_fn_name] = fn(v)
+      # Note: we bypass the binding policy of functor.call since we already
+      # have the args/kwargs as tuple and namedtuple.
+      variables[k] = arolla.abc.bind_op(
+          'kde.functor.call',
+          V[aux_fn_name],
+          I.args,
+          I.kwargs,
+      )
+    else:
+      variables[k] = v
+
+  return fn(
+      # Note: we bypass the binding policy of functor.call since we already
+      # have the args/kwargs as tuple and namedtuple.
+      arolla.abc.bind_op(
+          'kde.functor.call',
+          V['_aux_fn'],
+          I.args,
+          arolla.M.namedtuple.union(
+              arolla.M.namedtuple.make(**{k: V[k] for k in kwargs}), I.kwargs
+          ),
+      ),
+      signature=signature_utils.ARGS_KWARGS_SIGNATURE,
+      **variables,
   )

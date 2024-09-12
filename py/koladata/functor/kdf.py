@@ -24,3 +24,4 @@ is_fn = _functor_factories.is_fn
 call = _kd.call
 trace_py_fn = _functor_factories.trace_py_fn
 py_fn = _functor_factories.py_fn
+bind = _functor_factories.bind

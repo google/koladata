@@ -137,6 +137,7 @@ py_test(
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:view",
         "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],

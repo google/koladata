@@ -14,6 +14,8 @@
 
 """Tests for functor_factories."""
 
+import re
+
 from absl.testing import absltest
 from koladata import kd as user_facing_kd
 from koladata.expr import expr_eval
@@ -112,21 +114,21 @@ class FunctorFactoriesTest(absltest.TestCase):
   def test_auto_variables(self):
     x = ds([1, -2, 3, -4])
     fn = functor_factories.fn(I.x * x)
-    self.assertEqual(fn(x=x).to_py(), [1, 4, 9, 16])
+    testing.assert_equal(fn(x=x), ds([1, 4, 9, 16]))
     self.assertNotIn('aux_0', dir(fn))
 
     fn = functor_factories.fn(I.x * x, auto_variables=True)
-    self.assertEqual(fn(x=x).to_py(), [1, 4, 9, 16])
-    self.assertEqual(fn.aux_0[:].to_py(), [1, -2, 3, -4])
+    testing.assert_equal(fn(x=x), ds([1, 4, 9, 16]))
+    testing.assert_equal(fn.aux_0[:].no_db(), ds([1, -2, 3, -4]))
 
     fn2 = functor_factories.fn(kde.call(fn, x=I.y), auto_variables=True)
-    self.assertEqual(fn2(y=x).to_py(), [1, 4, 9, 16])
+    testing.assert_equal(fn2(y=x), ds([1, 4, 9, 16]))
     self.assertEqual(fn2.aux_0, fn)
 
     fn3 = functor_factories.fn(
         kde.with_name(fn, 'foo')(x=I.y), auto_variables=True
     )
-    self.assertEqual(fn3(y=x).to_py(), [1, 4, 9, 16])
+    testing.assert_equal(fn3(y=x), ds([1, 4, 9, 16]))
     self.assertEqual(fn3.foo, fn)
 
     fn4 = functor_factories.fn(
@@ -134,33 +136,35 @@ class FunctorFactoriesTest(absltest.TestCase):
         + kde.with_name(py_boxing.as_expr(1) + py_boxing.as_expr(2), 'bar'),
         auto_variables=True,
     )
-    self.assertEqual(fn4(y=x).to_py(), [4, 7, 12, 19])
+    testing.assert_equal(fn4(y=x), ds([4, 7, 12, 19]))
     self.assertEqual(fn4.foo, fn)
-    self.assertEqual(expr_eval.eval(fn4.bar.internal_as_py().unquote()), 3)
+    testing.assert_equal(
+        expr_eval.eval(introspection.unpack_expr(fn4.bar)), ds(3)
+    )
 
     fn5 = functor_factories.fn(
         kde.with_name(py_boxing.as_expr(ds([[1, 2], [3]])), 'foo'),
         auto_variables=True,
     )
-    self.assertEqual(fn5().to_py(), [[1, 2], [3]])
-    self.assertEqual(fn5.foo[:][:].to_py(), [[1, 2], [3]])
+    testing.assert_equal(fn5().no_db(), ds([[1, 2], [3]]))
+    testing.assert_equal(fn5.foo[:][:].no_db(), ds([[1, 2], [3]]))
     self.assertNotIn('aux_0', dir(fn5))
 
     # TODO: Make this work.
     # fn6 = functor_factories.fn(
     #     kde.slice([1, 2, 3]).with_name('foo'), auto_variables=True
     # )
-    # self.assertEqual(fn6().to_py(), [1, 2, 3])
-    # self.assertEqual(fn6.foo[:].to_py(), [1, 2, 3])
+    # testing.assert_equal(fn6(), ds([1, 2, 3]))
+    # testing.assert_equal(fn6.foo[:][:].no_db(), ds([1, 2, 3]))
     # self.assertNotIn('aux_0', dir(fn6))
 
   def test_auto_variables_nested_names(self):
     x = kde.with_name(kde.with_name(I.x, 'foo'), 'bar')
     fn = functor_factories.fn(x, auto_variables=True)
-    self.assertEqual(fn(x=1), 1)
-    testing.assert_equal(fn.returns.internal_as_py().unquote(), V.bar)
-    testing.assert_equal(fn.bar.internal_as_py().unquote(), V.foo)
-    testing.assert_equal(fn.foo.internal_as_py().unquote(), I.x)
+    testing.assert_equal(fn(x=1), ds(1))
+    testing.assert_equal(introspection.unpack_expr(fn.returns), V.bar)
+    testing.assert_equal(introspection.unpack_expr(fn.bar), V.foo)
+    testing.assert_equal(introspection.unpack_expr(fn.foo), I.x)
 
   def test_auto_variables_and_existing_variables(self):
     x = ds([1, -2, 3, -4])
@@ -173,7 +177,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         foo_1=fns.list([4, 5, -1, 7]),
         auto_variables=True,
     )
-    self.assertEqual(fn().to_py(), [8, -1, 2, -5])
+    testing.assert_equal(fn(), ds([8, -1, 2, -5]))
     self.assertIn('foo_0', dir(fn))
     self.assertIn('foo_2', dir(fn))
     self.assertNotIn(
@@ -190,55 +194,58 @@ class FunctorFactoriesTest(absltest.TestCase):
           user_facing_kd.stack(x.a, x.b, x.c) * weights
       )
 
-    self.assertEqual(
+    testing.assert_equal(
         my_model(fns.obj(a=1.0, b=2.0, c=3.0)),
-        1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5,
+        ds(1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5),
     )
 
     fn = functor_factories.trace_py_fn(my_model)
-    self.assertEqual(
-        fn(x=fns.obj(a=1.0, b=2.0, c=3.0)), 1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5
+    testing.assert_equal(
+        fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
+        ds(1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5),
     )
-    self.assertEqual(fn.weights[:].to_py(), [1.0, 0.5, 1.5])
+    testing.assert_equal(fn.weights[:].no_db(), ds([1.0, 0.5, 1.5]))
     fn.weights = fns.list([2.0, 3.0, 4.0])
-    self.assertEqual(
-        fn(x=fns.obj(a=1.0, b=2.0, c=3.0)), 1.0 * 2.0 + 2.0 * 3.0 + 3.0 * 4.0
+    testing.assert_equal(
+        fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
+        ds(1.0 * 2.0 + 2.0 * 3.0 + 3.0 * 4.0),
     )
 
     fn = functor_factories.trace_py_fn(my_model, auto_variables=False)
-    self.assertEqual(
-        fn(x=fns.obj(a=1.0, b=2.0, c=3.0)), 1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5
+    testing.assert_equal(
+        fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
+        ds(1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5),
     )
     self.assertNotIn('weights', dir(fn))
 
     fn = functor_factories.trace_py_fn(lambda x, y=1: x + y)
-    self.assertEqual(fn(2), 3)
-    self.assertEqual(fn(2, 3), 5)
+    testing.assert_equal(fn(2), ds(3))
+    testing.assert_equal(fn(2, 3), ds(5))
 
     fn = functor_factories.trace_py_fn(lambda x, y=1, /: x + y)
-    self.assertEqual(fn(2), 3)
-    self.assertEqual(fn(2, 3), 5)
+    testing.assert_equal(fn(2), ds(3))
+    testing.assert_equal(fn(2, 3), ds(5))
 
     fn = functor_factories.trace_py_fn(lambda x, *unused: x + 1)
-    self.assertEqual(fn(2), 3)
-    self.assertEqual(fn(2, 3), 3)
+    testing.assert_equal(fn(2), ds(3))
+    testing.assert_equal(fn(2, 3), ds(3))
 
     fn = functor_factories.trace_py_fn(lambda x, **unused_kwargs: x + 1)
-    self.assertEqual(fn(2), 3)
-    self.assertEqual(fn(2, foo=3), 3)
+    testing.assert_equal(fn(2), ds(3))
+    testing.assert_equal(fn(2, foo=3), ds(3))
 
   def test_py_fn_simple(self):
     def f(x, y):
       return x + y
 
-    self.assertEqual(kd.call(functor_factories.py_fn(f), x=1, y=2).to_py(), 3)
-    self.assertEqual(
+    testing.assert_equal(kd.call(functor_factories.py_fn(f), x=1, y=2), ds(3))
+    testing.assert_equal(
         kd.call(
             functor_factories.py_fn(f),
             x=ds([1, 2, 3]),
             y=ds([4, 5, 6]),
-        ).to_py(),
-        [5, 7, 9],
+        ),
+        ds([5, 7, 9]),
     )
 
   def test_py_fn_var_keyword(self):
@@ -246,23 +253,21 @@ class FunctorFactoriesTest(absltest.TestCase):
       return x + y + kwargs['z']
 
     fn = functor_factories.py_fn(f_kwargs)
-    self.assertEqual(kd.call(fn, x=1, y=2, z=3), 6)
-    self.assertEqual(
-        kd.call(fn, x=ds([1, 2]), y=ds([3, 4]), z=ds([5, 6])).to_py(),
-        [9, 12],
+    testing.assert_equal(kd.call(fn, x=1, y=2, z=3), ds(6))
+    testing.assert_equal(
+        kd.call(fn, x=ds([1, 2]), y=ds([3, 4]), z=ds([5, 6])),
+        ds([9, 12]),
     )
     # Extra kwargs are ignored
-    self.assertEqual(kd.call(fn, x=1, y=2, z=3, w=4), 6)
+    testing.assert_equal(kd.call(fn, x=1, y=2, z=3, w=4), ds(6))
 
   def test_py_fn_default_arguments(self):
-    self.assertEqual(
-        kd.call(functor_factories.py_fn(lambda x, y=1: x + y), x=5).to_py(), 6
+    testing.assert_equal(
+        kd.call(functor_factories.py_fn(lambda x, y=1: x + y), x=5), ds(6)
     )
-    self.assertEqual(
-        kd.call(
-            functor_factories.py_fn(lambda x, y=1: x + y), x=5, y=2
-        ).to_py(),
-        7,
+    testing.assert_equal(
+        kd.call(functor_factories.py_fn(lambda x, y=1: x + y), x=5, y=2),
+        ds(7),
     )
 
     def default_none(x, y=None):
@@ -270,22 +275,24 @@ class FunctorFactoriesTest(absltest.TestCase):
         y = 1
       return x + y
 
-    self.assertEqual(
-        kd.call(functor_factories.py_fn(default_none), x=5).to_py(), 6
+    testing.assert_equal(
+        kd.call(functor_factories.py_fn(default_none), x=5), ds(6)
     )
 
   def test_py_fn_positional_params(self):
     def var_positional(*args):
       return sum(args)
 
-    self.assertEqual(
-        kd.call(functor_factories.py_fn(var_positional), 1, 2, 3), 6
+    testing.assert_equal(
+        kd.call(functor_factories.py_fn(var_positional), 1, 2, 3), ds(6)
     )
 
     def positional_only(args, /):
       return args
 
-    self.assertEqual(kd.call(functor_factories.py_fn(positional_only), 1), 1)
+    testing.assert_equal(
+        kd.call(functor_factories.py_fn(positional_only), 1), ds(1)
+    )
     with self.assertRaisesRegex(
         TypeError, 'positional-only arguments passed as keyword'
     ):
@@ -297,19 +304,19 @@ class FunctorFactoriesTest(absltest.TestCase):
       _ = kd.call(
           functor_factories.py_fn(lambda x, y: x + y), fns.obj(x=1, y=2)
       )
-    self.assertEqual(
+    testing.assert_equal(
         kd.call(
             functor_factories.py_fn(lambda foo: foo.x + foo.y),
             fns.obj(x=1, y=2),
         ),
-        3,
+        ds(3),
     )
-    self.assertEqual(
+    testing.assert_equal(
         kd.call(
             functor_factories.py_fn(lambda foo, /: foo.x + foo.y),
             fns.obj(x=1, y=2),
         ),
-        3,
+        ds(3),
     )
     with self.assertRaisesRegex(TypeError, "unexpected keyword argument 'y'"):
       _ = (
@@ -320,13 +327,13 @@ class FunctorFactoriesTest(absltest.TestCase):
           ),
           6,
       )
-    self.assertEqual(
+    testing.assert_equal(
         kd.call(functor_factories.py_fn(lambda foo, bar=1, /: foo + bar), 2),
-        3,
+        ds(3),
     )
-    self.assertEqual(
+    testing.assert_equal(
         kd.call(functor_factories.py_fn(lambda foo, bar=1, /: foo + bar), 2, 4),
-        6,
+        ds(6),
     )
 
   def test_py_fn_no_params(self):
@@ -334,14 +341,14 @@ class FunctorFactoriesTest(absltest.TestCase):
       return 1
 
     f = functor_factories.py_fn(no_params)
-    self.assertEqual(kd.call(f).to_py(), 1)
+    testing.assert_equal(kd.call(f), ds(1))
 
   def test_py_fn_after_clone(self):
     def after_clone(x, y):
       return x + y + 1
 
     fn = kd.clone(functor_factories.py_fn(after_clone))
-    self.assertEqual(kd.call(fn, x=1, y=1).to_py(), 3)
+    testing.assert_equal(kd.call(fn, x=1, y=1), ds(3))
 
     def after_clone2(x, y=None, z=2):
       if y is None:
@@ -349,16 +356,124 @@ class FunctorFactoriesTest(absltest.TestCase):
       return x + y + z
 
     fn = kd.clone(functor_factories.py_fn(after_clone2))
-    self.assertEqual(kd.call(fn, x=1).to_py(), 3)
-    self.assertEqual(kd.call(fn, x=1, z=1).to_py(), 2)
-    self.assertEqual(kd.call(fn, x=1, y=1).to_py(), 4)
-    self.assertEqual(kd.call(fn, x=1, y=1, z=3).to_py(), 5)
+    testing.assert_equal(kd.call(fn, x=1), ds(3))
+    testing.assert_equal(kd.call(fn, x=1, z=1), ds(2))
+    testing.assert_equal(kd.call(fn, x=1, y=1), ds(4))
+    testing.assert_equal(kd.call(fn, x=1, y=1, z=3), ds(5))
 
   def test_py_fn_list_as_param_default(self):
     def list_default(x=[1, 2]):  # pylint: disable=dangerous-default-value
       return len(x)
 
-    self.assertEqual(kd.call(functor_factories.py_fn(list_default)), 2)
+    testing.assert_equal(kd.call(functor_factories.py_fn(list_default)), ds(2))
+
+  def test_bind_full_params(self):
+    fn = functor_factories.fn(I.x + I.y)
+    f = functor_factories.bind(fn, x=0, y=1)
+    testing.assert_equal(kd.call(f), ds(1))
+
+  def test_bind_partial_params(self):
+    fn = functor_factories.fn(I.x + I.y)
+    f = functor_factories.bind(fn, x=0)
+    testing.assert_equal(kd.call(f, y=1), ds(1))
+
+  def test_bind_params_not_in_sig(self):
+    fn = functor_factories.fn(I.x + I.y)
+    f = functor_factories.bind(fn, x=0, z=2)
+    testing.assert_equal(kd.call(f, y=1), ds(1))
+
+  def test_override_bound_params(self):
+    fn = functor_factories.fn(I.x + I.y)
+    f = functor_factories.bind(fn, x=0)
+    testing.assert_equal(kd.call(f, x=2, y=1), ds(3))
+
+  def test_bind_to_expr(self):
+    fn = functor_factories.fn(I.x + I.y)
+    f = functor_factories.bind(fn, y=I.z)
+    testing.assert_equal(kd.call(f, x=1, z=2), ds(3))
+
+  def test_bind_to_packed_expr(self):
+    fn = functor_factories.fn(I.x + I.y)
+    f = functor_factories.bind(fn, y=introspection.pack_expr(I.z))
+    testing.assert_equal(kd.call(f, x=1, z=2), ds(3))
+
+  def test_bind_to_expr_twice(self):
+    fn = functor_factories.fn(I.x + I.y)
+    f1 = functor_factories.bind(fn, y=I.z)
+    f2 = functor_factories.bind(f1, z=I.w)
+    testing.assert_equal(kd.call(f2, x=1, w=2), ds(3))
+
+  def test_bind_does_not_overwrite_assignments(self):
+    fn = functor_factories.fn(V.x + I.y, x=I.z + 1)
+    f = functor_factories.bind(fn, x=0)
+    testing.assert_equal(kd.call(f, z=0, y=1), ds(2))
+
+  def test_bind_bindings_override_signature_defaults(self):
+    fn = functor_factories.py_fn(lambda x, y=1: x + y)
+    f = functor_factories.bind(fn, y=2)
+    testing.assert_equal(kd.call(f, x=0), ds(2))
+
+  def test_bind_partial_params_fails(self):
+    fn = functor_factories.fn(I.x + I.y)
+    f = functor_factories.bind(fn, x=0)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('no value provided for keyword only parameter [y]'),
+    ):
+      _ = kd.call(f)
+
+  # TODO: Make this work.
+  # def test_bind_fn_variable(self):
+  #   # Note the usage of kde.bind when we need to bind a function variable.
+  #   f = functor_factories.fn(
+  #       kde.call(V.bound_fn, y=I.y),
+  #       bound_fn=kde.bind(V.z.extract(), x=0),
+  #       z=functor_factories.fn(I.x + I.y),
+  #   )
+  #   testing.assert_equal(kd.call(f, y=1), ds(1))
+
+  def test_bind_py_fn(self):
+    f = functor_factories.bind(
+        functor_factories.py_fn(lambda x, y, **kwargs: x + y), x=1, y=I.z
+    )
+    testing.assert_equal(kd.call(f, z=2), ds(3))
+    f = functor_factories.bind(
+        functor_factories.py_fn(lambda x, y: x + y), x=1, y=I.z
+    )
+    with self.assertRaisesRegex(TypeError, "unexpected keyword argument 'z'"):
+      # This forwards argument 'z' to the underlying Python function as well,
+      # which does not accept it.
+      _ = kd.call(f, z=2)
+
+  # TODO: Make this work.
+  # def test_bind_as_kd_op(self):
+  #   fn = functor_factories.fn(I.x + I.y)
+  #   f = kd.bind(fn, x=0, y=1)
+  #   testing.assert_equal(kd.call(f), ds(1))
+
+  def test_bind_with_self(self):
+    fn = functor_factories.fn(I.x + I.y + I.self)
+    f = functor_factories.bind(fn, x=1)
+    testing.assert_equal(kd.call(f, 2, y=3), ds(6))
+    testing.assert_equal(kd.call(f, 2, y=3, x=10), ds(15))
+
+  def test_bind_positional(self):
+    fn = functor_factories.py_fn(lambda x, /: x)
+    f = functor_factories.bind(fn, x=1)
+    with self.assertRaisesRegex(
+        TypeError,
+        'positional-only arguments passed as keyword arguments',
+    ):
+      _ = f()
+
+    fn = functor_factories.py_fn(lambda x: x)
+    f = functor_factories.bind(fn, x=1)
+    testing.assert_equal(f().no_db(), ds(1))
+    with self.assertRaisesRegex(
+        TypeError,
+        'got multiple values for argument',
+    ):
+      _ = f(1)
 
 
 if __name__ == '__main__':

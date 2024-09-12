@@ -21,18 +21,20 @@ from koladata.expr import view as _
 from koladata.functor import kdf
 from koladata.operators import kde_operators
 from koladata.testing import testing
+from koladata.types import data_slice
 
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 kde = kde_operators.kde
+ds = data_slice.DataSlice.from_vals
 
 
 class KdfTest(absltest.TestCase):
 
   def test_simple(self):
     fn = kdf.fn(returns=I.x + V.foo, foo=I.y)
-    self.assertEqual(kdf.call(fn, x=1, y=2), 3)
-    self.assertEqual(fn(x=1, y=2), 3)
+    testing.assert_equal(kdf.call(fn, x=1, y=2), ds(3))
+    testing.assert_equal(fn(x=1, y=2), ds(3))
     self.assertTrue(kdf.is_fn(fn))
     self.assertFalse(kdf.is_fn(57))
 
@@ -43,17 +45,22 @@ class KdfTest(absltest.TestCase):
         stop=kdf.fn(1),
     )
     fn.go.rec = fn
-    self.assertEqual(kdf.call(fn, n=5), 120)
+    testing.assert_equal(kdf.call(fn, n=5), ds(120))
 
   def test_trace_py_fn(self):
     fn = kdf.trace_py_fn(lambda x, y: x + y)
-    self.assertEqual(kdf.call(fn, x=1, y=2), 3)
+    testing.assert_equal(kdf.call(fn, x=1, y=2), ds(3))
     testing.assert_equal(introspection.unpack_expr(fn.returns), I.x + I.y)
 
   def test_py_fn(self):
     fn = kdf.py_fn(lambda x, y: x + 1 if y == 2 else x + 3)
-    self.assertEqual(kdf.call(fn, x=1, y=2), 2)
-    self.assertEqual(kdf.call(fn, x=1, y=3), 4)
+    testing.assert_equal(kdf.call(fn, x=1, y=2), ds(2))
+    testing.assert_equal(kdf.call(fn, x=1, y=3), ds(4))
+
+  def test_bind(self):
+    fn = kdf.fn(I.x + I.y)
+    f = kdf.bind(fn, x=1)
+    testing.assert_equal(kdf.call(f, y=2), ds(3))
 
 
 if __name__ == '__main__':

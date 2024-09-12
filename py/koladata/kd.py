@@ -50,7 +50,7 @@ _HAS_DYNAMIC_ATTRIBUTES = True
 # attention to this when adding new APIs, and test their tracing behavior
 # in case it is not _eager_only.
 # If you are not sure, _eager_only is the safest default, but note that
-# it might provide a bad suprise for the user if the API is in fact useful
+# it might provide a bad surprise for the user if the API is in fact useful
 # in tracing workflows.
 
 # Utiltities to make the tracing declarations below look nicer.
