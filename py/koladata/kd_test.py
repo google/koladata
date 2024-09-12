@@ -255,6 +255,18 @@ class KdTest(absltest.TestCase):
     self.assertIs(int32_val, kd.INT32)
     self.assertIs(present_val, kd.present)
 
+  def test_trace_as_fn(self):
+    @kd.trace_as_fn()
+    def f(x):
+      return x + 1
+
+    def g(x):
+      return f(x) + 2
+
+    fn = kdf.trace_py_fn(g)
+    kd.testing.assert_equal(kd.unpack_expr(fn.returns), V.f(I.x) + 2)
+    kd.testing.assert_equal(kd.unpack_expr(fn.f.returns), I.x + 1)
+
 
 if __name__ == '__main__':
   absltest.main()

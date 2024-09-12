@@ -41,6 +41,7 @@ py_library(
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/functions",
         "//py/koladata/functor:kdf",
+        "//py/koladata/functor:tracing_decorator",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",

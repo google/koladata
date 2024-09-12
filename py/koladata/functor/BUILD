@@ -112,6 +112,31 @@ py_library(
     ],
 )
 
+py_library(
+    name = "tracing_decorator",
+    srcs = ["tracing_decorator.py"],
+    deps = [
+        ":functor_factories",
+        "//py/koladata/expr:tracing_mode",
+        "//py/koladata/types:py_boxing",
+    ],
+)
+
+py_test(
+    name = "tracing_decorator_test",
+    srcs = ["tracing_decorator_test.py"],
+    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
+    deps = [
+        ":functor_factories",
+        ":tracing_decorator",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:introspection",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 py_test(
     name = "signature_utils_test",
     srcs = ["signature_utils_test.py"],
