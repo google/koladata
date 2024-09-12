@@ -14,6 +14,7 @@
 
 """Tools to move from DataSlice to the numpy world and back."""
 
+from arolla import arolla
 from arolla.experimental import numpy_conversion
 from koladata.types import data_slice
 import numpy as np
@@ -25,3 +26,17 @@ def ds_to_np(ds: data_slice.DataSlice) -> np.ndarray:
     return numpy_conversion.as_numpy_array(ds.as_dense_array())
 
   return np.array(ds.internal_as_py())
+
+
+def ds_from_np(arr: np.ndarray) -> data_slice.DataSlice:
+  """Converts a numpy array to a DataSlice."""
+
+  # Convert to Python list for objects/strings/bytes as it can handle objects.
+  if (
+      arr.dtype == np.object_
+      or np.issubdtype(arr.dtype, np.str_)
+      or np.issubdtype(arr.dtype, np.bytes_)
+  ):
+    return data_slice.DataSlice.from_vals(list(arr))
+  else:
+    return data_slice.DataSlice.from_vals(arolla.dense_array(arr))

@@ -40,6 +40,8 @@ py_test(
     deps = [
         ":npkd",
         "//py/koladata:kd",
+        "//py/koladata/testing",
+        "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
     ],
