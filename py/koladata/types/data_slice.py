@@ -226,6 +226,11 @@ def _get_obj_schema(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.get_obj_schema, self)
 
 
+@DataSlice.add_method('with_schema_from_obj')
+def _with_schema_from_obj(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.with_schema_from_obj, self)
+
+
 ##### DataSlice Magic methods. #####
 
 

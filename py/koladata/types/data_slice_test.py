@@ -1883,7 +1883,7 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     expected = ds([schema_constants.INT32, None, schema_constants.FLOAT32])
     testing.assert_equal(x.get_obj_schema(), expected)
 
-    db = data_bag.DataBag.empty()
+    db = bag().empty()
     obj = db.obj(x=1)
     x = ds([1, 1.2, obj, 'a'])
     expected = ds([
@@ -1893,6 +1893,16 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
         schema_constants.TEXT,
     ])
     testing.assert_equal(x.get_obj_schema(), expected)
+
+  def test_with_schema_from_obj(self):
+    entity = bag().new(x=1)
+    obj = entity.embed_schema()
+    testing.assert_equal(obj.with_schema_from_obj(), entity)
+
+    with self.assertRaisesRegex(
+        ValueError, 'DataSlice cannot have an implicit schema as its schema'
+    ):
+      bag().obj(x=1).with_schema_from_obj()
 
   def test_follow(self):
     x = bag().new()
