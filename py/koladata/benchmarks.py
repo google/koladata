@@ -237,7 +237,7 @@ def create_dict(state):
 
 
 @google_benchmark.register
-def universal_converter(state):
+def universal_converter_caching(state):
   d = {'abc': 42}
   for _ in range(10):
     # NOTE: Here we use the same instance `d` to make sure we re-use them from

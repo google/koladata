@@ -28,6 +28,7 @@ def from_py(
     dict_as_obj: bool = False,
     itemid: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice = schema_constants.OBJECT,
+    from_dim: int = 0,
 ) -> data_slice.DataSlice:
   """Converts Python object into DataSlice.
 
@@ -45,6 +46,10 @@ def from_py(
     schema: The schema to use for the return value. When this schema or one of
       its attributes is OBJECT (which is also the default), recursively creates
       objects from that point on.
+    from_dim: The dimension to start creating Koda objects/lists/dicts from.
+      `py_obj` must be a nested list of at least from_dim depth, and the outer
+      from_dim dimensions will become the returned DataSlice dimensions. When
+      from_dim is 0, the return value is therefore a DataItem.
 
   Returns:
     A DataItem with the converted data.
@@ -53,6 +58,8 @@ def from_py(
     raise NotImplementedError('dict_as_obj is not yet supported')
   if itemid is not None:
     raise NotImplementedError('passing itemid is not yet supported')
-  if schema != schema_constants.OBJECT:
-    raise NotImplementedError('non-OBJECT schema is not yet supported')
-  return data_bag.DataBag.empty().obj(py_obj)
+  if from_dim != 0:
+    raise NotImplementedError('passing from_dim is not yet supported')
+  return data_bag.DataBag.empty()._from_py_impl(  # pylint: disable=protected-access
+      py_obj, dict_as_obj, itemid, schema, from_dim
+  )

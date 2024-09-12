@@ -134,7 +134,7 @@ absl::StatusOr<internal::DataItem> DataItemFromPyObject(
   // Checking the bool first, because PyLong_Check is also successful.
   if (PyBool_Check(py_obj)) {
     schema_agg.Add(schema::kBool);
-    return internal::DataItem(static_cast<bool>(PyObject_IsTrue(py_obj)));
+    return internal::DataItem(py_obj == Py_True);
   }
   if (PyLong_Check(py_obj)) {
     int overflow = 0;

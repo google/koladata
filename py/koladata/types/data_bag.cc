@@ -257,7 +257,6 @@ struct ObjectCreatorHelper {
 template <class FactoryHelperT>
 absl::Nullable<PyObject*> ProcessObjectCreation(
     const DataBagPtr& db, const FastcallArgParser::Args& args) {
-  std::optional<DataSlice> res;
   std::optional<DataSlice> schema_arg;
   if (!ParseDataSliceArg(args, "schema", schema_arg)) {
     return nullptr;
@@ -270,6 +269,7 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
   if (!ParseDataSliceArg(args, "itemid", itemid)) {
     return nullptr;
   }
+  std::optional<DataSlice> res;
   // args.pos_kw_values[0] is "arg" positional-keyword argument.
   if (args.pos_kw_values[0] && args.pos_kw_values[0] != Py_None) {
     if (!args.kw_values.empty()) {
@@ -318,6 +318,58 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
         SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
   }
   return WrapPyDataSlice(*std::move(res));
+}
+
+// Low-level interface for implementing `kd.from_py` behavior. See the docstring
+// of `kd.from_py` for details.
+absl::Nullable<PyObject*> PyDataBag_from_py_impl(PyObject* self,
+                                                 PyObject* const* py_args,
+                                                 Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  if (nargs != 5) {
+    PyErr_Format(PyExc_ValueError,
+                 "DataBag._from_py_impl accepts exactly 5 arguments, got %d",
+                 nargs);
+    return nullptr;
+  }
+  if (!PyBool_Check(py_args[1])) {
+    PyErr_Format(PyExc_TypeError, "expecting dict_as_obj to be a bool, got %s",
+                 Py_TYPE(py_args[1])->tp_name);
+    return nullptr;
+  }
+  bool dict_as_obj = py_args[1] == Py_True;
+  if (!PyLong_Check(py_args[4])) {
+    PyErr_Format(PyExc_TypeError, "expecting from_dim to be an int, got %s",
+                 Py_TYPE(py_args[4])->tp_name);
+    return nullptr;
+  }
+  size_t from_dim = PyLong_AsSize_t(py_args[4]);
+  if (PyErr_Occurred()) {
+    return nullptr;
+  }
+  std::optional<DataSlice> itemid;
+  std::optional<DataSlice> schema_arg;
+  if (!UnwrapDataSliceOptionalArg(py_args[2], "itemid", itemid) ||
+      !UnwrapDataSliceOptionalArg(py_args[3], "schema", schema_arg)) {
+    return nullptr;
+  }
+  DCHECK(!dict_as_obj);
+  // TODO: Python caller does not pass `itemid` yet. Remove after
+  // fully supported.
+  DCHECK(!itemid.has_value());
+  DCHECK_EQ(from_dim, 0);
+  AdoptionQueue adoption_queue;
+  const DataBagPtr& self_db = UnsafeDataBagPtr(self);
+  ASSIGN_OR_RETURN(auto res,
+                   EntityCreatorHelper::FromPyObject(
+                       py_args[0], schema_arg, self_db, adoption_queue),
+                   SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
+      .With([&](const absl::Status& status) {
+        return SetKodaPyErrFromStatus(
+            CreateItemCreationError(status, schema_arg));
+      });
+  return WrapPyDataSlice(std::move(res));
 }
 
 // Returns a DataSlice that represents an entity with the given DataBag
@@ -1426,6 +1478,8 @@ Returns:
      "Converts **kwargs into an Arolla NamedTuple of DataSlices."},
     {"_merge_inplace", (PyCFunction)PyDataBag_merge_inplace, METH_FASTCALL,
      "DataBag._merge_inplace"},
+    {"_from_py_impl", (PyCFunction)PyDataBag_from_py_impl, METH_FASTCALL,
+     "DataBag._from_py_impl"},
     {"merge_fallbacks", PyDataBag_merge_fallbacks, METH_NOARGS,
      "Returns a new DataBag with all the fallbacks merged."},
     {"fork", (PyCFunction)PyDataBag_fork, METH_FASTCALL | METH_KEYWORDS,
