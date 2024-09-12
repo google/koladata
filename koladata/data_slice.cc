@@ -826,7 +826,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(
 
 absl::StatusOr<DataSlice> DataSlice::Reshape(
     DataSlice::JaggedShape shape) const {
-  return VisitImpl([&, shape = std::move(shape)](const auto& impl) mutable {
+  return VisitImpl([&](const auto& impl) {
     return DataSlice::Create(impl, std::move(shape), GetSchemaImpl(), GetDb());
   });
 }
