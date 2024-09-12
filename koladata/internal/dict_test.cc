@@ -207,6 +207,36 @@ TEST(DictTest, DerivedDictExtra) {
   EXPECT_EQ(derived_dict2.Get(2), DataItem());
 }
 
+TEST(DictTest, DerivedDictSingle) {
+  std::shared_ptr<Dict> parent_dict = std::make_shared<Dict>();
+  parent_dict->Set(arolla::Text("a"), DataItem(7.f));
+  parent_dict->Set(1, DataItem(8));
+
+  DictVector derived_dicts(4, parent_dict);
+  parent_dict.reset();  // verify ownership
+  {
+    auto& derived_dict = derived_dicts[0];
+    derived_dict.Set(1, DataItem(9));
+    derived_dict.Set(2, DataItem(10));
+
+    EXPECT_THAT(derived_dict.GetKeys(),
+                UnorderedElementsAre(1, 2, arolla::Text("a")));
+
+    EXPECT_EQ(derived_dict.Get(arolla::Text("a")), 7.f);
+    EXPECT_EQ(derived_dict.Get(1), 9);
+    EXPECT_EQ(derived_dict.Get(2), 10);
+  }
+  {
+    auto& derived_dict = derived_dicts[1];
+
+    EXPECT_THAT(derived_dict.GetKeys(),
+                UnorderedElementsAre(1, arolla::Text("a")));
+
+    EXPECT_EQ(derived_dict.Get(arolla::Text("a")), 7.f);
+    EXPECT_EQ(derived_dict.Get(1), 8);
+  }
+}
+
 TEST(DictTest, GetKeysWithFallback) {
   std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
   auto& dict = (*dicts)[0];

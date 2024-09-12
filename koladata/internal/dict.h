@@ -193,12 +193,23 @@ class DictVector {
   DictVector& operator=(const DictVector&) = delete;
 
   explicit DictVector(std::shared_ptr<const DictVector> parent)
-      : data_(parent->size()), parent_(std::move(parent)) {
+      : data_(parent->size()) {
     for (size_t i = 0; i < data_.size(); ++i) {
-      const Dict& parent_dict = parent_->data_[i];
+      const Dict& parent_dict = parent->data_[i];
       data_[i].parent_ =
           parent_dict.data_.empty() ? parent_dict.parent_ : &parent_dict;
     }
+    parent_ = std::move(parent);
+  }
+
+  explicit DictVector(size_t size, std::shared_ptr<const Dict> parent_dict)
+      : data_(size) {
+    const Dict* parent_dict_ptr =
+        parent_dict->data_.empty() ? parent_dict->parent_ : parent_dict.get();
+    for (size_t i = 0; i < data_.size(); ++i) {
+      data_[i].parent_ = parent_dict_ptr;
+    }
+    parent_ = std::move(parent_dict);
   }
 
   size_t size() const {
@@ -210,7 +221,8 @@ class DictVector {
 
  private:
   std::vector<Dict> data_;
-  std::shared_ptr<const DictVector> parent_;
+  // All parent links are stored inside of the Dict. We only hold ownership.
+  std::shared_ptr<const void> parent_;
 };
 
 }  // namespace koladata::internal
