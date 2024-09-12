@@ -108,6 +108,25 @@ void BM_GetKeysDerived(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * key_count);
 }
 
+void BM_GetKeysDerivedTopEmpty(benchmark::State& state) {
+  int64_t key_count = state.range(0);
+  std::shared_ptr<DictVector> base_dict_vector =
+      std::make_shared<DictVector>(1);
+  auto& base_dict = (*base_dict_vector)[0];
+  for (int64_t i = 0; i < key_count; ++i) {
+    base_dict.Set(i, DataItem(i));
+  }
+  DictVector dict_vector(base_dict_vector);
+  auto& dict = dict_vector[0];
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(dict);
+    auto keys = dict.GetKeys();
+    benchmark::DoNotOptimize(keys);
+  }
+  state.SetItemsProcessed(state.iterations() * key_count);
+}
+
 void BM_GetKeysFallback(benchmark::State& state) {
   int64_t key_count = state.range(0);
   Dict base_dict;
@@ -133,6 +152,7 @@ BENCHMARK(BM_SizeNoFallbacksWithParent)->Arg(4)->Arg(10)->Arg(100);
 BENCHMARK(BM_GetKeys)->Arg(1)->Arg(10)->Arg(100);
 BENCHMARK(BM_GetKeysAfterRemoval)->Arg(1)->Arg(10)->Arg(100);
 BENCHMARK(BM_GetKeysDerived)->Arg(1)->Arg(10)->Arg(100);
+BENCHMARK(BM_GetKeysDerivedTopEmpty)->Arg(1)->Arg(10)->Arg(100);
 BENCHMARK(BM_GetKeysFallback)->Arg(1)->Arg(10)->Arg(100);
 
 }  // namespace
