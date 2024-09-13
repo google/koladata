@@ -21,6 +21,8 @@ from koladata.expr import introspection
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
+from koladata.types import data_slice
+from koladata.types import literal_operator
 from koladata.types import mask_constants
 from koladata.types import py_boxing
 from koladata.types import schema_constants
@@ -29,6 +31,8 @@ kde = kde_operators.kde
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 kd = eager_op_utils.operators_container('kde')
+
+ds = data_slice.DataSlice.from_vals
 
 
 class IntrospectionTest(absltest.TestCase):
@@ -58,42 +62,42 @@ class IntrospectionTest(absltest.TestCase):
       introspection.unwrap_named(kde.with_name(I.x + I.y, 'foo') + I.z)
 
   def test_pack_expr(self):
-    ds = introspection.pack_expr(I.x + I.y)
-    self.assertEqual(ds.get_schema(), schema_constants.EXPR)
-    self.assertEqual(ds.get_ndim(), 0)
-    testing.assert_equal(introspection.unpack_expr(ds), I.x + I.y)
+    x = introspection.pack_expr(I.x + I.y)
+    self.assertEqual(x.get_schema(), schema_constants.EXPR)
+    self.assertEqual(x.get_ndim(), 0)
+    testing.assert_equal(introspection.unpack_expr(x), I.x + I.y)
 
   def test_unpack_expr(self):
-    ds = introspection.pack_expr(I.x + I.y)
-    testing.assert_equal(introspection.unpack_expr(ds), I.x + I.y)
+    x = introspection.pack_expr(I.x + I.y)
+    testing.assert_equal(introspection.unpack_expr(x), I.x + I.y)
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
-      introspection.unpack_expr(ds & mask_constants.missing)
+      introspection.unpack_expr(x & mask_constants.missing)
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
-      introspection.unpack_expr(ds.with_schema(schema_constants.ANY))
+      introspection.unpack_expr(x.with_schema(schema_constants.ANY))
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
-      introspection.unpack_expr(ds.with_schema(schema_constants.OBJECT))
+      introspection.unpack_expr(x.with_schema(schema_constants.OBJECT))
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
-      introspection.unpack_expr(ds.repeat(1))
+      introspection.unpack_expr(x.repeat(1))
 
   def test_is_packed_expr(self):
-    ds = introspection.pack_expr(I.x + I.y)
+    x = introspection.pack_expr(I.x + I.y)
     testing.assert_equal(
-        introspection.is_packed_expr(ds), mask_constants.present
+        introspection.is_packed_expr(x), mask_constants.present
     )
     testing.assert_equal(
-        introspection.is_packed_expr(ds & mask_constants.missing),
+        introspection.is_packed_expr(x & mask_constants.missing),
         mask_constants.missing,
     )
     testing.assert_equal(
-        introspection.is_packed_expr(ds.with_schema(schema_constants.ANY)),
+        introspection.is_packed_expr(x.with_schema(schema_constants.ANY)),
         mask_constants.missing,
     )
     testing.assert_equal(
-        introspection.is_packed_expr(ds.with_schema(schema_constants.OBJECT)),
+        introspection.is_packed_expr(x.with_schema(schema_constants.OBJECT)),
         mask_constants.missing,
     )
     testing.assert_equal(
-        introspection.is_packed_expr(ds.repeat(1)), mask_constants.missing
+        introspection.is_packed_expr(x.repeat(1)), mask_constants.missing
     )
     testing.assert_equal(
         introspection.is_packed_expr(I.x + I.y), mask_constants.missing
@@ -127,6 +131,12 @@ class IntrospectionTest(absltest.TestCase):
         introspection.sub_inputs(expr, V, x=I.a, y=I.o, v=I.z),
         I.x + I.y + I.z.val + I.a + decayed_input_op('V', 'v'),
     )
+    testing.assert_equal(
+        introspection.sub_inputs(expr, x=1),
+        ds(1) + I.y + I.z.val + V.x + decayed_input_op('V', 'v'),
+    )
+    with self.assertRaisesRegex(ValueError, 'unsupported type'):
+      introspection.sub_inputs(expr, x={'x': 1})
 
   def test_sub_inputs_non_identifier(self):
     expr = I['123']
@@ -165,6 +175,9 @@ class IntrospectionTest(absltest.TestCase):
     testing.assert_equal(
         introspection.sub_by_name(expr, foo=I.z, baz=I.w), I.z + bar
     )
+    testing.assert_equal(introspection.sub_by_name(expr, foo=1), ds(1) + bar)
+    with self.assertRaisesRegex(ValueError, 'unsupported type'):
+      introspection.sub_by_name(expr, foo={'x': 1})
 
   def test_sub(self):
     expr = I.x + I.y - V.z
@@ -181,6 +194,16 @@ class IntrospectionTest(absltest.TestCase):
     testing.assert_equal(
         introspection.sub(expr, (I.x, I.z), (I.z, I.w)), I.z + I.y - V.z
     )
+    # boxing.
+    expr = I.x + ds(1)
+    testing.assert_equal(
+        introspection.sub(expr, I.x, 2),
+        literal_operator.literal(ds(2)) + literal_operator.literal(ds(1)),
+    )
+    testing.assert_equal(
+        introspection.sub(expr, (I.x, 2)),
+        literal_operator.literal(ds(2)) + literal_operator.literal(ds(1)),
+    )
 
   def test_sub_errors(self):
     msg = (
@@ -188,17 +211,22 @@ class IntrospectionTest(absltest.TestCase):
         ' must be exactly two non-tuple subs representing a single substitution'
     )
     with self.assertRaisesRegex(ValueError, msg):
-      introspection.sub(I.x + I.y, I.x, (I.y, I.z))
-    with self.assertRaisesRegex(ValueError, msg):
       introspection.sub(I.x + I.y, I.x, I.y, I.z, I.t)
     with self.assertRaisesRegex(ValueError, msg):
       introspection.sub(I.x + I.y, I.x)
     with self.assertRaisesRegex(ValueError, msg):
+      introspection.sub(ds(1) + I.x, 1, 2)
+    with self.assertRaisesRegex(ValueError, msg):
+      introspection.sub(ds(1) + I.x, (1, 2))
+    with self.assertRaisesRegex(ValueError, msg):
       introspection.sub(I.x + I.y, ((I.x, I.y), (I.z, I.t)))
     with self.assertRaisesRegex(ValueError, msg):
       introspection.sub(I.x + I.y, [I.x, I.y], [I.z, I.t])
-    with self.assertRaisesRegex(ValueError, msg):
-      introspection.sub(I.x + I.y, 1, 2)
+    with self.assertRaisesRegex(
+        ValueError,
+        'passing a Python list/tuple to a Koda operation is ambiguous',
+    ):
+      introspection.sub(I.x + I.y, I.x, (I.y, I.z))
 
 
 if __name__ == '__main__':

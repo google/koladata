@@ -21,10 +21,13 @@ from koladata.expr import input_container
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import mask_constants
+from koladata.types import py_boxing
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 _KODA_INPUT_OP = arolla.abc.lookup_operator('koda_internal.input')
+
+ExprLike = Any  # Expr-convertible type.
 
 
 def get_name(expr: arolla.Expr) -> str | None:
@@ -84,14 +87,16 @@ def sub_inputs(
     expr: arolla.Expr,
     container: input_container.InputContainer = I,
     /,
-    **subs: arolla.Expr,
+    **subs: ExprLike,
 ) -> arolla.Expr:
   """Returns an expression with `container` inputs replaced with Expr(s)."""
-  subs = {container[k].fingerprint: v for k, v in subs.items()}
+  subs = {
+      container[k].fingerprint: py_boxing.as_expr(v) for k, v in subs.items()
+  }
   return arolla.sub_by_fingerprint(expr, subs)
 
 
-def sub_by_name(expr: arolla.Expr, /, **subs: arolla.Expr) -> arolla.Expr:
+def sub_by_name(expr: arolla.Expr, /, **subs: ExprLike) -> arolla.Expr:
   """Returns `expr` with named subexpressions replaced.
 
   Use `kde.with_name(expr, name)` to create a named subexpression.
@@ -107,11 +112,12 @@ def sub_by_name(expr: arolla.Expr, /, **subs: arolla.Expr) -> arolla.Expr:
     expr: an expression.
     **subs: mapping from subexpression name to replacement node.
   """
+  subs = {k: py_boxing.as_expr(v) for k, v in subs.items()}
   return arolla.sub_by_name(expr, **subs)
 
 
 def sub(
-    expr: arolla.Expr, *subs: arolla.Expr | tuple[arolla.Expr, arolla.Expr]
+    expr: arolla.Expr, *subs: ExprLike | tuple[arolla.Expr, ExprLike]
 ) -> arolla.Expr:
   """Returns `expr` with provided expressions replaced.
 
@@ -136,7 +142,8 @@ def sub(
   Args:
     expr: Expr which substitutions are applied to
     *subs: Either zero or more (sub_from, sub_to) tuples, or exactly two
-      arguments from and to.
+      arguments from and to. The keys should be expressions, and the values
+      should be possible to convert to expressions using kd.as_expr.
 
   Returns:
     A new Expr with substitutions.
@@ -144,7 +151,6 @@ def sub(
   if (
       len(subs) == 2
       and isinstance(subs[0], arolla.Expr)
-      and isinstance(subs[1], arolla.Expr)
   ):
     subs = (subs,)
   else:
@@ -153,12 +159,11 @@ def sub(
           isinstance(tpl, tuple)
           and len(tpl) == 2
           and isinstance(tpl[0], arolla.Expr)
-          and isinstance(tpl[1], arolla.Expr)
       ):
         raise ValueError(
             'either all subs must be two-element tuples of Expressions, or'
             ' there must be exactly two non-tuple subs representing a single'
             f' substitution, got: {subs}'
         )
-  subs = {f.fingerprint: t for f, t in subs}
+  subs = {f.fingerprint: py_boxing.as_expr(t) for f, t in subs}
   return arolla.sub_by_fingerprint(expr, subs)
