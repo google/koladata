@@ -205,6 +205,11 @@ class KdTest(absltest.TestCase):
     expr = foo + bar
     kd.testing.assert_equal(kd.sub_by_name(expr, foo=I.z, baz=I.w), I.z + bar)
 
+  def test_sub(self):
+    expr = I.x + I.y
+    kd.testing.assert_equal(kd.sub(expr, I.x, I.z), I.z + I.y)
+    kd.testing.assert_equal(kd.sub(expr, (I.x, I.z)), I.z + I.y)
+
   def test_kdi(self):
     self.assertCountEqual(kdi.__all__, dir(kdi))
     self.assertCountEqual(set(dir(kd)) - set(dir(kdi)), ['kdi'])

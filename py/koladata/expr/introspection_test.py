@@ -166,6 +166,40 @@ class IntrospectionTest(absltest.TestCase):
         introspection.sub_by_name(expr, foo=I.z, baz=I.w), I.z + bar
     )
 
+  def test_sub(self):
+    expr = I.x + I.y - V.z
+    testing.assert_equal(introspection.sub(expr, I.x, I.z), I.z + I.y - V.z)
+    testing.assert_equal(introspection.sub(expr, I.x + I.y, I.z), I.z - V.z)
+    testing.assert_equal(
+        introspection.sub(expr, (I.x, I.z), (V.z, V.w)), I.z + I.y - V.w
+    )
+    testing.assert_equal(
+        introspection.sub(expr, (I.x, I.a), (I.y, I.b), (V.z, V.c)),
+        I.a + I.b - V.c,
+    )
+    # No deep substitution.
+    testing.assert_equal(
+        introspection.sub(expr, (I.x, I.z), (I.z, I.w)), I.z + I.y - V.z
+    )
+
+  def test_sub_errors(self):
+    msg = (
+        'either all subs must be two-element tuples of Expressions, or there'
+        ' must be exactly two non-tuple subs representing a single substitution'
+    )
+    with self.assertRaisesRegex(ValueError, msg):
+      introspection.sub(I.x + I.y, I.x, (I.y, I.z))
+    with self.assertRaisesRegex(ValueError, msg):
+      introspection.sub(I.x + I.y, I.x, I.y, I.z, I.t)
+    with self.assertRaisesRegex(ValueError, msg):
+      introspection.sub(I.x + I.y, I.x)
+    with self.assertRaisesRegex(ValueError, msg):
+      introspection.sub(I.x + I.y, ((I.x, I.y), (I.z, I.t)))
+    with self.assertRaisesRegex(ValueError, msg):
+      introspection.sub(I.x + I.y, [I.x, I.y], [I.z, I.t])
+    with self.assertRaisesRegex(ValueError, msg):
+      introspection.sub(I.x + I.y, 1, 2)
+
 
 if __name__ == '__main__':
   absltest.main()

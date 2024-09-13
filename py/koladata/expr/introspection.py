@@ -108,3 +108,57 @@ def sub_by_name(expr: arolla.Expr, /, **subs: arolla.Expr) -> arolla.Expr:
     **subs: mapping from subexpression name to replacement node.
   """
   return arolla.sub_by_name(expr, **subs)
+
+
+def sub(
+    expr: arolla.Expr, *subs: arolla.Expr | tuple[arolla.Expr, arolla.Expr]
+) -> arolla.Expr:
+  """Returns `expr` with provided expressions replaced.
+
+  Example usage:
+    kd.sub(expr, (from_1, to_1), (from_2, to_2), ...)
+
+  For the special case of a single substitution, you can also do:
+    kd.sub(expr, from, to)
+
+  It does the substitution by traversing 'expr' post-order and comparing
+  fingerprints of sub-Exprs in the original expression and those in in 'subs'.
+  For example,
+
+    kd.sub(I.x + I.y, (I.x, I.z), (I.x + I.y, I.k)) -> I.k
+
+    kd.sub(I.x + I.y, (I.x, I.y), (I.y + I.y, I.z)) -> I.y + I.y
+
+  It does not do deep transformation recursively. For example,
+
+    kd.sub(I.x + I.y, (I.x, I.z), (I.y, I.x)) -> I.z + I.x
+
+  Args:
+    expr: Expr which substitutions are applied to
+    *subs: Either zero or more (sub_from, sub_to) tuples, or exactly two
+      arguments from and to.
+
+  Returns:
+    A new Expr with substitutions.
+  """
+  if (
+      len(subs) == 2
+      and isinstance(subs[0], arolla.Expr)
+      and isinstance(subs[1], arolla.Expr)
+  ):
+    subs = (subs,)
+  else:
+    for tpl in subs:
+      if not (
+          isinstance(tpl, tuple)
+          and len(tpl) == 2
+          and isinstance(tpl[0], arolla.Expr)
+          and isinstance(tpl[1], arolla.Expr)
+      ):
+        raise ValueError(
+            'either all subs must be two-element tuples of Expressions, or'
+            ' there must be exactly two non-tuple subs representing a single'
+            f' substitution, got: {subs}'
+        )
+  subs = {f.fingerprint: t for f, t in subs}
+  return arolla.sub_by_fingerprint(expr, subs)
