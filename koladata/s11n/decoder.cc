@@ -271,7 +271,7 @@ absl::Status DecodeDictProto(const KodaV1Proto::DictProto& dict_proto,
   } else {
     return db.SetInDict(internal::DataSliceImpl::Create(
                             keys.size(), internal::DataItem(dict_id)),
-                        std::move(keys), std::move(values));
+                        keys, values);
   }
 }
 
@@ -291,7 +291,7 @@ absl::StatusOr<ValueDecoderResult> DecodeDataBagValue(
                        input_values[i].As<DataBagPtr>());
     }
     return TypedValue::FromValue(
-        DataBag::ImmutableEmptyWithFallbacks(std::move(fallbacks)));
+        DataBag::ImmutableEmptyWithFallbacks(fallbacks));
   }
   DataBagPtr db = DataBag::Empty();
   ASSIGN_OR_RETURN(internal::DataBagImpl & impl, db->GetMutableImpl());
