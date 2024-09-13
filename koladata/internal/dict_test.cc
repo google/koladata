@@ -30,6 +30,15 @@ namespace {
 
 using ::testing::UnorderedElementsAre;
 
+void AssertKVsAreAligned(const Dict& dict) {
+  auto keys = dict.GetKeys();
+  auto values = dict.GetValues();
+  ASSERT_EQ(keys.size(), values.size());
+  for (int i = 0; i < keys.size(); ++i) {
+    EXPECT_EQ(dict.Get(keys[i]), values[i]);
+  }
+}
+
 TEST(DictTest, Dict) {
   std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(3);
   (*dicts)[0].Set(DataItem(1), DataItem(7.f));
@@ -42,8 +51,15 @@ TEST(DictTest, Dict) {
   const DictVector& const_dicts = *dicts;
   EXPECT_THAT(const_dicts[0].GetKeys(),
               UnorderedElementsAre(1, arolla::Bytes("aaa")));
+  EXPECT_THAT(const_dicts[0].GetValues(),
+              UnorderedElementsAre(DataItem(6.f), arolla::Bytes("bbb")));
+  AssertKVsAreAligned(const_dicts[0]);
   EXPECT_THAT(const_dicts[1].GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(const_dicts[1].GetValues(), UnorderedElementsAre());
+  AssertKVsAreAligned(const_dicts[1]);
   EXPECT_THAT(const_dicts[2].GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(const_dicts[2].GetValues(), UnorderedElementsAre());
+  AssertKVsAreAligned(const_dicts[2]);
 
   DictVector derived_dicts(dicts);
   derived_dicts[0].Set(arolla::Bytes("aaa"), DataItem(9));
@@ -52,8 +68,15 @@ TEST(DictTest, Dict) {
   EXPECT_THAT(
       derived_dicts[0].GetKeys(),
       UnorderedElementsAre(1, arolla::Bytes("2"), arolla::Bytes("aaa")));
+  EXPECT_THAT(derived_dicts[0].GetValues(),
+              UnorderedElementsAre(DataItem(6.f), DataItem(10), DataItem(9)));
+  AssertKVsAreAligned(derived_dicts[0]);
   EXPECT_THAT(derived_dicts[1].GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(derived_dicts[1].GetValues(), UnorderedElementsAre());
+  AssertKVsAreAligned(derived_dicts[1]);
   EXPECT_THAT(derived_dicts[2].GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(derived_dicts[2].GetValues(), UnorderedElementsAre());
+  AssertKVsAreAligned(derived_dicts[2]);
 
   EXPECT_EQ(derived_dicts[0].Get(DataItem(1)), 6.f);
   EXPECT_EQ(derived_dicts[0].GetOrAssign(DataItem(1), DataItem(7.f)), 6.f);
@@ -79,11 +102,16 @@ TEST(DictTest, Dict) {
 
   derived_dicts[0].Clear();
   EXPECT_THAT(derived_dicts[0].GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(derived_dicts[0].GetValues(), UnorderedElementsAre());
+  AssertKVsAreAligned(derived_dicts[0]);
   EXPECT_EQ(derived_dicts[0].Get(DataItem(1)), DataItem());
   EXPECT_EQ(derived_dicts[0].Get(DataItem(1.f)), DataItem());
 
   EXPECT_THAT(const_dicts[0].GetKeys(),
               UnorderedElementsAre(1, arolla::Bytes("aaa")));
+  EXPECT_THAT(const_dicts[0].GetValues(),
+              UnorderedElementsAre(DataItem(6.f), arolla::Bytes("bbb")));
+  AssertKVsAreAligned(const_dicts[0]);
   EXPECT_EQ(const_dicts[0].Get(DataItem(1)), 6.f);
   EXPECT_EQ(const_dicts[0].Get(arolla::Bytes("2")), DataItem());
   EXPECT_EQ(const_dicts[0].Get(arolla::Bytes("aaa")), arolla::Bytes("bbb"));
@@ -180,6 +208,9 @@ TEST(DictTest, DerivedDictExtra) {
 
   EXPECT_THAT(derived_dict.GetKeys(),
               UnorderedElementsAre(1, 2, arolla::Text("a")));
+  EXPECT_THAT(derived_dict.GetValues(),
+              UnorderedElementsAre(DataItem(9), DataItem(10), DataItem(7.f)));
+  AssertKVsAreAligned(derived_dict);
 
   EXPECT_EQ(derived_dict.Get(arolla::Text("a")), 7.f);
   EXPECT_EQ(derived_dict.Get(1), 9);
@@ -193,6 +224,10 @@ TEST(DictTest, DerivedDictExtra) {
 
   EXPECT_THAT(derived_dict2.GetKeys(),
               UnorderedElementsAre(0, 1, 2, arolla::Text("a")));
+  EXPECT_THAT(derived_dict2.GetValues(),
+              UnorderedElementsAre(DataItem(5), DataItem(9), DataItem(7),
+                                   DataItem(7.f)));
+  AssertKVsAreAligned(derived_dict2);
 
   EXPECT_EQ(derived_dict2.Get(arolla::Text("a")), 7.f);
   EXPECT_EQ(derived_dict2.Get(0), 5);
@@ -201,6 +236,8 @@ TEST(DictTest, DerivedDictExtra) {
 
   derived_dict2.Clear();
   EXPECT_THAT(derived_dict2.GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(derived_dict2.GetValues(), UnorderedElementsAre());
+  AssertKVsAreAligned(derived_dict2);
   EXPECT_EQ(derived_dict2.Get(arolla::Text("a")), DataItem());
   EXPECT_EQ(derived_dict2.Get(0), DataItem());
   EXPECT_EQ(derived_dict2.Get(1), DataItem());
@@ -237,7 +274,7 @@ TEST(DictTest, DerivedDictSingle) {
   }
 }
 
-TEST(DictTest, GetKeysWithFallback) {
+TEST(DictTest, GetKeysAndValuesWithFallback) {
   std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
   auto& dict = (*dicts)[0];
   dict.Set(arolla::Text("a"), DataItem(7.f));
@@ -255,6 +292,10 @@ TEST(DictTest, GetKeysWithFallback) {
 
   EXPECT_THAT(derived_dict.GetKeys({&fb_dict}),
               UnorderedElementsAre(1, 2, arolla::Text("a"), arolla::Text("b")));
+  EXPECT_THAT(derived_dict.GetValues({&fb_dict}),
+              UnorderedElementsAre(DataItem(9), DataItem(10), DataItem(7.f),
+                                   DataItem(7.f)));
+  AssertKVsAreAligned(derived_dict);
 
   DictVector fb_derived_dicts(fb_dicts);
   auto& fb_derived_dict = fb_derived_dicts[0];
@@ -264,18 +305,30 @@ TEST(DictTest, GetKeysWithFallback) {
   EXPECT_THAT(
       derived_dict.GetKeys({&fb_derived_dict}),
       UnorderedElementsAre(1, 2, 3, arolla::Text("a"), arolla::Text("b")));
+  EXPECT_THAT(derived_dict.GetValues({&fb_derived_dict}),
+              UnorderedElementsAre(DataItem(9), DataItem(10), DataItem(7),
+                                   DataItem(7.f), DataItem(7.f)));
+  AssertKVsAreAligned(derived_dict);
 
   derived_dict.Set(2, DataItem());
   // 2 is still in fallback
   EXPECT_THAT(
       derived_dict.GetKeys({&fb_derived_dict}),
       UnorderedElementsAre(1, 2, 3, arolla::Text("a"), arolla::Text("b")));
+  EXPECT_THAT(derived_dict.GetValues({&fb_derived_dict}),
+              UnorderedElementsAre(DataItem(9), DataItem(0), DataItem(7),
+                                   DataItem(7.f), DataItem(7.f)));
+  AssertKVsAreAligned(derived_dict);
 
   derived_dict.Set(1, DataItem());
   // 1 is still in fallback, value in parent dict must be ignored
   EXPECT_THAT(
       derived_dict.GetKeys({&fb_derived_dict}),
       UnorderedElementsAre(1, 2, 3, arolla::Text("a"), arolla::Text("b")));
+  EXPECT_THAT(derived_dict.GetValues({&fb_derived_dict}),
+              UnorderedElementsAre(DataItem(2), DataItem(0), DataItem(7),
+                                   DataItem(7.f), DataItem(7.f)));
+  AssertKVsAreAligned(derived_dict);
 }
 
 TEST(DictTest, GetKeysWithFallbackEmptyMain) {
@@ -309,9 +362,13 @@ TEST(DictTest, GetKeysOnMissing) {
   Dict dict;
   dict.Set(int64_t{1}, DataItem());
   EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(dict.GetValues(), UnorderedElementsAre());
+  AssertKVsAreAligned(dict);
   EXPECT_EQ(dict.GetSizeNoFallbacks(), 0);
   dict.Set(int64_t{1}, DataItem(3));
   EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre(1));
+  EXPECT_THAT(dict.GetValues(), UnorderedElementsAre(DataItem(3)));
+  AssertKVsAreAligned(dict);
   EXPECT_EQ(dict.GetSizeNoFallbacks(), 1);
 }
 

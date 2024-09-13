@@ -137,9 +137,14 @@ class Dict {
     return it->second;
   }
 
-  // Keys are in arbitrary order.
+  // While the order of keys is arbitrary, it is the same as GetValues().
   // All keys from fallback dictionaries are merged into the result.
   std::vector<DataItem> GetKeys(
+      absl::Span<const Dict* const> fallbacks = {}) const;
+
+  // While the order of values is arbitrary, it is the same as GetKeys().
+  // All values from fallback dictionaries are merged into the result.
+  std::vector<DataItem> GetValues(
       absl::Span<const Dict* const> fallbacks = {}) const;
 
   size_t GetSizeNoFallbacks() const {
@@ -168,9 +173,14 @@ class Dict {
 
   // Add extra keys from parents and fallbacks.
   // Keys from the main dict are not added.
-  void CollectKeysFromParentAndFallbacks(
+  // void CollectKeysFromParentAndFallbacks(
+  //     absl::Span<const Dict* const> fallbacks,
+  //     std::vector<DataItem>& keys) const;
+  // Add keys or values from this dict, its parents and fallbacks.
+  template <bool kReturnValues>
+  void CollectKeysOrValuesFromParentAndFallbacks(
       absl::Span<const Dict* const> fallbacks,
-      std::vector<DataItem>& keys) const;
+      std::vector<DataItem>& keys_or_values) const;
 
   // If parent is nullptr we do not store missing values.
   InternalMap data_;

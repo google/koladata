@@ -27,6 +27,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/expand.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -47,6 +48,20 @@ using ::testing::Pair;
 using ::testing::Property;
 using ::testing::UnorderedElementsAre;
 
+template <class Impl>
+void AssertKVsAreAligned(const DataBagImpl& db, const Impl& dict,
+                         DataBagImpl::FallbackSpan fallbacks = {}) {
+  ASSERT_OK_AND_ASSIGN((auto [keys, key_edge]),
+                       db.GetDictKeys(dict, fallbacks));
+  ASSERT_OK_AND_ASSIGN((auto [values, value_edge]),
+                       db.GetDictValues(dict, fallbacks));
+  EXPECT_TRUE(key_edge.IsEquivalentTo(value_edge));
+  ASSERT_OK_AND_ASSIGN(auto expanded_dicts, ExpandOp()(dict, key_edge));
+  ASSERT_OK_AND_ASSIGN(auto expected_values,
+                       db.GetFromDict(expanded_dicts, keys, fallbacks));
+  EXPECT_TRUE(expected_values.IsEquivalentTo(values));
+}
+
 TEST(DataBagTest, Dicts) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   AllocationId alloc_id = AllocateDicts(2);
@@ -60,6 +75,11 @@ TEST(DataBagTest, Dicts) {
       db->GetDictKeys(DataItem(dict_from_other_alloc)),
       IsOkAndHolds(Pair(ElementsAre(), Property(&DenseArrayEdge::edge_values,
                                                 ElementsAre(0, 0)))));
+  EXPECT_THAT(
+      db->GetDictValues(DataItem(dict_from_other_alloc)),
+      IsOkAndHolds(Pair(ElementsAre(), Property(&DenseArrayEdge::edge_values,
+                                                ElementsAre(0, 0)))));
+  AssertKVsAreAligned(*db, DataItem(dict_from_other_alloc));
   EXPECT_THAT(db->GetDictSize(DataItem(dict_from_other_alloc)),
               IsOkAndHolds(DataItem(int64_t{0})));
 
@@ -96,15 +116,18 @@ TEST(DataBagTest, Dicts) {
 
   {
     ASSERT_OK_AND_ASSIGN((auto [keys, edge]), db2->GetDictKeys(all_dicts));
-    EXPECT_THAT(std::vector(keys.begin(), keys.begin() + 1),
-                UnorderedElementsAre(1));
-    EXPECT_THAT(
-        std::vector(keys.begin() + 1, keys.begin() + 5),
-        UnorderedElementsAre(2, arolla::Bytes("1.0"), arolla::Bytes("2.0"),
-                             arolla::Bytes("3.0")));
-    EXPECT_THAT(std::vector(keys.begin() + 5, keys.end()),
-                UnorderedElementsAre(3));
+    EXPECT_THAT(keys, UnorderedElementsAre(1, 2, arolla::Bytes("1.0"),
+                                           arolla::Bytes("2.0"),
+                                           arolla::Bytes("3.0"), 3));
     EXPECT_THAT(edge.edge_values(), ElementsAre(0, 1, 5, 6, 6));
+
+    ASSERT_OK_AND_ASSIGN((auto [values, value_edge]),
+                         db2->GetDictValues(all_dicts));
+    EXPECT_THAT(values, UnorderedElementsAre(5, 6, 8.0, 9.0, 10.0, 7));
+    EXPECT_THAT(value_edge.edge_values(), ElementsAre(0, 1, 5, 6, 6));
+
+    AssertKVsAreAligned(*db2, all_dicts);
+
     EXPECT_THAT(db2->GetDictSize(all_dicts),
                 IsOkAndHolds(ElementsAre(1, 4, 1, std::nullopt)));
   }
@@ -163,10 +186,19 @@ TEST(DataBagTest, Dicts) {
 TEST(DataBagTest, EmptyAndUnknownDicts) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto empty = DataSliceImpl::CreateEmptyAndUnknownType(3);
+
   ASSERT_OK_AND_ASSIGN((auto [keys, edge]), db->GetDictKeys(empty));
   EXPECT_EQ(keys.size(), 0);
   EXPECT_EQ(edge.edge_type(), DenseArrayEdge::SPLIT_POINTS);
   EXPECT_THAT(edge.edge_values(), ElementsAre(0, 0, 0, 0));
+
+  ASSERT_OK_AND_ASSIGN((auto [values, value_edge]), db->GetDictValues(empty));
+  EXPECT_EQ(values.size(), 0);
+  EXPECT_EQ(value_edge.edge_type(), DenseArrayEdge::SPLIT_POINTS);
+  EXPECT_THAT(value_edge.edge_values(), ElementsAre(0, 0, 0, 0));
+
+  AssertKVsAreAligned(*db, empty);
+
   EXPECT_OK(db->ClearDict(empty));
   EXPECT_OK(db->SetInDict(empty, empty, empty));
   EXPECT_THAT(
@@ -178,10 +210,20 @@ TEST(DataBagTest, EmptyAndUnknownDicts) {
 
 TEST(DataBagTest, EmptySingleDict) {
   auto db = DataBagImpl::CreateEmptyDatabag();
+
   ASSERT_OK_AND_ASSIGN((auto [keys, edge]), db->GetDictKeys(DataItem()));
   EXPECT_EQ(keys.size(), 0);
   EXPECT_EQ(edge.edge_type(), DenseArrayEdge::SPLIT_POINTS);
   EXPECT_THAT(edge.edge_values(), ElementsAre(0, 0));
+
+  ASSERT_OK_AND_ASSIGN((auto [values, value_edge]),
+                       db->GetDictValues(DataItem()));
+  EXPECT_EQ(values.size(), 0);
+  EXPECT_EQ(value_edge.edge_type(), DenseArrayEdge::SPLIT_POINTS);
+  EXPECT_THAT(value_edge.edge_values(), ElementsAre(0, 0));
+
+  AssertKVsAreAligned(*db, DataItem());
+
   EXPECT_OK(db->ClearDict(DataItem()));
   EXPECT_OK(db->SetInDict(DataItem(), DataItem(42), DataItem(3.14)));
   EXPECT_THAT(db->GetDictSize(DataItem()), IsOkAndHolds(DataItem()));
@@ -220,8 +262,13 @@ TEST(DataBagTest, DictFallbacks) {
                          db->GetDictKeys(all_dicts, {fb_db.get()}));
     EXPECT_THAT(keys, ElementsAre(DataItem(2)));
     EXPECT_THAT(edge.edge_values(), ElementsAre(0, 0, 1, 1));
+    ASSERT_OK_AND_ASSIGN((auto [values, value_edge]),
+                         db->GetDictValues(all_dicts, {fb_db.get()}));
+    EXPECT_THAT(values, ElementsAre(DataItem(4.1)));
+    EXPECT_THAT(value_edge.edge_values(), ElementsAre(0, 0, 1, 1));
     EXPECT_THAT(db->GetDictSize(all_dicts, {fb_db.get()}),
                 IsOkAndHolds(ElementsAre(0, 1, 0)));
+    AssertKVsAreAligned(*db, all_dicts, {fb_db.get()});
   }
   ASSERT_OK(fb_db->SetInDict(
       all_dicts, all_dict_keys,
@@ -243,14 +290,29 @@ TEST(DataBagTest, DictFallbacks) {
               IsOkAndHolds(Pair(
                   UnorderedElementsAre(DataItem(1)),
                   Property(&DenseArrayEdge::edge_values, ElementsAre(0, 1)))));
+  EXPECT_THAT(db->GetDictValues(all_dicts[0], {fb_db.get()}),
+              IsOkAndHolds(Pair(
+                  UnorderedElementsAre(DataItem(4)),
+                  Property(&DenseArrayEdge::edge_values, ElementsAre(0, 1)))));
+  AssertKVsAreAligned(*db, all_dicts[0], {fb_db.get()});
   EXPECT_THAT(db->GetDictKeys(all_dicts[1], {fb_db.get()}),
               IsOkAndHolds(Pair(
                   UnorderedElementsAre(DataItem(2)),
                   Property(&DenseArrayEdge::edge_values, ElementsAre(0, 1)))));
+  EXPECT_THAT(db->GetDictValues(all_dicts[1], {fb_db.get()}),
+              IsOkAndHolds(Pair(
+                  UnorderedElementsAre(DataItem(4.1)),
+                  Property(&DenseArrayEdge::edge_values, ElementsAre(0, 1)))));
+  AssertKVsAreAligned(*db, all_dicts[1], {fb_db.get()});
   EXPECT_THAT(db->GetDictKeys(all_dicts[2], {fb_db.get()}),
               IsOkAndHolds(Pair(
                   UnorderedElementsAre(DataItem(3)),
                   Property(&DenseArrayEdge::edge_values, ElementsAre(0, 1)))));
+  EXPECT_THAT(db->GetDictValues(all_dicts[2], {fb_db.get()}),
+              IsOkAndHolds(Pair(
+                  UnorderedElementsAre(DataItem(6)),
+                  Property(&DenseArrayEdge::edge_values, ElementsAre(0, 1)))));
+  AssertKVsAreAligned(*db, all_dicts[2], {fb_db.get()});
   EXPECT_THAT(db->GetDictSize(all_dicts, {fb_db.get()}),
               IsOkAndHolds(ElementsAre(1, 1, 1)));
   {
@@ -258,6 +320,11 @@ TEST(DataBagTest, DictFallbacks) {
                          db->GetDictKeys(all_dicts, {fb_db.get()}));
     EXPECT_THAT(keys, ElementsAre(DataItem(1), DataItem(2), DataItem(3)));
     EXPECT_THAT(edge.edge_values(), ElementsAre(0, 1, 2, 3));
+    ASSERT_OK_AND_ASSIGN((auto [values, value_edge]),
+                         db->GetDictValues(all_dicts, {fb_db.get()}));
+    EXPECT_THAT(values, ElementsAre(DataItem(4), DataItem(4.1), DataItem(6)));
+    EXPECT_THAT(value_edge.edge_values(), ElementsAre(0, 1, 2, 3));
+    AssertKVsAreAligned(*db, all_dicts, {fb_db.get()});
   }
 
   ASSERT_OK(
@@ -267,6 +334,11 @@ TEST(DataBagTest, DictFallbacks) {
       IsOkAndHolds(
           Pair(UnorderedElementsAre(DataItem(2), DataItem(arolla::Text("a"))),
                Property(&DenseArrayEdge::edge_values, ElementsAre(0, 2)))));
+  EXPECT_THAT(db->GetDictValues(all_dicts[1], {fb_db.get()}),
+              IsOkAndHolds(Pair(
+                  UnorderedElementsAre(DataItem(4.1), DataItem(7)),
+                  Property(&DenseArrayEdge::edge_values, ElementsAre(0, 2)))));
+  AssertKVsAreAligned(*db, all_dicts[1], {fb_db.get()});
   {
     ASSERT_OK_AND_ASSIGN((auto [keys, edge]),
                          db->GetDictKeys(all_dicts, {fb_db.get()}));
@@ -276,6 +348,16 @@ TEST(DataBagTest, DictFallbacks) {
                 UnorderedElementsAre(DataItem(2), DataItem(arolla::Text("a"))));
     EXPECT_THAT(keys[3], Eq(DataItem(3)));
     EXPECT_THAT(edge.edge_values(), ElementsAre(0, 1, 3, 4));
+
+    ASSERT_OK_AND_ASSIGN((auto [values, value_edge]),
+                         db->GetDictValues(all_dicts, {fb_db.get()}));
+    ASSERT_EQ(values.size(), 4);
+    EXPECT_THAT(values[0], Eq(DataItem(4)));
+    EXPECT_THAT((std::vector{values[1], values[2]}),
+                UnorderedElementsAre(DataItem(4.1), DataItem(7)));
+    EXPECT_THAT(values[3], Eq(DataItem(6)));
+    EXPECT_THAT(value_edge.edge_values(), ElementsAre(0, 1, 3, 4));
+    AssertKVsAreAligned(*db, all_dicts, {fb_db.get()});
   }
 
   ASSERT_OK(db->SetInDict(all_dicts[2], DataItem(7), DataItem(-1)));
@@ -286,6 +368,11 @@ TEST(DataBagTest, DictFallbacks) {
               IsOkAndHolds(Pair(
                   UnorderedElementsAre(DataItem(3), DataItem(7)),
                   Property(&DenseArrayEdge::edge_values, ElementsAre(0, 2)))));
+  EXPECT_THAT(db->GetDictValues(all_dicts[2], {fb_db.get()}),
+              IsOkAndHolds(Pair(
+                  UnorderedElementsAre(DataItem(6), DataItem(-1)),
+                  Property(&DenseArrayEdge::edge_values, ElementsAre(0, 2)))));
+  AssertKVsAreAligned(*db, all_dicts[2], {fb_db.get()});
   {
     ASSERT_OK_AND_ASSIGN((auto [keys, edge]),
                          db->GetDictKeys(all_dicts, {fb_db.get()}));
@@ -296,6 +383,19 @@ TEST(DataBagTest, DictFallbacks) {
     EXPECT_THAT((std::vector{keys[3], keys[4]}),
                 UnorderedElementsAre(DataItem(3), DataItem(7)));
     EXPECT_THAT(edge.edge_values(), ElementsAre(0, 1, 3, 5));
+
+    ASSERT_OK_AND_ASSIGN((auto [values, value_edge]),
+                         db->GetDictValues(all_dicts, {fb_db.get()}));
+    ASSERT_EQ(values.size(), 5);
+    EXPECT_THAT(values[0], Eq(DataItem(4)));
+    EXPECT_THAT((std::vector{values[1], values[2]}),
+                UnorderedElementsAre(DataItem(4.1), DataItem(7)));
+    EXPECT_THAT((std::vector{values[3], values[4]}),
+                UnorderedElementsAre(DataItem(-1), DataItem(6)));
+    EXPECT_THAT(value_edge.edge_values(), ElementsAre(0, 1, 3, 5));
+
+    AssertKVsAreAligned(*db, all_dicts, {fb_db.get()});
+
     EXPECT_THAT(db->GetDictSize(all_dicts, {fb_db.get()}),
                 IsOkAndHolds(ElementsAre(1, 2, 2)));
     EXPECT_THAT(db->GetDictSize(all_dicts[0], {fb_db.get()}),

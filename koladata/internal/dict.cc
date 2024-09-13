@@ -25,9 +25,10 @@
 
 namespace koladata::internal {
 
-ABSL_ATTRIBUTE_NOINLINE void Dict::CollectKeysFromParentAndFallbacks(
+template <bool kReturnValues>
+ABSL_ATTRIBUTE_NOINLINE void Dict::CollectKeysOrValuesFromParentAndFallbacks(
     absl::Span<const Dict* const> fallbacks,
-    std::vector<DataItem>& keys) const {
+    std::vector<DataItem>& keys_or_values) const {
   const auto* orig_data = &data_;
   InternalMap empty_data;
   absl::flat_hash_set<DataItem, DataItem::Hash, DataItem::Eq> used_keys;
@@ -57,7 +58,7 @@ ABSL_ATTRIBUTE_NOINLINE void Dict::CollectKeysFromParentAndFallbacks(
         if (orig_data->find(key, hash) == orig_data->end() &&
             used_keys.find(key, hash) == used_keys.end() &&
             removed_keys.find(key, hash) == removed_keys.end()) {
-          keys.push_back(key);
+          keys_or_values.push_back(kReturnValues ? value : key);
           if (dict->parent_ != nullptr || !fallbacks.empty()) {
             used_keys.insert(key);
           }
@@ -86,10 +87,34 @@ std::vector<DataItem> Dict::GetKeys(
     }
   }
   if (dict->parent_ != nullptr || !fallbacks.empty()) {
-    dict->CollectKeysFromParentAndFallbacks(fallbacks, keys);
+    dict->CollectKeysOrValuesFromParentAndFallbacks</*kReturnValues=*/false>(
+        fallbacks, keys);
   }
   return keys;
-}
+};
+
+std::vector<DataItem> Dict::GetValues(
+    absl::Span<const Dict* const> fallbacks) const {
+  auto* dict = FindFirstNonEmpty();
+  if (dict == nullptr) {
+    if (fallbacks.empty()) {
+      return {};
+    }
+    return fallbacks[0]->GetValues(fallbacks.subspan(1));
+  }
+  std::vector<DataItem> values;
+  values.reserve(dict->data_.size());
+  for (const auto& [key, value] : dict->data_) {
+    if (value.has_value()) {
+      values.push_back(value);
+    }
+  }
+  if (dict->parent_ != nullptr || !fallbacks.empty()) {
+    dict->CollectKeysOrValuesFromParentAndFallbacks</*kReturnValues=*/true>(
+        fallbacks, values);
+  }
+  return values;
+};
 
 const absl::NoDestructor<DataItem> Dict::empty_item_;
 

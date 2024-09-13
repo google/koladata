@@ -384,10 +384,17 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   // ******* Batch Dict functions
 
-  // Get all keys of all given dict in one data slice. Returned edge is
+  // Get all keys of all given dicts in one data slice. Returned edge is
   // the edge from dicts to keys.
+  // While the order of keys is arbitrary, it is the same as GetDictValues().
   absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>> GetDictKeys(
       const DataSliceImpl& dicts, FallbackSpan fallbacks = {}) const;
+
+  // Get all values of all given dicts in one data slice. Returned edge is
+  // the edge from dicts to values.
+  // While the order of values is arbitrary, it is the same as GetDictKeys().
+  absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
+  GetDictValues(const DataSliceImpl& dicts, FallbackSpan fallbacks = {}) const;
 
   // Returns int64_t DataItem with a size of the dict.
   // In case dict is empty, size of the first non empty dict in fallbacks
@@ -414,13 +421,20 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Equivalent to functions above, but for a single dict.
   absl::StatusOr<DataItem> GetDictSize(const DataItem& dict,
                                        FallbackSpan fallbacks = {}) const;
+
   absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>> GetDictKeys(
       const DataItem& dict, FallbackSpan fallbacks = {}) const;
+
+  absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
+  GetDictValues(const DataItem& dict, FallbackSpan fallbacks = {}) const;
+
   absl::StatusOr<DataItem> GetFromDict(const DataItem& dict,
                                        const DataItem& key,
                                        FallbackSpan fallbacks = {}) const;
+
   absl::Status SetInDict(const DataItem& dict, const DataItem& key,
                          const DataItem& value);
+
   absl::Status ClearDict(const DataItem& dict);
 
   // ******* Schema functions
@@ -606,10 +620,19 @@ class DataBagImpl : public arolla::RefcountedBase {
   absl::StatusOr<DataSliceImpl> GetAttrFromSources(
     const DataSliceImpl& objects, absl::string_view attr) const;
 
+  template <bool kReturnValues>
+  absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
+  GetDictKeysOrValues(const DataSliceImpl& dicts, FallbackSpan fallbacks) const;
+
+  template <bool kReturnValues>
+  absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
+  GetDictKeysOrValues(const DataItem& dicts, FallbackSpan fallbacks) const;
+
+  template <bool kReturnValues>
   // Lower level utility for GetDictKeys that returns a vector.
   // This function bypass verification of object id.
-  std::vector<DataItem> GetDictKeysAsVector(ObjectId dict_id,
-                                            FallbackSpan fallbacks) const;
+  std::vector<DataItem> GetDictKeysOrValuesAsVector(
+      ObjectId dict_id, FallbackSpan fallbacks) const;
 
   // Lower level utility for batch GetFromDict without fallbacks support.
   // `AllocCheckFn` is a customization to provide which allocation type `dicts`

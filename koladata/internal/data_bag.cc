@@ -1716,9 +1716,10 @@ class DataBagImpl::MutableDictGetter {
   DictVector* dicts_vec_ = nullptr;
 };
 
+template <bool kReturnValues>
 absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
-DataBagImpl::GetDictKeys(const DataSliceImpl& dicts,
-                         FallbackSpan fallbacks) const {
+DataBagImpl::GetDictKeysOrValues(const DataSliceImpl& dicts,
+                                 FallbackSpan fallbacks) const {
   if (dicts.is_empty_and_unknown()) {
     ASSIGN_OR_RETURN(auto empty_edge, arolla::DenseArrayEdge::FromUniformGroups(
                                           dicts.size(), 0));
@@ -1735,7 +1736,7 @@ DataBagImpl::GetDictKeys(const DataSliceImpl& dicts,
   for (const DataBagImpl* fallback : fallbacks) {
     dict_fallback_getters.emplace_back(fallback);
   }
-  std::vector<std::vector<DataItem>> keys(dicts.size());
+  std::vector<std::vector<DataItem>> results(dicts.size());
   std::vector<int64_t> split_points{0};
   split_points.reserve(dicts.size() + 1);
 
@@ -1748,10 +1749,9 @@ DataBagImpl::GetDictKeys(const DataSliceImpl& dicts,
           split_points.push_back(split_points.back());
           return;
         }
-        std::vector<DataItem>& keys_vec = keys[offset];
-        if (fallbacks.empty()) {
-          keys_vec = dict_getter(dict_id).GetKeys();
-        } else {
+        std::vector<DataItem>& res_vec = results[offset];
+        const Dict& dict = dict_getter(dict_id);
+        if (!fallbacks.empty()) {
           fallback_dicts.clear();
           for (auto& fallback_getter : dict_fallback_getters) {
             if (auto* fb_dict = &fallback_getter(dict_id);
@@ -1760,17 +1760,21 @@ DataBagImpl::GetDictKeys(const DataSliceImpl& dicts,
               fallback_dicts.push_back(fb_dict);
             }
           }
-          keys_vec = dict_getter(dict_id).GetKeys(fallback_dicts);
         }
-        split_points.push_back(split_points.back() + keys_vec.size());
+        if constexpr (kReturnValues) {
+          res_vec = dict.GetValues(fallback_dicts);
+        } else {
+          res_vec = dict.GetKeys(fallback_dicts);
+        }
+        split_points.push_back(split_points.back() + res_vec.size());
       });
   RETURN_IF_ERROR(dict_getter.status());
 
   DataSliceImpl::Builder bldr(split_points.back());
-  for (int64_t i = 0; i < keys.size(); ++i) {
-    const auto& keys_vec = keys[i];
-    for (int64_t j = 0; j < keys_vec.size(); ++j) {
-      bldr.Insert(split_points[i] + j, keys_vec[j]);
+  for (int64_t i = 0; i < results.size(); ++i) {
+    const auto& res_vec = results[i];
+    for (int64_t j = 0; j < res_vec.size(); ++j) {
+      bldr.Insert(split_points[i] + j, res_vec[j]);
     }
   }
 
@@ -1779,6 +1783,18 @@ DataBagImpl::GetDictKeys(const DataSliceImpl& dicts,
   ASSIGN_OR_RETURN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
                                   {std::move(split_points_buf)}));
   return std::make_pair(std::move(bldr).Build(), std::move(edge));
+}
+
+absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
+DataBagImpl::GetDictKeys(const DataSliceImpl& dicts,
+                         FallbackSpan fallbacks) const {
+  return GetDictKeysOrValues</*kReturnValues=*/false>(dicts, fallbacks);
+}
+
+absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
+DataBagImpl::GetDictValues(const DataSliceImpl& dicts,
+                           FallbackSpan fallbacks) const {
+  return GetDictKeysOrValues</*kReturnValues=*/true>(dicts, fallbacks);
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetDictSize(
@@ -2014,7 +2030,8 @@ absl::Status DataBagImpl::ClearDict(const DataSliceImpl& dicts) {
   return dict_getter.status();
 }
 
-std::vector<DataItem> DataBagImpl::GetDictKeysAsVector(
+template <bool kReturnValues>
+std::vector<DataItem> DataBagImpl::GetDictKeysOrValuesAsVector(
     ObjectId dict_id, FallbackSpan fallbacks) const {
   AllocationId alloc_id(dict_id);
 
@@ -2028,8 +2045,13 @@ std::vector<DataItem> DataBagImpl::GetDictKeysAsVector(
     return {};
   }
 
+  const Dict& dict = (**main_dicts)[dict_id.Offset()];
   if (fallbacks.empty()) {
-    return (**main_dicts)[dict_id.Offset()].GetKeys();
+    if constexpr (kReturnValues) {
+      return dict.GetValues();
+    } else {
+      return dict.GetKeys();
+    }
   }
 
   absl::InlinedVector<const Dict*, 1> fallback_dicts;
@@ -2040,11 +2062,17 @@ std::vector<DataItem> DataBagImpl::GetDictKeysAsVector(
       fallback_dicts.push_back(&(**fb_dicts)[dict_id.Offset()]);
     }
   }
-  return (**main_dicts)[dict_id.Offset()].GetKeys(fallback_dicts);
+  if constexpr (kReturnValues) {
+    return dict.GetValues(fallback_dicts);
+  } else {
+    return dict.GetKeys(fallback_dicts);
+  }
 }
 
+template <bool kReturnValues>
 absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
-DataBagImpl::GetDictKeys(const DataItem& dict, FallbackSpan fallbacks) const {
+DataBagImpl::GetDictKeysOrValues(const DataItem& dict,
+                                 FallbackSpan fallbacks) const {
   if (!dict.has_value()) {
     ASSIGN_OR_RETURN(auto empty_edge,
                      arolla::DenseArrayEdge::FromUniformGroups(1, 0));
@@ -2052,11 +2080,21 @@ DataBagImpl::GetDictKeys(const DataItem& dict, FallbackSpan fallbacks) const {
                           empty_edge);
   }
   ASSIGN_OR_RETURN(ObjectId dict_id, ItemToDictObjectId(dict));
-  auto keys = GetDictKeysAsVector(dict_id, fallbacks);
-  ASSIGN_OR_RETURN(auto edge,
-                   arolla::DenseArrayEdge::FromUniformGroups(1, keys.size()));
+  auto results = GetDictKeysOrValuesAsVector<kReturnValues>(dict_id, fallbacks);
+  ASSIGN_OR_RETURN(
+      auto edge, arolla::DenseArrayEdge::FromUniformGroups(1, results.size()));
   return std::pair<DataSliceImpl, arolla::DenseArrayEdge>{
-      DataSliceImpl::Create(std::move(keys)), std::move(edge)};
+      DataSliceImpl::Create(std::move(results)), std::move(edge)};
+}
+
+absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
+DataBagImpl::GetDictKeys(const DataItem& dict, FallbackSpan fallbacks) const {
+  return GetDictKeysOrValues</*kReturnValues=*/false>(dict, fallbacks);
+}
+
+absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
+DataBagImpl::GetDictValues(const DataItem& dict, FallbackSpan fallbacks) const {
+  return GetDictKeysOrValues</*kReturnValues=*/true>(dict, fallbacks);
 }
 
 absl::StatusOr<DataItem> DataBagImpl::GetDictSize(
@@ -2071,7 +2109,9 @@ absl::StatusOr<DataItem> DataBagImpl::GetDictSize(
         GetConstDictsOrNull(AllocationId(dict_id));
     size = dicts ? (**dicts)[dict_id.Offset()].GetSizeNoFallbacks() : 0;
   } else {
-    size = GetDictKeysAsVector(dict_id, fallbacks).size();
+    size =
+        GetDictKeysOrValuesAsVector</*kReturnValues=*/false>(dict_id, fallbacks)
+            .size();
   }
   return DataItem(static_cast<int64_t>(size));
 }
@@ -2159,7 +2199,9 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrs(
     return InvalidSchemaObjectId(schema_item);
   }
   ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
-  std::vector<DataItem> keys = GetDictKeysAsVector(schema_id, fallbacks);
+  std::vector<DataItem> keys =
+      GetDictKeysOrValuesAsVector</*kReturnValues=*/false>(schema_id,
+                                                           fallbacks);
   if (keys.empty()) {
     return DataSliceImpl::Create(
         arolla::CreateEmptyDenseArray<arolla::Text>(/*size=*/0));
