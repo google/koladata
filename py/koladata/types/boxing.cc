@@ -618,8 +618,8 @@ class UniversalConverter {
         AssembleErrorMessage(_, {.db = adoption_queue_.GetDbWithFallbacks()}));
     // Creating with casting so that all items are converted to `schema`.
     return CreateWithSchema(std::move(bldr).Build(),
-                            DataSlice::JaggedShape::FlatFromSize(size),
-                            std::move(schema), db_);
+                            DataSlice::JaggedShape::FlatFromSize(size), schema,
+                            db_);
   }
 
   // Collects the keys and values of the python dictionary `py_obj`, and
