@@ -592,6 +592,63 @@ TEST(DataSliceReprTest, TestStringRepresentation_NoFollow) {
       IsOkAndHolds(MatchesRegex(R"regex(NOFOLLOW\(k[0-9a-f]{32}:0\))regex")));
 }
 
+TEST(DataSliceReprTest, TestStringRepresentation_ShowDtypeOnAnyAndObject) {
+  DataSlice item = test::DataItem<int64_t>(1, schema::kObject);
+  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("int64{1}"));
+
+  item = test::DataItem<int64_t>(1, schema::kAny);
+  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("int64{1}"));
+
+  item = test::DataItem<int64_t>(1, schema::kInt64);
+  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("1"));
+
+  item = test::DataItem<double>(double{1.234}, schema::kObject);
+  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("float64{1.234}"));
+
+  item = test::DataItem<double>(double{1.234}, schema::kAny);
+  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("float64{1.234}"));
+
+  item = test::DataItem<double>(double{1.234}, schema::kFloat64);
+  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("1.234"));
+
+  DataSlice slice = test::DataSlice<int64_t>({1, 2, 3}, schema::kObject);
+  EXPECT_THAT(DataSliceToStr(slice),
+              IsOkAndHolds("[int64{1}, int64{2}, int64{3}]"));
+
+  slice = test::DataSlice<int64_t>({1, 2, 3}, schema::kAny);
+  EXPECT_THAT(DataSliceToStr(slice),
+              IsOkAndHolds("[int64{1}, int64{2}, int64{3}]"));
+
+  slice = test::DataSlice<int64_t>({1, 2, 3}, schema::kInt64);
+  EXPECT_THAT(DataSliceToStr(slice), IsOkAndHolds("[1, 2, 3]"));
+
+  slice = test::DataSlice<double>({double{1.234}, double{1.234}, double{1.234}},
+                                  schema::kObject);
+  EXPECT_THAT(DataSliceToStr(slice),
+              IsOkAndHolds("[float64{1.234}, float64{1.234}, float64{1.234}]"));
+
+  slice = test::DataSlice<double>({double{1.234}, double{1.234}, double{1.234}},
+                                  schema::kAny);
+  EXPECT_THAT(DataSliceToStr(slice),
+              IsOkAndHolds("[float64{1.234}, float64{1.234}, float64{1.234}]"));
+
+  slice = test::DataSlice<double>({double{1.234}, double{1.234}, double{1.234}},
+                                  schema::kFloat64);
+  EXPECT_THAT(DataSliceToStr(slice), IsOkAndHolds("[1.234, 1.234, 1.234]"));
+
+  slice = test::MixedDataSlice<double, int64_t>({double{1.234}, std::nullopt},
+                                                {std::nullopt, int64_t{123}},
+                                                schema::kObject);
+  EXPECT_THAT(DataSliceToStr(slice),
+              IsOkAndHolds("[float64{1.234}, int64{123}]"));
+
+  slice = test::MixedDataSlice<double, int64_t>({double{1.234}, std::nullopt},
+                                                {std::nullopt, int64_t{123}},
+                                                schema::kAny);
+  EXPECT_THAT(DataSliceToStr(slice),
+              IsOkAndHolds("[float64{1.234}, int64{123}]"));
+}
+
 TEST(DataSliceReprTest, CycleInDict) {
   DataBagPtr bag = DataBag::Empty();
 

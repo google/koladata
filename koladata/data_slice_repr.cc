@@ -133,10 +133,13 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
   const absl::Span<const arolla::DenseArrayEdge> edges =
       slice.GetShape().edges();
   const arolla::DenseArrayEdge& edge = edges[dimension];
+  const DataItem& schema = slice.GetSchemaImpl();
   if (dimension == edges.size() - 1) {
     // Turns each items in slice into a string.
     std::vector<std::string> parts;
     parts.reserve(slice.size());
+    bool obj_or_any_schema =
+        schema == schema::kObject || schema == schema::kAny;
     for (const DataItem& item : slice_impl) {
       if (item.holds_value<ObjectId>()) {
         absl::string_view item_prefix = "";
@@ -151,7 +154,7 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
         }
         parts.push_back(absl::StrCat(item_prefix, DataItemRepr(item)));
       } else {
-        parts.push_back(absl::StrCat(item));
+        parts.push_back(DataItemRepr(item, {.show_dtype = obj_or_any_schema}));
       }
     }
     return StringifyGroup(edge, parts, option.item_limit);
@@ -304,6 +307,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
   ReprOption next_option = option;
   --next_option.depth;
 
+  const DataItem& schema = ds.GetSchemaImpl();
   if (data_item.template holds_value<ObjectId>()) {
     // TEXT items inside Lists and Dicts are quoted.
     next_option.strip_quotes = false;
@@ -312,7 +316,6 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
     }
 
     const ObjectId& obj = data_item.template value<ObjectId>();
-    const DataItem& schema = ds.GetSchemaImpl();
     if (schema.holds_value<ObjectId>() &&
         schema.template value<ObjectId>().IsNoFollowSchema()) {
       return absl::StrCat("Nofollow(Entity:", DataItemRepr(data_item), ")");
@@ -354,7 +357,9 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
     }
     return absl::StrCat(prefix, schema_str, ")");
   }
-  return DataItemRepr(data_item, /*strip_quotes=*/option.strip_quotes);
+  bool obj_or_any_schema = schema == schema::kObject || schema == schema::kAny;
+  return DataItemRepr(data_item, {.strip_quotes = option.strip_quotes,
+                                  .show_dtype = obj_or_any_schema});
 }
 
 }  // namespace

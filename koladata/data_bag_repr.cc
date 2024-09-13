@@ -172,7 +172,7 @@ absl::StatusOr<std::string> DataBagToStrInternal(
         &res, line_indent,
         absl::StrFormat(
             "%s.%s => %s\n", ObjectIdStr(attr.object), attr.attribute,
-            internal::DataItemRepr(attr.value, /*strip_text=*/true)));
+            internal::DataItemRepr(attr.value, {.strip_quotes = true})));
   }
   for (const auto& [list_id, values] : main_triples.lists()) {
     absl::StrAppend(
@@ -201,11 +201,11 @@ absl::StatusOr<std::string> DataBagToStrInternal(
     if (dict.object.IsSchema() && !IsInternalAttribute(dict.key)) {
       ASSIGN_OR_RETURN(std::string value_str,
                        SchemaToStr(dict.value, schema_triple_map));
-      absl::StrAppend(
-          &res, line_indent,
-          absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
-                          internal::DataItemRepr(dict.key, /*strip_text=*/true),
-                          value_str));
+      absl::StrAppend(&res, line_indent,
+                      absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
+                                      internal::DataItemRepr(
+                                          dict.key, {.strip_quotes = true}),
+                                      value_str));
     }
   }
   const std::vector<DataBagPtr>& fallbacks = db->GetFallbacks();

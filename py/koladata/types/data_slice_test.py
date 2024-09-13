@@ -202,6 +202,21 @@ class DataSliceTest(parameterized.TestCase):
           '[1, 2]',
       ),
       (
+          'int64_as_any',
+          ds([1, 2], schema_constants.INT64).as_any(),
+          'DataSlice([int64{1}, int64{2}], schema: ANY, shape: JaggedShape(2))',
+          '[int64{1}, int64{2}]',
+      ),
+      (
+          'int64_as_object',
+          bag().obj(ds([1, 2], schema_constants.INT64)).no_db(),
+          (
+              'DataSlice([int64{1}, int64{2}], schema: OBJECT, shape:'
+              ' JaggedShape(2))'
+          ),
+          '[int64{1}, int64{2}]',
+      ),
+      (
           'float32',
           ds([1.0, 1.5]),
           'DataSlice([1.0, 1.5], schema: FLOAT32, shape: JaggedShape(2))',
@@ -222,8 +237,11 @@ class DataSliceTest(parameterized.TestCase):
       (
           'float64_as_object',
           bag().obj(ds([1.0, 1.5], schema_constants.FLOAT64)).no_db(),
-          'DataSlice([1.0, 1.5], schema: OBJECT, shape: JaggedShape(2))',
-          '[1.0, 1.5]',
+          (
+              'DataSlice([float64{1.0}, float64{1.5}], schema: OBJECT, shape:'
+              ' JaggedShape(2))'
+          ),
+          '[float64{1.0}, float64{1.5}]',
       ),
       (
           'float32_as_any',
@@ -234,8 +252,11 @@ class DataSliceTest(parameterized.TestCase):
       (
           'float64_as_any',
           ds([1.0, 1.5], schema_constants.FLOAT64).as_any(),
-          'DataSlice([1.0, 1.5], schema: ANY, shape: JaggedShape(2))',
-          '[1.0, 1.5]',
+          (
+              'DataSlice([float64{1.0}, float64{1.5}], schema: ANY, shape:'
+              ' JaggedShape(2))'
+          ),
+          '[float64{1.0}, float64{1.5}]',
       ),
       (
           'boolean',
@@ -281,12 +302,12 @@ class DataSliceTest(parameterized.TestCase):
       ),
       (
           'mixed_data',
-          ds([1, 'abc', True, 1.0, arolla.int64(1)]),
+          ds([1, 'abc', True, 1.0, arolla.int64(1), arolla.float64(1.0)]),
           (
-              "DataSlice([1, 'abc', True, 1.0, 1], schema: OBJECT, shape:"
-              ' JaggedShape(5))'
+              "DataSlice([1, 'abc', True, 1.0, int64{1}, float64{1.0}], schema:"
+              ' OBJECT, shape: JaggedShape(6))'
           ),
-          "[1, 'abc', True, 1.0, 1]",
+          "[1, 'abc', True, 1.0, int64{1}, float64{1.0}]",
       ),
       (
           'int32_with_none',

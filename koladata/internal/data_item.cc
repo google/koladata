@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/data_item.h"
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -152,12 +153,21 @@ std::string DataItem::DebugString() const {
       data_);
 }
 
-std::string DataItemRepr(const DataItem& item, bool strip_quotes) {
+std::string DataItemRepr(const DataItem& item,
+                         const DataItemReprOption& option) {
   if (item.holds_value<ObjectId>()) {
     return ObjectIdStr(item.value<ObjectId>());
   }
-  if (item.holds_value<arolla::Text>() && strip_quotes) {
+  if (item.holds_value<arolla::Text>() && option.strip_quotes) {
     return std::string(item.value<arolla::Text>());
+  }
+  if (option.show_dtype) {
+    if (item.holds_value<double>()) {
+      return absl::StrCat("float64{", item, "}");
+    }
+    if (item.holds_value<int64_t>()) {
+      return absl::StrCat("int64{", item, "}");
+    }
   }
   return absl::StrCat(item);
 }

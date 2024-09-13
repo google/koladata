@@ -383,8 +383,17 @@ inline bool DataItem::Less::LessImpl<float, float>(const DataItem& a,
   return LessImpl(a, double{b});
 }
 
-// Returns the string representation for the DataItem.
-std::string DataItemRepr(const DataItem& item, bool strip_quotes = false);
+struct DataItemReprOption {
+  // If true, quotes will be stripped from Text values.
+  bool strip_quotes = false;
+  // If true, the dtype will be shown for int64 and float64.
+  bool show_dtype = false;
+};
+
+// Returns the string representation for the DataItem. It supports different
+// customization on top of DebugString.
+std::string DataItemRepr(const DataItem& item,
+                         const DataItemReprOption& option = {});
 
 }  // namespace koladata::internal
 

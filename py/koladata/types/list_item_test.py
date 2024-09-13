@@ -191,11 +191,11 @@ class ListItemTest(parameterized.TestCase):
       ),
       (
           "mixed_data",
-          [1, "abc", True, arolla.float64(1.1)],
-          "List[1, 'abc', True, 1.1]",
+          [1, "abc", True, arolla.float64(1.1), arolla.int64(1)],
+          "List[1, 'abc', True, float64{1.1}, int64{1}]",
           (
-              r"DataItem\(List\[1, 'abc', True, 1.1\], schema:"
-              r" LIST\[OBJECT\], bag_id: \$\w{4}\)"
+              r"DataItem\(List\[1, 'abc', True, float64\{1.1\}, int64\{1\}\],"
+              r" schema: LIST\[OBJECT\], bag_id: \$\w{4}\)"
           ),
       ),
       (

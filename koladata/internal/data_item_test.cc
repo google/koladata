@@ -520,13 +520,17 @@ TEST(DataItemTest, ArollaFingerprint) {
 TEST(DataItemTest, TestRepr) {
   EXPECT_EQ(DataItemRepr(DataItem(0)), "0");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("a"))), "'a'");
-  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("a")), /*strip_text=*/true),
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("a")), {.strip_quotes = true}),
             "a");
   EXPECT_THAT(DataItemRepr(DataItem(AllocateSingleObject())),
               MatchesRegex(R"regex(\$[0-9a-f]{32}:0)regex"));
   EXPECT_THAT(DataItemRepr(DataItem(CreateUuidObject(
                   arolla::FingerprintHasher("").Combine(57).Finish()))),
               MatchesRegex(R"regex(k[0-9a-f]{32}:0)regex"));
+  EXPECT_EQ(DataItemRepr(DataItem(double{1.23456789}), {.show_dtype = true}),
+            "float64{1.2345679}");
+  EXPECT_EQ(DataItemRepr(DataItem(int64_t{123}), {.show_dtype = true}),
+            "int64{123}");
 }
 
 }  // namespace
