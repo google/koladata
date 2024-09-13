@@ -114,6 +114,23 @@ class KdTest(absltest.TestCase):
       kd.testing.assert_equal(x, y)
     kd.testing.assert_equal(x.a.with_db(None), y.a.with_db(None))
 
+  def test_mutable_obj(self):
+    x = kd.mutable_obj(x=1, y=2)
+    kd.testing.assert_equal(x.x, kd.item(1).with_db(x.db))
+    kd.testing.assert_equal(x.y, kd.item(2).with_db(x.db))
+    x.x = 3
+    kd.testing.assert_equal(x.x, kd.item(3).with_db(x.db))
+
+  def test_mutable_obj_like(self):
+    x = kd.mutable_obj_like(kd.slice([1, None, 2]))
+    x.x = 1
+    kd.testing.assert_equal(x.x, kd.slice([1, None, 1]).with_db(x.db))
+
+  def test_mutable_obj_shaped(self):
+    x = kd.mutable_obj_shaped(jagged_shape.create_shape(2, [1, 2]))
+    x.x = 1
+    kd.testing.assert_equal(x.x, kd.slice([[1], [1, 1]]).with_db(x.db))
+
   def test_expr(self):
     kd.testing.assert_equal(
         kd.eval(
