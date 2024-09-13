@@ -61,6 +61,11 @@ namespace koladata {
 
 namespace {
 
+using ::koladata::internal::AllocationId;
+using ::koladata::internal::DataItem;
+using ::koladata::internal::DataSliceImpl;
+using ::koladata::internal::ObjectId;
+
 absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names) {
   if (std::find(attr_names.begin(), attr_names.end(), "schema") !=
       attr_names.end()) {
@@ -193,6 +198,38 @@ absl::Status SetObjectSchema(
   return absl::OkStatus();
 }
 
+// Specialization of SetObjectSchema to overwrite fields schema fields for the
+// entire allocation.
+absl::Status OverwriteObjectSchemaForEntireAllocation(
+    internal::DataBagImpl& db_mutable_impl, const DataSliceImpl& ds_impl,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<std::reference_wrapper<const internal::DataItem>>&
+        schemas) {
+  if (ds_impl.is_empty_and_unknown()) {
+    return absl::OkStatus();
+  }
+  // sanity checks
+  DCHECK_EQ(ds_impl.dtype(), arolla::GetQType<ObjectId>());
+  DCHECK_EQ(ds_impl.present_count(), ds_impl.size());
+  DCHECK((ds_impl.allocation_ids().empty() &&
+          ds_impl.allocation_ids().contains_small_allocation_id()) ||
+         (ds_impl.allocation_ids().size() == 1 &&
+          !ds_impl.allocation_ids().contains_small_allocation_id()))
+      << "DataSlice must be an entire allocation";
+  ASSIGN_OR_RETURN(auto schema_first_obj,
+                   CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+                       ds_impl[0], schema::kImplicitSchemaSeed));
+  auto schema_alloc = AllocationId(schema_first_obj.value<ObjectId>());
+
+  RETURN_IF_ERROR(db_mutable_impl.OverwriteSchemaFieldsForEntireAllocation(
+      schema_alloc, ds_impl.size(), attr_names, schemas));
+  auto schema_impl =
+      DataSliceImpl::ObjectsFromAllocation(schema_alloc, ds_impl.size());
+  RETURN_IF_ERROR(
+      db_mutable_impl.SetAttr(ds_impl, schema::kSchemaAttr, schema_impl));
+  return absl::OkStatus();
+}
+
 // Returns an object (with `db` attached) that can be created either from
 // DataSliceImpl(s) or DataItem(s). Compared to CreateEntitiesFromFields it
 // creates Implicit schema for each allocated object and sets normal attribute
@@ -216,8 +253,13 @@ absl::StatusOr<DataSlice> CreateObjectsFromFields(
   ASSIGN_OR_RETURN(auto ds_impl, db_mutable_impl.CreateObjectsFromFields(
                                      attr_names, aligned_values_impl));
 
-  RETURN_IF_ERROR(
-      SetObjectSchema(db_mutable_impl, ds_impl, attr_names, schemas));
+  if constexpr (std::is_same_v<ImplT, internal::DataSliceImpl>) {
+    RETURN_IF_ERROR(OverwriteObjectSchemaForEntireAllocation(
+        db_mutable_impl, ds_impl, attr_names, schemas));
+  } else {
+    RETURN_IF_ERROR(
+        SetObjectSchema(db_mutable_impl, ds_impl, attr_names, schemas));
+  }
 
   return DataSlice::Create(std::move(ds_impl),
                            aligned_values.begin()->GetShape(),

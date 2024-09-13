@@ -32,6 +32,7 @@
 #include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
@@ -41,6 +42,7 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/fingerprint.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 
@@ -191,6 +193,71 @@ TEST(DataBagTest, GetObjSchemaAttr) {
   EXPECT_THAT(db->GetObjSchemaAttr(ds_missing_schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("missing __schema__ attribute")));
+}
+
+TEST(DataBagTest, OverwriteSchemaFieldsForEntireAllocation) {
+  constexpr int64_t kSize = 13;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto int32 = DataItem(schema::kInt32);
+  auto float32 = DataItem(schema::kFloat32);
+  // Doesn't fail.
+  ASSERT_OK(db->OverwriteSchemaFieldsForEntireAllocation(
+      AllocateExplicitSchemas(0), 0, {"a", "b"},
+      {std::cref(int32), std::cref(float32)}));
+
+  auto alloc_id = Allocate(kSize);
+  auto ds = DataSliceImpl::ObjectsFromAllocation(alloc_id, kSize);
+  auto schema_alloc =
+      AllocationId(CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          alloc_id.ObjectByOffset(0), arolla::Fingerprint(57)));
+  ASSERT_OK(db->OverwriteSchemaFieldsForEntireAllocation(
+      schema_alloc, kSize, {"a", "b"}, {std::cref(int32), std::cref(float32)}));
+
+  auto ds_schema = DataSliceImpl::ObjectsFromAllocation(schema_alloc, kSize);
+  ASSERT_OK(db->SetAttr(ds, "__schema__", ds_schema));
+  auto new_schema_alloc =
+      AllocationId(CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          alloc_id.ObjectByOffset(0), arolla::Fingerprint(75)));
+
+  for (DataItem obj : ds) {
+    ASSERT_OK_AND_ASSIGN(DataItem schema, db->GetAttr(obj, "__schema__"));
+    ASSERT_NE(schema, DataItem()) << obj;
+    ASSERT_EQ(schema, DataItem(schema_alloc.ObjectByOffset(
+                     obj.value<ObjectId>().Offset())))
+        << obj;
+    ASSERT_OK_AND_ASSIGN(DataItem a, db->GetSchemaAttr(schema, "a"));
+    ASSERT_EQ(a, int32) << obj;
+    ASSERT_OK_AND_ASSIGN(DataItem b, db->GetSchemaAttr(schema, "b"));
+    ASSERT_EQ(b, float32) << obj;
+
+    // Overwrite to make sure that schemas are independent.
+    ASSERT_OK(db->SetSchemaAttr(schema, "a",
+                                DataItem(new_schema_alloc.ObjectByOffset(
+                                    schema.value<ObjectId>().Offset()))));
+  }
+
+  for (DataItem obj : ds) {
+    ASSERT_OK_AND_ASSIGN(DataItem schema, db->GetAttr(obj, "__schema__"));
+    ASSERT_NE(schema, DataItem()) << obj;
+    ASSERT_OK_AND_ASSIGN(DataItem a, db->GetSchemaAttr(schema, "a"));
+    ASSERT_NE(a, int32) << obj;
+    ASSERT_EQ(a, DataItem(new_schema_alloc.ObjectByOffset(
+                     schema.value<ObjectId>().Offset())))
+        << obj;
+  }
+
+  // Make sure we can overwrite existent schemas.
+  ASSERT_OK(db->OverwriteSchemaFieldsForEntireAllocation(
+      schema_alloc, kSize, {"a", "b"}, {std::cref(float32), std::cref(int32)}));
+  for (DataItem obj : ds) {
+    ASSERT_OK_AND_ASSIGN(DataItem schema, db->GetAttr(obj, "__schema__"));
+    ASSERT_NE(schema, DataItem()) << obj;
+    ASSERT_OK_AND_ASSIGN(DataItem a, db->GetSchemaAttr(schema, "a"));
+    ASSERT_EQ(a, float32) << obj;
+    ASSERT_OK_AND_ASSIGN(DataItem b, db->GetSchemaAttr(schema, "b"));
+    ASSERT_EQ(b, int32) << obj;
+  }
 }
 
 TEST(DataBagTest, GetAttrPrimitivesErrors) {

@@ -910,6 +910,20 @@ TEST(ObjectCreatorTest, DataItem) {
               IsOkAndHolds(schema::kInt32));
 }
 
+TEST(ObjectCreatorTest, EmptyDataSlice) {
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataSlice<int>({});
+  auto ds_b = test::DataSlice<float>({});
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      ObjectCreator::FromAttrs(
+          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.size(), 0);
+  EXPECT_EQ(ds.GetShape().rank(), 1);
+}
+
 TEST(ObjectCreatorTest, DatabagAdoption) {
   auto db_nested = DataBag::Empty();
   auto ds_a = test::DataItem(42);

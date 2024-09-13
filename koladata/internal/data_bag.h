@@ -540,6 +540,23 @@ class DataBagImpl : public arolla::RefcountedBase {
       const ImplT&,  const std::vector<absl::string_view>& attr_names,
       const std::vector<std::reference_wrapper<const DataItem>>& items);
 
+  // Specialization for OverwriteSchemaFields that assign the same schema
+  // fields for the entire allocation.
+  // This function is significantly faster and use significantly less RAM.
+  // Prefer to use it during construction of the new objects in the same
+  // allocation.
+  //
+  // If alloc_id is not newly created, function will fallback to
+  // OverwriteSchemaFields.
+  // In case some of the `items` are not valid schemas, appropriate error is
+  // returned.
+  // AllocationId must be schema allocation id.
+  // If size is unknown, use schema_alloc_id.Capacity().
+  absl::Status OverwriteSchemaFieldsForEntireAllocation(
+      AllocationId schema_alloc_id, size_t size,
+      const std::vector<absl::string_view>& attr_names,
+      const std::vector<std::reference_wrapper<const DataItem>>& items);
+
   // ********* Merging
 
   // Merge additional attributes and objects from `other`.

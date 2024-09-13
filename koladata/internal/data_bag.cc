@@ -2497,6 +2497,34 @@ absl::Status DataBagImpl::OverwriteSchemaFields(
   return status;
 }
 
+absl::Status DataBagImpl::OverwriteSchemaFieldsForEntireAllocation(
+    AllocationId schema_alloc_id, size_t size,
+    const std::vector<absl::string_view>& attr_names,
+    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+  DCHECK_EQ(attr_names.size(), items.size());
+  DCHECK(schema_alloc_id.IsSchemasAlloc());
+  if (size == 0) {
+    return absl::OkStatus();
+  }
+  for (const auto& item : items) {
+    RETURN_IF_ERROR(VerifyIsSchema(item.get()));
+  }
+
+  if (GetConstDictsOrNull(schema_alloc_id) != nullptr) {
+    return OverwriteSchemaFields(
+        DataSliceImpl::ObjectsFromAllocation(schema_alloc_id, size), attr_names,
+        items);
+  }
+
+  auto common_dict = std::make_shared<Dict>();
+  for (int i = 0; i < attr_names.size(); ++i) {
+    common_dict->Set(DataItem::View<arolla::Text>(attr_names[i]), items[i]);
+  }
+  dicts_.emplace(schema_alloc_id,
+                 std::make_shared<DictVector>(size, std::move(common_dict)));
+  return absl::OkStatus();
+}
+
 absl::StatusOr<DataItem> DataBagImpl::CreateExplicitSchemaFromFields(
     const std::vector<absl::string_view>& attr_names,
     const std::vector<std::reference_wrapper<const DataItem>>& items) {
