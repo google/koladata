@@ -1837,6 +1837,13 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_Dict) {
   ASSERT_TRUE(error.has_value());
   EXPECT_TRUE(error->has_missing_object_schema());
 
+  result = obj.GetDictValues();
+  EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
+                               HasSubstr("missing __schema__ attribute")));
+  error = internal::GetErrorPayload(result.status());
+  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error->has_missing_object_schema());
+
   absl::Status status = obj.SetInDict(key_item, value_item);
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
@@ -3719,6 +3726,8 @@ TEST(DataSliceTest, DictErrors) {
   auto dict = test::DataItem(internal::AllocateSingleObject());
   EXPECT_THAT(dict.GetDictKeys(), StatusIs(absl::StatusCode::kInvalidArgument,
                                            HasSubstr("without a DataBag")));
+  EXPECT_THAT(dict.GetDictValues(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                             HasSubstr("without a DataBag")));
   EXPECT_THAT(dict.GetFromDict(dict),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("without a DataBag")));
@@ -3757,7 +3766,16 @@ TEST(DataSliceTest, SetInDict_GetFromDict_AnySchema) {
   EXPECT_THAT(keys.GetShape(), IsEquivalentTo(keys_shape));
   EXPECT_THAT(keys.GetSchemaImpl(), Eq(schema::kAny));
 
-  ASSERT_OK_AND_ASSIGN(auto values, immutable_dicts.GetFromDict(keys));
+  ASSERT_OK_AND_ASSIGN(auto values, immutable_dicts.GetDictValues());
+  EXPECT_THAT(values.slice(),
+              ElementsAre(DataItemWith<int>(4), DataItemWith<int>(5),
+                          DataItemWith<arolla::Bytes>("six")));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(keys_shape));
+  EXPECT_THAT(values.GetSchemaImpl(), Eq(schema::kAny));
+  ASSERT_OK_AND_ASSIGN(auto expected_values, immutable_dicts.GetFromDict(keys));
+  EXPECT_THAT(values, IsEquivalentTo(expected_values));
+
+  ASSERT_OK_AND_ASSIGN(values, immutable_dicts.GetFromDict(keys));
   EXPECT_THAT(values.slice(),
               ElementsAre(DataItemWith<int>(4), DataItemWith<int>(5),
                           DataItemWith<arolla::Bytes>("six")));
@@ -3801,7 +3819,16 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
   EXPECT_THAT(keys.GetShape(), IsEquivalentTo(keys_shape));
   EXPECT_THAT(keys.GetSchemaImpl(), Eq(schema::kObject));
 
-  ASSERT_OK_AND_ASSIGN(auto values, immutable_dicts.GetFromDict(keys));
+  ASSERT_OK_AND_ASSIGN(auto values, immutable_dicts.GetDictValues());
+  EXPECT_THAT(values.slice(),
+              UnorderedElementsAre(DataItemWith<int>(4), DataItemWith<int>(5),
+                                   DataItemWith<arolla::Bytes>("six")));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(keys_shape));
+  EXPECT_THAT(values.GetSchemaImpl(), Eq(schema::kObject));
+  ASSERT_OK_AND_ASSIGN(auto expected_values, immutable_dicts.GetFromDict(keys));
+  EXPECT_THAT(values, IsEquivalentTo(expected_values));
+
+  ASSERT_OK_AND_ASSIGN(values, immutable_dicts.GetFromDict(keys));
   EXPECT_THAT(
       values.slice(),
       UnorderedElementsAre(DataItemWith<int>(4), DataItemWith<int>(5),
@@ -3870,7 +3897,16 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
   EXPECT_THAT(keys.GetShape(), IsEquivalentTo(keys_shape));
   EXPECT_THAT(keys.GetSchemaImpl(), Eq(schema::kObject));
 
-  ASSERT_OK_AND_ASSIGN(auto values, immutable_dicts.GetFromDict(keys));
+  ASSERT_OK_AND_ASSIGN(auto values, immutable_dicts.GetDictValues());
+  EXPECT_THAT(values.slice(),
+              ElementsAre(DataItemWith<int>(4), DataItemWith<int>(5),
+                          DataItemWith<arolla::Bytes>("six")));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(keys_shape));
+  EXPECT_THAT(values.GetSchemaImpl(), Eq(schema::kObject));
+  ASSERT_OK_AND_ASSIGN(auto expected_values, immutable_dicts.GetFromDict(keys));
+  EXPECT_THAT(values, IsEquivalentTo(expected_values));
+
+  ASSERT_OK_AND_ASSIGN(values, immutable_dicts.GetFromDict(keys));
   EXPECT_THAT(values.slice(),
               ElementsAre(DataItemWith<int>(4), DataItemWith<int>(5),
                           DataItemWith<arolla::Bytes>("six")));
@@ -3960,6 +3996,16 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
   EXPECT_THAT(keys.GetShape(), IsEquivalentTo(keys_shape));
   EXPECT_THAT(keys.GetSchemaImpl(), Eq(schema::kInt64));
 
+  ASSERT_OK_AND_ASSIGN(auto values, immutable_dicts.GetDictValues());
+  EXPECT_THAT(values.slice(),
+              // Values are casted to int64.
+              ElementsAre(DataItemWith<int64_t>(4), DataItemWith<int64_t>(5),
+                          DataItemWith<int64_t>(6)));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(keys_shape));
+  EXPECT_THAT(values.GetSchemaImpl(), Eq(schema::kInt64));
+  ASSERT_OK_AND_ASSIGN(auto expected_values, immutable_dicts.GetFromDict(keys));
+  EXPECT_THAT(values, IsEquivalentTo(expected_values));
+
   ASSERT_OK(dicts.SetInDict(
       test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
       test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kInt32)));
@@ -3973,7 +4019,17 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
   EXPECT_THAT(keys.GetShape(), IsEquivalentTo(keys_shape));
   EXPECT_THAT(keys.GetSchemaImpl(), Eq(schema::kInt64));
 
-  ASSERT_OK_AND_ASSIGN(auto values, immutable_dicts.GetFromDict(keys));
+  ASSERT_OK_AND_ASSIGN(values, immutable_dicts.GetDictValues());
+  EXPECT_THAT(values.slice(),
+              // Values are casted to int64.
+              ElementsAre(DataItemWith<int64_t>(4), DataItemWith<int64_t>(5),
+                          DataItemWith<int64_t>(6)));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(keys_shape));
+  EXPECT_THAT(values.GetSchemaImpl(), Eq(schema::kInt64));
+  ASSERT_OK_AND_ASSIGN(expected_values, immutable_dicts.GetFromDict(keys));
+  EXPECT_THAT(values, IsEquivalentTo(expected_values));
+
+  ASSERT_OK_AND_ASSIGN(values, immutable_dicts.GetFromDict(keys));
   EXPECT_THAT(values.slice(),
               // Values are casted to int64.
               ElementsAre(DataItemWith<int64_t>(4), DataItemWith<int64_t>(5),

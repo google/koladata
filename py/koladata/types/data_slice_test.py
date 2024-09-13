@@ -1265,9 +1265,21 @@ foo.get_obj_schema().x = <desired_schema>"""),
     testing.assert_dicts_keys_equal(
         single_dict, ds(['abc', 1], schema_constants.OBJECT)
     )
+    testing.assert_dicts_values_equal(
+        single_dict,
+        ds([3.14, 7], schema_constants.OBJECT),
+    )
     testing.assert_dicts_keys_equal(
         many_dicts,
         ds([[3, 'self'], [4, 'self'], [5, 'self']], schema_constants.OBJECT),
+    )
+    testing.assert_dicts_values_equal(
+        many_dicts,
+        ds([
+            [6, many_dicts.S[0].with_schema(schema_constants.OBJECT)],
+            [7, many_dicts.S[1].with_schema(schema_constants.OBJECT)],
+            [8, many_dicts.S[2].with_schema(schema_constants.OBJECT)],
+        ]),
     )
 
     testing.assert_equal(
@@ -1295,14 +1307,30 @@ foo.get_obj_schema().x = <desired_schema>"""),
     testing.assert_dicts_keys_equal(
         single_dict, ds([1], schema_constants.OBJECT)
     )
+    testing.assert_dicts_values_equal(
+        single_dict,
+        ds([7], schema_constants.OBJECT),
+    )
     testing.assert_dicts_keys_equal(
         many_dicts,
         ds([[3, 'self'], ['self'], [5, 'self']], schema_constants.OBJECT),
+    )
+    testing.assert_dicts_values_equal(
+        many_dicts,
+        ds([
+            [6, many_dicts.S[0].with_schema(schema_constants.OBJECT)],
+            [many_dicts.S[1].with_schema(schema_constants.OBJECT)],
+            [8, many_dicts.S[2].with_schema(schema_constants.OBJECT)],
+        ]),
     )
 
     single_dict[keys345] = values678
     testing.assert_dicts_keys_equal(
         single_dict, ds([1, 3, 4, 5], schema_constants.OBJECT)
+    )
+    testing.assert_dicts_values_equal(
+        single_dict,
+        ds([7, 6, 7, 8], schema_constants.OBJECT),
     )
     testing.assert_equal(
         single_dict[keys345],
@@ -1321,8 +1349,16 @@ foo.get_obj_schema().x = <desired_schema>"""),
     testing.assert_dicts_keys_equal(
         single_dict, ds([], schema_constants.OBJECT)
     )
+    testing.assert_dicts_values_equal(
+        single_dict,
+        ds([], schema_constants.OBJECT),
+    )
     testing.assert_dicts_keys_equal(
         many_dicts, ds([[], [], []], schema_constants.OBJECT)
+    )
+    testing.assert_dicts_values_equal(
+        many_dicts,
+        ds([[], [], []], schema_constants.OBJECT),
     )
 
   def test_dict_objects_del_key_values(self):
@@ -2199,6 +2235,10 @@ class DataSliceFallbackTest(parameterized.TestCase):
         merged_x,
         ds([['abc', 'xyz', 'asd'], ['abc', 'qwe']], schema_constants.OBJECT),
     )
+    testing.assert_dicts_values_equal(
+        merged_x,
+        ds([[3.14, 2.71, 'e'], [2.71, 'pi']], schema_constants.OBJECT),
+    )
     testing.assert_allclose(
         merged_x['abc'],
         ds([3.14, 2.71], schema_constants.OBJECT).with_db(merged_x.db),
@@ -2245,6 +2285,10 @@ class DataSliceFallbackTest(parameterized.TestCase):
     dct = dct.with_db(merged_db)
     testing.assert_dicts_keys_equal(
         dct, ds([f'd{i}' for i in range(cnt)], schema_constants.OBJECT)
+    )
+    testing.assert_dicts_values_equal(
+        dct,
+        ds([i for i in range(cnt)], schema_constants.OBJECT),
     )
     obj = obj.with_db(merged_db)
     for i in range(cnt):

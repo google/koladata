@@ -284,7 +284,15 @@ class DataSlice {
 
   // Returns all keys of all dicts in this slice (it must be slice of dicts).
   // Shape of the output slice has an additional dimension.
+  // While the order of keys within a dict is arbitrary, it is the same as
+  // GetDictValues().
   absl::StatusOr<DataSlice> GetDictKeys() const;
+
+  // Returns all values of all dicts in this slice (it must be slice of dicts).
+  // Shape of the output slice has an additional dimension.
+  // While the order of values within a dict is arbitrary, it is the same as
+  // GetDictKeys().
+  absl::StatusOr<DataSlice> GetDictValues() const;
 
   // Gets a value from each list in this slice (it must be slice of lists) using
   // the corresponding indices (the shape of `indices` must be compatible with

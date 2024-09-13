@@ -442,6 +442,14 @@ absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {
   return WrapPyDataSlice(std::move(res));
 }
 
+absl::Nullable<PyObject*> PyDataSlice_get_values(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  DataSlice self_ds = UnsafeDataSliceRef(self);
+  ASSIGN_OR_RETURN(auto res, self_ds.GetDictValues(),
+                   SetKodaPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(res));
+}
+
 absl::Nullable<PyObject*> PyDataSlice_append(PyObject* self,
                                              PyObject* const* args,
                                              Py_ssize_t nargs) {
@@ -715,7 +723,9 @@ Returns:
     {"as_any", PyDataSlice_as_any, METH_NOARGS,
      "Returns a DataSlice with ANY schema."},
     {"get_keys", PyDataSlice_get_keys, METH_NOARGS,
-     "Returns a slice with all keys from all dicts in this DataSlice."},
+     "Returns keys of all dicts in this DataSlice."},
+    {"get_values", PyDataSlice_get_values, METH_NOARGS,
+     "Returns values of all dicts in this DataSlice."},
     {"get_present_count", PyDataSlice_get_present_count, METH_NOARGS,
      "Returns number of present items in DataSlice."},
     {"get_size", PyDataSlice_get_size, METH_NOARGS,

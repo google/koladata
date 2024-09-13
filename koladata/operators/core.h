@@ -115,6 +115,16 @@ inline absl::StatusOr<DataSlice> GetItem(const DataSlice& ds,
   return ds.GetItem(key_or_index);
 }
 
+// kde.core.get_keys.
+inline absl::StatusOr<DataSlice> GetKeys(const DataSlice& dict_ds) {
+  return dict_ds.GetDictKeys();
+}
+
+// kde.core.get_values.
+inline absl::StatusOr<DataSlice> GetValues(const DataSlice& dict_ds) {
+  return dict_ds.GetDictValues();
+}
+
 // kde.core.group_by_indices.
 absl::StatusOr<DataSlice> GroupByIndices(
     absl::Span<const DataSlice* const> slices);

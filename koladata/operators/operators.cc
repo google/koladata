@@ -76,8 +76,10 @@ OPERATOR("kde.core.dict_size", DictSize);
 OPERATOR("kde.core.enriched", Enriched);
 OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.get_db", GetDb);
+OPERATOR("kde.core.get_keys", GetKeys);
 OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR("kde.core.get_primitive_schema", GetPrimitiveSchema);
+OPERATOR("kde.core.get_values", GetValues);
 OPERATOR_FAMILY("kde.core.group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",

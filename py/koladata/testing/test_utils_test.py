@@ -14,6 +14,8 @@
 
 """Tests for test_utils."""
 
+import re
+
 from absl.testing import absltest
 from arolla import arolla
 from koladata.operators import kde_operators
@@ -215,7 +217,7 @@ class TestUtilsTest(absltest.TestCase):
     d2 = bag().dict(ds([['a'], ['b', 'c']]), 37)
     with self.assertRaisesRegex(AssertionError, 'have different shapes'):
       test_utils.assert_dicts_keys_equal(d1, d2.get_keys())
-    with self.assertRaisesRegex(AssertionError, 'Dict Keys'):
+    with self.assertRaisesRegex(AssertionError, 'Unordered DataSlice'):
       test_utils.assert_dicts_keys_equal(
           d1,
           ds([['a', 'b'], ['d']]),
@@ -226,6 +228,41 @@ class TestUtilsTest(absltest.TestCase):
       )
     with self.assertRaisesRegex(AssertionError, 'expected Koda Dicts'):
       test_utils.assert_dicts_keys_equal(d1.get_keys(), d2.get_keys())
+
+  def test_assert_dicts_values_equal(self):
+    d1 = bag().dict({'a': 42, 'b': 37})
+    d2 = bag().dict(ds(['a', 'b']), ds([42, 37]))
+    test_utils.assert_dicts_values_equal(d1, d2.get_values())
+
+  def test_assert_dicts_values_equal_rank_large(self):
+    keys = ds([[[1, 2], [3], [4]], [[5, 6, 7]]])
+    values = ds([[['a', 'b'], ['c'], ['d']], [['e', 'd', 'f']]])
+    d = bag().dict(keys, values)
+    test_utils.assert_dicts_values_equal(
+        d,
+        ds([[['b', 'a'], ['c'], ['d']], [['f', 'e', 'd']]]),
+    )
+    test_utils.assert_dicts_values_equal(
+        d,
+        ds([[['a', 'b'], ['c'], ['d']], [['e', 'd', 'f']]]),
+    )
+
+  def test_assert_dicts_values_equal_error(self):
+    d1 = bag().dict(ds([[1, 2], [3]]), ds([['a', 'b'], ['c']]))
+    d2 = bag().dict(ds([[1], [2, 3]]), ds([['a'], ['b', 'c']]))
+    with self.assertRaisesRegex(AssertionError, 'have different shapes'):  # pylint: disable=g-error-prone-assert-raises
+      test_utils.assert_dicts_values_equal(d1, d2.get_keys())
+    with self.assertRaisesRegex(AssertionError, 'Unordered DataSlice'):  # pylint: disable=g-error-prone-assert-raises
+      test_utils.assert_dicts_values_equal(
+          d1,
+          ds([['a', 'b'], ['d']]),
+      )
+    with self.assertRaisesRegex(AssertionError, 'have different schemas'):  # pylint: disable=g-error-prone-assert-raises
+      test_utils.assert_dicts_values_equal(
+          bag().dict(ds([1, 2, 3]), 42), ds(['a', 'b', 'c'])
+      )
+    with self.assertRaisesRegex(AssertionError, 'expected Koda Dicts'):  # pylint: disable=g-error-prone-assert-raises
+      test_utils.assert_dicts_values_equal(d1.get_keys(), d2.get_keys())
 
   def test_assert_dicts_equal(self):
     d1 = bag().dict({'a': 42, 'b': 37})
@@ -260,6 +297,45 @@ class TestUtilsTest(absltest.TestCase):
     l2 = bag().list([[1, 2], [3]])
     with self.assertRaisesRegex(AssertionError, 'QValues not equal'):
       test_utils.assert_nested_lists_equal(l1, l2)
+
+  def test_assert_unordered_equal(self):
+    test_utils.assert_unordered_equal(ds(1), ds(1))
+    test_utils.assert_unordered_equal(ds(None), ds(None))
+    test_utils.assert_unordered_equal(ds([1, None, 3]), ds([None, 1, 3]))
+    test_utils.assert_unordered_equal(ds([]), ds([]))
+    test_utils.assert_unordered_equal(
+        ds([[1, None, 3], [4, 5]]), ds([[None, 1, 3], [5, 4]])
+    )
+
+  def test_assert_unordered_equal_error(self):
+    with self.assertRaisesRegex(TypeError, 'expected DataSlice'):  # pylint: disable=g-error-prone-assert-raises
+      test_utils.assert_unordered_equal(4, 6)
+    with self.assertRaisesRegex(AssertionError, 'have different shapes'):  # pylint: disable=g-error-prone-assert-raises
+      test_utils.assert_unordered_equal(ds(1), ds([1]))
+    with self.assertRaisesRegex(  # pylint: disable=g-error-prone-assert-raises
+        AssertionError,
+        re.escape(
+            'Unordered DataSlice DataItem(1, schema: INT32) != DataItem(3,'
+            ' schema: INT32)'
+        ),
+    ):
+      test_utils.assert_unordered_equal(ds(1), ds(3))
+    with self.assertRaisesRegex(  # pylint: disable=g-error-prone-assert-raises
+        AssertionError,
+        re.escape(
+            'Unordered DataSlice DataSlice([[1, 2], [3]], schema: INT32, shape:'
+            ' JaggedShape(2, [2, 1])) != DataSlice([[1, 3], [2]], schema:'
+            ' INT32, shape: JaggedShape(2, [2, 1]))'
+        ),
+    ):
+      test_utils.assert_unordered_equal(ds([[1, 2], [3]]), ds([[1, 3], [2]]))
+    with self.assertRaisesRegex(AssertionError, 'have different schemas'):  # pylint: disable=g-error-prone-assert-raises
+      test_utils.assert_unordered_equal(ds(1), ds(1).as_any())
+    with self.assertRaisesRegex(AssertionError, 'have different DataBags'):  # pylint: disable=g-error-prone-assert-raises
+      test_utils.assert_unordered_equal(
+          ds(1).with_db(bag()),
+          ds(1).with_db(bag()),
+      )
 
 
 if __name__ == '__main__':

@@ -20,5 +20,7 @@ assert_equal = _test_utils.assert_equal
 assert_equivalent = _test_utils.assert_equivalent
 assert_allclose = _test_utils.assert_allclose
 assert_dicts_keys_equal = _test_utils.assert_dicts_keys_equal
+assert_dicts_values_equal = _test_utils.assert_dicts_values_equal
 assert_dicts_equal = _test_utils.assert_dicts_equal
 assert_nested_lists_equal = _test_utils.assert_nested_lists_equal
+assert_unordered_equal = _test_utils.assert_unordered_equal

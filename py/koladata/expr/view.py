@@ -260,6 +260,12 @@ class DataSliceView(BasicKodaView):
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_attr', self, attr_name, default)
 
+  def get_keys(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_keys', self)
+
+  def get_values(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_values', self)
+
   def with_db(self, db: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.with_db', self, db)
 

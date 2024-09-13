@@ -427,6 +427,12 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_get_size(self):
     testing.assert_equal(C.x.get_size(), kde.size(C.x))
 
+  def test_get_keys(self):
+    testing.assert_equal(C.x.get_keys(), kde.get_keys(C.x))
+
+  def test_get_values(self):
+    testing.assert_equal(C.x.get_values(), kde.get_values(C.x))
+
   def test_db(self):
     testing.assert_equal(C.x.db(), kde.get_db(C.x))
 
@@ -545,7 +551,6 @@ class DataSliceViewTest(parameterized.TestCase):
         'is_dict_schema',
         'is_list_schema',
         # TODO: Add the following as operators.
-        'get_keys',
         'get_present_count',
         'with_fallback',
         'freeze',

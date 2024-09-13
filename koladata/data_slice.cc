@@ -1355,7 +1355,7 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
 
 absl::StatusOr<DataSlice> DataSlice::GetDictKeys() const {
   if (GetDb() == nullptr) {
-    return absl::InvalidArgumentError("cannot set dict keys without a DataBag");
+    return absl::InvalidArgumentError("cannot get dict keys without a DataBag");
   }
   FlattenFallbackFinder fb_finder(*GetDb());
   internal::DataItem res_schema(schema::kAny);
@@ -1366,12 +1366,32 @@ absl::StatusOr<DataSlice> DataSlice::GetDictKeys() const {
                                      fb_finder.GetFlattenFallbacks(),
                                      /*allow_missing=*/false),
                      AssembleErrorMessage(_, {.ds = *this}));
-    // TODO: Use DataSlice::Create instead of verifying manually.
-    RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
     ASSIGN_OR_RETURN(
         (auto [slice, edge]),
         GetDb()->GetImpl().GetDictKeys(impl, fb_finder.GetFlattenFallbacks()));
-    ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({edge}));
+    ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({std::move(edge)}));
+    return DataSlice::Create(std::move(slice), std::move(shape),
+                             std::move(res_schema), GetDb());
+  });
+}
+
+absl::StatusOr<DataSlice> DataSlice::GetDictValues() const {
+  if (GetDb() == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot get dict values without a DataBag");
+  }
+  FlattenFallbackFinder fb_finder(*GetDb());
+  return VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto res_schema,
+                     GetResultSchema(GetDb()->GetImpl(), impl, GetSchemaImpl(),
+                                     schema::kDictValuesSchemaAttr,
+                                     fb_finder.GetFlattenFallbacks(),
+                                     /*allow_missing=*/false),
+                     AssembleErrorMessage(_, {.ds = *this}));
+    ASSIGN_OR_RETURN((auto [slice, edge]),
+                     GetDb()->GetImpl().GetDictValues(
+                         impl, fb_finder.GetFlattenFallbacks()));
+    ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({std::move(edge)}));
     return DataSlice::Create(std::move(slice), std::move(shape),
                              std::move(res_schema), GetDb());
   });

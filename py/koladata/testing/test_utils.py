@@ -267,6 +267,45 @@ def _expect_dicts(dicts: _data_slice.DataSlice):
     raise AssertionError(f'expected Koda Dicts, got {dicts!r}') from None
 
 
+def assert_unordered_equal(
+    actual_value: _data_slice.DataSlice,
+    expected_value: _data_slice.DataSlice,
+):
+  """Checks DataSlices are equal ignoring the ordering in the last dimension.
+
+  This assertion verifies actual_value and expected_value have the same
+  shapes, schemas, dbs and that their items in the last dimensions are equal
+  ignoring the order.
+
+  Args:
+    actual_value: DataSlice.
+    expected_value: DataSlice.
+
+  Raises:
+    AssertionError: If DataSlices are not equal.
+  """
+  _expect_data_slice(actual_value)
+  _expect_data_slice(expected_value)
+  _assert_equal_shape(actual_value, expected_value)
+  _assert_equal_schema(actual_value, expected_value)
+  assert_equal(
+      actual_value.db, expected_value.db, msg='inputs have different DataBags'
+  )
+  # Checking from the last dimension.
+  actual_val = actual_value.flatten(0, -1)
+  expected_val = expected_value.flatten(0, -1)
+  for actual, expected in zip(
+      actual_val.internal_as_py(), expected_val.internal_as_py()
+  ):
+    is_list = isinstance(actual, list)
+    if (is_list and set(actual) != set(expected)) or (
+        not is_list and actual != expected
+    ):
+      raise AssertionError(
+          f'Unordered DataSlice {actual_value!r} != {expected_value!r}'
+      )
+
+
 def assert_dicts_keys_equal(
     dicts: _data_slice.DataSlice,
     expected_keys: _data_slice.DataSlice,
@@ -290,20 +329,34 @@ def assert_dicts_keys_equal(
       keys of the same dict.
   """
   _expect_dicts(dicts)
-  actual_keys = dicts.get_keys()
-  _expect_data_slice(expected_keys)
-  _assert_equal_shape(actual_keys, expected_keys)
-  _assert_equal_schema(actual_keys, expected_keys)
-  actual_keys = actual_keys.with_db(None)
-  expected_keys = expected_keys.with_db(None)
-  # Checking from the level of hypothetical dict (-1 dim compared to keys).
-  actual_val = actual_keys.flatten(0, -1)
-  expected_val = expected_keys.flatten(0, -1)
-  for actual, expected in zip(
-      actual_val.internal_as_py(), expected_val.internal_as_py()
-  ):
-    if set(actual) != set(expected):
-      raise AssertionError(f'Dict Keys {actual_keys!r} != {expected_keys!r}')
+  assert_unordered_equal(dicts.get_keys().no_db(), expected_keys.no_db())
+
+
+def assert_dicts_values_equal(
+    dicts: _data_slice.DataSlice,
+    expected_values: _data_slice.DataSlice,
+):
+  """Koda check for Dict values equality.
+
+  Koda Dict values are stored and returned in arbitrary order. When they are
+  also not-flat, it is difficult to compare them using other assertion
+  primitives.
+
+  This assertion verifies dicts.get_values() and expected_values have the same
+  shapes, schemas and that their contents have the same values and their count.
+
+  NOTE: This assertion method ignores DataBag(s) associated with the inputs.
+
+  Args:
+    dicts: DataSlice.
+    expected_values: DataSlice.
+
+  Raises:
+    AssertionError: If dicts.get_values() and expected_values cannot represent
+      the values of the same dict.
+  """
+  _expect_dicts(dicts)
+  assert_unordered_equal(dicts.get_values().no_db(), expected_values.no_db())
 
 
 def assert_dicts_equal(
