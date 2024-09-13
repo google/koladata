@@ -46,9 +46,49 @@ def create_entity(state):
   val_1 = kd.slice(12)
   val_2 = kd.slice(13)
   val_3 = kd.slice(14)
-  db = kd.bag()
   while state:
+    db = kd.bag()
     _ = db.new(val_1=val_1, val_2=val_2, val_3=val_3)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg(1)
+@google_benchmark.option.arg(10)
+@google_benchmark.option.arg(1000)
+@google_benchmark.option.arg(10**6)
+def create_entity_data_slice(state):
+  size = state.range(0)
+  val_1 = kd.slice([12] * size)
+  val_2 = kd.slice([13] * size)
+  val_3 = kd.slice([14] * size)
+  while state:
+    db = kd.bag()
+    _ = db.new(val_1=val_1, val_2=val_2, val_3=val_3)
+
+
+@google_benchmark.register
+def create_obj(state):
+  val_1 = kd.slice(12)
+  val_2 = kd.slice(13)
+  val_3 = kd.slice(14)
+  while state:
+    db = kd.bag()
+    _ = db.obj(val_1=val_1, val_2=val_2, val_3=val_3)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg(1)
+@google_benchmark.option.arg(10)
+@google_benchmark.option.arg(1000)
+@google_benchmark.option.arg(10**6)
+def create_obj_data_slice(state):
+  size = state.range(0)
+  val_1 = kd.slice([12] * size)
+  val_2 = kd.slice([13] * size)
+  val_3 = kd.slice([14] * size)
+  while state:
+    db = kd.bag()
+    _ = db.obj(val_1=val_1, val_2=val_2, val_3=val_3)
 
 
 @google_benchmark.register
