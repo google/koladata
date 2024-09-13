@@ -68,18 +68,6 @@ using AttrNamesSet = absl::btree_set<arolla::Text>;
 
 constexpr absl::string_view kExplicitSchemaIsMissingError =
     "the attribute '%s' is missing on the schema.";
-constexpr const char* kExplicitSchemaIncompatibleAttrError =
-    "the schema for attribute '%s' is incompatible.\n\n"
-    "Expected schema for '%s': %v\n"
-    "Assigned schema for '%s': %v";
-constexpr const char* kExplicitSchemaIncompatibleListItemError =
-    "the schema for List %s is incompatible.\n\n"
-    "Expected schema for '%s': %v\n"
-    "Assigned schema for '%s': %v";
-constexpr const char* kExplicitSchemaIncompatibleDictError =
-    "the schema for Dict %s is incompatible.\n\n"
-    "Expected schema for '%s': %v\n"
-    "Assigned schema for '%s': %v";
 
 const DataSlice::JaggedShape& MaxRankShape(const DataSlice::JaggedShape& s1,
                                            const DataSlice::JaggedShape& s2) {
@@ -630,24 +618,26 @@ class RhsHandler {
 
   absl::Status RhsCastingErrorStatus(
       const internal::DataItem& attr_stored_schema) const {
-    absl::string_view attr = describe_attr();
-
     absl::Status status = absl::OkStatus();
     switch (error_context_) {
       case RhsHandlerErrorContext::kAttr:
-        status = absl::InvalidArgumentError(
-            absl::StrFormat(kExplicitSchemaIncompatibleAttrError, attr, attr,
-                            attr_stored_schema, attr, rhs_.GetSchemaImpl()));
+        status = absl::InvalidArgumentError(absl::StrFormat(
+            "the schema for attribute '%s' is incompatible: expected %v, "
+            "assigned %v",
+            attr_name_, attr_stored_schema, rhs_.GetSchemaImpl()));
         break;
       case RhsHandlerErrorContext::kListItem:
         status = absl::InvalidArgumentError(absl::StrFormat(
-            kExplicitSchemaIncompatibleListItemError, attr, attr,
-            attr_stored_schema, attr, rhs_.GetSchemaImpl()));
+            "the schema for list items is incompatible: expected %v, assigned "
+            "%v",
+            attr_stored_schema, rhs_.GetSchemaImpl()));
         break;
       case RhsHandlerErrorContext::kDict:
-        status = absl::InvalidArgumentError(
-            absl::StrFormat(kExplicitSchemaIncompatibleDictError, attr, attr,
-                            attr_stored_schema, attr, rhs_.GetSchemaImpl()));
+        absl::string_view dict_attr =
+            attr_name_ == schema::kDictKeysSchemaAttr ? "keys" : "values";
+        status = absl::InvalidArgumentError(absl::StrFormat(
+            "the schema for dict %s is incompatible: expected %v, assigned %v",
+            dict_attr, attr_stored_schema, rhs_.GetSchemaImpl()));
         break;
     }
     return WithErrorPayload(status,
@@ -665,17 +655,6 @@ class RhsHandler {
     ASSIGN_OR_RETURN(*incompatible_schema->mutable_assigned_schema(),
                      internal::EncodeDataItem(rhs_.GetSchemaImpl()));
     return error;
-  }
-
-  absl::string_view describe_attr() const {
-    if (attr_name_ == schema::kListItemsSchemaAttr) {
-      return "Items";
-    } else if (attr_name_ == absl::string_view("__keys__")) {
-      return "Keys";
-    } else if (attr_name_ == absl::string_view("__values__")) {
-      return "Values";
-    }
-    return attr_name_;
   }
 
   RhsHandlerErrorContext error_context_;

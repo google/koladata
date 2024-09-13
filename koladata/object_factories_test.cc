@@ -1744,7 +1744,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension) {
         CreateListsFromLastDimension(db, values, /*schema=*/std::nullopt,
                                      test::Schema(schema::kInt32)),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("the schema for List Items is incompatible")));
+                 HasSubstr("the schema for list items is incompatible")));
   }
 }
 
@@ -1812,7 +1812,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension_FromDataSlice) {
         CreateListsFromLastDimension(db, values, /*schema=*/std::nullopt,
                                      test::Schema(schema::kText)),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("the schema for List Items is incompatible.")));
+                 HasSubstr("the schema for list items is incompatible")));
   }
   {
     EXPECT_THAT(
@@ -2151,7 +2151,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaError) {
       CreateListShaped(db, shape, test::DataSlice<arolla::Text>({"abc", "xyz"}),
                        list_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("schema for List Items is incompatible")));
+               HasSubstr("schema for list items is incompatible")));
 }
 
 TEST(ObjectFactoriesTest, CreateEmptyShaped) {
@@ -2274,7 +2274,7 @@ TEST(ObjectFactoriesTest, CreateNestedList) {
         CreateNestedList(db, values, /*schema=*/std::nullopt,
                          test::Schema(schema::kText)),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("the schema for List Items is incompatible.")));
+                 HasSubstr("the schema for list items is incompatible")));
   }
 }
 
@@ -2655,7 +2655,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Overwrite) {
   EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
   EXPECT_THAT(ds.GetFromDict(test::DataSlice<int>({1, 2, 3})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("the schema for Dict Keys is incompatible")));
+                       HasSubstr("the schema for dict keys is incompatible")));
   EXPECT_THAT(ds.GetFromDict(test::DataSlice<arolla::Text>({"a", "b", "c"})),
               IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(1, 2, 3))));
 }
@@ -2754,10 +2754,9 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
 
   EXPECT_THAT(CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
                                test::DataSlice<arolla::Text>({"abc", "xyz"}),
-                               test::DataSlice<int>({1, 2}),
-                               dict_schema),
+                               test::DataSlice<int>({1, 2}), dict_schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("schema for Dict Keys is incompatible")));
+                       HasSubstr("schema for dict keys is incompatible")));
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike) {
@@ -3330,7 +3329,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchemaError) {
                              test::DataSlice<arolla::Text>({"abc", "xyz"}),
                              list_schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("schema for List Items is incompatible")));
+                       HasSubstr("schema for list items is incompatible")));
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_ItemId_Errors) {
