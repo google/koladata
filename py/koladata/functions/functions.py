@@ -16,6 +16,7 @@
 
 from koladata.functions import attrs as _attrs
 from koladata.functions import object_factories as _object_factories
+from koladata.functions import predicates as _predicates
 from koladata.functions import py_conversions as _py_conversions
 from koladata.functions import schema as _schema
 
@@ -58,6 +59,8 @@ embed_schema = _attrs.embed_schema
 set_schema = _attrs.set_schema
 set_attr = _attrs.set_attr
 set_attrs = _attrs.set_attrs
+
+is_item = _predicates.is_item
 
 from_py = _py_conversions.from_py
 from_pytree = _py_conversions.from_py
