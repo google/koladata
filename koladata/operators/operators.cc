@@ -95,6 +95,8 @@ OPERATOR_FAMILY("kde.core.subslice",
 OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
 OPERATOR("kde.core.updated", Updated);
+OPERATOR_FAMILY("kde.core.with_attrs",
+                std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kde.core.with_db", WithDb);
 //
 OPERATOR("kde.logical._agg_all", AggAll);

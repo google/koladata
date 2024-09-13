@@ -754,11 +754,11 @@ foo.get_obj_schema().x = <desired_schema>"""),
     obj = bag().obj(a=1)
     obj.set_attr('__schema__', schema_constants.INT32)
     with self.assertRaisesRegex(
-        ValueError, 'cannot get or set attributes on schema constants: INT32'
+        ValueError, 'cannot get or set attributes on schema: INT32'
     ):
       _ = obj.a
     with self.assertRaisesRegex(
-        ValueError, 'cannot get or set attributes on schema constants: INT32'
+        ValueError, 'cannot get or set attributes on schema: INT32'
     ):
       obj.a = 1
     with self.assertRaisesRegex(

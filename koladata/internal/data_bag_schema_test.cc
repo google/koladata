@@ -323,14 +323,14 @@ TEST(DataBagTest, SetSchemaAttrErrors_Item) {
                        HasSubstr("only schemas can be assigned as attributes of"
                                  " schemas, got: ")));
 
-  EXPECT_THAT(db->GetSchemaAttr(GetAnySchema(), "any_attr"),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("cannot get or set attributes on schema "
-                                 "constants: ANY")));
-  EXPECT_THAT(db->SetSchemaAttr(GetIntSchema(), "any_attr", GetIntSchema()),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("cannot get or set attributes on schema "
-                                 "constants: INT32")));
+  EXPECT_THAT(
+      db->GetSchemaAttr(GetAnySchema(), "any_attr"),
+      StatusIs(absl::StatusCode::kFailedPrecondition,
+               HasSubstr("cannot get or set attributes on schema: ANY")));
+  EXPECT_THAT(
+      db->SetSchemaAttr(GetIntSchema(), "any_attr", GetIntSchema()),
+      StatusIs(absl::StatusCode::kFailedPrecondition,
+               HasSubstr("cannot get or set attributes on schema: INT32")));
 }
 
 TEST(DataBagTest, SetSchemaAttrErrors_Slice) {

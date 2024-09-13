@@ -18,6 +18,7 @@
 #include <cstdint>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -93,6 +94,13 @@ absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
 absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
                                              const DataSlice& attr_name,
                                              const DataSlice& default_value);
+
+// kde.core.with_attrs.
+class WithAttrsOperatorFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const override;
+};
 
 // kde.core._get_list_item_by_range.
 inline absl::StatusOr<DataSlice> GetListItemByRange(const DataSlice& ds,

@@ -722,6 +722,52 @@ class SubsliceOperator : public arolla::InlineOperator {
   }
 };
 
+absl::StatusOr<DataSlice> WithAttrs(
+    const DataSlice& obj, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> attr_values) {
+  DCHECK_EQ(attr_names.size(), attr_values.size());
+  if (obj.GetDb() == nullptr) {
+    return absl::InvalidArgumentError(
+        "with_attrs cannot set attributes on a DataSlice without a DataBag");
+  }
+  ASSIGN_OR_RETURN(DataBagPtr result_db, obj.GetDb()->Fork());
+  // TODO: Remove after `SetAttrs` performs its own adoption.
+  AdoptionQueue adoption_queue;
+  for (const auto& value : attr_values) {
+    adoption_queue.Add(value);
+  }
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
+  DataSlice result_obj = obj.WithDb(std::move(result_db));
+  RETURN_IF_ERROR(
+      result_obj.SetAttrs(attr_names, attr_values, /*update_schema=*/true));
+  return result_obj;
+}
+
+class WithAttrsOperator : public arolla::QExprOperator {
+ public:
+  explicit WithAttrsOperator(absl::Span<const arolla::QTypePtr> input_types)
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [slice_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
+         named_tuple_slot = input_slots[1],
+         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          const auto& slice = frame.Get(slice_slot);
+          const auto& attr_names = GetAttrNames(named_tuple_slot);
+          const auto& values =
+              GetValueDataSlices(named_tuple_slot, attr_names, frame);
+          ASSIGN_OR_RETURN(auto result, WithAttrs(slice, attr_names, values),
+                           ctx->set_status(std::move(_)));
+          frame.Set(output_slot, std::move(result));
+        });
+  }
+};
+
 absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
   const auto& x_shape = x.GetShape();
   const auto& indices_shape = indices.GetShape();
@@ -1072,6 +1118,22 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
                                              const DataSlice& default_value) {
   ASSIGN_OR_RETURN(auto attr_name_str, GetAttrNameAsStr(attr_name));
   return obj.GetAttrWithDefault(attr_name_str, default_value);
+}
+
+absl::StatusOr<arolla::OperatorPtr> WithAttrsOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires exactly 2 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires first argument to be DataSlice");
+  }
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<WithAttrsOperator>(input_types), input_types,
+      output_type);
 }
 
 absl::StatusOr<DataSlice> GroupByIndices(

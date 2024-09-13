@@ -4154,24 +4154,24 @@ TEST(DataSliceTest, SchemaSlice) {
   EXPECT_EQ(b_schema.item(), schema::kFloat64);
 
   // Getting and Setting attributes on Schema constants is not allowed.
-  EXPECT_THAT(x_schema.GetAttr("not_allowed"),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("cannot get or set attributes on schema "
-                                 "constants: INT32")));
-  EXPECT_THAT(x_schema.SetAttr("not_allowed", y_schema),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("cannot get or set attributes on schema "
-                                 "constants: INT32")));
+  EXPECT_THAT(
+      x_schema.GetAttr("not_allowed"),
+      StatusIs(absl::StatusCode::kFailedPrecondition,
+               HasSubstr("cannot get or set attributes on schema: INT32")));
+  EXPECT_THAT(
+      x_schema.SetAttr("not_allowed", y_schema),
+      StatusIs(absl::StatusCode::kFailedPrecondition,
+               HasSubstr("cannot get or set attributes on schema: INT32")));
 
   auto any_schema = test::DataItem(schema::kAny, schema::kSchema, db);
-  EXPECT_THAT(any_schema.GetAttr("not_allowed"),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("cannot get or set attributes on schema "
-                                 "constants: ANY")));
-  EXPECT_THAT(any_schema.SetAttr("not_allowed", schema),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("cannot get or set attributes on schema "
-                                 "constants: ANY")));
+  EXPECT_THAT(
+      any_schema.GetAttr("not_allowed"),
+      StatusIs(absl::StatusCode::kFailedPrecondition,
+               HasSubstr("cannot get or set attributes on schema: ANY")));
+  EXPECT_THAT(
+      any_schema.SetAttr("not_allowed", schema),
+      StatusIs(absl::StatusCode::kFailedPrecondition,
+               HasSubstr("cannot get or set attributes on schema: ANY")));
 
   // Setting a non-schema as a schema attribute.
   EXPECT_THAT(y_schema.SetAttr("non_schema", x),

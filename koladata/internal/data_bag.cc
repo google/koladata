@@ -99,8 +99,7 @@ absl::StatusOr<ObjectId> ItemToDictObjectId(const DataItem& dict) {
 absl::Status InvalidSchemaObjectId(const DataItem& schema_item) {
   if (schema_item.holds_value<schema::DType>()) {
     return absl::FailedPreconditionError(
-        absl::StrCat("cannot get or set attributes on schema constants: ",
-                     schema_item));
+        absl::StrCat("cannot get or set attributes on schema: ", schema_item));
   }
   return absl::FailedPreconditionError(
       absl::StrCat("schema expected, got ", schema_item));
