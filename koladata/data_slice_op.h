@@ -18,6 +18,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
@@ -84,7 +85,8 @@ struct DataSliceOp {
         });
       });
     } else {
-      ASSIGN_OR_RETURN(auto aligned_inputs, shape::Align({ds_1, ds_2}));
+      ASSIGN_OR_RETURN(auto aligned_inputs,
+                       shape::Align(std::vector{ds_1, ds_2}));
       const auto& aligned_ds_1 = aligned_inputs[0];
       return aligned_ds_1.VisitImpl([&](const auto& impl_1) {
         using ImplT = typename std::decay_t<decltype(impl_1)>;

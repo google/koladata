@@ -128,7 +128,7 @@ TEST(ShapeUtilsTest, Align) {
     ASSERT_OK_AND_ASSIGN(auto ds,
                          DataSlice::CreateWithSchemaFromData(
                              internal::DataSliceImpl::Create(values), shape_1));
-    ASSERT_OK_AND_ASSIGN(auto aligned_slices, Align({ds}));
+    ASSERT_OK_AND_ASSIGN(auto aligned_slices, Align(std::vector{ds}));
     EXPECT_EQ(aligned_slices.size(), 1);
     EXPECT_THAT(aligned_slices[0], IsEquivalentTo(ds));
   }
@@ -143,7 +143,7 @@ TEST(ShapeUtilsTest, Align) {
     ASSERT_OK_AND_ASSIGN(
         auto ds_2, DataSlice::CreateWithSchemaFromData(
                        internal::DataSliceImpl::Create(values_2), shape_1));
-    ASSERT_OK_AND_ASSIGN(auto aligned_slices, Align({ds_1, ds_2}));
+    ASSERT_OK_AND_ASSIGN(auto aligned_slices, Align(std::vector{ds_1, ds_2}));
     EXPECT_EQ(aligned_slices.size(), 2);
     EXPECT_THAT(aligned_slices[0], IsEquivalentTo(ds_1));
     EXPECT_THAT(aligned_slices[1], IsEquivalentTo(ds_2));
@@ -163,7 +163,7 @@ TEST(ShapeUtilsTest, Align) {
     ASSERT_OK_AND_ASSIGN(
         auto ds_2, DataSlice::CreateWithSchemaFromData(
                        internal::DataSliceImpl::Create(values_2), shape_2));
-    EXPECT_THAT(Align({ds_1, ds_2}),
+    EXPECT_THAT(Align(std::vector{ds_1, ds_2}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("shapes are not compatible")));
   }
@@ -182,7 +182,7 @@ TEST(ShapeUtilsTest, Align) {
         auto ds_2, DataSlice::CreateWithSchemaFromData(
                        internal::DataSliceImpl::Create(values_2), shape_2));
 
-    ASSERT_OK_AND_ASSIGN(auto aligned, Align({ds_1, ds_2}));
+    ASSERT_OK_AND_ASSIGN(auto aligned, Align(std::vector{ds_1, ds_2}));
     EXPECT_THAT(aligned[0].GetShape(), IsEquivalentTo(shape_2));
     EXPECT_THAT(aligned[0].slice().template values<int>(),
                 ElementsAre(1, 1, 2, 2, 3, 3));

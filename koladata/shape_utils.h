@@ -35,6 +35,10 @@ absl::StatusOr<DataSlice::JaggedShape> GetCommonShape(
 // shape with a highest rank (among the slices) that all slices are
 // broadcastable to.
 absl::StatusOr<std::vector<DataSlice>> Align(std::vector<DataSlice> slices);
+inline absl::StatusOr<std::vector<DataSlice>> Align(
+    absl::Span<const DataSlice> slices) {
+  return Align(std::vector<DataSlice>(slices.begin(), slices.end()));
+}
 
 // Returns the collection of broadcasted DataSlices to a common shape, i.e. a
 // shape with a highest rank (among the slices) that all slices are

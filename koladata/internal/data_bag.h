@@ -195,14 +195,14 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Allocates new objects with provided attributes and store them in
   // DataBagImpl. All DataSliceImpl's must have the same size.
   absl::StatusOr<DataSliceImpl> CreateObjectsFromFields(
-      const std::vector<absl::string_view>& attr_names,
+      absl::Span<const absl::string_view> attr_names,
       const std::vector<std::reference_wrapper<const DataSliceImpl>>& slices);
 
   // Allocates new object with provided attributes and store them in
   // DataBagImpl.
   absl::StatusOr<DataItem> CreateObjectsFromFields(
-      const std::vector<absl::string_view>& attr_names,
-      const std::vector<std::reference_wrapper<const DataItem>>& items);
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const std::reference_wrapper<const DataItem>> items);
 
   // Updates DataBagImpl with new attribute values for the specified objects.
   // Items with missing `objects` are ignored
@@ -506,16 +506,15 @@ class DataBagImpl : public arolla::RefcountedBase {
   // valid schemas, appropriate error is returned. The allocated schema is
   // explicit schema.
   absl::StatusOr<DataItem> CreateExplicitSchemaFromFields(
-      const std::vector<absl::string_view>& attr_names,
-      const std::vector<std::reference_wrapper<const DataItem>>& items);
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const std::reference_wrapper<const DataItem>> items);
 
   // Returns an explicit UuSchema DataItem with attributes from `attr_names` set
   // to schemas in `items` in the same order. In case some of the `items` are
   // not valid schemas, appropriate error is returned.
   absl::StatusOr<DataItem> CreateUuSchemaFromFields(
-      absl::string_view seed,
-      const std::vector<absl::string_view>& attr_names,
-      const std::vector<std::reference_wrapper<const DataItem>>& items);
+      absl::string_view seed, absl::Span<const absl::string_view> attr_names,
+      absl::Span<const std::reference_wrapper<const DataItem>> items);
 
   // Sets attributes from `attr_names` to schemas in `items` in the same order.
   // Attributes are added to existing schemas, i.e. existing attributes remain
@@ -525,8 +524,8 @@ class DataBagImpl : public arolla::RefcountedBase {
   // ObjectIds which are schemas. Otherwise, an error is returned.
   template <typename ImplT>
   absl::Status SetSchemaFields(
-      const ImplT&,  const std::vector<absl::string_view>& attr_names,
-      const std::vector<std::reference_wrapper<const DataItem>>& items);
+      const ImplT&, absl::Span<const absl::string_view> attr_names,
+      absl::Span<const std::reference_wrapper<const DataItem>> items);
 
   // Sets attributes from `attr_names` to schemas in `items` in the same order.
   // All schemas are overwritten. It is the fast version of SetSchemaFields for
@@ -537,8 +536,8 @@ class DataBagImpl : public arolla::RefcountedBase {
   // ObjectIds which are schemas. Otherwise, an error is returned.
   template <typename ImplT>
   absl::Status OverwriteSchemaFields(
-      const ImplT&,  const std::vector<absl::string_view>& attr_names,
-      const std::vector<std::reference_wrapper<const DataItem>>& items);
+      const ImplT&, absl::Span<const absl::string_view> attr_names,
+      absl::Span<const std::reference_wrapper<const DataItem>> items);
 
   // Specialization for OverwriteSchemaFields that assign the same schema
   // fields for the entire allocation.
@@ -554,8 +553,8 @@ class DataBagImpl : public arolla::RefcountedBase {
   // If size is unknown, use schema_alloc_id.Capacity().
   absl::Status OverwriteSchemaFieldsForEntireAllocation(
       AllocationId schema_alloc_id, size_t size,
-      const std::vector<absl::string_view>& attr_names,
-      const std::vector<std::reference_wrapper<const DataItem>>& items);
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const std::reference_wrapper<const DataItem>> items);
 
   // ********* Merging
 

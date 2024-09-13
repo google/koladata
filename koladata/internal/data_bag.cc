@@ -636,7 +636,7 @@ DataBagImpl::InternalSetUnitAttrAndReturnMissingObjects(
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::CreateObjectsFromFields(
-    const std::vector<absl::string_view>& attr_names,
+    absl::Span<const absl::string_view> attr_names,
     const std::vector<std::reference_wrapper<const DataSliceImpl>>& slices) {
   DCHECK_EQ(attr_names.size(), slices.size());
   int64_t ds_size = -1;
@@ -675,8 +675,8 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::CreateObjectsFromFields(
 }
 
 absl::StatusOr<DataItem> DataBagImpl::CreateObjectsFromFields(
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   DCHECK_EQ(attr_names.size(), items.size());
   ObjectId object_id = AllocateSingleObject();
   for (int i = 0; i < attr_names.size(); ++i) {
@@ -2359,8 +2359,8 @@ absl::Status DataBagImpl::DelSchemaAttr(const DataSliceImpl& schema_slice,
 
 template <typename ImplT>
 absl::Status SetSchemaFields(
-    const ImplT&,  const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    const ImplT&,  absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   static_assert(sizeof(ImplT) == 0,
                 "SetSchemaFields is not supported for ImplT not in "
                 "{DataSliceImpl, DataItem}");
@@ -2369,8 +2369,8 @@ absl::Status SetSchemaFields(
 template<>
 absl::Status DataBagImpl::SetSchemaFields(
     const DataItem& schema_item,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   if (!schema_item.holds_value<ObjectId>()) {
     if (!schema_item.has_value()) {
       return absl::OkStatus();
@@ -2391,8 +2391,8 @@ absl::Status DataBagImpl::SetSchemaFields(
 template <>
 absl::Status DataBagImpl::SetSchemaFields(
     const DataSliceImpl& schema_slice,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   DCHECK_EQ(attr_names.size(), items.size());
   if (schema_slice.is_empty_and_unknown()) {
     return absl::OkStatus();
@@ -2426,8 +2426,8 @@ absl::Status DataBagImpl::SetSchemaFields(
 
 template <typename ImplT>
 absl::Status OverwriteSchemaFields(
-    const ImplT&,  const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    const ImplT&,  absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   static_assert(sizeof(ImplT) == 0,
                 "OverwriteSchemaFields is not supported for ImplT not in "
                 "{DataSliceImpl, DataItem}");
@@ -2436,8 +2436,8 @@ absl::Status OverwriteSchemaFields(
 template <>
 absl::Status DataBagImpl::OverwriteSchemaFields(
     const DataItem& schema_item,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   if (!schema_item.holds_value<ObjectId>()) {
     if (!schema_item.has_value()) {
       return absl::OkStatus();
@@ -2459,8 +2459,8 @@ absl::Status DataBagImpl::OverwriteSchemaFields(
 template <>
 absl::Status DataBagImpl::OverwriteSchemaFields(
     const DataSliceImpl& schema_slice,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   DCHECK_EQ(attr_names.size(), items.size());
   if (schema_slice.is_empty_and_unknown()) {
     return absl::OkStatus();
@@ -2499,8 +2499,8 @@ absl::Status DataBagImpl::OverwriteSchemaFields(
 
 absl::Status DataBagImpl::OverwriteSchemaFieldsForEntireAllocation(
     AllocationId schema_alloc_id, size_t size,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   DCHECK_EQ(attr_names.size(), items.size());
   DCHECK(schema_alloc_id.IsSchemasAlloc());
   if (size == 0) {
@@ -2526,8 +2526,8 @@ absl::Status DataBagImpl::OverwriteSchemaFieldsForEntireAllocation(
 }
 
 absl::StatusOr<DataItem> DataBagImpl::CreateExplicitSchemaFromFields(
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   DCHECK_EQ(attr_names.size(), items.size());
   auto schema_id = internal::AllocateExplicitSchema();
   RETURN_IF_ERROR(
@@ -2537,8 +2537,8 @@ absl::StatusOr<DataItem> DataBagImpl::CreateExplicitSchemaFromFields(
 
 absl::StatusOr<DataItem> DataBagImpl::CreateUuSchemaFromFields(
     absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const DataItem>>& items) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> items) {
   DCHECK_EQ(attr_names.size(), items.size());
   auto schema_id = internal::CreateSchemaUuidFromFields(
       seed, attr_names, items);

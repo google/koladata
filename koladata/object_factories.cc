@@ -81,8 +81,8 @@ absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names) {
 template <class ImplT>
 absl::StatusOr<DataSlice> CreateEntitiesFromFields(
     const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& aligned_values, internal::DataItem schema,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> aligned_values, internal::DataItem schema,
     internal::DataBagImpl& db_mutable_impl) {
   DCHECK(&db->GetImpl() == &db_mutable_impl);
   std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
@@ -178,9 +178,8 @@ absl::Status CopyDictSchema(const DataSlice& dict_schema,
 template <class ImplT>
 absl::Status SetObjectSchema(
     internal::DataBagImpl& db_mutable_impl, const ImplT& ds_impl,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const internal::DataItem>>&
-        schemas,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> schemas,
     bool overwrite_schemas = true) {
   ASSIGN_OR_RETURN(
       auto schema_impl,
@@ -202,8 +201,8 @@ absl::Status SetObjectSchema(
 // entire allocation.
 absl::Status OverwriteObjectSchemaForEntireAllocation(
     internal::DataBagImpl& db_mutable_impl, const DataSliceImpl& ds_impl,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<std::reference_wrapper<const internal::DataItem>>&
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const internal::DataItem>>
         schemas) {
   if (ds_impl.is_empty_and_unknown()) {
     return absl::OkStatus();
@@ -238,8 +237,8 @@ absl::Status OverwriteObjectSchemaForEntireAllocation(
 // DataSlice-level schema is set to `OBJECT`.
 template <class ImplT>
 absl::StatusOr<DataSlice> CreateObjectsFromFields(
-    const DataBagPtr& db, const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& aligned_values) {
+    const DataBagPtr& db, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> aligned_values) {
   std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
   aligned_values_impl.reserve(aligned_values.size());
   std::vector<std::reference_wrapper<const internal::DataItem>> schemas;
@@ -594,8 +593,8 @@ absl::StatusOr<DataSlice> CreateObjectsImpl(
 }
 
 absl::StatusOr<DataSlice> CreateUuidFromFieldsImpl(
-    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values,
+    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values,
     internal::UuidType uuid_type) {
   DCHECK_EQ(attr_names.size(), values.size());
   if (values.empty()) {
@@ -625,8 +624,8 @@ absl::StatusOr<DataSlice> CreateUuidFromFieldsImpl(
 // and -Like creation and forward to -Shaped here.
 absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
     const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema,
     bool update_schema,
     const std::optional<DataSlice>& itemid) {
@@ -749,8 +748,8 @@ absl::StatusOr<DataSlice> EntityCreator::Like(
 // TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
 // and -Like creation and forward to -Shaped here.
 absl::StatusOr<DataSlice> ObjectCreator::FromAttrs(
-    const DataBagPtr& db, const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values,
+    const DataBagPtr& db, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& itemid) {
   DCHECK_EQ(attr_names.size(), values.size());
   if (itemid) {
@@ -821,30 +820,30 @@ absl::StatusOr<DataSlice> ObjectCreator::Convert(const DataBagPtr& db,
 }
 
 absl::StatusOr<DataSlice> CreateUuidFromFields(
-    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values) {
+    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) {
   return CreateUuidFromFieldsImpl(seed, attr_names, values,
                                   internal::UuidType::kDefault);
 }
 
 absl::StatusOr<DataSlice> CreateListUuidFromFields(
-    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values) {
+    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) {
   return CreateUuidFromFieldsImpl(seed, attr_names, values,
                                   internal::UuidType::kList);
 }
 
 absl::StatusOr<DataSlice> CreateDictUuidFromFields(
-    absl::string_view seed, const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values) {
+    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) {
   return CreateUuidFromFieldsImpl(seed, attr_names, values,
                                   internal::UuidType::kDict);
 }
 
 absl::StatusOr<DataSlice> CreateUu(
     const DataBagPtr& db, absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema, bool update_schema) {
   CHECK_EQ(attr_names.size(), values.size());
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
@@ -918,8 +917,8 @@ absl::StatusOr<DataSlice> CreateUu(
 
 absl::StatusOr<DataSlice> CreateUuObject(
     const DataBagPtr& db, absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) {
   DCHECK_EQ(attr_names.size(), values.size());
   DataSlice ds;
   if (values.empty()) {
@@ -975,8 +974,8 @@ absl::StatusOr<DataSlice> CreateUuObject(
 
 absl::StatusOr<DataSlice> CreateEntitySchema(
     const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& schemas) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> schemas) {
   DCHECK_EQ(attr_names.size(), schemas.size());
   std::vector<std::reference_wrapper<const internal::DataItem>> schema_items;
   schema_items.reserve(schemas.size());
@@ -995,8 +994,8 @@ absl::StatusOr<DataSlice> CreateEntitySchema(
 absl::StatusOr<DataSlice> CreateUuSchema(
     const DataBagPtr& db,
     absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& schemas) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> schemas) {
   DCHECK_EQ(attr_names.size(), schemas.size());
   std::vector<std::reference_wrapper<const internal::DataItem>> schema_items;
   schema_items.reserve(schemas.size());
@@ -1014,8 +1013,8 @@ absl::StatusOr<DataSlice> CreateUuSchema(
 
 absl::StatusOr<DataSlice> CreateSchema(
     const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& schemas) {
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> schemas) {
   return CreateEntitySchema(db, attr_names, schemas);
 }
 

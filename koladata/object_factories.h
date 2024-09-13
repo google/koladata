@@ -34,8 +34,8 @@ namespace koladata {
 // `schemas` are not valid schemas, appropriate error is returned.
 absl::StatusOr<DataSlice> CreateEntitySchema(
     const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& schemas);
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> schemas);
 
 // Functor that provides different factories for Entities. When created,
 // Entities have DataSlice-level explicit schema (which is also stored in the
@@ -62,8 +62,8 @@ struct EntityCreator {
   // Adopts `values` and `schema`(if present) into `db`.
   static absl::StatusOr<DataSlice> FromAttrs(
       const DataBagPtr& db,
-      const std::vector<absl::string_view>& attr_names,
-      const std::vector<DataSlice>& values,
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema = std::nullopt,
       bool update_schema = false,
       const std::optional<DataSlice>& itemid = std::nullopt);
@@ -150,8 +150,8 @@ struct ObjectCreator {
   // Adopts `values` and `schema`(if present) into `db`.
   static absl::StatusOr<DataSlice> FromAttrs(
       const DataBagPtr& db,
-      const std::vector<absl::string_view>& attr_names,
-      const std::vector<DataSlice>& values,
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& itemid = std::nullopt);
 
   // Implements kd.obj_shaped function / operator.
@@ -221,20 +221,20 @@ struct ObjectCreator {
 // have different ids.
 absl::StatusOr<DataSlice> CreateUuidFromFields(
     absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values);
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values);
 
 // Creates a DataSlice of uuids with list flag set.
 absl::StatusOr<DataSlice> CreateListUuidFromFields(
     absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values);
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values);
 
 // Creates a DataSlice of uuids with dict flag set.
 absl::StatusOr<DataSlice> CreateDictUuidFromFields(
     absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values);
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values);
 
 // Returns a UuEntity ((DataSlice of UuIds generated as row-wise fingerprints
 // from attribute names and values) with a reference to `db`) and attributes
@@ -257,8 +257,8 @@ absl::StatusOr<DataSlice> CreateDictUuidFromFields(
 absl::StatusOr<DataSlice> CreateUu(
     const DataBagPtr& db,
     absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema = std::nullopt,
     bool update_schema = false);
 
@@ -276,8 +276,8 @@ absl::StatusOr<DataSlice> CreateUu(
 absl::StatusOr<DataSlice> CreateUuObject(
     const DataBagPtr& db,
     absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& values);
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values);
 
 // Returns a UuSchema (DataItem generated as a row-wise fingerprint from
 // attribute names and schemas) with a reference to `db`) and attributes
@@ -285,15 +285,15 @@ absl::StatusOr<DataSlice> CreateUuObject(
 absl::StatusOr<DataSlice> CreateUuSchema(
     const DataBagPtr& db,
     absl::string_view seed,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& schemas);
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> schemas);
 
 // Returns an allocated schema with attributes `attr_names` set to `schemas` in
 // `db`.
 absl::StatusOr<DataSlice> CreateSchema(
     const DataBagPtr& db,
-    const std::vector<absl::string_view>& attr_names,
-    const std::vector<DataSlice>& schemas);
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> schemas);
 
 // Returns a list schema from a given `item_schema`.
 absl::StatusOr<DataSlice> CreateListSchema(const DataBagPtr& db,
