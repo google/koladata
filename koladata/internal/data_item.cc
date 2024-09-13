@@ -26,7 +26,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "absl/strings/strip.h"
 #include "koladata/internal/expr_quote_utils.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
