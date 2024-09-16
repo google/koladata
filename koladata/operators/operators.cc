@@ -160,12 +160,12 @@ OPERATOR("kde.strings._agg_join", AggJoin);
 OPERATOR("kde.strings._split", Split);
 OPERATOR("kde.strings.contains", Contains);
 OPERATOR("kde.strings.count", Count);
-OPERATOR_FAMILY("kde.strings.format",
-                arolla::MakeVariadicInputOperatorFamily(Format));
 OPERATOR_FAMILY("kde.strings.join",
                 arolla::MakeVariadicInputOperatorFamily(Join));
 OPERATOR("kde.strings.length", Length);
 OPERATOR("kde.strings.lower", Lower);
+OPERATOR_FAMILY("kde.strings.printf",
+                arolla::MakeVariadicInputOperatorFamily(Printf));
 OPERATOR("kde.strings.substr", Substr);
 OPERATOR("kde.strings.upper", Upper);
 //

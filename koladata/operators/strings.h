@@ -32,9 +32,6 @@ absl::StatusOr<DataSlice> Contains(const DataSlice& x, const DataSlice& substr);
 // kde.strings.count.
 absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr);
 //
-// kde.strings.format.
-absl::StatusOr<DataSlice> Format(std::vector<DataSlice> slices);
-//
 // kde.strings.join.
 absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices);
 //
@@ -43,6 +40,9 @@ absl::StatusOr<DataSlice> Length(const DataSlice& x);
 //
 // kde.strings.lower.
 absl::StatusOr<DataSlice> Lower(const DataSlice& x);
+//
+// kde.strings.printf.
+absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices);
 //
 // kde.strings.split.
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep);

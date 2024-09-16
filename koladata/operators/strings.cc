@@ -53,7 +53,7 @@ absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr) {
                              internal::DataItem(schema::kInt32));
 }
 
-absl::StatusOr<DataSlice> Format(std::vector<DataSlice> slices) {
+absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices) {
   if (slices.empty()) {
     return absl::InvalidArgumentError("expected at least one input");
   }
