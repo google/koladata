@@ -269,6 +269,7 @@ class DataSliceView(BasicKodaView):
   def with_db(self, db: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.with_db', self, db)
 
+  @property
   def db(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_db', self)
 

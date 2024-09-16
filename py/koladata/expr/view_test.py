@@ -434,7 +434,7 @@ class DataSliceViewTest(parameterized.TestCase):
     testing.assert_equal(C.x.get_values(), kde.get_values(C.x))
 
   def test_db(self):
-    testing.assert_equal(C.x.db(), kde.get_db(C.x))
+    testing.assert_equal(C.x.db, kde.get_db(C.x))
 
   def test_no_db(self):
     testing.assert_equal(C.x.no_db(), kde.no_db(C.x))
