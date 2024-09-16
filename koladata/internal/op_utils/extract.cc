@@ -168,7 +168,7 @@ class CopyingProcessor {
   }
 
   absl::Status ProcessAttribute(const QueuedSlice& slice,
-                                const std::string_view& attr_name,
+                                const std::string_view attr_name,
                                 const DataItem& attr_schema) {
     const auto& ds = slice.slice;
     DataSliceImpl old_ds;
@@ -253,7 +253,7 @@ class CopyingProcessor {
   absl::StatusOr<std::pair<DataItem, bool>> CopyAttrSchema(
       const DataItem& schema_item, const DataBagImpl& db,
       const DataBagImpl::FallbackSpan fallbacks,
-      const std::string_view& attr_name) {
+      const std::string_view attr_name) {
     DataItem old_schema_item;
     if (is_shallow_clone_) {
       ASSIGN_OR_RETURN(old_schema_item, objects_tracker_->GetAttr(
@@ -343,7 +343,7 @@ class CopyingProcessor {
     bool has_dict_keys_attr = false;
     bool has_dict_values_attr = false;
     attr_names.ForEach(
-        [&](int64_t id, bool presence, const std::string_view& attr_name) {
+        [&](int64_t id, bool presence, const std::string_view attr_name) {
           DCHECK(presence);
           if (attr_name == schema::kListItemsSchemaAttr) {
             has_list_items_attr = true;
@@ -369,7 +369,7 @@ class CopyingProcessor {
     }
     absl::Status status = absl::OkStatus();
     attr_names.ForEach(
-        [&](int64_t id, bool presence, const std::string_view& attr_name) {
+        [&](int64_t id, bool presence, const std::string_view attr_name) {
           DCHECK(presence);
           if (!status.ok()) {
             return;
