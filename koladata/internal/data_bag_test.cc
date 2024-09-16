@@ -29,7 +29,6 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -40,10 +39,8 @@
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
-#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/fingerprint.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 
 namespace koladata::internal {
@@ -183,7 +180,6 @@ TEST(DataBagTest, GetObjSchemaAttr) {
   EXPECT_THAT(ds_a_get.values<ObjectId>(),
               ElementsAreArray(ds_a.values<ObjectId>()));
 
-  arolla::InitArolla();
   auto ds_missing_schema = DataSliceImpl::AllocateEmptyObjects(kSize);
 
   EXPECT_THAT(

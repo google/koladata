@@ -549,9 +549,9 @@ cc_test(
         ":uuid_object",
         "//koladata/internal/testing:matchers",
         "//koladata/s11n",
+        "//koladata/testing:test_env",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
-        "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/dense_array/qtype",
         "@com_google_arolla//arolla/memory",
@@ -727,9 +727,9 @@ cc_test(
     srcs = ["expr_quote_utils_test.cc"],
     deps = [
         ":expr_quote_utils",
+        "//koladata/testing:test_env",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/expr/testing:test_operators",
-        "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],
 )

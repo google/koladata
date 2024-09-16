@@ -38,7 +38,6 @@
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -175,7 +174,6 @@ TEST(CallTest, MustBeScalar) {
 }
 
 TEST(CallTest, NoDb) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));

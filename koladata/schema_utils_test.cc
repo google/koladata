@@ -24,7 +24,6 @@
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 
 namespace koladata::schema {
@@ -72,7 +71,6 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Item) {
 }
 
 TEST(SchemaUtilsTest, GetNarrowedSchema_Slice) {
-  arolla::InitArolla();
   {
     // Primitive schema.
     EXPECT_THAT(GetNarrowedSchema(

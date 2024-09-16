@@ -50,10 +50,6 @@ cc_test(
 cc_library(
     name = "test_env",
     testonly = True,
-    srcs = ["test_env.cc"],
-    deps = [
-        "@com_google_arolla//arolla/util",
-        "@com_google_googletest//:gtest",
-    ],
+    deps = ["@com_google_arolla//arolla/util/testing"],
     alwayslink = True,
 )

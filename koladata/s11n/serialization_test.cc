@@ -13,9 +13,9 @@
 // limitations under the License.
 //
 #include <vector>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -26,7 +26,6 @@
 #include "arolla/serialization/decode.h"
 #include "arolla/serialization/encode.h"
 #include "arolla/util/bytes.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -37,12 +36,7 @@ using arolla::TypedValue;
 using internal::DataItem;
 using internal::DataSliceImpl;
 
-class SerializationTest : public ::testing::Test {
- protected:
-  void SetUp() override { arolla::InitArolla(); }
-};
-
-TEST_F(SerializationTest, DataItem) {
+TEST(SerializationTest, DataItem) {
   std::vector<DataItem> items{
       DataItem(1),
       DataItem(2.f),
@@ -73,7 +67,7 @@ TEST_F(SerializationTest, DataItem) {
   }
 }
 
-TEST_F(SerializationTest, DataSliceImpl) {
+TEST(SerializationTest, DataSliceImpl) {
   auto slice = DataSliceImpl::Create(
       {DataItem(1), DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x"))),
        DataItem(2), DataItem(), DataItem(arolla::Text("abc")), DataItem(2.0),

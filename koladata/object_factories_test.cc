@@ -181,7 +181,6 @@ TEST(EntityCreatorTest, DataItem) {
 }
 
 TEST(EntityCreatorTest, DatabagAdoption) {
-  arolla::InitArolla();
   auto db_nested = DataBag::Empty();
   auto ds_a = test::DataItem(42);
   ASSERT_OK_AND_ASSIGN(
@@ -227,7 +226,6 @@ TEST(EntityCreatorTest, DatabagAdoption) {
 }
 
 TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
-  arolla::InitArolla();
   auto schema_db = DataBag::Empty();
   auto alt_schema = *CreateEntitySchema(schema_db, {"a"},
                                           {test::Schema(schema::kFloat32)});
@@ -770,7 +768,6 @@ TEST(CreateUuTest, SchemaArg_Any) {
 }
 
 TEST(CreateUuTest, DatabagAdoption) {
-  arolla::InitArolla();
   auto db_nested = DataBag::Empty();
   auto ds_a = test::DataItem(42);
   ASSERT_OK_AND_ASSIGN(
@@ -788,7 +785,6 @@ TEST(CreateUuTest, DatabagAdoption) {
 }
 
 TEST(CreateUuTest, DatabagAdoption_WithSchema) {
-  arolla::InitArolla();
   auto schema_db = DataBag::Empty();
   auto alt_schema = *CreateEntitySchema(schema_db, {"a"},
                                           {test::Schema(schema::kFloat32)});

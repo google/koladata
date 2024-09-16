@@ -70,6 +70,7 @@ cc_test(
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
+        "//koladata/testing:test_env",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/serialization",

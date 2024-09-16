@@ -37,7 +37,6 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -63,7 +62,6 @@ DataSliceEdge EdgeFromSizes(absl::Span<const int64_t> sizes) {
 }
 
 TEST(ArollaEval, SimplePointwiseEval) {
-  arolla::InitArolla();
   {
     // Eval through operator.
     DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
@@ -156,7 +154,6 @@ TEST(ArollaEval, SimplePointwiseEval) {
 }
 
 TEST(ArollaEval, SimpleAggIntoEval) {
-  arolla::InitArolla();
   {
     // Eval through operator.
     DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
@@ -248,7 +245,6 @@ TEST(ArollaEval, SimpleAggIntoEval) {
 }
 
 TEST(ArollaEval, SimpleAggOverEval) {
-  arolla::InitArolla();
   {
     // Eval through operator.
     DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(

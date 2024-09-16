@@ -23,13 +23,11 @@
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/expr/quote.h"
 #include "arolla/expr/testing/test_operators.h"
-#include "arolla/util/init_arolla.h"
 
 namespace koladata::internal {
 namespace {
 
 TEST(ExprQuoteUtils, StableFingerprint) {
-  arolla::InitArolla();
   ASSERT_OK_AND_ASSIGN(
       auto expr_1,
       arolla::expr::CallOp("math.add",

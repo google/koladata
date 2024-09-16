@@ -51,7 +51,6 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/testing/repr_token_eq.h"
 #include "arolla/util/text.h"
@@ -3863,7 +3862,6 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
 }
 
 TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
-  arolla::InitArolla();
   auto edge_1 = CreateEdge({0, 2});
   auto edge_2 = CreateEdge({0, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto shape,

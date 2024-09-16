@@ -193,6 +193,7 @@ cc_test(
         "//koladata/internal:object_id",
         "//koladata/internal/testing:matchers",
         "//koladata/testing:matchers",
+        "//koladata/testing:test_env",
         "@com_google_absl//absl/hash:hash_testing",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
