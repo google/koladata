@@ -999,6 +999,23 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "uuid_object_benchmarks",
+    srcs = ["uuid_object_benchmarks.cc"],
+    deps = [
+        ":benchmark_helpers",
+        ":data_slice",
+        ":object_id",
+        ":uuid_object",
+        "@com_google_absl//absl/hash",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
 cc_library(
     name = "ellipsis",
     srcs = ["ellipsis.cc"],
