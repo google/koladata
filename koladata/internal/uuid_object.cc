@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -211,17 +212,41 @@ absl::StatusOr<DataSliceImpl> CreateUuidWithMainObject(
 
   const AllocationIdSet& source_id_set = main_objects.allocation_ids();
 
+  auto compute_uu_obj_id = [&](ObjectId obj_id) {
+    return CreateUuidWithMainObject<uuid_flag>(
+        obj_id, UuidWithMainObjectFingerprint(obj_id, salt));
+  };
+
+  if (!source_id_set.contains_small_allocation_id() &&
+      source_id_set.size() == 1) {
+    ObjectId zero_obj_id = source_id_set.begin()->ObjectByOffset(0);
+    auto uu_alloc_id = AllocationId(compute_uu_obj_id(zero_obj_id));
+    auto op = arolla::CreateDenseOp([&](ObjectId obj_id) {
+      return uu_alloc_id.ObjectByOffset(obj_id.Offset());
+    });
+    return DataSliceImpl::CreateObjectsDataSlice(op(objects),
+                                                 AllocationIdSet(uu_alloc_id));
+  }
+
   AllocationIdSet final_id_set(source_id_set.contains_small_allocation_id());
+
+  absl::flat_hash_map<AllocationId, AllocationId> big_alloc_id_map(
+      source_id_set.size());
 
   for (AllocationId alloc_id : source_id_set) {
     ObjectId obj_id = alloc_id.ObjectByOffset(0);
-    final_id_set.Insert(AllocationId(CreateUuidWithMainObject<uuid_flag>(
-        obj_id, UuidWithMainObjectFingerprint(obj_id, salt))));
+    auto uu_alloc_id = AllocationId(compute_uu_obj_id(obj_id));
+    final_id_set.Insert(uu_alloc_id);
+    big_alloc_id_map.emplace(alloc_id, uu_alloc_id);
   }
 
   auto op = arolla::CreateDenseOp([&](ObjectId obj_id) {
-    return CreateUuidWithMainObject<uuid_flag>(
-        obj_id, UuidWithMainObjectFingerprint(obj_id, salt));
+    if (obj_id.IsSmallAlloc()) {
+      return compute_uu_obj_id(obj_id);
+    }
+    AllocationId alloc_id(obj_id);
+    return big_alloc_id_map.find(alloc_id)->second.ObjectByOffset(
+        obj_id.Offset());
   });
 
   return DataSliceImpl::CreateObjectsDataSlice(op(objects), final_id_set);

@@ -353,15 +353,14 @@ TEST(UuidTest, CreateUuidWithMainObject_ImplicitSchema) {
   EXPECT_TRUE(AllocationId(implicit_schema).IsSchemasAlloc());
 }
 
-TEST(UuidTest, CreateUuidWithMainObjectDataSlice) {
-  {
-    auto alloc1 = Allocate(1043);
-    auto alloc2 = Allocate(9043);
+TEST(UuidTest, CreateUuidWithMainObjectDataSliceSingleAlloc) {
+  for (int64_t size : {1, 3, 13, 1043}) {
+    auto alloc = Allocate(size);
     auto main_obj = DataSliceImpl::CreateWithAllocIds(
-        AllocationIdSet({alloc1, alloc2}),
+        AllocationIdSet({alloc}),
         arolla::CreateDenseArray<ObjectId>(std::vector<OptionalValue<ObjectId>>{
-            std::nullopt, alloc1.ObjectByOffset(5), std::nullopt,
-            alloc1.ObjectByOffset(7), alloc2.ObjectByOffset(13),
+            std::nullopt, alloc.ObjectByOffset(size - 1), std::nullopt,
+            alloc.ObjectByOffset(size / 2), alloc.ObjectByOffset(size / 7),
             std::nullopt}));
     ASSERT_OK_AND_ASSIGN(auto x, CreateUuidWithMainObject(main_obj, "x"));
     ASSERT_OK_AND_ASSIGN(auto y, CreateUuidWithMainObject(main_obj, "y"));
@@ -381,8 +380,40 @@ TEST(UuidTest, CreateUuidWithMainObjectDataSlice) {
       EXPECT_EQ(uuid->allocation_ids(), AllocationIdSet(expected_allocs));
     }
   }
-  // TODO: add tests for contains_small_alloc once we remove
-  // IsUuid in IsSmallAlloc.
+}
+
+TEST(UuidTest, CreateUuidWithMainObjectDataSlice) {
+  for (int64_t size1 : {1, 3, 5, 19, 1043}) {
+    for (int64_t size2 : {1, 3, 5, 19, 1043}) {
+      auto alloc1 = Allocate(size1);
+      auto alloc2 = Allocate(size2);
+      auto main_obj = DataSliceImpl::CreateWithAllocIds(
+          AllocationIdSet({alloc1, alloc2}),
+          arolla::CreateDenseArray<ObjectId>(
+              std::vector<OptionalValue<ObjectId>>{
+                  std::nullopt, alloc1.ObjectByOffset(size1 - 1), std::nullopt,
+                  alloc1.ObjectByOffset(size1 / 2),
+                  alloc2.ObjectByOffset(size2 / 2), std::nullopt}));
+      ASSERT_OK_AND_ASSIGN(auto x, CreateUuidWithMainObject(main_obj, "x"));
+      ASSERT_OK_AND_ASSIGN(auto y, CreateUuidWithMainObject(main_obj, "y"));
+      for (const auto& [uuid, salt] :
+           std::vector{std::pair{&x, "x"}, std::pair{&y, "y"}}) {
+        EXPECT_EQ(uuid->dtype(), arolla::GetQType<ObjectId>());
+        EXPECT_EQ(uuid->size(), main_obj.size());
+        std::vector<AllocationId> expected_allocs;
+        for (int64_t i = 0; i < uuid->size(); ++i) {
+          ASSERT_OK_AND_ASSIGN(auto uuid_item,
+                               CreateUuidWithMainObject(main_obj[i], salt));
+          EXPECT_EQ((*uuid)[i], uuid_item);
+          if (uuid_item.has_value()) {
+            expected_allocs.push_back(
+                AllocationId(uuid_item.value<ObjectId>()));
+          }
+        }
+        EXPECT_EQ(uuid->allocation_ids(), AllocationIdSet(expected_allocs));
+      }
+    }
+  }
 }
 
 TEST(UuidTest, CreateUuidWithMainObjectDataSlice_ImplicitSchema) {
