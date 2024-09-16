@@ -97,7 +97,7 @@ class AlignOperator : public arolla::QExprOperator {
  private:
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
-      arolla::TypedSlot output_slot) const final override {
+      arolla::TypedSlot output_slot) const final {
     DCHECK_EQ(input_slots.size(), output_slot.SubSlotCount());
     std::vector<arolla::FrameLayout::Slot<DataSlice>> ds_input_slots;
     ds_input_slots.reserve(input_slots.size());
