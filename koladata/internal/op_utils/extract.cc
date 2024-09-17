@@ -34,12 +34,9 @@
 #include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qexpr/eval_context.h"
-#include "arolla/qexpr/operators/dense_array/array_ops.h"
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
-#include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
-#include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
