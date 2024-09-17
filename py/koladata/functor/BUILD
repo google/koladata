@@ -55,6 +55,7 @@ py_library(
     srcs = ["kdf.py"],
     deps = [
         ":functor_factories",
+        "//py/koladata/operators:eager_op_utils",
     ],
 )
 
@@ -69,6 +70,7 @@ py_library(
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:tracing",
         "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:literal_operator",
         "//py/koladata/types:mask_constants",
@@ -82,7 +84,6 @@ py_library(
 py_test(
     name = "functor_factories_test",
     srcs = ["functor_factories_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":functor_factories",
         ":signature_utils",
@@ -92,6 +93,8 @@ py_test(
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
@@ -125,7 +128,6 @@ py_library(
 py_test(
     name = "tracing_decorator_test",
     srcs = ["tracing_decorator_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":functor_factories",
         ":tracing_decorator",
@@ -140,10 +142,10 @@ py_test(
 py_test(
     name = "signature_utils_test",
     srcs = ["signature_utils_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":signature_utils",
         "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
@@ -155,12 +157,12 @@ py_test(
 py_test(
     name = "kdf_test",
     srcs = ["kdf_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":kdf",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",

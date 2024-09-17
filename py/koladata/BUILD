@@ -42,6 +42,8 @@ py_library(
         "//py/koladata/functions",
         "//py/koladata/functor:kdf",
         "//py/koladata/functor:tracing_decorator",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
@@ -61,7 +63,6 @@ py_library(
 py_test(
     name = "kd_test",
     srcs = ["kd_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":kd",
         "//py/koladata/expr:tracing_mode",
@@ -90,7 +91,6 @@ py_test(
 cc_test(
     name = "cc_benchmarks",
     srcs = ["cc_benchmarks.cc"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -102,6 +102,7 @@ cc_test(
         "//koladata/internal:dtype",
         "//koladata/operators",
         "//koladata/s11n",
+        "//py/koladata/operators",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/dense_array",

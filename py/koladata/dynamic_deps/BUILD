@@ -35,8 +35,32 @@ cc_shared_library(
     deps = [
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
+        "//koladata/expr:expr_operators",
+        "//koladata/expr:expr_operators_repr",
+        "//koladata/functor:operators",
+        "//koladata/operators",
         "//koladata/s11n",
         "//py/koladata/exceptions:py_exception_utils",
+        "//py/koladata/types:data_bag_cc_lib",
+        "//py/koladata/types:data_slice_cc_lib",
+    ],
+)
+
+cc_shared_library(
+    name = "koladata_test_so",
+    testonly = True,
+    dynamic_deps = [
+        "@com_google_arolla//py/arolla/dynamic_deps:base_so",
+        "@com_google_arolla//py/arolla/dynamic_deps:arolla_so",
+        "@com_google_arolla//py/arolla/dynamic_deps:arolla_py_abc_so",
+        "@com_google_arolla//py/arolla/dynamic_deps:arolla_standard_operators_so",
+        ":koladata_so",
+    ],
+    exports_filter = [
+        "//py/koladata/types/testing:__subpackages__",
+    ],
+    deps = [
+        "//py/koladata/types/testing:operator_test_invalid_unicode_op",
     ],
 )
 

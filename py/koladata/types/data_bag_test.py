@@ -614,7 +614,7 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
     db = bag()
     with self.assertRaisesRegex(
         ValueError,
-        'expected DataSlice argument, got list;',
+        'expected DataSlice argument, got list',
     ):
       _ = db.new_schema(
           a=schema_constants.INT32,
@@ -625,7 +625,7 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
     db = bag()
     with self.assertRaisesRegex(
         ValueError,
-        'expected DataSlice argument, got dict;',
+        'expected DataSlice argument, got dict',
     ):
       _ = db.new_schema(
           a=schema_constants.INT32,
@@ -636,7 +636,7 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
     db = bag()
     with self.assertRaisesRegex(
         ValueError,
-        'expected DataSlice argument, got Text;',
+        'expected DataSlice argument, got Text',
     ):
       _ = db.new_schema(
           a=schema_constants.INT32,
@@ -647,7 +647,7 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
     db = bag()
     with self.assertRaisesRegex(
         ValueError,
-        'schema\'s schema must be SCHEMA, got: OBJECT;',
+        'schema\'s schema must be SCHEMA, got: OBJECT',
     ):
       db2 = bag()
       _ = db.new_schema(

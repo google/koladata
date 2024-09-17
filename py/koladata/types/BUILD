@@ -14,6 +14,7 @@
 
 # Custom C++/Python bindings for Kola types.
 
+load("@com_google_arolla//py/arolla/dynamic_deps:build_defs.bzl", "arolla_py_cc_deps")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
@@ -92,19 +93,26 @@ cc_library(
     ],
 )
 
+arolla_py_cc_deps(
+    name = "operator_test_invalid_unicode_op_clib",
+    testonly = True,
+    dynamic_deps = ["//py/koladata/dynamic_deps:koladata_test_so"],
+    deps = ["//py/koladata/types/testing:operator_test_invalid_unicode_op"],
+)
+
 py_test(
     name = "boxing_test",
     srcs = ["boxing_test.py"],
-    tags = ["nooss"],  # TODO: b/352697901 - Remove once we support Koda exceptions in OSS.
     deps = [
         ":data_bag",
         ":data_item",
         ":data_slice",
+        ":operator_test_invalid_unicode_op_clib",  # buildcleaner: keep
         ":qtypes",
         ":schema_constants",
         "//py/koladata/exceptions",
+        "//py/koladata/operators:comparison",
         "//py/koladata/testing",
-        "//py/koladata/types/testing:operator_test_invalid_unicode_op",  # buildcleaner: keep
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
@@ -151,7 +159,6 @@ py_library(
 py_test(
     name = "py_boxing_test",
     srcs = ["py_boxing_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_bag",
         ":data_slice",
@@ -161,6 +168,8 @@ py_test(
         ":py_boxing",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -179,9 +188,9 @@ py_library(
 py_test(
     name = "operator_lookup_test",
     srcs = ["operator_lookup_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":operator_lookup",
+        "//py/koladata/operators:optools",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
@@ -232,6 +241,7 @@ py_library(
         ":general_eager_ops",
         ":jagged_shape",
         ":operator_lookup",
+        "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -239,7 +249,6 @@ py_library(
 py_test(
     name = "data_slice_test",
     srcs = ["data_slice_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_bag",
         ":data_item",
@@ -251,6 +260,7 @@ py_test(
         ":schema_constants",
         "//py/koladata/exceptions",
         "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -294,7 +304,6 @@ py_library(
 py_test(
     name = "data_item_test",
     srcs = ["data_item_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_bag",
         ":data_item",
@@ -303,6 +312,7 @@ py_test(
         ":schema_constants",
         "//py/koladata/expr:input_container",
         "//py/koladata/functor:functor_factories",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -324,13 +334,13 @@ py_library(
 py_test(
     name = "list_item_test",
     srcs = ["list_item_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_bag",
         ":data_item",
         ":data_slice",
         ":jagged_shape",
         ":list_item",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -351,7 +361,6 @@ py_library(
 py_test(
     name = "dict_item_test",
     srcs = ["dict_item_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_bag",
         ":data_item",
@@ -359,6 +368,7 @@ py_test(
         ":dict_item",
         ":jagged_shape",
         ":schema_constants",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -381,7 +391,6 @@ py_library(
 py_test(
     name = "schema_item_test",
     srcs = ["schema_item_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_bag",
         ":data_item",
@@ -389,7 +398,9 @@ py_test(
         ":jagged_shape",
         ":schema_constants",
         ":schema_item",
+        "//py/koladata/exceptions",
         "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
@@ -411,7 +422,6 @@ py_library(
 py_test(
     name = "qtypes_test",
     srcs = ["qtypes_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_bag",
         ":data_item",
@@ -435,7 +445,6 @@ py_library(
 py_test(
     name = "schema_constants_test",
     srcs = ["schema_constants_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":schema_constants",
         ":schema_item",
@@ -532,14 +541,16 @@ py_library(
 py_test(
     name = "literal_operator_test",
     srcs = ["literal_operator_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_bag",
         ":data_slice",
         ":literal_operator",
         ":qtypes",
         ":schema_constants",
+        "//py/koladata/exceptions",
         "//py/koladata/expr:view",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -559,7 +570,6 @@ py_library(
 py_test(
     name = "data_bag_test",
     srcs = ["data_bag_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_bag",
         ":data_item",
@@ -569,6 +579,8 @@ py_test(
         ":list_item",
         ":schema_constants",
         "//py/koladata/exceptions",
+        "//py/koladata/operators:comparison",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -580,21 +592,27 @@ py_test(
 py_test(
     name = "jagged_shape_test",
     srcs = ["jagged_shape_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_slice",
         ":jagged_shape",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
 )
 
+arolla_py_cc_deps(
+    name = "expr_operators_clib",
+    dynamic_deps = ["//py/koladata/dynamic_deps:koladata_so"],
+    deps = ["//koladata/expr:expr_operators"],
+)
+
 py_library(
     name = "ellipsis",
     srcs = ["ellipsis.py"],
     deps = [
-        "//koladata/expr:expr_operators",
+        ":expr_operators_clib",
         "//koladata/s11n",
         "@com_google_arolla//py/arolla",
     ],
@@ -619,7 +637,6 @@ py_library(
 py_test(
     name = "general_eager_ops_test",
     srcs = ["general_eager_ops_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_slice",
         ":general_eager_ops",
@@ -631,11 +648,11 @@ py_test(
 py_test(
     name = "mask_constants_test",
     srcs = ["mask_constants_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":data_item",
         ":mask_constants",
         ":schema_constants",
+        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
     ],
@@ -644,7 +661,6 @@ py_test(
 py_test(
     name = "ellipsis_test",
     srcs = ["ellipsis_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":ellipsis",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.

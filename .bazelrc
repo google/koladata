@@ -4,6 +4,13 @@ common --enable_platform_specific_config
 # Enable Bzlmod for every Bazel command.
 common --enable_bzlmod
 
+# Disable the automatic creation of `__init__.py` files, as it prevents the use
+# of namespace packages during build time.
+#
+# The expectation is that this will eventually become the default behavior:
+#     https://github.com/bazelbuild/bazel/issues/7386#issuecomment-1806973756
+build --incompatible_default_to_explicit_init_py
+
 # Enable modern C++ features
 build:linux --cxxopt=-std=gnu++20
 build:linux --host_cxxopt=-std=gnu++20

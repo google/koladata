@@ -1,0 +1,480 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Jagged shape operators."""
+
+from arolla import arolla
+from arolla.jagged_shape import jagged_shape
+from koladata.expr import view
+from koladata.operators import arolla_bridge
+from koladata.operators import assertion
+from koladata.operators import optools
+from koladata.operators import qtype_utils
+from koladata.types import data_slice
+from koladata.types import py_boxing
+from koladata.types import qtypes
+from koladata.types import schema_constants
+
+
+M = arolla.OperatorsContainer(jagged_shape)
+P = arolla.P
+INT64 = schema_constants.INT64
+constraints = arolla.optools.constraints
+
+_reshape = arolla_bridge._reshape  # pylint: disable=protected-access
+
+
+def _expect_slices_or_edges(value):
+  """Constrains `value` to be a tuple of DataSlices or Edges."""
+  is_slice_or_edge = arolla.LambdaOperator(
+      'x', (P.x == qtypes.DATA_SLICE) | (P.x == arolla.DENSE_ARRAY_EDGE)
+  )
+  return (
+      M.seq.all(M.seq.map(is_slice_or_edge, M.qtype.get_field_qtypes(value))),
+      (
+          'all arguments must be DataSlices or Edges, got:'
+          f' {constraints.variadic_name_type_msg(value)}'
+      ),
+  )
+
+
+@optools.add_to_registry(view=view.BasicKodaView)
+@optools.as_backend_operator(
+    'kde.shapes.create',
+    qtype_constraints=[_expect_slices_or_edges(P.dimensions)],
+    qtype_inference_expr=qtypes.JAGGED_SHAPE,
+    aux_policy=py_boxing.LIST_BOXING_POLICY,
+)
+def create_shape(*dimensions):  # pylint: disable=unused-argument
+  """Returns a JaggedShape from the provided dimensions.
+
+  Args:
+    *dimensions: A combination of Edges and DataSlices representing the
+      dimensions of the JaggedShape. Edges are used as is, while DataSlices are
+      treated as sizes. DataItems (of ints) are interpreted as uniform
+      dimensions which have the same child size for all parent elements.
+      DataSlices (of ints) are interpreted as a list of sizes, where `ds[i]` is
+      the child size of parent `i`. Only rank-0 or rank-1 int DataSlices are
+      supported.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.get_shape'], view=view.BasicKodaView)
+@optools.as_backend_operator(
+    'kde.shapes.get_shape',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.JAGGED_SHAPE,
+)
+def get_shape(x):  # pylint: disable=unused-argument
+  """Returns the shape of `x`."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.reshape'])
+@optools.as_lambda_operator('kde.shapes.reshape')
+def reshape(x, shape):
+  """Returns a DataSlice with the provided shape.
+
+  Args:
+    x: a DataSlice.
+    shape: a JaggedShape or a tuple of dimensions that forms a shape through
+      `kd.shapes.create`.
+  """
+  to_shape = arolla.types.DispatchOperator(
+      'value',
+      shape_case=arolla.types.DispatchCase(
+          P.value, condition=P.value == qtypes.JAGGED_SHAPE
+      ),
+      default=M.core.apply_varargs(create_shape, P.value),
+  )
+  return _reshape(x, to_shape(shape))
+
+
+@optools.add_to_registry(view=view.BasicKodaView)
+@optools.as_lambda_operator(
+    'koda_internal._flatten_last_ndim',
+    qtype_constraints=[
+        (
+            (P.x == qtypes.JAGGED_SHAPE) | (P.x == qtypes.DATA_SLICE),
+            (
+                'expected a JaggedShape or a DataSlice, got:'
+                f' {constraints.name_type_msg(P.x)}'
+            ),
+        ),
+        (
+            (P.ndim == qtypes.DATA_SLICE)
+            | M.qtype.is_integral_scalar_qtype(P.ndim),
+            (
+                'expected a DataSlice or a scalar integer, got:'
+                f' {constraints.name_type_msg(P.ndim)}'
+            ),
+        ),
+    ],
+)
+def _flatten_last_ndim(x, ndim):
+  """(internal) Flatten the last `ndim` dimensions of `x`."""
+  to_int64 = arolla.types.DispatchOperator(
+      'ndim',
+      data_slice_case=arolla.types.DispatchCase(
+          arolla_bridge.to_arolla_int64(P.ndim),
+          condition=P.ndim == qtypes.DATA_SLICE,
+      ),
+      default=P.ndim,
+  )
+
+  @arolla.optools.as_lambda_operator(
+      'koda_internal.flatten_last_ndim.shape',
+      qtype_constraints=[qtype_utils.expect_jagged_shape(P.x)],
+  )
+  def flatten_shape(x, ndim):
+    rank = M.jagged.rank(x)
+    ndim = to_int64(ndim)
+    ndim = assertion.with_assertion(
+        ndim, (ndim >= 0) & (ndim <= rank), 'expected 0 <= ndim <= rank'
+    )
+    return M.jagged.flatten(x, rank - ndim)
+
+  @arolla.optools.as_lambda_operator(
+      'koda_internal.flatten_last_ndim.slice',
+      qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+  )
+  def flatten_slice(x, ndim):
+    return reshape(x, flatten_shape(get_shape(x), ndim))
+
+  return arolla.optools.dispatch[flatten_shape, flatten_slice](x, ndim)
+
+
+@optools.add_to_registry(view=view.BasicKodaView)
+@optools.as_lambda_operator(
+    'koda_internal.flatten_last_ndim',
+    qtype_constraints=[(
+        (P.x == qtypes.JAGGED_SHAPE) | (P.x == qtypes.DATA_SLICE),
+        (
+            'expected a JaggedShape or a DataSlice, got:'
+            f' {constraints.name_type_msg(P.x)}'
+        ),
+    )],
+)
+def flatten_last_ndim(x, ndim):
+  """Flattens the last `ndim` dimensions of `x`.
+
+  Args:
+    x: a JaggedShape or a DataSlice.
+    ndim: the number of dimensions to flatten, or `unspecified`.
+
+  Returns:
+    `x` with the last `ndim` dimensions flattened. If `ndim` is `unspecified`,
+    `x` is returned as-is.
+  """
+  flatten_if_specified = arolla.types.DispatchOperator(
+      'x, ndim',
+      unspecified_case=arolla.types.DispatchCase(
+          P.x, condition=P.ndim == arolla.UNSPECIFIED
+      ),
+      default=_flatten_last_ndim,
+  )
+  return flatten_if_specified(x, ndim)
+
+
+@optools.add_to_registry(view=view.BasicKodaView)
+@optools.as_lambda_operator(
+    'koda_internal._remove_last_ndim',
+    qtype_constraints=[
+        qtype_utils.expect_jagged_shape(P.x),
+        qtype_utils.expect_data_slice(P.ndim),
+    ],
+)
+def _remove_last_ndim(x, ndim):
+  """(internal) Remove the last `ndim` dimensions of shape `x`."""
+  x_rank = M.jagged.rank(x)
+  ndim = arolla_bridge.to_arolla_int64(ndim)
+  ndim = assertion.with_assertion(
+      ndim, (ndim >= 0) & (ndim <= x_rank), 'expected 0 <= ndim <= rank'
+  )
+  return M.jagged.remove_dims(x, x_rank - ndim)
+
+
+@optools.add_to_registry(view=view.BasicKodaView)
+@optools.as_lambda_operator(
+    'koda_internal.remove_last_ndim',
+    qtype_constraints=[
+        qtype_utils.expect_jagged_shape(P.x),
+    ],
+)
+def remove_last_ndim(x, ndim):
+  """Removes the last `ndim` dimensions of a shape `x`.
+
+  Args:
+    x: a JaggedShape.
+    ndim: the number of dimensions to remove, 0 if unspecified.
+
+  Returns:
+    `x` with the last `ndim` dimensions removed.
+  """
+  remove_last_ndim_if_specified = arolla.types.DispatchOperator(
+      'x, ndim',
+      unspecified_cast=arolla.types.DispatchCase(
+          P.x, condition=P.ndim == arolla.UNSPECIFIED
+      ),
+      default=_remove_last_ndim,
+  )
+  return remove_last_ndim_if_specified(x, ndim)
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.shapes._expand_to_shape',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_jagged_shape(P.shape),
+        constraints.expect_scalar_integer(P.ndim),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _expand_to_shape(x, shape, ndim):  # pylint: disable=unused-argument
+  """Broadcasts a DataSlice to the provided shape."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.expand_to_shape'])
+@optools.as_lambda_operator(
+    'kde.shapes.expand_to_shape',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_jagged_shape(P.shape),
+        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
+    ],
+)
+def expand_to_shape(x, shape, ndim=arolla.unspecified()):
+  """Expands `x` based on the provided `shape`.
+
+  When `ndim` is not set, expands `x` to `shape`. The dimensions
+  of `x` must be the same as the first N dimensions of `shape` where N is the
+  number of dimensions of `x`. For example,
+
+  Example 1:
+    x: [[1, 2], [3]]
+    shape: JaggedShape(3, [2, 1], [1, 2, 3])
+    result: [[[1], [2, 2]], [[3, 3, 3]]]
+
+  Example 2:
+    x: [[1, 2], [3]]
+    shape: JaggedShape(3, [1, 1], [1, 3])
+    result: incompatible shapes
+
+  Example 3:
+    x: [[1, 2], [3]]
+    shape: JaggedShape(2)
+    result: incompatible shapes
+
+  When `ndim` is set, the expansion is performed in 3 steps:
+    1) the last N dimensions of `x` are first imploded into lists
+    2) the expansion operation is performed on the DataSlice of lists
+    3) the lists in the expanded DataSlice are exploded
+
+  The result will have M + ndim dimensions where M is the number
+  of dimensions of `shape`.
+
+  For example,
+
+  Example 4:
+    x: [[1, 2], [3]]
+    shape: JaggedShape(2, [1, 2])
+    ndim: 1
+    result: [[[1, 2]], [[3], [3]]]
+
+  Example 5:
+    x: [[1, 2], [3]]
+    shape: JaggedShape(2, [1, 2])
+    ndim: 2
+    result: [[[[1, 2], [3]]], [[[1, 2], [3]], [[1, 2], [3]]]]
+
+  Args:
+    x: DataSlice to expand.
+    shape: JaggedShape.
+    ndim: the number of dimensions to implode during expansion.
+
+  Returns:
+    Expanded DataSlice
+  """
+  to_arolla_int64 = arolla.types.DispatchOperator(
+      'ndim',
+      unspecified_case=arolla.types.DispatchCase(
+          arolla.int64(0), condition=P.ndim == arolla.UNSPECIFIED
+      ),
+      default=arolla_bridge.to_arolla_int64(P.ndim),
+  )
+  return _expand_to_shape(x, shape, to_arolla_int64(ndim))
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.shapes.is_expandable_to_shape',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_jagged_shape(P.target_shape),
+        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
+    ],
+)
+def is_expandable_to_shape(x, target_shape, ndim=arolla.unspecified()):
+  """Returns true if `x` is expandable to `target_shape`.
+
+  See `expand_to_shape` for a detailed description of expansion.
+
+  Args:
+    x: DataSlice that would be expanded.
+    target_shape: JaggedShape that would be expanded to.
+    ndim: The number of dimensions to implode before expansion. If unset,
+      defaults to 0.
+  """
+  shape = remove_last_ndim(get_shape(x), ndim)
+  return arolla_bridge.to_data_slice(
+      M.jagged.is_broadcastable_to(shape, target_shape)
+  )
+
+
+@optools.add_to_registry(aliases=['kde.flatten'])
+@optools.as_lambda_operator(
+    'kde.shapes.flatten',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.from_dim),
+        qtype_utils.expect_data_slice_or_unspecified(P.to_dim),
+    ],
+)
+def flatten(
+    x,
+    from_dim=data_slice.DataSlice.from_vals(0, INT64),
+    to_dim=arolla.unspecified(),
+):
+  """Returns `x` with dimensions `[from_dim:to_dim]` flattened.
+
+  Indexing works as in python:
+  * If `to_dim` is unspecified, `to_dim = rank()` is used.
+  * If `to_dim < from_dim`, `to_dim = from_dim` is used.
+  * If `to_dim < 0`, `max(0, to_dim + rank())` is used. The same goes for
+    `from_dim`.
+  * If `to_dim > rank()`, `rank()` is used. The same goes for `from_dim`.
+
+  The above-mentioned adjustments places both `from_dim` and `to_dim` in the
+  range `[0, rank()]`. After adjustments, the new DataSlice has `rank() ==
+  old_rank - (to_dim - from_dim) + 1`. Note that if `from_dim == to_dim`, a
+  "unit" dimension is inserted at `from_dim`.
+
+  Example:
+    # Flatten the last two dimensions into a single dimension, producing a
+    # DataSlice with `rank = old_rank - 1`.
+    kd.get_shape(x)  # -> JaggedShape(..., [2, 1], [7, 5, 3])
+    flat_x = kd.flatten(x, -2)
+    kd.get_shape(flat_x)  # -> JaggedShape(..., [12, 3])
+
+    # Flatten all dimensions except the last, producing a DataSlice with
+    # `rank = 2`.
+    kd.get_shape(x)  # -> jaggedShape(..., [7, 5, 3])
+    flat_x = kd.flatten(x, 0, -1)
+    kd.get_shape(flat_x)  # -> JaggedShape([3], [7, 5, 3])
+
+    # Flatten all dimensions.
+    kd.get_shape(x)  # -> JaggedShape([3], [7, 5, 3])
+    flat_x = kd.flatten(x)
+    kd.get_shape(flat_x)  # -> JaggedShape([15])
+
+  Args:
+    x: a DataSlice.
+    from_dim: start of dimensions to flatten. Defaults to `0` if unspecified.
+    to_dim: end of dimensions to flatten. Defaults to `rank()` if unspecified.
+  """
+  to_int64 = arolla.types.DispatchOperator(
+      'value',
+      unspecified_case=arolla.types.DispatchCase(
+          P.value, condition=P.value == arolla.UNSPECIFIED
+      ),
+      default=arolla_bridge.to_arolla_int64,
+  )
+  return reshape(
+      x, M.jagged.flatten(get_shape(x), to_int64(from_dim), to_int64(to_dim))
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.shapes.size',
+    qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
+)
+def size(shape):
+  """Returns the total number of elements the jagged shape represents."""
+  return arolla_bridge.to_data_slice(M.jagged.size(shape))
+
+
+@optools.add_to_registry(aliases=['kde.shapes.ndim'])
+@optools.as_lambda_operator(
+    'kde.shapes.rank',
+    qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
+)
+def rank(shape):
+  """Returns the rank of the jagged shape."""
+  return arolla_bridge.to_data_slice(M.jagged.rank(shape))
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.shapes.dim_sizes',
+    qtype_constraints=[
+        qtype_utils.expect_jagged_shape(P.shape),
+        qtype_utils.expect_data_slice(P.dim),
+    ],
+)
+def dim_sizes(shape, dim):
+  """Returns the row sizes at the provided dimension in the given shape.
+
+  Example:
+    shape = kd.shapes.create([2], [2, 1])
+    kd.shapes.dim_sizes(shape, 0)  # -> kd.slice([2])
+    kd.shapes.dim_sizes(shape, 1)  # -> kd.slice([2, 1])
+
+  Args:
+    shape: a JaggedShape.
+    dim: the dimension to get the sizes for.
+  """
+  dim_int64 = arolla_bridge.to_arolla_int64(dim)
+  return arolla_bridge.to_data_slice(
+      M.edge.sizes(M.jagged.edge_at(shape, dim_int64))
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.shapes.dim_mapping',
+    qtype_constraints=[
+        qtype_utils.expect_jagged_shape(P.shape),
+        qtype_utils.expect_data_slice(P.dim),
+    ],
+)
+def dim_mapping(shape, dim):
+  """Returns the parent-to-child mapping of the dimension in the given shape.
+
+  Example:
+    shape = kd.shapes.create([2], [3, 2], [1, 2, 0, 2, 1])
+    kd.shapes.dim_mapping(shape, 0) # -> kd.slice([0, 0])
+    kd.shapes.dim_mapping(shape, 1) # -> kd.slice([0, 0, 0, 1, 1])
+    kd.shapes.dim_mapping(shape, 2) # -> kd.slice([0, 1, 1, 3, 3, 4])
+
+  Args:
+    shape: a JaggedShape.
+    dim: the dimension to get the parent-to-child mapping for.
+  """
+  dim_int64 = arolla_bridge.to_arolla_int64(dim)
+  return arolla_bridge.to_data_slice(
+      M.edge.mapping(M.jagged.edge_at(shape, dim_int64))
+  )

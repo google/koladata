@@ -28,14 +28,16 @@ py_library(
     visibility = ["//koladata:internal"],
     deps = [
         ":test_utils",
+        "//py:python_path",  # Adds //py to the path to allow convenient imports.
     ],
 )
 
 py_library(
     name = "test_utils",
     srcs = ["test_utils.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",
@@ -48,9 +50,9 @@ py_library(
 py_test(
     name = "test_utils_test",
     srcs = ["test_utils_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":test_utils",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:ellipsis",

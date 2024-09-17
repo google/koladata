@@ -38,11 +38,11 @@ py_library(
 py_test(
     name = "input_container_test",
     srcs = ["input_container_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":expr_eval",
         ":input_container",
         ":view",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:literal_operator",
@@ -120,7 +120,6 @@ py_library(
 py_test(
     name = "tracing_test",
     srcs = ["tracing_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":tracing",
         "//py/koladata:kd",
@@ -133,10 +132,11 @@ py_test(
 py_test(
     name = "introspection_test",
     srcs = ["introspection_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":input_container",
         ":introspection",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:literal_operator",
@@ -151,11 +151,11 @@ py_test(
 py_test(
     name = "view_test",
     srcs = ["view_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":input_container",
         ":introspection",
         ":view",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
@@ -170,13 +170,13 @@ py_test(
 py_test(
     name = "expr_eval_test",
     srcs = ["expr_eval_test.py"],
-    tags = ["nooss"],  # TODO: b/352697900 - Remove once we support operators in OSS.
     deps = [
         ":expr_eval",
         ":input_container",
         ":py_expr_eval_py_ext",
         ":view",
         "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",

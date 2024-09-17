@@ -21,11 +21,12 @@ from absl.testing import parameterized
 from arolla import arolla
 # Needed for self.assertEqual(item_1, item_2).
 from koladata.exceptions import exceptions
-from koladata.operators import comparison as _  # pylint: disable=unused-import
+from koladata.operators import comparison as _
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import operator_test_invalid_unicode_op_clib as _
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
