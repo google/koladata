@@ -53,6 +53,9 @@ class DataBagView(BasicKodaView):
 
   _data_bag_view_tag = True
 
+  def __getitem__(self, x: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_item', self, x)
+
 
 class SlicingHelper:
   """Slicing helper for DataSliceView.

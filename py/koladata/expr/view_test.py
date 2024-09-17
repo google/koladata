@@ -112,6 +112,13 @@ class DataBagViewTest(parameterized.TestCase):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
 
+  def test_get_item(self):
+    testing.assert_equal(op(C.x)[C.s], kde.get_item(op(C.x), C.s))
+
+  def test_repr(self):
+    # We avoid parametrization since the view is registered in setUp.
+    self.assertEqual(repr(op(op(C.x)[C.y])), 'M.test.op(M.test.op(C.x)[C.y])')
+
   def test_data_bag_attrs_are_in_view(self):
     # Asserts that all attrs / methods of DataBag are present in the
     # DataBagView, or that they are explicitly skipped.
