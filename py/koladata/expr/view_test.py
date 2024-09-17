@@ -452,6 +452,9 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_updated(self):
     testing.assert_equal(C.x.updated(C.db), kde.updated(C.x, C.db))
 
+  def test_get_present_count(self):
+    testing.assert_equal(C.x.get_present_count(), kde.count(C.x))
+
   def test_eval(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     testing.assert_equal(I.x.eval(x=1), data_slice.DataSlice.from_vals(1))
@@ -558,7 +561,6 @@ class DataSliceViewTest(parameterized.TestCase):
         'is_dict_schema',
         'is_list_schema',
         # TODO: Add the following as operators.
-        'get_present_count',
         'with_fallback',
         'freeze',
         # Attrs / methods that should _not_ be added to the view.
