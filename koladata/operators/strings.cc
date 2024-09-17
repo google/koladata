@@ -68,7 +68,7 @@ absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices) {
   }
   // From here on, we know that at least one input has known schema and we
   // should eval.
-  return SimplePointwiseEval("strings.format", std::move(slices),
+  return SimplePointwiseEval("strings.printf", std::move(slices),
                              /*output_schema=*/fmt.GetSchemaImpl());
 }
 
