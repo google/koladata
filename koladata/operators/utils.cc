@@ -51,8 +51,7 @@ std::vector<absl::string_view> GetAttrNames(
   std::vector<absl::string_view> attr_names;
   auto field_names = arolla::GetFieldNames(qtype);
   return std::vector<absl::string_view>(
-      std::make_move_iterator(field_names.begin()),
-      std::make_move_iterator(field_names.end()));
+      field_names.begin(), field_names.end());
 }
 
 std::vector<DataSlice> GetValueDataSlices(
