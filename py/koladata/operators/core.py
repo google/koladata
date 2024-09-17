@@ -1795,7 +1795,7 @@ def follow(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.get_db'])
+@optools.add_to_registry(aliases=['kde.get_db'], view=view.DataBagView)
 @optools.as_backend_operator(
     'kde.core.get_db',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
