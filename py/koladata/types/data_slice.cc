@@ -46,6 +46,7 @@
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
@@ -502,22 +503,6 @@ absl::Nullable<PyObject*> PyDataSlice_clear(PyObject* self, PyObject*) {
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_present_count(PyObject* self,
-                                                        PyObject*) {
-  arolla::python::DCheckPyGIL();
-  return PyLong_FromSize_t(UnsafeDataSliceRef(self).present_count());
-}
-
-absl::Nullable<PyObject*> PyDataSlice_get_size(PyObject* self, PyObject*) {
-  arolla::python::DCheckPyGIL();
-  return PyLong_FromSize_t(UnsafeDataSliceRef(self).size());
-}
-
-absl::Nullable<PyObject*> PyDataSlice_get_ndim(PyObject* self, PyObject*) {
-  arolla::python::DCheckPyGIL();
-  return PyLong_FromSize_t(UnsafeDataSliceRef(self).GetShape().rank());
-}
-
 absl::Nullable<PyObject*> PyDataSlice_get_shape(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
@@ -530,31 +515,37 @@ absl::Nullable<PyObject*> PyDataSlice_get_schema(PyObject* self, PyObject*) {
   return WrapPyDataSlice(ds.GetSchema());
 }
 
+DataSlice AsMask(bool b) {
+  return *DataSlice::Create(
+      b ? internal::DataItem(arolla::kUnit) : internal::DataItem(),
+      internal::DataItem(schema::kMask));
+}
+
 absl::Nullable<PyObject*> PyDataSlice_is_list_schema(PyObject* self,
                                                      PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  return PyBool_FromLong(ds.IsListSchema());
+  return WrapPyDataSlice(AsMask(ds.IsListSchema()));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self,
                                                      PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  return PyBool_FromLong(ds.IsDictSchema());
+  return WrapPyDataSlice(AsMask(ds.IsDictSchema()));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_is_primitive_schema(PyObject* self,
                                                           PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  return PyBool_FromLong(ds.IsPrimitiveSchema());
+  return WrapPyDataSlice(AsMask(ds.IsPrimitiveSchema()));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_is_empty(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  return PyBool_FromLong(ds.IsEmpty());
+  return WrapPyDataSlice(AsMask(ds.IsEmpty()));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_with_schema(PyObject* self,
@@ -679,24 +670,18 @@ Returns:
     {"as_dense_array", PyDataSlice_as_dense_array, METH_NOARGS,
      "Converts primitive slice to an arolla.dense_array with appropriate "
      "qtype."},
-    {"get_ndim", PyDataSlice_get_ndim, METH_NOARGS,
-     "Returns the number of dimensions of the DataSlice, a.k.a. the rank or "
-     "nesting level."},
-    {"rank", PyDataSlice_get_ndim, METH_NOARGS,
-     "Returns the number of dimensions of the DataSlice, a.k.a. the rank or "
-     "nesting level."},
     {"get_shape", PyDataSlice_get_shape, METH_NOARGS,
      "Returns the shape of the DataSlice."},
     {"get_schema", PyDataSlice_get_schema, METH_NOARGS,
      "Returns a schema slice with type information about this DataSlice."},
     {"is_list_schema", PyDataSlice_is_list_schema, METH_NOARGS,
-     "Returns True, if this DataSlice is a List Schema."},
+     "Returns present iff this DataSlice is a List Schema."},
     {"is_dict_schema", PyDataSlice_is_dict_schema, METH_NOARGS,
-     "Returns True, if this DataSlice is a Dict Schema."},
+     "Returns present iff this DataSlice is a Dict Schema."},
     {"is_primitive_schema", PyDataSlice_is_primitive_schema, METH_NOARGS,
-     "Returns True, if this DataSlice is a primitive (scalar) Schema."},
+     "Returns present iff this DataSlice is a primitive (scalar) Schema."},
     {"is_empty", PyDataSlice_is_empty, METH_NOARGS,
-     "Returns True, if this DataSlice is empty."},
+     "Returns present iff this DataSlice is empty."},
     {"with_schema", PyDataSlice_with_schema, METH_O,
      R"""(Returns a copy of DataSlice with the provided `schema`.
 
@@ -726,10 +711,6 @@ Returns:
      "Returns keys of all dicts in this DataSlice."},
     {"get_values", PyDataSlice_get_values, METH_NOARGS,
      "Returns values of all dicts in this DataSlice."},
-    {"get_present_count", PyDataSlice_get_present_count, METH_NOARGS,
-     "Returns number of present items in DataSlice."},
-    {"get_size", PyDataSlice_get_size, METH_NOARGS,
-     "Returns number of items in DataSlice."},
     {"get_attr", (PyCFunction)PyDataSlice_get_attr,
      METH_FASTCALL | METH_KEYWORDS,
      "Gets attribute `attr_name` where missing items are filled from "

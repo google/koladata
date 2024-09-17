@@ -220,6 +220,7 @@ cc_library(
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",

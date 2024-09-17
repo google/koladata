@@ -231,6 +231,26 @@ def _with_schema_from_obj(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.with_schema_from_obj, self)
 
 
+@DataSlice.add_method('get_ndim')
+def _get_ndim(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.get_ndim, self)
+
+
+@DataSlice.add_method('rank')
+def _rank(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.rank, self)
+
+
+@DataSlice.add_method('get_present_count')
+def _get_present_count(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.count, self)
+
+
+@DataSlice.add_method('get_size')
+def _get_size(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.size, self)
+
+
 ##### DataSlice Magic methods. #####
 
 
@@ -436,7 +456,7 @@ class ListSlicingHelper:
     return arolla.abc.aux_eval_op(_op_impl_lookup.subslice, self._ds, s, ...)
 
   def __len__(self) -> int:
-    if not self._ds.get_ndim():
+    if not self._ds.get_ndim().internal_as_py():
       raise ValueError(
           'DataSlice must have at least one dimension to retrieve length.'
       )

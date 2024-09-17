@@ -554,13 +554,11 @@ class DataSliceViewTest(parameterized.TestCase):
     # attrs / methods should be skipped iff they cannot be added by design, not
     # because of laziness.
     skipped_data_slice_attrs = {
-        # TODO: Add the following as operators with present/missing
-        # results.
+        # TODO: Add the following as operators.
         'is_primitive_schema',
         'is_empty',
         'is_dict_schema',
         'is_list_schema',
-        # TODO: Add the following as operators.
         'with_fallback',
         'freeze',
         # Attrs / methods that should _not_ be added to the view.

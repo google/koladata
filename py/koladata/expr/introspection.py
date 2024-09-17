@@ -52,7 +52,7 @@ def unpack_expr(ds: data_slice.DataSlice) -> arolla.Expr:
   if (
       ds.get_ndim() != 0
       or ds.get_schema() != schema_constants.EXPR
-      or not ds.get_present_count()
+      or ds.get_present_count() == 0
   ):
     raise ValueError('only present EXPR DataItems can be unpacked')
   return ds.internal_as_py().unquote()
@@ -63,7 +63,7 @@ def is_packed_expr(ds: Any) -> data_slice.DataSlice:
   if (
       isinstance(ds, data_item.DataItem)
       and ds.get_schema() == schema_constants.EXPR
-      and ds.get_present_count()
+      and ds.get_present_count() > 0
   ):
     return mask_constants.present
   else:

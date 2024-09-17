@@ -76,7 +76,7 @@ def _extract_auto_variables(variables: dict[str, Any]) -> dict[str, Any]:
         # We need to implode the DataSlice into lists if it is not a DataItem.
         var_name = create_unique_variable('aux')
         var = V[var_name]
-        ndim = val.get_ndim()
+        ndim = val.get_ndim().internal_as_py()
         if ndim:
           val = fns.implode(val, ndim=ndim)
           var = kde.explode(var, ndim=ndim)

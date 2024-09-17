@@ -38,6 +38,8 @@ kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 
+INT64 = schema_constants.INT64
+
 
 class DataSliceMethodsTest(absltest.TestCase):
 
@@ -2334,21 +2336,23 @@ class DataSliceFallbackTest(parameterized.TestCase):
       float(ds([3.14]))
 
   def test_get_present_count(self):
-    self.assertEqual(ds(57).get_present_count(), 1)
-    self.assertEqual(ds(None).get_present_count(), 0)
-    self.assertEqual(ds([3.14, None, 57.0]).get_present_count(), 2)
+    testing.assert_equal(ds(57).get_present_count(), ds(1, INT64))
+    testing.assert_equal(ds(None).get_present_count(), ds(0, INT64))
+    testing.assert_equal(
+        ds([3.14, None, 57.0]).get_present_count(), ds(2, INT64)
+    )
 
   def test_get_size(self):
-    self.assertEqual(ds(57).get_size(), 1)
-    self.assertEqual(ds(None).get_size(), 1)
-    self.assertEqual(ds([3.14, None, 57.0]).get_size(), 3)
-    self.assertEqual(ds([[1, 2], [3, None], [None]]).get_size(), 5)
+    self.assertEqual(ds(57).get_size(), ds(1, INT64))
+    self.assertEqual(ds(None).get_size(), ds(1, INT64))
+    self.assertEqual(ds([3.14, None, 57.0]).get_size(), ds(3, INT64))
+    self.assertEqual(ds([[1, 2], [3, None], [None]]).get_size(), ds(5, INT64))
 
   def test_get_ndim(self):
-    self.assertEqual(ds(57).get_ndim(), 0)
-    self.assertEqual(ds([1, 2, 3]).get_ndim(), 1)
-    self.assertEqual(ds([[1, 2], [3, 4, 5]]).get_ndim(), 2)
-    self.assertEqual(ds([[[[[]]]]]).get_ndim(), 5)
+    testing.assert_equal(ds(57).get_ndim(), ds(0, INT64))
+    testing.assert_equal(ds([1, 2, 3]).get_ndim(), ds(1, INT64))
+    testing.assert_equal(ds([[1, 2], [3, 4, 5]]).get_ndim(), ds(2, INT64))
+    testing.assert_equal(ds([[[[[]]]]]).get_ndim(), ds(5, INT64))
 
   # More comprehensive tests are in the test_core_subslice.py.
   @parameterized.parameters(

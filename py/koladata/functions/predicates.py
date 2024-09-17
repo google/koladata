@@ -16,6 +16,7 @@
 
 from typing import Any
 
+from koladata.operators import kde_operators as _  # pylint: disable=unused-import
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
 

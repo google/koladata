@@ -38,10 +38,9 @@ py_library(
     name = "predicates",
     srcs = ["predicates.py"],
     deps = [
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:dict_item",
-        "//py/koladata/types:list_item",
     ],
 )
 
