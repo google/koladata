@@ -120,4 +120,16 @@ absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema) {
   return list_schema;
 }
 
+absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
+                                     const DataSlice& value_schema) {
+  auto db = koladata::DataBag::Empty();
+  koladata::AdoptionQueue adoption_queue;
+  adoption_queue.Add(key_schema);
+  adoption_queue.Add(value_schema);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
+  ASSIGN_OR_RETURN(auto dict_schema,
+                   CreateDictSchema(db, key_schema, value_schema));
+  return dict_schema;
+}
+
 }  // namespace koladata::ops

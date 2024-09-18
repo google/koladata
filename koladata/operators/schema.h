@@ -68,6 +68,10 @@ absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
 // kde.schema.list_schema operator.
 absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema);
 
+// kde.schema.dict_schema operator.
+absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
+                                     const DataSlice& value_schema);
+
 // kde.schema.with_schema operator.
 inline absl::StatusOr<DataSlice> WithSchema(const DataSlice& ds,
                                             const DataSlice& schema) {
