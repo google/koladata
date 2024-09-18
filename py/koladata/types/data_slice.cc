@@ -599,7 +599,7 @@ absl::Nullable<PyObject*> PyDataSlice_dir(PyObject* self, PyObject*) {
   int i = 0;
   for (const auto& attr_name : attr_names) {
     PyObject* py_attr_name = PyUnicode_DecodeUTF8(
-        attr_name.view().data(), attr_name.view().size(), nullptr);
+        attr_name.data(), attr_name.size(), nullptr);
     if (py_attr_name == nullptr) {
       return nullptr;
     }

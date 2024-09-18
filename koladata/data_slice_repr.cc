@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/container/btree_set.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -275,11 +274,11 @@ absl::StatusOr<std::string> DictToStr(const DataSlice& ds,
 // Returns the string representation of schema item.
 absl::StatusOr<std::string> SchemaToStr(const DataSlice& ds,
                                         const ReprOption& option) {
-  ASSIGN_OR_RETURN(absl::btree_set<arolla::Text> attr_names, ds.GetAttrNames());
+  ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names, ds.GetAttrNames());
   std::vector<std::string> parts;
   parts.reserve(attr_names.size());
   size_t item_count = 0;
-  for (const arolla::Text& attr_name : attr_names) {
+  for (const std::string& attr_name : attr_names) {
     // Keeps all attributes from schema.
     if (!ds.item().is_schema() && item_count >= option.item_limit) {
       parts.emplace_back(kEllipsis);

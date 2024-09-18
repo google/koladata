@@ -19,12 +19,12 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <variant>
 
 #include "absl/base/nullability.h"
-#include "absl/container/btree_set.h"
 #include "absl/functional/overload.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -63,8 +63,6 @@
 
 namespace koladata {
 namespace {
-
-using AttrNamesSet = absl::btree_set<arolla::Text>;
 
 constexpr absl::string_view kExplicitSchemaIsMissingError =
     "the attribute '%s' is missing on the schema.";
@@ -186,18 +184,18 @@ absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
 }
 
 // Fetches all attribute names from `schema_item` and returns them ordered.
-absl::StatusOr<AttrNamesSet> GetAttrsFromSchemaItem(
+absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromSchemaItem(
     const internal::DataItem& schema_item, const internal::DataBagImpl& db_impl,
     internal::DataBagImpl::FallbackSpan fallbacks) {
   if (schema_item.holds_value<schema::DType>()) {
     // Primitive and special meaning schemas are ignored and empty set is
     // returned.
-    return AttrNamesSet();
+    return DataSlice::AttrNamesSet();
   }
   ASSIGN_OR_RETURN(auto attrs, db_impl.GetSchemaAttrs(schema_item, fallbacks));
   // Note: Empty attribute slice is empty_and_unknown.
   if (attrs.size() == 0) {
-    return AttrNamesSet();
+    return DataSlice::AttrNamesSet();
   }
   if (attrs.dtype() != arolla::GetQType<arolla::Text>()) {
     return absl::InternalError("dtype of attribute names must be TEXT");
@@ -205,15 +203,15 @@ absl::StatusOr<AttrNamesSet> GetAttrsFromSchemaItem(
   if (attrs.present_count() != attrs.size()) {
     return absl::InternalError("attributes must be non-empty");
   }
-  absl::btree_set<arolla::Text> result;
+  DataSlice::AttrNamesSet result;
   attrs.values<arolla::Text>().ForEachPresent(
       [&](int64_t id, absl::string_view attr) {
-        result.insert(arolla::Text(attr));
+        result.insert(std::string(attr));
       });
   return result;
 }
 
-absl::StatusOr<AttrNamesSet> GetAttrsFromDataItem(
+absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataItem(
     const internal::DataItem& item, const internal::DataItem& ds_schema,
     const internal::DataBagImpl& db_impl,
     internal::DataBagImpl::FallbackSpan fallbacks) {
@@ -224,16 +222,16 @@ absl::StatusOr<AttrNamesSet> GetAttrsFromDataItem(
     ASSIGN_OR_RETURN(schema_item, db_impl.GetObjSchemaAttr(item, fallbacks));
   } else {
     // Empty set.
-    return AttrNamesSet();
+    return DataSlice::AttrNamesSet();
   }
   return GetAttrsFromSchemaItem(schema_item, db_impl, fallbacks);
 }
 
-absl::StatusOr<AttrNamesSet> GetAttrsFromDataSlice(
+absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
     const internal::DataSliceImpl& slice, const internal::DataItem& ds_schema,
     const internal::DataBagImpl& db_impl,
     internal::DataBagImpl::FallbackSpan fallbacks) {
-  std::optional<AttrNamesSet> result;
+  std::optional<DataSlice::AttrNamesSet> result;
   std::optional<internal::DataSliceImpl> schemas;
   if (ds_schema == schema::kSchema) {
     schemas = slice;
@@ -246,7 +244,7 @@ absl::StatusOr<AttrNamesSet> GetAttrsFromDataSlice(
     });
     if (!objects_only) {
       // Empty set.
-      return AttrNamesSet();
+      return DataSlice::AttrNamesSet();
     }
     ASSIGN_OR_RETURN(
         schemas,
@@ -254,7 +252,7 @@ absl::StatusOr<AttrNamesSet> GetAttrsFromDataSlice(
                                  fallbacks));
   } else {
     // Empty set.
-    return AttrNamesSet();
+    return DataSlice::AttrNamesSet();
   }
   RETURN_IF_ERROR(
       schemas->VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
@@ -280,7 +278,7 @@ absl::StatusOr<AttrNamesSet> GetAttrsFromDataSlice(
         }
         return status;
       }));
-  return result.value_or(AttrNamesSet());
+  return result.value_or(DataSlice::AttrNamesSet());
 }
 
 // Helper method for fetching an attribute as if this DataSlice is a Schema
@@ -992,7 +990,7 @@ bool DataSlice::IsEquivalentTo(const DataSlice& other) const {
   return true;
 }
 
-absl::StatusOr<absl::btree_set<arolla::Text>> DataSlice::GetAttrNames() const {
+absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames() const {
   if (GetDb() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot get available attributes without a DataBag");

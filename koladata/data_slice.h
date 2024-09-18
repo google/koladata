@@ -71,6 +71,7 @@ constexpr absl::string_view kSchemaItemQValueSpecializationKey =
 class DataSlice {
  public:
   using JaggedShape = arolla::JaggedDenseArrayShape;
+  using AttrNamesSet = absl::btree_set<std::string, std::less<>>;
 
   // Creates a DataSlice with necessary invariant checks:
   // * shape must be compatible with the size of DataSliceImpl;
@@ -221,7 +222,7 @@ class DataSlice {
 
   // Returns all attribute names that are defined on this DataSlice. In case of
   // OBJECT schema, attribute names are fetched from `__schema__` attribute.
-  absl::StatusOr<absl::btree_set<arolla::Text>> GetAttrNames() const;
+  absl::StatusOr<AttrNamesSet> GetAttrNames() const;
 
   // Returns a new DataSlice with a reference to the same DataBag if it exists
   // as an attribute `attr_name` of this Object. Returns a status error on
