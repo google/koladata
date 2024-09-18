@@ -669,6 +669,19 @@ def get_attr(obj, attr_name, default=arolla.unspecified()):
   )(obj, attr_name, default)
 
 
+@optools.add_to_registry(aliases=['kde.maybe'])
+@optools.as_lambda_operator(
+    'kde.core.maybe',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.attr_name),
+    ],
+)
+def maybe(obj, attr_name):
+  """A shortcut for kde.get_attr(attr_name, default=None)."""
+  return _get_attr_with_default(obj, attr_name, None)
+
+
 @optools.add_to_registry(aliases=['kde.with_attrs'])
 @optools.as_backend_operator(
     'kde.core.with_attrs',

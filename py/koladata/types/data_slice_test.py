@@ -1014,6 +1014,11 @@ foo.get_obj_schema().x = <desired_schema>"""),
       with self.assertRaisesRegex(ValueError, "the attribute 'c' is missing"):
         del o.c
 
+  def test_maybe_method(self):
+    db = bag()
+    obj = ds([db.obj(a=1), db.obj(x=42), db.obj(a=3)])
+    testing.assert_equal(obj.maybe('a'), ds([1, None, 3]).with_db(db))
+
   def test_as_arolla_value(self):
     x = ds([1, 2, 3], schema_constants.FLOAT32)
     arolla.testing.assert_qvalue_allclose(

@@ -122,6 +122,13 @@ _op_impl_lookup = operator_lookup.OperatorLookup()
 ##### DataSlice methods. #####
 
 
+@DataSlice.add_method('maybe')
+def _maybe(self, attr_name: str) -> DataSlice:
+  # NOTE: Calling `get_attr`, instead of aux_eval_op, because it is implemented
+  # in C Python.
+  return self.get_attr(attr_name, None)
+
+
 @DataSlice.add_method('reshape')
 def _reshape(self, shape: jagged_shape.JaggedShape) -> DataSlice:
   if not isinstance(shape, jagged_shape.JaggedShape):

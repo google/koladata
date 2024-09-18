@@ -156,7 +156,7 @@ def to_dataframe(
   elif cols is None:
     cols = ['self_']
     cols.extend(_get_column_names(ds))
-    get_attr_fn = lambda ds, col: ds.get_attr(col, None)
+    get_attr_fn = kdi.maybe
 
   col_dss = []
   col_names = []

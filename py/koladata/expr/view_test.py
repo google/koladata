@@ -211,6 +211,9 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_get_attr(self):
     testing.assert_equal(C.x.val, kde.get_attr(C.x, 'val'))
 
+  def test_maybe(self):
+    testing.assert_equal(C.x.maybe('val'), kde.maybe(C.x, 'val'))
+
   def test_slicing_helper(self):
     testing.assert_equal(
         C.x.S[C.s1], kde.core._subslice_for_slicing_helper(C.x, C.s1)
