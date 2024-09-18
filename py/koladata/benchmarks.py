@@ -92,6 +92,22 @@ def create_obj_data_slice(state):
 
 
 @google_benchmark.register
+@google_benchmark.option.arg(1)
+@google_benchmark.option.arg(10)
+@google_benchmark.option.arg(1000)
+@google_benchmark.option.arg(10**6)
+def create_obj_shaped(state):
+  size = state.range(0)
+  val_1 = kd.slice([12] * size)
+  val_2 = kd.slice([13] * size)
+  val_3 = kd.slice([14] * size)
+  shape = val_1.get_shape()
+  while state:
+    db = kd.bag()
+    _ = db.obj_shaped(shape, val_1=val_1, val_2=val_2, val_3=val_3)
+
+
+@google_benchmark.register
 def set_get_attr_entity_with_merging(state):
   ds = kd.new()
   val = kd.new(a=1)  # Non-empty DataBag.
