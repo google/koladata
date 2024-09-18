@@ -14,8 +14,6 @@
 //
 #include "koladata/operators/arolla_bridge.h"
 
-#include <bitset>
-#include <climits>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -238,11 +236,9 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema,
     std::optional<std::vector<int>> primary_operand_indices) {
-  constexpr int kMaxInputs = 16;
   DCHECK_GE(inputs.size(), 1);
-  DCHECK_LE(inputs.size(), kMaxInputs);
-  std::bitset<kMaxInputs> is_primary_operand(
-      !primary_operand_indices.has_value() ? ULONG_MAX : 0);
+  std::vector<bool> is_primary_operand(inputs.size(),
+                                       !primary_operand_indices.has_value());
   if (primary_operand_indices.has_value()) {
     for (int index : *primary_operand_indices) {
       DCHECK(index >= 0 && index < inputs.size());

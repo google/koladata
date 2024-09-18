@@ -152,6 +152,19 @@ TEST(ArollaEval, SimplePointwiseEval) {
                             {3.0, 2.0, std::nullopt, std::nullopt}, y_shape,
                             schema::kAny)));
   }
+  {
+    // Large arity.
+    DataSlice fmt = test::DataItem(arolla::Text("%s"), schema::kText);
+    DataSlice v = test::DataItem(arolla::Text("foo"), schema::kText);
+    std::vector<DataSlice> args = {fmt};
+    for (int i = 0; i < 30; ++i) {
+      args.push_back(v);
+    }
+    ASSERT_OK_AND_ASSIGN(auto result,
+                         SimplePointwiseEval("strings.printf", args));
+    EXPECT_THAT(result, IsEquivalentTo(
+                            test::DataItem<arolla::Text>(arolla::Text("foo"))));
+  }
 }
 
 TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
