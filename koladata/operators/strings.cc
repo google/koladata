@@ -110,6 +110,24 @@ absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
                              internal::DataItem(schema::kText));
 }
 
+absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
+                                const DataSlice& start, const DataSlice& end,
+                                const DataSlice& failure_value) {
+  ASSIGN_OR_RETURN(auto typed_start,
+                   CastToNarrow(start, internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(auto typed_end,
+                   CastToNarrow(end, internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(
+      auto typed_failure_value,
+      CastToNarrow(failure_value, internal::DataItem(schema::kInt64)));
+  return SimplePointwiseEval(
+      "strings.rfind",
+      {x, substr, std::move(typed_start), std::move(typed_end),
+       std::move(typed_failure_value)},
+      /*output_schema=*/internal::DataItem(schema::kInt64),
+      /*primary_operand_indices=*/std::vector<int>({0, 1}));
+}
+
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
   const auto& x_shape = x.GetShape();
   if (sep.GetShape().rank() != 0) {

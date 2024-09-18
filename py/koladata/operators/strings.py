@@ -283,6 +283,48 @@ def lower(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.strings.rfind',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.s),
+        qtype_utils.expect_data_slice(P.substr),
+        qtype_utils.expect_data_slice(P.start),
+        qtype_utils.expect_data_slice(P.end),
+        qtype_utils.expect_data_slice(P.failure_value),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+# pylint: disable=unused-argument,redefined-outer-name
+def rfind(
+    s,
+    substr,
+    start=data_slice.DataSlice.from_vals(0, schema_constants.INT64),
+    end=data_slice.DataSlice.from_vals(None, schema_constants.INT64),
+    failure_value=data_slice.DataSlice.from_vals(None, schema_constants.INT64),
+):  # pylint: enable=unused-argument,redefined-outer-name
+  """Returns the offset of the last occurrence of `substr` in `s`.
+
+  Searches within the offset range of `[start, end)`. If nothing is found,
+  returns `failure_value`.
+
+  The units of `start`, `end`, and the return value are all byte offsets if `s`
+  is `BYTES` and codepoint offsets if `s` is `TEXT`.
+
+  Args:
+   s: (TEXT or BYTES) Strings to search in.
+   substr: (TEXT or BYTES)  Strings to search for in `s`. Should have the same
+     dtype as `s`.
+   start: (optional int) Offset to start the search. Defaults to 0.
+   end: (optional int) Offset to stop the search.
+   failure_value: (optional int) Reported if `substr` is not found in `s`.
+
+  Returns:
+    The offset of the last occurrence of `substr` in `s`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.strings._split',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),

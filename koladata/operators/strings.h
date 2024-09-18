@@ -49,6 +49,11 @@ absl::StatusOr<DataSlice> Lower(const DataSlice& x);
 // kde.strings.printf.
 absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices);
 //
+// kde.strings.rfind.
+absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
+                                const DataSlice& start, const DataSlice& end,
+                                const DataSlice& failure_value);
+//
 // kde.strings.split.
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep);
 //
