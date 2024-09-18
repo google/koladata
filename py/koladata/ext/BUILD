@@ -27,6 +27,7 @@ py_library(
     srcs = ["npkd.py"],
     visibility = ["//visibility:public"],
     deps = [
+        "//py/koladata:kd",
         "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/experimental",
@@ -39,6 +40,32 @@ py_test(
     tags = ["nooss"],
     deps = [
         ":npkd",
+        "//py/koladata:kd",
+        "//py/koladata/testing",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_library(
+    name = "pdkd",
+    srcs = ["pdkd.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":npkd",
+        "//py/koladata:kd",
+        "//py/koladata/types:data_slice",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "pdkd_test",
+    srcs = ["pdkd_test.py"],
+    tags = ["nooss"],
+    deps = [
+        ":pdkd",
         "//py/koladata:kd",
         "//py/koladata/testing",
         "//py/koladata/types:schema_constants",

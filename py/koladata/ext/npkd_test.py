@@ -23,14 +23,6 @@ from koladata.types import schema_constants
 import numpy as np
 
 
-def to_itemid_str(x):
-  return str(x.as_itemid())
-
-
-def map_to_itemid_str(items):
-  return [str(x.as_itemid()) for x in items]
-
-
 class NpkdTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
@@ -137,6 +129,99 @@ class NpkdTest(parameterized.TestCase):
       self.assertSameElements(np.isnan(res_np), [False, False, True])
       self.assertEqual(res_np[0], True)
       self.assertEqual(res_np[1], False)
+
+  def test_reshape_based_on_indices(self):
+    with self.subTest('1d'):
+      indices = [np.array([0, 1, 2])]
+      ds = kd.slice([1, 2, 3])
+      res = npkd.reshape_based_on_indices(ds, indices)
+      self.assertEqual(res.internal_as_py(), [1, 2, 3])
+
+    with self.subTest('2d'):
+      indices = [np.array([0, 0, 2, 2]), np.array([0, 1, 0, 1])]
+      ds = kd.slice([1, 2, 3, 4])
+      res = npkd.reshape_based_on_indices(ds, indices)
+      self.assertEqual(res.internal_as_py(), [[1, 2], [], [3, 4]])
+
+    with self.subTest('3d'):
+      indices = [
+          np.array([0, 0, 1, 1]),
+          np.array([0, 1, 1, 1]),
+          np.array([0, 0, 0, 1]),
+      ]
+      ds = kd.slice([1, 2, 3, 4])
+      res = npkd.reshape_based_on_indices(ds, indices)
+      self.assertEqual(res.internal_as_py(), [[[1], [2]], [[], [3, 4]]])
+
+    with self.subTest('shuffled indices'):
+      indices = [
+          np.array([3, 0, 0, 1, 1, 3, 0]),
+          np.array([1, 1, 2, 0, 1, 0, 0]),
+      ]
+      ds = kd.slice([7, 2, 3, 4, 5, None, 1])
+      res = npkd.reshape_based_on_indices(ds, indices)
+      self.assertEqual(res.internal_as_py(), [[1, 2, 3], [4, 5], [], [None, 7]])
+
+    with self.subTest('non-1d ds'):
+      indices = [np.array([0, 1, 2])]
+      ds = kd.slice([[1, 2, 3], [4, 5, 6]])
+      with self.assertRaisesRegex(ValueError, 'Only 1D DataSlice is supported'):
+        _ = npkd.reshape_based_on_indices(ds, indices)
+
+    with self.subTest('non-2d indices'):
+      indices = [np.array([[0, 1, 2], [3, 4, 5]])]
+      ds = kd.slice([1, 2, 3])
+      with self.assertRaisesRegex(
+          ValueError, 'Indices must be a list of one-dimensional arrays.'
+      ):
+        _ = npkd.reshape_based_on_indices(ds, indices)
+
+    with self.subTest('non-2d indices'):
+      indices = [np.array([0, 1]), np.array([3, 4, 5, 6])]
+      ds = kd.slice([1, 2, 3])
+      with self.assertRaisesRegex(
+          ValueError, 'Index rows must have the same length as the DataSlice.'
+      ):
+        _ = npkd.reshape_based_on_indices(ds, indices)
+
+  def test_get_elements_indices_from_ds(self):
+    with self.subTest('0d'):
+      res = npkd.get_elements_indices_from_ds(kd.item(1))
+      self.assertEmpty(res)
+
+    with self.subTest('1d'):
+      res = npkd.get_elements_indices_from_ds(kd.slice([1, 2, 3]))
+      self.assertLen(res, 1)
+      self.assertCountEqual(res[0], [0, 1, 2])
+
+    with self.subTest('2d'):
+      res = npkd.get_elements_indices_from_ds(kd.slice([[1, 2], [], [3, 4]]))
+      self.assertLen(res, 2)
+      self.assertCountEqual(res[0], [0, 0, 2, 2])
+      self.assertCountEqual(res[1], [0, 1, 0, 1])
+
+    with self.subTest('3d'):
+      res = npkd.get_elements_indices_from_ds(
+          kd.slice([[[1], [2]], [[], [3, 4]]])
+      )
+      self.assertLen(res, 3)
+      self.assertCountEqual(res[0], [0, 0, 1, 1])
+      self.assertCountEqual(res[1], [0, 1, 1, 1])
+      self.assertCountEqual(res[2], [0, 0, 0, 1])
+
+    with self.subTest('text'):
+      res = npkd.get_elements_indices_from_ds(kd.slice(['a', 'b', 'c']))
+      self.assertSameElements(res[0], [0, 1, 2])
+
+  @parameterized.named_parameters(
+      ('1d', kd.slice([1, 2, 3])),
+      ('2d', kd.slice([[1, 2], [], [3, 4]])),
+      ('3d', kd.slice([[[1], [2]], [[], [3, 4]]])),
+  )
+  def test_ds_to_indices_roundtrip(self, ds):
+    indices = npkd.get_elements_indices_from_ds(ds)
+    converted_back = npkd.reshape_based_on_indices(ds.flatten(), indices)
+    testing.assert_equal(converted_back, ds)
 
 
 if __name__ == '__main__':
