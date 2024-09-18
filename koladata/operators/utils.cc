@@ -31,7 +31,7 @@
 
 namespace koladata::ops {
 
-absl::Status VerifyNamedTuple(const arolla::QTypePtr qtype) {
+absl::Status VerifyNamedTuple(arolla::QTypePtr qtype) {
   if (!IsNamedTupleQType(qtype)) {
     return absl::InvalidArgumentError(
         "requires last argument to be NamedTuple");

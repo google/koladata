@@ -26,6 +26,7 @@ from koladata.types import schema_constants
 
 M = arolla.OperatorsContainer(jagged_shape)
 P = arolla.P
+constraints = arolla.optools.constraints
 
 
 @optools.add_to_registry()
@@ -194,6 +195,41 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
   Args:
     fmt: Format string (Text or Bytes).
     *args: Arguments to format (primitive types compatible with `fmt`).
+
+  Returns:
+    The formatted string.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.strings.format',
+    aux_policy='koladata_kwargs',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.fmt),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def format_(fmt, kwargs):  # pylint: disable=unused-argument
+  """Formats strings according to python str.format style.
+
+  Important limitations:
+  1. No positional arguments are supported. Only KWARGS.
+  2. Formatting is not supported at the moment.
+
+  Example:
+    kd.strings.format(kd.slice(['Hello {n}!', 'Goodbye {n}!']), n='World')
+      # -> kd.slice(['Hello World!', 'Goodbye World!'])
+    kd.strings.format('{a} + {b} = {c}', a=1, b=2, c=3)
+      # -> kd.slice('1 + 2 = 3')
+    kd.strings.format('{a} + {b} = {c}', a=[1, 2], b=[2, 3], c=[3, 5])
+      # -> kd.slice(['1 + 2 = 3', '2 + 3 = 5'])
+
+  Args:
+    fmt: Format string (Text or Bytes).
+    kwargs: Arguments to format.
 
   Returns:
     The formatted string.

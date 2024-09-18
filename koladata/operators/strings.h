@@ -19,8 +19,24 @@
 
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
+#include "arolla/qexpr/operators.h"
+#include "arolla/qtype/qtype.h"
+#include "absl/types/span.h"
 
 namespace koladata::ops {
+
+// kde.strings.format operator.
+// Formats according to Python str.format.
+// Has a lot of limitations.
+// Must have two arguments:
+// 1. First parameter is the format specification,
+//    which must have BYTES or TEXT dtype.
+// 2. Named tuple of DataSlice with format arguments.
+class FormatOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
 
 // go/keep-sorted start ignore_prefixes=absl::StatusOr<DataSlice>
 // kde.strings.agg_join.

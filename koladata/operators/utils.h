@@ -27,7 +27,7 @@
 namespace koladata::ops {
 
 // Verifies that a qtype is named tuple and has only DataSlice values.
-absl::Status VerifyNamedTuple(const arolla::QTypePtr qtype);
+absl::Status VerifyNamedTuple(arolla::QTypePtr qtype);
 
 // Returns the names of attributes associated with an already validated
 // named tuple slot.

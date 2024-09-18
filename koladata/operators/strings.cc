@@ -14,6 +14,7 @@
 //
 #include "koladata/operators/strings.h"
 
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -21,6 +22,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_join.h"
 #include "absl/types/span.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
@@ -29,12 +31,76 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/arolla_bridge.h"
+#include "koladata/operators/utils.h"
 #include "koladata/shape_utils.h"
+#include "arolla/memory/frame.h"
+#include "arolla/qexpr/bound_operators.h"
+#include "arolla/qexpr/eval_context.h"
+#include "arolla/qexpr/operators.h"
+#include "arolla/qexpr/qexpr_operator_signature.h"
+#include "arolla/qtype/qtype.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
+#include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
+
+namespace {
+
+class FormatOperator : public arolla::QExprOperator {
+ public:
+  explicit FormatOperator(absl::Span<const arolla::QTypePtr> input_types)
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    auto named_tuple_slot = input_slots[1];
+    auto attr_names = GetAttrNames(named_tuple_slot);
+    ASSIGN_OR_RETURN(
+        auto arg_names_slice,
+        DataSlice::Create(
+            internal::DataItem(arolla::Text(absl::StrJoin(attr_names, ","))),
+            internal::DataItem(schema::kText)));
+    return arolla::MakeBoundOperator(
+        [arg_names_slice = std::move(arg_names_slice),
+         attr_names = std::move(attr_names),
+         format_spec_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
+         named_tuple_slot, output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          auto values = GetValueDataSlices(named_tuple_slot, attr_names, frame);
+
+          const DataSlice& format_spec = frame.Get(format_spec_slot);
+          if (format_spec.IsEmpty()) {
+            frame.Set(output_slot, format_spec);
+            return;
+          }
+          values.insert(values.begin(), {format_spec, arg_names_slice});
+
+          auto result = SimplePointwiseEval("strings.format", std::move(values),
+                                            format_spec.GetSchemaImpl());
+          RETURN_IF_ERROR(result.status()).With(ctx->set_status());
+          frame.Set(output_slot, *std::move(result));
+        });
+  }
+};
+
+}  // namespace
+
+absl::StatusOr<arolla::OperatorPtr> FormatOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires exactly 2 arguments");
+  }
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<FormatOperator>(input_types), input_types, output_type);
+}
 
 absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep) {
   if (sep.GetShape().rank() != 0) {
