@@ -32,6 +32,11 @@ absl::StatusOr<DataSlice> Contains(const DataSlice& x, const DataSlice& substr);
 // kde.strings.count.
 absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr);
 //
+// kde.strings.find.
+absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,
+                               const DataSlice& start, const DataSlice& end,
+                               const DataSlice& failure_value);
+//
 // kde.strings.join.
 absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices);
 //

@@ -14,9 +14,12 @@
 //
 #include "koladata/operators/arolla_bridge.h"
 
+#include <bitset>
+#include <climits>
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -233,21 +236,43 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
 
 absl::StatusOr<DataSlice> SimplePointwiseEval(
     absl::string_view op_name, std::vector<DataSlice> inputs,
-    internal::DataItem output_schema) {
+    internal::DataItem output_schema,
+    std::optional<std::vector<int>> primary_operand_indices) {
+  constexpr int kMaxInputs = 16;
   DCHECK_GE(inputs.size(), 1);
+  DCHECK_LE(inputs.size(), kMaxInputs);
+  std::bitset<kMaxInputs> is_primary_operand(
+      !primary_operand_indices.has_value() ? ULONG_MAX : 0);
+  if (primary_operand_indices.has_value()) {
+    for (int index : *primary_operand_indices) {
+      DCHECK(index >= 0 && index < inputs.size());
+      is_primary_operand[index] = true;
+    }
+  }
   schema::CommonSchemaAggregator schema_agg;
   internal::DataItem first_primitive_schema;
-  for (const auto& x : inputs) {
+  for (int i = 0; i < inputs.size(); ++i) {
+    const DataSlice& x = inputs[i];
+    if (!is_primary_operand[i]) {
+      if (!x.GetSchemaImpl().is_primitive_schema()) {
+        return absl::InternalError(
+            absl::StrCat("DataSlice for the non-primary operand ", i + 1,
+                         " should have a primitive schema"));
+      }
+      continue;
+    }
     schema_agg.Add(x.GetSchemaImpl());
     // Validate that it has a primitive schema. We additionally use it as a
-    // fallback schema for empty-and-unknown inputs.
+    // fallback schema for empty-and-unknown primary inputs.
     ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
     if (!first_primitive_schema.has_value()) {
       first_primitive_schema = std::move(primitive_schema);
     }
   }
-  // All empty-and-unknown inputs. We then skip evaluation and just broadcast
-  // the first input to the common shape and common schema.
+  // All primary inputs are empty-and-unknown. We then skip evaluation and just
+  // broadcast the first input to the common shape and common schema. It is the
+  // caller's responsibility to make sure that the non-primary inputs have
+  // acceptable schemas.
   if (!first_primitive_schema.has_value()) {
     ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(inputs));
     if (!output_schema.has_value()) {
@@ -257,15 +282,18 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
                                                 std::move(output_schema)));
     return BroadcastToShape(ds, std::move(common_shape));
   }
-  // From here on, we know that at least one input has known schema and we
-  // should eval.
+  // From here on, we know that at least one primary input has known schema and
+  // we should eval.
   ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
                    shape::AlignNonScalars(std::move(inputs)));
   std::vector<arolla::TypedValue> typed_value_holder;
   std::vector<arolla::TypedRef> typed_refs;
   typed_value_holder.reserve(aligned_ds.size());
   typed_refs.reserve(aligned_ds.size());
-  for (const auto& x : aligned_ds) {
+  for (int i = 0; i < aligned_ds.size(); ++i) {
+    const auto& x = aligned_ds[i];
+    // For non-primary operands, the fallback schema won't be used, because
+    // they are guaranteed to have a primitive schema.
     ASSIGN_OR_RETURN(auto ref,
                      DataSliceToOwnedArollaRef(x, typed_value_holder,
                                                first_primitive_schema));
@@ -276,7 +304,7 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
                                     std::move(output_schema));
   }
-  // Get the common schema from both inputs and outputs.
+  // Get the common schema from the primary inputs and output.
   ASSIGN_OR_RETURN(auto output_qtype, arolla::GetScalarQType(result.GetType()));
   ASSIGN_OR_RETURN(auto result_dtype, schema::DType::FromQType(output_qtype));
   schema_agg.Add(result_dtype);

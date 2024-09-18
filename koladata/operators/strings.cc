@@ -14,6 +14,7 @@
 //
 #include "koladata/operators/strings.h"
 
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -22,6 +23,7 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/arolla_utils.h"
+#include "koladata/casting.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
@@ -51,6 +53,24 @@ absl::StatusOr<DataSlice> Contains(const DataSlice& x,
 absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr) {
   return SimplePointwiseEval("strings.count", {x, substr},
                              internal::DataItem(schema::kInt32));
+}
+
+absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,
+                               const DataSlice& start, const DataSlice& end,
+                               const DataSlice& failure_value) {
+  ASSIGN_OR_RETURN(auto typed_start,
+                   CastToNarrow(start, internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(auto typed_end,
+                   CastToNarrow(end, internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(
+      auto typed_failure_value,
+      CastToNarrow(failure_value, internal::DataItem(schema::kInt64)));
+  return SimplePointwiseEval(
+      "strings.find",
+      {x, substr, std::move(typed_start), std::move(typed_end),
+       std::move(typed_failure_value)},
+      /*output_schema=*/internal::DataItem(schema::kInt64),
+      /*primary_operand_indices=*/std::vector<int>({0, 1}));
 }
 
 absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices) {
@@ -135,31 +155,14 @@ absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
 
 absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
                                  const DataSlice& end) {
-  // If `x` is empty-and-unknown, the output will be too. In all other cases,
-  // we evaluate M.strings.substr on the provided inputs.
-  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
-  if (!primitive_schema.has_value()) {
-    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape({x, start, end}));
-    return BroadcastToShape(x, std::move(common_shape));
-  }
-  ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
-                   shape::AlignNonScalars({x, start, end}));
-  std::vector<arolla::TypedValue> typed_value_holder;
-  typed_value_holder.reserve(3);
-  ASSIGN_OR_RETURN(
-      auto x_ref, DataSliceToOwnedArollaRef(aligned_ds[0], typed_value_holder));
-  ASSIGN_OR_RETURN(auto start_ref, DataSliceToOwnedArollaRef(
-                                       aligned_ds[1], typed_value_holder,
-                                       internal::DataItem(schema::kInt64)));
-  ASSIGN_OR_RETURN(auto end_ref, DataSliceToOwnedArollaRef(
-                                     aligned_ds[2], typed_value_holder,
-                                     internal::DataItem(schema::kInt64)));
-  ASSIGN_OR_RETURN(
-      auto result,
-      EvalExpr("strings.substr",
-               {std::move(x_ref), std::move(start_ref), std::move(end_ref)}));
-  return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
-                                  x.GetSchemaImpl());
+  ASSIGN_OR_RETURN(auto typed_start,
+                   CastToNarrow(start, internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(auto typed_end,
+                   CastToNarrow(end, internal::DataItem(schema::kInt64)));
+  return SimplePointwiseEval("strings.substr",
+                             {x, std::move(typed_start), std::move(typed_end)},
+                             /*output_schema=*/x.GetSchemaImpl(),
+                             /*primary_operand_indices=*/std::vector<int>({0}));
 }
 
 absl::StatusOr<DataSlice> Upper(const DataSlice& x) {

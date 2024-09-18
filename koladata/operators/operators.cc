@@ -160,6 +160,7 @@ OPERATOR("kde.strings._agg_join", AggJoin);
 OPERATOR("kde.strings._split", Split);
 OPERATOR("kde.strings.contains", Contains);
 OPERATOR("kde.strings.count", Count);
+OPERATOR("kde.strings.find", Find);
 OPERATOR_FAMILY("kde.strings.join",
                 arolla::MakeVariadicInputOperatorFamily(Join));
 OPERATOR("kde.strings.length", Length);
