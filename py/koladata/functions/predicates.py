@@ -16,6 +16,7 @@
 
 from typing import Any
 
+from arolla import arolla
 from koladata.operators import kde_operators as _  # pylint: disable=unused-import
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
@@ -26,3 +27,8 @@ def is_item(obj: Any) -> bool:
   if not isinstance(obj, data_slice.DataSlice):
     return False
   return obj.get_ndim() == 0
+
+
+def is_expr(obj: Any) -> bool:
+  """Returns True if the given object is an Expr."""
+  return isinstance(obj, arolla.abc.Expr)

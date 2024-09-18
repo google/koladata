@@ -60,6 +60,7 @@ set_schema = _attrs.set_schema
 set_attr = _attrs.set_attr
 set_attrs = _attrs.set_attrs
 
+is_expr = _predicates.is_expr
 is_item = _predicates.is_item
 
 from_py = _py_conversions.from_py

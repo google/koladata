@@ -41,6 +41,7 @@ py_library(
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+        "@com_google_arolla//py/arolla",
     ],
 )
 
