@@ -882,7 +882,7 @@ def get_keys(dict_ds):  # pylint: disable=unused-argument
 
   The result DataSlice has one more dimension used to represent keys in each
   dict than `dict_ds`. While the order of keys within a dict is arbitrary, it is
-  the same as GetDictValues().
+  the same as get_values().
 
   Args:
     dict_ds: DataSlice of Dicts.
@@ -893,28 +893,64 @@ def get_keys(dict_ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.get_values'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.core.get_values',
+    'kde.core._get_values',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.dict_ds),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def get_values(dict_ds):  # pylint: disable=unused-argument
-  """Returns values of all dicts in `dict_ds`.
+def _get_values(dict_ds):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
 
-  The result DataSlice has one more dimension used to represent values in each
-  dict than `dict_ds`. While the order of values within a dict is arbitrary, it
-  is the same as GetDictKeys().
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.core._get_values_by_keys',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.dict_ds),
+        qtype_utils.expect_data_slice(P.key_ds),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _get_values_by_keys(dict_ds, key_ds):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.get_values'])
+@optools.as_lambda_operator(
+    'kde.core.get_values',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.dict_ds),
+        qtype_utils.expect_data_slice_or_unspecified(P.key_ds),
+    ],
+)
+def get_values(dict_ds, key_ds=arolla.unspecified()):
+  """Returns values corresponding to `key_ds` for dicts in `dict_ds`.
+
+  When `key_ds` is specified, it is equivalent to dict_ds[key_ds].
+
+  When `key_ds` is unspecified, it returns all values in `dict_ds`. The result
+  DataSlice has one more dimension used to represent values in each dict than
+  `dict_ds`. While the order of values within a dict is arbitrary, it is the
+  same as get_keys().
 
   Args:
     dict_ds: DataSlice of Dicts.
+    key_ds: DataSlice of keys or unspecified.
 
   Returns:
     A DataSlice of values.
   """
-  raise NotImplementedError('implemented in the backend')
+  return arolla.types.DispatchOperator(
+      'dict_ds, key_ds',
+      unspecified_case=arolla.types.DispatchCase(
+          _get_values(P.dict_ds),
+          condition=(P.key_ds == arolla.UNSPECIFIED),
+      ),
+      default=_get_values_by_keys(P.dict_ds, P.key_ds),
+  )(dict_ds, key_ds)
 
 
 @optools.add_to_registry(aliases=['kde.agg_count'])
