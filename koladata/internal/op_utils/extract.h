@@ -15,7 +15,7 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
 #define KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
 
-#include <tuple>
+#include <utility>
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
@@ -28,7 +28,7 @@ namespace koladata::internal {
 // Extracts DataSliceImpl / DataItem.
 struct ExtractOp {
  public:
-  ExtractOp(DataBagImpl* new_databag) : new_databag_(new_databag) {}
+  explicit ExtractOp(DataBagImpl* new_databag) : new_databag_(new_databag) {}
 
   absl::Status operator()(const DataSliceImpl& ds, const DataItem& schema,
                           const DataBagImpl& databag,
@@ -61,24 +61,25 @@ struct ExtractOp {
 // Returns a tuple of (new DataBag, new DataSlice, new schema).
 struct ShallowCloneOp {
  public:
-  ShallowCloneOp(DataBagImpl* new_databag) : new_databag_(new_databag) {}
+  explicit ShallowCloneOp(DataBagImpl* new_databag)
+      : new_databag_(new_databag) {}
 
-  absl::StatusOr<std::tuple<DataSliceImpl, DataItem>> operator()(
+  absl::StatusOr<std::pair<DataSliceImpl, DataItem>> operator()(
       const DataSliceImpl& ds, const DataItem& schema,
       const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks = {}) const;
 
-  absl::StatusOr<std::tuple<DataItem, DataItem>> operator()(
+  absl::StatusOr<std::pair<DataItem, DataItem>> operator()(
       const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks = {}) const;
 
-  absl::StatusOr<std::tuple<DataSliceImpl, DataItem>> operator()(
+  absl::StatusOr<std::pair<DataSliceImpl, DataItem>> operator()(
       const DataSliceImpl& ds, const DataItem& schema,
       const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
       const DataBagImpl& schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks) const;
 
-  absl::StatusOr<std::tuple<DataItem, DataItem>> operator()(
+  absl::StatusOr<std::pair<DataItem, DataItem>> operator()(
       const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks) const;

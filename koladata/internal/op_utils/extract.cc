@@ -656,32 +656,32 @@ absl::Status ExtractOp::operator()(
                  fallbacks, schema_databag, schema_fallbacks);
 }
 
-absl::StatusOr<std::tuple<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
+absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
     const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks) const {
   auto processor =
       CopyingProcessor(databag, fallbacks, DataBagImplPtr::NewRef(new_databag_),
                        /*is_shallow_clone=*/true);
-  ASSIGN_OR_RETURN(const auto result_ds, processor.CloneObjects(ds));
-  ASSIGN_OR_RETURN(const auto result_schema, processor.ReflectSchema(schema));
+  ASSIGN_OR_RETURN(auto result_ds, processor.CloneObjects(ds));
+  ASSIGN_OR_RETURN(auto result_schema, processor.ReflectSchema(schema));
   auto slice = QueuedSlice{.slice = result_ds,
                            .schema = result_schema,
                            .schema_source = SchemaSource::kDataDatabag};
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
-  return std::make_tuple(result_ds, result_schema);
+  return std::make_pair(std::move(result_ds), std::move(result_schema));
 }
 
-absl::StatusOr<std::tuple<DataItem, DataItem>> ShallowCloneOp::operator()(
+absl::StatusOr<std::pair<DataItem, DataItem>> ShallowCloneOp::operator()(
     const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks) const {
   internal::ShallowCloneOp clone_op(new_databag_);
   ASSIGN_OR_RETURN(
       (auto [result_slice_impl, result_schema_impl]),
       clone_op(DataSliceImpl::Create(1, item), schema, databag, fallbacks));
-  return std::make_tuple(result_slice_impl[0], result_schema_impl);
+  return std::make_pair(result_slice_impl[0], std::move(result_schema_impl));
 }
 
-absl::StatusOr<std::tuple<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
+absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
     const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
     DataBagImpl::FallbackSpan schema_fallbacks) const {
@@ -689,16 +689,16 @@ absl::StatusOr<std::tuple<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
       CopyingProcessor(databag, fallbacks, &schema_databag, schema_fallbacks,
                        DataBagImplPtr::NewRef(new_databag_),
                        /*is_shallow_clone=*/true);
-  ASSIGN_OR_RETURN(const auto result_ds, processor.CloneObjects(ds));
-  ASSIGN_OR_RETURN(const auto result_schema, processor.ReflectSchema(schema));
+  ASSIGN_OR_RETURN(auto result_ds, processor.CloneObjects(ds));
+  ASSIGN_OR_RETURN(auto result_schema, processor.ReflectSchema(schema));
   auto slice = QueuedSlice{.slice = result_ds,
                            .schema = result_schema,
                            .schema_source = SchemaSource::kSchemaDatabag};
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
-  return std::make_tuple(result_ds, result_schema);
+  return std::make_pair(std::move(result_ds), std::move(result_schema));
 }
 
-absl::StatusOr<std::tuple<DataItem, DataItem>> ShallowCloneOp::operator()(
+absl::StatusOr<std::pair<DataItem, DataItem>> ShallowCloneOp::operator()(
     const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks, const DataBagImpl& schema_databag,
     DataBagImpl::FallbackSpan schema_fallbacks) const {
@@ -706,7 +706,7 @@ absl::StatusOr<std::tuple<DataItem, DataItem>> ShallowCloneOp::operator()(
   ASSIGN_OR_RETURN((auto [result_slice_impl, result_schema_impl]),
                    clone_op(DataSliceImpl::Create(1, item), schema, databag,
                             fallbacks, schema_databag, schema_fallbacks));
-  return std::make_tuple(result_slice_impl[0], result_schema_impl);
+  return std::make_pair(result_slice_impl[0], std::move(result_schema_impl));
 }
 
 }  // namespace koladata::internal
