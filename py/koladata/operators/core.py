@@ -678,7 +678,7 @@ def get_attr(obj, attr_name, default=arolla.unspecified()):
     ],
 )
 def maybe(obj, attr_name):
-  """A shortcut for kde.get_attr(attr_name, default=None)."""
+  """A shortcut for kde.get_attr(obj, attr_name, default=None)."""
   return _get_attr_with_default(obj, attr_name, None)
 
 
