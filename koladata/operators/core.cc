@@ -1493,20 +1493,24 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
         "keys_from and keys_to must have the same schema");
   }
 
+  ASSIGN_OR_RETURN(auto false_item,
+                   DataSlice::Create(internal::DataItem(false),
+                                     DataSlice::JaggedShape::Empty(),
+                                     internal::DataItem(schema::kBool)));
+  ASSIGN_OR_RETURN(auto unique_keys, Unique(keys_from, false_item));
+  if (keys_from.present_count() != unique_keys.present_count()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "keys_from must be unique within each group of the last dimension: "
+        "original DataSlice %s vs DataSlice after dedup %s. Consider using "
+        "translate_group instead.",
+        arolla::Repr(keys_from), arolla::Repr(unique_keys)));
+  }
+
   auto temp_db = DataBag::Empty();
   ASSIGN_OR_RETURN(
       auto lookup,
       CreateDictShaped(temp_db, shape_without_last_dim,
                        keys_from.WithDb(nullptr), values_from.WithDb(nullptr)));
-  ASSIGN_OR_RETURN(auto unique_keys, lookup.GetDictKeys());
-  if (!unique_keys.GetShape().IsEquivalentTo(keys_from.GetShape())) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "keys_from must be unique within each group of the last dimension: "
-        "original shape %s vs shape after dedup %s. Consider using "
-        "translate_group instead.",
-        arolla::Repr(keys_from.GetShape()),
-        arolla::Repr(unique_keys.GetShape())));
-  }
   ASSIGN_OR_RETURN(auto res, lookup.GetFromDict(keys_to));
   return res.WithDb(values_from.GetDb());
 }

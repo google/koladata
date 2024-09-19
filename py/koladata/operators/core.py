@@ -2599,8 +2599,8 @@ def translate(keys_to, keys_from, values_from):  # pylint: disable=unused-argume
   For example:
 
   keys_to = kd.slice([['a', 'd'], ['c', None]])
-  keys_from = kd.slice([['a', 'b'], ['c']])
-  values_from = kd.slice([[1, 2], [3]])
+  keys_from = kd.slice([['a', 'b'], ['c', None]])
+  values_from = kd.slice([[1, 2], [3, 4]])
   kd.translate(keys_to, keys_from, values_from) ->
       kd.slice([[1, None], [3, None]])
 
