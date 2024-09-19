@@ -26,6 +26,7 @@
 #include "absl/base/no_destructor.h"
 #include "absl/base/optimization.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -237,8 +238,8 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     internal::DataItem output_schema,
     std::optional<std::vector<int>> primary_operand_indices) {
   DCHECK_GE(inputs.size(), 1);
-  std::vector<bool> is_primary_operand(inputs.size(),
-                                       !primary_operand_indices.has_value());
+  absl::InlinedVector<bool, 16> is_primary_operand(
+      inputs.size(), !primary_operand_indices.has_value());
   if (primary_operand_indices.has_value()) {
     for (int index : *primary_operand_indices) {
       DCHECK(index >= 0 && index < inputs.size());
