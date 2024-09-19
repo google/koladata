@@ -363,11 +363,6 @@ class OpReprTest(parameterized.TestCase):
           kde.get_attr(I.x, I.a),
           'kde.get_attr(I.x, I.a, unspecified)',
       ),
-      # Not a slice.
-      (
-          kde.get_attr(I.x, arolla.text('a')),
-          "kde.get_attr(I.x, 'a', unspecified)",
-      ),
       # Not an identifier.
       (
           kde.get_attr(I.x, ds('')),
