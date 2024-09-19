@@ -257,6 +257,7 @@ py_test(
         ":dict_item",
         ":jagged_shape",
         ":list_item",
+        ":mask_constants",
         ":qtypes",
         ":schema_constants",
         "//py/koladata/exceptions",

@@ -86,6 +86,9 @@ absl::StatusOr<DataSlice> Explode(const DataSlice& x, int64_t ndim);
 // kde.core._extract
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds, const DataSlice& schema);
 
+// kde.core.is_empty.
+absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj);
+
 // kde.core._get_attr.
 absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
                                   const DataSlice& attr_name);

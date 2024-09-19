@@ -31,14 +31,19 @@ from koladata.types import data_slice
 from koladata.types import dict_item as _  # pylint: disable=unused-import
 from koladata.types import jagged_shape
 from koladata.types import list_item as _  # pylint: disable=unused-import
+from koladata.types import mask_constants
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
 
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 
 INT64 = schema_constants.INT64
+
+present = mask_constants.present
+missing = mask_constants.missing
 
 
 class DataSliceMethodsTest(absltest.TestCase):
@@ -548,6 +553,33 @@ class DataSliceTest(parameterized.TestCase):
       ds([1, 2, 3]).as_itemid()
     with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to ITEMID'):
       ds([1, 2, 3], schema_constants.OBJECT).as_itemid()
+
+  def test_has_attr(self):
+    db = bag()
+
+    with self.subTest('entity item'):
+      x = db.new(a=ds(42), b=ds(None))
+      testing.assert_equal(x.has_attr('a'), ds(present))
+      testing.assert_equal(x.has_attr('b'), ds(missing))
+      testing.assert_equal(x.has_attr('c'), ds(missing))
+
+    with self.subTest('entity slice'):
+      x = db.new(a=ds([42]), b=ds([None]))
+      testing.assert_equal(x.has_attr('a'), ds(present))
+      testing.assert_equal(x.has_attr('b'), ds(missing))
+      testing.assert_equal(x.has_attr('c'), ds(missing))
+
+    with self.subTest('obj item'):
+      x = db.obj(a=ds(42), b=ds(None))
+      testing.assert_equal(x.has_attr('a'), ds(present))
+      testing.assert_equal(x.has_attr('b'), ds(missing))
+      testing.assert_equal(x.has_attr('c'), ds(missing))
+
+    with self.subTest('obj slice'):
+      x = db.obj(a=ds([42]), b=ds([None]))
+      testing.assert_equal(x.has_attr('a'), ds(present))
+      testing.assert_equal(x.has_attr('b'), ds(missing))
+      testing.assert_equal(x.has_attr('c'), ds(missing))
 
   def test_set_get_attr_methods(self):
     db = bag()

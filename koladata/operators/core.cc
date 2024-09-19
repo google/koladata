@@ -82,6 +82,7 @@
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -1105,6 +1106,16 @@ absl::StatusOr<DataSlice> Explode(const DataSlice& x, const int64_t ndim) {
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds,
                                   const DataSlice& schema) {
   return koladata::extract_utils_internal::ExtractWithSchema(ds, schema);
+}
+
+DataSlice AsMask(bool b) {
+  return *DataSlice::Create(
+      b ? internal::DataItem(arolla::kUnit) : internal::DataItem(),
+      internal::DataItem(schema::kMask));
+}
+
+absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj) {
+  return AsMask(obj.IsEmpty());
 }
 
 absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,

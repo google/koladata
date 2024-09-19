@@ -214,6 +214,12 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_maybe(self):
     testing.assert_equal(C.x.maybe('val'), kde.maybe(C.x, 'val'))
 
+  def test_has_attr(self):
+    testing.assert_equal(C.x.has_attr('val'), kde.has_attr(C.x, 'val'))
+
+  def test_is_empty(self):
+    testing.assert_equal(C.x.is_empty(), kde.is_empty(C.x))
+
   def test_slicing_helper(self):
     testing.assert_equal(
         C.x.S[C.s1], kde.core._subslice_for_slicing_helper(C.x, C.s1)
@@ -559,7 +565,6 @@ class DataSliceViewTest(parameterized.TestCase):
     skipped_data_slice_attrs = {
         # TODO: Add the following as operators.
         'is_primitive_schema',
-        'is_empty',
         'is_dict_schema',
         'is_list_schema',
         'with_fallback',

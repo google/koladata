@@ -682,6 +682,43 @@ def maybe(obj, attr_name):
   return _get_attr_with_default(obj, attr_name, None)
 
 
+@optools.add_to_registry(aliases=['kde.is_empty'])
+@optools.as_backend_operator(
+    'kde.core.is_empty',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.obj),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_empty(obj):  # pylint: disable=unused-argument
+  """Returns kd.present if all items in the DataSlice are missing."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.has_attr'])
+@optools.as_lambda_operator(
+    'kde.core.has_attr',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.attr_name),
+    ],
+)
+def has_attr(obj, attr_name):
+  """Indicates whether at least one item in the slice has the given attribute.
+
+  This function checks for attributes based on data rather than "schema" and may
+  be slow in some cases.
+
+  Args:
+    obj: DataSlice | DataItem instance
+    attr_name: Name of the attribute to check.
+
+  Returns:
+    A 0-dim MASK slice, present if the attribute exists for at least one item.
+  """
+  return ~is_empty(maybe(obj, attr_name))
+
+
 @optools.add_to_registry(aliases=['kde.with_attrs'])
 @optools.as_backend_operator(
     'kde.core.with_attrs',

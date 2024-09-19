@@ -84,6 +84,7 @@ OPERATOR_FAMILY("kde.core.group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndicesSorted));
+OPERATOR("kde.core.is_empty", IsEmpty);
 OPERATOR("kde.core.itemid_bits", ItemIdBits);
 OPERATOR("kde.core.list_size", ListSize);
 OPERATOR("kde.core.no_db", NoDb);
