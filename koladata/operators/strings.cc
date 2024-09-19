@@ -55,6 +55,22 @@ namespace koladata::ops {
 
 namespace {
 
+absl::StatusOr<DataSlice> EvalFormatOp(
+    absl::string_view op_name,
+    const DataSlice& fmt, std::vector<DataSlice> slices) {
+  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(fmt));
+  // If `fmt` is empty, we avoid calling the implementation altogether. Calling
+  // SimplePointwiseEval when `fmt` is empty would resolve it to the type of the
+  // first present value, which can be of any type.
+  if (!primitive_schema.has_value()) {
+    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(slices));
+    return BroadcastToShape(fmt, std::move(common_shape));
+  }
+  // From here on, we know that at least one input has known schema and we
+  // should eval.
+  return SimplePointwiseEval(op_name, std::move(slices), fmt.GetSchemaImpl());
+}
+
 class FormatOperator : public arolla::QExprOperator {
  public:
   explicit FormatOperator(absl::Span<const arolla::QTypePtr> input_types)
@@ -80,16 +96,12 @@ class FormatOperator : public arolla::QExprOperator {
           auto values = GetValueDataSlices(named_tuple_slot, attr_names, frame);
 
           const DataSlice& format_spec = frame.Get(format_spec_slot);
-          if (format_spec.IsEmpty()) {
-            frame.Set(output_slot, format_spec);
-            return;
-          }
           values.insert(values.begin(), {format_spec, arg_names_slice});
-
-          auto result = SimplePointwiseEval("strings.format", std::move(values),
-                                            format_spec.GetSchemaImpl());
-          RETURN_IF_ERROR(result.status()).With(ctx->set_status());
-          frame.Set(output_slot, *std::move(result));
+          ASSIGN_OR_RETURN(
+              auto result,
+              EvalFormatOp("strings.format", format_spec, std::move(values)),
+              ctx->set_status(std::move(_)));
+          frame.Set(output_slot, std::move(result));
         });
   }
 };
@@ -149,18 +161,7 @@ absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices) {
     return absl::InvalidArgumentError("expected at least one input");
   }
   const auto& fmt = slices[0];
-  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(fmt));
-  // If `fmt` is empty, we avoid calling the implementation altogether. Calling
-  // SimplePointwiseEval when `fmt` is empty would resolve it to the type of the
-  // first present value, which can be of any type.
-  if (!primitive_schema.has_value()) {
-    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(slices));
-    return BroadcastToShape(fmt, std::move(common_shape));
-  }
-  // From here on, we know that at least one input has known schema and we
-  // should eval.
-  return SimplePointwiseEval("strings.printf", std::move(slices),
-                             /*output_schema=*/fmt.GetSchemaImpl());
+  return EvalFormatOp("strings.printf", fmt, std::move(slices));
 }
 
 // This operator is only used for koda_operator_coverage_test.
