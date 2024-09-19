@@ -14,8 +14,10 @@
 //
 #include "koladata/operators/strings.h"
 
+#include <cstddef>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -23,6 +25,8 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_join.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
@@ -41,6 +45,7 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
+#include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
@@ -156,6 +161,31 @@ absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices) {
   // should eval.
   return SimplePointwiseEval("strings.printf", std::move(slices),
                              /*output_schema=*/fmt.GetSchemaImpl());
+}
+
+// This operator is only used for koda_operator_coverage_test.
+absl::StatusOr<DataSlice> TestOnlyFormatWrapper(std::vector<DataSlice> slices) {
+  if (slices.size() < 2) {
+    return absl::InvalidArgumentError("expected at least two inputs");
+  }
+  const auto& arg_name_slice = slices[1];
+  absl::string_view arg_names = arg_name_slice.item().value<arolla::Text>();
+  std::vector<arolla::TypedRef> arg_values;
+  arg_values.reserve(slices.size() - 2);
+  for (size_t i = 2; i < slices.size(); ++i) {
+    arg_values.push_back(arolla::TypedRef::FromValue(slices[i]));
+  }
+  std::vector<std::string> arg_names_split;
+  if (!arg_names.empty()) {
+    arg_names_split = absl::StrSplit(arg_names, ',');
+  }
+  ASSIGN_OR_RETURN(auto kwargs,
+                   arolla::MakeNamedTuple(arg_names_split, arg_values));
+  ASSIGN_OR_RETURN(
+      auto result,
+      EvalExpr("kde.strings.format",
+               {arolla::TypedRef::FromValue(slices[0]), kwargs.AsRef()}));
+  return result.As<DataSlice>();
 }
 
 absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices) {

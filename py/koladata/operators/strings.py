@@ -239,6 +239,21 @@ def format_(fmt, kwargs):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.strings._test_only_format_wrapper',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.fmt),
+        qtype_utils.expect_data_slice(P.arg_names),
+        qtype_utils.expect_data_slice_args(P.args),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-argument
+  """Test only wrapper for format with Arolla signature."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.strings.join',
     qtype_constraints=[
         (

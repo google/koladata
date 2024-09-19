@@ -38,6 +38,12 @@ class FormatOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// kde.strings._test_only_format_wrapper.
+// It is used for koda_operator_coverage_test.
+// It has compatible with arolla signature:
+// format, arg_names, arg 1, arg 2, ...
+absl::StatusOr<DataSlice> TestOnlyFormatWrapper(std::vector<DataSlice> slices);
+
 // go/keep-sorted start ignore_prefixes=absl::StatusOr<DataSlice>
 // kde.strings.agg_join.
 absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep);
