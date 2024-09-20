@@ -55,8 +55,9 @@ class NewSchemaOperator : public arolla::QExprOperator {
         [named_tuple_slot = input_slots[0],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          auto attr_names = GetAttrNames(named_tuple_slot);
-          auto values = GetValueDataSlices(named_tuple_slot, attr_names, frame);
+          auto attr_names =
+              GetAttrNames(named_tuple_slot);
+          auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           koladata::AdoptionQueue adoption_queue;
           for (const auto &ds : values) {

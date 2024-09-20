@@ -93,7 +93,7 @@ class FormatOperator : public arolla::QExprOperator {
          format_spec_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          named_tuple_slot, output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          auto values = GetValueDataSlices(named_tuple_slot, attr_names, frame);
+          auto values = GetValueDataSlices(named_tuple_slot, frame);
 
           const DataSlice& format_spec = frame.Get(format_spec_slot);
           values.insert(values.begin(), {format_spec, arg_names_slice});

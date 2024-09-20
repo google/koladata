@@ -34,11 +34,10 @@ absl::Status VerifyNamedTuple(arolla::QTypePtr qtype);
 std::vector<absl::string_view> GetAttrNames(
     arolla::TypedSlot named_tuple_slot);
 
-// Returns the values of a an already validated named tuple slot which has all
+// Returns the values of an already validated named tuple slot which has all
 // DataSlice values.
 std::vector<DataSlice> GetValueDataSlices(
     arolla::TypedSlot named_tuple_slot,
-    absl::Span<const absl::string_view> attr_names,
     arolla::FramePtr frame);
 
 }  // namespace koladata::ops

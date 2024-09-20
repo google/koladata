@@ -14,7 +14,8 @@
 //
 #include "koladata/operators/utils.h"
 
-#include <iterator>
+#include <cstddef>
+#include <string>
 #include <vector>
 
 #include "absl/status/status.h"
@@ -49,21 +50,16 @@ std::vector<absl::string_view> GetAttrNames(
     arolla::TypedSlot named_tuple_slot) {
   auto qtype = named_tuple_slot.GetType();
   std::vector<absl::string_view> attr_names;
-  auto field_names = arolla::GetFieldNames(qtype);
+  absl::Span<const std::string> field_names = arolla::GetFieldNames(qtype);
   return std::vector<absl::string_view>(
       field_names.begin(), field_names.end());
 }
 
-std::vector<DataSlice> GetValueDataSlices(
-    arolla::TypedSlot named_tuple_slot,
-    absl::Span<const absl::string_view> attr_names,
-    arolla::FramePtr frame) {
+std::vector<DataSlice> GetValueDataSlices(arolla::TypedSlot named_tuple_slot,
+                                          arolla::FramePtr frame) {
   std::vector<DataSlice> values;
-  values.reserve(attr_names.size());
-  auto qtype = named_tuple_slot.GetType();
-  for (const auto& field_name : attr_names) {
-    auto index = arolla::GetFieldIndexByName(qtype,
-        field_name).value();
+  values.reserve(named_tuple_slot.SubSlotCount());
+  for (size_t index = 0; index < named_tuple_slot.SubSlotCount(); ++index) {
     auto field_slot = named_tuple_slot.SubSlot(index);
     auto data_slice_slot = field_slot.UnsafeToSlot<DataSlice>();
     values.push_back(frame.Get(data_slice_slot));

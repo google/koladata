@@ -761,7 +761,7 @@ class WithAttrsOperator : public arolla::QExprOperator {
           const auto& slice = frame.Get(slice_slot);
           const auto& attr_names = GetAttrNames(named_tuple_slot);
           const auto& values =
-              GetValueDataSlices(named_tuple_slot, attr_names, frame);
+              GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(auto result, WithAttrs(slice, attr_names, values),
                            ctx->set_status(std::move(_)));
           frame.Set(output_slot, std::move(result));
@@ -817,7 +817,7 @@ class UuSchemaOperator : public arolla::QExprOperator {
           }
           auto seed = seed_data_slice.item().value<arolla::Text>();
           auto attr_names = GetAttrNames(named_tuple_slot);
-          auto values = GetValueDataSlices(named_tuple_slot, attr_names, frame);
+          auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           koladata::AdoptionQueue adoption_queue;
           for (const auto& ds : values) {
@@ -860,7 +860,7 @@ class UuidOperator : public arolla::QExprOperator {
           }
           auto seed = seed_data_slice.item().value<arolla::Text>();
           auto attr_names = GetAttrNames(named_tuple_slot);
-          auto values = GetValueDataSlices(named_tuple_slot, attr_names, frame);
+          auto values = GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(
               auto result,
               koladata::CreateUuidFromFields(seed, attr_names, values),
@@ -894,7 +894,7 @@ class UuObjOperator : public arolla::QExprOperator {
           }
           auto seed = seed_data_slice.item().value<arolla::Text>();
           auto attr_names = GetAttrNames(named_tuple_slot);
-          auto values = GetValueDataSlices(named_tuple_slot, attr_names, frame);
+          auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           koladata::AdoptionQueue adoption_queue;
           for (const auto& ds : values) {
