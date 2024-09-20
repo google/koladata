@@ -542,8 +542,9 @@ namespace {
 template <typename Factory>
 class UniversalConverter {
  public:
-  UniversalConverter(const DataBagPtr& db, AdoptionQueue& adoption_queue)
-      : db_(db), adoption_queue_(adoption_queue) {}
+  UniversalConverter(const DataBagPtr& db, AdoptionQueue& adoption_queue,
+                     bool dict_as_obj = false)
+      : db_(db), adoption_queue_(adoption_queue), dict_as_obj_(dict_as_obj) {}
 
   absl::StatusOr<DataSlice> Convert(
       PyObject* py_obj,
@@ -657,6 +658,65 @@ class UniversalConverter {
     return absl::OkStatus();
   }
 
+  // Collects the keys and values of the python dictionary `py_obj`, and
+  // arranges the appropriate commands on the stack to create Object / Entity.
+  absl::Status ParsePyDictAsObj(PyObject* py_obj,
+                                const std::optional<DataSlice>& schema) {
+    DCHECK(PyDict_CheckExact(py_obj));
+    DataSlice::AttrNamesSet allowed_attr_names;
+    if (schema) {
+      ASSIGN_OR_RETURN(allowed_attr_names, schema->GetAttrNames());
+    }
+    size_t dict_size = PyDict_Size(py_obj);
+    size_t attr_names_size = 0;
+    arolla::DenseArrayBuilder<arolla::Text> attr_names_bldr(dict_size);
+    std::vector<PyObject*> py_values;
+    py_values.reserve(dict_size);
+    Py_ssize_t pos = 0;
+    PyObject* py_key;
+    PyObject* py_value;
+    while (PyDict_Next(py_obj, &pos, &py_key, &py_value)) {
+      Py_ssize_t size;
+      const char* data = PyUnicode_AsUTF8AndSize(py_key, &size);
+      if (data == nullptr) {
+        PyErr_Clear();
+        return absl::InvalidArgumentError(
+            absl::StrFormat(
+                "dict_as_obj requires keys to be valid unicode objects, got %s",
+                Py_TYPE(py_key)->tp_name));
+      }
+      absl::string_view key = absl::string_view(data, size);
+      if (!schema || allowed_attr_names.contains(key)) {
+        attr_names_bldr.Set(attr_names_size++, key);
+        py_values.push_back(py_value);
+      }
+    }
+    arolla::DenseArray<arolla::Text> attr_names =
+        std::move(attr_names_bldr).Build(attr_names_size);
+    ASSIGN_OR_RETURN(
+        auto attr_names_ds,
+        DataSlice::Create(
+            internal::DataSliceImpl::Create(attr_names),
+            DataSlice::JaggedShape::FlatFromSize(attr_names_size),
+            internal::DataItem(schema::kText)));
+    cmd_stack_.push([=, attr_names_ds = std::move(attr_names_ds)] {
+      value_stack_.push(attr_names_ds);
+      return absl::OkStatus();
+    });
+    for (size_t i = 0, id = 0; i < py_values.size(); ++i) {
+      std::optional<DataSlice> value_schema;
+      if (schema) {
+        ASSIGN_OR_RETURN(value_schema,
+                         schema->GetAttr(attr_names[id++].value));
+      }
+      cmd_stack_.push([=, py_val = py_values[i],
+                          value_schema = std::move(value_schema)] {
+        return CmdConvertPyObject(py_val, value_schema);
+      });
+    }
+    return absl::OkStatus();
+  }
+
   // Collects the keys and values of the python list/tuple `py_obj`, and
   // arranges the appropriate commands on the stack for their processing.
   absl::Status ParsePyList(PyObject* py_obj,
@@ -690,7 +750,7 @@ class UniversalConverter {
   absl::Status CmdConvertPyObject(PyObject* py_obj,
                                   const std::optional<DataSlice>& schema,
                                   bool is_root = false) {
-    // Push `std::nullopt` to detect recrusive Python structures.
+    // Push `std::nullopt` to detect recursive Python structures.
     auto [computed_iter, emplaced] = computed_.emplace(
         MakeCacheKey(py_obj, schema), std::nullopt);
     if (!emplaced) {
@@ -704,15 +764,22 @@ class UniversalConverter {
       // Python tree is converted as Object.
       ASSIGN_OR_RETURN(
           value_stack_.emplace(),
-          UniversalConverter<ObjectCreator>(db_, adoption_queue_)
+          UniversalConverter<ObjectCreator>(db_, adoption_queue_, dict_as_obj_)
           .Convert(py_obj));
       computed_.insert_or_assign(
           MakeCacheKey(py_obj, schema), value_stack_.top());
     } else if (PyDict_CheckExact(py_obj)) {
-      cmd_stack_.push([=, schema = schema] {
-        return CmdComputeDict(py_obj, schema);
-      });
-      RETURN_IF_ERROR(ParsePyDict(py_obj, schema));
+      if (dict_as_obj_) {
+        cmd_stack_.push([=, schema = schema] {
+          return CmdComputeObj(schema);
+        });
+        RETURN_IF_ERROR(ParsePyDictAsObj(py_obj, schema));
+      } else {
+        cmd_stack_.push([=, schema = schema] {
+          return CmdComputeDict(py_obj, schema);
+        });
+        RETURN_IF_ERROR(ParsePyDict(py_obj, schema));
+      }
     } else if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
       cmd_stack_.push([=, schema = schema] {
         return CmdComputeList(py_obj, schema);
@@ -775,8 +842,48 @@ class UniversalConverter {
     return absl::OkStatus();
   }
 
+  // TODO: Store attribute names from dataclasses in the same
+  // format, so that the same `CmdComputeObj` can be used to create Objects /
+  // Entities from them.
+
+  // Takes preconstructed attribute names and their values from `value_stack_`,
+  // assembles them into an Object / Entity and pushes it to `value_stack_`.
+  //
+  // NOTE: expects all attribute names to be stored as a single DataSlice of
+  // TEXT values on `value_stack_`.
+  absl::Status CmdComputeObj(const std::optional<DataSlice>& entity_schema) {
+    DataSlice attr_names_ds = std::move(value_stack_.top());
+    value_stack_.pop();
+    std::vector<absl::string_view> attr_names;
+    attr_names.reserve(attr_names_ds.size());
+    std::vector<DataSlice> values;
+    values.reserve(attr_names_ds.size());
+    if (attr_names_ds.size() > 0) {
+      const arolla::DenseArray<arolla::Text> attr_names_array =
+          attr_names_ds.slice().values<arolla::Text>();
+      DCHECK(attr_names_array.IsFull());
+      attr_names_array.ForEachPresent(
+          [&](int64_t id, absl::string_view attr_name) {
+            attr_names.push_back(attr_name);
+            values.push_back(std::move(value_stack_.top()));
+            value_stack_.pop();
+          });
+    }
+    if constexpr (std::is_same_v<Factory, EntityCreator>) {
+      ASSIGN_OR_RETURN(
+          value_stack_.emplace(),
+          Factory::FromAttrs(db_, attr_names, values, entity_schema));
+    } else {
+      DCHECK(!entity_schema) << "only EntityCreator should accept schema here";
+      ASSIGN_OR_RETURN(value_stack_.emplace(),
+                       Factory::FromAttrs(db_, attr_names, values));
+    }
+    return absl::OkStatus();
+  }
+
   const DataBagPtr& db_;
   AdoptionQueue& adoption_queue_;
+  bool dict_as_obj_;
 
   using Cmd = std::function<absl::Status()>;
   std::stack<Cmd> cmd_stack_;
@@ -842,9 +949,9 @@ absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
 }
 
 absl::StatusOr<DataSlice> GenericFromPyObject(
-    PyObject* py_obj, const std::optional<DataSlice>& schema,
+    PyObject* py_obj, bool dict_as_obj, const std::optional<DataSlice>& schema,
     const DataBagPtr& db, AdoptionQueue& adoption_queue) {
-  return UniversalConverter<EntityCreator>(db, adoption_queue)
+  return UniversalConverter<EntityCreator>(db, adoption_queue, dict_as_obj)
       .Convert(py_obj, schema);
 }
 

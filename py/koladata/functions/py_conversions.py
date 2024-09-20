@@ -54,8 +54,6 @@ def from_py(
   Returns:
     A DataItem with the converted data.
   """
-  if dict_as_obj:
-    raise NotImplementedError('dict_as_obj is not yet supported')
   if itemid is not None:
     raise NotImplementedError('passing itemid is not yet supported')
   if from_dim != 0:
