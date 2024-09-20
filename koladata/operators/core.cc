@@ -676,7 +676,7 @@ absl::StatusOr<std::vector<SlicingArgType>> ExtractSlicingArgs(
 
 class SubsliceOperator : public arolla::InlineOperator {
  public:
-  SubsliceOperator(absl::Span<const arolla::QTypePtr> types)
+  explicit SubsliceOperator(absl::Span<const arolla::QTypePtr> types)
       : InlineOperator(arolla::QExprOperatorSignature::Get(
             types, arolla::GetQType<DataSlice>())) {}
 
@@ -958,23 +958,12 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
         "expected `descending` to be a scalar boolean value, got %s",
         arolla::Repr(descending)));
   }
-  ASSIGN_OR_RETURN(auto tie_breaker_primitive_schema,
-                   GetPrimitiveArollaSchema(tie_breaker));
-  if (tie_breaker_primitive_schema.has_value()) {
-    return SimpleAggOverEval(
-        "array.ordinal_rank", {x, tie_breaker, descending},
-        /*output_schema=*/internal::DataItem(schema::kInt64), /*edge_index=*/2);
-  } else {
-    // `tie_breaker` _must_ be an integral, while the other data can be of other
-    // types. We therefore fix the schema of `tie_breaker` to be INT64 to avoid
-    // type errors.
-    ASSIGN_OR_RETURN(
-        auto tie_breaker_int64,
-        tie_breaker.WithSchema(internal::DataItem(schema::kInt64)));
-    return SimpleAggOverEval(
-        "array.ordinal_rank", {x, std::move(tie_breaker_int64), descending},
-        /*output_schema=*/internal::DataItem(schema::kInt64), /*edge_index=*/2);
-  }
+  ASSIGN_OR_RETURN(
+      auto tie_breaker_int64,
+      CastToNarrow(tie_breaker, internal::DataItem(schema::kInt64)));
+  return SimpleAggOverEval(
+      "array.ordinal_rank", {x, std::move(tie_breaker_int64), descending},
+      /*output_schema=*/internal::DataItem(schema::kInt64), /*edge_index=*/2);
 }
 
 absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,
