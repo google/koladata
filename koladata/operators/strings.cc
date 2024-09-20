@@ -55,9 +55,9 @@ namespace koladata::ops {
 
 namespace {
 
-absl::StatusOr<DataSlice> EvalFormatOp(
-    absl::string_view op_name,
-    const DataSlice& fmt, std::vector<DataSlice> slices) {
+absl::StatusOr<DataSlice> EvalFormatOp(absl::string_view op_name,
+                                       const DataSlice& fmt,
+                                       std::vector<DataSlice> slices) {
   ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(fmt));
   // If `fmt` is empty, we avoid calling the implementation altogether. Calling
   // SimplePointwiseEval when `fmt` is empty would resolve it to the type of the
@@ -153,7 +153,7 @@ absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,
       {x, substr, std::move(typed_start), std::move(typed_end),
        std::move(typed_failure_value)},
       /*output_schema=*/internal::DataItem(schema::kInt64),
-      /*primary_operand_indices=*/std::vector<int>({0, 1}));
+      /*primary_operand_indices=*/{{0, 1}});
 }
 
 absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices) {
@@ -222,7 +222,7 @@ absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
       {x, substr, std::move(typed_start), std::move(typed_end),
        std::move(typed_failure_value)},
       /*output_schema=*/internal::DataItem(schema::kInt64),
-      /*primary_operand_indices=*/std::vector<int>({0, 1}));
+      /*primary_operand_indices=*/{{0, 1}});
 }
 
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
@@ -277,7 +277,7 @@ absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
   return SimplePointwiseEval("strings.substr",
                              {x, std::move(typed_start), std::move(typed_end)},
                              /*output_schema=*/x.GetSchemaImpl(),
-                             /*primary_operand_indices=*/std::vector<int>({0}));
+                             /*primary_operand_indices=*/{{0}});
 }
 
 absl::StatusOr<DataSlice> Upper(const DataSlice& x) {

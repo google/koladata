@@ -177,32 +177,56 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(const DataSlice& x);
 absl::StatusOr<DataSlice> SimplePointwiseEval(
     absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema = internal::DataItem(),
-    std::optional<std::vector<int>> primary_operand_indices = std::nullopt);
+    const std::optional<absl::Span<const int>>& primary_operand_indices =
+        std::nullopt);
 
 // Evaluates the registered operator of the given name on the given input and
 // returns the result. The expr_op is expected to be an agg-into operator that
-// should be evaluated on `x` extracted as an Arolla value and the edge of the
-// last dimension. The output DataSlice has the shape of `x` with the last
-// dimension removed and the schema of `x`, or `output_schema` if provided. If
-// `x` is empty-and-unknown, the `expr_op` is not evaluated. The
-// `edge_arg_index` specifies the index of the argument where to insert the edge
-// when passed to the `expr_op`.
+// should be evaluated on the given inputs extracted as Arolla values and the
+// edge of the last dimension of the common shape of the inputs. The output
+// DataSlice has the common shape of the inputs with the last dimension removed.
+// The `edge_arg_index` specifies the index of the argument where to insert the
+// edge when passed to the `expr_op`.  A subset of the inputs is considered to
+// be the primary operands of the operator. They are specified with
+// `primary_operand_indices`. If `primary_operand_indices` is not provided, then
+// all inputs are considered to be primary.  Each non-primary input must have a
+// primitive schema.  The schema of the output DataSlice is either the common
+// schema of the primary operands and schema derived from the Arolla output, or
+// `output_schema` if provided. If all the primary operands are
+// empty-and-unknown, the `expr_op` is not evaluated. In other cases, the first
+// primitive schema of the primary inputs is used to construct all primary
+// inputs, and the non-primary inputs are treated individually (i.e. the
+// primitive schema of each non-primary input is used to construct it).
 absl::StatusOr<DataSlice> SimpleAggIntoEval(
     absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema = internal::DataItem(),
-    int edge_arg_index = 1);
+    int edge_arg_index = 1,
+    const std::optional<absl::Span<const int>>& primary_operand_indices =
+        std::nullopt);
 
 // Evaluates the registered operator of the given name on the given input and
 // returns the result. The expr_op is expected to be an agg-over operator that
-// should be evaluated on `x` extracted as an Arolla value and the edge of the
-// last dimension. The output DataSlice has the the shape of `x` and the schema
-// of `x`, or `output_schema` if provided. If `x` is empty-and-unknown, the
-// `expr_op` is not evaluated. The `edge_arg_index` specifies the index of the
-// argument where to insert the edge when passed to the `expr_op`.
+// should be evaluated on the given inputs extracted as Arolla values and the
+// edge of the last dimension of the common shape of the inputs. The output
+// DataSlice has the common shape of the inputs.  The `edge_arg_index` specifies
+// the index of the argument where to insert the edge when passed to the
+// `expr_op`.  A subset of the inputs is considered to be the primary operands
+// of the operator. They are specified with `primary_operand_indices`. If
+// `primary_operand_indices` is not provided, then all inputs are considered to
+// be primary.  Each non-primary input must have a primitive schema.  The schema
+// of the output DataSlice is either the common schema of the primary operands
+// and schema derived from the Arolla output, or `output_schema` if provided. If
+// all the primary operands are empty-and-unknown, the `expr_op` is not
+// evaluated. In other cases, the first primitive schema of the primary inputs
+// is used to construct all primary inputs, and the non-primary inputs are
+// treated individually (i.e. the primitive schema of each non-primary input is
+// used to construct it).
 absl::StatusOr<DataSlice> SimpleAggOverEval(
     absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema = internal::DataItem(),
-    int edge_arg_index = 1);
+    int edge_arg_index = 1,
+    const std::optional<absl::Span<const int>>& primary_operand_indices =
+        std::nullopt);
 
 // koda_internal._to_data_slice operator.
 //

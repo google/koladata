@@ -124,16 +124,42 @@ absl::NoDestructor<EvalCompiler::Impl> EvalCompiler::cache_(
 
 absl::Mutex EvalCompiler::mutex_{absl::kConstInit};
 
-absl::StatusOr<DataSlice> SimpleAggEval(absl::string_view op_name,
-                                        std::vector<DataSlice> inputs,
-                                        internal::DataItem output_schema,
-                                        int edge_arg_index, bool is_agg_into) {
-  DCHECK_GE(inputs.size(), 1);
-  DCHECK_GE(edge_arg_index, 0);
-  DCHECK_LE(edge_arg_index, inputs.size());
+absl::InlinedVector<bool, 16> GetPrimaryOperandMask(
+    size_t input_size,
+    const std::optional<absl::Span<const int>>& primary_operand_indices) {
+  absl::InlinedVector<bool, 16> is_primary_operand(
+      input_size, !primary_operand_indices.has_value());
+  if (primary_operand_indices.has_value()) {
+    for (int index : *primary_operand_indices) {
+      DCHECK(index >= 0 && index < input_size);
+      is_primary_operand[index] = true;
+    }
+  }
+  return is_primary_operand;
+}
+
+struct PrimaryOperandSchemaInfo {
+  internal::DataItem first_primitive_schema;
+  internal::DataItem common_schema;
+};
+
+absl::StatusOr<PrimaryOperandSchemaInfo> GetPrimaryOperandSchemaInfo(
+    absl::Span<const DataSlice> inputs,
+    const std::optional<absl::Span<const int>>& primary_operand_indices) {
+  auto is_primary_operand =
+      GetPrimaryOperandMask(inputs.size(), primary_operand_indices);
   schema::CommonSchemaAggregator schema_agg;
   internal::DataItem first_primitive_schema;
-  for (const auto& x : inputs) {
+  for (int i = 0; i < inputs.size(); ++i) {
+    const DataSlice& x = inputs[i];
+    if (!is_primary_operand[i]) {
+      if (!x.GetSchemaImpl().is_primitive_schema()) {
+        return absl::InternalError(
+            absl::StrCat("DataSlice for the non-primary operand ", i + 1,
+                         " should have a primitive schema"));
+      }
+      continue;
+    }
     schema_agg.Add(x.GetSchemaImpl());
     // Validate that it has a primitive schema. We additionally use it as a
     // fallback schema for empty-and-unknown inputs.
@@ -142,7 +168,28 @@ absl::StatusOr<DataSlice> SimpleAggEval(absl::string_view op_name,
       first_primitive_schema = std::move(primitive_schema);
     }
   }
+  ASSIGN_OR_RETURN(auto common_schema, std::move(schema_agg).Get());
+  return {{.first_primitive_schema = std::move(first_primitive_schema),
+           .common_schema = std::move(common_schema)}};
+}
 
+absl::StatusOr<internal::DataItem> GetResultSchema(
+    const arolla::TypedValue& result) {
+  ASSIGN_OR_RETURN(auto output_qtype, arolla::GetScalarQType(result.GetType()));
+  ASSIGN_OR_RETURN(auto result_dtype, schema::DType::FromQType(output_qtype));
+  return internal::DataItem(result_dtype);
+}
+
+absl::StatusOr<DataSlice> SimpleAggEval(
+    absl::string_view op_name, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema, int edge_arg_index, bool is_agg_into,
+    const std::optional<absl::Span<const int>>& primary_operand_indices) {
+  DCHECK_GE(inputs.size(), 1);
+  DCHECK_GE(edge_arg_index, 0);
+  DCHECK_LE(edge_arg_index, inputs.size());
+  ASSIGN_OR_RETURN(
+      auto primary_operand_schema_info,
+      GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices));
   ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
                    shape::AlignNonScalars(std::move(inputs)));
   if (aligned_shape.rank() == 0) {
@@ -151,11 +198,13 @@ absl::StatusOr<DataSlice> SimpleAggEval(absl::string_view op_name,
   auto result_shape = is_agg_into
                           ? aligned_shape.RemoveDims(aligned_shape.rank() - 1)
                           : aligned_shape;
-  // All empty-and-unknown inputs. We then skip evaluation and just broadcast
-  // the first input to the common shape and common schema.
-  if (!first_primitive_schema.has_value()) {
+  // All primary inputs are empty-and-unknown. We then skip evaluation and just
+  // broadcast the first input to the common shape and common schema. It is the
+  // caller's responsibility to make sure that the non-primary inputs have
+  // acceptable schemas.
+  if (!primary_operand_schema_info.first_primitive_schema.has_value()) {
     if (!output_schema.has_value()) {
-      ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
+      output_schema = std::move(primary_operand_schema_info.common_schema);
     }
     ASSIGN_OR_RETURN(auto ds,
                      DataSlice::Create(internal::DataItem(), output_schema));
@@ -170,21 +219,21 @@ absl::StatusOr<DataSlice> SimpleAggEval(absl::string_view op_name,
   typed_value_holder.reserve(aligned_ds.size());
   for (int i = 0; i < aligned_ds.size(); ++i) {
     int typed_ref_i = i < edge_arg_index ? i : i + 1;
-    ASSIGN_OR_RETURN(
-        typed_refs[typed_ref_i],
-        DataSliceToOwnedArollaRef(aligned_ds[i], typed_value_holder,
-                                  first_primitive_schema));
+    ASSIGN_OR_RETURN(typed_refs[typed_ref_i],
+                     DataSliceToOwnedArollaRef(
+                         aligned_ds[i], typed_value_holder,
+                         primary_operand_schema_info.first_primitive_schema));
   }
   auto edge_tv = arolla::TypedValue::FromValue(aligned_shape.edges().back());
   typed_refs[edge_arg_index] = edge_tv.AsRef();
   ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs));
   if (!output_schema.has_value()) {
-    // Get the common schema from both inputs and outputs.
-    ASSIGN_OR_RETURN(auto output_qtype,
-                     arolla::GetScalarQType(result.GetType()));
-    ASSIGN_OR_RETURN(auto result_dtype, schema::DType::FromQType(output_qtype));
-    schema_agg.Add(result_dtype);
-    ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
+    // Get the common schema from the primary inputs and output.
+    ASSIGN_OR_RETURN(auto result_schema, GetResultSchema(result));
+    ASSIGN_OR_RETURN(
+        output_schema,
+        schema::CommonSchema(primary_operand_schema_info.common_schema,
+                             result_schema));
   }
   return DataSliceFromArollaValue(result.AsRef(), std::move(result_shape),
                                   std::move(output_schema));
@@ -236,44 +285,19 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
 absl::StatusOr<DataSlice> SimplePointwiseEval(
     absl::string_view op_name, std::vector<DataSlice> inputs,
     internal::DataItem output_schema,
-    std::optional<std::vector<int>> primary_operand_indices) {
+    const std::optional<absl::Span<const int>>& primary_operand_indices) {
   DCHECK_GE(inputs.size(), 1);
-  absl::InlinedVector<bool, 16> is_primary_operand(
-      inputs.size(), !primary_operand_indices.has_value());
-  if (primary_operand_indices.has_value()) {
-    for (int index : *primary_operand_indices) {
-      DCHECK(index >= 0 && index < inputs.size());
-      is_primary_operand[index] = true;
-    }
-  }
-  schema::CommonSchemaAggregator schema_agg;
-  internal::DataItem first_primitive_schema;
-  for (int i = 0; i < inputs.size(); ++i) {
-    const DataSlice& x = inputs[i];
-    if (!is_primary_operand[i]) {
-      if (!x.GetSchemaImpl().is_primitive_schema()) {
-        return absl::InternalError(
-            absl::StrCat("DataSlice for the non-primary operand ", i + 1,
-                         " should have a primitive schema"));
-      }
-      continue;
-    }
-    schema_agg.Add(x.GetSchemaImpl());
-    // Validate that it has a primitive schema. We additionally use it as a
-    // fallback schema for empty-and-unknown primary inputs.
-    ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
-    if (!first_primitive_schema.has_value()) {
-      first_primitive_schema = std::move(primitive_schema);
-    }
-  }
+  ASSIGN_OR_RETURN(
+      auto primary_operand_schema_info,
+      GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices));
   // All primary inputs are empty-and-unknown. We then skip evaluation and just
   // broadcast the first input to the common shape and common schema. It is the
   // caller's responsibility to make sure that the non-primary inputs have
   // acceptable schemas.
-  if (!first_primitive_schema.has_value()) {
+  if (!primary_operand_schema_info.first_primitive_schema.has_value()) {
     ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(inputs));
     if (!output_schema.has_value()) {
-      ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
+      output_schema = std::move(primary_operand_schema_info.common_schema);
     }
     ASSIGN_OR_RETURN(auto ds, DataSlice::Create(internal::DataItem(),
                                                 std::move(output_schema)));
@@ -292,40 +316,40 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     // For non-primary operands, the fallback schema won't be used, because
     // they are guaranteed to have a primitive schema.
     ASSIGN_OR_RETURN(auto ref,
-                     DataSliceToOwnedArollaRef(x, typed_value_holder,
-                                               first_primitive_schema));
+                     DataSliceToOwnedArollaRef(
+                         x, typed_value_holder,
+                         primary_operand_schema_info.first_primitive_schema));
     typed_refs.push_back(std::move(ref));
   }
   ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs));
-  if (output_schema.has_value()) {
-    return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
-                                    std::move(output_schema));
+  if (!output_schema.has_value()) {
+    // Get the common schema from the primary inputs and output.
+    ASSIGN_OR_RETURN(auto result_schema, GetResultSchema(result));
+    ASSIGN_OR_RETURN(
+        output_schema,
+        schema::CommonSchema(primary_operand_schema_info.common_schema,
+                             result_schema));
   }
-  // Get the common schema from the primary inputs and output.
-  ASSIGN_OR_RETURN(auto output_qtype, arolla::GetScalarQType(result.GetType()));
-  ASSIGN_OR_RETURN(auto result_dtype, schema::DType::FromQType(output_qtype));
-  schema_agg.Add(result_dtype);
-  ASSIGN_OR_RETURN(output_schema, std::move(schema_agg).Get());
   return DataSliceFromArollaValue(result.AsRef(), std::move(aligned_shape),
                                   std::move(output_schema));
 }
 
-absl::StatusOr<DataSlice> SimpleAggIntoEval(absl::string_view op_name,
-                                            std::vector<DataSlice> inputs,
-                                            internal::DataItem output_schema,
-                                            int edge_arg_index) {
+absl::StatusOr<DataSlice> SimpleAggIntoEval(
+    absl::string_view op_name, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema, int edge_arg_index,
+    const std::optional<absl::Span<const int>>& primary_operand_indices) {
   return SimpleAggEval(op_name, std::move(inputs), std::move(output_schema),
                        edge_arg_index,
-                       /*is_agg_into=*/true);
+                       /*is_agg_into=*/true, primary_operand_indices);
 }
 
-absl::StatusOr<DataSlice> SimpleAggOverEval(absl::string_view op_name,
-                                            std::vector<DataSlice> inputs,
-                                            internal::DataItem output_schema,
-                                            int edge_arg_index) {
+absl::StatusOr<DataSlice> SimpleAggOverEval(
+    absl::string_view op_name, std::vector<DataSlice> inputs,
+    internal::DataItem output_schema, int edge_arg_index,
+    const std::optional<absl::Span<const int>>& primary_operand_indices) {
   return SimpleAggEval(op_name, std::move(inputs), std::move(output_schema),
                        edge_arg_index,
-                       /*is_agg_into=*/false);
+                       /*is_agg_into=*/false, primary_operand_indices);
 }
 
 }  // namespace koladata::ops

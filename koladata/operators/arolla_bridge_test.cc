@@ -184,7 +184,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
         auto result, SimplePointwiseEval(
                          "strings.find", {x, substr, start, end, failure_value},
                          /*output_schema=*/internal::DataItem(schema::kInt64),
-                         /*primary_operand_indices=*/std::vector<int>({0, 1})));
+                         /*primary_operand_indices=*/{{0, 1}}));
     EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int64_t>(
                             {1, 1, std::nullopt, 0}, x_shape, schema::kInt64)));
   }
@@ -204,7 +204,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
         SimplePointwiseEval(
             "strings.find", {x, substr, start, end, failure_value},
             /*output_schema=*/internal::DataItem(schema::kInt64),
-            /*primary_operand_indices=*/std::vector<int>({0, 1})),
+            /*primary_operand_indices=*/{{0, 1}}),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("unsupported argument types "
                            "(DENSE_ARRAY_TEXT,DENSE_ARRAY_BYTES,DENSE_ARRAY_"
@@ -226,7 +226,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
     EXPECT_THAT(SimplePointwiseEval(
                     "strings.find", {x, substr, start, end, failure_value},
                     /*output_schema=*/internal::DataItem(schema::kInt64),
-                    /*primary_operand_indices=*/std::vector<int>({0, 1})),
+                    /*primary_operand_indices=*/{{0, 1}}),
                 StatusIs(absl::StatusCode::kInternal,
                          HasSubstr("DataSlice for the non-primary operand 4 "
                                    "should have a primitive schema")));
@@ -247,7 +247,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
     EXPECT_THAT(SimplePointwiseEval(
                     "strings.find", {x, substr, start, end, failure_value},
                     /*output_schema=*/internal::DataItem(schema::kInt64),
-                    /*primary_operand_indices=*/std::vector<int>({0, 1})),
+                    /*primary_operand_indices=*/{{0, 1}}),
                 StatusIs(absl::StatusCode::kInternal,
                          HasSubstr("DataSlice for the non-primary operand 4 "
                                    "should have a primitive schema")));
@@ -345,6 +345,57 @@ TEST(ArollaEval, SimpleAggIntoEval) {
   }
 }
 
+TEST(ArollaEval, SimpleAggIntoEvalWithPrimaryOperands) {
+  {
+    // Specifying all primary operands: normal operation.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice x =
+        test::DataSlice<int>({1, 2, 3, std::nullopt}, shape, schema::kObject);
+    ASSERT_OK_AND_ASSIGN(
+        auto result, SimpleAggIntoEval("math.sum", {x},
+                                       /*output_schema=*/internal::DataItem(),
+                                       /*edge_arg_index=*/1,
+                                       /*primary_operand_indices=*/{{0}}));
+    EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int>(
+                            {3, 3, 0}, shape.RemoveDims(1), schema::kObject)));
+  }
+  {
+    // Specifying one primary operand. The second argument is not used to set
+    // the schema of the first value.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice x = test::DataSlice<int>(
+        {std::nullopt, std::nullopt, std::nullopt, std::nullopt}, shape,
+        schema::kObject);
+    DataSlice unbiased = test::DataItem(true);
+    ASSERT_OK_AND_ASSIGN(
+        auto result, SimpleAggIntoEval("math.std", {x, unbiased},
+                                       /*output_schema=*/internal::DataItem(),
+                                       /*edge_arg_index=*/1,
+                                       /*primary_operand_indices=*/{{0}}));
+    EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<float>(
+                            {std::nullopt, std::nullopt, std::nullopt},
+                            shape.RemoveDims(1), schema::kObject)));
+  }
+  {
+    // Non-primitive schema for non-primary data.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice x = test::DataSlice<int>(
+        {std::nullopt, std::nullopt, std::nullopt, std::nullopt}, shape,
+        schema::kObject);
+    DataSlice unbiased = test::DataItem(std::nullopt, schema::kObject);
+    EXPECT_THAT(SimpleAggIntoEval("math.std", {x, unbiased},
+                                  /*output_schema=*/internal::DataItem(),
+                                  /*edge_arg_index=*/1,
+                                  /*primary_operand_indices=*/{{0}}),
+                StatusIs(absl::StatusCode::kInternal,
+                         HasSubstr("DataSlice for the non-primary operand 2 "
+                                   "should have a primitive schema")));
+  }
+}
+
 TEST(ArollaEval, SimpleAggOverEval) {
   {
     // Eval through operator.
@@ -426,6 +477,59 @@ TEST(ArollaEval, SimpleAggOverEval) {
     EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int64_t>(
                             {int64_t{1}, int64_t{0}, int64_t{0}, std::nullopt},
                             x_shape)));
+  }
+}
+
+TEST(ArollaEval, SimpleAggOverEvalWithPrimaryOperands) {
+  {
+    // Specifying all primary operands: normal operation.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice x =
+        test::DataSlice<int>({1, 2, 3, std::nullopt}, shape, schema::kObject);
+    ASSERT_OK_AND_ASSIGN(
+        auto result, SimpleAggOverEval("array.agg_index", {x},
+                                       /*output_schema=*/internal::DataItem(),
+                                       /*edge_arg_index=*/1,
+                                       /*primary_operand_indices=*/{{0}}));
+    EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int64_t>(
+                            {int64_t{0}, int64_t{1}, int64_t{0}, std::nullopt},
+                            shape, schema::kObject)));
+  }
+  {
+    // Specifying one primary operand. The second argument is not used to set
+    // the schema of the first value.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice x = test::DataSlice<int>(
+        {std::nullopt, std::nullopt, std::nullopt, std::nullopt}, shape,
+        schema::kObject);
+    DataSlice descending = test::DataItem(true);
+    ASSERT_OK_AND_ASSIGN(
+        auto result, SimpleAggOverEval("array.dense_rank", {x, descending},
+                                       /*output_schema=*/internal::DataItem(),
+                                       /*edge_arg_index=*/1,
+                                       /*primary_operand_indices=*/{{0}}));
+    EXPECT_THAT(result,
+                IsEquivalentTo(test::DataSlice<int64_t>(
+                    {std::nullopt, std::nullopt, std::nullopt, std::nullopt},
+                    shape, schema::kObject)));
+  }
+  {
+    // Non-primitive schema for non-primary data.
+    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice x = test::DataSlice<int>(
+        {std::nullopt, std::nullopt, std::nullopt, std::nullopt}, shape,
+        schema::kObject);
+    DataSlice descending = test::DataItem(std::nullopt, schema::kObject);
+    EXPECT_THAT(SimpleAggOverEval("array.dense_rank", {x, descending},
+                                  /*output_schema=*/internal::DataItem(),
+                                  /*edge_arg_index=*/1,
+                                  /*primary_operand_indices=*/{{0}}),
+                StatusIs(absl::StatusCode::kInternal,
+                         HasSubstr("DataSlice for the non-primary operand 2 "
+                                   "should have a primitive schema")));
   }
 }
 
