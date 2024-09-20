@@ -22,8 +22,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "absl/status/status_matchers.h"
+#include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_bag.h"
@@ -42,7 +42,6 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/testing/matchers.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 
 namespace koladata {
