@@ -534,18 +534,11 @@ namespace {
 //   * EntityCreator, where each created Koda abstraction will behave as Entity;
 //   * ObjectCreator, where each created Koda abstraction is converted to Object
 //     and its schema gets embedded;
-//   * some other, defined as an extension (e.g. DictAsObjFactory to convert
-//     each dictionary into Koda Object where keys become attribute names, will
-//     be used in `kd.from_py(..., dict_as_obj=True)`).
 //
 // UniversalConverter traverses Python dictionary recursively (without using
 // recursion), such that we apply UniversalConverter on each key and each value.
 // Thus, it can convert arbitrarily complex nested Python dict, even with its
 // keys or values as Python lists.
-//
-// Python lists are not further traversed recursively.
-// TODO: Support dicts nested inside lists. This is best done in
-// DataSliceFromPyValue to invoke UniversalConverter when PyDict is reached.
 template <typename Factory>
 class UniversalConverter {
  public:
@@ -811,16 +804,15 @@ class UniversalConverter {
 absl::StatusOr<DataSlice> EntitiesFromPyObject(PyObject* py_obj,
                                                const DataBagPtr& db,
                                                AdoptionQueue& adoption_queue) {
-  if (arolla::python::IsPyQValueInstance(py_obj)) {
-    ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue));
-    return EntityCreator::Convert(db, res);
-  }
-  return UniversalConverter<EntityCreator>(db, adoption_queue).Convert(py_obj);
+  return EntitiesFromPyObject(py_obj, /*schema=*/std::nullopt, db,
+                              adoption_queue);
 }
 
 absl::StatusOr<DataSlice> EntitiesFromPyObject(
     PyObject* py_obj, const std::optional<DataSlice>& schema,
     const DataBagPtr& db, AdoptionQueue& adoption_queue) {
+  // NOTE: UniversalConverter does not allow converting multi-dimensional
+  // DataSlices, so we are processing it before invoking the UniversalConverter.
   if (arolla::python::IsPyQValueInstance(py_obj)) {
     ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue));
     return EntityCreator::Convert(db, res);
@@ -832,6 +824,8 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
 absl::StatusOr<DataSlice> ObjectsFromPyObject(PyObject* py_obj,
                                               const DataBagPtr& db,
                                               AdoptionQueue& adoption_queue) {
+  // NOTE: UniversalConverter does not allow converting multi-dimensional
+  // DataSlices, so we are processing it before invoking the UniversalConverter.
   if (arolla::python::IsPyQValueInstance(py_obj)) {
     ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue));
     return ObjectCreator::Convert(db, res);
@@ -845,6 +839,13 @@ absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
                                       std::optional<DataSlice>& values) {
   return UniversalConverter<EntityCreator>(db, adoption_queue)
       .ConvertDictKeysAndValues(py_obj, keys, values);
+}
+
+absl::StatusOr<DataSlice> GenericFromPyObject(
+    PyObject* py_obj, const std::optional<DataSlice>& schema,
+    const DataBagPtr& db, AdoptionQueue& adoption_queue) {
+  return UniversalConverter<EntityCreator>(db, adoption_queue)
+      .Convert(py_obj, schema);
 }
 
 }  // namespace koladata::python

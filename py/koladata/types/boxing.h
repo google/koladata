@@ -67,14 +67,11 @@ absl::Nullable<PyObject*> DataSliceToPyValue(const DataSlice& ds);
 // `db` and `adoption_queue` are side outputs. `db` is used to create Koda
 // objects found under `py_obj`, while `adoption_queue` is used to collect
 // DataBag(s) of DataSlice(s) from nested `py_obj`.
-//
-// Python lists are not further traversed recursively.
-// TODO: Consider supporting list of items on which
-// UniversalConverter is applied.
 absl::StatusOr<DataSlice> EntitiesFromPyObject(
     PyObject* py_obj, const DataBagPtr& db, AdoptionQueue& adoption_queue);
 
-// Same as above, but allows specifying the schemas of Lists / Dicts.
+// Same as above, but allows specifying the schemas of Lists / Dicts. When
+// schema == OBJECT, the behavior is the same as `ObjectFromPyObject`.
 absl::StatusOr<DataSlice> EntitiesFromPyObject(
     PyObject* py_obj,
     const std::optional<DataSlice>& schema,
@@ -88,10 +85,6 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
 // `py_obj` is the true input argument that is being converted, while `db` is
 // used to create all Koda objects into. `adoption_queue` is used to collect
 // DataBag(s) of DataSlice(s) from nested `py_obj`.
-//
-// Python lists are not further traversed recursively.
-// TODO: Consider supporting list of items on which
-// UniversalConverter is applied.
 absl::StatusOr<DataSlice> ObjectsFromPyObject(
     PyObject* py_obj, const DataBagPtr& db, AdoptionQueue& adoption_queue);
 
@@ -109,6 +102,16 @@ absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
                                       AdoptionQueue& adoption_queue,
                                       std::optional<DataSlice>& keys,
                                       std::optional<DataSlice>& values);
+
+// Converts Python objects into DataSlices and converts them into appropriate
+// Koda Objects / Entities depending on schema. The conversion is deep.
+//
+// `db` and `adoption_queue` are side outputs. `db` is used to create Koda
+// objects found under `py_obj`, while `adoption_queue` is used to collect
+// DataBag(s) of DataSlice(s) from nested `py_obj`.
+absl::StatusOr<DataSlice> GenericFromPyObject(
+    PyObject* py_obj, const std::optional<DataSlice>& schema,
+    const DataBagPtr& db, AdoptionQueue& adoption_queue);
 
 }  // namespace koladata::python
 
