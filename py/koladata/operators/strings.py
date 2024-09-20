@@ -215,17 +215,31 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
 def format_(fmt, kwargs):  # pylint: disable=unused-argument
   """Formats strings according to python str.format style.
 
-  Important limitations:
-  1. No positional arguments are supported. Only KWARGS.
-  2. Formatting is not supported at the moment.
+  Format support is slightly different from Python:
+  1. Only float and integers support format specifiers.
+    E.g., {x:.1f} and {x:04d}.
+  2. If format is missing type specifier `f` or `d` at the end, we are
+     adding it automatically based on the type of the argument.
 
-  Example:
+  Note: only keyword arguments are supported.
+
+  Examples:
     kd.strings.format(kd.slice(['Hello {n}!', 'Goodbye {n}!']), n='World')
       # -> kd.slice(['Hello World!', 'Goodbye World!'])
     kd.strings.format('{a} + {b} = {c}', a=1, b=2, c=3)
       # -> kd.slice('1 + 2 = 3')
-    kd.strings.format('{a} + {b} = {c}', a=[1, 2], b=[2, 3], c=[3, 5])
+    kd.strings.format(
+        '{a} + {b} = {c}',
+        a=kd.slice([1, 2]),
+        b=kd.slice([2, 3]),
+        c=kd.slice([3, 5]))
       # -> kd.slice(['1 + 2 = 3', '2 + 3 = 5'])
+    kd.strings.format(
+        '({a:03} + {b:e}) * {c:.2f} ='
+        ' {a:02d} * {c:3d} + {b:07.3f} * {c:08.4f}'
+        a=5, b=5.7, c=75)
+      # -> kd.slice(
+      #        '(005 + 5.700000e+00) * 75.00 = 05 *  75 + 005.700 * 075.0000')
 
   Args:
     fmt: Format string (Text or Bytes).
