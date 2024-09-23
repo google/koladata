@@ -280,6 +280,10 @@ absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
                                   std::move(common_schema));
 }
 
+absl::StatusOr<DataSlice> Strip(const DataSlice& s, const DataSlice& chars) {
+  return SimplePointwiseEval("strings.strip", {s, chars});
+}
+
 absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
                                  const DataSlice& end) {
   ASSIGN_OR_RETURN(auto typed_start,

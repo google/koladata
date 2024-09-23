@@ -466,6 +466,56 @@ def split(x, sep=arolla.unspecified()):
   return _split(x, sep)
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.strings._strip',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.s),
+        qtype_utils.expect_data_slice(P.chars),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _strip(s, chars):
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.strings.strip',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.s),
+        qtype_utils.expect_data_slice_or_unspecified(P.chars),
+    ],
+)
+def strip(s, chars=arolla.unspecified()):
+  r"""Strips whitespaces or the specified characters from both sides of `s`.
+
+  If `chars` is missing, then whitespaces are removed.
+  If `chars` is present, then it will strip all leading and tailing characters
+  from `s` that are present in the `chars` set.
+
+  Examples:
+    kd.strings.strip(kd.slice(['   spacious   ', '\t text \n']))
+      # -> kd.slice(['spacious', 'text'])
+    kd.strings.strip(kd.slice(['www.example.com']), kd.slice(['cmowz.']))
+      # -> kd.slice(['example'])
+    kd.strings.strip(kd.slice([['#... Section 3.1 Issue #32 ...'], ['# ...']]),
+        kd.slice('.#! '))
+      # -> kd.slice([['Section 3.1 Issue #32'], ['']])
+
+  Args:
+    s: (TEXT or BYTES) Original string.
+    chars (Optional TEXT or BYTES, the same as `s`): The set of chars to remove.
+
+  Returns:
+    Stripped string.
+  """
+  chars = M.core.default_if_unspecified(
+      chars, data_slice.DataSlice.from_vals(None)
+  )
+  return _strip(s, chars)
+
+
 @optools.add_to_registry(aliases=['kde.substr'])
 @optools.as_backend_operator(
     'kde.strings.substr',
