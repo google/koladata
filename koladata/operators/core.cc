@@ -937,12 +937,76 @@ DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db) {
   return ds.WithDb(db);
 }
 
-DataSlice Enriched(const DataSlice& ds, const DataBagPtr& db) {
-  return ds.WithDb(DataBag::CommonDataBag({ds.GetDb(), db}));
-}
+namespace {
 
-DataSlice Updated(const DataSlice& ds, const DataBagPtr& db) {
-  return ds.WithDb(DataBag::CommonDataBag({db, ds.GetDb()}));
+class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
+ public:
+  EnrichedOrUpdatedOperator(absl::Span<const arolla::QTypePtr> input_types,
+                            bool is_enriched_operator)
+      : arolla::QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())),
+        is_enriched_operator_(is_enriched_operator) {}
+
+ private:
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const override {
+    return arolla::MakeBoundOperator(
+        [input_slots = std::vector<arolla::TypedSlot>(input_slots.begin(),
+                                                      input_slots.end()),
+         output_slot = output_slot.UnsafeToSlot<DataSlice>(),
+         is_enriched_operator = is_enriched_operator_](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          const DataSlice& ds =
+              frame.Get(input_slots[0].UnsafeToSlot<DataSlice>());
+          std::vector<DataBagPtr> db_list;
+          db_list.reserve(input_slots.size());
+          if (is_enriched_operator) {
+            db_list.push_back(ds.GetDb());
+            for (size_t i = 1; i < input_slots.size(); ++i) {
+              db_list.push_back(
+                  frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>()));
+            }
+          } else {
+            for (size_t i = input_slots.size() - 1; i >= 1; --i) {
+              db_list.push_back(
+                  frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>()));
+            }
+            db_list.push_back(ds.GetDb());
+          }
+          frame.Set(output_slot, ds.WithDb(DataBag::CommonDataBag(db_list)));
+        });
+  }
+
+  bool is_enriched_operator_;
+};
+
+}  // namespace
+
+absl::StatusOr<arolla::OperatorPtr>
+EnrichedOrUpdatedOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.empty()) {
+    return absl::InvalidArgumentError("requires at least 1 argument");
+  }
+
+  if (input_types[0] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "argument must be DataSlice, but got ", input_types[0]->name()));
+  }
+
+  for (const auto& db_input_type : input_types.subspan(1)) {
+    if (db_input_type != arolla::GetQType<DataBagPtr>()) {
+      return absl::InvalidArgumentError(absl::StrCat(
+          "arguments must be DataBag, but got ", db_input_type->name()));
+    }
+  }
+
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<EnrichedOrUpdatedOperator>(input_types,
+                                                  is_enriched_operator()),
+      input_types, output_type);
 }
 
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x) {

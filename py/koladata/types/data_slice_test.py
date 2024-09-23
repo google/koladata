@@ -446,6 +446,11 @@ class DataSliceTest(parameterized.TestCase):
     self.assertNotEqual(x.db.fingerprint, db2.fingerprint)
     testing.assert_equivalent(x.a.no_db(), ds(1).no_db())
 
+    x = x.with_db(db2).enriched(db1, db1)
+    self.assertNotEqual(x.db.fingerprint, db1.fingerprint)
+    self.assertNotEqual(x.db.fingerprint, db2.fingerprint)
+    testing.assert_equivalent(x.a.no_db(), ds(1).no_db())
+
   def test_updated(self):
     schema = fns.new_schema(a=schema_constants.INT32)
 
@@ -458,6 +463,11 @@ class DataSliceTest(parameterized.TestCase):
     x.with_db(db2).a = 2
 
     x = x.updated(db2)
+    self.assertNotEqual(x.db.fingerprint, db1.fingerprint)
+    self.assertNotEqual(x.db.fingerprint, db2.fingerprint)
+    testing.assert_equivalent(x.a.no_db(), ds(2).no_db())
+
+    x = x.with_db(db1).updated(db2, db2)
     self.assertNotEqual(x.db.fingerprint, db1.fingerprint)
     self.assertNotEqual(x.db.fingerprint, db2.fingerprint)
     testing.assert_equivalent(x.a.no_db(), ds(2).no_db())

@@ -211,13 +211,13 @@ def _freeze(self) -> DataSlice:
 
 
 @DataSlice.add_method('enriched')
-def _enriched(self, db: _data_bag_py_ext.DataBag) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.enriched, self, db)
+def _enriched(self, *db: _data_bag_py_ext.DataBag) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.enriched, self, *db)
 
 
 @DataSlice.add_method('updated')
-def _updated(self, db: _data_bag_py_ext.DataBag) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.updated, self, db)
+def _updated(self, *db: _data_bag_py_ext.DataBag) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.updated, self, *db)
 
 
 DataSlice.add_method('with_name')(general_eager_ops.with_name)

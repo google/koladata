@@ -80,6 +80,23 @@ def expect_data_bag(param) -> constraints.QTypeConstraint:
   )
 
 
+def expect_data_bag_args(param) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is a tuple of DataBags."""
+  return (
+      M.qtype.is_tuple_qtype(param)
+      & M.seq.all(
+          M.seq.map(
+              arolla.LambdaOperator(P.x == qtypes.DATA_BAG),
+              M.qtype.get_field_qtypes(param),
+          )
+      ),
+      (
+          'expected all arguments to be DATA_BAG, got'
+          f' {constraints.name_type_msg(param)}'
+      ),
+  )
+
+
 def expect_jagged_shape(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a jagged shape."""
   return (

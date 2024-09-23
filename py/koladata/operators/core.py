@@ -1901,64 +1901,66 @@ def get_db(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-# TODO: Add support for passing sequences of DataBag to the `db`
-# param. For now, users can call this operator repeatedly if necessary.
 @optools.add_to_registry(aliases=['kde.enriched'])
 @optools.as_backend_operator(
     'kde.core.enriched',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_bag(P.db),
+        qtype_utils.expect_data_bag_args(P.db),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def enriched(ds, db):  # pylint: disable=unused-argument
-  """Returns a copy of a DataSlice with an additional fallback DataBag.
+def enriched(ds, *db):  # pylint: disable=unused-argument
+  """Returns a copy of a DataSlice with a additional fallback DataBag(s).
 
-  Values in the original DataBag of `ds` take precedence over the ones in `db`.
+  Values in the original DataBag of `ds` take precedence over the ones in `*db`.
 
   If `ds` has no attached DataBag, or its attached DataBag is `db`, then we
   avoid creating unnecessary fallbacks, and this operator is equivalent to
   `with_db(ds, db)`. Otherwise, the DataBag attached to the result is a new
-  immutable DataBag that falls back to the DataBag of `ds` and then to `db`.
+  immutable DataBag that falls back to the DataBag of `ds` and then to `*db`.
+
+  `enriched(x, a, b)` is equivalent to `enriched(enriched(x, a), b)`, and so on
+  for additional DataBag args.
 
   Args:
     ds: DataSlice.
-    db: additional fallback DataBag.
+    *db: additional fallback DataBag(s).
 
   Returns:
-    DataSlice with an additional fallback.
+    DataSlice with additional fallbacks.
   """
   raise NotImplementedError('implemented in the backend')
 
 
-# TODO: Add support for passing sequences of DataBag to the `db`
-# param. For now, users can call this operator repeatedly if necessary.
 @optools.add_to_registry(aliases=['kde.updated'])
 @optools.as_backend_operator(
     'kde.core.updated',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_bag(P.db),
+        qtype_utils.expect_data_bag_args(P.db),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def updated(ds, db):  # pylint: disable=unused-argument
-  """Returns a copy of a DataSlice with a DataBag of updates applied.
+def updated(ds, *db):  # pylint: disable=unused-argument
+  """Returns a copy of a DataSlice with DataBag(s) of updates applied.
 
-  Values in `db` take precedence over the ones in the original DataBag of `ds`.
+  Values in `*db` take precedence over the ones in the original DataBag of `ds`.
 
   If `ds` has no attached DataBag, or its attached DataBag is `db`, then we
   avoid doing unnecessary work, and this operator is equivalent to
   `with_db(ds, db)`. Otherwise, the DataBag attached to the result is a new
   immutable DataBag that falls back to `db` and then to the DataBag of `ds`.
 
+  `updated(x, a, b)` is equivalent to `updated(updated(x, b), a)`, and so on
+  for additional DataBag args.
+
   Args:
     ds: DataSlice.
-    db: DataBag of updates.
+    *db: DataBag(s) of updates.
 
   Returns:
-    DataSlice with an additional fallback.
+    DataSlice with additional fallbacks.
   """
   raise NotImplementedError('implemented in the backend')
 

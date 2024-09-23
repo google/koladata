@@ -42,11 +42,24 @@ absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds);
 // kde.core.with_db.
 DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db);
 
+class EnrichedOrUpdatedOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const override;
+
+ protected:
+  virtual bool is_enriched_operator() const = 0;
+};
+
 // kde.core.enriched.
-DataSlice Enriched(const DataSlice& ds, const DataBagPtr& db);
+class EnrichedOperatorFamily final : public EnrichedOrUpdatedOperatorFamily {
+  bool is_enriched_operator() const override { return true; }
+};
 
 // kde.core.updated.
-DataSlice Updated(const DataSlice& ds, const DataBagPtr& db);
+class UpdatedOperatorFamily final : public EnrichedOrUpdatedOperatorFamily {
+  bool is_enriched_operator() const override { return false; }
+};
 
 // kde.core._inverse_mapping.
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x);
