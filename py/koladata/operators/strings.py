@@ -348,6 +348,46 @@ def lower(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.strings.replace',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.s),
+        qtype_utils.expect_data_slice(P.old),
+        qtype_utils.expect_data_slice(P.new),
+        qtype_utils.expect_data_slice(P.max_subs),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+# pylint: disable=unused-argument
+def replace(
+    s,
+    old,
+    new,
+    max_subs=data_slice.DataSlice.from_vals(None, schema_constants.INT32),
+):  # pylint: enable=unused-argument
+  """Replaces up to `max_subs` occurrences of `old` within `s` with `new`.
+
+  If `max_subs` is missing or negative, then there is no limit on the number of
+  substitutions. If it is zero, then `s` is returned unchanged.
+
+  If the search string is empty, the original string is fenced with the
+  replacement string, for example: replace("ab", "", "-") returns "-a-b-". That
+  behavior is similar to Python's string replace.
+
+  Args:
+   s: (TEXT or BYTES) Original string.
+   old: (TEXT or BYTES, the same as `s`) String to replace.
+   new: (TEXT or BYTES, the same as `s`) Replacement string.
+   max_subs: (optional INT32) Max number of substitutions. If unspecified or
+     negative, then there is no limit on the number of substitutions.
+
+  Returns:
+    String with applied substitutions.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.strings.rfind',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),

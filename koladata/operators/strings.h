@@ -71,6 +71,12 @@ absl::StatusOr<DataSlice> Lower(const DataSlice& x);
 // kde.strings.printf.
 absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices);
 //
+// kde.strings.replace.
+absl::StatusOr<DataSlice> Replace(const DataSlice& s,
+                                  const DataSlice& old_substr,
+                                  const DataSlice& new_substr,
+                                  const DataSlice& max_subs);
+//
 // kde.strings.rfind.
 absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
                                 const DataSlice& start, const DataSlice& end,

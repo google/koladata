@@ -174,6 +174,7 @@ OPERATOR("kde.strings.length", Length);
 OPERATOR("kde.strings.lower", Lower);
 OPERATOR_FAMILY("kde.strings.printf",
                 arolla::MakeVariadicInputOperatorFamily(Printf));
+OPERATOR("kde.strings.replace", Replace);
 OPERATOR("kde.strings.rfind", Rfind);
 OPERATOR("kde.strings.substr", Substr);
 OPERATOR("kde.strings.upper", Upper);

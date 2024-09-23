@@ -207,6 +207,18 @@ absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
                              internal::DataItem(schema::kText));
 }
 
+absl::StatusOr<DataSlice> Replace(const DataSlice& s,
+                                  const DataSlice& old_substr,
+                                  const DataSlice& new_substr,
+                                  const DataSlice& max_subs) {
+  ASSIGN_OR_RETURN(auto typed_max_subs,
+                   CastToNarrow(max_subs, internal::DataItem(schema::kInt32)));
+  return SimplePointwiseEval(
+      "strings.replace", {s, old_substr, new_substr, std::move(typed_max_subs)},
+      /*output_schema=*/s.GetSchemaImpl(),
+      /*primary_operand_indices=*/{{0, 1, 2}});
+}
+
 absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
                                 const DataSlice& start, const DataSlice& end,
                                 const DataSlice& failure_value) {
