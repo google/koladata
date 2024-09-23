@@ -528,6 +528,39 @@ absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
 
 namespace {
 
+// Parses a Python unicode or Koda DataItem into a absl::string_view if
+// possible. Otherwise, returns an error (with dict key specific error message).
+absl::StatusOr<absl::string_view> PyDictKeyAsStringView(PyObject* py_key) {
+  if (PyUnicode_Check(py_key)) {
+    Py_ssize_t size;
+    const char* data = PyUnicode_AsUTF8AndSize(py_key, &size);
+    if (data == nullptr) {
+      PyErr_Clear();
+    } else {
+      return absl::string_view(data, size);
+    }
+  } else if (arolla::python::IsPyQValueInstance(py_key)) {
+    if (auto typed_value = arolla::python::UnsafeUnwrapPyQValue(py_key);
+        typed_value.GetType() == arolla::GetQType<DataSlice>()) {
+      const auto& ds = typed_value.UnsafeAs<DataSlice>();
+      // NOTE: This cannot happen, because multi-dim DataSlice is not hashable.
+      if (ds.GetShape().rank() != 0) {
+        return absl::InvalidArgumentError(
+            "dict keys cannot be multi-dim DataSlices");
+      }
+      if (ds.item().holds_value<arolla::Text>()) {
+        return ds.item().value<arolla::Text>().view();
+      }
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "dict keys cannot be non-TEXT DataItems, got %v", ds.item()));
+    }
+  }
+  return absl::InvalidArgumentError(
+      absl::StrFormat(
+          "dict_as_obj requires keys to be valid unicode objects, got %s",
+          Py_TYPE(py_key)->tp_name));
+}
+
 // Converts Python objects into DataSlices and converts them into appropriate
 // Koda abstractions using `Factory`.
 // `Factory` can be:
@@ -676,16 +709,7 @@ class UniversalConverter {
     PyObject* py_key;
     PyObject* py_value;
     while (PyDict_Next(py_obj, &pos, &py_key, &py_value)) {
-      Py_ssize_t size;
-      const char* data = PyUnicode_AsUTF8AndSize(py_key, &size);
-      if (data == nullptr) {
-        PyErr_Clear();
-        return absl::InvalidArgumentError(
-            absl::StrFormat(
-                "dict_as_obj requires keys to be valid unicode objects, got %s",
-                Py_TYPE(py_key)->tp_name));
-      }
-      absl::string_view key = absl::string_view(data, size);
+      ASSIGN_OR_RETURN(auto key, PyDictKeyAsStringView(py_key));
       if (!schema || allowed_attr_names.contains(key)) {
         attr_names_bldr.Set(attr_names_size++, key);
         py_values.push_back(py_value);
