@@ -68,6 +68,9 @@ absl::StatusOr<DataSlice> Length(const DataSlice& x);
 // kde.strings.lower.
 absl::StatusOr<DataSlice> Lower(const DataSlice& x);
 //
+// kde.strings._lstrip.
+absl::StatusOr<DataSlice> Lstrip(const DataSlice& s, const DataSlice& chars);
+//
 // kde.strings.printf.
 absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices);
 //

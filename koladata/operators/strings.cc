@@ -207,6 +207,10 @@ absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
                              internal::DataItem(schema::kText));
 }
 
+absl::StatusOr<DataSlice> Lstrip(const DataSlice& s, const DataSlice& chars) {
+  return SimplePointwiseEval("strings.lstrip", {s, chars});
+}
+
 absl::StatusOr<DataSlice> Replace(const DataSlice& s,
                                   const DataSlice& old_substr,
                                   const DataSlice& new_substr,

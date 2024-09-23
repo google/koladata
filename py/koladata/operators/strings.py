@@ -348,6 +348,56 @@ def lower(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.strings._lstrip',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.s),
+        qtype_utils.expect_data_slice(P.chars),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _lstrip(s, chars):
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.strings.lstrip',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.s),
+        qtype_utils.expect_data_slice_or_unspecified(P.chars),
+    ],
+)
+def lstrip(s, chars=arolla.unspecified()):
+  r"""Strips whitespaces or the specified characters from the left side of `s`.
+
+  If `chars` is missing, then whitespaces are removed.
+  If `chars` is present, then it will strip all leading characters from `s`
+  that are present in the `chars` set.
+
+  Examples:
+    kd.strings.lstrip(kd.slice(['   spacious   ', '\t text \n']))
+      # -> kd.slice(['spacious   ', 'text \n'])
+    kd.strings.lstrip(kd.slice(['www.example.com']), kd.slice(['cmowz.']))
+      # -> kd.slice(['example.com'])
+    kd.strings.lstrip(kd.slice([['#... Section 3.1 Issue #32 ...'], ['# ...']]),
+        kd.slice('.#! '))
+      # -> kd.slice([['Section 3.1 Issue #32 ...'], ['']])
+
+  Args:
+    s: (TEXT or BYTES) Original string.
+    chars (Optional TEXT or BYTES, the same as `s`): The set of chars to remove.
+
+  Returns:
+    Stripped string.
+  """
+  chars = M.core.default_if_unspecified(
+      chars, data_slice.DataSlice.from_vals(None)
+  )
+  return _lstrip(s, chars)
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.strings.replace',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
