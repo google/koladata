@@ -14,7 +14,6 @@
 
 """A front-end module for Koda functions."""
 
-from koladata.fstring import fstring as _fstring
 from koladata.functions import attrs as _attrs
 from koladata.functions import object_factories as _object_factories
 from koladata.functions import predicates as _predicates
@@ -67,7 +66,3 @@ is_item = _predicates.is_item
 
 from_py = _py_conversions.from_py
 from_pytree = _py_conversions.from_py
-
-# TODO: rename to kde.fstr.
-fstr_expr = _fstring.fstr_expr
-fstr = _fstring.fstr

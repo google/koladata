@@ -21,6 +21,7 @@ import types as py_types
 from typing import Any
 
 from arolla import arolla
+from koladata.fstring import fstring as _fstring
 from koladata.types import data_bag
 # NOTE: To allow Python scalar values to have DataItem Python type.
 from koladata.types import data_item as _
@@ -50,6 +51,7 @@ LIST_BOXING_POLICY = 'koladata_list_boxing'
 KWARGS_POLICY = 'koladata_kwargs'
 FULL_SIGNATURE_POLICY = 'koladata_full_signature'
 OBJ_KWARGS_POLICY = 'koladata_obj_kwargs'
+FSTR_POLICY = 'koladata_fstr'
 
 # NOTE: Recreating this object invalidates all existing references. Thus after
 # reloading this module, any Exprs using this codec must be recreated.
@@ -606,6 +608,43 @@ class _ObjectKwargsPolicy(_KwargsBindingPolicy):
     return args + (data_bag.DataBag.empty()._kwargs_to_namedtuple(**kwargs),)  # pylint: disable=protected-access
 
 
+class _FstrBindingPolicy(BasicBindingPolicy):
+  """Argument binding policy for Koda fstr operator.
+
+  This policy takes f-string with base64 encoded Expressions and converts
+  to the format expression. This single expression is passed as argument to the
+  identity kde.strings.fstr operator.
+
+  Example (actual expression may be different):
+    kd.fstr(f'Hello {I.x:s}') ->
+    kd.fstr(kd.format('Hello {x:s}', x=I.x))
+  """
+
+  def make_python_signature(
+      self, signature: arolla.abc.Signature
+  ) -> inspect.Signature:
+    assert len(signature.parameters) == 1
+    return inspect.Signature(
+        [inspect.Parameter('fstr', inspect.Parameter.POSITIONAL_ONLY)]
+    )
+
+  def bind_arguments(
+      self, signature: arolla.abc.Signature, *args: Any, **kwargs: Any
+  ) -> tuple[arolla.QValue | arolla.Expr, ...]:
+    if len(args) != 1:
+      raise TypeError(
+          f'expected a single positional argument, got {len(args)}'
+      )
+    if kwargs:
+      raise TypeError(
+          f'no kwargs are allowed, got {kwargs}'
+      )
+    fstr = args[0]
+    if not isinstance(fstr, str):
+      raise TypeError(f'expected a string, got {fstr}')
+    return (_fstring.fstr_expr(fstr),)
+
+
 ##### Kola Data policy registrations #####
 
 arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
@@ -623,3 +662,4 @@ arolla.abc.register_aux_binding_policy(
     FULL_SIGNATURE_POLICY, _FullSignatureBindingPolicy()
 )
 arolla.abc.register_aux_binding_policy(OBJ_KWARGS_POLICY, _ObjectKwargsPolicy())
+arolla.abc.register_aux_binding_policy(FSTR_POLICY, _FstrBindingPolicy())

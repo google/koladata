@@ -31,7 +31,6 @@ py_library(
         ":predicates",
         ":py_conversions",
         ":schema",
-        "//py/koladata/fstring",
     ],
 )
 

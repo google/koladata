@@ -206,6 +206,15 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.as_expr(1), kd.literal(kd.slice(1)))
     kd.testing.assert_equal(kd.as_expr(I.x), I.x)
 
+  def test_fstr(self):
+    kd.testing.assert_equal(kd.fstr(f'{kd.slice(1):s}'), kd.slice('1'))
+
+  def test_fstr_expr_not_allowed(self):
+    with self.assertRaisesRegex(
+        ValueError, 'contains expression.*eager kd.fstr call'
+    ):
+      kd.fstr(f'{kd.literal(kd.slice(1)):s}')
+
   def test_get_input_names(self):
     expr = I.x + I.y + V.z
     self.assertEqual(kd.get_input_names(expr), ['x', 'y'])

@@ -48,6 +48,10 @@ class TracingTest(absltest.TestCase):
     self.assertIsInstance(e, arolla.Expr)
     self.assertEqual(e.eval(), kd.OBJECT)
 
+  def test_fstr(self):
+    e = tracing.trace(lambda x: kd.fstr(f'{x:s}'))  # pylint: disable=unnecessary-lambda
+    testing.assert_equal(e, kde.fstr(f'{I.x:s}'))
+
   # TODO: reenable this when we have kde.slice.
   # def test_kd_constants_in_slice(self):
   #   e = tracing.trace(lambda: kd.slice([1, 2], kd.FLOAT32))

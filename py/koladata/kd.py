@@ -23,6 +23,7 @@ from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
 from koladata.expr import tracing_mode as _tracing_mode
+from koladata.fstring import fstring as _fstring
 from koladata.functions import functions as _functions
 from koladata.functor import kdf as _kdf
 from koladata.functor import tracing_decorator as _tracing_decorator
@@ -130,6 +131,10 @@ sub_inputs = _eager_only(_introspection.sub_inputs)
 sub_by_name = _eager_only(_introspection.sub_by_name)
 sub = _eager_only(_introspection.sub)
 get_input_names = _eager_only(_introspection.get_input_names)
+# This overrides fstr for eager computation due to subtle differences.
+fstr = _dispatch(
+    eager=_fstring.fstr, tracing=_kde_operators.kde.fstr
+)
 # This overrides the eager_op_utils implementation which unfortunately
 # fails because M.annotation.name requires a literal as second argument.
 with_name = _dispatch(

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for py_boxing."""
-
 import inspect
 import re
 
@@ -1005,6 +1003,64 @@ class ObjectKwargsBoxingPolicyTest(absltest.TestCase):
     with self.assertRaises(KeyError):
       _ = x['b']
 
+
+class FstrBindingPolicyTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+
+    @arolla.optools.as_lambda_operator(
+        'op_like_fstr',
+        experimental_aux_policy=py_boxing.FSTR_POLICY,
+    )
+    def op_like_fstr(arg):
+      return arg
+
+    self.op = op_like_fstr
+
+  def test_binding_item(self):
+    testing.assert_equal(arolla.eval(self.op(f'{ds(1):s}')), ds('1'))
+
+  def test_binding_slice(self):
+    testing.assert_equal(
+        arolla.eval(self.op(f'{ds([1, 2]):s}')), ds(['1', '2'])
+    )
+
+  def test_binding_non_string_error(self):
+    with self.assertRaisesRegex(TypeError, 'expected a string'):
+      self.op(b'a')
+    with self.assertRaisesRegex(TypeError, 'expected a string'):
+      self.op(ds(1))
+
+  def test_args_binding_error(self):
+    with self.assertRaisesRegex(
+        TypeError, 'expected a single positional argument, got 3'
+    ):
+      self.op('1', '2', '')
+    with self.assertRaisesRegex(TypeError, 'no kwargs are allowed'):
+      self.op('a', x=13)
+
+  def test_signature(self):
+    signature = inspect.signature(self.op)
+    self.assertLen(signature.parameters, 1)
+    self.assertEqual(
+        signature.parameters['fstr'].kind, inspect.Parameter.POSITIONAL_ONLY
+    )
+
+  def test_invalid_signature(self):
+    @arolla.optools.as_lambda_operator(
+        'op_with_wrong_default',
+        experimental_aux_policy=py_boxing.FSTR_POLICY,
+    )
+    def op_with_wrong_sig(x, y):  # pylint: disable=unused-argument
+      return x
+
+    with self.assertRaisesWithLiteralMatch(
+        RuntimeError,
+        'arolla.abc.aux_make_python_signature() auxiliary binding policy has '
+        "failed: 'koladata_fstr'",
+    ):
+      _ = inspect.signature(op_with_wrong_sig)
 
 if __name__ == '__main__':
   absltest.main()

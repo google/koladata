@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_python//python:defs.bzl", "py_library")
-
 # Utilities to support f-string like manipulations with Koda objects.
+
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
@@ -104,5 +104,19 @@ cc_test(
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+py_test(
+    name = "fstr_test",
+    srcs = ["fstr_test.py"],
+    deps = [
+        ":fstring",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/functions",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
     ],
 )

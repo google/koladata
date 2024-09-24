@@ -769,7 +769,7 @@ Args:
     {"__format__", (PyCFunction)PyDataSlice_format, METH_O,
      "Returns a format representation with a special support for non empty "
      "specification.\n\nDataSlice will be replaced with base64 encoded slice."
-     "\nMust be used with kd.fstr or kd.fstr_expr."
+     "\nMust be used with kd.fstr or kde.fstr."
     },
     {"internal_register_reserved_class_method_name",
      (PyCFunction)PyDataSlice_internal_register_reserved_class_method_name,

@@ -252,6 +252,58 @@ def format_(fmt, kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.fstr'])
+@optools.as_lambda_operator(
+    'kde.strings.fstr',
+    aux_policy=py_boxing.FSTR_POLICY,
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.fmt),
+    ],
+)
+def fstr(fmt):
+  """Trasforms Koda f-string into an expression.
+
+  f-string must be created via Python f-string syntax. It must contain at least
+  one formatted DataSlice or Expression.
+  Each DataSlice/Expression must have custom format specification,
+  e.g. `{ds:s}` or `{expr:.2f}`.
+  Find more about format specification in kde.strings.format docs.
+
+  NOTE: `{ds:s}` can be used for any type to achieve default string conversion.
+
+  Examples:
+    greeting_expr = kde.fstr(f'Hello, {I.countries:s}!')
+
+    countries = kd.slice(['USA', 'Schweiz'])
+    kd.eval(greeting_expr, countries=countries)
+      # -> kd.slice(['Hello, USA!', 'Hello, Schweiz!'])
+
+    local_greetings = ds(['Hello', 'Gruezi'])
+    # Data slice is interpreted as literal.
+    local_greeting_expr = kde.fstr(
+        f'{local_greetings:s}, {I.countries:s}!'
+    )
+    kd.eval(local_greeting_expr, countries=countries)
+      # -> kd.slice(['Hello, USA!', 'Gruezi, Schweiz!'])
+
+    price_expr = kde.fstr(
+        f'Lunch price in {I.countries:s} is {I.prices:.2f} {I.currencies:s}.')
+    kd.eval(price_expr,
+            countries=countries,
+            prices=kd.slice([35.5, 49.2]),
+            currencies=kd.slice(['USD', 'CHF']))
+      # -> kd.slice(['Lunch price in USA is 35.50 USD.',
+                     'Lunch price in Schweiz is 49.20 CHF.'])
+
+  Args:
+    fmt: f-string to evaluate.
+
+  Returns:
+    Expr that formats provided f-string.
+  """
+  return fmt
+
+
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.strings._test_only_format_wrapper',

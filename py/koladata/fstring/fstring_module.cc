@@ -65,43 +65,7 @@ PyMethodDef kPyDataSliceModule_methods[] = {
     {"fstr_expr", (PyCFunction)PyCreateFstrExpr, METH_O,
      R"DOC(Trasforms Koda f-string into an expression.
 
-  f-string must be created via Python f-string syntax. It must contain at least
-  one formatted DataSlice or Expression.
-  Each DataSlice/Expression must have custom format specification,
-  e.g. `{ds:s}` or `{expr:.2f}`.
-  Find more about format specification in kde.strings.format docs.
-
-  NOTE: `{ds:s}` can be used for any type to achieve default string conversion.
-
-  Examples:
-    greeting_expr = kd.fstr_expr(f'Hello, {I.countries:s}!')
-
-    countries = kd.slice(['USA', 'Schweiz'])
-    kd.eval(greeting_expr, countries=countries)
-      # -> kd.slice(['Hello, USA!', 'Hello, Schweiz!'])
-
-    local_greetings = ds(['Hello', 'Gruezi'])
-    # Data slice is interpreted as literal.
-    local_greeting_expr = kd.fstr_expr(
-        f'{local_greetings:s}, {I.countries:s}!'
-    )
-    kd.eval(local_greeting_expr, countries=countries)
-      # -> kd.slice(['Hello, USA!', 'Gruezi, Schweiz!'])
-
-    price_expr = kd.fstr_expr(
-        f'Lunch price in {I.countries:s} is {I.prices:.2f} {I.currencies:s}.')
-    kd.eval(price_expr,
-            countries=countries,
-            prices=kd.slice([35.5, 49.2]),
-            currencies=kd.slice(['USD', 'CHF']))
-      # -> kd.slice(['Lunch price in USA is 35.50 USD.',
-                     'Lunch price in Schweiz is 49.20 CHF.'])
-
-  Args:
-    s: f-string to evaluate.
-  Returns:
-    Expr that formats provided f-string.
-)DOC"},
+  See kde.fstr for more details.)DOC"},
     {"fstr_expr_placeholder", (PyCFunction)PyFStringExprPlaceholder,
      METH_FASTCALL,
      "Returns a placeholder for an Expr that occurs in an f-string."},
