@@ -51,6 +51,7 @@ cc_library(
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/serialization_codecs",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/serialization_base",
         "@com_google_arolla//arolla/serialization_base:base_cc_proto",

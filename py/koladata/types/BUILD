@@ -212,6 +212,7 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/s11n",
         "//py/koladata/exceptions:py_exception_utils",
+        "//py/koladata/fstring:fstring_processor",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_set",

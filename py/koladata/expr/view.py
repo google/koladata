@@ -21,9 +21,11 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import introspection
+from koladata.fstring import fstring
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
 
 I = input_container.InputContainer('I')
 
@@ -105,6 +107,9 @@ class DataSliceView(BasicKodaView):
 
   def __getitem__(self, s):
     return arolla.abc.aux_bind_op('kde.get_item', self, s)
+
+  def __format__(self, format_spec: str, /):
+    return fstring.fstr_expr_placeholder(self, format_spec)
 
   @property
   def S(self) -> SlicingHelper:

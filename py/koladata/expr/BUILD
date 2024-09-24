@@ -59,6 +59,7 @@ py_library(
         ":expr_eval",
         ":input_container",
         ":introspection",
+        "//py/koladata/fstring",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",

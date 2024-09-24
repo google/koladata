@@ -22,11 +22,11 @@ namespace {
 constexpr const char* kThisModuleName = "koladata.types.data_slice";
 
 struct PyModuleDef data_slice = {
-  PyModuleDef_HEAD_INIT,
-  kThisModuleName,
-  /*module docstring=*/"A DataSlice definition.",
-  -1,
-  /*methods=*/nullptr,
+    PyModuleDef_HEAD_INIT,
+    kThisModuleName,
+    /*module docstring=*/"A DataSlice definition.",
+    -1,
+    /*methods=*/nullptr,
 };
 
 // NOTE: This PyInit function must be named this way

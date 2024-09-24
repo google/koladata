@@ -40,6 +40,7 @@
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/exceptions/py_exception_utils.h"
+#include "py/koladata/fstring/fstring_processor.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/wrap_utils.h"
@@ -608,6 +609,26 @@ absl::Nullable<PyObject*> PyDataSlice_dir(PyObject* self, PyObject*) {
   return attr_name_list.release();
 }
 
+absl::Nullable<PyObject*> PyDataSlice_format(PyObject* self,
+                                             PyObject* arg) {
+  arolla::python::DCheckPyGIL();
+  Py_ssize_t size;
+  const char* format_spec = PyUnicode_AsUTF8AndSize(arg, &size);
+  if (format_spec == nullptr) {
+    return nullptr;
+  }
+  if (size == 0) {
+    return PyDataSlice_str(self);
+  }
+  ASSIGN_OR_RETURN(
+      auto placeholder,
+      fstring::ToDataSlicePlaceholder(
+          UnsafeDataSliceRef(self), absl::string_view(format_spec, size)),
+      SetKodaPyErrFromStatus(_));
+  return PyUnicode_FromStringAndSize(
+      placeholder.c_str(), static_cast<Py_ssize_t>(placeholder.size()));
+}
+
 // classmethod
 absl::Nullable<PyObject*>
 PyDataSlice_internal_register_reserved_class_method_name(
@@ -745,6 +766,11 @@ Args:
 )"""},
     {"__dir__", PyDataSlice_dir, METH_NOARGS,
      "Returns a list of attributes available."},
+    {"__format__", (PyCFunction)PyDataSlice_format, METH_O,
+     "Returns a format representation with a special support for non empty "
+     "specification.\n\nDataSlice will be replaced with base64 encoded slice."
+     "\nMust be used with kd.fstr or kd.fstr_expr."
+    },
     {"internal_register_reserved_class_method_name",
      (PyCFunction)PyDataSlice_internal_register_reserved_class_method_name,
      METH_CLASS | METH_O,
