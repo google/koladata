@@ -28,7 +28,7 @@ constraints = arolla.optools.constraints
 @optools.add_to_registry(aliases=['kde.call'])
 @optools.as_backend_operator(
     'kde.functor.call',
-    aux_policy='koladata_full_signature',
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fn),
         (

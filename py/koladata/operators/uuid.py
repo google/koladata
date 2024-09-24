@@ -18,7 +18,9 @@ from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import qtypes
+
 
 M = arolla.M
 P = arolla.P
@@ -37,7 +39,7 @@ def _uuid(seed, kwargs):  # pylint: disable=unused-argument
 @optools.add_to_registry(aliases=['kde.uuid'])
 @optools.as_lambda_operator(
     'kde.core.uuid',
-    aux_policy='koladata_kwargs',
+    aux_policy=py_boxing.KWARGS_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         (

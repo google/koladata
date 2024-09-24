@@ -26,7 +26,7 @@ from koladata.operators import qtype_utils
 from koladata.testing import testing
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
-from koladata.types import py_boxing as _  # pylint: disable=unused-import
+from koladata.types import py_boxing
 from koladata.types import qtypes
 
 ds = data_slice.DataSlice.from_vals
@@ -87,7 +87,8 @@ class OptoolsTest(parameterized.TestCase):
       return x + y
 
     @optools.as_lambda_operator(
-        'test.op_view_in_lambda_operator', aux_policy=''
+        'test.op_view_in_lambda_operator',
+        aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
     )
     def op_view_in_lambda_operator(x, y=arolla.int32(1), *args):
       # Set these rather than assert to ensure that the lambda has been traced.

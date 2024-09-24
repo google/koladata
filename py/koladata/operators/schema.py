@@ -20,6 +20,7 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -112,7 +113,7 @@ def _has(x):  # pylint: disable=unused-argument
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.schema._new_schema',
-    aux_policy='koladata_kwargs',
+    aux_policy=py_boxing.KWARGS_POLICY,
     qtype_constraints=[
         (
             M.qtype.is_namedtuple_qtype(P.kwargs),
@@ -138,7 +139,7 @@ def _new_schema(kwargs=arolla.namedtuple()):  # pylint: disable=unused-argument
 @optools.add_to_registry(aliases=['kde.uu_schema'])
 @optools.as_backend_operator(
     'kde.schema.uu_schema',
-    aux_policy='koladata_kwargs',
+    aux_policy=py_boxing.KWARGS_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         (
@@ -300,7 +301,7 @@ def cast_to_narrow(x, schema):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.item_schema),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy='',
+    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def list_schema(item_schema):  # pylint: disable=unused-argument
   """Returns a List schema with the provided `item_schema`."""
@@ -315,7 +316,7 @@ def list_schema(item_schema):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.value_schema),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy='',
+    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def dict_schema(key_schema, value_schema):  # pylint: disable=unused-argument
   """Returns a Dict schema with the provided `key_schema` and `value_schema`."""
@@ -462,7 +463,8 @@ def get_schema(x):  # pylint: disable=unused-argument
     'kde.schema.get_obj_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy='',  # Use Arolla boxing to avoid boxing literals into DataSlices
+    # Use Arolla boxing to avoid boxing literals into DataSlices.
+    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def get_obj_schema(x):  # pylint: disable=unused-argument
   """Returns a DataSlice of schemas for Objects and primitives in `x`.
@@ -490,7 +492,8 @@ def get_obj_schema(x):  # pylint: disable=unused-argument
     'kde.schema.get_item_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.list_schema)],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy='',  # Use Arolla boxing to avoid boxing literals into DataSlices
+    # Use Arolla boxing to avoid boxing literals into DataSlices.
+    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def get_item_schema(list_schema):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns the item schema of a List schema`."""
@@ -502,7 +505,8 @@ def get_item_schema(list_schema):  # pylint: disable=unused-argument,redefined-o
     'kde.schema.get_key_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_schema)],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy='',  # Use Arolla boxing to avoid boxing literals into DataSlices
+    # Use Arolla boxing to avoid boxing literals into DataSlices.
+    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def get_key_schema(dict_schema):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns the key schema of a Dict schema`."""
@@ -514,7 +518,8 @@ def get_key_schema(dict_schema):  # pylint: disable=unused-argument,redefined-ou
     'kde.schema.get_value_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_schema)],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy='',  # Use Arolla boxing to avoid boxing literals into DataSlices
+    # Use Arolla boxing to avoid boxing literals into DataSlices.
+    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def get_value_schema(dict_schema):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns the value schema of a Dict schema`."""

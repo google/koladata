@@ -40,6 +40,9 @@ from koladata.types import literal_operator
 # JaggedShapes and already created DataSlices).
 DEFAULT_BOXING_POLICY = 'koladata_default_boxing'
 
+# Policy that does not wrap inputs to DataSlices.
+DEFAULT_AROLLA_POLICY = ''
+
 # The same as DEFAULT_BOXING_POLICY, but also implicitly wraps list/tuples into
 # DataSlices.
 LIST_BOXING_POLICY = 'koladata_list_boxing'

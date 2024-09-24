@@ -20,6 +20,7 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -205,7 +206,7 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.strings.format',
-    aux_policy='koladata_kwargs',
+    aux_policy=py_boxing.KWARGS_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),

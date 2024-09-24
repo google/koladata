@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import qtypes
 
 M = arolla.M
@@ -30,7 +31,7 @@ constraints = arolla.optools.constraints
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._uuobj',
-    aux_policy='koladata_obj_kwargs',
+    aux_policy=py_boxing.OBJ_KWARGS_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         (
@@ -39,7 +40,7 @@ constraints = arolla.optools.constraints
         ),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE
+    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _uuobj(seed=data_slice.DataSlice.from_vals(''), kwargs=arolla.namedtuple()):  # pylint: disable=unused-argument
   """Creates Object(s) whose ids are uuid(s) with the provided attributes.
