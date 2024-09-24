@@ -22,6 +22,9 @@ from koladata.types import data_slice
 from koladata.types import schema_constants
 
 
+ds = data_slice.DataSlice.from_vals
+
+
 def from_py(
     py_obj: Any,
     *,
@@ -61,3 +64,13 @@ def from_py(
   return data_bag.DataBag.empty()._from_py_impl(  # pylint: disable=protected-access
       py_obj, dict_as_obj, itemid, schema, from_dim
   )
+
+
+def to_str(x: data_slice.DataSlice) -> data_slice.DataSlice:
+  """Converts given DataSlice to string using str(x)."""
+  return ds(str(x))
+
+
+def to_repr(x: data_slice.DataSlice) -> data_slice.DataSlice:
+  """Converts given DataSlice to string using repr(x)."""
+  return ds(repr(x))

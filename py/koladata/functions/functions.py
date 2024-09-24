@@ -66,3 +66,6 @@ is_item = _predicates.is_item
 
 from_py = _py_conversions.from_py
 from_pytree = _py_conversions.from_py
+
+to_str = _py_conversions.to_str
+to_repr = _py_conversions.to_repr
