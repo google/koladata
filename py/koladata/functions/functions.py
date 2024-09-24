@@ -60,6 +60,7 @@ embed_schema = _attrs.embed_schema
 set_schema = _attrs.set_schema
 set_attr = _attrs.set_attr
 set_attrs = _attrs.set_attrs
+update_schema = _attrs.update_schema_fn
 
 is_expr = _predicates.is_expr
 is_item = _predicates.is_item

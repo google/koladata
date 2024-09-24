@@ -18,6 +18,7 @@ from typing import Any
 
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
+from koladata.types import schema_constants
 
 
 def embed_schema(x: data_slice.DataSlice) -> data_slice.DataSlice:
@@ -31,6 +32,17 @@ def embed_schema(x: data_slice.DataSlice) -> data_slice.DataSlice:
     x: (DataSlice) whose schema is embedded.
   """
   return x.embed_schema()
+
+
+def update_schema_fn(
+    obj: data_slice.DataSlice, **attr_schemas: Any
+) -> data_slice.DataSlice:
+  """Updates the schema of `obj` DataSlice using given schemas for attrs."""
+  schema = obj.get_schema()
+  if schema == schema_constants.OBJECT:
+    schema = obj.get_obj_schema()
+  schema.set_attrs(**attr_schemas)
+  return obj
 
 
 def set_schema(

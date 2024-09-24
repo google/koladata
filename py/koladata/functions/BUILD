@@ -63,6 +63,7 @@ py_library(
     deps = [
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
     ],
 )
 
