@@ -44,6 +44,7 @@ uu_schema = _schema.uu_schema
 
 obj = _object_factories.obj
 obj_shaped = _object_factories.obj_shaped
+obj_shaped_as = _object_factories.obj_shaped_as
 obj_like = _object_factories.obj_like
 
 # Currently mutable_obj.* operations are aliases for obj.* operations.

@@ -448,6 +448,29 @@ def obj_shaped(
   return db.obj_shaped(shape, itemid=itemid, **attrs)
 
 
+def obj_shaped_as(
+    as_ds: data_slice.DataSlice,
+    *,
+    itemid: data_slice.DataSlice | None = None,
+    db: data_bag.DataBag | None = None,
+    **attrs: Any,
+) -> data_slice.DataSlice:
+  """Creates Objects with the shape of the given DataSlice.
+
+  Returned DataSlice has OBJECT schema.
+
+  Args:
+    as_ds: mandatory DataSlice, whose shape the returned DataSlice will have.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
+  return obj_shaped(as_ds.get_shape(), itemid=itemid, db=db, **attrs)
+
+
 def obj_like(
     shape_and_mask_from: data_slice.DataSlice,
     *,
