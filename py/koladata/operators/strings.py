@@ -217,9 +217,11 @@ def format_(fmt, kwargs):  # pylint: disable=unused-argument
   """Formats strings according to python str.format style.
 
   Format support is slightly different from Python:
-  1. Only float and integers support format specifiers.
+  1. {x:v} is equivalent to {x} and supported for all types as default string
+     format.
+  2. Only float and integers support other format specifiers.
     E.g., {x:.1f} and {x:04d}.
-  2. If format is missing type specifier `f` or `d` at the end, we are
+  3. If format is missing type specifier `f` or `d` at the end, we are
      adding it automatically based on the type of the argument.
 
   Note: only keyword arguments are supported.
