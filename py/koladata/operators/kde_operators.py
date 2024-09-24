@@ -26,6 +26,7 @@ from koladata.operators import functor as _
 from koladata.operators import jagged_shape as _
 from koladata.operators import logical as _
 from koladata.operators import math as _
+from koladata.operators import predicates as _
 from koladata.operators import py as _
 from koladata.operators import random as _
 from koladata.operators import schema as _

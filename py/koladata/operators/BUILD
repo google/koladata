@@ -64,6 +64,7 @@ arolla_operator_package_snapshot(
         ":jagged_shape",
         ":logical",
         ":math",
+        ":predicates",
         ":random",
         ":schema",
         ":strings",
@@ -163,6 +164,17 @@ py_library(
         ":qtype_utils",
         "//koladata/operators",
         "//py/koladata/expr:view",
+        "//py/koladata/types:qtypes",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "predicates",
+    srcs = ["predicates.py"],
+    deps = [
+        ":optools",
+        ":qtype_utils",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
@@ -373,6 +385,7 @@ py_library(
         ":jagged_shape",
         ":logical",
         ":math",
+        ":predicates",
         ":py",
         ":random",
         ":schema",
