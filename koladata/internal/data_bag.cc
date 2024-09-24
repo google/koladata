@@ -2405,6 +2405,7 @@ absl::Status SetSchemaFields(
   static_assert(sizeof(ImplT) == 0,
                 "SetSchemaFields is not supported for ImplT not in "
                 "{DataSliceImpl, DataItem}");
+  return absl::UnimplementedError("Never called!");
 }
 
 template<>
@@ -2472,6 +2473,7 @@ absl::Status OverwriteSchemaFields(
   static_assert(sizeof(ImplT) == 0,
                 "OverwriteSchemaFields is not supported for ImplT not in "
                 "{DataSliceImpl, DataItem}");
+  return absl::UnimplementedError("Never called!");
 }
 
 template <>
