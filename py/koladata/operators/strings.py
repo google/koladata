@@ -263,7 +263,7 @@ def format_(fmt, kwargs):  # pylint: disable=unused-argument
     ],
 )
 def fstr(fmt):
-  """Trasforms Koda f-string into an expression.
+  """Transforms Koda f-string into an expression.
 
   f-string must be created via Python f-string syntax. It must contain at least
   one formatted DataSlice or Expression.
