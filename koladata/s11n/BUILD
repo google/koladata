@@ -14,6 +14,8 @@
 
 # Koda serialization codecs.
 
+load("@rules_python//python:proto.bzl", "py_proto_library")
+
 package(default_visibility = [
     "//koladata:internal",
 ])
@@ -94,5 +96,10 @@ proto_library(
 
 cc_proto_library(
     name = "codec_cc_proto",
+    deps = [":codec_proto"],
+)
+
+py_proto_library(
+    name = "codec_py_proto",
     deps = [":codec_proto"],
 )

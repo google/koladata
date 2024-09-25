@@ -538,6 +538,7 @@ py_library(
     srcs = ["literal_operator.py"],
     deps = [
         ":py_misc_py_ext",
+        "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -618,6 +619,7 @@ py_library(
     deps = [
         ":expr_operators_clib",
         "//koladata/s11n",
+        "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -667,7 +669,6 @@ py_test(
     srcs = ["ellipsis_test.py"],
     deps = [
         ":ellipsis",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
