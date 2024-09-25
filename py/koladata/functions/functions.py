@@ -25,16 +25,19 @@ bag = _object_factories.bag
 list = _object_factories._list  # pylint: disable=redefined-builtin,protected-access
 list_like = _object_factories.list_like
 list_shaped = _object_factories.list_shaped
+list_shaped_as = _object_factories.list_shaped_as
 implode = _object_factories.implode
 concat_lists = _object_factories.concat_lists
 
 dict = _object_factories._dict  # pylint: disable=redefined-builtin,protected-access
 dict_like = _object_factories.dict_like
 dict_shaped = _object_factories.dict_shaped
+dict_shaped_as = _object_factories.dict_shaped_as
 
 new = _object_factories.new
 uu = _object_factories.uu
 new_shaped = _object_factories.new_shaped
+new_shaped_as = _object_factories.new_shaped_as
 new_like = _object_factories.new_like
 
 new_schema = _schema.new_schema

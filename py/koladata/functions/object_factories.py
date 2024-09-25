@@ -134,6 +134,41 @@ def list_shaped(
   )
 
 
+def list_shaped_as(
+    ds_as: data_slice.DataSlice,
+    items: list[Any] | data_slice.DataSlice | None = None,
+    *,
+    item_schema: data_slice.DataSlice | None = None,
+    schema: data_slice.DataSlice | None = None,
+    itemid: data_slice.DataSlice | None = None,
+    db: data_bag.DataBag | None = None,
+) -> data_slice.DataSlice:
+  """Creates new Koda lists with shape of the given DataSlice.
+
+  Args:
+    ds_as: mandatory DataSlice, whose shape the returned DataSlice will have.
+    items: optional items to assign to the newly created lists. If not given,
+      the function returns empty lists.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where lists are created.
+
+  Returns:
+    A DataSlice with the lists.
+  """
+  return list_shaped(
+      ds_as.get_shape(),
+      items=items,
+      item_schema=item_schema,
+      schema=schema,
+      itemid=itemid,
+      db=db,
+  )
+
+
 def _dict(
     items_or_keys: Any | None = None, values: Any | None = None,
     *,
@@ -292,6 +327,52 @@ def dict_shaped(
   )
 
 
+def dict_shaped_as(
+    as_ds: data_slice.DataSlice,
+    items_or_keys: Any | None = None,
+    values: Any | None = None,
+    key_schema: data_slice.DataSlice | None = None,
+    value_schema: data_slice.DataSlice | None = None,
+    schema: data_slice.DataSlice | None = None,
+    itemid: data_slice.DataSlice | None = None,
+    db: data_bag.DataBag | None = None,
+) -> data_slice.DataSlice:
+  """Creates new Koda dicts with shape of the given DataSlice.
+
+  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
+  the function assigns the given keys and values to the newly created dicts. So
+  the keys and values must be either broadcastable to `shape` or one dimension
+  higher.
+
+  Args:
+    as_ds: mandatory DataSlice, whose shape the returned DataSlice will have.
+    items_or_keys: either a Python dict (if `values` is None) or a DataSlice
+      with keys. The Python dict case is supported only for scalar shape.
+    values: a DataSlice of values, when `items_or_keys` represents keys.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: The schema to use for the newly created Dict. If specified, then
+      key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: Optional DataBag where dicts are created.
+
+  Returns:
+    A DataSlice with the dicts.
+  """
+  return dict_shaped(
+      as_ds.get_shape(),
+      items_or_keys=items_or_keys,
+      values=values,
+      key_schema=key_schema,
+      value_schema=value_schema,
+      schema=schema,
+      itemid=itemid,
+      db=db,
+  )
+
+
 def new(
     arg: Any = None,
     *,
@@ -358,6 +439,42 @@ def new_shaped(
     db = bag()
   return db.new_shaped(
       shape, schema=schema, update_schema=update_schema, itemid=itemid, **attrs
+  )
+
+
+def new_shaped_as(
+    as_ds: data_slice.DataSlice,
+    *,
+    schema: data_slice.DataSlice | None = None,
+    update_schema: bool = False,
+    itemid: data_slice.DataSlice | None = None,
+    db: data_bag.DataBag | None = None,
+    **attrs: Any,
+) -> data_slice.DataSlice:
+  """Creates new Koda entities with shape of the given DataSlice.
+
+  Args:
+    as_ds: mandatory DataSlice, whose shape the returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead.
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
+  return new_shaped(
+      as_ds.get_shape(),
+      schema=schema,
+      update_schema=update_schema,
+      itemid=itemid,
+      db=db,
+      **attrs,
   )
 
 

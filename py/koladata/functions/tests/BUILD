@@ -114,6 +114,22 @@ py_test(
 )
 
 py_test(
+    name = "list_shaped_as_test",
+    srcs = ["list_shaped_as_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:list_item",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "implode_test",
     srcs = ["implode_test.py"],
     deps = [
@@ -186,6 +202,21 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
+    ],
+)
+
+py_test(
+    name = "dict_shaped_as_test",
+    srcs = ["dict_shaped_as_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -264,6 +295,20 @@ py_test(
         "//py/koladata/types:dict_item",
         "//py/koladata/types:jagged_shape",
         "//py/koladata/types:list_item",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
+    name = "new_shaped_as_test",
+    srcs = ["new_shaped_as_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_item",
+        "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
     ],
