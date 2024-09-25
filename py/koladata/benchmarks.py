@@ -340,6 +340,15 @@ def from_py(state):
 
 
 @google_benchmark.register
+@google_benchmark.option.range(1000, 50000)
+def from_py_big_text(state):
+  text_size = state.range(0)
+  lst = [str(i % 10) * text_size for i in range(10)]
+  while state:
+    _ = kd.slice(lst)
+
+
+@google_benchmark.register
 def from_py_with_casting(state):
   lst = [12] * 5000 + [3.14] * 5000
   while state:
