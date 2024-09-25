@@ -32,6 +32,7 @@ py_library(
     deps = [
         ":data_conversion",
         "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/operator_tests:backend_test_base_flags",
@@ -66,6 +67,7 @@ py_test(
         ":koda_test_eval",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/flags",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:flagsaver",

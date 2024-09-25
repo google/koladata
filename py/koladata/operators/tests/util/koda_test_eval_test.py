@@ -76,6 +76,17 @@ FLAGS.extra_flags = [
 ]
 
 
+@arolla.optools.add_to_registry()
+@arolla.optools.as_py_function_operator(
+    'arolla_simple_add_for_test',
+    qtype_inference_expr=P.x,
+)
+def arolla_simple_add_for_test(x, y=arolla.unspecified()):
+  if y.qtype == arolla.UNSPECIFIED:
+    return x
+  return x + y
+
+
 class KodaTestEvalTest(parameterized.TestCase):
 
   def setUp(self):
@@ -361,6 +372,63 @@ class KodaTestEvalTest(parameterized.TestCase):
       arolla.testing.assert_qvalue_allequal(
           koda_test_eval.eager_eval(expr, x=x, y=y),
           arolla.eval(expr, x=x, y=y),
+      )
+
+  def test_overriding_arolla_unspecified_arg_with_param_default_dataslice(
+      self,
+  ):
+    y_default = 1
+
+    @arolla.optools.add_to_registry()
+    @arolla.optools.as_py_function_operator(
+        'kde.simple_add_for_test',
+        qtype_inference_expr=P.x,
+    )
+    def kde_simple_add_for_test(x, y=data_slice.DataSlice.from_vals(y_default)):
+      return x + y
+
+    with flagsaver.flagsaver(
+        extra_flags=[
+            'kd_op_mapping:arolla_simple_add_for_test:simple_add_for_test',
+        ]
+    ):
+      expr = M.arolla_simple_add_for_test(L.x, L.y)
+
+      arolla.testing.assert_qvalue_allequal(
+          koda_test_eval.eager_eval(
+              expr, x=(1 - y_default), y=arolla.unspecified()
+          ),
+          arolla.eval(expr, x=1, y=arolla.unspecified()),
+      )
+
+  def test_respects_koda_args_with_arolla_unspecified_default_values(
+      self,
+  ):
+
+    y_default = 1
+
+    @arolla.optools.add_to_registry()
+    @arolla.optools.as_py_function_operator(
+        'kde.another_simple_add_for_test',
+        qtype_inference_expr=P.x,
+    )
+    def kde_another_simple_add_for_test(x, y=arolla.unspecified()):
+      if y.qtype == arolla.UNSPECIFIED:
+        return x + y_default
+      return x + y
+
+    with flagsaver.flagsaver(
+        extra_flags=[
+            'kd_op_mapping:arolla_simple_add_for_test:another_simple_add_for_test',
+        ]
+    ):
+      expr = M.arolla_simple_add_for_test(L.x, L.y)
+
+      arolla.testing.assert_qvalue_allequal(
+          koda_test_eval.eager_eval(
+              expr, x=(1 - y_default), y=arolla.unspecified()
+          ),
+          arolla.eval(expr, x=1, y=arolla.unspecified()),
       )
 
 

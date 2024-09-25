@@ -403,26 +403,14 @@ def lower(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings._lstrip',
+    'kde.strings.lstrip',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.chars),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _lstrip(s, chars):
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry()
-@optools.as_lambda_operator(
-    'kde.strings.lstrip',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.s),
-        qtype_utils.expect_data_slice_or_unspecified(P.chars),
-    ],
-)
-def lstrip(s, chars=arolla.unspecified()):
+def lstrip(s, chars=data_slice.DataSlice.from_vals(None)):
   r"""Strips whitespaces or the specified characters from the left side of `s`.
 
   If `chars` is missing, then whitespaces are removed.
@@ -445,10 +433,7 @@ def lstrip(s, chars=arolla.unspecified()):
   Returns:
     Stripped string.
   """
-  chars = M.core.default_if_unspecified(
-      chars, data_slice.DataSlice.from_vals(None)
-  )
-  return _lstrip(s, chars)
+  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()

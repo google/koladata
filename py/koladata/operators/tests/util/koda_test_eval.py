@@ -32,6 +32,7 @@ from arolla import arolla
 from arolla.operator_tests import backend_test_base_flags
 from koladata.operators import eager_op_utils
 from koladata.operators.tests.util import data_conversion
+from koladata.types import data_slice
 from koladata.types import jagged_shape
 
 KodaValue = Any
@@ -106,12 +107,46 @@ def _make_over_fn(
   return fn
 
 
+def _adapt_koda_op_for_unspecified_args(
+    koda_op: Callable[..., KodaValue],
+) -> Callable[..., KodaValue]:
+  """Wraps the Koda op so that arolla.UNSPECIFIED args can be replaced with the op's defaults."""
+
+  def get_final_args(*args) -> Sequence[KodaValue]:
+    koda_op_signature = inspect.signature(koda_op)
+    bound_arguments = koda_op_signature.bind(*args)
+    bound_arguments.apply_defaults()
+    arguments = bound_arguments.arguments
+    result = []
+    for param_name, param in koda_op_signature.parameters.items():
+      param_default_value = param.default
+      arg_value = arguments[param_name]
+      if getattr(arg_value, 'qtype', None) == arolla.UNSPECIFIED and isinstance(
+          param_default_value, data_slice.DataSlice
+      ):
+        result.append(param_default_value)
+      elif param.kind == inspect.Parameter.VAR_POSITIONAL:
+        result.extend(arg_value)
+      else:
+        result.append(arg_value)
+    return result
+
+  def fn(*args):
+    final_args = get_final_args(*args)
+    return koda_op(*final_args)
+
+  fn.__signature__ = inspect.signature(koda_op)
+  return fn
+
+
 @functools.cache
 def _get_eager_koda_op(
     arolla_op: arolla.types.RegisteredOperator,
 ) -> Callable[..., KodaValue]:
   """Returns an eager Koda operator corresponding to the provided arolla_op."""
-  kd_op = kd[_get_kd_op_mapping()[arolla_op.display_name]]
+  kd_op = _adapt_koda_op_for_unspecified_args(
+      kd[_get_kd_op_mapping()[arolla_op.display_name]]
+  )
   param_names = list(inspect.signature(arolla_op).parameters.keys())
 
   arg_indices_for_reshape = [
