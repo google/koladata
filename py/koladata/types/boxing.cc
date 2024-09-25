@@ -681,11 +681,13 @@ class UniversalConverter {
       // (i.e. they should remain std::nullopt).
     }
     for (auto* py_key : keys) {
-      cmd_stack_.push([=] { return CmdConvertPyObject(py_key, key_schema); });
+      cmd_stack_.push([this, py_key, key_schema] {
+        return this->CmdConvertPyObject(py_key, key_schema);
+      });
     }
     for (auto* py_value : values) {
-      cmd_stack_.push([=] {
-        return CmdConvertPyObject(py_value, value_schema);
+      cmd_stack_.push([this, py_value, value_schema] {
+        return this->CmdConvertPyObject(py_value, value_schema);
       });
     }
     return absl::OkStatus();
@@ -723,8 +725,8 @@ class UniversalConverter {
             internal::DataSliceImpl::Create(attr_names),
             DataSlice::JaggedShape::FlatFromSize(attr_names_size),
             internal::DataItem(schema::kText)));
-    cmd_stack_.push([=, attr_names_ds = std::move(attr_names_ds)] {
-      value_stack_.push(attr_names_ds);
+    cmd_stack_.push([this, attr_names_ds = std::move(attr_names_ds)] {
+      this->value_stack_.push(attr_names_ds);
       return absl::OkStatus();
     });
     for (size_t i = 0, id = 0; i < py_values.size(); ++i) {
@@ -733,9 +735,9 @@ class UniversalConverter {
         ASSIGN_OR_RETURN(value_schema,
                          schema->GetAttr(attr_names[id++].value));
       }
-      cmd_stack_.push([=, py_val = py_values[i],
+      cmd_stack_.push([this, py_val = py_values[i],
                           value_schema = std::move(value_schema)] {
-        return CmdConvertPyObject(py_val, value_schema);
+        return this->CmdConvertPyObject(py_val, value_schema);
       });
     }
     return absl::OkStatus();
@@ -759,7 +761,9 @@ class UniversalConverter {
     }
     for (auto* py_item : absl::Span<PyObject*>(
              PySequence_Fast_ITEMS(py_obj), PySequence_Fast_GET_SIZE(py_obj))) {
-      cmd_stack_.push([=] { return CmdConvertPyObject(py_item, item_schema); });
+      cmd_stack_.push([this, py_item, item_schema] {
+        return this->CmdConvertPyObject(py_item, item_schema);
+      });
     }
     return absl::OkStatus();
   }
@@ -794,19 +798,19 @@ class UniversalConverter {
           MakeCacheKey(py_obj, schema), value_stack_.top());
     } else if (PyDict_CheckExact(py_obj)) {
       if (dict_as_obj_) {
-        cmd_stack_.push([=, schema = schema] {
-          return CmdComputeObj(schema);
+        cmd_stack_.push([this, schema] {
+          return this->CmdComputeObj(schema);
         });
         RETURN_IF_ERROR(ParsePyDictAsObj(py_obj, schema));
       } else {
-        cmd_stack_.push([=, schema = schema] {
-          return CmdComputeDict(py_obj, schema);
+        cmd_stack_.push([this, py_obj, schema] {
+          return this->CmdComputeDict(py_obj, schema);
         });
         RETURN_IF_ERROR(ParsePyDict(py_obj, schema));
       }
     } else if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
-      cmd_stack_.push([=, schema = schema] {
-        return CmdComputeList(py_obj, schema);
+      cmd_stack_.push([this, py_obj, schema] {
+        return this->CmdComputeList(py_obj, schema);
       });
       RETURN_IF_ERROR(ParsePyList(py_obj, schema));
     } else {
