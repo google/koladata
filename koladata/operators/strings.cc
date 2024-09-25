@@ -241,6 +241,10 @@ absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
       /*primary_operand_indices=*/{{0, 1}});
 }
 
+absl::StatusOr<DataSlice> Rstrip(const DataSlice& s, const DataSlice& chars) {
+  return SimplePointwiseEval("strings.rstrip", {s, chars});
+}
+
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
   const auto& x_shape = x.GetShape();
   if (sep.GetShape().rank() != 0) {

@@ -1314,6 +1314,25 @@ py_test(
 )
 
 py_test(
+    name = "strings_rstrip_test",
+    srcs = ["strings_rstrip_test.py"],
+    deps = [
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "strings_substr_test",
     srcs = ["strings_substr_test.py"],
     deps = [
@@ -4646,6 +4665,12 @@ koda_operator_coverage_test(
     name = "kd_strings_lstrip_covers_strings_lstrip_test",
     arolla_op = "strings.lstrip",
     koda_op = "strings.lstrip",
+)
+
+koda_operator_coverage_test(
+    name = "kd_strings_rstrip_covers_strings_rstrip_test",
+    arolla_op = "strings.rstrip",
+    koda_op = "strings.rstrip",
 )
 
 koda_operator_coverage_test(
