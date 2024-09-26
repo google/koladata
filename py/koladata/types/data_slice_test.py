@@ -2485,6 +2485,14 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     for idx, el in enumerate(d.L):
       self.assertEqual(el, d.L[idx])
 
+  def test_is_mutable(self):
+    x = ds(None)
+    self.assertFalse(x.is_mutable())
+    x = x.with_db(data_bag.DataBag.empty())
+    self.assertTrue(x.is_mutable())
+    x = x.freeze()
+    self.assertFalse(x.is_mutable())
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -549,6 +549,13 @@ absl::Nullable<PyObject*> PyDataSlice_is_empty(PyObject* self, PyObject*) {
   return WrapPyDataSlice(AsMask(ds.IsEmpty()));
 }
 
+absl::Nullable<PyObject*> PyDataSlice_is_mutable(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  const auto& db = ds.GetDb();
+  return WrapPyDataSlice(AsMask(db != nullptr && db->IsMutable()));
+}
+
 absl::Nullable<PyObject*> PyDataSlice_with_schema(PyObject* self,
                                                   PyObject* schema) {
   arolla::python::DCheckPyGIL();
@@ -703,6 +710,8 @@ Returns:
      "Returns present iff this DataSlice is a primitive (scalar) Schema."},
     {"is_empty", PyDataSlice_is_empty, METH_NOARGS,
      "Returns present iff this DataSlice is empty."},
+    {"is_mutable", PyDataSlice_is_mutable, METH_NOARGS,
+     "Returns present iff the attached DataBag is mutable."},
     {"with_schema", PyDataSlice_with_schema, METH_O,
      R"""(Returns a copy of DataSlice with the provided `schema`.
 

@@ -564,28 +564,34 @@ class DataSliceViewTest(parameterized.TestCase):
     # because of laziness.
     skipped_data_slice_attrs = {
         # TODO: Add the following as operators.
-        'is_primitive_schema',
+        # go/keep-sorted start
         'is_dict_schema',
         'is_list_schema',
+        'is_primitive_schema',
         'with_fallback',
-        'freeze',
+        # go/keep-sorted end
+    } | {
         # Attrs / methods that should _not_ be added to the view.
-        'clear',
-        'fork_db',
-        'as_dense_array',
+        # go/keep-sorted start
         'add_method',
-        'embed_schema',
+        'append',
         'as_arolla_value',
+        'as_dense_array',
+        'clear',
+        'embed_schema',
+        'fingerprint',
+        'fork_db',
+        'freeze',
+        'from_vals',
+        'internal_as_py',
+        'internal_register_reserved_class_method_name',
+        'is_mutable',
         'qtype',
         'set_attr',
-        'internal_register_reserved_class_method_name',
-        'fingerprint',
         'set_attrs',
-        'append',
         'set_schema',
-        'internal_as_py',
         'to_py',
-        'from_vals',
+        # go/keep-sorted end
     }
     view_attrs = {m for m in dir(view.DataSliceView) if not m.startswith('_')}
     data_slice_attrs = {

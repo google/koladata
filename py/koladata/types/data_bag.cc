@@ -50,15 +50,22 @@
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {
 
+DataSlice AsMask(bool b) {
+  return *DataSlice::Create(
+      b ? internal::DataItem(arolla::kUnit) : internal::DataItem(),
+      internal::DataItem(schema::kMask));
+}
+
 absl::Nullable<PyObject*> PyDataBag_is_mutable(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const DataBagPtr& db = UnsafeDataBagPtr(self);
-  return PyBool_FromLong(db->IsMutable());
+  return WrapPyDataSlice(AsMask(db->IsMutable()));
 }
 
 // classmethod
@@ -1296,7 +1303,7 @@ absl::Nullable<PyObject*> PyDataBag_get_fallbacks(PyObject* self, PyObject*) {
 
 PyMethodDef kPyDataBag_methods[] = {
     {"is_mutable", (PyCFunction)PyDataBag_is_mutable, METH_NOARGS,
-     "DataBag.is_mutable"},
+     "Returns present iff this DataBag is mutable."},
     {"empty", (PyCFunction)PyDataBag_empty, METH_CLASS | METH_NOARGS,
      "Returns an empty DataBag."},
     {"new", (PyCFunction)PyDataBag_new_factory, METH_FASTCALL | METH_KEYWORDS,
