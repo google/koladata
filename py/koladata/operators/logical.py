@@ -21,6 +21,7 @@ from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema
+from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -127,16 +128,18 @@ def has_not(x):
         qtype_utils.expect_data_slice(P.no),
     ],
 )
-def cond(condition, yes, no):
+def cond(condition, yes, no=data_slice.DataSlice.from_vals(None)):
   """Returns `yes` where `condition` is present, otherwise `no`.
 
   Pointwise operator selects items in `yes` if corresponding items are
   `kd.present` or items in `no` otherwise. `condition` must have MASK dtype.
 
+  If `no` is unspecified corresponding items in result are missing.
+
   Args:
     condition: DataSlice.
     yes: DataSlice.
-    no: DataSlice.
+    no: DataSlice or unspecified.
 
   Returns:
     DataSlice of items from `yes` and `no` based on `condition`.
