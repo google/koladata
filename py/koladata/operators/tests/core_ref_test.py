@@ -47,7 +47,7 @@ class CoreRefTest(parameterized.TestCase):
       ds(None).with_db(bag()),
   )
   def test_eval(self, x):
-    testing.assert_equal(expr_eval.eval(kde.core.ref(x)), x.with_db(None))
+    testing.assert_equal(expr_eval.eval(kde.core.ref(x)), x.no_db())
 
   def test_primitive_schema_error(self):
     with self.assertRaisesRegex(ValueError, 'unsupported schema: INT32'):

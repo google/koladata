@@ -278,7 +278,7 @@ class TestUtilsTest(absltest.TestCase):
     d2 = bag().dict(ds(['a', 'b']), ds([3.14, 2.71]))
     test_utils.assert_dicts_keys_equal(d1, d2.get_keys())
     test_utils.assert_allclose(
-        d1[d1.get_keys()].with_db(None), d2[d1.get_keys()].with_db(None)
+        d1[d1.get_keys()].no_db(), d2[d1.get_keys()].no_db()
     )
 
   def test_assert_dicts_equal_error(self):

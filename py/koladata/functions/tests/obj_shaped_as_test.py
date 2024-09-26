@@ -34,7 +34,7 @@ class ObjShapedAsTest(absltest.TestCase):
         b=ds('abc', schema_constants.TEXT),
     )
     self.assertIsInstance(x, data_item.DataItem)
-    testing.assert_equal(x.with_db(None).get_schema(), schema_constants.OBJECT)
+    testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
     testing.assert_allclose(
         x.a, ds(3.14, schema_constants.FLOAT64).with_db(x.db)
     )
@@ -55,7 +55,7 @@ class ObjShapedAsTest(absltest.TestCase):
     testing.assert_equal(x.c, ds([[b'xyz', b'xyz'], [b'xyz']]).with_db(x.db))
     testing.assert_equal(x.a.get_schema(), schema_constants.INT32.with_db(x.db))
     testing.assert_equal(
-        x.b.with_db(None).get_schema(), schema_constants.OBJECT
+        x.b.no_db().get_schema(), schema_constants.OBJECT
     )
     testing.assert_equal(
         x.b.bb.get_schema(), schema_constants.TEXT.with_db(x.db)

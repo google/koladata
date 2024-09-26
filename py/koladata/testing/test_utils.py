@@ -160,7 +160,7 @@ def assert_equivalent(
       expected_value, _data_slice.DataSlice
   ):
     _arolla.testing.assert_qvalue_equal_by_fingerprint(
-        actual_value.with_db(None), expected_value.with_db(None), msg=msg
+        actual_value.no_db(), expected_value.no_db(), msg=msg
     )
     try:
       _assert_equivalent_bags(actual_value.db, expected_value.db)
@@ -207,8 +207,8 @@ def _assert_equal_schema(
     expected_value: _data_slice.DataSlice,
 ):
   assert_equal(
-      actual_value.get_schema().with_db(None),
-      expected_value.get_schema().with_db(None),
+      actual_value.get_schema().no_db(),
+      expected_value.get_schema().no_db(),
       msg=(
           f'{actual_value!r} and {expected_value!r} have different schemas\n\n'
           f'  {actual_value.get_schema()} != {expected_value.get_schema()}'
@@ -391,8 +391,8 @@ def assert_dicts_equal(
   assert_equivalent(
       # We need to skip checking the DataBags, as dict ItemId(s) are usually
       # different.
-      actual_dict[same_order_keys].with_db(None),
-      expected_dict[same_order_keys].with_db(None),
+      actual_dict[same_order_keys].no_db(),
+      expected_dict[same_order_keys].no_db(),
   )
 
 

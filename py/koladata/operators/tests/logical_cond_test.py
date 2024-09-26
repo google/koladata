@@ -92,7 +92,7 @@ class LogicalCondTest(parameterized.TestCase):
     y = (
         data_bag.DataBag.empty()
         .new(x=ds([1, 1]))
-        .with_schema(x.get_schema().with_db(None))
+        .with_schema(x.get_schema().no_db())
     )
     y.set_attr(
         'a', ds(['abc', 'xyz'], schema_constants.OBJECT), update_schema=True

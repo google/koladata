@@ -59,7 +59,7 @@ class CoreExtractTest(parameterized.TestCase):
     # TODO: test no_follow, uu, uuid
     fb = data_bag.DataBag.empty()
     o.a.with_db(fb).set_attr(
-        '__schema__', o.a.get_attr('__schema__').with_db(None)
+        '__schema__', o.a.get_attr('__schema__').no_db()
     )
     o.a.with_db(fb).set_attr('d', ds([1, 2, 3]))
     fb_noise = data_bag.DataBag.empty()
@@ -98,18 +98,18 @@ class CoreExtractTest(parameterized.TestCase):
     )
     schema_db = data_bag.DataBag.empty()
     schema = o.get_schema().with_db(schema_db)
-    schema.a = a_schema.with_db(None)
-    schema.a.b = a_schema.b.with_db(None)
-    schema.a.c = a_schema.c.with_db(None)
-    schema.b = o.b.get_schema().with_db(None)
+    schema.a = a_schema.no_db()
+    schema.a.b = a_schema.b.no_db()
+    schema.a.c = a_schema.c.no_db()
+    schema.b = o.b.get_schema().no_db()
     schema.b.set_attr(
-        '__items__', o.b.get_schema().get_attr('__items__').with_db(None)
+        '__items__', o.b.get_schema().get_attr('__items__').no_db()
     )
     schema.b.get_attr('__items__').u = (
-        o.b.get_schema().get_attr('__items__').u.with_db(None)
+        o.b.get_schema().get_attr('__items__').u.no_db()
     )
     schema.b.get_attr('__items__').v = (
-        o.b.get_schema().get_attr('__items__').v.with_db(None)
+        o.b.get_schema().get_attr('__items__').v.no_db()
     )
     fb_noise = data_bag.DataBag.empty()
     noise = fb_noise.obj(a=[1, 2, 3])
@@ -128,7 +128,7 @@ class CoreExtractTest(parameterized.TestCase):
         o.a.with_db(expected_db).get_attr('__schema__').c,
     )
     self.assertEqual(result.a.get_attr('__schema__').get_present_count(), 0)
-    result.a.set_attr('__schema__', o.a.get_attr('__schema__').with_db(None))
+    result.a.set_attr('__schema__', o.a.get_attr('__schema__').no_db())
     testing.assert_equivalent(result.db, expected_db)
 
   def test_eval_nofollow(self):
@@ -141,11 +141,11 @@ class CoreExtractTest(parameterized.TestCase):
     )
     fb = data_bag.DataBag.empty()
     o.a.with_db(fb).set_attr(
-        '__schema__', o.a.get_attr('__schema__').with_db(None)
+        '__schema__', o.a.get_attr('__schema__').no_db()
     )
     fb_d = expr_eval.eval(kde.nofollow(fb.new(x=ds([1, 2, None]))))
     o.a.with_db(fb).get_attr('__schema__').set_attr(
-        'd', fb_d.get_schema().with_db(None)
+        'd', fb_d.get_schema().no_db()
     )
     o.a.with_db(fb).set_attr('d', fb_d)
     o_fb = o.with_fallback(fb)
@@ -153,8 +153,8 @@ class CoreExtractTest(parameterized.TestCase):
     result = expr_eval.eval(kde.extract(o_fb))
 
     self.assertFalse(result.db._exactly_equal(db))
-    o.a.set_attr('d', fb_d.with_db(None))
-    o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().with_db(None))
+    o.a.set_attr('d', fb_d.no_db())
+    o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().no_db())
     testing.assert_equivalent(result.db, db)
 
   def test_qtype_signatures(self):

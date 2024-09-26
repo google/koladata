@@ -965,7 +965,7 @@ Assigned schema for Dict key: INT32""",
     shape_and_mask_from = ds([[1, None, 1], [None, 2]])
     x = db.obj_like(shape_and_mask_from)
     testing.assert_equal(
-        kde.has._eval(x).with_db(None),  # pylint: disable=protected-access
+        kde.has._eval(x).no_db(),  # pylint: disable=protected-access
         ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]])
     )
     x.a = ds([[1, 2, 3], [4, 5]])
@@ -1168,7 +1168,7 @@ Assigned schema for Dict key: INT32""",
       item_schema = item_schema.get_attr('__items__')
     testing.assert_equal(item_schema.db, db)
     testing.assert_equal(
-        item_schema.with_db(None),
+        item_schema.no_db(),
         schema_constants.INT32 if values else schema_constants.OBJECT,
     )
 

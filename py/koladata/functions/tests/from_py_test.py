@@ -33,17 +33,17 @@ class FromPyTest(absltest.TestCase):
   def test_object(self):
     obj = fns.from_py({'a': {'b': [1, 2, 3]}})
     testing.assert_equal(
-        obj.get_schema().with_db(None), schema_constants.OBJECT
+        obj.get_schema().no_db(), schema_constants.OBJECT
     )
     testing.assert_dicts_keys_equal(obj, ds(['a']))
     values = obj['a']
     testing.assert_equal(
-        values.get_schema().with_db(None), schema_constants.OBJECT
+        values.get_schema().no_db(), schema_constants.OBJECT
     )
     testing.assert_dicts_keys_equal(values, ds(['b']))
     nested_values = values['b']
     testing.assert_equal(
-        nested_values.get_schema().with_db(None), schema_constants.OBJECT
+        nested_values.get_schema().no_db(), schema_constants.OBJECT
     )
     testing.assert_equal(nested_values[:], ds([1, 2, 3]).with_db(obj.db))
 
@@ -195,12 +195,12 @@ class FromPyTest(absltest.TestCase):
   def test_alias(self):
     obj = fns.from_pytree({'a': 42})
     testing.assert_equal(
-        obj.get_schema().with_db(None), schema_constants.OBJECT
+        obj.get_schema().no_db(), schema_constants.OBJECT
     )
     testing.assert_dicts_keys_equal(obj, ds(['a']))
     values = obj['a']
     testing.assert_equal(
-        values.get_schema().with_db(None), schema_constants.INT32
+        values.get_schema().no_db(), schema_constants.INT32
     )
     testing.assert_equal(values, ds(42).with_db(values.db))
 

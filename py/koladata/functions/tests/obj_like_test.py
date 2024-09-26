@@ -39,7 +39,7 @@ class ObjLikeTest(absltest.TestCase):
         b=ds('abc', schema_constants.TEXT),
     )
     self.assertIsInstance(x, data_item.DataItem)
-    testing.assert_equal(x.with_db(None).get_schema(), schema_constants.OBJECT)
+    testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
     testing.assert_allclose(
         x.a, ds(3.14, schema_constants.FLOAT64).with_db(x.db)
     )
@@ -51,7 +51,7 @@ class ObjLikeTest(absltest.TestCase):
     x = fns.obj_like(ds(None), a=42)
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(
-        kde.has._eval(x).with_db(None), ds(None, schema_constants.MASK)
+        kde.has._eval(x).no_db(), ds(None, schema_constants.MASK)
     )
     testing.assert_equal(x.a, ds(None, schema_constants.OBJECT).with_db(x.db))
 
@@ -62,7 +62,7 @@ class ObjLikeTest(absltest.TestCase):
         b=fns.obj(bb=ds([['a', 'b'], ['c']])),
         c=ds(b'xyz'),
     )
-    testing.assert_equal(x.with_db(None).get_schema(), schema_constants.OBJECT)
+    testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.a, ds([[1, None], [3]]).with_db(x.db))
     testing.assert_equal(x.b.bb, ds([['a', None], ['c']]).with_db(x.db))
     testing.assert_equal(x.c, ds([[b'xyz', None], [b'xyz']]).with_db(x.db))
@@ -70,7 +70,7 @@ class ObjLikeTest(absltest.TestCase):
         x.a.get_schema(), schema_constants.INT32.with_db(x.db)
     )
     testing.assert_equal(
-        x.b.with_db(None).get_schema(), schema_constants.OBJECT
+        x.b.no_db().get_schema(), schema_constants.OBJECT
     )
     testing.assert_equal(
         x.b.bb.get_schema(), schema_constants.TEXT.with_db(x.db)
@@ -88,9 +88,9 @@ class ObjLikeTest(absltest.TestCase):
 
   def test_all_empty_slice(self):
     x = fns.obj_like(ds([None, None]), a=42)
-    testing.assert_equal(x.with_db(None).get_schema(), schema_constants.OBJECT)
+    testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        kde.has._eval(x).with_db(None), ds([None, None], schema_constants.MASK)
+        kde.has._eval(x).no_db(), ds([None, None], schema_constants.MASK)
     )
     testing.assert_equal(
         x.a, ds([None, None], schema_constants.OBJECT).with_db(x.db)
@@ -104,7 +104,7 @@ class ObjLikeTest(absltest.TestCase):
     testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
     testing.assert_equal(x.get_schema(), y.x.get_schema().with_db(x.db))
     testing.assert_equal(
-        y.x.a.with_db(None).get_schema(), schema_constants.TEXT
+        y.x.a.no_db().get_schema(), schema_constants.TEXT
     )
 
   def test_itemid(self):

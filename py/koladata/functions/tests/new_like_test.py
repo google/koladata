@@ -51,10 +51,10 @@ class NewLikeTest(absltest.TestCase):
     x = fns.new_like(ds(None), a=42)
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(
-        kde.has._eval(x).with_db(None), ds(None, schema_constants.MASK)
+        kde.has._eval(x).no_db(), ds(None, schema_constants.MASK)
     )
     testing.assert_equal(x.a, ds(None, schema_constants.INT32).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.with_db(None), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
 
   def test_slice(self):
     x = fns.new_like(
@@ -88,7 +88,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(
         x.a, ds([None, None], schema_constants.INT32).with_db(x.db)
     )
-    testing.assert_equal(x.get_schema().a.with_db(None), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
 
   def test_adopt_db(self):
     x = fns.new_like(ds(1))
@@ -98,7 +98,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
     testing.assert_equal(x.get_schema(), y.get_schema().x.with_db(x.db))
     testing.assert_equal(
-        y.x.a.with_db(None).get_schema(), schema_constants.TEXT
+        y.x.a.no_db().get_schema(), schema_constants.TEXT
     )
 
   def test_itemid(self):
@@ -128,9 +128,9 @@ class NewLikeTest(absltest.TestCase):
     x = fns.new_like(ds([1, None]), a=42, b='xyz', schema=schema)
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, None]).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.with_db(None), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', None]).with_db(x.db))
-    testing.assert_equal(x.get_schema().b.with_db(None), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
 
   def test_schema_arg_implicit_casting(self):
     schema = fns.new_schema(a=schema_constants.FLOAT32)
@@ -140,7 +140,7 @@ class NewLikeTest(absltest.TestCase):
         x.a, ds([42, 42], schema_constants.FLOAT32).with_db(x.db)
     )
     testing.assert_equal(
-        x.get_schema().a.with_db(None), schema_constants.FLOAT32
+        x.get_schema().a.no_db(), schema_constants.FLOAT32
     )
 
   def test_schema_arg_update_schema(self):
@@ -152,9 +152,9 @@ class NewLikeTest(absltest.TestCase):
     )
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.with_db(None), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_db(x.db))
-    testing.assert_equal(x.get_schema().b.with_db(None), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
 
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):

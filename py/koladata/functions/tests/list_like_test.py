@@ -169,7 +169,7 @@ class ListLikeTest(parameterized.TestCase):
             mask_and_shape, items=items, item_schema=item_schema, schema=schema,
         )
         .get_schema()
-        .get_attr('__items__').with_db(None),
+        .get_attr('__items__').no_db(),
         expected_item_schema,
     )
 

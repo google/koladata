@@ -111,7 +111,7 @@ def create_obj_shaped(state):
 def set_get_attr_entity_with_merging(state):
   ds = kd.new()
   val = kd.new(a=1)  # Non-empty DataBag.
-  ds.get_schema().abc = val.get_schema().with_db(None)
+  ds.get_schema().abc = val.get_schema().no_db()
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
   except ValueError:
@@ -679,7 +679,7 @@ def set_get_multiple_attrs_entity_with_merging(state):
   """Benchmark for setting and getting multiple attributes with merging."""
   ds = kd.new()
   val = kd.new(a=1)  # Non-empty DataBag.
-  ds.get_schema().abc = val.get_schema().with_db(None)
+  ds.get_schema().abc = val.get_schema().no_db()
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
   except ValueError:
@@ -798,7 +798,7 @@ def set_get_multiple_attrs_10000_entity_with_merging(state):
   ds = kd.bag().new_shaped(kd.shapes.create([10000]))
   val = kd.bag().new_shaped(kd.shapes.create([10000]))
   val.set_attr('a', 1, update_schema=True)
-  ds.get_schema().abc = val.get_schema().with_db(None)
+  ds.get_schema().abc = val.get_schema().no_db()
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
   except ValueError:

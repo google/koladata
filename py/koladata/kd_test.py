@@ -103,7 +103,7 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(x.get_schema().b, kd.TEXT.with_db(x.db))
     with self.assertRaises(AssertionError):
       kd.testing.assert_equal(x, y)
-    kd.testing.assert_equal(x.a.with_db(None), y.a.with_db(None))
+    kd.testing.assert_equal(x.a.no_db(), y.a.no_db())
 
   def test_objects(self):
     x = kd.obj(a=1, b='abc')
@@ -112,7 +112,7 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(y.get_schema(), kd.OBJECT.with_db(y.db))
     with self.assertRaises(AssertionError):
       kd.testing.assert_equal(x, y)
-    kd.testing.assert_equal(x.a.with_db(None), y.a.with_db(None))
+    kd.testing.assert_equal(x.a.no_db(), y.a.no_db())
 
   def test_mutable_obj(self):
     x = kd.mutable_obj(x=1, y=2)

@@ -59,7 +59,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     # TODO: test no_follow, uu, uuid
     fb = data_bag.DataBag.empty()
     o.a.with_db(fb).set_attr(
-        '__schema__', o.a.get_attr('__schema__').with_db(None)
+        '__schema__', o.a.get_attr('__schema__').no_db()
     )
     o.a.with_db(fb).set_attr('d', ds([1, 2, 3]))
     fb_noise = data_bag.DataBag.empty()
@@ -74,37 +74,37 @@ class CoreShallowCloneTest(parameterized.TestCase):
     else:
       result = expr_eval.eval(kde.shallow_clone(o_fb))
 
-    testing.assert_equal(result.a.with_db(None), o_fb.a.with_db(None))
-    testing.assert_equal(result.b.with_db(None), o_fb.b.with_db(None))
-    testing.assert_equal(result.c.with_db(None), o_fb.c.with_db(None))
+    testing.assert_equal(result.a.no_db(), o_fb.a.no_db())
+    testing.assert_equal(result.b.no_db(), o_fb.b.no_db())
+    testing.assert_equal(result.c.no_db(), o_fb.c.no_db())
     testing.assert_equal(
-        result.get_schema().a.with_db(None), o_fb.get_schema().a.with_db(None)
+        result.get_schema().a.no_db(), o_fb.get_schema().a.no_db()
     )
     testing.assert_equal(
-        result.get_schema().b.with_db(None), o_fb.get_schema().b.with_db(None)
+        result.get_schema().b.no_db(), o_fb.get_schema().b.no_db()
     )
     testing.assert_equal(
-        result.get_schema().c.with_db(None), o_fb.get_schema().c.with_db(None)
+        result.get_schema().c.no_db(), o_fb.get_schema().c.no_db()
     )
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.with_db(None), o_fb.with_db(None))
+      testing.assert_equal(result.no_db(), o_fb.no_db())
     testing.assert_equal(
-        result.get_schema().with_db(None), o_fb.get_schema().with_db(None)
+        result.get_schema().no_db(), o_fb.get_schema().no_db()
     )
 
     expected_db = data_bag.DataBag.empty()
     result.get_schema().with_db(expected_db).set_attr(
-        'a', o_fb.get_schema().a.with_db(None)
+        'a', o_fb.get_schema().a.no_db()
     )
     result.get_schema().with_db(expected_db).set_attr(
-        'b', o_fb.get_schema().b.with_db(None)
+        'b', o_fb.get_schema().b.no_db()
     )
     result.get_schema().with_db(expected_db).set_attr(
-        'c', o_fb.get_schema().c.with_db(None)
+        'c', o_fb.get_schema().c.no_db()
     )
-    result.with_db(expected_db).set_attr('a', o_fb.a.with_db(None))
-    result.with_db(expected_db).set_attr('b', o_fb.b.with_db(None))
-    result.with_db(expected_db).set_attr('c', o_fb.c.with_db(None))
+    result.with_db(expected_db).set_attr('a', o_fb.a.no_db())
+    result.with_db(expected_db).set_attr('b', o_fb.b.no_db())
+    result.with_db(expected_db).set_attr('c', o_fb.c.no_db())
     self.assertTrue(result.db._exactly_equal(expected_db))
 
   def test_qtype_signatures(self):

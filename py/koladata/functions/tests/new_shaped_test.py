@@ -85,7 +85,7 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
     testing.assert_equal(x.get_schema(), y.get_schema().x.with_db(x.db))
     testing.assert_equal(
-        y.x.a.with_db(None).get_schema(), schema_constants.TEXT
+        y.x.a.no_db().get_schema(), schema_constants.TEXT
     )
 
   def test_itemid(self):
@@ -117,9 +117,9 @@ class NewShapedTest(absltest.TestCase):
     )
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.with_db(None), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_db(x.db))
-    testing.assert_equal(x.get_schema().b.with_db(None), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
 
   def test_schema_arg_deep(self):
     nested_schema = fns.new_schema(p=schema_constants.BYTES)
@@ -139,12 +139,12 @@ class NewShapedTest(absltest.TestCase):
     )
     self.assertEqual(dir(x), ['a', 'b', 'nested'])
     testing.assert_equal(x.a, ds(42).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.with_db(None), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_db(x.db))
-    testing.assert_equal(x.get_schema().b.with_db(None), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
     testing.assert_equal(x.nested.p, ds(b'0123').with_db(x.db))
     testing.assert_equal(
-        x.nested.get_schema().p.with_db(None), schema_constants.BYTES
+        x.nested.get_schema().p.no_db(), schema_constants.BYTES
     )
 
   def test_schema_arg_implicit_casting(self):
@@ -155,7 +155,7 @@ class NewShapedTest(absltest.TestCase):
         x.a, ds([42, 42], schema_constants.FLOAT32).with_db(x.db)
     )
     testing.assert_equal(
-        x.get_schema().a.with_db(None), schema_constants.FLOAT32
+        x.get_schema().a.no_db(), schema_constants.FLOAT32
     )
 
   def test_schema_arg_implicit_casting_failure(self):
@@ -181,9 +181,9 @@ class NewShapedTest(absltest.TestCase):
     )
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.with_db(None), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_db(x.db))
-    testing.assert_equal(x.get_schema().b.with_db(None), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
 
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):
@@ -209,7 +209,7 @@ class NewShapedTest(absltest.TestCase):
         schema=schema_constants.ANY
     )
     self.assertEqual(dir(x), [])
-    testing.assert_equal(x.get_schema().with_db(None), schema_constants.ANY)
+    testing.assert_equal(x.get_schema().no_db(), schema_constants.ANY)
     testing.assert_equal(x.a, ds([1, 1]).as_any().with_db(x.db))
     testing.assert_equal(x.b, ds(['a', 'a']).as_any().with_db(x.db))
 
@@ -222,13 +222,13 @@ class NewShapedTest(absltest.TestCase):
     )
     self.assertEqual(dir(x), ['a'])
     testing.assert_equal(
-        x.get_schema().a.with_db(None), schema_constants.OBJECT
+        x.get_schema().a.no_db(), schema_constants.OBJECT
     )
     testing.assert_equal(
-        x.a.get_attr('__schema__').p.with_db(None), schema_constants.INT32
+        x.a.get_attr('__schema__').p.no_db(), schema_constants.INT32
     )
     testing.assert_equal(
-        x.a.get_attr('__schema__').q.with_db(None), schema_constants.TEXT
+        x.a.get_attr('__schema__').q.no_db(), schema_constants.TEXT
     )
 
   def test_schema_arg_errors(self):

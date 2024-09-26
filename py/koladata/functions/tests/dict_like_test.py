@@ -197,11 +197,11 @@ class DictLikeTest(parameterized.TestCase):
         schema=schema,
     ).get_schema()
     testing.assert_equal(
-        result_schema.get_attr('__keys__').with_db(None),
+        result_schema.get_attr('__keys__').no_db(),
         expected_key_schema,
     )
     testing.assert_equal(
-        result_schema.get_attr('__values__').with_db(None),
+        result_schema.get_attr('__values__').no_db(),
         expected_value_schema,
     )
 

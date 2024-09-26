@@ -132,7 +132,7 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
     x = data_bag.DataBag.empty().new(a=ds([1, 1])) & mask
     x.get_schema().a = schema_constants.OBJECT
     y = data_bag.DataBag.empty().new(x=ds([1, 1])).with_schema(
-        x.get_schema().with_db(None)
+        x.get_schema().no_db()
     ) & (~mask)
     y.set_attr(
         'a', ds(['abc', 'xyz'], schema_constants.OBJECT), update_schema=True

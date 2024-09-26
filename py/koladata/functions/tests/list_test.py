@@ -135,7 +135,7 @@ class ListTest(parameterized.TestCase):
           None,
           fns.list(item_schema=schema_constants.INT32)
           .get_schema()
-          .with_db(None),
+          .no_db(),
       ),
       # Both schema and list items provided.
       ([1, 2, 3], schema_constants.INT64, None, schema_constants.INT64),
@@ -158,7 +158,7 @@ class ListTest(parameterized.TestCase):
     testing.assert_equal(
         fns.list(items=items, item_schema=item_schema, schema=schema)
         .get_schema()
-        .get_attr('__items__').with_db(None),
+        .get_attr('__items__').no_db(),
         expected_item_schema,
     )
 

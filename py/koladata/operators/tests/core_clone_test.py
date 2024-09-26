@@ -56,15 +56,13 @@ class CoreCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.clone(o))
 
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.with_db(None), o.with_db(None))
-    testing.assert_equal(result.b.with_db(None), o.b.with_db(None))
-    testing.assert_equal(result.c.with_db(None), o.c.with_db(None))
-    testing.assert_equal(result.b.a.with_db(None), o.b.a.with_db(None))
+      testing.assert_equal(result.no_db(), o.no_db())
+    testing.assert_equal(result.b.no_db(), o.b.no_db())
+    testing.assert_equal(result.c.no_db(), o.c.no_db())
+    testing.assert_equal(result.b.a.no_db(), o.b.a.no_db())
+    testing.assert_equal(result.get_schema().no_db(), schema_constants.OBJECT)
     testing.assert_equal(
-        result.get_schema().with_db(None), schema_constants.OBJECT
-    )
-    testing.assert_equal(
-        result.b.get_schema().with_db(None), o.b.get_schema().with_db(None)
+        result.b.get_schema().no_db(), o.b.get_schema().no_db()
     )
 
   @parameterized.product(
@@ -81,14 +79,14 @@ class CoreCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.clone(o))
 
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.with_db(None), o.with_db(None))
-    testing.assert_equal(result[:].b.with_db(None), o[:].b.with_db(None))
-    testing.assert_equal(result[:].c.with_db(None), o[:].c.with_db(None))
-    testing.assert_equal(result[:].b.a.with_db(None), o[:].b.a.with_db(None))
+      testing.assert_equal(result.no_db(), o.no_db())
+    testing.assert_equal(result[:].b.no_db(), o[:].b.no_db())
+    testing.assert_equal(result[:].c.no_db(), o[:].c.no_db())
+    testing.assert_equal(result[:].b.a.no_db(), o[:].b.a.no_db())
     self.assertTrue(result.get_schema().is_list_schema())
     testing.assert_equal(
-        result[:].b.get_schema().with_db(None),
-        o[:].b.get_schema().with_db(None),
+        result[:].b.get_schema().no_db(),
+        o[:].b.get_schema().no_db(),
     )
 
   @parameterized.product(
@@ -106,25 +104,13 @@ class CoreCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.clone(o))
 
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.with_db(None), o.with_db(None))
+      testing.assert_equal(result.no_db(), o.no_db())
     result_values = result[keys]
     self.assertSetEqual(set(result.get_keys().to_py()), set(keys.to_py()))
-    testing.assert_equal(
-        result_values.with_db(None),
-        values.with_db(None),
-    )
-    testing.assert_equal(
-        result_values.c.with_db(None),
-        values.c.with_db(None),
-    )
-    testing.assert_equal(
-        result_values.b.with_db(None),
-        values.b.with_db(None),
-    )
-    testing.assert_equal(
-        result_values.b.a.with_db(None),
-        values.b.a.with_db(None),
-    )
+    testing.assert_equal(result_values.no_db(), values.no_db())
+    testing.assert_equal(result_values.c.no_db(), values.c.no_db())
+    testing.assert_equal(result_values.b.no_db(), values.b.no_db())
+    testing.assert_equal(result_values.b.a.no_db(), values.b.a.no_db())
     self.assertTrue(result.get_schema().is_dict_schema())
 
   @parameterized.product(
@@ -140,15 +126,13 @@ class CoreCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.clone(o))
 
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.with_db(None), o.with_db(None))
-    testing.assert_equal(result.b.with_db(None), o.b.with_db(None))
-    testing.assert_equal(result.c.with_db(None), o.c.with_db(None))
-    testing.assert_equal(result.b.a.with_db(None), o.b.a.with_db(None))
+      testing.assert_equal(result.no_db(), o.no_db())
+    testing.assert_equal(result.b.no_db(), o.b.no_db())
+    testing.assert_equal(result.c.no_db(), o.c.no_db())
+    testing.assert_equal(result.b.a.no_db(), o.b.a.no_db())
+    testing.assert_equal(result.get_schema().no_db(), o.get_schema().no_db())
     testing.assert_equal(
-        result.get_schema().with_db(None), o.get_schema().with_db(None)
-    )
-    testing.assert_equal(
-        result.b.get_schema().with_db(None), o.b.get_schema().with_db(None)
+        result.b.get_schema().no_db(), o.b.get_schema().no_db()
     )
 
   @parameterized.product(
@@ -158,7 +142,7 @@ class CoreCloneTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     fb = data_bag.DataBag.empty()
     a_slice = db.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
-    _ = fb.new(a=a_slice.with_db(None), c=ds([1, None, 2]))
+    _ = fb.new(a=a_slice.no_db(), c=ds([1, None, 2]))
     o = db.new(a=a_slice)
     merged_db = o.with_fallback(fb).db.merge_fallbacks()
     o = o.with_db(merged_db)
@@ -172,7 +156,7 @@ class CoreCloneTest(parameterized.TestCase):
 
     expected_db = data_bag.DataBag.empty()
     result.get_schema().with_db(expected_db).set_attr(
-        'a', o.get_schema().a.with_db(None)
+        'a', o.get_schema().a.no_db()
     )
     result.get_schema().with_db(expected_db).a.set_attr(
         'b', schema_constants.INT32
@@ -180,9 +164,9 @@ class CoreCloneTest(parameterized.TestCase):
     result.get_schema().with_db(expected_db).a.set_attr(
         'c', schema_constants.TEXT
     )
-    result.with_db(expected_db).set_attr('a', o.a.with_db(None))
-    result.a.with_db(expected_db).set_attr('b', o.a.b.with_db(None))
-    result.a.with_db(expected_db).set_attr('c', o.a.c.with_db(None))
+    result.with_db(expected_db).set_attr('a', o.a.no_db())
+    result.a.with_db(expected_db).set_attr('b', o.a.b.no_db())
+    result.a.with_db(expected_db).set_attr('c', o.a.c.no_db())
     self.assertTrue(result.db._exactly_equal(expected_db))
 
   def test_qtype_signatures(self):
