@@ -1,0 +1,69 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+syntax = "proto2";
+
+package koladata.testing;
+
+enum ExampleEnum {
+  EXAMPLE_ENUM_UNKNOWN = 0;
+  EXAMPLE_ENUM_FOO = 1;
+  EXAMPLE_ENUM_BAR = 2;
+}
+
+message ExampleMessage {
+  optional int32 int32_field = 1;
+  optional int64 int64_field = 2;
+  optional uint32 uint32_field = 3;
+  optional uint64 uint64_field = 4;
+  optional double double_field = 5;
+  optional float float_field = 6;
+  optional bool bool_field = 7;
+  optional ExampleEnum enum_field = 8;
+  optional string string_field = 9;
+  optional bytes bytes_field = 10;
+  optional ExampleMessage message_field = 11;
+
+  repeated int32 repeated_int32_field = 12 [packed = true];
+  repeated int64 repeated_int64_field = 13 [packed = true];
+  repeated uint32 repeated_uint32_field = 14 [packed = true];
+  repeated uint64 repeated_uint64_field = 15 [packed = true];
+  repeated double repeated_double_field = 16 [packed = true];
+  repeated float repeated_float_field = 17 [packed = true];
+  repeated bool repeated_bool_field = 18 [packed = true];
+  repeated ExampleEnum repeated_enum_field = 19 [packed = true];
+  repeated string repeated_string_field = 20;
+  repeated bytes repeated_bytes_field = 21;
+  repeated ExampleMessage repeated_message_field = 22;
+
+  map<int32, int32> map_int32_int32_field = 23;
+  map<string, string> map_string_string_field = 24;
+  map<int32, ExampleMessage> map_int32_message_field = 25;
+
+  extensions 1000 to 2000;
+}
+
+extend ExampleMessage {
+  optional bool bool_extension_field = 1000;
+  optional ExampleMessage2 message_extension_field = 1001;
+}
+
+message ExampleMessage2 {
+  extensions 2000 to 3000;
+}
+
+extend ExampleMessage2 {
+  optional bool m2_bool_extension_field = 2000;
+  optional ExampleMessage2 m2_message2_extension_field = 2001;
+}

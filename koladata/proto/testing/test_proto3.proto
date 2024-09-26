@@ -1,0 +1,53 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+syntax = "proto3";
+
+package koladata.testing;
+
+enum ExampleEnum3 {
+  EXAMPLE_ENUM_3_UNKNOWN = 0;
+  EXAMPLE_ENUM_3_FOO = 1;
+  EXAMPLE_ENUM_3_BAR = 2;
+}
+
+message ExampleMessage3 {
+  int32 int32_field = 1;
+  int64 int64_field = 2;
+  uint32 uint32_field = 3;
+  uint64 uint64_field = 4;
+  double double_field = 5;
+  float float_field = 6;
+  bool bool_field = 7;
+  ExampleEnum3 enum_field = 8;
+  string string_field = 9;
+  bytes bytes_field = 10;
+  ExampleMessage3 message_field = 11;
+
+  repeated int32 repeated_int32_field = 12;
+  repeated int64 repeated_int64_field = 13;
+  repeated uint32 repeated_uint32_field = 14;
+  repeated uint64 repeated_uint64_field = 15;
+  repeated double repeated_double_field = 16;
+  repeated float repeated_float_field = 17;
+  repeated bool repeated_bool_field = 18;
+  repeated ExampleEnum3 repeated_enum_field = 19;
+  repeated string repeated_string_field = 20;
+  repeated bytes repeated_bytes_field = 21;
+  repeated ExampleMessage3 repeated_message_field = 22;
+
+  map<int32, int32> map_int32_int32_field = 23;
+  map<string, string> map_string_string_field = 24;
+  map<int32, ExampleMessage3> map_int32_message_field = 25;
+}
