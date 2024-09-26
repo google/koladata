@@ -79,17 +79,17 @@ using ::arolla::Bytes;
 using ::arolla::OptionalUnit;
 using ::arolla::Text;
 using ::arolla::Unit;
+using ::koladata::internal::DataItem;
 
 // Creates a DataSlice and optionally casts data according to `schema`
 // argument.
 absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
                                            DataSlice::JaggedShape shape,
-                                           const internal::DataItem& schema,
+                                           const DataItem& schema,
                                            DataBagPtr db = nullptr) {
-  ASSIGN_OR_RETURN(
-      auto res_any,
-      DataSlice::Create(std::move(impl), std::move(shape),
-                        internal::DataItem(schema::kAny), std::move(db)));
+  ASSIGN_OR_RETURN(auto res_any,
+                   DataSlice::Create(std::move(impl), std::move(shape),
+                                     DataItem(schema::kAny), std::move(db)));
   return CastToExplicit(res_any, schema, /*validate_schema=*/false);
 }
 
@@ -111,8 +111,8 @@ class EmbeddingDataBag {
 
 /****************** Building blocks for "From Python" ******************/
 
-// Creates a DataItem from PyObject. In case PyObject cannot be converted to
-// DataItem, appropriate error is returned.
+// Calls `callback` with a value from PyObject. In case PyObject cannot be
+// parsed, appropriate error is returned.
 //
 // `explicit_schema` is used to determine how to interpret `py_obj` in case of
 // e.g. a float.
@@ -122,19 +122,21 @@ class EmbeddingDataBag {
 //
 // `embedding_db` is updated by calling `embedding_db.EmbedSchema` with the
 // schema of the parsed `py_obj` iff the `py_obj` is an entity.
-template <bool explicit_cast>
-absl::StatusOr<internal::DataItem> DataItemFromPyObject(
-    PyObject* py_obj, const internal::DataItem& explicit_schema,
-    AdoptionQueue& adoption_queue, schema::CommonSchemaAggregator& schema_agg,
-    EmbeddingDataBag& embedding_db) {
+template <bool explicit_cast, class Callback>
+absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
+                           AdoptionQueue& adoption_queue,
+                           schema::CommonSchemaAggregator& schema_agg,
+                           EmbeddingDataBag& embedding_db, Callback callback) {
   if (py_obj == Py_None) {
     schema_agg.Add(schema::kNone);
-    return internal::DataItem(internal::MissingValue());
+    callback(internal::MissingValue());
+    return absl::OkStatus();
   }
   // Checking the bool first, because PyLong_Check is also successful.
   if (PyBool_Check(py_obj)) {
     schema_agg.Add(schema::kBool);
-    return internal::DataItem(py_obj == Py_True);
+    callback(py_obj == Py_True);
+    return absl::OkStatus();
   }
   if (PyLong_Check(py_obj)) {
     int overflow = 0;
@@ -150,25 +152,27 @@ absl::StatusOr<internal::DataItem> DataItemFromPyObject(
     }
     if (overflow || val > INT_MAX || val < INT_MIN) {
       schema_agg.Add(schema::kInt64);
-      return internal::DataItem(static_cast<int64_t>(val));
+      callback(static_cast<int64_t>(val));
     } else {
       schema_agg.Add(schema::kInt32);
-      return internal::DataItem(static_cast<int>(val));
+      callback(static_cast<int>(val));
     }
+    return absl::OkStatus();
   }
   if (PyFloat_Check(py_obj)) {
     if constexpr (explicit_cast) {
       if (explicit_schema == schema::kFloat64) {
         schema_agg.Add(schema::kFloat64);
-        return internal::DataItem(
-            static_cast<double>(PyFloat_AsDouble(py_obj)));
+        callback(static_cast<double>(PyFloat_AsDouble(py_obj)));
+        return absl::OkStatus();
       }
     }
     // NOTE: Parsing as float32 may lead to precision loss in case the final
     // schema is FLOAT64. However, if the final schema is e.g. OBJECT, we should
     // avoid FLOAT64. This is a compromise to avoid a double pass over the data.
     schema_agg.Add(schema::kFloat32);
-    return internal::DataItem(static_cast<float>(PyFloat_AsDouble(py_obj)));
+    callback(static_cast<float>(PyFloat_AsDouble(py_obj)));
+    return absl::OkStatus();
   }
   if (PyUnicode_Check(py_obj)) {
     Py_ssize_t size;
@@ -178,7 +182,8 @@ absl::StatusOr<internal::DataItem> DataItemFromPyObject(
           absl::StatusCode::kInvalidArgument, "invalid unicode object");
     }
     schema_agg.Add(schema::kText);
-    return internal::DataItem(Text(absl::string_view(data, size)));
+    callback(DataItem::View<Text>(absl::string_view(data, size)));
+    return absl::OkStatus();
   }
   if (PyBytes_Check(py_obj)) {
     Py_ssize_t size = PyBytes_Size(py_obj);
@@ -188,42 +193,45 @@ absl::StatusOr<internal::DataItem> DataItemFromPyObject(
           absl::StatusCode::kInvalidArgument, "invalid bytes object");
     }
     schema_agg.Add(schema::kBytes);
-    return internal::DataItem(Bytes(absl::string_view(data, size)));
+    callback(DataItem::View<Bytes>(absl::string_view(data, size)));
+    return absl::OkStatus();
   }
   if (arolla::python::IsPyQValueInstance(py_obj)) {
     const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
     // Handling Primitive types. NOTE: This is the only way to handle MASK
     // instances as MASK is not available in pure Python.
-    std::optional<internal::DataItem> res;
+    std::optional<DataItem> res;
     arolla::QTypePtr qtype = typed_value.GetType();
     arolla::meta::foreach_type(
         internal::supported_primitives_list(), [&](auto tpe) {
           using PrimitiveT = typename decltype(tpe)::type;
           if (qtype == arolla::GetQType<PrimitiveT>()) {
-            res = internal::DataItem(typed_value.UnsafeAs<PrimitiveT>());
+            res = DataItem(typed_value.UnsafeAs<PrimitiveT>());
           } else if (qtype ==
                      arolla::GetQType<arolla::OptionalValue<PrimitiveT>>()) {
             qtype = arolla::GetQType<PrimitiveT>();
             if (const auto& opt_value =
                     typed_value.UnsafeAs<arolla::OptionalValue<PrimitiveT>>();
                 opt_value.present) {
-              res = internal::DataItem(opt_value.value);
+              res = DataItem(opt_value.value);
             } else {
-              res = internal::DataItem();
+              res = DataItem();
             }
           }
         });
     if (res) {
       ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(qtype));
       schema_agg.Add(dtype);
-      return *std::move(res);
+      callback(*std::move(res));
+      return absl::OkStatus();
     }
     if (typed_value.GetType() == arolla::GetQTypeQType()) {
       auto qtype_val = typed_value.UnsafeAs<arolla::QTypePtr>();
       ASSIGN_OR_RETURN(schema::DType dtype,
                        schema::DType::FromQType(qtype_val));
       schema_agg.Add(schema::kSchema);
-      return internal::DataItem(dtype);
+      callback(dtype);
+      return absl::OkStatus();
     }
     // Handling DataItem(s).
     if (typed_value.GetType() == arolla::GetQType<DataSlice>()) {
@@ -240,7 +248,8 @@ absl::StatusOr<internal::DataItem> DataItemFromPyObject(
           explicit_schema == schema::kObject) {
         RETURN_IF_ERROR(embedding_db.EmbedSchema(ds));
       }
-      return ds.item();
+      callback(ds.item());
+      return absl::OkStatus();
     }
   }
   return absl::InvalidArgumentError(
@@ -253,17 +262,16 @@ absl::StatusOr<internal::DataItem> DataItemFromPyObject(
 // output.
 absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     const std::vector<PyObject*>& flat_list,
-    DataSlice::JaggedShape::EdgeVec edges, internal::DataItem schema,
+    DataSlice::JaggedShape::EdgeVec edges, DataItem schema,
     AdoptionQueue& adoption_queue) {
   auto impl = [&]<bool explicit_cast>() -> absl::StatusOr<DataSlice> {
     internal::DataSliceImpl::Builder bldr(flat_list.size());
     schema::CommonSchemaAggregator schema_agg;
     EmbeddingDataBag embedding_db;
     for (int i = 0; i < flat_list.size(); ++i) {
-      ASSIGN_OR_RETURN(auto item, DataItemFromPyObject<explicit_cast>(
-                                      flat_list[i], schema, adoption_queue,
-                                      schema_agg, embedding_db));
-      bldr.Insert(i, std::move(item));
+      RETURN_IF_ERROR(ParsePyObject<explicit_cast>(
+          flat_list[i], schema, adoption_queue, schema_agg, embedding_db,
+          [&]<class T>(T&& value) { bldr.Insert(i, std::forward<T>(value)); }));
     }
     if constexpr (!explicit_cast) {
       ASSIGN_OR_RETURN(
@@ -296,7 +304,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
 // appropriate JaggedShape and type of items. The `py_list` can also have rank
 // 0, in which case we treat it as a scalar Python value.
 absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
-                                              internal::DataItem schema,
+                                              DataItem schema,
                                               AdoptionQueue& adoption_queue) {
   arolla::python::DCheckPyGIL();
   DataSlice::JaggedShape::EdgeVec edges;
@@ -384,17 +392,15 @@ PyObject* PyObjectFromValue(const arolla::expr::ExprQuote& value) {
 // NOTE: Although DType is also a QValue, we don't want to expose it to user, as
 // it is an internal type.
 PyObject* PyObjectFromValue(schema::DType value) {
-  auto ds_or = DataSlice::Create(internal::DataItem(value),
-                                 internal::DataItem(schema::kSchema));
+  auto ds_or = DataSlice::Create(DataItem(value), DataItem(schema::kSchema));
   // NOTE: `schema` is already consistent with `value` as otherwise DataSlice
   // would not even be created.
   DCHECK_OK(ds_or);
   return WrapPyDataSlice(*std::move(ds_or));
 }
-PyObject* PyObjectFromValue(internal::ObjectId value,
-                            const internal::DataItem& schema,
+PyObject* PyObjectFromValue(internal::ObjectId value, const DataItem& schema,
                             const std::shared_ptr<DataBag>& db) {
-  auto ds_or = DataSlice::Create(internal::DataItem(value), schema, db);
+  auto ds_or = DataSlice::Create(DataItem(value), schema, db);
   // NOTE: `schema` is already consistent with `value` as otherwise DataSlice
   // would not even be created.
   DCHECK_OK(ds_or);
@@ -404,7 +410,7 @@ PyObject* PyObjectFromValue(internal::ObjectId value,
 // Returns a new reference to a Python object, equivalent to the value stored in
 // a `DataItem`.
 absl::Nullable<PyObject*> PyObjectFromDataItem(
-    const internal::DataItem& item, const internal::DataItem& schema,
+    const DataItem& item, const DataItem& schema,
     const std::shared_ptr<DataBag>& db) {
   PyObject* res = nullptr;
   item.VisitValue([&](const auto& value) {
@@ -468,8 +474,8 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(PyObject* py_obj,
       return DataSliceFromPrimitivesArray(typed_value.AsRef());
     }
   }
-  return DataSliceFromPyList(
-      py_obj, dtype ? dtype->item() : internal::DataItem(), adoption_queue);
+  return DataSliceFromPyList(py_obj, dtype ? dtype->item() : DataItem(),
+                             adoption_queue);
 }
 
 absl::Nullable<PyObject*> DataSliceToPyValue(const DataSlice& ds) {
@@ -721,10 +727,9 @@ class UniversalConverter {
         std::move(attr_names_bldr).Build(attr_names_size);
     ASSIGN_OR_RETURN(
         auto attr_names_ds,
-        DataSlice::Create(
-            internal::DataSliceImpl::Create(attr_names),
-            DataSlice::JaggedShape::FlatFromSize(attr_names_size),
-            internal::DataItem(schema::kText)));
+        DataSlice::Create(internal::DataSliceImpl::Create(attr_names),
+                          DataSlice::JaggedShape::FlatFromSize(attr_names_size),
+                          DataItem(schema::kText)));
     cmd_stack_.push([this, attr_names_ds = std::move(attr_names_ds)] {
       this->value_stack_.push(attr_names_ds);
       return absl::OkStatus();
@@ -926,9 +931,8 @@ class UniversalConverter {
 
   static CacheKey MakeCacheKey(
       PyObject* py_obj, const std::optional<DataSlice>& schema) {
-    return CacheKey(
-        py_obj,
-        (schema ? schema->item() : internal::DataItem()).StableFingerprint());
+    return CacheKey(py_obj,
+                    (schema ? schema->item() : DataItem()).StableFingerprint());
   }
 
   absl::flat_hash_map<CacheKey, std::optional<DataSlice>> computed_;
