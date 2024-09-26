@@ -37,6 +37,14 @@ class NewSchemaOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// kde.schema.uu_schema operator.
+// Creates a UuSchema.
+class UuSchemaOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 // kde.core.get_primitive_schema.
 inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
   const auto& schema = ds.GetSchemaImpl();
