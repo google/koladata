@@ -57,7 +57,9 @@ py_test(
     deps = [
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -70,7 +72,9 @@ py_test(
     srcs = ["is_item_test.py"],
     deps = [
         "//py/koladata/functions",
+        "//py/koladata/testing",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",

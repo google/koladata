@@ -18,7 +18,9 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.functions import functions as fns
+from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 ds = data_slice.DataSlice.from_vals
@@ -36,9 +38,11 @@ class IsItemTest(parameterized.TestCase):
       (fns.dict(),),
       (ds(schema_constants.ITEMID),),
       (ds(arolla.quote(arolla.M.math.add(arolla.L.L1, arolla.L.L2))),),
+      (mask_constants.present,),
+      (mask_constants.missing,),
   )
   def test_is_item(self, param):
-    self.assertTrue(fns.is_item(param))
+    testing.assert_equal(fns.is_item(param), mask_constants.present)
 
   @parameterized.parameters(
       (1,),
@@ -51,7 +55,7 @@ class IsItemTest(parameterized.TestCase):
       (ds([fns.obj(), fns.obj()]),),
   )
   def test_is_not_item(self, param):
-    self.assertFalse(fns.is_item(param))
+    testing.assert_equal(fns.is_item(param), mask_constants.missing)
 
 
 if __name__ == '__main__':

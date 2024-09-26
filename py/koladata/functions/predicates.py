@@ -20,15 +20,18 @@ from arolla import arolla
 from koladata.operators import kde_operators as _  # pylint: disable=unused-import
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
+from koladata.types import mask_constants
 
 
-def is_item(obj: Any) -> bool:
-  """Returns True if the given object is a scalar DataItem."""
-  if not isinstance(obj, data_slice.DataSlice):
-    return False
-  return obj.get_ndim() == 0
+def is_item(obj: Any) -> data_slice.DataSlice:
+  """Returns kd.present if the given object is a scalar DataItem and kd.missing otherwise."""
+  if not isinstance(obj, data_slice.DataSlice) or obj.get_ndim() != 0:
+    return mask_constants.missing
+  return mask_constants.present
 
 
-def is_expr(obj: Any) -> bool:
-  """Returns True if the given object is an Expr."""
-  return isinstance(obj, arolla.abc.Expr)
+def is_expr(obj: Any) -> data_slice.DataSlice:
+  """Returns kd.present if the given object is an Expr and kd.missing otherwise."""
+  if isinstance(obj, arolla.abc.Expr):
+    return mask_constants.present
+  return mask_constants.missing
