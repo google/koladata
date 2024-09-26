@@ -83,6 +83,21 @@ py_test(
 )
 
 py_test(
+    name = "is_slice_test",
+    srcs = ["is_slice_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "list_like_test",
     srcs = ["list_like_test.py"],
     deps = [

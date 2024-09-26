@@ -35,3 +35,10 @@ def is_expr(obj: Any) -> data_slice.DataSlice:
   if isinstance(obj, arolla.abc.Expr):
     return mask_constants.present
   return mask_constants.missing
+
+
+def is_slice(obj: Any) -> data_slice.DataSlice:
+  """Returns kd.present if the given object is a DataSlice and kd.missing otherwise."""
+  if isinstance(obj, data_slice.DataSlice):
+    return mask_constants.present
+  return mask_constants.missing

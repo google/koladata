@@ -67,6 +67,7 @@ update_schema = _attrs.update_schema_fn
 
 is_expr = _predicates.is_expr
 is_item = _predicates.is_item
+is_slice = _predicates.is_slice
 
 from_py = _py_conversions.from_py
 from_pytree = _py_conversions.from_py
