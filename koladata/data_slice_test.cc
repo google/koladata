@@ -1270,6 +1270,24 @@ TEST(DataSliceTest, EmbedSchema_Primitive) {
   EXPECT_THAT(embedded_slice.slice(), ElementsAre(1, 2));
 }
 
+TEST(DataSliceTest, EmbedSchema_None) {
+  {
+    auto item = test::DataItem(std::nullopt, schema::kNone);
+    ASSERT_OK_AND_ASSIGN(auto embedded, item.EmbedSchema());
+    EXPECT_EQ(embedded.GetSchemaImpl(), schema::kObject);
+    EXPECT_FALSE(embedded.item().has_value());
+  }
+  {
+    auto ds = test::EmptyDataSlice(DataSlice::JaggedShape::FlatFromSize(3),
+                                   schema::kNone);
+    ASSERT_OK_AND_ASSIGN(auto embedded, ds.EmbedSchema());
+    EXPECT_EQ(embedded.GetSchemaImpl(), schema::kObject);
+    EXPECT_THAT(embedded,
+                IsEquivalentTo(test::EmptyDataSlice(
+                    DataSlice::JaggedShape::FlatFromSize(3), schema::kObject)));
+  }
+}
+
 TEST(DataSliceTest, EmbedSchema_Object) {
   auto db = DataBag::Empty();
   auto explicit_schema = internal::AllocateExplicitSchema();

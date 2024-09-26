@@ -1984,6 +1984,18 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
         ds([1, 2, 3]).embed_schema(), ds([1, 2, 3], schema_constants.OBJECT)
     )
 
+  def test_embed_schema_none(self):
+    testing.assert_equal(
+        ds(None).embed_schema(), ds(None, schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        ds([None]).embed_schema(), ds([None], schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        ds([[None, None], [None], []]).embed_schema(),
+        ds([[None, None], [None], []], schema_constants.OBJECT),
+    )
+
   def test_get_obj_schema(self):
     x = ds([1, None, 1.1], schema_constants.OBJECT)
     expected = ds([schema_constants.INT32, None, schema_constants.FLOAT32])

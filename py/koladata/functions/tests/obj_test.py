@@ -383,6 +383,15 @@ class ObjTest(absltest.TestCase):
     ):
       fns.obj([1, 2, 3], a=42)
 
+  def test_item_none(self):
+    testing.assert_equal(
+        fns.obj(ds(None)).no_db(), ds(None, schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        fns.obj(ds([[None, None], [None], []])).no_db(),
+        ds([[None, None], [None], []], schema_constants.OBJECT),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
