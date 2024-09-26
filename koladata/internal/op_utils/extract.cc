@@ -46,6 +46,10 @@ namespace {
 // Attribute name for storing information about previous visits of ObjectId.
 const std::string_view kVisitedAttrName = "u";
 
+// Attribute name for storing information about previous visits of schema
+// ObjectId.
+const std::string_view kSchemaVisitedAttrName = "s";
+
 // Attribute name for storing mapping from the ObjectId in result to the
 // original ObjectId.
 const std::string_view kMappingAttrName = "m";
@@ -87,8 +91,8 @@ class CopyingProcessor {
 
   absl::Status MarkSchemaAsVisited(const DataItem& schema_item,
                                    SchemaSource schema_source) {
-    ASSIGN_OR_RETURN(auto visited,
-                     objects_tracker_->GetAttr(schema_item, kVisitedAttrName));
+    ASSIGN_OR_RETURN(auto visited, objects_tracker_->GetAttr(
+                                       schema_item, kSchemaVisitedAttrName));
     // schema_source indicates in which (schema or data) DataBag we are visiting
     // the current `schema_item`.
     int visited_mask = static_cast<int>(schema_source);
@@ -98,8 +102,8 @@ class CopyingProcessor {
       }
       visited_mask |= visited.value<int>();
     }
-    RETURN_IF_ERROR(objects_tracker_->SetAttr(schema_item, kVisitedAttrName,
-                                              DataItem(visited_mask)));
+    RETURN_IF_ERROR(objects_tracker_->SetAttr(
+        schema_item, kSchemaVisitedAttrName, DataItem(visited_mask)));
     return absl::OkStatus();
   }
 
@@ -122,7 +126,7 @@ class CopyingProcessor {
     if (update_slice.present_count() == 0) {
       ASSIGN_OR_RETURN(
           auto schema_is_copied,
-          objects_tracker_->GetAttr(slice.schema, kVisitedAttrName));
+          objects_tracker_->GetAttr(slice.schema, kSchemaVisitedAttrName));
       if (schema_is_copied.has_value() &&
           (schema_is_copied.value<int>() &
            static_cast<int>(slice.schema_source))) {
@@ -448,8 +452,14 @@ class CopyingProcessor {
           QueuedSlice{.slice = DataSliceImpl::Create(1, item),
                       .schema = schema,
                       .schema_source = SchemaSource::kDataDatabag};
-      // TODO: group items with the same schema into slices.
-      RETURN_IF_ERROR(ProcessEntitySlice(item_slice));
+      if (schema.holds_value<ObjectId>()) {
+        // TODO: group items with the same schema into slices.
+        RETURN_IF_ERROR(ProcessEntitySlice(item_slice));
+      } else if (schema == schema::kSchema) {
+        RETURN_IF_ERROR(ProcessSchemaSlice(item_slice));
+      } else {
+        return absl::InternalError("unsupported schema type");
+      }
     }
     return absl::OkStatus();
   }

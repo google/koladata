@@ -71,6 +71,16 @@ class SchemaItemTest(absltest.TestCase):
         schema_constants.ANY.get_shape(), jagged_shape.create_shape()
     )
 
+  def test_new_schema_self_ref(self):
+    s = fns.new_schema(value=schema_constants.INT32)
+    s.child = s
+    s.parent = s
+    child = s(value=42)
+    entity = s(value=42, child=child)
+    child.parent = entity
+    testing.assert_equal(child.parent.no_db(), entity.no_db())
+    testing.assert_equal(entity.child.no_db(), child.no_db())
+
   def test_get_nofollowed_schema(self):
     db = bag()
     orig_schema = db.new().get_schema()

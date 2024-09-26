@@ -1473,6 +1473,37 @@ TEST_P(ExtractTest, NoFollowObjectSchema) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(ExtractTest, SchemaAsData) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto schema = AllocateSchema();
+  auto obj_dtype = DataItem(schema::kObject);
+
+  TriplesT schema_triples = {{schema, {{"x", schema}}}};
+  TriplesT data_triples = {
+      {a0, {{schema::kSchemaAttr, schema}, {"x", a1}}},
+      {a1, {{schema::kSchemaAttr, schema}, {"x", a0}}},
+      {schema, {{schema::kSchemaAttr, DataItem(schema::kSchema)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, schema_triples);
+  SetDataTriples(*expected_db, data_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(
+      DataSliceImpl::Create(CreateDenseArray<DataItem>({a0, a1, schema})),
+      obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}));
+
+  EXPECT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 TEST_P(ExtractTest, SchemaSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto s1 = AllocateSchema();
