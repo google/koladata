@@ -1531,6 +1531,27 @@ def explode(x, ndim=data_slice.DataSlice.from_vals(1)):
   return _explode(x, arolla_bridge.to_arolla_int64(ndim))
 
 
+@optools.add_to_registry(aliases=['kde.select_items'])
+@optools.as_lambda_operator(
+    'kde.core.select_items',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
+)
+def select_items(ds, fltr):
+  """Selects List items by filtering out missing items in fltr.
+
+  Also see kd.select.
+
+  Args:
+    ds: List DataSlice to be filtered
+    fltr: filter can be a DataSlice with dtype as kd.MASK. It can also be a Koda
+      Functor or a Python function which can be evalauted to such DataSlice.
+
+  Returns:
+    Filtered DataSlice.
+  """
+  return select(ds=explode(ds), fltr=fltr)
+
+
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._extract',
