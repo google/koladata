@@ -105,6 +105,7 @@ cc_library(
         "//koladata/internal:schema_utils",
         "//koladata/internal/op_utils:at",
         "//koladata/internal/op_utils:collapse",
+        "//koladata/internal/op_utils:deep_clone",
         "//koladata/internal/op_utils:equal",
         "//koladata/internal/op_utils:extract",
         "//koladata/internal/op_utils:has",

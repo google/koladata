@@ -1685,6 +1685,55 @@ def clone(ds, schema=arolla.unspecified()):
   return _clone(ds, schema)
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.core._deep_clone',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.schema),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _deep_clone(ds, schema):  # pylint: disable=unused-argument
+  """Creates a slice with a (deep) copy of the given slice."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.deep_clone'])
+@optools.as_lambda_operator(
+    'kde.core.deep_clone',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+    ],
+)
+def deep_clone(obj, schema=arolla.unspecified()):
+  """Creates a slice with a (deep) copy of the given slice.
+
+  The objects themselves and all their attributes including both top-level and
+  non-top-level attributes are cloned (with new ItemIds).
+
+  Also see kd.clone.
+
+  Note that unlike kd.clone, if there are multiple references to one object
+  in the given slice, or multiple ways to reach one object through the
+  attributes, there will be exactly one clone made per input object.
+
+  Args:
+    obj: The slice to copy.
+    schema: The schema to use to find attributes to clone, and also to assign
+      the schema to the resulting object. If not specified, will use the schema
+      of the 'obj' DataSlice.
+
+  Returns:
+    A (deep) copy of the given object.
+    All referenced objects will be copied with a new allocated ID. Note that
+    uuobjs will be copied as normal objects.
+  """
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
+  return _deep_clone(obj, schema)
+
+
 @optools.add_to_registry(
     aliases=['kde.subslice'], repr_fn=op_repr.subslice_repr
 )

@@ -186,6 +186,10 @@ absl::StatusOr<DataSlice> ReverseSelect(const DataSlice& ds,
 absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds,
                                        const DataSlice& schema);
 
+// kde.core._deep_clone
+absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
+                                    const DataSlice& schema);
+
 // kde.core.subslice operator.
 class SubsliceOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
