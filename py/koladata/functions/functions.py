@@ -18,6 +18,7 @@ from koladata.functions import attrs as _attrs
 from koladata.functions import object_factories as _object_factories
 from koladata.functions import predicates as _predicates
 from koladata.functions import py_conversions as _py_conversions
+from koladata.functions import s11n as _s11n
 from koladata.functions import schema as _schema
 
 bag = _object_factories.bag
@@ -74,3 +75,8 @@ from_pytree = _py_conversions.from_py
 
 to_str = _py_conversions.to_str
 to_repr = _py_conversions.to_repr
+
+dumps = _s11n.dumps
+loads = _s11n.loads
+loads_dataslice = _s11n.loads_dataslice
+loads_databag = _s11n.loads_databag

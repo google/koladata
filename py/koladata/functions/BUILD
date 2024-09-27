@@ -30,6 +30,7 @@ py_library(
         ":object_factories",
         ":predicates",
         ":py_conversions",
+        ":s11n",
         ":schema",
     ],
 )
@@ -90,5 +91,15 @@ py_library(
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
+    ],
+)
+
+py_library(
+    name = "s11n",
+    srcs = ["s11n.py"],
+    deps = [
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "@com_google_arolla//py/arolla",
     ],
 )
