@@ -77,6 +77,27 @@ class FromPyTest(absltest.TestCase):
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(d[ds(['a', 'b'])][:].no_db(), ds([[1, 2], [42]]))
 
+  def test_primitive(self):
+    item = fns.from_py(42)
+    testing.assert_equal(item.no_db(), ds(42, schema_constants.OBJECT))
+    item = fns.from_py(42, schema=schema_constants.FLOAT32)
+    testing.assert_equal(item.no_db(), ds(42.))
+
+  def test_primitive_casting_error(self):
+    with self.assertRaisesRegex(ValueError, 'cannot cast BYTES to FLOAT32'):
+      fns.from_py(b'xyz', schema=schema_constants.FLOAT32)
+
+  def test_none(self):
+    item = fns.from_py(None)
+    testing.assert_equal(item.no_db(), ds(None, schema_constants.OBJECT))
+    item = fns.from_py(None, schema=schema_constants.FLOAT32)
+    testing.assert_equal(item.no_db(), ds(None, schema_constants.FLOAT32))
+    schema = fns.new_schema(
+        a=schema_constants.TEXT, b=fns.list_schema(schema_constants.INT32)
+    )
+    item = fns.from_py(None, schema=schema)
+    testing.assert_equal(item.no_db(), ds(None).with_schema(schema.no_db()))
+
   def test_dict_as_obj_object(self):
     obj = fns.from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,

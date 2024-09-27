@@ -819,10 +819,12 @@ class UniversalConverter {
       });
       RETURN_IF_ERROR(ParsePyList(py_obj, schema));
     } else {
-      // NOTE: No need to pass `schema` here, because when assigning the final
-      // DataSlice to an attribute, as list items or as dict keys or values,
-      // schema verification (and casting) will be applied in cheaper way.
-      ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue_));
+      // NOTE: If !is_root, casting is left for List / Dict / Object / Entity to
+      // handle, because of error messages with appropriate context.
+      ASSIGN_OR_RETURN(
+          auto res,
+          DataSliceFromPyValue(py_obj, adoption_queue_,
+                               is_root && schema ? &(*schema) : nullptr));
       if (res.GetShape().rank() > 0) {
         return absl::InvalidArgumentError(
             "dict / list containing multi-dim DataSlice(s) is not convertible"
