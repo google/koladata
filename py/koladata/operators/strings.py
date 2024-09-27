@@ -49,11 +49,13 @@ def _agg_join(x, sep):  # pylint: disable=unused-argument
     'kde.strings.agg_join',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice_or_unspecified(P.sep),
+        qtype_utils.expect_data_slice(P.sep),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
     ],
 )
-def agg_join(x, sep=arolla.unspecified(), ndim=arolla.unspecified()):
+def agg_join(
+    x, sep=data_slice.DataSlice.from_vals(None), ndim=arolla.unspecified()
+):
   """Returns a DataSlice of strings joined on last ndim dimensions.
 
   Example:
@@ -68,7 +70,6 @@ def agg_join(x, sep=arolla.unspecified(), ndim=arolla.unspecified()):
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
       <= rank(x).
   """
-  sep = M.core.default_if_unspecified(sep, data_slice.DataSlice.from_vals(None))
   return _agg_join(jagged_shape_ops.flatten_last_ndim(x, ndim), sep)
 
 
@@ -553,29 +554,16 @@ def rstrip(s, chars=data_slice.DataSlice.from_vals(None)):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kde.split'])
 @optools.as_backend_operator(
-    'kde.strings._split',
+    'kde.strings.split',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.sep),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _split(x, sep):  # pylint: disable=unused-argument
-  """Returns x split by the provided separator."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.split'])
-@optools.as_lambda_operator(
-    'kde.strings.split',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice_or_unspecified(P.sep),
-    ],
-)
-def split(x, sep=arolla.unspecified()):
+def split(x, sep=data_slice.DataSlice.from_vals(None)):
   """Returns x split by the provided separator.
 
   Example:
@@ -587,8 +575,7 @@ def split(x, sep=arolla.unspecified()):
     sep: If specified, will split by the specified string not omitting empty
       strings, otherwise will split by whitespaces while omitting empty strings.
   """
-  sep = M.core.default_if_unspecified(sep, data_slice.DataSlice.from_vals(None))
-  return _split(x, sep)
+  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()

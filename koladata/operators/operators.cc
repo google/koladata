@@ -164,7 +164,6 @@ OPERATOR_FAMILY("kde.shapes.create",
 OPERATOR("kde.shapes.get_shape", GetShape);
 //
 OPERATOR("kde.strings._agg_join", AggJoin);
-OPERATOR("kde.strings._split", Split);
 OPERATOR_FAMILY("kde.strings._test_only_format_wrapper",
                 arolla::MakeVariadicInputOperatorFamily(TestOnlyFormatWrapper));
 OPERATOR("kde.strings.contains", Contains);
@@ -182,6 +181,7 @@ OPERATOR_FAMILY("kde.strings.printf",
 OPERATOR("kde.strings.replace", Replace);
 OPERATOR("kde.strings.rfind", Rfind);
 OPERATOR("kde.strings.rstrip", Rstrip);
+OPERATOR("kde.strings.split", Split);
 OPERATOR("kde.strings.strip", Strip);
 OPERATOR("kde.strings.substr", Substr);
 OPERATOR("kde.strings.upper", Upper);

@@ -88,7 +88,7 @@ absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
 // kde.strings.rstrip.
 absl::StatusOr<DataSlice> Rstrip(const DataSlice& s, const DataSlice& chars);
 //
-// kde.strings._split.
+// kde.strings.split.
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep);
 //
 // kde.strings.strip.

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.strings.agg_join."""
-
 import re
 
 from absl.testing import absltest
@@ -38,10 +36,7 @@ DATA_SLICE = qtypes.DATA_SLICE
 
 QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, arolla.UNSPECIFIED, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
 ])
@@ -218,7 +213,7 @@ class StringsAggJoinTest(parameterized.TestCase):
   def test_repr_without_optional_args(self):
     self.assertEqual(
         repr(kde.strings.agg_join(I.x)),
-        'kde.strings.agg_join(I.x, unspecified, unspecified)',
+        'kde.strings.agg_join(I.x, DataItem(None, schema: NONE), unspecified)',
     )
 
   def test_repr_with_optional_args(self):

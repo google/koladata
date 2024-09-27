@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.strings.split."""
 import re
 
 from absl.testing import absltest
@@ -38,7 +37,6 @@ DATA_SLICE = qtypes.DATA_SLICE
 
 QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
 ])
 
@@ -102,7 +100,7 @@ class StringsSplitTest(parameterized.TestCase):
     testing.assert_equal(actual_value, expected_value)
 
   @parameterized.parameters(
-      (ds(['Hello world!']), arolla.unspecified(), ds([['Hello', 'world!']])),
+      (ds(['Hello world!']), ds(None), ds([['Hello', 'world!']])),
       (ds(['Hello world!']), ds(None), ds([['Hello', 'world!']])),
       (
           ds(['Hello world!']),
@@ -180,7 +178,7 @@ class StringsSplitTest(parameterized.TestCase):
         arolla.abc.bind_op(
             kde.strings.split,
             literal_operator.literal(data_slice.DataSlice.from_vals('hello')),
-            literal_operator.literal(arolla.unspecified()),
+            literal_operator.literal(data_slice.DataSlice.from_vals(None)),
         ),
     )
 
@@ -195,7 +193,8 @@ class StringsSplitTest(parameterized.TestCase):
 
   def test_repr_without_separator(self):
     self.assertEqual(
-        repr(kde.strings.split(I.x)), 'kde.strings.split(I.x, unspecified)'
+        repr(kde.strings.split(I.x)),
+        'kde.strings.split(I.x, DataItem(None, schema: NONE))',
     )
 
   def test_repr_with_separator(self):
