@@ -28,6 +28,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 M = arolla.M
+bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
@@ -46,15 +47,16 @@ class KodaIsPrimitiveTest(parameterized.TestCase):
       (ds(arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2))),),
       # Mixed types.
       (ds(['hello', 1, 'world']),),
+      (ds(schema_constants.TEXT),),
   )
   def test_is_primitive(self, param):
     self.assertTrue(expr_eval.eval(kde.core.is_primitive(param)))
 
   @parameterized.parameters(
-      (data_bag.DataBag.empty().list([1, 2, 3]),),
-      (data_bag.DataBag.empty().dict(ds(['hello', 'world']), ds([1, 2])),),
-      (data_bag.DataBag.empty().obj(a=ds(1), b=ds(2)),),
-      (ds(schema_constants.TEXT),),
+      (bag().list([1, 2, 3]),),
+      (bag().dict(ds(['hello', 'world']), ds([1, 2])),),
+      (bag().obj(a=ds(1), b=ds(2)),),
+      (ds([bag().obj(a=ds(1), b=ds(2)), 42, 'abc']),)
   )
   def test_is_not_primitive(self, param):
     self.assertFalse(expr_eval.eval(kde.core.is_primitive(param)))

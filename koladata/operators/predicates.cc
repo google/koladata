@@ -14,30 +14,26 @@
 //
 #include "koladata/operators/predicates.h"
 
-#include "absl/status/status.h"
+#include <type_traits>
+
+#include "absl/functional/overload.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
-#include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/missing_value.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
 namespace {
 
-template<typename T>
-bool IsPrimitiveValue() {
-  if constexpr(std::is_same_v<T, internal::MissingValue>) {
-    return true;
-  } else {
-    return arolla::meta::contains_v<schema::supported_primitive_dtypes,
-                                    T>;
-  }
-}
+template <typename T>
+struct IsPrimitiveT : std::true_type {};
+
+template <>
+struct IsPrimitiveT<internal::ObjectId> : std::false_type {};
 
 }  // namespace
 
@@ -47,30 +43,22 @@ absl::StatusOr<DataSlice> IsPrimitive(const DataSlice& x) {
         internal::DataItem(arolla::Unit()),
                            internal::DataItem(schema::kMask), nullptr);
   }
-  return x.VisitImpl(
-      []<class Impl>(const Impl& impl) -> absl::StatusOr<DataSlice> {
-        if constexpr (std::is_same_v<Impl, internal::DataItem>) {
-          return impl.VisitValue([]<class T>(const T& value) {
-            return DataSlice::Create(
-                internal::DataItem(
-                    arolla::OptionalUnit(IsPrimitiveValue<T>())),
-                internal::DataItem(schema::kMask), nullptr);
-          });
-        } else {
-          bool contains_only_primitives = true;
-          RETURN_IF_ERROR(
-              impl.VisitValues([&contains_only_primitives]<class T>(
-                                   const arolla::DenseArray<T>& values) {
-                if (!IsPrimitiveValue<T>()) {
-                  contains_only_primitives = false;
-                }
-                return absl::OkStatus();
-              }));
-          return DataSlice::Create(internal::DataItem(arolla::OptionalUnit(
-                                       contains_only_primitives)),
-                                   internal::DataItem(schema::kMask), nullptr);
-        }
-      });
+  bool contains_only_primitives = x.VisitImpl(absl::Overload(
+      [](const internal::DataItem& item) {
+        return item.VisitValue([]<class T>(const T& value) {
+          return IsPrimitiveT<T>::value;
+        });
+      },
+      [](const internal::DataSliceImpl& slice) {
+        bool res = true;
+        slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
+          res &= IsPrimitiveT<T>::value;
+        });
+        return res;
+      }));
+  return DataSlice::Create(
+      internal::DataItem(arolla::OptionalUnit(contains_only_primitives)),
+      internal::DataItem(schema::kMask), nullptr);
 }
 
 }  // namespace koladata::ops
