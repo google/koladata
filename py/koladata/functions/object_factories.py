@@ -16,6 +16,7 @@
 
 from typing import Any
 
+from arolla import arolla
 from koladata.types import data_bag
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
@@ -374,7 +375,7 @@ def dict_shaped_as(
 
 
 def new(
-    arg: Any = None,
+    arg: Any = arolla.unspecified(),
     *,
     schema: data_slice.DataSlice | None = None,
     update_schema: bool = False,
@@ -514,7 +515,7 @@ def new_like(
 
 
 def obj(
-    arg: Any = None,
+    arg: Any = arolla.unspecified(),
     *,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,

@@ -955,7 +955,10 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
   // NOTE: UniversalConverter does not allow converting multi-dimensional
   // DataSlices, so we are processing it before invoking the UniversalConverter.
   if (arolla::python::IsPyQValueInstance(py_obj)) {
-    ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue));
+    ASSIGN_OR_RETURN(
+        auto res,
+        DataSliceFromPyValue(py_obj, adoption_queue,
+                             schema ? &(*schema) : nullptr));
     return EntityCreator::Convert(db, res);
   }
   return UniversalConverter<EntityCreator>(db, adoption_queue)

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for obj."""
-
 from absl.testing import absltest
 from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
@@ -136,6 +134,14 @@ class ObjTest(absltest.TestCase):
         NotImplementedError, 'do not support `itemid` in converter mode'
     ):
       _ = fns.obj([1, 2, 3], itemid=kde.allocation.new_itemid._eval())
+
+  def test_universal_converter_primitive(self):
+    item = fns.obj(42)
+    testing.assert_equal(item.no_db(), ds(42, schema_constants.OBJECT))
+
+  def test_universal_converter_none(self):
+    item = fns.obj(None)
+    testing.assert_equal(item.no_db(), ds(None, schema_constants.OBJECT))
 
   def test_universal_converter_list(self):
     l = fns.obj([1, 2, 3])

@@ -50,6 +50,7 @@
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -258,6 +259,18 @@ struct ObjectCreatorHelper {
   }
 };
 
+// Returns true if `py_obj` is provided and not arolla.unspecified().
+bool FirstArgProvided(PyObject* py_obj) {
+  if (py_obj == nullptr) {
+    return false;
+  }
+  if (!arolla::python::IsPyQValueInstance(py_obj)) {
+    return true;
+  }
+  const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
+  return typed_value.GetType() != arolla::GetUnspecifiedQType();
+}
+
 // Helper function that processes arguments for Entity / Object creators and
 // dispatches to different implementation depending on the presence of those
 // arguments.
@@ -278,7 +291,7 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
   }
   std::optional<DataSlice> res;
   // args.pos_kw_values[0] is "arg" positional-keyword argument.
-  if (args.pos_kw_values[0] && args.pos_kw_values[0] != Py_None) {
+  if (FirstArgProvided(args.pos_kw_values[0])) {
     if (!args.kw_values.empty()) {
       PyErr_SetString(
           PyExc_TypeError,

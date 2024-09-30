@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for new."""
-
 import re
 
 from absl.testing import absltest
@@ -316,6 +314,29 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
         NotImplementedError, 'do not support `itemid` in converter mode'
     ):
       _ = fns.new([1, 2, 3], itemid=kde.allocation.new_itemid._eval())
+
+  def test_universal_converter_primitive(self):
+    item = fns.new(42)
+    testing.assert_equal(item.no_db(), ds(42))
+    item = fns.new(42, schema=schema_constants.FLOAT32)
+    testing.assert_equal(item.no_db(), ds(42.))
+    item = fns.new(ds([1, 2]), schema=schema_constants.FLOAT32)
+    testing.assert_equal(item.no_db(), ds([1., 2.]))
+
+  def test_universal_converter_primitive_casting_error(self):
+    with self.assertRaisesRegex(ValueError, 'cannot cast BYTES to FLOAT32'):
+      fns.new(b'xyz', schema=schema_constants.FLOAT32)
+
+  def test_universal_converter_none(self):
+    item = fns.new(None)
+    testing.assert_equal(item.no_db(), ds(None))
+    item = fns.new(None, schema=schema_constants.FLOAT32)
+    testing.assert_equal(item.no_db(), ds(None, schema_constants.FLOAT32))
+    schema = fns.new_schema(
+        a=schema_constants.TEXT, b=fns.list_schema(schema_constants.INT32)
+    )
+    item = fns.new(None, schema=schema)
+    testing.assert_equal(item.no_db(), ds(None).with_schema(schema.no_db()))
 
   def test_universal_converter_list(self):
     l = fns.new([1, 2, 3])

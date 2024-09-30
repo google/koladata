@@ -46,7 +46,7 @@ bool HasNonItemDataSlice(const std::vector<PyObject*>& args) {
     if (!arolla::python::IsPyQValueInstance(arg)) {
       continue;
     }
-    if (auto tv = arolla::python::UnsafeUnwrapPyQValue(arg);
+    if (const auto& tv = arolla::python::UnsafeUnwrapPyQValue(arg);
         tv.GetType() == arolla::GetQType<DataSlice>()) {
       const DataSlice& ds = tv.UnsafeAs<DataSlice>();
       if (ds.GetShape().rank() > 0) {

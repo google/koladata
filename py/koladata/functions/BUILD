@@ -79,6 +79,7 @@ py_library(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",
         "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
     ],
 )
 
