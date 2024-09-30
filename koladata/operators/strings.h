@@ -74,6 +74,10 @@ absl::StatusOr<DataSlice> Lstrip(const DataSlice& s, const DataSlice& chars);
 // kde.strings.printf.
 absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices);
 //
+// kde.strings.regex_extract.
+absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
+                                       const DataSlice& regex);
+//
 // kde.strings.regex_match.
 absl::StatusOr<DataSlice> RegexMatch(const DataSlice& text,
                                      const DataSlice& regex);

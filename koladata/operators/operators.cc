@@ -178,6 +178,7 @@ OPERATOR("kde.strings.lower", Lower);
 OPERATOR("kde.strings.lstrip", Lstrip);
 OPERATOR_FAMILY("kde.strings.printf",
                 arolla::MakeVariadicInputOperatorFamily(Printf));
+OPERATOR("kde.strings.regex_extract", RegexExtract);
 OPERATOR("kde.strings.regex_match", RegexMatch);
 OPERATOR("kde.strings.replace", Replace);
 OPERATOR("kde.strings.rfind", Rfind);

@@ -213,6 +213,38 @@ absl::StatusOr<DataSlice> Lstrip(const DataSlice& s, const DataSlice& chars) {
   return SimplePointwiseEval("strings.lstrip", {s, chars});
 }
 
+absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
+                                       const DataSlice& regex) {
+  if (regex.GetShape().rank() != 0 ||
+      !regex.item().holds_value<arolla::Text>()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "requires regex to be a TEXT scalar, got ", arolla::Repr(regex)));
+  }
+  ASSIGN_OR_RETURN(auto text_schema, GetPrimitiveArollaSchema(text));
+  if (!text_schema.has_value()) {
+    // text is empty-and-unknown. We then skip evaluation.
+    // Note that we did not check whether `regex` is a well-formed regular
+    // expression (and that it has exactly one capturing group). We only checked
+    // its rank and schema.
+    ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(internal::DataItem(),
+                                                     text.GetSchemaImpl()));
+    return BroadcastToShape(std::move(ds), text.GetShape());
+  }
+
+  std::vector<arolla::TypedValue> typed_value_holder;
+  ASSIGN_OR_RETURN(
+      arolla::TypedRef text_ref,
+      DataSliceToOwnedArollaRef(text, typed_value_holder,
+                                internal::DataItem(schema::kText)));
+  arolla::TypedValue typed_regex =
+      arolla::TypedValue::FromValue(regex.item().value<arolla::Text>());
+  ASSIGN_OR_RETURN(arolla::TypedValue result,
+                   EvalExpr("strings.extract_regex",
+                            {std::move(text_ref), typed_regex.AsRef()}));
+  return DataSliceFromArollaValue(result.AsRef(), text.GetShape(),
+                                  text.GetSchemaImpl());
+}
+
 absl::StatusOr<DataSlice> RegexMatch(const DataSlice& text,
                                      const DataSlice& regex) {
   if (regex.GetShape().rank() != 0 ||

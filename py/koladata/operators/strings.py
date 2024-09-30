@@ -439,6 +439,50 @@ def lstrip(s, chars=data_slice.DataSlice.from_vals(None)):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.strings.regex_extract',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.text),
+        qtype_utils.expect_data_slice(P.regex),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def regex_extract(text, regex):  # pylint: disable=unused-argument
+  """Extracts a substring from `text` with the capturing group of `regex`.
+
+  Regular expression matches are partial, which means `regex` is matched against
+  a substring of `text`.
+  For full matches, where the whole string must match a pattern, please enclose
+  the pattern in `^` and `$` characters.
+  The pattern must contain exactly one capturing group.
+
+  Examples:
+    kd.strings.regex_extract(kd.item('foo'), kd.item('f(.)'))
+      # kd.item('o')
+    kd.strings.regex_extract(kd.item('foobar'), kd.item('o(..)'))
+      # kd.item('ob')
+    kd.strings.regex_extract(kd.item('foobar'), kd.item('^o(..)$'))
+      # kd.item(None).with_schema(kd.TEXT)
+    kd.strings.regex_extract(kd.item('foobar'), kd.item('^.o(..)a.$'))
+      # kd.item('ob')
+    kd.strings.regex_extract(kd.item('foobar'), kd.item('.*(b.*r)$'))
+      # kd.item('bar')
+    kd.strings.regex_extract(kd.slice(['abcd', None, '']), kd.slice('b(.*)'))
+      # -> kd.slice(['cd', None, None])
+
+  Args:
+    text: (TEXT) A string.
+    regex: (TEXT) A scalar string that represents a regular expression (RE2
+      syntax) with exactly one capturing group.
+
+  Returns:
+    For the first partial match of `regex` and `text`, returns the substring of
+    `text` that matches the capturing group of `regex`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.strings.regex_match',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.text),
@@ -454,7 +498,7 @@ def regex_match(text, regex):  # pylint: disable=unused-argument
   the pattern in `^` and `$` characters.
 
   Examples:
-    kd.strings.regex_match(kd.item('foo), kd.item('oo'))
+    kd.strings.regex_match(kd.item('foo'), kd.item('oo'))
       # -> kd.present
     kd.strings.regex_match(kd.item('foo'), '^oo$')
       # -> kd.missing
