@@ -251,7 +251,7 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
         'use kd.slice(...) to create a slice or a multi-dimensional slice, and '
         'kd.list(...) to create a single Koda list.'
     )
-  if callable(arg):
+  if isinstance(arg, py_types.FunctionType):
     return arolla.abc.PyObject(arg, codec=REF_CODEC)
   return data_slice.DataSlice.from_vals(arg)
 

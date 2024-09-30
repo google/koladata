@@ -112,6 +112,8 @@ class PyBoxingTest(parameterized.TestCase):
   def test_as_qvalue_raises_on_unsupported_type(self):
     with self.assertRaisesRegex(ValueError, re.escape('unsupported type')):
       _ = py_boxing.as_qvalue_or_expr(object())
+    with self.assertRaisesRegex(ValueError, re.escape('unsupported type')):
+      _ = py_boxing.as_qvalue_or_expr(object)
 
   @parameterized.parameters(
       (1, ds(1)),
