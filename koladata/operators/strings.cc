@@ -24,6 +24,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
@@ -48,6 +49,7 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -209,6 +211,36 @@ absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
 
 absl::StatusOr<DataSlice> Lstrip(const DataSlice& s, const DataSlice& chars) {
   return SimplePointwiseEval("strings.lstrip", {s, chars});
+}
+
+absl::StatusOr<DataSlice> RegexMatch(const DataSlice& text,
+                                     const DataSlice& regex) {
+  if (regex.GetShape().rank() != 0 ||
+      !regex.item().holds_value<arolla::Text>()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "requires regex to be a TEXT scalar, got ", arolla::Repr(regex)));
+  }
+  ASSIGN_OR_RETURN(auto text_schema, GetPrimitiveArollaSchema(text));
+  if (!text_schema.has_value()) {
+    // text is empty-and-unknown. We then skip evaluation.
+    ASSIGN_OR_RETURN(DataSlice ds,
+                     DataSlice::Create(internal::DataItem(),
+                                       internal::DataItem(schema::kMask)));
+    return BroadcastToShape(std::move(ds), text.GetShape());
+  }
+
+  std::vector<arolla::TypedValue> typed_value_holder;
+  ASSIGN_OR_RETURN(
+      arolla::TypedRef text_ref,
+      DataSliceToOwnedArollaRef(text, typed_value_holder,
+                                internal::DataItem(schema::kText)));
+  arolla::TypedValue typed_regex =
+      arolla::TypedValue::FromValue(regex.item().value<arolla::Text>());
+  ASSIGN_OR_RETURN(arolla::TypedValue result,
+                   EvalExpr("strings.contains_regex",
+                            {std::move(text_ref), typed_regex.AsRef()}));
+  return DataSliceFromArollaValue(result.AsRef(), text.GetShape(),
+                                  internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> Replace(const DataSlice& s,

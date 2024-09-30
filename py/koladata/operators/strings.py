@@ -439,6 +439,45 @@ def lstrip(s, chars=data_slice.DataSlice.from_vals(None)):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.strings.regex_match',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.text),
+        qtype_utils.expect_data_slice(P.regex),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def regex_match(text, regex):  # pylint: disable=unused-argument
+  """Returns `present` if `text` matches the regular expression `regex`.
+
+  Matches are partial, which means a substring of `text` matches the pattern.
+  For full matches, where the whole string must match a pattern, please enclose
+  the pattern in `^` and `$` characters.
+
+  Examples:
+    kd.strings.regex_match(kd.item('foo), kd.item('oo'))
+      # -> kd.present
+    kd.strings.regex_match(kd.item('foo'), '^oo$')
+      # -> kd.missing
+    kd.strings.regex_match(kd.item('foo), '^foo$')
+      # -> kd.present
+    kd.strings.regex_match(kd.slice(['abc', None, '']), 'b')
+      # -> kd.slice([kd.present, kd.missing, kd.missing])
+    kd.strings.regex_match(kd.slice(['abcd', None, '']), kd.slice('b.d'))
+      # -> kd.slice([kd.present, kd.missing, kd.missing])
+
+  Args:
+    text: (TEXT) A string.
+    regex: (TEXT) A scalar string that represents a regular expression (RE2
+      syntax).
+
+  Returns:
+    `present` if `text` matches `regex`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.strings.replace',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
