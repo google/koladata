@@ -70,7 +70,10 @@ def _extract_auto_variables(variables: dict[str, Any]) -> dict[str, Any]:
         if (
             val.db is None
             and val.get_ndim() == 0
-            and val.get_schema().is_primitive_schema()
+            and (
+                val.get_schema().is_primitive_schema()
+                or val.get_schema() == schema_constants.NONE
+            )
         ):
           return node
         # We need to implode the DataSlice into lists if it is not a DataItem.

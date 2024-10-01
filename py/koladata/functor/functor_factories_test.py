@@ -184,6 +184,15 @@ class FunctorFactoriesTest(absltest.TestCase):
         'foo_3', dir(fn)
     )  # To make sure we don't have too many copies.
 
+  def test_auto_variables_with_none(self):
+    fn = functor_factories.fn(
+        I.x + ds(None),
+        auto_variables=True,
+    )
+    # We should not introduce variables for ds(None), it would be too much
+    # noise.
+    testing.assert_equal(introspection.unpack_expr(fn.returns), I.x + ds(None))
+
   def test_trace_py_fn(self):
 
     def my_model(x):
