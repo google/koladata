@@ -1260,7 +1260,7 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
                        .AddDims({arolla::DenseArrayEdge::UnsafeFromSplitPoints(
                            std::move(split_points_builder).Build())}));
   return DataSlice::Create(*std::move(res_impl), std::move(new_shape),
-                           x.GetSchemaImpl());
+                           x.GetSchemaImpl(), x.GetDb());
 }
 
 absl::StatusOr<DataSlice> ItemIdBits(const DataSlice& ds,

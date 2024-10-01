@@ -25,6 +25,7 @@ from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
@@ -34,6 +35,10 @@ I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
+db = data_bag.DataBag.empty()
+obj1 = db.obj(x=1)
+obj2 = db.obj(x=2)
+obj3 = db.obj(x=3)
 
 
 class CoreUniqueTest(parameterized.TestCase):
@@ -62,6 +67,11 @@ class CoreUniqueTest(parameterized.TestCase):
       (
           ds([[1, 3, 2, 1, 3, 1, 3], [1, 3, 1]]),
           ds([[1, 3, 2], [1, 3]]),
+      ),
+      # 1D Object DataSlice
+      (
+          ds([obj1, obj2, obj3, obj1, obj2, obj3, obj1, obj3]),
+          ds([obj1, obj2, obj3]),
       ),
   )
   def test_eval_one_input_unsort(self, x, expected):
