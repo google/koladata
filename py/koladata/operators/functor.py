@@ -17,8 +17,8 @@
 from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.types import data_slice
 from koladata.types import py_boxing
-from koladata.types import qtypes
 
 M = arolla.M
 P = arolla.P
@@ -40,9 +40,14 @@ constraints = arolla.optools.constraints
             f'expected named tuple, got {constraints.name_type_msg(P.kwargs)}',
         ),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    qtype_inference_expr=P.return_type_as,
 )
-def call(fn, args=py_boxing.var_positional(), kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
+def call(
+    fn,
+    args=py_boxing.var_positional(),
+    return_type_as=py_boxing.keyword_only(data_slice.DataSlice),
+    kwargs=py_boxing.var_keyword(),
+):  # pylint: disable=unused-argument
   """Calls a functor.
 
   See the docstring of `kdf.fn` on how to create a functor.
@@ -58,6 +63,11 @@ def call(fn, args=py_boxing.var_positional(), kwargs=py_boxing.var_keyword()):  
     fn: The functor to be called, typically created via kdf.fn().
     args: The positional arguments to pass to the call. Scalars will be
       auto-boxed to DataItems.
+    return_type_as: The return type of the call is expected to be the same as
+      the return type of this expression. In most cases, this will be a literal
+      of the corresponding type. This needs to be specified if the functor does
+      not return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also
+      be passed here.
     kwargs: The keyword arguments to pass to the call. Scalars will be
       auto-boxed to DataItems.
 

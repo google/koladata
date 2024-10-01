@@ -304,6 +304,14 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.unpack_expr(fn.returns), V.f(I.x) + 2)
     kd.testing.assert_equal(kd.unpack_expr(fn.f.returns), I.x + 1)
 
+  def test_call_with_kd_types_return_type(self):
+    fn = kdf.fn(returns=I.x.db)
+    obj = kd.obj(x=1)
+    kd.testing.assert_equal(fn(x=obj, return_type_as=kd.types.DataBag), obj.db)
+    fn = kdf.fn(returns=I.x)
+    obj = kd.obj(x=1)
+    kd.testing.assert_equal(fn(x=obj, return_type_as=kd.types.DataSlice), obj)
+
 
 if __name__ == '__main__':
   absltest.main()

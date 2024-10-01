@@ -136,7 +136,8 @@ def fn(
     returns: What should calling a functor return. Will typically be an Expr to
       be evaluated, but can also be a DataItem in which case calling will just
       return this DataItem, or a primitive that will be wrapped as a DataItem.
-      When this is an Expr, it must evaluate to a DataSlice/DataItem.
+      When this is an Expr, it either must evaluate to a DataSlice/DataItem, or
+      the return_type_as= argument should be specified at kd.call time.
     signature: The signature of the functor. Will be used to map from args/
       kwargs passed at calling time to I.smth inputs of the expressions. When
       None, the default signature will be created based on the inputs from the
@@ -246,8 +247,8 @@ def py_fn(f: Callable[..., Any], **defaults: Any) -> data_slice.DataSlice:
       arolla.abc.bind_op(
           'kde.py.apply_py',
           py_boxing.as_qvalue(f),
-          I.args,
-          I.kwargs,
+          args=I.args,
+          kwargs=I.kwargs,
       ),
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
   )
@@ -306,8 +307,9 @@ def bind(
       variables[k] = arolla.abc.bind_op(
           'kde.functor.call',
           V[aux_fn_name],
-          I.args,
-          I.kwargs,
+          args=I.args,
+          return_type_as=py_boxing.as_qvalue(data_slice.DataSlice),
+          kwargs=I.kwargs,
       )
     else:
       variables[k] = v
@@ -318,8 +320,9 @@ def bind(
       arolla.abc.bind_op(
           'kde.functor.call',
           V['_aux_fn'],
-          I.args,
-          arolla.M.namedtuple.union(
+          args=I.args,
+          return_type_as=py_boxing.as_qvalue(data_slice.DataSlice),
+          kwargs=arolla.M.namedtuple.union(
               arolla.M.namedtuple.make(**{k: V[k] for k in kwargs}), I.kwargs
           ),
       ),

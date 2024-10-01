@@ -253,6 +253,10 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
     )
   if isinstance(arg, py_types.FunctionType):
     return arolla.abc.PyObject(arg, codec=REF_CODEC)
+  if arg is data_slice.DataSlice:
+    return data_slice.DataSlice.from_vals(None)
+  if arg is data_bag.DataBag:
+    return data_bag.DataBag.empty()
   return data_slice.DataSlice.from_vals(arg)
 
 

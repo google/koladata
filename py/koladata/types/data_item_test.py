@@ -248,6 +248,10 @@ class DataItemTest(parameterized.TestCase):
     ):
       ds(1)()
 
+    fn = functor_factories.fn(I.x)
+    my_bag = bag()
+    testing.assert_equal(fn(x=my_bag, return_type_as=data_bag.DataBag), my_bag)
+
 
 if __name__ == '__main__':
   absltest.main()

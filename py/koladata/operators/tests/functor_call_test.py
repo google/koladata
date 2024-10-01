@@ -27,6 +27,7 @@ from koladata.functor import signature_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 
 I = input_container.InputContainer('I')
@@ -176,11 +177,39 @@ class FunctorCallTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'Each Koda functor must evaluate to a DataSlice, but got type'
-            ' `tuple<INT32,INT32>` instead'
+            'the functor was called with `DATA_SLICE` as the output type, but'
+            ' the computation resulted in type `tuple<INT32,INT32>` instead'
         ),
     ):
       _ = expr_eval.eval(kde.call(fn, x=arolla.tuple(1, 2)))
+    res = expr_eval.eval(
+        kde.call(
+            fn,
+            x=arolla.tuple(1, 2),
+            return_type_as=arolla.tuple(5, 7),
+        )
+    )
+    testing.assert_equal(res, arolla.tuple(1, 2))
+
+  def test_call_returns_databag(self):
+    fn = functor_factories.fn(I.x.db)
+    obj = fns.obj(x=1)
+    res = expr_eval.eval(
+        kde.call(
+            fn,
+            x=obj,
+            return_type_as=data_bag.DataBag,
+        )
+    )
+    testing.assert_equal(res, obj.db)
+
+  def test_call_return_type_errors(self):
+    fn = functor_factories.fn(I.x)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('object with unsupported type: "type"'),
+    ):
+      _ = expr_eval.eval(kde.call(fn, x=1, return_type_as=int))
 
   def test_call_with_functor_as_input(self):
     fn = functor_factories.fn(I.x + I.y)

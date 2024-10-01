@@ -76,6 +76,7 @@ class PyBoxingTest(parameterized.TestCase):
       (slice(1, arolla.L.x, 3), arolla.M.core.make_slice(1, arolla.L.x, 3)),
       (slice(1, 2, arolla.L.x), arolla.M.core.make_slice(1, 2, arolla.L.x)),
       (..., ellipsis.ellipsis()),
+      (data_slice.DataSlice, data_slice.DataSlice.from_vals(None)),
   )
   def test_as_qvalue_or_expr(self, value, expected_res):
     self.assertEqual(
@@ -109,6 +110,12 @@ class PyBoxingTest(parameterized.TestCase):
     qvalue = py_boxing.as_qvalue_or_expr(fn)
     self.assertIs(qvalue.py_value(), fn)
 
+  def test_as_qvalue_or_expr_for_databag_type(self):
+    # This cannot be part of the parameterized test because a different empty
+    # DataBag is created anew every time.
+    qvalue = py_boxing.as_qvalue_or_expr(data_bag.DataBag)
+    self.assertIsInstance(qvalue, data_bag.DataBag)
+
   def test_as_qvalue_raises_on_unsupported_type(self):
     with self.assertRaisesRegex(ValueError, re.escape('unsupported type')):
       _ = py_boxing.as_qvalue_or_expr(object())
@@ -125,6 +132,7 @@ class PyBoxingTest(parameterized.TestCase):
       ),
       (slice(1, 2, 3), arolla.types.Slice(1, 2, 3)),
       (..., ellipsis.ellipsis()),
+      (data_slice.DataSlice, data_slice.DataSlice.from_vals(None)),
   )
   def test_as_qvalue(self, value, expected_res):
     arolla.testing.assert_qvalue_equal_by_fingerprint(

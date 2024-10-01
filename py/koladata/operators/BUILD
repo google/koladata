@@ -438,8 +438,8 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/functor:operators",
+        "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
-        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )

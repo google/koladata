@@ -194,8 +194,15 @@ class DataSliceView(BasicKodaView):
   def __invert__(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.has_not', self)
 
-  def __call__(self, *args: Any, **kwargs: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.call', self, *args, **kwargs)
+  def __call__(
+      self,
+      *args: Any,
+      return_type_as: Any = data_slice.DataSlice,
+      **kwargs: Any,
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op(
+        'kde.call', self, *args, return_type_as=return_type_as, **kwargs
+    )
 
   def reshape(self, shape: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.reshape', self, shape)

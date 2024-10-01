@@ -357,6 +357,10 @@ class DataSliceViewTest(parameterized.TestCase):
 
   def test_call(self):
     testing.assert_equal(C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z))
+    testing.assert_equal(
+        C.x(C.y, return_type_as=C.t, foo=C.z),
+        kde.call(C.x, C.y, return_type_as=C.t, foo=C.z),
+    )
 
   def test_reshape(self):
     testing.assert_equal(C.x.reshape(C.y), kde.reshape(C.x, C.y))
@@ -548,8 +552,8 @@ class DataSliceViewTest(parameterized.TestCase):
       (
           C.x(C.y, foo=C.z),
           (
-              "kde.call(C.x, M.core.make_tuple(C.y), M.namedtuple.make('foo',"
-              ' C.z))'
+              'kde.call(C.x, M.core.make_tuple(C.y), DataItem(None, schema:'
+              " NONE), M.namedtuple.make('foo', C.z))"
           ),
       ),
   )

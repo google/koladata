@@ -39,10 +39,20 @@ def _hash(self) -> int:
 # to check if a DataItem is a functor now. Note that SchemaItem overrides
 # this behavior.
 @DataItem.add_method('__call__')
-def _call(self, *args: Any, **kwargs: Any) -> data_slice.DataSlice:
+def _call(
+    self, *args: Any, return_type_as: Any = data_slice.DataSlice, **kwargs: Any
+) -> data_slice.DataSlice:
   if any(isinstance(arg, arolla.Expr) for arg in args) or any(
       isinstance(arg, arolla.Expr) for arg in kwargs.values()
   ):
-    return _op_impl_lookup.call(self, *args, **kwargs)
+    return _op_impl_lookup.call(
+        self, *args, return_type_as=return_type_as, **kwargs
+    )
   else:
-    return arolla.abc.aux_eval_op(_op_impl_lookup.call, self, *args, **kwargs)
+    return arolla.abc.aux_eval_op(
+        _op_impl_lookup.call,
+        self,
+        *args,
+        return_type_as=return_type_as,
+        **kwargs
+    )
