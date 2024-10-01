@@ -293,26 +293,32 @@ def bind(
     A new Koda functor with some parameters bound.
   """
   variables = {'_aux_fn': fn_def}
+  expr_variables = {}
   for k, v in kwargs.items():
     if isinstance(v, arolla.Expr) or introspection.is_packed_expr(v):
-      # We create a sub-functor to take care of proper input binding while
-      # being able to forward all arguments to the original functor.
-      # TODO: It would be more efficient to create just one
-      # sub-functor for all expressions in kwargs, but then it would have to
-      # return a tuple which is currently not supported.
-      aux_fn_name = '_aux_fn_{k}'
-      variables[aux_fn_name] = fn(v)
-      # Note: we bypass the binding policy of functor.call since we already
-      # have the args/kwargs as tuple and namedtuple.
-      variables[k] = arolla.abc.bind_op(
-          'kde.functor.call',
-          V[aux_fn_name],
-          args=I.args,
-          return_type_as=py_boxing.as_qvalue(data_slice.DataSlice),
-          kwargs=I.kwargs,
-      )
+      variables[k] = arolla.M.namedtuple.get_field(V['_aux_fn_variables'], k)
+      expr_variables[k] = v
     else:
       variables[k] = v
+
+  if expr_variables:
+    # We create a sub-functor to take care of proper input binding while
+    # being able to forward all arguments to the original functor.
+    variables['_aux_fn_compute_variables'] = fn(
+        arolla.M.namedtuple.make(**{k: V[k] for k in expr_variables}),
+        **expr_variables,
+    )
+    # Note: we bypass the binding policy of functor.call since we already
+    # have the args/kwargs as tuple and namedtuple.
+    variables['_aux_fn_variables'] = arolla.abc.bind_op(
+        'kde.functor.call',
+        V['_aux_fn_compute_variables'],
+        args=I.args,
+        return_type_as=arolla.namedtuple(**{
+            k: py_boxing.as_qvalue(data_slice.DataSlice) for k in expr_variables
+        }),
+        kwargs=I.kwargs,
+    )
 
   return fn(
       # Note: we bypass the binding policy of functor.call since we already
