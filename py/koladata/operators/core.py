@@ -953,6 +953,54 @@ def get_values(dict_ds, key_ds=arolla.unspecified()):
   )(dict_ds, key_ds)
 
 
+@optools.add_to_registry(aliases=['kde.select_keys'])
+@optools.as_lambda_operator(
+    'kde.core.select_keys',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.fltr),
+    ],
+)
+def select_keys(ds, fltr):
+  """Selects Dict keys by filtering out missing items in `fltr`.
+
+  Also see kd.select.
+
+  Args:
+    ds: Dict DataSlice to be filtered
+    fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or
+      a Python function which can be evalauted to such DataSlice.
+
+  Returns:
+    Filtered DataSlice.
+  """
+  return select(ds=get_keys(ds), fltr=fltr)
+
+
+@optools.add_to_registry(aliases=['kde.select_values'])
+@optools.as_lambda_operator(
+    'kde.core.select_values',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.fltr),
+    ],
+)
+def select_values(ds, fltr):
+  """Selects Dict values by filtering out missing items in `fltr`.
+
+  Also see kd.select.
+
+  Args:
+    ds: Dict DataSlice to be filtered
+    fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or
+      a Python function which can be evalauted to such DataSlice.
+
+  Returns:
+    Filtered DataSlice.
+  """
+  return select(ds=get_values(ds), fltr=fltr)
+
+
 @optools.add_to_registry(aliases=['kde.agg_count'])
 @optools.as_lambda_operator(
     'kde.core.agg_count',
