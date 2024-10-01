@@ -2028,6 +2028,50 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
       ds([1, 2, 3]).follow()
 
+  @parameterized.product(
+      pass_schema=[True, False],
+  )
+  def test_clone(self, pass_schema):
+    db = data_bag.DataBag.empty()
+    b_slice = db.new(a=ds([1, None, 2]))
+    o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    if pass_schema:
+      result = o.clone(o.get_schema())
+    else:
+      result = o.clone()
+
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(result.no_db(), o.no_db())
+    testing.assert_equal(result.b.no_db(), o.b.no_db())
+    testing.assert_equal(result.c.no_db(), o.c.no_db())
+    testing.assert_equal(result.b.a.no_db(), o.b.a.no_db())
+    testing.assert_equal(result.get_schema().no_db(), schema_constants.OBJECT)
+    testing.assert_equal(
+        result.b.get_schema().no_db(), o.b.get_schema().no_db()
+    )
+
+  @parameterized.product(
+      pass_schema=[True, False],
+  )
+  def test_extract(self, pass_schema):
+    db = data_bag.DataBag.empty()
+    b_slice = db.new(a=ds([1, None, 2]))
+    o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    if pass_schema:
+      result = o.extract(o.get_schema())
+    else:
+      result = o.extract()
+
+    self.assertNotEqual(o.db.fingerprint, result.db.fingerprint)
+    testing.assert_equal(result.no_db(), o.no_db())
+    testing.assert_equal(result.b.no_db(), o.b.no_db())
+    testing.assert_equal(result.c.no_db(), o.c.no_db())
+    testing.assert_equal(result.b.a.no_db(), o.b.a.no_db())
+    testing.assert_equal(result.get_schema().no_db(), schema_constants.OBJECT)
+    testing.assert_equal(
+        result.b.get_schema().no_db(), o.b.get_schema().no_db()
+    )
+
   def test_call(self):
     with self.assertRaisesRegex(
         TypeError, "'data_slice.DataSlice' object is not callable"

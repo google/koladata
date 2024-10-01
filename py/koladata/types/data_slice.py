@@ -190,6 +190,16 @@ def _follow(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.follow, self)
 
 
+@DataSlice.add_method('clone')
+def _clone(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.clone, self, schema)
+
+
+@DataSlice.add_method('extract')
+def _extract(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.extract, self, schema)
+
+
 # TODO: Replace with a more complex conversion to Python.
 @DataSlice.add_method('to_py')
 def _to_py(self) -> DataSlice:
