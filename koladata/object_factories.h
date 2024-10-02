@@ -121,10 +121,15 @@ struct EntityCreator {
       bool update_schema = false,
       const std::optional<DataSlice>& itemid = std::nullopt);
 
-  // Assigns DataBag `db` to `value`.
+  // This method, together with ObjectCreator::Convert provides a uniform method
+  // for adapting DataSlices for usage in converting complex Python structures
+  // to Koda structure.
+  //
+  // In case of Entities, it does an Entity-compatible adaption (i.e. no-op) of
+  // a DataSlice.
   static absl::StatusOr<DataSlice> Convert(const DataBagPtr& db,
                                            const DataSlice& value) {
-    return value.WithDb(db);
+    return value;
   }
 };
 
@@ -199,10 +204,12 @@ struct ObjectCreator {
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& itemid = std::nullopt);
 
-  // Convert a DataSlice into an Object. If DataSlice is primitive or an entity,
-  // it converts it into an Object. If it is already an Object, it returns this
-  // DataSlice. Otherwise, returns an appropriate error.
-  // NOTE: Adoption of `value.GetDb()` is the caller's responsibility.
+  // This method, together with EntityCreator::Convert provides a uniform method
+  // for adapting DataSlices for usage in converting complex Python structures
+  // to Koda structure.
+  //
+  // Converts DataSlices with non-primitive schemas to `OBJECT`. Keeps `OBJECT`s
+  // unchanged.
   static absl::StatusOr<DataSlice> Convert(const DataBagPtr& db,
                                            const DataSlice& value);
 };

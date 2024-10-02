@@ -813,10 +813,13 @@ absl::StatusOr<DataSlice> ObjectCreator::Like(
 
 absl::StatusOr<DataSlice> ObjectCreator::Convert(const DataBagPtr& db,
                                                  const DataSlice& value) {
-  if (value.GetSchemaImpl() == schema::kObject) {
-    return value.WithDb(db);
+  if (!value.GetSchemaImpl().is_primitive_schema() &&
+      // TODO: NONE schema is a primitive schema.
+      value.GetSchemaImpl() != schema::kNone &&
+      value.GetSchemaImpl() != schema::kObject) {
+    return value.WithDb(db).EmbedSchema();
   }
-  return value.WithDb(db).EmbedSchema();
+  return value;
 }
 
 absl::StatusOr<DataSlice> CreateUuidFromFields(

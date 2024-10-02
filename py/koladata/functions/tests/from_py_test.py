@@ -100,9 +100,9 @@ class FromPyTest(absltest.TestCase):
 
   def test_primitive(self):
     item = fns.from_py(42)
-    testing.assert_equal(item.no_db(), ds(42, schema_constants.OBJECT))
+    testing.assert_equal(item, ds(42))
     item = fns.from_py(42, schema=schema_constants.FLOAT32)
-    testing.assert_equal(item.no_db(), ds(42.))
+    testing.assert_equal(item, ds(42.))
 
   def test_primitive_casting_error(self):
     with self.assertRaisesRegex(ValueError, 'cannot cast BYTES to FLOAT32'):
@@ -110,14 +110,30 @@ class FromPyTest(absltest.TestCase):
 
   def test_none(self):
     item = fns.from_py(None)
-    testing.assert_equal(item.no_db(), ds(None, schema_constants.OBJECT))
+    testing.assert_equal(item, ds(None))
     item = fns.from_py(None, schema=schema_constants.FLOAT32)
-    testing.assert_equal(item.no_db(), ds(None, schema_constants.FLOAT32))
+    testing.assert_equal(item, ds(None, schema_constants.FLOAT32))
     schema = fns.new_schema(
         a=schema_constants.TEXT, b=fns.list_schema(schema_constants.INT32)
     )
     item = fns.from_py(None, schema=schema)
-    testing.assert_equal(item.no_db(), ds(None).with_schema(schema.no_db()))
+    testing.assert_equal(item, ds(None).with_schema(schema.no_db()))
+
+  def test_obj_reference(self):
+    obj = fns.obj()
+    item = fns.from_py(obj.ref())
+    testing.assert_equal(item, obj.no_db())
+
+  def test_entity_reference(self):
+    entity = fns.new()
+    item = fns.from_py(entity.ref())
+    self.assertIsNotNone(item.db)
+    testing.assert_equal(
+        item.get_attr('__schema__').no_db(), entity.get_schema().no_db()
+    )
+    testing.assert_equal(
+        item.with_schema(entity.get_schema().no_db()).no_db(), entity.no_db()
+    )
 
   def test_dict_as_obj_object(self):
     obj = fns.from_py(

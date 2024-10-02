@@ -189,7 +189,7 @@ struct EntityCreatorHelper {
       const DataBagPtr& db, AdoptionQueue& adoption_queue) {
     ASSIGN_OR_RETURN(DataSlice res, EntitiesFromPyObject(py_obj, schema_arg, db,
                                                          adoption_queue));
-    return res;
+    return res.WithDb(db);
   }
 };
 
@@ -255,7 +255,7 @@ struct ObjectCreatorHelper {
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     ASSIGN_OR_RETURN(DataSlice res,
                      ObjectsFromPyObject(py_obj, db, adoption_queue));
-    return res;
+    return res.WithDb(db).WithSchema(internal::DataItem(schema::kObject));
   }
 };
 
