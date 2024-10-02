@@ -22,9 +22,11 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 
 I = input_container.InputContainer('I')
@@ -119,6 +121,20 @@ class PyApplyPyTest(parameterized.TestCase):
         ),
     ):
       expr_eval.eval(kde.py.apply_py(lambda: arolla.tuple(1)))
+
+  def test_explicit_return_type(self):
+    testing.assert_equal(
+        expr_eval.eval(
+            kde.py.apply_py(
+                lambda: arolla.tuple(1), return_type_as=arolla.tuple(2)
+            )
+        ),
+        arolla.tuple(1),
+    )
+    res = expr_eval.eval(
+        kde.py.apply_py(lambda: fns.bag(), return_type_as=data_bag.DataBag)  # pylint: disable=unnecessary-lambda
+    )
+    self.assertIsInstance(res, data_bag.DataBag)
 
   # Note: We cannot test the qtype signatures of this operator
   # because it accepts any values as inputs.

@@ -17,6 +17,7 @@
 import re
 
 from absl.testing import absltest
+from arolla import arolla
 from koladata import kd as user_facing_kd
 from koladata.expr import expr_eval
 from koladata.expr import input_container
@@ -28,6 +29,7 @@ from koladata.functor import signature_utils
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import schema_constants
@@ -406,6 +408,24 @@ class FunctorFactoriesTest(absltest.TestCase):
 
     testing.assert_equal(kd.call(functor_factories.py_fn(list_default)), ds(2))
 
+  def test_py_fn_explicit_return_type(self):
+    testing.assert_equal(
+        kd.call(
+            functor_factories.py_fn(
+                lambda: arolla.tuple(1), return_type_as=arolla.tuple(2)
+            ),
+            return_type_as=arolla.tuple(2),
+        ),
+        arolla.tuple(1),
+    )
+    res = kd.call(
+        functor_factories.py_fn(
+            lambda: fns.bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda
+        ),
+        return_type_as=data_bag.DataBag,
+    )
+    self.assertIsInstance(res, data_bag.DataBag)
+
   def test_bind_full_params(self):
     fn = functor_factories.fn(I.x + I.y)
     f = functor_factories.bind(fn, x=0, y=1)
@@ -513,6 +533,23 @@ class FunctorFactoriesTest(absltest.TestCase):
         'got multiple values for argument',
     ):
       _ = f(1)
+
+  def test_bind_explicit_return_type(self):
+    example_tuple = arolla.tuple(ds(0), ds(0))
+    fn = functor_factories.py_fn(
+        lambda x: arolla.tuple(x, x), return_type_as=example_tuple
+    )
+    f = functor_factories.bind(fn, return_type_as=example_tuple, x=2)
+    testing.assert_equal(
+        f(return_type_as=example_tuple),
+        arolla.tuple(ds(2).with_db(f.db), ds(2).with_db(f.db)),
+    )
+    fn = functor_factories.py_fn(
+        lambda x: fns.bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda
+    )
+    f = functor_factories.bind(fn, return_type_as=data_bag.DataBag, x=2)
+    res = f(return_type_as=data_bag.DataBag)
+    self.assertIsInstance(res, data_bag.DataBag)
 
   def test_as_fn_expr(self):
     testing.assert_equal(

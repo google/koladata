@@ -213,7 +213,12 @@ def trace_py_fn(
   return bind(f, **defaults) if defaults else f
 
 
-def py_fn(f: Callable[..., Any], **defaults: Any) -> data_slice.DataSlice:
+def py_fn(
+    f: Callable[..., Any],
+    *,
+    return_type_as: Any = data_slice.DataSlice,
+    **defaults: Any,
+) -> data_slice.DataSlice:
   """Returns a Koda functor wrapping a python function.
 
   This is the most flexible way to wrap a python function and is recommended
@@ -231,6 +236,11 @@ def py_fn(f: Callable[..., Any], **defaults: Any) -> data_slice.DataSlice:
     f: Python function. It is required that this function returns a
       DataSlice/DataItem or a primitive that will be automatically wrapped into
       a DataItem.
+    return_type_as: The return type of the function is expected to be the same
+      as the type of this value. This needs to be specified if the function does
+      not return a DataSlice/DataItem or a primitive that would be auto-boxed
+      into a DataItem. kd.types.DataSlice and kd.types.DataBag can also be
+      passed here.
     **defaults: Keyword defaults to bind to the function. The values in this map
       may be Koda expressions or DataItems (see docstring for kdf.bind for more
       details). Defaults can be overridden through kd.call arguments. **defaults
@@ -248,6 +258,7 @@ def py_fn(f: Callable[..., Any], **defaults: Any) -> data_slice.DataSlice:
           'kde.py.apply_py',
           py_boxing.as_qvalue(f),
           args=I.args,
+          return_type_as=py_boxing.as_qvalue(return_type_as),
           kwargs=I.kwargs,
       ),
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
@@ -256,7 +267,11 @@ def py_fn(f: Callable[..., Any], **defaults: Any) -> data_slice.DataSlice:
 
 
 def bind(
-    fn_def: data_slice.DataSlice, /, **kwargs: Any
+    fn_def: data_slice.DataSlice,
+    /,
+    *,
+    return_type_as: Any = data_slice.DataSlice,
+    **kwargs: Any,
 ) -> data_slice.DataSlice:
   """Returns a Koda functor that partially binds a function to `kwargs`.
 
@@ -282,6 +297,10 @@ def bind(
 
   Args:
     fn_def: A Koda functor.
+    return_type_as: The return type of the functor is expected to be the same as
+      the type of this value. This needs to be specified if the functor does not
+      return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
+      passed here.
     **kwargs: Partial parameter binding. The values in this map may be Koda
       expressions or DataItems. When they are expressions, they must evaluate to
       a DataSlice/DataItem or a primitive that will be automatically wrapped
@@ -327,7 +346,7 @@ def bind(
           'kde.functor.call',
           V['_aux_fn'],
           args=I.args,
-          return_type_as=py_boxing.as_qvalue(data_slice.DataSlice),
+          return_type_as=py_boxing.as_qvalue(return_type_as),
           kwargs=arolla.M.namedtuple.union(
               arolla.M.namedtuple.make(**{k: V[k] for k in kwargs}), I.kwargs
           ),

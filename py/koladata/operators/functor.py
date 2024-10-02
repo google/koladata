@@ -47,7 +47,7 @@ def call(
     args=py_boxing.var_positional(),
     return_type_as=py_boxing.keyword_only(data_slice.DataSlice),
     kwargs=py_boxing.var_keyword(),
-):  # pylint: disable=unused-argument
+):
   """Calls a functor.
 
   See the docstring of `kdf.fn` on how to create a functor.

@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_item
+from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
@@ -73,7 +74,10 @@ def _expect_optional_py_callable(param):
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def apply_py(
-    fn, args=py_boxing.var_positional(), kwargs=py_boxing.var_keyword()
+    fn,
+    args=py_boxing.var_positional(),
+    return_type_as=py_boxing.keyword_only(data_slice.DataSlice),
+    kwargs=py_boxing.var_keyword(),
 ):
   # pylint: disable=g-doc-args  # *args, **kwargs
   """Applies Python function `fn` on args.
@@ -85,6 +89,12 @@ def apply_py(
       function returns a DataSlice/DataItem or a primitive that will be
       automatically wrapped into a DataItem.
     *args: positional arguments to pass to `fn`.
+    return_type_as: The return type of the function is expected to be the same
+      as the return type of this expression. In most cases, this will be a
+      literal of the corresponding type. This needs to be specified if the
+      function does not return a DataSlice/DataItem or a primitive that would be
+      auto-boxed into a DataItem. kd.types.DataSlice and kd.types.DataBag can
+      also be passed here.
     **kwargs: keyword arguments to pass to `fn`.
 
   Returns:
@@ -93,13 +103,14 @@ def apply_py(
 
   @arolla.optools.as_py_function_operator(
       'kde.py.apply_py._impl',
-      qtype_inference_expr=qtypes.DATA_SLICE,
+      qtype_inference_expr=P.return_type_as,
   )
-  def impl(fn, args, kwargs):
+  def impl(fn, args, return_type_as, kwargs):
+    del return_type_as  # Only used for type inference.
     fn = fn.py_value()
     return py_boxing.as_qvalue(fn(*args, **kwargs.as_dict()))
 
-  return impl(fn, args, kwargs)
+  return impl(fn, args, return_type_as, kwargs)
 
 
 @optools.add_to_registry(aliases=['kde.apply_py_on_cond'])
