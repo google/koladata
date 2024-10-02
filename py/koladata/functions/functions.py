@@ -72,6 +72,7 @@ is_slice = _predicates.is_slice
 
 from_py = _py_conversions.from_py
 from_pytree = _py_conversions.from_py
+to_pylist = _py_conversions.to_pylist
 
 to_str = _py_conversions.to_str
 to_repr = _py_conversions.to_repr

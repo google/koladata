@@ -74,3 +74,8 @@ def to_str(x: data_slice.DataSlice) -> data_slice.DataSlice:
 def to_repr(x: data_slice.DataSlice) -> data_slice.DataSlice:
   """Converts given DataSlice to string using repr(x)."""
   return ds(repr(x))
+
+
+def to_pylist(x: data_slice.DataSlice) -> list[Any]:
+  """Expands the outermost DataSlice dimension into a list of DataSlices."""
+  return list(x.L)

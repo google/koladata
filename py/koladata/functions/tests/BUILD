@@ -509,6 +509,20 @@ py_test(
 )
 
 py_test(
+    name = "to_pylist_test",
+    srcs = ["to_pylist_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "empty_shaped_test",
     srcs = ["empty_shaped_test.py"],
     deps = [
