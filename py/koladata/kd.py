@@ -25,6 +25,7 @@ from koladata.expr import introspection as _introspection
 from koladata.expr import tracing_mode as _tracing_mode
 from koladata.fstring import fstring as _fstring
 from koladata.functions import functions as _functions
+from koladata.functor import functor_factories as _functor_factories
 from koladata.functor import kdf as _kdf
 from koladata.functor import tracing_decorator as _tracing_decorator
 from koladata.operators import eager_op_utils as _eager_op_utils
@@ -143,6 +144,7 @@ with_name = _dispatch(
     eager=_general_eager_ops.with_name, tracing=_kde_operators.kde.with_name
 )
 trace_as_fn = _eager_only(_tracing_decorator.TraceAsFnDecorator)
+is_fn = _eager_only(_functor_factories.is_fn)
 
 
 ### Koda constants.

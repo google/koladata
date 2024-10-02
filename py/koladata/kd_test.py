@@ -202,6 +202,16 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.is_packed_expr(kd.slice(1)), kd.missing)
     kd.testing.assert_equal(kd.is_packed_expr(I.x + I.y), kd.missing)
 
+  def test_is_fn(self):
+    fn = kdf.fn(57, signature=signature_utils.signature([]))
+    self.assertTrue(kd.is_fn(fn))
+    self.assertEqual(kd.is_fn(fn).get_schema(), schema_constants.MASK)
+    del fn.returns
+    self.assertFalse(kd.is_fn(fn))
+    self.assertEqual(kd.is_fn(fn).get_schema(), schema_constants.MASK)
+    self.assertFalse(kd.is_fn(57))
+    self.assertFalse(kd.is_fn(I.x))
+
   def test_as_expr(self):
     kd.testing.assert_equal(kd.as_expr(1), kd.literal(kd.slice(1)))
     kd.testing.assert_equal(kd.as_expr(I.x), I.x)

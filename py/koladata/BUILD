@@ -40,6 +40,7 @@ py_library(
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/functions",
+        "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:kdf",
         "//py/koladata/functor:tracing_decorator",
         "//py/koladata/operators:eager_op_utils",

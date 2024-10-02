@@ -160,6 +160,7 @@ py_test(
     name = "kdf_test",
     srcs = ["kdf_test.py"],
     deps = [
+        ":functor_factories",
         ":kdf",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",

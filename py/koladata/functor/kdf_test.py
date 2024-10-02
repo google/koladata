@@ -18,6 +18,7 @@ from absl.testing import absltest
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import view as _
+from koladata.functor import functor_factories
 from koladata.functor import kdf
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -35,8 +36,8 @@ class KdfTest(absltest.TestCase):
     fn = kdf.fn(returns=I.x + V.foo, foo=I.y)
     testing.assert_equal(kdf.call(fn, x=1, y=2), ds(3))
     testing.assert_equal(fn(x=1, y=2), ds(3))
-    self.assertTrue(kdf.is_fn(fn))
-    self.assertFalse(kdf.is_fn(57))
+    self.assertTrue(functor_factories.is_fn(fn))
+    self.assertFalse(functor_factories.is_fn(57))
 
   def test_factorial(self):
     fn = kdf.fn(
