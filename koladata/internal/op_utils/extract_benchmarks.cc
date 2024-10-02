@@ -71,7 +71,8 @@ void RunBenchmarks(benchmark::State& state, DataSliceImpl& ds, DataItem& schema,
     benchmark::DoNotOptimize(databag);
     benchmark::DoNotOptimize(fallbacks);
     auto result_db = DataBagImpl::CreateEmptyDatabag();
-    ExtractOp(result_db.get())(ds, schema, *databag, fallbacks).IgnoreError();
+    ExtractOp(result_db.get())(ds, schema, *databag, fallbacks, nullptr, {})
+        .IgnoreError();
     benchmark::DoNotOptimize(result_db);
   }
 }

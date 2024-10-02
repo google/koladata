@@ -154,7 +154,7 @@ TEST_P(ShallowCloneTest, ShallowEntitySlice) {
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
       ShallowCloneOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
-                                      {GetFallbackDb(db).get()}));
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   ASSERT_EQ(result_schema, schema);
@@ -193,9 +193,8 @@ TEST_P(ShallowCloneTest, DeepEntitySlice) {
                            {b0, {{"self", b0}}},
                            {b1, {{"self", b1}}},
                            {b2, {{"self", b2}}}};
-  TriplesT schema_triples = {
-      {schema_a, {{"self", schema_a}, {"b", schema_b}}},
-      {schema_b, {{"self", schema_b}}}};
+  TriplesT schema_triples = {{schema_a, {{"self", schema_a}, {"b", schema_b}}},
+                             {schema_b, {{"self", schema_b}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -205,7 +204,7 @@ TEST_P(ShallowCloneTest, DeepEntitySlice) {
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
       ShallowCloneOp(result_db.get())(ds, schema_a, *GetMainDb(db),
-                                      {GetFallbackDb(db).get()}));
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   EXPECT_EQ(result_schema, schema_a);
@@ -214,9 +213,9 @@ TEST_P(ShallowCloneTest, DeepEntitySlice) {
   EXPECT_NE(result_slice[2], a2);
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   TriplesT expected_data_triples = {
-    {result_slice[0], {{"self", a0}, {"b", b0}}},
-    {result_slice[1], {{"self", a1}, {"b", b1}}},
-    {result_slice[2], {{"self", a2}, {"b", b2}}},
+      {result_slice[0], {{"self", a0}, {"b", b0}}},
+      {result_slice[1], {{"self", a1}, {"b", b1}}},
+      {result_slice[2], {{"self", a2}, {"b", b2}}},
   };
   TriplesT expected_schema_triples = {
       {result_schema, {{"self", schema_a}, {"b", schema_b}}}};
@@ -246,7 +245,7 @@ TEST_P(ShallowCloneTest, ShallowListsSlice) {
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
       ShallowCloneOp(result_db.get())(lists, list_schema, *GetMainDb(db),
-                                      {GetFallbackDb(db).get()}));
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   EXPECT_EQ(result_schema, list_schema);
@@ -275,13 +274,11 @@ TEST_P(ShallowCloneTest, DeepListsSlice) {
   ASSERT_OK(db->ExtendLists(lists, values, edge));
   auto item_schema = AllocateSchema();
   auto list_schema = AllocateSchema();
-  TriplesT data_triples = {{values[0], {{"x", DataItem(1)}}},
-                           {values[1], {{"x", DataItem(2)}}},
-                           {values[2], {{"x", DataItem(3)}}},
-                           {values[3], {{"x", DataItem(4)}}},
-                           {values[4], {{"x", DataItem(5)}}},
-                           {values[5], {{"x", DataItem(6)}}},
-                           {values[6], {{"x", DataItem(7)}}}};
+  TriplesT data_triples = {
+      {values[0], {{"x", DataItem(1)}}}, {values[1], {{"x", DataItem(2)}}},
+      {values[2], {{"x", DataItem(3)}}}, {values[3], {{"x", DataItem(4)}}},
+      {values[4], {{"x", DataItem(5)}}}, {values[5], {{"x", DataItem(6)}}},
+      {values[6], {{"x", DataItem(7)}}}};
   TriplesT schema_triples = {
       {list_schema, {{schema::kListItemsSchemaAttr, item_schema}}},
       {item_schema, {{"x", DataItem(schema::kInt32)}}}};
@@ -294,7 +291,7 @@ TEST_P(ShallowCloneTest, DeepListsSlice) {
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
       ShallowCloneOp(result_db.get())(lists, list_schema, *GetMainDb(db),
-                                      {GetFallbackDb(db).get()}));
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   EXPECT_EQ(result_schema, list_schema);
@@ -306,8 +303,7 @@ TEST_P(ShallowCloneTest, DeepListsSlice) {
   EXPECT_TRUE(result_slice[2].is_list());
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   TriplesT expected_schema_triples = {
-      {result_schema,
-       {{schema::kListItemsSchemaAttr, item_schema}}}};
+      {result_schema, {{schema::kListItemsSchemaAttr, item_schema}}}};
   ASSERT_OK(expected_db->ExtendLists(result_slice, values, edge));
   SetSchemaTriples(*expected_db, expected_schema_triples);
   ASSERT_NE(result_db.get(), db.get());
@@ -337,7 +333,7 @@ TEST_P(ShallowCloneTest, ShallowDictsSlice) {
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
       ShallowCloneOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
-                                      {GetFallbackDb(db).get()}));
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   EXPECT_EQ(result_schema, dict_schema);
@@ -399,7 +395,7 @@ TEST_P(ShallowCloneTest, DeepDictsSlice) {
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
       ShallowCloneOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
-                                      {GetFallbackDb(db).get()}));
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   EXPECT_EQ(result_schema, dict_schema);
@@ -484,7 +480,7 @@ TEST_P(ShallowCloneTest, ObjectsSlice) {
   ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
                        ShallowCloneOp(result_db.get())(
                            ds, DataItem(schema::kObject), *GetMainDb(db),
-                           {GetFallbackDb(db).get()}));
+                           {GetFallbackDb(db).get()}, nullptr, {}));
 
   auto result_a0 = result_slice[0];
   auto result_a1 = result_slice[1];
@@ -530,8 +526,8 @@ TEST_P(ShallowCloneTest, SchemaSlice) {
   auto s1 = AllocateSchema();
   auto s2 = AllocateSchema();
   TriplesT schema_triples = {
-    {s1, {{"x", DataItem(schema::kInt32)}}},
-    {s2, {{"a", DataItem(schema::kText)}}},
+      {s1, {{"x", DataItem(schema::kInt32)}}},
+      {s2, {{"a", DataItem(schema::kText)}}},
   };
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -542,15 +538,15 @@ TEST_P(ShallowCloneTest, SchemaSlice) {
   ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
                        ShallowCloneOp(result_db.get())(
                            ds, DataItem(schema::kSchema), *GetMainDb(db),
-                           {GetFallbackDb(db).get()}));
+                           {GetFallbackDb(db).get()}, nullptr, {}));
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_NE(result_slice[0], s1);
   EXPECT_NE(result_slice[1], s2);
   TriplesT expected_schema_triples = {
-    {result_slice[0], {{"x", DataItem(schema::kInt32)}}},
-    {result_slice[1], {{"a", DataItem(schema::kText)}}},
+      {result_slice[0], {{"x", DataItem(schema::kInt32)}}},
+      {result_slice[1], {{"a", DataItem(schema::kText)}}},
   };
   SetSchemaTriples(*expected_db, expected_schema_triples);
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -563,8 +559,8 @@ TEST_P(ShallowCloneTest, SchemaUuidSlice) {
   auto s2 = DataItem(CreateUuidExplicitSchema(
       arolla::FingerprintHasher("").Combine(43).Finish()));
   TriplesT schema_triples = {
-    {s1, {{"x", DataItem(schema::kInt32)}}},
-    {s2, {{"a", DataItem(schema::kText)}}},
+      {s1, {{"x", DataItem(schema::kInt32)}}},
+      {s2, {{"a", DataItem(schema::kText)}}},
   };
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -579,7 +575,7 @@ TEST_P(ShallowCloneTest, SchemaUuidSlice) {
   ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
                        ShallowCloneOp(result_db.get())(
                            ds, DataItem(schema::kSchema), *GetMainDb(db),
-                           {GetFallbackDb(db).get()}));
+                           {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -610,7 +606,7 @@ TEST_P(ExtractTest, DataSliceEntity) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -639,7 +635,7 @@ TEST_P(ExtractTest, DataSliceObjectIds) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -675,7 +671,7 @@ TEST_P(ExtractTest, DataSliceObjectSchema) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(DataItem(a0), obj_dtype, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -703,7 +699,7 @@ TEST_P(ExtractTest, DataSliceListsPrimitives) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(lists, list_schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -750,7 +746,7 @@ TEST_P(ExtractTest, DataSliceListsObjectIds) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(lists, list_schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -801,7 +797,7 @@ TEST_P(ExtractTest, DataSliceListsObjectIdsObjectSchema) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(lists, list_schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -832,7 +828,7 @@ TEST_P(ExtractTest, DataSliceDictsPrimitives) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -887,7 +883,7 @@ TEST_P(ExtractTest, DataSliceDictsObjectIds) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -946,7 +942,7 @@ TEST_P(ExtractTest, DataSliceDictsObjectIdsObjectSchema) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -990,7 +986,7 @@ TEST_P(ExtractTest, DataSliceDicts_LoopSchema) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(dicts[0], dict_schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1014,7 +1010,7 @@ TEST_P(ExtractTest, DataSliceDicts_LoopSchema_NoData) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(DataItem(), dict_schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1039,7 +1035,7 @@ TEST_P(ExtractTest, DataSliceLists_LoopSchema) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(lists[0], list_schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1055,7 +1051,7 @@ TEST_P(ExtractTest, DataSliceDicts_InvalidSchema_MissingKeys) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
       ExtractOp(result_db.get())(DataItem(), dict_schema, *GetMainDb(db),
-                                 {GetFallbackDb(db).get()}),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           ::testing::AllOf(::testing::HasSubstr("dict schema"),
@@ -1074,7 +1070,7 @@ TEST_P(ExtractTest, DataSliceDicts_InvalidSchema_MissingValues) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
       ExtractOp(result_db.get())(DataItem(), dict_schema, *GetMainDb(db),
-                                 {GetFallbackDb(db).get()}),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           ::testing::AllOf(::testing::HasSubstr("dict schema"),
@@ -1094,7 +1090,7 @@ TEST_P(ExtractTest, DataSliceLists_InvalidSchema) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
       ExtractOp(result_db.get())(DataItem(), list_schema, *GetMainDb(db),
-                                 {GetFallbackDb(db).get()}),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           ::testing::AllOf(::testing::HasSubstr("list schema"),
@@ -1112,7 +1108,7 @@ TEST_P(ExtractTest, DataSliceDicts_InvalidSchema_UnexpectedAttr) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
       ExtractOp(result_db.get())(DataItem(), dict_schema, *GetMainDb(db),
-                                 {GetFallbackDb(db).get()}),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           ::testing::AllOf(::testing::HasSubstr("dict schema"),
@@ -1125,7 +1121,7 @@ TEST_P(ExtractTest, DataSliceDicts_InvalidSchema_UnexpectedAttr) {
 
   EXPECT_THAT(
       ExtractOp(result_db.get())(DataItem(), dict_schema, *GetMainDb(db),
-                                 {GetFallbackDb(db).get()}),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           ::testing::AllOf(::testing::HasSubstr("dict schema"),
@@ -1151,7 +1147,7 @@ TEST_P(ExtractTest, ExtractSchemaForEmptySlice) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema1, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1180,7 +1176,7 @@ TEST_P(ExtractTest, RecursiveSchema) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1216,7 +1212,7 @@ TEST_P(ExtractTest, MixedObjectsSlice) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1253,7 +1249,7 @@ TEST_P(ExtractTest, PartialSchema) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(a1, schema, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1299,7 +1295,8 @@ TEST_P(ExtractTest, PartialSchemaWithDifferentDataBag) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(
       a1, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-      *GetMainDb(schema_db), {GetFallbackDb(schema_db).get()}));
+      &*GetMainDb(schema_db),
+      DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1342,7 +1339,8 @@ TEST_P(ExtractTest, MergeSchemaFromTwoDatabags) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(
       a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-      *GetMainDb(schema_db), {GetFallbackDb(schema_db).get()}));
+      &*GetMainDb(schema_db),
+      DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1377,7 +1375,8 @@ TEST_P(ExtractTest, ConflictingSchemasInTwoDatabags) {
   EXPECT_THAT(
       ExtractOp(result_db.get())(
           a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-          *GetMainDb(schema_db), {GetFallbackDb(schema_db).get()}),
+          &*GetMainDb(schema_db),
+          DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})),
       StatusIs(absl::StatusCode::kInvalidArgument,
                ::testing::AllOf(
                    ::testing::HasSubstr("conflicting values for schema"),
@@ -1422,7 +1421,7 @@ TEST_P(ExtractTest, NoFollowEntitySchema) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(a1, schema1, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1467,7 +1466,7 @@ TEST_P(ExtractTest, NoFollowObjectSchema) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(DataItem(a0), obj_dtype, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1498,7 +1497,7 @@ TEST_P(ExtractTest, SchemaAsData) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(
       DataSliceImpl::Create(CreateDenseArray<DataItem>({a0, a1, schema})),
-      obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}));
+      obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1524,7 +1523,7 @@ TEST_P(ExtractTest, SchemaSlice) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(ds, DataItem(schema::kSchema),
                                        *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}));
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1536,11 +1535,12 @@ TEST_P(ExtractTest, ObjectSchemaMissing) {
   auto schema = DataItem(schema::kObject);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
-                                         {GetFallbackDb(db).get()}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       ::testing::AllOf(
-                           ::testing::HasSubstr("object"),
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          ::testing::AllOf(::testing::HasSubstr("object"),
                            ::testing::HasSubstr("is expected to have a schema "
                                                 "in __schema__ attribute"))));
 }
@@ -1551,9 +1551,10 @@ TEST_P(ExtractTest, InvalidSchemaType) {
   auto schema = DataItem(1);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
-                                         {GetFallbackDb(db).get()}),
-              StatusIs(absl::StatusCode::kInternal, "unsupported schema type"));
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(absl::StatusCode::kInternal, "unsupported schema type"));
 }
 
 TEST_P(ExtractTest, AnySchemaType) {
@@ -1562,10 +1563,11 @@ TEST_P(ExtractTest, AnySchemaType) {
   auto schema = DataItem(schema::kAny);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
-                                         {GetFallbackDb(db).get()}),
-              StatusIs(absl::StatusCode::kInternal,
-                       "clone/extract not supported for kAny schema"));
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(absl::StatusCode::kInternal,
+               "clone/extract not supported for kAny schema"));
 }
 
 TEST_P(ExtractTest, AnySchemaTypeInside) {
@@ -1580,10 +1582,11 @@ TEST_P(ExtractTest, AnySchemaTypeInside) {
   SetSchemaTriples(*db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(ExtractOp(result_db.get())(a0, schema1, *GetMainDb(db),
-                                         {GetFallbackDb(db).get()}),
-              StatusIs(absl::StatusCode::kInternal,
-                       "clone/extract not supported for kAny schema"));
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(a0, schema1, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(absl::StatusCode::kInternal,
+               "clone/extract not supported for kAny schema"));
 }
 
 }  // namespace

@@ -13,11 +13,14 @@
 // limitations under the License.
 //
 #include "koladata/extract_utils.h"
+#include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "arolla/util/status_macros_backport.h"
@@ -40,16 +43,16 @@ absl::StatusOr<DataSlice> ExtractWithSchema(const DataSlice& ds,
     auto result_db = DataBag::Empty();
     ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
     internal::ExtractOp extract_op(&result_db_impl.get());
-    if (schema_db == nullptr || schema_db == db) {
-      RETURN_IF_ERROR(
-          extract_op(impl, schema_impl, db->GetImpl(), fallbacks_span));
-    } else {
+    absl::Nullable<const internal::DataBagImpl*> schema_db_impl = nullptr;
+    internal::DataBagImpl::FallbackSpan schema_fallbacks;
+    if (schema_db != nullptr && schema_db != db) {
+      schema_db_impl = &(schema_db->GetImpl());
       FlattenFallbackFinder schema_fb_finder(*schema_db);
-      auto schema_fallbacks_span = schema_fb_finder.GetFlattenFallbacks();
-      RETURN_IF_ERROR(extract_op(impl, schema_impl, db->GetImpl(),
-                                 fallbacks_span, schema_db->GetImpl(),
-                                 schema_fallbacks_span));
+      schema_fallbacks = schema_fb_finder.GetFlattenFallbacks();
     }
+    RETURN_IF_ERROR(extract_op(impl, schema_impl, db->GetImpl(),
+                                std::move(fallbacks_span), schema_db_impl,
+                                std::move(schema_fallbacks)));
     return DataSlice::Create(impl, ds.GetShape(), schema_impl, result_db);
   });
 }
