@@ -35,6 +35,7 @@ from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _dict_item
 from koladata.types import general_eager_ops as _general_eager_ops
+from koladata.types import jagged_shape as _jagged_shape
 from koladata.types import list_item as _list_item
 from koladata.types import literal_operator as _literal_operator
 from koladata.types import mask_constants as _mask_constants
@@ -76,6 +77,7 @@ types.DataItem = _data_item.DataItem
 types.DataSlice = _data_slice.DataSlice
 types.ListItem = _list_item.ListItem
 types.DictItem = _dict_item.DictItem
+types.JaggedShape = _jagged_shape.JaggedShape
 types.SchemaItem = _schema_item.SchemaItem
 
 exceptions = _eager_only(_py_types.ModuleType('exceptions'))

@@ -2495,6 +2495,30 @@ class DataSliceFallbackTest(parameterized.TestCase):
     self.assertFalse(ds([1]).is_empty())
     self.assertFalse(ds([1, None]).is_empty())
 
+  def test_contains_only_dicts(self):
+    b = bag()
+    self.assertTrue(b.obj(b.dict()).contains_only_dicts())
+    self.assertFalse(b.obj(b.list()).contains_only_dicts())
+    self.assertFalse(b.obj(x=b.dict()).contains_only_dicts())
+    self.assertTrue(
+        ds([b.obj(b.dict()), b.obj(b.dict())]).contains_only_dicts()
+    )
+    self.assertFalse(
+        ds([b.obj(b.list()), b.obj(b.dict())]).contains_only_dicts()
+    )
+
+  def test_contains_only_lists(self):
+    b = bag()
+    self.assertTrue(b.obj(b.list()).contains_only_lists())
+    self.assertFalse(b.obj(b.dict()).contains_only_lists())
+    self.assertFalse(b.obj(x=b.list()).contains_only_lists())
+    self.assertTrue(
+        ds([b.obj(b.list()), b.obj(b.list())]).contains_only_lists()
+    )
+    self.assertFalse(
+        ds([b.obj(b.list()), b.obj(b.dict())]).contains_only_lists()
+    )
+
 
 class DataSliceListSlicingTest(parameterized.TestCase):
 

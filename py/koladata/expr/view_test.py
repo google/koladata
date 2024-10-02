@@ -569,7 +569,10 @@ class DataSliceViewTest(parameterized.TestCase):
     skipped_data_slice_attrs = {
         # TODO: Add the following as operators.
         # go/keep-sorted start
+        'contains_only_dicts',
+        'contains_only_lists',
         'is_dict_schema',
+        'is_entity_schema',
         'is_list_schema',
         'is_primitive_schema',
         'with_fallback',

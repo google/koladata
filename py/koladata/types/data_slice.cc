@@ -529,11 +529,32 @@ absl::Nullable<PyObject*> PyDataSlice_is_list_schema(PyObject* self,
   return WrapPyDataSlice(AsMask(ds.IsListSchema()));
 }
 
+absl::Nullable<PyObject*> PyDataSlice_is_entity_schema(PyObject* self,
+                                                       PyObject*) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  return WrapPyDataSlice(AsMask(ds.IsEntitySchema()));
+}
+
 absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self,
                                                      PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsDictSchema()));
+}
+
+absl::Nullable<PyObject*> PyDataSlice_contains_only_dicts(PyObject* self,
+                                                          PyObject*) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  return WrapPyDataSlice(AsMask(ds.ContainsOnlyDicts()));
+}
+
+absl::Nullable<PyObject*> PyDataSlice_contains_only_lists(PyObject* self,
+                                                          PyObject*) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  return WrapPyDataSlice(AsMask(ds.ContainsOnlyLists()));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_is_primitive_schema(PyObject* self,
@@ -704,6 +725,18 @@ Returns:
      "Returns a schema slice with type information about this DataSlice."},
     {"is_list_schema", PyDataSlice_is_list_schema, METH_NOARGS,
      "Returns present iff this DataSlice is a List Schema."},
+    {"is_entity_schema", PyDataSlice_is_entity_schema, METH_NOARGS,
+     R"""(Returns present iff this DataSlice represents an Entity Schema.
+
+Note that the Entity schema includes List and Dict schemas.
+
+Returns:
+  Present iff this DataSlice represents an Entity Schema.
+     )"""},
+    {"contains_only_dicts", PyDataSlice_contains_only_dicts, METH_NOARGS,
+     "Returns present iff this DataSlice contains only dicts."},
+    {"contains_only_lists", PyDataSlice_contains_only_lists, METH_NOARGS,
+     "Returns present iff this DataSlice contains only lists."},
     {"is_dict_schema", PyDataSlice_is_dict_schema, METH_NOARGS,
      "Returns present iff this DataSlice is a Dict Schema."},
     {"is_primitive_schema", PyDataSlice_is_primitive_schema, METH_NOARGS,
@@ -778,8 +811,7 @@ Args:
     {"__format__", (PyCFunction)PyDataSlice_format, METH_O,
      "Returns a format representation with a special support for non empty "
      "specification.\n\nDataSlice will be replaced with base64 encoded slice."
-     "\nMust be used with kd.fstr or kde.fstr."
-    },
+     "\nMust be used with kd.fstr or kde.fstr."},
     {"internal_register_reserved_class_method_name",
      (PyCFunction)PyDataSlice_internal_register_reserved_class_method_name,
      METH_CLASS | METH_O,
