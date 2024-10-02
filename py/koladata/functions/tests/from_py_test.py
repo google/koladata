@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for from_py."""
+import dataclasses
+import gc
+import sys
+from unittest import mock
 
 from absl.testing import absltest
 from koladata.exceptions import exceptions
@@ -24,6 +27,24 @@ from koladata.types import schema_constants
 
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
+
+
+@dataclasses.dataclass
+class NestedKlass:
+  x: str
+
+
+@dataclasses.dataclass
+class TestKlass:
+  a: int
+  b: NestedKlass
+  c: bytes
+
+
+@dataclasses.dataclass
+class TestKlassInternals:
+  a: int
+  b: float
 
 
 class FromPyTest(absltest.TestCase):
@@ -212,6 +233,126 @@ class FromPyTest(absltest.TestCase):
         ValueError, 'dict keys cannot be non-TEXT DataItems, got b\'abc\''
     ):
       fns.from_py({ds(b'abc'): 42}, dict_as_obj=True)
+
+  def test_dataclasses(self):
+    obj = fns.from_py(TestKlass(42, NestedKlass('abc'), b'xyz'))
+    testing.assert_equal(obj.get_schema().no_db(), schema_constants.OBJECT)
+    self.assertCountEqual(dir(obj), ['a', 'b', 'c'])
+    testing.assert_equal(obj.a.no_db(), ds(42))
+    b = obj.b
+    testing.assert_equal(b.get_schema().no_db(), schema_constants.OBJECT)
+    testing.assert_equal(b.x.no_db(), ds('abc'))
+    testing.assert_equal(obj.c.no_db(), ds(b'xyz'))
+
+  def test_dataclasses_with_schema(self):
+    schema = fns.new_schema(
+        a=schema_constants.FLOAT32,
+        b=fns.new_schema(x=schema_constants.TEXT),
+        c=schema_constants.BYTES,
+    )
+    entity = fns.from_py(
+        TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema
+    )
+    testing.assert_equal(entity.get_schema().no_db(), schema.no_db())
+    self.assertCountEqual(dir(entity), ['a', 'b', 'c'])
+    testing.assert_equal(entity.a.no_db(), ds(42.))
+    b = entity.b
+    testing.assert_equal(b.get_schema().no_db(), schema.b.no_db())
+    testing.assert_equal(b.x.no_db(), ds('abc'))
+    testing.assert_equal(entity.c.no_db(), ds(b'xyz'))
+
+  def test_dataclasses_with_incomplete_schema(self):
+    schema = fns.new_schema(
+        a=schema_constants.FLOAT32,
+    )
+    entity = fns.from_py(
+        TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema
+    )
+    testing.assert_equal(entity.get_schema().no_db(), schema.no_db())
+    self.assertCountEqual(dir(entity), ['a'])
+    testing.assert_equal(entity.a.no_db(), ds(42.))
+
+  def test_list_of_dataclasses(self):
+    obj = fns.from_py([NestedKlass('a'), NestedKlass('b')])
+    testing.assert_equal(obj.get_schema().no_db(), schema_constants.OBJECT)
+    nested = obj[:]
+    testing.assert_equal(nested.S[0].x.no_db(), ds('a'))
+    testing.assert_equal(nested.S[1].x.no_db(), ds('b'))
+
+  def test_dataclass_with_list(self):
+    @dataclasses.dataclass
+    class Test:
+      l: list[int]
+
+    obj = fns.from_py(Test([1, 2, 3]))
+    testing.assert_equal(obj.get_schema().no_db(), schema_constants.OBJECT)
+    testing.assert_equal(obj.l[:].no_db(), ds([1, 2, 3]))
+
+  def test_dataclass_with_koda_obj(self):
+    @dataclasses.dataclass
+    class Test:
+      koda: data_slice.DataSlice
+
+    schema = fns.new_schema(koda=fns.new_schema(x=schema_constants.INT32))
+    entity = fns.from_py(Test(schema.koda(x=1)), schema=schema)
+    testing.assert_equal(entity.get_schema().no_db(), schema.no_db())
+    self.assertCountEqual(dir(entity), ['koda'])
+    koda = entity.koda
+    testing.assert_equal(koda.get_schema().no_db(), schema.koda.no_db())
+    testing.assert_equal(koda.x.no_db(), ds(1))
+
+  def test_dataclasses_prevent_memory_leak(self):
+    gc.collect()
+    base_count = sys.getrefcount(42)
+    for _ in range(10):
+      fns.from_py(TestKlassInternals(42, 3.14))
+    gc.collect()
+    self.assertEqual(base_count, sys.getrefcount(42))
+
+  def test_dataclasses_errors(self):
+    with mock.patch.object(dataclasses, 'fields', return_value=[1, 2]):
+      with self.assertRaisesRegex(ValueError, 'expected to return a tuple'):
+        fns.from_py(TestKlassInternals(42, 3.14))
+    with mock.patch.object(dataclasses, 'fields', raises=ValueError('fields')):
+      with self.assertRaisesRegex(ValueError, 'fields'):
+        fns.from_py(TestKlassInternals(42, 3.14))
+    with mock.patch.object(dataclasses, 'fields', return_value=(1, 2)):
+      with self.assertRaisesRegex(AttributeError, 'has no attribute \'name\''):
+        fns.from_py(TestKlassInternals(42, 3.14))
+
+  def test_dataclasses_field_attribute_error(self):
+    class TestField:
+
+      def __init__(self, val):
+        self._val = val
+
+      @property
+      def name(self):
+        return 'non_existent'
+
+    with mock.patch.object(
+        dataclasses, 'fields', return_value=(TestField(42), TestField(3.14))
+    ):
+      with self.assertRaisesRegex(
+          AttributeError, 'has no attribute \'non_existent\''
+      ):
+        fns.from_py(TestKlassInternals(42, 3.14))
+
+  def test_dataclasses_field_invalid_name_error(self):
+    class TestField:
+
+      def __init__(self, val):
+        self._val = val
+
+      @property
+      def name(self):
+        return b'non_existent'
+
+    with mock.patch.object(
+        dataclasses, 'fields', return_value=(TestField(42), TestField(3.14))
+    ):
+      with self.assertRaisesRegex(ValueError, 'invalid unicode object'):
+        fns.from_py(TestKlassInternals(42, 3.14))
 
   def test_alias(self):
     obj = fns.from_pytree({'a': 42})

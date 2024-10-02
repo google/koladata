@@ -57,6 +57,7 @@ operator_libraries(
 
 koladata_py_extension(
     name = "py_utils_py_ext",
+    testonly = True,
     srcs = ["py_utils_module.cc"],
     deps = [
         "//py/koladata/types:py_utils",

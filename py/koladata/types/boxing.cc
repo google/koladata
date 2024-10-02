@@ -55,6 +55,7 @@
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/types/py_attr_provider.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/array/qtype/types.h"
 #include "arolla/dense_array/dense_array.h"
@@ -699,37 +700,17 @@ class UniversalConverter {
     return absl::OkStatus();
   }
 
-  // Collects the keys and values of the python dictionary `py_obj`, and
-  // arranges the appropriate commands on the stack to create Object / Entity.
-  absl::Status ParsePyDictAsObj(PyObject* py_obj,
-                                const std::optional<DataSlice>& schema) {
-    DCHECK(PyDict_CheckExact(py_obj));
-    DataSlice::AttrNamesSet allowed_attr_names;
-    if (schema) {
-      ASSIGN_OR_RETURN(allowed_attr_names, schema->GetAttrNames());
-    }
-    size_t dict_size = PyDict_Size(py_obj);
-    size_t attr_names_size = 0;
-    arolla::DenseArrayBuilder<arolla::Text> attr_names_bldr(dict_size);
-    std::vector<PyObject*> py_values;
-    py_values.reserve(dict_size);
-    Py_ssize_t pos = 0;
-    PyObject* py_key;
-    PyObject* py_value;
-    while (PyDict_Next(py_obj, &pos, &py_key, &py_value)) {
-      ASSIGN_OR_RETURN(auto key, PyDictKeyAsStringView(py_key));
-      if (!schema || allowed_attr_names.contains(key)) {
-        attr_names_bldr.Set(attr_names_size++, key);
-        py_values.push_back(py_value);
-      }
-    }
-    arolla::DenseArray<arolla::Text> attr_names =
-        std::move(attr_names_bldr).Build(attr_names_size);
+  // Helper method to push commands for creating Object / Entity attributes and
+  // commands for parsing individual attribute values.
+  absl::Status PushObjAttrs(const arolla::DenseArray<arolla::Text>& attr_names,
+                            const std::vector<PyObject*>& py_values,
+                            const std::optional<DataSlice>& schema) {
     ASSIGN_OR_RETURN(
         auto attr_names_ds,
-        DataSlice::Create(internal::DataSliceImpl::Create(attr_names),
-                          DataSlice::JaggedShape::FlatFromSize(attr_names_size),
-                          DataItem(schema::kText)));
+        DataSlice::Create(
+            internal::DataSliceImpl::Create(attr_names),
+            DataSlice::JaggedShape::FlatFromSize(attr_names.size()),
+            internal::DataItem(schema::kText)));
     cmd_stack_.push([this, attr_names_ds = std::move(attr_names_ds)] {
       this->value_stack_.push(attr_names_ds);
       return absl::OkStatus();
@@ -746,6 +727,34 @@ class UniversalConverter {
       });
     }
     return absl::OkStatus();
+  }
+
+  // Collects the keys and values of the python dictionary `py_obj`, and
+  // arranges the appropriate commands on the stack to create Object / Entity.
+  absl::Status ParsePyDictAsObj(PyObject* py_obj,
+                                const std::optional<DataSlice>& schema) {
+    DCHECK(PyDict_CheckExact(py_obj));
+    DataSlice::AttrNamesSet allowed_attr_names;
+    if (schema) {
+      ASSIGN_OR_RETURN(allowed_attr_names, schema->GetAttrNames());
+    }
+    size_t dict_size = PyDict_Size(py_obj);
+    size_t new_attr_names_size = 0;
+    arolla::DenseArrayBuilder<arolla::Text> attr_names_bldr(dict_size);
+    std::vector<PyObject*> py_values;
+    py_values.reserve(dict_size);
+    Py_ssize_t pos = 0;
+    PyObject* py_key;
+    PyObject* py_value;
+    while (PyDict_Next(py_obj, &pos, &py_key, &py_value)) {
+      ASSIGN_OR_RETURN(auto key, PyDictKeyAsStringView(py_key));
+      if (!schema || allowed_attr_names.contains(key)) {
+        attr_names_bldr.Set(new_attr_names_size++, key);
+        py_values.push_back(py_value);
+      }
+    }
+    return PushObjAttrs(std::move(attr_names_bldr).Build(new_attr_names_size),
+                        py_values, schema);
   }
 
   // Collects the keys and values of the python list/tuple `py_obj`, and
@@ -773,6 +782,32 @@ class UniversalConverter {
     return absl::OkStatus();
   }
 
+  // Collects the attribute names and values from the python object (e.g.
+  // dataclass) `py_obj`, and arranges the appropriate commands on the stack to
+  // create Object / Entity.
+  absl::Status ParsePyAttrProvider(PyObject* py_obj,
+                                   const AttrProvider::AttrResult& attr_result,
+                                   const std::optional<DataSlice>& schema) {
+    DataSlice::AttrNamesSet allowed_attr_names;
+    if (schema) {
+      ASSIGN_OR_RETURN(allowed_attr_names, schema->GetAttrNames());
+    }
+    const auto& attr_names = attr_result.attr_names;
+    const auto& values = attr_result.values;
+    size_t new_attr_names_size = 0;
+    arolla::DenseArrayBuilder<arolla::Text> attr_names_bldr(attr_names.size());
+    std::vector<PyObject*> py_values;
+    py_values.reserve(values.size());
+    for (size_t i = 0; i < attr_names.size(); ++i) {
+      if (!schema || allowed_attr_names.contains(attr_names[i])) {
+        attr_names_bldr.Set(new_attr_names_size++, attr_names[i]);
+        py_values.push_back(values[i]);
+      }
+    }
+    return PushObjAttrs(std::move(attr_names_bldr).Build(new_attr_names_size),
+                        py_values, schema);
+  }
+
   // Processes py_obj, and depending on its type, either immediately
   // converts it to a Koda value (and pushes the result to `value_stack_`),
   // or schedules additional actions for the conversion (by pushing them to
@@ -792,7 +827,9 @@ class UniversalConverter {
             "recursive Python structures cannot be converted to Koda object");
       }
       value_stack_.push(*computed_iter->second);
-    } else if (schema && schema->item() == schema::kObject) {
+      return absl::OkStatus();
+    }
+    if (schema && schema->item() == schema::kObject) {
       // When processing Entities, if OBJECT schema is reached, the rest of the
       // Python tree is converted as Object.
       ASSIGN_OR_RETURN(
@@ -801,44 +838,53 @@ class UniversalConverter {
           .Convert(py_obj));
       computed_.insert_or_assign(
           MakeCacheKey(py_obj, schema), value_stack_.top());
-    } else if (PyDict_CheckExact(py_obj)) {
+      return absl::OkStatus();
+    }
+    if (PyDict_CheckExact(py_obj)) {
       if (dict_as_obj_) {
-        cmd_stack_.push([this, schema] {
+        cmd_stack_.push([this, schema = schema] {
           return this->CmdComputeObj(schema);
         });
-        RETURN_IF_ERROR(ParsePyDictAsObj(py_obj, schema));
-      } else {
-        cmd_stack_.push([this, py_obj, schema] {
-          return this->CmdComputeDict(py_obj, schema);
-        });
-        RETURN_IF_ERROR(ParsePyDict(py_obj, schema));
+        return ParsePyDictAsObj(py_obj, schema);
       }
-    } else if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
-      cmd_stack_.push([this, py_obj, schema] {
+      cmd_stack_.push([this, py_obj, schema = schema] {
+        return this->CmdComputeDict(py_obj, schema);
+      });
+      return ParsePyDict(py_obj, schema);
+    }
+    if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
+      cmd_stack_.push([this, py_obj, schema = schema] {
         return this->CmdComputeList(py_obj, schema);
       });
-      RETURN_IF_ERROR(ParsePyList(py_obj, schema));
-    } else {
-      // NOTE: If !is_root, casting is left for List / Dict / Object / Entity to
-      // handle, because of error messages with appropriate context.
-      ASSIGN_OR_RETURN(
-          auto res,
-          DataSliceFromPyValue(py_obj, adoption_queue_,
-                               is_root && schema ? &(*schema) : nullptr));
-      if (res.GetShape().rank() > 0) {
-        return absl::InvalidArgumentError(
-            "dict / list containing multi-dim DataSlice(s) is not convertible"
-            " to a DataSlice");
-      }
-      // Only Entities are converted using Factory, while primitives are kept as
-      // is, unless they are the ones being converted explicitly (e.g.
-      // kd.obj(42), in which case `is_root` is true).
-      if (res.GetSchemaImpl().is_entity_schema() || is_root) {
-        ASSIGN_OR_RETURN(res, Factory::Convert(db_, res));
-      }
-      value_stack_.push(res);
-      computed_iter->second = std::move(res);
+      return ParsePyList(py_obj, schema);
     }
+    ASSIGN_OR_RETURN(auto attr_result,
+                     attr_provider_.GetAttrNamesAndValues(py_obj));
+    if (attr_result) {
+      cmd_stack_.push([this, schema = schema] {
+        return this->CmdComputeObj(schema);
+      });
+      return ParsePyAttrProvider(py_obj, *attr_result, schema);
+    }
+    // NOTE: If !is_root, casting is left for List / Dict / Object / Entity to
+    // handle, because of error messages with appropriate context.
+    ASSIGN_OR_RETURN(
+        auto res,
+        DataSliceFromPyValue(py_obj, adoption_queue_,
+                             is_root && schema ? &(*schema) : nullptr));
+    if (res.GetShape().rank() > 0) {
+      return absl::InvalidArgumentError(
+          "dict / list containing multi-dim DataSlice(s) is not convertible"
+          " to a DataSlice");
+    }
+    // Only Entities are converted using Factory, while primitives are kept as
+    // is, unless they are the ones being converted explicitly (e.g.
+    // kd.obj(42), in which case `is_root` is true).
+    if (res.GetSchemaImpl().is_entity_schema() || is_root) {
+      ASSIGN_OR_RETURN(res, Factory::Convert(db_, res));
+    }
+    value_stack_.push(res);
+    computed_iter->second = std::move(res);
     return absl::OkStatus();
   }
 
@@ -876,10 +922,6 @@ class UniversalConverter {
         MakeCacheKey(py_obj, list_schema), value_stack_.top());
     return absl::OkStatus();
   }
-
-  // TODO: Store attribute names from dataclasses in the same
-  // format, so that the same `CmdComputeObj` can be used to create Objects /
-  // Entities from them.
 
   // Takes preconstructed attribute names and their values from `value_stack_`,
   // assembles them into an Object / Entity and pushes it to `value_stack_`.
@@ -919,6 +961,7 @@ class UniversalConverter {
   const DataBagPtr& db_;
   AdoptionQueue& adoption_queue_;
   bool dict_as_obj_;
+  AttrProvider attr_provider_;
 
   using Cmd = std::function<absl::Status()>;
   std::stack<Cmd> cmd_stack_;

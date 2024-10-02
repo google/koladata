@@ -53,10 +53,23 @@ py_test(
 )
 
 cc_library(
+    name = "py_attr_provider",
+    srcs = ["py_attr_provider.cc"],
+    hdrs = ["py_attr_provider.h"],
+    deps = [
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//py/arolla/py_utils",
+    ],
+)
+
+cc_library(
     name = "boxing",
     srcs = ["boxing.cc"],
     hdrs = ["boxing.h"],
     deps = [
+        ":py_attr_provider",
         ":wrap_utils",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
