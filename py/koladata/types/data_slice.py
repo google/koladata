@@ -14,6 +14,7 @@
 
 """DataSlice abstraction."""
 
+import functools
 from typing import Any
 
 from arolla import arolla
@@ -24,6 +25,7 @@ from koladata.types import jagged_shape
 from koladata.types import operator_lookup
 
 
+DataBag = _data_bag_py_ext.DataBag
 DataSlice = _data_slice_py_ext.DataSlice
 
 
@@ -221,12 +223,12 @@ def _freeze(self) -> DataSlice:
 
 
 @DataSlice.add_method('enriched')
-def _enriched(self, *db: _data_bag_py_ext.DataBag) -> DataSlice:
+def _enriched(self, *db: DataBag) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.enriched, self, *db)
 
 
 @DataSlice.add_method('updated')
-def _updated(self, *db: _data_bag_py_ext.DataBag) -> DataSlice:
+def _updated(self, *db: DataBag) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.updated, self, *db)
 
 
@@ -472,21 +474,25 @@ class ListSlicingHelper:
   """
 
   def __init__(self, ds: DataSlice):
+    ndim = ds.get_ndim().internal_as_py()
+    if not ndim:
+      raise ValueError('DataSlice must have at least one dimension to iterate.')
     self._ds = ds
+    self._ndim = ndim
+
+  @functools.cached_property
+  def _imploded_ds(self) -> DataSlice:
+    return DataBag.empty().implode(self._ds.no_db(), -1)
 
   def __getitem__(self, s):
-    return arolla.abc.aux_eval_op(_op_impl_lookup.subslice, self._ds, s, ...)
+    return arolla.abc.aux_eval_op(
+        _op_impl_lookup.explode, self._imploded_ds[s], self._ndim - 1
+    ).with_db(self._ds.db)
 
   def __len__(self) -> int:
-    if not self._ds.get_ndim().internal_as_py():
-      raise ValueError(
-          'DataSlice must have at least one dimension to retrieve length.'
-      )
     return arolla.abc.aux_eval_op(
-        getattr(_op_impl_lookup, 'shapes.dim_sizes'),
-        arolla.abc.aux_eval_op(_op_impl_lookup.get_shape, self._ds),
-        0,
-    ).to_py()[0]
+        _op_impl_lookup.list_size, self._imploded_ds
+    ).internal_as_py()
 
   def __iter__(self):
     return (self[i] for i in range(len(self)))

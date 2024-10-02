@@ -45,7 +45,7 @@ class ToPyListTest(absltest.TestCase):
     x = fns.list([1, 2, 3])
     with self.assertRaisesRegex(
         ValueError,
-        'DataSlice must have at least one dimension to retrieve length'):
+        'DataSlice must have at least one dimension to iterate'):
       _ = fns.to_pylist(x)
 
 if __name__ == '__main__':
