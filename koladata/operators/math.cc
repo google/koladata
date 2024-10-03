@@ -60,6 +60,10 @@ absl::StatusOr<DataSlice> Log(const DataSlice& x) {
   return SimplePointwiseEval("math.log", {x});
 }
 
+absl::StatusOr<DataSlice> Log10(const DataSlice& x) {
+  return SimplePointwiseEval("math.log10", {x});
+}
+
 absl::StatusOr<DataSlice> Exp(const DataSlice& x) {
   return SimplePointwiseEval("math.exp", {x});
 }

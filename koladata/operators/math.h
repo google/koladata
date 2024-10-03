@@ -32,6 +32,9 @@ absl::StatusOr<DataSlice> Divide(const DataSlice& x, const DataSlice& y);
 // kde.math.log.
 absl::StatusOr<DataSlice> Log(const DataSlice& x);
 
+// kde.math.log10.
+absl::StatusOr<DataSlice> Log10(const DataSlice& x);
+
 // kde.math.exp.
 absl::StatusOr<DataSlice> Exp(const DataSlice& x);
 

@@ -134,6 +134,7 @@ OPERATOR("kde.math.exp", Exp);
 OPERATOR("kde.math.floor", Floor);
 OPERATOR("kde.math.floordiv", FloorDiv);
 OPERATOR("kde.math.log", Log);
+OPERATOR("kde.math.log10", Log10);
 OPERATOR("kde.math.maximum", Maximum);
 OPERATOR("kde.math.minimum", Minimum);
 OPERATOR("kde.math.mod", Mod);

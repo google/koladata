@@ -72,6 +72,19 @@ def log(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.log10'])
+@optools.as_backend_operator(
+    'kde.math.log10',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def log10(x):  # pylint: disable=unused-argument
+  """Computes pointwise logarithm in base 10 of the input."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.exp'])
 @optools.as_backend_operator(
     'kde.math.exp',
