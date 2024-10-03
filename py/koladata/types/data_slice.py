@@ -284,6 +284,16 @@ def _is_primitive(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.is_primitive, self)
 
 
+@DataSlice.add_method('attrs')
+def _attrs(self, **attrs) -> DataBag:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.attrs, self, **attrs)
+
+
+@DataSlice.add_method('with_attrs')
+def _with_attrs(self, **attrs) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.with_attrs, self, **attrs)
+
+
 ##### DataSlice Magic methods. #####
 
 

@@ -287,6 +287,12 @@ class DataSliceView(BasicKodaView):
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_attr', self, attr_name, default)
 
+  def attrs(self, **attrs: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.attrs', self, **attrs)
+
+  def with_attrs(self, **attrs: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.with_attrs', self, **attrs)
+
   def maybe(self, attr_name: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.maybe', self, attr_name)
 
