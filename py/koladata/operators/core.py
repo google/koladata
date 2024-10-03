@@ -719,6 +719,22 @@ def has_attr(obj, attr_name):
   return ~is_empty(maybe(obj, attr_name))
 
 
+@optools.add_to_registry(aliases=['kde.attrs'], view=view.DataBagView)
+@optools.as_backend_operator(
+    'kde.core.attrs',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_kwargs(P.attrs)
+    ],
+    qtype_inference_expr=qtypes.DATA_BAG,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+# Operator signature: `kde.attrs(x, /, **attrs)`
+def _attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
+  """Returns a new Databag containing attribute updates for a slice `x`."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.with_attrs'])
 @optools.as_backend_operator(
     'kde.core.with_attrs',

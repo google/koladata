@@ -79,6 +79,7 @@ OPERATOR_FAMILY("kde.core._uuobj", std::make_unique<UuObjOperatorFamily>());
 OPERATOR("kde.core.add", Add);
 OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kde.core.at", At);
+OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR("kde.core.dict_size", DictSize);
 OPERATOR_FAMILY("kde.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
