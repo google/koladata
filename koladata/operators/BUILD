@@ -90,6 +90,7 @@ cc_library(
         "utils.h",
     ],
     deps = [
+        "//koladata:alloc_utils",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",

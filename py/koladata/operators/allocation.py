@@ -50,6 +50,19 @@ def new_itemid():
 
 # TODO: This operator should have non-deterministic behavior on
 # each Expr creation.
+@optools.add_to_registry(aliases=['kde.new_itemid_like'])
+@optools.as_backend_operator(
+    'kde.allocation.new_itemid_like',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.shape_and_mask_from)],
+    qtype_inference_expr=qtypes.DATA_SLICE
+)
+def new_itemid_like(shape_and_mask_from):  # pylint: disable=unused-argument
+  """Allocates new ItemIds with the shape and sparsity of shape_and_mask_from."""
+  raise NotImplementedError('implemented in the backend')
+
+
+# TODO: This operator should have non-deterministic behavior on
+# each Expr creation.
 @optools.add_to_registry(aliases=['kde.new_itemid_shaped_as'])
 @optools.as_lambda_operator(
     'kde.allocation.new_itemid_shaped_as',
@@ -86,6 +99,19 @@ def new_listid():
 
 # TODO: This operator should have non-deterministic behavior on
 # each Expr creation.
+@optools.add_to_registry(aliases=['kde.new_listid_like'])
+@optools.as_backend_operator(
+    'kde.allocation.new_listid_like',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.shape_and_mask_from)],
+    qtype_inference_expr=qtypes.DATA_SLICE
+)
+def new_listid_like(shape_and_mask_from):  # pylint: disable=unused-argument
+  """Allocates new List ItemIds with the shape and sparsity of shape_and_mask_from."""
+  raise NotImplementedError('implemented in the backend')
+
+
+# TODO: This operator should have non-deterministic behavior on
+# each Expr creation.
 @optools.add_to_registry(aliases=['kde.new_listid_shaped_as'])
 @optools.as_lambda_operator(
     'kde.allocation.new_listid_shaped_as',
@@ -118,6 +144,19 @@ def new_dictid_shaped(shape):  # pylint: disable=unused-argument
 def new_dictid():
   """Allocates new Dict ItemId."""
   return new_dictid_shaped(jagged_shape.create_shape())
+
+
+# TODO: This operator should have non-deterministic behavior on
+# each Expr creation.
+@optools.add_to_registry(aliases=['kde.new_dictid_like'])
+@optools.as_backend_operator(
+    'kde.allocation.new_dictid_like',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.shape_and_mask_from)],
+    qtype_inference_expr=qtypes.DATA_SLICE
+)
+def new_dictid_like(shape_and_mask_from):  # pylint: disable=unused-argument
+  """Allocates new Dict ItemIds with the shape and sparsity of shape_and_mask_from."""
+  raise NotImplementedError('implemented in the backend')
 
 
 # TODO: This operator should have non-deterministic behavior on

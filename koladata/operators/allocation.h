@@ -20,9 +20,9 @@
 #include <cstddef>
 #include <utility>
 #include "absl/status/statusor.h"
+#include "koladata/alloc_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 
@@ -55,6 +55,35 @@ inline absl::StatusOr<DataSlice> NewDictIdShaped(DataSlice::JaggedShape shape) {
       internal::DataSliceImpl::ObjectsFromAllocation(
           internal::AllocateDicts(size), size),
       std::move(shape), internal::DataItem(schema::kItemId));
+}
+
+// kde.allocation.new_itemid_like.
+// Allocates new ItemIds with the shape and sparsity of shape_and_mask_from.
+inline absl::StatusOr<DataSlice> NewItemIdLike(
+    const DataSlice& shape_and_mask_from) {
+  return AllocateLike(
+      shape_and_mask_from, internal::AllocateSingleObject,
+      internal::Allocate, internal::DataItem(schema::kItemId));
+}
+
+// kde.allocation.new_listid_like.
+// Allocates new List ItemIds with the shape and sparsity of
+// shape_and_mask_from.
+inline absl::StatusOr<DataSlice> NewListIdLike(
+    const DataSlice& shape_and_mask_from) {
+  return AllocateLike(
+      shape_and_mask_from, internal::AllocateSingleList,
+      internal::AllocateLists, internal::DataItem(schema::kItemId));
+}
+
+// kde.allocation.new_dictid_like.
+// Allocates new Dict ItemIds with the shape and sparsity of
+// shape_and_mask_from.
+inline absl::StatusOr<DataSlice> NewDictIdLike(
+    const DataSlice& shape_and_mask_from) {
+  return AllocateLike(
+      shape_and_mask_from, internal::AllocateSingleDict,
+      internal::AllocateDicts, internal::DataItem(schema::kItemId));
 }
 
 }  // namespace koladata::ops

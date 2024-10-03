@@ -404,10 +404,42 @@ cc_test(
 )
 
 cc_library(
+    name = "alloc_utils",
+    hdrs = ["alloc_utils.h"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/functional:overload",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/dense_array",
+    ],
+)
+
+cc_test(
+    name = "alloc_utils_test",
+    srcs = ["alloc_utils_test.cc"],
+    deps = [
+        ":alloc_utils",
+        ":data_bag",
+        ":data_slice",
+        ":test_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "object_factories",
     srcs = ["object_factories.cc"],
     hdrs = ["object_factories.h"],
     deps = [
+        ":alloc_utils",
         ":data_bag",
         ":data_slice",
         ":data_slice_qtype",

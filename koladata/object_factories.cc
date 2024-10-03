@@ -32,6 +32,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
+#include "koladata/alloc_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -370,29 +371,8 @@ absl::StatusOr<DataSlice> CreateLike(const DataBagPtr& db,
       }
     });
   } else {
-    return shape_and_mask_from.VisitImpl([&]<class T>(const T& impl) {
-      if constexpr (std::is_same_v<T, internal::DataItem>) {
-        return DataSlice::Create(impl.has_value()
-                                     ? internal::DataItem(allocate_single_fn())
-                                     : internal::DataItem(),
-                                 schema, db);
-      } else {
-        auto alloc_id = allocate_many_fn(impl.present_count());
-        arolla::DenseArrayBuilder<internal::ObjectId> result_impl_builder(
-            impl.size());
-        int64_t i = 0;
-        impl.VisitValues([&](const auto& array) {
-          array.ForEachPresent([&](int64_t id, const auto& _) {
-            result_impl_builder.Set(id, alloc_id.ObjectByOffset(i++));
-          });
-        });
-        return DataSlice::Create(
-            internal::DataSliceImpl::CreateObjectsDataSlice(
-                std::move(result_impl_builder).Build(),
-                internal::AllocationIdSet(alloc_id)),
-            shape_and_mask_from.GetShape(), schema, db);
-      }
-    });
+    return AllocateLike(shape_and_mask_from, allocate_single_fn,
+                        allocate_many_fn, schema, db);
   }
 }
 
