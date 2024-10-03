@@ -15,6 +15,7 @@
 """Utilities for advanced Python values conversion to Koda abstractions."""
 
 import collections
+import functools
 import inspect
 import random
 import types as py_types
@@ -251,7 +252,7 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
         'use kd.slice(...) to create a slice or a multi-dimensional slice, and '
         'kd.list(...) to create a single Koda list.'
     )
-  if isinstance(arg, py_types.FunctionType):
+  if isinstance(arg, (py_types.FunctionType, functools.partial)):
     return arolla.abc.PyObject(arg, codec=REF_CODEC)
   if arg is data_slice.DataSlice:
     return data_slice.DataSlice.from_vals(None)
@@ -459,7 +460,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
   """
 
   def make_python_signature(
-      self, signature: arolla.abc.Signature,
+      self, signature: arolla.abc.Signature
   ) -> inspect.Signature:
     params = []
     visited_var_positional_param = False
@@ -554,7 +555,8 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
           bound_values.append(arolla.tuple(*args_queue))
         else:
           bound_values.append(
-              arolla.abc.bind_op('core.make_tuple', *map(as_expr, args_queue)))
+              arolla.abc.bind_op('core.make_tuple', *map(as_expr, args_queue))
+          )
         args_queue.clear()
       elif _is_keyword_only(marker_type):
         if param.name in kwargs:
@@ -590,7 +592,8 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
 
     if kwargs:
       raise TypeError(
-          f"got an unexpected keyword argument '{next(iter(kwargs.keys()))}'")
+          f"got an unexpected keyword argument '{next(iter(kwargs.keys()))}'"
+      )
 
     return tuple(bound_values)
 
@@ -636,13 +639,9 @@ class _FstrBindingPolicy(BasicBindingPolicy):
       self, signature: arolla.abc.Signature, *args: Any, **kwargs: Any
   ) -> tuple[arolla.QValue | arolla.Expr, ...]:
     if len(args) != 1:
-      raise TypeError(
-          f'expected a single positional argument, got {len(args)}'
-      )
+      raise TypeError(f'expected a single positional argument, got {len(args)}')
     if kwargs:
-      raise TypeError(
-          f'no kwargs are allowed, got {kwargs}'
-      )
+      raise TypeError(f'no kwargs are allowed, got {kwargs}')
     fstr = args[0]
     if not isinstance(fstr, str):
       raise TypeError(f'expected a string, got {fstr}')

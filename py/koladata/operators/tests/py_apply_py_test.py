@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.py.apply_py."""
+"""Tests for kde.py.apply_py operator."""
 
 import re
 

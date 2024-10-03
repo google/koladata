@@ -368,14 +368,17 @@ py_library(
     name = "py",
     srcs = ["py.py"],
     deps = [
+        ":core",
         ":optools",
         ":qtype_utils",
+        "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )
 
