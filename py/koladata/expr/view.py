@@ -246,6 +246,9 @@ class DataSliceView(BasicKodaView):
   def clone(self, schema: Any = arolla.unspecified()) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.clone', self, schema)
 
+  def deep_clone(self, schema: Any = arolla.unspecified()) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.deep_clone', self, schema)
+
   def extract(self, schema: Any = arolla.unspecified()) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.extract', self, schema)
 

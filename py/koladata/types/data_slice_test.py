@@ -2072,6 +2072,33 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
         result.b.get_schema().no_db(), o.b.get_schema().no_db()
     )
 
+  @parameterized.product(
+      pass_schema=[True, False],
+  )
+  def test_deep_clone(self, pass_schema):
+    db = data_bag.DataBag.empty()
+    b_slice = db.new(a=ds([1, None, 2]))
+    o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    o.set_attr('self', o)
+    if pass_schema:
+      result = o.deep_clone(o.get_schema())
+    else:
+      result = o.deep_clone()
+
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(result.no_db(), o.no_db())
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(result.b.no_db(), o.b.no_db())
+    testing.assert_equal(result.c.no_db(), o.c.no_db())
+    testing.assert_equal(result.b.a.no_db(), o.b.a.no_db())
+    testing.assert_equal(result.self.no_db(), result.no_db())
+    testing.assert_equal(
+        result.get_schema().no_db(), schema_constants.OBJECT
+    )
+    testing.assert_equal(
+        result.b.a.get_schema().no_db(), o.b.a.get_schema().no_db()
+    )
+
   def test_call(self):
     with self.assertRaisesRegex(
         TypeError, "'data_slice.DataSlice' object is not callable"
