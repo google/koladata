@@ -192,6 +192,11 @@ def _follow(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.follow, self)
 
 
+@DataSlice.add_method('to_py')
+def _to_py(self) -> DataSlice:
+  return self.internal_as_py()
+
+
 @DataSlice.add_method('clone')
 def _clone(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.clone, self, schema)
@@ -205,12 +210,6 @@ def _extract(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
 @DataSlice.add_method('deep_clone')
 def _deep_clone(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.deep_clone, self, schema)
-
-
-# TODO: Replace with a more complex conversion to Python.
-@DataSlice.add_method('to_py')
-def _to_py(self) -> DataSlice:
-  return self.internal_as_py()
 
 
 @DataSlice.add_method('fork_db')
@@ -278,6 +277,11 @@ def _get_present_count(self) -> DataSlice:
 @DataSlice.add_method('get_size')
 def _get_size(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.size, self)
+
+
+@DataSlice.add_method('is_primitive')
+def _is_primitive(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.is_primitive, self)
 
 
 ##### DataSlice Magic methods. #####
@@ -496,8 +500,10 @@ class ListSlicingHelper:
 
   def __len__(self) -> int:
     return arolla.abc.aux_eval_op(
-        _op_impl_lookup.list_size, self._imploded_ds
-    ).internal_as_py()
+        getattr(_op_impl_lookup, 'shapes.dim_sizes'),
+        arolla.abc.aux_eval_op(_op_impl_lookup.get_shape, self._ds),
+        0,
+    ).internal_as_py()[0]
 
   def __iter__(self):
     return (self[i] for i in range(len(self)))

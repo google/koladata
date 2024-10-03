@@ -321,6 +321,9 @@ class DataSliceView(BasicKodaView):
   def get_present_count(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.count', self)
 
+  def is_primitive(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.is_primitive', self)
+
 
 class KodaTupleView(BasicKodaView):
   """ExprView for tuples of Koda values, for operators returning tuples."""

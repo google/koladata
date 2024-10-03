@@ -523,6 +523,22 @@ py_test(
 )
 
 py_test(
+    name = "to_py_test",
+    srcs = ["to_py_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:jagged_shape",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "empty_shaped_test",
     srcs = ["empty_shaped_test.py"],
     deps = [

@@ -77,8 +77,8 @@ class SignatureUtilsTest(absltest.TestCase):
     )
     s = signature_utils.signature([p1, p2])
     self.assertEqual(s.get_schema(), schema_constants.OBJECT)
-    self.assertEqual(s.parameters[:].name.to_py(), ['x', 'y'])
-    self.assertEqual(s.parameters[:].to_py(), [p1, p2])
+    self.assertEqual(s.parameters[:].name.internal_as_py(), ['x', 'y'])
+    self.assertEqual(s.parameters[:].internal_as_py(), [p1, p2])
     self.assertFalse(s.db.is_mutable())
 
   def test_from_py_signature(self):
@@ -94,11 +94,11 @@ class SignatureUtilsTest(absltest.TestCase):
     ])
     sig = signature_utils.from_py_signature(py_sig)
     self.assertEqual(
-        sig.parameters[:].name.to_py(),
+        sig.parameters[:].name.internal_as_py(),
         ['p1', 'p2', 'p3', 'p4', 'p5'],
     )
     self.assertEqual(
-        sig.parameters[:].kind.to_py(),
+        sig.parameters[:].kind.internal_as_py(),
         [
             signature_utils.ParameterKind.POSITIONAL_ONLY,
             signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD,
@@ -135,11 +135,11 @@ class SignatureUtilsTest(absltest.TestCase):
   def test_arg_kwargs_signature(self):
     sig = signature_utils.ARGS_KWARGS_SIGNATURE
     self.assertEqual(
-        sig.parameters[:].name.to_py(),
+        sig.parameters[:].name.internal_as_py(),
         ['args', 'kwargs'],
     )
     self.assertEqual(
-        sig.parameters[:].kind.to_py(),
+        sig.parameters[:].kind.internal_as_py(),
         [
             signature_utils.ParameterKind.VAR_POSITIONAL,
             signature_utils.ParameterKind.VAR_KEYWORD,

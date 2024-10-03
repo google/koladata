@@ -506,9 +506,9 @@ class DataSliceTest(parameterized.TestCase):
         ['a', 'b', 'c'],
     )
 
-  def test_to_py(self):
+  def test_internal_as_py(self):
     x = ds([[1, 2], [3], [4, 5]])
-    self.assertEqual(x.to_py(), [[1, 2], [3], [4, 5]])
+    self.assertEqual(x.internal_as_py(), [[1, 2], [3], [4, 5]])
 
   def test_assignment_rhs_koda_iterables(self):
     db = bag()

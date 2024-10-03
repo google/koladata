@@ -112,7 +112,9 @@ def getattr_repr(
       node.node_deps[1].qvalue, data_slice.DataSlice
   ):
     return default_op_repr(node, tokens)
-  py_attr = typing.cast(data_slice.DataSlice, node.node_deps[1].qvalue).to_py()
+  py_attr = typing.cast(
+      data_slice.DataSlice, node.node_deps[1].qvalue
+  ).internal_as_py()
   if not isinstance(py_attr, str) or not _is_identifier(py_attr):
     return default_op_repr(node, tokens)
   obj = tokens[node.node_deps[0]]

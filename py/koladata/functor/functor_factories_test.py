@@ -76,7 +76,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         ['self', 'x', 'y', '__extra_inputs__'],
     )
     self.assertEqual(
-        signature.parameters[:].kind.to_py(),
+        signature.parameters[:].kind.internal_as_py(),
         [
             signature_utils.ParameterKind.POSITIONAL_ONLY,
             signature_utils.ParameterKind.KEYWORD_ONLY,
