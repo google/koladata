@@ -1781,6 +1781,25 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     testing.assert_equal(l.list_size(), ds(2, schema_constants.INT64))
     testing.assert_equal(l[:].list_size(), ds([3, 2], schema_constants.INT64))
 
+  def test_is_list(self):
+    db = bag()
+    x = ds([db.list([1, 2]), db.list([3, 4])])
+    self.assertTrue(x.is_list())
+    self.assertTrue(x.as_any().is_list())
+    self.assertTrue(db.obj(x).is_list())
+    x = ds([db.dict({1: 2}), db.dict({3: 4})])
+    self.assertFalse(x.is_list())
+    self.assertFalse(x.as_any().is_list())
+    self.assertFalse(db.obj(x).is_list())
+    x = ds([1.0, 2.0])
+    self.assertFalse(x.is_list())
+    self.assertFalse(x.as_any().is_list())
+    self.assertFalse(db.obj(x).is_list())
+    x = ds([db.list([1, 2]).embed_schema(), 1.0])
+    self.assertFalse(x.is_list())
+    self.assertFalse(x.as_any().is_list())
+    self.assertFalse(db.obj(x).is_list())
+
   def test_empty_subscript_method_slice(self):
     db = bag()
     testing.assert_equal(

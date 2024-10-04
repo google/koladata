@@ -171,6 +171,9 @@ absl::StatusOr<DataSlice> ItemIdBits(const DataSlice& ds,
 // kde.core.list_size.
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 
+// kde.core.is_list.
+absl::StatusOr<DataSlice> IsList(const DataSlice& lists);
+
 // kde.core.get_nofollowed_schema.
 absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds);
 

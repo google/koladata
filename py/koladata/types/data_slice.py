@@ -212,6 +212,11 @@ def _deep_clone(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.deep_clone, self, schema)
 
 
+@DataSlice.add_method('is_list')
+def _is_list(self) -> DataSlice:
+  return self.contains_only_lists()
+
+
 @DataSlice.add_method('fork_db')
 def _fork_db(self) -> DataSlice:
   if self.db is None:
