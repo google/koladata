@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for expr_eval."""
-
 import re
 
 from absl.testing import absltest
@@ -112,7 +110,7 @@ class ExprEvalTest(absltest.TestCase):
         ValueError,
         re.escape(
             'the inputs to kd.eval() must be specified as I.x, but the provided'
-            ' expression has leaves: [x, y]'
+            ' expression has leaves: [x, ...]'
         ),
     ):
       expr_eval.eval(arolla.L.x + arolla.L.y)

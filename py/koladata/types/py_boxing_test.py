@@ -685,12 +685,14 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
     )
 
   def test_hidden_seed_no_arguments(self):
-    @arolla.optools.as_lambda_operator(
-        'op',
+    @arolla.optools.as_py_function_operator(
+        'py_fn',
+        qtype_inference_expr=arolla.INT64,
         experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     )
     def op(hidden_seed=py_boxing.hidden_seed()):
-      return hidden_seed
+      del hidden_seed
+      return py_boxing._random_int64()
 
     # hidden_seed parameter is stripped from the Python signature.
     self.assertEqual(
@@ -702,8 +704,14 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     # Two different operator evaluations have different results.
     self.assertNotEqual(
-        arolla.eval(py_boxing.with_unique_hidden_seed(expr)).fingerprint,
-        arolla.eval(py_boxing.with_unique_hidden_seed(expr)).fingerprint,
+        expr_eval.eval(py_boxing.with_unique_hidden_seed(expr)).fingerprint,
+        expr_eval.eval(py_boxing.with_unique_hidden_seed(expr)).fingerprint,
+    )
+
+    # Two different operator evaluations have different results.
+    self.assertNotEqual(
+        expr_eval.eval(expr).fingerprint,
+        expr_eval.eval(expr).fingerprint,
     )
 
     # Two different operator instances with the same (Python-side) arguments
@@ -734,10 +742,10 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         inspect.signature(lambda x, *args, y, **kwargs: None),
     )
 
-    expr = py_boxing.with_unique_hidden_seed(op(1, 2, y=3, z=4))
+    expr = op(1, 2, y=3, z=4)
 
     testing.assert_equal(
-        arolla.eval(expr),
+        expr_eval.eval(expr),
         arolla.tuple(
             ds(1),
             arolla.tuple(ds(2)),
@@ -777,17 +785,13 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
       return py_fn_with_seed(x)
 
     i = input_container.InputContainer('I')
-    expr = py_boxing.with_unique_hidden_seed(
-        arolla.M.core.make_tuple(fn(i.x), fn(i.x))
-    )
+    expr = arolla.M.core.make_tuple(fn(i.x), fn(i.x))
     _ = expr_eval.eval(expr, x=1)
 
     self.assertEqual(num_calls, 2)
 
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        'unexpected placeholders in lambda operator definition:'
-        ' P._koladata_hidden_seed_placeholder',
+    with self.assertRaisesRegex(
+        ValueError, 'leaf nodes are not permitted within the lambda body'
     ):
 
       # Pure lambda operator that calls impure `py_fn_with_seed``.
@@ -949,13 +953,13 @@ class ObjectKwargsBoxingPolicyTest(absltest.TestCase):
     self.op = op_with_obj_kwargs
 
   def test_binding_item(self):
-    x = arolla.eval(self.op(a=1, lst=[1, 2, 3], dct={'a': 42, 'b': 37}))
+    x = expr_eval.eval(self.op(a=1, lst=[1, 2, 3], dct={'a': 42, 'b': 37}))
     testing.assert_equal(x['a'], ds(1))
     testing.assert_equal(x['lst'][:], ds([1, 2, 3]).with_db(x['lst'].db))
     testing.assert_dicts_equal(x['dct'], bag().dict({'a': 42, 'b': 37}))
 
   def test_binding_slice(self):
-    x = arolla.eval(self.op(a=ds([1, 2]), b=ds(['a', 'b', 'c']), c=42))
+    x = expr_eval.eval(self.op(a=ds([1, 2]), b=ds(['a', 'b', 'c']), c=42))
     testing.assert_equal(x['a'], ds([1, 2]))
     testing.assert_equal(x['b'], ds(['a', 'b', 'c']))
     # NOTE: Broadcasting will be the responsibility of the operator itself.
@@ -1007,7 +1011,9 @@ class ObjectKwargsBoxingPolicyTest(absltest.TestCase):
     def op_with_positional(b, kwargs):  # pylint: disable=unused-argument
       return kwargs
 
-    x = arolla.eval(op_with_positional(a=ds([1, 2]), b='wrap me in a ds', c=42))
+    x = expr_eval.eval(
+        op_with_positional(a=ds([1, 2]), b='wrap me in a ds', c=42)
+    )
     testing.assert_equal(x['a'], ds([1, 2]))
     testing.assert_equal(x['c'], ds(42))
     with self.assertRaises(KeyError):
@@ -1029,11 +1035,11 @@ class FstrBindingPolicyTest(absltest.TestCase):
     self.op = op_like_fstr
 
   def test_binding_item(self):
-    testing.assert_equal(arolla.eval(self.op(f'{ds(1):s}')), ds('1'))
+    testing.assert_equal(expr_eval.eval(self.op(f'{ds(1):s}')), ds('1'))
 
   def test_binding_slice(self):
     testing.assert_equal(
-        arolla.eval(self.op(f'{ds([1, 2]):s}')), ds(['1', '2'])
+        expr_eval.eval(self.op(f'{ds([1, 2]):s}')), ds(['1', '2'])
     )
 
   def test_binding_non_string_error(self):

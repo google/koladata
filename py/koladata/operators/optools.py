@@ -118,25 +118,24 @@ def as_lambda_operator(
     @functools.wraps(fn)  # preserves the `fn` signature.
     def fn_wrapper(*args):
       koda_placeholders = [P[arolla_p.placeholder_key] for arolla_p in args]
-      placeholder_subs = {
+      subs = {
           koda_p.fingerprint: arolla_p
           for koda_p, arolla_p in zip(koda_placeholders, args)
       }
 
       # If there is a `py_boxing.hidden_seed()`-marked param on the `fn`
-      # signature, use its value for the `py_boxing.HIDDEN_SEED_PLACEHOLDER`
-      # placeholder.
+      # signature, use its value for the `py_boxing.HIDDEN_SEED_LEAF` leaf.
       if aux_policy == py_boxing.FULL_SIGNATURE_POLICY:
         hidden_seed_param_index = py_boxing.find_hidden_seed_param(
             inspect.signature(fn)
         )
         if hidden_seed_param_index is not None:
-          placeholder_subs[py_boxing.HIDDEN_SEED_PLACEHOLDER.fingerprint] = (
+          subs[py_boxing.HIDDEN_SEED_LEAF.fingerprint] = (
               args[hidden_seed_param_index]
           )
 
       body_expr = fn(*koda_placeholders)
-      return arolla.sub_by_fingerprint(body_expr, placeholder_subs)
+      return arolla.sub_by_fingerprint(body_expr, subs)
 
     return fn_wrapper
 

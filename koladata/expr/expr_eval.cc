@@ -15,9 +15,11 @@
 #include "koladata/expr/expr_eval.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -55,13 +57,26 @@ namespace {
 
 // We use the same size for expr transformations and compilation caches
 // since in most cases we have 1:1 correspondence between them.
-static constexpr int64_t kCacheSize = 4096;
+constexpr int64_t kCacheSize = 4096;
+
+// Support for non-determinism in specific Koda operators.
+constexpr int64_t kHiddenSeedValue = (1l << 31) - 1;
+// TODO: Try to share this string constant between this code and
+// py_boxing.py on the Python side.
+constexpr absl::string_view kHiddenSeedLeafName = "_koladata_hidden_seed_leaf";
+
+arolla::TypedRef HiddenSeedArgValueRef() {
+  static absl::NoDestructor<const arolla::TypedValue> value(
+      arolla::TypedValue::FromValue(kHiddenSeedValue));
+  return value->AsRef();
+}
 
 // Information about an expression for fetching inputs for evaluation.
 struct ExprInfo {
   std::vector<std::string> leaf_keys;
-  absl::flat_hash_map<std::string, int> input_leaf_index;
-  absl::flat_hash_map<std::string, int> variable_leaf_index;
+  absl::flat_hash_map<std::string, size_t> input_leaf_index;
+  absl::flat_hash_map<std::string, size_t> variable_leaf_index;
+  std::optional<size_t> hidden_seed_index;
 };
 
 // An expression and associated information compatible with the Arolla C++
@@ -119,6 +134,19 @@ absl::StatusOr<TransformedExpr> ReplaceInputsWithLeaves(
   TransformedExpr res;
   auto transform_expr = [&res](arolla::expr::ExprNodePtr node)
       -> absl::StatusOr<arolla::expr::ExprNodePtr> {
+    if (node->is_leaf()) {
+      if (node->leaf_key() != kHiddenSeedLeafName) {
+        return absl::InvalidArgumentError(
+            absl::StrFormat("the inputs to kd.eval() must be specified as I.x, "
+                            "but the provided expression has leaves: [%s, ...]",
+                            node->leaf_key()));
+      }
+      if (!res.info.hidden_seed_index) {
+        res.info.hidden_seed_index = res.info.leaf_keys.size();
+        res.info.leaf_keys.emplace_back(std::string(node->leaf_key()));
+      }
+      return node;
+    }
     ASSIGN_OR_RETURN(auto decayed_op,
                      arolla::expr::DecayRegisteredOperator(node->op()));
     if (arolla::fast_dynamic_downcast_final<const InputOperator*>(
@@ -166,12 +194,6 @@ absl::StatusOr<TransformedExprPtr> TransformExprForEval(
         absl::StrFormat("the inputs to kd.eval() must be specified as I.x, but "
                         "the provided expression has placeholders: [%s]",
                         absl::StrJoin(placeholders, ", ")));
-  }
-  if (auto leaves = arolla::expr::GetLeafKeys(expr); !leaves.empty()) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("the inputs to kd.eval() must be specified as I.x, but "
-                        "the provided expression has leaves: [%s]",
-                        absl::StrJoin(leaves, ", ")));
   }
   ASSIGN_OR_RETURN(auto transformed_expr, ReplaceInputsWithLeaves(expr));
   return ExprTransformationCache::Instance().Put(
@@ -275,8 +297,12 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
   // Parse inputs.
   std::vector<arolla::TypedRef> input_qvalues(
       expr_info.leaf_keys.size(), arolla::TypedRef::UnsafeFromRawPointer(
-                                      arolla::GetNothingQType(), nullptr));
+                                          arolla::GetNothingQType(), nullptr));
   int64_t input_count = 0;
+  if (expr_info.hidden_seed_index) {
+    input_qvalues[*expr_info.hidden_seed_index] = HiddenSeedArgValueRef();
+    ++input_count;
+  }
   for (const auto& [input_name, input_value] : inputs) {
     auto it = expr_info.input_leaf_index.find(input_name);
     if (it == expr_info.input_leaf_index.end()) {

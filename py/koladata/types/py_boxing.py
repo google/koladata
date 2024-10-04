@@ -210,8 +210,8 @@ def find_hidden_seed_param(signature: inspect.Signature) -> int | None:
   return None
 
 
-HIDDEN_SEED_PLACEHOLDER = arolla.abc.placeholder(
-    '_koladata_hidden_seed_placeholder'
+HIDDEN_SEED_LEAF = arolla.abc.leaf(
+    '_koladata_hidden_seed_leaf'
 )
 
 
@@ -225,8 +225,7 @@ def _random_int64() -> arolla.QValue:
 
 def with_unique_hidden_seed(expr: arolla.Expr) -> arolla.Expr:
   return arolla.sub_by_fingerprint(
-      expr,
-      {HIDDEN_SEED_PLACEHOLDER.fingerprint: arolla.literal(_random_int64())},
+      expr, {HIDDEN_SEED_LEAF.fingerprint: arolla.literal(_random_int64())},
   )
 
 
@@ -579,7 +578,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
         kwargs.clear()
       elif _is_hidden_seed(marker_type):
         bound_values.append(
-            arolla.M.math.add(HIDDEN_SEED_PLACEHOLDER, _random_int64())
+            arolla.M.math.add(HIDDEN_SEED_LEAF, _random_int64())
         )
       else:
         raise TypeError(f'unknown param marker type {marker_type}')
