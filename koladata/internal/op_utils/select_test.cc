@@ -489,8 +489,8 @@ TEST(SelectTest, TypeMismatch) {
 
   EXPECT_THAT(SelectOp()(ds, shape, filter, shape),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "second argument to operator select must "
-                       "have all items of MASK dtype"));
+                       HasSubstr("second argument to operator select must "
+                                 "have all items of MASK dtype")));
 }
 
 TEST(SelectTest, DataItemObjectId_PresentFilter) {

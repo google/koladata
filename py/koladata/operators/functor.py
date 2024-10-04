@@ -19,6 +19,7 @@ from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
 from koladata.types import py_boxing
+from koladata.types import qtypes
 
 M = arolla.M
 P = arolla.P
@@ -74,4 +75,18 @@ def call(
   Returns:
     The result of the call.
   """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.functor._maybe_call',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.maybe_fn),
+        qtype_utils.expect_data_slice(P.arg),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _maybe_call(maybe_fn, arg):  # pylint: disable=unused-argument
+  """Returns `maybe_fn(arg)` if `maybe_fn` is a functor or `maybe_fn`."""
   raise NotImplementedError('implemented in the backend')

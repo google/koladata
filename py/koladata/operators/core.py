@@ -19,6 +19,7 @@ from arolla.jagged_shape import jagged_shape
 from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
+from koladata.operators import functor
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import logical
 from koladata.operators import math
@@ -444,7 +445,7 @@ def select(ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)):
   """
   return _select(
       ds=ds,
-      fltr=fltr,
+      fltr=functor._maybe_call(fltr, ds),  # pylint: disable=protected-access
       expand_filter=arolla_bridge.to_arolla_boolean(expand_filter),
   )
 

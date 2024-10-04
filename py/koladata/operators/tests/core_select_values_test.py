@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functor import functor_factories
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -52,6 +53,11 @@ class CoreSelectValuesTest(parameterized.TestCase):
           ds([[1], [], []]),
       ),
       (
+          ds([db.dict({4: 1}), db.dict({5: 2}), db.dict({6: 3})]),
+          functor_factories.fn(I.self == 1),
+          ds([[1], [], []]),
+      ),
+      (
           ds([[db.dict({1: 1})], [db.dict({2: 2}), db.dict({3: 3})]]),
           ds([mask_constants.present, None]),
           ds([[[1]], [[], []]]),
@@ -65,7 +71,7 @@ class CoreSelectValuesTest(parameterized.TestCase):
           db.dict({2: DICT}),
           ds([mask_constants.present]),
           ds([DICT]),
-      )
+      ),
   )
   def test_eval(self, value, fltr, expected):
     result = expr_eval.eval(kde.core.select_values(value, fltr))
@@ -80,6 +86,12 @@ class CoreSelectValuesTest(parameterized.TestCase):
 
     result = expr_eval.eval(kde.core.select_keys(data, fltr_ds))
     testing.assert_equal(result, expected)
+
+  def test_eval_with_functor(self):
+    data = db.dict({4: 1, 5: 2, 6: 3})
+    fltr = functor_factories.fn(I.self >= 2)
+    result = expr_eval.eval(kde.core.select_values(data, fltr))
+    testing.assert_unordered_equal(result, ds([2, 3]))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

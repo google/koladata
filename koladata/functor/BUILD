@@ -165,6 +165,7 @@ cc_library(
     hdrs = ["call_operator.h"],
     deps = [
         ":call",
+        ":functor",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "@com_google_absl//absl/status",
@@ -183,6 +184,7 @@ cc_library(
     srcs = ["operators.cc"],
     deps = [
         ":call_operator",
+        "//koladata:data_slice_qtype",
         "@com_google_arolla//arolla/qexpr",
     ],
     alwayslink = 1,

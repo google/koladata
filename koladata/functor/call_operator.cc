@@ -26,6 +26,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
+#include "koladata/functor/functor.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
@@ -116,6 +117,23 @@ absl::StatusOr<arolla::OperatorPtr> CallOperatorFamily::DoGetOperator(
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<CallOperator>(input_types, output_type), input_types,
       output_type);
+}
+
+absl::StatusOr<DataSlice> MaybeCall(const DataSlice& maybe_fn,
+                                    const DataSlice& arg) {
+  if (IsFunctor(maybe_fn).value_or(false)) {
+    ASSIGN_OR_RETURN(auto result,
+                     functor::CallFunctorWithCompilationCache(
+                         maybe_fn, {arolla::TypedRef::FromValue(arg)}, {}));
+    if (result.GetType() != arolla::GetQType<DataSlice>()) {
+      return absl::InternalError(absl::StrFormat(
+          "the functor is expected to be evaluated to a DataSlice"
+          ", but the result has type `%s` instead",
+          result.GetType()->name()));
+    }
+    return result.As<DataSlice>();
+  }
+  return maybe_fn;
 }
 
 }  // namespace koladata::functor

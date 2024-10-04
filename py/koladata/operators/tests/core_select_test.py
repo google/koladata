@@ -14,12 +14,15 @@
 
 """Tests for kde.core.select."""
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functor import functor_factories
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -112,9 +115,21 @@ class CoreSelectTest(parameterized.TestCase):
           ds(None, schema_constants.MASK),
           ds([], schema_constants.INT32),
       ),
+      # Functor
+      (ds([1, 2, 3]), functor_factories.fn(I.self >= 2), ds([2, 3])),
+      (
+          ds([[1], [2], [3]]),
+          functor_factories.fn(I.self == 2),
+          ds([[], [2], []]),
+      ),
       # Two scalar input, scalar output.
       (ds(1), ds(arolla.present()), ds(1)),
       (ds(1), ds(arolla.missing()), ds(None, schema_constants.INT32)),
+      (
+          ds(1),
+          functor_factories.fn(I.self > 1),
+          ds(None, schema_constants.INT32),
+      ),
   )
   def test_eval(self, values, filter_arr, expected):
     result = expr_eval.eval(kde.core.select(values, filter_arr))
@@ -236,13 +251,40 @@ class CoreSelectTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.core.select(val, val))
 
-  def test_select_wrong_filter_type(self):
-    val = data_slice.DataSlice.from_vals([1, 2, None, 4]).as_any()
+  @parameterized.parameters(
+      (
+          ds([1, 2, None, 4]).as_any(),
+          ds([1, 2, None, 4]).as_any(),
+          (
+              'second argument to operator select must have all items of MASK'
+              ' dtype or can be evaluated to such items (i.e. Python function'
+              ' or Koda Functor)'
+          ),
+      ),
+      (
+          ds([1, 2, None, 4]),
+          functor_factories.fn(I.self == 1).no_db(),
+          (
+              'second argument to operator select must have all items of MASK'
+              ' dtype or can be evaluated to such items (i.e. Python function'
+              ' or Koda Functor)'
+          ),
+      ),
+      (
+          ds([1, 2, None, 4]),
+          functor_factories.fn(I.self),
+          (
+              'the schema of the filter DataSlice should only be Any, Object or'
+              ' Mask'
+          ),
+      ),
+  )
+  def test_select_wrong_filter_type(self, values, fltr, expected):
     with self.assertRaisesRegex(
         ValueError,
-        'second argument to operator select must have all items of MASK dtype',
+        re.escape(expected),
     ):
-      expr_eval.eval(kde.core.select(val, val))
+      expr_eval.eval(kde.core.select(values, fltr))
 
   def test_select_expand_to_shape(self):
     x = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])

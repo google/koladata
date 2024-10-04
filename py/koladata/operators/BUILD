@@ -290,6 +290,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":assertion",
+        ":functor",
         ":jagged_shape",
         ":logical",
         ":math",
@@ -443,6 +444,7 @@ py_library(
         "//koladata/functor:operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )

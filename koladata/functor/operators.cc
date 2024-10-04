@@ -14,15 +14,18 @@
 //
 #include <memory>
 
+#include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call_operator.h"
 #include "arolla/qexpr/optools.h"
 
 namespace koladata::functor {
 namespace {
 
+#define OPERATOR AROLLA_REGISTER_QEXPR_OPERATOR
 #define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
+OPERATOR("kde.functor._maybe_call", MaybeCall);
 OPERATOR_FAMILY("kde.functor.call", std::make_unique<CallOperatorFamily>());
 // go/keep-sorted end
 

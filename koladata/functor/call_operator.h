@@ -17,6 +17,7 @@
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
+#include "koladata/data_slice.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
@@ -29,6 +30,12 @@ class CallOperatorFamily : public arolla::OperatorFamily {
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
+
+// kde.functor._maybe_call operator.
+// If the first argument is a functor, calls it on the second argument.
+// Otherwise, returns the first argument.
+absl::StatusOr<DataSlice> MaybeCall(const DataSlice& maybe_fn,
+                                    const DataSlice& arg);
 
 }  // namespace koladata::functor
 

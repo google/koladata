@@ -116,7 +116,8 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
   } else if (filter.dtype() != arolla::GetQType<arolla::Unit>()) {
     return absl::InvalidArgumentError(
         "second argument to operator select must have all items "
-        "of MASK dtype");
+        "of MASK dtype or can be evaluated to such items (i.e. Python function "
+        "or Koda Functor)");
   } else {
     presence_mask_array = filter.values<arolla::Unit>();
   }
