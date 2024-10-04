@@ -237,6 +237,12 @@ class DataSliceView(BasicKodaView):
   def dict_size(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.dict_size', self)
 
+  def dict_update(self, *args, **kwargs) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.dict_update', self, *args, **kwargs)
+
+  def with_dict_update(self, *args, **kwargs) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.with_dict_update', self, *args, **kwargs)
+
   def follow(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.follow', self)
 

@@ -62,6 +62,7 @@ OPERATOR_FAMILY("kde.core._concat_or_stack",
                 arolla::MakeVariadicInputOperatorFamily(ConcatOrStack));
 OPERATOR("kde.core._deep_clone", DeepClone);
 OPERATOR("kde.core._dense_rank", DenseRank);
+OPERATOR("kde.core._dict_update", DictUpdate);
 OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);
 OPERATOR("kde.core._get_attr", GetAttr);

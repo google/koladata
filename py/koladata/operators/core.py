@@ -2861,3 +2861,86 @@ def translate_group(keys_to, keys_from, values_from):
   # Keep the first N-2 dimensions, select items in N-1 dimension by
   # translated_indices and keep the last group_by dimension.
   return subslice(grouped_values, ..., translated_indices, slice(None))
+
+
+@optools.as_backend_operator(
+    'kde.core._dict_update',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.keys),
+        qtype_utils.expect_data_slice(P.values),
+    ],
+    qtype_inference_expr=qtypes.DATA_BAG,
+)
+def _dict_update(x, keys, values):  # pylint: disable=unused-argument
+  """Backend operator for kde.dict_update(x, keys, values)."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.dict_update'], view=view.DataBagView)
+@optools.as_lambda_operator(
+    'kde.core.dict_update',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.keys),
+        qtype_utils.expect_data_slice_or_unspecified(P.values),
+    ],
+)
+def dict_update(x, keys, values=arolla.unspecified()):
+  """Returns DataBag containing updates to a slice of dicts.
+
+  This operator has three forms:
+    kde.dict_update(x, keys, values) where keys and values are slices
+    kde.dict_update(x, dict_updates) where dict_updates is a slice of dicts
+    kde.dict_update(x, {...}) where {...} is a python dict with keys and values
+      that can all be converted to DataItems
+
+  If both keys and values are specified, they must both be broadcastable to the
+  shape of `x`. If only keys is specified (as dict_updates), it must be
+  broadcastable to 'x'.
+
+  Args:
+    x: DataSlice of dicts to update.
+    keys: A DataSlice of keys, or a DataSlice of dicts of updates.
+    values: A DataSlice of values, or unspecified if `keys` contains dicts.
+  """
+  return arolla.types.DispatchOperator(
+      'x, keys, values',
+      unspecified_case=arolla.types.DispatchCase(
+          # Note: relies on get_keys and get_values having the same order
+          # (which is guaranteed, but not obvious).
+          _dict_update(P.x, get_keys(P.keys), get_values(P.keys)),
+          condition=(P.values == arolla.UNSPECIFIED),
+      ),
+      default=_dict_update(P.x, P.keys, P.values),
+  )(x, keys, values)
+
+
+@optools.add_to_registry(aliases=['kde.with_dict_update'])
+@optools.as_lambda_operator(
+    'kde.core.with_dict_update',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.keys),
+        qtype_utils.expect_data_slice_or_unspecified(P.values),
+    ],
+)
+def with_dict_update(x, keys, values=arolla.unspecified()):
+  """Returns a DataSlice with a new DataBag containing updated dicts.
+
+  This operator has three forms:
+    kde.with_dict_update(x, keys, values) where keys and values are slices
+    kde.with_dict_update(x, dict_updates) where dict_updates is a slice of dicts
+    kde.with_dict_update(x, {...}) where {...} is a python dict with keys and
+      values that can all be converted to DataItems
+
+  If both keys and values are specified, they must both be broadcastable to the
+  shape of `x`. If only keys is specified (as dict_updates), it must be
+  broadcastable to 'x'.
+
+  Args:
+    x: DataSlice of dicts to update.
+    keys: A DataSlice of keys, or a DataSlice of dicts of updates.
+    values: A DataSlice of values, or unspecified if `keys` contains dicts.
+  """
+  return updated(x, dict_update(x, keys, values))

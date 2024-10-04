@@ -1208,6 +1208,47 @@ absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts) {
   });
 }
 
+absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
+                                      const DataSlice& values) {
+  if (x.GetDb() == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot update a DataSlice of dicts without a DataBag");
+  }
+  if (!x.ContainsOnlyDicts()) {
+    return absl::InvalidArgumentError("expected a DataSlice of dicts");
+  }
+
+  // Scope to control the lifetime of result_obj, so we can safely invalidate
+  // the contents of result_db afterward.
+  DataBagPtr result_db = DataBag::Empty();
+  {
+    DataSlice result = x.WithDb(result_db);
+
+    // TODO: Possibly replace with kd.stub implementation (although
+    // this may be simple enough for the dict-only case to keep inline).
+    DataSlice x_schema = x.GetSchema();
+    if (x_schema.item() == schema::kObject) {
+      ASSIGN_OR_RETURN(x_schema, x.GetObjSchema());
+      RETURN_IF_ERROR(result.SetAttr(schema::kSchemaAttr, x_schema));
+    }
+    const auto& result_schema = x_schema.WithDb(result_db);
+    for (const auto& attr_name :
+         {schema::kDictKeysSchemaAttr, schema::kDictValuesSchemaAttr}) {
+      ASSIGN_OR_RETURN(const auto& schema_attr, x_schema.GetAttr(attr_name));
+      RETURN_IF_ERROR(result_schema.SetAttr(attr_name, schema_attr));
+    }
+
+    // TODO: Remove after `SetInDict` performs its own adoption.
+    AdoptionQueue adoption_queue;
+    adoption_queue.Add(keys);
+    adoption_queue.Add(values);
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
+
+    RETURN_IF_ERROR(result.SetInDict(keys, values));
+  }
+  return std::move(*result_db).ToImmutable();
+}
+
 absl::StatusOr<DataSlice> Explode(const DataSlice& x, const int64_t ndim) {
   if (ndim == 0) {
     return x;

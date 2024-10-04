@@ -397,6 +397,18 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_dict_size(self):
     testing.assert_equal(C.x.dict_size(), kde.dict_size(C.x))
 
+  def test_dict_update(self):
+    testing.assert_equal(
+        C.x.dict_update(C.keys, C.values),
+        kde.dict_update(C.x, C.keys, C.values),
+    )
+
+  def test_with_dict_update(self):
+    testing.assert_equal(
+        C.x.with_dict_update(C.keys, C.values),
+        kde.with_dict_update(C.x, C.keys, C.values),
+    )
+
   def test_follow(self):
     testing.assert_equal(C.x.follow(), kde.follow(C.x))
 

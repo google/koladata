@@ -187,6 +187,20 @@ def _dict_size(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.dict_size, self)
 
 
+@DataSlice.add_method('dict_update')
+def _dict_update(self, *args, **kwargs) -> DataBag:
+  return arolla.abc.aux_eval_op(
+      _op_impl_lookup.dict_update, self, *args, **kwargs
+  )
+
+
+@DataSlice.add_method('with_dict_update')
+def _with_dict_update(self, *args, **kwargs) -> DataSlice:
+  return arolla.abc.aux_eval_op(
+      _op_impl_lookup.with_dict_update, self, *args, **kwargs
+  )
+
+
 @DataSlice.add_method('follow')
 def _follow(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.follow, self)

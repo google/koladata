@@ -156,6 +156,10 @@ inline absl::StatusOr<DataSlice> GetValuesByKeys(const DataSlice& dict_ds,
   return dict_ds.GetFromDict(key_ds);
 }
 
+// kde.core._dict_update
+absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
+                                      const DataSlice& values);
+
 // kde.core.group_by_indices.
 absl::StatusOr<DataSlice> GroupByIndices(
     absl::Span<const DataSlice* const> slices);
