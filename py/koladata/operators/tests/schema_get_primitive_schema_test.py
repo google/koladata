@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.get_primitive_schema."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -42,7 +40,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreGetPrimitiveSchemaTest(parameterized.TestCase):
+class SchemaGetPrimitiveSchemaTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(1), schema_constants.INT32),
@@ -69,7 +67,7 @@ class CoreGetPrimitiveSchemaTest(parameterized.TestCase):
       (ds([None, None, None], schema_constants.INT32), schema_constants.INT32),
   )
   def test_eval(self, x, expected):
-    result = expr_eval.eval(kde.core.get_primitive_schema(x))
+    result = expr_eval.eval(kde.schema.get_primitive_schema(x))
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -79,19 +77,15 @@ class CoreGetPrimitiveSchemaTest(parameterized.TestCase):
       (schema_constants.INT32,),
       (ds([schema_constants.INT32, schema_constants.INT64]),),
   )
-  def test_eval_with_exception(self, x):
-    with self.assertRaisesRegex(
-        ValueError,
-        'the primitive schema of the DataSlice cannot be inferred - it is empty'
-        ' with no primitive schema, has non-primitive items, or it has items of'
-        ' mixed primitive dtypes',
-    ):
-      _ = expr_eval.eval(kde.core.get_primitive_schema(x))
+  def test_eval_with_missing_schema(self, x):
+    result = expr_eval.eval(kde.schema.get_primitive_schema(x))
+    missing_schema = schema_constants.INT32 & None
+    testing.assert_equal(result, missing_schema)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.get_primitive_schema,
+            kde.schema.get_primitive_schema,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
@@ -99,14 +93,22 @@ class CoreGetPrimitiveSchemaTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(kde.core.get_primitive_schema(I.ds))
+        view.has_data_slice_view(kde.schema.get_primitive_schema(I.ds))
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.core.get_primitive_schema, kde.get_primitive_schema
+            kde.schema.get_primitive_schema, kde.get_primitive_schema
         )
+    )
+    self.assertTrue(
+        optools.equiv_to_op(
+            kde.schema.get_primitive_schema, kde.schema.get_dtype
+        )
+    )
+    self.assertTrue(
+        optools.equiv_to_op(kde.schema.get_primitive_schema, kde.get_dtype)
     )
 
 

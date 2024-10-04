@@ -87,7 +87,6 @@ OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.get_db", GetDb);
 OPERATOR("kde.core.get_keys", GetKeys);
 OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
-OPERATOR("kde.core.get_primitive_schema", GetPrimitiveSchema);
 OPERATOR_FAMILY("kde.core.group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
@@ -158,6 +157,7 @@ OPERATOR("kde.schema.encode", Encode);
 OPERATOR("kde.schema.get_item_schema", GetItemSchema);
 OPERATOR("kde.schema.get_key_schema", GetKeySchema);
 OPERATOR("kde.schema.get_obj_schema", GetObjSchema);
+OPERATOR("kde.schema.get_primitive_schema", GetPrimitiveSchema);
 OPERATOR("kde.schema.get_schema", GetSchema);
 OPERATOR("kde.schema.get_value_schema", GetValueSchema);
 OPERATOR("kde.schema.list_schema", ListSchema);

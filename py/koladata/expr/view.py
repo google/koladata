@@ -273,6 +273,9 @@ class DataSliceView(BasicKodaView):
   def get_ndim(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_ndim', self)
 
+  def get_dtype(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_dtype', self)
+
   def rank(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.rank', self)
 

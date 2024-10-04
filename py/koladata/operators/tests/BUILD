@@ -3038,8 +3038,8 @@ py_test(
 )
 
 py_test(
-    name = "core_get_primitive_schema_test",
-    srcs = ["core_get_primitive_schema_test.py"],
+    name = "schema_get_primitive_schema_test",
+    srcs = ["schema_get_primitive_schema_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",

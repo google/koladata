@@ -431,6 +431,9 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_get_ndim(self):
     testing.assert_equal(C.x.get_ndim(), kde.get_ndim(C.x))
 
+  def test_get_dtype(self):
+    testing.assert_equal(C.x.get_dtype(), kde.get_dtype(C.x))
+
   def test_rank(self):
     testing.assert_equal(C.x.rank(), kde.rank(C.x))
 

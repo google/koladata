@@ -71,38 +71,6 @@ def add(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.get_primitive_schema'])
-@optools.as_backend_operator(
-    'kde.core.get_primitive_schema',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def get_primitive_schema(ds):  # pylint: disable=unused-argument
-  """Returns a primitive schema representing the underlying items' dtype.
-
-  Note dtype is the type of actual items in the DataSlice rather than the schema
-  of the DataSlice.
-
-  In case of items have non-primitive types or mixed dtypes, raises an
-  exception.
-
-  Examples:
-    kd.get_primitive_schema(kd.slice([1, 2, 3])) -> kd.INT32
-    kd.get_primitive_schema(kd.slice([None, None, None], kd.INT32)) -> kd.INT32
-    kd.get_primitive_schema(kd.slice([1, 2, 3], kd.OBJECT)) -> kd.INT32
-    kd.get_primitive_schema(kd.slice([1, 2, 3], kd.ANY)) -> kd.INT32
-    kd.get_primitive_schema(kd.slice([1, 2., 3], kd.OBJECT)) -> exception
-    kd.get_primitive_schema(kd.obj())) -> exception
-
-  Args:
-    ds: DataSlice to get dtype from.
-
-  Returns:
-    a primitive schema DataSlice.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
 @optools.add_to_registry(aliases=['kde.dict_size'])
 @optools.as_backend_operator(
     'kde.core.dict_size',

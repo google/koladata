@@ -2040,6 +2040,13 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
         ds([[None, None], [None], []], schema_constants.OBJECT),
     )
 
+  # More comprehensive tests are in the schema_get_primitive_schema_test.py.
+  def test_get_dtype(self):
+    testing.assert_equal(ds([1, 2, 3]).get_dtype(), schema_constants.INT32)
+    testing.assert_equal(
+        bag().new(x=1).get_dtype(), schema_constants.INT32 & None
+    )
+
   def test_get_obj_schema(self):
     x = ds([1, None, 1.1], schema_constants.OBJECT)
     expected = ds([schema_constants.INT32, None, schema_constants.FLOAT32])

@@ -458,6 +458,46 @@ def get_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(
+    aliases=[
+        'kde.get_primitive_schema',
+        'kde.schema.get_dtype',
+        'kde.get_dtype',
+    ]
+)
+@optools.as_backend_operator(
+    'kde.schema.get_primitive_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def get_primitive_schema(ds):  # pylint: disable=unused-argument
+  """Returns a primitive schema representing the underlying items' dtype.
+
+  If `ds` has a primitive schema, this returns that primitive schema, even if
+  all items in `ds` are missing. If `ds` has an OBJECT/ANY schema but contains
+  primitive values of a single dtype, it returns the schema for that primitive
+  dtype.
+
+  In case of items in `ds` have non-primitive types or mixed dtypes, returns
+  a missing schema (i.e. `kd.item(None, kd.SCHEMA)`).
+
+  Examples:
+    kd.get_primitive_schema(kd.slice([1, 2, 3])) -> kd.INT32
+    kd.get_primitive_schema(kd.slice([None, None, None], kd.INT32)) -> kd.INT32
+    kd.get_primitive_schema(kd.slice([1, 2, 3], kd.OBJECT)) -> kd.INT32
+    kd.get_primitive_schema(kd.slice([1, 2, 3], kd.ANY)) -> kd.INT32
+    kd.get_primitive_schema(kd.slice([1, 'a', 3], kd.OBJECT)) -> missing schema
+    kd.get_primitive_schema(kd.obj())) -> missing schema
+
+  Args:
+    ds: DataSlice to get dtype from.
+
+  Returns:
+    a primitive schema DataSlice.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.get_obj_schema'])
 @optools.as_backend_operator(
     'kde.schema.get_obj_schema',

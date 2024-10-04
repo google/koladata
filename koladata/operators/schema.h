@@ -45,7 +45,7 @@ class UuSchemaOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.core.get_primitive_schema.
+// kde.schema.get_primitive_schema.
 inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
   const auto& schema = ds.GetSchemaImpl();
   if (schema.is_primitive_schema()) {
@@ -56,10 +56,8 @@ inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
         internal::DataItem(*schema::DType::FromQType(ds.dtype())),
         internal::DataItem(schema::kSchema));
   }
-  return absl::FailedPreconditionError(
-      "the primitive schema of the DataSlice cannot be inferred - it is "
-      "empty with no primitive schema, has non-primitive items, or it has "
-      "items of mixed primitive dtypes");
+  return DataSlice::Create(internal::DataItem(),
+                           internal::DataItem(schema::kSchema));
 }
 
 // kde.schema.cast_to operator.
