@@ -107,6 +107,7 @@ OPERATOR_FAMILY("kde.core.subslice",
 OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
 OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());
+OPERATOR_FAMILY("kde.core.uu", std::make_unique<UuOperatorFamily>());
 OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kde.core.with_db", WithDb);
@@ -174,8 +175,7 @@ OPERATOR_FAMILY("kde.strings._test_only_format_wrapper",
 OPERATOR("kde.strings.contains", Contains);
 OPERATOR("kde.strings.count", Count);
 OPERATOR("kde.strings.find", Find);
-OPERATOR_FAMILY("kde.strings.format",
-                std::make_unique<FormatOperatorFamily>());
+OPERATOR_FAMILY("kde.strings.format", std::make_unique<FormatOperatorFamily>());
 OPERATOR_FAMILY("kde.strings.join",
                 arolla::MakeVariadicInputOperatorFamily(Join));
 OPERATOR("kde.strings.length", Length);

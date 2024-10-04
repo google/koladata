@@ -227,6 +227,14 @@ class UuObjOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// kde.core.uu operator.
+// Creates a DataSlice of UuEntities.
+class UuOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_H_

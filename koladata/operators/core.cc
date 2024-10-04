@@ -792,6 +792,8 @@ absl::StatusOr<DataSlice> WithAttrs(
   return obj.WithDb(DataBag::CommonDataBag({std::move(attrs_db), obj.GetDb()}));
 }
 
+}  // namespace
+
 class WithAttrsOperator : public arolla::QExprOperator {
  public:
   explicit WithAttrsOperator(absl::Span<const arolla::QTypePtr> input_types)
@@ -839,6 +841,83 @@ absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
   return DataSlice::Create(
       internal::AtOp(x.slice(), index_array, x_to_common, indices_to_common),
       indices_shape, x.GetSchemaImpl(), x.GetDb());
+}
+
+class UuOperator : public arolla::QExprOperator {
+ public:
+  explicit UuOperator(absl::Span<const arolla::QTypePtr> input_types)
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
+         schema_slot = input_slots[1],
+         update_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         named_tuple_slot = input_slots[3],
+         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          const DataSlice& seed_data_slice = frame.Get(seed_slot);
+          std::optional<DataSlice> schema;
+          if (schema_slot.GetType() == arolla::GetUnspecifiedQType()) {
+            schema = absl::nullopt;
+          } else {
+            schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
+          }
+          const DataSlice& update_schema_data_slice =
+              frame.Get(update_schema_slot);
+          if (seed_data_slice.GetShape().rank() != 0 ||
+              !seed_data_slice.item().holds_value<arolla::Text>()) {
+            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
+                "requires `seed` to be DataItem holding Text, got %s",
+                arolla::Repr(seed_data_slice))));
+            return;
+          }
+          if (update_schema_data_slice.GetShape().rank() != 0 ||
+              !update_schema_data_slice.item().holds_value<bool>()) {
+            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
+                "requires `update_schema` to be DataItem holding bool, got %s",
+                arolla::Repr(update_schema_data_slice))));
+            return;
+          }
+          auto seed = seed_data_slice.item().value<arolla::Text>();
+          auto update_schema = update_schema_data_slice.item().value<bool>();
+          auto attr_names = GetAttrNames(named_tuple_slot);
+          auto values = GetValueDataSlices(named_tuple_slot, frame);
+          auto db = koladata::DataBag::Empty();
+          ASSIGN_OR_RETURN(
+              auto result,
+              CreateUu(db, seed, attr_names, values, schema, update_schema),
+              ctx->set_status(std::move(_)));
+          frame.Set(output_slot, std::move(result));
+        });
+  }
+};
+
+absl::StatusOr<arolla::OperatorPtr> UuOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 4) {
+    return absl::InvalidArgumentError("requires exactly 4 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires `seed` argument to be DataSlice");
+  }
+  if (input_types[1] != arolla::GetQType<DataSlice>() &&
+      input_types[1] != arolla::GetUnspecifiedQType()) {
+    return absl::InvalidArgumentError(
+        "requires `schema` argument to be DataSlice or unspecified");
+  }
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires `update_schema` argument to be DataSlice");
+  }
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[3]));
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<UuOperator>(input_types), input_types, output_type);
 }
 
 class UuidOperator : public arolla::QExprOperator {
@@ -917,8 +996,6 @@ class UuObjOperator : public arolla::QExprOperator {
         });
   }
 };
-
-}  // namespace
 
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
   return SimplePointwiseEval("kde.core._add_impl", {x, y});

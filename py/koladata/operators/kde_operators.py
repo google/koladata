@@ -26,6 +26,7 @@ from koladata.operators import functor as _
 from koladata.operators import jagged_shape as _
 from koladata.operators import logical as _
 from koladata.operators import math as _
+from koladata.operators import object_factories as _
 from koladata.operators import predicates as _
 from koladata.operators import py as _
 from koladata.operators import random as _
@@ -33,7 +34,6 @@ from koladata.operators import schema as _
 from koladata.operators import strings as _
 from koladata.operators import tuple as _
 from koladata.operators import uuid as _
-from koladata.operators import uuobj as _
 
 
 def get_namespaces() -> list[str]:

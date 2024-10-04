@@ -64,13 +64,13 @@ arolla_operator_package_snapshot(
         ":jagged_shape",
         ":logical",
         ":math",
+        ":object_factories",
         ":predicates",
         ":random",
         ":schema",
         ":strings",
         ":tuple",
         ":uuid",
-        ":uuobj",
     ],
 )
 
@@ -196,8 +196,8 @@ py_library(
 )
 
 py_library(
-    name = "uuobj",
-    srcs = ["uuobj.py"],
+    name = "object_factories",
+    srcs = ["object_factories.py"],
     deps = [
         ":optools",
         ":qtype_utils",
@@ -395,6 +395,7 @@ py_library(
         ":jagged_shape",
         ":logical",
         ":math",
+        ":object_factories",
         ":predicates",
         ":py",
         ":random",
@@ -402,7 +403,6 @@ py_library(
         ":strings",
         ":tuple",
         ":uuid",
-        ":uuobj",
         "@com_google_arolla//py/arolla",
     ],
 )

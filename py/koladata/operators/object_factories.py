@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""UUObj operators."""
+"""Object factory operators."""
 
 from arolla import arolla
 from koladata.operators import optools
@@ -63,6 +63,50 @@ def _uuobj(seed=data_slice.DataSlice.from_vals(''), kwargs=arolla.namedtuple()):
 
   Returns:
     (DataSlice) of uuids. The provided attributes are also set in a newly
-    created databag.
+    created databag. The shape of this DataSlice is the result of aligning the
+    shapes of the kwarg DataSlices.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.uu'])
+@optools.as_backend_operator(
+    'kde.core.uu',
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.seed),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice(P.update_schema),
+        (
+            M.qtype.is_namedtuple_qtype(P.kwargs),
+            f'expected named tuple, got {constraints.name_type_msg(P.kwargs)}',
+        ),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _uu(
+    seed=py_boxing.keyword_only(data_slice.DataSlice.from_vals('')),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    update_schema=py_boxing.keyword_only(data_slice.DataSlice.from_vals(False)),
+    kwargs=py_boxing.var_keyword(),
+):  # pylint: disable=unused-argument
+  """Creates Entities whose ids are uuid(s) with the provided attributes.
+
+  In order to create a different id from the same arguments, use
+  `seed` argument with the desired value.
+
+  Args:
+    seed: text seed for the uuid computation.
+    schema: shared schema of created entities.
+    update_schema: if True, overwrite the provided schema with the schema
+      derived from the keyword values in the resulting Databag.
+    kwargs: DataSlice kwargs defining the attributes of the entities. The
+      DataSlice values must be alignable.
+
+  Returns:
+    (DataSlice) of uuids. The provided attributes are also set in a newly
+    created databag. The shape of this DataSlice is the result of aligning the
+    shapes of the kwarg DataSlices.
   """
   raise NotImplementedError('implemented in the backend')
