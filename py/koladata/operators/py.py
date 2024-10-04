@@ -15,10 +15,9 @@
 """py.* operators."""
 
 import concurrent.futures
-from typing import Any, Callable, Iterable
+from typing import Any, Callable
 
 from arolla import arolla
-from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
 from koladata.operators import core
 from koladata.operators import optools
 from koladata.operators import qtype_utils
@@ -34,18 +33,19 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-def _expect_py_callable(param):
+def _expect_py_callable(
+    param: constraints.Placeholder,
+) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a python callable."""
   return (
-      (param == arolla.abc.PY_OBJECT),
-      (
-          'expected a python callable, got'
-          f' {arolla.optools.constraints.name_type_msg(param)}'
-      ),
+      param == arolla.abc.PY_OBJECT,
+      f'expected a python callable, got {constraints.name_type_msg(param)}',
   )
 
 
-def _expect_optional_py_callable(param):
+def _expect_optional_py_callable(
+    param: constraints.Placeholder,
+) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a python callable or None.
 
   Important: The constraint `_expect_optional_py_callable(P.fn)` should be
@@ -63,20 +63,72 @@ def _expect_optional_py_callable(param):
   Returns;
     A qtype constraint.
   """
-
   return (
       (param == arolla.abc.PY_OBJECT) | (param == qtypes.DATA_SLICE),
-      (
-          'expected a python callable, got'
-          f' {arolla.optools.constraints.name_type_msg(param)}'
-      ),
+      f'expected a python callable, got {constraints.name_type_msg(param)}',
   )
+
+
+def _expect_optional_schema(
+    param: constraints.Placeholder,
+) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is a schema or None."""
+  return (
+      param == qtypes.DATA_SLICE,
+      f'expected a schema, got {constraints.name_type_msg(param)}',
+  )
+
+
+# Note: Intended to be used in pair with _expect_py_callable().
+def _unwrap_py_callable(
+    value: arolla.abc.PyObject, *, param_name: str
+) -> Callable[..., Any]:
+  """Returns a python callable stored in the parameter."""
+  if isinstance(value, arolla.abc.PyObject):
+    result = value.py_value()
+    if callable(result):
+      return result
+  raise ValueError(f'expected a python callable, got {param_name}={value}')
+
+
+# Note: Intended to be used in pair with _expect_optional_py_callable().
+def _unwrap_optional_py_callable(
+    value: arolla.abc.PyObject | data_slice.DataSlice, *, param_name: str
+) -> Callable[..., Any] | None:
+  """Returns a python callable or None stored in the parameter."""
+  if isinstance(value, arolla.abc.PyObject):
+    result = value.py_value()
+    if callable(result):
+      return result
+  elif (
+      isinstance(value, data_item.DataItem)
+      and value.get_schema() == schema_constants.NONE
+  ):
+    return None
+  raise ValueError(f'expected a python callable, got {param_name}={value}')
+
+
+# Note: Intended to be used in pair with _expect_optional_schema().
+def _unwrap_optional_schema(
+    value: data_slice.DataSlice, *, param_name: str
+) -> data_item.DataItem | None:
+  """Returns a schema or none stored in the parameter."""
+  if isinstance(value, data_item.DataItem):
+    if value.get_schema() == schema_constants.SCHEMA:
+      return value
+    if value.get_schema() == schema_constants.NONE:
+      return None
+  raise ValueError(f'expected a schema, got {param_name}={value}')
 
 
 @optools.add_to_registry(aliases=['kde.apply_py'])
 @optools.as_lambda_operator(
     'kde.py.apply_py',
-    qtype_constraints=[_expect_py_callable(P.fn)],
+    qtype_constraints=[
+        _expect_py_callable(P.fn),
+        qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+    ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def apply_py(
@@ -113,7 +165,7 @@ def apply_py(
   )
   def impl(fn, args, return_type_as, kwargs):
     del return_type_as  # Only used for type inference.
-    fn = fn.py_value()
+    fn = _unwrap_py_callable(fn, param_name='fn')
     return py_boxing.as_qvalue(fn(*args, **kwargs.as_dict()))
 
   return impl(fn, args, return_type_as, kwargs)
@@ -167,21 +219,10 @@ def apply_py_on_cond(
       'kde.py.apply_py_on_cond._impl', qtype_inference_expr=qtypes.DATA_SLICE
   )
   def impl(yes_fn, no_fn, cond, args, kwargs):
-    yes_fn = yes_fn.py_value()
-
-    if isinstance(no_fn, arolla.abc.PyObject):
-      no_fn = no_fn.py_value()
-    elif (
-        isinstance(no_fn, data_item.DataItem)
-        and no_fn.get_schema() == schema_constants.NONE
-    ):
-      no_fn = None
-    else:
-      raise TypeError(f'expected a python callable, got no_fn: {no_fn.qtype}')
-
+    yes_fn = _unwrap_py_callable(yes_fn, param_name='yes_fn')
+    no_fn = _unwrap_optional_py_callable(no_fn, param_name='no_fn')
     args = tuple(args)
     kwargs = kwargs.as_dict()
-
     result = yes_fn(
         *(x & cond for x in args), **{k: v & cond for k, v in kwargs.items()}
     )
@@ -238,7 +279,7 @@ def apply_py_on_selected(
       qtype_inference_expr=qtypes.DATA_SLICE,
   )
   def impl(fn, cond, args, kwargs):
-    fn = fn.py_value()
+    fn = _unwrap_py_callable(fn, param_name='fn')
     return fn(
         *(x & cond for x in args),
         **{k: v & cond for k, v in kwargs.as_dict().items()},
@@ -252,7 +293,7 @@ def apply_py_on_selected(
 
 def _basic_map_py(
     *,
-    map_fn: Callable[..., Iterable[Any]],
+    map_fn: Callable[..., list[Any]],
     fn: Callable[..., Any],
     args: tuple[data_slice.DataSlice, ...],
     schema: data_slice.DataSlice | None,
@@ -274,17 +315,16 @@ def _basic_map_py(
     Result DataSlice.
   """
   args = core.align._eval(*args)  # pylint: disable=protected-access
-  dims = args[0].get_shape().edges()
-  max_ndim = len(dims)
-
-  if ndim < 0 or ndim > max_ndim:
-    raise ValueError(f'ndim should be between 0 and {max_ndim}, got {ndim=}')
+  shape = args[0].get_shape()
+  shape_rank = shape.rank()
+  if ndim < 0 or ndim > shape_rank:
+    raise ValueError(f'ndim should be between 0 and {shape_rank}, got {ndim=}')
 
   arg_lists = []
   for arg in args:
-    arg_lists.append(arg.flatten(0, max_ndim - ndim).internal_as_py())
+    arg_lists.append(arg.flatten(0, shape_rank - ndim).internal_as_py())
 
-  result = list(map_fn(fn, *arg_lists))
+  result = map_fn(fn, *arg_lists)
   bag = data_bag.DataBag.empty()
   from_py_schema = (
       schema_constants.OBJECT if schema is None else bag.list_schema(schema)
@@ -298,16 +338,13 @@ def _basic_map_py(
       from_py_schema,  # schema=
       0,  # from_dim=,
   )[:]
-  shape = arolla_jagged_shape.JaggedDenseArrayShape.from_edges(
-      *dims[: max_ndim - ndim]
-  )
-  return result.reshape(shape)
+  return result.reshape(shape[: shape_rank - ndim])
 
 
 def _map_py(
     fn: Callable[..., Any],
     *args: data_slice.DataSlice,
-    schema: data_slice.DataSlice | None,
+    schema: data_item.DataItem | None,
     max_threads: int,
     ndim: int,
     item_completed_callback: Callable[[Any], None],
@@ -339,26 +376,30 @@ def _map_py(
 
   def map_fn(task_fn, *iterables):
     if max_threads <= 1:
+      # Single-thread mode
+      result = []
       for item in map(task_fn, *iterables):
+        result.append(item)
         item_completed_callback(item)
-        yield item
-    else:
-      executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
-      try:
-        future_to_idx = {
-            executor.submit(task_fn, *task_args): idx
-            for idx, task_args in enumerate(zip(*iterables))
-        }
-        result = [None] * len(future_to_idx)
-        for future in concurrent.futures.as_completed(future_to_idx):
-          idx = future_to_idx[future]
-          item = future.result()
-          result[idx] = item
-          item_completed_callback(item)
-      finally:
-        # we do not use `with` syntax to pass non default arguments
-        executor.shutdown(wait=False, cancel_futures=True)
-      yield from result
+      return result
+
+    # Multi-thread mode
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
+    try:
+      future_to_idx = {
+          executor.submit(task_fn, *task_args): idx
+          for idx, task_args in enumerate(zip(*iterables))
+      }
+      result = [None] * len(future_to_idx)
+      for future in concurrent.futures.as_completed(future_to_idx):
+        idx = future_to_idx[future]
+        item = future.result()
+        result[idx] = item
+        item_completed_callback(item)
+      return result
+    finally:
+      # we do not use `with` syntax to pass non default arguments
+      executor.shutdown(wait=False, cancel_futures=True)
 
   task_kwnames = tuple(kwargs.keys())
   vcall = arolla.abc.vectorcall
@@ -380,7 +421,7 @@ def _map_py(
     qtype_constraints=[
         _expect_py_callable(P.fn),
         _expect_optional_py_callable(P.item_completed_callback),
-        qtype_utils.expect_data_slice(P.schema),
+        _expect_optional_schema(P.schema),
         qtype_utils.expect_data_slice_args(P.args),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
@@ -471,33 +512,17 @@ def map_py(
   def impl(
       fn, args, schema, ndim, max_threads, item_completed_callback, kwargs
   ):
-    if schema.get_ndim() != 0:
-      raise ValueError('`schema` can be only 0-dim schema slice')
-    if schema.get_schema() != schema_constants.SCHEMA:
-      if schema.get_schema() != schema_constants.NONE:
-        raise ValueError(
-            f'expected a schema, got schema: {schema.get_schema()}'
-        )
-      schema = None
-    if isinstance(item_completed_callback, arolla.abc.PyObject):
-      item_completed_callback = item_completed_callback.py_value()
-    elif (
-        isinstance(item_completed_callback, data_item.DataItem)
-        and item_completed_callback.get_schema() == schema_constants.NONE
-    ):
-      item_completed_callback = lambda _: None
-    else:
-      raise ValueError(
-          f'expected a python callable, got {item_completed_callback=!r}'
-      )
     return _map_py(
-        fn.py_value(),
+        _unwrap_py_callable(fn, param_name='fn'),
         *args,
         **kwargs.as_dict(),
-        schema=schema,
+        schema=_unwrap_optional_schema(schema, param_name='schema'),
         ndim=int(ndim),
         max_threads=int(max_threads),
-        item_completed_callback=item_completed_callback,
+        item_completed_callback=_unwrap_optional_py_callable(
+            item_completed_callback, param_name='item_completed_callback'
+        )
+        or (lambda _: None),
     )
 
   return impl(

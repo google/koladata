@@ -240,12 +240,10 @@ class PyMapPyTest(parameterized.TestCase):
           kde.py.map_py(my_func_any_schema, ds([1, 2]), schema=schema)
       )
 
-    with self.assertRaisesRegex(ValueError, '0-dim'):
-      _ = expr_eval.eval(
-          kde.py.map_py(
-              my_func_correct_schema, val, schema=ds([schema, schema])
-          )
-      )
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'expected a schema, got schema=1'
+    ):
+      _ = expr_eval.eval(kde.py.map_py(my_func_correct_schema, val, schema=1))
 
     db = data_bag.DataBag.empty()
     schema_same_db = db.new_schema(
@@ -406,15 +404,11 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_item_completed_callback(self):
     with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        'expected a python callable, got item_completed_callback='
-        'DataItem(1, schema: INT32)',
+        ValueError, 'expected a python callable, got item_completed_callback=1'
     ):
       expr_eval.eval(
           kde.py.map_py(
-              lambda x: None,
-              ds(list(range(10))),
-              item_completed_callback=ds(1),
+              lambda x: None, ds(list(range(10))), item_completed_callback=1
           )
       )
 
@@ -513,7 +507,8 @@ class PyMapPyTest(parameterized.TestCase):
     )
     testing.assert_equal(res.no_db(), ds([1, 2, 3, 4]))
 
-  def test_map_py_with_item_completed_callback(self):
+  @parameterized.parameters(1, 10)
+  def test_map_py_with_item_completed_callback(self, max_threads):
     size = 100
     counter = 0
     total = 0
@@ -533,7 +528,7 @@ class PyMapPyTest(parameterized.TestCase):
         kde.py.map_py(
             lambda x: x + 1,
             ds(list(range(size))),
-            max_threads=10,
+            max_threads=max_threads,
             item_completed_callback=increment_counter,
         )
     )

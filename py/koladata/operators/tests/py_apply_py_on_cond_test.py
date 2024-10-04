@@ -14,8 +14,6 @@
 
 """Tests for kde.py.apply_py_on_cond."""
 
-import re
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -159,9 +157,8 @@ class PyApplyPyOnCondTest(parameterized.TestCase):
 
   def test_error_unexpected_no_fn_value(self):
     x = ds([mask_constants.missing])
-    with self.assertRaisesRegex(
-        TypeError,
-        re.escape('expected a python callable, got no_fn: DATA_SLICE'),
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'expected a python callable, got no_fn=[None]'
     ):
       _ = expr_eval.eval(kde.py.apply_py_on_cond(lambda x, y: x + y, x, x))
 

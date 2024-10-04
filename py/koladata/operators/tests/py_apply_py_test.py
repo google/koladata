@@ -109,7 +109,7 @@ class PyApplyPyTest(parameterized.TestCase):
 
   def test_error_call_non_callable(self):
     with self.assertRaisesRegex(
-        TypeError, re.escape("'dict' object is not callable")
+        ValueError, re.escape('expected a python callable, got fn=PyObject{{}}')
     ):
       expr_eval.eval(kde.py.apply_py(arolla.abc.PyObject({})))
 
