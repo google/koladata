@@ -459,6 +459,11 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_no_db(self):
     testing.assert_equal(C.x.no_db(), kde.no_db(C.x))
 
+  def test_with_merged_bag(self):
+    testing.assert_equal(
+        C.x.with_merged_bag(), kde.with_merged_bag(C.x)
+    )
+
   def test_enriched(self):
     testing.assert_equal(C.x.enriched(C.db), kde.enriched(C.x, C.db))
 

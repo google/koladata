@@ -433,6 +433,31 @@ class DataSliceTest(parameterized.TestCase):
     self.assertIsNot(x1.db, x1.db)
     self.assertFalse(x1.db.is_mutable())
 
+  def test_with_merged_bag(self):
+    x = ds([1, 2, 3])
+
+    with self.assertRaisesRegex(
+        ValueError, 'expects the DataSlice to have a DataBag attached'
+    ):
+      x.freeze()
+
+    db1 = data_bag.DataBag.empty()
+    x = db1.new(a=1)
+    db2 = data_bag.DataBag.empty()
+    y = x.with_db(db2)
+    y.set_attr('a', 2, update_schema=True)
+    y.set_attr('b', 2, update_schema=True)
+    z = x.with_fallback(db2)
+
+    new_z = z.with_merged_bag()
+    self.assertIsNot(new_z.db, db1)
+    self.assertIsNot(new_z.db, db2)
+    self.assertIsNot(new_z.db, z.db)
+    self.assertFalse(new_z.db.is_mutable())
+    self.assertEmpty(new_z.db.get_fallbacks())
+    testing.assert_equal(new_z.a.no_db(), ds(1))
+    testing.assert_equal(new_z.b.no_db(), ds(2))
+
   def test_enriched(self):
     db1 = data_bag.DataBag.empty()
     schema = db1.new_schema(a=schema_constants.INT32)

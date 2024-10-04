@@ -2046,6 +2046,31 @@ def get_db(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.with_merged_bag'])
+@optools.as_backend_operator(
+    'kde.core.with_merged_bag',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def with_merged_bag(ds):  # pylint: disable=unused-argument
+  """Returns a DataSlice with the DataBag of `ds` merged with its fallbacks.
+
+  Note that a DataBag has multiple fallback DataBags and fallback DataBags can
+  have fallbacks as well. This operator merges all of them into a new immutable
+  DataBag.
+
+  If `ds` has no attached DataBag, it raises an exception. If the DataBag of
+  `ds` does not have fallback DataBags, it is equivalent to `ds.freeze()`.
+
+  Args:
+    ds: DataSlice to merge fallback DataBags of.
+
+  Returns:
+    A new DataSlice with an immutable DataBags.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.enriched'])
 @optools.as_backend_operator(
     'kde.core.enriched',

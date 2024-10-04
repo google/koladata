@@ -41,6 +41,9 @@ absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds);
 // kde.core.with_db.
 DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db);
 
+// kde.core.with_merged_bag.
+absl::StatusOr<DataSlice> WithMergedBag(const DataSlice& ds);
+
 class EnrichedOrUpdatedOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,

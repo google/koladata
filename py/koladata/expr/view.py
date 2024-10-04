@@ -318,6 +318,9 @@ class DataSliceView(BasicKodaView):
   def no_db(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.no_db', self)
 
+  def with_merged_bag(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.with_merged_bag', self)
+
   def enriched(self, db: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.enriched', self, db)
 

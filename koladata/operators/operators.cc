@@ -112,6 +112,7 @@ OPERATOR_FAMILY("kde.core.uu", std::make_unique<UuOperatorFamily>());
 OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kde.core.with_db", WithDb);
+OPERATOR("kde.core.with_merged_bag", WithMergedBag);
 //
 OPERATOR("kde.logical._agg_all", AggAll);
 OPERATOR("kde.logical._agg_any", AggAny);

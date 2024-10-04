@@ -1019,6 +1019,16 @@ DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db) {
   return ds.WithDb(db);
 }
 
+absl::StatusOr<DataSlice> WithMergedBag(const DataSlice& ds) {
+  if (ds.GetDb() == nullptr) {
+    return absl::InvalidArgumentError(
+        "with_merged_bag expects the DataSlice to have a DataBag "
+        "attached");
+  }
+  ASSIGN_OR_RETURN(auto merged_db, ds.GetDb()->MergeFallbacks());
+  return ds.WithDb(std::move(*merged_db).ToImmutable());
+}
+
 namespace {
 
 class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {

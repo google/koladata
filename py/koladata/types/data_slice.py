@@ -231,6 +231,11 @@ def _freeze(self) -> DataSlice:
   return self.with_db(self.db.fork(mutable=False))
 
 
+@DataSlice.add_method('with_merged_bag')
+def _with_merged_bag(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.with_merged_bag, self)
+
+
 @DataSlice.add_method('enriched')
 def _enriched(self, *db: DataBag) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.enriched, self, *db)
