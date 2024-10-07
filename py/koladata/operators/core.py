@@ -770,6 +770,40 @@ def new_shaped(
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.new_shaped_as'])
+@optools.as_lambda_operator(
+    'kde.core.new_shaped_as',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.shape_from),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice(P.update_schema),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+# Operator signature: `kde.new_shaped_as(shape_from, /, schema=None,
+# itemid=None, update_schema=False, **attrs)`
+# pylint: disable=unused-argument
+def new_shaped_as(
+    shape_from=py_boxing.positional_only(),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    update_schema=py_boxing.keyword_only(False),
+    attrs=py_boxing.var_keyword(),
+):
+  # pylint: enable=unused-argument
+  """Returns a new DataSlice with shape of the provided DataSlice and attributes."""
+  return arolla.abc.bind_op(
+      new_shaped,
+      shape=jagged_shape_ops.get_shape(shape_from),
+      schema=schema,
+      itemid=itemid,
+      update_schema=update_schema,
+      attrs=attrs,
+  )
+
+
 @optools.add_to_registry(aliases=['kde.with_db'])
 @optools.as_backend_operator(
     'kde.core.with_db',
