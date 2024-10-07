@@ -437,6 +437,15 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_get_schema(self):
     testing.assert_equal(C.x.get_schema(), kde.get_schema(C.x))
 
+  def test_get_item_schema(self):
+    testing.assert_equal(C.x.get_item_schema(), kde.get_item_schema(C.x))
+
+  def test_get_key_schema(self):
+    testing.assert_equal(C.x.get_key_schema(), kde.get_key_schema(C.x))
+
+  def test_get_value_schema(self):
+    testing.assert_equal(C.x.get_value_schema(), kde.get_value_schema(C.x))
+
   def test_get_shape(self):
     testing.assert_equal(C.x.get_shape(), kde.get_shape(C.x))
 

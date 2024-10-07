@@ -313,6 +313,21 @@ def _is_primitive(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.is_primitive, self)
 
 
+@DataSlice.add_method('get_item_schema')
+def _get_item_schema(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.get_item_schema, self)
+
+
+@DataSlice.add_method('get_key_schema')
+def _get_key_schema(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.get_key_schema, self)
+
+
+@DataSlice.add_method('get_value_schema')
+def _get_value_schema(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.get_value_schema, self)
+
+
 @DataSlice.add_method('attrs')
 def _attrs(self, **attrs) -> DataBag:
   return arolla.abc.aux_eval_op(_op_impl_lookup.attrs, self, **attrs)

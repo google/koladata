@@ -264,6 +264,15 @@ class DataSliceView(BasicKodaView):
   def as_any(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.as_any', self)
 
+  def get_item_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_item_schema', self)
+
+  def get_key_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_key_schema', self)
+
+  def get_value_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_value_schema', self)
+
   def get_obj_schema(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_obj_schema', self)
 
