@@ -804,6 +804,29 @@ def new_shaped_as(
   )
 
 
+@optools.add_to_registry(aliases=['kde.obj_shaped'])
+@optools.as_backend_operator(
+    'kde.core.obj_shaped',
+    qtype_constraints=[
+        qtype_utils.expect_jagged_shape(P.shape),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+# Operator signature: `kde.obj_shaped(shape, /, itemid=None, **attrs)`
+# pylint: disable=unused-argument
+def obj_shaped(
+    shape=py_boxing.positional_only(),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    attrs=py_boxing.var_keyword(),
+):
+  # pylint: enable=unused-argument
+  """Returns a new DataSlice with object schema, provided shape and attributes."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.with_db'])
 @optools.as_backend_operator(
     'kde.core.with_db',

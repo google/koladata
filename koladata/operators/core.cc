@@ -898,6 +898,40 @@ class NewShapedOperator : public arolla::QExprOperator {
   }
 };
 
+class ObjShapedOperator : public arolla::QExprOperator {
+ public:
+  explicit ObjShapedOperator(absl::Span<const arolla::QTypePtr> input_types)
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [shape_slot = input_slots[0].UnsafeToSlot<DataSlice::JaggedShape>(),
+         item_id_slot = input_slots[1], named_tuple_slot = input_slots[2],
+         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          const auto& shape = frame.Get(shape_slot);
+          const std::vector<absl::string_view> attr_names =
+              GetAttrNames(named_tuple_slot);
+          std::optional<DataSlice> item_id;
+          if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
+            item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
+          }
+          const std::vector<DataSlice> attr_values =
+              GetValueDataSlices(named_tuple_slot, frame);
+          DataBagPtr result_db = DataBag::Empty();
+          ASSIGN_OR_RETURN(auto result,
+                           ObjectCreator::Shaped(result_db, shape, attr_names,
+                                                 attr_values, item_id),
+                           ctx->set_status(std::move(_)));
+          frame.Set(output_slot,
+                    result.WithDb(std::move(*result_db).ToImmutable()));
+        });
+  }
+};
+
 class UuOperator : public arolla::QExprOperator {
  public:
   explicit UuOperator(absl::Span<const arolla::QTypePtr> input_types)
@@ -1831,6 +1865,27 @@ absl::StatusOr<arolla::OperatorPtr> NewShapedOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[4]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<NewShapedOperator>(input_types), input_types,
+      output_type);
+}
+
+absl::StatusOr<arolla::OperatorPtr> ObjShapedOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 3) {
+    return absl::InvalidArgumentError("requires exactly 3 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<DataSlice::JaggedShape>()) {
+    return absl::InvalidArgumentError(
+        "requires first argument to be JaggedShape");
+  }
+  if (!IsDataSliceOrUnspecified(input_types[1])) {
+    return absl::InvalidArgumentError(
+        "requires itemid argument to be DataSlice or unspecified");
+  }
+
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[2]));
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<ObjShapedOperator>(input_types), input_types,
       output_type);
 }
 

@@ -101,6 +101,8 @@ OPERATOR_FAMILY("kde.core.new_shaped",
 OPERATOR("kde.core.no_db", NoDb);
 OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
+OPERATOR_FAMILY("kde.core.obj_shaped",
+                std::make_unique<ObjShapedOperatorFamily>());
 OPERATOR("kde.core.ref", Ref);
 OPERATOR("kde.core.reverse", Reverse);
 OPERATOR("kde.core.reverse_select", ReverseSelect);
