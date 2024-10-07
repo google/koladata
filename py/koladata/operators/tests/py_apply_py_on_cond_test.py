@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.py.apply_py_on_cond."""
+"""Tests for kde.py.apply_py_on_cond operator."""
 
 from absl.testing import absltest
 from absl.testing import parameterized

@@ -15,10 +15,10 @@
 """py.* operators."""
 
 import concurrent.futures
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 from arolla import arolla
-from koladata.operators import core
+from koladata.operators import core as _
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_bag
@@ -29,7 +29,6 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 P = arolla.P
-MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
@@ -119,6 +118,11 @@ def _unwrap_optional_schema(
     if value.get_schema() == schema_constants.NONE:
       return None
   raise ValueError(f'expected a schema, got {param_name}={value}')
+
+
+#
+# kde.py.apply_py* operators
+#
 
 
 @optools.add_to_registry(aliases=['kde.apply_py'])
@@ -288,16 +292,64 @@ def apply_py_on_selected(
   return impl(fn, cond, args, kwargs)
 
 
-## py.map_py* operators ##
+#
+# kde.py.map_py* operators
+#
+
+
+def _parallel_map(
+    fn: Callable[..., Any],
+    *iterables: Iterable[Any],
+    max_threads: int,
+    item_completed_callback: Callable[[Any], None] | None,
+) -> list[Any]:
+  """A generalized `map(...)` function with multithreading support.
+
+  Args:
+    fn: The function to apply.
+    *iterables: Input iterables to be processed.
+    max_threads: The maximum number of threads to use.
+    item_completed_callback: A callback invoked after each item is processed. It
+      will be called in the original thread that invoked `map_py`.
+
+  Returns:
+    A list containing the results of the function calls.
+  """
+  if not item_completed_callback:
+    item_completed_callback = type  # use a cheap callable as a stub
+  if max_threads <= 1:  # Single-thread mode
+    result = []
+    for item in map(fn, *iterables):
+      result.append(item)
+      item_completed_callback(item)
+    return result
+
+  # Multi-thread mode
+  executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
+  try:
+    future_to_idx = {
+        executor.submit(fn, *args): idx
+        for idx, args in enumerate(zip(*iterables))
+    }
+    result = [None] * len(future_to_idx)
+    for future in concurrent.futures.as_completed(future_to_idx):
+      idx = future_to_idx[future]
+      item = future.result()
+      result[idx] = item
+      item_completed_callback(item)
+    return result
+  finally:
+    # we do not use `with` syntax to pass non default arguments
+    executor.shutdown(wait=False, cancel_futures=True)
 
 
 def _basic_map_py(
-    *,
-    map_fn: Callable[..., list[Any]],
     fn: Callable[..., Any],
-    args: tuple[data_slice.DataSlice, ...],
+    *args: data_slice.DataSlice,
     schema: data_slice.DataSlice | None,
     ndim: int,
+    max_threads: int,
+    item_completed_callback: Callable[[Any], None] | None,
 ):
   """A basic_map_py() utility.
 
@@ -305,32 +357,39 @@ def _basic_map_py(
   features will be built on top of it.
 
   Args:
-    map_fn: A generalisation of the map(...) function.
     fn: A python callable that implements the computation.
-    args: Input data-slices.
-    schema: The schema to use for resulting data-slice.
+    *args: Input DataSlices.
+    schema: The schema for the resulting DataSlice.
     ndim: Dimensionality of items to pass to `fn`.
+    max_threads: Maximum number of threads to use.
+    item_completed_callback: A callback that will be called after each item is
+      processed. It will be called in the original thread that called `map_py`
+      in case `max_threads` is greater than 1, as we rely on this property for
+      cases like progress reporting. As such, it can not be attached to the `fn`
+      itself.
 
   Returns:
-    Result DataSlice.
+    The resulting DataSlice.
   """
-  args = core.align._eval(*args)  # pylint: disable=protected-access
+  if not args:
+    raise TypeError('expected at least one input DataSlice, got none')
+  args = arolla.abc.aux_eval_op('kde.core.align', *args)
   shape = args[0].get_shape()
   shape_rank = shape.rank()
   if ndim < 0 or ndim > shape_rank:
     raise ValueError(f'ndim should be between 0 and {shape_rank}, got {ndim=}')
-
-  arg_lists = []
-  for arg in args:
-    arg_lists.append(arg.flatten(0, shape_rank - ndim).internal_as_py())
-
-  result = map_fn(fn, *arg_lists)
+  result = _parallel_map(
+      fn,
+      *(arg.flatten(0, shape_rank - ndim).internal_as_py() for arg in args),
+      max_threads=max_threads,
+      item_completed_callback=item_completed_callback,
+  )
+  # TODO: b/323305977 - Use .from_py(..., from_dim=1) instead of the manual list
+  # explosion when available.
   bag = data_bag.DataBag.empty()
   from_py_schema = (
       schema_constants.OBJECT if schema is None else bag.list_schema(schema)
   )
-  # TODO: b/323305977 - Use .from_py(..., from_dim=1) instead of the manual list
-  # explosion when available.
   result = bag._from_py_impl(  # pylint: disable=protected-access
       result,
       False,  # dict_as_obj=
@@ -339,77 +398,6 @@ def _basic_map_py(
       0,  # from_dim=,
   )[:]
   return result.reshape(shape[: shape_rank - ndim])
-
-
-def _map_py(
-    fn: Callable[..., Any],
-    *args: data_slice.DataSlice,
-    schema: data_item.DataItem | None,
-    max_threads: int,
-    ndim: int,
-    item_completed_callback: Callable[[Any], None],
-    **kwargs: data_slice.DataSlice,
-):
-  """A feature complete map_py() utility.
-
-  This utility implements support for kwargs, multi-threading,
-  item_completed_callback.
-
-  Args:
-    fn: A python callable that implements the computation.
-    *args: Input DataSlices.
-    schema: The schema to use for resulting DataSlice.
-    max_threads: Maximum number of threads to use.
-    ndim: Dimensionality of items to pass to `fn`.
-    item_completed_callback: A callback that will be called after each item is
-      processed. It will be called in the original thread that called `map_py`
-      in case `max_threads` is greater than 1, as we rely on this property for
-      cases like progress reporting. As such, it can not be attached to the `fn`
-      itself.
-    **kwargs: Input DataSlices.
-
-  Returns:
-    Result DataSlice.
-  """
-  if not args and not kwargs:
-    raise TypeError('expected at least one input DataSlice, got none')
-
-  def map_fn(task_fn, *iterables):
-    if max_threads <= 1:
-      # Single-thread mode
-      result = []
-      for item in map(task_fn, *iterables):
-        result.append(item)
-        item_completed_callback(item)
-      return result
-
-    # Multi-thread mode
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
-    try:
-      future_to_idx = {
-          executor.submit(task_fn, *task_args): idx
-          for idx, task_args in enumerate(zip(*iterables))
-      }
-      result = [None] * len(future_to_idx)
-      for future in concurrent.futures.as_completed(future_to_idx):
-        idx = future_to_idx[future]
-        item = future.result()
-        result[idx] = item
-        item_completed_callback(item)
-      return result
-    finally:
-      # we do not use `with` syntax to pass non default arguments
-      executor.shutdown(wait=False, cancel_futures=True)
-
-  task_kwnames = tuple(kwargs.keys())
-  vcall = arolla.abc.vectorcall
-  return _basic_map_py(
-      map_fn=map_fn,
-      fn=lambda *task_args: vcall(fn, *task_args, task_kwnames),
-      args=(*args, *kwargs.values()),
-      schema=schema,
-      ndim=ndim,
-  )
 
 
 # TODO: b/365026427 - Add a reference to kd.py_cloudpickle in the docstring.
@@ -490,7 +478,7 @@ def map_py(
 
 
   Args:
-    fn: function.
+    fn: Function.
     *args: Input DataSlices.
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
@@ -512,19 +500,116 @@ def map_py(
   def impl(
       fn, args, schema, ndim, max_threads, item_completed_callback, kwargs
   ):
-    return _map_py(
-        _unwrap_py_callable(fn, param_name='fn'),
+    fn = _unwrap_py_callable(fn, param_name='fn')
+    kwargs = kwargs.as_dict()
+    kwnames = tuple(kwargs.keys())
+    vcall = arolla.abc.vectorcall
+    return _basic_map_py(
+        lambda *task_args: vcall(fn, *task_args, kwnames),
         *args,
-        **kwargs.as_dict(),
+        *kwargs.values(),
         schema=_unwrap_optional_schema(schema, param_name='schema'),
         ndim=int(ndim),
         max_threads=int(max_threads),
         item_completed_callback=_unwrap_optional_py_callable(
             item_completed_callback, param_name='item_completed_callback'
-        )
-        or (lambda _: None),
+        ),
     )
 
   return impl(
       fn, args, schema, ndim, max_threads, item_completed_callback, kwargs
+  )
+
+
+@optools.add_to_registry(aliases=['kde.map_py_on_selected'])
+@optools.as_lambda_operator(
+    'kde.py.map_py_on_selected',
+    qtype_constraints=[
+        _expect_py_callable(P.fn),
+        _expect_optional_schema(P.schema),
+        qtype_utils.expect_data_slice(P.cond),
+        qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+        _expect_optional_py_callable(P.item_completed_callback),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def map_py_on_selected(
+    fn,
+    cond,
+    args=py_boxing.var_positional(),
+    schema=py_boxing.keyword_only(None),
+    max_threads=py_boxing.keyword_only(1),
+    item_completed_callback=py_boxing.keyword_only(None),
+    kwargs=py_boxing.var_keyword(),
+):  # pylint: disable=g-doc-args
+  """Apply python function `fn` on `args` and `kwargs` based on `cond`.
+
+  `cond`, `args` and `kwargs` are first aligned. `cond` cannot have a higher
+  dimensions than `args` or `kwargs`.
+
+  Also see kd.map_py().
+
+  This function supports only pointwise, not aggregational, operations. `fn` is
+  applied when `cond` is kd.present.
+
+  Args:
+    fn: Function.
+    cond: Conditional DataSlice.
+    *args: Input DataSlices.
+    schema: The schema to use for resulting DataSlice.
+    max_threads: maximum number of threads to use.
+    item_completed_callback: A callback that will be called after each item is
+      processed. It will be called in the original thread that called
+      `map_py_on_selected` in case `max_threads` is greater than 1, as we rely
+      on this property for cases like progress reporting. As such, it can not be
+      attached to the `fn` itself.
+    **kwargs: Input DataSlices.
+
+  Returns:
+    Result DataSlice.
+  """
+
+  @arolla.optools.as_py_function_operator(
+      'kde.py.map_py_on_selected._impl', qtype_inference_expr=qtypes.DATA_SLICE
+  )
+  def impl(
+      fn, cond, args, schema, max_threads, item_completed_callback, kwargs
+  ):
+    fn = _unwrap_py_callable(fn, param_name='fn')
+    kwargs = kwargs.as_dict()
+    kwnames = tuple(kwargs.keys())
+    args = [*args, *kwargs.values()]
+    if not args:
+      raise TypeError('expected at least one input DataSlice, got none')
+    if cond.get_schema() != schema_constants.MASK:
+      raise ValueError(f'expected a mask, got cond: {cond.get_schema()}')
+    if cond.get_ndim() > max(arg.get_ndim() for arg in args):
+      raise ValueError(
+          "'cond' must have the same or smaller dimension than args + kwargs"
+      )
+    vcall = arolla.abc.vectorcall
+
+    def task_fn(task_cond, *task_args):
+      if task_cond is None:
+        return None
+      return vcall(fn, *task_args, kwnames)
+
+    return _basic_map_py(
+        task_fn,
+        cond,
+        *(
+            arolla.abc.aux_eval_op('kde.logical.apply_mask', arg, cond)
+            for arg in args
+        ),
+        schema=_unwrap_optional_schema(schema, param_name='schema'),
+        ndim=0,
+        max_threads=int(max_threads),
+        item_completed_callback=_unwrap_optional_py_callable(
+            item_completed_callback, param_name='item_completed_callback'
+        ),
+    )
+
+  return impl(
+      fn, cond, args, schema, max_threads, item_completed_callback, kwargs
   )
