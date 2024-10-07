@@ -152,6 +152,12 @@ class DataSlice {
   // Returns true, if this DataSlice represents a primitive schema.
   bool IsPrimitiveSchema() const;
 
+  // Returns true, if this DataSlice represents an ANY schema.
+  bool IsAnySchema() const;
+
+  // Returns true, if this DataSlice represents an ITEMID schema.
+  bool IsItemIdSchema() const;
+
   // Return true, if this DataSlice is empty (has all missing values).
   bool IsEmpty() const { return impl_empty_and_unknown(); }
 

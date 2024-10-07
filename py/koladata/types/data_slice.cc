@@ -564,6 +564,20 @@ absl::Nullable<PyObject*> PyDataSlice_is_primitive_schema(PyObject* self,
   return WrapPyDataSlice(AsMask(ds.IsPrimitiveSchema()));
 }
 
+absl::Nullable<PyObject*> PyDataSlice_is_any_schema(PyObject* self,
+                                                    PyObject*) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  return WrapPyDataSlice(AsMask(ds.IsAnySchema()));
+}
+
+absl::Nullable<PyObject*> PyDataSlice_is_itemid_schema(PyObject* self,
+                                                       PyObject*) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  return WrapPyDataSlice(AsMask(ds.IsItemIdSchema()));
+}
+
 absl::Nullable<PyObject*> PyDataSlice_is_empty(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
@@ -741,6 +755,10 @@ Returns:
      "Returns present iff this DataSlice is a Dict Schema."},
     {"is_primitive_schema", PyDataSlice_is_primitive_schema, METH_NOARGS,
      "Returns present iff this DataSlice is a primitive (scalar) Schema."},
+    {"is_any_schema", PyDataSlice_is_any_schema, METH_NOARGS,
+     "Returns present iff this DataSlice is ANY Schema."},
+    {"is_itemid_schema", PyDataSlice_is_itemid_schema, METH_NOARGS,
+     "Returns present iff this DataSlice is ITEMID Schema."},
     {"is_empty", PyDataSlice_is_empty, METH_NOARGS,
      "Returns present iff this DataSlice is empty."},
     {"is_mutable", PyDataSlice_is_mutable, METH_NOARGS,

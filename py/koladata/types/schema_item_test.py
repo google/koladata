@@ -172,6 +172,33 @@ class SchemaItemTest(absltest.TestCase):
     self.assertFalse(fns.list([1, 2]).get_schema().is_primitive_schema())
     self.assertFalse(fns.new(a=1).get_schema().is_primitive_schema())
 
+  def test_is_any_schema(self):
+    with self.subTest('item'):
+      a = bag().obj(x=1)
+      self.assertFalse(a.is_any_schema())
+      self.assertFalse(a.get_schema().is_any_schema())
+      self.assertTrue(a.as_any().get_schema().is_any_schema())
+
+    with self.subTest('slice'):
+      db = bag()
+      a = ds([db.obj(x=1), db.obj(x=2)])
+      self.assertFalse(a.is_any_schema())
+      self.assertFalse(a.get_schema().is_any_schema())
+      self.assertTrue(a.as_any().get_schema().is_any_schema())
+
+  def test_is_itemid_schema(self):
+    with self.subTest('item'):
+      a = bag().obj(x=1)
+      self.assertFalse(a.is_itemid_schema())
+      self.assertFalse(a.get_schema().is_itemid_schema())
+      self.assertTrue(a.as_itemid().get_schema().is_itemid_schema())
+
+    with self.subTest('slice'):
+      db = bag()
+      a = ds([db.obj(x=1), db.obj(x=2)])
+      self.assertFalse(a.is_itemid_schema())
+      self.assertFalse(a.get_schema().is_itemid_schema())
+      self.assertTrue(a.as_itemid().get_schema().is_itemid_schema())
 
 if __name__ == '__main__':
   absltest.main()

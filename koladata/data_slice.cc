@@ -868,6 +868,16 @@ bool DataSlice::IsPrimitiveSchema() const {
          item().is_primitive_schema();
 }
 
+bool DataSlice::IsAnySchema() const {
+  return (GetSchemaImpl() == schema::kSchema) && (GetShape().rank() == 0) &&
+         item().is_any_schema();
+}
+
+bool DataSlice::IsItemIdSchema() const {
+  return (GetSchemaImpl() == schema::kSchema) && (GetShape().rank() == 0) &&
+         item().is_itemid_schema();
+}
+
 absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item().is_entity_schema() && schema.GetDb() != nullptr &&

@@ -177,6 +177,14 @@ class DataItem {
     return !(*this == other);
   }
 
+  bool is_any_schema() const {
+    return holds_value<schema::DType>() && (*this) == schema::kAny;
+  }
+
+  bool is_itemid_schema() const {
+    return holds_value<schema::DType>() && (*this) == schema::kItemId;;
+  }
+
   // Returns stable 128 bit Fingerprint.
   arolla::Fingerprint StableFingerprint() const;
 

@@ -600,8 +600,10 @@ class DataSliceViewTest(parameterized.TestCase):
         # go/keep-sorted start
         'contains_only_dicts',
         'contains_only_lists',
+        'is_any_schema',
         'is_dict_schema',
         'is_entity_schema',
+        'is_itemid_schema',
         'is_list_schema',
         'is_primitive_schema',
         'with_fallback',
