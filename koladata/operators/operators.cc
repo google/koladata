@@ -97,6 +97,8 @@ OPERATOR("kde.core.is_list", IsList);
 OPERATOR("kde.core.is_primitive", IsPrimitive);
 OPERATOR("kde.core.itemid_bits", ItemIdBits);
 OPERATOR("kde.core.list_size", ListSize);
+OPERATOR_FAMILY("kde.core.new_shaped",
+                std::make_unique<NewShapedOperatorFamily>());
 OPERATOR("kde.core.no_db", NoDb);
 OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);

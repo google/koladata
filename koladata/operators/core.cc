@@ -843,6 +843,59 @@ absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
       indices_shape, x.GetSchemaImpl(), x.GetDb());
 }
 
+bool IsDataSliceOrUnspecified(arolla::QTypePtr type) {
+  return type == arolla::GetQType<DataSlice>() ||
+         type == arolla::GetUnspecifiedQType();
+}
+
+class NewShapedOperator : public arolla::QExprOperator {
+ public:
+  explicit NewShapedOperator(absl::Span<const arolla::QTypePtr> input_types)
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [shape_slot = input_slots[0].UnsafeToSlot<DataSlice::JaggedShape>(),
+         schema_slot = input_slots[1], item_id_slot = input_slots[2],
+         update_schema_slot = input_slots[3].UnsafeToSlot<DataSlice>(),
+         named_tuple_slot = input_slots[4],
+         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          const auto& shape = frame.Get(shape_slot);
+          std::optional<DataSlice> schema;
+          if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
+            schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
+          }
+          std::optional<DataSlice> item_id;
+          if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
+            item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
+          }
+          const DataSlice& update_schema_slice = frame.Get(update_schema_slot);
+          if (update_schema_slice.GetShape().rank() != 0 ||
+              !update_schema_slice.item().holds_value<bool>()) {
+            ctx->set_status(absl::FailedPreconditionError(
+                "update_schema must be a boolean scalar"));
+            return;
+          }
+          const bool update_schema = update_schema_slice.item().value<bool>();
+          const std::vector<absl::string_view> attr_names =
+              GetAttrNames(named_tuple_slot);
+          const std::vector<DataSlice> attr_values =
+              GetValueDataSlices(named_tuple_slot, frame);
+          DataBagPtr result_db = DataBag::Empty();
+          ASSIGN_OR_RETURN(
+              auto result,
+              EntityCreator::Shaped(result_db, shape, attr_names, attr_values,
+                                    schema, update_schema, item_id),
+              ctx->set_status(std::move(_)));
+          frame.Set(output_slot, std::move(result));
+        });
+  }
+};
+
 class UuOperator : public arolla::QExprOperator {
  public:
   explicit UuOperator(absl::Span<const arolla::QTypePtr> input_types)
@@ -1743,6 +1796,36 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                        keys_from.WithDb(nullptr), values_from.WithDb(nullptr)));
   ASSIGN_OR_RETURN(auto res, lookup.GetFromDict(keys_to));
   return res.WithDb(values_from.GetDb());
+}
+
+absl::StatusOr<arolla::OperatorPtr> NewShapedOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 5) {
+    return absl::InvalidArgumentError("requires exactly 5 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<DataSlice::JaggedShape>()) {
+    return absl::InvalidArgumentError(
+        "requires first argument to be JaggedShape");
+  }
+  // TODO: Replace this check with a special argument for an
+  // unspecified DataSlice when it's available.
+  if (!IsDataSliceOrUnspecified(input_types[1])) {
+    return absl::InvalidArgumentError(
+        "requires schema argument to be DataSlice or unspecified");
+  }
+  if (!IsDataSliceOrUnspecified(input_types[2])) {
+    return absl::InvalidArgumentError(
+        "requires itemid argument to be DataSlice or unspecified");
+  }
+  if (input_types[3] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires update_schema argument to be DataSlice");
+  }
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[4]));
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<NewShapedOperator>(input_types), input_types,
+      output_type);
 }
 
 absl::StatusOr<arolla::OperatorPtr> UuidOperatorFamily::DoGetOperator(
