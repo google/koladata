@@ -453,9 +453,6 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_get_dtype(self):
     testing.assert_equal(C.x.get_dtype(), kde.get_dtype(C.x))
 
-  def test_rank(self):
-    testing.assert_equal(C.x.rank(), kde.rank(C.x))
-
   def test_get_attr_with_default(self):
     testing.assert_equal(C.x.get_attr(C.attr), kde.get_attr(C.x, C.attr))
     testing.assert_equal(

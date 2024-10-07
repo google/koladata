@@ -294,11 +294,6 @@ def _get_ndim(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.get_ndim, self)
 
 
-@DataSlice.add_method('rank')
-def _rank(self) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.rank, self)
-
-
 @DataSlice.add_method('get_present_count')
 def _get_present_count(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.count, self)
