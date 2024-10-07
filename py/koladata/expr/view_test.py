@@ -595,6 +595,7 @@ class DataSliceViewTest(parameterized.TestCase):
         # go/keep-sorted start
         'contains_only_dicts',
         'contains_only_lists',
+        'freeze',
         'is_any_schema',
         'is_dict_schema',
         'is_entity_schema',
@@ -614,7 +615,6 @@ class DataSliceViewTest(parameterized.TestCase):
         'embed_schema',
         'fingerprint',
         'fork_db',
-        'freeze',
         'from_vals',
         'internal_as_py',
         'internal_register_reserved_class_method_name',
