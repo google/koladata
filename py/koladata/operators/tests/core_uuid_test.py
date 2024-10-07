@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for koda.core.uuid."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -66,8 +64,8 @@ class KodaUuidTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core.uuid(lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core.uuid(rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.core.uuid(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.core.uuid(seed=rhs_seed, **rhs_kwargs))
     testing.assert_equal(lhs, rhs)
 
   @parameterized.parameters(
@@ -85,24 +83,25 @@ class KodaUuidTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core.uuid(lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core.uuid(rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.core.uuid(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.core.uuid(seed=rhs_seed, **rhs_kwargs))
     self.assertNotEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_default_seed(self):
     lhs = expr_eval.eval(kde.core.uuid(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core.uuid('', a=ds(1), b=ds(2)))
+    rhs = expr_eval.eval(kde.core.uuid(seed='', a=ds(1), b=ds(2)))
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_no_args(self):
     lhs = expr_eval.eval(kde.core.uuid())
-    rhs = expr_eval.eval(kde.core.uuid(''))
+    rhs = expr_eval.eval(kde.core.uuid(seed=''))
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
-  def test_seed_works_as_kwarg(self):
-    lhs = expr_eval.eval(kde.core.uuid(ds('seed'), a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core.uuid(a=ds(1), b=ds(2), seed=ds('seed')))
-    self.assertEqual(lhs.fingerprint, rhs.fingerprint)
+  def test_seed_keywod_only_args(self):
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, 'expected 0 positional arguments but 1 were given'
+    ):
+      _ = expr_eval.eval(kde.core.uuid(ds('a')))
 
   @parameterized.parameters(
       (
@@ -137,7 +136,7 @@ class KodaUuidTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.core.uuid(seed, **kwargs))
+      _ = expr_eval.eval(kde.core.uuid(seed=seed, **kwargs))
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
@@ -151,7 +150,7 @@ class KodaUuidTest(parameterized.TestCase):
       )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.uuid(I.seed)))
+    self.assertTrue(view.has_data_slice_view(kde.core.uuid(seed=I.seed)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.uuid, kde.uuid))

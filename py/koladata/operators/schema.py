@@ -19,7 +19,6 @@ from koladata.operators import assertion
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
@@ -113,7 +112,7 @@ def _has(x):  # pylint: disable=unused-argument
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.schema._new_schema',
-    aux_policy=py_boxing.KWARGS_POLICY,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         (
             M.qtype.is_namedtuple_qtype(P.kwargs),
@@ -123,7 +122,7 @@ def _has(x):  # pylint: disable=unused-argument
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _new_schema(kwargs=arolla.namedtuple()):  # pylint: disable=unused-argument
+def _new_schema(kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
   """Creates a new allocated schema.
 
   Args:
@@ -139,7 +138,7 @@ def _new_schema(kwargs=arolla.namedtuple()):  # pylint: disable=unused-argument
 @optools.add_to_registry(aliases=['kde.uu_schema'])
 @optools.as_backend_operator(
     'kde.schema.uu_schema',
-    aux_policy=py_boxing.KWARGS_POLICY,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         (
@@ -151,7 +150,7 @@ def _new_schema(kwargs=arolla.namedtuple()):  # pylint: disable=unused-argument
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uu_schema(
-    seed=data_slice.DataSlice.from_vals(''), kwargs=arolla.namedtuple()  # pylint: disable=unused-argument
+    seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword()  # pylint: disable=unused-argument
 ):
   """Creates a UUSchema, i.e. a schema keyed by a uuid.
 

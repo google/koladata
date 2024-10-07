@@ -49,9 +49,7 @@ DEFAULT_AROLLA_POLICY = ''
 # DataSlices.
 LIST_BOXING_POLICY = 'koladata_list_boxing'
 
-KWARGS_POLICY = 'koladata_kwargs'
 FULL_SIGNATURE_POLICY = 'koladata_full_signature'
-OBJ_KWARGS_POLICY = 'koladata_obj_kwargs'
 FSTR_POLICY = 'koladata_fstr'
 
 # NOTE: Recreating this object invalidates all existing references. Thus after
@@ -284,128 +282,11 @@ def as_expr(arg: Any) -> arolla.Expr:
   return qvalue_or_expr
 
 
-def _verify_kwargs_policy_signature(signature: arolla.abc.Signature) -> None:
-  """Verifies that a KwargsBindingPolicy can be applied to an Expr signature."""
-  assert all([
-      parameter.kind == 'positional-or-keyword'
-      for parameter in signature.parameters
-  ]), (
-      'only positional-or-keyword arguments are supported in the underlying'
-      ' Expr signature'
-  )
-  assert (
-      len(signature.parameters) >= 1
-  ), 'underlying operator must have at least one parameter'
-  last_param = signature.parameters[-1]
-  if last_param.default is not None:
-    assert (
-        arolla.types.is_namedtuple_qtype(last_param.default.qtype)
-        or last_param.default.qtype == arolla.UNSPECIFIED
-    ), 'default argument for final param must be a NamedTuple'
-
-
-def _determine_positional_args_and_kwargs(
-    signature: arolla.abc.Signature, *args: Any, **kwargs: Any
-) -> tuple[tuple[Any, ...], dict[str, Any]]:
-  """Determines positional args and kwargs for a KwargsBindingPolicy.
-
-  The returned args will match the positional args of the Arolla Signature
-  (except for the last which is the kwarg named tuple).
-
-  Args:
-    signature: Arolla signature that determines the args and kwargs
-    *args: Positional args received by the binding policy. Will always remain
-      positional.
-    **kwargs: Keyword args received by the binding policy. May be moved to args
-      if they are determined to match a positional-or-keyword parameter of the
-      Arolla signature.
-
-  Returns:
-    tuple of new args and kwargs
-  """
-  _verify_kwargs_policy_signature(signature)
-  positional_params = signature.parameters[:-1]
-  if len(args) > len(positional_params):
-    raise TypeError(f'unexpected number of positional args: {len(args)}')
-  i = 0
-  positional_args = []
-  while i < len(args):
-    positional_args.append(args[i])
-    i += 1
-  while i < len(positional_params):
-    if positional_params[i].name in kwargs:
-      positional_args.append(kwargs.pop(positional_params[i].name))
-    elif positional_params[i].default is not None:
-      positional_args.append(positional_params[i].default)
-    else:
-      raise TypeError(f'missing required argument: {positional_params[i].name}')
-    i += 1
-
-  # All positional-or-kwargs arguments from kwargs have been matched in the
-  # previous loop, and here we are left with only `true` kwargs.
-  return tuple(positional_args), kwargs
-
-
 class BasicBindingPolicy(arolla.abc.AuxBindingPolicy):
   """A base class for binding policies with the Koladata method make_literal."""
 
   def make_literal(self, value: arolla.QValue) -> arolla.Expr:
     return literal_operator.literal(value)
-
-
-class _KwargsBindingPolicy(BasicBindingPolicy):
-  """Argument binding policy for Koda operators that take arbitrary kwargs.
-
-  This policy maps Python signatures to Expr operator signatures and vice versa.
-  The underlying Expr operator is required to accept a NamedTuple as the last
-  argument. Python arguments are first matched to positional arguments of
-  the Expr parameters, and any unmatched keyword arguments are passed through
-  the NamedTuple.
-
-  Example:
-    kd.uuid(x=1, y=2, seed="RandomSeed") ->
-    kd.uuid("RandomSeed", arolla.namedtuple(x=1, y=2))
-  """
-
-  def make_python_signature(
-      self, signature: arolla.abc.Signature
-  ) -> inspect.Signature:
-    # NOTE: This binding policy does not support operators with varargs.
-    _verify_kwargs_policy_signature(signature)
-    params = []
-    for param in signature.parameters[:-1]:
-      params.append(
-          inspect.Parameter(
-              param.name,
-              inspect.Parameter.POSITIONAL_OR_KEYWORD,
-              default=inspect.Parameter.empty
-              if param.default is None
-              else param.default,
-          )
-      )
-    params.append(
-        inspect.Parameter(
-            signature.parameters[-1].name, inspect.Parameter.VAR_KEYWORD
-        )
-    )
-    return inspect.Signature(params)
-
-  def bind_arguments(
-      self, signature: arolla.abc.Signature, *args: Any, **kwargs: Any
-  ) -> tuple[arolla.QValue | arolla.Expr, ...]:
-    args, kwargs = _determine_positional_args_and_kwargs(
-        signature, *args, **kwargs
-    )
-    args = tuple(as_qvalue_or_expr(arg) for arg in args)
-    kwarg_values = list(map(as_qvalue_or_expr, kwargs.values()))
-    if all(isinstance(v, arolla.QValue) for v in kwarg_values):
-      return args + (
-          arolla.namedtuple(**dict(zip(kwargs.keys(), kwarg_values))),
-      )
-    else:
-      return args + (
-          arolla.M.namedtuple.make(**dict(zip(kwargs.keys(), kwarg_values))),
-      )
 
 
 class _FullSignatureBindingPolicy(BasicBindingPolicy):
@@ -597,23 +478,6 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
     return tuple(bound_values)
 
 
-# TODO: Support single arg for `kd.obj` and `kd.new` and
-# positional-keyword args: 'seed' for `kd.uuobj`, 'schema', etc for `kd.new`.
-# This might mean splitting this policy into multiple similar ones with shared
-# low-level utilities.
-class _ObjectKwargsPolicy(_KwargsBindingPolicy):
-  """Binding policy for Koda operators that require DataBag to bind its args."""
-
-  def bind_arguments(
-      self, signature: arolla.abc.Signature, *args: Any, **kwargs: Any
-  ) -> tuple[arolla.QValue | arolla.Expr, ...]:
-    args, kwargs = _determine_positional_args_and_kwargs(
-        signature, *args, **kwargs
-    )
-    args = tuple(as_qvalue_or_expr(arg) for arg in args)
-    return args + (data_bag.DataBag.empty()._kwargs_to_namedtuple(**kwargs),)  # pylint: disable=protected-access
-
-
 class _FstrBindingPolicy(BasicBindingPolicy):
   """Argument binding policy for Koda fstr operator.
 
@@ -659,9 +523,7 @@ arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
     as_qvalue_or_expr_with_list_support,
     make_literal_fn=literal_operator.literal,
 )
-arolla.abc.register_aux_binding_policy(KWARGS_POLICY, _KwargsBindingPolicy())
 arolla.abc.register_aux_binding_policy(
     FULL_SIGNATURE_POLICY, _FullSignatureBindingPolicy()
 )
-arolla.abc.register_aux_binding_policy(OBJ_KWARGS_POLICY, _ObjectKwargsPolicy())
 arolla.abc.register_aux_binding_policy(FSTR_POLICY, _FstrBindingPolicy())

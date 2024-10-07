@@ -75,8 +75,6 @@ OPERATOR("kde.core._inverse_mapping", InverseMapping);
 OPERATOR("kde.core._ordinal_rank", OrdinalRank);
 OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
-OPERATOR_FAMILY("kde.core._uuid", std::make_unique<UuidOperatorFamily>());
-OPERATOR_FAMILY("kde.core._uuobj", std::make_unique<UuObjOperatorFamily>());
 OPERATOR("kde.core.add", Add);
 OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kde.core.at", At);
@@ -112,6 +110,8 @@ OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
 OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uu", std::make_unique<UuOperatorFamily>());
+OPERATOR_FAMILY("kde.core.uuid", std::make_unique<UuidOperatorFamily>());
+OPERATOR_FAMILY("kde.core.uuobj", std::make_unique<UuObjOperatorFamily>());
 OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kde.core.with_db", WithDb);

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for data_bag."""
-
 import gc
 import re
 import sys
@@ -29,9 +27,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import dict_item
 from koladata.types import jagged_shape
-from koladata.types import list_item
 from koladata.types import schema_constants
 
 
@@ -1319,40 +1315,6 @@ Assigned schema for Dict key: INT32""",
 
     _ = db1.obj(x=1)
     self.assertFalse(ds12.db._exactly_equal(ds21.db))
-
-  def test_kwargs_to_namedtuple_no_ds(self):
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        bag()._kwargs_to_namedtuple(a=1, b=2, c=3),
-        arolla.namedtuple(a=ds(1), b=ds(2), c=ds(3))
-    )
-
-  def test_kwargs_to_namedtuple_no_list_or_dict(self):
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        bag()._kwargs_to_namedtuple(a=1, b=ds(2), c=3),
-        arolla.namedtuple(a=ds(1), b=ds(2), c=ds(3))
-    )
-
-  def test_kwargs_to_namedtuple_list_and_dict(self):
-    db = bag()
-    res = db._kwargs_to_namedtuple(a=[1, 2, 3], b=ds(2), c={'a': 43})
-    self.assertTrue(arolla.types.is_namedtuple_qtype(res.qtype))
-    self.assertEqual(res.keys(), ['a', 'b', 'c'])
-    self.assertIsInstance(res['a'], list_item.ListItem)
-    self.assertIsInstance(res['c'], dict_item.DictItem)
-    testing.assert_equal(res['a'][:], ds([1, 2, 3]).with_db(db))
-    testing.assert_equal(res['b'], ds(2))
-    testing.assert_dicts_keys_equal(res['c'], ds(['a']))
-
-  def test_kwargs_to_namedtuple_empty(self):
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        bag()._kwargs_to_namedtuple(), arolla.namedtuple()
-    )
-
-  def test_kwargs_to_namedtuple_errors(self):
-    with self.assertRaisesRegex(ValueError, 'assigning a Python list/tuple'):
-      bag()._kwargs_to_namedtuple(a=[1, 2, 3], b=ds([1, 2, 3]))
-    with self.assertRaisesRegex(ValueError, 'assigning a Python dict'):
-      bag()._kwargs_to_namedtuple(a={'a': 42}, b=ds([1, 2, 3]))
 
   def test_merge_inplace(self):
     db1 = bag()

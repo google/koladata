@@ -17,7 +17,6 @@
 from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
@@ -26,23 +25,17 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-# TODO: Make this operator public again once non-determinism is
-# designed and implemented.
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kde.uuobj'])
 @optools.as_backend_operator(
-    'kde.core._uuobj',
-    aux_policy=py_boxing.OBJ_KWARGS_POLICY,
+    'kde.core.uuobj',
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
-        (
-            M.qtype.is_namedtuple_qtype(P.kwargs),
-            f'expected named tuple, got {constraints.name_type_msg(P.kwargs)}',
-        ),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _uuobj(seed=data_slice.DataSlice.from_vals(''), kwargs=arolla.namedtuple()):  # pylint: disable=unused-argument
+def uuobj(seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
   """Creates Object(s) whose ids are uuid(s) with the provided attributes.
 
   In order to create a different id from the same arguments, use
@@ -85,10 +78,10 @@ def _uuobj(seed=data_slice.DataSlice.from_vals(''), kwargs=arolla.namedtuple()):
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _uu(
-    seed=py_boxing.keyword_only(data_slice.DataSlice.from_vals('')),
+def uu(
+    seed=py_boxing.keyword_only(''),
     schema=py_boxing.keyword_only(arolla.unspecified()),
-    update_schema=py_boxing.keyword_only(data_slice.DataSlice.from_vals(False)),
+    update_schema=py_boxing.keyword_only(False),
     kwargs=py_boxing.var_keyword(),
 ):  # pylint: disable=unused-argument
   """Creates Entities whose ids are uuid(s) with the provided attributes.

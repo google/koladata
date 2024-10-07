@@ -84,46 +84,6 @@ const DataSlice& AnySchema() {
   return *any_schema;
 }
 
-// Returns an Arolla NamedTuple of DataSlices created from `**kwargs`.
-absl::Nullable<PyObject*> PyDataBag_kwargs_to_namedtuple(
-    PyObject* self, PyObject* const* py_args, Py_ssize_t nargs,
-    PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true);
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
-  }
-  const DataBagPtr& self_db = UnsafeDataBagPtr(self);
-  AdoptionQueue adoption_queue;
-  ASSIGN_OR_RETURN(
-      std::vector<DataSlice> values,
-      ConvertArgsToDataSlices(self_db, args.kw_values, adoption_queue),
-      SetKodaPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
-      .With(SetKodaPyErrFromStatus);
-  std::vector<arolla::TypedRef> typed_refs;
-  typed_refs.reserve(values.size());
-  for (const auto& value : values) {
-    typed_refs.push_back(arolla::TypedRef::FromValue(value));
-  }
-  arolla::QTypePtr tuple_qtype =
-      arolla::MakeTupleQType(std::vector<arolla::QTypePtr>(
-          values.size(), arolla::GetQType<DataSlice>()));
-  ASSIGN_OR_RETURN(
-      arolla::QTypePtr named_tuple_qtype,
-      arolla::MakeNamedTupleQType(
-          std::vector<std::string>(args.kw_names.begin(), args.kw_names.end()),
-          tuple_qtype),
-      SetKodaPyErrFromStatus(_));
-  ASSIGN_OR_RETURN(
-      arolla::TypedValue named_tuple,
-      arolla::TypedValue::FromFields(named_tuple_qtype, typed_refs),
-      SetKodaPyErrFromStatus(_));
-  return arolla::python::WrapAsPyQValue(named_tuple);
-}
-
 // Attach `db` to each DataSlice in `values`.
 std::vector<DataSlice> ManyWithDb(absl::Span<const DataSlice> values,
                                   const DataBagPtr& db) {
@@ -1493,9 +1453,6 @@ Returns:
      "DataBag._concat_lists"},
     {"_exactly_equal", (PyCFunction)PyDataBag_exactly_equal, METH_FASTCALL,
      "DataBag._exactly_equal"},
-    {"_kwargs_to_namedtuple", (PyCFunction)PyDataBag_kwargs_to_namedtuple,
-     METH_FASTCALL | METH_KEYWORDS,
-     "Converts **kwargs into an Arolla NamedTuple of DataSlices."},
     {"_merge_inplace", (PyCFunction)PyDataBag_merge_inplace, METH_FASTCALL,
      "DataBag._merge_inplace"},
     {"_from_py_impl", (PyCFunction)PyDataBag_from_py_impl, METH_FASTCALL,

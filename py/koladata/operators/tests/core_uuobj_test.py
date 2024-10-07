@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for koda.core.uuobj."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -21,6 +19,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
@@ -73,8 +72,8 @@ class KodaUuObjTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core._uuobj(lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core._uuobj(rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.core.uuobj(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.core.uuobj(seed=rhs_seed, **rhs_kwargs))
     # Check that required attributes are present.
     for attr_name, val in lhs_kwargs.items():
       testing.assert_equal(
@@ -107,28 +106,29 @@ class KodaUuObjTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core._uuobj(lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core._uuobj(rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.core.uuobj(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.core.uuobj(seed=rhs_seed, **rhs_kwargs))
     self.assertNotEqual(lhs.fingerprint, rhs.with_db(lhs.db).fingerprint)
 
   def test_default_seed(self):
-    lhs = expr_eval.eval(kde.core._uuobj(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core._uuobj('', a=ds(1), b=ds(2)))
+    lhs = expr_eval.eval(kde.core.uuobj(a=ds(1), b=ds(2)))
+    rhs = expr_eval.eval(kde.core.uuobj(seed='', a=ds(1), b=ds(2)))
     testing.assert_equal(lhs, rhs.with_db(lhs.db))
 
   def test_no_args(self):
-    lhs = expr_eval.eval(kde.core._uuobj())
-    rhs = expr_eval.eval(kde.core._uuobj(''))
+    lhs = expr_eval.eval(kde.core.uuobj())
+    rhs = expr_eval.eval(kde.core.uuobj(seed=''))
     testing.assert_equal(lhs, rhs.with_db(lhs.db))
 
-  def test_seed_works_as_kwarg(self):
-    lhs = expr_eval.eval(kde.core._uuobj(ds('seed'), a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core._uuobj(a=ds(1), b=ds(2), seed=ds('seed')))
-    testing.assert_equal(lhs, rhs.with_db(lhs.db))
+  def test_seed_keywod_only_args(self):
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, 'expected 0 positional arguments but 1 were given'
+    ):
+      _ = expr_eval.eval(kde.core.uuobj(ds('a')))
 
   def test_db_adoption(self):
-    a = expr_eval.eval(kde.core._uuobj(a=1))
-    b = expr_eval.eval(kde.core._uuobj(a=a))
+    a = expr_eval.eval(kde.core.uuobj(a=1))
+    b = expr_eval.eval(kde.core.uuobj(a=a))
     testing.assert_equal(b.a.a, ds(1).with_db(b.db))
 
   @parameterized.parameters(
@@ -156,25 +156,22 @@ class KodaUuObjTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.core._uuobj(seed, **kwargs))
+      _ = expr_eval.eval(kde.core.uuobj(seed=seed, **kwargs))
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'object with unsupported type: "Unspecified',
+        ValueError, 'expected all arguments to be DATA_SLICE',
     ):
-      _ = kde.core._uuobj(
+      _ = kde.core.uuobj(
           a=ds(1),
           b=arolla.unspecified(),
       )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core._uuobj(I.seed)))
+    self.assertTrue(view.has_data_slice_view(kde.core.uuobj(seed=I.seed)))
 
-  # TODO: Uncomment, when this operator becomes public and we add
-  # the alias back.
-  # def test_alias(self):
-  #   self.assertTrue(optools.equiv_to_op(kde.core.uuobj, kde.uuobj))
+  def test_alias(self):
+    self.assertTrue(optools.equiv_to_op(kde.core.uuobj, kde.uuobj))
 
 
 if __name__ == '__main__':

@@ -231,7 +231,7 @@ class NewShapedOperatorFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.core._uuid operator.
+// kde.core.uuid operator.
 // Creates a DataSlice whose items are Fingerprints identifying arguments
 class UuidOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
@@ -239,7 +239,7 @@ class UuidOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.core._uuobj operator.
+// kde.core.uuobj operator.
 // Creates a DataSlice of UuObjects.
 class UuObjOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

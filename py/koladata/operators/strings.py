@@ -207,14 +207,16 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.strings.format',
-    aux_policy=py_boxing.KWARGS_POLICY,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def format_(fmt, kwargs):  # pylint: disable=unused-argument
+def format_(
+    fmt=py_boxing.positional_only(), kwargs=py_boxing.var_keyword()
+):  # pylint: disable=unused-argument
   """Formats strings according to python str.format style.
 
   Format support is slightly different from Python:

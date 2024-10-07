@@ -17,7 +17,6 @@
 from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
@@ -27,29 +26,17 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry(aliases=['kde._uuid'])
-@optools.as_backend_operator(
-    'kde.core._uuid', qtype_inference_expr=qtypes.DATA_SLICE
-)
-def _uuid(seed, kwargs):  # pylint: disable=unused-argument
-  """Expr proxy for backend operator."""
-  raise NotImplementedError('implemented in the backend')
-
-
 @optools.add_to_registry(aliases=['kde.uuid'])
-@optools.as_lambda_operator(
+@optools.as_backend_operator(
     'kde.core.uuid',
-    aux_policy=py_boxing.KWARGS_POLICY,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
-        (
-            M.qtype.is_namedtuple_qtype(P.kwargs),
-            f'expected named tuple, got {constraints.name_type_msg(P.kwargs)}',
-        ),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def uuid(seed=data_slice.DataSlice.from_vals(''), kwargs=arolla.namedtuple()):
+def uuid(seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()):
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
 
   Args:
@@ -61,4 +48,4 @@ def uuid(seed=data_slice.DataSlice.from_vals(''), kwargs=arolla.namedtuple()):
     DataSlice of Uuids. The i-th uuid is computed by taking the i-th (aligned)
     item from each kwarg value.
   """
-  return _uuid(seed, kwargs)
+  raise NotImplementedError('implemented in the backend')
