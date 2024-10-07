@@ -92,6 +92,7 @@ OPERATOR_FAMILY("kde.core.group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndicesSorted));
+OPERATOR("kde.core.is_dict", IsDict);
 OPERATOR("kde.core.is_empty", IsEmpty);
 OPERATOR("kde.core.is_list", IsList);
 OPERATOR("kde.core.is_primitive", IsPrimitive);

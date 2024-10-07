@@ -104,6 +104,17 @@ def is_list(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.is_dict'])
+@optools.as_backend_operator(
+    'kde.core.is_dict',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_dict(ds):  # pylint: disable=unused-argument
+  """Returns true if all present items in ds are dicts."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.align'], view=view.KodaTupleView)
 @optools.as_backend_operator(
     'kde.core.align',

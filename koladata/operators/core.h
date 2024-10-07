@@ -181,6 +181,9 @@ absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 // kde.core.is_list.
 absl::StatusOr<DataSlice> IsList(const DataSlice& lists);
 
+// kde.core.is_dict.
+absl::StatusOr<DataSlice> IsDict(const DataSlice& dicts);
+
 // kde.core.get_nofollowed_schema.
 absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds);
 

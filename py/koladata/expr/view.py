@@ -320,6 +320,9 @@ class DataSliceView(BasicKodaView):
   def is_list(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.is_list', self)
 
+  def is_dict(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.is_dict', self)
+
   def get_keys(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_keys', self)
 

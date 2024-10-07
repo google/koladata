@@ -231,6 +231,11 @@ def _is_list(self) -> DataSlice:
   return self.contains_only_lists()
 
 
+@DataSlice.add_method('is_dict')
+def _is_dict(self) -> DataSlice:
+  return self.contains_only_dicts()
+
+
 @DataSlice.add_method('fork_db')
 def _fork_db(self) -> DataSlice:
   if self.db is None:

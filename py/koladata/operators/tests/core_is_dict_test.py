@@ -24,7 +24,7 @@ from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import list_item as _  # pylint: disable=unused-import
+from koladata.types import dict_item as _  # pylint: disable=unused-import
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -42,39 +42,39 @@ QTYPES = frozenset([
 ])
 
 
-class CoreIsListTest(parameterized.TestCase):
+class CoreIsDictTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (bag().list(), ds(present)),
-      (bag().list([1, 2, 3]), ds(present)),
+      (bag().dict(), ds(present)),
+      (bag().dict({1: 2}), ds(present)),
       (bag().obj(a=1), ds(None, schema_constants.MASK)),
       (bag().new(a=1), ds(None, schema_constants.MASK)),
-      (bag().dict({1: 2}), ds(None, schema_constants.MASK)),
+      (bag().list([1, 2]), ds(None, schema_constants.MASK)),
       (ds(None), ds(None, schema_constants.MASK)),
       (ds(1), ds(None, schema_constants.MASK)),
-      (ds([bag().list([1, 2]), bag().list([3, 4])]), ds(present)),
+      (ds([bag().dict({1: 2}), bag().dict({3: 4})]), ds(present)),
       (
-          ds([bag().list([1, 2]).as_any(), None]),
+          ds([bag().dict({1: 2}).as_any(), None]),
           ds(present),
       ),
   )
   def test_eval(self, d, mask):
-    testing.assert_equal(expr_eval.eval(kde.core.is_list(I.d), d=d), mask)
+    testing.assert_equal(expr_eval.eval(kde.core.is_dict(I.d), d=d), mask)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.is_list,
+            kde.core.is_dict,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.is_list(I.x)))
+    self.assertTrue(view.has_data_slice_view(kde.core.is_dict(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.is_list, kde.is_list))
+    self.assertTrue(optools.equiv_to_op(kde.core.is_dict, kde.is_dict))
 
 
 if __name__ == '__main__':

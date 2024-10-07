@@ -1559,6 +1559,10 @@ absl::StatusOr<DataSlice> IsList(const DataSlice& lists) {
   return AsMask(lists.ContainsOnlyLists());
 }
 
+absl::StatusOr<DataSlice> IsDict(const DataSlice& dicts) {
+  return AsMask(dicts.ContainsOnlyDicts());
+}
+
 absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds) {
   return schema_ds.GetNoFollowedSchema();
 }
