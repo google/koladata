@@ -72,6 +72,13 @@ class ToPyTest(absltest.TestCase):
   def test_dict_obj(self):
     self.assertEqual(fns.to_py(fns.obj({1: 2})), {1: 2})
 
+  def test_fallbacks(self):
+    x = fns.new(x=1)
+    fallback_db = fns.bag()
+    fallback_db[x].set_attr('y', 'abc', update_schema=True)
+    x = x.with_fallback(fallback_db)
+    self.assertEqual(fns.to_py(x, obj_as_dict=True), {'x': 1, 'y': 'abc'})
+
   def test_self_reference(self):
     root = fns.obj()
     root.x = fns.obj()

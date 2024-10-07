@@ -362,12 +362,11 @@ def to_py(
   if max_depth >= 0:
     max_depth += ds.get_ndim()
 
-  if ds.db is not None:
-    ds = ds.fork_db()
-    db = ds.db
-  else:
-    db = DataBag.empty()
-  ds = db.implode(ds, -1)
+  orig_db = ds.db
+  db = DataBag.empty()
+  ds = db.implode(ds.no_db(), -1)
+  if orig_db is not None:
+    ds = ds.with_fallback(orig_db)
   return _to_py_impl(ds, {}, 0, max_depth, obj_as_dict, include_missing_attrs)
 
 
