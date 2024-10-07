@@ -15,10 +15,13 @@
 """py.* operators."""
 
 import concurrent.futures
+import functools
+import itertools
 from typing import Any, Callable, Iterable
 
 from arolla import arolla
 from koladata.operators import core as _
+from koladata.operators import logical as _
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_bag
@@ -613,3 +616,72 @@ def map_py_on_selected(
   return impl(
       fn, cond, args, schema, max_threads, item_completed_callback, kwargs
   )
+
+
+@optools.add_to_registry(aliases=['kde.map_py_on_present'])
+@optools.as_lambda_operator(
+    'kde.py.map_py_on_present',
+    qtype_constraints=[
+        _expect_py_callable(P.fn),
+        _expect_optional_schema(P.schema),
+        qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+        _expect_optional_py_callable(P.item_completed_callback),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def map_py_on_present(
+    fn,
+    args=py_boxing.var_positional(),
+    schema=py_boxing.keyword_only(None),
+    max_threads=py_boxing.keyword_only(1),
+    item_completed_callback=py_boxing.keyword_only(None),
+    kwargs=py_boxing.var_keyword(),
+):  # pylint: disable=g-doc-args
+  """Apply python function `fn` to items present in all `args` and `kwargs`.
+
+  Also see kd.map_py().
+
+  Args:
+    fn: function.
+    *args: Input DataSlices.
+    schema: The schema to use for resulting DataSlice.
+    max_threads: maximum number of threads to use.
+    item_completed_callback: A callback that will be called after each item is
+      processed. It will be called in the original thread that called
+      `map_py_on_present` in case `max_threads` is greater than 1, as we rely on
+      this property for cases like progress reporting. As such, it can not be
+      attached to the `fn` itself.
+    **kwargs: Input DataSlices.
+
+  Returns:
+    Result DataSlice.
+  """
+
+  @arolla.optools.as_py_function_operator(
+      'kde.py.map_py_on_present._impl', qtype_inference_expr=qtypes.DATA_SLICE
+  )
+  def impl(fn, args, schema, max_threads, item_completed_callback, kwargs):
+    args = tuple(args)
+    kwargs = kwargs.as_dict()
+    if not args and not kwargs:
+      raise TypeError('expected at least one input DataSlice, got none')
+    cond = functools.reduce(
+        functools.partial(arolla.abc.aux_eval_op, 'kde.logical.mask_and'),
+        map(
+            functools.partial(arolla.abc.aux_eval_op, 'kde.logical.has'),
+            itertools.chain(args, kwargs.values()),
+        ),
+    )
+    return arolla.abc.aux_eval_op(
+        map_py_on_selected,
+        fn,
+        cond,
+        *args,
+        schema=schema,
+        max_threads=max_threads,
+        item_completed_callback=item_completed_callback,
+        **kwargs,
+    )
+
+  return impl(fn, args, schema, max_threads, item_completed_callback, kwargs)

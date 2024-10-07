@@ -367,6 +367,7 @@ py_library(
     srcs = ["py.py"],
     deps = [
         ":core",
+        ":logical",
         ":optools",
         ":qtype_utils",
         "//py/koladata/types:data_bag",
