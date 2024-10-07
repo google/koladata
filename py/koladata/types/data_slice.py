@@ -428,8 +428,8 @@ def _to_py_impl(
   ) or schema.is_itemid_schema():
     return ds
 
-  is_list = schema.is_list_schema()
-  is_dict = schema.is_dict_schema()
+  is_list = ds.is_list()
+  is_dict = ds.is_dict()
 
   # Remove special attributes
   attr_names = list(set(dir(ds)) - set(['__items__', '__keys__', '__values__']))

@@ -66,6 +66,12 @@ class ToPyTest(absltest.TestCase):
     py_obj = fns.to_py(root)
     self.assertEqual(py_obj.dict_value[k.no_db()], 1)
 
+  def test_list_obj(self):
+    self.assertEqual(fns.to_py(fns.obj([1, 2])), [1, 2])
+
+  def test_dict_obj(self):
+    self.assertEqual(fns.to_py(fns.obj({1: 2})), {1: 2})
+
   def test_self_reference(self):
     root = fns.obj()
     root.x = fns.obj()
