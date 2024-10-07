@@ -435,6 +435,38 @@ cc_test(
 )
 
 cc_library(
+    name = "uuid_utils",
+    srcs = ["uuid_utils.cc"],
+    hdrs = ["uuid_utils.h"],
+    deps = [
+        ":data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "//koladata/internal:uuid_object",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "uuid_utils_test",
+    srcs = ["uuid_utils_test.cc"],
+    deps = [
+        ":data_slice",
+        ":test_utils",
+        ":uuid_utils",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:uuid_object",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "object_factories",
     srcs = ["object_factories.cc"],
     hdrs = ["object_factories.h"],

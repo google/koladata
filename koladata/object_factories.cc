@@ -58,8 +58,6 @@
 
 namespace koladata {
 
-// TODO: Use absl::Span instead of std::vector.
-
 namespace {
 
 using ::koladata::internal::AllocationId;
@@ -572,32 +570,6 @@ absl::StatusOr<DataSlice> CreateObjectsImpl(
   return res;
 }
 
-absl::StatusOr<DataSlice> CreateUuidFromFieldsImpl(
-    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values,
-    internal::UuidType uuid_type) {
-  DCHECK_EQ(attr_names.size(), values.size());
-  if (values.empty()) {
-    return DataSlice::Create(
-        CreateUuidFromFields(
-            seed, {},
-            std::vector<std::reference_wrapper<const internal::DataItem>>{}),
-        internal::DataItem(schema::kItemId));
-  }
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
-  return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
-    std::vector<std::reference_wrapper<const T>> values_impl;
-    values_impl.reserve(values.size());
-    for (int i = 0; i < attr_names.size(); ++i) {
-      values_impl.push_back(std::cref(aligned_values[i].impl<T>()));
-    }
-    return DataSlice::Create(internal::CreateUuidFromFields(
-                                 seed, attr_names, values_impl, uuid_type),
-                             aligned_values.begin()->GetShape(),
-                             internal::DataItem(schema::kItemId), nullptr);
-  });
-}
-
 }  // namespace
 
 // TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
@@ -802,33 +774,12 @@ absl::StatusOr<DataSlice> ObjectCreator::Convert(const DataBagPtr& db,
   return value;
 }
 
-absl::StatusOr<DataSlice> CreateUuidFromFields(
-    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values) {
-  return CreateUuidFromFieldsImpl(seed, attr_names, values,
-                                  internal::UuidType::kDefault);
-}
-
-absl::StatusOr<DataSlice> CreateListUuidFromFields(
-    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values) {
-  return CreateUuidFromFieldsImpl(seed, attr_names, values,
-                                  internal::UuidType::kList);
-}
-
-absl::StatusOr<DataSlice> CreateDictUuidFromFields(
-    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values) {
-  return CreateUuidFromFieldsImpl(seed, attr_names, values,
-                                  internal::UuidType::kDict);
-}
-
 absl::StatusOr<DataSlice> CreateUu(
     const DataBagPtr& db, absl::string_view seed,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema, bool update_schema) {
-  CHECK_EQ(attr_names.size(), values.size());
+  DCHECK_EQ(attr_names.size(), values.size());
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
   internal::DataItem schema_item;

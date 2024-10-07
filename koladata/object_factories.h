@@ -214,35 +214,6 @@ struct ObjectCreator {
                                            const DataSlice& value);
 };
 
-// Creates a DataSlice whose items are Fingerprints identifying `args`.
-//
-// In order to create a different "Type" from the same arguments, use `seed` key
-// with the desired value, e.g.
-//
-// db_ops.uuid(seed='type_1', x=[1, 2, 3], y=[4, 5, 6])
-//
-// and
-//
-// db_ops.uuid(seed='type_2', x=[1, 2, 3], y=[4, 5, 6])
-//
-// have different ids.
-absl::StatusOr<DataSlice> CreateUuidFromFields(
-    absl::string_view seed,
-    absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values);
-
-// Creates a DataSlice of uuids with list flag set.
-absl::StatusOr<DataSlice> CreateListUuidFromFields(
-    absl::string_view seed,
-    absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values);
-
-// Creates a DataSlice of uuids with dict flag set.
-absl::StatusOr<DataSlice> CreateDictUuidFromFields(
-    absl::string_view seed,
-    absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values);
-
 // Returns a UuEntity ((DataSlice of UuIds generated as row-wise fingerprints
 // from attribute names and values) with a reference to `db`) and attributes
 // `attr_names` set to `values`. The output DataSlice is a DataItem if all

@@ -63,6 +63,7 @@
 #include "koladata/object_factories.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
+#include "koladata/uuid_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
