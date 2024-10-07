@@ -84,6 +84,10 @@ class DataBag {
 
   // Returns a new immutable DataBag with contents moved from this one. This
   // DataBag is invalidated.
+  //
+  // NOTE: This method ignores whether there are other references to the same
+  // DataBag. It should be used only in certain circumstances, e.g. when DataBag
+  // is created as mutable, modified and than converted into immutable.
   DataBagPtr ToImmutable() && {
     auto new_db = std::make_shared<DataBag>(immutable_t{});
     new_db->impl_ = std::move(impl_);

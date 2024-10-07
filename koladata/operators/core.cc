@@ -892,7 +892,8 @@ class NewShapedOperator : public arolla::QExprOperator {
               EntityCreator::Shaped(result_db, shape, attr_names, attr_values,
                                     schema, update_schema, item_id),
               ctx->set_status(std::move(_)));
-          frame.Set(output_slot, std::move(result));
+          frame.Set(output_slot,
+                    result.WithDb(std::move(*result_db).ToImmutable()));
         });
   }
 };

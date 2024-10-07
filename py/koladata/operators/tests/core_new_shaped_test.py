@@ -54,34 +54,37 @@ class CoreNewShapedTest(absltest.TestCase):
 
   def test_slice_no_attrs(self):
     shape = jagged_shape.create_shape(2, 3)
-    o1 = kde.core.new_shaped(shape).eval()
-    testing.assert_equal(o1.get_shape(), shape)
+    x = kde.core.new_shaped(shape).eval()
+    testing.assert_equal(x.get_shape(), shape)
+    self.assertFalse(x.is_mutable())
 
   def test_item_no_attrs(self):
     shape = jagged_shape.create_shape()
-    o1 = kde.core.new_shaped(shape).eval()
-    self.assertIsNotNone(o1.db)
-    testing.assert_equal(o1.get_shape(), shape)
+    x = kde.core.new_shaped(shape).eval()
+    self.assertIsNotNone(x.db)
+    testing.assert_equal(x.get_shape(), shape)
+    self.assertFalse(x.is_mutable())
 
   def test_with_attrs(self):
     shape = jagged_shape.create_shape(2, 3)
-    o1 = kde.core.new_shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6])).eval()
-    testing.assert_equal(o1.get_shape(), shape)
-    testing.assert_equal(o1.x.no_db(), ds([[2, 2, 2], [2, 2, 2]]))
-    testing.assert_equal(o1.a.no_db(), ds([[1, 1, 1], [1, 1, 1]]))
-    testing.assert_equal(o1.b.no_db(), ds([['p', 'p', 'p'], ['p', 'p', 'p']]))
+    x = kde.core.new_shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6])).eval()
+    testing.assert_equal(x.get_shape(), shape)
+    testing.assert_equal(x.x.no_db(), ds([[2, 2, 2], [2, 2, 2]]))
+    testing.assert_equal(x.a.no_db(), ds([[1, 1, 1], [1, 1, 1]]))
+    testing.assert_equal(x.b.no_db(), ds([['p', 'p', 'p'], ['p', 'p', 'p']]))
     testing.assert_equal(
-        o1.c[:].no_db(),
+        x.c[:].no_db(),
         ds([[[5, 6], [5, 6], [5, 6]], [[5, 6], [5, 6], [5, 6]]]),
     )
+    self.assertFalse(x.is_mutable())
 
   def test_schema_arg_simple(self):
     shape = jagged_shape.create_shape(2, 3)
     schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
-    o1 = kde.core.new_shaped(shape, schema=schema).eval()
-    testing.assert_equal(o1.get_shape(), shape)
-    testing.assert_equal(o1.get_schema().a.no_db(), schema_constants.INT32)
-    testing.assert_equal(o1.get_schema().b.no_db(), schema_constants.TEXT)
+    x = kde.core.new_shaped(shape, schema=schema).eval()
+    testing.assert_equal(x.get_shape(), shape)
+    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
 
   def test_schema_arg_deep(self):
     nested_schema = fns.new_schema(p=schema_constants.BYTES)
