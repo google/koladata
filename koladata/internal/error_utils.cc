@@ -94,7 +94,7 @@ absl::Status Annotate(absl::Status status, absl::string_view msg) {
     absl::Status ret_status = absl::Status(
         status.code(),
         absl::StrCat(status.message(),
-                     "; Error happened when creating KodaError: ", msg));
+                     ";\n\nError happened when creating KodaError: ", msg));
     return ret_status;
   }
   return status;
