@@ -54,7 +54,7 @@ def _expect_slices_or_edges(value):
     'kde.shapes.create',
     qtype_constraints=[_expect_slices_or_edges(P.dimensions)],
     qtype_inference_expr=qtypes.JAGGED_SHAPE,
-    aux_policy=py_boxing.LIST_BOXING_POLICY,
+    aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
 )
 def create_shape(*dimensions):  # pylint: disable=unused-argument
   """Returns a JaggedShape from the provided dimensions.

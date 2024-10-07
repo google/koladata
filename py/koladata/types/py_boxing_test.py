@@ -45,7 +45,7 @@ def op_with_default_boxing(x, y):
 
 @arolla.optools.as_lambda_operator(
     'op_with_list_boxing',
-    experimental_aux_policy=py_boxing.LIST_BOXING_POLICY,
+    experimental_aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
 )
 def op_with_list_boxing(x, y, z):
   return (x, y, z)
@@ -99,9 +99,13 @@ class PyBoxingTest(parameterized.TestCase):
       ((1, 2), ds((1, 2))),
       ([1, 2], ds([1, 2])),
   )
-  def test_as_qvalue_or_expr_with_list_support(self, value, expected_res):
+  def test_as_qvalue_or_expr_with_list_to_slice_support(
+      self, value, expected_res
+  ):
     self.assertEqual(
-        py_boxing.as_qvalue_or_expr_with_list_support(value).fingerprint,
+        py_boxing.as_qvalue_or_expr_with_list_to_slice_support(
+            value
+        ).fingerprint,
         expected_res.fingerprint,
     )
 
@@ -455,6 +459,49 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
             literal_operator.literal(arolla.namedtuple()),
         ),
     )
+
+  def test_boxing_policy_override(self):
+    @arolla.optools.as_lambda_operator(
+        'op',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op(
+        x=py_boxing.positional_or_keyword(
+            boxing_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY
+        ),
+        args=py_boxing.var_positional(
+            boxing_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY
+        ),
+        y=py_boxing.keyword_only(),
+        kwargs=py_boxing.var_keyword(
+            boxing_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY
+        ),
+    ):
+      return arolla.M.core.make_tuple(x, args, y, kwargs)
+
+    self.assertEqual(
+        inspect.signature(op),
+        inspect.signature(lambda x, *args, y, **kwargs: None),
+    )
+
+    testing.assert_equal(
+        op([], [1, 2], y=3, z=[4, 5]),
+        arolla.abc.bind_op(
+            op,
+            literal_operator.literal(ds([])),
+            literal_operator.literal(arolla.tuple(ds([1, 2]))),
+            literal_operator.literal(ds(3)),
+            literal_operator.literal(arolla.namedtuple(z=ds([4, 5]))),
+        ),
+    )
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'passing a Python list/tuple to a Koda operation is ambiguous'
+        ),
+    ):
+      _ = op([], [1, 2], y=[3, 6], z=[4, 5])
 
   def test_with_expr_eval(self):
     @arolla.optools.as_lambda_operator(

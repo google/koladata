@@ -37,9 +37,9 @@ from koladata.types import literal_operator
 # dict of values.
 
 
-# Default policy wraps arbitrarily nested Python lists into DataSlices and wraps
-# scalars into DataItems. QValues remain unchanged (useful for DataBags,
-# JaggedShapes and already created DataSlices).
+# Default boxing policy wraps various values (other than lists and tuples) into
+# DataItems. QValues remain unchanged (useful for DataBags, JaggedShapes and
+# already-created DataSlices).
 DEFAULT_BOXING_POLICY = 'koladata_default_boxing'
 
 # Policy that does not wrap inputs to DataSlices.
@@ -47,7 +47,7 @@ DEFAULT_AROLLA_POLICY = ''
 
 # The same as DEFAULT_BOXING_POLICY, but also implicitly wraps list/tuples into
 # DataSlices.
-LIST_BOXING_POLICY = 'koladata_list_boxing'
+LIST_TO_SLICE_BOXING_POLICY = 'koladata_list_to_slice_boxing'
 
 FULL_SIGNATURE_POLICY = 'koladata_full_signature'
 FSTR_POLICY = 'koladata_fstr'
@@ -60,9 +60,9 @@ REF_CODEC = _REF_CODEC_OBJECT.name
 
 
 # Param markers used by FULL_SIGNATURE_POLICY. A param marker is an Arolla tuple
-# of length 2 or 3 where the first element is `_PARAM_MARKER`, the second
-# element is the marker type (`_*_MARKER_TYPE`), and the optional third element
-# is the default value.
+# of length 3 where the first element is `_PARAM_MARKER`, the second element is
+# the marker type (`_*_MARKER_TYPE`), and the third element is a namedtuple of
+# extra information, including the default value and boxing policy override.
 _PARAM_MARKER = arolla.text('__koladata_param_marker__')
 
 _POSITIONAL_ONLY_MARKER_TYPE = arolla.text('positional_only')
@@ -75,82 +75,123 @@ _HIDDEN_SEED_MARKER_TYPE = arolla.text('hidden_seed')
 _NO_DEFAULT_VALUE = object()
 
 
-def positional_only(default_value=_NO_DEFAULT_VALUE) -> arolla.abc.QValue:
-  """Marks a parameter as positional-only (with optional default)."""
-  if default_value is _NO_DEFAULT_VALUE:
-    return arolla.tuple(_PARAM_MARKER, _POSITIONAL_ONLY_MARKER_TYPE)
+def _make_param_marker(
+    marker_type: arolla.abc.QValue, **kwargs
+) -> arolla.abc.QValue:
+  """Builds a param marker tuple."""
+  optional_fields = {}
+  if 'boxing_policy' in kwargs:
+    boxing_policy = kwargs.pop('boxing_policy')
+    boxing_policy = arolla.text(boxing_policy)
+    optional_fields['boxing_policy'] = boxing_policy
+  if 'default_value' in kwargs:
+    default_value = kwargs.pop('default_value')
+    if default_value is not _NO_DEFAULT_VALUE:
+      boxing_fn = _get_boxing_fn(optional_fields.get('boxing_policy'))
+      optional_fields['default_value'] = boxing_fn(default_value)
+  if kwargs:
+    raise ValueError(f'unexpected param marker kwargs: {kwargs}')
   return arolla.tuple(
-      _PARAM_MARKER, _POSITIONAL_ONLY_MARKER_TYPE, as_qvalue(default_value)
+      _PARAM_MARKER, marker_type, arolla.namedtuple(**optional_fields)
   )
 
 
-def positional_or_keyword(default_value=_NO_DEFAULT_VALUE) -> arolla.abc.QValue:
-  """Marks a parameter as positional-or-keyword (with optional default)."""
-  if default_value is _NO_DEFAULT_VALUE:
-    return arolla.tuple(_PARAM_MARKER, _POSITIONAL_OR_KEYWORD_MARKER_TYPE)
-  return arolla.tuple(
-      _PARAM_MARKER,
-      _POSITIONAL_OR_KEYWORD_MARKER_TYPE,
-      as_qvalue(default_value),
-  )
-
-
-def var_positional() -> arolla.abc.QValue:
-  """Marks a parameter as variadic-positional."""
-  return arolla.tuple(_PARAM_MARKER, _VAR_POSITIONAL_MARKER_TYPE)
-
-
-def keyword_only(default_value=_NO_DEFAULT_VALUE) -> arolla.abc.QValue:
-  """Marks a parameter as keyword-only (with optional default)."""
-  if default_value is _NO_DEFAULT_VALUE:
-    return arolla.tuple(_PARAM_MARKER, _KEYWORD_ONLY_MARKER_TYPE)
-  return arolla.tuple(
-      _PARAM_MARKER, _KEYWORD_ONLY_MARKER_TYPE, as_qvalue(default_value)
-  )
-
-
-def var_keyword() -> arolla.abc.QValue:
-  """Marks a parameter as variadic-keyword."""
-  return arolla.tuple(_PARAM_MARKER, _VAR_KEYWORD_MARKER_TYPE)
-
-
-def hidden_seed() -> arolla.abc.QValue:
-  """Marks a parameter as a hidden seed parameter."""
-  return arolla.tuple(_PARAM_MARKER, _HIDDEN_SEED_MARKER_TYPE)
-
-
-def _is_marker_param_default(param_default: arolla.abc.QValue) -> bool:
-  if not arolla.is_tuple_qtype(param_default.qtype):
+def _is_param_marker(possible_param_marker: arolla.abc.QValue) -> bool:
+  if not arolla.is_tuple_qtype(possible_param_marker.qtype):
     return False
-  if param_default.field_count not in (2, 3):  # pytype: disable=attribute-error
+  if possible_param_marker.field_count != 3:  # pytype: disable=attribute-error
     return False
-  if param_default[0].fingerprint != _PARAM_MARKER.fingerprint:  # pytype: disable=unsupported-operands
+  if possible_param_marker[0].fingerprint != _PARAM_MARKER.fingerprint:  # pytype: disable=unsupported-operands
     return False
   return True
 
 
-def _get_marker_type_and_default_value(
-    param: arolla.abc.SignatureParameter,
-) -> tuple[arolla.abc.QValue | None, arolla.abc.QValue | None]:
-  """Unpacks an Arolla expr signature param into (marker_type, default_value).
+def positional_only(
+    default_value=_NO_DEFAULT_VALUE, *, boxing_policy=DEFAULT_BOXING_POLICY
+) -> arolla.abc.QValue:
+  """Marks a parameter as positional-only (with optional default)."""
+  return _make_param_marker(
+      _POSITIONAL_ONLY_MARKER_TYPE,
+      default_value=default_value,
+      boxing_policy=boxing_policy,
+  )
+
+
+def positional_or_keyword(
+    default_value=_NO_DEFAULT_VALUE, *, boxing_policy=DEFAULT_BOXING_POLICY
+) -> arolla.abc.QValue:
+  """Marks a parameter as positional-or-keyword (with optional default)."""
+  return _make_param_marker(
+      _POSITIONAL_OR_KEYWORD_MARKER_TYPE,
+      default_value=default_value,
+      boxing_policy=boxing_policy,
+  )
+
+
+def var_positional(*, boxing_policy=DEFAULT_BOXING_POLICY) -> arolla.abc.QValue:
+  """Marks a parameter as variadic-positional."""
+  return _make_param_marker(
+      _VAR_POSITIONAL_MARKER_TYPE, boxing_policy=boxing_policy
+  )
+
+
+def keyword_only(
+    default_value=_NO_DEFAULT_VALUE, *, boxing_policy=DEFAULT_BOXING_POLICY
+) -> arolla.abc.QValue:
+  """Marks a parameter as keyword-only (with optional default)."""
+  return _make_param_marker(
+      _KEYWORD_ONLY_MARKER_TYPE,
+      default_value=default_value,
+      boxing_policy=boxing_policy,
+  )
+
+
+def var_keyword(*, boxing_policy=DEFAULT_BOXING_POLICY) -> arolla.abc.QValue:
+  """Marks a parameter as variadic-keyword."""
+  return _make_param_marker(
+      _VAR_KEYWORD_MARKER_TYPE, boxing_policy=boxing_policy
+  )
+
+
+def hidden_seed() -> arolla.abc.QValue:
+  """Marks a parameter as a hidden seed parameter."""
+  return _make_param_marker(_HIDDEN_SEED_MARKER_TYPE)
+
+
+def _unpack_param_marker(param: arolla.abc.SignatureParameter) -> tuple[
+    arolla.abc.QValue | None,
+    arolla.abc.QValue | None,
+    collections.abc.Callable[[Any], arolla.abc.QValue | arolla.abc.Expr],
+]:
+  """Unpacks an Arolla expr signature param into a tuple of values (see below).
 
   Args:
     param: Signature parameter.
 
   Returns:
-    (marker, default_value)
+    (marker_type, default_value, boxing_fn)
     marker_type: If this is a marker, the marker type, else None.
     default_value: The default value for this param, regardless of whether it
       is a marker. If None, the param has no default value (so it is required).
+    boxing_fn: A function that "boxes" an arbitrary python value passed to the
+      python invocation of the operator into a QValue or QExpr to be passed to
+      the bound operator.
   """
   param_default = param.default
   if param_default is None:
-    return None, None
-  if not _is_marker_param_default(param_default):
-    return None, param_default
-  if param_default.field_count == 2:  # pytype: disable=attribute-error
-    return param_default[1], None  # pytype: disable=unsupported-operands
-  return param_default[1], param_default[2]  # pytype: disable=unsupported-operands
+    return None, None, as_qvalue_or_expr
+  if not _is_param_marker(param_default):
+    return None, param_default, as_qvalue_or_expr
+  try:
+    default_value = param_default[2]['default_value']  # pytype: disable=unsupported-operands
+  except KeyError:
+    default_value = None
+  try:
+    boxing_policy_name = param_default[2]['boxing_policy']  # pytype: disable=unsupported-operands
+  except KeyError:
+    boxing_policy_name = None
+  boxing_fn = _get_boxing_fn(boxing_policy_name)
+  return param_default[1], default_value, boxing_fn  # pytype: disable=unsupported-operands
 
 
 def _is_positional_only(marker_type: arolla.abc.QValue | None) -> bool:
@@ -201,7 +242,7 @@ def find_hidden_seed_param(signature: inspect.Signature) -> int | None:
   for i_param, param in enumerate(signature.parameters.values()):
     if (
         isinstance(param.default, arolla.QValue)
-        and _is_marker_param_default(param.default)
+        and _is_param_marker(param.default)
         and _is_hidden_seed(param.default[1])
     ):
       return i_param
@@ -258,7 +299,7 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
   return data_slice.DataSlice.from_vals(arg)
 
 
-def as_qvalue_or_expr_with_list_support(
+def as_qvalue_or_expr_with_list_to_slice_support(
     arg: Any,
 ) -> arolla.Expr | arolla.QValue:
   if isinstance(arg, (list, tuple)):
@@ -280,6 +321,25 @@ def as_expr(arg: Any) -> arolla.Expr:
   if isinstance(qvalue_or_expr, arolla.QValue):
     return literal_operator.literal(qvalue_or_expr)
   return qvalue_or_expr
+
+
+_BOXING_FNS_BY_NAME_FINGERPRINT = {
+    arolla.text(DEFAULT_BOXING_POLICY).fingerprint: as_qvalue_or_expr,
+    arolla.text(DEFAULT_AROLLA_POLICY).fingerprint: lambda x: x,
+    arolla.text(
+        LIST_TO_SLICE_BOXING_POLICY
+    ).fingerprint: as_qvalue_or_expr_with_list_to_slice_support,
+}
+
+
+def _get_boxing_fn(
+    boxing_policy_name: arolla.QValue | None,
+) -> collections.abc.Callable[[Any], arolla.abc.QValue | arolla.abc.Expr]:
+  if boxing_policy_name is None:
+    return as_qvalue_or_expr  # Default boxing policy.
+  if boxing_policy_name.fingerprint in _BOXING_FNS_BY_NAME_FINGERPRINT:
+    return _BOXING_FNS_BY_NAME_FINGERPRINT[boxing_policy_name.fingerprint]
+  raise ValueError(f'unknown boxing policy: {boxing_policy_name}')
 
 
 class BasicBindingPolicy(arolla.abc.AuxBindingPolicy):
@@ -336,7 +396,9 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
   must be last, args after `*` must be keyword-only, etc.)
 
   This policy *also* applies default Koda value boxing, including to the values
-  in the tuple/namedtuple passed to *args/**kwargs.
+  in the tuple/namedtuple passed to *args/**kwargs. If any markers that support
+  the optional `boxing_policy` argument have that argument set, this behavior is
+  overridden for the marked parameters.
   """
 
   def make_python_signature(
@@ -351,7 +413,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
             'underlying Expr signature'
         )
 
-      marker_type, default_value = _get_marker_type_and_default_value(param)
+      marker_type, default_value, unused_boxing_fn = _unpack_param_marker(param)
       python_param_default = (
           default_value
           if default_value is not None
@@ -401,16 +463,15 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
       *args: Any,
       **kwargs: Any,
   ) -> tuple[arolla.QValue | arolla.Expr, ...]:
-    args_queue = collections.deque([as_qvalue_or_expr(arg) for arg in args])
-    kwargs = {name: as_qvalue_or_expr(value) for name, value in kwargs.items()}
+    args_queue = collections.deque(args)
 
     bound_values: list[arolla.QValue | arolla.Expr] = []
     for param in signature.parameters:
-      marker_type, default_value = _get_marker_type_and_default_value(param)
+      marker_type, default_value, boxing_fn = _unpack_param_marker(param)
 
       if _is_positional_only(marker_type):
         if args_queue:
-          bound_values.append(args_queue.popleft())
+          bound_values.append(boxing_fn(args_queue.popleft()))
         elif default_value is not None:
           bound_values.append(default_value)
         else:
@@ -421,9 +482,9 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
         if args_queue:
           if param.name in kwargs:
             raise TypeError(f"got multiple values for argument '{param.name}'")
-          bound_values.append(args_queue.popleft())
+          bound_values.append(boxing_fn(args_queue.popleft()))
         elif param.name in kwargs:
-          bound_values.append(kwargs.pop(param.name))
+          bound_values.append(boxing_fn(kwargs.pop(param.name)))
         elif default_value is not None:
           bound_values.append(default_value)
         else:
@@ -431,29 +492,34 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
               f"missing required positional argument: '{param.name}'"
           )
       elif _is_var_positional(marker_type):
-        if all(isinstance(value, arolla.QValue) for value in args_queue):
-          bound_values.append(arolla.tuple(*args_queue))
+        boxed_args = [boxing_fn(value) for value in args_queue]
+        if all(isinstance(value, arolla.QValue) for value in boxed_args):
+          bound_values.append(arolla.tuple(*boxed_args))
         else:
           bound_values.append(
-              arolla.abc.bind_op('core.make_tuple', *map(as_expr, args_queue))
-          )
+              arolla.abc.bind_op('core.make_tuple', *map(as_expr, boxed_args)))
         args_queue.clear()
       elif _is_keyword_only(marker_type):
         if param.name in kwargs:
-          bound_values.append(kwargs.pop(param.name))
+          bound_values.append(boxing_fn(kwargs.pop(param.name)))
         elif default_value is not None:
           bound_values.append(default_value)
         else:
           raise TypeError(f"missing required keyword argument: '{param.name}'")
       elif _is_var_keyword(marker_type):
-        if all(isinstance(value, arolla.QValue) for value in kwargs.values()):
-          bound_values.append(arolla.namedtuple(**kwargs))
+        boxed_kwargs = {
+            name: boxing_fn(value) for name, value in kwargs.items()
+        }
+        if all(
+            isinstance(value, arolla.QValue) for value in boxed_kwargs.values()
+        ):
+          bound_values.append(arolla.namedtuple(**boxed_kwargs))
         else:
           bound_values.append(
               arolla.abc.bind_op(
                   'namedtuple.make',
-                  arolla.text(','.join(kwargs.keys())),
-                  *map(as_expr, kwargs.values()),
+                  arolla.text(','.join(boxed_kwargs.keys())),
+                  *map(as_expr, boxed_kwargs.values()),
               )
           )
         kwargs.clear()
@@ -519,8 +585,8 @@ arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
     make_literal_fn=literal_operator.literal,
 )
 arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
-    LIST_BOXING_POLICY,
-    as_qvalue_or_expr_with_list_support,
+    LIST_TO_SLICE_BOXING_POLICY,
+    as_qvalue_or_expr_with_list_to_slice_support,
     make_literal_fn=literal_operator.literal,
 )
 arolla.abc.register_aux_binding_policy(
