@@ -106,7 +106,9 @@ class CoreCloneTest(parameterized.TestCase):
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.no_db(), o.no_db())
     result_values = result[keys]
-    self.assertSetEqual(set(result.get_keys().to_py()), set(keys.to_py()))
+    self.assertSetEqual(
+        set(result.get_keys().internal_as_py()), set(keys.internal_as_py())
+    )
     testing.assert_equal(result_values.no_db(), values.no_db())
     testing.assert_equal(result_values.c.no_db(), values.c.no_db())
     testing.assert_equal(result_values.b.no_db(), values.b.no_db())

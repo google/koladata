@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for view."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -629,6 +627,7 @@ class DataSliceViewTest(parameterized.TestCase):
         'set_attrs',
         'set_schema',
         'to_py',
+        'to_pytree',
         # go/keep-sorted end
     }
     view_attrs = {m for m in dir(view.DataSliceView) if not m.startswith('_')}

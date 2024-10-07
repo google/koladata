@@ -14,6 +14,7 @@
 
 """DataSlice abstraction."""
 
+import dataclasses
 import functools
 from typing import Any
 
@@ -206,11 +207,6 @@ def _follow(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.follow, self)
 
 
-@DataSlice.add_method('to_py')
-def _to_py(self) -> DataSlice:
-  return self.internal_as_py()
-
-
 @DataSlice.add_method('clone')
 def _clone(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.clone, self, schema)
@@ -341,6 +337,165 @@ def _attrs(self, **attrs) -> DataBag:
 @DataSlice.add_method('with_attrs')
 def _with_attrs(self, **attrs) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.with_attrs, self, **attrs)
+
+
+@DataSlice.add_method('to_py')
+def to_py(
+    ds: DataSlice,
+    max_depth: int = 2,
+    obj_as_dict: bool = False,
+    include_missing_attrs: bool = True,
+) -> Any:
+  """Returns a readable python object from a DataSlice.
+
+  Attributes, lists, and dicts are recursively converted to Python objects.
+
+  Args:
+    ds: A DataSlice
+    max_depth: Maximum depth for recursive printing. Each attribute, list, and
+      dict increments the depth by 1. Use -1 for unlimited depth.
+    obj_as_dict: Whether to convert objects to python dicts. By default objects
+      are converted to automatically constructed 'Obj' dataclass instances.
+    include_missing_attrs: whether to include attributes with None value in
+      objects.
+  """
+  if max_depth >= 0:
+    max_depth += ds.get_ndim()
+
+  if ds.db is not None:
+    ds = ds.fork_db()
+    db = ds.db
+  else:
+    db = DataBag.empty()
+  ds = db.implode(ds, -1)
+  return _to_py_impl(ds, {}, 0, max_depth, obj_as_dict, include_missing_attrs)
+
+
+@DataSlice.add_method('to_pytree')
+def to_pytree(
+    ds: DataSlice,
+    max_depth: int = 2,
+    include_missing_attrs: bool = True) -> Any:
+  """Returns a readable python object from a DataSlice.
+
+  Attributes, lists, and dicts are recursively converted to Python objects.
+  Objects are converted to Python dicts.
+
+  Same as kd.to_py(..., obj_as_dict=True)
+
+  Args:
+    ds: A DataSlice
+    max_depth: Maximum depth for recursive printing. Each attribute, list, and
+      dict increments the depth by 1. Use -1 for unlimited depth.
+    include_missing_attrs: whether to include attributes with None value in
+      objects.
+  """
+  return to_py(
+      ds, max_depth=max_depth, obj_as_dict=True,
+      include_missing_attrs=include_missing_attrs)
+
+
+def _to_py_impl(
+    ds: DataSlice,
+    obj_id_to_python_obj: dict[DataSlice, Any],
+    depth: int,
+    max_depth: int,
+    obj_as_dict: bool,
+    include_missing_attrs: bool,
+) -> Any:
+  """Recursively converts a DataItem to a Python object."""
+  assert ds.get_ndim() == 0
+
+  existing = obj_id_to_python_obj.get(ds)
+  if existing is not None:
+    return existing
+
+  if ds.is_primitive():
+    return ds.internal_as_py()
+
+  if ds.db is None:
+    return {}
+
+  schema = ds.get_schema()
+
+  if schema.is_any_schema():
+    raise ValueError(
+        f'cannot convert a DataSlice with ANY schema to Python: {ds}'
+    )
+
+  if (
+      max_depth >= 0 and depth >= max_depth
+  ) or schema.is_itemid_schema():
+    return ds
+
+  is_list = schema.is_list_schema()
+  is_dict = schema.is_dict_schema()
+
+  # Remove special attributes
+  attr_names = list(set(dir(ds)) - set(['__items__', '__keys__', '__values__']))
+  assert not (attr_names and (is_list or is_dict))
+
+  if attr_names and not obj_as_dict:
+    obj_class = dataclasses.make_dataclass(
+        'Obj',
+        [
+            (attr_name, Any, dataclasses.field(default=None))
+            for attr_name in attr_names
+        ],
+        eq=False,
+    )
+
+    def eq(x, y):
+      """Checks whether two dataclasses are equal ignoring types."""
+      return dataclasses.is_dataclass(y) and dataclasses.asdict(
+          x
+      ) == dataclasses.asdict(y)
+
+    obj_class.__eq__ = eq
+
+    py_obj = obj_class()
+  elif is_list:
+    py_obj = []
+  else:
+    py_obj = {}
+
+  obj_id_to_python_obj[ds] = py_obj
+
+  attrs = {}
+  next_depth = depth + 1
+  for attr_name in attr_names:
+    attr_ds = ds.get_attr(attr_name)
+    attr_value = _to_py_impl(
+        attr_ds, obj_id_to_python_obj, next_depth, max_depth, obj_as_dict,
+        include_missing_attrs)
+    if include_missing_attrs or attr_value is not None:
+      attrs[attr_name] = attr_value
+
+  if dataclasses.is_dataclass(py_obj):
+    for name, value in attrs.items():
+      setattr(py_obj, name, value)
+  elif attrs and obj_as_dict and not is_dict and not is_list:
+    py_obj.update(attrs)  # pytype: disable=attribute-error
+
+  if is_list:
+    list_values = py_obj
+    assert isinstance(list_values, list)
+    for child_ds in ds:
+      list_values.append(
+          _to_py_impl(
+              child_ds, obj_id_to_python_obj, next_depth, max_depth,
+              obj_as_dict, include_missing_attrs)
+      )
+
+  if is_dict:
+    dict_values = py_obj
+    for key in ds:
+      value_ds = ds[key]
+      dict_values[key.no_db().internal_as_py()] = _to_py_impl(
+          value_ds, obj_id_to_python_obj, next_depth, max_depth, obj_as_dict,
+          include_missing_attrs)
+
+  return py_obj
 
 
 ##### DataSlice Magic methods. #####

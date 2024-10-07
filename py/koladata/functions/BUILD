@@ -89,7 +89,6 @@ py_library(
     visibility = ["//visibility:private"],
     deps = [
         "//py/koladata/types:data_bag",
-        "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",
         "//py/koladata/types:list_item",

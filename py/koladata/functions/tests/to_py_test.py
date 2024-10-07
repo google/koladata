@@ -150,7 +150,7 @@ class ToPyTest(absltest.TestCase):
   def test_any_schema(self):
     x = fns.list([1, 2, 3]).as_any()
     with self.assertRaisesRegex(
-        ValueError, 'cannot convert a DataSlice with schema ANY to Python'):
+        ValueError, 'cannot convert a DataSlice with ANY schema to Python'):
       fns.to_py(x)
 
   def test_any_primitvies(self):
