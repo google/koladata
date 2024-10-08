@@ -656,7 +656,7 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
   // case of error.
   // NOTE: This will cause 2 merges of the same DataBag, if schema comes from
   // the same DataBag as values.
-  RETURN_IF_ERROR(AdoptValuesInto(aligned_values, *db));
+  RETURN_IF_ERROR(AdoptValuesInto(values, *db));
   return *std::move(res);
 }
 
@@ -725,7 +725,7 @@ absl::StatusOr<DataSlice> ObjectCreator::FromAttrs(
       }));
   // Adopt into the databag only at the end to avoid garbage in the databag in
   // case of error.
-  RETURN_IF_ERROR(AdoptValuesInto(aligned_values, *db));
+  RETURN_IF_ERROR(AdoptValuesInto(values, *db));
   return *std::move(res);
 }
 
@@ -844,7 +844,7 @@ absl::StatusOr<DataSlice> CreateUu(
     // case of error.
     // NOTE: This will cause 2 merges of the same DataBag, if schema comes from
     // the same DataBag as values.
-    RETURN_IF_ERROR(AdoptValuesInto(aligned_values, *db));
+    RETURN_IF_ERROR(AdoptValuesInto(values, *db));
     return ds;
   });
 }

@@ -225,6 +225,12 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.a, ds(1).as_any().with_db(x.db))
     testing.assert_equal(x.b, ds('a').as_any().with_db(x.db))
 
+  def test_schema_contains_any(self):
+    schema = fns.new_schema(x=schema_constants.ANY)
+    entity = fns.new()
+    x = fns.new(x=entity, schema=schema)
+    testing.assert_equal(x.x.no_db(), entity.no_db().as_any())
+
   def test_schema_arg_embed_schema(self):
     schema = fns.new_schema(a=schema_constants.OBJECT)
     x = fns.new(a=fns.new(p=42, q='xyz'), schema=schema)
