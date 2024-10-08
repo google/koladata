@@ -987,6 +987,28 @@ py_test(
 )
 
 py_test(
+    name = "core_obj_shaped_as_test",
+    srcs = ["core_obj_shaped_as_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:jagged_shape",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "core_get_item_test",
     srcs = ["core_get_item_test.py"],
     deps = [
