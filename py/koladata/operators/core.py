@@ -2138,6 +2138,20 @@ def get_db(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.reify'])
+@optools.as_lambda_operator(
+    'kde.core.reify',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.source),
+    ],
+)
+def reify(ds, source):
+  """Assigns a db and schema from `source` to the slice `ds`."""
+  ds = with_db(ds, get_db(source))
+  return schema_ops.with_schema(ds, schema_ops.get_schema(source))
+
+
 @optools.add_to_registry(aliases=['kde.with_merged_bag'])
 @optools.as_backend_operator(
     'kde.core.with_merged_bag',

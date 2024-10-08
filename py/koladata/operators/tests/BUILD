@@ -2662,6 +2662,24 @@ py_test(
 )
 
 py_test(
+    name = "core_reify_test",
+    srcs = ["core_reify_test.py"],
+    deps = [
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "core_enriched_test",
     srcs = ["core_enriched_test.py"],
     deps = [
