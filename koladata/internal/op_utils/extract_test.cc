@@ -1503,6 +1503,28 @@ TEST_P(ExtractTest, SchemaAsData) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(ExtractTest, AnySchemaAsData) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto any_schema = DataItem(schema::kAny);
+  auto schema_dtype = DataItem(schema::kSchema);
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", any_schema}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, schema_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(schema, schema_dtype, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
+
+  EXPECT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 TEST_P(ExtractTest, SchemaSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto s1 = AllocateSchema();
@@ -1570,6 +1592,17 @@ TEST_P(ExtractTest, AnySchemaType) {
                "clone/extract not supported for kAny schema"));
 }
 
+TEST_P(ExtractTest, AnySchemaTypeEmptySlice) {
+  // TODO: expect error in test.
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(5);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_OK(ExtractOp(result_db.get())(ds, DataItem(schema::kAny),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
+}
+
 TEST_P(ExtractTest, AnySchemaTypeInside) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = DataSliceImpl::AllocateEmptyObjects(2);
@@ -1579,6 +1612,7 @@ TEST_P(ExtractTest, AnySchemaTypeInside) {
 
   TriplesT schema_triples = {{schema1, {{"next", DataItem(schema::kAny)}}}};
   TriplesT data_triples = {{a0, {{"next", a1}}}};
+  SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();

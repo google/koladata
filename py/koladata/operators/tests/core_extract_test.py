@@ -26,10 +26,12 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
+from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
+ANY = schema_constants.ANY
 DATA_SLICE = qtypes.DATA_SLICE
 
 
@@ -155,6 +157,12 @@ class CoreExtractTest(parameterized.TestCase):
     self.assertFalse(result.db._exactly_equal(db))
     o.a.set_attr('d', fb_d.no_db())
     o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().no_db())
+    testing.assert_equivalent(result.db, db)
+
+  def test_any_schema_in_data(self):
+    db = data_bag.DataBag.empty()
+    s = db.new_schema(x=schema_constants.ANY)
+    result = expr_eval.eval(kde.extract(s))
     testing.assert_equivalent(result.db, db)
 
   def test_qtype_signatures(self):
