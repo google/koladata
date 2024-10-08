@@ -86,6 +86,8 @@ class KodaUuTest(parameterized.TestCase):
           getattr(rhs, attr_name), ds(val).expand_to(rhs).with_db(rhs.db)
       )
     testing.assert_equal(lhs, rhs.with_db(lhs.db))
+    self.assertFalse(lhs.is_mutable())
+    self.assertFalse(rhs.is_mutable())
 
   @parameterized.parameters(
       ('', dict(a=ds(1), b=ds(2)), '', dict(a=ds(1), c=ds(2))),

@@ -980,7 +980,7 @@ class UuOperator : public arolla::QExprOperator {
               auto result,
               CreateUu(db, seed, attr_names, values, schema, update_schema),
               ctx->set_status(std::move(_)));
-          frame.Set(output_slot, std::move(result));
+          frame.Set(output_slot, result.WithDb(std::move(*db).ToImmutable()));
         });
   }
 };
@@ -1081,7 +1081,7 @@ class UuObjOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(auto result,
                            CreateUuObject(db, seed, attr_names, values),
                            ctx->set_status(std::move(_)));
-          frame.Set(output_slot, std::move(result));
+          frame.Set(output_slot, result.WithDb(std::move(*db).ToImmutable()));
         });
   }
 };
