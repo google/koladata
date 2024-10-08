@@ -374,8 +374,6 @@ def _basic_map_py(
   Returns:
     The resulting DataSlice.
   """
-  if not args:
-    raise TypeError('expected at least one input DataSlice, got none')
   args = arolla.abc.aux_eval_op('kde.core.align', *args)
   shape = args[0].get_shape()
   shape_rank = shape.rank()
@@ -412,8 +410,8 @@ def _basic_map_py(
     qtype_constraints=[
         _expect_py_callable(P.fn),
         _expect_optional_py_callable(P.item_completed_callback),
-        _expect_optional_schema(P.schema),
         qtype_utils.expect_data_slice_args(P.args),
+        _expect_optional_schema(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -505,12 +503,14 @@ def map_py(
   ):
     fn = _unwrap_py_callable(fn, param_name='fn')
     kwargs = kwargs.as_dict()
-    kwnames = tuple(kwargs.keys())
+    args = [*args, *kwargs.values()]
+    if not args:
+      raise TypeError('expected at least one input DataSlice, got none')
     vcall = arolla.abc.vectorcall
+    kwnames = tuple(kwargs.keys())
     return _basic_map_py(
         lambda *task_args: vcall(fn, *task_args, kwnames),
         *args,
-        *kwargs.values(),
         schema=_unwrap_optional_schema(schema, param_name='schema'),
         ndim=int(ndim),
         max_threads=int(max_threads),
@@ -524,16 +524,136 @@ def map_py(
   )
 
 
+@optools.add_to_registry(aliases=['kde.map_py_on_cond'])
+@optools.as_lambda_operator(
+    'kde.py.map_py_on_cond',
+    qtype_constraints=[
+        _expect_py_callable(P.true_fn),
+        _expect_optional_py_callable(P.false_fn),
+        qtype_utils.expect_data_slice(P.cond),
+        qtype_utils.expect_data_slice_args(P.args),
+        _expect_optional_schema(P.schema),
+        _expect_optional_py_callable(P.item_completed_callback),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def map_py_on_cond(
+    true_fn,
+    false_fn,
+    cond,
+    args=py_boxing.var_positional(),
+    schema=py_boxing.keyword_only(None),
+    max_threads=py_boxing.keyword_only(1),
+    item_completed_callback=py_boxing.keyword_only(None),
+    kwargs=py_boxing.var_keyword(),
+):  # pylint: disable=g-doc-args
+  """Apply python functions on `args` and `kwargs` based on `cond`.
+
+  `cond`, `args` and `kwargs` are first aligned. `cond` cannot have a higher
+  dimensions than `args` or `kwargs`.
+
+  Also see kd.map_py().
+
+  This function supports only pointwise, not aggregational, operations.
+  `true_fn` is applied when `cond` is kd.present. Otherwise, `false_fn` is
+  applied.
+
+  Args:
+    true_fn: Function.
+    false_fn: Function.
+    cond: Conditional DataSlice.
+    *args: Input DataSlices.
+    schema: The schema to use for resulting DataSlice.
+    max_threads: maximum number of threads to use.
+    item_completed_callback: A callback that will be called after each item is
+      processed. It will be called in the original thread that called
+      `map_py_on_cond` in case `max_threads` is greater than 1, as we rely on
+      this property for cases like progress reporting. As such, it can not be
+      attached to the `true_fn` and `false_fn` themselves.
+    **kwargs: Input DataSlices.
+
+  Returns:
+    Result DataSlice.
+  """
+
+  @arolla.optools.as_py_function_operator(
+      'kde.py.map_py_on_cond._impl', qtype_inference_expr=qtypes.DATA_SLICE
+  )
+  def impl(
+      true_fn,
+      false_fn,
+      cond,
+      args,
+      schema,
+      max_threads,
+      item_completed_callback,
+      kwargs,
+  ):
+    true_fn = _unwrap_py_callable(true_fn, param_name='true_fn')
+    false_fn = _unwrap_optional_py_callable(false_fn, param_name='false_fn')
+    kwargs = kwargs.as_dict()
+    args = [*args, *kwargs.values()]
+    if not args:
+      raise TypeError('expected at least one input DataSlice, got none')
+    if cond.get_schema() != schema_constants.MASK:
+      raise ValueError(f'expected a mask, got cond: {cond.get_schema()}')
+    if cond.get_ndim() > max(arg.get_ndim() for arg in args):
+      raise ValueError(
+          "'cond' must have the same or smaller dimension than args + kwargs"
+      )
+    vcall = arolla.abc.vectorcall
+    kwnames = tuple(kwargs.keys())
+    if false_fn is None:
+      # Apply the cond mask to the arguments so that masked values don't need
+      # unboxing.
+      args = map(
+          lambda x: arolla.abc.aux_eval_op('kde.logical.apply_mask', x, cond),
+          args,
+      )
+      task_fn = (
+          lambda task_cond, *task_args: None
+          if task_cond is None
+          else vcall(true_fn, *task_args, kwnames)
+      )
+    else:
+      task_fn = lambda task_cond, *task_args: vcall(
+          false_fn if task_cond is None else true_fn, *task_args, kwnames
+      )
+    return _basic_map_py(
+        task_fn,
+        cond,
+        *args,
+        schema=_unwrap_optional_schema(schema, param_name='schema'),
+        ndim=0,
+        max_threads=int(max_threads),
+        item_completed_callback=_unwrap_optional_py_callable(
+            item_completed_callback, param_name='item_completed_callback'
+        ),
+    )
+
+  return impl(
+      true_fn,
+      false_fn,
+      cond,
+      args,
+      schema,
+      max_threads,
+      item_completed_callback,
+      kwargs,
+  )
+
+
 @optools.add_to_registry(aliases=['kde.map_py_on_selected'])
 @optools.as_lambda_operator(
     'kde.py.map_py_on_selected',
     qtype_constraints=[
         _expect_py_callable(P.fn),
-        _expect_optional_schema(P.schema),
         qtype_utils.expect_data_slice(P.cond),
         qtype_utils.expect_data_slice_args(P.args),
-        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+        _expect_optional_schema(P.schema),
         _expect_optional_py_callable(P.item_completed_callback),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -572,49 +692,16 @@ def map_py_on_selected(
   Returns:
     Result DataSlice.
   """
-
-  @arolla.optools.as_py_function_operator(
-      'kde.py.map_py_on_selected._impl', qtype_inference_expr=qtypes.DATA_SLICE
-  )
-  def impl(
-      fn, cond, args, schema, max_threads, item_completed_callback, kwargs
-  ):
-    fn = _unwrap_py_callable(fn, param_name='fn')
-    kwargs = kwargs.as_dict()
-    kwnames = tuple(kwargs.keys())
-    args = [*args, *kwargs.values()]
-    if not args:
-      raise TypeError('expected at least one input DataSlice, got none')
-    if cond.get_schema() != schema_constants.MASK:
-      raise ValueError(f'expected a mask, got cond: {cond.get_schema()}')
-    if cond.get_ndim() > max(arg.get_ndim() for arg in args):
-      raise ValueError(
-          "'cond' must have the same or smaller dimension than args + kwargs"
-      )
-    vcall = arolla.abc.vectorcall
-
-    def task_fn(task_cond, *task_args):
-      if task_cond is None:
-        return None
-      return vcall(fn, *task_args, kwnames)
-
-    return _basic_map_py(
-        task_fn,
-        cond,
-        *(
-            arolla.abc.aux_eval_op('kde.logical.apply_mask', arg, cond)
-            for arg in args
-        ),
-        schema=_unwrap_optional_schema(schema, param_name='schema'),
-        ndim=0,
-        max_threads=int(max_threads),
-        item_completed_callback=_unwrap_optional_py_callable(
-            item_completed_callback, param_name='item_completed_callback'
-        ),
-    )
-
-  return impl(
-      fn, cond, args, schema, max_threads, item_completed_callback, kwargs
+  return arolla.abc.bind_op(
+      map_py_on_cond,
+      true_fn=fn,
+      false_fn=data_slice.DataSlice.from_vals(None),
+      cond=cond,
+      args=args,
+      schema=schema,
+      max_threads=max_threads,
+      item_completed_callback=item_completed_callback,
+      kwargs=kwargs,
   )
 
 
@@ -623,10 +710,10 @@ def map_py_on_selected(
     'kde.py.map_py_on_present',
     qtype_constraints=[
         _expect_py_callable(P.fn),
-        _expect_optional_schema(P.schema),
         qtype_utils.expect_data_slice_args(P.args),
-        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+        _expect_optional_schema(P.schema),
         _expect_optional_py_callable(P.item_completed_callback),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
