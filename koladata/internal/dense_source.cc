@@ -662,6 +662,7 @@ class MultitypeDenseSource : public DenseSource {
         obj_allocation_id_(obj_allocation_id),
         size_(values.size()),
         attr_allocation_ids_(values.allocation_ids()) {
+    DCHECK_GT(size_, 0);
     DCHECK_LE(values.size(), obj_allocation_id_.Capacity());
     if constexpr (!can_be_mutable) {
       values.VisitValues([&](const auto& array) {
@@ -677,6 +678,7 @@ class MultitypeDenseSource : public DenseSource {
         obj_allocation_id_(obj_allocation_id),
         size_(size),
         attr_allocation_ids_() {
+    DCHECK_GT(size, 0);
     DCHECK_LE(size, obj_allocation_id_.Capacity());
   }
 
@@ -860,7 +862,7 @@ class MultitypeDenseSource : public DenseSource {
       }
 
       std::vector<arolla::bitmap::Word> presence_vec(
-          arolla::bitmap::BitmapSize(values_.size()));
+          arolla::bitmap::BitmapSize(size_));
       arolla::bitmap::Word* presence = presence_vec.data();
       for (ValueArrayVariant& vals : values_) {
         std::visit([&](const auto& av) { av.ReadBitmapOr(presence); }, vals);

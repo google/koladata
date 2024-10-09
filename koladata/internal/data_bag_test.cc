@@ -1313,6 +1313,21 @@ TEST(DataBagTest, DataBagIndex) {
   }
 }
 
+TEST(DataBagTest, MergeInplace) {
+  auto none_databag = DataBagImpl::CreateEmptyDatabag();
+  auto big_alloc_databag = DataBagImpl::CreateEmptyDatabag();
+
+  // Set attr values.
+  auto big_alloc_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  ASSERT_OK(none_databag->SetAttr(big_alloc_ids[2], "x", DataItem()));
+  ASSERT_OK(big_alloc_databag->SetAttr(big_alloc_ids[1], "x", DataItem(2)));
+
+  auto res_db = DataBagImpl::CreateEmptyDatabag();
+  MergeOptions merge_options;
+  ASSERT_OK(res_db->MergeInplace(*none_databag, merge_options));
+  ASSERT_OK(res_db->MergeInplace(*big_alloc_databag, merge_options));
+}
+
 // NOTE(b/343432263): msan regression test to ensure that the DataBagImpl
 // destructor does not cause use-of-uninitialized-value issues.
 using DataBagMsanTest = ::testing::TestWithParam<DataBagImplPtr>;
