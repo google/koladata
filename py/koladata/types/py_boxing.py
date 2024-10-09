@@ -19,7 +19,7 @@ import functools
 import inspect
 import random
 import types as py_types
-from typing import Any
+from typing import Any, Callable
 
 from arolla import arolla
 from koladata.fstring import fstring as _fstring
@@ -51,6 +51,12 @@ LIST_TO_SLICE_BOXING_POLICY = 'koladata_list_to_slice_boxing'
 
 FULL_SIGNATURE_POLICY = 'koladata_full_signature'
 FSTR_POLICY = 'koladata_fstr'
+
+# Select operators specific policies.
+SELECT_POLICY = 'koladata_select'
+SELECT_ITEMS_POLICY = 'koladata_select_items'
+SELECT_KEYS_POLICY = 'koladata_select_keys'
+SELECT_VALUES_POLICY = 'koladata_select_values'
 
 # NOTE: Recreating this object invalidates all existing references. Thus after
 # reloading this module, any Exprs using this codec must be recreated.
@@ -577,6 +583,60 @@ class _FstrBindingPolicy(BasicBindingPolicy):
     return (_fstring.fstr_expr(fstr),)
 
 
+class _SelectBindingPolicy(_FullSignatureBindingPolicy):
+  """Argument binding policy for Koda select.* operators.
+
+  It checks if the `fltr` argument is a Python function and invokes it on
+  the `ds` argument if yes.
+
+  NOTE: To use the policy, the arguments of the operator must have `ds` and
+  `fltr` as their names.
+  """
+
+  def __init__(self, compute_on_fn: Callable[[Any], Any]):
+    super().__init__()
+    self._compute_on_fn = compute_on_fn
+
+  def make_python_signature(
+      self, signature: arolla.abc.Signature
+  ) -> inspect.Signature:
+    if len(signature.parameters) < 2:
+      raise ValueError(
+          'expected a signature with at least 2 parameters, got '
+          f'{len(signature.parameters)}'
+      )
+    return super().make_python_signature(signature)
+
+  def bind_arguments(
+      self, signature: arolla.abc.Signature, *args: Any, **kwargs: Any
+  ) -> tuple[arolla.QValue | arolla.Expr, ...]:
+    """Returns arguments bound to parameters.
+
+    This method does customization evaluation specific to the select.*
+    operators. It checks if the `fltr` argument is a Python function and invokes
+    it on the `ds` argument if yes.
+
+    Args:
+      signature: The "classic" operator signature.
+      *args: The positional arguments.
+      **kwargs: The keyword arguments.
+    """
+    args_queue = collections.deque(args)
+
+    def get_arg(name):
+      if args_queue:
+        return args_queue.popleft()
+      else:
+        return kwargs.pop(name)
+
+    ds = get_arg('ds')
+    fltr = get_arg('fltr')
+    if isinstance(fltr, py_types.FunctionType):
+      fltr = fltr(self._compute_on_fn(ds))
+    args = [ds, fltr] + list(args_queue)
+    return super().bind_arguments(signature, *args, **kwargs)
+
+
 ##### Kola Data policy registrations #####
 
 arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
@@ -593,3 +653,15 @@ arolla.abc.register_aux_binding_policy(
     FULL_SIGNATURE_POLICY, _FullSignatureBindingPolicy()
 )
 arolla.abc.register_aux_binding_policy(FSTR_POLICY, _FstrBindingPolicy())
+arolla.abc.register_aux_binding_policy(
+    SELECT_POLICY, _SelectBindingPolicy(lambda x: x)
+)
+arolla.abc.register_aux_binding_policy(
+    SELECT_KEYS_POLICY, _SelectBindingPolicy(lambda x: x.get_keys())
+)
+arolla.abc.register_aux_binding_policy(
+    SELECT_VALUES_POLICY, _SelectBindingPolicy(lambda x: x.get_values())
+)
+arolla.abc.register_aux_binding_policy(
+    SELECT_ITEMS_POLICY, _SelectBindingPolicy(lambda x: x[:])
+)

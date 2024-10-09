@@ -33,6 +33,7 @@ from koladata.types import py_boxing
 
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
+I = input_container.InputContainer('I')
 
 
 @arolla.optools.as_lambda_operator(
@@ -160,7 +161,10 @@ class PyBoxingTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (1, literal_operator.literal(ds(1))),
-      (ds([1, 2, 3]), literal_operator.literal(ds([1, 2, 3]))),
+      (
+          ds([1, 2, 3]),
+          literal_operator.literal(ds([1, 2, 3])),
+      ),
       (arolla.L.x, arolla.L.x),
       (slice(arolla.L.x, 2, 3), arolla.M.core.make_slice(arolla.L.x, 2, 3)),
   )
@@ -264,7 +268,9 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     self.assertEqual(
         inspect.signature(op),
-        inspect.signature(lambda x, *args, y, z=ds('z'), **kwargs: None),
+        inspect.signature(
+            lambda x, *args, y, z=ds('z'), **kwargs: None
+        ),
     )
 
     testing.assert_equal(
@@ -284,7 +290,9 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         arolla.abc.bind_op(
             op,
             literal_operator.literal(ds(1)),
-            literal_operator.literal(arolla.tuple(ds(2), ds(3))),
+            literal_operator.literal(
+                arolla.tuple(ds(2), ds(3))
+            ),
             literal_operator.literal(ds(4)),
             literal_operator.literal(ds(6)),
             literal_operator.literal(
@@ -330,7 +338,9 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
     self.assertEqual(
         inspect.signature(op),
         inspect.signature(
-            lambda a, b=ds('b'), /, x=ds('x'), *, y=ds('y'), **kwargs: None
+            lambda a, b=ds('b'), /, x=ds(
+                'x'
+            ), *, y=ds('y'), **kwargs: None
         ),
     )
 
@@ -435,7 +445,9 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     self.assertEqual(
         inspect.signature(op),
-        inspect.signature(lambda x=ds(1), *args, y=ds(2), **kwargs: None),
+        inspect.signature(
+            lambda x=ds(1), *args, y=ds(2), **kwargs: None
+        ),
     )
 
     testing.assert_equal(
@@ -801,11 +813,14 @@ class FstrBindingPolicyTest(absltest.TestCase):
     self.op = op_like_fstr
 
   def test_binding_item(self):
-    testing.assert_equal(expr_eval.eval(self.op(f'{ds(1):s}')), ds('1'))
+    testing.assert_equal(
+        expr_eval.eval(self.op(f'{ds(1):s}')), ds('1')
+    )
 
   def test_binding_slice(self):
     testing.assert_equal(
-        expr_eval.eval(self.op(f'{ds([1, 2]):s}')), ds(['1', '2'])
+        expr_eval.eval(self.op(f'{ds([1, 2]):s}')),
+        ds(['1', '2']),
     )
 
   def test_binding_non_string_error(self):
@@ -843,6 +858,115 @@ class FstrBindingPolicyTest(absltest.TestCase):
         "failed: 'koladata_fstr'",
     ):
       _ = inspect.signature(op_with_wrong_sig)
+
+empty_data_bag = data_bag.DataBag.empty()
+
+
+class SelectBindingPolicyTest(parameterized.TestCase):
+
+  @parameterized.parameters(
+      (py_boxing.SELECT_POLICY, 'koladata_select'),
+      (py_boxing.SELECT_ITEMS_POLICY, 'koladata_select_items'),
+      (py_boxing.SELECT_KEYS_POLICY, 'koladata_select_keys'),
+      (py_boxing.SELECT_VALUES_POLICY, 'koladata_select_values'),
+  )
+  def test_invalid_signature(self, policy, expected_error_msg):
+    @arolla.optools.as_lambda_operator(
+        'op_with_wrong_default',
+        experimental_aux_policy=policy,
+    )
+    def op_with_wrong_sig(x):
+      return x
+
+    with self.assertRaisesWithLiteralMatch(
+        RuntimeError,
+        'arolla.abc.aux_make_python_signature() auxiliary binding policy has'
+        f" failed: '{expected_error_msg}'",
+    ):
+      _ = inspect.signature(op_with_wrong_sig)
+
+  @parameterized.parameters(
+      (py_boxing.SELECT_POLICY),
+      (py_boxing.SELECT_ITEMS_POLICY),
+      (py_boxing.SELECT_KEYS_POLICY),
+      (py_boxing.SELECT_VALUES_POLICY),
+  )
+  def test_signature(self, policy):
+    @arolla.optools.as_lambda_operator(
+        'op_select_signature',
+        experimental_aux_policy=policy,
+    )
+    def op_select_signature(ds, fltr):  # pylint: disable=redefined-outer-name
+      return ds, fltr
+
+    signature = inspect.signature(op_select_signature)
+    self.assertLen(signature.parameters, 2)
+    self.assertEqual(
+        signature.parameters['ds'].kind, inspect.Parameter.POSITIONAL_OR_KEYWORD
+    )
+    self.assertEqual(
+        signature.parameters['fltr'].kind,
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+    )
+
+  @parameterized.parameters(
+      (py_boxing.SELECT_POLICY, ds([1, 2]), ds([2, 4])),
+      (
+          py_boxing.SELECT_ITEMS_POLICY,
+          empty_data_bag.list([1, 2]),
+          ds([2, 4]),
+      ),
+      (
+          py_boxing.SELECT_KEYS_POLICY,
+          empty_data_bag.dict({1: 3}),
+          ds([2]),
+      ),
+      (
+          py_boxing.SELECT_VALUES_POLICY,
+          empty_data_bag.dict({3: 1}),
+          ds([2]),
+      ),
+  )
+  def test_binding_apply_filter_function(self, policy, data, expected):
+    @arolla.optools.as_lambda_operator(
+        'op_select',
+        experimental_aux_policy=policy,
+    )
+    def op_select(ds, fltr):  # pylint: disable=unused-argument,redefined-outer-name
+      return fltr
+
+    testing.assert_equal(
+        expr_eval.eval(op_select(data, lambda x: x * 2)),
+        expected,
+    )
+    testing.assert_equal(
+        expr_eval.eval(op_select(data, fltr=lambda x: x * 2)), expected
+    )
+    testing.assert_equal(
+        expr_eval.eval(op_select(ds=data, fltr=lambda x: x * 2)),
+        expected,
+    )
+
+  @parameterized.parameters(
+      (py_boxing.SELECT_POLICY, ds([1, 2])),
+      (py_boxing.SELECT_ITEMS_POLICY, empty_data_bag.list([1, 2])),
+      (py_boxing.SELECT_KEYS_POLICY, empty_data_bag.dict({1: 2})),
+      (py_boxing.SELECT_VALUES_POLICY, empty_data_bag.dict({1: 2})),
+  )
+  def test_function_raise(self, policy, data):
+    @arolla.optools.as_lambda_operator(
+        'op_select',
+        experimental_aux_policy=policy,
+    )
+    def op_select(ds, fltr):  # pylint: disable=unused-argument,redefined-outer-name
+      return fltr
+
+    def raise_error(x):  # pylint: disable=unused-argument
+      raise ValueError('test error')
+
+    with self.assertRaisesRegex(ValueError, 'test error'):
+      expr_eval.eval(op_select(data, raise_error))
+
 
 if __name__ == '__main__':
   absltest.main()
