@@ -293,6 +293,22 @@ def create_dict(state):
 
 
 @google_benchmark.register
+def universal_converter_no_caching_flat(state):
+  # NOTE: There is no caching of Python objects, as all of them are unique.
+  l = list(range(10000))
+  while (state):
+    _ = kd.from_py(l)
+
+
+@google_benchmark.register
+def universal_converter_no_caching_nested(state):
+  # NOTE: There is no caching of Python objects, as all of them are unique.
+  nested_l = [[x, x + 1] for x in range(5000)]
+  while (state):
+    _ = kd.from_py(nested_l)
+
+
+@google_benchmark.register
 def universal_converter_caching(state):
   d = {'abc': 42}
   for _ in range(10):
