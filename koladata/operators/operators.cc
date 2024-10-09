@@ -106,6 +106,7 @@ OPERATOR_FAMILY("kde.core.obj_shaped",
 OPERATOR("kde.core.ref", Ref);
 OPERATOR("kde.core.reverse", Reverse);
 OPERATOR("kde.core.reverse_select", ReverseSelect);
+OPERATOR("kde.core.stub", Stub);
 OPERATOR_FAMILY("kde.core.subslice",
                 std::make_unique<SubsliceOperatorFamily>());
 OPERATOR("kde.core.translate", Translate);

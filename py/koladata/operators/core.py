@@ -710,6 +710,45 @@ def has_attr(obj, attr_name):
   return ~is_empty(maybe(obj, attr_name))
 
 
+@optools.add_to_registry(aliases=['kde.stub'])
+@optools.as_backend_operator(
+    'kde.core.stub',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.attrs),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused-argument
+  """Copies a DataSlice's schema stub to a new DataBag.
+
+  The "schema stub" of a slice is a subset of its schema (including embedded
+  schemas) that contains just enough information to support direct updates to
+  that slice.
+
+  Optionally copies `attrs` schema attributes to the new DataBag as well.
+
+  This method works for items, objects, and for lists and dicts stored as items
+  or objects. The intended usage is to add new attributes to the object in the
+  new bag, or new items to the dict in the new bag, and then to be able
+  to merge the bags to obtain a union of attributes/values. For lists, we
+  extract the list with stubs for list items, which also works recursively so
+  nested lists are deep-extracted. Note that if you modify the list afterwards
+  by appending or removing items, you will no longer be able to merge the result
+  with the original bag.
+
+  Args:
+    x: DataSlice to extract the schema stub from.
+    attrs: Optional list of additional schema attribute names to copy. The
+      schemas for those attributes will be copied recursively (so including
+      attributes of those attributes etc).
+
+  Returns:
+    DataSlice with the same schema stub in the new DataBag.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.attrs'], view=view.DataBagView)
 @optools.as_backend_operator(
     'kde.core.attrs',

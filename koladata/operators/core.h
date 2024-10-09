@@ -113,6 +113,9 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
                                              const DataSlice& attr_name,
                                              const DataSlice& default_value);
 
+// kde.core._stub.
+absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& keep_attrs);
+
 // kde.core.attrs.
 class AttrsOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

@@ -727,6 +727,37 @@ class SubsliceOperator : public arolla::InlineOperator {
   }
 };
 
+absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
+  DataSlice slice = x;
+  while (true) {
+    DataSlice result_slice = slice.WithDb(db);
+    DataSlice schema = slice.GetSchema();
+
+    if (schema.item() == schema::kObject) {
+      ASSIGN_OR_RETURN(schema, slice.GetObjSchema());
+      RETURN_IF_ERROR(result_slice.SetAttr(schema::kSchemaAttr, schema));
+    }
+
+    auto copy_schema_attr = [&](absl::string_view attr_name) -> absl::Status {
+      ASSIGN_OR_RETURN(const auto& values, schema.GetAttr(attr_name));
+      return schema.WithDb(db).SetAttr(attr_name, values);
+    };
+
+    if (slice.ContainsOnlyLists()) {
+      RETURN_IF_ERROR(copy_schema_attr(schema::kListItemsSchemaAttr));
+      ASSIGN_OR_RETURN(slice, slice.ExplodeList(0, std::nullopt));
+      RETURN_IF_ERROR(result_slice.ReplaceInList(0, std::nullopt, slice));
+      continue;  // Stub list items recursively.
+    }
+    if (slice.ContainsOnlyDicts()) {
+      RETURN_IF_ERROR(copy_schema_attr(schema::kDictKeysSchemaAttr));
+      RETURN_IF_ERROR(copy_schema_attr(schema::kDictValuesSchemaAttr));
+    }
+    break;
+  }
+  return absl::OkStatus();
+}
+
 absl::StatusOr<DataBagPtr> Attrs(
     const DataSlice& obj, absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> attr_values) {
@@ -740,14 +771,7 @@ absl::StatusOr<DataBagPtr> Attrs(
   // the contents of result_db afterward.
   DataBagPtr result_db = DataBag::Empty();
   {
-    // TODO: Possibly replace with kd.stub implementation (although
-    // this may be simple enough for the object-only case to keep inline).
-    DataSlice result_obj = obj.WithDb(result_db);
-    if (obj.GetSchemaImpl() == schema::kObject) {
-      // Copy object schema into result_obj.__schema__ to support setattr.
-      ASSIGN_OR_RETURN(const auto& obj_schema, obj.GetObjSchema());
-      RETURN_IF_ERROR(result_obj.SetAttr(schema::kSchemaAttr, obj_schema));
-    }
+    RETURN_IF_ERROR(AdoptStub(result_db, obj));
 
     // TODO: Remove after `SetAttrs` performs its own adoption.
     AdoptionQueue adoption_queue;
@@ -755,8 +779,8 @@ absl::StatusOr<DataBagPtr> Attrs(
       adoption_queue.Add(value);
     }
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
-    RETURN_IF_ERROR(
-        result_obj.SetAttrs(attr_names, attr_values, /*update_schema=*/true));
+    RETURN_IF_ERROR(obj.WithDb(result_db).SetAttrs(attr_names, attr_values,
+                                                   /*update_schema=*/true));
   }
   return std::move(*result_db).ToImmutable();
 }
@@ -1311,29 +1335,14 @@ absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
   // the contents of result_db afterward.
   DataBagPtr result_db = DataBag::Empty();
   {
-    DataSlice result = x.WithDb(result_db);
-
-    // TODO: Possibly replace with kd.stub implementation (although
-    // this may be simple enough for the dict-only case to keep inline).
-    DataSlice x_schema = x.GetSchema();
-    if (x_schema.item() == schema::kObject) {
-      ASSIGN_OR_RETURN(x_schema, x.GetObjSchema());
-      RETURN_IF_ERROR(result.SetAttr(schema::kSchemaAttr, x_schema));
-    }
-    const auto& result_schema = x_schema.WithDb(result_db);
-    for (const auto& attr_name :
-         {schema::kDictKeysSchemaAttr, schema::kDictValuesSchemaAttr}) {
-      ASSIGN_OR_RETURN(const auto& schema_attr, x_schema.GetAttr(attr_name));
-      RETURN_IF_ERROR(result_schema.SetAttr(attr_name, schema_attr));
-    }
-
+    RETURN_IF_ERROR(AdoptStub(result_db, x));
     // TODO: Remove after `SetInDict` performs its own adoption.
     AdoptionQueue adoption_queue;
     adoption_queue.Add(keys);
     adoption_queue.Add(values);
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
 
-    RETURN_IF_ERROR(result.SetInDict(keys, values));
+    RETURN_IF_ERROR(x.WithDb(result_db).SetInDict(keys, values));
   }
   return std::move(*result_db).ToImmutable();
 }
@@ -1406,6 +1415,16 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
   return obj.GetAttrWithDefault(attr_name_str, default_value);
 }
 
+absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& attrs) {
+  // TODO: Implement.
+  if (!attrs.IsEmpty()) {
+    return absl::UnimplementedError("stub attrs not yet implemented");
+  }
+
+  auto db = DataBag::Empty();
+  RETURN_IF_ERROR(AdoptStub(db, x));
+  return x.WithDb(std::move(*db).ToImmutable());
+}
 absl::StatusOr<arolla::OperatorPtr> AttrsOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
