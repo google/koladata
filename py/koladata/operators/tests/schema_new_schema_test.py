@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.schema.new_schema."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -21,8 +19,10 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -40,15 +40,49 @@ class KodaNewSchemaTest(parameterized.TestCase):
         'a': schema_constants.INT32,
         'b': schema_constants.FLOAT32,
     }
-    schema = expr_eval.eval(kde.schema._new_schema(**kwargs))
+    schema = expr_eval.eval(kde.schema.new_schema(**kwargs))
+    self.assertFalse(schema.is_mutable())
     for attr_name, val in kwargs.items():
       testing.assert_equal(
           getattr(schema, attr_name), ds(val).with_db(schema.db)
       )
 
+  def test_non_determinism(self):
+    kwargs = {
+        'a': schema_constants.INT32,
+        'b': schema_constants.FLOAT32,
+    }
+    expr = kde.schema.new_schema(**kwargs)
+    with self.subTest('multiple eval'):
+      schema_first_eval = expr_eval.eval(expr)
+      schema_second_eval = expr_eval.eval(expr)
+      self.assertNotEqual(schema_first_eval, schema_second_eval)
+      self.assertNotEqual(
+          schema_first_eval.db.fingerprint, schema_second_eval.db.fingerprint
+      )
+    with self.subTest('same expr within larger expr'):
+      res = expr_eval.eval(kde.schema.new_schema(x=expr, y=expr))
+      testing.assert_equal(res.x, res.y)
+
+    with self.subTest('new expr new fingerprint'):
+      expr_1 = kde.schema.new_schema(**kwargs)
+      expr_2 = kde.schema.new_schema(**kwargs)
+      self.assertNotEqual(expr_1.fingerprint, expr_2.fingerprint)
+
+    with self.subTest('replace hidden arg'):
+      expr = py_boxing.with_unique_hidden_seed(expr)
+      testing.assert_equal(expr_eval.eval(expr), expr_eval.eval(expr))
+
+    with self.subTest('error'):
+      with self.assertRaisesRegex(ValueError, 'expected numerics, got x: TEXT'):
+        arolla.sub_by_fingerprint(
+            kde.schema.new_schema(**kwargs),
+            {py_boxing.HIDDEN_SEED_LEAF.fingerprint: arolla.literal('error')}
+        )
+
   def test_db_adoption(self):
-    a = expr_eval.eval(kde.schema._new_schema(a=schema_constants.INT32))
-    b = expr_eval.eval(kde.schema._new_schema(a=a))
+    a = expr_eval.eval(kde.schema.new_schema(a=schema_constants.INT32))
+    b = expr_eval.eval(kde.schema.new_schema(a=a))
     testing.assert_equal(b.a.a, ds(schema_constants.INT32).with_db(b.db))
 
   def test_invalid_arguments(self):
@@ -56,7 +90,7 @@ class KodaNewSchemaTest(parameterized.TestCase):
         ValueError,
         'schema\'s schema must be SCHEMA, got: INT32',
     ):
-      _ = expr_eval.eval(kde.schema._new_schema(
+      _ = expr_eval.eval(kde.schema.new_schema(
           a=schema_constants.INT32,
           b=ds(1),
       ))
@@ -68,21 +102,19 @@ class KodaNewSchemaTest(parameterized.TestCase):
         ' namedtuple<a=DATA_SLICE,b=UNSPECIFIED>',
     ):
       _ = expr_eval.eval(
-          kde.schema._new_schema(
+          kde.schema.new_schema(
               a=schema_constants.INT32,
               b=arolla.unspecified(),
           )
       )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema._new_schema()))
+    self.assertTrue(view.has_data_slice_view(kde.schema.new_schema()))
 
-  # TODO: Uncomment, when this operator becomes public and we add
-  # the alias back.
-  # def test_alias(self):
-  #   self.assertTrue(
-  #       optools.equiv_to_op(kde.schema.new_schema, kde.new_schema)
-  #   )
+  def test_alias(self):
+    self.assertTrue(
+        optools.equiv_to_op(kde.schema.new_schema, kde.new_schema)
+    )
 
 
 if __name__ == '__main__':

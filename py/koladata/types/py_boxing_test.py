@@ -589,7 +589,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         inspect.signature(lambda x, *args, y, **kwargs: None),
     )
 
-    expr = op(1, 2, y=3, z=4)
+    expr = op(1, 2, y=3, z=4, hidden_seed=5)
 
     testing.assert_equal(
         expr_eval.eval(expr),
@@ -597,7 +597,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
             ds(1),
             arolla.tuple(ds(2)),
             ds(3),
-            arolla.namedtuple(z=ds(4)),
+            arolla.namedtuple(z=ds(4), hidden_seed=ds(5)),
         ),
     )
 

@@ -107,11 +107,9 @@ def _has(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-# TODO: Make this operator public again once non-determinism is
-# designed and implemented.
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kde.new_schema'])
 @optools.as_backend_operator(
-    'kde.schema._new_schema',
+    'kde.schema.new_schema',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         (
@@ -122,7 +120,9 @@ def _has(x):  # pylint: disable=unused-argument
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _new_schema(kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
+def new_schema(
+    kwargs=py_boxing.var_keyword(), hidden_seed=py_boxing.hidden_seed()
+):  # pylint: disable=unused-argument,g-doc-args
   """Creates a new allocated schema.
 
   Args:

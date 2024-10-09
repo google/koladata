@@ -67,6 +67,7 @@ class KodaUuSchemaTest(parameterized.TestCase):
           getattr(rhs, attr_name), ds(val).with_db(rhs.db)
       )
     testing.assert_equal(lhs, rhs.with_db(lhs.db))
+    self.assertFalse(lhs.is_mutable())
 
   @parameterized.parameters(
       (

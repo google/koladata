@@ -152,8 +152,6 @@ OPERATOR("kde.math.pow", Pow);
 OPERATOR("kde.math.round", Round);
 OPERATOR("kde.math.subtract", Subtract);
 //
-OPERATOR_FAMILY("kde.schema._new_schema",
-                std::make_unique<NewSchemaOperatorFamily>());
 OPERATOR("kde.schema.cast_to", CastTo);
 OPERATOR("kde.schema.cast_to_implicit", CastToImplicit);
 OPERATOR("kde.schema.cast_to_narrow", CastToNarrow);
@@ -167,6 +165,8 @@ OPERATOR("kde.schema.get_primitive_schema", GetPrimitiveSchema);
 OPERATOR("kde.schema.get_schema", GetSchema);
 OPERATOR("kde.schema.get_value_schema", GetValueSchema);
 OPERATOR("kde.schema.list_schema", ListSchema);
+OPERATOR_FAMILY("kde.schema.new_schema",
+                std::make_unique<NewSchemaOperatorFamily>());
 OPERATOR_FAMILY("kde.schema.uu_schema",
                 std::make_unique<UuSchemaOperatorFamily>());
 OPERATOR("kde.schema.with_schema", WithSchema);

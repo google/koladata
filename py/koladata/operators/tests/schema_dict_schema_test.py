@@ -45,12 +45,13 @@ class SchemaDictSchemaTest(parameterized.TestCase):
     testing.assert_equal(
         schema.get_attr('__values__'), schema_constants.INT32.with_db(schema.db)
     )
+    self.assertFalse(schema.is_mutable())
 
   def test_db_adoption(self):
     schema = expr_eval.eval(
         kde.schema.dict_schema(
             schema_constants.TEXT,
-            kde.schema._new_schema(
+            kde.schema.new_schema(
                 a=schema_constants.INT32, b=schema_constants.TEXT
             ),
         )

@@ -73,7 +73,7 @@ class NewSchemaOperator : public arolla::QExprOperator {
             ctx->set_status(std::move(status));
             return;
           }
-          frame.Set(output_slot, std::move(result));
+          frame.Set(output_slot, result.WithDb(std::move(*db).ToImmutable()));
         });
   }
 };
@@ -116,7 +116,7 @@ class UuSchemaOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(auto result,
                            CreateUuSchema(db, seed, attr_names, values),
                            ctx->set_status(std::move(_)));
-          frame.Set(output_slot, std::move(result));
+          frame.Set(output_slot, result.WithDb(std::move(*db).ToImmutable()));
         });
   }
 };
@@ -126,9 +126,10 @@ class UuSchemaOperator : public arolla::QExprOperator {
 absl::StatusOr<arolla::OperatorPtr> NewSchemaOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 1) {
-    return absl::InvalidArgumentError("requires exactly 1 argument");
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires exactly 2 arguments");
   }
+  // input_types[-1] is a _hidden_seed_ argument used for non-determinism.
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[0]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<NewSchemaOperator>(input_types),
@@ -180,7 +181,7 @@ absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema) {
   adoption_queue.Add(item_schema);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
   ASSIGN_OR_RETURN(auto list_schema, CreateListSchema(db, item_schema));
-  return list_schema;
+  return list_schema.WithDb(std::move(*db).ToImmutable());
 }
 
 absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
@@ -192,7 +193,7 @@ absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
   ASSIGN_OR_RETURN(auto dict_schema,
                    CreateDictSchema(db, key_schema, value_schema));
-  return dict_schema;
+  return dict_schema.WithDb(std::move(*db).ToImmutable());
 }
 
 }  // namespace koladata::ops
