@@ -389,7 +389,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
     be necessary because earlier arguments in the signature have default values
     used for markers.
   - `hidden_seed()` marks a parameter as a hidden seed parameter, which will
-    be removed from the Python signature, and will be populated with a random
+    be removed from the Python signature, and will be populated with a unique
     Arolla int64 value on every invocation.
 
   The implied Python signature must be a valid Python signature (`**kwargs`
