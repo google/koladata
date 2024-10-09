@@ -1474,9 +1474,15 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
     return absl::FailedPreconditionError("sort must be a boolean scalar");
   }
   bool sort_bool = sort.item().value<bool>();
-  if (sort_bool && x.slice().is_mixed_dtype()) {
-    return absl::FailedPreconditionError(
-        "sort is not supported for mixed dtype");
+  if (sort_bool) {
+    if (x.slice().is_mixed_dtype()) {
+      return absl::FailedPreconditionError(
+          "sort is not supported for mixed dtype");
+    }
+    if (!internal::IsKodaScalarQTypeSortable(x.slice().dtype())) {
+      return absl::FailedPreconditionError(absl::StrCat(
+          "sort is not supported for ", x.slice().dtype()->name()));
+    }
   }
 
   const auto& split_points =

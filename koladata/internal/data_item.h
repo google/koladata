@@ -310,13 +310,15 @@ template <typename T>
 constexpr bool IsKodaScalarSortable() {
   return !std::is_same_v<T, DataItem> &&
          !std::is_same_v<T, arolla::expr::ExprQuote> &&
-         !std::is_same_v<T, schema::DType> && !std::is_same_v<T, MissingValue>;
+         !std::is_same_v<T, schema::DType> && !std::is_same_v<T, ObjectId> &&
+         !std::is_same_v<T, MissingValue>;
 }
 
 // Returns true if the type is sortable based on QType.
 inline bool IsKodaScalarQTypeSortable(arolla::QTypePtr qtype) {
   return qtype != arolla::GetQType<arolla::expr::ExprQuote>() &&
-         qtype != arolla::GetQType<schema::DType>();
+         qtype != arolla::GetQType<schema::DType>() &&
+         qtype != arolla::GetQType<ObjectId>();
 }
 
 template <>

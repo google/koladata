@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.group_by_indices_sorted."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -25,6 +23,7 @@ from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
@@ -128,6 +127,7 @@ class CoreGroupByIndicesSortedTest(parameterized.TestCase):
   @parameterized.parameters(
       ds([1, 'a']),
       ds([b'a', 'a']),
+      ds([data_bag.DataBag.empty().obj(x=1)]),
       ds([schema_constants.FLOAT64]),
       ds([arolla.quote(arolla.literal(1))]),
   )

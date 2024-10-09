@@ -3286,6 +3286,7 @@ py_test(
         "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",

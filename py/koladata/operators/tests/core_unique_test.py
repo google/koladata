@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.unique."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -117,6 +115,7 @@ class CoreUniqueTest(parameterized.TestCase):
       expr_eval.eval(kde.unique(x, sort=True))
 
   @parameterized.parameters(
+      ds([obj1]),
       ds([schema_constants.FLOAT64]),
       ds([arolla.quote(arolla.literal(1))]),
   )

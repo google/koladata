@@ -324,6 +324,7 @@ TEST(DataItemTest, IsKodaScalarSortable) {
   EXPECT_TRUE(IsKodaScalarSortable<absl::string_view>());
   EXPECT_FALSE(IsKodaScalarSortable<arolla::expr::ExprQuote>());
   EXPECT_FALSE(IsKodaScalarSortable<schema::DType>());
+  EXPECT_FALSE(IsKodaScalarSortable<ObjectId>());
 }
 
 TEST(DataItemTest, IsKodaScalarQTypeSortable) {
@@ -335,6 +336,7 @@ TEST(DataItemTest, IsKodaScalarQTypeSortable) {
   EXPECT_FALSE(
       IsKodaScalarQTypeSortable(arolla::GetQType<arolla::expr::ExprQuote>()));
   EXPECT_FALSE(IsKodaScalarQTypeSortable(arolla::GetQType<schema::DType>()));
+  EXPECT_FALSE(IsKodaScalarQTypeSortable(arolla::GetQType<ObjectId>()));
 }
 
 TEST(DataItemTest, IsList) {
