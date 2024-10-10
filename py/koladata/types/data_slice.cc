@@ -589,6 +589,13 @@ absl::Nullable<PyObject*> PyDataSlice_is_mutable(PyObject* self, PyObject*) {
   return WrapPyDataSlice(AsMask(db != nullptr && db->IsMutable()));
 }
 
+absl::Nullable<PyObject*> PyDataSlice_freeze(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  ASSIGN_OR_RETURN(auto frozen_ds, ds.Freeze(), SetKodaPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(frozen_ds));
+}
+
 absl::Nullable<PyObject*> PyDataSlice_with_schema(PyObject* self,
                                                   PyObject* schema) {
   arolla::python::DCheckPyGIL();
@@ -761,6 +768,8 @@ Returns:
      "Returns present iff this DataSlice is empty."},
     {"is_mutable", PyDataSlice_is_mutable, METH_NOARGS,
      "Returns present iff the attached DataBag is mutable."},
+    {"freeze", PyDataSlice_freeze, METH_NOARGS,
+     "Returns a frozen DataSlice equivalent to `self`."},
     {"with_schema", PyDataSlice_with_schema, METH_O,
      R"""(Returns a copy of DataSlice with the provided `schema`.
 

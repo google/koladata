@@ -193,6 +193,17 @@ absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds);
 // kde.core.follow.
 absl::StatusOr<DataSlice> Follow(const DataSlice& ds);
 
+template <typename T>
+absl::StatusOr<T> Freeze(const T& x);
+
+// kde.core._freeze_bag.
+template <>
+absl::StatusOr<DataBagPtr> Freeze<DataBagPtr>(const DataBagPtr& x);
+
+// kde.core._freeze_slice.
+template <>
+absl::StatusOr<DataSlice> Freeze<DataSlice>(const DataSlice& x);
+
 // kde.core.reverse.
 absl::StatusOr<DataSlice> Reverse(const DataSlice& obj);
 

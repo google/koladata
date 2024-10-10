@@ -1634,6 +1634,19 @@ absl::StatusOr<DataSlice> Follow(const DataSlice& ds) {
   return ds.WithSchema(nofollowed_schema_item);
 }
 
+template <>
+absl::StatusOr<DataBagPtr> Freeze<DataBagPtr>(const DataBagPtr& x) {
+  if (x->IsMutable() || !x->GetFallbacks().empty()) {
+    return x->Fork(/*immutable=*/true);
+  }
+  return x;
+}
+
+template <>
+absl::StatusOr<DataSlice> Freeze<DataSlice>(const DataSlice& x) {
+  return x.Freeze();
+}
+
 absl::StatusOr<DataSlice> Reverse(const DataSlice& obj) {
   if (obj.impl_empty_and_unknown() || obj.GetShape().rank() == 0) {
     return obj;

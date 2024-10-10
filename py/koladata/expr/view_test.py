@@ -113,6 +113,9 @@ class DataBagViewTest(parameterized.TestCase):
   def test_get_item(self):
     testing.assert_equal(op(C.x)[C.s], kde.get_item(op(C.x), C.s))
 
+  def test_freeze(self):
+    testing.assert_equal(op(C.x).freeze(), kde.core._freeze_bag(op(C.x)))
+
   def test_repr(self):
     # We avoid parametrization since the view is registered in setUp.
     self.assertEqual(repr(op(op(C.x)[C.y])), 'M.test.op(M.test.op(C.x)[C.y])')
@@ -410,6 +413,9 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_follow(self):
     testing.assert_equal(C.x.follow(), kde.follow(C.x))
 
+  def test_freeze(self):
+    testing.assert_equal(C.x.freeze(), kde.freeze(C.x))
+
   def test_ref(self):
     testing.assert_equal(C.x.ref(), kde.ref(C.x))
 
@@ -599,7 +605,6 @@ class DataSliceViewTest(parameterized.TestCase):
     skipped_data_slice_attrs = {
         # TODO: Add the following as operators.
         # go/keep-sorted start
-        'freeze',
         'is_any_schema',
         'is_dict_schema',
         'is_entity_schema',

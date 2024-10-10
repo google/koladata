@@ -368,6 +368,22 @@ TEST(DataSliceTest, Freeze) {
                        HasSubstr("DataBag is immutable")));
 }
 
+TEST(DataSliceTest, FreezeImmutable) {
+  auto db = DataBag::Empty();
+  auto ds_a = test::DataSlice<int>({1, 2});
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
+  ASSERT_OK_AND_ASSIGN(auto immutable_db, db->Fork(/*immutable=*/true));
+  ds = ds.WithDb(immutable_db);
+  ASSERT_FALSE(ds.GetDb()->IsMutable());
+
+  ASSERT_OK_AND_ASSIGN(auto frozen_ds, ds.Freeze());
+  // Same ref, no forks.
+  EXPECT_THAT(ds.GetDb()->fingerprint(), Eq(immutable_db->fingerprint()));
+  EXPECT_THAT(frozen_ds.SetAttr("a", ds_a),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("DataBag is immutable")));
+}
+
 TEST(DataSliceTest, ForkErrors) {
   auto db = DataBag::Empty();
   auto ds_a = test::DataSlice<int>({1, 2});
@@ -379,7 +395,7 @@ TEST(DataSliceTest, ForkErrors) {
                        HasSubstr("forking with fallbacks is not supported")));
   EXPECT_THAT(ds.Freeze(),
               StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("forking with fallbacks is not supported")));
+                       HasSubstr("freezing with fallbacks is not supported")));
 }
 
 TEST(DataSliceTest, IsEquivalentTo) {

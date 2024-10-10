@@ -1480,6 +1480,25 @@ Assigned schema for Dict key: INT32""",
         TypeError, re.escape("got an unexpected keyword 'foo'")):
       _ = db1.fork(foo=True)
 
+  def test_freeze(self):
+    db1 = bag().new(x=1).db
+    self.assertTrue(db1.is_mutable())
+    db2 = db1.freeze()
+    self.assertFalse(db2.is_mutable())
+    testing.assert_equivalent(db2, db1)
+    db3 = db2.freeze()
+    self.assertFalse(db3.is_mutable())
+    testing.assert_equivalent(db3, db1)
+
+  # TODO: Re-think forking in the context of DataBag with mutable
+  # fallbacks.
+  def test_freeze_with_fallbacks(self):
+    db = bag().new().with_fallback(bag())
+    with self.assertRaisesRegex(
+        ValueError, 'freezing with fallbacks is not supported'
+    ):
+      db.freeze()
+
   def test_with_name(self):
     x = bag()
     y = x.with_name('foo')

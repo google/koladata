@@ -17,6 +17,8 @@
 
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
+#include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/allocation.h"
@@ -65,6 +67,8 @@ OPERATOR("kde.core._dense_rank", DenseRank);
 OPERATOR("kde.core._dict_update", DictUpdate);
 OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);
+OPERATOR("kde.core._freeze_bag", Freeze<DataBagPtr>);
+OPERATOR("kde.core._freeze_slice", Freeze<DataSlice>);
 OPERATOR("kde.core._get_attr", GetAttr);
 OPERATOR("kde.core._get_attr_with_default", GetAttrWithDefault);
 OPERATOR("kde.core._get_item", GetItem);

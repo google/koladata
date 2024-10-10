@@ -218,8 +218,11 @@ class DataSlice {
   // this operation.
   absl::StatusOr<DataSlice> ForkDb() const;
 
-  // Returns a new DataSlice with frozen copy of a DataBag. Mutations are NOT
-  // allowed on the returned value.
+  // Returns a new DataSlice with frozen copy of a DataBag. If the underlying
+  // DataBag is already immutable, to reduce the length of forked chains of
+  // DataBags, the copy of a DataSlice is returned.
+  //
+  // Mutations are NOT allowed on the returned value.
   absl::StatusOr<DataSlice> Freeze() const;
 
   // Returns true iff `other` represents the same DataSlice with same data

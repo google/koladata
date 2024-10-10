@@ -50,6 +50,8 @@ DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
 }
 
 absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
+  // TODO: Re-think forking in the context of DataBag with
+  // mutable fallbacks.
   if (!fallbacks_.empty()) {
     return absl::FailedPreconditionError(
         "forking with fallbacks is not supported. Please merge fallbacks "

@@ -515,6 +515,7 @@ py_library(
         ":data_slice_py_ext",
         ":general_eager_ops",
         ":jagged_shape",
+        ":operator_lookup",
         "@com_google_arolla//py/arolla",
     ],
 )

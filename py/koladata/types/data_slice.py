@@ -229,13 +229,6 @@ def _fork_db(self) -> DataSlice:
   return self.with_db(self.db.fork(mutable=True))
 
 
-@DataSlice.add_method('freeze')
-def _freeze(self) -> DataSlice:
-  if self.db is None:
-    raise ValueError('freeze expects the DataSlice to have a DataBag attached')
-  return self.with_db(self.db.fork(mutable=False))
-
-
 @DataSlice.add_method('with_merged_bag')
 def _with_merged_bag(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.with_merged_bag, self)

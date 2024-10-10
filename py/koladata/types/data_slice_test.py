@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for data_slice."""
-
 import gc
 import re
 import sys
@@ -419,11 +417,7 @@ class DataSliceTest(parameterized.TestCase):
 
   def test_freeze(self):
     x = ds([1, 2, 3])
-
-    with self.assertRaisesRegex(
-        ValueError, 'freeze expects the DataSlice to have a DataBag attached'
-    ):
-      x.freeze()
+    testing.assert_equal(x, x.freeze())
 
     db = data_bag.DataBag.empty()
     x = x.with_db(db)
@@ -434,13 +428,6 @@ class DataSliceTest(parameterized.TestCase):
     self.assertFalse(x1.db.is_mutable())
 
   def test_with_merged_bag(self):
-    x = ds([1, 2, 3])
-
-    with self.assertRaisesRegex(
-        ValueError, 'expects the DataSlice to have a DataBag attached'
-    ):
-      x.freeze()
-
     db1 = data_bag.DataBag.empty()
     x = db1.new(a=1)
     db2 = data_bag.DataBag.empty()

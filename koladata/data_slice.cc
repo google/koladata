@@ -980,7 +980,21 @@ absl::StatusOr<DataSlice> DataSlice::ForkDb() const {
 }
 
 absl::StatusOr<DataSlice> DataSlice::Freeze() const {
-  ASSIGN_OR_RETURN(auto frozen_db, GetDb()->Fork(/*immutable=*/true));
+  const DataBagPtr& db = GetDb();
+  if (db == nullptr) {
+    return *this;
+  }
+  // TODO: Re-think forking in the context of DataBag with
+  // mutable fallbacks.
+  if (!db->GetFallbacks().empty()) {
+    return absl::FailedPreconditionError(
+        "freezing with fallbacks is not supported. Please merge fallbacks "
+        "instead.");
+  }
+  if (!db->IsMutable()) {
+    return *this;
+  }
+  ASSIGN_OR_RETURN(auto frozen_db, db->Fork(/*immutable=*/true));
   return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(),
                    std::move(frozen_db));
 }

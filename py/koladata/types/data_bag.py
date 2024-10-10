@@ -16,14 +16,17 @@
 
 from typing import Any, Iterable
 
+from arolla import arolla
 from koladata.types import data_bag_py_ext as _data_bag_py_ext
 from koladata.types import data_slice_py_ext as _data_slice_py_ext
 from koladata.types import general_eager_ops as _general_eager_ops
 from koladata.types import jagged_shape as _jagged_shape
+from koladata.types import operator_lookup
 
 
 DataBag = _data_bag_py_ext.DataBag
 _empty_shaped = _data_bag_py_ext._empty_shaped  # pylint: disable=protected-access
+_op_impl_lookup = operator_lookup.OperatorLookup()
 
 
 ### Implementation of the DataBag's additional functionality.
@@ -341,6 +344,11 @@ def _concat_lists(self: DataBag, *lists: _DataSlice) -> _DataSlice:  # pylint: d
   return self._concat_lists(*lists)  # pylint: disable=protected-access
 
 
+def _freeze(self: DataBag) -> DataBag:
+  """Returns a frozen DataBag equivalent to `self`."""
+  return arolla.abc.aux_eval_op(_op_impl_lookup.freeze, self)
+
+
 def _merge_inplace(
     self: DataBag,
     other_dbs: DataBag | Iterable[DataBag],
@@ -392,5 +400,6 @@ DataBag.list_shaped = _list_shaped
 DataBag.list_like = _list_like
 DataBag.implode = _implode
 DataBag.concat_lists = _concat_lists
+DataBag.freeze = _freeze
 DataBag.merge_inplace = _merge_inplace
 DataBag.with_name = _general_eager_ops.with_name

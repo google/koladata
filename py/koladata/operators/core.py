@@ -2177,6 +2177,50 @@ def follow(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(view=view.DataBagView)
+@optools.as_backend_operator(
+    'kde.core._freeze_bag',
+    qtype_constraints=[qtype_utils.expect_data_bag(P.x)],
+    qtype_inference_expr=qtypes.DATA_BAG,
+)
+def _freeze_bag(x):  # pylint: disable=unused-argument
+  """Helper operator that freezes a DataBag."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.core._freeze_slice',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _freeze_slice(x):  # pylint: disable=unused-argument
+  """Helper operator that freezes a DataSlice."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.freeze'])
+@optools.as_lambda_operator(
+    'kde.core.freeze',
+    qtype_constraints=[
+        (
+            (P.x == qtypes.DATA_SLICE) | (P.x == qtypes.DATA_BAG),
+            'expected DATA_BAG or DATA_SLICE, got '
+            f'{constraints.name_type_msg(P.x)}',
+        ),
+    ],
+)
+def freeze(x):  # pylint: disable=unused-argument
+  """Returns a frozen version of `x`."""
+  return arolla.types.DispatchOperator(
+      'x',
+      data_slice_case=arolla.types.DispatchCase(
+          _freeze_slice(P.x), condition=P.x == qtypes.DATA_SLICE
+      ),
+      default=_freeze_bag(P.x),
+  )(x)
+
+
 @optools.add_to_registry(aliases=['kde.get_db'], view=view.DataBagView)
 @optools.as_backend_operator(
     'kde.core.get_db',

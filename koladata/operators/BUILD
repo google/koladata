@@ -51,6 +51,7 @@ cc_library(
     deps = operator_list + [
         ":lib",
         "//koladata:arolla_utils",
+        "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata:object_factories",
