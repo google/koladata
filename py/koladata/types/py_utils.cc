@@ -104,7 +104,7 @@ absl::StatusOr<DataSlice> AssignmentRhsFromPyValue(
 }
 
 absl::StatusOr<std::vector<DataSlice>> UnwrapDataSlices(
-    const std::vector<PyObject*>& args, AdoptionQueue& adoption_queue) {
+    const std::vector<PyObject*>& args) {
   std::vector<DataSlice> values;
   values.reserve(args.size());
   for (PyObject* arg : args) {
@@ -116,7 +116,6 @@ absl::StatusOr<std::vector<DataSlice>> UnwrapDataSlices(
                             Py_TYPE(arg)->tp_name));
       }
       const DataSlice& ds_arg = typed_value.UnsafeAs<DataSlice>();
-      adoption_queue.Add(ds_arg);
       values.push_back(std::move(ds_arg));
     } else {
       return absl::InvalidArgumentError(

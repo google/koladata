@@ -939,17 +939,22 @@ absl::StatusOr<DataSlice> CreateUuSchema(
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
+  ASSIGN_OR_RETURN(auto schema_id, db_mutable_impl.CreateUuSchemaFromFields(
+                                       seed, attr_names, schema_items));
   ASSIGN_OR_RETURN(
-      auto schema_id,
-      db_mutable_impl.CreateUuSchemaFromFields(seed, attr_names, schema_items));
-  return DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db);
+      auto result,
+      DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db));
+  RETURN_IF_ERROR(AdoptValuesInto(schemas, *db));
+  return result;
 }
 
 absl::StatusOr<DataSlice> CreateSchema(
     const DataBagPtr& db,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> schemas) {
-  return CreateEntitySchema(db, attr_names, schemas);
+  ASSIGN_OR_RETURN(auto result, CreateEntitySchema(db, attr_names, schemas));
+  RETURN_IF_ERROR(AdoptValuesInto(schemas, *db));
+  return result;
 }
 
 absl::StatusOr<DataSlice> CreateListSchema(const DataBagPtr& db,

@@ -613,17 +613,12 @@ absl::Nullable<PyObject*> PyDataBag_schema_factory(
     return nullptr;
   }
   auto db = UnsafeDataBagPtr(self);
-  AdoptionQueue adoption_queue;
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
-                   UnwrapDataSlices(args.kw_values, adoption_queue),
+                   UnwrapDataSlices(args.kw_values),
                    SetKodaPyErrFromStatus(_));
-  for (const auto& value : values) {
-    adoption_queue.Add(value);
-  }
   ASSIGN_OR_RETURN(res, CreateSchema(db, args.kw_names, values),
                    SetKodaPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -644,10 +639,9 @@ absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
     return nullptr;
   }
   auto db = UnsafeDataBagPtr(self);
-  AdoptionQueue adoption_queue;
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
-                   UnwrapDataSlices(args.kw_values, adoption_queue),
+                   UnwrapDataSlices(args.kw_values),
                    SetKodaPyErrFromStatus(_));
   absl::string_view seed("");
   if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed)) {
@@ -655,7 +649,6 @@ absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
   }
   ASSIGN_OR_RETURN(res, CreateUuSchema(db, seed, args.kw_names, values),
                    SetKodaPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 

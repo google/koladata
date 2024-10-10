@@ -260,6 +260,8 @@ absl::StatusOr<DataSlice> CreateUuObject(
 // Returns a UuSchema (DataItem generated as a row-wise fingerprint from
 // attribute names and schemas) with a reference to `db`) and attributes
 // `attr_names` set to `schemas`.
+
+// Adopts `schemas` into `db`.
 absl::StatusOr<DataSlice> CreateUuSchema(
     const DataBagPtr& db,
     absl::string_view seed,
@@ -268,6 +270,8 @@ absl::StatusOr<DataSlice> CreateUuSchema(
 
 // Returns an allocated schema with attributes `attr_names` set to `schemas` in
 // `db`.
+
+// Adopts `schemas` into `db`.
 absl::StatusOr<DataSlice> CreateSchema(
     const DataBagPtr& db,
     absl::Span<const absl::string_view> attr_names,
