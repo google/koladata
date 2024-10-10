@@ -47,7 +47,7 @@ def loads(x: bytes) -> data_slice.DataSlice | data_bag.DataBag:
   return result
 
 
-def loads_dataslice(x: bytes) -> data_slice.DataSlice:
+def loads_slice(x: bytes) -> data_slice.DataSlice:
   """Deserializes a DataSlice."""
   result = arolla.s11n.riegeli_loads(x)
   if not isinstance(result, data_slice.DataSlice):
@@ -55,7 +55,7 @@ def loads_dataslice(x: bytes) -> data_slice.DataSlice:
   return result
 
 
-def loads_databag(x: bytes) -> data_bag.DataBag:
+def loads_bag(x: bytes) -> data_bag.DataBag:
   """Deserializes a DataBag."""
   result = arolla.s11n.riegeli_loads(x)
   if not isinstance(result, data_bag.DataBag):

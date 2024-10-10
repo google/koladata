@@ -82,5 +82,5 @@ to_repr = _py_conversions.to_repr
 
 dumps = _s11n.dumps
 loads = _s11n.loads
-loads_dataslice = _s11n.loads_dataslice
-loads_databag = _s11n.loads_databag
+loads_slice = _s11n.loads_slice
+loads_bag = _s11n.loads_bag
