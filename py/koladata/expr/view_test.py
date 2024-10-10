@@ -599,8 +599,6 @@ class DataSliceViewTest(parameterized.TestCase):
     skipped_data_slice_attrs = {
         # TODO: Add the following as operators.
         # go/keep-sorted start
-        'contains_only_dicts',
-        'contains_only_lists',
         'freeze',
         'is_any_schema',
         'is_dict_schema',

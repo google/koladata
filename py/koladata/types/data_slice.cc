@@ -543,15 +543,13 @@ absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self,
   return WrapPyDataSlice(AsMask(ds.IsDictSchema()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_contains_only_dicts(PyObject* self,
-                                                          PyObject*) {
+absl::Nullable<PyObject*> PyDataSlice_is_dict(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.ContainsOnlyDicts()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_contains_only_lists(PyObject* self,
-                                                          PyObject*) {
+absl::Nullable<PyObject*> PyDataSlice_is_list(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.ContainsOnlyLists()));
@@ -747,9 +745,9 @@ Note that the Entity schema includes List and Dict schemas.
 Returns:
   Present iff this DataSlice represents an Entity Schema.
      )"""},
-    {"contains_only_dicts", PyDataSlice_contains_only_dicts, METH_NOARGS,
+    {"is_dict", PyDataSlice_is_dict, METH_NOARGS,
      "Returns present iff this DataSlice contains only dicts."},
-    {"contains_only_lists", PyDataSlice_contains_only_lists, METH_NOARGS,
+    {"is_list", PyDataSlice_is_list, METH_NOARGS,
      "Returns present iff this DataSlice contains only lists."},
     {"is_dict_schema", PyDataSlice_is_dict_schema, METH_NOARGS,
      "Returns present iff this DataSlice is a Dict Schema."},

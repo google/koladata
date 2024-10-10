@@ -1832,6 +1832,7 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     self.assertTrue(x.is_list())
     self.assertTrue(x.as_any().is_list())
     self.assertTrue(db.obj(x).is_list())
+    self.assertFalse(ds([db.obj(db.list()), db.obj(db.dict())]).is_list())
     x = ds([db.dict({1: 2}), db.dict({3: 4})])
     self.assertFalse(x.is_list())
     self.assertFalse(x.as_any().is_list())
@@ -1851,6 +1852,7 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     self.assertTrue(x.is_dict())
     self.assertTrue(x.as_any().is_dict())
     self.assertTrue(db.obj(x).is_dict())
+    self.assertFalse(ds([db.obj(db.list()), db.obj(db.dict())]).is_dict())
     x = ds([db.list([1, 2]), db.list([3, 4])])
     self.assertFalse(x.is_dict())
     self.assertFalse(x.as_any().is_dict())
@@ -2640,30 +2642,6 @@ class DataSliceFallbackTest(parameterized.TestCase):
     self.assertFalse(ds(1).is_empty())
     self.assertFalse(ds([1]).is_empty())
     self.assertFalse(ds([1, None]).is_empty())
-
-  def test_contains_only_dicts(self):
-    b = bag()
-    self.assertTrue(b.obj(b.dict()).contains_only_dicts())
-    self.assertFalse(b.obj(b.list()).contains_only_dicts())
-    self.assertFalse(b.obj(x=b.dict()).contains_only_dicts())
-    self.assertTrue(
-        ds([b.obj(b.dict()), b.obj(b.dict())]).contains_only_dicts()
-    )
-    self.assertFalse(
-        ds([b.obj(b.list()), b.obj(b.dict())]).contains_only_dicts()
-    )
-
-  def test_contains_only_lists(self):
-    b = bag()
-    self.assertTrue(b.obj(b.list()).contains_only_lists())
-    self.assertFalse(b.obj(b.dict()).contains_only_lists())
-    self.assertFalse(b.obj(x=b.list()).contains_only_lists())
-    self.assertTrue(
-        ds([b.obj(b.list()), b.obj(b.list())]).contains_only_lists()
-    )
-    self.assertFalse(
-        ds([b.obj(b.list()), b.obj(b.dict())]).contains_only_lists()
-    )
 
 
 class DataSliceListSlicingTest(parameterized.TestCase):
