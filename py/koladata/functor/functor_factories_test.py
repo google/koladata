@@ -252,6 +252,19 @@ class FunctorFactoriesTest(absltest.TestCase):
     testing.assert_equal(fn(2), ds(3))
     testing.assert_equal(fn(2, foo=3), ds(3))
 
+  def test_trace_py_fn_select(self):
+    def select_fn(val):
+      return user_facing_kd.select(val, lambda x: x >= 2)
+
+    fn = functor_factories.trace_py_fn(select_fn)
+    testing.assert_equivalent(fn(ds([1, 2, 3])), ds([2, 3]))
+
+    def select_functor_filter(val):
+      return user_facing_kd.select(val, functor_factories.fn(I.self >= 2))
+
+    fn = functor_factories.trace_py_fn(select_functor_filter)
+    testing.assert_equivalent(fn(ds([1, 2, 3])), ds([2, 3]))
+
   def test_trace_py_fn_expr_defaults(self):
     fn = functor_factories.trace_py_fn(lambda x, y, **unused: x + y, y=2 * I.z)
     testing.assert_equal(fn(x=2, z=3), ds(8))

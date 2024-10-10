@@ -122,6 +122,12 @@ class CoreSelectTest(parameterized.TestCase):
           functor_factories.fn(I.self == 2),
           ds([[], [2], []]),
       ),
+      # Python function
+      (
+          ds([1, 2, 3]),
+          lambda x: x >= 2,
+          ds([2, 3]),
+      ),
       # Two scalar input, scalar output.
       (ds(1), ds(arolla.present()), ds(1)),
       (ds(1), ds(arolla.missing()), ds(None, schema_constants.INT32)),
@@ -134,6 +140,14 @@ class CoreSelectTest(parameterized.TestCase):
   def test_eval(self, values, filter_arr, expected):
     result = expr_eval.eval(kde.core.select(values, filter_arr))
     testing.assert_equal(result, expected)
+
+  @parameterized.parameters(
+      (lambda x: x >= 2,),
+      (functor_factories.fn(I.self >= 2),),
+  )
+  def test_eval_with_expr_input(self, fltr):
+    result = expr_eval.eval(kde.core.select(I.x, fltr), x=ds([1, 2, 3]))
+    testing.assert_equal(result, ds([2, 3]))
 
   @parameterized.parameters(
       (
@@ -242,6 +256,17 @@ class CoreSelectTest(parameterized.TestCase):
   ):
     result = expr_eval.eval(kde.core.select(values, filter_arr, expand_filter))
     testing.assert_equal(result, expected)
+
+  def test_eval_filter_fn_exception(self):
+
+    def filter_fn(x):  # pylint: disable=unused-argument
+      raise ValueError('test error')
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'test error',
+    ):
+      expr_eval.eval(kde.core.select(I.x, filter_fn))
 
   def test_select_wrong_filter_schema(self):
     val = data_slice.DataSlice.from_vals([1, 2, None, 4])

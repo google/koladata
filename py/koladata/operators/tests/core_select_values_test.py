@@ -72,25 +72,29 @@ class CoreSelectValuesTest(parameterized.TestCase):
           ds([mask_constants.present]),
           ds([DICT]),
       ),
+      (
+          db.dict({3: 1, 4: 2, 5: 3}),
+          lambda x: x == 2,
+          ds([2]),
+      ),
+      (
+          db.dict({3: 1, 4: 2, 5: 3}),
+          functor_factories.fn(I.self == 2),
+          ds([2]),
+      ),
   )
   def test_eval(self, value, fltr, expected):
     result = expr_eval.eval(kde.core.select_values(value, fltr))
     testing.assert_equal(result, expected)
 
-  def test_eval_with_expr(self):
-    data = db.dict({1: 1, 2: 2, 3: 3})
-    fltr = I.values > 2
-    values = expr_eval.eval(kde.core.get_values(data))
-    fltr_ds = expr_eval.eval(fltr, values=values)
-    expected = expr_eval.eval(kde.core.select(values, fltr_ds))
-
-    result = expr_eval.eval(kde.core.select_keys(data, fltr_ds))
-    testing.assert_equal(result, expected)
-
-  def test_eval_with_functor(self):
-    data = db.dict({4: 1, 5: 2, 6: 3})
-    fltr = functor_factories.fn(I.self >= 2)
-    result = expr_eval.eval(kde.core.select_values(data, fltr))
+  @parameterized.parameters(
+      (lambda x: x >= 2),
+      (functor_factories.fn(I.self >= 2)),
+  )
+  def test_eval_with_expr_input(self, fltr):
+    result = expr_eval.eval(
+        kde.core.select_values(I.x, fltr), x=db.dict({4: 1, 5: 2, 6: 3})
+    )
     testing.assert_unordered_equal(result, ds([2, 3]))
 
   def test_qtype_signatures(self):

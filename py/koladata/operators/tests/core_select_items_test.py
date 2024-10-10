@@ -70,10 +70,30 @@ class CoreSelectItemsTest(parameterized.TestCase):
           ds([[None, present, present], [present, None, present]]),
           ds([[2, 3], [2, 4]]),
       ),
+      (
+          db.list([1, 2, 3]),
+          lambda x: x >= 2,
+          ds([2, 3]),
+      ),
+      (
+          db.list([1, 2, 3]),
+          functor_factories.fn(I.self >= 2),
+          ds([2, 3]),
+      ),
   )
   def test_eval(self, value, fltr, expected):
     result = expr_eval.eval(kde.core.select_items(value, fltr))
     testing.assert_equal(result, expected)
+
+  @parameterized.parameters(
+      (lambda x: x >= 2),
+      (functor_factories.fn(I.self >= 2),),
+  )
+  def test_eval_with_expr_input(self, fltr):
+    result = expr_eval.eval(
+        kde.core.select_items(I.x, fltr), x=db.list([1, 2, 3])
+    )
+    testing.assert_equal(result, ds([2, 3]))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

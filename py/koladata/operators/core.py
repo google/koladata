@@ -398,6 +398,7 @@ def _select(ds, fltr, expand_filter):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.fltr),
         qtype_utils.expect_data_slice(P.expand_filter),
     ],
+    aux_policy=py_boxing.SELECT_POLICY,
 )
 def select(ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)):
   """Creates a new DataSlice by filtering out missing items in fltr.
@@ -1138,6 +1139,7 @@ def get_values(dict_ds, key_ds=arolla.unspecified()):
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
+    aux_policy=py_boxing.SELECT_KEYS_POLICY,
 )
 def select_keys(ds, fltr):
   """Selects Dict keys by filtering out missing items in `fltr`.
@@ -1162,6 +1164,7 @@ def select_keys(ds, fltr):
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
+    aux_policy=py_boxing.SELECT_VALUES_POLICY,
 )
 def select_values(ds, fltr):
   """Selects Dict values by filtering out missing items in `fltr`.
@@ -1761,6 +1764,7 @@ def explode(x, ndim=data_slice.DataSlice.from_vals(1)):
 @optools.as_lambda_operator(
     'kde.core.select_items',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
+    aux_policy=py_boxing.SELECT_ITEMS_POLICY,
 )
 def select_items(ds, fltr):
   """Selects List items by filtering out missing items in fltr.
