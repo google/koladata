@@ -99,6 +99,12 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     kd.testing.assert_equivalent(values[1], db2)
     kd.testing.assert_equivalent(values[2], slice_with_fallback)
 
+  def test_obj_with_databag(self):
+    v = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+    data = arolla.s11n.dumps(v)
+    res = arolla.s11n.loads(data)
+    kd.testing.assert_equivalent(res, v)
+
   def test_decoder_errors(self):
     header_and_deps = """
       version: 1

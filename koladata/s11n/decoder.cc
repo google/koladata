@@ -224,7 +224,7 @@ absl::Status DecodeAttrProto(const KodaV1Proto::AttrProto& attr_proto,
             "contains multiple values");
       }
       internal::AllocationId alloc(obj);
-      if (alloc.Capacity() <= values.size()) {
+      if (alloc.Capacity() < values.size()) {
         return absl::InvalidArgumentError(absl::StrFormat(
             "AttrChunkProto values don't fit into AllocationId of "
             "`first_object_id`: values size is %d, alloc capacity is %d",
