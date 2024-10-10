@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.zip."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -133,6 +131,11 @@ class CoreZipTest(parameterized.TestCase):
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.zip, kde.zip))
+
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.core.zip(I.x, I.y, I.z)), 'kde.core.zip(I.x, I.y, I.z)'
+    )
 
 if __name__ == '__main__':
   absltest.main()

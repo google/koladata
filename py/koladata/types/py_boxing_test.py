@@ -320,6 +320,22 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         ),
     )
 
+    # Also ensure that we prefer QValues over Exprs for varargs and varkwargs,
+    # making eager evaluation possible.
+    testing.assert_equal(
+        op._eval(1, 2, 3, w=5, y=4, z=6, a=7),
+        arolla.tuple(
+            ds(1),
+            arolla.tuple(ds(2), ds(3)),
+            ds(4),
+            ds(6),
+            arolla.namedtuple(
+                w=ds(5),
+                a=ds(7),
+            ),
+        ),
+    )
+
   def test_policy_with_positional_only_and_default_values(self):
     # (a, /, x='x', *, y='y', **kwargs)
     @arolla.optools.as_lambda_operator(
@@ -797,6 +813,57 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         TypeError, "got an unexpected keyword argument 'z'"):
       _ = op_with_args(1, 2, y=3, z=4, w=5)
 
+  def test_is_param_marker(self):
+    self.assertFalse(py_boxing.is_param_marker(ds(1)))
+    self.assertTrue(py_boxing.is_param_marker(py_boxing.positional_only()))
+    self.assertTrue(
+        py_boxing.is_param_marker(py_boxing.positional_or_keyword())
+    )
+    self.assertTrue(py_boxing.is_param_marker(py_boxing.var_positional()))
+    self.assertTrue(py_boxing.is_param_marker(py_boxing.keyword_only()))
+    self.assertTrue(py_boxing.is_param_marker(py_boxing.var_keyword()))
+    self.assertTrue(py_boxing.is_param_marker(py_boxing.hidden_seed()))
+
+  def test_is_positional_only(self):
+    self.assertFalse(py_boxing.is_positional_only(None))
+    self.assertTrue(
+        py_boxing.is_positional_only(py_boxing.positional_only()[1])
+    )
+    self.assertFalse(
+        py_boxing.is_positional_only(py_boxing.positional_or_keyword()[1])
+    )
+
+  def test_is_positional_or_keyword(self):
+    self.assertFalse(py_boxing.is_positional_or_keyword(None))
+    self.assertTrue(
+        py_boxing.is_positional_or_keyword(py_boxing.positional_or_keyword()[1])
+    )
+    self.assertFalse(
+        py_boxing.is_positional_or_keyword(py_boxing.positional_only()[1])
+    )
+
+  def test_is_var_positional(self):
+    self.assertFalse(py_boxing.is_var_positional(None))
+    self.assertTrue(py_boxing.is_var_positional(py_boxing.var_positional()[1]))
+    self.assertFalse(
+        py_boxing.is_var_positional(py_boxing.positional_only()[1])
+    )
+
+  def test_is_keyword_only(self):
+    self.assertFalse(py_boxing.is_keyword_only(None))
+    self.assertTrue(py_boxing.is_keyword_only(py_boxing.keyword_only()[1]))
+    self.assertFalse(py_boxing.is_keyword_only(py_boxing.positional_only()[1]))
+
+  def test_is_var_keyword(self):
+    self.assertFalse(py_boxing.is_var_keyword(None))
+    self.assertTrue(py_boxing.is_var_keyword(py_boxing.var_keyword()[1]))
+    self.assertFalse(py_boxing.is_var_keyword(py_boxing.positional_only()[1]))
+
+  def test_is_hidden_seed(self):
+    self.assertFalse(py_boxing.is_hidden_seed(None))
+    self.assertTrue(py_boxing.is_hidden_seed(py_boxing.hidden_seed()[1]))
+    self.assertFalse(py_boxing.is_hidden_seed(py_boxing.positional_only()[1]))
+
 
 class FstrBindingPolicyTest(absltest.TestCase):
 
@@ -858,6 +925,7 @@ class FstrBindingPolicyTest(absltest.TestCase):
         "failed: 'koladata_fstr'",
     ):
       _ = inspect.signature(op_with_wrong_sig)
+
 
 empty_data_bag = data_bag.DataBag.empty()
 

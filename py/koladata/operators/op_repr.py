@@ -19,6 +19,7 @@ from typing import Callable
 
 from arolla import arolla
 from koladata.types import data_slice
+from koladata.types import py_boxing
 
 OperatorReprFn = Callable[
     [arolla.Expr, arolla.abc.NodeTokenView], arolla.abc.ReprToken
@@ -31,6 +32,63 @@ def default_op_repr(
   """Default repr function for Koda operators."""
   res = arolla.abc.ReprToken()
   dep_txt = ', '.join(tokens[node].text for node in node.node_deps)
+  res.text = f'{node.op.display_name}({dep_txt})'
+  return res
+
+
+def _varargs_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> str:
+  """Repr for varargs. Assumes node is a tuple (op or qvalue)."""
+  if node.qvalue is None:
+    # Then it's a M.core.make_tuple node.
+    return ', '.join(tokens[dep].text for dep in node.node_deps)
+  else:
+    # Or it's a Tuple qvalue.
+    return ', '.join(repr(v) for v in node.qvalue)
+
+
+def _varkwargs_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> str:
+  """Repr for varkwargs. Assumes node is a namedtuple (op or qvalue)."""
+  # pytype: disable=attribute-error
+  if node.qvalue is None:
+    # Then it's a M.namedtuple.make node.
+    keys = node.node_deps[0].qvalue.py_value().split(',')
+    values = (tokens[dep] for dep in node.node_deps[1:])
+    return ', '.join(f'{k}={v.text}' for k, v in zip(keys, values))
+  else:
+    # Or it's a NamedTuple qvalue.
+    return ', '.join(f'{k}={v!r}' for k, v in node.qvalue.as_dict().items())
+  # pytype: enable=attribute-error
+
+
+def full_signature_repr(
+    node: arolla.Expr, tokens: arolla.abc.NodeTokenView
+) -> arolla.abc.ReprToken:
+  """Repr function for Koda operators with FULL_SIGNATURE_POLICY aux policy."""
+  assert node.op is not None
+  node_dep_reprs = []
+  for dep, param in zip(
+      node.node_deps,
+      arolla.abc.get_operator_signature(node.op).parameters,
+      strict=True,
+  ):
+    if not isinstance(
+        param.default, arolla.abc.QValue
+    ) or not py_boxing.is_param_marker(param.default):
+      node_dep_reprs.append(tokens[dep].text)
+    elif py_boxing.is_hidden_seed(param.default[1]):
+      continue
+    elif py_boxing.is_var_positional(param.default[1]):
+      if repr_ := _varargs_repr(dep, tokens):
+        node_dep_reprs.append(repr_)
+    elif py_boxing.is_var_keyword(param.default[1]):
+      if repr_ := _varkwargs_repr(dep, tokens):
+        node_dep_reprs.append(repr_)
+    elif py_boxing.is_keyword_only(param.default[1]):
+      node_dep_reprs.append(f'{param.name}={tokens[dep].text}')
+    else:
+      node_dep_reprs.append(tokens[dep].text)
+  res = arolla.abc.ReprToken()
+  dep_txt = ', '.join(node_dep_reprs)
   res.text = f'{node.op.display_name}({dep_txt})'
   return res
 

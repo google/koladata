@@ -121,6 +121,11 @@ class CoreAttrsTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.attrs, kde.attrs))
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.core.attrs(I.x, a=I.y)), 'kde.core.attrs(I.x, a=I.y)'
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

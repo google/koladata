@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.py.apply_py_on_cond operator."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -179,6 +177,12 @@ class PyApplyPyOnCondTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(kde.py.apply_py_on_cond, kde.apply_py_on_cond)
+    )
+
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.py.apply_py_on_cond(I.yes, I.no, I.cond, I.x, a=I.a)),
+        'kde.py.apply_py_on_cond(I.yes, I.no, I.cond, I.x, a=I.a)',
     )
 
 

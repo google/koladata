@@ -153,6 +153,13 @@ class CoreNewShapedAsTest(absltest.TestCase):
         optools.equiv_to_op(kde.core.new_shaped_as, kde.new_shaped_as)
     )
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.core.new_shaped_as(I.x, a=I.y)),
+        'kde.core.new_shaped_as(I.x, schema=unspecified, itemid=unspecified,'
+        ' update_schema=DataItem(False, schema: BOOLEAN), a=I.y)',
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -155,6 +155,12 @@ class KodaUuidTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.uuid, kde.uuid))
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.core.uuid(a=I.a)),
+        "kde.core.uuid(seed=DataItem('', schema: TEXT), a=I.a)",
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

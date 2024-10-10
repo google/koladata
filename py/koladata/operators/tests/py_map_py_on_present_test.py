@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.py.map_py_on_selected operator."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.expr import expr_eval
@@ -61,6 +59,14 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(kde.py.map_py_on_present, kde.map_py_on_present)
+    )
+
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.py.map_py_on_present(I.fn, I.x, a=I.a)),
+        "kde.py.map_py_on_present(I.fn, I.x, schema=DataItem(None, schema:"
+        " NONE), max_threads=DataItem(1, schema: INT32),"
+        " item_completed_callback=DataItem(None, schema: NONE), a=I.a)",
     )
 
 

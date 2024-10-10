@@ -102,7 +102,7 @@ def _make_param_marker(
   )
 
 
-def _is_param_marker(possible_param_marker: arolla.abc.QValue) -> bool:
+def is_param_marker(possible_param_marker: arolla.abc.QValue) -> bool:
   if not arolla.is_tuple_qtype(possible_param_marker.qtype):
     return False
   if possible_param_marker.field_count != 3:  # pytype: disable=attribute-error
@@ -186,7 +186,7 @@ def _unpack_param_marker(param: arolla.abc.SignatureParameter) -> tuple[
   param_default = param.default
   if param_default is None:
     return None, None, as_qvalue_or_expr
-  if not _is_param_marker(param_default):
+  if not is_param_marker(param_default):
     return None, param_default, as_qvalue_or_expr
   try:
     default_value = param_default[2]['default_value']  # pytype: disable=unsupported-operands
@@ -200,14 +200,14 @@ def _unpack_param_marker(param: arolla.abc.SignatureParameter) -> tuple[
   return param_default[1], default_value, boxing_fn  # pytype: disable=unsupported-operands
 
 
-def _is_positional_only(marker_type: arolla.abc.QValue | None) -> bool:
+def is_positional_only(marker_type: arolla.abc.QValue | None) -> bool:
   return (
       marker_type is not None
       and marker_type.fingerprint == _POSITIONAL_ONLY_MARKER_TYPE.fingerprint
   )
 
 
-def _is_positional_or_keyword(marker_type: arolla.abc.QValue | None) -> bool:
+def is_positional_or_keyword(marker_type: arolla.abc.QValue | None) -> bool:
   return (
       marker_type is not None
       and marker_type.fingerprint
@@ -215,28 +215,28 @@ def _is_positional_or_keyword(marker_type: arolla.abc.QValue | None) -> bool:
   )
 
 
-def _is_var_positional(marker_type: arolla.abc.QValue | None) -> bool:
+def is_var_positional(marker_type: arolla.abc.QValue | None) -> bool:
   return (
       marker_type is not None
       and marker_type.fingerprint == _VAR_POSITIONAL_MARKER_TYPE.fingerprint
   )
 
 
-def _is_keyword_only(marker_type: arolla.abc.QValue | None) -> bool:
+def is_keyword_only(marker_type: arolla.abc.QValue | None) -> bool:
   return (
       marker_type is not None
       and marker_type.fingerprint == _KEYWORD_ONLY_MARKER_TYPE.fingerprint
   )
 
 
-def _is_var_keyword(marker_type: arolla.abc.QValue | None) -> bool:
+def is_var_keyword(marker_type: arolla.abc.QValue | None) -> bool:
   return (
       marker_type is not None
       and marker_type.fingerprint == _VAR_KEYWORD_MARKER_TYPE.fingerprint
   )
 
 
-def _is_hidden_seed(marker_type: arolla.abc.QValue | None) -> bool:
+def is_hidden_seed(marker_type: arolla.abc.QValue | None) -> bool:
   return (
       marker_type is not None
       and marker_type.fingerprint == _HIDDEN_SEED_MARKER_TYPE.fingerprint
@@ -248,8 +248,8 @@ def find_hidden_seed_param(signature: inspect.Signature) -> int | None:
   for i_param, param in enumerate(signature.parameters.values()):
     if (
         isinstance(param.default, arolla.QValue)
-        and _is_param_marker(param.default)
-        and _is_hidden_seed(param.default[1])
+        and is_param_marker(param.default)
+        and is_hidden_seed(param.default[1])
     ):
       return i_param
   return None
@@ -426,19 +426,19 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
           else inspect.Parameter.empty
       )
 
-      if _is_positional_only(marker_type):
+      if is_positional_only(marker_type):
         python_param_kind = inspect.Parameter.POSITIONAL_ONLY
-      elif _is_positional_or_keyword(marker_type):
+      elif is_positional_or_keyword(marker_type):
         python_param_kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
-      elif _is_var_positional(marker_type):
+      elif is_var_positional(marker_type):
         if visited_var_positional_param:
           # This is not enforced by inspect.Signature for some reason.
           raise ValueError('multiple variadic positional arguments')
         python_param_kind = inspect.Parameter.VAR_POSITIONAL
         visited_var_positional_param = True
-      elif _is_keyword_only(marker_type):
+      elif is_keyword_only(marker_type):
         python_param_kind = inspect.Parameter.KEYWORD_ONLY
-      elif _is_var_keyword(marker_type):
+      elif is_var_keyword(marker_type):
         python_param_kind = inspect.Parameter.VAR_KEYWORD
       elif marker_type is None:
         if visited_var_positional_param:
@@ -447,7 +447,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
         else:
           # positional-or-keyword (before var-positional)
           python_param_kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
-      elif _is_hidden_seed(marker_type):
+      elif is_hidden_seed(marker_type):
         # Strip hidden_seed params from the Python signature. These params will
         # be automatically populated by bind_arguments, and we don't want the
         # caller to accidentally pass in a value (which would be ignored).
@@ -475,7 +475,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
     for param in signature.parameters:
       marker_type, default_value, boxing_fn = _unpack_param_marker(param)
 
-      if _is_positional_only(marker_type):
+      if is_positional_only(marker_type):
         if args_queue:
           bound_values.append(boxing_fn(args_queue.popleft()))
         elif default_value is not None:
@@ -484,7 +484,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
           raise TypeError(
               f"missing required positional argument: '{param.name}'"
           )
-      elif _is_positional_or_keyword(marker_type) or marker_type is None:
+      elif is_positional_or_keyword(marker_type) or marker_type is None:
         if args_queue:
           if param.name in kwargs:
             raise TypeError(f"got multiple values for argument '{param.name}'")
@@ -497,7 +497,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
           raise TypeError(
               f"missing required positional argument: '{param.name}'"
           )
-      elif _is_var_positional(marker_type):
+      elif is_var_positional(marker_type):
         boxed_args = [boxing_fn(value) for value in args_queue]
         if all(isinstance(value, arolla.QValue) for value in boxed_args):
           bound_values.append(arolla.tuple(*boxed_args))
@@ -505,14 +505,14 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
           bound_values.append(
               arolla.abc.bind_op('core.make_tuple', *map(as_expr, boxed_args)))
         args_queue.clear()
-      elif _is_keyword_only(marker_type):
+      elif is_keyword_only(marker_type):
         if param.name in kwargs:
           bound_values.append(boxing_fn(kwargs.pop(param.name)))
         elif default_value is not None:
           bound_values.append(default_value)
         else:
           raise TypeError(f"missing required keyword argument: '{param.name}'")
-      elif _is_var_keyword(marker_type):
+      elif is_var_keyword(marker_type):
         boxed_kwargs = {
             name: boxing_fn(value) for name, value in kwargs.items()
         }
@@ -529,7 +529,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
               )
           )
         kwargs.clear()
-      elif _is_hidden_seed(marker_type):
+      elif is_hidden_seed(marker_type):
         bound_values.append(
             arolla.M.math.add(HIDDEN_SEED_LEAF, _random_int64())
         )

@@ -116,6 +116,13 @@ class KodaNewSchemaTest(parameterized.TestCase):
         optools.equiv_to_op(kde.schema.new_schema, kde.new_schema)
     )
 
+  def test_repr(self):
+    # This has a hidden seed which is stripped...
+    self.assertEqual(
+        repr(kde.schema.new_schema(a=I.a, b=I.b)),
+        'kde.schema.new_schema(a=I.a, b=I.b)',
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

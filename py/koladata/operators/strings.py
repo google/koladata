@@ -17,6 +17,7 @@
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import jagged_shape as jagged_shape_ops
+from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
@@ -204,7 +205,7 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(repr_fn=op_repr.full_signature_repr)
 @optools.as_backend_operator(
     'kde.strings.format',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,

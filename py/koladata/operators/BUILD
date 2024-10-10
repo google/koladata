@@ -185,6 +185,7 @@ py_library(
     name = "uuid",
     srcs = ["uuid.py"],
     deps = [
+        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -198,6 +199,7 @@ py_library(
     name = "object_factories",
     srcs = ["object_factories.py"],
     deps = [
+        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -213,6 +215,7 @@ py_library(
     deps = [
         ":assertion",
         ":jagged_shape",
+        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -257,6 +260,7 @@ py_library(
     srcs = ["strings.py"],
     deps = [
         ":jagged_shape",
+        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -368,6 +372,7 @@ py_library(
     deps = [
         ":core",
         ":logical",
+        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//py/koladata/types:data_bag",
@@ -429,6 +434,7 @@ py_library(
     srcs = ["op_repr.py"],
     deps = [
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -437,6 +443,7 @@ py_library(
     name = "functor",
     srcs = ["functor.py"],
     deps = [
+        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/functor:operators",
@@ -478,6 +485,7 @@ py_test(
         ":op_repr",
         "//py/koladata/expr:input_container",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",

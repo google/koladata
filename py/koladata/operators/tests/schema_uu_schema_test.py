@@ -178,6 +178,12 @@ class KodaUuSchemaTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.schema.uu_schema, kde.uu_schema))
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.schema.uu_schema(a=I.a)),
+        "kde.schema.uu_schema(DataItem('', schema: TEXT), a=I.a)",
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

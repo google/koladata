@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.concat."""
-
 import re
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -246,6 +244,12 @@ class CoreConcatImplTest(parameterized.TestCase):
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.concat, kde.concat))
+
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.core.concat(I.x, I.y, I.z, ndim=3)),
+        'kde.core.concat(I.x, I.y, I.z, ndim=DataItem(3, schema: INT32))',
+    )
 
 
 if __name__ == '__main__':

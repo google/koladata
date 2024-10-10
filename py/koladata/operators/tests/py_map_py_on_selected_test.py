@@ -91,6 +91,14 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
         optools.equiv_to_op(kde.py.map_py_on_selected, kde.map_py_on_selected)
     )
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.py.map_py_on_selected(I.fn, I.cond, I.x, a=I.a)),
+        "kde.py.map_py_on_selected(I.fn, I.cond, I.x, schema=DataItem(None,"
+        " schema: NONE), max_threads=DataItem(1, schema: INT32),"
+        " item_completed_callback=DataItem(None, schema: NONE), a=I.a)",
+    )
+
 
 if __name__ == "__main__":
   absltest.main()

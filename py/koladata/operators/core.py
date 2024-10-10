@@ -194,7 +194,9 @@ def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,red
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.concat'])
+@optools.add_to_registry(
+    aliases=['kde.concat'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_lambda_operator(
     'kde.core.concat',
     qtype_constraints=[
@@ -266,14 +268,16 @@ def concat(
   )
 
 
-@optools.add_to_registry(aliases=['kde.stack'])
+@optools.add_to_registry(
+    aliases=['kde.stack'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_lambda_operator(
     'kde.core.stack',
     qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
         [
             M.qtype.get_field_count(P.args) > 0,
-            'expected a nonzero number of args'
+            'expected a nonzero number of args',
         ],
         qtype_utils.expect_data_slice(P.ndim),
     ],
@@ -326,14 +330,16 @@ def stack(
   )
 
 
-@optools.add_to_registry(aliases=['kde.zip'])
+@optools.add_to_registry(
+    aliases=['kde.zip'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_lambda_operator(
     'kde.core.zip',
     qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
         [
             M.qtype.get_field_count(P.args) > 0,
-            'expected a nonzero number of args'
+            'expected a nonzero number of args',
         ],
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -749,12 +755,16 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.attrs'], view=view.DataBagView)
+@optools.add_to_registry(
+    aliases=['kde.attrs'],
+    view=view.DataBagView,
+    repr_fn=op_repr.full_signature_repr,
+)
 @optools.as_backend_operator(
     'kde.core.attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice_kwargs(P.attrs)
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -765,7 +775,9 @@ def _attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  # pyl
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.with_attrs'])
+@optools.add_to_registry(
+    aliases=['kde.with_attrs'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_backend_operator(
     'kde.core.with_attrs',
     qtype_constraints=[
@@ -781,7 +793,9 @@ def with_attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  #
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.new_shaped'])
+@optools.add_to_registry(
+    aliases=['kde.new_shaped'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_backend_operator(
     'kde.core.new_shaped',
     qtype_constraints=[
@@ -809,7 +823,9 @@ def new_shaped(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.new_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kde.new_shaped_as'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_lambda_operator(
     'kde.core.new_shaped_as',
     qtype_constraints=[
@@ -843,7 +859,9 @@ def new_shaped_as(
   )
 
 
-@optools.add_to_registry(aliases=['kde.obj_shaped'])
+@optools.add_to_registry(
+    aliases=['kde.obj_shaped'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_backend_operator(
     'kde.core.obj_shaped',
     qtype_constraints=[
@@ -866,7 +884,9 @@ def obj_shaped(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.obj_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kde.obj_shaped_as'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_lambda_operator(
     'kde.core.obj_shaped_as',
     qtype_constraints=[

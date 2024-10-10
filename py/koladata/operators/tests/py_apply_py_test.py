@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.py.apply_py operator."""
-
 import re
 
 from absl.testing import absltest
@@ -146,6 +144,13 @@ class PyApplyPyTest(parameterized.TestCase):
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.py.apply_py, kde.apply_py))
+
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.py.apply_py(I.fn, I.x, a=I.a)),
+        'kde.py.apply_py(I.fn, I.x, return_type_as=DataItem(None, schema:'
+        ' NONE), a=I.a)',
+    )
 
 
 if __name__ == '__main__':

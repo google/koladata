@@ -123,6 +123,12 @@ class CoreObjShapedTest(absltest.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.obj_shaped, kde.obj_shaped))
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.core.obj_shaped(I.x, a=I.y)),
+        'kde.core.obj_shaped(I.x, itemid=unspecified, a=I.y)',
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

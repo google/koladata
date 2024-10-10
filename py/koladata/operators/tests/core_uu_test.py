@@ -227,6 +227,13 @@ class KodaUuTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.uu, kde.uu))
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.core.uu(a=I.z, seed=I.seed)),
+        'kde.core.uu(seed=I.seed, schema=unspecified,'
+        ' update_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -582,8 +582,8 @@ class DataSliceViewTest(parameterized.TestCase):
       (
           C.x(C.y, foo=C.z),
           (
-              'kde.call(C.x, M.core.make_tuple(C.y), DataItem(None, schema:'
-              " NONE), M.namedtuple.make('foo', C.z))"
+              'kde.call(C.x, C.y, return_type_as=DataItem(None, schema: NONE),'
+              ' foo=C.z)'
           ),
       ),
   )

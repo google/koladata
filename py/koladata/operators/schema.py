@@ -17,6 +17,7 @@
 from arolla import arolla
 from koladata.operators import assertion
 from koladata.operators import jagged_shape as jagged_shape_ops
+from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import py_boxing
@@ -107,7 +108,9 @@ def _has(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.new_schema'])
+@optools.add_to_registry(
+    aliases=['kde.new_schema'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_backend_operator(
     'kde.schema.new_schema',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -135,7 +138,9 @@ def new_schema(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.uu_schema'])
+@optools.add_to_registry(
+    aliases=['kde.uu_schema'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_backend_operator(
     'kde.schema.uu_schema',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,

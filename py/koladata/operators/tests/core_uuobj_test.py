@@ -175,6 +175,12 @@ class KodaUuObjTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.uuobj, kde.uuobj))
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.core.uuobj(a=I.z, seed=I.seed)),
+        'kde.core.uuobj(seed=I.seed, a=I.z)',
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

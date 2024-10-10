@@ -542,6 +542,14 @@ class PyMapPyTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.py.map_py, kde.map_py))
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.py.map_py(I.fn, I.x, a=I.a)),
+        'kde.py.map_py(I.fn, I.x, schema=DataItem(None, schema: NONE),'
+        ' max_threads=DataItem(1, schema: INT32), ndim=DataItem(0, schema:'
+        ' INT32), item_completed_callback=DataItem(None, schema: NONE), a=I.a)',
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
