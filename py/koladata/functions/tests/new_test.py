@@ -342,6 +342,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
         a=schema_constants.TEXT, b=fns.list_schema(schema_constants.INT32)
     )
     item = fns.new(None, schema=schema)
+    testing.assert_equivalent(item.get_schema(), schema)
     testing.assert_equal(item.no_db(), ds(None).with_schema(schema.no_db()))
 
   def test_universal_converter_list(self):

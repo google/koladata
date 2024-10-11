@@ -117,7 +117,8 @@ class FromPyTest(absltest.TestCase):
         a=schema_constants.TEXT, b=fns.list_schema(schema_constants.INT32)
     )
     item = fns.from_py(None, schema=schema)
-    testing.assert_equal(item, ds(None).with_schema(schema.no_db()))
+    testing.assert_equivalent(item.get_schema(), schema)
+    testing.assert_equal(item.no_db(), ds(None).with_schema(schema.no_db()))
 
   def test_obj_reference(self):
     obj = fns.obj()
@@ -125,7 +126,7 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(item, obj.no_db())
 
   def test_entity_reference(self):
-    entity = fns.new()
+    entity = fns.new(x=42)
     item = fns.from_py(entity.ref())
     self.assertIsNotNone(item.db)
     testing.assert_equal(
@@ -134,6 +135,12 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(
         item.with_schema(entity.get_schema().no_db()).no_db(), entity.no_db()
     )
+
+    item = fns.from_py(entity.ref(), schema=entity.get_schema())
+    testing.assert_equal(item.no_db(), entity.no_db())
+    # no data triples (item.x => 42) in the DataBag.
+    testing.assert_equivalent(item.get_schema(), entity.get_schema().extract())
+    testing.assert_equal(item.x.no_db(), ds(None, schema_constants.INT32))
 
   def test_dict_as_obj_object(self):
     obj = fns.from_py(

@@ -589,8 +589,14 @@ class UniversalConverter {
   absl::StatusOr<DataSlice> Convert(
       PyObject* py_obj,
       const std::optional<DataSlice>& schema = std::nullopt) && {
+    if (schema) {
+      adoption_queue_.Add(*schema);
+    }
     RETURN_IF_ERROR(CmdConvertPyObject(py_obj, schema, /*is_root=*/true));
     RETURN_IF_ERROR(Run());
+    if (value_stack_.top().GetDb() == nullptr && !adoption_queue_.empty()) {
+      return value_stack_.top().WithDb(db_);
+    }
     return std::move(value_stack_.top());
   }
 
