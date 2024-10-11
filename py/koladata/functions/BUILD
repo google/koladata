@@ -29,6 +29,7 @@ py_library(
         ":attrs",
         ":object_factories",
         ":predicates",
+        ":proto_conversions",
         ":py_conversions",
         ":s11n",
         ":schema",
@@ -80,6 +81,18 @@ py_library(
         "//py/koladata/types:jagged_shape",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "proto_conversions",
+    srcs = ["proto_conversions.py"],
+    visibility = ["//visibility:private"],
+    deps = [
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_item",
+        "//py/koladata/types:data_slice",
+        "@com_google_protobuf//:protobuf_python",
     ],
 )
 

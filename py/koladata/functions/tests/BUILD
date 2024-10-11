@@ -15,6 +15,7 @@
 # Tests for Koda functions.
 
 load("@rules_python//python:defs.bzl", "py_test")
+load("@rules_python//python:proto.bzl", "py_proto_library")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -495,6 +496,19 @@ py_test(
 )
 
 py_test(
+    name = "from_proto_test",
+    srcs = ["from_proto_test.py"],
+    deps = [
+        ":test_py_pb2",
+        "//py/koladata/functions",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "from_py_test",
     srcs = ["from_py_test.py"],
     deps = [
@@ -621,4 +635,14 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
     ],
+)
+
+proto_library(
+    name = "test_proto",
+    srcs = ["test.proto"],
+)
+
+py_proto_library(
+    name = "test_py_pb2",
+    deps = [":test_proto"],
 )

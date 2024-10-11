@@ -15,6 +15,7 @@
 # Custom C++/Python bindings for Kola types.
 
 load("@com_google_arolla//py/arolla/dynamic_deps:build_defs.bzl", "arolla_py_cc_deps")
+load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
@@ -479,6 +480,7 @@ cc_library(
     deps = [
         ":boxing",
         ":py_utils",
+        ":pybind11_protobuf_wrapper",
         ":wrap_utils",
         "//koladata:data_bag",
         "//koladata:data_bag_comparison",
@@ -487,6 +489,7 @@ cc_library(
         "//koladata:object_factories",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
+        "//koladata/proto:from_proto",
         "//py/koladata/exceptions:py_exception_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
@@ -498,6 +501,7 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@com_google_protobuf//:protobuf",
     ],
 )
 
@@ -542,6 +546,21 @@ cc_library(
     ],
 )
 
+pybind_library(
+    name = "pybind11_protobuf_wrapper",
+    srcs = ["pybind11_protobuf_wrapper.cc"],
+    hdrs = ["pybind11_protobuf_wrapper.h"],
+    deps = [
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//py/arolla/py_utils",
+        "@com_google_protobuf//:protobuf",
+        "@pybind11_protobuf//pybind11_protobuf:native_proto_caster",
+    ],
+)
+
 koladata_py_extension(
     name = "py_misc_py_ext",
     srcs = ["py_misc_module.cc"],
@@ -567,7 +586,6 @@ py_test(
         ":literal_operator",
         ":qtypes",
         ":schema_constants",
-        "//py/koladata/exceptions",
         "//py/koladata/expr:view",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",

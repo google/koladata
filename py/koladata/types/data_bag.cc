@@ -16,6 +16,7 @@
 
 #include <Python.h>
 
+#include <any>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -37,13 +38,16 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
+#include "koladata/proto/from_proto.h"
 #include "koladata/repr_utils.h"
+#include "google/protobuf/message.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/exceptions/py_exception_utils.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/py_utils.h"
+#include "py/koladata/types/pybind11_protobuf_wrapper.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
@@ -1257,6 +1261,84 @@ absl::Nullable<PyObject*> PyDataBag_get_fallbacks(PyObject* self, PyObject*) {
   return fallback_list.release();
 }
 
+absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
+                                               PyObject* const* args,
+                                               Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  const DataBagPtr db = UnsafeDataBagPtr(self);
+  if (nargs != 4) {
+    PyErr_Format(PyExc_ValueError,
+                 "DataBag._from_proto accepts exactly 4 arguments, got %d",
+                 nargs);
+    return nullptr;
+  }
+  PyObject* py_messages_list = args[0];    // Borrowed.
+  PyObject* py_extensions_list = args[1];  // Borrowed.
+  PyObject* py_itemid = args[2];           // Borrowed.
+  PyObject* py_schema = args[3];           // Borrowed.
+
+  if (!PyList_CheckExact(py_messages_list)) {
+    PyErr_Format(PyExc_ValueError,
+                 "DataBag._from_proto expects messages to be a list, got %s",
+                 Py_TYPE(py_messages_list)->tp_name);
+    return nullptr;
+  }
+  const Py_ssize_t messages_len = PyList_Size(py_messages_list);
+
+  std::vector<std::any> message_owners;
+  message_owners.reserve(messages_len);
+  std::vector<absl::Nonnull<const ::google::protobuf::Message*>> message_ptrs;
+  message_ptrs.reserve(messages_len);
+  for (Py_ssize_t i = 0; i < messages_len; ++i) {
+    PyObject* py_message = PyList_GetItem(py_messages_list, i);  // Borrowed.
+    if (!py_message) {
+      return nullptr;
+    }
+    ASSIGN_OR_RETURN((auto [message_ptr, message_owner]),
+                     UnwrapPyProtoMessage(py_message),
+                     SetKodaPyErrFromStatus(_));
+    message_owners.push_back(std::move(message_owner));
+    message_ptrs.push_back(message_ptr);
+  }
+
+  if (!PyList_CheckExact(py_extensions_list)) {
+    PyErr_Format(PyExc_ValueError,
+                 "DataBag._from_proto expects extensions to be a list, got %s",
+                 Py_TYPE(py_extensions_list)->tp_name);
+    return nullptr;
+  }
+  const Py_ssize_t extensions_len = PyList_Size(py_extensions_list);
+
+  std::vector<absl::string_view> extensions;
+  extensions.reserve(extensions_len);
+  for (Py_ssize_t i = 0; i < extensions_len; ++i) {
+    PyObject* py_extension_bytes =
+        PyList_GetItem(py_extensions_list, i);  // Borrowed.
+    if (!py_extension_bytes) {
+      return nullptr;
+    }
+    if (!PyBytes_CheckExact(py_extension_bytes)) {
+      PyErr_Format(PyExc_ValueError, "expected extension to be bytes, got %s",
+                   Py_TYPE(py_extension_bytes)->tp_name);
+      return nullptr;
+    }
+    extensions.emplace_back(PyBytes_AsString(py_extension_bytes),
+                            PyBytes_Size(py_extension_bytes));
+  }
+
+  std::optional<DataSlice> itemid;
+  std::optional<DataSlice> schema;
+  if (!UnwrapDataSliceOptionalArg(py_itemid, "itemid", itemid) ||
+      !UnwrapDataSliceOptionalArg(py_schema, "schema", schema)) {
+    return nullptr;
+  }
+
+  ASSIGN_OR_RETURN(DataSlice result,
+                   FromProto(db, message_ptrs, extensions, itemid, schema),
+                   SetKodaPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(result));
+}
+
 PyMethodDef kPyDataBag_methods[] = {
     {"is_mutable", (PyCFunction)PyDataBag_is_mutable, METH_NOARGS,
      "Returns present iff this DataBag is mutable."},
@@ -1461,11 +1543,14 @@ Returns:
 The list will be empty if the DataBag does not have fallbacks. When
 `DataSlice.with_fallback` is called, the original and provided DataBag will be
 added to the fallback list of the newly created DataBag.)"""},
+    {"_from_proto", (PyCFunction)PyDataBag_from_proto, METH_FASTCALL,
+     "Returns a DataSlice converted from a list of proto messages."},
     {nullptr} /* sentinel */
 };
 
 PyTypeObject* InitPyDataBagType() {
   arolla::python::CheckPyGIL();
+  ImportNativeProtoCasters();
   PyTypeObject* py_qvalue_type = arolla::python::PyQValueType();
   if (py_qvalue_type == nullptr) {
     return nullptr;

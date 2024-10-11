@@ -17,6 +17,7 @@
 from koladata.functions import attrs as _attrs
 from koladata.functions import object_factories as _object_factories
 from koladata.functions import predicates as _predicates
+from koladata.functions import proto_conversions as _proto_conversions
 from koladata.functions import py_conversions as _py_conversions
 from koladata.functions import s11n as _s11n
 from koladata.functions import schema as _schema
@@ -79,6 +80,8 @@ to_pytree = _py_conversions.to_pytree
 
 to_str = _py_conversions.to_str
 to_repr = _py_conversions.to_repr
+
+from_proto = _proto_conversions.from_proto
 
 dumps = _s11n.dumps
 loads = _s11n.loads

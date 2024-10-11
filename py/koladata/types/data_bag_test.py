@@ -1504,6 +1504,70 @@ Assigned schema for Dict key: INT32""",
     y = x.with_name('foo')
     self.assertIs(y, x)
 
+  def test_from_proto_minimal(self):
+    # NOTE: more tests for from_proto in
+    # //py/koladata/functions/tests/from_proto_test.py
+
+    db = bag()
+    x = db._from_proto([], [], None, None)
+    self.assertEqual(x.db.fingerprint, db.fingerprint)
+    testing.assert_equal(x.no_db(), ds([]))
+
+  def test_from_proto_errors(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'DataBag._from_proto accepts exactly 4 arguments, got 3',
+    ):
+      db = bag()
+      _ = db._from_proto((), [], None)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'DataBag._from_proto expects messages to be a list, got tuple',
+    ):
+      db = bag()
+      _ = db._from_proto((), [], None, None)
+
+    with self.assertRaisesRegex(
+        ValueError, 'message cast failed, got type NoneType'
+    ):
+      db = data_bag.DataBag.empty()
+      _ = db._from_proto([None], [], None, None)
+
+    with self.assertRaisesRegex(
+        ValueError, 'message cast failed, got type tuple'
+    ):
+      db = data_bag.DataBag.empty()
+      _ = db._from_proto([()], [], None, None)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'DataBag._from_proto expects extensions to be a list, got tuple',
+    ):
+      db = bag()
+      _ = db._from_proto([], (), None, None)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'expected extension to be bytes, got str',
+    ):
+      db = bag()
+      _ = db._from_proto([], ['x.y.z'], None, None)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'expecting itemid to be a DataSlice, got str',
+    ):
+      db = bag()
+      _ = db._from_proto([], [], 'foo', None)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'expecting schema to be a DataSlice, got str',
+    ):
+      db = bag()
+      _ = db._from_proto([], [], None, 'foo')
+
 
 if __name__ == '__main__':
   absltest.main()

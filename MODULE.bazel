@@ -6,14 +6,15 @@ module(
 bazel_dep(name = "abseil-cpp", version = "20240722.0", repo_name = "com_google_absl")
 bazel_dep(name = "google_benchmark", version = "1.8.3", repo_name = "com_google_benchmark")
 bazel_dep(name = "googletest", version = "1.14.0.bcr.1", repo_name = "com_google_googletest")
-bazel_dep(name = "protobuf", version = "26.0", repo_name = "com_google_protobuf")
+bazel_dep(name = "protobuf", version = "28.2", repo_name = "com_google_protobuf")
+bazel_dep(name = "pybind11_bazel", version = "2.12.0")
+bazel_dep(name = "pybind11_protobuf", version = "0.0.0-20240524-1d7a729", repo_name = "pybind11_protobuf")
 
 # Transitive from arolla.
 bazel_dep(name = "abseil-py", version = "2.1.0", repo_name = "com_google_absl_py")
 bazel_dep(name = "bazel_skylib", version = "1.6.1")
 bazel_dep(name = "eigen", version = "3.4.0.bcr.1")
 bazel_dep(name = "platforms", version = "0.0.9")
-bazel_dep(name = "pybind11_bazel", version = "2.12.0")
 bazel_dep(name = "re2", version = "2023-09-01", repo_name = "com_googlesource_code_re2")
 bazel_dep(name = "riegeli", version = "0.0.0-20240606-973b6f0", repo_name = "com_google_riegeli")
 bazel_dep(name = "rules_cc", version = "0.0.9")
@@ -28,11 +29,11 @@ python.toolchain(
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip", dev_dependency = True)
 pip.parse(
-    hub_name = "pip_deps",
+    hub_name = "koladata_pip_deps",
     python_version = "3.11",
     requirements_lock = "//:requirements.txt",
 )
-use_repo(pip, "pip_deps")
+use_repo(pip, pip_deps = "koladata_pip_deps")
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 

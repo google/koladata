@@ -1,0 +1,70 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+edition = "2023";
+
+package koladata.functions.testing;
+
+option features.utf8_validation = NONE;
+option java_multiple_files = true;
+
+message MessageSet {
+  option message_set_wire_format = true;
+  extensions 1000 to max [verification = UNVERIFIED];
+}
+
+message MessageA {
+  string some_text = 1;
+  float some_float = 2;
+  repeated MessageB message_b_list = 3;
+  MessageSet message_set_extensions = 4;
+
+  extensions 1000 to max [verification = UNVERIFIED];
+}
+
+message MessageAExtension {
+  extend MessageA {
+    MessageAExtension message_a_extension = 1000;
+  }
+
+  extend MessageSet {
+    MessageAExtension message_set_extension = 1000;
+  }
+
+  int32 extra = 1;
+
+  extensions 1000 to max [verification = UNVERIFIED];
+}
+
+message MessageAExtensionExtension {
+  extend MessageAExtension {
+    MessageAExtensionExtension message_a_extension_extension = 1000;
+  }
+
+  int32 extra = 1;
+}
+
+message MessageB {
+  string text = 1;
+
+  extensions 1000 to max [verification = UNVERIFIED];
+}
+
+message MessageBExtension {
+  extend MessageB {
+    MessageBExtension message_b_extension = 1000;
+  }
+
+  int32 extra = 1;
+}
