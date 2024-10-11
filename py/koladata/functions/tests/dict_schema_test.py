@@ -38,6 +38,13 @@ class DictSchemaTest(absltest.TestCase):
         schema.get_attr('__values__'), schema_constants.INT32.with_db(db)
     )
 
+  def test_dict_schema_equivalent_to_schema_of_dict(self):
+    db = bag()
+    testing.assert_equal(
+        fns.dict({'a': 1}, db=db).get_schema(),
+        fns.dict_schema(schema_constants.TEXT, schema_constants.INT32, db),
+    )
+
   def test_no_databag(self):
     schema = fns.dict_schema(schema_constants.TEXT, schema_constants.INT32)
     testing.assert_equal(

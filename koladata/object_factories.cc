@@ -65,6 +65,9 @@ using ::koladata::internal::DataItem;
 using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::ObjectId;
 
+constexpr absl::string_view kListSchemaSeed = "__list_schema__";
+constexpr absl::string_view kDictSchemaSeed = "__dict_schema__";
+
 absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names) {
   if (std::find(attr_names.begin(), attr_names.end(), "schema") !=
       attr_names.end()) {
@@ -428,7 +431,7 @@ absl::StatusOr<internal::DataItem> CreateListSchemaItem(
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
   return db_mutable_impl.CreateUuSchemaFromFields(
-      "::koladata::::CreateListSchemaItem",
+      kListSchemaSeed,
       {"__items__"}, {item_schema.item()});
 }
 
@@ -442,7 +445,7 @@ absl::StatusOr<internal::DataItem> CreateDictSchemaItem(
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
   return db_mutable_impl.CreateUuSchemaFromFields(
-      "::koladata::::CreateDictSchemaItem", {"__keys__", "__values__"},
+      kDictSchemaSeed, {"__keys__", "__values__"},
       {key_schema.item(), value_schema.item()});
 }
 
@@ -959,18 +962,16 @@ absl::StatusOr<DataSlice> CreateSchema(
 
 absl::StatusOr<DataSlice> CreateListSchema(const DataBagPtr& db,
                                            const DataSlice& item_schema) {
-  ASSIGN_OR_RETURN(auto schema_item, CreateListSchemaItem(db, item_schema));
-  return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema),
-                           db);
+  return CreateUuSchema(db, kListSchemaSeed, {"__items__"}, {item_schema});
 }
 
 absl::StatusOr<DataSlice> CreateDictSchema(const DataBagPtr& db,
                                            const DataSlice& key_schema,
                                            const DataSlice& value_schema) {
-  ASSIGN_OR_RETURN(auto schema_item,
-                   CreateDictSchemaItem(db, key_schema, value_schema));
-  return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema),
-                           db);
+  RETURN_IF_ERROR(key_schema.VerifyIsSchema());
+  RETURN_IF_ERROR(schema::VerifyDictKeySchema(key_schema.item()));
+  return CreateUuSchema(db, kDictSchemaSeed, {"__keys__", "__values__"},
+                        {key_schema, value_schema});
 }
 
 absl::StatusOr<DataSlice> CreateDictLike(

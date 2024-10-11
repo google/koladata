@@ -277,11 +277,13 @@ absl::StatusOr<DataSlice> CreateSchema(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> schemas);
 
-// Returns a list schema from a given `item_schema`.
+// Returns a list schema from a given `item_schema`. Adopts `item_schema` into
+// `db`.
 absl::StatusOr<DataSlice> CreateListSchema(const DataBagPtr& db,
                                            const DataSlice& item_schema);
 
-// Returns a dict schema given `key_schema` and `value_schema`.
+// Returns a dict schema given `key_schema` and `value_schema`. Adopts
+// `key_schema` and `value_schema` into `db`.
 absl::StatusOr<DataSlice> CreateDictSchema(const DataBagPtr& db,
                                            const DataSlice& key_schema,
                                            const DataSlice& value_schema);

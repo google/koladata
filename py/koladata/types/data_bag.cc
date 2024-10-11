@@ -965,16 +965,13 @@ absl::Nullable<PyObject*> PyDataBag_list_schema(
   }
 
   auto db = UnsafeDataBagPtr(self);
-  AdoptionQueue adoption_queue;
   const DataSlice* item_schema =
       UnwrapDataSlice(args.pos_kw_values[0], "item_schema");
   if (item_schema == nullptr) {
     return nullptr;
   }
-  adoption_queue.Add(*item_schema);
   ASSIGN_OR_RETURN(DataSlice res, CreateListSchema(db, *item_schema),
                    SetKodaPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -1004,7 +1001,6 @@ absl::Nullable<PyObject*> PyDataBag_dict_schema(PyObject* self,
   }
 
   auto db = UnsafeDataBagPtr(self);
-  AdoptionQueue adoption_queue;
   const DataSlice* key_schema =
       UnwrapDataSlice(args.pos_kw_values[0], "key_schema");
   if (key_schema == nullptr) {
@@ -1015,12 +1011,9 @@ absl::Nullable<PyObject*> PyDataBag_dict_schema(PyObject* self,
   if (value_schema == nullptr) {
     return nullptr;
   }
-  adoption_queue.Add(*key_schema);
-  adoption_queue.Add(*value_schema);
   ASSIGN_OR_RETURN(DataSlice res,
                    CreateDictSchema(db, *key_schema, *value_schema),
                    SetKodaPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 

@@ -35,6 +35,13 @@ class ListSchemaTest(absltest.TestCase):
         schema.get_attr('__items__'), schema_constants.INT32.with_db(db)
     )
 
+  def test_list_schema_equivalent_to_schema_of_list(self):
+    db = bag()
+    testing.assert_equal(
+        fns.list([1, 2, 3], db=db).get_schema(),
+        fns.list_schema(schema_constants.INT32, db),
+    )
+
   def test_no_databag(self):
     schema = fns.list_schema(schema_constants.INT32)
     testing.assert_equal(
