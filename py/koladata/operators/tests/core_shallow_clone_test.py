@@ -14,9 +14,12 @@
 
 """Tests for kde.core.shallow_clone."""
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -41,6 +44,34 @@ QTYPES = frozenset([
 
 
 class CoreShallowCloneTest(parameterized.TestCase):
+
+  def test_objects(self):
+    db = data_bag.DataBag.empty()
+    y = db.obj(x=42)
+    x = db.obj(y=y)
+    result = expr_eval.eval(kde.shallow_clone(x))
+    testing.assert_equal(result.y.no_db(), y.no_db())
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape('object schema is missing for the DataItem')
+    ):
+      _ = result.y.x
+
+  def test_entities_simple(self):
+    db = data_bag.DataBag.empty()
+    y = db.new(x=42)
+    x = db.new(y=y)
+    result = expr_eval.eval(kde.shallow_clone(x))
+    testing.assert_equal(result.y.no_db(), y.no_db())
+    with self.assertRaisesRegex(ValueError, r'the attribute \'x\' is missing'):
+      _ = result.y.x
+
+  def test_entities(self):
+    db = data_bag.DataBag.empty()
+    y = db.new(x=42)
+    x = db.new(y=y)
+    result = expr_eval.eval(kde.shallow_clone(x))
+    testing.assert_equal(result.y.no_db(), y.no_db())
 
   @parameterized.product(
       noise_positioned_in_front=[True, False],

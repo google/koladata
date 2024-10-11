@@ -304,7 +304,6 @@ class CopyingProcessor {
       ASSIGN_OR_RETURN(old_schema_item, objects_tracker_->GetAttr(
                                             schema_item, kMappingAttrName));
       if (!old_schema_item.has_value()) {
-        // In case of Object slice we don't copy schemas in ShallowClone.
         return std::make_pair(schema_item, false);
       }
     } else {
@@ -497,6 +496,9 @@ class CopyingProcessor {
                       .schema = schema,
                       .schema_source = SchemaSource::kDataDatabag};
       if (schema.holds_value<ObjectId>()) {
+        if (is_shallow_clone_) {
+          ASSIGN_OR_RETURN(auto result_schema, ReflectSchema(schema));
+        }
         // TODO: group items with the same schema into slices.
         RETURN_IF_ERROR(ProcessEntitySlice(item_slice));
       } else if (schema == schema::kSchema) {

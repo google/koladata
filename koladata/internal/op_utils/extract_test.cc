@@ -516,7 +516,19 @@ TEST_P(ShallowCloneTest, ObjectsSlice) {
       {result_list0, {{schema::kSchemaAttr, list0_schema}}},
       {result_list1, {{schema::kSchemaAttr, list1_schema}}},
   };
+  TriplesT expected_schema_triples = {
+      {item_schema, {{"x", DataItem(schema::kInt32)}}},
+      {dict0_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kText)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
+      {dict1_schema,
+       {{schema::kDictKeysSchemaAttr, key_schema},
+        {schema::kDictValuesSchemaAttr, item_schema}}},
+      {list0_schema, {{schema::kListItemsSchemaAttr, item_schema}}},
+      {list1_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
   SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
