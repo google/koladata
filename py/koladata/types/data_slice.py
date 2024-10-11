@@ -208,8 +208,12 @@ def _follow(self) -> DataSlice:
 
 
 @DataSlice.add_method('clone')
-def _clone(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.clone, self, schema)
+def _clone(
+    self, schema: DataSlice = arolla.unspecified(), **overrides: Any
+) -> DataSlice:
+  return arolla.abc.aux_eval_op(
+      _op_impl_lookup.clone, self, schema, **overrides
+  )
 
 
 @DataSlice.add_method('extract')
@@ -217,9 +221,22 @@ def _extract(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.extract, self, schema)
 
 
+@DataSlice.add_method('shallow_clone')
+def _shallow_clone(
+    self, schema: DataSlice = arolla.unspecified(), **overrides: Any,
+) -> DataSlice:
+  return arolla.abc.aux_eval_op(
+      _op_impl_lookup.shallow_clone, self, schema, **overrides
+  )
+
+
 @DataSlice.add_method('deep_clone')
-def _deep_clone(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.deep_clone, self, schema)
+def _deep_clone(
+    self, schema: DataSlice = arolla.unspecified(), **overrides: Any
+) -> DataSlice:
+  return arolla.abc.aux_eval_op(
+      _op_impl_lookup.deep_clone, self, schema, **overrides
+  )
 
 
 @DataSlice.add_method('fork_db')

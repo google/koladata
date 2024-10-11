@@ -406,7 +406,7 @@ class DataSliceTest(parameterized.TestCase):
     ):
       x.fork_db()
 
-    db = data_bag.DataBag.empty()
+    db = bag()
     x = x.with_db(db)
 
     x1 = x.fork_db()
@@ -419,7 +419,7 @@ class DataSliceTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     testing.assert_equal(x, x.freeze())
 
-    db = data_bag.DataBag.empty()
+    db = bag()
     x = x.with_db(db)
     x1 = x.freeze()
     self.assertIsNot(x, x1)
@@ -428,9 +428,9 @@ class DataSliceTest(parameterized.TestCase):
     self.assertFalse(x1.db.is_mutable())
 
   def test_with_merged_bag(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = bag()
     x = db1.new(a=1)
-    db2 = data_bag.DataBag.empty()
+    db2 = bag()
     y = x.with_db(db2)
     y.set_attr('a', 2, update_schema=True)
     y.set_attr('b', 2, update_schema=True)
@@ -446,11 +446,11 @@ class DataSliceTest(parameterized.TestCase):
     testing.assert_equal(new_z.b.no_db(), ds(2))
 
   def test_enriched(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = bag()
     schema = db1.new_schema(a=schema_constants.INT32)
     x = db1.new(a=1, schema=schema)
 
-    db2 = data_bag.DataBag.empty()
+    db2 = bag()
     x = x.with_db(db2)
 
     x = x.enriched(db1)
@@ -466,11 +466,11 @@ class DataSliceTest(parameterized.TestCase):
   def test_updated(self):
     schema = fns.new_schema(a=schema_constants.INT32)
 
-    db1 = data_bag.DataBag.empty()
+    db1 = bag()
     db1.merge_inplace(schema.db)
     x = db1.new(a=1, schema=schema)
 
-    db2 = data_bag.DataBag.empty()
+    db2 = bag()
     db2.merge_inplace(schema.db)
     x.with_db(db2).a = 2
 
@@ -492,7 +492,7 @@ class DataSliceTest(parameterized.TestCase):
     ):
       x.ref()
 
-    db = data_bag.DataBag.empty()
+    db = bag()
     x = db.obj(x=x)
     testing.assert_equal(x.ref(), x.with_db(None))
 
@@ -2122,7 +2122,7 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
       pass_schema=[True, False],
   )
   def test_clone(self, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = bag()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
@@ -2140,11 +2140,18 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
         result.b.get_schema().no_db(), o.b.get_schema().no_db()
     )
 
+  def test_clone_with_overrides(self):
+    x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
+    res = x.clone(z=bag().list([12]), t=bag().obj(b=5))
+    testing.assert_equivalent(res.y.extract(), x.y.extract())
+    testing.assert_equal(res.z[:].no_db(), ds([12]))
+    testing.assert_equal(res.t.b.no_db(), ds(5))
+
   @parameterized.product(
       pass_schema=[True, False],
   )
   def test_extract(self, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = bag()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
@@ -2165,8 +2172,34 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
   @parameterized.product(
       pass_schema=[True, False],
   )
+  def test_shallow_clone(self, pass_schema):
+    db = bag()
+    b_slice = db.new(a=ds([1, None, 2]))
+    o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    if pass_schema:
+      result = o.shallow_clone(o.get_schema())
+    else:
+      result = o.shallow_clone()
+
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(result.no_db(), o.no_db())
+    testing.assert_equal(result.b.no_db(), o.b.no_db())
+    testing.assert_equal(result.c.no_db(), o.c.no_db())
+    with self.assertRaisesRegex(ValueError, 'attribute \'a\' is missing'):
+      _ = result.b.a
+
+  def test_shallow_clone_with_overrides(self):
+    x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
+    res = x.shallow_clone(z=bag().list([12]), t=bag().obj(b=5))
+    testing.assert_equivalent(res.y.no_db(), x.y.no_db())
+    testing.assert_equal(res.z[:].no_db(), ds([12]))
+    testing.assert_equal(res.t.b.no_db(), ds(5))
+
+  @parameterized.product(
+      pass_schema=[True, False],
+  )
   def test_deep_clone(self, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = bag()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
@@ -2188,6 +2221,13 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     testing.assert_equal(
         result.b.a.get_schema().no_db(), o.b.a.get_schema().no_db()
     )
+
+  def test_deep_clone_with_overrides(self):
+    x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
+    res = x.deep_clone(z=bag().list([12]), t=bag().obj(b=5))
+    testing.assert_equal(res.y.a.no_db(), ds(1))
+    testing.assert_equal(res.z[:].no_db(), ds([12]))
+    testing.assert_equal(res.t.b.no_db(), ds(5))
 
   def test_call(self):
     with self.assertRaisesRegex(
@@ -2667,7 +2707,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
   def test_is_mutable(self):
     x = ds(None)
     self.assertFalse(x.is_mutable())
-    x = x.with_db(data_bag.DataBag.empty())
+    x = x.with_db(bag())
     self.assertTrue(x.is_mutable())
     x = x.freeze()
     self.assertFalse(x.is_mutable())

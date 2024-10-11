@@ -14,29 +14,20 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
-DATA_SLICE = qtypes.DATA_SLICE
-
-
-QTYPES = frozenset([
-    (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE),
-])
 
 
 class CoreDeepCloneTest(parameterized.TestCase):
@@ -197,17 +188,35 @@ class CoreDeepCloneTest(parameterized.TestCase):
     result.a.with_db(expected_db).set_attr('c', result.a.c.no_db())
     self.assertTrue(result.db._exactly_equal(expected_db))
 
-  def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.core.deep_clone,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        QTYPES,
-    )
+  def test_with_overrides(self):
+    x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
+    res = kde.core.deep_clone(x, z=bag().list([12]), t=bag().obj(b=5))
+    res = expr_eval.eval(res)
+    testing.assert_equal(res.y.a.no_db(), ds(1))
+    testing.assert_equal(res.z[:].no_db(), ds([12]))
+    testing.assert_equal(res.t.b.no_db(), ds(5))
+
+  def test_with_schema_and_overrides(self):
+    s = bag().new_schema(x=schema_constants.INT32)
+    x = bag().obj(x=42, y='abc')
+    res = kde.core.deep_clone(x, schema=s, z=12)
+    res = expr_eval.eval(res)
+    testing.assert_equal(res.x.no_db(), ds(42))
+    testing.assert_equal(res.z.no_db(), ds(12))
+    with self.assertRaisesRegex(ValueError, 'attribute \'y\' is missing'):
+      _ = res.y
 
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.deep_clone(I.x)))
+
+  def test_alias(self):
+    self.assertTrue(optools.equiv_to_op(kde.core.deep_clone, kde.deep_clone))
+
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.core.deep_clone(I.x, schema=I.schema, a=I.y)),
+        'kde.core.deep_clone(I.x, I.schema, a=I.y)',
+    )
 
 
 if __name__ == '__main__':

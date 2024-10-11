@@ -48,11 +48,12 @@ QTYPES = frozenset([
 class CoreWithAttrsTest(parameterized.TestCase):
 
   def test_multi_attr_update(self):
-    o = fns.new(x=1)
+    o = fns.new(x=1, y='q')
     o1 = kde.core.with_attrs(o, x=2, a=1, b='p', c=fns.list([1, 2])).eval()
     self.assertNotEqual(o.db.fingerprint, o1.db.fingerprint)
     testing.assert_equal(o.x.no_db(), ds(1))
     testing.assert_equal(o1.x.no_db(), ds(2))
+    testing.assert_equal(o1.y.no_db(), ds('q'))
     testing.assert_equal(o1.a.no_db(), ds(1))
     testing.assert_equal(o1.b.no_db(), ds('p'))
     testing.assert_equal(o1.c[:].no_db(), ds([1, 2]))

@@ -392,6 +392,25 @@ class DataSliceViewTest(parameterized.TestCase):
         kde.expand_to(C.x, C.target, ndim=C.ndim),
     )
 
+  def test_extract(self):
+    testing.assert_equal(C.x.extract(), kde.extract(C.x))
+
+  def test_clone(self):
+    testing.assert_equal(
+        C.x.clone(C.schema, a=C.a), kde.clone(C.x, C.schema, a=C.a)
+    )
+
+  def test_shallow_clone(self):
+    testing.assert_equal(
+        C.x.shallow_clone(C.schema, a=C.a),
+        kde.shallow_clone(C.x, C.schema, a=C.a)
+    )
+
+  def test_deep_clone(self):
+    testing.assert_equal(
+        C.x.deep_clone(C.schema, a=C.a), kde.deep_clone(C.x, C.schema, a=C.a)
+    )
+
   def test_list_size(self):
     testing.assert_equal(C.x.list_size(), kde.list_size(C.x))
 

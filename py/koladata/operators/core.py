@@ -1844,25 +1844,33 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
 @optools.as_backend_operator(
     'kde.core._shallow_clone',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.obj),
         qtype_utils.expect_data_slice(P.schema),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _shallow_clone(ds, schema):  # pylint: disable=unused-argument
+def _shallow_clone(obj, schema):  # pylint: disable=unused-argument
   """Creates a slice with a shallow clones of provided objects in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.shallow_clone'])
+@optools.add_to_registry(
+    aliases=['kde.shallow_clone'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_lambda_operator(
     'kde.core.shallow_clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.obj),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_kwargs(P.overrides),
     ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def shallow_clone(obj, schema=arolla.unspecified()):
+def shallow_clone(
+    obj=py_boxing.positional_only(),
+    schema=arolla.unspecified(),
+    overrides=py_boxing.var_keyword(),
+):  # pylint: disable=g-doc-args
   """Creates a slice with a shallow copy of the given slice and nothing else.
 
   The objects themselves get new ItemIds and their top-level attributes are
@@ -1879,38 +1887,58 @@ def shallow_clone(obj, schema=arolla.unspecified()):
     schema: The schema to resolve attributes, and also to assign the schema to
       the resulting object. If not specified, will use the schema of the 'obj'
       DataSlice.
+    **overrides: attribute overrides.
 
   Returns:
     A copy of the object with new ids where all top-level attributes are copied
     by reference.
   """
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
-  return _shallow_clone(obj, schema)
+  return arolla.types.DispatchOperator(
+      'obj, schema, overrides',
+      overrides_case=arolla.types.DispatchCase(
+          arolla.abc.bind_op(
+              with_attrs,
+              _shallow_clone(P.obj, P.schema),
+              P.overrides,
+          ),
+          condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
+      ),
+      default=_shallow_clone(P.obj, P.schema),
+  )(obj, schema, overrides)
 
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._clone',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.obj),
         qtype_utils.expect_data_slice(P.schema),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _clone(ds, schema):
+def _clone(obj, schema):
   """Creates a slice with a clones of provided objects in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.clone'])
+@optools.add_to_registry(
+    aliases=['kde.clone'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_lambda_operator(
     'kde.core.clone',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.obj),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_kwargs(P.overrides),
     ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def clone(ds, schema=arolla.unspecified()):
+def clone(
+    obj=py_boxing.positional_only(),
+    schema=arolla.unspecified(),
+    overrides=py_boxing.var_keyword(),
+):  # pylint: disable=g-doc-args
   """Creates a slice with a shallow copy of the given slice.
 
   The objects themselves and their top-level attributes are cloned (with new
@@ -1923,42 +1951,62 @@ def clone(ds, schema=arolla.unspecified()):
   not references to one clone.
 
   Args:
-    ds: The slice to copy.
+    obj: The slice to copy.
     schema: The schema to resolve attributes, and also to assign the schema to
       the resulting object. If not specified, will use the schema of the 'obj'
       DataSlice.
+    **overrides: attribute overrides.
 
   Returns:
     A copy of the object where all top-level attributes are cloned (new ids) and
     all of the rest extracted.
   """
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(ds))
-  return _clone(ds, schema)
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
+  return arolla.types.DispatchOperator(
+      'obj, schema, overrides',
+      overrides_case=arolla.types.DispatchCase(
+          arolla.abc.bind_op(
+              with_attrs,
+              _clone(P.obj, P.schema),
+              P.overrides,
+          ),
+          condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
+      ),
+      default=_clone(P.obj, P.schema),
+  )(obj, schema, overrides)
 
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._deep_clone',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.obj),
         qtype_utils.expect_data_slice(P.schema),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _deep_clone(ds, schema):  # pylint: disable=unused-argument
+def _deep_clone(obj, schema):  # pylint: disable=unused-argument
   """Creates a slice with a (deep) copy of the given slice."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.deep_clone'])
+@optools.add_to_registry(
+    aliases=['kde.deep_clone'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_lambda_operator(
     'kde.core.deep_clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.obj),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_kwargs(P.overrides),
     ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def deep_clone(obj, schema=arolla.unspecified()):
+def deep_clone(
+    obj=py_boxing.positional_only(),
+    schema=arolla.unspecified(),
+    overrides=py_boxing.var_keyword(),
+):  # pylint: disable=g-doc-args
   """Creates a slice with a (deep) copy of the given slice.
 
   The objects themselves and all their attributes including both top-level and
@@ -1975,6 +2023,7 @@ def deep_clone(obj, schema=arolla.unspecified()):
     schema: The schema to use to find attributes to clone, and also to assign
       the schema to the resulting object. If not specified, will use the schema
       of the 'obj' DataSlice.
+    **overrides: attribute overrides.
 
   Returns:
     A (deep) copy of the given object.
@@ -1982,7 +2031,18 @@ def deep_clone(obj, schema=arolla.unspecified()):
     uuobjs will be copied as normal objects.
   """
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
-  return _deep_clone(obj, schema)
+  return arolla.types.DispatchOperator(
+      'obj, schema, overrides',
+      overrides_case=arolla.types.DispatchCase(
+          arolla.abc.bind_op(
+              with_attrs,
+              _clone(P.obj, P.schema),
+              P.overrides,
+          ),
+          condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
+      ),
+      default=_deep_clone(P.obj, P.schema),
+  )(obj, schema, overrides)
 
 
 @optools.add_to_registry(
