@@ -17,7 +17,6 @@
 
 #include <cstdint>
 #include <functional>
-#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -54,6 +53,19 @@ absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataSliceImpl>> values,
     UuidType uuid_type = UuidType::kDefault);
+
+// Creates Uuid object for a list, based on values of items.
+DataItem CreateListUuidFromItemsAndFields(
+    absl::string_view seed, const DataSliceImpl& list_items,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> values);
+
+// Creates Uuid object for a dict, based on values of keys and values.
+DataItem CreateDictUuidFromKeysValuesAndFields(
+    absl::string_view seed, const DataSliceImpl& dict_keys,
+    const DataSliceImpl& dict_values,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> values);
 
 // Creates a Uuid object for a schema, based on names and values of the schemas.
 // Does not check that the DataItems are schemas.

@@ -96,24 +96,29 @@ ObjectId CreateUuidObject(arolla::Fingerprint fingerprint, UuidType uuid_type) {
   return CreateUuidObjectWithMetadata(std::move(fingerprint), flags);
 }
 
+arolla::Fingerprint ComputeFingerprintFromFields(
+    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> values) {
+  DCHECK_EQ(attr_names.size(), values.size());
+  std::vector<std::pair<absl::string_view, arolla::Fingerprint>> fingerprints;
+  fingerprints.reserve(attr_names.size() + 1);
+  for (int64_t i = 0; i < attr_names.size(); ++i) {
+    fingerprints.emplace_back(attr_names[i],
+                              values[i].get().StableFingerprint());
+  }
+  std::sort(fingerprints.begin(), fingerprints.end(),
+            [](const auto& x, const auto& y) { return x.first < y.first; });
+
+  return ComputeFingerPrintFromKwargs(seed, absl::MakeSpan(fingerprints));
+}
+
 DataItem CreateUuidFromFields(
     absl::string_view seed,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataItem>> values,
     UuidType uuid_type) {
-  DCHECK_EQ(attr_names.size(), values.size());
-  std::vector<std::pair<absl::string_view, arolla::Fingerprint>> fingerprints;
-  fingerprints.reserve(attr_names.size() + 1);
-  for (int64_t i = 0; i < attr_names.size(); ++i) {
-    fingerprints.emplace_back(
-        attr_names[i], values[i].get().StableFingerprint());
-  }
-  std::sort(fingerprints.begin(), fingerprints.end(),
-            [](const auto& x, const auto& y) { return x.first < y.first; });
-
   return DataItem(CreateUuidObject(
-      ComputeFingerPrintFromKwargs(seed, absl::MakeSpan(fingerprints)),
-      uuid_type));
+      ComputeFingerprintFromFields(seed, attr_names, values), uuid_type));
 }
 
 absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
@@ -159,6 +164,48 @@ absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
   return DataSliceImpl::CreateObjectsDataSlice(
       ObjectIdArray{std::move(values_builder).Build()},
       AllocationIdSet(/*contains_small_allocation_id=*/true));
+}
+
+DataItem CreateListUuidFromItemsAndFields(
+    absl::string_view seed, const DataSliceImpl& list_items,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> values) {
+  StableFingerprintHasher hasher(absl::StrCat("list_uuid", seed));
+  hasher.Combine(ComputeFingerprintFromFields(seed, attr_names, values));
+  hasher.Combine(list_items.size());
+  for (const auto& item : list_items) {
+    hasher.Combine(item.StableFingerprint());
+  }
+  return DataItem(
+      CreateUuidObject(std::move(hasher).Finish(), UuidType::kList));
+}
+
+DataItem CreateDictUuidFromKeysValuesAndFields(
+    absl::string_view seed, const DataSliceImpl& dict_keys,
+    const DataSliceImpl& dict_values,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const std::reference_wrapper<const DataItem>> values) {
+  DCHECK_EQ(dict_keys.size(), dict_values.size());
+  StableFingerprintHasher hasher(absl::StrCat("dict_uuid", seed));
+  hasher.Combine(ComputeFingerprintFromFields(seed, attr_names, values));
+  hasher.Combine(dict_keys.size());
+  std::vector<std::pair<arolla::Fingerprint, arolla::Fingerprint>>
+      items_fingerprints;
+  items_fingerprints.reserve(dict_keys.size());
+  for (int64_t i = 0; i < dict_keys.size(); ++i) {
+    items_fingerprints.emplace_back(dict_keys[i].StableFingerprint(),
+                                    dict_values[i].StableFingerprint());
+  }
+  // Sort (key, value) pairs by key fingerprint, to get a deterministic uuid.
+  std::sort(items_fingerprints.begin(), items_fingerprints.end(),
+            [](const auto& x, const auto& y) {
+              return x.first.value < y.first.value;
+            });
+  for (const auto& [attr, value] : items_fingerprints) {
+    hasher.Combine(attr, value);
+  }
+  return DataItem(
+      CreateUuidObject(std::move(hasher).Finish(), UuidType::kDict));
 }
 
 DataItem CreateSchemaUuidFromFields(absl::string_view seed,
