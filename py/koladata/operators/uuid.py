@@ -39,8 +39,43 @@ constraints = arolla.optools.constraints
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def uuid(seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()):
+def uuid(seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
+
+  Args:
+    seed: text seed for the uuid computation.
+    kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+      values must be alignable.
+
+  Returns:
+    DataSlice of Uuids. The i-th uuid is computed by taking the i-th (aligned)
+    item from each kwarg value.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kde.uuid_for_list'], repr_fn=op_repr.full_signature_repr
+)
+@optools.as_backend_operator(
+    'kde.core.uuid_for_list',
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.seed),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def uuid_for_list(
+    seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()
+):  # pylint: disable=unused-argument
+  """Creates a DataSlice whose items are Fingerprints identifying arguments.
+
+  To be used for keying list items.
+
+  e.g.
+
+  kd.list([1, 2, 3], itemid=kd.uuid_for_list(seed='seed', a=ds(1)))
 
   Args:
     seed: text seed for the uuid computation.

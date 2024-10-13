@@ -260,6 +260,15 @@ class UuidOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// kde.core.uuid_for_list operator.
+// Creates a DataSlice whose items are Fingerprints identifying arguments, used
+// for keying ListItems.
+class UuidForListOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 // kde.core.uuobj operator.
 // Creates a DataSlice of UuObjects.
 class UuObjOperatorFamily : public arolla::OperatorFamily {

@@ -118,6 +118,8 @@ OPERATOR("kde.core.unique", Unique);
 OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uu", std::make_unique<UuOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uuid", std::make_unique<UuidOperatorFamily>());
+OPERATOR_FAMILY("kde.core.uuid_for_list",
+                std::make_unique<UuidForListOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uuobj", std::make_unique<UuObjOperatorFamily>());
 OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());

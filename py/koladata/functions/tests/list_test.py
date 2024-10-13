@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for list."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
+from koladata import kd
 from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -39,6 +38,13 @@ class ListTest(parameterized.TestCase):
     testing.assert_equal(l[:], ds([]).with_db(l.db))
     l.append(1)
     testing.assert_equal(l[:], ds([1], schema_constants.OBJECT).with_db(l.db))
+
+  def test_list_with_uuid(self):
+    db = fns.bag()
+    testing.assert_equal(
+        fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1)), db=db),
+        fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1)), db=db),
+    )
 
   def test_item_with_values(self):
     l = fns.list([1, 2, 3])

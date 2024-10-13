@@ -40,6 +40,7 @@ py_test(
     name = "list_test",
     srcs = ["list_test.py"],
     deps = [
+        "//py/koladata:kd",
         "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",

@@ -1067,6 +1067,40 @@ class UuidOperator : public arolla::QExprOperator {
   }
 };
 
+class UuidForListOperator : public arolla::QExprOperator {
+ public:
+  explicit UuidForListOperator(absl::Span<const arolla::QTypePtr> input_types)
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
+         named_tuple_slot = input_slots[1],
+         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          const auto& seed_data_slice = frame.Get(seed_slot);
+          if (seed_data_slice.GetShape().rank() != 0 ||
+              !seed_data_slice.item().holds_value<arolla::Text>()) {
+            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
+                "requires seed to be DataItem holding Text, got %s",
+                arolla::Repr(seed_data_slice))));
+            return;
+          }
+          auto seed = seed_data_slice.item().value<arolla::Text>();
+          auto attr_names = GetAttrNames(named_tuple_slot);
+          auto values = GetValueDataSlices(named_tuple_slot, frame);
+          ASSIGN_OR_RETURN(
+              auto result,
+              koladata::CreateListUuidFromFields(seed, attr_names, values),
+              ctx->set_status(std::move(_)));
+          frame.Set(output_slot, std::move(result));
+        });
+  }
+};
+
 class UuObjOperator : public arolla::QExprOperator {
  public:
   explicit UuObjOperator(absl::Span<const arolla::QTypePtr> input_types)
@@ -1940,6 +1974,22 @@ absl::StatusOr<arolla::OperatorPtr> UuidOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<UuidOperator>(input_types), input_types, output_type);
+}
+
+absl::StatusOr<arolla::OperatorPtr> UuidForListOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires exactly 2 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires first argument to be DataSlice");
+  }
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<UuidForListOperator>(input_types), input_types,
+      output_type);
 }
 
 absl::StatusOr<arolla::OperatorPtr> UuObjOperatorFamily::DoGetOperator(
