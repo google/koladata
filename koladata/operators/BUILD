@@ -105,6 +105,7 @@ cc_library(
         "//koladata/internal:ellipsis",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
+        "//koladata/internal/op_utils:agg_uuid",
         "//koladata/internal/op_utils:at",
         "//koladata/internal/op_utils:collapse",
         "//koladata/internal/op_utils:deep_clone",

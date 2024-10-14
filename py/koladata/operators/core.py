@@ -40,6 +40,8 @@ constraints = arolla.optools.constraints
 # Implemented in schema.py to avoid a dependency cycle.
 collapse = schema_ops._collapse  # pylint: disable=protected-access
 
+_AGG_UUID_MISSING_VALUE_REPLACEMENT = '__empty_input_to_uuid__'
+
 
 @arolla.optools.add_to_registry()
 @arolla.optools.as_lambda_operator('kde.core._add_impl')
@@ -1214,6 +1216,43 @@ def agg_count(x, ndim=arolla.unspecified()):
   return arolla_bridge.to_data_slice(
       flat_res, M.jagged.remove_dims(shape, from_dim=-1)
   )
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.core._agg_uuid',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _agg_uuid(x):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.agg_uuid'])
+@optools.as_lambda_operator(
+    'kde.core.agg_uuid',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
+    ],
+)
+def agg_uuid(x, ndim=arolla.unspecified()):
+  """Computes aggregated uuid of elements over the last `ndim` dimensions.
+
+  Args:
+    x: A DataSlice.
+    ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
+      rank(x).
+
+  Returns:
+    DataSlice with that has `rank = rank - ndim` and shape: `shape =
+    shape[:-ndim]`.
+  """
+  x = jagged_shape_ops.flatten_last_ndim(x, ndim)
+  x = schema_ops.to_any(x) | _AGG_UUID_MISSING_VALUE_REPLACEMENT
+  return _agg_uuid(x)
 
 
 @optools.add_to_registry(aliases=['kde.cum_count'])

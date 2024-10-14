@@ -59,6 +59,7 @@
 #include "koladata/internal/op_utils/reverse.h"
 #include "koladata/internal/op_utils/reverse_select.h"
 #include "koladata/internal/op_utils/select.h"
+#include "koladata/internal/op_utils/agg_uuid.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/arolla_bridge.h"
@@ -1859,6 +1860,21 @@ absl::StatusOr<DataSlice> At(const DataSlice& x, const DataSlice& indices) {
     return AtImpl(x, expanded_indices);
   }
 }
+
+
+absl::StatusOr<DataSlice> AggUuid(const DataSlice& x) {
+  auto rank = x.GetShape().rank();
+  if (rank == 0) {
+      return absl::InvalidArgumentError("Can't take agg_uuid over a DataItem");
+  }
+  internal::DataItem schema(schema::kItemId);
+  auto shape = x.GetShape();
+  ASSIGN_OR_RETURN(auto res, internal::AggUuidOp(x.slice(), shape));
+  return DataSlice::Create(
+      std::move(res), shape.RemoveDims(rank - 1), std::move(schema),
+      /*db=*/nullptr);
+}
+
 
 absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                     const DataSlice& keys_from,
