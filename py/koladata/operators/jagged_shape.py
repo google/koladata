@@ -71,6 +71,47 @@ def create_shape(*dimensions):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(view=view.BasicKodaView)
+@optools.as_backend_operator(
+    'kde.shapes._create_with_size',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.result_size),
+        _expect_slices_or_edges(P.dimensions),
+    ],
+    qtype_inference_expr=qtypes.JAGGED_SHAPE,
+    aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
+)
+def _create_shape_with_size(result_size, *dimensions):  # pylint: disable=unused-argument
+  """Returns a JaggedShape from the provided dimensions and size.
+
+  It supports a single placeholder dimension argument denoted as `-1`, for which
+  its true value is inferred from the provided `size` argument and remaining
+  `dimensions`. The resulting dimension must be a uniform dimension, i.e. all
+  parent elements must have the same child size.
+
+  Args:
+    result_size: The size of the resulting JaggedShape.
+    *dimensions: A combination of Edges and DataSlices representing the
+      dimensions of the JaggedShape. Edges are used as is, while DataSlices are
+      treated as sizes. DataItems (of ints) are interpreted as uniform
+      dimensions which have the same child size for all parent elements.
+      DataSlices (of ints) are interpreted as a list of sizes, where `ds[i]` is
+      the child size of parent `i`. Only rank-0 or rank-1 int DataSlices are
+      supported.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.shapes.size',
+    qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
+)
+def size(shape):
+  """Returns the total number of elements the jagged shape represents."""
+  return arolla_bridge.to_data_slice(M.jagged.size(shape))
+
+
 @optools.add_to_registry(aliases=['kde.get_shape'], view=view.BasicKodaView)
 @optools.as_backend_operator(
     'kde.shapes.get_shape',
@@ -87,19 +128,47 @@ def get_shape(x):  # pylint: disable=unused-argument
 def reshape(x, shape):
   """Returns a DataSlice with the provided shape.
 
+  Examples:
+    x = kd.slice([1, 2, 3, 4])
+
+    # Using a shape.
+    kd.reshape(x, kd.shapes.create(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
+
+    # Using a tuple of sizes.
+    kd.reshape(x, kd.make_tuple(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
+
+    # Using a tuple of sizes and a placeholder dimension.
+    kd.reshape(x, kd.make_tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
+
+    # Using a tuple of sizes and a placeholder dimension.
+    kd.reshape(x, kd.make_tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
+
+    # Using a tuple of slices and a placeholder dimension.
+    kd.reshape(x, kd.make_tuple(-1, kd.slice([3, 1])))
+        # -> kd.slice([[1, 2, 3], [4]])
+
+    # Reshaping a scalar.
+    kd.reshape(1, kd.make_tuple(1, 1))  # -> kd.slice([[1]])
+
+    # Reshaping an empty slice.
+    kd.reshape(kd.slice([]), kd.make_tuple(2, 0))  # -> kd.slice([[], []])
+
   Args:
     x: a DataSlice.
     shape: a JaggedShape or a tuple of dimensions that forms a shape through
-      `kd.shapes.create`.
+      `kd.shapes.create`, with additional support for a `-1` placeholder
+      dimension.
   """
   to_shape = arolla.types.DispatchOperator(
-      'value',
+      'x, value',
       shape_case=arolla.types.DispatchCase(
           P.value, condition=P.value == qtypes.JAGGED_SHAPE
       ),
-      default=M.core.apply_varargs(create_shape, P.value),
+      default=M.core.apply_varargs(
+          _create_shape_with_size, size(get_shape(P.x)), P.value
+      ),
   )
-  return _reshape(x, to_shape(shape))
+  return _reshape(x, to_shape(x, shape))
 
 
 @optools.add_to_registry(view=view.BasicKodaView)
@@ -405,16 +474,6 @@ def flatten(
   return reshape(
       x, M.jagged.flatten(get_shape(x), to_int64(from_dim), to_int64(to_dim))
   )
-
-
-@optools.add_to_registry()
-@optools.as_lambda_operator(
-    'kde.shapes.size',
-    qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
-)
-def size(shape):
-  """Returns the total number of elements the jagged shape represents."""
-  return arolla_bridge.to_data_slice(M.jagged.size(shape))
 
 
 @optools.add_to_registry(aliases=['kde.shapes.ndim'])

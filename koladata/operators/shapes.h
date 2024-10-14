@@ -51,6 +51,13 @@ class JaggedShapeCreateOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// kde.shapes._create_with_size operator.
+class JaggedShapeCreateWithSizeOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_SHAPES_H_

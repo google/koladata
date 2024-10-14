@@ -178,6 +178,8 @@ OPERATOR_FAMILY("kde.schema.uu_schema",
                 std::make_unique<UuSchemaOperatorFamily>());
 OPERATOR("kde.schema.with_schema", WithSchema);
 //
+OPERATOR_FAMILY("kde.shapes._create_with_size",
+                std::make_unique<JaggedShapeCreateWithSizeOperatorFamily>());
 OPERATOR("kde.shapes._expand_to_shape", ExpandToShape);
 OPERATOR("kde.shapes._reshape", Reshape);
 OPERATOR_FAMILY("kde.shapes.create",

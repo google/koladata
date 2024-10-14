@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.shapes.reshape."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -58,6 +56,9 @@ class ShapesReshapeTest(parameterized.TestCase):
       ),
       # Dimension tuples.
       (ds(1), arolla.tuple(ds([1])), ds([1])),
+      (ds([]), arolla.tuple(ds(0), ds(0)), ds([]).repeat(0)),
+      (ds([]), arolla.tuple(ds(0), ds(3)), ds([]).repeat(3)),
+      (ds([]), arolla.tuple(ds(3), ds(0)), ds([[], [], []])),
       (
           ds([1, 2, 3]),
           arolla.tuple(
@@ -65,10 +66,56 @@ class ShapesReshapeTest(parameterized.TestCase):
           ),
           ds([[[1, 2], [3]]]),
       ),
+      # -1 dimension.
+      (ds(1), arolla.tuple(ds(-1)), ds([1])),
+      (ds([]), arolla.tuple(ds(0), ds(-1)), ds([]).repeat(0)),
+      (ds([]), arolla.tuple(ds(0), ds(-1), ds(2)), ds([]).repeat(0).repeat(2)),
+      (ds([]), arolla.tuple(ds(3), ds(-1)), ds([[], [], []])),
+      (
+          # Original shape:    ([2], [2, 1], [3, 2, 1], [1, 2, 3, 4, 5, 6])
+          # Transformed shape: ([2], [2, 1], [2, 2, 2], [1, 2, 3, 4, 5, 6])
+          ds([
+              [[[1], [1, 2], [1, 2, 3]], [[1, 2, 3, 4], [1, 2, 3, 4, 5]]],
+              [[[1, 2, 3, 4, 5, 6]]],
+          ]),
+          arolla.tuple(ds([2]), ds([2, 1]), ds(-1), ds([1, 2, 3, 4, 5, 6])),
+          ds([
+              [[[1], [1, 2]], [[1, 2, 3], [1, 2, 3, 4]]],
+              [[[1, 2, 3, 4, 5], [1, 2, 3, 4, 5, 6]]],
+          ]),
+      ),
+      (ds([1, 2, 3, 4]), arolla.tuple(ds(2), ds(-1)), ds([[1, 2], [3, 4]])),
+      (ds([1, 2, 3, 4]), arolla.tuple(ds(-1), ds(2)), ds([[1, 2], [3, 4]])),
   )
   def test_eval(self, x, shape, expected_output):
     res = expr_eval.eval(kde.shapes.reshape(I.x, I.shape), x=x, shape=shape)
     testing.assert_equal(res, expected_output)
+
+  def test_unresolvable_placeholder_dim_exception(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'parent_size=3 does not divide child_size=2, so the placeholder'
+        ' dimension at index 1 cannot be resolved',
+    ):
+      expr_eval.eval(
+          kde.shapes.reshape(ds([1, 2, 3]), arolla.tuple(ds([2]), ds(-1)))
+      )
+
+  def test_multiple_placeholder_dims_exception(self):
+    with self.assertRaisesRegex(
+        ValueError, 'only one dimension can be a placeholder'
+    ):
+      expr_eval.eval(
+          kde.shapes.reshape(ds(1), arolla.tuple(ds(-1), ds(-1)))
+      )
+
+  def test_incompatible_dimension_specification_exception(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'invalid dimension specification - the resulting shape size=3 != the'
+        ' expected size=2',
+    ):
+      expr_eval.eval(kde.shapes.reshape(ds([1, 2]), arolla.tuple(ds(3))))
 
   def test_incompatible_shape_exception(self):
     with self.assertRaisesRegex(
