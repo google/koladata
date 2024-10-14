@@ -35,6 +35,7 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/fingerprint.h"
 
 namespace koladata::internal {
 namespace {
@@ -196,14 +197,14 @@ TEST_P(DeepCloneTest, DeepEntitySlice) {
                                    {GetFallbackDb(db).get()}));
 
   EXPECT_EQ(result_slice.size(), 3);
-  EXPECT_NE(result_schema, schema_a);
+  EXPECT_EQ(result_schema, schema_a);
   EXPECT_NE(result_slice[0], a0);
   EXPECT_NE(result_slice[1], a1);
   EXPECT_NE(result_slice[2], a2);
   ASSERT_OK_AND_ASSIGN(auto result_b, result_db->GetAttr(result_slice, "b"));
   ASSERT_OK_AND_ASSIGN(auto result_b_schema,
                        result_db->GetSchemaAttr(result_schema, "b"));
-  EXPECT_NE(result_b_schema, schema_b);
+  EXPECT_EQ(result_b_schema, schema_b);
   EXPECT_NE(result_b[0], b0);
   EXPECT_NE(result_b[1], b1);
   EXPECT_NE(result_b[2], b2);
@@ -248,7 +249,7 @@ TEST_P(DeepCloneTest, ShallowListsSlice) {
       DeepCloneOp(result_db.get())(lists, list_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
-  EXPECT_NE(result_schema, list_schema);
+  EXPECT_EQ(result_schema, list_schema);
   EXPECT_NE(result_slice[0], lists[0]);
   EXPECT_NE(result_slice[1], lists[1]);
   EXPECT_NE(result_slice[2], lists[2]);
@@ -293,7 +294,7 @@ TEST_P(DeepCloneTest, DeepListsSlice) {
       DeepCloneOp(result_db.get())(lists, list_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
-  EXPECT_NE(result_schema, list_schema);
+  EXPECT_EQ(result_schema, list_schema);
   EXPECT_NE(result_slice[0], lists[0]);
   EXPECT_NE(result_slice[1], lists[1]);
   EXPECT_NE(result_slice[2], lists[2]);
@@ -303,7 +304,7 @@ TEST_P(DeepCloneTest, DeepListsSlice) {
   ASSERT_OK_AND_ASSIGN(
       auto result_item_schema,
       result_db->GetSchemaAttr(result_schema, schema::kListItemsSchemaAttr));
-  EXPECT_NE(result_item_schema, item_schema);
+  EXPECT_EQ(result_item_schema, item_schema);
   ASSERT_OK_AND_ASSIGN((auto [result_values, _]),
                        result_db->ExplodeLists(result_slice));
   EXPECT_EQ(result_values.present_count(), values.present_count());
@@ -350,7 +351,7 @@ TEST_P(DeepCloneTest, ShallowDictsSlice) {
       DeepCloneOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
-  EXPECT_NE(result_schema, dict_schema);
+  EXPECT_EQ(result_schema, dict_schema);
   EXPECT_NE(result_slice[0], dicts[0]);
   EXPECT_NE(result_slice[1], dicts[1]);
   EXPECT_NE(result_slice[2], dicts[2]);
@@ -411,7 +412,7 @@ TEST_P(DeepCloneTest, DeepDictsSlice) {
       DeepCloneOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
-  EXPECT_NE(result_schema, dict_schema);
+  EXPECT_EQ(result_schema, dict_schema);
   EXPECT_NE(result_slice[0], dicts[0]);
   EXPECT_NE(result_slice[1], dicts[1]);
   EXPECT_NE(result_slice[2], dicts[2]);
@@ -575,12 +576,12 @@ TEST_P(DeepCloneTest, ObjectsSlice) {
   ASSERT_OK_AND_ASSIGN(auto result_key_schema,
                        result_db->GetSchemaAttr(result_dict1_schema,
                                                 schema::kDictKeysSchemaAttr));
-  EXPECT_NE(result_dict0_schema, dict0_schema);
-  EXPECT_NE(result_dict1_schema, dict1_schema);
-  EXPECT_NE(result_list0_schema, list0_schema);
-  EXPECT_NE(result_list0_schema, list1_schema);
-  EXPECT_NE(result_item_schema, item_schema);
-  EXPECT_NE(result_key_schema, key_schema);
+  EXPECT_EQ(result_dict0_schema, dict0_schema);
+  EXPECT_EQ(result_dict1_schema, dict1_schema);
+  EXPECT_EQ(result_list0_schema, list0_schema);
+  EXPECT_EQ(result_list1_schema, list1_schema);
+  EXPECT_EQ(result_item_schema, item_schema);
+  EXPECT_EQ(result_key_schema, key_schema);
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(expected_db->SetInDict(result_dict0, DataItem("a"), DataItem(1)));
   ASSERT_OK(expected_db->SetInDict(result_dict1, result_a2, result_a3));
@@ -624,13 +625,107 @@ TEST_P(DeepCloneTest, ObjectsSlice) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(DeepCloneTest, ImplicitSchema) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto schema0 =
+      DataItem(CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          AllocateSchema().value<ObjectId>(), arolla::Fingerprint(57)));
+  auto schema1 =
+      DataItem(CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          AllocateSchema().value<ObjectId>(), arolla::Fingerprint(58)));
+  auto schema2 =
+      DataItem(CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          AllocateSchema().value<ObjectId>(), arolla::Fingerprint(59)));
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+
+  TriplesT data_triples = {{a0,
+                            {{schema::kSchemaAttr, schema0},
+                             {"x", DataItem(1)},
+                             {"y", DataItem(4)}}},
+                           {a1,
+                            {{schema::kSchemaAttr, schema1},
+                             {"x", DataItem(2)},
+                             {"y", DataItem(5)}}},
+                           {a2,
+                            {{schema::kSchemaAttr, schema2},
+                             {"x", DataItem(3)},
+                             {"y", DataItem(6)}}}};
+  TriplesT schema_triples = {
+      {schema0,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
+      {schema1,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
+      {schema2,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      (auto [result_slice, result_schema]),
+      DeepCloneOp(result_db.get())(obj_ids, DataItem(schema::kObject),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+  EXPECT_EQ(result_slice.size(), 3);
+  EXPECT_NE(result_slice[0], a0);
+  EXPECT_NE(result_slice[1], a1);
+  EXPECT_NE(result_slice[2], a2);
+  EXPECT_EQ(result_schema, schema::kObject);
+  ASSERT_OK_AND_ASSIGN(
+      auto result_schema0,
+      result_db->GetAttr(result_slice[0], schema::kSchemaAttr));
+  ASSERT_OK_AND_ASSIGN(
+      auto result_schema1,
+      result_db->GetAttr(result_slice[1], schema::kSchemaAttr));
+  ASSERT_OK_AND_ASSIGN(
+      auto result_schema2,
+      result_db->GetAttr(result_slice[2], schema::kSchemaAttr));
+  EXPECT_NE(result_schema0, schema0);
+  EXPECT_NE(result_schema1, schema1);
+  EXPECT_NE(result_schema2, schema2);
+  EXPECT_TRUE(result_schema0.holds_value<ObjectId>());
+  EXPECT_TRUE(result_schema1.holds_value<ObjectId>());
+  EXPECT_TRUE(result_schema2.holds_value<ObjectId>());
+  EXPECT_NE(result_schema0, result_schema1);
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_data_triples = {{result_slice[0],
+                                     {{schema::kSchemaAttr, result_schema0},
+                                      {"x", DataItem(1)},
+                                      {"y", DataItem(4)}}},
+                                    {result_slice[1],
+                                     {{schema::kSchemaAttr, result_schema1},
+                                      {"x", DataItem(2)},
+                                      {"y", DataItem(5)}}},
+                                    {result_slice[2],
+                                     {{schema::kSchemaAttr, result_schema2},
+                                      {"x", DataItem(3)},
+                                      {"y", DataItem(6)}}}};
+  TriplesT expected_schema_triples = {
+      {result_schema0,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
+      {result_schema1,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
+      {result_schema2,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}}};
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  ASSERT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(expected_db));
+}
+
 TEST_P(DeepCloneTest, SchemaSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto s1 = AllocateSchema();
   auto s2 = AllocateSchema();
+  auto s3 = AllocateSchema();
   TriplesT schema_triples = {
-      {s1, {{"x", DataItem(schema::kInt32)}}},
+      {s1, {{"x", DataItem(schema::kInt32)}, {"y", s3}}},
       {s2, {{"a", DataItem(schema::kText)}}},
+      {s3, {{"self", s3}}},
   };
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -646,9 +741,12 @@ TEST_P(DeepCloneTest, SchemaSlice) {
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_NE(result_slice[0], s1);
   EXPECT_NE(result_slice[1], s2);
+  ASSERT_OK_AND_ASSIGN(auto result_s3,
+                       result_db->GetSchemaAttr(result_slice[0], "y"));
   TriplesT expected_schema_triples = {
-      {result_slice[0], {{"x", DataItem(schema::kInt32)}}},
+      {result_slice[0], {{"x", DataItem(schema::kInt32)}, {"y", result_s3}}},
       {result_slice[1], {{"a", DataItem(schema::kText)}}},
+      {result_s3, {{"self", result_s3}}},
   };
   SetSchemaTriples(*expected_db, expected_schema_triples);
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));

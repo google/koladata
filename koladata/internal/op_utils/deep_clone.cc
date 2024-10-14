@@ -41,8 +41,10 @@ namespace {
 
 class DeepCloneVisitor : AbstractVisitor {
  public:
-  explicit DeepCloneVisitor(DataBagImplPtr new_databag)
-      : new_databag_(std::move(new_databag)), object_tracker_() {}
+  explicit DeepCloneVisitor(DataBagImplPtr new_databag, bool is_schema_slice)
+      : new_databag_(std::move(new_databag)),
+        is_schema_slice_(is_schema_slice),
+        object_tracker_() {}
 
   absl::Status Previsit(const DataItem& item, const DataItem& schema) override {
     if (schema.holds_value<ObjectId>()) {
@@ -161,8 +163,11 @@ class DeepCloneVisitor : AbstractVisitor {
 
   absl::Status PrevisitSchema(const DataItem& schema) {
     if (schema.holds_value<ObjectId>() && !object_tracker_.contains(schema)) {
-      auto new_schema = DataItem(AllocateExplicitSchema());
-      object_tracker_[schema] = std::move(new_schema);
+      if (schema.is_implicit_schema() || is_schema_slice_) {
+        object_tracker_[schema] = DataItem(AllocateExplicitSchema());
+      } else {
+        object_tracker_[schema] = schema;
+      }
     }
     return absl::OkStatus();
   }
@@ -177,6 +182,7 @@ class DeepCloneVisitor : AbstractVisitor {
 
  private:
   DataBagImplPtr new_databag_;
+  bool is_schema_slice_;
   absl::flat_hash_map<DataItem, DataItem, DataItem::Hash> object_tracker_;
 };
 
@@ -185,20 +191,18 @@ class DeepCloneVisitor : AbstractVisitor {
 absl::StatusOr<std::pair<DataSliceImpl, DataItem>> DeepCloneOp::operator()(
     const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks) const {
-  auto visitor =
-      std::make_shared<DeepCloneVisitor>(DataBagImplPtr::NewRef(new_databag_));
+  auto visitor = std::make_shared<DeepCloneVisitor>(
+      DataBagImplPtr::NewRef(new_databag_),
+      /*is_schema_slice=*/schema == schema::kSchema);
   auto traverse_op = Traverser<DeepCloneVisitor>(databag, fallbacks, visitor);
   RETURN_IF_ERROR(traverse_op.TraverseSlice(ds, schema));
-  ASSIGN_OR_RETURN(auto result_schema, visitor->DeepCloneVisitor::GetValue(
-                                           schema, DataItem(schema::kSchema)));
   DataSliceImpl::Builder result_items(ds.size());
   for (size_t i = 0; i < ds.size(); ++i) {
     ASSIGN_OR_RETURN(auto value,
-                     visitor->DeepCloneVisitor::GetValue(ds[i], result_schema));
+                     visitor->DeepCloneVisitor::GetValue(ds[i], schema));
     result_items.Insert(i, value);
   }
-  return std::make_pair(std::move(result_items).Build(),
-                        std::move(result_schema));
+  return std::make_pair(std::move(result_items).Build(), schema);
 }
 
 absl::StatusOr<std::pair<DataItem, DataItem>> DeepCloneOp::operator()(

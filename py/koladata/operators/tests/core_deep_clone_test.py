@@ -142,17 +142,15 @@ class CoreDeepCloneTest(parameterized.TestCase):
       testing.assert_equal(result.b.no_db(), o.b.no_db())
     testing.assert_equal(result.c.no_db(), o.c.no_db())
     testing.assert_equal(result.b.a.no_db(), o.b.a.no_db())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(
-          result.get_schema().no_db(), o.get_schema().no_db()
-      )
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(
-          result.b.get_schema().no_db(), o.b.get_schema().no_db()
-      )
+    testing.assert_equal(result.get_schema().no_db(), o.get_schema().no_db())
+    testing.assert_equal(
+        result.b.get_schema().no_db(), o.b.get_schema().no_db()
+    )
     testing.assert_equal(
         result.b.a.get_schema().no_db(), o.b.a.get_schema().no_db()
     )
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(result.ref(), o.ref())
 
   @parameterized.product(
       pass_schema=[True, False],
