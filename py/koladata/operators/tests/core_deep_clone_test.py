@@ -206,6 +206,22 @@ class CoreDeepCloneTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'attribute \'y\' is missing'):
       _ = res.y
 
+  def test_non_determinism(self):
+    x = bag().new(y=bag().new(a=1))
+    res_1 = expr_eval.eval(kde.core.deep_clone(x))
+    res_2 = expr_eval.eval(kde.core.deep_clone(x))
+    # TODO: Remove .as_any() when deep_clone preserves schema.
+    self.assertNotEqual(res_1.as_any().no_db(), res_2.as_any().no_db())
+    self.assertNotEqual(res_1.y.as_any().no_db(), res_2.y.as_any().no_db())
+    testing.assert_equal(res_1.y.a.no_db(), res_2.y.a.no_db())
+
+    expr = kde.core.deep_clone(x)
+    res_1 = expr_eval.eval(expr)
+    res_2 = expr_eval.eval(expr)
+    self.assertNotEqual(res_1.as_any().no_db(), res_2.as_any().no_db())
+    self.assertNotEqual(res_1.y.as_any().no_db(), res_2.y.as_any().no_db())
+    testing.assert_equal(res_1.y.a.no_db(), res_2.y.a.no_db())
+
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.deep_clone(I.x)))
 

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for functor_factories."""
-
 import re
 
 from absl.testing import absltest
@@ -397,7 +395,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     def after_clone(x, y):
       return x + y + 1
 
-    fn = kd.clone(functor_factories.py_fn(after_clone))
+    fn = fns.clone(functor_factories.py_fn(after_clone))
     testing.assert_equal(kd.call(fn, x=1, y=1), ds(3))
 
     def after_clone2(x, y=None, z=2):
@@ -405,7 +403,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         y = 0
       return x + y + z
 
-    fn = kd.clone(functor_factories.py_fn(after_clone2))
+    fn = fns.clone(functor_factories.py_fn(after_clone2))
     testing.assert_equal(kd.call(fn, x=1), ds(3))
     testing.assert_equal(kd.call(fn, x=1, z=1), ds(2))
     testing.assert_equal(kd.call(fn, x=1, y=1), ds(4))

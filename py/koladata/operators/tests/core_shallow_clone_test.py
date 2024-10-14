@@ -146,6 +146,19 @@ class CoreShallowCloneTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'attribute \'y\' is missing'):
       _ = res.y
 
+  def test_non_determinism(self):
+    x = bag().new(y=bag().new(a=1))
+    res_1 = expr_eval.eval(kde.core.shallow_clone(x))
+    res_2 = expr_eval.eval(kde.core.shallow_clone(x))
+    self.assertNotEqual(res_1.no_db(), res_2.no_db())
+    testing.assert_equal(res_1.y.no_db(), res_2.y.no_db())
+
+    expr = kde.core.shallow_clone(x)
+    res_1 = expr_eval.eval(expr)
+    res_2 = expr_eval.eval(expr)
+    self.assertNotEqual(res_1.no_db(), res_2.no_db())
+    testing.assert_equal(res_1.y.no_db(), res_2.y.no_db())
+
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.shallow_clone(I.x)))
 

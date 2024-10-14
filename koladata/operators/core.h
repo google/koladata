@@ -82,9 +82,6 @@ class AlignOperatorFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.core._clone.
-absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& schema);
-
 // kde.core._collapse.
 absl::StatusOr<DataSlice> Collapse(const DataSlice& ds);
 
@@ -215,13 +212,19 @@ absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
 absl::StatusOr<DataSlice> ReverseSelect(const DataSlice& ds,
                                         const DataSlice& filter);
 
+// kde.core._clone.
+absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& schema,
+                                int64_t unused_hidden_seed = 0);
+
 // kde.core._shallow_clone
 absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds,
-                                       const DataSlice& schema);
+                                       const DataSlice& schema,
+                                       int64_t unused_hidden_seed = 0);
 
 // kde.core._deep_clone
 absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
-                                    const DataSlice& schema);
+                                    const DataSlice& schema,
+                                    int64_t unused_hidden_seed = 0);
 
 // kde.core.subslice operator.
 class SubsliceOperatorFamily : public arolla::OperatorFamily {

@@ -259,6 +259,7 @@ py_library(
         ":jagged_shape",
         ":operator_lookup",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
 )

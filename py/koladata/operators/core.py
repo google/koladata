@@ -1888,7 +1888,7 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _shallow_clone(obj, schema):  # pylint: disable=unused-argument
+def _shallow_clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
   """Creates a slice with a shallow clones of provided objects in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
 
@@ -1909,6 +1909,7 @@ def shallow_clone(
     obj=py_boxing.positional_only(),
     schema=arolla.unspecified(),
     overrides=py_boxing.var_keyword(),
+    hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Creates a slice with a shallow copy of the given slice and nothing else.
 
@@ -1934,17 +1935,17 @@ def shallow_clone(
   """
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
   return arolla.types.DispatchOperator(
-      'obj, schema, overrides',
+      'obj, schema, overrides, hidden_seed',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _shallow_clone(P.obj, P.schema),
+              _shallow_clone(P.obj, P.schema, P.hidden_seed),
               P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_shallow_clone(P.obj, P.schema),
-  )(obj, schema, overrides)
+      default=_shallow_clone(P.obj, P.schema, P.hidden_seed),
+  )(obj, schema, overrides, hidden_seed)
 
 
 @optools.add_to_registry()
@@ -1956,7 +1957,7 @@ def shallow_clone(
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _clone(obj, schema):
+def _clone(obj, schema, hidden_seed):
   """Creates a slice with a clones of provided objects in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
 
@@ -1977,6 +1978,7 @@ def clone(
     obj=py_boxing.positional_only(),
     schema=arolla.unspecified(),
     overrides=py_boxing.var_keyword(),
+    hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Creates a slice with a shallow copy of the given slice.
 
@@ -2002,17 +2004,17 @@ def clone(
   """
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
   return arolla.types.DispatchOperator(
-      'obj, schema, overrides',
+      'obj, schema, overrides, hidden_seed',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _clone(P.obj, P.schema),
+              _clone(P.obj, P.schema, P.hidden_seed),
               P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_clone(P.obj, P.schema),
-  )(obj, schema, overrides)
+      default=_clone(P.obj, P.schema, P.hidden_seed),
+  )(obj, schema, overrides, hidden_seed)
 
 
 @optools.add_to_registry()
@@ -2024,7 +2026,7 @@ def clone(
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _deep_clone(obj, schema):  # pylint: disable=unused-argument
+def _deep_clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
   """Creates a slice with a (deep) copy of the given slice."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2045,6 +2047,7 @@ def deep_clone(
     obj=py_boxing.positional_only(),
     schema=arolla.unspecified(),
     overrides=py_boxing.var_keyword(),
+    hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Creates a slice with a (deep) copy of the given slice.
 
@@ -2071,17 +2074,17 @@ def deep_clone(
   """
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
   return arolla.types.DispatchOperator(
-      'obj, schema, overrides',
+      'obj, schema, overrides, hidden_seed',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _clone(P.obj, P.schema),
+              _deep_clone(P.obj, P.schema, P.hidden_seed),
               P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_deep_clone(P.obj, P.schema),
-  )(obj, schema, overrides)
+      default=_deep_clone(P.obj, P.schema, P.hidden_seed),
+  )(obj, schema, overrides, hidden_seed)
 
 
 @optools.add_to_registry(

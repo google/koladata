@@ -1297,17 +1297,6 @@ absl::StatusOr<arolla::OperatorPtr> AlignOperatorFamily::DoGetOperator(
       std::make_shared<AlignOperator>(input_types), input_types, output_type);
 }
 
-absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& schema) {
-  const auto& db = ds.GetDb();
-  if (db == nullptr) {
-    return absl::InvalidArgumentError("cannot clone without a DataBag");
-  }
-  ASSIGN_OR_RETURN(DataSlice shallow_clone, ShallowClone(ds, schema));
-  DataSlice shallow_clone_with_fallback = shallow_clone.WithDb(
-      DataBag::ImmutableEmptyWithFallbacks({shallow_clone.GetDb(), db}));
-  return Extract(std::move(shallow_clone_with_fallback), schema);
-}
-
 absl::StatusOr<DataSlice> Collapse(const DataSlice& ds) {
   const auto& shape = ds.GetShape();
   size_t rank = shape.rank();
@@ -1747,8 +1736,21 @@ absl::StatusOr<DataSlice> ReverseSelect(const DataSlice& ds,
   });
 }
 
+absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& schema,
+                                int64_t unused_hidden_seed) {
+  const auto& db = ds.GetDb();
+  if (db == nullptr) {
+    return absl::InvalidArgumentError("cannot clone without a DataBag");
+  }
+  ASSIGN_OR_RETURN(DataSlice shallow_clone, ShallowClone(ds, schema));
+  DataSlice shallow_clone_with_fallback = shallow_clone.WithDb(
+      DataBag::ImmutableEmptyWithFallbacks({shallow_clone.GetDb(), db}));
+  return Extract(std::move(shallow_clone_with_fallback), schema);
+}
+
 absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds,
-                                       const DataSlice& schema) {
+                                       const DataSlice& schema,
+                                       int64_t unused_hidden_seed) {
   const auto& db = ds.GetDb();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
@@ -1779,7 +1781,8 @@ absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds,
 }
 
 absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
-                                    const DataSlice& schema) {
+                                    const DataSlice& schema,
+                                    int64_t unused_hidden_seed) {
   const auto& db = ds.GetDb();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");

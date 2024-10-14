@@ -30,6 +30,13 @@ C = input_container.InputContainer('C')
 ds = data_slice.DataSlice.from_vals
 
 
+def _without_hidden_seed(expr):
+  hidden_seed_arg = expr.node_deps[-1]
+  return arolla.sub_by_fingerprint(
+      expr, {hidden_seed_arg.fingerprint: arolla.literal(0)},
+  )
+
+
 @arolla.optools.add_to_registry()
 @arolla.optools.as_lambda_operator('test.op')
 def op(*args):
@@ -397,18 +404,20 @@ class DataSliceViewTest(parameterized.TestCase):
 
   def test_clone(self):
     testing.assert_equal(
-        C.x.clone(C.schema, a=C.a), kde.clone(C.x, C.schema, a=C.a)
+        _without_hidden_seed(C.x.clone(C.schema, a=C.a)),
+        _without_hidden_seed(kde.clone(C.x, C.schema, a=C.a))
     )
 
   def test_shallow_clone(self):
     testing.assert_equal(
-        C.x.shallow_clone(C.schema, a=C.a),
-        kde.shallow_clone(C.x, C.schema, a=C.a)
+        _without_hidden_seed(C.x.shallow_clone(C.schema, a=C.a)),
+        _without_hidden_seed(kde.shallow_clone(C.x, C.schema, a=C.a))
     )
 
   def test_deep_clone(self):
     testing.assert_equal(
-        C.x.deep_clone(C.schema, a=C.a), kde.deep_clone(C.x, C.schema, a=C.a)
+        _without_hidden_seed(C.x.deep_clone(C.schema, a=C.a)),
+        _without_hidden_seed(kde.deep_clone(C.x, C.schema, a=C.a))
     )
 
   def test_list_size(self):

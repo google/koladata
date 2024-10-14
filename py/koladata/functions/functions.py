@@ -21,6 +21,9 @@ from koladata.functions import proto_conversions as _proto_conversions
 from koladata.functions import py_conversions as _py_conversions
 from koladata.functions import s11n as _s11n
 from koladata.functions import schema as _schema
+# TODO: Remove after hidden_seed is properly handled in aux_eval_op
+# (or similar).
+from koladata.functions import tmp_non_deterministic_overrides as _tmp_non_deterministic_overrides
 
 bag = _object_factories.bag
 
@@ -87,3 +90,7 @@ dumps = _s11n.dumps
 loads = _s11n.loads
 loads_slice = _s11n.loads_slice
 loads_bag = _s11n.loads_bag
+
+clone = _tmp_non_deterministic_overrides.clone
+shallow_clone = _tmp_non_deterministic_overrides.shallow_clone
+deep_clone = _tmp_non_deterministic_overrides.deep_clone

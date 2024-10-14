@@ -19,6 +19,7 @@ import functools
 from typing import Any
 
 from arolla import arolla
+from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import data_bag_py_ext as _data_bag_py_ext
 from koladata.types import data_slice_py_ext as _data_slice_py_ext
 from koladata.types import general_eager_ops
@@ -207,26 +208,30 @@ def _follow(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.follow, self)
 
 
+@DataSlice.add_method('extract')
+def _extract(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.extract, self, schema)
+
+
 @DataSlice.add_method('clone')
 def _clone(
     self, schema: DataSlice = arolla.unspecified(), **overrides: Any
 ) -> DataSlice:
-  return arolla.abc.aux_eval_op(
-      _op_impl_lookup.clone, self, schema, **overrides
+  # TODO: Replace with aux_eval_op when it supports handling the
+  # hidden_seed.
+  return _py_expr_eval_py_ext.eval_expr(
+      _op_impl_lookup.clone(self, schema, **overrides)
   )
-
-
-@DataSlice.add_method('extract')
-def _extract(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.extract, self, schema)
 
 
 @DataSlice.add_method('shallow_clone')
 def _shallow_clone(
     self, schema: DataSlice = arolla.unspecified(), **overrides: Any,
 ) -> DataSlice:
-  return arolla.abc.aux_eval_op(
-      _op_impl_lookup.shallow_clone, self, schema, **overrides
+  # TODO: Replace with aux_eval_op when it supports handling the
+  # hidden_seed.
+  return _py_expr_eval_py_ext.eval_expr(
+      _op_impl_lookup.shallow_clone(self, schema, **overrides)
   )
 
 
@@ -234,8 +239,10 @@ def _shallow_clone(
 def _deep_clone(
     self, schema: DataSlice = arolla.unspecified(), **overrides: Any
 ) -> DataSlice:
-  return arolla.abc.aux_eval_op(
-      _op_impl_lookup.deep_clone, self, schema, **overrides
+  # TODO: Replace with aux_eval_op when it supports handling the
+  # hidden_seed.
+  return _py_expr_eval_py_ext.eval_expr(
+      _op_impl_lookup.deep_clone(self, schema, **overrides)
   )
 
 
