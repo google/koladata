@@ -35,6 +35,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serialization/decode.h"
 #include "arolla/serialization/encode.h"
+#include "arolla/serialization_base/base.pb.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 

@@ -77,6 +77,7 @@ cc_library(
         "@com_google_arolla//arolla/expr/eval",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/serialization",
+        "@com_google_arolla//arolla/serialization_base:base_cc_proto",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
     ],
