@@ -1397,7 +1397,7 @@ def at(x, indices):  # pylint: disable=unused-argument
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def group_by_indices(*args):
+def group_by_indices(*args):  # pylint: disable=unused-argument
   """Returns a indices DataSlice with injected grouped_by dimension.
 
   The resulting DataSlice has rank() + 1. The first `rank() - 1` dimensions are
@@ -1461,7 +1461,7 @@ def group_by_indices(*args):
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def group_by_indices_sorted(*args):
+def group_by_indices_sorted(*args):  # pylint: disable=unused-argument
   """Similar to `group_by_indices` but groups are sorted by the value.
 
   Each argument must contain the values of one type.
@@ -1586,8 +1586,8 @@ def group_by(x, *args):
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def unique(
-    x,
-    sort=data_slice.DataSlice.from_vals(  # pylint: disable=redefined-outer-name
+    x,  # pylint: disable=unused-argument
+    sort=data_slice.DataSlice.from_vals(  # pylint: disable=redefined-outer-name,unused-argument
         False
     ),
 ):
@@ -1957,7 +1957,7 @@ def shallow_clone(
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _clone(obj, schema, hidden_seed):
+def _clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
   """Creates a slice with a clones of provided objects in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
 
