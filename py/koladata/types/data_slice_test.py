@@ -2626,6 +2626,14 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_equal(ds([[1, 2], [3, 4, 5]]).get_ndim(), ds(2, INT64))
     testing.assert_equal(ds([[[[[]]]]]).get_ndim(), ds(5, INT64))
 
+  # More comprehensive tests are in the core_stub_test.py.
+  def test_stub(self):
+    db1 = bag()
+    x = db1.new(x=1, y=2)
+    x_stub = x.stub()
+    testing.assert_equal(x_stub.no_db(), x.no_db())
+    testing.assert_equal(x_stub.get_schema().no_db(), x.get_schema().no_db())
+
   # More comprehensive tests are in the core_attrs_test.py.
   def test_attrs(self):
     db1 = bag()

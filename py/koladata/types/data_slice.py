@@ -331,6 +331,11 @@ def _get_value_schema(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.get_value_schema, self)
 
 
+@DataSlice.add_method('stub')
+def _stub(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.stub, self)
+
+
 @DataSlice.add_method('attrs')
 def _attrs(self, **attrs) -> DataBag:
   return arolla.abc.aux_eval_op(_op_impl_lookup.attrs, self, **attrs)

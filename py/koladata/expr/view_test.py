@@ -494,6 +494,9 @@ class DataSliceViewTest(parameterized.TestCase):
         kde.get_attr(C.x, C.attr, default=C.default),
     )
 
+  def test_stub(self):
+    testing.assert_equal(C.x.stub(), kde.stub(C.x))
+
   def test_attrs(self):
     testing.assert_equal(C.x.attrs(a=C.a), kde.attrs(C.x, a=C.a))
 
