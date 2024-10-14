@@ -144,6 +144,10 @@ class ExprEvalTest(absltest.TestCase):
     res = expr_eval.eval(I.x, x=...)
     testing.assert_equal(res, ellipsis.ellipsis())
 
+  def test_eval_with_tuple(self):
+    res = expr_eval.eval(I.x, x=(0, None, 2))
+    testing.assert_equal(res, arolla.tuple(ds(0), ds(None), ds(2)))
+
   def test_eval_with_arbitrary_qvalue(self):
     res = expr_eval.eval(I.x, x=arolla.tuple(1, 2, 3))
     arolla.testing.assert_qvalue_equal_by_fingerprint(
@@ -152,17 +156,9 @@ class ExprEvalTest(absltest.TestCase):
 
   def test_list_input_not_allowed(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'passing a Python list/tuple to a Koda operation is ambiguous',
+        ValueError, 'passing a Python list to a Koda operation is ambiguous'
     ):
       expr_eval.eval(I.x, x=[1, 2, 3])
-
-  def test_tuple_input_not_allowed(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        'passing a Python list/tuple to a Koda operation is ambiguous',
-    ):
-      expr_eval.eval(I.x, x=(1, 2, 3))
 
   def test_pure_arolla_expr_not_allowed(self):
     with self.assertRaisesRegex(ValueError, 'expected a QValue, got an Expr'):

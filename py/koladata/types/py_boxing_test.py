@@ -20,7 +20,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
-from koladata.operators import kde_operators as _
+from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -34,6 +34,7 @@ from koladata.types import py_boxing
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')
+kde = kde_operators.kde
 
 
 @arolla.optools.as_lambda_operator(
@@ -78,36 +79,40 @@ class PyBoxingTest(parameterized.TestCase):
       (slice(1, 2, arolla.L.x), arolla.M.core.make_slice(1, 2, arolla.L.x)),
       (..., ellipsis.ellipsis()),
       (data_slice.DataSlice, data_slice.DataSlice.from_vals(None)),
+      ((), arolla.tuple()),
+      ((1, 2), arolla.tuple(ds(1), ds(2))),
+      (
+          (1, (arolla.L.x, 2)),
+          kde.tuple.make_tuple(
+              literal_operator.literal(ds(1)),
+              kde.tuple.make_tuple(arolla.L.x, literal_operator.literal(ds(2))),
+          ),
+      ),
   )
   def test_as_qvalue_or_expr(self, value, expected_res):
     self.assertEqual(
         py_boxing.as_qvalue_or_expr(value).fingerprint, expected_res.fingerprint
     )
 
-  @parameterized.parameters([(1,)], [[1]])
-  def test_as_qvalue_or_expr_raises_on_list_or_tuple(self, value):
+  def test_as_qvalue_or_expr_raises_on_list(self):
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'passing a Python list/tuple to a Koda operation is ambiguous'
-        ),
+        re.escape('passing a Python list to a Koda operation is ambiguous'),
     ):
-      py_boxing.as_qvalue_or_expr(value)
+      py_boxing.as_qvalue_or_expr([1])
 
   @parameterized.parameters(
       (1, ds(1)),
       (arolla.L.x, arolla.L.x),
-      ((1, 2), ds((1, 2))),
+      ((1, 2), arolla.tuple(ds(1), ds(2))),
       ([1, 2], ds([1, 2])),
   )
   def test_as_qvalue_or_expr_with_list_to_slice_support(
       self, value, expected_res
   ):
-    self.assertEqual(
-        py_boxing.as_qvalue_or_expr_with_list_to_slice_support(
-            value
-        ).fingerprint,
-        expected_res.fingerprint,
+    testing.assert_equal(
+        py_boxing.as_qvalue_or_expr_with_list_to_slice_support(value),
+        expected_res,
     )
 
   def test_as_qvalue_or_expr_for_callable(self):
@@ -138,21 +143,19 @@ class PyBoxingTest(parameterized.TestCase):
       (slice(1, 2, 3), arolla.types.Slice(1, 2, 3)),
       (..., ellipsis.ellipsis()),
       (data_slice.DataSlice, data_slice.DataSlice.from_vals(None)),
+      ((1, 2), arolla.tuple(ds(1), ds(2))),
   )
   def test_as_qvalue(self, value, expected_res):
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         py_boxing.as_qvalue(value), expected_res
     )
 
-  @parameterized.parameters([(1,)], [[1]])
-  def test_as_qvalue_raises_on_list_or_tuple(self, value):
+  def test_as_qvalue_raises_on_list(self):
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'passing a Python list/tuple to a Koda operation is ambiguous'
-        ),
+        re.escape('passing a Python list to a Koda operation is ambiguous'),
     ):
-      py_boxing.as_qvalue(value)
+      py_boxing.as_qvalue([1])
 
   @parameterized.parameters(arolla.L.x, slice(arolla.L.x))
   def test_as_qvalue_raises_on_expr(self, value):
@@ -173,13 +176,11 @@ class PyBoxingTest(parameterized.TestCase):
         py_boxing.as_expr(value), expected_res
     )
 
-  @parameterized.parameters([(1,)], [[1]])
-  def test_as_expr_raises_on_list_or_tuple(self, value):
+  def test_as_expr_raises_on_list(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'passing a Python list/tuple to a Koda operation is ambiguous',
+        ValueError, 'passing a Python list to a Koda operation is ambiguous'
     ):
-      py_boxing.as_expr(value)
+      py_boxing.as_expr([1])
 
 
 class DefaultBoxingPolicyTest(absltest.TestCase):
@@ -525,9 +526,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'passing a Python list/tuple to a Koda operation is ambiguous'
-        ),
+        re.escape('passing a Python list to a Koda operation is ambiguous'),
     ):
       _ = op([], [1, 2], y=[3, 6], z=[4, 5])
 

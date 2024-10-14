@@ -288,13 +288,21 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
       return arolla.M.core.make_slice(arg.start, arg.stop, arg.step)
     else:
       return arolla.types.Slice(arg.start, arg.stop, arg.step)
+  if isinstance(arg, tuple):
+    tpl = tuple(as_qvalue_or_expr(v) for v in arg)
+    if arolla.Expr in (type(v) for v in tpl):
+      return arolla.abc.bind_op(
+          'kde.tuple.make_tuple', *(as_expr(v) for v in tpl)
+      )
+    else:
+      return arolla.tuple(*tpl)
   if isinstance(arg, py_types.EllipsisType):
     return ellipsis.ellipsis()
-  if isinstance(arg, (list, tuple)):
+  if isinstance(arg, list):
     raise ValueError(
-        'passing a Python list/tuple to a Koda operation is ambiguous. Please '
+        'passing a Python list to a Koda operation is ambiguous. Please '
         'use kd.slice(...) to create a slice or a multi-dimensional slice, and '
-        'kd.list(...) to create a single Koda list.'
+        'kd.list(...) to create a single Koda list'
     )
   if isinstance(arg, (py_types.FunctionType, functools.partial)):
     return arolla.abc.PyObject(arg, codec=REF_CODEC)
@@ -308,7 +316,7 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
 def as_qvalue_or_expr_with_list_to_slice_support(
     arg: Any,
 ) -> arolla.Expr | arolla.QValue:
-  if isinstance(arg, (list, tuple)):
+  if isinstance(arg, list):
     return data_slice.DataSlice.from_vals(arg)
   return as_qvalue_or_expr(arg)
 

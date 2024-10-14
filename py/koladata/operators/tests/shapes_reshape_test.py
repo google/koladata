@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -136,6 +138,29 @@ class ShapesReshapeTest(parameterized.TestCase):
             literal_operator.literal(jagged_shape.create_shape([1])),
         ),
     )
+    testing.assert_equal(
+        kde.shapes.reshape(ds([1, 2, 3]), (1, 3)),
+        arolla.abc.bind_op(
+            kde.shapes.reshape,
+            literal_operator.literal(ds([1, 2, 3])),
+            literal_operator.literal(arolla.tuple(ds(1), ds(3))),
+        ),
+    )
+
+  def test_unsupported_boxing(self):
+    # Tuple size (1, 2) which is not supported.
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'all arguments must be DataSlices or Edges, got: *dimensions:'
+            ' (DATA_SLICE, tuple<DATA_SLICE,DATA_SLICE>)'
+        ),
+    ):
+      kde.shapes.reshape(ds([1, 2, 3]), (2, (1, 2)))
+
+    # List -> DataSlice boxing is not supported.
+    with self.assertRaises(ValueError):
+      kde.shapes.reshape(ds([1, 2, 3]), (2, [1, 2]))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

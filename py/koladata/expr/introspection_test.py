@@ -224,9 +224,9 @@ class IntrospectionTest(absltest.TestCase):
       introspection.sub(I.x + I.y, [I.x, I.y], [I.z, I.t])
     with self.assertRaisesRegex(
         ValueError,
-        'passing a Python list/tuple to a Koda operation is ambiguous',
+        'passing a Python list to a Koda operation is ambiguous',
     ):
-      introspection.sub(I.x + I.y, I.x, (I.y, I.z))
+      introspection.sub(I.x + I.y, I.x, [I.y, I.z])
 
 
 if __name__ == '__main__':

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for optools."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -48,11 +46,7 @@ class OptoolsTest(parameterized.TestCase):
     y_raw = 4
     testing.assert_equal(arolla.eval(op_default_boxing(x_raw, y_raw)), ds(5))
 
-  @parameterized.parameters(
-      ([1, 2, 3],),
-      ((1, 2, 3),),
-  )
-  def test_default_does_not_support_lists_and_tuple_boxing(self, value):
+  def test_default_does_not_support_lists_boxing(self):
     @optools.as_lambda_operator(
         'test.op_default_boxing',
     )
@@ -62,7 +56,7 @@ class OptoolsTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unable to represent as QValue or Expr'
     ):
-      op_default_boxing(value)
+      op_default_boxing([1, 2, 3])
 
   def test_not_only_data_slice(self):
     @optools.as_lambda_operator(
