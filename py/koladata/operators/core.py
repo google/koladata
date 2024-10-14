@@ -2468,20 +2468,6 @@ def get_nofollowed_schema(schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.itemid_bits'])
-@optools.as_backend_operator(
-    'kde.core.itemid_bits',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_slice(P.last),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def itemid_bits(ds, last):  # pylint: disable=unused-argument
-  """Returns `last` trailing bits of the item ids in `ds` as an integer."""
-  raise NotImplementedError('implemented in the backend')
-
-
 @optools.add_to_registry(aliases=['kde.itemid_str'])
 @optools.as_backend_operator(
     'kde.core.itemid_str',

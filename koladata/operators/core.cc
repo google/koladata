@@ -1591,32 +1591,6 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
                            x.GetSchemaImpl(), x.GetDb());
 }
 
-absl::StatusOr<DataSlice> ItemIdBits(const DataSlice& ds,
-                                     const DataSlice& last) {
-  if (last.GetShape().rank() != 0) {
-    return absl::InvalidArgumentError("last must be an item");
-  }
-  if (last.dtype() != arolla::GetQType<int32_t>() &&
-      last.dtype() != arolla::GetQType<int64_t>()) {
-    return absl::InvalidArgumentError("last must be an integer");
-  }
-
-  const internal::DataItem& item = last.item();
-  if (!item.has_value()) {
-    return absl::InvalidArgumentError("last cannot be missing");
-  }
-  if (!schema::VerifySchemaForItemIds(ds.GetSchemaImpl())) {
-    return absl::InvalidArgumentError(
-        "the schema of the ds must be itemid, any, or object");
-  }
-  int64_t val =
-      item.holds_value<int>() ? item.value<int>() : item.value<int64_t>();
-  return ds.VisitImpl([&](const auto& impl) {
-    return DataSlice::Create(internal::ItemIdBits()(impl, val), ds.GetShape(),
-                             internal::DataItem(schema::kInt64), ds.GetDb());
-  });
-}
-
 absl::StatusOr<DataSlice> ItemIdStr(const DataSlice& ds) {
   return ds.VisitImpl([&](const auto& impl) {
     return DataSlice::Create(internal::ItemIdStr()(impl), ds.GetShape(),

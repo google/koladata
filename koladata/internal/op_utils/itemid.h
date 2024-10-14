@@ -15,13 +15,11 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_ITEMID_H_
 #define KOLADATA_INTERNAL_OP_UTILS_ITEMID_H_
 
-#include <cstdint>
 #include <utility>
 
 #include "absl/numeric/int128.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_format.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -34,48 +32,7 @@
 
 namespace koladata::internal {
 
-// Returns the `last` trailing bits of the item ids in the `ds` as an integer.
-struct ItemIdBits {
-  absl::StatusOr<DataItem> operator()(const DataItem& ds, int64_t last) const {
-    if (!ds.has_value()) {
-      return DataItem();
-    }
-    if (last < 0 || last > 64) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "the number of last (%d) bits must be between 0 and 64", last));
-    }
-    if (ds.dtype() != arolla::GetQType<internal::ObjectId>()) {
-      return absl::InvalidArgumentError("cannot use itemid_bits on primitives");
-    }
-    internal::ObjectId id = ds.value<internal::ObjectId>();
-    return internal::DataItem(GetTrailingBits(id, last));
-  }
-
-  absl::StatusOr<DataSliceImpl> operator()(const DataSliceImpl& ds,
-                                           int64_t last) const {
-    if (last < 0 || last > 64) {
-      return absl::InvalidArgumentError(
-          "the number of last bits must be between 0 and 64");
-    }
-    if (ds.is_empty_and_unknown()) {
-      return DataSliceImpl::CreateEmptyAndUnknownType(ds.size());
-    }
-    if (ds.dtype() != arolla::GetQType<internal::ObjectId>()) {
-      return absl::InvalidArgumentError("cannot use itemid_bits on primitives");
-    }
-    auto op = arolla::CreateDenseOp(
-        [&](ObjectId id) { return GetTrailingBits(id, last); });
-    arolla::DenseArray<int64_t> res = op(ds.values<internal::ObjectId>());
-    return DataSliceImpl::Create(std::move(res));
-  }
-
- private:
-  int64_t GetTrailingBits(const ObjectId& id, int64_t last) const {
-    return static_cast<int64_t>(id.ToRawInt128() &
-                                ((static_cast<absl::uint128>(1) << last) - 1));
-  }
-};
-
+// Returns a base62 string representation of the ItemId.
 struct ItemIdStr {
   absl::StatusOr<DataItem> operator()(const DataItem& item) const {
     if (!item.has_value()) {
