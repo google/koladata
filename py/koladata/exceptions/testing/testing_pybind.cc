@@ -15,19 +15,25 @@
 #include <Python.h>
 
 #include "absl/status/status.h"
+#include "absl/strings/cord.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/exceptions/py_exception_utils.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
+#include "arolla/util/init_arolla.h"
 
 namespace koladata::python {
 
+using ::arolla::python::SetPyErrFromStatus;
 using ::koladata::internal::Error;
 using ::koladata::internal::WithErrorPayload;
 
 PYBIND11_MODULE(testing_pybind, m) {
+  arolla::InitArolla();
+
   m.def("raise_from_status_with_payload", [](absl::string_view message) {
     Error error;
     error.set_error_message(message);
@@ -49,5 +55,27 @@ PYBIND11_MODULE(testing_pybind, m) {
               WithErrorPayload(absl::InternalError("fail"), error));
           throw pybind11::error_already_set();
         });
+
+  m.def("raise_from_status_with_payload_from_arolla",
+        [](absl::string_view message) {
+          Error error;
+          error.set_error_message(message);
+          SetPyErrFromStatus(
+              WithErrorPayload(absl::InternalError(message), error));
+          throw pybind11::error_already_set();
+        });
+
+  m.def("raise_from_status_without_payload_from_arolla",
+        [](absl::string_view message) {
+          SetPyErrFromStatus(absl::InternalError(message));
+          throw pybind11::error_already_set();
+        });
+
+  m.def("create_koda_exception_raises", [](absl::string_view message) {
+    absl::Status status = absl::InternalError(message);
+    status.SetPayload(internal::kErrorUrl, absl::Cord("malformed message"));
+    SetPyErrFromStatus(status);
+    throw pybind11::error_already_set();
+  });
 };
 }  // namespace koladata::python

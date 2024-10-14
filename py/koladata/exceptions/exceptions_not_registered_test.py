@@ -25,6 +25,11 @@ class ExceptionsTest(absltest.TestCase):
       testing_pybind.raise_from_status_with_payload('test error')
     self.assertEqual(str(cm.exception), 'Koda exception factory is not set')
 
+  def test_koda_error_not_registered_from_arolla(self):
+    with self.assertRaises(Exception) as cm:
+      testing_pybind.raise_from_status_with_payload_from_arolla('test error')
+    self.assertEqual(str(cm.exception), 'Koda exception factory is not set')
+
 
 if __name__ == '__main__':
   absltest.main()

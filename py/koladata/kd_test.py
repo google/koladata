@@ -15,6 +15,7 @@
 """Tests for kd."""
 
 import inspect
+import re
 import types
 
 from absl.testing import absltest
@@ -321,6 +322,17 @@ class KdTest(absltest.TestCase):
     fn = kdf.fn(returns=I.x)
     obj = kd.obj(x=1)
     kd.testing.assert_equal(fn(x=obj, return_type_as=kd.types.DataSlice), obj)
+
+  def test_eger_op_error_message(self):
+    x = kd.slice(1)
+    with self.assertRaisesRegex(
+        kd.exceptions.KodaError,
+        re.escape("""cannot find a common schema for provided schemas
+
+ the common schema(s) INT32
+ the first conflicting schema ITEMID"""),
+    ):
+      kd.schema.cast_to_implicit(x, kd.ITEMID)
 
 
 if __name__ == '__main__':

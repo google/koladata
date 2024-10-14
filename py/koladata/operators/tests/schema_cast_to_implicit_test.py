@@ -99,6 +99,19 @@ class SchemaCastToImplicitTest(parameterized.TestCase):
           )
       )
 
+  def test_cast_error_from_aux_eval(self):
+    x = ds(1)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape("""cannot find a common schema for provided schemas
+
+ the common schema(s) INT32
+ the first conflicting schema ITEMID"""),
+    ):
+      arolla.abc.aux_eval_op(
+          kde.schema.cast_to_implicit, x, schema_constants.ITEMID
+      )
+
   def test_boxing(self):
     testing.assert_equal(
         kde.schema.cast_to_implicit(1, schema_constants.INT64),

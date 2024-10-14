@@ -31,6 +31,8 @@
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/arolla/py_utils/status_payload_handler_registry.h"
+#include "arolla/util/init_arolla.h"
 
 namespace koladata::python {
 
@@ -41,10 +43,6 @@ using ::arolla::python::PyObjectPtr;
 absl::NoDestructor<arolla::python::PyObjectPtr> exception_factory;
 
 absl::Nullable<PyObject*> CreateKodaException(const absl::Cord& payload) {
-  if (exception_factory->get() == nullptr) {
-    PyErr_SetString(PyExc_Exception, "Koda exception factory is not set");
-    return nullptr;
-  }
   PyObjectPtr py_bytes =
       PyObjectPtr::Own(PyBytes_FromStringAndSize(nullptr, payload.size()));
   auto dest = PyBytes_AS_STRING(py_bytes.get());
@@ -69,6 +67,10 @@ std::nullptr_t SetKodaPyErrFromStatus(const absl::Status& status) {
   if (!payload) {
     return arolla::python::SetPyErrFromStatus(status);
   }
+  if (exception_factory->get() == nullptr) {
+    PyErr_SetString(PyExc_Exception, "Koda exception factory is not set");
+    return nullptr;
+  }
   PyObject* py_exception = CreateKodaException(payload.value());
   if (Py_IsNone(py_exception)) {
     return arolla::python::SetPyErrFromStatus(
@@ -81,5 +83,28 @@ std::nullptr_t SetKodaPyErrFromStatus(const absl::Status& status) {
   }
   return nullptr;
 }
+
+void HandleKodaPyErrStatus(absl::Cord payload, const absl::Status& status) {
+  if (exception_factory->get() == nullptr) {
+    PyErr_SetString(PyExc_Exception, "Koda exception factory is not set");
+    return;
+  }
+  PyObject* py_exception = CreateKodaException(payload);
+  if (Py_IsNone(py_exception)) {
+    arolla::python::DefaultSetPyErrFromStatus(
+        internal::Annotate(status,
+                           "error message is empty. A code path failed to "
+                           "generate user readable error message."));
+    return;
+  }
+  if (py_exception != nullptr) {
+    PyErr_SetObject((PyObject*)Py_TYPE(py_exception), py_exception);
+  }
+}
+
+AROLLA_INITIALIZER(.init_fn = []() -> absl::Status {
+  return arolla::python::RegisterStatusHandler(internal::kErrorUrl,
+                                               HandleKodaPyErrStatus);
+})
 
 }  // namespace koladata::python
