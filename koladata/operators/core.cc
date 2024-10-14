@@ -1617,6 +1617,13 @@ absl::StatusOr<DataSlice> ItemIdBits(const DataSlice& ds,
   });
 }
 
+absl::StatusOr<DataSlice> ItemIdStr(const DataSlice& ds) {
+  return ds.VisitImpl([&](const auto& impl) {
+    return DataSlice::Create(internal::ItemIdStr()(impl), ds.GetShape(),
+                             internal::DataItem(schema::kText), ds.GetDb());
+  });
+}
+
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
   const auto& db = lists.GetDb();
   if (db == nullptr) {

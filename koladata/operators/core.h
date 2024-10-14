@@ -175,6 +175,9 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort);
 absl::StatusOr<DataSlice> ItemIdBits(const DataSlice& ds,
                                      const DataSlice& last);
 
+// kde.core.itemid_str
+absl::StatusOr<DataSlice> ItemIdStr(const DataSlice& ds);
+
 // kde.core.list_size.
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 

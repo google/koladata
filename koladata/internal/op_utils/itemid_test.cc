@@ -18,12 +18,16 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/numeric/int128.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/base62.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/util/text.h"
 
 namespace koladata::internal {
 namespace {
@@ -120,6 +124,37 @@ TEST(ItemIdBits, TestDataSliceImplBits) {
               IsOkAndHolds(ElementsAre(
                   static_cast<int64_t>(obj_id_1.ToRawInt128() & 1023),
                   static_cast<int64_t>(obj_id_2.ToRawInt128() & 1023))));
+}
+
+TEST(ItemIdStr, TestItemIdStr) {
+  ObjectId id = AllocateSingleObject();
+  DataItem item(id);
+  ASSERT_OK_AND_ASSIGN(DataItem res, ItemIdStr()(item));
+  EXPECT_EQ(id.ToRawInt128(), DecodeBase62(res.value<arolla::Text>()));
+}
+
+TEST(ItemIdStr, TestDataSliceImplStr) {
+  ObjectId id_1 = AllocateSingleObject();
+  ObjectId id_2 = AllocateSingleObject();
+  DataSliceImpl slice =
+      DataSliceImpl::Create(CreateDenseArray<ObjectId>({id_1, id_2}));
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl res, ItemIdStr()(slice));
+  EXPECT_EQ(id_1.ToRawInt128(),
+            DecodeBase62(res.values<arolla::Text>()[0].value));
+  EXPECT_EQ(id_2.ToRawInt128(),
+            DecodeBase62(res.values<arolla::Text>()[1].value));
+}
+
+TEST(ItemIdStr, TestDataItemInvalidType) {
+  DataItem item(1);
+  EXPECT_THAT(ItemIdStr()(item), StatusIs(absl::StatusCode::kInvalidArgument,
+                                          HasSubstr("on primitives")));
+}
+
+TEST(ItemIdStr, TestDataSliceImplInvalidType) {
+  DataSliceImpl slice = DataSliceImpl::Create(CreateDenseArray<int>({1, 2}));
+  EXPECT_THAT(ItemIdStr()(slice), StatusIs(absl::StatusCode::kInvalidArgument,
+                                           HasSubstr("on primitives")));
 }
 
 }  // namespace

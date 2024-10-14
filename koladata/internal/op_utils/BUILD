@@ -594,9 +594,32 @@ cc_test(
 )
 
 cc_library(
+    name = "base62",
+    srcs = ["base62.cc"],
+    hdrs = ["base62.h"],
+    deps = [
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "base62_test",
+    srcs = ["base62_test.cc"],
+    deps = [
+        ":base62",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "itemid",
     hdrs = ["itemid.h"],
     deps = [
+        ":base62",
         "//koladata:data_slice_qtype",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -608,6 +631,7 @@ cc_library(
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/dense_array/ops",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
     ],
 )
 
@@ -615,13 +639,17 @@ cc_test(
     name = "itemid_test",
     srcs = ["itemid_test.cc"],
     deps = [
+        ":base62",
         ":itemid",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:object_id",
+        "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],
 )

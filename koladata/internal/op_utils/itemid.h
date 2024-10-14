@@ -26,9 +26,11 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/base62.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/text.h"
 
 namespace koladata::internal {
 
@@ -71,6 +73,34 @@ struct ItemIdBits {
   int64_t GetTrailingBits(const ObjectId& id, int64_t last) const {
     return static_cast<int64_t>(id.ToRawInt128() &
                                 ((static_cast<absl::uint128>(1) << last) - 1));
+  }
+};
+
+struct ItemIdStr {
+  absl::StatusOr<DataItem> operator()(const DataItem& item) const {
+    if (!item.has_value()) {
+      return DataItem();
+    }
+    if (item.dtype() != arolla::GetQType<internal::ObjectId>()) {
+      return absl::InvalidArgumentError("cannot use itemid_str on primitives");
+    }
+    internal::ObjectId id = item.value<internal::ObjectId>();
+    absl::uint128 val = id.ToRawInt128();
+    return internal::DataItem(EncodeBase62(val));
+  }
+
+  absl::StatusOr<DataSliceImpl> operator()(const DataSliceImpl& slice) const {
+    if (slice.is_empty_and_unknown()) {
+      return DataSliceImpl::CreateEmptyAndUnknownType(slice.size());
+    }
+    if (slice.dtype() != arolla::GetQType<internal::ObjectId>()) {
+      return absl::InvalidArgumentError("cannot use itemid_str on primitives");
+    }
+    auto op = arolla::CreateDenseOp(
+        [&](ObjectId id) { return EncodeBase62(id.ToRawInt128()); });
+    arolla::DenseArray<arolla::Text> res =
+        op(slice.values<internal::ObjectId>());
+    return DataSliceImpl::Create(std::move(res));
   }
 };
 
