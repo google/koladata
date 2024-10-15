@@ -99,3 +99,52 @@ def to_pytree(
   return ds.to_pytree(
       max_depth=max_depth, include_missing_attrs=include_missing_attrs
   )
+
+
+def int32(x: Any) -> data_slice.DataSlice:
+  """Returns kd.slice(x, kd.INT32)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.INT32)
+
+
+def int64(x: Any) -> data_slice.DataSlice:
+  """Returns kd.slice(x, kd.INT64)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.INT64)
+
+
+def float32(x: Any) -> data_slice.DataSlice:
+  """Returns kd.slice(x, kd.FLOAT32)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.FLOAT32)
+
+
+def float64(x: Any) -> data_slice.DataSlice:
+  """Returns kd.slice(x, kd.FLOAT64)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.FLOAT64)
+
+
+def text(x: Any) -> data_slice.DataSlice:
+  """Returns kd.slice(x, kd.TEXT)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.TEXT)
+
+
+def bytes_(x: Any) -> data_slice.DataSlice:
+  """Returns kd.slice(x, kd.BYTES)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.BYTES)
+
+
+def bool_(x: Any) -> data_slice.DataSlice:
+  """Returns kd.slice(x, kd.BOOLEAN)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.BOOLEAN)
+
+
+def mask(x: Any) -> data_slice.DataSlice:
+  """Returns kd.slice(x, kd.MASK)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.MASK)
+
+
+def expr_quote(x: Any) -> data_slice.DataSlice:
+  """Returns kd.slice(x, kd.EXPR)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.EXPR)
+
+
+bytes = bytes_  # pylint: disable=redefined-builtin
+bool = bool_  # pylint: disable=redefined-builtin
