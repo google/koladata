@@ -4121,6 +4121,7 @@ py_test(
     name = "core_translate_test",
     srcs = ["core_translate_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4142,6 +4143,7 @@ py_test(
     name = "core_translate_group_test",
     srcs = ["core_translate_group_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

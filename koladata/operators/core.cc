@@ -45,12 +45,14 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/extract_utils.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/ellipsis.h"
+#include "koladata/internal/op_utils/agg_uuid.h"
 #include "koladata/internal/op_utils/at.h"
 #include "koladata/internal/op_utils/collapse.h"
 #include "koladata/internal/op_utils/deep_clone.h"
@@ -59,10 +61,10 @@
 #include "koladata/internal/op_utils/reverse.h"
 #include "koladata/internal/op_utils/reverse_select.h"
 #include "koladata/internal/op_utils/select.h"
-#include "koladata/internal/op_utils/agg_uuid.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/arolla_bridge.h"
+#include "koladata/operators/schema.h"
 #include "koladata/operators/utils.h"
 #include "koladata/uuid_utils.h"
 #include "arolla/dense_array/dense_array.h"
@@ -1898,10 +1900,9 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                     const DataSlice& keys_from,
                                     const DataSlice& values_from) {
   const auto& from_shape = keys_from.GetShape();
-  if (!from_shape.IsEquivalentTo(values_from.GetShape())) {
-    return absl::InvalidArgumentError(
-        "keys_from and values_from must have the same shape");
-  }
+  ASSIGN_OR_RETURN(auto expanded_values_from,
+                   BroadcastToShape(values_from, from_shape),
+                   _ << "values_from must be broadcastable to keys_from");
 
   const auto& to_shape = keys_to.GetShape();
   if (to_shape.rank() == 0 || from_shape.rank() == 0) {
@@ -1909,7 +1910,7 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
         "keys_to, keys_from and values_from must have at least one dimension");
   }
 
-  const auto shape_without_last_dim = to_shape.RemoveDims(to_shape.rank() - 1);
+  auto shape_without_last_dim = to_shape.RemoveDims(to_shape.rank() - 1);
   if (!from_shape.RemoveDims(from_shape.rank() - 1)
            .IsEquivalentTo(shape_without_last_dim)) {
     return absl::InvalidArgumentError(
@@ -1917,10 +1918,8 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
         "one");
   }
 
-  if (keys_from.GetSchemaImpl() != keys_to.GetSchemaImpl()) {
-    return absl::InvalidArgumentError(
-        "keys_from and keys_to must have the same schema");
-  }
+  ASSIGN_OR_RETURN(auto casted_keys_to,
+                   CastToNarrow(keys_to, keys_from.GetSchemaImpl()));
 
   ASSIGN_OR_RETURN(auto false_item,
                    DataSlice::Create(internal::DataItem(false),
@@ -1936,12 +1935,12 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
   }
 
   auto temp_db = DataBag::Empty();
-  ASSIGN_OR_RETURN(
-      auto lookup,
-      CreateDictShaped(temp_db, shape_without_last_dim,
-                       keys_from.WithDb(nullptr), values_from.WithDb(nullptr)));
-  ASSIGN_OR_RETURN(auto res, lookup.GetFromDict(keys_to));
-  return res.WithDb(values_from.GetDb());
+  ASSIGN_OR_RETURN(auto lookup,
+                   CreateDictShaped(temp_db, std::move(shape_without_last_dim),
+                                    keys_from.WithDb(nullptr),
+                                    expanded_values_from.WithDb(nullptr)));
+  ASSIGN_OR_RETURN(auto res, lookup.GetFromDict(casted_keys_to));
+  return res.WithDb(expanded_values_from.GetDb());
 }
 
 absl::StatusOr<arolla::OperatorPtr> NewShapedOperatorFamily::DoGetOperator(

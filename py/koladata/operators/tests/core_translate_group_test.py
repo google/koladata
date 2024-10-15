@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.translate_group."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -163,8 +162,7 @@ class CoreTranslateGroupTest(parameterized.TestCase):
   def test_different_key_schemas(self):
     s2 = db.new_schema(x=schema_constants.INT32)
     with self.assertRaisesRegex(
-        ValueError,
-        'keys_from and keys_to must have the same schema',
+        exceptions.KodaError, 'cannot find a common schema'
     ):
       expr_eval.eval(
           kde.core.translate(

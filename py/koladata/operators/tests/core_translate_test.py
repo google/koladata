@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.translate."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -107,6 +106,20 @@ class CoreTranslateTest(parameterized.TestCase):
           ds([[1, 2], [3]]),
           ds([[1, None], [3, None]]),
       ),
+      # Broadcast values_from to keys_from
+      (
+          ds(['a', 'c', None, 'd']),
+          ds(['a', 'b', 'c']),
+          ds(1),
+          ds([1, 1, None, None]),
+      ),
+      # Auto-cast keys_to schema to keys_from schema
+      (
+          ds([1, 3, None, 4]),
+          ds([1, '2', 3], schema_constants.OBJECT),
+          ds([1, 2, 3]),
+          ds([1, 3, None, None]),
+      ),
   )
   def test_eval(self, keys_to, keys_from, values_from, expected):
     result = expr_eval.eval(kde.core.translate(keys_to, keys_from, values_from))
@@ -116,7 +129,7 @@ class CoreTranslateTest(parameterized.TestCase):
   def test_incompatible_shapes(self):
     with self.assertRaisesRegex(
         ValueError,
-        'keys_from and values_from must have the same shape',
+        'values_from must be broadcastable to keys_from',
     ):
       expr_eval.eval(
           kde.core.translate(ds(['a', 'c', 'd']), ds(['a', 'b']), ds([1, 2, 3]))
@@ -159,10 +172,9 @@ class CoreTranslateTest(parameterized.TestCase):
       )
 
   def test_different_key_schemas(self):
-    s2 = db.new_schema(x=schema_constants.INT32)
+    s2 = db.new_schema(x=schema_constants.INT64)
     with self.assertRaisesRegex(
-        ValueError,
-        'keys_from and keys_to must have the same schema',
+        exceptions.KodaError, 'cannot find a common schema'
     ):
       expr_eval.eval(
           kde.core.translate(

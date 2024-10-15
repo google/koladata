@@ -3110,10 +3110,9 @@ def translate(keys_to, keys_from, values_from):  # pylint: disable=unused-argume
   the last dimension of `keys_to`. `keys_from` cannot have duplicate keys within
   each group of the last dimension. Also see kd.translate_group.
 
-  `values_from` and `keys_from` must have the same shape and the first N-1
-  dimensions of `keys_from` and `keys_to` must be the same. The resulting
-  DataSlice has the same shape as `keys_to` and the same DataBag as
-  `values_from`.
+  `values_from` is first broadcasted to `keys_from` and the first N-1 dimensions
+  of `keys_from` and `keys_to` must be the same. The resulting DataSlice has the
+  same shape as `keys_to` and the same DataBag as `values_from`.
 
   `keys_from` and `keys_to` must have the same schema.
 
