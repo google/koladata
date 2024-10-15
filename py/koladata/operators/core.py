@@ -2468,7 +2468,9 @@ def get_nofollowed_schema(schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.itemid_str'])
+@optools.add_to_registry(
+    aliases=['kde.itemid_str', 'kde.core.to_base62', 'kde.to_base62']
+)
 @optools.as_backend_operator(
     'kde.core.itemid_str',
     qtype_constraints=[

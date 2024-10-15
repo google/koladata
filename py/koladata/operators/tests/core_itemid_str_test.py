@@ -50,6 +50,10 @@ class CoreItemIdStrTest(parameterized.TestCase):
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.itemid_str, kde.itemid_str))
+    self.assertTrue(
+        optools.equiv_to_op(kde.core.itemid_str, kde.core.to_base62)
+    )
+    self.assertTrue(optools.equiv_to_op(kde.core.itemid_str, kde.to_base62))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
