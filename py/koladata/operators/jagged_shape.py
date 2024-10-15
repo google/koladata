@@ -171,6 +171,13 @@ def reshape(x, shape):
   return _reshape(x, to_shape(x, shape))
 
 
+@optools.add_to_registry(aliases=['kde.reshape_as'])
+@optools.as_lambda_operator('kde.shapes.reshape_as')
+def reshape_as(x, y):
+  """Returns a DataSlice x reshaped to the shape of DataSlice y."""
+  return reshape(x, get_shape(y))
+
+
 @optools.add_to_registry(view=view.BasicKodaView)
 @optools.as_lambda_operator(
     'koda_internal._flatten_last_ndim',

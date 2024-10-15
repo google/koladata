@@ -36,11 +36,6 @@ DATA_SLICE = qtypes.DATA_SLICE
 JAGGED_SHAPE = qtypes.JAGGED_SHAPE
 
 
-QTYPES = frozenset([
-    (DATA_SLICE, JAGGED_SHAPE, DATA_SLICE),
-])
-
-
 class ShapesReshapeTest(parameterized.TestCase):
 
   @parameterized.parameters(
@@ -90,7 +85,10 @@ class ShapesReshapeTest(parameterized.TestCase):
       (ds([1, 2, 3, 4]), arolla.tuple(ds(-1), ds(2)), ds([[1, 2], [3, 4]])),
   )
   def test_eval(self, x, shape, expected_output):
-    res = expr_eval.eval(kde.shapes.reshape(I.x, I.shape), x=x, shape=shape)
+    x_shaped = expr_eval.eval(
+        kde.shapes.reshape(I.x, I.shape), x=x, shape=shape)
+    testing.assert_equal(x_shaped, expected_output)
+    res = expr_eval.eval(kde.shapes.reshape_as(I.x, I.y), x=x, y=x_shaped)
     testing.assert_equal(res, expected_output)
 
   def test_unresolvable_placeholder_dim_exception(self):
@@ -168,7 +166,7 @@ class ShapesReshapeTest(parameterized.TestCase):
             kde.shapes.reshape,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
-        QTYPES,
+        frozenset([(DATA_SLICE, JAGGED_SHAPE, DATA_SLICE)])
     )
 
   def test_view(self):
@@ -177,6 +175,23 @@ class ShapesReshapeTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.shapes.reshape, kde.reshape))
 
+
+class ShapesReshapeAsTest(absltest.TestCase):
+
+  def test_qtype_signatures(self):
+    self.assertCountEqual(
+        arolla.testing.detect_qtype_signatures(
+            kde.shapes.reshape_as,
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        ),
+        frozenset([(DATA_SLICE, DATA_SLICE, DATA_SLICE)])
+    )
+
+  def test_view(self):
+    self.assertTrue(view.has_data_slice_view(kde.shapes.reshape_as(I.x, I.y)))
+
+  def test_alias(self):
+    self.assertTrue(optools.equiv_to_op(kde.shapes.reshape_as, kde.reshape_as))
 
 if __name__ == '__main__':
   absltest.main()
