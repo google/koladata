@@ -180,6 +180,7 @@ py_test(
     name = "dict_test",
     srcs = ["dict_test.py"],
     deps = [
+        "//py/koladata:kd",
         "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",

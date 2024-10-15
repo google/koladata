@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for dict."""
-
 import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from koladata import kd
 from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -45,6 +44,13 @@ class DictTest(parameterized.TestCase):
     keys = ds(['a', 'b', 'a'])
     testing.assert_equal(
         d[keys], ds([1, None, 1], schema_constants.OBJECT).with_db(d.db)
+    )
+
+  def test_dict_with_uuid(self):
+    db = fns.bag()
+    testing.assert_equal(
+        fns.dict(itemid=kd.uuid_for_dict(seed='seed', a=ds(1)), db=db),
+        fns.dict(itemid=kd.uuid_for_dict(seed='seed', a=ds(1)), db=db),
     )
 
   def test_single_arg(self):

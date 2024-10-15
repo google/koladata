@@ -31,7 +31,7 @@ DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
 
 
-class KodaUuidForListTest(parameterized.TestCase):
+class KodaUuidForDictTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
@@ -60,8 +60,8 @@ class KodaUuidForListTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core.uuid_for_list(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core.uuid_for_list(seed=rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.core.uuid_for_dict(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.core.uuid_for_dict(seed=rhs_seed, **rhs_kwargs))
     testing.assert_equal(lhs, rhs)
 
   @parameterized.parameters(
@@ -79,25 +79,25 @@ class KodaUuidForListTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core.uuid_for_list(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core.uuid_for_list(seed=rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.core.uuid_for_dict(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.core.uuid_for_dict(seed=rhs_seed, **rhs_kwargs))
     self.assertNotEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_default_seed(self):
-    lhs = expr_eval.eval(kde.core.uuid_for_list(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core.uuid_for_list(seed='', a=ds(1), b=ds(2)))
+    lhs = expr_eval.eval(kde.core.uuid_for_dict(a=ds(1), b=ds(2)))
+    rhs = expr_eval.eval(kde.core.uuid_for_dict(seed='', a=ds(1), b=ds(2)))
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_no_args(self):
-    lhs = expr_eval.eval(kde.core.uuid_for_list())
-    rhs = expr_eval.eval(kde.core.uuid_for_list(seed=''))
+    lhs = expr_eval.eval(kde.core.uuid_for_dict())
+    rhs = expr_eval.eval(kde.core.uuid_for_dict(seed=''))
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_seed_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'expected 0 positional arguments but 1 were given'
     ):
-      _ = expr_eval.eval(kde.core.uuid_for_list(ds('a')))
+      _ = expr_eval.eval(kde.core.uuid_for_dict(ds('a')))
 
   @parameterized.parameters(
       (
@@ -132,7 +132,7 @@ class KodaUuidForListTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.core.uuid_for_list(seed=seed, **kwargs))
+      _ = expr_eval.eval(kde.core.uuid_for_dict(seed=seed, **kwargs))
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
@@ -140,25 +140,25 @@ class KodaUuidForListTest(parameterized.TestCase):
         'expected all arguments to be DATA_SLICE, got kwargs:'
         ' namedtuple<a=DATA_SLICE,b=UNSPECIFIED>',
     ):
-      _ = kde.core.uuid_for_list(
+      _ = kde.core.uuid_for_dict(
           a=ds(1),
           b=arolla.unspecified(),
       )
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(kde.core.uuid_for_list(seed=I.seed))
+        view.has_data_slice_view(kde.core.uuid_for_dict(seed=I.seed))
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.uuid_for_list, kde.uuid_for_list)
+        optools.equiv_to_op(kde.core.uuid_for_dict, kde.uuid_for_dict)
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.uuid_for_list(a=I.a)),
-        "kde.core.uuid_for_list(seed=DataItem('', schema: TEXT), a=I.a)",
+        repr(kde.core.uuid_for_dict(a=I.a)),
+        "kde.core.uuid_for_dict(seed=DataItem('', schema: TEXT), a=I.a)",
     )
 
 
