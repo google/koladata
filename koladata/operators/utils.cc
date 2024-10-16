@@ -23,12 +23,15 @@
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/named_field_qtype.h"
+#include "arolla/util/unit.h"
 
 namespace koladata::ops {
 
@@ -65,6 +68,12 @@ std::vector<DataSlice> GetValueDataSlices(arolla::TypedSlot named_tuple_slot,
     values.push_back(frame.Get(data_slice_slot));
   }
   return values;
+}
+
+DataSlice AsMask(bool b) {
+  return *DataSlice::Create(
+      b ? internal::DataItem(arolla::kUnit) : internal::DataItem(),
+      internal::DataItem(schema::kMask));
 }
 
 }  // namespace koladata::ops

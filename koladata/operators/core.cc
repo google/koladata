@@ -1452,12 +1452,6 @@ absl::StatusOr<DataSlice> Extract(const DataSlice& ds,
   return koladata::extract_utils_internal::ExtractWithSchema(ds, schema);
 }
 
-DataSlice AsMask(bool b) {
-  return *DataSlice::Create(
-      b ? internal::DataItem(arolla::kUnit) : internal::DataItem(),
-      internal::DataItem(schema::kMask));
-}
-
 absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj) {
   return AsMask(obj.IsEmpty());
 }

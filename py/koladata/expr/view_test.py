@@ -535,6 +535,30 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_get_present_count(self):
     testing.assert_equal(C.x.get_present_count(), kde.count(C.x))
 
+  def test_is_any_schema(self):
+    testing.assert_equal(C.x.is_any_schema(), kde.schema.is_any_schema(C.x))
+
+  def test_is_dict_schema(self):
+    testing.assert_equal(C.x.is_dict_schema(), kde.schema.is_dict_schema(C.x))
+
+  def test_is_entity_schema(self):
+    testing.assert_equal(
+        C.x.is_entity_schema(), kde.schema.is_entity_schema(C.x)
+    )
+
+  def test_is_itemid_schema(self):
+    testing.assert_equal(
+        C.x.is_itemid_schema(), kde.schema.is_itemid_schema(C.x)
+    )
+
+  def test_is_list_schema(self):
+    testing.assert_equal(C.x.is_list_schema(), kde.schema.is_list_schema(C.x))
+
+  def test_is_primitive_schema(self):
+    testing.assert_equal(
+        C.x.is_primitive_schema(), kde.schema.is_primitive_schema(C.x)
+    )
+
   def test_eval(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     testing.assert_equal(I.x.eval(x=1), data_slice.DataSlice.from_vals(1))
@@ -636,12 +660,6 @@ class DataSliceViewTest(parameterized.TestCase):
     skipped_data_slice_attrs = {
         # TODO: Add the following as operators.
         # go/keep-sorted start
-        'is_any_schema',
-        'is_dict_schema',
-        'is_entity_schema',
-        'is_itemid_schema',
-        'is_list_schema',
-        'is_primitive_schema',
         'with_fallback',
         # go/keep-sorted end
     } | {

@@ -174,6 +174,12 @@ OPERATOR("kde.schema.get_obj_schema", GetObjSchema);
 OPERATOR("kde.schema.get_primitive_schema", GetPrimitiveSchema);
 OPERATOR("kde.schema.get_schema", GetSchema);
 OPERATOR("kde.schema.get_value_schema", GetValueSchema);
+OPERATOR("kde.schema.is_any_schema", IsAnySchema);
+OPERATOR("kde.schema.is_dict_schema", IsDictSchema);
+OPERATOR("kde.schema.is_entity_schema", IsEntitySchema);
+OPERATOR("kde.schema.is_itemid_schema", IsItemIdSchema);
+OPERATOR("kde.schema.is_list_schema", IsListSchema);
+OPERATOR("kde.schema.is_primitive_schema", IsPrimitiveSchema);
 OPERATOR("kde.schema.list_schema", ListSchema);
 OPERATOR_FAMILY("kde.schema.new_schema",
                 std::make_unique<NewSchemaOperatorFamily>());

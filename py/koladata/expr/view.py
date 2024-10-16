@@ -374,6 +374,24 @@ class DataSliceView(BasicKodaView):
   def is_primitive(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.is_primitive', self)
 
+  def is_any_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.schema.is_any_schema', self)
+
+  def is_dict_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.schema.is_dict_schema', self)
+
+  def is_entity_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.schema.is_entity_schema', self)
+
+  def is_itemid_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.schema.is_itemid_schema', self)
+
+  def is_list_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.schema.is_list_schema', self)
+
+  def is_primitive_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.schema.is_primitive_schema', self)
+
 
 class KodaTupleView(BasicKodaView):
   """ExprView for tuples of Koda values, for operators returning tuples."""

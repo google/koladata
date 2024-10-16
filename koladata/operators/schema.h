@@ -24,6 +24,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/operators/utils.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
@@ -120,6 +121,36 @@ inline absl::StatusOr<DataSlice> GetValueSchema(const DataSlice& dict_schema) {
                         dict_schema.item()));
   }
   return dict_schema.GetAttr(schema::kDictValuesSchemaAttr);
+}
+
+// kde.schema.is_any_schema operator.
+inline DataSlice IsAnySchema(const DataSlice& schema) {
+  return AsMask(schema.IsAnySchema());
+}
+
+// kde.schema.is_dict_schema operator.
+inline DataSlice IsDictSchema(const DataSlice& schema) {
+  return AsMask(schema.IsDictSchema());
+}
+
+// kde.schema.is_entity_schema operator.
+inline DataSlice IsEntitySchema(const DataSlice& schema) {
+  return AsMask(schema.IsEntitySchema());
+}
+
+// kde.schema.is_itemid_schema operator.
+inline DataSlice IsItemIdSchema(const DataSlice& schema) {
+  return AsMask(schema.IsItemIdSchema());
+}
+
+// kde.schema.is_list_schema operator.
+inline DataSlice IsListSchema(const DataSlice& schema) {
+  return AsMask(schema.IsListSchema());
+}
+
+// kde.schema.is_primitive_schema operator.
+inline DataSlice IsPrimitiveSchema(const DataSlice& schema) {
+  return AsMask(schema.IsPrimitiveSchema());
 }
 
 }  // namespace koladata::ops

@@ -592,3 +592,69 @@ def with_schema_from_obj(x):
       'objects or primitives in `x` do not have an uniform schema',
   )
   return with_schema(x, embedded_schema)
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.schema.is_any_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_any_schema(x):  # pylint: disable=unused-argument
+  """Returns true iff `x` is an ANY schema DataItem."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.schema.is_dict_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_dict_schema(x):  # pylint: disable=unused-argument
+  """Returns true iff `x` is a Dict schema DataItem."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.schema.is_entity_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_entity_schema(x):  # pylint: disable=unused-argument
+  """Returns true iff `x` is an Entity schema DataItem."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.schema.is_itemid_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_itemid_schema(x):  # pylint: disable=unused-argument
+  """Returns true iff `x` is an ITEMID schema DataItem."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.schema.is_list_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_list_schema(x):  # pylint: disable=unused-argument
+  """Returns true iff `x` is a List schema DataItem."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.schema.is_primitive_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_primitive_schema(x):  # pylint: disable=unused-argument
+  """Returns true iff `x` is a primitive schema DataItem."""
+  raise NotImplementedError('implemented in the backend')

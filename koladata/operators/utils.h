@@ -19,7 +19,6 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qtype/qtype.h"
@@ -39,6 +38,9 @@ std::vector<absl::string_view> GetAttrNames(
 std::vector<DataSlice> GetValueDataSlices(
     arolla::TypedSlot named_tuple_slot,
     arolla::FramePtr frame);
+
+// Returns a present DataItem if b is true, otherwise missing.
+DataSlice AsMask(bool b);
 
 }  // namespace koladata::ops
 
