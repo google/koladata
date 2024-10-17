@@ -2087,6 +2087,53 @@ def deep_clone(
   )(obj, schema, overrides, hidden_seed)
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.core._deep_uuid',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.schema),
+        qtype_utils.expect_data_slice(P.seed),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _deep_uuid(obj, schema, seed):  # pylint: disable=unused-argument
+  """Creates a slice with a (deep) uuid of the given slice."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kde.deep_uuid'], repr_fn=op_repr.full_signature_repr
+)
+@optools.as_lambda_operator(
+    'kde.core.deep_uuid',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice(P.seed),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def deep_uuid(
+    obj=py_boxing.positional_only(),
+    schema=arolla.unspecified(),
+    seed=py_boxing.keyword_only(''),
+):
+  """Recursively computes uuid for obj.
+
+  Args:
+    obj: The slice to take uuid on.
+    schema: The schema to use to resolve '*' and '**' tokens. If not specified,
+      will use the schema of the 'obj' DataSlice.
+    seed: The seed to use for uuid computation.
+
+  Returns:
+    Result of recursive uuid application for objs/lists/dicts.
+  """
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
+  return _deep_uuid(obj, schema, seed)
+
+
 @optools.add_to_registry(
     aliases=['kde.subslice'], repr_fn=op_repr.subslice_repr
 )

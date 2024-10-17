@@ -56,6 +56,7 @@
 #include "koladata/internal/op_utils/at.h"
 #include "koladata/internal/op_utils/collapse.h"
 #include "koladata/internal/op_utils/deep_clone.h"
+#include "koladata/internal/op_utils/deep_uuid.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/itemid.h"
 #include "koladata/internal/op_utils/reverse.h"
@@ -1817,6 +1818,39 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
     return DataSlice::Create(std::move(result_slice_impl), ds.GetShape(),
                              std::move(result_schema_impl),
                              std::move(result_db));
+  });
+}
+
+absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
+                                   const DataSlice& schema,
+                                   const DataSlice& seed) {
+  const auto& db = ds.GetDb();
+  if (db == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot compute deep uuid without a DataBag");
+  }
+  const auto& schema_db = schema.GetDb();
+  if (schema_db != nullptr && schema_db != db) {
+    ASSIGN_OR_RETURN(auto extracted_ds, Extract(ds, schema));
+    return DeepUuid(extracted_ds, schema.WithDb(extracted_ds.GetDb()), seed);
+  }
+  if (seed.GetShape().rank() != 0) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("seed can only be 0-rank schema slice, got: rank(%d)",
+                        seed.GetShape().rank()));
+  }
+  const auto& seed_item = seed.item();
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  const auto& schema_item = schema.item();
+  FlattenFallbackFinder fb_finder(*db);
+  auto fallbacks_span = fb_finder.GetFlattenFallbacks();
+  return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+    internal::DeepUuidOp deep_uuid_op;
+    ASSIGN_OR_RETURN(auto result_slice_impl,
+                     deep_uuid_op(seed_item, impl, schema_item, db->GetImpl(),
+                                  fallbacks_span));
+    return DataSlice::Create(std::move(result_slice_impl), ds.GetShape(),
+                             internal::DataItem(schema::kItemId));
   });
 }
 

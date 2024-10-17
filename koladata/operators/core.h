@@ -225,6 +225,11 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
                                     const DataSlice& schema,
                                     int64_t unused_hidden_seed = 0);
 
+// kde.core._deep_uuid
+absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
+                                   const DataSlice& schema,
+                                   const DataSlice& seed);
+
 // kde.core.subslice operator.
 class SubsliceOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
