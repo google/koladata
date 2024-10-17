@@ -168,7 +168,7 @@ class BoxingTest(parameterized.TestCase):
       ),
   )
   def test_roundtrip(self, val, dtype, expected, expected_schema):
-    x = ds(val, dtype=dtype)
+    x = ds(val, schema=dtype)
     self.assertEqual(x.internal_as_py(), expected)
     testing.assert_equal(x.get_schema(), expected_schema)
 
@@ -207,7 +207,7 @@ class BoxingTest(parameterized.TestCase):
       ),
   )
   def test_scalars_roundtrip(self, value, dtype, expected, expected_schema):
-    x = ds(value, dtype=dtype)
+    x = ds(value, schema=dtype)
     self.assertIsInstance(x, data_item.DataItem)
     self.assertAlmostEqual(x.internal_as_py(), expected, places=5)
     testing.assert_equal(x.get_schema(), expected_schema)
@@ -216,7 +216,7 @@ class BoxingTest(parameterized.TestCase):
     testing.assert_equal(ds(arolla.missing()).get_schema(), MASK)
 
   def test_dtype_none(self):
-    x = ds([1, 2, 3], dtype=None)
+    x = ds([1, 2, 3], schema=None)
     self.assertEqual(x.internal_as_py(), [1, 2, 3])
     self.assertEqual(x.get_schema(), INT32)
 
@@ -229,12 +229,12 @@ class BoxingTest(parameterized.TestCase):
       ds(None, c=12)
 
     with self.assertRaisesRegex(TypeError, "got an unexpected keyword 'c'"):
-      ds(None, c=12, dtype=INT64)
+      ds(None, c=12, schema=INT64)
 
     with self.assertRaisesRegex(
-        TypeError, r'got multiple values for argument \'dtype\''
+        TypeError, r'got multiple values for argument \'schema\''
     ):
-      ds([1, 2, 3], INT64, dtype=INT32)
+      ds([1, 2, 3], INT64, schema=INT32)
 
   def test_roundtrip_for_schema(self):
     inputs = [INT32, TEXT, ANY]
@@ -463,7 +463,7 @@ class BoxingTest(parameterized.TestCase):
     ):
       ds(1, 2, 3)
     with self.assertRaisesRegex(
-        TypeError, 'expected DataItem for `dtype`, got: .*QType'
+        TypeError, 'expected DataItem for `schema`, got: .*QType'
     ):
       ds(1, arolla.INT32)
     with self.assertRaisesRegex(

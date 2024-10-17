@@ -103,21 +103,21 @@ absl::Nullable<PyObject*> PyDataSlice_from_vals(PyTypeObject* cls,
                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/1, /*parse_kwargs=*/false, "dtype");
+      /*pos_only_n=*/1, /*parse_kwargs=*/false, "schema");
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
   PyObject* list = py_args[0];
   const DataSlice* dtype = nullptr;
-  if (PyObject* py_dtype = args.pos_kw_values[0];
-      py_dtype != nullptr && py_dtype != Py_None) {
-    if (!PyType_IsSubtype(Py_TYPE(py_dtype), PyDataSlice_Type())) {
-      PyErr_Format(PyExc_TypeError, "expected DataItem for `dtype`, got: %s",
-                   Py_TYPE(py_dtype)->tp_name);
+  if (PyObject* py_schema = args.pos_kw_values[0];
+      py_schema != nullptr && py_schema != Py_None) {
+    if (!PyType_IsSubtype(Py_TYPE(py_schema), PyDataSlice_Type())) {
+      PyErr_Format(PyExc_TypeError, "expected DataItem for `schema`, got: %s",
+                   Py_TYPE(py_schema)->tp_name);
       return nullptr;
     }
-    dtype = &UnsafeDataSliceRef(py_dtype);
+    dtype = &UnsafeDataSliceRef(py_schema);
   }
   ASSIGN_OR_RETURN(auto ds, DataSliceFromPyValueWithAdoption(list, dtype),
                    koladata::python::SetKodaPyErrFromStatus(_));
@@ -727,7 +727,9 @@ Returns:
 )"""},
     {"from_vals", (PyCFunction)PyDataSlice_from_vals,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
-     "Creates a DataSlice from `value`"},
+     "Creates a DataSlice from `value`.\n"
+     "If `schema` is set, that schema is used,\n"
+     "otherwise the schema is inferred from `value`."},
     {"internal_as_py", PyDataSlice_internal_as_py, METH_NOARGS,
      "Returns a Python object equivalent to this DataSlice.\n"
      "\n"

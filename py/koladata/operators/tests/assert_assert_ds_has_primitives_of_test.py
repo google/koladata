@@ -46,11 +46,11 @@ class AssertionAssertDtypeIsTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds(1), schema_constants.INT32, 'unused'),
       (
-          ds(None, dtype=schema_constants.INT32),
+          ds(None, schema=schema_constants.INT32),
           schema_constants.INT32,
           'unused',
       ),
-      (ds(1, dtype=schema_constants.INT64), schema_constants.INT64, 'unused'),
+      (ds(1, schema=schema_constants.INT64), schema_constants.INT64, 'unused'),
       (ds([1, 2, 3]), schema_constants.INT32, 'unused'),
       (
           ds([1, 2, 3], schema_constants.OBJECT),

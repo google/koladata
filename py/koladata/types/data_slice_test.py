@@ -2697,7 +2697,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
       (ds([1, 2, 3]), 0, ds(1)),
       (ds([1, 2, 3]), 1, ds(2)),
       (ds([1, 2, 3]), 2, ds(3)),
-      (ds([1, 2, 3]), 3, ds(None, dtype=schema_constants.INT32)),
+      (ds([1, 2, 3]), 3, ds(None, schema=schema_constants.INT32)),
       (ds([1, 2, 3]), -1, ds(3)),
       (ds([1, 2, 3]), slice(None), ds([1, 2, 3])),
       (ds([1, 2, 3]), slice(None, 2), ds([1, 2])),

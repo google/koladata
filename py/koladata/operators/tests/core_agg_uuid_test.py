@@ -65,8 +65,8 @@ class CoreAggUuidTest(parameterized.TestCase):
       (ds([1, 2, None]), ds([None, 1, 2]), False),
       (ds([None, None]), ds([None, None, None]), False),
       (ds([bag().obj(a=1)]), ds([bag().obj(a=1)]), False),
-      (ds([1, 2], dtype=schema_constants.INT32),
-       ds([1, 2], dtype=schema_constants.INT64), False),
+      (ds([1, 2], schema=schema_constants.INT32),
+       ds([1, 2], schema=schema_constants.INT64), False),
   )
   def test_eval_equal(self, x, y, expected_equal):
     is_equal = kde.core.agg_uuid(I.x) == kde.core.agg_uuid(I.y)

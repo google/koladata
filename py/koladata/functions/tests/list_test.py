@@ -130,7 +130,7 @@ class ListTest(parameterized.TestCase):
       ([1, 2, 3], None, None, schema_constants.INT32),
       ([1, 'foo'], None, None, schema_constants.OBJECT),
       (
-          ds([[1, 'foo'], [3]], dtype=schema_constants.ANY),
+          ds([[1, 'foo'], [3]], schema=schema_constants.ANY),
           None,
           None,
           schema_constants.ANY,

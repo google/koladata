@@ -44,20 +44,20 @@ class SchemaGetPrimitiveSchemaTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(1), schema_constants.INT32),
-      (ds(1, dtype=schema_constants.INT64), schema_constants.INT64),
+      (ds(1, schema=schema_constants.INT64), schema_constants.INT64),
       (ds(1.0), schema_constants.FLOAT32),
       (
-          ds(1.0, dtype=schema_constants.FLOAT64),
+          ds(1.0, schema=schema_constants.FLOAT64),
           schema_constants.FLOAT64,
       ),
       (ds('1'), schema_constants.TEXT),
       (ds(True), schema_constants.BOOLEAN),
       (ds(None, schema_constants.INT32), schema_constants.INT32),
       (ds([1, 2, 3]), schema_constants.INT32),
-      (ds([1, 2, 3], dtype=schema_constants.INT64), schema_constants.INT64),
+      (ds([1, 2, 3], schema=schema_constants.INT64), schema_constants.INT64),
       (ds([1.0, 2.0, 3.0]), schema_constants.FLOAT32),
       (
-          ds([1.0, 2.0, 3.0], dtype=schema_constants.FLOAT64),
+          ds([1.0, 2.0, 3.0], schema=schema_constants.FLOAT64),
           schema_constants.FLOAT64,
       ),
       (ds(['1', '2', '3']), schema_constants.TEXT),

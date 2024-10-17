@@ -49,107 +49,112 @@ class CoreOrdinalRankTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # x.ndim = 0
-      (ds(0), False, 0, ds(0, dtype=INT64)),
-      (ds(0), True, 0, ds(0, dtype=INT64)),
+      (ds(0), False, 0, ds(0, schema=INT64)),
+      (ds(0), True, 0, ds(0, schema=INT64)),
       # x.ndim = 1
-      (ds([0, 3, None, 3, 6]), False, 0, ds([0, 0, None, 0, 0], dtype=INT64)),
-      (ds([0, 3, None, 3, 6]), False, 1, ds([0, 1, None, 1, 2], dtype=INT64)),
-      (ds([0, 3, None, 3, 6]), True, 0, ds([0, 0, None, 0, 0], dtype=INT64)),
-      (ds([0, 3, None, 3, 6]), True, 1, ds([2, 1, None, 1, 0], dtype=INT64)),
+      (ds([0, 3, None, 3, 6]), False, 0, ds([0, 0, None, 0, 0], schema=INT64)),
+      (ds([0, 3, None, 3, 6]), False, 1, ds([0, 1, None, 1, 2], schema=INT64)),
+      (ds([0, 3, None, 3, 6]), True, 0, ds([0, 0, None, 0, 0], schema=INT64)),
+      (ds([0, 3, None, 3, 6]), True, 1, ds([2, 1, None, 1, 0], schema=INT64)),
       # x.ndim = 2
       (
           ds([[0, 3, None, 3, 6], [5, None, 2, 1]]),
           False,
           0,
-          ds([[0, 0, None, 0, 0], [0, None, 0, 0]], dtype=INT64),
+          ds([[0, 0, None, 0, 0], [0, None, 0, 0]], schema=INT64),
       ),
       (
           ds([[0, 3, None, 3, 6], [5, None, 2, 1]]),
           False,
           1,
-          ds([[0, 1, None, 1, 2], [2, None, 1, 0]], dtype=INT64),
+          ds([[0, 1, None, 1, 2], [2, None, 1, 0]], schema=INT64),
       ),
       (
           ds([[0, 3, None, 3, 6], [5, None, 2, 1]]),
           False,
           2,
-          ds([[0, 3, None, 3, 5], [4, None, 2, 1]], dtype=INT64),
+          ds([[0, 3, None, 3, 5], [4, None, 2, 1]], schema=INT64),
       ),
       (
           ds([[0, 3, None, 3, 6], [5, None, 2, 1]]),
           True,
           0,
-          ds([[0, 0, None, 0, 0], [0, None, 0, 0]], dtype=INT64),
+          ds([[0, 0, None, 0, 0], [0, None, 0, 0]], schema=INT64),
       ),
       (
           ds([[0, 3, None, 3, 6], [5, None, 2, 1]]),
           True,
           1,
-          ds([[2, 1, None, 1, 0], [0, None, 1, 2]], dtype=INT64),
+          ds([[2, 1, None, 1, 0], [0, None, 1, 2]], schema=INT64),
       ),
       (
           ds([[0, 3, None, 3, 6], [5, None, 2, 1]]),
           True,
           2,
-          ds([[5, 2, None, 2, 0], [1, None, 3, 4]], dtype=INT64),
+          ds([[5, 2, None, 2, 0], [1, None, 3, 4]], schema=INT64),
       ),
       # descending and ndim as DataItems
       (
           ds([0, 3, None, 3, 6]),
           ds(False),
           ds(1),
-          ds([0, 1, None, 1, 2], dtype=INT64),
+          ds([0, 1, None, 1, 2], schema=INT64),
       ),
       # OBJECT, ANY schemas
       (
           ds([0, 3, None, 3, 6], schema_constants.OBJECT),
           False,
           1,
-          ds([0, 1, None, 1, 2], dtype=INT64),
+          ds([0, 1, None, 1, 2], schema=INT64),
       ),
       (
           ds([0, 3, None, 3, 6]).as_any(),
           False,
           1,
-          ds([0, 1, None, 1, 2], dtype=INT64),
+          ds([0, 1, None, 1, 2], schema=INT64),
       ),
       # BOOLEAN
       (
           ds([True, False, None, True]),
           False,
           1,
-          ds([1, 0, None, 1], dtype=INT64),
+          ds([1, 0, None, 1], schema=INT64),
       ),
       # TEXT
-      (ds(['a', 'b', None, 'c']), False, 1, ds([0, 1, None, 2], dtype=INT64)),
+      (ds(['a', 'b', None, 'c']), False, 1, ds([0, 1, None, 2], schema=INT64)),
       # BYTES
       (
           ds([b'a', b'b', None, b'c']),
           False,
           1,
-          ds([0, 1, None, 2], dtype=INT64),
+          ds([0, 1, None, 2], schema=INT64),
       ),
       # FLOAT32
-      (ds([1.0, 3.0, None, 6.0]), False, 1, ds([0, 1, None, 2], dtype=INT64)),
+      (ds([1.0, 3.0, None, 6.0]), False, 1, ds([0, 1, None, 2], schema=INT64)),
       # FLOAT64
       (
-          ds([1.0, 3.0, None, 6.0], dtype=schema_constants.FLOAT64),
+          ds([1.0, 3.0, None, 6.0], schema=schema_constants.FLOAT64),
           False,
           1,
-          ds([0, 1, None, 2], dtype=INT64),
+          ds([0, 1, None, 2], schema=INT64),
       ),
       # INT64
       (
-          ds([0, 3, None, 3, 6], dtype=INT64),
+          ds([0, 3, None, 3, 6], schema=INT64),
           False,
           1,
-          ds([0, 1, None, 1, 2], dtype=INT64),
+          ds([0, 1, None, 1, 2], schema=INT64),
       ),
       # empty x
-      (ds([], dtype=INT64), False, 1, ds([], dtype=INT64)),
-      (ds([], schema_constants.OBJECT), False, 1, ds([], dtype=INT64)),
+      (ds([], schema=INT64), False, 1, ds([], schema=INT64)),
+      (ds([], schema_constants.OBJECT), False, 1, ds([], schema=INT64)),
       # all missing items
-      (ds([None, None], dtype=INT64), False, 1, ds([None, None], dtype=INT64)),
+      (
+          ds([None, None], schema=INT64),
+          False,
+          1,
+          ds([None, None], schema=INT64),
+      ),
       # Empty and unknown inputs.
       (
           ds([[None, None], [None]], schema_constants.OBJECT),
@@ -178,11 +183,11 @@ class CoreOrdinalRankTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # x.ndim = 1
-      (ds([0, 3, None, 3, 6]), ds([0, 1, None, 1, 2], dtype=INT64)),
+      (ds([0, 3, None, 3, 6]), ds([0, 1, None, 1, 2], schema=INT64)),
       # x.ndim = 2
       (
           ds([[0, 3, None, 3, 6], [5, None, 2, 1]]),
-          ds([[0, 1, None, 1, 2], [2, None, 1, 0]], dtype=INT64),
+          ds([[0, 1, None, 1, 2], [2, None, 1, 0]], schema=INT64),
       ),
   )
   def test_eval_with_descending_ndim_unspecified(self, x, expected):

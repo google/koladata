@@ -47,19 +47,19 @@ QTYPES = frozenset([
 class CoreCumCountTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds(0), 0, ds(1, dtype=INT64)),
-      (ds([0, 0, None, 0]), 0, ds([1, 1, None, 1], dtype=INT64)),
-      (ds([0, 0, None, 0]), 1, ds([1, 2, None, 3], dtype=INT64)),
-      (ds([0, 0, None, 0]), ds(0), ds([1, 1, None, 1], dtype=INT64)),
-      (ds([0, 0, None, 0]), ds(1), ds([1, 2, None, 3], dtype=INT64)),
-      (ds(['a', 1, None]), 0, ds([1, 1, None], dtype=INT64)),
-      (ds(['a', 1, None]), 1, ds([1, 2, None], dtype=INT64)),
+      (ds(0), 0, ds(1, schema=INT64)),
+      (ds([0, 0, None, 0]), 0, ds([1, 1, None, 1], schema=INT64)),
+      (ds([0, 0, None, 0]), 1, ds([1, 2, None, 3], schema=INT64)),
+      (ds([0, 0, None, 0]), ds(0), ds([1, 1, None, 1], schema=INT64)),
+      (ds([0, 0, None, 0]), ds(1), ds([1, 2, None, 3], schema=INT64)),
+      (ds(['a', 1, None]), 0, ds([1, 1, None], schema=INT64)),
+      (ds(['a', 1, None]), 1, ds([1, 2, None], schema=INT64)),
       (
           ds([[[0, 0], [None, 0]], [[None, None]], [[0, None, 0]]]),
           0,
           ds(
               [[[1, 1], [None, 1]], [[None, None]], [[1, None, 1]]],
-              dtype=INT64,
+              schema=INT64,
           ),
       ),
       (
@@ -67,7 +67,7 @@ class CoreCumCountTest(parameterized.TestCase):
           arolla.unspecified(),
           ds(
               [[[1, 2], [None, 1]], [[None, None]], [[1, None, 2]]],
-              dtype=INT64,
+              schema=INT64,
           ),
       ),
       (
@@ -75,7 +75,7 @@ class CoreCumCountTest(parameterized.TestCase):
           1,
           ds(
               [[[1, 2], [None, 1]], [[None, None]], [[1, None, 2]]],
-              dtype=INT64,
+              schema=INT64,
           ),
       ),
       (
@@ -83,7 +83,7 @@ class CoreCumCountTest(parameterized.TestCase):
           2,
           ds(
               [[[1, 2], [None, 3]], [[None, None]], [[1, None, 2]]],
-              dtype=INT64,
+              schema=INT64,
           ),
       ),
       (
@@ -91,7 +91,7 @@ class CoreCumCountTest(parameterized.TestCase):
           3,
           ds(
               [[[1, 2], [None, 3]], [[None, None]], [[4, None, 5]]],
-              dtype=INT64,
+              schema=INT64,
           ),
       ),
   )

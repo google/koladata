@@ -40,7 +40,8 @@ class NpkdTest(parameterized.TestCase):
       df = pd.DataFrame({'x': [1, 2, 3]})
       ds = pdkd.from_dataframe(df)
       testing.assert_equal(
-          ds.x, kd.slice([1, 2, 3], dtype=schema_constants.INT64).with_db(ds.db)
+          ds.x,
+          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_db(ds.db),
       )
 
     with self.subTest('multi-dimensional int df'):
@@ -50,7 +51,7 @@ class NpkdTest(parameterized.TestCase):
       testing.assert_equal(
           ds.x,
           kd.slice(
-              [[1, 2], [3], [], [4, 5]], dtype=schema_constants.INT64
+              [[1, 2], [3], [], [4, 5]], schema=schema_constants.INT64
           ).with_db(ds.db),
       )
 
@@ -63,7 +64,8 @@ class NpkdTest(parameterized.TestCase):
           ds.get_attr('self_'), kd.slice(['$1', '$2', '$3']).with_db(ds.db)
       )
       testing.assert_equal(
-          ds.x, kd.slice([1, 2, 3], dtype=schema_constants.INT64).with_db(ds.db)
+          ds.x,
+          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_db(ds.db)
       )
 
     with self.subTest('non-primitive df with as_obj set to True'):
@@ -75,7 +77,8 @@ class NpkdTest(parameterized.TestCase):
           ds.get_attr('self_'), kd.slice(['$1', '$2', '$3']).with_db(ds.db)
       )
       testing.assert_equal(
-          ds.x, kd.slice([1, 2, 3], dtype=schema_constants.INT64).with_db(ds.db)
+          ds.x,
+          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_db(ds.db)
       )
 
     with self.subTest('empty df'):

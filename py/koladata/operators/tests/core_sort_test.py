@@ -85,20 +85,20 @@ class CoreSortTest(parameterized.TestCase):
       (ds([1.0, 3.0, None, 6.0]), True, ds([6.0, 3.0, 1.0, None])),
       # FLOAT64
       (
-          ds([1.0, 3.0, None, 6.0], dtype=schema_constants.FLOAT64),
+          ds([1.0, 3.0, None, 6.0], schema=schema_constants.FLOAT64),
           True,
-          ds([6.0, 3.0, 1.0, None], dtype=schema_constants.FLOAT64),
+          ds([6.0, 3.0, 1.0, None], schema=schema_constants.FLOAT64),
       ),
       # INT64
       (
-          ds([0, 3, None, 6], dtype=INT64),
+          ds([0, 3, None, 6], schema=INT64),
           True,
-          ds([6, 3, 0, None], dtype=INT64),
+          ds([6, 3, 0, None], schema=INT64),
       ),
       # empty x
-      (ds([], dtype=INT64), False, ds([], dtype=INT64)),
+      (ds([], schema=INT64), False, ds([], schema=INT64)),
       # all missing items
-      (ds([None, None], dtype=INT64), False, ds([None, None], dtype=INT64)),
+      (ds([None, None], schema=INT64), False, ds([None, None], schema=INT64)),
   )
   def test_eval_without_sort_by(self, x, descending, expected):
     result = expr_eval.eval(kde.core.sort(x, descending=descending))
