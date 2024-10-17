@@ -303,8 +303,7 @@ class Traverser {
           "object %v is expected to have a schema in %s attribute, got %v",
           item.item, schema::kSchemaAttr, schema));
     }
-    PrevisitEntityAttributes({item.item, schema}, /*is_object=*/true);
-    return absl::OkStatus();
+    return PrevisitEntityAttributes({item.item, schema}, /*is_object=*/true);
   }
 
   absl::Status PrevisitSchemaAttributes(const ItemWithSchema& item) {
@@ -592,8 +591,7 @@ class Traverser {
           "object %v is expected to have a schema in %s attribute, got %v",
           item.item, schema::kSchemaAttr, schema));
     }
-    VisitEntity({item.item, schema}, /*is_object=*/true);
-    return absl::OkStatus();
+    return VisitEntity({item.item, schema}, /*is_object=*/true);
   }
 
   absl::Status VisitPrimitive(const ItemWithSchema& item) {
