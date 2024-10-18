@@ -442,7 +442,9 @@ cc_library(
         ":data_slice",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
         "//koladata/internal:uuid_object",
+        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
@@ -455,6 +457,7 @@ cc_test(
     name = "uuid_utils_test",
     srcs = ["uuid_utils_test.cc"],
     deps = [
+        ":data_bag",
         ":data_slice",
         ":test_utils",
         ":uuid_utils",

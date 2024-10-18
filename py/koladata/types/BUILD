@@ -223,6 +223,7 @@ cc_library(
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
+        "//koladata:uuid_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "//koladata/s11n",

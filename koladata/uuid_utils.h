@@ -22,6 +22,18 @@
 
 namespace koladata {
 
+// For QExpr operators defined without operator families, but with functors /
+// free functions that accept argument that can be unspecified by the user,
+// there is a need for a sentinel value of DATA_SLICE QType.
+//
+// Returns a DataSlice that represents an unspecified value with DATA_SLICE
+// QType.
+const DataSlice& UnspecifiedDataSlice();
+
+// Returns true if `value` represents a special sentinel value. Otherwise,
+// returns false.
+bool IsUnspecifiedDataSlice(const DataSlice& value);
+
 // Creates a DataSlice whose items are Fingerprints identifying `args`.
 //
 // In order to create a different "Type" from the same arguments, use `seed` key

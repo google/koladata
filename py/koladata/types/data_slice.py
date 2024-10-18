@@ -735,3 +735,8 @@ DataSlice.internal_register_reserved_class_method_name('S')
 DataSlice.S = property(SlicingHelper)
 DataSlice.internal_register_reserved_class_method_name('L')
 DataSlice.L = property(ListSlicingHelper)
+
+
+@functools.cache
+def unspecified():
+  return DataSlice._unspecified()  # pylint: disable=protected-access

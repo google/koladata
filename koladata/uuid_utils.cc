@@ -15,8 +15,10 @@
 #include "koladata/uuid_utils.h"
 
 #include <functional>
+#include <utility>
 #include <vector>
 
+#include "absl/base/no_destructor.h"
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -24,6 +26,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/shape_utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -59,6 +62,21 @@ absl::StatusOr<DataSlice> CreateUuidFromFieldsImpl(
 }
 
 }  // namespace
+
+const DataSlice& UnspecifiedDataSlice() {
+  static const absl::NoDestructor<DataSlice> unspecified = []() {
+    auto unspecified_or = DataSlice::Create(
+        internal::DataItem(internal::CreateUnspecifiedObject()),
+        internal::DataItem(schema::kItemId));
+    DCHECK_OK(unspecified_or.status());
+    return absl::NoDestructor<DataSlice>(*std::move(unspecified_or));
+  }();
+  return *unspecified;
+}
+
+bool IsUnspecifiedDataSlice(const DataSlice& value) {
+  return value.IsEquivalentTo(UnspecifiedDataSlice());
+}
 
 absl::StatusOr<DataSlice> CreateUuidFromFields(
     absl::string_view seed, absl::Span<const absl::string_view> attr_names,

@@ -18,6 +18,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
@@ -31,7 +32,33 @@ namespace {
 using internal::ObjectId;
 
 using ::testing::ElementsAreArray;
+using ::testing::Eq;
 using ::testing::Not;
+
+TEST(UuidUtilsTest, IsUnspecifiedDataSlice_True) {
+  EXPECT_TRUE(IsUnspecifiedDataSlice(UnspecifiedDataSlice()));
+}
+
+TEST(UuidUtilsTest, IsUnspecifiedDataSlice_False) {
+  auto ds = test::DataItem(42);
+  EXPECT_FALSE(IsUnspecifiedDataSlice(ds));
+
+  ds = *CreateUuidFromFields("sentinel", {"__unspecified__"},
+                             {test::DataSlice<int64_t>({(1l << 31) - 1})});
+  EXPECT_FALSE(IsUnspecifiedDataSlice(ds));
+
+  ds = test::DataSlice<float>({3.14, 2.71}, DataBag::Empty());
+  EXPECT_FALSE(IsUnspecifiedDataSlice(ds));
+}
+
+TEST(UuidUtilsTest, UnspecifiedDataSlice_DiffMetadata) {
+  ObjectId obj_id = internal::CreateUuidObjectWithMetadata(
+      internal::StableFingerprintHasher(
+          absl::string_view("__unspecified__")).Finish(),
+      internal::ObjectId::kUuidFlag);
+
+  EXPECT_THAT(UnspecifiedDataSlice().item(), Not(Eq(obj_id)));
+}
 
 TEST(UuidUtilsTest, CreateUuidFromFields_DataSlice) {
   constexpr int64_t kSize = 3;

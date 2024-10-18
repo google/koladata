@@ -176,6 +176,10 @@ class ObjectId {
   static constexpr int64_t kNoFollowUuidExplicitSchemaFlag =  // 0b111111
       kUuidExplicitSchemaFlag | kNoFollowSchemaFlag;
 
+  // Unspecified metadata: leaves 8 more values for schema, in case it gets
+  // expanded to 0b11xxxx range.
+  static constexpr int64_t kUnspecifiedFlag = 0b101111;
+
   // Schema flags invariants in regard to UUIDs:
   static_assert((kUuidImplicitSchemaFlag & kUuidFlag) != 0);
   static_assert((kUuidExplicitSchemaFlag & kUuidFlag) != 0);
@@ -214,9 +218,9 @@ class ObjectId {
   template <int64_t uuid_flag>
   friend ObjectId CreateUuidWithMainObject(ObjectId, arolla::Fingerprint);
   friend ObjectId CreateUuidObjectWithMetadata(arolla::Fingerprint, int64_t);
-  friend ObjectId CreateUuidObject(arolla::Fingerprint);
   friend ObjectId CreateUuidExplicitSchema(arolla::Fingerprint);
   friend ObjectId CreateNoFollowWithMainObject(ObjectId);
+  friend ObjectId CreateUnspecifiedObject();
   friend ObjectId GetOriginalFromNoFollow(ObjectId);
   friend AllocationId AllocateLists(size_t size);
   friend ObjectId AllocateSingleList();
@@ -453,6 +457,13 @@ inline ObjectId CreateNoFollowWithMainObject(ObjectId main_object_id) {
   ObjectId id = main_object_id;
   id.metadata_ |= ObjectId::kNoFollowSchemaFlag;
   return id;
+}
+
+// Returns an ObjectId that is used in unspecified DataSlice constant used in
+// backend operators that require DataSlice as input.
+inline ObjectId CreateUnspecifiedObject() {
+  return CreateUuidObjectWithMetadata(arolla::Fingerprint{0},
+                                      ObjectId::kUnspecifiedFlag);
 }
 
 inline ObjectId GetOriginalFromNoFollow(ObjectId nofollow_object_id) {

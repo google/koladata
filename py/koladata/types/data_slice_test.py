@@ -187,6 +187,15 @@ class DataSliceTest(parameterized.TestCase):
 
     self.assertNotEqual(ds([1]).fingerprint, ds(1).fingerprint)
 
+  def test_unspecified(self):
+    testing.assert_equal(data_slice.unspecified(), data_slice.unspecified())
+    with self.assertRaises(AssertionError):
+      testing.assert_equal(ds(42), data_slice.unspecified())
+    with self.assertRaises(AssertionError):
+      testing.assert_equal(
+          data_slice.unspecified().with_db(bag()), data_slice.unspecified()
+      )
+
   @parameterized.named_parameters(
       (
           'data_item',

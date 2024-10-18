@@ -36,6 +36,7 @@
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/uuid_utils.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -660,6 +661,11 @@ absl::Nullable<PyObject*> PyDataSlice_format(PyObject* self,
       placeholder.c_str(), static_cast<Py_ssize_t>(placeholder.size()));
 }
 
+absl::Nullable<PyObject*> PyDataSlice_unspecified(PyTypeObject*, PyObject*) {
+  auto unspecified = UnspecifiedDataSlice();
+  return WrapPyDataSlice(std::move(unspecified));
+}
+
 // classmethod
 absl::Nullable<PyObject*>
 PyDataSlice_internal_register_reserved_class_method_name(
@@ -701,6 +707,9 @@ PyMethodDef kPyDataSlice_methods[] = {
      "Creates a DataSlice from `value`.\n"
      "If `schema` is set, that schema is used,\n"
      "otherwise the schema is inferred from `value`."},
+    {"_unspecified", (PyCFunction)PyDataSlice_unspecified,
+     METH_CLASS | METH_NOARGS,
+     "Returns an UNSPECIFIED with DataSlice QType."""},
     {"internal_as_py", PyDataSlice_internal_as_py, METH_NOARGS,
      "Returns a Python object equivalent to this DataSlice.\n"
      "\n"
