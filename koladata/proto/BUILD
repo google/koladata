@@ -77,3 +77,51 @@ cc_test(
         "@com_google_protobuf//:protobuf",
     ],
 )
+
+cc_library(
+    name = "to_proto",
+    srcs = ["to_proto.cc"],
+    hdrs = ["to_proto.h"],
+    deps = [
+        "//koladata:data_slice",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
+
+cc_test(
+    name = "to_proto_test",
+    srcs = ["to_proto_test.cc"],
+    deps = [
+        ":from_proto",
+        ":to_proto",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:object_factories",
+        "//koladata:test_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/operators:lib",
+        "//koladata/proto/testing:test_proto2_cc_proto",
+        "//koladata/proto/testing:test_proto3_cc_proto",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_protobuf//:differencer",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
