@@ -1194,7 +1194,8 @@ absl::StatusOr<DataSlice> Ref(const DataSlice& ds) {
 }
 
 absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds) {
-  if (auto result = ds.GetDb()) {
+  auto result = ds.GetDb();
+  if (result != nullptr) {
     return result;
   }
   return absl::InvalidArgumentError("DataSlice has no associated DataBag");

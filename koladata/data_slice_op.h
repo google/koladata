@@ -15,7 +15,6 @@
 #ifndef KOLADATA_DATA_SLICE_OP_H_
 #define KOLADATA_DATA_SLICE_OP_H_
 
-#include <memory>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -54,7 +53,7 @@ struct DataSliceOp {
   absl::StatusOr<DataSlice> operator()(const DataSlice& ds,
                                        DataSlice::JaggedShape shape,
                                        internal::DataItem schema,
-                                       std::shared_ptr<DataBag> db,
+                                       DataBagPtr db,
                                        ArgType&&... args) {
     return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
       return DataSlice::Create(OpImpl()(impl, std::forward<ArgType>(args)...),
@@ -69,7 +68,7 @@ struct DataSliceOp {
   absl::StatusOr<DataSlice> operator()(const DataSlice& ds_1,
                                        const DataSlice& ds_2,
                                        internal::DataItem schema,
-                                       std::shared_ptr<DataBag> db,
+                                       DataBagPtr db,
                                        ArgType&&... args) {
     if constexpr (IsDefinedOnMixedImpl<OpImpl>::value) {
       ASSIGN_OR_RETURN(auto aligned_inputs,

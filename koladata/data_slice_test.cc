@@ -2084,7 +2084,7 @@ TEST(DataSliceTest, SetGetObjectAttributesSameDb) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();
 
-  for (auto other_db : {db, std::shared_ptr<DataBag>(nullptr)}) {
+  for (auto other_db : {db, DataBagPtr(nullptr)}) {
     auto ds_a = test::AllocateDataSlice(shape.size(), schema::kAny, other_db);
 
     ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));

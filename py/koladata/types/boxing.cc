@@ -20,7 +20,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <memory>
 #include <optional>
 #include <stack>
 #include <type_traits>
@@ -98,7 +97,7 @@ absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
 class EmbeddingDataBag {
  public:
   absl::Status EmbedSchema(const DataSlice& ds) {
-    if (!db_) {
+    if (db_ == nullptr) {
       db_ = DataBag::Empty();
     }
     return ds.WithDb(db_).EmbedSchema(/*overwrite=*/false).status();
@@ -289,7 +288,8 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
                                                 std::move(shape), schema));
     // Entity slices embedded to the aux db should be part of the final merged
     // db.
-    if (const auto& db = embedding_db.GetDb()) {
+    const auto& db = embedding_db.GetDb();
+    if (db != nullptr) {
       adoption_queue.Add(db);
     }
     return res;
@@ -400,7 +400,7 @@ PyObject* PyObjectFromValue(schema::DType value) {
   return WrapPyDataSlice(*std::move(ds_or));
 }
 PyObject* PyObjectFromValue(internal::ObjectId value, const DataItem& schema,
-                            const std::shared_ptr<DataBag>& db) {
+                            const DataBagPtr& db) {
   auto ds_or = DataSlice::Create(DataItem(value), schema, db);
   // NOTE: `schema` is already consistent with `value` as otherwise DataSlice
   // would not even be created.
@@ -410,9 +410,9 @@ PyObject* PyObjectFromValue(internal::ObjectId value, const DataItem& schema,
 
 // Returns a new reference to a Python object, equivalent to the value stored in
 // a `DataItem`.
-absl::Nullable<PyObject*> PyObjectFromDataItem(
-    const DataItem& item, const DataItem& schema,
-    const std::shared_ptr<DataBag>& db) {
+absl::Nullable<PyObject*> PyObjectFromDataItem(const DataItem& item,
+                                               const DataItem& schema,
+                                               const DataBagPtr& db) {
   PyObject* res = nullptr;
   item.VisitValue([&](const auto& value) {
     using T = std::decay_t<decltype(value)>;

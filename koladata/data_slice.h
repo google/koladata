@@ -17,8 +17,9 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
+#include <functional>
 #include <optional>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -80,9 +81,10 @@ class DataSlice {
   // Callers must ensure that schema will be compatible with passed data. If the
   // caller does not handle schema itself, it should rely on
   // DataSlice::WithSchema, instead.
-  static absl::StatusOr<DataSlice> Create(
-      internal::DataSliceImpl impl, JaggedShape shape,
-      internal::DataItem schema, std::shared_ptr<DataBag> db = nullptr);
+  static absl::StatusOr<DataSlice> Create(internal::DataSliceImpl impl,
+                                          JaggedShape shape,
+                                          internal::DataItem schema,
+                                          DataBagPtr db = nullptr);
 
   // Same as above, but creates a DataSlice from DataItem. Shape is created
   // implicitly with rank == 0.
@@ -90,33 +92,33 @@ class DataSlice {
   // Callers must ensure that schema will be compatible with passed data. If the
   // caller does not handle schema itself, it should rely on
   // DataSlice::WithSchema, instead.
-  static absl::StatusOr<DataSlice> Create(
-      const internal::DataItem& item, internal::DataItem schema,
-      std::shared_ptr<DataBag> db = nullptr);
+  static absl::StatusOr<DataSlice> Create(const internal::DataItem& item,
+                                          internal::DataItem schema,
+                                          DataBagPtr db = nullptr);
 
   // Creates a DataSlice with schema built from data's dtype. Supported only for
   // primitive DTypes.
   static absl::StatusOr<DataSlice> CreateWithSchemaFromData(
-      internal::DataSliceImpl impl, JaggedShape shape,
-      std::shared_ptr<DataBag> db = nullptr);
+      internal::DataSliceImpl impl, JaggedShape shape, DataBagPtr db = nullptr);
 
   // Convenience factory method that accepts JaggedShape, so that we can use
   // implementation-agnostic constructions in visitors passed to VisitImpl.
-  static absl::StatusOr<DataSlice> Create(
-      const internal::DataItem& item, JaggedShape shape,
-      internal::DataItem schema, std::shared_ptr<DataBag> db = nullptr);
+  static absl::StatusOr<DataSlice> Create(const internal::DataItem& item,
+                                          JaggedShape shape,
+                                          internal::DataItem schema,
+                                          DataBagPtr db = nullptr);
 
   // Convenience factory method that creates a DataSlice from StatusOr. Returns
   // the same error in case of error.
   static absl::StatusOr<DataSlice> Create(
       absl::StatusOr<internal::DataSliceImpl> slice_or, JaggedShape shape,
-      internal::DataItem schema, std::shared_ptr<DataBag> db = nullptr);
+      internal::DataItem schema, DataBagPtr db = nullptr);
 
   // Convenience factory method that creates a DataSlice from StatusOr. Returns
   // the same error in case of error.
   static absl::StatusOr<DataSlice> Create(
       absl::StatusOr<internal::DataItem> item_or, JaggedShape shape,
-      internal::DataItem schema, std::shared_ptr<DataBag> db = nullptr);
+      internal::DataItem schema, DataBagPtr db = nullptr);
 
   // Default-constructed DataSlice is a single missing item with scalar shape
   // and unknown dtype.
@@ -205,12 +207,12 @@ class DataSlice {
   absl::StatusOr<DataSlice> GetNoFollowedSchema() const;
 
   // Returns a reference to a DataBag that this DataSlice has a reference to.
-  const absl::Nullable<std::shared_ptr<DataBag>>& GetDb() const {
+  const absl::Nullable<DataBagPtr>& GetDb() const {
     return internal_->db;
   }
 
   // Returns a new DataSlice with a new reference to DataBag `db`.
-  DataSlice WithDb(std::shared_ptr<DataBag> db) const {
+  DataSlice WithDb(DataBagPtr db) const {
     return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(), db);
   }
 
@@ -458,7 +460,7 @@ class DataSlice {
   using ImplVariant = std::variant<internal::DataItem, internal::DataSliceImpl>;
 
   DataSlice(ImplVariant impl, JaggedShape shape, internal::DataItem schema,
-            std::shared_ptr<DataBag> db = nullptr)
+            DataBagPtr db = nullptr)
       : internal_(arolla::RefcountPtr<Internal>::Make(
             std::move(impl), std::move(shape), std::move(schema),
             std::move(db))) {}
@@ -492,12 +494,12 @@ class DataSlice {
     internal::DataItem schema;
     // Can be shared between multiple DataSlice(s) and underlying storage
     // can be changed outside of control of this DataSlice.
-    std::shared_ptr<DataBag> db;
+    DataBagPtr db;
 
     Internal() : shape(JaggedShape::Empty()), schema(schema::kAny) {}
 
     Internal(ImplVariant impl, JaggedShape shape, internal::DataItem schema,
-             std::shared_ptr<DataBag> db = nullptr)
+             DataBagPtr db = nullptr)
         : impl(std::move(impl)),
           shape(std::move(shape)),
           schema(std::move(schema)),

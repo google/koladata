@@ -51,7 +51,7 @@ absl::StatusOr<Error> SetNoCommonSchemaError(
       internal::DataItem conflict_schema_item,
       DecodeDataItem(cause.no_common_schema().conflicting_schema()));
 
-  if (db) {
+  if (db != nullptr) {
     ASSIGN_OR_RETURN(DataSlice common_schema,
                     DataSlice::Create(common_schema_item,
                                       internal::DataItem(schema::kSchema), db));

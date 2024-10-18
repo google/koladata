@@ -29,13 +29,14 @@
 #include "koladata/internal/data_bag.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/refcount_ptr.h"
 #include "arolla/util/repr.h"
 
 namespace koladata {
 
 class DataBag;
 
-using DataBagPtr = std::shared_ptr<DataBag>;
+using DataBagPtr = arolla::RefcountPtr<DataBag>;
 
 // This abstraction implements the API of all public DataBag functionality
 // users can access. It is used as the main entry point to business logic
@@ -49,13 +50,13 @@ using DataBagPtr = std::shared_ptr<DataBag>;
 // In addition, it provides indirection from the low-level DataBagImpl, so that
 // the underlying Object storage can be changed for many DataSlice(s). This way
 // full persistency can be achieved with partially persistent DataBagImpl.
-class DataBag {
+class DataBag : public arolla::RefcountedBase {
  public:
   // Tag for creating immutable DataBag.
   struct immutable_t {};
 
   // Returns a newly created empty DataBag.
-  static DataBagPtr Empty() { return std::make_shared<DataBag>(); }
+  static DataBagPtr Empty() { return DataBagPtr::Make(); }
 
   DataBag() : DataBag(/*is_mutable=*/true) {}
   explicit DataBag(immutable_t) : DataBag(/*is_mutable=*/false) {}
@@ -89,7 +90,7 @@ class DataBag {
   // DataBag. It should be used only in certain circumstances, e.g. when DataBag
   // is created as mutable, modified and than converted into immutable.
   DataBagPtr ToImmutable() && {
-    auto new_db = std::make_shared<DataBag>(immutable_t{});
+    auto new_db = DataBagPtr::Make(immutable_t{});
     new_db->impl_ = std::move(impl_);
     new_db->fallbacks_ = std::move(fallbacks_);
     return new_db;

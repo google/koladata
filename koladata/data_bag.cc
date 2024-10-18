@@ -37,7 +37,7 @@ namespace koladata {
 
 DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
     absl::Span<const DataBagPtr> fallbacks) {
-  auto res = std::make_shared<DataBag>(DataBag::immutable_t());
+  auto res = DataBagPtr::Make(DataBag::immutable_t());
   std::vector<DataBagPtr> non_null_fallbacks;
   non_null_fallbacks.reserve(fallbacks.size());
   for (int i = 0; i < fallbacks.size(); ++i) {
@@ -60,9 +60,9 @@ absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
 
   DataBagPtr new_db;
   if (immutable) {
-    new_db = std::make_shared<DataBag>(DataBag::immutable_t());
+    new_db = DataBagPtr::Make(DataBag::immutable_t());
   } else {
-    new_db = std::make_shared<DataBag>();
+    new_db = DataBagPtr::Make();
   }
   new_db->impl_ = impl_->PartiallyPersistentFork();
   new_db->impl_->AssignToDataBag();
@@ -106,7 +106,7 @@ DataBagPtr DataBag::CommonDataBag(absl::Span<const DataBagPtr> databags) {
 }
 
 DataBagPtr DataBag::FromImpl(internal::DataBagImplPtr impl) {
-  auto res = std::make_shared<DataBag>();
+  auto res = DataBagPtr::Make();
   res->impl_ = std::move(impl);
   res->impl_->AssignToDataBag();
   return res;

@@ -271,7 +271,7 @@ absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,
   internal::DataBagImpl* db_impl_ptr = nullptr;
   // TODO: Consider adding support for immutable bags in the low
   // level ToObject.
-  if (db && db->IsMutable()) {
+  if (db != nullptr && db->IsMutable()) {
     ASSIGN_OR_RETURN(auto db_impl, db->GetMutableImpl());
     db_impl_ptr = &db_impl.get();
   }

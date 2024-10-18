@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -73,8 +72,7 @@ const DataSlice::JaggedShape& MaxRankShape(const DataSlice::JaggedShape& s1,
 }
 
 absl::StatusOr<DataSlice> EmptyLike(const DataSlice::JaggedShape& shape,
-                                    internal::DataItem schema,
-                                    std::shared_ptr<DataBag> db) {
+                                    internal::DataItem schema, DataBagPtr db) {
   return DataSlice::Create(
       internal::DataSliceImpl::CreateEmptyAndUnknownType(shape.size()), shape,
       std::move(schema), std::move(db));
@@ -102,8 +100,7 @@ absl::Status AssignmentError(absl::Status status, size_t lhs_rank,
 
 // Gets embedded schema from DataItem for primitives and objects.
 absl::StatusOr<internal::DataItem> GetObjSchemaImpl(
-    const internal::DataItem& item,
-    const absl::Nullable<std::shared_ptr<DataBag>>& db) {
+    const internal::DataItem& item, const absl::Nullable<DataBagPtr>& db) {
   internal::DataItem res;
   RETURN_IF_ERROR(item.VisitValue([&]<class T>(const T& value) -> absl::Status {
     if constexpr (arolla::meta::contains_v<schema::supported_primitive_dtypes,
@@ -137,8 +134,7 @@ absl::StatusOr<internal::DataItem> GetObjSchemaImpl(
 
 // Gets embedded schema from DataSliceImpl for primitives and objects.
 absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
-    const internal::DataSliceImpl& impl,
-    const absl::Nullable<std::shared_ptr<DataBag>>& db) {
+    const internal::DataSliceImpl& impl, const absl::Nullable<DataBagPtr>& db) {
   internal::DataSliceImpl::Builder builder(impl.size());
   arolla::DenseArrayBuilder<schema::DType> dtype_arr_builder(impl.size());
 
@@ -358,8 +354,7 @@ absl::StatusOr<internal::DataItem> GetResultSchema(
 // * Otherwise, it allows missing. In case the schema is missing, the returned
 //   DataSlice with have `ANY` schema.
 template <typename ImplT>
-absl::StatusOr<ImplT> GetAttrImpl(const std::shared_ptr<DataBag>& db,
-                                  const ImplT& impl,
+absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
                                   const internal::DataItem& schema,
                                   absl::string_view attr_name,
                                   internal::DataItem& res_schema,
@@ -715,7 +710,7 @@ absl::Status AssertIsSliceSchema(const internal::DataItem& schema) {
 absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
                                             JaggedShape shape,
                                             internal::DataItem schema,
-                                            std::shared_ptr<DataBag> db) {
+                                            DataBagPtr db) {
   if (shape.size() != impl.size()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("shape size must be compatible with number of items: "
@@ -737,7 +732,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
 
 absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             internal::DataItem schema,
-                                            std::shared_ptr<DataBag> db) {
+                                            DataBagPtr db) {
   RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   // NOTE: Checking the invariant to avoid doing non-trivial verification in
   // prod.
@@ -749,7 +744,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
 
 absl::StatusOr<DataSlice> DataSlice::CreateWithSchemaFromData(
     internal::DataSliceImpl impl, JaggedShape shape,
-    std::shared_ptr<DataBag> db) {
+    DataBagPtr db) {
   if (impl.is_empty_and_unknown() || impl.is_mixed_dtype() ||
       impl.dtype() == arolla::GetQType<internal::ObjectId>()) {
     return absl::InvalidArgumentError(
@@ -768,7 +763,7 @@ absl::StatusOr<DataSlice> DataSlice::CreateWithSchemaFromData(
 absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             JaggedShape shape,
                                             internal::DataItem schema,
-                                            std::shared_ptr<DataBag> db) {
+                                            DataBagPtr db) {
   RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   DCHECK_OK(VerifySchemaConsistency(schema, item.dtype(),
                                     /*empty_and_unknown=*/!item.has_value()));
@@ -783,7 +778,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
 
 absl::StatusOr<DataSlice> DataSlice::Create(
     absl::StatusOr<internal::DataSliceImpl> slice_or, JaggedShape shape,
-    internal::DataItem schema, std::shared_ptr<DataBag> db) {
+    internal::DataItem schema, DataBagPtr db) {
   if (!slice_or.ok()) {
     return std::move(slice_or).status();
   }
@@ -793,7 +788,7 @@ absl::StatusOr<DataSlice> DataSlice::Create(
 
 absl::StatusOr<DataSlice> DataSlice::Create(
     absl::StatusOr<internal::DataItem> item_or, JaggedShape shape,
-    internal::DataItem schema, std::shared_ptr<DataBag> db) {
+    internal::DataItem schema, DataBagPtr db) {
   if (!item_or.ok()) {
     return std::move(item_or).status();
   }
