@@ -430,6 +430,12 @@ class DataSliceViewTest(parameterized.TestCase):
         _without_hidden_seed(kde.deep_clone(C.x, C.schema, a=C.a))
     )
 
+  def test_deep_uuid(self):
+    testing.assert_equal(
+        C.x.deep_uuid(C.schema, seed=C.a),
+        kde.deep_uuid(C.x, C.schema, seed=C.a)
+    )
+
   def test_list_size(self):
     testing.assert_equal(C.x.list_size(), kde.list_size(C.x))
 

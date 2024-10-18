@@ -278,6 +278,14 @@ class DataSliceView(BasicKodaView):
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.deep_clone', self, schema, **overrides)
 
+  def deep_uuid(
+      self,
+      schema: Any = arolla.unspecified(),
+      *,
+      seed: Any = '',
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.deep_uuid', self, schema, seed=seed)
+
   def extract(self, schema: Any = arolla.unspecified()) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.extract', self, schema)
 

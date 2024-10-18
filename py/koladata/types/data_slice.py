@@ -246,6 +246,18 @@ def _deep_clone(
   )
 
 
+@DataSlice.add_method('deep_uuid')
+def _deep_uuid(
+    self,
+    schema: DataSlice = arolla.unspecified(),
+    *,
+    seed: DataSlice = '',
+) -> DataSlice:
+  return arolla.abc.aux_eval_op(
+      _op_impl_lookup.deep_uuid, self, schema, seed=seed
+  )
+
+
 @DataSlice.add_method('fork_db')
 def _fork_db(self) -> DataSlice:
   if self.db is None:

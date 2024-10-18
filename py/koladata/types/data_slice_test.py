@@ -2250,6 +2250,29 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     x = bag().obj(a=1)
     self.assertNotEqual(x.deep_clone(), x.deep_clone())
 
+  @parameterized.product(
+      pass_schema=[True, False],
+  )
+  def test_deep_uuid(self, pass_schema):
+    db = data_bag.DataBag.empty()
+    b_slice = db.new(a=ds([1, None, 2]))
+    o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    if pass_schema:
+      result = o.deep_uuid(o.get_schema())
+    else:
+      result = o.deep_uuid()
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(result.S[0], result.S[1])
+    odb = data_bag.DataBag.empty()
+    o2 = odb.obj(b=odb.new(a=1), c='foo')
+    result2 = o2.deep_uuid()
+    testing.assert_equal(result2, result.S[0])
+
+  def test_deep_uuid_with_schema_and_seed(self):
+    s = bag().new_schema(x=schema_constants.INT32)
+    x = bag().obj(x=42, y='abc')
+    _ = x.deep_uuid(schema=s, seed='seed')
+
   def test_call(self):
     with self.assertRaisesRegex(
         TypeError, "'data_slice.DataSlice' object is not callable"
