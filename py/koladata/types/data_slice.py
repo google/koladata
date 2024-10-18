@@ -373,7 +373,7 @@ def to_py(
   db = DataBag.empty()
   ds = db.implode(ds.no_db(), -1)
   if orig_db is not None:
-    ds = ds.with_fallback(orig_db)
+    ds = ds.enriched(orig_db)
   return _to_py_impl(ds, {}, 0, max_depth, obj_as_dict, include_missing_attrs)
 
 

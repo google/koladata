@@ -777,7 +777,7 @@ def set_get_multiple_attrs_entity_via_fallback(state):
   while state:
     merged_ds = ds.with_db(kd.bag())
     for arg_name, update_ds in updates:
-      merged_ds = update_ds.with_fallback(merged_ds.db)
+      merged_ds = update_ds.enriched(merged_ds.db)
       _ = getattr(merged_ds, arg_name)
 
 
@@ -896,7 +896,7 @@ def set_get_multiple_attrs_10000_entity_via_fallback(state):
   while state:
     merged_ds = ds.with_db(kd.bag())
     for arg_name, update_ds in updates:
-      merged_ds = update_ds.with_fallback(merged_ds.db)
+      merged_ds = update_ds.enriched(merged_ds.db)
       _ = getattr(merged_ds, arg_name)
 
 

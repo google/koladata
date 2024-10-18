@@ -161,7 +161,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
     a_slice = db.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
     _ = fb.new(a=a_slice.no_db(), c=ds([1, None, 2]))
     o = db.new(a=a_slice)
-    merged_db = o.with_fallback(fb).db.merge_fallbacks()
+    merged_db = o.enriched(fb).db.merge_fallbacks()
     o = o.with_db(merged_db)
     if pass_schema:
       result = expr_eval.eval(kde.deep_clone(o, o.get_schema()))

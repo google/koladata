@@ -668,12 +668,6 @@ class DataSliceViewTest(parameterized.TestCase):
     # attrs / methods should be skipped iff they cannot be added by design, not
     # because of laziness.
     skipped_data_slice_attrs = {
-        # TODO: Add the following as operators.
-        # go/keep-sorted start
-        'with_fallback',
-        # go/keep-sorted end
-    } | {
-        # Attrs / methods that should _not_ be added to the view.
         # go/keep-sorted start
         'add_method',
         'append',

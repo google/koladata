@@ -434,7 +434,7 @@ class DataSliceTest(parameterized.TestCase):
     y = x.with_db(db2)
     y.set_attr('a', 2, update_schema=True)
     y.set_attr('b', 2, update_schema=True)
-    z = x.with_fallback(db2)
+    z = x.enriched(db2)
 
     new_z = z.with_merged_bag()
     self.assertIsNot(new_z.db, db1)
@@ -512,9 +512,9 @@ class DataSliceTest(parameterized.TestCase):
     self.assertEqual(dir(x), ['a', 'b'])
     self.assertEqual(dir(ds([x])), ['a', 'b'])
     x.with_db(fb).set_attr('c', 42, update_schema=True)
-    self.assertEqual(dir(x.with_db(db).with_fallback(fb)), ['a', 'b', 'c'])
+    self.assertEqual(dir(x.with_db(db).enriched(fb)), ['a', 'b', 'c'])
     self.assertEqual(
-        dir(ds([x]).with_db(db).with_fallback(fb)),
+        dir(ds([x]).with_db(db).enriched(fb)),
         ['a', 'b', 'c'],
     )
 
@@ -2419,17 +2419,19 @@ class DataSliceMergingTest(parameterized.TestCase):
 class DataSliceFallbackTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (None,), ([1, 2, 3],), (bag().new(x=1),)
+      (None,), (ds([1, 2, 3]),), (bag().new(x=1),)
   )
   def test_errors(self, db):
-    with self.assertRaisesRegex(TypeError, 'expecting db to be a DataBag'):
-      ds([1, 2, 3]).with_fallback(db)
+    with self.assertRaisesRegex(
+        ValueError, 'expected all arguments to be DATA_BAG'
+    ):
+      ds([1, 2, 3]).enriched(db)
 
   def test_immutable(self):
     db = bag()
     x = db.new(q=1)
     x.get_schema().w = schema_constants.INT32
-    x_fb = x.with_fallback(db)
+    x_fb = x.enriched(db)
     with self.assertRaisesRegex(ValueError, 'immutable'):
       x_fb.get_schema().w = schema_constants.INT32
       x_fb.w = x_fb.q + 1
@@ -2438,7 +2440,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     db = bag()
     x = db.new(q=1)
     x.get_schema().w = schema_constants.INT32
-    x_fb = x.with_fallback(db)
+    x_fb = x.enriched(db)
     db2 = bag()
     x2 = db2.new(q=1)
     with self.assertRaisesRegex(ValueError, 'immutable'):
@@ -2449,7 +2451,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     db = bag()
     x = db.new(abc=ds([3.14, None]))
     x = x.with_db(None)
-    x = x.with_fallback(db)
+    x = x.enriched(db)
     testing.assert_allclose(x.abc, ds([3.14, None]).with_db(x.db))
 
   def test_get_attr(self):
@@ -2463,7 +2465,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     fb_x.get_schema().abc = schema_constants.FLOAT32
     fb_x.abc = ds([None, 2.71])
 
-    merged_x = x.with_fallback(fb_db)
+    merged_x = x.enriched(fb_db)
 
     testing.assert_allclose(merged_x.abc, ds([3.14, 2.71]).with_db(merged_x.db))
     testing.assert_allclose(
@@ -2475,7 +2477,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     new_db = bag()
     new_x = x.with_db(new_db).as_any()
     new_x.xyz = ds([None, 3.14], schema_constants.FLOAT64)
-    merged_x = new_x.with_fallback(db).with_fallback(fb_db)
+    merged_x = new_x.enriched(db, fb_db)
     testing.assert_allclose(
         merged_x.xyz,
         ds([2.71, 3.14], schema_constants.FLOAT64)
@@ -2501,7 +2503,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     fb_db = bag()
     fb_x = x.with_db(fb_db)
     fb_x.abc = ds([None, '2.71'])
-    merged_x = x.with_fallback(fb_db)
+    merged_x = x.enriched(fb_db)
     testing.assert_equal(
         merged_x.abc, ds([314, '2.71']).as_any().with_db(merged_x.db),
     )
@@ -2524,7 +2526,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     fb_x['qwe'] = ds([None, 'pi'])
     fb_x['asd'] = ds(['e', None])
 
-    merged_x = x.with_fallback(fb_db)
+    merged_x = x.enriched(fb_db)
 
     testing.assert_dicts_keys_equal(
         merged_x,
@@ -2552,7 +2554,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
         '__values__', x.get_schema().get_attr('__values__')
     )
     merged_x['xyz'] = ds([None, 3.14])
-    merged_x = merged_x.with_fallback(db).with_fallback(fb_db)
+    merged_x = merged_x.enriched(db, fb_db)
     testing.assert_allclose(
         merged_x['xyz'],
         ds([2.71, 3.14], schema_constants.OBJECT).with_db(merged_x.db),
@@ -2575,7 +2577,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
       dct.with_db(db)[f'd{i}'] = i
       setattr(obj.get_schema().with_db(db), f'a{i}', schema_constants.INT32)
       setattr(obj.with_db(db), f'a{i}', -i)
-      merged_db = dct.with_db(merged_db).with_fallback(db).db
+      merged_db = dct.with_db(merged_db).enriched(db).db
 
     dct = dct.with_db(merged_db)
     testing.assert_dicts_keys_equal(

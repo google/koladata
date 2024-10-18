@@ -50,16 +50,20 @@ class CoreEnrichedTest(parameterized.TestCase):
   def test_eval_no_db(self):
     x = ds([1, 2, 3])
     db1 = bag()
-    expected = x.with_db(db1)
     result = expr_eval.eval(kde.core.enriched(I.x, I.y), x=x, y=db1)
-    testing.assert_equal(result, expected)
+    testing.assert_equal(x, result.no_db())
+    testing.assert_equal(result.db.get_fallbacks()[0], db1)
+    self.assertNotEqual(result.db.fingerprint, db1.fingerprint)
+    self.assertFalse(result.db.is_mutable())
 
   def test_eval_same_db(self):
     db1 = bag()
     x = ds([1, 2, 3]).with_db(db1)
-    expected = x
     result = expr_eval.eval(kde.core.enriched(I.x, I.y), x=x, y=db1)
-    testing.assert_equal(result, expected)
+    testing.assert_equal(x.no_db(), result.no_db())
+    testing.assert_equal(result.db.get_fallbacks()[0], db1)
+    self.assertNotEqual(result.db.fingerprint, db1.fingerprint)
+    self.assertFalse(result.db.is_mutable())
 
   def test_eval_attr_conflict(self):
     schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.INT32)

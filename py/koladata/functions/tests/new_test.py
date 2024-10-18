@@ -171,7 +171,7 @@ class NewTest(absltest.TestCase):
     schema = fns.new_schema(a=schema_constants.INT32)
     fallback_db = fns.bag()
     schema.with_db(fallback_db).set_attr('b', schema_constants.TEXT)
-    schema = schema.with_fallback(fallback_db)
+    schema = schema.enriched(fallback_db)
     x = fns.new(a=42, b='xyz', schema=schema)
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_db(x.db))

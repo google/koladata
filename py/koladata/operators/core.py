@@ -2447,10 +2447,8 @@ def enriched(ds, *db):  # pylint: disable=unused-argument
 
   Values in the original DataBag of `ds` take precedence over the ones in `*db`.
 
-  If `ds` has no attached DataBag, or its attached DataBag is `db`, then we
-  avoid creating unnecessary fallbacks, and this operator is equivalent to
-  `with_db(ds, db)`. Otherwise, the DataBag attached to the result is a new
-  immutable DataBag that falls back to the DataBag of `ds` and then to `*db`.
+  The DataBag attached to the result is a new immutable DataBag that falls back
+  to the DataBag of `ds` if present and then to `*db`.
 
   `enriched(x, a, b)` is equivalent to `enriched(enriched(x, a), b)`, and so on
   for additional DataBag args.
@@ -2479,10 +2477,8 @@ def updated(ds, *db):  # pylint: disable=unused-argument
 
   Values in `*db` take precedence over the ones in the original DataBag of `ds`.
 
-  If `ds` has no attached DataBag, or its attached DataBag is `db`, then we
-  avoid doing unnecessary work, and this operator is equivalent to
-  `with_db(ds, db)`. Otherwise, the DataBag attached to the result is a new
-  immutable DataBag that falls back to `db` and then to the DataBag of `ds`.
+  The DataBag attached to the result is a new immutable DataBag that falls back
+  to the DataBag of `ds` if present and then to `*db`.
 
   `updated(x, a, b)` is equivalent to `updated(updated(x, b), a)`, and so on
   for additional DataBag args.

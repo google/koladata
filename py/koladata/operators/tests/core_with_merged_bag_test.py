@@ -45,7 +45,7 @@ class CoreWithMergedBagTest(parameterized.TestCase):
     y = x.with_db(db2)
     y.set_attr('a', 2, update_schema=True)
     y.set_attr('b', 2, update_schema=True)
-    z = x.with_fallback(db2)
+    z = x.enriched(db2)
 
     new_z = expr_eval.eval(kde.core.with_merged_bag(z))
     self.assertIsNot(new_z.db, db1)

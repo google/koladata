@@ -161,7 +161,7 @@ Assigned schema for 'xyz': TEXT"""),
     db3 = fns.bag()
     y.with_db(db3).set_attr('bar', 2, update_schema=True)
     y.with_db(db3).set_attr('baz', 5, update_schema=True)
-    x.foo = y.with_fallback(db3)
+    x.foo = y.enriched(db3)
     testing.assert_equal(x.foo.bar, ds('foo').with_db(db))
     testing.assert_equal(x.foo.baz, ds(5).with_db(db))
 

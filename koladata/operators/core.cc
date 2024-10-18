@@ -1251,7 +1251,8 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
             }
             db_list.push_back(ds.GetDb());
           }
-          frame.Set(output_slot, ds.WithDb(DataBag::CommonDataBag(db_list)));
+          frame.Set(output_slot,
+                    ds.WithDb(DataBag::ImmutableEmptyWithFallbacks(db_list)));
         });
   }
 

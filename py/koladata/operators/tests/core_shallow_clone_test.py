@@ -86,9 +86,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
     fb_noise = bag()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.with_db(noise.with_fallback(db).with_fallback(fb).db)
+      o_fb = o.with_db(noise.enriched(db, fb).db)
     else:
-      o_fb = o.with_fallback(fb).with_fallback(fb_noise)
+      o_fb = o.enriched(fb, fb_noise)
 
     if pass_schema:
       result = expr_eval.eval(kde.shallow_clone(o_fb, o_fb.get_schema()))

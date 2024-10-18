@@ -90,7 +90,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
         'd', kd.dict({'a': 'b', 'c': kd.obj(l1)}), update_schema=True
     )
 
-    slice_with_fallback = db2.new(a=5, b=7).with_fallback(db1)
+    slice_with_fallback = db2.new(a=5, b=7).enriched(db1)
 
     data = arolla.s11n.dumps_many([db1, db2, slice_with_fallback], [])
     values, _ = arolla.s11n.loads_many(data)

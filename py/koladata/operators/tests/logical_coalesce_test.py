@@ -133,7 +133,7 @@ class LogicalCoalesceTest(parameterized.TestCase):
     self.assertNotEqual(x.db.fingerprint, y.db.fingerprint)
     testing.assert_equivalent(
         expr_eval.eval(kde.logical.coalesce(x, y)).a,
-        ds([1, 'xyz']).with_db(x.db).with_fallback(y.db),
+        ds([1, 'xyz']).with_db(x.db).enriched(y.db),
     )
 
   def test_same_db(self):

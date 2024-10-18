@@ -1540,9 +1540,7 @@ Returns:
     {"get_fallbacks", PyDataBag_get_fallbacks, METH_NOARGS,
      R"""(Returns the list of fallback DataBags in this DataBag.
 
-The list will be empty if the DataBag does not have fallbacks. When
-`DataSlice.with_fallback` is called, the original and provided DataBag will be
-added to the fallback list of the newly created DataBag.)"""},
+The list will be empty if the DataBag does not have fallbacks.)"""},
     {"_from_proto", (PyCFunction)PyDataBag_from_proto, METH_FASTCALL,
      "Returns a DataSlice converted from a list of proto messages."},
     {nullptr} /* sentinel */

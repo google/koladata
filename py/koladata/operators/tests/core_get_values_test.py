@@ -161,11 +161,11 @@ class CoreGetValuesTest(parameterized.TestCase):
     )
     del d2[1]
 
-    d3 = d1.with_fallback(d2.db)
+    d3 = d1.enriched(d2.db)
     result = expr_eval.eval(kde.get_values(d3))
     testing.assert_unordered_equal(result, ds([2, 4, 6]).with_db(d3.db))
 
-    d4 = d2.with_fallback(d1.db)
+    d4 = d2.enriched(d1.db)
     result = expr_eval.eval(kde.get_values(d4))
     testing.assert_unordered_equal(result, ds([2, 3, 6]).with_db(d4.db))
 

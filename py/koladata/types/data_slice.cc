@@ -80,22 +80,6 @@ absl::Nullable<PyObject*> PyDataSlice_no_db(PyObject* self, PyObject*) {
   return WrapPyDataSlice(UnsafeDataSliceRef(self).WithDb(nullptr));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_with_fallback(PyObject* self,
-                                                    PyObject* db) {
-  arolla::python::DCheckPyGIL();
-  DataBagPtr db_ptr = UnwrapDataBagPtr(db, "db");
-  if (db_ptr == nullptr) {
-    return nullptr;
-  }
-  const DataSlice& self_slice = UnsafeDataSliceRef(self);
-  if (self_slice.GetDb() == nullptr) {
-    return WrapPyDataSlice(self_slice.WithDb(
-        DataBag::ImmutableEmptyWithFallbacks({std::move(db_ptr)})));
-  }
-  return WrapPyDataSlice(self_slice.WithDb(DataBag::ImmutableEmptyWithFallbacks(
-      {self_slice.GetDb(), std::move(db_ptr)})));
-}
-
 // classmethod
 absl::Nullable<PyObject*> PyDataSlice_from_vals(PyTypeObject* cls,
                                                 PyObject* const* py_args,
@@ -712,19 +696,6 @@ PyMethodDef kPyDataSlice_methods[] = {
      "Returns a copy of DataSlice with DataBag `db`."},
     {"no_db", PyDataSlice_no_db, METH_NOARGS,
      "Returns a copy of DataSlice without DataBag."},
-    {"with_fallback", PyDataSlice_with_fallback, METH_O,
-     R"""(Returns a copy of DataSlice with DataBag with two fallbacks.
-
-Original and provided DataBags are used as fallbacks. Modifications of
-fallbacks will be reflected in the new DataBag. Modifications to the new
-DataBag will be local and not going to be visible in the fallbacks.
-
-Args:
-  db: Fallback DataBag. Must be not None.
-Returns:
-  DataSlice with new empty DataBag and up to two fallbacks. One fallback will be
-  present in case DataSlice has no DataBag.
-)"""},
     {"from_vals", (PyCFunction)PyDataSlice_from_vals,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
      "Creates a DataSlice from `value`.\n"

@@ -139,7 +139,7 @@ class DataBagTest(parameterized.TestCase):
       ),
       (
           'fallback',
-          bag().new(a=1).with_fallback(bag().list([1, 2]).db).db,
+          bag().new(a=1).enriched(bag().list([1, 2]).db).db,
           (
               r'^DataBag \$[0-9a-f]{4} with 0 values in 0 attrs, plus 0 schema'
               r' values and 2 fallbacks. Top attrs:\n'
@@ -150,8 +150,7 @@ class DataBagTest(parameterized.TestCase):
           'two_fallbacks',
           bag()
           .new(a=1)
-          .with_fallback(bag().list([1, 2]).db)
-          .with_fallback(bag().dict({'a': 42}).db)
+          .enriched(bag().list([1, 2]).db).enriched(bag().dict({'a': 42}).db)
           .db,
           (
               r'^DataBag \$[0-9a-f]{4} with 0 values in 0 attrs, plus 0 schema'
@@ -264,7 +263,7 @@ k[0-9a-f]{32}:0\.(b|a) => (OBJECT|INT32)
   def test_contents_repr_fallback(self):
     db = bag()
     entity = db.new(x=1)
-    ds2 = entity.with_db(bag()).with_fallback(db)
+    ds2 = entity.with_db(bag()).enriched(db)
     db_repr = ds2.db.contents_repr()
     expected_repr = r"""DataBag \$[0-9a-f]{4}:
 
@@ -291,8 +290,8 @@ SchemaBag:
       entity = db.new(x=1)
       db2 = bag()
       db2.new(y=2)
-      entity2 = entity.with_db(db2).with_fallback(db)
-      entity3 = entity2.with_db(bag()).with_fallback(entity2.db)
+      entity2 = entity.with_db(db2).enriched(db)
+      entity3 = entity2.with_db(bag()).enriched(entity2.db)
       db_repr = entity3.db.contents_repr()
       expected_repr = r"""DataBag \$[0-9a-f]{4}:
 
@@ -1267,7 +1266,7 @@ Assigned schema for Dict key: INT32""",
     db1 = bag()
     db2 = bag()
     o = db1.obj(a=1)
-    res = o.with_db(db2).with_fallback(db1)
+    res = o.with_db(db2).enriched(db1)
     fallbacks = res.db.get_fallbacks()
     self.assertLen(fallbacks, 2)
     testing.assert_equal(fallbacks[0], db2)
@@ -1278,9 +1277,9 @@ Assigned schema for Dict key: INT32""",
       db2 = bag()
       db3 = bag()
       o = db1.obj(a=1)
-      res1 = o.with_fallback(db2)
+      res1 = o.enriched(db2)
       db4 = res1.db
-      res2 = res1.with_fallback(db3)
+      res2 = res1.enriched(db3)
       fallbacks = res2.db.get_fallbacks()
       self.assertLen(fallbacks, 2)
       testing.assert_equal(fallbacks[0], db4)
@@ -1306,11 +1305,11 @@ Assigned schema for Dict key: INT32""",
     db1 = bag()
     db2 = bag()
     x = data_slice.DataSlice.from_vals([1, 2, 3])
-    ds12 = x.with_db(db1).with_fallback(db2)
+    ds12 = x.with_db(db1).enriched(db2)
     ds1 = x.with_db(db1)
     self.assertFalse(ds12.db._exactly_equal(ds1.db))
 
-    ds21 = x.with_db(db2).with_fallback(db1)
+    ds21 = x.with_db(db2).enriched(db1)
     self.assertTrue(ds12.db._exactly_equal(ds21.db))
 
     _ = db1.obj(x=1)
@@ -1488,7 +1487,7 @@ Assigned schema for Dict key: INT32""",
   def test_merge_fallbacks(self):
     db1 = bag()
     x1 = db1.new(a=1)
-    x2 = x1.with_db(bag()).with_fallback(db1)
+    x2 = x1.with_db(bag()).enriched(db1)
     db2 = x2.db
 
     db3 = db2.merge_fallbacks()
@@ -1545,7 +1544,7 @@ Assigned schema for Dict key: INT32""",
   # TODO: Re-think forking in the context of DataBag with mutable
   # fallbacks.
   def test_freeze_with_fallbacks(self):
-    db = bag().new().with_fallback(bag())
+    db = bag().new().enriched(bag())
     with self.assertRaisesRegex(
         ValueError, 'freezing with fallbacks is not supported'
     ):

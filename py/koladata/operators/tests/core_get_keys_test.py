@@ -106,11 +106,11 @@ class CoreGetKeysTest(parameterized.TestCase):
     )
     del d2[1]
 
-    d3 = d1.with_fallback(d2.db)
+    d3 = d1.enriched(d2.db)
     result = expr_eval.eval(kde.get_keys(d3))
     testing.assert_unordered_equal(result, ds([1, 3, 5]).with_db(d3.db))
 
-    d4 = d2.with_fallback(d1.db)
+    d4 = d2.enriched(d1.db)
     result = expr_eval.eval(kde.get_keys(d4))
     testing.assert_unordered_equal(result, ds([1, 3, 5]).with_db(d4.db))
 

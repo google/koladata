@@ -67,16 +67,16 @@ class CoreExtractTest(parameterized.TestCase):
     fb_noise = data_bag.DataBag.empty()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.with_db(noise.with_fallback(db).with_fallback(fb).db)
+      o_fb = o.with_db(noise.enriched(db, fb).db)
     else:
-      o_fb = o.with_fallback(fb).with_fallback(fb_noise)
+      o_fb = o.enriched(fb, fb_noise)
 
     if pass_schema:
       result = expr_eval.eval(kde.extract(o_fb, o_fb.get_schema()))
     else:
       result = expr_eval.eval(kde.extract(o_fb))
 
-    expected_db = o.with_fallback(fb).db.merge_fallbacks()
+    expected_db = o.enriched(fb).db.merge_fallbacks()
     testing.assert_equivalent(result.db, expected_db)
 
   @parameterized.parameters(
@@ -116,14 +116,14 @@ class CoreExtractTest(parameterized.TestCase):
     fb_noise = data_bag.DataBag.empty()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.with_fallback(fb_noise)
+      o_fb = o.enriched(fb_noise)
     else:
-      o_fb = o.with_db(noise.with_fallback(db).db)
+      o_fb = o.with_db(noise.enriched(db).db)
 
     result = expr_eval.eval(kde.extract(o_fb, schema))
 
     expected_db = (
-        schema.with_fallback(expected_db).db.merge_fallbacks()
+        schema.enriched(expected_db).db.merge_fallbacks()
     )
     del (
         o.a.with_db(expected_db).get_attr('__schema__').b,
@@ -150,7 +150,7 @@ class CoreExtractTest(parameterized.TestCase):
         'd', fb_d.get_schema().no_db()
     )
     o.a.with_db(fb).set_attr('d', fb_d)
-    o_fb = o.with_fallback(fb)
+    o_fb = o.enriched(fb)
 
     result = expr_eval.eval(kde.extract(o_fb))
 
