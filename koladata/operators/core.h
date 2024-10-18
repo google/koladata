@@ -63,6 +63,26 @@ class UpdatedOperatorFamily final : public EnrichedOrUpdatedOperatorFamily {
   bool is_enriched_operator() const override { return false; }
 };
 
+class EnrichedOrUpdatedDbOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const override;
+
+ protected:
+  virtual bool is_enriched_operator() const = 0;
+};
+
+// kde.core.enriched_bag.
+class EnrichedDbOperatorFamily final
+    : public EnrichedOrUpdatedDbOperatorFamily {
+  bool is_enriched_operator() const override { return true; }
+};
+
+// kde.core.updated_bag.
+class UpdatedDbOperatorFamily final : public EnrichedOrUpdatedDbOperatorFamily {
+  bool is_enriched_operator() const override { return false; }
+};
+
 // kde.core._inverse_mapping.
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x);
 

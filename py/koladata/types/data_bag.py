@@ -391,6 +391,16 @@ def _merge_inplace(
   return self
 
 
+def _enriched_bag(*dbs) -> DataBag:
+  """Returns a merged DataBag with priority for DataBags earlier in the list."""
+  return arolla.abc.aux_eval_op(_op_impl_lookup.enriched_bag, *dbs)
+
+
+def _updated_bag(*dbs) -> DataBag:
+  """Returns a merged DataBag with priority for DataBags later in the list."""
+  return arolla.abc.aux_eval_op(_op_impl_lookup.updated_bag, *dbs)
+
+
 DataBag.__getitem__ = _getitem
 DataBag.dict = _dict
 DataBag.dict_like = _dict_like
@@ -403,3 +413,11 @@ DataBag.concat_lists = _concat_lists
 DataBag.freeze = _freeze
 DataBag.merge_inplace = _merge_inplace
 DataBag.with_name = _general_eager_ops.with_name
+DataBag.__lshift__ = _updated_bag
+DataBag.__ilshift__ = lambda self, other: _merge_inplace(
+    self, other, overwrite=True
+)
+DataBag.__rshift__ = _enriched_bag
+DataBag.__irshift__ = lambda self, other: _merge_inplace(
+    self, other, overwrite=False
+)

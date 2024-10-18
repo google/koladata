@@ -123,6 +123,16 @@ class DataBagViewTest(parameterized.TestCase):
   def test_freeze(self):
     testing.assert_equal(op(C.x).freeze(), kde.core._freeze_bag(op(C.x)))
 
+  def test_lshift(self):
+    testing.assert_equal(
+        op(C.x) << op(C.y), kde.core.updated_bag(op(C.x), op(C.y))
+    )
+
+  def test_rshift(self):
+    testing.assert_equal(
+        op(C.x) >> op(C.y), kde.core.enriched_bag(op(C.x), op(C.y))
+    )
+
   def test_repr(self):
     # We avoid parametrization since the view is registered in setUp.
     self.assertEqual(repr(op(op(C.x)[C.y])), 'M.test.op(M.test.op(C.x)[C.y])')

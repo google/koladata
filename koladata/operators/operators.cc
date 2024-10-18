@@ -88,6 +88,8 @@ OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR("kde.core.dict_size", DictSize);
 OPERATOR_FAMILY("kde.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
+OPERATOR_FAMILY("kde.core.enriched_bag",
+                std::make_unique<EnrichedDbOperatorFamily>());
 OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.get_db", GetDb);
 OPERATOR("kde.core.get_keys", GetKeys);
@@ -118,6 +120,8 @@ OPERATOR_FAMILY("kde.core.subslice",
 OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
 OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());
+OPERATOR_FAMILY("kde.core.updated_bag",
+                std::make_unique<UpdatedDbOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uu", std::make_unique<UuOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uuid", std::make_unique<UuidOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uuid_for_dict",

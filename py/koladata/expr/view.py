@@ -61,6 +61,12 @@ class DataBagView(BasicKodaView):
   def freeze(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.core._freeze_bag', self)
 
+  def __lshift__(self, other) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.core.updated_bag', self, other)
+
+  def __rshift__(self, other) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.core.enriched_bag', self, other)
+
 
 class SlicingHelper:
   """Slicing helper for DataSliceView.

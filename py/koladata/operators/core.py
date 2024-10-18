@@ -2497,6 +2497,62 @@ def updated(ds, *db):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.enriched_bag'], view=view.DataBagView)
+@optools.as_backend_operator(
+    'kde.core.enriched_bag',
+    qtype_constraints=[
+        qtype_utils.expect_data_bag_args(P.dbs),
+    ],
+    qtype_inference_expr=qtypes.DATA_BAG,
+)
+def enriched_bag(*dbs):  # pylint: disable=unused-argument
+  """Creates a new immutable DataBag enriched by `dbs`.
+
+   It adds `dbs` as fallbacks rather than merging the underlying data thus
+   the cost is O(1).
+
+   Databags earlier in the list have higher priority.
+   `enriched_bag(db1, db2, db3)` is equivalent to
+   `enriched_bag(enriched_bag(db1, db2), db3)`, and so on for additional
+   DataBag args.
+
+  Args:
+    *dbs: DataBag(s) for enriching.
+
+  Returns:
+    An immutable DataBag enriched by `dbs`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.updated_bag'], view=view.DataBagView)
+@optools.as_backend_operator(
+    'kde.core.updated_bag',
+    qtype_constraints=[
+        qtype_utils.expect_data_bag_args(P.dbs),
+    ],
+    qtype_inference_expr=qtypes.DATA_BAG,
+)
+def updated_bag(*dbs):  # pylint: disable=unused-argument
+  """Creates a new immutable DataBag updated by `dbs`.
+
+   It adds `dbs` as fallbacks rather than merging the underlying data thus
+   the cost is O(1).
+
+   Databags later in the list have higher priority.
+   `updated_bag(db1, db2, db3)` is equivalent to
+   `updated_bag(db1, updated_bag(db2, db3)`, and so on for additional
+   DataBag args.
+
+  Args:
+    *dbs: DataBag(s) for updating.
+
+  Returns:
+    An immutable DataBag updated by `dbs`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.get_nofollowed_schema'])
 @optools.as_backend_operator(
     'kde.core.get_nofollowed_schema',

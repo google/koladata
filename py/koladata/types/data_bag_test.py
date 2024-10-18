@@ -1433,6 +1433,58 @@ Assigned schema for Dict key: INT32""",
     ):
       db1.merge_inplace([x1])
 
+  def test_lshift(self):
+    db1 = bag()
+    o1 = db1.uuobj(x=1)
+    db2 = bag()
+    o2 = db2.uuobj(x=1)
+    o2.x = 2
+    o2.y = 3
+    db3 = bag()
+    o3 = db3.uuobj(x=1)
+    o3.x = 2
+    o3.y = 4
+    o4 = o1.with_db(db1 << db2 << db3)
+    self.assertEqual(o4.x.no_db(), ds(2))
+    self.assertEqual(o4.y.no_db(), ds(4))
+
+  def test_shift(self):
+    db1 = bag()
+    o1 = db1.uuobj(x=1)
+    db2 = bag()
+    o2 = db2.uuobj(x=1)
+    o2.x = 2
+    o2.y = 3
+    db3 = bag()
+    o3 = db3.uuobj(x=1)
+    o3.x = 2
+    o3.y = 4
+    o3 = o1.with_db(db1 >> db2 >> db3)
+    testing.assert_equal(o3.x.no_db(), ds(1))
+    self.assertEqual(o3.y.no_db(), ds(3))
+
+  def test_ilshift(self):
+    db1 = bag()
+    o1 = db1.uuobj(x=1)
+    db2 = bag()
+    o2 = db2.uuobj(x=1)
+    o2.x = 2
+    o2.y = 3
+    db1 <<= db2
+    self.assertEqual(o1.x.no_db(), ds(2))
+    self.assertEqual(o1.y.no_db(), ds(3))
+
+  def test_irshift(self):
+    db1 = bag()
+    o1 = db1.uuobj(x=1)
+    db2 = bag()
+    o2 = db2.uuobj(x=1)
+    o2.x = 2
+    o2.y = 3
+    db1 >>= db2
+    self.assertEqual(o1.x.no_db(), ds(1))
+    self.assertEqual(o1.y.no_db(), ds(3))
+
   def test_merge_fallbacks(self):
     db1 = bag()
     x1 = db1.new(a=1)

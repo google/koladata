@@ -1258,6 +1258,39 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
   bool is_enriched_operator_;
 };
 
+
+class EnrichedOrUpdatedDbOperator final : public arolla::QExprOperator {
+ public:
+  EnrichedOrUpdatedDbOperator(absl::Span<const arolla::QTypePtr> input_types,
+                            bool is_enriched_operator)
+      : arolla::QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataBagPtr>())),
+        is_enriched_operator_(is_enriched_operator) {}
+
+ private:
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const override {
+    return arolla::MakeBoundOperator(
+        [input_slots = std::vector<arolla::TypedSlot>(input_slots.begin(),
+                                                      input_slots.end()),
+         output_slot = output_slot.UnsafeToSlot<DataBagPtr>(),
+         is_enriched_operator = is_enriched_operator_](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          std::vector<DataBagPtr> db_list(input_slots.size());
+          for (size_t i = 0; i < input_slots.size(); ++i) {
+            db_list[i] = frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
+          }
+          if (!is_enriched_operator) {
+            std::reverse(db_list.begin(), db_list.end());
+          }
+          frame.Set(output_slot, DataBag::ImmutableEmptyWithFallbacks(db_list));
+        });
+  }
+
+  bool is_enriched_operator_;
+};
+
 }  // namespace
 
 absl::StatusOr<arolla::OperatorPtr>
@@ -1283,6 +1316,28 @@ EnrichedOrUpdatedOperatorFamily::DoGetOperator(
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<EnrichedOrUpdatedOperator>(input_types,
                                                   is_enriched_operator()),
+      input_types, output_type);
+}
+
+
+absl::StatusOr<arolla::OperatorPtr>
+EnrichedOrUpdatedDbOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() < 2) {
+    return absl::InvalidArgumentError("requires at least 2 arguments");
+  }
+
+  for (const auto& db_input_type : input_types) {
+    if (db_input_type != arolla::GetQType<DataBagPtr>()) {
+      return absl::InvalidArgumentError(absl::StrCat(
+          "arguments must be DataBag, but got ", db_input_type->name()));
+    }
+  }
+
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<EnrichedOrUpdatedDbOperator>(input_types,
+                                                    is_enriched_operator()),
       input_types, output_type);
 }
 
