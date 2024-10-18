@@ -218,7 +218,7 @@ def mask_or(x, y):
   return schema.with_schema(x | y, schema_constants.MASK)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kde.mask_equal'])
 @optools.as_lambda_operator(
     'kde.logical.mask_equal',
     qtype_constraints=[
@@ -254,7 +254,7 @@ def mask_equal(x, y):
   return schema.with_schema((x & y) | (~x & ~y), schema_constants.MASK)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kde.mask_not_equal'])
 @optools.as_lambda_operator(
     'kde.logical.mask_not_equal',
     qtype_constraints=[
