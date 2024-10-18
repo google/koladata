@@ -128,7 +128,7 @@ class CoreTranslateTest(parameterized.TestCase):
 
   def test_incompatible_shapes(self):
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         'values_from must be broadcastable to keys_from',
     ):
       expr_eval.eval(
@@ -136,7 +136,7 @@ class CoreTranslateTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         'keys_to, keys_from and values_from must have at least one dimension',
     ):
       expr_eval.eval(
@@ -144,13 +144,13 @@ class CoreTranslateTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         'keys_to, keys_from and values_from must have at least one dimension',
     ):
       expr_eval.eval(kde.core.translate(ds(['a', 'c', 'd']), ds('a'), ds(1)))
 
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         'keys_from and keys_to must have the same dimensions except the'
         ' last one',
     ):
@@ -162,7 +162,7 @@ class CoreTranslateTest(parameterized.TestCase):
 
   def test_duplicate_keys(self):
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         'keys_from must be unique within each group of the last dimension',
     ):
       expr_eval.eval(
@@ -174,7 +174,8 @@ class CoreTranslateTest(parameterized.TestCase):
   def test_different_key_schemas(self):
     s2 = db.new_schema(x=schema_constants.INT64)
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'cannot find a common schema'
+        exceptions.KodaError,
+        'keys_to schema must be castable to keys_from schema',
     ):
       expr_eval.eval(
           kde.core.translate(

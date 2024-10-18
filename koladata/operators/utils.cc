@@ -15,22 +15,27 @@
 #include "koladata/operators/utils.h"
 
 #include <cstddef>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error.pb.h"
+#include "koladata/internal/error_utils.h"
 #include "arolla/memory/frame.h"
+#include "arolla/qtype/named_field_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_slot.h"
-#include "arolla/qtype/named_field_qtype.h"
 #include "arolla/util/unit.h"
 
 namespace koladata::ops {
@@ -74,6 +79,34 @@ DataSlice AsMask(bool b) {
   return *DataSlice::Create(
       b ? internal::DataItem(arolla::kUnit) : internal::DataItem(),
       internal::DataItem(schema::kMask));
+}
+
+absl::Status OperatorEvalError(absl::Status status,
+                               absl::string_view operator_name,
+                               absl::string_view error_message) {
+  internal::Error error;
+  error.set_error_message(
+      absl::StrFormat("operator %s failed during evaluation: %s", operator_name,
+                      error_message));
+  std::optional<internal::Error> cause = internal::GetErrorPayload(status);
+  if (cause) {
+    *error.mutable_cause() = *std::move(cause);
+  } else {
+    error.mutable_cause()->set_error_message(status.message());
+  }
+  return internal::WithErrorPayload(std::move(status), error);
+}
+
+absl::Status OperatorEvalError(absl::string_view operator_name,
+                               absl::string_view error_message) {
+  internal::Error error;
+  error.set_error_message(
+      absl::StrFormat("operator %s failed during evaluation: %s", operator_name,
+                      error_message));
+  // Note error_message inside the status is not used by the error handling
+  // logic in the CPython layer.
+  return internal::WithErrorPayload(absl::InvalidArgumentError(error_message),
+                                    error);
 }
 
 }  // namespace koladata::ops

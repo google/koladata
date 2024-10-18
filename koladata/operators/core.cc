@@ -1983,27 +1983,34 @@ absl::StatusOr<DataSlice> AggUuid(const DataSlice& x) {
 absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                     const DataSlice& keys_from,
                                     const DataSlice& values_from) {
+  constexpr absl::string_view kOperatorName = "kd.translate";
+
   const auto& from_shape = keys_from.GetShape();
-  ASSIGN_OR_RETURN(auto expanded_values_from,
-                   BroadcastToShape(values_from, from_shape),
-                   _ << "values_from must be broadcastable to keys_from");
+  ASSIGN_OR_RETURN(
+      auto expanded_values_from, BroadcastToShape(values_from, from_shape),
+      OperatorEvalError(std::move(_), kOperatorName,
+                        "values_from must be broadcastable to keys_from"));
 
   const auto& to_shape = keys_to.GetShape();
   if (to_shape.rank() == 0 || from_shape.rank() == 0) {
-    return absl::InvalidArgumentError(
+    return OperatorEvalError(
+        kOperatorName,
         "keys_to, keys_from and values_from must have at least one dimension");
   }
 
   auto shape_without_last_dim = to_shape.RemoveDims(to_shape.rank() - 1);
   if (!from_shape.RemoveDims(from_shape.rank() - 1)
            .IsEquivalentTo(shape_without_last_dim)) {
-    return absl::InvalidArgumentError(
+    return OperatorEvalError(
+        kOperatorName,
         "keys_from and keys_to must have the same dimensions except the last "
         "one");
   }
 
-  ASSIGN_OR_RETURN(auto casted_keys_to,
-                   CastToNarrow(keys_to, keys_from.GetSchemaImpl()));
+  ASSIGN_OR_RETURN(
+      auto casted_keys_to, CastToNarrow(keys_to, keys_from.GetSchemaImpl()),
+      OperatorEvalError(std::move(_), kOperatorName,
+                        "keys_to schema must be castable to keys_from schema"));
 
   ASSIGN_OR_RETURN(auto false_item,
                    DataSlice::Create(internal::DataItem(false),
@@ -2011,11 +2018,13 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                      internal::DataItem(schema::kBool)));
   ASSIGN_OR_RETURN(auto unique_keys, Unique(keys_from, false_item));
   if (keys_from.present_count() != unique_keys.present_count()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "keys_from must be unique within each group of the last dimension: "
-        "original DataSlice %s vs DataSlice after dedup %s. Consider using "
-        "translate_group instead.",
-        arolla::Repr(keys_from), arolla::Repr(unique_keys)));
+    return OperatorEvalError(
+        kOperatorName,
+        absl::StrFormat(
+            "keys_from must be unique within each group of the last dimension: "
+            "original DataSlice %s vs DataSlice after dedup %s. Consider using "
+            "translate_group instead",
+            arolla::Repr(keys_from), arolla::Repr(unique_keys)));
   }
 
   auto temp_db = DataBag::Empty();

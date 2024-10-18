@@ -42,6 +42,17 @@ std::vector<DataSlice> GetValueDataSlices(
 // Returns a present DataItem if b is true, otherwise missing.
 DataSlice AsMask(bool b);
 
+// Returns a status with a Koda error payload containing the given error message
+// and the given status as the cause.
+absl::Status OperatorEvalError(absl::Status status,
+                               absl::string_view operator_name,
+                               absl::string_view error_message);
+
+// Returns a absl::InvalidArgumentError status with a Koda error payload
+// containing the given error message.
+absl::Status OperatorEvalError(absl::string_view operator_name,
+                               absl::string_view error_message);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_UTILS_H_

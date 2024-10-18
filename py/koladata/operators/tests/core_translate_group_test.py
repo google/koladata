@@ -133,7 +133,7 @@ class CoreTranslateGroupTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         'keys_to, keys_from and values_from must have at least one dimension',
     ):
       expr_eval.eval(
@@ -149,7 +149,7 @@ class CoreTranslateGroupTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         'keys_from and keys_to must have the same dimensions except the'
         ' last one',
     ):
