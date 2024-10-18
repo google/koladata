@@ -197,6 +197,54 @@ BENCHMARK(BM_SetGetAttrItem<ObjectCreator>);
 BENCHMARK(BM_SetGetAttrOneDimSingle<ObjectCreator>);
 BENCHMARK(BM_SetGetAttrMultiDim<ObjectCreator>);
 
+void BM_SetGetAttrMultiDimObjectSchema(benchmark::State& state) {
+  auto db = DataBag::Empty();
+  auto val =
+      *DataSlice::Create(internal::DataSliceImpl::Create(
+                             arolla::CreateConstDenseArray<int>(10000, 12)),
+                         DataSlice::JaggedShape::FlatFromSize(10000),
+                         internal::DataItem(schema::kInt32));
+  // Schema ids share the same Dict in the background.
+  auto o = *ObjectCreator::FromAttrs(db, {"abc"}, {val});
+
+  // If anything needs to be initialized.
+  auto missing = o.GetAttr("missing");
+  benchmark::DoNotOptimize(missing);
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(o);
+    benchmark::DoNotOptimize(val);
+    auto status = o.SetAttr("abc", val);
+    benchmark::DoNotOptimize(status);
+    auto ds = o.GetAttr("abc");
+    benchmark::DoNotOptimize(ds);
+  }
+}
+
+BENCHMARK(BM_SetGetAttrMultiDimObjectSchema);
+
+void BM_GetEmbeddedSchemaAttr(benchmark::State& state) {
+  auto db = DataBag::Empty();
+  auto val =
+      *DataSlice::Create(internal::DataSliceImpl::Create(
+                             arolla::CreateConstDenseArray<int>(10000, 12)),
+                         DataSlice::JaggedShape::FlatFromSize(10000),
+                         internal::DataItem(schema::kInt32));
+  auto o = *EntityCreator::FromAttrs(db, {"abc"}, {val});
+  o = *o.EmbedSchema();
+
+  // If anything needs to be initialized.
+  auto missing = o.GetAttr("missing");
+  benchmark::DoNotOptimize(missing);
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(o);
+    benchmark::DoNotOptimize(val);
+    auto ds = o.GetAttr("abc");
+    benchmark::DoNotOptimize(ds);
+  }
+}
+
+BENCHMARK(BM_GetEmbeddedSchemaAttr);
+
 void BM_ExplodeLists(benchmark::State& state) {
   int64_t first_dim = state.range(0);
   int64_t second_dim = state.range(1);
