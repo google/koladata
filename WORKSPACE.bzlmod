@@ -57,11 +57,10 @@ http_archive(
         srcs = glob(["jinja2/*.py"]),
         deps = ["@markupsafe//:markupsafe"],
     )""",
-    sha256 = "93187ffbc7808079673ef52771baa950426fd664d3aad1d0fa3e95644360e250",
-    strip_prefix = "Jinja2-2.11.1/src",
+    sha256 = "4a3aee7acbbe7303aede8e9648d13b8bf88a429282aa6122a993f0ac800cb369",
+    strip_prefix = "jinja2-3.1.4/src",
     urls = [
-        "http://mirror.bazel.build/files.pythonhosted.org/packages/d8/03/e491f423379ea14bb3a02a5238507f7d446de639b623187bccc111fbecdf/Jinja2-2.11.1.tar.gz",
-        "https://files.pythonhosted.org/packages/d8/03/e491f423379ea14bb3a02a5238507f7d446de639b623187bccc111fbecdf/Jinja2-2.11.1.tar.gz",  # 2020-01-30
+        "https://files.pythonhosted.org/packages/ed/55/39036716d19cab0747a5020fc7e907f362fbf48c984b14e62127f7e68e5d/jinja2-3.1.4.tar.gz"
     ],
 )
 
@@ -73,11 +72,10 @@ http_archive(
         visibility = ["//visibility:public"],
         srcs = glob(["*.py"])
     )""",
-    sha256 = "29872e92839765e546828bb7754a68c418d927cd064fd4708fab9fe9c8bb116b",
-    strip_prefix = "MarkupSafe-1.1.1/src/markupsafe",
+    sha256 = "594c67807fb16238b30c44bdf74f36c02cdf22d1c8cda91ef8a0ed8dabf5620a",
+    strip_prefix = "MarkupSafe-2.0.1/src/markupsafe",
     urls = [
-        "http://mirror.bazel.build/files.pythonhosted.org/packages/b9/2e/64db92e53b86efccfaea71321f597fa2e1b2bd3853d8ce658568f7a13094/MarkupSafe-1.1.1.tar.gz",
-        "https://files.pythonhosted.org/packages/b9/2e/64db92e53b86efccfaea71321f597fa2e1b2bd3853d8ce658568f7a13094/MarkupSafe-1.1.1.tar.gz",  # 2019-02-24
+        "https://files.pythonhosted.org/packages/bf/10/ff66fea6d1788c458663a84d88787bae15d45daa16f6b3ef33322a51fc7e/MarkupSafe-2.0.1.tar.gz",
     ],
 )
 
