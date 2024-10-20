@@ -34,7 +34,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/testing/matchers.h"
-#include "koladata/internal/uuid_object.h"
 #include "koladata/operators/core.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
