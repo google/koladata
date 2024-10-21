@@ -23,6 +23,7 @@
 #include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
@@ -76,10 +77,12 @@ using ArrayBuilderVariant = std::variant<                //
     arolla::DenseArrayBuilder<arolla::expr::ExprQuote>,  //
     arolla::DenseArrayBuilder<schema::DType>>;
 
+using KodaTypeId = int8_t;
+
 // Index of the type in ScalarVariant.
 // We rely that ScalarVariant(T()).index() == ScalarTypeId<T>()
-template <typename T, int8_t index = 0>
-static constexpr int8_t ScalarTypeId() {
+template <typename T, KodaTypeId index = 0>
+static constexpr KodaTypeId ScalarTypeId() {
   static_assert(std::variant_size_v<ScalarVariant> > index, "unsupported type");
   if constexpr (std::is_same_v<std::variant_alternative_t<index, ScalarVariant>,
                                T>) {
@@ -88,6 +91,10 @@ static constexpr int8_t ScalarTypeId() {
     return ScalarTypeId<T, index + 1>();
   }
 }
+
+// Returns QType corresponding to given Koda type. nullptr in case of
+// MissingValue or invalid KodaTypeId.
+const arolla::QType* ScalarTypeIdToQType(KodaTypeId id);
 
 }  // namespace koladata::internal
 

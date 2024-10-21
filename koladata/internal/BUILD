@@ -108,6 +108,7 @@ cc_library(
 
 cc_library(
     name = "types",
+    srcs = ["types.cc"],
     hdrs = ["types.h"],
     deps = [
         ":dtype",
@@ -115,6 +116,7 @@ cc_library(
         ":object_id",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
     ],
 )
@@ -125,6 +127,7 @@ cc_test(
     deps = [
         ":missing_value",
         ":types",
+        "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],

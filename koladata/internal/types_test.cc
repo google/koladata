@@ -21,6 +21,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "koladata/internal/missing_value.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
@@ -37,10 +38,14 @@ TEST(TypesTest, ScalarTypeId) {
   EXPECT_NE(ScalarTypeId<double>(), ScalarTypeId<float>());
   std::vector<int8_t> type_ids = {ScalarTypeId<MissingValue>()};
   arolla::meta::foreach_type<supported_types_list>([&](auto type_meta) {
-    type_ids.push_back(ScalarTypeId<typename decltype(type_meta)::type>());
+    using T = typename decltype(type_meta)::type;
+    type_ids.push_back(ScalarTypeId<T>());
+    EXPECT_EQ(ScalarTypeIdToQType(ScalarTypeId<T>()), arolla::GetQType<T>());
   });
   EXPECT_THAT(std::set<int8_t>(type_ids.begin(), type_ids.end()),
               UnorderedElementsAreArray(type_ids));
+  EXPECT_EQ(ScalarTypeIdToQType(ScalarTypeId<MissingValue>()), nullptr);
+  EXPECT_EQ(ScalarTypeIdToQType(-1), nullptr);
 }
 
 }  // namespace
