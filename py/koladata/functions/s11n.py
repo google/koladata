@@ -36,6 +36,8 @@ def dumps(
   Returns:
     Serialized data.
   """
+  if not isinstance(x, data_slice.DataSlice | data_bag.DataBag):
+    raise ValueError(f'expected a DataSlice or a DataBag, got {type(x)}')
   return arolla.s11n.riegeli_dumps(x, riegeli_options=riegeli_options)
 
 
@@ -43,21 +45,5 @@ def loads(x: bytes) -> data_slice.DataSlice | data_bag.DataBag:
   """Deserializes a DataSlice or a DataBag."""
   result = arolla.s11n.riegeli_loads(x)
   if not isinstance(result, data_slice.DataSlice | data_bag.DataBag):
-    raise ValueError('expected a DataSlice or a DataBag, got {type(result)}')
-  return result
-
-
-def loads_slice(x: bytes) -> data_slice.DataSlice:
-  """Deserializes a DataSlice."""
-  result = arolla.s11n.riegeli_loads(x)
-  if not isinstance(result, data_slice.DataSlice):
-    raise ValueError('expected a DataSlice, got {type(result)}')
-  return result
-
-
-def loads_bag(x: bytes) -> data_bag.DataBag:
-  """Deserializes a DataBag."""
-  result = arolla.s11n.riegeli_loads(x)
-  if not isinstance(result, data_bag.DataBag):
-    raise ValueError('expected a DataBag, got {type(result)}')
+    raise ValueError(f'expected a DataSlice or a DataBag, got {type(result)}')
   return result

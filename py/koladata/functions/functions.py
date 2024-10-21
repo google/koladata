@@ -88,8 +88,6 @@ from_proto = _proto_conversions.from_proto
 
 dumps = _s11n.dumps
 loads = _s11n.loads
-loads_slice = _s11n.loads_slice
-loads_bag = _s11n.loads_bag
 
 clone = _tmp_non_deterministic_overrides.clone
 shallow_clone = _tmp_non_deterministic_overrides.shallow_clone

@@ -69,34 +69,27 @@ class DumpsLoadsTest(parameterized.TestCase):
     with self.assertRaises(ValueError):
       s11n.loads(b'foo')
 
-  def test_dumps_load_db_fails_on_expr(self):
+  def test_dumps_fails_on_expr(self):
     fn = M.math.add(L.x, L.y)
-    dumped_bytes = s11n.dumps(fn)
-    with self.assertRaises(ValueError):
+    with self.assertRaisesRegex(
+        ValueError, 'expected a DataSlice or a DataBag, got.*Expr'
+    ):
+      s11n.dumps(fn)
+
+  def test_loads_fails_on_expr(self):
+    fn = M.math.add(L.x, L.y)
+    dumped_bytes = arolla.s11n.riegeli_dumps(fn)
+    with self.assertRaisesRegex(
+        ValueError, 'expected a DataSlice or a DataBag, got.*Expr'
+    ):
       s11n.loads(dumped_bytes)
-
-  @parameterized.parameters(*DS_DATA)
-  def test_dumps_loads_ds(self, input_slice):
-    dumped_bytes = s11n.dumps(input_slice)
-    loaded_slice = s11n.loads_slice(dumped_bytes)
-    testing.assert_equal(loaded_slice, input_slice)
-
-  def test_dumps_load_ds_fails_on_db(self):
-    dumped_bytes = s11n.dumps(db())
-    with self.assertRaises(ValueError):
-      s11n.loads_slice(dumped_bytes)
 
   @parameterized.parameters(*DS_DATA)
   def test_dumps_loads_db(self, input_slice):
     input_slice_with_db = input_slice.with_db(db())
     dumped_bytes = s11n.dumps(input_slice_with_db.db)
-    loaded_db = s11n.loads_bag(dumped_bytes)
+    loaded_db = s11n.loads(dumped_bytes)
     testing.assert_equivalent(loaded_db, input_slice_with_db.db)
-
-  def test_dumps_load_db_fails_on_ds(self):
-    dumped_bytes = s11n.dumps(ds(123))
-    with self.assertRaises(ValueError):
-      s11n.loads_bag(dumped_bytes)
 
   def test_dumps_with_riegeli_options(self):
     input_slice = kd.range(1_000_000)
