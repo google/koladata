@@ -174,8 +174,11 @@ class BoxingTest(parameterized.TestCase):
 
   @parameterized.parameters(
       ('abc', None, 'abc', TEXT),
+      ('', None, '', TEXT),
       (b'abc', None, b'abc', BYTES),
+      (b'', None, b'', BYTES),
       (b'abc', TEXT, "b'abc'", TEXT),
+      (b'', TEXT, "b''", TEXT),
       (12, None, 12, INT32),
       (12, INT32, 12, INT32),
       # The following needs arolla.INT64 to succeed.

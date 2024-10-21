@@ -19,6 +19,7 @@
 #include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <optional>
 #include <stack>
@@ -57,10 +58,12 @@
 #include "py/koladata/types/py_attr_provider.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/array/qtype/types.h"
+#include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/quote.h"
+#include "arolla/memory/buffer.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -264,14 +267,86 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     const std::vector<PyObject*>& flat_list,
     DataSlice::JaggedShape::EdgeVec edges, DataItem schema,
     AdoptionQueue& adoption_queue) {
+  int64_t res_size = flat_list.size();
+
+  // Helper lambdas for parsing text and bytes.
+
+  // Creates a StringsBuffer from a list of (index, str) pairs.
+  auto to_str_buffer =
+      [res_size](absl::Span<const std::pair<int64_t, absl::string_view>> strs,
+                 int64_t total_size) {
+        auto str_bldr = arolla::StringsBuffer::Builder(
+            res_size, /*initial_char_buffer_size=*/total_size);
+        for (const auto& [idx, text] : strs) {
+          str_bldr.Set(idx, text);
+        }
+        return std::move(str_bldr).Build();
+      };
+
+  // Creates a Bitmap from a list of (index, str) pairs.
+  // Returns an empty bitmap if all elements are present.
+  auto to_bitmask =
+      [res_size](absl::Span<const std::pair<int64_t, absl::string_view>> strs) {
+        if (strs.size() == res_size) {
+          return arolla::bitmap::Bitmap();
+        }
+        auto bitmask_bldr = arolla::bitmap::Bitmap::Builder(
+            arolla::bitmap::BitmapSize(res_size));
+        auto bitmap = bitmask_bldr.GetMutableSpan();
+        std::memset(bitmap.data(), 0,
+                    bitmap.size() * sizeof(arolla::bitmap::Word));
+        for (const auto& [idx, text] : strs) {
+          arolla::bitmap::SetBit(bitmap.data(), idx);
+        }
+        return std::move(bitmask_bldr).Build();
+      };
+
+  // Adds a DenseArray of type T with the given strings.
+  auto add_str_array =
+      [&]<typename T>(
+          std::type_identity<T>, internal::DataSliceImpl::Builder& bldr,
+          absl::Span<const std::pair<int64_t, absl::string_view>> strs,
+          int64_t total_size) {
+        auto str_buffer = to_str_buffer(strs, total_size);
+        auto bitmask = to_bitmask(strs);
+        bldr.AddArray(
+            arolla::DenseArray<T>{std::move(str_buffer), std::move(bitmask)});
+      };
+
   auto impl = [&]<bool explicit_cast>() -> absl::StatusOr<DataSlice> {
-    internal::DataSliceImpl::Builder bldr(flat_list.size());
+    internal::DataSliceImpl::Builder bldr(res_size);
     schema::CommonSchemaAggregator schema_agg;
     EmbeddingDataBag embedding_db;
-    for (int i = 0; i < flat_list.size(); ++i) {
-      RETURN_IF_ERROR(ParsePyObject<explicit_cast>(
-          flat_list[i], schema, adoption_queue, schema_agg, embedding_db,
-          [&]<class T>(T&& value) { bldr.Insert(i, std::forward<T>(value)); }));
+    int64_t text_total_size = 0;
+    std::vector<std::pair<int64_t, absl::string_view>> texts;
+    int64_t bytes_total_size = 0;
+    std::vector<std::pair<int64_t, absl::string_view>> bytes;
+    for (int i = 0; i < res_size; ++i) {
+      auto parse_cb = [&]<class T>(T&& value) {
+        if constexpr (std::is_same_v<T, DataItem::View<Text>>) {
+          texts.reserve(res_size);
+          text_total_size += value.view.size();
+          texts.emplace_back(i, value.view);
+        } else if constexpr (std::is_same_v<T, DataItem::View<Bytes>>) {
+          bytes.reserve(res_size);
+          bytes_total_size += value.view.size();
+          bytes.emplace_back(i, value.view);
+        } else {
+          bldr.Insert(i, std::forward<T>(value));
+        }
+      };
+      RETURN_IF_ERROR(ParsePyObject<explicit_cast>(flat_list[i], schema,
+                                                   adoption_queue, schema_agg,
+                                                   embedding_db, parse_cb));
+    }
+
+    if (!texts.empty()) {
+      add_str_array(std::type_identity<arolla::Text>{}, bldr, texts,
+                    text_total_size);
+    }
+    if (!bytes.empty()) {
+      add_str_array(std::type_identity<arolla::Bytes>{}, bldr, bytes,
+                    bytes_total_size);
     }
     if constexpr (!explicit_cast) {
       ASSIGN_OR_RETURN(
