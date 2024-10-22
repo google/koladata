@@ -325,7 +325,7 @@ class KdTest(absltest.TestCase):
     obj = kd.obj(x=1)
     kd.testing.assert_equal(fn(x=obj, return_type_as=kd.types.DataSlice), obj)
 
-  def test_eger_op_error_message(self):
+  def test_eager_op_error_message(self):
     x = kd.slice(1)
     with self.assertRaisesRegex(
         kd.exceptions.KodaError,
