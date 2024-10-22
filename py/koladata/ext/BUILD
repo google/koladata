@@ -73,3 +73,24 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
+
+py_library(
+    name = "kd_ext",
+    srcs = ["kd_ext.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":npkd",
+        ":pdkd",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "kd_ext_test",
+    srcs = ["kd_ext_test.py"],
+    tags = ["nooss"],
+    deps = [
+        ":kd_ext",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
