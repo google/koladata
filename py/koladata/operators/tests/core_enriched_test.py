@@ -47,43 +47,43 @@ QTYPES = frozenset([
 
 class CoreEnrichedTest(parameterized.TestCase):
 
-  def test_eval_no_db(self):
+  def test_eval_no_bag(self):
     x = ds([1, 2, 3])
     db1 = bag()
     result = expr_eval.eval(kde.core.enriched(I.x, I.y), x=x, y=db1)
-    testing.assert_equal(x, result.no_db())
-    testing.assert_equal(result.db.get_fallbacks()[0], db1)
-    self.assertNotEqual(result.db.fingerprint, db1.fingerprint)
-    self.assertFalse(result.db.is_mutable())
+    testing.assert_equal(x, result.no_bag())
+    testing.assert_equal(result.get_bag().get_fallbacks()[0], db1)
+    self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
+    self.assertFalse(result.get_bag().is_mutable())
 
-  def test_eval_same_db(self):
+  def test_eval_same_bag(self):
     db1 = bag()
-    x = ds([1, 2, 3]).with_db(db1)
+    x = ds([1, 2, 3]).with_bag(db1)
     result = expr_eval.eval(kde.core.enriched(I.x, I.y), x=x, y=db1)
-    testing.assert_equal(x.no_db(), result.no_db())
-    testing.assert_equal(result.db.get_fallbacks()[0], db1)
-    self.assertNotEqual(result.db.fingerprint, db1.fingerprint)
-    self.assertFalse(result.db.is_mutable())
+    testing.assert_equal(x.no_bag(), result.no_bag())
+    testing.assert_equal(result.get_bag().get_fallbacks()[0], db1)
+    self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
+    self.assertFalse(result.get_bag().is_mutable())
 
   def test_eval_attr_conflict(self):
     schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.INT32)
     db1 = bag()
     obj1 = db1.new(a=1, b=2, schema=schema)
     obj2 = db1.new(a=3, b=4, schema=schema)
-    db2 = schema.db.fork()
-    obj1.with_db(db2).a = 5
-    obj1.with_db(db2).b = 6
-    db3 = schema.db.fork()
-    obj1.with_db(db3).a = 7
-    x = ds([obj1, obj2]).with_db(db3)
+    db2 = schema.get_bag().fork()
+    obj1.with_bag(db2).a = 5
+    obj1.with_bag(db2).b = 6
+    db3 = schema.get_bag().fork()
+    obj1.with_bag(db3).a = 7
+    x = ds([obj1, obj2]).with_bag(db3)
 
     result = expr_eval.eval(kde.core.enriched(I.x, I.y, I.z), x=x, y=db2, z=db1)
-    self.assertNotEqual(result.db.fingerprint, db1.fingerprint)
-    self.assertNotEqual(result.db.fingerprint, db2.fingerprint)
-    self.assertFalse(result.db.is_mutable())
+    self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
+    self.assertNotEqual(result.get_bag().fingerprint, db2.fingerprint)
+    self.assertFalse(result.get_bag().is_mutable())
 
-    testing.assert_equal(result.a.no_db(), ds([7, 3]))
-    testing.assert_equal(result.b.no_db(), ds([6, 4]))
+    testing.assert_equal(result.a.no_bag(), ds([7, 3]))
+    testing.assert_equal(result.b.no_bag(), ds([6, 4]))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

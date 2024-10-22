@@ -74,8 +74,8 @@ class TestUtilsTest(absltest.TestCase):
   def test_assert_equal_diff_data_bag(self):
     with self.assertRaises(AssertionError):
       test_utils.assert_equal(
-          ds([1, 2, 3]).with_db(bag()),
-          ds([1, 2, 3]).with_db(bag()),
+          ds([1, 2, 3]).with_bag(bag()),
+          ds([1, 2, 3]).with_bag(bag()),
       )
 
   def test_assert_equal_error(self):
@@ -94,7 +94,7 @@ class TestUtilsTest(absltest.TestCase):
         r'not equal: .*DataBag \$[0-9a-f]{4}(\n|.)* != DataBag'
         r' \$[0-9a-f]{4}(\n|.)*',
     ):
-      test_utils.assert_equal(bag(), bag().new(a=1).db)
+      test_utils.assert_equal(bag(), bag().new(a=1).get_bag())
 
   def test_assert_equal_error_custom_error_msg(self):
     with self.assertRaisesRegex(AssertionError, 'my error'):
@@ -113,19 +113,21 @@ class TestUtilsTest(absltest.TestCase):
       test_utils.assert_equal(bag(), bag())
     test_utils.assert_equivalent(ds([1, 2, 3]), ds([1, 2, 3]))
     test_utils.assert_equivalent(
-        ds([1, 2, 3]).with_db(bag()), ds([1, 2, 3]).with_db(bag())
+        ds([1, 2, 3]).with_bag(bag()), ds([1, 2, 3]).with_bag(bag())
     )
     with self.assertRaises(AssertionError):
-      test_utils.assert_equivalent(bag().new(a=1).db, bag().new(a=1).db)
+      test_utils.assert_equivalent(
+          bag().new(a=1).get_bag(), bag().new(a=1).get_bag()
+      )
 
   def test_assert_equivalent_complex(self):
     obj = bag().obj(a=1)
-    db1 = obj.db
+    db1 = obj.get_bag()
     db2 = bag()
-    obj.with_db(db2).set_attr('__schema__', obj.get_attr('__schema__'))
-    obj.with_db(db2).a = 1
+    obj.with_bag(db2).set_attr('__schema__', obj.get_attr('__schema__'))
+    obj.with_bag(db2).a = 1
     test_utils.assert_equivalent(db1, db2)
-    obj.with_db(db2).b = 'a'
+    obj.with_bag(db2).b = 'a'
     with self.assertRaises(AssertionError):
       test_utils.assert_equivalent(db1, db2)
     obj.b = 'a'
@@ -139,22 +141,25 @@ class TestUtilsTest(absltest.TestCase):
         r' \$[0-9a-f]{4}:(\n|.)*SchemaBag:(\n|.)*',
     ):
       test_utils.assert_equivalent(
-          ds([1, 2, 3]).with_db(bag()), ds([1, 2, 3]).with_db(bag().new(a=1).db)
+          ds([1, 2, 3]).with_bag(bag()),
+          ds([1, 2, 3]).with_bag(bag().new(a=1).get_bag()),
       )
     with self.assertRaisesRegex(
         AssertionError,
         r'DataBags are not equivalent.*\n\n.*DataBag \$[0-9a-f]{4}:(\n|.)* !='
         r' \'DataBag \$[0-9a-f]{4}:(\n|.)*',
     ):
-      test_utils.assert_equivalent(bag(), bag().new(a=1).db)
+      test_utils.assert_equivalent(bag(), bag().new(a=1).get_bag())
 
   def test_assert_equivalent_error_custom_error_msg(self):
     with self.assertRaisesRegex(AssertionError, 'my error'):
-      test_utils.assert_equivalent(bag(), bag().new(a=1).db, msg='my error')
+      test_utils.assert_equivalent(
+          bag(), bag().new(a=1).get_bag(), msg='my error'
+      )
     with self.assertRaisesRegex(AssertionError, 'my error'):
       test_utils.assert_equivalent(
-          ds([1, 2, 3]).with_db(bag()),
-          ds([1, 2, 3]).with_db(bag().new(a=1).db),
+          ds([1, 2, 3]).with_bag(bag()),
+          ds([1, 2, 3]).with_bag(bag().new(a=1).get_bag()),
           msg='my error',
       )
 
@@ -162,8 +167,8 @@ class TestUtilsTest(absltest.TestCase):
     test_utils.assert_allclose(ds([2.71, 2.71]), ds([2.71, 2.71]))
     db = bag()
     test_utils.assert_allclose(
-        ds([[2.71], [2.71]]).with_db(db),
-        ds([[2.71], [2.71]]).with_db(db),
+        ds([[2.71], [2.71]]).with_bag(db),
+        ds([[2.71], [2.71]]).with_bag(db),
     )
 
   def test_assert_allclose_tolerance(self):
@@ -192,8 +197,8 @@ class TestUtilsTest(absltest.TestCase):
       test_utils.assert_allclose(ds([2.71, 2.71]), ds([2.71, 2.71]).as_any())
     with self.assertRaisesRegex(AssertionError, 'have different DataBags'):
       test_utils.assert_allclose(
-          ds([[2.71], [2.71]]).with_db(bag()),
-          ds([[2.71], [2.71]]).with_db(bag()),
+          ds([[2.71], [2.71]]).with_bag(bag()),
+          ds([[2.71], [2.71]]).with_bag(bag()),
       )
 
   def test_assert_dicts_keys_equal(self):
@@ -278,7 +283,7 @@ class TestUtilsTest(absltest.TestCase):
     d2 = bag().dict(ds(['a', 'b']), ds([3.14, 2.71]))
     test_utils.assert_dicts_keys_equal(d1, d2.get_keys())
     test_utils.assert_allclose(
-        d1[d1.get_keys()].no_db(), d2[d1.get_keys()].no_db()
+        d1[d1.get_keys()].no_bag(), d2[d1.get_keys()].no_bag()
     )
 
   def test_assert_dicts_equal_error(self):
@@ -333,8 +338,8 @@ class TestUtilsTest(absltest.TestCase):
       test_utils.assert_unordered_equal(ds(1), ds(1).as_any())
     with self.assertRaisesRegex(AssertionError, 'have different DataBags'):  # pylint: disable=g-error-prone-assert-raises
       test_utils.assert_unordered_equal(
-          ds(1).with_db(bag()),
-          ds(1).with_db(bag()),
+          ds(1).with_bag(bag()),
+          ds(1).with_bag(bag()),
       )
 
 

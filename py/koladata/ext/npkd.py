@@ -163,7 +163,7 @@ def reshape_based_on_indices(
   for index in indices:
     # This creates some unused dicts as only the last dict assigned to
     # a particular value will stay, which is fine for now.
-    cur_lookup[index] = lookup.db.dict_like(cur_lookup)
+    cur_lookup[index] = lookup.get_bag().dict_like(cur_lookup)
     cur_lookup = cur_lookup[index]
   cur_lookup['ds'] = ds
 
@@ -172,4 +172,4 @@ def reshape_based_on_indices(
     num_children = (kdi.agg_max(prefix.get_keys()) + 1) | 0
     prefix = prefix.add_dim(num_children)
     prefix = prefix[kdi.index(prefix)]
-  return prefix['ds'].with_db(ds.db).with_schema(ds.get_schema())
+  return prefix['ds'].with_bag(ds.get_bag()).with_schema(ds.get_schema())

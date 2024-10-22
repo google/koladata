@@ -520,7 +520,14 @@ class DataSliceViewTest(parameterized.TestCase):
     testing.assert_equal(C.x.with_attrs(a=C.a), kde.with_attrs(C.x, a=C.a))
 
   def test_with_db(self):
-    testing.assert_equal(C.x.with_db(C.db), kde.with_db(C.x, C.db))
+    testing.assert_equal(
+        C.x.with_db(C.get_bag()), kde.with_bag(C.x, C.get_bag())
+    )
+
+  def test_with_bag(self):
+    testing.assert_equal(
+        C.x.with_bag(C.get_bag()), kde.with_bag(C.x, C.get_bag())
+    )
 
   def test_get_size(self):
     testing.assert_equal(C.x.get_size(), kde.size(C.x))
@@ -532,10 +539,16 @@ class DataSliceViewTest(parameterized.TestCase):
     testing.assert_equal(C.x.get_values(), kde.get_values(C.x))
 
   def test_db(self):
-    testing.assert_equal(C.x.db, kde.get_db(C.x))
+    testing.assert_equal(C.x.db, kde.get_bag(C.x))
+
+  def test_get_bag(self):
+    testing.assert_equal(C.x.get_bag(), kde.get_bag(C.x))
 
   def test_no_db(self):
-    testing.assert_equal(C.x.no_db(), kde.no_db(C.x))
+    testing.assert_equal(C.x.no_db(), kde.no_bag(C.x))
+
+  def test_no_bag(self):
+    testing.assert_equal(C.x.no_bag(), kde.no_bag(C.x))
 
   def test_with_merged_bag(self):
     testing.assert_equal(
@@ -543,10 +556,14 @@ class DataSliceViewTest(parameterized.TestCase):
     )
 
   def test_enriched(self):
-    testing.assert_equal(C.x.enriched(C.db), kde.enriched(C.x, C.db))
+    testing.assert_equal(
+        C.x.enriched(C.get_bag()), kde.enriched(C.x, C.get_bag())
+    )
 
   def test_updated(self):
-    testing.assert_equal(C.x.updated(C.db), kde.updated(C.x, C.db))
+    testing.assert_equal(
+        C.x.updated(C.get_bag()), kde.updated(C.x, C.get_bag())
+    )
 
   def test_get_present_count(self):
     testing.assert_equal(C.x.get_present_count(), kde.count(C.x))
@@ -682,6 +699,7 @@ class DataSliceViewTest(parameterized.TestCase):
         'clear',
         'embed_schema',
         'fingerprint',
+        'fork_bag',
         'fork_db',
         'from_vals',
         'internal_as_py',

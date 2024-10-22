@@ -32,7 +32,7 @@ class EmbedSchemaTest(absltest.TestCase):
     x = db.new(a=ds([1, 2]))
     x_object = fns.embed_schema(x)
     testing.assert_equal(
-        x_object.get_schema(), schema_constants.OBJECT.with_db(db)
+        x_object.get_schema(), schema_constants.OBJECT.with_bag(db)
     )
     testing.assert_equal(x_object.a, x.a)
     schema_attr = x_object.get_attr('__schema__')

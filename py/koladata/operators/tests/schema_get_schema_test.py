@@ -49,10 +49,10 @@ class SchemaGetSchemaTest(parameterized.TestCase):
       (ds(None, schema_constants.FLOAT64), ds(schema_constants.FLOAT64)),
       (ds(1), ds(schema_constants.INT32)),
       (entity, entity_s),
-      (obj, schema_constants.OBJECT.with_db(db)),
+      (obj, schema_constants.OBJECT.with_bag(db)),
       (
           entity.with_schema(schema_constants.ITEMID),
-          schema_constants.ITEMID.with_db(db),
+          schema_constants.ITEMID.with_bag(db),
       ),
       (schema_constants.ANY, schema_constants.SCHEMA),
   )

@@ -33,16 +33,20 @@ class UuTest(absltest.TestCase):
     )
     testing.assert_equal(
         x.get_schema(),
-        x.db.uu_schema(a=schema_constants.FLOAT64, b=schema_constants.TEXT),
+        x.get_bag().uu_schema(
+            a=schema_constants.FLOAT64, b=schema_constants.TEXT
+        ),
     )
     testing.assert_equal(
-        x.a.get_schema(), schema_constants.FLOAT64.with_db(x.db)
+        x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
     )
-    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_db(x.db))
+    testing.assert_equal(
+        x.b.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+    )
     testing.assert_allclose(
-        x.a, ds([3.14], schema_constants.FLOAT64).with_db(x.db)
+        x.a, ds([3.14], schema_constants.FLOAT64).with_bag(x.get_bag())
     )
-    testing.assert_equal(x.b, ds(['abc']).with_db(x.db))
+    testing.assert_equal(x.b, ds(['abc']).with_bag(x.get_bag()))
 
   def test_provided_bag(self):
     db = fns.bag()
@@ -55,12 +59,14 @@ class UuTest(absltest.TestCase):
         x.get_schema(),
         db.uu_schema(a=schema_constants.FLOAT64, b=schema_constants.TEXT),
     )
-    testing.assert_equal(x.a.get_schema(), schema_constants.FLOAT64.with_db(db))
-    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_db(db))
-    testing.assert_allclose(
-        x.a, ds([3.14], schema_constants.FLOAT64).with_db(db)
+    testing.assert_equal(
+        x.a.get_schema(), schema_constants.FLOAT64.with_bag(db)
     )
-    testing.assert_equal(x.b, ds(['abc']).with_db(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_bag(db))
+    testing.assert_allclose(
+        x.a, ds([3.14], schema_constants.FLOAT64).with_bag(db)
+    )
+    testing.assert_equal(x.b, ds(['abc']).with_bag(db))
 
   def test_uuid_consistency(self):
     db = fns.bag()
@@ -98,13 +104,15 @@ class UuTest(absltest.TestCase):
     )
     testing.assert_equal(
         x.get_schema(),
-        fns.uu_schema(a=schema_constants.FLOAT64).with_db(x.db),
+        fns.uu_schema(a=schema_constants.FLOAT64).with_bag(x.get_bag()),
     )
     testing.assert_equal(
-        x.a.get_schema(), schema_constants.FLOAT64.with_db(x.db)
+        x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
     )
     testing.assert_allclose(
-        x.a, ds([3.14], schema_constants.FLOAT64).with_db(x.db), atol=1e-6
+        x.a,
+        ds([3.14], schema_constants.FLOAT64).with_bag(x.get_bag()),
+        atol=1e-6,
     )
 
   def test_update_schema_arg(self):
@@ -116,16 +124,16 @@ class UuTest(absltest.TestCase):
         update_schema=True,
     )
     testing.assert_equal(
-        x.a.get_schema(), schema_constants.FLOAT32.with_db(x.db)
+        x.a.get_schema(), schema_constants.FLOAT32.with_bag(x.get_bag())
     )
     testing.assert_allclose(
-        x.a, ds([3.14], schema_constants.FLOAT32).with_db(x.db)
+        x.a, ds([3.14], schema_constants.FLOAT32).with_bag(x.get_bag())
     )
 
   def test_schema_arg_update_schema_overwriting(self):
     schema = fns.uu_schema(a=schema_constants.INT32)
     x = fns.uu(a='xyz', schema=schema, update_schema=True)
-    testing.assert_equal(x.a, ds('xyz').with_db(x.db))
+    testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
 
 if __name__ == '__main__':

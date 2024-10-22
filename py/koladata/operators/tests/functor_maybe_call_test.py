@@ -56,14 +56,14 @@ class FunctorMaybeCallTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_call_with_error(self):
-    f = functor_factories.fn(I.self.db)
+    f = functor_factories.fn(I.self.get_bag())
 
     data = ds([1, 2, 3])
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
             'DataSlice has no associated DataBag; during evaluation of operator'
-            ' kde.core.get_db'
+            ' kde.core.get_bag'
         ),
     ):
       expr_eval.eval(kde.functor._maybe_call(f, data))

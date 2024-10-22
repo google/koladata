@@ -38,11 +38,12 @@ class SchemaListSchemaTest(parameterized.TestCase):
   def test_get_attr(self):
     schema = expr_eval.eval(kde.schema.list_schema(schema_constants.INT32))
     testing.assert_equal(
-        schema.get_attr('__items__'), schema_constants.INT32.with_db(schema.db)
+        schema.get_attr('__items__'),
+        schema_constants.INT32.with_bag(schema.get_bag()),
     )
     self.assertFalse(schema.is_mutable())
 
-  def test_db_adoption(self):
+  def test_bag_adoption(self):
     schema = expr_eval.eval(
         kde.schema.list_schema(
             kde.schema.new_schema(
@@ -52,7 +53,7 @@ class SchemaListSchemaTest(parameterized.TestCase):
     )
     testing.assert_equal(
         schema.get_attr('__items__').a,
-        schema_constants.INT32.with_db(schema.db),
+        schema_constants.INT32.with_bag(schema.get_bag()),
     )
 
   def test_invalid_arguments(self):

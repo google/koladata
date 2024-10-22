@@ -161,7 +161,7 @@ TEST(AdoptionQueueTest, WithFallbacks) {
                        DataSlice::Create(obj, internal::DataItem(schema::kAny),
                                          db_with_fallbacks));
   ASSERT_OK_AND_ASSIGN(slice2,
-                       slice2.WithSchema(schema.WithDb(db_with_fallbacks)));
+                       slice2.WithSchema(schema.WithBag(db_with_fallbacks)));
 
   AdoptionQueue q;
   q.Add(slice1);
@@ -187,7 +187,7 @@ TEST(AdoptionQueueTest, TestDbVector) {
   q.Add(db2);
   q.Add(db3);
 
-  EXPECT_THAT(q.GetDbWithFallbacks()->GetFallbacks(),
+  EXPECT_THAT(q.GetBagWithFallbacks()->GetFallbacks(),
               UnorderedElementsAre(db1, db3));
 }
 

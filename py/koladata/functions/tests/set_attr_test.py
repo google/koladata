@@ -46,12 +46,12 @@ class SetAttrTest(absltest.TestCase):
         update_schema=True,
     )
     testing.assert_allclose(
-        x.xyz, ds(2.71, schema_constants.FLOAT64).with_db(db)
+        x.xyz, ds(2.71, schema_constants.FLOAT64).with_bag(db)
     )
     # Possible without updating schema (automatic casting FLOAT32 -> FLOAT64).
     fns.set_attr(x, 'xyz', ds(1.0, schema_constants.FLOAT32))
     testing.assert_allclose(
-        x.xyz, ds(1.0, schema_constants.FLOAT64).with_db(db)
+        x.xyz, ds(1.0, schema_constants.FLOAT64).with_bag(db)
     )
 
   def test_object(self):
@@ -59,11 +59,11 @@ class SetAttrTest(absltest.TestCase):
     x = db.obj()
 
     fns.set_attr(x, 'xyz', b'12', update_schema=True)
-    testing.assert_equal(x.xyz, ds(b'12').with_db(db))
+    testing.assert_equal(x.xyz, ds(b'12').with_bag(db))
 
     # Still updated for implicit schemas.
     fns.set_attr(x, 'xyz', '12', update_schema=False)
-    testing.assert_equal(x.xyz, ds('12').with_db(db))
+    testing.assert_equal(x.xyz, ds('12').with_bag(db))
 
   def test_primitives(self):
     with self.assertRaisesRegex(
@@ -76,20 +76,20 @@ class SetAttrTest(absltest.TestCase):
         ValueError,
         re.escape(r'setting attributes on primitive slices is not allowed'),
     ):
-      fns.set_attr(ds(1).with_db(fns.bag()), 'xyz', 2, update_schema=False)
+      fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, update_schema=False)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape(r'cannot get or set attributes on schema: INT32'),
     ):
-      fns.set_attr(ds(1).with_db(fns.bag()), 'xyz', 2, update_schema=True)
+      fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, update_schema=True)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape(r'getting attribute of a primitive is not allowed'),
     ):
       fns.set_attr(
-          ds(1, schema_constants.OBJECT).with_db(fns.bag()),
+          ds(1, schema_constants.OBJECT).with_bag(fns.bag()),
           'xyz',
           2,
           update_schema=False,
@@ -100,7 +100,7 @@ class SetAttrTest(absltest.TestCase):
         re.escape(r'cannot get or set attributes on schema: INT32'),
     ):
       fns.set_attr(
-          ds(1, schema_constants.OBJECT).with_db(fns.bag()),
+          ds(1, schema_constants.OBJECT).with_bag(fns.bag()),
           'xyz',
           2,
           update_schema=True,
@@ -137,10 +137,10 @@ Assigned schema for 'xyz': TEXT"""),
 
     # Overwrite with overwriting schema.
     x.set_attr('abc', ds([b'x', b'y']), update_schema=True)
-    testing.assert_equal(x.abc, ds([b'x', b'y']).with_db(db))
+    testing.assert_equal(x.abc, ds([b'x', b'y']).with_bag(db))
     testing.assert_equal(
         x.get_attr('__schema__').abc,
-        ds([schema_constants.BYTES, schema_constants.BYTES]).with_db(db)
+        ds([schema_constants.BYTES, schema_constants.BYTES]).with_bag(db),
     )
 
   def test_merging(self):
@@ -151,7 +151,7 @@ Assigned schema for 'xyz': TEXT"""),
         'xyz',
         ds([fns.bag().obj(a=5), fns.bag().obj(a=4)]),
     )
-    testing.assert_equal(x.xyz.a, ds([5, 4]).with_db(db))
+    testing.assert_equal(x.xyz.a, ds([5, 4]).with_bag(db))
 
   def test_merging_with_fallbacks(self):
     db = fns.bag()
@@ -159,11 +159,11 @@ Assigned schema for 'xyz': TEXT"""),
     db2 = fns.bag()
     y = db2.new(bar='foo')
     db3 = fns.bag()
-    y.with_db(db3).set_attr('bar', 2, update_schema=True)
-    y.with_db(db3).set_attr('baz', 5, update_schema=True)
+    y.with_bag(db3).set_attr('bar', 2, update_schema=True)
+    y.with_bag(db3).set_attr('baz', 5, update_schema=True)
     x.foo = y.enriched(db3)
-    testing.assert_equal(x.foo.bar, ds('foo').with_db(db))
-    testing.assert_equal(x.foo.baz, ds(5).with_db(db))
+    testing.assert_equal(x.foo.bar, ds('foo').with_bag(db))
+    testing.assert_equal(x.foo.baz, ds(5).with_bag(db))
 
   def test_assignment_rhs_error(self):
     x = fns.bag().obj(x=ds([1, 2]))

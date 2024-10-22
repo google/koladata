@@ -362,7 +362,7 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ImplicitSchema) {
               IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=TEXT)"));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_NoDb) {
+TEST(DataSliceReprTest, TestItemStringRepresentation_NoBag) {
   DataBagPtr bag = DataBag::Empty();
 
   DataSlice value_1 = test::DataItem(1);
@@ -372,7 +372,7 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_NoDb) {
       DataSlice entity,
       EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
 
-  entity = entity.WithDb(/*db=*/nullptr);
+  entity = entity.WithBag(/*db=*/nullptr);
 
   EXPECT_THAT(DataSliceToStr(entity),
               IsOkAndHolds(MatchesRegex(R"regex(\$[a-f0-9]{32}:0)regex")));
@@ -387,13 +387,13 @@ TEST(DataSliceReprTest, TestItemStringReprWithFallbackDB) {
   ASSERT_OK(ds.SetAttr("a", ds_a));
 
   DataBagPtr db2 = DataBag::Empty();
-  ds = ds.WithDb(db2);
+  ds = ds.WithBag(db2);
   ASSERT_OK(ds.GetSchema().SetAttr("b", test::Schema(schema::kAny)));
   DataSlice ds_b = test::DataItem(2);
   ASSERT_OK(ds.SetAttr("b", ds_b));
 
   db = DataBag::ImmutableEmptyWithFallbacks({db, db2});
-  ds = ds.WithDb(db);
+  ds = ds.WithBag(db);
 
   EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("Entity(a=1, b=2)"));
   EXPECT_THAT(DataSliceToStr(ds.GetSchema()),

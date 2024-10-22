@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.get_attr."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -87,18 +85,18 @@ class CoreGetAttrTest(parameterized.TestCase):
   )
   def test_eval(self, expr, expected):
     testing.assert_equal(
-        expr_eval.eval(expr, x=self.entity), expected.with_db(self.db)
+        expr_eval.eval(expr, x=self.entity), expected.with_bag(self.db)
     )
     testing.assert_equal(
-        expr_eval.eval(expr, x=self.object), expected.with_db(self.db)
+        expr_eval.eval(expr, x=self.object), expected.with_bag(self.db)
     )
 
-  def test_same_db(self):
+  def test_same_bag(self):
     default = self.db.new(a=42).with_schema(self.entity.get_schema())
     entity = self.db.new(e=self.entity & ds([arolla.present(), None, None]))
     result = expr_eval.eval(kde.get_attr(entity, 'e', default))
-    testing.assert_equal(result.db, self.db)
-    testing.assert_equal(result.a, ds([1, 42, 42]).with_db(self.db))
+    testing.assert_equal(result.get_bag(), self.db)
+    testing.assert_equal(result.a, ds([1, 42, 42]).with_bag(self.db))
 
   def test_missing(self):
     with self.assertRaisesRegex(ValueError, r'the attribute \'c\' is missing'):

@@ -159,7 +159,7 @@ absl::StatusOr<ExprNodePtr> CreateFStringExprImpl(absl::string_view fstring,
 absl::StatusOr<std::string> ToDataSlicePlaceholder(
     const DataSlice& ds, absl::string_view format_spec) {
   ASSIGN_OR_RETURN(auto text_ds_expr,
-                   FormattingExpr(Literal(ds.WithDb(nullptr)), format_spec));
+                   FormattingExpr(Literal(ds.WithBag(nullptr)), format_spec));
   return SerializeExprToBase64(text_ds_expr, kDataSlicePrefix);
 }
 

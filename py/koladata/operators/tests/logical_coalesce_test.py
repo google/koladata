@@ -125,18 +125,18 @@ class LogicalCoalesceTest(parameterized.TestCase):
     x = data_bag.DataBag.empty().new(a=ds([1, 1])) & mask
     x.get_schema().a = schema_constants.OBJECT
     y = data_bag.DataBag.empty().new(x=ds([1, 1])).with_schema(
-        x.get_schema().no_db()
+        x.get_schema().no_bag()
     ) & (~mask)
     y.set_attr(
         'a', ds(['abc', 'xyz'], schema_constants.OBJECT), update_schema=True
     )
-    self.assertNotEqual(x.db.fingerprint, y.db.fingerprint)
+    self.assertNotEqual(x.get_bag().fingerprint, y.get_bag().fingerprint)
     testing.assert_equivalent(
         expr_eval.eval(kde.logical.coalesce(x, y)).a,
-        ds([1, 'xyz']).with_db(x.db).enriched(y.db),
+        ds([1, 'xyz']).with_bag(x.get_bag()).enriched(y.get_bag()),
     )
 
-  def test_same_db(self):
+  def test_same_bag(self):
     db = data_bag.DataBag.empty()
     x = db.new()
     y = db.new().with_schema(x.get_schema())

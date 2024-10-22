@@ -88,13 +88,13 @@ class DataItemTest(parameterized.TestCase):
     for item_1, item_2 in itertools.combinations(items, 2):
       self.assertNotEqual(hash(item_1), hash(item_2))
 
-  def test_db(self):
+  def test_bag(self):
     x = ds(12)
-    self.assertIsNone(x.db)
+    self.assertIsNone(x.get_bag())
 
     db = data_bag.DataBag.empty()
-    x = x.with_db(db)
-    self.assertIsNotNone(x.db)
+    x = x.with_bag(db)
+    self.assertIsNotNone(x.get_bag())
 
   def test_add_method(self):
     # We are adding a method to DataSlice and should be visible in DataItem
@@ -117,9 +117,9 @@ class DataItemTest(parameterized.TestCase):
     x.get_schema().xyz = schema_constants.TEXT
     x.xyz = ds('abc')
     self.assertIsInstance(x.abc, data_item.DataItem)
-    testing.assert_allclose(x.abc, ds(3.14).with_db(db))
+    testing.assert_allclose(x.abc, ds(3.14).with_bag(db))
     self.assertIsInstance(x.xyz, data_item.DataItem)
-    testing.assert_equal(x.xyz, ds('abc').with_db(db))
+    testing.assert_equal(x.xyz, ds('abc').with_bag(db))
 
   def test_as_arolla_value(self):
     arolla.testing.assert_qvalue_allequal(
@@ -223,12 +223,12 @@ class DataItemTest(parameterized.TestCase):
       ),
       ('none', ds(None), 'DataItem(None, schema: NONE)'),
   )
-  def test_repr_no_db(self, item, expected_repr):
+  def test_repr_no_bag(self, item, expected_repr):
     self.assertEqual(repr(item), expected_repr)
 
-  def test_repr_with_db(self):
+  def test_repr_with_bag(self):
     db = data_bag.DataBag.empty()
-    item = ds(12).with_db(db)
+    item = ds(12).with_bag(db)
     bag_id = '$' + str(db.fingerprint)[-4:]
     self.assertEqual(
         repr(item), f'DataItem(12, schema: INT32, bag_id: {bag_id})'

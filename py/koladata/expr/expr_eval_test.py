@@ -202,7 +202,7 @@ class ExprEvalTest(absltest.TestCase):
   def test_self(self):
     testing.assert_equal(expr_eval.eval(I.self, 5), ds(5))
     testing.assert_equal(expr_eval.eval(S, 5), ds(5))
-    testing.assert_equal(expr_eval.eval(S.foo, fns.new(foo=5)).no_db(), ds(5))
+    testing.assert_equal(expr_eval.eval(S.foo, fns.new(foo=5)).no_bag(), ds(5))
 
   def test_self_positional_only(self):
     with self.assertRaisesWithLiteralMatch(

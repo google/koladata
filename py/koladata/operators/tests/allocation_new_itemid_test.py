@@ -40,10 +40,12 @@ class AllocationNewItemIdTest(absltest.TestCase):
     itemid = expr_eval.eval(kde.allocation.new_itemid())
     self.assertIsInstance(itemid, data_item.DataItem)
     testing.assert_equal(itemid.get_schema(), schema_constants.ITEMID)
-    entity = itemid.with_db(bag())
-    entity = entity.with_schema(entity.db.new_schema(a=schema_constants.INT32))
+    entity = itemid.with_bag(bag())
+    entity = entity.with_schema(
+        entity.get_bag().new_schema(a=schema_constants.INT32)
+    )
     entity.a = 42
-    testing.assert_equal(entity.a, ds(42).with_db(entity.db))
+    testing.assert_equal(entity.a, ds(42).with_bag(entity.get_bag()))
 
   def test_new_alloc_ids(self):
     itemid = expr_eval.eval(kde.allocation.new_itemid())

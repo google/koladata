@@ -31,13 +31,17 @@ class UuSchemaTest(absltest.TestCase):
   def test_simple_schema(self):
     schema = fns.uu_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
 
-    testing.assert_equal(schema.a, schema_constants.INT32.with_db(schema.db))
-    testing.assert_equal(schema.b, schema_constants.TEXT.with_db(schema.db))
+    testing.assert_equal(
+        schema.a, schema_constants.INT32.with_bag(schema.get_bag())
+    )
+    testing.assert_equal(
+        schema.b, schema_constants.TEXT.with_bag(schema.get_bag())
+    )
 
   def test_equal_by_fingerprint(self):
     x = fns.uu_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
     y = fns.uu_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
-    testing.assert_equal(x, y.with_db(x.db))
+    testing.assert_equal(x, y.with_bag(x.get_bag()))
 
   def test_equal_not_by_fingerprint(self):
     x = fns.uu_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
@@ -49,31 +53,35 @@ class UuSchemaTest(absltest.TestCase):
     y = fns.uu_schema(
         a=schema_constants.FLOAT32, b=schema_constants.TEXT, seed='seed'
     )
-    self.assertNotEqual(x.fingerprint, y.with_db(x.db).fingerprint)
+    self.assertNotEqual(x.fingerprint, y.with_bag(x.get_bag()).fingerprint)
 
   def test_seed_as_positional_argument(self):
     x = fns.uu_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
     y = fns.uu_schema(
         'seed', a=schema_constants.FLOAT32, b=schema_constants.TEXT
     )
-    self.assertNotEqual(x.fingerprint, y.with_db(x.db).fingerprint)
+    self.assertNotEqual(x.fingerprint, y.with_bag(x.get_bag()).fingerprint)
 
   def test_nested_schema_with_adoption(self):
     schema = fns.uu_schema(
         a=schema_constants.INT32,
         b=fns.uu_schema(a=schema_constants.INT32),
     )
-    testing.assert_equal(schema.a, schema_constants.INT32.with_db(schema.db))
-    testing.assert_equal(schema.b.a, schema_constants.INT32.with_db(schema.db))
+    testing.assert_equal(
+        schema.a, schema_constants.INT32.with_bag(schema.get_bag())
+    )
+    testing.assert_equal(
+        schema.b.a, schema_constants.INT32.with_bag(schema.get_bag())
+    )
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = bag()
     schema = fns.uu_schema(
         a=schema_constants.INT32, b=schema_constants.TEXT, db=db
     )
 
-    testing.assert_equal(schema.a, schema_constants.INT32.with_db(db))
-    testing.assert_equal(schema.b, schema_constants.TEXT.with_db(db))
+    testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
+    testing.assert_equal(schema.b, schema_constants.TEXT.with_bag(db))
 
   def test_non_dataslice_qvalue_error(self):
     db = bag()

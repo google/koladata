@@ -288,7 +288,7 @@ class CoreSelectTest(parameterized.TestCase):
       ),
       (
           ds([1, 2, None, 4]),
-          functor_factories.fn(I.self == 1).no_db(),
+          functor_factories.fn(I.self == 1).no_bag(),
           (
               'second argument to operator select must have all items of MASK'
               ' dtype or can be evaluated to such items (i.e. Python function'

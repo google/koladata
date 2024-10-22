@@ -53,20 +53,18 @@ class FromPyTest(absltest.TestCase):
   # obj_test.py.
   def test_object(self):
     obj = fns.from_py({'a': {'b': [1, 2, 3]}})
-    testing.assert_equal(
-        obj.get_schema().no_db(), schema_constants.OBJECT
-    )
+    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_dicts_keys_equal(obj, ds(['a']))
     values = obj['a']
-    testing.assert_equal(
-        values.get_schema().no_db(), schema_constants.OBJECT
-    )
+    testing.assert_equal(values.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_dicts_keys_equal(values, ds(['b']))
     nested_values = values['b']
     testing.assert_equal(
-        nested_values.get_schema().no_db(), schema_constants.OBJECT
+        nested_values.get_schema().no_bag(), schema_constants.OBJECT
     )
-    testing.assert_equal(nested_values[:], ds([1, 2, 3]).with_db(obj.db))
+    testing.assert_equal(
+        nested_values[:], ds([1, 2, 3]).with_bag(obj.get_bag())
+    )
 
   # More detailed tests for conversions to Koda Entities for Lists are located
   # in new_test.py.
@@ -74,14 +72,14 @@ class FromPyTest(absltest.TestCase):
     # Python list items can be various Python / Koda objects that are normalized
     # to Koda Items.
     l = fns.from_py([1, 2, 3], schema=fns.list_schema(schema_constants.FLOAT32))
-    testing.assert_allclose(l[:].no_db(), ds([1., 2., 3.]))
+    testing.assert_allclose(l[:].no_bag(), ds([1.0, 2.0, 3.0]))
 
     l = fns.from_py(
         [[1, 2], [ds(42, schema_constants.INT64)]],
         schema=fns.list_schema(fns.list_schema(schema_constants.FLOAT64)),
     )
     testing.assert_allclose(
-        l[:][:].no_db(), ds([[1., 2.], [42.]], schema_constants.FLOAT64)
+        l[:][:].no_bag(), ds([[1.0, 2.0], [42.0]], schema_constants.FLOAT64)
     )
 
   # More detailed tests for conversions to Koda Entities for Dicts are located
@@ -96,7 +94,7 @@ class FromPyTest(absltest.TestCase):
         ),
     )
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
-    testing.assert_equal(d[ds(['a', 'b'])][:].no_db(), ds([[1, 2], [42]]))
+    testing.assert_equal(d[ds(['a', 'b'])][:].no_bag(), ds([[1, 2], [42]]))
 
   def test_primitive(self):
     item = fns.from_py(42)
@@ -118,41 +116,41 @@ class FromPyTest(absltest.TestCase):
     )
     item = fns.from_py(None, schema=schema)
     testing.assert_equivalent(item.get_schema(), schema)
-    testing.assert_equal(item.no_db(), ds(None).with_schema(schema.no_db()))
+    testing.assert_equal(item.no_bag(), ds(None).with_schema(schema.no_bag()))
 
   def test_obj_reference(self):
     obj = fns.obj()
     item = fns.from_py(obj.ref())
-    testing.assert_equal(item, obj.no_db())
+    testing.assert_equal(item, obj.no_bag())
 
   def test_entity_reference(self):
     entity = fns.new(x=42)
     item = fns.from_py(entity.ref())
-    self.assertIsNotNone(item.db)
+    self.assertIsNotNone(item.get_bag())
     testing.assert_equal(
-        item.get_attr('__schema__').no_db(), entity.get_schema().no_db()
+        item.get_attr('__schema__').no_bag(), entity.get_schema().no_bag()
     )
     testing.assert_equal(
-        item.with_schema(entity.get_schema().no_db()).no_db(), entity.no_db()
+        item.with_schema(entity.get_schema().no_bag()).no_bag(), entity.no_bag()
     )
 
     item = fns.from_py(entity.ref(), schema=entity.get_schema())
-    testing.assert_equal(item.no_db(), entity.no_db())
+    testing.assert_equal(item.no_bag(), entity.no_bag())
     # no data triples (item.x => 42) in the DataBag.
     testing.assert_equivalent(item.get_schema(), entity.get_schema().extract())
-    testing.assert_equal(item.x.no_db(), ds(None, schema_constants.INT32))
+    testing.assert_equal(item.x.no_bag(), ds(None, schema_constants.INT32))
 
   def test_dict_as_obj_object(self):
     obj = fns.from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
     )
-    testing.assert_equal(obj.get_schema().no_db(), schema_constants.OBJECT)
+    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     self.assertCountEqual(dir(obj), ['a', 'b', 'c'])
-    testing.assert_equal(obj.a.no_db(), ds(42))
+    testing.assert_equal(obj.a.no_bag(), ds(42))
     b = obj.b
-    testing.assert_equal(b.get_schema().no_db(), schema_constants.OBJECT)
-    testing.assert_equal(b.x.no_db(), ds('abc'))
-    testing.assert_equal(obj.c.no_db(), ds(b'xyz'))
+    testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_equal(b.x.no_bag(), ds('abc'))
+    testing.assert_equal(obj.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_with_schema(self):
     schema = fns.new_schema(
@@ -164,13 +162,13 @@ class FromPyTest(absltest.TestCase):
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
         schema=schema,
     )
-    testing.assert_equal(entity.get_schema().no_db(), schema.no_db())
+    testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(dir(entity), ['a', 'b', 'c'])
-    testing.assert_equal(entity.a.no_db(), ds(42.))
+    testing.assert_equal(entity.a.no_bag(), ds(42.0))
     b = entity.b
-    testing.assert_equal(b.get_schema().no_db(), schema.b.no_db())
-    testing.assert_equal(b.x.no_db(), ds('abc'))
-    testing.assert_equal(entity.c.no_db(), ds(b'xyz'))
+    testing.assert_equal(b.get_schema().no_bag(), schema.b.no_bag())
+    testing.assert_equal(b.x.no_bag(), ds('abc'))
+    testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_with_nested_object(self):
     schema = fns.new_schema(
@@ -182,13 +180,13 @@ class FromPyTest(absltest.TestCase):
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
         schema=schema,
     )
-    testing.assert_equal(entity.get_schema().no_db(), schema.no_db())
+    testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(dir(entity), ['a', 'b', 'c'])
-    testing.assert_equal(entity.a.no_db(), ds(42, schema_constants.INT64))
+    testing.assert_equal(entity.a.no_bag(), ds(42, schema_constants.INT64))
     obj_b = entity.b
-    testing.assert_equal(obj_b.get_schema().no_db(), schema_constants.OBJECT)
-    testing.assert_equal(obj_b.x.no_db(), ds('abc'))
-    testing.assert_equal(entity.c.no_db(), ds(b'xyz'))
+    testing.assert_equal(obj_b.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_equal(obj_b.x.no_bag(), ds('abc'))
+    testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_incomplete_schema(self):
     schema = fns.new_schema(b=schema_constants.OBJECT)
@@ -196,10 +194,12 @@ class FromPyTest(absltest.TestCase):
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
         schema=schema,
     )
-    testing.assert_equal(entity.get_schema().no_db(), schema.no_db())
+    testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(dir(entity), ['b'])
-    testing.assert_equal(entity.b.get_schema().no_db(), schema_constants.OBJECT)
-    testing.assert_equal(entity.b.x.no_db(), ds('abc'))
+    testing.assert_equal(
+        entity.b.get_schema().no_bag(), schema_constants.OBJECT
+    )
+    testing.assert_equal(entity.b.x.no_bag(), ds('abc'))
 
   def test_dict_as_obj_entity_empty_schema(self):
     schema = fns.new_schema()
@@ -207,13 +207,13 @@ class FromPyTest(absltest.TestCase):
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
         schema=schema,
     )
-    testing.assert_equal(entity.get_schema().no_db(), schema.no_db())
+    testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(dir(entity), [])
 
-  def test_dict_as_obj_db_adoption(self):
+  def test_dict_as_obj_bag_adoption(self):
     obj_b = fns.from_py({'x': 'abc'}, dict_as_obj=True)
     obj = fns.from_py({'a': 42, 'b': obj_b}, dict_as_obj=True)
-    testing.assert_equal(obj.b.x.no_db(), ds('abc'))
+    testing.assert_equal(obj.b.x.no_bag(), ds('abc'))
 
   def test_dict_as_obj_entity_incompatible_schema(self):
     schema = fns.new_schema(
@@ -233,14 +233,14 @@ class FromPyTest(absltest.TestCase):
     # Object.
     obj = fns.from_py({ds('a'): 42}, dict_as_obj=True)
     self.assertCountEqual(dir(obj), ['a'])
-    testing.assert_equal(obj.a.no_db(), ds(42))
+    testing.assert_equal(obj.a.no_bag(), ds(42))
     # Entity - non TEXT schema with TEXT item.
     entity = fns.from_py(
         {ds('a').as_any(): 42}, dict_as_obj=True,
         schema=fns.new_schema(a=schema_constants.INT32)
     )
     self.assertCountEqual(dir(entity), ['a'])
-    testing.assert_equal(entity.a.no_db(), ds(42))
+    testing.assert_equal(entity.a.no_bag(), ds(42))
 
   def test_dict_as_obj_non_unicode_key(self):
     with self.assertRaisesRegex(
@@ -259,13 +259,13 @@ class FromPyTest(absltest.TestCase):
 
   def test_dataclasses(self):
     obj = fns.from_py(TestKlass(42, NestedKlass('abc'), b'xyz'))
-    testing.assert_equal(obj.get_schema().no_db(), schema_constants.OBJECT)
+    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     self.assertCountEqual(dir(obj), ['a', 'b', 'c'])
-    testing.assert_equal(obj.a.no_db(), ds(42))
+    testing.assert_equal(obj.a.no_bag(), ds(42))
     b = obj.b
-    testing.assert_equal(b.get_schema().no_db(), schema_constants.OBJECT)
-    testing.assert_equal(b.x.no_db(), ds('abc'))
-    testing.assert_equal(obj.c.no_db(), ds(b'xyz'))
+    testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_equal(b.x.no_bag(), ds('abc'))
+    testing.assert_equal(obj.c.no_bag(), ds(b'xyz'))
 
   def test_dataclasses_with_schema(self):
     schema = fns.new_schema(
@@ -276,13 +276,13 @@ class FromPyTest(absltest.TestCase):
     entity = fns.from_py(
         TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema
     )
-    testing.assert_equal(entity.get_schema().no_db(), schema.no_db())
+    testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(dir(entity), ['a', 'b', 'c'])
-    testing.assert_equal(entity.a.no_db(), ds(42.))
+    testing.assert_equal(entity.a.no_bag(), ds(42.0))
     b = entity.b
-    testing.assert_equal(b.get_schema().no_db(), schema.b.no_db())
-    testing.assert_equal(b.x.no_db(), ds('abc'))
-    testing.assert_equal(entity.c.no_db(), ds(b'xyz'))
+    testing.assert_equal(b.get_schema().no_bag(), schema.b.no_bag())
+    testing.assert_equal(b.x.no_bag(), ds('abc'))
+    testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
   def test_dataclasses_with_incomplete_schema(self):
     schema = fns.new_schema(
@@ -291,16 +291,16 @@ class FromPyTest(absltest.TestCase):
     entity = fns.from_py(
         TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema
     )
-    testing.assert_equal(entity.get_schema().no_db(), schema.no_db())
+    testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(dir(entity), ['a'])
-    testing.assert_equal(entity.a.no_db(), ds(42.))
+    testing.assert_equal(entity.a.no_bag(), ds(42.0))
 
   def test_list_of_dataclasses(self):
     obj = fns.from_py([NestedKlass('a'), NestedKlass('b')])
-    testing.assert_equal(obj.get_schema().no_db(), schema_constants.OBJECT)
+    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     nested = obj[:]
-    testing.assert_equal(nested.S[0].x.no_db(), ds('a'))
-    testing.assert_equal(nested.S[1].x.no_db(), ds('b'))
+    testing.assert_equal(nested.S[0].x.no_bag(), ds('a'))
+    testing.assert_equal(nested.S[1].x.no_bag(), ds('b'))
 
   def test_dataclass_with_list(self):
     @dataclasses.dataclass
@@ -308,8 +308,8 @@ class FromPyTest(absltest.TestCase):
       l: list[int]
 
     obj = fns.from_py(Test([1, 2, 3]))
-    testing.assert_equal(obj.get_schema().no_db(), schema_constants.OBJECT)
-    testing.assert_equal(obj.l[:].no_db(), ds([1, 2, 3]))
+    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_equal(obj.l[:].no_bag(), ds([1, 2, 3]))
 
   def test_dataclass_with_koda_obj(self):
     @dataclasses.dataclass
@@ -318,11 +318,11 @@ class FromPyTest(absltest.TestCase):
 
     schema = fns.new_schema(koda=fns.new_schema(x=schema_constants.INT32))
     entity = fns.from_py(Test(schema.koda(x=1)), schema=schema)
-    testing.assert_equal(entity.get_schema().no_db(), schema.no_db())
+    testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(dir(entity), ['koda'])
     koda = entity.koda
-    testing.assert_equal(koda.get_schema().no_db(), schema.koda.no_db())
-    testing.assert_equal(koda.x.no_db(), ds(1))
+    testing.assert_equal(koda.get_schema().no_bag(), schema.koda.no_bag())
+    testing.assert_equal(koda.x.no_bag(), ds(1))
 
   def test_dataclasses_prevent_memory_leak(self):
     gc.collect()
@@ -379,15 +379,11 @@ class FromPyTest(absltest.TestCase):
 
   def test_alias(self):
     obj = fns.from_pytree({'a': 42})
-    testing.assert_equal(
-        obj.get_schema().no_db(), schema_constants.OBJECT
-    )
+    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_dicts_keys_equal(obj, ds(['a']))
     values = obj['a']
-    testing.assert_equal(
-        values.get_schema().no_db(), schema_constants.INT32
-    )
-    testing.assert_equal(values, ds(42).with_db(values.db))
+    testing.assert_equal(values.get_schema().no_bag(), schema_constants.INT32)
+    testing.assert_equal(values, ds(42).with_bag(values.get_bag()))
 
   def test_not_yet_implemented(self):
     with self.subTest('itemid'):

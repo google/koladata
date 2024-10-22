@@ -309,35 +309,35 @@ class BoxingTest(parameterized.TestCase):
     e1 = db1.new()
     e2 = db2.new()
     res = ds([e1, e2], OBJECT)
-    testing.assert_equal(res.get_schema(), OBJECT.with_db(res.db))
+    testing.assert_equal(res.get_schema(), OBJECT.with_bag(res.get_bag()))
     testing.assert_equal(
         res.internal_as_py()[0].get_attr('__schema__'),
-        e1.get_schema().with_db(res.db),
+        e1.get_schema().with_bag(res.get_bag()),
     )
     testing.assert_equal(
         res.internal_as_py()[1].get_attr('__schema__'),
-        e2.get_schema().with_db(res.db),
+        e2.get_schema().with_bag(res.get_bag()),
     )
     # The original bags are unaffected.
     testing.assert_equal(
-        e1.get_attr('__schema__'), ds(None, SCHEMA).with_db(db1)
+        e1.get_attr('__schema__'), ds(None, SCHEMA).with_bag(db1)
     )
     testing.assert_equal(
-        e2.get_attr('__schema__'), ds(None, SCHEMA).with_db(db2)
+        e2.get_attr('__schema__'), ds(None, SCHEMA).with_bag(db2)
     )
 
   def test_single_entity_schema_embedding(self):
     db = data_bag.DataBag.empty()
     e1 = db.new()
     res = ds(e1, OBJECT)
-    testing.assert_equal(res, e1.with_db(res.db).with_schema(OBJECT))
+    testing.assert_equal(res, e1.with_bag(res.get_bag()).with_schema(OBJECT))
     testing.assert_equal(
         res.get_attr('__schema__'),
-        e1.get_schema().with_db(res.db),
+        e1.get_schema().with_bag(res.get_bag()),
     )
     # The original bag is unaffected.
     testing.assert_equal(
-        e1.get_attr('__schema__'), ds(None, SCHEMA).with_db(db)
+        e1.get_attr('__schema__'), ds(None, SCHEMA).with_bag(db)
     )
 
   def test_schema_embedding_conflicting_schema(self):
@@ -373,10 +373,10 @@ class BoxingTest(parameterized.TestCase):
     # Same schema and db for items from internal_as_py.
     x = db.new(x=ds([1, 2, 3]), y=ds(['a', 'b', 'c']))
     self.assertIsInstance(x.internal_as_py()[0], data_item.DataItem)
-    testing.assert_equal(x.internal_as_py()[0].db, x.db)
+    testing.assert_equal(x.internal_as_py()[0].get_bag(), x.get_bag())
     testing.assert_equal(x.internal_as_py()[0].get_schema(), x.get_schema())
     x = x.as_any()
-    testing.assert_equal(x.internal_as_py()[0].get_schema(), ANY.with_db(db))
+    testing.assert_equal(x.internal_as_py()[0].get_schema(), ANY.with_bag(db))
 
   def test_scalars_overflow_handling(self):
     with self.subTest('int'):
@@ -503,14 +503,14 @@ class BoxingTest(parameterized.TestCase):
       _ = arolla.eval(invalid_unicode_op()).internal_as_py()
     gc.collect()
 
-  def test_db_merging(self):
+  def test_bag_merging(self):
     db1 = data_bag.DataBag.empty()
     db2 = data_bag.DataBag.empty()
     i1 = db1.obj(a=42)
     i2 = db2.obj(a=24)
     s = ds([i1, i2])
-    self.assertIsNotNone(s.db)
-    testing.assert_equal(s.a, ds([42, 24]).with_db(s.db))
+    self.assertIsNotNone(s.get_bag())
+    testing.assert_equal(s.a, ds([42, 24]).with_bag(s.get_bag()))
 
 
 if __name__ == '__main__':

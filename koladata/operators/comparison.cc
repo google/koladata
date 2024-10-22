@@ -58,7 +58,7 @@ absl::StatusOr<DataSlice> Equal(const DataSlice& lhs, const DataSlice& rhs) {
       .With([&](const absl::Status& status) {
         return AssembleErrorMessage(status,
                                     {.db = DataBag::ImmutableEmptyWithFallbacks(
-                                         {lhs.GetDb(), rhs.GetDb()})});
+                                         {lhs.GetBag(), rhs.GetBag()})});
       });
   return DataSliceOp<internal::EqualOp>()(
       lhs, rhs, internal::DataItem(schema::kMask), nullptr);

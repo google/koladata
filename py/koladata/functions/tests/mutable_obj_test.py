@@ -33,10 +33,10 @@ class MutableObjTest(absltest.TestCase):
 
   def test_mutable_obj(self):
     x = fns.mutable_obj(x=1, y=2)
-    testing.assert_equal(x.x, ds(1).with_db(x.db))
-    testing.assert_equal(x.y, ds(2).with_db(x.db))
+    testing.assert_equal(x.x, ds(1).with_bag(x.get_bag()))
+    testing.assert_equal(x.y, ds(2).with_bag(x.get_bag()))
     x.x = 3
-    testing.assert_equal(x.x, ds(3).with_db(x.db))
+    testing.assert_equal(x.x, ds(3).with_bag(x.get_bag()))
     # If you remove this assert, expand the tests here for more coverage
     # of mutable_obj.
     self.assertIs(fns.mutable_obj, fns.obj)
@@ -44,7 +44,7 @@ class MutableObjTest(absltest.TestCase):
   def test_mutable_obj_like(self):
     x = fns.mutable_obj_like(ds([1, None, 2]))
     x.x = 1
-    testing.assert_equal(x.x, ds([1, None, 1]).with_db(x.db))
+    testing.assert_equal(x.x, ds([1, None, 1]).with_bag(x.get_bag()))
     # If you remove this assert, expand the tests here for more coverage
     # of mutable_obj_like.
     self.assertIs(fns.mutable_obj_like, fns.obj_like)
@@ -52,7 +52,7 @@ class MutableObjTest(absltest.TestCase):
   def test_mutable_obj_shaped(self):
     x = fns.mutable_obj_shaped(jagged_shape.create_shape(2, [1, 2]))
     x.x = 1
-    testing.assert_equal(x.x, ds([[1], [1, 1]]).with_db(x.db))
+    testing.assert_equal(x.x, ds([[1], [1, 1]]).with_bag(x.get_bag()))
     # If you remove this assert, expand the tests here for more coverage
     # of mutable_obj_shaped.
     self.assertIs(fns.mutable_obj_shaped, fns.obj_shaped)

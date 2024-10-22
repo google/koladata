@@ -40,13 +40,13 @@ namespace koladata::ops {
 inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
                                            const DataSlice& mask) {
   return DataSliceOp<internal::PresenceAndOp>()(obj, mask, obj.GetSchemaImpl(),
-                                                obj.GetDb());
+                                                obj.GetBag());
 }
 
 // kde.logical.coalesce.
 inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
                                           const DataSlice& y) {
-  auto res_db = DataBag::CommonDataBag({x.GetDb(), y.GetDb()});
+  auto res_db = DataBag::CommonDataBag({x.GetBag(), y.GetBag()});
   ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}),
                    AssembleErrorMessage(_, {.db = res_db}));
   return DataSliceOp<internal::PresenceOrOp>()(

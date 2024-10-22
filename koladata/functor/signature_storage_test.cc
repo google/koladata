@@ -79,7 +79,7 @@ TEST(CppSignatureToKodaSignatureTest, Basic) {
       koda_signature_parameter_list.ExplodeList(0, std::nullopt));
   EXPECT_THAT(koda_signature_parameters.GetAttr("name"),
               IsOkAndHolds(IsEquivalentTo(test::DataSlice<arolla::Text>(
-                  {"a", "b", "c", "d", "e"}, koda_signature.GetDb()))));
+                  {"a", "b", "c", "d", "e"}, koda_signature.GetBag()))));
   // We do not test the exact value for kinds or exact representation of
   // default values since those are more or less an
   // implementation detail, it's only important that round trips work,
@@ -128,17 +128,17 @@ TEST(RoundTripTest, Basic) {
       ElementsAre(
           FieldsAre(p1.name, p1.kind, Eq(std::nullopt)),
           FieldsAre(p2.name, p2.kind,
-                    Optional(IsEquivalentTo(p2.default_value.value().WithDb(
-                        koda_signature.GetDb())))),
+                    Optional(IsEquivalentTo(p2.default_value.value().WithBag(
+                        koda_signature.GetBag())))),
           FieldsAre(p3.name, p3.kind, Eq(std::nullopt)),
           FieldsAre(p4.name, p4.kind,
-                    Optional(IsEquivalentTo(p4.default_value.value().WithDb(
-                        koda_signature.GetDb())))),
+                    Optional(IsEquivalentTo(p4.default_value.value().WithBag(
+                        koda_signature.GetBag())))),
           FieldsAre(p5.name, p5.kind, Eq(std::nullopt))));
   // Verify that we have adopted the triples of the default value.
-  EXPECT_THAT(
-      signature2.parameters()[1].default_value->GetAttr("foo"),
-      IsOkAndHolds(IsEquivalentTo(test::DataItem(57, koda_signature.GetDb()))));
+  EXPECT_THAT(signature2.parameters()[1].default_value->GetAttr("foo"),
+              IsOkAndHolds(
+                  IsEquivalentTo(test::DataItem(57, koda_signature.GetBag()))));
 }
 
 TEST(KodaSignatureToCppSignatureTest, NonScalar) {

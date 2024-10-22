@@ -34,7 +34,7 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-class CoreGetDbTest(parameterized.TestCase):
+class CoreGetBagTest(parameterized.TestCase):
 
   @parameterized.parameters(
       bag().obj(),
@@ -42,26 +42,26 @@ class CoreGetDbTest(parameterized.TestCase):
       ds([bag().obj(a=1)]),
   )
   def test_eval(self, x):
-    testing.assert_equal(expr_eval.eval(kde.core.get_db(x)), x.db)
+    testing.assert_equal(expr_eval.eval(kde.core.get_bag(x)), x.get_bag())
 
   def test_no_databag_error(self):
     with self.assertRaisesRegex(
         ValueError, re.escape('DataSlice has no associated DataBag')
     ):
-      expr_eval.eval(kde.core.get_db(ds([1, 2, 3])))
+      expr_eval.eval(kde.core.get_bag(ds([1, 2, 3])))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.get_db,
+        kde.core.get_bag,
         [(qtypes.DATA_SLICE, qtypes.DATA_BAG)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_bag_view(kde.core.get_db(I.x)))
+    self.assertTrue(view.has_data_bag_view(kde.core.get_bag(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.get_db, kde.get_db))
+    self.assertTrue(optools.equiv_to_op(kde.core.get_bag, kde.get_bag))
 
 
 if __name__ == '__main__':

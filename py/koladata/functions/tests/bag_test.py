@@ -33,7 +33,7 @@ class BagTest(absltest.TestCase):
     self.assertIsInstance(fns.bag(), data_bag.DataBag)
 
   def test_repr(self):
-    self.assertIn('[1, 2]', fns.bag().list([1, 2]).db.contents_repr())
+    self.assertIn('[1, 2]', fns.bag().list([1, 2]).get_bag().contents_repr())
 
   def test_equality(self):
     db = fns.bag()
@@ -50,8 +50,8 @@ class BagTest(absltest.TestCase):
     entity = db1.new(a=1, b='text')
     with self.assertRaises(AssertionError):
       testing.assert_equivalent(db1, db2)
-    entity.with_db(db2).set_attr('a', 1, update_schema=True)
-    entity.with_db(db2).set_attr('b', 'text', update_schema=True)
+    entity.with_bag(db2).set_attr('a', 1, update_schema=True)
+    entity.with_bag(db2).set_attr('b', 'text', update_schema=True)
     testing.assert_equivalent(db1, db2)
 
 

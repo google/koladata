@@ -42,9 +42,10 @@ TEST(DefaultSignatureTest, Works) {
   EXPECT_THAT(
       signature.parameters(),
       ElementsAre(
-          FieldsAre("self", kPositionalOnly,
-                    Optional(IsEquivalentTo(expr::UnspecifiedSelfInput().WithDb(
-                        koda_signature.GetDb())))),
+          FieldsAre(
+              "self", kPositionalOnly,
+              Optional(IsEquivalentTo(expr::UnspecifiedSelfInput().WithBag(
+                  koda_signature.GetBag())))),
           FieldsAre("a", kKeywordOnly, Eq(std::nullopt)),
           FieldsAre("b", kKeywordOnly, Eq(std::nullopt)),
           FieldsAre("__extra_inputs__", kVarKeyword, Eq(std::nullopt))));
@@ -59,9 +60,10 @@ TEST(DefaultSignatureTest, SelfPassed) {
   EXPECT_THAT(
       signature.parameters(),
       ElementsAre(
-          FieldsAre("self", kPositionalOnly,
-                    Optional(IsEquivalentTo(expr::UnspecifiedSelfInput().WithDb(
-                        koda_signature.GetDb())))),
+          FieldsAre(
+              "self", kPositionalOnly,
+              Optional(IsEquivalentTo(expr::UnspecifiedSelfInput().WithBag(
+                  koda_signature.GetBag())))),
           FieldsAre("a", kKeywordOnly, Eq(std::nullopt)),
           FieldsAre("b", kKeywordOnly, Eq(std::nullopt)),
           FieldsAre("__extra_inputs__", kVarKeyword, Eq(std::nullopt))));

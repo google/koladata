@@ -106,11 +106,11 @@ class CoreWithDictUpdateTest(parameterized.TestCase):
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(ValueError, 'expected a DataSlice of dicts'):
       _ = kde.core.with_dict_update(
-          ds(0).with_db(bag()), fns.dict({'x': 1})
+          ds(0).with_bag(bag()), fns.dict({'x': 1})
       ).eval()
 
   def test_error_no_databag(self):
-    o = fns.new(x=1).no_db()
+    o = fns.new(x=1).no_bag()
     with self.assertRaisesRegex(
         ValueError,
         'cannot update a DataSlice of dicts without a DataBag',

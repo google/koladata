@@ -44,10 +44,10 @@ class CoreRefTest(parameterized.TestCase):
       ds([bag().obj(a=1)]),
       ds(bag().obj(), schema_constants.ANY),
       ds(bag().obj(), schema_constants.ITEMID),
-      ds(None).with_db(bag()),
+      ds(None).with_bag(bag()),
   )
   def test_eval(self, x):
-    testing.assert_equal(expr_eval.eval(kde.core.ref(x)), x.no_db())
+    testing.assert_equal(expr_eval.eval(kde.core.ref(x)), x.no_bag())
 
   def test_primitive_schema_error(self):
     with self.assertRaisesRegex(ValueError, 'unsupported schema: INT32'):

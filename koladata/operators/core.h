@@ -29,17 +29,17 @@ namespace koladata::ops {
 // kde.core._add.
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y);
 
-// kde.core.no_db.
-DataSlice NoDb(const DataSlice& ds);
+// kde.core.no_bag.
+DataSlice NoBag(const DataSlice& ds);
 
 // kde.core.ref.
 absl::StatusOr<DataSlice> Ref(const DataSlice& ds);
 
-// kde.core.get_db.
-absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds);
+// kde.core.get_bag.
+absl::StatusOr<DataBagPtr> GetBag(const DataSlice& ds);
 
-// kde.core.with_db.
-DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db);
+// kde.core.with_bag.
+DataSlice WithBag(const DataSlice& ds, const DataBagPtr& db);
 
 // kde.core.with_merged_bag.
 absl::StatusOr<DataSlice> WithMergedBag(const DataSlice& ds);

@@ -62,7 +62,7 @@ class CoreDictUpdateTest(parameterized.TestCase):
         x1.updated(db2), fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
     )
     testing.assert_dicts_equal(
-        x1.with_db(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
+        x1.with_bag(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
     )
 
   def test_eval_keys_values_slice_broadcast(self):
@@ -79,10 +79,11 @@ class CoreDictUpdateTest(parameterized.TestCase):
         ])
     )
     testing.assert_dicts_equal(
-        x1.with_db(db2), ds([
+        x1.with_bag(db2),
+        ds([
             fns.dict(ds([1]), ds([2])),
             fns.dict(ds([1]), ds([2])),
-        ])
+        ]),
     )
 
   def test_eval_keys_values_slice(self):
@@ -101,10 +102,11 @@ class CoreDictUpdateTest(parameterized.TestCase):
         ])
     )
     testing.assert_dicts_equal(
-        x1.with_db(db2), ds([
+        x1.with_bag(db2),
+        ds([
             fns.dict(ds([1, 3, 7]), ds([8, 9, 10])),
             fns.dict(ds([1, 2]), ds([2, 1])),
-        ])
+        ]),
     )
 
   def test_eval_keys_values_object_key_value_schema(self):
@@ -121,7 +123,7 @@ class CoreDictUpdateTest(parameterized.TestCase):
         x1.updated(db2), fns.dict(ds([1, 2, 3, 'x']), ds([8, 5, 'y', 'z']))
     )
     testing.assert_dicts_equal(
-        x1.with_db(db2), fns.dict(ds([1, 3, 'x']), ds([8, 'y', 'z']))
+        x1.with_bag(db2), fns.dict(ds([1, 3, 'x']), ds([8, 'y', 'z']))
     )
 
   def test_eval_keys_values_embedded_schema(self):
@@ -140,7 +142,7 @@ class CoreDictUpdateTest(parameterized.TestCase):
         x1.updated(db2), fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
     )
     testing.assert_dicts_equal(
-        x1.with_db(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
+        x1.with_bag(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
     )
 
   def test_eval_dicts(self):
@@ -152,12 +154,12 @@ class CoreDictUpdateTest(parameterized.TestCase):
         x1.updated(db2), fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
     )
     testing.assert_dicts_equal(
-        x1.with_db(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
+        x1.with_bag(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
     )
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(ValueError, 'expected a DataSlice of dicts'):
-      _ = kde.core.dict_update(ds(0).with_db(bag()), fns.dict({'x': 1})).eval()
+      _ = kde.core.dict_update(ds(0).with_bag(bag()), fns.dict({'x': 1})).eval()
 
   def test_error_not_dict_embedded_schema(self):
     with self.assertRaisesRegex(ValueError, 'expected a DataSlice of dicts'):
@@ -166,7 +168,7 @@ class CoreDictUpdateTest(parameterized.TestCase):
       )
 
   def test_error_no_databag(self):
-    o = fns.new(x=1).no_db()
+    o = fns.new(x=1).no_bag()
     with self.assertRaisesRegex(
         ValueError,
         'cannot update a DataSlice of dicts without a DataBag',

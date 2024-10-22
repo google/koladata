@@ -40,10 +40,12 @@ class DictTest(parameterized.TestCase):
     testing.assert_dicts_keys_equal(d, ds([], schema_constants.OBJECT))
     d['a'] = 1
     testing.assert_dicts_keys_equal(d, ds(['a'], schema_constants.OBJECT))
-    testing.assert_equal(d['a'], ds(1, schema_constants.OBJECT).with_db(d.db))
+    testing.assert_equal(
+        d['a'], ds(1, schema_constants.OBJECT).with_bag(d.get_bag())
+    )
     keys = ds(['a', 'b', 'a'])
     testing.assert_equal(
-        d[keys], ds([1, None, 1], schema_constants.OBJECT).with_db(d.db)
+        d[keys], ds([1, None, 1], schema_constants.OBJECT).with_bag(d.get_bag())
     )
 
   def test_dict_with_uuid(self):
@@ -56,7 +58,7 @@ class DictTest(parameterized.TestCase):
   def test_single_arg(self):
     d = fns.dict({'a': {'b': 42}})
     self.assertIsInstance(d, dict_item.DictItem)
-    testing.assert_equal(d['a']['b'], ds(42).with_db(d.db))
+    testing.assert_equal(d['a']['b'], ds(42).with_bag(d.get_bag()))
     with self.assertRaisesRegex(
         TypeError,
         '`items_or_keys` must be a Python dict if `values` is not provided',
@@ -68,7 +70,7 @@ class DictTest(parameterized.TestCase):
     self.assertIsInstance(d, dict_item.DictItem)
     self.assertEqual(d.get_shape().rank(), 0)
     d['b'] = 1
-    testing.assert_equal(d[['a', 'b']], ds([1, 1]).with_db(d.db))
+    testing.assert_equal(d[['a', 'b']], ds([1, 1]).with_bag(d.get_bag()))
 
   def test_two_args_error(self):
     with self.assertRaisesRegex(
@@ -84,16 +86,18 @@ class DictTest(parameterized.TestCase):
     # NOTE: Dimension of dicts is reduced by 1.
     self.assertEqual(d.get_shape().rank(), 1)
 
-    testing.assert_dicts_keys_equal(d, ds([['a', 'b'], ['c']]).with_db(d.db))
-    testing.assert_equal(d['a'], ds([1, None]).with_db(d.db))
+    testing.assert_dicts_keys_equal(
+        d, ds([['a', 'b'], ['c']]).with_bag(d.get_bag())
+    )
+    testing.assert_equal(d['a'], ds([1, None]).with_bag(d.get_bag()))
 
   def test_itemid(self):
     itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.dict('a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid)
+    testing.assert_equal(x.no_bag().as_itemid(), itemid)
 
-  def test_itemid_from_different_db(self):
+  def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
     itemid = fns.dict({'a': triple})
 
@@ -103,21 +107,21 @@ class DictTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'attribute \'non_existent\' is missing'
     ):
-      _ = triple.with_db(x.db).non_existent
+      _ = triple.with_bag(x.get_bag()).non_existent
 
   def test_itemid_error(self):
     itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
       _ = fns.dict(ds([[['a', 'a']]]), 42, itemid=itemid)
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = fns.bag()
     d = fns.dict({1: 2})
     with self.assertRaises(AssertionError):
-      testing.assert_equal(d.db, db)
+      testing.assert_equal(d.get_bag(), db)
 
     d = fns.dict({1: 2}, db=db)
-    testing.assert_equal(d.db, db)
+    testing.assert_equal(d.get_bag(), db)
 
   def test_repr(self):
     self.assertRegex(
@@ -131,7 +135,8 @@ class DictTest(parameterized.TestCase):
     dct2 = fns.dict(ds(['obj']), dct)
 
     testing.assert_equal(
-        dct2['obj']['a'], ds(7, schema_constants.OBJECT).with_db(dct2.db)
+        dct2['obj']['a'],
+        ds(7, schema_constants.OBJECT).with_bag(dct2.get_bag()),
     )
 
   @parameterized.parameters(
@@ -226,11 +231,11 @@ class DictTest(parameterized.TestCase):
         schema=schema,
     ).get_schema()
     testing.assert_equal(
-        result_schema.get_attr('__keys__').no_db(),
+        result_schema.get_attr('__keys__').no_bag(),
         expected_key_schema,
     )
     testing.assert_equal(
-        result_schema.get_attr('__values__').no_db(),
+        result_schema.get_attr('__values__').no_bag(),
         expected_value_schema,
     )
 

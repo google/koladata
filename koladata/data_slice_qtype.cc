@@ -63,8 +63,8 @@ std::string GetReprInternal(const DataSlice& value) {
 std::string GetItemRepr(const DataSlice& value) {
   std::string result;
   absl::StrAppend(&result, "DataItem(", GetReprInternal(value));
-  if (value.GetDb() != nullptr) {
-    absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(value.GetDb()));
+  if (value.GetBag() != nullptr) {
+    absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(value.GetBag()));
   }
   absl::StrAppend(&result, ")");
   return result;
@@ -74,8 +74,8 @@ std::string GetSliceRepr(const DataSlice& value) {
   std::string result;
   absl::StrAppend(&result, "DataSlice(", GetReprInternal(value),
                   ", shape: ", Repr(value.GetShape()));
-  if (value.GetDb() != nullptr) {
-    absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(value.GetDb()));
+  if (value.GetBag() != nullptr) {
+    absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(value.GetBag()));
   }
   absl::StrAppend(&result, ")");
   return result;
@@ -105,8 +105,8 @@ void FingerprintHasherTraits<DataSlice>::operator()(FingerprintHasher* hasher,
   // mutated, because it is a TypedValue. This means that Fingerprint of `db_`
   // should remain the same, even if its contents change or we should compute
   // it statically.
-  if (ds.GetDb() != nullptr) {
-    hasher->Combine(ds.GetDb());
+  if (ds.GetBag() != nullptr) {
+    hasher->Combine(ds.GetBag());
   }
 }
 

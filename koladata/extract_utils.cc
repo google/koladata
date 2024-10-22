@@ -30,11 +30,11 @@ namespace extract_utils_internal {
 
 absl::StatusOr<DataSlice> ExtractWithSchema(const DataSlice& ds,
                                             const DataSlice& schema) {
-  const auto& db = ds.GetDb();
+  const auto& db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot extract without a DataBag");
   }
-  const auto& schema_db = schema.GetDb();
+  const auto& schema_db = schema.GetBag();
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   const auto& schema_impl = schema.impl<internal::DataItem>();
   FlattenFallbackFinder fb_finder(*db);

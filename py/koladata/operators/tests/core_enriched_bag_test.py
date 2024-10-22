@@ -42,7 +42,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreEnrichedDbTest(absltest.TestCase):
+class CoreEnrichedBagTest(absltest.TestCase):
 
   def test_enriched_bag(self):
     db1 = bag()
@@ -57,9 +57,9 @@ class CoreEnrichedDbTest(absltest.TestCase):
     o3.y = 4
     db3 = expr_eval.eval(
         kde.core.enriched_bag(I.x, I.y, I.z), x=db1, y=db2, z=db3)
-    o3 = o1.with_db(db3)
-    testing.assert_equal(o3.x.no_db(), ds(1))
-    testing.assert_equal(o3.y.no_db(), ds(3))
+    o3 = o1.with_bag(db3)
+    testing.assert_equal(o3.x.no_bag(), ds(1))
+    testing.assert_equal(o3.y.no_bag(), ds(3))
 
   def test_not_enough_args(self):
     with self.assertRaisesRegex(

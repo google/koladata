@@ -71,7 +71,7 @@ class FunctorCallTest(absltest.TestCase):
 
   def test_call_with_no_expr(self):
     fn = functor_factories.fn(57, signature=signature_utils.signature([]))
-    testing.assert_equal(expr_eval.eval(kde.call(fn)).no_db(), ds(57))
+    testing.assert_equal(expr_eval.eval(kde.call(fn)).no_bag(), ds(57))
 
   def test_positional_only(self):
     fn = functor_factories.fn(
@@ -132,7 +132,7 @@ class FunctorCallTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn)).no_db(), ds(57))
+    testing.assert_equal(expr_eval.eval(kde.call(fn)).no_bag(), ds(57))
     testing.assert_equal(expr_eval.eval(kde.call(fn, 43)), ds(43))
 
   def test_obj_as_default_value(self):
@@ -146,7 +146,7 @@ class FunctorCallTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn)).foo.no_db(), ds(57))
+    testing.assert_equal(expr_eval.eval(kde.call(fn)).foo.no_bag(), ds(57))
     testing.assert_equal(expr_eval.eval(kde.call(fn, 43)), ds(43))
 
   def test_call_eval_error(self):
@@ -159,7 +159,7 @@ class FunctorCallTest(absltest.TestCase):
         ]),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.call(fn, fns.new(foo=57))).no_db(), ds(57)
+        expr_eval.eval(kde.call(fn, fns.new(foo=57))).no_bag(), ds(57)
     )
     with self.assertRaisesRegex(ValueError, "the attribute 'foo' is missing"):
       _ = expr_eval.eval(kde.call(fn, fns.new(bar=57)))
@@ -190,7 +190,7 @@ class FunctorCallTest(absltest.TestCase):
     testing.assert_equal(res, arolla.tuple(1, 2))
 
   def test_call_returns_databag(self):
-    fn = functor_factories.fn(I.x.db)
+    fn = functor_factories.fn(I.x.get_bag())
     obj = fns.obj(x=1)
     res = expr_eval.eval(
         kde.call(
@@ -199,7 +199,7 @@ class FunctorCallTest(absltest.TestCase):
             return_type_as=data_bag.DataBag,
         )
     )
-    testing.assert_equal(res, obj.db)
+    testing.assert_equal(res, obj.get_bag())
 
   def test_call_return_type_errors(self):
     fn = functor_factories.fn(I.x)

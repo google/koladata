@@ -139,12 +139,12 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
           )
       )
 
-  def test_no_db(self):
+  def test_no_bag(self):
     with self.assertRaisesRegex(
         ValueError,
         "DataSlice with Objects must have a DataBag attached",
     ):
-      expr_eval.eval(kde.schema.get_obj_schema(obj.no_db()))
+      expr_eval.eval(kde.schema.get_obj_schema(obj.no_bag()))
 
   def test_boxing(self):
     with self.assertRaisesRegex(

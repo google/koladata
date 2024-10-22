@@ -111,13 +111,13 @@ def create_obj_shaped(state):
 def set_get_attr_entity_with_merging(state):
   ds = kd.new()
   val = kd.new(a=1)  # Non-empty DataBag.
-  ds.get_schema().abc = val.get_schema().no_db()
+  ds.get_schema().abc = val.get_schema().no_bag()
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
   except ValueError:
     pass
   while state:
-    ds.with_db(kd.bag()).set_attr('abc', val, update_schema=True)
+    ds.with_bag(kd.bag()).set_attr('abc', val, update_schema=True)
 
 
 @google_benchmark.register
@@ -683,7 +683,7 @@ def set_get_multiple_attrs_entity(state):
   except ValueError:
     pass
   while state:
-    merged_ds = ds.with_db(kd.bag())
+    merged_ds = ds.with_bag(kd.bag())
     for i in range(state.range(0)):
       arg_name = 'abc' if state.range(1) else f'abc{i}'
       merged_ds.set_attr(arg_name, val, update_schema=True)
@@ -704,13 +704,13 @@ def set_get_multiple_attrs_entity_with_merging(state):
   """Benchmark for setting and getting multiple attributes with merging."""
   ds = kd.new()
   val = kd.new(a=1)  # Non-empty DataBag.
-  ds.get_schema().abc = val.get_schema().no_db()
+  ds.get_schema().abc = val.get_schema().no_bag()
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
   except ValueError:
     pass
   while state:
-    merged_ds = ds.with_db(kd.bag())
+    merged_ds = ds.with_bag(kd.bag())
     for i in range(state.range(0)):
       arg_name = 'abc' if state.range(1) else f'abc{i}'
       merged_ds.set_attr(arg_name, val, update_schema=True)
@@ -734,7 +734,7 @@ def set_get_multiple_attrs_entity_via_extract_plus_merge(state):
   val = kd.slice(12)
   updates = []
   for i in range(state.range(0)):
-    update_ds = ds.with_db(kd.bag())
+    update_ds = ds.with_bag(kd.bag())
     arg_name = 'abc' if state.range(1) else f'abc{i}'
     update_ds.set_attr(arg_name, val, update_schema=True)
     updates.append((arg_name, update_ds))
@@ -743,9 +743,9 @@ def set_get_multiple_attrs_entity_via_extract_plus_merge(state):
   except ValueError:
     pass
   while state:
-    merged_ds = ds.with_db(kd.bag())
+    merged_ds = ds.with_bag(kd.bag())
     for arg_name, update_ds in updates:
-      merged_ds.db.merge_inplace(kd.extract(update_ds).db)
+      merged_ds.get_bag().merge_inplace(kd.extract(update_ds).get_bag())
       _ = getattr(merged_ds, arg_name)
 
 
@@ -766,7 +766,7 @@ def set_get_multiple_attrs_entity_via_fallback(state):
   val = kd.slice(12)
   updates = []
   for i in range(state.range(0)):
-    update_ds = ds.with_db(kd.bag())
+    update_ds = ds.with_bag(kd.bag())
     arg_name = 'abc' if state.range(1) else f'abc{i}'
     update_ds.set_attr(arg_name, val, update_schema=True)
     updates.append((arg_name, update_ds))
@@ -775,9 +775,9 @@ def set_get_multiple_attrs_entity_via_fallback(state):
   except ValueError:
     pass
   while state:
-    merged_ds = ds.with_db(kd.bag())
+    merged_ds = ds.with_bag(kd.bag())
     for arg_name, update_ds in updates:
-      merged_ds = update_ds.enriched(merged_ds.db)
+      merged_ds = update_ds.enriched(merged_ds.get_bag())
       _ = getattr(merged_ds, arg_name)
 
 
@@ -801,7 +801,7 @@ def set_get_multiple_attrs_10000_entity(state):
   except ValueError:
     pass
   while state:
-    merged_ds = ds.with_db(kd.bag())
+    merged_ds = ds.with_bag(kd.bag())
     for i in range(state.range(0)):
       arg_name = 'abc' if state.range(1) else f'abc{i}'
       merged_ds.set_attr(arg_name, val, update_schema=True)
@@ -823,13 +823,13 @@ def set_get_multiple_attrs_10000_entity_with_merging(state):
   ds = kd.bag().new_shaped(kd.shapes.create([10000]))
   val = kd.bag().new_shaped(kd.shapes.create([10000]))
   val.set_attr('a', 1, update_schema=True)
-  ds.get_schema().abc = val.get_schema().no_db()
+  ds.get_schema().abc = val.get_schema().no_bag()
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
   except ValueError:
     pass
   while state:
-    merged_ds = ds.with_db(kd.bag())
+    merged_ds = ds.with_bag(kd.bag())
     for i in range(state.range(0)):
       arg_name = 'abc' if state.range(1) else f'abc{i}'
       merged_ds.set_attr(arg_name, val, update_schema=True)
@@ -853,7 +853,7 @@ def set_get_multiple_attrs_10000_entity_via_extract_plus_merge(state):
   val = kd.slice([12] * 10000)
   updates = []
   for i in range(state.range(0)):
-    update_ds = ds.with_db(kd.bag())
+    update_ds = ds.with_bag(kd.bag())
     arg_name = 'abc' if state.range(1) else f'abc{i}'
     update_ds.set_attr(arg_name, val, update_schema=True)
     updates.append((arg_name, update_ds))
@@ -862,9 +862,9 @@ def set_get_multiple_attrs_10000_entity_via_extract_plus_merge(state):
   except ValueError:
     pass
   while state:
-    merged_ds = ds.with_db(kd.bag())
+    merged_ds = ds.with_bag(kd.bag())
     for arg_name, update_ds in updates:
-      merged_ds.db.merge_inplace(kd.extract(update_ds).db)
+      merged_ds.get_bag().merge_inplace(kd.extract(update_ds).get_bag())
       _ = getattr(merged_ds, arg_name)
 
 
@@ -885,7 +885,7 @@ def set_get_multiple_attrs_10000_entity_via_fallback(state):
   val = kd.slice([12] * 10000)
   updates = []
   for i in range(state.range(0)):
-    update_ds = ds.with_db(kd.bag())
+    update_ds = ds.with_bag(kd.bag())
     arg_name = 'abc' if state.range(1) else f'abc{i}'
     update_ds.set_attr(arg_name, val, update_schema=True)
     updates.append((arg_name, update_ds))
@@ -894,9 +894,9 @@ def set_get_multiple_attrs_10000_entity_via_fallback(state):
   except ValueError:
     pass
   while state:
-    merged_ds = ds.with_db(kd.bag())
+    merged_ds = ds.with_bag(kd.bag())
     for arg_name, update_ds in updates:
-      merged_ds = update_ds.enriched(merged_ds.db)
+      merged_ds = update_ds.enriched(merged_ds.get_bag())
       _ = getattr(merged_ds, arg_name)
 
 

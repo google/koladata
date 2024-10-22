@@ -29,7 +29,7 @@ class FromProtoTest(absltest.TestCase):
 
   def test_zero_messages(self):
     x = fns.from_proto([])
-    testing.assert_equal(x.no_db(), ds([]))
+    testing.assert_equal(x.no_bag(), ds([]))
 
   def test_invalid_input_none(self):
     with self.assertRaisesWithLiteralMatch(
@@ -90,7 +90,7 @@ class FromProtoTest(absltest.TestCase):
   def test_single_empty_message_itemid(self):
     x_itemid = fns.uu(seed='').as_itemid()
     x = fns.from_proto(test_pb2.MessageA(), itemid=x_itemid)
-    testing.assert_equal(x.as_itemid().no_db(), x_itemid.no_db())
+    testing.assert_equal(x.as_itemid().no_bag(), x_itemid.no_bag())
 
   def test_single_message(self):
     m = test_pb2.MessageA(

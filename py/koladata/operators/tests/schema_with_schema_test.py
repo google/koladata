@@ -95,7 +95,7 @@ class SchemaWithSchemaTest(parameterized.TestCase):
   )
   def test_entities_and_objects(self, x, schema):
     res = expr_eval.eval(kde.schema.with_schema(x, schema))
-    testing.assert_equal(res.get_schema().no_db(), schema.no_db())
+    testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
 
   def test_errors(self):
     with self.assertRaisesRegex(
@@ -109,7 +109,7 @@ class SchemaWithSchemaTest(parameterized.TestCase):
         ValueError,
         'DataSlice with an Entity schema must hold Entities or Objects',
     ):
-      expr_eval.eval(kde.schema.with_schema(ds(1).with_db(s1.db), s1))
+      expr_eval.eval(kde.schema.with_schema(ds(1).with_bag(s1.get_bag()), s1))
 
     with self.assertRaisesRegex(
         ValueError,

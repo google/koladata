@@ -35,9 +35,11 @@ class ListTest(parameterized.TestCase):
   def test_empty(self):
     l = fns.list()
     self.assertIsInstance(l, list_item.ListItem)
-    testing.assert_equal(l[:], ds([]).with_db(l.db))
+    testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
     l.append(1)
-    testing.assert_equal(l[:], ds([1], schema_constants.OBJECT).with_db(l.db))
+    testing.assert_equal(
+        l[:], ds([1], schema_constants.OBJECT).with_bag(l.get_bag())
+    )
 
   def test_list_with_uuid(self):
     db = fns.bag()
@@ -49,34 +51,34 @@ class ListTest(parameterized.TestCase):
   def test_item_with_values(self):
     l = fns.list([1, 2, 3])
     self.assertIsInstance(l, list_item.ListItem)
-    testing.assert_equal(l[:], ds([1, 2, 3]).with_db(l.db))
+    testing.assert_equal(l[:], ds([1, 2, 3]).with_bag(l.get_bag()))
 
   def test_item_with_nested_values(self):
     l = fns.list([[1, 2], [3]])
     self.assertIsInstance(l, list_item.ListItem)
     nested_l = l[:]
     self.assertIsInstance(nested_l, data_slice.DataSlice)
-    testing.assert_equal(nested_l[:], ds([[1, 2], [3]]).with_db(l.db))
+    testing.assert_equal(nested_l[:], ds([[1, 2], [3]]).with_bag(l.get_bag()))
 
     nested_l_0 = l[0]
     nested_l_1 = l[1]
     self.assertIsInstance(nested_l_0, list_item.ListItem)
     self.assertIsInstance(nested_l_1, list_item.ListItem)
-    testing.assert_equal(nested_l_0[:], ds([1, 2]).with_db(l.db))
-    testing.assert_equal(nested_l_1[:], ds([3]).with_db(l.db))
+    testing.assert_equal(nested_l_0[:], ds([1, 2]).with_bag(l.get_bag()))
+    testing.assert_equal(nested_l_1[:], ds([3]).with_bag(l.get_bag()))
 
   def test_slice_with_data_slice_input(self):
     l = fns.list(data_slice.DataSlice.from_vals([[1, 2], [3]]))
     self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[1, 2], [3]]).with_db(l.db))
+    testing.assert_equal(l[:], ds([[1, 2], [3]]).with_bag(l.get_bag()))
 
   def test_itemid(self):
     itemid = kde.allocation.new_listid_shaped_as._eval(ds([1, 1]))  # pylint: disable=protected-access
     x = fns.list(ds([['a', 'b'], ['c']]), itemid=itemid)
-    testing.assert_equal(x[:].no_db(), ds([['a', 'b'], ['c']]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid)
+    testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
+    testing.assert_equal(x.no_bag().as_itemid(), itemid)
 
-  def test_itemid_from_different_db(self):
+  def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
     itemid = fns.list([triple])
 
@@ -86,16 +88,16 @@ class ListTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'attribute \'non_existent\' is missing'
     ):
-      _ = triple.with_db(x.db).non_existent
+      _ = triple.with_bag(x.get_bag()).non_existent
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = fns.bag()
     l = fns.list([1, 2, 3])
     with self.assertRaises(AssertionError):
-      testing.assert_equal(l.db, db)
+      testing.assert_equal(l.get_bag(), db)
 
     l = fns.list([1, 2, 3], db=db)
-    testing.assert_equal(l.db, db)
+    testing.assert_equal(l.get_bag(), db)
 
   def test_repr(self):
     self.assertRegex(
@@ -110,14 +112,14 @@ class ListTest(parameterized.TestCase):
     nested_lst.append(lst)
     lst2 = fns.list(items=nested_lst[:])
     testing.assert_equal(
-        lst2[0][0], ds(7, schema_constants.OBJECT).with_db(lst2.db)
+        lst2[0][0], ds(7, schema_constants.OBJECT).with_bag(lst2.get_bag())
     )
     testing.assert_equal(
-        lst2[1][0], ds(7, schema_constants.OBJECT).with_db(lst2.db)
+        lst2[1][0], ds(7, schema_constants.OBJECT).with_bag(lst2.get_bag())
     )
 
     l = fns.list([fns.list([1, 2]), fns.list([3, 4])])
-    testing.assert_equal(l[:][:], ds([[1, 2], [3, 4]]).with_db(l.db))
+    testing.assert_equal(l[:][:], ds([[1, 2], [3, 4]]).with_bag(l.get_bag()))
 
   @parameterized.parameters(
       # No schema, no list items provided.
@@ -139,9 +141,7 @@ class ListTest(parameterized.TestCase):
           [[1, 2], [3]],
           None,
           None,
-          fns.list(item_schema=schema_constants.INT32)
-          .get_schema()
-          .no_db(),
+          fns.list(item_schema=schema_constants.INT32).get_schema().no_bag(),
       ),
       # Both schema and list items provided.
       ([1, 2, 3], schema_constants.INT64, None, schema_constants.INT64),
@@ -164,7 +164,8 @@ class ListTest(parameterized.TestCase):
     testing.assert_equal(
         fns.list(items=items, item_schema=item_schema, schema=schema)
         .get_schema()
-        .get_attr('__items__').no_db(),
+        .get_attr('__items__')
+        .no_bag(),
         expected_item_schema,
     )
 

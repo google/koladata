@@ -32,7 +32,7 @@ class ListSchemaTest(absltest.TestCase):
     db = bag()
     schema = fns.list_schema(schema_constants.INT32, db)
     testing.assert_equal(
-        schema.get_attr('__items__'), schema_constants.INT32.with_db(db)
+        schema.get_attr('__items__'), schema_constants.INT32.with_bag(db)
     )
 
   def test_list_schema_equivalent_to_schema_of_list(self):
@@ -45,10 +45,11 @@ class ListSchemaTest(absltest.TestCase):
   def test_no_databag(self):
     schema = fns.list_schema(schema_constants.INT32)
     testing.assert_equal(
-        schema.get_attr('__items__'), schema_constants.INT32.with_db(schema.db)
+        schema.get_attr('__items__'),
+        schema_constants.INT32.with_bag(schema.get_bag()),
     )
 
-  def test_nested_schema_with_db_adoption(self):
+  def test_nested_schema_with_bag_adoption(self):
     db = bag()
     db2 = bag()
     schema = fns.list_schema(
@@ -58,7 +59,7 @@ class ListSchemaTest(absltest.TestCase):
         db,
     )
     testing.assert_equal(
-        schema.get_attr('__items__').a, schema_constants.INT32.with_db(db)
+        schema.get_attr('__items__').a, schema_constants.INT32.with_bag(db)
     )
 
   def test_non_data_slice_arg(self):

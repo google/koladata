@@ -40,14 +40,16 @@ class ObjShapedTest(absltest.TestCase):
         b=ds('abc', schema_constants.TEXT),
     )
     self.assertIsInstance(x, data_item.DataItem)
-    testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
+    testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_allclose(
-        x.a, ds(3.14, schema_constants.FLOAT64).with_db(x.db)
+        x.a, ds(3.14, schema_constants.FLOAT64).with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.a.get_schema(), schema_constants.FLOAT64.with_db(x.db)
+        x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
     )
-    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_db(x.db))
+    testing.assert_equal(
+        x.b.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+    )
 
   def test_slice(self):
     x = fns.obj_shaped(
@@ -56,49 +58,49 @@ class ObjShapedTest(absltest.TestCase):
         b=fns.obj(bb=ds([['a', 'b'], ['c']])),
         c=ds(b'xyz'),
     )
-    testing.assert_equal(x.a, ds([[1, 2], [3]]).with_db(x.db))
-    testing.assert_equal(x.b.bb, ds([['a', 'b'], ['c']]).with_db(x.db))
-    testing.assert_equal(x.c, ds([[b'xyz', b'xyz'], [b'xyz']]).with_db(x.db))
+    testing.assert_equal(x.a, ds([[1, 2], [3]]).with_bag(x.get_bag()))
+    testing.assert_equal(x.b.bb, ds([['a', 'b'], ['c']]).with_bag(x.get_bag()))
     testing.assert_equal(
-        x.a.get_schema(), schema_constants.INT32.with_db(x.db)
+        x.c, ds([[b'xyz', b'xyz'], [b'xyz']]).with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.b.no_db().get_schema(), schema_constants.OBJECT
+        x.a.get_schema(), schema_constants.INT32.with_bag(x.get_bag())
+    )
+    testing.assert_equal(x.b.no_bag().get_schema(), schema_constants.OBJECT)
+    testing.assert_equal(
+        x.b.bb.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.b.bb.get_schema(), schema_constants.TEXT.with_db(x.db)
+        x.c.get_schema(), schema_constants.BYTES.with_bag(x.get_bag())
     )
-    testing.assert_equal(x.c.get_schema(), schema_constants.BYTES.with_db(x.db))
 
   def test_broadcast_attrs(self):
     x = fns.obj_shaped(jagged_shape.create_shape([2]), a=42, b='xyz')
-    testing.assert_equal(x.a, ds([42, 42]).with_db(x.db))
-    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_db(x.db))
+    testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
+    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
 
   def test_broadcast_error(self):
     with self.assertRaisesRegex(exceptions.KodaError, 'cannot be expanded'):
       fns.obj_shaped(jagged_shape.create_shape([2]), a=ds([42]))
 
-  def test_adopt_db(self):
+  def test_adopt_bag(self):
     x = fns.obj_shaped(jagged_shape.create_shape())
     x.a = 'abc'
     y = fns.obj_shaped(x.get_shape(), x=x)
-    # y.db is merged with x.db, so access to `a` is possible.
-    testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
-    testing.assert_equal(x.get_schema(), y.x.get_schema().with_db(x.db))
-    testing.assert_equal(
-        y.x.a.no_db().get_schema(), schema_constants.TEXT
-    )
+    # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
+    testing.assert_equal(y.x.a, ds('abc').with_bag(y.get_bag()))
+    testing.assert_equal(x.get_schema(), y.x.get_schema().with_bag(x.get_bag()))
+    testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.TEXT)
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.obj_shaped(itemid.get_shape(), a=42, itemid=itemid)
-    testing.assert_equal(x.a.no_db(), ds([[42, 42], [42]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid)
+    testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
+    testing.assert_equal(x.no_bag().as_itemid(), itemid)
 
-  def test_itemid_from_different_db(self):
+  def test_itemid_from_different_bag(self):
     itemid = fns.obj(non_existent=ds([[42, 42], [42]])).as_itemid()
-    assert itemid.db is not None
+    assert itemid.get_bag() is not None
     # Successful.
     x = fns.obj_shaped(itemid.get_shape(), a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.
@@ -107,10 +109,10 @@ class ObjShapedTest(absltest.TestCase):
     ):
       _ = x.non_existent
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = fns.bag()
     x = fns.obj_shaped(jagged_shape.create_shape(), a=1, b='a', db=db)
-    testing.assert_equal(db, x.db)
+    testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
     with self.assertRaisesRegex(exceptions.KodaError, 'please use new'):
@@ -125,8 +127,8 @@ class ObjShapedTest(absltest.TestCase):
     self.assertIsInstance(x, data_item.DataItem)
     self.assertIsInstance(x.lst, list_item.ListItem)
     self.assertIsInstance(x.dct, dict_item.DictItem)
-    testing.assert_equal(x.lst[:], ds([1, 2, 3]).with_db(x.db))
-    testing.assert_dicts_keys_equal(x.dct, ds(['a']).with_db(x.db))
+    testing.assert_equal(x.lst[:], ds([1, 2, 3]).with_bag(x.get_bag()))
+    testing.assert_dicts_keys_equal(x.dct, ds(['a']).with_bag(x.get_bag()))
 
   def test_item_assignment_rhs_with_ds_args(self):
     x = fns.obj_shaped(
@@ -136,8 +138,8 @@ class ObjShapedTest(absltest.TestCase):
     self.assertIsInstance(x, data_item.DataItem)
     self.assertIsInstance(x.lst, list_item.ListItem)
     self.assertIsInstance(x.dct, dict_item.DictItem)
-    testing.assert_equal(x.lst[:], ds([1, 2, 3]).with_db(x.db))
-    testing.assert_dicts_keys_equal(x.dct, ds(['a']).with_db(x.db))
+    testing.assert_equal(x.lst[:], ds([1, 2, 3]).with_bag(x.get_bag()))
+    testing.assert_dicts_keys_equal(x.dct, ds(['a']).with_bag(x.get_bag()))
 
   def test_slice_assignment_rhs(self):
     with self.assertRaisesRegex(ValueError, 'assigning a Python list/tuple'):

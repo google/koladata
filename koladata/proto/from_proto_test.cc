@@ -58,7 +58,7 @@ TEST(FromProtoTest, ZeroMessages) {
     EXPECT_EQ(result.GetShape().rank(), 1);
     EXPECT_EQ(result.size(), 0);
     EXPECT_EQ(result.GetSchemaImpl(), schema::kObject);
-    EXPECT_EQ(result.GetDb(), db);
+    EXPECT_EQ(result.GetBag(), db);
   }
   {
     auto db = DataBag::Empty();
@@ -68,7 +68,7 @@ TEST(FromProtoTest, ZeroMessages) {
     EXPECT_EQ(result.GetShape().rank(), 1);
     EXPECT_EQ(result.size(), 0);
     EXPECT_EQ(result.GetSchemaImpl(), schema::kObject);
-    EXPECT_EQ(result.GetDb(), db);
+    EXPECT_EQ(result.GetBag(), db);
   }
   {
     auto db = DataBag::Empty();
@@ -79,8 +79,8 @@ TEST(FromProtoTest, ZeroMessages) {
                          FromProto(db, {}, {}, std::nullopt, schema));
     EXPECT_EQ(result.GetShape().rank(), 1);
     EXPECT_EQ(result.size(), 0);
-    EXPECT_THAT(result.GetSchema(), IsEquivalentTo(schema.WithDb(db)));
-    EXPECT_EQ(result.GetDb(), db);
+    EXPECT_THAT(result.GetSchema(), IsEquivalentTo(schema.WithBag(db)));
+    EXPECT_EQ(result.GetBag(), db);
   }
   {
     auto schema = test::EmptyDataSlice(2, schema::kObject);
@@ -897,8 +897,9 @@ TEST(FromProtoTest, ItemId) {
   ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message}, {}, itemids));
 
   // Root itemids match the input itemids.
-  EXPECT_THAT(result.WithSchema(test::Schema(schema::kItemId))->WithDb(nullptr),
-              IsEquivalentTo(itemids));
+  EXPECT_THAT(
+      result.WithSchema(test::Schema(schema::kItemId))->WithBag(nullptr),
+      IsEquivalentTo(itemids));
 
   // Spot-check values to ensure that itemids haven't collided.
   EXPECT_THAT(result.GetAttr("message_field")->GetAttr("int32_field"),
@@ -934,40 +935,42 @@ TEST(FromProtoTest, ItemId) {
   // FromProto is deterministic, including sub-messages / lists / dicts.
   auto db2 = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto result2, FromProto(db2, {&message}, {}, itemids));
-  EXPECT_THAT(result.WithDb(nullptr), IsEquivalentTo(result2.WithDb(nullptr)));
+  EXPECT_THAT(result.WithBag(nullptr),
+              IsEquivalentTo(result2.WithBag(nullptr)));
   EXPECT_THAT(
-      result.GetAttr("message_field")->WithDb(nullptr),
-      IsEquivalentTo(result2.GetAttr("message_field")->WithDb(nullptr)));
-  EXPECT_THAT(result.GetAttr("repeated_message_field")->WithDb(nullptr),
+      result.GetAttr("message_field")->WithBag(nullptr),
+      IsEquivalentTo(result2.GetAttr("message_field")->WithBag(nullptr)));
+  EXPECT_THAT(result.GetAttr("repeated_message_field")->WithBag(nullptr),
               IsEquivalentTo(
-                  result2.GetAttr("repeated_message_field")->WithDb(nullptr)));
+                  result2.GetAttr("repeated_message_field")->WithBag(nullptr)));
   EXPECT_THAT(result.GetAttr("repeated_message_field")
                   ->ExplodeList(0, std::nullopt)
-                  ->WithDb(nullptr),
+                  ->WithBag(nullptr),
               IsEquivalentTo(result2.GetAttr("repeated_message_field")
                                  ->ExplodeList(0, std::nullopt)
-                                 ->WithDb(nullptr)));
+                                 ->WithBag(nullptr)));
   EXPECT_THAT(result.GetAttr("repeated_message_field")
                   ->ExplodeList(0, std::nullopt)
                   ->GetAttr("repeated_message_field")
-                  ->WithDb(nullptr),
+                  ->WithBag(nullptr),
               IsEquivalentTo(result2.GetAttr("repeated_message_field")
                                  ->ExplodeList(0, std::nullopt)
                                  ->GetAttr("repeated_message_field")
-                                 ->WithDb(nullptr)));
+                                 ->WithBag(nullptr)));
   EXPECT_THAT(result.GetAttr("repeated_message_field")
                   ->ExplodeList(0, std::nullopt)
                   ->GetAttr("repeated_message_field")
                   ->ExplodeList(0, std::nullopt)
-                  ->WithDb(nullptr),
+                  ->WithBag(nullptr),
               IsEquivalentTo(result2.GetAttr("repeated_message_field")
                                  ->ExplodeList(0, std::nullopt)
                                  ->GetAttr("repeated_message_field")
                                  ->ExplodeList(0, std::nullopt)
-                                 ->WithDb(nullptr)));
-  EXPECT_THAT(result.GetAttr("map_int32_message_field")->WithDb(nullptr),
-              IsEquivalentTo(
-                  result2.GetAttr("map_int32_message_field")->WithDb(nullptr)));
+                                 ->WithBag(nullptr)));
+  EXPECT_THAT(
+      result.GetAttr("map_int32_message_field")->WithBag(nullptr),
+      IsEquivalentTo(
+          result2.GetAttr("map_int32_message_field")->WithBag(nullptr)));
 }
 
 TEST(FromProtoTest, Extension) {

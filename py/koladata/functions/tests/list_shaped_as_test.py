@@ -32,32 +32,33 @@ class ListShapedAsTest(parameterized.TestCase):
   def test_item(self):
     l = fns.list_shaped_as(ds(1))
     self.assertIsInstance(l, list_item.ListItem)
-    testing.assert_equal(l[:], ds([]).with_db(l.db))
+    testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
 
   def test_item_with_items(self):
     l = fns.list_shaped_as(ds(1), [1, 2])
     self.assertIsInstance(l, list_item.ListItem)
-    testing.assert_equal(l[:], ds([1, 2]).with_db(l.db))
+    testing.assert_equal(l[:], ds([1, 2]).with_bag(l.get_bag()))
 
   def test_slice(self):
     l = fns.list_shaped_as(ds([['a', 'b'], ['c']]))
     self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_db(l.db))
+    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
     l.append(1)
     testing.assert_equal(
-        l[:], ds([[[1], [1]], [[1]]], schema_constants.OBJECT).with_db(l.db)
+        l[:],
+        ds([[[1], [1]], [[1]]], schema_constants.OBJECT).with_bag(l.get_bag()),
     )
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = fns.bag()
     items = ds([[[1], [2]], [[3]]])
     l = fns.list_shaped_as(items, items, db=db)
-    testing.assert_equal(l.db, db)
+    testing.assert_equal(l.get_bag(), db)
 
   def test_itemid(self):
     itemid = kde.allocation.new_listid_shaped_as._eval(ds([1, 1]))  # pylint: disable=protected-access
     x = fns.list_shaped_as(itemid, ds([['a', 'b'], ['c']]), itemid=itemid)
-    testing.assert_equal(x[:].no_db(), ds([['a', 'b'], ['c']]))
+    testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
 
   def test_item_schema_arg(self):
     testing.assert_equal(
@@ -68,7 +69,7 @@ class ListShapedAsTest(parameterized.TestCase):
         )
         .get_schema()
         .get_attr('__items__')
-        .with_db(None),
+        .with_bag(None),
         schema_constants.FLOAT32,
     )
 
@@ -81,7 +82,7 @@ class ListShapedAsTest(parameterized.TestCase):
         )
         .get_schema()
         .get_attr('__items__')
-        .with_db(None),
+        .with_bag(None),
         schema_constants.FLOAT32,
     )
 

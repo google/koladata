@@ -34,8 +34,8 @@ class NewSchemaTest(absltest.TestCase):
         db, a=schema_constants.INT32, b=schema_constants.TEXT
     )
 
-    testing.assert_equal(schema.a, schema_constants.INT32.with_db(db))
-    testing.assert_equal(schema.b, schema_constants.TEXT.with_db(db))
+    testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
+    testing.assert_equal(schema.b, schema_constants.TEXT.with_bag(db))
 
   def test_nested_schema_with_adoption(self):
     db = bag()
@@ -45,17 +45,17 @@ class NewSchemaTest(absltest.TestCase):
         a=schema_constants.INT32,
         b=fns.new_schema(db2, a=schema_constants.INT32),
     )
-    testing.assert_equal(schema.a, schema_constants.INT32.with_db(db))
-    testing.assert_equal(schema.b.a, schema_constants.INT32.with_db(db))
+    testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
+    testing.assert_equal(schema.b.a, schema_constants.INT32.with_bag(db))
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = bag()
     schema = fns.new_schema(
         a=schema_constants.INT32, b=schema_constants.TEXT, db=db
     )
 
-    testing.assert_equal(schema.a, schema_constants.INT32.with_db(db))
-    testing.assert_equal(schema.b, schema_constants.TEXT.with_db(db))
+    testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
+    testing.assert_equal(schema.b, schema_constants.TEXT.with_bag(db))
 
   def test_list_error(self):
     db = bag()

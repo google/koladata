@@ -64,7 +64,7 @@ class ToPyTest(absltest.TestCase):
     k = fns.obj(a=1)
     root.dict_value[k] = 1
     py_obj = fns.to_py(root)
-    self.assertEqual(py_obj.dict_value[k.no_db()], 1)
+    self.assertEqual(py_obj.dict_value[k.no_bag()], 1)
 
   def test_list_obj(self):
     self.assertEqual(fns.to_py(fns.obj([1, 2])), [1, 2])
@@ -74,9 +74,9 @@ class ToPyTest(absltest.TestCase):
 
   def test_fallbacks(self):
     x = fns.new(x=1)
-    fallback_db = fns.bag()
-    fallback_db[x].set_attr('y', 'abc', update_schema=True)
-    x = x.enriched(fallback_db)
+    fallback_bag = fns.bag()
+    fallback_bag[x].set_attr('y', 'abc', update_schema=True)
+    x = x.enriched(fallback_bag)
     self.assertEqual(fns.to_py(x, obj_as_dict=True), {'x': 1, 'y': 'abc'})
 
   def test_self_reference(self):
@@ -94,18 +94,18 @@ class ToPyTest(absltest.TestCase):
 
     self.assertEqual(py_obj, {'foo': [1, 2], 'bar': [1, 2]})
 
-  def test_slice_without_db(self):
+  def test_slice_without_bag(self):
     s = ds([[1, 2], [3, 4, 5]])
     py_obj = fns.to_py(s)
     expected = [[1, 2], [3, 4, 5]]
     self.assertEqual(expected, py_obj)
 
-  def test_does_not_pollute_db(self):
+  def test_does_not_pollute_bag(self):
     root = fns.obj()
     root.foo = fns.list(fns.list(ds([[1, 2], [3, 4, 5]])))
-    old_data_repr = repr(root.db)
+    old_data_repr = repr(root.get_bag())
     fns.to_py(root.foo[:][:])
-    self.assertEqual(old_data_repr, repr(root.db))
+    self.assertEqual(old_data_repr, repr(root.get_bag()))
 
   def test_max_depth(self):
     x = fns.obj(

@@ -42,14 +42,16 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
 
     res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, no_fn, val > 2, val))
-    testing.assert_equal(res.no_db(), ds([[0, 1, -1, 5], [-1, -1], [8, 9, 10]]))
+    testing.assert_equal(
+        res.no_bag(), ds([[0, 1, -1, 5], [-1, -1], [8, 9, 10]])
+    )
 
     res = expr_eval.eval(
         kde.py.map_py_on_cond(
             yes_fn, no_fn, kde.logical.has_not(val) | (val > 2), val
         )
     )
-    testing.assert_equal(res.no_db(), ds([[0, 1, 0, 5], [0, 0], [8, 9, 10]]))
+    testing.assert_equal(res.no_bag(), ds([[0, 1, 0, 5], [0, 0], [8, 9, 10]]))
 
   def test_smaller_dimension_cond(self):
     yes_fn = lambda x: x + 1 if x is not None else 0
@@ -58,7 +60,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     cond = ds([arolla.present(), arolla.missing(), arolla.present()])
 
     res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, no_fn, cond, val))
-    testing.assert_equal(res.no_db(), ds([[2, 3, 0, 5], [-1, -1], [8, 9, 10]]))
+    testing.assert_equal(res.no_bag(), ds([[2, 3, 0, 5], [-1, -1], [8, 9, 10]]))
 
   def test_no_false_fn(self):
     yes_fn = lambda x: x + 1 if x is not None else 0
@@ -67,7 +69,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
 
     res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, None, cond, x=val))
     testing.assert_equal(
-        res.no_db(), ds([[2, 3, 0, 5], [None, None], [8, 9, 10]])
+        res.no_bag(), ds([[2, 3, 0, 5], [None, None], [8, 9, 10]])
     )
 
   def test_error_non_mask_cond(self):

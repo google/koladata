@@ -59,7 +59,7 @@ class CoreNewShapedAsTest(absltest.TestCase):
   def test_item_no_attrs(self):
     shape_from = ds(0)
     x = kde.core.new_shaped_as(shape_from).eval()
-    self.assertIsNotNone(x.db)
+    self.assertIsNotNone(x.get_bag())
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
     self.assertFalse(x.is_mutable())
 
@@ -69,11 +69,11 @@ class CoreNewShapedAsTest(absltest.TestCase):
         shape_from, x=2, a=1, b='p', c=fns.list([5, 6])
     ).eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
-    testing.assert_equal(x.x.no_db(), ds([[2, 2, 2], [2, 2, 2]]))
-    testing.assert_equal(x.a.no_db(), ds([[1, 1, 1], [1, 1, 1]]))
-    testing.assert_equal(x.b.no_db(), ds([['p', 'p', 'p'], ['p', 'p', 'p']]))
+    testing.assert_equal(x.x.no_bag(), ds([[2, 2, 2], [2, 2, 2]]))
+    testing.assert_equal(x.a.no_bag(), ds([[1, 1, 1], [1, 1, 1]]))
+    testing.assert_equal(x.b.no_bag(), ds([['p', 'p', 'p'], ['p', 'p', 'p']]))
     testing.assert_equal(
-        x.c[:].no_db(),
+        x.c[:].no_bag(),
         ds([[[5, 6], [5, 6], [5, 6]], [[5, 6], [5, 6], [5, 6]]]),
     )
     self.assertFalse(x.is_mutable())
@@ -83,15 +83,15 @@ class CoreNewShapedAsTest(absltest.TestCase):
     schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
     x = kde.core.new_shaped_as(shape_from, schema=schema).eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
-    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
-    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
 
   def test_itemid_arg(self):
     shape_from = ds([[6, 7], [8]])
     itemid = kde.allocation.new_itemid_shaped_as._eval(shape_from)
     x = kde.core.new_shaped_as(itemid, a=42, itemid=itemid).eval()
-    testing.assert_equal(x.a.no_db(), ds([[42, 42], [42]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid)
+    testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
+    testing.assert_equal(x.no_bag().as_itemid(), itemid)
 
   def test_update_schema_arg(self):
     shape_from = ds([6, 7])
@@ -104,10 +104,10 @@ class CoreNewShapedAsTest(absltest.TestCase):
         update_schema=True,
     ).eval()
     self.assertEqual(dir(x), ['a', 'b'])
-    testing.assert_equal(x.a, ds([42, 42]).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
-    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_db(x.db))
-    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
+    testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
 
   def test_update_schema_arg_error(self):
     shape_from = ds([6, 7])

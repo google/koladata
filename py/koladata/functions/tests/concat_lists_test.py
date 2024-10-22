@@ -24,7 +24,7 @@ from koladata.types import data_slice
 
 kde = kde_operators.kde
 db = fns.bag()
-ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_db(db)
+ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
 
 OBJ1 = db.obj()
 OBJ2 = db.obj()
@@ -83,19 +83,21 @@ class ImplodeTest(parameterized.TestCase):
     # Test behavior with explicit existing DataBag.
     result = db.concat_lists(*lists)
     testing.assert_nested_lists_equal(result, expected)
-    self.assertEqual(result.db.fingerprint, db.fingerprint)
+    self.assertEqual(result.get_bag().fingerprint, db.fingerprint)
 
     # Test behavior with implicit new DataBag.
     result = fns.concat_lists(*lists)
     testing.assert_nested_lists_equal(result, expected)
     if lists:
-      self.assertNotEqual(lists[0].db.fingerprint, result.db.fingerprint)
+      self.assertNotEqual(
+          lists[0].get_bag().fingerprint, result.get_bag().fingerprint
+      )
 
     # Check behavior with explicit DataBag.
     db2 = fns.bag()
     result = fns.concat_lists(*lists, db=db2)
     testing.assert_nested_lists_equal(result, expected)
-    self.assertEqual(result.db.fingerprint, db2.fingerprint)
+    self.assertEqual(result.get_bag().fingerprint, db2.fingerprint)
 
 
 if __name__ == '__main__':

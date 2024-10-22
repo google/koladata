@@ -156,24 +156,24 @@ absl::Status CopyEntitySchema(const DataBagPtr& schema_db,
 absl::Status CopyListSchema(const DataSlice& list_schema,
                             const DataBagPtr& db) {
   RETURN_IF_ERROR(list_schema.VerifyIsListSchema());
-  if (list_schema.GetDb() == db) {
+  if (list_schema.GetBag() == db) {
     return absl::OkStatus();
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
-  return CopyEntitySchema(list_schema.GetDb(), list_schema.item(),
+  return CopyEntitySchema(list_schema.GetBag(), list_schema.item(),
                           db_mutable_impl);
 }
 
 absl::Status CopyDictSchema(const DataSlice& dict_schema,
                             const DataBagPtr& db) {
   RETURN_IF_ERROR(dict_schema.VerifyIsDictSchema());
-  if (dict_schema.GetDb() == db) {
+  if (dict_schema.GetBag() == db) {
     return absl::OkStatus();
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
-  return CopyEntitySchema(dict_schema.GetDb(), dict_schema.item(),
+  return CopyEntitySchema(dict_schema.GetBag(), dict_schema.item(),
                           db_mutable_impl);
 }
 
@@ -278,7 +278,7 @@ absl::Status InitItemIdsForLists(const DataSlice& itemid,
     return absl::InvalidArgumentError(
         "itemid argument to list creation, requires List ItemIds");
   }
-  return itemid.WithDb(db).ClearDictOrList();
+  return itemid.WithBag(db).ClearDictOrList();
 }
 
 absl::Status InitItemIdsForDicts(const DataSlice& itemid,
@@ -287,7 +287,7 @@ absl::Status InitItemIdsForDicts(const DataSlice& itemid,
     return absl::InvalidArgumentError(
         "itemid argument to dict creation, requires Dict ItemIds");
   }
-  return itemid.WithDb(db).ClearDictOrList();
+  return itemid.WithBag(db).ClearDictOrList();
 }
 
 // Verifies that the given itemid is valid for creating Koda Items.
@@ -627,8 +627,8 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
                              update_schema, db_mutable_impl),
           // Adds the db from schema to assemble readable error message.
           AssembleErrorMessage(_, {.db = DataBag::ImmutableEmptyWithFallbacks(
-                                       {schema ? schema->GetDb() : nullptr,
-                                        values[i].GetDb()})}));
+                                       {schema ? schema->GetBag() : nullptr,
+                                        values[i].GetBag()})}));
     }
     ASSIGN_OR_RETURN(aligned_values, shape::Align(std::move(casted_values)));
   } else {
@@ -772,7 +772,7 @@ absl::StatusOr<DataSlice> ObjectCreator::Convert(const DataBagPtr& db,
       // TODO: NONE schema is a primitive schema.
       value.GetSchemaImpl() != schema::kNone &&
       value.GetSchemaImpl() != schema::kObject) {
-    return value.WithDb(db).EmbedSchema();
+    return value.WithBag(db).EmbedSchema();
   }
   return value;
 }
@@ -1081,7 +1081,7 @@ absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
 
   if (ndim == 0) {
-    return values.WithDb(db);
+    return values.WithBag(db);
   }
   ASSIGN_OR_RETURN(DataSlice result, CreateListsFromLastDimension(db, values));
   for (int i = 1; i < ndim; ++i) {
@@ -1221,7 +1221,7 @@ absl::StatusOr<DataSlice> CreateNoFollowSchema(const DataSlice& target_schema) {
                    schema::NoFollowSchemaItem(target_schema.item()));
   return DataSlice::Create(std::move(no_follow_schema_item),
                            internal::DataItem(schema::kSchema),
-                           target_schema.GetDb());
+                           target_schema.GetBag());
 }
 
 absl::StatusOr<DataSlice> NoFollow(const DataSlice& target) {

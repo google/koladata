@@ -48,14 +48,14 @@ class CoreStubTest(parameterized.TestCase):
   def test_primitive(self):
     x = ds([1, 2, 3])
     x_stub = kde.core.stub(x).eval()
-    testing.assert_equal(x_stub.no_db(), x.no_db())
+    testing.assert_equal(x_stub.no_bag(), x.no_bag())
 
   def test_entity(self):
     x = bag().new(x=ds([1, 2, 3]))
     x_stub = kde.core.stub(x).eval()
     testing.assert_equal(
-        x_stub.no_db(),
-        x.no_db(),
+        x_stub.no_bag(),
+        x.no_bag(),
     )
     self.assertSameElements(dir(x_stub.get_schema()), [])
 
@@ -63,12 +63,11 @@ class CoreStubTest(parameterized.TestCase):
     x = bag().obj(x=ds([1, 2, 3]))
     x_stub = kde.core.stub(x).eval()
     testing.assert_equal(
-        x_stub.no_db(),
-        x.no_db(),
+        x_stub.no_bag(),
+        x.no_bag(),
     )
     testing.assert_equal(
-        x_stub.get_obj_schema().no_db(),
-        x.get_obj_schema().no_db()
+        x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
     self.assertSameElements(dir(x_stub.get_schema()), [])
 
@@ -76,8 +75,8 @@ class CoreStubTest(parameterized.TestCase):
     x = bag().list([1, 2, 3])
     x_stub = kde.core.stub(x).eval()
     testing.assert_equal(
-        x_stub.no_db(),
-        x.no_db(),
+        x_stub.no_bag(),
+        x.no_bag(),
     )
     self.assertSameElements(dir(x_stub.get_schema()), ['__items__'])
 
@@ -86,12 +85,11 @@ class CoreStubTest(parameterized.TestCase):
     x = ds([db.list([1, 2, 3]), db.list([4, 5])]).embed_schema()
     x_stub = kde.core.stub(x).eval()
     testing.assert_equal(
-        x_stub.no_db(),
-        x.no_db(),
+        x_stub.no_bag(),
+        x.no_bag(),
     )
     testing.assert_equal(
-        x_stub.get_obj_schema().no_db(),
-        x.get_obj_schema().no_db()
+        x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
     self.assertSameElements(dir(x_stub.get_obj_schema()), ['__items__'])
 
@@ -100,20 +98,14 @@ class CoreStubTest(parameterized.TestCase):
     x = db.list([[1, 2], [3]])
     x_stub = kde.core.stub(x).eval()
     testing.assert_equal(
-        x_stub.no_db(),
-        x.no_db(),
+        x_stub.no_bag(),
+        x.no_bag(),
     )
-    testing.assert_equal(
-        x_stub[:].no_db(),
-        x[:].no_db()
-    )
-    testing.assert_equal(
-        x_stub[:][:].no_db(),
-        x[:][:].no_db()
-    )
+    testing.assert_equal(x_stub[:].no_bag(), x[:].no_bag())
+    testing.assert_equal(x_stub[:][:].no_bag(), x[:][:].no_bag())
     self.assertSameElements(dir(x_stub.get_schema()), ['__items__'])
     self.assertSameElements(
-        dir(x[:].get_schema().with_db(x_stub.db)), ['__items__']
+        dir(x[:].get_schema().with_bag(x_stub.get_bag())), ['__items__']
     )
 
   def test_object_list_nested(self):
@@ -124,20 +116,15 @@ class CoreStubTest(parameterized.TestCase):
     ).embed_schema()
     x_stub = kde.core.stub(x).eval()
     testing.assert_equal(
-        x_stub.no_db(),
-        x.no_db(),
+        x_stub.no_bag(),
+        x.no_bag(),
     )
     testing.assert_equal(
-        x_stub.get_obj_schema().no_db(),
-        x.get_obj_schema().no_db()
+        x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
+    testing.assert_equal(x_stub[:].no_bag(), x[:].no_bag())
     testing.assert_equal(
-        x_stub[:].no_db(),
-        x[:].no_db()
-    )
-    testing.assert_equal(
-        x_stub[:].get_obj_schema().no_db(),
-        x[:].get_obj_schema().no_db()
+        x_stub[:].get_obj_schema().no_bag(), x[:].get_obj_schema().no_bag()
     )
     self.assertSameElements(dir(x_stub.get_obj_schema()), ['__items__'])
 
@@ -145,8 +132,8 @@ class CoreStubTest(parameterized.TestCase):
     x = bag().dict({1: 2, 3: 4})
     x_stub = kde.core.stub(x).eval()
     testing.assert_equal(
-        x_stub.no_db(),
-        x.no_db(),
+        x_stub.no_bag(),
+        x.no_bag(),
     )
     self.assertSameElements(
         dir(x_stub.get_schema()), ['__keys__', '__values__']
@@ -157,12 +144,11 @@ class CoreStubTest(parameterized.TestCase):
     x = ds([db.dict({1: 2, 3: 4}), db.dict({5: 6})]).embed_schema()
     x_stub = kde.core.stub(x).eval()
     testing.assert_equal(
-        x_stub.no_db(),
-        x.no_db(),
+        x_stub.no_bag(),
+        x.no_bag(),
     )
     testing.assert_equal(
-        x_stub.get_obj_schema().no_db(),
-        x.get_obj_schema().no_db()
+        x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
     self.assertSameElements(
         dir(x_stub.get_obj_schema()), ['__keys__', '__values__']

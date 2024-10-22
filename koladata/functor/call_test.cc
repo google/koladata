@@ -173,14 +173,14 @@ TEST(CallTest, MustBeScalar) {
                        "the first argument of kd.call must be a functor"));
 }
 
-TEST(CallTest, NoDb) {
+TEST(CallTest, NoBag) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature, {}));
-  EXPECT_THAT(CallFunctorWithCompilationCache(fn.WithDb(nullptr), {}, {}),
+  EXPECT_THAT(CallFunctorWithCompilationCache(fn.WithBag(nullptr), {}, {}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the first argument of kd.call must be a functor"));
 }
@@ -198,7 +198,7 @@ TEST(CallTest, DataSliceVariable) {
   ASSERT_OK_AND_ASSIGN(auto result,
                        CallFunctorWithCompilationCache(fn, {}, {}));
   EXPECT_THAT(result.As<DataSlice>(),
-              IsOkAndHolds(IsEquivalentTo(var_a.WithDb(fn.GetDb()))));
+              IsOkAndHolds(IsEquivalentTo(var_a.WithBag(fn.GetBag()))));
 }
 
 TEST(CallTest, EvalError) {

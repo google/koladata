@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.with_db."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -34,30 +32,31 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-class CoreWithDbTest(parameterized.TestCase):
+class CoreNoBagTest(parameterized.TestCase):
 
   @parameterized.parameters(
       bag().obj(),
       bag().list([1, 2, 3]),
       ds([bag().obj(a=1)]),
+      ds([1, 2, 3]),
   )
   def test_eval(self, x):
-    testing.assert_equal(
-        expr_eval.eval(kde.core.with_db(x.with_db(None), x.db)), x
-    )
+    testing.assert_equal(expr_eval.eval(kde.core.no_bag(x)), x.with_bag(None))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.with_db,
-        [(qtypes.DATA_SLICE, qtypes.DATA_BAG, qtypes.DATA_SLICE)],
+        kde.core.no_bag,
+        [(qtypes.DATA_SLICE, qtypes.DATA_SLICE)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.with_db(I.x, I.y)))
+    self.assertTrue(view.has_data_slice_view(kde.core.no_bag(I.x)))
 
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.with_db, kde.with_db))
+  def test_aliases(self):
+    self.assertTrue(optools.equiv_to_op(kde.core.no_bag, kde.no_bag))
+    self.assertTrue(optools.equiv_to_op(kde.core.no_bag, kde.core.no_db))
+    self.assertTrue(optools.equiv_to_op(kde.core.no_bag, kde.no_db))
 
 
 if __name__ == '__main__':

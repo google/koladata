@@ -44,54 +44,63 @@ class ListLikeTest(parameterized.TestCase):
   def test_item(self):
     l = fns.list_like(ds(1))
     self.assertIsInstance(l, list_item.ListItem)
-    testing.assert_equal(l[:], ds([]).with_db(l.db))
+    testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
     l.append(1)
-    testing.assert_equal(l[:], ds([1], schema_constants.OBJECT).with_db(l.db))
+    testing.assert_equal(
+        l[:], ds([1], schema_constants.OBJECT).with_bag(l.get_bag())
+    )
 
   def test_item_with_items(self):
     l = fns.list_like(ds(1), [1, 2])
     self.assertIsInstance(l, list_item.ListItem)
-    testing.assert_equal(l[:], ds([1, 2]).with_db(l.db))
+    testing.assert_equal(l[:], ds([1, 2]).with_bag(l.get_bag()))
     l.append(3)
-    testing.assert_equal(l[:], ds([1, 2, 3]).with_db(l.db))
+    testing.assert_equal(l[:], ds([1, 2, 3]).with_bag(l.get_bag()))
 
   def test_slice(self):
     l = fns.list_like(ds([[1, None], [3]]))
     self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_db(l.db))
+    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
     l.append(1)
     testing.assert_equal(
-        l[:], ds([[[1], []], [[1]]], schema_constants.OBJECT).with_db(l.db)
+        l[:],
+        ds([[[1], []], [[1]]], schema_constants.OBJECT).with_bag(l.get_bag()),
     )
 
   def test_all_missing_slice(self):
     l = fns.list_like(ds([[None, None], [None]]))
     self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_db(l.db))
+    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
     l.append(1)
-    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_db(l.db))
+    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
 
   def test_slice_with_scalar_items(self):
     l = fns.list_like(ds([[1, None], [3]]), 1)
     self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[[1], []], [[1]]]).with_db(l.db))
+    testing.assert_equal(l[:], ds([[[1], []], [[1]]]).with_bag(l.get_bag()))
     l.append(2)
-    testing.assert_equal(l[:], ds([[[1, 2], []], [[1, 2]]]).with_db(l.db))
+    testing.assert_equal(
+        l[:], ds([[[1, 2], []], [[1, 2]]]).with_bag(l.get_bag())
+    )
 
   def test_slice_with_slice_items(self):
     l = fns.list_like(ds([[1, None], [3]]), ds([[[1, 2], [3, 4]], [[5, 6]]]))
     self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[[1, 2], []], [[5, 6]]]).with_db(l.db))
+    testing.assert_equal(
+        l[:], ds([[[1, 2], []], [[5, 6]]]).with_bag(l.get_bag())
+    )
     l.append(7)
-    testing.assert_equal(l[:], ds([[[1, 2, 7], []], [[5, 6, 7]]]).with_db(l.db))
+    testing.assert_equal(
+        l[:], ds([[[1, 2, 7], []], [[5, 6, 7]]]).with_bag(l.get_bag())
+    )
 
   def test_itemid(self):
     itemid = kde.allocation.new_listid_shaped_as._eval(ds([1, 1]))  # pylint: disable=protected-access
     x = fns.list_like(ds([1, None]), ds([['a', 'b'], ['c']]), itemid=itemid)
-    testing.assert_equal(x[:].no_db(), ds([['a', 'b'], []]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
+    testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], []]))
+    testing.assert_equal(x.no_bag().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
 
-  def test_itemid_from_different_db(self):
+  def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
     itemid = fns.list(ds([[[triple], []], [[]]]))
 
@@ -101,18 +110,18 @@ class ListLikeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'attribute \'non_existent\' is missing'
     ):
-      _ = triple.with_db(x.db).non_existent
+      _ = triple.with_bag(x.get_bag()).non_existent
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = fns.bag()
     shape_and_mask_from = ds([[1, None], [2]])
     items = ds([[[1], [2]], [[3]]])
     l = fns.list_like(shape_and_mask_from, items)
     with self.assertRaises(AssertionError):
-      testing.assert_equal(l.db, db)
+      testing.assert_equal(l.get_bag(), db)
 
     l = fns.list_like(shape_and_mask_from, items, db=db)
-    testing.assert_equal(l.db, db)
+    testing.assert_equal(l.get_bag(), db)
 
   def test_wrong_shape_and_mask_from(self):
     with self.assertRaisesRegex(
@@ -166,10 +175,14 @@ class ListLikeTest(parameterized.TestCase):
     mask_and_shape = ds([[1, None], [3]])
     testing.assert_equal(
         fns.list_like(
-            mask_and_shape, items=items, item_schema=item_schema, schema=schema,
+            mask_and_shape,
+            items=items,
+            item_schema=item_schema,
+            schema=schema,
         )
         .get_schema()
-        .get_attr('__items__').no_db(),
+        .get_attr('__items__')
+        .no_bag(),
         expected_item_schema,
     )
 

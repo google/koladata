@@ -189,7 +189,7 @@ TEST(TestUtils, DataSlice_Object_ObjectSchema) {
   ds = test::DataSlice<ObjectId>(
       {alloc_id.ObjectByOffset(0), std::nullopt, alloc_id.ObjectByOffset(1)},
       schema::kObject, db);
-  EXPECT_THAT(ds, IsEquivalentTo(expected_ds.WithDb(db)));
+  EXPECT_THAT(ds, IsEquivalentTo(expected_ds.WithBag(db)));
 }
 
 TEST(TestUtils, DataSlice_Entity) {
@@ -213,7 +213,7 @@ TEST(TestUtils, DataSlice_Entity) {
   ds = test::DataSlice<ObjectId>(
       {alloc_id.ObjectByOffset(0), std::nullopt, alloc_id.ObjectByOffset(1)},
       alloc_schema, db);
-  EXPECT_THAT(ds, IsEquivalentTo(expected_ds.WithDb(db)));
+  EXPECT_THAT(ds, IsEquivalentTo(expected_ds.WithBag(db)));
 }
 
 TEST(TestUtils, DataSlice_Mixed) {

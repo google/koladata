@@ -23,7 +23,7 @@ namespace {
 TEST(ConstantsTest, UnspecifiedSelfInput) {
   auto res = UnspecifiedSelfInput();
   EXPECT_EQ(res.GetShape().rank(), 0);
-  EXPECT_FALSE(res.GetDb()->IsMutable());
+  EXPECT_FALSE(res.GetBag()->IsMutable());
 
   auto res2 = UnspecifiedSelfInput();
   EXPECT_TRUE(res2.IsEquivalentTo(res));

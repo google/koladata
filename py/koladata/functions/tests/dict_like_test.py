@@ -38,13 +38,14 @@ class DictLikeTest(parameterized.TestCase):
     x[2] = 3
     testing.assert_equal(
         x[ds([[1, 2], [3]])],
-        ds([[2, None], [None]], schema_constants.OBJECT).with_db(x.db),
+        ds([[2, None], [None]], schema_constants.OBJECT).with_bag(x.get_bag()),
     )
 
   def test_scalar_kv(self):
     x = fns.dict_like(ds([[0, None], [0]]), 'key', 42)
     testing.assert_equal(
-        x['key'], ds([[42, None], [42]], schema_constants.INT32).with_db(x.db)
+        x['key'],
+        ds([[42, None], [42]], schema_constants.INT32).with_bag(x.get_bag()),
     )
 
   def test_scalar_values(self):
@@ -55,7 +56,7 @@ class DictLikeTest(parameterized.TestCase):
     )
     testing.assert_equal(
         x[ds([['a', None], ['b']])],
-        ds([[42, None], [42]]).with_db(x.db),
+        ds([[42, None], [42]]).with_bag(x.get_bag()),
     )
 
   def test_with_kv_broadcasting(self):
@@ -65,8 +66,8 @@ class DictLikeTest(parameterized.TestCase):
         ds([1, 2]),
     )
     testing.assert_dicts_keys_equal(x, ds([[[], ['a']], [['b']]]))
-    testing.assert_equal(x['a'], ds([[None, 1], [None]]).with_db(x.db))
-    testing.assert_equal(x['b'], ds([[None, None], [2]]).with_db(x.db))
+    testing.assert_equal(x['a'], ds([[None, 1], [None]]).with_bag(x.get_bag()))
+    testing.assert_equal(x['b'], ds([[None, None], [2]]).with_bag(x.get_bag()))
 
   def test_with_values_broadcasting(self):
     x = fns.dict_like(
@@ -76,17 +77,17 @@ class DictLikeTest(parameterized.TestCase):
     )
     testing.assert_dicts_keys_equal(x, ds([[], ['b', 'c']]))
     testing.assert_equal(
-        x['a'], ds([None, None], schema_constants.INT32).with_db(x.db)
+        x['a'], ds([None, None], schema_constants.INT32).with_bag(x.get_bag())
     )
-    testing.assert_equal(x['b'], ds([None, 42]).with_db(x.db))
+    testing.assert_equal(x['b'], ds([None, 42]).with_bag(x.get_bag()))
 
   def test_itemid(self):
     itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.dict_like(ds([[1, None], [1]]), 'a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], []], [['a']]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
+    testing.assert_equal(x.no_bag().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
 
-  def test_itemid_from_different_db(self):
+  def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
     itemid = fns.dict_shaped(ds([[1, 1], [1]]).get_shape(), 'a', triple)
 
@@ -96,12 +97,12 @@ class DictLikeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'attribute \'non_existent\' is missing'
     ):
-      _ = triple.with_db(x.db).non_existent
+      _ = triple.with_bag(x.get_bag()).non_existent
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = fns.bag()
     x = fns.dict_like(ds([[0, None], [0]]), db=db)
-    testing.assert_equal(x.db, db)
+    testing.assert_equal(x.get_bag(), db)
 
   @parameterized.parameters(
       dict(
@@ -197,11 +198,11 @@ class DictLikeTest(parameterized.TestCase):
         schema=schema,
     ).get_schema()
     testing.assert_equal(
-        result_schema.get_attr('__keys__').no_db(),
+        result_schema.get_attr('__keys__').no_bag(),
         expected_key_schema,
     )
     testing.assert_equal(
-        result_schema.get_attr('__values__').no_db(),
+        result_schema.get_attr('__values__').no_bag(),
         expected_value_schema,
     )
 

@@ -33,7 +33,7 @@ class UpdateSchemaTest(absltest.TestCase):
     fns.update_schema(o, x=fns.new_schema(z=schema_constants.INT32))
     self.assertEqual(o.get_schema().x.z, schema_constants.INT32)
 
-    o = ds([fns.obj(fns.new()), fns.obj()]).fork_db()
+    o = ds([fns.obj(fns.new()), fns.obj()]).fork_bag()
     fns.update_schema(
         o,
         x=schema_constants.INT32,

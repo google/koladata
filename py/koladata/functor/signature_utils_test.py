@@ -79,7 +79,7 @@ class SignatureUtilsTest(absltest.TestCase):
     self.assertEqual(s.get_schema(), schema_constants.OBJECT)
     self.assertEqual(s.parameters[:].name.internal_as_py(), ['x', 'y'])
     self.assertEqual(s.parameters[:].internal_as_py(), [p1, p2])
-    self.assertFalse(s.db.is_mutable())
+    self.assertFalse(s.get_bag().is_mutable())
 
   def test_from_py_signature(self):
     entity = fns.new(foo=57)

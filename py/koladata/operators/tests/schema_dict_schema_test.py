@@ -40,14 +40,16 @@ class SchemaDictSchemaTest(parameterized.TestCase):
         kde.schema.dict_schema(schema_constants.TEXT, schema_constants.INT32)
     )
     testing.assert_equal(
-        schema.get_attr('__keys__'), schema_constants.TEXT.with_db(schema.db)
+        schema.get_attr('__keys__'),
+        schema_constants.TEXT.with_bag(schema.get_bag()),
     )
     testing.assert_equal(
-        schema.get_attr('__values__'), schema_constants.INT32.with_db(schema.db)
+        schema.get_attr('__values__'),
+        schema_constants.INT32.with_bag(schema.get_bag()),
     )
     self.assertFalse(schema.is_mutable())
 
-  def test_db_adoption(self):
+  def test_bag_adoption(self):
     schema = expr_eval.eval(
         kde.schema.dict_schema(
             schema_constants.TEXT,
@@ -58,7 +60,7 @@ class SchemaDictSchemaTest(parameterized.TestCase):
     )
     testing.assert_equal(
         schema.get_attr('__values__').a,
-        schema_constants.INT32.with_db(schema.db),
+        schema_constants.INT32.with_bag(schema.get_bag()),
     )
 
   def test_invalid_arguments(self):

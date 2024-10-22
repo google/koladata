@@ -75,9 +75,9 @@ TEST(EntitySchemaTest, CreateSchema) {
   EXPECT_EQ(entity_schema.GetSchemaImpl(), schema::kSchema);
   EXPECT_OK(entity_schema.VerifyIsSchema());
   EXPECT_THAT(entity_schema.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(int_s.WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(int_s.WithBag(db))));
   EXPECT_THAT(entity_schema.GetAttr("b"),
-              IsOkAndHolds(IsEquivalentTo(float_s.WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(float_s.WithBag(db))));
 }
 
 TEST(UUSchemaTest, CreateUUSchema) {
@@ -91,9 +91,9 @@ TEST(UUSchemaTest, CreateUUSchema) {
   EXPECT_OK(uu_schema.VerifyIsSchema());
   EXPECT_TRUE(uu_schema.item().value<ObjectId>().IsUuid());
   EXPECT_THAT(uu_schema.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(int_s.WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(int_s.WithBag(db))));
   EXPECT_THAT(uu_schema.GetAttr("b"),
-              IsOkAndHolds(IsEquivalentTo(float_s.WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(float_s.WithBag(db))));
 }
 
 TEST(EntitySchemaTest, Error) {
@@ -120,7 +120,7 @@ TEST(EntityCreatorTest, DataSlice) {
       auto ds,
       EntityCreator::FromAttrs(
           db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   // Schema check.
   EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsSchema());
   EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsExplicitSchema());
@@ -156,7 +156,7 @@ TEST(EntityCreatorTest, DataItem) {
       auto ds,
       EntityCreator::FromAttrs(
           db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_EQ(ds.size(), 1);
   EXPECT_EQ(ds.GetShape().rank(), 0);
   // Schema check.
@@ -194,7 +194,7 @@ TEST(EntityCreatorTest, DatabagAdoption) {
         EntityCreator::FromAttrs(db, {"nested"}, {ds_nested}));
     ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
     EXPECT_THAT(ds_get_attr.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   }
 
   // Like
@@ -206,7 +206,7 @@ TEST(EntityCreatorTest, DatabagAdoption) {
                                      {ds_nested}));
     ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
     EXPECT_THAT(ds_get_attr.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   }
 
   // Shaped
@@ -219,7 +219,7 @@ TEST(EntityCreatorTest, DatabagAdoption) {
     ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
     EXPECT_THAT(ds_get_attr.GetAttr("a"),
                 IsOkAndHolds(IsEquivalentTo(
-                    test::DataSlice<int>({42, 42, 42}).WithDb(db))));
+                    test::DataSlice<int>({42, 42, 42}).WithBag(db))));
   }
 }
 
@@ -235,8 +235,9 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)}, alt_schema));
-    EXPECT_THAT(ds.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f).WithDb(db))));
+    EXPECT_THAT(
+        ds.GetAttr("a"),
+        IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f).WithBag(db))));
   }
 
   // FromAttrs
@@ -251,7 +252,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
         EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)}, alt_schema,
                                 /*update_schema=*/true));
     EXPECT_THAT(ds.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   }
 
   // Like
@@ -262,8 +263,9 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
     ASSERT_OK_AND_ASSIGN(
         auto ds, EntityCreator::Like(db, shape_and_mask_from, {"a"},
                                      {test::DataItem(42)}, alt_schema));
-    EXPECT_THAT(ds.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f).WithDb(db))));
+    EXPECT_THAT(
+        ds.GetAttr("a"),
+        IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f).WithBag(db))));
   }
 
   // Like
@@ -276,7 +278,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
                                              {test::DataItem(42)}, alt_schema,
                                              /*update_schema=*/true));
     EXPECT_THAT(ds.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   }
 
   // Shaped
@@ -287,9 +289,10 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
         auto ds,
         EntityCreator::Shaped(db, DataSlice::JaggedShape::FlatFromSize(3),
                               {"a"}, {test::DataItem(42)}, alt_schema));
-    EXPECT_THAT(ds.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(
-                    test::DataSlice<float>({42.0f, 42.0f, 42.0f}).WithDb(db))));
+    EXPECT_THAT(
+        ds.GetAttr("a"),
+        IsOkAndHolds(IsEquivalentTo(
+            test::DataSlice<float>({42.0f, 42.0f, 42.0f}).WithBag(db))));
   }
 
   // Shaped
@@ -303,7 +306,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
                               /*update_schema=*/true));
     EXPECT_THAT(ds.GetAttr("a"),
                 IsOkAndHolds(IsEquivalentTo(
-                    test::DataSlice<int>({42, 42, 42}).WithDb(db))));
+                    test::DataSlice<int>({42, 42, 42}).WithBag(db))));
   }
 }
 
@@ -322,9 +325,9 @@ TEST(EntityCreatorTest, SchemaArg) {
 
   EXPECT_EQ(entity.GetSchemaImpl(), entity_schema.item());
   EXPECT_THAT(entity.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   EXPECT_THAT(entity.GetAttr("b"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(db))));
 }
 
 TEST(EntityCreatorTest, SchemaArg_InvalidSchema) {
@@ -350,10 +353,10 @@ TEST(EntityCreatorTest, SchemaArg_WithFallback) {
 
   auto fb_db = DataBag::Empty();
   auto text_s = test::Schema(schema::kText);
-  ASSERT_OK(entity_schema.WithDb(fb_db).SetAttr("b", text_s));
+  ASSERT_OK(entity_schema.WithBag(fb_db).SetAttr("b", text_s));
 
-  entity_schema = entity_schema.WithDb(
-      DataBag::ImmutableEmptyWithFallbacks({db, fb_db}));
+  entity_schema =
+      entity_schema.WithBag(DataBag::ImmutableEmptyWithFallbacks({db, fb_db}));
 
   auto new_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
@@ -365,10 +368,10 @@ TEST(EntityCreatorTest, SchemaArg_WithFallback) {
 
   EXPECT_EQ(entity.GetSchemaImpl(), entity_schema.item());
   EXPECT_THAT(entity.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(new_db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(new_db))));
   EXPECT_THAT(
       entity.GetAttr("b"),
-      IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(new_db))));
+      IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(new_db))));
 }
 
 TEST(EntityCreatorTest, SchemaArg_ImplicitCasting) {
@@ -383,11 +386,10 @@ TEST(EntityCreatorTest, SchemaArg_ImplicitCasting) {
       auto entity,
       EntityCreator::FromAttrs(db, {"a"}, {ds_a}, entity_schema));
 
-  EXPECT_THAT(
-      entity.GetAttr("a"),
-      IsOkAndHolds(
-          AllOf(IsEquivalentTo(test::DataItem(42.0f).WithDb(db)),
-                Property(&DataSlice::GetSchemaImpl, Eq(schema::kFloat32)))));
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(AllOf(
+                  IsEquivalentTo(test::DataItem(42.0f).WithBag(db)),
+                  Property(&DataSlice::GetSchemaImpl, Eq(schema::kFloat32)))));
 }
 
 TEST(EntityCreatorTest, SchemaArg_CastingFails) {
@@ -420,7 +422,7 @@ TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
                                entity_schema, /*update_schema=*/true));
 
   EXPECT_THAT(entity.GetAttr("b"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(db))));
 
   EXPECT_THAT(
       EntityCreator::FromAttrs(
@@ -452,7 +454,7 @@ TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
                             entity_schema, /*update_schema=*/true));
 
   EXPECT_THAT(entity.GetAttr("b"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(db))));
 
   EXPECT_THAT(
     EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
@@ -485,15 +487,13 @@ TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
                           {test::DataItem(42), test::DataItem("xyz")},
                           entity_schema, /*update_schema=*/true));
 
-  EXPECT_THAT(
-      entity.GetAttr("a"),
-      IsOkAndHolds(IsEquivalentTo(test::DataSlice<int>({42, std::nullopt, 42})
-                                  .WithDb(db))));
-  EXPECT_THAT(
-      entity.GetAttr("b"),
-      IsOkAndHolds(IsEquivalentTo(
-          test::DataSlice<arolla::Text>({"xyz", std::nullopt, "xyz"})
-          .WithDb(db))));
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(
+                  test::DataSlice<int>({42, std::nullopt, 42}).WithBag(db))));
+  EXPECT_THAT(entity.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(
+                  test::DataSlice<arolla::Text>({"xyz", std::nullopt, "xyz"})
+                      .WithBag(db))));
 
   EXPECT_THAT(
     EntityCreator::Like(db, shape_and_mask_from,
@@ -505,23 +505,23 @@ TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
   );
 }
 
-TEST(EntityCreatorTest, SchemaArg_NoDb) {
+TEST(EntityCreatorTest, SchemaArg_NoBag) {
   auto schema_db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);
   auto entity_schema = *CreateEntitySchema(schema_db, {"a"}, {int_s});
 
   auto db = DataBag::Empty();
   EXPECT_THAT(EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)},
-                                       entity_schema.WithDb(nullptr)),
+                                       entity_schema.WithBag(nullptr)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("attribute 'a' is missing on the schema")));
 
   ASSERT_OK_AND_ASSIGN(auto entity,
                        EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)},
-                                                entity_schema.WithDb(nullptr),
+                                                entity_schema.WithBag(nullptr),
                                                 /*update_schema=*/true));
   EXPECT_THAT(entity.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
 }
 
 TEST(EntityCreatorTest, SchemaArg_Any) {
@@ -531,8 +531,8 @@ TEST(EntityCreatorTest, SchemaArg_Any) {
                                                 test::Schema(schema::kAny)));
 
   EXPECT_THAT(entity.GetAttr("a"),
-              IsOkAndHolds(
-                  IsEquivalentTo(test::DataItem(42, schema::kAny).WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(
+                  test::DataItem(42, schema::kAny).WithBag(db))));
 }
 
 TEST(EntityCreatorTest, PrimitiveToEntity) {
@@ -543,13 +543,12 @@ TEST(EntityCreatorTest, PrimitiveToEntity) {
       IsOkAndHolds(
           AllOf(Property(&DataSlice::slice, ElementsAre(1, 2, 3)),
                 Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
-                Property(&DataSlice::GetDb, Eq(db_val)))));
-  EXPECT_THAT(
-      EntityCreator::Convert(db, test::DataItem(42)),
-      IsOkAndHolds(
-          AllOf(Property(&DataSlice::item, Eq(42)),
-                Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
-                Property(&DataSlice::GetDb, Eq(nullptr)))));
+                Property(&DataSlice::GetBag, Eq(db_val)))));
+  EXPECT_THAT(EntityCreator::Convert(db, test::DataItem(42)),
+              IsOkAndHolds(
+                  AllOf(Property(&DataSlice::item, Eq(42)),
+                        Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
+                        Property(&DataSlice::GetBag, Eq(nullptr)))));
 }
 
 TEST(EntityCreatorTest, EntityToEntity) {
@@ -580,7 +579,7 @@ TEST(UuCreatorTest, DataSlice) {
       auto ds,
       CreateUu(
           db, "", {"a", "b"}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   // Schema check.
   EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsSchema());
   EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsExplicitSchema());
@@ -594,10 +593,10 @@ TEST(UuCreatorTest, DataSlice) {
 
   // Attributes are set.
   EXPECT_THAT(ds.GetAttr("a"),
-            IsOkAndHolds(IsEquivalentTo(ds_a.WithDb(ds.GetDb()))));
+              IsOkAndHolds(IsEquivalentTo(ds_a.WithBag(ds.GetBag()))));
 
   EXPECT_THAT(ds.GetAttr("b"),
-            IsOkAndHolds(IsEquivalentTo(ds_b.WithDb(ds.GetDb()))));
+              IsOkAndHolds(IsEquivalentTo(ds_b.WithBag(ds.GetBag()))));
 
   // Different objects have different uuids.
   ASSERT_OK_AND_ASSIGN(auto ds_2,
@@ -618,7 +617,7 @@ TEST(CreateUuTest, DataItem) {
       auto ds,
       CreateUu(
           db, "", {"a", "b"}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
 
   // Schema check.
   EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsSchema());
@@ -630,10 +629,10 @@ TEST(CreateUuTest, DataItem) {
 
   // Attributes are set.
   EXPECT_THAT(ds.GetAttr("a"),
-            IsOkAndHolds(IsEquivalentTo(ds_a.WithDb(ds.GetDb()))));
+              IsOkAndHolds(IsEquivalentTo(ds_a.WithBag(ds.GetBag()))));
 
   EXPECT_THAT(ds.GetAttr("b"),
-            IsOkAndHolds(IsEquivalentTo(ds_b.WithDb(ds.GetDb()))));
+              IsOkAndHolds(IsEquivalentTo(ds_b.WithBag(ds.GetBag()))));
 
   // Different objects have different uuids.
   ASSERT_OK_AND_ASSIGN(
@@ -662,9 +661,9 @@ TEST(CreateUuTest, SchemaArg) {
 
   EXPECT_EQ(entity.GetSchemaImpl(), entity_schema.item());
   EXPECT_THAT(entity.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   EXPECT_THAT(entity.GetAttr("b"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(db))));
 }
 
 TEST(UuCreatorTest, SchemaArg_InvalidSchema) {
@@ -688,10 +687,10 @@ TEST(CreateUuTest, SchemaArg_WithFallback) {
 
   auto fb_db = DataBag::Empty();
   auto text_s = test::Schema(schema::kText);
-  ASSERT_OK(entity_schema.WithDb(fb_db).SetAttr("b", text_s));
+  ASSERT_OK(entity_schema.WithBag(fb_db).SetAttr("b", text_s));
 
-  entity_schema = entity_schema.WithDb(
-      DataBag::ImmutableEmptyWithFallbacks({db, fb_db}));
+  entity_schema =
+      entity_schema.WithBag(DataBag::ImmutableEmptyWithFallbacks({db, fb_db}));
 
   auto new_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
@@ -701,10 +700,10 @@ TEST(CreateUuTest, SchemaArg_WithFallback) {
 
   EXPECT_EQ(entity.GetSchemaImpl(), entity_schema.item());
   EXPECT_THAT(entity.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(new_db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(new_db))));
   EXPECT_THAT(
       entity.GetAttr("b"),
-      IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(new_db))));
+      IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(new_db))));
 }
 
 TEST(CreateUuTest, SchemaArg_ImplicitCasting) {
@@ -721,7 +720,7 @@ TEST(CreateUuTest, SchemaArg_ImplicitCasting) {
 
   EXPECT_THAT(entity.GetAttr("a"),
               IsOkAndHolds(AllOf(
-                  IsEquivalentTo(test::DataItem(42.0f).WithDb(db)),
+                  IsEquivalentTo(test::DataItem(42.0f).WithBag(db)),
                   Property(&DataSlice::GetSchemaImpl, Eq(schema::kFloat32)))));
 }
 
@@ -752,7 +751,7 @@ TEST(CreatUuTest, SchemaArg_UpdateSchema) {
                entity_schema, /*update_schema=*/true));
 
   EXPECT_THAT(entity.GetAttr("b"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(db))));
 }
 
 TEST(CreateUuTest, SchemaArg_Any) {
@@ -762,8 +761,8 @@ TEST(CreateUuTest, SchemaArg_Any) {
                                 test::Schema(schema::kAny)));
 
   EXPECT_THAT(entity.GetAttr("a"),
-              IsOkAndHolds(
-                  IsEquivalentTo(test::DataItem(42, schema::kAny).WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(
+                  test::DataItem(42, schema::kAny).WithBag(db))));
 }
 
 TEST(CreateUuTest, DatabagAdoption) {
@@ -780,7 +779,7 @@ TEST(CreateUuTest, DatabagAdoption) {
       CreateUu(db, "", {"nested"}, {ds_nested}));
   ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
   EXPECT_THAT(ds_get_attr.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
 }
 
 TEST(CreateUuTest, DatabagAdoption_WithSchema) {
@@ -793,8 +792,9 @@ TEST(CreateUuTest, DatabagAdoption_WithSchema) {
     auto db = DataBag::Empty();
     ASSERT_OK_AND_ASSIGN(
         auto ds, CreateUu(db, "", {"a"}, {test::DataItem(42)}, alt_schema));
-    EXPECT_THAT(ds.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f).WithDb(db))));
+    EXPECT_THAT(
+        ds.GetAttr("a"),
+        IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f).WithBag(db))));
   }
 
   // Schema comes from different db and gets overwritten
@@ -807,7 +807,7 @@ TEST(CreateUuTest, DatabagAdoption_WithSchema) {
         auto ds, CreateUu(db, "", {"a"}, {test::DataItem(42)}, alt_schema,
                           /*update_schema=*/true));
     EXPECT_THAT(ds.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   }
 }
 
@@ -815,25 +815,23 @@ TEST(ObjectCreatorTest, ObjectToEntity) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto object, ObjectCreator::FromAttrs(db_val, {}, {}));
-  EXPECT_THAT(
-      EntityCreator::Convert(db, object),
-      IsOkAndHolds(
-          AllOf(Property(&DataSlice::item, Eq(object.item())),
-                Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
-                Property(&DataSlice::GetDb, Eq(db_val)))));
+  EXPECT_THAT(EntityCreator::Convert(db, object),
+              IsOkAndHolds(AllOf(
+                  Property(&DataSlice::item, Eq(object.item())),
+                  Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
+                  Property(&DataSlice::GetBag, Eq(db_val)))));
 }
 
 TEST(ObjectCreatorTest, ReferenceToEntity) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto object, ObjectCreator::FromAttrs(db_val, {}, {}));
-  object = object.WithDb(nullptr);
-  EXPECT_THAT(
-      EntityCreator::Convert(db, object),
-      IsOkAndHolds(
-          AllOf(Property(&DataSlice::item, Eq(object.item())),
-                Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
-                Property(&DataSlice::GetDb, Eq(nullptr)))));
+  object = object.WithBag(nullptr);
+  EXPECT_THAT(EntityCreator::Convert(db, object),
+              IsOkAndHolds(AllOf(
+                  Property(&DataSlice::item, Eq(object.item())),
+                  Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
+                  Property(&DataSlice::GetBag, Eq(nullptr)))));
 }
 
 TEST(ObjectCreatorTest, DataSlice) {
@@ -847,7 +845,7 @@ TEST(ObjectCreatorTest, DataSlice) {
       auto ds,
       ObjectCreator::FromAttrs(
           db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   // Implicit schema stored in __schema__ "normal" attribute.
   EXPECT_EQ(ds.GetSchemaImpl(), schema::kObject);
   ASSERT_OK_AND_ASSIGN(auto schema_slice,
@@ -893,7 +891,7 @@ TEST(ObjectCreatorTest, DataItem) {
       auto ds,
       ObjectCreator::FromAttrs(
           db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_EQ(ds.size(), 1);
   EXPECT_EQ(ds.GetShape().rank(), 0);
   // Implicit schema stored in __schema__ "normal" attribute.
@@ -927,7 +925,7 @@ TEST(ObjectCreatorTest, EmptyDataSlice) {
       auto ds,
       ObjectCreator::FromAttrs(
           db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_EQ(ds.size(), 0);
   EXPECT_EQ(ds.GetShape().rank(), 1);
 }
@@ -948,7 +946,7 @@ TEST(ObjectCreatorTest, DatabagAdoption) {
         ObjectCreator::FromAttrs(db, {"nested"}, {ds_nested}));
     ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
     EXPECT_THAT(ds_get_attr.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   }
 
   // Like
@@ -960,7 +958,7 @@ TEST(ObjectCreatorTest, DatabagAdoption) {
                                      {ds_nested}));
     ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
     EXPECT_THAT(ds_get_attr.GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithDb(db))));
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   }
 
   // Shaped
@@ -973,7 +971,7 @@ TEST(ObjectCreatorTest, DatabagAdoption) {
     ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds.GetAttr("nested"));
     EXPECT_THAT(ds_get_attr.GetAttr("a"),
                 IsOkAndHolds(IsEquivalentTo(
-                    test::DataSlice<int>({42, 42, 42}).WithDb(db))));
+                    test::DataSlice<int>({42, 42, 42}).WithBag(db))));
   }
 }
 
@@ -1003,13 +1001,12 @@ TEST(ObjectCreatorTest, PrimitiveToObject) {
       IsOkAndHolds(
           AllOf(Property(&DataSlice::slice, ElementsAre(1, 2, 3)),
                 Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
-                Property(&DataSlice::GetDb, Eq(db_val)))));
-  EXPECT_THAT(
-      ObjectCreator::Convert(db, test::DataItem(42)),
-      IsOkAndHolds(
-          AllOf(Property(&DataSlice::item, Eq(42)),
-                Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
-                Property(&DataSlice::GetDb, Eq(nullptr)))));
+                Property(&DataSlice::GetBag, Eq(db_val)))));
+  EXPECT_THAT(ObjectCreator::Convert(db, test::DataItem(42)),
+              IsOkAndHolds(
+                  AllOf(Property(&DataSlice::item, Eq(42)),
+                        Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
+                        Property(&DataSlice::GetBag, Eq(nullptr)))));
 }
 
 TEST(ObjectCreatorTest, EntityToObject) {
@@ -1044,26 +1041,24 @@ TEST(ObjectCreatorTest, ObjectToObject) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto object, ObjectCreator::FromAttrs(db_val, {}, {}));
-  EXPECT_THAT(
-      ObjectCreator::Convert(db, object),
-      IsOkAndHolds(
-          AllOf(Property(&DataSlice::item, Eq(object.item())),
-                Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
-                // Not changed.
-                Property(&DataSlice::GetDb, Eq(db_val)))));
+  EXPECT_THAT(ObjectCreator::Convert(db, object),
+              IsOkAndHolds(AllOf(
+                  Property(&DataSlice::item, Eq(object.item())),
+                  Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
+                  // Not changed.
+                  Property(&DataSlice::GetBag, Eq(db_val)))));
 }
 
 TEST(ObjectCreatorTest, ReferenceToObject) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db_val, {}, {}));
-  entity = entity.WithDb(nullptr);
-  EXPECT_THAT(
-      ObjectCreator::Convert(db, entity),
-      IsOkAndHolds(
-          AllOf(Property(&DataSlice::item, Eq(entity.item())),
-                Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
-                Property(&DataSlice::GetDb, Eq(db)))));
+  entity = entity.WithBag(nullptr);
+  EXPECT_THAT(ObjectCreator::Convert(db, entity),
+              IsOkAndHolds(AllOf(
+                  Property(&DataSlice::item, Eq(entity.item())),
+                  Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
+                  Property(&DataSlice::GetBag, Eq(db)))));
 }
 
 TEST(ObjectCreatorTest, ObjectConverterError) {
@@ -1085,7 +1080,7 @@ TEST(UuObjectCreatorTest, DataSlice) {
       auto ds,
       CreateUuObject(
           db, "", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   // Implicit schema stored in __schema__ "normal" attribute.
   EXPECT_EQ(ds.GetSchemaImpl(), schema::kObject);
   ds.slice().values<ObjectId>().ForEach(
@@ -1154,14 +1149,14 @@ TEST(UuObjectCreatorTest, DataItem) {
 TEST(UuObjectCreatorTest, Empty) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto ds_1, CreateUuObject(db, "seed1", {}, {}));
-  EXPECT_EQ(ds_1.GetDb(), db);
+  EXPECT_EQ(ds_1.GetBag(), db);
   EXPECT_TRUE(ds_1.item().value<ObjectId>().IsUuid());
   ASSERT_OK_AND_ASSIGN(auto ds_2, CreateUuObject(db, "seed2", {}, {}));
-  EXPECT_EQ(ds_2.GetDb(), db);
+  EXPECT_EQ(ds_2.GetBag(), db);
   EXPECT_TRUE(ds_2.item().value<ObjectId>().IsUuid());
   EXPECT_THAT(ds_1.item(), Not(IsEquivalentTo(ds_2.item())));
   ASSERT_OK_AND_ASSIGN(auto ds_3, CreateUuObject(db, "seed1", {}, {}));
-  EXPECT_EQ(ds_3.GetDb(), db);
+  EXPECT_EQ(ds_3.GetBag(), db);
   EXPECT_THAT(ds_1.item(), IsEquivalentTo(ds_3.item()));
 }
 
@@ -1231,7 +1226,7 @@ TYPED_TEST(CreatorTest, NoInputs) {
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::FromAttrs(db, {}, {}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_EQ(ds.GetShape().rank(), 0);
   TestFixture::VerifyDataSliceSchema(*db, ds);
 }
@@ -1242,7 +1237,7 @@ TYPED_TEST(CreatorTest, Shaped) {
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::Shaped(db, shape, {}, {}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   TestFixture::VerifyDataSliceSchema(*db, ds);
 }
@@ -1256,7 +1251,7 @@ TYPED_TEST(CreatorTest, AutoBroadcasting) {
 
   ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::FromAttrs(
       db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
   EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
   TestFixture::VerifyDataSliceSchema(*db, ds);
@@ -1297,10 +1292,10 @@ TYPED_TEST(CreatorTest, FromAttrs_ItemId) {
   EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
   EXPECT_THAT(ds.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(
-                  BroadcastToShape(ds_a, ds.GetShape())->WithDb(db))));
+                  BroadcastToShape(ds_a, ds.GetShape())->WithBag(db))));
   EXPECT_THAT(ds.GetAttr("b"),
               IsOkAndHolds(IsEquivalentTo(
-                  BroadcastToShape(ds_b, ds.GetShape())->WithDb(db))));
+                  BroadcastToShape(ds_b, ds.GetShape())->WithBag(db))));
 }
 
 TYPED_TEST(CreatorTest, Shaped_WithAttrs) {
@@ -1313,7 +1308,7 @@ TYPED_TEST(CreatorTest, Shaped_WithAttrs) {
 
   ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::Shaped(
       db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
   EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
   TestFixture::VerifyDataSliceSchema(*db, ds);
@@ -1357,10 +1352,10 @@ TYPED_TEST(CreatorTest, Shaped_ItemId) {
         db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
   }
   EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
-  EXPECT_THAT(ds.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a.WithDb(db))));
+  EXPECT_THAT(ds.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a.WithBag(db))));
   EXPECT_THAT(ds.GetAttr("b"),
               IsOkAndHolds(IsEquivalentTo(
-                  BroadcastToShape(ds_b, ds_a.GetShape())->WithDb(db))));
+                  BroadcastToShape(ds_b, ds_a.GetShape())->WithBag(db))));
 }
 
 TYPED_TEST(CreatorTest, Shaped_ItemId_Overwrite) {
@@ -1443,7 +1438,7 @@ TYPED_TEST(CreatorTest, Like_WithAttrs) {
       auto ds,
       CreatorT::Like(db, shape_and_mask_from,
                      {std::string("a"), std::string("b")}, {ds_a, ds_b}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
   EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
   TestFixture::VerifyDataSliceSchema(*db, ds);
@@ -1463,7 +1458,7 @@ TYPED_TEST(CreatorTest, Like_EmptyItem) {
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       CreatorT::Like(db, shape_and_mask_from, {std::string("a")}, {ds_a}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds, Property(&DataSlice::item, internal::MissingValue()));
   TestFixture::VerifyDataSliceSchema(*db, ds);
 }
@@ -1478,7 +1473,7 @@ TYPED_TEST(CreatorTest, Like_EmptySlice) {
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       CreatorT::Like(db, shape_and_mask_from, {std::string("a")}, {ds_a}));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds,
               Property(&DataSlice::slice,
                        ElementsAre(std::nullopt, std::nullopt, std::nullopt)));
@@ -1625,7 +1620,7 @@ TEST(ObjectFactoriesTest, CreateEmptyList) {
     ASSERT_OK_AND_ASSIGN(auto ds, CreateEmptyList(db));
     EXPECT_THAT(ds.item(),
                 DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
-    EXPECT_EQ(ds.GetDb(), db);
+    EXPECT_EQ(ds.GetBag(), db);
     EXPECT_EQ(ds.GetShape().rank(), 0);
     EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
                 IsOkAndHolds(Property(&DataSlice::item, schema::kObject)));
@@ -1637,7 +1632,7 @@ TEST(ObjectFactoriesTest, CreateEmptyList) {
                                          test::Schema(schema::kInt32)));
     EXPECT_THAT(ds.item(),
                 DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
-    EXPECT_EQ(ds.GetDb(), db);
+    EXPECT_EQ(ds.GetBag(), db);
     EXPECT_EQ(ds.GetShape().rank(), 0);
     EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
                 IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
@@ -1727,7 +1722,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension) {
     ASSERT_OK_AND_ASSIGN(auto ds, CreateListsFromLastDimension(db, values));
     EXPECT_THAT(ds.item(),
                 DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
-    EXPECT_EQ(ds.GetDb(), db);
+    EXPECT_EQ(ds.GetBag(), db);
     EXPECT_EQ(ds.GetShape().rank(), 0);
     EXPECT_THAT(ds.ExplodeList(0, std::nullopt),
                 IsOkAndHolds(Property(
@@ -1747,7 +1742,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension) {
                                       test::Schema(schema::kInt64)));
     EXPECT_THAT(ds.item(),
                 DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
-    EXPECT_EQ(ds.GetDb(), db);
+    EXPECT_EQ(ds.GetBag(), db);
     EXPECT_EQ(ds.GetShape().rank(), 0);
     EXPECT_THAT(ds.ExplodeList(0, std::nullopt),
                 IsOkAndHolds(Property(&DataSlice::slice,
@@ -1896,7 +1891,7 @@ TEST(ObjectFactoriesTest, Implode) {
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db, values, -1));
     EXPECT_EQ(lists.GetShape().rank(), 0);
-    EXPECT_EQ(lists.GetDb(), db);
+    EXPECT_EQ(lists.GetBag(), db);
 
     ASSERT_OK_AND_ASSIGN(auto exploded_lists1,
                          lists.ExplodeList(0, std::nullopt));
@@ -1911,7 +1906,7 @@ TEST(ObjectFactoriesTest, Implode) {
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db2, values, -1));
     EXPECT_EQ(lists.GetShape().rank(), 0);
-    EXPECT_EQ(lists.GetDb(), db2);
+    EXPECT_EQ(lists.GetBag(), db2);
 
     ASSERT_OK_AND_ASSIGN(auto exploded_lists1,
                          lists.ExplodeList(0, std::nullopt));
@@ -1925,7 +1920,7 @@ TEST(ObjectFactoriesTest, Implode) {
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db, values, 0));
     EXPECT_EQ(lists.GetShape().rank(), 2);
-    EXPECT_EQ(lists.GetDb(), db);
+    EXPECT_EQ(lists.GetBag(), db);
 
     EXPECT_EQ(lists.GetShape().rank(), 2);
     EXPECT_THAT(lists.GetSchemaImpl(), Eq(schema::kInt32));
@@ -1938,7 +1933,7 @@ TEST(ObjectFactoriesTest, Implode) {
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db2, values, 0));
     EXPECT_EQ(lists.GetShape().rank(), 2);
-    EXPECT_EQ(lists.GetDb(), db2);
+    EXPECT_EQ(lists.GetBag(), db2);
 
     EXPECT_THAT(lists.GetSchemaImpl(), Eq(schema::kInt32));
     EXPECT_THAT(lists.slice(), ElementsAreArray(values.slice()));
@@ -1949,7 +1944,7 @@ TEST(ObjectFactoriesTest, Implode) {
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db, values, 1));
     EXPECT_EQ(lists.GetShape().rank(), 1);
-    EXPECT_EQ(lists.GetDb(), db);
+    EXPECT_EQ(lists.GetBag(), db);
 
     ASSERT_OK_AND_ASSIGN(auto exploded_lists,
                          lists.ExplodeList(0, std::nullopt));
@@ -1962,7 +1957,7 @@ TEST(ObjectFactoriesTest, Implode) {
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db2, values, 1));
     EXPECT_EQ(lists.GetShape().rank(), 1);
-    EXPECT_EQ(lists.GetDb(), db2);
+    EXPECT_EQ(lists.GetBag(), db2);
 
     ASSERT_OK_AND_ASSIGN(auto exploded_lists,
                          lists.ExplodeList(0, std::nullopt));
@@ -1974,7 +1969,7 @@ TEST(ObjectFactoriesTest, Implode) {
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db, values, 2));
     EXPECT_EQ(lists.GetShape().rank(), 0);
-    EXPECT_EQ(lists.GetDb(), db);
+    EXPECT_EQ(lists.GetBag(), db);
 
     ASSERT_OK_AND_ASSIGN(auto exploded_lists1,
                          lists.ExplodeList(0, std::nullopt));
@@ -1989,7 +1984,7 @@ TEST(ObjectFactoriesTest, Implode) {
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db2, values, 2));
     EXPECT_EQ(lists.GetShape().rank(), 0);
-    EXPECT_EQ(lists.GetDb(), db2);
+    EXPECT_EQ(lists.GetBag(), db2);
 
     ASSERT_OK_AND_ASSIGN(auto exploded_lists1,
                          lists.ExplodeList(0, std::nullopt));
@@ -2012,7 +2007,7 @@ TEST(ObjectFactoriesTest, ConcatLists_NoInputs) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto result, ConcatLists(db, {}));
   EXPECT_EQ(result.GetShape().rank(), 0);
-  EXPECT_EQ(result.GetDb(), db);
+  EXPECT_EQ(result.GetBag(), db);
   EXPECT_THAT(result.item(),
               DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
   EXPECT_THAT(result.GetSchema().GetAttr("__items__"),
@@ -2054,7 +2049,7 @@ TEST(ObjectFactoriesTest, ConcatLists) {
   auto db3 = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto result, ConcatLists(db3, {values1, values2}));
 
-  EXPECT_EQ(result.GetDb(), db3);
+  EXPECT_EQ(result.GetBag(), db3);
   EXPECT_THAT(result.slice(),
               ElementsAre(
                 DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
@@ -2069,7 +2064,7 @@ TEST(ObjectFactoriesTest, ConcatLists) {
       auto shape3, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge3}));
   auto values3 = test::DataSlice<int>({1, 2, 3, 6, 7, 4, 5, 8, 9}, shape3);
 
-  EXPECT_THAT(ops::Explode(result, 1)->WithDb(nullptr),
+  EXPECT_THAT(ops::Explode(result, 1)->WithBag(nullptr),
               IsEquivalentTo(values3));
 }
 
@@ -2086,7 +2081,7 @@ TEST(ObjectFactoriesTest, CreateListShaped) {
           DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue()))));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
@@ -2107,7 +2102,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_WithValues) {
       ElementsAre(
           DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue()))));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   // Deduced from values.
   EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
@@ -2184,7 +2179,7 @@ TEST(ObjectFactoriesTest, CreateEmptyShaped) {
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         CreateEmptyShaped(shape, test::Schema(schema::kInt32), nullptr));
-    EXPECT_EQ(ds.GetDb(), nullptr);
+    EXPECT_EQ(ds.GetBag(), nullptr);
     EXPECT_EQ(ds.present_count(), 0);
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetSchemaImpl(), schema::kInt32);
@@ -2194,7 +2189,7 @@ TEST(ObjectFactoriesTest, CreateEmptyShaped) {
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         CreateEmptyShaped(shape, test::Schema(schema::kObject), nullptr));
-    EXPECT_EQ(ds.GetDb(), nullptr);
+    EXPECT_EQ(ds.GetBag(), nullptr);
     EXPECT_TRUE(ds.impl_empty_and_unknown());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetSchemaImpl(), schema::kObject);
@@ -2204,7 +2199,7 @@ TEST(ObjectFactoriesTest, CreateEmptyShaped) {
     auto db = DataBag::Empty();
     ASSERT_OK_AND_ASSIGN(
         auto ds, CreateEmptyShaped(shape, test::Schema(schema::kObject), db));
-    EXPECT_EQ(ds.GetDb(), db);
+    EXPECT_EQ(ds.GetBag(), db);
     EXPECT_TRUE(ds.impl_empty_and_unknown());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetSchemaImpl(), schema::kObject);
@@ -2217,13 +2212,13 @@ TEST(ObjectFactoriesTest, CreateEmptyShaped) {
                          CreateEntitySchema(db, {"a"}, {int_s}));
     ASSERT_OK_AND_ASSIGN(auto ds,
                          CreateEmptyShaped(shape, entity_schema, nullptr));
-    EXPECT_NE(ds.GetDb(), db);
+    EXPECT_NE(ds.GetBag(), db);
     EXPECT_TRUE(ds.impl_empty_and_unknown());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
-    auto res_db = ds.GetDb();
-    EXPECT_THAT(ds.GetSchema(), IsEquivalentTo(entity_schema.WithDb(res_db)));
+    auto res_db = ds.GetBag();
+    EXPECT_THAT(ds.GetSchema(), IsEquivalentTo(entity_schema.WithBag(res_db)));
     EXPECT_THAT(ds.GetSchema().GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(int_s.WithDb(res_db))));
+                IsOkAndHolds(IsEquivalentTo(int_s.WithBag(res_db))));
   }
   {
     // Entity schema + same db
@@ -2232,12 +2227,12 @@ TEST(ObjectFactoriesTest, CreateEmptyShaped) {
     ASSERT_OK_AND_ASSIGN(auto entity_schema,
                          CreateEntitySchema(db, {"a"}, {int_s}));
     ASSERT_OK_AND_ASSIGN(auto ds, CreateEmptyShaped(shape, entity_schema, db));
-    EXPECT_EQ(ds.GetDb(), db);
+    EXPECT_EQ(ds.GetBag(), db);
     EXPECT_TRUE(ds.impl_empty_and_unknown());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_THAT(ds.GetSchema(), IsEquivalentTo(entity_schema));
     EXPECT_THAT(ds.GetSchema().GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(int_s.WithDb(db))));
+                IsOkAndHolds(IsEquivalentTo(int_s.WithBag(db))));
   }
   {
     // Entity schema + different dbs
@@ -2247,12 +2242,12 @@ TEST(ObjectFactoriesTest, CreateEmptyShaped) {
     ASSERT_OK_AND_ASSIGN(auto entity_schema,
                          CreateEntitySchema(db1, {"a"}, {int_s}));
     ASSERT_OK_AND_ASSIGN(auto ds, CreateEmptyShaped(shape, entity_schema, db2));
-    EXPECT_EQ(ds.GetDb(), db2);
+    EXPECT_EQ(ds.GetBag(), db2);
     EXPECT_TRUE(ds.impl_empty_and_unknown());
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
-    EXPECT_THAT(ds.GetSchema(), IsEquivalentTo(entity_schema.WithDb(db2)));
+    EXPECT_THAT(ds.GetSchema(), IsEquivalentTo(entity_schema.WithBag(db2)));
     EXPECT_THAT(ds.GetSchema().GetAttr("a"),
-                IsOkAndHolds(IsEquivalentTo(int_s.WithDb(db2))));
+                IsOkAndHolds(IsEquivalentTo(int_s.WithBag(db2))));
   }
 }
 
@@ -2426,7 +2421,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped) {
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue()))));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kObject)));
@@ -2447,7 +2442,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_WithValues) {
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue()))));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
@@ -2480,7 +2475,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_WithValues_WithSchema) {
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue()))));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt64)));
@@ -2518,7 +2513,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema) {
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
           DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue()))));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kText)));
@@ -2808,7 +2803,7 @@ TEST(ObjectFactoriesTest, CreateDictLike) {
   EXPECT_THAT(
       ds.slice().allocation_ids(),
       ElementsAre(Property(&internal::AllocationId::IsDictsAlloc, IsTrue())));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kObject)));
@@ -2842,7 +2837,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues) {
   EXPECT_THAT(
       ds.slice().allocation_ids(),
       ElementsAre(Property(&internal::AllocationId::IsDictsAlloc, IsTrue())));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
@@ -2890,7 +2885,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues_WithSchema) {
   EXPECT_THAT(
       ds.slice().allocation_ids(),
       ElementsAre(Property(&internal::AllocationId::IsDictsAlloc, IsTrue())));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt64)));
@@ -2918,7 +2913,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_DataItem) {
                               /*values=*/std::nullopt));
   EXPECT_THAT(ds.item(),
               DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kObject)));
@@ -2935,7 +2930,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_MissingDataItem) {
       auto ds, CreateDictLike(db, shape_and_mask_from, /*keys=*/std::nullopt,
                               /*values=*/std::nullopt));
   EXPECT_THAT(ds.item(), MissingDataItem());
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape_and_mask_from.GetShape()));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kObject)));
@@ -3112,7 +3107,7 @@ TEST(ObjectFactoriesTest, CreateListLike) {
   EXPECT_THAT(
       ds.slice().allocation_ids(),
       ElementsAre(Property(&internal::AllocationId::IsListsAlloc, IsTrue())));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
@@ -3143,7 +3138,7 @@ TEST(ObjectFactoriesTest, CreateListLike_WithValues) {
   EXPECT_THAT(
       ds.slice().allocation_ids(),
       ElementsAre(Property(&internal::AllocationId::IsListsAlloc, IsTrue())));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
               // Deduced from values.
@@ -3162,7 +3157,7 @@ TEST(ObjectFactoriesTest, CreateListLike_DataItem) {
                      /*schema=*/std::nullopt, test::Schema(schema::kInt32)));
   EXPECT_THAT(ds.item(),
               DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
@@ -3178,7 +3173,7 @@ TEST(ObjectFactoriesTest, CreateListLike_MissingDataItem) {
                                                /*schema=*/std::nullopt,
                                                test::Schema(schema::kInt32)));
   EXPECT_THAT(ds.item(), MissingDataItem());
-  EXPECT_EQ(ds.GetDb(), db);
+  EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));

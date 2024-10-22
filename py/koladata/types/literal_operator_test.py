@@ -88,7 +88,8 @@ class LiteralOperatorTest(parameterized.TestCase):
     literal_value = ds([l1, l2])
     expr = literal_operator.literal(literal_value)
     testing.assert_equal(
-        expr.qvalue[:], ds([['a', 'b'], ['x', 'y']]).with_db(literal_value.db)
+        expr.qvalue[:],
+        ds([['a', 'b'], ['x', 'y']]).with_bag(literal_value.get_bag()),
     )
 
   def test_qvalue_passthrough(self):

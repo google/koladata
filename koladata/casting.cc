@@ -67,7 +67,7 @@ absl::StatusOr<DataSlice> ToNumericLike(const DataSlice& slice,
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, ToNumericImpl()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             internal::DataItem(dst_dtype), slice.GetDb());
+                             internal::DataItem(dst_dtype), slice.GetBag());
   });
 }
 
@@ -133,7 +133,7 @@ absl::StatusOr<DataSlice> ToNone(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToNone()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             internal::DataItem(schema::kNone), slice.GetDb());
+                             internal::DataItem(schema::kNone), slice.GetBag());
   });
 }
 
@@ -144,7 +144,7 @@ absl::StatusOr<DataSlice> ToExpr(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToExpr()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             internal::DataItem(schema::kExpr), slice.GetDb());
+                             internal::DataItem(schema::kExpr), slice.GetBag());
   });
 }
 
@@ -157,7 +157,7 @@ absl::StatusOr<DataSlice> ToText(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToText()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             internal::DataItem(schema::kText), slice.GetDb());
+                             internal::DataItem(schema::kText), slice.GetBag());
   });
 }
 
@@ -168,7 +168,8 @@ absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToBytes()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             internal::DataItem(schema::kBytes), slice.GetDb());
+                             internal::DataItem(schema::kBytes),
+                             slice.GetBag());
   });
 }
 
@@ -180,7 +181,7 @@ absl::StatusOr<DataSlice> Decode(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::Decode()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             internal::DataItem(schema::kText), slice.GetDb());
+                             internal::DataItem(schema::kText), slice.GetBag());
   });
 }
 
@@ -192,7 +193,8 @@ absl::StatusOr<DataSlice> Encode(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::Encode()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             internal::DataItem(schema::kBytes), slice.GetDb());
+                             internal::DataItem(schema::kBytes),
+                             slice.GetBag());
   });
 }
 
@@ -203,7 +205,7 @@ absl::StatusOr<DataSlice> ToMask(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToMask()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             internal::DataItem(schema::kMask), slice.GetDb());
+                             internal::DataItem(schema::kMask), slice.GetBag());
   });
 }
 
@@ -214,7 +216,7 @@ absl::StatusOr<DataSlice> ToBool(const DataSlice& slice) {
 absl::StatusOr<DataSlice> ToAny(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) {
     return DataSlice::Create(std::move(impl), slice.GetShape(),
-                             internal::DataItem(schema::kAny), slice.GetDb());
+                             internal::DataItem(schema::kAny), slice.GetBag());
   });
 }
 
@@ -228,7 +230,7 @@ absl::StatusOr<DataSlice> ToItemId(const DataSlice& slice) {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToItemId()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kItemId),
-                             slice.GetDb());
+                             slice.GetBag());
   });
 }
 
@@ -242,7 +244,7 @@ absl::StatusOr<DataSlice> ToSchema(const DataSlice& slice) {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToSchema()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kSchema),
-                             slice.GetDb());
+                             slice.GetBag());
   });
 }
 
@@ -261,13 +263,13 @@ absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
     ASSIGN_OR_RETURN(auto impl_res, schema::ToItemId()(impl),
                      _ << "while casting to entity schema: " << entity_schema);
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             entity_schema, slice.GetDb());
+                             entity_schema, slice.GetBag());
   });
 }
 
 absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,
                                    bool validate_schema) {
-  const auto& db = slice.GetDb();
+  const auto& db = slice.GetBag();
   internal::DataBagImpl* db_impl_ptr = nullptr;
   // TODO: Consider adding support for immutable bags in the low
   // level ToObject.
@@ -296,7 +298,7 @@ absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& slice,
   }
   ASSIGN_OR_RETURN(auto common_schema,
                    schema::CommonSchema(slice.GetSchemaImpl(), schema),
-                   AssembleErrorMessage(_, {.db = slice.GetDb()}));
+                   AssembleErrorMessage(_, {.db = slice.GetBag()}));
   if (common_schema != schema) {
     return absl::InvalidArgumentError(
         absl::StrFormat("unsupported implicit cast from %v to %v",
@@ -329,7 +331,7 @@ absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& slice,
   }
   ASSIGN_OR_RETURN(auto common_schema,
                    schema::CommonSchema(GetNarrowedSchema(slice), schema),
-                   AssembleErrorMessage(_, {.db = slice.GetDb()}));
+                   AssembleErrorMessage(_, {.db = slice.GetBag()}));
   if (common_schema != schema) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "unsupported narrowing cast to %v for the given %v DataSlice", schema,

@@ -147,7 +147,7 @@ def to_dataframe(
     ds = ds.add_dim(1)
 
   get_attr_fn = kdi.get_attr
-  if ds.db is None:
+  if ds.get_bag() is None:
     if cols is not None:
       raise ValueError(
           f'Cannot specify columns {cols!r} for a DataSlice without a db.'

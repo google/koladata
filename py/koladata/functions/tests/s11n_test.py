@@ -65,7 +65,7 @@ class DumpsLoadsTest(parameterized.TestCase):
     loaded_slice = s11n.loads(dumped_bytes)
     testing.assert_equal(loaded_slice, input_slice)
 
-  def test_dumps_load_db_fails_on_random_bytes(self):
+  def test_dumps_load_bag_fails_on_random_bytes(self):
     with self.assertRaises(ValueError):
       s11n.loads(b'foo')
 
@@ -85,11 +85,11 @@ class DumpsLoadsTest(parameterized.TestCase):
       s11n.loads(dumped_bytes)
 
   @parameterized.parameters(*DS_DATA)
-  def test_dumps_loads_db(self, input_slice):
-    input_slice_with_db = input_slice.with_db(db())
-    dumped_bytes = s11n.dumps(input_slice_with_db.db)
-    loaded_db = s11n.loads(dumped_bytes)
-    testing.assert_equivalent(loaded_db, input_slice_with_db.db)
+  def test_dumps_loads_bag(self, input_slice):
+    input_slice_with_bag = input_slice.with_bag(db())
+    dumped_bytes = s11n.dumps(input_slice_with_bag.get_bag())
+    loaded_bag = s11n.loads(dumped_bytes)
+    testing.assert_equivalent(loaded_bag, input_slice_with_bag.get_bag())
 
   def test_dumps_with_riegeli_options(self):
     input_slice = kd.range(1_000_000)

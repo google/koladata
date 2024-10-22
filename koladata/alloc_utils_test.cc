@@ -41,16 +41,16 @@ TEST(AllocateLikeTest, ItemId_Item) {
                    internal::Allocate, internal::DataItem(schema::kAny)));
   EXPECT_TRUE(res.item().holds_value<internal::ObjectId>());
   EXPECT_EQ(res.GetSchemaImpl(), schema::kAny);
-  EXPECT_EQ(res.GetDb(), nullptr);
+  EXPECT_EQ(res.GetBag(), nullptr);
 
   shape_and_mask_from = test::DataItem(internal::DataItem());
   EXPECT_THAT(
       AllocateLike(shape_and_mask_from, internal::AllocateSingleObject,
                    internal::Allocate, internal::DataItem(schema::kAny)),
-      IsOkAndHolds(AllOf(
-          Property(&DataSlice::item, Eq(shape_and_mask_from.item())),
-          Property(&DataSlice::GetSchemaImpl, Eq(schema::kAny)),
-          Property(&DataSlice::GetDb, Eq(nullptr)))));
+      IsOkAndHolds(
+          AllOf(Property(&DataSlice::item, Eq(shape_and_mask_from.item())),
+                Property(&DataSlice::GetSchemaImpl, Eq(schema::kAny)),
+                Property(&DataSlice::GetBag, Eq(nullptr)))));
 }
 
 TEST(AllocateLikeTest, ItemId_Slice) {
@@ -60,11 +60,9 @@ TEST(AllocateLikeTest, ItemId_Slice) {
                           internal::AllocateSingleObject,
                           internal::Allocate,
                           internal::DataItem(schema::kAny));
-  EXPECT_THAT(
-      res,
-      IsOkAndHolds(AllOf(
-          Property(&DataSlice::GetSchemaImpl, Eq(schema::kAny)),
-          Property(&DataSlice::GetDb, Eq(nullptr)))));
+  EXPECT_THAT(res, IsOkAndHolds(AllOf(
+                       Property(&DataSlice::GetSchemaImpl, Eq(schema::kAny)),
+                       Property(&DataSlice::GetBag, Eq(nullptr)))));
 
   EXPECT_EQ(res->slice().allocation_ids().size(), 1);
   auto alloc_id = *res->slice().allocation_ids().begin();
@@ -85,11 +83,9 @@ TEST(AllocateLikeTest, SpecializedItemId_Item) {
                           internal::AllocateSingleList,
                           internal::AllocateLists,
                           internal::DataItem(schema::kItemId), db);
-  EXPECT_THAT(
-      res,
-      IsOkAndHolds(AllOf(
-          Property(&DataSlice::GetSchemaImpl, Eq(schema::kItemId)),
-          Property(&DataSlice::GetDb, Eq(db)))));
+  EXPECT_THAT(res, IsOkAndHolds(AllOf(
+                       Property(&DataSlice::GetSchemaImpl, Eq(schema::kItemId)),
+                       Property(&DataSlice::GetBag, Eq(db)))));
   EXPECT_TRUE(res->item().value<internal::ObjectId>().IsList());
 }
 
@@ -100,11 +96,9 @@ TEST(AllocateLikeTest, SpecializedItemId_Slice) {
                           internal::AllocateSingleDict,
                           internal::AllocateDicts,
                           internal::DataItem(schema::kItemId), db);
-  EXPECT_THAT(
-      res,
-      IsOkAndHolds(AllOf(
-          Property(&DataSlice::GetSchemaImpl, Eq(schema::kItemId)),
-          Property(&DataSlice::GetDb, Eq(db)))));
+  EXPECT_THAT(res, IsOkAndHolds(AllOf(
+                       Property(&DataSlice::GetSchemaImpl, Eq(schema::kItemId)),
+                       Property(&DataSlice::GetBag, Eq(db)))));
 
   EXPECT_EQ(res->slice().allocation_ids().size(), 1);
   auto alloc_id = *res->slice().allocation_ids().begin();

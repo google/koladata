@@ -334,7 +334,7 @@ absl::StatusOr<DataSlice> ExpandToShape(const DataSlice& x,
   }
 
   auto temp_db = DataBag::Empty();
-  auto new_x = x.WithDb(temp_db);
+  auto new_x = x.WithBag(temp_db);
   for (int64_t i = 0; i < ndim; ++i) {
     ASSIGN_OR_RETURN(new_x, CreateListsFromLastDimension(temp_db, new_x));
   }
@@ -349,7 +349,7 @@ absl::StatusOr<DataSlice> ExpandToShape(const DataSlice& x,
   for (int64_t i = 0; i < ndim; ++i) {
     ASSIGN_OR_RETURN(new_x, new_x.ExplodeList(0, std::nullopt));
   }
-  return new_x.WithDb(x.GetDb());
+  return new_x.WithBag(x.GetBag());
 }
 
 }  // namespace koladata::ops

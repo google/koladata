@@ -32,13 +32,13 @@ class DictShapedAsTest(parameterized.TestCase):
     self.assertIsInstance(x, data_slice.DataSlice)
     x['a'] = ds([1, 2, 3])
     testing.assert_equal(
-        x['a'], ds([1, 2, 3], schema_constants.OBJECT).with_db(x.db)
+        x['a'], ds([1, 2, 3], schema_constants.OBJECT).with_bag(x.get_bag())
     )
 
   def test_with_dict_kv(self):
     x = fns.dict_shaped_as(ds(1), {'foo': 57, 'bar': 42})
     testing.assert_dicts_keys_equal(x, ds(['foo', 'bar']))
-    testing.assert_equal(x['foo'], ds(57).with_db(x.db))
+    testing.assert_equal(x['foo'], ds(57).with_bag(x.get_bag()))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -53,13 +53,13 @@ class DictShapedAsTest(parameterized.TestCase):
         ds([1, 2]),
     )
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['b']]]))
-    testing.assert_equal(x['a'], ds([[1, 1], [None]]).with_db(x.db))
-    testing.assert_equal(x['b'], ds([[None, None], [2]]).with_db(x.db))
+    testing.assert_equal(x['a'], ds([[1, 1], [None]]).with_bag(x.get_bag()))
+    testing.assert_equal(x['b'], ds([[None, None], [2]]).with_bag(x.get_bag()))
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = fns.bag()
     x = fns.dict_shaped_as(ds([[0, None], [0]]), db=db)
-    testing.assert_equal(x.db, db)
+    testing.assert_equal(x.get_bag(), db)
 
   def test_key_schema_arg(self):
     x = fns.dict_shaped_as(
@@ -67,7 +67,7 @@ class DictShapedAsTest(parameterized.TestCase):
         key_schema=schema_constants.INT32,
     )
     testing.assert_equal(
-        x.get_schema().get_attr('__keys__').with_db(None),
+        x.get_schema().get_attr('__keys__').with_bag(None),
         schema_constants.INT32,
     )
 
@@ -77,7 +77,7 @@ class DictShapedAsTest(parameterized.TestCase):
         value_schema=schema_constants.OBJECT,
     )
     testing.assert_equal(
-        x.get_schema().get_attr('__values__').with_db(None),
+        x.get_schema().get_attr('__values__').with_bag(None),
         schema_constants.OBJECT,
     )
 
@@ -85,7 +85,7 @@ class DictShapedAsTest(parameterized.TestCase):
     itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.dict_shaped_as(itemid, 'a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid)
+    testing.assert_equal(x.no_bag().as_itemid(), itemid)
 
   def test_schema(self):
     x = fns.dict_shaped_as(
@@ -93,11 +93,11 @@ class DictShapedAsTest(parameterized.TestCase):
         schema=fns.dict_schema(schema_constants.INT32, schema_constants.OBJECT),
     )
     testing.assert_equal(
-        x.get_schema().get_attr('__keys__').with_db(None),
+        x.get_schema().get_attr('__keys__').with_bag(None),
         schema_constants.INT32,
     )
     testing.assert_equal(
-        x.get_schema().get_attr('__values__').with_db(None),
+        x.get_schema().get_attr('__values__').with_bag(None),
         schema_constants.OBJECT,
     )
 

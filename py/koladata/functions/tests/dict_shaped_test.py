@@ -40,7 +40,7 @@ class DictShapedTest(parameterized.TestCase):
     self.assertIsInstance(x, data_slice.DataSlice)
     x['a'] = ds([1, 2, 3])
     testing.assert_equal(
-        x['a'], ds([1, 2, 3], schema_constants.OBJECT).with_db(x.db)
+        x['a'], ds([1, 2, 3], schema_constants.OBJECT).with_bag(x.get_bag())
     )
 
   def test_no_kv_scalar(self):
@@ -48,12 +48,14 @@ class DictShapedTest(parameterized.TestCase):
     x = fns.dict_shaped(shape)
     self.assertIsInstance(x, dict_item.DictItem)
     x['a'] = 57
-    testing.assert_equal(x['a'], ds(57, schema_constants.OBJECT).with_db(x.db))
+    testing.assert_equal(
+        x['a'], ds(57, schema_constants.OBJECT).with_bag(x.get_bag())
+    )
 
   def test_with_dict_kv(self):
     x = fns.dict_shaped(jagged_shape.create_shape(), {'foo': 57, 'bar': 42})
     testing.assert_dicts_keys_equal(x, ds(['foo', 'bar']))
-    testing.assert_equal(x['foo'], ds(57).with_db(x.db))
+    testing.assert_equal(x['foo'], ds(57).with_bag(x.get_bag()))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -64,7 +66,7 @@ class DictShapedTest(parameterized.TestCase):
   def test_with_scalar_kv(self):
     x = fns.dict_shaped(jagged_shape.create_shape(), 'foo', 57)
     testing.assert_dicts_keys_equal(x, ds(['foo']))
-    testing.assert_equal(x['foo'], ds(57).with_db(x.db))
+    testing.assert_equal(x['foo'], ds(57).with_bag(x.get_bag()))
 
   def test_with_kv(self):
     shape = ds([[0, 0], [0]]).get_shape()
@@ -74,12 +76,8 @@ class DictShapedTest(parameterized.TestCase):
         ds([1, 2]),
     )
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['b']]]))
-    testing.assert_equal(
-        x['a'], ds([[1, 1], [None]]).with_db(x.db)
-    )
-    testing.assert_equal(
-        x['b'], ds([[None, None], [2]]).with_db(x.db)
-    )
+    testing.assert_equal(x['a'], ds([[1, 1], [None]]).with_bag(x.get_bag()))
+    testing.assert_equal(x['b'], ds([[None, None], [2]]).with_bag(x.get_bag()))
 
   @parameterized.parameters(
       dict(
@@ -175,11 +173,11 @@ class DictShapedTest(parameterized.TestCase):
         schema=schema,
     ).get_schema()
     testing.assert_equal(
-        result_schema.get_attr('__keys__').no_db(),
+        result_schema.get_attr('__keys__').no_bag(),
         expected_key_schema,
     )
     testing.assert_equal(
-        result_schema.get_attr('__values__').no_db(),
+        result_schema.get_attr('__values__').no_bag(),
         expected_value_schema,
     )
 
@@ -216,9 +214,9 @@ class DictShapedTest(parameterized.TestCase):
     itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.dict_shaped(itemid.get_shape(), 'a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid)
+    testing.assert_equal(x.no_bag().as_itemid(), itemid)
 
-  def test_itemid_from_different_db(self):
+  def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
     itemid = fns.dict_shaped(ds([[1, 1], [1]]).get_shape(), 'a', triple)
 
@@ -228,12 +226,12 @@ class DictShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'attribute \'non_existent\' is missing'
     ):
-      _ = triple.with_db(x.db).non_existent
+      _ = triple.with_bag(x.get_bag()).non_existent
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = fns.bag()
     x = fns.dict_shaped(ds([[0, None], [0]]).get_shape(), db=db)
-    testing.assert_equal(x.db, db)
+    testing.assert_equal(x.get_bag(), db)
 
   def test_errors(self):
     with self.assertRaisesRegex(

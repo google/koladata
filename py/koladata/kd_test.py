@@ -100,37 +100,37 @@ class KdTest(absltest.TestCase):
   def test_entities(self):
     x = kd.new(a=1, b='abc')
     y = kd.new(a=1, b='abc')
-    kd.testing.assert_equal(x.get_schema().a, kd.INT32.with_db(x.db))
-    kd.testing.assert_equal(x.get_schema().b, kd.TEXT.with_db(x.db))
+    kd.testing.assert_equal(x.get_schema().a, kd.INT32.with_bag(x.get_bag()))
+    kd.testing.assert_equal(x.get_schema().b, kd.TEXT.with_bag(x.get_bag()))
     with self.assertRaises(AssertionError):
       kd.testing.assert_equal(x, y)
-    kd.testing.assert_equal(x.a.no_db(), y.a.no_db())
+    kd.testing.assert_equal(x.a.no_bag(), y.a.no_bag())
 
   def test_objects(self):
     x = kd.obj(a=1, b='abc')
     y = kd.obj(a=1, b='abc')
-    kd.testing.assert_equal(x.get_schema(), kd.OBJECT.with_db(x.db))
-    kd.testing.assert_equal(y.get_schema(), kd.OBJECT.with_db(y.db))
+    kd.testing.assert_equal(x.get_schema(), kd.OBJECT.with_bag(x.get_bag()))
+    kd.testing.assert_equal(y.get_schema(), kd.OBJECT.with_bag(y.get_bag()))
     with self.assertRaises(AssertionError):
       kd.testing.assert_equal(x, y)
-    kd.testing.assert_equal(x.a.no_db(), y.a.no_db())
+    kd.testing.assert_equal(x.a.no_bag(), y.a.no_bag())
 
   def test_mutable_obj(self):
     x = kd.mutable_obj(x=1, y=2)
-    kd.testing.assert_equal(x.x, kd.item(1).with_db(x.db))
-    kd.testing.assert_equal(x.y, kd.item(2).with_db(x.db))
+    kd.testing.assert_equal(x.x, kd.item(1).with_bag(x.get_bag()))
+    kd.testing.assert_equal(x.y, kd.item(2).with_bag(x.get_bag()))
     x.x = 3
-    kd.testing.assert_equal(x.x, kd.item(3).with_db(x.db))
+    kd.testing.assert_equal(x.x, kd.item(3).with_bag(x.get_bag()))
 
   def test_mutable_obj_like(self):
     x = kd.mutable_obj_like(kd.slice([1, None, 2]))
     x.x = 1
-    kd.testing.assert_equal(x.x, kd.slice([1, None, 1]).with_db(x.db))
+    kd.testing.assert_equal(x.x, kd.slice([1, None, 1]).with_bag(x.get_bag()))
 
   def test_mutable_obj_shaped(self):
     x = kd.mutable_obj_shaped(jagged_shape.create_shape(2, [1, 2]))
     x.x = 1
-    kd.testing.assert_equal(x.x, kd.slice([[1], [1, 1]]).with_db(x.db))
+    kd.testing.assert_equal(x.x, kd.slice([[1], [1, 1]]).with_bag(x.get_bag()))
 
   def test_expr(self):
     kd.testing.assert_equal(
@@ -316,9 +316,11 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.unpack_expr(fn.f.returns), I.x + 1)
 
   def test_call_with_kd_types_return_type(self):
-    fn = kdf.fn(returns=I.x.db)
+    fn = kdf.fn(returns=I.x.get_bag())
     obj = kd.obj(x=1)
-    kd.testing.assert_equal(fn(x=obj, return_type_as=kd.types.DataBag), obj.db)
+    kd.testing.assert_equal(
+        fn(x=obj, return_type_as=kd.types.DataBag), obj.get_bag()
+    )
     fn = kdf.fn(returns=I.x)
     obj = kd.obj(x=1)
     kd.testing.assert_equal(fn(x=obj, return_type_as=kd.types.DataSlice), obj)

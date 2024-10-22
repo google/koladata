@@ -68,7 +68,7 @@ def _extract_auto_variables(variables: dict[str, Any]) -> dict[str, Any]:
         val = typing.cast(data_slice.DataSlice, val)
         # Keep simple constants inlined, to avoid too many variables.
         if (
-            val.db is None
+            val.get_bag() is None
             and val.get_ndim() == 0
             and (
                 val.get_schema().is_primitive_schema()

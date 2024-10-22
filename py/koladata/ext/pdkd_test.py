@@ -41,7 +41,9 @@ class NpkdTest(parameterized.TestCase):
       ds = pdkd.from_dataframe(df)
       testing.assert_equal(
           ds.x,
-          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_db(ds.db),
+          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_bag(
+              ds.get_bag()
+          ),
       )
 
     with self.subTest('multi-dimensional int df'):
@@ -52,7 +54,7 @@ class NpkdTest(parameterized.TestCase):
           ds.x,
           kd.slice(
               [[1, 2], [3], [], [4, 5]], schema=schema_constants.INT64
-          ).with_db(ds.db),
+          ).with_bag(ds.get_bag()),
       )
 
     with self.subTest('non-primitive df'):
@@ -61,11 +63,14 @@ class NpkdTest(parameterized.TestCase):
       self.assertCountEqual(dir(ds), ['self_', 'x'])
       self.assertNotEqual(ds.get_schema(), schema_constants.OBJECT)
       testing.assert_equal(
-          ds.get_attr('self_'), kd.slice(['$1', '$2', '$3']).with_db(ds.db)
+          ds.get_attr('self_'),
+          kd.slice(['$1', '$2', '$3']).with_bag(ds.get_bag()),
       )
       testing.assert_equal(
           ds.x,
-          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_db(ds.db)
+          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_bag(
+              ds.get_bag()
+          ),
       )
 
     with self.subTest('non-primitive df with as_obj set to True'):
@@ -74,11 +79,14 @@ class NpkdTest(parameterized.TestCase):
       self.assertCountEqual(dir(ds), ['self_', 'x'])
       self.assertEqual(ds.get_schema(), schema_constants.OBJECT)
       testing.assert_equal(
-          ds.get_attr('self_'), kd.slice(['$1', '$2', '$3']).with_db(ds.db)
+          ds.get_attr('self_'),
+          kd.slice(['$1', '$2', '$3']).with_bag(ds.get_bag()),
       )
       testing.assert_equal(
           ds.x,
-          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_db(ds.db)
+          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_bag(
+              ds.get_bag()
+          ),
       )
 
     with self.subTest('empty df'):
@@ -102,7 +110,7 @@ class NpkdTest(parameterized.TestCase):
         _ = pdkd.to_dataframe(ds)
 
     with self.subTest('primitive ds with databag'):
-      ds = kd.slice([1, 2, 3]).with_db(kd.bag())
+      ds = kd.slice([1, 2, 3]).with_bag(kd.bag())
       df = pdkd.to_dataframe(ds)
       self.assertNotIsInstance(df.index, pd.DataFrame)
       self.assertCountEqual(df.columns, ['self_'])
@@ -207,7 +215,7 @@ class NpkdTest(parameterized.TestCase):
       self.assertCountEqual(df['x'], [1, 2, 3])
       self.assertCountEqual(df[expected_optional_column], ['a', None, 'c'])
 
-      ds1 = ds.fork_db()
+      ds1 = ds.fork_bag()
       ds1.y = ds1.get_attr('y', default=None)
       df = pdkd.to_dataframe(ds1, cols=['x', 'y'])
       self.assertCountEqual(df.columns, ['x', 'y'])
@@ -221,7 +229,7 @@ class NpkdTest(parameterized.TestCase):
         _ = pdkd.to_dataframe(ds, cols=['z'])
 
     with self.subTest('entity ds without db'):
-      ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c'])).no_db()
+      ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c'])).no_bag()
       df = pdkd.to_dataframe(ds)
       self.assertCountEqual(df.columns, ['self_'])
       self.assertCountEqual(df['self_'], ds.internal_as_py())

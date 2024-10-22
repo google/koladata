@@ -55,30 +55,35 @@ namespace koladata::python {
 
 namespace {
 
-absl::Nullable<PyObject*> PyDataSlice_get_db(PyObject* self, void*) {
+absl::Nullable<PyObject*> PyDataSlice_get_bag(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
-  auto db = UnsafeDataSliceRef(self).GetDb();
+  auto db = UnsafeDataSliceRef(self).GetBag();
   if (db == nullptr) {
     Py_RETURN_NONE;
   }
   return arolla::python::WrapAsPyQValue(arolla::TypedValue::FromValue(db));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_with_db(PyObject* self, PyObject* db) {
+// TODO: Remove this alias.
+absl::Nullable<PyObject*> PyDataSlice_db_getter(PyObject* self, void*) {
+  return PyDataSlice_get_bag(self, nullptr);
+}
+
+absl::Nullable<PyObject*> PyDataSlice_with_bag(PyObject* self, PyObject* db) {
   arolla::python::DCheckPyGIL();
   if (db == Py_None) {
-    return WrapPyDataSlice(UnsafeDataSliceRef(self).WithDb(nullptr));
+    return WrapPyDataSlice(UnsafeDataSliceRef(self).WithBag(nullptr));
   }
   DataBagPtr db_ptr = UnwrapDataBagPtr(db, "db");
   if (db_ptr == nullptr) {
     return nullptr;
   }
-  return WrapPyDataSlice(UnsafeDataSliceRef(self).WithDb(std::move(db_ptr)));
+  return WrapPyDataSlice(UnsafeDataSliceRef(self).WithBag(std::move(db_ptr)));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_no_db(PyObject* self, PyObject*) {
+absl::Nullable<PyObject*> PyDataSlice_no_bag(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
-  return WrapPyDataSlice(UnsafeDataSliceRef(self).WithDb(nullptr));
+  return WrapPyDataSlice(UnsafeDataSliceRef(self).WithBag(nullptr));
 }
 
 // classmethod
@@ -236,7 +241,7 @@ int PyDataSlice_setattro(PyObject* self, PyObject* attr_name, PyObject* value) {
                    (SetKodaPyErrFromStatus(_), -1));
   auto status = self_ds.SetAttr(attr_name_view, value_ds);
   if (status.ok()) {
-    status = adoption_queue.AdoptInto(*self_ds.GetDb());
+    status = adoption_queue.AdoptInto(*self_ds.GetBag());
   }
   if (!status.ok()) {
     SetKodaPyErrFromStatus(status);
@@ -286,7 +291,7 @@ absl::Nullable<PyObject*> PyDataSlice_set_attr(PyObject* self,
     RETURN_IF_ERROR(self_ds.SetAttr(attr_name_view, value_ds))
         .With(SetKodaPyErrFromStatus);
   }
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetDb()))
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
       .With(SetKodaPyErrFromStatus);
   Py_RETURN_NONE;
 }
@@ -310,11 +315,11 @@ absl::Nullable<PyObject*> PyDataSlice_set_attrs(PyObject* self,
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
-      ConvertArgsToDataSlices(self_ds.GetDb(), args.kw_values, adoption_queue),
+      ConvertArgsToDataSlices(self_ds.GetBag(), args.kw_values, adoption_queue),
       SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(self_ds.SetAttrs(args.kw_names, values, update_schema))
       .With(SetKodaPyErrFromStatus);
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetDb()))
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
       .With(SetKodaPyErrFromStatus);
   Py_RETURN_NONE;
 }
@@ -396,7 +401,7 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
     }
   }
   if (status.ok()) {
-    status = adoption_queue.AdoptInto(*self_ds.GetDb());
+    status = adoption_queue.AdoptInto(*self_ds.GetBag());
   }
   if (!status.ok()) {
     SetKodaPyErrFromStatus(status);
@@ -453,7 +458,7 @@ absl::Nullable<PyObject*> PyDataSlice_append(PyObject* self,
                    AssignmentRhsFromPyValue(self_ds, args[0], adoption_queue),
                    SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(self_ds.AppendToList(ds)).With(SetKodaPyErrFromStatus);
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetDb()))
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
       .With(SetKodaPyErrFromStatus);
   Py_RETURN_NONE;
 }
@@ -570,7 +575,7 @@ absl::Nullable<PyObject*> PyDataSlice_is_empty(PyObject* self, PyObject*) {
 absl::Nullable<PyObject*> PyDataSlice_is_mutable(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  const auto& db = ds.GetDb();
+  const auto& db = ds.GetBag();
   return WrapPyDataSlice(AsMask(db != nullptr && db->IsMutable()));
 }
 
@@ -688,19 +693,12 @@ PyDataSlice_internal_register_reserved_class_method_name(
   Py_RETURN_NONE;
 }
 
-PyGetSetDef kPyDataSlice_getset[] = {
-    {
-        .name = "db",
-        .get = PyDataSlice_get_db,
-        .doc = "Attached DataBag.",
-    },
-    {nullptr}, /* sentinel */
-};
-
 PyMethodDef kPyDataSlice_methods[] = {
-    {"with_db", PyDataSlice_with_db, METH_O,
+    {"get_bag", PyDataSlice_get_bag, METH_NOARGS,
+     "Returns the attached DataBag."},
+    {"with_bag", PyDataSlice_with_bag, METH_O,
      "Returns a copy of DataSlice with DataBag `db`."},
-    {"no_db", PyDataSlice_no_db, METH_NOARGS,
+    {"no_bag", PyDataSlice_no_bag, METH_NOARGS,
      "Returns a copy of DataSlice without DataBag."},
     {"from_vals", (PyCFunction)PyDataSlice_from_vals,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
@@ -709,7 +707,8 @@ PyMethodDef kPyDataSlice_methods[] = {
      "otherwise the schema is inferred from `value`."},
     {"_unspecified", (PyCFunction)PyDataSlice_unspecified,
      METH_CLASS | METH_NOARGS,
-     "Returns an UNSPECIFIED with DataSlice QType."""},
+     "Returns an UNSPECIFIED with DataSlice QType."
+     ""},
     {"internal_as_py", PyDataSlice_internal_as_py, METH_NOARGS,
      "Returns a Python object equivalent to this DataSlice.\n"
      "\n"
@@ -845,8 +844,10 @@ PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore() {
             res.emplace(method->ml_name);
           }
           const PyGetSetDef* getter = type->tp_getset;
-          for (; getter->name != nullptr; ++getter) {
-            res.emplace(getter->name);
+          if (getter != nullptr) {
+            for (; getter->name != nullptr; ++getter) {
+              res.emplace(getter->name);
+            }
           }
           type = type->tp_base;
         }
@@ -867,6 +868,16 @@ PyObject* PyDataSlice_richcompare_not_implemented(PyObject* self,
                   "RichCompare methods are overwritten in Python");
   return nullptr;
 }
+
+// TODO: Remove this alias.
+PyGetSetDef kPyDataSlice_getset[] = {
+    {
+        .name = "db",
+        .get = PyDataSlice_db_getter,
+        .doc = "This property is deprecated, please use .get_bag().",
+    },
+    {nullptr}, /* sentinel */
+};
 
 // Creates and initializes PyTypeObject for Python DataSlice class.
 PyTypeObject* InitPyDataSliceType() {

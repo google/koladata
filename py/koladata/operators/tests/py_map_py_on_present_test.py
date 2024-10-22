@@ -37,19 +37,19 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     x = ds([1, 2, None])
     y = ds([3, None, 4])
     r = expr_eval.eval(kde.py.map_py_on_present(lambda x, y: x + y, x, y))
-    testing.assert_equal(r.no_db(), ds([4, None, None]))
+    testing.assert_equal(r.no_bag(), ds([4, None, None]))
 
     r = expr_eval.eval(kde.py.map_py_on_present(lambda x, y: x + y, x, y=y))
-    testing.assert_equal(r.no_db(), ds([4, None, None]))
+    testing.assert_equal(r.no_bag(), ds([4, None, None]))
 
     r = expr_eval.eval(kde.py.map_py_on_present(lambda x, y: x + y, x=x, y=y))
-    testing.assert_equal(r.no_db(), ds([4, None, None]))
+    testing.assert_equal(r.no_bag(), ds([4, None, None]))
 
   def test_rank_2(self):
     x = ds([[1, 2], [], []])
     y = ds([3.5, None, 4.5])
     r = expr_eval.eval(kde.py.map_py_on_present(lambda x, y: x + y, x, y))
-    testing.assert_equal(r.no_db(), ds([[4.5, 5.5], [], []]))
+    testing.assert_equal(r.no_bag(), ds([[4.5, 5.5], [], []]))
 
   def test_view(self):
     self.assertTrue(

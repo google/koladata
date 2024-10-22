@@ -32,10 +32,10 @@ class DictSchemaTest(absltest.TestCase):
     db = bag()
     schema = fns.dict_schema(schema_constants.TEXT, schema_constants.INT32, db)
     testing.assert_equal(
-        schema.get_attr('__keys__'), schema_constants.TEXT.with_db(db)
+        schema.get_attr('__keys__'), schema_constants.TEXT.with_bag(db)
     )
     testing.assert_equal(
-        schema.get_attr('__values__'), schema_constants.INT32.with_db(db)
+        schema.get_attr('__values__'), schema_constants.INT32.with_bag(db)
     )
 
   def test_dict_schema_equivalent_to_schema_of_dict(self):
@@ -48,13 +48,15 @@ class DictSchemaTest(absltest.TestCase):
   def test_no_databag(self):
     schema = fns.dict_schema(schema_constants.TEXT, schema_constants.INT32)
     testing.assert_equal(
-        schema.get_attr('__keys__'), schema_constants.TEXT.with_db(schema.db)
+        schema.get_attr('__keys__'),
+        schema_constants.TEXT.with_bag(schema.get_bag()),
     )
     testing.assert_equal(
-        schema.get_attr('__values__'), schema_constants.INT32.with_db(schema.db)
+        schema.get_attr('__values__'),
+        schema_constants.INT32.with_bag(schema.get_bag()),
     )
 
-  def test_nested_schema_with_db_adoption(self):
+  def test_nested_schema_with_bag_adoption(self):
     db = bag()
     db2 = bag()
     schema = fns.dict_schema(
@@ -63,10 +65,10 @@ class DictSchemaTest(absltest.TestCase):
         db,
     )
     testing.assert_equal(
-        schema.get_attr('__keys__').a, schema_constants.INT32.with_db(db)
+        schema.get_attr('__keys__').a, schema_constants.INT32.with_bag(db)
     )
     testing.assert_equal(
-        schema.get_attr('__values__').a, schema_constants.FLOAT32.with_db(db)
+        schema.get_attr('__values__').a, schema_constants.FLOAT32.with_bag(db)
     )
 
   def test_non_data_slice_arg(self):

@@ -45,12 +45,12 @@ class AllocationNewDictIdShapedTest(parameterized.TestCase):
   def test_eval(self, shape, values):
     dictid = expr_eval.eval(kde.allocation.new_dictid_shaped(shape))
     testing.assert_equal(dictid.get_schema(), schema_constants.ITEMID)
-    dct = dictid.with_db(bag())
+    dct = dictid.with_bag(bag())
     dct = dct.with_schema(
-        dct.db.dict_schema(schema_constants.TEXT, schema_constants.INT32)
+        dct.get_bag().dict_schema(schema_constants.TEXT, schema_constants.INT32)
     )
     dct['abc'] = 42
-    testing.assert_equal(dct['abc'], values.with_db(dct.db))
+    testing.assert_equal(dct['abc'], values.with_bag(dct.get_bag()))
 
   def test_new_alloc_ids(self):
     shape = jagged_shape.create_shape([2])

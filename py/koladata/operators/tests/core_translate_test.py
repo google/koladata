@@ -124,7 +124,7 @@ class CoreTranslateTest(parameterized.TestCase):
   def test_eval(self, keys_to, keys_from, values_from, expected):
     result = expr_eval.eval(kde.core.translate(keys_to, keys_from, values_from))
     testing.assert_equal(result, expected)
-    testing.assert_equal(result.db, values_from.db)
+    testing.assert_equal(result.get_bag(), values_from.get_bag())
 
   def test_incompatible_shapes(self):
     with self.assertRaisesRegex(

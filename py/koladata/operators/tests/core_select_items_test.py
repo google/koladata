@@ -38,7 +38,7 @@ QTYPES = frozenset([
 
 present = arolla.present()
 db = data_bag.DataBag.empty()
-ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_db(db)
+ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
 LIST1 = db.list([[1, 2], [3]])
 
 

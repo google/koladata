@@ -44,7 +44,7 @@ class KodaNewSchemaTest(parameterized.TestCase):
     self.assertFalse(schema.is_mutable())
     for attr_name, val in kwargs.items():
       testing.assert_equal(
-          getattr(schema, attr_name), ds(val).with_db(schema.db)
+          getattr(schema, attr_name), ds(val).with_bag(schema.get_bag())
       )
 
   def test_non_determinism(self):
@@ -58,7 +58,8 @@ class KodaNewSchemaTest(parameterized.TestCase):
       schema_second_eval = expr_eval.eval(expr)
       self.assertNotEqual(schema_first_eval, schema_second_eval)
       self.assertNotEqual(
-          schema_first_eval.db.fingerprint, schema_second_eval.db.fingerprint
+          schema_first_eval.get_bag().fingerprint,
+          schema_second_eval.get_bag().fingerprint,
       )
     with self.subTest('same expr within larger expr'):
       res = expr_eval.eval(kde.schema.new_schema(x=expr, y=expr))
@@ -80,10 +81,12 @@ class KodaNewSchemaTest(parameterized.TestCase):
             {py_boxing.HIDDEN_SEED_LEAF.fingerprint: arolla.literal('error')}
         )
 
-  def test_db_adoption(self):
+  def test_bag_adoption(self):
     a = expr_eval.eval(kde.schema.new_schema(a=schema_constants.INT32))
     b = expr_eval.eval(kde.schema.new_schema(a=a))
-    testing.assert_equal(b.a.a, ds(schema_constants.INT32).with_db(b.db))
+    testing.assert_equal(
+        b.a.a, ds(schema_constants.INT32).with_bag(b.get_bag())
+    )
 
   def test_invalid_arguments(self):
     with self.assertRaisesRegex(

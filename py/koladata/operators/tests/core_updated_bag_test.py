@@ -57,9 +57,9 @@ class CoreUpdatedBagTest(absltest.TestCase):
     o3.y = 4
     db3 = expr_eval.eval(
         kde.core.updated_bag(I.x, I.y, I.z), x=db1, y=db2, z=db3)
-    o4 = o1.stub().with_db(db3)
-    testing.assert_equal(o4.x.no_db(), ds(2))
-    testing.assert_equal(o4.y.no_db(), ds(4))
+    o4 = o1.stub().with_bag(db3)
+    testing.assert_equal(o4.x.no_bag(), ds(2))
+    testing.assert_equal(o4.y.no_bag(), ds(4))
 
   def test_not_enough_args(self):
     with self.assertRaisesRegex(

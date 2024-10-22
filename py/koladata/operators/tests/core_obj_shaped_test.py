@@ -60,7 +60,7 @@ class CoreObjShapedTest(absltest.TestCase):
   def test_item_no_attrs(self):
     shape = jagged_shape.create_shape()
     x = kde.core.obj_shaped(shape).eval()
-    self.assertIsNotNone(x.db)
+    self.assertIsNotNone(x.get_bag())
     testing.assert_equal(x.get_shape(), shape)
     self.assertEqual(x.get_schema(), schema_constants.OBJECT)
     self.assertFalse(x.is_mutable())
@@ -69,11 +69,11 @@ class CoreObjShapedTest(absltest.TestCase):
     shape = jagged_shape.create_shape(2, 3)
     x = kde.core.obj_shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6])).eval()
     testing.assert_equal(x.get_shape(), shape)
-    testing.assert_equal(x.x.no_db(), ds([[2, 2, 2], [2, 2, 2]]))
-    testing.assert_equal(x.a.no_db(), ds([[1, 1, 1], [1, 1, 1]]))
-    testing.assert_equal(x.b.no_db(), ds([['p', 'p', 'p'], ['p', 'p', 'p']]))
+    testing.assert_equal(x.x.no_bag(), ds([[2, 2, 2], [2, 2, 2]]))
+    testing.assert_equal(x.a.no_bag(), ds([[1, 1, 1], [1, 1, 1]]))
+    testing.assert_equal(x.b.no_bag(), ds([['p', 'p', 'p'], ['p', 'p', 'p']]))
     testing.assert_equal(
-        x.c[:].no_db(),
+        x.c[:].no_bag(),
         ds([[[5, 6], [5, 6], [5, 6]], [[5, 6], [5, 6], [5, 6]]]),
     )
     self.assertEqual(x.get_schema(), schema_constants.OBJECT)
@@ -82,12 +82,12 @@ class CoreObjShapedTest(absltest.TestCase):
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))
     x = kde.core.obj_shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
-    testing.assert_equal(x.a.no_db(), ds([[42, 42], [42]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid)
+    testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
+    testing.assert_equal(x.no_bag().as_itemid(), itemid)
 
-  def test_itemid_from_different_db(self):
+  def test_itemid_from_different_bag(self):
     itemid = fns.new(non_existent=ds([[42, 42], [42]])).as_itemid()
-    assert itemid.db is not None
+    assert itemid.get_bag() is not None
     x = kde.core.obj_shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
     with self.assertRaisesRegex(
         ValueError, "attribute 'non_existent' is missing"

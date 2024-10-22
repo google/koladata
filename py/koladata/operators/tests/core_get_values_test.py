@@ -36,7 +36,7 @@ kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
 UNSPECIFIED = arolla.UNSPECIFIED
 db = data_bag.DataBag.empty()
-ds = lambda *arg: data_slice.DataSlice.from_vals(*arg).with_db(db)
+ds = lambda *arg: data_slice.DataSlice.from_vals(*arg).with_bag(db)
 
 dict_item = db.dict({1: 2, 3: 4})
 dict_item2 = db.dict({3: 5})
@@ -137,22 +137,22 @@ class CoreGetValuesTest(parameterized.TestCase):
   def test_fork(self):
     d1 = data_bag.DataBag.empty().dict({1: 2, 3: 4})
     result = expr_eval.eval(kde.get_values(d1))
-    testing.assert_unordered_equal(result, ds([2, 4]).with_db(d1.db))
+    testing.assert_unordered_equal(result, ds([2, 4]).with_bag(d1.get_bag()))
 
     d2 = d1.freeze()
     result = expr_eval.eval(kde.get_values(d2))
-    testing.assert_unordered_equal(result, ds([2, 4]).with_db(d2.db))
+    testing.assert_unordered_equal(result, ds([2, 4]).with_bag(d2.get_bag()))
 
-    d3 = d2.fork_db()
+    d3 = d2.fork_bag()
     del d3[1]
     result = expr_eval.eval(kde.get_values(d3))
-    testing.assert_unordered_equal(result, ds([4]).with_db(d3.db))
+    testing.assert_unordered_equal(result, ds([4]).with_bag(d3.get_bag()))
 
-    d4 = d3.fork_db()
+    d4 = d3.fork_bag()
     d4[1] = 1
     d4[5] = 6
     result = expr_eval.eval(kde.get_values(d4))
-    testing.assert_unordered_equal(result, ds([1, 4, 6]).with_db(d4.db))
+    testing.assert_unordered_equal(result, ds([1, 4, 6]).with_bag(d4.get_bag()))
 
   def test_fallback(self):
     d1 = data_bag.DataBag.empty().dict({1: 2, 3: 4})
@@ -161,20 +161,20 @@ class CoreGetValuesTest(parameterized.TestCase):
     )
     del d2[1]
 
-    d3 = d1.enriched(d2.db)
+    d3 = d1.enriched(d2.get_bag())
     result = expr_eval.eval(kde.get_values(d3))
-    testing.assert_unordered_equal(result, ds([2, 4, 6]).with_db(d3.db))
+    testing.assert_unordered_equal(result, ds([2, 4, 6]).with_bag(d3.get_bag()))
 
-    d4 = d2.enriched(d1.db)
+    d4 = d2.enriched(d1.get_bag())
     result = expr_eval.eval(kde.get_values(d4))
-    testing.assert_unordered_equal(result, ds([2, 3, 6]).with_db(d4.db))
+    testing.assert_unordered_equal(result, ds([2, 3, 6]).with_bag(d4.get_bag()))
 
   def test_errors(self):
     with self.assertRaisesRegex(
         ValueError,
         'cannot get dict values without a DataBag',
     ):
-      expr_eval.eval(kde.get_values(ds([1, 2, 3]).no_db()))
+      expr_eval.eval(kde.get_values(ds([1, 2, 3]).no_bag()))
 
     with self.assertRaisesRegex(
         ValueError,

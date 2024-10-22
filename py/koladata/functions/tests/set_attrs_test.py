@@ -31,8 +31,10 @@ class SetAttrsTest(absltest.TestCase):
   def test_entity(self):
     x = fns.new(a=ds(1, schema_constants.INT64), b='a')
     fns.set_attrs(x, a=2, b='abc')
-    testing.assert_equal(x.a, ds(2, schema_constants.INT64).with_db(x.db))
-    testing.assert_equal(x.b, ds('abc').with_db(x.db))
+    testing.assert_equal(
+        x.a, ds(2, schema_constants.INT64).with_bag(x.get_bag())
+    )
+    testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
 
   def test_incomaptible_schema_entity(self):
     x = fns.new(a=1, b='a')
@@ -51,14 +53,14 @@ schema.b = <desired_schema>"""),
   def test_update_schema_entity(self):
     x = fns.new(a=1, b='a')
     fns.set_attrs(x, a=2, b=b'abc', update_schema=True)
-    testing.assert_equal(x.a, ds(2).with_db(x.db))
-    testing.assert_equal(x.b, ds(b'abc').with_db(x.db))
+    testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
+    testing.assert_equal(x.b, ds(b'abc').with_bag(x.get_bag()))
 
   def test_object(self):
     x = fns.obj()
     fns.set_attrs(x, a=2, b='abc')
-    testing.assert_equal(x.a, ds(2).with_db(x.db))
-    testing.assert_equal(x.b, ds('abc').with_db(x.db))
+    testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
+    testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
 
   def test_incomaptible_schema_object(self):
     x_schema = fns.new(a=1, b='a').get_schema()
@@ -81,8 +83,8 @@ foo.get_obj_schema().b = <desired_schema>"""),
     x = fns.obj()
     x.set_attr('__schema__', x_schema)
     fns.set_attrs(x, a=2, b=b'abc', update_schema=True)
-    testing.assert_equal(x.a, ds(2).with_db(x.db))
-    testing.assert_equal(x.b, ds(b'abc').with_db(x.db))
+    testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
+    testing.assert_equal(x.b, ds(b'abc').with_bag(x.get_bag()))
 
 
 if __name__ == '__main__':

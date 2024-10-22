@@ -68,7 +68,7 @@ class SetSchemaTest(parameterized.TestCase):
   def test_primitives(self, x, schema, expected):
     testing.assert_equal(fns.set_schema(x, schema), expected)
     testing.assert_equal(
-        fns.set_schema(x.with_db(db), schema), expected.with_db(db)
+        fns.set_schema(x.with_bag(db), schema), expected.with_bag(db)
     )
 
   @parameterized.parameters(
@@ -88,12 +88,12 @@ class SetSchemaTest(parameterized.TestCase):
   )
   def test_entities_and_objects(self, x, schema):
     res = fns.set_schema(x, schema)
-    testing.assert_equal(res.get_schema().no_db(), schema.no_db())
+    testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
 
-  def test_set_schema_from_different_db(self):
+  def test_set_schema_from_different_bag(self):
     res = fns.set_schema(entity1, db2.new_schema(x=schema_constants.INT32))
     # Check the data of schema is moved to the DataSlice's db.
-    testing.assert_equal(res.get_schema().x.no_db(), schema_constants.INT32)
+    testing.assert_equal(res.get_schema().x.no_bag(), schema_constants.INT32)
 
   def test_errors(self):
     with self.assertRaisesRegex(
@@ -113,7 +113,7 @@ class SetSchemaTest(parameterized.TestCase):
         ValueError,
         'DataSlice with an Entity schema must hold Entities or Objects',
     ):
-      fns.set_schema(ds(1).with_db(db), s1)
+      fns.set_schema(ds(1).with_bag(db), s1)
 
     with self.assertRaisesRegex(
         ValueError,

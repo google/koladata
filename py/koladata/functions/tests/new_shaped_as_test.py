@@ -35,12 +35,14 @@ class NewShapedAsTest(absltest.TestCase):
     )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_allclose(
-        x.a, ds(3.14, schema_constants.FLOAT64).with_db(x.db)
+        x.a, ds(3.14, schema_constants.FLOAT64).with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().a, schema_constants.FLOAT64.with_db(x.db)
+        x.get_schema().a, schema_constants.FLOAT64.with_bag(x.get_bag())
     )
-    testing.assert_equal(x.get_schema().b, schema_constants.TEXT.with_db(x.db))
+    testing.assert_equal(
+        x.get_schema().b, schema_constants.TEXT.with_bag(x.get_bag())
+    )
 
   def test_slice(self):
     x = fns.new_shaped_as(
@@ -49,36 +51,42 @@ class NewShapedAsTest(absltest.TestCase):
         b=fns.new(bb=ds([['a', 'b'], ['c']])),
         c=ds(b'xyz'),
     )
-    testing.assert_equal(x.a, ds([[1, 2], [3]]).with_db(x.db))
-    testing.assert_equal(x.b.bb, ds([['a', 'b'], ['c']]).with_db(x.db))
-    testing.assert_equal(x.c, ds([[b'xyz', b'xyz'], [b'xyz']]).with_db(x.db))
-    testing.assert_equal(x.get_schema().a, schema_constants.INT32.with_db(x.db))
+    testing.assert_equal(x.a, ds([[1, 2], [3]]).with_bag(x.get_bag()))
+    testing.assert_equal(x.b.bb, ds([['a', 'b'], ['c']]).with_bag(x.get_bag()))
     testing.assert_equal(
-        x.get_schema().b.bb, schema_constants.TEXT.with_db(x.db)
+        x.c, ds([[b'xyz', b'xyz'], [b'xyz']]).with_bag(x.get_bag())
     )
-    testing.assert_equal(x.get_schema().c, schema_constants.BYTES.with_db(x.db))
+    testing.assert_equal(
+        x.get_schema().a, schema_constants.INT32.with_bag(x.get_bag())
+    )
+    testing.assert_equal(
+        x.get_schema().b.bb, schema_constants.TEXT.with_bag(x.get_bag())
+    )
+    testing.assert_equal(
+        x.get_schema().c, schema_constants.BYTES.with_bag(x.get_bag())
+    )
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.new_shaped_as(itemid, a=42, itemid=itemid)
-    testing.assert_equal(x.a.no_db(), ds([[42, 42], [42]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid)
+    testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
+    testing.assert_equal(x.no_bag().as_itemid(), itemid)
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = fns.bag()
     x = fns.new_shaped_as(ds(1), a=1, b='a', db=db)
-    testing.assert_equal(db, x.db)
+    testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
     schema = fns.new_schema(a=schema_constants.FLOAT32, b=schema_constants.TEXT)
     x = fns.new_shaped_as(ds([1, 2]), a=42, b='xyz', schema=schema)
     self.assertEqual(dir(x), ['a', 'b'])
-    testing.assert_equal(x.a, ds([42.0, 42.0]).with_db(x.db))
+    testing.assert_equal(x.a, ds([42.0, 42.0]).with_bag(x.get_bag()))
     testing.assert_equal(
-        x.get_schema().a.with_db(None), schema_constants.FLOAT32
+        x.get_schema().a.with_bag(None), schema_constants.FLOAT32
     )
-    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_db(x.db))
-    testing.assert_equal(x.get_schema().b.with_db(None), schema_constants.TEXT)
+    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().b.with_bag(None), schema_constants.TEXT)
 
   def test_update_schema_arg(self):
     schema = fns.new_schema(a=schema_constants.INT32)
@@ -90,10 +98,12 @@ class NewShapedAsTest(absltest.TestCase):
         update_schema=True,
     )
     self.assertEqual(dir(x), ['a', 'b'])
-    testing.assert_equal(x.a, ds([42, 42]).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.with_db(None), schema_constants.INT32)
-    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_db(x.db))
-    testing.assert_equal(x.get_schema().b.with_db(None), schema_constants.TEXT)
+    testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
+    testing.assert_equal(
+        x.get_schema().a.with_bag(None), schema_constants.INT32
+    )
+    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().b.with_bag(None), schema_constants.TEXT)
 
 
 if __name__ == '__main__':

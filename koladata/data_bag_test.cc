@@ -141,8 +141,8 @@ TEST(DataBagTest, MergeInplace) {
           db_1,
           {std::string("a"), std::string("b")},
           {test::DataItem(1), test::DataItem(2)}));
-  auto ds_2 = ds_1.WithDb(db_2);
-  auto ds_3 = ds_1.WithDb(db_3);
+  auto ds_2 = ds_1.WithBag(db_2);
+  auto ds_3 = ds_1.WithBag(db_3);
   ASSERT_OK(ds_2.SetAttrWithUpdateSchema("a", test::DataItem(3)));
   ASSERT_OK(ds_3.SetAttrWithUpdateSchema("b", test::DataItem("foo")));
 
@@ -150,7 +150,7 @@ TEST(DataBagTest, MergeInplace) {
   // failure, so we recreate it every time.
   auto recreate = [&db_1, &ds_1]() -> absl::Status {
     db_1 = DataBag::Empty();
-    ds_1 = ds_1.WithDb(db_1);
+    ds_1 = ds_1.WithBag(db_1);
     RETURN_IF_ERROR(ds_1.SetAttrWithUpdateSchema("a", test::DataItem(1)));
     return ds_1.SetAttrWithUpdateSchema("b", test::DataItem(2));
   };
@@ -243,7 +243,7 @@ TEST(DataBagTest, Fork) {
       EntityCreator::FromAttrs(db1, {std::string("a")}, {ds_a_db1}));
 
   ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork());
-  auto ds2 = ds1.WithDb(db2);
+  auto ds2 = ds1.WithBag(db2);
   auto ds_a_db2 = test::DataItem(42, db2);
   EXPECT_THAT(ds1.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a_db1)));
   EXPECT_THAT(ds2.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a_db2)));
@@ -305,13 +305,13 @@ TEST(DataBagTest, MergeFallbacks) {
       EntityCreator::FromAttrs(fallback_db, {std::string("a")},
                                {test::DataItem(42, fallback_db)}));
   auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db});
-  auto ds2 = ds1.WithDb(db);
+  auto ds2 = ds1.WithBag(db);
 
   ASSERT_OK_AND_ASSIGN(auto db_merged, db->MergeFallbacks());
 
   // Check that the merged DataBag has the same data as the original one,
   // but no fallbacks.
-  auto ds1_merged = ds1.WithDb(db_merged);
+  auto ds1_merged = ds1.WithBag(db_merged);
   EXPECT_THAT(ds1_merged.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem(42, db_merged))));
   ASSERT_EQ(db_merged->GetFallbacks().size(), 0);

@@ -51,7 +51,7 @@ class SchemaItemTest(absltest.TestCase):
   def test_hash(self):
     schema_1 = bag().new().get_schema()
     schema_2 = bag().new().get_schema()
-    schema_3 = schema_1.no_db()
+    schema_3 = schema_1.no_bag()
     schema_4 = schema_constants.INT32
     schema_5 = schema_constants.ANY
     for s_1, s_2 in itertools.combinations(
@@ -59,9 +59,9 @@ class SchemaItemTest(absltest.TestCase):
     ):
       self.assertNotEqual(hash(s_1), hash(s_2))
 
-  def test_db(self):
+  def test_bag(self):
     db = bag()
-    testing.assert_equal(db.new().get_schema().db, db)
+    testing.assert_equal(db.new().get_schema().get_bag(), db)
 
   def test_get_shape(self):
     testing.assert_equal(
@@ -78,8 +78,8 @@ class SchemaItemTest(absltest.TestCase):
     child = s(value=42)
     entity = s(value=42, child=child)
     child.parent = entity
-    testing.assert_equal(child.parent.no_db(), entity.no_db())
-    testing.assert_equal(entity.child.no_db(), child.no_db())
+    testing.assert_equal(child.parent.no_bag(), entity.no_bag())
+    testing.assert_equal(entity.child.no_bag(), child.no_bag())
 
   def test_get_nofollowed_schema(self):
     db = bag()
@@ -93,10 +93,10 @@ class SchemaItemTest(absltest.TestCase):
     self.assertFalse(s.is_dict_schema())
     self.assertTrue(s.is_entity_schema())
     entity = s(a=42, b='xyz')
-    testing.assert_equal(entity.a, ds(42.0).with_db(entity.db))
-    testing.assert_equal(entity.b, ds('xyz').with_db(entity.db))
+    testing.assert_equal(entity.a, ds(42.0).with_bag(entity.get_bag()))
+    testing.assert_equal(entity.b, ds('xyz').with_bag(entity.get_bag()))
     with self.assertRaises(AssertionError):
-      testing.assert_equal(entity.db, s.db)
+      testing.assert_equal(entity.get_bag(), s.get_bag())
 
   def test_creating_obj(self):
     o = fns.obj(a=schema_constants.FLOAT32, b=schema_constants.TEXT)
@@ -107,9 +107,11 @@ class SchemaItemTest(absltest.TestCase):
     self.assertTrue(l.is_list_schema())
     self.assertTrue(l.is_entity_schema())
     lst = l([[1., 2], [3]])
-    testing.assert_equal(lst[:][:], ds([[1., 2.], [3.]]).with_db(lst.db))
+    testing.assert_equal(
+        lst[:][:], ds([[1.0, 2.0], [3.0]]).with_bag(lst.get_bag())
+    )
     with self.assertRaises(AssertionError):
-      testing.assert_equal(lst.db, l.db)
+      testing.assert_equal(lst.get_bag(), l.get_bag())
 
   def test_creating_dict(self):
     d = fns.dict_schema(
@@ -119,9 +121,11 @@ class SchemaItemTest(absltest.TestCase):
     self.assertTrue(d.is_entity_schema())
     dct = d({'a': 42, 'b': 37})
     testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
-    testing.assert_equal(dct[['a', 'b']], ds([42., 37.]).with_db(dct.db))
+    testing.assert_equal(
+        dct[['a', 'b']], ds([42.0, 37.0]).with_bag(dct.get_bag())
+    )
     with self.assertRaises(AssertionError):
-      testing.assert_equal(dct.db, d.db)
+      testing.assert_equal(dct.get_bag(), d.get_bag())
 
   def test_creating_dict_keys_and_values_separately(self):
     d = fns.dict_schema(
@@ -131,36 +135,40 @@ class SchemaItemTest(absltest.TestCase):
 
     dct = d(ds(['a', 'b']), ds([42, 37]))
     testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
-    testing.assert_equal(dct[['a', 'b']], ds([42., 37.]).with_db(dct.db))
+    testing.assert_equal(
+        dct[['a', 'b']], ds([42.0, 37.0]).with_bag(dct.get_bag())
+    )
     with self.assertRaises(AssertionError):
-      testing.assert_equal(dct.db, d.db)
+      testing.assert_equal(dct.get_bag(), d.get_bag())
 
     dct = d(values=ds([42, 37]), items_or_keys=ds(['a', 'b']))
     testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
-    testing.assert_equal(dct[['a', 'b']], ds([42., 37.]).with_db(dct.db))
+    testing.assert_equal(
+        dct[['a', 'b']], ds([42.0, 37.0]).with_bag(dct.get_bag())
+    )
     with self.assertRaises(AssertionError):
-      testing.assert_equal(dct.db, d.db)
+      testing.assert_equal(dct.get_bag(), d.get_bag())
 
   def test_creating_entities_errors(self):
     with self.assertRaisesRegex(
         ValueError,
         'only SchemaItem with DataBags can be used for creating Entities',
     ):
-      fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT).with_db(
-          None
-      )([1, 2, 3])
+      fns.new_schema(
+          a=schema_constants.INT32, b=schema_constants.TEXT
+      ).with_bag(None)([1, 2, 3])
     with self.assertRaisesRegex(
         ValueError, 'expected List schema, got INT32'
     ):
-      schema_constants.INT32.with_db(bag())([1, 2, 3])
+      schema_constants.INT32.with_bag(bag())([1, 2, 3])
     with self.assertRaisesRegex(
         ValueError, 'expected Dict schema, got INT32'
     ):
-      schema_constants.INT32.with_db(bag())({'a': 42})
+      schema_constants.INT32.with_bag(bag())({'a': 42})
     with self.assertRaisesRegex(
         exceptions.KodaError, 'requires Entity schema, got INT32'
     ):
-      schema_constants.INT32.with_db(bag())(a=1, b=2)
+      schema_constants.INT32.with_bag(bag())(a=1, b=2)
 
   def test_is_primitive_schema(self):
     a = ds(1)

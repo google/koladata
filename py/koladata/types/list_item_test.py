@@ -53,9 +53,9 @@ class ListItemTest(parameterized.TestCase):
     for py_list_1, py_list_2 in itertools.combinations(py_lists, 2):
       self.assertNotEqual(hash(db.list(py_list_1)), hash(db.list(py_list_2)))
 
-  def test_db(self):
+  def test_bag(self):
     db = bag()
-    testing.assert_equal(db.list([1, 2, 3]).db, db)
+    testing.assert_equal(db.list([1, 2, 3]).get_bag(), db)
 
   def test_get_shape(self):
     l = bag().list([1, 2, 3])
@@ -73,14 +73,14 @@ class ListItemTest(parameterized.TestCase):
   def test_pop(self):
     db = bag()
     l = db.list([1, 2, 3, 4, 5, 6])
-    testing.assert_equal(l.pop(), ds(6).with_db(db))
-    testing.assert_equal(l[:], ds([1, 2, 3, 4, 5]).with_db(db))
-    testing.assert_equal(l.pop(0), ds(1).with_db(db))
-    testing.assert_equal(l[:], ds([2, 3, 4, 5]).with_db(db))
-    testing.assert_equal(l.pop(-2), ds(4).with_db(db))
-    testing.assert_equal(l[:], ds([2, 3, 5]).with_db(db))
-    testing.assert_equal(l.pop(ds(1)), ds(3).with_db(db))
-    testing.assert_equal(l[:], ds([2, 5]).with_db(db))
+    testing.assert_equal(l.pop(), ds(6).with_bag(db))
+    testing.assert_equal(l[:], ds([1, 2, 3, 4, 5]).with_bag(db))
+    testing.assert_equal(l.pop(0), ds(1).with_bag(db))
+    testing.assert_equal(l[:], ds([2, 3, 4, 5]).with_bag(db))
+    testing.assert_equal(l.pop(-2), ds(4).with_bag(db))
+    testing.assert_equal(l[:], ds([2, 3, 5]).with_bag(db))
+    testing.assert_equal(l.pop(ds(1)), ds(3).with_bag(db))
+    testing.assert_equal(l[:], ds([2, 5]).with_bag(db))
 
     with self.assertRaisesWithLiteralMatch(
         IndexError, "List index out of range: list size 2 vs index 2"

@@ -61,7 +61,7 @@ class CoreNewShapedTest(absltest.TestCase):
   def test_item_no_attrs(self):
     shape = jagged_shape.create_shape()
     x = kde.core.new_shaped(shape).eval()
-    self.assertIsNotNone(x.db)
+    self.assertIsNotNone(x.get_bag())
     testing.assert_equal(x.get_shape(), shape)
     self.assertFalse(x.is_mutable())
 
@@ -69,11 +69,11 @@ class CoreNewShapedTest(absltest.TestCase):
     shape = jagged_shape.create_shape(2, 3)
     x = kde.core.new_shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6])).eval()
     testing.assert_equal(x.get_shape(), shape)
-    testing.assert_equal(x.x.no_db(), ds([[2, 2, 2], [2, 2, 2]]))
-    testing.assert_equal(x.a.no_db(), ds([[1, 1, 1], [1, 1, 1]]))
-    testing.assert_equal(x.b.no_db(), ds([['p', 'p', 'p'], ['p', 'p', 'p']]))
+    testing.assert_equal(x.x.no_bag(), ds([[2, 2, 2], [2, 2, 2]]))
+    testing.assert_equal(x.a.no_bag(), ds([[1, 1, 1], [1, 1, 1]]))
+    testing.assert_equal(x.b.no_bag(), ds([['p', 'p', 'p'], ['p', 'p', 'p']]))
     testing.assert_equal(
-        x.c[:].no_db(),
+        x.c[:].no_bag(),
         ds([[[5, 6], [5, 6], [5, 6]], [[5, 6], [5, 6], [5, 6]]]),
     )
     self.assertFalse(x.is_mutable())
@@ -83,8 +83,8 @@ class CoreNewShapedTest(absltest.TestCase):
     schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
     x = kde.core.new_shaped(shape, schema=schema).eval()
     testing.assert_equal(x.get_shape(), shape)
-    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
-    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
 
   def test_schema_arg_deep(self):
     nested_schema = fns.new_schema(p=schema_constants.BYTES)
@@ -103,13 +103,13 @@ class CoreNewShapedTest(absltest.TestCase):
         schema=schema,
     ).eval()
     self.assertEqual(dir(x), ['a', 'b', 'nested'])
-    testing.assert_equal(x.a, ds(42).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
-    testing.assert_equal(x.b, ds('xyz').with_db(x.db))
-    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
-    testing.assert_equal(x.nested.p, ds(b'0123').with_db(x.db))
+    testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.nested.p, ds(b'0123').with_bag(x.get_bag()))
     testing.assert_equal(
-        x.nested.get_schema().p.no_db(), schema_constants.BYTES
+        x.nested.get_schema().p.no_bag(), schema_constants.BYTES
     )
 
   def test_schema_arg_implicit_casting(self):
@@ -119,9 +119,9 @@ class CoreNewShapedTest(absltest.TestCase):
     ).eval()
     self.assertEqual(dir(x), ['a'])
     testing.assert_equal(
-        x.a, ds([42, 42], schema_constants.FLOAT32).with_db(x.db)
+        x.a, ds([42, 42], schema_constants.FLOAT32).with_bag(x.get_bag())
     )
-    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.FLOAT32)
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.FLOAT32)
 
   def test_schema_arg_implicit_casting_failure(self):
     schema = fns.new_schema(a=schema_constants.INT32)
@@ -142,10 +142,10 @@ class CoreNewShapedTest(absltest.TestCase):
         update_schema=True,
     ).eval()
     self.assertEqual(dir(x), ['a', 'b'])
-    testing.assert_equal(x.a, ds([42, 42]).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
-    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_db(x.db))
-    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
+    testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
 
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(
@@ -165,17 +165,17 @@ class CoreNewShapedTest(absltest.TestCase):
         schema=schema,
         update_schema=True,
     ).eval()
-    testing.assert_equal(x.a, ds('xyz').with_db(x.db))
+    testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))
     x = kde.core.new_shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
-    testing.assert_equal(x.a.no_db(), ds([[42, 42], [42]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid)
+    testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
+    testing.assert_equal(x.no_bag().as_itemid(), itemid)
 
-  def test_itemid_from_different_db(self):
+  def test_itemid_from_different_bag(self):
     itemid = fns.new(non_existent=ds([[42, 42], [42]])).as_itemid()
-    assert itemid.db is not None
+    assert itemid.get_bag() is not None
     x = kde.core.new_shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
     with self.assertRaisesRegex(
         ValueError, "attribute 'non_existent' is missing"

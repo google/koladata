@@ -222,7 +222,7 @@ absl::Status CreateItemCreationError(const absl::Status& status,
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     std::string schema_str;
-    if (schema->GetDb() != nullptr) {
+    if (schema->GetBag() != nullptr) {
       ASSIGN_OR_RETURN(schema_str, DataSliceToStr(*schema));
     } else {
       schema_str = schema->item().DebugString();

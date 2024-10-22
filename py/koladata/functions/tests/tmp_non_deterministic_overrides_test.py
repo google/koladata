@@ -25,27 +25,27 @@ class TmpNonDeterministicOverridesTest(absltest.TestCase):
   def test_clone(self):
     x = fns.bag().obj(y=fns.bag().obj(a=1), z=fns.bag().list([2, 3]))
     res = fns.clone(x, z=fns.bag().list([12]), t=fns.bag().obj(b=5))
-    self.assertNotEqual(res.no_db(), x.no_db())
+    self.assertNotEqual(res.no_bag(), x.no_bag())
     testing.assert_equivalent(res.y.extract(), x.y.extract())
-    testing.assert_equal(res.z[:].no_db(), ds([12]))
-    testing.assert_equal(res.t.b.no_db(), ds(5))
+    testing.assert_equal(res.z[:].no_bag(), ds([12]))
+    testing.assert_equal(res.t.b.no_bag(), ds(5))
 
   def test_shallow_clone(self):
     x = fns.bag().obj(y=fns.bag().obj(a=1), z=fns.bag().list([2, 3]))
     res = fns.shallow_clone(x, z=fns.bag().list([12]), t=fns.bag().obj(b=5))
-    self.assertNotEqual(res.no_db(), x.no_db())
-    testing.assert_equal(res.y.no_db(), x.y.no_db())
-    testing.assert_equal(res.z[:].no_db(), ds([12]))
-    testing.assert_equal(res.t.b.no_db(), ds(5))
+    self.assertNotEqual(res.no_bag(), x.no_bag())
+    testing.assert_equal(res.y.no_bag(), x.y.no_bag())
+    testing.assert_equal(res.z[:].no_bag(), ds([12]))
+    testing.assert_equal(res.t.b.no_bag(), ds(5))
 
   def test_deep_clone(self):
     x = fns.bag().obj(y=fns.bag().obj(a=1), z=fns.bag().list([2, 3]))
     res = fns.deep_clone(x, z=fns.bag().list([12]), t=fns.bag().obj(b=5))
-    self.assertNotEqual(res.no_db(), x.no_db())
-    self.assertNotEqual(res.y.no_db(), x.y.no_db())
-    testing.assert_equal(res.y.a.no_db(), ds(1))
-    testing.assert_equal(res.z[:].no_db(), ds([12]))
-    testing.assert_equal(res.t.b.no_db(), ds(5))
+    self.assertNotEqual(res.no_bag(), x.no_bag())
+    self.assertNotEqual(res.y.no_bag(), x.y.no_bag())
+    testing.assert_equal(res.y.a.no_bag(), ds(1))
+    testing.assert_equal(res.z[:].no_bag(), ds([12]))
+    testing.assert_equal(res.t.b.no_bag(), ds(5))
 
 
 if __name__ == '__main__':

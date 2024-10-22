@@ -91,7 +91,7 @@ OPERATOR_FAMILY("kde.core.enriched",
 OPERATOR_FAMILY("kde.core.enriched_bag",
                 std::make_unique<EnrichedDbOperatorFamily>());
 OPERATOR("kde.core.follow", Follow);
-OPERATOR("kde.core.get_db", GetDb);
+OPERATOR("kde.core.get_bag", GetBag);
 OPERATOR("kde.core.get_keys", GetKeys);
 OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR_FAMILY("kde.core.group_by_indices",
@@ -106,7 +106,7 @@ OPERATOR("kde.core.itemid_str", ItemIdStr);
 OPERATOR("kde.core.list_size", ListSize);
 OPERATOR_FAMILY("kde.core.new_shaped",
                 std::make_unique<NewShapedOperatorFamily>());
-OPERATOR("kde.core.no_db", NoDb);
+OPERATOR("kde.core.no_bag", NoBag);
 OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
 OPERATOR_FAMILY("kde.core.obj_shaped",
@@ -131,7 +131,7 @@ OPERATOR_FAMILY("kde.core.uuid_for_list",
 OPERATOR_FAMILY("kde.core.uuobj", std::make_unique<UuObjOperatorFamily>());
 OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
-OPERATOR("kde.core.with_db", WithDb);
+OPERATOR("kde.core.with_bag", WithBag);
 OPERATOR("kde.core.with_merged_bag", WithMergedBag);
 //
 OPERATOR("kde.logical._agg_all", AggAll);

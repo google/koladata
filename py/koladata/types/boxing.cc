@@ -103,10 +103,10 @@ class EmbeddingDataBag {
     if (db_ == nullptr) {
       db_ = DataBag::Empty();
     }
-    return ds.WithDb(db_).EmbedSchema(/*overwrite=*/false).status();
+    return ds.WithBag(db_).EmbedSchema(/*overwrite=*/false).status();
   }
 
-  const absl::Nullable<DataBagPtr>& GetDb() { return db_; }
+  const absl::Nullable<DataBagPtr>& GetBag() { return db_; }
 
  private:
   absl::Nullable<DataBagPtr> db_ = nullptr;
@@ -349,9 +349,9 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
                     bytes_total_size);
     }
     if constexpr (!explicit_cast) {
-      ASSIGN_OR_RETURN(
-          schema, std::move(schema_agg).Get(),
-          AssembleErrorMessage(_, {.db = adoption_queue.GetDbWithFallbacks()}));
+      ASSIGN_OR_RETURN(schema, std::move(schema_agg).Get(),
+                       AssembleErrorMessage(
+                           _, {.db = adoption_queue.GetBagWithFallbacks()}));
     }
     ASSIGN_OR_RETURN(auto shape,
                      DataSlice::JaggedShape::FromEdges(std::move(edges)));
@@ -363,7 +363,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
                                                 std::move(shape), schema));
     // Entity slices embedded to the aux db should be part of the final merged
     // db.
-    const auto& db = embedding_db.GetDb();
+    const auto& db = embedding_db.GetBag();
     if (db != nullptr) {
       adoption_queue.Add(db);
     }
@@ -528,7 +528,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(PyObject* py_obj,
           adoption_queue.Add(db);
         }
         // Schema attr validation is handled during adoption queue merging.
-        return CastToExplicit(res.WithDb(db), dtype->item(),
+        return CastToExplicit(res.WithBag(db), dtype->item(),
                               /*validate_schema=*/false);
       } else {
         // Makes a copy of DataSlice object. Keeps the reference to DataBag.
@@ -558,7 +558,7 @@ absl::Nullable<PyObject*> DataSliceToPyValue(const DataSlice& ds) {
   arolla::python::DCheckPyGIL();
   if (ds.GetShape().rank() == 0) {
     DCHECK_EQ(ds.size(), 1);  // Invariant ensured by DataSlice creation.
-    return PyObjectFromDataItem(ds.item(), ds.GetSchemaImpl(), ds.GetDb());
+    return PyObjectFromDataItem(ds.item(), ds.GetSchemaImpl(), ds.GetBag());
   }
   // Starting from a flat list of PyObject* equivalent to DataItems.
   auto py_list =
@@ -566,7 +566,7 @@ absl::Nullable<PyObject*> DataSliceToPyValue(const DataSlice& ds) {
   const auto& ds_impl = ds.slice();
   for (int i = 0; i < ds.size(); ++i) {
     PyObject* val =
-        PyObjectFromDataItem(ds_impl[i], ds.GetSchemaImpl(), ds.GetDb());
+        PyObjectFromDataItem(ds_impl[i], ds.GetSchemaImpl(), ds.GetBag());
     if (val == nullptr) {
       return nullptr;
     }
@@ -605,7 +605,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
   ASSIGN_OR_RETURN(DataSlice res_no_db,
                    DataSliceFromPyValue(py_obj, adoption_queue, dtype));
   ASSIGN_OR_RETURN(auto db, adoption_queue.GetCommonOrMergedDb());
-  return res_no_db.WithDb(std::move(db));
+  return res_no_db.WithBag(std::move(db));
 }
 
 namespace {
@@ -669,8 +669,8 @@ class UniversalConverter {
     }
     RETURN_IF_ERROR(CmdConvertPyObject(py_obj, schema, /*is_root=*/true));
     RETURN_IF_ERROR(Run());
-    if (value_stack_.top().GetDb() == nullptr && !adoption_queue_.empty()) {
-      return value_stack_.top().WithDb(db_);
+    if (value_stack_.top().GetBag() == nullptr && !adoption_queue_.empty()) {
+      return value_stack_.top().WithBag(db_);
     }
     return std::move(value_stack_.top());
   }
@@ -730,7 +730,7 @@ class UniversalConverter {
     }
     ASSIGN_OR_RETURN(
         auto schema, std::move(schema_agg).Get(),
-        AssembleErrorMessage(_, {.db = adoption_queue_.GetDbWithFallbacks()}));
+        AssembleErrorMessage(_, {.db = adoption_queue_.GetBagWithFallbacks()}));
     // Creating with casting so that all items are converted to `schema`.
     return CreateWithSchema(std::move(bldr).Build(),
                             DataSlice::JaggedShape::FlatFromSize(size), schema,

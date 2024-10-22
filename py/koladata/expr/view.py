@@ -360,15 +360,27 @@ class DataSliceView(BasicKodaView):
   def get_values(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_values', self)
 
-  def with_db(self, db: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.with_db', self, db)
+  def with_bag(self, db: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.with_bag', self, db)
 
+  # TODO: Remove this alias.
+  def with_db(self, db: Any) -> arolla.Expr:
+    return self.with_bag(db)
+
+  def get_bag(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_bag', self)
+
+  # TODO: Remove this alias.
   @property
   def db(self) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.get_db', self)
+    return self.get_bag()
 
+  def no_bag(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.no_bag', self)
+
+  # TODO: Remove this alias.
   def no_db(self) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.no_db', self)
+    return self.no_bag()
 
   def with_merged_bag(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.with_merged_bag', self)

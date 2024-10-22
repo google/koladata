@@ -41,20 +41,24 @@ class NewLikeTest(absltest.TestCase):
     )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_allclose(
-        x.a, ds(3.14, schema_constants.FLOAT64).with_db(x.db)
+        x.a, ds(3.14, schema_constants.FLOAT64).with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().a, schema_constants.FLOAT64.with_db(x.db)
+        x.get_schema().a, schema_constants.FLOAT64.with_bag(x.get_bag())
     )
-    testing.assert_equal(x.get_schema().b, schema_constants.TEXT.with_db(x.db))
+    testing.assert_equal(
+        x.get_schema().b, schema_constants.TEXT.with_bag(x.get_bag())
+    )
 
     x = fns.new_like(ds(None), a=42)
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(
-        kde.has._eval(x).no_db(), ds(None, schema_constants.MASK)
+        kde.has._eval(x).no_bag(), ds(None, schema_constants.MASK)
     )
-    testing.assert_equal(x.a, ds(None, schema_constants.INT32).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
+    testing.assert_equal(
+        x.a, ds(None, schema_constants.INT32).with_bag(x.get_bag())
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
 
   def test_slice(self):
     x = fns.new_like(
@@ -63,21 +67,25 @@ class NewLikeTest(absltest.TestCase):
         b=fns.new(bb=ds([['a', 'b'], ['c']])),
         c=ds(b'xyz'),
     )
-    testing.assert_equal(x.a, ds([[1, None], [3]]).with_db(x.db))
-    testing.assert_equal(x.b.bb, ds([['a', None], ['c']]).with_db(x.db))
-    testing.assert_equal(x.c, ds([[b'xyz', None], [b'xyz']]).with_db(x.db))
+    testing.assert_equal(x.a, ds([[1, None], [3]]).with_bag(x.get_bag()))
+    testing.assert_equal(x.b.bb, ds([['a', None], ['c']]).with_bag(x.get_bag()))
     testing.assert_equal(
-        x.get_schema().a, schema_constants.INT32.with_db(x.db)
+        x.c, ds([[b'xyz', None], [b'xyz']]).with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().b.bb, schema_constants.TEXT.with_db(x.db)
+        x.get_schema().a, schema_constants.INT32.with_bag(x.get_bag())
     )
-    testing.assert_equal(x.get_schema().c, schema_constants.BYTES.with_db(x.db))
+    testing.assert_equal(
+        x.get_schema().b.bb, schema_constants.TEXT.with_bag(x.get_bag())
+    )
+    testing.assert_equal(
+        x.get_schema().c, schema_constants.BYTES.with_bag(x.get_bag())
+    )
 
   def test_broadcast_attrs(self):
     x = fns.new_like(ds([1, 1]), a=42, b='xyz')
-    testing.assert_equal(x.a, ds([42, 42]).with_db(x.db))
-    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_db(x.db))
+    testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
+    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
 
   def test_broadcast_error(self):
     with self.assertRaisesRegex(exceptions.KodaError, 'cannot be expanded'):
@@ -86,30 +94,28 @@ class NewLikeTest(absltest.TestCase):
   def test_all_empty_slice(self):
     x = fns.new_like(ds([None, None]), a=42)
     testing.assert_equal(
-        x.a, ds([None, None], schema_constants.INT32).with_db(x.db)
+        x.a, ds([None, None], schema_constants.INT32).with_bag(x.get_bag())
     )
-    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
 
-  def test_adopt_db(self):
+  def test_adopt_bag(self):
     x = fns.new_like(ds(1))
     x.set_attr('a', 'abc', update_schema=True)
     y = fns.new_like(x, x=x)
-    # y.db is merged with x.db, so access to `a` is possible.
-    testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
-    testing.assert_equal(x.get_schema(), y.get_schema().x.with_db(x.db))
-    testing.assert_equal(
-        y.x.a.no_db().get_schema(), schema_constants.TEXT
-    )
+    # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
+    testing.assert_equal(y.x.a, ds('abc').with_bag(y.get_bag()))
+    testing.assert_equal(x.get_schema(), y.get_schema().x.with_bag(x.get_bag()))
+    testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.TEXT)
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.new_like(ds([[1, None], [1]]), a=42, itemid=itemid)
-    testing.assert_equal(x.a.no_db(), ds([[42, None], [42]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
+    testing.assert_equal(x.a.no_bag(), ds([[42, None], [42]]))
+    testing.assert_equal(x.no_bag().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
 
-  def test_itemid_from_different_db(self):
+  def test_itemid_from_different_bag(self):
     itemid = fns.new(non_existent=ds([[42, 42], [42]])).as_itemid()
-    assert itemid.db is not None
+    assert itemid.get_bag() is not None
     # Successful.
     x = fns.new_like(ds([[1, None], [1]]), a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.
@@ -118,30 +124,28 @@ class NewLikeTest(absltest.TestCase):
     ):
       _ = x.non_existent
 
-  def test_db_arg(self):
+  def test_bag_arg(self):
     db = fns.bag()
     x = fns.new_like(ds(1), a=1, b='a', db=db)
-    testing.assert_equal(db, x.db)
+    testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
     schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
     x = fns.new_like(ds([1, None]), a=42, b='xyz', schema=schema)
     self.assertEqual(dir(x), ['a', 'b'])
-    testing.assert_equal(x.a, ds([42, None]).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
-    testing.assert_equal(x.b, ds(['xyz', None]).with_db(x.db))
-    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
+    testing.assert_equal(x.a, ds([42, None]).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(x.b, ds(['xyz', None]).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
 
   def test_schema_arg_implicit_casting(self):
     schema = fns.new_schema(a=schema_constants.FLOAT32)
     x = fns.new_like(ds([1, 1]), a=42, schema=schema)
     self.assertEqual(dir(x), ['a'])
     testing.assert_equal(
-        x.a, ds([42, 42], schema_constants.FLOAT32).with_db(x.db)
+        x.a, ds([42, 42], schema_constants.FLOAT32).with_bag(x.get_bag())
     )
-    testing.assert_equal(
-        x.get_schema().a.no_db(), schema_constants.FLOAT32
-    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.FLOAT32)
 
   def test_schema_arg_update_schema(self):
     schema = fns.new_schema(a=schema_constants.INT32)
@@ -151,10 +155,10 @@ class NewLikeTest(absltest.TestCase):
         schema=schema, update_schema=True
     )
     self.assertEqual(dir(x), ['a', 'b'])
-    testing.assert_equal(x.a, ds([42, 42]).with_db(x.db))
-    testing.assert_equal(x.get_schema().a.no_db(), schema_constants.INT32)
-    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_db(x.db))
-    testing.assert_equal(x.get_schema().b.no_db(), schema_constants.TEXT)
+    testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
 
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):
@@ -163,7 +167,7 @@ class NewLikeTest(absltest.TestCase):
   def test_schema_arg_update_schema_error_overwriting(self):
     schema = fns.new_schema(a=schema_constants.INT32)
     x = fns.new_like(ds(1), a='xyz', schema=schema, update_schema=True)
-    testing.assert_equal(x.a, ds('xyz').with_db(x.db))
+    testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_errors(self):
     with self.assertRaisesRegex(
@@ -223,16 +227,16 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
     self.assertIsInstance(x, data_item.DataItem)
     self.assertIsInstance(x.lst, list_item.ListItem)
     self.assertIsInstance(x.dct, dict_item.DictItem)
-    testing.assert_equal(x.lst[:], ds([1, 2, 3]).with_db(x.db))
-    testing.assert_dicts_keys_equal(x.dct, ds(['a']).with_db(x.db))
+    testing.assert_equal(x.lst[:], ds([1, 2, 3]).with_bag(x.get_bag()))
+    testing.assert_dicts_keys_equal(x.dct, ds(['a']).with_bag(x.get_bag()))
 
   def test_item_assignment_rhs_with_ds_args(self):
     x = fns.new_like(ds(1), x=1, y=ds('a'), lst=[1, 2, 3], dct={'a': 42})
     self.assertIsInstance(x, data_item.DataItem)
     self.assertIsInstance(x.lst, list_item.ListItem)
     self.assertIsInstance(x.dct, dict_item.DictItem)
-    testing.assert_equal(x.lst[:], ds([1, 2, 3]).with_db(x.db))
-    testing.assert_dicts_keys_equal(x.dct, ds(['a']).with_db(x.db))
+    testing.assert_equal(x.lst[:], ds([1, 2, 3]).with_bag(x.get_bag()))
+    testing.assert_dicts_keys_equal(x.dct, ds(['a']).with_bag(x.get_bag()))
 
   def test_slice_assignment_rhs(self):
     with self.assertRaisesRegex(ValueError, 'assigning a Python list/tuple'):

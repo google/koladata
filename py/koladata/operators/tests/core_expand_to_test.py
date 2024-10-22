@@ -95,11 +95,11 @@ class CoreExpandToTest(parameterized.TestCase):
     result = expr_eval.eval(kde.expand_to(x, target))
     testing.assert_equal(result, expected)
 
-  def test_same_db(self):
+  def test_same_bag(self):
     db = data_bag.DataBag.empty()
-    x = ds([[1], [2, 3]]).with_db(db)
+    x = ds([[1], [2, 3]]).with_bag(db)
     target = ds([[1, 2], [3]])
-    expected = ds([[[1], [1]], [[2, 3]]]).with_db(db)
+    expected = ds([[[1], [1]], [[2, 3]]]).with_bag(db)
     result = expr_eval.eval(kde.expand_to(x, target, 1))
     arolla.testing.assert_qvalue_equal_by_fingerprint(result, expected)
 

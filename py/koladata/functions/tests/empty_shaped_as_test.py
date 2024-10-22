@@ -47,7 +47,7 @@ class EmptyShapedAsTest(parameterized.TestCase):
     with self.subTest('with db'):
       db = fns.bag()
       res = fns.empty_shaped_as(shape_from, db=db)
-      testing.assert_equal(res, expected.with_db(db))
+      testing.assert_equal(res, expected.with_bag(db))
 
   @parameterized.parameters(
       (ds(1), ds(None, schema_constants.INT64)),
@@ -68,7 +68,7 @@ class EmptyShapedAsTest(parameterized.TestCase):
 
       res = fns.empty_shaped_as(
           shape_from,
-          schema=schema_constants.INT64.with_db(fns.bag()),
+          schema=schema_constants.INT64.with_bag(fns.bag()),
       )
       testing.assert_equal(res, expected)
 
@@ -77,14 +77,14 @@ class EmptyShapedAsTest(parameterized.TestCase):
       res = fns.empty_shaped_as(
           shape_from, schema=schema_constants.INT64, db=db
       )
-      testing.assert_equal(res, expected.with_db(db))
+      testing.assert_equal(res, expected.with_bag(db))
 
       res = fns.empty_shaped_as(
           shape_from,
-          schema=schema_constants.INT64.with_db(fns.bag()),
+          schema=schema_constants.INT64.with_bag(fns.bag()),
           db=db,
       )
-      testing.assert_equal(res, expected.with_db(db))
+      testing.assert_equal(res, expected.with_bag(db))
 
   @parameterized.parameters(
       (ds(1), ds(None, schema_constants.OBJECT)),
@@ -104,21 +104,21 @@ class EmptyShapedAsTest(parameterized.TestCase):
 
       res = fns.empty_shaped_as(
           shape,
-          schema=schema_constants.OBJECT.with_db(fns.bag()),
+          schema=schema_constants.OBJECT.with_bag(fns.bag()),
       )
       testing.assert_equal(res, expected)
 
     with self.subTest('with db'):
       db = fns.bag()
       res = fns.empty_shaped_as(shape, schema=schema_constants.OBJECT, db=db)
-      testing.assert_equal(res, expected.with_db(db))
+      testing.assert_equal(res, expected.with_bag(db))
 
       res = fns.empty_shaped_as(
           shape,
-          schema=schema_constants.OBJECT.with_db(fns.bag()),
+          schema=schema_constants.OBJECT.with_bag(fns.bag()),
           db=db,
       )
-      testing.assert_equal(res, expected.with_db(db))
+      testing.assert_equal(res, expected.with_bag(db))
 
   @parameterized.parameters(
       (ds(1),),
@@ -131,23 +131,23 @@ class EmptyShapedAsTest(parameterized.TestCase):
 
     with self.subTest('no db'):
       res = fns.empty_shaped_as(shape_from, schema=schema)
-      self.assertIsNotNone(res.db)
-      self.assertNotEqual(res.db.fingerprint, db.fingerprint)
-      testing.assert_equal(res.get_schema().no_db(), schema.no_db())
-      testing.assert_equal(res.get_schema().x.no_db(), schema_constants.INT64)
+      self.assertIsNotNone(res.get_bag())
+      self.assertNotEqual(res.get_bag().fingerprint, db.fingerprint)
+      testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
+      testing.assert_equal(res.get_schema().x.no_bag(), schema_constants.INT64)
       testing.assert_equal(res.get_shape(), shape_from.get_shape())
       self.assertEqual(res.get_present_count(), 0)
 
     with self.subTest('with db'):
       db2 = fns.bag()
       res = fns.empty_shaped_as(shape_from, schema=schema, db=db2)
-      self.assertEqual(res.db.fingerprint, db2.fingerprint)
-      testing.assert_equal(res.get_schema().no_db(), schema.no_db())
-      testing.assert_equal(res.get_schema().x.no_db(), schema_constants.INT64)
+      self.assertEqual(res.get_bag().fingerprint, db2.fingerprint)
+      testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
+      testing.assert_equal(res.get_schema().x.no_bag(), schema_constants.INT64)
       testing.assert_equal(res.get_shape(), shape_from.get_shape())
       self.assertEqual(res.get_present_count(), 0)
 
-  def test_db_is_none(self):
+  def test_bag_is_none(self):
     res = fns.empty_shaped_as(ds([1, None, 3]), db=None)
     testing.assert_equal(res, ds([None, None, None], schema_constants.MASK))
 

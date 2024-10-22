@@ -46,13 +46,13 @@ class PyMapPyTest(parameterized.TestCase):
     x = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     res = expr_eval.eval(kde.py.map_py(add_one, x))
     testing.assert_equal(
-        res.no_db(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
+        res.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
 
   def test_map_py_object_argument(self):
     x = functions.obj(y=ds([[1, 2], [3]]), z=ds([[6, 7], [8]]))
     res = expr_eval.eval(kde.py.map_py(lambda x: x.y + x.z, x))
-    testing.assert_equal(res.no_db(), ds([[7, 9], [11]]))
+    testing.assert_equal(res.no_bag(), ds([[7, 9], [11]]))
 
     # In all modes except SKIP we can infer the qtype for empty values in
     # x.y and x.z. To work around this, we use with_schema in the lambda.
@@ -62,7 +62,7 @@ class PyMapPyTest(parameterized.TestCase):
         z=ds([[6, 7], [8, 9, None]]),
     )
     res = expr_eval.eval(kde.py.map_py(my_add, x))
-    testing.assert_equal(res.no_db(), ds([[7, 9], [11, None, None]]))
+    testing.assert_equal(res.no_bag(), ds([[7, 9], [11, None, None]]))
 
     with self.subTest('object_results'):
 
@@ -73,14 +73,14 @@ class PyMapPyTest(parameterized.TestCase):
 
       x = functions.obj(y=ds([[1, 2], [3]]))
       res = expr_eval.eval(kde.py.map_py(my_lambda, x))
-      testing.assert_equal(res.x.no_db(), ds([[1, 1], [2]]))
-      testing.assert_equal(res.y.no_db(), ds([[2, 2], [1]]))
+      testing.assert_equal(res.x.no_bag(), ds([[1, 1], [2]]))
+      testing.assert_equal(res.y.no_bag(), ds([[2, 2], [1]]))
       # TODO: b/323305977 - This should be addressed in .from_py.
       # self.assertFalse(res.is_mutable())
 
       res = expr_eval.eval(kde.py.map_py(my_lambda, x.S[0, 0]))
-      testing.assert_equal(res.x.no_db(), ds(1))
-      testing.assert_equal(res.y.no_db(), ds(2))
+      testing.assert_equal(res.x.no_bag(), ds(1))
+      testing.assert_equal(res.y.no_bag(), ds(2))
       self.assertTrue(res.is_mutable())
 
   def test_map_py_return_none(self):
@@ -91,7 +91,7 @@ class PyMapPyTest(parameterized.TestCase):
     val = ds([[1], [None, None], [7, 8, 9]])
     res = expr_eval.eval(kde.py.map_py(return_none, val))
     testing.assert_equal(
-        res.no_db(), ds([[None], [None, None], [None, None, None]])
+        res.no_bag(), ds([[None], [None, None], [None, None, None]])
     )
 
   def test_map_py_single_thread(self):
@@ -127,7 +127,7 @@ class PyMapPyTest(parameterized.TestCase):
     val3 = ds([[2, None, 4, 5], [6, 7], [None, 9, 10]])
     res = expr_eval.eval(kde.py.map_py(add_all, val1, val2, val3))
     testing.assert_equal(
-        res.no_db(), ds([[3, None, None, 11], [None, None], [None, 24, 27]])
+        res.no_bag(), ds([[3, None, None, 11], [None, None], [None, 24, 27]])
     )
 
   def test_map_py_texting_output(self):
@@ -137,7 +137,7 @@ class PyMapPyTest(parameterized.TestCase):
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     res = expr_eval.eval(kde.py.map_py(as_string, val))
     testing.assert_equal(
-        res.no_db(), ds([['1', '2', None, '4'], [None, None], ['7', '8', '9']])
+        res.no_bag(), ds([['1', '2', None, '4'], [None, None], ['7', '8', '9']])
     )
 
   def test_map_py_texting_input(self):
@@ -147,7 +147,7 @@ class PyMapPyTest(parameterized.TestCase):
     val = ds([['1', '2', None, '4'], [None, None], ['7', '8', '9']])
     res = expr_eval.eval(kde.py.map_py(as_string, val))
     testing.assert_equal(
-        res.no_db(), ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
+        res.no_bag(), ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     )
 
   def test_map_py_with_qtype(self):
@@ -159,13 +159,14 @@ class PyMapPyTest(parameterized.TestCase):
         kde.py.map_py(add_one, val, schema=schema_constants.FLOAT32)
     )
     testing.assert_equal(
-        res.no_db(), ds([[2.0, 3.0, None, 5.0], [None, None], [8.0, 9.0, 10.0]])
+        res.no_bag(),
+        ds([[2.0, 3.0, None, 5.0], [None, None], [8.0, 9.0, 10.0]]),
     )
 
     res = expr_eval.eval(
         kde.py.map_py(add_one, ds([]), schema=schema_constants.FLOAT32)
     )
-    testing.assert_equal(res.no_db(), ds([], schema_constants.FLOAT32))
+    testing.assert_equal(res.no_bag(), ds([], schema_constants.FLOAT32))
 
   def test_map_py_with_schema(self):
     schema = functions.new_schema(
@@ -194,7 +195,7 @@ class PyMapPyTest(parameterized.TestCase):
     )
     self.assertEqual(res.get_schema(), schema)
     testing.assert_equal(
-        res.v.no_db(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
+        res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
     # TODO: b/323305977 - This should be addressed in .from_py.
     # self.assertFalse(res.is_mutable())
@@ -203,10 +204,10 @@ class PyMapPyTest(parameterized.TestCase):
         kde.py.map_py(my_func_correct_schema, ds([]), schema=schema)
     )
     self.assertEqual(res.get_schema(), schema)
-    testing.assert_equal(res.v.no_db(), ds([], schema_constants.INT32))
+    testing.assert_equal(res.v.no_bag(), ds([], schema_constants.INT32))
     self.assertTrue(res.is_mutable())
     # TODO: b/323305977 - This should be addressed in .from_py.
-    # self.assertIs(res.db, schema.db)
+    # self.assertIs(res.get_bag(), schema.get_bag())
 
     res = expr_eval.eval(
         kde.py.map_py(
@@ -219,7 +220,7 @@ class PyMapPyTest(parameterized.TestCase):
     self.assertEqual(res.get_obj_schema().S[2, 1].u, schema_constants.INT32)
     self.assertEqual(res.get_obj_schema().S[2, 1].v, schema_constants.INT32)
     testing.assert_equal(
-        res.v.no_db(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
+        res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
     # TODO: b/323305977 - This should be addressed in .from_py.
     # self.assertFalse(res.is_mutable())
@@ -246,36 +247,36 @@ class PyMapPyTest(parameterized.TestCase):
       _ = expr_eval.eval(kde.py.map_py(my_func_correct_schema, val, schema=1))
 
     db = data_bag.DataBag.empty()
-    schema_same_db = db.new_schema(
+    schema_same_bag = db.new_schema(
         u=schema_constants.INT32, v=schema_constants.INT32
     )
 
-    def my_func_same_db(schema, x):
+    def my_func_same_bag(schema, x):
       return None if x is None else db.new(u=x, v=x + 1, schema=schema)
 
     res = expr_eval.eval(
         kde.py.map_py(
-            functools.partial(my_func_same_db, schema_same_db),
+            functools.partial(my_func_same_bag, schema_same_bag),
             val,
-            schema=schema_same_db,
+            schema=schema_same_bag,
         )
     )
-    self.assertEqual(res.get_schema(), schema_same_db)
+    self.assertEqual(res.get_schema(), schema_same_bag)
     testing.assert_equal(
-        res.v.no_db(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
+        res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
     self.assertTrue(res.is_mutable())
     # TODO: b/323305977 - This should be addressed in .from_py.
-    # self.assertIs(res.db, db)
+    # self.assertIs(res.get_bag(), db)
 
     res = expr_eval.eval(
         kde.py.map_py(
-            functools.partial(my_func_same_db, schema), val, schema=schema
+            functools.partial(my_func_same_bag, schema), val, schema=schema
         )
     )
     self.assertEqual(res.get_schema(), schema)
     testing.assert_equal(
-        res.v.no_db(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
+        res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
     # We had to create new triples to adopt the schema, so the DataBag is new.
     # TODO: b/323305977 - This should be addressed in .from_py.
@@ -283,16 +284,16 @@ class PyMapPyTest(parameterized.TestCase):
 
     res = expr_eval.eval(
         kde.py.map_py(
-            functools.partial(my_func_same_db, schema_same_db),
+            functools.partial(my_func_same_bag, schema_same_bag),
             val,
             schema=schema_constants.OBJECT,
         )
     )
     self.assertEqual(res.get_schema(), schema_constants.OBJECT)
     self.assertEqual(res.get_obj_schema().S[2, 1].u, schema_constants.INT32)
-    self.assertEqual(res.get_obj_schema().S[2, 1], schema_same_db)
+    self.assertEqual(res.get_obj_schema().S[2, 1], schema_same_bag)
     testing.assert_equal(
-        res.v.no_db(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
+        res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
     # We had to create new triples to embed the schema, so the DataBag is new.
     # TODO: b/323305977 - This should be addressed in .from_py.
@@ -306,7 +307,7 @@ class PyMapPyTest(parameterized.TestCase):
     res = expr_eval.eval(
         kde.py.map_py(add_one, val, schema=schema_constants.FLOAT32)
     )
-    testing.assert_equal(res.no_db(), ds([[]], schema_constants.FLOAT32))
+    testing.assert_equal(res.no_bag(), ds([[]], schema_constants.FLOAT32))
 
   def test_map_py_scalar_input(self):
     def add_one(x):
@@ -314,7 +315,7 @@ class PyMapPyTest(parameterized.TestCase):
 
     val = ds(5)
     res = expr_eval.eval(kde.py.map_py(add_one, val))
-    testing.assert_equal(res.no_db(), ds(6))
+    testing.assert_equal(res.no_bag(), ds(6))
 
   def test_map_py_auto_expand(self):
     def my_add(x, y):
@@ -325,7 +326,7 @@ class PyMapPyTest(parameterized.TestCase):
     val1 = ds(1)
     val2 = ds([[0, 1, None, 2], [3, 4], [6, 7, 8]])
     res = expr_eval.eval(kde.py.map_py(my_add, val1, val2))
-    testing.assert_equal(res.no_db(), ds([[1, 2, None, 3], [4, 5], [7, 8, 9]]))
+    testing.assert_equal(res.no_bag(), ds([[1, 2, None, 3], [4, 5], [7, 8, 9]]))
 
   def test_map_py_raw_input(self):
     def my_add(x, y):
@@ -336,7 +337,7 @@ class PyMapPyTest(parameterized.TestCase):
     res = expr_eval.eval(
         kde.py.map_py(my_add, 1, ds([[0, 1, None, 2], [3, 4], [6, 7, 8]]))
     )
-    testing.assert_equal(res.no_db(), ds([[1, 2, None, 3], [4, 5], [7, 8, 9]]))
+    testing.assert_equal(res.no_bag(), ds([[1, 2, None, 3], [4, 5], [7, 8, 9]]))
 
   def test_map_py_dict(self):
     def as_dict(x):
@@ -345,10 +346,10 @@ class PyMapPyTest(parameterized.TestCase):
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     res = expr_eval.eval(kde.py.map_py(as_dict, val))
     testing.assert_equal(
-        res['x'].no_db(), ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
+        res['x'].no_bag(), ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     )
     testing.assert_equal(
-        res['y'].no_db(), ds([[2, 3, 57, 5], [57, 57], [8, 9, 10]])
+        res['y'].no_bag(), ds([[2, 3, 57, 5], [57, 57], [8, 9, 10]])
     )
 
   def test_map_py_invalid_qtype(self):
@@ -391,10 +392,10 @@ class PyMapPyTest(parameterized.TestCase):
     res2 = expr_eval.eval(kde.py.map_py(my_fn, x, y, z=z, w=w))
     res3 = expr_eval.eval(kde.py.map_py(my_fn, x, y, z, w=w))
     res4 = expr_eval.eval(kde.py.map_py(my_fn, x, y, z))
-    testing.assert_equal(res.no_db(), ds([[0, None, 5], [None, 6, 7]]))
-    testing.assert_equal(res.no_db(), res2.no_db())
-    testing.assert_equal(res.no_db(), res3.no_db())
-    testing.assert_equal(res4.no_db(), ds([[6, None, 10], [None, 11, 12]]))
+    testing.assert_equal(res.no_bag(), ds([[0, None, 5], [None, 6, 7]]))
+    testing.assert_equal(res.no_bag(), res2.no_bag())
+    testing.assert_equal(res.no_bag(), res3.no_bag())
+    testing.assert_equal(res4.no_bag(), ds([[6, None, 10], [None, 11, 12]]))
 
   def test_map_py_no_inputs(self):
     with self.assertRaisesWithLiteralMatch(
@@ -420,7 +421,7 @@ class PyMapPyTest(parameterized.TestCase):
         return len([i for i in x if i is not None])
 
       res = expr_eval.eval(kde.py.map_py(agg_count, val, ndim=1))
-      testing.assert_equal(res.no_db(), ds([[3, 0, 3], [3]]))
+      testing.assert_equal(res.no_bag(), ds([[3, 0, 3], [3]]))
 
     with self.subTest('ndim_2'):
 
@@ -428,7 +429,7 @@ class PyMapPyTest(parameterized.TestCase):
         return sum([agg_count(y) for y in x])
 
       res = expr_eval.eval(kde.py.map_py(agg_count2, val, ndim=2))
-      testing.assert_equal(res.no_db(), ds([6, 3]))
+      testing.assert_equal(res.no_bag(), ds([6, 3]))
 
     with self.subTest('ndim_max'):
 
@@ -436,7 +437,7 @@ class PyMapPyTest(parameterized.TestCase):
         return sum([agg_count2(y) for y in x])
 
       res = expr_eval.eval(kde.py.map_py(agg_count3, val, ndim=3))
-      testing.assert_equal(res.no_db(), ds(9))
+      testing.assert_equal(res.no_bag(), ds(9))
 
     with self.subTest('ndim_invalid'):
       with self.assertRaisesWithLiteralMatch(
@@ -505,7 +506,7 @@ class PyMapPyTest(parameterized.TestCase):
     res = expr_eval.eval(
         kde.py.map_py(lambda x: x if x % 2 else ds(x), ds([1, 2, 3, 4]))
     )
-    testing.assert_equal(res.no_db(), ds([1, 2, 3, 4]))
+    testing.assert_equal(res.no_bag(), ds([1, 2, 3, 4]))
 
   @parameterized.parameters(1, 10)
   def test_map_py_with_item_completed_callback(self, max_threads):
@@ -532,7 +533,7 @@ class PyMapPyTest(parameterized.TestCase):
             item_completed_callback=increment_counter,
         )
     )
-    testing.assert_equal(res.no_db(), ds(list(range(1, size + 1))))
+    testing.assert_equal(res.no_bag(), ds(list(range(1, size + 1))))
     self.assertEqual(counter, size)
     self.assertEqual(total, sum(range(size)) + size)
 

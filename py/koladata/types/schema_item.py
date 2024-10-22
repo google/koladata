@@ -33,7 +33,7 @@ class SchemaItem(data_item.DataItem):
 
   def __call__(self, *args, **kwargs):
     """Schema DataItem can be used as Entity creator."""
-    if self.db is None:
+    if self.get_bag() is None:
       raise ValueError(
           'only SchemaItem with DataBags can be used for creating Entities'
       )

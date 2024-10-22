@@ -43,7 +43,7 @@ dict_s2 = db.dict_schema(schema_constants.TEXT, dict_s1)
 class SchemaGetValueSchemaTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (dict_s1, schema_constants.INT32.with_db(db)),
+      (dict_s1, schema_constants.INT32.with_bag(db)),
       (dict_s2, dict_s1),
   )
   def test_eval(self, x, expected):

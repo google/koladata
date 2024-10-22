@@ -86,12 +86,12 @@ const DataSlice& AnySchema() {
 }
 
 // Attach `db` to each DataSlice in `values`.
-std::vector<DataSlice> ManyWithDb(absl::Span<const DataSlice> values,
-                                  const DataBagPtr& db) {
+std::vector<DataSlice> ManyWithBag(absl::Span<const DataSlice> values,
+                                   const DataBagPtr& db) {
   std::vector<DataSlice> values_with_db;
   values_with_db.reserve(values.size());
   for (size_t i = 0; i < values.size(); ++i) {
-    values_with_db.push_back(values[i].WithDb(db));
+    values_with_db.push_back(values[i].WithBag(db));
   }
   return values_with_db;
 }
@@ -112,7 +112,7 @@ struct EntityCreatorHelper {
       const std::optional<DataSlice>& itemid,
       const DataBagPtr& db) {
     // Add `db` to each DataSlice value to avoid double adoption work.
-    auto adopted_values = ManyWithDb(values, db);
+    auto adopted_values = ManyWithBag(values, db);
     return EntityCreator::FromAttrs(db, attr_names, adopted_values, schema_arg,
                                     update_schema, itemid);
   }
@@ -125,7 +125,7 @@ struct EntityCreatorHelper {
       const std::optional<DataSlice>& itemid,
       const DataBagPtr& db) {
     // Add `db` to each DataSlice value to avoid double adoption work.
-    auto adopted_values = ManyWithDb(values, db);
+    auto adopted_values = ManyWithBag(values, db);
     return EntityCreator::Shaped(db, std::move(shape), attr_names,
                                  adopted_values, schema_arg, update_schema,
                                  itemid);
@@ -139,7 +139,7 @@ struct EntityCreatorHelper {
       const std::optional<DataSlice>& itemid,
       const DataBagPtr& db) {
     // Add `db` to each DataSlice value to avoid double adoption work.
-    auto adopted_values = ManyWithDb(values, db);
+    auto adopted_values = ManyWithBag(values, db);
     return EntityCreator::Like(db, shape_and_mask_from, attr_names,
                                adopted_values, schema_arg, update_schema,
                                itemid);
@@ -150,7 +150,7 @@ struct EntityCreatorHelper {
       const DataBagPtr& db, AdoptionQueue& adoption_queue) {
     ASSIGN_OR_RETURN(DataSlice res, EntitiesFromPyObject(py_obj, schema_arg, db,
                                                          adoption_queue));
-    return res.WithDb(db);
+    return res.WithBag(db);
   }
 };
 
@@ -169,7 +169,7 @@ struct ObjectCreatorHelper {
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!update_schema) << "unused and not filled";
     // Add `db` to each DataSlice value to avoid double adoption work.
-    auto adopted_values = ManyWithDb(values, db);
+    auto adopted_values = ManyWithBag(values, db);
     return ObjectCreator::FromAttrs(db, attr_names, adopted_values, itemid);
   }
 
@@ -186,7 +186,7 @@ struct ObjectCreatorHelper {
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!update_schema) << "unused and not filled";
     // Add `db` to each DataSlice value to avoid double adoption work.
-    auto adopted_values = ManyWithDb(values, db);
+    auto adopted_values = ManyWithBag(values, db);
     return ObjectCreator::Shaped(db, std::move(shape), attr_names, values,
                                  itemid);
   }
@@ -203,7 +203,7 @@ struct ObjectCreatorHelper {
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!update_schema) << "unused and not filled";
-    auto adopted_values = ManyWithDb(values, db);
+    auto adopted_values = ManyWithBag(values, db);
     return ObjectCreator::Like(db, shape_and_mask_from, attr_names, values,
                                itemid);
   }
@@ -216,7 +216,7 @@ struct ObjectCreatorHelper {
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     ASSIGN_OR_RETURN(DataSlice res,
                      ObjectsFromPyObject(py_obj, db, adoption_queue));
-    return res.WithDb(db).WithSchema(internal::DataItem(schema::kObject));
+    return res.WithBag(db).WithSchema(internal::DataItem(schema::kObject));
   }
 };
 
@@ -693,7 +693,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
   }
-  auto adopted_values = ManyWithDb(values, db);
+  auto adopted_values = ManyWithBag(values, db);
   // Because `EntityCreator` relies on accurate databags of attrs for error
   // messages, and because `EntityCreatorHelper` strips attr databags to avoid
   // double adoption, we need to do adoption before calling the helper to have

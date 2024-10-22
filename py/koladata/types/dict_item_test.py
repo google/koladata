@@ -53,9 +53,9 @@ class DictItemTest(parameterized.TestCase):
     for py_dict_1, py_dict_2 in itertools.combinations(py_dicts, 2):
       self.assertNotEqual(hash(db.dict(py_dict_1)), hash(db.dict(py_dict_2)))
 
-  def test_db(self):
+  def test_bag(self):
     db = bag()
-    testing.assert_equal(db.dict({'a': 42}).db, db)
+    testing.assert_equal(db.dict({'a': 42}).get_bag(), db)
 
   def test_get_shape(self):
     d = bag().dict({'a': 42})

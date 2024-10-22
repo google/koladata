@@ -60,8 +60,8 @@ class CoreDeepUuidTest(parameterized.TestCase):
     self.assertNotEqual(res_no_seed, res_with_seed)
     self.assertNotEqual(res_with_seed2, res_with_seed)
 
-  def test_no_db(self):
-    x = bag().obj(x=1, y=2).no_db()
+  def test_no_bag(self):
+    x = bag().obj(x=1, y=2).no_bag()
     with self.assertRaisesRegex(
         ValueError, 'cannot compute deep uuid without a DataBag'
     ):

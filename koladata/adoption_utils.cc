@@ -41,12 +41,12 @@ absl::Status AdoptionQueue::AdoptInto(DataBag& db) const {
                                     /*allow_schema_conflicts=*/false));
   }
   for (const DataSlice& slice : slices_to_merge_) {
-    if (visited_bags.contains(slice.GetDb().get())) {
+    if (visited_bags.contains(slice.GetBag().get())) {
       continue;
     }
     ASSIGN_OR_RETURN(DataSlice extracted_slice,
                      extract_utils_internal::Extract(slice));
-    const auto& extracted_db = extracted_slice.GetDb();
+    const auto& extracted_db = extracted_slice.GetBag();
     if (extracted_db == nullptr) {
       continue;
     }
@@ -73,7 +73,7 @@ absl::StatusOr<absl::Nullable<DataBagPtr>> AdoptionQueue::GetCommonOrMergedDb()
   }
   if (!has_multiple_bags) {
     for (const DataSlice& slice : slices_to_merge_) {
-      const DataBagPtr& slice_bag = slice.GetDb();
+      const DataBagPtr& slice_bag = slice.GetBag();
       if (single_bag == nullptr) {
         single_bag = &slice_bag;
       } else if (*single_bag != slice_bag) {
@@ -96,7 +96,7 @@ absl::StatusOr<absl::Nullable<DataBagPtr>> AdoptionQueue::GetCommonOrMergedDb()
   }
 }
 
-absl::Nonnull<DataBagPtr> AdoptionQueue::GetDbWithFallbacks() const {
+absl::Nonnull<DataBagPtr> AdoptionQueue::GetBagWithFallbacks() const {
   // Collect unique DataBags from all Add calls.
   absl::flat_hash_set<const DataBag*> visited_bags;
   std::vector<DataBagPtr> fallbacks;
@@ -109,7 +109,7 @@ absl::Nonnull<DataBagPtr> AdoptionQueue::GetDbWithFallbacks() const {
     fallbacks.push_back(bag);
   }
   for (const DataSlice& slice : slices_to_merge_) {
-    const DataBagPtr& bag = slice.GetDb();
+    const DataBagPtr& bag = slice.GetBag();
     if (visited_bags.contains(bag.get())) {
       continue;
     }

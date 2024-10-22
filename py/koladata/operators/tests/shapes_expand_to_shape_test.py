@@ -94,11 +94,11 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
     res = expr_eval.eval(kde.expand_to_shape(x, shape))
     testing.assert_equal(res, expected_output)
 
-  def test_same_db(self):
+  def test_same_bag(self):
     db = data_bag.DataBag.empty()
-    source = ds([[1], [2, 3]]).with_db(db)
+    source = ds([[1], [2, 3]]).with_bag(db)
     shape = js([2], [2, 1])
-    expected = ds([[[1], [1]], [[2, 3]]]).with_db(db)
+    expected = ds([[[1], [1]], [[2, 3]]]).with_bag(db)
     result = expr_eval.eval(kde.expand_to_shape(source, shape, 1))
     testing.assert_equal(result, expected)
 

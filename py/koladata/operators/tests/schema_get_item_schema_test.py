@@ -43,7 +43,7 @@ list_s2 = db.list_schema(list_s1)
 class SchemaGetItemSchemaTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (list_s1, schema_constants.INT32.with_db(db)),
+      (list_s1, schema_constants.INT32.with_bag(db)),
       (list_s2, list_s1),
   )
   def test_eval(self, x, expected):

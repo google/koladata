@@ -213,12 +213,12 @@ def with_schema(x, schema):  # pylint: disable=unused-argument
     kd.with_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
 
     db = kd.bag()
-    kd.with_schema(kd.ds(1).with_db(db), db.new_schema(x=kd.INT32)) -> fail due
+    kd.with_schema(kd.ds(1).with_bag(db), db.new_schema(x=kd.INT32)) -> fail due
         to incompatible schema
     kd.with_schema(db.new(x=1), kd.INT32) -> fail due to incompatible schema
     kd.with_schema(db.new(x=1), kd.new_schema(x=kd.INT32)) -> fail due to
         different DataBag
-    kd.with_schema(db.new(x=1), kd.new_schema(x=kd.INT32).no_db()) -> work
+    kd.with_schema(db.new(x=1), kd.new_schema(x=kd.INT32).no_bag()) -> work
     kd.with_schema(db.new(x=1), db.new_schema(x=kd.INT64)) -> work
 
   Args:

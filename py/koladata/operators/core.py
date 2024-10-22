@@ -225,7 +225,7 @@ def concat(
 
   The shape of the concatenated result is the following:
     1) the shape of the first `rank-ndim` dimensions remains the same
-    2) the shape of the concatination dimension is the element-wise sum of the
+    2) the shape of the concatenation dimension is the element-wise sum of the
       shapes of the arguments' concatenation dimensions
     3) the shapes of the last `ndim-1` dimensions are interleaved within the
       groups implied by the concatenation dimension
@@ -916,16 +916,19 @@ def obj_shaped_as(
   )
 
 
-@optools.add_to_registry(aliases=['kde.with_db'])
+# TODO: Remove the *_db alias.
+@optools.add_to_registry(
+    aliases=['kde.with_bag', 'kde.with_db', 'kde.core.with_db']
+)
 @optools.as_backend_operator(
-    'kde.core.with_db',
+    'kde.core.with_bag',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_bag(P.db),
+        qtype_utils.expect_data_bag(P.bag),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def with_db(ds, db):  # pylint: disable=unused-argument
+def with_bag(ds, bag):  # pylint: disable=unused-argument
   """Returns a DataSlice with the given DataBatg attached."""
   raise NotImplementedError('implemented in the backend')
 
@@ -1013,7 +1016,7 @@ def get_item(x, key):
 
   `x` must be a DataSlice of Dicts or Lists, or DataBag. If `x` is a DataSlice,
   `key` is used as a slice or index. If `x` is a DataBag, `key` is used as a
-  view into the DataBag (equivalent to `kde.with_db(key, x))`).
+  view into the DataBag (equivalent to `kde.with_bag(key, x))`).
 
   Examples:
   l = kd.list([1, 2, 3])
@@ -1027,7 +1030,7 @@ def get_item(x, key):
   kde.get_item(d, kd.slice(['a', 'c'])) -> kd.slice([1, None])
 
   # db lookup.
-  kde.get_item(l.db, l.ref()) -> l.
+  kde.get_item(l.get_bag(), l.ref()) -> l.
 
   Args:
     x: List or Dict DataSlice, or DataBag.
@@ -1039,7 +1042,7 @@ def get_item(x, key):
   return arolla.types.DispatchOperator(
       'x, key',
       data_bag_case=arolla.types.DispatchCase(
-          with_db(P.key, P.x),
+          with_bag(P.key, P.x),
           condition=P.x == qtypes.DATA_BAG,
       ),
       data_slice_index_case=arolla.types.DispatchCase(
@@ -2276,13 +2279,14 @@ def nofollow_schema(schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.no_db'])
+# TODO: Remove the *_db alias.
+@optools.add_to_registry(aliases=['kde.no_bag', 'kde.no_db', 'kde.core.no_db'])
 @optools.as_backend_operator(
-    'kde.core.no_db',
+    'kde.core.no_bag',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def no_db(ds):  # pylint: disable=unused-argument
+def no_bag(ds):  # pylint: disable=unused-argument
   """Returns DataSlice without any DataBag attached."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2296,7 +2300,7 @@ def no_db(ds):  # pylint: disable=unused-argument
 def ref(ds):  # pylint: disable=unused-argument
   """Returns `ds` with the DataBag removed.
 
-  Unlike `no_db`, `ds` is required to hold ItemIds and no primitives are
+  Unlike `no_bag`, `ds` is required to hold ItemIds and no primitives are
   allowed.
 
   The result DataSlice still has the original schema. If the schema is an Entity
@@ -2374,13 +2378,13 @@ def freeze(x):  # pylint: disable=unused-argument
   )(x)
 
 
-@optools.add_to_registry(aliases=['kde.get_db'], view=view.DataBagView)
+@optools.add_to_registry(aliases=['kde.get_bag'], view=view.DataBagView)
 @optools.as_backend_operator(
-    'kde.core.get_db',
+    'kde.core.get_bag',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
     qtype_inference_expr=qtypes.DATA_BAG,
 )
-def get_db(ds):  # pylint: disable=unused-argument
+def get_bag(ds):  # pylint: disable=unused-argument
   """Returns the attached DataBag.
 
   It raises an Error if there is no DataBag attached.
@@ -2403,8 +2407,8 @@ def get_db(ds):  # pylint: disable=unused-argument
     ],
 )
 def reify(ds, source):
-  """Assigns a db and schema from `source` to the slice `ds`."""
-  ds = with_db(ds, get_db(source))
+  """Assigns a bag and schema from `source` to the slice `ds`."""
+  ds = with_bag(ds, get_bag(source))
   return schema_ops.with_schema(ds, schema_ops.get_schema(source))
 
 
@@ -2438,24 +2442,25 @@ def with_merged_bag(ds):  # pylint: disable=unused-argument
     'kde.core.enriched',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_bag_args(P.db),
+        qtype_utils.expect_data_bag_args(P.bag),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def enriched(ds, *db):  # pylint: disable=unused-argument
+def enriched(ds, *bag):  # pylint: disable=unused-argument
   """Returns a copy of a DataSlice with a additional fallback DataBag(s).
 
-  Values in the original DataBag of `ds` take precedence over the ones in `*db`.
+  Values in the original DataBag of `ds` take precedence over the ones in
+  `*bag`.
 
   The DataBag attached to the result is a new immutable DataBag that falls back
-  to the DataBag of `ds` if present and then to `*db`.
+  to the DataBag of `ds` if present and then to `*bag`.
 
   `enriched(x, a, b)` is equivalent to `enriched(enriched(x, a), b)`, and so on
   for additional DataBag args.
 
   Args:
     ds: DataSlice.
-    *db: additional fallback DataBag(s).
+    *bag: additional fallback DataBag(s).
 
   Returns:
     DataSlice with additional fallbacks.
@@ -2468,24 +2473,25 @@ def enriched(ds, *db):  # pylint: disable=unused-argument
     'kde.core.updated',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_bag_args(P.db),
+        qtype_utils.expect_data_bag_args(P.bag),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def updated(ds, *db):  # pylint: disable=unused-argument
+def updated(ds, *bag):  # pylint: disable=unused-argument
   """Returns a copy of a DataSlice with DataBag(s) of updates applied.
 
-  Values in `*db` take precedence over the ones in the original DataBag of `ds`.
+  Values in `*bag` take precedence over the ones in the original DataBag of
+  `ds`.
 
   The DataBag attached to the result is a new immutable DataBag that falls back
-  to the DataBag of `ds` if present and then to `*db`.
+  to the DataBag of `ds` if present and then to `*bag`.
 
   `updated(x, a, b)` is equivalent to `updated(updated(x, b), a)`, and so on
   for additional DataBag args.
 
   Args:
     ds: DataSlice.
-    *db: DataBag(s) of updates.
+    *bag: DataBag(s) of updates.
 
   Returns:
     DataSlice with additional fallbacks.
@@ -2497,26 +2503,26 @@ def updated(ds, *db):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.core.enriched_bag',
     qtype_constraints=[
-        qtype_utils.expect_data_bag_args(P.dbs),
+        qtype_utils.expect_data_bag_args(P.bags),
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
 )
-def enriched_bag(*dbs):  # pylint: disable=unused-argument
-  """Creates a new immutable DataBag enriched by `dbs`.
+def enriched_bag(*bags):  # pylint: disable=unused-argument
+  """Creates a new immutable DataBag enriched by `bags`.
 
-   It adds `dbs` as fallbacks rather than merging the underlying data thus
+   It adds `bags` as fallbacks rather than merging the underlying data thus
    the cost is O(1).
 
    Databags earlier in the list have higher priority.
-   `enriched_bag(db1, db2, db3)` is equivalent to
-   `enriched_bag(enriched_bag(db1, db2), db3)`, and so on for additional
+   `enriched_bag(bag1, bag2, bag3)` is equivalent to
+   `enriched_bag(enriched_bag(bag1, bag2), bag3)`, and so on for additional
    DataBag args.
 
   Args:
-    *dbs: DataBag(s) for enriching.
+    *bags: DataBag(s) for enriching.
 
   Returns:
-    An immutable DataBag enriched by `dbs`.
+    An immutable DataBag enriched by `bags`.
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -2525,26 +2531,26 @@ def enriched_bag(*dbs):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.core.updated_bag',
     qtype_constraints=[
-        qtype_utils.expect_data_bag_args(P.dbs),
+        qtype_utils.expect_data_bag_args(P.bags),
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
 )
-def updated_bag(*dbs):  # pylint: disable=unused-argument
-  """Creates a new immutable DataBag updated by `dbs`.
+def updated_bag(*bags):  # pylint: disable=unused-argument
+  """Creates a new immutable DataBag updated by `bags`.
 
-   It adds `dbs` as fallbacks rather than merging the underlying data thus
+   It adds `bags` as fallbacks rather than merging the underlying data thus
    the cost is O(1).
 
    Databags later in the list have higher priority.
-   `updated_bag(db1, db2, db3)` is equivalent to
-   `updated_bag(db1, updated_bag(db2, db3)`, and so on for additional
+   `updated_bag(bag1, bag2, bag3)` is equivalent to
+   `updated_bag(bag1, updated_bag(bag2, bag3)`, and so on for additional
    DataBag args.
 
   Args:
-    *dbs: DataBag(s) for updating.
+    *bags: DataBag(s) for updating.
 
   Returns:
-    An immutable DataBag updated by `dbs`.
+    An immutable DataBag updated by `bags`.
   """
   raise NotImplementedError('implemented in the backend')
 

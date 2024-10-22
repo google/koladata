@@ -138,10 +138,10 @@ absl::StatusOr<ValueProto> EncodeDataSlice(arolla::TypedRef value,
   value_proto.add_input_value_indices(values_index);
   value_proto.add_input_value_indices(shape_index);
   value_proto.add_input_value_indices(schema_index);
-  if (slice.GetDb() != nullptr) {
+  if (slice.GetBag() != nullptr) {
     ASSIGN_OR_RETURN(
         auto db_index,
-        encoder.EncodeValue(arolla::TypedValue::FromValue(slice.GetDb())));
+        encoder.EncodeValue(arolla::TypedValue::FromValue(slice.GetBag())));
     value_proto.add_input_value_indices(db_index);
   }
   return value_proto;

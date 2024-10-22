@@ -36,7 +36,7 @@ class CoreReifyTest(absltest.TestCase):
     db = bag()
     s = db.new_schema(a=schema_constants.INT32)
     x = ds([s(a=1), s(a=2)])
-    y = x.as_itemid().no_db()
+    y = x.as_itemid().no_bag()
     x1 = expr_eval.eval(kde.reify(y, source=x))
     testing.assert_equal(x1, x)
 
@@ -48,7 +48,7 @@ class CoreReifyTest(absltest.TestCase):
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.with_db, kde.with_db))
+    self.assertTrue(optools.equiv_to_op(kde.core.with_bag, kde.with_bag))
 
 
 if __name__ == '__main__':

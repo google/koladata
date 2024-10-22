@@ -345,7 +345,7 @@ class OpReprTest(parameterized.TestCase):
           'I.x[M.core.make_slice(I.start, I.end, unspecified)]',
       ),
       (
-          kde.get_item(I.x, ds(1).no_db()),
+          kde.get_item(I.x, ds(1).no_bag()),
           'I.x[DataItem(1, schema: INT32)]',
       ),
   )

@@ -40,7 +40,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     y = db.obj(x=42)
     x = db.obj(y=y)
     result = expr_eval.eval(kde.shallow_clone(x))
-    testing.assert_equal(result.y.no_db(), y.no_db())
+    testing.assert_equal(result.y.no_bag(), y.no_bag())
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape('object schema is missing for the DataItem')
@@ -52,7 +52,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     y = db.new(x=42)
     x = db.new(y=y)
     result = expr_eval.eval(kde.shallow_clone(x))
-    testing.assert_equal(result.y.no_db(), y.no_db())
+    testing.assert_equal(result.y.no_bag(), y.no_bag())
     with self.assertRaisesRegex(ValueError, r'the attribute \'x\' is missing'):
       _ = result.y.x
 
@@ -61,7 +61,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     y = db.new(x=42)
     x = db.new(y=y)
     result = expr_eval.eval(kde.shallow_clone(x))
-    testing.assert_equal(result.y.no_db(), y.no_db())
+    testing.assert_equal(result.y.no_bag(), y.no_bag())
 
   @parameterized.product(
       noise_positioned_in_front=[True, False],
@@ -79,14 +79,12 @@ class CoreShallowCloneTest(parameterized.TestCase):
     )
     # TODO: test no_follow, uu, uuid
     fb = bag()
-    o.a.with_db(fb).set_attr(
-        '__schema__', o.a.get_attr('__schema__').no_db()
-    )
-    o.a.with_db(fb).set_attr('d', ds([1, 2, 3]))
+    o.a.with_bag(fb).set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
+    o.a.with_bag(fb).set_attr('d', ds([1, 2, 3]))
     fb_noise = bag()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.with_db(noise.enriched(db, fb).db)
+      o_fb = o.with_bag(noise.enriched(db, fb).get_bag())
     else:
       o_fb = o.enriched(fb, fb_noise)
 
@@ -95,54 +93,54 @@ class CoreShallowCloneTest(parameterized.TestCase):
     else:
       result = expr_eval.eval(kde.shallow_clone(o_fb))
 
-    testing.assert_equal(result.a.no_db(), o_fb.a.no_db())
-    testing.assert_equal(result.b.no_db(), o_fb.b.no_db())
-    testing.assert_equal(result.c.no_db(), o_fb.c.no_db())
+    testing.assert_equal(result.a.no_bag(), o_fb.a.no_bag())
+    testing.assert_equal(result.b.no_bag(), o_fb.b.no_bag())
+    testing.assert_equal(result.c.no_bag(), o_fb.c.no_bag())
     testing.assert_equal(
-        result.get_schema().a.no_db(), o_fb.get_schema().a.no_db()
+        result.get_schema().a.no_bag(), o_fb.get_schema().a.no_bag()
     )
     testing.assert_equal(
-        result.get_schema().b.no_db(), o_fb.get_schema().b.no_db()
+        result.get_schema().b.no_bag(), o_fb.get_schema().b.no_bag()
     )
     testing.assert_equal(
-        result.get_schema().c.no_db(), o_fb.get_schema().c.no_db()
+        result.get_schema().c.no_bag(), o_fb.get_schema().c.no_bag()
     )
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_db(), o_fb.no_db())
+      testing.assert_equal(result.no_bag(), o_fb.no_bag())
     testing.assert_equal(
-        result.get_schema().no_db(), o_fb.get_schema().no_db()
+        result.get_schema().no_bag(), o_fb.get_schema().no_bag()
     )
 
-    expected_db = bag()
-    result.get_schema().with_db(expected_db).set_attr(
-        'a', o_fb.get_schema().a.no_db()
+    expected_bag = bag()
+    result.get_schema().with_bag(expected_bag).set_attr(
+        'a', o_fb.get_schema().a.no_bag()
     )
-    result.get_schema().with_db(expected_db).set_attr(
-        'b', o_fb.get_schema().b.no_db()
+    result.get_schema().with_bag(expected_bag).set_attr(
+        'b', o_fb.get_schema().b.no_bag()
     )
-    result.get_schema().with_db(expected_db).set_attr(
-        'c', o_fb.get_schema().c.no_db()
+    result.get_schema().with_bag(expected_bag).set_attr(
+        'c', o_fb.get_schema().c.no_bag()
     )
-    result.with_db(expected_db).set_attr('a', o_fb.a.no_db())
-    result.with_db(expected_db).set_attr('b', o_fb.b.no_db())
-    result.with_db(expected_db).set_attr('c', o_fb.c.no_db())
-    self.assertTrue(result.db._exactly_equal(expected_db))
+    result.with_bag(expected_bag).set_attr('a', o_fb.a.no_bag())
+    result.with_bag(expected_bag).set_attr('b', o_fb.b.no_bag())
+    result.with_bag(expected_bag).set_attr('c', o_fb.c.no_bag())
+    self.assertTrue(result.get_bag()._exactly_equal(expected_bag))
 
   def test_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
     res = kde.core.shallow_clone(x, z=bag().list([12]), t=bag().obj(b=5))
     res = expr_eval.eval(res)
-    testing.assert_equal(res.y.no_db(), x.y.no_db())
-    testing.assert_equal(res.z[:].no_db(), ds([12]))
-    testing.assert_equal(res.t.b.no_db(), ds(5))
+    testing.assert_equal(res.y.no_bag(), x.y.no_bag())
+    testing.assert_equal(res.z[:].no_bag(), ds([12]))
+    testing.assert_equal(res.t.b.no_bag(), ds(5))
 
   def test_with_schema_and_overrides(self):
     s = bag().new_schema(x=schema_constants.INT32)
     x = bag().obj(x=42, y='abc')
     res = kde.core.shallow_clone(x, schema=s, z=12)
     res = expr_eval.eval(res)
-    testing.assert_equal(res.x.no_db(), ds(42))
-    testing.assert_equal(res.z.no_db(), ds(12))
+    testing.assert_equal(res.x.no_bag(), ds(42))
+    testing.assert_equal(res.z.no_bag(), ds(12))
     with self.assertRaisesRegex(ValueError, 'attribute \'y\' is missing'):
       _ = res.y
 
@@ -150,14 +148,14 @@ class CoreShallowCloneTest(parameterized.TestCase):
     x = bag().new(y=bag().new(a=1))
     res_1 = expr_eval.eval(kde.core.shallow_clone(x))
     res_2 = expr_eval.eval(kde.core.shallow_clone(x))
-    self.assertNotEqual(res_1.no_db(), res_2.no_db())
-    testing.assert_equal(res_1.y.no_db(), res_2.y.no_db())
+    self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
+    testing.assert_equal(res_1.y.no_bag(), res_2.y.no_bag())
 
     expr = kde.core.shallow_clone(x)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
-    self.assertNotEqual(res_1.no_db(), res_2.no_db())
-    testing.assert_equal(res_1.y.no_db(), res_2.y.no_db())
+    self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
+    testing.assert_equal(res_1.y.no_bag(), res_2.y.no_bag())
 
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.shallow_clone(I.x)))

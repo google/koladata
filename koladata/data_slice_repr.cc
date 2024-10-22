@@ -235,7 +235,7 @@ absl::StatusOr<std::string> ListToStr(const DataSlice& ds,
       auto item_schema = list.GetSchema();
       ASSIGN_OR_RETURN(
           DataSlice item_slice,
-          DataSlice::Create(item, item_schema.item(), list.GetDb()));
+          DataSlice::Create(item, item_schema.item(), list.GetBag()));
       ASSIGN_OR_RETURN(std::string item_str, DataItemToStr(item_slice, option));
       elements.emplace_back(std::move(item_str));
       ++item_count;
@@ -259,8 +259,9 @@ absl::StatusOr<std::string> DictToStr(const DataSlice& ds,
       elements.emplace_back(kEllipsis);
       break;
     }
-    ASSIGN_OR_RETURN(DataSlice key,
-                     DataSlice::Create(item, keys.GetSchemaImpl(), ds.GetDb()));
+    ASSIGN_OR_RETURN(
+        DataSlice key,
+        DataSlice::Create(item, keys.GetSchemaImpl(), ds.GetBag()));
     ASSIGN_OR_RETURN(DataSlice value, ds.GetFromDict(key));
     ASSIGN_OR_RETURN(std::string key_str, DataItemToStr(key, option));
     ASSIGN_OR_RETURN(std::string value_str, DataItemToStr(value, option));
@@ -309,7 +310,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
   if (data_item.template holds_value<ObjectId>()) {
     // TEXT items inside Lists and Dicts are quoted.
     next_option.strip_quotes = false;
-    if (ds.GetDb() == nullptr) {
+    if (ds.GetBag() == nullptr) {
       return DataItemRepr(data_item);
     }
 

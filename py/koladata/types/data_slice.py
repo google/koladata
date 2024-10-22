@@ -125,6 +125,10 @@ _op_impl_lookup = operator_lookup.OperatorLookup()
 
 ##### DataSlice methods. #####
 
+# TODO: Remove these aliases.
+DataSlice.add_method('with_db')(DataSlice.with_bag)
+DataSlice.add_method('no_db')(DataSlice.no_bag)
+
 
 @DataSlice.add_method('maybe')
 def _maybe(self, attr_name: str) -> DataSlice:
@@ -258,11 +262,15 @@ def _deep_uuid(
   )
 
 
+@DataSlice.add_method('fork_bag')
+# TODO: Remove this alias.
 @DataSlice.add_method('fork_db')
-def _fork_db(self) -> DataSlice:
-  if self.db is None:
-    raise ValueError('fork_db expects the DataSlice to have a DataBag attached')
-  return self.with_db(self.db.fork(mutable=True))
+def _fork_bag(self) -> DataSlice:
+  if self.get_bag() is None:
+    raise ValueError(
+        'fork_bag expects the DataSlice to have a DataBag attached'
+    )
+  return self.with_bag(self.get_bag().fork(mutable=True))
 
 
 @DataSlice.add_method('with_merged_bag')
@@ -381,11 +389,11 @@ def to_py(
   if max_depth >= 0:
     max_depth += ds.get_ndim()
 
-  orig_db = ds.db
+  orig_bag = ds.get_bag()
   db = DataBag.empty()
-  ds = db.implode(ds.no_db(), -1)
-  if orig_db is not None:
-    ds = ds.enriched(orig_db)
+  ds = db.implode(ds.no_bag(), -1)
+  if orig_bag is not None:
+    ds = ds.enriched(orig_bag)
   return _to_py_impl(ds, {}, 0, max_depth, obj_as_dict, include_missing_attrs)
 
 
@@ -431,7 +439,7 @@ def _to_py_impl(
   if ds.is_primitive():
     return ds.internal_as_py()
 
-  if ds.db is None:
+  if ds.get_bag() is None:
     return {}
 
   schema = ds.get_schema()
@@ -509,9 +517,14 @@ def _to_py_impl(
     dict_values = py_obj
     for key in ds:
       value_ds = ds[key]
-      dict_values[key.no_db().internal_as_py()] = _to_py_impl(
-          value_ds, obj_id_to_python_obj, next_depth, max_depth, obj_as_dict,
-          include_missing_attrs)
+      dict_values[key.no_bag().internal_as_py()] = _to_py_impl(
+          value_ds,
+          obj_id_to_python_obj,
+          next_depth,
+          max_depth,
+          obj_as_dict,
+          include_missing_attrs,
+      )
 
   return py_obj
 
@@ -723,12 +736,12 @@ class ListSlicingHelper:
 
   @functools.cached_property
   def _imploded_ds(self) -> DataSlice:
-    return DataBag.empty().implode(self._ds.no_db(), -1)
+    return DataBag.empty().implode(self._ds.no_bag(), -1)
 
   def __getitem__(self, s):
     return arolla.abc.aux_eval_op(
         _op_impl_lookup.explode, self._imploded_ds[s], self._ndim - 1
-    ).with_db(self._ds.db)
+    ).with_bag(self._ds.get_bag())
 
   def __len__(self) -> int:
     return arolla.abc.aux_eval_op(

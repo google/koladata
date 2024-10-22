@@ -43,7 +43,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
 
     res = expr_eval.eval(kde.py.map_py_on_selected(fn, val > 2, val))
     testing.assert_equal(
-        res.no_db(),
+        res.no_bag(),
         ds([[None, None, None, 5], [None, None], [8, 9, 10]]),
     )
 
@@ -51,7 +51,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
         kde.py.map_py_on_selected(fn, kde.logical.has_not(val) | (val > 2), val)
     )
     testing.assert_equal(
-        res.no_db(), ds([[None, None, 0, 5], [0, 0], [8, 9, 10]])
+        res.no_bag(), ds([[None, None, 0, 5], [0, 0], [8, 9, 10]])
     )
 
   def test_smaller_dimension_cond(self):
@@ -61,7 +61,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
 
     res = expr_eval.eval(kde.py.map_py_on_selected(fn, cond, val))
     testing.assert_equal(
-        res.no_db(), ds([[2, 3, 0, 5], [None, None], [8, 9, 10]])
+        res.no_bag(), ds([[2, 3, 0, 5], [None, None], [8, 9, 10]])
     )
 
   def test_error_non_mask_cond(self):

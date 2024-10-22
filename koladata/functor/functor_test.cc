@@ -94,18 +94,19 @@ TEST(CreateFunctorTest, Basic) {
                        CreateFunctor(returns_expr, koda_signature,
                                      {{"a", var_a_expr}, {"my_obj", my_obj}}));
   EXPECT_THAT(fn.GetAttr(kReturnsAttrName),
-              IsOkAndHolds(IsEquivalentTo(returns_expr.WithDb(fn.GetDb()))));
+              IsOkAndHolds(IsEquivalentTo(returns_expr.WithBag(fn.GetBag()))));
   EXPECT_THAT(fn.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(var_a_expr.WithDb(fn.GetDb()))));
-  EXPECT_THAT(fn.GetAttr(kSignatureAttrName),
-              IsOkAndHolds(IsEquivalentTo(koda_signature.WithDb(fn.GetDb()))));
+              IsOkAndHolds(IsEquivalentTo(var_a_expr.WithBag(fn.GetBag()))));
+  EXPECT_THAT(
+      fn.GetAttr(kSignatureAttrName),
+      IsOkAndHolds(IsEquivalentTo(koda_signature.WithBag(fn.GetBag()))));
   // Make sure the signature was adopted.
   ASSERT_OK_AND_ASSIGN(auto fn_signature, fn.GetAttr(kSignatureAttrName));
   EXPECT_OK(KodaSignatureToCppSignature(fn_signature).status());
   // Make sure my_obj was adopted.
   ASSERT_OK_AND_ASSIGN(auto my_obj_in_fn, fn.GetAttr("my_obj"));
   EXPECT_THAT(my_obj_in_fn.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(slice_57.WithDb(fn.GetDb()))));
+              IsOkAndHolds(IsEquivalentTo(slice_57.WithBag(fn.GetBag()))));
 }
 
 TEST(CreateFunctorTest, DefaultSignature) {
@@ -126,9 +127,10 @@ TEST(CreateFunctorTest, DefaultSignature) {
   EXPECT_THAT(
       signature.parameters(),
       ElementsAre(
-          FieldsAre("self", kPositionalOnly,
-                    Optional(IsEquivalentTo(expr::UnspecifiedSelfInput().WithDb(
-                        koda_signature.GetDb())))),
+          FieldsAre(
+              "self", kPositionalOnly,
+              Optional(IsEquivalentTo(expr::UnspecifiedSelfInput().WithBag(
+                  koda_signature.GetBag())))),
           FieldsAre("a", kKeywordOnly, Eq(std::nullopt)),
           FieldsAre("b", kKeywordOnly, Eq(std::nullopt)),
           FieldsAre("__extra_inputs__", kVarKeyword, Eq(std::nullopt))));
@@ -143,7 +145,7 @@ TEST(CreateFunctorTest, NonExprReturns) {
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(auto fn, CreateFunctor(slice_57, koda_signature, {}));
   EXPECT_THAT(fn.GetAttr(kReturnsAttrName),
-              IsOkAndHolds(IsEquivalentTo(slice_57.WithDb(fn.GetDb()))));
+              IsOkAndHolds(IsEquivalentTo(slice_57.WithBag(fn.GetBag()))));
 }
 
 TEST(CreateFunctorTest, Non0RankReturns) {
@@ -205,7 +207,7 @@ TEST(IsFunctorTest, Basic) {
   ASSERT_OK_AND_ASSIGN(auto fn3, fn.ForkDb());
   ASSERT_OK(fn3.DelAttr(kSignatureAttrName));
   EXPECT_THAT(IsFunctor(fn3), IsOkAndHolds(false));
-  EXPECT_THAT(IsFunctor(fn.WithDb(nullptr)),
+  EXPECT_THAT(IsFunctor(fn.WithBag(nullptr)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("without a DataBag")));
 }

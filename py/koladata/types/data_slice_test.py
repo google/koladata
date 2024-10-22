@@ -87,7 +87,7 @@ class DataSliceMethodsTest(absltest.TestCase):
 
     x = bag().obj()
     x.some_method = 42
-    testing.assert_equal(x.some_method, ds(42).with_db(x.db))
+    testing.assert_equal(x.some_method, ds(42).with_bag(x.get_bag()))
 
     @data_slice.register_reserved_class_method_names
     class SubDataSlice(data_slice.DataSlice):
@@ -170,8 +170,8 @@ class DataSliceTest(parameterized.TestCase):
     self.assertNotEqual(x1.fingerprint, x4.fingerprint)
 
     db = bag()
-    self.assertNotEqual(x1.with_db(db).fingerprint, x2.fingerprint)
-    self.assertEqual(x1.with_db(db).fingerprint, x2.with_db(db).fingerprint)
+    self.assertNotEqual(x1.with_bag(db).fingerprint, x2.fingerprint)
+    self.assertEqual(x1.with_bag(db).fingerprint, x2.with_bag(db).fingerprint)
 
     shape = jagged_shape.create_shape([2], [1, 1])
     self.assertNotEqual(x1.reshape(shape).fingerprint, x2.fingerprint)
@@ -193,7 +193,7 @@ class DataSliceTest(parameterized.TestCase):
       testing.assert_equal(ds(42), data_slice.unspecified())
     with self.assertRaises(AssertionError):
       testing.assert_equal(
-          data_slice.unspecified().with_db(bag()), data_slice.unspecified()
+          data_slice.unspecified().with_bag(bag()), data_slice.unspecified()
       )
 
   @parameterized.named_parameters(
@@ -223,7 +223,7 @@ class DataSliceTest(parameterized.TestCase):
       ),
       (
           'int64_as_object',
-          bag().obj(ds([1, 2], schema_constants.INT64)).no_db(),
+          bag().obj(ds([1, 2], schema_constants.INT64)).no_bag(),
           (
               'DataSlice([int64{1}, int64{2}], schema: OBJECT, shape:'
               ' JaggedShape(2))'
@@ -244,13 +244,13 @@ class DataSliceTest(parameterized.TestCase):
       ),
       (
           'float32_as_object',
-          bag().obj(ds([1.0, 1.5], schema_constants.FLOAT32)).no_db(),
+          bag().obj(ds([1.0, 1.5], schema_constants.FLOAT32)).no_bag(),
           'DataSlice([1.0, 1.5], schema: OBJECT, shape: JaggedShape(2))',
           '[1.0, 1.5]',
       ),
       (
           'float64_as_object',
-          bag().obj(ds([1.0, 1.5], schema_constants.FLOAT64)).no_db(),
+          bag().obj(ds([1.0, 1.5], schema_constants.FLOAT64)).no_bag(),
           (
               'DataSlice([float64{1.0}, float64{1.5}], schema: OBJECT, shape:'
               ' JaggedShape(2))'
@@ -351,13 +351,13 @@ class DataSliceTest(parameterized.TestCase):
           '[[[1], [2]], [[3], [4], [5]]]',
       ),
   )
-  def test_repr_and_str_no_db(self, x, expected_repr, expected_str):
+  def test_repr_and_str_no_bag(self, x, expected_repr, expected_str):
     self.assertEqual(repr(x), expected_repr)
     self.assertEqual(str(x), expected_str)
 
-  def test_repr_with_db(self):
+  def test_repr_with_bag(self):
     db = bag()
-    x = ds([1, 2]).with_db(db)
+    x = ds([1, 2]).with_bag(db)
     bag_id = '$' + str(db.fingerprint)[-4:]
     self.assertEqual(
         repr(x),
@@ -379,80 +379,94 @@ class DataSliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(TypeError, 'unhashable type'):
       hash(ds([1, 2, 3]))
 
-  def test_db(self):
+  def test_get_bag(self):
     x = ds([1, 2, 3])
-    self.assertIsNone(x.db)
+    self.assertIsNone(x.get_bag())
 
     db = bag()
-    x = x.with_db(db)
-    self.assertIsNotNone(x.db)
+    x = x.with_bag(db)
+    self.assertIsNotNone(x.get_bag())
 
-    self.assertIsNone(x.with_db(None).db)
-    self.assertIsNone(x.no_db().db)
+    self.assertIsNone(x.with_bag(None).get_bag())
+    self.assertIsNone(x.no_bag().get_bag())
 
     x = db.new_shaped(jagged_shape.create_shape([1]))
-    self.assertIsNotNone(x.db)
-    # NOTE: At the moment x.db is not db. If this is needed, we could store the
-    # db PyObject* reference in PyDataSlice object. The underlying DataBag that
-    # PyObject points to, is the same.
-    self.assertIsNot(x.db, db)
+    self.assertIsNotNone(x.get_bag())
+    # NOTE: At the moment x.get_bag() is not db. If this is needed, we could
+    # store the db PyObject* reference in PyDataSlice object. The underlying
+    # DataBag that PyObject points to, is the same.
+    self.assertIsNot(x.get_bag(), db)
 
     with self.assertRaisesRegex(
         TypeError, 'expecting db to be a DataBag, got list'
     ):
-      x.with_db([1, 2, 3])
+      x.with_bag([1, 2, 3])
 
     with self.assertRaisesRegex(
         TypeError, 'expecting db to be a DataBag, got DenseArray'
     ):
-      x.with_db(arolla.dense_array([1, 2, 3]))
+      x.with_bag(arolla.dense_array([1, 2, 3]))
 
-  def test_fork_db(self):
+  def test_deprecated_db_methods(self):
+    x = fns.new(a=1)
+    testing.assert_equal(x.db, x.get_bag())
+    db = bag()
+    y = x.with_db(db)
+    testing.assert_equal(y.get_bag(), db)
+    z = x.no_db()
+    self.assertIsNone(z.get_bag())
+    t = x.fork_db()
+    testing.assert_equal(t.a, ds(1).with_bag(t.get_bag()))
+    t.a = 2
+    testing.assert_equal(t.a, ds(2).with_bag(t.get_bag()))
+    testing.assert_equal(x.a, ds(1).with_bag(x.get_bag()))
+
+  def test_fork_bag(self):
     x = ds([1, 2, 3])
 
     with self.assertRaisesRegex(
-        ValueError, 'fork_db expects the DataSlice to have a DataBag attached'
+        ValueError, 'fork_bag expects the DataSlice to have a DataBag attached'
     ):
-      x.fork_db()
+      x.fork_bag()
 
     db = bag()
-    x = x.with_db(db)
+    x = x.with_bag(db)
 
-    x1 = x.fork_db()
+    x1 = x.fork_bag()
     self.assertIsNot(x, x1)
-    self.assertIsNot(x1.db, x.db)
-    self.assertIsNot(x1.db, db)
-    self.assertTrue(x1.db.is_mutable())
+    self.assertIsNot(x1.get_bag(), x.get_bag())
+    self.assertIsNot(x1.get_bag(), db)
+    self.assertTrue(x1.get_bag().is_mutable())
 
   def test_freeze(self):
     x = ds([1, 2, 3])
     testing.assert_equal(x, x.freeze())
 
     db = bag()
-    x = x.with_db(db)
+    x = x.with_bag(db)
     x1 = x.freeze()
     self.assertIsNot(x, x1)
-    self.assertIsNot(x1.db, x.db)
-    self.assertIsNot(x1.db, x1.db)
-    self.assertFalse(x1.db.is_mutable())
+    self.assertIsNot(x1.get_bag(), x.get_bag())
+    self.assertIsNot(x1.get_bag(), x1.get_bag())
+    self.assertFalse(x1.get_bag().is_mutable())
 
   def test_with_merged_bag(self):
     db1 = bag()
     x = db1.new(a=1)
     db2 = bag()
-    y = x.with_db(db2)
+    y = x.with_bag(db2)
     y.set_attr('a', 2, update_schema=True)
     y.set_attr('b', 2, update_schema=True)
     z = x.enriched(db2)
 
     new_z = z.with_merged_bag()
-    self.assertIsNot(new_z.db, db1)
-    self.assertIsNot(new_z.db, db2)
-    self.assertIsNot(new_z.db, z.db)
-    self.assertFalse(new_z.db.is_mutable())
-    self.assertEmpty(new_z.db.get_fallbacks())
-    testing.assert_equal(new_z.a.no_db(), ds(1))
-    testing.assert_equal(new_z.b.no_db(), ds(2))
+    self.assertIsNot(new_z.get_bag(), db1)
+    self.assertIsNot(new_z.get_bag(), db2)
+    self.assertIsNot(new_z.get_bag(), z.get_bag())
+    self.assertFalse(new_z.get_bag().is_mutable())
+    self.assertEmpty(new_z.get_bag().get_fallbacks())
+    testing.assert_equal(new_z.a.no_bag(), ds(1))
+    testing.assert_equal(new_z.b.no_bag(), ds(2))
 
   def test_enriched(self):
     db1 = bag()
@@ -460,38 +474,38 @@ class DataSliceTest(parameterized.TestCase):
     x = db1.new(a=1, schema=schema)
 
     db2 = bag()
-    x = x.with_db(db2)
+    x = x.with_bag(db2)
 
     x = x.enriched(db1)
-    self.assertNotEqual(x.db.fingerprint, db1.fingerprint)
-    self.assertNotEqual(x.db.fingerprint, db2.fingerprint)
-    testing.assert_equivalent(x.a.no_db(), ds(1).no_db())
+    self.assertNotEqual(x.get_bag().fingerprint, db1.fingerprint)
+    self.assertNotEqual(x.get_bag().fingerprint, db2.fingerprint)
+    testing.assert_equivalent(x.a.no_bag(), ds(1).no_bag())
 
-    x = x.with_db(db2).enriched(db1, db1)
-    self.assertNotEqual(x.db.fingerprint, db1.fingerprint)
-    self.assertNotEqual(x.db.fingerprint, db2.fingerprint)
-    testing.assert_equivalent(x.a.no_db(), ds(1).no_db())
+    x = x.with_bag(db2).enriched(db1, db1)
+    self.assertNotEqual(x.get_bag().fingerprint, db1.fingerprint)
+    self.assertNotEqual(x.get_bag().fingerprint, db2.fingerprint)
+    testing.assert_equivalent(x.a.no_bag(), ds(1).no_bag())
 
   def test_updated(self):
     schema = fns.new_schema(a=schema_constants.INT32)
 
     db1 = bag()
-    db1.merge_inplace(schema.db)
+    db1.merge_inplace(schema.get_bag())
     x = db1.new(a=1, schema=schema)
 
     db2 = bag()
-    db2.merge_inplace(schema.db)
-    x.with_db(db2).a = 2
+    db2.merge_inplace(schema.get_bag())
+    x.with_bag(db2).a = 2
 
     x = x.updated(db2)
-    self.assertNotEqual(x.db.fingerprint, db1.fingerprint)
-    self.assertNotEqual(x.db.fingerprint, db2.fingerprint)
-    testing.assert_equivalent(x.a.no_db(), ds(2).no_db())
+    self.assertNotEqual(x.get_bag().fingerprint, db1.fingerprint)
+    self.assertNotEqual(x.get_bag().fingerprint, db2.fingerprint)
+    testing.assert_equivalent(x.a.no_bag(), ds(2).no_bag())
 
-    x = x.with_db(db1).updated(db2, db2)
-    self.assertNotEqual(x.db.fingerprint, db1.fingerprint)
-    self.assertNotEqual(x.db.fingerprint, db2.fingerprint)
-    testing.assert_equivalent(x.a.no_db(), ds(2).no_db())
+    x = x.with_bag(db1).updated(db2, db2)
+    self.assertNotEqual(x.get_bag().fingerprint, db1.fingerprint)
+    self.assertNotEqual(x.get_bag().fingerprint, db2.fingerprint)
+    testing.assert_equivalent(x.a.no_bag(), ds(2).no_bag())
 
   def test_ref(self):
     x = ds([1, 2, 3])
@@ -503,7 +517,7 @@ class DataSliceTest(parameterized.TestCase):
 
     db = bag()
     x = db.obj(x=x)
-    testing.assert_equal(x.ref(), x.with_db(None))
+    testing.assert_equal(x.ref(), x.with_bag(None))
 
   def test_reserved_ipython_method_names(self):
     db = bag()
@@ -520,10 +534,10 @@ class DataSliceTest(parameterized.TestCase):
     x = db.new(a=1, b='abc')
     self.assertEqual(dir(x), ['a', 'b'])
     self.assertEqual(dir(ds([x])), ['a', 'b'])
-    x.with_db(fb).set_attr('c', 42, update_schema=True)
-    self.assertEqual(dir(x.with_db(db).enriched(fb)), ['a', 'b', 'c'])
+    x.with_bag(fb).set_attr('c', 42, update_schema=True)
+    self.assertEqual(dir(x.with_bag(db).enriched(fb)), ['a', 'b', 'c'])
     self.assertEqual(
-        dir(ds([x]).with_db(db).enriched(fb)),
+        dir(ds([x]).with_bag(db).enriched(fb)),
         ['a', 'b', 'c'],
     )
 
@@ -543,12 +557,12 @@ class DataSliceTest(parameterized.TestCase):
     x.a = []
     testing.assert_equal(
         x.a.get_schema().get_attr('__items__'),
-        schema_constants.OBJECT.with_db(db),
+        schema_constants.OBJECT.with_bag(db),
     )
     x.a = ()
     testing.assert_equal(
         x.a.get_schema().get_attr('__items__'),
-        schema_constants.OBJECT.with_db(db),
+        schema_constants.OBJECT.with_bag(db),
     )
     # Other iterables are not supported in boxing code.
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
@@ -561,10 +575,14 @@ class DataSliceTest(parameterized.TestCase):
     x = db.new(abc=ds([42]))
     x.get_schema().xyz = schema_constants.INT64
     x.xyz = ds([12], schema_constants.INT64)
-    testing.assert_equal(x.abc, ds([42]).with_db(db))
-    testing.assert_equal(x.abc.get_schema(), schema_constants.INT32.with_db(db))
-    testing.assert_equal(x.xyz, ds([12], schema_constants.INT64).with_db(db))
-    testing.assert_equal(x.xyz.get_schema(), schema_constants.INT64.with_db(db))
+    testing.assert_equal(x.abc, ds([42]).with_bag(db))
+    testing.assert_equal(
+        x.abc.get_schema(), schema_constants.INT32.with_bag(db)
+    )
+    testing.assert_equal(x.xyz, ds([12], schema_constants.INT64).with_bag(db))
+    testing.assert_equal(
+        x.xyz.get_schema(), schema_constants.INT64.with_bag(db)
+    )
 
   def test_as_any(self):
     testing.assert_equal(
@@ -618,16 +636,16 @@ class DataSliceTest(parameterized.TestCase):
     with self.subTest('entity'):
       x = db.new(abc=ds([42], schema_constants.INT64))
       testing.assert_equal(
-          x.get_attr('abc'), ds([42], schema_constants.INT64).with_db(db)
+          x.get_attr('abc'), ds([42], schema_constants.INT64).with_bag(db)
       )
       testing.assert_equal(
-          x.get_attr('abc').get_schema(), schema_constants.INT64.with_db(db)
+          x.get_attr('abc').get_schema(), schema_constants.INT64.with_bag(db)
       )
       # Missing
       with self.assertRaisesRegex(ValueError, r'attribute \'xyz\' is missing'):
         x.get_attr('xyz')
-      testing.assert_equal(x.get_attr('xyz', None), ds([None]).with_db(db))
-      testing.assert_equal(x.get_attr('xyz', b'b'), ds([b'b']).with_db(db))
+      testing.assert_equal(x.get_attr('xyz', None), ds([None]).with_bag(db))
+      testing.assert_equal(x.get_attr('xyz', b'b'), ds([b'b']).with_bag(db))
 
       with self.assertRaisesRegex(
           ValueError, r'the attribute \'xyz\' is missing on the schema'
@@ -635,18 +653,18 @@ class DataSliceTest(parameterized.TestCase):
         x.set_attr('xyz', ds([12]), update_schema=False)
 
       x.set_attr('xyz', ds([12]), update_schema=True)
-      testing.assert_equal(x.get_attr('xyz'), ds([12]).with_db(db))
+      testing.assert_equal(x.get_attr('xyz'), ds([12]).with_bag(db))
       testing.assert_equal(
-          x.get_attr('xyz').get_schema(), schema_constants.INT32.with_db(db)
+          x.get_attr('xyz').get_schema(), schema_constants.INT32.with_bag(db)
       )
 
     with self.subTest('object'):
       x = db.obj(abc=ds([42], schema_constants.INT64))
       testing.assert_equal(
-          x.get_attr('abc'), ds([42], schema_constants.INT64).with_db(db)
+          x.get_attr('abc'), ds([42], schema_constants.INT64).with_bag(db)
       )
       testing.assert_equal(
-          x.get_attr('abc').get_schema(), schema_constants.INT64.with_db(db)
+          x.get_attr('abc').get_schema(), schema_constants.INT64.with_bag(db)
       )
 
       for attr, val, update_schema, res_schema in [
@@ -654,13 +672,13 @@ class DataSliceTest(parameterized.TestCase):
           ('pqr', ds(['123']), False, schema_constants.TEXT),
       ]:
         x.set_attr(attr, val, update_schema=update_schema)
-        testing.assert_equal(x.get_attr(attr), val.with_db(db))
+        testing.assert_equal(x.get_attr(attr), val.with_bag(db))
         testing.assert_equal(
-            x.get_attr(attr).get_schema(), res_schema.with_db(db)
+            x.get_attr(attr).get_schema(), res_schema.with_bag(db)
         )
         testing.assert_equal(
             x.get_attr('__schema__').get_attr(attr),
-            ds([res_schema]).with_db(db),
+            ds([res_schema]).with_bag(db),
         )
 
     with self.subTest('objects with explicit schema'):
@@ -672,11 +690,11 @@ class DataSliceTest(parameterized.TestCase):
       # INT64.
       # testing.assert_equal(
       #     x.get_attr('abc'),
-      #     ds([42, 12], schema_constants.INT64).with_db(db)
+      #     ds([42, 12], schema_constants.INT64).with_bag(db)
       # )
       self.assertEqual(x.get_attr('abc').internal_as_py(), [42, 12])
       testing.assert_equal(
-          x.get_attr('abc').get_schema(), schema_constants.INT64.with_db(db)
+          x.get_attr('abc').get_schema(), schema_constants.INT64.with_bag(db)
       )
 
       x.set_attr(
@@ -685,10 +703,10 @@ class DataSliceTest(parameterized.TestCase):
           ds([1, 2], schema_constants.INT32),
       )
       testing.assert_equal(
-          x.get_attr('abc'), ds([1, 2], schema_constants.INT64).with_db(db)
+          x.get_attr('abc'), ds([1, 2], schema_constants.INT64).with_bag(db)
       )
       testing.assert_equal(
-          x.get_attr('abc').get_schema(), schema_constants.INT64.with_db(db)
+          x.get_attr('abc').get_schema(), schema_constants.INT64.with_bag(db)
       )
 
       with self.assertRaisesRegex(
@@ -698,13 +716,13 @@ class DataSliceTest(parameterized.TestCase):
         x.set_attr('abc', ds([b'x', b'y']), update_schema=False)
       # Overwrite with overwriting schema.
       x.set_attr('abc', ds([b'x', b'y']), update_schema=True)
-      testing.assert_equal(x.get_attr('abc'), ds([b'x', b'y']).with_db(db))
+      testing.assert_equal(x.get_attr('abc'), ds([b'x', b'y']).with_bag(db))
       testing.assert_equal(
-          x.get_attr('abc').get_schema(), schema_constants.BYTES.with_db(db)
+          x.get_attr('abc').get_schema(), schema_constants.BYTES.with_bag(db)
       )
       testing.assert_equal(
           x.get_attr('__schema__').get_attr('abc'),
-          ds([schema_constants.BYTES, schema_constants.BYTES]).with_db(db),
+          ds([schema_constants.BYTES, schema_constants.BYTES]).with_bag(db),
       )
 
     with self.subTest('errors'):
@@ -768,14 +786,14 @@ foo.get_obj_schema().x = <desired_schema>"""),
     x = db.new()
     setattr(x.get_schema(), '', schema_constants.INT32)
     setattr(x, '', 1)
-    testing.assert_equal(getattr(x, ''), ds(1).with_db(db))
+    testing.assert_equal(getattr(x, ''), ds(1).with_bag(db))
 
   def test_set_attr_auto_broadcasting(self):
     db = bag()
     x = db.new_shaped(jagged_shape.create_shape([3]))
     x.get_schema().xyz = schema_constants.INT32
     x.xyz = ds(12)
-    testing.assert_equal(x.xyz, ds([12, 12, 12]).with_db(db))
+    testing.assert_equal(x.xyz, ds([12, 12, 12]).with_bag(db))
 
     x_abc = ds([12, 12])
     with self.assertRaisesRegex(
@@ -789,18 +807,22 @@ foo.get_obj_schema().x = <desired_schema>"""),
 
   def test_set_get_attr_empty_entity(self):
     x = bag().new(a=1) & ds(None)
-    testing.assert_equal(x.a, ds(None, schema_constants.INT32).with_db(x.db))
+    testing.assert_equal(
+        x.a, ds(None, schema_constants.INT32).with_bag(x.get_bag())
+    )
     x = bag().new_shaped(jagged_shape.create_shape([2]), a=1) & ds(None)
     testing.assert_equal(
-        x.a, ds([None, None], schema_constants.INT32).with_db(x.db)
+        x.a, ds([None, None], schema_constants.INT32).with_bag(x.get_bag())
     )
 
   def test_set_get_attr_empty_object(self):
     x = bag().obj(a=1) & ds(None)
-    testing.assert_equal(x.a, ds(None, schema_constants.OBJECT).with_db(x.db))
+    testing.assert_equal(
+        x.a, ds(None, schema_constants.OBJECT).with_bag(x.get_bag())
+    )
     x = bag().obj_shaped(jagged_shape.create_shape([2]), a=1) & ds(None)
     testing.assert_equal(
-        x.a, ds([None, None], schema_constants.OBJECT).with_db(x.db)
+        x.a, ds([None, None], schema_constants.OBJECT).with_bag(x.get_bag())
     )
 
   def test_set_get_attr_object_missing_schema_attr(self):
@@ -808,15 +830,15 @@ foo.get_obj_schema().x = <desired_schema>"""),
     with self.assertRaisesRegex(
         exceptions.KodaError, 'object schema is missing for the DataItem'
     ):
-      _ = obj.with_db(bag()).a
+      _ = obj.with_bag(bag()).a
     with self.assertRaisesRegex(
         exceptions.KodaError, 'object schema is missing for the DataItem'
     ):
-      obj.with_db(bag()).a = 1
+      obj.with_bag(bag()).a = 1
     with self.assertRaisesRegex(
         exceptions.KodaError, r'object schema is missing for the DataItem'
     ):
-      del obj.with_db(bag()).a
+      del obj.with_bag(bag()).a
 
   def test_set_get_attr_slice_of_objects_missing_schema_attr(self):
     db = bag()
@@ -863,13 +885,13 @@ foo.get_obj_schema().x = <desired_schema>"""),
     root = db2.obj(b=ds([4, 5, 6]))
     root.c = ds([obj1, obj2, obj3])
 
-    testing.assert_equal(root.c.a, ds([1, 2, 3]).with_db(root.db))
+    testing.assert_equal(root.c.a, ds([1, 2, 3]).with_bag(root.get_bag()))
 
   def test_set_get_attr_on_qvalue_properties(self):
     x = bag().obj()
     # qtype.
     x.set_attr('qtype', 42)
-    testing.assert_equal(x.get_attr('qtype'), ds(42).with_db(x.db))
+    testing.assert_equal(x.get_attr('qtype'), ds(42).with_bag(x.get_bag()))
     self.assertEqual(x.qtype, qtypes.DATA_SLICE)
     with self.assertRaisesRegex(
         AttributeError, r'attribute \'qtype\'.*is not writable'
@@ -877,7 +899,9 @@ foo.get_obj_schema().x = <desired_schema>"""),
       x.qtype = 42
     # fingerprint.
     x.set_attr('fingerprint', 42)
-    testing.assert_equal(x.get_attr('fingerprint'), ds(42).with_db(x.db))
+    testing.assert_equal(
+        x.get_attr('fingerprint'), ds(42).with_bag(x.get_bag())
+    )
     with self.assertRaisesRegex(
         AttributeError, r'attribute \'fingerprint\'.*is not writable'
     ):
@@ -917,7 +941,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
       e = bag().new(x=42)
       e.x = None
       testing.assert_equal(
-          e.x.get_schema(), schema_constants.INT32.with_db(e.db)
+          e.x.get_schema(), schema_constants.INT32.with_bag(e.get_bag())
       )
 
       db = bag()
@@ -929,7 +953,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
       o = bag().obj(x=42)
       o.x = None
       testing.assert_equal(
-          o.x.get_schema(), schema_constants.NONE.with_db(o.db)
+          o.x.get_schema(), schema_constants.NONE.with_bag(o.get_bag())
       )
 
     with self.subTest('incompatible schema'):
@@ -950,15 +974,15 @@ foo.get_obj_schema().x = <desired_schema>"""),
   def test_setattr_assignment_rhs_scalar(self):
     x = bag().obj(a=1)
     x.b = 4
-    testing.assert_equal(x.b, ds(4).with_db(x.db))
+    testing.assert_equal(x.b, ds(4).with_bag(x.get_bag()))
 
   def test_setattr_assignment_rhs_auto_packing_list(self):
     x = bag().obj(a=1)
     x.b = [1, 2, 3]
-    testing.assert_equal(x.b[:], ds([1, 2, 3]).with_db(x.db))
+    testing.assert_equal(x.b[:], ds([1, 2, 3]).with_bag(x.get_bag()))
     testing.assert_equal(
         x.b.get_schema().get_attr('__items__'),
-        schema_constants.INT32.with_db(x.db),
+        schema_constants.INT32.with_bag(x.get_bag()),
     )
 
   def test_setattr_assignment_rhs_auto_packing_dicts(self):
@@ -966,9 +990,10 @@ foo.get_obj_schema().x = <desired_schema>"""),
     x.b = {'a': {42: 3.14}, 'b': {37: 2.0}}
     testing.assert_dicts_keys_equal(x.b, ds(['a', 'b']))
     testing.assert_allclose(
-        x.b[ds(['a', 'b', 'a'])][42], ds([3.14, None, 3.14]).with_db(x.db)
+        x.b[ds(['a', 'b', 'a'])][42],
+        ds([3.14, None, 3.14]).with_bag(x.get_bag()),
     )
-    testing.assert_allclose(x.b['b'][37], ds(2.0).with_db(x.db))
+    testing.assert_allclose(x.b['b'][37], ds(2.0).with_bag(x.get_bag()))
     self.assertEqual(
         x.b.get_schema().get_attr('__keys__'), schema_constants.TEXT
     )
@@ -1012,8 +1037,8 @@ foo.get_obj_schema().x = <desired_schema>"""),
   def test_set_multiple_attrs(self):
     x = bag().new(a=1, b='a')
     x.set_attrs(a=2, b='abc')
-    testing.assert_equal(x.a, ds(2).with_db(x.db))
-    testing.assert_equal(x.b, ds('abc').with_db(x.db))
+    testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
+    testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
 
     with self.assertRaisesRegex(
         ValueError, r'attribute \'c\' is missing on the schema'
@@ -1026,22 +1051,22 @@ foo.get_obj_schema().x = <desired_schema>"""),
       x.set_attrs(a=2, b=b'abc')
 
     x.set_attrs(a=2, b=b'abc', update_schema=True)
-    testing.assert_equal(x.a, ds(2).with_db(x.db))
-    testing.assert_equal(x.b, ds(b'abc').with_db(x.db))
+    testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
+    testing.assert_equal(x.b, ds(b'abc').with_bag(x.get_bag()))
 
   def test_set_multiple_attrs_with_merging(self):
     o = bag().obj(a=1)
     b = bag().new(x='abc', y=1234)
     o.set_attrs(b=b, d={'a': 42}, l=[1, 2, 3])
 
-    testing.assert_equal(o.a, ds(1).with_db(o.db))
+    testing.assert_equal(o.a, ds(1).with_bag(o.get_bag()))
     # Merged DataBag from another object / entity.
-    testing.assert_equal(o.b.x, ds('abc').with_db(o.db))
-    testing.assert_equal(o.b.y, ds(1234).with_db(o.db))
+    testing.assert_equal(o.b.x, ds('abc').with_bag(o.get_bag()))
+    testing.assert_equal(o.b.y, ds(1234).with_bag(o.get_bag()))
     # Merged DataBag from creating a DataBag during boxing of complex Python
     # values.
     testing.assert_dicts_equal(o.d, bag().dict({'a': 42}))
-    testing.assert_equal(o.l[:], ds([1, 2, 3]).with_db(o.db))
+    testing.assert_equal(o.l[:], ds([1, 2, 3]).with_bag(o.get_bag()))
 
   def test_set_multiple_attrs_wrong_update_schema_type(self):
     o = bag().obj()
@@ -1056,8 +1081,10 @@ foo.get_obj_schema().x = <desired_schema>"""),
     with self.subTest('entity'):
       e = db.new(a=1, b=2)
       del e.a
-      testing.assert_equal(e.a, ds(None, schema_constants.INT32).with_db(db))
-      testing.assert_equal(e.a.get_schema(), schema_constants.INT32.with_db(db))
+      testing.assert_equal(e.a, ds(None, schema_constants.INT32).with_bag(db))
+      testing.assert_equal(
+          e.a.get_schema(), schema_constants.INT32.with_bag(db)
+      )
       del e.get_schema().b
       with self.assertRaisesRegex(ValueError, "the attribute 'b' is missing"):
         _ = e.b
@@ -1080,7 +1107,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
   def test_maybe_method(self):
     db = bag()
     obj = ds([db.obj(a=1), db.obj(x=42), db.obj(a=3)])
-    testing.assert_equal(obj.maybe('a'), ds([1, None, 3]).with_db(db))
+    testing.assert_equal(obj.maybe('a'), ds([1, None, 3]).with_bag(db))
 
   def test_as_arolla_value(self):
     x = ds([1, 2, 3], schema_constants.FLOAT32)
@@ -1260,8 +1287,8 @@ foo.get_obj_schema().x = <desired_schema>"""),
   def test_with_schema(self):
     db = bag()
     x = db.new(x=ds([1, 2, 3]), y='abc')
-    testing.assert_equal(x.get_schema().x, schema_constants.INT32.with_db(db))
-    testing.assert_equal(x.get_schema().y, schema_constants.TEXT.with_db(db))
+    testing.assert_equal(x.get_schema().x, schema_constants.INT32.with_bag(db))
+    testing.assert_equal(x.get_schema().y, schema_constants.TEXT.with_bag(db))
 
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got data_bag.DataBag'
@@ -1313,8 +1340,8 @@ foo.get_obj_schema().x = <desired_schema>"""),
     db_2 = bag()
     schema = db_2.new(x=1, y='abc').get_schema()
     res_schema = x.set_schema(schema).get_schema()
-    testing.assert_equal(res_schema, schema.with_db(db))
-    testing.assert_equal(res_schema.y, schema_constants.TEXT.with_db(db))
+    testing.assert_equal(res_schema, schema.with_bag(db))
+    testing.assert_equal(res_schema.y, schema_constants.TEXT.with_bag(db))
 
     non_schema = db.new().set_schema(schema_constants.SCHEMA)
     with self.assertRaisesRegex(
@@ -1331,10 +1358,10 @@ foo.get_obj_schema().x = <desired_schema>"""),
     with self.assertRaisesRegex(
         ValueError, 'a non-schema item cannot be present in a schema DataSlice'
     ):
-      ds(1).with_db(db).set_schema(schema_constants.SCHEMA)
+      ds(1).with_bag(db).set_schema(schema_constants.SCHEMA)
 
     # NOTE: Works without deep schema verification.
-    ds([1, 'abc']).with_db(db).set_schema(schema_constants.SCHEMA)
+    ds([1, 'abc']).with_bag(db).set_schema(schema_constants.SCHEMA)
 
   def test_dict_slice(self):
     db = bag()
@@ -1374,19 +1401,19 @@ foo.get_obj_schema().x = <desired_schema>"""),
     )
 
     testing.assert_equal(
-        single_dict[1], ds(7, schema_constants.OBJECT).with_db(db)
+        single_dict[1], ds(7, schema_constants.OBJECT).with_bag(db)
     )
     testing.assert_equal(
-        single_dict[2], ds(None, schema_constants.OBJECT).with_db(db)
+        single_dict[2], ds(None, schema_constants.OBJECT).with_bag(db)
     )
     testing.assert_allclose(
         single_dict['abc'],
-        ds(3.14, schema_constants.OBJECT).with_db(db),
+        ds(3.14, schema_constants.OBJECT).with_bag(db),
     )
 
     testing.assert_equal(
         many_dicts[keys345],
-        values678.with_schema(schema_constants.OBJECT).with_db(db),
+        values678.with_schema(schema_constants.OBJECT).with_bag(db),
     )
     testing.assert_equal(
         many_dicts['self'], many_dicts.with_schema(schema_constants.OBJECT)
@@ -1425,14 +1452,14 @@ foo.get_obj_schema().x = <desired_schema>"""),
     )
     testing.assert_equal(
         single_dict[keys345],
-        values678.with_schema(schema_constants.OBJECT).with_db(db),
+        values678.with_schema(schema_constants.OBJECT).with_bag(db),
     )
 
     keys = ds([[1, 2], [3, 4], [5, 6]], schema_constants.INT32)
     many_dicts[keys] = 7
     testing.assert_equal(
         many_dicts[keys],
-        ds([[7, 7], [7, 7], [7, 7]], schema_constants.OBJECT).with_db(db),
+        ds([[7, 7], [7, 7], [7, 7]], schema_constants.OBJECT).with_bag(db),
     )
 
     single_dict.clear()
@@ -1565,7 +1592,7 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
         bag().dict(ds([1, 2, 3]), ds([5, 4, 6])),
     )
     testing.assert_dicts_equal(
-        x1.with_db(x1.dict_update(fns.dict({1: 5, 3: 6}))),
+        x1.with_bag(x1.dict_update(fns.dict({1: 5, 3: 6}))),
         bag().dict(ds([1, 3]), ds([5, 6])),
     )
 
@@ -1601,46 +1628,46 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
 
     single_list[:] = ds([1, 2, 3])
     many_lists[ds(None)] = ds([1, 2, 3])
-    testing.assert_equal(many_lists[:], ds([[], [], []]).with_db(db))
+    testing.assert_equal(many_lists[:], ds([[], [], []]).with_bag(db))
     many_lists[:] = ds([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
     single_list[1] = 'x'
     many_lists[indices210] = ds(['a', 'b', 'c'])
 
     testing.assert_equal(
-        single_list[-1], ds(3, schema_constants.OBJECT).with_db(db)
+        single_list[-1], ds(3, schema_constants.OBJECT).with_bag(db)
     )
-    testing.assert_equal(single_list[indices210], ds([3, 'x', 1]).with_db(db))
-    testing.assert_equal(many_lists[-1], ds(['a', 6, 9]).with_db(db))
+    testing.assert_equal(single_list[indices210], ds([3, 'x', 1]).with_bag(db))
+    testing.assert_equal(many_lists[-1], ds(['a', 6, 9]).with_bag(db))
     testing.assert_equal(
         many_lists[indices210],
-        ds(['a', 'b', 'c'], schema_constants.OBJECT).with_db(db),
+        ds(['a', 'b', 'c'], schema_constants.OBJECT).with_bag(db),
     )
 
-    testing.assert_equal(single_list[:], ds([1, 'x', 3]).with_db(db))
-    testing.assert_equal(single_list[1:], ds(['x', 3]).with_db(db))
+    testing.assert_equal(single_list[:], ds([1, 'x', 3]).with_bag(db))
+    testing.assert_equal(single_list[1:], ds(['x', 3]).with_bag(db))
     testing.assert_equal(
-        many_lists[:], ds([[1, 2, 'a'], [4, 'b', 6], ['c', 8, 9]]).with_db(db)
+        many_lists[:], ds([[1, 2, 'a'], [4, 'b', 6], ['c', 8, 9]]).with_bag(db)
     )
     testing.assert_equal(
-        many_lists[:-1], ds([[1, 2], [4, 'b'], ['c', 8]]).with_db(db)
+        many_lists[:-1], ds([[1, 2], [4, 'b'], ['c', 8]]).with_bag(db)
     )
 
     single_list.append(ds([5, 7]))
     many_lists.append(ds([10, 20, 30]))
-    testing.assert_equal(single_list[:], ds([1, 'x', 3, 5, 7]).with_db(db))
+    testing.assert_equal(single_list[:], ds([1, 'x', 3, 5, 7]).with_bag(db))
     testing.assert_equal(
         many_lists[:],
-        ds([[1, 2, 'a', 10], [4, 'b', 6, 20], ['c', 8, 9, 30]]).with_db(db),
+        ds([[1, 2, 'a', 10], [4, 'b', 6, 20], ['c', 8, 9, 30]]).with_bag(db),
     )
 
     single_list.clear()
     many_lists.clear()
-    testing.assert_equal(single_list[:], ds([]).with_db(db))
-    testing.assert_equal(many_lists[:], ds([[], [], []]).with_db(db))
+    testing.assert_equal(single_list[:], ds([]).with_bag(db))
+    testing.assert_equal(many_lists[:], ds([[], [], []]).with_bag(db))
 
     lst = db.list([db.obj(a=1), db.obj(a=2)])
-    testing.assert_equal(lst[:].a, ds([1, 2]).with_db(db))
+    testing.assert_equal(lst[:].a, ds([1, 2]).with_bag(db))
 
     with self.assertRaisesRegex(
         ValueError, 'only supported for Koda List DataItem'
@@ -1658,28 +1685,31 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
 
     single_list[:] = ds([1, 2, 3])
     single_list[1] = None
-    testing.assert_equal(single_list[:], ds([1, None, 3]).with_db(db))
+    testing.assert_equal(single_list[:], ds([1, None, 3]).with_bag(db))
 
     single_list[1:] = None
-    testing.assert_equal(single_list[:], ds([1, None, None]).with_db(db))
+    testing.assert_equal(single_list[:], ds([1, None, None]).with_bag(db))
 
     single_list[:] = None
     testing.assert_equal(
         single_list[:],
-        ds([None, None, None]).with_schema(schema_constants.INT32).with_db(db))
+        ds([None, None, None]).with_schema(schema_constants.INT32).with_bag(db),
+    )
 
     many_lists[:] = ds([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     many_lists[1] = None
     many_lists[[0, 0, 2]] = ds(['a', 'b', None])
     testing.assert_equal(
         many_lists[:],
-        ds([['a', None, 3], ['b', None, 6], [7, None, None]]).with_db(db),
+        ds([['a', None, 3], ['b', None, 6], [7, None, None]]).with_bag(db),
     )
 
     many_lists[1:] = None
     testing.assert_equal(
         many_lists[:],
-        ds([['a', None, None], ['b', None, None], [7, None, None]]).with_db(db),
+        ds([['a', None, None], ['b', None, None], [7, None, None]]).with_bag(
+            db
+        ),
     )
 
   def test_del_list_items(self):
@@ -1693,52 +1723,52 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     single_list[:] = ds([1, 2, 3])
     del single_list[1]
     del single_list[-2]
-    testing.assert_equal(single_list[:], ds([3]).with_db(db))
+    testing.assert_equal(single_list[:], ds([3]).with_bag(db))
 
     many_lists[:] = ds([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     del many_lists[[-2, -1, 0]]
     testing.assert_equal(
-        many_lists[:], ds([[1, 3], [4, 5], [8, 9]]).with_db(db)
+        many_lists[:], ds([[1, 3], [4, 5], [8, 9]]).with_bag(db)
     )
 
     del many_lists[-1]
-    testing.assert_equal(many_lists[:], ds([[1], [4], [8]]).with_db(db))
+    testing.assert_equal(many_lists[:], ds([[1], [4], [8]]).with_bag(db))
 
     single_list[:] = ds([1, 2, 3, 4])
     del single_list[1:3]
-    testing.assert_equal(single_list[:], ds([1, 4]).with_db(db))
+    testing.assert_equal(single_list[:], ds([1, 4]).with_bag(db))
     del single_list[-1]
-    testing.assert_equal(single_list[:], ds([1]).with_db(db))
+    testing.assert_equal(single_list[:], ds([1]).with_bag(db))
 
     many_lists.internal_as_py()[1].append(5)
     del many_lists[-1:]
-    testing.assert_equal(many_lists[:], ds([[], [4], []]).with_db(db))
+    testing.assert_equal(many_lists[:], ds([[], [4], []]).with_bag(db))
 
     many_lists[:] = ds([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     del many_lists[[2, 1, -1]]
     testing.assert_equal(
-        many_lists[:], ds([[1, 2], [4, 6], [7, 8]]).with_db(db)
+        many_lists[:], ds([[1, 2], [4, 6], [7, 8]]).with_bag(db)
     )
 
     del many_lists[-2]
-    testing.assert_equal(many_lists[:], ds([[2], [6], [8]]).with_db(db))
+    testing.assert_equal(many_lists[:], ds([[2], [6], [8]]).with_bag(db))
 
     many_lists[:] = ds([[1, 2, 3], [4], [5, 6]])
     del many_lists[ds([[None, None], [None], [None]])]
     testing.assert_equal(
-        many_lists[:], ds([[1, 2, 3], [4], [5, 6]]).with_db(db)
+        many_lists[:], ds([[1, 2, 3], [4], [5, 6]]).with_bag(db)
     )
 
     many_lists = db.list_shaped(jagged_shape.create_shape([3]))
     many_lists[:] = ds([[1, 2, 3, 'a'], [4, 5, 6, 'b'], [7, 8, 9, 'c']])
     del many_lists[2]
     testing.assert_equal(
-        many_lists[:], ds([[1, 2, 'a'], [4, 5, 'b'], [7, 8, 'c']]).with_db(db)
+        many_lists[:], ds([[1, 2, 'a'], [4, 5, 'b'], [7, 8, 'c']]).with_bag(db)
     )
     del many_lists[2:]
     testing.assert_equal(
         many_lists[:],
-        ds([[1, 2], [4, 5], [7, 8]], schema_constants.OBJECT).with_db(db),
+        ds([[1, 2], [4, 5], [7, 8]], schema_constants.OBJECT).with_bag(db),
     )
 
   def test_list_objects_del_items(self):
@@ -1865,15 +1895,14 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
   def test_empty_subscript_method_slice(self):
     db = bag()
     testing.assert_equal(
-        ds(None).as_any().with_db(db)[:],
-        ds([]).as_any().with_db(db)
+        ds(None).as_any().with_bag(db)[:], ds([]).as_any().with_bag(db)
     )
     testing.assert_equal(
-        ds([None, None]).as_any().with_db(db)[:],
-        ds([[], []]).as_any().with_db(db)
+        ds([None, None]).as_any().with_bag(db)[:],
+        ds([[], []]).as_any().with_bag(db),
     )
 
-    ds(None).with_db(db).as_any()[:] = ds([42])
+    ds(None).with_bag(db).as_any()[:] = ds([42])
     (db.list() & ds(None))[:] = ds([42])
 
     with self.assertRaisesRegex(
@@ -1888,18 +1917,18 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
   def test_empty_subscript_method_int(self):
     db = bag()
     testing.assert_equal(
-        ds(None).as_any().with_db(db)[0], ds(None).as_any().with_db(db)
+        ds(None).as_any().with_bag(db)[0], ds(None).as_any().with_bag(db)
     )
     testing.assert_equal(
-        ds([None, None]).as_any().with_db(db)[0],
-        ds([None, None]).as_any().with_db(db)
+        ds([None, None]).as_any().with_bag(db)[0],
+        ds([None, None]).as_any().with_bag(db),
     )
     testing.assert_equal(
         (db.obj(db.dict()) & ds(None))[0],
-        ds(None, schema_constants.OBJECT).with_db(db)
+        ds(None, schema_constants.OBJECT).with_bag(db),
     )
 
-    ds(None).with_db(db).as_any()[0] = 42
+    ds(None).with_bag(db).as_any()[0] = 42
     (db.list() & ds(None))[0] = 42
     (db.dict() & ds(None))['abc'] = 42
 
@@ -1907,7 +1936,7 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     db = bag()
     testing.assert_equal(
         (db.list([1, 2, 3]) & ds(None))[0],
-        ds(None, schema_constants.INT32).with_db(db)
+        ds(None, schema_constants.INT32).with_bag(db),
     )
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
@@ -1920,7 +1949,7 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
 
     testing.assert_equal(
         (db.dict({'a': 42}) & ds(None))['a'],
-        ds(None, schema_constants.INT32).with_db(db)
+        ds(None, schema_constants.INT32).with_bag(db),
     )
     with self.assertRaisesRegex(
         exceptions.KodaError, 'the schema for Dict key is incompatible'
@@ -2052,7 +2081,7 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     x = db.new(a=ds([1, 2]))
     x_object = x.embed_schema()
     testing.assert_equal(
-        x_object.get_schema(), schema_constants.OBJECT.with_db(db)
+        x_object.get_schema(), schema_constants.OBJECT.with_bag(db)
     )
     testing.assert_equal(x_object.a, x.a)
     schema_attr = x_object.get_attr('__schema__')
@@ -2103,13 +2132,13 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
   def test_get_item_schema(self):
     db = bag().empty()
     x = db.list_schema(schema_constants.INT32)
-    testing.assert_equal(x.get_item_schema().no_db(), schema_constants.INT32)
+    testing.assert_equal(x.get_item_schema().no_bag(), schema_constants.INT32)
 
   def test_get_key_value_schema(self):
     db = bag().empty()
     x = db.dict_schema(schema_constants.INT64, schema_constants.INT32)
-    testing.assert_equal(x.get_key_schema().no_db(), schema_constants.INT64)
-    testing.assert_equal(x.get_value_schema().no_db(), schema_constants.INT32)
+    testing.assert_equal(x.get_key_schema().no_bag(), schema_constants.INT64)
+    testing.assert_equal(x.get_value_schema().no_bag(), schema_constants.INT32)
 
   def test_with_schema_from_obj(self):
     entity = bag().new(x=1)
@@ -2139,14 +2168,14 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     else:
       result = o.extract()
 
-    self.assertNotEqual(o.db.fingerprint, result.db.fingerprint)
-    testing.assert_equal(result.no_db(), o.no_db())
-    testing.assert_equal(result.b.no_db(), o.b.no_db())
-    testing.assert_equal(result.c.no_db(), o.c.no_db())
-    testing.assert_equal(result.b.a.no_db(), o.b.a.no_db())
-    testing.assert_equal(result.get_schema().no_db(), schema_constants.OBJECT)
+    self.assertNotEqual(o.get_bag().fingerprint, result.get_bag().fingerprint)
+    testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_equal(result.b.no_bag(), o.b.no_bag())
+    testing.assert_equal(result.c.no_bag(), o.c.no_bag())
+    testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
+    testing.assert_equal(result.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
-        result.b.get_schema().no_db(), o.b.get_schema().no_db()
+        result.b.get_schema().no_bag(), o.b.get_schema().no_bag()
     )
 
   @parameterized.product(
@@ -2162,21 +2191,21 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
       result = o.clone()
 
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_db(), o.no_db())
-    testing.assert_equal(result.b.no_db(), o.b.no_db())
-    testing.assert_equal(result.c.no_db(), o.c.no_db())
-    testing.assert_equal(result.b.a.no_db(), o.b.a.no_db())
-    testing.assert_equal(result.get_schema().no_db(), schema_constants.OBJECT)
+      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_equal(result.b.no_bag(), o.b.no_bag())
+    testing.assert_equal(result.c.no_bag(), o.c.no_bag())
+    testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
+    testing.assert_equal(result.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
-        result.b.get_schema().no_db(), o.b.get_schema().no_db()
+        result.b.get_schema().no_bag(), o.b.get_schema().no_bag()
     )
 
   def test_clone_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
     res = x.clone(z=bag().list([12]), t=bag().obj(b=5))
     testing.assert_equivalent(res.y.extract(), x.y.extract())
-    testing.assert_equal(res.z[:].no_db(), ds([12]))
-    testing.assert_equal(res.t.b.no_db(), ds(5))
+    testing.assert_equal(res.z[:].no_bag(), ds([12]))
+    testing.assert_equal(res.t.b.no_bag(), ds(5))
 
   def test_clone_non_deterministic(self):
     x = bag().obj(a=1)
@@ -2195,18 +2224,18 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
       result = o.shallow_clone()
 
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_db(), o.no_db())
-    testing.assert_equal(result.b.no_db(), o.b.no_db())
-    testing.assert_equal(result.c.no_db(), o.c.no_db())
+      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_equal(result.b.no_bag(), o.b.no_bag())
+    testing.assert_equal(result.c.no_bag(), o.c.no_bag())
     with self.assertRaisesRegex(ValueError, 'attribute \'a\' is missing'):
       _ = result.b.a
 
   def test_shallow_clone_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
     res = x.shallow_clone(z=bag().list([12]), t=bag().obj(b=5))
-    testing.assert_equivalent(res.y.no_db(), x.y.no_db())
-    testing.assert_equal(res.z[:].no_db(), ds([12]))
-    testing.assert_equal(res.t.b.no_db(), ds(5))
+    testing.assert_equivalent(res.y.no_bag(), x.y.no_bag())
+    testing.assert_equal(res.z[:].no_bag(), ds([12]))
+    testing.assert_equal(res.t.b.no_bag(), ds(5))
 
   def test_shallow_clone_non_deterministic(self):
     x = bag().obj(a=1)
@@ -2226,25 +2255,23 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
       result = o.deep_clone()
 
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_db(), o.no_db())
+      testing.assert_equal(result.no_bag(), o.no_bag())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.b.no_db(), o.b.no_db())
-    testing.assert_equal(result.c.no_db(), o.c.no_db())
-    testing.assert_equal(result.b.a.no_db(), o.b.a.no_db())
-    testing.assert_equal(result.self.no_db(), result.no_db())
+      testing.assert_equal(result.b.no_bag(), o.b.no_bag())
+    testing.assert_equal(result.c.no_bag(), o.c.no_bag())
+    testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
+    testing.assert_equal(result.self.no_bag(), result.no_bag())
+    testing.assert_equal(result.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
-        result.get_schema().no_db(), schema_constants.OBJECT
-    )
-    testing.assert_equal(
-        result.b.a.get_schema().no_db(), o.b.a.get_schema().no_db()
+        result.b.a.get_schema().no_bag(), o.b.a.get_schema().no_bag()
     )
 
   def test_deep_clone_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
     res = x.deep_clone(z=bag().list([12]), t=bag().obj(b=5))
-    testing.assert_equal(res.y.a.no_db(), ds(1))
-    testing.assert_equal(res.z[:].no_db(), ds([12]))
-    testing.assert_equal(res.t.b.no_db(), ds(5))
+    testing.assert_equal(res.y.a.no_bag(), ds(1))
+    testing.assert_equal(res.z[:].no_bag(), ds([12]))
+    testing.assert_equal(res.t.b.no_bag(), ds(5))
 
   def test_deep_clone_non_deterministic(self):
     x = bag().obj(a=1)
@@ -2295,11 +2322,13 @@ class DataSliceMergingTest(parameterized.TestCase):
 
     x.get_schema().xyz = x2.get_schema()
     x.xyz = x2
-    testing.assert_equal(x.abc, ds([42]).with_db(db))
-    testing.assert_equal(x.abc.get_schema(), schema_constants.INT32.with_db(db))
-    testing.assert_equal(x.xyz.qwe, ds([57]).with_db(db))
+    testing.assert_equal(x.abc, ds([42]).with_bag(db))
     testing.assert_equal(
-        x.xyz.qwe.get_schema(), schema_constants.INT32.with_db(db)
+        x.abc.get_schema(), schema_constants.INT32.with_bag(db)
+    )
+    testing.assert_equal(x.xyz.qwe, ds([57]).with_bag(db))
+    testing.assert_equal(
+        x.xyz.qwe.get_schema(), schema_constants.INT32.with_bag(db)
     )
 
   def test_set_get_dict_single(self):
@@ -2311,16 +2340,16 @@ class DataSliceMergingTest(parameterized.TestCase):
     dct2['b'] = 5
     dct['obj'] = dct2
 
-    testing.assert_equal(dct['a'], ds(7, schema_constants.OBJECT).with_db(db))
+    testing.assert_equal(dct['a'], ds(7, schema_constants.OBJECT).with_bag(db))
     testing.assert_equal(
-        dct['obj']['b'], ds(5, schema_constants.OBJECT).with_db(db)
+        dct['obj']['b'], ds(5, schema_constants.OBJECT).with_bag(db)
     )
 
     ds([dct.as_any(), dct['obj'].as_any()])['c'] = ds(
         [db2.obj(a=1), db2.obj(a=2)]
     )
-    testing.assert_equal(dct['c'].a, ds(1).with_db(db))
-    testing.assert_equal(dct['obj']['c'].a, ds(2).with_db(db))
+    testing.assert_equal(dct['c'].a, ds(1).with_bag(db))
+    testing.assert_equal(dct['obj']['c'].a, ds(2).with_bag(db))
 
   def test_dict_keys_bag_merging(self):
     obj1 = bag().obj(a=7)
@@ -2353,11 +2382,11 @@ class DataSliceMergingTest(parameterized.TestCase):
       dct = db2.dict()
       dct[keys_ds] = 1
       testing.assert_equal(
-          dct[keys_ds], ds([1, 1], schema_constants.OBJECT).with_db(db2)
+          dct[keys_ds], ds([1, 1], schema_constants.OBJECT).with_bag(db2)
       )
       testing.assert_equal(
-          keys_ds.with_db(db2)['abc_key'],
-          ds([1, 1], schema_constants.OBJECT).with_db(db2),
+          keys_ds.with_bag(db2)['abc_key'],
+          ds([1, 1], schema_constants.OBJECT).with_bag(db2),
       )
       del db2
 
@@ -2366,7 +2395,7 @@ class DataSliceMergingTest(parameterized.TestCase):
       dct = db2.dict()
       keys = ds(['a', 'b'])
       dct[keys] = values_ds
-      testing.assert_equal(dct[keys].abc_value, ds(['v', 'w']).with_db(db2))
+      testing.assert_equal(dct[keys].abc_value, ds(['v', 'w']).with_bag(db2))
       del db2
 
     with self.subTest('keys and values have the same db'):
@@ -2374,10 +2403,10 @@ class DataSliceMergingTest(parameterized.TestCase):
       dct = db2.dict()
       dct[keys_ds] = values_ds
       testing.assert_equal(
-          keys_ds.with_db(db2)['abc_key'],
-          ds([1, 1], schema_constants.OBJECT).with_db(db2),
+          keys_ds.with_bag(db2)['abc_key'],
+          ds([1, 1], schema_constants.OBJECT).with_bag(db2),
       )
-      testing.assert_equal(dct[keys_ds].abc_value, ds(['v', 'w']).with_db(db2))
+      testing.assert_equal(dct[keys_ds].abc_value, ds(['v', 'w']).with_bag(db2))
       del db2
 
     with self.subTest('keys and values have different db'):
@@ -2387,10 +2416,10 @@ class DataSliceMergingTest(parameterized.TestCase):
       dct = db2.dict()
       dct[keys_ds] = values
       testing.assert_equal(
-          keys_ds.with_db(db2)['abc_key'],
-          ds([1, 1], schema_constants.OBJECT).with_db(db2),
+          keys_ds.with_bag(db2)['abc_key'],
+          ds([1, 1], schema_constants.OBJECT).with_bag(db2),
       )
-      testing.assert_equal(dct[keys_ds].abc_value, ds(['Y', 'Z']).with_db(db2))
+      testing.assert_equal(dct[keys_ds].abc_value, ds(['Y', 'Z']).with_bag(db2))
       del db2
 
   def test_set_get_list_single(self):
@@ -2402,7 +2431,7 @@ class DataSliceMergingTest(parameterized.TestCase):
     lst2.append(5)
     lst[0] = lst2
 
-    testing.assert_equal(lst[0][0], ds(5, schema_constants.OBJECT).with_db(db))
+    testing.assert_equal(lst[0][0], ds(5, schema_constants.OBJECT).with_bag(db))
 
   def test_append_list_single(self):
     db = bag()
@@ -2416,8 +2445,8 @@ class DataSliceMergingTest(parameterized.TestCase):
     lst.append(lst2)
     lst.append(ds([lst3]))
 
-    testing.assert_equal(lst[0][0], ds(5).as_any().with_db(db))
-    testing.assert_equal(lst[1][0], ds(6).as_any().with_db(db))
+    testing.assert_equal(lst[0][0], ds(5).as_any().with_bag(db))
+    testing.assert_equal(lst[1][0], ds(6).as_any().with_bag(db))
 
   def test_replace_in_list_single(self):
     db = bag()
@@ -2431,20 +2460,20 @@ class DataSliceMergingTest(parameterized.TestCase):
         bag().obj(a=1),
         bag().obj(a=2),
     ])
-    testing.assert_equal(lst[0][0], ds(5, schema_constants.INT32).with_db(db))
+    testing.assert_equal(lst[0][0], ds(5, schema_constants.INT32).with_bag(db))
     testing.assert_equal(
-        lst[1:].a, ds([1, 2], schema_constants.INT32).with_db(db)
+        lst[1:].a, ds([1, 2], schema_constants.INT32).with_bag(db)
     )
 
   def test_get_set_schema(self):
     db = bag()
     obj = db.new(a=1)
     db2 = bag()
-    obj2 = obj.with_db(db2)
+    obj2 = obj.with_bag(db2)
     obj2.get_schema().x = obj.get_schema()
 
     testing.assert_equal(
-        obj2.get_schema().x.a, schema_constants.INT32.with_db(obj2.db)
+        obj2.get_schema().x.a, schema_constants.INT32.with_bag(obj2.get_bag())
     )
 
 
@@ -2479,12 +2508,12 @@ class DataSliceFallbackTest(parameterized.TestCase):
       x_fb.get_schema().w = schema_constants.INT32
       x_fb.w = x2.q + 1
 
-  def test_get_attr_no_original_db(self):
+  def test_get_attr_no_original_bag(self):
     db = bag()
     x = db.new(abc=ds([3.14, None]))
-    x = x.with_db(None)
+    x = x.with_bag(None)
     x = x.enriched(db)
-    testing.assert_allclose(x.abc, ds([3.14, None]).with_db(x.db))
+    testing.assert_allclose(x.abc, ds([3.14, None]).with_bag(x.get_bag()))
 
   def test_get_attr(self):
     db = bag()
@@ -2492,32 +2521,34 @@ class DataSliceFallbackTest(parameterized.TestCase):
     x.get_schema().xyz = schema_constants.FLOAT64
     x.xyz = ds([2.71, None], schema_constants.FLOAT64)
 
-    fb_db = bag()
-    fb_x = x.with_db(fb_db)
+    fb_bag = bag()
+    fb_x = x.with_bag(fb_bag)
     fb_x.get_schema().abc = schema_constants.FLOAT32
     fb_x.abc = ds([None, 2.71])
 
-    merged_x = x.enriched(fb_db)
+    merged_x = x.enriched(fb_bag)
 
-    testing.assert_allclose(merged_x.abc, ds([3.14, 2.71]).with_db(merged_x.db))
+    testing.assert_allclose(
+        merged_x.abc, ds([3.14, 2.71]).with_bag(merged_x.get_bag())
+    )
     testing.assert_allclose(
         merged_x.xyz,
-        ds([2.71, None], schema_constants.FLOAT64).with_db(merged_x.db),
+        ds([2.71, None], schema_constants.FLOAT64).with_bag(merged_x.get_bag()),
     )
 
     # update new DataBag
-    new_db = bag()
-    new_x = x.with_db(new_db).as_any()
+    new_bag = bag()
+    new_x = x.with_bag(new_bag).as_any()
     new_x.xyz = ds([None, 3.14], schema_constants.FLOAT64)
-    merged_x = new_x.enriched(db, fb_db)
+    merged_x = new_x.enriched(db, fb_bag)
     testing.assert_allclose(
         merged_x.xyz,
         ds([2.71, 3.14], schema_constants.FLOAT64)
         .as_any()
-        .with_db(merged_x.db),
+        .with_bag(merged_x.get_bag()),
     )
     testing.assert_allclose(
-        x.xyz, ds([2.71, None], schema_constants.FLOAT64).with_db(x.db)
+        x.xyz, ds([2.71, None], schema_constants.FLOAT64).with_bag(x.get_bag())
     )
 
     # update original DataBag
@@ -2526,18 +2557,19 @@ class DataSliceFallbackTest(parameterized.TestCase):
         merged_x.xyz,
         ds([1.61, 3.14], schema_constants.FLOAT64)
         .as_any()
-        .with_db(merged_x.db),
+        .with_bag(merged_x.get_bag()),
     )
 
   def test_get_attr_mixed_type(self):
     db = bag()
     x = db.new(abc=ds([314, None])).as_any()
-    fb_db = bag()
-    fb_x = x.with_db(fb_db)
+    fb_bag = bag()
+    fb_x = x.with_bag(fb_bag)
     fb_x.abc = ds([None, '2.71'])
-    merged_x = x.enriched(fb_db)
+    merged_x = x.enriched(fb_bag)
     testing.assert_equal(
-        merged_x.abc, ds([314, '2.71']).as_any().with_db(merged_x.db),
+        merged_x.abc,
+        ds([314, '2.71']).as_any().with_bag(merged_x.get_bag()),
     )
 
   def test_dict(self):
@@ -2546,19 +2578,19 @@ class DataSliceFallbackTest(parameterized.TestCase):
     x['abc'] = ds([3.14, None])
     x['xyz'] = ds([2.71, None])
 
-    fb_db = bag()
-    fb_x = x.with_db(fb_db)
-    x.get_schema().with_db(fb_db).set_attr(
+    fb_bag = bag()
+    fb_x = x.with_bag(fb_bag)
+    x.get_schema().with_bag(fb_bag).set_attr(
         '__keys__', x.get_schema().get_attr('__keys__')
     )
-    x.get_schema().with_db(fb_db).set_attr(
+    x.get_schema().with_bag(fb_bag).set_attr(
         '__values__', x.get_schema().get_attr('__values__')
     )
     fb_x['abc'] = ds([None, 2.71])
     fb_x['qwe'] = ds([None, 'pi'])
     fb_x['asd'] = ds(['e', None])
 
-    merged_x = x.enriched(fb_db)
+    merged_x = x.enriched(fb_bag)
 
     testing.assert_dicts_keys_equal(
         merged_x,
@@ -2570,26 +2602,26 @@ class DataSliceFallbackTest(parameterized.TestCase):
     )
     testing.assert_allclose(
         merged_x['abc'],
-        ds([3.14, 2.71], schema_constants.OBJECT).with_db(merged_x.db),
+        ds([3.14, 2.71], schema_constants.OBJECT).with_bag(merged_x.get_bag()),
     )
     testing.assert_allclose(
         merged_x['xyz'],
-        ds([2.71, None], schema_constants.OBJECT).with_db(merged_x.db),
+        ds([2.71, None], schema_constants.OBJECT).with_bag(merged_x.get_bag()),
     )
 
-    new_db = bag()
-    merged_x = merged_x.with_db(new_db)
-    merged_x.get_schema().with_db(new_db).set_attr(
+    new_bag = bag()
+    merged_x = merged_x.with_bag(new_bag)
+    merged_x.get_schema().with_bag(new_bag).set_attr(
         '__keys__', x.get_schema().get_attr('__keys__')
     )
-    merged_x.get_schema().with_db(new_db).set_attr(
+    merged_x.get_schema().with_bag(new_bag).set_attr(
         '__values__', x.get_schema().get_attr('__values__')
     )
     merged_x['xyz'] = ds([None, 3.14])
-    merged_x = merged_x.enriched(db, fb_db)
+    merged_x = merged_x.enriched(db, fb_bag)
     testing.assert_allclose(
         merged_x['xyz'],
-        ds([2.71, 3.14], schema_constants.OBJECT).with_db(merged_x.db),
+        ds([2.71, 3.14], schema_constants.OBJECT).with_bag(merged_x.get_bag()),
     )
 
   def test_deep_fallbacks(self):
@@ -2598,20 +2630,20 @@ class DataSliceFallbackTest(parameterized.TestCase):
     dct = dbs[0].dict()
     dct_schema = dct.get_schema()
     obj = dbs[0].new(q=1)
-    merged_db = bag()
+    merged_bag = bag()
     for i, db in enumerate(dbs):
-      dct_schema.with_db(db).set_attr(
+      dct_schema.with_bag(db).set_attr(
           '__keys__', dct_schema.get_attr('__keys__')
       )
-      dct_schema.with_db(db).set_attr(
+      dct_schema.with_bag(db).set_attr(
           '__values__', dct_schema.get_attr('__values__')
       )
-      dct.with_db(db)[f'd{i}'] = i
-      setattr(obj.get_schema().with_db(db), f'a{i}', schema_constants.INT32)
-      setattr(obj.with_db(db), f'a{i}', -i)
-      merged_db = dct.with_db(merged_db).enriched(db).db
+      dct.with_bag(db)[f'd{i}'] = i
+      setattr(obj.get_schema().with_bag(db), f'a{i}', schema_constants.INT32)
+      setattr(obj.with_bag(db), f'a{i}', -i)
+      merged_bag = dct.with_bag(merged_bag).enriched(db).get_bag()
 
-    dct = dct.with_db(merged_db)
+    dct = dct.with_bag(merged_bag)
     testing.assert_dicts_keys_equal(
         dct, ds([f'd{i}' for i in range(cnt)], schema_constants.OBJECT)
     )
@@ -2619,12 +2651,14 @@ class DataSliceFallbackTest(parameterized.TestCase):
         dct,
         ds([i for i in range(cnt)], schema_constants.OBJECT),
     )
-    obj = obj.with_db(merged_db)
+    obj = obj.with_bag(merged_bag)
     for i in range(cnt):
       testing.assert_equal(
-          dct[f'd{i}'], ds(i, schema_constants.OBJECT).with_db(dct.db)
+          dct[f'd{i}'], ds(i, schema_constants.OBJECT).with_bag(dct.get_bag())
       )
-      testing.assert_equal(getattr(obj, f'a{i}'), ds(-i).with_db(obj.db))
+      testing.assert_equal(
+          getattr(obj, f'a{i}'), ds(-i).with_bag(obj.get_bag())
+      )
 
   def test_disabled_data_item_magic_methods(self):
     with self.assertRaisesRegex(
@@ -2665,8 +2699,8 @@ class DataSliceFallbackTest(parameterized.TestCase):
     db1 = bag()
     x = db1.new(x=1, y=2)
     x_stub = x.stub()
-    testing.assert_equal(x_stub.no_db(), x.no_db())
-    testing.assert_equal(x_stub.get_schema().no_db(), x.get_schema().no_db())
+    testing.assert_equal(x_stub.no_bag(), x.no_bag())
+    testing.assert_equal(x_stub.get_schema().no_bag(), x.get_schema().no_bag())
 
   # More comprehensive tests are in the core_attrs_test.py.
   def test_attrs(self):
@@ -2674,17 +2708,17 @@ class DataSliceFallbackTest(parameterized.TestCase):
     obj = db1.obj(x=1, y=2)
     db2 = obj.attrs(x=3, z=4)
     obj2 = obj.updated(db2)
-    testing.assert_equal(obj2.x.no_db(), ds(3))
-    testing.assert_equal(obj2.y.no_db(), ds(2))
-    testing.assert_equal(obj2.z.no_db(), ds(4))
+    testing.assert_equal(obj2.x.no_bag(), ds(3))
+    testing.assert_equal(obj2.y.no_bag(), ds(2))
+    testing.assert_equal(obj2.z.no_bag(), ds(4))
 
   # More comprehensive tests are in the core_with_attrs_test.py.
   def test_with_attrs(self):
     obj1 = bag().obj(x=1, y=2)
     obj2 = obj1.with_attrs(x=3, z=4)
-    testing.assert_equal(obj2.x.no_db(), ds(3))
-    testing.assert_equal(obj2.y.no_db(), ds(2))
-    testing.assert_equal(obj2.z.no_db(), ds(4))
+    testing.assert_equal(obj2.x.no_bag(), ds(3))
+    testing.assert_equal(obj2.y.no_bag(), ds(2))
+    testing.assert_equal(obj2.z.no_bag(), ds(4))
 
   # More comprehensive tests are in the test_core_subslice.py.
   @parameterized.parameters(
@@ -2761,7 +2795,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
   def test_is_mutable(self):
     x = ds(None)
     self.assertFalse(x.is_mutable())
-    x = x.with_db(bag())
+    x = x.with_bag(bag())
     self.assertTrue(x.is_mutable())
     x = x.freeze()
     self.assertFalse(x.is_mutable())

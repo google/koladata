@@ -119,7 +119,7 @@ class FunctorFactoriesTest(absltest.TestCase):
 
     fn = functor_factories.fn(I.x * x, auto_variables=True)
     testing.assert_equal(fn(x=x), ds([1, 4, 9, 16]))
-    testing.assert_equal(fn.aux_0[:].no_db(), ds([1, -2, 3, -4]))
+    testing.assert_equal(fn.aux_0[:].no_bag(), ds([1, -2, 3, -4]))
 
     fn2 = functor_factories.fn(kde.call(fn, x=I.y), auto_variables=True)
     testing.assert_equal(fn2(y=x), ds([1, 4, 9, 16]))
@@ -146,8 +146,8 @@ class FunctorFactoriesTest(absltest.TestCase):
         kde.with_name(py_boxing.as_expr(ds([[1, 2], [3]])), 'foo'),
         auto_variables=True,
     )
-    testing.assert_equal(fn5().no_db(), ds([[1, 2], [3]]))
-    testing.assert_equal(fn5.foo[:][:].no_db(), ds([[1, 2], [3]]))
+    testing.assert_equal(fn5().no_bag(), ds([[1, 2], [3]]))
+    testing.assert_equal(fn5.foo[:][:].no_bag(), ds([[1, 2], [3]]))
     self.assertNotIn('aux_0', dir(fn5))
 
     # TODO: Make this work.
@@ -155,7 +155,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     #     kde.slice([1, 2, 3]).with_name('foo'), auto_variables=True
     # )
     # testing.assert_equal(fn6(), ds([1, 2, 3]))
-    # testing.assert_equal(fn6.foo[:][:].no_db(), ds([1, 2, 3]))
+    # testing.assert_equal(fn6.foo[:][:].no_bag(), ds([1, 2, 3]))
     # self.assertNotIn('aux_0', dir(fn6))
 
   def test_auto_variables_nested_names(self):
@@ -213,7 +213,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
         ds(1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5),
     )
-    testing.assert_equal(fn.weights[:].no_db(), ds([1.0, 0.5, 1.5]))
+    testing.assert_equal(fn.weights[:].no_bag(), ds([1.0, 0.5, 1.5]))
     fn.weights = fns.list([2.0, 3.0, 4.0])
     testing.assert_equal(
         fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
@@ -538,7 +538,7 @@ class FunctorFactoriesTest(absltest.TestCase):
 
     fn = functor_factories.py_fn(lambda x: x)
     f = functor_factories.bind(fn, x=1)
-    testing.assert_equal(f().no_db(), ds(1))
+    testing.assert_equal(f().no_bag(), ds(1))
     with self.assertRaisesRegex(
         TypeError,
         'got multiple values for argument',
@@ -553,7 +553,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     f = functor_factories.bind(fn, return_type_as=example_tuple, x=2)
     testing.assert_equal(
         f(return_type_as=example_tuple),
-        arolla.tuple(ds(2).with_db(f.db), ds(2).with_db(f.db)),
+        arolla.tuple(ds(2).with_bag(f.get_bag()), ds(2).with_bag(f.get_bag())),
     )
     fn = functor_factories.py_fn(
         lambda x: fns.bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda

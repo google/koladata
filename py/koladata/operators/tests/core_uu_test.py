@@ -79,13 +79,15 @@ class KodaUuTest(parameterized.TestCase):
     # Check that required attributes are present.
     for attr_name, val in lhs_kwargs.items():
       testing.assert_equal(
-          getattr(lhs, attr_name), ds(val).expand_to(lhs).with_db(lhs.db)
+          getattr(lhs, attr_name),
+          ds(val).expand_to(lhs).with_bag(lhs.get_bag()),
       )
     for attr_name, val in rhs_kwargs.items():
       testing.assert_equal(
-          getattr(rhs, attr_name), ds(val).expand_to(rhs).with_db(rhs.db)
+          getattr(rhs, attr_name),
+          ds(val).expand_to(rhs).with_bag(rhs.get_bag()),
       )
-    testing.assert_equal(lhs, rhs.with_db(lhs.db))
+    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
     self.assertFalse(lhs.is_mutable())
     self.assertFalse(rhs.is_mutable())
 
@@ -107,7 +109,9 @@ class KodaUuTest(parameterized.TestCase):
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
     lhs = expr_eval.eval(kde.core.uu(seed=lhs_seed, **lhs_kwargs))
     rhs = expr_eval.eval(kde.core.uu(seed=rhs_seed, **rhs_kwargs))
-    self.assertNotEqual(lhs.fingerprint, rhs.with_db(lhs.db).fingerprint)
+    self.assertNotEqual(
+        lhs.fingerprint, rhs.with_bag(lhs.get_bag()).fingerprint
+    )
 
   def test_schema_arg(self):
     db = data_bag.DataBag.empty()
@@ -120,13 +124,15 @@ class KodaUuTest(parameterized.TestCase):
     )
     testing.assert_equal(
         uu.get_schema(),
-        db.uu_schema(a=schema_constants.FLOAT64).with_db(uu.db),
+        db.uu_schema(a=schema_constants.FLOAT64).with_bag(uu.get_bag()),
     )
     testing.assert_equal(
-        uu.a.get_schema(), schema_constants.FLOAT64.with_db(uu.db)
+        uu.a.get_schema(), schema_constants.FLOAT64.with_bag(uu.get_bag())
     )
     testing.assert_allclose(
-        uu.a, ds([3.14], schema_constants.FLOAT64).with_db(uu.db), atol=1e-6
+        uu.a,
+        ds([3.14], schema_constants.FLOAT64).with_bag(uu.get_bag()),
+        atol=1e-6,
     )
 
   def test_update_schema_arg(self):
@@ -140,21 +146,21 @@ class KodaUuTest(parameterized.TestCase):
         )
     )
     testing.assert_equal(
-        uu.a.get_schema(), schema_constants.FLOAT32.with_db(uu.db)
+        uu.a.get_schema(), schema_constants.FLOAT32.with_bag(uu.get_bag())
     )
     testing.assert_allclose(
-        uu.a, ds([3.14], schema_constants.FLOAT32).with_db(uu.db)
+        uu.a, ds([3.14], schema_constants.FLOAT32).with_bag(uu.get_bag())
     )
 
   def test_default_seed(self):
     lhs = expr_eval.eval(kde.core.uu(a=ds(1), b=ds(2)))
     rhs = expr_eval.eval(kde.core.uu(seed='', a=ds(1), b=ds(2)))
-    testing.assert_equal(lhs, rhs.with_db(lhs.db))
+    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
   def test_no_args(self):
     lhs = expr_eval.eval(kde.core.uu())
     rhs = expr_eval.eval(kde.core.uu(seed=''))
-    testing.assert_equal(lhs, rhs.with_db(lhs.db))
+    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
   def test_seed_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
@@ -162,10 +168,10 @@ class KodaUuTest(parameterized.TestCase):
     ):
       _ = expr_eval.eval(kde.core.uu(ds('a')))
 
-  def test_db_adoption(self):
+  def test_bag_adoption(self):
     a = expr_eval.eval(kde.core.uu(a=1))
     b = expr_eval.eval(kde.core.uu(a=a))
-    testing.assert_equal(b.a.a, ds(1).with_db(b.db))
+    testing.assert_equal(b.a.a, ds(1).with_bag(b.get_bag()))
 
   @parameterized.parameters(
       (

@@ -207,12 +207,10 @@ class DataSlice {
   absl::StatusOr<DataSlice> GetNoFollowedSchema() const;
 
   // Returns a reference to a DataBag that this DataSlice has a reference to.
-  const absl::Nullable<DataBagPtr>& GetDb() const {
-    return internal_->db;
-  }
+  const absl::Nullable<DataBagPtr>& GetBag() const { return internal_->db; }
 
   // Returns a new DataSlice with a new reference to DataBag `db`.
-  DataSlice WithDb(DataBagPtr db) const {
+  DataSlice WithBag(DataBagPtr db) const {
     return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(), db);
   }
 

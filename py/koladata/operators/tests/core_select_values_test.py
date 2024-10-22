@@ -33,7 +33,7 @@ kde = kde_operators.kde
 
 
 db = data_bag.DataBag.empty()
-ds = lambda x: data_slice.DataSlice.from_vals(x).with_db(db)
+ds = lambda x: data_slice.DataSlice.from_vals(x).with_bag(db)
 present = arolla.present()
 DATA_SLICE = qtypes.DATA_SLICE
 

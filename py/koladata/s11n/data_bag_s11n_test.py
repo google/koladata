@@ -86,7 +86,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     obj = db1.new(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([l1, l2]))
 
     db2 = kd.bag()
-    obj.with_db(db2).set_attr(
+    obj.with_bag(db2).set_attr(
         'd', kd.dict({'a': 'b', 'c': kd.obj(l1)}), update_schema=True
     )
 

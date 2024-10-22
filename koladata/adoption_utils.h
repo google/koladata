@@ -38,7 +38,7 @@ class AdoptionQueue {
   // will be present in the result DataBag. The DataBag used by `slice` must not
   // be mutated before calling `AdoptInto` or `GetCommonOrMergedDb`.
   void Add(const DataSlice& slice) {
-    if (slice.GetDb() != nullptr) {
+    if (slice.GetBag() != nullptr) {
       slices_to_merge_.emplace_back(slice);
     }
   }
@@ -70,7 +70,7 @@ class AdoptionQueue {
   // deterministic. This is useful for cheaply and reliably getting a complete
   // DataBag for error messages, but does not check for merge conflicts, and
   // should not be used to define user-facing operator behavior.
-  absl::Nonnull<DataBagPtr> GetDbWithFallbacks() const;
+  absl::Nonnull<DataBagPtr> GetBagWithFallbacks() const;
 
  private:
   std::vector<DataSlice> slices_to_merge_;

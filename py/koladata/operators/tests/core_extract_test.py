@@ -60,14 +60,12 @@ class CoreExtractTest(parameterized.TestCase):
     )
     # TODO: test no_follow, uu, uuid
     fb = data_bag.DataBag.empty()
-    o.a.with_db(fb).set_attr(
-        '__schema__', o.a.get_attr('__schema__').no_db()
-    )
-    o.a.with_db(fb).set_attr('d', ds([1, 2, 3]))
+    o.a.with_bag(fb).set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
+    o.a.with_bag(fb).set_attr('d', ds([1, 2, 3]))
     fb_noise = data_bag.DataBag.empty()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.with_db(noise.enriched(db, fb).db)
+      o_fb = o.with_bag(noise.enriched(db, fb).get_bag())
     else:
       o_fb = o.enriched(fb, fb_noise)
 
@@ -76,8 +74,8 @@ class CoreExtractTest(parameterized.TestCase):
     else:
       result = expr_eval.eval(kde.extract(o_fb))
 
-    expected_db = o.enriched(fb).db.merge_fallbacks()
-    testing.assert_equivalent(result.db, expected_db)
+    expected_bag = o.enriched(fb).get_bag().merge_fallbacks()
+    testing.assert_equivalent(result.get_bag(), expected_bag)
 
   @parameterized.parameters(
       (True,),
@@ -91,47 +89,45 @@ class CoreExtractTest(parameterized.TestCase):
         a=a_slice,
         b=b_list,
     )
-    expected_db = db.fork()
+    expected_bag = db.fork()
     o.a.set_attr('d', ds([1, 2, 3]))
     a_schema = (
         data_bag.DataBag.empty()
         .new(b=ds([1, 2]), c=ds(['a', 'b']))
         .get_schema()
     )
-    schema_db = data_bag.DataBag.empty()
-    schema = o.get_schema().with_db(schema_db)
-    schema.a = a_schema.no_db()
-    schema.a.b = a_schema.b.no_db()
-    schema.a.c = a_schema.c.no_db()
-    schema.b = o.b.get_schema().no_db()
+    schema_bag = data_bag.DataBag.empty()
+    schema = o.get_schema().with_bag(schema_bag)
+    schema.a = a_schema.no_bag()
+    schema.a.b = a_schema.b.no_bag()
+    schema.a.c = a_schema.c.no_bag()
+    schema.b = o.b.get_schema().no_bag()
     schema.b.set_attr(
-        '__items__', o.b.get_schema().get_attr('__items__').no_db()
+        '__items__', o.b.get_schema().get_attr('__items__').no_bag()
     )
     schema.b.get_attr('__items__').u = (
-        o.b.get_schema().get_attr('__items__').u.no_db()
+        o.b.get_schema().get_attr('__items__').u.no_bag()
     )
     schema.b.get_attr('__items__').v = (
-        o.b.get_schema().get_attr('__items__').v.no_db()
+        o.b.get_schema().get_attr('__items__').v.no_bag()
     )
     fb_noise = data_bag.DataBag.empty()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
       o_fb = o.enriched(fb_noise)
     else:
-      o_fb = o.with_db(noise.enriched(db).db)
+      o_fb = o.with_bag(noise.enriched(db).get_bag())
 
     result = expr_eval.eval(kde.extract(o_fb, schema))
 
-    expected_db = (
-        schema.enriched(expected_db).db.merge_fallbacks()
-    )
+    expected_bag = schema.enriched(expected_bag).get_bag().merge_fallbacks()
     del (
-        o.a.with_db(expected_db).get_attr('__schema__').b,
-        o.a.with_db(expected_db).get_attr('__schema__').c,
+        o.a.with_bag(expected_bag).get_attr('__schema__').b,
+        o.a.with_bag(expected_bag).get_attr('__schema__').c,
     )
     self.assertEqual(result.a.get_attr('__schema__').get_present_count(), 0)
-    result.a.set_attr('__schema__', o.a.get_attr('__schema__').no_db())
-    testing.assert_equivalent(result.db, expected_db)
+    result.a.set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
+    testing.assert_equivalent(result.get_bag(), expected_bag)
 
   def test_eval_nofollow(self):
     db = data_bag.DataBag.empty()
@@ -142,28 +138,26 @@ class CoreExtractTest(parameterized.TestCase):
         b=b_list,
     )
     fb = data_bag.DataBag.empty()
-    o.a.with_db(fb).set_attr(
-        '__schema__', o.a.get_attr('__schema__').no_db()
-    )
+    o.a.with_bag(fb).set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
     fb_d = expr_eval.eval(kde.nofollow(fb.new(x=ds([1, 2, None]))))
-    o.a.with_db(fb).get_attr('__schema__').set_attr(
-        'd', fb_d.get_schema().no_db()
+    o.a.with_bag(fb).get_attr('__schema__').set_attr(
+        'd', fb_d.get_schema().no_bag()
     )
-    o.a.with_db(fb).set_attr('d', fb_d)
+    o.a.with_bag(fb).set_attr('d', fb_d)
     o_fb = o.enriched(fb)
 
     result = expr_eval.eval(kde.extract(o_fb))
 
-    self.assertFalse(result.db._exactly_equal(db))
-    o.a.set_attr('d', fb_d.no_db())
-    o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().no_db())
-    testing.assert_equivalent(result.db, db)
+    self.assertFalse(result.get_bag()._exactly_equal(db))
+    o.a.set_attr('d', fb_d.no_bag())
+    o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().no_bag())
+    testing.assert_equivalent(result.get_bag(), db)
 
   def test_any_schema_in_data(self):
     db = data_bag.DataBag.empty()
     s = db.new_schema(x=schema_constants.ANY)
     result = expr_eval.eval(kde.extract(s))
-    testing.assert_equivalent(result.db, db)
+    testing.assert_equivalent(result.get_bag(), db)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

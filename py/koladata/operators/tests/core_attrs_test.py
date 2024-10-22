@@ -51,53 +51,53 @@ class CoreAttrsTest(parameterized.TestCase):
   def test_multi_attr_update(self):
     o = fns.new(x=1, y=10)
     db2 = kde.core.attrs(o, x='2', a=1, b='p', c=fns.list([1, 2])).eval()
-    self.assertNotEqual(o.db.fingerprint, db2.fingerprint)
+    self.assertNotEqual(o.get_bag().fingerprint, db2.fingerprint)
 
-    testing.assert_equal(o.x.no_db(), ds(1))
-    testing.assert_equal(o.y.no_db(), ds(10))
-    testing.assert_equal(o.updated(db2).x.no_db(), ds('2'))
-    testing.assert_equal(o.updated(db2).y.no_db(), ds(10))
-    testing.assert_equal(o.updated(db2).a.no_db(), ds(1))
-    testing.assert_equal(o.updated(db2).b.no_db(), ds('p'))
-    testing.assert_equal(o.updated(db2).c[:].no_db(), ds([1, 2]))
+    testing.assert_equal(o.x.no_bag(), ds(1))
+    testing.assert_equal(o.y.no_bag(), ds(10))
+    testing.assert_equal(o.updated(db2).x.no_bag(), ds('2'))
+    testing.assert_equal(o.updated(db2).y.no_bag(), ds(10))
+    testing.assert_equal(o.updated(db2).a.no_bag(), ds(1))
+    testing.assert_equal(o.updated(db2).b.no_bag(), ds('p'))
+    testing.assert_equal(o.updated(db2).c[:].no_bag(), ds([1, 2]))
 
     self.assertSameElements(dir(o.get_schema()), ['x', 'y'])
     self.assertSameElements(
         dir(o.updated(db2).get_schema()), ['x', 'y', 'a', 'b', 'c']
     )
     self.assertSameElements(
-        dir(o.with_db(db2).get_schema()), ['x', 'a', 'b', 'c']
+        dir(o.with_bag(db2).get_schema()), ['x', 'a', 'b', 'c']
     )
 
   def test_multi_attr_update_object_schema(self):
     o = fns.obj(x=1, y=10)
     db2 = kde.core.attrs(o, x='2', a=1, b='p', c=fns.list([1, 2])).eval()
-    self.assertNotEqual(o.db.fingerprint, db2.fingerprint)
+    self.assertNotEqual(o.get_bag().fingerprint, db2.fingerprint)
 
-    testing.assert_equal(o.x.no_db(), ds(1))
-    testing.assert_equal(o.y.no_db(), ds(10))
-    testing.assert_equal(o.updated(db2).x.no_db(), ds('2'))
-    testing.assert_equal(o.updated(db2).y.no_db(), ds(10))
-    testing.assert_equal(o.updated(db2).a.no_db(), ds(1))
-    testing.assert_equal(o.updated(db2).b.no_db(), ds('p'))
-    testing.assert_equal(o.updated(db2).c[:].no_db(), ds([1, 2]))
+    testing.assert_equal(o.x.no_bag(), ds(1))
+    testing.assert_equal(o.y.no_bag(), ds(10))
+    testing.assert_equal(o.updated(db2).x.no_bag(), ds('2'))
+    testing.assert_equal(o.updated(db2).y.no_bag(), ds(10))
+    testing.assert_equal(o.updated(db2).a.no_bag(), ds(1))
+    testing.assert_equal(o.updated(db2).b.no_bag(), ds('p'))
+    testing.assert_equal(o.updated(db2).c[:].no_bag(), ds([1, 2]))
 
     self.assertSameElements(dir(o.get_obj_schema()), ['x', 'y'])
     self.assertSameElements(
         dir(o.updated(db2).get_obj_schema()), ['x', 'y', 'a', 'b', 'c']
     )
     self.assertSameElements(
-        dir(o.with_db(db2).get_obj_schema()), ['x', 'a', 'b', 'c']
+        dir(o.with_bag(db2).get_obj_schema()), ['x', 'a', 'b', 'c']
     )
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(
         ValueError, 'cannot get or set attributes on schema: INT32'
     ):
-      _ = kde.core.attrs(ds(0).with_db(bag()), x=1).eval()
+      _ = kde.core.attrs(ds(0).with_bag(bag()), x=1).eval()
 
   def test_error_no_databag(self):
-    o = fns.new(x=1).no_db()
+    o = fns.new(x=1).no_bag()
     with self.assertRaisesRegex(
         ValueError,
         'cannot set attributes on a DataSlice without a DataBag',

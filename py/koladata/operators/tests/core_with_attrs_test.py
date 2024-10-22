@@ -50,22 +50,22 @@ class CoreWithAttrsTest(parameterized.TestCase):
   def test_multi_attr_update(self):
     o = fns.new(x=1, y='q')
     o1 = kde.core.with_attrs(o, x=2, a=1, b='p', c=fns.list([1, 2])).eval()
-    self.assertNotEqual(o.db.fingerprint, o1.db.fingerprint)
-    testing.assert_equal(o.x.no_db(), ds(1))
-    testing.assert_equal(o1.x.no_db(), ds(2))
-    testing.assert_equal(o1.y.no_db(), ds('q'))
-    testing.assert_equal(o1.a.no_db(), ds(1))
-    testing.assert_equal(o1.b.no_db(), ds('p'))
-    testing.assert_equal(o1.c[:].no_db(), ds([1, 2]))
+    self.assertNotEqual(o.get_bag().fingerprint, o1.get_bag().fingerprint)
+    testing.assert_equal(o.x.no_bag(), ds(1))
+    testing.assert_equal(o1.x.no_bag(), ds(2))
+    testing.assert_equal(o1.y.no_bag(), ds('q'))
+    testing.assert_equal(o1.a.no_bag(), ds(1))
+    testing.assert_equal(o1.b.no_bag(), ds('p'))
+    testing.assert_equal(o1.c[:].no_bag(), ds([1, 2]))
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(
         ValueError, 'cannot get or set attributes on schema: INT32'
     ):
-      _ = kde.core.with_attrs(ds(0).with_db(bag()), x=1).eval()
+      _ = kde.core.with_attrs(ds(0).with_bag(bag()), x=1).eval()
 
   def test_error_no_databag(self):
-    o = fns.new(x=1).no_db()
+    o = fns.new(x=1).no_bag()
     with self.assertRaisesRegex(
         ValueError,
         'cannot set attributes on a DataSlice without a DataBag',

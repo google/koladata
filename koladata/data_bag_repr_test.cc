@@ -190,10 +190,10 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_FallbackBags) {
                                          {test::DataItem(123, fallback_db2)}));
 
   auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
-  auto ds3 = ds1.WithDb(db);
+  auto ds3 = ds1.WithBag(db);
 
   EXPECT_THAT(
-      DataBagToStr(ds3.GetDb()),
+      DataBagToStr(ds3.GetBag()),
       IsOkAndHolds(MatchesRegex(
           R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}:0\.a => 42(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-f]{32}:0\.a => INT32(.|\n)*  fallback #1 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}:0\.b => 123(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-f]{32}:0\.b => INT32(.|\n)*)regex")));
 }

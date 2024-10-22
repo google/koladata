@@ -704,7 +704,7 @@ class SubsliceOperator : public arolla::InlineOperator {
           // TODO: improve the performance by avoiding list
           // creation.
           auto temp_db = DataBag::Empty();
-          auto new_x = x.WithDb(temp_db);
+          auto new_x = x.WithBag(temp_db);
           for (size_t i = 0; i < slice_args.size(); ++i) {
             ASSIGN_OR_RETURN(new_x,
                              CreateListsFromLastDimension(temp_db, new_x),
@@ -724,7 +724,7 @@ class SubsliceOperator : public arolla::InlineOperator {
                                ctx->set_status(std::move(_)));
             }
           }
-          frame.Set(result_slot, new_x.WithDb(x.GetDb()));
+          frame.Set(result_slot, new_x.WithBag(x.GetBag()));
         });
   }
 };
@@ -732,7 +732,7 @@ class SubsliceOperator : public arolla::InlineOperator {
 absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
   DataSlice slice = x;
   while (true) {
-    DataSlice result_slice = slice.WithDb(db);
+    DataSlice result_slice = slice.WithBag(db);
     DataSlice schema = slice.GetSchema();
 
     if (schema.item() == schema::kObject) {
@@ -742,7 +742,7 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
 
     auto copy_schema_attr = [&](absl::string_view attr_name) -> absl::Status {
       ASSIGN_OR_RETURN(const auto& values, schema.GetAttr(attr_name));
-      return schema.WithDb(db).SetAttr(attr_name, values);
+      return schema.WithBag(db).SetAttr(attr_name, values);
     };
 
     if (slice.ContainsOnlyLists()) {
@@ -764,7 +764,7 @@ absl::StatusOr<DataBagPtr> Attrs(
     const DataSlice& obj, absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> attr_values) {
   DCHECK_EQ(attr_names.size(), attr_values.size());
-  if (obj.GetDb() == nullptr) {
+  if (obj.GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot set attributes on a DataSlice without a DataBag");
   }
@@ -781,8 +781,8 @@ absl::StatusOr<DataBagPtr> Attrs(
       adoption_queue.Add(value);
     }
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
-    RETURN_IF_ERROR(obj.WithDb(result_db).SetAttrs(attr_names, attr_values,
-                                                   /*update_schema=*/true));
+    RETURN_IF_ERROR(obj.WithBag(result_db).SetAttrs(attr_names, attr_values,
+                                                    /*update_schema=*/true));
   }
   return std::move(*result_db).ToImmutable();
 }
@@ -816,7 +816,8 @@ absl::StatusOr<DataSlice> WithAttrs(
     const DataSlice& obj, absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> attr_values) {
   ASSIGN_OR_RETURN(DataBagPtr attrs_db, Attrs(obj, attr_names, attr_values));
-  return obj.WithDb(DataBag::CommonDataBag({std::move(attrs_db), obj.GetDb()}));
+  return obj.WithBag(
+      DataBag::CommonDataBag({std::move(attrs_db), obj.GetBag()}));
 }
 
 }  // namespace
@@ -867,7 +868,7 @@ absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
 
   return DataSlice::Create(
       internal::AtOp(x.slice(), index_array, x_to_common, indices_to_common),
-      indices_shape, x.GetSchemaImpl(), x.GetDb());
+      indices_shape, x.GetSchemaImpl(), x.GetBag());
 }
 
 bool IsDataSliceOrUnspecified(arolla::QTypePtr type) {
@@ -919,7 +920,7 @@ class NewShapedOperator : public arolla::QExprOperator {
                                     schema, update_schema, item_id),
               ctx->set_status(std::move(_)));
           frame.Set(output_slot,
-                    result.WithDb(std::move(*result_db).ToImmutable()));
+                    result.WithBag(std::move(*result_db).ToImmutable()));
         });
   }
 };
@@ -953,7 +954,7 @@ class ObjShapedOperator : public arolla::QExprOperator {
                                                  attr_values, item_id),
                            ctx->set_status(std::move(_)));
           frame.Set(output_slot,
-                    result.WithDb(std::move(*result_db).ToImmutable()));
+                    result.WithBag(std::move(*result_db).ToImmutable()));
         });
   }
 };
@@ -1006,7 +1007,7 @@ class UuOperator : public arolla::QExprOperator {
               auto result,
               CreateUu(db, seed, attr_names, values, schema, update_schema),
               ctx->set_status(std::move(_)));
-          frame.Set(output_slot, result.WithDb(std::move(*db).ToImmutable()));
+          frame.Set(output_slot, result.WithBag(std::move(*db).ToImmutable()));
         });
   }
 };
@@ -1175,7 +1176,7 @@ class UuObjOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(auto result,
                            CreateUuObject(db, seed, attr_names, values),
                            ctx->set_status(std::move(_)));
-          frame.Set(output_slot, result.WithDb(std::move(*db).ToImmutable()));
+          frame.Set(output_slot, result.WithBag(std::move(*db).ToImmutable()));
         });
   }
 };
@@ -1184,33 +1185,33 @@ absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
   return SimplePointwiseEval("kde.core._add_impl", {x, y});
 }
 
-DataSlice NoDb(const DataSlice& ds) { return ds.WithDb(nullptr); }
+DataSlice NoBag(const DataSlice& ds) { return ds.WithBag(nullptr); }
 
 absl::StatusOr<DataSlice> Ref(const DataSlice& ds) {
   RETURN_IF_ERROR(ToItemId(ds).status());  // Reuse casting logic to validate.
-  return ds.WithDb(nullptr);
+  return ds.WithBag(nullptr);
 }
 
-absl::StatusOr<DataBagPtr> GetDb(const DataSlice& ds) {
-  auto result = ds.GetDb();
+absl::StatusOr<DataBagPtr> GetBag(const DataSlice& ds) {
+  auto result = ds.GetBag();
   if (result != nullptr) {
     return result;
   }
   return absl::InvalidArgumentError("DataSlice has no associated DataBag");
 }
 
-DataSlice WithDb(const DataSlice& ds, const DataBagPtr& db) {
-  return ds.WithDb(db);
+DataSlice WithBag(const DataSlice& ds, const DataBagPtr& db) {
+  return ds.WithBag(db);
 }
 
 absl::StatusOr<DataSlice> WithMergedBag(const DataSlice& ds) {
-  if (ds.GetDb() == nullptr) {
+  if (ds.GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "with_merged_bag expects the DataSlice to have a DataBag "
         "attached");
   }
-  ASSIGN_OR_RETURN(auto merged_db, ds.GetDb()->MergeFallbacks());
-  return ds.WithDb(std::move(*merged_db).ToImmutable());
+  ASSIGN_OR_RETURN(auto merged_db, ds.GetBag()->MergeFallbacks());
+  return ds.WithBag(std::move(*merged_db).ToImmutable());
 }
 
 namespace {
@@ -1238,7 +1239,7 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
           std::vector<DataBagPtr> db_list;
           db_list.reserve(input_slots.size());
           if (is_enriched_operator) {
-            db_list.push_back(ds.GetDb());
+            db_list.push_back(ds.GetBag());
             for (size_t i = 1; i < input_slots.size(); ++i) {
               db_list.push_back(
                   frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>()));
@@ -1248,10 +1249,10 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
               db_list.push_back(
                   frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>()));
             }
-            db_list.push_back(ds.GetDb());
+            db_list.push_back(ds.GetBag());
           }
           frame.Set(output_slot,
-                    ds.WithDb(DataBag::ImmutableEmptyWithFallbacks(db_list)));
+                    ds.WithBag(DataBag::ImmutableEmptyWithFallbacks(db_list)));
         });
   }
 
@@ -1398,7 +1399,7 @@ absl::StatusOr<DataSlice> Collapse(const DataSlice& ds) {
   }
   return DataSlice::Create(
       internal::CollapseOp()(ds.slice(), shape.edges().back()),
-      shape.RemoveDims(rank - 1), ds.GetSchemaImpl(), ds.GetDb());
+      shape.RemoveDims(rank - 1), ds.GetSchemaImpl(), ds.GetBag());
 }
 
 absl::StatusOr<DataSlice> ConcatOrStack(
@@ -1423,7 +1424,7 @@ absl::StatusOr<DataSlice> ConcatOrStack(
 }
 
 absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts) {
-  const auto& db = dicts.GetDb();
+  const auto& db = dicts.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError(
         "Not possible to get Dict size without a DataBag");
@@ -1439,7 +1440,7 @@ absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts) {
 
 absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
                                       const DataSlice& values) {
-  if (x.GetDb() == nullptr) {
+  if (x.GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot update a DataSlice of dicts without a DataBag");
   }
@@ -1458,7 +1459,7 @@ absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
     adoption_queue.Add(values);
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
 
-    RETURN_IF_ERROR(x.WithDb(result_db).SetInDict(keys, values));
+    RETURN_IF_ERROR(x.WithBag(result_db).SetInDict(keys, values));
   }
   return std::move(*result_db).ToImmutable();
 }
@@ -1533,7 +1534,7 @@ absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& attrs) {
 
   auto db = DataBag::Empty();
   RETURN_IF_ERROR(AdoptStub(db, x));
-  return x.WithDb(std::move(*db).ToImmutable());
+  return x.WithBag(std::move(*db).ToImmutable());
 }
 absl::StatusOr<arolla::OperatorPtr> AttrsOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
@@ -1674,18 +1675,18 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
                        .AddDims({arolla::DenseArrayEdge::UnsafeFromSplitPoints(
                            std::move(split_points_builder).Build())}));
   return DataSlice::Create(*std::move(res_impl), std::move(new_shape),
-                           x.GetSchemaImpl(), x.GetDb());
+                           x.GetSchemaImpl(), x.GetBag());
 }
 
 absl::StatusOr<DataSlice> ItemIdStr(const DataSlice& ds) {
   return ds.VisitImpl([&](const auto& impl) {
     return DataSlice::Create(internal::ItemIdStr()(impl), ds.GetShape(),
-                             internal::DataItem(schema::kText), ds.GetDb());
+                             internal::DataItem(schema::kText), ds.GetBag());
   });
 }
 
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
-  const auto& db = lists.GetDb();
+  const auto& db = lists.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError(
         "Not possible to get List size without a DataBag");
@@ -1744,7 +1745,7 @@ absl::StatusOr<DataSlice> Reverse(const DataSlice& obj) {
   }
   return DataSlice::Create(
       koladata::internal::ReverseOp{}(obj.slice(), obj.GetShape()),
-      obj.GetShape(), obj.GetSchemaImpl(), obj.GetDb());
+      obj.GetShape(), obj.GetSchemaImpl(), obj.GetBag());
 }
 
 absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
@@ -1768,7 +1769,7 @@ absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
                                                 filter_impl, fltr.GetShape()));
           return DataSlice::Create(std::move(result_ds),
                                    std::move(result_shape), ds.GetSchemaImpl(),
-                                   ds.GetDb());
+                                   ds.GetBag());
         });
   });
 }
@@ -1798,31 +1799,31 @@ absl::StatusOr<DataSlice> ReverseSelect(const DataSlice& ds,
               auto res, internal::ReverseSelectOp()(ds_impl, ds_shape,
                                                     filter_impl, filter_shape));
           return DataSlice::Create(std::move(res), filter_shape,
-                                   ds.GetSchemaImpl(), ds.GetDb());
+                                   ds.GetSchemaImpl(), ds.GetBag());
         });
   });
 }
 
 absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& schema,
                                 int64_t unused_hidden_seed) {
-  const auto& db = ds.GetDb();
+  const auto& db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
   }
   ASSIGN_OR_RETURN(DataSlice shallow_clone, ShallowClone(ds, schema));
-  DataSlice shallow_clone_with_fallback = shallow_clone.WithDb(
-      DataBag::ImmutableEmptyWithFallbacks({shallow_clone.GetDb(), db}));
+  DataSlice shallow_clone_with_fallback = shallow_clone.WithBag(
+      DataBag::ImmutableEmptyWithFallbacks({shallow_clone.GetBag(), db}));
   return Extract(std::move(shallow_clone_with_fallback), schema);
 }
 
 absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds,
                                        const DataSlice& schema,
                                        int64_t unused_hidden_seed) {
-  const auto& db = ds.GetDb();
+  const auto& db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
   }
-  const auto& schema_db = schema.GetDb();
+  const auto& schema_db = schema.GetBag();
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   const auto& schema_impl = schema.impl<internal::DataItem>();
   FlattenFallbackFinder fb_finder(*db);
@@ -1850,14 +1851,14 @@ absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds,
 absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
                                     const DataSlice& schema,
                                     int64_t unused_hidden_seed) {
-  const auto& db = ds.GetDb();
+  const auto& db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
   }
-  const auto& schema_db = schema.GetDb();
+  const auto& schema_db = schema.GetBag();
   if (schema_db != nullptr && schema_db != db) {
     ASSIGN_OR_RETURN(auto extracted_ds, Extract(ds, schema));
-    return DeepClone(extracted_ds, schema.WithDb(extracted_ds.GetDb()));
+    return DeepClone(extracted_ds, schema.WithBag(extracted_ds.GetBag()));
   }
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   const auto& schema_impl = schema.impl<internal::DataItem>();
@@ -1879,15 +1880,15 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
 absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
                                    const DataSlice& schema,
                                    const DataSlice& seed) {
-  const auto& db = ds.GetDb();
+  const auto& db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError(
         "cannot compute deep uuid without a DataBag");
   }
-  const auto& schema_db = schema.GetDb();
+  const auto& schema_db = schema.GetBag();
   if (schema_db != nullptr && schema_db != db) {
     ASSIGN_OR_RETURN(auto extracted_ds, Extract(ds, schema));
-    return DeepUuid(extracted_ds, schema.WithDb(extracted_ds.GetDb()), seed);
+    return DeepUuid(extracted_ds, schema.WithBag(extracted_ds.GetBag()), seed);
   }
   if (seed.GetShape().rank() != 0) {
     return absl::InvalidArgumentError(
@@ -2029,10 +2030,10 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
   auto temp_db = DataBag::Empty();
   ASSIGN_OR_RETURN(auto lookup,
                    CreateDictShaped(temp_db, std::move(shape_without_last_dim),
-                                    keys_from.WithDb(nullptr),
-                                    expanded_values_from.WithDb(nullptr)));
+                                    keys_from.WithBag(nullptr),
+                                    expanded_values_from.WithBag(nullptr)));
   ASSIGN_OR_RETURN(auto res, lookup.GetFromDict(casted_keys_to));
-  return res.WithDb(expanded_values_from.GetDb());
+  return res.WithBag(expanded_values_from.GetBag());
 }
 
 absl::StatusOr<arolla::OperatorPtr> NewShapedOperatorFamily::DoGetOperator(

@@ -160,17 +160,17 @@ def assert_equivalent(
       expected_value, _data_slice.DataSlice
   ):
     _arolla.testing.assert_qvalue_equal_by_fingerprint(
-        actual_value.no_db(), expected_value.no_db(), msg=msg
+        actual_value.no_bag(), expected_value.no_bag(), msg=msg
     )
     try:
-      _assert_equivalent_bags(actual_value.db, expected_value.db)
+      _assert_equivalent_bags(actual_value.get_bag(), expected_value.get_bag())
     except AssertionError:
       raise AssertionError(
           msg
           or (
               'DataSlices are not equivalent, because their DataBags are not'
-              f' equivalent\n\n  {actual_value.db.contents_repr()!r} !='
-              f' {expected_value.db.contents_repr()!r}'
+              f' equivalent\n\n  {actual_value.get_bag().contents_repr()!r} !='
+              f' {expected_value.get_bag().contents_repr()!r}'
           )
       ) from None
     return
@@ -207,8 +207,8 @@ def _assert_equal_schema(
     expected_value: _data_slice.DataSlice,
 ):
   assert_equal(
-      actual_value.get_schema().no_db(),
-      expected_value.get_schema().no_db(),
+      actual_value.get_schema().no_bag(),
+      expected_value.get_schema().no_bag(),
       msg=(
           f'{actual_value!r} and {expected_value!r} have different schemas\n\n'
           f'  {actual_value.get_schema()} != {expected_value.get_schema()}'
@@ -255,7 +255,9 @@ def assert_allclose(
       atol=atol,
   )
   assert_equal(
-      actual_value.db, expected_value.db, msg='inputs have different DataBags'
+      actual_value.get_bag(),
+      expected_value.get_bag(),
+      msg='inputs have different DataBags',
   )
 
 
@@ -289,7 +291,9 @@ def assert_unordered_equal(
   _assert_equal_shape(actual_value, expected_value)
   _assert_equal_schema(actual_value, expected_value)
   assert_equal(
-      actual_value.db, expected_value.db, msg='inputs have different DataBags'
+      actual_value.get_bag(),
+      expected_value.get_bag(),
+      msg='inputs have different DataBags',
   )
   # Checking from the last dimension.
   actual_val = actual_value.flatten(0, -1)
@@ -329,7 +333,7 @@ def assert_dicts_keys_equal(
       keys of the same dict.
   """
   _expect_dicts(dicts)
-  assert_unordered_equal(dicts.get_keys().no_db(), expected_keys.no_db())
+  assert_unordered_equal(dicts.get_keys().no_bag(), expected_keys.no_bag())
 
 
 def assert_dicts_values_equal(
@@ -356,7 +360,7 @@ def assert_dicts_values_equal(
       the values of the same dict.
   """
   _expect_dicts(dicts)
-  assert_unordered_equal(dicts.get_values().no_db(), expected_values.no_db())
+  assert_unordered_equal(dicts.get_values().no_bag(), expected_values.no_bag())
 
 
 def assert_dicts_equal(
@@ -391,8 +395,8 @@ def assert_dicts_equal(
   assert_equivalent(
       # We need to skip checking the DataBags, as dict ItemId(s) are usually
       # different.
-      actual_dict[same_order_keys].no_db(),
-      expected_dict[same_order_keys].no_db(),
+      actual_dict[same_order_keys].no_bag(),
+      expected_dict[same_order_keys].no_bag(),
   )
 
 
@@ -428,4 +432,4 @@ def assert_nested_lists_equal(
     except ValueError:
       break
 
-  assert_equivalent(actual_list.no_db(), expected_list.no_db())
+  assert_equivalent(actual_list.no_bag(), expected_list.no_bag())

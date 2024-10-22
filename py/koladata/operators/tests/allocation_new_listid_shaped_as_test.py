@@ -46,10 +46,10 @@ class AllocationNewListIdShapedAsTest(parameterized.TestCase):
   def test_eval(self, shape, items):
     listid = expr_eval.eval(kde.allocation.new_listid_shaped_as(shape))
     testing.assert_equal(listid.get_schema(), schema_constants.ITEMID)
-    lst = listid.with_db(bag())
-    lst = lst.with_schema(lst.db.list_schema(schema_constants.INT32))
+    lst = listid.with_bag(bag())
+    lst = lst.with_schema(lst.get_bag().list_schema(schema_constants.INT32))
     lst.append(42)
-    testing.assert_equal(lst[:], items.with_db(lst.db))
+    testing.assert_equal(lst[:], items.with_bag(lst.get_bag()))
 
   def test_new_alloc_ids(self):
     listid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))

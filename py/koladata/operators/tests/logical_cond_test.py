@@ -171,15 +171,15 @@ class LogicalCondTest(parameterized.TestCase):
     y = (
         data_bag.DataBag.empty()
         .new(x=ds([1, 1]))
-        .with_schema(x.get_schema().no_db())
+        .with_schema(x.get_schema().no_bag())
     )
     y.set_attr(
         'a', ds(['abc', 'xyz'], schema_constants.OBJECT), update_schema=True
     )
-    self.assertNotEqual(x.db.fingerprint, y.db.fingerprint)
+    self.assertNotEqual(x.get_bag().fingerprint, y.get_bag().fingerprint)
     testing.assert_equivalent(
         expr_eval.eval(kde.logical.cond(mask, x, y)).a,
-        ds([1, 'xyz']).with_db(x.db).enriched(y.db),
+        ds([1, 'xyz']).with_bag(x.get_bag()).enriched(y.get_bag()),
     )
 
   def test_incompatible_schema_error(self):

@@ -77,13 +77,15 @@ class KodaUuObjTest(parameterized.TestCase):
     # Check that required attributes are present.
     for attr_name, val in lhs_kwargs.items():
       testing.assert_equal(
-          getattr(lhs, attr_name), ds(val).expand_to(lhs).with_db(lhs.db)
+          getattr(lhs, attr_name),
+          ds(val).expand_to(lhs).with_bag(lhs.get_bag()),
       )
     for attr_name, val in rhs_kwargs.items():
       testing.assert_equal(
-          getattr(rhs, attr_name), ds(val).expand_to(rhs).with_db(rhs.db)
+          getattr(rhs, attr_name),
+          ds(val).expand_to(rhs).with_bag(rhs.get_bag()),
       )
-    testing.assert_equal(lhs, rhs.with_db(lhs.db))
+    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
     self.assertFalse(lhs.is_mutable())
     self.assertFalse(rhs.is_mutable())
 
@@ -110,17 +112,19 @@ class KodaUuObjTest(parameterized.TestCase):
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
     lhs = expr_eval.eval(kde.core.uuobj(seed=lhs_seed, **lhs_kwargs))
     rhs = expr_eval.eval(kde.core.uuobj(seed=rhs_seed, **rhs_kwargs))
-    self.assertNotEqual(lhs.fingerprint, rhs.with_db(lhs.db).fingerprint)
+    self.assertNotEqual(
+        lhs.fingerprint, rhs.with_bag(lhs.get_bag()).fingerprint
+    )
 
   def test_default_seed(self):
     lhs = expr_eval.eval(kde.core.uuobj(a=ds(1), b=ds(2)))
     rhs = expr_eval.eval(kde.core.uuobj(seed='', a=ds(1), b=ds(2)))
-    testing.assert_equal(lhs, rhs.with_db(lhs.db))
+    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
   def test_no_args(self):
     lhs = expr_eval.eval(kde.core.uuobj())
     rhs = expr_eval.eval(kde.core.uuobj(seed=''))
-    testing.assert_equal(lhs, rhs.with_db(lhs.db))
+    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
   def test_seed_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
@@ -128,10 +132,10 @@ class KodaUuObjTest(parameterized.TestCase):
     ):
       _ = expr_eval.eval(kde.core.uuobj(ds('a')))
 
-  def test_db_adoption(self):
+  def test_bag_adoption(self):
     a = expr_eval.eval(kde.core.uuobj(a=1))
     b = expr_eval.eval(kde.core.uuobj(a=a))
-    testing.assert_equal(b.a.a, ds(1).with_db(b.db))
+    testing.assert_equal(b.a.a, ds(1).with_bag(b.get_bag()))
 
   @parameterized.parameters(
       (

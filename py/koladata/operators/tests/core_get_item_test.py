@@ -35,7 +35,7 @@ I = input_container.InputContainer('I')
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
 db = data_bag.DataBag.empty()
-ds = lambda *arg: data_slice.DataSlice.from_vals(*arg).with_db(db)
+ds = lambda *arg: data_slice.DataSlice.from_vals(*arg).with_bag(db)
 
 list_item = db.list([1, 2, 3])
 list_item2 = db.list([4, 5, 6, 7])
@@ -143,11 +143,11 @@ class CoreGetItemTest(parameterized.TestCase):
       (list_slice,),
       (dict_item,),
       (dict_slice,),
-      (ds(None, schema_constants.OBJECT).with_db(db),),
-      (ds(1).with_db(db),),
+      (ds(None, schema_constants.OBJECT).with_bag(db),),
+      (ds(1).with_bag(db),),
   )
-  def test_db_eval(self, x):
-    result = expr_eval.eval(kde.get_item(x.db, x.no_db()))
+  def test_bag_eval(self, x):
+    result = expr_eval.eval(kde.get_item(x.get_bag(), x.no_bag()))
     testing.assert_equal(result, x)
 
   def test_slice_expr(self):
@@ -186,7 +186,7 @@ class CoreGetItemTest(parameterized.TestCase):
         'I.x[M.core.make_slice(I.start, I.end, unspecified)]',
     )
     self.assertEqual(
-        repr(kde.get_item(I.x, ds(1).no_db())),
+        repr(kde.get_item(I.x, ds(1).no_bag())),
         'I.x[DataItem(1, schema: INT32)]',
     )
     self.assertEqual(repr(I.x[:1]), 'I.x[:1]')

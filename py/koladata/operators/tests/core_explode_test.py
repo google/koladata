@@ -47,8 +47,8 @@ LIST3 = db.list([[None], [None, None]])
 LIST4 = db.list([[db.obj(None)], [db.obj(None), db.obj(None)]])
 
 
-ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_db(db)
-di = lambda *args: data_item.DataItem.from_vals(*args).with_db(db)
+ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
+di = lambda *args: data_item.DataItem.from_vals(*args).with_bag(db)
 
 
 class CoreExplodeTest(parameterized.TestCase):

@@ -42,21 +42,21 @@ class CoreWithMergedBagTest(parameterized.TestCase):
     db1 = bag()
     x = db1.new(a=1)
     db2 = bag()
-    y = x.with_db(db2)
+    y = x.with_bag(db2)
     y.set_attr('a', 2, update_schema=True)
     y.set_attr('b', 2, update_schema=True)
     z = x.enriched(db2)
 
     new_z = expr_eval.eval(kde.core.with_merged_bag(z))
-    self.assertIsNot(new_z.db, db1)
-    self.assertIsNot(new_z.db, db2)
-    self.assertIsNot(new_z.db, z.db)
-    self.assertFalse(new_z.db.is_mutable())
-    self.assertEmpty(new_z.db.get_fallbacks())
-    testing.assert_equal(new_z.a.no_db(), ds(1))
-    testing.assert_equal(new_z.b.no_db(), ds(2))
+    self.assertIsNot(new_z.get_bag(), db1)
+    self.assertIsNot(new_z.get_bag(), db2)
+    self.assertIsNot(new_z.get_bag(), z.get_bag())
+    self.assertFalse(new_z.get_bag().is_mutable())
+    self.assertEmpty(new_z.get_bag().get_fallbacks())
+    testing.assert_equal(new_z.a.no_bag(), ds(1))
+    testing.assert_equal(new_z.b.no_bag(), ds(2))
 
-  def test_no_db_error(self):
+  def test_no_bag_error(self):
     with self.assertRaisesRegex(
         ValueError, 'expects the DataSlice to have a DataBag attached'
     ):

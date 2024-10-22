@@ -40,12 +40,12 @@ class AllocationNewDictIdTest(absltest.TestCase):
     dictid = expr_eval.eval(kde.allocation.new_dictid())
     self.assertIsInstance(dictid, dict_item.DictItem)
     testing.assert_equal(dictid.get_schema(), schema_constants.ITEMID)
-    dct = dictid.with_db(bag())
+    dct = dictid.with_bag(bag())
     dct = dct.with_schema(
-        dct.db.dict_schema(schema_constants.TEXT, schema_constants.INT32)
+        dct.get_bag().dict_schema(schema_constants.TEXT, schema_constants.INT32)
     )
     dct['abc'] = 42
-    testing.assert_equal(dct['abc'], ds(42).with_db(dct.db))
+    testing.assert_equal(dct['abc'], ds(42).with_bag(dct.get_bag()))
 
   def test_new_alloc_ids(self):
     dictid = expr_eval.eval(kde.allocation.new_dictid())

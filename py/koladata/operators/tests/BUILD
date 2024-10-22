@@ -1060,8 +1060,8 @@ py_test(
 )
 
 py_test(
-    name = "core_get_db_test",
-    srcs = ["core_get_db_test.py"],
+    name = "core_get_bag_test",
+    srcs = ["core_get_bag_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2687,8 +2687,8 @@ py_test(
 )
 
 py_test(
-    name = "core_no_db_test",
-    srcs = ["core_no_db_test.py"],
+    name = "core_no_bag_test",
+    srcs = ["core_no_bag_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2707,8 +2707,8 @@ py_test(
 )
 
 py_test(
-    name = "core_with_db_test",
-    srcs = ["core_with_db_test.py"],
+    name = "core_with_bag_test",
+    srcs = ["core_with_bag_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",

@@ -37,7 +37,7 @@ def _getitem(self: DataBag, sl: _DataSlice) -> _DataSlice:
   """Returns a DataSlice `sl` with `self` DataBag attached to it."""
   if not isinstance(sl, _DataSlice):
     raise TypeError(f'expected DataSlice, got {type(sl).__name__}')
-  return sl.with_db(self)
+  return sl.with_bag(self)
 
 
 def _dict(
@@ -351,16 +351,16 @@ def _freeze(self: DataBag) -> DataBag:
 
 def _merge_inplace(
     self: DataBag,
-    other_dbs: DataBag | Iterable[DataBag],
+    other_bags: DataBag | Iterable[DataBag],
     *,
     overwrite: bool = True,
     allow_data_conflicts: bool = True,
     allow_schema_conflicts: bool = False,
 ) -> DataBag:  # pylint: disable=g-doc-args
-  """Copies all data from `other_dbs` to this DataBag.
+  """Copies all data from `other_bags` to this DataBag.
 
   Args:
-    other_dbs: Either a DataBag or a list of DataBags to merge into the current
+    other_bags: Either a DataBag or a list of DataBags to merge into the current
       DataBag.
     overwrite: In case of conflicts, whether the new value (or the rightmost of
       the new values, if multiple) should be used instead of the old value. Note
@@ -383,10 +383,10 @@ def _merge_inplace(
   Returns:
     self, so that multiple DataBag modifications can be chained.
   """
-  if isinstance(other_dbs, DataBag):
-    other_dbs = [other_dbs]
+  if isinstance(other_bags, DataBag):
+    other_bags = [other_bags]
   self._merge_inplace(  # pylint: disable=protected-access
-      overwrite, allow_data_conflicts, allow_schema_conflicts, *other_dbs
+      overwrite, allow_data_conflicts, allow_schema_conflicts, *other_bags
   )
   return self
 

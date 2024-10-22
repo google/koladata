@@ -100,7 +100,7 @@ absl::StatusOr<DataSlice> AssignmentRhsFromPyValue(
 absl::StatusOr<DataSlice> AssignmentRhsFromPyValue(
     const DataSlice& lhs_ds, PyObject* rhs, AdoptionQueue& adoption_queue) {
   return AssignmentRhsFromPyValue(rhs, lhs_ds.GetShape().rank() != 0,
-                                  lhs_ds.GetDb(), adoption_queue);
+                                  lhs_ds.GetBag(), adoption_queue);
 }
 
 absl::StatusOr<std::vector<DataSlice>> UnwrapDataSlices(

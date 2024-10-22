@@ -436,7 +436,7 @@ class RhsHandler {
   // `db_impl` must be a DataBag of `lhs`. Never modifies `rhs` DataBag.
   absl::Status ProcessSchema(const DataSlice& lhs, DataBagImplT& db_impl,
                              internal::DataBagImpl::FallbackSpan fallbacks) {
-    DCHECK(&lhs.GetDb()->GetImpl() == &db_impl);
+    DCHECK(&lhs.GetBag()->GetImpl() == &db_impl);
     absl::Status status = absl::OkStatus();
     if (lhs.GetSchemaImpl() == schema::kObject) {
       status = lhs.VisitImpl([&](const auto& impl) -> absl::Status {
@@ -450,7 +450,7 @@ class RhsHandler {
     if (!status.ok()) {
       return AssembleErrorMessage(status,
                                   {.db = DataBag::ImmutableEmptyWithFallbacks(
-                                       {rhs_.GetDb(), lhs.GetDb()}),
+                                       {rhs_.GetBag(), lhs.GetBag()}),
                                    .ds = lhs});
     }
     return status;
@@ -799,13 +799,13 @@ absl::StatusOr<DataSlice> DataSlice::Create(
 absl::StatusOr<DataSlice> DataSlice::Reshape(
     DataSlice::JaggedShape shape) const {
   return VisitImpl([&](const auto& impl) {
-    return DataSlice::Create(impl, std::move(shape), GetSchemaImpl(), GetDb());
+    return DataSlice::Create(impl, std::move(shape), GetSchemaImpl(), GetBag());
   });
 }
 
 DataSlice DataSlice::GetSchema() const {
   return *DataSlice::Create(GetSchemaImpl(),
-                            internal::DataItem(schema::kSchema), GetDb());
+                            internal::DataItem(schema::kSchema), GetBag());
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetObjSchema() const {
@@ -815,9 +815,9 @@ absl::StatusOr<DataSlice> DataSlice::GetObjSchema() const {
   }
 
   return VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    ASSIGN_OR_RETURN(auto res, GetObjSchemaImpl(impl, GetDb()));
+    ASSIGN_OR_RETURN(auto res, GetObjSchemaImpl(impl, GetBag()));
     return DataSlice(std::move(res), GetShape(),
-                     internal::DataItem(schema::kSchema), GetDb());
+                     internal::DataItem(schema::kSchema), GetBag());
   });
 }
 
@@ -827,11 +827,11 @@ bool DataSlice::IsEntitySchema() const {
 }
 
 bool DataSlice::IsListSchema() const {
-  if (!IsEntitySchema() || GetDb() == nullptr) {
+  if (!IsEntitySchema() || GetBag() == nullptr) {
     return false;
   }
-  const auto& db_impl = GetDb()->GetImpl();
-  FlattenFallbackFinder fb_finder(*GetDb());
+  const auto& db_impl = GetBag()->GetImpl();
+  FlattenFallbackFinder fb_finder(*GetBag());
   auto fallbacks = fb_finder.GetFlattenFallbacks();
   auto item_schema_or = db_impl.GetSchemaAttrAllowMissing(
       item(), schema::kListItemsSchemaAttr, fallbacks);
@@ -842,11 +842,11 @@ bool DataSlice::IsListSchema() const {
 }
 
 bool DataSlice::IsDictSchema() const {
-  if (!IsEntitySchema() || GetDb() == nullptr) {
+  if (!IsEntitySchema() || GetBag() == nullptr) {
     return false;
   }
-  const auto& db_impl = GetDb()->GetImpl();
-  FlattenFallbackFinder fb_finder(*GetDb());
+  const auto& db_impl = GetBag()->GetImpl();
+  FlattenFallbackFinder fb_finder(*GetBag());
   auto fallbacks = fb_finder.GetFlattenFallbacks();
   auto key_schema_or = db_impl.GetSchemaAttrAllowMissing(
       item(), schema::kDictKeysSchemaAttr, fallbacks);
@@ -875,8 +875,8 @@ bool DataSlice::IsItemIdSchema() const {
 
 absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  if (schema.item().is_entity_schema() && schema.GetDb() != nullptr &&
-      GetDb() != schema.GetDb()) {
+  if (schema.item().is_entity_schema() && schema.GetBag() != nullptr &&
+      GetBag() != schema.GetBag()) {
     return absl::InvalidArgumentError(
         "with_schema does not accept schemas with different DataBag attached. "
         "Please use `set_schema`");
@@ -890,19 +890,19 @@ absl::StatusOr<DataSlice> DataSlice::WithSchema(
   RETURN_IF_ERROR(
       VerifySchemaConsistency(schema_item, dtype(), impl_empty_and_unknown()));
   return DataSlice(internal_->impl, GetShape(), std::move(schema_item),
-                   GetDb());
+                   GetBag());
 }
 
 absl::StatusOr<DataSlice> DataSlice::SetSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  if (schema.item().is_entity_schema() && schema.GetDb() != nullptr) {
-    if (GetDb() == nullptr) {
+  if (schema.item().is_entity_schema() && schema.GetBag() != nullptr) {
+    if (GetBag() == nullptr) {
       return absl::InvalidArgumentError(
           "cannot set an Entity schema on a DataSlice without a DataBag.");
     }
     AdoptionQueue adoption_queue;
     adoption_queue.Add(schema);
-    RETURN_IF_ERROR(adoption_queue.AdoptInto(*GetDb()));
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*GetBag()));
   }
   return WithSchema(schema.item());
 }
@@ -965,17 +965,17 @@ absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {
   ASSIGN_OR_RETURN(auto orig_schema_item,
                    schema::GetNoFollowedSchemaItem(item()));
   return DataSlice(std::move(orig_schema_item), GetShape(), GetSchemaImpl(),
-                   GetDb());
+                   GetBag());
 }
 
 absl::StatusOr<DataSlice> DataSlice::ForkDb() const {
-  ASSIGN_OR_RETURN(auto forked_db, GetDb()->Fork());
+  ASSIGN_OR_RETURN(auto forked_db, GetBag()->Fork());
   return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(),
                    std::move(forked_db));
 }
 
 absl::StatusOr<DataSlice> DataSlice::Freeze() const {
-  const DataBagPtr& db = GetDb();
+  const DataBagPtr& db = GetBag();
   if (db == nullptr) {
     return *this;
   }
@@ -998,7 +998,7 @@ bool DataSlice::IsEquivalentTo(const DataSlice& other) const {
   if (this == &other || internal_ == other.internal_) {
     return true;
   }
-  if (GetDb() != other.GetDb() ||
+  if (GetBag() != other.GetBag() ||
       !GetShape().IsEquivalentTo(other.GetShape()) ||
       GetSchemaImpl() != other.GetSchemaImpl() ||
       !VisitImpl([&]<class T>(const T& impl) {
@@ -1010,12 +1010,12 @@ bool DataSlice::IsEquivalentTo(const DataSlice& other) const {
 }
 
 absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames() const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot get available attributes without a DataBag");
   }
-  const internal::DataBagImpl& db_impl = GetDb()->GetImpl();
-  FlattenFallbackFinder fb_finder(*GetDb());
+  const internal::DataBagImpl& db_impl = GetBag()->GetImpl();
+  FlattenFallbackFinder fb_finder(*GetBag());
   auto fallbacks = fb_finder.GetFlattenFallbacks();
   if (GetSchemaImpl().holds_value<internal::ObjectId>()) {
     // For entities, just process `schema_` of a DataSlice.
@@ -1037,13 +1037,13 @@ absl::StatusOr<DataSlice> DataSlice::GetAttr(
     internal::DataItem res_schema;
     ASSIGN_OR_RETURN(
         auto res,
-        GetAttrImpl(GetDb(), impl, GetSchemaImpl(), attr_name, res_schema,
+        GetAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name, res_schema,
                     /*allow_missing_schema=*/false),
         AssembleErrorMessage(_, {.ds = *this}));
     // TODO: Use DataSlice::Create instead of verifying manually.
     RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
     return DataSlice(std::move(res), GetShape(), std::move(res_schema),
-                     GetDb());
+                     GetBag());
   });
 }
 
@@ -1053,7 +1053,7 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
                    BroadcastToShape(default_value, GetShape()));
   return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
     internal::DataItem res_schema;
-    ASSIGN_OR_RETURN(auto res, GetAttrImpl(GetDb(), impl, GetSchemaImpl(),
+    ASSIGN_OR_RETURN(auto res, GetAttrImpl(GetBag(), impl, GetSchemaImpl(),
                                            attr_name, res_schema,
                                            /*allow_missing_schema=*/true));
     if (!res_schema.has_value()) {
@@ -1069,7 +1069,7 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
         res_schema,
         schema::CommonSchema(res_schema, default_value.GetSchemaImpl()),
         AssembleErrorMessage(_, {.ds = *this}));
-    auto res_db = DataBag::CommonDataBag({GetDb(), default_value.GetDb()});
+    auto res_db = DataBag::CommonDataBag({GetBag(), default_value.GetBag()});
     return DataSlice::Create(
         CoalesceWithFiltered(impl, res, expanded_default.impl<T>()), GetShape(),
         std::move(res_schema), std::move(res_db));
@@ -1079,7 +1079,7 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
 absl::Status DataSlice::SetSchemaAttr(absl::string_view attr_name,
                                       const DataSlice& values) const {
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   return VisitImpl([&]<class T>(const T& impl) {
     // NOTE: It is guaranteed that shape and values.GetShape() are equivalent
     // at this point and thus `impl` is also the same type.
@@ -1089,7 +1089,7 @@ absl::Status DataSlice::SetSchemaAttr(absl::string_view attr_name,
 
 absl::Status DataSlice::SetAttr(absl::string_view attr_name,
                                 const DataSlice& values) const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot set attributes without a DataBag");
   }
@@ -1113,7 +1113,7 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
     }
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerErrorContext::kAttr,
                                                  expanded_values, attr_name);
   if (attr_name == schema::kSchemaAttr) {
@@ -1188,12 +1188,12 @@ absl::Status DelObjSchemaAttr(const ImplT& impl, absl::string_view attr_name,
 }
 
 absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot delete attributes without a DataBag");
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   return VisitImpl([&]<class ImplT>(const ImplT& impl) -> absl::Status {
     if (GetSchemaImpl() == schema::kSchema) {
       return db_mutable_impl.DelSchemaAttr(impl, attr_name);
@@ -1277,11 +1277,11 @@ bool DataSlice::ContainsOnlyDicts() const {
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot get dict values without a DataBag");
   }
-  FlattenFallbackFinder fb_finder(*GetDb());
+  FlattenFallbackFinder fb_finder(*GetBag());
   const JaggedShape& shape = MaxRankShape(GetShape(), keys.GetShape());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
@@ -1290,10 +1290,10 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
   RhsHandler</*is_readonly=*/true> keys_handler(RhsHandlerErrorContext::kDict,
                                                 expanded_keys,
                                                 schema::kDictKeysSchemaAttr);
-  RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, GetDb()->GetImpl(),
+  RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, GetBag()->GetImpl(),
                                              fb_finder.GetFlattenFallbacks()));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
-                     return GetResultSchema(GetDb()->GetImpl(), impl,
+                     return GetResultSchema(GetBag()->GetImpl(), impl,
                                             GetSchemaImpl(),
                                             schema::kDictValuesSchemaAttr,
                                             fb_finder.GetFlattenFallbacks(),
@@ -1305,17 +1305,17 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
   return expanded_this.VisitImpl(
       [&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
         ASSIGN_OR_RETURN(auto res_impl,
-                         GetDb()->GetImpl().GetFromDict(
+                         GetBag()->GetImpl().GetFromDict(
                              impl, keys_handler.GetValues().impl<T>(),
                              fb_finder.GetFlattenFallbacks()));
         return DataSlice(std::move(res_impl), shape, std::move(res_schema),
-                         GetDb());
+                         GetBag());
       });
 }
 
 absl::Status DataSlice::SetInDict(const DataSlice& keys,
                                   const DataSlice& values) const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot set dict values without a DataBag");
   }
@@ -1331,7 +1331,7 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
                    }));
 
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> keys_handler(RhsHandlerErrorContext::kDict,
                                                  expanded_keys,
                                                  schema::kDictKeysSchemaAttr);
@@ -1350,56 +1350,56 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetDictKeys() const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError("cannot get dict keys without a DataBag");
   }
-  FlattenFallbackFinder fb_finder(*GetDb());
+  FlattenFallbackFinder fb_finder(*GetBag());
   internal::DataItem res_schema(schema::kAny);
   return VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto res_schema,
-                     GetResultSchema(GetDb()->GetImpl(), impl, GetSchemaImpl(),
+                     GetResultSchema(GetBag()->GetImpl(), impl, GetSchemaImpl(),
                                      schema::kDictKeysSchemaAttr,
                                      fb_finder.GetFlattenFallbacks(),
                                      /*allow_missing=*/false),
                      AssembleErrorMessage(_, {.ds = *this}));
     ASSIGN_OR_RETURN(
         (auto [slice, edge]),
-        GetDb()->GetImpl().GetDictKeys(impl, fb_finder.GetFlattenFallbacks()));
+        GetBag()->GetImpl().GetDictKeys(impl, fb_finder.GetFlattenFallbacks()));
     ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({std::move(edge)}));
     return DataSlice::Create(std::move(slice), std::move(shape),
-                             std::move(res_schema), GetDb());
+                             std::move(res_schema), GetBag());
   });
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetDictValues() const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot get dict values without a DataBag");
   }
-  FlattenFallbackFinder fb_finder(*GetDb());
+  FlattenFallbackFinder fb_finder(*GetBag());
   return VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto res_schema,
-                     GetResultSchema(GetDb()->GetImpl(), impl, GetSchemaImpl(),
+                     GetResultSchema(GetBag()->GetImpl(), impl, GetSchemaImpl(),
                                      schema::kDictValuesSchemaAttr,
                                      fb_finder.GetFlattenFallbacks(),
                                      /*allow_missing=*/false),
                      AssembleErrorMessage(_, {.ds = *this}));
     ASSIGN_OR_RETURN((auto [slice, edge]),
-                     GetDb()->GetImpl().GetDictValues(
+                     GetBag()->GetImpl().GetDictValues(
                          impl, fb_finder.GetFlattenFallbacks()));
     ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({std::move(edge)}));
     return DataSlice::Create(std::move(slice), std::move(shape),
-                             std::move(res_schema), GetDb());
+                             std::move(res_schema), GetBag());
   });
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetFromList(
     const DataSlice& indices) const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot get list items without a DataBag");
   }
-  FlattenFallbackFinder fb_finder(*GetDb());
+  FlattenFallbackFinder fb_finder(*GetBag());
   const JaggedShape& shape = MaxRankShape(GetShape(), indices.GetShape());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
@@ -1409,7 +1409,7 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
   ASSIGN_OR_RETURN(auto expanded_indices,
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
-                     return GetResultSchema(GetDb()->GetImpl(), impl,
+                     return GetResultSchema(GetBag()->GetImpl(), impl,
                                             GetSchemaImpl(),
                                             schema::kListItemsSchemaAttr,
                                             fb_finder.GetFlattenFallbacks(),
@@ -1419,66 +1419,66 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
   // TODO: Use DataSlice::Create instead of verifying manually.
   RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
   if (expanded_indices.present_count() == 0) {
-    return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
+    return EmptyLike(expanded_indices.GetShape(), res_schema, GetBag());
   }
   if (std::holds_alternative<internal::DataItem>(
           expanded_this.internal_->impl)) {
     int64_t index = expanded_indices.item().value<int64_t>();
-    ASSIGN_OR_RETURN(auto res_impl, GetDb()->GetImpl().GetFromList(
+    ASSIGN_OR_RETURN(auto res_impl, GetBag()->GetImpl().GetFromList(
                                         expanded_this.item(), index,
                                         fb_finder.GetFlattenFallbacks()));
     return DataSlice(std::move(res_impl), shape, std::move(res_schema),
-                     GetDb());
+                     GetBag());
   } else {
     ASSIGN_OR_RETURN(
         auto res_impl,
-        GetDb()->GetImpl().GetFromLists(
+        GetBag()->GetImpl().GetFromLists(
             expanded_this.slice(), expanded_indices.slice().values<int64_t>(),
             fb_finder.GetFlattenFallbacks()));
     return DataSlice(std::move(res_impl), shape, std::move(res_schema),
-                     GetDb());
+                     GetBag());
   }
 }
 
 absl::StatusOr<DataSlice> DataSlice::ExplodeList(
     int64_t start, std::optional<int64_t> stop) const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot get list items without a DataBag");
   }
-  FlattenFallbackFinder fb_finder(*GetDb());
+  FlattenFallbackFinder fb_finder(*GetBag());
 
   return this->VisitImpl([&]<class T>(
                              const T& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto schema,
-                     GetResultSchema(GetDb()->GetImpl(), impl, GetSchemaImpl(),
+                     GetResultSchema(GetBag()->GetImpl(), impl, GetSchemaImpl(),
                                      schema::kListItemsSchemaAttr,
                                      fb_finder.GetFlattenFallbacks(),
                                      /*allow_missing=*/false),
                      AssembleErrorMessage(_, {.ds = *this}));
     if constexpr (std::is_same_v<T, internal::DataItem>) {
       ASSIGN_OR_RETURN(auto values,
-                       GetDb()->GetImpl().ExplodeList(
+                       GetBag()->GetImpl().ExplodeList(
                            impl, internal::DataBagImpl::ListRange(start, stop),
                            fb_finder.GetFlattenFallbacks()));
       auto shape = JaggedShape::FlatFromSize(values.size());
       return DataSlice::Create(std::move(values), std::move(shape),
-                               std::move(schema), GetDb());
+                               std::move(schema), GetBag());
     } else {
       ASSIGN_OR_RETURN((auto [values, edge]),
-                       GetDb()->GetImpl().ExplodeLists(
+                       GetBag()->GetImpl().ExplodeLists(
                            impl, internal::DataBagImpl::ListRange(start, stop),
                            fb_finder.GetFlattenFallbacks()));
       ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({edge}));
       return DataSlice::Create(std::move(values), std::move(shape),
-                               std::move(schema), GetDb());
+                               std::move(schema), GetBag());
     }
   });
 }
 
 absl::StatusOr<DataSlice> DataSlice::PopFromList(
     const DataSlice& indices) const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot pop items from list without a DataBag");
   }
@@ -1491,7 +1491,7 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
   ASSIGN_OR_RETURN(auto expanded_indices,
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
                      return GetResultSchema(
                          db_mutable_impl, impl, GetSchemaImpl(),
@@ -1504,7 +1504,7 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
   // TODO: Use DataSlice::Create instead of verifying manually.
   RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
   if (expanded_indices.present_count() == 0) {
-    return EmptyLike(expanded_indices.GetShape(), res_schema, GetDb());
+    return EmptyLike(expanded_indices.GetShape(), res_schema, GetBag());
   }
   if (std::holds_alternative<internal::DataItem>(
           expanded_this.internal_->impl)) {
@@ -1512,14 +1512,14 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
     ASSIGN_OR_RETURN(auto res_impl,
                      db_mutable_impl.PopFromList(expanded_this.item(), index));
     return DataSlice(std::move(res_impl), shape, std::move(res_schema),
-                     GetDb());
+                     GetBag());
   } else {
     ASSIGN_OR_RETURN(
         auto res_impl,
         db_mutable_impl.PopFromLists(
             expanded_this.slice(), expanded_indices.slice().values<int64_t>()));
     return DataSlice(std::move(res_impl), shape, std::move(res_schema),
-                     GetDb());
+                     GetBag());
   }
 }
 
@@ -1532,7 +1532,7 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList() const {
 }
 
 absl::Status DataSlice::AppendToList(const DataSlice& values) const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot append items to list without a DataBag");
   }
@@ -1544,7 +1544,7 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
   }
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(
       RhsHandlerErrorContext::kListItem, expanded_values,
       schema::kListItemsSchemaAttr);
@@ -1572,7 +1572,7 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
 
 absl::Status DataSlice::SetInList(const DataSlice& indices,
                                   const DataSlice& values) const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot set list items without a DataBag");
   }
@@ -1593,7 +1593,7 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
                                             values.GetShape().rank());
                    }));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(
       RhsHandlerErrorContext::kListItem, expanded_values,
       schema::kListItemsSchemaAttr);
@@ -1615,7 +1615,7 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
 absl::Status DataSlice::ReplaceInList(int64_t start,
                                       std::optional<int64_t> stop,
                                       const DataSlice& values) const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot set items of a list without a DataBag");
   }
@@ -1642,7 +1642,7 @@ absl::Status DataSlice::ReplaceInList(int64_t start,
   }
 
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(
       RhsHandlerErrorContext::kListItem, values, schema::kListItemsSchemaAttr);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
@@ -1675,7 +1675,7 @@ absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
   ASSIGN_OR_RETURN(auto expanded_indices,
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   RETURN_IF_ERROR(VerifyListSchemaValid(*this, db_mutable_impl));
   if (std::holds_alternative<internal::DataItem>(
           expanded_this.internal_->impl)) {
@@ -1694,7 +1694,7 @@ absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
 absl::Status DataSlice::RemoveInList(int64_t start,
                                      std::optional<int64_t> stop) const {
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   RETURN_IF_ERROR(VerifyListSchemaValid(*this, db_mutable_impl));
   internal::DataBagImpl::ListRange list_range(start, stop);
   return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
@@ -1709,12 +1709,12 @@ absl::StatusOr<DataSlice> DataSlice::GetItem(
 }
 
 absl::Status DataSlice::ClearDictOrList() const {
-  if (GetDb() == nullptr) {
+  if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot clear lists or dicts without a DataBag");
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetDb()->GetMutableImpl());
+                   GetBag()->GetMutableImpl());
   if (ShouldApplyListOp()) {
     return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
       return db_mutable_impl.RemoveInList(impl,
@@ -1793,7 +1793,7 @@ absl::StatusOr<DataSlice> internal_broadcast::BroadcastToShapeSlow(
     const DataSlice& slice, DataSlice::JaggedShape shape) {
   auto edge = slice.GetShape().GetBroadcastEdge(shape);
   return DataSliceOp<internal::ExpandOp>()(
-      slice, std::move(shape), slice.GetSchemaImpl(), slice.GetDb(), edge);
+      slice, std::move(shape), slice.GetSchemaImpl(), slice.GetBag(), edge);
 }
 
 absl::StatusOr<DataSlice> CastOrUpdateSchema(

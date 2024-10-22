@@ -32,7 +32,7 @@ I = input_container.InputContainer('I')
 kde = kde_operators.kde
 
 db = data_bag.DataBag.empty()
-ds = lambda x: data_slice.DataSlice.from_vals(x).with_db(db)
+ds = lambda x: data_slice.DataSlice.from_vals(x).with_bag(db)
 DATA_SLICE = qtypes.DATA_SLICE
 
 QTYPES = frozenset([

@@ -206,7 +206,7 @@ class CoreConcatImplTest(parameterized.TestCase):
     a = ds([db.obj(x=1)])
     b = ds([db.obj(x=2)])
     result = expr_eval.eval(kde.core.concat(a, b))
-    self.assertEqual(result.db.fingerprint, db.fingerprint)
+    self.assertEqual(result.get_bag().fingerprint, db.fingerprint)
 
   def test_multiple_databag(self):
     db1 = data_bag.DataBag.empty()
@@ -216,10 +216,12 @@ class CoreConcatImplTest(parameterized.TestCase):
     b = db2.obj(x=2)
     b_slice = ds([b])
     result = expr_eval.eval(kde.core.concat(a_slice, b_slice))
-    self.assertNotEqual(result.db.fingerprint, db1.fingerprint)
-    self.assertNotEqual(result.db.fingerprint, db2.fingerprint)
-    self.assertFalse(result.db.is_mutable())
-    testing.assert_equal(result, ds([a.no_db(), b.no_db()]).with_db(result.db))
+    self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
+    self.assertNotEqual(result.get_bag().fingerprint, db2.fingerprint)
+    self.assertFalse(result.get_bag().is_mutable())
+    testing.assert_equal(
+        result, ds([a.no_bag(), b.no_bag()]).with_bag(result.get_bag())
+    )
 
   def test_qtype_signatures(self):
     signature = arolla.abc.get_operator_signature(kde.core.concat)
