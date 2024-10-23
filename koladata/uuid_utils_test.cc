@@ -18,10 +18,12 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/stable_fingerprint.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/test_utils.h"
 #include "arolla/qtype/qtype_traits.h"
