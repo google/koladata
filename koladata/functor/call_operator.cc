@@ -121,7 +121,8 @@ absl::StatusOr<arolla::OperatorPtr> CallOperatorFamily::DoGetOperator(
 
 absl::StatusOr<DataSlice> MaybeCall(const DataSlice& maybe_fn,
                                     const DataSlice& arg) {
-  if (IsFunctor(maybe_fn).value_or(false)) {
+  ASSIGN_OR_RETURN(bool is_functor, IsFunctor(maybe_fn));
+  if (is_functor) {
     ASSIGN_OR_RETURN(auto result,
                      functor::CallFunctorWithCompilationCache(
                          maybe_fn, {arolla::TypedRef::FromValue(arg)}, {}));

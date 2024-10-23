@@ -207,9 +207,7 @@ TEST(IsFunctorTest, Basic) {
   ASSERT_OK_AND_ASSIGN(auto fn3, fn.ForkDb());
   ASSERT_OK(fn3.DelAttr(kSignatureAttrName));
   EXPECT_THAT(IsFunctor(fn3), IsOkAndHolds(false));
-  EXPECT_THAT(IsFunctor(fn.WithBag(nullptr)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("without a DataBag")));
+  EXPECT_OK(IsFunctor(fn.WithBag(nullptr)));
 }
 
 }  // namespace

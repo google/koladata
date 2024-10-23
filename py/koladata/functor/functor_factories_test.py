@@ -110,6 +110,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         functor_factories.is_fn(fn).get_schema(), schema_constants.MASK
     )
     self.assertFalse(functor_factories.is_fn(57))
+    self.assertFalse(functor_factories.is_fn(ds(57)))
 
   def test_auto_variables(self):
     x = ds([1, -2, 3, -4])

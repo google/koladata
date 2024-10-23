@@ -96,6 +96,9 @@ absl::StatusOr<bool> IsFunctor(const DataSlice& slice) {
   if (slice.GetShape().rank() != 0) {
     return false;
   }
+  if (slice.GetBag() == nullptr) {
+    return false;
+  }
   static absl::NoDestructor<DataSlice> missing{*DataSlice::Create(
       internal::DataItem(arolla::kMissing), internal::DataItem(schema::kMask))};
   // TODO: use HasAttr when it is implemented.

@@ -108,7 +108,8 @@ absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> kwargs) {
-  if (!IsFunctor(functor).value_or(false)) {
+  ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
+  if (!is_functor) {
     return absl::InvalidArgumentError(
         "the first argument of kd.call must be a functor");
   }

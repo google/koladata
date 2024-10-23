@@ -49,8 +49,6 @@ absl::StatusOr<DataSlice> CreateFunctor(
 // Checks if a given DataSlice represents a functor. This only does a basic
 // check (that the slice is a data item and has the right attributes), so the
 // functor may still fail on evaluation.
-// This returns invalid status in case we cannot do the check (for example,
-// if there is not DataBag attached to the slice).
 absl::StatusOr<bool> IsFunctor(const DataSlice& slice);
 
 }  // namespace koladata::functor
