@@ -1013,6 +1013,12 @@ Assigned schema for Dict key: INT32""",
     testing.assert_equal(
         res, ds([None, None, None], schema_constants.INT32).with_bag(db)
     )
+    res = data_bag._empty_shaped(
+        shape, schema_constants.INT32, db=data_bag.null_bag()
+    )
+    testing.assert_equal(
+        res, ds([None, None, None], schema_constants.INT32).with_bag(None)
+    )
 
     with self.assertRaisesRegex(
         ValueError, r'missing required argument to _empty_shaped: `shape`'
@@ -1440,6 +1446,16 @@ Assigned schema for Dict key: INT32""",
       db1.merge_inplace([57])
     with self.assertRaisesRegex(
         TypeError,
+        'expecting each DataBag to be merged to be a DataBag, got None',
+    ):
+      db1.merge_inplace([None])
+    with self.assertRaisesRegex(
+        TypeError,
+        'expecting each DataBag to be merged to be a DataBag, got None',
+    ):
+      db1.merge_inplace([data_bag.null_bag()])
+    with self.assertRaisesRegex(
+        TypeError,
         'expecting each DataBag to be merged to be a DataBag, got'
         ' data_item.DataItem',
     ):
@@ -1631,6 +1647,33 @@ Assigned schema for Dict key: INT32""",
     ):
       db = bag()
       _ = db._from_proto([], [], None, 'foo')
+
+
+class NullDataBagTest(absltest.TestCase):
+
+  def test_qvalue(self):
+    self.assertIsInstance(data_bag.null_bag(), arolla.QValue)
+
+  def test_with_name(self):
+    x = data_bag.null_bag()
+    y = x.with_name('foo')
+    self.assertIs(y, x)
+
+  def test_fingerprint(self):
+    self.assertEqual(
+        data_bag.null_bag().fingerprint, data_bag.null_bag().fingerprint
+    )
+    self.assertNotEqual(data_bag.null_bag().fingerprint, bag().fingerprint)
+
+  def test_with_bag(self):
+    x = ds([1, 2, 3]).with_bag(data_bag.null_bag())
+    self.assertIsNone(x.get_bag())
+
+  def test_repr(self):
+    self.assertEqual(repr(data_bag.null_bag()), 'DataBag(null)')
+
+  def test_str(self):
+    self.assertEqual(str(data_bag.null_bag()), 'DataBag(null)')
 
 
 if __name__ == '__main__':

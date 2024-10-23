@@ -44,6 +44,12 @@ class CoreWithBagTest(parameterized.TestCase):
         expr_eval.eval(kde.core.with_bag(x.with_bag(None), x.get_bag())), x
     )
 
+  def test_null_bag(self):
+    testing.assert_equal(
+        expr_eval.eval(kde.core.with_bag(ds(42), data_bag.null_bag())),
+        ds(42)
+    )
+
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
         kde.core.with_bag,

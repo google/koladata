@@ -42,11 +42,11 @@ std::nullptr_t NotDataSliceError(PyObject* py_obj,
   return nullptr;
 }
 
-std::nullptr_t NotDataBagError(PyObject* py_obj,
-                               absl::string_view name_for_error) {
+std::optional<DataBagPtr> NotDataBagError(PyObject* py_obj,
+                                          absl::string_view name_for_error) {
   PyErr_Format(PyExc_TypeError, "expecting %s to be a DataBag, got %s",
                std::string(name_for_error).c_str(), Py_TYPE(py_obj)->tp_name);
-  return nullptr;
+  return std::nullopt;
 }
 
 std::nullptr_t NotJaggedShapeError(PyObject* py_obj,
@@ -99,8 +99,11 @@ absl::Nullable<PyObject*> WrapDataBagPtr(DataBagPtr db) {
       arolla::TypedValue::FromValue(std::move(db)));
 }
 
-absl::Nullable<DataBagPtr> UnwrapDataBagPtr(PyObject* py_obj,
-                                            absl::string_view name_for_error) {
+std::optional<DataBagPtr> UnwrapDataBagPtr(PyObject* py_obj,
+                                           absl::string_view name_for_error) {
+  if (py_obj == Py_None) {
+    return nullptr;
+  }
   if (!arolla::python::IsPyQValueInstance(py_obj)) {
     return NotDataBagError(py_obj, name_for_error);
   }

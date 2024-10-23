@@ -19,6 +19,8 @@
 #include <utility>
 #include <vector>
 
+
+#include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -27,6 +29,7 @@
 #include "absl/types/span.h"
 #include "koladata/data_bag_repr.h"
 #include "koladata/internal/data_bag.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
@@ -113,6 +116,12 @@ DataBagPtr DataBag::FromImpl(internal::DataBagImplPtr impl) {
 }
 
 namespace {
+
+constexpr absl::string_view kDataBagQValueSpecializationKey =
+    "::koladata::python::DataBag";
+
+constexpr absl::string_view kNullDataBagQValueSpecializationKey =
+    "::koladata::python::NullDataBag";
 
 absl::StatusOr<internal::DataBagImplPtr> MergeFallbacksToForkedImpl(
     const DataBag& db) {
@@ -203,20 +212,42 @@ std::string GetBagIdRepr(const DataBagPtr& db) {
 
 namespace arolla {
 
+QTypePtr QTypeTraits<::koladata::DataBagPtr>::type() {
+  struct DataBagPtrQType final : SimpleQType {
+    DataBagPtrQType() : SimpleQType(
+        meta::type<::koladata::DataBagPtr>(), "DATA_BAG") {}
+    absl::string_view UnsafePyQValueSpecializationKey(
+        const void* source) const final {
+      if (*static_cast<const ::koladata::DataBagPtr*>(source) != nullptr) {
+        return ::koladata::kDataBagQValueSpecializationKey;
+      } else {
+        return ::koladata::kNullDataBagQValueSpecializationKey;
+      }
+    }
+  };
+  static const absl::NoDestructor<DataBagPtrQType> result;
+  return result.get();
+}
+
 void FingerprintHasherTraits<::koladata::DataBagPtr>::operator()(
     FingerprintHasher* hasher, const ::koladata::DataBagPtr& value) const {
-  hasher->Combine(value->fingerprint());
+  if (value != nullptr) {
+    hasher->Combine(value->fingerprint());
+  } else {
+    hasher->Combine(absl::string_view("NullDataBag"));
+  }
 }
 
 ReprToken ReprTraits<::koladata::DataBagPtr>::operator()(
     const ::koladata::DataBagPtr& value) const {
+  if (value == nullptr) {
+    return ReprToken("DataBag(null)");
+  }
   absl::StatusOr<std::string> statistics = koladata::DataBagStatistics(value);
   if (statistics.ok()) {
     return ReprToken{statistics.value()};
   }
   return ReprToken{std::string(statistics.status().message())};
 }
-
-AROLLA_DEFINE_SIMPLE_QTYPE(DATA_BAG, ::koladata::DataBagPtr);
 
 }  // namespace arolla

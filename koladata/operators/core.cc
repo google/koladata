@@ -1193,11 +1193,7 @@ absl::StatusOr<DataSlice> Ref(const DataSlice& ds) {
 }
 
 absl::StatusOr<DataBagPtr> GetBag(const DataSlice& ds) {
-  auto result = ds.GetBag();
-  if (result != nullptr) {
-    return result;
-  }
-  return absl::InvalidArgumentError("DataSlice has no associated DataBag");
+  return ds.GetBag();
 }
 
 DataSlice WithBag(const DataSlice& ds, const DataBagPtr& db) {

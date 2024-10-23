@@ -1203,8 +1203,14 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
   const auto& db = UnsafeDataBagPtr(self);
   for (int i = 3; i < nargs; ++i) {
     auto other = UnwrapDataBagPtr(args[i], "each DataBag to be merged");
-    if (other == nullptr) return nullptr;
-    RETURN_IF_ERROR(db->MergeInplace(other, overwrite, allow_data_conflicts,
+    if (other == std::nullopt) return nullptr;
+    if (*other == nullptr) {
+      PyErr_SetString(
+          PyExc_TypeError,
+          "expecting each DataBag to be merged to be a DataBag, got None");
+      return nullptr;
+    }
+    RETURN_IF_ERROR(db->MergeInplace(*other, overwrite, allow_data_conflicts,
                                      allow_schema_conflicts))
         .With(SetKodaPyErrFromStatus);
   }
@@ -1617,16 +1623,16 @@ absl::Nullable<PyObject*> PyEmptyShaped(PyObject* /*module*/,
     return nullptr;
   }
 
-  absl::Nullable<DataBagPtr> db = nullptr;
+  std::optional<DataBagPtr> db = nullptr;
   PyObject* py_db = args.pos_kw_values[2];
   if (py_db != nullptr && !Py_IsNone(py_db)) {
     db = UnwrapDataBagPtr(py_db, "db");
-    if (db == nullptr) {
+    if (!db) {
       return nullptr;
     }
   }
 
-  ASSIGN_OR_RETURN(auto res, CreateEmptyShaped(*shape, *schema, db),
+  ASSIGN_OR_RETURN(auto res, CreateEmptyShaped(*shape, *schema, *std::move(db)),
                    SetKodaPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }

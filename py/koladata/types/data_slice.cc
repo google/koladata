@@ -74,11 +74,11 @@ absl::Nullable<PyObject*> PyDataSlice_with_bag(PyObject* self, PyObject* db) {
   if (db == Py_None) {
     return WrapPyDataSlice(UnsafeDataSliceRef(self).WithBag(nullptr));
   }
-  DataBagPtr db_ptr = UnwrapDataBagPtr(db, "db");
-  if (db_ptr == nullptr) {
+  std::optional<DataBagPtr> db_ptr = UnwrapDataBagPtr(db, "db");
+  if (!db_ptr) {
     return nullptr;
   }
-  return WrapPyDataSlice(UnsafeDataSliceRef(self).WithBag(std::move(db_ptr)));
+  return WrapPyDataSlice(UnsafeDataSliceRef(self).WithBag(*std::move(db_ptr)));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_no_bag(PyObject* self, PyObject*) {

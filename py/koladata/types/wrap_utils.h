@@ -19,6 +19,8 @@
 
 #include <Python.h>
 
+#include <optional>
+
 #include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
@@ -55,10 +57,13 @@ absl::Nullable<PyObject*> WrapDataBagPtr(DataBagPtr db);
 
 // Returns a copy of shared_ptr to DataBag held by `py_obj`. This is a safe way
 // to access the DataBag from PyObject*. In case `py_obj` does not hold DataBag,
-// appropriate error is set and nullptr returned.
+// appropriate error is set and std::nullopt returned.
+//
 // `name_for_error` is used to format an informative error message.
-absl::Nullable<DataBagPtr> UnwrapDataBagPtr(PyObject* py_obj,
-                                            absl::string_view name_for_error);
+//
+// NOTE: Python None is unwrapped as NullDataBag.
+std::optional<DataBagPtr> UnwrapDataBagPtr(PyObject* py_obj,
+                                           absl::string_view name_for_error);
 
 // Returns a const reference to underlying DataBagPtr object without any checks.
 const DataBagPtr& UnsafeDataBagPtr(PyObject* py_obj);

@@ -14,6 +14,8 @@
 
 """DataBag abstraction."""
 
+from __future__ import annotations
+import functools
 from typing import Any, Iterable
 
 from arolla import arolla
@@ -421,3 +423,29 @@ DataBag.__rshift__ = _enriched_bag
 DataBag.__irshift__ = lambda self, other: _merge_inplace(
     self, other, overwrite=False
 )
+
+
+class NullDataBag(arolla.abc.QValue):
+  """QValue specialization for null DataBag.
+
+  In C++, this QValue is represented as a nullptr of DataBagPtr type.
+  """
+
+  def py_value(self) -> None:
+    return None
+
+  def with_name(self, name: str | arolla.types.Text) -> NullDataBag:
+    return _general_eager_ops.with_name(self, name)
+
+
+arolla.abc.register_qvalue_specialization(
+    '::koladata::python::NullDataBag', NullDataBag
+)
+
+
+@functools.cache
+def null_bag():
+  """Returns an instance of a null DataBag."""
+  return arolla.abc.aux_eval_op(
+      _op_impl_lookup.get_bag, _DataSlice.from_vals(None)
+  )
