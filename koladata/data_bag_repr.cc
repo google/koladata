@@ -137,16 +137,20 @@ absl::StatusOr<std::string> SchemaToStr(
   return DataItemRepr(schema_item);
 }
 
-// Returns true if a DataItem holds '__items__', '__keys__', '__values__'
-// These attributes will be hidden when printing the DataBag.
-bool IsInternalAttribute(const internal::DataItem& item) {
-  if (!item.holds_value<arolla::Text>()) {
-    return false;
+// Converts internal attribute names (such as '__schema__', '__items__',
+// '__keys__', '__values__') to more user readable names.
+std::string AttributeRepr(const absl::string_view attribute) {
+  if (attribute == schema::kSchemaAttr) {
+    return "get_obj_schema()";
+  } else if (attribute == schema::kListItemsSchemaAttr) {
+    return "get_item_schema()";
+  } else if (attribute == schema::kDictKeysSchemaAttr) {
+    return "get_key_schema()";
+  } else if (attribute == schema::kDictValuesSchemaAttr) {
+    return "get_value_schema()";
+  } else {
+    return std::string(attribute);
   }
-  absl::string_view attr = item.value<arolla::Text>().view();
-  return attr == schema::kListItemsSchemaAttr ||
-         attr == schema::kDictKeysSchemaAttr ||
-         attr == schema::kDictValuesSchemaAttr;
 }
 
 absl::StatusOr<std::string> DataBagToStrInternal(
@@ -168,11 +172,11 @@ absl::StatusOr<std::string> DataBagToStrInternal(
   ASSIGN_OR_RETURN(DataBagContent content, db->GetImpl().ExtractContent());
   Triples main_triples(content);
   for (const AttrTriple& attr : main_triples.attributes()) {
-    absl::StrAppend(
-        &res, line_indent,
-        absl::StrFormat(
-            "%s.%s => %s\n", ObjectIdStr(attr.object), attr.attribute,
-            internal::DataItemRepr(attr.value, {.strip_quotes = true})));
+    absl::StrAppend(&res, line_indent,
+                    absl::StrFormat("%s.%s => %s\n", ObjectIdStr(attr.object),
+                                    AttributeRepr(attr.attribute),
+                                    internal::DataItemRepr(
+                                        attr.value, {.strip_quotes = true})));
   }
   for (const auto& [list_id, values] : main_triples.lists()) {
     absl::StrAppend(
@@ -198,14 +202,14 @@ absl::StatusOr<std::string> DataBagToStrInternal(
   absl::flat_hash_map<ObjectId, AttrMap> schema_triple_map =
       BuildSchemaAttrMap(main_triples.dicts());
   for (const DictItemTriple& dict : main_triples.dicts()) {
-    if (dict.object.IsSchema() && !IsInternalAttribute(dict.key)) {
+    if (dict.object.IsSchema()) {
       ASSIGN_OR_RETURN(std::string value_str,
                        SchemaToStr(dict.value, schema_triple_map));
-      absl::StrAppend(&res, line_indent,
-                      absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
-                                      internal::DataItemRepr(
-                                          dict.key, {.strip_quotes = true}),
-                                      value_str));
+      absl::StrAppend(
+          &res, line_indent,
+          absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
+                          AttributeRepr(dict.key.value<arolla::Text>().view()),
+                          value_str));
     }
   }
   const std::vector<DataBagPtr>& fallbacks = db->GetFallbacks();

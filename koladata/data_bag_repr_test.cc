@@ -109,7 +109,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Objects) {
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => 1(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => b(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
@@ -132,10 +132,10 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedObjects) {
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => 1(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
           MatchesRegex(
@@ -147,35 +147,48 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedObjects) {
 TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
   DataBagPtr bag = DataBag::Empty();
 
-  ObjectId dict_id = internal::AllocateSingleDict();
-  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
-  DataSlice keys = test::DataSlice<arolla::Text>({"a", "x"});
-  DataSlice values = test::DataSlice<int>({1, 4});
-  ASSERT_OK(data_slice.SetInDict(keys, values));
+  ASSERT_OK_AND_ASSIGN(
+      auto dict_schema,
+      CreateDictSchema(bag, test::Schema(schema::kText),
+                       test::Schema(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(
+      auto data_slice,
+      CreateDictShaped(bag, DataSlice::JaggedShape::FlatFromSize(2),
+                       /*keys=*/test::DataSlice<arolla::Text>({"a", "x"}),
+                       /*values=*/test::DataSlice<int>({1, 4}),
+                       dict_schema));
 
   EXPECT_THAT(
       DataBagToStr(bag),
-      IsOkAndHolds(
-          AllOf(MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
-                MatchesRegex(
-                    R"regex((.|\n)*\$[0-9a-f]{32}:0\['a'\] => 1(.|\n)*)regex"),
-                MatchesRegex(
-                    R"regex((.|\n)*\$[0-9a-f]{32}:0\['x'\] => 4(.|\n)*)regex"),
-                MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"))));
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\['a'\] => 1(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{32}:1\['x'\] => 4(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*k[0-9a-f]{32}:0\.get_key_schema\(\) => TEXT(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*k[0-9a-f]{32}:0\.get_value_schema\(\) => INT64(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_List) {
   DataBagPtr bag = DataBag::Empty();
-
+  ASSERT_OK_AND_ASSIGN(
+      auto list_schema,
+      CreateListSchema(bag, test::Schema(schema::kInt64)));
   ASSERT_OK(CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
-                             test::Schema(schema::kAny)));
+                             list_schema));
   EXPECT_THAT(
       DataBagToStr(bag),
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*\$[0-9a-f]{32}:0\[:\] => \[1, 2, 3\](.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"))));
+          MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*k[0-9a-f]{32}:0\.get_item_schema\(\) => INT64(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_FallbackBags) {

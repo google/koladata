@@ -214,7 +214,7 @@ SchemaBag:
           'object',
           bag().obj(a=1, b='a').get_bag(),
           r"""DataBag \$[0-9a-f]{4}:
-\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0
+\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0
 \$[0-9a-f]{32}:0\.a => 1
 \$[0-9a-f]{32}:0\.b => a
 
@@ -251,15 +251,16 @@ SchemaBag:
     self.assertRegex(
         db.contents_repr(),
         r"""DataBag \$[0-9a-f]{4}:
-\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0
+\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0
 \$[0-9a-f]{32}:0\.b => 1
-\$[0-9a-f]{32}:0\.__schema__ => k[0-9a-f]{32}:0
+\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0
 \$[0-9a-f]{32}:0\.a => \$[0-9a-f]{32}:0
 
 SchemaBag:
 k[0-9a-f]{32}:0\.(b|a) => (INT32|OBJECT)
 k[0-9a-f]{32}:0\.(b|a) => (OBJECT|INT32)
-""")
+""",
+    )
 
   def test_contents_repr_fallback(self):
     db = bag()
