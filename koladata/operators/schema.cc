@@ -63,7 +63,8 @@ class NewSchemaOperator : public arolla::QExprOperator {
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result, CreateSchema(db, attr_names, values),
                            ctx->set_status(std::move(_)));
-          frame.Set(output_slot, result.WithBag(std::move(*db).ToImmutable()));
+          db->UnsafeMakeImmutable();
+          frame.Set(output_slot, std::move(result));
         });
   }
 };
@@ -97,7 +98,8 @@ class UuSchemaOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(auto result,
                            CreateUuSchema(db, seed, attr_names, values),
                            ctx->set_status(std::move(_)));
-          frame.Set(output_slot, result.WithBag(std::move(*db).ToImmutable()));
+          db->UnsafeMakeImmutable();
+          frame.Set(output_slot, std::move(result));
         });
   }
 };
@@ -159,7 +161,8 @@ absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
 absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema) {
   auto db = koladata::DataBag::Empty();
   ASSIGN_OR_RETURN(auto list_schema, CreateListSchema(db, item_schema));
-  return list_schema.WithBag(std::move(*db).ToImmutable());
+  db->UnsafeMakeImmutable();
+  return list_schema;
 }
 
 absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
@@ -167,7 +170,8 @@ absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
   auto db = koladata::DataBag::Empty();
   ASSIGN_OR_RETURN(auto dict_schema,
                    CreateDictSchema(db, key_schema, value_schema));
-  return dict_schema.WithBag(std::move(*db).ToImmutable());
+  db->UnsafeMakeImmutable();
+  return dict_schema;
 }
 
 }  // namespace koladata::ops

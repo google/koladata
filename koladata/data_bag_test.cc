@@ -350,11 +350,11 @@ TEST(DataBagTest, Fork_Mutability) {
   }
 }
 
-TEST(DataBagTest, ToImmutable) {
+TEST(DataBagTest, UnsafeMakeImmutable) {
   DataBag db1;
   EXPECT_TRUE(db1.IsMutable());
-  DataBagPtr db2 = std::move(db1).ToImmutable();
-  EXPECT_FALSE(db2->IsMutable());
+  db1.UnsafeMakeImmutable();
+  EXPECT_FALSE(db1.IsMutable());
 }
 
 }  // namespace

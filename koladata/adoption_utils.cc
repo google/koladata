@@ -90,9 +90,10 @@ absl::StatusOr<absl::Nullable<DataBagPtr>> AdoptionQueue::GetCommonOrMergedDb()
   } else if (!has_multiple_bags) {
     return *single_bag;
   } else {
-    DataBag res;
-    RETURN_IF_ERROR(AdoptInto(res));
-    return std::move(res).ToImmutable();
+    DataBagPtr res = DataBag::Empty();
+    RETURN_IF_ERROR(AdoptInto(*res));
+    res->UnsafeMakeImmutable();
+    return res;
   }
 }
 

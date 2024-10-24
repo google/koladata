@@ -83,18 +83,12 @@ class DataBag : public arolla::RefcountedBase {
   // Changes to either DataBag will not be reflected in the other.
   absl::StatusOr<DataBagPtr> Fork(bool immutable = false);
 
-  // Returns a new immutable DataBag with contents moved from this one. This
-  // DataBag is invalidated.
+  // Makes the current DataBag immutable.
   //
-  // NOTE: This method ignores whether there are other references to the same
-  // DataBag. It should be used only in certain circumstances, e.g. when DataBag
-  // is created as mutable, modified and than converted into immutable.
-  DataBagPtr ToImmutable() && {
-    auto new_db = DataBagPtr::Make(immutable_t{});
-    new_db->impl_ = std::move(impl_);
-    new_db->fallbacks_ = std::move(fallbacks_);
-    return new_db;
-  }
+  // Use this function with caution because if the data bag is shared between
+  // several users, some of them might not expect that it suddenly becomes
+  // immutable.
+  void UnsafeMakeImmutable() { is_mutable_ = false; }
 
   // Returns fallbacks in priority order.
   const std::vector<DataBagPtr>& GetFallbacks() const { return fallbacks_; }

@@ -769,22 +769,19 @@ absl::StatusOr<DataBagPtr> Attrs(
         "cannot set attributes on a DataSlice without a DataBag");
   }
 
-  // Scope to control the lifetime of result_obj, so we can safely invalidate
-  // the contents of result_db afterward.
   DataBagPtr result_db = DataBag::Empty();
-  {
-    RETURN_IF_ERROR(AdoptStub(result_db, obj));
+  RETURN_IF_ERROR(AdoptStub(result_db, obj));
 
-    // TODO: Remove after `SetAttrs` performs its own adoption.
-    AdoptionQueue adoption_queue;
-    for (const auto& value : attr_values) {
-      adoption_queue.Add(value);
-    }
-    RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
-    RETURN_IF_ERROR(obj.WithBag(result_db).SetAttrs(attr_names, attr_values,
-                                                    /*update_schema=*/true));
+  // TODO: Remove after `SetAttrs` performs its own adoption.
+  AdoptionQueue adoption_queue;
+  for (const auto& value : attr_values) {
+    adoption_queue.Add(value);
   }
-  return std::move(*result_db).ToImmutable();
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
+  RETURN_IF_ERROR(obj.WithBag(result_db).SetAttrs(attr_names, attr_values,
+                                                  /*update_schema=*/true));
+  result_db->UnsafeMakeImmutable();
+  return result_db;
 }
 
 class AttrsOperator : public arolla::QExprOperator {
@@ -919,8 +916,8 @@ class NewShapedOperator : public arolla::QExprOperator {
               EntityCreator::Shaped(result_db, shape, attr_names, attr_values,
                                     schema, update_schema, item_id),
               ctx->set_status(std::move(_)));
-          frame.Set(output_slot,
-                    result.WithBag(std::move(*result_db).ToImmutable()));
+          result_db->UnsafeMakeImmutable();
+          frame.Set(output_slot, std::move(result));
         });
   }
 };
@@ -953,8 +950,8 @@ class ObjShapedOperator : public arolla::QExprOperator {
                            ObjectCreator::Shaped(result_db, shape, attr_names,
                                                  attr_values, item_id),
                            ctx->set_status(std::move(_)));
-          frame.Set(output_slot,
-                    result.WithBag(std::move(*result_db).ToImmutable()));
+          result_db->UnsafeMakeImmutable();
+          frame.Set(output_slot, std::move(result));
         });
   }
 };
@@ -1007,7 +1004,8 @@ class UuOperator : public arolla::QExprOperator {
               auto result,
               CreateUu(db, seed, attr_names, values, schema, update_schema),
               ctx->set_status(std::move(_)));
-          frame.Set(output_slot, result.WithBag(std::move(*db).ToImmutable()));
+          db->UnsafeMakeImmutable();
+          frame.Set(output_slot, std::move(result));
         });
   }
 };
@@ -1176,7 +1174,8 @@ class UuObjOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(auto result,
                            CreateUuObject(db, seed, attr_names, values),
                            ctx->set_status(std::move(_)));
-          frame.Set(output_slot, result.WithBag(std::move(*db).ToImmutable()));
+          db->UnsafeMakeImmutable();
+          frame.Set(output_slot, std::move(result));
         });
   }
 };
@@ -1207,7 +1206,8 @@ absl::StatusOr<DataSlice> WithMergedBag(const DataSlice& ds) {
         "attached");
   }
   ASSIGN_OR_RETURN(auto merged_db, ds.GetBag()->MergeFallbacks());
-  return ds.WithBag(std::move(*merged_db).ToImmutable());
+  merged_db->UnsafeMakeImmutable();
+  return ds.WithBag(std::move(merged_db));
 }
 
 namespace {
@@ -1444,20 +1444,17 @@ absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
     return absl::InvalidArgumentError("expected a DataSlice of dicts");
   }
 
-  // Scope to control the lifetime of result_obj, so we can safely invalidate
-  // the contents of result_db afterward.
   DataBagPtr result_db = DataBag::Empty();
-  {
-    RETURN_IF_ERROR(AdoptStub(result_db, x));
-    // TODO: Remove after `SetInDict` performs its own adoption.
-    AdoptionQueue adoption_queue;
-    adoption_queue.Add(keys);
-    adoption_queue.Add(values);
-    RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
+  RETURN_IF_ERROR(AdoptStub(result_db, x));
+  // TODO: Remove after `SetInDict` performs its own adoption.
+  AdoptionQueue adoption_queue;
+  adoption_queue.Add(keys);
+  adoption_queue.Add(values);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
 
-    RETURN_IF_ERROR(x.WithBag(result_db).SetInDict(keys, values));
-  }
-  return std::move(*result_db).ToImmutable();
+  RETURN_IF_ERROR(x.WithBag(result_db).SetInDict(keys, values));
+  result_db->UnsafeMakeImmutable();
+  return result_db;
 }
 
 absl::StatusOr<DataSlice> Explode(const DataSlice& x, const int64_t ndim) {
@@ -1530,7 +1527,8 @@ absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& attrs) {
 
   auto db = DataBag::Empty();
   RETURN_IF_ERROR(AdoptStub(db, x));
-  return x.WithBag(std::move(*db).ToImmutable());
+  db->UnsafeMakeImmutable();
+  return x.WithBag(std::move(db));
 }
 absl::StatusOr<arolla::OperatorPtr> AttrsOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
