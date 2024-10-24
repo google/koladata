@@ -78,6 +78,7 @@ OPERATOR("kde.core._get_list_item_by_range", GetListItemByRange);
 OPERATOR("kde.core._get_values", GetValues);
 OPERATOR("kde.core._get_values_by_keys", GetValuesByKeys);
 OPERATOR("kde.core._inverse_mapping", InverseMapping);
+OPERATOR("kde.core._list_like", ListLike);
 OPERATOR("kde.core._ordinal_rank", OrdinalRank);
 OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);

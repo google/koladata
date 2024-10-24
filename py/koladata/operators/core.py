@@ -3395,3 +3395,61 @@ def with_dict_update(x, keys, values=arolla.unspecified()):
     values: A DataSlice of values, or unspecified if `keys` contains dicts.
   """
   return updated(x, dict_update(x, keys, values))
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.core._list_like', qtype_inference_expr=qtypes.DATA_SLICE
+)
+def _list_like(
+    shape_and_mask_from, items, item_schema, schema, itemid, hidden_seed  # pylint: disable=unused-argument
+):
+  """Implementation of `kde.core.list_like`."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.list_like'])
+@optools.as_lambda_operator(
+    'kde.core.list_like',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.shape_and_mask_from),
+        qtype_utils.expect_data_slice_or_unspecified(P.items),
+        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def list_like(
+    shape_and_mask_from=py_boxing.positional_only(),
+    items=py_boxing.keyword_only(arolla.unspecified()),
+    item_schema=py_boxing.keyword_only(arolla.unspecified()),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=g-doc-args
+  """Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
+
+  Args:
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the
+      desired lists.
+    items: optional items to assign to the newly created lists. If not
+      given, the function returns empty lists.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+
+  Returns:
+    A DataSlice with the lists.
+  """
+  items = M.core.default_if_unspecified(items, data_slice.unspecified())
+  item_schema = M.core.default_if_unspecified(
+      item_schema, data_slice.unspecified()
+  )
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+  return _list_like(
+      shape_and_mask_from, items, item_schema, schema, itemid, hidden_seed
+  )
