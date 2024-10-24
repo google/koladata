@@ -1217,6 +1217,29 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
   Py_RETURN_NONE;
 }
 
+absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self,
+                                          PyObject* const* py_args,
+                                          Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  DataBagPtr db = UnsafeDataBagPtr(self);
+  if (nargs != 1) {
+    PyErr_Format(PyExc_ValueError,
+                 "DataBag.adopt accepts exactly 1 argument, got %d", nargs);
+    return nullptr;
+  }
+
+  const DataSlice* slice = UnwrapDataSlice(py_args[0], "slice");
+  if (!slice) {
+    return nullptr;
+  }
+
+  AdoptionQueue adoption_queue;
+  adoption_queue.Add(*slice);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+
+  return WrapPyDataSlice(slice->WithBag(std::move(db)));
+}
+
 absl::Nullable<PyObject*> PyDataBag_merge_fallbacks(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& db = UnsafeDataBagPtr(self);
@@ -1526,6 +1549,15 @@ Returns:
      "DataBag._exactly_equal"},
     {"_merge_inplace", (PyCFunction)PyDataBag_merge_inplace, METH_FASTCALL,
      "DataBag._merge_inplace"},
+    {"adopt", (PyCFunction)PyDataBag_adopt, METH_FASTCALL,
+     R"""(Adopts all data reachable from the given slice into this DataBag.
+
+Args:
+  slice: DataSlice to adopt data from.
+
+Returns:
+  The DataSlice with this DataBag (including adopted data) attached.
+)"""},
     {"_from_py_impl", (PyCFunction)PyDataBag_from_py_impl, METH_FASTCALL,
      "DataBag._from_py_impl"},
     {"merge_fallbacks", PyDataBag_merge_fallbacks, METH_NOARGS,

@@ -1461,6 +1461,36 @@ Assigned schema for Dict key: INT32""",
     ):
       db1.merge_inplace([x1])
 
+  def test_adopt_args_errors(self):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'DataBag.adopt accepts exactly 1 argument, got 0'
+    ):
+      bag().adopt()
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'DataBag.adopt accepts exactly 1 argument, got 2'
+    ):
+      bag().adopt(ds(1), ds(2))
+
+  def test_adopt_immutable(self):
+    db1 = bag()
+    db1 = db1.fork(mutable=False)
+    x = bag().obj()
+    with self.assertRaisesRegex(
+        ValueError, 'DataBag is immutable, try DataSlice.fork_db()'
+    ):
+      db1.adopt(x)
+
+  def test_adopt(self):
+    db1 = bag()
+    o1 = db1.uuobj(seed='1')
+    o1.x = 1
+    db2 = bag()
+    db2.uuobj(seed='1').y = 2
+    o3 = db2.adopt(o1)
+    self.assertEqual(o3.db.fingerprint, db2.fingerprint)
+    testing.assert_equivalent(o3.x.no_bag(), ds(1))
+    testing.assert_equivalent(o3.y.no_bag(), ds(2))
+
   def test_lshift(self):
     db1 = bag()
     o1 = db1.uuobj(x=1)
