@@ -633,6 +633,68 @@ class FunctorFactoriesTest(absltest.TestCase):
     ):
       functor_factories.as_fn(57)
 
+  def test_get_signature(self):
+    fn = functor_factories.fn(I.x + I.y)
+    sig = functor_factories.get_signature(fn)
+    testing.assert_equal(
+        sig.parameters[:].name.no_bag(),
+        ds(['self', 'x', 'y', '__extra_inputs__']),
+    )
+    testing.assert_equal(
+        sig.parameters[:].kind.no_bag(),
+        ds([
+            signature_utils.ParameterKind.POSITIONAL_ONLY,
+            signature_utils.ParameterKind.KEYWORD_ONLY,
+            signature_utils.ParameterKind.KEYWORD_ONLY,
+            signature_utils.ParameterKind.VAR_KEYWORD,
+        ]).no_bag(),
+    )
+    fn2 = functor_factories.fn(
+        I.x + I.y,
+        signature=signature_utils.signature([
+            signature_utils.parameter(
+                'x', signature_utils.ParameterKind.POSITIONAL_ONLY
+            ),
+            signature_utils.parameter(
+                'y', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
+            ),
+        ]),
+    )
+    sig = functor_factories.get_signature(fn2)
+    testing.assert_equal(sig.parameters[:].name.no_bag(), ds(['x', 'y']))
+    testing.assert_equal(
+        sig.parameters[:].kind.no_bag(),
+        ds([
+            signature_utils.ParameterKind.POSITIONAL_ONLY,
+            signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD,
+        ]).no_bag(),
+    )
+
+  def test_allow_arbitrary_unused_inputs(self):
+    fn = functor_factories.as_fn(lambda x, y: x + y)
+    self.assertEqual(fn(x=1, y=2), 3)
+    with self.assertRaisesRegex(ValueError, 'unknown keyword arguments.*z'):
+      _ = fn(x=1, y=2, z=3)
+    fn2 = functor_factories.allow_arbitrary_unused_inputs(fn)
+    self.assertEqual(fn2(x=1, y=2), 3)
+    self.assertEqual(fn2(x=1, y=2, z=3), 3)
+
+  def test_allow_arbitrary_unused_inputs_no_effect_on_py_fn(self):
+    # py_fn creates a wrapper function with a variadic keyword argument,
+    # so allow_arbitrary_unused_inputs has no effect anymore.
+    fn = functor_factories.py_fn(lambda x, y: x + y)
+    self.assertEqual(fn(x=1, y=2), 3)
+    with self.assertRaisesRegex(
+        TypeError, "got an unexpected keyword argument 'z'"
+    ):
+      _ = fn(x=1, y=2, z=3)
+    fn2 = functor_factories.allow_arbitrary_unused_inputs(fn)
+    self.assertEqual(fn2(x=1, y=2), 3)
+    with self.assertRaisesRegex(
+        TypeError, "got an unexpected keyword argument 'z'"
+    ):
+      _ = fn2(x=1, y=2, z=3)
+
 
 if __name__ == '__main__':
   absltest.main()

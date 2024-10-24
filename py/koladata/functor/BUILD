@@ -70,6 +70,7 @@ py_library(
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:tracing",
         "//py/koladata/functions",
+        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:literal_operator",

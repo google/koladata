@@ -26,6 +26,7 @@ from koladata.expr import tracing
 from koladata.functions import functions as fns
 from koladata.functor import py_functors_py_ext as _py_functors_py_ext
 from koladata.functor import signature_utils
+from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import data_slice
 from koladata.types import literal_operator
@@ -33,6 +34,9 @@ from koladata.types import mask_constants
 from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
+
+_kd = _eager_op_utils.operators_container('kde')
 
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
@@ -390,3 +394,56 @@ def as_fn(
       )
     return f
   raise TypeError(f'cannot convert {f} into a functor')
+
+
+def get_signature(
+    fn_def: data_slice.DataSlice,
+) -> data_slice.DataSlice:
+  """Retrieves the signature attached to the given functor.
+
+  Args:
+    fn_def: The functor to retrieve the signature for, or a slice thereof.
+
+  Returns:
+    The signature(s) attached to the functor(s).
+  """
+  return fn_def.get_attr('__signature__')
+
+
+def allow_arbitrary_unused_inputs(
+    fn_def: data_slice.DataSlice,
+) -> data_slice.DataSlice:
+  """Returns a functor that allows unused inputs but otherwise behaves the same.
+
+  This is done by adding a `**__extra_inputs__` argument to the signature if
+  there is no existing variadic keyword argument there. If there is a variadic
+  keyword argument, this function will return the original functor.
+
+  This means that if the functor already accepts arbitrary inputs but fails
+  on unknown inputs further down the line (for example, when calling another
+  functor), this method will not fix it. In particular, this method has no
+  effect on the return values of kdf.py_fn or kdf.bind. It does however work
+  on the output of kdf.trace_py_fn.
+
+  Args:
+    fn_def: The input functor.
+
+  Returns:
+    The input functor if it already has a variadic keyword argument, or its copy
+    but with an additional `**__extra_inputs__` variadic keyword argument if
+    there is no existing variadic keyword argument.
+  """
+  sig = get_signature(fn_def)
+  if len(sig.parameters) and _kd.any(  # pylint: disable=g-explicit-length-test
+      sig.parameters[:].kind == signature_utils.ParameterKind.VAR_KEYWORD
+  ):
+    return fn_def
+  sig = signature_utils.signature(
+      _kd.concat(
+          sig.parameters[:].extract(),
+          signature_utils.parameter(
+              '__extra_inputs__', signature_utils.ParameterKind.VAR_KEYWORD
+          ).add_dim(1),
+      )
+  )
+  return fn_def.clone(__signature__=sig)
