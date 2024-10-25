@@ -85,6 +85,7 @@ py_test(
     deps = [
         ":kd",
         "//py/google_benchmark",
+        "//py/koladata/functions/tests:test_py_pb2",
         "@com_google_arolla//py/arolla",
     ],
 )

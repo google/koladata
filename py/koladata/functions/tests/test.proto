@@ -19,9 +19,14 @@ package koladata.functions.testing;
 option features.utf8_validation = NONE;
 option java_multiple_files = true;
 
+message EmptyMessage {
+}
+
 message MessageSet {
   option message_set_wire_format = true;
-  extensions 1000 to max [verification = UNVERIFIED];
+
+  extensions 1000 to max
+  [verification = UNVERIFIED];
 }
 
 message MessageA {
@@ -30,7 +35,8 @@ message MessageA {
   repeated MessageB message_b_list = 3;
   MessageSet message_set_extensions = 4;
 
-  extensions 1000 to max [verification = UNVERIFIED];
+  extensions 1000 to max
+  [verification = UNVERIFIED];
 }
 
 message MessageAExtension {
@@ -44,7 +50,8 @@ message MessageAExtension {
 
   int32 extra = 1;
 
-  extensions 1000 to max [verification = UNVERIFIED];
+  extensions 1000 to max
+  [verification = UNVERIFIED];
 }
 
 message MessageAExtensionExtension {
@@ -58,7 +65,8 @@ message MessageAExtensionExtension {
 message MessageB {
   string text = 1;
 
-  extensions 1000 to max [verification = UNVERIFIED];
+  extensions 1000 to max
+  [verification = UNVERIFIED];
 }
 
 message MessageBExtension {
@@ -67,4 +75,119 @@ message MessageBExtension {
   }
 
   int32 extra = 1;
+}
+
+message MessageC {
+  MessageC message_field = 1;
+  int32 int32_field = 2;
+  bytes bytes_field = 3;
+  repeated MessageC repeated_message_field = 4;
+  repeated int32 repeated_int32_field = 5;
+  repeated bytes repeated_bytes_field = 6;
+  map<int32, int32> map_int32_int32_field = 7;
+  map<int32, MessageC> map_int32_message_field = 8;
+}
+
+// 100 fields, for benchmarking
+message MessageD {
+  int32 field1 = 1;
+  int32 field2 = 2;
+  int32 field3 = 3;
+  int32 field4 = 4;
+  int32 field5 = 5;
+  int32 field6 = 6;
+  int32 field7 = 7;
+  int32 field8 = 8;
+  int32 field9 = 9;
+  int32 field10 = 10;
+  int32 field11 = 11;
+  int32 field12 = 12;
+  int32 field13 = 13;
+  int32 field14 = 14;
+  int32 field15 = 15;
+  int32 field16 = 16;
+  int32 field17 = 17;
+  int32 field18 = 18;
+  int32 field19 = 19;
+  int32 field20 = 20;
+  int32 field21 = 21;
+  int32 field22 = 22;
+  int32 field23 = 23;
+  int32 field24 = 24;
+  int32 field25 = 25;
+  int32 field26 = 26;
+  int32 field27 = 27;
+  int32 field28 = 28;
+  int32 field29 = 29;
+  int32 field30 = 30;
+  int32 field31 = 31;
+  int32 field32 = 32;
+  int32 field33 = 33;
+  int32 field34 = 34;
+  int32 field35 = 35;
+  int32 field36 = 36;
+  int32 field37 = 37;
+  int32 field38 = 38;
+  int32 field39 = 39;
+  int32 field40 = 40;
+  int32 field41 = 41;
+  int32 field42 = 42;
+  int32 field43 = 43;
+  int32 field44 = 44;
+  int32 field45 = 45;
+  int32 field46 = 46;
+  int32 field47 = 47;
+  int32 field48 = 48;
+  int32 field49 = 49;
+  int32 field50 = 50;
+  int32 field51 = 51;
+  int32 field52 = 52;
+  int32 field53 = 53;
+  int32 field54 = 54;
+  int32 field55 = 55;
+  int32 field56 = 56;
+  int32 field57 = 57;
+  int32 field58 = 58;
+  int32 field59 = 59;
+  int32 field60 = 60;
+  int32 field61 = 61;
+  int32 field62 = 62;
+  int32 field63 = 63;
+  int32 field64 = 64;
+  int32 field65 = 65;
+  int32 field66 = 66;
+  int32 field67 = 67;
+  int32 field68 = 68;
+  int32 field69 = 69;
+  int32 field70 = 70;
+  int32 field71 = 71;
+  int32 field72 = 72;
+  int32 field73 = 73;
+  int32 field74 = 74;
+  int32 field75 = 75;
+  int32 field76 = 76;
+  int32 field77 = 77;
+  int32 field78 = 78;
+  int32 field79 = 79;
+  int32 field80 = 80;
+  int32 field81 = 81;
+  int32 field82 = 82;
+  int32 field83 = 83;
+  int32 field84 = 84;
+  int32 field85 = 85;
+  int32 field86 = 86;
+  int32 field87 = 87;
+  int32 field88 = 88;
+  int32 field89 = 89;
+  int32 field90 = 90;
+  int32 field91 = 91;
+  int32 field92 = 92;
+  int32 field93 = 93;
+  int32 field94 = 94;
+  int32 field95 = 95;
+  int32 field96 = 96;
+  int32 field97 = 97;
+  int32 field98 = 98;
+  int32 field99 = 99;
+  int32 field100 = 100;
 }

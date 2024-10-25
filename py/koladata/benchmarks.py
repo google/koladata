@@ -19,6 +19,8 @@ import copy
 from arolla import arolla
 import google_benchmark
 from koladata import kd
+from koladata.functions.tests import test_pb2
+
 
 I = kd.I
 V = kd.V
@@ -424,6 +426,122 @@ def internal_as_py_deep_nesting(state):
   x = kd.slice(lst)
   while state:
     _ = x.internal_as_py()
+
+
+@google_benchmark.register
+def from_proto_0fields_single_empty(state):
+  message = test_pb2.EmptyMessage()
+  while state:
+    _ = kd.from_proto(message)
+
+
+@google_benchmark.register
+def from_proto_100fields_single_empty(state):
+  message = test_pb2.MessageD()
+  while state:
+    _ = kd.from_proto(message)
+
+
+@google_benchmark.register
+def from_proto_100fields_1k_empty(state):
+  messages = [test_pb2.MessageD() for _ in range(1000)]
+  while state:
+    _ = kd.from_proto(messages)
+
+
+@google_benchmark.register
+def from_proto_1k_single_int32(state):
+  messages = [test_pb2.MessageC(int32_field=i) for i in range(1000)]
+  while state:
+    _ = kd.from_proto(messages)
+
+
+@google_benchmark.register
+def from_proto_100_of_100_single_int32(state):
+  messages = [
+      test_pb2.MessageC(repeated_int32_field=[i] * 100) for i in range(100)
+  ]
+  while state:
+    _ = kd.from_proto(messages)
+
+
+@google_benchmark.register
+def from_proto_1k_single_bytes(state):
+  messages = [test_pb2.MessageC(bytes_field=b'a') for _ in range(1000)]
+  while state:
+    _ = kd.from_proto(messages)
+
+
+@google_benchmark.register
+def from_proto_100_single_10k_bytes(state):
+  messages = [
+      test_pb2.MessageC(bytes_field=b'a' * 10000) for _ in range(100)
+  ]
+  while state:
+    _ = kd.from_proto(messages)
+
+
+@google_benchmark.register
+def from_proto_single_mixed_primitive_fields(state):
+  message = test_pb2.MessageC(
+      message_field=test_pb2.MessageC(),
+      int32_field=1,
+      bytes_field=b'a',
+      repeated_message_field=[test_pb2.MessageC()],
+      repeated_int32_field=[1, 2, 3],
+      repeated_bytes_field=[b'a', b'b', b'c'],
+      map_int32_int32_field={1: 2, 3: 4},
+      map_int32_message_field={1: test_pb2.MessageC()},
+  )
+  while state:
+    _ = kd.from_proto(message)
+
+
+@google_benchmark.register
+def from_proto_1k_mixed_primitive_fields(state):
+  messages = [
+      test_pb2.MessageC(
+          message_field=test_pb2.MessageC(),
+          int32_field=1,
+          bytes_field=b'a',
+          repeated_message_field=[test_pb2.MessageC()],
+          repeated_int32_field=[1, 2, 3],
+          repeated_bytes_field=[b'a', b'b', b'c'],
+          map_int32_int32_field={1: 2, 3: 4},
+          map_int32_message_field={1: test_pb2.MessageC()}
+      ) for _ in range(1000)
+  ]
+  while state:
+    _ = kd.from_proto(messages)
+
+
+@google_benchmark.register
+def from_proto_100_of_100_deep(state):
+  messages = [test_pb2.MessageC() for _ in range(100)]
+
+  leaf_messages = list(messages)
+  for _ in range(100):
+    for i in range(100):
+      leaf_messages[i] = leaf_messages[i].message_field
+      leaf_messages[i].int32_field = i
+
+  while state:
+    _ = kd.from_proto(messages)
+
+
+@google_benchmark.register
+def from_proto_100_of_100_deep_mixed_depth(state):
+  messages = [test_pb2.MessageC() for _ in range(100)]
+
+  leaf_messages = list(messages)
+  for depth in range(100):
+    for i in range(100):
+      if i > depth:
+        leaf_messages[i] = leaf_messages[i].message_field
+        leaf_messages[i].int32_field = i
+
+  while state:
+    _ = kd.from_proto(messages)
 
 
 @google_benchmark.register
