@@ -447,6 +447,41 @@ class OpReprTest(parameterized.TestCase):
               ' v=I.v)'
           ),
       ),
+      # Non-namedtuple varargs and varkwargs.
+      (
+          arolla.abc.bind_op(
+              full_signature_op,
+              I.a,
+              I.b,
+              M.core.concat_tuples(
+                  M.core.make_tuple(I.c), M.core.make_tuple(I.d)
+              ),
+              I.y,
+              I.z,
+              arolla.M.namedtuple.union(I.nt1, I.nt2),
+          ),
+          (
+              'test.full_signature_op(I.a, I.b,'
+              ' M.core.concat_tuples(M.core.make_tuple(I.c),'
+              ' M.core.make_tuple(I.d)), y=I.y, z=I.z,'
+              ' M.namedtuple.union(I.nt1, I.nt2))'
+          ),
+      ),
+      (
+          arolla.abc.bind_op(
+              full_signature_op,
+              I.a,
+              I.b,
+              arolla.namedtuple(nt=1),  # wrong, but we don't care here.
+              I.y,
+              I.z,
+              arolla.tuple(1, 2),  # wrong, but we don't care here.
+          ),
+          (
+              'test.full_signature_op(I.a, I.b, namedtuple<nt=INT32>{(1)},'
+              ' y=I.y, z=I.z, (1, 2))'
+          ),
+      ),
   )
   def test_full_signature_repr(self, expr, expected_repr):
     register(full_signature_op, op_repr.full_signature_repr)

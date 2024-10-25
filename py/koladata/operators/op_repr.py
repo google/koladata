@@ -39,10 +39,14 @@ def default_op_repr(
 def _varargs_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> str:
   """Repr for varargs. Assumes node is a tuple (op or qvalue)."""
   if node.qvalue is None:
-    # Then it's a M.core.make_tuple node.
+    if arolla.abc.decay_registered_operator(
+        node.op
+    ) != arolla.abc.decay_registered_operator('core.make_tuple'):
+      return tokens[node].text
     return ', '.join(tokens[dep].text for dep in node.node_deps)
   else:
-    # Or it's a Tuple qvalue.
+    if not isinstance(node.qvalue, arolla.types.Tuple):
+      return tokens[node].text
     return ', '.join(repr(v) for v in node.qvalue)
 
 
@@ -50,12 +54,16 @@ def _varkwargs_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> str:
   """Repr for varkwargs. Assumes node is a namedtuple (op or qvalue)."""
   # pytype: disable=attribute-error
   if node.qvalue is None:
-    # Then it's a M.namedtuple.make node.
+    if arolla.abc.decay_registered_operator(
+        node.op
+    ) != arolla.abc.decay_registered_operator('namedtuple.make'):
+      return tokens[node].text
     keys = node.node_deps[0].qvalue.py_value().split(',')
     values = (tokens[dep] for dep in node.node_deps[1:])
     return ', '.join(f'{k}={v.text}' for k, v in zip(keys, values))
   else:
-    # Or it's a NamedTuple qvalue.
+    if not isinstance(node.qvalue, arolla.types.NamedTuple):
+      return tokens[node].text
     return ', '.join(f'{k}={v!r}' for k, v in node.qvalue.as_dict().items())
   # pytype: enable=attribute-error
 
