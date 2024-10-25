@@ -2186,7 +2186,7 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
-      result = o.clone(o.get_schema())
+      result = o.clone(schema=o.get_schema())
     else:
       result = o.clone()
 
@@ -2219,7 +2219,7 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
-      result = o.shallow_clone(o.get_schema())
+      result = o.shallow_clone(schema=o.get_schema())
     else:
       result = o.shallow_clone()
 

@@ -262,15 +262,25 @@ class DataSliceView(BasicKodaView):
     return arolla.abc.aux_bind_op('kde.ref', self)
 
   def clone(
-      self, schema: Any = arolla.unspecified(), **overrides: Any
-  ) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.clone', self, schema, **overrides)
-
-  def shallow_clone(
-      self, schema: Any = arolla.unspecified(), **overrides: Any
+      self,
+      *,
+      itemid: Any = arolla.unspecified(),
+      schema: Any = arolla.unspecified(),
+      **overrides: Any,
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op(
-        'kde.shallow_clone', self, schema, **overrides
+        'kde.clone', self, itemid=itemid, schema=schema, **overrides
+    )
+
+  def shallow_clone(
+      self,
+      *,
+      itemid: Any = arolla.unspecified(),
+      schema: Any = arolla.unspecified(),
+      **overrides: Any,
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op(
+        'kde.shallow_clone', self, itemid=itemid, schema=schema, **overrides
     )
 
   def deep_clone(

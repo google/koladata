@@ -51,6 +51,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/ellipsis.h"
+#include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/internal/op_utils/agg_uuid.h"
 #include "koladata/internal/op_utils/at.h"
 #include "koladata/internal/op_utils/collapse.h"
@@ -1798,31 +1799,56 @@ absl::StatusOr<DataSlice> ReverseSelect(const DataSlice& ds,
   });
 }
 
-absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& schema,
+absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
+                                     int64_t unused_hidden_seed) {
+  return ds.VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
+    if constexpr (std::is_same_v<T, internal::DataSliceImpl>) {
+      return DataSlice::Create(internal::NewIdsLike(impl), ds.GetShape(),
+                               ds.GetSchemaImpl());
+    }
+    if constexpr (std::is_same_v<T, internal::DataItem>) {
+      auto slice_impl = internal::DataSliceImpl::Create(/*size=*/1, impl);
+      return DataSlice::Create(internal::NewIdsLike(slice_impl)[0],
+                               ds.GetShape(), ds.GetSchemaImpl());
+    }
+    DCHECK(false);
+  });
+}
+
+absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& itemid,
+                                const DataSlice& schema,
                                 int64_t unused_hidden_seed) {
   const auto& db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
   }
-  ASSIGN_OR_RETURN(DataSlice shallow_clone, ShallowClone(ds, schema));
+  ASSIGN_OR_RETURN(DataSlice shallow_clone, ShallowClone(ds, itemid, schema));
   DataSlice shallow_clone_with_fallback = shallow_clone.WithBag(
       DataBag::ImmutableEmptyWithFallbacks({shallow_clone.GetBag(), db}));
   return Extract(std::move(shallow_clone_with_fallback), schema);
 }
 
-absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds,
+absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
+                                       const DataSlice& itemid,
                                        const DataSlice& schema,
                                        int64_t unused_hidden_seed) {
-  const auto& db = ds.GetBag();
+  const auto& db = obj.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
+  }
+  if (obj.GetShape().rank() != itemid.GetShape().rank()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "obj and itemid must have the same rank. Got rank(obj): ",
+        obj.GetShape().rank(), ", rank(itemid): ", itemid.GetShape().rank()));
   }
   const auto& schema_db = schema.GetBag();
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   const auto& schema_impl = schema.impl<internal::DataItem>();
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks_span = fb_finder.GetFlattenFallbacks();
-  return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+  return obj.VisitImpl([&]<class T>(
+                           const T& impl) -> absl::StatusOr<DataSlice> {
+    const T& itemid_impl = itemid.impl<T>();
     auto result_db = DataBag::Empty();
     ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
     internal::ShallowCloneOp clone_op(&result_db_impl.get());
@@ -1833,12 +1859,13 @@ absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds,
       FlattenFallbackFinder schema_fb_finder(*schema_db);
       schema_fallbacks = schema_fb_finder.GetFlattenFallbacks();
     }
-    ASSIGN_OR_RETURN(
-        (auto [result_slice_impl, result_schema_impl]),
-        clone_op(impl, schema_impl, db->GetImpl(), std::move(fallbacks_span),
-                 schema_db_impl, std::move(schema_fallbacks)));
-    return DataSlice::Create(result_slice_impl, ds.GetShape(),
-                             result_schema_impl, result_db);
+    ASSIGN_OR_RETURN((auto [result_slice_impl, result_schema_impl]),
+                      clone_op(impl, itemid_impl, schema_impl, db->GetImpl(),
+                              std::move(fallbacks_span), schema_db_impl,
+                              std::move(schema_fallbacks)));
+    return DataSlice::Create(std::move(result_slice_impl), obj.GetShape(),
+                              std::move(result_schema_impl),
+                              std::move(result_db));
   });
 }
 

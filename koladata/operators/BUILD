@@ -116,6 +116,7 @@ cc_library(
         "//koladata/internal/op_utils:extract",
         "//koladata/internal/op_utils:has",
         "//koladata/internal/op_utils:itemid",
+        "//koladata/internal/op_utils:new_ids_like",
         "//koladata/internal/op_utils:presence_and",
         "//koladata/internal/op_utils:presence_or",
         "//koladata/internal/op_utils:reverse",

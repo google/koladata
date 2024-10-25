@@ -231,12 +231,18 @@ absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
 absl::StatusOr<DataSlice> ReverseSelect(const DataSlice& ds,
                                         const DataSlice& filter);
 
+// kde.core._new_ids_like
+absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
+                                     int64_t unused_hidden_seed = 0);
+
 // kde.core._clone.
-absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& schema,
+absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& itemid,
+                                const DataSlice& schema,
                                 int64_t unused_hidden_seed = 0);
 
 // kde.core._shallow_clone
-absl::StatusOr<DataSlice> ShallowClone(const DataSlice& ds,
+absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
+                                       const DataSlice& itemid,
                                        const DataSlice& schema,
                                        int64_t unused_hidden_seed = 0);
 

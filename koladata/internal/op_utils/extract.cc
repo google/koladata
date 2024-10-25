@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <queue>
 #include <string_view>
 #include <type_traits>
@@ -33,8 +34,11 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/ops/dense_ops.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
+#include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
@@ -87,8 +91,7 @@ class CopyingProcessor {
 
   absl::Status SetMappingToInitialIds(const DataSliceImpl& new_ids,
                                       const DataSliceImpl& old_ids) {
-    return objects_tracker_->SetAttr(FilterToObjects(new_ids), kMappingAttrName,
-                                     old_ids);
+    return objects_tracker_->SetAttr(new_ids, kMappingAttrName, old_ids);
   }
 
   // Set the mapping attribute of the schema to the schema itself.
@@ -108,7 +111,7 @@ class CopyingProcessor {
     ds.VisitValues([&](const auto& array) {
       using T = typename std::decay_t<decltype(array)>::base_type;
       if constexpr (std::is_same_v<T, ObjectId>) {
-        bldr.AddArray(std::move(array));
+        bldr.AddArray(array);
       }
     });
     return std::move(bldr).Build();
@@ -481,6 +484,7 @@ class CopyingProcessor {
     }
     ASSIGN_OR_RETURN(auto slice_schemas,
                      databag_.GetAttr(old_ds, schema::kSchemaAttr, fallbacks_));
+    // TODO: update implicit schemas for new ObjectIds.
     RETURN_IF_ERROR(
         new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, slice_schemas));
     for (size_t idx = 0; idx < ds.slice.size(); ++idx) {
@@ -550,68 +554,69 @@ class CopyingProcessor {
   const bool is_shallow_clone_;
 };
 
-DataSliceImpl AllocateIdsLike(const DataSliceImpl& ds) {
-  DataSliceImpl::Builder bldr(ds.size());
-  ds.VisitValues([&](const auto& array) {
-    using T = typename std::decay_t<decltype(array)>::base_type;
+absl::StatusOr<DataSliceImpl> ValidateCompatibilityAndFilterItemid(
+    const DataSliceImpl& ds, const DataSliceImpl& itemid) {
+  if (!itemid.is_empty_and_unknown() &&
+      itemid.dtype() != arolla::GetQType<ObjectId>()) {
+    return absl::InvalidArgumentError("itemid must contain ObjectIds");
+  }
+  std::optional<arolla::DenseArray<ObjectId>> filtered_itemid;
+  RETURN_IF_ERROR(ds.VisitValues([&]<class T>(const arolla::DenseArray<T>&
+                                                  array) -> absl::Status {
     if constexpr (std::is_same_v<T, ObjectId>) {
-      int64_t count_objects = 0;
-      int64_t count_dicts = 0;
-      int64_t count_lists = 0;
-      int64_t count_schemas = 0;
-      array.ForEachPresent([&](int64_t id, const ObjectId& obj_id) {
-        if (obj_id.IsDict()) {
-          count_dicts += 1;
-        } else if (obj_id.IsList()) {
-          count_lists += 1;
-        } else if (obj_id.IsExplicitSchema() && !obj_id.IsUuid()) {
-          count_schemas += 1;
-        } else {
-          count_objects += 1;
-        }
-      });
-      AllocationId new_objects = Allocate(count_objects);
-      AllocationId new_dicts = AllocateDicts(count_dicts);
-      AllocationId new_lists = AllocateLists(count_lists);
-      AllocationId new_schemas = AllocateExplicitSchemas(count_schemas);
-      if (count_objects > 0) {
-        bldr.GetMutableAllocationIds().Insert(new_objects);
-      }
-      if (count_dicts > 0) {
-        bldr.GetMutableAllocationIds().Insert(new_dicts);
-      }
-      if (count_lists > 0) {
-        bldr.GetMutableAllocationIds().Insert(new_lists);
-      }
-      if (count_schemas > 0) {
-        bldr.GetMutableAllocationIds().Insert(new_schemas);
-      }
-      count_objects = 0;
-      count_dicts = 0;
-      count_lists = 0;
-      count_schemas = 0;
-      auto cloned_ids_bldr = arolla::DenseArrayBuilder<ObjectId>(array.size());
-      array.ForEachPresent([&](int64_t id, const ObjectId& obj_id) {
-        if (obj_id.IsDict()) {
-          cloned_ids_bldr.Set(id, new_dicts.ObjectByOffset(count_dicts++));
-        } else if (obj_id.IsList()) {
-          cloned_ids_bldr.Set(id, new_lists.ObjectByOffset(count_lists++));
-        } else if (obj_id.IsExplicitSchema()) {
-          if (obj_id.IsUuid()) {
-            cloned_ids_bldr.Set(id, obj_id);
-          } else {
-            cloned_ids_bldr.Set(id,
-                                new_schemas.ObjectByOffset(count_schemas++));
-          }
-        } else {
-          cloned_ids_bldr.Set(id, new_objects.ObjectByOffset(count_objects++));
-        }
-      });
-      bldr.AddArray(std::move(cloned_ids_bldr).Build());
-    } else {
+      auto itemid_array = itemid.values<ObjectId>();
+      absl::Status status = absl::OkStatus();
+      RETURN_IF_ERROR(arolla::DenseArraysForEach(
+          [&](int64_t offset, bool is_valid,
+              const arolla::OptionalValue<ObjectId> obj,
+              const arolla::OptionalValue<ObjectId> item) {
+            DCHECK(is_valid);
+            if (status.ok() && obj.present) {
+              if (!item.present) {
+                status = absl::InvalidArgumentError(
+                    "itemid must have an objectId for each item present in ds");
+              } else if ((obj.value.IsDict() != item.value.IsDict()) ||
+                         (obj.value.IsList() != item.value.IsList()) ||
+                         (obj.value.IsSchema() != item.value.IsSchema())) {
+                status = absl::InvalidArgumentError(
+                    "itemid must be of the same type as respective ObjectId "
+                    "from ds");
+              }
+            }
+          },
+          array, itemid_array));
+      arolla::EvaluationContext ctx;
+      ASSIGN_OR_RETURN(filtered_itemid,
+                       arolla::DenseArrayPresenceAndOp()(&ctx, itemid_array,
+                                                         array.ToMask()));
+      return status;
+    }
+    return absl::OkStatus();
+  }));
+  if (!filtered_itemid.has_value()) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(itemid.size());
+  }
+  return DataSliceImpl::Create(std::move(*filtered_itemid));
+}
+
+absl::StatusOr<DataSliceImpl> WithReplacedObjectIds(
+    const DataSliceImpl& ds, const DataSliceImpl& itemid) {
+  DataSliceImpl::Builder bldr(ds.size());
+  bldr.GetMutableAllocationIds().Insert(itemid.allocation_ids());
+  ds.VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
+    if constexpr (!std::is_same_v<T, ObjectId>) {
       bldr.AddArray(array);
     }
   });
+  RETURN_IF_ERROR(
+      itemid.VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
+        if constexpr (std::is_same_v<T, ObjectId>) {
+          bldr.AddArray(array);
+          return absl::OkStatus();
+        } else {
+          return absl::InvalidArgumentError("itemid must contain ObjectIds");
+        }
+      }));
   return std::move(bldr).Build();
 }
 
@@ -645,7 +650,8 @@ absl::Status ExtractOp::operator()(
 }
 
 absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
-    const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
+    const DataSliceImpl& ds, const DataSliceImpl& itemid,
+    const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks,
     absl::Nullable<const DataBagImpl*> schema_databag,
     DataBagImpl::FallbackSpan schema_fallbacks) const {
@@ -654,31 +660,38 @@ absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
         "schema_databag and schema_fallbacks must be both present or both "
         "absent");
   }
+  // TODO: check for itemid and ds compatibility with a high level
+  // API instead.
+  ASSIGN_OR_RETURN(auto filtered_itemid,
+                   ValidateCompatibilityAndFilterItemid(ds, itemid));
   auto processor = CopyingProcessor(databag, std::move(fallbacks),
                                     schema_databag, std::move(schema_fallbacks),
                                     DataBagImplPtr::NewRef(new_databag_),
                                     /*is_shallow_clone=*/true);
-  DataSliceImpl itemid = AllocateIdsLike(ds);
-  RETURN_IF_ERROR(processor.SetMappingToInitialIds(itemid, ds));
+  RETURN_IF_ERROR(processor.SetMappingToInitialIds(filtered_itemid, ds));
   ASSIGN_OR_RETURN(auto result_schema, processor.ReflectSchema(schema));
   SchemaSource schema_source = schema_databag == nullptr
                                    ? SchemaSource::kDataDatabag
                                    : SchemaSource::kSchemaDatabag;
-  auto slice = QueuedSlice{
-      .slice = itemid, .schema = result_schema, .schema_source = schema_source};
+  auto slice = QueuedSlice{.slice = filtered_itemid,
+                           .schema = result_schema,
+                           .schema_source = schema_source};
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
-  return std::make_pair(std::move(itemid), std::move(result_schema));
+  ASSIGN_OR_RETURN(auto result_slice,
+                   WithReplacedObjectIds(ds, filtered_itemid));
+  return std::make_pair(std::move(result_slice), std::move(result_schema));
 }
 
 absl::StatusOr<std::pair<DataItem, DataItem>> ShallowCloneOp::operator()(
-    const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
-    DataBagImpl::FallbackSpan fallbacks,
+    const DataItem& item, const DataItem& itemid, const DataItem& schema,
+    const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
     absl::Nullable<const DataBagImpl*> schema_databag,
     DataBagImpl::FallbackSpan schema_fallbacks) const {
   internal::ShallowCloneOp clone_op(new_databag_);
   ASSIGN_OR_RETURN((auto [result_slice_impl, result_schema_impl]),
-                   clone_op(DataSliceImpl::Create(1, item), schema, databag,
-                            std::move(fallbacks), schema_databag,
+                   clone_op(/*size=*/DataSliceImpl::Create(1, item),
+                            DataSliceImpl::Create(/*size=*/1, itemid), schema,
+                            databag, std::move(fallbacks), schema_databag,
                             std::move(schema_fallbacks)));
   return std::make_pair(result_slice_impl[0], std::move(result_schema_impl));
 }

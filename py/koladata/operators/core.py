@@ -1826,6 +1826,21 @@ def select_items(ds, fltr):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.core._new_ids_like',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.obj),
+        constraints.expect_scalar_qtype_in(P.hidden_seed, [arolla.types.INT64]),
+        constraints.expect_scalar(P.hidden_seed),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _new_ids_like(obj, hidden_seed):  # pylint: disable=unused-argument
+  """Creates a slice with a new object ids of a similar kind."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.core._extract',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
@@ -1887,11 +1902,14 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
     'kde.core._shallow_clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.itemid),
         qtype_utils.expect_data_slice(P.schema),
+        constraints.expect_scalar_qtype_in(P.hidden_seed, [arolla.types.INT64]),
+        constraints.expect_scalar(P.hidden_seed),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _shallow_clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
+def _shallow_clone(obj, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
   """Creates a slice with a shallow clones of provided objects in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
 
@@ -1903,16 +1921,20 @@ def _shallow_clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
     'kde.core.shallow_clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
+        constraints.expect_scalar_qtype_in(P.hidden_seed, [arolla.types.INT64]),
+        constraints.expect_scalar(P.hidden_seed),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def shallow_clone(
     obj=py_boxing.positional_only(),
-    schema=arolla.unspecified(),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
     overrides=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
+    hidden_seed=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args
   """Creates a slice with a shallow copy of the given slice and nothing else.
 
@@ -1927,6 +1949,8 @@ def shallow_clone(
 
   Args:
     obj: The slice to copy.{SELF}
+    itemid: The itemid to assign to the new objects. If not specified, will
+      allocate new ids.
     schema: The schema to resolve attributes, and also to assign the schema to
       the resulting object. If not specified, will use the schema of the 'obj'
       DataSlice.
@@ -1936,19 +1960,22 @@ def shallow_clone(
     A copy of the object with new ids where all top-level attributes are copied
     by reference.
   """
+  itemid = M.core.default_if_unspecified(
+      itemid, _new_ids_like(obj, hidden_seed)
+  )
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
   return arolla.types.DispatchOperator(
-      'obj, schema, overrides, hidden_seed',
+      'obj, itemid, schema, overrides, hidden_seed',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _shallow_clone(P.obj, P.schema, P.hidden_seed),
+              _shallow_clone(P.obj, P.itemid, P.schema, P.hidden_seed),
               P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_shallow_clone(P.obj, P.schema, P.hidden_seed),
-  )(obj, schema, overrides, hidden_seed)
+      default=_shallow_clone(P.obj, P.itemid, P.schema, P.hidden_seed),
+  )(obj, itemid, schema, overrides, hidden_seed)
 
 
 @optools.add_to_registry()
@@ -1956,11 +1983,14 @@ def shallow_clone(
     'kde.core._clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.itemid),
         qtype_utils.expect_data_slice(P.schema),
+        constraints.expect_scalar_qtype_in(P.hidden_seed, [arolla.types.INT64]),
+        constraints.expect_scalar(P.hidden_seed),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
+def _clone(obj, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
   """Creates a slice with a clones of provided objects in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
 
@@ -1972,14 +2002,18 @@ def _clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
     'kde.core.clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
+        constraints.expect_scalar_qtype_in(P.hidden_seed, [arolla.types.INT64]),
+        constraints.expect_scalar(P.hidden_seed),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def clone(
     obj=py_boxing.positional_only(),
-    schema=arolla.unspecified(),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
     overrides=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
@@ -1996,6 +2030,8 @@ def clone(
 
   Args:
     obj: The slice to copy.
+    itemid: The itemid to assign to the new objects. If not specified, new ids
+      would be created.
     schema: The schema to resolve attributes, and also to assign the schema to
       the resulting object. If not specified, will use the schema of the 'obj'
       DataSlice.
@@ -2005,19 +2041,22 @@ def clone(
     A copy of the object where all top-level attributes are cloned (new ids) and
     all of the rest extracted.
   """
+  itemid = M.core.default_if_unspecified(
+      itemid, _new_ids_like(obj, hidden_seed)
+  )
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
   return arolla.types.DispatchOperator(
-      'obj, schema, overrides, hidden_seed',
+      'obj, itemid, schema, overrides, hidden_seed',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _clone(P.obj, P.schema, P.hidden_seed),
+              _clone(P.obj, P.itemid, P.schema, P.hidden_seed),
               P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_clone(P.obj, P.schema, P.hidden_seed),
-  )(obj, schema, overrides, hidden_seed)
+      default=_clone(P.obj, P.itemid, P.schema, P.hidden_seed),
+  )(obj, itemid, schema, overrides, hidden_seed)
 
 
 @optools.add_to_registry()

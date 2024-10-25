@@ -40,7 +40,7 @@ class CoreCloneTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
-      result = expr_eval.eval(kde.clone(o, o.get_schema()))
+      result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:
       result = expr_eval.eval(kde.clone(o))
 
@@ -63,7 +63,7 @@ class CoreCloneTest(parameterized.TestCase):
     a_slice = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o = db.list(a_slice)
     if pass_schema:
-      result = expr_eval.eval(kde.clone(o, o.get_schema()))
+      result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:
       result = expr_eval.eval(kde.clone(o))
 
@@ -88,7 +88,7 @@ class CoreCloneTest(parameterized.TestCase):
     keys = ds([0, 1, 2])
     o = db.dict(keys, values)
     if pass_schema:
-      result = expr_eval.eval(kde.clone(o, o.get_schema()))
+      result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:
       result = expr_eval.eval(kde.clone(o))
 
@@ -112,7 +112,7 @@ class CoreCloneTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
-      result = expr_eval.eval(kde.clone(o, o.get_schema()))
+      result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:
       result = expr_eval.eval(kde.clone(o))
 
@@ -138,7 +138,7 @@ class CoreCloneTest(parameterized.TestCase):
     merged_bag = o.enriched(fb).get_bag().merge_fallbacks()
     o = o.with_bag(merged_bag)
     if pass_schema:
-      result = expr_eval.eval(kde.clone(o, o.get_schema()))
+      result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:
       result = expr_eval.eval(kde.clone(o))
 
@@ -178,6 +178,46 @@ class CoreCloneTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'attribute \'y\' is missing'):
       _ = res.y
 
+  def test_itemid(self):
+    db = data_bag.DataBag.empty()
+    y = db.new(x=42)
+    x = db.new(y=y)
+    ids = expr_eval.eval(kde.clone(x))
+    testing.assert_equal(ids.y.no_db(), y.no_db())
+    result = expr_eval.eval(kde.clone(x, itemid=ids))
+    testing.assert_equal(result.no_db(), ids.no_db())
+    testing.assert_equal(result.y.no_db(), y.no_db())
+
+  def test_mixed_idtypes(self):
+    db = data_bag.DataBag.empty()
+    y = db.obj(x=42)
+    x = db.obj(y=y)
+    xlist = db.obj(db.list([x, x]))
+    d = db.obj(db.dict({'b': xlist}))
+    a = ds([x, y, xlist, d])
+    ids = expr_eval.eval(kde.clone(a))
+    result = expr_eval.eval(kde.clone(a, itemid=ids))
+    testing.assert_equal(result.no_db(), ids.no_db())
+
+  def test_itemid_wrong_rank(self):
+    db = data_bag.DataBag.empty()
+    x = db.new(x=42)
+    itemid = db.new(x=ds([1, 2, 3]))
+    with self.assertRaisesRegex(
+        ValueError, 'obj and itemid must have the same rank'
+    ):
+      _ = expr_eval.eval(kde.clone(x, itemid=itemid))
+
+  def test_wrong_itemid_type(self):
+    db = data_bag.DataBag.empty()
+    x = db.list()
+    itemid = db.new()
+    with self.assertRaisesRegex(
+        ValueError,
+        'itemid must be of the same type as respective ObjectId from ds',
+    ):
+      _ = expr_eval.eval(kde.clone(x, itemid=itemid))
+
   def test_non_determinism(self):
     x = bag().new(y=bag().new(a=1))
     res_1 = expr_eval.eval(kde.core.clone(x))
@@ -201,8 +241,8 @@ class CoreCloneTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.clone(I.x, schema=I.schema, a=I.y)),
-        'kde.core.clone(I.x, I.schema, a=I.y)',
+        repr(kde.core.clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)),
+        'kde.core.clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)',
     )
 
 

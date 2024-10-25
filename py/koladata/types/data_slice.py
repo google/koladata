@@ -219,23 +219,31 @@ def _extract(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
 
 @DataSlice.add_method('clone')
 def _clone(
-    self, schema: DataSlice = arolla.unspecified(), **overrides: Any
+    self,
+    itemid: DataSlice = arolla.unspecified(),
+    schema: DataSlice = arolla.unspecified(),
+    **overrides: Any,
 ) -> DataSlice:
   # TODO: Replace with aux_eval_op when it supports handling the
   # hidden_seed.
   return _py_expr_eval_py_ext.eval_expr(
-      _op_impl_lookup.clone(self, schema, **overrides)
+      _op_impl_lookup.clone(self, itemid=itemid, schema=schema, **overrides)
   )
 
 
 @DataSlice.add_method('shallow_clone')
 def _shallow_clone(
-    self, schema: DataSlice = arolla.unspecified(), **overrides: Any,
+    self,
+    itemid: DataSlice = arolla.unspecified(),
+    schema: DataSlice = arolla.unspecified(),
+    **overrides: Any,
 ) -> DataSlice:
   # TODO: Replace with aux_eval_op when it supports handling the
   # hidden_seed.
   return _py_expr_eval_py_ext.eval_expr(
-      _op_impl_lookup.shallow_clone(self, schema, **overrides)
+      _op_impl_lookup.shallow_clone(
+          self, itemid=itemid, schema=schema, **overrides
+      )
   )
 
 

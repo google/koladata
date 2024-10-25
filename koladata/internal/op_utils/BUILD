@@ -93,6 +93,8 @@ cc_library(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/ops",
+        "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
         "@com_google_arolla//arolla/qtype",
@@ -106,6 +108,7 @@ cc_test(
     srcs = ["extract_test.cc"],
     deps = [
         ":extract",
+        ":new_ids_like",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -534,6 +537,29 @@ cc_library(
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr/operators/aggregation:lib",
         "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "new_ids_like",
+    srcs = ["new_ids_like.cc"],
+    hdrs = ["new_ids_like.h"],
+    deps = [
+        "//koladata/internal:data_slice",
+        "//koladata/internal:object_id",
+        "@com_google_arolla//arolla/dense_array",
+    ],
+)
+
+cc_test(
+    name = "new_ids_like_test",
+    srcs = ["new_ids_like_test.cc"],
+    deps = [
+        ":new_ids_like",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:object_id",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

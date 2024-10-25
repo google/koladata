@@ -58,14 +58,15 @@ class ShallowCloneOp {
       : new_databag_(new_databag) {}
 
   absl::StatusOr<std::pair<DataSliceImpl, DataItem>> operator()(
-      const DataSliceImpl& ds, const DataItem& schema,
-      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
+      const DataSliceImpl& ds, const DataSliceImpl& itemid,
+      const DataItem& schema, const DataBagImpl& databag,
+      DataBagImpl::FallbackSpan fallbacks,
       absl::Nullable<const DataBagImpl*> schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks) const;
 
   absl::StatusOr<std::pair<DataItem, DataItem>> operator()(
-      const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
-      DataBagImpl::FallbackSpan fallbacks,
+      const DataItem& item, const DataItem& itemid, const DataItem& schema,
+      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
       absl::Nullable<const DataBagImpl*> schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks) const;
 
