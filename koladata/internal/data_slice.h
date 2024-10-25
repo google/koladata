@@ -232,6 +232,8 @@ class DataSliceImpl {
   }
 
  private:
+  friend class SliceBuilder;
+
   using Variant = std::variant<arolla::DenseArray<ObjectId>,                 //
                                arolla::DenseArray<int32_t>,                  //
                                arolla::DenseArray<float>,                    //

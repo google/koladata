@@ -402,6 +402,63 @@ cc_test(
 )
 
 cc_library(
+    name = "slice_builder",
+    srcs = ["slice_builder.cc"],
+    hdrs = ["slice_builder.h"],
+    deps = [
+        ":data_item",
+        ":data_slice",
+        ":dtype",
+        ":missing_value",
+        ":object_id",
+        ":types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:inlined_vector",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "slice_builder_test",
+    srcs = ["slice_builder_test.cc"],
+    deps = [
+        ":data_item",
+        ":data_slice",
+        ":object_id",
+        ":slice_builder",
+        ":types",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "slice_builder_benchmarks",
+    srcs = ["slice_builder_benchmarks.cc"],
+    deps = [
+        ":data_slice",
+        ":slice_builder",
+        ":types",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_library(
     name = "data_slice_accessors",
     srcs = ["data_slice_accessors.cc"],
     hdrs = ["data_slice_accessors.h"],
