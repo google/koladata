@@ -17,6 +17,8 @@
 #ifndef KOLADATA_FUNCTOR_DEFAULT_SIGNATURE_H_
 #define KOLADATA_FUNCTOR_DEFAULT_SIGNATURE_H_
 
+#include <string>
+
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
