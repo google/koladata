@@ -79,13 +79,6 @@ http_archive(
     ],
 )
 
-new_git_repository(
-  name = "pypa_typing_extensions",
-  tag = "4.8.0",
-  remote = "https://github.com/python/typing_extensions",
-  build_file = "BUILD.pypa_typing_extensions",
-)
-
 # ICU (International Components for Unicode)
 new_git_repository(
   name = "icu4c",
