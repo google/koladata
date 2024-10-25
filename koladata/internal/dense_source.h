@@ -23,9 +23,11 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/qtype/qtype.h"
 
 namespace koladata::internal {
@@ -56,10 +58,11 @@ class DenseSource {
   virtual DataSliceImpl Get(const ObjectIdArray& objects,
                             bool check_alloc_id = true) const = 0;
 
-  // Gets values for `objects`. Instead of creating a new DataSliceImpl adds
-  // the values to an existing DataSliceBuilder.
-  virtual void Get(const ObjectIdArray& objects,
-                   DataSliceImpl::Builder& bldr) const = 0;
+  // Gets values for `objects` skipping indices that are already set in the
+  // builder. Instead of creating a new DataSliceImpl adds the values to an
+  // existing SliceBuilder.
+  virtual void Get(absl::Span<const ObjectId> objects,
+                   SliceBuilder& bldr) const = 0;
 
   // Returns true if DenseSource allow mutation.
   // Returns false in the following cases (not exhaustive):

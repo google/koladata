@@ -30,53 +30,14 @@
 #include "koladata/internal/dense_source.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/sparse_source.h"
-#include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/qtype/qtype_traits.h"
 
 namespace koladata::internal {
 
-namespace {
-
 using ::arolla::DenseArray;
 using ::arolla::GetQType;
-
-// Sources are filtered to support given attr and ordered from the most fresh
-// to the oldest.
-// NOTE: `bldr` should not have any values set for ids present in `objs`.
-// Returns a bitmap with bits set to 1 for objects that are still not set.
-arolla::Buffer<arolla::bitmap::Word> GetAttributeFromSparseSources(
-    const DenseArray<ObjectId>& objs, SparseSourceSpan sources,
-    DataSliceImpl::Builder& bldr) {
-  absl::Span<const ObjectId> objs_span = objs.values.span();
-  size_t mask_size = arolla::bitmap::BitmapSize(objs_span.size());
-  arolla::Buffer<arolla::bitmap::Word>::Builder mask_bldr(mask_size);
-  absl::Span<arolla::bitmap::Word> mask_span = mask_bldr.GetMutableSpan();
-  if (objs.bitmap.empty()) {
-    memset(mask_span.begin(), 0xff, mask_size * sizeof(arolla::bitmap::Word));
-  } else if (objs.bitmap_bit_offset == 0) {
-    memcpy(mask_span.begin(), objs.bitmap.span().data(),
-           mask_size * sizeof(arolla::bitmap::Word));
-  } else {
-    for (size_t i = 0; i < mask_size; ++i) {
-      mask_span[i] = arolla::bitmap::GetWordWithOffset(objs.bitmap, i,
-                                                       objs.bitmap_bit_offset);
-    }
-  }
-
-  // TODO: Try to iterate over values in the outer loop
-  // and over data sources in the inner loop.
-  for (const SparseSource* source : sources) {
-    if (arolla::bitmap::AreAllBitsUnset(mask_span.begin(), objs_span.size())) {
-      break;
-    }
-    source->Get(objs_span, bldr, mask_span);
-  }
-  return std::move(mask_bldr).Build();
-}
-
-}  // namespace
 
 absl::StatusOr<DataSliceImpl> GetAttributeFromSources(
     const DataSliceImpl& slice, DenseSourceSpan dense_sources,
@@ -103,21 +64,21 @@ absl::StatusOr<DataSliceImpl> GetAttributeFromSources(
     return sparse_sources.front()->Get(objs);
   }
 
-  DataSliceImpl::Builder bldr(objs.size());
-  if (sparse_sources.empty()) {
-    for (const DenseSource* source : dense_sources) {
-      source->Get(objs, bldr);
+  SliceBuilder bldr(objs.size());
+  bldr.ApplyMask(objs.ToMask());
+  absl::Span<const ObjectId> objs_span = objs.values.span();
+  // Sparse sources have priority over dense sources.
+  for (const SparseSource* source : sparse_sources) {
+    if (bldr.is_finalized()) {
+      break;
     }
-    return std::move(bldr).Build();
+    source->Get(objs_span, bldr);
   }
-  // Processing sparse sources first in order to remove objects that are
-  // present there.
-  // `DataSliceImpl::Builder` overwrite is an expensive operation, so we
-  // prefer to only insert new values.
-  auto left_mask = GetAttributeFromSparseSources(objs, sparse_sources, bldr);
-  auto filtered_objs = ObjectIdArray{objs.values, left_mask};
   for (const DenseSource* source : dense_sources) {
-    source->Get(filtered_objs, bldr);
+    if (bldr.is_finalized()) {
+      break;
+    }
+    source->Get(objs_span, bldr);
   }
   return std::move(bldr).Build();
 }

@@ -26,7 +26,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
-#include "arolla/dense_array/bitmap.h"
+#include "koladata/internal/slice_builder.h"
 
 namespace koladata::internal {
 
@@ -54,14 +54,8 @@ class SparseSource {
   // sources use `Get` with DataSliceImpl::Builder.
   DataSliceImpl Get(const ObjectIdArray& objects) const;
 
-  // Gets values for those of `objs` that correspond to present bits in
-  // `mask`. Instead of creating a new DataSliceImpl adds the values to an
-  // existing DataSliceBuilder. Useful if we get values from several data
-  // sources. Clears bits in `mask` for the values that were added to `bldr` or
-  // that are removed by this SparseSource. mask.size() must be >=
-  // arolla::bitmap::BitmapSize(objs.size())
-  void Get(absl::Span<const ObjectId> objs, DataSliceImpl::Builder& bldr,
-           absl::Span<arolla::bitmap::Word> mask) const;
+  // Gets values for those of `objs` that are not set yet in the builder.
+  void Get(absl::Span<const ObjectId> objs, SliceBuilder& bldr) const;
 
   const absl::flat_hash_map<ObjectId, DataItem>& GetAll() const {
     return data_item_map_;

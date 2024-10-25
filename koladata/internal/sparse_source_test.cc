@@ -27,6 +27,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
@@ -105,10 +106,11 @@ TEST(SparseSourceTest, MutableObjectAttrSimple) {
             alloc.ObjectByOffset(0), std::nullopt, attr_alloc.ObjectByOffset(2),
             alloc.ObjectByOffset(1)});
 
-    DataSliceImpl::Builder slice_bldr(objs.size());
-    std::array<arolla::bitmap::Word, 1> mask{objs.bitmap[0]};
-    ds->Get(objs.values.span(), slice_bldr, absl::MakeSpan(mask));
-    EXPECT_EQ(mask[0], 0b0100);
+    SliceBuilder slice_bldr(objs.size());
+    slice_bldr.ApplyMask(objs.ToMask());
+    ds->Get(objs.values.span(), slice_bldr);
+    EXPECT_THAT(slice_bldr.types_buffer().ToBitmap(TypesBuffer::kUnset),
+                ElementsAre(0b0100));
     EXPECT_THAT(std::move(slice_bldr).Build().values<ObjectId>(),
                 ElementsAre(attr_alloc2.ObjectByOffset(0), std::nullopt,
                             std::nullopt, std::nullopt));
@@ -138,33 +140,6 @@ TEST(SparseSourceTest, MutableObjectAttrSimple) {
     EXPECT_THAT(ds->Get(objs).values<ObjectId>(),
                 ElementsAre(attr_alloc2.ObjectByOffset(0), std::nullopt,
                             std::nullopt, attr_alloc2.ObjectByOffset(1)));
-  }
-}
-
-TEST(SparseSourceTest, Empty) {
-  auto ds = std::make_shared<SparseSource>();
-  EXPECT_EQ(ds->Get(AllocateSingleObject()), std::nullopt);
-  for (size_t size : {0, 1, 13, 57}) {
-    auto obj_cases = std::vector{arolla::CreateEmptyDenseArray<ObjectId>(size)};
-    if (size != 0) {
-      obj_cases.push_back(
-          DataSliceImpl::AllocateEmptyObjects(size).values<ObjectId>());
-    }
-    for (auto objs : obj_cases) {
-      auto slice = ds->Get(objs);
-      EXPECT_EQ(slice.size(), size);
-      EXPECT_TRUE(slice.is_empty_and_unknown());
-      for (Word mask_word : {Word(0), ~Word(0), Word(3476357)}) {
-        std::vector<Word> mask(arolla::bitmap::BitmapSize(size), mask_word);
-        auto expected_mask = mask;
-        DataSliceImpl::Builder slice_bldr(size);
-        ds->Get(objs.values.span(), slice_bldr, absl::MakeSpan(mask));
-        EXPECT_THAT(mask, ElementsAreArray(expected_mask));
-        auto slice = std::move(slice_bldr).Build();
-        EXPECT_EQ(slice.size(), size);
-        EXPECT_TRUE(slice.is_empty_and_unknown());
-      }
-    }
   }
 }
 
@@ -207,10 +182,10 @@ TEST(SparseSourceTest, SetGet) {
   }
 
   {
-    Word mask = (1 << objs.size()) - 1;
-    DataSliceImpl::Builder slice_bldr(objs.size());
-    ds->Get(objs.values.span(), slice_bldr, absl::MakeSpan(&mask, 1));
-    EXPECT_EQ(mask, 0b10010);
+    SliceBuilder slice_bldr(objs.size());
+    ds->Get(objs.values.span(), slice_bldr);
+    EXPECT_THAT(slice_bldr.types_buffer().ToBitmap(TypesBuffer::kUnset),
+                ElementsAre(0b10010));
     EXPECT_THAT(std::move(slice_bldr).Build().values<ObjectId>(),
                 ElementsAreArray(expected_objs));
   }

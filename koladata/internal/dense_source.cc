@@ -719,19 +719,25 @@ class MultitypeDenseSource : public DenseSource {
     return std::move(bldr).Build();
   }
 
-  void Get(const ObjectIdArray& objects,
-           DataSliceImpl::Builder& bldr) const final {
+  void Get(absl::Span<const ObjectId> objects, SliceBuilder& bldr) const final {
     bldr.GetMutableAllocationIds().Insert(attr_allocation_ids_);
     for (const ValueArrayVariant& var : values_) {
       std::visit(
           [&](const auto& value_array) {
             using T = typename std::decay_t<decltype(value_array)>::base_type;
-            auto& arr_bldr = bldr.GetArrayBuilder<T>();
-            objects.ForEach([&](int64_t i, bool present, ObjectId id) {
-              if (present && obj_allocation_id_.Contains(id)) {
-                arr_bldr.Set(i, value_array.Get(id.Offset()));
+            auto typed_bldr = bldr.typed<T>();
+            for (int64_t i = 0; i < objects.size(); ++i) {
+              if (typed_bldr.IsSet(i)) {
+                continue;
               }
-            });
+              ObjectId id = objects[i];
+              if (obj_allocation_id_.Contains(id)) {
+                auto v = value_array.Get(id.Offset());
+                if (v.present) {
+                  typed_bldr.InsertIfNotSet(i, v.value);
+                }
+              }
+            }
           },
           var);
     }
@@ -1074,20 +1080,23 @@ class TypedDenseSource final : public DenseSource {
     }
   }
 
-  void Get(const ObjectIdArray& objects,
-           DataSliceImpl::Builder& slice_bldr) const final {
+  void Get(absl::Span<const ObjectId> objects, SliceBuilder& bldr) const final {
     if (multitype_) {
-      return multitype_->Get(objects, slice_bldr);
+      return multitype_->Get(objects, bldr);
     }
     if constexpr (std::is_same_v<T, ObjectId>) {
-      slice_bldr.GetMutableAllocationIds().Insert(attr_allocation_ids_);
+      bldr.GetMutableAllocationIds().Insert(attr_allocation_ids_);
     }
-    auto& bldr = slice_bldr.GetArrayBuilder<T>();
-    objects.ForEach([&](int64_t i, bool present, ObjectId id) {
-      if (present && obj_allocation_id_.Contains(id)) {
-        bldr.Set(i, values_.Get(id.Offset()));
+    auto typed_bldr = bldr.typed<T>();
+    for (int64_t i = 0; i < objects.size(); ++i) {
+      if (typed_bldr.IsSet(i)) {
+        continue;
       }
-    });
+      ObjectId id = objects[i];
+      if (obj_allocation_id_.Contains(id)) {
+        typed_bldr.InsertIfNotSet(i, values_.Get(id.Offset()));
+      }
+    }
   }
 
   DataSliceImpl GetAll() const final {

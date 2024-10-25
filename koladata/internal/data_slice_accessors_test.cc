@@ -293,5 +293,32 @@ TEST(DataSliceAccessorsTest,
               ElementsAre(37, std::nullopt, 47, std::nullopt, 21, 25));
 }
 
+TEST(DataSliceAccessorsTest, GetAttributeFromSources_EarlyExitIfFinalized) {
+  constexpr int64_t kSize = 64;
+  auto ds1 = DataSliceImpl::AllocateEmptyObjects(kSize);
+  auto ds2 = DataSliceImpl::AllocateEmptyObjects(kSize);
+  AllocationId alloc1 = ds1.allocation_ids().ids()[0];
+  AllocationId alloc2 = ds2.allocation_ids().ids()[0];
+
+  ASSERT_OK_AND_ASSIGN(auto source1, DenseSource::CreateReadonly(alloc1, ds2));
+  ASSERT_OK_AND_ASSIGN(auto source2, DenseSource::CreateReadonly(alloc2, ds1));
+
+  // early exit after source1
+  ASSERT_OK_AND_ASSIGN(auto res1, GetAttributeFromSources(
+                                      ds1, {source1.get(), source2.get()}, {}));
+
+  // no early exit
+  ASSERT_OK_AND_ASSIGN(auto res2, GetAttributeFromSources(
+                                      ds2, {source1.get(), source2.get()}, {}));
+
+  EXPECT_THAT(res1.allocation_ids().ids(),
+              testing::UnorderedElementsAre(alloc2));
+  EXPECT_THAT(res2.allocation_ids().ids(),
+              testing::UnorderedElementsAre(alloc1, alloc2));
+
+  EXPECT_THAT(ds1, ElementsAreArray(res2));
+  EXPECT_THAT(ds2, ElementsAreArray(res1));
+}
+
 }  // namespace
 }  // namespace koladata::internal

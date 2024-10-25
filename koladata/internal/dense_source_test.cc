@@ -30,6 +30,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
@@ -137,8 +138,9 @@ TEST(DenseSourceTest, MutableObjectAttrSimple) {
             alloc.ObjectByOffset(0), std::nullopt, attr_alloc.ObjectByOffset(2),
             alloc.ObjectByOffset(1)});
 
-    DataSliceImpl::Builder slice_bldr(objs.size());
-    ds->Get(objs, slice_bldr);
+    SliceBuilder slice_bldr(objs.size());
+    slice_bldr.ApplyMask(objs.ToMask());
+    ds->Get(objs.values.span(), slice_bldr);
     EXPECT_THAT(std::move(slice_bldr).Build().values<ObjectId>(),
                 ElementsAre(attr_alloc2.ObjectByOffset(0), std::nullopt,
                             std::nullopt, std::nullopt));
@@ -829,6 +831,53 @@ TEST(DenseSourceTest, MergeFullReadOnly) {
     ASSERT_OK(dst->Merge(*src_inverse,
                          DenseSource::ConflictHandlingOption::kOverwrite));
     EXPECT_THAT(dst->Get(ids), ElementsAre(7, 6, 5, 4, 3, 2, 1));
+  }
+}
+
+TEST(DenseSourceTest, GetMultitype) {
+  int size = 100;
+  AllocationId alloc = Allocate(size);
+
+  // Prepare multitype dense source
+  auto value_fn = [](int i) -> DataItem {
+    if (i % 3 == 0) {
+      return DataItem(static_cast<float>(0.5 - i));
+    } else if (i % 2 == 0) {
+      return DataItem(i);
+    } else {
+      return DataItem();
+    }
+  };
+  ASSERT_OK_AND_ASSIGN(auto source, DenseSource::CreateMutable(alloc, size));
+  for (int i = 0; i < size; ++i) {
+    ASSERT_OK(source->Set(alloc.ObjectByOffset(i), value_fn(i)));
+  }
+
+  // Prepare a non-trivial list of object ids to request.
+  int request_size = size / 2;
+  arolla::DenseArrayBuilder<ObjectId> objs_bldr(request_size);
+  for (int i = 0; i < request_size; ++i) {
+    if (i % 11 == 0) {
+      continue;
+    }
+    objs_bldr.Set(i, alloc.ObjectByOffset((i * 7) % size));
+  }
+  DenseArray<ObjectId> objs = std::move(objs_bldr).Build();
+
+  // Get operation
+  SliceBuilder bldr(request_size);
+  bldr.ApplyMask(objs.ToMask());
+  source->Get(objs.values.span(), bldr);
+  DataSliceImpl slice = std::move(bldr).Build();
+
+  // Validate result
+  for (int i = 0; i < request_size; ++i) {
+    arolla::OptionalValue<ObjectId> obj = objs[i];
+    if (obj.present) {
+      EXPECT_EQ(slice[i], value_fn(obj.value.Offset())) << "at i = " << i;
+    } else {
+      EXPECT_EQ(slice[i], DataItem()) << "at i = " << i;
+    }
   }
 }
 

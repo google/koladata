@@ -83,18 +83,19 @@ DataSliceImpl SparseSource::Get(const ObjectIdArray& objects) const {
 }
 
 void SparseSource::Get(absl::Span<const ObjectId> objs,
-                       DataSliceImpl::Builder& bldr,
-                       absl::Span<arolla::bitmap::Word> mask) const {
-  size_t size = objs.size();
-  for (int64_t id = 0; id < size; ++id) {
-    if (!arolla::bitmap::GetBit(mask.data(), id)) {
+                       SliceBuilder& bldr) const {
+  DCHECK_EQ(objs.size(), bldr.size());
+  for (int64_t id = 0; id < objs.size(); ++id) {
+    if (bldr.IsSet(id)) {
       continue;
     }
-    ObjectId object = objs[id];
-    if (auto it = data_item_map_.find(object); it != data_item_map_.end()) {
-      const auto& item = it->second;
-      arolla::bitmap::UnsetBit(mask.data(), id);
-      bldr.Insert(id, item);
+    if (auto it = data_item_map_.find(objs[id]); it != data_item_map_.end()) {
+      const DataItem& item = it->second;
+      bldr.InsertIfNotSet(id, item);
+      if (item.holds_value<ObjectId>()) {
+        bldr.GetMutableAllocationIds().Insert(
+            AllocationId(item.value<ObjectId>()));
+      }
     }
   }
 }
