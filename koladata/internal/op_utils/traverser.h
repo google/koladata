@@ -566,10 +566,6 @@ class Traverser {
     if (!status.ok()) {
       return status;
     }
-    DataItem schema = item.schema;
-    if (is_object) {
-      schema = DataItem(schema::kObject);
-    }
     return visitor_->VisitorT::VisitObject(item.item, item.schema, is_object,
                                             attr_names,
                                             std::move(attr_values).Build());

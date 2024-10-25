@@ -44,7 +44,7 @@ class DeepCloneVisitor : AbstractVisitor {
   explicit DeepCloneVisitor(DataBagImplPtr new_databag, bool is_schema_slice)
       : new_databag_(std::move(new_databag)),
         is_schema_slice_(is_schema_slice),
-        object_tracker_() {}
+        allocation_tracker_() {}
 
   absl::Status Previsit(const DataItem& item, const DataItem& schema) override {
     if (schema.holds_value<ObjectId>()) {
@@ -70,12 +70,16 @@ class DeepCloneVisitor : AbstractVisitor {
     if (!item.holds_value<ObjectId>()) {
       return item;
     }
-    auto item_it = object_tracker_.find(item);
-    if (item_it == object_tracker_.end()) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("object %v is not found", item));
+    if (item.is_schema() && !is_schema_slice_ && !item.is_implicit_schema()) {
+      return item;
     }
-    return item_it->second;
+    auto it =
+        allocation_tracker_.find(AllocationId(item.value<ObjectId>()));
+    if (it == allocation_tracker_.end()) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("new allocation for object %v is not found", item));
+    }
+    return DataItem(it->second.ObjectByOffset(item.value<ObjectId>().Offset()));
   }
 
   absl::Status VisitList(const DataItem& list, const DataItem& schema,
@@ -145,30 +149,39 @@ class DeepCloneVisitor : AbstractVisitor {
 
  private:
   absl::Status PrevisitObject(const DataItem& item) {
-    if (item.holds_value<ObjectId>() && !object_tracker_.contains(item)) {
-      DataItem new_item;
-      // TODO: Keep ids inside allocations and use mapping between
-      // old and new AllocationIds.
-      if (item.is_list()) {
-        new_item = DataItem(AllocateSingleList());
-      } else if (item.is_dict()) {
-        new_item = DataItem(AllocateSingleDict());
-      } else {
-        new_item = DataItem(AllocateSingleObject());
-      }
-      object_tracker_[item] = std::move(new_item);
+    if (!item.holds_value<ObjectId>()) {
+      return absl::OkStatus();
+    }
+    const auto allocation_id = AllocationId(item.value<ObjectId>());
+    if (auto [it, inserted] =
+            allocation_tracker_.emplace(allocation_id, AllocationId());
+        inserted) {
+      it->second = NewAllocationIdLike(allocation_id);
     }
     return absl::OkStatus();
   }
 
   absl::Status PrevisitSchema(const DataItem& schema) {
-    if (schema.holds_value<ObjectId>() && !object_tracker_.contains(schema)) {
-      if (schema.is_implicit_schema() || is_schema_slice_) {
-        object_tracker_[schema] = DataItem(AllocateExplicitSchema());
-      } else {
-        object_tracker_[schema] = schema;
-      }
+    if (!schema.holds_value<ObjectId>()) {
+      return absl::OkStatus();
     }
+    if (!schema.is_implicit_schema() && !is_schema_slice_) {
+      return absl::OkStatus();
+    }
+    const auto allocation_id = AllocationId(schema.value<ObjectId>());
+    auto [alloc_it, inserted] =
+        allocation_tracker_.emplace(allocation_id, AllocationId());
+    if (!inserted) {
+      return absl::OkStatus();
+    }
+    AllocationId new_allocation_id;
+    if (schema.is_implicit_schema()) {
+    // TODO: Create an implicit schema based on parent object.
+      new_allocation_id = AllocateExplicitSchemas(allocation_id.Capacity());
+    } else if (is_schema_slice_) {
+      new_allocation_id = NewAllocationIdLike(allocation_id);
+    }
+    alloc_it->second = new_allocation_id;
     return absl::OkStatus();
   }
 
@@ -183,7 +196,7 @@ class DeepCloneVisitor : AbstractVisitor {
  private:
   DataBagImplPtr new_databag_;
   bool is_schema_slice_;
-  absl::flat_hash_map<DataItem, DataItem, DataItem::Hash> object_tracker_;
+  absl::flat_hash_map<AllocationId, AllocationId> allocation_tracker_;
 };
 
 };  // namespace

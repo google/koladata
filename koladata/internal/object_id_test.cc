@@ -164,6 +164,60 @@ TEST(ObjectIdTest, DictAllocation) {
   EXPECT_TRUE(AllocateSingleDict().IsDict());
 }
 
+TEST(ObjectIdTest, NewAllocationIdLike) {
+  for (size_t size = 1; size <= 257; ++size)
+  {
+    AllocationId base_alloc_id = Allocate(size);
+    AllocationId alloc_id = NewAllocationIdLike(base_alloc_id);
+    EXPECT_EQ(alloc_id.IsSmall(), size <= kSmallAllocMaxCapacity);
+    std::vector<AllocationId> other_allocs = {
+        NewAllocationIdLike(base_alloc_id), NewAllocationIdLike(Allocate(size)),
+        NewAllocationIdLike(Allocate(size * 2)), NewAllocationIdLike(alloc_id)};
+    for (int64_t i = 0; i < size; ++i) {
+      ObjectId obj_id = alloc_id.ObjectByOffset(i);
+      ASSERT_TRUE(obj_id.IsAllocated());
+      ASSERT_FALSE(obj_id.IsUuid());
+      ASSERT_EQ(alloc_id, AllocationId(obj_id)) << size << " " << i;
+      ASSERT_EQ(obj_id.Offset(), i) << size << " " << i;
+      ASSERT_TRUE(alloc_id.Contains(obj_id)) << size << " " << i;
+      for (const AllocationId& other_alloc : other_allocs) {
+        ASSERT_FALSE(other_alloc.Contains(obj_id))
+            << size << " " << i << " " << other_alloc.Capacity();
+      }
+    }
+  }
+}
+
+TEST(ObjectIdTest, NewAllocationIdLikeUuid) {
+  auto uuid_alloc = AllocationId(CreateUuidObjectWithMetadata(
+      arolla::FingerprintHasher("").Combine(42).Finish(), ObjectId::kUuidFlag));
+  EXPECT_TRUE(NewAllocationIdLike(uuid_alloc).ObjectByOffset(0).IsAllocated());
+  auto alloc_id = NewAllocationIdLike(uuid_alloc);
+  auto oth_alloc_id = NewAllocationIdLike(uuid_alloc);
+  EXPECT_NE(alloc_id, oth_alloc_id);
+  EXPECT_FALSE(alloc_id.Contains(oth_alloc_id.ObjectByOffset(0)));
+}
+
+TEST(ObjectIdTest, NewAllocationIdLikeLists) {
+  EXPECT_FALSE(NewAllocationIdLike(Allocate(3)).IsListsAlloc());
+  EXPECT_TRUE(NewAllocationIdLike(AllocateLists(3)).IsListsAlloc());
+  EXPECT_TRUE(NewAllocationIdLike(AllocateLists(3)).ObjectByOffset(0).IsList());
+}
+
+TEST(ObjectIdTest, NewAllocationIdLikeDicts) {
+  EXPECT_FALSE(NewAllocationIdLike(Allocate(3)).IsDictsAlloc());
+  EXPECT_TRUE(NewAllocationIdLike(AllocateDicts(3)).IsDictsAlloc());
+  EXPECT_TRUE(NewAllocationIdLike(AllocateDicts(3)).ObjectByOffset(0).IsDict());
+}
+
+TEST(ObjectIdTest, NewAllocationIdLikeSchemas) {
+  EXPECT_FALSE(NewAllocationIdLike(Allocate(3)).IsSchemasAlloc());
+  EXPECT_TRUE(NewAllocationIdLike(AllocateExplicitSchemas(3)).IsSchemasAlloc());
+  EXPECT_TRUE(NewAllocationIdLike(AllocateExplicitSchemas(3))
+                  .ObjectByOffset(0)
+                  .IsExplicitSchema());
+}
+
 TEST(ObjectIdTest, ListUuid) {
   ObjectId list_id = CreateUuidObjectWithMetadata(
       arolla::FingerprintHasher("list-uuid").Combine(57).Finish(),

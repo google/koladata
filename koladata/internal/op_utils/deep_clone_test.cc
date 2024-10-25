@@ -162,6 +162,7 @@ TEST_P(DeepCloneTest, ShallowEntitySlice) {
   SetSchemaTriples(*expected_db, expected_schema_triples);
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(expected_db));
+  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
 }
 
 TEST_P(DeepCloneTest, DeepEntitySlice) {
@@ -197,6 +198,7 @@ TEST_P(DeepCloneTest, DeepEntitySlice) {
                                    {GetFallbackDb(db).get()}));
 
   EXPECT_EQ(result_slice.size(), 3);
+  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
   EXPECT_EQ(result_schema, schema_a);
   EXPECT_NE(result_slice[0], a0);
   EXPECT_NE(result_slice[1], a1);
@@ -227,6 +229,94 @@ TEST_P(DeepCloneTest, DeepEntitySlice) {
   EXPECT_THAT(result_db, DataBagEqual(expected_db));
 }
 
+TEST_P(DeepCloneTest, DeepEntitySliceBigAlloc) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto alloc_id = Allocate(1000*1000);
+  auto oth_alloc_id = Allocate(10 * kSmallAllocMaxCapacity);
+  auto a0 = DataItem(alloc_id.ObjectByOffset(0));
+  auto a1 = DataItem(alloc_id.ObjectByOffset(1));
+  auto a2 = DataItem(alloc_id.ObjectByOffset(237));
+  auto b0 = DataItem(alloc_id.ObjectByOffset(300*1000));
+  auto b1 = DataItem(oth_alloc_id.ObjectByOffset(0));
+  auto b2 = DataItem(oth_alloc_id.ObjectByOffset(kSmallAllocMaxCapacity + 1));
+  auto ds =
+      DataSliceImpl::Create(arolla::CreateDenseArray<DataItem>({a0, a1, a2}));
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  TriplesT data_triples = {{a0, {{"self", a0}, {"b", b0}}},
+                           {a1, {{"self", a1}, {"b", b1}}},
+                           {a2, {{"self", a2}, {"b", b2}}},
+                           {b0, {{"self", b0}}},
+                           {b1, {{"self", b1}}},
+                           {b2, {{"self", b2}}}};
+  TriplesT schema_triples = {{schema_a, {{"self", schema_a}, {"b", schema_b}}},
+                             {schema_b, {{"self", schema_b}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      (auto [result_slice, result_schema]),
+      DeepCloneOp(result_db.get())(ds, schema_a, *GetMainDb(db),
+                                   {GetFallbackDb(db).get()}));
+
+  EXPECT_EQ(result_slice.size(), 3);
+  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
+  EXPECT_EQ(result_schema, schema_a);
+  EXPECT_NE(result_slice[0], a0);
+  EXPECT_NE(result_slice[1], a1);
+  EXPECT_NE(result_slice[2], a2);
+  ASSERT_OK_AND_ASSIGN(auto result_b, result_db->GetAttr(result_slice, "b"));
+  ASSERT_OK_AND_ASSIGN(auto result_b_schema,
+                       result_db->GetSchemaAttr(result_schema, "b"));
+  EXPECT_EQ(result_b_schema, schema_b);
+  EXPECT_NE(result_b[0], b0);
+  EXPECT_NE(result_b[1], b1);
+  EXPECT_NE(result_b[2], b2);
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_data_triples = {
+      {result_slice[0], {{"self", result_slice[0]}, {"b", result_b[0]}}},
+      {result_slice[1], {{"self", result_slice[1]}, {"b", result_b[1]}}},
+      {result_slice[2], {{"self", result_slice[2]}, {"b", result_b[2]}}},
+      {result_b[0], {{"self", result_b[0]}}},
+      {result_b[1], {{"self", result_b[1]}}},
+      {result_b[2], {{"self", result_b[2]}}},
+  };
+  TriplesT expected_schema_triples = {
+      {result_schema, {{"self", result_schema}, {"b", result_b_schema}}},
+      {result_b_schema, {{"self", result_b_schema}}},
+  };
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  ASSERT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(expected_db));
+
+  EXPECT_EQ(result_slice[0].value<ObjectId>().Offset(),
+            a0.value<ObjectId>().Offset());
+  EXPECT_EQ(result_slice[1].value<ObjectId>().Offset(),
+            a1.value<ObjectId>().Offset());
+  EXPECT_EQ(result_slice[2].value<ObjectId>().Offset(),
+            a2.value<ObjectId>().Offset());
+  EXPECT_EQ(result_b[0].value<ObjectId>().Offset(),
+            b0.value<ObjectId>().Offset());
+  EXPECT_EQ(result_b[1].value<ObjectId>().Offset(),
+            b1.value<ObjectId>().Offset());
+  EXPECT_EQ(result_b[2].value<ObjectId>().Offset(),
+            b2.value<ObjectId>().Offset());
+  EXPECT_NE(AllocationId(result_slice[0].value<ObjectId>()),
+            AllocationId(result_b[1].value<ObjectId>()));
+  EXPECT_EQ(AllocationId(result_slice[1].value<ObjectId>()),
+            AllocationId(result_slice[0].value<ObjectId>()));
+  EXPECT_EQ(AllocationId(result_slice[2].value<ObjectId>()),
+            AllocationId(result_slice[0].value<ObjectId>()));
+  EXPECT_EQ(AllocationId(result_b[0].value<ObjectId>()),
+            AllocationId(result_slice[0].value<ObjectId>()));
+  EXPECT_EQ(AllocationId(result_b[2].value<ObjectId>()),
+            AllocationId(result_b[1].value<ObjectId>()));
+}
+
 TEST_P(DeepCloneTest, ShallowListsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
@@ -249,6 +339,7 @@ TEST_P(DeepCloneTest, ShallowListsSlice) {
       DeepCloneOp(result_db.get())(lists, list_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
+  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
   EXPECT_EQ(result_schema, list_schema);
   EXPECT_NE(result_slice[0], lists[0]);
   EXPECT_NE(result_slice[1], lists[1]);
@@ -294,6 +385,7 @@ TEST_P(DeepCloneTest, DeepListsSlice) {
       DeepCloneOp(result_db.get())(lists, list_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
+  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
   EXPECT_EQ(result_schema, list_schema);
   EXPECT_NE(result_slice[0], lists[0]);
   EXPECT_NE(result_slice[1], lists[1]);
@@ -351,6 +443,7 @@ TEST_P(DeepCloneTest, ShallowDictsSlice) {
       DeepCloneOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
+  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
   EXPECT_EQ(result_schema, dict_schema);
   EXPECT_NE(result_slice[0], dicts[0]);
   EXPECT_NE(result_slice[1], dicts[1]);
@@ -412,6 +505,7 @@ TEST_P(DeepCloneTest, DeepDictsSlice) {
       DeepCloneOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
+  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
   EXPECT_EQ(result_schema, dict_schema);
   EXPECT_NE(result_slice[0], dicts[0]);
   EXPECT_NE(result_slice[1], dicts[1]);

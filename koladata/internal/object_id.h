@@ -228,6 +228,7 @@ class ObjectId {
   friend ObjectId AllocateSingleDict();
   friend AllocationId AllocateExplicitSchemas(size_t size);
   friend ObjectId AllocateExplicitSchema();
+  friend AllocationId NewAllocationIdLike(AllocationId alloc);
 
 #ifndef ABSL_IS_LITTLE_ENDIAN
 #error "Unsupported byte order: Only ABSL_IS_LITTLE_ENDIAN is supported"
@@ -349,6 +350,7 @@ class AllocationId {
   friend AllocationId AllocateLists(size_t size);
   friend AllocationId AllocateDicts(size_t size);
   friend AllocationId AllocateExplicitSchemas(size_t size);
+  friend AllocationId NewAllocationIdLike(AllocationId alloc);
 
   ObjectId allocation_id_;
 };
@@ -398,6 +400,18 @@ inline ObjectId AllocateExplicitSchema() {
 inline AllocationId AllocateExplicitSchemas(size_t size) {
   AllocationId res = Allocate(size);
   res.allocation_id_.metadata_ |= ObjectId::kExplicitSchemaFlag;
+  return res;
+}
+
+// Returns new allocation id with the same capacity and metadata (except
+// kUuidFlag which is removed) as the provided one, including the type (i.e.
+// ListId / DictId / SchemaId).
+// This method is not allowed to be used for implicit schemas.
+inline AllocationId NewAllocationIdLike(const AllocationId alloc) {
+  DCHECK(!alloc.allocation_id_.IsImplicitSchema());
+  AllocationId res = Allocate(alloc.Capacity());
+  res.allocation_id_.metadata_ =
+      alloc.allocation_id_.metadata_ & ~ObjectId::kUuidFlag;
   return res;
 }
 
