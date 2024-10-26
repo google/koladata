@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import gc
+import inspect
 import re
 import sys
 
@@ -1678,6 +1679,17 @@ Assigned schema for Dict key: INT32""",
     ):
       db = bag()
       _ = db._from_proto([], [], None, 'foo')
+
+  def test_signatures(self):
+    # Tests that all methods have an inspectable signature. This is not added
+    # automatically for methods defined in CPython and requires the docstring
+    # to follow a specific format.
+    for fn_name in dir(data_bag.DataBag):
+      if fn_name.startswith('_'):
+        continue
+      fn = getattr(data_bag.DataBag, fn_name)
+      if callable(fn):
+        _ = inspect.signature(fn)  # Shouldn't raise.
 
 
 class NullDataBagTest(absltest.TestCase):
