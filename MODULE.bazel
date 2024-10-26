@@ -5,8 +5,8 @@ module(
 
 bazel_dep(name = "abseil-cpp", version = "20240722.0", repo_name = "com_google_absl")
 bazel_dep(name = "google_benchmark", version = "1.8.3", repo_name = "com_google_benchmark")
-bazel_dep(name = "googletest", version = "1.14.0.bcr.1", repo_name = "com_google_googletest")
-bazel_dep(name = "protobuf", version = "28.2", repo_name = "com_google_protobuf")
+bazel_dep(name = "googletest", version = "1.15.2", repo_name = "com_google_googletest")
+bazel_dep(name = "protobuf", version = "28.3", repo_name = "com_google_protobuf")
 bazel_dep(name = "pybind11_bazel", version = "2.12.0")
 bazel_dep(name = "pybind11_protobuf", version = "0.0.0-20240524-1d7a729", repo_name = "pybind11_protobuf")
 
@@ -14,16 +14,16 @@ bazel_dep(name = "pybind11_protobuf", version = "0.0.0-20240524-1d7a729", repo_n
 bazel_dep(name = "abseil-py", version = "2.1.0", repo_name = "com_google_absl_py")
 bazel_dep(name = "bazel_skylib", version = "1.6.1")
 bazel_dep(name = "eigen", version = "3.4.0.bcr.1")
-bazel_dep(name = "platforms", version = "0.0.9")
+bazel_dep(name = "platforms", version = "0.0.10")
+bazel_dep(name = "pybind11_abseil", version = "202402.0")
 bazel_dep(name = "re2", version = "2023-09-01", repo_name = "com_googlesource_code_re2")
-bazel_dep(name = "riegeli", version = "0.0.0-20240606-973b6f0", repo_name = "com_google_riegeli")
-bazel_dep(name = "rules_cc", version = "0.0.9")
-bazel_dep(name = "rules_python", version = "0.31.0")
+bazel_dep(name = "riegeli", version = "0.0.0-20240927-cdfb25a", repo_name = "com_google_riegeli")
+bazel_dep(name = "rules_cc", version = "0.0.13")
+bazel_dep(name = "rules_python", version = "0.37.1")
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(
-    # Required for our containerized CI environments.
-    ignore_root_user_error = True,
+    ignore_root_user_error = True,  # Required for our containerized CI environments.
     python_version = "3.11",
 )
 
@@ -34,18 +34,3 @@ pip.parse(
     requirements_lock = "//:requirements.txt",
 )
 use_repo(pip, pip_deps = "koladata_pip_deps")
-
-http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
-http_archive(
-    name = "pybind11",
-    build_file = "@pybind11_bazel//:pybind11-BUILD.bazel",
-    strip_prefix = "pybind11-master",
-    urls = ["https://github.com/pybind/pybind11/archive/refs/heads/master.tar.gz"],
-)
-
-http_archive(
-    name = "pybind11_abseil",
-    strip_prefix = "pybind11_abseil-master",
-    urls = ["https://github.com/pybind/pybind11_abseil/archive/refs/heads/master.tar.gz"],
-)
