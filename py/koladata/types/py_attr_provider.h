@@ -18,6 +18,7 @@
 #include <Python.h>
 
 #include <deque>
+#include <optional>
 #include <vector>
 
 #include "absl/status/statusor.h"
