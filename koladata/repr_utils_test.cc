@@ -15,7 +15,6 @@
 #include "koladata/repr_utils.h"
 
 #include <optional>
-#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
