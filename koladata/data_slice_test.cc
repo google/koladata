@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <initializer_list>
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
