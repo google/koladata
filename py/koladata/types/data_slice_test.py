@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import gc
+import inspect
 import re
 import sys
 
@@ -2310,6 +2311,17 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
     x = ds([1, 2, 3])
     y = x.with_name('foo')
     self.assertIs(y, x)
+
+  def test_signatures(self):
+    # Tests that all methods have an inspectable signature. This is not added
+    # automatically for methods defined in CPython and requires the docstring
+    # to follow a specific format.
+    for fn_name in dir(data_slice.DataSlice):
+      if fn_name.startswith('_'):
+        continue
+      fn = getattr(data_slice.DataSlice, fn_name)
+      if callable(fn):
+        _ = inspect.signature(fn)  # Shouldn't raise.
 
 
 class DataSliceMergingTest(parameterized.TestCase):

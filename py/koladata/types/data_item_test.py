@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for data_item."""
-
 import gc
+import inspect
 import itertools
 import re
 import sys
@@ -251,6 +250,17 @@ class DataItemTest(parameterized.TestCase):
     fn = functor_factories.fn(I.x)
     my_bag = bag()
     testing.assert_equal(fn(x=my_bag, return_type_as=data_bag.DataBag), my_bag)
+
+  def test_signatures(self):
+    # Tests that all methods have an inspectable signature. This is not added
+    # automatically for methods defined in CPython and requires the docstring
+    # to follow a specific format.
+    for fn_name in dir(data_item.DataItem):
+      if fn_name.startswith('_'):
+        continue
+      fn = getattr(data_item.DataItem, fn_name)
+      if callable(fn):
+        _ = inspect.signature(fn)  # Shouldn't raise.
 
 
 if __name__ == '__main__':

@@ -695,37 +695,60 @@ PyDataSlice_internal_register_reserved_class_method_name(
 
 PyMethodDef kPyDataSlice_methods[] = {
     {"get_bag", PyDataSlice_get_bag, METH_NOARGS,
+     "get_bag()\n"
+     "--\n\n"
      "Returns the attached DataBag."},
     {"with_bag", PyDataSlice_with_bag, METH_O,
+     "with_bag(db, /)\n"
+     "--\n\n"
      "Returns a copy of DataSlice with DataBag `db`."},
     {"no_bag", PyDataSlice_no_bag, METH_NOARGS,
+     "no_bag()\n"
+     "--\n\n"
      "Returns a copy of DataSlice without DataBag."},
     {"from_vals", (PyCFunction)PyDataSlice_from_vals,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
+     "from_vals(x, /, schema=None)\n"
+     "--\n\n"
      "Creates a DataSlice from `value`.\n"
      "If `schema` is set, that schema is used,\n"
      "otherwise the schema is inferred from `value`."},
     {"_unspecified", (PyCFunction)PyDataSlice_unspecified,
      METH_CLASS | METH_NOARGS,
-     "Returns an UNSPECIFIED with DataSlice QType."
-     ""},
+     "_unspecified()\n"
+     "--\n\n"
+     "Returns an UNSPECIFIED with DataSlice QType."},
     {"internal_as_py", PyDataSlice_internal_as_py, METH_NOARGS,
+     "internal_as_py()\n"
+     "--\n\n"
      "Returns a Python object equivalent to this DataSlice.\n"
      "\n"
      "If the values in this slice represent objects, then the returned python\n"
      "structure will contain DataItems.\n"},
     {"as_arolla_value", PyDataSlice_as_arolla_value, METH_NOARGS,
+     "as_arolla_value()\n"
+     "--\n\n"
      "Converts primitive slice / item into an equivalent Arolla value."},
     {"as_dense_array", PyDataSlice_as_dense_array, METH_NOARGS,
+     "as_dense_array()\n"
+     "--\n\n"
      "Converts primitive slice to an arolla.dense_array with appropriate "
      "qtype."},
     {"get_shape", PyDataSlice_get_shape, METH_NOARGS,
+     "get_shape()\n"
+     "--\n\n"
      "Returns the shape of the DataSlice."},
     {"get_schema", PyDataSlice_get_schema, METH_NOARGS,
+     "get_schema()\n"
+     "--\n\n"
      "Returns a schema slice with type information about this DataSlice."},
     {"is_list_schema", PyDataSlice_is_list_schema, METH_NOARGS,
+     "is_list_schema()\n"
+     "--\n\n"
      "Returns present iff this DataSlice is a List Schema."},
     {"is_entity_schema", PyDataSlice_is_entity_schema, METH_NOARGS,
+     "is_entity_schema()\n"
+     "--\n\n"
      R"""(Returns present iff this DataSlice represents an Entity Schema.
 
 Note that the Entity schema includes List and Dict schemas.
@@ -734,24 +757,44 @@ Returns:
   Present iff this DataSlice represents an Entity Schema.
      )"""},
     {"is_dict", PyDataSlice_is_dict, METH_NOARGS,
+     "is_dict()\n"
+     "--\n\n"
      "Returns present iff this DataSlice contains only dicts."},
     {"is_list", PyDataSlice_is_list, METH_NOARGS,
+     "is_list()\n"
+     "--\n\n"
      "Returns present iff this DataSlice contains only lists."},
     {"is_dict_schema", PyDataSlice_is_dict_schema, METH_NOARGS,
+     "is_dict_schema()\n"
+     "--\n\n"
      "Returns present iff this DataSlice is a Dict Schema."},
     {"is_primitive_schema", PyDataSlice_is_primitive_schema, METH_NOARGS,
+     "is_primitive_schema()\n"
+     "--\n\n"
      "Returns present iff this DataSlice is a primitive (scalar) Schema."},
     {"is_any_schema", PyDataSlice_is_any_schema, METH_NOARGS,
+     "is_any_schema()\n"
+     "--\n\n"
      "Returns present iff this DataSlice is ANY Schema."},
     {"is_itemid_schema", PyDataSlice_is_itemid_schema, METH_NOARGS,
+     "is_itemid_schema()\n"
+     "--\n\n"
      "Returns present iff this DataSlice is ITEMID Schema."},
     {"is_empty", PyDataSlice_is_empty, METH_NOARGS,
+     "is_empty()\n"
+     "--\n\n"
      "Returns present iff this DataSlice is empty."},
     {"is_mutable", PyDataSlice_is_mutable, METH_NOARGS,
+     "is_mutable()\n"
+     "--\n\n"
      "Returns present iff the attached DataBag is mutable."},
     {"freeze", PyDataSlice_freeze, METH_NOARGS,
+     "freeze()\n"
+     "--\n\n"
      "Returns a frozen DataSlice equivalent to `self`."},
     {"with_schema", PyDataSlice_with_schema, METH_O,
+     "with_schema(schema, /)\n"
+     "--\n\n"
      R"""(Returns a copy of DataSlice with the provided `schema`.
 
 `schema` must have no DataBag or the same DataBag as the DataSlice. If `schema`
@@ -764,6 +807,8 @@ Returns:
   DataSlice with the provided `schema`.
 )"""},
     {"set_schema", PyDataSlice_set_schema, METH_O,
+     "set_schema(schema, /)\n"
+     "--\n\n"
      R"""(Returns a copy of DataSlice with the provided `schema`.
 
 If `schema` has a different DataBag than the DataSlice, `schema` is merged into
@@ -775,22 +820,39 @@ Returns:
   DataSlice with the provided `schema`.
 )"""},
     {"as_any", PyDataSlice_as_any, METH_NOARGS,
+     "as_any()\n"
+     "--\n\n"
      "Returns a DataSlice with ANY schema."},
     {"get_keys", PyDataSlice_get_keys, METH_NOARGS,
+    "get_keys()\n"
+     "--\n\n"
      "Returns keys of all dicts in this DataSlice."},
     {"get_values", PyDataSlice_get_values, METH_NOARGS,
+     "get_values()\n"
+     "--\n\n"
      "Returns values of all dicts in this DataSlice."},
     {"get_attr", (PyCFunction)PyDataSlice_get_attr,
      METH_FASTCALL | METH_KEYWORDS,
+     "get_attr(attr_name, /, default)\n"
+     "--\n\n"
      "Gets attribute `attr_name` where missing items are filled from "
-     "`default`."},
+     "`default`.\n\n"
+     "Args:\n"
+     "  attr_name: name of the attribute to get.\n"
+     "  default: optional default value to fill missing items.\n"
+     "           Note that this value can be fully omitted."
+    },
     // TODO: Add proper docstring when the rest of functionality in
     // terms of dicts and lists is done.
     {"set_attr", (PyCFunction)PyDataSlice_set_attr,
      METH_FASTCALL | METH_KEYWORDS,
+     "set_attr(attr_name, value, /, update_schema=False)\n"
+     "--\n\n"
      "Sets an attribute `attr_name` to `value`."},
     {"set_attrs", (PyCFunction)PyDataSlice_set_attrs,
      METH_FASTCALL | METH_KEYWORDS,
+     "set_attrs(update_schema=False, **attrs)\n"
+     "--\n\n"
      R"""(Sets multiple attributes on an object / entity.
 
 Args:
@@ -800,12 +862,18 @@ Args:
     adoption.
 )"""},
     {"append", (PyCFunction)PyDataSlice_append, METH_FASTCALL,
+     "append(value, /)\n"
+     "--\n\n"
      "Append a value to each list in this DataSlice"},
     {"_internal_pop", (PyCFunction)PyDataSlice_pop, METH_FASTCALL,
      "Pop a value from each list in this DataSlice"},
     {"clear", PyDataSlice_clear, METH_NOARGS,
+     "clear()\n"
+     "--\n\n"
      "Clears all dicts or lists in this DataSlice"},
     {"embed_schema", PyDataSlice_embed_schema, METH_NOARGS,
+     "embed_schema()\n"
+     "--\n\n"
      R"""(Returns a DataSlice with OBJECT schema.
 
 * For primitives no data change is done.
@@ -821,6 +889,8 @@ Args:
     {"internal_register_reserved_class_method_name",
      (PyCFunction)PyDataSlice_internal_register_reserved_class_method_name,
      METH_CLASS | METH_O,
+     "internal_register_reserved_class_method_name(method_name, /)\n"
+     "--\n\n"
      "Registers a name to be reserved as a method of the DataSlice class.\n"
      "\n"
      "You must call this when adding new methods to the class in Python.\n"
