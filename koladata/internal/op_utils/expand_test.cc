@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <initializer_list>
 #include <optional>
-#include <type_traits>
 #include <vector>
 
 #include "gmock/gmock.h"

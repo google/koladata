@@ -19,7 +19,6 @@
 #include <iterator>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"

@@ -13,7 +13,6 @@
 // limitations under the License.
 //
 #include <cstdint>
-#include <utility>
 
 #include "benchmark/benchmark.h"
 #include "absl/log/check.h"
