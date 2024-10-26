@@ -17,6 +17,7 @@
 
 #include <Python.h>
 
+#include <cstddef>
 #include <vector>
 
 #include "absl/base/no_destructor.h"
