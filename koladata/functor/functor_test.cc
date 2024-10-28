@@ -48,7 +48,6 @@ using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::FieldsAre;
-using ::testing::HasSubstr;
 using ::testing::Optional;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {
