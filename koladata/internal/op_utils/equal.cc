@@ -64,10 +64,11 @@ absl::StatusOr<DataSliceImpl> EqualOp::operator()(
           using RhsValT = typename RhsArrayT::base_type;
           using RhsViewValT = arolla::view_type_t<RhsValT>;
           if constexpr (Comparable<LhsValT, RhsValT>()) {
-            auto op =
-                arolla::CreateDenseOp<arolla::DenseOpFlags::kNoSizeValidation |
-                                      arolla::DenseOpFlags::kRunOnMissing>(
-                    MaskEqualOp<LhsViewValT, RhsViewValT>());
+            auto op = arolla::CreateDenseOp <
+                          arolla::DenseOpFlags::kNoSizeValidation |
+                      arolla::DenseOpFlags::kRunOnMissing |
+                      arolla::DenseOpFlags::kNoBitmapOffset >
+                          (MaskEqualOp<LhsViewValT, RhsViewValT>());
             auto sub_res = op(l_array, r_array);
             if (result.PresentCount() == 0) {
               result = std::move(sub_res);
