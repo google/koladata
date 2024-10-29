@@ -691,6 +691,7 @@ cc_test(
 
 cc_library(
     name = "itemid",
+    srcs = ["itemid.cc"],
     hdrs = ["itemid.h"],
     deps = [
         ":base62",
@@ -701,6 +702,7 @@ cc_library(
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/dense_array/ops",
         "@com_google_arolla//arolla/qtype",

@@ -29,6 +29,7 @@
 namespace koladata::internal {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 using ::testing::HasSubstr;
@@ -63,6 +64,36 @@ TEST(EncodeItemId, TestDataSliceImplInvalidType) {
   EXPECT_THAT(EncodeItemId()(slice),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("on primitives")));
+}
+
+TEST(DecodeItemId, TestDataItem) {
+  ObjectId id = AllocateSingleObject();
+  DataItem item(id);
+  ASSERT_OK_AND_ASSIGN(DataItem encoded, EncodeItemId()(item));
+  EXPECT_THAT(DecodeItemId()(encoded), IsOkAndHolds(item));
+}
+
+TEST(DecodeItemId, TestDataSliceImpl) {
+  ObjectId id_1 = AllocateSingleObject();
+  ObjectId id_2 = AllocateSingleObject();
+  DataSliceImpl slice =
+      DataSliceImpl::Create(CreateDenseArray<ObjectId>({id_1, id_2}));
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl encoded, EncodeItemId()(slice));
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl decoded, DecodeItemId()(encoded));
+  EXPECT_TRUE(slice.IsEquivalentTo(decoded));
+}
+
+TEST(DecodeItemId, TestDataItemInvalidType) {
+  DataItem item(1);
+  EXPECT_THAT(DecodeItemId()(item), StatusIs(absl::StatusCode::kInvalidArgument,
+                                             HasSubstr("on non-text")));
+}
+
+TEST(DecodeItemId, TestDataSliceImplInvalidType) {
+  DataSliceImpl slice = DataSliceImpl::Create(CreateDenseArray<int>({1, 2}));
+  EXPECT_THAT(DecodeItemId()(slice),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("on non-text")));
 }
 
 }  // namespace

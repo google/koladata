@@ -87,6 +87,7 @@ OPERATOR("kde.core.add", Add);
 OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kde.core.at", At);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
+OPERATOR("kde.core.decode_itemid", DecodeItemId);
 OPERATOR("kde.core.dict_size", DictSize);
 OPERATOR("kde.core.encode_itemid", EncodeItemId);
 OPERATOR_FAMILY("kde.core.enriched",

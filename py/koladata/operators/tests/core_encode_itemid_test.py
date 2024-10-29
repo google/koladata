@@ -22,32 +22,49 @@ from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.testing import testing
 from koladata.types import data_bag
+from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty()
+bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
 class CoreEncodeItemIdTest(parameterized.TestCase):
 
-  def test_encode(self):
-    item = expr_eval.eval(kde.core.encode_itemid(bag.new(x=1)))
-    self.assertRegex(str(item), '[0-9a-zA-Z]*')
-
-    items = expr_eval.eval(kde.core.encode_itemid(bag.new(x=ds([1, 2]))))
-    self.assertRegex(str(items.L[0]), '[0-9a-zA-Z]*')
-    self.assertRegex(str(items.L[1]), '[0-9a-zA-Z]*')
+  @parameterized.parameters(
+      (bag().new(a=1),),
+      (bag().new(a=ds([1, 2])),),
+      (kde.allocation.new_listid().eval(),),
+      (kde.allocation.new_dictid().eval(),),
+      (kde.allocation.new_listid_like(ds([[1, None], [3]])).eval(),),
+      (kde.allocation.new_dictid_like(ds([[1, None], [3]])).eval(),),
+  )
+  def test_encode_decode(self, ids):
+    encoded = expr_eval.eval(kde.core.encode_itemid(ids))
+    if isinstance(encoded, data_item.DataItem):
+      self.assertRegex(str(encoded), '[0-9a-zA-Z]*')
+    else:
+      for item in encoded.L:
+        self.assertRegex(str(item), '[0-9a-zA-Z]*')
+    decoded = expr_eval.eval(kde.core.decode_itemid(encoded))
+    self.assertIsNone(decoded.get_bag())
+    testing.assert_equal(ids.no_bag().as_itemid(), decoded)
 
   def test_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError, 'only ObjectIds can be encoded, got INT32'
     ):
       kde.core.encode_itemid(ds([1, 2, 3])).eval()
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'only TEXT can be decoded, got INT32'
+    ):
+      kde.core.decode_itemid(ds([1, 2, 3])).eval()
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
@@ -60,10 +77,14 @@ class CoreEncodeItemIdTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.core.encode_itemid(I.ds)))
+    self.assertTrue(view.has_data_slice_view(kde.core.decode_itemid(I.ds)))
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(kde.core.encode_itemid, kde.encode_itemid)
+    )
+    self.assertTrue(
+        optools.equiv_to_op(kde.core.decode_itemid, kde.decode_itemid)
     )
 
 

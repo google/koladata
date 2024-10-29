@@ -1772,6 +1772,18 @@ absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds) {
   return std::move(res);
 }
 
+absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds) {
+  ASSIGN_OR_RETURN(
+      auto res,
+      DataSliceOp<internal::DecodeItemId>()(ds, ds.GetShape(),
+                                            internal::DataItem(schema::kItemId),
+                                            /*db=*/nullptr),
+      OperatorEvalError(std::move(_), "kd.decode_itemid",
+                        absl::StrFormat("only TEXT can be decoded, got %v",
+                                        ds.GetSchemaImpl())));
+  return std::move(res);
+}
+
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
   const auto& db = lists.GetBag();
   if (db == nullptr) {

@@ -2717,6 +2717,19 @@ def encode_itemid(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.decode_itemid'])
+@optools.as_backend_operator(
+    'kde.core.decode_itemid',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def decode_itemid(ds):  # pylint: disable=unused-argument
+  """Returns the base62 text decoded into item ids."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @arolla.optools.add_to_registry()
 @arolla.optools.as_backend_operator(
     'kde.core._ordinal_rank',
