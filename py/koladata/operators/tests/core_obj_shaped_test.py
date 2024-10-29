@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from arolla import arolla
+from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
@@ -42,7 +43,7 @@ def generate_qtypes():
         arolla.make_namedtuple_qtype(a=DATA_SLICE),
         arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
     ]:
-      yield JAGGED_SHAPE, itemid_arg_type, attrs_type, DATA_SLICE
+      yield JAGGED_SHAPE, itemid_arg_type, attrs_type, arolla.types.INT64, DATA_SLICE
 
 
 QTYPES = list(generate_qtypes())
@@ -103,6 +104,23 @@ class CoreObjShapedTest(absltest.TestCase):
   def test_fails_with_dataslice_input(self):
     with self.assertRaisesRegex(ValueError, 'expected JAGGED_SHAPE'):
       _ = kde.core.obj_shaped(ds(0)).eval()
+
+  def test_non_determinism(self):
+    shape = jagged_shape.create_shape(2, 3)
+    res_1 = expr_eval.eval(
+        kde.core.obj_shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
+    )
+    res_2 = expr_eval.eval(
+        kde.core.obj_shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
+    )
+    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
+    testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
+
+    expr = kde.core.obj_shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
+    res_1 = expr_eval.eval(expr)
+    res_2 = expr_eval.eval(expr)
+    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
+    testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

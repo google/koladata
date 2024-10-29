@@ -937,6 +937,7 @@ py_test(
     srcs = ["core_new_shaped_test.py"],
     deps = [
         "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
@@ -959,6 +960,7 @@ py_test(
     srcs = ["core_new_shaped_as_test.py"],
     deps = [
         "//py/koladata:kd",
+        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
@@ -979,6 +981,7 @@ py_test(
     name = "core_obj_shaped_test",
     srcs = ["core_obj_shaped_test.py"],
     deps = [
+        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
@@ -1001,6 +1004,7 @@ py_test(
     srcs = ["core_obj_shaped_as_test.py"],
     deps = [
         "//py/koladata:kd",
+        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/functions",

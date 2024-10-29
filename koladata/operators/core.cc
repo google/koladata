@@ -2152,8 +2152,8 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
 absl::StatusOr<arolla::OperatorPtr> NewShapedOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 5) {
-    return absl::InvalidArgumentError("requires exactly 5 arguments");
+  if (input_types.size() != 6) {
+    return absl::InvalidArgumentError("requires exactly 6 arguments");
   }
   if (input_types[0] != arolla::GetQType<DataSlice::JaggedShape>()) {
     return absl::InvalidArgumentError(
@@ -2180,8 +2180,8 @@ absl::StatusOr<arolla::OperatorPtr> NewShapedOperatorFamily::DoGetOperator(
 absl::StatusOr<arolla::OperatorPtr> ObjShapedOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 3) {
-    return absl::InvalidArgumentError("requires exactly 3 arguments");
+  if (input_types.size() != 4) {
+    return absl::InvalidArgumentError("requires exactly 4 arguments");
   }
   if (input_types[0] != arolla::GetQType<DataSlice::JaggedShape>()) {
     return absl::InvalidArgumentError(

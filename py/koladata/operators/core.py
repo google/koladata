@@ -807,6 +807,7 @@ def with_attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  #
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -820,6 +821,7 @@ def new_shaped(
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     update_schema=py_boxing.keyword_only(False),
     attrs=py_boxing.var_keyword(),
+    hidden_seed=py_boxing.hidden_seed(),
 ):
   # pylint: enable=unused-argument
   """Returns a new DataSlice with provided shape and attributes."""
@@ -837,6 +839,7 @@ def new_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -849,6 +852,7 @@ def new_shaped_as(
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     update_schema=py_boxing.keyword_only(False),
     attrs=py_boxing.var_keyword(),
+    hidden_seed=py_boxing.hidden_seed(),
 ):
   # pylint: enable=unused-argument
   """Returns a new DataSlice with shape of the provided DataSlice and attributes."""
@@ -859,6 +863,7 @@ def new_shaped_as(
       itemid=itemid,
       update_schema=update_schema,
       attrs=attrs,
+      hidden_seed=hidden_seed,
   )
 
 
@@ -901,6 +906,7 @@ def new_like(
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -911,6 +917,7 @@ def obj_shaped(
     shape=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
+    hidden_seed=py_boxing.hidden_seed(),
 ):
   # pylint: enable=unused-argument
   """Returns a new DataSlice with object schema, provided shape and attributes."""
@@ -926,6 +933,7 @@ def obj_shaped(
         qtype_utils.expect_data_slice(P.shape_from),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -935,7 +943,8 @@ def obj_shaped_as(
     shape_from=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
-):
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=g-doc-args
   # pylint: enable=unused-argument
   """Returns a new DataSlice with object schema, shape of the provided DataSlice and attributes.
 
@@ -957,6 +966,7 @@ def obj_shaped_as(
       shape=jagged_shape_ops.get_shape(shape_from),
       itemid=itemid,
       attrs=attrs,
+      hidden_seed=hidden_seed,
   )
 
 
