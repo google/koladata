@@ -112,8 +112,7 @@ void SliceBuilder::ChangeCurrentType(KodaTypeId type_id) {
   current_type_id_ = type_id;
 }
 
-template <>
-void SliceBuilder::InsertIfNotSet<DataItem>(int64_t id, const DataItem& v) {
+void SliceBuilder::InsertIfNotSet(int64_t id, const DataItem& v) {
   v.VisitValue([&](const auto& v) { InsertIfNotSet(id, v); });
 }
 

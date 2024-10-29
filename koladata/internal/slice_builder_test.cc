@@ -143,18 +143,27 @@ TEST(SliceBuilderTest, SingleType) {
 }
 
 TEST(SliceBuilderTest, AllocationIds) {
-  AllocationId alloc_id = Allocate(50);
-  for (int type_count = 1; type_count <= 2; ++type_count) {
-    SliceBuilder bldr(3);
-    bldr.GetMutableAllocationIds().Insert(alloc_id);
-    bldr.InsertIfNotSet(0, alloc_id.ObjectByOffset(0));
-    if (type_count > 1) {
-      // Add an int to have different code path in SliceBuilder::Build.
-      bldr.InsertIfNotSet(1, 5);
+  {
+    AllocationId alloc_id = Allocate(50);
+    for (int type_count = 1; type_count <= 2; ++type_count) {
+      SliceBuilder bldr(3);
+      bldr.GetMutableAllocationIds().Insert(alloc_id);
+      bldr.InsertIfNotSet(0, alloc_id.ObjectByOffset(0));
+      if (type_count > 1) {
+        // Add an int to have different code path in SliceBuilder::Build.
+        bldr.InsertIfNotSetAndUpdateAllocIds(1, DataItem(5));
+      }
+      DataSliceImpl res = std::move(bldr).Build();
+      EXPECT_FALSE(res.allocation_ids().contains_small_allocation_id());
+      EXPECT_THAT(res.allocation_ids().ids(), ElementsAre(alloc_id));
     }
+  }
+  {
+    ObjectId obj_id = AllocateSingleObject();
+    SliceBuilder bldr(3);
+    bldr.InsertIfNotSetAndUpdateAllocIds(2, DataItem(obj_id));
     DataSliceImpl res = std::move(bldr).Build();
-    EXPECT_FALSE(res.allocation_ids().contains_small_allocation_id());
-    EXPECT_THAT(res.allocation_ids().ids(), ElementsAre(alloc_id));
+    EXPECT_TRUE(res.allocation_ids().contains_small_allocation_id());
   }
 }
 

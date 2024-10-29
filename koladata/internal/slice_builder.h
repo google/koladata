@@ -122,8 +122,19 @@ class SliceBuilder {
   // same id (even if the value was missing).
   // AllocationIdSet (relevant only when adding ObjectId) must be updated
   // separately using GetMutableAllocationIds().
-  template <typename OptionalOrTOrItem>
-  void InsertIfNotSet(int64_t id, const OptionalOrTOrItem& v);
+  template <typename OptionalOrT>
+  void InsertIfNotSet(int64_t id, const OptionalOrT& v);
+  void InsertIfNotSet(int64_t id, const DataItem& v);
+
+  // It calls InsertIfNotSet and updates allocation ids if `v` is an ObjectId.
+  void InsertIfNotSetAndUpdateAllocIds(int64_t id, const DataItem& v) {
+    if (v.holds_value<ObjectId>()) {
+      InsertIfNotSet(id, v.value<ObjectId>());
+      GetMutableAllocationIds().Insert(AllocationId(v.value<ObjectId>()));
+    } {
+      InsertIfNotSet(id, v);
+    }
+  }
 
   // Batch version of InsertIfNotSet. Equivalent to:
   //   for (int i = 0; i < size; ++i) {
@@ -304,9 +315,6 @@ SliceBuilder::GetBufferBuilderWithTypeChange() {
       tstorage.data));
   return std::get<typename arolla::Buffer<T>::Builder>(tstorage.data);
 }
-
-template <>
-void SliceBuilder::InsertIfNotSet<DataItem>(int64_t id, const DataItem& v);
 
 template <typename T>
 void SliceBuilder::InsertIfNotSet(int64_t id, const T& v) {

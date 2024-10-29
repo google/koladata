@@ -28,7 +28,6 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
-#include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/status.h"
@@ -72,11 +71,10 @@ DataSliceImpl SparseSource::Get(const ObjectIdArray& objects) const {
     return DataSliceImpl::CreateEmptyAndUnknownType(size);
   }
 
-  DataSliceImpl::Builder bldr(size);
+  SliceBuilder bldr(size);
   objects.ForEachPresent([&](int64_t id, ObjectId object) {
     if (auto it = data_item_map_.find(object); it != data_item_map_.end()) {
-      const auto& item = it->second;
-      bldr.Insert(id, item);
+      bldr.InsertIfNotSetAndUpdateAllocIds(id, it->second);
     }
   });
   return std::move(bldr).Build();
@@ -90,12 +88,7 @@ void SparseSource::Get(absl::Span<const ObjectId> objs,
       continue;
     }
     if (auto it = data_item_map_.find(objs[id]); it != data_item_map_.end()) {
-      const DataItem& item = it->second;
-      bldr.InsertIfNotSet(id, item);
-      if (item.holds_value<ObjectId>()) {
-        bldr.GetMutableAllocationIds().Insert(
-            AllocationId(item.value<ObjectId>()));
-      }
+      bldr.InsertIfNotSetAndUpdateAllocIds(id, it->second);
     }
   }
 }

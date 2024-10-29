@@ -15,7 +15,6 @@
 #ifndef KOLADATA_INTERNAL_SPARSE_SOURCE_H_
 #define KOLADATA_INTERNAL_SPARSE_SOURCE_H_
 
-#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -51,7 +50,7 @@ class SparseSource {
   // It is not possible to distinguish missing and removed values using this
   // function, so it is useful only for getting values from a single
   // SparseSource (that is a very important use case). In case of several data
-  // sources use `Get` with DataSliceImpl::Builder.
+  // sources use `Get` with SliceBuilder.
   DataSliceImpl Get(const ObjectIdArray& objects) const;
 
   // Gets values for those of `objs` that are not set yet in the builder.
@@ -82,9 +81,6 @@ class SparseSource {
     return alloc_id_.has_value() ? alloc_id_->Contains(object)
                                  : object.IsSmallAlloc();
   }
-
-  void SetItemToBuilder(int64_t id, int64_t size, const DataItem& item,
-                        DataSliceImpl::Builder& bldr) const;
 
   // Hash map object_id->value.
   absl::flat_hash_map<ObjectId, DataItem> data_item_map_;
