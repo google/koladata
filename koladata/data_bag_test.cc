@@ -15,7 +15,6 @@
 #include "koladata/data_bag.h"
 
 #include <string>
-#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

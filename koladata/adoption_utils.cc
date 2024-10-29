@@ -14,7 +14,6 @@
 //
 #include "koladata/adoption_utils.h"
 
-#include <utility>
 #include <vector>
 
 #include "absl/base/nullability.h"
