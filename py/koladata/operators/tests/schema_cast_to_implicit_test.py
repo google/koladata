@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.schema.cast_to_implicit."""
-
 import re
 
 from absl.testing import absltest
@@ -58,6 +56,19 @@ class SchemaCastToImplicitTest(parameterized.TestCase):
   def test_eval(self, x, schema, expected):
     res = expr_eval.eval(kde.schema.cast_to_implicit(x, schema))
     testing.assert_equal(res, expected)
+
+  def test_adoption(self):
+    bag1 = data_bag.DataBag.empty()
+    bag2 = data_bag.DataBag.empty()
+    entity = bag1.new(x=ds([1]))
+    schema = entity.get_schema().with_db(bag2)
+    result = expr_eval.eval(kde.schema.cast_to_implicit(entity, schema))
+    testing.assert_equal(result.x.no_db(), ds([1]))
+    testing.assert_equal(
+        result.no_db(), entity.no_db().with_schema(schema.no_db())
+    )
+    self.assertNotEqual(result.x.db.fingerprint, bag1.fingerprint)
+    self.assertNotEqual(result.x.db.fingerprint, bag2.fingerprint)
 
   def test_not_schema_error(self):
     with self.assertRaisesRegex(
