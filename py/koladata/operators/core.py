@@ -73,6 +73,24 @@ def add(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(
+    aliases=['kde.bag'],
+    view=view.DataBagView,
+    repr_fn=op_repr.full_signature_repr,
+)
+@optools.as_backend_operator(
+    'kde.core.bag',
+    qtype_constraints=[
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    qtype_inference_expr=qtypes.DATA_BAG,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def _bag(hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+  """Returns an empty DataBag."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.dict_size'])
 @optools.as_backend_operator(
     'kde.core.dict_size',

@@ -29,6 +29,9 @@ namespace koladata::ops {
 // kde.core._add.
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y);
 
+// kde.core.bag.
+DataBagPtr Bag(int64_t unused_hidden_seed = 0);
+
 // kde.core.no_bag.
 DataSlice NoBag(const DataSlice& ds);
 

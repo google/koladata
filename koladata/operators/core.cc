@@ -821,6 +821,10 @@ absl::StatusOr<DataSlice> WithAttrs(
 
 }  // namespace
 
+DataBagPtr Bag(int64_t hidden_seed) {
+  return DataBag::Empty();
+}
+
 class WithAttrsOperator : public arolla::QExprOperator {
  public:
   explicit WithAttrsOperator(absl::Span<const arolla::QTypePtr> input_types)
