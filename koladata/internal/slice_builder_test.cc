@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -24,10 +25,12 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/types.h"
+#include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/bits.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/unit.h"
 
@@ -35,6 +38,7 @@ namespace koladata::internal {
 namespace {
 
 using ::testing::ElementsAre;
+using ::testing::ElementsAreArray;
 
 TEST(SliceBuilderTest, TypesBuffer) {
   TypesBuffer b;
@@ -55,6 +59,56 @@ TEST(SliceBuilderTest, TypesBuffer) {
   EXPECT_THAT(b.ToBitmap(1), ElementsAre(0b10001));
   EXPECT_THAT(b.ToBitmap(TypesBuffer::kRemoved), ElementsAre(0b01000));
   EXPECT_THAT(b.ToPresenceBitmap(), ElementsAre(0b10101));
+}
+
+TEST(SliceBuilderTest, ToBitmap64Elements) {
+  TypesBuffer b;
+  b.types.push_back(ScalarTypeId<int>());
+  b.id_to_typeidx = arolla::CreateBuffer<uint8_t>(std::vector<uint8_t>(64, 0));
+  EXPECT_THAT(b.ToBitmap(0),
+              ElementsAre(~arolla::bitmap::Word{0}, ~arolla::bitmap::Word{0}));
+}
+
+TEST(SliceBuilderTest, ToBitmap40Elements) {
+  TypesBuffer b;
+  b.types.push_back(ScalarTypeId<int>());
+  b.types.push_back(ScalarTypeId<float>());
+  std::vector<uint8_t> types(40, 0);
+  for (int i = 32; i < 40; ++i) types[i] = 1;
+  b.id_to_typeidx = arolla::CreateBuffer<uint8_t>(types);
+  EXPECT_THAT(b.ToBitmap(0),
+              ElementsAre(~arolla::bitmap::Word{0}, arolla::bitmap::Word{0}));
+  EXPECT_THAT(b.ToBitmap(1),
+              ElementsAre(arolla::bitmap::Word{0}, 0b11111111));
+}
+
+TEST(SliceBuilderTest, ToBitmapVarSize) {
+  for (int size = 0; size < 100; ++size) {
+    TypesBuffer b;
+    b.types.push_back(ScalarTypeId<int>());
+    b.types.push_back(ScalarTypeId<float>());
+    std::vector<uint8_t> types(size);
+    for (int i = 0; i < size; ++i) {
+      types[i] = i % 2;
+    }
+    b.id_to_typeidx = arolla::CreateBuffer<uint8_t>(types);
+    {
+      std::vector<arolla::bitmap::Word> expected0(
+          arolla::bitmap::BitmapSize(size));
+      for (int i = 0; i < size; i += 2) {
+        arolla::SetBit(expected0.data(), i);
+      }
+      EXPECT_THAT(b.ToBitmap(0), ElementsAreArray(expected0));
+    }
+    {
+      std::vector<arolla::bitmap::Word> expected1(
+          arolla::bitmap::BitmapSize(size));
+      for (int i = 1; i < size; i += 2) {
+        arolla::SetBit(expected1.data(), i);
+      }
+      EXPECT_THAT(b.ToBitmap(1), ElementsAreArray(expected1));
+    }
+  }
 }
 
 TEST(SliceBuilderTest, Empty) {
