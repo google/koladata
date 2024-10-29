@@ -14,8 +14,6 @@
 //
 #include "koladata/internal/sparse_source.h"
 
-#include <array>
-#include <cstddef>
 #include <memory>
 #include <optional>
 #include <utility>
