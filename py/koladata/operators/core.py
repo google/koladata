@@ -2612,17 +2612,15 @@ def get_nofollowed_schema(schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.itemid_str', 'kde.core.to_base62', 'kde.to_base62']
-)
+@optools.add_to_registry(aliases=['kde.encode_itemid'])
 @optools.as_backend_operator(
-    'kde.core.itemid_str',
+    'kde.core.encode_itemid',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def itemid_str(ds):  # pylint: disable=unused-argument
+def encode_itemid(ds):  # pylint: disable=unused-argument
   """Returns the base62 encoded item ids in `ds` as Text."""
   raise NotImplementedError('implemented in the backend')
 

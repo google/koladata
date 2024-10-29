@@ -44,6 +44,7 @@
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_op.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/extract_utils.h"
 #include "koladata/internal/data_bag.h"
@@ -1673,11 +1674,16 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
                            x.GetSchemaImpl(), x.GetBag());
 }
 
-absl::StatusOr<DataSlice> ItemIdStr(const DataSlice& ds) {
-  return ds.VisitImpl([&](const auto& impl) {
-    return DataSlice::Create(internal::ItemIdStr()(impl), ds.GetShape(),
-                             internal::DataItem(schema::kText), ds.GetBag());
-  });
+absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds) {
+  ASSIGN_OR_RETURN(
+      auto res,
+      DataSliceOp<internal::EncodeItemId>()(ds, ds.GetShape(),
+                                            internal::DataItem(schema::kText),
+                                            /*db=*/nullptr),
+      OperatorEvalError(std::move(_), "kd.encode_itemid",
+                        absl::StrFormat("only ObjectIds can be encoded, got %v",
+                                        ds.GetSchemaImpl())));
+  return std::move(res);
 }
 
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {

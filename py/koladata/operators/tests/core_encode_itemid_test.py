@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -25,45 +26,46 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 
-I = input_container.InputContainer("I")
+I = input_container.InputContainer('I')
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty()
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-ITEMID_STR_QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE),
-])
 
 
-class CoreItemIdStrTest(parameterized.TestCase):
+class CoreEncodeItemIdTest(parameterized.TestCase):
 
-  def test_item_str(self):
-    item = expr_eval.eval(kde.core.itemid_str(bag.new(x=1)))
-    self.assertRegex(str(item), "[0-9a-zA-Z]*")
+  def test_encode(self):
+    item = expr_eval.eval(kde.core.encode_itemid(bag.new(x=1)))
+    self.assertRegex(str(item), '[0-9a-zA-Z]*')
 
-    items = expr_eval.eval(kde.core.itemid_str(bag.new(x=ds([1, 2]))))
-    self.assertRegex(str(items.L[0]), "[0-9a-zA-Z]*")
-    self.assertRegex(str(items.L[1]), "[0-9a-zA-Z]*")
+    items = expr_eval.eval(kde.core.encode_itemid(bag.new(x=ds([1, 2]))))
+    self.assertRegex(str(items.L[0]), '[0-9a-zA-Z]*')
+    self.assertRegex(str(items.L[1]), '[0-9a-zA-Z]*')
 
-  def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.itemid_str(I.ds)))
-
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.itemid_str, kde.itemid_str))
-    self.assertTrue(
-        optools.equiv_to_op(kde.core.itemid_str, kde.core.to_base62)
-    )
-    self.assertTrue(optools.equiv_to_op(kde.core.itemid_str, kde.to_base62))
+  def test_error(self):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'only ObjectIds can be encoded, got INT32'
+    ):
+      kde.core.encode_itemid(ds([1, 2, 3])).eval()
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.itemid_str,
+            kde.core.encode_itemid,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
-        ITEMID_STR_QTYPES,
+        frozenset([(DATA_SLICE, DATA_SLICE)]),
+    )
+
+  def test_view(self):
+    self.assertTrue(view.has_data_slice_view(kde.core.encode_itemid(I.ds)))
+
+  def test_alias(self):
+    self.assertTrue(
+        optools.equiv_to_op(kde.core.encode_itemid, kde.encode_itemid)
     )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()

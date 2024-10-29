@@ -88,6 +88,7 @@ OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kde.core.at", At);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR("kde.core.dict_size", DictSize);
+OPERATOR("kde.core.encode_itemid", EncodeItemId);
 OPERATOR_FAMILY("kde.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
 OPERATOR_FAMILY("kde.core.enriched_bag",
@@ -104,7 +105,6 @@ OPERATOR("kde.core.is_dict", IsDict);
 OPERATOR("kde.core.is_empty", IsEmpty);
 OPERATOR("kde.core.is_list", IsList);
 OPERATOR("kde.core.is_primitive", IsPrimitive);
-OPERATOR("kde.core.itemid_str", ItemIdStr);
 OPERATOR("kde.core.list_size", ListSize);
 OPERATOR_FAMILY("kde.core.new_shaped",
                 std::make_unique<NewShapedOperatorFamily>());

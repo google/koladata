@@ -1401,9 +1401,10 @@ py_test(
 )
 
 py_test(
-    name = "core_itemid_str_test",
-    srcs = ["core_itemid_str_test.py"],
+    name = "core_encode_itemid_test",
+    srcs = ["core_encode_itemid_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

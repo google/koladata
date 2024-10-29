@@ -33,13 +33,14 @@
 namespace koladata::internal {
 
 // Returns a base62 string representation of the ItemId.
-struct ItemIdStr {
+struct EncodeItemId {
   absl::StatusOr<DataItem> operator()(const DataItem& item) const {
     if (!item.has_value()) {
       return DataItem();
     }
     if (item.dtype() != arolla::GetQType<internal::ObjectId>()) {
-      return absl::InvalidArgumentError("cannot use itemid_str on primitives");
+      return absl::InvalidArgumentError(
+          "cannot use encode_itemid on primitives");
     }
     internal::ObjectId id = item.value<internal::ObjectId>();
     absl::uint128 val = id.ToRawInt128();
@@ -51,7 +52,8 @@ struct ItemIdStr {
       return DataSliceImpl::CreateEmptyAndUnknownType(slice.size());
     }
     if (slice.dtype() != arolla::GetQType<internal::ObjectId>()) {
-      return absl::InvalidArgumentError("cannot use itemid_str on primitives");
+      return absl::InvalidArgumentError(
+          "cannot use encode_itemid on primitives");
     }
     auto op = arolla::CreateDenseOp(
         [&](ObjectId id) { return EncodeBase62(id.ToRawInt128()); });

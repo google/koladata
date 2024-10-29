@@ -191,8 +191,8 @@ absl::StatusOr<DataSlice> GroupByIndicesSorted(
 // kde.core.unique.
 absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort);
 
-// kde.core.itemid_str
-absl::StatusOr<DataSlice> ItemIdStr(const DataSlice& ds);
+// kde.core.encode_itemid
+absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds);
 
 // kde.core.list_size.
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);

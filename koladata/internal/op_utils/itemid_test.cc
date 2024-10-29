@@ -33,35 +33,36 @@ using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 using ::testing::HasSubstr;
 
-TEST(ItemIdStr, TestItemIdStr) {
+TEST(EncodeItemId, TestDataItem) {
   ObjectId id = AllocateSingleObject();
   DataItem item(id);
-  ASSERT_OK_AND_ASSIGN(DataItem res, ItemIdStr()(item));
+  ASSERT_OK_AND_ASSIGN(DataItem res, EncodeItemId()(item));
   EXPECT_EQ(id.ToRawInt128(), DecodeBase62(res.value<arolla::Text>()));
 }
 
-TEST(ItemIdStr, TestDataSliceImplStr) {
+TEST(EncodeItemId, TestDataSliceImpl) {
   ObjectId id_1 = AllocateSingleObject();
   ObjectId id_2 = AllocateSingleObject();
   DataSliceImpl slice =
       DataSliceImpl::Create(CreateDenseArray<ObjectId>({id_1, id_2}));
-  ASSERT_OK_AND_ASSIGN(DataSliceImpl res, ItemIdStr()(slice));
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl res, EncodeItemId()(slice));
   EXPECT_EQ(id_1.ToRawInt128(),
             DecodeBase62(res.values<arolla::Text>()[0].value));
   EXPECT_EQ(id_2.ToRawInt128(),
             DecodeBase62(res.values<arolla::Text>()[1].value));
 }
 
-TEST(ItemIdStr, TestDataItemInvalidType) {
+TEST(EncodeItemId, TestDataItemInvalidType) {
   DataItem item(1);
-  EXPECT_THAT(ItemIdStr()(item), StatusIs(absl::StatusCode::kInvalidArgument,
-                                          HasSubstr("on primitives")));
+  EXPECT_THAT(EncodeItemId()(item), StatusIs(absl::StatusCode::kInvalidArgument,
+                                             HasSubstr("on primitives")));
 }
 
-TEST(ItemIdStr, TestDataSliceImplInvalidType) {
+TEST(EncodeItemId, TestDataSliceImplInvalidType) {
   DataSliceImpl slice = DataSliceImpl::Create(CreateDenseArray<int>({1, 2}));
-  EXPECT_THAT(ItemIdStr()(slice), StatusIs(absl::StatusCode::kInvalidArgument,
-                                           HasSubstr("on primitives")));
+  EXPECT_THAT(EncodeItemId()(slice),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("on primitives")));
 }
 
 }  // namespace
