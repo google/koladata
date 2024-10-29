@@ -292,7 +292,7 @@ def _list_like(
 def _implode(
     self: DataBag,
     x: _DataSlice,
-    ndim: int,
+    ndim: int | _DataSlice,
 ) -> _DataSlice:  # pylint: disable=g-doc-args
   """Implodes a Dataslice `x` a specified number of times.
 
@@ -320,6 +320,8 @@ def _implode(
   Returns:
     DataSlice of nested Lists
   """
+  if isinstance(ndim, _DataSlice):
+    ndim = ndim.internal_as_py()
   return self._implode(x, ndim)  # pylint: disable=protected-access
 
 

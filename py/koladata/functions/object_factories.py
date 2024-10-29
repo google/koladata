@@ -692,7 +692,7 @@ def empty_shaped_as(
 
 def implode(
     x: data_slice.DataSlice,
-    ndim: int = 1,
+    ndim: int | data_slice.DataSlice = 1,
     db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Implodes a Dataslice `x` a specified number of times.

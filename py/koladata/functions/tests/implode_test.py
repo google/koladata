@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kd.implode."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.functions import functions as fns
@@ -106,6 +104,21 @@ class ImplodeTest(parameterized.TestCase):
     result = fns.implode(x, ndim, db2)
     testing.assert_nested_lists_equal(result, expected)
     self.assertEqual(result.get_bag().fingerprint, db2.fingerprint)
+
+    # Check behavior with DataItem ndim.
+    result = fns.implode(x, ds(ndim))
+    testing.assert_nested_lists_equal(result, expected)
+    self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
+
+  def test_ndim_error(self):
+    with self.assertRaisesRegex(TypeError, 'an integer is required'):
+      fns.implode(ds([]), ds(None))
+
+    with self.assertRaisesRegex(TypeError, 'an integer is required'):
+      fns.implode(ds([]), ds([1]))
+
+    with self.assertRaisesRegex(TypeError, 'an integer is required'):
+      fns.implode(ds([]), ds([1]))
 
 
 if __name__ == '__main__':
