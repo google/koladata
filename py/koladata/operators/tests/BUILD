@@ -1468,8 +1468,8 @@ py_test(
 )
 
 py_test(
-    name = "core_encode_itemid_test",
-    srcs = ["core_encode_itemid_test.py"],
+    name = "core_encode_decode_itemid_test",
+    srcs = ["core_encode_decode_itemid_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",

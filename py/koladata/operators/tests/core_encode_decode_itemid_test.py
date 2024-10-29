@@ -35,7 +35,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class CoreEncodeItemIdTest(parameterized.TestCase):
+class CoreEncodeDecodeItemIdTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (bag().new(a=1),),
@@ -47,6 +47,7 @@ class CoreEncodeItemIdTest(parameterized.TestCase):
   )
   def test_encode_decode(self, ids):
     encoded = expr_eval.eval(kde.core.encode_itemid(ids))
+    self.assertIsNone(encoded.get_bag())
     if isinstance(encoded, data_item.DataItem):
       self.assertRegex(str(encoded), '[0-9a-zA-Z]{22}')
     else:
