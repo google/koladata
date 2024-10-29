@@ -154,6 +154,15 @@ class CoreStubTest(parameterized.TestCase):
         dir(x_stub.get_obj_schema()), ['__keys__', '__values__']
     )
 
+  def test_object_ref(self):
+    db = bag()
+    x = db.obj().ref()
+    x_stub = x.stub()
+    testing.assert_equal(
+        x_stub.no_bag(),
+        x,
+    )
+
   def test_attrs_not_implemented(self):
     with self.assertRaisesRegex(ValueError, 'stub attrs not yet implemented'):
       _ = kde.core.stub(bag().obj(x=1), 'x').eval()

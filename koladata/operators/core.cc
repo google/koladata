@@ -732,6 +732,10 @@ class SubsliceOperator : public arolla::InlineOperator {
 };
 
 absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
+  if (x.GetBag() == nullptr) {
+    return absl::OkStatus();
+  }
+
   DataSlice slice = x;
   while (true) {
     DataSlice result_slice = slice.WithBag(db);
