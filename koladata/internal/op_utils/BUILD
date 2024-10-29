@@ -767,3 +767,25 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )
+
+cc_library(
+    name = "trampoline_executor",
+    srcs = ["trampoline_executor.cc"],
+    hdrs = ["trampoline_executor.h"],
+    deps = [
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "trampoline_executor_test",
+    srcs = ["trampoline_executor_test.cc"],
+    deps = [
+        ":trampoline_executor",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

@@ -21,7 +21,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -42,6 +41,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/op_utils/trampoline_executor.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/core.h"
@@ -342,33 +342,25 @@ absl::StatusOr<std::optional<DataSlice>> MakeFlatChildIndexItemUuids(
   return std::move(flat_child_itemids);
 }
 
-// Forward declarations for recursion.
-absl::StatusOr<std::optional<DataSlice>> FromProtoField(
+// Forward declarations for "recursion" via an enqueued callback.
+absl::Status FromProtoMessageBreakRecursion(
+    const absl::Nonnull<DataBagPtr>& db, const Descriptor& message_descriptor,
+    std::vector<absl::Nonnull<const Message*>> messages,
+    std::optional<DataSlice> itemid, std::optional<DataSlice> schema,
+    absl::Nullable<const ExtensionMap*> extension_map,
+    internal::TrampolineExecutor& executor, std::optional<DataSlice>& result);
+
+// Returns a rank-1 DataSlice of Lists converted from a repeated message field
+// on a vector of messages.
+absl::Status ListFromProtoRepeatedMessageField(
     const absl::Nonnull<DataBagPtr>& db, absl::string_view attr_name,
     absl::string_view field_name, const FieldDescriptor& field_descriptor,
     absl::Span<const absl::Nonnull<const Message*>> parent_messages,
     const std::optional<DataSlice>& parent_itemid,
     const std::optional<DataSlice>& parent_schema,
     absl::Nullable<const ExtensionMap*> parent_extension_map,
-    bool ignore_field_presence = false);
-absl::StatusOr<DataSlice> FromProtoMessage(
-    const absl::Nonnull<DataBagPtr>& db, const Descriptor& message_descriptor,
-    absl::Span<const absl::Nonnull<const Message*>> messages,
-    const std::optional<DataSlice>& itemid,
-    const std::optional<DataSlice>& schema,
-    absl::Nullable<const ExtensionMap*> extension_map);
-
-// Returns a rank-1 DataSlice of Lists converted from a repeated message field
-// on a vector of messages.
-absl::StatusOr<std::optional<DataSlice>> ListFromProtoRepeatedMessageField(
-    const absl::Nonnull<DataBagPtr>& db,
-    absl::string_view attr_name,
-    absl::string_view field_name,
-    const FieldDescriptor& field_descriptor,
-    absl::Span<const absl::Nonnull<const Message*>> parent_messages,
-    const std::optional<DataSlice>& parent_itemid,
-    const std::optional<DataSlice>& parent_schema,
-    absl::Nullable<const ExtensionMap*> parent_extension_map) {
+    internal::TrampolineExecutor& executor,
+    std::optional<DataSlice>& result) {
   bool is_empty = true;
   arolla::DenseArrayBuilder<arolla::Unit> lists_mask_builder(
       parent_messages.size());
@@ -389,39 +381,57 @@ absl::StatusOr<std::optional<DataSlice>> ListFromProtoRepeatedMessageField(
     }
   }
   if (is_empty) {
-    return std::nullopt;
+    // result is already std::nullopt
+    return absl::OkStatus();
   }
 
-  ASSIGN_OR_RETURN(auto schema, GetChildAttrSchema(parent_schema, attr_name));
-  ASSIGN_OR_RETURN(auto itemid,
+  struct CallbackVars {
+    std::optional<DataSlice> schema;
+    std::optional<DataSlice> itemid;
+    DataSlice::JaggedShape items_shape;
+    std::optional<DataSlice> lists_mask;
+    std::optional<DataSlice> flat_items;
+  };
+  auto vars = std::make_unique<CallbackVars>();
+
+  ASSIGN_OR_RETURN(vars->schema, GetChildAttrSchema(parent_schema, attr_name));
+  ASSIGN_OR_RETURN(vars->itemid,
                    MakeChildListAttrItemIds(parent_itemid, attr_name));
   const auto* extension_map =
       GetChildExtensionMap(parent_extension_map, field_name);
 
-  ASSIGN_OR_RETURN(auto items_shape, std::move(shape_builder).Build());
-  ASSIGN_OR_RETURN(auto items_schema, GetMessageListItemsSchema(schema));
-  ASSIGN_OR_RETURN(auto flat_items_itemid,
-                   MakeFlatChildIndexItemUuids(itemid, items_shape));
-  ASSIGN_OR_RETURN(auto flat_items,
-                   FromProtoMessage(db, *field_descriptor.message_type(),
-                                    flat_child_messages, flat_items_itemid,
-                                    items_schema, extension_map));
-  ASSIGN_OR_RETURN(auto items,
-                   std::move(flat_items).Reshape(std::move(items_shape)));
-  ASSIGN_OR_RETURN(auto lists_mask,
+  ASSIGN_OR_RETURN(vars->items_shape, std::move(shape_builder).Build());
+  ASSIGN_OR_RETURN(auto items_schema, GetMessageListItemsSchema(vars->schema));
+  ASSIGN_OR_RETURN(
+      auto flat_items_itemid,
+      MakeFlatChildIndexItemUuids(vars->itemid, vars->items_shape));
+  ASSIGN_OR_RETURN(vars->lists_mask,
                    DataSlice::Create(internal::DataSliceImpl::Create(
                                          std::move(lists_mask_builder).Build()),
                                      DataSlice::JaggedShape::FlatFromSize(
                                          parent_messages.size()),
                                      internal::DataItem(schema::kMask)));
-  ASSIGN_OR_RETURN(auto lists,
-                   CreateListLike(db, std::move(lists_mask), std::move(items),
-                                  std::nullopt,
-                                  std::nullopt, itemid));
-  if (schema.has_value() && schema->item() == schema::kObject) {
-    ASSIGN_OR_RETURN(lists, ToObject(std::move(lists)));
-  }
-  return lists;
+  RETURN_IF_ERROR(FromProtoMessageBreakRecursion(
+      db, *field_descriptor.message_type(), std::move(flat_child_messages),
+      std::move(flat_items_itemid), std::move(items_schema), extension_map,
+      executor, vars->flat_items));
+
+  executor.Enqueue([db = db, vars = std::move(vars),
+                    &result]() -> absl::Status {
+    ASSIGN_OR_RETURN(
+        auto items,
+        std::move(*vars->flat_items).Reshape(std::move(vars->items_shape)));
+    ASSIGN_OR_RETURN(
+        auto lists,
+        CreateListLike(db, std::move(*vars->lists_mask), std::move(items),
+                       std::nullopt, std::nullopt, vars->itemid));
+    if (vars->schema.has_value() && vars->schema->item() == schema::kObject) {
+      ASSIGN_OR_RETURN(lists, ToObject(std::move(lists)));
+    }
+    result = std::move(lists);
+    return absl::OkStatus();
+  });
+  return absl::OkStatus();
 }
 
 // Returns a rank-1 DataSlice of Lists of primitives converted from a repeated
@@ -535,106 +545,17 @@ absl::StatusOr<std::optional<DataSlice>> ListFromProtoRepeatedPrimitiveField(
   }
 }
 
-// Returns a rank-1 DataSlice of Dicts converted from a proto map field on a
-// vector of messages.
-absl::StatusOr<std::optional<DataSlice>> DictFromProtoMapField(
-    const absl::Nonnull<DataBagPtr>& db,
-    absl::string_view attr_name,
-    absl::string_view field_name,
-    const FieldDescriptor& field_descriptor,
-    absl::Span<const absl::Nonnull<const Message*>> parent_messages,
-    const std::optional<DataSlice>& parent_itemid,
-    const std::optional<DataSlice>& parent_schema,
-    absl::Nullable<const ExtensionMap*> parent_extension_map) {
-  bool is_empty = true;
-  arolla::DenseArrayBuilder<arolla::Unit> dicts_mask_builder(
-      parent_messages.size());
-  Shape2DBuilder shape_builder(parent_messages.size());
-  std::vector<absl::Nonnull<const Message*>> flat_item_messages;
-  for (int64_t i = 0; i < parent_messages.size(); ++i) {
-    const auto& parent_message = *parent_messages[i];
-    const auto* refl = parent_message.GetReflection();
-    const auto& field_ref =
-        refl->GetRepeatedFieldRef<Message>(parent_message, &field_descriptor);
-    shape_builder.Add(field_ref.size());
-    for (const auto& item_message : field_ref) {
-      flat_item_messages.push_back(&item_message);
-    }
-    if (!field_ref.empty()) {
-      dicts_mask_builder.Add(i, arolla::kUnit);
-      is_empty = false;
-    }
-  }
-  if (is_empty) {
-    return std::nullopt;
-  }
-
-  ASSIGN_OR_RETURN(auto schema, GetChildAttrSchema(parent_schema, attr_name));
-  ASSIGN_OR_RETURN(auto itemid,
-                   MakeChildDictAttrItemIds(parent_itemid, attr_name));
-  const auto* extension_map =
-      GetChildExtensionMap(parent_extension_map, field_name);
-
-  ASSIGN_OR_RETURN(auto items_shape, std::move(shape_builder).Build());
-  ASSIGN_OR_RETURN(auto flat_items_itemid,
-                   MakeFlatChildIndexItemUuids(itemid, items_shape));
-  const Descriptor& map_item_descriptor = *field_descriptor.message_type();
-  // We set `ignore_field_presence` here because even though the `key` and
-  // `value` fields of the map item message are marked as `optional` (report
-  // having field presence via their field descriptors), the proto `Map` API
-  // treats them as default-valued if they are unset, so we want them to be
-  // converted to their default values in these DataSlices instead of being
-  // missing.
-  ASSIGN_OR_RETURN(
-      std::optional<DataSlice> flat_keys,
-      FromProtoField(db, schema::kDictKeysSchemaAttr, "keys",
-                     *map_item_descriptor.map_key(), flat_item_messages,
-                     flat_items_itemid, schema, extension_map,
-                     /*ignore_field_presence=*/true));
-  DCHECK(flat_keys.has_value());  // Implied by ignore_field_presence = true.
-  ASSIGN_OR_RETURN(
-      std::optional<DataSlice> flat_values,
-      FromProtoField(db, schema::kDictValuesSchemaAttr, "values",
-                     *map_item_descriptor.map_value(), flat_item_messages,
-                     flat_items_itemid, schema, extension_map,
-                    /*ignore_field_presence=*/true));
-  ASSIGN_OR_RETURN(auto keys, std::move(flat_keys)->Reshape(items_shape));
-  ASSIGN_OR_RETURN(auto values,
-                   std::move(flat_values)->Reshape(std::move(items_shape)));
-  ASSIGN_OR_RETURN(auto dicts_mask,
-                   DataSlice::Create(internal::DataSliceImpl::Create(
-                                         std::move(dicts_mask_builder).Build()),
-                                     DataSlice::JaggedShape::FlatFromSize(
-                                         parent_messages.size()),
-                                     internal::DataItem(schema::kMask)));
-  ASSIGN_OR_RETURN(
-      auto dicts,
-      CreateDictLike(db,
-                     /*shape_and_mask_from=*/std::move(dicts_mask),
-                     /*keys=*/std::move(keys),
-                     /*values=*/std::move(values),
-                     /*schema=*/std::nullopt,
-                     /*key_schema=*/std::nullopt,
-                     /*value_schema=*/std::nullopt,
-                     /*itemid=*/itemid));
-  if (schema.has_value() && schema->item() == schema::kObject) {
-    ASSIGN_OR_RETURN(dicts, ToObject(std::move(dicts)));
-  }
-  return dicts;
-}
-
 // Returns a rank-1 DataSlice of objects or entities converted from a proto
 // non-repeated message field on a vector of messages.
-absl::StatusOr<std::optional<DataSlice>> FromProtoMessageField(
-    const absl::Nonnull<DataBagPtr>& db,
-    absl::string_view attr_name,
-    absl::string_view field_name,
-    const FieldDescriptor& field_descriptor,
+absl::Status FromProtoMessageField(
+    const absl::Nonnull<DataBagPtr>& db, absl::string_view attr_name,
+    absl::string_view field_name, const FieldDescriptor& field_descriptor,
     absl::Span<const absl::Nonnull<const Message*>> parent_messages,
     const std::optional<DataSlice>& parent_itemid,
     const std::optional<DataSlice>& parent_schema,
     absl::Nullable<const ExtensionMap*> parent_extension_map,
-    bool ignore_field_presence = false) {
+    bool ignore_field_presence, internal::TrampolineExecutor& executor,
+    std::optional<DataSlice>& result) {
   bool is_empty = true;
   arolla::DenseArrayBuilder<arolla::Unit> mask_builder(parent_messages.size());
   std::vector<absl::Nonnull<const Message*>> packed_child_messages;
@@ -651,7 +572,8 @@ absl::StatusOr<std::optional<DataSlice>> FromProtoMessageField(
     }
   }
   if (is_empty) {
-    return std::nullopt;
+    // result is already std::nullopt
+    return absl::OkStatus();
   }
 
   ASSIGN_OR_RETURN(auto schema, GetChildAttrSchema(parent_schema, attr_name));
@@ -660,27 +582,40 @@ absl::StatusOr<std::optional<DataSlice>> FromProtoMessageField(
   const auto* extension_map =
       GetChildExtensionMap(parent_extension_map, field_name);
 
+  struct CallbackVars {
+    std::optional<DataSlice> mask;
+    std::optional<DataSlice> packed_values;
+  };
+  auto vars = std::make_unique<CallbackVars>();
+
   ASSIGN_OR_RETURN(
-      auto mask,
+      vars->mask,
       DataSlice::Create(
           internal::DataSliceImpl::Create(std::move(mask_builder).Build()),
           DataSlice::JaggedShape::FlatFromSize(parent_messages.size()),
           internal::DataItem(schema::kMask)));
-  ASSIGN_OR_RETURN(
-      auto packed_itemid, [&]() -> absl::StatusOr<std::optional<DataSlice>> {
-        if (!itemid.has_value()) {
-          return std::nullopt;
-        }
-        ASSIGN_OR_RETURN(auto packed_itemid, ops::Select(*itemid, mask, false));
-        return packed_itemid;
-      }());
-  ASSIGN_OR_RETURN(
-      auto packed_values,
-      FromProtoMessage(db, *field_descriptor.message_type(),
-                       packed_child_messages, std::move(packed_itemid), schema,
-                       extension_map));
+  ASSIGN_OR_RETURN(auto packed_itemid,
+                   [&]() -> absl::StatusOr<std::optional<DataSlice>> {
+                     if (!itemid.has_value()) {
+                       return std::nullopt;
+                     }
+                     ASSIGN_OR_RETURN(auto packed_itemid,
+                                      ops::Select(*itemid, *vars->mask, false));
+                     return packed_itemid;
+                   }());
 
-  return ops::ReverseSelect(std::move(packed_values), std::move(mask));
+  RETURN_IF_ERROR(FromProtoMessageBreakRecursion(
+      db, *field_descriptor.message_type(), std::move(packed_child_messages),
+      std::move(packed_itemid), std::move(schema), extension_map, executor,
+      vars->packed_values));
+
+  executor.Enqueue([vars = std::move(vars), &result]() -> absl::Status {
+    ASSIGN_OR_RETURN(result, ops::ReverseSelect(std::move(*vars->packed_values),
+                                                std::move(*vars->mask)));
+    return absl::OkStatus();
+  });
+
+  return absl::OkStatus();
 }
 
 // Returns a rank-1 DataSlice of primitives converted from a proto non-repeated
@@ -789,40 +724,160 @@ absl::StatusOr<std::optional<DataSlice>> FromProtoPrimitiveField(
   }
 }
 
-// Returns a rank-1 DataSlice converted from a proto field (of any kind) on a
+// Returns a rank-1 DataSlice of Dicts converted from a proto map field on a
 // vector of messages.
-absl::StatusOr<std::optional<DataSlice>> FromProtoField(
+absl::Status DictFromProtoMapField(
     const absl::Nonnull<DataBagPtr>& db, absl::string_view attr_name,
     absl::string_view field_name, const FieldDescriptor& field_descriptor,
     absl::Span<const absl::Nonnull<const Message*>> parent_messages,
     const std::optional<DataSlice>& parent_itemid,
     const std::optional<DataSlice>& parent_schema,
     absl::Nullable<const ExtensionMap*> parent_extension_map,
-    bool ignore_field_presence) {
+    internal::TrampolineExecutor& executor,
+    std::optional<DataSlice>& result) {
+  bool is_empty = true;
+  arolla::DenseArrayBuilder<arolla::Unit> dicts_mask_builder(
+      parent_messages.size());
+  Shape2DBuilder shape_builder(parent_messages.size());
+  std::vector<absl::Nonnull<const Message*>> flat_item_messages;
+  for (int64_t i = 0; i < parent_messages.size(); ++i) {
+    const auto& parent_message = *parent_messages[i];
+    const auto* refl = parent_message.GetReflection();
+    const auto& field_ref =
+        refl->GetRepeatedFieldRef<Message>(parent_message, &field_descriptor);
+    shape_builder.Add(field_ref.size());
+    for (const auto& item_message : field_ref) {
+      flat_item_messages.push_back(&item_message);
+    }
+    if (!field_ref.empty()) {
+      dicts_mask_builder.Add(i, arolla::kUnit);
+      is_empty = false;
+    }
+  }
+  if (is_empty) {
+    // result is already std::nullopt
+    return absl::OkStatus();
+  }
+
+  struct CallbackVars {
+    std::optional<DataSlice> schema;
+    std::optional<DataSlice> itemid;
+    DataSlice::JaggedShape items_shape;
+    DataSlice dicts_mask;
+    std::optional<DataSlice> flat_keys;
+    std::optional<DataSlice> flat_values;
+  };
+  auto vars = std::make_unique<CallbackVars>();
+
+  const auto* extension_map =
+      GetChildExtensionMap(parent_extension_map, field_name);
+  ASSIGN_OR_RETURN(vars->schema, GetChildAttrSchema(parent_schema, attr_name));
+  ASSIGN_OR_RETURN(vars->itemid,
+                   MakeChildDictAttrItemIds(parent_itemid, attr_name));
+  ASSIGN_OR_RETURN(vars->items_shape, std::move(shape_builder).Build());
+  ASSIGN_OR_RETURN(
+      auto flat_items_itemid,
+      MakeFlatChildIndexItemUuids(vars->itemid, vars->items_shape));
+  const Descriptor& map_item_descriptor = *field_descriptor.message_type();
+  ASSIGN_OR_RETURN(vars->dicts_mask,
+                   DataSlice::Create(internal::DataSliceImpl::Create(
+                                         std::move(dicts_mask_builder).Build()),
+                                     DataSlice::JaggedShape::FlatFromSize(
+                                         parent_messages.size()),
+                                     internal::DataItem(schema::kMask)));
+
+  // We set `ignore_field_presence` here because even though the `key` and
+  // `value` fields of the map item message are marked as `optional` (report
+  // having field presence via their field descriptors), the proto `Map` API
+  // treats them as default-valued if they are unset, so we want them to be
+  // converted to their default values in these DataSlices instead of being
+  // missing.
+  ASSIGN_OR_RETURN(vars->flat_keys,
+                   FromProtoPrimitiveField(schema::kDictKeysSchemaAttr,
+                                           *map_item_descriptor.map_key(),
+                                           flat_item_messages, vars->schema,
+                                           /*ignore_field_presence=*/true));
+  if (map_item_descriptor.map_value()->message_type()) {
+    RETURN_IF_ERROR(FromProtoMessageField(
+        db, schema::kDictValuesSchemaAttr, "values",
+        *map_item_descriptor.map_value(), flat_item_messages, flat_items_itemid,
+        vars->schema, extension_map,
+        /*ignore_field_presence=*/true, executor, vars->flat_values));
+  } else {
+    ASSIGN_OR_RETURN(vars->flat_values,
+                     FromProtoPrimitiveField(schema::kDictValuesSchemaAttr,
+                                             *map_item_descriptor.map_value(),
+                                             flat_item_messages, vars->schema,
+                                             /*ignore_field_presence=*/true));
+  }
+
+  executor.Enqueue([db = db, vars = std::move(vars),
+                    &result]() -> absl::Status {
+    ASSIGN_OR_RETURN(auto keys,
+                     std::move(vars->flat_keys)->Reshape(vars->items_shape));
+    ASSIGN_OR_RETURN(
+        auto values,
+        std::move(vars->flat_values)->Reshape(std::move(vars->items_shape)));
+
+    ASSIGN_OR_RETURN(
+        auto dicts,
+        CreateDictLike(db,
+                       /*shape_and_mask_from=*/std::move(vars->dicts_mask),
+                       /*keys=*/std::move(keys),
+                       /*values=*/std::move(values),
+                       /*schema=*/std::nullopt,
+                       /*key_schema=*/std::nullopt,
+                       /*value_schema=*/std::nullopt,
+                       /*itemid=*/vars->itemid));
+    if (vars->schema.has_value() && vars->schema->item() == schema::kObject) {
+      ASSIGN_OR_RETURN(dicts, ToObject(std::move(dicts)));
+    }
+    result = std::move(dicts);
+    return absl::OkStatus();
+  });
+  return absl::OkStatus();
+}
+
+// Returns a rank-1 DataSlice converted from a proto field (of any kind) on a
+// vector of messages.
+absl::Status FromProtoField(
+    const absl::Nonnull<DataBagPtr>& db, absl::string_view attr_name,
+    absl::string_view field_name, const FieldDescriptor& field_descriptor,
+    absl::Span<const absl::Nonnull<const Message*>> parent_messages,
+    const std::optional<DataSlice>& parent_itemid,
+    const std::optional<DataSlice>& parent_schema,
+    absl::Nullable<const ExtensionMap*> parent_extension_map,
+    bool ignore_field_presence, internal::TrampolineExecutor& executor,
+    std::optional<DataSlice>& result) {
   if (field_descriptor.is_map()) {
     return DictFromProtoMapField(db, attr_name, field_name, field_descriptor,
                                  parent_messages, parent_itemid, parent_schema,
-                                 parent_extension_map);
+                                 parent_extension_map, executor, result);
   } else if (field_descriptor.is_repeated()) {
     if (field_descriptor.message_type() != nullptr) {
       return ListFromProtoRepeatedMessageField(
           db, attr_name, field_name, field_descriptor, parent_messages,
-          parent_itemid, parent_schema, parent_extension_map);
+          parent_itemid, parent_schema, parent_extension_map, executor, result);
     } else {
-      return ListFromProtoRepeatedPrimitiveField(
-          db, attr_name, field_name, field_descriptor, parent_messages,
-          parent_itemid, parent_schema);
+      ASSIGN_OR_RETURN(result,
+                       ListFromProtoRepeatedPrimitiveField(
+                           db, attr_name, field_name, field_descriptor,
+                           parent_messages, parent_itemid, parent_schema));
+      return absl::OkStatus();
     }
   } else {
     if (field_descriptor.message_type() != nullptr) {
-      return FromProtoMessageField(
-          db, attr_name, field_name, field_descriptor, parent_messages,
-          parent_itemid, parent_schema, parent_extension_map,
-          /*ignore_field_presence=*/ignore_field_presence);
+      return FromProtoMessageField(db, attr_name, field_name, field_descriptor,
+                                   parent_messages, parent_itemid,
+                                   parent_schema, parent_extension_map,
+                                   ignore_field_presence, executor, result);
     } else {
-      return FromProtoPrimitiveField(
-          attr_name, field_descriptor, parent_messages, parent_schema,
-          /*ignore_field_presence=*/ignore_field_presence);
+      ASSIGN_OR_RETURN(
+          result,
+          FromProtoPrimitiveField(
+              attr_name, field_descriptor, parent_messages, parent_schema,
+              /*ignore_field_presence=*/ignore_field_presence));
+      return absl::OkStatus();
     }
   }
 }
@@ -845,26 +900,41 @@ absl::StatusOr<DataSlice> FromZeroProtoMessages(
 
 // Returns a rank-1 DataSlice of objects or entities converted from a vector of
 // uniform-type proto messages.
-absl::StatusOr<DataSlice> FromProtoMessage(
+absl::Status FromProtoMessage(
     const absl::Nonnull<DataBagPtr>& db, const Descriptor& message_descriptor,
     absl::Span<const absl::Nonnull<const Message*>> messages,
     const std::optional<DataSlice>& itemid,
     const std::optional<DataSlice>& schema,
-    absl::Nullable<const ExtensionMap*> extension_map) {
+    absl::Nullable<const ExtensionMap*> extension_map,
+    internal::TrampolineExecutor& executor, std::optional<DataSlice>& result) {
   DCHECK(!messages.empty());
 
-  // Defined here to maintain lifetime for references in `attr_names`.
-  DataSlice::AttrNamesSet schema_attr_names;
+  struct FieldVars {
+    absl::Nonnull<const FieldDescriptor*> field_descriptor;
+    absl::string_view attr_name;
+    std::optional<DataSlice> value;
+  };
 
-  std::vector<
-      std::tuple<absl::Nonnull<const FieldDescriptor*>, absl::string_view>>
-      fields_and_attr_names;
+  struct CallbackVars {
+    size_t num_messages;
+    const Descriptor* message_descriptor;
+    std::optional<DataSlice> itemid;
+    std::optional<DataSlice> schema;
+    DataSlice::AttrNamesSet schema_attr_names;
+    std::vector<FieldVars> fields;
+  };
+  auto vars = std::make_unique<CallbackVars>();
+  vars->num_messages = messages.size();
+  vars->message_descriptor = &message_descriptor;
+  vars->itemid = itemid;
+  vars->schema = schema;
+
   if (schema.has_value() && schema->IsEntitySchema()) {
     // For explicit entity schemas, use the schema attr names as the list of
     // fields and extensions to convert.
-    ASSIGN_OR_RETURN(schema_attr_names, schema->GetAttrNames());
-    fields_and_attr_names.reserve(schema_attr_names.size());
-    for (const auto& attr_name : schema_attr_names) {
+    ASSIGN_OR_RETURN(vars->schema_attr_names, schema->GetAttrNames());
+    vars->fields.reserve(vars->schema_attr_names.size());
+    for (const auto& attr_name : vars->schema_attr_names) {
       if (attr_name.starts_with('(') && attr_name.ends_with(')')) {
         // Interpret attrs with parentheses as fully-qualified extension paths.
         const auto ext_full_path =
@@ -876,11 +946,11 @@ absl::StatusOr<DataSlice> FromProtoMessage(
           return absl::InvalidArgumentError(
               absl::StrFormat("extension not found: \"%s\"", ext_full_path));
         }
-        fields_and_attr_names.emplace_back(field, attr_name);
+        vars->fields.emplace_back(field, attr_name);
       } else {
         const auto* field = message_descriptor.FindFieldByName(attr_name);
         if (field != nullptr) {
-          fields_and_attr_names.emplace_back(field, attr_name);
+          vars->fields.emplace_back(field, attr_name);
         }
       }
     }
@@ -890,58 +960,88 @@ absl::StatusOr<DataSlice> FromProtoMessage(
         message_descriptor.field_count() +
         ((extension_map != nullptr) ? extension_map->extension_fields.size()
                                     : 0);
-    fields_and_attr_names.reserve(num_fields);
+    vars->fields.reserve(num_fields);
     for (int i_field = 0; i_field < message_descriptor.field_count();
          ++i_field) {
       const auto* field = message_descriptor.field(i_field);
-      fields_and_attr_names.emplace_back(field, field->name());
+      vars->fields.emplace_back(field, field->name());
     }
     if (extension_map != nullptr) {
       for (const auto& [attr_name, field] : extension_map->extension_fields) {
-        fields_and_attr_names.emplace_back(field, attr_name);
+        vars->fields.emplace_back(field, attr_name);
       }
     }
   }
 
-  std::vector<absl::string_view> value_attr_names;
-  std::vector<DataSlice> values;
-  for (const auto& [field, attr_name] : fields_and_attr_names) {
-    ASSIGN_OR_RETURN(std::optional<DataSlice> field_values,
-                     FromProtoField(db, attr_name, attr_name, *field,
-                                    messages, itemid, schema, extension_map));
-    if (field_values.has_value()) {
-      DCHECK(!field_values->IsEmpty());
-      values.push_back(std::move(field_values).value());
-      value_attr_names.push_back(attr_name);
-    }
+  // NOTE: `vars->fields[i].value` must remain pointer-stable after this point.
+  for (auto& field_vars : vars->fields) {
+    RETURN_IF_ERROR(FromProtoField(
+        db, field_vars.attr_name, field_vars.attr_name,
+        *field_vars.field_descriptor, messages, itemid, schema, extension_map,
+        /*ignore_field_presence=*/false, executor, field_vars.value));
   }
 
-  auto result_shape = DataSlice::JaggedShape::FlatFromSize(messages.size());
-  if (schema.has_value()) {
-    RETURN_IF_ERROR(schema->VerifyIsSchema());
-    if (schema->item() == schema::kObject) {
-      return ObjectCreator::Shaped(db, std::move(result_shape),
-                                   /*attr_names=*/std::move(value_attr_names),
-                                   /*values=*/std::move(values),
-                                   /*itemid=*/itemid);
-    } else {  // schema != OBJECT
-      return EntityCreator::Shaped(db, std::move(result_shape),
-                                   /*attr_names=*/std::move(value_attr_names),
-                                   /*values=*/std::move(values),
-                                   /*schema=*/schema,
-                                   /*update_schema=*/false,
-                                   /*itemid=*/itemid);
+  executor.Enqueue([db = db, vars = std::move(vars),
+                    &result]() -> absl::Status {
+    std::vector<absl::string_view> value_attr_names;
+    std::vector<DataSlice> values;
+    for (auto& field_vars : vars->fields) {
+      if (field_vars.value.has_value()) {
+        DCHECK(!field_vars.value->IsEmpty());
+        values.push_back(std::move(field_vars.value).value());
+        value_attr_names.push_back(field_vars.attr_name);
+      }
     }
-  } else {  // schema == nullopt
-    ASSIGN_OR_RETURN(DataSlice bare_schema,
-                     CreateBareProtoUuSchema(db, message_descriptor));
-    return EntityCreator::Shaped(db, std::move(result_shape),
-                                 /*attr_names=*/std::move(value_attr_names),
-                                 /*values=*/std::move(values),
-                                 /*schema=*/std::move(bare_schema),
-                                 /*update_schema=*/true,
-                                 /*itemid=*/itemid);
-  }
+
+    auto result_shape =
+        DataSlice::JaggedShape::FlatFromSize(vars->num_messages);
+    if (vars->schema.has_value()) {
+      RETURN_IF_ERROR(vars->schema->VerifyIsSchema());
+      if (vars->schema->item() == schema::kObject) {
+        ASSIGN_OR_RETURN(result, ObjectCreator::Shaped(
+                                     db, std::move(result_shape),
+                                     /*attr_names=*/std::move(value_attr_names),
+                                     /*values=*/std::move(values),
+                                     /*itemid=*/vars->itemid));
+      } else {  // schema != OBJECT
+        ASSIGN_OR_RETURN(result, EntityCreator::Shaped(
+                                     db, std::move(result_shape),
+                                     /*attr_names=*/std::move(value_attr_names),
+                                     /*values=*/std::move(values),
+                                     /*schema=*/vars->schema,
+                                     /*update_schema=*/false,
+                                     /*itemid=*/vars->itemid));
+      }
+    } else {  // schema == nullopt
+      ASSIGN_OR_RETURN(DataSlice bare_schema,
+                       CreateBareProtoUuSchema(db, *vars->message_descriptor));
+      ASSIGN_OR_RETURN(result, EntityCreator::Shaped(
+                                   db, std::move(result_shape),
+                                   /*attr_names=*/std::move(value_attr_names),
+                                   /*values=*/std::move(values),
+                                   /*schema=*/std::move(bare_schema),
+                                   /*update_schema=*/true,
+                                   /*itemid=*/vars->itemid));
+    }
+    return absl::OkStatus();
+  });
+  return absl::OkStatus();
+}
+
+absl::Status FromProtoMessageBreakRecursion(
+    const absl::Nonnull<DataBagPtr>& db, const Descriptor& message_descriptor,
+    std::vector<absl::Nonnull<const Message*>> messages,
+    std::optional<DataSlice> itemid, std::optional<DataSlice> schema,
+    absl::Nullable<const ExtensionMap*> extension_map,
+    internal::TrampolineExecutor& executor, std::optional<DataSlice>& result) {
+  executor.Enqueue([db = db, message_descriptor = &message_descriptor,
+                    messages = std::move(messages), itemid = std::move(itemid),
+                    schema = std::move(schema), extension_map,
+                    &executor, &result]() -> absl::Status {
+    return FromProtoMessage(db, *message_descriptor, messages, itemid, schema,
+                            extension_map, executor, result);
+  });
+  return absl::OkStatus();
 }
 
 }  // namespace
@@ -977,8 +1077,12 @@ absl::StatusOr<DataSlice> FromProto(
       const ExtensionMap extension_map,
       ParseExtensions(extensions, *message_descriptor->file()->pool()));
 
-  return FromProtoMessage(db, *message_descriptor, messages, itemid, schema,
-                          &extension_map);
+  std::optional<DataSlice> result;
+  RETURN_IF_ERROR(internal::TrampolineExecutor::Run([&](auto& executor) {
+    return FromProtoMessage(db, *message_descriptor, messages, itemid, schema,
+                            &extension_map, executor, result);
+  }));
+  return std::move(*result);
 }
 
 }  // namespace koladata

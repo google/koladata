@@ -33,6 +33,7 @@ cc_library(
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/internal:schema_utils",
+        "//koladata/internal/op_utils:trampoline_executor",
         "//koladata/operators:lib",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
