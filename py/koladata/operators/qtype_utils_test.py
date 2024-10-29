@@ -151,6 +151,25 @@ class KodaQTypesTest(absltest.TestCase):
             )
         )
 
+  def test_expect_accepts_hidden_seed(self):
+    @arolla.optools.as_lambda_operator(
+        'op4.name',
+        qtype_constraints=[qtype_utils.expect_accepts_hidden_seed()],
+    )
+    def _op(hidden_seed):
+      del hidden_seed  # unused
+      return 123
+
+    with self.subTest('success'):
+      _op(arolla.int64(123))
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          'expected hidden_seed to be INT64, got hidden_seed: DATA_SLICE',
+      ):
+        _op(data_slice.DataSlice.from_vals(123))
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -1829,8 +1829,7 @@ def select_items(ds, fltr):
     'kde.core._new_ids_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.obj),
-        constraints.expect_scalar_qtype_in(P.hidden_seed, [arolla.types.INT64]),
-        constraints.expect_scalar(P.hidden_seed),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
@@ -1904,8 +1903,7 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
         qtype_utils.expect_data_slice(P.obj),
         qtype_utils.expect_data_slice(P.itemid),
         qtype_utils.expect_data_slice(P.schema),
-        constraints.expect_scalar_qtype_in(P.hidden_seed, [arolla.types.INT64]),
-        constraints.expect_scalar(P.hidden_seed),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
@@ -1924,8 +1922,7 @@ def _shallow_clone(obj, itemid, schema, hidden_seed):  # pylint: disable=unused-
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
-        constraints.expect_scalar_qtype_in(P.hidden_seed, [arolla.types.INT64]),
-        constraints.expect_scalar(P.hidden_seed),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -1985,8 +1982,7 @@ def shallow_clone(
         qtype_utils.expect_data_slice(P.obj),
         qtype_utils.expect_data_slice(P.itemid),
         qtype_utils.expect_data_slice(P.schema),
-        constraints.expect_scalar_qtype_in(P.hidden_seed, [arolla.types.INT64]),
-        constraints.expect_scalar(P.hidden_seed),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
@@ -2005,8 +2001,7 @@ def _clone(obj, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
-        constraints.expect_scalar_qtype_in(P.hidden_seed, [arolla.types.INT64]),
-        constraints.expect_scalar(P.hidden_seed),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -2065,6 +2060,7 @@ def clone(
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.obj),
         qtype_utils.expect_data_slice(P.schema),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
@@ -2082,6 +2078,7 @@ def _deep_clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.obj),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -3454,6 +3451,7 @@ def _list_like(
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )

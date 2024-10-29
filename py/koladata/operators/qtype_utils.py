@@ -114,3 +114,14 @@ def expect_jagged_shape_or_unspecified(param) -> constraints.QTypeConstraint:
           f' {constraints.name_type_msg(param)}'
       ),
   )
+
+
+def expect_accepts_hidden_seed() -> constraints.QTypeConstraint:
+  """Returns a constraint that there is a hidden_seed argument."""
+  return (
+      P.hidden_seed == arolla.types.INT64,
+      (
+          'expected hidden_seed to be INT64, got'
+          f' {constraints.name_type_msg(P.hidden_seed)}'
+      ),
+  )
