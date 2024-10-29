@@ -69,7 +69,7 @@ def agg_join(
     sep: If specified, will join by the specified string, otherwise will be
       empty string.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   return _agg_join(jagged_shape_ops.flatten_last_ndim(x, ndim), sep)
 

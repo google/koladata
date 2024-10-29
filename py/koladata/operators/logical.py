@@ -312,7 +312,7 @@ def agg_any(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   return _agg_any(jagged_shape_ops.flatten_last_ndim(has(x), ndim))
 
@@ -357,7 +357,7 @@ def agg_all(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   return _agg_all(jagged_shape_ops.flatten_last_ndim(has(x), ndim))
 

@@ -138,7 +138,7 @@ def sample(
   key = _assert_key_for_sample(x, key)
   x_shape = assertion.with_assertion(
       jagged_shape_ops.get_shape(x),
-      core.rank(x) > 0,
+      core.get_ndim(x) > 0,
       'expected rank(x) > 0',
   )
   flat_mask = M.random.sample(

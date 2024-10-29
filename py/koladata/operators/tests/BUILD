@@ -4895,8 +4895,8 @@ py_test(
 )
 
 py_test(
-    name = "core_rank_test",
-    srcs = ["core_rank_test.py"],
+    name = "core_get_ndim_test",
+    srcs = ["core_get_ndim_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",

@@ -77,7 +77,7 @@ def _collapse(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice.
     ndim: The number of dimensions to collapse into. Requires 0 <= ndim <=
-      rank(x).
+      get_ndim(x).
 
   Returns:
     Collapsed DataSlice.

@@ -262,7 +262,7 @@ def agg_sum(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice of numbers.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   return _agg_sum(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
@@ -313,7 +313,7 @@ def agg_mean(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice of numbers.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   return _agg_mean(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
@@ -364,7 +364,7 @@ def agg_median(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice of numbers.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   return _agg_median(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
@@ -428,7 +428,7 @@ def agg_std(
     unbiased: A boolean flag indicating whether to substract 1 from the number
       of elements in the denominator.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   return _agg_std(
       jagged_shape_ops.flatten_last_ndim(x, ndim),
@@ -476,7 +476,7 @@ def agg_var(
     unbiased: A boolean flag indicating whether to substract 1 from the number
       of elements in the denominator.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   return _agg_var(
       jagged_shape_ops.flatten_last_ndim(x, ndim),
@@ -545,7 +545,7 @@ def agg_max(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice of numbers.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   return _agg_max(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
@@ -623,7 +623,7 @@ def agg_min(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice of numbers.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   return _agg_min(jagged_shape_ops.flatten_last_ndim(x, ndim))
 

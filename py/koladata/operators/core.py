@@ -590,15 +590,13 @@ def reverse_select(ds, fltr):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.rank', 'kde.core.get_ndim', 'kde.get_ndim']
-)
+@optools.add_to_registry(aliases=['kde.get_ndim'])
 @optools.as_lambda_operator(
-    'kde.core.rank',
+    'kde.core.get_ndim',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )
-def rank(x):
-  """Returns the rank of the DataSlice `x`."""
+def get_ndim(x):
+  """Returns the number of dimensions of DataSlice `x`."""
   return jagged_shape_ops.rank(jagged_shape_ops.get_shape(x))
 
 
@@ -612,7 +610,7 @@ def rank(x):
 )
 def isin(x, y):
   """Returns a DataItem indicating whether DataItem x is present in y."""
-  x = assertion.with_assertion(x, rank(x) == 0, "'x' must be a DataItem.")
+  x = assertion.with_assertion(x, get_ndim(x) == 0, "'x' must be a DataItem.")
   return logical.any_(x == y)
 
 
@@ -1323,7 +1321,7 @@ def agg_count(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice.
     ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
-      rank(x).
+      get_ndim(x).
   """
   x = jagged_shape_ops.flatten_last_ndim(x, ndim)
   flat_units = arolla_bridge.to_arolla_dense_array_unit(logical.has(x))
@@ -1360,7 +1358,7 @@ def agg_uuid(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice.
     ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
-      rank(x).
+      get_ndim(x).
 
   Returns:
     DataSlice with that has `rank = rank - ndim` and shape: `shape =
@@ -1392,7 +1390,7 @@ def cum_count(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice.
     ndim: The number of trailing dimensions to count within. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
 
   Returns:
     A DataSlice of INT64 with the same shape and sparsity as `x`.
@@ -1443,7 +1441,7 @@ def index(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= rank(x).
+      <= get_ndim(x).
   """
   flat_units = arolla_bridge.to_arolla_dense_array_unit(logical.has(x))
   shape = jagged_shape_ops.get_shape(x)
@@ -1516,9 +1514,9 @@ def at(x, indices):  # pylint: disable=unused-argument
 def group_by_indices(*args):  # pylint: disable=unused-argument
   """Returns a indices DataSlice with injected grouped_by dimension.
 
-  The resulting DataSlice has rank() + 1. The first `rank() - 1` dimensions are
-  unchanged. The last two dimensions corresponds to the groups and the
-  items within the groups.
+  The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
+  dimensions are unchanged. The last two dimensions corresponds to the groups
+  and the items within the groups.
 
   Values of the data slice are the indices of the objects within the parent
   dimension. `kde.at(x, kde.group_by_indices(x))` would group the objects in `x`
@@ -1621,9 +1619,9 @@ def group_by_indices_sorted(*args):  # pylint: disable=unused-argument
 def group_by(x, *args):
   """Returns permutation of `x` with injected grouped_by dimension.
 
-  The resulting DataSlice has rank() + 1. The first `rank() - 1` dimensions are
-  unchanged. The last two dimensions corresponds to the groups and the
-  items within the groups.
+  The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
+  dimensions are unchanged. The last two dimensions corresponds to the groups
+  and the items within the groups.
 
   Values of the result is a permutation of `x`. `args` are used for the grouping
   keys. If length of `args` is greater than 1, the key is a tuple.
@@ -1710,8 +1708,8 @@ def unique(
   """Returns a DataSlice with unique values within each dimension.
 
   The resulting DataSlice has the same rank as `x`, but a different shape.
-  The first `rank(x) - 1` dimensions are unchanged. The last dimension contains
-  the unique values.
+  The first `get_ndim(x) - 1` dimensions are unchanged. The last dimension
+  contains the unique values.
 
   If `sort` is False elements are ordered by the appearance of the first object.
 
@@ -2812,7 +2810,8 @@ def ordinal_rank(
       positions in the DataSlice.
     descending: If true, items are compared in descending order. Does not affect
       the order of tie breaker and position in tie-breaking compairson.
-    ndim: The number of dimensions to rank over. Requires 0 <= ndim <= rank(x).
+    ndim: The number of dimensions to rank over.
+      Requires 0 <= ndim <= get_ndim(x).
 
   Returns:
     A DataSlice of ordinal ranks.
@@ -2884,7 +2883,8 @@ def dense_rank(
   Args:
     x: DataSlice to rank.
     descending: If true, items are compared in descending order.
-    ndim: The number of dimensions to rank over. Requires 0 <= ndim <= rank(x).
+    ndim: The number of dimensions to rank over.
+      Requires 0 <= ndim <= get_ndim(x).
 
   Returns:
     A DataSlice of dense ranks.
@@ -2939,7 +2939,7 @@ def inverse_mapping(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice of indices.
     ndim: The number of dimensions to compute inverse permutations over.
-      Requires 0 <= ndim <= rank(x).
+      Requires 0 <= ndim <= get_ndim(x).
 
   Returns:
     An inverse permutation of indices.
@@ -3194,7 +3194,7 @@ def agg_size(x, ndim=arolla.unspecified()):
   Args:
     x: A DataSlice.
     ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
-      rank(x).
+      get_ndim(x).
 
   Returns:
     A DataSlice of number of items in `x` over the last `ndim` dimensions.

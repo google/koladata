@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.rank."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -50,25 +48,23 @@ class CoreRankTest(parameterized.TestCase):
   )
   def test_eval(self, *args_and_expected):
     args, expected_value = args_and_expected[:-1], args_and_expected[-1]
-    result = expr_eval.eval(kde.core.rank(*args))
+    result = expr_eval.eval(kde.core.get_ndim(*args))
     testing.assert_equal(result, expected_value)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.rank,
+            kde.core.get_ndim,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.rank(I.x)))
+    self.assertTrue(view.has_data_slice_view(kde.core.get_ndim(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.rank, kde.rank))
-    self.assertTrue(optools.equiv_to_op(kde.core.rank, kde.core.get_ndim))
-    self.assertTrue(optools.equiv_to_op(kde.core.rank, kde.get_ndim))
+    self.assertTrue(optools.equiv_to_op(kde.core.get_ndim, kde.get_ndim))
 
 
 if __name__ == '__main__':
