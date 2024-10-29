@@ -47,7 +47,6 @@ using ::arolla::CreateDenseArray;
 using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
 using ::arolla::OptionalValue;
-using ::koladata::internal::ObjectId;
 using ::testing::MatchesRegex;
 
 absl::StatusOr<DenseArrayEdge> EdgeFromSplitPoints(
