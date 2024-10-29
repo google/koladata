@@ -4725,29 +4725,42 @@ TEST(DataSliceCastingTest, Implicit_And_Explicit_CastingAndSchemaUpdate) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, schema_slice));
+  auto obj_1 = test::DataItem(objects.slice()[0], db);
+  auto obj_2 = test::DataItem(objects.slice()[1], db);
 
   // Now objects have the following:
   // obj_1.__schema__ == explicit_schema
   // obj_2.__schema__ == implicit_schema
   // obj_1.__schema__.a == INT64
   // obj_2.__schema__.a == INT32
-  //
+  ASSERT_OK_AND_ASSIGN(auto obj_1_a, obj_1.GetAttr("a"));
+  EXPECT_EQ(obj_1_a.GetSchemaImpl(), schema::kInt64);
+  ASSERT_OK_AND_ASSIGN(auto obj_2_a, obj_2.GetAttr("a"));
+  EXPECT_EQ(obj_2_a.GetSchemaImpl(), schema::kInt32);
+
   // Setting an INT32 slice on objects, will cause it to be casted to INT64,
   // because of explicit schema and then as part of implicit schema overwrote,
   // obj_2.__schema__.a will become INT64.
-  ASSERT_OK_AND_ASSIGN(auto ds_a_object, objects.GetAttr("a"));
-  EXPECT_EQ(ds_a_object.GetSchemaImpl(),
-            schema::kInt64);  // Before setting attr.
-
   ASSERT_OK(objects.SetAttr("a", values_int32));
+
   ASSERT_OK_AND_ASSIGN(auto ds_a, objects.GetAttr("a"));
   EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kInt64);
   EXPECT_THAT(ds_a.slice(), ElementsAre(42l, 12l));
+
+  ASSERT_OK_AND_ASSIGN(obj_1_a, obj_1.GetAttr("a"));
+  EXPECT_EQ(obj_1_a.GetSchemaImpl(), schema::kInt64);
+  ASSERT_OK_AND_ASSIGN(obj_2_a, obj_2.GetAttr("a"));
+  EXPECT_EQ(obj_2_a.GetSchemaImpl(), schema::kInt64);
 
   // Casting does not work on OBJECTs as long as it is possible to narrow.
   values_int32 = test::DataSlice<int>({42, 12}, schema::kObject);
   ASSERT_EQ(values_int32.GetSchemaImpl(), schema::kObject);
   ASSERT_OK(objects.SetAttr("a", values_int32));
+
+  ASSERT_OK_AND_ASSIGN(obj_1_a, obj_1.GetAttr("a"));
+  EXPECT_EQ(obj_1_a.GetSchemaImpl(), schema::kInt64);
+  ASSERT_OK_AND_ASSIGN(obj_2_a, obj_2.GetAttr("a"));
+  EXPECT_EQ(obj_2_a.GetSchemaImpl(), schema::kInt64);
 }
 
 TEST(DataSliceCastingTest, SchemaAttr_DifferentExplicitSchemas) {
