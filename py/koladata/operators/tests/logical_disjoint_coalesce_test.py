@@ -24,6 +24,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -178,6 +179,13 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
+    )
+
+  def test_alias(self):
+    self.assertTrue(
+        optools.equiv_to_op(
+            kde.logical.disjoint_coalesce, kde.disjoint_coalesce
+        )
     )
 
   def test_view(self):

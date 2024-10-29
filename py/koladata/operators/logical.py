@@ -375,7 +375,7 @@ def all_(x):
   return agg_all(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kde.disjoint_coalesce'])
 @optools.as_lambda_operator(
     'kde.logical.disjoint_coalesce',
     qtype_constraints=[
