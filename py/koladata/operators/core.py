@@ -907,13 +907,68 @@ def obj_shaped_as(
     attrs=py_boxing.var_keyword(),
 ):
   # pylint: enable=unused-argument
-  """Returns a new DataSlice with object schema, shape of the provided DataSlice and attributes."""
+  """Returns a new DataSlice with object schema, shape of the provided DataSlice and attributes.
+
+  Does not copy the mask:
+  x = kde.obj_like(ds([None, None]), a=42).eval()
+  kde.has._eval(x) # => ds([kd.present, kd.present], schema_constants.MASK)
+  x.a # => ds([42, 42], schema_constants.INT32)
+
+  Args:
+    shape_from: DataSlice to copy the shape from.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    attrs: attrs to set on the returned object.
+
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
+  """
   return arolla.abc.bind_op(
       obj_shaped,
       shape=jagged_shape_ops.get_shape(shape_from),
       itemid=itemid,
       attrs=attrs,
   )
+
+
+@optools.add_to_registry(aliases=['kde.obj_like'])
+@optools.as_backend_operator(
+    'kde.core.obj_like',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.shape_and_mask_from),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+# Operator signature: `kde.obj_like(shape_and_mask_from, /,
+# itemid=None, **attrs)`
+# pylint: disable=unused-argument
+def obj_like(
+    shape_and_mask_from=py_boxing.positional_only(),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    attrs=py_boxing.var_keyword(),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=g-doc-args
+  # pylint: enable=unused-argument
+  """Returns a new DataSlice with object schema and the shape and mask of given DataSlice.
+
+  Please note the difference to obj_shaped_as:
+
+  x = kde.obj_like(ds([None, None]), a=42).eval()
+    kde.has._eval(x) # => ds([None, None], schema_constants.MASK)
+    x.a # => ds([None, None], schema_constants.OBJECT)
+
+  Args:
+    shape_and_mask_from: DataSlice to copy the shape and mask from.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    attrs: attrs to set on the returned object.
+
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
+  """
+  raise NotImplementedError('implemented in the backend')
 
 
 # TODO: Remove the *_db alias.
