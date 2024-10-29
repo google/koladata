@@ -48,10 +48,10 @@ class CoreEncodeItemIdTest(parameterized.TestCase):
   def test_encode_decode(self, ids):
     encoded = expr_eval.eval(kde.core.encode_itemid(ids))
     if isinstance(encoded, data_item.DataItem):
-      self.assertRegex(str(encoded), '[0-9a-zA-Z]*')
+      self.assertRegex(str(encoded), '[0-9a-zA-Z]{22}')
     else:
       for item in encoded.L:
-        self.assertRegex(str(item), '[0-9a-zA-Z]*')
+        self.assertRegex(str(item), '[0-9a-zA-Z]{22}')
     decoded = expr_eval.eval(kde.core.decode_itemid(encoded))
     self.assertIsNone(decoded.get_bag())
     testing.assert_equal(ids.no_bag().as_itemid(), decoded)

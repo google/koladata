@@ -13,11 +13,13 @@
 // limitations under the License.
 //
 #include "koladata/internal/op_utils/base62.h"
+#include <sys/types.h>
 
 #include <algorithm>
 #include <cstddef>
 #include <string>
 #include <utility>
+#include <cstdint>
 
 #include "absl/numeric/int128.h"
 #include "absl/strings/string_view.h"
@@ -25,27 +27,53 @@
 
 namespace koladata::internal {
 
+constexpr uint64_t kBase62Length = 22;
 constexpr static char kBase62Chars[] =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-constexpr size_t kBase62DigitIndex = 0;
-constexpr size_t kBase62UpperCaseIndex = 10;
-constexpr size_t kBase62LowerCaseIndex = 36;
+constexpr uint64_t kBase62DigitIndex = 0;
+constexpr uint64_t kBase62UpperCaseIndex = 10;
+constexpr uint64_t kBase62LowerCaseIndex = 36;
 
+// pow(31**10, -1, 2**64)
+constexpr uint64_t kLowInverse = 7459615142622190913;
+// pow(31**10, -1, 2**128) / 2**64
+constexpr uint64_t kHighInverse = 5689246992239689896;
+constexpr absl::uint128 kInverse = absl::MakeUint128(kHighInverse, kLowInverse);
+constexpr uint64_t k62Power10 = 839299365868340224;
 
 constexpr static absl::uint128 kBase =
     std::char_traits<char>::length(kBase62Chars);
 
+namespace {
+
+absl::uint128 DivideBy62Power10(absl::uint128& val, uint64_t reminder) {
+  // Calculate val / 62^10
+  return ((val - reminder) >> 10) * kInverse;
+}
+
+}  // namespace
+
 arolla::Text EncodeBase62(absl::uint128 val) {
-  std::string res;
-  if (val == 0) {
-    return arolla::Text("0");
-  }
-  while (val > 0) {
-    size_t idx = absl::Uint128Low64(val % kBase);
-    res += kBase62Chars[idx];
-    val = val / kBase;
-  }
-  std::reverse(res.begin(), res.end());
+  std::string res(kBase62Length, '0');
+  size_t idx = kBase62Length;
+
+  auto append_char = [&](uint64_t val, uint64_t step_size) {
+    for (; step_size > 0; --step_size) {
+      uint64_t cidx = val % 62;
+      res[--idx] = kBase62Chars[cidx];
+      val = val / 62;
+    }
+  };
+
+  uint64_t reminder = absl::Uint128Low64(val % k62Power10);
+  append_char(reminder, 10);
+
+  val = DivideBy62Power10(val, reminder);
+  reminder = absl::Uint128Low64(val % k62Power10);
+  append_char(reminder, 10);
+
+  val = DivideBy62Power10(val, reminder);
+  append_char(absl::Uint128Low64(val), 2);
   return arolla::Text(std::move(res));
 }
 
