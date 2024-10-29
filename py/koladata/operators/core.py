@@ -862,6 +862,36 @@ def new_shaped_as(
   )
 
 
+@optools.add_to_registry(aliases=['kde.new_like'])
+@optools.as_backend_operator(
+    'kde.core.new_like',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.shape_and_mask_from),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice(P.update_schema),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+# Operator signature: `kde.new_like(shape_and_mask_from, /, schema=None,
+# itemid=None, update_schema=False, **attrs)`
+# pylint: disable=unused-argument
+def new_like(
+    shape_and_mask_from=py_boxing.positional_only(),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    update_schema=py_boxing.keyword_only(False),
+    attrs=py_boxing.var_keyword(),
+    hidden_seed=py_boxing.hidden_seed(),
+):
+  # pylint: enable=unused-argument
+  """Returns a new DataSlice with the given schema and the shape and mask of given DataSlice."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(
     aliases=['kde.obj_shaped'], repr_fn=op_repr.full_signature_repr
 )

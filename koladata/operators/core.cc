@@ -903,8 +903,9 @@ class NewShapedOperator : public arolla::QExprOperator {
           const DataSlice& update_schema_slice = frame.Get(update_schema_slot);
           if (update_schema_slice.GetShape().rank() != 0 ||
               !update_schema_slice.item().holds_value<bool>()) {
-            ctx->set_status(absl::FailedPreconditionError(
-                "update_schema must be a boolean scalar"));
+            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
+                "update_schema must be a boolean scalar, got %s",
+                arolla::Repr(update_schema_slice))));
             return;
           }
           const bool update_schema = update_schema_slice.item().value<bool>();
@@ -986,6 +987,56 @@ class ObjLikeOperator : public arolla::QExprOperator {
               auto result,
               ObjectCreator::Like(result_db, shape_and_mask_from, attr_names,
                                   attr_values, item_id),
+              ctx->set_status(std::move(_)));
+          result.GetBag()->UnsafeMakeImmutable();
+          frame.Set(output_slot, std::move(result));
+        });
+  }
+};
+
+class NewLikeOperator : public arolla::QExprOperator {
+ public:
+  explicit NewLikeOperator(absl::Span<const arolla::QTypePtr> input_types)
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [shape_and_mask_from_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
+         schema_slot = input_slots[1], item_id_slot = input_slots[2],
+         update_schema_slot = input_slots[3].UnsafeToSlot<DataSlice>(),
+         named_tuple_slot = input_slots[4],
+         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          const auto& shape_and_mask_from = frame.Get(shape_and_mask_from_slot);
+          std::optional<DataSlice> schema;
+          if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
+            schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
+          }
+          std::optional<DataSlice> item_id;
+          if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
+            item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
+          }
+          const DataSlice& update_schema_slice = frame.Get(update_schema_slot);
+          if (update_schema_slice.GetShape().rank() != 0 ||
+              !update_schema_slice.item().holds_value<bool>()) {
+            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
+                "update_schema must be a boolean scalar, got %s",
+                arolla::Repr(update_schema_slice))));
+            return;
+          }
+          const bool update_schema = update_schema_slice.item().value<bool>();
+          const std::vector<absl::string_view> attr_names =
+              GetAttrNames(named_tuple_slot);
+          const std::vector<DataSlice> attr_values =
+              GetValueDataSlices(named_tuple_slot, frame);
+          DataBagPtr result_db = DataBag::Empty();
+          ASSIGN_OR_RETURN(
+              auto result,
+              EntityCreator::Like(result_db, shape_and_mask_from, attr_names,
+                                  attr_values, schema, update_schema, item_id),
               ctx->set_status(std::move(_)));
           result.GetBag()->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
@@ -2165,6 +2216,33 @@ absl::StatusOr<arolla::OperatorPtr> ObjLikeOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[2]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<ObjLikeOperator>(input_types), input_types, output_type);
+}
+
+absl::StatusOr<arolla::OperatorPtr> NewLikeOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 6) {
+    return absl::InvalidArgumentError("requires exactly 6 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires first argument to be DataSlice");
+  }
+  if (!IsDataSliceOrUnspecified(input_types[1])) {
+    return absl::InvalidArgumentError(
+        "requires schema argument to be DataSlice or unspecified");
+  }
+  if (!IsDataSliceOrUnspecified(input_types[2])) {
+    return absl::InvalidArgumentError(
+        "requires itemid argument to be DataSlice or unspecified");
+  }
+  if (input_types[3] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires update_schema argument to be DataSlice");
+  }
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[4]));
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<NewLikeOperator>(input_types), input_types, output_type);
 }
 
 absl::StatusOr<arolla::OperatorPtr> UuidOperatorFamily::DoGetOperator(

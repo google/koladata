@@ -106,6 +106,7 @@ OPERATOR("kde.core.is_empty", IsEmpty);
 OPERATOR("kde.core.is_list", IsList);
 OPERATOR("kde.core.is_primitive", IsPrimitive);
 OPERATOR("kde.core.list_size", ListSize);
+OPERATOR_FAMILY("kde.core.new_like", std::make_unique<NewLikeOperatorFamily>());
 OPERATOR_FAMILY("kde.core.new_shaped",
                 std::make_unique<NewShapedOperatorFamily>());
 OPERATOR("kde.core.no_bag", NoBag);

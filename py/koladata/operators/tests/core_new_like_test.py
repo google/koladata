@@ -14,7 +14,7 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata import kd
+from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
@@ -43,33 +43,33 @@ def generate_qtypes():
           arolla.make_namedtuple_qtype(a=DATA_SLICE),
           arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
       ]:
-        yield JAGGED_SHAPE, schema_arg_type, itemid_arg_type, DATA_SLICE, attrs_type, DATA_SLICE
+        yield DATA_SLICE, schema_arg_type, itemid_arg_type, DATA_SLICE, attrs_type, arolla.types.INT64, DATA_SLICE
 
 
 QTYPES = list(generate_qtypes())
 
 
-class CoreNewShapedAsTest(absltest.TestCase):
+class CoreNewlikeTest(absltest.TestCase):
 
   def test_slice_no_attrs(self):
-    shape_from = ds([6, 7, 8])
-    x = kde.core.new_shaped_as(shape_from).eval()
-    testing.assert_equal(x.get_shape(), shape_from.get_shape())
+    shape_and_mask_from = ds([6, 7, 8])
+    x = kde.core.new_like(shape_and_mask_from).eval()
+    testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     self.assertFalse(x.is_mutable())
 
   def test_item_no_attrs(self):
-    shape_from = ds(0)
-    x = kde.core.new_shaped_as(shape_from).eval()
+    shape_and_mask_from = ds(0)
+    x = kde.core.new_like(shape_and_mask_from).eval()
     self.assertIsNotNone(x.get_bag())
-    testing.assert_equal(x.get_shape(), shape_from.get_shape())
+    testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     self.assertFalse(x.is_mutable())
 
   def test_with_attrs(self):
-    shape_from = ds([[6, 7, 8], [6, 7, 8]])
-    x = kde.core.new_shaped_as(
-        shape_from, x=2, a=1, b='p', c=fns.list([5, 6])
+    shape_and_mask_from = ds([[6, 7, 8], [6, 7, 8]])
+    x = kde.core.new_like(
+        shape_and_mask_from, x=2, a=1, b='p', c=fns.list([5, 6])
     ).eval()
-    testing.assert_equal(x.get_shape(), shape_from.get_shape())
+    testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     testing.assert_equal(x.x.no_bag(), ds([[2, 2, 2], [2, 2, 2]]))
     testing.assert_equal(x.a.no_bag(), ds([[1, 1, 1], [1, 1, 1]]))
     testing.assert_equal(x.b.no_bag(), ds([['p', 'p', 'p'], ['p', 'p', 'p']]))
@@ -79,51 +79,50 @@ class CoreNewShapedAsTest(absltest.TestCase):
     )
     self.assertFalse(x.is_mutable())
 
-  def test_no_sparsity_item_with_empty_attr(self):
-    x = kde.core.new_shaped_as(ds(None), a=42).eval()
+  def test_sparsity_item_with_empty_attr(self):
+    x = kde.core.new_like(ds(None), a=42).eval()
     testing.assert_equal(
-        kde.has._eval(x).no_db(), ds(kd.present, schema_constants.MASK)
+        kde.has._eval(x).no_db(), ds(None, schema_constants.MASK)
     )
 
-  def test_no_sparsity_all_empty_slice(self):
-    shape_from = ds([None, None])
-    x = kde.core.new_shaped_as(shape_from, a=42).eval()
+  def test_sparsity_all_empty_slice(self):
+    shape_and_mask_from = ds([None, None])
+    x = kde.core.new_like(shape_and_mask_from, a=42).eval()
     testing.assert_equal(
-        kde.has._eval(x).no_db(),
-        ds([kd.present, kd.present], schema_constants.MASK),
+        kde.has._eval(x).no_db(), ds([None, None], schema_constants.MASK)
     )
     testing.assert_equal(
-        x.a, ds([42, 42], schema_constants.INT32).with_db(x.db)
+        x.a, ds([None, None], schema_constants.INT32).with_db(x.db)
     )
 
   def test_adopt_bag(self):
-    x = kde.core.new_shaped_as(ds(1), a='abc').eval()
-    y = kde.core.new_shaped_as(x, x=x).eval()
+    x = kde.core.new_like(ds(1), a='abc').eval()
+    y = kde.core.new_like(x, x=x).eval()
     # y.db is merged with x.db, so access to `a` is possible.
     testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
     testing.assert_equal(x.get_schema(), y.x.get_schema().with_db(x.db))
     testing.assert_equal(y.x.a.no_db().get_schema(), schema_constants.TEXT)
 
   def test_schema_arg(self):
-    shape_from = ds([])
+    shape_and_mask_from = ds([])
     schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
-    x = kde.core.new_shaped_as(shape_from, schema=schema).eval()
-    testing.assert_equal(x.get_shape(), shape_from.get_shape())
+    x = kde.core.new_like(shape_and_mask_from, schema=schema).eval()
+    testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
 
   def test_itemid_arg(self):
-    shape_from = ds([[6, 7], [8]])
-    itemid = kde.allocation.new_itemid_shaped_as._eval(shape_from)
-    x = kde.core.new_shaped_as(itemid, a=42, itemid=itemid).eval()
+    shape_and_mask_from = ds([[6, 7], [8]])
+    itemid = kde.allocation.new_itemid_shaped_as._eval(shape_and_mask_from)
+    x = kde.core.new_like(itemid, a=42, itemid=itemid).eval()
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().as_itemid(), itemid)
 
   def test_update_schema_arg(self):
-    shape_from = ds([6, 7])
+    shape_and_mask_from = ds([6, 7])
     schema = fns.new_schema(a=schema_constants.INT32)
-    x = kde.core.new_shaped_as(
-        shape_from,
+    x = kde.core.new_like(
+        shape_and_mask_from,
         a=42,
         b='xyz',
         schema=schema,
@@ -136,29 +135,42 @@ class CoreNewShapedAsTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
 
   def test_update_schema_arg_error(self):
-    shape_from = ds([6, 7])
+    shape_and_mask_from = ds([6, 7])
     with self.assertRaisesRegex(
         ValueError, 'update_schema must be a boolean scalar'
     ):
-      kde.core.new_shaped_as(
-          shape_from,
+      kde.core.new_like(
+          shape_and_mask_from,
           schema=schema_constants.ANY,
           update_schema=42,
       ).eval()
 
   def test_fails_without_shape(self):
     with self.assertRaisesRegex(
-        TypeError, "missing required positional argument: 'shape_from'"
+        TypeError, "missing required positional argument: 'shape_and_mask_from'"
     ):
-      _ = kde.core.new_shaped_as().eval()
+      _ = kde.core.new_like().eval()
 
   def test_fails_with_shape_input(self):
     with self.assertRaisesRegex(ValueError, 'expected DATA_SLICE'):
-      _ = kde.core.new_shaped_as(ds(0).get_shape()).eval()
+      _ = kde.core.new_like(ds(0).get_shape()).eval()
+
+  def test_non_determinism(self):
+    x = ds([1, None, 3])
+    res_1 = expr_eval.eval(kde.core.new_like(x, a=5))
+    res_2 = expr_eval.eval(kde.core.new_like(x, a=5))
+    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
+    testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
+
+    expr = kde.core.new_like(x, a=5)
+    res_1 = expr_eval.eval(expr)
+    res_2 = expr_eval.eval(expr)
+    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
+    testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.new_shaped,
+        kde.core.new_like,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
         + (
@@ -169,21 +181,18 @@ class CoreNewShapedAsTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.new_shaped_as(I.x)))
-    self.assertTrue(
-        view.has_data_slice_view(kde.core.new_shaped_as(I.x, a=I.y))
-    )
+    self.assertTrue(view.has_data_slice_view(kde.core.new_like(I.x)))
+    self.assertTrue(view.has_data_slice_view(kde.core.new_like(I.x, a=I.y)))
 
   def test_alias(self):
-    self.assertTrue(
-        optools.equiv_to_op(kde.core.new_shaped_as, kde.new_shaped_as)
-    )
+    self.assertTrue(optools.equiv_to_op(kde.core.new_like, kde.new_like))
 
   def test_repr(self):
-    self.assertEqual(
-        repr(kde.core.new_shaped_as(I.x, a=I.y)),
-        'kde.core.new_shaped_as(I.x, schema=unspecified, itemid=unspecified,'
-        ' update_schema=DataItem(False, schema: BOOLEAN), a=I.y)',
+    self.assertIn(
+        'kde.core.new_like(I.x, unspecified, unspecified, DataItem(False,'
+        " schema: BOOLEAN), M.namedtuple.make('a', I.y),"
+        ' L._koladata_hidden_seed_leaf + int64{',
+        repr(kde.core.new_like(I.x, a=I.y)),
     )
 
 
