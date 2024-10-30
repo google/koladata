@@ -107,7 +107,7 @@ class CoreObjTest(parameterized.TestCase):
     testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.TEXT)
 
   def test_itemid(self):
-    itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
+    itemid = kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]])).eval()
     x = kde.core.obj(a=42, itemid=itemid).eval()
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().as_itemid(), itemid)

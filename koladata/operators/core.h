@@ -280,8 +280,22 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                     const DataSlice& keys_from,
                                     const DataSlice& values_from);
 
+// kde.core.new.
+class NewOperatorFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const override;
+};
+
 // kde.core.new_shaped.
 class NewShapedOperatorFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const override;
+};
+
+// kde.core.new_like.
+class NewLikeOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
@@ -296,13 +310,6 @@ class ObjOperatorFamily final : public arolla::OperatorFamily {
 
 // kde.core.obj_shaped.
 class ObjShapedOperatorFamily final : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const override;
-};
-
-// kde.core.new_like.
-class NewLikeOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;

@@ -229,7 +229,6 @@ def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,red
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.concat(*args, ndim=1)`
 def concat(
     args=py_boxing.var_positional(),
     ndim=py_boxing.keyword_only(default_value=1),
@@ -303,7 +302,6 @@ def concat(
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.stack(*args, ndim=0)`
 def stack(
     args=py_boxing.var_positional(),
     ndim=py_boxing.keyword_only(default_value=0)):
@@ -364,7 +362,6 @@ def stack(
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.zip(*args)`
 def _zip(args=py_boxing.var_positional()):
   """Zips the given DataSlices into a new DataSlice with a new last dimension.
 
@@ -788,7 +785,6 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
     qtype_inference_expr=qtypes.DATA_BAG,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.attrs(x, /, **attrs)`
 def _attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
   """Returns a new Databag containing attribute updates for a slice `x`."""
   raise NotImplementedError('implemented in the backend')
@@ -806,9 +802,59 @@ def _attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  # pyl
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.with_attrs(x, /, **attrs)`
 def with_attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
   """Returns a DataSlice with a new DataBag containing updated attributes."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kde.new'], repr_fn=op_repr.full_signature_repr
+)
+@optools.as_backend_operator(
+    'kde.core.new',
+    qtype_constraints=[
+        ((P.arg == arolla.UNSPECIFIED),
+         'kde.new does not support converter use-case. For converting Python ' +
+         'objects to Entities, please use eager only kd.kdi.new'),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice(P.update_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def new(
+    arg=py_boxing.positional_only(arolla.unspecified()),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    update_schema=py_boxing.keyword_only(False),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    attrs=py_boxing.var_keyword(),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=unused-argument,g-doc-args
+  """Creates Entities with given attrs.
+
+  First argument `arg` is used for interface consistency with its eager version.
+  Reports that eager version should be used for converting Python objects into
+  Koda Entities.
+
+  Args:
+    arg: should keep the default arolla.unspecified() value.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead.
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+      itemid will only be set when the args is not a primitive or primitive
+      slice if args present.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
   raise NotImplementedError('implemented in the backend')
 
 
@@ -828,19 +874,30 @@ def with_attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  #
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.new_shaped(shape, /, schema=None, itemid=None,
-# update_schema=False, **attrs)`
-# pylint: disable=unused-argument
 def new_shaped(
     shape=py_boxing.positional_only(),
     schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
     update_schema=py_boxing.keyword_only(False),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),
-):
-  # pylint: enable=unused-argument
-  """Returns a new DataSlice with provided shape and attributes."""
+):  # pylint: disable=unused-argument,g-doc-args
+  """Creates new Entities with the given shape.
+
+  Args:
+    shape: JaggedShape that the returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead.
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
   raise NotImplementedError('implemented in the backend')
 
 
@@ -859,25 +916,36 @@ def new_shaped(
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.new_shaped_as(shape_from, /, schema=None,
-# itemid=None, update_schema=False, **attrs)`
-# pylint: disable=unused-argument
 def new_shaped_as(
     shape_from=py_boxing.positional_only(),
     schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
     update_schema=py_boxing.keyword_only(False),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),
-):
-  # pylint: enable=unused-argument
-  """Returns a new DataSlice with shape of the provided DataSlice and attributes."""
+):  # pylint: disable=unused-argument,g-doc-args
+  """Creates new Koda entities with shape of the given DataSlice.
+
+  Args:
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead.
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
   return arolla.abc.bind_op(
       new_shaped,
       shape=jagged_shape_ops.get_shape(shape_from),
       schema=schema,
-      itemid=itemid,
       update_schema=update_schema,
+      itemid=itemid,
       attrs=attrs,
       hidden_seed=hidden_seed,
   )
@@ -897,19 +965,31 @@ def new_shaped_as(
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.new_like(shape_and_mask_from, /, schema=None,
-# itemid=None, update_schema=False, **attrs)`
-# pylint: disable=unused-argument
 def new_like(
     shape_and_mask_from=py_boxing.positional_only(),
     schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
     update_schema=py_boxing.keyword_only(False),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),
-):
-  # pylint: enable=unused-argument
-  """Returns a new DataSlice with the given schema and the shape and mask of given DataSlice."""
+):  # pylint: disable=unused-argument,g-doc-args
+  """Creates new Entities with the shape and sparsity from shape_and_mask_from.
+
+  Args:
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead.
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
   raise NotImplementedError('implemented in the backend')
 
 
@@ -927,7 +1007,6 @@ def new_like(
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.obj(first_arg=None, /, itemid=None, **attrs)`
 def _obj(
     arg=py_boxing.positional_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
@@ -965,7 +1044,6 @@ def _obj(
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.obj_shaped(shape, /, itemid=None, **attrs)`
 def obj_shaped(
     shape=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
@@ -1000,7 +1078,6 @@ def obj_shaped(
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.obj_shaped_as(shape_from, /, itemid=None, **attrs)`
 def obj_shaped_as(
     shape_from=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
@@ -1040,16 +1117,12 @@ def obj_shaped_as(
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-# Operator signature: `kde.obj_like(shape_and_mask_from, /,
-# itemid=None, **attrs)`
-# pylint: disable=unused-argument
 def obj_like(
     shape_and_mask_from=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args
-  # pylint: enable=unused-argument
+):  # pylint: disable=unused-argument,g-doc-args
   """Returns a new DataSlice with object schema and the shape and mask of given DataSlice.
 
   Please note the difference to obj_shaped_as:

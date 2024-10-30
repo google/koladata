@@ -44,7 +44,7 @@ def generate_qtypes():
           arolla.make_namedtuple_qtype(a=DATA_SLICE),
           arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
       ]:
-        yield JAGGED_SHAPE, schema_arg_type, itemid_arg_type, DATA_SLICE, attrs_type, arolla.types.INT64, DATA_SLICE
+        yield JAGGED_SHAPE, schema_arg_type, DATA_SLICE, itemid_arg_type, attrs_type, arolla.types.INT64, DATA_SLICE
 
 
 QTYPES = list(generate_qtypes())
@@ -202,8 +202,8 @@ class CoreNewShapedAsTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.new_shaped_as(I.x, a=I.y)),
-        'kde.core.new_shaped_as(I.x, schema=unspecified, itemid=unspecified,'
-        ' update_schema=DataItem(False, schema: BOOLEAN), a=I.y)',
+        'kde.core.new_shaped_as(I.x, schema=unspecified, update_schema=DataItem'
+        '(False, schema: BOOLEAN), itemid=unspecified, a=I.y)',
     )
 
 

@@ -43,7 +43,7 @@ def generate_qtypes():
           arolla.make_namedtuple_qtype(a=DATA_SLICE),
           arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
       ]:
-        yield DATA_SLICE, schema_arg_type, itemid_arg_type, DATA_SLICE, attrs_type, arolla.types.INT64, DATA_SLICE
+        yield DATA_SLICE, schema_arg_type, DATA_SLICE, itemid_arg_type, attrs_type, arolla.types.INT64, DATA_SLICE
 
 
 QTYPES = list(generate_qtypes())
@@ -189,8 +189,8 @@ class CoreNewlikeTest(absltest.TestCase):
 
   def test_repr(self):
     self.assertIn(
-        'kde.core.new_like(I.x, unspecified, unspecified, DataItem(False,'
-        " schema: BOOLEAN), M.namedtuple.make('a', I.y),"
+        'kde.core.new_like(I.x, unspecified, DataItem(False, schema: BOOLEAN), '
+        "unspecified, M.namedtuple.make('a', I.y),"
         ' L._koladata_hidden_seed_leaf + int64{',
         repr(kde.core.new_like(I.x, a=I.y)),
     )
