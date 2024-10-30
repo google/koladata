@@ -55,6 +55,7 @@ py_library(
     srcs = ["kdf.py"],
     deps = [
         ":functor_factories",
+        ":signature_utils",
         "//py/koladata/operators:eager_op_utils",
     ],
 )

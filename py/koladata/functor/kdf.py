@@ -15,6 +15,7 @@
 """User-facing module for Koda functor related APIs."""
 
 from koladata.functor import functor_factories as _functor_factories
+from koladata.functor import signature_utils   # pylint: disable=unused-import
 from koladata.operators import eager_op_utils as _eager_op_utils
 
 _kd = _eager_op_utils.operators_container('kde')
