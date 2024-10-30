@@ -3675,3 +3675,51 @@ def list_shaped(
   schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
   return _list_shaped(shape, items, item_schema, schema, itemid, hidden_seed)
+
+
+@optools.add_to_registry(
+    aliases=['kde.list_shaped_as'], repr_fn=op_repr.full_signature_repr
+)
+@optools.as_lambda_operator(
+    'kde.core.list_shaped_as',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.shape_from),
+        qtype_utils.expect_data_slice_or_unspecified(P.items),
+        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def list_shaped_as(
+    shape_from=py_boxing.positional_only(),
+    items=py_boxing.positional_or_keyword(arolla.unspecified()),
+    item_schema=py_boxing.keyword_only(arolla.unspecified()),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
+):  # pylint: disable=g-doc-args
+  """Creates new Koda lists with the shape of the given DataSlice.
+
+  Args:
+    shape_from: DataSlice of the desired shape.
+    items: optional items to assign to the newly created lists. If not
+      given, the function returns empty lists.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where lists are created.
+
+  Returns:
+    A DataSlice with the lists.
+  """
+  return list_shaped(
+      jagged_shape_ops.get_shape(shape_from),
+      items=items,
+      item_schema=item_schema,
+      schema=schema,
+      itemid=itemid
+  )
