@@ -21,6 +21,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/log/log.h"
+#include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -43,6 +44,7 @@ namespace koladata {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
@@ -88,7 +90,8 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedEntities) {
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => 1(.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
@@ -135,7 +138,8 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedObjects) {
           MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => 1(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0(.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*k[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
@@ -146,16 +150,14 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedObjects) {
 TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
   DataBagPtr bag = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(
-      auto dict_schema,
-      CreateDictSchema(bag, test::Schema(schema::kText),
-                       test::Schema(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kText),
+                                        test::Schema(schema::kInt64)));
   ASSERT_OK_AND_ASSIGN(
       auto data_slice,
       CreateDictShaped(bag, DataSlice::JaggedShape::FlatFromSize(2),
                        /*keys=*/test::DataSlice<arolla::Text>({"a", "x"}),
-                       /*values=*/test::DataSlice<int>({1, 4}),
-                       dict_schema));
+                       /*values=*/test::DataSlice<int>({1, 4}), dict_schema));
 
   EXPECT_THAT(
       DataBagToStr(bag),
@@ -174,11 +176,10 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_List) {
   DataBagPtr bag = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      auto list_schema,
-      CreateListSchema(bag, test::Schema(schema::kInt64)));
-  ASSERT_OK(CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
-                             list_schema));
+  ASSERT_OK_AND_ASSIGN(auto list_schema,
+                       CreateListSchema(bag, test::Schema(schema::kInt64)));
+  ASSERT_OK(
+      CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}), list_schema));
   EXPECT_THAT(
       DataBagToStr(bag),
       IsOkAndHolds(AllOf(
@@ -208,6 +209,147 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_FallbackBags) {
       DataBagToStr(ds3.GetBag()),
       IsOkAndHolds(MatchesRegex(
           R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}:0\.a => 42(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-f]{32}:0\.a => INT32(.|\n)*  fallback #1 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}:0\.b => 123(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-f]{32}:0\.b => INT32(.|\n)*)regex")));
+}
+
+TEST(DataBagReprTest,
+     TestDataBagStringRepresentation_TripleLimit_Attributes) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value = test::DataItem(1);
+
+  ASSERT_OK_AND_ASSIGN(DataSlice entity_1,
+                       ObjectCreator::FromAttrs(bag, {"a"}, {value}));
+  ASSERT_OK(ObjectCreator::FromAttrs(bag, {"b"}, {entity_1}));
+  EXPECT_THAT(
+      DataBagToStr(bag, /*triple_limit=*/2),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0
+\$[0-9a-f]{32}:0\.a => 1
+\.\.\.
+
+Showing only the first 2 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
+)regex"))));
+}
+
+TEST(DataBagReprTest,
+     TestDataBagStringRepresentation_TripleLimit_ListAttributes) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto list_schema,
+                       CreateListSchema(bag, test::Schema(schema::kInt64)));
+  ASSERT_OK(
+      CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}), list_schema));
+  ASSERT_OK(
+      CreateNestedList(bag, test::DataSlice<int>({4, 5, 6}), list_schema));
+  EXPECT_THAT(
+      DataBagToStr(bag, /*triple_limit=*/2),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}:0\[:\] => \[1, 2, 3\]
+\$[0-9a-f]{32}:0\[:\] => \[4, 5, 6\]
+\.\.\.
+
+Showing only the first 2 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
+)regex"))));
+}
+
+TEST(DataBagReprTest,
+     TestDataBagStringRepresentation_TripleLimit_DictAttributes) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kText),
+                                        test::Schema(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(
+      auto data_slice,
+      CreateDictShaped(bag, DataSlice::JaggedShape::FlatFromSize(2),
+                       /*keys=*/test::DataSlice<arolla::Text>({"a", "x"}),
+                       /*values=*/test::DataSlice<int>({1, 4}), dict_schema));
+
+  EXPECT_THAT(
+      DataBagToStr(bag, /*triple_limit=*/2),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}:0\['a'\] => 1
+\$[0-9a-f]{32}:1\['x'\] => 4
+\.\.\.
+
+Showing only the first 2 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
+)regex"))));
+}
+
+TEST(DataBagReprTest, TestDataBagStringRepresentation_TripleLimit_SchemaBag) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kText),
+                                        test::Schema(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(
+      auto data_slice,
+      CreateDictShaped(bag, DataSlice::JaggedShape::FlatFromSize(2),
+                       /*keys=*/test::DataSlice<arolla::Text>({"a", "x"}),
+                       /*values=*/test::DataSlice<int>({1, 4}), dict_schema));
+
+  EXPECT_THAT(
+      DataBagToStr(bag, /*triple_limit=*/3),
+      IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}:0\['a'\] => 1
+\$[0-9a-f]{32}:1\['x'\] => 4
+
+SchemaBag:
+k[0-9a-f]{32}:0\.get_key_schema\(\) => TEXT
+\.\.\.
+
+Showing only the first 3 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
+)regex"))));
+}
+
+TEST(DataBagReprTest,
+     TestDataBagStringRepresentation_TripleLimit_FallbackBags) {
+  auto fallback_db1 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds1, EntityCreator::FromAttrs(fallback_db1, {"a"},
+                                         {test::DataItem(42, fallback_db1)}));
+
+  auto fallback_db2 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds2, EntityCreator::FromAttrs(fallback_db2, {"b"},
+                                         {test::DataItem(123, fallback_db2)}));
+
+  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
+  auto ds3 = ds1.WithBag(db);
+
+  EXPECT_THAT(
+      DataBagToStr(ds3.GetBag(), /*triple_limit=*/3),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(DataBag \$[0-9a-f]{4}:
+
+SchemaBag:
+
+2 fallback DataBag\(s\):
+  fallback #0 \$[0-9a-f]{4}:
+  DataBag:
+  \$[0-9a-f]{32}:0\.a => 42
+
+  SchemaBag:
+  \$[0-9a-f]{32}:0\.a => INT32
+
+  fallback #1 \$[0-9a-f]{4}:
+  DataBag:
+  \$[0-9a-f]{32}:0\.b => 123
+\.\.\.
+
+Showing only the first 3 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
+)regex")));
+}
+
+TEST(DataBagReprTest, TestDataBagStringRepresentation_TripleLimit_Invalid) {
+  DataBagPtr bag = DataBag::Empty();
+  EXPECT_THAT(
+      DataBagToStr(bag, /*triple_limit=*/0),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               testing::HasSubstr("triple_limit must be a positive integer")));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_DuplicatedFallbackBags) {

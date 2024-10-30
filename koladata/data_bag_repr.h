@@ -23,8 +23,11 @@
 
 namespace koladata {
 
+constexpr int kDefaultTripleReprLimit = 1000;
+
 // Returns the string representation of DataBag.
-absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db);
+absl::StatusOr<std::string> DataBagToStr(
+    const DataBagPtr& db, int64_t triple_limit = kDefaultTripleReprLimit);
 
 // Returns the stats string about the triples and attributes in the DataBag.
 //

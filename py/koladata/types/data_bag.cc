@@ -18,6 +18,8 @@
 
 #include <any>
 #include <cstddef>
+#include <cstdint>
+#include <initializer_list>
 #include <optional>
 #include <string>
 #include <utility>
@@ -1269,10 +1271,28 @@ absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self,
   return WrapDataBagPtr(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self, PyObject*) {
+absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self,
+                                                  PyObject* const* py_args,
+                                                  Py_ssize_t nargs,
+                                                  PyObject* py_kwnames) {
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/false,
+      std::initializer_list<absl::string_view>{"triple_limit"});
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
   const DataBagPtr db = UnsafeDataBagPtr(self);
+  int64_t triple_limit = kDefaultTripleReprLimit;
+  if (auto it = args.kw_only_args.find("triple_limit");
+      it != args.kw_only_args.end()) {
+    triple_limit = PyLong_AsLongLong(it->second);
+    if (triple_limit == -1 && PyErr_Occurred()) {
+      return nullptr;
+    }
+  }
 
-  ASSIGN_OR_RETURN(std::string str, DataBagToStr(db),
+  ASSIGN_OR_RETURN(std::string str, DataBagToStr(db, triple_limit),
                    SetKodaPyErrFromStatus(_));
   return PyUnicode_FromStringAndSize(str.c_str(), str.size());
 }
@@ -1634,8 +1654,9 @@ Args:
 Returns:
   data_bag.DataBag
 )"""},
-    {"contents_repr", PyDataBag_contents_repr, METH_NOARGS,
-     "contents_repr()\n"
+    {"contents_repr", (PyCFunction)PyDataBag_contents_repr,
+     METH_FASTCALL | METH_KEYWORDS,
+     "contents_repr(triple_limit=1000)\n"
      "--\n\n"
      "Returns a string representation of the contents of this DataBag."},
     {"get_fallbacks", PyDataBag_get_fallbacks, METH_NOARGS,

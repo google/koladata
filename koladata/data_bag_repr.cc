@@ -153,9 +153,22 @@ std::string AttributeRepr(const absl::string_view attribute) {
   }
 }
 
+std::string Etcetera(absl::string_view res, int64_t triple_count) {
+  return absl::StrCat(res, "...\n\n",
+                      absl::StrFormat("Showing only the first %d triples. Use "
+                                      "'triple_limit' parameter of "
+                                      "'db.contents_repr()' to adjust this\n",
+                                      triple_count));
+}
+
 absl::StatusOr<std::string> DataBagToStrInternal(
     const DataBagPtr& db, absl::flat_hash_set<const DataBag*>& seen_db,
-    const DataBagFormatOption& format_opt) {
+    const DataBagFormatOption& format_opt, int64_t& triple_count,
+    int64_t triple_limit) {
+  if (triple_limit <= 0) {
+    return absl::InvalidArgumentError(
+        "triple_limit must be a positiver integer");
+  }
   std::string line_indent(format_opt.indentation * kTwoSpaceIndentation, ' ');
   if (seen_db.contains(db.get())) {
     return absl::StrCat(line_indent, "fallback #", *format_opt.fallback_index,
@@ -177,6 +190,9 @@ absl::StatusOr<std::string> DataBagToStrInternal(
                                     AttributeRepr(attr.attribute),
                                     internal::DataItemRepr(
                                         attr.value, {.strip_quotes = true})));
+    if (++triple_count >= triple_limit) {
+      return res;
+    }
   }
   for (const auto& [list_id, values] : main_triples.lists()) {
     absl::StrAppend(
@@ -187,6 +203,9 @@ absl::StatusOr<std::string> DataBagToStrInternal(
                           [](std::string* out, const internal::DataItem& item) {
                             out->append(internal::DataItemRepr(item));
                           })));
+    if (++triple_count >= triple_limit) {
+      return res;
+    }
   }
   for (const DictItemTriple& dict : main_triples.dicts()) {
     if (dict.object.IsDict()) {
@@ -195,6 +214,9 @@ absl::StatusOr<std::string> DataBagToStrInternal(
           absl::StrFormat("%s[%s] => %s\n", ObjectIdStr(dict.object),
                           internal::DataItemRepr(dict.key),
                           internal::DataItemRepr(dict.value)));
+      if (++triple_count >= triple_limit) {
+        return res;
+      }
     }
   }
   absl::StrAppend(&res, "\n", line_indent, "SchemaBag:\n");
@@ -210,6 +232,9 @@ absl::StatusOr<std::string> DataBagToStrInternal(
           absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
                           AttributeRepr(dict.key.value<arolla::Text>().view()),
                           value_str));
+      if (++triple_count >= triple_limit) {
+        return res;
+      }
     }
   }
   const std::vector<DataBagPtr>& fallbacks = db->GetFallbacks();
@@ -223,9 +248,13 @@ absl::StatusOr<std::string> DataBagToStrInternal(
         std::string content,
         DataBagToStrInternal(
             fallbacks.at(i), seen_db,
-            {.indentation = format_opt.indentation + 1, .fallback_index = i}));
+            {.indentation = format_opt.indentation + 1, .fallback_index = i},
+            triple_count, triple_limit));
     absl::StrAppend(&res, sep, content);
     sep = "\n";
+    if (triple_count >= triple_limit) {
+      return res;
+    }
   }
   return res;
 }
@@ -242,10 +271,20 @@ void UpdateCountMap(const typename Map::key_type& val, Map& count_dict) {
 
 }  // namespace
 
-absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db) {
+absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db,
+                                         int64_t triple_limit) {
+  if (triple_limit <= 0) {
+    return absl::InvalidArgumentError(
+        "triple_limit must be a positive integer");
+  }
   absl::flat_hash_set<const DataBag*> seen_db;
+  int64_t triple_count = 0;
   ASSIGN_OR_RETURN(std::string res,
-                   DataBagToStrInternal(db, seen_db, {.indentation = 0}));
+                   DataBagToStrInternal(db, seen_db, {.indentation = 0},
+                                        triple_count, triple_limit));
+  if (triple_count >= triple_limit) {
+    return Etcetera(res, triple_limit);
+  }
   return res;
 }
 

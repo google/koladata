@@ -332,6 +332,42 @@ SchemaBag:
           msg=f'\n\nregex={expected_repr}\n\ndb={db_repr}',
       )
 
+  def test_contents_repr_triple_limit(self):
+    db = bag()
+    db.obj(a=1, b='a')
+    self.assertRegex(
+        db.contents_repr(triple_limit=4),
+        r"""DataBag \$[0-9a-f]{4}:
+\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0
+\$[0-9a-f]{32}:0\.a => 1
+\$[0-9a-f]{32}:0\.b => a
+
+SchemaBag:
+k[0-9a-f]{32}:0\.a => INT32
+\.\.\.
+
+Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this""",
+    )
+    with self.subTest('invalid-type'):
+      db = bag()
+      with self.assertRaisesRegex(
+          TypeError,
+          "'str' object cannot be interpreted as an integer",
+      ):
+        _ = db.contents_repr(triple_limit='one thousand')
+    with self.subTest('positional-argument'):
+      with self.assertRaisesRegex(
+          TypeError,
+          'accepts 0 positional arguments but 1 was given',
+      ):
+        _ = db.contents_repr(1000)
+    with self.subTest('negative-limit'):
+      with self.assertRaisesRegex(
+          ValueError,
+          'triple_limit must be a positive integer',
+      ):
+        _ = db.contents_repr(triple_limit=-1)
+
   def test_is_mutable(self):
     db = bag()
     self.assertTrue(db.is_mutable())
