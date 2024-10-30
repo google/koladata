@@ -679,6 +679,18 @@ cc_library(
 )
 
 cc_test(
+    name = "base62_benchmark",
+    srcs = ["base62_benchmark.cc"],
+    deps = [
+        ":base62",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_test(
     name = "base62_test",
     srcs = ["base62_test.cc"],
     deps = [
