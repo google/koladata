@@ -773,6 +773,30 @@ TEST(DataBagTest, SetGetPrimitiveOverrideRemoveViaFork) {
   }
 }
 
+TEST(DataBagTest, SetGetMixedTypes) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(5);
+  auto a0 = obj_ids[0];
+  auto s0 = DataItem(AllocateSingleObject());
+  auto ds = DataSliceImpl::Create(
+      arolla::CreateDenseArray<DataItem>({a0, DataItem(3), s0}));
+  auto ds_f = DataSliceImpl::Create(
+      arolla::CreateDenseArray<DataItem>({a0, std::nullopt, s0}));
+  auto ds_ff =
+      DataSliceImpl::Create(arolla::CreateDenseArray<DataItem>({a0, s0}));
+  ASSERT_OK(db->SetAttr(ds_f, "a", ds));
+  ASSERT_OK_AND_ASSIGN(auto result, db->GetAttr(ds_ff, "a"));
+  EXPECT_TRUE(result.is_single_dtype());
+  EXPECT_OK(
+      result.VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
+        if constexpr (std::is_same_v<T, int32_t>) {
+          return absl::InternalError(absl::StrCat(
+              "get an unexpected int array: ", DataSliceImpl::Create(array)));
+        }
+        return absl::OkStatus();
+      }));
+}
+
 TEST(DataBagTest, SetGetPrimitiveOverrideValueViaFork) {
   constexpr int64_t kSize = 4;
   auto db = DataBagImpl::CreateEmptyDatabag();

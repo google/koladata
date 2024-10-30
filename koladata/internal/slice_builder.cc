@@ -21,6 +21,8 @@
 #include <utility>
 #include <variant>
 
+#include "arolla/qtype/qtype.h"
+
 #if defined(__SSE2__)
 #include <emmintrin.h>
 #endif
@@ -101,19 +103,23 @@ SliceBuilder::SliceBuilder(size_t size) {
   unset_count_ = size;
 }
 
-std::pair<uint8_t, DataSliceImpl::Variant> SliceBuilder::BuildDataSliceVariant(
+std::pair<bool, DataSliceImpl::Variant> SliceBuilder::BuildDataSliceVariant(
     StorageVariant& sv) {
-  using Res = std::pair<uint8_t, DataSliceImpl::Variant>;
+  using Res = std::pair<bool, DataSliceImpl::Variant>;
   return std::visit([this]<typename TS>(TS& ts) {
     if constexpr (std::is_same_v<TS, std::monostate>) {
       LOG(FATAL)
           << "Unexpected std::monostate in SliceBuilder::BuildDataSliceVariant";
-      return Res(0, DataSliceImpl::Variant());
+      return Res{false, DataSliceImpl::Variant()};
     } else {
       using T = arolla::meta::strip_template_t<TypedStorage, TS>;
       uint8_t ti = ts.type_index;
-      return Res(ti, arolla::DenseArray<T>{std::move(ts).Build(),
-                                           types_buffer_.ToBitmap(ti)});
+      auto bitmap = types_buffer_.ToBitmap(ti);
+      if (arolla::bitmap::AreAllBitsUnset(bitmap.begin(), size())) {
+        return Res{false, DataSliceImpl::Variant()};
+      }
+      return Res{true, arolla::DenseArray<T>{std::move(ts).Build(),
+                                             std::move(bitmap)}};
     }
   }, sv);
 }
@@ -123,24 +129,30 @@ DataSliceImpl SliceBuilder::Build() && {
     if (current_type_id_ == ScalarTypeId<MissingValue>()) {
       return DataSliceImpl::CreateEmptyAndUnknownType(size());
     }
+    auto [present, array_variant] = BuildDataSliceVariant(first_storage_);
+    if (!present) {
+      return DataSliceImpl::CreateEmptyAndUnknownType(size());
+    }
     DataSliceImpl res;
     res.internal_->allocation_ids = std::move(allocation_ids_);
     res.internal_->size = size();
+    res.internal_->values.push_back(std::move(array_variant));
     res.internal_->dtype = ScalarTypeIdToQType(types_buffer_.types[0]);
-    res.internal_->values.push_back(
-        BuildDataSliceVariant(first_storage_).second);
     return res;
   }
   DataSliceImpl res;
   res.internal_->allocation_ids = std::move(allocation_ids_);
   res.internal_->size = size();
-  if (types_buffer_.type_count() == 1) {
-    res.internal_->dtype = ScalarTypeIdToQType(types_buffer_.types[0]);
-  }
-  res.internal_->values.resize(types_buffer_.type_count());
+  KodaTypeId last_present_type_id = 0;
   for (auto& [tid, storage] : storage_) {
-    auto [idx, array_variant] = BuildDataSliceVariant(storage);
-    res.internal_->values[idx] = std::move(array_variant);
+    auto [present, array_variant] = BuildDataSliceVariant(storage);
+    if (present) {
+      res.internal_->values.push_back(std::move(array_variant));
+      last_present_type_id = tid;
+    }
+  }
+  if (res.internal_->values.size() == 1) {
+    res.internal_->dtype = ScalarTypeIdToQType(last_present_type_id);
   }
   return res;
 }

@@ -21,6 +21,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
@@ -32,6 +33,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bits.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
 namespace koladata::internal {
@@ -239,6 +241,64 @@ TEST(SliceBuilderTest, ApplyMask) {
   EXPECT_THAT(std::move(bldr).Build(),
               ElementsAre(DataItem(5), DataItem(7.5f), DataItem(), DataItem(3),
                           DataItem()));
+}
+
+TEST(SliceBuilderTest, EmptyArraysViaTypedT) {
+  constexpr int kSize = 100;
+  SliceBuilder bldr(kSize);
+  bldr.typed<int>();
+  DataSliceImpl ds = std::move(bldr).Build();
+  EXPECT_TRUE(ds.is_empty_and_unknown());
+}
+
+TEST(SliceBuilderTest, EmptyArraysViaTypedT2Types) {
+  constexpr int kSize = 100;
+  SliceBuilder bldr(kSize);
+  bldr.typed<int>();
+  bldr.typed<float>();
+  DataSliceImpl ds = std::move(bldr).Build();
+  EXPECT_TRUE(ds.is_empty_and_unknown());
+}
+
+TEST(SliceBuilderTest, EmptyArraysOnTopOfNonEmptyArrayViaTypedT) {
+  constexpr int kSize = 3;
+  SliceBuilder bldr(kSize);
+  bldr.typed<int>();
+  bldr.typed<float>();
+  bldr.InsertIfNotSet(1, arolla::Text("ok"));
+  DataSliceImpl ds = std::move(bldr).Build();
+  EXPECT_TRUE(ds.is_single_dtype());
+  EXPECT_EQ(ds.dtype(), arolla::GetQType<arolla::Text>());
+  EXPECT_THAT(
+      ds, ElementsAre(DataItem(), DataItem(arolla::Text("ok")), DataItem()));
+  ASSERT_OK(ds.VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
+    if constexpr (std::is_same_v<T, int> || std::is_same_v<T, float>) {
+      return absl::InternalError(absl::StrCat("get an unexpected text array: ",
+                                              DataSliceImpl::Create(array)));
+    }
+    return absl::OkStatus();
+  }));
+}
+
+TEST(SliceBuilderTest, EmptyArraysOnTopOfNonEmpty2ArrayaViaTypedT) {
+  constexpr int kSize = 3;
+  SliceBuilder bldr(kSize);
+  bldr.typed<int>();
+  bldr.typed<float>();
+  bldr.InsertIfNotSet(1, arolla::Text("ok"));
+  bldr.InsertIfNotSet(2, int64_t{7});
+  DataSliceImpl ds = std::move(bldr).Build();
+  EXPECT_TRUE(ds.is_mixed_dtype());
+  EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
+  EXPECT_THAT(ds, ElementsAre(DataItem(), DataItem(arolla::Text("ok")),
+                              DataItem(int64_t{7})));
+  ASSERT_OK(ds.VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
+    if constexpr (std::is_same_v<T, int> || std::is_same_v<T, float>) {
+      return absl::InternalError(absl::StrCat("get an unexpected text array: ",
+                                              DataSliceImpl::Create(array)));
+    }
+    return absl::OkStatus();
+  }));
 }
 
 // TODO: Test batch version of InsertIfNotSet.

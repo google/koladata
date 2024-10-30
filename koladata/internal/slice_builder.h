@@ -220,9 +220,9 @@ class SliceBuilder {
       TypedStorage<schema::DType>>;
 
   // Moves data out of StorageVariant, builds DenseArray of the corresponding
-  // type. Returns TypedStorage<T>::type_index and DataSliceImpl::Variant
-  // containing the DenseArray.
-  std::pair<uint8_t, DataSliceImpl::Variant> BuildDataSliceVariant(
+  // type. Returns true and DataSliceImpl::Variant containing the DenseArray if
+  // the data is not empty. Returns false if all the data is missing.
+  std::pair<bool, DataSliceImpl::Variant> BuildDataSliceVariant(
       StorageVariant& sv);
 
   // Sets `current_type_id_` and makes `current_storage_` pointing to
