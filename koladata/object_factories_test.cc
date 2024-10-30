@@ -539,12 +539,13 @@ TEST(EntityCreatorTest, PrimitiveToEntity) {
   auto db = DataBag::Empty();
   auto db_val = DataBag::Empty();
   EXPECT_THAT(
-      EntityCreator::Convert(db, test::DataSlice<int>({1, 2, 3}, db_val)),
+      EntityCreator::ConvertWithoutAdopt(
+          db, test::DataSlice<int>({1, 2, 3}, db_val)),
       IsOkAndHolds(
           AllOf(Property(&DataSlice::slice, ElementsAre(1, 2, 3)),
                 Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
                 Property(&DataSlice::GetBag, Eq(db_val)))));
-  EXPECT_THAT(EntityCreator::Convert(db, test::DataItem(42)),
+  EXPECT_THAT(EntityCreator::ConvertWithoutAdopt(db, test::DataItem(42)),
               IsOkAndHolds(
                   AllOf(Property(&DataSlice::item, Eq(42)),
                         Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
@@ -563,7 +564,8 @@ TEST(EntityCreatorTest, EntityToEntity) {
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db_impl, db->GetMutableImpl());
   ASSERT_OK(db_impl.MergeInplace(db_val->GetImpl()));
 
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Convert(db, entity_val));
+  ASSERT_OK_AND_ASSIGN(auto entity,
+                       EntityCreator::ConvertWithoutAdopt(db, entity_val));
   EXPECT_EQ(entity.item(), entity_val.item());
   EXPECT_EQ(entity.GetSchemaImpl(), entity_val.GetSchemaImpl());
 }
@@ -815,7 +817,7 @@ TEST(ObjectCreatorTest, ObjectToEntity) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto object, ObjectCreator::FromAttrs(db_val, {}, {}));
-  EXPECT_THAT(EntityCreator::Convert(db, object),
+  EXPECT_THAT(EntityCreator::ConvertWithoutAdopt(db, object),
               IsOkAndHolds(AllOf(
                   Property(&DataSlice::item, Eq(object.item())),
                   Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
@@ -827,7 +829,7 @@ TEST(ObjectCreatorTest, ReferenceToEntity) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto object, ObjectCreator::FromAttrs(db_val, {}, {}));
   object = object.WithBag(nullptr);
-  EXPECT_THAT(EntityCreator::Convert(db, object),
+  EXPECT_THAT(EntityCreator::ConvertWithoutAdopt(db, object),
               IsOkAndHolds(AllOf(
                   Property(&DataSlice::item, Eq(object.item())),
                   Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
@@ -997,12 +999,13 @@ TEST(ObjectCreatorTest, PrimitiveToObject) {
   auto db = DataBag::Empty();
   auto db_val = DataBag::Empty();
   EXPECT_THAT(
-      ObjectCreator::Convert(db, test::DataSlice<int>({1, 2, 3}, db_val)),
+      ObjectCreator::ConvertWithoutAdopt(
+          db, test::DataSlice<int>({1, 2, 3}, db_val)),
       IsOkAndHolds(
           AllOf(Property(&DataSlice::slice, ElementsAre(1, 2, 3)),
                 Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
                 Property(&DataSlice::GetBag, Eq(db_val)))));
-  EXPECT_THAT(ObjectCreator::Convert(db, test::DataItem(42)),
+  EXPECT_THAT(ObjectCreator::ConvertWithoutAdopt(db, test::DataItem(42)),
               IsOkAndHolds(
                   AllOf(Property(&DataSlice::item, Eq(42)),
                         Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
@@ -1021,7 +1024,8 @@ TEST(ObjectCreatorTest, EntityToObject) {
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db_impl, db->GetMutableImpl());
   ASSERT_OK(db_impl.MergeInplace(db_val->GetImpl()));
 
-  ASSERT_OK_AND_ASSIGN(auto obj, ObjectCreator::Convert(db, entity));
+  ASSERT_OK_AND_ASSIGN(auto obj,
+                       ObjectCreator::ConvertWithoutAdopt(db, entity));
   EXPECT_EQ(obj.item(), entity.item());
   EXPECT_EQ(obj.GetSchemaImpl(), schema::kObject);
 
@@ -1041,7 +1045,7 @@ TEST(ObjectCreatorTest, ObjectToObject) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto object, ObjectCreator::FromAttrs(db_val, {}, {}));
-  EXPECT_THAT(ObjectCreator::Convert(db, object),
+  EXPECT_THAT(ObjectCreator::ConvertWithoutAdopt(db, object),
               IsOkAndHolds(AllOf(
                   Property(&DataSlice::item, Eq(object.item())),
                   Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
@@ -1054,7 +1058,7 @@ TEST(ObjectCreatorTest, ReferenceToObject) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db_val, {}, {}));
   entity = entity.WithBag(nullptr);
-  EXPECT_THAT(ObjectCreator::Convert(db, entity),
+  EXPECT_THAT(ObjectCreator::ConvertWithoutAdopt(db, entity),
               IsOkAndHolds(AllOf(
                   Property(&DataSlice::item, Eq(entity.item())),
                   Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
@@ -1064,7 +1068,8 @@ TEST(ObjectCreatorTest, ReferenceToObject) {
 TEST(ObjectCreatorTest, ObjectConverterError) {
   auto db = DataBag::Empty();
   EXPECT_THAT(
-      ObjectCreator::Convert(db, test::DataSlice<int>({1}, schema::kAny)),
+      ObjectCreator::ConvertWithoutAdopt(
+          db, test::DataSlice<int>({1}, schema::kAny)),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "schema embedding is only supported for primitive and "
                "entity schemas, got ANY"));

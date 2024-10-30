@@ -962,7 +962,7 @@ class UniversalConverter {
     // is, unless they are the ones being converted explicitly (e.g.
     // kd.obj(42), in which case `is_root` is true).
     if (res.GetSchemaImpl().is_entity_schema() || is_root) {
-      ASSIGN_OR_RETURN(res, Factory::Convert(db_, res));
+      ASSIGN_OR_RETURN(res, Factory::ConvertWithoutAdopt(db_, res));
     }
     value_stack_.push(res);
     computed_iter->second = std::move(res);
@@ -982,7 +982,8 @@ class UniversalConverter {
                          std::move(values), dict_schema));
     // NOTE: Factory is not applied on keys and values DataSlices (just on their
     // elements and dict created from those keys and values).
-    ASSIGN_OR_RETURN(value_stack_.emplace(), Factory::Convert(db_, res));
+    ASSIGN_OR_RETURN(value_stack_.emplace(),
+                     Factory::ConvertWithoutAdopt(db_, res));
     computed_.insert_or_assign(
         MakeCacheKey(py_obj, dict_schema), value_stack_.top());
     return absl::OkStatus();
@@ -998,7 +999,8 @@ class UniversalConverter {
         auto res,
         CreateListShaped(db_, DataSlice::JaggedShape::Empty(), std::move(items),
                          list_schema));
-    ASSIGN_OR_RETURN(value_stack_.emplace(), Factory::Convert(db_, res));
+    ASSIGN_OR_RETURN(value_stack_.emplace(),
+                     Factory::ConvertWithoutAdopt(db_, res));
     computed_.insert_or_assign(
         MakeCacheKey(py_obj, list_schema), value_stack_.top());
     return absl::OkStatus();
@@ -1083,7 +1085,7 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
         auto res,
         DataSliceFromPyValue(py_obj, adoption_queue,
                              schema ? &(*schema) : nullptr));
-    return EntityCreator::Convert(db, res);
+    return EntityCreator::ConvertWithoutAdopt(db, res);
   }
   return UniversalConverter<EntityCreator>(db, adoption_queue)
       .Convert(py_obj, schema);
@@ -1096,7 +1098,7 @@ absl::StatusOr<DataSlice> ObjectsFromPyObject(PyObject* py_obj,
   // DataSlices, so we are processing it before invoking the UniversalConverter.
   if (arolla::python::IsPyQValueInstance(py_obj)) {
     ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue));
-    return ObjectCreator::Convert(db, res);
+    return ObjectCreator::ConvertWithoutAdopt(db, res);
   }
   return UniversalConverter<ObjectCreator>(db, adoption_queue).Convert(py_obj);
 }

@@ -765,8 +765,8 @@ absl::StatusOr<DataSlice> ObjectCreator::Like(
       }, attr_names, values);
 }
 
-absl::StatusOr<DataSlice> ObjectCreator::Convert(const DataBagPtr& db,
-                                                 const DataSlice& value) {
+absl::StatusOr<DataSlice> ObjectCreator::ConvertWithoutAdopt(
+    const DataBagPtr& db, const DataSlice& value) {
   if (!value.GetSchemaImpl().is_primitive_schema() &&
       // TODO: NONE schema is a primitive schema.
       value.GetSchemaImpl() != schema::kNone &&

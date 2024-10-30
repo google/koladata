@@ -914,6 +914,44 @@ def new_like(
 
 
 @optools.add_to_registry(
+    aliases=['kde.obj'], repr_fn=op_repr.full_signature_repr
+)
+@optools.as_backend_operator(
+    'kde.core.obj',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice_or_unspecified(P.arg),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+# Operator signature: `kde.obj(first_arg=None, /, itemid=None, **attrs)`
+def _obj(
+    arg=py_boxing.positional_only(arolla.unspecified()),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    attrs=py_boxing.var_keyword(),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=unused-argument,g-doc-args
+  """Creates new Objects with an implicit stored schema.
+
+  Returned DataSlice has OBJECT schema.
+
+  Args:
+    arg: optional Python object to be converted to an Object.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+      itemid will only be set when the args is not a primitive or primitive
+      slice if args presents.
+    **attrs: attrs to set on the returned object.
+
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
     aliases=['kde.obj_shaped'], repr_fn=op_repr.full_signature_repr
 )
 @optools.as_backend_operator(
@@ -928,15 +966,24 @@ def new_like(
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 # Operator signature: `kde.obj_shaped(shape, /, itemid=None, **attrs)`
-# pylint: disable=unused-argument
 def obj_shaped(
     shape=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),
-):
-  # pylint: enable=unused-argument
-  """Returns a new DataSlice with object schema, provided shape and attributes."""
+):  # pylint: disable=unused-argument,g-doc-args
+  """Creates Objects with the given shape.
+
+  Returned DataSlice has OBJECT schema.
+
+  Args:
+    shape: JaggedShape that the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
   raise NotImplementedError('implemented in the backend')
 
 
@@ -954,28 +1001,23 @@ def obj_shaped(
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 # Operator signature: `kde.obj_shaped_as(shape_from, /, itemid=None, **attrs)`
-# pylint: disable=unused-argument
 def obj_shaped_as(
     shape_from=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args
-  # pylint: enable=unused-argument
-  """Returns a new DataSlice with object schema, shape of the provided DataSlice and attributes.
+):  # pylint: disable=unused-argument,g-doc-args
+  """Creates Objects with the shape of the given DataSlice.
 
-  Does not copy the mask:
-  x = kde.obj_like(ds([None, None]), a=42).eval()
-  kde.has._eval(x) # => ds([kd.present, kd.present], schema_constants.MASK)
-  x.a # => ds([42, 42], schema_constants.INT32)
+  Returned DataSlice has OBJECT schema.
 
   Args:
-    shape_from: DataSlice to copy the shape from.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    attrs: attrs to set on the returned object.
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    **attrs: attrs to set in the returned Entity.
 
   Returns:
-    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
+    data_slice.DataSlice with the given attrs.
   """
   return arolla.abc.bind_op(
       obj_shaped,
@@ -1018,7 +1060,7 @@ def obj_like(
 
   Args:
     shape_and_mask_from: DataSlice to copy the shape and mask from.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     attrs: attrs to set on the returned object.
 
   Returns:

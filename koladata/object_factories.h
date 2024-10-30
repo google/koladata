@@ -127,8 +127,10 @@ struct EntityCreator {
   //
   // In case of Entities, it does an Entity-compatible adaption (i.e. no-op) of
   // a DataSlice.
-  static absl::StatusOr<DataSlice> Convert(const DataBagPtr& db,
-                                           const DataSlice& value) {
+  //
+  // NOTE: Does not adopt a DataBag from `value`.
+  static absl::StatusOr<DataSlice> ConvertWithoutAdopt(const DataBagPtr& db,
+                                                       const DataSlice& value) {
     return value;
   }
 };
@@ -210,8 +212,10 @@ struct ObjectCreator {
   //
   // Converts DataSlices with non-primitive schemas to `OBJECT`. Keeps `OBJECT`s
   // unchanged.
-  static absl::StatusOr<DataSlice> Convert(const DataBagPtr& db,
-                                           const DataSlice& value);
+  //
+  // NOTE: Does not adopt a DataBag from `value`.
+  static absl::StatusOr<DataSlice> ConvertWithoutAdopt(const DataBagPtr& db,
+                                                       const DataSlice& value);
 };
 
 // Returns a UuEntity ((DataSlice of UuIds generated as row-wise fingerprints

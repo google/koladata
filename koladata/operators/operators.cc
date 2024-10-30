@@ -115,6 +115,7 @@ OPERATOR_FAMILY("kde.core.new_shaped",
 OPERATOR("kde.core.no_bag", NoBag);
 OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
+OPERATOR_FAMILY("kde.core.obj", std::make_unique<ObjOperatorFamily>());
 OPERATOR_FAMILY("kde.core.obj_like", std::make_unique<ObjLikeOperatorFamily>());
 OPERATOR_FAMILY("kde.core.obj_shaped",
                 std::make_unique<ObjShapedOperatorFamily>());

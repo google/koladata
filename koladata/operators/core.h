@@ -287,6 +287,13 @@ class NewShapedOperatorFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const override;
 };
 
+// kde.core.obj.
+class ObjOperatorFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const override;
+};
+
 // kde.core.obj_shaped.
 class ObjShapedOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

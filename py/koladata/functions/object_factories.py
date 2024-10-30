@@ -136,7 +136,7 @@ def list_shaped(
 
 
 def list_shaped_as(
-    ds_as: data_slice.DataSlice,
+    shape_from: data_slice.DataSlice,
     items: list[Any] | data_slice.DataSlice | None = None,
     *,
     item_schema: data_slice.DataSlice | None = None,
@@ -147,7 +147,8 @@ def list_shaped_as(
   """Creates new Koda lists with shape of the given DataSlice.
 
   Args:
-    ds_as: mandatory DataSlice, whose shape the returned DataSlice will have.
+    shape_from: mandatory DataSlice, whose shape the returned DataSlice will
+      have.
     items: optional items to assign to the newly created lists. If not given,
       the function returns empty lists.
     item_schema: the schema of the list items. If not specified, it will be
@@ -161,7 +162,7 @@ def list_shaped_as(
     A DataSlice with the lists.
   """
   return list_shaped(
-      ds_as.get_shape(),
+      shape_from.get_shape(),
       items=items,
       item_schema=item_schema,
       schema=schema,
@@ -329,7 +330,7 @@ def dict_shaped(
 
 
 def dict_shaped_as(
-    as_ds: data_slice.DataSlice,
+    shape_from: data_slice.DataSlice,
     items_or_keys: Any | None = None,
     values: Any | None = None,
     key_schema: data_slice.DataSlice | None = None,
@@ -346,7 +347,8 @@ def dict_shaped_as(
   higher.
 
   Args:
-    as_ds: mandatory DataSlice, whose shape the returned DataSlice will have.
+    shape_from: mandatory DataSlice, whose shape the returned DataSlice will
+      have.
     items_or_keys: either a Python dict (if `values` is None) or a DataSlice
       with keys. The Python dict case is supported only for scalar shape.
     values: a DataSlice of values, when `items_or_keys` represents keys.
@@ -363,7 +365,7 @@ def dict_shaped_as(
     A DataSlice with the dicts.
   """
   return dict_shaped(
-      as_ds.get_shape(),
+      shape_from.get_shape(),
       items_or_keys=items_or_keys,
       values=values,
       key_schema=key_schema,
@@ -393,7 +395,7 @@ def new(
       schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
       itemid will only be set when the args is not a primitive or primitive
       slice if args present.
     db: optional DataBag where entities are created.
@@ -422,14 +424,14 @@ def new_shaped(
   """Creates new Entities with the given shape.
 
   Args:
-    shape: mandatory JaggedShape that the returned DataSlice will have.
+    shape: JaggedShape that the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
       schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -444,7 +446,7 @@ def new_shaped(
 
 
 def new_shaped_as(
-    as_ds: data_slice.DataSlice,
+    shape_from: data_slice.DataSlice,
     *,
     schema: data_slice.DataSlice | None = None,
     update_schema: bool = False,
@@ -455,14 +457,14 @@ def new_shaped_as(
   """Creates new Koda entities with shape of the given DataSlice.
 
   Args:
-    as_ds: mandatory DataSlice, whose shape the returned DataSlice will have.
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
       schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -470,7 +472,7 @@ def new_shaped_as(
     data_slice.DataSlice with the given attrs.
   """
   return new_shaped(
-      as_ds.get_shape(),
+      shape_from.get_shape(),
       schema=schema,
       update_schema=update_schema,
       itemid=itemid,
@@ -491,15 +493,15 @@ def new_like(
   """Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
   Args:
-    shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-      returned DataSlice will have.
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
       schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -527,7 +529,7 @@ def obj(
 
   Args:
     arg: optional Python object to be converted to an Object.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
       itemid will only be set when the args is not a primitive or primitive
       slice if args presents.
     db: optional DataBag where object are created.
@@ -553,8 +555,8 @@ def obj_shaped(
   Returned DataSlice has OBJECT schema.
 
   Args:
-    shape: mandatory JaggedShape that the returned DataSlice will have.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    shape: JaggedShape that the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -567,7 +569,7 @@ def obj_shaped(
 
 
 def obj_shaped_as(
-    as_ds: data_slice.DataSlice,
+    shape_from: data_slice.DataSlice,
     *,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
@@ -578,15 +580,15 @@ def obj_shaped_as(
   Returned DataSlice has OBJECT schema.
 
   Args:
-    as_ds: mandatory DataSlice, whose shape the returned DataSlice will have.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  return obj_shaped(as_ds.get_shape(), itemid=itemid, db=db, **attrs)
+  return obj_shaped(shape_from.get_shape(), itemid=itemid, db=db, **attrs)
 
 
 def obj_like(
@@ -601,9 +603,9 @@ def obj_like(
   Returned DataSlice has OBJECT schema.
 
   Args:
-    shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-      returned DataSlice will have.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 

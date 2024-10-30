@@ -1390,7 +1390,7 @@ Args:
     schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     itemid will only be set when the args is not a primitive or primitive slice
     if args present.
   **attrs: attrs to set in the returned Entity.
@@ -1405,14 +1405,14 @@ Returns:
      R"""(Creates new Entities with the given shape.
 
 Args:
-  shape: mandatory JaggedShape that the returned DataSlice will have.
+  shape: JaggedShape that the returned DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
     Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
     schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
   **attrs: attrs to set in the returned Entity.
 
 Returns:
@@ -1425,15 +1425,15 @@ Returns:
      R"""(Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
 Args:
-  shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-    returned DataSlice will have.
+  shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+    DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
     Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
     schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
   **attrs: attrs to set in the returned Entity.
 
 Returns:
@@ -1447,7 +1447,7 @@ Returned DataSlice has OBJECT schema.
 
 Args:
   arg: optional Python object to be converted to an Object.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     itemid will only be set when the args is not a primitive or primitive slice
     if args presents.
   **attrs: attrs to set on the returned object.
@@ -1463,8 +1463,8 @@ Returns:
 Returned DataSlice has OBJECT schema.
 
 Args:
-  shape: mandatory JaggedShape that the returned DataSlice will have.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+  shape: JaggedShape that the returned DataSlice will have.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
   **attrs: attrs to set in the returned Entity.
 
 Returns:
@@ -1478,9 +1478,9 @@ Returns:
 Returned DataSlice has OBJECT schema.
 
 Args:
-  shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-    returned DataSlice will have.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+  shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+    DataSlice will have.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
   db: optional DataBag where entities are created.
   **attrs: attrs to set in the returned Entity.
 

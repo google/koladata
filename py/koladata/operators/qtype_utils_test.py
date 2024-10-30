@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for qtype_utils."""
-
 from absl.testing import absltest
 from arolla import arolla
 from koladata.operators import kde_operators as _  # pylint: disable=unused-import
