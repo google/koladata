@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.list_like operator."""
-
 import itertools
 
 from absl.testing import absltest
@@ -94,11 +92,7 @@ class ListLikeTest(parameterized.TestCase):
   def test_value(self, args, kwargs):
     actual = expr_eval.eval(kde.core.list_like(*args, **kwargs))
     expected = bag().list_like(*args, **kwargs)
-    testing.assert_equal(
-        actual.get_schema().get_attr('__items__').no_bag(),
-        expected.get_schema().get_attr('__items__').no_bag(),
-    )
-    self.assertEqual(actual.to_py(), expected.to_py())
+    testing.assert_equal(actual[:].no_bag(), expected[:].no_bag())
 
   def test_itemid(self):
     itemid = kde.allocation.new_listid_shaped_as._eval(ds([1, 1]))  # pylint: disable=protected-access

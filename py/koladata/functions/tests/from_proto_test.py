@@ -106,11 +106,11 @@ class FromProtoTest(absltest.TestCase):
     s = x.get_schema()
     self.assertEqual(x.get_ndim(), 0)
 
-    self.assertEqual(x.some_text.to_py(), 'thing 1')
+    self.assertEqual(x.some_text, 'thing 1')
     self.assertEqual(s.some_text, schema_constants.TEXT)
-    self.assertEqual(x.some_float.to_py(), 1.0)
+    self.assertEqual(x.some_float, 1.0)
     self.assertEqual(s.some_float, schema_constants.FLOAT32)
-    self.assertEqual(x.message_b_list[:].text.to_py(), ['a', 'b', 'c'])
+    testing.assert_equal(x.message_b_list[:].text.no_bag(), ds(['a', 'b', 'c']))
 
   def test_multiple_message(self):
     m1 = test_pb2.MessageA(
@@ -134,12 +134,12 @@ class FromProtoTest(absltest.TestCase):
     s = x.get_schema()
     self.assertEqual(x.get_ndim(), 1)
 
-    self.assertEqual(x.some_text.to_py(), ['thing 1', 'thing 2'])
+    testing.assert_equal(x.some_text.no_bag(), ds(['thing 1', 'thing 2']))
     self.assertEqual(s.some_text, schema_constants.TEXT)
-    self.assertEqual(x.some_float.to_py(), [1.0, None])
+    testing.assert_equal(x.some_float.no_bag(), ds([1.0, None]))
     self.assertEqual(s.some_float, schema_constants.FLOAT32)
-    self.assertEqual(
-        x.message_b_list[:].text.to_py(), [['a', 'b', 'c'], [None, 'd']]
+    testing.assert_equal(
+        x.message_b_list[:].text.no_bag(), ds([['a', 'b', 'c'], [None, 'd']])
     )
 
   def test_extensions(self):
@@ -208,7 +208,7 @@ class FromProtoTest(absltest.TestCase):
     self.assertEqual(
         x.message_set_extensions.get_attr(
             '(koladata.functions.testing.MessageAExtension.message_set_extension)'
-        ).extra.to_py(),
+        ).extra,
         1,
     )
 
@@ -226,7 +226,7 @@ class FromProtoTest(absltest.TestCase):
     self.assertEqual(
         x.get_attr(
             '(koladata.functions.testing.MessageAExtension.message_a_extension)'
-        ).extra.to_py(),
+        ).extra,
         2,
     )
 
@@ -248,7 +248,7 @@ class FromProtoTest(absltest.TestCase):
         .get_attr(
             '(koladata.functions.testing.MessageAExtensionExtension.message_a_extension_extension)'
         )
-        .extra.to_py(),
+        .extra,
         3,
     )
 
@@ -259,11 +259,11 @@ class FromProtoTest(absltest.TestCase):
             '(koladata.functions.testing.MessageBExtension.message_b_extension)',
         ],
     )
-    self.assertEqual(
+    testing.assert_equal(
         x.message_b_list[:].get_attr(
             '(koladata.functions.testing.MessageBExtension.message_b_extension)'
-        ).extra.to_py(),
-        [4, None, 5],
+        ).extra.no_bag(),
+        ds([4, None, 5]),
     )
 
 

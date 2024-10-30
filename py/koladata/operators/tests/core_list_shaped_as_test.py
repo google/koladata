@@ -103,11 +103,7 @@ class ListShapedAsTest(parameterized.TestCase):
   def test_value(self, args, kwargs):
     actual = expr_eval.eval(kde.core.list_shaped_as(*args, **kwargs))
     expected = fns.list_shaped_as(*args, **kwargs)
-    testing.assert_equivalent(
-        actual.get_schema().get_attr('__items__').no_bag(),
-        expected.get_schema().get_attr('__items__').no_bag(),
-    )
-    self.assertEqual(actual.to_py(), expected.to_py())
+    testing.assert_equal(actual[:].no_bag(), expected[:].no_bag())
 
   def test_itemid(self):
     itemid = kde.allocation.new_listid_shaped_as._eval(ds([1, 1]))  # pylint: disable=protected-access

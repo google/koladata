@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for list_like."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.exceptions import exceptions
@@ -31,16 +29,6 @@ kde = kde_operators.kde
 
 class ListLikeTest(parameterized.TestCase):
 
-  # TODO: The test below does not work because .append() does not
-  # work for DataItem(missing list).
-  # def test_empty_item(self):
-  #   l = fns.list_like(ds(None))
-  #   # TODO: This should be ListItem when implemented.
-  #   self.assertIsInstance(l, list_item.ListItem)
-  #   self.assertEqual(l.as_py(), None)
-  #   l.append(1)
-  #   self.assertEqual(l.as_py(), None)
-
   def test_item(self):
     l = fns.list_like(ds(1))
     self.assertIsInstance(l, list_item.ListItem)
@@ -56,6 +44,12 @@ class ListLikeTest(parameterized.TestCase):
     testing.assert_equal(l[:], ds([1, 2]).with_bag(l.get_bag()))
     l.append(3)
     testing.assert_equal(l[:], ds([1, 2, 3]).with_bag(l.get_bag()))
+
+  def test_empty_item(self):
+    l = fns.list_like(ds(None))
+    testing.assert_equal(l.no_bag(), ds(None, l.get_schema()))
+    l.append(1)
+    testing.assert_equal(l[:].no_bag(), ds([]))
 
   def test_slice(self):
     l = fns.list_like(ds([[1, None], [3]]))
