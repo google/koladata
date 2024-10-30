@@ -2353,4 +2353,30 @@ absl::StatusOr<DataSlice> ListLike(const DataSlice& shape_and_mask_from,
   return result;
 }
 
+absl::StatusOr<DataSlice> ListShaped(const DataSlice::JaggedShape& shape,
+                                     const DataSlice& items,
+                                     const DataSlice& item_schema,
+                                     const DataSlice& schema,
+                                     const DataSlice& itemid,
+                                     int64_t unused_hidden_seed) {
+  ASSIGN_OR_RETURN(
+      auto result,
+      CreateListShaped(
+          DataBag::Empty(), shape,
+          IsUnspecifiedDataSlice(items) ? std::nullopt
+                                        : std::make_optional(items),
+          IsUnspecifiedDataSlice(schema) ? std::nullopt
+                                         : std::make_optional(schema),
+          IsUnspecifiedDataSlice(item_schema) ? std::nullopt
+                                              : std::make_optional(item_schema),
+          IsUnspecifiedDataSlice(itemid) ? std::nullopt
+                                         : std::make_optional(itemid)));
+  if (result.GetBag() == nullptr) {
+    return absl::InternalError(
+        "ListShaped should always return a DataSlice with a DataBag");
+  }
+  result.GetBag()->UnsafeMakeImmutable();
+  return result;
+}
+
 }  // namespace koladata::ops

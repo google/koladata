@@ -358,6 +358,14 @@ absl::StatusOr<DataSlice> ListLike(const DataSlice& shape_and_mask_from,
                                    const DataSlice& itemid,
                                    int64_t unused_hidden_seed);
 
+// kde.core._list_shaped operator.
+absl::StatusOr<DataSlice> ListShaped(const DataSlice::JaggedShape& shape,
+                                     const DataSlice& items,
+                                     const DataSlice& item_schema,
+                                     const DataSlice& schema,
+                                     const DataSlice& itemid,
+                                     int64_t unused_hidden_seed);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_H_
