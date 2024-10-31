@@ -203,6 +203,12 @@ class DataSliceView(BasicKodaView):
   def __invert__(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.has_not', self)
 
+  def __neg__(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.neg', self)
+
+  def __pos__(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.pos', self)
+
   def __call__(
       self,
       *args: Any,

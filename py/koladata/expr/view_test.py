@@ -374,6 +374,12 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_invert(self):
     testing.assert_equal(~C.x, kde.has_not(C.x))
 
+  def test_neg(self):
+    testing.assert_equal(-C.x, kde.neg(C.x))
+
+  def test_pos(self):
+    testing.assert_equal(+C.x, kde.pos(C.x))
+
   def test_call(self):
     testing.assert_equal(C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z))
     testing.assert_equal(

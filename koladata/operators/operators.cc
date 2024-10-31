@@ -176,6 +176,8 @@ OPERATOR("kde.math.maximum", Maximum);
 OPERATOR("kde.math.minimum", Minimum);
 OPERATOR("kde.math.mod", Mod);
 OPERATOR("kde.math.multiply", Multiply);
+OPERATOR("kde.math.neg", Neg);
+OPERATOR("kde.math.pos", Pos);
 OPERATOR("kde.math.pow", Pow);
 OPERATOR("kde.math.round", Round);
 OPERATOR("kde.math.subtract", Subtract);

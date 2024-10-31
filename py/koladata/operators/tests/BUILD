@@ -687,6 +687,46 @@ py_test(
 )
 
 py_test(
+    name = "math_neg_test",
+    srcs = ["math_neg_test.py"],
+    deps = [
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "math_pos_test",
+    srcs = ["math_pos_test.py"],
+    deps = [
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "math_ceil_test",
     srcs = ["math_ceil_test.py"],
     deps = [
@@ -5515,6 +5555,20 @@ koda_operator_coverage_test(
     name = "kd_math_abs_covers_math_abs_test",
     arolla_op = "math.abs",
     koda_op = "math.abs",
+    skip_test_patterns = ["(?i).*WEAK_FLOAT.*"],
+)
+
+koda_operator_coverage_test(
+    name = "kd_math_neg_covers_math_neg_test",
+    arolla_op = "math.neg",
+    koda_op = "math.neg",
+    skip_test_patterns = ["(?i).*WEAK_FLOAT.*"],
+)
+
+koda_operator_coverage_test(
+    name = "kd_math_pos_covers_math_pos_test",
+    arolla_op = "math.pos",
+    koda_op = "math.pos",
     skip_test_patterns = ["(?i).*WEAK_FLOAT.*"],
 )
 

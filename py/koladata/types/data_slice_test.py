@@ -2741,6 +2741,12 @@ class DataSliceFallbackTest(parameterized.TestCase):
     self.assertEqual(ds([3.14, None, 57.0]).get_size(), ds(3, INT64))
     self.assertEqual(ds([[1, 2], [3, None], [None]]).get_size(), ds(5, INT64))
 
+  def test_neg(self):
+    self.assertEqual(-ds(5), ds(-5, INT64))
+
+  def test_pos(self):
+    self.assertEqual(+ds(-5), ds(-5, INT64))
+
   def test_get_ndim(self):
     testing.assert_equal(ds(57).get_ndim(), ds(0, INT64))
     testing.assert_equal(ds([1, 2, 3]).get_ndim(), ds(1, INT64))

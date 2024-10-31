@@ -296,6 +296,16 @@ def _updated(self, *db: DataBag) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.updated, self, *db)
 
 
+@DataSlice.add_method('__neg__')
+def _neg(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.neg, self)
+
+
+@DataSlice.add_method('__pos__')
+def _pos(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.pos, self)
+
+
 DataSlice.add_method('with_name')(general_eager_ops.with_name)
 
 

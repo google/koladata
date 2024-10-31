@@ -111,6 +111,32 @@ def abs(x):  # pylint: disable=unused-argument,redefined-builtin
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.neg'], repr_fn=op_repr.neg_repr)
+@optools.as_backend_operator(
+    'kde.math.neg',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def neg(x):  # pylint: disable=unused-argument,redefined-builtin
+  """Computes pointwise negation of the input, i.e. -x."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.pos'], repr_fn=op_repr.pos_repr)
+@optools.as_backend_operator(
+    'kde.math.pos',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def pos(x):  # pylint: disable=unused-argument,redefined-builtin
+  """Computes pointwise positive of the input, i.e. +x."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.ceil'])
 @optools.as_backend_operator(
     'kde.math.ceil',
