@@ -1625,13 +1625,13 @@ def dict_like(
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
   return _dict_like(
       shape_and_mask_from,
-      keys,
-      values,
-      key_schema,
-      value_schema,
-      schema,
-      itemid,
-      hidden_seed,
+      keys=keys,
+      values=values,
+      key_schema=key_schema,
+      value_schema=value_schema,
+      schema=schema,
+      itemid=itemid,
+      hidden_seed=hidden_seed,
   )
 
 
