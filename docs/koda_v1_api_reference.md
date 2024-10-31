@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-10-23'
+  reviewed: '2024-10-31'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -4720,6 +4720,30 @@ utilities.
 
 **Operators**
 
+### `allow_arbitrary_unused_inputs(fn_def)` {#allow_arbitrary_unused_inputs}
+
+``` {.no-copy}
+Returns a functor that allows unused inputs but otherwise behaves the same.
+
+  This is done by adding a `**__extra_inputs__` argument to the signature if
+  there is no existing variadic keyword argument there. If there is a variadic
+  keyword argument, this function will return the original functor.
+
+  This means that if the functor already accepts arbitrary inputs but fails
+  on unknown inputs further down the line (for example, when calling another
+  functor), this method will not fix it. In particular, this method has no
+  effect on the return values of kdf.py_fn or kdf.bind. It does however work
+  on the output of kdf.trace_py_fn.
+
+  Args:
+    fn_def: The input functor.
+
+  Returns:
+    The input functor if it already has a variadic keyword argument, or its copy
+    but with an additional `**__extra_inputs__` variadic keyword argument if
+    there is no existing variadic keyword argument.
+```
+
 ### `as_fn(f, *, use_tracing, **kwargs)` {#as_fn}
 
 ``` {.no-copy}
@@ -4809,6 +4833,18 @@ Creates a functor.
 
   Returns:
     A DataItem representing the functor.
+```
+
+### `get_signature(fn_def)` {#get_signature}
+
+``` {.no-copy}
+Retrieves the signature attached to the given functor.
+
+  Args:
+    fn_def: The functor to retrieve the signature for, or a slice thereof.
+
+  Returns:
+    The signature(s) attached to the functor(s).
 ```
 
 ### `py_fn(f, *, return_type_as, **defaults)` {#py_fn}
@@ -5149,7 +5185,7 @@ Converts primitive slice to an arolla.dense_array with appropriate qtype.
 Clears all dicts or lists in this DataSlice
 ```
 
-### `<DataSlice>.clone(self, schema, **overrides)` {#<DataSlice>.clone}
+### `<DataSlice>.clone(self, itemid, schema, **overrides)` {#<DataSlice>.clone}
 
 *No description*
 
@@ -5237,6 +5273,11 @@ otherwise the schema is inferred from `value`.
 
 ``` {.no-copy}
 Gets attribute `attr_name` where missing items are filled from `default`.
+
+Args:
+  attr_name: name of the attribute to get.
+  default: optional default value to fill missing items.
+           Note that this value can be fully omitted.
 ```
 
 ### `<DataSlice>.get_bag` {#<DataSlice>.get_bag}
@@ -5472,7 +5513,7 @@ Returns:
   DataSlice with the provided `schema`.
 ```
 
-### `<DataSlice>.shallow_clone(self, schema, **overrides)` {#<DataSlice>.shallow_clone}
+### `<DataSlice>.shallow_clone(self, itemid, schema, **overrides)` {#<DataSlice>.shallow_clone}
 
 *No description*
 
@@ -5595,6 +5636,18 @@ A DataBag associated with DataSlice.
 <section class="zippy open">
 
 **Operators**
+
+### `<DataBag>.adopt` {#<DataBag>.adopt}
+
+``` {.no-copy}
+Adopts all data reachable from the given slice into this DataBag.
+
+Args:
+  slice: DataSlice to adopt data from.
+
+Returns:
+  The DataSlice with this DataBag (including adopted data) attached.
+```
 
 ### `<DataBag>.concat_lists(self, *lists)` {#<DataBag>.concat_lists}
 
@@ -6070,6 +6123,8 @@ Args:
   seed: (str) Allows different item(s) to have different ids when created
     from the same inputs.
   schema: schema for the resulting DataSlice
+  update_schema: if true, will overwrite schema attributes in the schema's
+    corresponding db from the argument values.
   **kwargs: key-value pairs of object attributes where values are DataSlices
     or can be converted to DataSlices using kd.new.
 
