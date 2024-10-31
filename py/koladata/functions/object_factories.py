@@ -27,7 +27,7 @@ from koladata.types import schema_constants
 bag = data_bag.DataBag.empty
 
 
-def _list(
+def list_(
     items: Any | None = None,
     *,
     item_schema: data_slice.DataSlice | None = None,
@@ -171,7 +171,7 @@ def list_shaped_as(
   )
 
 
-def _dict(
+def dict_(
     items_or_keys: Any | None = None, values: Any | None = None,
     *,
     key_schema: data_slice.DataSlice | None = None,

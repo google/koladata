@@ -40,6 +40,12 @@ absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 // kde.core.is_list.
 absl::StatusOr<DataSlice> IsList(const DataSlice& lists);
 
+// kde.core.list operator.
+absl::StatusOr<DataSlice> List(const DataSlice& items,
+                               const DataSlice& item_schema,
+                               const DataSlice& schema, const DataSlice& itemid,
+                               int64_t unused_hidden_seed);
+
 // kde.core._list_like operator.
 absl::StatusOr<DataSlice> ListLike(const DataSlice& shape_and_mask_from,
                                    const DataSlice& items,

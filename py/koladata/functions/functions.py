@@ -27,14 +27,14 @@ from koladata.functions import tmp_non_deterministic_overrides as _tmp_non_deter
 
 bag = _object_factories.bag
 
-list = _object_factories._list  # pylint: disable=redefined-builtin,protected-access
+list = _object_factories.list_  # pylint: disable=redefined-builtin
 list_like = _object_factories.list_like
 list_shaped = _object_factories.list_shaped
 list_shaped_as = _object_factories.list_shaped_as
 implode = _object_factories.implode
 concat_lists = _object_factories.concat_lists
 
-dict = _object_factories._dict  # pylint: disable=redefined-builtin,protected-access
+dict = _object_factories.dict_  # pylint: disable=redefined-builtin
 dict_like = _object_factories.dict_like
 dict_shaped = _object_factories.dict_shaped
 dict_shaped_as = _object_factories.dict_shaped_as

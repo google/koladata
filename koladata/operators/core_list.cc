@@ -111,16 +111,42 @@ absl::StatusOr<DataSlice> IsList(const DataSlice& lists) {
   return AsMask(lists.ContainsOnlyLists());
 }
 
+absl::StatusOr<DataSlice> List(const DataSlice& items,
+                               const DataSlice& item_schema,
+                               const DataSlice& schema, const DataSlice& itemid,
+                               int64_t unused_hidden_seed) {
+  auto db = DataBag::Empty();
+  std::optional<DataSlice> result;
+  auto schema_or = IsUnspecifiedDataSlice(schema) ? std::nullopt
+                                                  : std::make_optional(schema);
+  auto item_schema_or = IsUnspecifiedDataSlice(item_schema)
+                            ? std::nullopt
+                            : std::make_optional(item_schema);
+  auto itemid_or = IsUnspecifiedDataSlice(itemid) ? std::nullopt
+                                                  : std::make_optional(itemid);
+  if (IsUnspecifiedDataSlice(items)) {
+    ASSIGN_OR_RETURN(result,
+                     CreateEmptyList(db, schema_or, item_schema_or, itemid_or));
+  } else {
+    ASSIGN_OR_RETURN(result,
+                     CreateListsFromLastDimension(db, items, schema_or,
+                                                  item_schema_or, itemid_or));
+  }
+  db->UnsafeMakeImmutable();
+  return *std::move(result);
+}
+
 absl::StatusOr<DataSlice> ListLike(const DataSlice& shape_and_mask_from,
                                    const DataSlice& items,
                                    const DataSlice& item_schema,
                                    const DataSlice& schema,
                                    const DataSlice& itemid,
                                    int64_t unused_hidden_seed) {
+  auto db = DataBag::Empty();
   ASSIGN_OR_RETURN(
       auto result,
       CreateListLike(
-          DataBag::Empty(), shape_and_mask_from,
+          db, shape_and_mask_from,
           IsUnspecifiedDataSlice(items) ? std::nullopt
                                         : std::make_optional(items),
           IsUnspecifiedDataSlice(schema) ? std::nullopt
@@ -129,11 +155,7 @@ absl::StatusOr<DataSlice> ListLike(const DataSlice& shape_and_mask_from,
                                               : std::make_optional(item_schema),
           IsUnspecifiedDataSlice(itemid) ? std::nullopt
                                          : std::make_optional(itemid)));
-  if (result.GetBag() == nullptr) {
-    return absl::InternalError(
-        "ListLike should always return a DataSlice with a DataBag");
-  }
-  result.GetBag()->UnsafeMakeImmutable();
+  db->UnsafeMakeImmutable();
   return result;
 }
 
@@ -143,10 +165,11 @@ absl::StatusOr<DataSlice> ListShaped(const DataSlice::JaggedShape& shape,
                                      const DataSlice& schema,
                                      const DataSlice& itemid,
                                      int64_t unused_hidden_seed) {
+  auto db = DataBag::Empty();
   ASSIGN_OR_RETURN(
       auto result,
       CreateListShaped(
-          DataBag::Empty(), shape,
+          db, shape,
           IsUnspecifiedDataSlice(items) ? std::nullopt
                                         : std::make_optional(items),
           IsUnspecifiedDataSlice(schema) ? std::nullopt
@@ -155,11 +178,7 @@ absl::StatusOr<DataSlice> ListShaped(const DataSlice::JaggedShape& shape,
                                               : std::make_optional(item_schema),
           IsUnspecifiedDataSlice(itemid) ? std::nullopt
                                          : std::make_optional(itemid)));
-  if (result.GetBag() == nullptr) {
-    return absl::InternalError(
-        "ListShaped should always return a DataSlice with a DataBag");
-  }
-  result.GetBag()->UnsafeMakeImmutable();
+  db->UnsafeMakeImmutable();
   return result;
 }
 

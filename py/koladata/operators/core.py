@@ -3896,6 +3896,64 @@ def with_dict_update(x, keys, values=arolla.unspecified()):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.core._list', qtype_inference_expr=qtypes.DATA_SLICE
+)
+def _list(
+    items, item_schema, schema, itemid, hidden_seed  # pylint: disable=unused-argument
+):
+  """Implementation of `kde.core.list`."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kde.list'], repr_fn=op_repr.full_signature_repr
+)
+@optools.as_lambda_operator(
+    'kde.core.list',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice_or_unspecified(P.items),
+        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def list_(
+    items=py_boxing.positional_only(arolla.unspecified()),
+    item_schema=py_boxing.keyword_only(arolla.unspecified()),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=g-doc-args
+  """Creates list(s) by collapsing `items`.
+
+  If there is no argument, returns an empty Koda List. If the argument is a
+  DataSlice, creates a slice of Koda Lists.
+
+  Args:
+    items: items of the resulting lists. If not specified, an empty list of
+      OBJECTs will be created.
+    item_schema: optional schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: optional schema to use for the list. If specified, then item_schema
+      must not be specified.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+
+  Returns:
+    The slice with list/lists.
+  """
+  items = M.core.default_if_unspecified(items, data_slice.unspecified())
+  item_schema = M.core.default_if_unspecified(
+      item_schema, data_slice.unspecified()
+  )
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+  return _list(items, item_schema, schema, itemid, hidden_seed)
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.core._list_like', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _list_like(
