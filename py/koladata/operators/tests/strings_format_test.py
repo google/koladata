@@ -17,6 +17,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -192,37 +193,47 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_incompatible_text_bytes_types_error(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape('unsupported argument types (TEXT,TEXT,BYTES)')
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
+        re.escape('unsupported argument types (TEXT,TEXT,BYTES)'),
     ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(b'foo')))
 
   def test_unsupported_types_error(self):
-    with self.assertRaisesRegex(ValueError, 'no primitive schema'):
+    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=kde.uuid()))
-    with self.assertRaisesRegex(ValueError, 'no primitive schema'):
+    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
       expr_eval.eval(
           kde.strings.format(
               ds('{v}'), v=kde.with_schema(kde.uuid(), schema_constants.ANY)
           )
       )
     with self.assertRaisesRegex(
-        ValueError, 'unsupported argument types.*UNIT'
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
+        'unsupported argument types.*UNIT',
     ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(arolla.present())))
 
   def test_missing_input_error(self):
-    with self.assertRaisesRegex(ValueError, "argument name 'v' is not found"):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
+        "argument name 'v' is not found",
+    ):
       expr_eval.eval(kde.strings.format(ds('{v}')))
 
   def test_wrong_schema_empty_format_input_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'unsupported argument types.*INT64'
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
+        'unsupported argument types.*INT64',
     ):
       expr_eval.eval(kde.strings.format(ds(None, schema_constants.INT64)))
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds([1, 'foo'])))
 

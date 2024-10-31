@@ -40,6 +40,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/operators/utils.h"
 #include "koladata/shape_utils.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/registered_expr_operator.h"
@@ -260,13 +261,17 @@ absl::StatusOr<arolla::TypedValue> EvalExpr(
 
 absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
     const DataSlice& x) {
+  auto create_error = [&](absl::string_view message) {
+    return absl::InvalidArgumentError(
+        absl::StrCat(message, ": ", arolla::Repr(x)));
+  };
+
   const auto& schema = x.GetSchemaImpl();
   if (schema.is_primitive_schema()) {
     return schema;
   }
   if (schema.is_entity_schema()) {
-    return absl::InvalidArgumentError(
-        "DataSlice with Entity schema is not supported");
+    return create_error("DataSlice with Entity schema is not supported");
   }
   if (x.impl_empty_and_unknown()) {
     return internal::DataItem();
@@ -275,11 +280,9 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
     return internal::DataItem(*schema::DType::FromQType(x.dtype()));
   }
   if (x.impl_has_mixed_dtype()) {
-    return absl::InvalidArgumentError(
-        "DataSlice with mixed types is not supported");
+    return create_error("DataSlice with mixed types is not supported");
   }
-  return absl::InvalidArgumentError(
-      absl::StrCat("DataSlice has no primitive schema: ", arolla::Repr(x)));
+  return create_error("DataSlice has no primitive schema");
 }
 
 absl::StatusOr<DataSlice> SimplePointwiseEval(
@@ -287,15 +290,18 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     internal::DataItem output_schema,
     const std::optional<absl::Span<const int>>& primary_operand_indices) {
   DCHECK_GE(inputs.size(), 1);
-  ASSIGN_OR_RETURN(
-      auto primary_operand_schema_info,
-      GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices));
+  ASSIGN_OR_RETURN(auto primary_operand_schema_info,
+                   GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices),
+                   OperatorEvalError(std::move(_), op_name, "invalid inputs"));
   // All primary inputs are empty-and-unknown. We then skip evaluation and just
   // broadcast the first input to the common shape and common schema. It is the
   // caller's responsibility to make sure that the non-primary inputs have
   // acceptable schemas.
   if (!primary_operand_schema_info.first_primitive_schema.has_value()) {
-    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(inputs));
+    ASSIGN_OR_RETURN(
+        auto common_shape, shape::GetCommonShape(inputs),
+        OperatorEvalError(std::move(_), op_name,
+                          "cannot align all inputs to a common shape"));
     if (!output_schema.has_value()) {
       output_schema = std::move(primary_operand_schema_info.common_schema);
     }
@@ -305,8 +311,11 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
   }
   // From here on, we know that at least one primary input has known schema and
   // we should eval.
-  ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
-                   shape::AlignNonScalars(std::move(inputs)));
+  ASSIGN_OR_RETURN(
+      (auto [aligned_ds, aligned_shape]),
+      shape::AlignNonScalars(std::move(inputs)),
+      OperatorEvalError(std::move(_), op_name,
+                        "cannot align all inputs to a common shape"));
   std::vector<arolla::TypedValue> typed_value_holder;
   std::vector<arolla::TypedRef> typed_refs;
   typed_value_holder.reserve(aligned_ds.size());
@@ -321,7 +330,12 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
                          primary_operand_schema_info.first_primitive_schema));
     typed_refs.push_back(std::move(ref));
   }
-  ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs));
+  ASSIGN_OR_RETURN(
+      auto result, EvalExpr(op_name, typed_refs),
+      OperatorEvalError(
+          std::move(_), op_name,
+          "successfully converted input DataSlice(s) to DenseArray(s) but "
+          "failed to evaluate the Arolla operator"));
   if (!output_schema.has_value()) {
     // Get the common schema from the primary inputs and output.
     ASSIGN_OR_RETURN(auto result_schema, GetResultSchema(result));

@@ -17,6 +17,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -154,15 +155,15 @@ class StringsLstripTest(parameterized.TestCase):
 
   def test_incompatible_types(self):
     with self.assertRaisesRegex(
-        ValueError,
-        # TODO: Make Koda errors user friendly.
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
         re.escape('unsupported argument types (TEXT,BYTES)'),
     ):
       expr_eval.eval(kde.strings.lstrip(ds('foo'), ds(b'f')))
 
     with self.assertRaisesRegex(
-        ValueError,
-        # TODO: Make Koda errors user friendly.
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
         re.escape(
             'expected `chars` to be bytes, text, or unspecified, got chars:'
             ' INT32'
@@ -173,8 +174,8 @@ class StringsLstripTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        ValueError,
-        # TODO: Make Koda errors user friendly.
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
         re.escape(
             'expected texts/byteses or corresponding array, got s:'
             ' OPTIONAL_INT32'
@@ -184,7 +185,7 @@ class StringsLstripTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.strings.lstrip(ds('foo'), ds(['fo', 123])))
 

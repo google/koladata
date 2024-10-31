@@ -21,6 +21,7 @@ for the M.math.add and M.strings.join operators.
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -203,17 +204,23 @@ class CoreAddTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     y = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         # TODO: Make errors Koda friendly.
         'expected numerics, got y: DENSE_ARRAY_TEXT',
     ):
       expr_eval.eval(kde.core.add(I.x, I.y), x=x, y=y)
 
-    z = data_slice.DataSlice.from_vals([[1, 2], [3]])
+    z = ds([[1, 2], [3]])
     with self.assertRaisesRegex(
-        # TODO: Make errors Koda friendly.
-        ValueError,
+        exceptions.KodaError,
         'shapes are not compatible',
+    ):
+      expr_eval.eval(kde.core.add(I.x, I.z), x=x, z=z)
+
+    z = ds([[1, '2'], [3]])
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'DataSlice with mixed types is not supported',
     ):
       expr_eval.eval(kde.core.add(I.x, I.z), x=x, z=z)
 
@@ -247,7 +254,7 @@ class CoreAddTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with Entity schema is not supported'
+        exceptions.KodaError, 'DataSlice with Entity schema is not supported'
     ):
       expr_eval.eval(kde.core.add(x, x))
 

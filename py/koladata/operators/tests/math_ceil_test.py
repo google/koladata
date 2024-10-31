@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.math.ceil."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -158,9 +157,9 @@ class MathCeilTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_errors(self):
-    x = data_slice.DataSlice.from_vals(['1', '2', '3'])
+    x = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         # TODO: Make errors Koda friendly.
         'expected numerics, got x: DENSE_ARRAY_TEXT',
     ):

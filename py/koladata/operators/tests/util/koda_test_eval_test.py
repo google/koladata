@@ -22,6 +22,8 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import error_pb2
+from koladata.exceptions import exceptions
 from koladata.operators import eager_op_utils
 from koladata.operators.tests.util import data_conversion
 from koladata.operators.tests.util import koda_test_eval
@@ -39,6 +41,8 @@ kd = eager_op_utils.operators_container('kde')
     'kde.add_fake_for_test', qtype_inference_expr=P.x
 )
 def add_fake_for_test(x, y):
+  if x.get_ndim() == 0 and x > 2**30:
+    raise exceptions.KodaError(error_pb2.Error(error_message='fake error'))
   return data_slice.DataSlice.from_vals(
       x.as_arolla_value() + y.as_arolla_value()
   )
@@ -158,6 +162,14 @@ class KodaTestEvalTest(parameterized.TestCase):
     )
     _ = koda_test_eval.eager_eval(expr)
     arolla_eval_mock.assert_not_called()
+
+  def test_koda_error_is_converted_to_arolla_error(self):
+    expr = M.math.add(L.x, L.y)
+    x = arolla.optional_int32(2**30 + 1)
+    y = arolla.optional_int32(4)
+
+    with self.assertRaisesRegex(ValueError, 'fake error'):
+      _ = koda_test_eval.eager_eval(expr, x=x, y=y)
 
   def test_op_translation_is_used(self):
     expr = M.math.add(L.x, L.y)

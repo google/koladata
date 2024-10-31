@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.fstring import fstring
 from koladata.functions import functions as fns
@@ -128,9 +129,9 @@ class FstrTest(absltest.TestCase):
 
   def test_fstr_errors(self):
     o = fns.obj(x=ds('X'))
-    with self.assertRaisesRegex(ValueError, 'no primitive schema'):
+    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
       fstring.fstr(f'h:{o:s}-y')
-    with self.assertRaisesRegex(ValueError, 'no primitive schema'):
+    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
       fstring.fstr(f'w:{ds([1]):s}h:{o:s}')
 
   def test_fstr_nothing_to_format_error(self):
@@ -139,12 +140,12 @@ class FstrTest(absltest.TestCase):
 
   def test_fstr_error_outside_of_fstr(self):
     o = fns.obj(x=ds('X'))
-    with self.assertRaisesRegex(ValueError, 'kde.math.subtract'):
+    with self.assertRaisesRegex(exceptions.KodaError, 'math.subtract'):
       fstring.fstr(f'h:{o - 1:s}-y')
 
   def test_fstr_error_outside_of_fstr_2nd_arg(self):
     o = fns.obj(x=ds('X'))
-    with self.assertRaisesRegex(ValueError, 'kde.math.subtract'):
+    with self.assertRaisesRegex(exceptions.KodaError, 'math.subtract'):
       fstring.fstr(f'w:{ds([1]):s} h:{o - 1:s}')
 
 

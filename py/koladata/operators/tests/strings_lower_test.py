@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.strings.lower."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -84,23 +83,25 @@ class StringsLowerTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_errors(self):
-    x = data_slice.DataSlice.from_vals([1, 2, 3])
+    x = ds([1, 2, 3])
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         # TODO: Make errors Koda friendly.
         'expected texts or array of texts, got x: DENSE_ARRAY_INT32',
     ):
       expr_eval.eval(kde.strings.lower(I.x), x=x)
 
-    x = data_slice.DataSlice.from_vals([b'ABC', b'DEF'])
+    x = ds([b'ABC', b'DEF'])
     with self.assertRaisesRegex(
-        ValueError, 'expected texts or array of texts, got x: DENSE_ARRAY_BYTES'
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
+        'expected texts or array of texts, got x: DENSE_ARRAY_BYTES',
     ):
       expr_eval.eval(kde.strings.lower(I.x), x=x)
 
-    x = data_slice.DataSlice.from_vals(['ABC', b'DEF'])
+    x = ds(['ABC', b'DEF'])
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.strings.lower(I.x), x=x)
 

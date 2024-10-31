@@ -30,6 +30,7 @@ from typing import Any, Callable, Sequence
 
 from arolla import arolla
 from arolla.operator_tests import backend_test_base_flags
+from koladata.exceptions import exceptions
 from koladata.operators import eager_op_utils
 from koladata.operators.tests.util import data_conversion
 from koladata.types import data_slice
@@ -218,7 +219,14 @@ def eager_eval(expr: Any, /, **leaf_values: Any) -> arolla.QValue:
       raise ValueError('placeholders are not supported')
     else:
       koda_op = _get_eager_koda_op(node.op)
-      return koda_op(*args)
+      try:
+        return koda_op(*args)
+      # Note that ValueError is expected in the Arolla tests and we need to
+      # convert KodaError to ValueError.
+      except exceptions.KodaError as e:
+        raise ValueError(str(e)) from None
+      except Exception as e:
+        raise e
 
   expr = arolla.as_expr(expr)
   output_qtype = _get_output_qtype(expr, **leaf_qvalues)

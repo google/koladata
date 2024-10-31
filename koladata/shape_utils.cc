@@ -20,9 +20,11 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::shape {
@@ -42,7 +44,9 @@ absl::StatusOr<DataSlice::JaggedShape> GetCommonShape(
   DCHECK_NE(shape, nullptr);
   for (const auto& slice : slices) {
     if (!slice.GetShape().IsBroadcastableTo(*shape)) {
-      return absl::InvalidArgumentError("shapes are not compatible");
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "shapes are not compatible: %s vs %s", arolla::Repr(slice.GetShape()),
+          arolla::Repr(*shape)));
     }
   }
   return *shape;

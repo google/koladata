@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.strings.count."""
-
 import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -102,14 +101,16 @@ class StringsCountTest(parameterized.TestCase):
 
   def test_incompatible_types_error(self):
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
         re.escape('unsupported argument types (TEXT,BYTES)'),
     ):
       expr_eval.eval(kde.strings.count(ds('foo'), ds(b'f')))
 
   def test_another_incompatible_types_error(self):
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
         re.escape('unsupported argument types (DENSE_ARRAY_TEXT,INT32)'),
     ):
       expr_eval.eval(
@@ -118,7 +119,7 @@ class StringsCountTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.strings.count(ds('foo'), ds([1, 'fo'])))
 

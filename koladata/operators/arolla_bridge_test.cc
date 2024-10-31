@@ -26,11 +26,15 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error.pb.h"
+#include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/dense_array/dense_array.h"
@@ -49,6 +53,7 @@ using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
+using ::testing::StrEq;
 using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
 
 DataSliceEdge EdgeFromSizes(absl::Span<const int64_t> sizes) {
@@ -164,6 +169,137 @@ TEST(ArollaEval, SimplePointwiseEval) {
                          SimplePointwiseEval("strings.printf", args));
     EXPECT_THAT(result, IsEquivalentTo(
                             test::DataItem<arolla::Text>(arolla::Text("foo"))));
+  }
+  {
+    // invalid input: entity.
+    DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
+    DataSlice::JaggedShape y_shape = *DataSlice::JaggedShape::FromEdges(
+        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto y, EntityCreator::Shaped(db, y_shape, {}, {}));
+    auto status = SimplePointwiseEval("math.add", {x, y}).status();
+    EXPECT_THAT(
+        status,
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("DataSlice with Entity schema is not supported")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(
+        payload->error_message(),
+        StrEq("operator math.add failed during evaluation: invalid inputs"));
+    EXPECT_THAT(payload->cause().error_message(),
+                HasSubstr("DataSlice with Entity schema is not supported"));
+  }
+  {
+    // invalid input: mixed types.
+    DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
+    DataSlice y = test::MixedDataSlice<int, arolla::Bytes>(
+        {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"},
+        schema::kObject);
+    auto status = SimplePointwiseEval("math.add", {x, y}).status();
+    EXPECT_THAT(
+        status,
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("DataSlice with mixed types is not supported")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(
+        payload->error_message(),
+        StrEq("operator math.add failed during evaluation: invalid inputs"));
+    EXPECT_THAT(payload->cause().error_message(),
+                HasSubstr("DataSlice with mixed types is not supported"));
+  }
+  {
+    // Invalid input: object.
+    DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
+    DataSlice y =
+        test::DataItem(internal::AllocateSingleObject(), schema::kObject);
+    auto status = SimplePointwiseEval("math.add", {x, y}).status();
+    EXPECT_THAT(status,
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("DataSlice has no primitive schema")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(
+        payload->error_message(),
+        StrEq("operator math.add failed during evaluation: invalid inputs"));
+    EXPECT_THAT(payload->cause().error_message(),
+                HasSubstr("DataSlice has no primitive schema"));
+  }
+  {
+    // incompatible shapes.
+    DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
+    DataSlice y = test::DataSlice<int>({1}, schema::kInt32);
+    auto status = SimplePointwiseEval("math.add", {x, y}).status();
+    EXPECT_THAT(status,
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("shapes are not compatible: JaggedShape(1) "
+                                   "vs JaggedShape(3)")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(payload->error_message(),
+                StrEq("operator math.add failed during evaluation: cannot "
+                      "align all inputs to a common shape"));
+    EXPECT_THAT(
+        payload->cause().error_message(),
+        HasSubstr(
+            "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)"));
+  }
+  {
+    // incompatible shapes for all missing inputs.
+    DataSlice x = test::DataSlice<int>(
+        {std::nullopt, std::nullopt, std::nullopt}, schema::kObject);
+    DataSlice y = test::DataSlice<int>({std::nullopt}, schema::kObject);
+    auto status = SimplePointwiseEval("math.add", {x, y}).status();
+    EXPECT_THAT(status,
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("shapes are not compatible: JaggedShape(1) "
+                                   "vs JaggedShape(3)")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(payload->error_message(),
+                StrEq("operator math.add failed during evaluation: cannot "
+                      "align all inputs to a common shape"));
+    EXPECT_THAT(
+        payload->cause().error_message(),
+        HasSubstr(
+            "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)"));
+  }
+  {
+    // Arolla op compilation error.
+    DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
+    DataSlice y = test::DataSlice<arolla::Text>({"1", "2", "3"}, schema::kText);
+    auto status = SimplePointwiseEval("math.add", {x, y}).status();
+    EXPECT_THAT(
+        status,
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("expected numerics, got y: DENSE_ARRAY_TEXT")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(
+        payload->error_message(),
+        StrEq("operator math.add failed during evaluation: successfully "
+              "converted input DataSlice(s) to DenseArray(s) but "
+              "failed to evaluate the Arolla operator"));
+    EXPECT_THAT(payload->cause().error_message(),
+                HasSubstr("expected numerics, got y: DENSE_ARRAY_TEXT"));
+  }
+  {
+    // Arolla op eval error.
+    DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
+    DataSlice y = test::DataSlice<int>({0, 0, 0}, schema::kInt32);
+    auto status = SimplePointwiseEval("math.floordiv", {x, y}).status();
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
+                                 HasSubstr("division by zero")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(
+        payload->error_message(),
+        StrEq("operator math.floordiv failed during evaluation: successfully "
+              "converted input DataSlice(s) to DenseArray(s) but "
+              "failed to evaluate the Arolla operator"));
+    EXPECT_THAT(payload->cause().error_message(),
+                HasSubstr("division by zero"));
   }
 }
 

@@ -529,6 +529,7 @@ py_test(
     name = "core_add_test",
     srcs = ["core_add_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -550,6 +551,7 @@ py_test(
     name = "math_subtract_test",
     srcs = ["math_subtract_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -570,6 +572,7 @@ py_test(
     name = "math_multiply_test",
     srcs = ["math_multiply_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -590,6 +593,7 @@ py_test(
     name = "math_divide_test",
     srcs = ["math_divide_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -610,6 +614,7 @@ py_test(
     name = "math_log_test",
     srcs = ["math_log_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -630,6 +635,7 @@ py_test(
     name = "math_log10_test",
     srcs = ["math_log10_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -650,6 +656,7 @@ py_test(
     name = "math_exp_test",
     srcs = ["math_exp_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -670,6 +677,7 @@ py_test(
     name = "math_abs_test",
     srcs = ["math_abs_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -690,6 +698,7 @@ py_test(
     name = "math_neg_test",
     srcs = ["math_neg_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -710,6 +719,7 @@ py_test(
     name = "math_pos_test",
     srcs = ["math_pos_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -730,6 +740,7 @@ py_test(
     name = "math_ceil_test",
     srcs = ["math_ceil_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -750,6 +761,7 @@ py_test(
     name = "math_floor_test",
     srcs = ["math_floor_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -770,6 +782,7 @@ py_test(
     name = "math_round_test",
     srcs = ["math_round_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -790,6 +803,7 @@ py_test(
     name = "math_pow_test",
     srcs = ["math_pow_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -810,6 +824,7 @@ py_test(
     name = "math_floordiv_test",
     srcs = ["math_floordiv_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -830,6 +845,7 @@ py_test(
     name = "math_mod_test",
     srcs = ["math_mod_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -850,6 +866,7 @@ py_test(
     name = "math_maximum_test",
     srcs = ["math_maximum_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -870,6 +887,7 @@ py_test(
     name = "math_minimum_test",
     srcs = ["math_minimum_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1858,6 +1876,7 @@ py_test(
     name = "comparison_greater_test",
     srcs = ["comparison_greater_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1878,6 +1897,7 @@ py_test(
     name = "comparison_greater_equal_test",
     srcs = ["comparison_greater_equal_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1898,6 +1918,7 @@ py_test(
     name = "comparison_less_test",
     srcs = ["comparison_less_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1918,6 +1939,7 @@ py_test(
     name = "comparison_less_equal_test",
     srcs = ["comparison_less_equal_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1978,6 +2000,7 @@ py_test(
     name = "strings_strip_test",
     srcs = ["strings_strip_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1997,6 +2020,7 @@ py_test(
     name = "strings_lstrip_test",
     srcs = ["strings_lstrip_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2016,6 +2040,7 @@ py_test(
     name = "strings_rstrip_test",
     srcs = ["strings_rstrip_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2035,6 +2060,7 @@ py_test(
     name = "strings_substr_test",
     srcs = ["strings_substr_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4679,6 +4705,7 @@ py_test(
     name = "strings_length_test",
     srcs = ["strings_length_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4698,6 +4725,7 @@ py_test(
     name = "strings_lower_test",
     srcs = ["strings_lower_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4717,6 +4745,7 @@ py_test(
     name = "strings_upper_test",
     srcs = ["strings_upper_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4737,6 +4766,7 @@ py_test(
     name = "strings_printf_test",
     srcs = ["strings_printf_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4756,6 +4786,7 @@ py_test(
     name = "strings_format_test",
     srcs = ["strings_format_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4774,6 +4805,7 @@ py_test(
     name = "strings_fstr_test",
     srcs = ["strings_fstr_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4926,6 +4958,7 @@ py_test(
     name = "strings_join_test",
     srcs = ["strings_join_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4945,6 +4978,7 @@ py_test(
     name = "strings_contains_test",
     srcs = ["strings_contains_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4964,6 +4998,7 @@ py_test(
     name = "strings_find_test",
     srcs = ["strings_find_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4982,6 +5017,7 @@ py_test(
     name = "strings_rfind_test",
     srcs = ["strings_rfind_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5000,6 +5036,7 @@ py_test(
     name = "strings_count_test",
     srcs = ["strings_count_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5258,6 +5295,7 @@ py_test(
     name = "strings_replace_test",
     srcs = ["strings_replace_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5452,6 +5490,21 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "pointwise_arolla_op_error_test",
+    srcs = ["pointwise_arolla_op_error_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
 

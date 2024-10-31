@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.math.multiply."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -119,19 +118,18 @@ class MathMultiplyTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_errors(self):
-    x = data_slice.DataSlice.from_vals([1, 2, 3])
-    y = data_slice.DataSlice.from_vals(['1', '2', '3'])
+    x = ds([1, 2, 3])
+    y = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         # TODO: Make errors Koda friendly.
         'expected numerics, got y: DENSE_ARRAY_TEXT',
     ):
       expr_eval.eval(kde.math.multiply(I.x, I.y), x=x, y=y)
 
-    z = data_slice.DataSlice.from_vals([[1, 2], [3]])
+    z = ds([[1, 2], [3]])
     with self.assertRaisesRegex(
-        # TODO: Make errors Koda friendly.
-        ValueError,
+        exceptions.KodaError,
         'shapes are not compatible',
     ):
       expr_eval.eval(kde.math.multiply(I.x, I.z), x=x, z=z)

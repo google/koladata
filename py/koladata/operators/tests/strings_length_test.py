@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.strings.length."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -89,18 +88,18 @@ class StringsLengthTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_errors(self):
-    x = data_slice.DataSlice.from_vals([1, 2, 3])
+    x = ds([1, 2, 3])
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         # TODO: Make errors Koda friendly.
         'expected texts/byteses or corresponding array, got x:'
         ' DENSE_ARRAY_INT32',
     ):
       expr_eval.eval(kde.strings.length(I.x), x=x)
 
-    x = data_slice.DataSlice.from_vals(['abc', b'def'])
+    x = ds(['abc', b'def'])
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.strings.length(I.x), x=x)
 

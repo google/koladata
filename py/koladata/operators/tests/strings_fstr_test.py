@@ -17,6 +17,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -164,27 +165,31 @@ class StringsFstrTest(parameterized.TestCase):
 
   def test_incompatible_text_bytes_types_error(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape('unsupported argument types (TEXT,TEXT,BYTES)')
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
+        re.escape('unsupported argument types (TEXT,TEXT,BYTES)'),
     ):
       expr_eval.eval(kde.strings.fstr(f'{ds(b"foo"):s}'))
 
   def test_unsupported_types_error(self):
-    with self.assertRaisesRegex(ValueError, 'no primitive schema'):
+    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
       expr_eval.eval(kde.strings.fstr(f'{kde.uuid():s}'))
-    with self.assertRaisesRegex(ValueError, 'no primitive schema'):
+    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
       expr_eval.eval(
           kde.strings.fstr(
               f'{kde.with_schema(kde.uuid(), schema_constants.ANY):s}'
           )
       )
     with self.assertRaisesRegex(
-        ValueError, 'unsupported argument types.*UNIT'
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
+        'unsupported argument types.*UNIT',
     ):
       expr_eval.eval(kde.strings.fstr(f'{ds(arolla.present()):s}'))
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.strings.fstr(f'{ds([1, "foo"]):s}'))
 

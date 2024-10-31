@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.math.subtract."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -115,26 +114,25 @@ class MathSubtractTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_errors(self):
-    x = data_slice.DataSlice.from_vals([1, 2, 3])
-    y = data_slice.DataSlice.from_vals(['1', '2', '3'])
+    x = ds([1, 2, 3])
+    y = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         # TODO: Make errors Koda friendly.
         'expected numerics, got y: DENSE_ARRAY_TEXT',
     ):
       expr_eval.eval(kde.math.subtract(I.x, I.y), x=x, y=y)
 
-    z = data_slice.DataSlice.from_vals([[1, 2], [3]])
+    z = ds([[1, 2], [3]])
     with self.assertRaisesRegex(
-        # TODO: Make errors Koda friendly.
-        ValueError,
+        exceptions.KodaError,
         'shapes are not compatible',
     ):
       expr_eval.eval(kde.math.subtract(I.x, I.z), x=x, z=z)
 
-    w = data_slice.DataSlice.from_vals([1, 2.0, 3], schema_constants.OBJECT)
+    w = ds([1, 2.0, 3], schema_constants.OBJECT)
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.math.subtract(I.x, I.w), x=x, w=w)
 

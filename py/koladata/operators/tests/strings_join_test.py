@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.strings.join."""
-
 import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -98,7 +97,7 @@ class StringsJoinTest(parameterized.TestCase):
 
   def test_incompatible_types_error(self):
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         # TODO: Make errors Koda friendly.
         re.escape(
             'expected all arguments to have compatible string types, got arg0:'
@@ -109,7 +108,8 @@ class StringsJoinTest(parameterized.TestCase):
 
   def test_another_incompatible_types_error(self):
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
+        # TODO: Make errors Koda friendly.
         re.escape(
             'expected texts/byteses or corresponding array, got arg0:'
             ' DENSE_ARRAY_INT32'
@@ -119,7 +119,7 @@ class StringsJoinTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.strings.join(ds('foo '), ds([1, 'bar'])))
 
