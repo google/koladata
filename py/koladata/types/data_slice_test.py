@@ -615,9 +615,9 @@ class DataSliceTest(parameterized.TestCase):
 
     with self.subTest('entity slice'):
       x = db.new(a=ds([42]), b=ds([None]))
-      testing.assert_equal(x.has_attr('a'), ds(present))
-      testing.assert_equal(x.has_attr('b'), ds(missing))
-      testing.assert_equal(x.has_attr('c'), ds(missing))
+      testing.assert_equal(x.has_attr('a'), ds([present]))
+      testing.assert_equal(x.has_attr('b'), ds([missing]))
+      testing.assert_equal(x.has_attr('c'), ds([missing]))
 
     with self.subTest('obj item'):
       x = db.obj(a=ds(42), b=ds(None))
@@ -627,9 +627,9 @@ class DataSliceTest(parameterized.TestCase):
 
     with self.subTest('obj slice'):
       x = db.obj(a=ds([42]), b=ds([None]))
-      testing.assert_equal(x.has_attr('a'), ds(present))
-      testing.assert_equal(x.has_attr('b'), ds(missing))
-      testing.assert_equal(x.has_attr('c'), ds(missing))
+      testing.assert_equal(x.has_attr('a'), ds([present]))
+      testing.assert_equal(x.has_attr('b'), ds([missing]))
+      testing.assert_equal(x.has_attr('c'), ds([missing]))
 
   def test_set_get_attr_methods(self):
     db = bag()

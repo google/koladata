@@ -717,7 +717,7 @@ def is_empty(obj):  # pylint: disable=unused-argument
     ],
 )
 def has_attr(obj, attr_name):
-  """Indicates whether at least one item in the slice has the given attribute.
+  """Indicates whether the items in the slice have the given attribute.
 
   This function checks for attributes based on data rather than "schema" and may
   be slow in some cases.
@@ -727,9 +727,10 @@ def has_attr(obj, attr_name):
     attr_name: Name of the attribute to check.
 
   Returns:
-    A 0-dim MASK slice, present if the attribute exists for at least one item.
+    A MASK slice with the same shape as `obj` that contains present if the
+    attribute exists for the corresponding item.
   """
-  return ~is_empty(maybe(obj, attr_name))
+  return logical.has(maybe(obj, attr_name))
 
 
 @optools.add_to_registry(aliases=['kde.stub'])

@@ -50,9 +50,9 @@ class CoreHasAttrTest(parameterized.TestCase):
     self.object = self.db.obj(a=ds([1, None]), b=ds([None, None]))
 
   @parameterized.parameters(
-      (kde.has_attr(I.x, 'a'), ds(present)),
-      (kde.has_attr(I.x, 'b'), ds(missing)),
-      (kde.has_attr(I.x, 'c'), ds(missing)),
+      (kde.core.has_attr(I.x, 'a'), ds([present, missing])),
+      (kde.core.has_attr(I.x, 'b'), ds([missing, missing])),
+      (kde.core.has_attr(I.x, 'c'), ds([missing, missing])),
   )
   def test_eval(self, expr, expected):
     testing.assert_equal(expr_eval.eval(expr, x=self.entity), expected)
