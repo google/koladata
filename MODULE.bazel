@@ -12,11 +12,12 @@ bazel_dep(name = "pybind11_protobuf", version = "0.0.0-20240524-1d7a729", repo_n
 
 # Transitive from arolla.
 bazel_dep(name = "abseil-py", version = "2.1.0", repo_name = "com_google_absl_py")
-bazel_dep(name = "bazel_skylib", version = "1.6.1")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "boost.math", version = "1.83.0")
 bazel_dep(name = "eigen", version = "3.4.0.bcr.1")
 bazel_dep(name = "platforms", version = "0.0.10")
 bazel_dep(name = "pybind11_abseil", version = "202402.0")
-bazel_dep(name = "re2", version = "2023-09-01", repo_name = "com_googlesource_code_re2")
+bazel_dep(name = "re2", version = "2024-07-02", repo_name = "com_googlesource_code_re2")
 bazel_dep(name = "riegeli", version = "0.0.0-20240927-cdfb25a", repo_name = "com_google_riegeli")
 bazel_dep(name = "rules_cc", version = "0.0.13")
 bazel_dep(name = "rules_python", version = "0.37.1")

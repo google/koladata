@@ -35,20 +35,6 @@ new_git_repository(
   ],
 )
 
-_RULES_BOOST_COMMIT = "789a047e61c0292c3b989514f5ca18a9945b0029"
-
-http_archive(
-    name = "com_github_nelhage_rules_boost",
-    sha256 = "c1298755d1e5f458a45c410c56fb7a8d2e44586413ef6e2d48dd83cc2eaf6a98",
-    strip_prefix = "rules_boost-%s" % _RULES_BOOST_COMMIT,
-    urls = [
-        "https://github.com/nelhage/rules_boost/archive/%s.tar.gz" % _RULES_BOOST_COMMIT,
-    ],
-)
-
-load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
-boost_deps()
-
 http_archive(
     name = "jinja_archive",
     build_file_content = """py_library(
