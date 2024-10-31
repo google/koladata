@@ -16,7 +16,9 @@
 
 #include <Python.h>
 
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -36,7 +38,10 @@
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error.pb.h"
+#include "koladata/proto/to_proto.h"
 #include "koladata/uuid_utils.h"
+#include "google/protobuf/message.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -44,6 +49,7 @@
 #include "py/koladata/fstring/fstring_processor.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/py_utils.h"
+#include "py/koladata/types/pybind11_protobuf_wrapper.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -143,6 +149,87 @@ absl::Nullable<PyObject*> PyDataSlice_as_dense_array(PyObject* self,
   ASSIGN_OR_RETURN(auto array, DataSliceToDenseArray(ds),
                    SetKodaPyErrFromStatus(_));
   return arolla::python::WrapAsPyQValue(array);
+}
+
+absl::Nullable<PyObject*> PyDataSlice_to_proto(PyObject* self,
+                                               PyObject* const* py_args,
+                                               Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  const DataSlice& slice = UnsafeDataSliceRef(self);
+  const size_t num_messages = slice.size();
+  if (slice.GetShape().rank() > 1) {
+    PyErr_Format(PyExc_ValueError,
+                 "to_proto expects a DataSlice with ndim 0 or 1, got ndim=%d",
+                 slice.GetShape().rank());
+    return nullptr;
+  }
+
+  if (nargs != 1) {
+    PyErr_Format(PyExc_ValueError,
+                 "to_proto accepts exactly 1 arguments, got %d",
+                 nargs);
+    return nullptr;
+  }
+  if (!PyType_Check(py_args[0])) {
+    PyErr_Format(PyExc_TypeError,
+                 "to_proto expects message_class to be a proto class, got %s",
+                 Py_TYPE(py_args[0])->tp_name);
+    return nullptr;
+  }
+
+  // Construct an empty python message object using the python message class,
+  // then convert it to a C++ message object, to get access to the New method.
+  // This allows us to create additional mutable C++ message objects directly.
+  PyObject* py_message_class = py_args[0];  // Borrowed.
+  auto py_empty_message =
+      arolla::python::PyObjectPtr::Own(PyObject_CallNoArgs(py_message_class));
+  if (py_empty_message == nullptr) {
+    return nullptr;
+  }
+  bool using_fast_cpp_proto = IsFastCppPyProtoMessage(py_empty_message.get());
+  ASSIGN_OR_RETURN((auto [empty_message, empty_message_owner]),
+                   UnwrapPyProtoMessage(py_empty_message.get()),
+                   SetKodaPyErrFromStatus(_));
+
+  std::vector<std::unique_ptr<google::protobuf::Message>> messages;
+  messages.reserve(num_messages);
+  std::vector<google::protobuf::Message*> message_ptrs;
+  message_ptrs.reserve(num_messages);
+  for (size_t i = 0; i < num_messages; ++i) {
+    messages.emplace_back(empty_message->New());
+    message_ptrs.push_back(messages.back().get());
+  }
+
+  ASSIGN_OR_RETURN(auto flat_slice,
+                   slice.Reshape(slice.GetShape().FlatFromSize(num_messages)),
+                   SetKodaPyErrFromStatus(_));
+  RETURN_IF_ERROR(ToProto(std::move(flat_slice), message_ptrs))
+      .With(SetKodaPyErrFromStatus);
+
+  // If the input was a DataItem, return a single message.
+  if (slice.GetShape().rank() == 0) {
+    auto py_message = WrapProtoMessage(std::move(messages[0]), py_message_class,
+                                       using_fast_cpp_proto);
+    if (py_message == nullptr) {
+      return nullptr;
+    }
+    return py_message.release();
+  }
+
+  auto py_result_list =
+      arolla::python::PyObjectPtr::Own(PyList_New(num_messages));
+  if (py_result_list == nullptr) {
+    return nullptr;
+  }
+  for (Py_ssize_t i = 0; i < num_messages; ++i) {
+    auto py_message = WrapProtoMessage(std::move(messages[i]), py_message_class,
+                                       using_fast_cpp_proto);
+    if (py_message == nullptr) {
+      return nullptr;
+    }
+    PyList_SET_ITEM(py_result_list.get(), i, py_message.release());
+  }
+  return py_result_list.release();
 }
 
 // NOTE: Used to optimize the GetAttr by calling GenericGetAttr only if it is a
@@ -734,6 +821,10 @@ PyMethodDef kPyDataSlice_methods[] = {
      "--\n\n"
      "Converts primitive slice to an arolla.dense_array with appropriate "
      "qtype."},
+    {"_to_proto", (PyCFunction)PyDataSlice_to_proto, METH_FASTCALL,
+     "to_proto(message_class)\n"
+     "--\n\n"
+     "Converts this DataSlice to a proto message or list of proto messages."},
     {"get_shape", PyDataSlice_get_shape, METH_NOARGS,
      "get_shape()\n"
      "--\n\n"

@@ -14,6 +14,8 @@
 
 """Koda functions for converting to and from protocol buffers."""
 
+from typing import Type
+
 from google.protobuf import message
 from koladata.types import data_bag
 from koladata.types import data_item as _  # pylint: disable=unused-import
@@ -129,3 +131,37 @@ def from_proto(
   if result_is_item:
     result = result.S[0]
   return result
+
+
+def to_proto(
+    x: data_slice.DataSlice,
+    /,
+    message_class: Type[message.Message]
+) -> list[message.Message] | message.Message:
+  """Converts a DataSlice or DataItem to one or more proto messages.
+
+  If `x` is a DataItem, this returns a single proto message object. Otherwise,
+  `x` must be a 1-D DataSlice, and this returns a list of proto message objects
+  with the same size as the input.
+
+  Koda data structures are converted to equivalent proto messages, primitive
+  fields, repeated fields, maps, and enums, based on the proto schema. Koda
+  entity attributes are converted to message fields with the same name, if
+  those fields exist, otherwise they are ignored.
+
+  Koda slices with mixed underlying dtypes are tolerated wherever the proto
+  conversion is defined for all dtypes, regardless of schema.
+
+  Koda entity attributes that are parenthesized fully-qualified extension
+  paths (e.g. "(package_name.some_extension)") are converted to extensions,
+  if those extensions exist in the descriptor pool of the messages' common
+  descriptor, otherwise they are ignored.
+
+  Args:
+    x: DataSlice to convert.
+    message_class: A proto message class.
+
+  Returns:
+    A converted proto message or list of converted proto messages.
+  """
+  return x._to_proto(message_class)  # pylint: disable=protected-access

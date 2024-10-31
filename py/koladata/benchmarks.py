@@ -545,6 +545,139 @@ def from_proto_100_of_100_deep_mixed_depth(state):
 
 
 @google_benchmark.register
+def to_proto_0fields_single_empty(state):
+  x = kd.new()
+  while state:
+    _ = kd.to_proto(x, test_pb2.EmptyMessage)
+
+
+@google_benchmark.register
+def to_proto_100fields_single_empty(state):
+  x = kd.new()
+  while state:
+    _ = kd.to_proto(x, test_pb2.MessageD)
+
+
+@google_benchmark.register
+def to_proto_100fields_1k_empty(state):
+  empty_schema = kd.new_schema()
+  x = kd.slice([kd.new(schema=empty_schema) for _ in range(1000)])
+  while state:
+    _ = kd.to_proto(x, test_pb2.MessageD)
+
+
+@google_benchmark.register
+def to_proto_1k_single_int32(state):
+  schema = kd.new_schema(int32_field=kd.INT32)
+  x = kd.slice([kd.new(int32_field=i, schema=schema) for i in range(1000)])
+  while state:
+    _ = kd.to_proto(x, test_pb2.MessageC)
+
+
+@google_benchmark.register
+def to_proto_100_of_100_single_int32(state):
+  schema = kd.new_schema(repeated_int32_field=kd.list_schema(kd.INT32))
+  x = kd.slice([
+      kd.new(repeated_int32_field=[i] * 100, schema=schema) for i in range(100)
+  ])
+  while state:
+    _ = kd.to_proto(x, test_pb2.MessageC)
+
+
+@google_benchmark.register
+def to_proto_1k_single_bytes(state):
+  schema = kd.new_schema(bytes_field=kd.BYTES)
+  x = kd.slice([kd.new(bytes_field=b'a', schema=schema) for _ in range(1000)])
+  while state:
+    _ = kd.to_proto(x, test_pb2.MessageC)
+
+
+@google_benchmark.register
+def to_proto_100_single_10k_bytes(state):
+  schema = kd.new_schema(bytes_field=kd.BYTES)
+  x = kd.slice(
+      [kd.new(bytes_field=b'a' * 10000, schema=schema) for _ in range(100)]
+  )
+  while state:
+    _ = kd.to_proto(x, test_pb2.MessageC)
+
+
+@google_benchmark.register
+def to_proto_single_mixed_primitive_fields(state):
+  schema = kd.new_schema()
+  x = kd.new(
+      message_field=kd.new(schema=schema),
+      int32_field=1,
+      bytes_field=b'a',
+      repeated_message_field=[kd.new(schema=schema)],
+      repeated_int32_field=[1, 2, 3],
+      repeated_bytes_field=[b'a', b'b', b'c'],
+      map_int32_int32_field={1: 2, 3: 4},
+      map_int32_message_field={1: kd.new(schema=schema)},
+      schema=schema,
+      update_schema=True
+  )
+  while state:
+    _ = kd.to_proto(x, test_pb2.MessageC)
+
+
+@google_benchmark.register
+def to_proto_1k_mixed_primitive_fields(state):
+  schema = kd.new_schema()
+  x = kd.slice([
+      kd.new(
+          message_field=kd.new(schema=schema),
+          int32_field=1,
+          bytes_field=b'a',
+          repeated_message_field=[kd.new(schema=schema)],
+          repeated_int32_field=[1, 2, 3],
+          repeated_bytes_field=[b'a', b'b', b'c'],
+          map_int32_int32_field={1: 2, 3: 4},
+          map_int32_message_field={1: kd.new(schema=schema)},
+          schema=schema,
+          update_schema=True
+      )
+      for _ in range(1000)
+  ])
+  while state:
+    _ = kd.to_proto(x, test_pb2.MessageC)
+
+
+@google_benchmark.register
+def to_proto_100_of_100_deep(state):
+  schema = kd.new_schema(int32_field=kd.INT32)
+  schema.message_field = schema
+  bag = kd.bag()
+  x = kd.slice([bag.new(schema=schema) for _ in range(100)])
+
+  x_leaf = x
+  for _ in range(100):
+    x_leaf.int32_field = kd.int32(kd.range(100))
+    x_leaf.message_field = kd.slice([kd.new(schema=schema) for _ in range(100)])
+    x_leaf = x_leaf.message_field
+
+  while state:
+    _ = kd.to_proto(x, test_pb2.MessageC)
+
+
+@google_benchmark.register
+def to_proto_100_of_100_deep_mixed_depth(state):
+  schema = kd.new_schema(int32_field=kd.INT32)
+  schema.message_field = schema
+  bag = kd.bag()
+  x = kd.slice([bag.new(schema=schema) for _ in range(100)])
+
+  x_leaf = x
+  for i in range(100):
+    x_leaf.int32_field = kd.int32(kd.range(100))
+    x_leaf.message_field = kd.slice([kd.new(schema=schema) for _ in range(100)])
+    x_leaf = x_leaf.message_field & (kd.index(x_leaf) > i)
+
+  while state:
+    _ = kd.to_proto(x, test_pb2.MessageC)
+
+
+@google_benchmark.register
 def add_eager(state):
   x = kd.slice(1)
   y = kd.slice(2)

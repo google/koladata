@@ -775,6 +775,18 @@ py_test(
     ],
 )
 
+py_test(
+    name = "to_proto_test",
+    srcs = ["to_proto_test.py"],
+    deps = [
+        ":test_py_pb2",
+        "//py/koladata/functions",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 proto_library(
     name = "test_proto",
     srcs = ["test.proto"],

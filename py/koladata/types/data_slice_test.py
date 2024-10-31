@@ -22,6 +22,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
+from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -545,6 +546,46 @@ class DataSliceTest(parameterized.TestCase):
   def test_internal_as_py(self):
     x = ds([[1, 2], [3], [4, 5]])
     self.assertEqual(x.internal_as_py(), [[1, 2], [3], [4, 5]])
+
+  def test_to_proto_minimal(self):
+    # NOTE: more tests for to_proto in
+    # //py/koladata/functions/tests/to_proto_test.py
+
+    message = fns.new()._to_proto(test_pb2.EmptyMessage)  # pylint: disable=protected-access
+    self.assertIsInstance(message, test_pb2.EmptyMessage)
+    self.assertEqual(message, test_pb2.EmptyMessage())
+
+    messages = ds([fns.new()])._to_proto(test_pb2.EmptyMessage)  # pylint: disable=protected-access
+    self.assertIsInstance(messages, list)
+    self.assertLen(messages, 1)
+    self.assertIsInstance(messages[0], test_pb2.EmptyMessage)
+    self.assertEqual(messages, [test_pb2.EmptyMessage()])
+
+  def test_to_proto_errors(self):
+    with self.assertRaisesRegex(
+        ValueError, 'to_proto accepts exactly 1 arguments, got 0'
+    ):
+      _ = ds([])._to_proto()  # pylint: disable=protected-access
+
+    with self.assertRaisesRegex(
+        TypeError,
+        re.escape(
+            'to_proto expects message_class to be a proto class, got NoneType'
+        ),
+    ):
+      _ = ds([])._to_proto(None)  # pylint: disable=protected-access
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('message cast from python to C++ failed, got type int'),
+    ):
+      _ = ds([])._to_proto(int)  # pylint: disable=protected-access
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('to_proto expects a DataSlice with ndim 0 or 1, got ndim=2'),
+    ):
+      _ = ds([[]])._to_proto(test_pb2.EmptyMessage)  # pylint: disable=protected-access
 
   def test_assignment_rhs_koda_iterables(self):
     db = bag()

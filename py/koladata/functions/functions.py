@@ -85,6 +85,7 @@ to_str = _py_conversions.to_str
 to_repr = _py_conversions.to_repr
 
 from_proto = _proto_conversions.from_proto
+to_proto = _proto_conversions.to_proto
 
 dumps = _s11n.dumps
 loads = _s11n.loads

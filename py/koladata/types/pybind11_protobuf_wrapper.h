@@ -24,11 +24,13 @@
 #include <Python.h>
 
 #include <any>
+#include <memory>
 #include <tuple>
 
 #include "absl/base/nullability.h"
 #include "absl/status/statusor.h"
 #include "google/protobuf/message.h"
+#include "py/arolla/py_utils/py_utils.h"
 
 namespace koladata::python {
 
@@ -49,7 +51,23 @@ void ImportNativeProtoCasters();
 absl::StatusOr<std::tuple<absl::Nonnull<const ::google::protobuf::Message*>, std::any>>
 UnwrapPyProtoMessage(absl::Nonnull<PyObject*> py_object);
 
-// TODO: Add C++ to python conversion function.
+// Returns true if the given python object is a fast C++ proto.
+bool IsFastCppPyProtoMessage(absl::Nonnull<PyObject*> py_object);
+
+// Converts a C++ proto message to a python proto message.
+//
+// `py_message_class` must be a reference to the python message class we are
+// converting to. Depending on the python proto backend, this may be used to
+// construct the returned message object. If `using_fast_cpp_proto` is true,
+// the python proto backend must be the C++ proto backend; it is always safe
+// to set it to false.
+//
+// Requires the calling thread to be holding the GIL. Returns nullptr and sets
+// a python error on error.
+arolla::python::PyObjectPtr WrapProtoMessage(
+    std::unique_ptr<::google::protobuf::Message> message,
+    PyObject* py_message_class,  // Borrowed.
+    bool using_fast_cpp_proto = false);
 
 }  // namespace koladata::python
 

@@ -1677,13 +1677,15 @@ Assigned schema for Dict key: INT32""",
       _ = db._from_proto((), [], None, None)
 
     with self.assertRaisesRegex(
-        ValueError, 'message cast failed, got type NoneType'
+        ValueError,
+        re.escape('message cast from python to C++ failed, got type NoneType'),
     ):
       db = data_bag.DataBag.empty()
       _ = db._from_proto([None], [], None, None)
 
     with self.assertRaisesRegex(
-        ValueError, 'message cast failed, got type tuple'
+        ValueError,
+        re.escape('message cast from python to C++ failed, got type tuple'),
     ):
       db = data_bag.DataBag.empty()
       _ = db._from_proto([()], [], None, None)

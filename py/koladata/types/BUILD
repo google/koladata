@@ -218,6 +218,7 @@ cc_library(
     deps = [
         ":boxing",
         ":py_utils",
+        ":pybind11_protobuf_wrapper",
         ":wrap_utils",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
@@ -226,6 +227,8 @@ cc_library(
         "//koladata:uuid_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
+        "//koladata/internal:error_cc_proto",
+        "//koladata/proto:to_proto",
         "//koladata/s11n",
         "//py/koladata/exceptions:py_exception_utils",
         "//py/koladata/fstring:fstring_processor",
@@ -241,6 +244,7 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@com_google_protobuf//:protobuf",
     ],
 )
 
@@ -280,6 +284,7 @@ py_test(
         ":schema_constants",
         "//py/koladata/exceptions",
         "//py/koladata/functions",
+        "//py/koladata/functions/tests:test_py_pb2",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
