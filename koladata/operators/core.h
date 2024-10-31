@@ -380,6 +380,13 @@ absl::StatusOr<DataSlice> ListShaped(const DataSlice::JaggedShape& shape,
                                      const DataSlice& itemid,
                                      int64_t unused_hidden_seed);
 
+// kde.core._dict_shaped operator.
+absl::StatusOr<DataSlice> DictShaped(
+    const DataSlice::JaggedShape& shape, const DataSlice& keys,
+    const DataSlice& values, const DataSlice& key_schema,
+    const DataSlice& value_schema, const DataSlice& schema,
+    const DataSlice& itemid, int64_t unused_hidden_seed);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_H_

@@ -66,6 +66,7 @@ OPERATOR_FAMILY("kde.core._concat_or_stack",
 OPERATOR("kde.core._deep_clone", DeepClone);
 OPERATOR("kde.core._deep_uuid", DeepUuid);
 OPERATOR("kde.core._dense_rank", DenseRank);
+OPERATOR("kde.core._dict_shaped", DictShaped);
 OPERATOR("kde.core._dict_update", DictUpdate);
 OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);

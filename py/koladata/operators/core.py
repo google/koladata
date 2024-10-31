@@ -1414,6 +1414,86 @@ def select_values(ds, fltr):
   return select(ds=get_values(ds), fltr=fltr)
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.core._dict_shaped', qtype_inference_expr=qtypes.DATA_SLICE
+)
+def _dict_shaped(
+    shape, keys, values, key_schema, value_schema, schema, itemid, hidden_seed  # pylint: disable=unused-argument
+):
+  """Implementation of `kde.core.dict_shaped`."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.dict_shaped'])
+@optools.as_lambda_operator(
+    'kde.core.dict_shaped',
+    qtype_constraints=[
+        qtype_utils.expect_jagged_shape(P.shape),
+        qtype_utils.expect_data_slice_or_unspecified(P.keys),
+        qtype_utils.expect_data_slice_or_unspecified(P.values),
+        qtype_utils.expect_data_slice_or_unspecified(P.key_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def dict_shaped(
+    shape=py_boxing.positional_only(),
+    keys=py_boxing.keyword_only(arolla.unspecified()),
+    values=py_boxing.keyword_only(arolla.unspecified()),
+    key_schema=py_boxing.keyword_only(arolla.unspecified()),
+    value_schema=py_boxing.keyword_only(arolla.unspecified()),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=g-doc-args, unused-argument
+  """Creates new Koda dicts with the given shape.
+
+  If keys and values are not provided, creates empty dicts. Otherwise,
+  the function assigns the given keys and values to the newly created dicts. So
+  the keys and values must be either broadcastable to `shape` or one dimension
+  higher.
+
+  Args:
+    shape: the desired shape.
+    keys: a DataSlice with keys.
+    values: a DataSlice of values.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: the schema to use for the newly created Dict. If specified, then
+      key_schema and value_schema must not be specified.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+
+  Returns:
+    A DataSlice with the dicts.
+  """
+  keys = M.core.default_if_unspecified(keys, data_slice.unspecified())
+  values = M.core.default_if_unspecified(values, data_slice.unspecified())
+  key_schema = M.core.default_if_unspecified(
+      key_schema, data_slice.unspecified()
+  )
+  value_schema = M.core.default_if_unspecified(
+      value_schema, data_slice.unspecified()
+  )
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+  return _dict_shaped(
+      shape,
+      keys=keys,
+      values=values,
+      key_schema=key_schema,
+      value_schema=value_schema,
+      schema=schema,
+      itemid=itemid,
+      hidden_seed=hidden_seed,
+  )
+
+
 @optools.add_to_registry(aliases=['kde.agg_count'])
 @optools.as_lambda_operator(
     'kde.core.agg_count',
