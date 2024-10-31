@@ -3854,11 +3854,9 @@ def _dict_update(x, keys, values):  # pylint: disable=unused-argument
 def dict_update(x, keys, values=arolla.unspecified()):
   """Returns DataBag containing updates to a slice of dicts.
 
-  This operator has three forms:
+  This operator has two forms:
     kde.dict_update(x, keys, values) where keys and values are slices
     kde.dict_update(x, dict_updates) where dict_updates is a slice of dicts
-    kde.dict_update(x, {...}) where {...} is a python dict with keys and values
-      that can all be converted to DataItems
 
   If both keys and values are specified, they must both be broadcastable to the
   shape of `x`. If only keys is specified (as dict_updates), it must be
@@ -3893,11 +3891,9 @@ def dict_update(x, keys, values=arolla.unspecified()):
 def with_dict_update(x, keys, values=arolla.unspecified()):
   """Returns a DataSlice with a new DataBag containing updated dicts.
 
-  This operator has three forms:
+  This operator has two forms:
     kde.with_dict_update(x, keys, values) where keys and values are slices
     kde.with_dict_update(x, dict_updates) where dict_updates is a slice of dicts
-    kde.with_dict_update(x, {...}) where {...} is a python dict with keys and
-      values that can all be converted to DataItems
 
   If both keys and values are specified, they must both be broadcastable to the
   shape of `x`. If only keys is specified (as dict_updates), it must be
