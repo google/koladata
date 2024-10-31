@@ -90,7 +90,6 @@ OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
 OPERATOR("kde.core.add", Add);
 OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
-OPERATOR("kde.core.at", At);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR("kde.core.bag", Bag);
 OPERATOR("kde.core.decode_itemid", DecodeItemId);
@@ -130,6 +129,7 @@ OPERATOR("kde.core.reverse_select", ReverseSelect);
 OPERATOR("kde.core.stub", Stub);
 OPERATOR_FAMILY("kde.core.subslice",
                 std::make_unique<SubsliceOperatorFamily>());
+OPERATOR("kde.core.take", Take);
 OPERATOR("kde.core.translate", Translate);
 OPERATOR("kde.core.unique", Unique);
 OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());

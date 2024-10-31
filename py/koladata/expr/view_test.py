@@ -526,6 +526,9 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_with_attrs(self):
     testing.assert_equal(C.x.with_attrs(a=C.a), kde.with_attrs(C.x, a=C.a))
 
+  def test_take(self):
+    testing.assert_equal(C.x.take(C.indices), kde.take(C.x, C.indices))
+
   def test_with_db(self):
     testing.assert_equal(
         C.x.with_db(C.get_bag()), kde.with_bag(C.x, C.get_bag())

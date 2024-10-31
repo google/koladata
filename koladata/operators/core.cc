@@ -91,7 +91,8 @@
 namespace koladata::ops {
 namespace {
 
-constexpr absl::string_view kSubsliceName = "kd.subslice";
+constexpr absl::string_view kSubsliceOperatorName = "kd.subslice";
+constexpr absl::string_view kTakeOperatorName = "kd.take";
 
 class AlignOperator : public arolla::QExprOperator {
  public:
@@ -624,14 +625,14 @@ absl::StatusOr<std::optional<int64_t>> GetSliceArg(
     ASSIGN_OR_RETURN(
         auto res, ToArollaScalar<int64_t>(ds),
         OperatorEvalError(
-            kSubsliceName,
+            kSubsliceOperatorName,
             absl::StrCat(
                 "cannot subslice DataSlice 'x', if slice argument is a "
                 "DataSlice, it must be an integer DataItem, got: ",
                 arolla::Repr(ds))));
     return res;
   } else {
-    return OperatorEvalError(kSubsliceName, "invalid slice argument.");
+    return OperatorEvalError(kSubsliceOperatorName, "invalid slice argument.");
   }
 }
 
@@ -655,7 +656,7 @@ absl::StatusOr<std::vector<SlicingArgType>> ExtractSlicingArgs(
 
   if (slices.size() > x_rank) {
     return OperatorEvalError(
-        kSubsliceName,
+        kSubsliceOperatorName,
         absl::StrFormat("cannot subslice DataSlice 'x' as the number of "
                         "provided non-ellipsis slicing arguments is larger "
                         "than x.ndim: %d > %d",
@@ -863,7 +864,9 @@ absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
           ? std::nullopt
           : std::make_optional(flattened_shape.edges().back());
   auto x_to_common = x_shape.edges().back();
-  ASSIGN_OR_RETURN(auto index_array, ToArollaDenseArray<int64_t>(indices));
+  ASSIGN_OR_RETURN(auto index_array, ToArollaDenseArray<int64_t>(indices),
+                   OperatorEvalError(std::move(_), kTakeOperatorName,
+                                     "invalid indices DataSlice is provided"));
 
   return DataSlice::Create(
       internal::AtOp(x.slice(), index_array, x_to_common, indices_to_common),
@@ -2107,7 +2110,7 @@ absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(
             IsSliceQTypeValid(input_type, i - 1, ellipsis_pos_for_error);
         !status.ok()) {
       return OperatorEvalError(
-          kSubsliceName,
+          kSubsliceOperatorName,
           absl::StrFormat("slicing argument at position %d is invalid: %s",
                           i - 1, status.message()));
     }
@@ -2117,32 +2120,35 @@ absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(
       output_type);
 }
 
-absl::StatusOr<DataSlice> At(const DataSlice& x, const DataSlice& indices) {
+absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices) {
   const auto& x_shape = x.GetShape();
   if (x_shape.rank() == 0) {
-    return absl::InvalidArgumentError("kd.at is not supported for DataItem.");
+    return OperatorEvalError(kTakeOperatorName, "DataItem is not supported.");
   }
   const auto shape_for_expansion = x_shape.RemoveDims(x_shape.rank() - 1);
   const auto& indices_shape = indices.GetShape();
   if (indices_shape.rank() >= shape_for_expansion.rank()) {
     if (!shape_for_expansion.IsBroadcastableTo(indices_shape)) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "DataSlice with shape=%s cannot be expanded to shape=%s; kd.at "
-          "requires shape(x)[:-1] to be broadcastable to shape(indices) when "
-          "ndim(x) <= ndim(indices)",
-          arolla::Repr(indices_shape), arolla::Repr(shape_for_expansion)));
+      return OperatorEvalError(
+          kTakeOperatorName,
+          absl::StrFormat(
+              "DataSlice with shape=%s cannot be expanded to shape=%s; kd.at "
+              "requires shape(x)[:-1] to be broadcastable to shape(indices) "
+              "when "
+              "ndim(x) <= ndim(indices)",
+              arolla::Repr(indices_shape), arolla::Repr(shape_for_expansion)));
     }
     return AtImpl(x, indices);
   } else {
     // Expand indices if rank(indices_shape) < rank(shape_for_expansion).
     ASSIGN_OR_RETURN(
         auto expanded_indices, BroadcastToShape(indices, shape_for_expansion),
-        _ << "kd.at requires shape(indices) to be broadcastable to "
-          << "shape(x)[:-1] when ndim(x) - 1 > ndim(indices)");
+        OperatorEvalError(std::move(_), kTakeOperatorName,
+                          "indices must be broadcastable to shape(x)[:-1] when "
+                          "ndim(x) - 1 > ndim(indices)"));
     return AtImpl(x, expanded_indices);
   }
 }
-
 
 absl::StatusOr<DataSlice> AggUuid(const DataSlice& x) {
   auto rank = x.GetShape().rank();

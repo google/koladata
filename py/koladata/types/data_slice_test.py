@@ -2808,6 +2808,30 @@ class DataSliceFallbackTest(parameterized.TestCase):
   def test_subslice(self, x, slices, expected):
     testing.assert_equal(x.S[*slices], expected)
 
+  # More comprehensive tests are in the core_take_test.py.
+  @parameterized.parameters(
+      # 1D DataSlice 'x'
+      (ds([1, 2, 3, 4]), ds(1), ds(2)),
+      (
+          ds([1, 2, 3, 4]),
+          ds(None, schema_constants.INT32),
+          ds(None, schema_constants.INT32),
+      ),
+      (ds([1, 2, 3, 4]), ds([1, 3]), ds([2, 4])),
+      (ds([1, 2, 3, 4]), ds([1, None]), ds([2, None])),
+      (ds([1, 2, 3, 4]), ds([[1], [3]]), ds([[2], [4]])),
+      (ds([1, 2, 3, 4]), ds([[1], [None]]), ds([[2], [None]])),
+      # 2D DataSlice 'x'
+      (ds([[1, 2], [3, 4]]), ds(1), ds([2, 4])),
+      (ds([[1, 2], [3, 4]]), ds([1, 3]), ds([2, None])),
+      (ds([[1, 2], [3, 4]]), ds([[1], [3]]), ds([[2], [None]])),
+      # Negative indices
+      (ds([[1, 2], [3, 4]]), ds(-1), ds([2, 4])),
+      (ds([[1, 2], [3, 4]]), ds([-1, -2]), ds([2, 3])),
+  )
+  def test_take(self, x, indices, expected):
+    testing.assert_equal(x.take(indices), expected)
+
   def test_is_empty(self):
     self.assertTrue(ds(None).is_empty())
     self.assertTrue(ds([]).is_empty())

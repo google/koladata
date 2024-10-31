@@ -384,6 +384,11 @@ def _with_attrs(self, **attrs) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.with_attrs, self, **attrs)
 
 
+@DataSlice.add_method('take')
+def _take(self, indices: Any) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.take, self, indices)
+
+
 @DataSlice.add_method('to_py')
 def to_py(
     ds: DataSlice,

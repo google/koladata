@@ -1791,16 +1791,16 @@ def index(x, ndim=arolla.unspecified()):
   return arolla_bridge.to_data_slice(flat_res, shape)
 
 
-@optools.add_to_registry(aliases=['kde.at'])
+@optools.add_to_registry(aliases=['kde.take', 'kde.core.at', 'kde.at'])
 @optools.as_backend_operator(
-    'kde.core.at',
+    'kde.core.take',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.indices),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def at(x, indices):  # pylint: disable=unused-argument
+def take(x, indices):  # pylint: disable=unused-argument
   """Returns a new DataSlice with items at provided indices.
 
   `indices` must have INT32 or INT64 dtype or OBJECT schema holding INT32 or
@@ -1816,15 +1816,15 @@ def at(x, indices):  # pylint: disable=unused-argument
 
   Example:
     x = kd.slice([[1, None, 2], [3, 4]])
-    kd.at(x, kd.item(1))  # -> kd.slice([[None, 4]])
-    kd.at(x, kd.slice([0, 1]))  # -> kd.slice([1, 4])
-    kd.at(x, kd.slice([[0, 1], [1]]))  # -> kd.slice([[1, None], [4]])
-    kd.at(x, kd.slice([[[0, 1], []], [[1], [0]]]))
+    kd.take(x, kd.item(1))  # -> kd.slice([[None, 4]])
+    kd.take(x, kd.slice([0, 1]))  # -> kd.slice([1, 4])
+    kd.take(x, kd.slice([[0, 1], [1]]))  # -> kd.slice([[1, None], [4]])
+    kd.take(x, kd.slice([[[0, 1], []], [[1], [0]]]))
       # -> kd.slice([[[1, None]], []], [[4], [3]]])
-    kd.at(x, kd.slice([3, -3]))  # -> kd.slice([None, None])
-    kd.at(x, kd.slice([-1, -2]))  # -> kd.slice([2, 3])
-    kd.at(x, kd.slice('1')) # -> dtype mismatch error
-    kd.at(x, kd.slice([1, 2, 3])) -> incompatible shape
+    kd.take(x, kd.slice([3, -3]))  # -> kd.slice([None, None])
+    kd.take(x, kd.slice([-1, -2]))  # -> kd.slice([2, 3])
+    kd.take(x, kd.slice('1')) # -> dtype mismatch error
+    kd.take(x, kd.slice([1, 2, 3])) -> incompatible shape
 
   Args:
     x: DataSlice to be indexed
@@ -1856,8 +1856,8 @@ def group_by_indices(*args):  # pylint: disable=unused-argument
   and the items within the groups.
 
   Values of the data slice are the indices of the objects within the parent
-  dimension. `kde.at(x, kde.group_by_indices(x))` would group the objects in `x`
-  by their values.
+  dimension. `kde.take(x, kde.group_by_indices(x))` would group the objects in
+  `x` by their values.
 
   Groups are ordered by the appearance of the first object in the group.
 
@@ -2018,11 +2018,11 @@ def group_by(x, *args):
   dispatch_op = arolla.types.DispatchOperator(
       'x, args',
       x_is_key_case=arolla.types.DispatchCase(
-          at(P.x, group_by_indices(P.x)),
+          take(P.x, group_by_indices(P.x)),
           condition=M.qtype.get_field_count(P.args) == 0,
       ),
       # TODO: add assertion: x has the same shape as other args.
-      default=at(P.x, M.core.apply_varargs(group_by_indices, P.args)),
+      default=take(P.x, M.core.apply_varargs(group_by_indices, P.args)),
   )
   return dispatch_op(x, *args)
 
@@ -3378,7 +3378,7 @@ def sort(
           assert_same_shape(P.x, P.sort_by), P.sort_by
       ),
   )(x, sort_by)
-  return at(x, inverse_mapping(ordinal_rank(sort_by, descending=descending)))
+  return take(x, inverse_mapping(ordinal_rank(sort_by, descending=descending)))
 
 
 @optools.add_to_registry(aliases=['kde.val_shaped'])
@@ -3817,8 +3817,8 @@ def translate_group(keys_to, keys_from, values_from):
   # Group keys_from and values_from by keys_from. The results have one more
   # group_by dimension.
   grouped_indices = group_by_indices(keys_from)
-  unique_keys = collapse(at(keys_from, grouped_indices))
-  grouped_values = at(values_from, grouped_indices)
+  unique_keys = collapse(take(keys_from, grouped_indices))
+  grouped_values = take(values_from, grouped_indices)
 
   # Compute the translated_indices of keys_to in keys_from
   translated_indices = translate(keys_to, unique_keys, index(unique_keys))

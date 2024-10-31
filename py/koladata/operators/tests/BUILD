@@ -2814,13 +2814,15 @@ py_test(
 )
 
 py_test(
-    name = "core_at_test",
-    srcs = ["core_at_test.py"],
+    name = "core_take_test",
+    srcs = ["core_take_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",

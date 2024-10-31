@@ -253,8 +253,8 @@ class SubsliceOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.core.at operator.
-absl::StatusOr<DataSlice> At(const DataSlice& x, const DataSlice& indices);
+// kde.core.take operator.
+absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices);
 
 // kde.core.agg_uuid operator.
 absl::StatusOr<DataSlice> AggUuid(const DataSlice& x);
