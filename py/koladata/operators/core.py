@@ -1494,6 +1494,147 @@ def dict_shaped(
   )
 
 
+@optools.add_to_registry(aliases=['kde.dict_shaped_as'])
+@optools.as_lambda_operator(
+    'kde.core.dict_shaped_as',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.shape_from),
+        qtype_utils.expect_data_slice_or_unspecified(P.keys),
+        qtype_utils.expect_data_slice_or_unspecified(P.values),
+        qtype_utils.expect_data_slice_or_unspecified(P.key_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def dict_shaped_as(
+    shape_from=py_boxing.positional_only(),
+    keys=py_boxing.keyword_only(arolla.unspecified()),
+    values=py_boxing.keyword_only(arolla.unspecified()),
+    key_schema=py_boxing.keyword_only(arolla.unspecified()),
+    value_schema=py_boxing.keyword_only(arolla.unspecified()),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=g-doc-args, unused-argument
+  """Creates new Koda dicts with shape of the given DataSlice.
+
+  If keys and values are not provided, creates empty dicts. Otherwise,
+  the function assigns the given keys and values to the newly created dicts. So
+  the keys and values must be either broadcastable to `shape` or one dimension
+  higher.
+
+  Args:
+    shape_from: a DataSlice, whose shape the returned DataSlice will have.
+    keys: a DataSlice with keys.
+    values: a DataSlice of values.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: the schema to use for the newly created Dict. If specified, then
+      key_schema and value_schema must not be specified.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+
+  Returns:
+    A DataSlice with the dicts.
+  """
+  return arolla.abc.bind_op(
+      dict_shaped,
+      shape=jagged_shape_ops.get_shape(shape_from),
+      keys=keys,
+      values=values,
+      key_schema=key_schema,
+      value_schema=value_schema,
+      schema=schema,
+      itemid=itemid,
+      hidden_seed=hidden_seed,
+  )
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.core._dict_like', qtype_inference_expr=qtypes.DATA_SLICE
+)
+def _dict_like(
+    shape_and_mask_from, keys, values, key_schema, value_schema, schema, itemid, hidden_seed  # pylint: disable=unused-argument
+):
+  """Implementation of `kde.core.dict_like`."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.dict_like'])
+@optools.as_lambda_operator(
+    'kde.core.dict_like',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.shape_and_mask_from),
+        qtype_utils.expect_data_slice_or_unspecified(P.keys),
+        qtype_utils.expect_data_slice_or_unspecified(P.values),
+        qtype_utils.expect_data_slice_or_unspecified(P.key_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def dict_like(
+    shape_and_mask_from=py_boxing.positional_only(),
+    keys=py_boxing.keyword_only(arolla.unspecified()),
+    values=py_boxing.keyword_only(arolla.unspecified()),
+    key_schema=py_boxing.keyword_only(arolla.unspecified()),
+    value_schema=py_boxing.keyword_only(arolla.unspecified()),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=g-doc-args, unused-argument
+  """Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
+
+  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
+  the function assigns the given keys and values to the newly created dicts. So
+  the keys and values must be either broadcastable to shape_and_mask_from
+  shape, or one dimension higher.
+
+  Args:
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the desired
+      dicts.
+    keys: a DataSlice with keys.
+    values: a DataSlice of values.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: the schema to use for the newly created Dict. If specified, then
+      key_schema and value_schema must not be specified.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+
+  Returns:
+    A DataSlice with the dicts.
+  """
+  keys = M.core.default_if_unspecified(keys, data_slice.unspecified())
+  values = M.core.default_if_unspecified(values, data_slice.unspecified())
+  key_schema = M.core.default_if_unspecified(
+      key_schema, data_slice.unspecified()
+  )
+  value_schema = M.core.default_if_unspecified(
+      value_schema, data_slice.unspecified()
+  )
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+  return _dict_like(
+      shape_and_mask_from,
+      keys,
+      values,
+      key_schema,
+      value_schema,
+      schema,
+      itemid,
+      hidden_seed,
+  )
+
+
 @optools.add_to_registry(aliases=['kde.agg_count'])
 @optools.as_lambda_operator(
     'kde.core.agg_count',

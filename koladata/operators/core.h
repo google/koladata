@@ -387,6 +387,13 @@ absl::StatusOr<DataSlice> DictShaped(
     const DataSlice& value_schema, const DataSlice& schema,
     const DataSlice& itemid, int64_t unused_hidden_seed);
 
+// kde.core._dict_like operator.
+absl::StatusOr<DataSlice> DictLike(
+    const DataSlice& shape_and_mask_from, const DataSlice& keys,
+    const DataSlice& values, const DataSlice& key_schema,
+    const DataSlice& value_schema, const DataSlice& schema,
+    const DataSlice& itemid, int64_t unused_hidden_seed);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_H_

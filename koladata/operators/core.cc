@@ -2569,4 +2569,31 @@ absl::StatusOr<DataSlice> DictShaped(
   return result;
 }
 
+absl::StatusOr<DataSlice> DictLike(
+    const DataSlice& shape_and_mask_from, const DataSlice& keys,
+    const DataSlice& values, const DataSlice& key_schema,
+    const DataSlice& value_schema, const DataSlice& schema,
+    const DataSlice& itemid, int64_t unused_hidden_seed) {
+  DataBagPtr db = DataBag::Empty();
+  ASSIGN_OR_RETURN(
+      auto result,
+      CreateDictLike(
+          db, shape_and_mask_from,
+          IsUnspecifiedDataSlice(keys) ? std::nullopt
+                                       : std::make_optional(keys),
+          IsUnspecifiedDataSlice(values) ? std::nullopt
+                                         : std::make_optional(values),
+          IsUnspecifiedDataSlice(schema) ? std::nullopt
+                                         : std::make_optional(schema),
+          IsUnspecifiedDataSlice(key_schema) ? std::nullopt
+                                             : std::make_optional(key_schema),
+          IsUnspecifiedDataSlice(value_schema)
+              ? std::nullopt
+              : std::make_optional(value_schema),
+          IsUnspecifiedDataSlice(itemid) ? std::nullopt
+                                         : std::make_optional(itemid)));
+  db->UnsafeMakeImmutable();
+  return result;
+}
+
 }  // namespace koladata::ops
