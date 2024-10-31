@@ -484,7 +484,7 @@ def agg_var(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kde.maximum'])
 @optools.as_backend_operator(
     'kde.math.maximum',
     qtype_constraints=[
@@ -498,7 +498,7 @@ def maximum(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kde.minimum'])
 @optools.as_backend_operator(
     'kde.math.minimum',
     qtype_constraints=[

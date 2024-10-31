@@ -148,7 +148,7 @@ def cond(condition, yes, no=data_slice.DataSlice.from_vals(None)):
   return (yes & condition) | (no & ~condition)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kde.mask_and'])
 @optools.as_lambda_operator(
     'kde.logical.mask_and',
     qtype_constraints=[
