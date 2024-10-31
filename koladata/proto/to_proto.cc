@@ -30,6 +30,7 @@
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/operators/core.h"
+#include "koladata/operators/core_list.h"
 #include "koladata/operators/logical.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/dynamic_message.h"

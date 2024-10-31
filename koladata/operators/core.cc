@@ -25,10 +25,7 @@
 #include <variant>
 #include <vector>
 
-#include "absl/algorithm/container.h"
 #include "absl/base/attributes.h"
-#include "absl/base/nullability.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
@@ -52,7 +49,6 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/ellipsis.h"
-#include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/internal/op_utils/agg_uuid.h"
 #include "koladata/internal/op_utils/at.h"
 #include "koladata/internal/op_utils/collapse.h"
@@ -60,6 +56,7 @@
 #include "koladata/internal/op_utils/deep_uuid.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/itemid.h"
+#include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/internal/op_utils/reverse.h"
 #include "koladata/internal/op_utils/reverse_select.h"
 #include "koladata/internal/op_utils/select.h"
@@ -74,7 +71,6 @@
 #include "arolla/expr/quote.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/jagged_shape/util/concat.h"
-#include "arolla/memory/buffer.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
@@ -90,8 +86,6 @@
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
-#include "arolla/util/unit.h"
-#include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -1671,46 +1665,6 @@ absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
   return result_db;
 }
 
-absl::StatusOr<DataSlice> Explode(const DataSlice& x, const int64_t ndim) {
-  if (ndim == 0) {
-    return x;
-  }
-
-  DataSlice result = x;
-  if (ndim < 0) {
-    // Explode until items are no longer lists.
-    while (true) {
-      if (result.GetSchemaImpl() == schema::kAny ||
-          result.GetSchemaImpl() == schema::kItemId) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "cannot fully explode 'x' with %v schema", result.GetSchemaImpl()));
-      }
-
-      if (result.GetSchemaImpl() == schema::kObject &&
-          result.present_count() == 0) {
-        return absl::InvalidArgumentError(
-            "cannot fully explode 'x' with OBJECT schema and all-missing items,"
-            " because the correct number of times to explode is ambiguous");
-      }
-
-      if (!result.ContainsOnlyLists()) break;
-      ASSIGN_OR_RETURN(result, result.ExplodeList(0, std::nullopt));
-    }
-  } else {
-    for (int i = 0; i < ndim; ++i) {
-      if (!result.ContainsOnlyLists()) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "cannot explode 'x' to have additional %d dimension(s), the "
-            "maximum number of additional dimension(s) is %d",
-            ndim, i));
-      }
-
-      ASSIGN_OR_RETURN(result, result.ExplodeList(0, std::nullopt));
-    }
-  }
-  return result;
-}
-
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds,
                                   const DataSlice& schema) {
   return koladata::extract_utils_internal::ExtractWithSchema(ds, schema);
@@ -1908,33 +1862,6 @@ absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds) {
                         absl::StrFormat("only TEXT can be decoded, got %v",
                                         ds.GetSchemaImpl())));
   return std::move(res);
-}
-
-absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
-  const auto& db = lists.GetBag();
-  if (db == nullptr) {
-    return absl::InvalidArgumentError(
-        "Not possible to get List size without a DataBag");
-  }
-  FlattenFallbackFinder fb_finder(*db);
-  internal::DataItem schema(schema::kInt64);
-  return lists.VisitImpl([&]<class T>(
-                             const T& impl) -> absl::StatusOr<DataSlice> {
-    ASSIGN_OR_RETURN(auto res_impl, db->GetImpl().GetListSize(
-                                        impl, fb_finder.GetFlattenFallbacks()));
-    if constexpr (std::is_same_v<T, internal::DataItem>) {
-      return DataSlice::Create(std::move(res_impl), lists.GetShape(),
-                               std::move(schema), /*db=*/nullptr);
-    } else {
-      return DataSlice::Create(
-          internal::DataSliceImpl::Create(std::move(res_impl)),
-          lists.GetShape(), std::move(schema), /*db=*/nullptr);
-    }
-  });
-}
-
-absl::StatusOr<DataSlice> IsList(const DataSlice& lists) {
-  return AsMask(lists.ContainsOnlyLists());
 }
 
 absl::StatusOr<DataSlice> IsDict(const DataSlice& dicts) {
@@ -2488,58 +2415,6 @@ absl::StatusOr<arolla::OperatorPtr> UuObjOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<UuObjOperator>(input_types), input_types, output_type);
-}
-
-absl::StatusOr<DataSlice> ListLike(const DataSlice& shape_and_mask_from,
-                                   const DataSlice& items,
-                                   const DataSlice& item_schema,
-                                   const DataSlice& schema,
-                                   const DataSlice& itemid,
-                                   int64_t unused_hidden_seed) {
-  ASSIGN_OR_RETURN(
-      auto result,
-      CreateListLike(
-          DataBag::Empty(), shape_and_mask_from,
-          IsUnspecifiedDataSlice(items) ? std::nullopt
-                                        : std::make_optional(items),
-          IsUnspecifiedDataSlice(schema) ? std::nullopt
-                                         : std::make_optional(schema),
-          IsUnspecifiedDataSlice(item_schema) ? std::nullopt
-                                              : std::make_optional(item_schema),
-          IsUnspecifiedDataSlice(itemid) ? std::nullopt
-                                         : std::make_optional(itemid)));
-  if (result.GetBag() == nullptr) {
-    return absl::InternalError(
-        "ListLike should always return a DataSlice with a DataBag");
-  }
-  result.GetBag()->UnsafeMakeImmutable();
-  return result;
-}
-
-absl::StatusOr<DataSlice> ListShaped(const DataSlice::JaggedShape& shape,
-                                     const DataSlice& items,
-                                     const DataSlice& item_schema,
-                                     const DataSlice& schema,
-                                     const DataSlice& itemid,
-                                     int64_t unused_hidden_seed) {
-  ASSIGN_OR_RETURN(
-      auto result,
-      CreateListShaped(
-          DataBag::Empty(), shape,
-          IsUnspecifiedDataSlice(items) ? std::nullopt
-                                        : std::make_optional(items),
-          IsUnspecifiedDataSlice(schema) ? std::nullopt
-                                         : std::make_optional(schema),
-          IsUnspecifiedDataSlice(item_schema) ? std::nullopt
-                                              : std::make_optional(item_schema),
-          IsUnspecifiedDataSlice(itemid) ? std::nullopt
-                                         : std::make_optional(itemid)));
-  if (result.GetBag() == nullptr) {
-    return absl::InternalError(
-        "ListShaped should always return a DataSlice with a DataBag");
-  }
-  result.GetBag()->UnsafeMakeImmutable();
-  return result;
 }
 
 absl::StatusOr<DataSlice> DictShaped(

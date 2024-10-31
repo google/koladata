@@ -34,7 +34,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/testing/matchers.h"
-#include "koladata/operators/core.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/dense_array/dense_array.h"
@@ -2069,7 +2068,7 @@ TEST(ObjectFactoriesTest, ConcatLists) {
       auto shape3, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge3}));
   auto values3 = test::DataSlice<int>({1, 2, 3, 6, 7, 4, 5, 8, 9}, shape3);
 
-  EXPECT_THAT(ops::Explode(result, 1)->WithBag(nullptr),
+  EXPECT_THAT(result.ExplodeList(0, std::nullopt)->WithBag(nullptr),
               IsEquivalentTo(values3));
 }
 

@@ -115,9 +115,6 @@ absl::StatusOr<DataSlice> ConcatOrStack(
 // kde.core.dict_size.
 absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts);
 
-// kde.core._explode
-absl::StatusOr<DataSlice> Explode(const DataSlice& x, int64_t ndim);
-
 // kde.core._extract
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds, const DataSlice& schema);
 
@@ -149,13 +146,6 @@ class WithAttrsOperatorFamily final : public arolla::OperatorFamily {
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
-
-// kde.core._get_list_item_by_range.
-inline absl::StatusOr<DataSlice> GetListItemByRange(const DataSlice& ds,
-                                                    int64_t start,
-                                                    int64_t stop) {
-  return ds.ExplodeList(start, stop);
-}
 
 // kde.core._get_item.
 inline absl::StatusOr<DataSlice> GetItem(const DataSlice& ds,
@@ -199,12 +189,6 @@ absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds);
 
 // kde.core.decode_itemid
 absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds);
-
-// kde.core.list_size.
-absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
-
-// kde.core.is_list.
-absl::StatusOr<DataSlice> IsList(const DataSlice& lists);
 
 // kde.core.is_dict.
 absl::StatusOr<DataSlice> IsDict(const DataSlice& dicts);
@@ -363,22 +347,6 @@ class UuOperatorFamily : public arolla::OperatorFamily {
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
-
-// kde.core._list_like operator.
-absl::StatusOr<DataSlice> ListLike(const DataSlice& shape_and_mask_from,
-                                   const DataSlice& items,
-                                   const DataSlice& item_schema,
-                                   const DataSlice& schema,
-                                   const DataSlice& itemid,
-                                   int64_t unused_hidden_seed);
-
-// kde.core._list_shaped operator.
-absl::StatusOr<DataSlice> ListShaped(const DataSlice::JaggedShape& shape,
-                                     const DataSlice& items,
-                                     const DataSlice& item_schema,
-                                     const DataSlice& schema,
-                                     const DataSlice& itemid,
-                                     int64_t unused_hidden_seed);
 
 // kde.core._dict_shaped operator.
 absl::StatusOr<DataSlice> DictShaped(

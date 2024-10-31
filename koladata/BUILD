@@ -523,7 +523,6 @@ cc_test(
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
         "//koladata/internal/testing:matchers",
-        "//koladata/operators:lib",
         "//koladata/s11n",
         "//koladata/testing:matchers",
         "//koladata/testing:test_env",

@@ -33,7 +33,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/core.h"
+#include "koladata/operators/core_list.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
