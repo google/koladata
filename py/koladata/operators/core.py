@@ -2647,11 +2647,12 @@ def subslice(x, *slices):  # pylint: disable=unused-argument
        select a slice of items in one dimension. 'step' is not supported and it
        results in no item if 'start' is larger than or equal to 'stop'.
     4) .../Ellipsis. It can appear at most once in `slices` and used to fill
-       corresponding dimensions required by `x` but missing in `slices`.
+       corresponding dimensions in `x` but missing in `slices`. It means
+       selecting all items in these dimensions.
 
-  After expanding the Ellipsis (when provided), the number of `slices` argument
-  must be the same as the number of dimensions in `x`. Individual slicing
-  argument is used to slice corresponding dimension in `x`.
+  If the Ellipsis is not provided, it is added to the **beginning** of `slices`
+  by default, which is different from Numpy. Individual slicing argument is used
+  to slice corresponding dimension in `x`.
 
   The slicing algorithm can be thought as:
     1) implode `x` recursively to a List DataItem
@@ -2659,54 +2660,70 @@ def subslice(x, *slices):  # pylint: disable=unused-argument
        imploded_x[slice])
 
   Example 1:
-    x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-    slices: (0, 1, kd.item(0))
-    result: kd.item(3)
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, 0)
+      => kd.slice([[1, 3], [4], [7, 8]])
 
   Example 2:
-    x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-    slices: (slice(0, -1), slice(0, 1), slice(1, None))
-    result: kd.slice([[[2], []], [[5, 6]]])
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, 0, 1, kd.item(0))
+      => kd.item(3)
 
-  Example 3 (also see Example 4/5 for using DataSlices for subslicing):
-    x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-    slices: (kd.slice([1, 2]), kd.slice([[0, 0], [1, 0]]), kd.slice(0))
-    result: kd.slice([[4, 4], [8, 7]])
+  Example 3:
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, slice(0, -1))
+      => kd.slice([[[1], []], [[4, 5]], [[], [8]]])
 
   Example 4:
-    x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-    slices: (kd.slice([1, 2]), ...)
-    result: kd.slice([[[4, 5, 6]], [[7], [8, 9]]])
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, slice(0, -1), slice(0, 1), slice(1, None))
+       => kd.slice([[[2], []], [[5, 6]]])
 
-  Example 5:
-    x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-    slices: (kd.slice([1, 2]), kd.slice([[0, 0], [1, 0]]), ...)
-    result: kd.slice([[[4, 5, 6], [4, 5, 6]], [[8, 9], [7]]])
+  Example 5 (also see Example 6/7 for using DataSlices for subslicing):
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, kd.slice([1, 2]), kd.slice([[0, 0], [1, 0]]), kd.slice(0))
+      => kd.slice([[4, 4], [8, 7]])
 
   Example 6:
-    x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-    slices: (..., slice(1, None))
-    result: kd.slice([[[2], []], [[5, 6]], [[], [9]]])
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, kd.slice([1, 2]), ...)
+      => kd.slice([[[4, 5, 6]], [[7], [8, 9]]])
 
-   Example 7:
-    x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-    slices: (2, ..., slice(1, None))
-    result: kd.slice([[], [9]])
+  Example 7:
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, kd.slice([1, 2]), kd.slice([[0, 0], [1, 0]]), ...)
+      => kd.slice([[[4, 5, 6], [4, 5, 6]], [[8, 9], [7]]])
 
   Example 8:
-    x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-    slices: (2, slice(1, None))
-    result: error as 3 slicing arguments are required but only 2 are provided
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, ..., slice(1, None))
+      => kd.slice([[[2], []], [[5, 6]], [[], [9]]])
 
   Example 9:
-    x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-    slices: (..., 2, ...)
-    result: error as ellipsis can only appear once
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, 2, ..., slice(1, None))
+      => kd.slice([[], [9]])
 
   Example 10:
-    x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-    slices: (1, 2, 3, 4)
-    result: error as 3 slicing arguments are required but only 4 are provided
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, ..., 2, ...)
+      => error as ellipsis can only appear once
+
+  Example 11:
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, 1, 2, 3, 4)
+      => error as at most 3 slicing arguments can be provided
+
+  Note that there is a shortcut `ds.S[*slices] for this operator which is more
+  commonly used and the Python slice can be written as [start:end] format. For
+  example:
+    kd.subslice(x, 0) == x.S[0]
+    kd.subslice(x, 0, 1, kd.item(0)) == x.S[0, 1, kd.item(0)]
+    kd.subslice(x, slice(0, -1)) == x.S[0:-1]
+    kd.subslice(x, slice(0, -1), slice(0, 1), slice(1, None))
+      == x.S[0:-1, 0:1, 1:]
+    kd.subslice(x, ..., slice(1, None)) == x.S[..., 1:]
+    kd.subslice(x, slice(1, None)) == x.S[1:]
 
   Args:
     x: DataSlice to slice.

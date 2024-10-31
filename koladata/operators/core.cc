@@ -91,6 +91,8 @@
 namespace koladata::ops {
 namespace {
 
+constexpr absl::string_view kSubsliceName = "kd.subslice";
+
 class AlignOperator : public arolla::QExprOperator {
  public:
   explicit AlignOperator(absl::Span<const arolla::QTypePtr> input_types)
@@ -621,13 +623,15 @@ absl::StatusOr<std::optional<int64_t>> GetSliceArg(
     auto& ds = frame.Get(field.UnsafeToSlot<DataSlice>());
     ASSIGN_OR_RETURN(
         auto res, ToArollaScalar<int64_t>(ds),
-        _ << absl::StrCat(
-            "cannot subslice DataSlice 'x', if slice argument is a "
-            "DataSlice, it must be an integer DataItem, got: ",
-            arolla::Repr(ds)));
+        OperatorEvalError(
+            kSubsliceName,
+            absl::StrCat(
+                "cannot subslice DataSlice 'x', if slice argument is a "
+                "DataSlice, it must be an integer DataItem, got: ",
+                arolla::Repr(ds))));
     return res;
   } else {
-    return absl::InternalError("invalid slice argument.");
+    return OperatorEvalError(kSubsliceName, "invalid slice argument.");
   }
 }
 
@@ -649,29 +653,23 @@ absl::StatusOr<std::vector<SlicingArgType>> ExtractSlicingArgs(
     }
   }
 
-  if (ellipsis_pos.has_value()) {
-    if (slices.size() > x_rank) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("cannot subslice DataSlice 'x' as the number of "
-                          "provided non-ellipsis slicing arguments is larger "
-                          "than x.ndim: %d > %d",
-                          slices.size(), x_rank));
-    }
-    // Insert full slices (e.g. slice(0, None)) so that slices have the same
-    // size as x_rank.
-    // There is an optimization: when ellipsis is the first slicing argument,
-    // only implode and explode the last N dimensions where N is the number of
-    // non-ellipsis slicing arguments.
-    if (*ellipsis_pos != 0) {
-      slices.insert(slices.begin() + *ellipsis_pos, x_rank - slices.size(),
-                    Slice{0, std::nullopt});
-    }
-  } else if (slices.size() != x_rank) {
-    return absl::InvalidArgumentError(
+  if (slices.size() > x_rank) {
+    return OperatorEvalError(
+        kSubsliceName,
         absl::StrFormat("cannot subslice DataSlice 'x' as the number of "
-                        "provided slicing arguments is different from x.ndim: "
-                        "%d != %d",
+                        "provided non-ellipsis slicing arguments is larger "
+                        "than x.ndim: %d > %d",
                         slices.size(), x_rank));
+  }
+
+  // Insert full slices (e.g. slice(0, None)) so that slices have the same
+  // size as x_rank.
+  // There is an optimization: when ellipsis is the first slicing argument,
+  // only implode and explode the last N dimensions where N is the number of
+  // non-ellipsis slicing arguments.
+  if (ellipsis_pos.has_value() && *ellipsis_pos != 0) {
+    slices.insert(slices.begin() + *ellipsis_pos, x_rank - slices.size(),
+                  Slice{0, std::nullopt});
   }
   return slices;
 }
@@ -2091,6 +2089,8 @@ absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
 absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
+  // The following checks are already done at Expr qtype constraints level and
+  // should never happen.
   if (input_types.empty()) {
     return OperatorNotDefinedError("kde.core.subslice", input_types,
                                    "expected at least 1 argument");
@@ -2106,8 +2106,8 @@ absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(
     if (auto status =
             IsSliceQTypeValid(input_type, i - 1, ellipsis_pos_for_error);
         !status.ok()) {
-      return OperatorNotDefinedError(
-          "kde.core.subslice", input_types,
+      return OperatorEvalError(
+          kSubsliceName,
           absl::StrFormat("slicing argument at position %d is invalid: %s",
                           i - 1, status.message()));
     }

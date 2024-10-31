@@ -726,8 +726,17 @@ def _invert(self) -> DataSlice:
 class SlicingHelper:
   """Slicing helper for DataSlice.
 
-  It is a syntactic sugar for kde.subslice. That is, kd.subslice(ds, *slices)
-  is equivalent to ds.S[*slices].
+  It is a syntactic sugar for kd.subslice. That is, kd.subslice(ds, *slices)
+  is equivalent to ds.S[*slices]. For example,
+    kd.subslice(x, 0) == x.S[0]
+    kd.subslice(x, 0, 1, kd.item(0)) == x.S[0, 1, kd.item(0)]
+    kd.subslice(x, slice(0, -1)) == x.S[0:-1]
+    kd.subslice(x, slice(0, -1), slice(0, 1), slice(1, None))
+      == x.S[0:-1, 0:1, 1:]
+    kd.subslice(x, ..., slice(1, None)) == x.S[..., 1:]
+    kd.subslice(x, slice(1, None)) == x.S[1:]
+
+  Please see kd.subslice for more detailed explanations and examples.
   """
 
   def __init__(self, ds: DataSlice):
