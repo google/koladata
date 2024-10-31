@@ -34,17 +34,43 @@ P = arolla.P
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def equal(x, y):  # pylint: disable=unused-argument
-  """Returns true iff `x` and `y` are equal.
+  """Returns present iff `x` and `y` are equal.
 
   Pointwise operator which takes a DataSlice and returns a MASK indicating
   iff `x` and `y` are equal. Returns `kd.present` for equal items and
   `kd.missing` in other cases.
 
   Args:
-    x: DataSlice | DataItem.
-    y: DataSlice | DataItem.
+    x: DataSlice.
+    y: DataSlice.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.full_equal'])
+@optools.as_lambda_operator(
+    'kde.comparison.full_equal',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.y),
+    ],
+)
+def full_equal(x, y):  # pylint: disable=unused-argument
+  """Returns present iff all present items in `x` and `y` are equal.
+
+  The result is a zero-dimensional DataItem. Note that it is different from
+  `kd.all(x == y)`.
+
+  For example,
+    kd.full_equal(kd.slice([1, 2, 3]), kd.slice([1, 2, 3])) -> kd.present
+    kd.full_equal(kd.slice([1, 2, 3]), kd.slice([1, 2, None])) -> kd.missing
+    kd.full_equal(kd.slice([1, 2, None]), kd.slice([1, 2, None])) -> kd.present
+
+  Args:
+    x: DataSlice.
+    y: DataSlice.
+  """
+  return logical.all_((x == y) | (logical.has_not(x) & logical.has_not(y)))
 
 
 @optools.add_to_registry(
@@ -58,15 +84,15 @@ def equal(x, y):  # pylint: disable=unused-argument
     ],
 )
 def not_equal(x, y):
-  """Returns true iff `x` and `y` are not equal.
+  """Returns present iff `x` and `y` are not equal.
 
   Pointwise operator which takes a DataSlice and returns a MASK indicating
   iff `x` and `y` are not equal. Returns `kd.present` for not equal items and
   `kd.missing` in other cases.
 
   Args:
-    x: DataSlice | DataItem.
-    y: DataSlice | DataItem.
+    x: DataSlice.
+    y: DataSlice.
   """
   return ~(x == y) & (logical.has(x) & logical.has(y))
 
@@ -81,15 +107,15 @@ def not_equal(x, y):
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def greater(x, y):  # pylint: disable=unused-argument
-  """Returns true iff `x` is greater than `y`.
+  """Returns present iff `x` is greater than `y`.
 
   Pointwise operator which takes a DataSlice and returns a MASK indicating
   iff `x` is greater than `y`. Returns `kd.present` when `x` is greater and
   `kd.missing` when `x` is less than or equal to `y`.
 
   Args:
-    x: DataSlice | DataItem.
-    y: DataSlice | DataItem.
+    x: DataSlice.
+    y: DataSlice.
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -104,15 +130,15 @@ def greater(x, y):  # pylint: disable=unused-argument
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def less(x, y):  # pylint: disable=unused-argument
-  """Returns true iff `x` is less than `y`.
+  """Returns present iff `x` is less than `y`.
 
   Pointwise operator which takes a DataSlice and returns a MASK indicating
   iff `x` is less than `y`. Returns `kd.present` when `x` is less and
   `kd.missing` when `x` is greater than or equal to `y`.
 
   Args:
-    x: DataSlice | DataItem.
-    y: DataSlice | DataItem.
+    x: DataSlice.
+    y: DataSlice.
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -129,15 +155,15 @@ def less(x, y):  # pylint: disable=unused-argument
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def greater_equal(x, y):  # pylint: disable=unused-argument
-  """Returns true iff `x` is greater than or equal to `y`.
+  """Returns present iff `x` is greater than or equal to `y`.
 
   Pointwise operator which takes a DataSlice and returns a MASK indicating
   iff `x` is greater than or equal to `y`. Returns `kd.present` when `x` is
   greater than or equal to `y` and `kd.missing` when `x` is less than `y`.
 
   Args:
-    x: DataSlice | DataItem.
-    y: DataSlice | DataItem.
+    x: DataSlice.
+    y: DataSlice.
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -154,14 +180,14 @@ def greater_equal(x, y):  # pylint: disable=unused-argument
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def less_equal(x, y):  # pylint: disable=unused-argument
-  """Returns true iff `x` is less than or equal to `y`.
+  """Returns present iff `x` is less than or equal to `y`.
 
   Pointwise operator which takes a DataSlice and returns a MASK indicating
   iff `x` is less than or equal to `y`. Returns `kd.present` when `x` is
   less than or equal to `y` and `kd.missing` when `x` is greater than `y`.
 
   Args:
-    x: DataSlice | DataItem.
-    y: DataSlice | DataItem.
+    x: DataSlice.
+    y: DataSlice.
   """
   raise NotImplementedError('implemented in the backend')
