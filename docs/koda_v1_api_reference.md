@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-10-31'
+  reviewed: '2024-11-01'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -115,7 +115,7 @@ shape[:-ndim]`.
 Args:
   x: A DataSlice.
   ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 ```
 
 ### `agg_any(x, ndim)` {#agg_any}
@@ -129,7 +129,7 @@ shape[:-ndim]`.
 Args:
   x: A DataSlice.
   ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 ```
 
 ### `agg_count(x, ndim)` {#agg_count}
@@ -149,7 +149,7 @@ Example:
 Args:
   x: A DataSlice.
   ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
-    rank(x).
+    get_ndim(x).
 ```
 
 ### `agg_max(x, ndim)` {#agg_max}
@@ -169,7 +169,7 @@ Example:
 Args:
   x: A DataSlice of numbers.
   ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 ```
 
 ### `agg_mean(x, ndim)` {#agg_mean}
@@ -189,7 +189,7 @@ Example:
 Args:
   x: A DataSlice of numbers.
   ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 ```
 
 ### `agg_median(x, ndim)` {#agg_median}
@@ -209,7 +209,7 @@ That is made by design to fulfill the following property:
 Args:
   x: A DataSlice of numbers.
   ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 ```
 
 ### `agg_min(x, ndim)` {#agg_min}
@@ -229,7 +229,7 @@ Example:
 Args:
   x: A DataSlice of numbers.
   ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 ```
 
 ### `agg_size(x, ndim)` {#agg_size}
@@ -251,7 +251,7 @@ Example:
 Args:
   x: A DataSlice.
   ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
-    rank(x).
+    get_ndim(x).
 
 Returns:
   A DataSlice of number of items in `x` over the last `ndim` dimensions.
@@ -275,7 +275,7 @@ Args:
   unbiased: A boolean flag indicating whether to substract 1 from the number
     of elements in the denominator.
   ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 ```
 
 ### `agg_sum(x, ndim)` {#agg_sum}
@@ -295,7 +295,7 @@ Example:
 Args:
   x: A DataSlice of numbers.
   ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 ```
 
 ### `agg_uuid(x, ndim)` {#agg_uuid}
@@ -306,7 +306,7 @@ Computes aggregated uuid of elements over the last `ndim` dimensions.
 Args:
   x: A DataSlice.
   ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
-    rank(x).
+    get_ndim(x).
 
 Returns:
   DataSlice with that has `rank = rank - ndim` and shape: `shape =
@@ -331,7 +331,7 @@ Args:
   unbiased: A boolean flag indicating whether to substract 1 from the number
     of elements in the denominator.
   ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 ```
 
 ### `align(*args)` {#align}
@@ -505,15 +505,15 @@ broadcastable to shape(indices).
 
 Example:
   x = kd.slice([[1, None, 2], [3, 4]])
-  kd.at(x, kd.item(1))  # -> kd.slice([[None, 4]])
-  kd.at(x, kd.slice([0, 1]))  # -> kd.slice([1, 4])
-  kd.at(x, kd.slice([[0, 1], [1]]))  # -> kd.slice([[1, None], [4]])
-  kd.at(x, kd.slice([[[0, 1], []], [[1], [0]]]))
+  kd.take(x, kd.item(1))  # -> kd.slice([[None, 4]])
+  kd.take(x, kd.slice([0, 1]))  # -> kd.slice([1, 4])
+  kd.take(x, kd.slice([[0, 1], [1]]))  # -> kd.slice([[1, None], [4]])
+  kd.take(x, kd.slice([[[0, 1], []], [[1], [0]]]))
     # -> kd.slice([[[1, None]], []], [[4], [3]]])
-  kd.at(x, kd.slice([3, -3]))  # -> kd.slice([None, None])
-  kd.at(x, kd.slice([-1, -2]))  # -> kd.slice([2, 3])
-  kd.at(x, kd.slice('1')) # -> dtype mismatch error
-  kd.at(x, kd.slice([1, 2, 3])) -> incompatible shape
+  kd.take(x, kd.slice([3, -3]))  # -> kd.slice([None, None])
+  kd.take(x, kd.slice([-1, -2]))  # -> kd.slice([2, 3])
+  kd.take(x, kd.slice('1')) # -> dtype mismatch error
+  kd.take(x, kd.slice([1, 2, 3])) -> incompatible shape
 
 Args:
   x: DataSlice to be indexed
@@ -643,7 +643,7 @@ Example:
 Args:
   x: A DataSlice.
   ndim: The number of dimensions to collapse into. Requires 0 <= ndim <=
-    rank(x).
+    get_ndim(x).
 
 Returns:
   Collapsed DataSlice.
@@ -770,7 +770,7 @@ Example:
 Args:
   x: A DataSlice.
   ndim: The number of trailing dimensions to count within. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 
 Returns:
   A DataSlice of INT64 with the same shape and sparsity as `x`.
@@ -798,6 +798,12 @@ Returns the cumulative sum of items along the last ndim dimensions.
 
 ``` {.no-copy}
 Decodes `x` as TEXT using UTF-8 decoding.
+```
+
+### `decode_itemid(ds)` {#decode_itemid}
+
+``` {.no-copy}
+Returns the base62 text decoded into item ids.
 ```
 
 ### `deep_clone(x, schema, **overrides)` {#deep_clone}
@@ -852,7 +858,8 @@ Example:
 Args:
   x: DataSlice to rank.
   descending: If true, items are compared in descending order.
-  ndim: The number of dimensions to rank over. Requires 0 <= ndim <= rank(x).
+  ndim: The number of dimensions to rank over.
+    Requires 0 <= ndim <= get_ndim(x).
 
 Returns:
   A DataSlice of dense ranks.
@@ -975,7 +982,7 @@ Creates new Koda dicts with the given shape.
     A DataSlice with the dicts.
 ```
 
-### `dict_shaped_as(as_ds, items_or_keys, values, key_schema, value_schema, schema, itemid, db)` {#dict_shaped_as}
+### `dict_shaped_as(shape_from, items_or_keys, values, key_schema, value_schema, schema, itemid, db)` {#dict_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda dicts with shape of the given DataSlice.
@@ -986,7 +993,8 @@ Creates new Koda dicts with shape of the given DataSlice.
   higher.
 
   Args:
-    as_ds: mandatory DataSlice, whose shape the returned DataSlice will have.
+    shape_from: mandatory DataSlice, whose shape the returned DataSlice will
+      have.
     items_or_keys: either a Python dict (if `values` is None) or a DataSlice
       with keys. The Python dict case is supported only for scalar shape.
     values: a DataSlice of values, when `items_or_keys` represents keys.
@@ -1014,11 +1022,9 @@ Returns size of a Dict.
 ``` {.no-copy}
 Returns DataBag containing updates to a slice of dicts.
 
-This operator has three forms:
+This operator has two forms:
   kde.dict_update(x, keys, values) where keys and values are slices
   kde.dict_update(x, dict_updates) where dict_updates is a slice of dicts
-  kde.dict_update(x, {...}) where {...} is a python dict with keys and values
-    that can all be converted to DataItems
 
 If both keys and values are specified, they must both be broadcastable to the
 shape of `x`. If only keys is specified (as dict_updates), it must be
@@ -1028,6 +1034,22 @@ Args:
   x: DataSlice of dicts to update.
   keys: A DataSlice of keys, or a DataSlice of dicts of updates.
   values: A DataSlice of values, or unspecified if `keys` contains dicts.
+```
+
+### `disjoint_coalesce(x, y)` {#disjoint_coalesce}
+
+``` {.no-copy}
+Fills in missing values of `x` with values of `y`.
+
+Raises if `x` and `y` intersect. It is equivalent to `x | y` with additional
+assertion that `x` and `y` are disjoint.
+
+Args:
+  x: DataSlice.
+  y: DataSlice used to fill missing items in `x`.
+
+Returns:
+  Coalesced DataSlice.
 ```
 
 ### `divide(x, y)` {#divide}
@@ -1109,6 +1131,12 @@ Creates a DataSlice of missing items with the shape of `shape_from`.
 Encodes `x` as BYTES using UTF-8 encoding.
 ```
 
+### `encode_itemid(ds)` {#encode_itemid}
+
+``` {.no-copy}
+Returns the base62 encoded item ids in `ds` as Text.
+```
+
 ### `enriched(ds, *bag)` {#enriched}
 
 ``` {.no-copy}
@@ -1154,15 +1182,15 @@ Returns:
 ### `equal(x, y)` {#equal}
 
 ``` {.no-copy}
-Returns true iff `x` and `y` are equal.
+Returns present iff `x` and `y` are equal.
 
 Pointwise operator which takes a DataSlice and returns a MASK indicating
 iff `x` and `y` are equal. Returns `kd.present` for equal items and
 `kd.missing` in other cases.
 
 Args:
-  x: DataSlice | DataItem.
-  y: DataSlice | DataItem.
+  x: DataSlice.
+  y: DataSlice.
 ```
 
 ### `eval(expr, self_input, /, **input_values)` {#eval}
@@ -1596,6 +1624,24 @@ Evaluates Koladata f-string into DataSlice.
     DataSlice with evaluated f-string.
 ```
 
+### `full_equal(x, y)` {#full_equal}
+
+``` {.no-copy}
+Returns present iff all present items in `x` and `y` are equal.
+
+The result is a zero-dimensional DataItem. Note that it is different from
+`kd.all(x == y)`.
+
+For example,
+  kd.full_equal(kd.slice([1, 2, 3]), kd.slice([1, 2, 3])) -> kd.present
+  kd.full_equal(kd.slice([1, 2, 3]), kd.slice([1, 2, None])) -> kd.missing
+  kd.full_equal(kd.slice([1, 2, None]), kd.slice([1, 2, None])) -> kd.present
+
+Args:
+  x: DataSlice.
+  y: DataSlice.
+```
+
 ### `get_attr(obj, attr_name, default)` {#get_attr}
 
 ``` {.no-copy}
@@ -1737,7 +1783,7 @@ Returns the name of the given Expr, or None if it does not have one.
 ### `get_ndim(x)` {#get_ndim}
 
 ``` {.no-copy}
-Returns the rank of the DataSlice `x`.
+Returns the number of dimensions of DataSlice `x`.
 ```
 
 ### `get_nofollowed_schema(schema)` {#get_nofollowed_schema}
@@ -1842,29 +1888,29 @@ Returns:
 ### `greater(x, y)` {#greater}
 
 ``` {.no-copy}
-Returns true iff `x` is greater than `y`.
+Returns present iff `x` is greater than `y`.
 
 Pointwise operator which takes a DataSlice and returns a MASK indicating
 iff `x` is greater than `y`. Returns `kd.present` when `x` is greater and
 `kd.missing` when `x` is less than or equal to `y`.
 
 Args:
-  x: DataSlice | DataItem.
-  y: DataSlice | DataItem.
+  x: DataSlice.
+  y: DataSlice.
 ```
 
 ### `greater_equal(x, y)` {#greater_equal}
 
 ``` {.no-copy}
-Returns true iff `x` is greater than or equal to `y`.
+Returns present iff `x` is greater than or equal to `y`.
 
 Pointwise operator which takes a DataSlice and returns a MASK indicating
 iff `x` is greater than or equal to `y`. Returns `kd.present` when `x` is
 greater than or equal to `y` and `kd.missing` when `x` is less than `y`.
 
 Args:
-  x: DataSlice | DataItem.
-  y: DataSlice | DataItem.
+  x: DataSlice.
+  y: DataSlice.
 ```
 
 ### `group_by(x, *args)` {#group_by}
@@ -1872,9 +1918,9 @@ Args:
 ``` {.no-copy}
 Returns permutation of `x` with injected grouped_by dimension.
 
-The resulting DataSlice has rank() + 1. The first `rank() - 1` dimensions are
-unchanged. The last two dimensions corresponds to the groups and the
-items within the groups.
+The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
+dimensions are unchanged. The last two dimensions corresponds to the groups
+and the items within the groups.
 
 Values of the result is a permutation of `x`. `args` are used for the grouping
 keys. If length of `args` is greater than 1, the key is a tuple.
@@ -1937,13 +1983,13 @@ Returns:
 ``` {.no-copy}
 Returns a indices DataSlice with injected grouped_by dimension.
 
-The resulting DataSlice has rank() + 1. The first `rank() - 1` dimensions are
-unchanged. The last two dimensions corresponds to the groups and the
-items within the groups.
+The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
+dimensions are unchanged. The last two dimensions corresponds to the groups
+and the items within the groups.
 
 Values of the data slice are the indices of the objects within the parent
-dimension. `kde.at(x, kde.group_by_indices(x))` would group the objects in `x`
-by their values.
+dimension. `kde.take(x, kde.group_by_indices(x))` would group the objects in
+`x` by their values.
 
 Groups are ordered by the appearance of the first object in the group.
 
@@ -2036,7 +2082,7 @@ Returns:
 ### `has_attr(obj, attr_name)` {#has_attr}
 
 ``` {.no-copy}
-Indicates whether at least one item in the slice has the given attribute.
+Indicates whether the items in the slice have the given attribute.
 
 This function checks for attributes based on data rather than "schema" and may
 be slow in some cases.
@@ -2046,7 +2092,8 @@ Args:
   attr_name: Name of the attribute to check.
 
 Returns:
-  A 0-dim MASK slice, present if the attribute exists for at least one item.
+  A MASK slice with the same shape as `obj` that contains present if the
+  attribute exists for the corresponding item.
 ```
 
 ### `has_not(x)` {#has_not}
@@ -2111,7 +2158,7 @@ Example:
 Args:
   x: A DataSlice.
   ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= rank(x).
+    <= get_ndim(x).
 ```
 
 ### `int32(x)` {#int32}
@@ -2152,7 +2199,7 @@ Example:
 Args:
   x: A DataSlice of indices.
   ndim: The number of dimensions to compute inverse permutations over.
-    Requires 0 <= ndim <= rank(x).
+    Requires 0 <= ndim <= get_ndim(x).
 
 Returns:
   An inverse permutation of indices.
@@ -2262,38 +2309,32 @@ If `schema` is set, that schema is used,
 otherwise the schema is inferred from `value`.
 ```
 
-### `itemid_str(ds)` {#itemid_str}
-
-``` {.no-copy}
-Returns the base62 encoded item ids in `ds` as Text.
-```
-
 ### `less(x, y)` {#less}
 
 ``` {.no-copy}
-Returns true iff `x` is less than `y`.
+Returns present iff `x` is less than `y`.
 
 Pointwise operator which takes a DataSlice and returns a MASK indicating
 iff `x` is less than `y`. Returns `kd.present` when `x` is less and
 `kd.missing` when `x` is greater than or equal to `y`.
 
 Args:
-  x: DataSlice | DataItem.
-  y: DataSlice | DataItem.
+  x: DataSlice.
+  y: DataSlice.
 ```
 
 ### `less_equal(x, y)` {#less_equal}
 
 ``` {.no-copy}
-Returns true iff `x` is less than or equal to `y`.
+Returns present iff `x` is less than or equal to `y`.
 
 Pointwise operator which takes a DataSlice and returns a MASK indicating
 iff `x` is less than or equal to `y`. Returns `kd.present` when `x` is
 less than or equal to `y` and `kd.missing` when `x` is greater than `y`.
 
 Args:
-  x: DataSlice | DataItem.
-  y: DataSlice | DataItem.
+  x: DataSlice.
+  y: DataSlice.
 ```
 
 ### `list(items, *, item_schema, schema, itemid, db)` {#list}
@@ -2382,13 +2423,14 @@ Creates new Koda lists with the given shape.
     A DataSlice with the lists.
 ```
 
-### `list_shaped_as(ds_as, items, *, item_schema, schema, itemid, db)` {#list_shaped_as}
+### `list_shaped_as(shape_from, items, *, item_schema, schema, itemid, db)` {#list_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda lists with shape of the given DataSlice.
 
   Args:
-    ds_as: mandatory DataSlice, whose shape the returned DataSlice will have.
+    shape_from: mandatory DataSlice, whose shape the returned DataSlice will
+      have.
     items: optional items to assign to the newly created lists. If not given,
       the function returns empty lists.
     item_schema: the schema of the list items. If not specified, it will be
@@ -2602,6 +2644,27 @@ Returns:
 Returns kd.slice(x, kd.MASK).
 ```
 
+### `mask_and(x, y)` {#mask_and}
+
+``` {.no-copy}
+Applies pointwise MASK_AND operation on `x` and `y`.
+
+Both `x` and `y` must have MASK dtype. MASK_AND operation is defined as:
+  kd.mask_and(kd.present, kd.present) -> kd.present
+  kd.mask_and(kd.present, kd.missing) -> kd.missing
+  kd.mask_and(kd.missing, kd.present) -> kd.missing
+  kd.mask_and(kd.missing, kd.missing) -> kd.missing
+
+It is equivalent to `x & y`.
+
+Args:
+  x: DataSlice.
+  y: DataSlice.
+
+Returns:
+  DataSlice.
+```
+
 ### `mask_equal(x, y)` {#mask_equal}
 
 ``` {.no-copy}
@@ -2658,6 +2721,12 @@ Args:
   x: A DataSlice of numbers.
 ```
 
+### `maximum(x, y)` {#maximum}
+
+``` {.no-copy}
+Computes pointwise max(x, y).
+```
+
 ### `maybe(obj, attr_name)` {#maybe}
 
 ``` {.no-copy}
@@ -2703,6 +2772,12 @@ Args:
   x: A DataSlice of numbers.
 ```
 
+### `minimum(x, y)` {#minimum}
+
+``` {.no-copy}
+Computes pointwise min(x, y).
+```
+
 ### `mod(x, y)` {#mod}
 
 ``` {.no-copy}
@@ -2724,7 +2799,7 @@ Creates new Objects with an implicit stored schema.
 
   Args:
     arg: optional Python object to be converted to an Object.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
       itemid will only be set when the args is not a primitive or primitive
       slice if args presents.
     db: optional DataBag where object are created.
@@ -2742,9 +2817,9 @@ Creates Objects with shape and sparsity from shape_and_mask_from.
   Returned DataSlice has OBJECT schema.
 
   Args:
-    shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-      returned DataSlice will have.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -2760,13 +2835,19 @@ Creates Objects with the given shape.
   Returned DataSlice has OBJECT schema.
 
   Args:
-    shape: mandatory JaggedShape that the returned DataSlice will have.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    shape: JaggedShape that the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
+```
+
+### `neg(x)` {#neg}
+
+``` {.no-copy}
+Computes pointwise negation of the input, i.e. -x.
 ```
 
 ### `new(arg, *, schema, update_schema, itemid, db, **attrs)` {#new}
@@ -2782,7 +2863,7 @@ Creates Entities with given attrs.
       schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
       itemid will only be set when the args is not a primitive or primitive
       slice if args present.
     db: optional DataBag where entities are created.
@@ -2846,15 +2927,15 @@ Allocates new ItemIds with the shape of shape_from.
 Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
   Args:
-    shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-      returned DataSlice will have.
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
       schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -2906,14 +2987,14 @@ Creates new schema in the given DataBag.
 Creates new Entities with the given shape.
 
   Args:
-    shape: mandatory JaggedShape that the returned DataSlice will have.
+    shape: JaggedShape that the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
       schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -2921,20 +3002,20 @@ Creates new Entities with the given shape.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `new_shaped_as(as_ds, *, schema, update_schema, itemid, db, **attrs)` {#new_shaped_as}
+### `new_shaped_as(shape_from, *, schema, update_schema, itemid, db, **attrs)` {#new_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda entities with shape of the given DataSlice.
 
   Args:
-    as_ds: mandatory DataSlice, whose shape the returned DataSlice will have.
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
       schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -2985,15 +3066,15 @@ Args:
 ### `not_equal(x, y)` {#not_equal}
 
 ``` {.no-copy}
-Returns true iff `x` and `y` are not equal.
+Returns present iff `x` and `y` are not equal.
 
 Pointwise operator which takes a DataSlice and returns a MASK indicating
 iff `x` and `y` are not equal. Returns `kd.present` for not equal items and
 `kd.missing` in other cases.
 
 Args:
-  x: DataSlice | DataItem.
-  y: DataSlice | DataItem.
+  x: DataSlice.
+  y: DataSlice.
 ```
 
 ### `obj(arg, *, itemid, db, **attrs)` {#obj}
@@ -3005,7 +3086,7 @@ Creates new Objects with an implicit stored schema.
 
   Args:
     arg: optional Python object to be converted to an Object.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
       itemid will only be set when the args is not a primitive or primitive
       slice if args presents.
     db: optional DataBag where object are created.
@@ -3023,9 +3104,9 @@ Creates Objects with shape and sparsity from shape_and_mask_from.
   Returned DataSlice has OBJECT schema.
 
   Args:
-    shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-      returned DataSlice will have.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -3041,8 +3122,8 @@ Creates Objects with the given shape.
   Returned DataSlice has OBJECT schema.
 
   Args:
-    shape: mandatory JaggedShape that the returned DataSlice will have.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    shape: JaggedShape that the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -3050,7 +3131,7 @@ Creates Objects with the given shape.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `obj_shaped_as(as_ds, *, itemid, db, **attrs)` {#obj_shaped_as}
+### `obj_shaped_as(shape_from, *, itemid, db, **attrs)` {#obj_shaped_as}
 
 ``` {.no-copy}
 Creates Objects with the shape of the given DataSlice.
@@ -3058,8 +3139,8 @@ Creates Objects with the shape of the given DataSlice.
   Returned DataSlice has OBJECT schema.
 
   Args:
-    as_ds: mandatory DataSlice, whose shape the returned DataSlice will have.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -3104,7 +3185,8 @@ Args:
     positions in the DataSlice.
   descending: If true, items are compared in descending order. Does not affect
     the order of tie breaker and position in tie-breaking compairson.
-  ndim: The number of dimensions to rank over. Requires 0 <= ndim <= rank(x).
+  ndim: The number of dimensions to rank over.
+    Requires 0 <= ndim <= get_ndim(x).
 
 Returns:
   A DataSlice of ordinal ranks.
@@ -3114,6 +3196,12 @@ Returns:
 
 ``` {.no-copy}
 Packs the given Expr into a DataItem.
+```
+
+### `pos(x)` {#pos}
+
+``` {.no-copy}
+Computes pointwise positive of the input, i.e. +x.
 ```
 
 ### `pow(x, y)` {#pow}
@@ -3248,12 +3336,6 @@ Args:
 
 Returns:
   A DataSlice of INT64s with range [start, end).
-```
-
-### `rank(x)` {#rank}
-
-``` {.no-copy}
-Returns the rank of the DataSlice `x`.
 ```
 
 ### `ref(ds)` {#ref}
@@ -3923,11 +4005,12 @@ slicing argument can be one of the following:
      select a slice of items in one dimension. 'step' is not supported and it
      results in no item if 'start' is larger than or equal to 'stop'.
   4) .../Ellipsis. It can appear at most once in `slices` and used to fill
-     corresponding dimensions required by `x` but missing in `slices`.
+     corresponding dimensions in `x` but missing in `slices`. It means
+     selecting all items in these dimensions.
 
-After expanding the Ellipsis (when provided), the number of `slices` argument
-must be the same as the number of dimensions in `x`. Individual slicing
-argument is used to slice corresponding dimension in `x`.
+If the Ellipsis is not provided, it is added to the **beginning** of `slices`
+by default, which is different from Numpy. Individual slicing argument is used
+to slice corresponding dimension in `x`.
 
 The slicing algorithm can be thought as:
   1) implode `x` recursively to a List DataItem
@@ -3935,54 +4018,70 @@ The slicing algorithm can be thought as:
      imploded_x[slice])
 
 Example 1:
-  x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-  slices: (0, 1, kd.item(0))
-  result: kd.item(3)
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, 0)
+    => kd.slice([[1, 3], [4], [7, 8]])
 
 Example 2:
-  x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-  slices: (slice(0, -1), slice(0, 1), slice(1, None))
-  result: kd.slice([[[2], []], [[5, 6]]])
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, 0, 1, kd.item(0))
+    => kd.item(3)
 
-Example 3 (also see Example 4/5 for using DataSlices for subslicing):
-  x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-  slices: (kd.slice([1, 2]), kd.slice([[0, 0], [1, 0]]), kd.slice(0))
-  result: kd.slice([[4, 4], [8, 7]])
+Example 3:
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, slice(0, -1))
+    => kd.slice([[[1], []], [[4, 5]], [[], [8]]])
 
 Example 4:
-  x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-  slices: (kd.slice([1, 2]), ...)
-  result: kd.slice([[[4, 5, 6]], [[7], [8, 9]]])
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, slice(0, -1), slice(0, 1), slice(1, None))
+     => kd.slice([[[2], []], [[5, 6]]])
 
-Example 5:
-  x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-  slices: (kd.slice([1, 2]), kd.slice([[0, 0], [1, 0]]), ...)
-  result: kd.slice([[[4, 5, 6], [4, 5, 6]], [[8, 9], [7]]])
+Example 5 (also see Example 6/7 for using DataSlices for subslicing):
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, kd.slice([1, 2]), kd.slice([[0, 0], [1, 0]]), kd.slice(0))
+    => kd.slice([[4, 4], [8, 7]])
 
 Example 6:
-  x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-  slices: (..., slice(1, None))
-  result: kd.slice([[[2], []], [[5, 6]], [[], [9]]])
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, kd.slice([1, 2]), ...)
+    => kd.slice([[[4, 5, 6]], [[7], [8, 9]]])
 
- Example 7:
-  x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-  slices: (2, ..., slice(1, None))
-  result: kd.slice([[], [9]])
+Example 7:
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, kd.slice([1, 2]), kd.slice([[0, 0], [1, 0]]), ...)
+    => kd.slice([[[4, 5, 6], [4, 5, 6]], [[8, 9], [7]]])
 
 Example 8:
-  x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-  slices: (2, slice(1, None))
-  result: error as 3 slicing arguments are required but only 2 are provided
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, ..., slice(1, None))
+    => kd.slice([[[2], []], [[5, 6]], [[], [9]]])
 
 Example 9:
-  x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-  slices: (..., 2, ...)
-  result: error as ellipsis can only appear once
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, 2, ..., slice(1, None))
+    => kd.slice([[], [9]])
 
 Example 10:
-  x: kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
-  slices: (1, 2, 3, 4)
-  result: error as 3 slicing arguments are required but only 4 are provided
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, ..., 2, ...)
+    => error as ellipsis can only appear once
+
+Example 11:
+  x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+  kd.subslice(x, 1, 2, 3, 4)
+    => error as at most 3 slicing arguments can be provided
+
+Note that there is a shortcut `ds.S[*slices] for this operator which is more
+commonly used and the Python slice can be written as [start:end] format. For
+example:
+  kd.subslice(x, 0) == x.S[0]
+  kd.subslice(x, 0, 1, kd.item(0)) == x.S[0, 1, kd.item(0)]
+  kd.subslice(x, slice(0, -1)) == x.S[0:-1]
+  kd.subslice(x, slice(0, -1), slice(0, 1), slice(1, None))
+    == x.S[0:-1, 0:1, 1:]
+  kd.subslice(x, ..., slice(1, None)) == x.S[..., 1:]
+  kd.subslice(x, slice(1, None)) == x.S[1:]
 
 Args:
   x: DataSlice to slice.
@@ -4048,6 +4147,42 @@ Args:
   x: A DataSlice of numbers.
 ```
 
+### `take(x, indices)` {#take}
+
+``` {.no-copy}
+Returns a new DataSlice with items at provided indices.
+
+`indices` must have INT32 or INT64 dtype or OBJECT schema holding INT32 or
+INT64 items.
+
+Indices in the DataSlice `indices` are based on the last dimension of the
+DataSlice `x`. Negative indices are supported and out-of-bound indices result
+in missing items.
+
+If ndim(x) - 1 > ndim(indices), indices are broadcasted to shape(x)[:-1].
+If ndim(x) <= ndim(indices), indices are unchanged but shape(x)[:-1] must be
+broadcastable to shape(indices).
+
+Example:
+  x = kd.slice([[1, None, 2], [3, 4]])
+  kd.take(x, kd.item(1))  # -> kd.slice([[None, 4]])
+  kd.take(x, kd.slice([0, 1]))  # -> kd.slice([1, 4])
+  kd.take(x, kd.slice([[0, 1], [1]]))  # -> kd.slice([[1, None], [4]])
+  kd.take(x, kd.slice([[[0, 1], []], [[1], [0]]]))
+    # -> kd.slice([[[1, None]], []], [[4], [3]]])
+  kd.take(x, kd.slice([3, -3]))  # -> kd.slice([None, None])
+  kd.take(x, kd.slice([-1, -2]))  # -> kd.slice([2, 3])
+  kd.take(x, kd.slice('1')) # -> dtype mismatch error
+  kd.take(x, kd.slice([1, 2, 3])) -> incompatible shape
+
+Args:
+  x: DataSlice to be indexed
+  indices: indices used to select items
+
+Returns:
+  A new DataSlice with items selected by indices.
+```
+
 ### `text(x)` {#text}
 
 ``` {.no-copy}
@@ -4058,12 +4193,6 @@ Returns kd.slice(x, kd.TEXT).
 
 ``` {.no-copy}
 Casts `x` to ANY using explicit (permissive) casting rules.
-```
-
-### `to_base62(ds)` {#to_base62}
-
-``` {.no-copy}
-Returns the base62 encoded item ids in `ds` as Text.
 ```
 
 ### `to_bool(x)` {#to_bool}
@@ -4130,6 +4259,36 @@ Casts `x` to NONE using explicit (permissive) casting rules.
 
 ``` {.no-copy}
 Casts `x` to OBJECT using explicit (permissive) casting rules.
+```
+
+### `to_proto(x, /, message_class)` {#to_proto}
+
+``` {.no-copy}
+Converts a DataSlice or DataItem to one or more proto messages.
+
+  If `x` is a DataItem, this returns a single proto message object. Otherwise,
+  `x` must be a 1-D DataSlice, and this returns a list of proto message objects
+  with the same size as the input.
+
+  Koda data structures are converted to equivalent proto messages, primitive
+  fields, repeated fields, maps, and enums, based on the proto schema. Koda
+  entity attributes are converted to message fields with the same name, if
+  those fields exist, otherwise they are ignored.
+
+  Koda slices with mixed underlying dtypes are tolerated wherever the proto
+  conversion is defined for all dtypes, regardless of schema.
+
+  Koda entity attributes that are parenthesized fully-qualified extension
+  paths (e.g. "(package_name.some_extension)") are converted to extensions,
+  if those extensions exist in the descriptor pool of the messages' common
+  descriptor, otherwise they are ignored.
+
+  Args:
+    x: DataSlice to convert.
+    message_class: A proto message class.
+
+  Returns:
+    A converted proto message or list of converted proto messages.
 ```
 
 ### `to_py(ds, max_depth, obj_as_dict, include_missing_attrs)` {#to_py}
@@ -4277,8 +4436,8 @@ Returns:
 Returns a DataSlice with unique values within each dimension.
 
 The resulting DataSlice has the same rank as `x`, but a different shape.
-The first `rank(x) - 1` dimensions are unchanged. The last dimension contains
-the unique values.
+The first `get_ndim(x) - 1` dimensions are unchanged. The last dimension
+contains the unique values.
 
 If `sort` is False elements are ordered by the appearance of the first object.
 
@@ -4575,11 +4734,9 @@ Returns a DataSlice with the given DataBatg attached.
 ``` {.no-copy}
 Returns a DataSlice with a new DataBag containing updated dicts.
 
-This operator has three forms:
+This operator has two forms:
   kde.with_dict_update(x, keys, values) where keys and values are slices
   kde.with_dict_update(x, dict_updates) where dict_updates is a slice of dicts
-  kde.with_dict_update(x, {...}) where {...} is a python dict with keys and
-    values that can all be converted to DataItems
 
 If both keys and values are specified, they must both be broadcastable to the
 shape of `x`. If only keys is specified (as dict_updates), it must be
@@ -5120,8 +5277,17 @@ ListSlicing helper for DataSlice.
 ``` {.no-copy}
 Slicing helper for DataSlice.
 
-  It is a syntactic sugar for kde.subslice. That is, kd.subslice(ds, *slices)
-  is equivalent to ds.S[*slices].
+  It is a syntactic sugar for kd.subslice. That is, kd.subslice(ds, *slices)
+  is equivalent to ds.S[*slices]. For example,
+    kd.subslice(x, 0) == x.S[0]
+    kd.subslice(x, 0, 1, kd.item(0)) == x.S[0, 1, kd.item(0)]
+    kd.subslice(x, slice(0, -1)) == x.S[0:-1]
+    kd.subslice(x, slice(0, -1), slice(0, 1), slice(1, None))
+      == x.S[0:-1, 0:1, 1:]
+    kd.subslice(x, ..., slice(1, None)) == x.S[..., 1:]
+    kd.subslice(x, slice(1, None)) == x.S[1:]
+
+  Please see kd.subslice for more detailed explanations and examples.
 ```
 
 ### `<DataSlice>.add_dim(self, sizes)` {#<DataSlice>.add_dim}
@@ -5518,6 +5684,10 @@ Returns:
 *No description*
 
 ### `<DataSlice>.stub(self)` {#<DataSlice>.stub}
+
+*No description*
+
+### `<DataSlice>.take(self, indices)` {#<DataSlice>.take}
 
 *No description*
 
@@ -5986,7 +6156,7 @@ Args:
     schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     itemid will only be set when the args is not a primitive or primitive slice
     if args present.
   **attrs: attrs to set in the returned Entity.
@@ -6001,15 +6171,15 @@ Returns:
 Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
 Args:
-  shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-    returned DataSlice will have.
+  shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+    DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
     Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
     schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
   **attrs: attrs to set in the returned Entity.
 
 Returns:
@@ -6028,14 +6198,14 @@ Creates new schema object with given types of attrs.
 Creates new Entities with the given shape.
 
 Args:
-  shape: mandatory JaggedShape that the returned DataSlice will have.
+  shape: JaggedShape that the returned DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
     Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
     schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
   **attrs: attrs to set in the returned Entity.
 
 Returns:
@@ -6051,7 +6221,7 @@ Returned DataSlice has OBJECT schema.
 
 Args:
   arg: optional Python object to be converted to an Object.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
     itemid will only be set when the args is not a primitive or primitive slice
     if args presents.
   **attrs: attrs to set on the returned object.
@@ -6068,9 +6238,9 @@ Creates Objects with shape and sparsity from shape_and_mask_from.
 Returned DataSlice has OBJECT schema.
 
 Args:
-  shape_and_mask_from: mandatory DataSlice, whose shape and sparsity the
-    returned DataSlice will have.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+  shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+    DataSlice will have.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
   db: optional DataBag where entities are created.
   **attrs: attrs to set in the returned Entity.
 
@@ -6086,8 +6256,8 @@ Creates Objects with the given shape.
 Returned DataSlice has OBJECT schema.
 
 Args:
-  shape: mandatory JaggedShape that the returned DataSlice will have.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+  shape: JaggedShape that the returned DataSlice will have.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
   **attrs: attrs to set in the returned Entity.
 
 Returns:
