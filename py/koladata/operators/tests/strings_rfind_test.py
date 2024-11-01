@@ -208,7 +208,7 @@ class StringsRfindTest(parameterized.TestCase):
         ValueError,
         # TODO: Make errors Koda friendly.
         re.escape(
-            'unsupported narrowing cast to INT64 for the given TEXT DataSlice'
+            'unsupported narrowing cast to INT64 for the given STRING DataSlice'
         ),
     ):
       expr_eval.eval(kde.strings.rfind(None, None, 'foo'))

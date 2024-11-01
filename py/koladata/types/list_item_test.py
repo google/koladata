@@ -170,7 +170,7 @@ class ListItemTest(parameterized.TestCase):
           ["a", "b"],
           "List['a', 'b']",
           (
-              r"DataItem\(List\['a', 'b'\], schema: LIST\[TEXT\], bag_id:"
+              r"DataItem\(List\['a', 'b'\], schema: LIST\[STRING\], bag_id:"
               r" \$\w{4}\)"
           ),
       ),

@@ -83,7 +83,7 @@ class CoreNofollowTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.nofollow(bag().new().as_any()))
     with self.assertRaisesRegex(
-        ValueError, 'calling nofollow on TEXT slice is not allowed'
+        ValueError, 'calling nofollow on STRING slice is not allowed'
     ):
       expr_eval.eval(kde.nofollow_schema(schema_constants.STRING))
     with self.assertRaisesRegex(

@@ -282,10 +282,11 @@ class NewTest(absltest.TestCase):
 The cause is: the schema for attribute 'a' is incompatible.
 
 Expected schema for 'a': INT32
-Assigned schema for 'a': TEXT
+Assigned schema for 'a': STRING
 
 To fix this, explicitly override schema of 'a' in the original schema. For example,
-schema.a = <desired_schema>"""),
+schema.a = <desired_schema>"""
+        ),
     ):
       fns.new(a='xyz', schema=schema)
 

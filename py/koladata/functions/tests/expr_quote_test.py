@@ -38,7 +38,7 @@ class ExprQuoteTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (schema_constants.INT32, 'unsupported schema: SCHEMA'),
-      ('a', 'cannot cast TEXT to EXPR'),
+      ('a', 'cannot cast STRING to EXPR'),
   )
   def test_expr_quote_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

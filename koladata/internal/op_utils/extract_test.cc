@@ -1517,7 +1517,7 @@ TEST_P(ExtractTest, ConflictingSchemasInTwoDatabags) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                ::testing::AllOf(
                    ::testing::HasSubstr("conflicting values for schema"),
-                   ::testing::HasSubstr("x: INT32 != TEXT"))));
+                   ::testing::HasSubstr("x: INT32 != STRING"))));
 }
 
 TEST_P(ExtractTest, NoFollowEntitySchema) {

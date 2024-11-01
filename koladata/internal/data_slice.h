@@ -141,7 +141,7 @@ class DataSliceImpl {
 
   // Call `visitor` on each internal DenseArray of values. Each item is a
   // variant with a value of DenseArray of some of supported scalar types
-  // (INT32, FLOAT32, TEXT, etc.). All DenseArrays have the same size, with
+  // (INT32, FLOAT32, STRING, etc.). All DenseArrays have the same size, with
   // non-intersecting presence ids. A value at index `i` of the DataSliceImpl is
   // considered missing iff it is missing in all DenseArrays, and one can
   // therefore not consider the DenseArrays in isolation.

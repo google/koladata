@@ -74,7 +74,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Entities) {
           MatchesRegex(
               R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => TEXT(.|\n)*)regex"))));
+              R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => STRING(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedEntities) {
@@ -118,7 +118,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Objects) {
           MatchesRegex(
               R"regex((.|\n)*k[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}:0\.b => TEXT(.|\n)*)regex"))));
+              R"regex((.|\n)*k[0-9a-f]{32}:0\.b => STRING(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedObjects) {
@@ -169,7 +169,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
               R"regex((.|\n)*\$[0-9a-f]{32}:1\['x'\] => 4(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}:0\.get_key_schema\(\) => TEXT(.|\n)*)regex"),
+              R"regex((.|\n)*k[0-9a-f]{32}:0\.get_key_schema\(\) => STRING(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*k[0-9a-f]{32}:0\.get_value_schema\(\) => INT64(.|\n)*)regex"))));
 }
@@ -290,15 +290,13 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_TripleLimit_SchemaBag) {
                        /*keys=*/test::DataSlice<arolla::Text>({"a", "x"}),
                        /*values=*/test::DataSlice<int>({1, 4}), dict_schema));
 
-  EXPECT_THAT(
-      DataBagToStr(bag, /*triple_limit=*/3),
-      IsOkAndHolds(AllOf(
-          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
+  EXPECT_THAT(DataBagToStr(bag, /*triple_limit=*/3),
+              IsOkAndHolds(AllOf(MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
 \$[0-9a-f]{32}:0\['a'\] => 1
 \$[0-9a-f]{32}:1\['x'\] => 4
 
 SchemaBag:
-k[0-9a-f]{32}:0\.get_key_schema\(\) => TEXT
+k[0-9a-f]{32}:0\.get_key_schema\(\) => STRING
 \.\.\.
 
 Showing only the first 3 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this

@@ -194,7 +194,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromSchemaItem(
     return DataSlice::AttrNamesSet();
   }
   if (attrs.dtype() != arolla::GetQType<arolla::Text>()) {
-    return absl::InternalError("dtype of attribute names must be TEXT");
+    return absl::InternalError("dtype of attribute names must be STRING");
   }
   if (attrs.present_count() != attrs.size()) {
     return absl::InternalError("attributes must be non-empty");

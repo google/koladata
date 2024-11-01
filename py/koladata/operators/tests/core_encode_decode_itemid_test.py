@@ -63,7 +63,7 @@ class CoreEncodeDecodeItemIdTest(parameterized.TestCase):
     ):
       kde.core.encode_itemid(ds([1, 2, 3])).eval()
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'only TEXT can be decoded, got INT32'
+        exceptions.KodaError, 'only STRING can be decoded, got INT32'
     ):
       kde.core.decode_itemid(ds([1, 2, 3])).eval()
 

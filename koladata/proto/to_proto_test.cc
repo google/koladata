@@ -345,7 +345,7 @@ TEST(ToProtoTest, InvalidFieldType) {
              {test::DataItem("hello", test::Schema(schema::kText).item())})
              ->Reshape(DataSlice::JaggedShape::FlatFromSize(1));
     koladata::testing::ExampleMessage message;
-    ASSERT_THAT(ToProto(slice, {&message}),
+    EXPECT_THAT(ToProto(slice, {&message}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          "invalid proto field int32_field with value type "
                          "int32 for Koda value 'hello' with dtype TEXT"));
@@ -358,7 +358,7 @@ TEST(ToProtoTest, InvalidFieldType) {
              {test::DataItem("hello", test::Schema(schema::kText).item())})
              ->Reshape(DataSlice::JaggedShape::FlatFromSize(1));
     koladata::testing::ExampleMessage message;
-    ASSERT_THAT(ToProto(slice, {&message}),
+    EXPECT_THAT(ToProto(slice, {&message}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          "invalid proto field bytes_field with value type "
                          "bytes for Koda value 'hello' with dtype TEXT"));
@@ -371,7 +371,7 @@ TEST(ToProtoTest, InvalidFieldType) {
                           "hello", test::Schema(schema::kBytes).item())})
                       ->Reshape(DataSlice::JaggedShape::FlatFromSize(1));
     koladata::testing::ExampleMessage message;
-    ASSERT_THAT(ToProto(slice, {&message}),
+    EXPECT_THAT(ToProto(slice, {&message}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          "invalid proto field string_field with value type "
                          "string for Koda value b'hello' with dtype BYTES"));

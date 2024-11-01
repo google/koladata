@@ -71,7 +71,7 @@ class SchemaToMaskTest(parameterized.TestCase):
 
   def test_not_castable_internal_value(self):
     x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast TEXT to MASK"):
+    with self.assertRaisesRegex(ValueError, "cannot cast STRING to MASK"):
       expr_eval.eval(kde.schema.to_mask(x))
 
   def test_boxing(self):

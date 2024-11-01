@@ -221,14 +221,14 @@ struct ToExpr : schema_internal::ToSelf<arolla::expr::ExprQuote> {};
 // Casts the given item/slice to Text.
 //
 // The following cases are supported:
-// - TEXT -> TEXT.
-// - BYTES -> TEXT, by `b'foo'` -> `"b'foo'"`.
-// - MASK -> TEXT.
-// - BOOL -> TEXT.
-// - INT32 -> TEXT.
-// - INT64 -> TEXT.
-// - FLOAT32 -> TEXT.
-// - FLOAT64 -> TEXT.
+// - STRING -> STRING.
+// - BYTES -> STRING, by `b'foo'` -> `"b'foo'"`.
+// - MASK -> STRING.
+// - BOOL -> STRING.
+// - INT32 -> STRING.
+// - INT64 -> STRING.
+// - FLOAT32 -> STRING.
+// - FLOAT64 -> STRING.
 // - Empty -> empty.
 struct ToText
     : schema_internal::ToDST<
@@ -246,8 +246,8 @@ struct ToBytes : schema_internal::ToSelf<arolla::Bytes> {};
 // Decodes the given item/slice to Text.
 //
 // The following cases are supported:
-// - TEXT -> TEXT.
-// - BYTES -> TEXT, using UTF-8 decoding.
+// - STRING -> STRING.
+// - BYTES -> STRING, using UTF-8 decoding.
 // - Empty -> empty.
 struct Decode : schema_internal::ToDST<arolla::DecodeOp, arolla::Text,
                                        schema_internal::kStrings> {};
@@ -256,7 +256,7 @@ struct Decode : schema_internal::ToDST<arolla::DecodeOp, arolla::Text,
 //
 // The following cases are supported:
 // - BYTES -> BYTES.
-// - TEXT -> BYTES, using UTF-8 encoding.
+// - STRING -> BYTES, using UTF-8 encoding.
 // - Empty -> empty.
 struct Encode : schema_internal::ToDST<arolla::EncodeOp, arolla::Bytes,
                                        schema_internal::kStrings> {};

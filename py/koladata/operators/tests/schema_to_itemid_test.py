@@ -75,7 +75,7 @@ class SchemaToItemidTest(parameterized.TestCase):
 
   def test_not_castable_internal_value(self):
     x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast TEXT to ITEMID"):
+    with self.assertRaisesRegex(ValueError, "cannot cast STRING to ITEMID"):
       expr_eval.eval(kde.schema.to_itemid(x))
 
   def test_boxing(self):

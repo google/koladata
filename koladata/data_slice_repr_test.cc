@@ -291,7 +291,7 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_DictSchema) {
                                         key_item, value_item));
 
   EXPECT_THAT(DataSliceToStr(dict.GetSchema()),
-              IsOkAndHolds(StrEq("DICT{INT32, TEXT}")));
+              IsOkAndHolds(StrEq("DICT{INT32, STRING}")));
 
   DataSlice second_key_item = test::DataItem("foo");
   DataSlice second_value_item =
@@ -306,7 +306,7 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_DictSchema) {
 
   EXPECT_THAT(
       DataSliceToStr(nested_dict.GetSchema()),
-      IsOkAndHolds(StrEq("DICT{DICT{INT32, TEXT}, DICT{TEXT, OBJECT}}")));
+      IsOkAndHolds(StrEq("DICT{DICT{INT32, STRING}, DICT{STRING, OBJECT}}")));
 }
 
 TEST(DataSliceReprTest, TestItemStringRepresentation_ExplicitSchema) {
@@ -324,7 +324,7 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ExplicitSchema) {
       DataSlice entity,
       EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
   EXPECT_THAT(DataSliceToStr(entity.GetSchema()),
-              IsOkAndHolds("SCHEMA(a=INT32, b=TEXT)"));
+              IsOkAndHolds("SCHEMA(a=INT32, b=STRING)"));
 }
 
 TEST(DataSliceReprTest, TestItemStringRepresentation_ExplicitSchema_Nested) {
@@ -339,7 +339,7 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ExplicitSchema_Nested) {
   ASSERT_OK_AND_ASSIGN(DataSlice entity,
                        EntityCreator::FromAttrs(bag, {"a"}, {dict}));
   EXPECT_THAT(DataSliceToStr(entity.GetSchema()),
-              IsOkAndHolds("SCHEMA(a=DICT{INT32, TEXT})"));
+              IsOkAndHolds("SCHEMA(a=DICT{INT32, STRING})"));
 }
 
 TEST(DataSliceReprTest, TestItemStringRepresentation_ImplicitSchema) {
@@ -359,7 +359,7 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ImplicitSchema) {
   EXPECT_THAT(DataSliceToStr(obj.GetSchema()), IsOkAndHolds("OBJECT"));
   ASSERT_OK_AND_ASSIGN(schema, obj.GetAttr(schema::kSchemaAttr));
   EXPECT_THAT(DataSliceToStr(schema),
-              IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=TEXT)"));
+              IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=STRING)"));
 }
 
 TEST(DataSliceReprTest, TestItemStringRepresentation_NoBag) {

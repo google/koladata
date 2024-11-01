@@ -274,7 +274,7 @@ class DictTest(parameterized.TestCase):
         re.escape(r"""the schema for Dict key is incompatible.
 
 Expected schema for Dict key: INT64
-Assigned schema for Dict key: TEXT"""),
+Assigned schema for Dict key: STRING"""),
     ):
       schema(items_or_keys=ds(['a', 'a']), values=ds([1, 2]))
 
@@ -283,7 +283,7 @@ Assigned schema for Dict key: TEXT"""),
         re.escape(r"""the schema for Dict value is incompatible.
 
 Expected schema for Dict value: INT64
-Assigned schema for Dict value: TEXT"""),
+Assigned schema for Dict value: STRING"""),
     ):
       schema(items_or_keys=ds([1, 2]), values=ds(['1', '2']))
 
@@ -292,7 +292,7 @@ Assigned schema for Dict value: TEXT"""),
         re.escape(r"""the schema for Dict value is incompatible.
 
 Expected schema for Dict value: INT64
-Assigned schema for Dict value: TEXT"""),
+Assigned schema for Dict value: STRING"""),
     ):
       fns.dict(items_or_keys={1: 'a', 2: 'b'}, schema=schema)
 
@@ -301,7 +301,7 @@ Assigned schema for Dict value: TEXT"""),
         re.escape(r"""the schema for Dict key is incompatible.
 
 Expected schema for Dict key: INT64
-Assigned schema for Dict key: TEXT"""),
+Assigned schema for Dict key: STRING"""),
     ):
       fns.dict(items_or_keys={'a': 1, 'b': 1}, schema=schema)
 
@@ -309,7 +309,7 @@ Assigned schema for Dict key: TEXT"""),
         exceptions.KodaError,
         re.escape(r"""the schema for Dict value is incompatible.
 
-Expected schema for Dict value: TEXT
+Expected schema for Dict value: STRING
 Assigned schema for Dict value: INT32"""),
     ):
       fns.dict(
@@ -323,7 +323,7 @@ Assigned schema for Dict value: INT32"""),
         re.escape(r"""the schema for Dict key is incompatible.
 
 Expected schema for Dict key: INT64
-Assigned schema for Dict key: TEXT"""),
+Assigned schema for Dict key: STRING"""),
     ):
       fns.dict(
           items_or_keys={'a': 1, 'b': 1},

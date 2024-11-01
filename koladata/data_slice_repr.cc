@@ -308,7 +308,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
 
   const DataItem& schema = ds.GetSchemaImpl();
   if (data_item.template holds_value<ObjectId>()) {
-    // TEXT items inside Lists and Dicts are quoted.
+    // STRING items inside Lists and Dicts are quoted.
     next_option.strip_quotes = false;
     if (ds.GetBag() == nullptr) {
       return DataItemRepr(data_item);

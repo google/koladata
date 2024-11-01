@@ -234,7 +234,7 @@ class FromPyTest(absltest.TestCase):
     obj = fns.from_py({ds('a'): 42}, dict_as_obj=True)
     self.assertCountEqual(dir(obj), ['a'])
     testing.assert_equal(obj.a.no_bag(), ds(42))
-    # Entity - non TEXT schema with TEXT item.
+    # Entity - non STRING schema with STRING item.
     entity = fns.from_py(
         {ds('a').as_any(): 42}, dict_as_obj=True,
         schema=fns.new_schema(a=schema_constants.INT32)

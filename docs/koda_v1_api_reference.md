@@ -797,7 +797,7 @@ Returns the cumulative sum of items along the last ndim dimensions.
 ### `decode(x)` {#decode}
 
 ``` {.no-copy}
-Decodes `x` as TEXT using UTF-8 decoding.
+Decodes `x` as STRING using UTF-8 decoding.
 ```
 
 ### `decode_itemid(ds)` {#decode_itemid}
@@ -4186,7 +4186,7 @@ Returns:
 ### `text(x)` {#text}
 
 ``` {.no-copy}
-Returns kd.slice(x, kd.TEXT).
+Returns kd.slice(x, kd.STRING).
 ```
 
 ### `to_any(x)` {#to_any}
@@ -4326,7 +4326,7 @@ Converts given DataSlice to string using str(x).
 ### `to_text(x)` {#to_text}
 
 ``` {.no-copy}
-Casts `x` to TEXT using explicit (permissive) casting rules.
+Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
 ### `trace_as_fn(*, name, py_fn)` {#trace_as_fn}

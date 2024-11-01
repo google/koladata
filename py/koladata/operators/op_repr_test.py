@@ -365,7 +365,7 @@ class OpReprTest(parameterized.TestCase):
       (
           kde.get_attr(I.x, ds('a'), ds(1)),
           (
-              "kde.get_attr(I.x, DataItem('a', schema: TEXT), DataItem(1,"
+              "kde.get_attr(I.x, DataItem('a', schema: STRING), DataItem(1,"
               ' schema: INT32))'
           ),
       ),
@@ -382,19 +382,19 @@ class OpReprTest(parameterized.TestCase):
       # Not an identifier.
       (
           kde.get_attr(I.x, ds('')),
-          "kde.get_attr(I.x, DataItem('', schema: TEXT), unspecified)",
+          "kde.get_attr(I.x, DataItem('', schema: STRING), unspecified)",
       ),
       (
           kde.get_attr(I.x, ds('')),
-          "kde.get_attr(I.x, DataItem('', schema: TEXT), unspecified)",
+          "kde.get_attr(I.x, DataItem('', schema: STRING), unspecified)",
       ),
       (
           kde.get_attr(I.x, ds('123')),
-          "kde.get_attr(I.x, DataItem('123', schema: TEXT), unspecified)",
+          "kde.get_attr(I.x, DataItem('123', schema: STRING), unspecified)",
       ),
       (
           kde.get_attr(I.x, ds('a%')),
-          "kde.get_attr(I.x, DataItem('a%', schema: TEXT), unspecified)",
+          "kde.get_attr(I.x, DataItem('a%', schema: STRING), unspecified)",
       ),
   )
   def test_getattr_repr(self, expr, expected_repr):

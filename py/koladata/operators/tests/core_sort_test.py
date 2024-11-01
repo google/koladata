@@ -77,7 +77,7 @@ class CoreSortTest(parameterized.TestCase):
           True,
           ds([True, True, False, None]),
       ),
-      # TEXT
+      # STRING
       (ds(['a', 'b', None, 'c']), True, ds(['c', 'b', 'a', None])),
       # BYTES
       (ds([b'a', b'b', None, b'c']), True, ds([b'c', b'b', b'a', None])),

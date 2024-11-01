@@ -218,7 +218,7 @@ absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
   if (regex.GetShape().rank() != 0 ||
       !regex.item().holds_value<arolla::Text>()) {
     return absl::InvalidArgumentError(absl::StrCat(
-        "requires regex to be a TEXT scalar, got ", arolla::Repr(regex)));
+        "requires regex to be a STRING scalar, got ", arolla::Repr(regex)));
   }
   ASSIGN_OR_RETURN(auto text_schema, GetPrimitiveArollaSchema(text));
   if (!text_schema.has_value()) {
@@ -250,7 +250,7 @@ absl::StatusOr<DataSlice> RegexMatch(const DataSlice& text,
   if (regex.GetShape().rank() != 0 ||
       !regex.item().holds_value<arolla::Text>()) {
     return absl::InvalidArgumentError(absl::StrCat(
-        "requires regex to be a TEXT scalar, got ", arolla::Repr(regex)));
+        "requires regex to be a STRING scalar, got ", arolla::Repr(regex)));
   }
   ASSIGN_OR_RETURN(auto text_schema, GetPrimitiveArollaSchema(text));
   if (!text_schema.has_value()) {

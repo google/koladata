@@ -98,7 +98,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.maybe(I.x, 'a')),
-        "kde.core.maybe(I.x, DataItem('a', schema: TEXT))",
+        "kde.core.maybe(I.x, DataItem('a', schema: STRING))",
     )
 
   def test_view(self):

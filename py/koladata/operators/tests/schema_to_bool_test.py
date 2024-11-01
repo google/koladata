@@ -71,7 +71,7 @@ class SchemaToBoolTest(parameterized.TestCase):
 
   def test_not_castable_internal_value(self):
     x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast TEXT to BOOLEAN"):
+    with self.assertRaisesRegex(ValueError, "cannot cast STRING to BOOLEAN"):
       expr_eval.eval(kde.schema.to_bool(x))
 
   def test_boxing(self):

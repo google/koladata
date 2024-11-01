@@ -73,7 +73,7 @@ class SchemaToFloat32Test(parameterized.TestCase):
 
   def test_not_castable_internal_value(self):
     x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast TEXT to FLOAT32"):
+    with self.assertRaisesRegex(ValueError, "cannot cast STRING to FLOAT32"):
       expr_eval.eval(kde.schema.to_float32(x))
 
   def test_boxing(self):

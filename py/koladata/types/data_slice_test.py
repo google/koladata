@@ -289,13 +289,13 @@ class DataSliceTest(parameterized.TestCase):
       (
           'text',
           ds('a'),
-          "DataItem('a', schema: TEXT)",
+          "DataItem('a', schema: STRING)",
           'a',
       ),
       (
           'text list',
           ds(['a', 'b']),
-          "DataSlice(['a', 'b'], schema: TEXT, shape: JaggedShape(2))",
+          "DataSlice(['a', 'b'], schema: STRING, shape: JaggedShape(2))",
           "['a', 'b']",
       ),
       (
@@ -787,7 +787,7 @@ class DataSliceTest(parameterized.TestCase):
         re.escape("""the schema for attribute 'x' is incompatible.
 
 Expected schema for 'x': SCHEMA(c=INT32)
-Assigned schema for 'x': SCHEMA(b=TEXT)
+Assigned schema for 'x': SCHEMA(b=STRING)
 
 To fix this, explicitly override schema of 'x' in the original schema. For example,
 schema.x = <desired_schema>"""),
@@ -799,7 +799,7 @@ schema.x = <desired_schema>"""),
         exceptions.KodaError,
         re.escape("""the schema for attribute 'x' is incompatible.
 
-Expected schema for 'x': TEXT
+Expected schema for 'x': STRING
 Assigned schema for 'x': INT32
 
 To fix this, explicitly override schema of 'x' in the Object schema. For example,
@@ -1574,7 +1574,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
         exceptions.KodaError,
         re.escape(r"""the schema for Dict key is incompatible.
 
-Expected schema for Dict key: TEXT
+Expected schema for Dict key: STRING
 Assigned schema for Dict key: INT32"""),
     ):
       _ = d[1]
@@ -1584,7 +1584,7 @@ Assigned schema for Dict key: INT32"""),
         re.escape(r"""the schema for Dict value is incompatible.
 
 Expected schema for Dict value: INT32
-Assigned schema for Dict value: TEXT"""),
+Assigned schema for Dict value: STRING"""),
     ):
       d['a'] = 'a'
 
@@ -1603,7 +1603,7 @@ Assigned schema for Dict key: SCHEMA(x=FLOAT32, y=INT32)"""),
         re.escape(r"""the schema for Dict key is incompatible.
 
 Expected schema for Dict key: SCHEMA(x=INT32, y=INT32)
-Assigned schema for Dict key: SCHEMA(x=TEXT)"""),
+Assigned schema for Dict key: SCHEMA(x=STRING)"""),
     ):
       _ = d2[db2.new(x=ds('a'))]
 
@@ -1613,7 +1613,7 @@ Assigned schema for Dict key: SCHEMA(x=TEXT)"""),
         exceptions.KodaError,
         re.escape(r"""the schema for Dict value is incompatible.
 
-Expected schema for Dict value: SCHEMA(x=TEXT)
+Expected schema for Dict value: SCHEMA(x=STRING)
 Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     ):
       d3[e] = db.new(y=1.0)
@@ -1853,7 +1853,7 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
         re.escape(
             'the schema for List item is incompatible.\n\n'
             'Expected schema for List item: INT32\n'
-            'Assigned schema for List item: TEXT'
+            'Assigned schema for List item: STRING'
         ),
     ):
       l[:] = ds(['el', 'psy', 'congroo'])
@@ -1883,7 +1883,7 @@ Assigned schema for List item: SCHEMA(y=INT32)"""),
         re.escape(r"""the schema for List item is incompatible.
 
 Expected schema for List item: SCHEMA(x=INT32)
-Assigned schema for List item: SCHEMA(a=TEXT)"""),
+Assigned schema for List item: SCHEMA(a=STRING)"""),
     ):
       l2[0] = bag().new(a='x')
 

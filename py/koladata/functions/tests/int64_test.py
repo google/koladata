@@ -34,7 +34,7 @@ class Int64Test(parameterized.TestCase):
     testing.assert_equal(fns.int64(x), ds(x, schema_constants.INT64))
 
   @parameterized.parameters(
-      ('foo', 'cannot cast TEXT to INT64'),
+      ('foo', 'cannot cast STRING to INT64'),
       (b'test', 'cannot cast BYTES to INT64'),
   )
   def test_int64_errors(self, x, expected_error_msg):

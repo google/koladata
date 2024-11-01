@@ -212,7 +212,7 @@ class DataItemTest(parameterized.TestCase):
       ),
       ('boolean', ds(True), 'DataItem(True, schema: BOOLEAN)'),
       ('present_mask', ds(arolla.unit()), 'DataItem(present, schema: MASK)'),
-      ('text', ds('a'), "DataItem('a', schema: TEXT)"),
+      ('text', ds('a'), "DataItem('a', schema: STRING)"),
       ('bytes', ds(b'a'), "DataItem(b'a', schema: BYTES)"),
       ('int32_with_any', ds(12).as_any(), 'DataItem(12, schema: ANY)'),
       (

@@ -34,30 +34,30 @@ bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 OBJECT = schema_constants.OBJECT
 ANY = schema_constants.ANY
-TEXT = schema_constants.STRING
+STRING = schema_constants.STRING
 
 
 class KodaToArollaDenseArrayTextTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # Flat values.
-      (ds([], TEXT), arolla.dense_array_text([])),
+      (ds([], STRING), arolla.dense_array_text([])),
       (ds([None]), arolla.dense_array_text([None])),
-      (ds([None], TEXT), arolla.dense_array_text([None])),
+      (ds([None], STRING), arolla.dense_array_text([None])),
       (ds([None], OBJECT), arolla.dense_array_text([None])),
       (ds(['foo']), arolla.dense_array_text(['foo'])),
       (ds(['foo'], ANY), arolla.dense_array_text(['foo'])),
       (ds(['foo'], OBJECT), arolla.dense_array_text(['foo'])),
       # Scalars.
-      (ds(None, TEXT), arolla.dense_array_text([None])),
+      (ds(None, STRING), arolla.dense_array_text([None])),
       (ds(None, OBJECT), arolla.dense_array_text([None])),
       (ds('foo'), arolla.dense_array_text(['foo'])),
       (ds('foo', ANY), arolla.dense_array_text(['foo'])),
       (ds('foo', OBJECT), arolla.dense_array_text(['foo'])),
       # Multidim values.
-      (ds([[], []], TEXT), arolla.dense_array_text([])),
+      (ds([[], []], STRING), arolla.dense_array_text([])),
       (ds([['foo'], [None]]), arolla.dense_array_text(['foo', None])),
-      (ds([[None], [None]], TEXT), arolla.dense_array_text([None, None])),
+      (ds([[None], [None]], STRING), arolla.dense_array_text([None, None])),
       (ds([['foo'], [None]], ANY), arolla.dense_array_text(['foo', None])),
       (ds([['foo'], [None]], OBJECT), arolla.dense_array_text(['foo', None])),
       (ds([[None], [None]], OBJECT), arolla.dense_array_text([None, None])),
@@ -71,14 +71,14 @@ class KodaToArollaDenseArrayTextTest(parameterized.TestCase):
   def test_unsupported_schema_error(self):
     x = data_slice.DataSlice.from_vals([1])
     with self.assertRaisesRegex(
-        ValueError, 'unsupported narrowing cast to TEXT'
+        ValueError, 'unsupported narrowing cast to STRING'
     ):
       expr_eval.eval(arolla_bridge.to_arolla_dense_array_text(x))
 
   def test_unsupported_dtype_error(self):
     x = data_slice.DataSlice.from_vals([1], schema_constants.OBJECT)
     with self.assertRaisesRegex(
-        ValueError, 'unsupported narrowing cast to TEXT'
+        ValueError, 'unsupported narrowing cast to STRING'
     ):
       expr_eval.eval(arolla_bridge.to_arolla_dense_array_text(x))
 
@@ -88,7 +88,7 @@ class KodaToArollaDenseArrayTextTest(parameterized.TestCase):
 
   def test_unsupported_object(self):
     with self.assertRaisesRegex(
-        ValueError, 'unsupported narrowing cast to TEXT'
+        ValueError, 'unsupported narrowing cast to STRING'
     ):
       expr_eval.eval(arolla_bridge.to_arolla_dense_array_text(bag().obj(x=[1])))
 

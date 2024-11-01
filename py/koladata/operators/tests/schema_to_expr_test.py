@@ -69,7 +69,7 @@ class SchemaToExprTest(parameterized.TestCase):
 
   def test_not_castable_internal_value(self):
     x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast TEXT to EXPR"):
+    with self.assertRaisesRegex(ValueError, "cannot cast STRING to EXPR"):
       expr_eval.eval(kde.schema.to_expr(x))
 
   def test_boxing(self):

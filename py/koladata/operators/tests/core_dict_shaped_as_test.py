@@ -198,7 +198,7 @@ class DictShapedAsTest(parameterized.TestCase):
         r"""the schema for Dict key is incompatible.
 
 Expected schema for Dict key: INT32
-Assigned schema for Dict key: TEXT""",
+Assigned schema for Dict key: STRING""",
     ):
       expr_eval.eval(
           kde.core.dict_shaped_as(
@@ -214,7 +214,7 @@ Assigned schema for Dict key: TEXT""",
         exceptions.KodaError,
         r"""the schema for Dict value is incompatible.
 
-Expected schema for Dict value: TEXT
+Expected schema for Dict value: STRING
 Assigned schema for Dict value: INT32""",
     ):
       expr_eval.eval(
@@ -232,7 +232,7 @@ Assigned schema for Dict value: INT32""",
         r"""the schema for Dict key is incompatible.
 
 Expected schema for Dict key: INT64
-Assigned schema for Dict key: TEXT""",
+Assigned schema for Dict key: STRING""",
     ):
       expr_eval.eval(
           kde.core.dict_shaped_as(

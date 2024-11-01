@@ -325,7 +325,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
                             {1, 1, std::nullopt, 0}, x_shape, schema::kInt64)));
   }
   {
-    // Specifying two primary operands with mismatching types TEXT and BYTES.
+    // Specifying two primary operands with mismatching types STRING and BYTES.
     DataSlice::JaggedShape x_shape = *DataSlice::JaggedShape::FromEdges(
         {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
     DataSlice x = test::DataSlice<arolla::Text>(

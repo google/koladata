@@ -32,9 +32,9 @@ class Int32Test(parameterized.TestCase):
     testing.assert_equal(fns.int32(x), ds(x, schema_constants.INT32))
 
   @parameterized.parameters(
-      ('foo', 'cannot cast TEXT to INT32'),
+      ('foo', 'cannot cast STRING to INT32'),
       (b'test', 'cannot cast BYTES to INT32'),
-      (2**45, f'cannot cast int64{{{2**45}}} to int32')
+      (2**45, f'cannot cast int64{{{2**45}}} to int32'),
   )
   def test_int32_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

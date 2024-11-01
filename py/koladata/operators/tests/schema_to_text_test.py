@@ -77,7 +77,7 @@ class SchemaToTextTest(parameterized.TestCase):
 
   def test_not_castable_internal_value(self):
     x = ds(arolla.quote(I.x), schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, 'cannot cast EXPR to TEXT'):
+    with self.assertRaisesRegex(ValueError, 'cannot cast EXPR to STRING'):
       expr_eval.eval(kde.schema.to_text(x))
 
   def test_boxing(self):

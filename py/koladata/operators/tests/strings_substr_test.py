@@ -244,7 +244,7 @@ class StringsSubstrTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'unsupported narrowing cast to INT64 for the given TEXT DataSlice'
+            'unsupported narrowing cast to INT64 for the given STRING DataSlice'
         ),
     ):
       expr_eval.eval(kde.strings.substr('meeting', start=1, end='foo'))

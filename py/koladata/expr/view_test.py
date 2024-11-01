@@ -655,7 +655,7 @@ class DataSliceViewTest(parameterized.TestCase):
       (
           kde.get_attr(C.x, 'attr', 1),
           (
-              "kde.get_attr(C.x, DataItem('attr', schema: TEXT), "
+              "kde.get_attr(C.x, DataItem('attr', schema: STRING), "
               'DataItem(1, schema: INT32))'
           ),
       ),

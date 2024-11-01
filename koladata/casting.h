@@ -63,34 +63,34 @@ absl::StatusOr<DataSlice> ToNone(const DataSlice& slice);
 // non-primitive schemas are required to only contain ExprQuote values.
 absl::StatusOr<DataSlice> ToExpr(const DataSlice& slice);
 
-// Casts the given slice to TEXT.
+// Casts the given slice to STRING.
 //
-// The following schemas are supported: {NONE, TEXT, BYTES, MASK, BOOL, INT32,
+// The following schemas are supported: {NONE, STRING, BYTES, MASK, BOOL, INT32,
 // INT64, FLOAT32, FLOAT64, OBJECT, ANY}. Slices with non-primitive schemas are
 // required to only contain the previously listed values. Note that Bytes values
 // are converted through b'foo' -> "b'foo'". Use `Decode` to decode BYTES to
-// TEXT using the UTF-8 encoding.
+// STRING using the UTF-8 encoding.
 absl::StatusOr<DataSlice> ToText(const DataSlice& slice);
 
 // Casts the given slice to BYTES.
 //
 // The following schemas are supported: {NONE, BYTES, OBJECT, ANY}.
 // Slices with non-primitive schemas are required to only contain Bytes values.
-// Use `Encode` to encode TEXT to BYTES using the UTF-8 encoding.
+// Use `Encode` to encode STRING to BYTES using the UTF-8 encoding.
 absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice);
 
-// Converts the given slice to TEXT using UTF-8 decoding.
+// Converts the given slice to STRING using UTF-8 decoding.
 //
-// The following schemas are supported: {NONE, TEXT, BYTES, OBJECT, ANY}. Slices
-// with non-primitive schemas are required to only contain the previously listed
-// values.
+// The following schemas are supported: {NONE, STRING, BYTES, OBJECT, ANY}.
+// Slices with non-primitive schemas are required to only contain the previously
+// listed values.
 absl::StatusOr<DataSlice> Decode(const DataSlice& slice);
 
 // Converts the given slice to BYTES using UTF-8 encoding.
 //
-// The following schemas are supported: {NONE, TEXT, BYTES, OBJECT, ANY}. Slices
-// with non-primitive schemas are required to only contain the previously listed
-// values.
+// The following schemas are supported: {NONE, STRING, BYTES, OBJECT, ANY}.
+// Slices with non-primitive schemas are required to only contain the previously
+// listed values.
 absl::StatusOr<DataSlice> Encode(const DataSlice& slice);
 
 // Casts the given slice to MASK.

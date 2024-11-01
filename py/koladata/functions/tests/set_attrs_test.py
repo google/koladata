@@ -42,7 +42,7 @@ class SetAttrsTest(absltest.TestCase):
         exceptions.KodaError,
         re.escape(r"""the schema for attribute 'b' is incompatible.
 
-Expected schema for 'b': TEXT
+Expected schema for 'b': STRING
 Assigned schema for 'b': BYTES
 
 To fix this, explicitly override schema of 'b' in the original schema. For example,
@@ -70,7 +70,7 @@ schema.b = <desired_schema>"""),
         exceptions.KodaError,
         re.escape(r"""the schema for attribute 'b' is incompatible.
 
-Expected schema for 'b': TEXT
+Expected schema for 'b': STRING
 Assigned schema for 'b': BYTES
 
 To fix this, explicitly override schema of 'b' in the Object schema. For example,

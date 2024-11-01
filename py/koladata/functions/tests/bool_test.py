@@ -35,7 +35,7 @@ class BoolTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (schema_constants.INT32, 'unsupported schema: SCHEMA'),
-      ('a', 'cannot cast TEXT to BOOLEAN'),
+      ('a', 'cannot cast STRING to BOOLEAN'),
   )
   def test_bool_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

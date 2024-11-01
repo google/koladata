@@ -34,7 +34,7 @@ class Float32Test(parameterized.TestCase):
     testing.assert_equal(fns.float32(x), ds(x, schema_constants.FLOAT32))
 
   @parameterized.parameters(
-      ('foo', 'cannot cast TEXT to FLOAT32'),
+      ('foo', 'cannot cast STRING to FLOAT32'),
       (b'test', 'cannot cast BYTES to FLOAT32'),
   )
   def test_float32_errors(self, x, expected_error_msg):

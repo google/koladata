@@ -90,7 +90,7 @@ class SchemaToSchemaTest(parameterized.TestCase):
 
   def test_not_castable_internal_value(self):
     x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast TEXT to SCHEMA"):
+    with self.assertRaisesRegex(ValueError, "cannot cast STRING to SCHEMA"):
       expr_eval.eval(kde.schema.to_schema(x))
 
   def test_boxing(self):

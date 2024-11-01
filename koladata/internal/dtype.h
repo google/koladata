@@ -114,7 +114,7 @@ class DType {
     DCHECK_LT(type_id, kNextDTypeId);
   }
   // Creates a DType from QTypePtr `qtype` if it represents a primitive QType
-  // (INT32, TEXT, etc.).
+  // (INT32, STRING, etc.).
   static absl::StatusOr<DType> FromQType(arolla::QTypePtr qtype) {
     if (auto type_id_it = qtype_to_type_id().find(qtype);
         type_id_it != qtype_to_type_id().end()) {
@@ -212,7 +212,7 @@ class DType {
         res[GetDTypeId<bool>()] = "BOOLEAN";
         res[GetDTypeId<arolla::Unit>()] = "MASK";
         res[GetDTypeId<arolla::Bytes>()] = "BYTES";
-        res[GetDTypeId<arolla::Text>()] = "TEXT";
+        res[GetDTypeId<arolla::Text>()] = "STRING";
         res[GetDTypeId<arolla::expr::ExprQuote>()] = "EXPR";
         res[GetDTypeId<AnyDType>()] = "ANY";
         res[GetDTypeId<ItemIdDType>()] = "ITEMID";

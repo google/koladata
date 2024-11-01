@@ -120,7 +120,7 @@ class CoreOrdinalRankTest(parameterized.TestCase):
           1,
           ds([1, 0, None, 1], schema=INT64),
       ),
-      # TEXT
+      # STRING
       (ds(['a', 'b', None, 'c']), False, 1, ds([0, 1, None, 2], schema=INT64)),
       # BYTES
       (

@@ -34,7 +34,7 @@ class Float64Test(parameterized.TestCase):
     testing.assert_equal(fns.float64(x), ds(x, schema_constants.FLOAT64))
 
   @parameterized.parameters(
-      ('foo', 'cannot cast TEXT to FLOAT64'),
+      ('foo', 'cannot cast STRING to FLOAT64'),
       (b'test', 'cannot cast BYTES to FLOAT64'),
   )
   def test_float64_errors(self, x, expected_error_msg):

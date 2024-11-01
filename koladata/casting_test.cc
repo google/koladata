@@ -616,14 +616,14 @@ TEST(Casting, TextErrors) {
           {"foo", std::nullopt, std::nullopt},
           {std::nullopt, internal::AllocateSingleObject(), std::nullopt})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast ITEMID to TEXT"));
+               "cannot cast ITEMID to STRING"));
   EXPECT_THAT(ToText(test::DataItem(std::nullopt, schema::kItemId)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unsupported schema: ITEMID"));
   EXPECT_THAT(
       ToText(test::DataItem(internal::AllocateSingleObject(), schema::kObject)),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast ITEMID to TEXT"));
+               "cannot cast ITEMID to STRING"));
 }
 
 TEST_P(CastingToBytesTest, Casting) {
@@ -728,11 +728,11 @@ TEST(Casting, DecodeErrors) {
       Decode(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                            schema::kMask)),
       StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(
-      Decode(test::MixedDataSlice<arolla::Text, arolla::Unit>(
-          {"foo", std::nullopt, std::nullopt},
-          {std::nullopt, arolla::kUnit, std::nullopt})),
-      StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to TEXT"));
+  EXPECT_THAT(Decode(test::MixedDataSlice<arolla::Text, arolla::Unit>(
+                  {"foo", std::nullopt, std::nullopt},
+                  {std::nullopt, arolla::kUnit, std::nullopt})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast MASK to STRING"));
   EXPECT_THAT(Decode(test::MixedDataSlice<arolla::Text, arolla::Bytes>(
                   {"foo", std::nullopt, std::nullopt},
                   {std::nullopt, "te\xC0\0xt", std::nullopt})),
@@ -741,9 +741,9 @@ TEST(Casting, DecodeErrors) {
   EXPECT_THAT(
       Decode(test::DataItem(arolla::kUnit, schema::kMask)),
       StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(
-      Decode(test::DataItem(arolla::kUnit, schema::kObject)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to TEXT"));
+  EXPECT_THAT(Decode(test::DataItem(arolla::kUnit, schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast MASK to STRING"));
   EXPECT_THAT(
       Decode(test::DataItem(arolla::Bytes("te\xC0\0xt"), schema::kBytes)),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -916,21 +916,21 @@ INSTANTIATE_TEST_SUITE_P(
     }()));
 
 TEST(Casting, BoolErrors) {
-  EXPECT_THAT(
-      ToBool(
-          test::DataSlice<arolla::Text>({"foo", std::nullopt}, schema::kText)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: TEXT"));
+  EXPECT_THAT(ToBool(test::DataSlice<arolla::Text>({"foo", std::nullopt},
+                                                   schema::kText)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unsupported schema: STRING"));
   EXPECT_THAT(ToBool(test::MixedDataSlice<arolla::Text, bool>(
                   {"foo", std::nullopt, std::nullopt},
                   {std::nullopt, true, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast TEXT to BOOLEAN"));
-  EXPECT_THAT(
-      ToBool(test::DataItem(arolla::Text("foo"), schema::kText)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: TEXT"));
+                       "cannot cast STRING to BOOLEAN"));
+  EXPECT_THAT(ToBool(test::DataItem(arolla::Text("foo"), schema::kText)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unsupported schema: STRING"));
   EXPECT_THAT(ToBool(test::DataItem(arolla::Text("foo"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast TEXT to BOOLEAN"));
+                       "cannot cast STRING to BOOLEAN"));
 }
 
 TEST_P(CastingToAnyTest, Casting) {

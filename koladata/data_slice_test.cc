@@ -2528,7 +2528,7 @@ TEST(DataSliceTest, SetGetError_ObjectCreator) {
       status,
       StatusIs(absl::StatusCode::kInvalidArgument,
                AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
-                     HasSubstr("FLOAT32"), HasSubstr("TEXT"))));
+                     HasSubstr("FLOAT32"), HasSubstr("STRING"))));
   std::optional<internal::Error> error = internal::GetErrorPayload(status);
   ASSERT_TRUE(error.has_value());
   EXPECT_TRUE(error->has_incompatible_schema());
@@ -2543,7 +2543,7 @@ TEST(DataSliceTest, SetGetError_ObjectCreator) {
       status,
       StatusIs(absl::StatusCode::kInvalidArgument,
                AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
-                     HasSubstr("FLOAT32"), HasSubstr("TEXT"))));
+                     HasSubstr("FLOAT32"), HasSubstr("STRING"))));
   error = internal::GetErrorPayload(status);
   ASSERT_TRUE(error.has_value());
   EXPECT_TRUE(error->has_incompatible_schema());
@@ -2630,7 +2630,7 @@ TEST(DataSliceTest, GetAttrWithDefault_Primitives_ObjectCreator) {
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
                        ds.GetAttrWithDefault("a", test::DataItem("a")));
   EXPECT_THAT(ds_primitive_get.slice(), ElementsAre(1, arolla::Text("a"), 3));
-  // Conflict INT32 and TEXT => OBJECT.
+  // Conflict INT32 and STRING => OBJECT.
   EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kObject);
 }
 
@@ -2725,7 +2725,7 @@ TEST(DataSliceTest, GetAttrWithDefault_AnyNoSchema) {
       ElementsAre(arolla::Text("abc"), arolla::Text("abc"), std::nullopt));
   EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kText);
 
-  // Schema from getattr is inferred to be INT32 and then combined with TEXT,
+  // Schema from getattr is inferred to be INT32 and then combined with STRING,
   // returns OBJECT.
   ASSERT_OK_AND_ASSIGN(ds_primitive_get,
                        ds.GetAttrWithDefault("a", test::DataItem("abc")));
@@ -4461,7 +4461,7 @@ TEST(DataSliceCastingTest, EmptyToOther_Entity) {
   EXPECT_THAT(entity.SetAttr("a", empty_values_itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the schema for attribute 'a' is incompatible: expected "
-                       "TEXT, assigned ITEMID"));
+                       "STRING, assigned ITEMID"));
 }
 
 TEST(DataSliceCastingTest, EmptyToOther_Object) {
@@ -4481,7 +4481,7 @@ TEST(DataSliceCastingTest, EmptyToOther_Object) {
   EXPECT_THAT(objects.SetAttr("a", empty_values_itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the schema for attribute 'a' is incompatible: expected "
-                       "TEXT, assigned ITEMID"));
+                       "STRING, assigned ITEMID"));
 }
 
 TEST(DataSliceCastingTest, SameUnderlying_Entity) {
@@ -4499,7 +4499,7 @@ TEST(DataSliceCastingTest, SameUnderlying_Entity) {
   EXPECT_THAT(entity.SetAttr("a", empty_values_itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the schema for attribute 'a' is incompatible: expected "
-                       "TEXT, assigned ITEMID"));
+                       "STRING, assigned ITEMID"));
 
   auto values_text =
       test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kText);
@@ -4527,7 +4527,7 @@ TEST(DataSliceCastingTest, SameUnderlying_Object) {
   EXPECT_THAT(objects.SetAttr("a", empty_values_itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the schema for attribute 'a' is incompatible: expected "
-                       "TEXT, assigned ITEMID"));
+                       "STRING, assigned ITEMID"));
 
   auto values_text =
       test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kText);
@@ -4576,7 +4576,7 @@ TEST(DataSliceCastingTest, IncompatibleSchema_Entity) {
       entity.SetAttr("a", test::DataSlice<int>({12, 42})),
       StatusIs(absl::StatusCode::kInvalidArgument,
                AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
-                     HasSubstr("TEXT"), HasSubstr("INT32"))));
+                     HasSubstr("STRING"), HasSubstr("INT32"))));
 }
 
 TEST(DataSliceCastingTest, IncompatibleSchema_Object) {
@@ -4592,7 +4592,7 @@ TEST(DataSliceCastingTest, IncompatibleSchema_Object) {
       objects.SetAttr("a", test::DataSlice<int>({12, 42})),
       StatusIs(absl::StatusCode::kInvalidArgument,
                AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
-                     HasSubstr("TEXT"), HasSubstr("INT32"))));
+                     HasSubstr("STRING"), HasSubstr("INT32"))));
 }
 
 TEST(DataSliceCastingTest, PrimitiveToObject_Entity) {

@@ -142,7 +142,7 @@ The cause is: DataSlice with shape=JaggedShape(3) cannot be expanded to shape=Ja
         re.escape(
             """operator kd.take failed during evaluation: invalid indices DataSlice is provided
 
-The cause is: unsupported narrowing cast to INT64 for the given TEXT DataSlice"""
+The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice"""
         ),
     ):
       expr_eval.eval(kde.take(ds([[1], [2, 3]]), ds(['1', '2'])))

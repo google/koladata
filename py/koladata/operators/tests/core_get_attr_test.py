@@ -122,7 +122,7 @@ class CoreGetAttrTest(parameterized.TestCase):
     self.assertEqual(repr(kde.core.get_attr(I.x, 'a')), 'I.x.a')
     self.assertEqual(
         repr(kde.core.get_attr(I.x, 'a', None)),
-        "kde.core.get_attr(I.x, DataItem('a', schema: TEXT), "
+        "kde.core.get_attr(I.x, DataItem('a', schema: STRING), "
         'DataItem(None, schema: NONE))',
     )
 

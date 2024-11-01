@@ -279,7 +279,7 @@ absl::StatusOr<absl::string_view> GetAttrNameAsStr(const DataSlice& attr_name) {
   if (attr_name.GetShape().rank() != 0 ||
       attr_name.dtype() != schema::kText.qtype()) {
     return absl::InvalidArgumentError(
-        absl::StrCat("attr_name in kd.get_attr expects TEXT, got: ",
+        absl::StrCat("attr_name in kd.get_attr expects STRING, got: ",
                      arolla::Repr(attr_name)));
   }
   return attr_name.item().value<arolla::Text>().view();
@@ -1787,7 +1787,7 @@ absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds) {
                                             internal::DataItem(schema::kItemId),
                                             /*db=*/nullptr),
       OperatorEvalError(std::move(_), "kd.decode_itemid",
-                        absl::StrFormat("only TEXT can be decoded, got %v",
+                        absl::StrFormat("only STRING can be decoded, got %v",
                                         ds.GetSchemaImpl())));
   return std::move(res);
 }

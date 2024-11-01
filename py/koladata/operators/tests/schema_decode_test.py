@@ -74,7 +74,7 @@ class SchemaDecodeTest(parameterized.TestCase):
 
   def test_not_castable_internal_value(self):
     x = ds(1, schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to TEXT'):
+    with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to STRING'):
       expr_eval.eval(kde.schema.decode(x))
 
   def test_boxing(self):

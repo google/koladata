@@ -94,7 +94,7 @@ The cause is: DataSlice with mixed types is not supported: DataSlice([[1, '2'], 
         re.escape(
             """operator strings.substr failed during evaluation: invalid end argument
 
-The cause is: unsupported narrowing cast to INT64 for the given TEXT DataSlice"""
+The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice"""
         ),
     ):
       expr_eval.eval(kde.strings.substr(ds(['abc', 'def']), 1, ds('2')))

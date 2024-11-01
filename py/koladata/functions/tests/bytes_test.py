@@ -33,7 +33,7 @@ class BytesTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (schema_constants.INT32, 'unsupported schema: SCHEMA'),
-      ('a', 'cannot cast TEXT to BYTES'),
+      ('a', 'cannot cast STRING to BYTES'),
   )
   def test_bytes_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

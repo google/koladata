@@ -101,7 +101,7 @@ class StringsRegexExtractTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            "requires regex to be a TEXT scalar, got DataItem(b'f', schema:"
+            "requires regex to be a STRING scalar, got DataItem(b'f', schema:"
             ' BYTES)'
         ),
     ):
@@ -110,7 +110,7 @@ class StringsRegexExtractTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'requires regex to be a TEXT scalar, got DataItem(123, schema:'
+            'requires regex to be a STRING scalar, got DataItem(123, schema:'
             ' INT32)'
         ),
     ):
@@ -123,8 +123,8 @@ class StringsRegexExtractTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'requires regex to be a TEXT scalar, got DataItem(None, schema:'
-            ' TEXT)'
+            'requires regex to be a STRING scalar, got DataItem(None, schema:'
+            ' STRING)'
         ),
     ):
       expr_eval.eval(

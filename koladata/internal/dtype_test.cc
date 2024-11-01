@@ -247,7 +247,7 @@ TEST(DType, name) {
   EXPECT_EQ(kBool.name(), "BOOLEAN");
   EXPECT_EQ(kMask.name(), "MASK");
   EXPECT_EQ(kBytes.name(), "BYTES");
-  EXPECT_EQ(kText.name(), "TEXT");
+  EXPECT_EQ(kText.name(), "STRING");
   EXPECT_EQ(kExpr.name(), "EXPR");
 
   // Special meaning - Schema types

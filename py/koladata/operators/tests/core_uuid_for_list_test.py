@@ -158,7 +158,7 @@ class KodaUuidForListTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.uuid_for_list(a=I.a)),
-        "kde.core.uuid_for_list(seed=DataItem('', schema: TEXT), a=I.a)",
+        "kde.core.uuid_for_list(seed=DataItem('', schema: STRING), a=I.a)",
     )
 
 

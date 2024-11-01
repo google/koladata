@@ -208,7 +208,7 @@ SchemaBag:
 
 SchemaBag:
 \$[0-9a-f]{32}:0\.a => INT32
-\$[0-9a-f]{32}:0\.b => TEXT
+\$[0-9a-f]{32}:0\.b => STRING
 """,
       ),
       (
@@ -221,7 +221,7 @@ SchemaBag:
 
 SchemaBag:
 k[0-9a-f]{32}:0\.a => INT32
-k[0-9a-f]{32}:0\.b => TEXT
+k[0-9a-f]{32}:0\.b => STRING
 """,
       ),
   )
@@ -521,7 +521,7 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
         re.escape(r"""the schema for attribute 'a' is incompatible.
 
 Expected schema for 'a': SCHEMA(b=INT32)
-Assigned schema for 'a': SCHEMA(b=TEXT)"""),
+Assigned schema for 'a': SCHEMA(b=STRING)"""),
     ):
       schema = db.uu_schema(a=db.uu_schema(b=schema_constants.INT32))
       _ = db.uu(a=bag().uu(b='dudulu'), schema=schema)
@@ -702,7 +702,7 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
         re.escape(r"""the schema for attribute 'a' is incompatible.
 
 Expected schema for 'a': SCHEMA(b=INT32)
-Assigned schema for 'a': SCHEMA(c=TEXT)"""),
+Assigned schema for 'a': SCHEMA(c=STRING)"""),
     ):
       _ = schema(a=bag().new(c='dudulu'))
 
@@ -761,7 +761,7 @@ Assigned schema for 'a': SCHEMA(c=TEXT)"""),
         r"""the schema for List item is incompatible.
 
 Expected schema for List item: INT32
-Assigned schema for List item: TEXT""",
+Assigned schema for List item: STRING""",
     ):
       _ = schema(['a'])
 
@@ -850,7 +850,7 @@ Assigned schema for List item: TEXT""",
         r"""the schema for Dict value is incompatible.
 
 Expected schema for Dict value: INT32
-Assigned schema for Dict value: TEXT""",
+Assigned schema for Dict value: STRING""",
     ):
       _ = schema({'a': 'steins;gate'})
 
@@ -858,7 +858,7 @@ Assigned schema for Dict value: TEXT""",
         exceptions.KodaError,
         r"""the schema for Dict key is incompatible.
 
-Expected schema for Dict key: TEXT
+Expected schema for Dict key: STRING
 Assigned schema for Dict key: INT32""",
     ):
       _ = schema({1: 'steins;gate'})

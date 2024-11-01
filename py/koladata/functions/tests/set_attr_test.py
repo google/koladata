@@ -126,7 +126,7 @@ Assigned schema for 'xyz': BYTES"""),
         re.escape(r"""the schema for attribute 'xyz' is incompatible.
 
 Expected schema for 'xyz': INT32
-Assigned schema for 'xyz': TEXT"""),
+Assigned schema for 'xyz': STRING"""),
     ):
       fns.set_attr(
           x,

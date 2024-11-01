@@ -76,7 +76,7 @@ class SchemaToFloat64Test(parameterized.TestCase):
 
   def test_not_castable_internal_value(self):
     x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast TEXT to FLOAT64"):
+    with self.assertRaisesRegex(ValueError, "cannot cast STRING to FLOAT64"):
       expr_eval.eval(kde.schema.to_float64(x))
 
   def test_boxing(self):

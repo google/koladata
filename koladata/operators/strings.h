@@ -30,7 +30,7 @@ namespace koladata::ops {
 // Has a lot of limitations.
 // Must have two arguments:
 // 1. First parameter is the format specification,
-//    which must have BYTES or TEXT dtype.
+//    which must have BYTES or STRING dtype.
 // 2. Named tuple of DataSlice with format arguments.
 class FormatOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
