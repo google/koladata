@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.schema.to_text.
+"""Tests for kde.schema.to_str.
 
 Extensive testing is done in C++.
 """
@@ -39,7 +39,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class SchemaToTextTest(parameterized.TestCase):
+class SchemaToStrTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(None, schema_constants.BYTES), ds(None, schema_constants.STRING)),
@@ -63,7 +63,7 @@ class SchemaToTextTest(parameterized.TestCase):
       (ds([b'foo', 'bar'], schema_constants.ANY), ds(["b'foo'", 'bar'])),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.schema.to_text(x))
+    res = expr_eval.eval(kde.schema.to_str(x))
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
@@ -73,35 +73,35 @@ class SchemaToTextTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, f'unsupported schema: {value.get_schema()}'
     ):
-      expr_eval.eval(kde.schema.to_text(value))
+      expr_eval.eval(kde.schema.to_str(value))
 
   def test_not_castable_internal_value(self):
     x = ds(arolla.quote(I.x), schema_constants.OBJECT)
     with self.assertRaisesRegex(ValueError, 'cannot cast EXPR to STRING'):
-      expr_eval.eval(kde.schema.to_text(x))
+      expr_eval.eval(kde.schema.to_str(x))
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.schema.to_text(b'foo'),
+        kde.schema.to_str(b'foo'),
         arolla.abc.bind_op(
-            kde.schema.to_text, literal_operator.literal(ds(b'foo'))
+            kde.schema.to_str, literal_operator.literal(ds(b'foo'))
         ),
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.to_text,
+            kde.schema.to_str,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema.to_text(I.x)))
+    self.assertTrue(view.has_data_slice_view(kde.schema.to_str(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.schema.to_text, kde.to_text))
+    self.assertTrue(optools.equiv_to_op(kde.schema.to_str, kde.to_str))
 
 
 if __name__ == '__main__':

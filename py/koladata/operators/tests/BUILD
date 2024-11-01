@@ -4319,8 +4319,8 @@ py_test(
 )
 
 py_test(
-    name = "schema_to_text_test",
-    srcs = ["schema_to_text_test.py"],
+    name = "schema_to_str_test",
+    srcs = ["schema_to_str_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -6072,9 +6072,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_schema_to_text_covers_strings_as_text_test",
+    name = "kd_schema_to_str_covers_strings_as_text_test",
     arolla_op = "strings.as_text",
-    koda_op = "schema.to_text",
+    koda_op = "schema.to_str",
     skip_test_patterns = [
         "(?i).*WEAK_FLOAT.*",
         ".*uint64.*",

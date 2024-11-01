@@ -230,7 +230,7 @@ struct ToExpr : schema_internal::ToSelf<arolla::expr::ExprQuote> {};
 // - FLOAT32 -> STRING.
 // - FLOAT64 -> STRING.
 // - Empty -> empty.
-struct ToText
+struct ToStr
     : schema_internal::ToDST<
           arolla::AsTextOp, arolla::Text,
           arolla::meta::type_list<arolla::Text, arolla::Bytes, arolla::Unit,

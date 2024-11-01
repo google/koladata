@@ -70,7 +70,7 @@ absl::StatusOr<DataSlice> ToExpr(const DataSlice& slice);
 // required to only contain the previously listed values. Note that Bytes values
 // are converted through b'foo' -> "b'foo'". Use `Decode` to decode BYTES to
 // STRING using the UTF-8 encoding.
-absl::StatusOr<DataSlice> ToText(const DataSlice& slice);
+absl::StatusOr<DataSlice> ToStr(const DataSlice& slice);
 
 // Casts the given slice to BYTES.
 //

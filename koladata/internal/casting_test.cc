@@ -327,75 +327,74 @@ TEST(CastingTest, ToExpr_DataSlice) {
       StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to EXPR"));
 }
 
-TEST(CastingTest, ToText_DataItem) {
-  auto to_text = schema::ToText();
-  EXPECT_THAT(to_text(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
-  EXPECT_THAT(to_text(DataItem(arolla::Text("foo"))),
+TEST(CastingTest, ToStr_DataItem) {
+  auto to_str = schema::ToStr();
+  EXPECT_THAT(to_str(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
+  EXPECT_THAT(to_str(DataItem(arolla::Text("foo"))),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("foo")))));
-  EXPECT_THAT(to_text(DataItem(1)),
+  EXPECT_THAT(to_str(DataItem(1)),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("1")))));
-  EXPECT_THAT(to_text(DataItem(int64_t{1})),
+  EXPECT_THAT(to_str(DataItem(int64_t{1})),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("1")))));
-  EXPECT_THAT(to_text(DataItem(1.5f)),
+  EXPECT_THAT(to_str(DataItem(1.5f)),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("1.5")))));
-  EXPECT_THAT(to_text(DataItem(1.5)),
+  EXPECT_THAT(to_str(DataItem(1.5)),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("1.5")))));
-  EXPECT_THAT(to_text(DataItem(true)),
+  EXPECT_THAT(to_str(DataItem(true)),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("true")))));
-  EXPECT_THAT(to_text(DataItem(arolla::kUnit)),
+  EXPECT_THAT(to_str(DataItem(arolla::kUnit)),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("present")))));
-  EXPECT_THAT(to_text(DataItem(arolla::Bytes("foo"))),
+  EXPECT_THAT(to_str(DataItem(arolla::Bytes("foo"))),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("b'foo'")))));
+  EXPECT_THAT(to_str(DataItem(arolla::Bytes("te\0xt"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("b'te'")))));
   EXPECT_THAT(
-      to_text(DataItem(arolla::Bytes("te\0xt"))),
-      IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("b'te'")))));
-  EXPECT_THAT(to_text(DataItem(arolla::Bytes("te\xC0\0xt"))),
+      to_str(DataItem(arolla::Bytes("te\xC0\0xt"))),
       IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("b'te\xC0'")))));
-  EXPECT_THAT(to_text(DataItem(internal::AllocateSingleObject())),
+  EXPECT_THAT(to_str(DataItem(internal::AllocateSingleObject())),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast ITEMID to STRING"));
 }
 
-TEST(CastingTest, ToText_DataSlice) {
-  auto to_text = schema::ToText();
-  EXPECT_THAT(to_text(DataSliceImpl::CreateEmptyAndUnknownType(3)),
+TEST(CastingTest, ToStr_DataSlice) {
+  auto to_str = schema::ToStr();
+  EXPECT_THAT(to_str(DataSliceImpl::CreateEmptyAndUnknownType(3)),
               IsOkAndHolds(
                   IsEquivalentTo(DataSliceImpl::CreateEmptyAndUnknownType(3))));
-  EXPECT_THAT(to_text(DataSliceImpl::Create(
+  EXPECT_THAT(to_str(DataSliceImpl::Create(
                   {DataItem(arolla::Text("foo")), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("foo")), DataItem()}))));
-  EXPECT_THAT(to_text(DataSliceImpl::Create({DataItem(1), DataItem()})),
+  EXPECT_THAT(to_str(DataSliceImpl::Create({DataItem(1), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("1")), DataItem()}))));
-  EXPECT_THAT(
-      to_text(DataSliceImpl::Create({DataItem(int64_t{1}), DataItem()})),
-      IsOkAndHolds(IsEquivalentTo(
-          DataSliceImpl::Create({DataItem(arolla::Text("1")), DataItem()}))));
-  EXPECT_THAT(to_text(DataSliceImpl::Create({DataItem(1.5f), DataItem()})),
+  EXPECT_THAT(to_str(DataSliceImpl::Create({DataItem(int64_t{1}), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("1")), DataItem()}))));
+  EXPECT_THAT(to_str(DataSliceImpl::Create({DataItem(1.5f), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("1.5")), DataItem()}))));
-  EXPECT_THAT(to_text(DataSliceImpl::Create({DataItem(1.5), DataItem()})),
+  EXPECT_THAT(to_str(DataSliceImpl::Create({DataItem(1.5), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("1.5")), DataItem()}))));
-  EXPECT_THAT(to_text(DataSliceImpl::Create({DataItem(true), DataItem()})),
+  EXPECT_THAT(to_str(DataSliceImpl::Create({DataItem(true), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("true")), DataItem()}))));
   EXPECT_THAT(
-      to_text(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
+      to_str(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
       IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
           {DataItem(arolla::Text("present")), DataItem()}))));
-  EXPECT_THAT(to_text(DataSliceImpl::Create(
+  EXPECT_THAT(to_str(DataSliceImpl::Create(
                   {DataItem(arolla::Bytes("te\0xt")), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("b'te'")), DataItem()}))));
-  EXPECT_THAT(to_text(DataSliceImpl::Create({DataItem(arolla::Text("foo")),
-                                             DataItem(arolla::Bytes("te\0xt")),
-                                             DataItem()})),
+  EXPECT_THAT(to_str(DataSliceImpl::Create({DataItem(arolla::Text("foo")),
+                                            DataItem(arolla::Bytes("te\0xt")),
+                                            DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("foo")),
                    DataItem(arolla::Text("b'te'")), DataItem()}))));
-  EXPECT_THAT(to_text(DataSliceImpl::Create(
+  EXPECT_THAT(to_str(DataSliceImpl::Create(
                   {DataItem(internal::AllocateSingleObject()), DataItem()})),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast ITEMID to STRING"));

@@ -378,9 +378,16 @@ def to_bytes(x):
   return cast_to(x, schema_constants.BYTES)
 
 
-@optools.add_to_registry(aliases=['kde.to_text'])
-@optools.as_lambda_operator('kde.schema.to_text')
-def to_text(x):
+@optools.add_to_registry(
+    aliases=[
+        'kde.to_str',
+        # TODO: Remove text aliases once the migration is done.
+        'kde.schema.to_text',
+        'kde.to_text',
+    ]
+)
+@optools.as_lambda_operator('kde.schema.to_str')
+def to_str(x):
   """Casts `x` to STRING using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.STRING)
 

@@ -120,7 +120,7 @@ using CastingToFloat32Test = ::testing::TestWithParam<CastingTestCase>;
 using CastingToFloat64Test = ::testing::TestWithParam<CastingTestCase>;
 using CastingToNoneTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToExprTest = ::testing::TestWithParam<CastingTestCase>;
-using CastingToTextTest = ::testing::TestWithParam<CastingTestCase>;
+using CastingToStrTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToBytesTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingDecodeTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingEncodeTest = ::testing::TestWithParam<CastingTestCase>;
@@ -532,15 +532,15 @@ TEST(Casting, ExprErrors) {
       StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to EXPR"));
 }
 
-TEST_P(CastingToTextTest, Casting) {
+TEST_P(CastingToStrTest, Casting) {
   const auto& input = GetParam().input;
   const auto& output = GetParam().output;
-  ASSERT_OK_AND_ASSIGN(auto text_slice, ToText(input));
+  ASSERT_OK_AND_ASSIGN(auto text_slice, ToStr(input));
   EXPECT_THAT(text_slice, IsEquivalentTo(output));
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    CastingToTextTestSuite, CastingToTextTest, ::testing::ValuesIn([] {
+    CastingToStrTestSuite, CastingToStrTest, ::testing::ValuesIn([] {
       auto text_slice = test::DataSlice<arolla::Text>(
           {"fo\0o", "bar", std::nullopt}, schema::kString);
       std::vector<CastingTestCase> test_cases = {
@@ -609,21 +609,21 @@ INSTANTIATE_TEST_SUITE_P(
     }()));
 
 TEST(Casting, TextErrors) {
-  EXPECT_THAT(ToText(test::DataSlice<internal::ObjectId>(
+  EXPECT_THAT(ToStr(test::DataSlice<internal::ObjectId>(
                   {std::nullopt, std::nullopt}, schema::kItemId)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unsupported schema: ITEMID"));
   EXPECT_THAT(
-      ToText(test::MixedDataSlice<arolla::Text, internal::ObjectId>(
+      ToStr(test::MixedDataSlice<arolla::Text, internal::ObjectId>(
           {"foo", std::nullopt, std::nullopt},
           {std::nullopt, internal::AllocateSingleObject(), std::nullopt})),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "cannot cast ITEMID to STRING"));
-  EXPECT_THAT(ToText(test::DataItem(std::nullopt, schema::kItemId)),
+  EXPECT_THAT(ToStr(test::DataItem(std::nullopt, schema::kItemId)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unsupported schema: ITEMID"));
   EXPECT_THAT(
-      ToText(test::DataItem(internal::AllocateSingleObject(), schema::kObject)),
+      ToStr(test::DataItem(internal::AllocateSingleObject(), schema::kObject)),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "cannot cast ITEMID to STRING"));
 }

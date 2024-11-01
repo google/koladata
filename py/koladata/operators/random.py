@@ -72,7 +72,7 @@ def _to_dense_array_text_or_unspecified(x):
       unspecified_cast=arolla.types.DispatchCase(
           P.x, condition=P.x == arolla.UNSPECIFIED
       ),
-      default=arolla_bridge.to_arolla_dense_array_text(schema.to_text(P.x)),
+      default=arolla_bridge.to_arolla_dense_array_text(schema.to_str(P.x)),
   )(x)
 
 
