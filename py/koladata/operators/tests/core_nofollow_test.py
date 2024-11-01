@@ -85,7 +85,7 @@ class CoreNofollowTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'calling nofollow on TEXT slice is not allowed'
     ):
-      expr_eval.eval(kde.nofollow_schema(schema_constants.TEXT))
+      expr_eval.eval(kde.nofollow_schema(schema_constants.STRING))
     with self.assertRaisesRegex(
         ValueError,
         'DataSlice with an Entity schema must hold Entities or Objects',

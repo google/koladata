@@ -230,7 +230,7 @@ Assigned schema for Dict value: INT32""",
               jagged_shape.create_shape([2], [2, 1]),
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
-              value_schema=schema_constants.TEXT,
+              value_schema=schema_constants.STRING,
           )
       )
 

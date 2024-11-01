@@ -88,7 +88,7 @@ class SchemaItemTest(absltest.TestCase):
     testing.assert_equal(nofollow.get_nofollowed_schema(), orig_schema)
 
   def test_creating_entity(self):
-    s = fns.new_schema(a=schema_constants.FLOAT32, b=schema_constants.TEXT)
+    s = fns.new_schema(a=schema_constants.FLOAT32, b=schema_constants.STRING)
     self.assertFalse(s.is_list_schema())
     self.assertFalse(s.is_dict_schema())
     self.assertTrue(s.is_entity_schema())
@@ -99,7 +99,7 @@ class SchemaItemTest(absltest.TestCase):
       testing.assert_equal(entity.get_bag(), s.get_bag())
 
   def test_creating_obj(self):
-    o = fns.obj(a=schema_constants.FLOAT32, b=schema_constants.TEXT)
+    o = fns.obj(a=schema_constants.FLOAT32, b=schema_constants.STRING)
     self.assertFalse(o.is_entity_schema())
 
   def test_creating_list(self):
@@ -115,7 +115,8 @@ class SchemaItemTest(absltest.TestCase):
 
   def test_creating_dict(self):
     d = fns.dict_schema(
-        key_schema=schema_constants.TEXT, value_schema=schema_constants.FLOAT32
+        key_schema=schema_constants.STRING,
+        value_schema=schema_constants.FLOAT32,
     )
     self.assertTrue(d.is_dict_schema())
     self.assertTrue(d.is_entity_schema())
@@ -129,7 +130,8 @@ class SchemaItemTest(absltest.TestCase):
 
   def test_creating_dict_keys_and_values_separately(self):
     d = fns.dict_schema(
-        key_schema=schema_constants.TEXT, value_schema=schema_constants.FLOAT32
+        key_schema=schema_constants.STRING,
+        value_schema=schema_constants.FLOAT32,
     )
     self.assertTrue(d.is_dict_schema())
 
@@ -155,7 +157,7 @@ class SchemaItemTest(absltest.TestCase):
         'only SchemaItem with DataBags can be used for creating Entities',
     ):
       fns.new_schema(
-          a=schema_constants.INT32, b=schema_constants.TEXT
+          a=schema_constants.INT32, b=schema_constants.STRING
       ).with_bag(None)([1, 2, 3])
     with self.assertRaisesRegex(
         ValueError, 'expected List schema, got INT32'

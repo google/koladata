@@ -79,19 +79,19 @@ class StringsCountTest(parameterized.TestCase):
           ds([None, None], schema_constants.INT32),
       ),
       (
-          ds([None, None], schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
-          ds([None, None], schema_constants.INT32)
+          ds([None, None], schema_constants.STRING),
+          ds(None, schema_constants.STRING),
+          ds([None, None], schema_constants.INT32),
       ),
       (
           ds([None, None], schema_constants.BYTES),
           ds(None, schema_constants.BYTES),
-          ds([None, None], schema_constants.INT32)
+          ds([None, None], schema_constants.INT32),
       ),
       (
           ds([None, None], schema_constants.OBJECT),
           ds(None, schema_constants.OBJECT),
-          ds([None, None], schema_constants.INT32)
+          ds([None, None], schema_constants.INT32),
       ),
       (ds([None, None]), ds('abc'), ds([None, None], schema_constants.INT32)),
   )
@@ -114,7 +114,7 @@ class StringsCountTest(parameterized.TestCase):
         re.escape('unsupported argument types (DENSE_ARRAY_TEXT,INT32)'),
     ):
       expr_eval.eval(
-          kde.strings.count(ds([None], schema_constants.TEXT), ds(123))
+          kde.strings.count(ds([None], schema_constants.STRING), ds(123))
       )
 
   def test_mixed_slice_error(self):

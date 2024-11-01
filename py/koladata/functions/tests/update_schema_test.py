@@ -37,11 +37,12 @@ class UpdateSchemaTest(absltest.TestCase):
     fns.update_schema(
         o,
         x=schema_constants.INT32,
-        y=ds([schema_constants.FLOAT32, schema_constants.TEXT]))
+        y=ds([schema_constants.FLOAT32, schema_constants.STRING]),
+    )
     self.assertEqual(o.S[0].get_obj_schema().x, schema_constants.INT32)
     self.assertEqual(o.S[1].get_obj_schema().x, schema_constants.INT32)
     self.assertEqual(o.S[0].get_obj_schema().y, schema_constants.FLOAT32)
-    self.assertEqual(o.S[1].get_obj_schema().y, schema_constants.TEXT)
+    self.assertEqual(o.S[1].get_obj_schema().y, schema_constants.STRING)
 
     with self.assertRaisesRegex(
         ValueError, 'cannot get or set attributes on schema: ANY'

@@ -49,12 +49,12 @@ class StringsFormatTest(parameterized.TestCase):
       (ds(b'{v} foo'), dict(v=ds(b'bar')), ds(b'bar foo')),
       (ds('{v} foo'), dict(v=ds(1)), ds('1 foo')),
       (ds(b'{v} foo'), dict(v=ds(1)), ds(b'1 foo')),
-      (ds('{v} foo'), dict(v=ds(None)), ds(None, schema_constants.TEXT)),
+      (ds('{v} foo'), dict(v=ds(None)), ds(None, schema_constants.STRING)),
       (ds(b'{v} foo'), dict(v=ds(None)), ds(None, schema_constants.BYTES)),
       (
           ds('{v} foo'),
           dict(v=ds(None, schema_constants.OBJECT)),
-          ds(None, schema_constants.TEXT),
+          ds(None, schema_constants.STRING),
       ),
       (
           ds(b'{v} foo'),
@@ -137,9 +137,9 @@ class StringsFormatTest(parameterized.TestCase):
           ds([[[[None, None]]], [[[None]]]]),
       ),
       (
-          ds([None, None], schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
           {},
-          ds([None, None], schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
       ),
       (
           ds([None, None], schema_constants.BYTES),

@@ -73,7 +73,7 @@ class CoreGetAttrTest(parameterized.TestCase):
           kde.get_attr(
               kde.apply_mask(I.x, ds([None, arolla.present(), None])), 'b'
           ),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
       ),
       (
           # Filter self.x completely.

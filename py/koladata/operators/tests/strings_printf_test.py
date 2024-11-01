@@ -50,10 +50,10 @@ class StringsFormatTest(parameterized.TestCase):
       ([ds(b'%v foo'), ds(b'bar')], ds(b'bar foo')),
       ([ds('%v foo'), ds(1)], ds('1 foo')),
       ([ds(b'%v foo'), ds(1)], ds(b'1 foo')),
-      ([ds('%s foo'), ds(None)], ds(None, schema_constants.TEXT)),
+      ([ds('%s foo'), ds(None)], ds(None, schema_constants.STRING)),
       (
           [ds('%s foo'), ds(None, schema_constants.OBJECT)],
-          ds(None, schema_constants.TEXT),
+          ds(None, schema_constants.STRING),
       ),
       ([ds('%s foo'), ds('bar'), ds(1)], ds('bar foo')),  # ds(1) ignored.
       ([ds('%s %v'), ds('bar'), ds(1)], ds('bar 1')),
@@ -71,8 +71,8 @@ class StringsFormatTest(parameterized.TestCase):
       # Empty and unknown.
       ([ds([None, None])], ds([None, None])),
       (
-          [ds([None, None], schema_constants.TEXT)],
-          ds([None, None], schema_constants.TEXT),
+          [ds([None, None], schema_constants.STRING)],
+          ds([None, None], schema_constants.STRING),
       ),
       (
           [ds([None, None], schema_constants.BYTES)],

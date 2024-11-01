@@ -30,7 +30,7 @@ class SchemaConstantsTest(parameterized.TestCase):
       (schema_constants.BOOLEAN, 'DataItem(BOOLEAN, schema: SCHEMA)'),
       (schema_constants.MASK, 'DataItem(MASK, schema: SCHEMA)'),
       (schema_constants.BYTES, 'DataItem(BYTES, schema: SCHEMA)'),
-      (schema_constants.TEXT, 'DataItem(TEXT, schema: SCHEMA)'),
+      (schema_constants.STRING, 'DataItem(TEXT, schema: SCHEMA)'),
       (schema_constants.EXPR, 'DataItem(EXPR, schema: SCHEMA)'),
       (schema_constants.ANY, 'DataItem(ANY, schema: SCHEMA)'),
       (schema_constants.ITEMID, 'DataItem(ITEMID, schema: SCHEMA)'),

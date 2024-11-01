@@ -37,11 +37,11 @@ class SchemaDictSchemaTest(parameterized.TestCase):
 
   def test_get_attr(self):
     schema = expr_eval.eval(
-        kde.schema.dict_schema(schema_constants.TEXT, schema_constants.INT32)
+        kde.schema.dict_schema(schema_constants.STRING, schema_constants.INT32)
     )
     testing.assert_equal(
         schema.get_attr('__keys__'),
-        schema_constants.TEXT.with_bag(schema.get_bag()),
+        schema_constants.STRING.with_bag(schema.get_bag()),
     )
     testing.assert_equal(
         schema.get_attr('__values__'),
@@ -52,9 +52,9 @@ class SchemaDictSchemaTest(parameterized.TestCase):
   def test_bag_adoption(self):
     schema = expr_eval.eval(
         kde.schema.dict_schema(
-            schema_constants.TEXT,
+            schema_constants.STRING,
             kde.schema.new_schema(
-                a=schema_constants.INT32, b=schema_constants.TEXT
+                a=schema_constants.INT32, b=schema_constants.STRING
             ),
         )
     )

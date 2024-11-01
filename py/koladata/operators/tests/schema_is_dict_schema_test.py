@@ -39,16 +39,16 @@ class SchemaIsDictSchemaTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
-          bag.dict_schema(schema_constants.INT32, schema_constants.TEXT),
+          bag.dict_schema(schema_constants.INT32, schema_constants.STRING),
           mask_constants.present,
       ),
       (bag.list_schema(schema_constants.INT32), mask_constants.missing),
       (schema_constants.ANY, mask_constants.missing),
       (schema_constants.OBJECT, mask_constants.missing),
       (
-          bag.dict_schema(schema_constants.INT32, schema_constants.TEXT).repeat(
-              2
-          ),
+          bag.dict_schema(
+              schema_constants.INT32, schema_constants.STRING
+          ).repeat(2),
           mask_constants.missing,
       ),
       (bag.dict('x', 1), mask_constants.missing),

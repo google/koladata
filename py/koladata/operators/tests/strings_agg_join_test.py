@@ -74,8 +74,8 @@ class StringsAggJoinTest(parameterized.TestCase):
           ds([None, None]),
       ),
       (
-          ds([[None, None], [None]], schema_constants.TEXT),
-          ds([None, None], schema_constants.TEXT),
+          ds([[None, None], [None]], schema_constants.STRING),
+          ds([None, None], schema_constants.STRING),
       ),
       (
           ds([[None, None], [None]], schema_constants.BYTES),
@@ -132,10 +132,10 @@ class StringsAggJoinTest(parameterized.TestCase):
       (
           ds([[None, None], [None]]),
           ds(' '),
-          ds([None, None], schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
       ),
       (
-          ds([[None, None], [None]], schema_constants.TEXT),
+          ds([[None, None], [None]], schema_constants.STRING),
           ds(' ', schema_constants.OBJECT),
           ds([None, None], schema_constants.OBJECT),
       ),

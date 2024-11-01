@@ -40,7 +40,7 @@ class SchemaIsEntitySchemaTest(parameterized.TestCase):
   @parameterized.parameters(
       (bag.new_schema(x=schema_constants.INT32), mask_constants.present),
       (
-          bag.dict_schema(schema_constants.INT32, schema_constants.TEXT),
+          bag.dict_schema(schema_constants.INT32, schema_constants.STRING),
           mask_constants.present,
       ),
       (bag.list_schema(schema_constants.INT32), mask_constants.present),

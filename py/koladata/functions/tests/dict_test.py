@@ -314,8 +314,8 @@ Assigned schema for Dict value: INT32"""),
     ):
       fns.dict(
           items_or_keys={'a': 1, 'b': 1},
-          key_schema=schema_constants.TEXT,
-          value_schema=schema_constants.TEXT,
+          key_schema=schema_constants.STRING,
+          value_schema=schema_constants.STRING,
       )
 
     with self.assertRaisesRegex(

@@ -60,7 +60,9 @@ class SchemaToMaskTest(parameterized.TestCase):
     res = expr_eval.eval(kde.schema.to_mask(x))
     testing.assert_equal(res, expected)
 
-  @parameterized.parameters(ds(None, schema_constants.TEXT), ds("a"), ds(True))
+  @parameterized.parameters(
+      ds(None, schema_constants.STRING), ds("a"), ds(True)
+  )
   def test_not_castable_error(self, value):
     with self.assertRaisesRegex(
         ValueError, f"unsupported schema: {value.get_schema()}"

@@ -185,9 +185,9 @@ def to_arolla_dense_array_text(x):  # pylint: disable=unused-argument
 
   Note that `x` must adhere to the following requirements:
   * Have any rank, as it will be flattened before conversion.
-  * Have one of the following schemas: NONE, TEXT, OBJECT, ANY.
-  * Have values of a single type - TEXT. Missing values of unknown type are
-    treated as missing TEXT values.
+  * Have one of the following schemas: NONE, STRING, OBJECT, ANY.
+  * Have values of a single type - STRING. Missing values of unknown type are
+    treated as missing STRING values.
 
   In all other cases, an exception is raised.
 

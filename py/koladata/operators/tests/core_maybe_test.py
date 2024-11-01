@@ -68,7 +68,7 @@ class CoreGetAttrTest(parameterized.TestCase):
           kde.maybe(
               kde.apply_mask(I.x, ds([None, arolla.present(), None])), 'b'
           ),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
       ),
   )
   def test_eval(self, expr, expected):

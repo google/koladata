@@ -40,7 +40,7 @@ class SchemaIsListSchemaTest(parameterized.TestCase):
   @parameterized.parameters(
       (bag.list_schema(schema_constants.INT32), mask_constants.present),
       (
-          bag.dict_schema(schema_constants.INT32, schema_constants.TEXT),
+          bag.dict_schema(schema_constants.INT32, schema_constants.STRING),
           mask_constants.missing,
       ),
       (schema_constants.ANY, mask_constants.missing),

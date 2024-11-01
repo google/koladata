@@ -59,7 +59,7 @@ class SchemaToExprTest(parameterized.TestCase):
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
-      ds(None, schema_constants.TEXT), ds("a"), ds(arolla.present())
+      ds(None, schema_constants.STRING), ds("a"), ds(arolla.present())
   )
   def test_not_castable_error(self, value):
     with self.assertRaisesRegex(

@@ -91,7 +91,7 @@ class StringsRegexMatchTest(parameterized.TestCase):
         ),
     ):
       expr_eval.eval(
-          kde.strings.regex_match(ds([None], schema_constants.TEXT), ds(123))
+          kde.strings.regex_match(ds([None], schema_constants.STRING), ds(123))
       )
 
     with self.assertRaisesRegex(
@@ -102,7 +102,9 @@ class StringsRegexMatchTest(parameterized.TestCase):
         ),
     ):
       expr_eval.eval(
-          kde.strings.regex_match(ds(['foo']), ds(None, schema_constants.TEXT))
+          kde.strings.regex_match(
+              ds(['foo']), ds(None, schema_constants.STRING)
+          )
       )
 
   def test_mixed_slice_error(self):

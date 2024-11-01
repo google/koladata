@@ -45,7 +45,7 @@ class StringsRegexExtractTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds('foo'), ds('f(.)'), ds('o')),
       (ds('foobar'), ds('o(..)'), ds('ob')),
-      (ds('foobar'), ds('^o(..)$'), ds(None, schema_constants.TEXT)),
+      (ds('foobar'), ds('^o(..)$'), ds(None, schema_constants.STRING)),
       (ds('foobar'), ds('^.o(..)a.$'), ds('ob')),
       ('foobar', '.*(b.*r)$', ds('bar')),
       (ds(['foo', 'zoo', 'bar']), ds('(.)o'), ds(['f', 'z', None])),
@@ -115,7 +115,9 @@ class StringsRegexExtractTest(parameterized.TestCase):
         ),
     ):
       expr_eval.eval(
-          kde.strings.regex_extract(ds([None], schema_constants.TEXT), ds(123))
+          kde.strings.regex_extract(
+              ds([None], schema_constants.STRING), ds(123)
+          )
       )
 
     with self.assertRaisesRegex(
@@ -127,7 +129,7 @@ class StringsRegexExtractTest(parameterized.TestCase):
     ):
       expr_eval.eval(
           kde.strings.regex_extract(
-              ds(['foo']), ds(None, schema_constants.TEXT)
+              ds(['foo']), ds(None, schema_constants.STRING)
           )
       )
 

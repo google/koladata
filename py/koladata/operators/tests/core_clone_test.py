@@ -153,7 +153,7 @@ class CoreCloneTest(parameterized.TestCase):
         'b', schema_constants.INT32
     )
     result.get_schema().with_bag(expected_bag).a.set_attr(
-        'c', schema_constants.TEXT
+        'c', schema_constants.STRING
     )
     result.with_bag(expected_bag).set_attr('a', o.a.no_bag())
     result.a.with_bag(expected_bag).set_attr('b', o.a.b.no_bag())

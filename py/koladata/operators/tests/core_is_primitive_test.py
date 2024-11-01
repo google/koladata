@@ -47,7 +47,7 @@ class KodaIsPrimitiveTest(parameterized.TestCase):
       (ds(arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2))),),
       # Mixed types.
       (ds(['hello', 1, 'world']),),
-      (ds(schema_constants.TEXT),),
+      (ds(schema_constants.STRING),),
   )
   def test_is_primitive(self, param):
     self.assertTrue(expr_eval.eval(kde.core.is_primitive(param)))

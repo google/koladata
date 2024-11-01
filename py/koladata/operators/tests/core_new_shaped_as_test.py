@@ -103,15 +103,15 @@ class CoreNewShapedAsTest(absltest.TestCase):
     # y.db is merged with x.db, so access to `a` is possible.
     testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
     testing.assert_equal(x.get_schema(), y.x.get_schema().with_db(x.db))
-    testing.assert_equal(y.x.a.no_db().get_schema(), schema_constants.TEXT)
+    testing.assert_equal(y.x.a.no_db().get_schema(), schema_constants.STRING)
 
   def test_schema_arg(self):
     shape_from = ds([])
-    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
+    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.STRING)
     x = kde.core.new_shaped_as(shape_from, schema=schema).eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_itemid_arg(self):
     shape_from = ds([[6, 7], [8]])
@@ -134,7 +134,7 @@ class CoreNewShapedAsTest(absltest.TestCase):
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_update_schema_arg_error(self):
     shape_from = ds([6, 7])

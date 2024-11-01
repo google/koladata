@@ -107,7 +107,7 @@ class FromProtoTest(absltest.TestCase):
     self.assertEqual(x.get_ndim(), 0)
 
     self.assertEqual(x.some_text, 'thing 1')
-    self.assertEqual(s.some_text, schema_constants.TEXT)
+    self.assertEqual(s.some_text, schema_constants.STRING)
     self.assertEqual(x.some_float, 1.0)
     self.assertEqual(s.some_float, schema_constants.FLOAT32)
     testing.assert_equal(x.message_b_list[:].text.no_bag(), ds(['a', 'b', 'c']))
@@ -135,7 +135,7 @@ class FromProtoTest(absltest.TestCase):
     self.assertEqual(x.get_ndim(), 1)
 
     testing.assert_equal(x.some_text.no_bag(), ds(['thing 1', 'thing 2']))
-    self.assertEqual(s.some_text, schema_constants.TEXT)
+    self.assertEqual(s.some_text, schema_constants.STRING)
     testing.assert_equal(x.some_float.no_bag(), ds([1.0, None]))
     self.assertEqual(s.some_float, schema_constants.FLOAT32)
     testing.assert_equal(

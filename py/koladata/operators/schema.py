@@ -173,7 +173,7 @@ def uu_schema(
   have different ids.
 
   Args:
-    seed: text seed for the uuid computation.
+    seed: string seed for the uuid computation.
     kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
       values must be schemas themselves.
 
@@ -381,8 +381,8 @@ def to_bytes(x):
 @optools.add_to_registry(aliases=['kde.to_text'])
 @optools.as_lambda_operator('kde.schema.to_text')
 def to_text(x):
-  """Casts `x` to TEXT using explicit (permissive) casting rules."""
-  return cast_to(x, schema_constants.TEXT)
+  """Casts `x` to STRING using explicit (permissive) casting rules."""
+  return cast_to(x, schema_constants.STRING)
 
 
 @optools.add_to_registry(aliases=['kde.decode'])
@@ -392,7 +392,7 @@ def to_text(x):
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def decode(x):  # pylint: disable=unused-argument
-  """Decodes `x` as TEXT using UTF-8 decoding."""
+  """Decodes `x` as STRING using UTF-8 decoding."""
   raise NotImplementedError('implemented in the backend')
 
 

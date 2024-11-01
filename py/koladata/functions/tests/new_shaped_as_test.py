@@ -31,7 +31,7 @@ class NewShapedAsTest(absltest.TestCase):
     x = fns.new_shaped_as(
         ds(1),
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_allclose(
@@ -41,7 +41,7 @@ class NewShapedAsTest(absltest.TestCase):
         x.get_schema().a, schema_constants.FLOAT64.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().b, schema_constants.TEXT.with_bag(x.get_bag())
+        x.get_schema().b, schema_constants.STRING.with_bag(x.get_bag())
     )
 
   def test_slice(self):
@@ -60,7 +60,7 @@ class NewShapedAsTest(absltest.TestCase):
         x.get_schema().a, schema_constants.INT32.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().b.bb, schema_constants.TEXT.with_bag(x.get_bag())
+        x.get_schema().b.bb, schema_constants.STRING.with_bag(x.get_bag())
     )
     testing.assert_equal(
         x.get_schema().c, schema_constants.BYTES.with_bag(x.get_bag())
@@ -78,7 +78,9 @@ class NewShapedAsTest(absltest.TestCase):
     testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
-    schema = fns.new_schema(a=schema_constants.FLOAT32, b=schema_constants.TEXT)
+    schema = fns.new_schema(
+        a=schema_constants.FLOAT32, b=schema_constants.STRING
+    )
     x = fns.new_shaped_as(ds([1, 2]), a=42, b='xyz', schema=schema)
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42.0, 42.0]).with_bag(x.get_bag()))
@@ -86,7 +88,9 @@ class NewShapedAsTest(absltest.TestCase):
         x.get_schema().a.with_bag(None), schema_constants.FLOAT32
     )
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.with_bag(None), schema_constants.TEXT)
+    testing.assert_equal(
+        x.get_schema().b.with_bag(None), schema_constants.STRING
+    )
 
   def test_update_schema_arg(self):
     schema = fns.new_schema(a=schema_constants.INT32)
@@ -103,7 +107,9 @@ class NewShapedAsTest(absltest.TestCase):
         x.get_schema().a.with_bag(None), schema_constants.INT32
     )
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.with_bag(None), schema_constants.TEXT)
+    testing.assert_equal(
+        x.get_schema().b.with_bag(None), schema_constants.STRING
+    )
 
 
 if __name__ == '__main__':

@@ -168,7 +168,7 @@ class DataSliceTest(parameterized.TestCase):
     self.assertEqual(x1.fingerprint, x2.fingerprint)
     x3 = x2.with_schema(schema_constants.INT32)
     self.assertNotEqual(x1.fingerprint, x3.fingerprint)
-    x4 = x2.with_schema(schema_constants.TEXT)
+    x4 = x2.with_schema(schema_constants.STRING)
     self.assertNotEqual(x1.fingerprint, x4.fingerprint)
 
     db = bag()
@@ -710,7 +710,7 @@ class DataSliceTest(parameterized.TestCase):
 
       for attr, val, update_schema, res_schema in [
           ('xyz', ds([b'12']), True, schema_constants.BYTES),
-          ('pqr', ds(['123']), False, schema_constants.TEXT),
+          ('pqr', ds(['123']), False, schema_constants.STRING),
       ]:
         x.set_attr(attr, val, update_schema=update_schema)
         testing.assert_equal(x.get_attr(attr), val.with_bag(db))
@@ -1036,7 +1036,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
     )
     testing.assert_allclose(x.b['b'][37], ds(2.0).with_bag(x.get_bag()))
     self.assertEqual(
-        x.b.get_schema().get_attr('__keys__'), schema_constants.TEXT
+        x.b.get_schema().get_attr('__keys__'), schema_constants.STRING
     )
     self.assertEqual(
         x.b.get_schema().get_attr('__values__').get_attr('__keys__'),
@@ -1314,7 +1314,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
 
   @parameterized.parameters(
       ([1, 2, 3], None, schema_constants.INT32),
-      (['a', 'b'], None, schema_constants.TEXT),
+      (['a', 'b'], None, schema_constants.STRING),
       ([b'a', b'b', b'c'], None, schema_constants.BYTES),
       (['a', b'b', 34], None, schema_constants.OBJECT),
       ([1, 2, 3], schema_constants.INT64, schema_constants.INT64),
@@ -1329,7 +1329,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
     db = bag()
     x = db.new(x=ds([1, 2, 3]), y='abc')
     testing.assert_equal(x.get_schema().x, schema_constants.INT32.with_bag(db))
-    testing.assert_equal(x.get_schema().y, schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(x.get_schema().y, schema_constants.STRING.with_bag(db))
 
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got data_bag.DataBag'
@@ -1382,7 +1382,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
     schema = db_2.new(x=1, y='abc').get_schema()
     res_schema = x.set_schema(schema).get_schema()
     testing.assert_equal(res_schema, schema.with_bag(db))
-    testing.assert_equal(res_schema.y, schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(res_schema.y, schema_constants.STRING.with_bag(db))
 
     non_schema = db.new().set_schema(schema_constants.SCHEMA)
     with self.assertRaisesRegex(
@@ -2189,7 +2189,7 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
         schema_constants.INT32,
         schema_constants.FLOAT32,
         obj.get_attr('__schema__'),
-        schema_constants.TEXT,
+        schema_constants.STRING,
     ])
     testing.assert_equal(x.get_obj_schema(), expected)
 

@@ -131,7 +131,7 @@ Assigned schema for 'xyz': TEXT"""),
       fns.set_attr(
           x,
           'xyz',
-          ds(['foo', 'bar'], schema_constants.TEXT),
+          ds(['foo', 'bar'], schema_constants.STRING),
           update_schema=False,
       )
 

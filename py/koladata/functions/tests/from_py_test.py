@@ -90,7 +90,7 @@ class FromPyTest(absltest.TestCase):
     d = fns.from_py(
         {ds('a'): [1, 2], 'b': [42]},
         schema=fns.dict_schema(
-            schema_constants.TEXT, fns.list_schema(schema_constants.INT32)
+            schema_constants.STRING, fns.list_schema(schema_constants.INT32)
         ),
     )
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
@@ -112,7 +112,7 @@ class FromPyTest(absltest.TestCase):
     item = fns.from_py(None, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(None, schema_constants.FLOAT32))
     schema = fns.new_schema(
-        a=schema_constants.TEXT, b=fns.list_schema(schema_constants.INT32)
+        a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
     )
     item = fns.from_py(None, schema=schema)
     testing.assert_equivalent(item.get_schema(), schema)
@@ -155,7 +155,7 @@ class FromPyTest(absltest.TestCase):
   def test_dict_as_obj_entity_with_schema(self):
     schema = fns.new_schema(
         a=schema_constants.FLOAT32,
-        b=fns.new_schema(x=schema_constants.TEXT),
+        b=fns.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
     )
     entity = fns.from_py(
@@ -253,7 +253,7 @@ class FromPyTest(absltest.TestCase):
     with self.assertRaisesRegex(TypeError, 'unhashable type'):
       fns.from_py({ds(['abc']): 42}, dict_as_obj=True)
     with self.assertRaisesRegex(
-        ValueError, 'dict keys cannot be non-TEXT DataItems, got b\'abc\''
+        ValueError, "dict keys cannot be non-STRING DataItems, got b'abc'"
     ):
       fns.from_py({ds(b'abc'): 42}, dict_as_obj=True)
 
@@ -270,7 +270,7 @@ class FromPyTest(absltest.TestCase):
   def test_dataclasses_with_schema(self):
     schema = fns.new_schema(
         a=schema_constants.FLOAT32,
-        b=fns.new_schema(x=schema_constants.TEXT),
+        b=fns.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
     )
     entity = fns.from_py(

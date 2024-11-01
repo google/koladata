@@ -79,7 +79,7 @@ class StringsLengthTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.INT32),
       ),
       (
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
           ds([None, None, None], schema_constants.INT32),
       ),
   )

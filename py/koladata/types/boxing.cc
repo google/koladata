@@ -638,7 +638,7 @@ absl::StatusOr<absl::string_view> PyDictKeyAsStringView(PyObject* py_key) {
         return ds.item().value<arolla::Text>().view();
       }
       return absl::InvalidArgumentError(absl::StrFormat(
-          "dict keys cannot be non-TEXT DataItems, got %v", ds.item()));
+          "dict keys cannot be non-STRING DataItems, got %v", ds.item()));
     }
   }
   return absl::InvalidArgumentError(
@@ -1014,7 +1014,7 @@ class UniversalConverter {
   // assembles them into an Object / Entity and pushes it to `value_stack_`.
   //
   // NOTE: expects all attribute names to be stored as a single DataSlice of
-  // TEXT values on `value_stack_`.
+  // STRING values on `value_stack_`.
   absl::Status CmdComputeObj(const std::optional<DataSlice>& entity_schema) {
     DataSlice attr_names_ds = std::move(value_stack_.top());
     value_stack_.pop();

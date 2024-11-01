@@ -31,11 +31,11 @@ class NewSchemaTest(absltest.TestCase):
   def test_simple_schema(self):
     db = bag()
     schema = fns.new_schema(
-        db, a=schema_constants.INT32, b=schema_constants.TEXT
+        db, a=schema_constants.INT32, b=schema_constants.STRING
     )
 
     testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
-    testing.assert_equal(schema.b, schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(schema.b, schema_constants.STRING.with_bag(db))
 
   def test_nested_schema_with_adoption(self):
     db = bag()
@@ -51,11 +51,11 @@ class NewSchemaTest(absltest.TestCase):
   def test_bag_arg(self):
     db = bag()
     schema = fns.new_schema(
-        a=schema_constants.INT32, b=schema_constants.TEXT, db=db
+        a=schema_constants.INT32, b=schema_constants.STRING, db=db
     )
 
     testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
-    testing.assert_equal(schema.b, schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(schema.b, schema_constants.STRING.with_bag(db))
 
   def test_list_error(self):
     db = bag()

@@ -122,8 +122,8 @@ def float64(x: Any) -> data_slice.DataSlice:
 
 
 def text(x: Any) -> data_slice.DataSlice:
-  """Returns kd.slice(x, kd.TEXT)."""
-  return data_slice.DataSlice.from_vals(x, schema_constants.TEXT)
+  """Returns kd.slice(x, kd.STRING)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.STRING)
 
 
 def bytes_(x: Any) -> data_slice.DataSlice:

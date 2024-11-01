@@ -45,11 +45,11 @@ class StringsFstrTest(parameterized.TestCase):
   @parameterized.parameters(
       (f'{I.v:s} foo', dict(v=ds('bar')), ds('bar foo')),
       (f'{I.v:s} foo', dict(v=ds(1)), ds('1 foo')),
-      (f'{I.v:s} foo', dict(v=ds(None)), ds(None, schema_constants.TEXT)),
+      (f'{I.v:s} foo', dict(v=ds(None)), ds(None, schema_constants.STRING)),
       (
           f'{I.v:s} foo',
           dict(v=ds(None, schema_constants.OBJECT)),
-          ds(None, schema_constants.TEXT),
+          ds(None, schema_constants.STRING),
       ),
       # ds(1) ignored.
       (f'{I.v:s} foo', dict(v=ds('bar'), q=ds(1)), ds('bar foo')),
@@ -101,14 +101,14 @@ class StringsFstrTest(parameterized.TestCase):
       (ds(1), ds('1')),
       (
           ds(None, schema_constants.OBJECT),
-          ds(None, schema_constants.TEXT),
+          ds(None, schema_constants.STRING),
       ),
       (ds(['foo', 'bar']), ds(['foo', 'bar'])),
       (ds([1.0, 5.7]), ds(['1.', '5.7'])),
       (ds([1, 2, 3]), ds(['1', '2', '3'])),
       (
           ds([None, None, None], schema_constants.OBJECT),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
       ),
       # multidimensional
       (
@@ -120,11 +120,11 @@ class StringsFstrTest(parameterized.TestCase):
           ds([['bar', 'foo'], ['zzz']]),
       ),
       # Empty and unknown.
-      (ds(None), ds(None, schema_constants.TEXT)),
-      (ds([None, None]), ds([None, None], schema_constants.TEXT)),
+      (ds(None), ds(None, schema_constants.STRING)),
+      (ds([None, None]), ds([None, None], schema_constants.STRING)),
       (
           ds([[None, None], [None]]),
-          ds([[None, None], [None]], schema_constants.TEXT),
+          ds([[None, None], [None]], schema_constants.STRING),
       ),
   )
   def test_eval_single_arg_default_spec(self, arg, expected):

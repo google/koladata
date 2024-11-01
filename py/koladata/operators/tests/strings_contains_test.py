@@ -66,29 +66,31 @@ class StringsContainsTest(parameterized.TestCase):
       ),
       (ds('foo'), ds(None), ds(missing)),
       (
-          ds('foo'), ds(None, schema_constants.OBJECT),
+          ds('foo'),
+          ds(None, schema_constants.OBJECT),
           ds(missing),
       ),
       (
-          ds(['foo'], schema_constants.ANY), ds('foo'),
+          ds(['foo'], schema_constants.ANY),
+          ds('foo'),
           ds([present]),
       ),
       # Empty and unknown.
       (ds([None, None]), ds([None, None]), ds([missing, missing])),
       (
-          ds([None, None], schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
-          ds([missing, missing])
+          ds([None, None], schema_constants.STRING),
+          ds(None, schema_constants.STRING),
+          ds([missing, missing]),
       ),
       (
           ds([None, None], schema_constants.BYTES),
           ds(None, schema_constants.BYTES),
-          ds([missing, missing])
+          ds([missing, missing]),
       ),
       (
           ds([None, None], schema_constants.OBJECT),
           ds(None, schema_constants.OBJECT),
-          ds([missing, missing])
+          ds([missing, missing]),
       ),
       (ds([None, None]), ds('abc'), ds([missing, missing])),
   )
@@ -111,7 +113,7 @@ class StringsContainsTest(parameterized.TestCase):
         re.escape('unsupported argument types (DENSE_ARRAY_TEXT,INT32)'),
     ):
       expr_eval.eval(
-          kde.strings.contains(ds([None], schema_constants.TEXT), ds(123))
+          kde.strings.contains(ds([None], schema_constants.STRING), ds(123))
       )
 
   def test_mixed_slice_error(self):

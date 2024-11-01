@@ -31,7 +31,7 @@ class TextTest(parameterized.TestCase):
       [1], [[1, 2, 3]], [None], ['a'], [['a', 'b', 'c']], [ds('a')], [b'b']
   )
   def test_text(self, x):
-    testing.assert_equal(fns.text(x), ds(x, schema_constants.TEXT))
+    testing.assert_equal(fns.text(x), ds(x, schema_constants.STRING))
 
   @parameterized.parameters(
       (schema_constants.INT32, 'unsupported schema: SCHEMA'),

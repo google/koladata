@@ -56,7 +56,7 @@ class StringsJoinTest(parameterized.TestCase):
           [ds('a'), ds(['b', 'c']), ds([['d', 'e'], ['f']])],
           ds([['abd', 'abe'], ['acf']]),
       ),
-      ([ds('foo'), ds(None)], ds(None, schema_constants.TEXT)),
+      ([ds('foo'), ds(None)], ds(None, schema_constants.STRING)),
       (
           [ds('foo'), ds(None, schema_constants.OBJECT)],
           ds(None, schema_constants.OBJECT),
@@ -68,8 +68,8 @@ class StringsJoinTest(parameterized.TestCase):
       # Empty and unknown.
       ([ds([None, None])], ds([None, None])),
       (
-          [ds([None, None], schema_constants.TEXT)],
-          ds([None, None], schema_constants.TEXT),
+          [ds([None, None], schema_constants.STRING)],
+          ds([None, None], schema_constants.STRING),
       ),
       (
           [ds([None, None], schema_constants.BYTES)],
@@ -79,7 +79,10 @@ class StringsJoinTest(parameterized.TestCase):
           [ds([None, None], schema_constants.OBJECT)],
           ds([None, None], schema_constants.OBJECT),
       ),
-      ([ds([None, None]), ds('abc')], ds([None, None], schema_constants.TEXT)),
+      (
+          [ds([None, None]), ds('abc')],
+          ds([None, None], schema_constants.STRING),
+      ),
   )
   def test_eval(self, args, expected):
     result = expr_eval.eval(kde.strings.join(*args))

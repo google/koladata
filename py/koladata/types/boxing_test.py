@@ -36,7 +36,7 @@ FLOAT64 = schema_constants.FLOAT64
 MASK = schema_constants.MASK
 BOOLEAN = schema_constants.BOOLEAN
 BYTES = schema_constants.BYTES
-TEXT = schema_constants.TEXT
+STRING = schema_constants.STRING
 EXPR = schema_constants.EXPR
 OBJECT = schema_constants.OBJECT
 SCHEMA = schema_constants.SCHEMA
@@ -59,8 +59,8 @@ class BoxingTest(parameterized.TestCase):
           [[[1, 2], [3]], [[4], [5, 6]]],
           INT32,
       ),
-      ('abc', None, 'abc', TEXT),
-      ("a'b'c", None, "a'b'c", TEXT),
+      ('abc', None, 'abc', STRING),
+      ("a'b'c", None, "a'b'c", STRING),
       ([b'abc', b'xyz'], None, [b'abc', b'xyz'], BYTES),
       ([1, None, 4], None, [1, None, 4], INT32),
       ([1, None, 4], INT64, [1, None, 4], INT64),
@@ -97,10 +97,10 @@ class BoxingTest(parameterized.TestCase):
       ([ds(3.14), ds(12), None], INT32, [3, 12, None], INT32),
       # DenseArray input.
       (arolla.dense_array([1, 2, 3]), None, [1, 2, 3], INT32),
-      (arolla.dense_array(['a', None, 'b']), None, ['a', None, 'b'], TEXT),
+      (arolla.dense_array(['a', None, 'b']), None, ['a', None, 'b'], STRING),
       # Arolla Array inputs.
       (arolla.array([1, 2, 3]), None, [1, 2, 3], INT32),
-      (arolla.array(['a', None, 'b']), None, ['a', None, 'b'], TEXT),
+      (arolla.array(['a', None, 'b']), None, ['a', None, 'b'], STRING),
       # Arolla scalar values.
       ([arolla.int32(1), arolla.int32(12), 134], None, [1, 12, 134], INT32),
       ([arolla.int32(1), arolla.int32(12), 134], INT64, [1, 12, 134], INT64),
@@ -110,7 +110,7 @@ class BoxingTest(parameterized.TestCase):
           [1.0, 12.0, None],
           FLOAT32,
       ),
-      ([arolla.text('abc'), None], None, ['abc', None], TEXT),
+      ([arolla.text('abc'), None], None, ['abc', None], STRING),
       ([arolla.bytes(b'abc'), None], None, [b'abc', None], BYTES),
       (
           [arolla.float64(3.0), arolla.int64(1_000_000_000_000)],
@@ -172,12 +172,12 @@ class BoxingTest(parameterized.TestCase):
     testing.assert_equal(x.get_schema(), expected_schema)
 
   @parameterized.parameters(
-      ('abc', None, 'abc', TEXT),
-      ('', None, '', TEXT),
+      ('abc', None, 'abc', STRING),
+      ('', None, '', STRING),
       (b'abc', None, b'abc', BYTES),
       (b'', None, b'', BYTES),
-      (b'abc', TEXT, "b'abc'", TEXT),
-      (b'', TEXT, "b''", TEXT),
+      (b'abc', STRING, "b'abc'", STRING),
+      (b'', STRING, "b''", STRING),
       (12, None, 12, INT32),
       (12, INT32, 12, INT32),
       # The following needs arolla.INT64 to succeed.
@@ -188,7 +188,7 @@ class BoxingTest(parameterized.TestCase):
       (True, None, True, BOOLEAN),
       (False, None, False, BOOLEAN),
       (None, None, None, NONE),
-      (None, TEXT, None, TEXT),
+      (None, STRING, None, STRING),
       (True, INT32, 1, INT32),
       (True, FLOAT32, 1.0, FLOAT32),
       (arolla.present(), None, mask_constants.present, MASK),
@@ -239,7 +239,7 @@ class BoxingTest(parameterized.TestCase):
       ds([1, 2, 3], INT64, schema=INT32)
 
   def test_roundtrip_for_schema(self):
-    inputs = [INT32, TEXT, ANY]
+    inputs = [INT32, STRING, ANY]
     x = ds(inputs)
     self.assertIsInstance(x, data_slice.DataSlice)
     testing.assert_equal(x.get_schema(), SCHEMA)

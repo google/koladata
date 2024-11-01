@@ -42,7 +42,7 @@ DATA_SLICE = qtypes.DATA_SLICE
 class SchemaToTextTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds(None, schema_constants.BYTES), ds(None, schema_constants.TEXT)),
+      (ds(None, schema_constants.BYTES), ds(None, schema_constants.STRING)),
       (ds(b'foo'), ds("b'foo'")),
       (ds('foo'), ds('foo')),
       (ds(1), ds('1')),
@@ -52,7 +52,7 @@ class SchemaToTextTest(parameterized.TestCase):
       (ds('αβγ'.encode('utf-8')), ds("b'αβγ'")),
       (ds(b'foo', schema_constants.ANY), ds("b'foo'")),
       (ds(b'foo', schema_constants.OBJECT), ds("b'foo'")),
-      (ds([None], schema_constants.BYTES), ds([None], schema_constants.TEXT)),
+      (ds([None], schema_constants.BYTES), ds([None], schema_constants.STRING)),
       (ds([b'foo']), ds(["b'foo'"])),
       (ds(['foo']), ds(['foo'])),
       (ds([1]), ds(['1'])),

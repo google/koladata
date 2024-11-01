@@ -101,7 +101,7 @@ class KdTest(absltest.TestCase):
     x = kd.new(a=1, b='abc')
     y = kd.new(a=1, b='abc')
     kd.testing.assert_equal(x.get_schema().a, kd.INT32.with_bag(x.get_bag()))
-    kd.testing.assert_equal(x.get_schema().b, kd.TEXT.with_bag(x.get_bag()))
+    kd.testing.assert_equal(x.get_schema().b, kd.STRING.with_bag(x.get_bag()))
     with self.assertRaises(AssertionError):
       kd.testing.assert_equal(x, y)
     kd.testing.assert_equal(x.a.no_bag(), y.a.no_bag())

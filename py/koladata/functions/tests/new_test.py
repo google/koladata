@@ -34,7 +34,7 @@ class NewTest(absltest.TestCase):
   def test_item(self):
     x = fns.new(
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_allclose(
@@ -44,7 +44,7 @@ class NewTest(absltest.TestCase):
         x.get_schema().a, schema_constants.FLOAT64.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().b, schema_constants.TEXT.with_bag(x.get_bag())
+        x.get_schema().b, schema_constants.STRING.with_bag(x.get_bag())
     )
 
   def test_slice(self):
@@ -62,7 +62,7 @@ class NewTest(absltest.TestCase):
         x.get_schema().a, schema_constants.INT32.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().b.bb, schema_constants.TEXT.with_bag(x.get_bag())
+        x.get_schema().b.bb, schema_constants.STRING.with_bag(x.get_bag())
     )
     testing.assert_equal(
         x.get_schema().c, schema_constants.BYTES.with_bag(x.get_bag())
@@ -71,7 +71,7 @@ class NewTest(absltest.TestCase):
   def test_adopt_bag(self):
     x = fns.new(
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     )
     y = fns.new(x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
@@ -81,7 +81,7 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(y.x.b, ds('abc').with_bag(y.get_bag()))
     testing.assert_equal(x.get_schema(), y.get_schema().x.with_bag(x.get_bag()))
     testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.FLOAT64)
-    testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.TEXT)
+    testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
@@ -109,19 +109,19 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg_simple(self):
-    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
+    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.STRING)
     x = fns.new(a=42, b='xyz', schema=schema)
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_deep(self):
     nested_schema = fns.new_schema(p=schema_constants.BYTES)
     schema = fns.new_schema(
         a=schema_constants.INT32,
-        b=schema_constants.TEXT,
+        b=schema_constants.STRING,
         nested=nested_schema,
     )
     x = fns.new(
@@ -134,7 +134,7 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
     testing.assert_equal(x.nested.p, ds(b'0123').with_bag(x.get_bag()))
     testing.assert_equal(
         x.nested.get_schema().p.no_bag(), schema_constants.BYTES
@@ -147,7 +147,7 @@ class NewTest(absltest.TestCase):
 
   def test_schema_arg_dict(self):
     dict_schema = fns.dict_schema(
-        key_schema=schema_constants.TEXT, value_schema=schema_constants.INT64
+        key_schema=schema_constants.STRING, value_schema=schema_constants.INT64
     )
     d = fns.new({'a': 37, 'b': 42}, schema=dict_schema)
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
@@ -177,14 +177,14 @@ class NewTest(absltest.TestCase):
   def test_schema_arg_schema_with_fallback(self):
     schema = fns.new_schema(a=schema_constants.INT32)
     fallback_bag = fns.bag()
-    schema.with_bag(fallback_bag).set_attr('b', schema_constants.TEXT)
+    schema.with_bag(fallback_bag).set_attr('b', schema_constants.STRING)
     schema = schema.enriched(fallback_bag)
     x = fns.new(a=42, b='xyz', schema=schema)
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_implicit_casting(self):
     schema = fns.new_schema(a=schema_constants.FLOAT32)
@@ -216,7 +216,7 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):
@@ -249,7 +249,7 @@ class NewTest(absltest.TestCase):
         x.a.get_attr('__schema__').p.no_bag(), schema_constants.INT32
     )
     testing.assert_equal(
-        x.a.get_attr('__schema__').q.no_bag(), schema_constants.TEXT
+        x.a.get_attr('__schema__').q.no_bag(), schema_constants.STRING
     )
 
   def test_schema_arg_errors(self):
@@ -262,7 +262,7 @@ class NewTest(absltest.TestCase):
     ):
       fns.new(a=1, schema=ds([1, 2, 3]))
     with self.assertRaisesRegex(ValueError, 'schema can only be 0-rank'):
-      fns.new(a=1, schema=ds([schema_constants.INT32, schema_constants.TEXT]))
+      fns.new(a=1, schema=ds([schema_constants.INT32, schema_constants.STRING]))
     with self.assertRaisesRegex(
         exceptions.KodaError, 'requires Entity schema, got INT32'
     ):
@@ -348,7 +348,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
     item = fns.new(None, schema=schema_constants.FLOAT32)
     testing.assert_equal(item.no_bag(), ds(None, schema_constants.FLOAT32))
     schema = fns.new_schema(
-        a=schema_constants.TEXT, b=fns.list_schema(schema_constants.INT32)
+        a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
     )
     item = fns.new(None, schema=schema)
     testing.assert_equivalent(item.get_schema(), schema)
@@ -375,7 +375,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
   def test_universal_converter_dict(self):
     d = fns.new({'a': 42, 'b': ds(37, schema_constants.INT64)})
     testing.assert_equal(
-        d.get_schema().get_attr('__keys__').no_bag(), schema_constants.TEXT
+        d.get_schema().get_attr('__keys__').no_bag(), schema_constants.STRING
     )
     testing.assert_equal(
         d.get_schema().get_attr('__values__').no_bag(), schema_constants.INT64
@@ -412,7 +412,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
     testing.assert_equal(
         l.get_schema().no_bag(),
         fns.list_schema(
-            fns.dict_schema(schema_constants.TEXT, schema_constants.INT32)
+            fns.dict_schema(schema_constants.STRING, schema_constants.INT32)
         ).no_bag(),
     )
     dicts = l[:]
@@ -448,7 +448,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
   def test_universal_converter_deep_schema(self):
     s = fns.list_schema(
         fns.dict_schema(
-            schema_constants.TEXT,
+            schema_constants.STRING,
             fns.list_schema(schema_constants.FLOAT32),
         )
     )
@@ -478,7 +478,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
 
   def test_universal_converter_deep_schema_with_nested_object_schema(self):
     s = fns.list_schema(
-        fns.dict_schema(schema_constants.TEXT, schema_constants.OBJECT),
+        fns.dict_schema(schema_constants.STRING, schema_constants.OBJECT),
     )
     with self.assertRaisesRegex(
         exceptions.KodaError, 'the schema for Dict key is incompatible'

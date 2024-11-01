@@ -33,7 +33,7 @@ class ObjTest(absltest.TestCase):
   def test_item(self):
     x = fns.obj(
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
@@ -44,7 +44,7 @@ class ObjTest(absltest.TestCase):
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.b.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+        x.b.get_schema(), schema_constants.STRING.with_bag(x.get_bag())
     )
 
   def test_slice(self):
@@ -63,7 +63,7 @@ class ObjTest(absltest.TestCase):
     )
     testing.assert_equal(x.b.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        x.b.bb.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+        x.b.bb.get_schema(), schema_constants.STRING.with_bag(x.get_bag())
     )
     testing.assert_equal(
         x.c.get_schema(), schema_constants.BYTES.with_bag(x.get_bag())
@@ -72,7 +72,7 @@ class ObjTest(absltest.TestCase):
   def test_adopt_bag(self):
     x = fns.obj(
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     )
     y = fns.obj(x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
@@ -82,7 +82,7 @@ class ObjTest(absltest.TestCase):
     testing.assert_equal(y.x.b, ds('abc').with_bag(y.get_bag()))
     testing.assert_equal(x.get_schema(), y.x.get_schema().with_bag(x.get_bag()))
     testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.FLOAT64)
-    testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.TEXT)
+    testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
@@ -285,7 +285,7 @@ class ObjTest(absltest.TestCase):
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
         obj[:].get_attr('__schema__').get_attr('__items__').no_bag(),
-        ds([schema_constants.INT32, schema_constants.TEXT]),
+        ds([schema_constants.INT32, schema_constants.STRING]),
     )
     testing.assert_equal(obj[:][:].no_bag(), ds([[1, 2], ['xyz']]))
 

@@ -31,7 +31,7 @@ class ObjShapedAsTest(absltest.TestCase):
     x = fns.obj_shaped_as(
         ds(1),
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
@@ -42,7 +42,7 @@ class ObjShapedAsTest(absltest.TestCase):
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.b.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+        x.b.get_schema(), schema_constants.STRING.with_bag(x.get_bag())
     )
 
   def test_slice(self):
@@ -62,7 +62,7 @@ class ObjShapedAsTest(absltest.TestCase):
     )
     testing.assert_equal(x.b.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        x.b.bb.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+        x.b.bb.get_schema(), schema_constants.STRING.with_bag(x.get_bag())
     )
     testing.assert_equal(
         x.c.get_schema(), schema_constants.BYTES.with_bag(x.get_bag())

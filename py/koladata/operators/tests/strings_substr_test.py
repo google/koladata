@@ -71,8 +71,8 @@ class StringsSubstrTest(parameterized.TestCase):
           ds([[None, None], [None]]),
       ),
       (
-          ds([[None, None], [None]], schema_constants.TEXT),
-          ds([[None, None], [None]], schema_constants.TEXT),
+          ds([[None, None], [None]], schema_constants.STRING),
+          ds([[None, None], [None]], schema_constants.STRING),
       ),
       (
           ds([[None, None], [None]], schema_constants.ANY),

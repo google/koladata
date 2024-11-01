@@ -47,7 +47,9 @@ class AllocationNewDictIdShapedTest(parameterized.TestCase):
     testing.assert_equal(dictid.get_schema(), schema_constants.ITEMID)
     dct = dictid.with_bag(bag())
     dct = dct.with_schema(
-        dct.get_bag().dict_schema(schema_constants.TEXT, schema_constants.INT32)
+        dct.get_bag().dict_schema(
+            schema_constants.STRING, schema_constants.INT32
+        )
     )
     dct['abc'] = 42
     testing.assert_equal(dct['abc'], values.with_bag(dct.get_bag()))

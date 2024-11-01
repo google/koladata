@@ -37,7 +37,7 @@ class ObjShapedTest(absltest.TestCase):
     x = fns.obj_shaped(
         jagged_shape.create_shape(),
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
@@ -48,7 +48,7 @@ class ObjShapedTest(absltest.TestCase):
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.b.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+        x.b.get_schema(), schema_constants.STRING.with_bag(x.get_bag())
     )
 
   def test_slice(self):
@@ -68,7 +68,7 @@ class ObjShapedTest(absltest.TestCase):
     )
     testing.assert_equal(x.b.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        x.b.bb.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+        x.b.bb.get_schema(), schema_constants.STRING.with_bag(x.get_bag())
     )
     testing.assert_equal(
         x.c.get_schema(), schema_constants.BYTES.with_bag(x.get_bag())
@@ -90,7 +90,7 @@ class ObjShapedTest(absltest.TestCase):
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
     testing.assert_equal(y.x.a, ds('abc').with_bag(y.get_bag()))
     testing.assert_equal(x.get_schema(), y.x.get_schema().with_bag(x.get_bag()))
-    testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.TEXT)
+    testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access

@@ -45,8 +45,11 @@ class StringsSplitTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(['Hello world!']), ds([['Hello', 'world!']])),
-      (ds([' ']), ds([[]], schema_constants.TEXT)),
-      (ds([], schema_constants.TEXT), ds([], schema_constants.TEXT).repeat(0)),
+      (ds([' ']), ds([[]], schema_constants.STRING)),
+      (
+          ds([], schema_constants.STRING),
+          ds([], schema_constants.STRING).repeat(0),
+      ),
       (ds([b'Hello world!']), ds([[b'Hello', b'world!']])),
       (ds([b'Hello world!']), ds([[b'Hello', b'world!']])),
       (ds('Hello world!'), ds(['Hello', 'world!'])),
@@ -83,8 +86,8 @@ class StringsSplitTest(parameterized.TestCase):
           ds([], schema_constants.NONE),
       ),
       (
-          ds([[None, None], [None]], schema_constants.TEXT),
-          ds([[[], []], [[]]], schema_constants.TEXT),
+          ds([[None, None], [None]], schema_constants.STRING),
+          ds([[[], []], [[]]], schema_constants.STRING),
       ),
       (
           ds([[None, None], [None]], schema_constants.BYTES),
@@ -104,7 +107,7 @@ class StringsSplitTest(parameterized.TestCase):
       (ds(['Hello world!']), ds(None), ds([['Hello', 'world!']])),
       (
           ds(['Hello world!']),
-          ds(None, schema_constants.TEXT),
+          ds(None, schema_constants.STRING),
           ds([['Hello', 'world!']]),
       ),
       (ds(['Hello world!']), ds('world'), ds([['Hello ', '!']])),
@@ -145,10 +148,10 @@ class StringsSplitTest(parameterized.TestCase):
       (
           ds([[None, None], [None]]),
           ds(' '),
-          ds([[[], []], [[]]], schema_constants.TEXT),
+          ds([[[], []], [[]]], schema_constants.STRING),
       ),
       (
-          ds([[None, None], [None]], schema_constants.TEXT),
+          ds([[None, None], [None]], schema_constants.STRING),
           ds(' ', schema_constants.OBJECT),
           ds([[[], []], [[]]], schema_constants.OBJECT),
       ),

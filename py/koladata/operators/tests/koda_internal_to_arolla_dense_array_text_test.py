@@ -34,7 +34,7 @@ bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 OBJECT = schema_constants.OBJECT
 ANY = schema_constants.ANY
-TEXT = schema_constants.TEXT
+TEXT = schema_constants.STRING
 
 
 class KodaToArollaDenseArrayTextTest(parameterized.TestCase):

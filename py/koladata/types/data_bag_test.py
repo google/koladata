@@ -379,7 +379,7 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
     db = bag()
     x = db.new(
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     y = db.new(x=x)
     testing.assert_allclose(
@@ -390,13 +390,13 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(db)
     )
-    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.STRING.with_bag(db))
 
   def test_obj(self):
     db = bag()
     x = db.obj(
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     y = db.obj(x=x)
     testing.assert_equal(y.get_schema(), schema_constants.OBJECT.with_bag(db))
@@ -413,7 +413,7 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(db)
     )
-    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.STRING.with_bag(db))
     testing.assert_allclose(
         x.a, ds([3.14], schema_constants.FLOAT64).with_bag(db)
     )
@@ -427,23 +427,23 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
         x.get_attr('__schema__').a, ds([schema_constants.FLOAT64]).with_bag(db)
     )
     testing.assert_equal(
-        x.get_attr('__schema__').b, ds([schema_constants.TEXT]).with_bag(db)
+        x.get_attr('__schema__').b, ds([schema_constants.STRING]).with_bag(db)
     )
 
   def test_uu(self):
     db = bag()
     x = db.uu(
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     testing.assert_equal(
         x.get_schema(),
-        db.uu_schema(a=schema_constants.FLOAT64, b=schema_constants.TEXT),
+        db.uu_schema(a=schema_constants.FLOAT64, b=schema_constants.STRING),
     )
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(db)
     )
-    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.STRING.with_bag(db))
     testing.assert_allclose(
         x.a, ds([3.14], schema_constants.FLOAT64).with_bag(db)
     )
@@ -452,7 +452,7 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
     # Uuids are the same.
     z = db.uu(
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     testing.assert_equal(x, z)
 
@@ -460,13 +460,13 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
     u = db.uu(
         'seed',
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     self.assertNotEqual(x.fingerprint, u.fingerprint)
 
     v = db.uu(
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
         seed='seed',
     )
     testing.assert_equal(u, v)
@@ -479,7 +479,7 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
     ):
       _ = db.uu(
           a=ds([3.14], schema_constants.FLOAT64),
-          b=ds(['abc'], schema_constants.TEXT),
+          b=ds(['abc'], schema_constants.STRING),
           seed=b'seed',
       )
 
@@ -530,13 +530,13 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
     db = bag()
     x = db.uuobj(
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     testing.assert_equal(x.get_schema(), schema_constants.OBJECT.with_bag(db))
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(db)
     )
-    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.STRING.with_bag(db))
     testing.assert_allclose(
         x.a, ds([3.14], schema_constants.FLOAT64).with_bag(db)
     )
@@ -546,24 +546,24 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
         x.get_attr('__schema__').a, ds([schema_constants.FLOAT64]).with_bag(db)
     )
     testing.assert_equal(
-        x.get_attr('__schema__').b, ds([schema_constants.TEXT]).with_bag(db)
+        x.get_attr('__schema__').b, ds([schema_constants.STRING]).with_bag(db)
     )
 
     z = db.uuobj(
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     testing.assert_equal(x, z)
     u = db.uuobj(
         'seed',
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     self.assertNotEqual(x.fingerprint, u.fingerprint)
 
     v = db.uuobj(
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
         seed='seed',
     )
     testing.assert_equal(u, v)
@@ -576,7 +576,7 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
     ):
       _ = db.uuobj(
           a=ds([3.14], schema_constants.FLOAT64),
-          b=ds(['abc'], schema_constants.TEXT),
+          b=ds(['abc'], schema_constants.STRING),
           seed=b'seed',
       )
 
@@ -585,35 +585,31 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
 
   def test_uu_schema(self):
     db = bag()
-    x = db.uu_schema(
-        a=schema_constants.INT32,
-        b=schema_constants.TEXT)
+    x = db.uu_schema(a=schema_constants.INT32, b=schema_constants.STRING)
 
     testing.assert_equal(x.a, schema_constants.INT32.with_bag(db))
-    testing.assert_equal(x.b, schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(x.b, schema_constants.STRING.with_bag(db))
 
     y = db.uu_schema(
         a=schema_constants.FLOAT32,
-        b=schema_constants.TEXT,
+        b=schema_constants.STRING,
     )
     self.assertNotEqual(x.fingerprint, y.fingerprint)
 
     z = db.uu_schema(
         a=schema_constants.INT32,
-        b=schema_constants.TEXT,
+        b=schema_constants.STRING,
     )
     testing.assert_equal(x, z)
     u = db.uu_schema(
         'seed',
         a=schema_constants.INT32,
-        b=schema_constants.TEXT,
+        b=schema_constants.STRING,
     )
     self.assertNotEqual(x.fingerprint, u.fingerprint)
 
     v = db.uu_schema(
-        a=schema_constants.INT32,
-        b=schema_constants.TEXT,
-        seed='seed'
+        a=schema_constants.INT32, b=schema_constants.STRING, seed='seed'
     )
     testing.assert_equal(u, v)
     with self.assertRaises(ValueError):
@@ -625,7 +621,7 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
     ):
       _ = db.uu_schema(
           a=schema_constants.INT32,
-          b=schema_constants.TEXT,
+          b=schema_constants.STRING,
           seed=b'seed',
       )
 
@@ -635,17 +631,14 @@ Assigned schema for 'a': SCHEMA(b=TEXT)"""),
   def test_new_schema(self):
     db = bag()
     db2 = bag()
-    x = db.new_schema(
-        a=schema_constants.INT32,
-        b=schema_constants.TEXT
-    )
+    x = db.new_schema(a=schema_constants.INT32, b=schema_constants.STRING)
 
     testing.assert_equal(x.a, schema_constants.INT32.with_bag(db))
-    testing.assert_equal(x.b, schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(x.b, schema_constants.STRING.with_bag(db))
 
     y = db.new_schema(
         a=schema_constants.INT32,
-        b=schema_constants.TEXT,
+        b=schema_constants.STRING,
     )
     self.assertNotEqual(x, y)
 
@@ -731,7 +724,7 @@ Assigned schema for 'a': SCHEMA(c=TEXT)"""),
     # Nested schema with databag adoption.
     db2 = bag()
     schema = db.list_schema(
-        db2.uu_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
+        db2.uu_schema(a=schema_constants.INT32, b=schema_constants.STRING)
     )
     testing.assert_equal(
         schema.get_attr('__items__').a, schema_constants.INT32.with_bag(db)
@@ -774,10 +767,10 @@ Assigned schema for List item: TEXT""",
 
   def test_dict_schema(self):
     db = bag()
-    schema = db.dict_schema(schema_constants.TEXT, schema_constants.INT32)
+    schema = db.dict_schema(schema_constants.STRING, schema_constants.INT32)
     testing.assert_equal(schema, db.dict({'a': 1}).get_schema())
     testing.assert_equal(
-        schema.get_attr('__keys__'), schema_constants.TEXT.with_bag(db)
+        schema.get_attr('__keys__'), schema_constants.STRING.with_bag(db)
     )
     testing.assert_equal(
         schema.get_attr('__values__'), schema_constants.INT32.with_bag(db)
@@ -785,11 +778,11 @@ Assigned schema for List item: TEXT""",
 
     # Keywords work.
     schema = db.dict_schema(
-        key_schema=schema_constants.TEXT, value_schema=schema_constants.INT32
+        key_schema=schema_constants.STRING, value_schema=schema_constants.INT32
     )
     testing.assert_equal(schema, db.dict({'a': 1}).get_schema())
     testing.assert_equal(
-        schema.get_attr('__keys__'), schema_constants.TEXT.with_bag(db)
+        schema.get_attr('__keys__'), schema_constants.STRING.with_bag(db)
     )
     testing.assert_equal(
         schema.get_attr('__values__'), schema_constants.INT32.with_bag(db)
@@ -851,7 +844,7 @@ Assigned schema for List item: TEXT""",
 
   def test_dict_schema_errors(self):
     db = bag()
-    schema = db.dict_schema(schema_constants.TEXT, schema_constants.INT32)
+    schema = db.dict_schema(schema_constants.STRING, schema_constants.INT32)
     with self.assertRaisesRegex(
         exceptions.KodaError,
         r"""the schema for Dict value is incompatible.
@@ -1096,13 +1089,13 @@ Assigned schema for Dict key: INT32""",
     )
 
     x = db.dict(
-        key_schema=schema_constants.INT64, value_schema=schema_constants.TEXT
+        key_schema=schema_constants.INT64, value_schema=schema_constants.STRING
     )
     self.assertEqual(
         x.get_schema().get_attr('__keys__'), schema_constants.INT64
     )
     self.assertEqual(
-        x.get_schema().get_attr('__values__'), schema_constants.TEXT
+        x.get_schema().get_attr('__values__'), schema_constants.STRING
     )
 
     # 1-arg

@@ -54,7 +54,7 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
               schema_constants.INT32,
               schema_constants.FLOAT32,
               None,
-              schema_constants.TEXT,
+              schema_constants.STRING,
           ]),
       ),
       # All missing DataSlice
@@ -73,7 +73,7 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
               schema_constants.INT32,
               schema_constants.FLOAT32,
               obj.get_attr("__schema__"),
-              schema_constants.TEXT,
+              schema_constants.STRING,
           ]),
       ),
   )

@@ -42,13 +42,13 @@ DATA_SLICE = qtypes.DATA_SLICE
 class SchemaDecodeTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds(None, schema_constants.BYTES), ds(None, schema_constants.TEXT)),
+      (ds(None, schema_constants.BYTES), ds(None, schema_constants.STRING)),
       (ds(b'foo'), ds('foo')),
       (ds('foo'), ds('foo')),
       (ds('αβγ'.encode('utf-8')), ds('αβγ')),
       (ds(b'foo', schema_constants.ANY), ds('foo')),
       (ds(b'foo', schema_constants.OBJECT), ds('foo')),
-      (ds([None], schema_constants.BYTES), ds([None], schema_constants.TEXT)),
+      (ds([None], schema_constants.BYTES), ds([None], schema_constants.STRING)),
       (ds([b'foo']), ds(['foo'])),
       (ds(['foo']), ds(['foo'])),
       (ds([b'foo'], schema_constants.ANY), ds(['foo'])),

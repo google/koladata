@@ -157,8 +157,10 @@ FLOAT64 = _same_when_tracing(_schema_constants.FLOAT64)
 BOOLEAN = _same_when_tracing(_schema_constants.BOOLEAN)
 MASK = _same_when_tracing(_schema_constants.MASK)
 BYTES = _same_when_tracing(_schema_constants.BYTES)
-TEXT = _same_when_tracing(_schema_constants.TEXT)
+STRING = _same_when_tracing(_schema_constants.STRING)
 EXPR = _same_when_tracing(_schema_constants.EXPR)
+# TODO: Remove this alias once the migration is done.
+TEXT = _same_when_tracing(_schema_constants.STRING)
 
 # Special purpose schemas.
 ANY = _same_when_tracing(_schema_constants.ANY)

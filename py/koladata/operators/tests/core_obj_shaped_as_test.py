@@ -106,7 +106,7 @@ class CoreObjShapedAsTest(absltest.TestCase):
     # y.db is merged with x.db, so access to `a` is possible.
     testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
     testing.assert_equal(x.get_schema(), y.x.get_schema().with_db(x.db))
-    testing.assert_equal(y.x.a.no_db().get_schema(), schema_constants.TEXT)
+    testing.assert_equal(y.x.a.no_db().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))

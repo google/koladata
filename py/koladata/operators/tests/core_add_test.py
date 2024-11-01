@@ -162,32 +162,32 @@ class CoreAddTest(parameterized.TestCase):
       # Empty and unknown inputs - strings.join.
       (
           ds([None, None, None]),
-          ds([None, None, None], schema_constants.TEXT),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
+          ds([None, None, None], schema_constants.STRING),
       ),
       (
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
           ds([None, None, None]),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
       ),
       (
-          ds([None, None, None], schema_constants.TEXT),
-          ds([None, None, None], schema_constants.TEXT),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
+          ds([None, None, None], schema_constants.STRING),
+          ds([None, None, None], schema_constants.STRING),
       ),
       (
           ds([None, None, None]),
           ds(['foo', 'bar', 'baz']),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
       ),
       (
           ds(['foo', 'bar', 'baz']),
           ds([None, None, None]),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
       ),
       (
           ds([None, None, None], schema_constants.ANY),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
           ds([None, None, None], schema_constants.ANY),
       ),
       (

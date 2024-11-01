@@ -113,7 +113,7 @@ class DataItemTest(parameterized.TestCase):
   def test_set_get_attr(self):
     db = data_bag.DataBag.empty()
     x = db.new(abc=ds(3.14))
-    x.get_schema().xyz = schema_constants.TEXT
+    x.get_schema().xyz = schema_constants.STRING
     x.xyz = ds('abc')
     self.assertIsInstance(x.abc, data_item.DataItem)
     testing.assert_allclose(x.abc, ds(3.14).with_bag(db))
@@ -136,7 +136,7 @@ class DataItemTest(parameterized.TestCase):
     )
 
     arolla.testing.assert_qvalue_allequal(
-        ds(None, schema_constants.TEXT).as_arolla_value(),
+        ds(None, schema_constants.STRING).as_arolla_value(),
         arolla.optional_text(None),
     )
 
@@ -150,7 +150,7 @@ class DataItemTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(1), schema_constants.INT32),
-      (ds('a'), schema_constants.TEXT),
+      (ds('a'), schema_constants.STRING),
       (ds(b'a'), schema_constants.BYTES),
       (ds(1, schema_constants.INT64), schema_constants.INT64),
       (ds(1, schema_constants.FLOAT64), schema_constants.FLOAT64),

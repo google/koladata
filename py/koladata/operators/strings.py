@@ -65,7 +65,7 @@ def agg_join(
     kd.agg_join(ds, ' ', ndim=2)  # -> kd.slice('el psy congroo a b c')
 
   Args:
-    x: Text or bytes DataSlice
+    x: String or bytes DataSlice
     sep: If specified, will join by the specified string, otherwise will be
       empty string.
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
@@ -95,7 +95,7 @@ def contains(s, substr):  # pylint: disable=unused-argument,redefined-outer-name
       # -> kd.slice([kd.present, kd.present])
 
   Args:
-    s: The strings to consider. Must have schema TEXT or BYTES.
+    s: The strings to consider. Must have schema STRING or BYTES.
     substr: The substrings to look for in `s`. Must have the same schema as `s`.
 
   Returns:
@@ -160,11 +160,11 @@ def find(
   returns `failure_value`.
 
   The units of `start`, `end`, and the return value are all byte offsets if `s`
-  is `BYTES` and codepoint offsets if `s` is `TEXT`.
+  is `BYTES` and codepoint offsets if `s` is `STRING`.
 
   Args:
-   s: (TEXT or BYTES) Strings to search in.
-   substr: (TEXT or BYTES)  Strings to search for in `s`. Should have the same
+   s: (STRING or BYTES) Strings to search in.
+   substr: (STRING or BYTES)  Strings to search for in `s`. Should have the same
      dtype as `s`.
    start: (optional int) Offset to start the search. Defaults to 0.
    end: (optional int) Offset to stop the search.
@@ -196,7 +196,7 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
     kd.strings.printf('%v + %v = %v', 1, 2, 3)  # -> kd.slice('1 + 2 = 3')
 
   Args:
-    fmt: Format string (Text or Bytes).
+    fmt: Format string (String or Bytes).
     *args: Arguments to format (primitive types compatible with `fmt`).
 
   Returns:
@@ -249,7 +249,7 @@ def format_(
       #        '(005 + 5.700000e+00) * 75.00 = 05 *  75 + 005.700 * 075.0000')
 
   Args:
-    fmt: Format string (Text or Bytes).
+    fmt: Format string (String or Bytes).
     kwargs: Arguments to format.
 
   Returns:
@@ -362,7 +362,7 @@ def join(*args):  # pylint: disable=unused-argument
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def length(x):  # pylint: disable=unused-argument
-  """Returns a DataSlice of lengths in bytes for Byte or codepoints for Text.
+  """Returns a DataSlice of lengths in bytes for Byte or codepoints for String.
 
   For example,
     kd.strings.length(kd.slice(['abc', None, ''])) -> kd.slice([3, None, 0])
@@ -373,7 +373,7 @@ def length(x):  # pylint: disable=unused-argument
   Note that the result DataSlice always has INT32 schema.
 
   Args:
-    x: Text or Bytes DataSlice.
+    x: String or Bytes DataSlice.
 
   Returns:
     A DataSlice of lengths.
@@ -394,13 +394,13 @@ def lower(x):  # pylint: disable=unused-argument
     kd.strings.lower(kd.slice(['AbC', None, ''])) -> kd.slice(['abc', None, ''])
     kd.strings.lower(kd.item('FOO')) -> kd.item('foo')
 
-  Note that the result DataSlice always has TEXT schema.
+  Note that the result DataSlice always has STRING schema.
 
   Args:
-    x: Text DataSlice.
+    x: String DataSlice.
 
   Returns:
-    A Text DataSlice of lowercase strings.
+    A String DataSlice of lowercase strings.
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -431,8 +431,9 @@ def lstrip(s, chars=data_slice.DataSlice.from_vals(None)):
       # -> kd.slice([['Section 3.1 Issue #32 ...'], ['']])
 
   Args:
-    s: (TEXT or BYTES) Original string.
-    chars (Optional TEXT or BYTES, the same as `s`): The set of chars to remove.
+    s: (STRING or BYTES) Original string.
+    chars: (Optional STRING or BYTES, the same as `s`): The set of chars to
+      remove.
 
   Returns:
     Stripped string.
@@ -464,7 +465,7 @@ def regex_extract(text, regex):  # pylint: disable=unused-argument
     kd.strings.regex_extract(kd.item('foobar'), kd.item('o(..)'))
       # kd.item('ob')
     kd.strings.regex_extract(kd.item('foobar'), kd.item('^o(..)$'))
-      # kd.item(None).with_schema(kd.TEXT)
+      # kd.item(None).with_schema(kd.STRING)
     kd.strings.regex_extract(kd.item('foobar'), kd.item('^.o(..)a.$'))
       # kd.item('ob')
     kd.strings.regex_extract(kd.item('foobar'), kd.item('.*(b.*r)$'))
@@ -473,8 +474,8 @@ def regex_extract(text, regex):  # pylint: disable=unused-argument
       # -> kd.slice(['cd', None, None])
 
   Args:
-    text: (TEXT) A string.
-    regex: (TEXT) A scalar string that represents a regular expression (RE2
+    text: (STRING) A string.
+    regex: (STRING) A scalar string that represents a regular expression (RE2
       syntax) with exactly one capturing group.
 
   Returns:
@@ -513,8 +514,8 @@ def regex_match(text, regex):  # pylint: disable=unused-argument
       # -> kd.slice([kd.present, kd.missing, kd.missing])
 
   Args:
-    text: (TEXT) A string.
-    regex: (TEXT) A scalar string that represents a regular expression (RE2
+    text: (STRING) A string.
+    regex: (STRING) A scalar string that represents a regular expression (RE2
       syntax).
 
   Returns:
@@ -551,9 +552,9 @@ def replace(
   behavior is similar to Python's string replace.
 
   Args:
-   s: (TEXT or BYTES) Original string.
-   old: (TEXT or BYTES, the same as `s`) String to replace.
-   new: (TEXT or BYTES, the same as `s`) Replacement string.
+   s: (STRING or BYTES) Original string.
+   old: (STRING or BYTES, the same as `s`) String to replace.
+   new: (STRING or BYTES, the same as `s`) Replacement string.
    max_subs: (optional INT32) Max number of substitutions. If unspecified or
      negative, then there is no limit on the number of substitutions.
 
@@ -589,11 +590,11 @@ def rfind(
   returns `failure_value`.
 
   The units of `start`, `end`, and the return value are all byte offsets if `s`
-  is `BYTES` and codepoint offsets if `s` is `TEXT`.
+  is `BYTES` and codepoint offsets if `s` is `STRING`.
 
   Args:
-   s: (TEXT or BYTES) Strings to search in.
-   substr: (TEXT or BYTES)  Strings to search for in `s`. Should have the same
+   s: (STRING or BYTES) Strings to search in.
+   substr: (STRING or BYTES)  Strings to search for in `s`. Should have the same
      dtype as `s`.
    start: (optional int) Offset to start the search. Defaults to 0.
    end: (optional int) Offset to stop the search.
@@ -631,8 +632,9 @@ def rstrip(s, chars=data_slice.DataSlice.from_vals(None)):
       # -> kd.slice([['#... Section 3.1 Issue #32'], ['']])
 
   Args:
-    s: (TEXT or BYTES) Original string.
-    chars (Optional TEXT or BYTES, the same as `s`): The set of chars to remove.
+    s: (STRING or BYTES) Original string.
+    chars (Optional STRING or BYTES, the same as `s`): The set of chars to
+      remove.
 
   Returns:
     Stripped string.
@@ -690,8 +692,9 @@ def strip(s, chars=data_slice.DataSlice.from_vals(None)):
       # -> kd.slice([['Section 3.1 Issue #32'], ['']])
 
   Args:
-    s: (TEXT or BYTES) Original string.
-    chars (Optional TEXT or BYTES, the same as `s`): The set of chars to remove.
+    s: (STRING or BYTES) Original string.
+    chars (Optional STRING or BYTES, the same as `s`): The set of chars to
+      remove.
 
   Returns:
     Stripped string.
@@ -767,12 +770,12 @@ def upper(x):  # pylint: disable=unused-argument
     kd.strings.upper(kd.slice(['abc', None, ''])) -> kd.slice(['ABC', None, ''])
     kd.strings.upper(kd.item('foo')) -> kd.item('FOO')
 
-  Note that the result DataSlice always has TEXT schema.
+  Note that the result DataSlice always has STRING schema.
 
   Args:
-    x: Text DataSlice.
+    x: String DataSlice.
 
   Returns:
-    A Text DataSlice of uppercase strings.
+    A String DataSlice of uppercase strings.
   """
   raise NotImplementedError('implemented in the backend')

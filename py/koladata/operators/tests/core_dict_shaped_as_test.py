@@ -222,7 +222,7 @@ Assigned schema for Dict value: INT32""",
               ds([[1, 2], [3, 4]]),
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
-              value_schema=schema_constants.TEXT,
+              value_schema=schema_constants.STRING,
           )
       )
 

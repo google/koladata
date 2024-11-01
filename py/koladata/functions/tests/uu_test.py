@@ -29,19 +29,19 @@ class UuTest(absltest.TestCase):
   def test_default_bag(self):
     x = fns.uu(
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     testing.assert_equal(
         x.get_schema(),
         x.get_bag().uu_schema(
-            a=schema_constants.FLOAT64, b=schema_constants.TEXT
+            a=schema_constants.FLOAT64, b=schema_constants.STRING
         ),
     )
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.b.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+        x.b.get_schema(), schema_constants.STRING.with_bag(x.get_bag())
     )
     testing.assert_allclose(
         x.a, ds([3.14], schema_constants.FLOAT64).with_bag(x.get_bag())
@@ -52,17 +52,17 @@ class UuTest(absltest.TestCase):
     db = fns.bag()
     x = fns.uu(
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
         db=db,
     )
     testing.assert_equal(
         x.get_schema(),
-        db.uu_schema(a=schema_constants.FLOAT64, b=schema_constants.TEXT),
+        db.uu_schema(a=schema_constants.FLOAT64, b=schema_constants.STRING),
     )
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(db)
     )
-    testing.assert_equal(x.b.get_schema(), schema_constants.TEXT.with_bag(db))
+    testing.assert_equal(x.b.get_schema(), schema_constants.STRING.with_bag(db))
     testing.assert_allclose(
         x.a, ds([3.14], schema_constants.FLOAT64).with_bag(db)
     )
@@ -73,12 +73,12 @@ class UuTest(absltest.TestCase):
     x = fns.uu(
         db=db,
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     y = fns.uu(
         db=db,
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     testing.assert_equal(x, y)
 
@@ -87,13 +87,13 @@ class UuTest(absltest.TestCase):
     x = fns.uu(
         db=db,
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     y = fns.uu(
         db=db,
         seed='seed',
         a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.TEXT),
+        b=ds(['abc'], schema_constants.STRING),
     )
     self.assertNotEqual(x.fingerprint, y.fingerprint)
 

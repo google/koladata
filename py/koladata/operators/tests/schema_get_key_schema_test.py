@@ -36,8 +36,8 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 db = data_bag.DataBag.empty()
-dict_s1 = db.dict_schema(schema_constants.INT32, schema_constants.TEXT)
-dict_s2 = db.dict_schema(dict_s1, schema_constants.TEXT)
+dict_s1 = db.dict_schema(schema_constants.INT32, schema_constants.STRING)
+dict_s2 = db.dict_schema(dict_s1, schema_constants.STRING)
 
 
 class SchemaGetKeySchemaTest(parameterized.TestCase):

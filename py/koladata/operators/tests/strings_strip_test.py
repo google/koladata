@@ -57,8 +57,8 @@ class StringsStripTest(parameterized.TestCase):
       # Empty and unknown.
       (ds([None, None]), ds([None, None])),
       (
-          ds([None, None], schema_constants.TEXT),
-          ds([None, None], schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
+          ds([None, None], schema_constants.STRING),
       ),
       (
           ds([None, None], schema_constants.BYTES),
@@ -84,7 +84,7 @@ class StringsStripTest(parameterized.TestCase):
       (ds(b'foo'), None, ds(b'foo')),
       (ds(b' foo   '), ds(None), ds(b'foo')),
       # 2nd operand is present.
-      (ds(' fo o  '), ds(None, schema_constants.TEXT), ds('fo o')),
+      (ds(' fo o  '), ds(None, schema_constants.STRING), ds('fo o')),
       (ds(b' foo  '), ds(None, schema_constants.BYTES), ds(b'foo')),
       (ds('foo'), ds('o'), ds('f')),
       (ds(' foo  '), ds('o '), ds('f')),
@@ -123,9 +123,9 @@ class StringsStripTest(parameterized.TestCase):
           ds([None, None]),
       ),
       (
-          ds([None, None], schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
-          ds([None, None], schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
+          ds(None, schema_constants.STRING),
+          ds([None, None], schema_constants.STRING),
       ),
       (
           ds([None, None], schema_constants.BYTES),
@@ -139,15 +139,15 @@ class StringsStripTest(parameterized.TestCase):
       ),
       (
           ds([None, None], schema_constants.OBJECT),
-          ds(None, schema_constants.TEXT),
+          ds(None, schema_constants.STRING),
           ds([None, None], schema_constants.OBJECT),
       ),
       (
-          ds([None, None], schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
           ds(None, schema_constants.OBJECT),
           ds([None, None], schema_constants.OBJECT),
       ),
-      (ds([None, None]), ds('abc'), ds([None, None], schema_constants.TEXT)),
+      (ds([None, None]), ds('abc'), ds([None, None], schema_constants.STRING)),
   )
   def test_two_args(self, s, chars, expected):
     result = expr_eval.eval(kde.strings.strip(s, chars))
@@ -170,7 +170,7 @@ class StringsStripTest(parameterized.TestCase):
         ),
     ):
       expr_eval.eval(
-          kde.strings.strip(ds([None], schema_constants.TEXT), ds(123))
+          kde.strings.strip(ds([None], schema_constants.STRING), ds(123))
       )
 
     with self.assertRaisesRegex(

@@ -63,19 +63,19 @@ class StringsLowerTest(parameterized.TestCase):
       # Empty and unknown inputs.
       (
           ds([None, None, None], schema_constants.OBJECT),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
       ),
       (
           ds([None, None, None]),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
       ),
       (
           ds([None, None, None], schema_constants.ANY),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
       ),
       (
-          ds([None, None, None], schema_constants.TEXT),
-          ds([None, None, None], schema_constants.TEXT),
+          ds([None, None, None], schema_constants.STRING),
+          ds([None, None, None], schema_constants.STRING),
       ),
   )
   def test_eval(self, x, expected):

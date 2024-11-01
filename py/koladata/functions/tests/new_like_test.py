@@ -37,7 +37,7 @@ class NewLikeTest(absltest.TestCase):
     x = fns.new_like(
         ds(1),
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_allclose(
@@ -47,7 +47,7 @@ class NewLikeTest(absltest.TestCase):
         x.get_schema().a, schema_constants.FLOAT64.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().b, schema_constants.TEXT.with_bag(x.get_bag())
+        x.get_schema().b, schema_constants.STRING.with_bag(x.get_bag())
     )
 
     x = fns.new_like(ds(None), a=42)
@@ -76,7 +76,7 @@ class NewLikeTest(absltest.TestCase):
         x.get_schema().a, schema_constants.INT32.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().b.bb, schema_constants.TEXT.with_bag(x.get_bag())
+        x.get_schema().b.bb, schema_constants.STRING.with_bag(x.get_bag())
     )
     testing.assert_equal(
         x.get_schema().c, schema_constants.BYTES.with_bag(x.get_bag())
@@ -105,7 +105,7 @@ class NewLikeTest(absltest.TestCase):
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
     testing.assert_equal(y.x.a, ds('abc').with_bag(y.get_bag()))
     testing.assert_equal(x.get_schema(), y.get_schema().x.with_bag(x.get_bag()))
-    testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.TEXT)
+    testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
@@ -130,13 +130,13 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
-    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
+    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.STRING)
     x = fns.new_like(ds([1, None]), a=42, b='xyz', schema=schema)
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, None]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', None]).with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_implicit_casting(self):
     schema = fns.new_schema(a=schema_constants.FLOAT32)
@@ -158,7 +158,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):
@@ -180,7 +180,9 @@ class NewLikeTest(absltest.TestCase):
       fns.new_like(ds(1), a=1, schema=ds([1, 2, 3]))
     with self.assertRaisesRegex(ValueError, 'schema can only be 0-rank'):
       fns.new_like(
-          ds(1), a=1, schema=ds([schema_constants.INT32, schema_constants.TEXT])
+          ds(1),
+          a=1,
+          schema=ds([schema_constants.INT32, schema_constants.STRING]),
       )
     with self.assertRaisesRegex(
         exceptions.KodaError, 'requires Entity schema, got INT32'

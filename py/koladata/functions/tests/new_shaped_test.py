@@ -39,7 +39,7 @@ class NewShapedTest(absltest.TestCase):
     x = fns.new_shaped(
         jagged_shape.create_shape(),
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_allclose(
@@ -49,7 +49,7 @@ class NewShapedTest(absltest.TestCase):
         x.get_schema().a, schema_constants.FLOAT64.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().b, schema_constants.TEXT.with_bag(x.get_bag())
+        x.get_schema().b, schema_constants.STRING.with_bag(x.get_bag())
     )
 
   def test_slice(self):
@@ -68,7 +68,7 @@ class NewShapedTest(absltest.TestCase):
         x.get_schema().a, schema_constants.INT32.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.get_schema().b.bb, schema_constants.TEXT.with_bag(x.get_bag())
+        x.get_schema().b.bb, schema_constants.STRING.with_bag(x.get_bag())
     )
     testing.assert_equal(
         x.get_schema().c, schema_constants.BYTES.with_bag(x.get_bag())
@@ -90,7 +90,7 @@ class NewShapedTest(absltest.TestCase):
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
     testing.assert_equal(y.x.a, ds('abc').with_bag(y.get_bag()))
     testing.assert_equal(x.get_schema(), y.get_schema().x.with_bag(x.get_bag()))
-    testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.TEXT)
+    testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
@@ -115,7 +115,7 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg_simple(self):
-    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
+    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.STRING)
     x = fns.new_shaped(
         jagged_shape.create_shape([2]), a=42, b='xyz', schema=schema
     )
@@ -123,13 +123,13 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_deep(self):
     nested_schema = fns.new_schema(p=schema_constants.BYTES)
     schema = fns.new_schema(
         a=schema_constants.INT32,
-        b=schema_constants.TEXT,
+        b=schema_constants.STRING,
         nested=nested_schema,
     )
     x = fns.new_shaped(
@@ -145,7 +145,7 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
     testing.assert_equal(x.nested.p, ds(b'0123').with_bag(x.get_bag()))
     testing.assert_equal(
         x.nested.get_schema().p.no_bag(), schema_constants.BYTES
@@ -185,7 +185,7 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):
@@ -228,7 +228,7 @@ class NewShapedTest(absltest.TestCase):
         x.a.get_attr('__schema__').p.no_bag(), schema_constants.INT32
     )
     testing.assert_equal(
-        x.a.get_attr('__schema__').q.no_bag(), schema_constants.TEXT
+        x.a.get_attr('__schema__').q.no_bag(), schema_constants.STRING
     )
 
   def test_schema_arg_errors(self):
@@ -244,7 +244,7 @@ class NewShapedTest(absltest.TestCase):
       fns.new_shaped(
           jagged_shape.create_shape(),
           a=1,
-          schema=ds([schema_constants.INT32, schema_constants.TEXT]),
+          schema=ds([schema_constants.INT32, schema_constants.STRING]),
       )
     with self.assertRaisesRegex(
         exceptions.KodaError, 'requires Entity schema, got INT32'

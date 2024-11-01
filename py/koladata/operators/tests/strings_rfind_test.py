@@ -64,7 +64,7 @@ class StringsRfindTest(parameterized.TestCase):
       ),
       (
           ds('foo'),
-          ds(None, schema_constants.TEXT),
+          ds(None, schema_constants.STRING),
           ds(None, schema_constants.INT64),
       ),
       (
@@ -79,8 +79,8 @@ class StringsRfindTest(parameterized.TestCase):
           ds([None, None], schema_constants.INT64),
       ),
       (
-          ds([None, None], schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
+          ds(None, schema_constants.STRING),
           ds([None, None], schema_constants.INT64),
       ),
       (
@@ -157,7 +157,7 @@ class StringsRfindTest(parameterized.TestCase):
       ),
       (
           ds('foo'),
-          ds('o', schema_constants.TEXT),
+          ds('o', schema_constants.STRING),
           ds(None),
           ds(2, schema_constants.INT64),
       ),
@@ -175,8 +175,8 @@ class StringsRfindTest(parameterized.TestCase):
           ds([None, None], schema_constants.INT64),
       ),
       (
-          ds([None, None], schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
+          ds(None, schema_constants.STRING),
           ds(None, schema_constants.INT64),
           ds([None, None], schema_constants.INT64),
       ),
@@ -249,8 +249,8 @@ class StringsRfindTest(parameterized.TestCase):
           ds([None, None], schema_constants.INT64),
       ),
       (
-          ds([None, None], schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
+          ds(None, schema_constants.STRING),
           ds(None, schema_constants.INT64),
           ds(None, schema_constants.INT64),
           ds([None, None], schema_constants.INT64),
@@ -348,8 +348,8 @@ class StringsRfindTest(parameterized.TestCase):
           ds([None, None], schema_constants.INT64),
       ),
       (
-          ds([None, None], schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
+          ds(None, schema_constants.STRING),
           ds(None, schema_constants.INT64),
           ds(None, schema_constants.INT64),
           ds(None, schema_constants.INT64),
@@ -405,7 +405,7 @@ class StringsRfindTest(parameterized.TestCase):
         ),
     ):
       expr_eval.eval(
-          kde.strings.rfind(ds([None], schema_constants.TEXT), ds(123))
+          kde.strings.rfind(ds([None], schema_constants.STRING), ds(123))
       )
 
   def test_mixed_slice_error(self):

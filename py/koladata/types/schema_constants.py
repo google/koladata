@@ -31,7 +31,7 @@ FLOAT64 = _py_misc_py_ext.FLOAT64
 BOOLEAN = _py_misc_py_ext.BOOLEAN
 MASK = _py_misc_py_ext.MASK
 BYTES = _py_misc_py_ext.BYTES
-TEXT = _py_misc_py_ext.TEXT
+STRING = _py_misc_py_ext.TEXT
 EXPR = _py_misc_py_ext.EXPR
 
 # Special purpose schemas.

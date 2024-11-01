@@ -46,7 +46,7 @@ class SchemaIsPrimitiveSchemaTest(parameterized.TestCase):
       (schema_constants.BOOLEAN, mask_constants.present),
       (schema_constants.MASK, mask_constants.present),
       (schema_constants.BYTES, mask_constants.present),
-      (schema_constants.TEXT, mask_constants.present),
+      (schema_constants.STRING, mask_constants.present),
       (schema_constants.EXPR, mask_constants.present),
       # Non-primitives.
       (schema_constants.NONE, mask_constants.missing),

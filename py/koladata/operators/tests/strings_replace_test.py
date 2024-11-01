@@ -66,7 +66,7 @@ class StringsReplaceTest(parameterized.TestCase):
           ds('foo'),
           ds('o'),
           ds(None),
-          ds(None, schema_constants.TEXT),
+          ds(None, schema_constants.STRING),
       ),
       (
           ds(['foo'], schema_constants.ANY),
@@ -82,10 +82,10 @@ class StringsReplaceTest(parameterized.TestCase):
           ds([None, None]),
       ),
       (
-          ds([None, None], schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
-          ds([None, None], schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
+          ds(None, schema_constants.STRING),
+          ds(None, schema_constants.STRING),
+          ds([None, None], schema_constants.STRING),
       ),
       (
           ds([None, None], schema_constants.BYTES),
@@ -150,11 +150,11 @@ class StringsReplaceTest(parameterized.TestCase):
           ds([None, None]),
       ),
       (
-          ds([None, None], schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
-          ds(None, schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
+          ds(None, schema_constants.STRING),
+          ds(None, schema_constants.STRING),
           ds(None, schema_constants.INT32),
-          ds([None, None], schema_constants.TEXT),
+          ds([None, None], schema_constants.STRING),
       ),
       (
           ds([None, None], schema_constants.BYTES),
@@ -210,7 +210,7 @@ class StringsReplaceTest(parameterized.TestCase):
     ):
       expr_eval.eval(
           kde.strings.replace(
-              ds([None], schema_constants.TEXT), ds(123), ds('bar')
+              ds([None], schema_constants.STRING), ds(123), ds('bar')
           )
       )
 

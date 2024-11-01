@@ -55,7 +55,7 @@ class CoreObjTest(parameterized.TestCase):
   def test_item(self):
     x = kde.core.obj(
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     ).eval()
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
@@ -66,7 +66,7 @@ class CoreObjTest(parameterized.TestCase):
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
     )
     testing.assert_equal(
-        x.b.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+        x.b.get_schema(), schema_constants.STRING.with_bag(x.get_bag())
     )
 
   def test_slice(self):
@@ -85,7 +85,7 @@ class CoreObjTest(parameterized.TestCase):
     )
     testing.assert_equal(x.b.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        x.b.bb.get_schema(), schema_constants.TEXT.with_bag(x.get_bag())
+        x.b.bb.get_schema(), schema_constants.STRING.with_bag(x.get_bag())
     )
     testing.assert_equal(
         x.c.get_schema(), schema_constants.BYTES.with_bag(x.get_bag())
@@ -94,7 +94,7 @@ class CoreObjTest(parameterized.TestCase):
   def test_adopt_bag(self):
     x = kde.core.obj(
         a=ds(3.14, schema_constants.FLOAT64),
-        b=ds('abc', schema_constants.TEXT),
+        b=ds('abc', schema_constants.STRING),
     ).eval()
     y = bag().obj(x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
@@ -104,7 +104,7 @@ class CoreObjTest(parameterized.TestCase):
     testing.assert_equal(y.x.b, ds('abc').with_bag(y.get_bag()))
     testing.assert_equal(x.get_schema(), y.x.get_schema().with_bag(x.get_bag()))
     testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.FLOAT64)
-    testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.TEXT)
+    testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]])).eval()

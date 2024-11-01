@@ -47,7 +47,7 @@ class SchemaListSchemaTest(parameterized.TestCase):
     schema = expr_eval.eval(
         kde.schema.list_schema(
             kde.schema.new_schema(
-                a=schema_constants.INT32, b=schema_constants.TEXT
+                a=schema_constants.INT32, b=schema_constants.STRING
             ),
         )
     )

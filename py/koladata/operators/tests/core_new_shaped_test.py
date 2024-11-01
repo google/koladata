@@ -81,17 +81,17 @@ class CoreNewShapedTest(absltest.TestCase):
 
   def test_schema_arg_simple(self):
     shape = jagged_shape.create_shape(2, 3)
-    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.TEXT)
+    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.STRING)
     x = kde.core.new_shaped(shape, schema=schema).eval()
     testing.assert_equal(x.get_shape(), shape)
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_deep(self):
     nested_schema = fns.new_schema(p=schema_constants.BYTES)
     schema = fns.new_schema(
         a=schema_constants.INT32,
-        b=schema_constants.TEXT,
+        b=schema_constants.STRING,
         nested=nested_schema,
     )
     x = kde.core.new_shaped(
@@ -107,7 +107,7 @@ class CoreNewShapedTest(absltest.TestCase):
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
     testing.assert_equal(x.nested.p, ds(b'0123').with_bag(x.get_bag()))
     testing.assert_equal(
         x.nested.get_schema().p.no_bag(), schema_constants.BYTES
@@ -146,7 +146,7 @@ class CoreNewShapedTest(absltest.TestCase):
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
-    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.TEXT)
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(

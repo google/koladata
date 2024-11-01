@@ -30,9 +30,11 @@ class DictSchemaTest(absltest.TestCase):
 
   def test_simple_schema(self):
     db = bag()
-    schema = fns.dict_schema(schema_constants.TEXT, schema_constants.INT32, db)
+    schema = fns.dict_schema(
+        schema_constants.STRING, schema_constants.INT32, db
+    )
     testing.assert_equal(
-        schema.get_attr('__keys__'), schema_constants.TEXT.with_bag(db)
+        schema.get_attr('__keys__'), schema_constants.STRING.with_bag(db)
     )
     testing.assert_equal(
         schema.get_attr('__values__'), schema_constants.INT32.with_bag(db)
@@ -42,14 +44,14 @@ class DictSchemaTest(absltest.TestCase):
     db = bag()
     testing.assert_equal(
         fns.dict({'a': 1}, db=db).get_schema(),
-        fns.dict_schema(schema_constants.TEXT, schema_constants.INT32, db),
+        fns.dict_schema(schema_constants.STRING, schema_constants.INT32, db),
     )
 
   def test_no_databag(self):
-    schema = fns.dict_schema(schema_constants.TEXT, schema_constants.INT32)
+    schema = fns.dict_schema(schema_constants.STRING, schema_constants.INT32)
     testing.assert_equal(
         schema.get_attr('__keys__'),
-        schema_constants.TEXT.with_bag(schema.get_bag()),
+        schema_constants.STRING.with_bag(schema.get_bag()),
     )
     testing.assert_equal(
         schema.get_attr('__values__'),
