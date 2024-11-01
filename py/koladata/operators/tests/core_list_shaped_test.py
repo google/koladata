@@ -101,7 +101,7 @@ class ListShapedTest(parameterized.TestCase):
           dict(
               itemid=bag()
               .list_shaped(jagged_shape.create_shape([2]))
-              .as_itemid()
+              .get_itemid()
           ),
       ),
   )
@@ -120,7 +120,7 @@ class ListShapedTest(parameterized.TestCase):
         )
     )
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
-    testing.assert_equal(x.no_bag().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
+    testing.assert_equal(x.no_bag().get_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
 
   def test_db_is_immutable(self):
     lst = expr_eval.eval(kde.core.list_shaped(jagged_shape.create_shape([2])))

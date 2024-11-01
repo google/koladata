@@ -370,9 +370,9 @@ class DataSliceTest(parameterized.TestCase):
   # Special case for itemid, since it includes a non-deterministic id.
   def test_str_repr_itemid_works(self):
     x = bag().list()
-    self.assertRegex(str(x.as_itemid()), r'.*:.*')
+    self.assertRegex(str(x.get_itemid()), r'.*:.*')
     self.assertRegex(
-        repr(x.as_itemid()), r'DataItem(.*:.*, schema: ITEMID, bag_id: .*)'
+        repr(x.get_itemid()), r'DataItem(.*:.*, schema: ITEMID, bag_id: .*)'
     )
 
   # NOTE: DataSlice has custom __eq__ which works pointwise and returns another
@@ -635,15 +635,14 @@ class DataSliceTest(parameterized.TestCase):
         o.as_any(), o.with_schema(schema_constants.ANY)
     )
 
-  def test_as_itemid(self):
+  def test_get_itemid(self):
     o = bag().obj(x=ds([1, 2, 3]))
-    testing.assert_equal(
-        o.as_itemid(), o.with_schema(schema_constants.ITEMID)
-    )
+    testing.assert_equal(o.get_itemid(), o.with_schema(schema_constants.ITEMID))
+    testing.assert_equal(o.as_itemid(), o.get_itemid())
     with self.assertRaisesRegex(ValueError, 'unsupported schema: INT32'):
-      ds([1, 2, 3]).as_itemid()
+      ds([1, 2, 3]).get_itemid()
     with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to ITEMID'):
-      ds([1, 2, 3], schema_constants.OBJECT).as_itemid()
+      ds([1, 2, 3], schema_constants.OBJECT).get_itemid()
 
   def test_has_attr(self):
     db = bag()

@@ -84,10 +84,10 @@ class CoreObjShapedTest(absltest.TestCase):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))
     x = kde.core.obj_shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
-    testing.assert_equal(x.no_bag().as_itemid(), itemid)
+    testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_itemid_from_different_bag(self):
-    itemid = fns.new(non_existent=ds([[42, 42], [42]])).as_itemid()
+    itemid = fns.new(non_existent=ds([[42, 42], [42]])).get_itemid()
     assert itemid.get_bag() is not None
     x = kde.core.obj_shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
     with self.assertRaisesRegex(

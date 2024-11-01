@@ -199,14 +199,14 @@ class SchemaItemTest(absltest.TestCase):
       a = bag().obj(x=1)
       self.assertFalse(a.is_itemid_schema())
       self.assertFalse(a.get_schema().is_itemid_schema())
-      self.assertTrue(a.as_itemid().get_schema().is_itemid_schema())
+      self.assertTrue(a.get_itemid().get_schema().is_itemid_schema())
 
     with self.subTest('slice'):
       db = bag()
       a = ds([db.obj(x=1), db.obj(x=2)])
       self.assertFalse(a.is_itemid_schema())
       self.assertFalse(a.get_schema().is_itemid_schema())
-      self.assertTrue(a.as_itemid().get_schema().is_itemid_schema())
+      self.assertTrue(a.get_itemid().get_schema().is_itemid_schema())
 
 if __name__ == '__main__':
   absltest.main()

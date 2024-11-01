@@ -74,7 +74,7 @@ class DictShapedAsTest(parameterized.TestCase):
           dict(
               itemid=bag()
               .dict_shaped(jagged_shape.create_shape([2]))
-              .as_itemid()
+              .get_itemid()
           ),
       ),
   )

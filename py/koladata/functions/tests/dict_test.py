@@ -95,14 +95,14 @@ class DictTest(parameterized.TestCase):
     itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.dict('a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
-    testing.assert_equal(x.no_bag().as_itemid(), itemid)
+    testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
     itemid = fns.dict({'a': triple})
 
     # Successful.
-    x = fns.dict('a', 42, itemid=itemid.as_itemid())
+    x = fns.dict('a', 42, itemid=itemid.get_itemid())
     # ITEMID's triples are stripped in the new DataBag.
     with self.assertRaisesRegex(
         ValueError, 'attribute \'non_existent\' is missing'

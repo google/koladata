@@ -17,6 +17,7 @@
 import dataclasses
 import functools
 from typing import Any
+import warnings
 
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
@@ -314,9 +315,19 @@ def _ref(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.ref, self)
 
 
+@DataSlice.add_method('get_itemid')
+def _get_itemid(self) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.get_itemid, self)
+
+
+# TODO: Remove this alias.
 @DataSlice.add_method('as_itemid')
 def _as_itemid(self) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.as_itemid, self)
+  warnings.warn(
+      'as_itemid is deprecated. Use get_itemid instead.',
+      RuntimeWarning,
+  )
+  return self.get_itemid()
 
 
 @DataSlice.add_method('get_dtype')

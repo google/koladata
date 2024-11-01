@@ -14,6 +14,8 @@
 
 """Schema operators."""
 
+import warnings
+
 from arolla import arolla
 from koladata.operators import assertion
 from koladata.operators import jagged_shape as jagged_shape_ops
@@ -420,12 +422,37 @@ def to_schema(x):
 
 
 @optools.add_to_registry(
-    aliases=['kde.to_itemid', 'kde.schema.as_itemid', 'kde.as_itemid']
+    aliases=[
+        'kde.to_itemid',
+        'kde.schema.get_itemid',
+        'kde.get_itemid',
+    ]
 )
 @optools.as_lambda_operator('kde.schema.to_itemid')
 def to_itemid(x):
   """Casts `x` to ITEMID using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.ITEMID)
+
+
+# TODO: Remove this alias.
+# pylint: disable=g-doc-args,g-doc-return-or-yield
+@optools.add_to_registry(
+    aliases=[
+        'kde.as_itemid',
+    ]
+)
+@optools.as_lambda_operator('kde.schema.as_itemid')
+def as_itemid(x):
+  """Casts `x` to ITEMID using explicit (permissive) casting rules.
+
+  Deprecated, use `get_itemid` instead.
+  """
+  warnings.warn(
+      'as_itemid is deprecated. Use get_itemid instead.',
+      RuntimeWarning,
+  )
+  return to_itemid(x)
+# pylint: enable=g-doc-args,g-doc-return-or-yield
 
 
 @optools.add_to_registry(aliases=['kde.to_object'])

@@ -84,9 +84,7 @@ class ListLikeTest(parameterized.TestCase):
       ),
       (
           [ds([[1, None], [3]])],
-          dict(
-              itemid=bag().list_like(ds([[0, 0], [0]])).as_itemid()
-          ),
+          dict(itemid=bag().list_like(ds([[0, 0], [0]])).get_itemid()),
       ),
   )
   def test_value(self, args, kwargs):
@@ -102,7 +100,7 @@ class ListLikeTest(parameterized.TestCase):
         )
     )
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], []]))
-    testing.assert_equal(x.no_bag().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
+    testing.assert_equal(x.no_bag().get_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
 
   def test_db_is_immutable(self):
     lst = expr_eval.eval(kde.core.list_like(ds([[1, None], [3]])))

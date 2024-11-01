@@ -36,7 +36,7 @@ class CoreReifyTest(absltest.TestCase):
     db = bag()
     s = db.new_schema(a=schema_constants.INT32)
     x = ds([s(a=1), s(a=2)])
-    y = x.as_itemid().no_bag()
+    y = x.get_itemid().no_bag()
     x1 = expr_eval.eval(kde.reify(y, source=x))
     testing.assert_equal(x1, x)
 

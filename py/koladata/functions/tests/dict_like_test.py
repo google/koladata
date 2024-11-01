@@ -85,14 +85,14 @@ class DictLikeTest(parameterized.TestCase):
     itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.dict_like(ds([[1, None], [1]]), 'a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], []], [['a']]]))
-    testing.assert_equal(x.no_bag().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
+    testing.assert_equal(x.no_bag().get_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
 
   def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
     itemid = fns.dict_shaped(ds([[1, 1], [1]]).get_shape(), 'a', triple)
 
     # Successful.
-    x = fns.dict_like(ds([[1, None], [1]]), itemid=itemid.as_itemid())
+    x = fns.dict_like(ds([[1, None], [1]]), itemid=itemid.get_itemid())
     # ITEMID's triples are stripped in the new DataBag.
     with self.assertRaisesRegex(
         ValueError, 'attribute \'non_existent\' is missing'

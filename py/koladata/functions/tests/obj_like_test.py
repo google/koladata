@@ -115,10 +115,10 @@ class ObjLikeTest(absltest.TestCase):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.obj_like(ds([[1, None], [1]]), a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, None], [42]]))
-    testing.assert_equal(x.no_bag().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
+    testing.assert_equal(x.no_bag().get_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
 
   def test_itemid_from_different_bag(self):
-    itemid = fns.obj(non_existent=ds([[42, 42], [42]])).as_itemid()
+    itemid = fns.obj(non_existent=ds([[42, 42], [42]])).get_itemid()
     assert itemid.get_bag() is not None
     # Successful.
     x = fns.obj_like(ds([[1, None], [1]]), a=42, itemid=itemid)

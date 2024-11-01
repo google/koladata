@@ -77,7 +77,7 @@ class ObjShapedAsTest(absltest.TestCase):
     itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
     x = fns.obj_shaped_as(itemid, a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
-    testing.assert_equal(x.no_bag().as_itemid(), itemid)
+    testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
 
 if __name__ == '__main__':

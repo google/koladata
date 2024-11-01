@@ -55,7 +55,7 @@ class CoreEncodeDecodeItemIdTest(parameterized.TestCase):
         self.assertRegex(str(item), '[0-9a-zA-Z]{22}')
     decoded = expr_eval.eval(kde.core.decode_itemid(encoded))
     self.assertIsNone(decoded.get_bag())
-    testing.assert_equal(ids.no_bag().as_itemid(), decoded)
+    testing.assert_equal(ids.no_bag().get_itemid(), decoded)
 
   def test_error(self):
     with self.assertRaisesRegex(

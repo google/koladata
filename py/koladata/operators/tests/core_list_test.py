@@ -61,9 +61,7 @@ class ListLikeTest(parameterized.TestCase):
       ),
       (
           [ds([[1, 'foo'], [3]], schema=schema_constants.OBJECT)],
-          dict(
-              item_schema=schema_constants.ANY
-          ),
+          dict(item_schema=schema_constants.ANY),
       ),
       (
           [],
@@ -79,7 +77,7 @@ class ListLikeTest(parameterized.TestCase):
       ),
       (
           [],
-          dict(itemid=bag().list(ds([[0, 0], [0]])).as_itemid()),
+          dict(itemid=bag().list(ds([[0, 0], [0]])).get_itemid()),
       ),
   )
   def test_value(self, args, kwargs):
@@ -95,7 +93,7 @@ class ListLikeTest(parameterized.TestCase):
     itemid = kde.allocation.new_listid_shaped_as._eval(ds([1, 1]))  # pylint: disable=protected-access
     x = expr_eval.eval(kde.core.list(ds([['a', 'b'], ['c']]), itemid=itemid))
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
-    testing.assert_equal(x.no_bag().as_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
+    testing.assert_equal(x.no_bag().get_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
 
   def test_db_is_immutable(self):
     lst = expr_eval.eval(kde.core.list(ds([[1, None], [3]])))

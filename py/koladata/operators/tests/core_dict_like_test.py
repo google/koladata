@@ -71,7 +71,7 @@ class DictLikeTest(parameterized.TestCase):
       # itemid arg
       (
           ds([5, 6]),
-          dict(itemid=bag().dict_like(ds([5, 6])).as_itemid()),
+          dict(itemid=bag().dict_like(ds([5, 6])).get_itemid()),
       ),
   )
   def test_value(self, shape_and_mask_from, kwargs):

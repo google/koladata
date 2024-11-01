@@ -90,14 +90,14 @@ class ListShapedTest(parameterized.TestCase):
         itemid.get_shape(), ds([['a', 'b'], ['c']]), itemid=itemid
     )
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
-    testing.assert_equal(x.no_bag().as_itemid(), itemid)
+    testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
     itemid = fns.list(ds([[[triple], []], [[]]]))
 
     # Successful.
-    x = fns.list_shaped(itemid.get_shape(), itemid=itemid.as_itemid())
+    x = fns.list_shaped(itemid.get_shape(), itemid=itemid.get_itemid())
     # ITEMID's triples are stripped in the new DataBag.
     with self.assertRaisesRegex(
         ValueError, 'attribute \'non_existent\' is missing'

@@ -25,11 +25,11 @@ S = kd.S
 
 
 def to_itemid_str(x):
-  return str(x.as_itemid())
+  return str(x.get_itemid())
 
 
 def map_to_itemid_str(items):
-  return [str(x.as_itemid()) for x in items]
+  return [str(x.get_itemid()) for x in items]
 
 
 class NpkdTest(parameterized.TestCase):

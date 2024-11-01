@@ -157,7 +157,7 @@ class CoreGetValuesTest(parameterized.TestCase):
   def test_fallback(self):
     d1 = data_bag.DataBag.empty().dict({1: 2, 3: 4})
     d2 = data_bag.DataBag.empty().dict(
-        {1: 1, 3: 3, 5: 6}, itemid=d1.as_itemid()
+        {1: 1, 3: 3, 5: 6}, itemid=d1.get_itemid()
     )
     del d2[1]
 

@@ -99,9 +99,9 @@ class SchemaToItemidTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.schema.to_itemid, kde.to_itemid))
     self.assertTrue(
-        optools.equiv_to_op(kde.schema.to_itemid, kde.schema.as_itemid)
+        optools.equiv_to_op(kde.schema.to_itemid, kde.schema.get_itemid)
     )
-    self.assertTrue(optools.equiv_to_op(kde.schema.to_itemid, kde.as_itemid))
+    self.assertTrue(optools.equiv_to_op(kde.schema.to_itemid, kde.get_itemid))
 
 
 if __name__ == "__main__":

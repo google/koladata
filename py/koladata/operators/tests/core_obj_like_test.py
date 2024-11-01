@@ -114,10 +114,10 @@ class CoreObjLikeTest(absltest.TestCase):
     x = kde.core.obj_like(itemid, a=42, itemid=itemid).eval()
     testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.a.no_db(), ds([[42, 42], [42]]))
-    testing.assert_equal(x.no_db().as_itemid(), itemid)
+    testing.assert_equal(x.no_db().get_itemid(), itemid)
 
   def test_itemid_from_different_bag(self):
-    itemid = fns.new(non_existent=ds([[42, 42], [42]])).as_itemid()
+    itemid = fns.new(non_existent=ds([[42, 42], [42]])).get_itemid()
     assert itemid.db is not None
     x = kde.core.obj_like(itemid, a=42, itemid=itemid).eval()
     with self.assertRaisesRegex(

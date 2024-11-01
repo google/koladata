@@ -88,9 +88,9 @@ class FromProtoTest(absltest.TestCase):
     self.assertEqual(x.get_schema(), schema_constants.OBJECT)
 
   def test_single_empty_message_itemid(self):
-    x_itemid = fns.uu(seed='').as_itemid()
+    x_itemid = fns.uu(seed='').get_itemid()
     x = fns.from_proto(test_pb2.MessageA(), itemid=x_itemid)
-    testing.assert_equal(x.as_itemid().no_bag(), x_itemid.no_bag())
+    testing.assert_equal(x.get_itemid().no_bag(), x_itemid.no_bag())
 
   def test_single_message(self):
     m = test_pb2.MessageA(

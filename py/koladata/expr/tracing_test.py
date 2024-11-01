@@ -61,7 +61,7 @@ class TracingTest(absltest.TestCase):
   # TODO: reenable this when we have kde.obj.
   # def test_obj_from_dict_with_itemid(self):
   #   o = kd.new()
-  #   e = tracing.trace(lambda: kd.obj({1: 2}, itemid=kd.as_itemid(o)))
+  #   e = tracing.trace(lambda: kd.obj({1: 2}, itemid=kd.get_itemid(o)))
   #   self.assertIsInstance(e, arolla.Expr)
   #   self.assertEqual(e.eval(x=o)[1], 2)
   #   self.assertEqual(e.eval(x=o).get_schema(), kd.OBJECT)
