@@ -408,6 +408,47 @@ TEST(SchemaUtilsTest, DefaultIfMissing) {
   }
 }
 
+
+TEST(SchemaUtilsTest, IsImplicitlyCastableTo) {
+  {
+    // DType -> DType.
+    EXPECT_TRUE(IsImplicitlyCastableTo(DataItem(schema::kInt32),
+                                       DataItem(schema::kInt32)));
+    EXPECT_TRUE(IsImplicitlyCastableTo(DataItem(schema::kInt32),
+                                       DataItem(schema::kInt64)));
+    EXPECT_TRUE(IsImplicitlyCastableTo(DataItem(schema::kInt32),
+                                       DataItem(schema::kObject)));
+    EXPECT_FALSE(IsImplicitlyCastableTo(DataItem(schema::kInt64),
+                                        DataItem(schema::kInt32)));
+    EXPECT_FALSE(IsImplicitlyCastableTo(DataItem(schema::kInt32),
+                                        DataItem(schema::kText)));
+    EXPECT_FALSE(IsImplicitlyCastableTo(DataItem(schema::kInt32),
+                                        DataItem(schema::kItemId)));
+  }
+  {
+    // ObjectId -> ObjectId.
+    auto schema1 = DataItem(internal::AllocateExplicitSchema());
+    auto schema2 = DataItem(internal::AllocateExplicitSchema());
+    EXPECT_TRUE(IsImplicitlyCastableTo(schema1, schema1));
+    EXPECT_FALSE(IsImplicitlyCastableTo(schema1, schema2));
+    EXPECT_FALSE(IsImplicitlyCastableTo(schema2, schema1));
+  }
+  {
+    // ObjectId -> DType.
+    auto schema = DataItem(internal::AllocateExplicitSchema());
+    EXPECT_FALSE(IsImplicitlyCastableTo(schema, DataItem(schema::kObject)));
+    EXPECT_FALSE(IsImplicitlyCastableTo(schema, DataItem(schema::kAny)));
+  }
+  {
+    // DType -> ObjectId.
+    auto schema = DataItem(internal::AllocateExplicitSchema());
+    // NONE casts to everything.
+    EXPECT_TRUE(IsImplicitlyCastableTo(DataItem(schema::kNone), schema));
+    EXPECT_FALSE(IsImplicitlyCastableTo(DataItem(schema::kObject), schema));
+    EXPECT_FALSE(IsImplicitlyCastableTo(DataItem(schema::kAny), schema));
+  }
+}
+
 TEST(SchemaUtilsTest, NoFollow_Roundtrip_OBJECT) {
   ASSERT_OK_AND_ASSIGN(auto nofollow,
                        NoFollowSchemaItem(DataItem(schema::kObject)));

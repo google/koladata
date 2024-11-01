@@ -133,6 +133,11 @@ inline absl::StatusOr<internal::DataItem> CommonSchema(
 absl::StatusOr<internal::DataItem> CommonSchema(
     const internal::DataSliceImpl& schema_ids);
 
+// Returns true iff `from_schema` is implicitly castable to `to_schema`.
+// _Requires_ both to be schemas.
+bool IsImplicitlyCastableTo(const internal::DataItem& from_schema,
+                            const internal::DataItem& to_schema);
+
 // Returns a NoFollow schema item that wraps `schema_item`. In case
 // `schema_item` is not schema, or it is a schema for which NoFollow is not
 // allowed, error is returned. This function is reversible with

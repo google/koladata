@@ -116,5 +116,42 @@ void BM_CommonSchema_Binary_SchemaSchema(benchmark::State& state) {
 
 BENCHMARK(BM_CommonSchema_Binary_SchemaSchema);
 
+void BM_IsImplicitlyCastableTo_DTypeDType_AsSchemas(benchmark::State& state) {
+  internal::DataItem lhs(kInt32);
+  internal::DataItem rhs(kFloat32);
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(lhs);
+    benchmark::DoNotOptimize(rhs);
+    auto res = IsImplicitlyCastableTo(lhs, rhs);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_IsImplicitlyCastableTo_DTypeDType_AsSchemas);
+
+void BM_IsImplicitlyCastableTo_SchemaDType(benchmark::State& state) {
+  internal::DataItem lhs(internal::AllocateExplicitSchema());
+  internal::DataItem rhs(kNone);
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(lhs);
+    benchmark::DoNotOptimize(rhs);
+    auto res = IsImplicitlyCastableTo(lhs, rhs);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_IsImplicitlyCastableTo_SchemaDType);
+
+void BM_IsImplicitlyCastableTo_SchemaSchema(benchmark::State& state) {
+  internal::DataItem schema(internal::AllocateExplicitSchema());
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(schema);
+    auto res = IsImplicitlyCastableTo(schema, schema);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_IsImplicitlyCastableTo_SchemaSchema);
+
 }  // namespace
 }  // namespace koladata::schema

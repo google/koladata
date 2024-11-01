@@ -267,6 +267,24 @@ absl::StatusOr<internal::DataItem> CommonSchema(
   return std::move(schema_agg).Get();
 }
 
+bool IsImplicitlyCastableTo(const internal::DataItem& from_schema,
+                            const internal::DataItem& to_schema) {
+  DCHECK(from_schema.is_schema() && to_schema.is_schema());
+  if (from_schema.holds_value<DType>() && to_schema.holds_value<DType>()) {
+    return DTypeMatrix::CommonDType(from_schema.value<DType>().type_id(),
+                                    to_schema.value<DType>().type_id()) ==
+           to_schema.value<DType>().type_id();
+  }
+  if (from_schema.holds_value<internal::ObjectId>() &&
+         to_schema.holds_value<internal::ObjectId>()) {
+    return from_schema.value<internal::ObjectId>() ==
+             to_schema.value<internal::ObjectId>();
+  }
+  return from_schema.holds_value<DType>() &&
+         to_schema.holds_value<internal::ObjectId>() &&
+         from_schema.value<DType>() == kNone;
+}
+
 absl::StatusOr<internal::DataItem> NoFollowSchemaItem(
     const internal::DataItem& schema_item) {
   if (schema_item.holds_value<DType>()) {
