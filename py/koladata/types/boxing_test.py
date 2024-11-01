@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for data_slice."""
-
 import gc
 
 from absl.testing import absltest
@@ -26,6 +24,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import operator_test_invalid_unicode_op_clib as _
 from koladata.types import qtypes
 from koladata.types import schema_constants
@@ -73,7 +72,7 @@ class BoxingTest(parameterized.TestCase):
       (
           [arolla.present(), arolla.unit(), None, arolla.missing()],
           None,
-          [arolla.present(), arolla.present(), None, None],
+          [mask_constants.present, mask_constants.present, None, None],
           MASK,
       ),
       # Mixed.
@@ -192,8 +191,8 @@ class BoxingTest(parameterized.TestCase):
       (None, TEXT, None, TEXT),
       (True, INT32, 1, INT32),
       (True, FLOAT32, 1.0, FLOAT32),
-      (arolla.present(), None, arolla.present(), MASK),
-      (arolla.unit(), None, arolla.present(), MASK),
+      (arolla.present(), None, mask_constants.present, MASK),
+      (arolla.unit(), None, mask_constants.present, MASK),
       # DataItem input.
       (ds(1), None, 1, INT32),
       (ds(1), FLOAT32, 1.0, FLOAT32),

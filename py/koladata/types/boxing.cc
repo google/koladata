@@ -448,7 +448,11 @@ PyObject* PyObjectFromValue(double value) { return PyFloat_FromDouble(value); }
 PyObject* PyObjectFromValue(bool value) { return PyBool_FromLong(value); }
 
 PyObject* PyObjectFromValue(Unit value) {
-  return arolla::python::WrapAsPyQValue(arolla::TypedValue::FromValue(value));
+  auto ds_or = DataSlice::Create(DataItem(value), DataItem(schema::kMask));
+  // NOTE: `schema` is already consistent with `value` as otherwise DataSlice
+  // would not even be created.
+  DCHECK_OK(ds_or);
+  return WrapPyDataSlice(*std::move(ds_or));
 }
 
 PyObject* PyObjectFromValue(const Text& value) {

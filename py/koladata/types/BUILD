@@ -121,6 +121,7 @@ py_test(
         ":data_bag",
         ":data_item",
         ":data_slice",
+        ":mask_constants",
         ":operator_test_invalid_unicode_op_clib",  # buildcleaner: keep
         ":qtypes",
         ":schema_constants",
