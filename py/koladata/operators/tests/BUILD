@@ -2943,6 +2943,7 @@ py_test(
     name = "core_explode_test",
     srcs = ["core_explode_test.py"],
     deps = [
+        "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

@@ -1944,17 +1944,40 @@ Assigned schema for List item: SCHEMA(a=TEXT)"""),
         ds([[], []]).as_any().with_bag(db),
     )
 
+  def test_empty_subscript_method_slice_dict(self):
+    db = bag()
+
+    testing.assert_unordered_equal(
+        db.dict(ds([1, 2]), ds([3, 4]))[:], ds([3, 4]).with_bag(db)
+    )
+
     ds(None).with_bag(db).as_any()[:] = ds([42])
     (db.list() & ds(None))[:] = ds([42])
 
+    testing.assert_equal((db.dict() & ds(None))[:], ds([]).with_bag(db))
+    testing.assert_equal(db.dict().as_any()[:], ds([]).as_any().with_bag(db))
+    testing.assert_equal(
+        db.dict_shaped(jagged_shape.create_shape([3])).as_any()[:],
+        ds([[], [], []]).as_any().with_bag(db),
+    )
+
     with self.assertRaisesRegex(
-        ValueError, r'attribute \'__items__\' is missing'
+        ValueError,
+        re.escape('slice with start or stop is not supported for dictionaries'),
     ):
-      _ = (bag().dict() & ds(None))[:]
-    with self.assertRaisesRegex(ValueError, 'list expected'):
-      _ = bag().dict().as_any()[:]
-    with self.assertRaisesRegex(ValueError, 'lists expected'):
-      _ = bag().dict_shaped(jagged_shape.create_shape([3])).as_any()[:]
+      _ = db.dict(ds(['a', 'b']), ds([3, 4]))[1:2]
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('slice with start or stop is not supported for dictionaries'),
+    ):
+      _ = db.dict(ds(['a', 'b']), ds([3, 4]))[:1]
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('slice with start or stop is not supported for dictionaries'),
+    ):
+      _ = db.dict(ds(['a', 'b']), ds([3, 4]))[1:]
 
   def test_empty_subscript_method_int(self):
     db = bag()

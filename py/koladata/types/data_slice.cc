@@ -427,10 +427,21 @@ absl::Nullable<PyObject*> PyDataSlice_subscript(PyObject* self, PyObject* key) {
     std::optional<int64_t> stop_or_end =
         stop == PY_SSIZE_T_MAX ? std::optional<int64_t>(std::nullopt)
                                : std::optional<int64_t>(stop);
-    ASSIGN_OR_RETURN(
-        auto res, self_ds.ExplodeList(start, stop_or_end),
-        SetKodaPyErrFromStatus(_));
-    return WrapPyDataSlice(std::move(res));
+    if (self_ds.ShouldApplyListOp()) {
+      ASSIGN_OR_RETURN(auto res, self_ds.ExplodeList(start, stop_or_end),
+                       SetKodaPyErrFromStatus(_));
+      return WrapPyDataSlice(std::move(res));
+    } else {
+      if (start != 0 || stop_or_end.has_value()) {
+        PyErr_SetString(PyExc_ValueError,
+                        "slice with start or stop is not supported for "
+                        "dictionaries");
+        return nullptr;
+      }
+      ASSIGN_OR_RETURN(auto res, self_ds.GetDictValues(),
+                       SetKodaPyErrFromStatus(_));
+      return WrapPyDataSlice(std::move(res));
+    }
   }
   ASSIGN_OR_RETURN(auto key_ds, DataSliceFromPyValueNoAdoption(key),
                    SetKodaPyErrFromStatus(_));
