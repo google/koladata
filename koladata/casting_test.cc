@@ -441,7 +441,7 @@ INSTANTIATE_TEST_SUITE_P(
           {test::EmptyDataSlice(3, schema::kMask), none_slice},
           {test::EmptyDataSlice(3, schema::kBool), none_slice},
           {test::EmptyDataSlice(3, schema::kBytes), none_slice},
-          {test::EmptyDataSlice(3, schema::kText), none_slice},
+          {test::EmptyDataSlice(3, schema::kString), none_slice},
           {test::EmptyDataSlice(3, schema::kExpr), none_slice},
           {test::EmptyDataSlice(3, schema::kAny), none_slice},
           {test::EmptyDataSlice(3, internal::AllocateExplicitSchema()),
@@ -458,7 +458,7 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(std::nullopt, schema::kMask), none_item},
           {test::DataItem(std::nullopt, schema::kBool), none_item},
           {test::DataItem(std::nullopt, schema::kBytes), none_item},
-          {test::DataItem(std::nullopt, schema::kText), none_item},
+          {test::DataItem(std::nullopt, schema::kString), none_item},
           {test::DataItem(std::nullopt, schema::kExpr), none_item},
           {test::DataItem(std::nullopt, schema::kAny), none_item},
           {test::DataItem(std::nullopt, internal::AllocateExplicitSchema()),
@@ -542,67 +542,69 @@ TEST_P(CastingToTextTest, Casting) {
 INSTANTIATE_TEST_SUITE_P(
     CastingToTextTestSuite, CastingToTextTest, ::testing::ValuesIn([] {
       auto text_slice = test::DataSlice<arolla::Text>(
-          {"fo\0o", "bar", std::nullopt}, schema::kText);
+          {"fo\0o", "bar", std::nullopt}, schema::kString);
       std::vector<CastingTestCase> test_cases = {
           // DataSliceImpl cases.
           {test::EmptyDataSlice(3, schema::kNone),
-           test::EmptyDataSlice(3, schema::kText)},
+           test::EmptyDataSlice(3, schema::kString)},
           {text_slice, text_slice},
           {test::DataSlice<int>({1, 2, 3}, schema::kInt32),
-           test::DataSlice<arolla::Text>({"1", "2", "3"}, schema::kText)},
+           test::DataSlice<arolla::Text>({"1", "2", "3"}, schema::kString)},
           {test::DataSlice<int64_t>({1, 2, 3}, schema::kInt64),
-           test::DataSlice<arolla::Text>({"1", "2", "3"}, schema::kText)},
+           test::DataSlice<arolla::Text>({"1", "2", "3"}, schema::kString)},
           {test::DataSlice<float>({1.5f, 2.5f, 3.5f}, schema::kFloat32),
-           test::DataSlice<arolla::Text>({"1.5", "2.5", "3.5"}, schema::kText)},
+           test::DataSlice<arolla::Text>({"1.5", "2.5", "3.5"},
+                                         schema::kString)},
           {test::DataSlice<double>({1.5, 2.5, 3.5}, schema::kFloat64),
-           test::DataSlice<arolla::Text>({"1.5", "2.5", "3.5"}, schema::kText)},
+           test::DataSlice<arolla::Text>({"1.5", "2.5", "3.5"},
+                                         schema::kString)},
           {test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                          schema::kMask),
            test::DataSlice<arolla::Text>({"present", std::nullopt},
-                                         schema::kText)},
+                                         schema::kString)},
           {test::DataSlice<bool>({true, false, std::nullopt}, schema::kBool),
            test::DataSlice<arolla::Text>({"true", "false", std::nullopt},
-                                         schema::kText)},
+                                         schema::kString)},
           {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
                                           schema::kBytes),
            test::DataSlice<arolla::Text>({"b'fo'", "b'bar'", std::nullopt},
-                                         schema::kText)},
+                                         schema::kString)},
           {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
                                           schema::kObject),
            test::DataSlice<arolla::Text>({"b'fo'", "b'bar'", std::nullopt},
-                                         schema::kText)},
+                                         schema::kString)},
           {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
                                           schema::kAny),
            test::DataSlice<arolla::Text>({"b'fo'", "b'bar'", std::nullopt},
-                                         schema::kText)},
+                                         schema::kString)},
           {test::MixedDataSlice<arolla::Text, arolla::Bytes>(
                {"fo\0o", std::nullopt, std::nullopt},
                {std::nullopt, "bar", std::nullopt}),
            test::DataSlice<arolla::Text>({"fo\0o", "b'bar'", std::nullopt},
-                                         schema::kText)},
+                                         schema::kString)},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
-           test::DataItem(std::nullopt, schema::kText)},
-          {test::DataItem("fo\0o", schema::kText),
-           test::DataItem("fo\0o", schema::kText)},
+           test::DataItem(std::nullopt, schema::kString)},
+          {test::DataItem("fo\0o", schema::kString),
+           test::DataItem("fo\0o", schema::kString)},
           {test::DataItem(1, schema::kInt32),
-           test::DataItem("1", schema::kText)},
+           test::DataItem("1", schema::kString)},
           {test::DataItem(int64_t{1}, schema::kInt64),
-           test::DataItem("1", schema::kText)},
+           test::DataItem("1", schema::kString)},
           {test::DataItem(1.5f, schema::kFloat32),
-           test::DataItem("1.5", schema::kText)},
+           test::DataItem("1.5", schema::kString)},
           {test::DataItem(1.5, schema::kFloat64),
-           test::DataItem("1.5", schema::kText)},
+           test::DataItem("1.5", schema::kString)},
           {test::DataItem(arolla::kUnit, schema::kMask),
-           test::DataItem("present", schema::kText)},
+           test::DataItem("present", schema::kString)},
           {test::DataItem(true, schema::kBool),
-           test::DataItem("true", schema::kText)},
+           test::DataItem("true", schema::kString)},
           {test::DataItem("fo\0o", schema::kObject),
-           test::DataItem("fo\0o", schema::kText)},
+           test::DataItem("fo\0o", schema::kString)},
           {test::DataItem("fo\0o", schema::kAny),
-           test::DataItem("fo\0o", schema::kText)},
+           test::DataItem("fo\0o", schema::kString)},
       };
-      AssertLowerBoundDTypesAreTested(schema::kText, test_cases);
+      AssertLowerBoundDTypesAreTested(schema::kString, test_cases);
       return test_cases;
     }()));
 
@@ -690,11 +692,11 @@ TEST_P(CastingDecodeTest, Casting) {
 INSTANTIATE_TEST_SUITE_P(
     CastingDecodeTestSuite, CastingDecodeTest, ::testing::ValuesIn([] {
       auto text_slice = test::DataSlice<arolla::Text>(
-          {"fo\0o", "bar", std::nullopt}, schema::kText);
+          {"fo\0o", "bar", std::nullopt}, schema::kString);
       std::vector<CastingTestCase> test_cases = {
           // DataSliceImpl cases.
           {test::EmptyDataSlice(3, schema::kNone),
-           test::EmptyDataSlice(3, schema::kText)},
+           test::EmptyDataSlice(3, schema::kString)},
           {text_slice, text_slice},
           {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
                                           schema::kBytes),
@@ -711,15 +713,15 @@ INSTANTIATE_TEST_SUITE_P(
            text_slice},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
-           test::DataItem(std::nullopt, schema::kText)},
-          {test::DataItem("fo\0o", schema::kText),
-           test::DataItem("fo\0o", schema::kText)},
+           test::DataItem(std::nullopt, schema::kString)},
+          {test::DataItem("fo\0o", schema::kString),
+           test::DataItem("fo\0o", schema::kString)},
           {test::DataItem("fo\0o", schema::kObject),
-           test::DataItem("fo\0o", schema::kText)},
+           test::DataItem("fo\0o", schema::kString)},
           {test::DataItem("fo\0o", schema::kAny),
-           test::DataItem("fo\0o", schema::kText)},
+           test::DataItem("fo\0o", schema::kString)},
       };
-      AssertLowerBoundDTypesAreTested(schema::kText, test_cases);
+      AssertLowerBoundDTypesAreTested(schema::kString, test_cases);
       return test_cases;
     }()));
 
@@ -767,7 +769,7 @@ INSTANTIATE_TEST_SUITE_P(
            test::EmptyDataSlice(3, schema::kBytes)},
           {bytes_slice, bytes_slice},
           {test::DataSlice<arolla::Text>({"fo\0o", "bar", std::nullopt},
-                                         schema::kText),
+                                         schema::kString),
            bytes_slice},
           {test::DataSlice<arolla::Text>({"fo\0o", "bar", std::nullopt},
                                          schema::kObject),
@@ -917,7 +919,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST(Casting, BoolErrors) {
   EXPECT_THAT(ToBool(test::DataSlice<arolla::Text>({"foo", std::nullopt},
-                                                   schema::kText)),
+                                                   schema::kString)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unsupported schema: STRING"));
   EXPECT_THAT(ToBool(test::MixedDataSlice<arolla::Text, bool>(
@@ -925,7 +927,7 @@ TEST(Casting, BoolErrors) {
                   {std::nullopt, true, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast STRING to BOOLEAN"));
-  EXPECT_THAT(ToBool(test::DataItem(arolla::Text("foo"), schema::kText)),
+  EXPECT_THAT(ToBool(test::DataItem(arolla::Text("foo"), schema::kString)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unsupported schema: STRING"));
   EXPECT_THAT(ToBool(test::DataItem(arolla::Text("foo"), schema::kObject)),
@@ -964,7 +966,8 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataSlice<arolla::Bytes>({"foo", std::nullopt},
                                           schema::kBytes),
            test::DataSlice<arolla::Bytes>({"foo", std::nullopt}, schema::kAny)},
-          {test::DataSlice<arolla::Text>({"foo", std::nullopt}, schema::kText),
+          {test::DataSlice<arolla::Text>({"foo", std::nullopt},
+                                         schema::kString),
            test::DataSlice<arolla::Text>({"foo", std::nullopt}, schema::kAny)},
           {test::DataSlice<arolla::expr::ExprQuote>(
                {arolla::expr::ExprQuote(arolla::expr::Leaf("x")), std::nullopt},
@@ -1012,7 +1015,7 @@ INSTANTIATE_TEST_SUITE_P(
            test::DataItem(true, schema::kAny)},
           {test::DataItem(arolla::Bytes("foo"), schema::kBytes),
            test::DataItem(arolla::Bytes("foo"), schema::kAny)},
-          {test::DataItem(arolla::Text("foo"), schema::kText),
+          {test::DataItem(arolla::Text("foo"), schema::kString),
            test::DataItem(arolla::Text("foo"), schema::kAny)},
           {test::DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x")),
                           schema::kExpr),
@@ -1307,7 +1310,8 @@ INSTANTIATE_TEST_SUITE_P(
                                           schema::kBytes),
            test::DataSlice<arolla::Bytes>({"foo", std::nullopt},
                                           schema::kObject)},
-          {test::DataSlice<arolla::Text>({"foo", std::nullopt}, schema::kText),
+          {test::DataSlice<arolla::Text>({"foo", std::nullopt},
+                                         schema::kString),
            test::DataSlice<arolla::Text>({"foo", std::nullopt},
                                          schema::kObject)},
           {test::DataSlice<arolla::expr::ExprQuote>(
@@ -1363,7 +1367,7 @@ INSTANTIATE_TEST_SUITE_P(
            test::DataItem(true, schema::kObject)},
           {test::DataItem(arolla::Bytes("foo"), schema::kBytes),
            test::DataItem(arolla::Bytes("foo"), schema::kObject)},
-          {test::DataItem(arolla::Text("foo"), schema::kText),
+          {test::DataItem(arolla::Text("foo"), schema::kString),
            test::DataItem(arolla::Text("foo"), schema::kObject)},
           {test::DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x")),
                           schema::kExpr),

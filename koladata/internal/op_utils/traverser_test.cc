@@ -368,11 +368,12 @@ TEST_P(NoOpTraverserTest, DeepDictsSlice) {
                            {values[4], {{"x", DataItem(5)}}},
                            {values[5], {{"x", DataItem(6)}}},
                            {values[6], {{"x", DataItem(7)}}}};
-  TriplesT schema_triples = {{key_schema, {{"name", DataItem(schema::kText)}}},
-                             {value_schema, {{"x", DataItem(schema::kInt32)}}},
-                             {dict_schema,
-                              {{schema::kDictKeysSchemaAttr, key_schema},
-                               {schema::kDictValuesSchemaAttr, value_schema}}}};
+  TriplesT schema_triples = {
+      {key_schema, {{"name", DataItem(schema::kString)}}},
+      {value_schema, {{"x", DataItem(schema::kInt32)}}},
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, key_schema},
+        {schema::kDictValuesSchemaAttr, value_schema}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -420,9 +421,9 @@ TEST_P(NoOpTraverserTest, ObjectsSlice) {
   };
   TriplesT schema_triples = {
       {item_schema, {{"x", DataItem(schema::kInt32)}}},
-      {key_schema, {{"name", DataItem(schema::kText)}}},
+      {key_schema, {{"name", DataItem(schema::kString)}}},
       {dict0_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kText)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
       {dict1_schema,
        {{schema::kDictKeysSchemaAttr, key_schema},
@@ -450,7 +451,7 @@ TEST_P(NoOpTraverserTest, SchemaSlice) {
   auto s2 = AllocateSchema();
   TriplesT schema_triples = {
       {s1, {{"x", DataItem(schema::kInt32)}}},
-      {s2, {{"a", DataItem(schema::kText)}}},
+      {s2, {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());

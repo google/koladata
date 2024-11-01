@@ -53,7 +53,7 @@ namespace koladata::schema {
 // directly adjacent greater DType.
 const schema_internal::DTypeLattice& schema_internal::GetDTypeLattice() {
   static const absl::NoDestructor<DTypeLattice> lattice({
-      {kNone, {kItemId, kSchema, kInt32, kMask, kBool, kBytes, kText, kExpr}},
+      {kNone, {kItemId, kSchema, kInt32, kMask, kBool, kBytes, kString, kExpr}},
       {kItemId, {}},
       {kSchema, {}},
       {kInt32, {kInt64}},
@@ -63,7 +63,7 @@ const schema_internal::DTypeLattice& schema_internal::GetDTypeLattice() {
       {kMask, {kObject}},
       {kBool, {kObject}},
       {kBytes, {kObject}},
-      {kText, {kObject}},
+      {kString, {kObject}},
       {kExpr, {kObject}},
       {kObject, {kAny}},
       {kAny, {}},

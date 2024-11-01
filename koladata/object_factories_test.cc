@@ -312,7 +312,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
 TEST(EntityCreatorTest, SchemaArg) {
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);
-  auto text_s = test::Schema(schema::kText);
+  auto text_s = test::Schema(schema::kString);
   auto entity_schema = *CreateEntitySchema(db, {"a", "b"}, {int_s, text_s});
 
   ASSERT_OK_AND_ASSIGN(
@@ -351,7 +351,7 @@ TEST(EntityCreatorTest, SchemaArg_WithFallback) {
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
   auto fb_db = DataBag::Empty();
-  auto text_s = test::Schema(schema::kText);
+  auto text_s = test::Schema(schema::kString);
   ASSERT_OK(entity_schema.WithBag(fb_db).SetAttr("b", text_s));
 
   entity_schema =
@@ -652,7 +652,7 @@ TEST(CreateUuTest, DataItem) {
 TEST(CreateUuTest, SchemaArg) {
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);
-  auto text_s = test::Schema(schema::kText);
+  auto text_s = test::Schema(schema::kString);
   auto entity_schema = *CreateEntitySchema(db, {"a", "b"}, {int_s, text_s});
 
   ASSERT_OK_AND_ASSIGN(
@@ -687,7 +687,7 @@ TEST(CreateUuTest, SchemaArg_WithFallback) {
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
   auto fb_db = DataBag::Empty();
-  auto text_s = test::Schema(schema::kText);
+  auto text_s = test::Schema(schema::kString);
   ASSERT_OK(entity_schema.WithBag(fb_db).SetAttr("b", text_s));
 
   entity_schema =
@@ -1761,7 +1761,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension) {
     auto shape = DataSlice::JaggedShape::FlatFromSize(3);
     auto values =
         test::DataSlice<arolla::Text>({"foo", "bar", "baz"}, shape, db);
-    EXPECT_EQ(values.GetSchemaImpl(), schema::kText);
+    EXPECT_EQ(values.GetSchemaImpl(), schema::kString);
     EXPECT_THAT(
         CreateListsFromLastDimension(db, values, /*schema=*/std::nullopt,
                                      test::Schema(schema::kInt32)),
@@ -1832,7 +1832,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension_FromDataSlice) {
   {
     EXPECT_THAT(
         CreateListsFromLastDimension(db, values, /*schema=*/std::nullopt,
-                                     test::Schema(schema::kText)),
+                                     test::Schema(schema::kString)),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("the schema for list items is incompatible")));
   }
@@ -2294,7 +2294,7 @@ TEST(ObjectFactoriesTest, CreateNestedList) {
   {
     EXPECT_THAT(
         CreateNestedList(db, values, /*schema=*/std::nullopt,
-                         test::Schema(schema::kText)),
+                         test::Schema(schema::kString)),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("the schema for list items is incompatible")));
   }
@@ -2503,7 +2503,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema) {
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto dict_schema,
-      CreateDictSchema(schema_db, test::Schema(schema::kText),
+      CreateDictSchema(schema_db, test::Schema(schema::kString),
                        test::Schema(schema::kInt64)));
   auto keys = test::DataSlice<arolla::Text>({"a", "b", "c"});
   ASSERT_OK_AND_ASSIGN(
@@ -2520,7 +2520,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema) {
   EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
-              IsOkAndHolds(Property(&DataSlice::item, schema::kText)));
+              IsOkAndHolds(Property(&DataSlice::item, schema::kString)));
   EXPECT_THAT(ds.GetSchema().GetAttr("__values__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt64)));
   EXPECT_THAT(ds.GetFromDict(keys),
@@ -2671,7 +2671,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Overwrite) {
                        itemid));
 
   EXPECT_THAT(ds.GetSchema().GetAttr("__keys__"),
-              IsOkAndHolds(Property(&DataSlice::item, schema::kText)));
+              IsOkAndHolds(Property(&DataSlice::item, schema::kString)));
   EXPECT_THAT(ds.GetSchema().GetAttr("__values__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
   EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
@@ -3318,7 +3318,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ItemId_Overwrite) {
                                       itemid));
 
   EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
-              IsOkAndHolds(Property(&DataSlice::item, schema::kText)));
+              IsOkAndHolds(Property(&DataSlice::item, schema::kString)));
   EXPECT_EQ(ds.slice()[0], itemid.slice()[0]);
   EXPECT_EQ(ds.slice()[1], itemid.slice()[1]);
   EXPECT_THAT(ds.ExplodeList(0, std::nullopt),

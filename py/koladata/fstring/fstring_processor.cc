@@ -64,7 +64,7 @@ absl::StatusOr<ExprNodePtr> FormattingExpr(const ExprNodePtr& ds_expr,
   ASSIGN_OR_RETURN(
       auto format_ds,
       DataSlice::Create(internal::DataItem(arolla::Text(std::move(format))),
-                        internal::DataItem(schema::kText)));
+                        internal::DataItem(schema::kString)));
   ASSIGN_OR_RETURN(
       auto format_kwargs,
       arolla::expr::CallOp("namedtuple.make", {Literal(Text("x")), ds_expr}));
@@ -109,7 +109,7 @@ absl::StatusOr<ExprNodePtr> CreateFStringExprImpl(absl::string_view fstring,
   auto string_to_ds =
       [](absl::string_view text) -> absl::StatusOr<ExprNodePtr> {
     ASSIGN_OR_RETURN(auto ds, DataSlice::Create(DataItem(arolla::Text(text)),
-                                                DataItem(schema::kText)));
+                                                DataItem(schema::kString)));
     return arolla::expr::Literal(std::move(ds));
   };
 

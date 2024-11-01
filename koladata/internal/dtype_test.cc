@@ -140,7 +140,7 @@ TEST(DType, IsPrimitive) {
   EXPECT_TRUE(kBool.is_primitive());
   EXPECT_TRUE(kMask.is_primitive());
   EXPECT_TRUE(kBytes.is_primitive());
-  EXPECT_TRUE(kText.is_primitive());
+  EXPECT_TRUE(kString.is_primitive());
   EXPECT_TRUE(kExpr.is_primitive());
 
   // Non-primitives
@@ -207,13 +207,7 @@ TEST(DType, Equality) {
 
 TEST(DType, AbslHash) {
   std::vector<DType> cases{
-    kInt32,
-    kInt32,
-    kFloat32,
-    kText,
-    kText,
-    kBytes,
-    kExpr,
+      kInt32, kInt32, kFloat32, kString, kString, kBytes, kExpr,
   };
   // NOTE: Here we test each type through `supported_dtype_values` which has
   // the benefit of testing any newly added types. The upper part is something
@@ -247,7 +241,7 @@ TEST(DType, name) {
   EXPECT_EQ(kBool.name(), "BOOLEAN");
   EXPECT_EQ(kMask.name(), "MASK");
   EXPECT_EQ(kBytes.name(), "BYTES");
-  EXPECT_EQ(kText.name(), "STRING");
+  EXPECT_EQ(kString.name(), "STRING");
   EXPECT_EQ(kExpr.name(), "EXPR");
 
   // Special meaning - Schema types

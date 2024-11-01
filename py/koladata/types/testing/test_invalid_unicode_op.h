@@ -43,10 +43,9 @@ struct InvalidUnicodeOp {
       std::nullopt,
       std::nullopt
     });
-    return *DataSlice::Create(
-        internal::DataSliceImpl::Create(values),
-        DataSlice::JaggedShape::FlatFromSize(12),
-        internal::DataItem(schema::kText));
+    return *DataSlice::Create(internal::DataSliceImpl::Create(values),
+                              DataSlice::JaggedShape::FlatFromSize(12),
+                              internal::DataItem(schema::kString));
   }
 };
 

@@ -255,7 +255,7 @@ constexpr static absl::string_view kChildItemIdSeed = "__from_proto_child__";
 
 absl::StatusOr<DataSlice> MakeTextItem(absl::string_view text) {
   return DataSlice::Create(internal::DataItem(arolla::Text(text)),
-                           internal::DataItem(schema::kText));
+                           internal::DataItem(schema::kString));
 }
 
 absl::StatusOr<std::optional<DataSlice>> MakeChildObjectAttrItemIds(

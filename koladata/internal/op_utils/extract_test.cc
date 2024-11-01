@@ -388,11 +388,12 @@ TEST_P(ShallowCloneTest, DeepDictsSlice) {
                            {values[4], {{"x", DataItem(5)}}},
                            {values[5], {{"x", DataItem(6)}}},
                            {values[6], {{"x", DataItem(7)}}}};
-  TriplesT schema_triples = {{key_schema, {{"name", DataItem(schema::kText)}}},
-                             {value_schema, {{"x", DataItem(schema::kInt32)}}},
-                             {dict_schema,
-                              {{schema::kDictKeysSchemaAttr, key_schema},
-                               {schema::kDictValuesSchemaAttr, value_schema}}}};
+  TriplesT schema_triples = {
+      {key_schema, {{"name", DataItem(schema::kString)}}},
+      {value_schema, {{"x", DataItem(schema::kInt32)}}},
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, key_schema},
+        {schema::kDictValuesSchemaAttr, value_schema}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -465,9 +466,9 @@ TEST_P(ShallowCloneTest, ObjectsSlice) {
   };
   TriplesT schema_triples = {
       {item_schema, {{"x", DataItem(schema::kInt32)}}},
-      {key_schema, {{"name", DataItem(schema::kText)}}},
+      {key_schema, {{"name", DataItem(schema::kString)}}},
       {dict0_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kText)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
       {dict1_schema,
        {{schema::kDictKeysSchemaAttr, key_schema},
@@ -529,7 +530,7 @@ TEST_P(ShallowCloneTest, ObjectsSlice) {
   TriplesT expected_schema_triples = {
       {item_schema, {{"x", DataItem(schema::kInt32)}}},
       {dict0_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kText)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
       {dict1_schema,
        {{schema::kDictKeysSchemaAttr, key_schema},
@@ -549,7 +550,7 @@ TEST_P(ShallowCloneTest, SchemaSlice) {
   auto s2 = AllocateSchema();
   TriplesT schema_triples = {
       {s1, {{"x", DataItem(schema::kInt32)}}},
-      {s2, {{"a", DataItem(schema::kText)}}},
+      {s2, {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -571,7 +572,7 @@ TEST_P(ShallowCloneTest, SchemaSlice) {
   EXPECT_NE(result_slice[1], s2);
   TriplesT expected_schema_triples = {
       {result_slice[0], {{"x", DataItem(schema::kInt32)}}},
-      {result_slice[1], {{"a", DataItem(schema::kText)}}},
+      {result_slice[1], {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*expected_db, expected_schema_triples);
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -585,7 +586,7 @@ TEST_P(ShallowCloneTest, SchemaUuidSlice) {
       arolla::FingerprintHasher("").Combine(43).Finish()));
   TriplesT schema_triples = {
       {s1, {{"x", DataItem(schema::kInt32)}}},
-      {s2, {{"a", DataItem(schema::kText)}}},
+      {s2, {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -611,7 +612,7 @@ TEST_P(ShallowCloneTest, SchemaUuidSlice) {
   EXPECT_FALSE(result_s2.is_implicit_schema());
   TriplesT expected_schema_triples = {
       {result_s1, {{"x", DataItem(schema::kInt32)}}},
-      {result_s2, {{"a", DataItem(schema::kText)}}}};
+      {result_s2, {{"a", DataItem(schema::kString)}}}};
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, expected_schema_triples);
 
@@ -1489,7 +1490,7 @@ TEST_P(ExtractTest, ConflictingSchemasInTwoDatabags) {
   auto obj_ids = DataSliceImpl::AllocateEmptyObjects(4);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
-  auto text_dtype = DataItem(schema::kText);
+  auto text_dtype = DataItem(schema::kString);
   auto int_dtype = DataItem(schema::kInt32);
   auto object_dtype = DataItem(schema::kObject);
   auto schema = AllocateSchema();
@@ -1667,8 +1668,8 @@ TEST_P(ExtractTest, SchemaSlice) {
   auto s1 = AllocateSchema();
   auto s2 = AllocateSchema();
   TriplesT schema_triples = {
-    {s1, {{"x", DataItem(schema::kInt32)}}},
-    {s2, {{"a", DataItem(schema::kText)}}},
+      {s1, {{"x", DataItem(schema::kInt32)}}},
+      {s2, {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());

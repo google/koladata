@@ -496,7 +496,7 @@ TEST(DataSliceTest, IsListSchema) {
   auto int_s = test::Schema(schema::kInt32);
   auto list_schema = *CreateListSchema(db, int_s);
   EXPECT_TRUE(list_schema.IsListSchema());
-  ASSERT_OK(list_schema.SetAttr("some_attr", test::Schema(schema::kText)));
+  ASSERT_OK(list_schema.SetAttr("some_attr", test::Schema(schema::kString)));
   EXPECT_TRUE(list_schema.IsListSchema());
   EXPECT_FALSE(list_schema.WithBag(nullptr).IsListSchema());
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
@@ -512,7 +512,7 @@ TEST(DataSliceTest, IsDictSchema) {
   auto int_s = test::Schema(schema::kInt32);
   auto dict_schema = *CreateDictSchema(db, int_s, int_s);
   EXPECT_TRUE(dict_schema.IsDictSchema());
-  ASSERT_OK(dict_schema.SetAttr("some_attr", test::Schema(schema::kText)));
+  ASSERT_OK(dict_schema.SetAttr("some_attr", test::Schema(schema::kString)));
   EXPECT_TRUE(dict_schema.IsDictSchema());
   EXPECT_FALSE(dict_schema.WithBag(nullptr).IsDictSchema());
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
@@ -1109,8 +1109,8 @@ TEST(DataSliceTest, GetAttrNames_SchemaSlice) {
   ASSERT_EQ(schema_ds.GetSchemaImpl(), schema::kSchema);
   EXPECT_THAT(schema_ds.GetAttrNames(), IsOkAndHolds(ElementsAre("b")));
   EXPECT_THAT(
-      test::DataSlice<schema::DType>({schema::kInt32, schema::kText}, db)
-      .GetAttrNames(),
+      test::DataSlice<schema::DType>({schema::kInt32, schema::kString}, db)
+          .GetAttrNames(),
       IsOkAndHolds(ElementsAre()));
 }
 
@@ -2565,9 +2565,9 @@ TEST(DataSliceTest, SetGetError_ObjectCreator) {
   // object_0 has implicit_schema_0 at "__schema__" attr.
   ASSERT_OK(implicit_schema_0.SetAttr("a", float_schema));
   ASSERT_OK(object_0.SetAttr("a", ds_a));
-  EXPECT_EQ(implicit_schema_0.GetAttr("a")->item(), schema::kText);
+  EXPECT_EQ(implicit_schema_0.GetAttr("a")->item(), schema::kString);
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, object_0.GetAttr("a"));
-  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kText);
+  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kString);
   EXPECT_EQ(ds_a_get.item(), ds_a.item());
 }
 
@@ -2690,7 +2690,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_ObjectCreator) {
                        ds.GetAttrWithDefault("a", default_val));
   EXPECT_THAT(ds_primitive_get.slice(),
               ElementsAre(std::nullopt, arolla::Text("a"), std::nullopt));
-  EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kText);
+  EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kString);
 }
 
 TEST(DataSliceTest, GetAttrWithDefault_SchemaSlice) {
@@ -2733,7 +2733,7 @@ TEST(DataSliceTest, GetAttrWithDefault_AnyNoSchema) {
   EXPECT_THAT(
       ds_primitive_get.slice(),
       ElementsAre(arolla::Text("abc"), arolla::Text("abc"), std::nullopt));
-  EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kText);
+  EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kString);
 
   // Schema from getattr is inferred to be INT32 and then combined with STRING,
   // returns OBJECT.
@@ -3394,10 +3394,10 @@ TEST(DataSliceTest, ReplaceInList_AnySchema) {
   ASSERT_OK_AND_ASSIGN(auto subshape,
                        DataSlice::JaggedShape::FromEdges(
                            {edge_1, edge_2, CreateEdge({0, 1, 2, 3})}));
-  ASSERT_OK(
-      lists.ReplaceInList(1, 2,
-                          test::DataSlice<arolla::Text>(
-                              {"foo", "bar", "baz"}, subshape, schema::kText)));
+  ASSERT_OK(lists.ReplaceInList(
+      1, 2,
+      test::DataSlice<arolla::Text>({"foo", "bar", "baz"}, subshape,
+                                    schema::kString)));
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
               IsOkAndHolds(
                   Property(&DataSlice::slice,
@@ -3512,7 +3512,7 @@ TEST(DataSliceTest, SetInList_AnySchema) {
                                         DataItemWith<int>(7), 0, 0, 0))));
 
   auto text_values = test::DataSlice<arolla::Text>({"foo", "bar", "baz"}, shape,
-                                                   schema::kText);
+                                                   schema::kString);
   ASSERT_OK(lists.SetInList(ids, text_values));
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
               IsOkAndHolds(Property(
@@ -4461,7 +4461,7 @@ TEST(DataSliceCastingTest, EmptyToOther_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
-  ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kText)));
+  ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kString)));
 
   // Narrowing is allowed.
   auto empty_values_any = test::EmptyDataSlice(shape, schema::kAny);
@@ -4477,7 +4477,7 @@ TEST(DataSliceCastingTest, EmptyToOther_Entity) {
 TEST(DataSliceCastingTest, EmptyToOther_Object) {
   auto db = DataBag::Empty();
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
-  ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kText)));
+  ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kString)));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
@@ -4498,7 +4498,7 @@ TEST(DataSliceCastingTest, SameUnderlying_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
-  ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kText)));
+  ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kString)));
 
   // Narrowing is allowed.
   auto values_any_text =
@@ -4512,17 +4512,17 @@ TEST(DataSliceCastingTest, SameUnderlying_Entity) {
                        "STRING, assigned ITEMID"));
 
   auto values_text =
-      test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kText);
+      test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kString);
   ASSERT_OK(entity.SetAttr("a", values_text));
   ASSERT_OK_AND_ASSIGN(auto ds_a, entity.GetAttr("a"));
-  EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kText);
+  EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kString);
   EXPECT_THAT(ds_a.slice(), ElementsAre(arolla::Text("abc"), std::nullopt));
 }
 
 TEST(DataSliceCastingTest, SameUnderlying_Object) {
   auto db = DataBag::Empty();
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
-  ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kText)));
+  ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kString)));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
@@ -4540,10 +4540,10 @@ TEST(DataSliceCastingTest, SameUnderlying_Object) {
                        "STRING, assigned ITEMID"));
 
   auto values_text =
-      test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kText);
+      test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kString);
   ASSERT_OK(objects.SetAttr("a", values_text));
   ASSERT_OK_AND_ASSIGN(auto ds_a, objects.GetAttr("a"));
-  EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kText);
+  EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kString);
   EXPECT_THAT(ds_a.slice(), ElementsAre(arolla::Text("abc"), std::nullopt));
 }
 
@@ -4580,7 +4580,7 @@ TEST(DataSliceCastingTest, IncompatibleSchema_Entity) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
-  ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kText)));
+  ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kString)));
 
   EXPECT_THAT(
       entity.SetAttr("a", test::DataSlice<int>({12, 42})),
@@ -4592,7 +4592,7 @@ TEST(DataSliceCastingTest, IncompatibleSchema_Entity) {
 TEST(DataSliceCastingTest, IncompatibleSchema_Object) {
   auto db = DataBag::Empty();
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
-  ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kText)));
+  ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kString)));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));

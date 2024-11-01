@@ -131,7 +131,7 @@ INSTANTIATE_TEST_SUITE_P(
       test_cases.push_back({{schema::kInt32, schema::kInt64, schema::kFloat32},
                             schema::kFloat32});
       // "sibling" types.
-      test_cases.push_back({{schema::kInt32, kText}, schema::kObject});
+      test_cases.push_back({{schema::kInt32, kString}, schema::kObject});
       return test_cases;
     }()),
     [](const ::testing::TestParamInfo<CommonDTypeTest::ParamType>& info) {
@@ -167,7 +167,7 @@ INSTANTIATE_TEST_SUITE_P(
         }
       }
       // "sibling" types.
-      test_cases.push_back({{schema::kInt32, kText}, schema::kObject});
+      test_cases.push_back({{schema::kInt32, kString}, schema::kObject});
       return test_cases;
     }()),
     [](const ::testing::TestParamInfo<CommonDTypeTest::ParamType>& info) {
@@ -221,16 +221,16 @@ TEST(SchemaUtilsTest, CommonSchemaBinary) {
   }
   {
     // Not a schema error.
-    EXPECT_THAT(CommonSchema(DataItem(1), DataItem(kText)),
+    EXPECT_THAT(CommonSchema(DataItem(1), DataItem(kString)),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          "expected Schema, got: 1"));
-    EXPECT_THAT(CommonSchema(DataItem(kText), DataItem(1)),
+    EXPECT_THAT(CommonSchema(DataItem(kString), DataItem(1)),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          "expected Schema, got: 1"));
   }
   {
     // No common schema error.
-    auto result = CommonSchema(kItemId, kText);
+    auto result = CommonSchema(kItemId, kString);
     EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                  "no common schema"));
     std::optional<Error> error = internal::GetErrorPayload(result.status());
@@ -421,7 +421,7 @@ TEST(SchemaUtilsTest, IsImplicitlyCastableTo) {
     EXPECT_FALSE(IsImplicitlyCastableTo(DataItem(schema::kInt64),
                                         DataItem(schema::kInt32)));
     EXPECT_FALSE(IsImplicitlyCastableTo(DataItem(schema::kInt32),
-                                        DataItem(schema::kText)));
+                                        DataItem(schema::kString)));
     EXPECT_FALSE(IsImplicitlyCastableTo(DataItem(schema::kInt32),
                                         DataItem(schema::kItemId)));
   }
@@ -507,7 +507,7 @@ TEST(SchemaUtilsTest, VerifySchemaForItemIds) {
   EXPECT_FALSE(VerifySchemaForItemIds(DataItem(schema::kFloat64)));
   EXPECT_FALSE(VerifySchemaForItemIds(DataItem(schema::kBool)));
   EXPECT_FALSE(VerifySchemaForItemIds(DataItem(schema::kBytes)));
-  EXPECT_FALSE(VerifySchemaForItemIds(DataItem(schema::kText)));
+  EXPECT_FALSE(VerifySchemaForItemIds(DataItem(schema::kString)));
   EXPECT_FALSE(VerifySchemaForItemIds(DataItem(schema::kExpr)));
   EXPECT_FALSE(VerifySchemaForItemIds(DataItem(schema::kMask)));
 }

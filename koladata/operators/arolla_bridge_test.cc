@@ -159,8 +159,8 @@ TEST(ArollaEval, SimplePointwiseEval) {
   }
   {
     // Large arity.
-    DataSlice fmt = test::DataItem(arolla::Text("%s"), schema::kText);
-    DataSlice v = test::DataItem(arolla::Text("foo"), schema::kText);
+    DataSlice fmt = test::DataItem(arolla::Text("%s"), schema::kString);
+    DataSlice v = test::DataItem(arolla::Text("foo"), schema::kString);
     std::vector<DataSlice> args = {fmt};
     for (int i = 0; i < 30; ++i) {
       args.push_back(v);
@@ -268,7 +268,8 @@ TEST(ArollaEval, SimplePointwiseEval) {
   {
     // Arolla op compilation error.
     DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
-    DataSlice y = test::DataSlice<arolla::Text>({"1", "2", "3"}, schema::kText);
+    DataSlice y =
+        test::DataSlice<arolla::Text>({"1", "2", "3"}, schema::kString);
     auto status = SimplePointwiseEval("math.add", {x, y}).status();
     EXPECT_THAT(
         status,
@@ -311,7 +312,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
     DataSlice x = test::DataSlice<arolla::Text>(
         {"foo", "bar", std::nullopt, "baz"}, x_shape, schema::kObject);
     DataSlice substr = test::DataSlice<arolla::Text>({"oo", "ar", "ee", "baz"},
-                                                     x_shape, schema::kText);
+                                                     x_shape, schema::kString);
     DataSlice start = test::DataSlice<int>({1, 2, 0}, schema::kInt32);
     DataSlice end = test::DataSlice<int>(
         {std::nullopt, std::nullopt, std::nullopt}, schema::kInt32);
@@ -353,7 +354,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
     DataSlice x = test::DataSlice<arolla::Text>(
         {"foo", "bar", std::nullopt, "baz"}, x_shape, schema::kObject);
     DataSlice substr = test::DataSlice<arolla::Text>({"oo", "ar", "ee", "baz"},
-                                                     x_shape, schema::kText);
+                                                     x_shape, schema::kString);
     DataSlice start = test::DataSlice<int>({1, 2, 0}, schema::kInt32);
     // This schema is unknown:
     DataSlice end = test::DataSlice<int>(
@@ -374,7 +375,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
     DataSlice x = test::DataSlice<arolla::Text>(
         {"foo", "bar", std::nullopt, "baz"}, x_shape, schema::kObject);
     DataSlice substr = test::DataSlice<arolla::Text>({"oo", "ar", "ee", "baz"},
-                                                     x_shape, schema::kText);
+                                                     x_shape, schema::kString);
     DataSlice start = test::DataSlice<int>({1, 2, 0}, schema::kInt32);
     // This has no primitive schema:
     DataSlice end =
@@ -722,8 +723,8 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataItem) {
         GetPrimitiveArollaSchema(test::DataItem(std::nullopt, schema::kInt32)),
         IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
     EXPECT_THAT(
-        GetPrimitiveArollaSchema(test::DataItem(std::nullopt, schema::kText)),
-        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+        GetPrimitiveArollaSchema(test::DataItem(std::nullopt, schema::kString)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kString))));
   }
   {
     // Present values with OBJECT / ANY schema.
@@ -733,7 +734,7 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataItem) {
     EXPECT_THAT(
         GetPrimitiveArollaSchema(
             test::DataItem(arolla::Text("foo"), schema::kAny)),
-        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kString))));
   }
   {
     // Present values with corresponding schema schema.
@@ -742,8 +743,8 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataItem) {
         IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
     EXPECT_THAT(
         GetPrimitiveArollaSchema(
-            test::DataItem(arolla::Text("foo"), schema::kText)),
-        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+            test::DataItem(arolla::Text("foo"), schema::kString)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kString))));
   }
   {
     // Entity schema error.
@@ -780,8 +781,8 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataSlice) {
         GetPrimitiveArollaSchema(test::EmptyDataSlice(3, schema::kInt32)),
         IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
     EXPECT_THAT(
-        GetPrimitiveArollaSchema(test::EmptyDataSlice(3, schema::kText)),
-        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+        GetPrimitiveArollaSchema(test::EmptyDataSlice(3, schema::kString)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kString))));
   }
   {
     // Present values with OBJECT / ANY schema.
@@ -791,7 +792,7 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataSlice) {
     EXPECT_THAT(
         GetPrimitiveArollaSchema(
             test::DataSlice<arolla::Text>({"foo"}, schema::kAny)),
-        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kString))));
   }
   {
     // Present values with corresponding schema schema.
@@ -800,8 +801,8 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataSlice) {
         IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
     EXPECT_THAT(
         GetPrimitiveArollaSchema(
-            test::DataSlice<arolla::Text>({"foo"}, schema::kText)),
-        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kText))));
+            test::DataSlice<arolla::Text>({"foo"}, schema::kString)),
+        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kString))));
   }
   {
     // Entity schema error.

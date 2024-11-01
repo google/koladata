@@ -89,7 +89,7 @@ class FormatOperator : public arolla::QExprOperator {
         auto arg_names_slice,
         DataSlice::Create(
             internal::DataItem(arolla::Text(absl::StrJoin(attr_names, ","))),
-            internal::DataItem(schema::kText)));
+            internal::DataItem(schema::kString)));
     return arolla::MakeBoundOperator(
         [arg_names_slice = std::move(arg_names_slice),
          attr_names = std::move(attr_names),
@@ -207,7 +207,7 @@ absl::StatusOr<DataSlice> Length(const DataSlice& x) {
 absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
   // TODO: Add support for BYTES.
   return SimplePointwiseEval("strings.lower", {x},
-                             internal::DataItem(schema::kText));
+                             internal::DataItem(schema::kString));
 }
 
 absl::StatusOr<DataSlice> Lstrip(const DataSlice& s, const DataSlice& chars) {
@@ -236,7 +236,7 @@ absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
   ASSIGN_OR_RETURN(
       arolla::TypedRef text_ref,
       DataSliceToOwnedArollaRef(text, typed_value_holder,
-                                internal::DataItem(schema::kText)));
+                                internal::DataItem(schema::kString)));
   arolla::TypedValue typed_regex =
       arolla::TypedValue::FromValue(regex.item().value<arolla::Text>());
   ASSIGN_OR_RETURN(arolla::TypedValue result,
@@ -266,7 +266,7 @@ absl::StatusOr<DataSlice> RegexMatch(const DataSlice& text,
   ASSIGN_OR_RETURN(
       arolla::TypedRef text_ref,
       DataSliceToOwnedArollaRef(text, typed_value_holder,
-                                internal::DataItem(schema::kText)));
+                                internal::DataItem(schema::kString)));
   arolla::TypedValue typed_regex =
       arolla::TypedValue::FromValue(regex.item().value<arolla::Text>());
   ASSIGN_OR_RETURN(arolla::TypedValue result,
@@ -377,7 +377,7 @@ absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
 absl::StatusOr<DataSlice> Upper(const DataSlice& x) {
   // TODO: Add support for BYTES.
   return SimplePointwiseEval("strings.upper", {x},
-                             internal::DataItem(schema::kText));
+                             internal::DataItem(schema::kString));
 }
 
 }  // namespace koladata::ops

@@ -184,7 +184,7 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
       return arolla::python::StatusCausedByPyErr(
           absl::StatusCode::kInvalidArgument, "invalid unicode object");
     }
-    schema_agg.Add(schema::kText);
+    schema_agg.Add(schema::kString);
     callback(DataItem::View<Text>(absl::string_view(data, size)));
     return absl::OkStatus();
   }
@@ -795,7 +795,7 @@ class UniversalConverter {
         DataSlice::Create(
             internal::DataSliceImpl::Create(attr_names),
             DataSlice::JaggedShape::FlatFromSize(attr_names.size()),
-            internal::DataItem(schema::kText)));
+            internal::DataItem(schema::kString)));
     cmd_stack_.push([this, attr_names_ds = std::move(attr_names_ds)] {
       this->value_stack_.push(attr_names_ds);
       return absl::OkStatus();

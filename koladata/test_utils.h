@@ -71,7 +71,7 @@ schema::DType DeduceSchema() {
 template <typename T>
 koladata::DataSlice DataItem(T data, DataBagPtr db = nullptr) {
   if constexpr (std::is_same_v<T, const char*>) {
-    return DataItem(data, schema::kText, db);
+    return DataItem(data, schema::kString, db);
   } else {
     return DataItem(data, DeduceSchema<T>(), db);
   }

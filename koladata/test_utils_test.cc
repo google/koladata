@@ -58,7 +58,7 @@ TEST(TestUtils, DataItem_Text) {
   auto item = test::DataItem("abc");
   ASSERT_OK_AND_ASSIGN(
       auto expected_item,
-      DataSlice::Create(DataItem(Text("abc")), DataItem(schema::kText)));
+      DataSlice::Create(DataItem(Text("abc")), DataItem(schema::kString)));
   EXPECT_THAT(item, IsEquivalentTo(expected_item));
 
   item = test::DataItem("abc", schema::kAny);
@@ -152,8 +152,7 @@ TEST(TestUtils, DataSlice_SpanText) {
       DataSlice::Create(
           DataSliceImpl::Create(
               CreateDenseArray<Text>({Text("abc"), std::nullopt, Text("xyz")})),
-          DataSlice::JaggedShape::FlatFromSize(3),
-          DataItem(schema::kText)));
+          DataSlice::JaggedShape::FlatFromSize(3), DataItem(schema::kString)));
   EXPECT_THAT(ds, IsEquivalentTo(expected_ds));
 }
 

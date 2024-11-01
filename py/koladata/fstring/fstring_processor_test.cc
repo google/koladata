@@ -41,11 +41,11 @@ using ::absl_testing::StatusIs;
 using ::koladata::internal::DataItem;
 using ::koladata::schema::kFloat64;
 using ::koladata::schema::kInt64;
-using ::koladata::schema::kText;
+using ::koladata::schema::kString;
 using ::koladata::testing::IsEquivalentTo;
 
 auto TextToDs(absl::string_view text) {
-  return DataSlice::Create(DataItem(arolla::Text(text)), DataItem(kText))
+  return DataSlice::Create(DataItem(arolla::Text(text)), DataItem(kString))
       .value();
 }
 

@@ -278,7 +278,7 @@ absl::StatusOr<DataSlice> ConcatOrStackImpl(bool stack, int64_t ndim,
 
 absl::StatusOr<absl::string_view> GetAttrNameAsStr(const DataSlice& attr_name) {
   if (attr_name.GetShape().rank() != 0 ||
-      attr_name.dtype() != schema::kText.qtype()) {
+      attr_name.dtype() != schema::kString.qtype()) {
     return absl::InvalidArgumentError(
         absl::StrCat("attr_name in kd.get_attr expects STRING, got: ",
                      arolla::Repr(attr_name)));
@@ -1774,7 +1774,7 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
 absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds) {
   ASSIGN_OR_RETURN(auto res,
                    DataSliceOp<internal::EncodeItemId>()(
-                       ds, ds.GetShape(), internal::DataItem(schema::kText),
+                       ds, ds.GetShape(), internal::DataItem(schema::kString),
                        /*db=*/nullptr),
                    internal::OperatorEvalError(
                        std::move(_), "kd.encode_itemid",

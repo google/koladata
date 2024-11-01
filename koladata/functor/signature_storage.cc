@@ -46,7 +46,7 @@ namespace {
 absl::StatusOr<DataSlice> MakeParameterKindConstant(absl::string_view name) {
   ASSIGN_OR_RETURN(auto name_attr,
                    DataSlice::Create(internal::DataItem(arolla::Text(name)),
-                                     internal::DataItem(schema::kText)));
+                                     internal::DataItem(schema::kString)));
   ASSIGN_OR_RETURN(auto res, CreateUu(DataBag::Empty(), "__parameter_kind__",
                                       {"kind"}, {name_attr}));
   return res.Freeze();
@@ -118,7 +118,7 @@ absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
     ASSIGN_OR_RETURN(
         auto name,
         DataSlice::Create(internal::DataItem(arolla::Text(param.name)),
-                          internal::DataItem(schema::kText)));
+                          internal::DataItem(schema::kString)));
     DataSlice default_value;
     if (param.default_value.has_value()) {
       default_value = param.default_value.value();

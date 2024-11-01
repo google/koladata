@@ -240,7 +240,7 @@ constexpr DType kFloat64 = GetDType<double>();
 constexpr DType kBool = GetDType<bool>();
 constexpr DType kMask = GetDType<arolla::Unit>();
 constexpr DType kBytes = GetDType<arolla::Bytes>();
-constexpr DType kText = GetDType<arolla::Text>();
+constexpr DType kString = GetDType<arolla::Text>();
 constexpr DType kExpr = GetDType<arolla::expr::ExprQuote>();
 
 // Special meaning DTypes.

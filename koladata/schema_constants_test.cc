@@ -29,22 +29,12 @@ TEST(SchemaConstants, Schemas) {
     EXPECT_EQ(schema_const.GetSchemaImpl(), schema::kSchema);
   }
 
-  EXPECT_THAT(schema_vals,
-              ::testing::UnorderedElementsAre(
-                  schema::kInt32,
-                  schema::kInt64,
-                  schema::kFloat32,
-                  schema::kFloat64,
-                  schema::kBool,
-                  schema::kMask,
-                  schema::kBytes,
-                  schema::kText,
-                  schema::kExpr,
-                  schema::kAny,
-                  schema::kItemId,
-                  schema::kObject,
-                  schema::kSchema,
-                  schema::kNone));
+  EXPECT_THAT(schema_vals, ::testing::UnorderedElementsAre(
+                               schema::kInt32, schema::kInt64, schema::kFloat32,
+                               schema::kFloat64, schema::kBool, schema::kMask,
+                               schema::kBytes, schema::kString, schema::kExpr,
+                               schema::kAny, schema::kItemId, schema::kObject,
+                               schema::kSchema, schema::kNone));
 }
 
 }  // namespace

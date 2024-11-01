@@ -220,7 +220,7 @@ TEST(FromProtoTest, EmptyMessage_ExplicitSchema) {
               test::Schema(schema::kInt64),   test::Schema(schema::kInt64),
               test::Schema(schema::kFloat64), test::Schema(schema::kFloat32),
               test::Schema(schema::kBool),    test::Schema(schema::kInt32),
-              test::Schema(schema::kText),    test::Schema(schema::kBytes),
+              test::Schema(schema::kString),  test::Schema(schema::kBytes),
               test::Schema(schema::kObject),  test::Schema(schema::kObject),
               test::Schema(schema::kObject),  test::Schema(schema::kObject),
               test::Schema(schema::kObject),  test::Schema(schema::kObject),
@@ -451,7 +451,7 @@ TEST(FromProtoTest, AllFieldTypes_NoProvidedSchema) {
               *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
               *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 3),
           }),
-          schema::kText, db))));
+          schema::kString, db))));
   EXPECT_THAT(
       result.GetAttr("repeated_bytes_field")->ExplodeList(0, std::nullopt),
       IsOkAndHolds(IsEquivalentTo(test::DataSlice<arolla::Bytes>(
@@ -472,7 +472,7 @@ TEST(FromProtoTest, AllFieldTypes_NoProvidedSchema) {
                       *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
                       *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 3),
                   }),
-                  schema::kText, db))));
+                  schema::kString, db))));
 
   // Map scalar fields.
   EXPECT_THAT(
@@ -499,14 +499,14 @@ TEST(FromProtoTest, AllFieldTypes_NoProvidedSchema) {
                   *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
                   *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 4),
               }),
-              schema::kText, db)),
+              schema::kString, db)),
       IsOkAndHolds(IsEquivalentTo(test::DataSlice<arolla::Text>(
           {"w", "y", std::nullopt, ""},
           *DataSlice::JaggedShape::FromEdges({
               *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
               *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 4),
           }),
-          schema::kText, db))));
+          schema::kString, db))));
 
   // Map message fields.
   EXPECT_THAT(

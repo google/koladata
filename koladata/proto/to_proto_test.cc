@@ -342,7 +342,7 @@ TEST(ToProtoTest, InvalidFieldType) {
     auto slice =
         *ObjectCreator::FromAttrs(
              db, {"int32_field"},
-             {test::DataItem("hello", test::Schema(schema::kText).item())})
+             {test::DataItem("hello", test::Schema(schema::kString).item())})
              ->Reshape(DataSlice::JaggedShape::FlatFromSize(1));
     koladata::testing::ExampleMessage message;
     EXPECT_THAT(ToProto(slice, {&message}),
@@ -355,7 +355,7 @@ TEST(ToProtoTest, InvalidFieldType) {
     auto slice =
         *ObjectCreator::FromAttrs(
              db, {"bytes_field"},
-             {test::DataItem("hello", test::Schema(schema::kText).item())})
+             {test::DataItem("hello", test::Schema(schema::kString).item())})
              ->Reshape(DataSlice::JaggedShape::FlatFromSize(1));
     koladata::testing::ExampleMessage message;
     EXPECT_THAT(ToProto(slice, {&message}),

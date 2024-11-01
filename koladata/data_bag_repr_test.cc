@@ -151,7 +151,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
-                       CreateDictSchema(bag, test::Schema(schema::kText),
+                       CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kInt64)));
   ASSERT_OK_AND_ASSIGN(
       auto data_slice,
@@ -258,7 +258,7 @@ TEST(DataBagReprTest,
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
-                       CreateDictSchema(bag, test::Schema(schema::kText),
+                       CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kInt64)));
   ASSERT_OK_AND_ASSIGN(
       auto data_slice,
@@ -282,7 +282,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_TripleLimit_SchemaBag) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
-                       CreateDictSchema(bag, test::Schema(schema::kText),
+                       CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kInt64)));
   ASSERT_OK_AND_ASSIGN(
       auto data_slice,
