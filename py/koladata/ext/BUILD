@@ -37,7 +37,6 @@ py_library(
 py_test(
     name = "npkd_test",
     srcs = ["npkd_test.py"],
-    tags = ["nooss"],
     deps = [
         ":npkd",
         "//py/koladata:kd",
