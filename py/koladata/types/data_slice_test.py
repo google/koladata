@@ -1342,13 +1342,6 @@ foo.get_obj_schema().x = <desired_schema>"""),
     schema = db.new(x=1, y='abc').get_schema()
     testing.assert_equal(x.with_schema(schema).get_schema(), schema)
 
-    db_2 = bag()
-    schema = db_2.new(x=1, y='abc').get_schema()
-    with self.assertRaisesRegex(
-        ValueError, 'with_schema does not accept schemas with different DataBag'
-    ):
-      x.with_schema(schema)
-
     non_schema = db.new().with_schema(schema_constants.SCHEMA)
     with self.assertRaisesRegex(
         ValueError, 'schema must contain either a DType or valid schema ItemId'

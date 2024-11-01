@@ -80,6 +80,7 @@ using ::testing::ElementsAreArray;
 using ::testing::Eq;
 using ::testing::HasSubstr;
 using ::testing::MatchesRegex;
+using ::testing::Not;
 using ::testing::Property;
 
 internal::DataItem kAnySchema(schema::kAny);
@@ -684,42 +685,51 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
   }
   {
     // Entity slice consistency.
-    auto entity_schema = test::Schema(internal::AllocateExplicitSchema());
-    auto ds = test::AllocateDataSlice(3, schema::kAny);
+    ASSERT_OK_AND_ASSIGN(
+        auto entity_schema,
+        CreateSchema(DataBag::Empty(), {"a"}, {test::Schema(schema::kInt32)}));
+    auto entity = test::AllocateDataSlice(3, schema::kAny);
 
-    ASSERT_OK_AND_ASSIGN(auto res, ds.WithSchema(entity_schema));
-    EXPECT_THAT(res.GetSchema(), IsEquivalentTo(entity_schema));
+    ASSERT_OK_AND_ASSIGN(auto res, entity.WithSchema(entity_schema));
+    EXPECT_THAT(res.GetBag(), Not(Eq(entity_schema.GetBag())));
+    EXPECT_THAT(res.GetSchema(),
+                IsEquivalentTo(entity_schema.WithBag(res.GetBag())));
 
-    auto db1 = DataBag::Empty();
-    auto db2 = DataBag::Empty();
-    auto schema_with_db = entity_schema.WithBag(db1);
-    EXPECT_THAT(ds.WithSchema(schema_with_db),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("with_schema does not accept schemas with "
-                                   "different DataBag attached")));
-    EXPECT_THAT(ds.WithBag(db2).WithSchema(schema_with_db),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("with_schema does not accept schemas with "
-                                   "different DataBag attached")));
+    ASSERT_OK_AND_ASSIGN(
+        entity,
+        EntityCreator::FromAttrs(DataBag::Empty(), {"b"}, {test::DataItem(42)},
+                                 entity_schema.WithBag(nullptr),
+                                 /*update_schema=*/true));
+    ASSERT_OK_AND_ASSIGN(res, entity.WithSchema(entity_schema));
+    internal::DataItem missing;
+    EXPECT_THAT(
+        res.GetAttr("a"),
+        IsOkAndHolds(IsEquivalentTo(
+            test::DataItem(missing, schema::kInt32).WithBag(res.GetBag()))));
+    EXPECT_THAT(
+        res.GetAttr("b"),
+        IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(res.GetBag()))));
 
-    ASSERT_OK_AND_ASSIGN(res, ds.WithBag(db1).WithSchema(schema_with_db));
-    EXPECT_THAT(res.GetSchema(), IsEquivalentTo(schema_with_db));
+    // Same Bag as entity_schema.
+    ASSERT_OK_AND_ASSIGN(
+        res, entity.WithBag(entity_schema.GetBag()).WithSchema(entity_schema));
+    EXPECT_THAT(res.GetBag(), Eq(entity_schema.GetBag()));
 
     auto int_schema = test::Schema(schema::kInt32);
-    EXPECT_THAT(ds.WithSchema(int_schema),
+    EXPECT_THAT(entity.WithSchema(int_schema),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("INT32 schema can only be assigned to a "
                                    "DataSlice that contains only primitives of "
                                    "INT32")));
 
-    ds = test::DataSlice<int>({1, 2, 3});
-    EXPECT_THAT(ds.WithSchema(entity_schema),
+    auto primitive_ds = test::DataSlice<int>({1, 2, 3});
+    EXPECT_THAT(primitive_ds.WithSchema(entity_schema),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("DataSlice with an Entity schema must hold "
                                    "Entities or Objects")));
 
     auto itemid_schema = test::Schema(schema::kItemId);
-    EXPECT_THAT(ds.WithSchema(itemid_schema),
+    EXPECT_THAT(primitive_ds.WithSchema(itemid_schema),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("ITEMID schema requires DataSlice to hold "
                                    "object ids.")));

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.schema.with_schema."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -35,11 +33,11 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
-db = data_bag.DataBag.empty()
-obj1 = db.obj()
-obj2 = db.obj()
-entity1 = db.new()
-entity2 = db.new()
+bag = data_bag.DataBag.empty
+obj1 = bag().obj()
+obj2 = bag().obj()
+entity1 = bag().new()
+entity2 = bag().new()
 s1 = entity1.get_schema()
 s2 = entity2.get_schema()
 
@@ -97,6 +95,35 @@ class SchemaWithSchemaTest(parameterized.TestCase):
     res = expr_eval.eval(kde.schema.with_schema(x, schema))
     testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
 
+  def test_schema_from_different_bag(self):
+    entity = bag().new(a=1, b='x')
+    with self.assertRaisesRegex(ValueError, 'the attribute \'c\' is missing'):
+      _ = entity.c
+
+    new_bag = bag()
+    entity_with_new_bag = entity.with_bag(new_bag)
+    entity_with_new_bag.set_attr('non_extracted', 42, update_schema=True)
+    schema = entity.get_schema().with_bag(new_bag)
+    schema.c = schema_constants.BYTES
+
+    result = kde.schema.with_schema(entity, schema).eval()
+    testing.assert_equal(result.c.no_bag(), ds(None, schema_constants.BYTES))
+    # Schema is extracted before merging.
+    testing.assert_equal(
+        result.non_extracted.no_bag(), ds(None, schema_constants.INT32)
+    )
+
+    # NOTE: Invalidate the eval cache, because schema's fingerprint did NOT
+    # change, so the same `result` from above would be returned without forking.
+    schema = schema.fork_db()
+    schema.a = schema_constants.OBJECT
+    testing.assert_equal(entity.a.no_bag(), ds(1))  # still INT32
+    testing.assert_equal(
+        # Schema bag has precedence over entity's bag.
+        kde.schema.with_schema(entity, schema).eval().a.no_bag(),
+        ds(1, schema_constants.OBJECT)
+    )
+
   def test_errors(self):
     with self.assertRaisesRegex(
         ValueError,
@@ -117,12 +144,6 @@ class SchemaWithSchemaTest(parameterized.TestCase):
         ' primitives of INT64',
     ):
       expr_eval.eval(kde.schema.with_schema(entity1, schema_constants.INT64))
-
-    with self.assertRaisesRegex(
-        ValueError,
-        'with_schema does not accept schemas with different DataBag attached',
-    ):
-      expr_eval.eval(kde.schema.with_schema(data_bag.DataBag.empty().new(), s1))
 
     with self.assertRaisesRegex(
         ValueError,
