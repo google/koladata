@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_INTERNAL_OP_UTILS_REVERSE_SELECT_H_
-#define KOLADATA_INTERNAL_OP_UTILS_REVERSE_SELECT_H_
+#ifndef KOLADATA_INTERNAL_OP_UTILS_INVERSE_SELECT_H_
+#define KOLADATA_INTERNAL_OP_UTILS_INVERSE_SELECT_H_
 
 #include <cstdint>
 #include <optional>
@@ -23,8 +23,10 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/op_utils/utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_group_ops.h"
@@ -42,7 +44,9 @@
 
 namespace koladata::internal {
 
-struct ReverseSelectOp {
+struct InverseSelectOp {
+  static constexpr absl::string_view kInverseSelectOpName = "kd.inverse_select";
+
   absl::StatusOr<DataSliceImpl> operator()(
       const DataSliceImpl& ds_impl,
       const arolla::JaggedDenseArrayShape& ds_shape,
@@ -56,9 +60,9 @@ struct ReverseSelectOp {
       presence_mask_array =
           arolla::CreateEmptyDenseArray<arolla::Unit>(filter.size());
     } else if (filter.dtype() != arolla::GetQType<arolla::Unit>()) {
-      return absl::InvalidArgumentError(
-          "second argument to operator reverse_select must have all items "
-          "of MASK dtype");
+      return OperatorEvalError(kInverseSelectOpName,
+                               "fltr argument must have all items "
+                               "of MASK dtype");
     } else {
       presence_mask_array = filter.values<arolla::Unit>();
     }
@@ -78,13 +82,12 @@ struct ReverseSelectOp {
                      arolla::JaggedDenseArrayShape::FromEdges(
                          std::move(filter_select_edges)));
     if (!filter_select_shape.IsEquivalentTo(ds_shape)) {
-      return absl::InvalidArgumentError(absl::StrCat(
-          "it is not possible to get the provided DataSlice after applying the "
-          "filter because the shape of the DataSlice is different from the "
-          "shape after "
-          "applying the filter. The shape of the DataSlice: ",
-          arolla::Repr(ds_shape), ", the shape after applying the filter: ",
-          arolla::Repr(filter_select_shape)));
+      return OperatorEvalError(
+          kInverseSelectOpName,
+          absl::StrCat("the shape of `ds` and the shape of the present elements"
+                       " in `fltr` do not match: ",
+                       arolla::Repr(ds_shape), " vs ",
+                       arolla::Repr(filter_select_shape)));
     }
 
     arolla::DenseArray<int64_t> present_indices =
@@ -115,14 +118,16 @@ struct ReverseSelectOp {
       const DataItem& filter,
       const arolla::JaggedDenseArrayShape& filter_shape) const {
     if (filter.has_value() && !filter.holds_value<arolla::Unit>()) {
-      return absl::InvalidArgumentError(
-          "second argument to operator reverse_select must have all items "
-          "of MASK dtype");
+      return OperatorEvalError(kInverseSelectOpName,
+                               "fltr argument must have all items "
+                               "of MASK dtype");
     }
     if (ds_impl.has_value() != filter.has_value()) {
-      return absl::InvalidArgumentError(
-          "it is not possible to get the provided DataSlice after applying the "
-          "filter because both are DataItems but have different presences.");
+      return OperatorEvalError(
+          kInverseSelectOpName,
+          "the shape of `ds` and the shape of the present elements"
+          " in `fltr` do not match: because both are DataItems but have "
+          "different presences");
     }
     return ds_impl;
   };
@@ -137,4 +142,4 @@ struct ReverseSelectOp {
 
 }  // namespace koladata::internal
 
-#endif  // KOLADATA_INTERNAL_OP_UTILS_REVERSE_SELECT_H_
+#endif  // KOLADATA_INTERNAL_OP_UTILS_INVERSE_SELECT_H_

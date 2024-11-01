@@ -610,7 +610,7 @@ absl::Status FromProtoMessageField(
       vars->packed_values));
 
   executor.Enqueue([vars = std::move(vars), &result]() -> absl::Status {
-    ASSIGN_OR_RETURN(result, ops::ReverseSelect(std::move(*vars->packed_values),
+    ASSIGN_OR_RETURN(result, ops::InverseSelect(std::move(*vars->packed_values),
                                                 std::move(*vars->mask)));
     return absl::OkStatus();
   });

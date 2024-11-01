@@ -530,16 +530,22 @@ def reverse(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.reverse_select'])
+@optools.add_to_registry(
+    aliases=[
+        'kde.inverse_select',
+        'kde.core.reverse_select',
+        'kde.reverse_select',
+    ]
+)
 @optools.as_backend_operator(
-    'kde.core.reverse_select',
+    'kde.core.inverse_select',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def reverse_select(ds, fltr):  # pylint: disable=unused-argument
+def inverse_select(ds, fltr):  # pylint: disable=unused-argument
   """Creates a DataSlice by putting items in ds to present positions in fltr.
 
   The shape of `ds` and the shape of `fltr` must have the same rank and the same
@@ -551,31 +557,31 @@ def reverse_select(ds, fltr):  # pylint: disable=unused-argument
   Example:
     ds = kd.slice([[1, None], [2]])
     fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
-    kd.reverse_select(ds, fltr) -> [[None, 1, None], [2, None]]
+    kd.inverse_select(ds, fltr) -> [[None, 1, None], [2, None]]
 
     ds = kd.slice([1, None, 2])
     fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
-    kd.reverse_select(ds, fltr) -> error due to different ranks
+    kd.inverse_select(ds, fltr) -> error due to different ranks
 
     ds = kd.slice([[1, None, 2]])
     fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
-    kd.reverse_select(ds, fltr) -> error due to different N-1 dimensions
+    kd.inverse_select(ds, fltr) -> error due to different N-1 dimensions
 
     ds = kd.slice([[1], [2]])
     fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
-    kd.reverse_select(ds, fltr) -> error due to incompatible shapes
+    kd.inverse_select(ds, fltr) -> error due to incompatible shapes
 
-  Note, in most cases, kd.reverse_select is not a strict reverse operation of
+  Note, in most cases, kd.inverse_select is not a strict reverse operation of
   kd.select as kd.select operation is lossy and does not require `ds` and `fltr`
   to have the same rank. That is,
-  kd.reverse_select(kd.select(ds, fltr), fltr) != ds.
+  kd.inverse_select(kd.select(ds, fltr), fltr) != ds.
 
-  The most common use case of kd.reverse_select is to restore the shape of the
+  The most common use case of kd.inverse_select is to restore the shape of the
   original DataSlice after applying kd.select and performing some operations on
   the subset of items in the original DataSlice. E.g.
     filtered_ds = kd.select(ds, fltr)
     # do something on filtered_ds
-    ds = kd.reverse_select(filtered_ds, fltr) | ds
+    ds = kd.inverse_select(filtered_ds, fltr) | ds
 
   Args:
     ds: DataSlice to be reverse filtered

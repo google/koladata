@@ -108,6 +108,7 @@ OPERATOR_FAMILY("kde.core.group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndicesSorted));
+OPERATOR("kde.core.inverse_select", InverseSelect);
 OPERATOR("kde.core.is_dict", IsDict);
 OPERATOR("kde.core.is_empty", IsEmpty);
 OPERATOR("kde.core.is_list", IsList);
@@ -126,7 +127,6 @@ OPERATOR_FAMILY("kde.core.obj_shaped",
                 std::make_unique<ObjShapedOperatorFamily>());
 OPERATOR("kde.core.ref", Ref);
 OPERATOR("kde.core.reverse", Reverse);
-OPERATOR("kde.core.reverse_select", ReverseSelect);
 OPERATOR("kde.core.stub", Stub);
 OPERATOR_FAMILY("kde.core.subslice",
                 std::make_unique<SubsliceOperatorFamily>());

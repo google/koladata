@@ -39,8 +39,8 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/op_utils/utils.h"
 #include "koladata/internal/schema_utils.h"
-#include "koladata/operators/utils.h"
 #include "koladata/shape_utils.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/registered_expr_operator.h"
@@ -290,18 +290,19 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     internal::DataItem output_schema,
     const std::optional<absl::Span<const int>>& primary_operand_indices) {
   DCHECK_GE(inputs.size(), 1);
-  ASSIGN_OR_RETURN(auto primary_operand_schema_info,
-                   GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices),
-                   OperatorEvalError(std::move(_), op_name, "invalid inputs"));
+  ASSIGN_OR_RETURN(
+      auto primary_operand_schema_info,
+      GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices),
+      internal::OperatorEvalError(std::move(_), op_name, "invalid inputs"));
   // All primary inputs are empty-and-unknown. We then skip evaluation and just
   // broadcast the first input to the common shape and common schema. It is the
   // caller's responsibility to make sure that the non-primary inputs have
   // acceptable schemas.
   if (!primary_operand_schema_info.first_primitive_schema.has_value()) {
-    ASSIGN_OR_RETURN(
-        auto common_shape, shape::GetCommonShape(inputs),
-        OperatorEvalError(std::move(_), op_name,
-                          "cannot align all inputs to a common shape"));
+    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(inputs),
+                     internal::OperatorEvalError(
+                         std::move(_), op_name,
+                         "cannot align all inputs to a common shape"));
     if (!output_schema.has_value()) {
       output_schema = std::move(primary_operand_schema_info.common_schema);
     }
@@ -314,8 +315,8 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
   ASSIGN_OR_RETURN(
       (auto [aligned_ds, aligned_shape]),
       shape::AlignNonScalars(std::move(inputs)),
-      OperatorEvalError(std::move(_), op_name,
-                        "cannot align all inputs to a common shape"));
+      internal::OperatorEvalError(std::move(_), op_name,
+                                  "cannot align all inputs to a common shape"));
   std::vector<arolla::TypedValue> typed_value_holder;
   std::vector<arolla::TypedRef> typed_refs;
   typed_value_holder.reserve(aligned_ds.size());
@@ -332,7 +333,7 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
   }
   ASSIGN_OR_RETURN(
       auto result, EvalExpr(op_name, typed_refs),
-      OperatorEvalError(
+      internal::OperatorEvalError(
           std::move(_), op_name,
           "successfully converted input DataSlice(s) to DenseArray(s) but "
           "failed to evaluate the Arolla operator"));

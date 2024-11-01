@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.reverse_select."""
+import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -40,7 +41,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreReverseSelectTest(parameterized.TestCase):
+class CoreInverseSelectTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
@@ -104,13 +105,13 @@ class CoreReverseSelectTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, values, fltr, expected):
-    result = expr_eval.eval(kde.core.reverse_select(values, fltr))
+    result = expr_eval.eval(kde.core.inverse_select(values, fltr))
     testing.assert_equal(result, expected)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.reverse_select,
+            kde.core.inverse_select,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
@@ -118,44 +119,57 @@ class CoreReverseSelectTest(parameterized.TestCase):
 
   def test_invalid_type_error(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'the schema of the filter DataSlice should only be Any, Object or Mask',
+        exceptions.KodaError,
+        'kd.inverse_select failed during evaluation: the schema of the fltr'
+        ' DataSlice should only be Any, Object or Mask',
     ):
-      expr_eval.eval(kde.core.reverse_select(ds([1]), ds([1, 2])))
+      expr_eval.eval(kde.core.inverse_select(ds([1]), ds([1, 2])))
 
     with self.assertRaisesRegex(
-        ValueError,
-        'second argument to operator reverse_select must have all items of MASK'
-        ' dtype',
+        exceptions.KodaError,
+        'operator kd.inverse_select failed during evaluation: fltr argument'
+        ' must have all items of MASK dtype',
     ):
-      expr_eval.eval(kde.core.reverse_select(ds([1]), ds([1, 2]).as_any()))
+      expr_eval.eval(kde.core.inverse_select(ds([1]), ds([1, 2]).as_any()))
 
   def test_invalid_shape_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'the rank of the ds and filter DataSlice must be the same'
+        exceptions.KodaError,
+        re.escape(
+            'operator kd.inverse_select failed during evaluation: the rank of'
+            ' the ds and fltr DataSlice must be the same. Got rank(ds): 0,'
+            ' rank(fltr): 1'
+        ),
     ):
       expr_eval.eval(
-          kde.core.reverse_select(ds(1), ds([arolla.present(), None]))
+          kde.core.inverse_select(ds(1), ds([arolla.present(), None]))
       )
 
     with self.assertRaisesRegex(
-        ValueError,
-        'the shape of the DataSlice is different from the shape after applying'
-        ' the filter.',
+        exceptions.KodaError,
+        re.escape(
+            'operator kd.inverse_select failed during evaluation: the shape of'
+            ' `ds` and the shape of the present elements in `fltr` do not'
+            ' match: JaggedShape(2) vs JaggedShape(1)'
+        ),
     ):
       expr_eval.eval(
-          kde.core.reverse_select(
+          kde.core.inverse_select(
               ds([1, 2]), ds([arolla.present(), None, None])
           )
       )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.reverse_select(I.x, I.y)))
+    self.assertTrue(view.has_data_slice_view(kde.core.inverse_select(I.x, I.y)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.reverse_select, kde.reverse_select)
+        optools.equiv_to_op(kde.core.inverse_select, kde.inverse_select)
     )
+    self.assertTrue(
+        optools.equiv_to_op(kde.core.reverse_select, kde.inverse_select)
+    )
+    self.assertTrue(optools.equiv_to_op(kde.reverse_select, kde.inverse_select))
 
 
 if __name__ == '__main__':

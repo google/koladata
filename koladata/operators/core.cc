@@ -55,11 +55,12 @@
 #include "koladata/internal/op_utils/deep_clone.h"
 #include "koladata/internal/op_utils/deep_uuid.h"
 #include "koladata/internal/op_utils/extract.h"
+#include "koladata/internal/op_utils/inverse_select.h"
 #include "koladata/internal/op_utils/itemid.h"
 #include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/internal/op_utils/reverse.h"
-#include "koladata/internal/op_utils/reverse_select.h"
 #include "koladata/internal/op_utils/select.h"
+#include "koladata/internal/op_utils/utils.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/arolla_bridge.h"
@@ -624,7 +625,7 @@ absl::StatusOr<std::optional<int64_t>> GetSliceArg(
     auto& ds = frame.Get(field.UnsafeToSlot<DataSlice>());
     ASSIGN_OR_RETURN(
         auto res, ToArollaScalar<int64_t>(ds),
-        OperatorEvalError(
+        internal::OperatorEvalError(
             kSubsliceOperatorName,
             absl::StrCat(
                 "cannot subslice DataSlice 'x', if slice argument is a "
@@ -632,7 +633,8 @@ absl::StatusOr<std::optional<int64_t>> GetSliceArg(
                 arolla::Repr(ds))));
     return res;
   } else {
-    return OperatorEvalError(kSubsliceOperatorName, "invalid slice argument.");
+    return internal::OperatorEvalError(kSubsliceOperatorName,
+                                       "invalid slice argument.");
   }
 }
 
@@ -655,7 +657,7 @@ absl::StatusOr<std::vector<SlicingArgType>> ExtractSlicingArgs(
   }
 
   if (slices.size() > x_rank) {
-    return OperatorEvalError(
+    return internal::OperatorEvalError(
         kSubsliceOperatorName,
         absl::StrFormat("cannot subslice DataSlice 'x' as the number of "
                         "provided non-ellipsis slicing arguments is larger "
@@ -829,9 +831,10 @@ absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
           ? std::nullopt
           : std::make_optional(flattened_shape.edges().back());
   auto x_to_common = x_shape.edges().back();
-  ASSIGN_OR_RETURN(auto index_array, ToArollaDenseArray<int64_t>(indices),
-                   OperatorEvalError(std::move(_), kTakeOperatorName,
-                                     "invalid indices DataSlice is provided"));
+  ASSIGN_OR_RETURN(
+      auto index_array, ToArollaDenseArray<int64_t>(indices),
+      internal::OperatorEvalError(std::move(_), kTakeOperatorName,
+                                  "invalid indices DataSlice is provided"));
 
   return DataSlice::Create(
       internal::AtOp(x.slice(), index_array, x_to_common, indices_to_common),
@@ -1769,26 +1772,26 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
 }
 
 absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds) {
-  ASSIGN_OR_RETURN(
-      auto res,
-      DataSliceOp<internal::EncodeItemId>()(ds, ds.GetShape(),
-                                            internal::DataItem(schema::kText),
-                                            /*db=*/nullptr),
-      OperatorEvalError(std::move(_), "kd.encode_itemid",
-                        absl::StrFormat("only ObjectIds can be encoded, got %v",
-                                        ds.GetSchemaImpl())));
+  ASSIGN_OR_RETURN(auto res,
+                   DataSliceOp<internal::EncodeItemId>()(
+                       ds, ds.GetShape(), internal::DataItem(schema::kText),
+                       /*db=*/nullptr),
+                   internal::OperatorEvalError(
+                       std::move(_), "kd.encode_itemid",
+                       absl::StrFormat("only ObjectIds can be encoded, got %v",
+                                       ds.GetSchemaImpl())));
   return std::move(res);
 }
 
 absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds) {
-  ASSIGN_OR_RETURN(
-      auto res,
-      DataSliceOp<internal::DecodeItemId>()(ds, ds.GetShape(),
-                                            internal::DataItem(schema::kItemId),
-                                            /*db=*/nullptr),
-      OperatorEvalError(std::move(_), "kd.decode_itemid",
-                        absl::StrFormat("only STRING can be decoded, got %v",
-                                        ds.GetSchemaImpl())));
+  ASSIGN_OR_RETURN(auto res,
+                   DataSliceOp<internal::DecodeItemId>()(
+                       ds, ds.GetShape(), internal::DataItem(schema::kItemId),
+                       /*db=*/nullptr),
+                   internal::OperatorEvalError(
+                       std::move(_), "kd.decode_itemid",
+                       absl::StrFormat("only STRING can be decoded, got %v",
+                                       ds.GetSchemaImpl())));
   return std::move(res);
 }
 
@@ -1854,29 +1857,33 @@ absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
   });
 }
 
-absl::StatusOr<DataSlice> ReverseSelect(const DataSlice& ds,
+absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,
                                         const DataSlice& filter) {
+  constexpr absl::string_view kInverseSelectOpName = "kd.inverse_select";
   const internal::DataItem& schema = filter.GetSchemaImpl();
 
   if (schema != schema::kAny && schema != schema::kObject &&
       schema != schema::kMask) {
-    return absl::InvalidArgumentError(
-        "the schema of the filter DataSlice should only be Any, Object or "
+    return internal::OperatorEvalError(
+        kInverseSelectOpName,
+        "the schema of the fltr DataSlice should only be Any, Object or "
         "Mask");
   }
   auto ds_shape = ds.GetShape();
   auto filter_shape = filter.GetShape();
   if (ds_shape.rank() != filter_shape.rank()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "the rank of the ds and filter DataSlice must be the same. Got "
-        "rank(ds): ",
-        ds_shape.rank(), ", rank(filter): ", filter_shape.rank()));
+    return internal::OperatorEvalError(
+        kInverseSelectOpName,
+        absl::StrCat(
+            "the rank of the ds and fltr DataSlice must be the same. Got "
+            "rank(ds): ",
+            ds_shape.rank(), ", rank(fltr): ", filter_shape.rank()));
   }
   return ds.VisitImpl([&](const auto& ds_impl) {
     return filter.VisitImpl(
         [&](const auto& filter_impl) -> absl::StatusOr<DataSlice> {
           ASSIGN_OR_RETURN(
-              auto res, internal::ReverseSelectOp()(ds_impl, ds_shape,
+              auto res, internal::InverseSelectOp()(ds_impl, ds_shape,
                                                     filter_impl, filter_shape));
           return DataSlice::Create(std::move(res), filter_shape,
                                    ds.GetSchemaImpl(), ds.GetBag());
@@ -2036,7 +2043,7 @@ absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(
     if (auto status =
             IsSliceQTypeValid(input_type, i - 1, ellipsis_pos_for_error);
         !status.ok()) {
-      return OperatorEvalError(
+      return internal::OperatorEvalError(
           kSubsliceOperatorName,
           absl::StrFormat("slicing argument at position %d is invalid: %s",
                           i - 1, status.message()));
@@ -2050,13 +2057,14 @@ absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(
 absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices) {
   const auto& x_shape = x.GetShape();
   if (x_shape.rank() == 0) {
-    return OperatorEvalError(kTakeOperatorName, "DataItem is not supported.");
+    return internal::OperatorEvalError(kTakeOperatorName,
+                                       "DataItem is not supported.");
   }
   const auto shape_for_expansion = x_shape.RemoveDims(x_shape.rank() - 1);
   const auto& indices_shape = indices.GetShape();
   if (indices_shape.rank() >= shape_for_expansion.rank()) {
     if (!shape_for_expansion.IsBroadcastableTo(indices_shape)) {
-      return OperatorEvalError(
+      return internal::OperatorEvalError(
           kTakeOperatorName,
           absl::StrFormat(
               "DataSlice with shape=%s cannot be expanded to shape=%s; kd.at "
@@ -2068,11 +2076,12 @@ absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices) {
     return AtImpl(x, indices);
   } else {
     // Expand indices if rank(indices_shape) < rank(shape_for_expansion).
-    ASSIGN_OR_RETURN(
-        auto expanded_indices, BroadcastToShape(indices, shape_for_expansion),
-        OperatorEvalError(std::move(_), kTakeOperatorName,
-                          "indices must be broadcastable to shape(x)[:-1] when "
-                          "ndim(x) - 1 > ndim(indices)"));
+    ASSIGN_OR_RETURN(auto expanded_indices,
+                     BroadcastToShape(indices, shape_for_expansion),
+                     internal::OperatorEvalError(
+                         std::move(_), kTakeOperatorName,
+                         "indices must be broadcastable to shape(x)[:-1] when "
+                         "ndim(x) - 1 > ndim(indices)"));
     return AtImpl(x, expanded_indices);
   }
 }
@@ -2097,14 +2106,15 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
   constexpr absl::string_view kOperatorName = "kd.translate";
 
   const auto& from_shape = keys_from.GetShape();
-  ASSIGN_OR_RETURN(
-      auto expanded_values_from, BroadcastToShape(values_from, from_shape),
-      OperatorEvalError(std::move(_), kOperatorName,
-                        "values_from must be broadcastable to keys_from"));
+  ASSIGN_OR_RETURN(auto expanded_values_from,
+                   BroadcastToShape(values_from, from_shape),
+                   internal::OperatorEvalError(
+                       std::move(_), kOperatorName,
+                       "values_from must be broadcastable to keys_from"));
 
   const auto& to_shape = keys_to.GetShape();
   if (to_shape.rank() == 0 || from_shape.rank() == 0) {
-    return OperatorEvalError(
+    return internal::OperatorEvalError(
         kOperatorName,
         "keys_to, keys_from and values_from must have at least one dimension");
   }
@@ -2112,16 +2122,17 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
   auto shape_without_last_dim = to_shape.RemoveDims(to_shape.rank() - 1);
   if (!from_shape.RemoveDims(from_shape.rank() - 1)
            .IsEquivalentTo(shape_without_last_dim)) {
-    return OperatorEvalError(
+    return internal::OperatorEvalError(
         kOperatorName,
         "keys_from and keys_to must have the same dimensions except the last "
         "one");
   }
 
-  ASSIGN_OR_RETURN(
-      auto casted_keys_to, CastToNarrow(keys_to, keys_from.GetSchemaImpl()),
-      OperatorEvalError(std::move(_), kOperatorName,
-                        "keys_to schema must be castable to keys_from schema"));
+  ASSIGN_OR_RETURN(auto casted_keys_to,
+                   CastToNarrow(keys_to, keys_from.GetSchemaImpl()),
+                   internal::OperatorEvalError(
+                       std::move(_), kOperatorName,
+                       "keys_to schema must be castable to keys_from schema"));
 
   ASSIGN_OR_RETURN(auto false_item,
                    DataSlice::Create(internal::DataItem(false),
@@ -2129,7 +2140,7 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                      internal::DataItem(schema::kBool)));
   ASSIGN_OR_RETURN(auto unique_keys, Unique(keys_from, false_item));
   if (keys_from.present_count() != unique_keys.present_count()) {
-    return OperatorEvalError(
+    return internal::OperatorEvalError(
         kOperatorName,
         absl::StrFormat(
             "keys_from must be unique within each group of the last dimension: "

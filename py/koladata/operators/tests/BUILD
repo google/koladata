@@ -1661,9 +1661,10 @@ py_test(
 )
 
 py_test(
-    name = "core_reverse_select_test",
-    srcs = ["core_reverse_select_test.py"],
+    name = "core_inverse_select_test",
+    srcs = ["core_inverse_select_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

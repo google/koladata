@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/operators/utils.h"
+#include "koladata/internal/op_utils/utils.h"
 
 #include <optional>
 
@@ -23,7 +23,7 @@
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 
-namespace koladata::ops {
+namespace koladata::internal {
 namespace {
 
 using ::absl_testing::StatusIs;
@@ -77,4 +77,4 @@ TEST(OperatorEvalError, WithStatusContainingCause) {
 }
 
 }  // namespace
-}  // namespace koladata::ops
+}  // namespace koladata::internal

@@ -34,6 +34,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/op_utils/utils.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
@@ -359,12 +360,14 @@ absl::StatusOr<DataSlice> Strip(const DataSlice& s, const DataSlice& chars) {
 absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
                                  const DataSlice& end) {
   constexpr std::string_view kOperatorName = "strings.substr";
-  ASSIGN_OR_RETURN(
-      auto typed_start, CastToNarrow(start, internal::DataItem(schema::kInt64)),
-      OperatorEvalError(std::move(_), kOperatorName, "invalid start argument"));
-  ASSIGN_OR_RETURN(
-      auto typed_end, CastToNarrow(end, internal::DataItem(schema::kInt64)),
-      OperatorEvalError(std::move(_), kOperatorName, "invalid end argument"));
+  ASSIGN_OR_RETURN(auto typed_start,
+                   CastToNarrow(start, internal::DataItem(schema::kInt64)),
+                   internal::OperatorEvalError(std::move(_), kOperatorName,
+                                               "invalid start argument"));
+  ASSIGN_OR_RETURN(auto typed_end,
+                   CastToNarrow(end, internal::DataItem(schema::kInt64)),
+                   internal::OperatorEvalError(std::move(_), kOperatorName,
+                                               "invalid end argument"));
   return SimplePointwiseEval("strings.substr",
                              {x, std::move(typed_start), std::move(typed_end)},
                              /*output_schema=*/x.GetSchemaImpl(),

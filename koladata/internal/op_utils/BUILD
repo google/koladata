@@ -584,9 +584,10 @@ cc_library(
 )
 
 cc_library(
-    name = "reverse_select",
-    hdrs = ["reverse_select.h"],
+    name = "inverse_select",
+    hdrs = ["inverse_select.h"],
     deps = [
+        ":utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "@com_google_absl//absl/status",
@@ -741,10 +742,10 @@ cc_test(
 )
 
 cc_test(
-    name = "reverse_select_test",
-    srcs = ["reverse_select_test.cc"],
+    name = "inverse_select_test",
+    srcs = ["inverse_select_test.cc"],
     deps = [
-        ":reverse_select",
+        ":inverse_select",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:object_id",
@@ -798,6 +799,32 @@ cc_test(
     srcs = ["trampoline_executor_test.cc"],
     deps = [
         ":trampoline_executor",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "utils",
+    srcs = ["utils.cc"],
+    hdrs = ["utils.h"],
+    deps = [
+        "//koladata/internal:error_cc_proto",
+        "//koladata/internal:error_utils",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_test(
+    name = "utils_test",
+    srcs = ["utils_test.cc"],
+    deps = [
+        ":utils",
+        "//koladata/internal:error_cc_proto",
+        "//koladata/internal:error_utils",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_googletest//:gtest_main",

@@ -194,8 +194,8 @@ absl::StatusOr<DataSlice> Reverse(const DataSlice& obj);
 absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
                                  bool expand_filter);
 
-// kde.core.reverse_select.
-absl::StatusOr<DataSlice> ReverseSelect(const DataSlice& ds,
+// kde.core.inverse_select.
+absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,
                                         const DataSlice& filter);
 
 // kde.core._new_ids_like
