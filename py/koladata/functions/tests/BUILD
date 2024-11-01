@@ -594,20 +594,6 @@ py_test(
 )
 
 py_test(
-    name = "to_str_repr_test",
-    srcs = ["to_str_repr_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
     name = "update_schema_test",
     srcs = ["update_schema_test.py"],
     deps = [

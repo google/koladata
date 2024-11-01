@@ -81,9 +81,6 @@ to_pylist = _py_conversions.to_pylist
 to_py = _py_conversions.to_py
 to_pytree = _py_conversions.to_pytree
 
-to_str = _py_conversions.to_str
-to_repr = _py_conversions.to_repr
-
 from_proto = _proto_conversions.from_proto
 to_proto = _proto_conversions.to_proto
 
