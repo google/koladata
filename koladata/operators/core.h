@@ -112,9 +112,6 @@ absl::StatusOr<DataSlice> Collapse(const DataSlice& ds);
 absl::StatusOr<DataSlice> ConcatOrStack(
     absl::Span<const DataSlice* const> slices);
 
-// kde.core.dict_size.
-absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts);
-
 // kde.core._extract
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds, const DataSlice& schema);
 
@@ -152,26 +149,6 @@ inline absl::StatusOr<DataSlice> GetItem(const DataSlice& ds,
                                          const DataSlice& key_or_index) {
   return ds.GetItem(key_or_index);
 }
-
-// kde.core.get_keys.
-inline absl::StatusOr<DataSlice> GetKeys(const DataSlice& dict_ds) {
-  return dict_ds.GetDictKeys();
-}
-
-// kde.core._get_values.
-inline absl::StatusOr<DataSlice> GetValues(const DataSlice& dict_ds) {
-  return dict_ds.GetDictValues();
-}
-
-// kde.core._get_values_by_keys.
-inline absl::StatusOr<DataSlice> GetValuesByKeys(const DataSlice& dict_ds,
-                                                 const DataSlice& key_ds) {
-  return dict_ds.GetFromDict(key_ds);
-}
-
-// kde.core._dict_update
-absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
-                                      const DataSlice& values);
 
 // kde.core.group_by_indices.
 absl::StatusOr<DataSlice> GroupByIndices(
@@ -347,20 +324,6 @@ class UuOperatorFamily : public arolla::OperatorFamily {
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
-
-// kde.core._dict_shaped operator.
-absl::StatusOr<DataSlice> DictShaped(
-    const DataSlice::JaggedShape& shape, const DataSlice& keys,
-    const DataSlice& values, const DataSlice& key_schema,
-    const DataSlice& value_schema, const DataSlice& schema,
-    const DataSlice& itemid, int64_t unused_hidden_seed);
-
-// kde.core._dict_like operator.
-absl::StatusOr<DataSlice> DictLike(
-    const DataSlice& shape_and_mask_from, const DataSlice& keys,
-    const DataSlice& values, const DataSlice& key_schema,
-    const DataSlice& value_schema, const DataSlice& schema,
-    const DataSlice& itemid, int64_t unused_hidden_seed);
 
 }  // namespace koladata::ops
 

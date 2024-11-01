@@ -77,6 +77,9 @@ class AdoptionQueue {
   std::vector<DataBagPtr> bags_to_merge_;
 };
 
+// Copies the schema stub of x to the DataBag db.
+absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x);
+
 }  // namespace koladata
 
 #endif  // KOLADATA_ADOPTION_UTILS_H_

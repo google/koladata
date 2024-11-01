@@ -25,6 +25,7 @@
 #include "koladata/operators/assertion.h"
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/core.h"
+#include "koladata/operators/core_dict.h"
 #include "koladata/operators/core_list.h"
 #include "koladata/operators/logical.h"
 #include "koladata/operators/math.h"

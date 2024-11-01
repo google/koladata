@@ -724,41 +724,6 @@ class SubsliceOperator : public arolla::InlineOperator {
   }
 };
 
-absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
-  if (x.GetBag() == nullptr) {
-    return absl::OkStatus();
-  }
-
-  DataSlice slice = x;
-  while (true) {
-    DataSlice result_slice = slice.WithBag(db);
-    DataSlice schema = slice.GetSchema();
-
-    if (schema.item() == schema::kObject) {
-      ASSIGN_OR_RETURN(schema, slice.GetObjSchema());
-      RETURN_IF_ERROR(result_slice.SetAttr(schema::kSchemaAttr, schema));
-    }
-
-    auto copy_schema_attr = [&](absl::string_view attr_name) -> absl::Status {
-      ASSIGN_OR_RETURN(const auto& values, schema.GetAttr(attr_name));
-      return schema.WithBag(db).SetAttr(attr_name, values);
-    };
-
-    if (slice.ContainsOnlyLists()) {
-      RETURN_IF_ERROR(copy_schema_attr(schema::kListItemsSchemaAttr));
-      ASSIGN_OR_RETURN(slice, slice.ExplodeList(0, std::nullopt));
-      RETURN_IF_ERROR(result_slice.ReplaceInList(0, std::nullopt, slice));
-      continue;  // Stub list items recursively.
-    }
-    if (slice.ContainsOnlyDicts()) {
-      RETURN_IF_ERROR(copy_schema_attr(schema::kDictKeysSchemaAttr));
-      RETURN_IF_ERROR(copy_schema_attr(schema::kDictValuesSchemaAttr));
-    }
-    break;
-  }
-  return absl::OkStatus();
-}
-
 absl::StatusOr<DataBagPtr> Attrs(
     const DataSlice& obj, absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> attr_values) {
@@ -1628,44 +1593,6 @@ absl::StatusOr<DataSlice> ConcatOrStack(
   return ConcatOrStackImpl(stack, ndim, std::move(args));
 }
 
-absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts) {
-  const auto& db = dicts.GetBag();
-  if (db == nullptr) {
-    return absl::InvalidArgumentError(
-        "Not possible to get Dict size without a DataBag");
-  }
-  FlattenFallbackFinder fb_finder(*db);
-  internal::DataItem schema(schema::kInt64);
-  return dicts.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    return DataSlice::Create(
-        db->GetImpl().GetDictSize(impl, fb_finder.GetFlattenFallbacks()),
-        dicts.GetShape(), std::move(schema), /*db=*/nullptr);
-  });
-}
-
-absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
-                                      const DataSlice& values) {
-  if (x.GetBag() == nullptr) {
-    return absl::InvalidArgumentError(
-        "cannot update a DataSlice of dicts without a DataBag");
-  }
-  if (!x.ContainsOnlyDicts()) {
-    return absl::InvalidArgumentError("expected a DataSlice of dicts");
-  }
-
-  DataBagPtr result_db = DataBag::Empty();
-  RETURN_IF_ERROR(AdoptStub(result_db, x));
-  // TODO: Remove after `SetInDict` performs its own adoption.
-  AdoptionQueue adoption_queue;
-  adoption_queue.Add(keys);
-  adoption_queue.Add(values);
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
-
-  RETURN_IF_ERROR(x.WithBag(result_db).SetInDict(keys, values));
-  result_db->UnsafeMakeImmutable();
-  return result_db;
-}
-
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds,
                                   const DataSlice& schema) {
   return koladata::extract_utils_internal::ExtractWithSchema(ds, schema);
@@ -2421,60 +2348,6 @@ absl::StatusOr<arolla::OperatorPtr> UuObjOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<UuObjOperator>(input_types), input_types, output_type);
-}
-
-absl::StatusOr<DataSlice> DictShaped(
-    const DataSlice::JaggedShape& shape, const DataSlice& keys,
-    const DataSlice& values, const DataSlice& key_schema,
-    const DataSlice& value_schema, const DataSlice& schema,
-    const DataSlice& itemid, int64_t unused_hidden_seed) {
-  DataBagPtr db = DataBag::Empty();
-  ASSIGN_OR_RETURN(
-      auto result,
-      CreateDictShaped(
-          db, shape,
-          IsUnspecifiedDataSlice(keys) ? std::nullopt
-                                       : std::make_optional(keys),
-          IsUnspecifiedDataSlice(values) ? std::nullopt
-                                         : std::make_optional(values),
-          IsUnspecifiedDataSlice(schema) ? std::nullopt
-                                         : std::make_optional(schema),
-          IsUnspecifiedDataSlice(key_schema) ? std::nullopt
-                                             : std::make_optional(key_schema),
-          IsUnspecifiedDataSlice(value_schema)
-              ? std::nullopt
-              : std::make_optional(value_schema),
-          IsUnspecifiedDataSlice(itemid) ? std::nullopt
-                                         : std::make_optional(itemid)));
-  db->UnsafeMakeImmutable();
-  return result;
-}
-
-absl::StatusOr<DataSlice> DictLike(
-    const DataSlice& shape_and_mask_from, const DataSlice& keys,
-    const DataSlice& values, const DataSlice& key_schema,
-    const DataSlice& value_schema, const DataSlice& schema,
-    const DataSlice& itemid, int64_t unused_hidden_seed) {
-  DataBagPtr db = DataBag::Empty();
-  ASSIGN_OR_RETURN(
-      auto result,
-      CreateDictLike(
-          db, shape_and_mask_from,
-          IsUnspecifiedDataSlice(keys) ? std::nullopt
-                                       : std::make_optional(keys),
-          IsUnspecifiedDataSlice(values) ? std::nullopt
-                                         : std::make_optional(values),
-          IsUnspecifiedDataSlice(schema) ? std::nullopt
-                                         : std::make_optional(schema),
-          IsUnspecifiedDataSlice(key_schema) ? std::nullopt
-                                             : std::make_optional(key_schema),
-          IsUnspecifiedDataSlice(value_schema)
-              ? std::nullopt
-              : std::make_optional(value_schema),
-          IsUnspecifiedDataSlice(itemid) ? std::nullopt
-                                         : std::make_optional(itemid)));
-  db->UnsafeMakeImmutable();
-  return result;
 }
 
 }  // namespace koladata::ops

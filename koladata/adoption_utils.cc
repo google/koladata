@@ -14,6 +14,7 @@
 //
 #include "koladata/adoption_utils.h"
 
+#include <optional>
 #include <vector>
 
 #include "absl/base/nullability.h"
@@ -21,9 +22,12 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/extract_utils.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -118,6 +122,41 @@ absl::Nonnull<DataBagPtr> AdoptionQueue::GetBagWithFallbacks() const {
   }
 
   return DataBag::ImmutableEmptyWithFallbacks(fallbacks);
+}
+
+absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
+  if (x.GetBag() == nullptr) {
+    return absl::OkStatus();
+  }
+
+  DataSlice slice = x;
+  while (true) {
+    DataSlice result_slice = slice.WithBag(db);
+    DataSlice schema = slice.GetSchema();
+
+    if (schema.item() == schema::kObject) {
+      ASSIGN_OR_RETURN(schema, slice.GetObjSchema());
+      RETURN_IF_ERROR(result_slice.SetAttr(schema::kSchemaAttr, schema));
+    }
+
+    auto copy_schema_attr = [&](absl::string_view attr_name) -> absl::Status {
+      ASSIGN_OR_RETURN(const auto& values, schema.GetAttr(attr_name));
+      return schema.WithBag(db).SetAttr(attr_name, values);
+    };
+
+    if (slice.ContainsOnlyLists()) {
+      RETURN_IF_ERROR(copy_schema_attr(schema::kListItemsSchemaAttr));
+      ASSIGN_OR_RETURN(slice, slice.ExplodeList(0, std::nullopt));
+      RETURN_IF_ERROR(result_slice.ReplaceInList(0, std::nullopt, slice));
+      continue;  // Stub list items recursively.
+    }
+    if (slice.ContainsOnlyDicts()) {
+      RETURN_IF_ERROR(copy_schema_attr(schema::kDictKeysSchemaAttr));
+      RETURN_IF_ERROR(copy_schema_attr(schema::kDictValuesSchemaAttr));
+    }
+    break;
+  }
+  return absl::OkStatus();
 }
 
 }  // namespace koladata
