@@ -704,8 +704,8 @@ py_test(
 )
 
 py_test(
-    name = "text_test",
-    srcs = ["text_test.py"],
+    name = "str_test",
+    srcs = ["str_test.py"],
     deps = [
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",

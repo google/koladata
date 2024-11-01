@@ -98,8 +98,10 @@ int32 = _py_conversions.int32
 int64 = _py_conversions.int64
 float32 = _py_conversions.float32
 float64 = _py_conversions.float64
-text = _py_conversions.text
-bytes = _py_conversions.bytes  # pylint: disable=redefined-builtin
-bool = _py_conversions.bool  # pylint: disable=redefined-builtin
+str = _py_conversions.str_  # pylint: disable=redefined-builtin
+bytes = _py_conversions.bytes_  # pylint: disable=redefined-builtin
+bool = _py_conversions.bool_  # pylint: disable=redefined-builtin
 mask = _py_conversions.mask
 expr_quote = _py_conversions.expr_quote
+# TODO: Remove this alias once the migration is done.
+text = _py_conversions.str_

@@ -25,20 +25,20 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 
 
-class TextTest(parameterized.TestCase):
+class StrTest(parameterized.TestCase):
 
   @parameterized.parameters(
       [1], [[1, 2, 3]], [None], ['a'], [['a', 'b', 'c']], [ds('a')], [b'b']
   )
-  def test_text(self, x):
-    testing.assert_equal(fns.text(x), ds(x, schema_constants.STRING))
+  def test_str(self, x):
+    testing.assert_equal(fns.str(x), ds(x, schema_constants.STRING))
 
   @parameterized.parameters(
       (schema_constants.INT32, 'unsupported schema: SCHEMA'),
   )
-  def test_text_errors(self, x, expected_error_msg):
+  def test_str_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
-      fns.text(x)
+      fns.str(x)
 
 
 if __name__ == '__main__':

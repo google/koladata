@@ -121,7 +121,7 @@ def float64(x: Any) -> data_slice.DataSlice:
   return data_slice.DataSlice.from_vals(x, schema_constants.FLOAT64)
 
 
-def text(x: Any) -> data_slice.DataSlice:
+def str_(x: Any) -> data_slice.DataSlice:
   """Returns kd.slice(x, kd.STRING)."""
   return data_slice.DataSlice.from_vals(x, schema_constants.STRING)
 
@@ -144,7 +144,3 @@ def mask(x: Any) -> data_slice.DataSlice:
 def expr_quote(x: Any) -> data_slice.DataSlice:
   """Returns kd.slice(x, kd.EXPR)."""
   return data_slice.DataSlice.from_vals(x, schema_constants.EXPR)
-
-
-bytes = bytes_  # pylint: disable=redefined-builtin
-bool = bool_  # pylint: disable=redefined-builtin
