@@ -134,7 +134,7 @@ class CoreNewShapedTest(absltest.TestCase):
       ).eval()
 
   def test_schema_arg_update_schema(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.new_schema(a=schema_constants.FLOAT32)
     x = kde.core.new_shaped(
         jagged_shape.create_shape([2]),
         a=42,
@@ -159,7 +159,7 @@ class CoreNewShapedTest(absltest.TestCase):
       ).eval()
 
   def test_schema_arg_update_schema_overwriting(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.new_schema(a=schema_constants.FLOAT32)
     x = kde.core.new_shaped(
         jagged_shape.create_shape(),
         a='xyz',

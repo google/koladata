@@ -85,7 +85,7 @@ class NewShapedTest(absltest.TestCase):
 
   def test_adopt_bag(self):
     x = fns.new_shaped(jagged_shape.create_shape())
-    x.set_attr('a', 'abc', update_schema=True)
+    x.set_attr('a', 'abc')
     y = fns.new_shaped(x.get_shape(), x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
     testing.assert_equal(y.x.a, ds('abc').with_bag(y.get_bag()))
@@ -176,11 +176,13 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_update_schema(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.new_schema(a=schema_constants.FLOAT32)
     x = fns.new_shaped(
         jagged_shape.create_shape([2]),
-        a=42, b='xyz',
-        schema=schema, update_schema=True
+        a=42,
+        b='xyz',
+        schema=schema,
+        update_schema=True,
     )
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))

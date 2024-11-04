@@ -209,7 +209,7 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_update_schema(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.new_schema(a=schema_constants.FLOAT32)
     x = fns.new(a=42, b='xyz', schema=schema, update_schema=True)
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))

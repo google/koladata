@@ -50,8 +50,8 @@ class BagTest(absltest.TestCase):
     entity = db1.new(a=1, b='text')
     with self.assertRaises(AssertionError):
       testing.assert_equivalent(db1, db2)
-    entity.with_bag(db2).set_attr('a', 1, update_schema=True)
-    entity.with_bag(db2).set_attr('b', 'text', update_schema=True)
+    entity.with_bag(db2).set_attr('a', 1)
+    entity.with_bag(db2).set_attr('b', 'text')
     testing.assert_equivalent(db1, db2)
 
 

@@ -93,7 +93,7 @@ class NewShapedAsTest(absltest.TestCase):
     )
 
   def test_update_schema_arg(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.new_schema(a=schema_constants.FLOAT32)
     x = fns.new_shaped_as(
         ds([1, 2]),
         a=42,

@@ -75,7 +75,7 @@ class ToPyTest(absltest.TestCase):
   def test_fallbacks(self):
     x = fns.new(x=1)
     fallback_bag = fns.bag()
-    fallback_bag[x].set_attr('y', 'abc', update_schema=True)
+    fallback_bag[x].set_attr('y', 'abc')
     x = x.enriched(fallback_bag)
     self.assertEqual(fns.to_py(x, obj_as_dict=True), {'x': 1, 'y': 'abc'})
 

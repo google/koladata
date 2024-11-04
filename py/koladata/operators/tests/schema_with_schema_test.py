@@ -102,7 +102,7 @@ class SchemaWithSchemaTest(parameterized.TestCase):
 
     new_bag = bag()
     entity_with_new_bag = entity.with_bag(new_bag)
-    entity_with_new_bag.set_attr('non_extracted', 42, update_schema=True)
+    entity_with_new_bag.set_attr('non_extracted', 42)
     schema = entity.get_schema().with_bag(new_bag)
     schema.c = schema_constants.BYTES
 

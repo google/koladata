@@ -86,9 +86,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     obj = db1.new(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([l1, l2]))
 
     db2 = kd.bag()
-    obj.with_bag(db2).set_attr(
-        'd', kd.dict({'a': 'b', 'c': kd.obj(l1)}), update_schema=True
-    )
+    obj.with_bag(db2).set_attr('d', kd.dict({'a': 'b', 'c': kd.obj(l1)}))
 
     slice_with_fallback = db2.new(a=5, b=7).enriched(db1)
 

@@ -172,7 +172,7 @@ class CoreNewTest(absltest.TestCase):
       kde.core.new(a='xyz', schema=schema).eval()
 
   def test_schema_arg_update_schema(self):
-    schema = bag().new_schema(a=schema_constants.INT32)
+    schema = bag().new_schema(a=schema_constants.FLOAT32)
     x = kde.core.new(a=42, b='xyz', schema=schema, update_schema=True).eval()
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))

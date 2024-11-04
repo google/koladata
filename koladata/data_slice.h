@@ -538,9 +538,10 @@ inline absl::StatusOr<DataSlice> BroadcastToShape(
 //
 // Returns a new DataSlice which is a copy of the current value or casted
 // according to the type of attribute `attr_name` of schema `lhs_schema`. If
-// `update_schema=true` and `attr_name` schema attribute is missing from
-// `lhs_schema`, it will be added. In case of conflicts or unsupported casting,
-// the error is returned.
+// `attr_name` schema attribute is missing from `lhs_schema`, it will be added.
+// In case of conflicts, an error is returned if update_schema=False, otherwise
+// we overwrite the schema.
+// In case of unsupported casting, an error is returned.
 absl::StatusOr<DataSlice> CastOrUpdateSchema(
     const DataSlice& value, const internal::DataItem& lhs_schema,
     absl::string_view attr_name, bool update_schema,

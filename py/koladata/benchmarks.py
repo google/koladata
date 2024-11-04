@@ -119,7 +119,7 @@ def set_get_attr_entity_with_merging(state):
   except ValueError:
     pass
   while state:
-    ds.with_bag(kd.bag()).set_attr('abc', val, update_schema=True)
+    ds.with_bag(kd.bag()).set_attr('abc', val)
 
 
 @google_benchmark.register
@@ -615,7 +615,6 @@ def to_proto_single_mixed_primitive_fields(state):
       map_int32_int32_field={1: 2, 3: 4},
       map_int32_message_field={1: kd.new(schema=schema)},
       schema=schema,
-      update_schema=True
   )
   while state:
     _ = kd.to_proto(x, test_pb2.MessageC)
@@ -635,7 +634,6 @@ def to_proto_1k_mixed_primitive_fields(state):
           map_int32_int32_field={1: 2, 3: 4},
           map_int32_message_field={1: kd.new(schema=schema)},
           schema=schema,
-          update_schema=True
       )
       for _ in range(1000)
   ])
@@ -937,7 +935,7 @@ def set_get_multiple_attrs_entity(state):
     merged_ds = ds.with_bag(kd.bag())
     for i in range(state.range(0)):
       arg_name = 'abc' if state.range(1) else f'abc{i}'
-      merged_ds.set_attr(arg_name, val, update_schema=True)
+      merged_ds.set_attr(arg_name, val)
       _ = getattr(merged_ds, arg_name)
 
 
@@ -964,7 +962,7 @@ def set_get_multiple_attrs_entity_with_merging(state):
     merged_ds = ds.with_bag(kd.bag())
     for i in range(state.range(0)):
       arg_name = 'abc' if state.range(1) else f'abc{i}'
-      merged_ds.set_attr(arg_name, val, update_schema=True)
+      merged_ds.set_attr(arg_name, val)
       _ = getattr(merged_ds, arg_name)
 
 
@@ -987,7 +985,7 @@ def set_get_multiple_attrs_entity_via_extract_plus_merge(state):
   for i in range(state.range(0)):
     update_ds = ds.with_bag(kd.bag())
     arg_name = 'abc' if state.range(1) else f'abc{i}'
-    update_ds.set_attr(arg_name, val, update_schema=True)
+    update_ds.set_attr(arg_name, val)
     updates.append((arg_name, update_ds))
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
@@ -1019,7 +1017,7 @@ def set_get_multiple_attrs_entity_via_fallback(state):
   for i in range(state.range(0)):
     update_ds = ds.with_bag(kd.bag())
     arg_name = 'abc' if state.range(1) else f'abc{i}'
-    update_ds.set_attr(arg_name, val, update_schema=True)
+    update_ds.set_attr(arg_name, val)
     updates.append((arg_name, update_ds))
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
@@ -1055,7 +1053,7 @@ def set_get_multiple_attrs_10000_entity(state):
     merged_ds = ds.with_bag(kd.bag())
     for i in range(state.range(0)):
       arg_name = 'abc' if state.range(1) else f'abc{i}'
-      merged_ds.set_attr(arg_name, val, update_schema=True)
+      merged_ds.set_attr(arg_name, val)
       _ = getattr(merged_ds, arg_name)
 
 
@@ -1073,7 +1071,7 @@ def set_get_multiple_attrs_10000_entity_with_merging(state):
   """Benchmark for setting and getting multiple attributes with merging."""
   ds = kd.bag().new_shaped(kd.shapes.create([10000]))
   val = kd.bag().new_shaped(kd.shapes.create([10000]))
-  val.set_attr('a', 1, update_schema=True)
+  val.set_attr('a', 1)
   ds.get_schema().abc = val.get_schema().no_bag()
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
@@ -1083,7 +1081,7 @@ def set_get_multiple_attrs_10000_entity_with_merging(state):
     merged_ds = ds.with_bag(kd.bag())
     for i in range(state.range(0)):
       arg_name = 'abc' if state.range(1) else f'abc{i}'
-      merged_ds.set_attr(arg_name, val, update_schema=True)
+      merged_ds.set_attr(arg_name, val)
       _ = getattr(merged_ds, arg_name)
 
 
@@ -1106,7 +1104,7 @@ def set_get_multiple_attrs_10000_entity_via_extract_plus_merge(state):
   for i in range(state.range(0)):
     update_ds = ds.with_bag(kd.bag())
     arg_name = 'abc' if state.range(1) else f'abc{i}'
-    update_ds.set_attr(arg_name, val, update_schema=True)
+    update_ds.set_attr(arg_name, val)
     updates.append((arg_name, update_ds))
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
@@ -1138,7 +1136,7 @@ def set_get_multiple_attrs_10000_entity_via_fallback(state):
   for i in range(state.range(0)):
     update_ds = ds.with_bag(kd.bag())
     arg_name = 'abc' if state.range(1) else f'abc{i}'
-    update_ds.set_attr(arg_name, val, update_schema=True)
+    update_ds.set_attr(arg_name, val)
     updates.append((arg_name, update_ds))
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.

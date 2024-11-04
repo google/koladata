@@ -135,9 +135,7 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
     y = data_bag.DataBag.empty().new(x=ds([1, 1])).with_schema(
         x.get_schema().no_bag()
     ) & (~mask)
-    y.set_attr(
-        'a', ds(['abc', 'xyz'], schema_constants.OBJECT), update_schema=True
-    )
+    y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
     self.assertNotEqual(x.get_bag().fingerprint, y.get_bag().fingerprint)
     testing.assert_equivalent(
         expr_eval.eval(kde.logical.disjoint_coalesce(x, y)).a,

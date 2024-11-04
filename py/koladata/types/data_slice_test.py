@@ -490,8 +490,8 @@ class DataSliceTest(parameterized.TestCase):
     x = db1.new(a=1)
     db2 = bag()
     y = x.with_bag(db2)
-    y.set_attr('a', 2, update_schema=True)
-    y.set_attr('b', 2, update_schema=True)
+    y.set_attr('a', 2)
+    y.set_attr('b', 2)
     z = x.enriched(db2)
 
     new_z = z.with_merged_bag()
@@ -569,7 +569,7 @@ class DataSliceTest(parameterized.TestCase):
     x = db.new(a=1, b='abc')
     self.assertEqual(dir(x), ['a', 'b'])
     self.assertEqual(dir(ds([x])), ['a', 'b'])
-    x.with_bag(fb).set_attr('c', 42, update_schema=True)
+    x.with_bag(fb).set_attr('c', 42)
     self.assertEqual(dir(x.with_bag(db).enriched(fb)), ['a', 'b', 'c'])
     self.assertEqual(
         dir(ds([x]).with_bag(db).enriched(fb)),

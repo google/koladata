@@ -122,7 +122,7 @@ class CoreNewShapedAsTest(absltest.TestCase):
 
   def test_update_schema_arg(self):
     shape_from = ds([6, 7])
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.new_schema(a=schema_constants.FLOAT32)
     x = kde.core.new_shaped_as(
         shape_from,
         a=42,
