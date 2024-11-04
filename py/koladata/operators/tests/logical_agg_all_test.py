@@ -12,17 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.logical.agg_any.
-
-Note that there are more extensive tests that reuse the existing Arolla tests
-for the M.core.any operator.
-"""
-
 import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -51,36 +46,34 @@ QTYPES = frozenset([
 class LogicalAggAllTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds([1, 2, 3, 4]), ds(arolla.present())),
-      (ds([None], ds(arolla.INT32)), ds(arolla.missing())),
       (
-          ds([[1, None], [3, 4], [None, None]]),
-          ds([None, arolla.present(), None]),
+          ds([arolla.present(), arolla.present(), arolla.present()]),
+          ds(arolla.present()),
       ),
-      (ds([[1, 'a'], [None]]), ds([arolla.present(), arolla.missing()])),
       (
-          ds([[data_bag.DataBag.empty().new(x=ds(1))], [None]]),
+          ds([arolla.present(), None, arolla.present()]),
+          ds(arolla.missing()),
+      ),
+      (ds([None]), ds(arolla.missing())),
+      (ds([None], schema_constants.MASK), ds(arolla.missing())),
+      (
+          ds([[arolla.present(), arolla.present()], [arolla.present(), None]]),
           ds([arolla.present(), arolla.missing()]),
-      ),
-      (
-          ds([[1, None], [3, 4], [None, None]]),
-          arolla.unspecified(),
-          ds([None, arolla.present(), None]),
-      ),
-      (ds([[1, None], [3, 4], [None, None]]), ds(2), ds(arolla.missing())),
-      (
-          ds([[[1, None], [3, 4]], [[None, None]]]),
-          ds([[None, arolla.present()], [None]]),
-      ),
-      (
-          ds([[1, None, None], [3, 4], [None, None]]),
-          arolla.unspecified(),
-          ds([None, arolla.present(), None]),
       ),
       # OBJECT/ANY
       (
-          ds([[2, None], [None]], schema_constants.OBJECT),
-          ds([None, None], schema_constants.MASK),
+          ds(
+              [[arolla.present(), arolla.present()], [arolla.present(), None]],
+              schema_constants.OBJECT,
+          ),
+          ds([arolla.present(), None], schema_constants.MASK),
+      ),
+      (
+          ds(
+              [[arolla.present(), arolla.present()], [arolla.present(), None]],
+              schema_constants.ANY,
+          ),
+          ds([arolla.present(), None], schema_constants.MASK),
       ),
       # Empty and unknown inputs.
       (
@@ -92,7 +85,7 @@ class LogicalAggAllTest(parameterized.TestCase):
           ds([None, None], schema_constants.MASK),
       ),
       (
-          ds([[None, None], [None]], schema_constants.FLOAT32),
+          ds([[None, None], [None]], schema_constants.MASK),
           ds([None, None], schema_constants.MASK),
       ),
       (
@@ -110,7 +103,7 @@ class LogicalAggAllTest(parameterized.TestCase):
     testing.assert_equal(result, expected_value)
 
   def test_data_item_input_error(self):
-    x = ds(1)
+    x = ds(arolla.present())
     with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
       expr_eval.eval(kde.logical.agg_all(x))
 
@@ -119,6 +112,22 @@ class LogicalAggAllTest(parameterized.TestCase):
     x = data_slice.DataSlice.from_vals([1, 2, 3])
     with self.assertRaisesRegex(ValueError, 'expected 0 <= ndim <= rank'):
       expr_eval.eval(kde.logical.agg_all(x, ndim=ndim))
+
+  @parameterized.parameters(
+      (ds([1, 2, 3])),
+      (ds([1, 2, 3], schema_constants.ANY)),
+      (ds([1, 2, 3], schema_constants.OBJECT)),
+      (data_bag.DataBag.empty().new(x=ds([1, 2, 3]))),
+  )
+  def test_non_mask_input_error(self, x):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'operator kd.agg_all failed during evaluation: `x` must only'
+            ' contain MASK values'
+        ),
+    ):
+      expr_eval.eval(kde.logical.agg_all(x))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

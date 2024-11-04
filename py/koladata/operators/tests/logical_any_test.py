@@ -41,11 +41,14 @@ QTYPES = frozenset([
 class LogicalAnyTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds([1, 2, None, 3]), ds(arolla.present())),
-      (ds([None, None], ds(arolla.INT32)), ds(arolla.missing())),
-      (ds([[1, 2], [None, None]]), ds(arolla.present())),
-      (ds(None, ds(arolla.INT32)), ds(arolla.missing())),
-      (ds(42), ds(arolla.present())),
+      (ds([arolla.present(), None, arolla.present()]), ds(arolla.present())),
+      (ds([None, None]), ds(arolla.missing())),
+      (
+          ds([[arolla.present(), arolla.present()], [None, None]]),
+          ds(arolla.present()),
+      ),
+      (ds(None), ds(arolla.missing())),
+      (ds(arolla.present()), ds(arolla.present())),
   )
   def test_eval(self, *args_and_expected):
     args, expected_value = args_and_expected[:-1], args_and_expected[-1]

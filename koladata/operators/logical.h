@@ -20,6 +20,8 @@
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -30,8 +32,10 @@
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/op_utils/presence_or.h"
+#include "koladata/internal/op_utils/utils.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/repr_utils.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -71,12 +75,24 @@ inline absl::StatusOr<DataSlice> HasNot(const DataSlice& x) {
 
 // kde.logical._agg_any.
 inline absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
-  return SimpleAggIntoEval("core.any", {x}, internal::DataItem(schema::kMask));
+  ASSIGN_OR_RETURN(
+      auto typed_x, CastToNarrow(x, internal::DataItem(schema::kMask)),
+      internal::OperatorEvalError(
+          std::move(_), "kd.agg_any",
+          absl::StrCat("`x` must only contain MASK values, but got ",
+                       arolla::Repr(x))));
+  return SimpleAggIntoEval("core.any", {std::move(typed_x)});
 }
 
 // kde.logical._agg_all.
 inline absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
-  return SimpleAggIntoEval("core.all", {x}, internal::DataItem(schema::kMask));
+  ASSIGN_OR_RETURN(
+      auto typed_x, CastToNarrow(x, internal::DataItem(schema::kMask)),
+      internal::OperatorEvalError(
+          std::move(_), "kd.agg_all",
+          absl::StrCat("`x` must only contain MASK values, but got ",
+                       arolla::Repr(x))));
+  return SimpleAggIntoEval("core.all", {std::move(typed_x)});
 }
 
 }  // namespace koladata::ops

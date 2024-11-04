@@ -304,7 +304,9 @@ def _agg_any(x):  # pylint: disable=unused-argument
     ],
 )
 def agg_any(x, ndim=arolla.unspecified()):
-  """Returns the logical OR of elements along the last ndim dimensions.
+  """Returns present if any element is present along the last ndim dimensions.
+
+  `x` must have MASK dtype.
 
   The resulting slice has `rank = rank - ndim` and shape: `shape =
   shape[:-ndim]`.
@@ -314,13 +316,15 @@ def agg_any(x, ndim=arolla.unspecified()):
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
       <= get_ndim(x).
   """
-  return _agg_any(jagged_shape_ops.flatten_last_ndim(has(x), ndim))
+  return _agg_any(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
 @optools.add_to_registry(aliases=['kde.any'])
 @optools.as_lambda_operator('kde.logical.any')
 def any_(x):
-  """Returns the logical OR of elements over all dimensions.
+  """Returns present iff any element is present over all dimensions.
+
+  `x` must have MASK dtype.
 
   The result is a zero-dimensional DataItem.
 
@@ -328,6 +332,24 @@ def any_(x):
     x: A DataSlice.
   """
   return agg_any(jagged_shape_ops.flatten(x))
+
+
+@optools.add_to_registry(aliases=['kde.agg_has'])
+@optools.as_lambda_operator('kde.logical.agg_has')
+def agg_has(x, ndim=arolla.unspecified()):
+  """Returns present iff any element is present along the last ndim dimensions.
+
+  The resulting slice has `rank = rank - ndim` and shape: `shape =
+  shape[:-ndim]`.
+
+  It is equivalent to `kd.agg_any(kd.has(x))`.
+
+  Args:
+    x: A DataSlice.
+    ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
+      <= get_ndim(x).
+  """
+  return agg_any(has(x), ndim=ndim)
 
 
 @optools.add_to_registry()
@@ -349,7 +371,9 @@ def _agg_all(x):  # pylint: disable=unused-argument
     ],
 )
 def agg_all(x, ndim=arolla.unspecified()):
-  """Returns the logical AND of elements along the last ndim dimensions.
+  """Returns present if all elements are present along the last ndim dimensions.
+
+  `x` must have MASK dtype.
 
   The resulting slice has `rank = rank - ndim` and shape: `shape =
   shape[:-ndim]`.
@@ -359,13 +383,15 @@ def agg_all(x, ndim=arolla.unspecified()):
     ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
       <= get_ndim(x).
   """
-  return _agg_all(jagged_shape_ops.flatten_last_ndim(has(x), ndim))
+  return _agg_all(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
 @optools.add_to_registry(aliases=['kde.all'])
 @optools.as_lambda_operator('kde.logical.all')
 def all_(x):
-  """Returns the logical AND of elements over all dimensions.
+  """Returns present iff all elements are present over all dimensions.
+
+  `x` must have MASK dtype.
 
   The result is a zero-dimensional DataItem.
 
