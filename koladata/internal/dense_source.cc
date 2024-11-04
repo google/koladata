@@ -704,15 +704,18 @@ class MultitypeDenseSource : public DenseSource {
 
   DataSliceImpl Get(const ObjectIdArray& objects,
                     bool check_alloc_id) const final {
-    DataSliceImpl::Builder bldr(objects.size());
+    SliceBuilder bldr(objects.size());
     bldr.GetMutableAllocationIds().Insert(attr_allocation_ids_);
     for (const ValueArrayVariant& var : values_) {
       std::visit(
           [&](const auto& value_array) {
-            bldr.AddArray(check_alloc_id ? value_array.template Get<true>(
+            using T = typename std::decay_t<decltype(value_array)>::base_type;
+            auto array = check_alloc_id ? value_array.template Get<true>(
                                                objects, obj_allocation_id_)
                                          : value_array.template Get<false>(
-                                               objects, obj_allocation_id_));
+                                               objects, obj_allocation_id_);
+            bldr.InsertIfNotSet<T>(array.bitmap, arolla::bitmap::Bitmap(),
+                                   array.values);
           },
           var);
     }
@@ -744,11 +747,16 @@ class MultitypeDenseSource : public DenseSource {
   }
 
   DataSliceImpl GetAll() const final {
-    DataSliceImpl::Builder bldr(size_);
+    SliceBuilder bldr(size_);
     bldr.GetMutableAllocationIds().Insert(attr_allocation_ids_);
     for (const ValueArrayVariant& var : values_) {
       std::visit(
-          [&](const auto& value_array) { bldr.AddArray(value_array.GetAll()); },
+          [&](const auto& value_array) {
+            using T = typename std::decay_t<decltype(value_array)>::base_type;
+            auto&& data = value_array.GetAll();
+            bldr.InsertIfNotSet<T>(data.bitmap, arolla::bitmap::Bitmap(),
+                                   data.values);
+          },
           var);
     }
     return std::move(bldr).Build();

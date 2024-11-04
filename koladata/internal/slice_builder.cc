@@ -125,10 +125,10 @@ std::pair<bool, DataSliceImpl::Variant> SliceBuilder::BuildDataSliceVariant(
 }
 
 DataSliceImpl SliceBuilder::Build() && {
-  if (storage_.empty()) {
-    if (current_type_id_ == ScalarTypeId<MissingValue>()) {
-      return DataSliceImpl::CreateEmptyAndUnknownType(size());
-    }
+  if (storage_state_ == kStorageEmpty) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(size());
+  }
+  if (storage_state_ == kFirstStorage) {
     auto [present, array_variant] = BuildDataSliceVariant(first_storage_);
     if (!present) {
       return DataSliceImpl::CreateEmptyAndUnknownType(size());
@@ -159,16 +159,29 @@ DataSliceImpl SliceBuilder::Build() && {
 
 void SliceBuilder::ChangeCurrentType(KodaTypeId type_id) {
   DCHECK_NE(current_type_id_, type_id);
-  if (storage_.empty()) {
-    if (current_type_id_ == ScalarTypeId<MissingValue>()) {
-      current_type_id_ = type_id;
-      return;
-    }
+  if (storage_state_ == kStorageEmpty) {
+    storage_state_ = kFirstStorage;
+    current_type_id_ = type_id;
+    return;
+  }
+  if (storage_state_ == kFirstStorage) {
     storage_.reserve(2);
     storage_.emplace(current_type_id_, std::move(first_storage_));
+    storage_state_ = kMapStorage;
   }
   current_storage_ = &storage_[type_id];
   current_type_id_ = type_id;
+}
+
+void SliceBuilder::UnsetCurrentType() {
+  DCHECK_NE(storage_state_, kStorageEmpty);
+  if (storage_state_ == kFirstStorage) {
+    storage_.reserve(2);
+    storage_.emplace(current_type_id_, std::move(first_storage_));
+    current_storage_ = nullptr;
+  }
+  storage_state_ = kMapStorage;
+  current_type_id_ = ScalarTypeId<MissingValue>();
 }
 
 void SliceBuilder::InsertIfNotSet(int64_t id, const DataItem& v) {

@@ -53,7 +53,7 @@ class DenseSource {
   // It is not possible to distinguish missing and removed values using this
   // function, so it is useful only for getting values from a single DenseSource
   // (that is a very important use case). In case of several data sources use
-  // Get with DataSliceImpl::Builder. If `check_alloc_id` is false, objects
+  // Get with SliceBuilder. If `check_alloc_id` is false, objects
   // allocation id must match allocation id of the DenseSource.
   virtual DataSliceImpl Get(const ObjectIdArray& objects,
                             bool check_alloc_id = true) const = 0;

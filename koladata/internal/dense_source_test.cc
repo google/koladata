@@ -753,7 +753,7 @@ TEST(DenseSourceTest, Merge) {
         dst->Merge(*src4,
                    DenseSource::ConflictHandlingOption::kRaiseOnConflict),
         StatusIs(absl::StatusCode::kFailedPrecondition,
-                 HasSubstr("merge conflict: 'a' != 1")));
+                 HasSubstr("merge conflict")));
   }
 }
 

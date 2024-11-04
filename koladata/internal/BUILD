@@ -424,6 +424,7 @@ cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/ops",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qtype",

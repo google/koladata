@@ -15,6 +15,7 @@
 #include "koladata/internal/slice_builder.h"
 
 #include <cstdint>
+#include <initializer_list>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -29,6 +30,7 @@
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/buffer.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bits.h"
@@ -41,6 +43,12 @@ namespace {
 
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
+using ::arolla::kUnit;
+
+arolla::bitmap::Bitmap CreateBitmap(
+    std::initializer_list<arolla::OptionalUnit> data) {
+  return arolla::CreateDenseArray<arolla::Unit>(data).bitmap;
+}
 
 TEST(SliceBuilderTest, TypesBuffer) {
   TypesBuffer b;
@@ -227,8 +235,8 @@ TEST(SliceBuilderTest, ApplyMask) {
   SliceBuilder bldr(5);
   bldr.InsertIfNotSet(0, 5);  // set before ApplyMask, so it will remain
   bldr.InsertIfNotSet(1, 7.5f);
-  bldr.ApplyMask(arolla::CreateDenseArray<arolla::Unit>(
-      {{}, arolla::kUnit, {}, arolla::kUnit, {}}));
+  bldr.ApplyMask(
+      arolla::CreateDenseArray<arolla::Unit>({{}, kUnit, {}, kUnit, {}}));
   EXPECT_FALSE(bldr.is_finalized());
   bldr.InsertIfNotSet(0, 7.5f);
   bldr.InsertIfNotSet(1, 5);
@@ -301,7 +309,127 @@ TEST(SliceBuilderTest, EmptyArraysOnTopOfNonEmpty2ArrayaViaTypedT) {
   }));
 }
 
-// TODO: Test batch version of InsertIfNotSet.
+TEST(SliceBuilderTest, SingleBatchInsert) {
+  auto buf = arolla::CreateBuffer<int>({6, 5, 4, 3, 2, 1});
+  SliceBuilder bldr(6);
+  bldr.InsertIfNotSet<int>(CreateBitmap({{}, kUnit, kUnit, kUnit, {}, {}}),
+                           CreateBitmap({{}, kUnit, {}, kUnit, {}, kUnit}),
+                           buf);
+  EXPECT_FALSE(bldr.IsSet(0));
+  EXPECT_TRUE(bldr.IsSet(1));
+  EXPECT_TRUE(bldr.IsSet(2));
+  EXPECT_TRUE(bldr.IsSet(3));
+  EXPECT_FALSE(bldr.IsSet(4));
+  EXPECT_FALSE(bldr.IsSet(5));
+  auto ds = std::move(bldr).Build();
+  EXPECT_THAT(ds, ElementsAre(std::nullopt, 5, std::nullopt, 3, std::nullopt,
+                              std::nullopt));
+  EXPECT_EQ(ds.dtype(), arolla::GetQType<int>());
+  EXPECT_EQ(ds.values<int>().values.span().begin(), buf.span().begin());
+}
+
+TEST(SliceBuilderTest, TwoBatchInsertsDifferentTypes) {
+  auto buf_int = arolla::CreateBuffer<int>({6, 5, 4, 3, 2, 1});
+  auto buf_float =
+      arolla::CreateBuffer<float>({1.5f, 2.5f, 3.5f, 4.5f, 5.5f, 6.5f});
+  SliceBuilder bldr(6);
+
+  bldr.InsertIfNotSet<int>(CreateBitmap({{}, kUnit, kUnit, kUnit, {}, {}}),
+                           CreateBitmap({{}, kUnit, {}, kUnit, {}, kUnit}),
+                           buf_int);
+  bldr.InsertIfNotSet<float>(
+      CreateBitmap({{}, {}, {}, kUnit, kUnit, kUnit}), arolla::bitmap::Bitmap(),
+      buf_float);
+
+  EXPECT_FALSE(bldr.is_finalized());
+  bldr.InsertIfNotSet(0, arolla::Text("abc"));
+  EXPECT_TRUE(bldr.is_finalized());
+
+  auto ds = std::move(bldr).Build();
+  EXPECT_THAT(ds,
+              ElementsAre(arolla::Text("abc"), 5, std::nullopt, 3, 5.5f, 6.5f));
+
+  ds.VisitValues([&]<typename T>(const arolla::DenseArray<T>& v) {
+    if constexpr (std::is_same_v<T, int>) {
+      EXPECT_EQ(v.values.span().begin(), buf_int.span().begin());
+    }
+    if constexpr (std::is_same_v<T, float>) {
+      EXPECT_EQ(v.values.span().begin(), buf_float.span().begin());
+    }
+  });
+}
+
+TEST(SliceBuilderTest, TwoBatchInsertsSameType) {
+  auto buf_int = arolla::CreateBuffer<int>({6, 5, 4, 3, 2, 1});
+  auto buf_float =
+      arolla::CreateBuffer<float>({1.5f, 2.5f, 3.5f, 4.5f, 5.5f, 6.5f});
+  SliceBuilder bldr(6);
+
+  bldr.InsertIfNotSet<int>(CreateBitmap({{}, kUnit, kUnit, kUnit, {}, {}}),
+                           CreateBitmap({{}, kUnit, {}, kUnit, {}, kUnit}),
+                           arolla::CreateBuffer<int>({6, 5, 4, 3, 2, 1}));
+  bldr.InsertIfNotSet<int>(CreateBitmap({{}, {}, {}, kUnit, kUnit, kUnit}),
+                           arolla::bitmap::Bitmap(),
+                           arolla::CreateBuffer<int>({1, 2, 3, 4, 5, 6}));
+
+  EXPECT_FALSE(bldr.is_finalized());
+  bldr.InsertIfNotSet(0, arolla::Text("abc"));
+  EXPECT_TRUE(bldr.is_finalized());
+
+  auto ds = std::move(bldr).Build();
+  EXPECT_THAT(ds,
+              ElementsAre(arolla::Text("abc"), 5, std::nullopt, 3, 5, 6));
+}
+
+TEST(SliceBuilderTest, BatchInsertAndScalarInsertSameType) {
+  auto buf = arolla::CreateBuffer<int>({6, 5, 4, 3, 2, 1});
+  {  // insert batch, insert scalar
+    SliceBuilder bldr(6);
+    bldr.InsertIfNotSet<int>(CreateBitmap({{}, kUnit, kUnit, kUnit, {}, {}}),
+                             CreateBitmap({{}, kUnit, {}, kUnit, {}, kUnit}),
+                             arolla::CreateBuffer<int>({6, 5, 4, 3, 2, 1}));
+    bldr.InsertIfNotSet(0, 10);
+    auto ds = std::move(bldr).Build();
+    EXPECT_EQ(ds.dtype(), arolla::GetQType<int32_t>());
+    EXPECT_THAT(
+        ds, ElementsAre(10, 5, std::nullopt, 3, std::nullopt, std::nullopt));
+  }
+  {  // insert scalar, insert batch
+    SliceBuilder bldr(6);
+    bldr.InsertIfNotSet(0, 10);
+    bldr.InsertIfNotSet<int>(CreateBitmap({{}, kUnit, kUnit, kUnit, {}, {}}),
+                             CreateBitmap({{}, kUnit, {}, kUnit, {}, kUnit}),
+                             arolla::CreateBuffer<int>({6, 5, 4, 3, 2, 1}));
+    auto ds = std::move(bldr).Build();
+    EXPECT_EQ(ds.dtype(), arolla::GetQType<int32_t>());
+    EXPECT_THAT(
+        ds, ElementsAre(10, 5, std::nullopt, 3, std::nullopt, std::nullopt));
+  }
+}
+
+TEST(SliceBuilderTest, BatchInsertAndScalarInsertDifferentTypes) {
+  auto buf = arolla::CreateBuffer<int>({6, 5, 4, 3, 2, 1});
+  {  // insert batch, insert scalar
+    SliceBuilder bldr(6);
+    bldr.InsertIfNotSet<int>(CreateBitmap({{}, kUnit, kUnit, kUnit, {}, {}}),
+                             CreateBitmap({{}, kUnit, {}, kUnit, {}, kUnit}),
+                             arolla::CreateBuffer<int>({6, 5, 4, 3, 2, 1}));
+    bldr.InsertIfNotSet(0, 3.14f);
+    auto ds = std::move(bldr).Build();
+    EXPECT_THAT(
+        ds, ElementsAre(3.14f, 5, std::nullopt, 3, std::nullopt, std::nullopt));
+  }
+  {  // insert scalar, insert batch
+    SliceBuilder bldr(6);
+    bldr.InsertIfNotSet(0, 3.14f);
+    bldr.InsertIfNotSet<int>(CreateBitmap({{}, kUnit, kUnit, kUnit, {}, {}}),
+                             CreateBitmap({{}, kUnit, {}, kUnit, {}, kUnit}),
+                             arolla::CreateBuffer<int>({6, 5, 4, 3, 2, 1}));
+    auto ds = std::move(bldr).Build();
+    EXPECT_THAT(
+        ds, ElementsAre(3.14f, 5, std::nullopt, 3, std::nullopt, std::nullopt));
+  }
+}
 
 }  // namespace
 }  // namespace koladata::internal

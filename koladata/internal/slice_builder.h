@@ -36,6 +36,7 @@
 #include "koladata/internal/types.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/expr/quote.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/optional_value.h"
@@ -91,6 +92,13 @@ struct TypesBuffer {
 class SliceBuilder {
  public:
   explicit SliceBuilder(size_t size);
+
+  // SliceBuilder has pointers to its static data, so it can't be moved or
+  // copied.
+  SliceBuilder(const SliceBuilder&) = delete;
+  SliceBuilder(SliceBuilder&&) = delete;
+  SliceBuilder& operator=(const SliceBuilder&) = delete;
+  SliceBuilder& operator=(SliceBuilder&&) = delete;
 
   size_t size() const { return id_to_typeidx_.size(); }
   bool is_finalized() const { return unset_count_ == 0; }
@@ -233,6 +241,10 @@ class SliceBuilder {
   // convenient to do in the templated code that calls ChangeCurrentType.
   void ChangeCurrentType(KodaTypeId type_id);
 
+  // Sets current type to MissingValue and switches storage_state_ to
+  // kMapStorage (in order to not to lose type info of current_storage_).
+  void UnsetCurrentType();
+
   template <typename T>
   typename arolla::Buffer<T>::Builder& GetBufferBuilder();
 
@@ -242,6 +254,11 @@ class SliceBuilder {
   // `GetBufferBuilder`.
   template <typename T>
   typename arolla::Buffer<T>::Builder& GetBufferBuilderWithTypeChange();
+
+  // Implementation detail of GetBufferBuilder. Expects that current_storage_
+  // holds TypedStorage<T> with matching type.
+  template <typename T>
+  typename arolla::Buffer<T>::Builder& GetBufferBuilderFromCurrentStorage();
 
   template <typename T>
   static bool IsMissing(const T& v) {
@@ -255,14 +272,42 @@ class SliceBuilder {
     }
   }
 
-  // Map from ScalarTypeId<T>() to StorageVariant
+  // Updates unset items id_to_typeidx_ for ids that are present in `mask`.
+  // For these ids sets the type to the given `typeidx` if `presence==true`,
+  // or to kRemoved otherwise. Calls `add_value_fn` for each id changing type
+  // from kUnset to typeidx.
+  template <typename Fn>
+  void UpdateTypesBuffer(uint8_t typeidx, const arolla::bitmap::Bitmap& mask,
+                         const arolla::bitmap::Bitmap& presence,
+                         Fn&& add_value_fn);
+
+  // Map from ScalarTypeId<T>() to StorageVariant.
   absl::flat_hash_map<KodaTypeId, StorageVariant> storage_;
 
   // Used to avoid having a single element in storage_.
+  // first_storage_ may only contain BufferBuilder or monostate.
   StorageVariant first_storage_;
+
+  enum {
+    kStorageEmpty,  // nothing added to the builder yet
+    kFirstStorage,  // first_storage_ is used, storage_ is empty
+    kMapStorage     // first_storage_ is not used, storage_ is not empty
+  } storage_state_ = kStorageEmpty;
 
   // Pointer to storage_[current_type_id_] or first_storage_.
   StorageVariant* current_storage_ = &first_storage_;
+
+  // Before and after any public function call we have the following invariant:
+  // if `current_type_id_` is set (i.e. not type id of MissingValue),
+  // current_storage_ should point to StorageVariant containing
+  // Buffer<T>::Builder of the corresponding type; current_typeidx_ is index
+  // of the corresponding type in types_buffer_. If `current_type_id_` is unset,
+  // current_typeidx_ is unspecified and shouldn't be used.
+  //
+  // Note: This invariant can be temporarily violated in internal functions.
+  // E.g. `ChangeCurrentType` changes the type without creating the builder or
+  // updating current_typeidx_, and expects that the invariant will be restored
+  // by the caller.
   KodaTypeId current_type_id_ = ScalarTypeId<MissingValue>();
   uint8_t current_typeidx_;
 
@@ -283,6 +328,7 @@ class SliceBuilder {
 template <typename T>
 typename arolla::Buffer<T>::Builder& SliceBuilder::GetBufferBuilder() {
   if (ScalarTypeId<T>() == current_type_id_) {
+    // See comment at `current_type_id_` definition.
     return std::get<typename arolla::Buffer<T>::Builder>(
         std::get<TypedStorage<T>>(*current_storage_).data);
   } else {
@@ -291,10 +337,35 @@ typename arolla::Buffer<T>::Builder& SliceBuilder::GetBufferBuilder() {
 }
 
 template <typename T>
+typename arolla::Buffer<T>::Builder&
+SliceBuilder::GetBufferBuilderFromCurrentStorage() {
+  DCHECK(std::holds_alternative<TypedStorage<T>>(*current_storage_));
+  TypedStorage<T>& tstorage = std::get<TypedStorage<T>>(*current_storage_);
+  current_typeidx_ = tstorage.type_index;
+  if (!std::holds_alternative<arolla::Buffer<T>>(tstorage.data)) {
+    return std::get<typename arolla::Buffer<T>::Builder>(tstorage.data);
+  }
+  const arolla::Buffer<T>& buf = std::get<arolla::Buffer<T>>(tstorage.data);
+  typename arolla::Buffer<T>::Builder bldr(size());
+  for (int64_t i = 0; i < size(); ++i) {
+    if (id_to_typeidx_[i] == current_typeidx_) {
+      bldr.Set(i, buf[i]);
+    }
+  }
+  tstorage.data = std::move(bldr);
+  return std::get<typename arolla::Buffer<T>::Builder>(tstorage.data);
+}
+
+template <typename T>
 ABSL_ATTRIBUTE_NOINLINE typename arolla::Buffer<T>::Builder&
 SliceBuilder::GetBufferBuilderWithTypeChange() {
   DCHECK(ScalarTypeId<T>() != current_type_id_);
+
+  // It can break `current_type_id_` invariant
+  // (see comment at `current_type_id_` definition).
   ChangeCurrentType(ScalarTypeId<T>());
+
+  // Here we restore the invariant.
   if (std::holds_alternative<std::monostate>(*current_storage_)) {
     current_typeidx_ = types_buffer_.type_count();
     *current_storage_ = TypedStorage<T>{
@@ -303,17 +374,9 @@ SliceBuilder::GetBufferBuilderWithTypeChange() {
     return std::get<typename arolla::Buffer<T>::Builder>(
         std::get<TypedStorage<T>>(*current_storage_).data);
   }
-  DCHECK(std::holds_alternative<TypedStorage<T>>(*current_storage_));
-  TypedStorage<T>& tstorage = std::get<TypedStorage<T>>(*current_storage_);
-  current_typeidx_ = tstorage.type_index;
-  if (std::holds_alternative<arolla::Buffer<T>>(tstorage.data)) {
-    // Note: currently can't happen because we don't create it yet.
-    // TODO: implement conversion Buffer -> Buffer::Builder.
-    LOG(FATAL) << "Not implemented yet";
-  }
-  DCHECK(std::holds_alternative<typename arolla::Buffer<T>::Builder>(
-      tstorage.data));
-  return std::get<typename arolla::Buffer<T>::Builder>(tstorage.data);
+  // The invariant can still be violated (storage can contain Buffer rather
+  // than Builder), but GetBufferBuilderFromCurrentStorage handles it.
+  return GetBufferBuilderFromCurrentStorage<T>();
 }
 
 template <typename T>
@@ -370,22 +433,58 @@ void SliceBuilder::TypedBuilder<T>::InsertIfNotSet(int64_t id,
   id_to_typeidx_[id] = typeidx_;
 }
 
-// Dummy implementation.
-// TODO: optimize.
+template <typename Fn>
+void SliceBuilder::UpdateTypesBuffer(uint8_t typeidx,
+                                     const arolla::bitmap::Bitmap& mask,
+                                     const arolla::bitmap::Bitmap& presence,
+                                     Fn&& add_value_fn) {
+  arolla::VoidBuffer vb(size());
+  arolla::DenseArraysForEach(
+      [&](int64_t id, bool valid, arolla::Unit, arolla::OptionalUnit presence) {
+        if (valid && !IsSet(id)) {
+          id_to_typeidx_[id] = presence ? typeidx : TypesBuffer::kRemoved;
+          unset_count_--;
+          if (presence) {
+            add_value_fn(id);
+          }
+        }
+      },
+      arolla::DenseArray<arolla::Unit>{vb, mask},
+      arolla::DenseArray<arolla::Unit>{vb, presence});
+}
+
 template <typename T>
 void SliceBuilder::InsertIfNotSet(const arolla::bitmap::Bitmap& mask,
                                   const arolla::bitmap::Bitmap& presence,
                                   const arolla::Buffer<T>& values) {
   DCHECK_EQ(values.size(), size());
-  for (size_t i = 0; i < size(); ++i) {
-    if (arolla::bitmap::GetBit(mask, i)) {
-      if (arolla::bitmap::GetBit(presence, i)) {
-        InsertIfNotSet(i, DataItem::View<T>(values[i]));
-      } else {
-        InsertIfNotSet(i, std::nullopt);
-      }
+  if (ScalarTypeId<T>() != current_type_id_) {
+    // It breaks `current_type_id_` invariant
+    // (see comment at `current_type_id_` definition).
+    ChangeCurrentType(ScalarTypeId<T>());
+
+    if (std::holds_alternative<std::monostate>(*current_storage_)) {
+      uint8_t typeidx = types_buffer_.type_count();
+      *current_storage_ = TypedStorage<T>{typeidx, values};
+      types_buffer_.types.push_back(ScalarTypeId<T>());
+
+      UpdateTypesBuffer(typeidx, mask, presence, [](int64_t id) {});
+
+      // Restores `current_type_id_` invariant by unsetting the type.
+      UnsetCurrentType();
+
+      return;
     }
+
+    // Here the invariant still can be violated.
   }
+
+  // Restores `current_type_id_` invariant by enforcing buffer builder.
+  typename arolla::Buffer<T>::Builder& bldr =
+      GetBufferBuilderFromCurrentStorage<T>();
+
+  UpdateTypesBuffer(current_typeidx_, mask, presence,
+                    [&](int64_t id) { bldr.Set(id, values[id]); });
 }
 
 }  // namespace koladata::internal
