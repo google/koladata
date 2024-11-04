@@ -198,10 +198,6 @@ absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
 absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,
                                         const DataSlice& filter);
 
-// kde.core._new_ids_like
-absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
-                                     int64_t unused_hidden_seed = 0);
-
 // kde.core._clone.
 absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& itemid,
                                 const DataSlice& schema,
@@ -233,27 +229,6 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                     const DataSlice& keys_from,
                                     const DataSlice& values_from);
 
-// kde.core.new.
-class NewOperatorFamily final : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const override;
-};
-
-// kde.core.new_shaped.
-class NewShapedOperatorFamily final : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const override;
-};
-
-// kde.core.new_like.
-class NewLikeOperatorFamily final : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const override;
-};
-
 // kde.core.obj.
 class ObjOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
@@ -278,14 +253,6 @@ class ObjLikeOperatorFamily final : public arolla::OperatorFamily {
 // kde.core.uuobj operator.
 // Creates a DataSlice of UuObjects.
 class UuObjOperatorFamily : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const final;
-};
-
-// kde.core.uu operator.
-// Creates a DataSlice of UuEntities.
-class UuOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
