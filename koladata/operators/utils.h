@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
 #include "arolla/memory/frame.h"
@@ -38,6 +39,11 @@ std::vector<absl::string_view> GetAttrNames(
 std::vector<DataSlice> GetValueDataSlices(
     arolla::TypedSlot named_tuple_slot,
     arolla::FramePtr frame);
+
+// Returns the value of a bool argument that is expected to be a DataItem.
+absl::StatusOr<bool> GetBoolArgument(arolla::FrameLayout::Slot<DataSlice> slot,
+                                     arolla::FramePtr frame,
+                                     absl::string_view name);
 
 // Returns a present DataItem if b is true, otherwise missing.
 DataSlice AsMask(bool b);

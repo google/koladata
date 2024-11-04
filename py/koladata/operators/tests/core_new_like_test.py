@@ -137,7 +137,7 @@ class CoreNewlikeTest(absltest.TestCase):
   def test_update_schema_arg_error(self):
     shape_and_mask_from = ds([6, 7])
     with self.assertRaisesRegex(
-        ValueError, 'update_schema must be a boolean scalar'
+        ValueError, 'requires `update_schema` to be DataItem holding bool'
     ):
       kde.core.new_like(
           shape_and_mask_from,

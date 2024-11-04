@@ -19,6 +19,8 @@
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
@@ -32,6 +34,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_slot.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/unit.h"
 
 namespace koladata::ops {
@@ -69,6 +72,18 @@ std::vector<DataSlice> GetValueDataSlices(arolla::TypedSlot named_tuple_slot,
     values.push_back(frame.Get(data_slice_slot));
   }
   return values;
+}
+
+absl::StatusOr<bool> GetBoolArgument(arolla::FrameLayout::Slot<DataSlice> slot,
+                                     arolla::FramePtr frame,
+                                     absl::string_view name) {
+  const DataSlice& slice = frame.Get(slot);
+  if (slice.GetShape().rank() != 0 || !slice.item().holds_value<bool>()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("requires `%s` to be DataItem holding bool, got %s",
+                        name, arolla::Repr(slice)));
+  }
+  return slice.item().value<bool>();
 }
 
 DataSlice AsMask(bool b) {

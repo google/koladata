@@ -150,7 +150,7 @@ class CoreNewShapedTest(absltest.TestCase):
 
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'update_schema must be a boolean scalar'
+        ValueError, 'requires `update_schema` to be DataItem holding bool'
     ):
       kde.core.new_shaped(
           jagged_shape.create_shape(),

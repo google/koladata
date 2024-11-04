@@ -787,12 +787,17 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
     'kde.core.attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def _attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
+def _attrs(
+    x=py_boxing.positional_only(),
+    update_schema=py_boxing.keyword_only(False),
+    attrs=py_boxing.var_keyword(),
+):
   """Returns a new Databag containing attribute updates for a slice `x`."""
   raise NotImplementedError('implemented in the backend')
 
@@ -804,12 +809,17 @@ def _attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  # pyl
     'kde.core.with_attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def with_attrs(x=py_boxing.positional_only(), attrs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
+def with_attrs(
+    x=py_boxing.positional_only(),
+    update_schema=py_boxing.keyword_only(False),
+    attrs=py_boxing.var_keyword(),
+):
   """Returns a DataSlice with a new DataBag containing updated attributes."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2495,7 +2505,8 @@ def shallow_clone(
           arolla.abc.bind_op(
               with_attrs,
               _shallow_clone(P.obj, P.itemid, P.schema, P.hidden_seed),
-              P.overrides,
+              update_schema=py_boxing.as_qvalue(False),
+              attrs=P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
@@ -2574,7 +2585,8 @@ def clone(
           arolla.abc.bind_op(
               with_attrs,
               _clone(P.obj, P.itemid, P.schema, P.hidden_seed),
-              P.overrides,
+              update_schema=py_boxing.as_qvalue(False),
+              attrs=P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
@@ -2646,7 +2658,8 @@ def deep_clone(
           arolla.abc.bind_op(
               with_attrs,
               _deep_clone(P.obj, P.schema, P.hidden_seed),
-              P.overrides,
+              update_schema=py_boxing.as_qvalue(False),
+              attrs=P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),

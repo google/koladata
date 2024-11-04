@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
@@ -35,9 +36,15 @@ DATA_SLICE = qtypes.DATA_SLICE
 
 
 QTYPES = frozenset([
-    (DATA_SLICE, arolla.make_namedtuple_qtype(), DATA_SLICE),
-    (DATA_SLICE, arolla.make_namedtuple_qtype(a=DATA_SLICE), DATA_SLICE),
+    (DATA_SLICE, DATA_SLICE, arolla.make_namedtuple_qtype(), DATA_SLICE),
     (
+        DATA_SLICE,
+        DATA_SLICE,
+        arolla.make_namedtuple_qtype(a=DATA_SLICE),
+        DATA_SLICE,
+    ),
+    (
+        DATA_SLICE,
         DATA_SLICE,
         arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
         DATA_SLICE,
@@ -50,10 +57,16 @@ class CoreWithAttrsTest(parameterized.TestCase):
 
   def test_multi_attr_update(self):
     o = fns.new(x=1, y='q')
-    o1 = kde.core.with_attrs(o, x=2, a=1, b='p', c=fns.list([1, 2])).eval()
+    with self.assertRaisesRegex(
+        exceptions.KodaError, "the schema for attribute 'x' is incompatible."
+    ):
+      _ = kde.core.with_attrs(o, x='2').eval()
+    o1 = kde.core.with_attrs(
+        o, x='2', a=1, b='p', c=fns.list([1, 2]), update_schema=True
+    ).eval()
     self.assertNotEqual(o.get_bag().fingerprint, o1.get_bag().fingerprint)
     testing.assert_equal(o.x.no_bag(), ds(1))
-    testing.assert_equal(o1.x.no_bag(), ds(2))
+    testing.assert_equal(o1.x.no_bag(), ds('2'))
     testing.assert_equal(o1.y.no_bag(), ds('q'))
     testing.assert_equal(o1.a.no_bag(), ds(1))
     testing.assert_equal(o1.b.no_bag(), ds('p'))
@@ -61,7 +74,7 @@ class CoreWithAttrsTest(parameterized.TestCase):
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(
-        ValueError, 'setting attributes on primitive slices is not allowed'
+        ValueError, 'cannot get or set attributes on schema: INT32'
     ):
       _ = kde.core.with_attrs(ds(0).with_bag(bag()), x=1).eval()
 
@@ -102,7 +115,9 @@ class CoreWithAttrsTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.with_attrs(I.x, a=I.y)), 'kde.core.with_attrs(I.x, a=I.y)'
+        repr(kde.core.with_attrs(I.x, a=I.y)),
+        'kde.core.with_attrs(I.x, update_schema=DataItem(False, schema:'
+        ' BOOLEAN), a=I.y)',
     )
 
 

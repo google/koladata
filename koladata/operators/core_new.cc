@@ -82,15 +82,10 @@ class NewOperator final : public arolla::QExprOperator {
           if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
-          const DataSlice& update_schema_slice = frame.Get(update_schema_slot);
-          if (update_schema_slice.GetShape().rank() != 0 ||
-              !update_schema_slice.item().holds_value<bool>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "update_schema must be a boolean scalar, got %s",
-                arolla::Repr(update_schema_slice))));
-            return;
-          }
-          const bool update_schema = update_schema_slice.item().value<bool>();
+          ASSIGN_OR_RETURN(
+              bool update_schema,
+              GetBoolArgument(update_schema_slot, frame, "update_schema"),
+              ctx->set_status(std::move(_)));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -133,15 +128,10 @@ class NewShapedOperator : public arolla::QExprOperator {
           if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
-          const DataSlice& update_schema_slice = frame.Get(update_schema_slot);
-          if (update_schema_slice.GetShape().rank() != 0 ||
-              !update_schema_slice.item().holds_value<bool>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "update_schema must be a boolean scalar, got %s",
-                arolla::Repr(update_schema_slice))));
-            return;
-          }
-          const bool update_schema = update_schema_slice.item().value<bool>();
+          ASSIGN_OR_RETURN(
+              bool update_schema,
+              GetBoolArgument(update_schema_slot, frame, "update_schema"),
+              ctx->set_status(std::move(_)));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -184,15 +174,10 @@ class NewLikeOperator : public arolla::QExprOperator {
           if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
-          const DataSlice& update_schema_slice = frame.Get(update_schema_slot);
-          if (update_schema_slice.GetShape().rank() != 0 ||
-              !update_schema_slice.item().holds_value<bool>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "update_schema must be a boolean scalar, got %s",
-                arolla::Repr(update_schema_slice))));
-            return;
-          }
-          const bool update_schema = update_schema_slice.item().value<bool>();
+          ASSIGN_OR_RETURN(
+              bool update_schema,
+              GetBoolArgument(update_schema_slot, frame, "update_schema"),
+              ctx->set_status(std::move(_)));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -236,8 +221,6 @@ class UuOperator : public arolla::QExprOperator {
           } else {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
-          const DataSlice& update_schema_data_slice =
-              frame.Get(update_schema_slot);
           if (seed_data_slice.GetShape().rank() != 0 ||
               !seed_data_slice.item().holds_value<arolla::Text>()) {
             ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
@@ -245,15 +228,11 @@ class UuOperator : public arolla::QExprOperator {
                 arolla::Repr(seed_data_slice))));
             return;
           }
-          if (update_schema_data_slice.GetShape().rank() != 0 ||
-              !update_schema_data_slice.item().holds_value<bool>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "requires `update_schema` to be DataItem holding bool, got %s",
-                arolla::Repr(update_schema_data_slice))));
-            return;
-          }
           auto seed = seed_data_slice.item().value<arolla::Text>();
-          auto update_schema = update_schema_data_slice.item().value<bool>();
+          ASSIGN_OR_RETURN(
+              bool update_schema,
+              GetBoolArgument(update_schema_slot, frame, "update_schema"),
+              ctx->set_status(std::move(_)));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();

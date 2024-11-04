@@ -1050,6 +1050,7 @@ py_test(
     name = "core_attrs_test",
     srcs = ["core_attrs_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
@@ -1071,6 +1072,7 @@ py_test(
     name = "core_with_attrs_test",
     srcs = ["core_with_attrs_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
