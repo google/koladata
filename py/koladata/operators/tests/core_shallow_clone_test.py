@@ -197,6 +197,19 @@ class CoreShallowCloneTest(parameterized.TestCase):
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     testing.assert_equal(res_1.y.no_bag(), res_2.y.no_bag())
 
+  def test_mixed_objects_and_schemas(self):
+    db = data_bag.DataBag.empty()
+    schema = db.new_schema(x=schema_constants.INT32).with_schema(
+        schema_constants.OBJECT
+    )
+    schema.set_attr('__schema__', schema_constants.SCHEMA)
+    o = kde.stack(db.obj(x=1), schema)
+    with self.assertRaisesRegex(
+        ValueError,
+        'unsupported schema found during extract/clone',
+    ):
+      expr_eval.eval(kde.shallow_clone(o))
+
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.shallow_clone(I.x)))
 

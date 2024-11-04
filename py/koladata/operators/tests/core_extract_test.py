@@ -159,6 +159,29 @@ class CoreExtractTest(parameterized.TestCase):
     result = expr_eval.eval(kde.extract(s))
     testing.assert_equivalent(result.get_bag(), db)
 
+  def test_invalid_object_dtype_schema(self):
+    db = data_bag.DataBag.empty()
+    o = db.obj(x=1)
+    o.as_any().set_attr('__schema__', schema_constants.INT32)
+    with self.assertRaisesRegex(
+        ValueError,
+        'unsupported schema found during extract/clone',
+    ):
+      expr_eval.eval(kde.extract(o))
+
+  def test_mixed_objects_and_schemas(self):
+    db = data_bag.DataBag.empty()
+    schema = db.new_schema(x=schema_constants.INT32).with_schema(
+        schema_constants.OBJECT
+    )
+    schema.set_attr('__schema__', schema_constants.SCHEMA)
+    o = kde.stack(db.obj(x=1), schema)
+    with self.assertRaisesRegex(
+        ValueError,
+        'unsupported schema found during extract/clone',
+    ):
+      expr_eval.eval(kde.extract(o))
+
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(

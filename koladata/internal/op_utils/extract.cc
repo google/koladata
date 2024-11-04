@@ -32,7 +32,10 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/presence_and.h"
+#include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/memory/optional_value.h"
@@ -41,6 +44,7 @@
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
@@ -89,19 +93,10 @@ class CopyingProcessor {
     return ProcessQueue();
   }
 
-  absl::Status SetMappingToInitialIds(const DataSliceImpl& new_ids,
-                                      const DataSliceImpl& old_ids) {
+  template <class ImplT>
+  absl::Status SetMappingToInitialIds(const ImplT& new_ids,
+                                      const ImplT& old_ids) {
     return objects_tracker_->SetAttr(new_ids, kMappingAttrName, old_ids);
-  }
-
-  // Set the mapping attribute of the schema to the schema itself.
-  absl::StatusOr<DataItem> ReflectSchema(const DataItem& schema) {
-    if (schema.holds_value<ObjectId>()) {
-      RETURN_IF_ERROR(
-          objects_tracker_->SetAttr(schema, kMappingAttrName, schema));
-      return schema;
-    }
-    return schema;
   }
 
  private:
@@ -473,6 +468,29 @@ class CopyingProcessor {
     return absl::OkStatus();
   }
 
+  // Process slice of objects with ObjectId schema.
+  absl::Status ProcessObjectsWithSchemas(const DataSliceImpl& new_ds,
+                                         const DataSliceImpl& new_schemas) {
+    DCHECK(new_ds.dtype() == arolla::GetQType<ObjectId>());
+    DCHECK(new_schemas.dtype() == arolla::GetQType<ObjectId>());
+    absl::Status status = absl::OkStatus();
+    RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
+        [&](size_t idx, ObjectId new_obj, ObjectId new_schema) {
+          if (!status.ok()) {
+            return;
+          }
+          DataItem item = DataItem(new_obj);
+          auto item_slice =
+              QueuedSlice{.slice = DataSliceImpl::Create(1, item),
+                          .schema = DataItem(new_schema),
+                          .schema_source = SchemaSource::kDataDatabag};
+          // TODO: group items with the same schema into slices.
+          status = ProcessEntitySlice(item_slice);
+        },
+        new_ds.values<ObjectId>(), new_schemas.values<ObjectId>()));
+    return status;
+  }
+
   // Process slice of objects with object schema.
   absl::Status ProcessObjectSlice(const QueuedSlice& ds) {
     DataSliceImpl old_ds;
@@ -482,40 +500,48 @@ class CopyingProcessor {
     } else {
       old_ds = ds.slice;
     }
-    ASSIGN_OR_RETURN(auto slice_schemas,
+    ASSIGN_OR_RETURN(auto old_schemas,
                      databag_.GetAttr(old_ds, schema::kSchemaAttr, fallbacks_));
-    // TODO: update implicit schemas for new ObjectIds.
-    RETURN_IF_ERROR(
-        new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, slice_schemas));
-    for (size_t idx = 0; idx < ds.slice.size(); ++idx) {
-      const DataItem& item = ds.slice[idx];
-      const DataItem& schema = slice_schemas[idx];
-      if (!schema.is_schema()) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "object %v is expected to have a schema in %s attribute, got %v",
-            old_ds[idx], schema::kSchemaAttr, schema));
-      }
-      auto item_slice =
-          QueuedSlice{.slice = DataSliceImpl::Create(1, item),
-                      .schema = schema,
-                      .schema_source = SchemaSource::kDataDatabag};
-      if (schema.holds_value<ObjectId>()) {
-        if (is_shallow_clone_) {
-          ASSIGN_OR_RETURN(auto result_schema, ReflectSchema(schema));
-        }
-        // TODO: group items with the same schema into slices.
-        RETURN_IF_ERROR(ProcessEntitySlice(item_slice));
-      } else if (schema == schema::kSchema) {
-        RETURN_IF_ERROR(ProcessSchemaSlice(item_slice));
-      } else {
-        return absl::InternalError("unsupported schema type");
-      }
+    if (old_schemas.present_count() != old_ds.present_count()) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "__schema__ attribute is missing for some of %v", old_ds));
     }
-    return absl::OkStatus();
+    if (old_schemas.dtype() != arolla::GetQType<ObjectId>()) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "unsupported schema found during extract/clone among %v in "
+          "__schema__ attribute of slice %v",
+          old_schemas, old_ds));
+    }
+    if (!is_shallow_clone_) {
+      RETURN_IF_ERROR(
+          new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, old_schemas));
+      return ProcessObjectsWithSchemas(ds.slice, old_schemas);
+    }
+    // Create new implicit schemas and keep allocated explicit schemas unchanged
+    arolla::DenseArrayBuilder<arolla::Unit> implicit_mask_bldr(ds.slice.size());
+    old_schemas.values<ObjectId>().ForEachPresent(
+        [&](size_t idx, const ObjectId& schema) {
+          if (schema.IsImplicitSchema()) {
+            implicit_mask_bldr.Set(idx, arolla::kPresent);
+          }
+        });
+    ASSIGN_OR_RETURN(
+        auto implicit_slice,
+        PresenceAndOp()(ds.slice, DataSliceImpl::Create(
+                                    std::move(implicit_mask_bldr).Build())));
+    ASSIGN_OR_RETURN(
+        auto new_implicit_schemas,
+        CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+            implicit_slice, schema::kImplicitSchemaSeed));
+    ASSIGN_OR_RETURN(auto new_schemas,
+                     PresenceOrOp()(new_implicit_schemas, old_schemas));
+    RETURN_IF_ERROR(
+        new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, new_schemas));
+    RETURN_IF_ERROR(SetMappingToInitialIds(new_schemas, old_schemas));
+    return ProcessObjectsWithSchemas(ds.slice, new_schemas);
   }
 
   absl::Status ProcessQueue() {
-    // TODO: support implicit schemas.
     while (!queued_slices_.empty()) {
       QueuedSlice slice = std::move(queued_slices_.front());
       queued_slices_.pop();
@@ -669,17 +695,19 @@ absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
                                     DataBagImplPtr::NewRef(new_databag_),
                                     /*is_shallow_clone=*/true);
   RETURN_IF_ERROR(processor.SetMappingToInitialIds(filtered_itemid, ds));
-  ASSIGN_OR_RETURN(auto result_schema, processor.ReflectSchema(schema));
+  if (schema.holds_value<ObjectId>()) {
+    RETURN_IF_ERROR(processor.SetMappingToInitialIds(schema, schema));
+  }
   SchemaSource schema_source = schema_databag == nullptr
                                    ? SchemaSource::kDataDatabag
                                    : SchemaSource::kSchemaDatabag;
   auto slice = QueuedSlice{.slice = filtered_itemid,
-                           .schema = result_schema,
+                           .schema = schema,
                            .schema_source = schema_source};
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
   ASSIGN_OR_RETURN(auto result_slice,
                    WithReplacedObjectIds(ds, filtered_itemid));
-  return std::make_pair(std::move(result_slice), std::move(result_schema));
+  return std::make_pair(std::move(result_slice), schema);
 }
 
 absl::StatusOr<std::pair<DataItem, DataItem>> ShallowCloneOp::operator()(
