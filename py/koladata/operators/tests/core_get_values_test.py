@@ -198,7 +198,7 @@ class CoreGetValuesTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape("the attribute '__keys__' is missing"),
+        'the schema for dict keys is missing',
     ):
       expr_eval.eval(kde.get_values(db.list([1, 2, 3]), ds([0, 1])))
 

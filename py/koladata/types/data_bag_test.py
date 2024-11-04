@@ -909,11 +909,6 @@ Assigned schema for Dict key: INT32""",
     db = bag()
     shape = jagged_shape.create_shape([3])
     x = db.new_shaped(shape)
-    with self.assertRaisesRegex(
-        ValueError, r'the attribute \'a\' is missing on the schema'
-    ):
-      x.a = ds([1, 2, 3])
-    x.get_schema().a = schema_constants.INT32
     self.assertIsInstance(x, data_slice.DataSlice)
     x.a = ds([1, 2, 3])
     testing.assert_equal(x.a, ds([1, 2, 3]).with_bag(db))
@@ -952,11 +947,6 @@ Assigned schema for Dict key: INT32""",
         kde.has._eval(x).with_bag(None),  # pylint: disable=protected-access
         ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]]),
     )
-    with self.assertRaisesRegex(
-        ValueError, r'the attribute \'a\' is missing on the schema'
-    ):
-      x.a = ds([1, 2])
-    x.get_schema().a = schema_constants.INT32
     self.assertIsInstance(x, data_slice.DataSlice)
     x.a = ds([[1, 2, 3], [4, 5]])
     testing.assert_equal(x.a, ds([[1, None, 3], [None, 5]]).with_bag(db))

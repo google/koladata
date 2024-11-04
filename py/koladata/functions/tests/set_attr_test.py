@@ -34,8 +34,12 @@ class SetAttrTest(absltest.TestCase):
     db = fns.bag()
     x = db.new()
 
+    fns.set_attr(x, 'xyz', '12', update_schema=False)
+    testing.assert_equal(x.xyz, ds('12').with_bag(db))
+
     with self.assertRaisesRegex(
-        ValueError, r'the attribute \'xyz\' is missing on the schema'
+        exceptions.KodaError,
+        r'the schema for attribute \'xyz\' is incompatible',
     ):
       fns.set_attr(x, 'xyz', 12, update_schema=False)
 

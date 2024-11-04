@@ -405,14 +405,16 @@ TEST(EntityCreatorTest, SchemaArg_CastingFails) {
 
 TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
   auto db = DataBag::Empty();
-  auto int_s = test::Schema(schema::kFloat32);
-  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+  auto bytes_s = test::Schema(schema::kBytes);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {bytes_s});
 
-  EXPECT_THAT(EntityCreator::FromAttrs(
-                  db, {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
-                  entity_schema),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("attribute 'b' is missing on the schema")));
+  EXPECT_THAT(
+      EntityCreator::FromAttrs(db, {"a", "b"},
+                               {test::DataItem(42), test::DataItem("xyz")},
+                               entity_schema),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("the schema for attribute 'a' is incompatible: "
+                         "expected BYTES, assigned INT32")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
@@ -420,6 +422,8 @@ TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
                                {test::DataItem(42), test::DataItem("xyz")},
                                entity_schema, /*update_schema=*/true));
 
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   EXPECT_THAT(entity.GetAttr("b"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(db))));
 
@@ -434,16 +438,16 @@ TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
 
 TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
   auto db = DataBag::Empty();
-  auto int_s = test::Schema(schema::kFloat32);
-  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+  auto bytes_s = test::Schema(schema::kBytes);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {bytes_s});
 
   EXPECT_THAT(
-      EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
-                            {"a", "b"},
+      EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {"a", "b"},
                             {test::DataItem(42), test::DataItem("xyz")},
                             entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("attribute 'b' is missing on the schema")));
+               HasSubstr("the schema for attribute 'a' is incompatible: "
+                         "expected BYTES, assigned INT32")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
@@ -452,6 +456,8 @@ TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
                             {test::DataItem(42), test::DataItem("xyz")},
                             entity_schema, /*update_schema=*/true));
 
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   EXPECT_THAT(entity.GetAttr("b"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(db))));
 
@@ -467,17 +473,17 @@ TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
 
 TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
   auto db = DataBag::Empty();
-  auto int_s = test::Schema(schema::kFloat32);
-  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+  auto bytes_s = test::Schema(schema::kBytes);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {bytes_s});
 
   auto shape_and_mask_from = test::DataSlice<int>({1, std::nullopt, 2});
   EXPECT_THAT(
-      EntityCreator::Like(db, shape_and_mask_from,
-                          {"a", "b"},
+      EntityCreator::Like(db, shape_and_mask_from, {"a", "b"},
                           {test::DataItem(42), test::DataItem("xyz")},
                           entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("attribute 'b' is missing on the schema")));
+               HasSubstr("the schema for attribute 'a' is incompatible: "
+                         "expected BYTES, assigned INT32")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
@@ -506,19 +512,13 @@ TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
 
 TEST(EntityCreatorTest, SchemaArg_NoBag) {
   auto schema_db = DataBag::Empty();
-  auto int_s = test::Schema(schema::kInt32);
-  auto entity_schema = *CreateEntitySchema(schema_db, {"a"}, {int_s});
+  auto bytes_s = test::Schema(schema::kBytes);
+  auto entity_schema = *CreateEntitySchema(schema_db, {"a"}, {bytes_s});
 
   auto db = DataBag::Empty();
-  EXPECT_THAT(EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)},
-                                       entity_schema.WithBag(nullptr)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("attribute 'a' is missing on the schema")));
-
-  ASSERT_OK_AND_ASSIGN(auto entity,
-                       EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)},
-                                                entity_schema.WithBag(nullptr),
-                                                /*update_schema=*/true));
+  ASSERT_OK_AND_ASSIGN(
+      auto entity, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)},
+                                            entity_schema.WithBag(nullptr)));
   EXPECT_THAT(entity.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
 }
@@ -735,22 +735,25 @@ TEST(CreateUuTest, SchemaArg_CastingFails) {
                        HasSubstr("schema for attribute 'a' is incompatible")));
 }
 
-TEST(CreatUuTest, SchemaArg_UpdateSchema) {
+TEST(CreateUuTest, SchemaArg_UpdateSchema) {
   auto db = DataBag::Empty();
-  auto int_s = test::Schema(schema::kFloat32);
-  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+  auto bytes_s = test::Schema(schema::kBytes);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {bytes_s});
 
   EXPECT_THAT(
       CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
                entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("attribute 'b' is missing on the schema")));
+               HasSubstr("the schema for attribute 'a' is incompatible: "
+                         "expected BYTES, assigned INT32")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
       CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
                entity_schema, /*update_schema=*/true));
 
+  EXPECT_THAT(entity.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   EXPECT_THAT(entity.GetAttr("b"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(db))));
 }

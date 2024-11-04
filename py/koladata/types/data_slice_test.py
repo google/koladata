@@ -721,8 +721,10 @@ class DataSliceTest(parameterized.TestCase):
       testing.assert_equal(x.get_attr('xyz', None), ds([None]).with_bag(db))
       testing.assert_equal(x.get_attr('xyz', b'b'), ds([b'b']).with_bag(db))
 
+      x.set_attr('xyz', ds(b'12'))
+
       with self.assertRaisesRegex(
-          ValueError, r'the attribute \'xyz\' is missing on the schema'
+          exceptions.KodaError, r'schema for attribute \'xyz\' is incompatible'
       ):
         x.set_attr('xyz', ds([12]), update_schema=False)
 
@@ -1113,11 +1115,6 @@ foo.get_obj_schema().x = <desired_schema>"""),
     x.set_attrs(a=2, b='abc')
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
-
-    with self.assertRaisesRegex(
-        ValueError, r'attribute \'c\' is missing on the schema'
-    ):
-      x.set_attrs(a=2, b='abc', c=15)
 
     with self.assertRaisesRegex(
         exceptions.KodaError, r'schema for attribute \'b\' is incompatible'
@@ -1576,14 +1573,12 @@ foo.get_obj_schema().x = <desired_schema>"""),
       _ = non_dicts[set()]
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
       non_dicts['a'] = ValueError
-    # TODO: Better error message.
     with self.assertRaisesRegex(
-        ValueError, "the attribute '__keys__' is missing on the schema."
+        ValueError, 'the schema for dict keys is missing'
     ):
       non_dicts['a'] = 'b'
-    # TODO: Better error message.
     with self.assertRaisesRegex(
-        ValueError, "the attribute '__keys__' is missing on the schema."
+        ValueError, 'the schema for dict keys is missing'
     ):
       _ = non_dicts['a']
     with self.assertRaisesRegex(

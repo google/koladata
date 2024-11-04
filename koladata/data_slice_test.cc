@@ -1991,6 +1991,31 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectsWithExplicitSchema) {
   EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
 }
 
+TEST(DataSliceTest, SetAttr_ObjectsWithExplicitSchemaNewAttr) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto e1, EntityCreator::FromAttrs(db, {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto e2, EntityCreator::FromAttrs(db, {}, {}));
+  auto ds_primitive = test::DataSlice<int>({1, 2, 3});
+  auto ds_schemas =
+      test::DataSlice<ObjectId>({e1.GetSchemaImpl().value<ObjectId>(),
+                                 e2.GetSchemaImpl().value<ObjectId>(),
+                                 e1.GetSchemaImpl().value<ObjectId>()},
+                                schema::kSchema, db);
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       ObjectCreator::FromAttrs(db, {"a"}, {ds_primitive}));
+  ASSERT_OK(ds.SetAttr(schema::kSchemaAttr, ds_schemas));
+
+  auto ds_int64_primitive = test::DataSlice<int64_t>({12, 42, 97});
+  ASSERT_OK(ds.SetAttr("b", ds_int64_primitive));
+  ASSERT_OK_AND_ASSIGN(auto ds_b_get, ds.GetAttr("b"));
+  EXPECT_EQ(ds_b_get.GetSchemaImpl(), schema::kInt64);
+  EXPECT_THAT(ds_b_get.slice(), ElementsAre(12, 42, 97));
+  ASSERT_OK_AND_ASSIGN(auto schema_b_get, ds_schemas.GetAttr("b"));
+  EXPECT_EQ(schema_b_get.GetSchemaImpl(), schema::kSchema);
+  EXPECT_THAT(schema_b_get.slice(),
+              ElementsAre(schema::kInt64, schema::kInt64, schema::kInt64));
+}
+
 TEST(DataSliceTest, SetMultipleAttrs_Entity) {
   auto db = DataBag::Empty();
   auto ds_a = test::DataItem(1);
@@ -2028,11 +2053,15 @@ TEST(DataSliceTest, SetMultipleAttrs_Object) {
 TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Entity) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {}, {}));
+  auto ds_a_old = test::DataItem("old");
+  ASSERT_OK(ds.SetAttrs({"a"}, {ds_a_old}));
   auto ds_a = test::DataItem(42);
   auto ds_b = test::DataItem("abc");
-  EXPECT_THAT(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("attribute 'a' is missing on the schema")));
+  EXPECT_THAT(
+      ds.SetAttrs({"a", "b"}, {ds_a, ds_b}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("the schema for attribute 'a' is incompatible: "
+                         "expected STRING, assigned INT32")));
 
   ASSERT_OK(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}, /*update_schema=*/true));
   EXPECT_THAT(ds.GetAttr("a"),
@@ -2047,11 +2076,15 @@ TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Object) {
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::FromAttrs(db, {}, {}));
   ASSERT_OK(ds.SetAttr(schema::kSchemaAttr,
                        test::Schema(internal::AllocateExplicitSchema())));
+  auto ds_a_old = test::DataItem("old");
+  ASSERT_OK(ds.SetAttrs({"a"}, {ds_a_old}));
   auto ds_a = test::DataItem(42);
   auto ds_b = test::DataItem("abc");
-  EXPECT_THAT(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("attribute 'a' is missing on the schema")));
+  EXPECT_THAT(
+      ds.SetAttrs({"a", "b"}, {ds_a, ds_b}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("the schema for attribute 'a' is incompatible: "
+                         "expected STRING, assigned INT32")));
 
   ASSERT_OK(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}, /*update_schema=*/true));
   EXPECT_THAT(ds.GetAttr("a"),
@@ -2320,9 +2353,18 @@ TEST(DataSliceTest, SetAttr_NoFollowSchema_Entity) {
 
   ASSERT_OK_AND_ASSIGN(ds, NoFollow(ds));
 
-  EXPECT_THAT(ds.SetAttr("a", test::DataSlice<int>({1, 2, 3})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("attribute 'a' is missing")));
+  EXPECT_THAT(
+      ds.SetAttr("a", test::DataSlice<int>({1, 2, 3})),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr(
+              "cannot set an attribute on an entity with a no-follow schema")));
+  EXPECT_THAT(
+      ds.SetAttrWithUpdateSchema("a", test::DataSlice<int>({1, 2, 3})),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr(
+              "cannot set an attribute on an entity with a no-follow schema")));
 }
 
 TEST(DataSliceTest, SetAttr_NoFollowSchema_Object) {
@@ -2335,9 +2377,18 @@ TEST(DataSliceTest, SetAttr_NoFollowSchema_Object) {
                        CreateNoFollowSchema(explicit_schema));
   ASSERT_OK(ds.SetAttr(schema::kSchemaAttr, nofollow_schema));
 
-  EXPECT_THAT(ds.SetAttr("a", test::DataSlice<int>({1, 2, 3})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("attribute 'a' is missing")));
+  EXPECT_THAT(
+      ds.SetAttr("a", test::DataSlice<int>({1, 2, 3})),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr(
+              "cannot set an attribute on an entity with a no-follow schema")));
+  EXPECT_THAT(
+      ds.SetAttrWithUpdateSchema("a", test::DataSlice<int>({1, 2, 3})),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr(
+              "cannot set an attribute on an entity with a no-follow schema")));
 }
 
 TEST(DataSliceTest, GetNoFollowAttr_Entity) {
@@ -2505,10 +2556,9 @@ TEST(DataSliceTest, MissingAttribute_EntityCreator) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
-  EXPECT_THAT(
-      ds.SetAttr("a", ds_int32),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("the attribute 'a' is missing on the schema")));
+  ASSERT_OK(ds.SetAttr("a", ds_int32));
+  EXPECT_THAT(ds.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(ds_int32.WithBag(db))));
 }
 
 TEST(DataSliceTest, SetGetError_ObjectCreator) {
@@ -2529,10 +2579,10 @@ TEST(DataSliceTest, SetGetError_ObjectCreator) {
               IsEquivalentTo(mixed_implicit_explicit_schema));
 
   auto ds_a = test::DataItem("foo");
-  EXPECT_THAT(
-      objects.SetAttr("a", ds_a),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("the attribute 'a' is missing on the schema")));
+  ASSERT_OK(objects.SetAttr("a", ds_a));
+  EXPECT_THAT(explicit_schema_get.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataSlice<DType>(
+                  {schema::kString, schema::kString, schema::kString}, db))));
 
   auto float_schema = test::Schema(schema::kFloat32);
   ASSERT_OK(mixed_implicit_explicit_schema.SetAttr("a", float_schema));
@@ -4251,7 +4301,7 @@ TEST(DataSliceTest, GetItem_DataItem) {
       auto entity, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
   EXPECT_THAT(entity.GetItem(test::DataItem("a")),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the attribute '__keys__' is missing on the schema."));
+                       "the schema for dict keys is missing"));
 }
 
 TEST(DataSliceTest, GetItem_DataSlice) {
@@ -4278,7 +4328,7 @@ TEST(DataSliceTest, GetItem_DataSlice) {
       EntityCreator::FromAttrs(db, {"a"}, {test::DataSlice<int>({1, 2, 3})}));
   EXPECT_THAT(entities.GetItem(test::DataItem("a")),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the attribute '__keys__' is missing on the schema."));
+                       "the schema for dict keys is missing"));
 }
 
 TEST(DataSliceTest, SchemaSlice) {

@@ -202,12 +202,11 @@ class NewTest(absltest.TestCase):
     ):
       fns.new(a='xyz', schema=schema)
 
-  def test_schema_arg_supplement_fails(self):
+  def test_schema_arg_supplement_succeeds(self):
     schema = fns.new_schema(a=schema_constants.INT32)
-    with self.assertRaisesRegex(
-        exceptions.KodaError, "attribute 'b' is missing on the schema"
-    ):
-      fns.new(a=42, b='xyz', schema=schema)
+    x = fns.new(a=42, b='xyz', schema=schema)
+    testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
+    testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_update_schema(self):
     schema = fns.new_schema(a=schema_constants.INT32)

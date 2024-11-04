@@ -63,9 +63,6 @@
 namespace koladata {
 namespace {
 
-constexpr absl::string_view kExplicitSchemaIsMissingError =
-    "the attribute '%s' is missing on the schema.";
-
 const DataSlice::JaggedShape& MaxRankShape(const DataSlice::JaggedShape& s1,
                                            const DataSlice::JaggedShape& s2) {
   return s1.rank() < s2.rank() ? s2 : s1;
@@ -400,8 +397,9 @@ absl::StatusOr<ImplT> CoalesceWithFiltered(const ImplT& objects, const ImplT& l,
   return internal::PresenceOrOp()(l, r_filtered);
 }
 
-// Configures error messages for RhsHandler.
-enum class RhsHandlerErrorContext {
+// Configures the error messages and the behavior when the attribute
+// schema is missing for RhsHandler.
+enum class RhsHandlerContext {
   kAttr = 0,
   kListItem = 1,
   kDict = 2,
@@ -422,9 +420,9 @@ class RhsHandler {
       std::conditional_t<is_readonly, const internal::DataBagImpl,
                          internal::DataBagImpl>;
 
-  RhsHandler(RhsHandlerErrorContext error_context, const DataSlice& rhs,
+  RhsHandler(RhsHandlerContext context, const DataSlice& rhs,
              absl::string_view attr_name)
-      : error_context_(error_context), rhs_(rhs), attr_name_(attr_name) {}
+      : context_(context), rhs_(rhs), attr_name_(attr_name) {}
 
   const DataSlice& GetValues() const {
     return casted_rhs_.has_value() ? *casted_rhs_ : rhs_;
@@ -484,11 +482,15 @@ class RhsHandler {
     if (!lhs_schema.has_value()) {
       return absl::OkStatus();
     }
-    if (lhs_schema.value<internal::ObjectId>().IsImplicitSchema() ||
-        update_schema) {
+    auto schema_id = lhs_schema.value<internal::ObjectId>();
+    if (schema_id.IsNoFollowSchema()) {
+      return CannotSetAttrOnNoFollowSchemaErrorStatus();
+    }
+    if (schema_id.IsImplicitSchema() || update_schema ||
+        (context_ == RhsHandlerContext::kAttr &&
+         !attr_stored_schema.has_value())) {
       if constexpr (is_readonly) {
-        return absl::InternalError(
-            "cannot deal with implicit schemas on readonly databag");
+        return absl::InternalError("cannot update schemas in readonly mode");
       } else {
         if (attr_stored_schema != rhs_.GetSchemaImpl()) {
           return db_impl.SetSchemaAttr(lhs_schema, attr_name_,
@@ -497,10 +499,9 @@ class RhsHandler {
         return absl::OkStatus();
       }
     }
-    // lhs_schema is EXPLICIT.
     if (!attr_stored_schema.has_value()) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat(kExplicitSchemaIsMissingError, attr_name_));
+      // This can happen only for lists and dicts.
+      return AttrSchemaMissingErrorStatus();
     }
     return CastRhsTo(attr_stored_schema, db_impl);
   }
@@ -521,7 +522,7 @@ class RhsHandler {
 
     internal::DataItem value_schema = rhs_.GetSchemaImpl();
     bool has_implicit_schema = false;
-    bool should_update_implicit_schema = false;
+    bool should_update_schema = false;
     std::optional<internal::DataItem> cast_to = std::nullopt;
     absl::Status status = absl::OkStatus();
     lhs_schema.template values<internal::ObjectId>().ForEachPresent(
@@ -533,14 +534,21 @@ class RhsHandler {
           if (schema_id.IsImplicitSchema()) {
             has_implicit_schema = true;
             if (attr_stored_schema != rhs_.GetSchemaImpl()) {
-              should_update_implicit_schema = true;
+              should_update_schema = true;
             }
+            return;
+          }
+          if (schema_id.IsNoFollowSchema()) {
+            status = CannotSetAttrOnNoFollowSchemaErrorStatus();
             return;
           }
           // lhs_schema is EXPLICIT.
           if (!attr_stored_schema.has_value()) {
-            status = absl::InvalidArgumentError(
-                absl::StrFormat(kExplicitSchemaIsMissingError, attr_name_));
+            if (context_ == RhsHandlerContext::kAttr) {
+              should_update_schema = true;
+            } else {
+              status = AttrSchemaMissingErrorStatus();
+            }
             return;
           }
           if (cast_to.has_value() && *cast_to != attr_stored_schema) {
@@ -561,11 +569,12 @@ class RhsHandler {
       RETURN_IF_ERROR(CastRhsTo(*cast_to, db_impl));
       value_schema = *cast_to;
     }
-    if (should_update_implicit_schema ||
-        (has_implicit_schema && casted_rhs_.has_value())) {
+    // If we had implicit schemas and changed the type of rhs via casting, we
+    // need to update the implicit schemas.
+    should_update_schema |= has_implicit_schema && casted_rhs_.has_value();
+    if (should_update_schema) {
       if constexpr (is_readonly) {
-        return absl::InternalError(
-            "cannot deal with implicit schemas on readonly databag");
+        return absl::InternalError("cannot update schemas in readonly mode");
       } else {
         // NOTE: Must happen after casting, because otherwise schema and data
         // might get out of sync (schema INT64, data INT32).
@@ -617,20 +626,20 @@ class RhsHandler {
   absl::Status RhsCastingErrorStatus(
       const internal::DataItem& attr_stored_schema) const {
     absl::Status status = absl::OkStatus();
-    switch (error_context_) {
-      case RhsHandlerErrorContext::kAttr:
+    switch (context_) {
+      case RhsHandlerContext::kAttr:
         status = absl::InvalidArgumentError(absl::StrFormat(
             "the schema for attribute '%s' is incompatible: expected %v, "
             "assigned %v",
             attr_name_, attr_stored_schema, rhs_.GetSchemaImpl()));
         break;
-      case RhsHandlerErrorContext::kListItem:
+      case RhsHandlerContext::kListItem:
         status = absl::InvalidArgumentError(absl::StrFormat(
             "the schema for list items is incompatible: expected %v, assigned "
             "%v",
             attr_stored_schema, rhs_.GetSchemaImpl()));
         break;
-      case RhsHandlerErrorContext::kDict:
+      case RhsHandlerContext::kDict:
         absl::string_view dict_attr =
             attr_name_ == schema::kDictKeysSchemaAttr ? "keys" : "values";
         status = absl::InvalidArgumentError(absl::StrFormat(
@@ -640,6 +649,27 @@ class RhsHandler {
     }
     return WithErrorPayload(status,
                             MakeIncompatibleSchemaError(attr_stored_schema));
+  }
+
+  absl::Status AttrSchemaMissingErrorStatus() const {
+    switch (context_) {
+      case RhsHandlerContext::kAttr:
+        return absl::InternalError(
+            "we should have never raised for missing attr schema");
+      case RhsHandlerContext::kListItem:
+        return absl::InvalidArgumentError(
+            absl::StrFormat("the schema for list items is missing"));
+      case RhsHandlerContext::kDict:
+        absl::string_view dict_attr =
+            attr_name_ == schema::kDictKeysSchemaAttr ? "keys" : "values";
+        return absl::InvalidArgumentError(
+            absl::StrFormat("the schema for dict %s is missing", dict_attr));
+    }
+  }
+
+  absl::Status CannotSetAttrOnNoFollowSchemaErrorStatus() const {
+    return absl::InvalidArgumentError(
+        "cannot set an attribute on an entity with a no-follow schema");
   }
 
   absl::StatusOr<internal::Error> MakeIncompatibleSchemaError(
@@ -655,7 +685,7 @@ class RhsHandler {
     return error;
   }
 
-  RhsHandlerErrorContext error_context_;
+  RhsHandlerContext context_;
   const DataSlice& rhs_;
   absl::string_view attr_name_;
   std::optional<DataSlice> casted_rhs_ = std::nullopt;
@@ -1123,7 +1153,7 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
-  RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerErrorContext::kAttr,
+  RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerContext::kAttr,
                                                  expanded_values, attr_name);
   if (attr_name == schema::kSchemaAttr) {
     if (expanded_values.GetSchemaImpl() != schema::kSchema) {
@@ -1296,9 +1326,8 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(auto expanded_keys, BroadcastToShape(keys, shape));
-  RhsHandler</*is_readonly=*/true> keys_handler(RhsHandlerErrorContext::kDict,
-                                                expanded_keys,
-                                                schema::kDictKeysSchemaAttr);
+  RhsHandler</*is_readonly=*/true> keys_handler(
+      RhsHandlerContext::kDict, expanded_keys, schema::kDictKeysSchemaAttr);
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, GetBag()->GetImpl(),
                                              fb_finder.GetFlattenFallbacks()));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
@@ -1341,14 +1370,12 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
 
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
-  RhsHandler</*is_readonly=*/false> keys_handler(RhsHandlerErrorContext::kDict,
-                                                 expanded_keys,
-                                                 schema::kDictKeysSchemaAttr);
+  RhsHandler</*is_readonly=*/false> keys_handler(
+      RhsHandlerContext::kDict, expanded_keys, schema::kDictKeysSchemaAttr);
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
   RhsHandler</*is_readonly=*/false> values_handler(
-      RhsHandlerErrorContext::kDict, expanded_values,
-      schema::kDictValuesSchemaAttr);
+      RhsHandlerContext::kDict, expanded_values, schema::kDictValuesSchemaAttr);
   RETURN_IF_ERROR(values_handler.ProcessSchema(*this, db_mutable_impl,
                                                /*fallbacks=*/{}));
 
@@ -1554,9 +1581,9 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
-  RhsHandler</*is_readonly=*/false> data_handler(
-      RhsHandlerErrorContext::kListItem, expanded_values,
-      schema::kListItemsSchemaAttr);
+  RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerContext::kListItem,
+                                                 expanded_values,
+                                                 schema::kListItemsSchemaAttr);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
 
@@ -1603,9 +1630,9 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
                    }));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
-  RhsHandler</*is_readonly=*/false> data_handler(
-      RhsHandlerErrorContext::kListItem, expanded_values,
-      schema::kListItemsSchemaAttr);
+  RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerContext::kListItem,
+                                                 expanded_values,
+                                                 schema::kListItemsSchemaAttr);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
   if (std::holds_alternative<internal::DataItem>(
@@ -1653,7 +1680,7 @@ absl::Status DataSlice::ReplaceInList(int64_t start,
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(
-      RhsHandlerErrorContext::kListItem, values, schema::kListItemsSchemaAttr);
+      RhsHandlerContext::kListItem, values, schema::kListItemsSchemaAttr);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
 
@@ -1809,7 +1836,7 @@ absl::StatusOr<DataSlice> CastOrUpdateSchema(
     const DataSlice& value, const internal::DataItem& lhs_schema,
     absl::string_view attr_name, bool update_schema,
     internal::DataBagImpl& db_impl) {
-  RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerErrorContext::kAttr,
+  RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerContext::kAttr,
                                                  /*rhs=*/value, attr_name);
   RETURN_IF_ERROR(data_handler.ProcessSchemaObjectAttr(lhs_schema, db_impl, {},
                                                        update_schema));
