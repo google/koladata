@@ -467,6 +467,8 @@ cc_test(
         "//koladata/internal:object_id",
         "//koladata/internal:stable_fingerprint",
         "//koladata/internal:uuid_object",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/qtype",
         "@com_google_googletest//:gtest_main",

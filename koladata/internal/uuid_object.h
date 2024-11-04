@@ -54,6 +54,13 @@ absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
     absl::Span<const std::reference_wrapper<const DataSliceImpl>> values,
     UuidType uuid_type = UuidType::kDefault);
 
+// Creates a slice of Uuid objects that share the same allocation.
+// The size of the allocation is `size`. Each item in the result is distinct.
+// Conceptually the result is a slice containing
+// [fingerprint(seed, size, i) for i in range(size)]
+absl::StatusOr<DataSliceImpl> CreateUuidsWithAllocationSize(
+    absl::string_view seed, int64_t size);
+
 // Creates Uuid object for a list, based on values of items.
 DataItem CreateListUuidFromItemsAndFields(
     absl::string_view seed, const DataSliceImpl& list_items,

@@ -57,6 +57,11 @@ class UuidForDictOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// kde.core.uuids_with_allocation_size operator.
+// Creates a DataSlice whose items are uuids that share the same allocation.
+absl::StatusOr<DataSlice> UuidsWithAllocationSize(const DataSlice& seed,
+                                                  const DataSlice& size);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_UUID_H_

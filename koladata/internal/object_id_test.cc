@@ -758,5 +758,35 @@ TEST(ObjectIdTest, ObjectIdStringFormat) {
               MatchesRegex(R"regex(\$[0-9a-f]{32}:0)regex"));
 }
 
+TEST(ObjectIdTest, AllocateUuids) {
+  for (size_t size = 1; size <= 257; ++size) {
+    AllocationId alloc_id = AllocateUuids(
+        arolla::FingerprintHasher("seed").Combine(size).Finish(), size);
+    ASSERT_GE(alloc_id.Capacity(), size);
+    std::vector<AllocationId> other_allocs = {
+        AllocateUuids(
+            arolla::FingerprintHasher("different_seed").Combine(size).Finish(),
+            size),
+        AllocateUuids(
+            arolla::FingerprintHasher("seed").Combine(size + 1).Finish(),
+            size + 1),
+        AllocateUuids(arolla::FingerprintHasher("different_seed")
+                          .Combine(size + 1)
+                          .Finish(),
+                      size + 1)};
+    for (int64_t i = 0; i < size; ++i) {
+      ObjectId obj_id = alloc_id.ObjectByOffset(i);
+      ASSERT_TRUE(obj_id.IsUuid());
+      ASSERT_EQ(AllocationId(obj_id), alloc_id) << size << " " << i;
+      ASSERT_EQ(obj_id.Offset(), i) << size << " " << i;
+      ASSERT_TRUE(alloc_id.Contains(obj_id)) << size << " " << i;
+      for (const AllocationId& other_alloc : other_allocs) {
+        ASSERT_FALSE(other_alloc.Contains(obj_id))
+            << size << " " << i << " " << other_alloc.Capacity();
+      }
+    }
+  }
+}
+
 }  // namespace
 }  // namespace koladata::internal

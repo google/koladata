@@ -80,6 +80,13 @@ arolla::Fingerprint UuidWithMainObjectFingerprint(ObjectId object_id,
   return UuidWithMainObjectFingerprint(AllocationId(object_id), salt);
 }
 
+arolla::Fingerprint UuidsWithAllocationSizeFingerprint(absl::string_view seed,
+                                                       int64_t size) {
+  return StableFingerprintHasher("uuids_with_allocation_size")
+      .Combine(seed, size)
+      .Finish();
+}
+
 }  // namespace
 
 ObjectId CreateUuidObject(arolla::Fingerprint fingerprint, UuidType uuid_type) {
@@ -164,6 +171,13 @@ absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
   return DataSliceImpl::CreateObjectsDataSlice(
       ObjectIdArray{std::move(values_builder).Build()},
       AllocationIdSet(/*contains_small_allocation_id=*/true));
+}
+
+absl::StatusOr<DataSliceImpl> CreateUuidsWithAllocationSize(
+    absl::string_view seed, int64_t size) {
+  AllocationId uu_alloc_id =
+      AllocateUuids(UuidsWithAllocationSizeFingerprint(seed, size), size);
+  return DataSliceImpl::ObjectsFromAllocation(uu_alloc_id, size);
 }
 
 DataItem CreateListUuidFromItemsAndFields(

@@ -143,6 +143,7 @@ OPERATOR_FAMILY("kde.core.uuid_for_dict",
                 std::make_unique<UuidForDictOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uuid_for_list",
                 std::make_unique<UuidForListOperatorFamily>());
+OPERATOR("kde.core.uuids_with_allocation_size", UuidsWithAllocationSize);
 OPERATOR_FAMILY("kde.core.uuobj", std::make_unique<UuObjOperatorFamily>());
 OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());

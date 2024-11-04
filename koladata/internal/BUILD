@@ -849,6 +849,8 @@ cc_test(
         ":object_id",
         ":uuid_object",
         "//koladata/internal/testing:matchers",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/memory",

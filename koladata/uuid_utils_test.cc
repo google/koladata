@@ -18,6 +18,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/log/check.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -35,6 +37,7 @@ using internal::ObjectId;
 
 using ::testing::ElementsAreArray;
 using ::testing::Eq;
+using ::testing::IsEmpty;
 using ::testing::Not;
 
 TEST(UuidUtilsTest, IsUnspecifiedDataSlice_True) {
@@ -55,8 +58,8 @@ TEST(UuidUtilsTest, IsUnspecifiedDataSlice_False) {
 
 TEST(UuidUtilsTest, UnspecifiedDataSlice_DiffMetadata) {
   ObjectId obj_id = internal::CreateUuidObjectWithMetadata(
-      internal::StableFingerprintHasher(
-          absl::string_view("__unspecified__")).Finish(),
+      internal::StableFingerprintHasher(absl::string_view("__unspecified__"))
+          .Finish(),
       internal::ObjectId::kUuidFlag);
 
   EXPECT_THAT(UnspecifiedDataSlice().item(), Not(Eq(obj_id)));
@@ -78,12 +81,10 @@ TEST(UuidUtilsTest, CreateUuidFromFields_DataSlice) {
   EXPECT_EQ(ds.size(), kSize);
   EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
 
-  ASSERT_OK_AND_ASSIGN(
-      auto expected,
-      internal::CreateUuidFromFields("", {"a", "b"},
-                                     {ds_a.slice(), ds_b.slice()}));
-  EXPECT_THAT(ds.slice().values<ObjectId>(), ElementsAreArray(
-      expected.values<ObjectId>()));
+  ASSERT_OK_AND_ASSIGN(auto expected,
+                       internal::CreateUuidFromFields(
+                           "", {"a", "b"}, {ds_a.slice(), ds_b.slice()}));
+  EXPECT_THAT(ds.slice(), ElementsAreArray(expected));
 
   // Seeded UUIds
   ASSERT_OK_AND_ASSIGN(
@@ -92,23 +93,20 @@ TEST(UuidUtilsTest, CreateUuidFromFields_DataSlice) {
   ASSERT_OK_AND_ASSIGN(
       auto ds_with_seed_2,
       CreateUuidFromFields("seed_2", {"a", "b"}, {ds_a, ds_b}));
-  ASSERT_OK_AND_ASSIGN(expected,
-                       internal::CreateUuidFromFields(
-                           "seed_1", {"a", "b"},
-                           {ds_a.slice(), ds_b.slice()}));
-  EXPECT_THAT(ds_with_seed_1.slice().values<ObjectId>(), ElementsAreArray(
-      expected.values<ObjectId>()));
-  EXPECT_THAT(ds_with_seed_1.slice().values<ObjectId>(),
-              Not(ElementsAreArray(
-                  ds_with_seed_2.slice().values<ObjectId>())));
+  ASSERT_OK_AND_ASSIGN(
+      expected, internal::CreateUuidFromFields("seed_1", {"a", "b"},
+                                               {ds_a.slice(), ds_b.slice()}));
+  EXPECT_THAT(ds_with_seed_1.slice(), ElementsAreArray(expected));
+  EXPECT_THAT(ds_with_seed_1.slice(),
+              Not(ElementsAreArray(ds_with_seed_2.slice())));
 }
 
 TEST(UuidUtilsTest, CreateUuidFromFields_DataSlice_List) {
   auto ds_a = test::AllocateDataSlice(3, schema::kObject);
   auto ds_b = test::AllocateDataSlice(3, schema::kObject);
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds, CreateListUuidFromFields("", {"a", "b"}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       CreateListUuidFromFields("", {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetSchemaImpl(), schema::kItemId);
 
   ds.slice().values<ObjectId>().ForEach(
@@ -147,8 +145,8 @@ TEST(UuidUtilsTest, CreateUuidFromFields_DataItem) {
   EXPECT_EQ(ds.size(), 1);
   EXPECT_EQ(ds.GetShape().rank(), 0);
   EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
-  auto expected = internal::CreateUuidFromFields(
-      "", {"a", "b"}, {ds_a.item(), ds_b.item()});
+  auto expected = internal::CreateUuidFromFields("", {"a", "b"},
+                                                 {ds_a.item(), ds_b.item()});
   EXPECT_EQ(ds.item(), expected);
 
   ASSERT_OK_AND_ASSIGN(
@@ -168,8 +166,8 @@ TEST(UuidUtilsTest, CreateUuidFromFields_DataItem_List) {
   auto ds_a = test::DataItem(internal::AllocateSingleObject());
   auto ds_b = test::DataItem(42);
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds, CreateListUuidFromFields("", {"a", "b"}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       CreateListUuidFromFields("", {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetSchemaImpl(), schema::kItemId);
 
   EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
@@ -180,8 +178,8 @@ TEST(UuidUtilsTest, CreateUuidFromFields_DataItem_Dict) {
   auto ds_a = test::DataItem(internal::AllocateSingleObject());
   auto ds_b = test::DataItem(42);
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds, CreateDictUuidFromFields("", {"a", "b"}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       CreateDictUuidFromFields("", {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetSchemaImpl(), schema::kItemId);
 
   EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
@@ -198,6 +196,75 @@ TEST(UuidUtilsTest, CreateUuidFromFields_Empty) {
 
   EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
   EXPECT_FALSE(ds.item().value<ObjectId>().IsSchema());
+}
+
+absl::flat_hash_set<ObjectId> GetUniqueObjectIds(const DataSlice& ds) {
+  CHECK_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+  absl::flat_hash_set<ObjectId> unique_object_ids;
+  ds.slice().values<ObjectId>().ForEach(
+      [&](int64_t id, bool present, ObjectId object_id) {
+        unique_object_ids.insert(object_id);
+      });
+  return unique_object_ids;
+}
+
+template <typename T>
+T Intersection(const T& a, const T& b) {
+  const T& smaller = a.size() < b.size() ? a : b;
+  const T& larger = a.size() < b.size() ? b : a;
+  T result;
+  for (const auto& element : smaller) {
+    if (larger.contains(element)) {
+      result.insert(element);
+    }
+  }
+  return result;
+}
+
+TEST(UuidUtilsTest, CreateUuidsWithAllocationSize) {
+  constexpr absl::string_view kSeeds[] = {"foo", "bar"};
+  constexpr int kMinAllocationSize = 7;
+  constexpr int kMaxAllocationSize = 20;
+
+  for (absl::string_view seed : kSeeds) {
+    for (int size = kMinAllocationSize; size <= kMaxAllocationSize; ++size) {
+      ASSERT_OK_AND_ASSIGN(const auto ds,
+                           CreateUuidsWithAllocationSize(seed, size));
+      EXPECT_EQ(ds.size(), size);
+
+      EXPECT_EQ(ds.GetShape().rank(), 1);
+      EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+      EXPECT_EQ(ds.GetSchemaImpl(), schema::kItemId);
+
+      const absl::flat_hash_set<ObjectId> object_ids = GetUniqueObjectIds(ds);
+      EXPECT_EQ(object_ids.size(), size);  // Each object id is distinct.
+      for (const ObjectId& object_id : object_ids) {
+        EXPECT_TRUE(object_id.IsUuid());
+      }
+
+      for (absl::string_view other_seed : kSeeds) {
+        for (int other_size = kMinAllocationSize;
+             other_size <= kMaxAllocationSize; ++other_size) {
+          ASSERT_OK_AND_ASSIGN(
+              const auto other_ds,
+              CreateUuidsWithAllocationSize(other_seed, other_size));
+
+          if (other_seed == seed && other_size == size) {
+            // Using exactly the same seed and allocation size should yield the
+            // same object ids in the same order.
+            EXPECT_THAT(other_ds.slice(), ElementsAreArray(ds.slice()));
+            continue;
+          }
+
+          // A different seed and/or the allocation size should yield completely
+          // different object ids.
+          const absl::flat_hash_set<ObjectId> other_object_ids =
+              GetUniqueObjectIds(other_ds);
+          EXPECT_THAT(Intersection(object_ids, other_object_ids), IsEmpty());
+        }
+      }
+    }
+  }
 }
 
 }  // namespace

@@ -14,6 +14,7 @@
 //
 #include "koladata/uuid_utils.h"
 
+#include <cstdint>
 #include <functional>
 #include <utility>
 #include <vector>
@@ -97,6 +98,13 @@ absl::StatusOr<DataSlice> CreateDictUuidFromFields(
     absl::Span<const DataSlice> values) {
   return CreateUuidFromFieldsImpl(seed, attr_names, values,
                                   internal::UuidType::kDict);
+}
+
+absl::StatusOr<DataSlice> CreateUuidsWithAllocationSize(absl::string_view seed,
+                                                        int64_t size) {
+  return DataSlice::Create(internal::CreateUuidsWithAllocationSize(seed, size),
+                           DataSlice::JaggedShape::FlatFromSize(size),
+                           internal::DataItem(schema::kItemId), /*db=*/nullptr);
 }
 
 }  // namespace koladata

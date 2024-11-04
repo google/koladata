@@ -122,3 +122,36 @@ def uuid_for_dict(
     item from each kwarg value.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kde.uuids_with_allocation_size'],
+    repr_fn=op_repr.full_signature_repr,
+)
+@optools.as_backend_operator(
+    'kde.core.uuids_with_allocation_size',
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.seed),
+        qtype_utils.expect_data_slice(P.size),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def uuids_with_allocation_size(
+    seed=py_boxing.keyword_only(), size=py_boxing.keyword_only()  # pylint: disable=unused-argument
+):
+  """Creates a DataSlice whose items are uuids.
+
+  The uuids are allocated in a single allocation. They are all distinct.
+  You can think of the result as a DataSlice created with:
+  [fingerprint(seed, size, i) for i in range(size)]
+
+  Args:
+    seed: text seed for the uuid computation.
+    size: the size of the allocation. It will also be used for the uuid
+      computation.
+
+  Returns:
+    A 1-dimensional DataSlice with `size` distinct uuids.
+  """
+  raise NotImplementedError('implemented in the backend')

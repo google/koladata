@@ -15,6 +15,7 @@
 #include "koladata/operators/core_uuid.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -25,6 +26,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -249,6 +251,27 @@ absl::StatusOr<arolla::OperatorPtr> UuidForDictOperatorFamily::DoGetOperator(
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<UuidForDictOperator>(input_types), input_types,
       output_type);
+}
+
+absl::StatusOr<DataSlice> UuidsWithAllocationSize(const DataSlice& seed,
+                                                  const DataSlice& size) {
+  if (seed.GetShape().rank() != 0 || !seed.item().holds_value<arolla::Text>()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("requires seed to be DataItem holding a STRING, got %s",
+                        arolla::Repr(seed)));
+  }
+  absl::string_view seed_value = seed.item().value<arolla::Text>();
+  if (size.GetShape().rank() != 0) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "requires size to be a scalar, got %s", arolla::Repr(size)));
+  }
+  absl::StatusOr<DataSlice> casted_size = ToInt64(size);
+  if (!casted_size.ok()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "requires size to be castable to int64, got %s", arolla::Repr(size)));
+  }
+  const int64_t size_value = casted_size->item().value<int64_t>();
+  return koladata::CreateUuidsWithAllocationSize(seed_value, size_value);
 }
 
 }  // namespace koladata::ops

@@ -28,6 +28,7 @@
 #include "absl/base/optimization.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
+#include "absl/numeric/bits.h"
 #include "absl/numeric/int128.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -215,6 +216,7 @@ class ObjectId {
   friend struct AllocationId;
   friend AllocationId Allocate(size_t size);
   friend ObjectId AllocateSingleObject();
+  friend AllocationId AllocateUuids(arolla::Fingerprint, size_t size);
   template <int64_t uuid_flag>
   friend ObjectId CreateUuidWithMainObject(ObjectId, arolla::Fingerprint);
   friend ObjectId CreateUuidObjectWithMetadata(arolla::Fingerprint, int64_t);
@@ -457,6 +459,29 @@ inline ObjectId CreateUuidObjectWithMetadata(arolla::Fingerprint fp,
   id.metadata_ = flag;
   id.offset_bits_ = 0;
   return id;
+}
+
+// Returns an allocation id for UUID objects based on the fingerprint that has
+// sufficient capacity for `size` objects. The `size` is not mixed with the
+// fingerprint here - callers should mix the size into the fingerprint before
+// calling this function.
+inline AllocationId AllocateUuids(arolla::Fingerprint fp, size_t size) {
+  static_assert(sizeof(ObjectId) == sizeof(arolla::Fingerprint));
+  ObjectId id;
+  std::memcpy(&id, reinterpret_cast<const void*>(&fp), sizeof(ObjectId));
+  // Replace metadata and offset bits. We assume that bits are well distributed.
+  id.metadata_ = ObjectId::kUuidFlag;
+  // Capacity is the closest power of 2 that fit size elements
+  id.offset_bits_ = 64 - absl::countl_zero(size - 1);
+  // The return value, namely AllocationId(id), is going to set the lowest
+  // #offset_bits_ bits to zero. For big allocations that can remove quite a lot
+  // of bits, for example 20 bits for an allocation with size 1M. Since hash
+  // functions often focus mostly on having a random distribution of the lowest
+  // bits, it would be good to use information from the lowest bits in the
+  // result. That is the purpose of the next line. It hedges against a bad
+  // distribution of the higher bits.
+  id.id_ ^= (id.Offset() << id.offset_bits_);
+  return AllocationId(id);
 }
 
 // Returns UUID Explicit Schema object from the provided FingerPrint.

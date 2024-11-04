@@ -15,6 +15,8 @@
 #ifndef KOLADATA_UUID_UTILS_H_
 #define KOLADATA_UUID_UTILS_H_
 
+#include <cstdint>
+
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -62,6 +64,13 @@ absl::StatusOr<DataSlice> CreateDictUuidFromFields(
     absl::string_view seed,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values);
+
+// Creates a DataSlice of uuids that share the same allocation.
+// The result is a 1-dimensional DataSlice with `size` distinct uuids.
+// Conceptually the result contains
+// [fingerprint(seed, size, i) for i in range(size)]
+absl::StatusOr<DataSlice> CreateUuidsWithAllocationSize(absl::string_view seed,
+                                                        int64_t size);
 
 }  // namespace koladata
 

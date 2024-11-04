@@ -24,6 +24,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/log/check.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -41,10 +43,11 @@
 namespace koladata::internal {
 namespace {
 
-using ::koladata::internal::testing::IsEquivalentTo;
-using ::testing::Not;
 using ::arolla::OptionalValue;
 using ::arolla::Text;
+using ::koladata::internal::testing::IsEquivalentTo;
+using ::testing::ElementsAreArray;
+using ::testing::Not;
 
 TEST(UuidTest, CreateUuidObject) {
   std::vector<ObjectId> uuids = {
@@ -630,6 +633,49 @@ TEST(UuidTest, CreateUuidWithMainObjectDataSlice_ImplicitSchema) {
     EXPECT_TRUE(schema_obj.IsSchema());
     EXPECT_TRUE(schema_obj.IsImplicitSchema());
     EXPECT_EQ(schema_obj.Offset(), main_obj[i].value<ObjectId>().Offset());
+  }
+}
+
+absl::flat_hash_set<ObjectId> GetUniqueObjectIds(const DataSliceImpl& ds) {
+  CHECK_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+  absl::flat_hash_set<ObjectId> unique_object_ids;
+  ds.values<ObjectId>().ForEach(
+      [&](int64_t id, bool present, ObjectId object_id) {
+        unique_object_ids.insert(object_id);
+      });
+  return unique_object_ids;
+}
+
+TEST(UuidTest, CreateUuidsWithAllocationSize) {
+  for (int64_t size = 1; size <= 257; ++size) {
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl ds,
+                         CreateUuidsWithAllocationSize("foo", size));
+    EXPECT_EQ(ds.size(), size);
+    EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+
+    // Each object id is a uuid.
+    ds.values<ObjectId>().ForEach(
+        [&](int64_t id, bool present, ObjectId object_id) {
+          EXPECT_TRUE(object_id.IsUuid());
+        });
+    // Each object id is distinct.
+    EXPECT_EQ(GetUniqueObjectIds(ds).size(), ds.size());
+
+    // The object ids depend on the seed.
+    ASSERT_OK_AND_ASSIGN(auto ds_with_different_seed,
+                         CreateUuidsWithAllocationSize("bar", size));
+    EXPECT_THAT(ds, Not(ElementsAreArray(ds_with_different_seed)));
+
+    // The object ids depend on the allocation size.
+    ASSERT_OK_AND_ASSIGN(auto ds_with_different_size,
+                         CreateUuidsWithAllocationSize("foo", size * 2));
+    EXPECT_THAT(ds, Not(ElementsAreArray(ds_with_different_size)));
+
+    // Using exactly the same seed and allocation size should give the same
+    // object ids.
+    ASSERT_OK_AND_ASSIGN(auto ds_with_same_seed_and_size,
+                         CreateUuidsWithAllocationSize("foo", size));
+    EXPECT_THAT(ds, ElementsAreArray(ds_with_same_seed_and_size));
   }
 }
 
