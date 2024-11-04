@@ -469,6 +469,16 @@ py_test(
 )
 
 py_test(
+    name = "del_attr_test",
+    srcs = ["del_attr_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "embed_schema_test",
     srcs = ["embed_schema_test.py"],
     deps = [

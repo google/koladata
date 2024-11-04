@@ -117,3 +117,11 @@ def set_attrs(
       adoption.
   """
   x.set_attrs(**attrs, update_schema=update_schema)
+
+
+def del_attr(
+    x: data_slice.DataSlice,
+    attr_name: str,
+):
+  """Deletes an attribute `attr_name` from `x`."""
+  x.__delattr__(attr_name)
