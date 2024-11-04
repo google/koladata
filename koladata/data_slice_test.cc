@@ -1721,18 +1721,21 @@ TEST(DataSliceTest, SetGetAttr_FromEmptyItem_ObjectCreator) {
 
 TEST(DataSliceTest, SetGetAttr_FromEmptySlice_ObjectCreator) {
   auto db = DataBag::Empty();
+  auto ds_fully_empty = test::EmptyDataSlice(
+      DataSlice::JaggedShape::FlatFromSize(0), schema::kObject, db);
+
+  EXPECT_THAT(ds_fully_empty.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(
+                  ds_fully_empty.GetShape(), schema::kObject, db))));
+
   auto ds = test::EmptyDataSlice(DataSlice::JaggedShape::FlatFromSize(3),
                                  schema::kObject, db);
-  EXPECT_THAT(
-      ds.GetAttr("a"),
-      IsOkAndHolds(IsEquivalentTo(
-          test::EmptyDataSlice(ds.GetShape(), schema::kObject, db))));
+  EXPECT_THAT(ds.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(
+                                   ds.GetShape(), schema::kObject, db))));
 
   ASSERT_OK(ds.SetAttr("a", test::DataItem(42)));
-  EXPECT_THAT(
-      ds.GetAttr("a"),
-      IsOkAndHolds(IsEquivalentTo(
-          test::EmptyDataSlice(ds.GetShape(), schema::kObject, db))));
+  EXPECT_THAT(ds.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(
+                                   ds.GetShape(), schema::kObject, db))));
   EXPECT_THAT(
       ds.GetAttrWithDefault("a", test::DataItem(42)),
       IsOkAndHolds(IsEquivalentTo(
@@ -3139,6 +3142,15 @@ TEST(DataSliceTest, GetFromList_ObjectSchema) {
   EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kObject));
 }
 
+TEST(DataSliceTest, GetFromList_NoneSchema_NotAList) {
+  auto db = DataBag::Empty();
+  auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
+  auto indices = test::DataSlice<int64_t>({0, 0, 1}, schema::kInt64);
+  ASSERT_OK_AND_ASSIGN(auto items, none_list.GetFromList(indices));
+  EXPECT_THAT(items,
+              IsEquivalentTo(test::EmptyDataSlice(3, schema::kNone, db)));
+}
+
 TEST(DataSliceTest, PopFromList_Int64Schema) {
   auto edge_1 = CreateEdge({0, 2});
   auto edge_2 = CreateEdge({0, 1, 3});
@@ -3239,6 +3251,17 @@ TEST(DataSliceTest, PopFromList_ObjectSchema) {
               IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(12))));
 }
 
+TEST(DataSliceTest, PopFromList_NoneSchema_NotAList) {
+  auto db = DataBag::Empty();
+  auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
+  auto indices = test::DataSlice<int64_t>({0, 0, 1}, schema::kInt64);
+  ASSERT_OK_AND_ASSIGN(auto items, none_list.PopFromList(indices));
+  EXPECT_THAT(items,
+              IsEquivalentTo(test::EmptyDataSlice(3, schema::kNone, db)));
+  EXPECT_THAT(none_list,
+              IsEquivalentTo(test::EmptyDataSlice(3, schema::kNone, db)));
+}
+
 TEST(DataSliceTest, ExplodeList_Int32Schema) {
   auto edge_1 = CreateEdge({0, 2});
   auto edge_2 = CreateEdge({0, 1, 3});
@@ -3309,6 +3332,17 @@ TEST(DataSliceTest, ExplodeList_ObjectSchema) {
   EXPECT_THAT(
       lists.ExplodeList(0, std::nullopt),
       IsOkAndHolds(Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt64))));
+}
+
+TEST(DataSliceTest, ExplodeList_NoneSchema_NotAList) {
+  auto db = DataBag::Empty();
+  auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
+  ASSERT_OK_AND_ASSIGN(auto items, none_list.ExplodeList(0, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(auto expected_shape,
+                       DataSlice::JaggedShape::FromEdges(
+                           {CreateEdge({0, 3}), CreateEdge({0, 0, 0, 0})}));
+  EXPECT_THAT(items, IsEquivalentTo(test::EmptyDataSlice(expected_shape,
+                                                         schema::kNone, db)));
 }
 
 TEST(DataSliceTest, ReplaceInList_NoBag) {
@@ -3761,6 +3795,15 @@ TEST(DataSliceTest, RemoveInList) {
   }
 }
 
+TEST(DataSliceTest, RemoveInList_NoneSchema_NotAList) {
+  auto db = DataBag::Empty();
+  auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
+  auto indices = test::DataSlice<int64_t>({0, 0, 1}, schema::kInt64);
+  ASSERT_OK(none_list.RemoveInList(indices));
+  EXPECT_THAT(none_list,
+              IsEquivalentTo(test::EmptyDataSlice(3, schema::kNone, db)));
+}
+
 TEST(DataSliceTest, DictErrors) {
   auto dict = test::DataItem(internal::AllocateSingleObject());
   EXPECT_THAT(dict.GetDictKeys(), StatusIs(absl::StatusCode::kInvalidArgument,
@@ -4089,6 +4132,27 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                "the schema for dict keys is incompatible: "
                                "expected INT64, assigned ITEMID"));
+}
+
+TEST(DataSliceTest, GetFromDict_NoneSchema_NotAList) {
+  auto db = DataBag::Empty();
+  auto none_dict = test::EmptyDataSlice(3, schema::kNone, db);
+  ASSERT_OK_AND_ASSIGN(auto expected_shape,
+                       DataSlice::JaggedShape::FromEdges(
+                           {CreateEdge({0, 3}), CreateEdge({0, 0, 0, 0})}));
+  // Keys.
+  ASSERT_OK_AND_ASSIGN(auto keys, none_dict.GetDictKeys());
+  EXPECT_THAT(keys, IsEquivalentTo(test::EmptyDataSlice(expected_shape,
+                                                        schema::kNone, db)));
+  // Values.
+  ASSERT_OK_AND_ASSIGN(auto values, none_dict.GetDictValues());
+  EXPECT_THAT(values, IsEquivalentTo(test::EmptyDataSlice(expected_shape,
+                                                        schema::kNone, db)));
+  // Lookup - not possible for now.
+  auto lookup_keys = test::DataSlice<int>({1, 2, 3});
+  EXPECT_THAT(none_dict.GetFromDict(lookup_keys),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       "cannot get or set attributes on schema: NONE"));
 }
 
 TEST(DataSliceTest, ShouldApplyListOp_DataItem) {

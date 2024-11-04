@@ -321,6 +321,7 @@ absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
 // Deduces result attribute schema for "GetAttr-like" operations.
 //
 // * If `schema` is ANY returns ANY.
+// * If `schema` is NONE returns NONE.
 // * If `schema` is OBJECT, returns the common value of `attr_name` attribute of
 //   all the element schemas in `impl`.
 // * Otherwise, returns `attr_name` attribute of `schema`.
@@ -331,6 +332,10 @@ absl::StatusOr<internal::DataItem> GetResultSchema(
     internal::DataBagImpl::FallbackSpan fallbacks, bool allow_missing) {
   if (schema == schema::kAny) {
     return internal::DataItem(schema::kAny);
+  }
+  // TODO: Change after adding OBJECT_WITH_SCHEMA.
+  if (schema == schema::kNone) {
+    return internal::DataItem(schema::kNone);
   }
   // NOTE: Calling  `UnwrapIfNoFollowSchema` in 2 places below to save 1
   // creation and 1 move of DataItem.

@@ -409,6 +409,39 @@ class DataSliceTest(parameterized.TestCase):
     ):
       x.with_bag(arolla.dense_array([1, 2, 3]))
 
+  def test_get_attr_on_none(self):
+    x = ds([None]).with_bag(bag())
+    testing.assert_equal(x.x, ds([None]).with_bag(x.get_bag()))
+    x = ds(None).with_bag(bag())
+    testing.assert_equal(x.x, ds(None).with_bag(x.get_bag()))
+
+  def test_get_attr_with_default_none(self):
+    x = ds([None]).with_bag(bag())
+    default = ds(42).with_bag(bag())
+    testing.assert_equal(
+        x.get_attr('x', default).no_bag(), ds([None], schema_constants.INT32)
+    )
+
+  def test_get_keys_on_none(self):
+    x = ds([None]).with_bag(bag())
+    testing.assert_equal(
+        x.get_keys(), ds([[]], schema_constants.NONE).with_bag(x.get_bag())
+    )
+    x = ds(None).with_bag(bag())
+    testing.assert_equal(
+        x.get_keys(), ds([], schema_constants.NONE).with_bag(x.get_bag())
+    )
+
+  def test_get_values_on_none(self):
+    x = ds([None]).with_bag(bag())
+    testing.assert_equal(
+        x.get_values(), ds([[]], schema_constants.NONE).with_bag(x.get_bag())
+    )
+    x = ds(None).with_bag(bag())
+    testing.assert_equal(
+        x.get_values(), ds([], schema_constants.NONE).with_bag(x.get_bag())
+    )
+
   def test_deprecated_db_methods(self):
     x = fns.new(a=1)
     testing.assert_equal(x.db, x.get_bag())
