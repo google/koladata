@@ -218,11 +218,6 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
                                     const DataSlice& schema,
                                     int64_t unused_hidden_seed = 0);
 
-// kde.core._deep_uuid
-absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
-                                   const DataSlice& schema,
-                                   const DataSlice& seed);
-
 // kde.core.subslice operator.
 class SubsliceOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
@@ -232,9 +227,6 @@ class SubsliceOperatorFamily : public arolla::OperatorFamily {
 
 // kde.core.take operator.
 absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices);
-
-// kde.core.agg_uuid operator.
-absl::StatusOr<DataSlice> AggUuid(const DataSlice& x);
 
 // kde.core.translate.
 absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
@@ -281,32 +273,6 @@ class ObjLikeOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
-};
-
-// kde.core.uuid operator.
-// Creates a DataSlice whose items are Fingerprints identifying arguments
-class UuidOperatorFamily : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const final;
-};
-
-// kde.core.uuid_for_list operator.
-// Creates a DataSlice whose items are Fingerprints identifying arguments, used
-// for keying ListItems.
-class UuidForListOperatorFamily : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const final;
-};
-
-// kde.core.uuid_for_dict operator.
-// Creates a DataSlice whose items are Fingerprints identifying arguments, used
-// for keying DictItems.
-class UuidForDictOperatorFamily : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const final;
 };
 
 // kde.core.uuobj operator.

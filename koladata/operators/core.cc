@@ -49,11 +49,9 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/ellipsis.h"
-#include "koladata/internal/op_utils/agg_uuid.h"
 #include "koladata/internal/op_utils/at.h"
 #include "koladata/internal/op_utils/collapse.h"
 #include "koladata/internal/op_utils/deep_clone.h"
-#include "koladata/internal/op_utils/deep_uuid.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/inverse_select.h"
 #include "koladata/internal/op_utils/itemid.h"
@@ -65,7 +63,6 @@
 #include "koladata/object_factories.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
-#include "koladata/uuid_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -1211,108 +1208,6 @@ absl::StatusOr<arolla::OperatorPtr> UuOperatorFamily::DoGetOperator(
       std::make_shared<UuOperator>(input_types), input_types, output_type);
 }
 
-class UuidOperator : public arolla::QExprOperator {
- public:
-  explicit UuidOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
-
-  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
-      absl::Span<const arolla::TypedSlot> input_slots,
-      arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
-        [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
-         named_tuple_slot = input_slots[1],
-         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          const auto& seed_data_slice = frame.Get(seed_slot);
-          if (seed_data_slice.GetShape().rank() != 0 ||
-              !seed_data_slice.item().holds_value<arolla::Text>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "requires seed to be DataItem holding Text, got %s",
-                arolla::Repr(seed_data_slice))));
-            return;
-          }
-          auto seed = seed_data_slice.item().value<arolla::Text>();
-          auto attr_names = GetAttrNames(named_tuple_slot);
-          auto values = GetValueDataSlices(named_tuple_slot, frame);
-          ASSIGN_OR_RETURN(
-              auto result,
-              koladata::CreateUuidFromFields(seed, attr_names, values),
-              ctx->set_status(std::move(_)));
-          frame.Set(output_slot, std::move(result));
-        });
-  }
-};
-
-class UuidForListOperator : public arolla::QExprOperator {
- public:
-  explicit UuidForListOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
-
-  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
-      absl::Span<const arolla::TypedSlot> input_slots,
-      arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
-        [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
-         named_tuple_slot = input_slots[1],
-         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          const auto& seed_data_slice = frame.Get(seed_slot);
-          if (seed_data_slice.GetShape().rank() != 0 ||
-              !seed_data_slice.item().holds_value<arolla::Text>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "requires seed to be DataItem holding Text, got %s",
-                arolla::Repr(seed_data_slice))));
-            return;
-          }
-          auto seed = seed_data_slice.item().value<arolla::Text>();
-          auto attr_names = GetAttrNames(named_tuple_slot);
-          auto values = GetValueDataSlices(named_tuple_slot, frame);
-          ASSIGN_OR_RETURN(
-              auto result,
-              koladata::CreateListUuidFromFields(seed, attr_names, values),
-              ctx->set_status(std::move(_)));
-          frame.Set(output_slot, std::move(result));
-        });
-  }
-};
-
-class UuidForDictOperator : public arolla::QExprOperator {
- public:
-  explicit UuidForDictOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
-
-  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
-      absl::Span<const arolla::TypedSlot> input_slots,
-      arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
-        [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
-         named_tuple_slot = input_slots[1],
-         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          const auto& seed_data_slice = frame.Get(seed_slot);
-          if (seed_data_slice.GetShape().rank() != 0 ||
-              !seed_data_slice.item().holds_value<arolla::Text>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "requires seed to be DataItem holding Text, got %s",
-                arolla::Repr(seed_data_slice))));
-            return;
-          }
-          auto seed = seed_data_slice.item().value<arolla::Text>();
-          auto attr_names = GetAttrNames(named_tuple_slot);
-          auto values = GetValueDataSlices(named_tuple_slot, frame);
-          ASSIGN_OR_RETURN(
-              auto result,
-              koladata::CreateDictUuidFromFields(seed, attr_names, values),
-              ctx->set_status(std::move(_)));
-          frame.Set(output_slot, std::move(result));
-        });
-  }
-};
-
 class UuObjOperator : public arolla::QExprOperator {
  public:
   explicit UuObjOperator(absl::Span<const arolla::QTypePtr> input_types)
@@ -1990,39 +1885,6 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
   });
 }
 
-absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
-                                   const DataSlice& schema,
-                                   const DataSlice& seed) {
-  const auto& db = ds.GetBag();
-  if (db == nullptr) {
-    return absl::InvalidArgumentError(
-        "cannot compute deep uuid without a DataBag");
-  }
-  const auto& schema_db = schema.GetBag();
-  if (schema_db != nullptr && schema_db != db) {
-    ASSIGN_OR_RETURN(auto extracted_ds, Extract(ds, schema));
-    return DeepUuid(extracted_ds, schema.WithBag(extracted_ds.GetBag()), seed);
-  }
-  if (seed.GetShape().rank() != 0) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("seed can only be 0-rank schema slice, got: rank(%d)",
-                        seed.GetShape().rank()));
-  }
-  const auto& seed_item = seed.item();
-  RETURN_IF_ERROR(schema.VerifyIsSchema());
-  const auto& schema_item = schema.item();
-  FlattenFallbackFinder fb_finder(*db);
-  auto fallbacks_span = fb_finder.GetFlattenFallbacks();
-  return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    internal::DeepUuidOp deep_uuid_op;
-    ASSIGN_OR_RETURN(auto result_slice_impl,
-                     deep_uuid_op(seed_item, impl, schema_item, db->GetImpl(),
-                                  fallbacks_span));
-    return DataSlice::Create(std::move(result_slice_impl), ds.GetShape(),
-                             internal::DataItem(schema::kItemId));
-  });
-}
-
 absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
@@ -2085,20 +1947,6 @@ absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices) {
     return AtImpl(x, expanded_indices);
   }
 }
-
-absl::StatusOr<DataSlice> AggUuid(const DataSlice& x) {
-  auto rank = x.GetShape().rank();
-  if (rank == 0) {
-      return absl::InvalidArgumentError("Can't take agg_uuid over a DataItem");
-  }
-  internal::DataItem schema(schema::kItemId);
-  auto shape = x.GetShape();
-  ASSIGN_OR_RETURN(auto res, internal::AggUuidOp(x.slice(), shape));
-  return DataSlice::Create(
-      std::move(res), shape.RemoveDims(rank - 1), std::move(schema),
-      /*db=*/nullptr);
-}
-
 
 absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                     const DataSlice& keys_from,
@@ -2297,53 +2145,6 @@ absl::StatusOr<arolla::OperatorPtr> ObjLikeOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[2]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<ObjLikeOperator>(input_types), input_types, output_type);
-}
-
-absl::StatusOr<arolla::OperatorPtr> UuidOperatorFamily::DoGetOperator(
-    absl::Span<const arolla::QTypePtr> input_types,
-    arolla::QTypePtr output_type) const {
-  if (input_types.size() != 2) {
-    return absl::InvalidArgumentError("requires exactly 2 arguments");
-  }
-  if (input_types[0] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(
-        "requires first argument to be DataSlice");
-  }
-  RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<UuidOperator>(input_types), input_types, output_type);
-}
-
-absl::StatusOr<arolla::OperatorPtr> UuidForListOperatorFamily::DoGetOperator(
-    absl::Span<const arolla::QTypePtr> input_types,
-    arolla::QTypePtr output_type) const {
-  if (input_types.size() != 2) {
-    return absl::InvalidArgumentError("requires exactly 2 arguments");
-  }
-  if (input_types[0] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(
-        "requires first argument to be DataSlice");
-  }
-  RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<UuidForListOperator>(input_types), input_types,
-      output_type);
-}
-
-absl::StatusOr<arolla::OperatorPtr> UuidForDictOperatorFamily::DoGetOperator(
-    absl::Span<const arolla::QTypePtr> input_types,
-    arolla::QTypePtr output_type) const {
-  if (input_types.size() != 2) {
-    return absl::InvalidArgumentError("requires exactly 2 arguments");
-  }
-  if (input_types[0] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(
-        "requires first argument to be DataSlice");
-  }
-  RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<UuidForDictOperator>(input_types), input_types,
-      output_type);
 }
 
 absl::StatusOr<arolla::OperatorPtr> UuObjOperatorFamily::DoGetOperator(

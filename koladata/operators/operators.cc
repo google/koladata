@@ -27,6 +27,7 @@
 #include "koladata/operators/core.h"
 #include "koladata/operators/core_dict.h"
 #include "koladata/operators/core_list.h"
+#include "koladata/operators/core_uuid.h"
 #include "koladata/operators/logical.h"
 #include "koladata/operators/math.h"
 #include "koladata/operators/predicates.h"
