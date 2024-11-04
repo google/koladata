@@ -1455,7 +1455,7 @@ def dict_shaped(
     schema=py_boxing.keyword_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     hidden_seed=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args, unused-argument
+):  # pylint: disable=g-doc-args
   """Creates new Koda dicts with the given shape.
 
   If keys and values are not provided, creates empty dicts. Otherwise,
@@ -1500,6 +1500,80 @@ def dict_shaped(
   )
 
 
+@optools.add_to_registry(aliases=['kde.dict'])
+@optools.as_lambda_operator(
+    'kde.core.dict',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice_or_unspecified(P.keys),
+        qtype_utils.expect_data_slice_or_unspecified(P.values),
+        qtype_utils.expect_data_slice_or_unspecified(P.key_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def dict_(
+    keys=py_boxing.positional_or_keyword(arolla.unspecified()),
+    values=py_boxing.positional_or_keyword(arolla.unspecified()),
+    key_schema=py_boxing.keyword_only(arolla.unspecified()),
+    value_schema=py_boxing.keyword_only(arolla.unspecified()),
+    schema=py_boxing.keyword_only(arolla.unspecified()),
+    itemid=py_boxing.keyword_only(arolla.unspecified()),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=g-doc-args
+  """Creates a Koda dict.
+
+  Acceptable arguments are:
+    1) no argument: a single empty dict
+    2) two DataSlices/DataItems as keys and values: a DataSlice of dicts whose
+       shape is the last N-1 dimensions of keys/values DataSlice
+
+  Examples:
+  dict() -> returns a single new dict
+  dict(kd.slice([1, 2]), kd.slice([3, 4]))
+    -> returns a dict ({1: 3, 2: 4})
+  dict(kd.slice([[1], [2]]), kd.slice([3, 4]))
+    -> returns a 1-D DataSlice that holds two dicts ({1: 3} and {2: 4})
+  dict('key', 12) -> returns a single dict mapping 'key'->12
+
+  Args:
+    keys: a DataSlice with keys.
+    values: a DataSlice with values.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: the schema to use for the newly created Dict. If specified, then
+      key_schema and value_schema must not be specified.
+    itemid: ITEMID DataSlice used as ItemIds of the resulting lists.
+
+  Returns:
+    A DataSlice with the dict.
+  """
+  keys = M.core.default_if_unspecified(keys, data_slice.unspecified())
+  values = M.core.default_if_unspecified(values, data_slice.unspecified())
+  key_schema = M.core.default_if_unspecified(
+      key_schema, data_slice.unspecified()
+  )
+  value_schema = M.core.default_if_unspecified(
+      value_schema, data_slice.unspecified()
+  )
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+  return _dict_shaped(
+      shape=jagged_shape_ops.create_shape(),
+      keys=keys,
+      values=values,
+      key_schema=key_schema,
+      value_schema=value_schema,
+      schema=schema,
+      itemid=itemid,
+      hidden_seed=hidden_seed,
+  )
+
+
 @optools.add_to_registry(aliases=['kde.dict_shaped_as'])
 @optools.as_lambda_operator(
     'kde.core.dict_shaped_as',
@@ -1524,7 +1598,7 @@ def dict_shaped_as(
     schema=py_boxing.keyword_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     hidden_seed=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args, unused-argument
+):  # pylint: disable=g-doc-args
   """Creates new Koda dicts with shape of the given DataSlice.
 
   If keys and values are not provided, creates empty dicts. Otherwise,
