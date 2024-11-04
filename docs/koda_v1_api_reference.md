@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-03'
+  reviewed: '2024-11-04'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -485,6 +485,8 @@ Converts Python values into Exprs.
 
 ``` {.no-copy}
 Casts `x` to ITEMID using explicit (permissive) casting rules.
+
+Deprecated, use `get_itemid` instead.
 ```
 
 ### `at(x, indices)` {#at}
@@ -797,7 +799,7 @@ Returns the cumulative sum of items along the last ndim dimensions.
 ### `decode(x)` {#decode}
 
 ``` {.no-copy}
-Decodes `x` as TEXT using UTF-8 decoding.
+Decodes `x` as STRING using UTF-8 decoding.
 ```
 
 ### `decode_itemid(ds)` {#decode_itemid}
@@ -1752,6 +1754,12 @@ Returns:
 Returns the item schema of a List schema`.
 ```
 
+### `get_itemid(x)` {#get_itemid}
+
+``` {.no-copy}
+Casts `x` to ITEMID using explicit (permissive) casting rules.
+```
+
 ### `get_key_schema(dict_schema)` {#get_key_schema}
 
 ``` {.no-copy}
@@ -2203,6 +2211,54 @@ Args:
 
 Returns:
   An inverse permutation of indices.
+```
+
+### `inverse_select(ds, fltr)` {#inverse_select}
+
+``` {.no-copy}
+Creates a DataSlice by putting items in ds to present positions in fltr.
+
+The shape of `ds` and the shape of `fltr` must have the same rank and the same
+first N-1 dimensions. That is, only the last dimension can be different. The
+shape of `ds` must be the same as the shape of the DataSlice after applying
+`fltr` using kd.select. That is,
+ds.get_shape() == kd.select(fltr, fltr).get_shape().
+
+Example:
+  ds = kd.slice([[1, None], [2]])
+  fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
+  kd.inverse_select(ds, fltr) -> [[None, 1, None], [2, None]]
+
+  ds = kd.slice([1, None, 2])
+  fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
+  kd.inverse_select(ds, fltr) -> error due to different ranks
+
+  ds = kd.slice([[1, None, 2]])
+  fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
+  kd.inverse_select(ds, fltr) -> error due to different N-1 dimensions
+
+  ds = kd.slice([[1], [2]])
+  fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
+  kd.inverse_select(ds, fltr) -> error due to incompatible shapes
+
+Note, in most cases, kd.inverse_select is not a strict reverse operation of
+kd.select as kd.select operation is lossy and does not require `ds` and `fltr`
+to have the same rank. That is,
+kd.inverse_select(kd.select(ds, fltr), fltr) != ds.
+
+The most common use case of kd.inverse_select is to restore the shape of the
+original DataSlice after applying kd.select and performing some operations on
+the subset of items in the original DataSlice. E.g.
+  filtered_ds = kd.select(ds, fltr)
+  # do something on filtered_ds
+  ds = kd.inverse_select(filtered_ds, fltr) | ds
+
+Args:
+  ds: DataSlice to be reverse filtered
+  fltr: filter DataSlice with dtype as kd.MASK.
+
+Returns:
+  Reverse filtered DataSlice.
 ```
 
 ### `is_dict(ds)` {#is_dict}
@@ -3489,31 +3545,31 @@ ds.get_shape() == kd.select(fltr, fltr).get_shape().
 Example:
   ds = kd.slice([[1, None], [2]])
   fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
-  kd.reverse_select(ds, fltr) -> [[None, 1, None], [2, None]]
+  kd.inverse_select(ds, fltr) -> [[None, 1, None], [2, None]]
 
   ds = kd.slice([1, None, 2])
   fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
-  kd.reverse_select(ds, fltr) -> error due to different ranks
+  kd.inverse_select(ds, fltr) -> error due to different ranks
 
   ds = kd.slice([[1, None, 2]])
   fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
-  kd.reverse_select(ds, fltr) -> error due to different N-1 dimensions
+  kd.inverse_select(ds, fltr) -> error due to different N-1 dimensions
 
   ds = kd.slice([[1], [2]])
   fltr = kd.slice([[None, kd.present, kd.present], [kd.present, None]])
-  kd.reverse_select(ds, fltr) -> error due to incompatible shapes
+  kd.inverse_select(ds, fltr) -> error due to incompatible shapes
 
-Note, in most cases, kd.reverse_select is not a strict reverse operation of
+Note, in most cases, kd.inverse_select is not a strict reverse operation of
 kd.select as kd.select operation is lossy and does not require `ds` and `fltr`
 to have the same rank. That is,
-kd.reverse_select(kd.select(ds, fltr), fltr) != ds.
+kd.inverse_select(kd.select(ds, fltr), fltr) != ds.
 
-The most common use case of kd.reverse_select is to restore the shape of the
+The most common use case of kd.inverse_select is to restore the shape of the
 original DataSlice after applying kd.select and performing some operations on
 the subset of items in the original DataSlice. E.g.
   filtered_ds = kd.select(ds, fltr)
   # do something on filtered_ds
-  ds = kd.reverse_select(filtered_ds, fltr) | ds
+  ds = kd.inverse_select(filtered_ds, fltr) | ds
 
 Args:
   ds: DataSlice to be reverse filtered
@@ -3900,6 +3956,12 @@ Returns:
   this will refer to a merged immutable DataBag.
 ```
 
+### `str(x)` {#str}
+
+``` {.no-copy}
+Returns kd.slice(x, kd.STRING).
+```
+
 ### `stub(x, attrs)` {#stub}
 
 ``` {.no-copy}
@@ -4186,7 +4248,7 @@ Returns:
 ### `text(x)` {#text}
 
 ``` {.no-copy}
-Returns kd.slice(x, kd.TEXT).
+Returns kd.slice(x, kd.STRING).
 ```
 
 ### `to_any(x)` {#to_any}
@@ -4305,12 +4367,6 @@ Expands the outermost DataSlice dimension into a list of DataSlices.
 
 *No description*
 
-### `to_repr(x)` {#to_repr}
-
-``` {.no-copy}
-Converts given DataSlice to string using repr(x).
-```
-
 ### `to_schema(x)` {#to_schema}
 
 ``` {.no-copy}
@@ -4320,13 +4376,13 @@ Casts `x` to SCHEMA using explicit (permissive) casting rules.
 ### `to_str(x)` {#to_str}
 
 ``` {.no-copy}
-Converts given DataSlice to string using str(x).
+Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
 ### `to_text(x)` {#to_text}
 
 ``` {.no-copy}
-Casts `x` to TEXT using explicit (permissive) casting rules.
+Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
 ### `trace_as_fn(*, name, py_fn)` {#trace_as_fn}
@@ -5457,6 +5513,10 @@ Returns the attached DataBag.
 *No description*
 
 ### `<DataSlice>.get_item_schema(self)` {#<DataSlice>.get_item_schema}
+
+*No description*
+
+### `<DataSlice>.get_itemid(self)` {#<DataSlice>.get_itemid}
 
 *No description*
 
