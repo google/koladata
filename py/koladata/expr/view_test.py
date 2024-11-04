@@ -718,7 +718,6 @@ class DataSliceViewTest(parameterized.TestCase):
     # because of laziness.
     skipped_data_slice_attrs = {
         # go/keep-sorted start
-        'add_method',
         'append',
         'as_arolla_value',
         'as_dense_array',

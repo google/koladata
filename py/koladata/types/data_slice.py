@@ -40,7 +40,7 @@ def _add_method(cls, method_name: str):
 
   Example on how to define methods:
 
-    @DataSlice.add_method('flatten')
+    @DataSlice._add_method('flatten')
     def _flatten(self, from, to) -> DataSlice:
       return arolla.abc.aux_eval_op(method_impl_lookup.flatten, self, from, to)
 
@@ -109,7 +109,7 @@ def _init_data_slice_class():
   if hasattr(DataSlice, 'add_method'):
     return
   # NOTE: `add_method` is available in subclasses too.
-  DataSlice.add_method = classmethod(_add_method)
+  DataSlice._add_method = classmethod(_add_method)  # pylint: disable=protected-access
   for name in RESERVED_ATTRIBUTES_WITHOUT_LEADING_UNDERSCORE:
     DataSlice.internal_register_reserved_class_method_name(name)
 
@@ -127,113 +127,113 @@ _op_impl_lookup = operator_lookup.OperatorLookup()
 ##### DataSlice methods. #####
 
 # TODO: Remove these aliases.
-DataSlice.add_method('with_db')(DataSlice.with_bag)
-DataSlice.add_method('no_db')(DataSlice.no_bag)
+DataSlice._add_method('with_db')(DataSlice.with_bag)  # pylint: disable=protected-access
+DataSlice._add_method('no_db')(DataSlice.no_bag)  # pylint: disable=protected-access
 
 
-@DataSlice.add_method('maybe')
+@DataSlice._add_method('maybe')  # pylint: disable=protected-access
 def _maybe(self, attr_name: str) -> DataSlice:
   # NOTE: Calling `get_attr`, instead of aux_eval_op, because it is implemented
   # in C Python.
   return self.get_attr(attr_name, None)
 
 
-@DataSlice.add_method('has_attr')
+@DataSlice._add_method('has_attr')  # pylint: disable=protected-access
 def _has_attr(self, attr_name: str) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.has_attr, self, attr_name)
 
 
-@DataSlice.add_method('reshape')
+@DataSlice._add_method('reshape')  # pylint: disable=protected-access
 def _reshape(self, shape: jagged_shape.JaggedShape) -> DataSlice:
   if not isinstance(shape, jagged_shape.JaggedShape):
     raise TypeError(f'`shape` must be a JaggedShape, got: {shape}')
   return arolla.abc.aux_eval_op(_op_impl_lookup.reshape, self, shape)
 
 
-@DataSlice.add_method('flatten')
+@DataSlice._add_method('flatten')  # pylint: disable=protected-access
 def _flatten(
     self, from_dim: Any = 0, to_dim: Any = arolla.unspecified()
 ) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.flatten, self, from_dim, to_dim)
 
 
-@DataSlice.add_method('add_dim')
+@DataSlice._add_method('add_dim')  # pylint: disable=protected-access
 def _add_dim(self, sizes: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.add_dim, self, sizes)
 
 
-@DataSlice.add_method('repeat')
+@DataSlice._add_method('repeat')  # pylint: disable=protected-access
 def _repeat(self, sizes: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.repeat, self, sizes)
 
 
-@DataSlice.add_method('select')
+@DataSlice._add_method('select')  # pylint: disable=protected-access
 def _select(self, fltr: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.select, self, fltr)
 
 
-@DataSlice.add_method('select_present')
+@DataSlice._add_method('select_present')  # pylint: disable=protected-access
 def _select_present(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.select_present, self)
 
 
-@DataSlice.add_method('select_items')
+@DataSlice._add_method('select_items')  # pylint: disable=protected-access
 def _select_items(self, fltr: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.select_items, self, fltr)
 
 
-@DataSlice.add_method('select_keys')
+@DataSlice._add_method('select_keys')  # pylint: disable=protected-access
 def _select_keys(self, fltr: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.select_keys, self, fltr)
 
 
-@DataSlice.add_method('select_values')
+@DataSlice._add_method('select_values')  # pylint: disable=protected-access
 def _select_values(self, fltr: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.select_values, self, fltr)
 
 
-@DataSlice.add_method('expand_to')
+@DataSlice._add_method('expand_to')  # pylint: disable=protected-access
 def _expand_to(
     self, target: Any, ndim: Any = arolla.unspecified()
 ) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.expand_to, self, target, ndim)
 
 
-@DataSlice.add_method('list_size')
+@DataSlice._add_method('list_size')  # pylint: disable=protected-access
 def _list_size(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.list_size, self)
 
 
-@DataSlice.add_method('dict_size')
+@DataSlice._add_method('dict_size')  # pylint: disable=protected-access
 def _dict_size(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.dict_size, self)
 
 
-@DataSlice.add_method('dict_update')
+@DataSlice._add_method('dict_update')  # pylint: disable=protected-access
 def _dict_update(self, *args, **kwargs) -> DataBag:
   return arolla.abc.aux_eval_op(
       _op_impl_lookup.dict_update, self, *args, **kwargs
   )
 
 
-@DataSlice.add_method('with_dict_update')
+@DataSlice._add_method('with_dict_update')  # pylint: disable=protected-access
 def _with_dict_update(self, *args, **kwargs) -> DataSlice:
   return arolla.abc.aux_eval_op(
       _op_impl_lookup.with_dict_update, self, *args, **kwargs
   )
 
 
-@DataSlice.add_method('follow')
+@DataSlice._add_method('follow')  # pylint: disable=protected-access
 def _follow(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.follow, self)
 
 
-@DataSlice.add_method('extract')
+@DataSlice._add_method('extract')  # pylint: disable=protected-access
 def _extract(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.extract, self, schema)
 
 
-@DataSlice.add_method('clone')
+@DataSlice._add_method('clone')  # pylint: disable=protected-access
 def _clone(
     self,
     itemid: DataSlice = arolla.unspecified(),
@@ -247,7 +247,7 @@ def _clone(
   )
 
 
-@DataSlice.add_method('shallow_clone')
+@DataSlice._add_method('shallow_clone')  # pylint: disable=protected-access
 def _shallow_clone(
     self,
     itemid: DataSlice = arolla.unspecified(),
@@ -263,7 +263,7 @@ def _shallow_clone(
   )
 
 
-@DataSlice.add_method('deep_clone')
+@DataSlice._add_method('deep_clone')  # pylint: disable=protected-access
 def _deep_clone(
     self, schema: DataSlice = arolla.unspecified(), **overrides: Any
 ) -> DataSlice:
@@ -274,7 +274,7 @@ def _deep_clone(
   )
 
 
-@DataSlice.add_method('deep_uuid')
+@DataSlice._add_method('deep_uuid')  # pylint: disable=protected-access
 def _deep_uuid(
     self,
     schema: DataSlice = arolla.unspecified(),
@@ -286,9 +286,9 @@ def _deep_uuid(
   )
 
 
-@DataSlice.add_method('fork_bag')
+@DataSlice._add_method('fork_bag')  # pylint: disable=protected-access
 # TODO: Remove this alias.
-@DataSlice.add_method('fork_db')
+@DataSlice._add_method('fork_db')  # pylint: disable=protected-access
 def _fork_bag(self) -> DataSlice:
   if self.get_bag() is None:
     raise ValueError(
@@ -297,46 +297,46 @@ def _fork_bag(self) -> DataSlice:
   return self.with_bag(self.get_bag().fork(mutable=True))
 
 
-@DataSlice.add_method('with_merged_bag')
+@DataSlice._add_method('with_merged_bag')  # pylint: disable=protected-access
 def _with_merged_bag(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.with_merged_bag, self)
 
 
-@DataSlice.add_method('enriched')
+@DataSlice._add_method('enriched')  # pylint: disable=protected-access
 def _enriched(self, *db: DataBag) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.enriched, self, *db)
 
 
-@DataSlice.add_method('updated')
+@DataSlice._add_method('updated')  # pylint: disable=protected-access
 def _updated(self, *db: DataBag) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.updated, self, *db)
 
 
-@DataSlice.add_method('__neg__')
+@DataSlice._add_method('__neg__')  # pylint: disable=protected-access
 def _neg(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.neg, self)
 
 
-@DataSlice.add_method('__pos__')
+@DataSlice._add_method('__pos__')  # pylint: disable=protected-access
 def _pos(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.pos, self)
 
 
-DataSlice.add_method('with_name')(general_eager_ops.with_name)
+DataSlice._add_method('with_name')(general_eager_ops.with_name)  # pylint: disable=protected-access
 
 
-@DataSlice.add_method('ref')
+@DataSlice._add_method('ref')  # pylint: disable=protected-access
 def _ref(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.ref, self)
 
 
-@DataSlice.add_method('get_itemid')
+@DataSlice._add_method('get_itemid')  # pylint: disable=protected-access
 def _get_itemid(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.get_itemid, self)
 
 
 # TODO: Remove this alias.
-@DataSlice.add_method('as_itemid')
+@DataSlice._add_method('as_itemid')  # pylint: disable=protected-access
 def _as_itemid(self) -> DataSlice:
   warnings.warn(
       'as_itemid is deprecated. Use get_itemid instead.',
@@ -345,77 +345,77 @@ def _as_itemid(self) -> DataSlice:
   return self.get_itemid()
 
 
-@DataSlice.add_method('get_dtype')
+@DataSlice._add_method('get_dtype')  # pylint: disable=protected-access
 def _get_dtype(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.get_dtype, self)
 
 
-@DataSlice.add_method('get_obj_schema')
+@DataSlice._add_method('get_obj_schema')  # pylint: disable=protected-access
 def _get_obj_schema(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.get_obj_schema, self)
 
 
-@DataSlice.add_method('with_schema_from_obj')
+@DataSlice._add_method('with_schema_from_obj')  # pylint: disable=protected-access
 def _with_schema_from_obj(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.with_schema_from_obj, self)
 
 
-@DataSlice.add_method('get_ndim')
+@DataSlice._add_method('get_ndim')  # pylint: disable=protected-access
 def _get_ndim(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.get_ndim, self)
 
 
-@DataSlice.add_method('get_present_count')
+@DataSlice._add_method('get_present_count')  # pylint: disable=protected-access
 def _get_present_count(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.count, self)
 
 
-@DataSlice.add_method('get_size')
+@DataSlice._add_method('get_size')  # pylint: disable=protected-access
 def _get_size(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.size, self)
 
 
-@DataSlice.add_method('is_primitive')
+@DataSlice._add_method('is_primitive')  # pylint: disable=protected-access
 def _is_primitive(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.is_primitive, self)
 
 
-@DataSlice.add_method('get_item_schema')
+@DataSlice._add_method('get_item_schema')  # pylint: disable=protected-access
 def _get_item_schema(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.get_item_schema, self)
 
 
-@DataSlice.add_method('get_key_schema')
+@DataSlice._add_method('get_key_schema')  # pylint: disable=protected-access
 def _get_key_schema(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.get_key_schema, self)
 
 
-@DataSlice.add_method('get_value_schema')
+@DataSlice._add_method('get_value_schema')  # pylint: disable=protected-access
 def _get_value_schema(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.get_value_schema, self)
 
 
-@DataSlice.add_method('stub')
+@DataSlice._add_method('stub')  # pylint: disable=protected-access
 def _stub(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.stub, self)
 
 
-@DataSlice.add_method('attrs')
+@DataSlice._add_method('attrs')  # pylint: disable=protected-access
 def _attrs(self, **attrs) -> DataBag:
   return arolla.abc.aux_eval_op(_op_impl_lookup.attrs, self, **attrs)
 
 
-@DataSlice.add_method('with_attrs')
+@DataSlice._add_method('with_attrs')  # pylint: disable=protected-access
 def _with_attrs(self, **attrs) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.with_attrs, self, **attrs)
 
 
-@DataSlice.add_method('take')
+@DataSlice._add_method('take')  # pylint: disable=protected-access
 def _take(self, indices: Any) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.take, self, indices)
 
 
-@DataSlice.add_method('to_py')
+@DataSlice._add_method('to_py')  # pylint: disable=protected-access
 def to_py(
     ds: DataSlice,
     max_depth: int = 2,
@@ -446,7 +446,7 @@ def to_py(
   return _to_py_impl(ds, {}, 0, max_depth, obj_as_dict, include_missing_attrs)
 
 
-@DataSlice.add_method('to_pytree')
+@DataSlice._add_method('to_pytree')  # pylint: disable=protected-access
 def to_pytree(
     ds: DataSlice,
     max_depth: int = 2,
@@ -581,175 +581,175 @@ def _to_py_impl(
 ##### DataSlice Magic methods. #####
 
 
-@DataSlice.add_method('__add__')
+@DataSlice._add_method('__add__')  # pylint: disable=protected-access
 def _add(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.add, self, other)
 
 
-@DataSlice.add_method('__radd__')
+@DataSlice._add_method('__radd__')  # pylint: disable=protected-access
 def _radd(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.add, other, self)
 
 
-@DataSlice.add_method('__sub__')
+@DataSlice._add_method('__sub__')  # pylint: disable=protected-access
 def _sub(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.subtract, self, other)
 
 
-@DataSlice.add_method('__rsub__')
+@DataSlice._add_method('__rsub__')  # pylint: disable=protected-access
 def _rsub(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.subtract, other, self)
 
 
-@DataSlice.add_method('__mul__')
+@DataSlice._add_method('__mul__')  # pylint: disable=protected-access
 def _mul(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.multiply, self, other)
 
 
-@DataSlice.add_method('__rmul__')
+@DataSlice._add_method('__rmul__')  # pylint: disable=protected-access
 def _rmul(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.multiply, other, self)
 
 
-@DataSlice.add_method('__truediv__')
+@DataSlice._add_method('__truediv__')  # pylint: disable=protected-access
 def _truediv(self, other):
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.divide, self, other)
 
 
-@DataSlice.add_method('__rtruediv__')
+@DataSlice._add_method('__rtruediv__')  # pylint: disable=protected-access
 def _rtruediv(self, other):
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.divide, other, self)
 
 
-@DataSlice.add_method('__floordiv__')
+@DataSlice._add_method('__floordiv__')  # pylint: disable=protected-access
 def _floordiv(self, other):
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.floordiv, self, other)
 
 
-@DataSlice.add_method('__rfloordiv__')
+@DataSlice._add_method('__rfloordiv__')  # pylint: disable=protected-access
 def _rfloordiv(self, other):
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.floordiv, other, self)
 
 
-@DataSlice.add_method('__mod__')
+@DataSlice._add_method('__mod__')  # pylint: disable=protected-access
 def _mod(self, other):
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.mod, self, other)
 
 
-@DataSlice.add_method('__rmod__')
+@DataSlice._add_method('__rmod__')  # pylint: disable=protected-access
 def _rmod(self, other):
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.mod, other, self)
 
 
-@DataSlice.add_method('__pow__')
+@DataSlice._add_method('__pow__')  # pylint: disable=protected-access
 def _pow(self, other):
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.pow, self, other)
 
 
-@DataSlice.add_method('__rpow__')
+@DataSlice._add_method('__rpow__')  # pylint: disable=protected-access
 def _rpow(self, other):
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.pow, other, self)
 
 
-@DataSlice.add_method('__and__')
+@DataSlice._add_method('__and__')  # pylint: disable=protected-access
 def _and(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.apply_mask, self, other)
 
 
-@DataSlice.add_method('__rand__')
+@DataSlice._add_method('__rand__')  # pylint: disable=protected-access
 def _rand(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.apply_mask, other, self)
 
 
-@DataSlice.add_method('__eq__')
+@DataSlice._add_method('__eq__')  # pylint: disable=protected-access
 def _eq(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.equal, self, other)
 
 
-@DataSlice.add_method('__ne__')
+@DataSlice._add_method('__ne__')  # pylint: disable=protected-access
 def _ne(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.not_equal, self, other)
 
 
-@DataSlice.add_method('__gt__')
+@DataSlice._add_method('__gt__')  # pylint: disable=protected-access
 def _gt(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.greater, self, other)
 
 
-@DataSlice.add_method('__ge__')
+@DataSlice._add_method('__ge__')  # pylint: disable=protected-access
 def _ge(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.greater_equal, self, other)
 
 
-@DataSlice.add_method('__lt__')
+@DataSlice._add_method('__lt__')  # pylint: disable=protected-access
 def _lt(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.less, self, other)
 
 
-@DataSlice.add_method('__le__')
+@DataSlice._add_method('__le__')  # pylint: disable=protected-access
 def _le(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.less_equal, self, other)
 
 
-@DataSlice.add_method('__or__')
+@DataSlice._add_method('__or__')  # pylint: disable=protected-access
 def _or(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.coalesce, self, other)
 
 
-@DataSlice.add_method('__ror__')
+@DataSlice._add_method('__ror__')  # pylint: disable=protected-access
 def _ror(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
   return arolla.abc.aux_eval_op(_op_impl_lookup.coalesce, other, self)
 
 
-@DataSlice.add_method('__invert__')
+@DataSlice._add_method('__invert__')  # pylint: disable=protected-access
 def _invert(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.has_not, self)
 

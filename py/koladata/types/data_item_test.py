@@ -100,7 +100,7 @@ class DataItemTest(parameterized.TestCase):
     # after the fact.
     self.assertFalse(hasattr(data_item.DataItem, 'foo'))
 
-    @data_slice.DataSlice.add_method('foo')
+    @data_slice.DataSlice._add_method('foo')
     def foo(self):
       """Converts DataSlice to DenseArray."""
       return self.as_dense_array()

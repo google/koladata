@@ -54,7 +54,7 @@ class DataSliceMethodsTest(absltest.TestCase):
   def test_add_method(self):
     self.assertFalse(hasattr(data_slice.DataSlice, 'foo'))
 
-    @data_slice.DataSlice.add_method('foo')
+    @data_slice.DataSlice._add_method('foo')
     def foo(self):
       """Converts DataSlice to Python list."""
       return self.internal_as_py()
@@ -80,7 +80,7 @@ class DataSliceMethodsTest(absltest.TestCase):
     self.assertFalse(hasattr(data_slice.DataSlice, 'bar'))
     self.assertFalse(hasattr(SubDataSlice, 'bar'))
 
-    @SubDataSlice.add_method('bar')
+    @SubDataSlice._add_method('bar')
     def bar(self):
       del self
       pass
