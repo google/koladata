@@ -409,6 +409,19 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_select_present(self):
     testing.assert_equal(C.x.select_present(), kde.select_present(C.x))
 
+  def test_select_items(self):
+    testing.assert_equal(
+        C.x.select_items(C.fltr), kde.select_items(C.x, C.fltr)
+    )
+
+  def test_select_keys(self):
+    testing.assert_equal(C.x.select_keys(C.fltr), kde.select_keys(C.x, C.fltr))
+
+  def test_select_values(self):
+    testing.assert_equal(
+        C.x.select_values(C.fltr), kde.select_values(C.x, C.fltr)
+    )
+
   def test_expand_to(self):
     testing.assert_equal(C.x.expand_to(C.target), kde.expand_to(C.x, C.target))
     testing.assert_equal(

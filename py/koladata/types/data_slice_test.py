@@ -21,8 +21,10 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.exceptions import exceptions
+from koladata.expr import input_container
 from koladata.functions import functions as fns
 from koladata.functions.tests import test_pb2
+from koladata.functor import functor_factories
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -36,6 +38,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
+I = input_container.InputContainer('I')
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
@@ -1328,6 +1331,84 @@ foo.get_obj_schema().x = <desired_schema>"""),
   )
   def test_select_present(self, x, expected_output):
     testing.assert_equal(x.select_present(), expected_output)
+
+  # More comprehensive tests are in the core_select_items_test.py.
+  @parameterized.parameters(
+      (
+          bag().list([1, 2, 3]),
+          ds([None, present, present]),
+          ds([2, 3]),
+      ),
+      (
+          bag().list([1, 2, 3]),
+          functor_factories.fn(I.self >= 2),
+          ds([2, 3]),
+      ),
+      (
+          ds([bag().list([1, 2, 3]), bag().list([2, 3, 4])]),
+          ds([None, present]),
+          ds([[], [2, 3, 4]]),
+      ),
+      (
+          bag().list([1, 2, 3]),
+          lambda x: x >= 2,
+          ds([2, 3]),
+      ),
+  )
+  def test_select_items(self, x, filter_input, expected_output):
+    testing.assert_equal(x.select_items(filter_input).no_db(), expected_output)
+
+  # More comprehensive tests are in the core_select_keys_test.py.
+  @parameterized.parameters(
+      (
+          ds([bag().dict({1: 1}), bag().dict({2: 2}), bag().dict({3: 3})]),
+          ds([present, None, None]),
+          ds([[1], [], []]),
+      ),
+      (
+          ds([bag().dict({1: 1}), bag().dict({2: 2}), bag().dict({3: 3})]),
+          functor_factories.fn(I.self == 1),
+          ds([[1], [], []]),
+      ),
+      (
+          ds([[bag().dict({1: 1})], [bag().dict({2: 2}), bag().dict({3: 3})]]),
+          ds([present, None]),
+          ds([[[1]], [[], []]]),
+      ),
+      (
+          bag().dict({1: 3, 2: 4, 3: 5}),
+          lambda x: x == 2,
+          ds([2]),
+      ),
+  )
+  def test_select_keys(self, x, filter_input, expected_output):
+    testing.assert_equal(x.select_keys(filter_input).no_db(), expected_output)
+
+  # More comprehensive tests are in the core_select_values_test.py.
+  @parameterized.parameters(
+      (
+          ds([bag().dict({1: 1}), bag().dict({2: 2}), bag().dict({3: 3})]),
+          ds([present, None, None]),
+          ds([[1], [], []]),
+      ),
+      (
+          ds([bag().dict({4: 1}), bag().dict({5: 2}), bag().dict({6: 3})]),
+          functor_factories.fn(I.self == 1),
+          ds([[1], [], []]),
+      ),
+      (
+          ds([[bag().dict({1: 1})], [bag().dict({2: 2}), bag().dict({3: 3})]]),
+          ds([present, None]),
+          ds([[[1]], [[], []]]),
+      ),
+      (
+          bag().dict({3: 1, 4: 2, 5: 3}),
+          lambda x: x == 2,
+          ds([2]),
+      ),
+  )
+  def test_select_values(self, x, filter_input, expected_output):
+    testing.assert_equal(x.select_values(filter_input).no_db(), expected_output)
 
   @parameterized.parameters(
       # ndim=0

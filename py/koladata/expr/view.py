@@ -236,11 +236,20 @@ class DataSliceView(BasicKodaView):
   def repeat(self, sizes: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.repeat', self, sizes)
 
-  def select(self, filter_ds: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.select', self, filter_ds)
+  def select(self, fltr: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.select', self, fltr)
 
   def select_present(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.select_present', self)
+
+  def select_items(self, fltr: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.select_items', self, fltr)
+
+  def select_keys(self, fltr: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.select_keys', self, fltr)
+
+  def select_values(self, fltr: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.select_values', self, fltr)
 
   def expand_to(
       self, target: Any, ndim: Any = arolla.unspecified()

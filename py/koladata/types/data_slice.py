@@ -168,13 +168,28 @@ def _repeat(self, sizes: Any) -> DataSlice:
 
 
 @DataSlice.add_method('select')
-def _select(self, filter_ds: Any) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.select, self, filter_ds)
+def _select(self, fltr: Any) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.select, self, fltr)
 
 
 @DataSlice.add_method('select_present')
 def _select_present(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.select_present, self)
+
+
+@DataSlice.add_method('select_items')
+def _select_items(self, fltr: Any) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.select_items, self, fltr)
+
+
+@DataSlice.add_method('select_keys')
+def _select_keys(self, fltr: Any) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.select_keys, self, fltr)
+
+
+@DataSlice.add_method('select_values')
+def _select_values(self, fltr: Any) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.select_values, self, fltr)
 
 
 @DataSlice.add_method('expand_to')
