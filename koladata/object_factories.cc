@@ -105,8 +105,7 @@ absl::StatusOr<DataSlice> CreateEntitiesFromFields(
 // TODO: This solution is mid-term, as we will either optimize it
 // to rely on fast copying of dictionaries from one DataBag to another or will
 // apply merging before invoking `EntityCreator`. Invoking merging will allow
-// the full functionality of `update_schema=true`, which is equivalent to the
-// functionality of SetAttrWithUpdateSchema.
+// the full functionality of `update_schema=true`.
 absl::Status CopyEntitySchema(const DataBagPtr& schema_db,
                               const internal::DataItem& schema_item,
                               internal::DataBagImpl& db_mutable_impl) {

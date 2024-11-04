@@ -245,16 +245,11 @@ class DataSlice {
       absl::string_view attr_name, const DataSlice& default_value) const;
 
   // Sets an attribute `attr_name` of this object to `values`. Possible only if
-  // it contains a reference to a DataBag.
-  absl::Status SetAttr(absl::string_view attr_name,
-                       const DataSlice& values) const;
-
-  // Sets an attribute `attr_name` of this object to `values`. Also updates
-  // schema with `values` schema. In case of object-level schema, attribute
-  // "__schema__"'s schema is updated. Possible only if it contains a reference
-  // to a DataBag.
-  absl::Status SetAttrWithUpdateSchema(absl::string_view attr_name,
-                                       const DataSlice& values) const;
+  // it contains a reference to a DataBag. If `update_schema` is true, schemas
+  // will also be updated, otherwise incompatible schema errors will be raised
+  // on conflict.
+  absl::Status SetAttr(absl::string_view attr_name, const DataSlice& values,
+                       bool update_schema = false) const;
 
   // Sets multiple attributes at the same time. Attributes `attr_names` of
   // Object / Entity are set to `values`. If `update_schema` is true, schemas

@@ -1949,7 +1949,7 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_EntityCreator) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("INT32"), HasSubstr("INT64"))));
-  ASSERT_OK(ds.SetAttrWithUpdateSchema("a", ds_int64_primitive));
+  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*update_schema=*/true));
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
   EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kInt64);
   EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
@@ -1961,10 +1961,10 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectCreator) {
   ASSERT_OK_AND_ASSIGN(auto ds,
                        ObjectCreator::FromAttrs(db, {"a"}, {ds_primitive}));
 
-  // SetAttrWithUpdateSchema works the same way as SetAttr on objects with
-  // implicit schema.
+  // update_schema=True works the same way as update_schema=False on objects
+  // with implicit schema.
   auto ds_int64_primitive = test::DataSlice<int64_t>({12, 42, 97});
-  ASSERT_OK(ds.SetAttrWithUpdateSchema("a", ds_int64_primitive));
+  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*update_schema=*/true));
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
   EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kInt64);
   EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
@@ -1985,10 +1985,36 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectsWithExplicitSchema) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("INT32"), HasSubstr("INT64"))));
-  ASSERT_OK(ds.SetAttrWithUpdateSchema("a", ds_int64_primitive));
+  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*update_schema=*/true));
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
   EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kInt64);
   EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
+}
+
+TEST(DataSliceTest, SetAttrWithUpdateSchema_AnySlice) {
+  auto db = DataBag::Empty();
+  auto ds_primitive = test::DataSlice<int>({1, 2, 3});
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       EntityCreator::FromAttrs(db, {"a"}, {ds_primitive}));
+  ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(test::Schema(schema::kAny)));
+  auto ds_int64_primitive = test::DataSlice<int64_t>({12, 42, 97});
+  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*update_schema=*/true));
+  ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
+  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kAny);
+  EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
+}
+
+TEST(DataSliceTest, SetAttrWithUpdateSchema_SchemaSlice) {
+  auto db = DataBag::Empty();
+  auto ds_primitive = test::DataSlice<int>({1, 2, 3});
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       EntityCreator::FromAttrs(db, {"a"}, {ds_primitive}));
+  auto schema_ds = ds.GetSchema();
+  ASSERT_OK(schema_ds.SetAttr("a", test::Schema(schema::kFloat32),
+                              /*update_schema=*/true));
+  EXPECT_THAT(
+      schema_ds.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(test::Schema(schema::kFloat32).WithBag(db))));
 }
 
 TEST(DataSliceTest, SetAttr_ObjectsWithExplicitSchemaNewAttr) {
@@ -2360,7 +2386,7 @@ TEST(DataSliceTest, SetAttr_NoFollowSchema_Entity) {
           HasSubstr(
               "cannot set an attribute on an entity with a no-follow schema")));
   EXPECT_THAT(
-      ds.SetAttrWithUpdateSchema("a", test::DataSlice<int>({1, 2, 3})),
+      ds.SetAttr("a", test::DataSlice<int>({1, 2, 3}), /*update_schema=*/true),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           HasSubstr(
@@ -2384,7 +2410,7 @@ TEST(DataSliceTest, SetAttr_NoFollowSchema_Object) {
           HasSubstr(
               "cannot set an attribute on an entity with a no-follow schema")));
   EXPECT_THAT(
-      ds.SetAttrWithUpdateSchema("a", test::DataSlice<int>({1, 2, 3})),
+      ds.SetAttr("a", test::DataSlice<int>({1, 2, 3}), /*update_schema=*/true),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           HasSubstr(
@@ -2629,7 +2655,7 @@ TEST(DataSliceTest, GetAttrWithDefault_Primitives_EntityCreator) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
-  ASSERT_OK(ds.SetAttrWithUpdateSchema("a", ds_primitive));
+  ASSERT_OK(ds.SetAttr("a", ds_primitive));
 
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
                        ds.GetAttrWithDefault("a", test::DataItem(4)));
@@ -2647,14 +2673,14 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_EntityCreator) {
   auto explicit_schema = internal::AllocateExplicitSchema();
   auto ds_object = test::DataSlice<ObjectId>(
       {object_id_1, std::nullopt, object_id_2}, explicit_schema, ds.GetBag());
-  ASSERT_OK(ds_object.SetAttrWithUpdateSchema("attr", ds_primitive));
-  ASSERT_OK(ds.SetAttrWithUpdateSchema("a", ds_object));
+  ASSERT_OK(ds_object.SetAttr("attr", ds_primitive));
+  ASSERT_OK(ds.SetAttr("a", ds_object));
 
   ASSERT_OK_AND_ASSIGN(auto default_val,
                        EntityCreator::FromAttrs(DataBag::Empty(), {}, {}));
   ASSERT_OK_AND_ASSIGN(default_val,
                        default_val.WithSchema(test::Schema(explicit_schema)));
-  ASSERT_OK(default_val.SetAttrWithUpdateSchema("attr", test::DataItem(42)));
+  ASSERT_OK(default_val.SetAttr("attr", test::DataItem(42)));
 
   ASSERT_OK_AND_ASSIGN(auto ds_object_get,
                        ds.GetAttrWithDefault("a", default_val));
@@ -2707,14 +2733,14 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_ObjectCreator) {
   auto explicit_schema = internal::AllocateExplicitSchema();
   auto ds_object = test::DataSlice<ObjectId>(
       {object_id_1, std::nullopt, object_id_2}, explicit_schema, ds.GetBag());
-  ASSERT_OK(ds_object.SetAttrWithUpdateSchema("attr", ds_primitive));
+  ASSERT_OK(ds_object.SetAttr("attr", ds_primitive));
   ASSERT_OK(ds.SetAttr("a", ds_object));
 
   ASSERT_OK_AND_ASSIGN(auto default_val,
                        EntityCreator::FromAttrs(DataBag::Empty(), {}, {}));
   ASSERT_OK_AND_ASSIGN(default_val,
                        default_val.WithSchema(test::Schema(explicit_schema)));
-  ASSERT_OK(default_val.SetAttrWithUpdateSchema("attr", test::DataItem(42)));
+  ASSERT_OK(default_val.SetAttr("attr", test::DataItem(42)));
 
   ASSERT_OK_AND_ASSIGN(auto ds_object_get,
                        ds.GetAttrWithDefault("a", default_val));

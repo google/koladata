@@ -25,6 +25,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
+from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -60,7 +61,7 @@ class CoreWithAttrsTest(parameterized.TestCase):
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(
-        ValueError, 'cannot get or set attributes on schema: INT32'
+        ValueError, 'setting attributes on primitive slices is not allowed'
     ):
       _ = kde.core.with_attrs(ds(0).with_bag(bag()), x=1).eval()
 
@@ -82,6 +83,16 @@ class CoreWithAttrsTest(parameterized.TestCase):
             arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
         ),
     )
+
+  def test_any_works(self):
+    o = fns.new().as_any()
+    o = kde.core.with_attrs(o, x=1).eval()
+    self.assertEqual(o.x.no_bag(), ds(1))
+
+  def test_schema_works(self):
+    o = fns.new_schema()
+    o = kde.core.with_attrs(o, x=schema_constants.INT32).eval()
+    self.assertEqual(o.x.no_bag(), schema_constants.INT32)
 
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.core.with_attrs(I.x, a=I.y)))

@@ -142,16 +142,16 @@ TEST(DataBagTest, MergeInplace) {
           {test::DataItem(1), test::DataItem(2)}));
   auto ds_2 = ds_1.WithBag(db_2);
   auto ds_3 = ds_1.WithBag(db_3);
-  ASSERT_OK(ds_2.SetAttrWithUpdateSchema("a", test::DataItem(3)));
-  ASSERT_OK(ds_3.SetAttrWithUpdateSchema("b", test::DataItem("foo")));
+  ASSERT_OK(ds_2.SetAttr("a", test::DataItem(3)));
+  ASSERT_OK(ds_3.SetAttr("b", test::DataItem("foo")));
 
   // Some of the MergeInplace calls below do partial modification before
   // failure, so we recreate it every time.
   auto recreate = [&db_1, &ds_1]() -> absl::Status {
     db_1 = DataBag::Empty();
     ds_1 = ds_1.WithBag(db_1);
-    RETURN_IF_ERROR(ds_1.SetAttrWithUpdateSchema("a", test::DataItem(1)));
-    return ds_1.SetAttrWithUpdateSchema("b", test::DataItem(2));
+    RETURN_IF_ERROR(ds_1.SetAttr("a", test::DataItem(1)));
+    return ds_1.SetAttr("b", test::DataItem(2));
   };
 
   ASSERT_OK(recreate());

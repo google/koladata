@@ -421,8 +421,11 @@ class RhsHandler {
                          internal::DataBagImpl>;
 
   RhsHandler(RhsHandlerContext context, const DataSlice& rhs,
-             absl::string_view attr_name)
-      : context_(context), rhs_(rhs), attr_name_(attr_name) {}
+             absl::string_view attr_name, bool update_schema)
+      : context_(context),
+        rhs_(rhs),
+        attr_name_(attr_name),
+        update_schema_(update_schema) {}
 
   const DataSlice& GetValues() const {
     return casted_rhs_.has_value() ? *casted_rhs_ : rhs_;
@@ -472,8 +475,7 @@ class RhsHandler {
   // in the same way (as IMPLICIT schemas).
   absl::Status ProcessSchemaObjectAttr(
       const internal::DataItem& lhs_schema, DataBagImplT& db_impl,
-      internal::DataBagImpl::FallbackSpan fallbacks,
-      bool update_schema = false) {
+      internal::DataBagImpl::FallbackSpan fallbacks) {
     ASSIGN_OR_RETURN(
         auto attr_stored_schema,
         db_impl.GetSchemaAttrAllowMissing(lhs_schema, attr_name_, fallbacks));
@@ -486,7 +488,7 @@ class RhsHandler {
     if (schema_id.IsNoFollowSchema()) {
       return CannotSetAttrOnNoFollowSchemaErrorStatus();
     }
-    if (schema_id.IsImplicitSchema() || update_schema ||
+    if (schema_id.IsImplicitSchema() || update_schema_ ||
         (context_ == RhsHandlerContext::kAttr &&
          !attr_stored_schema.has_value())) {
       if constexpr (is_readonly) {
@@ -522,7 +524,7 @@ class RhsHandler {
 
     internal::DataItem value_schema = rhs_.GetSchemaImpl();
     bool has_implicit_schema = false;
-    bool should_update_schema = false;
+    bool should_update_schema = update_schema_;
     std::optional<internal::DataItem> cast_to = std::nullopt;
     absl::Status status = absl::OkStatus();
     lhs_schema.template values<internal::ObjectId>().ForEachPresent(
@@ -530,39 +532,42 @@ class RhsHandler {
           if (!status.ok()) {
             return;
           }
-          auto attr_stored_schema = attr_stored_schemas[id];
-          if (schema_id.IsImplicitSchema()) {
-            has_implicit_schema = true;
-            if (attr_stored_schema != rhs_.GetSchemaImpl()) {
-              should_update_schema = true;
-            }
-            return;
-          }
           if (schema_id.IsNoFollowSchema()) {
             status = CannotSetAttrOnNoFollowSchemaErrorStatus();
             return;
           }
-          // lhs_schema is EXPLICIT.
-          if (!attr_stored_schema.has_value()) {
-            if (context_ == RhsHandlerContext::kAttr) {
-              should_update_schema = true;
-            } else {
-              status = AttrSchemaMissingErrorStatus();
+          if (!update_schema_) {
+            auto attr_stored_schema = attr_stored_schemas[id];
+            if (schema_id.IsImplicitSchema()) {
+              has_implicit_schema = true;
+              if (attr_stored_schema != rhs_.GetSchemaImpl()) {
+                should_update_schema = true;
+              }
+              return;
             }
-            return;
+            // lhs_schema is EXPLICIT.
+            if (!attr_stored_schema.has_value()) {
+              if (context_ == RhsHandlerContext::kAttr) {
+                should_update_schema = true;
+              } else {
+                status = AttrSchemaMissingErrorStatus();
+              }
+              return;
+            }
+            if (cast_to.has_value() && *cast_to != attr_stored_schema) {
+              // NOTE: If cast_to and attr_stored_schema are different, but
+              // compatible, we are still returning an error.
+              status = internal::WithErrorPayload(
+                  absl::InvalidArgumentError(
+                      absl::StrFormat("assignment would require to cast values "
+                                      "to two different "
+                                      "types: %v and %v",
+                                      attr_stored_schema, *cast_to)),
+                  MakeIncompatibleSchemaError(attr_stored_schema));
+              return;
+            }
+            cast_to = std::move(attr_stored_schema);
           }
-          if (cast_to.has_value() && *cast_to != attr_stored_schema) {
-            // NOTE: If cast_to and attr_stored_schema are different, but
-            // compatible, we are still returning an error.
-            status = internal::WithErrorPayload(
-                absl::InvalidArgumentError(absl::StrFormat(
-                    "Assignment would require to cast values to two different "
-                    "types: %v and %v",
-                    attr_stored_schema, *cast_to)),
-                MakeIncompatibleSchemaError(attr_stored_schema));
-            return;
-          }
-          cast_to = std::move(attr_stored_schema);
         });
     RETURN_IF_ERROR(status);
     if (cast_to.has_value()) {
@@ -688,6 +693,7 @@ class RhsHandler {
   RhsHandlerContext context_;
   const DataSlice& rhs_;
   absl::string_view attr_name_;
+  bool update_schema_;
   std::optional<DataSlice> casted_rhs_ = std::nullopt;
 };
 
@@ -1127,7 +1133,8 @@ absl::Status DataSlice::SetSchemaAttr(absl::string_view attr_name,
 }
 
 absl::Status DataSlice::SetAttr(absl::string_view attr_name,
-                                const DataSlice& values) const {
+                                const DataSlice& values,
+                                bool update_schema) const {
   if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot set attributes without a DataBag");
@@ -1153,8 +1160,8 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
-  RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerContext::kAttr,
-                                                 expanded_values, attr_name);
+  RhsHandler</*is_readonly=*/false> data_handler(
+      RhsHandlerContext::kAttr, expanded_values, attr_name, update_schema);
   if (attr_name == schema::kSchemaAttr) {
     if (expanded_values.GetSchemaImpl() != schema::kSchema) {
       return absl::InvalidArgumentError(absl::StrCat(
@@ -1171,26 +1178,12 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
   });
 }
 
-absl::Status DataSlice::SetAttrWithUpdateSchema(absl::string_view attr_name,
-                                                const DataSlice& values) const {
-  std::optional<DataSlice> schema_slice;
-  if (GetSchemaImpl() == schema::kObject) {
-    ASSIGN_OR_RETURN(schema_slice, GetObjSchema());
-  } else {
-    schema_slice = GetSchema();
-  }
-  RETURN_IF_ERROR(schema_slice->SetAttr(attr_name, values.GetSchema()));
-  return SetAttr(attr_name, values);
-}
-
 absl::Status DataSlice::SetAttrs(absl::Span<const absl::string_view> attr_names,
                                  absl::Span<const DataSlice> values,
                                  bool update_schema) const {
   DCHECK_EQ(attr_names.size(), values.size());
-  auto set_attr_fn =
-      update_schema ? &DataSlice::SetAttrWithUpdateSchema : &DataSlice::SetAttr;
   for (int i = 0; i < attr_names.size(); ++i) {
-    RETURN_IF_ERROR((this->*set_attr_fn)(attr_names[i], values[i]));
+    RETURN_IF_ERROR(SetAttr(attr_names[i], values[i], update_schema));
   }
   return absl::OkStatus();
 }
@@ -1327,7 +1320,8 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
   ASSIGN_OR_RETURN(auto expanded_keys, BroadcastToShape(keys, shape));
   RhsHandler</*is_readonly=*/true> keys_handler(
-      RhsHandlerContext::kDict, expanded_keys, schema::kDictKeysSchemaAttr);
+      RhsHandlerContext::kDict, expanded_keys, schema::kDictKeysSchemaAttr,
+      /*update_schema=*/false);
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, GetBag()->GetImpl(),
                                              fb_finder.GetFlattenFallbacks()));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
@@ -1371,11 +1365,13 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> keys_handler(
-      RhsHandlerContext::kDict, expanded_keys, schema::kDictKeysSchemaAttr);
+      RhsHandlerContext::kDict, expanded_keys, schema::kDictKeysSchemaAttr,
+      /*update_schema=*/false);
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
   RhsHandler</*is_readonly=*/false> values_handler(
-      RhsHandlerContext::kDict, expanded_values, schema::kDictValuesSchemaAttr);
+      RhsHandlerContext::kDict, expanded_values, schema::kDictValuesSchemaAttr,
+      /*update_schema=*/false);
   RETURN_IF_ERROR(values_handler.ProcessSchema(*this, db_mutable_impl,
                                                /*fallbacks=*/{}));
 
@@ -1583,7 +1579,8 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
                    GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerContext::kListItem,
                                                  expanded_values,
-                                                 schema::kListItemsSchemaAttr);
+                                                 schema::kListItemsSchemaAttr,
+                                                 /*update_schema=*/false);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
 
@@ -1632,7 +1629,8 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
                    GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerContext::kListItem,
                                                  expanded_values,
-                                                 schema::kListItemsSchemaAttr);
+                                                 schema::kListItemsSchemaAttr,
+                                                 /*update_schema=*/false);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
   if (std::holds_alternative<internal::DataItem>(
@@ -1680,7 +1678,8 @@ absl::Status DataSlice::ReplaceInList(int64_t start,
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(
-      RhsHandlerContext::kListItem, values, schema::kListItemsSchemaAttr);
+      RhsHandlerContext::kListItem, values, schema::kListItemsSchemaAttr,
+      /*update_schema=*/false);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
 
@@ -1837,9 +1836,10 @@ absl::StatusOr<DataSlice> CastOrUpdateSchema(
     absl::string_view attr_name, bool update_schema,
     internal::DataBagImpl& db_impl) {
   RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerContext::kAttr,
-                                                 /*rhs=*/value, attr_name);
-  RETURN_IF_ERROR(data_handler.ProcessSchemaObjectAttr(lhs_schema, db_impl, {},
-                                                       update_schema));
+                                                 /*rhs=*/value, attr_name,
+                                                 update_schema);
+  RETURN_IF_ERROR(
+      data_handler.ProcessSchemaObjectAttr(lhs_schema, db_impl, {}));
   return data_handler.GetValues();
 }
 

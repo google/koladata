@@ -371,13 +371,8 @@ absl::Nullable<PyObject*> PyDataSlice_set_attr(PyObject* self,
     }
     update_schema = PyObject_IsTrue(py_update_schema);
   }
-  if (update_schema) {
-    RETURN_IF_ERROR(self_ds.SetAttrWithUpdateSchema(attr_name_view, value_ds))
-        .With(SetKodaPyErrFromStatus);
-  } else {
-    RETURN_IF_ERROR(self_ds.SetAttr(attr_name_view, value_ds))
-        .With(SetKodaPyErrFromStatus);
-  }
+  RETURN_IF_ERROR(self_ds.SetAttr(attr_name_view, value_ds, update_schema))
+      .With(SetKodaPyErrFromStatus);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
       .With(SetKodaPyErrFromStatus);
   Py_RETURN_NONE;

@@ -84,7 +84,7 @@ class SetAttrTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(r'cannot get or set attributes on schema: INT32'),
+        re.escape(r'setting attributes on primitive slices is not allowed'),
     ):
       fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, update_schema=True)
 
@@ -101,7 +101,7 @@ class SetAttrTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(r'cannot get or set attributes on schema: INT32'),
+        re.escape(r'getting attribute of a primitive is not allowed'),
     ):
       fns.set_attr(
           ds(1, schema_constants.OBJECT).with_bag(fns.bag()),
