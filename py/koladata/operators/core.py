@@ -1846,41 +1846,6 @@ def count(x):
   return agg_count(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry(aliases=['kde.index'])
-@optools.as_lambda_operator(
-    'kde.core.index',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
-    ],
-)
-def index(x, ndim=arolla.unspecified()):
-  """Returns the indices of the elements computed over the last ndim dimensions.
-
-  The resulting slice has the same rank as the input.
-
-  Example:
-    ds = kd.slice([[1, None, 1], [3, 4], [None, None]])
-    kd.index(ds)  # -> kd.slice([[0, None, 2], [0, 1], [None, None]])
-    kd.index(ds, ndim=1)  # -> kd.slice([[0, None, 2], [0, 1], [None, None]])
-    kd.index(ds, ndim=2)  # -> kd.slice([[0, None, 2], [3, 4], [None, None]])
-
-  Args:
-    x: A DataSlice.
-    ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-      <= get_ndim(x).
-  """
-  flat_units = arolla_bridge.to_arolla_dense_array_unit(logical.has(x))
-  shape = jagged_shape_ops.get_shape(x)
-  flat_res = M.array.agg_index(
-      flat_units,
-      over=M.jagged.edge_at(
-          jagged_shape_ops.flatten_last_ndim(shape, ndim), -1
-      ),
-  )
-  return arolla_bridge.to_data_slice(flat_res, shape)
-
-
 @optools.add_to_registry(aliases=['kde.take', 'kde.core.at', 'kde.at'])
 @optools.as_backend_operator(
     'kde.core.take',
@@ -2267,6 +2232,71 @@ def is_expandable_to(x, target, ndim=arolla.unspecified()):
   return jagged_shape_ops.is_expandable_to_shape(
       x, jagged_shape_ops.get_shape(target), ndim
   )
+
+
+@optools.add_to_registry(aliases=['kde.index'])
+@optools.as_lambda_operator(
+    'kde.core.index',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.dim),
+    ],
+)
+def index(x, dim=arolla.unspecified()):
+  """Returns the indices of the elements computed over the last dim dimensions.
+
+  The resulting slice has the same shape as the input.
+
+  Example:
+    ds = kd.slice([
+        [
+            ['a', None, 'c'],
+            ['d', 'e']
+        ],
+        [
+            [None, 'g'],
+            ['h', 'i', 'j']
+        ]
+    ])
+    kd.index(ds, dim=0)
+      # -> kd.slice([[[0, None, 0], [0, 0]], [[None, 1], [1, 1, 1]]])
+    kd.index(ds, dim=1)
+      # -> kd.slice([[[0, None, 0], [1, 1]], [[None, 0], [1, 1, 1]]])
+    kd.index(ds, dim=2)
+      # -> kd.slice([[[0, None, 2], [0, 1]], [[None, 1], [0, 1, 2]]])
+
+    kd.index(ds) -> kd.index(ds, dim=ds.get_ndim() - 1)
+
+  Args:
+    x: A DataSlice.
+    dim: The dimension to compute indices over. Requires 0 <= dim < get_ndim(x).
+      If unspecified, it is set to the last dimension of x.
+  """
+  x = assertion.with_assertion(
+      x, get_ndim(x) != 0, "'x' must have non-zero rank."
+  )
+
+  dim = M.core.default_if_unspecified(dim, get_ndim(x) - 1)
+
+  ndim = get_ndim(x) - dim - 1
+  ndim = assertion.with_assertion(
+      ndim,
+      (ndim < get_ndim(x)) & (ndim >= 0),
+      'expected 0 <= dim < rank',
+  )
+
+  aggregated = logical.agg_has(x, ndim)
+  flat_units = arolla_bridge.to_arolla_dense_array_unit(logical.has(aggregated))
+  shape = jagged_shape_ops.get_shape(aggregated)
+  flat_res = M.array.agg_index(
+      flat_units,
+      over=M.jagged.edge_at(
+          shape,
+          -1,
+      ),
+  )
+  shaped_res = arolla_bridge.to_data_slice(flat_res, shape)
+  return expand_to(shaped_res, x)
 
 
 @optools.add_to_registry(aliases=['kde.is_shape_compatible'])

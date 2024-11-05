@@ -51,34 +51,72 @@ QTYPES = frozenset([
 class CoreIndexTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds([1, 2, None, 3]), ds([0, 1, None, 3], INT64)),
-      (ds([1, 2, None, 3]), arolla.unspecified(), ds([0, 1, None, 3], INT64)),
-      (ds([1, 2, None, 3]), ds(1), ds([0, 1, None, 3], INT64)),
-      (ds([1, 2, None, 3]), ds(0), ds([0, 0, None, 0], INT64)),
-      (ds(3), ds(0), ds(0, INT64)),
+      (ds([5, 6, None, 7]), arolla.unspecified(), ds([0, 1, None, 3], INT64)),
+      (
+          ds([[5, None, 5], [6, 7], [None, None]]),
+          ds(0),
+          ds([[0, 0, 0], [1, 1], [None, None]], INT64),
+      ),
+      (
+          ds([[5, None, 5], [6, 7], [None, None]]),
+          ds(1),
+          ds([[0, None, 2], [0, 1], [None, None]], INT64),
+      ),
+      (
+          ds([[['a', 'b', 'c'], ['d', 'e']], [['f', 'g'], ['h', 'i', 'j']]]),
+          ds(0),
+          ds([[[0, 0, 0], [0, 0]], [[1, 1], [1, 1, 1]]], INT64),
+      ),
+      (
+          ds([[['a', 'b', 'c'], ['d', 'e']], [['f', 'g'], ['h', 'i', 'j']]]),
+          ds(1),
+          ds([[[0, 0, 0], [1, 1]], [[0, 0], [1, 1, 1]]], INT64),
+      ),
+      (
+          ds([[['a', 'b', 'c'], ['d', 'e']], [['f', 'g'], ['h', 'i', 'j']]]),
+          ds(2),
+          ds([[[0, 1, 2], [0, 1]], [[0, 1], [0, 1, 2]]], INT64),
+      ),
+  )
+  def test_eval(self, x, dim, expected_value):
+    actual_value = expr_eval.eval(kde.core.index(x, dim))
+    testing.assert_equal(actual_value, expected_value)
+
+  @parameterized.parameters(
+      (ds([5, 6, None, 7]), ds([0, 1, None, 3], INT64)),
       (ds([None]), ds([None], INT64)),
       (
-          ds([[1, None, 1], [3, 4], [None, None]]),
+          ds([[5, None, 5], [6, 7], [None, None]]),
           ds([[0, None, 2], [0, 1], [None, None]], INT64),
       ),
       (ds([1, 'a', None, 2.0]), ds([0, 1, None, 3], INT64)),
+      (
+          ds([[['a', 'b', 'c'], ['d', 'e']], [['f', 'g'], ['h', 'i', 'j']]]),
+          ds([[[0, 1, 2], [0, 1]], [[0, 1], [0, 1, 2]]], INT64),
+      ),
   )
-  def test_eval(self, *args_and_expected):
-    args, expected_value = args_and_expected[:-1], args_and_expected[-1]
-    actual_value = expr_eval.eval(kde.core.index(*args))
-    testing.assert_equal(actual_value, expected_value)
+  def test_eval_unspecified_dim(self, x, expected_value):
+    value_with_unspecified_dim = expr_eval.eval(kde.core.index(x))
+    ndim = x.get_ndim()
+    value_with_dim_equal_ndim_minus_1 = expr_eval.eval(
+        kde.core.index(x, ndim - ds(1))
+    )
+    testing.assert_equal(
+        value_with_unspecified_dim, value_with_dim_equal_ndim_minus_1
+    )
+    testing.assert_equal(value_with_unspecified_dim, expected_value)
 
   def test_data_item_input_error(self):
     x = ds(1)
     with self.assertRaisesRegex(
-        ValueError, re.escape('expected rank > 0, but got rank = 0')
+        ValueError, re.escape("'x' must have non-zero rank.")
     ):
       expr_eval.eval(kde.core.index(x))
 
   @parameterized.parameters(-1, 2)
   def test_out_of_bounds_ndim_error(self, ndim):
     x = data_slice.DataSlice.from_vals([1, 2, 3])
-    with self.assertRaisesRegex(ValueError, 'expected 0 <= ndim <= rank'):
+    with self.assertRaisesRegex(ValueError, 'expected 0 <= dim < rank'):
       expr_eval.eval(kde.core.index(x, ndim))
 
   def test_qtype_signatures(self):
