@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-04'
+  reviewed: '2024-11-05'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -107,7 +107,9 @@ Args:
 ### `agg_all(x, ndim)` {#agg_all}
 
 ``` {.no-copy}
-Returns the logical AND of elements along the last ndim dimensions.
+Returns present if all elements are present along the last ndim dimensions.
+
+`x` must have MASK dtype.
 
 The resulting slice has `rank = rank - ndim` and shape: `shape =
 shape[:-ndim]`.
@@ -121,7 +123,9 @@ Args:
 ### `agg_any(x, ndim)` {#agg_any}
 
 ``` {.no-copy}
-Returns the logical OR of elements along the last ndim dimensions.
+Returns present if any element is present along the last ndim dimensions.
+
+`x` must have MASK dtype.
 
 The resulting slice has `rank = rank - ndim` and shape: `shape =
 shape[:-ndim]`.
@@ -150,6 +154,22 @@ Args:
   x: A DataSlice.
   ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
     get_ndim(x).
+```
+
+### `agg_has(x, ndim)` {#agg_has}
+
+``` {.no-copy}
+Returns present iff any element is present along the last ndim dimensions.
+
+The resulting slice has `rank = rank - ndim` and shape: `shape =
+shape[:-ndim]`.
+
+It is equivalent to `kd.agg_any(kd.has(x))`.
+
+Args:
+  x: A DataSlice.
+  ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
+    <= get_ndim(x).
 ```
 
 ### `agg_max(x, ndim)` {#agg_max}
@@ -361,7 +381,9 @@ Returns:
 ### `all(x)` {#all}
 
 ``` {.no-copy}
-Returns the logical AND of elements over all dimensions.
+Returns present iff all elements are present over all dimensions.
+
+`x` must have MASK dtype.
 
 The result is a zero-dimensional DataItem.
 
@@ -372,7 +394,9 @@ Args:
 ### `any(x)` {#any}
 
 ``` {.no-copy}
-Returns the logical OR of elements over all dimensions.
+Returns present iff any element is present over all dimensions.
+
+`x` must have MASK dtype.
 
 The result is a zero-dimensional DataItem.
 
@@ -475,12 +499,6 @@ Returns:
 Casts `x` to ANY using explicit (permissive) casting rules.
 ```
 
-### `as_expr(arg)` {#as_expr}
-
-``` {.no-copy}
-Converts Python values into Exprs.
-```
-
 ### `as_itemid(x)` {#as_itemid}
 
 ``` {.no-copy}
@@ -525,7 +543,7 @@ Returns:
   A new DataSlice with items selected by indices.
 ```
 
-### `attrs(x, /, **attrs)` {#attrs}
+### `attrs(x, /, *, update_schema, **attrs)` {#attrs}
 
 ``` {.no-copy}
 Returns a new Databag containing attribute updates for a slice `x`.
@@ -827,6 +845,12 @@ Args:
 
 Returns:
   Result of recursive uuid application for objs/lists/dicts.
+```
+
+### `del_attr(x, attr_name)` {#del_attr}
+
+``` {.no-copy}
+Deletes an attribute `attr_name` from `x`.
 ```
 
 ### `dense_rank(x, descending, ndim)` {#dense_rank}
@@ -1711,12 +1735,6 @@ Returns:
   a primitive schema DataSlice.
 ```
 
-### `get_input_names(expr, container)` {#get_input_names}
-
-``` {.no-copy}
-Returns names of `container` inputs used in `expr`.
-```
-
 ### `get_item(x, key)` {#get_item}
 
 ``` {.no-copy}
@@ -1780,12 +1798,6 @@ Args:
 
 Returns:
   A DataSlice of keys.
-```
-
-### `get_name(expr)` {#get_name}
-
-``` {.no-copy}
-Returns the name of the given Expr, or None if it does not have one.
 ```
 
 ### `get_ndim(x)` {#get_ndim}
@@ -2317,12 +2329,6 @@ Returns kd.present if the given object is a scalar DataItem and kd.missing other
 Returns true if all present items in ds are lists.
 ```
 
-### `is_packed_expr(ds)` {#is_packed_expr}
-
-``` {.no-copy}
-Returns kd.present if the argument is a DataItem containing an Expr.
-```
-
 ### `is_primitive(x)` {#is_primitive}
 
 ``` {.no-copy}
@@ -2504,12 +2510,6 @@ Creates new Koda lists with shape of the given DataSlice.
 
 ``` {.no-copy}
 Returns size of a List.
-```
-
-### `literal` {#literal}
-
-``` {.no-copy}
-Constructs an expr with a LiteralOperator wrapping the provided QValue.
 ```
 
 ### `loads(x)` {#loads}
@@ -3246,12 +3246,6 @@ Args:
 
 Returns:
   A DataSlice of ordinal ranks.
-```
-
-### `pack_expr(expr)` {#pack_expr}
-
-``` {.no-copy}
-Packs the given Expr into a DataItem.
 ```
 
 ### `pos(x)` {#pos}
@@ -3992,64 +3986,6 @@ Returns:
   DataSlice with the same schema stub in the new DataBag.
 ```
 
-### `sub(expr, *subs)` {#sub}
-
-``` {.no-copy}
-Returns `expr` with provided expressions replaced.
-
-  Example usage:
-    kd.sub(expr, (from_1, to_1), (from_2, to_2), ...)
-
-  For the special case of a single substitution, you can also do:
-    kd.sub(expr, from, to)
-
-  It does the substitution by traversing 'expr' post-order and comparing
-  fingerprints of sub-Exprs in the original expression and those in in 'subs'.
-  For example,
-
-    kd.sub(I.x + I.y, (I.x, I.z), (I.x + I.y, I.k)) -> I.k
-
-    kd.sub(I.x + I.y, (I.x, I.y), (I.y + I.y, I.z)) -> I.y + I.y
-
-  It does not do deep transformation recursively. For example,
-
-    kd.sub(I.x + I.y, (I.x, I.z), (I.y, I.x)) -> I.z + I.x
-
-  Args:
-    expr: Expr which substitutions are applied to
-    *subs: Either zero or more (sub_from, sub_to) tuples, or exactly two
-      arguments from and to. The keys should be expressions, and the values
-      should be possible to convert to expressions using kd.as_expr.
-
-  Returns:
-    A new Expr with substitutions.
-```
-
-### `sub_by_name(expr, /, **subs)` {#sub_by_name}
-
-``` {.no-copy}
-Returns `expr` with named subexpressions replaced.
-
-  Use `kde.with_name(expr, name)` to create a named subexpression.
-
-  Example:
-    foo = kde.with_name(I.x, 'foo')
-    bar = kde.with_name(I.y, 'bar')
-    expr = foo + bar
-    kd.sub_by_name(expr, foo=I.z)
-    # -> I.z + kde.with_name(I.y, 'bar')
-
-  Args:
-    expr: an expression.
-    **subs: mapping from subexpression name to replacement node.
-```
-
-### `sub_inputs(expr, container, /, **subs)` {#sub_inputs}
-
-``` {.no-copy}
-Returns an expression with `container` inputs replaced with Expr(s).
-```
-
 ### `subslice(x, *slices)` {#subslice}
 
 ``` {.no-copy}
@@ -4533,18 +4469,6 @@ Returns:
   last dimension.
 ```
 
-### `unpack_expr(ds)` {#unpack_expr}
-
-``` {.no-copy}
-Unpacks an Expr stored in a DataItem.
-```
-
-### `unwrap_named(expr)` {#unwrap_named}
-
-``` {.no-copy}
-Unwraps a named Expr, raising if it is not named.
-```
-
 ### `update_schema(obj, **attr_schemas)` {#update_schema}
 
 ``` {.no-copy}
@@ -4685,6 +4609,24 @@ Returns:
   item from each kwarg value.
 ```
 
+### `uuids_with_allocation_size(*, seed, size)` {#uuids_with_allocation_size}
+
+``` {.no-copy}
+Creates a DataSlice whose items are uuids.
+
+The uuids are allocated in a single allocation. They are all distinct.
+You can think of the result as a DataSlice created with:
+[fingerprint(seed, size, i) for i in range(size)]
+
+Args:
+  seed: text seed for the uuid computation.
+  size: the size of the allocation. It will also be used for the uuid
+    computation.
+
+Returns:
+  A 1-dimensional DataSlice with `size` distinct uuids.
+```
+
 ### `uuobj(*, seed, **kwargs)` {#uuobj}
 
 ``` {.no-copy}
@@ -4767,7 +4709,7 @@ Returns:
   A DataSlice with the same shape as `x`.
 ```
 
-### `with_attrs(x, /, **attrs)` {#with_attrs}
+### `with_attrs(x, /, *, update_schema, **attrs)` {#with_attrs}
 
 ``` {.no-copy}
 Returns a DataSlice with a new DataBag containing updated attributes.
@@ -5350,25 +5292,6 @@ Slicing helper for DataSlice.
 
 *No description*
 
-### `<DataSlice>.add_method(method_name)` {#<DataSlice>.add_method}
-
-``` {.no-copy}
-Returns a callable / decorator to put it as a cls's method.
-
-  Adds methods only to the class it was called on (then it is also available in
-  cls' subclasses.
-
-  Example on how to define methods:
-
-    @DataSlice.add_method('flatten')
-    def _flatten(self, from, to) -> DataSlice:
-      return arolla.abc.aux_eval_op(method_impl_lookup.flatten, self, from, to)
-
-  Args:
-    cls: DataSlice or its subclass.
-    method_name: wraps the Python function as a method with `method_name`.
-```
-
 ### `<DataSlice>.append` {#<DataSlice>.append}
 
 ``` {.no-copy}
@@ -5699,11 +5622,23 @@ QType of the stored value.
 
 *No description*
 
-### `<DataSlice>.select(self, filter_ds)` {#<DataSlice>.select}
+### `<DataSlice>.select(self, fltr)` {#<DataSlice>.select}
+
+*No description*
+
+### `<DataSlice>.select_items(self, fltr)` {#<DataSlice>.select_items}
+
+*No description*
+
+### `<DataSlice>.select_keys(self, fltr)` {#<DataSlice>.select_keys}
 
 *No description*
 
 ### `<DataSlice>.select_present(self)` {#<DataSlice>.select_present}
+
+*No description*
+
+### `<DataSlice>.select_values(self, fltr)` {#<DataSlice>.select_values}
 
 *No description*
 
