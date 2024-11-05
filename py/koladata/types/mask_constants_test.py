@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for mask_constants."""
-
 from absl.testing import absltest
 from koladata.operators import eager_op_utils
 from koladata.testing import testing
@@ -43,7 +41,7 @@ class MaskConstantsTest(absltest.TestCase):
         repr(mask_constants.present), 'DataItem(present, schema: MASK)'
     )
     self.assertEqual(
-        repr(mask_constants.missing), 'DataItem(None, schema: MASK)'
+        repr(mask_constants.missing), 'DataItem(missing, schema: MASK)'
     )
 
 

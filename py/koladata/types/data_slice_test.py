@@ -284,9 +284,29 @@ class DataSliceTest(parameterized.TestCase):
           '[True, False]',
       ),
       (
-          'mask',
-          ds([arolla.unit(), arolla.optional_unit(None)]),
-          'DataSlice([present, None], schema: MASK, shape: JaggedShape(2))',
+          'missing mask DataItem',
+          mask_constants.missing,
+          'DataItem(missing, schema: MASK)',
+          'missing',
+      ),
+      (
+          'present mask DataItem',
+          mask_constants.present,
+          'DataItem(present, schema: MASK)',
+          'present',
+      ),
+      (
+          'mask DataSlice',
+          ds([mask_constants.present, mask_constants.missing]),
+          'DataSlice([present, missing], schema: MASK, shape: JaggedShape(2))',
+          '[present, missing]',
+      ),
+      (
+          'mask DataSlice with OBJECT schema',
+          ds([mask_constants.present, mask_constants.missing]).with_schema(
+              schema_constants.OBJECT
+          ),
+          'DataSlice([present, None], schema: OBJECT, shape: JaggedShape(2))',
           '[present, None]',
       ),
       (

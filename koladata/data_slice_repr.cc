@@ -136,8 +136,9 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
     // Turns each items in slice into a string.
     std::vector<std::string> parts;
     parts.reserve(slice.size());
-    bool obj_or_any_schema =
+    bool is_obj_or_any_schema =
         schema == schema::kObject || schema == schema::kAny;
+    bool is_mask_schema = schema == schema::kMask;
     for (const DataItem& item : slice_impl) {
       if (item.holds_value<ObjectId>()) {
         absl::string_view item_prefix = "";
@@ -152,7 +153,8 @@ absl::StatusOr<std::vector<std::string>> StringifyByDimension(
         }
         parts.push_back(absl::StrCat(item_prefix, DataItemRepr(item)));
       } else {
-        parts.push_back(DataItemRepr(item, {.show_dtype = obj_or_any_schema}));
+        parts.push_back(DataItemRepr(item, {.show_dtype = is_obj_or_any_schema,
+                                            .show_missing = is_mask_schema}));
       }
     }
     return StringifyGroup(edge, parts, option.item_limit);
@@ -356,9 +358,12 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
     }
     return absl::StrCat(prefix, schema_str, ")");
   }
-  bool obj_or_any_schema = schema == schema::kObject || schema == schema::kAny;
+  bool is_obj_or_any_schema =
+      schema == schema::kObject || schema == schema::kAny;
+  bool is_mask_schema = schema == schema::kMask;
   return DataItemRepr(data_item, {.strip_quotes = option.strip_quotes,
-                                  .show_dtype = obj_or_any_schema});
+                                  .show_dtype = is_obj_or_any_schema,
+                                  .show_missing = is_mask_schema});
 }
 
 }  // namespace

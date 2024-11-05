@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for list_item."""
-
 import inspect
 import itertools
 
@@ -159,9 +157,9 @@ class ListItemTest(parameterized.TestCase):
       (
           "mask",
           [arolla.unit(), arolla.optional_unit(None)],
-          "List[present, None]",
+          "List[present, missing]",
           (
-              r"DataItem\(List\[present, None\], schema: LIST\[MASK\],"
+              r"DataItem\(List\[present, missing\], schema: LIST\[MASK\],"
               r" bag_id: \$\w{4}\)"
           ),
       ),

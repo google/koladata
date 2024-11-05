@@ -91,7 +91,7 @@ def _unwrap_py_callable(
     result = value.py_value()
     if callable(result):
       return result
-  raise ValueError(f'expected a python callable, got {param_name}={value}')
+  raise ValueError(f'expected a python callable, got {param_name}={value!r}')
 
 
 # Note: Intended to be used in pair with _expect_optional_py_callable().
@@ -108,7 +108,7 @@ def _unwrap_optional_py_callable(
       and value.get_schema() == schema_constants.NONE
   ):
     return None
-  raise ValueError(f'expected a python callable, got {param_name}={value}')
+  raise ValueError(f'expected a python callable, got {param_name}={value!r}')
 
 
 # Note: Intended to be used in pair with _expect_optional_schema().

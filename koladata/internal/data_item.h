@@ -398,6 +398,9 @@ struct DataItemReprOption {
   bool strip_quotes = false;
   // If true, the dtype will be shown for int64 and float64.
   bool show_dtype = false;
+  // If true, missing values will be shown as "missing". Otherwise, they will
+  // be shown as "None".
+  bool show_missing = false;
 };
 
 // Returns the string representation for the DataItem. It supports different

@@ -169,6 +169,9 @@ std::string DataItemRepr(const DataItem& item,
       return absl::StrCat("int64{", item, "}");
     }
   }
+  if (option.show_missing && !item.has_value()) {
+    return "missing";
+  }
   return absl::StrCat(item);
 }
 

@@ -156,7 +156,9 @@ class PyApplyPyOnCondTest(parameterized.TestCase):
   def test_error_unexpected_no_fn_value(self):
     x = ds([mask_constants.missing])
     with self.assertRaisesWithLiteralMatch(
-        ValueError, 'expected a python callable, got no_fn=[None]'
+        ValueError,
+        'expected a python callable, got no_fn=DataSlice([missing], schema:'
+        ' MASK, shape: JaggedShape(1))',
     ):
       _ = expr_eval.eval(kde.py.apply_py_on_cond(lambda x, y: x + y, x, x))
 

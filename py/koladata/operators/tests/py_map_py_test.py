@@ -405,7 +405,9 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_item_completed_callback(self):
     with self.assertRaisesWithLiteralMatch(
-        ValueError, 'expected a python callable, got item_completed_callback=1'
+        ValueError,
+        'expected a python callable, got item_completed_callback=DataItem(1,'
+        ' schema: INT32)',
     ):
       expr_eval.eval(
           kde.py.map_py(

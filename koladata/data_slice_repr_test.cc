@@ -39,6 +39,7 @@
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 
 namespace koladata {
 namespace {
@@ -58,9 +59,15 @@ absl::StatusOr<DenseArrayEdge> EdgeFromSplitPoints(
       CreateDenseArray<int64_t>(split_points));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_Int) {
-  DataSlice data_slice = test::DataItem(1);
-  EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds(StrEq("1")));
+TEST(DataSliceReprTest, TestItemStringRepresentation_Primitives) {
+  DataSlice item = test::DataItem(1);
+  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds(StrEq("1")));
+
+  DataSlice item2 = test::DataItem(arolla::kUnit);
+  EXPECT_THAT(DataSliceToStr(item2), IsOkAndHolds(StrEq("present")));
+
+  DataSlice item3 = test::DataItem(std::nullopt, schema::kMask);
+  EXPECT_THAT(DataSliceToStr(item3), IsOkAndHolds(StrEq("missing")));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
@@ -400,13 +407,22 @@ TEST(DataSliceReprTest, TestItemStringReprWithFallbackDB) {
               IsOkAndHolds(("SCHEMA(a=ANY, b=ANY)")));
 }
 
-TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SimpleSlice) {
+TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_Primitives) {
   DataSlice ds = test::DataSlice<int>({1, 2, 3});
 
   EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[1, 2, 3]"));
 
   DataSlice ds2 = test::DataSlice<int>({1, std::nullopt, 3});
   EXPECT_THAT(DataSliceToStr(ds2), IsOkAndHolds("[1, None, 3]"));
+
+  DataSlice ds3 = test::DataSlice<arolla::Unit>(
+      {arolla::kUnit, std::nullopt, arolla::kUnit});
+  EXPECT_THAT(DataSliceToStr(ds3), IsOkAndHolds("[present, missing, present]"));
+
+  DataSlice ds4 = test::MixedDataSlice<int, arolla::Unit>(
+      {1, std::nullopt, std::nullopt},
+      {std::nullopt, arolla::kUnit, std::nullopt});
+  EXPECT_THAT(DataSliceToStr(ds4), IsOkAndHolds("[1, present, None]"));
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_EntitySlices) {

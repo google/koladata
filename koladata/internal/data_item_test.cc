@@ -533,6 +533,9 @@ TEST(DataItemTest, TestRepr) {
             "float64{1.2345679}");
   EXPECT_EQ(DataItemRepr(DataItem(int64_t{123}), {.show_dtype = true}),
             "int64{123}");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Unit())), "present");
+  EXPECT_EQ(DataItemRepr(DataItem()), "None");
+  EXPECT_EQ(DataItemRepr(DataItem(), {.show_missing = true}), "missing");
 }
 
 }  // namespace
