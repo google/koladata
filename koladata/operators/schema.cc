@@ -107,11 +107,16 @@ class UuSchemaOperator : public arolla::QExprOperator {
 
 absl::StatusOr<DataSlice> WithAdoptedSchema(const DataSlice& x,
                                             const DataSlice& schema) {
-  AdoptionQueue adoption_queue;
-  adoption_queue.Add(x);
-  adoption_queue.Add(schema);
-  ASSIGN_OR_RETURN(auto bag, adoption_queue.GetCommonOrMergedDb());
-  return x.WithBag(std::move(bag));
+  DataBagPtr schema_bag = nullptr;
+  if (schema.IsEntitySchema() && schema.GetBag() != nullptr &&
+      schema.GetBag() != x.GetBag()) {
+    schema_bag = DataBag::Empty();
+    AdoptionQueue adoption_queue;
+    adoption_queue.Add(schema);
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*schema_bag));
+  }
+  // NOTE: schema's bag should come first to respect its precedence.
+  return x.WithBag(DataBag::CommonDataBag({std::move(schema_bag), x.GetBag()}));
 }
 
 }  // namespace
