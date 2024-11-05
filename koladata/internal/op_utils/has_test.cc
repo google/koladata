@@ -22,6 +22,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -67,7 +68,7 @@ TEST(HasTest, DataSlicePrimitiveValues) {
   }
   {
     // Empty.
-    auto ds = DataSliceImpl::Builder(3).Build();
+    auto ds = SliceBuilder(3).Build();
 
     ASSERT_OK_AND_ASSIGN(auto res, HasOp()(ds));
     EXPECT_TRUE(res.is_empty_and_unknown());

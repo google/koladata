@@ -29,6 +29,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/array/array.h"
@@ -127,7 +128,7 @@ TEST(DataSliceUtils, ToArollaArray) {
 
 // NOTE: Empty and unknown slices work only with TypedValue and not TypedRef.
 TEST(DataSliceUtils, ToArollaValueEmptyMultidimSlice) {
-  auto ds_impl = internal::DataSliceImpl::Builder(3).Build();  // empty slice.
+  auto ds_impl = internal::SliceBuilder(3).Build();  // empty slice.
   ASSERT_TRUE(ds_impl.is_empty_and_unknown());
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
 
@@ -425,7 +426,7 @@ TEST(DataSliceUtils, ToEmptyDenseArray) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(
       auto ds,
-      DataSlice::Create(internal::DataSliceImpl::Builder(3).Build(), shape,
+      DataSlice::Create(internal::SliceBuilder(3).Build(), shape,
                         internal::DataItem(schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(auto darray, DataSliceToDenseArray(ds));
   EXPECT_THAT(darray.UnsafeAs<DenseArray<int>>(),
@@ -433,7 +434,7 @@ TEST(DataSliceUtils, ToEmptyDenseArray) {
 
   ASSERT_OK_AND_ASSIGN(
       ds,
-      DataSlice::Create(internal::DataSliceImpl::Builder(3).Build(), shape,
+      DataSlice::Create(internal::SliceBuilder(3).Build(), shape,
                         internal::DataItem(schema::kFloat32)));
   ASSERT_OK_AND_ASSIGN(darray, DataSliceToDenseArray(ds));
   EXPECT_THAT(darray.UnsafeAs<DenseArray<float>>(),
@@ -465,7 +466,7 @@ TEST(DataSliceUtils, ToDenseArrayError) {
 
   // Empty with ANY schema.
   ASSERT_OK_AND_ASSIGN(
-      ds, DataSlice::Create(internal::DataSliceImpl::Builder(3).Build(),
+      ds, DataSlice::Create(internal::SliceBuilder(3).Build(),
                             shape, kAnySchema));
   EXPECT_THAT(DataSliceToDenseArray(ds),
               StatusIs(absl::StatusCode::kFailedPrecondition,
@@ -476,7 +477,7 @@ TEST(DataSliceUtils, ToDenseArrayError) {
   ASSERT_OK_AND_ASSIGN(
       ds,
       DataSlice::Create(
-          internal::DataSliceImpl::Builder(3).Build(), shape,
+          internal::SliceBuilder(3).Build(), shape,
           internal::DataItem(internal::AllocateExplicitSchema())));
   EXPECT_THAT(DataSliceToDenseArray(ds),
               StatusIs(absl::StatusCode::kFailedPrecondition,

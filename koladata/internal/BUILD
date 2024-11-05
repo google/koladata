@@ -612,6 +612,7 @@ cc_test(
         ":data_slice",
         ":dtype",
         ":object_id",
+        ":slice_builder",
         ":uuid_object",
         "//koladata/internal/testing:matchers",
         "//koladata/s11n",

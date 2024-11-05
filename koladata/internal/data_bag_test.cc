@@ -33,6 +33,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
@@ -513,11 +514,13 @@ TEST(DataBagTest, SingleSparseSourceToDense) {
   }
 
   {  // Set 5000 of 10000 -> convert sparse source to dense source
-    DataSliceImpl::Builder objs_bldr(kAllocSize / 2);
-    DataSliceImpl::Builder values_bldr(kAllocSize / 2);
+    SliceBuilder objs_bldr(kAllocSize / 2);
+    SliceBuilder values_bldr(kAllocSize / 2);
     for (size_t i = 0; i < kAllocSize / 2; ++i) {
-      objs_bldr.Insert(i, DataItem(alloc.ObjectByOffset(i + kAllocSize / 2)));
-      values_bldr.Insert(i, DataItem(static_cast<int>(i + kAllocSize / 2)));
+      objs_bldr.InsertIfNotSetAndUpdateAllocIds(
+          i, DataItem(alloc.ObjectByOffset(i + kAllocSize / 2)));
+      values_bldr.InsertIfNotSetAndUpdateAllocIds(
+          i, DataItem(static_cast<int>(i + kAllocSize / 2)));
     }
     ASSERT_OK(db->SetAttr(std::move(objs_bldr).Build(), "a",
                           std::move(values_bldr).Build()));
@@ -598,11 +601,13 @@ TEST(DataBagTest, SparseSource) {
   }
 
   {  // Set 5000 of 10000 -> create dense source and merge sparse sources
-    DataSliceImpl::Builder objs_bldr(kAllocSize / 2);
-    DataSliceImpl::Builder values_bldr(kAllocSize / 2);
+    SliceBuilder objs_bldr(kAllocSize / 2);
+    SliceBuilder values_bldr(kAllocSize / 2);
     for (size_t i = 0; i < kAllocSize / 2; ++i) {
-      objs_bldr.Insert(i, DataItem(alloc.ObjectByOffset(i + kAllocSize / 2)));
-      values_bldr.Insert(i, DataItem(static_cast<int>(i + kAllocSize / 2)));
+      objs_bldr.InsertIfNotSetAndUpdateAllocIds(
+          i, DataItem(alloc.ObjectByOffset(i + kAllocSize / 2)));
+      values_bldr.InsertIfNotSetAndUpdateAllocIds(
+          i, DataItem(static_cast<int>(i + kAllocSize / 2)));
     }
     ASSERT_OK(db2->SetAttr(std::move(objs_bldr).Build(), "a",
                            std::move(values_bldr).Build()));
@@ -1091,18 +1096,17 @@ TEST(DataBagTest, TextAttribute) {
   }
 }
 
-TEST(DataBagTest, EmptySliceGetWithSparseSource) {
+TEST(DataBagTest, EmptySliceGet) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   constexpr int64_t kSize = 4;
   auto obj1 = AllocateSingleObject();
-  auto dsb = DataSliceImpl::Builder(kSize);
+  auto dsb = SliceBuilder(kSize);
   dsb.GetMutableAllocationIds().Insert(AllocationId(obj1));
   auto ds = std::move(dsb).Build();
   EXPECT_TRUE(ds.allocation_ids().empty());
-  EXPECT_TRUE(ds.allocation_ids().contains_small_allocation_id());
+  EXPECT_FALSE(ds.allocation_ids().contains_small_allocation_id());
 
   ASSERT_OK_AND_ASSIGN(auto result, db->GetAttr(ds, "a"));
-
   EXPECT_TRUE(result.is_empty_and_unknown());
 }
 
@@ -1112,26 +1116,6 @@ TEST(DataBagTest, EmptySliceSet) {
   auto ds = DataSliceImpl::CreateEmptyAndUnknownType(kSize);
 
   ASSERT_OK(db->SetAttr(ds, "a", ds));
-}
-
-TEST(DataBagTest, EmptySliceSetGetWithSparseSource) {
-  auto db = DataBagImpl::CreateEmptyDatabag();
-  constexpr int64_t kSize = 4;
-  auto obj1 = AllocateSingleObject();
-  ASSERT_OK(db->SetAttr(DataItem(obj1), "a", DataItem(1)));
-
-  auto dsb = DataSliceImpl::Builder(kSize);
-  dsb.GetMutableAllocationIds().Insert(AllocationId(obj1));
-  auto ds = std::move(dsb).Build();
-  EXPECT_TRUE(ds.allocation_ids().empty());
-  EXPECT_TRUE(ds.allocation_ids().contains_small_allocation_id());
-
-  ASSERT_OK(db->SetAttr(ds, "a", ds));
-
-  ASSERT_OK_AND_ASSIGN(auto result, db->GetAttr(ds, "a"));
-  EXPECT_TRUE(result.is_empty_and_unknown());
-  ASSERT_OK_AND_ASSIGN(auto obj1_a, db->GetAttr(DataItem(obj1), "a"));
-  EXPECT_EQ(obj1_a.value<int>(), 1);
 }
 
 TEST(DataBagTest, InternalSetUnitAttrAndReturnMissingObjects) {

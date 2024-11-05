@@ -40,6 +40,7 @@
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
@@ -468,7 +469,7 @@ TEST(DataSliceTest, ImplOwnsValue) {
   ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(ds_impl, shape, kAnySchema));
   EXPECT_TRUE(ds.impl_owns_value());
 
-  DataSliceImpl::Builder bldr(3);
+  internal::SliceBuilder bldr(3);
   ASSERT_OK_AND_ASSIGN(
       ds, DataSlice::Create(std::move(bldr).Build(), shape, kAnySchema));
   EXPECT_FALSE(ds.impl_owns_value());

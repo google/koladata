@@ -25,6 +25,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -86,7 +87,7 @@ TEST(PresenceAndTest, DataSlicePrimitiveValues) {
     auto values =
         CreateDenseArray<Text>({Text("abc"), Text("xyz"), std::nullopt});
     auto ds = DataSliceImpl::Create(values);
-    auto ds_presence = DataSliceImpl::Builder(3).Build();
+    auto ds_presence = SliceBuilder(3).Build();
 
     ASSERT_OK_AND_ASSIGN(auto res, PresenceAndOp()(ds, ds_presence));
     EXPECT_EQ(res.size(), 3);
@@ -107,7 +108,7 @@ TEST(PresenceAndTest, DataSlicePrimitiveValues) {
   {
     // Empty DataSlice.
     auto presence_mask = CreateDenseArray<Unit>({kMissing, kMissing, kPresent});
-    auto ds = DataSliceImpl::Builder(3).Build();
+    auto ds = SliceBuilder(3).Build();
     auto ds_presence = DataSliceImpl::Create(presence_mask);
 
     ASSERT_OK_AND_ASSIGN(auto res, PresenceAndOp()(ds, ds_presence));

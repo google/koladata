@@ -25,6 +25,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -83,7 +84,7 @@ TEST(PresenceOrTest, EmptyInputs) {
   {
     // Empty and unknown lhs.
     auto r = CreateDenseArray<int>({2, 1, std::nullopt});
-    auto lds = DataSliceImpl::Builder(3).Build();
+    auto lds = SliceBuilder(3).Build();
     auto rds = DataSliceImpl::Create(r);
 
     ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
@@ -93,7 +94,7 @@ TEST(PresenceOrTest, EmptyInputs) {
     // Empty and unknown rhs.
     auto l = CreateDenseArray<int>({1, 2, std::nullopt});
     auto lds = DataSliceImpl::Create(l);
-    auto rds = DataSliceImpl::Builder(3).Build();
+    auto rds = SliceBuilder(3).Build();
 
     ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
     EXPECT_THAT(res, ElementsAre(1, 2, std::nullopt));
@@ -119,8 +120,8 @@ TEST(PresenceOrTest, EmptyInputs) {
   }
   {
     // Empty lhs and rhs.
-    auto lds = DataSliceImpl::Builder(4).Build();
-    auto rds = DataSliceImpl::Builder(4).Build();
+    auto lds = SliceBuilder(4).Build();
+    auto rds = SliceBuilder(4).Build();
 
     ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
     EXPECT_TRUE(res.is_empty_and_unknown());

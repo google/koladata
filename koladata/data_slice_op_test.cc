@@ -104,10 +104,10 @@ struct TestOp1 {
     if (arg_1 == 42) {
       return absl::InvalidArgumentError("Error is raised");
     }
-    internal::DataSliceImpl::Builder bldr(ds.size());
+    internal::SliceBuilder bldr(ds.size());
     ds.values<float>().ForEach([&](int64_t id, bool present, float value) {
       if (present && id < arg_1) {
-        bldr.Insert(id, internal::DataItem(value + arg_2));
+        bldr.InsertIfNotSet(id, value + arg_2);
       }
     });
     return std::move(bldr).Build();
@@ -125,10 +125,10 @@ struct TestOp1 {
 struct TestOp2 {
   internal::DataSliceImpl operator()(const internal::DataSliceImpl& ds,
                                      int arg_1, float arg_2) {
-    internal::DataSliceImpl::Builder bldr(ds.size());
+    internal::SliceBuilder bldr(ds.size());
     ds.values<float>().ForEach([&](int64_t id, bool present, float value) {
       if (present && id < arg_1) {
-        bldr.Insert(id, internal::DataItem(value + arg_2));
+        bldr.InsertIfNotSet(id, value + arg_2);
       }
     });
     return std::move(bldr).Build();
