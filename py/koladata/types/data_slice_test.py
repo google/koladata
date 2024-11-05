@@ -1203,10 +1203,11 @@ foo.get_obj_schema().x = <desired_schema>"""),
     obj = ds([db.obj(a=1), db.obj(x=42), db.obj(a=3)])
     testing.assert_equal(obj.maybe('a'), ds([1, None, 3]).with_bag(db))
 
-  def test_as_arolla_value(self):
+  def test_internal_as_arolla_value(self):
     x = ds([1, 2, 3], schema_constants.FLOAT32)
     arolla.testing.assert_qvalue_allclose(
-        x.as_arolla_value(), arolla.dense_array([1.0, 2, 3], arolla.FLOAT32)
+        x.internal_as_arolla_value(),
+        arolla.dense_array([1.0, 2, 3], arolla.FLOAT32),
     )
     x = ds([1, 'abc', 3.14])
     with self.assertRaisesRegex(
@@ -1214,12 +1215,13 @@ foo.get_obj_schema().x = <desired_schema>"""),
         'only DataSlices with primitive values of the same type can be '
         'converted to Arolla value, got: MIXED',
     ):
-      x.as_arolla_value()
+      x.internal_as_arolla_value()
 
-  def test_as_dense_array(self):
+  def test_internal_as_dense_array(self):
     x = ds([1, 2, 3], schema_constants.FLOAT32)
     arolla.testing.assert_qvalue_allclose(
-        x.as_dense_array(), arolla.dense_array([1.0, 2, 3], arolla.FLOAT32)
+        x.internal_as_dense_array(),
+        arolla.dense_array([1.0, 2, 3], arolla.FLOAT32),
     )
     x = ds([1, 'abc', 3.14])
     with self.assertRaisesRegex(
@@ -1227,7 +1229,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
         'only DataSlices with primitive values of the same type can be '
         'converted to Arolla value, got: MIXED',
     ):
-      x.as_dense_array()
+      x.internal_as_dense_array()
 
   @parameterized.parameters(
       (ds([1, 2, 3]), jagged_shape.create_shape([3])),

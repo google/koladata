@@ -76,7 +76,7 @@ class DataItemTest(parameterized.TestCase):
 
   def test_from_vals_error(self):
     with self.assertRaisesRegex(
-        TypeError, 'DataItem.* cannot create multi-dim slices'
+        TypeError, 'DataItem.* cannot create multi-dim DataSlice'
     ):
       _ = data_item.DataItem.from_vals([1, 2, 3])
 
@@ -103,7 +103,7 @@ class DataItemTest(parameterized.TestCase):
     @data_slice.DataSlice._add_method('foo')
     def foo(self):
       """Converts DataSlice to DenseArray."""
-      return self.as_dense_array()
+      return self.internal_as_dense_array()
 
     self.assertTrue(hasattr(data_item.DataItem, 'foo'))
 
@@ -120,28 +120,28 @@ class DataItemTest(parameterized.TestCase):
     self.assertIsInstance(x.xyz, data_item.DataItem)
     testing.assert_equal(x.xyz, ds('abc').with_bag(db))
 
-  def test_as_arolla_value(self):
+  def test_internal_as_arolla_value(self):
     arolla.testing.assert_qvalue_allequal(
-        ds(12).as_arolla_value(), arolla.int32(12)
+        ds(12).internal_as_arolla_value(), arolla.int32(12)
     )
     arolla.testing.assert_qvalue_allclose(
-        ds(3.14).as_arolla_value(), arolla.float32(3.14)
+        ds(3.14).internal_as_arolla_value(), arolla.float32(3.14)
     )
     arolla.testing.assert_qvalue_allequal(
-        ds('abc').as_arolla_value(), arolla.text('abc')
+        ds('abc').internal_as_arolla_value(), arolla.text('abc')
     )
     # NOTE: Optional part is lost in this conversion.
     arolla.testing.assert_qvalue_allequal(
-        ds(arolla.optional_int32(1)).as_arolla_value(), arolla.int32(1)
+        ds(arolla.optional_int32(1)).internal_as_arolla_value(), arolla.int32(1)
     )
 
     arolla.testing.assert_qvalue_allequal(
-        ds(None, schema_constants.STRING).as_arolla_value(),
+        ds(None, schema_constants.STRING).internal_as_arolla_value(),
         arolla.optional_text(None),
     )
 
     arolla.testing.assert_qvalue_allequal(
-        ds(arolla.optional_int32(None)).as_arolla_value(),
+        ds(arolla.optional_int32(None)).internal_as_arolla_value(),
         arolla.optional_int32(None),
     )
 

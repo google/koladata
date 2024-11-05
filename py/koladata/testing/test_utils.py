@@ -181,7 +181,7 @@ def assert_equivalent(
 
 def _as_arolla_value(ds: _data_slice.DataSlice) -> _arolla.QValue:
   try:
-    return ds.as_arolla_value()
+    return ds.internal_as_arolla_value()
   except ValueError:
     raise AssertionError(
         f'{ds!r} cannot be converted to Arolla value'

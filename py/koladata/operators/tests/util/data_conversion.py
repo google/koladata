@@ -107,7 +107,7 @@ def arolla_from_koda(
   value = typing.cast(data_slice.DataSlice, value)
   if (rank := value.get_shape().rank()) not in (0, 1):
     raise ValueError(f'{rank=} not in (0, 1)')
-  arolla_value = value.as_arolla_value()
+  arolla_value = value.internal_as_arolla_value()
   if output_qtype is None:
     output_qtype = arolla_value.qtype
   return _safe_cast_to_output_qtype(arolla_value, output_qtype=output_qtype)

@@ -84,7 +84,9 @@ class SchemaCastToTest(parameterized.TestCase):
     schema = entity.get_schema().with_db(bag2)
     schema.x = schema_constants.FLOAT32
     result = expr_eval.eval(kde.schema.cast_to(entity, schema))
-    testing.assert_equal(result.x.no_db().as_arolla_value(), arolla.int32(1))
+    testing.assert_equal(
+        result.x.no_db().internal_as_arolla_value(), arolla.int32(1)
+    )
     testing.assert_equal(
         result.x.no_db().get_schema(), schema_constants.FLOAT32
     )

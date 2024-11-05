@@ -411,7 +411,7 @@ class BoxingTest(parameterized.TestCase):
           'empty slices can be converted to Arolla value only if they have '
           'primitive schema',
       ):
-        x.as_arolla_value()
+        x.internal_as_arolla_value()
 
       schema = ds(None, SCHEMA)
       self.assertIsNone(schema.internal_as_py())

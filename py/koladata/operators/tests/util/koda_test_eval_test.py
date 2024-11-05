@@ -44,7 +44,7 @@ def add_fake_for_test(x, y):
   if x.get_ndim() == 0 and x > 2**30:
     raise exceptions.KodaError(error_pb2.Error(error_message='fake error'))
   return data_slice.DataSlice.from_vals(
-      x.as_arolla_value() + y.as_arolla_value()
+      x.internal_as_arolla_value() + y.internal_as_arolla_value()
   )
 
 
@@ -55,7 +55,7 @@ def add_fake_for_test(x, y):
 def agg_sum_fake_for_test(x):
   flat_res = arolla.abc.invoke_op(
       M.math.sum,
-      (x.as_arolla_value(), x.get_shape()[-1]),
+      (x.internal_as_arolla_value(), x.get_shape()[-1]),
   )
   return data_slice.DataSlice.from_vals(flat_res).reshape(x.get_shape()[:-1])
 
@@ -67,7 +67,7 @@ def agg_sum_fake_for_test(x):
 def cum_count_fake_for_test(x):
   flat_res = arolla.abc.invoke_op(
       M.array.cum_count,
-      (x.as_arolla_value(), x.get_shape()[-1]),
+      (x.internal_as_arolla_value(), x.get_shape()[-1]),
   )
   return data_slice.DataSlice.from_vals(flat_res).reshape(x.get_shape())
 
@@ -185,8 +185,8 @@ class KodaTestEvalTest(parameterized.TestCase):
     (x_arg, y_arg), _ = mock_add.call_args
     self.assertIsInstance(x_arg, data_slice.DataSlice)
     self.assertIsInstance(y_arg, data_slice.DataSlice)
-    arolla.testing.assert_qvalue_allequal(x_arg.as_dense_array(), x)
-    arolla.testing.assert_qvalue_allequal(y_arg.as_dense_array(), y)
+    arolla.testing.assert_qvalue_allequal(x_arg.internal_as_dense_array(), x)
+    arolla.testing.assert_qvalue_allequal(y_arg.internal_as_dense_array(), y)
 
   def test_kd_op_mapping_flag(self):
     expr = (L.x - L.y) * L.x
@@ -316,14 +316,14 @@ class KodaTestEvalTest(parameterized.TestCase):
     )
     def fake_ordinal_rank(x, tie_breaker, descending):
       if tie_breaker.qtype != arolla.UNSPECIFIED:
-        tie_breaker = tie_breaker.as_arolla_value()
+        tie_breaker = tie_breaker.internal_as_arolla_value()
       flat_res = arolla.abc.invoke_op(
           M.array.ordinal_rank,
           (
-              x.as_arolla_value(),
+              x.internal_as_arolla_value(),
               tie_breaker,
               x.get_shape()[-1],
-              descending.as_arolla_value(),
+              descending.internal_as_arolla_value(),
           ),
       )
       return data_slice.DataSlice.from_vals(flat_res).reshape(x.get_shape())
@@ -362,8 +362,8 @@ class KodaTestEvalTest(parameterized.TestCase):
       flat_res = arolla.abc.invoke_op(
           M.math.correlation,
           (
-              x.as_arolla_value(),
-              y.as_arolla_value(),
+              x.internal_as_arolla_value(),
+              y.internal_as_arolla_value(),
               x.get_shape()[-1],
           ),
       )

@@ -120,7 +120,7 @@ absl::Nullable<PyObject*> PyDataSlice_from_vals(PyTypeObject* cls,
   if (ds.GetShape().rank() != 0 && cls != PyDataSlice_Type()) {
     PyErr_SetString(PyExc_TypeError,
                     "DataItem and other 0-rank class method `from_vals` "
-                    "cannot create multi-dim slices");
+                    "cannot create multi-dim DataSlice");
     return nullptr;
   }
   return WrapPyDataSlice(std::move(ds));
@@ -133,8 +133,8 @@ absl::Nullable<PyObject*> PyDataSlice_internal_as_py(PyObject* self,
   return DataSliceToPyValue(ds);
 }
 
-absl::Nullable<PyObject*> PyDataSlice_as_arolla_value(PyObject* self,
-                                                      PyObject*) {
+absl::Nullable<PyObject*> PyDataSlice_internal_as_arolla_value(PyObject* self,
+                                                               PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   ASSIGN_OR_RETURN(auto value, DataSliceToArollaValue(ds),
@@ -142,8 +142,8 @@ absl::Nullable<PyObject*> PyDataSlice_as_arolla_value(PyObject* self,
   return arolla::python::WrapAsPyQValue(value);
 }
 
-absl::Nullable<PyObject*> PyDataSlice_as_dense_array(PyObject* self,
-                                                     PyObject*) {
+absl::Nullable<PyObject*> PyDataSlice_internal_as_dense_array(PyObject* self,
+                                                              PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   ASSIGN_OR_RETURN(auto array, DataSliceToDenseArray(ds),
@@ -816,16 +816,19 @@ PyMethodDef kPyDataSlice_methods[] = {
      "--\n\n"
      "Returns a Python object equivalent to this DataSlice.\n"
      "\n"
-     "If the values in this slice represent objects, then the returned python\n"
-     "structure will contain DataItems.\n"},
-    {"as_arolla_value", PyDataSlice_as_arolla_value, METH_NOARGS,
-     "as_arolla_value()\n"
+     "If the values in this DataSlice represent objects, then the returned "
+     "python\nstructure will contain DataItems.\n"},
+    {"internal_as_arolla_value", PyDataSlice_internal_as_arolla_value,
+     METH_NOARGS,
+     "internal_as_arolla_value()\n"
      "--\n\n"
-     "Converts primitive slice / item into an equivalent Arolla value."},
-    {"as_dense_array", PyDataSlice_as_dense_array, METH_NOARGS,
-     "as_dense_array()\n"
+     "Converts primitive DataSlice / DataItem into an equivalent Arolla "
+     "value."},
+    {"internal_as_dense_array", PyDataSlice_internal_as_dense_array,
+     METH_NOARGS,
+     "internal_as_dense_array()\n"
      "--\n\n"
-     "Converts primitive slice to an arolla.dense_array with appropriate "
+     "Converts primitive DataSlice to an Arolla DenseArray with appropriate "
      "qtype."},
     {"_to_proto", (PyCFunction)PyDataSlice_to_proto, METH_FASTCALL,
      "to_proto(message_class)\n"
@@ -838,7 +841,7 @@ PyMethodDef kPyDataSlice_methods[] = {
     {"get_schema", PyDataSlice_get_schema, METH_NOARGS,
      "get_schema()\n"
      "--\n\n"
-     "Returns a schema slice with type information about this DataSlice."},
+     "Returns a schema DataItem with type information about this DataSlice."},
     {"is_list_schema", PyDataSlice_is_list_schema, METH_NOARGS,
      "is_list_schema()\n"
      "--\n\n"
@@ -921,7 +924,7 @@ Returns:
      "--\n\n"
      "Returns a DataSlice with ANY schema."},
     {"get_keys", PyDataSlice_get_keys, METH_NOARGS,
-    "get_keys()\n"
+     "get_keys()\n"
      "--\n\n"
      "Returns keys of all dicts in this DataSlice."},
     {"get_values", PyDataSlice_get_values, METH_NOARGS,
@@ -937,8 +940,7 @@ Returns:
      "Args:\n"
      "  attr_name: name of the attribute to get.\n"
      "  default: optional default value to fill missing items.\n"
-     "           Note that this value can be fully omitted."
-    },
+     "           Note that this value can be fully omitted."},
     // TODO: Add proper docstring when the rest of functionality in
     // terms of dicts and lists is done.
     {"set_attr", (PyCFunction)PyDataSlice_set_attr,
@@ -981,8 +983,8 @@ Args:
      "Returns a list of attributes available."},
     {"__format__", (PyCFunction)PyDataSlice_format, METH_O,
      "Returns a format representation with a special support for non empty "
-     "specification.\n\nDataSlice will be replaced with base64 encoded slice."
-     "\nMust be used with kd.fstr or kde.fstr."},
+     "specification.\n\nDataSlice will be replaced with base64 encoded "
+     "DataSlice.\nMust be used with kd.fstr or kde.fstr."},
     {"internal_register_reserved_class_method_name",
      (PyCFunction)PyDataSlice_internal_register_reserved_class_method_name,
      METH_CLASS | METH_O,

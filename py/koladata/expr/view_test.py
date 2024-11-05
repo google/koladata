@@ -719,14 +719,14 @@ class DataSliceViewTest(parameterized.TestCase):
     skipped_data_slice_attrs = {
         # go/keep-sorted start
         'append',
-        'as_arolla_value',
-        'as_dense_array',
         'clear',
         'embed_schema',
         'fingerprint',
         'fork_bag',
         'fork_db',
         'from_vals',
+        'internal_as_arolla_value',
+        'internal_as_dense_array',
         'internal_as_py',
         'internal_register_reserved_class_method_name',
         'is_mutable',

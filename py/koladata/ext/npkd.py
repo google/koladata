@@ -28,7 +28,7 @@ _DATA_SLICE_ONE = data_slice.DataSlice.from_vals(1)
 def ds_to_np(ds: data_slice.DataSlice) -> np.ndarray:
   """Converts a DataSlice to a numpy array."""
   if ds.get_schema().is_primitive_schema():
-    return numpy_conversion.as_numpy_array(ds.as_dense_array())
+    return numpy_conversion.as_numpy_array(ds.internal_as_dense_array())
 
   return np.array(ds.internal_as_py())
 
@@ -94,7 +94,9 @@ def get_elements_indices_from_ds(ds: data_slice.DataSlice) -> list[np.ndarray]:
     value = kdi.index(
         kdi.expand_to_shape(_DATA_SLICE_ONE, ds_shape[: d + 1])
     ).expand_to(ds)
-    index_cols.append(numpy_conversion.as_numpy_array(value.as_dense_array()))
+    index_cols.append(
+        numpy_conversion.as_numpy_array(value.internal_as_dense_array())
+    )
   return index_cols
 
 
