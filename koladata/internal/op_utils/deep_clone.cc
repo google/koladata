@@ -31,6 +31,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
@@ -240,11 +241,11 @@ absl::StatusOr<std::pair<DataSliceImpl, DataItem>> DeepCloneOp::operator()(
       /*is_schema_slice=*/schema == schema::kSchema);
   auto traverse_op = Traverser<DeepCloneVisitor>(databag, fallbacks, visitor);
   RETURN_IF_ERROR(traverse_op.TraverseSlice(ds, schema));
-  DataSliceImpl::Builder result_items(ds.size());
+  SliceBuilder result_items(ds.size());
   for (size_t i = 0; i < ds.size(); ++i) {
     ASSIGN_OR_RETURN(auto value,
                      visitor->DeepCloneVisitor::GetValue(ds[i], schema));
-    result_items.Insert(i, value);
+    result_items.InsertIfNotSetAndUpdateAllocIds(i, value);
   }
   return std::make_pair(std::move(result_items).Build(), schema);
 }

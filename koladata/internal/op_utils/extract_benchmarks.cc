@@ -77,15 +77,6 @@ void RunBenchmarks(benchmark::State& state, DataSliceImpl& ds, DataItem& schema,
   }
 }
 
-DataSliceImpl AllocateSliceOfObjects(int64_t size) {
-  auto obj_alloc = internal::Allocate(size);
-  DataSliceImpl::Builder bldr(size);
-  for (int64_t i = 0; i < size; ++i) {
-    bldr.Insert(i, obj_alloc.ObjectByOffset(i));
-  }
-  return std::move(bldr).Build();
-}
-
 DataSliceImpl ShuffleObjectsSlice(const DataSliceImpl& ds, absl::BitGen& gen) {
   // Generate random permutation.
   std::vector<int64_t> perm(ds.size());
@@ -123,14 +114,14 @@ void BM_DisjointChains(benchmark::State& state) {
   int64_t ds_size = state.range(1);
 
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto root_ds = AllocateSliceOfObjects(ds_size);
+  auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
   auto root_schema = DataItem(internal::AllocateExplicitSchema());
   auto ds = root_ds;
   auto schema = root_schema;
   const internal::DataItem kObjectSchema(schema::kObject);
   for (int64_t i = 0; i < schema_depth; ++i) {
     auto child_schema = DataItem(internal::AllocateExplicitSchema());
-    auto child_ds = AllocateSliceOfObjects(ds_size);
+    auto child_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
     EXPECT_OK(db->SetSchemaAttr(schema, "child", child_schema));
     EXPECT_OK(db->SetAttr(ds, "child", child_ds));
     ds = child_ds;
@@ -149,13 +140,13 @@ void BM_DAG(benchmark::State& state) {
   absl::BitGen gen;
 
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto root_ds = AllocateSliceOfObjects(ds_size);
+  auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
   auto root_schema = DataItem(internal::AllocateExplicitSchema());
   auto ds = root_ds;
   auto schema = root_schema;
   for (int64_t i = 0; i < schema_depth; ++i) {
     auto child_schema = DataItem(internal::AllocateExplicitSchema());
-    auto child_ds = AllocateSliceOfObjects(ds_size);
+    auto child_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
     for (int64_t j = 0; j < attr_count; ++j) {
       std::string attr_name = absl::StrCat("layer_", i, "_child_", j);
       EXPECT_OK(db->SetSchemaAttr(schema, attr_name, child_schema));

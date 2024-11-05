@@ -21,6 +21,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 
 namespace koladata::internal {
@@ -44,13 +45,13 @@ DataSliceImpl FilterSingleAllocDataSlice(const DataSliceImpl& ds,
 DataSliceImpl RemoveItemsIf(
     const DataSliceImpl& ds,
     std::function<bool(const DataItem&)> remove_fn) {
-  DataSliceImpl::Builder builder(ds.size());
+  SliceBuilder builder(ds.size());
   int64_t i = 0;
   for (const DataItem& item : ds) {
     if (remove_fn(item)) {
       ++i;
     } else {
-      builder.Insert(i++, item);
+      builder.InsertIfNotSet(i++, item);
     }
   }
   return std::move(builder).Build();

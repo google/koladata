@@ -772,6 +772,7 @@ cc_library(
         ":data_item",
         ":data_slice",
         ":object_id",
+        ":slice_builder",
         "@com_google_arolla//arolla/dense_array",
     ],
 )

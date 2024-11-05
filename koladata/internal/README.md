@@ -110,8 +110,7 @@ We use it to perform faster access to the internal `DataBag` structures.
 operations.
 
 `DataSliceImpl::Create` creates `DataSliceImpl` from one or several
-`arolla::DenseArray`. `DataSliceImpl::Builder` can be used for
-more general cases.
+`arolla::DenseArray`. `SliceBuilder` can be used for more general cases.
 `DataSliceImpl::CreateWithAllocIds` and `Builder::GetMutableAllocationIds()`
 can be used in order to avoid `AllocationIdSet` recomputations.
 

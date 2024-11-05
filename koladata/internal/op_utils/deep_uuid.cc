@@ -34,6 +34,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/fingerprint.h"
@@ -181,7 +182,7 @@ absl::StatusOr<DataSliceImpl> DeepUuidOp::operator()(
   auto visitor = std::make_shared<DeepUuidVisitor>(seed_str);
   auto traverse_op = Traverser<DeepUuidVisitor>(databag, fallbacks, visitor);
   RETURN_IF_ERROR(traverse_op.TraverseSlice(ds, schema));
-  DataSliceImpl::Builder result_items(ds.size());
+  SliceBuilder result_items(ds.size());
   for (size_t i = 0; i < ds.size(); ++i) {
     ASSIGN_OR_RETURN(auto value,
                      visitor->DeepUuidVisitor::GetValue(ds[i], schema));
@@ -194,7 +195,7 @@ absl::StatusOr<DataSliceImpl> DeepUuidOp::operator()(
         value = DataItem(CreateUuidObject(std::move(hasher).Finish()));
       }
     }
-    result_items.Insert(i, value);
+    result_items.InsertIfNotSetAndUpdateAllocIds(i, value);
   }
   return std::move(result_items).Build();
 }
