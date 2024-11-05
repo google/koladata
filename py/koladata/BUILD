@@ -39,6 +39,7 @@ py_library(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:tracing_mode",
+        "//py/koladata/fstring",
         "//py/koladata/functions",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:kdf",
@@ -51,6 +52,7 @@ py_library(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",
         "//py/koladata/types:general_eager_ops",
+        "//py/koladata/types:jagged_shape",
         "//py/koladata/types:list_item",
         "//py/koladata/types:literal_operator",
         "//py/koladata/types:mask_constants",
@@ -84,9 +86,13 @@ py_test(
     ],
     deps = [
         ":kd",
+        "@com_google_arolla//py/arolla",
         "//py/google_benchmark",
         "//py/koladata/functions/tests:test_py_pb2",
-        "@com_google_arolla//py/arolla",
+        # Enables python functions in profile.
+        # Enables --cpu_profile.
+        # Enables --peakheap_profile.
+        # Memory usage counters.
     ],
 )
 

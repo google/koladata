@@ -787,9 +787,9 @@ def add_10000_rank_1_and_rank_2(state):
 def kd_literal_creation(state):
   x = arolla.int32(1)
   # To initialize all lazy initializers and reduce variance.
-  _ = kd.literal(x)
+  _ = kd.expr.literal(x)
   while state:
-    kd.literal(x)
+    kd.expr.literal(x)
 
 
 @google_benchmark.register

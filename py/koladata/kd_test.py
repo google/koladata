@@ -141,7 +141,7 @@ class KdTest(absltest.TestCase):
     )
 
   def test_literal(self):
-    expr = kd.literal(kd.item(1))
+    expr = kd.expr.literal(kd.item(1))
     self.assertIsInstance(expr, arolla.Expr)
     kd.testing.assert_equal(arolla.eval(expr), kd.item(1))
 
@@ -183,25 +183,27 @@ class KdTest(absltest.TestCase):
 
   def test_get_name(self):
     expr = kde.with_name(I.x + I.y, 'foo')
-    self.assertEqual(kd.get_name(expr), 'foo')
-    self.assertIsNone(kd.get_name(expr + I.z))
+    self.assertEqual(kd.expr.get_name(expr), 'foo')
+    self.assertIsNone(kd.expr.get_name(expr + I.z))
 
   def test_unwrap_named(self):
     expr = kde.with_name(I.x + I.y, 'foo')
-    kd.testing.assert_equal(kd.unwrap_named(expr), I.x + I.y)
+    kd.testing.assert_equal(kd.expr.unwrap_named(expr), I.x + I.y)
     with self.assertRaisesRegex(ValueError, 'non-named'):
-      _ = kd.unwrap_named(expr + I.z)
+      _ = kd.expr.unwrap_named(expr + I.z)
 
   def test_pack_unpack_expr(self):
-    kd.testing.assert_equal(kd.unpack_expr(kd.pack_expr(I.x + I.y)), I.x + I.y)
+    kd.testing.assert_equal(
+        kd.expr.unpack_expr(kd.expr.pack_expr(I.x + I.y)), I.x + I.y
+    )
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
-      kd.unpack_expr(kd.item(1))
+      kd.expr.unpack_expr(kd.item(1))
 
   def test_is_packed_expr(self):
-    ds = kd.pack_expr(I.x + I.y)
-    kd.testing.assert_equal(kd.is_packed_expr(ds), kd.present)
-    kd.testing.assert_equal(kd.is_packed_expr(kd.slice(1)), kd.missing)
-    kd.testing.assert_equal(kd.is_packed_expr(I.x + I.y), kd.missing)
+    ds = kd.expr.pack_expr(I.x + I.y)
+    kd.testing.assert_equal(kd.expr.is_packed_expr(ds), kd.present)
+    kd.testing.assert_equal(kd.expr.is_packed_expr(kd.slice(1)), kd.missing)
+    kd.testing.assert_equal(kd.expr.is_packed_expr(I.x + I.y), kd.missing)
 
   def test_is_fn(self):
     fn = kdf.fn(57, signature=signature_utils.signature([]))
@@ -214,8 +216,8 @@ class KdTest(absltest.TestCase):
     self.assertFalse(kd.is_fn(I.x))
 
   def test_as_expr(self):
-    kd.testing.assert_equal(kd.as_expr(1), kd.literal(kd.slice(1)))
-    kd.testing.assert_equal(kd.as_expr(I.x), I.x)
+    kd.testing.assert_equal(kd.expr.as_expr(1), kd.expr.literal(kd.slice(1)))
+    kd.testing.assert_equal(kd.expr.as_expr(I.x), I.x)
 
   def test_fstr(self):
     kd.testing.assert_equal(kd.fstr(f'{kd.slice(1):s}'), kd.slice('1'))
@@ -224,28 +226,30 @@ class KdTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'contains expression.*eager kd.fstr call'
     ):
-      kd.fstr(f'{kd.literal(kd.slice(1)):s}')
+      kd.fstr(f'{kd.expr.literal(kd.slice(1)):s}')
 
   def test_get_input_names(self):
     expr = I.x + I.y + V.z
-    self.assertEqual(kd.get_input_names(expr), ['x', 'y'])
-    self.assertEqual(kd.get_input_names(expr, container=V), ['z'])
+    self.assertEqual(kd.expr.get_input_names(expr), ['x', 'y'])
+    self.assertEqual(kd.expr.get_input_names(expr, container=V), ['z'])
 
   def test_sub_inputs(self):
     expr = I.x + I.y + V.x
-    kd.testing.assert_equal(kd.sub_inputs(expr, x=I.w), I.w + I.y + V.x)
-    kd.testing.assert_equal(kd.sub_inputs(expr, V, x=I.w), I.x + I.y + I.w)
+    kd.testing.assert_equal(kd.expr.sub_inputs(expr, x=I.w), I.w + I.y + V.x)
+    kd.testing.assert_equal(kd.expr.sub_inputs(expr, V, x=I.w), I.x + I.y + I.w)
 
   def test_sub_by_name(self):
     foo = kde.with_name(I.x, 'foo')
     bar = kde.with_name(I.y, 'bar')
     expr = foo + bar
-    kd.testing.assert_equal(kd.sub_by_name(expr, foo=I.z, baz=I.w), I.z + bar)
+    kd.testing.assert_equal(
+        kd.expr.sub_by_name(expr, foo=I.z, baz=I.w), I.z + bar
+    )
 
   def test_sub(self):
     expr = I.x + I.y
-    kd.testing.assert_equal(kd.sub(expr, I.x, I.z), I.z + I.y)
-    kd.testing.assert_equal(kd.sub(expr, (I.x, I.z)), I.z + I.y)
+    kd.testing.assert_equal(kd.expr.sub(expr, I.x, I.z), I.z + I.y)
+    kd.testing.assert_equal(kd.expr.sub(expr, (I.x, I.z)), I.z + I.y)
 
   def test_kdi(self):
     self.assertCountEqual(kdi.__all__, dir(kdi))
@@ -312,8 +316,8 @@ class KdTest(absltest.TestCase):
       return f(x) + 2
 
     fn = kdf.trace_py_fn(g)
-    kd.testing.assert_equal(kd.unpack_expr(fn.returns), V.f(I.x) + 2)
-    kd.testing.assert_equal(kd.unpack_expr(fn.f.returns), I.x + 1)
+    kd.testing.assert_equal(kd.expr.unpack_expr(fn.returns), V.f(I.x) + 2)
+    kd.testing.assert_equal(kd.expr.unpack_expr(fn.f.returns), I.x + 1)
 
   def test_call_with_kd_types_return_type(self):
     fn = kdf.fn(returns=I.x.get_bag())

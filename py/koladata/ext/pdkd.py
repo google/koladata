@@ -175,7 +175,7 @@ def to_dataframe(
       except ValueError as e:
         raise ValueError(f'Cannot evaluate {col} on {ds!r}.') from e
       col_dss.append(col_ds)
-      if (expr_name := kdi.get_name(col)) is not None:
+      if (expr_name := kdi.expr.get_name(col)) is not None:
         col_names.append(expr_name)
       else:
         col_names.append(str(col))

@@ -123,17 +123,20 @@ V = _eager_only(_input_container.InputContainer('V'))
 S = _eager_only(I.self)
 eval = _eager_only(_expr_eval.eval)  # pylint: disable=redefined-builtin
 kde = _eager_only(_kde_operators.kde)
-literal = _eager_only(_literal_operator.literal)
-get_name = _eager_only(_introspection.get_name)
-unwrap_named = _eager_only(_introspection.unwrap_named)
-as_expr = _eager_only(_py_boxing.as_expr)
-pack_expr = _eager_only(_introspection.pack_expr)
-unpack_expr = _eager_only(_introspection.unpack_expr)
-is_packed_expr = _eager_only(_introspection.is_packed_expr)
-sub_inputs = _eager_only(_introspection.sub_inputs)
-sub_by_name = _eager_only(_introspection.sub_by_name)
-sub = _eager_only(_introspection.sub)
-get_input_names = _eager_only(_introspection.get_input_names)
+
+expr = _eager_only(_py_types.ModuleType('expr'))
+expr.literal = _literal_operator.literal
+expr.get_name = _introspection.get_name
+expr.unwrap_named = _introspection.unwrap_named
+expr.as_expr = _py_boxing.as_expr
+expr.pack_expr = _introspection.pack_expr
+expr.unpack_expr = _introspection.unpack_expr
+expr.is_packed_expr = _introspection.is_packed_expr
+expr.sub_inputs = _introspection.sub_inputs
+expr.sub_by_name = _introspection.sub_by_name
+expr.sub = _introspection.sub
+expr.get_input_names = _introspection.get_input_names
+
 # This overrides fstr for eager computation due to subtle differences.
 fstr = _dispatch(
     eager=_fstring.fstr, tracing=_kde_operators.kde.fstr
