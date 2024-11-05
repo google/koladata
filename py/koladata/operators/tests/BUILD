@@ -908,6 +908,7 @@ py_test(
     name = "math_cum_max_test",
     srcs = ["math_cum_max_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -928,6 +929,7 @@ py_test(
     name = "math_cum_min_test",
     srcs = ["math_cum_min_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -948,6 +950,7 @@ py_test(
     name = "math_cum_sum_test",
     srcs = ["math_cum_sum_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2009,6 +2012,7 @@ py_test(
     name = "strings_agg_join_test",
     srcs = ["strings_agg_join_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2153,6 +2157,7 @@ py_test(
     name = "math_agg_sum_test",
     srcs = ["math_agg_sum_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2194,6 +2199,7 @@ py_test(
     name = "math_agg_mean_test",
     srcs = ["math_agg_mean_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2234,6 +2240,7 @@ py_test(
     name = "math_agg_median_test",
     srcs = ["math_agg_median_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2274,6 +2281,7 @@ py_test(
     name = "math_agg_std_test",
     srcs = ["math_agg_std_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2295,6 +2303,7 @@ py_test(
     name = "math_agg_var_test",
     srcs = ["math_agg_var_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2316,6 +2325,7 @@ py_test(
     name = "math_agg_max_test",
     srcs = ["math_agg_max_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2357,6 +2367,7 @@ py_test(
     name = "math_agg_min_test",
     srcs = ["math_agg_min_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2439,6 +2450,7 @@ py_test(
     name = "logical_agg_has_test",
     srcs = ["logical_agg_has_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3910,6 +3922,7 @@ py_test(
     name = "core_dense_rank_test",
     srcs = ["core_dense_rank_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3930,6 +3943,7 @@ py_test(
     name = "core_inverse_mapping_test",
     srcs = ["core_inverse_mapping_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3969,6 +3983,7 @@ py_test(
     name = "core_sort_test",
     srcs = ["core_sort_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6229,4 +6244,20 @@ koda_operator_coverage_test(
     name = "kd_strings_count_covers_strings_count_test",
     arolla_op = "strings.count",
     koda_op = "strings.count",
+)
+
+py_test(
+    name = "simple_agg_arolla_op_error_test",
+    srcs = ["simple_agg_arolla_op_error_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
 )

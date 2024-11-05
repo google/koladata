@@ -332,7 +332,7 @@ class CoreOrdinalRankTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with Entity schema is not supported'
+        exceptions.KodaError, 'DataSlice with Entity schema is not supported'
     ):
       expr_eval.eval(kde.core.ordinal_rank(x, ds([0])))
 

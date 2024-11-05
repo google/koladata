@@ -19,6 +19,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -207,13 +208,15 @@ class CoreOrdinalRankTest(parameterized.TestCase):
 
   def test_multidim_descending_arg_error(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape('expected `descending` to be a scalar boolean')
+        ValueError,
+        re.escape('expected `descending` to be a scalar boolean'),
     ):
       expr_eval.eval(kde.core.dense_rank(ds([0, 3, 6]), descending=ds([True])))
 
   def test_missing_descending_arg_error(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape('expected `descending` to be a scalar boolean')
+        ValueError,
+        re.escape('expected `descending` to be a scalar boolean'),
     ):
       expr_eval.eval(kde.core.dense_rank(ds([0, 3, 6]), descending=ds(None)))
 
@@ -221,7 +224,7 @@ class CoreOrdinalRankTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with Entity schema is not supported'
+        exceptions.KodaError, 'DataSlice with Entity schema is not supported'
     ):
       expr_eval.eval(kde.core.dense_rank(x))
 

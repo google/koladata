@@ -17,6 +17,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -105,7 +106,9 @@ class LogicalAggHasTest(parameterized.TestCase):
 
   def test_data_item_input_error(self):
     x = ds(1)
-    with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, re.escape('expected rank(x) > 0')
+    ):
       expr_eval.eval(kde.logical.agg_has(x))
 
   @parameterized.parameters(-1, 2)

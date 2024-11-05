@@ -17,13 +17,13 @@
 #include <utility>
 #include <vector>
 
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/op_utils/utils.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
@@ -32,10 +32,11 @@ namespace koladata::ops {
 
 namespace {
 
-absl::StatusOr<DataSlice> AsScalarBool(const DataSlice& x,
+absl::StatusOr<DataSlice> AsScalarBool(absl::string_view op_name,
+                                       const DataSlice& x,
                                        absl::string_view attr_name) {
   if (x.GetShape().rank() != 0 || !x.item().holds_value<bool>()) {
-    return absl::InvalidArgumentError(
+    return internal::OperatorEvalError(op_name,
         absl::StrFormat("expected %s to be a scalar boolean value, got %s",
                         attr_name, arolla::Repr(x)));
   }
@@ -125,7 +126,9 @@ absl::StatusOr<DataSlice> CumSum(const DataSlice& x) {
 }
 
 absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
-  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x));
+  ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x),
+                   internal::OperatorEvalError(std::move(_), "math.agg_sum",
+                                               "invalid inputs"));
   // The input has primitive schema or OBJECT/ANY schema with a single primitive
   // dtype.
   if (primitive_schema.has_value()) {
@@ -155,7 +158,8 @@ absl::StatusOr<DataSlice> AggMedian(const DataSlice& x) {
 
 absl::StatusOr<DataSlice> AggStd(const DataSlice& x,
                                  const DataSlice& unbiased) {
-  ASSIGN_OR_RETURN(auto unbiased_bool, AsScalarBool(unbiased, "unbiased"));
+  ASSIGN_OR_RETURN(auto unbiased_bool,
+                   AsScalarBool("math.std", unbiased, "unbiased"));
   return SimpleAggIntoEval("math.std", {x, std::move(unbiased_bool)},
                            /*output_schema=*/internal::DataItem(),
                            /*edge_arg_index=*/1,
@@ -164,7 +168,8 @@ absl::StatusOr<DataSlice> AggStd(const DataSlice& x,
 
 absl::StatusOr<DataSlice> AggVar(const DataSlice& x,
                                  const DataSlice& unbiased) {
-  ASSIGN_OR_RETURN(auto unbiased_bool, AsScalarBool(unbiased, "unbiased"));
+  ASSIGN_OR_RETURN(auto unbiased_bool,
+                   AsScalarBool("math.var", unbiased, "unbiased"));
   return SimpleAggIntoEval("math.var", {x, std::move(unbiased_bool)},
                            /*output_schema=*/internal::DataItem(),
                            /*edge_arg_index=*/1,

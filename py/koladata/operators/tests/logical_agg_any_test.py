@@ -94,7 +94,9 @@ class LogicalAggAnyTest(parameterized.TestCase):
 
   def test_data_item_input_error(self):
     x = ds(arolla.present())
-    with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, re.escape('expected rank(x) > 0')
+    ):
       expr_eval.eval(kde.logical.agg_any(x))
 
   @parameterized.parameters(-1, 2)

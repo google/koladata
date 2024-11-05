@@ -438,18 +438,50 @@ TEST(ArollaEval, SimpleAggIntoEval) {
   {
     // Scalar input error.
     DataSlice x = test::DataItem(1, schema::kObject);
-    EXPECT_THAT(SimpleAggIntoEval("math.sum", {x}),
+    absl::Status status = SimpleAggIntoEval("math.sum", {x}).status();
+    EXPECT_THAT(status,
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("expected rank(x) > 0")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(payload->error_message(),
+                StrEq("operator math.sum failed during evaluation: expected "
+                      "rank(x) > 0"));
   }
   {
     // Mixed input error.
     DataSlice x = test::MixedDataSlice<int, float>(
         {1, std::nullopt}, {std::nullopt, 2.0f}, schema::kObject);
+    absl::Status status = SimpleAggIntoEval("math.sum", {x}).status();
     EXPECT_THAT(
-        SimpleAggIntoEval("math.sum", {x}),
+        status,
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("DataSlice with mixed types is not supported")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(
+        payload->error_message(),
+        StrEq("operator math.sum failed during evaluation: invalid inputs"));
+    EXPECT_THAT(payload->cause().error_message(),
+                HasSubstr("DataSlice with mixed types is not supported"));
+  }
+  {
+    DataSlice x =
+        test::DataSlice<arolla::Text>({"foo", "bar", "baz", std::nullopt});
+    absl::Status status = SimpleAggIntoEval("math.max", {x}).status();
+    EXPECT_THAT(
+        status,
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("expected numerics, got x: DENSE_ARRAY_TEXT")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(
+        payload->error_message(),
+        StrEq("operator math.max failed during evaluation: successfully "
+              "converted input DataSlice(s) to DenseArray(s) but failed to "
+              "evaluate the Arolla operator"));
+    EXPECT_THAT(payload->cause().error_message(),
+                HasSubstr("expected numerics, got x: DENSE_ARRAY_TEXT"));
   }
   {
     // Eval with several inputs - default edge index.
@@ -571,18 +603,33 @@ TEST(ArollaEval, SimpleAggOverEval) {
   {
     // Scalar input error.
     DataSlice x = test::DataItem(1, schema::kObject);
-    EXPECT_THAT(SimpleAggOverEval("array.inverse_mapping", {x}),
+    absl::Status status = SimpleAggOverEval("math.sum", {x}).status();
+    EXPECT_THAT(status,
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("expected rank(x) > 0")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(payload->error_message(),
+                StrEq("operator math.sum failed during evaluation: expected "
+                      "rank(x) > 0"));
   }
   {
     // Mixed input error.
     DataSlice x = test::MixedDataSlice<int, int64_t>(
         {1, std::nullopt}, {std::nullopt, int64_t{2}}, schema::kObject);
+    absl::Status status =
+        SimpleAggOverEval("array.inverse_mapping", {x}).status();
     EXPECT_THAT(
-        SimpleAggOverEval("array.inverse_mapping", {x}),
+        status,
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("DataSlice with mixed types is not supported")));
+    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+    EXPECT_TRUE(payload.has_value());
+    EXPECT_THAT(payload->error_message(),
+                StrEq("operator array.inverse_mapping failed during "
+                      "evaluation: invalid inputs"));
+    EXPECT_THAT(payload->cause().error_message(),
+                HasSubstr("DataSlice with mixed types is not supported"));
   }
   {
     // Eval with several inputs - default edge index.

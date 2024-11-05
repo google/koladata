@@ -19,6 +19,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -128,10 +129,10 @@ class CoreInverseMappingTest(parameterized.TestCase):
       expr_eval.eval(kde.core.inverse_mapping(x, ndim=2))
 
   def test_invalid_permutation_error(self):
-    with self.assertRaisesRegex(ValueError, 'invalid permutation'):
+    with self.assertRaisesRegex(exceptions.KodaError, 'invalid permutation'):
       expr_eval.eval(kde.core.inverse_mapping(ds([1, 3, 0])))
 
-    with self.assertRaisesRegex(ValueError, 'invalid permutation'):
+    with self.assertRaisesRegex(exceptions.KodaError, 'invalid permutation'):
       expr_eval.eval(
           kde.core.inverse_mapping(ds([[1, 2, 0], [1, None]]), ndim=2)
       )
@@ -139,7 +140,8 @@ class CoreInverseMappingTest(parameterized.TestCase):
   def test_invalid_type_error(self):
     # TODO: Use a more appropriate error message.
     with self.assertRaisesRegex(
-        ValueError, 'expected integers, got indices: DENSE_ARRAY_FLOAT32'
+        exceptions.KodaError,
+        'expected integers, got indices: DENSE_ARRAY_FLOAT32',
     ):
       expr_eval.eval(
           kde.core.inverse_mapping(ds([0.0, 2.0, None, 1.0]), ndim=1)

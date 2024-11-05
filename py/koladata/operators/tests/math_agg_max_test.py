@@ -19,6 +19,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -129,7 +130,9 @@ class MathAggMaxTest(parameterized.TestCase):
 
   def test_data_item_input_error(self):
     x = ds(1)
-    with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, re.escape('expected rank(x) > 0')
+    ):
       expr_eval.eval(kde.math.agg_max(x))
 
   @parameterized.parameters(-1, 2)
@@ -141,7 +144,7 @@ class MathAggMaxTest(parameterized.TestCase):
   def test_mixed_slice_error(self):
     x = data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT)
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.math.agg_max(x))
 
@@ -149,7 +152,7 @@ class MathAggMaxTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with Entity schema is not supported'
+        exceptions.KodaError, 'DataSlice with Entity schema is not supported'
     ):
       expr_eval.eval(kde.math.agg_max(x))
 
@@ -157,7 +160,7 @@ class MathAggMaxTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice has no primitive schema'
+        exceptions.KodaError, 'DataSlice has no primitive schema'
     ):
       expr_eval.eval(kde.math.agg_max(x))
 
