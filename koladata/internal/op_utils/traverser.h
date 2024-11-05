@@ -61,6 +61,9 @@ class AbstractVisitor {
 
   // Called for each reachable item and schema before any calls to Visit* or
   // GetValue methods.
+  // For objects Previsit is called twice:
+  // - first time with schema::kObject.
+  // - second time with the schema written in kSchemaAttr attribute.
   virtual absl::Status Previsit(const DataItem& item,
                                 const DataItem& schema) = 0;
 
@@ -230,8 +233,7 @@ class Traverser {
     return absl::OkStatus();
   }
 
-  absl::Status PrevisitEntityAttributes(const ItemWithSchema& item,
-                                        bool is_object) {
+  absl::Status PrevisitEntityAttributes(const ItemWithSchema& item) {
     ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
                      databag_.GetSchemaAttrs(item.schema, fallbacks_));
     if (attr_names_slice.size() == 0) {
@@ -257,9 +259,6 @@ class Traverser {
             has_dict_values_attr = true;
           }
         });
-    if (is_object) {
-      RETURN_IF_ERROR(PrevisitAttribute(item, schema::kSchemaAttr));
-    }
     if (has_list_items_attr) {
       if (attr_names.size() != 1) {
         return absl::InvalidArgumentError(absl::StrFormat(
@@ -287,23 +286,21 @@ class Traverser {
   }
 
   absl::Status PrevisitObjectAttributes(const ItemWithSchema& item) {
-    if (!item.item.has_value()) {
+    if (!item.item.has_value() || !item.item.template holds_value<ObjectId>()) {
       return absl::OkStatus();
-    }
-    if (!item.item.template holds_value<ObjectId>()) {
-      ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(item.item.dtype()));
-      return PrevisitPrimitiveAttributes(
-          {.item = item.item, .schema = DataItem(dtype)});
     }
     ASSIGN_OR_RETURN(
         auto schema,
         databag_.GetAttr(item.item, schema::kSchemaAttr, fallbacks_));
-    if (!schema.is_schema()) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "object %v is expected to have a schema in %s attribute, got %v",
-          item.item, schema::kSchemaAttr, schema));
+    if (!schema.is_entity_schema()) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("object %v is expected to have an entity schema in "
+                          "%s attribute, got %v",
+                          item.item, schema::kSchemaAttr, schema));
     }
-    return PrevisitEntityAttributes({item.item, schema}, /*is_object=*/true);
+    RETURN_IF_ERROR(visitor_->VisitorT::Previsit(item.item, schema));
+    RETURN_IF_ERROR(PrevisitAttribute(item, schema::kSchemaAttr));
+    return PrevisitEntityAttributes({item.item, schema});
   }
 
   absl::Status PrevisitSchemaAttributes(const ItemWithSchema& item) {
@@ -339,10 +336,6 @@ class Traverser {
     return status;
   }
 
-  absl::Status PrevisitPrimitiveAttributes(const ItemWithSchema& item) {
-    return absl::OkStatus();
-  }
-
   absl::Status DepthFirstPrevisitItemsAndSchemas() {
     // We do a depth-first traversal, with unrolled recursion. For that we keep
     // track of the stack size when we started visiting the current item. If the
@@ -366,15 +359,13 @@ class Traverser {
         }
         if (item.schema.template holds_value<ObjectId>()) {
           // Entity schema.
-          RETURN_IF_ERROR(PrevisitEntityAttributes(item, /*is_object=*/false));
+          RETURN_IF_ERROR(PrevisitEntityAttributes(item));
         } else if (item.schema.template holds_value<schema::DType>()) {
           if (item.schema == schema::kObject) {
             // Object schema.
             RETURN_IF_ERROR(PrevisitObjectAttributes(item));
           } else if (item.schema == schema::kSchema) {
             RETURN_IF_ERROR(PrevisitSchemaAttributes(item));
-          } else {
-            RETURN_IF_ERROR(PrevisitPrimitiveAttributes(item));
           }
         } else {
           return absl::InternalError("unsupported schema type");

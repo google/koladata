@@ -24,6 +24,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
@@ -126,6 +127,12 @@ class NoOpTraverserTest : public TraversingOpTest {};
 INSTANTIATE_TEST_SUITE_P(MainOrFallback, NoOpTraverserTest,
                          ::testing::Values(kMainDb, kFallbackDb));
 
+class ObjectsTraverserTest : public TraversingOpTest {};
+
+INSTANTIATE_TEST_SUITE_P(MainOrFallback, ObjectsTraverserTest,
+                         ::testing::Values(kMainDb, kFallbackDb));
+
+
 
 class NoOpVisitor : AbstractVisitor {
  public:
@@ -208,6 +215,84 @@ absl::Status TraverseSlice(const DataSliceImpl& ds, const DataItem& schema,
   auto traverse_op = Traverser<NoOpVisitor>(databag, fallbacks, visitor);
   RETURN_IF_ERROR(traverse_op.TraverseSlice(ds, schema));
   return absl::OkStatus();
+}
+
+class ObjectVisitor : AbstractVisitor {
+ public:
+  explicit ObjectVisitor() = default;
+
+  absl::Status Previsit(const DataItem& item, const DataItem& schema) override {
+    if (!item.holds_value<ObjectId>()) {
+      return absl::OkStatus();
+    }
+    if (schema == schema::kObject) {
+      previsited_objects_.insert(item.value<ObjectId>());
+    } else if (schema.holds_value<ObjectId>()){
+      if (!previsited_objects_.contains(item.value<ObjectId>())) {
+        return absl::InternalError(
+            absl::StrFormat("object %v is previsited with schema %v first",
+                            item, schema));
+      }
+      previsited_with_schema_.insert(item.value<ObjectId>());
+    }
+    return absl::OkStatus();
+  }
+
+  absl::StatusOr<DataItem> GetValue(const DataItem& item,
+                                    const DataItem& schema) override {
+    return item;
+  }
+
+  absl::Status VisitList(const DataItem& list, const DataItem& schema,
+                         bool is_object_schema,
+                         const DataSliceImpl& items) override {
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitDict(const DataItem& dict, const DataItem& schema,
+                         bool is_object_schema, const DataSliceImpl& keys,
+                         const DataSliceImpl& values) override {
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitObject(
+      const DataItem& object, const DataItem& schema, bool is_object_schema,
+      const arolla::DenseArray<arolla::Text>& attr_names,
+      const arolla::DenseArray<DataItem>& attr_values) override {
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitSchema(
+      const DataItem& item, const DataItem& schema, bool is_object_schema,
+      const arolla::DenseArray<arolla::Text>& attr_names,
+      const arolla::DenseArray<DataItem>& attr_schema) override {
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitPrimitive(const DataItem& item,
+                              const DataItem& schema) override {
+    return absl::OkStatus();
+  }
+
+  absl::Status check_previsited_objects_twice() const {
+    if (previsited_objects_.size() != previsited_with_schema_.size()) {
+      return absl::InternalError("not all objects are previsited twice");
+    }
+    return absl::OkStatus();
+  }
+
+ private:
+  absl::flat_hash_set<ObjectId> previsited_objects_;
+  absl::flat_hash_set<ObjectId> previsited_with_schema_;
+};
+
+absl::Status TraverseSliceCheckObjectPrevisits(
+    const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks) {
+  auto visitor = std::make_shared<ObjectVisitor>();
+  auto traverse_op = Traverser<ObjectVisitor>(databag, fallbacks, visitor);
+  RETURN_IF_ERROR(traverse_op.TraverseSlice(ds, schema));
+  return visitor->check_previsited_objects_twice();
 }
 
 TEST_P(NoOpTraverserTest, ShallowEntitySlice) {
@@ -461,6 +546,69 @@ TEST_P(NoOpTraverserTest, SchemaSlice) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_OK(TraverseSlice(ds, DataItem(schema::kSchema), *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
+}
+
+TEST_P(ObjectsTraverserTest, ObjectsSlice) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto a3 = obj_ids[3];
+  auto a4 = obj_ids[4];
+  auto a5 = obj_ids[5];
+  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(2), 2);
+  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(2), 2);
+  ASSERT_OK(db->SetInDict(dicts[0], DataItem("a"), DataItem(1)));
+  ASSERT_OK(db->SetInDict(dicts[1], a2, a3));
+  ASSERT_OK(db->ExtendList(
+      lists[0], DataSliceImpl::Create(CreateDenseArray<DataItem>({a4, a5}))));
+  ASSERT_OK(db->ExtendList(
+      lists[1], DataSliceImpl::Create(CreateDenseArray<int32_t>({0, 1, 2}))));
+  auto item_schema = AllocateSchema();
+  auto key_schema = AllocateSchema();
+  auto dict0_schema = AllocateSchema();
+  auto dict1_schema = AllocateSchema();
+  auto list0_schema = AllocateSchema();
+  auto list1_schema = AllocateSchema();
+  TriplesT data_triples = {
+      {a0, {{schema::kSchemaAttr, item_schema}, {"x", DataItem(1)}}},
+      {a1, {{schema::kSchemaAttr, item_schema}, {"x", DataItem(2)}}},
+      {a2, {{schema::kSchemaAttr, key_schema}, {"name", DataItem("k0")}}},
+      {a3, {{schema::kSchemaAttr, item_schema}, {"x", DataItem(10)}}},
+      {a4, {{schema::kSchemaAttr, item_schema}, {"x", DataItem(3)}}},
+      {a5, {{schema::kSchemaAttr, item_schema}, {"x", DataItem(4)}}},
+      {dicts[0], {{schema::kSchemaAttr, dict0_schema}}},
+      {dicts[1], {{schema::kSchemaAttr, dict1_schema}}},
+      {lists[0], {{schema::kSchemaAttr, list0_schema}}},
+      {lists[1], {{schema::kSchemaAttr, list1_schema}}},
+  };
+  TriplesT schema_triples = {
+      {item_schema, {{"x", DataItem(schema::kInt32)}}},
+      {key_schema, {{"name", DataItem(schema::kString)}}},
+      {dict0_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
+      {dict1_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kObject)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kObject)}}},
+      {list0_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kObject)}}},
+      {list1_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+
+  auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
+      {a0, a1, DataItem(), DataItem(3), DataItem("a"), dicts[0], dicts[1],
+       lists[0], lists[1]}));
+  auto schema = AllocateSchema();
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_OK(TraverseSliceCheckObjectPrevisits(ds, DataItem(schema::kObject),
+                                              *GetMainDb(db),
+                                              {GetFallbackDb(db).get()}));
 }
 
 }  // namespace

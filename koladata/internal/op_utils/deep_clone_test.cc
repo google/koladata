@@ -31,11 +31,11 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/bytes.h"
-#include "arolla/util/fingerprint.h"
 
 namespace koladata::internal {
 namespace {
@@ -723,15 +723,13 @@ TEST_P(DeepCloneTest, ObjectsSlice) {
 TEST_P(DeepCloneTest, ImplicitSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
-  auto schema0 =
-      DataItem(CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-          AllocateSchema().value<ObjectId>(), arolla::Fingerprint(57)));
-  auto schema1 =
-      DataItem(CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-          AllocateSchema().value<ObjectId>(), arolla::Fingerprint(58)));
-  auto schema2 =
-      DataItem(CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-          AllocateSchema().value<ObjectId>(), arolla::Fingerprint(59)));
+  ASSERT_OK_AND_ASSIGN(
+      auto schema_ids,
+      CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          obj_ids, schema::kImplicitSchemaSeed));
+  auto schema0 = schema_ids[0];
+  auto schema1 = schema_ids[1];
+  auto schema2 = schema_ids[2];
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -782,9 +780,16 @@ TEST_P(DeepCloneTest, ImplicitSchema) {
   EXPECT_NE(result_schema0, schema0);
   EXPECT_NE(result_schema1, schema1);
   EXPECT_NE(result_schema2, schema2);
-  EXPECT_TRUE(result_schema0.holds_value<ObjectId>());
-  EXPECT_TRUE(result_schema1.holds_value<ObjectId>());
-  EXPECT_TRUE(result_schema2.holds_value<ObjectId>());
+  EXPECT_TRUE(result_schema0.is_implicit_schema());
+  EXPECT_TRUE(result_schema1.is_implicit_schema());
+  EXPECT_TRUE(result_schema2.is_implicit_schema());
+  ASSERT_OK_AND_ASSIGN(
+        auto expected_implicit_schemas,
+        CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+            result_slice, schema::kImplicitSchemaSeed));
+  EXPECT_EQ(result_schema0, expected_implicit_schemas[0]);
+  EXPECT_EQ(result_schema1, expected_implicit_schemas[1]);
+  EXPECT_EQ(result_schema2, expected_implicit_schemas[2]);
   EXPECT_NE(result_schema0, result_schema1);
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   TriplesT expected_data_triples = {{result_slice[0],
@@ -817,16 +822,29 @@ TEST_P(DeepCloneTest, SchemaSlice) {
   auto s1 = AllocateSchema();
   auto s2 = AllocateSchema();
   auto s3 = AllocateSchema();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  ASSERT_OK_AND_ASSIGN(
+      auto implicit_schema_ids,
+      CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          obj_ids, schema::kImplicitSchemaSeed));
+  auto implicit_schema0 = implicit_schema_ids[0];
+  auto implicit_schema1 = implicit_schema_ids[1];
+
   TriplesT schema_triples = {
       {s1, {{"x", DataItem(schema::kInt32)}, {"y", s3}}},
       {s2, {{"a", DataItem(schema::kString)}}},
-      {s3, {{"self", s3}}},
+      {s3, {{"self", s3}, {"implicit", implicit_schema0}}},
+      {implicit_schema0,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
+      {implicit_schema1,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
   };
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
 
-  auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2}));
+  auto ds = DataSliceImpl::Create(
+      CreateDenseArray<DataItem>({s1, s2, implicit_schema0, implicit_schema1}));
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
@@ -836,12 +854,19 @@ TEST_P(DeepCloneTest, SchemaSlice) {
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_NE(result_slice[0], s1);
   EXPECT_NE(result_slice[1], s2);
+  EXPECT_FALSE(result_slice[2].is_implicit_schema());
+  EXPECT_FALSE(result_slice[3].is_implicit_schema());
+  EXPECT_NE(result_slice[3], result_slice[2]);
   ASSERT_OK_AND_ASSIGN(auto result_s3,
                        result_db->GetSchemaAttr(result_slice[0], "y"));
   TriplesT expected_schema_triples = {
       {result_slice[0], {{"x", DataItem(schema::kInt32)}, {"y", result_s3}}},
       {result_slice[1], {{"a", DataItem(schema::kString)}}},
-      {result_s3, {{"self", result_s3}}},
+      {result_s3, {{"self", result_s3}, {"implicit", result_slice[2]}}},
+      {result_slice[2],
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
+      {result_slice[3],
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
   };
   SetSchemaTriples(*expected_db, expected_schema_triples);
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));

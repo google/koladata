@@ -31,6 +31,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
@@ -49,6 +50,11 @@ class DeepCloneVisitor : AbstractVisitor {
   absl::Status Previsit(const DataItem& item, const DataItem& schema) override {
     if (schema.holds_value<ObjectId>()) {
       // Entity schema.
+      if (schema.is_implicit_schema()) {
+        // The item was already previsited with `schema::kObject`, thus we only
+        // need to "clone" the implicit schema.
+        return PrevisitItemWithImplicitSchema(item, schema);
+      }
       return PrevisitObject(item);
     } else if (schema.holds_value<schema::DType>()) {
       if (schema == schema::kObject) {
@@ -71,11 +77,20 @@ class DeepCloneVisitor : AbstractVisitor {
       return item;
     }
     if (item.is_schema() && !is_schema_slice_ && !item.is_implicit_schema()) {
+      // We keep explicit schemas as is, unless we `deep_clone` a schema slice.
+      // However, we keep implicit schemas in sync with parent objects.
       return item;
     }
     auto it =
         allocation_tracker_.find(AllocationId(item.value<ObjectId>()));
     if (it == allocation_tracker_.end()) {
+      if (item.is_implicit_schema()) {
+        // No object with implicit schema in `item`'s AllocationId was cloned.
+        // Thus, we cannot determine new AllocationId for the implicit schemas
+        // and create an ExplicitSchemaAllocationId instead.
+        RETURN_IF_ERROR(CloneAsExplicitSchema(item));
+        return GetValue(item, schema);
+      }
       return absl::InvalidArgumentError(
           absl::StrFormat("new allocation for object %v is not found", item));
     }
@@ -161,26 +176,42 @@ class DeepCloneVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
+  absl::Status PrevisitItemWithImplicitSchema(const DataItem& item,
+                                              const DataItem& schema) {
+    DCHECK(schema.is_implicit_schema());
+    auto [alloc_it, inserted] = allocation_tracker_.emplace(
+        AllocationId(schema.value<ObjectId>()), AllocationId());
+    if (!inserted) {
+      return absl::OkStatus();
+    }
+    ASSIGN_OR_RETURN(auto new_item, GetValue(item, DataItem(schema::kObject)));
+    ASSIGN_OR_RETURN(
+        auto new_schema,
+        CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+            new_item, schema::kImplicitSchemaSeed));
+    alloc_it->second = AllocationId(new_schema.value<ObjectId>());
+    return absl::OkStatus();
+  }
+
   absl::Status PrevisitSchema(const DataItem& schema) {
-    if (!schema.holds_value<ObjectId>()) {
-      return absl::OkStatus();
+    // We create a "clone" for all explicit schemas, and skip implicit schemas.
+    // For implicit schemas we create a "clone" when encounter them in
+    // `schema::kSchemaAttr`, or in GetValue after all Previsits are done.
+    if (schema.holds_value<ObjectId>() && !schema.is_implicit_schema()) {
+      return CloneAsExplicitSchema(schema);
     }
-    if (!schema.is_implicit_schema() && !is_schema_slice_) {
-      return absl::OkStatus();
-    }
+    return absl::OkStatus();
+  }
+
+  absl::Status CloneAsExplicitSchema(const DataItem& schema) {
     const auto allocation_id = AllocationId(schema.value<ObjectId>());
     auto [alloc_it, inserted] =
         allocation_tracker_.emplace(allocation_id, AllocationId());
     if (!inserted) {
       return absl::OkStatus();
     }
-    AllocationId new_allocation_id;
-    if (schema.is_implicit_schema()) {
-    // TODO: Create an implicit schema based on parent object.
-      new_allocation_id = AllocateExplicitSchemas(allocation_id.Capacity());
-    } else if (is_schema_slice_) {
-      new_allocation_id = NewAllocationIdLike(allocation_id);
-    }
+    AllocationId new_allocation_id =
+        AllocateExplicitSchemas(allocation_id.Capacity());
     alloc_it->second = new_allocation_id;
     return absl::OkStatus();
   }
