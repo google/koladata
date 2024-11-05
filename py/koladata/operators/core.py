@@ -1458,8 +1458,8 @@ def _dict_shaped(
 )
 def dict_shaped(
     shape=py_boxing.positional_only(),
-    keys=py_boxing.keyword_only(arolla.unspecified()),
-    values=py_boxing.keyword_only(arolla.unspecified()),
+    keys=py_boxing.positional_or_keyword(arolla.unspecified()),
+    values=py_boxing.positional_or_keyword(arolla.unspecified()),
     key_schema=py_boxing.keyword_only(arolla.unspecified()),
     value_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
@@ -1601,8 +1601,8 @@ def dict_(
 )
 def dict_shaped_as(
     shape_from=py_boxing.positional_only(),
-    keys=py_boxing.keyword_only(arolla.unspecified()),
-    values=py_boxing.keyword_only(arolla.unspecified()),
+    keys=py_boxing.positional_or_keyword(arolla.unspecified()),
+    values=py_boxing.positional_or_keyword(arolla.unspecified()),
     key_schema=py_boxing.keyword_only(arolla.unspecified()),
     value_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
@@ -1672,8 +1672,8 @@ def _dict_like(
 )
 def dict_like(
     shape_and_mask_from=py_boxing.positional_only(),
-    keys=py_boxing.keyword_only(arolla.unspecified()),
-    values=py_boxing.keyword_only(arolla.unspecified()),
+    keys=py_boxing.positional_or_keyword(arolla.unspecified()),
+    values=py_boxing.positional_or_keyword(arolla.unspecified()),
     key_schema=py_boxing.keyword_only(arolla.unspecified()),
     value_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),

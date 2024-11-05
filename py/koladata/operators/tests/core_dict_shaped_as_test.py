@@ -90,14 +90,14 @@ class DictShapedAsTest(parameterized.TestCase):
     actual = expr_eval.eval(
         kde.core.dict_shaped_as(
             shape_from,
-            keys=keys,
-            values=values,
+            keys,
+            values,
         )
     )
     expected = bag().dict_shaped(
         shape_from.get_shape(),
-        items_or_keys=keys,
-        values=values,
+        keys,
+        values,
     )
     testing.assert_dicts_equal(actual, expected)
 

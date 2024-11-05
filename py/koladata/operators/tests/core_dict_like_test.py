@@ -104,14 +104,14 @@ class DictLikeTest(parameterized.TestCase):
     actual = expr_eval.eval(
         kde.core.dict_like(
             shape_and_mask_from,
-            keys=keys,
-            values=values,
+            keys,
+            values,
         )
     )
     expected = bag().dict_like(
         shape_and_mask_from,
-        items_or_keys=keys,
-        values=values,
+        keys,
+        values,
     )
     testing.assert_dicts_equal(actual, expected)
 
