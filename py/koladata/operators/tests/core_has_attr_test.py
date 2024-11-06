@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -25,6 +26,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
+from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
@@ -57,6 +59,55 @@ class CoreHasAttrTest(parameterized.TestCase):
   def test_eval(self, expr, expected):
     testing.assert_equal(expr_eval.eval(expr, x=self.entity), expected)
     testing.assert_equal(expr_eval.eval(expr, x=self.object), expected)
+
+  def test_has_attr_does_not_fail_when_no_common_schema_for_attr(self):
+    db = data_bag.DataBag.empty()
+    a = ds(1)
+    b = db.new(foo='bar')
+    c = ds(3.14)
+
+    object_1 = db.obj(a=a, b=b, c=c)
+    object_2 = db.obj(a=a, b=b, d=c)
+    object_3 = db.obj(b=a, a=b, c=c)
+    mixed_objects = ds([object_1, object_2, object_3]).with_bag(db)
+
+    testing.assert_equal(
+        expr_eval.eval(kde.core.has_attr(mixed_objects, 'a')),
+        ds([present, present, present]),
+    )
+    # Although "a" is present in all objects, getting it might still fail.
+    # It's a bit unfortunate that the exception types and messages are so
+    # different, as the underlying issue is the same.
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r'cannot find a common schema for provided schemas',
+    ):
+      expr_eval.eval(kde.core.get_attr(mixed_objects, 'a'))
+    with self.assertRaisesRegex(
+        ValueError,
+        r'no common schema',
+    ):
+      expr_eval.eval(kde.core.maybe(mixed_objects, 'a'))
+
+    # Make sure that it behaves as expected when there is a common schema.
+    # "c" is not present in all objects, but it has a common schema.
+    testing.assert_equal(
+        expr_eval.eval(kde.core.has_attr(mixed_objects, 'c')),
+        ds([present, missing, present]),
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        "the attribute 'c' is missing",
+    ):
+      expr_eval.eval(kde.core.get_attr(mixed_objects, 'c'))
+    testing.assert_equal(
+        expr_eval.eval(kde.core.maybe(mixed_objects, 'c').no_bag()),
+        ds([3.14, None, 3.14]),
+    )
+
+  def test_has_attr_of_schema(self):
+    s = kde.schema.new_schema(x=schema_constants.INT32)
+    testing.assert_equal(expr_eval.eval(kde.core.has_attr(s, 'x')), ds(present))
 
   def test_attr_name_error(self):
     with self.assertRaisesRegex(

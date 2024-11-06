@@ -736,7 +736,14 @@ def has_attr(obj, attr_name):
     A MASK slice with the same shape as `obj` that contains present if the
     attribute exists for the corresponding item.
   """
-  return logical.has(maybe(obj, attr_name))
+  return logical.has(
+      maybe(obj & (obj.get_schema() == schema_constants.SCHEMA), attr_name)
+  ) | logical.has(
+      maybe(
+          (obj & (obj.get_schema() != schema_constants.SCHEMA)).as_any(),
+          attr_name,
+      )
+  )
 
 
 @optools.add_to_registry(aliases=['kde.stub'])
