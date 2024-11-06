@@ -126,3 +126,19 @@ cc_test(
         "@com_google_protobuf//:protobuf",
     ],
 )
+
+cc_test(
+    name = "to_proto_benchmark",
+    srcs = ["to_proto_benchmark.cc"],
+    deps = [
+        ":from_proto",
+        ":to_proto",
+        "//koladata:data_bag",
+        "//koladata/proto/testing:test_proto2_cc_proto",
+        "//koladata/proto/testing:test_proto3_cc_proto",
+        "@com_google_absl//absl/log:check",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
