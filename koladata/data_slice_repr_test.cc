@@ -852,5 +852,26 @@ TEST(DataSliceReprTest, ObjEntityExceedReprItemLimit) {
               IsOkAndHolds(StrEq("Entity(a=1, b=1, c=1, d=1, e=1, ...)")));
 }
 
+TEST(DataSliceReprTest, FormatHtml) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice data_slice,
+      CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+  EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds(StrEq("List[1, 2, 3]")));
+
+  std::vector<DataSlice> attr_values = {test::DataItem(1), data_slice};
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice obj,
+      ObjectCreator::FromAttrs(bag, {"a", "b"}, attr_values));
+
+  EXPECT_THAT(DataSliceToStr(obj, {.format_html = true}),
+            IsOkAndHolds(StrEq(
+                "Obj(<span class=\"attr \">a</span>=1, "
+                "<span class=\"attr clickable\">b</span>=List[1, 2, 3])")));
+}
+
+
 }  // namespace
 }  // namespace koladata

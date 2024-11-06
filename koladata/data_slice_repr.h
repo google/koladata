@@ -33,6 +33,9 @@ struct ReprOption {
   size_t item_limit = 20;
   // Don't add quotes around text values.
   bool strip_quotes = false;
+  // When true, attributes and object ids are wrapped in HTML tags to make it
+  // possible to style with CSS and interpret interactions with JS.
+  bool format_html = false;
   // TODO: Add option to control DataSlice truncation.
 };
 

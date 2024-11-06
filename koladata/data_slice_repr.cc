@@ -28,6 +28,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
@@ -52,6 +53,9 @@ using ::koladata::internal::DataItemRepr;
 using ::koladata::internal::ObjectId;
 
 constexpr absl::string_view kEllipsis = "...";
+constexpr absl::string_view kAttrTemplate = "%s=%s";
+constexpr absl::string_view kAttrHtmlTemplate =
+    "<span class=\"attr %s\">%s</span>=%s";
 
 struct FormatOptions {
   absl::string_view prefix = "";
@@ -289,9 +293,20 @@ absl::StatusOr<std::string> SchemaToStr(const DataSlice& ds,
     ASSIGN_OR_RETURN(DataSlice value, ds.GetAttr(attr_name));
     ASSIGN_OR_RETURN(std::string value_str, DataItemToStr(value, option));
 
-    parts.emplace_back(
-        absl::StrCat(absl::StripPrefix(absl::StripSuffix(attr_name, "'"), "'"),
-                     "=", value_str));
+    absl::string_view stripped_attr_name =
+        absl::StripPrefix(absl::StripSuffix(attr_name, "'"), "'");
+
+    if (option.format_html) {
+      absl::string_view clickable_class =
+          value.item().is_list() ? "clickable" : "";
+      parts.emplace_back(
+          absl::StrFormat(
+              kAttrHtmlTemplate,
+              clickable_class, stripped_attr_name, value_str));
+    } else {
+      parts.emplace_back(
+          absl::StrFormat(kAttrTemplate, stripped_attr_name, value_str));
+    }
     ++item_count;
   }
   return absl::StrJoin(parts, ", ");
@@ -309,16 +324,16 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
   --next_option.depth;
 
   const DataItem& schema = ds.GetSchemaImpl();
-  if (data_item.template holds_value<ObjectId>()) {
+  if (data_item.holds_value<ObjectId>()) {
     // STRING items inside Lists and Dicts are quoted.
     next_option.strip_quotes = false;
     if (ds.GetBag() == nullptr) {
       return DataItemRepr(data_item);
     }
 
-    const ObjectId& obj = data_item.template value<ObjectId>();
+    const ObjectId& obj = data_item.value<ObjectId>();
     if (schema.holds_value<ObjectId>() &&
-        schema.template value<ObjectId>().IsNoFollowSchema()) {
+        schema.value<ObjectId>().IsNoFollowSchema()) {
       return absl::StrCat("Nofollow(Entity:", DataItemRepr(data_item), ")");
     }
     if (obj.IsList()) {
