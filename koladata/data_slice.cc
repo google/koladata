@@ -50,7 +50,9 @@
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/repr_utils.h"
+#include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
@@ -132,19 +134,16 @@ absl::StatusOr<internal::DataItem> GetObjSchemaImpl(
 // Gets embedded schema from DataSliceImpl for primitives and objects.
 absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
     const internal::DataSliceImpl& impl, const absl::Nullable<DataBagPtr>& db) {
-  internal::DataSliceImpl::Builder builder(impl.size());
-  arolla::DenseArrayBuilder<schema::DType> dtype_arr_builder(impl.size());
+  internal::SliceBuilder builder(impl.size());
 
   RETURN_IF_ERROR(impl.VisitValues([&]<class T>(const arolla::DenseArray<T>&
                                                     array) -> absl::Status {
     if constexpr (arolla::meta::contains_v<schema::supported_primitive_dtypes,
                                            T>) {
       // Primitives
-      // All dtypes for different primitives are put into one DenseArray,
-      // thus add the DenseArray in the end. Primitive DenseArrays are
-      // always disjoint.
+      auto typed_builder = builder.typed<schema::DType>();
       array.ForEachPresent([&](int64_t id, arolla::view_type_t<T> value) {
-        dtype_arr_builder.Set(id, schema::GetDType<T>());
+        typed_builder.InsertIfNotSet(id, schema::GetDType<T>());
       });
       return absl::OkStatus();
     } else if constexpr (std::is_same_v<T, internal::ObjectId>) {
@@ -161,7 +160,9 @@ absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
                        db_impl.GetObjSchemaAttr(
                            internal::DataSliceImpl::Create(array), fallbacks));
       builder.GetMutableAllocationIds().Insert(obj_schemas.allocation_ids());
-      builder.AddArray(obj_schemas.template values<internal::ObjectId>());
+      const auto& values = obj_schemas.template values<internal::ObjectId>();
+      builder.InsertIfNotSet<internal::ObjectId>(
+          values.bitmap, arolla::bitmap::Bitmap(), values.values);
       return absl::OkStatus();
     } else {
       // DTypes are not supported
@@ -169,10 +170,6 @@ absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
           "DataSlice cannot contain primitive schema items for get_obj_schema");
     }
   }));
-
-  // All dtypes for different primitives are put into one DenseArray, thus add
-  // the DenseArray in the end.
-  builder.AddArray(std::move(dtype_arr_builder).Build());
   return std::move(builder).Build();
 }
 

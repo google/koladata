@@ -180,6 +180,7 @@ cc_library(
         "//koladata/internal:missing_value",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
+        "//koladata/internal:slice_builder",
         "//koladata/internal/op_utils:expand",
         "//koladata/internal/op_utils:extract",
         "//koladata/internal/op_utils:has",
