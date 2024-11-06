@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-05'
+  reviewed: '2024-11-06'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -2162,23 +2162,37 @@ Implodes a Dataslice `x` a specified number of times.
     DataSlice of nested Lists
 ```
 
-### `index(x, ndim)` {#index}
+### `index(x, dim)` {#index}
 
 ``` {.no-copy}
-Returns the indices of the elements computed over the last ndim dimensions.
+Returns the indices of the elements computed over the last dim dimensions.
 
-The resulting slice has the same rank as the input.
+The resulting slice has the same shape as the input.
 
 Example:
-  ds = kd.slice([[1, None, 1], [3, 4], [None, None]])
-  kd.index(ds)  # -> kd.slice([[0, None, 2], [0, 1], [None, None]])
-  kd.index(ds, ndim=1)  # -> kd.slice([[0, None, 2], [0, 1], [None, None]])
-  kd.index(ds, ndim=2)  # -> kd.slice([[0, None, 2], [3, 4], [None, None]])
+  ds = kd.slice([
+      [
+          ['a', None, 'c'],
+          ['d', 'e']
+      ],
+      [
+          [None, 'g'],
+          ['h', 'i', 'j']
+      ]
+  ])
+  kd.index(ds, dim=0)
+    # -> kd.slice([[[0, None, 0], [0, 0]], [[None, 1], [1, 1, 1]]])
+  kd.index(ds, dim=1)
+    # -> kd.slice([[[0, None, 0], [1, 1]], [[None, 0], [1, 1, 1]]])
+  kd.index(ds, dim=2)
+    # -> kd.slice([[[0, None, 2], [0, 1]], [[None, 1], [0, 1, 2]]])
+
+  kd.index(ds) -> kd.index(ds, dim=ds.get_ndim() - 1)
 
 Args:
   x: A DataSlice.
-  ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= get_ndim(x).
+  dim: The dimension to compute indices over. Requires 0 <= dim < get_ndim(x).
+    If unspecified, it is set to the last dimension of x.
 ```
 
 ### `int32(x)` {#int32}
@@ -5304,18 +5318,6 @@ Append a value to each list in this DataSlice
 Returns a DataSlice with ANY schema.
 ```
 
-### `<DataSlice>.as_arolla_value` {#<DataSlice>.as_arolla_value}
-
-``` {.no-copy}
-Converts primitive slice / item into an equivalent Arolla value.
-```
-
-### `<DataSlice>.as_dense_array` {#<DataSlice>.as_dense_array}
-
-``` {.no-copy}
-Converts primitive slice to an arolla.dense_array with appropriate qtype.
-```
-
 ### `<DataSlice>.as_itemid(self)` {#<DataSlice>.as_itemid}
 
 *No description*
@@ -5468,7 +5470,7 @@ Returns keys of all dicts in this DataSlice.
 ### `<DataSlice>.get_schema` {#<DataSlice>.get_schema}
 
 ``` {.no-copy}
-Returns a schema slice with type information about this DataSlice.
+Returns a schema DataItem with type information about this DataSlice.
 ```
 
 ### `<DataSlice>.get_shape` {#<DataSlice>.get_shape}
@@ -5495,12 +5497,24 @@ Returns values of all dicts in this DataSlice.
 
 *No description*
 
+### `<DataSlice>.internal_as_arolla_value` {#<DataSlice>.internal_as_arolla_value}
+
+``` {.no-copy}
+Converts primitive DataSlice / DataItem into an equivalent Arolla value.
+```
+
+### `<DataSlice>.internal_as_dense_array` {#<DataSlice>.internal_as_dense_array}
+
+``` {.no-copy}
+Converts primitive DataSlice to an Arolla DenseArray with appropriate qtype.
+```
+
 ### `<DataSlice>.internal_as_py` {#<DataSlice>.internal_as_py}
 
 ``` {.no-copy}
 Returns a Python object equivalent to this DataSlice.
 
-If the values in this slice represent objects, then the returned python
+If the values in this DataSlice represent objects, then the returned python
 structure will contain DataItems.
 ```
 
