@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.schema.decode.
+"""Tests for kde.strings.decode.
 
 Extensive testing is done in C++.
 """
@@ -24,7 +24,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -39,7 +38,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class SchemaDecodeTest(parameterized.TestCase):
+class StringsDecodeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(None, schema_constants.BYTES), ds(None, schema_constants.STRING)),
@@ -55,13 +54,13 @@ class SchemaDecodeTest(parameterized.TestCase):
       (ds([b'foo', 'bar'], schema_constants.ANY), ds(['foo', 'bar'])),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.schema.decode(x))
+    res = expr_eval.eval(kde.strings.decode(x))
     testing.assert_equal(res, expected)
 
   def test_invalid_utf8_error(self):
     x = ds(b'\xff')
     with self.assertRaisesRegex(ValueError, 'invalid UTF-8'):
-      expr_eval.eval(kde.schema.decode(x))
+      expr_eval.eval(kde.strings.decode(x))
 
   @parameterized.parameters(
       ds(None, schema_constants.INT32), ds(1), ds(arolla.present())
@@ -70,35 +69,32 @@ class SchemaDecodeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, f'unsupported schema: {value.get_schema()}'
     ):
-      expr_eval.eval(kde.schema.decode(value))
+      expr_eval.eval(kde.strings.decode(value))
 
   def test_not_castable_internal_value(self):
     x = ds(1, schema_constants.OBJECT)
     with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to STRING'):
-      expr_eval.eval(kde.schema.decode(x))
+      expr_eval.eval(kde.strings.decode(x))
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.schema.decode(b'foo'),
+        kde.strings.decode(b'foo'),
         arolla.abc.bind_op(
-            kde.schema.decode, literal_operator.literal(ds(b'foo'))
+            kde.strings.decode, literal_operator.literal(ds(b'foo'))
         ),
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.decode,
+            kde.strings.decode,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema.decode(I.x)))
-
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.schema.decode, kde.decode))
+    self.assertTrue(view.has_data_slice_view(kde.strings.decode(I.x)))
 
 
 if __name__ == '__main__':

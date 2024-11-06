@@ -391,28 +391,6 @@ def to_str(x):
   return cast_to(x, schema_constants.STRING)
 
 
-@optools.add_to_registry(aliases=['kde.decode'])
-@optools.as_backend_operator(
-    'kde.schema.decode',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def decode(x):  # pylint: disable=unused-argument
-  """Decodes `x` as STRING using UTF-8 decoding."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.encode'])
-@optools.as_backend_operator(
-    'kde.schema.encode',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def encode(x):  # pylint: disable=unused-argument
-  """Encodes `x` as BYTES using UTF-8 encoding."""
-  raise NotImplementedError('implemented in the backend')
-
-
 @optools.add_to_registry(aliases=['kde.to_expr'])
 @optools.as_lambda_operator('kde.schema.to_expr')
 def to_expr(x):

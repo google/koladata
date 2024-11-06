@@ -1997,7 +1997,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -2099,7 +2098,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
@@ -4557,14 +4555,13 @@ py_test(
 )
 
 py_test(
-    name = "schema_decode_test",
-    srcs = ["schema_decode_test.py"],
+    name = "strings_decode_test",
+    srcs = ["strings_decode_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -4578,14 +4575,13 @@ py_test(
 )
 
 py_test(
-    name = "schema_encode_test",
-    srcs = ["schema_encode_test.py"],
+    name = "strings_encode_test",
+    srcs = ["strings_encode_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -4859,6 +4855,7 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
@@ -6167,15 +6164,15 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_schema_encode_covers_strings_encode_test",
+    name = "kd_strings_encode_covers_strings_encode_test",
     arolla_op = "strings.encode",
-    koda_op = "schema.encode",
+    koda_op = "strings.encode",
 )
 
 koda_operator_coverage_test(
-    name = "kd_schema_decode_covers_strings_decode_test",
+    name = "kd_strings_decode_covers_strings_decode_test",
     arolla_op = "strings.decode",
-    koda_op = "schema.decode",
+    koda_op = "strings.decode",
 )
 
 koda_operator_coverage_test(

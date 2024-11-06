@@ -205,7 +205,9 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(repr_fn=op_repr.full_signature_repr)
+@optools.add_to_registry(
+    aliases=['kde.format'], repr_fn=op_repr.full_signature_repr
+)
 @optools.as_backend_operator(
     'kde.strings.format',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -642,7 +644,7 @@ def rstrip(s, chars=data_slice.DataSlice.from_vals(None)):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.split'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.strings.split',
     qtype_constraints=[
@@ -702,7 +704,7 @@ def strip(s, chars=data_slice.DataSlice.from_vals(None)):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.substr'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.strings.substr',
     qtype_constraints=[
@@ -778,4 +780,26 @@ def upper(x):  # pylint: disable=unused-argument
   Returns:
     A String DataSlice of uppercase strings.
   """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.strings.decode',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def decode(x):  # pylint: disable=unused-argument
+  """Decodes `x` as STRING using UTF-8 decoding."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.strings.encode',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def encode(x):  # pylint: disable=unused-argument
+  """Encodes `x` as BYTES using UTF-8 encoding."""
   raise NotImplementedError('implemented in the backend')

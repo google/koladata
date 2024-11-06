@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.schema.encode.
+"""Tests for kde.strings.encode.
 
 Extensive testing is done in C++.
 """
@@ -24,7 +24,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -39,7 +38,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class SchemaEncodeTest(parameterized.TestCase):
+class StringsEncodeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(None, schema_constants.STRING), ds(None, schema_constants.BYTES)),
@@ -55,7 +54,7 @@ class SchemaEncodeTest(parameterized.TestCase):
       (ds([b'foo', 'bar'], schema_constants.ANY), ds([b'foo', b'bar'])),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.schema.encode(x))
+    res = expr_eval.eval(kde.strings.encode(x))
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
@@ -65,35 +64,32 @@ class SchemaEncodeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, f'unsupported schema: {value.get_schema()}'
     ):
-      expr_eval.eval(kde.schema.encode(value))
+      expr_eval.eval(kde.strings.encode(value))
 
   def test_not_castable_internal_value(self):
     x = ds(1, schema_constants.OBJECT)
     with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to BYTES'):
-      expr_eval.eval(kde.schema.encode(x))
+      expr_eval.eval(kde.strings.encode(x))
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.schema.encode('foo'),
+        kde.strings.encode('foo'),
         arolla.abc.bind_op(
-            kde.schema.encode, literal_operator.literal(ds('foo'))
+            kde.strings.encode, literal_operator.literal(ds('foo'))
         ),
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.encode,
+            kde.strings.encode,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema.encode(I.x)))
-
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.schema.encode, kde.encode))
+    self.assertTrue(view.has_data_slice_view(kde.strings.encode(I.x)))
 
 
 if __name__ == '__main__':

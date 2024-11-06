@@ -22,6 +22,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
@@ -245,6 +246,9 @@ class StringsFormatTest(parameterized.TestCase):
         repr(kde.strings.format(I.fmt, a=I.a)),
         'kde.strings.format(I.fmt, a=I.a)',
     )
+
+  def test_alias(self):
+    self.assertTrue(optools.equiv_to_op(kde.strings.format, kde.format))
 
 
 if __name__ == '__main__':

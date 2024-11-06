@@ -190,9 +190,7 @@ OPERATOR("kde.math.subtract", Subtract);
 OPERATOR("kde.schema.cast_to", CastTo);
 OPERATOR("kde.schema.cast_to_implicit", CastToImplicit);
 OPERATOR("kde.schema.cast_to_narrow", CastToNarrow);
-OPERATOR("kde.schema.decode", Decode);
 OPERATOR("kde.schema.dict_schema", DictSchema);
-OPERATOR("kde.schema.encode", Encode);
 OPERATOR("kde.schema.get_item_schema", GetItemSchema);
 OPERATOR("kde.schema.get_key_schema", GetKeySchema);
 OPERATOR("kde.schema.get_obj_schema", GetObjSchema);
@@ -225,6 +223,8 @@ OPERATOR_FAMILY("kde.strings._test_only_format_wrapper",
                 arolla::MakeVariadicInputOperatorFamily(TestOnlyFormatWrapper));
 OPERATOR("kde.strings.contains", Contains);
 OPERATOR("kde.strings.count", Count);
+OPERATOR("kde.strings.decode", Decode);
+OPERATOR("kde.strings.encode", Encode);
 OPERATOR("kde.strings.find", Find);
 OPERATOR_FAMILY("kde.strings.format", std::make_unique<FormatOperatorFamily>());
 OPERATOR_FAMILY("kde.strings.join",
