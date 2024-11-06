@@ -32,6 +32,8 @@ from koladata.types import data_slice as _data_slice
 
 bag = _object_factories.bag
 
+uu = _object_factories.uu
+
 list = _object_factories.list_  # pylint: disable=redefined-builtin
 list_like = _object_factories.list_like
 list_shaped = _object_factories.list_shaped
@@ -45,10 +47,21 @@ dict_shaped = _object_factories.dict_shaped
 dict_shaped_as = _object_factories.dict_shaped_as
 
 new = _object_factories.new
-uu = _object_factories.uu
+new_like = _object_factories.new_like
 new_shaped = _object_factories.new_shaped
 new_shaped_as = _object_factories.new_shaped_as
-new_like = _object_factories.new_like
+
+obj = _object_factories.obj
+obj_like = _object_factories.obj_like
+obj_shaped = _object_factories.obj_shaped
+obj_shaped_as = _object_factories.obj_shaped_as
+
+# Currently kd.mutable_obj is an alias for kd.obj. In the future, we will change
+# obj to return immutable results.
+mutable_obj = _object_factories.obj
+
+empty_shaped = _object_factories.empty_shaped
+empty_shaped_as = _object_factories.empty_shaped_as
 
 
 def new_schema(
@@ -73,20 +86,6 @@ schema = _py_types.SimpleNamespace(
     uu_schema=_schema.uu_schema,
 )
 
-obj = _object_factories.obj
-obj_shaped = _object_factories.obj_shaped
-obj_shaped_as = _object_factories.obj_shaped_as
-obj_like = _object_factories.obj_like
-
-# Currently mutable_obj.* operations are aliases for obj.* operations.
-# In the future, we may change obj.* to return immutable results.
-mutable_obj = _object_factories.obj
-mutable_obj_shaped = _object_factories.obj_shaped
-mutable_obj_like = _object_factories.obj_like
-
-empty_shaped = _object_factories.empty_shaped
-empty_shaped_as = _object_factories.empty_shaped_as
-
 embed_schema = _attrs.embed_schema
 set_schema = _attrs.set_schema
 set_attr = _attrs.set_attr
@@ -105,16 +104,6 @@ to_pylist = _py_conversions.to_pylist
 to_py = _py_conversions.to_py
 to_pytree = _py_conversions.to_pytree
 
-from_proto = _proto_conversions.from_proto
-to_proto = _proto_conversions.to_proto
-
-dumps = _s11n.dumps
-loads = _s11n.loads
-
-clone = _tmp_non_deterministic_overrides.clone
-shallow_clone = _tmp_non_deterministic_overrides.shallow_clone
-deep_clone = _tmp_non_deterministic_overrides.deep_clone
-
 int32 = _py_conversions.int32
 int64 = _py_conversions.int64
 float32 = _py_conversions.float32
@@ -126,3 +115,13 @@ mask = _py_conversions.mask
 expr_quote = _py_conversions.expr_quote
 # TODO: Remove this alias once the migration is done.
 text = _py_conversions.str_
+
+from_proto = _proto_conversions.from_proto
+to_proto = _proto_conversions.to_proto
+
+dumps = _s11n.dumps
+loads = _s11n.loads
+
+clone = _tmp_non_deterministic_overrides.clone
+shallow_clone = _tmp_non_deterministic_overrides.shallow_clone
+deep_clone = _tmp_non_deterministic_overrides.deep_clone

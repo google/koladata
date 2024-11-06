@@ -24,7 +24,6 @@ from koladata.functions import functions as fns
 from koladata.operators import kde_operators as _
 from koladata.testing import testing
 from koladata.types import data_slice
-from koladata.types import jagged_shape
 
 ds = data_slice.DataSlice.from_vals
 
@@ -40,22 +39,6 @@ class MutableObjTest(absltest.TestCase):
     # If you remove this assert, expand the tests here for more coverage
     # of mutable_obj.
     self.assertIs(fns.mutable_obj, fns.obj)
-
-  def test_mutable_obj_like(self):
-    x = fns.mutable_obj_like(ds([1, None, 2]))
-    x.x = 1
-    testing.assert_equal(x.x, ds([1, None, 1]).with_bag(x.get_bag()))
-    # If you remove this assert, expand the tests here for more coverage
-    # of mutable_obj_like.
-    self.assertIs(fns.mutable_obj_like, fns.obj_like)
-
-  def test_mutable_obj_shaped(self):
-    x = fns.mutable_obj_shaped(jagged_shape.create_shape(2, [1, 2]))
-    x.x = 1
-    testing.assert_equal(x.x, ds([[1], [1, 1]]).with_bag(x.get_bag()))
-    # If you remove this assert, expand the tests here for more coverage
-    # of mutable_obj_shaped.
-    self.assertIs(fns.mutable_obj_shaped, fns.obj_shaped)
 
 
 if __name__ == '__main__':

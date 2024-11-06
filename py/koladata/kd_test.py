@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kd."""
-
 import inspect
 import re
 import types
@@ -121,16 +119,6 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(x.y, kd.item(2).with_bag(x.get_bag()))
     x.x = 3
     kd.testing.assert_equal(x.x, kd.item(3).with_bag(x.get_bag()))
-
-  def test_mutable_obj_like(self):
-    x = kd.mutable_obj_like(kd.slice([1, None, 2]))
-    x.x = 1
-    kd.testing.assert_equal(x.x, kd.slice([1, None, 1]).with_bag(x.get_bag()))
-
-  def test_mutable_obj_shaped(self):
-    x = kd.mutable_obj_shaped(jagged_shape.create_shape(2, [1, 2]))
-    x.x = 1
-    kd.testing.assert_equal(x.x, kd.slice([[1], [1, 1]]).with_bag(x.get_bag()))
 
   def test_expr(self):
     kd.testing.assert_equal(
