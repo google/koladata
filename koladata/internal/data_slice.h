@@ -394,8 +394,10 @@ void DataSliceImpl::CreateImpl(DataSliceImpl& res,
   static_assert(data_slice_impl::AreAllTypesDistinct(
                     std::type_identity<T>(), std::type_identity<Ts>()...),
                 "All DenseArray's must have different types");
+  DCHECK_EQ(main_values.bitmap_bit_offset, 0);
   if constexpr (sizeof...(values) > 0) {
     DCHECK((values.size() == main_values.size()) && ...);
+    DCHECK((values.bitmap_bit_offset == 0) && ...);
     DCHECK(data_slice_impl::VerifyNonIntersectingIds(main_values, values...));
   }
   auto& impl = *res.internal_;

@@ -587,8 +587,6 @@ TEST(DataSliceImpl, IsEquivalentTo) {
   auto float0 = DataSliceImpl::Create(arolla::CreateDenseArray<float>({0, 0}));
   auto int_1_null =
       DataSliceImpl::Create(arolla::CreateDenseArray<int>({1, std::nullopt}));
-  auto int_1_null_with_offset = DataSliceImpl::Create(
-      arolla::CreateDenseArray<int>({0, 1, std::nullopt}).Slice(1, 2));
   auto int0_and_empty_float = DataSliceImpl::Create(
       arolla::CreateDenseArray<int>({0, 0}),
       arolla::CreateDenseArray<float>({std::nullopt, std::nullopt}));
@@ -611,7 +609,6 @@ TEST(DataSliceImpl, IsEquivalentTo) {
   EXPECT_FALSE(int0.IsEquivalentTo(int64_t0));
   EXPECT_TRUE(float0.IsEquivalentTo(float0));
   EXPECT_FALSE(int0.IsEquivalentTo(int_1_null));
-  EXPECT_TRUE(int_1_null.IsEquivalentTo(int_1_null_with_offset));
   EXPECT_TRUE(int0_and_empty_float.IsEquivalentTo(int0));
   EXPECT_TRUE(int0.IsEquivalentTo(int0_and_empty_float));
   EXPECT_FALSE(int0.IsEquivalentTo(empty_int_and_float0));

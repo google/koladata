@@ -433,30 +433,6 @@ TEST(DenseSourceTest, MutableCopyOfImmutableWithoutBitmap) {
   EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(2)), DataItem(7));
 }
 
-TEST(DenseSourceTest, MutableCopyOfImmutableWithBitmapBitOffset) {
-  DenseArray<int> arr = arolla::CreateDenseArray<int>(
-      {1, 2, std::nullopt, 3, 4, std::nullopt, 5});
-  DenseArray<int> sliced_arr = arr.Slice(1, 4);
-  EXPECT_EQ(sliced_arr.bitmap_bit_offset, 1);
-  EXPECT_THAT(sliced_arr, ElementsAre(2, std::nullopt, 3, 4));
-
-  AllocationId alloc = Allocate(5);
-  ASSERT_OK_AND_ASSIGN(
-      auto source,
-      DenseSource::CreateReadonly(alloc, DataSliceImpl::Create(sliced_arr)));
-
-  auto source_copy = source->CreateMutableCopy();
-  ASSERT_OK(source_copy->Set(alloc.ObjectByOffset(2), DataItem(7)));
-
-  EXPECT_EQ(source->Get(alloc.ObjectByOffset(0)), DataItem(2));
-  EXPECT_EQ(source->Get(alloc.ObjectByOffset(1)), DataItem());
-  EXPECT_EQ(source->Get(alloc.ObjectByOffset(2)), DataItem(3));
-
-  EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(0)), DataItem(2));
-  EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(1)), DataItem());
-  EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(2)), DataItem(7));
-}
-
 TEST(DenseSourceTest, MutableCopyOfImmutableWithoutBitmapUnit) {
   DenseArray<Unit> arr = arolla::CreateDenseArray<Unit>(
       {Unit(), Unit(), Unit()});
@@ -476,46 +452,6 @@ TEST(DenseSourceTest, MutableCopyOfImmutableWithoutBitmapUnit) {
 
   EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(0)), DataItem(Unit()));
   EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(1)), DataItem(Unit()));
-  EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(2)), DataItem());
-}
-
-TEST(DenseSourceTest, MutableCopyOfImmutableWithBitmapBitOffsetUnit) {
-  DenseArray<Unit> arr = arolla::CreateDenseArray<Unit>(
-      {std::nullopt, Unit(), std::nullopt, Unit(), Unit(), std::nullopt});
-  DenseArray<Unit> sliced_arr = arr.Slice(1, 4);
-  EXPECT_EQ(sliced_arr.bitmap_bit_offset, 1);
-  EXPECT_THAT(sliced_arr, ElementsAre(Unit(), std::nullopt, Unit(), Unit()));
-
-  // Tests the optimization data_.bitmap_bit_offset == 0.
-  AllocationId alloc = Allocate(6);
-  ASSERT_OK_AND_ASSIGN(
-      auto source,
-      DenseSource::CreateReadonly(alloc, DataSliceImpl::Create(arr)));
-
-  auto source_copy = source->CreateMutableCopy();
-  ASSERT_OK(source_copy->Set(alloc.ObjectByOffset(1), DataItem()));
-
-  EXPECT_EQ(source->Get(alloc.ObjectByOffset(0)), DataItem());
-  EXPECT_EQ(source->Get(alloc.ObjectByOffset(1)), DataItem(Unit()));
-
-  EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(0)), DataItem());
-  EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(1)), DataItem());
-
-  // Tests the general case when data_.bitmap is not empty.
-  alloc = Allocate(5);
-  ASSERT_OK_AND_ASSIGN(
-      source,
-      DenseSource::CreateReadonly(alloc, DataSliceImpl::Create(sliced_arr)));
-
-  source_copy = source->CreateMutableCopy();
-  ASSERT_OK(source_copy->Set(alloc.ObjectByOffset(2), DataItem()));
-
-  EXPECT_EQ(source->Get(alloc.ObjectByOffset(0)), DataItem(Unit()));
-  EXPECT_EQ(source->Get(alloc.ObjectByOffset(1)), DataItem());
-  EXPECT_EQ(source->Get(alloc.ObjectByOffset(2)), DataItem(Unit()));
-
-  EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(0)), DataItem(Unit()));
-  EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(1)), DataItem());
   EXPECT_EQ(source_copy->Get(alloc.ObjectByOffset(2)), DataItem());
 }
 
