@@ -53,7 +53,7 @@ absl::uint128 DivideBy62Power10(absl::uint128& val, uint64_t reminder) {
 
 }  // namespace
 
-arolla::Text EncodeBase62(absl::uint128 val) {
+std::string Base62Repr(absl::uint128 val) {
   std::string res(kBase62Length, '0');
   size_t idx = kBase62Length;
 
@@ -74,7 +74,11 @@ arolla::Text EncodeBase62(absl::uint128 val) {
 
   val = DivideBy62Power10(val, reminder);
   append_char(absl::Uint128Low64(val), 2);
-  return arolla::Text(std::move(res));
+  return res;
+}
+
+arolla::Text EncodeBase62(absl::uint128 val) {
+  return arolla::Text(Base62Repr(val));
 }
 
 absl::uint128 DecodeBase62(absl::string_view text) {

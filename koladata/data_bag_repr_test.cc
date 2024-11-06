@@ -68,13 +68,13 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Entities) {
       DataBagToStr(bag),
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => 1(.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => b(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.a => 1(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.b => b(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.a => INT32(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => STRING(.|\n)*)regex"))));
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.b => STRING(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedEntities) {
@@ -89,14 +89,14 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedEntities) {
       DataBagToStr(bag),
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => 1(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.a => 1(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.b => \$[0-9a-zA-Z]{22}(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.a => INT32(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"))));
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.b => \$[0-9a-zA-Z]{22}(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_Objects) {
@@ -111,14 +111,14 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Objects) {
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0(.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => 1(.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => b(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.a => 1(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.b => b(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
+              R"regex((.|\n)*#[0-9a-zA-Z]{22}\.a => INT32(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}:0\.b => STRING(.|\n)*)regex"))));
+              R"regex((.|\n)*#[0-9a-zA-Z]{22}\.b => STRING(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedObjects) {
@@ -134,17 +134,17 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedObjects) {
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0(.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*\$[0-9a-f]{32}:0\.a => 1(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.a => 1(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\.b => \$[0-9a-f]{32}:0(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\.b => \$[0-9a-zA-Z]{22}(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}:0\.a => INT32(.|\n)*)regex"),
+              R"regex((.|\n)*#[0-9a-zA-Z]{22}\.a => INT32(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}:0\.b => OBJECT(.|\n)*)regex"))));
+              R"regex((.|\n)*#[0-9a-zA-Z]{22}\.b => OBJECT(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
@@ -164,14 +164,14 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\['a'\] => 1(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\['a'\] => 1(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:1\['x'\] => 4(.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\['x'\] => 4(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}:0\.get_key_schema\(\) => STRING(.|\n)*)regex"),
+              R"regex((.|\n)*#[0-9a-zA-Z]{22}\.get_key_schema\(\) => STRING(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}:0\.get_value_schema\(\) => INT64(.|\n)*)regex"))));
+              R"regex((.|\n)*#[0-9a-zA-Z]{22}\.get_value_schema\(\) => INT64(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_List) {
@@ -185,10 +185,10 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_List) {
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*\$[0-9a-f]{32}:0\[:\] => \[1, 2, 3\](.|\n)*)regex"),
+              R"regex((.|\n)*\$[0-9a-zA-Z]{22}\[:\] => \[1, 2, 3\](.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*SchemaBag:(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*k[0-9a-f]{32}:0\.get_item_schema\(\) => INT64(.|\n)*)regex"))));
+              R"regex((.|\n)*#[0-9a-zA-Z]{22}\.get_item_schema\(\) => INT64(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_FallbackBags) {
@@ -208,7 +208,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_FallbackBags) {
   EXPECT_THAT(
       DataBagToStr(ds3.GetBag()),
       IsOkAndHolds(MatchesRegex(
-          R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}:0\.a => 42(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-f]{32}:0\.a => INT32(.|\n)*  fallback #1 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}:0\.b => 123(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-f]{32}:0\.b => INT32(.|\n)*)regex")));
+          R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-zA-Z]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-zA-Z]{22}\.a => 42(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-zA-Z]{22}\.a => INT32(.|\n)*  fallback #1 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-zA-Z]{22}\.b => 123(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-zA-Z]{22}\.b => INT32(.|\n)*)regex")));
 }
 
 TEST(DataBagReprTest,
@@ -224,8 +224,8 @@ TEST(DataBagReprTest,
       DataBagToStr(bag, /*triple_limit=*/2),
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
-\$[0-9a-f]{32}:0\.get_obj_schema\(\) => k[0-9a-f]{32}:0
-\$[0-9a-f]{32}:0\.a => 1
+\$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
+\$[0-9a-zA-Z]{22}\.a => 1
 \.\.\.
 
 Showing only the first 2 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
@@ -245,8 +245,8 @@ TEST(DataBagReprTest,
       DataBagToStr(bag, /*triple_limit=*/2),
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
-\$[0-9a-f]{32}:0\[:\] => \[1, 2, 3\]
-\$[0-9a-f]{32}:0\[:\] => \[4, 5, 6\]
+\$[0-9a-zA-Z]{22}\[:\] => \[1, 2, 3\]
+\$[0-9a-zA-Z]{22}\[:\] => \[4, 5, 6\]
 \.\.\.
 
 Showing only the first 2 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
@@ -270,8 +270,8 @@ TEST(DataBagReprTest,
       DataBagToStr(bag, /*triple_limit=*/2),
       IsOkAndHolds(AllOf(
           MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
-\$[0-9a-f]{32}:0\['a'\] => 1
-\$[0-9a-f]{32}:1\['x'\] => 4
+\$[0-9a-zA-Z]{22}\['a'\] => 1
+\$[0-9a-zA-Z]{22}\['x'\] => 4
 \.\.\.
 
 Showing only the first 2 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
@@ -292,11 +292,11 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_TripleLimit_SchemaBag) {
 
   EXPECT_THAT(DataBagToStr(bag, /*triple_limit=*/3),
               IsOkAndHolds(AllOf(MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
-\$[0-9a-f]{32}:0\['a'\] => 1
-\$[0-9a-f]{32}:1\['x'\] => 4
+\$[0-9a-zA-Z]{22}\['a'\] => 1
+\$[0-9a-zA-Z]{22}\['x'\] => 4
 
 SchemaBag:
-k[0-9a-f]{32}:0\.get_key_schema\(\) => STRING
+#[0-9a-zA-Z]{22}\.get_key_schema\(\) => STRING
 \.\.\.
 
 Showing only the first 3 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
@@ -328,14 +328,14 @@ SchemaBag:
 2 fallback DataBag\(s\):
   fallback #0 \$[0-9a-f]{4}:
   DataBag:
-  \$[0-9a-f]{32}:0\.a => 42
+  \$[0-9a-zA-Z]{22}\.a => 42
 
   SchemaBag:
-  \$[0-9a-f]{32}:0\.a => INT32
+  \$[0-9a-zA-Z]{22}\.a => INT32
 
   fallback #1 \$[0-9a-f]{4}:
   DataBag:
-  \$[0-9a-f]{32}:0\.b => 123
+  \$[0-9a-zA-Z]{22}\.b => 123
 \.\.\.
 
 Showing only the first 3 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
@@ -358,7 +358,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_DuplicatedFallbackBags) {
   EXPECT_THAT(
       DataBagToStr(db),
       IsOkAndHolds(MatchesRegex(
-          R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-f]{32}:0\.a => 42(.|\n)*  SchemaBag:(.|\n)*  fallback #1 duplicated, see db with id: \$[0-9a-f]{4})regex")));
+          R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-zA-Z]{22}\.a => 42(.|\n)*  SchemaBag:(.|\n)*  fallback #1 duplicated, see db with id: \$[0-9a-f]{4})regex")));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_ListSchema) {
@@ -385,7 +385,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_ListSchema) {
   EXPECT_THAT(
       DataBagToStr(bag),
       IsOkAndHolds(MatchesRegex(
-          R"regex((\n|.)*\$[0-9a-f]{32}:0\.a => list<list<INT32>>(\n|.)*)regex")));
+          R"regex((\n|.)*\$[0-9a-zA-Z]{22}\.a => list<list<INT32>>(\n|.)*)regex")));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_DictSchema) {
@@ -403,7 +403,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_DictSchema) {
   EXPECT_THAT(
       DataBagToStr(bag),
       IsOkAndHolds(MatchesRegex(
-          R"regex((\n|.)*\$[0-9a-f]{32}:0\.dudulu => k[0-9a-f]{32}:0\[dict<INT32, k[0-9a-f]{32}:0\[dict<INT32, INT32>\]>\](\n|.)*)regex")));
+          R"regex((\n|.)*\$[0-9a-zA-Z]{22}\.dudulu => #[0-9a-zA-Z]{22}\[dict<INT32, #[0-9a-zA-Z]{22}\[dict<INT32, INT32>\]>\](\n|.)*)regex")));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_SchemaCycle) {
@@ -423,7 +423,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_SchemaCycle) {
   EXPECT_THAT(
       DataBagToStr(bag),
       IsOkAndHolds(MatchesRegex(
-          R"regex((\n|.)*\$[0-9a-f]{32}:0\.dudulu => k[0-9a-f]{32}:0\[dict<INT32, k[0-9a-f]{32}:0\[dict<INT32, k[0-9a-f]{32}:0\[dict<INT32, k[0-9a-f]{32}:0\[dict<INT32, k[0-9a-f]{32}:0\[dict<INT32, \.\.\.>\]>\]>\]>\]>\](\n|.)*)regex")));
+          R"regex((\n|.)*\$[0-9a-zA-Z]{22}\.dudulu => #[0-9a-zA-Z]{22}\[dict<INT32, #[0-9a-zA-Z]{22}\[dict<INT32, #[0-9a-zA-Z]{22}\[dict<INT32, #[0-9a-zA-Z]{22}\[dict<INT32, #[0-9a-zA-Z]{22}\[dict<INT32, \.\.\.>\]>\]>\]>\]>\](\n|.)*)regex")));
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_Dict) {

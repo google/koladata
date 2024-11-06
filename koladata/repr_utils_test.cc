@@ -93,7 +93,7 @@ TEST(ReprUtilTest, TestAssembleErrorMissingContextData) {
       AllOf(
           MatchesRegex(R"regex((.|\n)*conflicting schema INT32(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*the common schema\(s\) \$[0-9a-f]{32}:0(.|\n)*)regex")));
+              R"regex((.|\n)*the common schema\(s\) \$[0-9a-zA-Z]{22}(.|\n)*)regex")));
 
   Error error2;
   ASSERT_OK_AND_ASSIGN(

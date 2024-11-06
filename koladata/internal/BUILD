@@ -87,6 +87,7 @@ cc_library(
     srcs = ["object_id.cc"],
     hdrs = ["object_id.h"],
     deps = [
+        "//koladata/internal/op_utils:base62",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:inlined_vector",
         "@com_google_absl//absl/log:check",

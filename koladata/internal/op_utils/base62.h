@@ -15,13 +15,17 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_ITEMID_UTILS_H_
 #define KOLADATA_INTERNAL_OP_UTILS_ITEMID_UTILS_H_
 
+#include <string>
 #include "absl/numeric/int128.h"
 #include "absl/strings/string_view.h"
 #include "arolla/util/text.h"
 
 namespace koladata::internal {
 
-// Encode it 128bit unsigned integer into a base62 string.
+// String base62 representation of a 128bit unsigned integer.
+std::string Base62Repr(absl::uint128 val);
+
+// Encode a 128bit unsigned integer into a base62 string.
 arolla::Text EncodeBase62(absl::uint128 val);
 
 // Decode a base62 string into a 128bit unsigned integer.

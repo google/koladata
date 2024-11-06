@@ -753,9 +753,9 @@ TEST(ObjectIdTest, ObjectIdStringFormat) {
   EXPECT_THAT(ObjectIdStr(CreateUuidObjectWithMetadata(
                   arolla::FingerprintHasher("").Combine(57).Finish(),
                   ObjectId::kUuidFlag)),
-              MatchesRegex(R"regex(k[0-9a-f]{32}:0)regex"));
+              MatchesRegex(R"regex(#[0-9a-zA-Z]{22})regex"));
   EXPECT_THAT(ObjectIdStr(AllocateSingleObject()),
-              MatchesRegex(R"regex(\$[0-9a-f]{32}:0)regex"));
+              MatchesRegex(R"regex(\$[0-9a-zA-Z]{22})regex"));
 }
 
 TEST(ObjectIdTest, AllocateUuids) {
