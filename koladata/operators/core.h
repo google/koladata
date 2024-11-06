@@ -229,35 +229,6 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                     const DataSlice& keys_from,
                                     const DataSlice& values_from);
 
-// kde.core.obj.
-class ObjOperatorFamily final : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const override;
-};
-
-// kde.core.obj_shaped.
-class ObjShapedOperatorFamily final : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const override;
-};
-
-// kde.core.obj_like.
-class ObjLikeOperatorFamily final : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const override;
-};
-
-// kde.core.uuobj operator.
-// Creates a DataSlice of UuObjects.
-class UuObjOperatorFamily : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const final;
-};
-
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_H_
