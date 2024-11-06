@@ -109,7 +109,9 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg_simple(self):
-    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.STRING)
+    schema = fns.schema.new_schema(
+        a=schema_constants.INT32, b=schema_constants.STRING
+    )
     x = fns.new(a=42, b='xyz', schema=schema)
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
@@ -118,8 +120,8 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_deep(self):
-    nested_schema = fns.new_schema(p=schema_constants.BYTES)
-    schema = fns.new_schema(
+    nested_schema = fns.schema.new_schema(p=schema_constants.BYTES)
+    schema = fns.schema.new_schema(
         a=schema_constants.INT32,
         b=schema_constants.STRING,
         nested=nested_schema,
@@ -175,7 +177,7 @@ class NewTest(absltest.TestCase):
       fns.new({'a': [1, 2, 3], 'b': [4, 5]}, schema=list_schema)
 
   def test_schema_arg_schema_with_fallback(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     fallback_bag = fns.bag()
     schema.with_bag(fallback_bag).set_attr('b', schema_constants.STRING)
     schema = schema.enriched(fallback_bag)
@@ -187,7 +189,7 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_implicit_casting(self):
-    schema = fns.new_schema(a=schema_constants.FLOAT32)
+    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = fns.new(a=42, schema=schema)
     self.assertEqual(dir(x), ['a'])
     testing.assert_equal(
@@ -196,20 +198,20 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.FLOAT32)
 
   def test_schema_arg_implicit_casting_failure(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
         exceptions.KodaError, r'schema for attribute \'a\' is incompatible'
     ):
       fns.new(a='xyz', schema=schema)
 
   def test_schema_arg_supplement_succeeds(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     x = fns.new(a=42, b='xyz', schema=schema)
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_update_schema(self):
-    schema = fns.new_schema(a=schema_constants.FLOAT32)
+    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = fns.new(a=42, b='xyz', schema=schema, update_schema=True)
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
@@ -222,7 +224,7 @@ class NewTest(absltest.TestCase):
       fns.new(a=42, schema=schema_constants.ANY, update_schema=42)  # pytype: disable=wrong-arg-types
 
   def test_schema_arg_update_schema_error_overwriting(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     x = fns.new(a='xyz', schema=schema, update_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
@@ -234,13 +236,13 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.b, ds('a').as_any().with_bag(x.get_bag()))
 
   def test_schema_contains_any(self):
-    schema = fns.new_schema(x=schema_constants.ANY)
+    schema = fns.schema.new_schema(x=schema_constants.ANY)
     entity = fns.new()
     x = fns.new(x=entity, schema=schema)
     testing.assert_equal(x.x.no_bag(), entity.no_bag().as_any())
 
   def test_schema_arg_embed_schema(self):
-    schema = fns.new_schema(a=schema_constants.OBJECT)
+    schema = fns.schema.new_schema(a=schema_constants.OBJECT)
     x = fns.new(a=fns.new(p=42, q='xyz'), schema=schema)
     self.assertEqual(dir(x), ['a'])
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.OBJECT)
@@ -272,7 +274,7 @@ class NewTest(absltest.TestCase):
       fns.new(a=1, schema=schema_constants.OBJECT)
 
   def test_schema_error_message(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
@@ -347,7 +349,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
     testing.assert_equal(item.no_bag(), ds(None))
     item = fns.new(None, schema=schema_constants.FLOAT32)
     testing.assert_equal(item.no_bag(), ds(None, schema_constants.FLOAT32))
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
     )
     item = fns.new(None, schema=schema)

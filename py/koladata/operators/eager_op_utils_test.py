@@ -187,6 +187,74 @@ class EagerOpUtilsTest(parameterized.TestCase):
         arolla.tuple(self.x, self.y),
     )
 
+  def test_overrides(self):
+    kd = eager_op_utils.operators_container('test.namespace_1')
+    kd_with_overrides = eager_op_utils.add_overrides(
+        kd,
+        types.SimpleNamespace(
+            op_1=lambda x, y: x + y,
+            op_new_override=lambda x, y: x * y,
+            _ignored_attribute=lambda x, y: x - y,
+        ),
+    )
+    self.assertCountEqual(
+        dir(kd_with_overrides), ['op_1', 'op_2', 'op_new_override']
+    )
+    testing.assert_equal(
+        kd_with_overrides.op_1(self.x, self.y), self.x + self.y
+    )
+    testing.assert_equal(kd_with_overrides.op_2(self.x, self.y), self.y)
+    testing.assert_equal(
+        kd_with_overrides.op_new_override(self.x, self.y), self.x * self.y
+    )
+    # We recreate the container to skip the cache.
+    kd_with_overrides = eager_op_utils.add_overrides(
+        kd,
+        types.SimpleNamespace(
+            op_1=lambda x, y: x + y,
+            op_new_override=lambda x, y: x * y,
+            _ignored_attribute=lambda x, y: x - y,
+        ),
+    )
+    testing.assert_equal(
+        kd_with_overrides['op_1'](self.x, self.y), self.x + self.y
+    )
+    testing.assert_equal(kd_with_overrides['op_2'](self.x, self.y), self.y)
+    testing.assert_equal(
+        kd_with_overrides['op_new_override'](self.x, self.y), self.x * self.y
+    )
+    with self.assertRaises(AttributeError):
+      _ = kd_with_overrides._ignored_attribute
+    with self.assertRaises(LookupError):
+      _ = kd_with_overrides['_ignored_attribute']
+
+    # Check that the original container is unchanged.
+    testing.assert_equal(kd.op_1(self.x, self.y), self.x)
+    testing.assert_equal(kd.op_2(self.x, self.y), self.y)
+    with self.assertRaises(AttributeError):
+      _ = kd.op_new_override
+
+  def test_overrides_errors(self):
+    kd = eager_op_utils.operators_container('test.namespace_1')
+    kd_with_overrides = eager_op_utils.add_overrides(
+        kd,
+        types.SimpleNamespace(),
+    )
+    with self.assertRaisesRegex(
+        AssertionError, 'the container already has overrides'
+    ):
+      eager_op_utils.add_overrides(
+          kd_with_overrides,
+          types.SimpleNamespace(),
+      )
+    with self.assertRaisesRegex(
+        AssertionError, 'is not an eager operator container'
+    ):
+      eager_op_utils.add_overrides(
+          types.SimpleNamespace(),  # pytype: disable=wrong-arg-types
+          types.SimpleNamespace(),
+      )
+
 
 if __name__ == '__main__':
   absltest.main()

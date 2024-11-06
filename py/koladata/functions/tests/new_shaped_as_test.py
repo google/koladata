@@ -78,7 +78,7 @@ class NewShapedAsTest(absltest.TestCase):
     testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         a=schema_constants.FLOAT32, b=schema_constants.STRING
     )
     x = fns.new_shaped_as(ds([1, 2]), a=42, b='xyz', schema=schema)
@@ -93,7 +93,7 @@ class NewShapedAsTest(absltest.TestCase):
     )
 
   def test_update_schema_arg(self):
-    schema = fns.new_schema(a=schema_constants.FLOAT32)
+    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = fns.new_shaped_as(
         ds([1, 2]),
         a=42,

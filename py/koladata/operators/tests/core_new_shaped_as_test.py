@@ -107,7 +107,9 @@ class CoreNewShapedAsTest(absltest.TestCase):
 
   def test_schema_arg(self):
     shape_from = ds([])
-    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.STRING)
+    schema = fns.schema.new_schema(
+        a=schema_constants.INT32, b=schema_constants.STRING
+    )
     x = kde.core.new_shaped_as(shape_from, schema=schema).eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
@@ -122,7 +124,7 @@ class CoreNewShapedAsTest(absltest.TestCase):
 
   def test_update_schema_arg(self):
     shape_from = ds([6, 7])
-    schema = fns.new_schema(a=schema_constants.FLOAT32)
+    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = kde.core.new_shaped_as(
         shape_from,
         a=42,

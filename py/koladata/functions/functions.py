@@ -14,6 +14,9 @@
 
 """A front-end module for Koda functions."""
 
+import types as _py_types
+import warnings as _warnings
+
 from koladata.functions import attrs as _attrs
 from koladata.functions import object_factories as _object_factories
 from koladata.functions import predicates as _predicates
@@ -24,6 +27,8 @@ from koladata.functions import schema as _schema
 # TODO: Remove after hidden_seed is properly handled in aux_eval_op
 # (or similar).
 from koladata.functions import tmp_non_deterministic_overrides as _tmp_non_deterministic_overrides
+from koladata.types import data_bag as _data_bag
+from koladata.types import data_slice as _data_slice
 
 bag = _object_factories.bag
 
@@ -45,10 +50,28 @@ new_shaped = _object_factories.new_shaped
 new_shaped_as = _object_factories.new_shaped_as
 new_like = _object_factories.new_like
 
-new_schema = _schema.new_schema
+
+def new_schema(
+    db: _data_bag.DataBag | None = None, **attrs: _data_slice.DataSlice
+) -> _data_slice.DataSlice:
+  """Deprecated. Use kd.schema.new_schema instead."""
+  _warnings.warn(
+      'kd.new_schema is deprecated. Use kd.schema.new_schema instead.',
+      RuntimeWarning,
+  )
+  return _schema.new_schema(db, **attrs)
+
+
 list_schema = _schema.list_schema
 dict_schema = _schema.dict_schema
 uu_schema = _schema.uu_schema
+
+schema = _py_types.SimpleNamespace(
+    new_schema=_schema.new_schema,
+    list_schema=_schema.list_schema,
+    dict_schema=_schema.dict_schema,
+    uu_schema=_schema.uu_schema,
+)
 
 obj = _object_factories.obj
 obj_shaped = _object_factories.obj_shaped

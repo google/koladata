@@ -161,7 +161,7 @@ class CoreAttrsTest(parameterized.TestCase):
     self.assertEqual(o.with_bag(db).x.no_bag(), ds(1))
 
   def test_schema_works(self):
-    o = fns.new_schema()
+    o = fns.schema.new_schema()
     db = kde.core.attrs(o, x=schema_constants.INT32).eval()
     self.assertEqual(o.with_bag(db).x.no_bag(), schema_constants.INT32)
     db = kde.core.attrs(o, x=schema_constants.INT32, update_schema=True).eval()

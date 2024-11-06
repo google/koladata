@@ -130,7 +130,9 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
-    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.STRING)
+    schema = fns.schema.new_schema(
+        a=schema_constants.INT32, b=schema_constants.STRING
+    )
     x = fns.new_like(ds([1, None]), a=42, b='xyz', schema=schema)
     self.assertEqual(dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, None]).with_bag(x.get_bag()))
@@ -139,7 +141,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_implicit_casting(self):
-    schema = fns.new_schema(a=schema_constants.FLOAT32)
+    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = fns.new_like(ds([1, 1]), a=42, schema=schema)
     self.assertEqual(dir(x), ['a'])
     testing.assert_equal(
@@ -148,7 +150,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.FLOAT32)
 
   def test_schema_arg_update_schema(self):
-    schema = fns.new_schema(a=schema_constants.FLOAT32)
+    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = fns.new_like(
         ds([1, 1]), a=42, b='xyz', schema=schema, update_schema=True
     )
@@ -163,7 +165,7 @@ class NewLikeTest(absltest.TestCase):
       fns.new_like(ds(1), schema=schema_constants.ANY, update_schema=42)  # pytype: disable=wrong-arg-types
 
   def test_schema_arg_update_schema_error_overwriting(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     x = fns.new_like(ds(1), a='xyz', schema=schema, update_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
@@ -192,7 +194,7 @@ class NewLikeTest(absltest.TestCase):
       fns.new_like(ds(1), a=1, schema=schema_constants.OBJECT)
 
   def test_schema_error_message(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(

@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kd.new_schema."""
+from unittest import mock
+import warnings
 
 from absl.testing import absltest
 from arolla import arolla
@@ -30,7 +31,7 @@ class NewSchemaTest(absltest.TestCase):
 
   def test_simple_schema(self):
     db = bag()
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         db, a=schema_constants.INT32, b=schema_constants.STRING
     )
 
@@ -40,17 +41,17 @@ class NewSchemaTest(absltest.TestCase):
   def test_nested_schema_with_adoption(self):
     db = bag()
     db2 = bag()
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         db,
         a=schema_constants.INT32,
-        b=fns.new_schema(db2, a=schema_constants.INT32),
+        b=fns.schema.new_schema(db2, a=schema_constants.INT32),
     )
     testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
     testing.assert_equal(schema.b.a, schema_constants.INT32.with_bag(db))
 
   def test_bag_arg(self):
     db = bag()
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING, db=db
     )
 
@@ -63,7 +64,7 @@ class NewSchemaTest(absltest.TestCase):
         ValueError,
         'expected DataSlice argument, got list',
     ):
-      _ = fns.new_schema(
+      _ = fns.schema.new_schema(
           db,
           a=schema_constants.INT32,
           b=[1, 2, 3],
@@ -88,7 +89,7 @@ class NewSchemaTest(absltest.TestCase):
         ValueError,
         'expected DataSlice argument, got Text',
     ):
-      _ = fns.new_schema(
+      _ = fns.schema.new_schema(
           db,
           a=schema_constants.INT32,
           b=arolla.text('hello'),
@@ -102,12 +103,27 @@ class NewSchemaTest(absltest.TestCase):
         "schema's schema must be SCHEMA, got: OBJECT",
     ):
       db2 = bag()
-      _ = fns.new_schema(
+      _ = fns.schema.new_schema(
           db,
           a=schema_constants.INT32,
           b=fns.obj(db=db2, a=schema_constants.INT32),
       )
     testing.assert_equivalent(db, bag())
+
+  def test_deprecated_new_schema(self):
+    db = bag()
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      _ = fns.schema.new_schema(
+          db, a=schema_constants.INT32, b=schema_constants.STRING
+      )
+      mock_warn.assert_not_called()
+      schema = fns.new_schema(
+          db, a=schema_constants.INT32, b=schema_constants.STRING
+      )
+      mock_warn.assert_called_once()
+
+    testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
+    testing.assert_equal(schema.b, schema_constants.STRING.with_bag(db))
 
 
 if __name__ == '__main__':

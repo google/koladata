@@ -2636,7 +2636,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",

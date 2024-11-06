@@ -66,7 +66,9 @@ class CoreUpdatedTest(parameterized.TestCase):
     self.assertFalse(result.get_bag().is_mutable())
 
   def test_eval_attr_conflict(self):
-    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.INT32)
+    schema = fns.schema.new_schema(
+        a=schema_constants.INT32, b=schema_constants.INT32
+    )
     db1 = bag()
     obj1 = db1.new(a=1, b=2, schema=schema)
     obj2 = db1.new(a=3, b=4, schema=schema)

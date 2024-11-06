@@ -85,7 +85,7 @@ message.
 `KodaError` also support nesting. Example:
 
 ```
->>> schema = kd.new_schema(a=schema_constants.INT32)
+>>> schema = kd.schema.new_schema(a=schema_constants.INT32)
 >>> kd.new(a='xyz', schema=schema)
 ...
 

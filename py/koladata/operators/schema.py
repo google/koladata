@@ -110,9 +110,7 @@ def _has(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.new_schema'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(repr_fn=op_repr.full_signature_repr)
 @optools.as_backend_operator(
     'kde.schema.new_schema',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -218,9 +216,10 @@ def with_schema(x, schema):  # pylint: disable=unused-argument
     kd.with_schema(kd.ds(1).with_bag(db), db.new_schema(x=kd.INT32)) -> fail due
         to incompatible schema
     kd.with_schema(db.new(x=1), kd.INT32) -> fail due to incompatible schema
-    kd.with_schema(db.new(x=1), kd.new_schema(x=kd.INT32)) -> fail due to
+    kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32)) -> fail due to
         different DataBag
-    kd.with_schema(db.new(x=1), kd.new_schema(x=kd.INT32).no_bag()) -> work
+    kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32).no_bag()) ->
+    work
     kd.with_schema(db.new(x=1), db.new_schema(x=kd.INT64)) -> work
 
   Args:

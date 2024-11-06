@@ -111,7 +111,7 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(item, ds(None))
     item = fns.from_py(None, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(None, schema_constants.FLOAT32))
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
     )
     item = fns.from_py(None, schema=schema)
@@ -153,9 +153,9 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(obj.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_with_schema(self):
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         a=schema_constants.FLOAT32,
-        b=fns.new_schema(x=schema_constants.STRING),
+        b=fns.schema.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
     )
     entity = fns.from_py(
@@ -171,7 +171,7 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_with_nested_object(self):
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         a=schema_constants.INT64,
         b=schema_constants.OBJECT,
         c=schema_constants.BYTES,
@@ -189,7 +189,7 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_incomplete_schema(self):
-    schema = fns.new_schema(b=schema_constants.OBJECT)
+    schema = fns.schema.new_schema(b=schema_constants.OBJECT)
     entity = fns.from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
         schema=schema,
@@ -202,7 +202,7 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(entity.b.x.no_bag(), ds('abc'))
 
   def test_dict_as_obj_entity_empty_schema(self):
-    schema = fns.new_schema()
+    schema = fns.schema.new_schema()
     entity = fns.from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
         schema=schema,
@@ -216,9 +216,9 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(obj.b.x.no_bag(), ds('abc'))
 
   def test_dict_as_obj_entity_incompatible_schema(self):
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         a=schema_constants.INT64,
-        b=fns.new_schema(x=schema_constants.FLOAT32),
+        b=fns.schema.new_schema(x=schema_constants.FLOAT32),
         c=schema_constants.FLOAT32,
     )
     with self.assertRaisesRegex(
@@ -236,8 +236,9 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(obj.a.no_bag(), ds(42))
     # Entity - non STRING schema with STRING item.
     entity = fns.from_py(
-        {ds('a').as_any(): 42}, dict_as_obj=True,
-        schema=fns.new_schema(a=schema_constants.INT32)
+        {ds('a').as_any(): 42},
+        dict_as_obj=True,
+        schema=fns.schema.new_schema(a=schema_constants.INT32),
     )
     self.assertCountEqual(dir(entity), ['a'])
     testing.assert_equal(entity.a.no_bag(), ds(42))
@@ -268,9 +269,9 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(obj.c.no_bag(), ds(b'xyz'))
 
   def test_dataclasses_with_schema(self):
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         a=schema_constants.FLOAT32,
-        b=fns.new_schema(x=schema_constants.STRING),
+        b=fns.schema.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
     )
     entity = fns.from_py(
@@ -285,7 +286,7 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
   def test_dataclasses_with_incomplete_schema(self):
-    schema = fns.new_schema(
+    schema = fns.schema.new_schema(
         a=schema_constants.FLOAT32,
     )
     entity = fns.from_py(
@@ -316,7 +317,9 @@ class FromPyTest(absltest.TestCase):
     class Test:
       koda: data_slice.DataSlice
 
-    schema = fns.new_schema(koda=fns.new_schema(x=schema_constants.INT32))
+    schema = fns.schema.new_schema(
+        koda=fns.schema.new_schema(x=schema_constants.INT32)
+    )
     entity = fns.from_py(Test(schema.koda(x=1)), schema=schema)
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(dir(entity), ['koda'])
@@ -414,14 +417,16 @@ class FromPyTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting itemid to be a DataSlice, got int'
     ):
-      fns.bag()._from_py_impl([1, 2], False, 42, fns.new_schema(), 0)
+      fns.bag()._from_py_impl([1, 2], False, 42, fns.schema.new_schema(), 0)
     with self.assertRaisesRegex(
         TypeError, 'expecting from_dim to be an int, got str'
     ):
-      fns.bag()._from_py_impl([1, 2], False, fns.new(), fns.new_schema(), 'abc')
+      fns.bag()._from_py_impl(
+          [1, 2], False, fns.new(), fns.schema.new_schema(), 'abc'
+      )
     with self.assertRaisesRegex(OverflowError, 'Python int too large'):
       fns.bag()._from_py_impl(
-          [1, 2], False, fns.new(), fns.new_schema(), 1 << 100
+          [1, 2], False, fns.new(), fns.schema.new_schema(), 1 << 100
       )
   # pylint: enable=protected-access
 

@@ -109,9 +109,23 @@ slice = _eager_only(_data_slice.DataSlice.from_vals)  # pylint: disable=redefine
 
 # Impure functions (kd.bag, kd.list, kd.new, kd.set_attr, ...).
 def _LoadImpureFunctions():
+  """Injects the functions from functions.py into kd.py."""
   for fn_name in dir(_functions):
     if not fn_name.startswith('_'):
-      globals()[fn_name] = _eager_only(getattr(_functions, fn_name))
+      fn_val = getattr(_functions, fn_name)
+      if isinstance(fn_val, _py_types.SimpleNamespace):
+        # We only support overriding operator containers via function namespaces
+        # for now. Note that the behavior is different compared to top-level
+        # functions: those become eager-only, while here we still use the
+        # kde implementation in tracing mode.
+        assert fn_name in globals()
+        old_val = globals()[fn_name]
+        globals()[fn_name] = _dispatch(
+            eager=_eager_op_utils.add_overrides(old_val, fn_val),
+            tracing=getattr(_kde_operators.kde, fn_name),
+        )
+      else:
+        globals()[fn_name] = _eager_only(fn_val)
 
 
 _LoadImpureFunctions()

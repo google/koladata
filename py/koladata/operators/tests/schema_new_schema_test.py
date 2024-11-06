@@ -19,7 +19,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -113,11 +112,6 @@ class KodaNewSchemaTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.schema.new_schema()))
-
-  def test_alias(self):
-    self.assertTrue(
-        optools.equiv_to_op(kde.schema.new_schema, kde.new_schema)
-    )
 
   def test_repr(self):
     # This has a hidden seed which is stripped...

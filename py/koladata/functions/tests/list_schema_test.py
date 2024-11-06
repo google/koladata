@@ -53,7 +53,7 @@ class ListSchemaTest(absltest.TestCase):
     db = bag()
     db2 = bag()
     schema = fns.list_schema(
-        fns.new_schema(
+        fns.schema.new_schema(
             a=schema_constants.INT32, b=schema_constants.STRING, db=db2
         ),
         db,

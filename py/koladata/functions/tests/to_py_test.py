@@ -152,7 +152,9 @@ class ToPyTest(absltest.TestCase):
     self.assertEqual(fns.to_py(x, max_depth=0), [[1, 2], [3, 4]])
 
   def test_include_missing_attrs(self):
-    p = fns.new_schema(x=schema_constants.INT32, y=schema_constants.INT32)
+    p = fns.schema.new_schema(
+        x=schema_constants.INT32, y=schema_constants.INT32
+    )
     x = ds([p(x=1, y=2), p(x=3)])
     self.assertEqual(
         fns.to_py(x, obj_as_dict=True, include_missing_attrs=False),
@@ -180,7 +182,9 @@ class ToPytreeTest(absltest.TestCase):
         fns.to_pytree(x),
         {'a': {'a': 1}, 'b': [1, 2, 3], 'c': {1: 2}})
 
-    p = fns.new_schema(x=schema_constants.INT32, y=schema_constants.INT32)
+    p = fns.schema.new_schema(
+        x=schema_constants.INT32, y=schema_constants.INT32
+    )
     self.assertEqual(
         ds([p(x=1, y=2), p(x=3)]).to_pytree(include_missing_attrs=False),
         [{'x': 1, 'y': 2}, {'x': 3}])

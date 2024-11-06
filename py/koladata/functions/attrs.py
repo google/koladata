@@ -67,10 +67,11 @@ def set_schema(
 
     kd.set_schema(kd.ds([1, 2, 3], schema=kd.ANY), kd.INT32) -> kd.ds([1, 2, 3])
     kd.set_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
-    kd.set_schema(kd.ds(1).with_bag(kd.bag()), kd.new_schema(x=kd.INT32)) ->
+    kd.set_schema(kd.ds(1).with_bag(kd.bag()), kd.schema.new_schema(x=kd.INT32))
+    ->
     fail
     kd.set_schema(kd.new(x=1), kd.INT32) -> fail
-    kd.set_schema(kd.new(x=1), kd.new_schema(x=kd.INT64)) -> work
+    kd.set_schema(kd.new(x=1), kd.schema.new_schema(x=kd.INT64)) -> work
 
   Args:
     x: DataSlice to change the schema of.

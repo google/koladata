@@ -115,7 +115,9 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg_simple(self):
-    schema = fns.new_schema(a=schema_constants.INT32, b=schema_constants.STRING)
+    schema = fns.schema.new_schema(
+        a=schema_constants.INT32, b=schema_constants.STRING
+    )
     x = fns.new_shaped(
         jagged_shape.create_shape([2]), a=42, b='xyz', schema=schema
     )
@@ -126,8 +128,8 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_deep(self):
-    nested_schema = fns.new_schema(p=schema_constants.BYTES)
-    schema = fns.new_schema(
+    nested_schema = fns.schema.new_schema(p=schema_constants.BYTES)
+    schema = fns.schema.new_schema(
         a=schema_constants.INT32,
         b=schema_constants.STRING,
         nested=nested_schema,
@@ -152,7 +154,7 @@ class NewShapedTest(absltest.TestCase):
     )
 
   def test_schema_arg_implicit_casting(self):
-    schema = fns.new_schema(a=schema_constants.FLOAT32)
+    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = fns.new_shaped(jagged_shape.create_shape([2]), a=42, schema=schema)
     self.assertEqual(dir(x), ['a'])
     testing.assert_equal(
@@ -161,14 +163,14 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.FLOAT32)
 
   def test_schema_arg_implicit_casting_failure(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
         exceptions.KodaError, r'schema for attribute \'a\' is incompatible'
     ):
       fns.new_shaped(jagged_shape.create_shape([2]), a='xyz', schema=schema)
 
   def test_schema_arg_supplement_succeeds(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     x = fns.new_shaped(
         jagged_shape.create_shape(), a=42, b='xyz', schema=schema
     )
@@ -176,7 +178,7 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_update_schema(self):
-    schema = fns.new_schema(a=schema_constants.FLOAT32)
+    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = fns.new_shaped(
         jagged_shape.create_shape([2]),
         a=42,
@@ -198,7 +200,7 @@ class NewShapedTest(absltest.TestCase):
       )  # pytype: disable=wrong-arg-types
 
   def test_schema_arg_update_schema_error_overwriting(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     x = fns.new_shaped(
         jagged_shape.create_shape(),
         a='xyz',
@@ -219,7 +221,7 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.b, ds(['a', 'a']).as_any().with_bag(x.get_bag()))
 
   def test_schema_arg_embed_schema(self):
-    schema = fns.new_schema(a=schema_constants.OBJECT)
+    schema = fns.schema.new_schema(a=schema_constants.OBJECT)
     x = fns.new_shaped(
         jagged_shape.create_shape(),
         a=fns.new(p=42, q='xyz'),
@@ -263,7 +265,7 @@ class NewShapedTest(absltest.TestCase):
       )
 
   def test_schema_error_message(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(

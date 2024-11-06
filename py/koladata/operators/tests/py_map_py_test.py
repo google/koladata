@@ -169,7 +169,7 @@ class PyMapPyTest(parameterized.TestCase):
     testing.assert_equal(res.no_bag(), ds([], schema_constants.FLOAT32))
 
   def test_map_py_with_schema(self):
-    schema = functions.new_schema(
+    schema = functions.schema.new_schema(
         u=schema_constants.INT32, v=schema_constants.INT32
     )
 
@@ -187,7 +187,7 @@ class PyMapPyTest(parameterized.TestCase):
       return None if x is None else functions.new(u=x, v=x + 1, schema=schema)
 
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
-    schema = functions.new_schema(
+    schema = functions.schema.new_schema(
         u=schema_constants.INT32, v=schema_constants.INT32
     )
     res = expr_eval.eval(

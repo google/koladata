@@ -72,7 +72,7 @@ class SchemaItemTest(absltest.TestCase):
     )
 
   def test_new_schema_self_ref(self):
-    s = fns.new_schema(value=schema_constants.INT32)
+    s = fns.schema.new_schema(value=schema_constants.INT32)
     s.child = s
     s.parent = s
     child = s(value=42)
@@ -88,7 +88,9 @@ class SchemaItemTest(absltest.TestCase):
     testing.assert_equal(nofollow.get_nofollowed_schema(), orig_schema)
 
   def test_creating_entity(self):
-    s = fns.new_schema(a=schema_constants.FLOAT32, b=schema_constants.STRING)
+    s = fns.schema.new_schema(
+        a=schema_constants.FLOAT32, b=schema_constants.STRING
+    )
     self.assertFalse(s.is_list_schema())
     self.assertFalse(s.is_dict_schema())
     self.assertTrue(s.is_entity_schema())
@@ -156,7 +158,7 @@ class SchemaItemTest(absltest.TestCase):
         ValueError,
         'only SchemaItem with DataBags can be used for creating Entities',
     ):
-      fns.new_schema(
+      fns.schema.new_schema(
           a=schema_constants.INT32, b=schema_constants.STRING
       ).with_bag(None)([1, 2, 3])
     with self.assertRaisesRegex(

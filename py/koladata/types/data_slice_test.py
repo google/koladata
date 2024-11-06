@@ -545,7 +545,7 @@ class DataSliceTest(parameterized.TestCase):
     testing.assert_equivalent(x.a.no_bag(), ds(1).no_bag())
 
   def test_updated(self):
-    schema = fns.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32)
 
     db1 = bag()
     db1.merge_inplace(schema.get_bag())
