@@ -42,6 +42,7 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
@@ -135,14 +136,7 @@ class SliceBuilder {
   void InsertIfNotSet(int64_t id, const DataItem& v);
 
   // It calls InsertIfNotSet and updates allocation ids if `v` is an ObjectId.
-  void InsertIfNotSetAndUpdateAllocIds(int64_t id, const DataItem& v) {
-    if (v.holds_value<ObjectId>()) {
-      InsertIfNotSet(id, v.value<ObjectId>());
-      GetMutableAllocationIds().Insert(AllocationId(v.value<ObjectId>()));
-    } {
-      InsertIfNotSet(id, v);
-    }
-  }
+  void InsertIfNotSetAndUpdateAllocIds(int64_t id, const DataItem& v);
 
   // Batch version of InsertIfNotSet. Equivalent to:
   //   for (int i = 0; i < size; ++i) {
@@ -267,6 +261,8 @@ class SliceBuilder {
       return true;
     } else if constexpr (arolla::is_optional_v<T>) {
       return !v.present;
+    } else if constexpr (arolla::meta::is_wrapped_with_v<std::optional, T>) {
+      return !v.has_value();
     } else {
       return false;
     }
@@ -392,6 +388,8 @@ void SliceBuilder::InsertIfNotSet(int64_t id, const T& v) {
   }
   if constexpr (arolla::is_optional_v<T>) {
     GetBufferBuilder<arolla::strip_optional_t<T>>().Set(id, v.value);
+  } else if constexpr (arolla::meta::is_wrapped_with_v<std::optional, T>) {
+    GetBufferBuilder<typename T::value_type>().Set(id, *v);
   } else if constexpr (arolla::meta::is_wrapped_with_v<DataItem::View, T>) {
     GetBufferBuilder<typename T::value_type>().Set(id, v.view);
   } else if constexpr (!std::is_same_v<T, MissingValue> &&
@@ -421,6 +419,9 @@ void SliceBuilder::TypedBuilder<T>::InsertIfNotSet(int64_t id,
         std::is_same_v<OptionalOrT,
                        arolla::OptionalValue<arolla::view_type_t<T>>>);
     bldr_.Set(id, v.value);
+  } else if constexpr (arolla::meta::is_wrapped_with_v<std::optional,
+                                                       OptionalOrT>) {
+    bldr_.Set(id, *v);
   } else if constexpr (std::is_same_v<OptionalOrT, DataItem::View<T>>) {
     bldr_.Set(id, v.view);
   } else if constexpr (!std::is_same_v<T, std::nullopt_t>) {

@@ -25,6 +25,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bytes.h"
@@ -32,7 +33,7 @@
 namespace koladata::internal {
 namespace {
 
-using testing::ElementsAre;
+using ::testing::ElementsAre;
 
 TEST(DataListTest, Constructors) {
   {
@@ -51,9 +52,9 @@ TEST(DataListTest, Constructors) {
     EXPECT_EQ(list.Get(2), DataItem(5.0f));
   }
   {
-    DataSliceImpl::Builder bldr(3);
-    bldr.Insert(0, DataItem(1.0f));
-    bldr.Insert(2, DataItem(5));
+    SliceBuilder bldr(3);
+    bldr.InsertIfNotSet(0, DataItem(1.0f));
+    bldr.InsertIfNotSet(2, DataItem(5));
     DataList list(std::move(bldr).Build());
     ASSERT_EQ(list.size(), 3);
     EXPECT_EQ(list.Get(0), DataItem(1.0f));
@@ -61,17 +62,17 @@ TEST(DataListTest, Constructors) {
     EXPECT_EQ(list.Get(2), DataItem(5));
   }
   {
-    DataSliceImpl::Builder bldr(5);
-    bldr.Insert(2, DataItem(5));
+    SliceBuilder bldr(5);
+    bldr.InsertIfNotSet(2, DataItem(5));
     DataList list(std::move(bldr).Build(), 1, 3);
     ASSERT_EQ(list.size(), 2);
     EXPECT_EQ(list.Get(0), DataItem());
     EXPECT_EQ(list.Get(1), DataItem(5));
   }
   {
-    DataSliceImpl::Builder bldr(5);
-    bldr.Insert(0, DataItem(1.0f));
-    bldr.Insert(2, DataItem(5));
+    SliceBuilder bldr(5);
+    bldr.InsertIfNotSet(0, DataItem(1.0f));
+    bldr.InsertIfNotSet(2, DataItem(5));
     DataList list(std::move(bldr).Build(), 1, 3);
     ASSERT_EQ(list.size(), 2);
     EXPECT_EQ(list.Get(0), DataItem());
@@ -203,7 +204,7 @@ TEST(DataListTest, AllMissing) {
 TEST(DataListTest, AddToDataSlice) {
   {  // offset
     DataList list(arolla::CreateDenseArray<int>({5, 4, std::nullopt, 2, 1}));
-    DataSliceImpl::Builder bldr(6);
+    SliceBuilder bldr(6);
     list.AddToDataSlice(bldr, 1);
     DataSliceImpl ds = std::move(bldr).Build();
     ASSERT_EQ(ds.dtype(), arolla::GetQType<int>());
@@ -212,7 +213,7 @@ TEST(DataListTest, AddToDataSlice) {
   }
   {  // offset and slicing
     DataList list(arolla::CreateDenseArray<int>({5, 4, std::nullopt, 2, 1}));
-    DataSliceImpl::Builder bldr(6);
+    SliceBuilder bldr(6);
     list.AddToDataSlice(bldr, 2, 1, 4);
     DataSliceImpl ds = std::move(bldr).Build();
     ASSERT_EQ(ds.dtype(), arolla::GetQType<int>());
@@ -225,7 +226,7 @@ TEST(DataListTest, AddToDataSlice) {
     AllocationId alloc = Allocate(47);
     DataList list(arolla::CreateDenseArray<ObjectId>(
         {alloc.ObjectByOffset(0), obj, alloc.ObjectByOffset(2)}));
-    DataSliceImpl::Builder bldr(3);
+    SliceBuilder bldr(3);
     list.AddToDataSlice(bldr, 0);
     DataSliceImpl ds = std::move(bldr).Build();
     EXPECT_THAT(
@@ -238,7 +239,7 @@ TEST(DataListTest, AddToDataSlice) {
     list.Set(1, 3.5f);
     AllocationId alloc = Allocate(47);
     list.Set(3, alloc.ObjectByOffset(3));
-    DataSliceImpl::Builder bldr(4);
+    SliceBuilder bldr(4);
     list.AddToDataSlice(bldr, 0, 1);
     DataSliceImpl ds = std::move(bldr).Build();
     EXPECT_THAT(ds, ElementsAre(3.5f, DataItem(), alloc.ObjectByOffset(3), 1));

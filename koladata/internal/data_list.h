@@ -30,6 +30,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
@@ -82,7 +83,7 @@ class DataList {
   // Adds value from this list (sliced from `from` to `to`, full list
   // by default) to the data slice builder starting from `offset`.
   // I.e. the value `list[from + i]` will go to `bldr[offset + i]`.
-  void AddToDataSlice(DataSliceImpl::Builder& bldr, int64_t offset,
+  void AddToDataSlice(SliceBuilder& bldr, int64_t offset,
                       int64_t from = 0, int64_t to = -1) const;
 
   DataItem Get(int64_t index) const;

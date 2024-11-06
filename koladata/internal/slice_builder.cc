@@ -21,8 +21,6 @@
 #include <utility>
 #include <variant>
 
-#include "arolla/qtype/qtype.h"
-
 #if defined(__SSE2__)
 #include <emmintrin.h>
 #endif
@@ -30,6 +28,7 @@
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/types.h"
@@ -186,6 +185,17 @@ void SliceBuilder::UnsetCurrentType() {
 
 void SliceBuilder::InsertIfNotSet(int64_t id, const DataItem& v) {
   v.VisitValue([&](const auto& v) { InsertIfNotSet(id, v); });
+}
+
+// It calls InsertIfNotSet and updates allocation ids if `v` is an ObjectId.
+void SliceBuilder::InsertIfNotSetAndUpdateAllocIds(int64_t id,
+                                                   const DataItem& v) {
+  v.VisitValue([&]<typename T>(const T& v) {
+    InsertIfNotSet(id, v);
+    if constexpr (std::is_same_v<T, ObjectId>) {
+      GetMutableAllocationIds().Insert(AllocationId(v));
+    }
+  });
 }
 
 }  // namespace koladata::internal

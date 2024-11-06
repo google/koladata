@@ -736,10 +736,10 @@ absl::Status DataBagImpl::CreateMutableDenseSource(
     }
     arolla::Buffer<ObjectId>::Builder objs_bldr(data->size());
     int64_t offset = 0;
-    DataSliceImpl::Builder slice_bldr(data->size());
+    SliceBuilder slice_bldr(data->size());
     for (const auto& [obj, data_item] : *data) {
       objs_bldr.Set(offset, obj);
-      slice_bldr.Insert(offset, data_item);
+      slice_bldr.InsertIfNotSetAndUpdateAllocIds(offset, data_item);
       offset++;
     }
     RETURN_IF_ERROR(collection.mutable_dense_source->Set(
@@ -1014,14 +1014,14 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromLists(
   }
 
   ReadOnlyListGetter list_getter(this);
-  DataSliceImpl::Builder bldr(lists.size());
+  SliceBuilder bldr(lists.size());
 
   auto set_from_list = [&](int64_t offset, const DataList& list, int64_t pos) {
     if (pos < 0) {
       pos += list.size();
     }
     if (pos >= 0 && pos < list.size()) {
-      bldr.Insert(offset, list.Get(pos));
+      bldr.InsertIfNotSetAndUpdateAllocIds(offset, list.Get(pos));
     }
     // Note: we don't return an error if `pos` is out of range.
   };
@@ -1059,7 +1059,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::PopFromLists(
   }
 
   MutableListGetter list_getter(this);
-  DataSliceImpl::Builder bldr(lists.size());
+  SliceBuilder bldr(lists.size());
 
   RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
       [&](int64_t offset, ObjectId list_id, int64_t pos) {
@@ -1069,7 +1069,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::PopFromLists(
             pos += list->size();
           }
           if (pos >= 0 && pos < list->size()) {
-            bldr.Insert(offset, list->Get(pos));
+            bldr.InsertIfNotSetAndUpdateAllocIds(offset, list->Get(pos));
             list->Remove(pos, 1);
           }
           // Note: we don't return an error if `pos` is out of range.
@@ -1133,7 +1133,7 @@ DataBagImpl::ExplodeLists(const DataSliceImpl& lists, ListRange range,
   RETURN_IF_ERROR(list_getter.status());
 
   arolla::Buffer<int64_t> split_points = std::move(split_points_bldr).Build();
-  DataSliceImpl::Builder slice_bldr(cum_size);
+  SliceBuilder slice_bldr(cum_size);
   for (int64_t i = 0; i < lists.size(); ++i) {
     if (const DataList* list = list_ptrs[i]; list != nullptr) {
       auto [from, to] = range.Calculate(list->size());
@@ -1480,7 +1480,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::ExplodeList(
   if (to <= from) {
     return DataSliceImpl();
   }
-  DataSliceImpl::Builder bldr(to - from);
+  SliceBuilder bldr(to - from);
   dlist.AddToDataSlice(bldr, 0, from, to);
   return std::move(bldr).Build();
 }
@@ -1769,11 +1769,11 @@ DataBagImpl::GetDictKeysOrValues(const DataSliceImpl& dicts,
       });
   RETURN_IF_ERROR(dict_getter.status());
 
-  DataSliceImpl::Builder bldr(split_points.back());
+  SliceBuilder bldr(split_points.back());
   for (int64_t i = 0; i < results.size(); ++i) {
     const auto& res_vec = results[i];
     for (int64_t j = 0; j < res_vec.size(); ++j) {
-      bldr.Insert(split_points[i] + j, res_vec[j]);
+      bldr.InsertIfNotSetAndUpdateAllocIds(split_points[i] + j, res_vec[j]);
     }
   }
 
@@ -1855,11 +1855,12 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
   }
 
   ReadOnlyDictGetter<AllocCheckFn> dict_getter(this);
-  DataSliceImpl::Builder bldr(dicts.size());
+  SliceBuilder bldr(dicts.size());
 
   if (keys.is_mixed_dtype()) {
     dicts.ForEachPresent([&](int64_t offset, ObjectId dict_id) {
-      bldr.Insert(offset, dict_getter(dict_id).Get(keys[offset]));
+      bldr.InsertIfNotSetAndUpdateAllocIds(
+          offset, dict_getter(dict_id).Get(keys[offset]));
     });
   } else {
     absl::Status status = absl::OkStatus();
@@ -1867,8 +1868,8 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
       using T = typename std::decay_t<decltype(vec)>::base_type;
       status = arolla::DenseArraysForEachPresent(
           [&](int64_t offset, ObjectId dict_id, arolla::view_type_t<T> key) {
-            bldr.Insert(offset,
-                        dict_getter(dict_id).Get(DataItem::View<T>{key}));
+            bldr.InsertIfNotSetAndUpdateAllocIds(
+                offset, dict_getter(dict_id).Get(DataItem::View<T>{key}));
           },
           dicts, vec);
     });
@@ -1883,12 +1884,13 @@ template <class AllocCheckFn>
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
     const arolla::DenseArray<ObjectId>& dicts, const DataItem& keys) const {
   ReadOnlyDictGetter<AllocCheckFn> dict_getter(this);
-  DataSliceImpl::Builder bldr(dicts.size());
+  SliceBuilder bldr(dicts.size());
 
   keys.VisitValue([&](const auto& val) {
     using T = typename std::decay_t<decltype(val)>;
     dicts.ForEachPresent([&](int64_t offset, ObjectId dict_id) {
-      bldr.Insert(offset, dict_getter(dict_id).Get(DataItem::View<T>{val}));
+      bldr.InsertIfNotSetAndUpdateAllocIds(
+          offset, dict_getter(dict_id).Get(DataItem::View<T>{val}));
     });
   });
 
@@ -2929,7 +2931,7 @@ absl::StatusOr<DataBagContent::ListsContent> DataBagImpl::ListVectorToContent(
     list_ptrs[i] = &l;
     total_size += l.size();
   }
-  DataSliceImpl::Builder bldr(total_size);
+  SliceBuilder bldr(total_size);
   arolla::Buffer<int64_t>::Builder splits_bldr(list_ptrs.size() + 1);
   auto splits_inserter = splits_bldr.GetInserter();
   splits_inserter.Add(0);

@@ -26,6 +26,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/util/meta.h"
 
 namespace koladata::internal {
@@ -60,7 +61,7 @@ DataList::DataList(DataSliceImpl data_slice, int64_t from, int64_t to) {
   }
 }
 
-void DataList::AddToDataSlice(DataSliceImpl::Builder& bldr, int64_t offset,
+void DataList::AddToDataSlice(SliceBuilder& bldr, int64_t offset,
                               int64_t from, int64_t to) const {
   if (to == -1) {
     to = size_;
@@ -72,21 +73,20 @@ void DataList::AddToDataSlice(DataSliceImpl::Builder& bldr, int64_t offset,
         if constexpr (std::is_same_v<decltype(vec),
                                      const std::vector<DataItem>&>) {
           for (int64_t i = from; i < to; ++i, ++offset) {
-            bldr.Insert(offset, vec[i]);
+            bldr.InsertIfNotSetAndUpdateAllocIds(offset, vec[i]);
           }
         } else if constexpr (!std::is_same_v<decltype(vec),
                                              const AllMissing&>) {
           using T = arolla::meta::strip_template_t<
               std::optional, typename std::decay_t<decltype(vec)>::value_type>;
-          auto& arr_bldr = bldr.GetArrayBuilder<T>();
+          auto typed_bldr = bldr.typed<T>();
           for (int64_t i = from; i < to; ++i, ++offset) {
             const auto& opt_value = vec[i];
-            if (!opt_value.has_value()) {
-              continue;
-            }
-            arr_bldr.Set(offset, *opt_value);
+            typed_bldr.InsertIfNotSet(offset, opt_value);
             if constexpr (std::is_same_v<T, ObjectId>) {
-              bldr.GetMutableAllocationIds().Insert(AllocationId(*opt_value));
+              if (opt_value.has_value()) {
+                bldr.GetMutableAllocationIds().Insert(AllocationId(*opt_value));
+              }
             }
           }
         }
