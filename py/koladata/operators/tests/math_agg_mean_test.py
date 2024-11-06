@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.math.agg_mean.
-
-Note that there are more extensive tests that reuse the existing Arolla tests
-for the M.math.mean operator.
-"""
-
 import re
 
 from absl.testing import absltest
@@ -28,7 +22,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -193,9 +186,6 @@ class MathAggMeanTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.math.agg_mean(I.x)))
-
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.math.agg_mean, kde.agg_mean))
 
 
 if __name__ == '__main__':

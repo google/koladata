@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for tracing."""
-
 from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
@@ -32,8 +30,8 @@ class TracingTest(absltest.TestCase):
     testing.assert_equal(e, I.x + I.y)
 
   def test_ops(self):
-    e = tracing.trace(lambda x: kd.abs(x))  # pylint: disable=unnecessary-lambda
-    testing.assert_equal(e, kde.abs(I.x))
+    e = tracing.trace(lambda x: kd.sum(x))  # pylint: disable=unnecessary-lambda
+    testing.assert_equal(e, kde.sum(I.x))
 
   def test_ops_in_namespace(self):
     e = tracing.trace(lambda x: kd.math.abs(x))  # pylint: disable=unnecessary-lambda

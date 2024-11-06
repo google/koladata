@@ -41,7 +41,7 @@ class PointwiseArollaOpErrorTest(absltest.TestCase):
 The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1])"""
         ),
     ):
-      expr_eval.eval(kde.subtract(ds([1, 2, 3]), ds([[1, 2], [3]])))
+      expr_eval.eval(kde.math.subtract(ds([1, 2, 3]), ds([[1, 2], [3]])))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
@@ -52,7 +52,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
         ),
     ):
       expr_eval.eval(
-          kde.subtract(ds([None, None, None]), ds([[None, None], [None]]))
+          kde.math.subtract(ds([None, None, None]), ds([[None, None], [None]]))
       )
 
   def test_entity_input_error(self):
@@ -64,7 +64,9 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
 The cause is: DataSlice with Entity schema is not supported:"""
         ),
     ):
-      expr_eval.eval(kde.subtract(bag().new(x=ds([1, 2, 3])), ds([1, 2, 3])))
+      expr_eval.eval(
+          kde.math.subtract(bag().new(x=ds([1, 2, 3])), ds([1, 2, 3]))
+      )
 
   def test_object_input_error(self):
     with self.assertRaisesRegex(
@@ -75,7 +77,9 @@ The cause is: DataSlice with Entity schema is not supported:"""
 The cause is: DataSlice has no primitive schema"""
         ),
     ):
-      expr_eval.eval(kde.subtract(bag().obj(x=ds([1, 2, 3])), ds([1, 2, 3])))
+      expr_eval.eval(
+          kde.math.subtract(bag().obj(x=ds([1, 2, 3])), ds([1, 2, 3]))
+      )
 
   def test_mixed_types_input_error(self):
     with self.assertRaisesRegex(
@@ -86,7 +90,7 @@ The cause is: DataSlice has no primitive schema"""
 The cause is: DataSlice with mixed types is not supported: DataSlice([[1, '2'], [3]], schema: OBJECT, shape: JaggedShape(2, [2, 1]))"""
         ),
     ):
-      expr_eval.eval(kde.subtract(ds([1, 2, 3]), ds([[1, '2'], [3]])))
+      expr_eval.eval(kde.math.subtract(ds([1, 2, 3]), ds([[1, '2'], [3]])))
 
   def test_mixed_types_non_primary_input_error(self):
     with self.assertRaisesRegex(
@@ -108,7 +112,7 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
 The cause is: expected numerics, got y: DENSE_ARRAY_TEXT"""
         ),
     ):
-      expr_eval.eval(kde.subtract(ds([1, 2, 3]), ds(['1', '2', '3'])))
+      expr_eval.eval(kde.math.subtract(ds([1, 2, 3]), ds(['1', '2', '3'])))
 
 
 if __name__ == '__main__':

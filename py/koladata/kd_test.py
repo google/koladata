@@ -269,8 +269,8 @@ class KdTest(absltest.TestCase):
 
   def test_tracing_for_ops(self):
     with tracing_mode.enable_tracing():
-      abs_op = kd.abs
-    kd.testing.assert_equal(abs_op, kde.abs)
+      sum_op = kd.sum
+    kd.testing.assert_equal(sum_op, kde.sum)
     with tracing_mode.enable_tracing():
       math_abs_op = kd.math.abs
     kd.testing.assert_equal(math_abs_op, kde.math.abs)

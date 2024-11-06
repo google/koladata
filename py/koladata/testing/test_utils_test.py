@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for test_utils."""
-
 import re
 
 from absl.testing import absltest
@@ -56,8 +54,8 @@ class TestUtilsTest(absltest.TestCase):
     # Success.
     test_utils.assert_equal(kde.add(1, 3), kde.add(1, 3))
     # Failure.
-    lhs = kde.add(kde.with_name(kde.add(1, 3), 'x'), 4)
-    rhs = kde.subtract(1, 3)
+    lhs = kde.core.add(kde.with_name(kde.add(1, 3), 'x'), 4)
+    rhs = kde.math.subtract(1, 3)
     with self.assertRaisesWithLiteralMatch(
         AssertionError,
         f"""Exprs not equal by fingerprint:

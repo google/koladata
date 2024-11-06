@@ -26,7 +26,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -260,13 +259,9 @@ class CoreAddTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(repr(kde.core.add(I.x, I.y)), 'I.x + I.y')
-    self.assertEqual(repr(kde.add(I.x, I.y)), 'I.x + I.y')
 
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.core.add(I.x, I.y)))
-
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.add, kde.add))
 
 
 if __name__ == '__main__':

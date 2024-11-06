@@ -97,7 +97,7 @@ The cause is: expected numerics, got x: DENSE_ARRAY_TEXT;"""
             """operator math.var failed during evaluation: expected unbiased to be a scalar boolean value, got DataSlice([True], schema: BOOLEAN, shape: JaggedShape(1))"""
         ),
     ):
-      expr_eval.eval(kde.agg_var(ds([1]), unbiased=ds([True])))
+      expr_eval.eval(kde.math.agg_var(ds([1]), unbiased=ds([True])))
 
 
 if __name__ == '__main__':

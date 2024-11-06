@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for operator_lookup."""
-
 from absl.testing import absltest
 from arolla import arolla
 from koladata.operators import optools
@@ -27,6 +25,13 @@ def test_first(x, y):
   return x
 
 
+@optools.add_to_registry()
+@optools.as_lambda_operator('kde.test.test_second')
+def test_second(x, y):
+  del y
+  return x
+
+
 class OperatorImplLookupTest(absltest.TestCase):
 
   def test_contains(self):
@@ -36,18 +41,22 @@ class OperatorImplLookupTest(absltest.TestCase):
     with self.assertRaises(LookupError):
       _ = op_impl_lookup.whatever
 
+  def test_nested_namespace(self):
+    op_impl_lookup = operator_lookup.OperatorLookup('kde.test')
+    self.assertTrue(hasattr(op_impl_lookup, 'test_second'))
+
   def test_contains_after_loading(self):
     op_impl_lookup = operator_lookup.OperatorLookup()
     with self.assertRaises(LookupError):
       _ = op_impl_lookup.test_second
 
     @optools.add_to_registry()
-    @optools.as_lambda_operator('kde.test_second')
-    def test_second(x, y):
+    @optools.as_lambda_operator('kde.test_third')
+    def test_third(x, y):
       del x
       return y
 
-    self.assertTrue(hasattr(op_impl_lookup, 'test_second'))
+    self.assertTrue(hasattr(op_impl_lookup, 'test_third'))
 
   def test_lookup_is_correct(self):
     op_impl_lookup = operator_lookup.OperatorLookup()

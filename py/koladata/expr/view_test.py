@@ -277,61 +277,67 @@ class DataSliceViewTest(parameterized.TestCase):
     )
 
   def test_add(self):
-    testing.assert_equal(C.x.val + C.y, kde.add(kde.get_attr(C.x, 'val'), C.y))
-    testing.assert_equal(ds(1) + C.y, kde.add(1, C.y))
+    testing.assert_equal(
+        C.x.val + C.y, kde.core.add(kde.get_attr(C.x, 'val'), C.y)
+    )
+    testing.assert_equal(ds(1) + C.y, kde.core.add(1, C.y))
 
   def test_radd(self):
-    testing.assert_equal(C.x.__radd__(C.y), kde.add(C.y, C.x))
+    testing.assert_equal(C.x.__radd__(C.y), kde.core.add(C.y, C.x))
 
   def test_sub(self):
     testing.assert_equal(
-        C.x.val - C.y, kde.subtract(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val - C.y, kde.math.subtract(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) - C.y, kde.subtract(1, C.y))
+    testing.assert_equal(ds(1) - C.y, kde.math.subtract(1, C.y))
 
   def test_rsub(self):
-    testing.assert_equal(C.x.__rsub__(C.y), kde.subtract(C.y, C.x))
+    testing.assert_equal(C.x.__rsub__(C.y), kde.math.subtract(C.y, C.x))
 
   def test_mul(self):
     testing.assert_equal(
-        C.x.val * C.y, kde.multiply(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val * C.y, kde.math.multiply(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) * C.y, kde.multiply(1, C.y))
+    testing.assert_equal(ds(1) * C.y, kde.math.multiply(1, C.y))
 
   def test_rmul(self):
-    testing.assert_equal(C.x.__rmul__(C.y), kde.multiply(C.y, C.x))
+    testing.assert_equal(C.x.__rmul__(C.y), kde.math.multiply(C.y, C.x))
 
   def test_div(self):
     testing.assert_equal(
-        C.x.val / C.y, kde.divide(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val / C.y, kde.math.divide(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) / C.y, kde.divide(1, C.y))
+    testing.assert_equal(ds(1) / C.y, kde.math.divide(1, C.y))
 
   def test_rdiv(self):
-    testing.assert_equal(C.x.__rtruediv__(C.y), kde.divide(C.y, C.x))
+    testing.assert_equal(C.x.__rtruediv__(C.y), kde.math.divide(C.y, C.x))
 
   def test_floordiv(self):
     testing.assert_equal(
-        C.x.val // C.y, kde.floordiv(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val // C.y, kde.math.floordiv(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) // C.y, kde.floordiv(1, C.y))
+    testing.assert_equal(ds(1) // C.y, kde.math.floordiv(1, C.y))
 
   def test_rfloordiv(self):
-    testing.assert_equal(C.x.__rfloordiv__(C.y), kde.floordiv(C.y, C.x))
+    testing.assert_equal(C.x.__rfloordiv__(C.y), kde.math.floordiv(C.y, C.x))
 
   def test_mod(self):
-    testing.assert_equal(C.x.val % C.y, kde.mod(kde.get_attr(C.x, 'val'), C.y))
-    testing.assert_equal(ds(1) % C.y, kde.mod(1, C.y))
+    testing.assert_equal(
+        C.x.val % C.y, kde.math.mod(kde.get_attr(C.x, 'val'), C.y)
+    )
+    testing.assert_equal(ds(1) % C.y, kde.math.mod(1, C.y))
 
   def test_rmod(self):
-    testing.assert_equal(C.x.__rmod__(C.y), kde.mod(C.y, C.x))
+    testing.assert_equal(C.x.__rmod__(C.y), kde.math.mod(C.y, C.x))
 
   def test_pow(self):
-    testing.assert_equal(C.x.val**C.y, kde.pow(kde.get_attr(C.x, 'val'), C.y))
-    testing.assert_equal(ds(1) ** C.y, kde.pow(1, C.y))
+    testing.assert_equal(
+        C.x.val**C.y, kde.math.pow(kde.get_attr(C.x, 'val'), C.y)
+    )
+    testing.assert_equal(ds(1) ** C.y, kde.math.pow(1, C.y))
 
   def test_rpow(self):
-    testing.assert_equal(C.x.__rpow__(C.y), kde.pow(C.y, C.x))
+    testing.assert_equal(C.x.__rpow__(C.y), kde.math.pow(C.y, C.x))
 
   def test_eq(self):
     testing.assert_equal(C.x == C.y, kde.equal(C.x, C.y))
@@ -375,10 +381,10 @@ class DataSliceViewTest(parameterized.TestCase):
     testing.assert_equal(~C.x, kde.has_not(C.x))
 
   def test_neg(self):
-    testing.assert_equal(-C.x, kde.neg(C.x))
+    testing.assert_equal(-C.x, kde.math.neg(C.x))
 
   def test_pos(self):
-    testing.assert_equal(+C.x, kde.pos(C.x))
+    testing.assert_equal(+C.x, kde.math.pos(C.x))
 
   def test_call(self):
     testing.assert_equal(C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z))

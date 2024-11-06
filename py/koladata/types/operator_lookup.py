@@ -29,9 +29,6 @@ class OperatorLookup:
   that a function that needs some operators functionality can depend only on
   `operator_lookup` module and not operator implementation module.
 
-  NOTE: Only operators in global 'kde' namespace can be accessed, but those are
-  the only ones used in DataSlice methods for now.
-
   NOTE: Using OperatorLookup supports caching of already looked-up operators and
   thus provides quicker access to operators, compared to looking up operators by
   their names.
@@ -39,13 +36,16 @@ class OperatorLookup:
   Returned operators can be efficiently invoked using `arolla.abc.aux_eval_op`.
   """
 
-  __slots__ = ('__dict__',)
+  __slots__ = ('__dict__', '_namespace')
+
+  def __init__(self, namespace: str = 'kde'):
+    self._namespace = namespace
 
   # NOTE: Adding an operator to __dict__, causes __getattr__ to not be invoked
   # the next time by Python runtime.
   def __getattr__(self, op_name: str):
     # Operator lookup has to be done after all `kde` operators have been defined
     # and registered.
-    op = arolla.abc.lookup_operator('kde.' + op_name)
+    op = arolla.abc.lookup_operator(self._namespace + '.' + op_name)
     self.__dict__[op_name] = op
     return op

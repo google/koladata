@@ -20,7 +20,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -157,13 +156,9 @@ class MathLogTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(repr(kde.math.log(I.x)), 'kde.math.log(I.x)')
-    self.assertEqual(repr(kde.log(I.x)), 'kde.log(I.x)')
 
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.math.log(I.x)))
-
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.math.log, kde.log))
 
 
 if __name__ == '__main__':

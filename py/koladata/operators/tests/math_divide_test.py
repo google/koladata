@@ -20,7 +20,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -148,13 +147,9 @@ class MathDivideTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(repr(kde.math.divide(I.x, I.y)), 'I.x / I.y')
-    self.assertEqual(repr(kde.divide(I.x, I.y)), 'I.x / I.y')
 
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.math.divide(I.x, I.y)))
-
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.math.divide, kde.divide))
 
 
 if __name__ == '__main__':

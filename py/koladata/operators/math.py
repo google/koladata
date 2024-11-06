@@ -27,9 +27,7 @@ M = arolla.OperatorsContainer(jagged_shape)
 P = arolla.P
 
 
-@optools.add_to_registry(
-    aliases=['kde.subtract'], repr_fn=op_repr.subtract_repr
-)
+@optools.add_to_registry(repr_fn=op_repr.subtract_repr)
 @optools.as_backend_operator(
     'kde.math.subtract',
     qtype_constraints=[
@@ -43,9 +41,7 @@ def subtract(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.multiply'], repr_fn=op_repr.multiply_repr
-)
+@optools.add_to_registry(repr_fn=op_repr.multiply_repr)
 @optools.as_backend_operator(
     'kde.math.multiply',
     qtype_constraints=[
@@ -59,7 +55,7 @@ def multiply(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.log'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.math.log',
     qtype_constraints=[
@@ -72,7 +68,7 @@ def log(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.log10'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.math.log10',
     qtype_constraints=[
@@ -85,7 +81,7 @@ def log10(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.exp'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.math.exp',
     qtype_constraints=[
@@ -98,7 +94,7 @@ def exp(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.abs'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.math.abs',
     qtype_constraints=[
@@ -111,7 +107,7 @@ def abs(x):  # pylint: disable=unused-argument,redefined-builtin
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.neg'], repr_fn=op_repr.neg_repr)
+@optools.add_to_registry(repr_fn=op_repr.neg_repr)
 @optools.as_backend_operator(
     'kde.math.neg',
     qtype_constraints=[
@@ -124,7 +120,7 @@ def neg(x):  # pylint: disable=unused-argument,redefined-builtin
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.pos'], repr_fn=op_repr.pos_repr)
+@optools.add_to_registry(repr_fn=op_repr.pos_repr)
 @optools.as_backend_operator(
     'kde.math.pos',
     qtype_constraints=[
@@ -137,7 +133,7 @@ def pos(x):  # pylint: disable=unused-argument,redefined-builtin
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.ceil'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.math.ceil',
     qtype_constraints=[
@@ -154,7 +150,7 @@ def ceil(x):  # pylint: disable=unused-argument,g-doc-args
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.floor'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.math.floor',
     qtype_constraints=[
@@ -171,7 +167,7 @@ def floor(x):  # pylint: disable=unused-argument,g-doc-args
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.round'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.math.round',
     qtype_constraints=[
@@ -197,7 +193,7 @@ def round(x):  # pylint: disable=unused-argument,redefined-builtin,g-doc-args
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.divide'], repr_fn=op_repr.divide_repr)
+@optools.add_to_registry(repr_fn=op_repr.divide_repr)
 @optools.as_backend_operator(
     'kde.math.divide',
     qtype_constraints=[
@@ -211,7 +207,7 @@ def divide(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.pow'], repr_fn=op_repr.pow_repr)
+@optools.add_to_registry(repr_fn=op_repr.pow_repr)
 @optools.as_backend_operator(
     'kde.math.pow',
     qtype_constraints=[
@@ -225,9 +221,7 @@ def _pow(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.floordiv'], repr_fn=op_repr.floordiv_repr
-)
+@optools.add_to_registry(repr_fn=op_repr.floordiv_repr)
 @optools.as_backend_operator(
     'kde.math.floordiv',
     qtype_constraints=[
@@ -241,7 +235,7 @@ def floordiv(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.mod'], repr_fn=op_repr.mod_repr)
+@optools.add_to_registry(repr_fn=op_repr.mod_repr)
 @optools.as_backend_operator(
     'kde.math.mod',
     qtype_constraints=[
@@ -316,7 +310,7 @@ def _agg_mean(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.agg_mean'])
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'kde.math.agg_mean',
     qtype_constraints=[
@@ -344,7 +338,7 @@ def agg_mean(x, ndim=arolla.unspecified()):
   return _agg_mean(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kde.mean'])
+@optools.add_to_registry()
 @optools.as_lambda_operator('kde.math.mean')
 def mean(x):
   """Returns the mean of elements over all dimensions.
@@ -367,7 +361,7 @@ def _agg_median(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.agg_median'])
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'kde.math.agg_median',
     qtype_constraints=[
@@ -395,7 +389,7 @@ def agg_median(x, ndim=arolla.unspecified()):
   return _agg_median(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kde.median'])
+@optools.add_to_registry()
 @optools.as_lambda_operator('kde.math.median')
 def median(x):
   """Returns the median of elements over all dimensions.
@@ -427,7 +421,7 @@ def _agg_std(x, unbiased=data_slice.DataSlice.from_vals(True)):  # pylint: disab
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.agg_std'])
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'kde.math.agg_std',
     qtype_constraints=[
@@ -475,7 +469,7 @@ def _agg_var(x, unbiased=data_slice.DataSlice.from_vals(True)):  # pylint: disab
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.agg_var'])
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'kde.math.agg_var',
     qtype_constraints=[
@@ -602,7 +596,7 @@ def _cum_max(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.cum_max'])
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'kde.math.cum_max',
     qtype_constraints=[
@@ -680,7 +674,7 @@ def _cum_min(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.cum_min'])
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'kde.math.cum_min',
     qtype_constraints=[
@@ -707,7 +701,7 @@ def _cum_sum(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.cum_sum'])
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'kde.math.cum_sum',
     qtype_constraints=[

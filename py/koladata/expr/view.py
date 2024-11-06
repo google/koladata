@@ -130,46 +130,46 @@ class DataSliceView(BasicKodaView):
     return ListSlicingHelper(self)
 
   def __add__(self, other: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.add', self, other)
+    return arolla.abc.aux_bind_op('kde.core.add', self, other)
 
   def __radd__(self, other: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.add', other, self)
+    return arolla.abc.aux_bind_op('kde.core.add', other, self)
 
   def __sub__(self, other: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.subtract', self, other)
+    return arolla.abc.aux_bind_op('kde.math.subtract', self, other)
 
   def __rsub__(self, other: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.subtract', other, self)
+    return arolla.abc.aux_bind_op('kde.math.subtract', other, self)
 
   def __mul__(self, other: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.multiply', self, other)
+    return arolla.abc.aux_bind_op('kde.math.multiply', self, other)
 
   def __rmul__(self, other: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.multiply', other, self)
+    return arolla.abc.aux_bind_op('kde.math.multiply', other, self)
 
   def __truediv__(self, other) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.divide', self, other)
+    return arolla.abc.aux_bind_op('kde.math.divide', self, other)
 
   def __rtruediv__(self, other) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.divide', other, self)
+    return arolla.abc.aux_bind_op('kde.math.divide', other, self)
 
   def __floordiv__(self, other) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.floordiv', self, other)
+    return arolla.abc.aux_bind_op('kde.math.floordiv', self, other)
 
   def __rfloordiv__(self, other) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.floordiv', other, self)
+    return arolla.abc.aux_bind_op('kde.math.floordiv', other, self)
 
   def __mod__(self, other) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.mod', self, other)
+    return arolla.abc.aux_bind_op('kde.math.mod', self, other)
 
   def __rmod__(self, other) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.mod', other, self)
+    return arolla.abc.aux_bind_op('kde.math.mod', other, self)
 
   def __pow__(self, other) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.pow', self, other)
+    return arolla.abc.aux_bind_op('kde.math.pow', self, other)
 
   def __rpow__(self, other) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.pow', other, self)
+    return arolla.abc.aux_bind_op('kde.math.pow', other, self)
 
   def __eq__(self, other: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.equal', self, other)
@@ -205,10 +205,10 @@ class DataSliceView(BasicKodaView):
     return arolla.abc.aux_bind_op('kde.has_not', self)
 
   def __neg__(self) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.neg', self)
+    return arolla.abc.aux_bind_op('kde.math.neg', self)
 
   def __pos__(self) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.pos', self)
+    return arolla.abc.aux_bind_op('kde.math.pos', self)
 
   def __call__(
       self,
