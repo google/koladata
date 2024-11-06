@@ -85,6 +85,7 @@ cc_library(
     hdrs = ["to_proto.h"],
     deps = [
         "//koladata:data_slice",
+        "//koladata/internal/op_utils:trampoline_executor",
         "//koladata/operators:lib",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
