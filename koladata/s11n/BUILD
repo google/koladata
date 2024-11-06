@@ -43,6 +43,7 @@ cc_library(
         "//koladata/internal:ellipsis",
         "//koladata/internal:missing_value",
         "//koladata/internal:object_id",
+        "//koladata/internal:slice_builder",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",

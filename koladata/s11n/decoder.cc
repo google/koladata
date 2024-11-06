@@ -37,6 +37,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/ellipsis.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
 #include "arolla/expr/expr_node.h"
@@ -138,12 +139,12 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceImplValue(
   switch (slice_proto.value_case()) {
     case KodaV1Proto::DataSliceImplProto::kDataItemVector: {
       const auto& vec_proto = slice_proto.data_item_vector();
-      internal::DataSliceImpl::Builder bldr(vec_proto.values_size());
+      internal::SliceBuilder bldr(vec_proto.values_size());
       for (size_t i = 0; i < vec_proto.values_size(); ++i) {
         ASSIGN_OR_RETURN(
             internal::DataItem item,
             DecodeDataItemProto(vec_proto.values(i), input_values));
-        bldr.Insert(i, item);
+        bldr.InsertIfNotSetAndUpdateAllocIds(i, item);
       }
       if (!input_values.empty()) {
         return absl::InvalidArgumentError(

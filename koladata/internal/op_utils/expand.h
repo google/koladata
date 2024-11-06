@@ -25,7 +25,9 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
+#include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/qexpr/eval_context.h"
@@ -40,12 +42,14 @@ struct ExpandOp {
                                            arolla::DenseArrayEdge& edge) const {
     DCHECK_EQ(ds.size(), edge.parent_size());  // Ensured by high-level caller.
     arolla::EvaluationContext ctx;
-    DataSliceImpl::Builder bldr(edge.child_size());
+    SliceBuilder bldr(edge.child_size());
     bldr.GetMutableAllocationIds().Insert(ds.allocation_ids());
     RETURN_IF_ERROR(ds.VisitValues([&](const auto& array) -> absl::Status {
+      using T = std::decay_t<decltype(array)>::base_type;
       ASSIGN_OR_RETURN(auto expanded_array,
                        arolla::DenseArrayExpandOp()(&ctx, array, edge));
-      bldr.AddArray(std::move(expanded_array));
+      bldr.InsertIfNotSet<T>(expanded_array.bitmap, arolla::bitmap::Bitmap(),
+                             expanded_array.values);
       return absl::OkStatus();
     }));
     return std::move(bldr).Build();
@@ -54,19 +58,21 @@ struct ExpandOp {
   absl::StatusOr<DataSliceImpl> operator()(const DataItem& item,
                                            arolla::DenseArrayEdge& edge) const {
     DCHECK_EQ(edge.parent_size(), 1);  // Ensured by high-level caller.
-    DataSliceImpl::Builder bldr(edge.child_size());
+    DataSliceImpl res;
     item.VisitValue([&](const auto& val) {
       using T = std::decay_t<decltype(val)>;
-      if constexpr (!std::is_same_v<T, MissingValue>) {
+      if constexpr (std::is_same_v<T, ObjectId>) {
         auto array = arolla::CreateConstDenseArray<T>(edge.child_size(), val);
-        bldr.AddArray(std::move(array));
+        res = DataSliceImpl::CreateWithAllocIds(
+            AllocationIdSet(AllocationId(val)), std::move(array));
+      } else if constexpr (!std::is_same_v<T, MissingValue>) {
+        auto array = arolla::CreateConstDenseArray<T>(edge.child_size(), val);
+        res = DataSliceImpl::Create(std::move(array));
+      } else {
+        res = DataSliceImpl::CreateEmptyAndUnknownType(edge.child_size());
       }
     });
-    if (item.holds_value<ObjectId>()) {
-      bldr.GetMutableAllocationIds().Insert(
-          AllocationId(item.value<ObjectId>()));
-    }
-    return std::move(bldr).Build();
+    return res;
   }
 };
 

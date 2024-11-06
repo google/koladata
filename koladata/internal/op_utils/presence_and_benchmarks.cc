@@ -20,6 +20,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/op_utils/benchmark_util.h"
 #include "koladata/internal/op_utils/presence_and.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/qtype/base_types.h"
@@ -58,9 +59,10 @@ void BM_float(benchmark::State& state) {
     } else if constexpr (std::is_same_v<Access, DataItemOp>) {
       benchmark::DoNotOptimize(ds_values);
       benchmark::DoNotOptimize(ds_mask);
-      DataSliceImpl::Builder builder(total_size);
+      SliceBuilder builder(total_size);
       for (int64_t i = 0; i < total_size; ++i) {
-        builder.Insert(i, PresenceAndOp()(ds_values[i], ds_mask[i]).value());
+        builder.InsertIfNotSetAndUpdateAllocIds(
+            i, PresenceAndOp()(ds_values[i], ds_mask[i]).value());
       }
       benchmark::DoNotOptimize(builder);
       auto ds_filtered = std::move(builder).Build();

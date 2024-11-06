@@ -34,6 +34,7 @@
 #include "koladata/internal/ellipsis.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
 #include "arolla/dense_array/dense_array.h"
@@ -225,9 +226,9 @@ absl::Status EncodeLists(const internal::DataBagContent::ListsContent& lists,
     EncodeObjectId(lists.alloc_id.ObjectByOffset(i),
                    list_proto->mutable_list_id());
     // TODO(b/328742873) Find a way to do it without copying data.
-    internal::DataSliceImpl::Builder bldr(splits[i + 1] - splits[i]);
+    internal::SliceBuilder bldr(splits[i + 1] - splits[i]);
     for (int64_t j = 0; j < splits[i + 1] - splits[i]; ++j) {
-      bldr.Insert(j, lists.values[j + splits[i]]);
+      bldr.InsertIfNotSetAndUpdateAllocIds(j, lists.values[j + splits[i]]);
     }
     ASSIGN_OR_RETURN(auto values_index,
                      encoder.EncodeValue(arolla::TypedValue::FromValue(
