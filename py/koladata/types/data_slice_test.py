@@ -1272,6 +1272,26 @@ foo.get_obj_schema().x = <desired_schema>"""),
       x.reshape(non_shape)
 
   @parameterized.parameters(
+      (ds([1, 2, 3]),),
+      (ds([[1, 2], [3]]),),
+      (ds([[[1], [2]], [[3]]]),),
+      (ds([[[1], [2]], [[], [3]]]),),
+  )
+  def test_reshape_as(self, shape_from):
+    x = ds(['a', 'b', 'c'])
+    res = x.reshape_as(shape_from)
+    testing.assert_equal(res.flatten(), x)
+    testing.assert_equal(res.get_shape(), shape_from.get_shape())
+
+  def test_reshape_as_errors(self):
+    with self.assertRaisesRegex(
+        ValueError, 'shape size must be compatible with number of items'
+    ):
+      ds(1).reshape_as(ds([1, 2]))
+    with self.assertRaisesRegex(TypeError, '`shape_from` must be a DataSlice'):
+      ds(1).reshape_as([])
+
+  @parameterized.parameters(
       (ds(1), ds([1])),
       (ds([[1, 2], [3, 4]]), ds([1, 2, 3, 4])),
       (ds([[[1], [2]], [[3], [4]]]), 1, ds([[1, 2], [3, 4]])),

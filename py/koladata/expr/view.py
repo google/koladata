@@ -223,6 +223,9 @@ class DataSliceView(BasicKodaView):
   def reshape(self, shape: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.reshape', self, shape)
 
+  def reshape_as(self, shape_from: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.reshape_as', self, shape_from)
+
   def flatten(
       self,
       from_dim: Any = data_slice.DataSlice.from_vals(0, schema_constants.INT64),

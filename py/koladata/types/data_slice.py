@@ -150,6 +150,13 @@ def _reshape(self, shape: jagged_shape.JaggedShape) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.reshape, self, shape)
 
 
+@DataSlice._add_method('reshape_as')  # pylint: disable=protected-access
+def _reshape_as(self, shape_from: DataSlice) -> DataSlice:
+  if not isinstance(shape_from, DataSlice):
+    raise TypeError(f'`shape_from` must be a DataSlice, got: {shape_from}')
+  return arolla.abc.aux_eval_op(_op_impl_lookup.reshape_as, self, shape_from)
+
+
 @DataSlice._add_method('flatten')  # pylint: disable=protected-access
 def _flatten(
     self, from_dim: Any = 0, to_dim: Any = arolla.unspecified()

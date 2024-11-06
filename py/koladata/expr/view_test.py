@@ -390,6 +390,9 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_reshape(self):
     testing.assert_equal(C.x.reshape(C.y), kde.reshape(C.x, C.y))
 
+  def test_reshape_as(self):
+    testing.assert_equal(C.x.reshape_as(C.y), kde.reshape_as(C.x, C.y))
+
   def test_flatten(self):
     testing.assert_equal(C.x.flatten(), kde.flatten(C.x))
     testing.assert_equal(C.x.flatten(C.from_dim), kde.flatten(C.x, C.from_dim))
