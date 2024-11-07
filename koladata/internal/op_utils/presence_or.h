@@ -26,6 +26,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_and.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
@@ -73,11 +74,11 @@ struct PresenceOrOp {
     if (rhs_filtered.present_count() == 0) {
       return lhs;
     }
-    DataSliceImpl::Builder bldr(lhs.size());
-    bldr.GetMutableAllocationIds().Insert(lhs.allocation_ids());
+    SliceBuilder bldr(lhs.size(), lhs.allocation_ids());
     bldr.GetMutableAllocationIds().Insert(rhs_filtered.allocation_ids());
     // Add variants present in lhs.
     RETURN_IF_ERROR(lhs.VisitValues([&](const auto& lhs_array) -> absl::Status {
+      using T = typename std::decay_t<decltype(lhs_array)>::base_type;
       bool present_in_rhs = false;
       RETURN_IF_ERROR(
           rhs_filtered.VisitValues([&](const auto& rhs_array) -> absl::Status {
@@ -87,12 +88,13 @@ struct PresenceOrOp {
               ASSIGN_OR_RETURN(
                   auto merged_array,
                   arolla::DenseArrayPresenceOrOp()(&ctx, lhs_array, rhs_array));
-              bldr.AddArray(std::move(merged_array));
+              bldr.InsertIfNotSet<T>(merged_array.bitmap, {},
+                                     merged_array.values);
             }
             return absl::OkStatus();
           }));
       if (!present_in_rhs) {
-        bldr.AddArray(lhs_array);
+        bldr.InsertIfNotSet<T>(lhs_array.bitmap, {}, lhs_array.values);
       }
       return absl::OkStatus();
     }));
@@ -105,7 +107,8 @@ struct PresenceOrOp {
         }
       });
       if (!present_in_lhs) {
-        bldr.AddArray(rhs_array);
+        using T = typename std::decay_t<decltype(rhs_array)>::base_type;
+        bldr.InsertIfNotSet<T>(rhs_array.bitmap, {}, rhs_array.values);
       }
     });
     return std::move(bldr).Build();
@@ -130,20 +133,20 @@ struct PresenceOrOp {
  private:
   absl::StatusOr<DataSliceImpl> _single_type_case(
       const DataSliceImpl& lhs, const DataSliceImpl& rhs) const {
-    DataSliceImpl::Builder bldr(lhs.size());
+    SliceBuilder bldr(lhs.size());
 
     arolla::EvaluationContext ctx;
     RETURN_IF_ERROR(lhs.VisitValues([&](const auto& lhs_array) -> absl::Status {
       using T = typename std::decay_t<decltype(lhs_array)>::base_type;
       if constexpr (std::is_same_v<T, ObjectId>) {
-        bldr.GetMutableAllocationIds().Insert(lhs.allocation_ids());
+        bldr.GetMutableAllocationIds() = lhs.allocation_ids();
         // TODO: keep only necessary allocation ids.
         bldr.GetMutableAllocationIds().Insert(rhs.allocation_ids());
       }
       const auto& rhs_array = rhs.values<T>();
       ASSIGN_OR_RETURN(auto merged_array, arolla::DenseArrayPresenceOrOp()(
                                               &ctx, lhs_array, rhs_array));
-      bldr.AddArray(std::move(merged_array));
+      bldr.InsertIfNotSet<T>(merged_array.bitmap, {}, merged_array.values);
       return absl::OkStatus();
     }));
     return std::move(bldr).Build();

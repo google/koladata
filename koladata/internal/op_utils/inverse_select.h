@@ -27,6 +27,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/op_utils/utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_group_ops.h"
@@ -93,13 +94,13 @@ struct InverseSelectOp {
     arolla::DenseArray<int64_t> present_indices =
         arolla::DenseArrayPresentIndicesOp()(&ctx, *presence_mask_array);
 
-    DataSliceImpl::Builder builder(presence_mask_array->size());
-    builder.GetMutableAllocationIds().Insert(ds_impl.allocation_ids());
+    SliceBuilder builder(presence_mask_array->size(), ds_impl.allocation_ids());
 
     RETURN_IF_ERROR(ds_impl.VisitValues([&](const auto& array) -> absl::Status {
       auto res = arolla::DenseArrayFromIndicesAndValues()(
           &ctx, present_indices, array, presence_mask_array->size());
-      builder.AddArray(std::move(res));
+      builder.InsertIfNotSet<typename decltype(res)::base_type>(res.bitmap, {},
+                                                                res.values);
       return absl::OkStatus();
     }));
 

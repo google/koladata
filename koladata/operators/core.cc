@@ -49,6 +49,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/ellipsis.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/at.h"
 #include "koladata/internal/op_utils/collapse.h"
 #include "koladata/internal/op_utils/deep_clone.h"
@@ -59,6 +60,7 @@
 #include "koladata/internal/op_utils/select.h"
 #include "koladata/internal/op_utils/utils.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
@@ -190,9 +192,9 @@ absl::StatusOr<DataSlice> ConcatOrStackImpl(bool stack, int64_t ndim,
   if (rank == 0) {
     // Special case: rank == 0 iff all inputs are DataItems.
     DCHECK(stack);  // Implied by error checking above.
-    internal::DataSliceImpl::Builder impl_builder(args.size());
+    internal::SliceBuilder impl_builder(args.size());
     for (int i = 0; i < args.size(); ++i) {
-      impl_builder.Insert(i, args[i].item());
+      impl_builder.InsertIfNotSetAndUpdateAllocIds(i, args[i].item());
     }
     return DataSlice::Create(std::move(impl_builder).Build(),
                              DataSlice::JaggedShape::FlatFromSize(args.size()),
@@ -1268,12 +1270,17 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
         }
       }
     }
-    internal::DataSliceImpl::Builder builder(unique_values.size());
+    internal::SliceBuilder builder(unique_values.size());
     for (size_t i = 0; i < unique_values.size(); ++i) {
       if constexpr (std::is_same_v<T, internal::DataItem>) {
-        builder.Insert(i, unique_values[i]);
+        builder.InsertIfNotSetAndUpdateAllocIds(i, unique_values[i]);
       } else {
-        builder.Insert(i, internal::DataItem::View<T>(unique_values[i]));
+        builder.InsertIfNotSet(i,
+                               internal::DataItem::View<T>(unique_values[i]));
+        if constexpr (std::is_same_v<T, internal::ObjectId>) {
+          builder.GetMutableAllocationIds().Insert(
+              internal::AllocationId(unique_values[i]));
+        }
       }
     }
     return std::move(builder).Build();

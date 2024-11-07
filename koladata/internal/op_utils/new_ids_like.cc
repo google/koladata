@@ -20,12 +20,13 @@
 
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
-#include "arolla/dense_array/dense_array.h"
+#include "koladata/internal/slice_builder.h"
+#include "arolla/memory/buffer.h"
 
 namespace koladata::internal {
 
 DataSliceImpl NewIdsLike(const DataSliceImpl& ds) {
-  DataSliceImpl::Builder bldr(ds.size());
+  SliceBuilder bldr(ds.size());
   ds.VisitValues([&](const auto& array) {
     using T = typename std::decay_t<decltype(array)>::base_type;
     if constexpr (std::is_same_v<T, ObjectId>) {
@@ -64,7 +65,7 @@ DataSliceImpl NewIdsLike(const DataSliceImpl& ds) {
       count_dicts = 0;
       count_lists = 0;
       count_schemas = 0;
-      auto cloned_ids_bldr = arolla::DenseArrayBuilder<ObjectId>(array.size());
+      auto cloned_ids_bldr = arolla::Buffer<ObjectId>::Builder(array.size());
       array.ForEachPresent([&](int64_t id, const ObjectId& obj_id) {
         if (obj_id.IsDict()) {
           cloned_ids_bldr.Set(id, new_dicts.ObjectByOffset(count_dicts++));
@@ -76,7 +77,8 @@ DataSliceImpl NewIdsLike(const DataSliceImpl& ds) {
           cloned_ids_bldr.Set(id, new_objects.ObjectByOffset(count_objects++));
         }
       });
-      bldr.AddArray(std::move(cloned_ids_bldr).Build());
+      bldr.InsertIfNotSet<ObjectId>(array.bitmap, {},
+                                    std::move(cloned_ids_bldr).Build());
     }
   });
   return std::move(bldr).Build();

@@ -49,6 +49,7 @@
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
 #include "koladata/object_factories.h"
 #include "koladata/repr_utils.h"
@@ -304,17 +305,16 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
   // Adds a DenseArray of type T with the given strings.
   auto add_str_array =
       [&]<typename T>(
-          std::type_identity<T>, internal::DataSliceImpl::Builder& bldr,
+          std::type_identity<T>, internal::SliceBuilder& bldr,
           absl::Span<const std::pair<int64_t, absl::string_view>> strs,
           int64_t total_size) {
         auto str_buffer = to_str_buffer(strs, total_size);
         auto bitmask = to_bitmask(strs);
-        bldr.AddArray(
-            arolla::DenseArray<T>{std::move(str_buffer), std::move(bitmask)});
+        bldr.InsertIfNotSet<T>(bitmask, {}, str_buffer);
       };
 
   auto impl = [&]<bool explicit_cast>() -> absl::StatusOr<DataSlice> {
-    internal::DataSliceImpl::Builder bldr(res_size);
+    internal::SliceBuilder bldr(res_size);
     schema::CommonSchemaAggregator schema_agg;
     EmbeddingDataBag embedding_db;
     int64_t text_total_size = 0;
@@ -331,8 +331,10 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
           bytes.reserve(res_size);
           bytes_total_size += value.view.size();
           bytes.emplace_back(i, value.view);
+        } else if constexpr (std::is_same_v<std::decay_t<T>, DataItem>) {
+          bldr.InsertIfNotSetAndUpdateAllocIds(i, std::forward<T>(value));
         } else {
-          bldr.Insert(i, std::forward<T>(value));
+          bldr.InsertIfNotSet(i, std::forward<T>(value));
         }
       };
       RETURN_IF_ERROR(ParsePyObject<explicit_cast>(flat_list[i], schema,
@@ -725,10 +727,10 @@ class UniversalConverter {
   // Takes `size` preconstructed DataItems from `value_stack_` and constructs
   // a DataSlice.
   absl::StatusOr<DataSlice> ComputeDataSlice(size_t size) {
-    internal::DataSliceImpl::Builder bldr(size);
+    internal::SliceBuilder bldr(size);
     schema::CommonSchemaAggregator schema_agg;
     for (size_t i = 0; i < size; ++i) {
-      bldr.Insert(i, value_stack_.top().item());
+      bldr.InsertIfNotSetAndUpdateAllocIds(i, value_stack_.top().item());
       schema_agg.Add(value_stack_.top().GetSchemaImpl());
       value_stack_.pop();
     }

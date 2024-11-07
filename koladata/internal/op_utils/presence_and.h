@@ -24,6 +24,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
@@ -39,7 +40,7 @@ struct PresenceAndOp {
   absl::StatusOr<DataSliceImpl> operator()(
       const DataSliceImpl& ds, const DataSliceImpl& presence_mask) const {
     arolla::EvaluationContext ctx;
-    DataSliceImpl::Builder bldr(ds.size());
+    SliceBuilder bldr(ds.size());
     if (ds.size() != presence_mask.size()) {
       return absl::InvalidArgumentError(
           "ds.size() != presence_mask.size()");
@@ -61,10 +62,10 @@ struct PresenceAndOp {
           arolla::DenseArrayPresenceAndOp()(&ctx, array, presence_mask_array));
       using T = typename std::decay_t<decltype(array)>::base_type;
       if (!masked_array.IsAllMissing()) {
-        bldr.AddArray(std::move(masked_array));
+        bldr.InsertIfNotSet<T>(masked_array.bitmap, {}, masked_array.values);
         if constexpr (std::is_same_v<T, ObjectId>) {
           // TODO: keep only necessary allocation ids.
-          bldr.GetMutableAllocationIds().Insert(ds.allocation_ids());
+          bldr.GetMutableAllocationIds() = ds.allocation_ids();
         }
       }
       return absl::OkStatus();

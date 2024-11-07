@@ -36,6 +36,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
@@ -403,10 +404,10 @@ class Traverser {
     ASSIGN_OR_RETURN(
         auto list_items,
         databag_.ExplodeList(item.item, DataBagImpl::ListRange(), fallbacks_));
-    DataSliceImpl::Builder list_items_values(list_items.size());
+    SliceBuilder list_items_values(list_items.size());
     for (size_t i = 0; i < list_items.size(); ++i) {
       ASSIGN_OR_RETURN(auto value, GetValue(list_items[i], list_item_schema));
-      list_items_values.Insert(i, value);
+      list_items_values.InsertIfNotSetAndUpdateAllocIds(i, value);
     }
     return visitor_->VisitorT::VisitList(item.item, item.schema, is_object,
                                           std::move(list_items_values).Build());
@@ -424,17 +425,17 @@ class Traverser {
                      databag_.GetDictKeys(item.item, fallbacks_));
     ASSIGN_OR_RETURN((auto [dict_values, dict_values_edge]),
                      databag_.GetDictValues(item.item, fallbacks_));
-    DataSliceImpl::Builder dict_keys_values(dict_keys.size());
-    DataSliceImpl::Builder dict_values_values(dict_values.size());
+    SliceBuilder dict_keys_values(dict_keys.size());
+    SliceBuilder dict_values_values(dict_values.size());
     for (size_t i = 0; i < dict_keys.size(); ++i) {
       ASSIGN_OR_RETURN(DataItem value,
                        GetValue(dict_keys[i], dict_keys_schema));
-      dict_keys_values.Insert(i, value);
+      dict_keys_values.InsertIfNotSetAndUpdateAllocIds(i, value);
     }
     for (size_t i = 0; i < dict_values.size(); ++i) {
       ASSIGN_OR_RETURN(DataItem value,
                        GetValue(dict_values[i], dict_values_schema));
-      dict_values_values.Insert(i, value);
+      dict_values_values.InsertIfNotSetAndUpdateAllocIds(i, value);
     }
     return visitor_->VisitorT::VisitDict(
         item.item, item.schema, is_object, std::move(dict_keys_values).Build(),

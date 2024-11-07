@@ -553,7 +553,7 @@ cc_library(
     deps = [
         "//koladata/internal:data_slice",
         "//koladata/internal:object_id",
-        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/memory",
     ],
 )
 

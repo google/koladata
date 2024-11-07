@@ -26,6 +26,7 @@
 #include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_group_ops.h"
@@ -149,10 +150,9 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
   ASSIGN_OR_RETURN(JaggedDenseArrayShape new_shape,
                    JaggedDenseArrayShape::FromEdges(std::move(new_edges)));
 
-  DataSliceImpl::Builder builder(presence_mask_array.PresentCount());
-
   // TODO: keep only necessary allocation ids.
-  builder.GetMutableAllocationIds().Insert(ds_impl.allocation_ids());
+  SliceBuilder builder(presence_mask_array.PresentCount(),
+                       ds_impl.allocation_ids());
 
   DenseArray<int64_t> present_indexes =
       DenseArrayPresentIndicesOp()(&ctx, presence_mask_array);
@@ -161,7 +161,7 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
     using T = typename std::decay_t<decltype(array)>::base_type;
     // Gets elements in `array` at the positions from `present_indexes`.
     DenseArray<T> res = DenseArrayAtOp()(&ctx, array, present_indexes);
-    builder.AddArray(std::move(res));
+    builder.InsertIfNotSet<T>(res.bitmap, {}, res.values);
     return absl::OkStatus();
   }));
 

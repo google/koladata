@@ -26,6 +26,7 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/multi_edge_util.h"
@@ -87,10 +88,10 @@ absl::StatusOr<DataSliceImpl> AtOp(
     return DataSliceImpl::CreateEmptyAndUnknownType(indices.size());
   }
 
-  DataSliceImpl::Builder builder(indices.size());
   // TODO: keep only necessary allocation ids.
-  builder.GetMutableAllocationIds().Insert(ds.allocation_ids());
-  RETURN_IF_ERROR(ds.VisitValues([&](const auto& array) -> absl::Status {
+  SliceBuilder builder(indices.size(), ds.allocation_ids());
+  RETURN_IF_ERROR(ds.VisitValues([&]<class T>(const arolla::DenseArray<T>&
+                                                  array) -> absl::Status {
     // Use AtOp if it is scalar edge otherwise TakeOverOverOp.
     if (ds_to_common.parent_size() > 1) {
       if (!indices_to_common.has_value()) {
@@ -103,12 +104,13 @@ absl::StatusOr<DataSliceImpl> AtOp(
       DCHECK_EQ(indices_to_common->parent_size(), ds_to_common.parent_size());
       ASSIGN_OR_RETURN(auto res, SelectWithOffsets(array, indices, ds_to_common,
                                                    *indices_to_common));
-      builder.AddArray(res);
+      builder.InsertIfNotSet<T>(res.bitmap, {}, res.values);
     } else {
       // NOTE: out-of-bound errors are reported to the EvaluationContext and
       // ignored here.
       arolla::EvaluationContext ctx;
-      builder.AddArray(arolla::DenseArrayAtOp()(&ctx, array, indices));
+      auto res = arolla::DenseArrayAtOp()(&ctx, array, indices);
+      builder.InsertIfNotSet<T>(res.bitmap, {}, res.values);
     }
     return absl::OkStatus();
   }));
