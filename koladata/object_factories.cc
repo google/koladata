@@ -27,6 +27,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -947,6 +948,17 @@ absl::StatusOr<DataSlice> CreateUuSchema(
       DataSlice::Create(schema_id, internal::DataItem(schema::kSchema), db));
   RETURN_IF_ERROR(AdoptValuesInto(schemas, *db));
   return result;
+}
+
+absl::StatusOr<DataSlice> CreateNamedSchema(const DataBagPtr& db,
+                                            const DataSlice& name) {
+  if (name.GetShape().rank() != 0 || !name.item().holds_value<arolla::Text>()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("requires name to be DataItem holding Text, got %s",
+                        arolla::Repr(name)));
+  }
+  auto name_str = name.item().value<arolla::Text>().view();
+  return CreateUuSchema(db, absl::StrCat("__named_schema__", name_str), {}, {});
 }
 
 absl::StatusOr<DataSlice> CreateSchema(

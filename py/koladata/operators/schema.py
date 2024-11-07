@@ -181,6 +181,39 @@ def uu_schema(
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.named_schema'])
+@optools.as_backend_operator(
+    'kde.schema.named_schema',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.name),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def named_schema(name):
+  """Creates a named entity schema in the given DataBag.
+
+  A named schema will have its item id derived only from its name, which means
+  that two named schemas with the same name will have the same item id, even in
+  different DataBags.
+
+  Note that unlike other schema factories, this method does not take any attrs
+  to avoid confisuion with the behavior of uu_schema. Please use
+  named_schema(name).with_attrs(attrs) to create a named schema with attrs.
+
+  Currently the named schema does not put any triples into the provided
+  DataBag, but that might change in the future. For example, we might want to
+  store the schema name in the DataBag for printing.
+
+  Args:
+    name: The name to use to derive the item id of the schema.
+
+  Returns:
+    data_slice.DataSlice with the item id of the required schema and kd.SCHEMA
+    schema, with a new immutable DataBag attached.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.with_schema'])
 @optools.as_backend_operator(
     'kde.schema.with_schema',

@@ -98,3 +98,35 @@ def uu_schema(
   if db is None:
     db = bag()
   return db.uu_schema(seed=seed, **attrs)
+
+
+def named_schema(
+    name: str | data_slice.DataSlice,
+    db: data_bag.DataBag | None = None,
+) -> data_slice.DataSlice:
+  """Creates a named entity schema in the given DataBag.
+
+  A named schema will have its item id derived only from its name, which means
+  that two named schemas with the same name will have the same ItemId, even in
+  different DataBags.
+
+  Note that unlike other schema factories, this method does not take any attrs
+  to avoid confisuion with the behavior of uu_schema. Please use
+  named_schema(name).with_attrs(attrs) to create a named schema with attrs.
+
+  Currently the named schema does not put any triples into the provided
+  DataBag, but that might change in the future. For example, we might want to
+  store the schema name in the DataBag for printing.
+
+  Args:
+    name: The name to use to derive the item id of the schema.
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
+
+  Returns:
+    data_slice.DataSlice with the ItemId of the required schema and kd.SCHEMA
+    schema.
+  """
+  if db is None:
+    db = bag()
+  return db.named_schema(name)

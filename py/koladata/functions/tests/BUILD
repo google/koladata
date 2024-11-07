@@ -791,3 +791,15 @@ py_proto_library(
     name = "test_py_pb2",
     deps = [":test_proto"],
 )
+
+py_test(
+    name = "named_schema_test",
+    srcs = ["named_schema_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)

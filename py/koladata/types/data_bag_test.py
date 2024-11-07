@@ -629,6 +629,29 @@ Assigned schema for 'a': SCHEMA(b=STRING)"""),
     # no args
     _ = db.uu_schema()
 
+  def test_named_schema(self):
+    db = bag()
+    x = db.named_schema('name')
+    self.assertCountEqual(dir(x), [])
+    self.assertEqual(x.get_schema(), schema_constants.SCHEMA)
+
+    y = db.named_schema('other name')
+    self.assertNotEqual(x.fingerprint, y.fingerprint)
+
+    z = db.named_schema('name')
+    testing.assert_equal(x, z)
+
+    # This is not perfect as the operator allows passing it as a keyword
+    # argument, but it seems minor enough to bother complicating the
+    # implementation.
+    with self.assertRaisesRegex(TypeError, 'no keyword arguments'):
+      _ = db.named_schema(name='name')
+
+    with self.assertRaisesRegex(
+        ValueError, 'requires name to be DataItem holding Text'
+    ):
+      _ = db.named_schema(b'name')
+
   def test_new_schema(self):
     db = bag()
     db2 = bag()

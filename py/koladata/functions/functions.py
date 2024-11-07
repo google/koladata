@@ -78,12 +78,14 @@ def new_schema(
 list_schema = _schema.list_schema
 dict_schema = _schema.dict_schema
 uu_schema = _schema.uu_schema
+named_schema = _schema.named_schema
 
 schema = _py_types.SimpleNamespace(
     new_schema=_schema.new_schema,
     list_schema=_schema.list_schema,
     dict_schema=_schema.dict_schema,
     uu_schema=_schema.uu_schema,
+    named_schema=_schema.named_schema,
 )
 
 embed_schema = _attrs.embed_schema

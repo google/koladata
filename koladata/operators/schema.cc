@@ -150,6 +150,13 @@ absl::StatusOr<arolla::OperatorPtr> UuSchemaOperatorFamily::DoGetOperator(
       output_type);
 }
 
+absl::StatusOr<DataSlice> NamedSchema(const DataSlice& name) {
+  auto db = koladata::DataBag::Empty();
+  ASSIGN_OR_RETURN(auto res, CreateNamedSchema(db, name));
+  db->UnsafeMakeImmutable();
+  return res;
+}
+
 absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item() == schema::kObject &&

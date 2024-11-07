@@ -174,6 +174,7 @@ class DataBagViewTest(parameterized.TestCase):
         'uu',
         'obj_like',
         'adopt',
+        'named_schema',
     }
     view_attrs = {m for m in dir(view.DataBagView) if not m.startswith('_')}
     data_bag_attrs = {m for m in dir(data_bag.DataBag) if not m.startswith('_')}

@@ -204,6 +204,7 @@ OPERATOR("kde.schema.is_itemid_schema", IsItemIdSchema);
 OPERATOR("kde.schema.is_list_schema", IsListSchema);
 OPERATOR("kde.schema.is_primitive_schema", IsPrimitiveSchema);
 OPERATOR("kde.schema.list_schema", ListSchema);
+OPERATOR("kde.schema.named_schema", NamedSchema);
 OPERATOR_FAMILY("kde.schema.new_schema",
                 std::make_unique<NewSchemaOperatorFamily>());
 OPERATOR_FAMILY("kde.schema.uu_schema",

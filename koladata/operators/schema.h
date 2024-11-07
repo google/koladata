@@ -61,6 +61,10 @@ inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
                            internal::DataItem(schema::kSchema));
 }
 
+// kde.schema.named_schema operator.
+// Creates a named entity schema with its item id derived only from its name.
+absl::StatusOr<DataSlice> NamedSchema(const DataSlice& name);
+
 // kde.schema.cast_to operator.
 absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema);
 

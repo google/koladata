@@ -655,6 +655,20 @@ absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
+// Returns a DataSlice that represents a named schema with its item id derived
+// only from its name.
+absl::Nullable<PyObject*> PyDataBag_named_schema_factory(PyObject* self,
+                                                         PyObject* name) {
+  arolla::python::DCheckPyGIL();
+  // We do no adoption here because we're just getting a string.
+  ASSIGN_OR_RETURN(auto name_slice, DataSliceFromPyValueNoAdoption(name),
+                   SetKodaPyErrFromStatus(_));
+  auto db = UnsafeDataBagPtr(self);
+  ASSIGN_OR_RETURN(DataSlice res, CreateNamedSchema(db, name_slice),
+                   SetKodaPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(res));
+}
+
 // Returns a DataSlice that represents an entity with the given DataBag
 // associated with it.
 //
@@ -1574,6 +1588,10 @@ Returns:
      "uu_schema(seed, **attrs)\n"
      "--\n\n"
      "Creates new uuschema from given types of attrs."},
+    {"named_schema", (PyCFunction)PyDataBag_named_schema_factory, METH_O,
+     "named_schema(name)\n"
+     "--\n\n"
+     "Creates a named schema with ItemId derived only from its name."},
     {"_dict_shaped", (PyCFunction)PyDataBag_dict_shaped, METH_FASTCALL,
      "_dict_shaped(shape, items_or_keys, values, key_schema, value_schema, "
      "schema, itemid, /)\n"
