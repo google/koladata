@@ -30,11 +30,10 @@ void BM_TypesBufferToBitmap(benchmark::State& state) {
 
   TypesBuffer b;
   b.types.push_back(ScalarTypeId<int>());
-  arolla::Buffer<uint8_t>::Builder bldr(size);
+  b.id_to_typeidx.resize(size);
   for (int i = 0; i < size; ++i) {
-    bldr.Set(i, i % 2 ? 0 : TypesBuffer::kUnset);
+    b.id_to_typeidx[i] = i % 2 ? 0 : TypesBuffer::kUnset;
   }
-  b.id_to_typeidx = std::move(bldr).Build();
 
   for (auto _ : state) {
     benchmark::DoNotOptimize(b);

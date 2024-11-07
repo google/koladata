@@ -59,7 +59,7 @@ struct TypesBuffer {
   static constexpr uint8_t kRemoved = 0xfe;  // explicitly set to missing
 
   // Index in `types` (or kUnset/kRemoved) per element.
-  arolla::Buffer<uint8_t> id_to_typeidx;
+  absl::InlinedVector<uint8_t, 16> id_to_typeidx;
 
   // ScalarTypeId<T>() of used types.
   absl::InlinedVector<KodaTypeId, 4> types;
@@ -101,13 +101,13 @@ class SliceBuilder {
   SliceBuilder& operator=(const SliceBuilder&) = delete;
   SliceBuilder& operator=(SliceBuilder&&) = delete;
 
-  size_t size() const { return id_to_typeidx_.size(); }
+  size_t size() const { return types_buffer_.id_to_typeidx.size(); }
   bool is_finalized() const { return unset_count_ == 0; }
 
   // Returns true also if was set to anything (missing or present).
   bool IsSet(int64_t id) const {
     DCHECK(0 <= id && id < size());
-    return id_to_typeidx_[id] != TypesBuffer::kUnset;
+    return types_buffer_.id_to_typeidx[id] != TypesBuffer::kUnset;
   }
 
   // Returns read-only TypesBuffer, but the underlying data is changing when
@@ -118,8 +118,8 @@ class SliceBuilder {
   // so the builder will never assign values to them.
   void ApplyMask(const arolla::DenseArray<arolla::Unit>& mask) {
     mask.ForEach([&](int64_t id, bool present, arolla::Unit) {
-      if (!present && id_to_typeidx_[id] == TypesBuffer::kUnset) {
-        id_to_typeidx_[id] = TypesBuffer::kRemoved;
+      if (!present && types_buffer_.id_to_typeidx[id] == TypesBuffer::kUnset) {
+        types_buffer_.id_to_typeidx[id] = TypesBuffer::kRemoved;
         unset_count_--;
       }
     });
@@ -167,7 +167,7 @@ class SliceBuilder {
    private:
     friend class SliceBuilder;
     explicit TypedBuilder(SliceBuilder& base)
-        : id_to_typeidx_(base.id_to_typeidx_),
+        : id_to_typeidx_(base.types_buffer_.id_to_typeidx),
           bldr_(base.GetBufferBuilder<T>()),
           base_(base),
           typeidx_(base.current_typeidx_) {}
@@ -268,10 +268,10 @@ class SliceBuilder {
     }
   }
 
-  // Updates unset items id_to_typeidx_ for ids that are present in `mask`.
-  // For these ids sets the type to the given `typeidx` if `presence==true`,
-  // or to kRemoved otherwise. Calls `add_value_fn` for each id changing type
-  // from kUnset to typeidx.
+  // Updates unset items types_buffer_.id_to_typeidx for ids that are present in
+  // `mask`. For these ids sets the type to the given `typeidx` if
+  // `presence==true`, or to kRemoved otherwise. Calls `add_value_fn` for each
+  // id changing type from kUnset to typeidx.
   template <typename Fn>
   void UpdateTypesBuffer(uint8_t typeidx, const arolla::bitmap::Bitmap& mask,
                          const arolla::bitmap::Bitmap& presence,
@@ -309,11 +309,8 @@ class SliceBuilder {
 
   TypesBuffer types_buffer_;
 
-  // Mutable underlying data of types_buffer_.id_to_typeidx.
-  absl::Span<uint8_t> id_to_typeidx_;
-
-  // The number of elements where `id_to_typeidx_[i] == kUnset`. Can only be
-  // decreased. When reaches zero `is_finalized()` becomes true.
+  // The number of elements where `types_buffer_.id_to_typeidx[i] == kUnset`.
+  // Can only be decreased. When reaches zero `is_finalized()` becomes true.
   size_t unset_count_;
 
   AllocationIdSet allocation_ids_;
@@ -344,7 +341,7 @@ SliceBuilder::GetBufferBuilderFromCurrentStorage() {
   const arolla::Buffer<T>& buf = std::get<arolla::Buffer<T>>(tstorage.data);
   typename arolla::Buffer<T>::Builder bldr(size());
   for (int64_t i = 0; i < size(); ++i) {
-    if (id_to_typeidx_[i] == current_typeidx_) {
+    if (types_buffer_.id_to_typeidx[i] == current_typeidx_) {
       bldr.Set(i, buf[i]);
     }
   }
@@ -383,7 +380,7 @@ void SliceBuilder::InsertIfNotSet(int64_t id, const T& v) {
   }
   unset_count_--;
   if (SliceBuilder::IsMissing(v)) {
-    id_to_typeidx_[id] = TypesBuffer::kRemoved;
+    types_buffer_.id_to_typeidx[id] = TypesBuffer::kRemoved;
     return;
   }
   if constexpr (arolla::is_optional_v<T>) {
@@ -398,7 +395,7 @@ void SliceBuilder::InsertIfNotSet(int64_t id, const T& v) {
   } else {
     LOG(FATAL) << "Unexpected missing value";
   }
-  id_to_typeidx_[id] = current_typeidx_;
+  types_buffer_.id_to_typeidx[id] = current_typeidx_;
 }
 
 template <typename T>
@@ -443,7 +440,8 @@ void SliceBuilder::UpdateTypesBuffer(uint8_t typeidx,
   arolla::DenseArraysForEach(
       [&](int64_t id, bool valid, arolla::Unit, arolla::OptionalUnit presence) {
         if (valid && !IsSet(id)) {
-          id_to_typeidx_[id] = presence ? typeidx : TypesBuffer::kRemoved;
+          types_buffer_.id_to_typeidx[id] =
+              presence ? typeidx : TypesBuffer::kRemoved;
           unset_count_--;
           if (presence) {
             add_value_fn(id);

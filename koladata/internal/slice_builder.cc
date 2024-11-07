@@ -27,10 +27,11 @@
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/object_id.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/missing_value.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/types.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
@@ -95,10 +96,9 @@ arolla::bitmap::Bitmap TypesBuffer::ToPresenceBitmap() const {
 }
 
 SliceBuilder::SliceBuilder(size_t size) {
-  arolla::Buffer<uint8_t>::Builder tidx_bldr(size);
-  id_to_typeidx_ = tidx_bldr.GetMutableSpan();
-  types_buffer_.id_to_typeidx = std::move(tidx_bldr).Build();
-  std::fill(id_to_typeidx_.begin(), id_to_typeidx_.end(), TypesBuffer::kUnset);
+  types_buffer_.id_to_typeidx.resize(size);
+  std::fill(types_buffer_.id_to_typeidx.begin(),
+            types_buffer_.id_to_typeidx.end(), TypesBuffer::kUnset);
   unset_count_ = size;
 }
 

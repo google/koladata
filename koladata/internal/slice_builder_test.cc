@@ -54,8 +54,7 @@ TEST(SliceBuilderTest, TypesBuffer) {
   TypesBuffer b;
   b.types.push_back(ScalarTypeId<int>());
   b.types.push_back(ScalarTypeId<float>());
-  b.id_to_typeidx = arolla::CreateBuffer<uint8_t>(
-      {1, TypesBuffer::kUnset, 0, TypesBuffer::kRemoved, 1});
+  b.id_to_typeidx = {1, TypesBuffer::kUnset, 0, TypesBuffer::kRemoved, 1};
 
   EXPECT_EQ(b.size(), 5);
   EXPECT_EQ(b.type_count(), 2);
@@ -74,7 +73,7 @@ TEST(SliceBuilderTest, TypesBuffer) {
 TEST(SliceBuilderTest, ToBitmap64Elements) {
   TypesBuffer b;
   b.types.push_back(ScalarTypeId<int>());
-  b.id_to_typeidx = arolla::CreateBuffer<uint8_t>(std::vector<uint8_t>(64, 0));
+  b.id_to_typeidx.resize(64, 0);
   EXPECT_THAT(b.ToBitmap(0),
               ElementsAre(~arolla::bitmap::Word{0}, ~arolla::bitmap::Word{0}));
 }
@@ -83,9 +82,8 @@ TEST(SliceBuilderTest, ToBitmap40Elements) {
   TypesBuffer b;
   b.types.push_back(ScalarTypeId<int>());
   b.types.push_back(ScalarTypeId<float>());
-  std::vector<uint8_t> types(40, 0);
-  for (int i = 32; i < 40; ++i) types[i] = 1;
-  b.id_to_typeidx = arolla::CreateBuffer<uint8_t>(types);
+  b.id_to_typeidx.resize(40, 0);
+  for (int i = 32; i < 40; ++i) b.id_to_typeidx[i] = 1;
   EXPECT_THAT(b.ToBitmap(0),
               ElementsAre(~arolla::bitmap::Word{0}, arolla::bitmap::Word{0}));
   EXPECT_THAT(b.ToBitmap(1),
@@ -97,11 +95,10 @@ TEST(SliceBuilderTest, ToBitmapVarSize) {
     TypesBuffer b;
     b.types.push_back(ScalarTypeId<int>());
     b.types.push_back(ScalarTypeId<float>());
-    std::vector<uint8_t> types(size);
+    b.id_to_typeidx.resize(size);
     for (int i = 0; i < size; ++i) {
-      types[i] = i % 2;
+      b.id_to_typeidx[i] = i % 2;
     }
-    b.id_to_typeidx = arolla::CreateBuffer<uint8_t>(types);
     {
       std::vector<arolla::bitmap::Word> expected0(
           arolla::bitmap::BitmapSize(size));
