@@ -82,6 +82,14 @@ class DeepCloneVisitor : AbstractVisitor {
       // However, we keep implicit schemas in sync with parent objects.
       return item;
     }
+    if (item.value<ObjectId>().IsNoFollowSchema()) {
+      ASSIGN_OR_RETURN(
+          auto original_item_clone,
+          GetValue(DataItem(GetOriginalFromNoFollow(item.value<ObjectId>())),
+                   schema));
+      return DataItem(
+          CreateNoFollowWithMainObject(original_item_clone.value<ObjectId>()));
+    }
     auto it =
         allocation_tracker_.find(AllocationId(item.value<ObjectId>()));
     if (it == allocation_tracker_.end()) {
@@ -198,7 +206,12 @@ class DeepCloneVisitor : AbstractVisitor {
     // We create a "clone" for all explicit schemas, and skip implicit schemas.
     // For implicit schemas we create a "clone" when encounter them in
     // `schema::kSchemaAttr`, or in GetValue after all Previsits are done.
-    if (schema.holds_value<ObjectId>() && !schema.is_implicit_schema()) {
+    if (schema.holds_value<ObjectId>() && !schema.is_implicit_schema() &&
+        is_schema_slice_) {
+      if (schema.value<ObjectId>().IsNoFollowSchema()) {
+        return CloneAsExplicitSchema(
+            DataItem(GetOriginalFromNoFollow(schema.value<ObjectId>())));
+      }
       return CloneAsExplicitSchema(schema);
     }
     return absl::OkStatus();

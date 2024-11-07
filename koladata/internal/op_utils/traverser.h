@@ -234,6 +234,10 @@ class Traverser {
   }
 
   absl::Status PrevisitEntityAttributes(const ItemWithSchema& item) {
+    if (item.schema.template value<ObjectId>().IsNoFollowSchema()) {
+      // No processing needed for NoFollowSchema.
+      return absl::OkStatus();
+    }
     ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
                      databag_.GetSchemaAttrs(item.schema, fallbacks_));
     if (attr_names_slice.size() == 0) {
@@ -305,6 +309,10 @@ class Traverser {
 
   absl::Status PrevisitSchemaAttributes(const ItemWithSchema& item) {
     if (!item.item.template holds_value<ObjectId>()) {
+      return absl::OkStatus();
+    }
+    if (item.item.template value<ObjectId>().IsNoFollowSchema()) {
+      // No processing needed for NoFollowSchema.
       return absl::OkStatus();
     }
     DCHECK_EQ(item.schema, schema::kSchema);

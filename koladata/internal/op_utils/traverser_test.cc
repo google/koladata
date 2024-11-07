@@ -313,7 +313,6 @@ TEST_P(NoOpTraverserTest, ShallowEntitySlice) {
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
 
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_OK(TraverseSlice(obj_ids, schema, *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
 }
@@ -344,7 +343,6 @@ TEST_P(NoOpTraverserTest, DeepEntitySlice) {
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
 
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_OK(
       TraverseSlice(ds, schema_a, *GetMainDb(db), {GetFallbackDb(db).get()}));
 }
@@ -365,7 +363,6 @@ TEST_P(NoOpTraverserTest, ShallowListsSlice) {
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
 
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_OK(TraverseSlice(lists, list_schema, *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
 }
@@ -398,7 +395,6 @@ TEST_P(NoOpTraverserTest, DeepListsSlice) {
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
 
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_OK(TraverseSlice(sparse_lists, list_schema, *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
 }
@@ -422,7 +418,6 @@ TEST_P(NoOpTraverserTest, ShallowDictsSlice) {
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
 
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_OK(TraverseSlice(dicts, dict_schema, *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
 }
@@ -464,7 +459,6 @@ TEST_P(NoOpTraverserTest, DeepDictsSlice) {
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
 
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_OK(TraverseSlice(sparse_dicts, dict_schema, *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
 }
@@ -525,7 +519,6 @@ TEST_P(NoOpTraverserTest, ObjectsSlice) {
       {a0, a1, DataItem(), DataItem(3), DataItem("a"), dicts[0], dicts[1],
        lists[0], lists[1]}));
   auto schema = AllocateSchema();
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_OK(TraverseSlice(ds, DataItem(schema::kObject), *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
 }
@@ -543,13 +536,12 @@ TEST_P(NoOpTraverserTest, SchemaSlice) {
   SetDataTriples(*db, GenNoiseDataTriples());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2}));
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_OK(TraverseSlice(ds, DataItem(schema::kSchema), *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
 }
 
 TEST_P(ObjectsTraverserTest, ObjectsSlice) {
-    auto db = DataBagImpl::CreateEmptyDatabag();
+  auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
@@ -604,8 +596,6 @@ TEST_P(ObjectsTraverserTest, ObjectsSlice) {
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {a0, a1, DataItem(), DataItem(3), DataItem("a"), dicts[0], dicts[1],
        lists[0], lists[1]}));
-  auto schema = AllocateSchema();
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_OK(TraverseSliceCheckObjectPrevisits(ds, DataItem(schema::kObject),
                                               *GetMainDb(db),
                                               {GetFallbackDb(db).get()}));

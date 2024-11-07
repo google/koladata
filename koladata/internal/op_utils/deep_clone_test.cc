@@ -817,11 +817,93 @@ TEST_P(DeepCloneTest, ImplicitSchema) {
   EXPECT_THAT(result_db, DataBagEqual(expected_db));
 }
 
+TEST_P(DeepCloneTest, NoFollowSchema) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto a3 = obj_ids[3];
+  auto a4 = obj_ids[4];
+  auto a5 = obj_ids[5];
+  auto a6 = obj_ids[6];
+  auto l0 = DataSliceImpl::ObjectsFromAllocation(AllocateLists(1), 1)[0];
+  auto s0 = AllocateSchema();
+  auto s1 = AllocateSchema();
+  auto s2 = AllocateSchema();
+  auto s3 = AllocateSchema();
+  auto s4 = AllocateSchema();
+  auto s5 = AllocateSchema();
+  auto nofollow_s1 =
+      DataItem(CreateNoFollowWithMainObject(s1.value<ObjectId>()));
+  auto nofollow_s4 =
+      DataItem(CreateNoFollowWithMainObject(s4.value<ObjectId>()));
+  auto slist = AllocateSchema();
+  auto nofollow_slist =
+      DataItem(CreateNoFollowWithMainObject(slist.value<ObjectId>()));
+  TriplesT data_triples = {
+    {a0, {{"x", a1}, {"y", a3}, {"z", a6}}},
+    {a1, {{"a", a2}, {"b", DataItem(2)}}},
+    {a2, {{"c", DataItem(3)}}},
+    {a3, {{"x", a4}, {"y", l0}}},
+    {a4, {{schema::kSchemaAttr, nofollow_s4}, {"z", a5}}},
+    {a5, {{"x", DataItem(4)}}},
+    {a6, {{"z", a6}}},
+  };
+  TriplesT schema_triples = {
+      {s0, {{"x", nofollow_s1}, {"y", s3}, {"z", s4}}},
+      {s1, {{"a", s2}, {"b", DataItem(schema::kInt32)}}},
+      {s2, {{"c", DataItem(schema::kInt32)}}},
+      {s3, {{"x", DataItem(schema::kObject)}, {"y", nofollow_slist}}},
+      {s4, {{"z", s5}}},
+      {s5, {{"x", DataItem(schema::kInt32)}}},
+      {slist, {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}},
+  };
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+  ASSERT_OK(db->ExtendList(
+      l0, DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3}))));
+  auto ds = DataSliceImpl::Create(/*size=*/1, a0);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
+                       DeepCloneOp(result_db.get())(ds, s0, *GetMainDb(db),
+                                                    {GetFallbackDb(db).get()}));
+  auto result_a0 = result_slice[0];
+  ASSERT_OK_AND_ASSIGN(auto result_a1, result_db->GetAttr(result_a0, "x"));
+  ASSERT_OK_AND_ASSIGN(auto result_a3, result_db->GetAttr(result_a0, "y"));
+  ASSERT_OK_AND_ASSIGN(auto result_a6, result_db->GetAttr(result_a0, "z"));
+  ASSERT_OK_AND_ASSIGN(auto result_a4, result_db->GetAttr(result_a3, "x"));
+  ASSERT_OK_AND_ASSIGN(auto result_l0, result_db->GetAttr(result_a3, "y"));
+  TriplesT expected_data_triples = {
+    {result_a0, {{"x", result_a1}, {"y", result_a3}, {"z", result_a6}}},
+    {result_a3, {{"x", result_a4}, {"y", result_l0}}},
+    {result_a4, {{schema::kSchemaAttr, nofollow_s4}}},
+    {result_a6, {{"z", result_a6}}},
+  };
+  TriplesT expected_schema_triples = {
+      {s0, {{"x", nofollow_s1}, {"y", s3}, {"z", s4}}},
+      {s3, {{"x", DataItem(schema::kObject)}, {"y", nofollow_slist}}},
+      {s4, {{"z", s5}}},
+      {s5, {{"x", DataItem(schema::kInt32)}}},
+  };
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(expected_db));
+}
+
 TEST_P(DeepCloneTest, SchemaSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto s1 = AllocateSchema();
   auto s2 = AllocateSchema();
   auto s3 = AllocateSchema();
+  auto s4 = AllocateSchema();
+  auto nofollow_s3 =
+    DataItem(CreateNoFollowWithMainObject(s3.value<ObjectId>()));
+  auto nofollow_s4 =
+    DataItem(CreateNoFollowWithMainObject(s4.value<ObjectId>()));
   auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
   ASSERT_OK_AND_ASSIGN(
       auto implicit_schema_ids,
@@ -831,9 +913,10 @@ TEST_P(DeepCloneTest, SchemaSlice) {
   auto implicit_schema1 = implicit_schema_ids[1];
 
   TriplesT schema_triples = {
-      {s1, {{"x", DataItem(schema::kInt32)}, {"y", s3}}},
-      {s2, {{"a", DataItem(schema::kString)}}},
+      {s1, {{"x", DataItem(schema::kInt32)}, {"y", s3}, {"4", nofollow_s4}}},
+      {s2, {{"a", DataItem(schema::kString)}, {"y", nofollow_s3}}},
       {s3, {{"self", s3}, {"implicit", implicit_schema0}}},
+      {s4, {{"a", DataItem(schema::kString)}}},
       {implicit_schema0,
        {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
       {implicit_schema1,
@@ -859,9 +942,19 @@ TEST_P(DeepCloneTest, SchemaSlice) {
   EXPECT_NE(result_slice[3], result_slice[2]);
   ASSERT_OK_AND_ASSIGN(auto result_s3,
                        result_db->GetSchemaAttr(result_slice[0], "y"));
+  ASSERT_OK_AND_ASSIGN(auto nofollow_result_s4,
+                       result_db->GetSchemaAttr(result_slice[0], "4"));
+  EXPECT_TRUE(nofollow_result_s4.value<ObjectId>().IsNoFollowSchema());
+  auto nofollow_result_s3 =
+      DataItem(CreateNoFollowWithMainObject(result_s3.value<ObjectId>()));
+
   TriplesT expected_schema_triples = {
-      {result_slice[0], {{"x", DataItem(schema::kInt32)}, {"y", result_s3}}},
-      {result_slice[1], {{"a", DataItem(schema::kString)}}},
+      {result_slice[0],
+       {{"x", DataItem(schema::kInt32)},
+        {"y", result_s3},
+        {"4", nofollow_result_s4}}},
+      {result_slice[1],
+       {{"a", DataItem(schema::kString)}, {"y", nofollow_result_s3}}},
       {result_s3, {{"self", result_s3}, {"implicit", result_slice[2]}}},
       {result_slice[2],
        {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
