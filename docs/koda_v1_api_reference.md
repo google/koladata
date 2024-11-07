@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-06'
+  reviewed: '2024-11-07'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -39,12 +39,6 @@ included.
 <section class="zippy open">
 
 **Operators**
-
-### `abs(x)` {#abs}
-
-``` {.no-copy}
-Computes pointwise absolute value of the input.
-```
 
 ### `add(x, y)` {#add}
 
@@ -192,46 +186,6 @@ Args:
     <= get_ndim(x).
 ```
 
-### `agg_mean(x, ndim)` {#agg_mean}
-
-``` {.no-copy}
-Returns the means along the last ndim dimensions.
-
-The resulting slice has `rank = rank - ndim` and shape: `shape =
-shape[:-ndim]`.
-
-Example:
-  ds = kd.slice([[1, None, None], [3, 4], [None, None]])
-  kd.agg_mean(ds)  # -> kd.slice([1, 3.5, None])
-  kd.agg_mean(ds, ndim=1)  # -> kd.slice([1, 3.5, None])
-  kd.agg_mean(ds, ndim=2)  # -> kd.slice(2.6666666666666) # (1 + 3 + 4) / 3)
-
-Args:
-  x: A DataSlice of numbers.
-  ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= get_ndim(x).
-```
-
-### `agg_median(x, ndim)` {#agg_median}
-
-``` {.no-copy}
-Returns the medians along the last ndim dimensions.
-
-The resulting slice has `rank = rank - ndim` and shape: `shape =
-shape[:-ndim]`.
-
-Please note that for even number of elements, the median is the next value
-down from the middle, p.ex.: median([1, 2]) == 1.
-That is made by design to fulfill the following property:
-1. type of median(x) == type of elements of x;
-2. median(x) ∈ x.
-
-Args:
-  x: A DataSlice of numbers.
-  ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= get_ndim(x).
-```
-
 ### `agg_min(x, ndim)` {#agg_min}
 
 ``` {.no-copy}
@@ -277,27 +231,6 @@ Returns:
   A DataSlice of number of items in `x` over the last `ndim` dimensions.
 ```
 
-### `agg_std(x, unbiased, ndim)` {#agg_std}
-
-``` {.no-copy}
-Returns the standard deviation along the last ndim dimensions.
-
-The resulting slice has `rank = rank - ndim` and shape: `shape =
-shape[:-ndim]`.
-
-Example:
-  ds = kd.slice([10, 9, 11])
-  kd.agg_std(ds)  # -> kd.slice(1.0)
-  kd.agg_std(ds, unbiased=False)  # -> kd.slice(0.8164966)
-
-Args:
-  x: A DataSlice of numbers.
-  unbiased: A boolean flag indicating whether to substract 1 from the number
-    of elements in the denominator.
-  ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= get_ndim(x).
-```
-
 ### `agg_sum(x, ndim)` {#agg_sum}
 
 ``` {.no-copy}
@@ -331,27 +264,6 @@ Args:
 Returns:
   DataSlice with that has `rank = rank - ndim` and shape: `shape =
   shape[:-ndim]`.
-```
-
-### `agg_var(x, unbiased, ndim)` {#agg_var}
-
-``` {.no-copy}
-Returns the variance along the last ndim dimensions.
-
-The resulting slice has `rank = rank - ndim` and shape: `shape =
-shape[:-ndim]`.
-
-Example:
-  ds = kd.slice([10, 9, 11])
-  kd.agg_var(ds)  # -> kd.slice(1.0)
-  kd.agg_var(ds, unbiased=False)  # -> kd.slice([0.6666667])
-
-Args:
-  x: A DataSlice of numbers.
-  unbiased: A boolean flag indicating whether to substract 1 from the number
-    of elements in the denominator.
-  ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
-    <= get_ndim(x).
 ```
 
 ### `align(*args)` {#align}
@@ -610,15 +522,6 @@ Args:
   schema: Schema to cast to. Must be a scalar.
 ```
 
-### `ceil(x)` {#ceil}
-
-``` {.no-copy}
-Computes pointwise ceiling of the input, e.g.
-
-rounding up: returns the smallest integer value that is not less than the
-input.
-```
-
 ### `clone(x, schema, **overrides)` {#clone}
 
 ``` {.no-copy}
@@ -794,30 +697,6 @@ Args:
 
 Returns:
   A DataSlice of INT64 with the same shape and sparsity as `x`.
-```
-
-### `cum_max(x, ndim)` {#cum_max}
-
-``` {.no-copy}
-Returns the cumulative max of items along the last ndim dimensions.
-```
-
-### `cum_min(x, ndim)` {#cum_min}
-
-``` {.no-copy}
-Returns the cumulative minimum of items along the last ndim dimensions.
-```
-
-### `cum_sum(x, ndim)` {#cum_sum}
-
-``` {.no-copy}
-Returns the cumulative sum of items along the last ndim dimensions.
-```
-
-### `decode(x)` {#decode}
-
-``` {.no-copy}
-Decodes `x` as STRING using UTF-8 decoding.
 ```
 
 ### `decode_itemid(ds)` {#decode_itemid}
@@ -1078,12 +957,6 @@ Returns:
   Coalesced DataSlice.
 ```
 
-### `divide(x, y)` {#divide}
-
-``` {.no-copy}
-Computes pointwise x / y.
-```
-
 ### `dumps(x, /, *, riegeli_options)` {#dumps}
 
 ``` {.no-copy}
@@ -1149,12 +1022,6 @@ Creates a DataSlice of missing items with the shape of `shape_from`.
 
   Returns:
     A DataSlice with the shape of the given DataSlice.
-```
-
-### `encode(x)` {#encode}
-
-``` {.no-copy}
-Encodes `x` as BYTES using UTF-8 encoding.
 ```
 
 ### `encode_itemid(ds)` {#encode_itemid}
@@ -1234,12 +1101,6 @@ Returns the expr evaluated on the given `input_values`.
     **input_values: Values to evaluate `expr` with. Note that all inputs in
       `expr` must be present in the input values. All input values should either
       be DataSlices or convertible to DataSlices.
-```
-
-### `exp(x)` {#exp}
-
-``` {.no-copy}
-Computes pointwise exponential of the input.
 ```
 
 ### `expand_to(x, target, ndim)` {#expand_to}
@@ -1451,21 +1312,6 @@ Returns kd.slice(x, kd.FLOAT32).
 Returns kd.slice(x, kd.FLOAT64).
 ```
 
-### `floor(x)` {#floor}
-
-``` {.no-copy}
-Computes pointwise floor of the input, e.g.
-
-rounding down: returns the largest integer value that is not greater than the
-input.
-```
-
-### `floordiv(x, y)` {#floordiv}
-
-``` {.no-copy}
-Computes pointwise x // y.
-```
-
 ### `follow(x)` {#follow}
 
 ``` {.no-copy}
@@ -1479,6 +1325,47 @@ Inverse of `nofollow`.
 
 Args:
   x: DataSlice to unwrap, if nofollowed.
+```
+
+### `format(fmt, /, **kwargs)` {#format}
+
+``` {.no-copy}
+Formats strings according to python str.format style.
+
+Format support is slightly different from Python:
+1. {x:v} is equivalent to {x} and supported for all types as default string
+   format.
+2. Only float and integers support other format specifiers.
+  E.g., {x:.1f} and {x:04d}.
+3. If format is missing type specifier `f` or `d` at the end, we are
+   adding it automatically based on the type of the argument.
+
+Note: only keyword arguments are supported.
+
+Examples:
+  kd.strings.format(kd.slice(['Hello {n}!', 'Goodbye {n}!']), n='World')
+    # -> kd.slice(['Hello World!', 'Goodbye World!'])
+  kd.strings.format('{a} + {b} = {c}', a=1, b=2, c=3)
+    # -> kd.slice('1 + 2 = 3')
+  kd.strings.format(
+      '{a} + {b} = {c}',
+      a=kd.slice([1, 2]),
+      b=kd.slice([2, 3]),
+      c=kd.slice([3, 5]))
+    # -> kd.slice(['1 + 2 = 3', '2 + 3 = 5'])
+  kd.strings.format(
+      '({a:03} + {b:e}) * {c:.2f} ='
+      ' {a:02d} * {c:3d} + {b:07.3f} * {c:08.4f}'
+      a=5, b=5.7, c=75)
+    # -> kd.slice(
+    #        '(005 + 5.700000e+00) * 75.00 = 05 *  75 + 005.700 * 075.0000')
+
+Args:
+  fmt: Format string (String or Bytes).
+  kwargs: Arguments to format.
+
+Returns:
+  The formatted string.
 ```
 
 ### `freeze(x)` {#freeze}
@@ -2532,18 +2419,6 @@ Returns size of a List.
 Deserializes a DataSlice or a DataBag.
 ```
 
-### `log(x)` {#log}
-
-``` {.no-copy}
-Computes pointwise natural logarithm of the input.
-```
-
-### `log10(x)` {#log10}
-
-``` {.no-copy}
-Computes pointwise logarithm in base 10 of the input.
-```
-
 ### `make_tuple(*args)` {#make_tuple}
 
 ``` {.no-copy}
@@ -2803,34 +2678,6 @@ Computes pointwise max(x, y).
 A shortcut for kde.get_attr(obj, attr_name, default=None).
 ```
 
-### `mean(x)` {#mean}
-
-``` {.no-copy}
-Returns the mean of elements over all dimensions.
-
-The result is a zero-dimensional DataItem.
-
-Args:
-  x: A DataSlice of numbers.
-```
-
-### `median(x)` {#median}
-
-``` {.no-copy}
-Returns the median of elements over all dimensions.
-
-The result is a zero-dimensional DataItem.
-
-Please note that for even number of elements, the median is the next value
-down from the middle, p.ex.: median([1, 2]) == 1.
-That is made by design to fulfill the following property:
-1. type of median(x) == type of elements of x;
-2. median(x) ∈ x.
-
-Args:
-  x: A DataSlice of numbers.
-```
-
 ### `min(x)` {#min}
 
 ``` {.no-copy}
@@ -2846,18 +2693,6 @@ Args:
 
 ``` {.no-copy}
 Computes pointwise min(x, y).
-```
-
-### `mod(x, y)` {#mod}
-
-``` {.no-copy}
-Computes pointwise x % y.
-```
-
-### `multiply(x, y)` {#multiply}
-
-``` {.no-copy}
-Computes pointwise x * y.
 ```
 
 ### `mutable_obj(arg, *, itemid, db, **attrs)` {#mutable_obj}
@@ -2877,47 +2712,6 @@ Creates new Objects with an implicit stored schema.
 
   Returns:
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
-```
-
-### `mutable_obj_like(shape_and_mask_from, *, itemid, db, **attrs)` {#mutable_obj_like}
-
-``` {.no-copy}
-Creates Objects with shape and sparsity from shape_and_mask_from.
-
-  Returned DataSlice has OBJECT schema.
-
-  Args:
-    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
-      DataSlice will have.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-```
-
-### `mutable_obj_shaped(shape, *, itemid, db, **attrs)` {#mutable_obj_shaped}
-
-``` {.no-copy}
-Creates Objects with the given shape.
-
-  Returned DataSlice has OBJECT schema.
-
-  Args:
-    shape: JaggedShape that the returned DataSlice will have.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-```
-
-### `neg(x)` {#neg}
-
-``` {.no-copy}
-Computes pointwise negation of the input, i.e. -x.
 ```
 
 ### `new(arg, *, schema, update_schema, itemid, db, **attrs)` {#new}
@@ -3040,15 +2834,7 @@ Allocates new List ItemIds with the shape of shape_from.
 ### `new_schema(db, **attrs)` {#new_schema}
 
 ``` {.no-copy}
-Creates new schema in the given DataBag.
-
-  Args:
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
-    **attrs: attrs to set on the schema. Must be schemas.
-
-  Returns:
-    data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
+Deprecated. Use kd.schema.new_schema instead.
 ```
 
 ### `new_shaped(shape, *, schema, update_schema, itemid, db, **attrs)` {#new_shaped}
@@ -3260,18 +3046,6 @@ Args:
 
 Returns:
   A DataSlice of ordinal ranks.
-```
-
-### `pos(x)` {#pos}
-
-``` {.no-copy}
-Computes pointwise positive of the input, i.e. +x.
-```
-
-### `pow(x, y)` {#pow}
-
-``` {.no-copy}
-Computes pointwise x ** y.
 ```
 
 ### `present_like(x)` {#present_like}
@@ -3587,24 +3361,6 @@ Returns:
   Reverse filtered DataSlice.
 ```
 
-### `round(x)` {#round}
-
-``` {.no-copy}
-Computes pointwise rounding of the input.
-
-Please note that this is NOT bankers rounding, unlike Python built-in or
-Tensorflow round(). If the first decimal is exactly  0.5, the result is
-rounded to the number with a higher absolute value:
-round(1.4) == 1.0
-round(1.5) == 2.0
-round(1.6) == 2.0
-round(2.5) == 3.0 # not 2.0
-round(-1.4) == -1.0
-round(-1.5) == -2.0
-round(-1.6) == -2.0
-round(-2.5) == -3.0 # not -2.0
-```
-
 ### `sample(x, ratio, seed, key)` {#sample}
 
 ``` {.no-copy}
@@ -3834,10 +3590,11 @@ Returns a copy of `x` with the provided `schema`.
 
     kd.set_schema(kd.ds([1, 2, 3], schema=kd.ANY), kd.INT32) -> kd.ds([1, 2, 3])
     kd.set_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
-    kd.set_schema(kd.ds(1).with_bag(kd.bag()), kd.new_schema(x=kd.INT32)) ->
+    kd.set_schema(kd.ds(1).with_bag(kd.bag()), kd.schema.new_schema(x=kd.INT32))
+    ->
     fail
     kd.set_schema(kd.new(x=1), kd.INT32) -> fail
-    kd.set_schema(kd.new(x=1), kd.new_schema(x=kd.INT64)) -> work
+    kd.set_schema(kd.new(x=1), kd.schema.new_schema(x=kd.INT64)) -> work
 
   Args:
     x: DataSlice to change the schema of.
@@ -3908,21 +3665,6 @@ Args:
 
 Returns:
   DataSlice with last dimension sorted.
-```
-
-### `split(x, sep)` {#split}
-
-``` {.no-copy}
-Returns x split by the provided separator.
-
-Example:
-  ds = kd.slice(['Hello world!', 'Goodbye world!'])
-  kd.split(ds)  # -> kd.slice([['Hello', 'world!'], ['Goodbye', 'world!']])
-
-Args:
-  x: DataSlice: (can be text or bytes)
-  sep: If specified, will split by the specified string not omitting empty
-    strings, otherwise will split by whitespaces while omitting empty strings.
 ```
 
 ### `stack(*args, ndim)` {#stack}
@@ -4101,51 +3843,6 @@ Args:
 
 Returns:
   A DataSlice with selected items
-```
-
-### `substr(x, start, end)` {#substr}
-
-``` {.no-copy}
-Returns a DataSlice of substrings with indices [start, end).
-
-The usual Python rules apply:
-  * A negative index is computed from the end of the string.
-  * An empty range yields an empty string, for example when start >= end and
-    both are positive.
-
-The result is broadcasted to the common shape of all inputs.
-
-Examples:
-  ds = kd.slice([['Hello World!', 'Ciao bella'], ['Dolly!']])
-  kd.substr(ds)         # -> kd.slice([['Hello World!', 'Ciao bella'],
-                                       ['Dolly!']])
-  kd.substr(ds, 5)      # -> kd.slice([[' World!', 'bella'], ['!']])
-  kd.substr(ds, -2)     # -> kd.slice([['d!', 'la'], ['y!']])
-  kd.substr(ds, 1, 5)   # -> kd.slice([['ello', 'iao '], ['olly']])
-  kd.substr(ds, 5, -1)  # -> kd.slice([[' World', 'bell'], ['']])
-  kd.substr(ds, 4, 100) # -> kd.slice([['o World!', ' bella'], ['y!']])
-  kd.substr(ds, -1, -2) # -> kd.slice([['', ''], ['']])
-  kd.substr(ds, -2, -1) # -> kd.slice([['d', 'l'], ['y']])
-
-  # Start and end may also be multidimensional.
-  ds = kd.slice('Hello World!')
-  start = kd.slice([1, 2])
-  end = kd.slice([[2, 3], [4]])
-  kd.substr(ds, start, end) # -> kd.slice([['e', 'el'], ['ll']])
-
-Args:
-  x: Text or Bytes DataSlice. If text, then `start` and `end` are codepoint
-    offsets. If bytes, then `start` and `end` are byte offsets.
-  start: The start index of the substring. Inclusive. Assumed to be 0 if
-    unspecified.
-  end: The end index of the substring. Exclusive. Assumed to be the length of
-    the string if unspecified.
-```
-
-### `subtract(x, y)` {#subtract}
-
-``` {.no-copy}
-Computes pointwise x - y.
 ```
 
 ### `sum(x)` {#sum}
@@ -4825,9 +4522,10 @@ schema. For example,
   kd.with_schema(kd.ds(1).with_bag(db), db.new_schema(x=kd.INT32)) -> fail due
       to incompatible schema
   kd.with_schema(db.new(x=1), kd.INT32) -> fail due to incompatible schema
-  kd.with_schema(db.new(x=1), kd.new_schema(x=kd.INT32)) -> fail due to
+  kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32)) -> fail due to
       different DataBag
-  kd.with_schema(db.new(x=1), kd.new_schema(x=kd.INT32).no_bag()) -> work
+  kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32).no_bag()) ->
+  work
   kd.with_schema(db.new(x=1), db.new_schema(x=kd.INT64)) -> work
 
 Args:
@@ -5633,6 +5331,10 @@ QType of the stored value.
 *No description*
 
 ### `<DataSlice>.reshape(self, shape)` {#<DataSlice>.reshape}
+
+*No description*
+
+### `<DataSlice>.reshape_as(self, shape_from)` {#<DataSlice>.reshape_as}
 
 *No description*
 
