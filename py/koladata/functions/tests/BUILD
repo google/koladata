@@ -597,7 +597,11 @@ py_test(
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
+        "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:dict_item",
+        "//py/koladata/types:list_item",
+        "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )

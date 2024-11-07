@@ -34,8 +34,10 @@ py_library(
         ":s11n",
         ":schema",
         ":tmp_non_deterministic_overrides",
+        "//py/koladata/fstring",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:general_eager_ops",
     ],
 )
 

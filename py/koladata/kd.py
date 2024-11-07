@@ -23,7 +23,6 @@ from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
 from koladata.expr import tracing_mode as _tracing_mode
-from koladata.fstring import fstring as _fstring
 from koladata.functions import functions as _functions
 from koladata.functor import functor_factories as _functor_factories
 from koladata.functor import kdf as _kdf
@@ -35,7 +34,6 @@ from koladata.types import data_bag as _data_bag
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _dict_item
-from koladata.types import general_eager_ops as _general_eager_ops
 from koladata.types import jagged_shape as _jagged_shape
 from koladata.types import list_item as _list_item
 from koladata.types import literal_operator as _literal_operator
@@ -113,15 +111,15 @@ def _LoadImpureFunctions():
   for fn_name in dir(_functions):
     if not fn_name.startswith('_'):
       fn_val = getattr(_functions, fn_name)
-      if isinstance(fn_val, _py_types.SimpleNamespace):
-        # We only support overriding operator containers via function namespaces
-        # for now. Note that the behavior is different compared to top-level
-        # functions: those become eager-only, while here we still use the
-        # kde implementation in tracing mode.
-        assert fn_name in globals()
-        old_val = globals()[fn_name]
+      # If the name exists already, it means it is defined both in Expr operator
+      # and function. E.g. kd.obj/dict/list. We need to override the eager
+      # operator derived from Expr op with the function.
+      if fn_name in globals():
+        if isinstance(fn_val, _py_types.SimpleNamespace):
+          # Override operator containers via function namespaces for now.
+          fn_val = _eager_op_utils.add_overrides(globals()[fn_name], fn_val)
         globals()[fn_name] = _dispatch(
-            eager=_eager_op_utils.add_overrides(old_val, fn_val),
+            eager=fn_val,
             tracing=getattr(_kde_operators.kde, fn_name),
         )
       else:
@@ -151,15 +149,6 @@ expr.sub_by_name = _introspection.sub_by_name
 expr.sub = _introspection.sub
 expr.get_input_names = _introspection.get_input_names
 
-# This overrides fstr for eager computation due to subtle differences.
-fstr = _dispatch(
-    eager=_fstring.fstr, tracing=_kde_operators.kde.fstr
-)
-# This overrides the eager_op_utils implementation which unfortunately
-# fails because M.annotation.name requires a literal as second argument.
-with_name = _dispatch(
-    eager=_general_eager_ops.with_name, tracing=_kde_operators.kde.with_name
-)
 trace_as_fn = _eager_only(_tracing_decorator.TraceAsFnDecorator)
 is_fn = _eager_only(_functor_factories.is_fn)
 

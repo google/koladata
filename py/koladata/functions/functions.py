@@ -17,6 +17,7 @@
 import types as _py_types
 import warnings as _warnings
 
+from koladata.fstring import fstring as _fstring
 from koladata.functions import attrs as _attrs
 from koladata.functions import object_factories as _object_factories
 from koladata.functions import predicates as _predicates
@@ -29,6 +30,7 @@ from koladata.functions import schema as _schema
 from koladata.functions import tmp_non_deterministic_overrides as _tmp_non_deterministic_overrides
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_slice as _data_slice
+from koladata.types import general_eager_ops as _general_eager_ops
 
 bag = _object_factories.bag
 
@@ -56,9 +58,9 @@ obj_like = _object_factories.obj_like
 obj_shaped = _object_factories.obj_shaped
 obj_shaped_as = _object_factories.obj_shaped_as
 
-# Currently kd.mutable_obj is an alias for kd.obj. In the future, we will change
+# Currently kd.mutable_obj is the same as kd.obj. In the future, we will change
 # obj to return immutable results.
-mutable_obj = _object_factories.obj
+mutable_obj = _object_factories.mutable_obj
 
 empty_shaped = _object_factories.empty_shaped
 empty_shaped_as = _object_factories.empty_shaped_as
@@ -127,3 +129,10 @@ loads = _s11n.loads
 clone = _tmp_non_deterministic_overrides.clone
 shallow_clone = _tmp_non_deterministic_overrides.shallow_clone
 deep_clone = _tmp_non_deterministic_overrides.deep_clone
+
+fstr = _fstring.fstr
+strings = _py_types.SimpleNamespace(
+    fstr=_fstring.fstr,
+)
+
+with_name = _general_eager_ops.with_name

@@ -209,6 +209,7 @@ class KdTest(absltest.TestCase):
 
   def test_fstr(self):
     kd.testing.assert_equal(kd.fstr(f'{kd.slice(1):s}'), kd.slice('1'))
+    kd.testing.assert_equal(kd.strings.fstr(f'{kd.slice(1):s}'), kd.slice('1'))
 
   def test_fstr_expr_not_allowed(self):
     with self.assertRaisesRegex(
@@ -279,9 +280,10 @@ class KdTest(absltest.TestCase):
     with tracing_mode.enable_tracing():
       with self.assertRaisesRegex(
           AttributeError,
-          "Attribute 'new' is not available in tracing mode on 'koladata.kd'",
+          "Attribute 'mutable_obj' is not available in tracing mode on"
+          " 'koladata.kd'",
       ):
-        _ = kd.new
+        _ = kd.mutable_obj
 
   def test_tracing_for_with_name(self):
     with tracing_mode.enable_tracing():
@@ -327,6 +329,19 @@ class KdTest(absltest.TestCase):
  the first conflicting schema ITEMID"""),
     ):
       kd.schema.cast_to_implicit(x, kd.ITEMID)
+
+  def test_eager_op_overrides_expr_op(self):
+    x = kd.obj(a=1)
+    self.assertTrue(x.db.is_mutable())
+
+    x = kd.eval(kde.obj(a=1))
+    self.assertFalse(x.db.is_mutable())
+
+    def f():
+      return kd.obj(a=1)
+
+    x = kdf.trace_py_fn(f)()
+    self.assertFalse(x.db.is_mutable())
 
 
 if __name__ == '__main__':
