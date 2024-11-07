@@ -1596,20 +1596,21 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                        std::move(_), kOperatorName,
                        "values_from must be broadcastable to keys_from"));
 
-  const auto& to_shape = keys_to.GetShape();
-  if (to_shape.rank() == 0 || from_shape.rank() == 0) {
+  if (from_shape.rank() == 0) {
     return internal::OperatorEvalError(
         kOperatorName,
-        "keys_to, keys_from and values_from must have at least one dimension");
+        "keys_from and values_from must have at least one dimension");
   }
 
-  auto shape_without_last_dim = to_shape.RemoveDims(to_shape.rank() - 1);
-  if (!from_shape.RemoveDims(from_shape.rank() - 1)
-           .IsEquivalentTo(shape_without_last_dim)) {
+  auto shape_without_last_dim = from_shape.RemoveDims(from_shape.rank() - 1);
+  if (!shape_without_last_dim.IsBroadcastableTo(keys_to.GetShape())) {
     return internal::OperatorEvalError(
         kOperatorName,
-        "keys_from and keys_to must have the same dimensions except the last "
-        "one");
+        absl::StrFormat(
+            "keys_from.get_shape()[:-1] must be broadcastable to keys_to, but "
+            "got %s vs %s",
+            arolla::Repr(shape_without_last_dim),
+            arolla::Repr(keys_to.GetShape())));
   }
 
   ASSIGN_OR_RETURN(auto casted_keys_to,

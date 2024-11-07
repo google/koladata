@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -51,6 +53,12 @@ class CoreTranslateTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # primitive schema
+      (
+          ds('a'),
+          ds(['a', 'b', 'c']),
+          ds([1, 2, 3]),
+          ds(1),
+      ),
       (
           ds(['a', 'c', None, 'd']),
           ds(['a', 'b', 'c']),
@@ -113,6 +121,13 @@ class CoreTranslateTest(parameterized.TestCase):
           ds(1),
           ds([1, 1, None, None]),
       ),
+      # Broadcast keys_from to keys_to
+      (
+          ds([['a', 'c'], [None, 'd']]),
+          ds(['a', 'b', 'c']),
+          ds([1, 2, 3]),
+          ds([[1, 3], [None, None]]),
+      ),
       # Auto-cast keys_to schema to keys_from schema
       (
           ds([1, 3, None, 4]),
@@ -137,22 +152,17 @@ class CoreTranslateTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'keys_to, keys_from and values_from must have at least one dimension',
-    ):
-      expr_eval.eval(
-          kde.core.translate(ds('a'), ds(['a', 'b', 'c']), ds([1, 2, 3]))
-      )
-
-    with self.assertRaisesRegex(
-        exceptions.KodaError,
-        'keys_to, keys_from and values_from must have at least one dimension',
+        'keys_from and values_from must have at least one dimension',
     ):
       expr_eval.eval(kde.core.translate(ds(['a', 'c', 'd']), ds('a'), ds(1)))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'keys_from and keys_to must have the same dimensions except the'
-        ' last one',
+        re.escape(
+            'operator kd.translate failed during evaluation:'
+            ' keys_from.get_shape()[:-1] must be broadcastable to keys_to, but'
+            ' got JaggedShape(1) vs JaggedShape(2, [2, 1])'
+        ),
     ):
       expr_eval.eval(
           kde.core.translate(
