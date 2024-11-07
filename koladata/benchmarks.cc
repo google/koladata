@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -24,6 +25,7 @@
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -39,6 +41,18 @@ namespace koladata {
 namespace {
 
 using internal::DataSliceImpl;
+
+
+DataSlice::JaggedShape::Edge GetEdge(int64_t parent_size, int64_t children) {
+  std::vector<arolla::OptionalValue<int64_t>> split_points;
+  split_points.reserve(parent_size + 1);
+  for (int64_t i = 0; i <= parent_size; ++i) {
+    split_points.push_back(i * children);
+  }
+  return DataSlice::JaggedShape::Edge::FromSplitPoints(
+             CreateDenseArray<int64_t>(std::move(split_points)))
+      .value();
+}
 
 void BM_IsEquivalentToSameImpl(benchmark::State& state) {
   int64_t size = state.range(0);
@@ -528,6 +542,42 @@ void BM_ToInt32_Float32Data_AnySchema(benchmark::State& state) {
 }
 
 BENCHMARK(BM_ToInt32_Float32Data_AnySchema)->Arg(1)->Arg(10)->Arg(10000);
+
+void BM_DataSliceRepr_Int32(benchmark::State& state) {
+  int64_t rank = state.range(0);
+  int64_t num_children = state.range(1);
+  int64_t item_limit = state.range(2);
+  DataSlice::JaggedShape::EdgeVec edges;
+  edges.reserve(rank);
+  for (int i = 0; i < rank; ++i) {
+    edges.push_back(GetEdge(std::pow(num_children, i), num_children));
+  }
+  DataSlice::JaggedShape shape =
+      *DataSlice::JaggedShape::FromEdges(std::move(edges));
+  auto values = arolla::CreateFullDenseArray(
+      std::vector<int32_t>(std::pow(num_children, rank), 123));
+  auto ds =
+      *DataSlice::Create(DataSliceImpl::Create(std::move(values)),
+                         std::move(shape), internal::DataItem(schema::kInt32));
+  ReprOption options{.item_limit = static_cast<size_t>(item_limit)};
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(ds);
+    auto res = *DataSliceToStr(ds, options);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_DataSliceRepr_Int32)
+    // Rank, num children, item limit.
+    //
+    // Truncation.
+    ->Args({1, 1000000, 20})
+    ->Args({2, 3000, 20})
+    ->Args({5, 10, 20})
+    // No truncation.
+    ->Args({1, 1000000, 1 << 30})
+    ->Args({2, 3000, 1 << 30})
+    ->Args({5, 10, 1 << 30});
 
 }  // namespace
 }  // namespace koladata
