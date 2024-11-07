@@ -54,23 +54,7 @@ void BM_CreateEmpty(benchmark::State& state) {
   }
 }
 
-void BM_OldBuilder_CreateEmpty(benchmark::State& state) {
-  int64_t size = state.range(0);
-
-  for (auto _ : state) {
-    DataSliceImpl::Builder bldr(size);
-    DataSliceImpl slice = std::move(bldr).Build();
-    benchmark::DoNotOptimize(slice);
-  }
-}
-
 BENCHMARK(BM_CreateEmpty)->Arg(0)->Arg(1)->Arg(10)->Arg(100)->Arg(1000);
-BENCHMARK(BM_OldBuilder_CreateEmpty)
-    ->Arg(0)
-    ->Arg(1)
-    ->Arg(10)
-    ->Arg(100)
-    ->Arg(1000);
 
 void BM_InsertOneType(benchmark::State& state) {
   int64_t size = state.range(0);
@@ -85,21 +69,7 @@ void BM_InsertOneType(benchmark::State& state) {
   }
 }
 
-void BM_OldBuilder_InsertOneType(benchmark::State& state) {
-  int64_t size = state.range(0);
-
-  for (auto _ : state) {
-    DataSliceImpl::Builder bldr(size);
-    for (int i = 0; i < size; ++i) {
-      bldr.Insert(i, i);
-    }
-    DataSliceImpl slice = std::move(bldr).Build();
-    benchmark::DoNotOptimize(slice);
-  }
-}
-
 BENCHMARK(BM_InsertOneType)->Arg(1)->Arg(10)->Arg(100)->Arg(1000);
-BENCHMARK(BM_OldBuilder_InsertOneType)->Arg(1)->Arg(10)->Arg(100)->Arg(1000);
 
 void BM_InsertTwoTypes(benchmark::State& state) {
   int64_t size = state.range(0);
@@ -115,22 +85,7 @@ void BM_InsertTwoTypes(benchmark::State& state) {
   }
 }
 
-void BM_OldBuilder_InsertTwoTypes(benchmark::State& state) {
-  int64_t size = state.range(0);
-
-  for (auto _ : state) {
-    DataSliceImpl::Builder bldr(size);
-    for (int i = 0; i < size - 1; i += 2) {
-      bldr.Insert(i, i);
-      bldr.Insert(i + 1, static_cast<float>(i));
-    }
-    DataSliceImpl slice = std::move(bldr).Build();
-    benchmark::DoNotOptimize(slice);
-  }
-}
-
 BENCHMARK(BM_InsertTwoTypes)->Arg(10)->Arg(100)->Arg(1000);
-BENCHMARK(BM_OldBuilder_InsertTwoTypes)->Arg(10)->Arg(100)->Arg(1000);
 
 void BM_TypedInsert(benchmark::State& state) {
   int64_t size = state.range(0);
@@ -146,27 +101,7 @@ void BM_TypedInsert(benchmark::State& state) {
   }
 }
 
-void BM_OldBuilder_TypedInsert(benchmark::State& state) {
-  int64_t size = state.range(0);
-
-  for (auto _ : state) {
-    DataSliceImpl::Builder bldr(size);
-    auto& typed_bldr = bldr.GetArrayBuilder<int>();
-    for (int i = 0; i < size; ++i) {
-      typed_bldr.Set(i, i);
-    }
-    DataSliceImpl slice = std::move(bldr).Build();
-    benchmark::DoNotOptimize(slice);
-  }
-}
-
 BENCHMARK(BM_TypedInsert)->Arg(0)->Arg(1)->Arg(10)->Arg(100)->Arg(1000);
-BENCHMARK(BM_OldBuilder_TypedInsert)
-    ->Arg(0)
-    ->Arg(1)
-    ->Arg(10)
-    ->Arg(100)
-    ->Arg(1000);
 
 }  // namespace
 }  // namespace koladata::internal

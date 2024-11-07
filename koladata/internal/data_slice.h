@@ -196,8 +196,6 @@ class DataSliceImpl {
   // Computes the fingerprint.
   void ArollaFingerprint(arolla::FingerprintHasher* hasher) const;
 
-  class Builder;
-
   // Returns true iff `other` represents the same data.
   // NOTE: `IsEquivalent` can return true even if dtype() != other.dtype().
   // For example:
@@ -274,81 +272,6 @@ class DataSliceImpl {
 
   arolla::RefcountPtr<Internal> internal_ =
       arolla::RefcountPtr<Internal>::Make();
-};
-
-class DataSliceImpl::Builder {
- public:
-  Builder(size_t size) { slice_.internal_->size = size; }
-  Builder(const Builder&) = delete;
-
-  size_t size() const { return slice_.internal_->size; }
-
-  template <typename T>
-  arolla::DenseArrayBuilder<T>& GetArrayBuilder() {
-    if (ScalarTypeId<T>() == current_type_id_) {
-      return std::get<arolla::DenseArrayBuilder<T>>(*current_bldr_);
-    }
-    ChangeCurrentType(ScalarTypeId<T>());
-    if (std::holds_alternative<std::monostate>(*current_bldr_)) {
-      *current_bldr_ = arolla::DenseArrayBuilder<T>(size());
-    }
-    DCHECK(
-        std::holds_alternative<arolla::DenseArrayBuilder<T>>(*current_bldr_));
-    return std::get<arolla::DenseArrayBuilder<T>>(*current_bldr_);
-  }
-
-  AllocationIdSet& GetMutableAllocationIds() {
-    return slice_.internal_->allocation_ids;
-  }
-
-  // Inserts the value of the item with `id`.
-  // Does NOTHING if the value is missing (`DataItem()` or `MissingValue`).
-  // Fails if the `value` for the given `id` was already set, even if the value
-  // was the same and/or one of them were missing.
-  template <typename T>
-  void Insert(int64_t id, const T& value) {
-    if constexpr (std::is_same_v<T, DataItem>) {
-      value.VisitValue([&](const auto& v) { Insert(id, v); });
-    } else {
-#ifndef NDEBUG
-      DCHECK(inserted_ids_.insert(id).second)
-          << "id " << id << " was already insered.";
-#endif  // NDEBUG
-      if constexpr (arolla::meta::is_wrapped_with_v<DataItem::View, T>) {
-        GetArrayBuilder<typename T::value_type>().Set(id, value.view);
-        if constexpr (std::is_same_v<typename T::value_type, ObjectId>) {
-          GetMutableAllocationIds().Insert(AllocationId(value.view));
-        }
-      } else if constexpr (!std::is_same_v<T, MissingValue>) {
-        GetArrayBuilder<T>().Set(id, value);
-        if constexpr (std::is_same_v<T, ObjectId>) {
-          GetMutableAllocationIds().Insert(AllocationId(value));
-        }
-      }
-    }
-  }
-
-  template <typename T>
-  void AddArray(arolla::DenseArray<T> array) {
-    DCHECK_EQ(array.size(), size());
-    slice_.internal_->dtype = arolla::GetQType<T>();
-    slice_.internal_->values.emplace_back(std::move(array));
-  }
-
-  DataSliceImpl Build() &&;
-
- private:
-  void ChangeCurrentType(int8_t type_id);
-
-  DataSliceImpl slice_;
-  ArrayBuilderVariant first_bldr_;
-  ArrayBuilderVariant* current_bldr_ = &first_bldr_;
-  int8_t current_type_id_ = ScalarTypeId<MissingValue>();
-  absl::flat_hash_map<int8_t, ArrayBuilderVariant> bldrs_;
-#ifndef NDEBUG
-  // Used to check that all ids in Insert are unique.
-  absl::flat_hash_set<int64_t> inserted_ids_;
-#endif  // NDEBUG
 };
 
 namespace data_slice_impl {
