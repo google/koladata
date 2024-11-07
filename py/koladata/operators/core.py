@@ -151,8 +151,8 @@ def is_dict(ds):  # pylint: disable=unused-argument
 def align(*args):  # pylint: disable=unused-argument
   """Expands all of the DataSlices in `args` to the same common shape.
 
-  All DataSlices must be expandable to the shape of the slice with the largest
-  number of dimensions.
+  All DataSlices must be expandable to the shape of the DataSlice with the
+  largest number of dimensions.
 
   Example:
     kd.align(kd.slice([[1, 2, 3], [4, 5]]), kd.slice('a'), kd.slice([1, 2]))
@@ -621,12 +621,12 @@ def isin(x, y):
 @optools.as_backend_operator(
     'kde.core._get_attr',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _get_attr(obj, attr_name):  # pylint: disable=unused-argument
+def _get_attr(x, attr_name):  # pylint: disable=unused-argument
   """Gets an attribute from a DataSlice."""
   raise NotImplementedError('implemented in the backend')
 
@@ -635,13 +635,13 @@ def _get_attr(obj, attr_name):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.core._get_attr_with_default',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
         qtype_utils.expect_data_slice(P.default),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _get_attr_with_default(obj, attr_name, default):  # pylint: disable=unused-argument
+def _get_attr_with_default(x, attr_name, default):  # pylint: disable=unused-argument
   """Gets an attribute from a DataSlice replacing missing items from default."""
   raise NotImplementedError('implemented in the backend')
 
@@ -650,66 +650,66 @@ def _get_attr_with_default(obj, attr_name, default):  # pylint: disable=unused-a
 @optools.as_lambda_operator(
     'kde.core.get_attr',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
         # None is boxed as an empty OBJECT DataSlice.
         qtype_utils.expect_data_slice_or_unspecified(P.default),
     ],
 )
-def get_attr(obj, attr_name, default=arolla.unspecified()):
+def get_attr(x, attr_name, default=arolla.unspecified()):
   """Resolves (ObjectId(s), attr_name) => (Value|ObjectId)s.
 
   In case attr points to Lists or Maps, the result is a DataSlice that
   contains "pointers" to the beginning of lists/dicts.
 
-  For simple values ((obj, attr) => values), just returns
+  For simple values ((entity, attr) => values), just returns
   DataSlice(primitive values)
 
   Args:
-    obj: DataSlice | DataItem of object ids.
+    x: DataSlice to get attribute from.
     attr_name: name of the attribute to access.
-    default: DataSlice | DataItem value that should be used for objects that do
-      not have this attribute. In case default is specified, this will not
-      warn/raise if the attribute does not exist in the schema, so one can use
-      default=None to suppress the missing attribute warning/error. When
-      default=None and the attribute is missing on all objects, this will return
-      an empty slices with OBJECT schema.
+    default: default value to use when `x` does not have such attribute. In
+      case default is specified, this will not warn/raise if the attribute does
+      not exist in the schema, so one can use `default=None` to suppress the
+      missing attribute warning/error. When `default=None` and the attribute is
+      missing on all entities, this will return an empty slices with NONE
+      schema.
 
   Returns:
     DataSlice
   """
   return arolla.types.DispatchOperator(
-      'obj, attr_name, default',
+      'x, attr_name, default',
       unspecified_case=arolla.types.DispatchCase(
-          _get_attr(P.obj, P.attr_name),
+          _get_attr(P.x, P.attr_name),
           condition=P.default == arolla.UNSPECIFIED,
       ),
-      default=_get_attr_with_default(P.obj, P.attr_name, P.default),
-  )(obj, attr_name, default)
+      default=_get_attr_with_default(P.x, P.attr_name, P.default),
+  )(x, attr_name, default)
 
 
 @optools.add_to_registry(aliases=['kde.maybe'])
 @optools.as_lambda_operator(
     'kde.core.maybe',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
     ],
 )
-def maybe(obj, attr_name):
-  """A shortcut for kde.get_attr(obj, attr_name, default=None)."""
-  return _get_attr_with_default(obj, attr_name, None)
+def maybe(x, attr_name):
+  """A shortcut for kde.get_attr(x, attr_name, default=None)."""
+  return _get_attr_with_default(x, attr_name, None)
 
 
 @optools.add_to_registry(aliases=['kde.is_empty'])
 @optools.as_backend_operator(
     'kde.core.is_empty',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def is_empty(obj):  # pylint: disable=unused-argument
+def is_empty(x):  # pylint: disable=unused-argument
   """Returns kd.present if all items in the DataSlice are missing."""
   raise NotImplementedError('implemented in the backend')
 
@@ -718,29 +718,29 @@ def is_empty(obj):  # pylint: disable=unused-argument
 @optools.as_lambda_operator(
     'kde.core.has_attr',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
     ],
 )
-def has_attr(obj, attr_name):
-  """Indicates whether the items in the slice have the given attribute.
+def has_attr(x, attr_name):
+  """Indicates whether the items in `x` DataSlice have the given attribute.
 
   This function checks for attributes based on data rather than "schema" and may
   be slow in some cases.
 
   Args:
-    obj: DataSlice | DataItem instance
+    x: DataSlice
     attr_name: Name of the attribute to check.
 
   Returns:
-    A MASK slice with the same shape as `obj` that contains present if the
+    A MASK DataSlice with the same shape as `x` that contains present if the
     attribute exists for the corresponding item.
   """
   return logical.has(
-      maybe(obj & (obj.get_schema() == schema_constants.SCHEMA), attr_name)
+      maybe(x & (x.get_schema() == schema_constants.SCHEMA), attr_name)
   ) | logical.has(
       maybe(
-          (obj & (obj.get_schema() != schema_constants.SCHEMA)).as_any(),
+          (x & (x.get_schema() != schema_constants.SCHEMA)).as_any(),
           attr_name,
       )
   )
@@ -758,9 +758,9 @@ def has_attr(obj, attr_name):
 def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused-argument
   """Copies a DataSlice's schema stub to a new DataBag.
 
-  The "schema stub" of a slice is a subset of its schema (including embedded
+  The "schema stub" of a DataSlice is a subset of its schema (including embedded
   schemas) that contains just enough information to support direct updates to
-  that slice.
+  that DataSlice.
 
   Optionally copies `attrs` schema attributes to the new DataBag as well.
 
@@ -805,7 +805,7 @@ def _attrs(
     update_schema=py_boxing.keyword_only(False),
     attrs=py_boxing.var_keyword(),
 ):
-  """Returns a new Databag containing attribute updates for a slice `x`."""
+  """Returns a new Databag containing attribute updates for `x`."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -867,13 +867,13 @@ def new(
     arg: should keep the default arolla.unspecified() value.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
+      kd.ANY schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
       itemid will only be set when the args is not a primitive or primitive
-      slice if args present.
+      DataSlice if args present.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
@@ -912,8 +912,8 @@ def new_shaped(
     shape: JaggedShape that the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
+      kd.ANY schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -954,8 +954,8 @@ def new_shaped_as(
     shape_from: DataSlice, whose shape the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
+      kd.ANY schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -1004,8 +1004,8 @@ def new_like(
       DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
+      kd.ANY schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -1044,8 +1044,8 @@ def _obj(
   Args:
     arg: optional Python object to be converted to an Object.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-      itemid will only be set when the args is not a primitive or primitive
-      slice if args presents.
+      ItemIds will only be set when the args is not a primitive or primitive
+      DataSlice.
     **attrs: attrs to set on the returned object.
 
   Returns:
@@ -1917,8 +1917,8 @@ def group_by_indices(*args):  # pylint: disable=unused-argument
   dimensions are unchanged. The last two dimensions corresponds to the groups
   and the items within the groups.
 
-  Values of the data slice are the indices of the objects within the parent
-  dimension. `kde.take(x, kde.group_by_indices(x))` would group the objects in
+  Values of the DataSlice are the indices of the items within the parent
+  dimension. `kde.take(x, kde.group_by_indices(x))` would group the items in
   `x` by their values.
 
   Groups are ordered by the appearance of the first object in the group.
@@ -1928,7 +1928,7 @@ def group_by_indices(*args):  # pylint: disable=unused-argument
     result: kd.slice([[0, 3, 6], [1, 5, 7], [2, 4]])
 
     We have three groups in order: 1, 3, 2. Each sublist contains the indices of
-    the objects in the original DataSlice.
+    the items in the original DataSlice.
 
   Example 2:
     x: kd.slice([[1, 2, 1, 3, 1, 3], [1, 3, 1]])
@@ -1936,7 +1936,7 @@ def group_by_indices(*args):  # pylint: disable=unused-argument
 
     We have three groups in the first sublist in order: 1, 2, 3 and two groups
     in the second sublist in order: 1, 3.
-    Each sublist contains the indices of the objects in the original sublist.
+    Each sublist contains the indices of the items in the original sublist.
 
   Example 3:
     x: kd.slice([1, 3, 2, 1, None, 3, 1, None])
@@ -1987,7 +1987,7 @@ def group_by_indices_sorted(*args):  # pylint: disable=unused-argument
     result: kd.slice([[0, 3, 6], [2, 4], [1, 5, 7]])
 
     We have three groups in order: 1, 2, 3. Each sublist contains the indices of
-    the objects in the original DataSlice.
+    the items in the original DataSlice.
 
   Example 2:
     x: kd.slice([1, 2, 3, 1, 2, 3, 1, 3]),
@@ -2026,7 +2026,7 @@ def group_by(x, *args):
   keys. If length of `args` is greater than 1, the key is a tuple.
   If `args` is empty, the key is `x`.
 
-  Groups are ordered by the appearance of the first object in the group.
+  Groups are ordered by the appearance of the first item in the group.
 
   Example 1:
     x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])
@@ -2110,7 +2110,7 @@ def unique(
   The first `get_ndim(x) - 1` dimensions are unchanged. The last dimension
   contains the unique values.
 
-  If `sort` is False elements are ordered by the appearance of the first object.
+  If `sort` is False elements are ordered by the appearance of the first item.
 
   If `sort` is True:
   1. Elements are ordered by the value.
@@ -2403,13 +2403,13 @@ def select_items(ds, fltr):
 @optools.as_backend_operator(
     'kde.core._new_ids_like',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _new_ids_like(obj, hidden_seed):  # pylint: disable=unused-argument
-  """Creates a slice with a new object ids of a similar kind."""
+def _new_ids_like(x, hidden_seed):  # pylint: disable=unused-argument
+  """Creates a DataSlice with new ItemIds of a similar kind."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -2423,7 +2423,7 @@ def _new_ids_like(obj, hidden_seed):  # pylint: disable=unused-argument
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _extract(ds, schema):  # pylint: disable=unused-argument
-  """Creates a slice with a new DataBag containing only reachable objects."""
+  """Creates a DataSlice with a new DataBag containing only reachable attrs."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -2436,14 +2436,14 @@ def _extract(ds, schema):  # pylint: disable=unused-argument
     ],
 )
 def extract(ds, schema=arolla.unspecified()):
-  """Creates a slice with a new DataBag containing only reachable objects.
+  """Creates a DataSlice with a new DataBag containing only reachable attrs.
 
   Args:
     ds: DataSlice to extract.
-    schema: schema of the extracted slice.
+    schema: schema of the extracted DataSlice.
 
   Returns:
-    The same data slice with a new DataBag attached.
+    A DataSlice with a new DataBag attached.
   """
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(ds))
   return _extract(ds, schema)
@@ -2475,15 +2475,15 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
 @optools.as_backend_operator(
     'kde.core._shallow_clone',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.itemid),
         qtype_utils.expect_data_slice(P.schema),
         qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _shallow_clone(obj, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
-  """Creates a slice with a shallow clones of provided objects in a new DataBag."""
+def _shallow_clone(x, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
+  """Creates a DataSlice with shallow clones of immediate attributes."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -2493,7 +2493,7 @@ def _shallow_clone(obj, itemid, schema, hidden_seed):  # pylint: disable=unused-
 @optools.as_lambda_operator(
     'kde.core.shallow_clone',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
@@ -2502,68 +2502,65 @@ def _shallow_clone(obj, itemid, schema, hidden_seed):  # pylint: disable=unused-
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def shallow_clone(
-    obj=py_boxing.positional_only(),
+    x=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     overrides=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args
-  """Creates a slice with a shallow copy of the given slice and nothing else.
+  """Creates a DataSlice with shallow clones of immediate attributes.
 
-  The objects themselves get new ItemIds and their top-level attributes are
+  The entities themselves get new ItemIds and their top-level attributes are
   copied by reference.
 
-  Also see kde.clone + kde.deep_clone.
+  Also see kd.clone and kd.deep_clone.
 
-  Note that unlike kd.deep_clone, if there are multiple references to one
-  object in the given slice, the returned slice will have multiple clones of it,
-  not references to one clone.
+  Note that unlike kd.deep_clone, if there are multiple references to the same
+  entity, the returned DataSlice will have multiple clones of it rather than
+  references to the same clone.
 
   Args:
-    obj: The slice to copy.{SELF}
-    itemid: The itemid to assign to the new objects. If not specified, will
-      allocate new ids.
+    x: The DataSlice to copy.{SELF}
+    itemid: The ItemId to assign to cloned entities. If not specified, will
+      allocate new ItemIds.
     schema: The schema to resolve attributes, and also to assign the schema to
-      the resulting object. If not specified, will use the schema of the 'obj'
-      DataSlice.
+      the resulting DataSlice. If not specified, will use the schema of 'x'.
     **overrides: attribute overrides.
 
   Returns:
-    A copy of the object with new ids where all top-level attributes are copied
-    by reference.
+    A copy of the entities with new ItemIds where all top-level attributes are
+    copied by reference.
   """
-  itemid = M.core.default_if_unspecified(
-      itemid, _new_ids_like(obj, hidden_seed)
-  )
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
+  itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x, hidden_seed))
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
-      'obj, itemid, schema, overrides, hidden_seed',
+      'x, itemid, schema, overrides, hidden_seed',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _shallow_clone(P.obj, P.itemid, P.schema, P.hidden_seed),
+              _shallow_clone(P.x, P.itemid, P.schema, P.hidden_seed),
               update_schema=py_boxing.as_qvalue(False),
               attrs=P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_shallow_clone(P.obj, P.itemid, P.schema, P.hidden_seed),
-  )(obj, itemid, schema, overrides, hidden_seed)
+      default=_shallow_clone(P.x, P.itemid, P.schema, P.hidden_seed),
+  )(x, itemid, schema, overrides, hidden_seed)
 
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._clone',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.itemid),
         qtype_utils.expect_data_slice(P.schema),
         qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _clone(obj, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
-  """Creates a slice with a clones of provided objects in a new DataBag."""
+def _clone(x, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
+  """Creates a DataSlice with clones of provided entities in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -2573,7 +2570,7 @@ def _clone(obj, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
 @optools.as_lambda_operator(
     'kde.core.clone',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
@@ -2582,67 +2579,64 @@ def _clone(obj, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def clone(
-    obj=py_boxing.positional_only(),
+    x=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     overrides=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
-  """Creates a slice with a shallow copy of the given slice.
+  """Creates a DataSlice with clones of provided entities in a new DataBag.
 
-  The objects themselves and their top-level attributes are cloned (with new
+  The entities themselves and their top-level attributes are cloned (with new
   ItemIds) and non-top-level attributes are extracted (with the same ItemIds).
 
-  Also see kde.deep_clone.
+  Also see kd.shallow_clone and kd.deep_clone.
 
-  Note that unlike kde.deep_clone, if there are multiple references to one
-  object in the given slice, the returned slice will have multiple clones of it,
-  not references to one clone.
+  Note that unlike kd.deep_clone, if there are multiple references to the same
+  entity, the returned DataSlice will have multiple clones of it rather than
+  references to the same clone.
 
   Args:
-    obj: The slice to copy.
-    itemid: The itemid to assign to the new objects. If not specified, new ids
-      would be created.
+    x: The DataSlice to copy.
+    itemid: The ItemId to assign to cloned entities. If not specified, new
+      ItemIds will be allocated.
     schema: The schema to resolve attributes, and also to assign the schema to
-      the resulting object. If not specified, will use the schema of the 'obj'
-      DataSlice.
+      the resulting DataSlice. If not specified, will use the schema of `x`.
     **overrides: attribute overrides.
 
   Returns:
-    A copy of the object where all top-level attributes are cloned (new ids) and
-    all of the rest extracted.
+    A copy of the entities where all top-level attributes are cloned (new
+    ItemIds) and all of the rest extracted.
   """
-  itemid = M.core.default_if_unspecified(
-      itemid, _new_ids_like(obj, hidden_seed)
-  )
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
+  itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x, hidden_seed))
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
-      'obj, itemid, schema, overrides, hidden_seed',
+      'x, itemid, schema, overrides, hidden_seed',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _clone(P.obj, P.itemid, P.schema, P.hidden_seed),
+              _clone(P.x, P.itemid, P.schema, P.hidden_seed),
               update_schema=py_boxing.as_qvalue(False),
               attrs=P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_clone(P.obj, P.itemid, P.schema, P.hidden_seed),
-  )(obj, itemid, schema, overrides, hidden_seed)
+      default=_clone(P.x, P.itemid, P.schema, P.hidden_seed),
+  )(x, itemid, schema, overrides, hidden_seed)
 
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._deep_clone',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
         qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _deep_clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
-  """Creates a slice with a (deep) copy of the given slice."""
+def _deep_clone(x, schema, hidden_seed):  # pylint: disable=unused-argument
+  """Creates a DataSlice with a deep copy of `x`."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -2652,7 +2646,7 @@ def _deep_clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
 @optools.as_lambda_operator(
     'kde.core.deep_clone',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
         qtype_utils.expect_accepts_hidden_seed(),
@@ -2660,61 +2654,61 @@ def _deep_clone(obj, schema, hidden_seed):  # pylint: disable=unused-argument
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def deep_clone(
-    obj=py_boxing.positional_only(),
+    x=py_boxing.positional_only(),
     schema=arolla.unspecified(),
     overrides=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Creates a slice with a (deep) copy of the given slice.
 
-  The objects themselves and all their attributes including both top-level and
+  The entities themselves and all their attributes including both top-level and
   non-top-level attributes are cloned (with new ItemIds).
 
-  Also see kd.clone.
+  Also see kd.shallow_clone and kd.clone.
 
-  Note that unlike kd.clone, if there are multiple references to one object
-  in the given slice, or multiple ways to reach one object through the
-  attributes, there will be exactly one clone made per input object.
+  Note that unlike kd.clone, if there are multiple references to the same entity
+  in `x`, or multiple ways to reach one entity through attributes, there will be
+  exactly one clone made per entity.
 
   Args:
-    obj: The slice to copy.
+    x: The slice to copy.
     schema: The schema to use to find attributes to clone, and also to assign
-      the schema to the resulting object. If not specified, will use the schema
-      of the 'obj' DataSlice.
+      the schema to the resulting DataSlice. If not specified, will use the
+      schema of 'x'.
     **overrides: attribute overrides.
 
   Returns:
-    A (deep) copy of the given object.
-    All referenced objects will be copied with a new allocated ID. Note that
-    uuobjs will be copied as normal objects.
+    A (deep) copy of the given DataSlice.
+    All referenced entities will be copied with newly allocated ItemIds. Note
+    that UUIDs will be copied as ItemIds.
   """
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
-      'obj, schema, overrides, hidden_seed',
+      'x, schema, overrides, hidden_seed',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _deep_clone(P.obj, P.schema, P.hidden_seed),
+              _deep_clone(P.x, P.schema, P.hidden_seed),
               update_schema=py_boxing.as_qvalue(False),
               attrs=P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_deep_clone(P.obj, P.schema, P.hidden_seed),
-  )(obj, schema, overrides, hidden_seed)
+      default=_deep_clone(P.x, P.schema, P.hidden_seed),
+  )(x, schema, overrides, hidden_seed)
 
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._deep_uuid',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
         qtype_utils.expect_data_slice(P.seed),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _deep_uuid(obj, schema, seed):  # pylint: disable=unused-argument
+def _deep_uuid(x, schema, seed):  # pylint: disable=unused-argument
   """Creates a slice with a (deep) uuid of the given slice."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2725,30 +2719,30 @@ def _deep_uuid(obj, schema, seed):  # pylint: disable=unused-argument
 @optools.as_lambda_operator(
     'kde.core.deep_uuid',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.obj),
+        qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice(P.seed),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def deep_uuid(
-    obj=py_boxing.positional_only(),
+    x=py_boxing.positional_only(),
     schema=arolla.unspecified(),
     seed=py_boxing.keyword_only(''),
 ):
-  """Recursively computes uuid for obj.
+  """Recursively computes uuid for x.
 
   Args:
-    obj: The slice to take uuid on.
+    x: The slice to take uuid on.
     schema: The schema to use to resolve '*' and '**' tokens. If not specified,
-      will use the schema of the 'obj' DataSlice.
+      will use the schema of the 'x' DataSlice.
     seed: The seed to use for uuid computation.
 
   Returns:
-    Result of recursive uuid application for objs/lists/dicts.
+    Result of recursive uuid application `x`.
   """
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(obj))
-  return _deep_uuid(obj, schema, seed)
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
+  return _deep_uuid(x, schema, seed)
 
 
 @optools.add_to_registry(
@@ -3213,7 +3207,7 @@ def get_nofollowed_schema(schema):  # pylint: disable=unused-argument
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def encode_itemid(ds):  # pylint: disable=unused-argument
-  """Returns the base62 encoded item ids in `ds` as Text."""
+  """Returns the base62 encoded ItemIds in `ds` as strings."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -3226,7 +3220,7 @@ def encode_itemid(ds):  # pylint: disable=unused-argument
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def decode_itemid(ds):  # pylint: disable=unused-argument
-  """Returns the base62 text decoded into item ids."""
+  """Returns ItemIds decoded from the base62 strings."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -3713,8 +3707,8 @@ def size(x):
 def add_dim(x, sizes):
   """Returns `x` with values repeated according to `sizes`.
 
-  The resulting slice has `rank = rank + 1`. The input `sizes` are broadcasted
-  to `x`, and each value is repeated the given number of times.
+  The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
+  broadcasted to `x`, and each value is repeated the given number of times.
 
   Example:
     ds = kd.slice([[1, None], [3]])
@@ -3753,8 +3747,8 @@ def add_dim(x, sizes):
 def add_dim_to_present(x, sizes):
   """Returns `x` with present values repeated according to `sizes`.
 
-  The resulting slice has `rank = rank + 1`. The input `sizes` are broadcasted
-  to `x`, and each value is repeated the given number of times.
+  The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
+  broadcasted to `x`, and each value is repeated the given number of times.
 
   Example:
     ds = kd.slice([[1, None], [3]])
@@ -3982,11 +3976,11 @@ def _dict_update(x, keys, values):  # pylint: disable=unused-argument
     ],
 )
 def dict_update(x, keys, values=arolla.unspecified()):
-  """Returns DataBag containing updates to a slice of dicts.
+  """Returns DataBag containing updates to a DataSlice of dicts.
 
   This operator has two forms:
     kde.dict_update(x, keys, values) where keys and values are slices
-    kde.dict_update(x, dict_updates) where dict_updates is a slice of dicts
+    kde.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
 
   If both keys and values are specified, they must both be broadcastable to the
   shape of `x`. If only keys is specified (as dict_updates), it must be
@@ -4023,7 +4017,8 @@ def with_dict_update(x, keys, values=arolla.unspecified()):
 
   This operator has two forms:
     kde.with_dict_update(x, keys, values) where keys and values are slices
-    kde.with_dict_update(x, dict_updates) where dict_updates is a slice of dicts
+    kde.with_dict_update(x, dict_updates) where dict_updates is a DataSlice of
+      dicts
 
   If both keys and values are specified, they must both be broadcastable to the
   shape of `x`. If only keys is specified (as dict_updates), it must be
@@ -4072,7 +4067,7 @@ def list_(
   """Creates list(s) by collapsing `items`.
 
   If there is no argument, returns an empty Koda List. If the argument is a
-  DataSlice, creates a slice of Koda Lists.
+  DataSlice, creates a DataSlice of Koda Lists.
 
   Args:
     items: items of the resulting lists. If not specified, an empty list of
@@ -4084,7 +4079,7 @@ def list_(
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
 
   Returns:
-    The slice with list/lists.
+    The DataSlice with list/lists.
   """
   items = M.core.default_if_unspecified(items, data_slice.unspecified())
   item_schema = M.core.default_if_unspecified(
