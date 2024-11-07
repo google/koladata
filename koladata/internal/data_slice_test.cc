@@ -29,6 +29,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -811,7 +812,7 @@ TEST(DataSliceImpl, FingerprintTest) {
   // fingerprint (regardless of the types - handled at a higher-level).
   auto ds_14 = DataSliceImpl::Create(
       CreateDenseArray<int>({std::nullopt, std::nullopt}));
-  auto ds_15 = DataSliceImpl::Builder(2).Build();
+  auto ds_15 = SliceBuilder(2).Build();
   auto ds_16 = DataSliceImpl::Create(
       CreateDenseArray<float>({std::nullopt, std::nullopt}),
       CreateDenseArray<int>({std::nullopt, std::nullopt}));

@@ -335,7 +335,6 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal:missing_value",
         "//koladata/internal:object_id",
-        "//koladata/internal:types",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",

@@ -33,6 +33,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
@@ -104,9 +105,10 @@ DataSliceImpl DataSliceImpl::Create(const arolla::DenseArray<DataItem>& items) {
   if (items.IsAllMissing()) {
     return DataSliceImpl::CreateEmptyAndUnknownType(items.size());
   }
-  DataSliceImpl::Builder bldr(items.size());
-  items.ForEachPresent(
-      [&](int64_t id, const auto& value) { bldr.Insert(id, value); });
+  SliceBuilder bldr(items.size());
+  items.ForEachPresent([&](int64_t id, const auto& value) {
+    bldr.InsertIfNotSetAndUpdateAllocIds(id, value);
+  });
   return std::move(bldr).Build();
 }
 
@@ -114,9 +116,9 @@ DataSliceImpl DataSliceImpl::Create(absl::Span<const DataItem> items) {
   if (items.empty()) {
     return DataSliceImpl();
   }
-  DataSliceImpl::Builder bldr(items.size());
+  SliceBuilder bldr(items.size());
   for (int64_t i = 0; i < items.size(); ++i) {
-    bldr.Insert(i, items[i]);
+    bldr.InsertIfNotSetAndUpdateAllocIds(i, items[i]);
   }
   return std::move(bldr).Build();
 }

@@ -93,6 +93,10 @@ struct TypesBuffer {
 class SliceBuilder {
  public:
   explicit SliceBuilder(size_t size);
+  explicit SliceBuilder(size_t size, AllocationIdSet alloc_ids)
+      : SliceBuilder(size) {
+    allocation_ids_ = std::move(alloc_ids);
+  }
 
   // SliceBuilder has pointers to its static data, so it can't be moved or
   // copied.

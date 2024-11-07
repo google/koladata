@@ -19,6 +19,7 @@
 
 #include "absl/types/span.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/util/view_types.h"
@@ -33,7 +34,7 @@ DataSliceImpl ReverseOp::operator()(
   }
   absl::Span<const int64_t> split_points =
       ds_shape.edges().back().edge_values().values.span();
-  DataSliceImpl::Builder builder(ds_impl.size());
+  SliceBuilder builder(ds_impl.size());
   ds_impl.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
     arolla::DenseArrayBuilder<T> values_builder(values.size());
     size_t split_point_id = 0;
@@ -44,7 +45,8 @@ DataSliceImpl ReverseOp::operator()(
       int64_t new_offset = split_points[split_point_id + 1] - offset - 1;
       values_builder.Set(split_points[split_point_id] + new_offset, value);
     });
-    builder.AddArray(std::move(values_builder).Build());
+    auto new_values = std::move(values_builder).Build();
+    builder.InsertIfNotSet<T>(new_values.bitmap, {}, new_values.values);
   });
   return std::move(builder).Build();
 }

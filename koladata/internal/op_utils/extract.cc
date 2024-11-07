@@ -101,15 +101,14 @@ class CopyingProcessor {
 
  private:
   DataSliceImpl FilterToObjects(const DataSliceImpl& ds) {
-    auto bldr = DataSliceImpl::Builder(ds.size());
-    bldr.GetMutableAllocationIds().Insert(ds.allocation_ids());
+    DataSliceImpl res = DataSliceImpl::CreateEmptyAndUnknownType(ds.size());
     ds.VisitValues([&](const auto& array) {
       using T = typename std::decay_t<decltype(array)>::base_type;
       if constexpr (std::is_same_v<T, ObjectId>) {
-        bldr.AddArray(array);
+        res = DataSliceImpl::CreateWithAllocIds(ds.allocation_ids(), array);
       }
     });
-    return std::move(bldr).Build();
+    return res;
   }
 
   absl::StatusOr<DataSliceImpl> MarkObjectsAsVisited(
@@ -627,17 +626,16 @@ absl::StatusOr<DataSliceImpl> ValidateCompatibilityAndFilterItemid(
 
 absl::StatusOr<DataSliceImpl> WithReplacedObjectIds(
     const DataSliceImpl& ds, const DataSliceImpl& itemid) {
-  DataSliceImpl::Builder bldr(ds.size());
-  bldr.GetMutableAllocationIds().Insert(itemid.allocation_ids());
+  SliceBuilder bldr(ds.size(), itemid.allocation_ids());
   ds.VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
     if constexpr (!std::is_same_v<T, ObjectId>) {
-      bldr.AddArray(array);
+      bldr.InsertIfNotSet<T>(array.bitmap, {}, array.values);
     }
   });
   RETURN_IF_ERROR(
       itemid.VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
         if constexpr (std::is_same_v<T, ObjectId>) {
-          bldr.AddArray(array);
+          bldr.InsertIfNotSet<T>(array.bitmap, {}, array.values);
           return absl::OkStatus();
         } else {
           return absl::InvalidArgumentError("itemid must contain ObjectIds");

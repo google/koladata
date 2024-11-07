@@ -33,7 +33,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/types.h"
 #include "arolla/array/array.h"
 #include "arolla/array/qtype/types.h"
 #include "arolla/dense_array/dense_array.h"
@@ -230,8 +229,8 @@ absl::StatusOr<DataSlice> DataSliceFromArollaValue(
 
 absl::StatusOr<arolla::TypedValue> DataSliceToDenseArray(const DataSlice& ds) {
   if (ds.GetShape().rank() == 0) {
-    internal::DataSliceImpl::Builder bldr(1);
-    bldr.Insert(0, ds.item());
+    internal::SliceBuilder bldr(1);
+    bldr.InsertIfNotSetAndUpdateAllocIds(0, ds.item());
     ASSIGN_OR_RETURN(
         auto flat_ds,
         DataSlice::Create(std::move(bldr).Build(),

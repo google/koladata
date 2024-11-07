@@ -28,6 +28,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"
 #include "koladata/shape_utils.h"
 #include "koladata/test_utils.h"
@@ -137,8 +138,8 @@ void BM_SetGetAttrOneDimSingle(benchmark::State& state) {
   auto o = *ObjectFactory::Shaped(
       db, DataSlice::JaggedShape::FlatFromSize(1), {}, {});
 
-  internal::DataSliceImpl::Builder bldr_val(1);
-  bldr_val.Insert(0, internal::DataItem(12));
+  internal::SliceBuilder bldr_val(1);
+  bldr_val.InsertIfNotSet(0, internal::DataItem(12));
   auto val = *DataSlice::Create(std::move(bldr_val).Build(),
                                 DataSlice::JaggedShape::FlatFromSize(1),
                                 internal::DataItem(schema::kInt32));
