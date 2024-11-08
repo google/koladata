@@ -369,6 +369,17 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
         ):
           _ = repr(db.contents_repr(triple_limit=-1))
 
+  def test_contents_repr_refreshed_content(self):
+    db = bag()
+    db.obj(a=1, b='a')
+    repr_1 = repr(db.contents_repr())
+    repr_2 = repr(db.contents_repr())
+    self.assertEqual(repr_1, repr_2)
+
+    db.new(a=42)
+    repr_3 = repr(db.contents_repr())
+    self.assertNotEqual(repr_3, repr_2)
+
   def test_contents_repr_no_refs_to_data_bag(self):
     gc.collect()
     db = bag()
