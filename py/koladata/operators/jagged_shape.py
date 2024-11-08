@@ -59,6 +59,24 @@ def _expect_slices_or_edges(value):
 def create_shape(*dimensions):  # pylint: disable=unused-argument
   """Returns a JaggedShape from the provided dimensions.
 
+  Example:
+    # Creates a scalar shape (i.e. no dimension).
+    kd.shapes.create()  # -> JaggedShape()
+
+    # Creates a 3-dimensional shape with all uniform dimensions.
+    kd.shapes.create(2, 3, 1)  # -> JaggedShape(2, 3, 1)
+
+    # Creates a 3-dimensional shape with 2 sub-values in the first dimension.
+    #
+    # The second dimension is jagged with 2 values. The first value in the
+    # second dimension has 2 sub-values, and the second value has 1 sub-value.
+    #
+    # The third dimension is jagged with 3 values. The first value in the third
+    # dimension has 1 sub-value, the second has 2 sub-values, and the third has
+    # 3 sub-values.
+    kd.shapes.create(2, [2, 1], [1, 2, 3])
+        # -> JaggedShape(2, [2, 1], [1, 2, 3])
+
   Args:
     *dimensions: A combination of Edges and DataSlices representing the
       dimensions of the JaggedShape. Edges are used as is, while DataSlices are
