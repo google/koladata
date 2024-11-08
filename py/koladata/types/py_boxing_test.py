@@ -863,6 +863,38 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
     self.assertTrue(py_boxing.is_hidden_seed(py_boxing.hidden_seed()[1]))
     self.assertFalse(py_boxing.is_hidden_seed(py_boxing.positional_only()[1]))
 
+  def test_is_non_deterministic_op(self):
+    # (x, *args, y, z='z', **kwargs)
+    @arolla.optools.as_lambda_operator(
+        'op1',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op1(
+        x,
+        args=py_boxing.var_positional(),
+        y=py_boxing.keyword_only(),
+        z=py_boxing.keyword_only(ds('z')),
+        kwargs=py_boxing.var_keyword(),
+    ):
+      return x, args, y, z, kwargs
+
+    @arolla.optools.as_lambda_operator(
+        'op2',
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def op2(
+        x,
+        args=py_boxing.var_positional(),
+        y=py_boxing.keyword_only(),
+        kwargs=py_boxing.var_keyword(),
+        hidden_seed=py_boxing.hidden_seed(),
+    ):
+      _ = hidden_seed
+      return arolla.M.core.make_tuple(x, args, y, kwargs)
+
+    self.assertFalse(py_boxing.is_non_deterministic_op(op1))
+    self.assertTrue(py_boxing.is_non_deterministic_op(op2))
+
 
 class FstrBindingPolicyTest(absltest.TestCase):
 

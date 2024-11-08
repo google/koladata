@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for eager_op_utils."""
-
 import inspect
 import types
 
@@ -21,8 +19,11 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.operators import eager_op_utils
+from koladata.operators import optools
+from koladata.operators import qtype_utils
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import py_boxing
 
 ds = data_slice.DataSlice.from_vals
 
@@ -186,6 +187,29 @@ class EagerOpUtilsTest(parameterized.TestCase):
         ),
         arolla.tuple(self.x, self.y),
     )
+
+  def test_non_deterministic_op(self):
+
+    @optools.add_to_registry()
+    @optools.as_lambda_operator(
+        'test.non_deterministic_op',
+        qtype_constraints=[
+            qtype_utils.expect_accepts_hidden_seed(),
+        ],
+        aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    )
+    def non_deterministic_op(hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+      """non_deterministic_op docstring."""
+      return hidden_seed
+
+    op = getattr(
+        eager_op_utils.operators_container('test'), 'non_deterministic_op'
+    )
+    self.assertEqual(op.getdoc(), 'non_deterministic_op docstring.')
+    self.assertEqual(
+        inspect.signature(op), inspect.signature(non_deterministic_op)
+    )
+    self.assertNotEqual(op(), op())
 
   def test_overrides(self):
     kd = eager_op_utils.operators_container('test.namespace_1')

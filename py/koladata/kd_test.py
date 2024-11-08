@@ -336,6 +336,11 @@ class KdTest(absltest.TestCase):
     ):
       kd.schema.cast_to_implicit(x, kd.ITEMID)
 
+  def test_non_deterministic_op_derived_from_expr_op(self):
+    itemid1 = kd.new_itemid()
+    itemid2 = kd.new_itemid()
+    self.assertNotEqual(itemid1.fingerprint, itemid2.fingerprint)
+
   def test_eager_op_overrides_expr_op(self):
     x = kd.obj(a=1)
     self.assertTrue(x.db.is_mutable())

@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kd.obj_like."""
-
 from absl.testing import absltest
 from koladata.exceptions import exceptions
+from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -112,10 +111,14 @@ class ObjLikeTest(absltest.TestCase):
     testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
-    itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
+    itemid = expr_eval.eval(
+        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
+    )
     x = fns.obj_like(ds([[1, None], [1]]), a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, None], [42]]))
-    testing.assert_equal(x.no_bag().get_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
+    testing.assert_equal(
+        x.no_bag().get_itemid(), itemid & expr_eval.eval(kde.has(x))
+    )
 
   def test_itemid_from_different_bag(self):
     itemid = fns.obj(non_existent=ds([[42, 42], [42]])).get_itemid()

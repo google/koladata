@@ -33,7 +33,6 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-# TODO: Test non-determinism when it gets implemented.
 class AllocationNewDictIdLikeTest(parameterized.TestCase):
 
   @parameterized.parameters(
@@ -55,16 +54,12 @@ class AllocationNewDictIdLikeTest(parameterized.TestCase):
     testing.assert_equal(dct['abc'], values.with_bag(dct.get_bag()))
 
   def test_new_alloc_ids(self):
-    dictid = expr_eval.eval(kde.allocation.new_dictid_like(ds([1, 1])))
-    testing.assert_equal(
-        dictid, expr_eval.eval(kde.allocation.new_dictid_like(ds([1, 1])))
-    )
-    arolla.abc.clear_caches()
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(
-          dictid,
-          expr_eval.eval(kde.allocation.new_dictid_like(ds([1, 1])))
-      )
+    expr = kde.allocation.new_dictid_like(ds([1, 1]))
+    res1 = expr_eval.eval(expr)
+    res2 = expr_eval.eval(expr)
+    res3 = expr_eval.eval(kde.allocation.new_dictid_like(ds([1, 1])))
+    self.assertNotEqual(res1.fingerprint, res2.fingerprint)
+    self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
@@ -72,7 +67,7 @@ class AllocationNewDictIdLikeTest(parameterized.TestCase):
             kde.allocation.new_dictid_like,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
-        frozenset([(qtypes.DATA_SLICE, qtypes.DATA_SLICE)]),
+        frozenset([(qtypes.DATA_SLICE, arolla.INT64, qtypes.DATA_SLICE)]),
     )
 
   def test_view(self):

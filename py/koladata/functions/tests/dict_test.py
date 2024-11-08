@@ -18,6 +18,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
 from koladata.exceptions import exceptions
+from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -92,7 +93,9 @@ class DictTest(parameterized.TestCase):
     testing.assert_equal(d['a'], ds([1, None]).with_bag(d.get_bag()))
 
   def test_itemid(self):
-    itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
+    itemid = expr_eval.eval(
+        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))
+    )
     x = fns.dict('a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
@@ -110,7 +113,9 @@ class DictTest(parameterized.TestCase):
       _ = triple.with_bag(x.get_bag()).non_existent
 
   def test_itemid_error(self):
-    itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
+    itemid = expr_eval.eval(
+        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))
+    )
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
       _ = fns.dict(ds([[['a', 'a']]]), 42, itemid=itemid)
 

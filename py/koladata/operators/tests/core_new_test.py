@@ -104,7 +104,9 @@ class CoreNewTest(absltest.TestCase):
     testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
-    itemid = kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]])).eval()
+    itemid = expr_eval.eval(
+        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
+    )
     x = kde.core.new(a=42, itemid=itemid).eval()
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)

@@ -18,7 +18,9 @@
 #define KOLADATA_OPERATORS_ALLOCATION_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <utility>
+
 #include "absl/status/statusor.h"
 #include "koladata/alloc_utils.h"
 #include "koladata/data_slice.h"
@@ -30,7 +32,8 @@ namespace koladata::ops {
 
 // kde.allocation.new_itemid_shaped.
 // Allocates new ItemIds of the given shape without any DataBag attached.
-inline absl::StatusOr<DataSlice> NewItemIdShaped(DataSlice::JaggedShape shape) {
+inline absl::StatusOr<DataSlice> NewItemIdShaped(
+    DataSlice::JaggedShape shape, int64_t unused_hidden_seed = 0) {
   size_t size = shape.size();
   return DataSlice::Create(internal::DataSliceImpl::AllocateEmptyObjects(size),
                            std::move(shape),
@@ -39,7 +42,8 @@ inline absl::StatusOr<DataSlice> NewItemIdShaped(DataSlice::JaggedShape shape) {
 
 // kde.allocation.new_listid_shaped.
 // Allocates new List ItemIds of the given shape.
-inline absl::StatusOr<DataSlice> NewListIdShaped(DataSlice::JaggedShape shape) {
+inline absl::StatusOr<DataSlice> NewListIdShaped(
+    DataSlice::JaggedShape shape, int64_t unused_hidden_seed = 0) {
   size_t size = shape.size();
   return DataSlice::Create(
       internal::DataSliceImpl::ObjectsFromAllocation(
@@ -49,7 +53,8 @@ inline absl::StatusOr<DataSlice> NewListIdShaped(DataSlice::JaggedShape shape) {
 
 // kde.allocation.new_dictid_shaped.
 // Allocates new Dict ItemIds of the given shape.
-inline absl::StatusOr<DataSlice> NewDictIdShaped(DataSlice::JaggedShape shape) {
+inline absl::StatusOr<DataSlice> NewDictIdShaped(
+    DataSlice::JaggedShape shape, int64_t unused_hidden_seed = 0) {
   size_t size = shape.size();
   return DataSlice::Create(
       internal::DataSliceImpl::ObjectsFromAllocation(
@@ -60,7 +65,7 @@ inline absl::StatusOr<DataSlice> NewDictIdShaped(DataSlice::JaggedShape shape) {
 // kde.allocation.new_itemid_like.
 // Allocates new ItemIds with the shape and sparsity of shape_and_mask_from.
 inline absl::StatusOr<DataSlice> NewItemIdLike(
-    const DataSlice& shape_and_mask_from) {
+    const DataSlice& shape_and_mask_from, int64_t unused_hidden_seed = 0) {
   return AllocateLike(
       shape_and_mask_from, internal::AllocateSingleObject,
       internal::Allocate, internal::DataItem(schema::kItemId));
@@ -70,7 +75,7 @@ inline absl::StatusOr<DataSlice> NewItemIdLike(
 // Allocates new List ItemIds with the shape and sparsity of
 // shape_and_mask_from.
 inline absl::StatusOr<DataSlice> NewListIdLike(
-    const DataSlice& shape_and_mask_from) {
+    const DataSlice& shape_and_mask_from, int64_t unused_hidden_seed = 0) {
   return AllocateLike(
       shape_and_mask_from, internal::AllocateSingleList,
       internal::AllocateLists, internal::DataItem(schema::kItemId));
@@ -80,7 +85,7 @@ inline absl::StatusOr<DataSlice> NewListIdLike(
 // Allocates new Dict ItemIds with the shape and sparsity of
 // shape_and_mask_from.
 inline absl::StatusOr<DataSlice> NewDictIdLike(
-    const DataSlice& shape_and_mask_from) {
+    const DataSlice& shape_and_mask_from, int64_t unused_hidden_seed = 0) {
   return AllocateLike(
       shape_and_mask_from, internal::AllocateSingleDict,
       internal::AllocateDicts, internal::DataItem(schema::kItemId));

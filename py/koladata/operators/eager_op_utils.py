@@ -16,11 +16,43 @@
 
 from __future__ import annotations
 
+import inspect
 import types
 from typing import Any, Callable
 
 from arolla import arolla
+from koladata.expr import expr_eval
 from koladata.operators import kde_operators
+from koladata.types import py_boxing
+
+
+class _NonDeterministicOp:
+  """Proxy for expr_eval.eval() exposing operator's doc-string and signature."""
+
+  __slots__ = ('_op',)
+
+  def __init__(self, op: arolla.abc.RegisteredOperator):
+    self._op = op
+
+  def getdoc(self) -> str:
+    return self._op.getdoc()
+
+  @property
+  def __signature__(self) -> inspect.Signature:
+    return arolla.abc.aux_inspect_signature(self._op)
+
+  def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    return expr_eval.eval(self._op(*args, **kwargs))
+
+
+# TODO: Remove this after aux_eval_op supports hidden_seed.
+def _get_eager_op(
+    rl_op: arolla.abc.RegisteredOperator,
+) -> Callable[..., Any]:
+  if py_boxing.is_non_deterministic_op(rl_op):
+    return _NonDeterministicOp(rl_op)
+  else:
+    return rl_op._eval  # pylint: disable=protected-access
 
 
 class _OperatorsContainer:
@@ -61,7 +93,7 @@ class _OperatorsContainer:
       if self._overrides is not None and not op_name.startswith('_'):
         eager_op = getattr(self._overrides, op_name, None)
       if eager_op is None:
-        eager_op = self._arolla_container[op_name]._eval
+        eager_op = _get_eager_op(self._arolla_container[op_name])
       self.__dict__[op_name] = eager_op
     assert callable(eager_op)
     return eager_op
@@ -79,7 +111,7 @@ class _OperatorsContainer:
       if isinstance(rl_op_or_container, arolla.OperatorsContainer):
         ret = _OperatorsContainer(rl_op_or_container)
       else:
-        ret = rl_op_or_container._eval  # pylint: disable=protected-access
+        ret = _get_eager_op(rl_op_or_container)
     self.__dict__[op_or_container_name] = ret
     return ret
 

@@ -152,6 +152,7 @@ py_library(
         ":jagged_shape",
         ":optools",
         ":qtype_utils",
+        "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
@@ -425,7 +426,10 @@ py_library(
     srcs = ["eager_op_utils.py"],
     deps = [
         ":kde_operators",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/abc:py_abc",
     ],
 )
 
@@ -469,8 +473,11 @@ py_test(
     srcs = ["eager_op_utils_test.py"],
     deps = [
         ":eager_op_utils",
+        ":optools",
+        ":qtype_utils",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",

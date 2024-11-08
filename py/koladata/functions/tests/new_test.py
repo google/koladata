@@ -16,6 +16,7 @@ import re
 
 from absl.testing import absltest
 from koladata.exceptions import exceptions
+from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -84,7 +85,9 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
-    itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
+    itemid = expr_eval.eval(
+        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
+    )
     x = fns.new(a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
@@ -350,7 +353,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
     with self.assertRaisesRegex(
         NotImplementedError, 'do not support `itemid` in converter mode'
     ):
-      _ = fns.new([1, 2, 3], itemid=kde.allocation.new_itemid._eval())
+      _ = fns.new([1, 2, 3], itemid=expr_eval.eval(kde.allocation.new_itemid()))
 
   def test_universal_converter_primitive(self):
     item = fns.new(42)

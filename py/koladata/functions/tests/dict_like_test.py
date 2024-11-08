@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kd.dict_like."""
-
 import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -82,10 +81,14 @@ class DictLikeTest(parameterized.TestCase):
     testing.assert_equal(x['b'], ds([None, 42]).with_bag(x.get_bag()))
 
   def test_itemid(self):
-    itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
+    itemid = expr_eval.eval(
+        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))
+    )
     x = fns.dict_like(ds([[1, None], [1]]), 'a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], []], [['a']]]))
-    testing.assert_equal(x.no_bag().get_itemid(), itemid & kde.has._eval(x))  # pylint: disable=protected-access
+    testing.assert_equal(
+        x.no_bag().get_itemid(), itemid & expr_eval.eval(kde.has(x))
+    )
 
   def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)

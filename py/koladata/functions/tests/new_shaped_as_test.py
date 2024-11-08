@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -67,7 +68,9 @@ class NewShapedAsTest(absltest.TestCase):
     )
 
   def test_itemid(self):
-    itemid = kde.allocation.new_itemid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
+    itemid = expr_eval.eval(
+        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
+    )
     x = fns.new_shaped_as(itemid, a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)

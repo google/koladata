@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for allocation.new_listid."""
-
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import expr_eval
@@ -33,7 +31,6 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-# TODO: Test non-determinism when it gets implemented.
 class AllocationNewListIdTest(absltest.TestCase):
 
   def test_eval(self):
@@ -46,10 +43,12 @@ class AllocationNewListIdTest(absltest.TestCase):
     testing.assert_equal(lst[:], ds([42]).with_bag(lst.get_bag()))
 
   def test_new_alloc_ids(self):
-    listid = expr_eval.eval(kde.allocation.new_listid())
-    testing.assert_equal(listid, expr_eval.eval(kde.allocation.new_listid()))
-    arolla.abc.clear_caches()
-    self.assertNotEqual(listid, expr_eval.eval(kde.allocation.new_listid()))
+    expr = kde.allocation.new_listid()
+    res1 = expr_eval.eval(expr)
+    res2 = expr_eval.eval(expr)
+    res3 = expr_eval.eval(kde.allocation.new_listid())
+    self.assertNotEqual(res1.fingerprint, res2.fingerprint)
+    self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
@@ -57,7 +56,10 @@ class AllocationNewListIdTest(absltest.TestCase):
             kde.allocation.new_listid,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
-        frozenset([(qtypes.DATA_SLICE,)]),
+        frozenset([(
+            arolla.INT64,
+            qtypes.DATA_SLICE,
+        )]),
     )
 
   def test_view(self):

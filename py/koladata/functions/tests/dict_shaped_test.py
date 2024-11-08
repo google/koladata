@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kd.dict_shaped."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
+from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 # Register kde ops for e.g. jagged_shape.create_shape().
 from koladata.operators import kde_operators
@@ -211,7 +210,9 @@ class DictShapedTest(parameterized.TestCase):
       fns.dict_shaped(shape, schema=42)
 
   def test_itemid(self):
-    itemid = kde.allocation.new_dictid_shaped_as._eval(ds([[1, 1], [1]]))  # pylint: disable=protected-access
+    itemid = expr_eval.eval(
+        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))
+    )
     x = fns.dict_shaped(itemid.get_shape(), 'a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)

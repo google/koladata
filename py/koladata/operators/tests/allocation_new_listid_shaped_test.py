@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for allocation.new_listid_shaped."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -34,7 +32,6 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-# TODO: Test non-determinism when it gets implemented.
 class AllocationNewListIdShapedTest(parameterized.TestCase):
 
   @parameterized.parameters(
@@ -55,15 +52,12 @@ class AllocationNewListIdShapedTest(parameterized.TestCase):
 
   def test_new_alloc_ids(self):
     shape = jagged_shape.create_shape([2])
-    listid = expr_eval.eval(kde.allocation.new_listid_shaped(shape))
-    testing.assert_equal(
-        listid, expr_eval.eval(kde.allocation.new_listid_shaped(shape))
-    )
-    arolla.abc.clear_caches()
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(
-          listid, expr_eval.eval(kde.allocation.new_listid_shaped(shape))
-      )
+    expr = kde.allocation.new_listid_shaped(shape)
+    res1 = expr_eval.eval(expr)
+    res2 = expr_eval.eval(expr)
+    res3 = expr_eval.eval(kde.allocation.new_listid_shaped(shape))
+    self.assertNotEqual(res1.fingerprint, res2.fingerprint)
+    self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
@@ -71,7 +65,7 @@ class AllocationNewListIdShapedTest(parameterized.TestCase):
             kde.allocation.new_listid_shaped,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
-        frozenset([(qtypes.JAGGED_SHAPE, qtypes.DATA_SLICE)]),
+        frozenset([(qtypes.JAGGED_SHAPE, arolla.INT64, qtypes.DATA_SLICE)]),
     )
 
   def test_view(self):

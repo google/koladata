@@ -148,7 +148,9 @@ class CoreNewlikeTest(absltest.TestCase):
 
   def test_itemid_arg(self):
     shape_and_mask_from = ds([[6, 7], [8]])
-    itemid = kde.allocation.new_itemid_shaped_as._eval(shape_and_mask_from)
+    itemid = expr_eval.eval(
+        kde.allocation.new_itemid_shaped_as(shape_and_mask_from)
+    )
     x = kde.core.new_like(itemid, a=42, itemid=itemid).eval()
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)

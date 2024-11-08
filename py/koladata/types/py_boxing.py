@@ -337,6 +337,16 @@ def as_expr(arg: Any) -> arolla.Expr:
   return qvalue_or_expr
 
 
+def is_non_deterministic_op(op: arolla.abc.RegisteredOperator) -> bool:
+  """Returns True if the operator is non-deterministic."""
+  sig = arolla.abc.get_operator_signature(op)
+  for param in sig.parameters:
+    marker_type, _, _ = _unpack_param_marker(param)
+    if is_hidden_seed(marker_type):
+      return True
+  return False
+
+
 _BOXING_FNS_BY_NAME_FINGERPRINT = {
     arolla.text(DEFAULT_BOXING_POLICY).fingerprint: as_qvalue_or_expr,
     arolla.text(DEFAULT_AROLLA_POLICY).fingerprint: lambda x: x,
