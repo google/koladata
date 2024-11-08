@@ -226,7 +226,7 @@ SchemaBag:
       ),
   )
   def test_contents_repr(self, db, expected_repr_regex):
-    db_repr = db.contents_repr()
+    db_repr = repr(db.contents_repr())
     self.assertRegex(
         db_repr,
         expected_repr_regex,
@@ -237,7 +237,7 @@ SchemaBag:
     db = bag()
     db.new(a=db.new(b=1))
     self.assertRegex(
-        db.contents_repr(),
+        repr(db.contents_repr()),
         r"""DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.b => 1
 \$[0-9a-zA-Z]{22}\.a => \$[0-9a-zA-Z]{22}
@@ -251,7 +251,7 @@ SchemaBag:
     db = bag()
     db.obj(a=db.obj(b=1))
     self.assertRegex(
-        db.contents_repr(),
+        repr(db.contents_repr()),
         r"""DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
 \$[0-9a-zA-Z]{22}\.b => 1
@@ -268,7 +268,7 @@ SchemaBag:
     db = bag()
     entity = db.new(x=1)
     ds2 = entity.with_bag(bag()).enriched(db)
-    db_repr = ds2.get_bag().contents_repr()
+    db_repr = repr(ds2.get_bag().contents_repr())
     expected_repr = r"""DataBag \$[0-9a-f]{4}:
 
 SchemaBag:
@@ -296,7 +296,7 @@ SchemaBag:
       db2.new(y=2)
       entity2 = entity.with_bag(db2).enriched(db)
       entity3 = entity2.with_bag(bag()).enriched(entity2.get_bag())
-      db_repr = entity3.get_bag().contents_repr()
+      db_repr = repr(entity3.get_bag().contents_repr())
       expected_repr = r"""DataBag \$[0-9a-f]{4}:
 
 SchemaBag:
@@ -337,7 +337,7 @@ SchemaBag:
     db = bag()
     db.obj(a=1, b='a')
     self.assertRegex(
-        db.contents_repr(triple_limit=4),
+        repr(db.contents_repr(triple_limit=4)),
         r"""DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
 \$[0-9a-zA-Z]{22}\.a => 1
@@ -355,19 +355,19 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
           TypeError,
           "'str' object cannot be interpreted as an integer",
       ):
-        _ = db.contents_repr(triple_limit='one thousand')
-    with self.subTest('positional-argument'):
-      with self.assertRaisesRegex(
-          TypeError,
-          'accepts 0 positional arguments but 1 was given',
-      ):
-        _ = db.contents_repr(1000)
-    with self.subTest('negative-limit'):
-      with self.assertRaisesRegex(
-          ValueError,
-          'triple_limit must be a positive integer',
-      ):
-        _ = db.contents_repr(triple_limit=-1)
+        _ = repr(db.contents_repr(triple_limit='one thousand'))
+      with self.subTest('positional-argument'):
+        with self.assertRaisesRegex(
+            TypeError,
+            r'_contents_repr\(\) takes 1 positional argument but 2 were given',
+        ):
+          _ = repr(db.contents_repr(1000))
+      with self.subTest('negative-limit'):
+        with self.assertRaisesRegex(
+            ValueError,
+            'triple_limit must be a positive integer',
+        ):
+          _ = repr(db.contents_repr(triple_limit=-1))
 
   def test_is_mutable(self):
     db = bag()

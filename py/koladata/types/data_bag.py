@@ -405,6 +405,22 @@ def _updated_bag(*dbs) -> DataBag:
   return arolla.abc.aux_eval_op(_op_impl_lookup.updated_bag, *dbs)
 
 
+class ContentsReprWrapper:
+
+  def __init__(self, db: DataBag, triple_limit: int):
+    self._contents_repr = db._contents_repr(triple_limit=triple_limit)
+
+  def __repr__(self):
+    return self._contents_repr
+
+
+def _contents_repr(
+    self: DataBag, *, triple_limit: int = 1000
+) -> ContentsReprWrapper:
+  """Returns a representation of the DataBag contents."""
+  return ContentsReprWrapper(self, triple_limit)
+
+
 DataBag.__getitem__ = _getitem
 DataBag.dict = _dict
 DataBag.dict_like = _dict_like
@@ -425,6 +441,7 @@ DataBag.__rshift__ = _enriched_bag
 DataBag.__irshift__ = lambda self, other: _merge_inplace(
     self, other, overwrite=False
 )
+DataBag.contents_repr = _contents_repr
 
 
 class NullDataBag(arolla.abc.QValue):

@@ -1672,9 +1672,9 @@ Args:
 Returns:
   data_bag.DataBag
 )"""},
-    {"contents_repr", (PyCFunction)PyDataBag_contents_repr,
+    {"_contents_repr", (PyCFunction)PyDataBag_contents_repr,
      METH_FASTCALL | METH_KEYWORDS,
-     "contents_repr(triple_limit=1000)\n"
+     "_contents_repr(triple_limit=1000)\n"
      "--\n\n"
      "Returns a string representation of the contents of this DataBag."},
     {"get_fallbacks", PyDataBag_get_fallbacks, METH_NOARGS,

@@ -135,8 +135,7 @@ class TestUtilsTest(absltest.TestCase):
     with self.assertRaisesRegex(
         AssertionError,
         r'DataSlices are not equivalent.*\n\n.*DataBag'
-        r' \$[0-9a-f]{4}:(\n|.)*SchemaBag:(\n|.)* != \'DataBag'
-        r' \$[0-9a-f]{4}:(\n|.)*SchemaBag:(\n|.)*',
+        r' \$[0-9a-f]{4}:(\n|.)*SchemaBag:(\n|.)* != DataBag(\n|.)*',
     ):
       test_utils.assert_equivalent(
           ds([1, 2, 3]).with_bag(bag()),
@@ -145,7 +144,7 @@ class TestUtilsTest(absltest.TestCase):
     with self.assertRaisesRegex(
         AssertionError,
         r'DataBags are not equivalent.*\n\n.*DataBag \$[0-9a-f]{4}:(\n|.)* !='
-        r' \'DataBag \$[0-9a-f]{4}:(\n|.)*',
+        r' DataBag \$[0-9a-f]{4}:(\n|.)*',
     ):
       test_utils.assert_equivalent(bag(), bag().new(a=1).get_bag())
 

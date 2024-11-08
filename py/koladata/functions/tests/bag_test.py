@@ -33,7 +33,9 @@ class BagTest(absltest.TestCase):
     self.assertIsInstance(fns.bag(), data_bag.DataBag)
 
   def test_repr(self):
-    self.assertIn('[1, 2]', fns.bag().list([1, 2]).get_bag().contents_repr())
+    self.assertIn(
+        '[1, 2]', repr(fns.bag().list([1, 2]).get_bag().contents_repr())
+    )
 
   def test_equality(self):
     db = fns.bag()
