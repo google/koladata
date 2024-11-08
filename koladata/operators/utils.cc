@@ -35,6 +35,7 @@
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
 namespace koladata::ops {
@@ -74,16 +75,25 @@ std::vector<DataSlice> GetValueDataSlices(arolla::TypedSlot named_tuple_slot,
   return values;
 }
 
-absl::StatusOr<bool> GetBoolArgument(arolla::FrameLayout::Slot<DataSlice> slot,
-                                     arolla::FramePtr frame,
-                                     absl::string_view name) {
-  const DataSlice& slice = frame.Get(slot);
+absl::StatusOr<bool> GetBoolArgument(const DataSlice& slice,
+                                     absl::string_view arg_name) {
   if (slice.GetShape().rank() != 0 || !slice.item().holds_value<bool>()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("requires `%s` to be DataItem holding bool, got %s",
-                        name, arolla::Repr(slice)));
+                        arg_name, arolla::Repr(slice)));
   }
   return slice.item().value<bool>();
+}
+
+absl::StatusOr<absl::string_view> GetStringArgument(
+    const DataSlice& slice, absl::string_view arg_name) {
+  if (slice.GetShape().rank() != 0 ||
+      !slice.item().holds_value<arolla::Text>()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("requires `%s` to be DataItem holding string, got %s",
+                        arg_name, arolla::Repr(slice)));
+  }
+  return slice.item().value<arolla::Text>().view();
 }
 
 DataSlice AsMask(bool b) {

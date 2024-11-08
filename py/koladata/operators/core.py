@@ -805,7 +805,27 @@ def _attrs(
     update_schema=py_boxing.keyword_only(False),
     attrs=py_boxing.var_keyword(),
 ):
-  """Returns a new Databag containing attribute updates for `x`."""
+  """Returns a new DataBag containing attribute updates for `x`."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kde.attr'], view=view.DataBagView,
+)
+@optools.as_backend_operator(
+    'kde.core.attr',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.attr_name),
+        qtype_utils.expect_data_slice(P.value),
+        qtype_utils.expect_data_slice(P.update_schema),
+    ],
+    qtype_inference_expr=qtypes.DATA_BAG,
+)
+def _attr(
+    x, attr_name, value, update_schema=data_slice.DataSlice.from_vals(False)
+):
+  """Returns a new DataBag containing attribute `attr_name` update for `x`."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -828,6 +848,24 @@ def with_attrs(
     attrs=py_boxing.var_keyword(),
 ):
   """Returns a DataSlice with a new DataBag containing updated attributes."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.with_attr'])
+@optools.as_backend_operator(
+    'kde.core.with_attr',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.attr_name),
+        qtype_utils.expect_data_slice(P.value),
+        qtype_utils.expect_data_slice(P.update_schema),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def with_attr(
+    x, attr_name, value, update_schema=data_slice.DataSlice.from_vals(False)
+):
+  """Returns a DataSlice with a new DataBag containing a single updated attribute."""
   raise NotImplementedError('implemented in the backend')
 
 

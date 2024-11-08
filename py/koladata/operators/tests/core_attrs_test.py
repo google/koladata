@@ -15,12 +15,10 @@
 import re
 
 from absl.testing import absltest
-from absl.testing import parameterized
 from arolla import arolla
 from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -56,16 +54,16 @@ QTYPES = frozenset([
 ])
 
 
-class CoreAttrsTest(parameterized.TestCase):
+class CoreAttrsTest(absltest.TestCase):
 
   def test_multi_attr_update(self):
-    o = fns.new(x=1, y=10)
+    o = bag().new(x=1, y=10)
     with self.assertRaisesRegex(
         exceptions.KodaError, "the schema for attribute 'x' is incompatible."
     ):
       _ = kde.core.attrs(o, x='2').eval()
     db2 = kde.core.attrs(
-        o, x='2', a=1, b='p', c=fns.list([1, 2]), update_schema=True
+        o, x='2', a=1, b='p', c=bag().list([1, 2]), update_schema=True
     ).eval()
     self.assertNotEqual(o.get_bag().fingerprint, db2.fingerprint)
 
@@ -86,8 +84,8 @@ class CoreAttrsTest(parameterized.TestCase):
     )
 
   def test_multi_attr_update_object_schema(self):
-    o = fns.obj(x=1, y=10)
-    db2 = kde.core.attrs(o, x='2', a=1, b='p', c=fns.list([1, 2])).eval()
+    o = bag().obj(x=1, y=10)
+    db2 = kde.core.attrs(o, x='2', a=1, b='p', c=bag().list([1, 2])).eval()
     self.assertNotEqual(o.get_bag().fingerprint, db2.fingerprint)
 
     testing.assert_equal(o.x.no_bag(), ds(1))
@@ -108,7 +106,7 @@ class CoreAttrsTest(parameterized.TestCase):
 
   def test_entity_as_obj_conflict(self):
     o = kde.stack(
-        fns.obj(fns.new(x='1', y=10)), fns.obj(fns.new(x=2, y=20))
+        bag().obj(bag().new(x='1', y=10)), bag().obj(bag().new(x=2, y=20))
     ).eval()
     with self.assertRaisesRegex(
         exceptions.KodaError, "the schema for attribute 'x' is incompatible."
@@ -118,7 +116,7 @@ class CoreAttrsTest(parameterized.TestCase):
     testing.assert_equal(o.updated(db2).x.no_bag(), ds(['2', '2']))
 
   def test_non_bool_update_schema(self):
-    o = fns.new(x=1)
+    o = bag().new(x=1)
     with self.assertRaisesRegex(
         ValueError, 'requires `update_schema` to be DataItem holding bool'
     ):
@@ -129,7 +127,7 @@ class CoreAttrsTest(parameterized.TestCase):
       kde.core.attrs(o, x=2, update_schema=ds([True])).eval()
 
   def test_complex_type_conflict_error_message(self):
-    o = fns.new(x=fns.new(y=2))
+    o = bag().new(x=bag().new(y=2))
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
@@ -137,7 +135,7 @@ class CoreAttrsTest(parameterized.TestCase):
             ' SCHEMA(z=INT32)'
         ),
     ):
-      _ = kde.core.attrs(o, x=fns.new(z=3)).eval()
+      _ = kde.core.attrs(o, x=bag().new(z=3)).eval()
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(
@@ -146,7 +144,7 @@ class CoreAttrsTest(parameterized.TestCase):
       _ = kde.core.attrs(ds(0).with_bag(bag()), x=1).eval()
 
   def test_error_no_databag(self):
-    o = fns.new(x=1).no_bag()
+    o = bag().new(x=1).no_bag()
     with self.assertRaisesRegex(
         ValueError,
         'cannot set attributes on a DataSlice without a DataBag',
@@ -154,14 +152,14 @@ class CoreAttrsTest(parameterized.TestCase):
       _ = kde.core.attrs(o, x=1).eval()
 
   def test_any_works(self):
-    o = fns.new().as_any()
+    o = bag().new().as_any()
     db = kde.core.attrs(o, x=1).eval()
     self.assertEqual(o.with_bag(db).x.no_bag(), ds(1))
     db = kde.core.attrs(o, x=1, update_schema=True).eval()
     self.assertEqual(o.with_bag(db).x.no_bag(), ds(1))
 
   def test_schema_works(self):
-    o = fns.schema.new_schema()
+    o = bag().new_schema()
     db = kde.core.attrs(o, x=schema_constants.INT32).eval()
     self.assertEqual(o.with_bag(db).x.no_bag(), schema_constants.INT32)
     db = kde.core.attrs(o, x=schema_constants.INT32, update_schema=True).eval()

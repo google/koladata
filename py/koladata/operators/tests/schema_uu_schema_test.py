@@ -140,13 +140,13 @@ class KodaUuSchemaTest(parameterized.TestCase):
       (
           ds(['seed1', 'seed2']),
           dict(a=schema_constants.INT32, b=schema_constants.FLOAT32),
-          'requires seed to be DataItem holding Text, got DataSlice',
+          'requires `seed` to be DataItem holding string, got DataSlice',
       ),
       (
           0,
           dict(a=schema_constants.INT32, b=schema_constants.FLOAT32),
           (
-              r'requires seed to be DataItem holding Text, got DataItem\(0'
+              r'requires `seed` to be DataItem holding string, got DataItem\(0'
               r', schema: INT32\)'
           ),
       ),

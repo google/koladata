@@ -70,15 +70,9 @@ class UuidOperator : public arolla::QExprOperator {
          named_tuple_slot = input_slots[1],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          const auto& seed_data_slice = frame.Get(seed_slot);
-          if (seed_data_slice.GetShape().rank() != 0 ||
-              !seed_data_slice.item().holds_value<arolla::Text>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "requires seed to be DataItem holding Text, got %s",
-                arolla::Repr(seed_data_slice))));
-            return;
-          }
-          auto seed = seed_data_slice.item().value<arolla::Text>();
+          ASSIGN_OR_RETURN(absl::string_view seed,
+                           GetStringArgument(frame.Get(seed_slot), "seed"),
+                           ctx->set_status(std::move(_)));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(
@@ -104,15 +98,9 @@ class UuidForListOperator : public arolla::QExprOperator {
          named_tuple_slot = input_slots[1],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          const auto& seed_data_slice = frame.Get(seed_slot);
-          if (seed_data_slice.GetShape().rank() != 0 ||
-              !seed_data_slice.item().holds_value<arolla::Text>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "requires seed to be DataItem holding Text, got %s",
-                arolla::Repr(seed_data_slice))));
-            return;
-          }
-          auto seed = seed_data_slice.item().value<arolla::Text>();
+          ASSIGN_OR_RETURN(absl::string_view seed,
+                           GetStringArgument(frame.Get(seed_slot), "seed"),
+                           ctx->set_status(std::move(_)));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(
@@ -138,15 +126,9 @@ class UuidForDictOperator : public arolla::QExprOperator {
          named_tuple_slot = input_slots[1],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          const auto& seed_data_slice = frame.Get(seed_slot);
-          if (seed_data_slice.GetShape().rank() != 0 ||
-              !seed_data_slice.item().holds_value<arolla::Text>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "requires seed to be DataItem holding Text, got %s",
-                arolla::Repr(seed_data_slice))));
-            return;
-          }
-          auto seed = seed_data_slice.item().value<arolla::Text>();
+          ASSIGN_OR_RETURN(absl::string_view seed,
+                           GetStringArgument(frame.Get(seed_slot), "seed"),
+                           ctx->set_status(std::move(_)));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(

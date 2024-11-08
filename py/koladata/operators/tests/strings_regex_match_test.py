@@ -77,8 +77,8 @@ class StringsRegexMatchTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            "requires regex to be a STRING scalar, got DataItem(b'f', schema:"
-            ' BYTES)'
+            "requires `regex` to be DataItem holding string, got "
+            "DataItem(b'f', schema: BYTES)"
         ),
     ):
       expr_eval.eval(kde.strings.regex_match(ds('foo'), ds(b'f')))
@@ -86,8 +86,8 @@ class StringsRegexMatchTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'requires regex to be a STRING scalar, got DataItem(123, schema:'
-            ' INT32)'
+            'requires `regex` to be DataItem holding string, got '
+            'DataItem(123, schema: INT32)'
         ),
     ):
       expr_eval.eval(
@@ -97,8 +97,8 @@ class StringsRegexMatchTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'requires regex to be a STRING scalar, got DataItem(None, schema:'
-            ' STRING)'
+            'requires `regex` to be DataItem holding string, got '
+            'DataItem(None, schema: STRING)'
         ),
     ):
       expr_eval.eval(

@@ -275,16 +275,6 @@ absl::StatusOr<DataSlice> ConcatOrStackImpl(bool stack, int64_t ndim,
   }
 }
 
-absl::StatusOr<absl::string_view> GetAttrNameAsStr(const DataSlice& attr_name) {
-  if (attr_name.GetShape().rank() != 0 ||
-      attr_name.dtype() != schema::kString.qtype()) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("attr_name in kd.get_attr expects STRING, got: ",
-                     arolla::Repr(attr_name)));
-  }
-  return attr_name.item().value<arolla::Text>().view();
-}
-
 static constexpr size_t kUndefinedGroup = ~size_t{};
 
 struct DataItemPairHash {
@@ -803,7 +793,7 @@ class AttrsOperator : public arolla::QExprOperator {
           const auto& slice = frame.Get(slice_slot);
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(update_schema_slot, frame, "update_schema"),
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
               ctx->set_status(std::move(_)));
           const auto& attr_names = GetAttrNames(named_tuple_slot);
           const auto& values =
@@ -850,7 +840,7 @@ class WithAttrsOperator : public arolla::QExprOperator {
           const auto& slice = frame.Get(slice_slot);
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(update_schema_slot, frame, "update_schema"),
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
               ctx->set_status(std::move(_)));
           const auto& attr_names = GetAttrNames(named_tuple_slot);
           const auto& values =
@@ -1140,14 +1130,16 @@ absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj) {
 
 absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
                                   const DataSlice& attr_name) {
-  ASSIGN_OR_RETURN(auto attr_name_str, GetAttrNameAsStr(attr_name));
+  ASSIGN_OR_RETURN(auto attr_name_str,
+                   GetStringArgument(attr_name, "attr_name"));
   return obj.GetAttr(attr_name_str);
 }
 
 absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
                                              const DataSlice& attr_name,
                                              const DataSlice& default_value) {
-  ASSIGN_OR_RETURN(auto attr_name_str, GetAttrNameAsStr(attr_name));
+  ASSIGN_OR_RETURN(auto attr_name_str,
+                   GetStringArgument(attr_name, "attr_name"));
   return obj.GetAttrWithDefault(attr_name_str, default_value);
 }
 
@@ -1182,6 +1174,17 @@ absl::StatusOr<arolla::OperatorPtr> AttrsOperatorFamily::DoGetOperator(
       std::make_shared<AttrsOperator>(input_types), input_types, output_type);
 }
 
+absl::StatusOr<DataBagPtr> Attr(const DataSlice& x,
+                                const DataSlice& attr_name,
+                                const DataSlice& value,
+                                const DataSlice& update_schema) {
+  ASSIGN_OR_RETURN(absl::string_view attr_name_view,
+                   GetStringArgument(attr_name, "attr_name"));
+  ASSIGN_OR_RETURN(bool update_schema_arg,
+                   GetBoolArgument(update_schema, "update_schema"));
+  return Attrs(x, update_schema_arg, {attr_name_view}, {value});
+}
+
 absl::StatusOr<arolla::OperatorPtr> WithAttrsOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
@@ -1200,6 +1203,17 @@ absl::StatusOr<arolla::OperatorPtr> WithAttrsOperatorFamily::DoGetOperator(
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<WithAttrsOperator>(input_types), input_types,
       output_type);
+}
+
+absl::StatusOr<DataSlice> WithAttr(const DataSlice& x,
+                                   const DataSlice& attr_name,
+                                   const DataSlice& value,
+                                   const DataSlice& update_schema) {
+  ASSIGN_OR_RETURN(absl::string_view attr_name_view,
+                   GetStringArgument(attr_name, "attr_name"));
+  ASSIGN_OR_RETURN(bool update_schema_arg,
+                   GetBoolArgument(update_schema, "update_schema"));
+  return WithAttrs(x, update_schema_arg, {attr_name_view}, {value});
 }
 
 absl::StatusOr<DataSlice> GroupByIndices(

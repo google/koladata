@@ -41,9 +41,13 @@ std::vector<DataSlice> GetValueDataSlices(
     arolla::FramePtr frame);
 
 // Returns the value of a bool argument that is expected to be a DataItem.
-absl::StatusOr<bool> GetBoolArgument(arolla::FrameLayout::Slot<DataSlice> slot,
-                                     arolla::FramePtr frame,
-                                     absl::string_view name);
+absl::StatusOr<bool> GetBoolArgument(const DataSlice& slice,
+                                     absl::string_view arg_name);
+
+// Returns the view to a value of a string argument that is expected to be a
+// DataItem.
+absl::StatusOr<absl::string_view> GetStringArgument(const DataSlice& slice,
+                                                    absl::string_view arg_name);
 
 // Returns a present DataItem if b is true, otherwise missing.
 DataSlice AsMask(bool b);

@@ -84,7 +84,7 @@ class NewOperator final : public arolla::QExprOperator {
           }
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(update_schema_slot, frame, "update_schema"),
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
               ctx->set_status(std::move(_)));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
@@ -130,7 +130,7 @@ class NewShapedOperator : public arolla::QExprOperator {
           }
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(update_schema_slot, frame, "update_schema"),
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
               ctx->set_status(std::move(_)));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
@@ -176,7 +176,7 @@ class NewLikeOperator : public arolla::QExprOperator {
           }
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(update_schema_slot, frame, "update_schema"),
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
               ctx->set_status(std::move(_)));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
@@ -214,24 +214,18 @@ class UuOperator : public arolla::QExprOperator {
          named_tuple_slot = input_slots[3],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          const DataSlice& seed_data_slice = frame.Get(seed_slot);
           std::optional<DataSlice> schema;
           if (schema_slot.GetType() == arolla::GetUnspecifiedQType()) {
             schema = absl::nullopt;
           } else {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
-          if (seed_data_slice.GetShape().rank() != 0 ||
-              !seed_data_slice.item().holds_value<arolla::Text>()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "requires `seed` to be DataItem holding Text, got %s",
-                arolla::Repr(seed_data_slice))));
-            return;
-          }
-          auto seed = seed_data_slice.item().value<arolla::Text>();
+          ASSIGN_OR_RETURN(absl::string_view seed,
+                           GetStringArgument(frame.Get(seed_slot), "seed"),
+                           ctx->set_status(std::move(_)));
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(update_schema_slot, frame, "update_schema"),
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
               ctx->set_status(std::move(_)));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);

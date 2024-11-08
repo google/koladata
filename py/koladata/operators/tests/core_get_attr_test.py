@@ -105,7 +105,8 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_attr_name_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        r'attr_name in kd.get_attr expects.*got: DataItem\(42, schema: INT32\)',
+        'requires `attr_name` to be DataItem holding string, got '
+        r'DataItem\(42, schema: INT32\)',
     ):
       expr_eval.eval(kde.core.get_attr(self.entity, 42))
 

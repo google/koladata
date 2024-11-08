@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from absl.testing import parameterized
 from arolla import arolla
 from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -53,16 +51,16 @@ QTYPES = frozenset([
 ])
 
 
-class CoreWithAttrsTest(parameterized.TestCase):
+class CoreWithAttrsTest(absltest.TestCase):
 
   def test_multi_attr_update(self):
-    o = fns.new(x=1, y='q')
+    o = bag().new(x=1, y='q')
     with self.assertRaisesRegex(
         exceptions.KodaError, "the schema for attribute 'x' is incompatible."
     ):
       _ = kde.core.with_attrs(o, x='2').eval()
     o1 = kde.core.with_attrs(
-        o, x='2', a=1, b='p', c=fns.list([1, 2]), update_schema=True
+        o, x='2', a=1, b='p', c=bag().list([1, 2]), update_schema=True
     ).eval()
     self.assertNotEqual(o.get_bag().fingerprint, o1.get_bag().fingerprint)
     testing.assert_equal(o.x.no_bag(), ds(1))
@@ -79,12 +77,22 @@ class CoreWithAttrsTest(parameterized.TestCase):
       _ = kde.core.with_attrs(ds(0).with_bag(bag()), x=1).eval()
 
   def test_error_no_databag(self):
-    o = fns.new(x=1).no_bag()
+    o = bag().new(x=1).no_bag()
     with self.assertRaisesRegex(
         ValueError,
         'cannot set attributes on a DataSlice without a DataBag',
     ):
       _ = kde.core.with_attrs(o, x=1).eval()
+
+  def test_any_works(self):
+    o = bag().new().as_any()
+    o = kde.core.with_attrs(o, x=1).eval()
+    self.assertEqual(o.x.no_bag(), ds(1))
+
+  def test_schema_works(self):
+    o = bag().new_schema()
+    o = kde.core.with_attrs(o, x=schema_constants.INT32).eval()
+    self.assertEqual(o.x.no_bag(), schema_constants.INT32)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
@@ -96,16 +104,6 @@ class CoreWithAttrsTest(parameterized.TestCase):
             arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
         ),
     )
-
-  def test_any_works(self):
-    o = fns.new().as_any()
-    o = kde.core.with_attrs(o, x=1).eval()
-    self.assertEqual(o.x.no_bag(), ds(1))
-
-  def test_schema_works(self):
-    o = fns.schema.new_schema()
-    o = kde.core.with_attrs(o, x=schema_constants.INT32).eval()
-    self.assertEqual(o.x.no_bag(), schema_constants.INT32)
 
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.core.with_attrs(I.x, a=I.y)))

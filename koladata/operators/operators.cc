@@ -94,6 +94,7 @@ OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
 OPERATOR("kde.core.add", Add);
 OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
+OPERATOR("kde.core.attr", Attr);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR("kde.core.bag", Bag);
 OPERATOR("kde.core.decode_itemid", DecodeItemId);
@@ -147,6 +148,7 @@ OPERATOR_FAMILY("kde.core.uuid_for_list",
                 std::make_unique<UuidForListOperatorFamily>());
 OPERATOR("kde.core.uuids_with_allocation_size", UuidsWithAllocationSize);
 OPERATOR_FAMILY("kde.core.uuobj", std::make_unique<UuObjOperatorFamily>());
+OPERATOR("kde.core.with_attr", WithAttr);
 OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kde.core.with_bag", WithBag);

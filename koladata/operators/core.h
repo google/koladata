@@ -137,12 +137,24 @@ class AttrsOperatorFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const override;
 };
 
+// kde.core.attr.
+absl::StatusOr<DataBagPtr> Attr(const DataSlice& x,
+                                const DataSlice& attr_name,
+                                const DataSlice& value,
+                                const DataSlice& update_schema);
+
 // kde.core.with_attrs.
 class WithAttrsOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
+
+// kde.core.with_attr.
+absl::StatusOr<DataSlice> WithAttr(const DataSlice& x,
+                                   const DataSlice& attr_name,
+                                   const DataSlice& value,
+                                   const DataSlice& update_schema);
 
 // kde.core._get_item.
 inline absl::StatusOr<DataSlice> GetItem(const DataSlice& ds,

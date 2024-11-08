@@ -216,11 +216,8 @@ absl::StatusOr<DataSlice> Lstrip(const DataSlice& s, const DataSlice& chars) {
 
 absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
                                        const DataSlice& regex) {
-  if (regex.GetShape().rank() != 0 ||
-      !regex.item().holds_value<arolla::Text>()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "requires regex to be a STRING scalar, got ", arolla::Repr(regex)));
-  }
+  ASSIGN_OR_RETURN(absl::string_view regex_view,
+                   GetStringArgument(regex, "regex"));
   ASSIGN_OR_RETURN(auto text_schema, GetPrimitiveArollaSchema(text));
   if (!text_schema.has_value()) {
     // text is empty-and-unknown. We then skip evaluation.
@@ -237,8 +234,8 @@ absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
       arolla::TypedRef text_ref,
       DataSliceToOwnedArollaRef(text, typed_value_holder,
                                 internal::DataItem(schema::kString)));
-  arolla::TypedValue typed_regex =
-      arolla::TypedValue::FromValue(regex.item().value<arolla::Text>());
+  arolla::TypedValue typed_regex = arolla::TypedValue::FromValue(
+      arolla::Text(regex_view));
   ASSIGN_OR_RETURN(arolla::TypedValue result,
                    EvalExpr("strings.extract_regex",
                             {std::move(text_ref), typed_regex.AsRef()}));
@@ -248,11 +245,8 @@ absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
 
 absl::StatusOr<DataSlice> RegexMatch(const DataSlice& text,
                                      const DataSlice& regex) {
-  if (regex.GetShape().rank() != 0 ||
-      !regex.item().holds_value<arolla::Text>()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "requires regex to be a STRING scalar, got ", arolla::Repr(regex)));
-  }
+  ASSIGN_OR_RETURN(absl::string_view regex_view,
+                   GetStringArgument(regex, "regex"));
   ASSIGN_OR_RETURN(auto text_schema, GetPrimitiveArollaSchema(text));
   if (!text_schema.has_value()) {
     // text is empty-and-unknown. We then skip evaluation.
@@ -267,8 +261,8 @@ absl::StatusOr<DataSlice> RegexMatch(const DataSlice& text,
       arolla::TypedRef text_ref,
       DataSliceToOwnedArollaRef(text, typed_value_holder,
                                 internal::DataItem(schema::kString)));
-  arolla::TypedValue typed_regex =
-      arolla::TypedValue::FromValue(regex.item().value<arolla::Text>());
+  arolla::TypedValue typed_regex = arolla::TypedValue::FromValue(
+      arolla::Text(regex_view));
   ASSIGN_OR_RETURN(arolla::TypedValue result,
                    EvalExpr("strings.contains_regex",
                             {std::move(text_ref), typed_regex.AsRef()}));
