@@ -3344,6 +3344,32 @@ def decode_itemid(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.hash_itemid'])
+@optools.as_lambda_operator(
+    'kde.core.hash_itemid',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+)
+def hash_itemid(x):
+  """Returns a INT64 DataSlice of hash values of `x`.
+
+  The hash values are in the range of [-2**63, 2**63-1].
+
+  The hash algorithm is subject to change. It is not guaranteed to be stable in
+  future releases.
+
+  Args:
+    x: DataSlice of ItemIds.
+
+  Returns:
+    A DataSlice of INT64 hash values.
+  """
+  hash_value = M.random.cityhash(
+      arolla_bridge.to_arolla_dense_array_text(encode_itemid(x)),
+      arolla.int64(85852539),
+  )
+  return arolla_bridge.to_data_slice(hash_value, jagged_shape_ops.get_shape(x))
+
+
 @arolla.optools.add_to_registry()
 @arolla.optools.as_backend_operator(
     'kde.core._ordinal_rank',

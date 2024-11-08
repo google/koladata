@@ -1339,7 +1339,7 @@ absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds) {
                        /*db=*/nullptr),
                    internal::OperatorEvalError(
                        std::move(_), "kd.encode_itemid",
-                       absl::StrFormat("only ObjectIds can be encoded, got %v",
+                       absl::StrFormat("only ItemIds can be encoded, got %v",
                                        ds.GetSchemaImpl())));
   return std::move(res);
 }
