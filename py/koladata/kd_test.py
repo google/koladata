@@ -113,8 +113,8 @@ class KdTest(absltest.TestCase):
       kd.testing.assert_equal(x, y)
     kd.testing.assert_equal(x.a.no_bag(), y.a.no_bag())
 
-  def test_mutable_obj(self):
-    x = kd.mutable_obj(x=1, y=2)
+  def test_container(self):
+    x = kd.container(x=1, y=2)
     kd.testing.assert_equal(x.x, kd.item(1).with_bag(x.get_bag()))
     kd.testing.assert_equal(x.y, kd.item(2).with_bag(x.get_bag()))
     x.x = 3
@@ -280,10 +280,10 @@ class KdTest(absltest.TestCase):
     with tracing_mode.enable_tracing():
       with self.assertRaisesRegex(
           AttributeError,
-          "Attribute 'mutable_obj' is not available in tracing mode on"
+          "Attribute 'container' is not available in tracing mode on"
           " 'koladata.kd'",
       ):
-        _ = kd.mutable_obj
+        _ = kd.container
 
   def test_tracing_for_with_name(self):
     with tracing_mode.enable_tracing():

@@ -547,10 +547,8 @@ def obj(
   return db.obj(arg=arg, itemid=itemid, **attrs)
 
 
-def mutable_obj(
-    arg: Any = arolla.unspecified(),
+def container(
     *,
-    itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
@@ -559,17 +557,15 @@ def mutable_obj(
   Returned DataSlice has OBJECT schema and mutable DataBag.
 
   Args:
-    arg: optional Python object to be converted to an Object.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-      itemid will only be set when the args is not a primitive or primitive
-      slice if args presents.
     db: optional DataBag where object are created.
     **attrs: attrs to set on the returned object.
 
   Returns:
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
   """
-  return obj(arg=arg, itemid=itemid, db=db, **attrs)
+  o = obj(db=db)
+  o.set_attrs(**attrs)
+  return o
 
 
 def obj_shaped(

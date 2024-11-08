@@ -58,9 +58,9 @@ obj_like = _object_factories.obj_like
 obj_shaped = _object_factories.obj_shaped
 obj_shaped_as = _object_factories.obj_shaped_as
 
-# Currently kd.mutable_obj is the same as kd.obj. In the future, we will change
+# Currently kd.container is the same as kd.obj. In the future, we will change
 # obj to return immutable results.
-mutable_obj = _object_factories.mutable_obj
+container = _object_factories.container
 
 empty_shaped = _object_factories.empty_shaped
 empty_shaped_as = _object_factories.empty_shaped_as
