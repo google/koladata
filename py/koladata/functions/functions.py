@@ -65,6 +65,39 @@ container = _object_factories.container
 empty_shaped = _object_factories.empty_shaped
 empty_shaped_as = _object_factories.empty_shaped_as
 
+clone = _tmp_non_deterministic_overrides.clone
+shallow_clone = _tmp_non_deterministic_overrides.shallow_clone
+deep_clone = _tmp_non_deterministic_overrides.deep_clone
+
+core = _py_types.SimpleNamespace(
+    bag=_object_factories.bag,
+    uu=_object_factories.uu,
+    list=_object_factories.list_,
+    list_like=_object_factories.list_like,
+    list_shaped=_object_factories.list_shaped,
+    list_shaped_as=_object_factories.list_shaped_as,
+    implode=_object_factories.implode,
+    concat_lists=_object_factories.concat_lists,
+    dict=_object_factories.dict_,
+    dict_like=_object_factories.dict_like,
+    dict_shaped=_object_factories.dict_shaped,
+    dict_shaped_as=_object_factories.dict_shaped_as,
+    new=_object_factories.new,
+    new_like=_object_factories.new_like,
+    new_shaped=_object_factories.new_shaped,
+    new_shaped_as=_object_factories.new_shaped_as,
+    obj=_object_factories.obj,
+    obj_like=_object_factories.obj_like,
+    obj_shaped=_object_factories.obj_shaped,
+    obj_shaped_as=_object_factories.obj_shaped_as,
+    container=_object_factories.container,
+    empty_shaped=_object_factories.empty_shaped,
+    empty_shaped_as=_object_factories.empty_shaped_as,
+    clone=_tmp_non_deterministic_overrides.clone,
+    shallow_clone=_tmp_non_deterministic_overrides.shallow_clone,
+    deep_clone=_tmp_non_deterministic_overrides.deep_clone,
+)
+
 
 def new_schema(
     db: _data_bag.DataBag | None = None, **attrs: _data_slice.DataSlice
@@ -88,6 +121,16 @@ schema = _py_types.SimpleNamespace(
     dict_schema=_schema.dict_schema,
     uu_schema=_schema.uu_schema,
     named_schema=_schema.named_schema,
+)
+
+fstr = _fstring.fstr
+strings = _py_types.SimpleNamespace(
+    fstr=_fstring.fstr,
+)
+
+with_name = _general_eager_ops.with_name
+annotation = _py_types.SimpleNamespace(
+    with_name=_general_eager_ops.with_name,
 )
 
 embed_schema = _attrs.embed_schema
@@ -125,14 +168,3 @@ to_proto = _proto_conversions.to_proto
 
 dumps = _s11n.dumps
 loads = _s11n.loads
-
-clone = _tmp_non_deterministic_overrides.clone
-shallow_clone = _tmp_non_deterministic_overrides.shallow_clone
-deep_clone = _tmp_non_deterministic_overrides.deep_clone
-
-fstr = _fstring.fstr
-strings = _py_types.SimpleNamespace(
-    fstr=_fstring.fstr,
-)
-
-with_name = _general_eager_ops.with_name

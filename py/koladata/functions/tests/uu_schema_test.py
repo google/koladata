@@ -110,6 +110,9 @@ class UuSchemaTest(absltest.TestCase):
       )
     testing.assert_equivalent(db, bag())
 
+  def test_alias(self):
+    self.assertIs(fns.uu_schema, fns.schema.uu_schema)
+
 
 if __name__ == '__main__':
   absltest.main()

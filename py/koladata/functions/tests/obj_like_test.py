@@ -159,6 +159,9 @@ class ObjLikeTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'assigning a Python dict'):
       fns.obj_like(ds([1, 2, 3]), dct={'a': 42})
 
+  def test_alias(self):
+    self.assertIs(fns.obj_like, fns.core.obj_like)
+
 
 if __name__ == '__main__':
   absltest.main()

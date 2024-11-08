@@ -48,6 +48,9 @@ class UuSchemaTest(absltest.TestCase):
     no_bag_schema = fns.named_schema('name')
     testing.assert_equal(schema, no_bag_schema.with_bag(db))
 
+  def test_alias(self):
+    self.assertIs(fns.named_schema, fns.schema.named_schema)
+
 
 if __name__ == '__main__':
   absltest.main()

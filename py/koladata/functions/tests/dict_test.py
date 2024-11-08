@@ -331,6 +331,9 @@ Assigned schema for Dict key: STRING"""),
           value_schema=schema_constants.INT64,
       )
 
+  def test_alias(self):
+    self.assertIs(fns.dict, fns.core.dict)
+
 
 if __name__ == '__main__':
   absltest.main()

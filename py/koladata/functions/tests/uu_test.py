@@ -135,6 +135,9 @@ class UuTest(absltest.TestCase):
     x = fns.uu(a='xyz', schema=schema, update_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
+  def test_alias(self):
+    self.assertIs(fns.uu, fns.core.uu)
+
 
 if __name__ == '__main__':
   absltest.main()

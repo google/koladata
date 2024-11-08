@@ -412,6 +412,9 @@ class ObjTest(absltest.TestCase):
         ds([[None, None], [None], []], schema_constants.OBJECT),
     )
 
+  def test_alias(self):
+    self.assertIs(fns.obj, fns.core.obj)
+
 
 if __name__ == '__main__':
   absltest.main()

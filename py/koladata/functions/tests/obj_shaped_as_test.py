@@ -79,6 +79,9 @@ class ObjShapedAsTest(absltest.TestCase):
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
+  def test_alias(self):
+    self.assertIs(fns.obj_shaped_as, fns.core.obj_shaped_as)
+
 
 if __name__ == '__main__':
   absltest.main()

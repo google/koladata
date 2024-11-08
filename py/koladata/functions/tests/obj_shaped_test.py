@@ -147,6 +147,9 @@ class ObjShapedTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'assigning a Python dict'):
       fns.obj_shaped(jagged_shape.create_shape([3]), dct={'a': 42})
 
+  def test_alias(self):
+    self.assertIs(fns.obj_shaped, fns.core.obj_shaped)
+
 
 if __name__ == '__main__':
   absltest.main()

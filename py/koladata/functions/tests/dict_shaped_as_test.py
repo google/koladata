@@ -101,6 +101,9 @@ class DictShapedAsTest(parameterized.TestCase):
         schema_constants.OBJECT,
     )
 
+  def test_alias(self):
+    self.assertIs(fns.dict_shaped_as, fns.core.dict_shaped_as)
+
 
 if __name__ == '__main__':
   absltest.main()

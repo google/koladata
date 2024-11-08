@@ -111,6 +111,9 @@ class NewShapedAsTest(absltest.TestCase):
         x.get_schema().b.with_bag(None), schema_constants.STRING
     )
 
+  def test_alias(self):
+    self.assertIs(fns.new_shaped_as, fns.core.new_shaped_as)
+
 
 if __name__ == '__main__':
   absltest.main()

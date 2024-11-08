@@ -95,6 +95,9 @@ class DictSchemaTest(absltest.TestCase):
     ):
       _ = fns.dict_schema(schema_constants.FLOAT32, schema_constants.FLOAT32)
 
+  def test_alias(self):
+    self.assertIs(fns.dict_schema, fns.schema.dict_schema)
+
 
 if __name__ == '__main__':
   absltest.main()

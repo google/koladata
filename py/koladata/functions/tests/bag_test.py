@@ -56,6 +56,9 @@ class BagTest(absltest.TestCase):
     entity.with_bag(db2).set_attr('b', 'text')
     testing.assert_equivalent(db1, db2)
 
+  def test_alias(self):
+    self.assertIs(fns.bag, fns.core.bag)
+
 
 if __name__ == '__main__':
   absltest.main()

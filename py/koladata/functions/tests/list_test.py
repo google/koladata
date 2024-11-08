@@ -196,6 +196,9 @@ Assigned schema for List item: INT32""",
     ):
       fns.list([[1, 2], [3]], item_schema=schema_constants.BYTES)
 
+  def test_alias(self):
+    self.assertIs(fns.list, fns.core.list)
+
 
 if __name__ == '__main__':
   absltest.main()

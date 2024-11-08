@@ -217,6 +217,9 @@ Assigned schema for List item: INT32""",
           item_schema=schema_constants.BYTES,
       )
 
+  def test_alias(self):
+    self.assertIs(fns.list_like, fns.core.list_like)
+
 
 if __name__ == '__main__':
   absltest.main()

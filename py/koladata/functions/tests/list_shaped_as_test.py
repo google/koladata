@@ -86,6 +86,9 @@ class ListShapedAsTest(parameterized.TestCase):
         schema_constants.FLOAT32,
     )
 
+  def test_alias(self):
+    self.assertIs(fns.list_shaped_as, fns.core.list_shaped_as)
+
 
 if __name__ == '__main__':
   absltest.main()

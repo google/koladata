@@ -362,6 +362,9 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
     with self.assertRaisesRegex(ValueError, 'assigning a Python dict'):
       fns.new_shaped(jagged_shape.create_shape([3]), dct={'a': 42})
 
+  def test_alias(self):
+    self.assertIs(fns.new_shaped, fns.core.new_shaped)
+
 
 if __name__ == '__main__':
   absltest.main()

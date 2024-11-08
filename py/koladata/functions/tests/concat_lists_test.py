@@ -99,6 +99,9 @@ class ImplodeTest(parameterized.TestCase):
     testing.assert_nested_lists_equal(result, expected)
     self.assertEqual(result.get_bag().fingerprint, db2.fingerprint)
 
+  def test_alias(self):
+    self.assertIs(fns.concat_lists, fns.core.concat_lists)
+
 
 if __name__ == '__main__':
   absltest.main()

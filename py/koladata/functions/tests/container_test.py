@@ -65,6 +65,9 @@ class ContainerTest(absltest.TestCase):
     ):
       fns.container(a=ds([1, 2]))
 
+  def test_alias(self):
+    self.assertIs(fns.container, fns.core.container)
+
 
 if __name__ == '__main__':
   absltest.main()

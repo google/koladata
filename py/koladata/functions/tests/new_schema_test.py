@@ -31,7 +31,7 @@ class NewSchemaTest(absltest.TestCase):
 
   def test_simple_schema(self):
     db = bag()
-    schema = fns.schema.new_schema(
+    schema = fns.new_schema(
         db, a=schema_constants.INT32, b=schema_constants.STRING
     )
 
@@ -41,17 +41,17 @@ class NewSchemaTest(absltest.TestCase):
   def test_nested_schema_with_adoption(self):
     db = bag()
     db2 = bag()
-    schema = fns.schema.new_schema(
+    schema = fns.new_schema(
         db,
         a=schema_constants.INT32,
-        b=fns.schema.new_schema(db2, a=schema_constants.INT32),
+        b=fns.new_schema(db2, a=schema_constants.INT32),
     )
     testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
     testing.assert_equal(schema.b.a, schema_constants.INT32.with_bag(db))
 
   def test_bag_arg(self):
     db = bag()
-    schema = fns.schema.new_schema(
+    schema = fns.new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING, db=db
     )
 
@@ -64,7 +64,7 @@ class NewSchemaTest(absltest.TestCase):
         ValueError,
         'expected DataSlice argument, got list',
     ):
-      _ = fns.schema.new_schema(
+      _ = fns.new_schema(
           db,
           a=schema_constants.INT32,
           b=[1, 2, 3],
@@ -89,7 +89,7 @@ class NewSchemaTest(absltest.TestCase):
         ValueError,
         'expected DataSlice argument, got Text',
     ):
-      _ = fns.schema.new_schema(
+      _ = fns.new_schema(
           db,
           a=schema_constants.INT32,
           b=arolla.text('hello'),
@@ -103,7 +103,7 @@ class NewSchemaTest(absltest.TestCase):
         "schema's schema must be SCHEMA, got: OBJECT",
     ):
       db2 = bag()
-      _ = fns.schema.new_schema(
+      _ = fns.new_schema(
           db,
           a=schema_constants.INT32,
           b=fns.obj(db=db2, a=schema_constants.INT32),
@@ -124,6 +124,9 @@ class NewSchemaTest(absltest.TestCase):
 
     testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
     testing.assert_equal(schema.b, schema_constants.STRING.with_bag(db))
+
+  def test_alias(self):
+    self.assertIs(fns.new_schema, fns.new_schema)
 
 
 if __name__ == '__main__':

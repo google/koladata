@@ -69,6 +69,9 @@ class ListSchemaTest(absltest.TestCase):
     ):
       _ = fns.list_schema(item_schema=None, db=bag())
 
+  def test_alias(self):
+    self.assertIs(fns.list_schema, fns.schema.list_schema)
+
 
 if __name__ == '__main__':
   absltest.main()

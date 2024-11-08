@@ -168,6 +168,8 @@ class KdTest(absltest.TestCase):
     x = kd.slice([1, 2, 3])
     y = kd.with_name(x, 'foo')
     self.assertIs(y, x)
+    y = kd.annotation.with_name(x, 'foo')
+    self.assertIs(y, x)
 
   def test_get_name(self):
     expr = kde.with_name(I.x + I.y, 'foo')
@@ -290,6 +292,10 @@ class KdTest(absltest.TestCase):
       with_name_expr = kd.with_name(1, 'foo')
     kd.testing.assert_equal(with_name_expr, kde.with_name(1, 'foo'))
 
+    with tracing_mode.enable_tracing():
+      with_name_expr = kd.annotation.with_name(1, 'foo')
+    kd.testing.assert_equal(with_name_expr, kde.annotation.with_name(1, 'foo'))
+
   def test_tracing_for_constants(self):
     with tracing_mode.enable_tracing():
       int32_val = kd.INT32
@@ -333,14 +339,24 @@ class KdTest(absltest.TestCase):
   def test_eager_op_overrides_expr_op(self):
     x = kd.obj(a=1)
     self.assertTrue(x.db.is_mutable())
+    x = kd.core.obj(a=1)
+    self.assertTrue(x.db.is_mutable())
 
     x = kd.eval(kde.obj(a=1))
     self.assertFalse(x.db.is_mutable())
+    x = kd.eval(kde.core.obj(a=1))
+    self.assertFalse(x.db.is_mutable())
 
-    def f():
+    def f1():
       return kd.obj(a=1)
 
-    x = kdf.trace_py_fn(f)()
+    x = kdf.trace_py_fn(f1)()
+    self.assertFalse(x.db.is_mutable())
+
+    def f2():
+      return kd.core.obj(a=1)
+
+    x = kdf.trace_py_fn(f2)()
     self.assertFalse(x.db.is_mutable())
 
 
