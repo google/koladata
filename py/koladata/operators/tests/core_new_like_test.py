@@ -113,6 +113,39 @@ class CoreNewlikeTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
+  def test_str_as_schema_arg(self):
+    shape_and_mask_from = ds([[6, 7], [8]])
+    x = kde.core.new_like(shape_and_mask_from, schema='name', a=42).eval()
+    expected_schema = kde.named_schema('name').eval()
+    testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
+    testing.assert_equal(
+        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_str_slice_as_schema_arg(self):
+    shape_and_mask_from = ds([[6, 7], [8]])
+    x = kde.core.new_like(shape_and_mask_from, schema=ds('name'), a=42).eval()
+    expected_schema = kde.named_schema('name').eval()
+    testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
+    testing.assert_equal(
+        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_schema_arg_errors(self):
+    shape_and_mask_from = ds([[6, 7], [8]])
+    with self.assertRaisesRegex(
+        ValueError, "schema's schema must be SCHEMA, got: STRING"
+    ):
+      _ = kde.core.new_like(
+          shape_and_mask_from, schema=ds(['name']), a=42
+      ).eval()
+    with self.assertRaisesRegex(
+        ValueError, "schema's schema must be SCHEMA, got: INT32"
+    ):
+      _ = kde.core.new_like(shape_and_mask_from, schema=42, a=42).eval()
+
   def test_itemid_arg(self):
     shape_and_mask_from = ds([[6, 7], [8]])
     itemid = kde.allocation.new_itemid_shaped_as._eval(shape_and_mask_from)

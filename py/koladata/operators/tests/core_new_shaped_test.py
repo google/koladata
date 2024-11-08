@@ -135,6 +135,37 @@ class CoreNewShapedTest(absltest.TestCase):
           jagged_shape.create_shape([2]), a='xyz', schema=schema
       ).eval()
 
+  def test_str_as_schema_arg(self):
+    shape = jagged_shape.create_shape([2])
+    x = kde.core.new_shaped(shape, schema='name', a=42).eval()
+    expected_schema = kde.named_schema('name').eval()
+    testing.assert_equal(x.get_shape(), shape)
+    testing.assert_equal(
+        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_str_slice_as_schema_arg(self):
+    shape = jagged_shape.create_shape([2])
+    x = kde.core.new_shaped(shape, schema=ds('name'), a=42).eval()
+    expected_schema = kde.named_schema('name').eval()
+    testing.assert_equal(x.get_shape(), shape)
+    testing.assert_equal(
+        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_schema_arg_errors(self):
+    shape = jagged_shape.create_shape([2])
+    with self.assertRaisesRegex(
+        ValueError, "schema's schema must be SCHEMA, got: STRING"
+    ):
+      _ = kde.core.new_shaped(shape, schema=ds(['name']), a=42).eval()
+    with self.assertRaisesRegex(
+        ValueError, "schema's schema must be SCHEMA, got: INT32"
+    ):
+      _ = kde.core.new_shaped(shape, schema=42, a=42).eval()
+
   def test_schema_arg_update_schema(self):
     schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = kde.core.new_shaped(

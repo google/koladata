@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kd.new_like."""
 import re
 
 from absl.testing import absltest
@@ -169,15 +168,39 @@ class NewLikeTest(absltest.TestCase):
     x = fns.new_like(ds(1), a='xyz', schema=schema, update_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
+  def test_str_as_schema_arg(self):
+    shape_and_mask_from = ds([[6, 7], [8]])
+    x = fns.new_like(shape_and_mask_from, schema='name', a=42)
+    expected_schema = fns.named_schema('name')
+    testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
+    testing.assert_equal(
+        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_str_slice_as_schema_arg(self):
+    shape_and_mask_from = ds([[6, 7], [8]])
+    x = fns.new_like(shape_and_mask_from, schema=ds('name'), a=42)
+    expected_schema = fns.named_schema('name')
+    testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
+    testing.assert_equal(
+        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
   def test_schema_arg_errors(self):
     with self.assertRaisesRegex(
-        TypeError, 'expecting schema to be a DataSlice, got int'
+        ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
       fns.new_like(ds(1), a=1, schema=5)
     with self.assertRaisesRegex(
-        ValueError, 'schema must be SCHEMA, got: INT32'
+        ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
       fns.new_like(ds(1), a=1, schema=ds([1, 2, 3]))
+    with self.assertRaisesRegex(
+        ValueError, "schema's schema must be SCHEMA, got: STRING"
+    ):
+      fns.new_like(ds(1), schema=ds(['name']), a=42)
     with self.assertRaisesRegex(ValueError, 'schema can only be 0-rank'):
       fns.new_like(
           ds(1),

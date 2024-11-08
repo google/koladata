@@ -411,6 +411,27 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
     )
     testing.assert_equal(x.b.get_schema(), schema_constants.STRING.with_bag(db))
 
+  def test_new_str_as_schema_arg(self):
+    db = bag()
+    x = db.new(schema='name', a=42)
+    expected_schema = db.named_schema('name')
+    testing.assert_equal(x.get_schema(), expected_schema)
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_new_str_slice_as_schema_arg(self):
+    db = bag()
+    x = db.new(schema=ds('name'), a=42)
+    expected_schema = db.named_schema('name')
+    testing.assert_equal(x.get_schema(), expected_schema)
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_new_schema_arg_errors(self):
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError, "schema's schema must be SCHEMA, got: STRING"
+    ):
+      _ = db.new(schema=ds(['name']), a=42)
+
   def test_obj(self):
     db = bag()
     x = db.obj(
@@ -981,6 +1002,30 @@ Assigned schema for Dict key: INT32""",
       )
       db.new_shaped(shape)
 
+  def test_new_shaped_str_as_schema_arg(self):
+    shape = jagged_shape.create_shape([3])
+    db = bag()
+    x = db.new_shaped(shape, schema='name', a=42)
+    expected_schema = db.named_schema('name')
+    testing.assert_equal(x.get_schema(), expected_schema)
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_new_shaped_str_slice_as_schema_arg(self):
+    shape = jagged_shape.create_shape([3])
+    db = bag()
+    x = db.new_shaped(shape, schema=ds('name'), a=42)
+    expected_schema = db.named_schema('name')
+    testing.assert_equal(x.get_schema(), expected_schema)
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_new_shaped_schema_arg_errors(self):
+    shape = jagged_shape.create_shape([3])
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError, "schema's schema must be SCHEMA, got: STRING"
+    ):
+      _ = db.new_shaped(shape, schema=ds(['name']), a=42)
+
   def test_new_like(self):
     db = bag()
     shape_and_mask_from = ds([[1, None, 1], [None, 2]])
@@ -1007,6 +1052,30 @@ Assigned schema for Dict key: INT32""",
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
       db.new_like(4)
+
+  def test_new_like_str_as_schema_arg(self):
+    shape_and_mask_from = ds([[6, 7], [8]])
+    db = bag()
+    x = db.new_like(shape_and_mask_from, schema='name', a=42)
+    expected_schema = db.named_schema('name')
+    testing.assert_equal(x.get_schema(), expected_schema)
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_new_like_str_slice_as_schema_arg(self):
+    shape_and_mask_from = ds([[6, 7], [8]])
+    db = bag()
+    x = db.new_like(shape_and_mask_from, schema=ds('name'), a=42)
+    expected_schema = db.named_schema('name')
+    testing.assert_equal(x.get_schema(), expected_schema)
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_new_like_schema_arg_errors(self):
+    shape_and_mask_from = ds([[6, 7], [8]])
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError, "schema's schema must be SCHEMA, got: STRING"
+    ):
+      _ = db.new_like(shape_and_mask_from, schema=ds(['name']), a=42)
 
   def test_obj_shaped(self):
     db = bag()

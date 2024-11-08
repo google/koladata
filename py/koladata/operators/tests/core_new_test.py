@@ -205,11 +205,31 @@ class CoreNewTest(absltest.TestCase):
         x.a.get_attr('__schema__').q.no_bag(), schema_constants.STRING
     )
 
+  def test_str_as_schema_arg(self):
+    x = kde.core.new(schema='name', a=42).eval()
+    expected_schema = kde.named_schema('name').eval()
+    testing.assert_equal(
+        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_str_slice_as_schema_arg(self):
+    x = kde.core.new(schema=ds('name'), a=42).eval()
+    expected_schema = kde.named_schema('name').eval()
+    testing.assert_equal(
+        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
   def test_schema_arg_errors(self):
     with self.assertRaisesRegex(
         ValueError, 'schema must be SCHEMA, got: INT32'
     ):
       kde.core.new(a=1, schema=ds([1, 2, 3])).eval()
+    with self.assertRaisesRegex(
+        ValueError, 'schema must be SCHEMA, got: STRING'
+    ):
+      kde.core.new(a=1, schema=ds(['name'])).eval()
     with self.assertRaisesRegex(ValueError, 'schema can only be 0-rank'):
       kde.core.new(
           a=1, schema=ds([schema_constants.INT32, schema_constants.STRING])

@@ -88,7 +88,12 @@ OPERATOR("kde.core._inverse_mapping", InverseMapping);
 OPERATOR("kde.core._list", List);
 OPERATOR("kde.core._list_like", ListLike);
 OPERATOR("kde.core._list_shaped", ListShaped);
+OPERATOR_FAMILY("kde.core._new", std::make_unique<NewOperatorFamily>());
 OPERATOR("kde.core._new_ids_like", NewIdsLike);
+OPERATOR_FAMILY("kde.core._new_like",
+                std::make_unique<NewLikeOperatorFamily>());
+OPERATOR_FAMILY("kde.core._new_shaped",
+                std::make_unique<NewShapedOperatorFamily>());
 OPERATOR("kde.core._ordinal_rank", OrdinalRank);
 OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
@@ -118,10 +123,6 @@ OPERATOR("kde.core.is_empty", IsEmpty);
 OPERATOR("kde.core.is_list", IsList);
 OPERATOR("kde.core.is_primitive", IsPrimitive);
 OPERATOR("kde.core.list_size", ListSize);
-OPERATOR_FAMILY("kde.core.new", std::make_unique<NewOperatorFamily>());
-OPERATOR_FAMILY("kde.core.new_like", std::make_unique<NewLikeOperatorFamily>());
-OPERATOR_FAMILY("kde.core.new_shaped",
-                std::make_unique<NewShapedOperatorFamily>());
 OPERATOR("kde.core.no_bag", NoBag);
 OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
@@ -189,6 +190,7 @@ OPERATOR("kde.math.pow", Pow);
 OPERATOR("kde.math.round", Round);
 OPERATOR("kde.math.subtract", Subtract);
 //
+OPERATOR("kde.schema._internal_maybe_named_schema", InternalMaybeNamedSchema);
 OPERATOR("kde.schema.cast_to", CastTo);
 OPERATOR("kde.schema.cast_to_implicit", CastToImplicit);
 OPERATOR("kde.schema.cast_to_narrow", CastToNarrow);

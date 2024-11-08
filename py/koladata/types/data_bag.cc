@@ -28,6 +28,7 @@
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/log/check.h"
+#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -40,6 +41,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/schema.h"
 #include "koladata/proto/from_proto.h"
 #include "koladata/repr_utils.h"
 #include "google/protobuf/message.h"
@@ -79,14 +81,6 @@ absl::Nullable<PyObject*> PyDataBag_empty(PyTypeObject* cls, PyObject*) {
       PyDataBag_Type(), arolla::TypedValue::FromValue(DataBag::Empty()));
 }
 
-const DataSlice& AnySchema() {
-  static const absl::NoDestructor<DataSlice> any_schema{
-      DataSlice::Create(internal::DataItem(schema::kAny),
-                        internal::DataItem(schema::kSchema))
-          .value()};
-  return *any_schema;
-}
-
 // Attach `db` to each DataSlice in `values`.
 std::vector<DataSlice> ManyWithBag(absl::Span<const DataSlice> values,
                                    const DataBagPtr& db) {
@@ -96,6 +90,22 @@ std::vector<DataSlice> ManyWithBag(absl::Span<const DataSlice> values,
     values_with_db.push_back(values[i].WithBag(db));
   }
   return values_with_db;
+}
+
+absl::StatusOr<std::optional<DataSlice>>
+ParseSchemaArgWithStringToNamedSchemaConversion(
+    const FastcallArgParser::Args& args, absl::string_view arg_name) {
+  // args.pos_kw_values[arg_pos] is "arg_name" optional positional-keyword
+  // argument.
+  auto arg_it = args.kw_only_args.find(arg_name);
+  if (arg_it == args.kw_only_args.end() || arg_it->second == Py_None) {
+    return std::nullopt;
+  }
+  // We do no adoption here because we're getting a string or the input
+  // is already a DataSlice which we receive unchanged.
+  ASSIGN_OR_RETURN(auto schema_slice,
+                   DataSliceFromPyValueNoAdoption(arg_it->second));
+  return ops::InternalMaybeNamedSchema(schema_slice);
 }
 
 // Helper factory functors to adapt interface of EntityCreator / ObjectCreator
@@ -240,10 +250,10 @@ bool FirstArgProvided(PyObject* py_obj) {
 template <class FactoryHelperT>
 absl::Nullable<PyObject*> ProcessObjectCreation(
     const DataBagPtr& db, const FastcallArgParser::Args& args) {
-  std::optional<DataSlice> schema_arg;
-  if (!ParseDataSliceArg(args, "schema", schema_arg)) {
-    return nullptr;
-  }
+  ASSIGN_OR_RETURN(
+      std::optional<DataSlice> schema_arg,
+      ParseSchemaArgWithStringToNamedSchemaConversion(args, "schema"),
+      SetKodaPyErrFromStatus(_));
   bool update_schema = false;
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
@@ -419,10 +429,10 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
   if (shape == nullptr) {
     return nullptr;
   }
-  std::optional<DataSlice> schema_arg;
-  if (!ParseDataSliceArg(args, "schema", schema_arg)) {
-    return nullptr;
-  }
+  ASSIGN_OR_RETURN(
+      std::optional<DataSlice> schema_arg,
+      ParseSchemaArgWithStringToNamedSchemaConversion(args, "schema"),
+      SetKodaPyErrFromStatus(_));
   bool update_schema = false;
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
@@ -518,10 +528,10 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
   if (shape_and_mask_from == nullptr) {
     return nullptr;
   }
-  std::optional<DataSlice> schema_arg;
-  if (!ParseDataSliceArg(args, "schema", schema_arg)) {
-    return nullptr;
-  }
+  ASSIGN_OR_RETURN(
+      std::optional<DataSlice> schema_arg,
+      ParseSchemaArgWithStringToNamedSchemaConversion(args, "schema"),
+      SetKodaPyErrFromStatus(_));
   bool update_schema = false;
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;

@@ -151,6 +151,17 @@ absl::StatusOr<DataSlice> NamedSchema(const DataSlice& name) {
   return res;
 }
 
+absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
+    const DataSlice& name_or_schema) {
+  if (name_or_schema.GetShape().rank() == 0 &&
+      name_or_schema.item().holds_value<arolla::Text>()) {
+    return NamedSchema(name_or_schema);
+  } else {
+    RETURN_IF_ERROR(name_or_schema.VerifyIsSchema());
+    return name_or_schema;
+  }
+}
+
 absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item() == schema::kObject &&

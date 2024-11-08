@@ -869,15 +869,16 @@ def with_attr(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.new'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.core.new',
+    'kde.core._new',
     qtype_constraints=[
-        ((P.arg == arolla.UNSPECIFIED),
-         'kde.new does not support converter use-case. For converting Python ' +
-         'objects to Entities, please use eager only kd.kdi.new'),
+        (
+            (P.arg == arolla.UNSPECIFIED),
+            'kde.new does not support converter use-case. For converting'
+            ' Python '
+            + 'objects to Entities, please use eager only kd.kdi.new',
+        ),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
@@ -885,6 +886,30 @@ def with_attr(
         qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _new(arg, schema, update_schema, itemid, attrs, hidden_seed):
+  """Internal implementation of kde.core.new."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kde.new'], repr_fn=op_repr.full_signature_repr
+)
+@optools.as_lambda_operator(
+    'kde.core.new',
+    qtype_constraints=[
+        (
+            (P.arg == arolla.UNSPECIFIED),
+            'kde.new does not support converter use-case. For converting'
+            ' Python '
+            + 'objects to Entities, please use eager only kd.kdi.new',
+        ),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice(P.update_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def new(
@@ -894,7 +919,7 @@ def new(
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
     hidden_seed=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+):  # pylint: disable=g-doc-args
   """Creates Entities with given attrs.
 
   First argument `arg` is used for interface consistency with its eager version.
@@ -917,14 +942,19 @@ def new(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  raise NotImplementedError('implemented in the backend')
+  return _new(
+      arg=arg,
+      schema=schema_ops.internal_maybe_named_schema(schema),
+      update_schema=update_schema,
+      itemid=itemid,
+      attrs=attrs,
+      hidden_seed=hidden_seed,
+  )
 
 
-@optools.add_to_registry(
-    aliases=['kde.new_shaped'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.core.new_shaped',
+    'kde.core._new_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -934,6 +964,25 @@ def new(
         qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _new_shaped(shape, schema, update_schema, itemid, attrs, hidden_seed):
+  """Internal implementation of kde.core.new_shaped."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kde.new_shaped'], repr_fn=op_repr.full_signature_repr
+)
+@optools.as_lambda_operator(
+    'kde.core.new_shaped',
+    qtype_constraints=[
+        qtype_utils.expect_jagged_shape(P.shape),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice(P.update_schema),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def new_shaped(
@@ -960,7 +1009,14 @@ def new_shaped(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  raise NotImplementedError('implemented in the backend')
+  return _new_shaped(
+      shape=shape,
+      schema=schema_ops.internal_maybe_named_schema(schema),
+      update_schema=update_schema,
+      itemid=itemid,
+      attrs=attrs,
+      hidden_seed=hidden_seed,
+  )
 
 
 @optools.add_to_registry(
@@ -1013,9 +1069,9 @@ def new_shaped_as(
   )
 
 
-@optools.add_to_registry(aliases=['kde.new_like'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.core.new_like',
+    'kde.core._new_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -1025,6 +1081,25 @@ def new_shaped_as(
         qtype_utils.expect_accepts_hidden_seed(),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _new_like(
+    shape_and_mask_from, schema, update_schema, itemid, attrs, hidden_seed
+):
+  """Internal implementation of kde.core.new_like."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.new_like'])
+@optools.as_lambda_operator(
+    'kde.core.new_like',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.shape_and_mask_from),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice(P.update_schema),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def new_like(
@@ -1052,7 +1127,14 @@ def new_like(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  raise NotImplementedError('implemented in the backend')
+  return _new_like(
+      shape_and_mask_from=shape_and_mask_from,
+      schema=schema_ops.internal_maybe_named_schema(schema),
+      update_schema=update_schema,
+      itemid=itemid,
+      attrs=attrs,
+      hidden_seed=hidden_seed,
+  )
 
 
 @optools.add_to_registry(

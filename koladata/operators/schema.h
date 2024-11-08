@@ -65,6 +65,12 @@ inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
 // Creates a named entity schema with its item id derived only from its name.
 absl::StatusOr<DataSlice> NamedSchema(const DataSlice& name);
 
+// kde.schema._internal_maybe_named_schema operator.
+// Creates a named entity schema if the given slice is a text DataItem,
+// asserts that it is a schema and returns it unchanged otherwise.
+absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
+    const DataSlice& name_or_schema);
+
 // kde.schema.cast_to operator.
 absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema);
 

@@ -379,11 +379,11 @@ def dict_shaped_as(
 def new(
     arg: Any = arolla.unspecified(),
     *,
-    schema: data_slice.DataSlice | None = None,
+    schema: data_slice.DataSlice | str | None = None,
     update_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
-    **attrs: Any
+    **attrs: Any,
 ) -> data_slice.DataSlice:
   """Creates Entities with given attrs.
 
@@ -392,7 +392,8 @@ def new(
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -415,7 +416,7 @@ def new(
 def new_shaped(
     shape: jagged_shape.JaggedShape,
     *,
-    schema: data_slice.DataSlice | None = None,
+    schema: data_slice.DataSlice | str | None = None,
     update_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
@@ -428,7 +429,8 @@ def new_shaped(
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -448,7 +450,7 @@ def new_shaped(
 def new_shaped_as(
     shape_from: data_slice.DataSlice,
     *,
-    schema: data_slice.DataSlice | None = None,
+    schema: data_slice.DataSlice | str | None = None,
     update_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
@@ -461,7 +463,8 @@ def new_shaped_as(
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -484,7 +487,7 @@ def new_shaped_as(
 def new_like(
     shape_and_mask_from: data_slice.DataSlice,
     *,
-    schema: data_slice.DataSlice | None = None,
+    schema: data_slice.DataSlice | str | None = None,
     update_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
@@ -498,7 +501,8 @@ def new_like(
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.

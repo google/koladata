@@ -253,15 +253,35 @@ class NewTest(absltest.TestCase):
         x.a.get_attr('__schema__').q.no_bag(), schema_constants.STRING
     )
 
+  def test_str_as_schema_arg(self):
+    x = fns.new(schema='name', a=42)
+    expected_schema = fns.named_schema('name')
+    testing.assert_equal(
+        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
+  def test_str_slice_as_schema_arg(self):
+    x = fns.new(schema=ds('name'), a=42)
+    expected_schema = fns.named_schema('name')
+    testing.assert_equal(
+        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
+    )
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+
   def test_schema_arg_errors(self):
     with self.assertRaisesRegex(
-        TypeError, 'expecting schema to be a DataSlice, got int'
+        ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
       fns.new(a=1, schema=5)
     with self.assertRaisesRegex(
-        ValueError, 'schema must be SCHEMA, got: INT32'
+        ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
       fns.new(a=1, schema=ds([1, 2, 3]))
+    with self.assertRaisesRegex(
+        ValueError, "schema's schema must be SCHEMA, got: STRING"
+    ):
+      fns.new(a=1, schema=ds(['name']))
     with self.assertRaisesRegex(ValueError, 'schema can only be 0-rank'):
       fns.new(a=1, schema=ds([schema_constants.INT32, schema_constants.STRING]))
     with self.assertRaisesRegex(

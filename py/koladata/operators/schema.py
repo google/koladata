@@ -214,6 +214,45 @@ def named_schema(name):
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.schema._internal_maybe_named_schema',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.name_or_schema),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _internal_maybe_named_schema(name_or_schema):
+  """Internal implementation of kde.schema.internal_maybe_named_schema."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator('kde.schema.internal_maybe_named_schema')
+def internal_maybe_named_schema(name_or_schema):
+  """Converts a string to a named schema, passes through schema otherwise.
+
+  The operator also passes through arolla.unspecified, and raises when
+  it receives anything else except unspecified, string or schema DataItem.
+
+  This operator exists to support kde.core.new* family of operators.
+
+  Args:
+    name_or_schema: The input name or schema.
+
+  Returns:
+    The schema unchanged, or a named schema with the given name.
+  """
+  process_if_specified = arolla.types.DispatchOperator(
+      'name_or_schema',
+      unspecified_case=arolla.types.DispatchCase(
+          P.name_or_schema, condition=P.name_or_schema == arolla.UNSPECIFIED
+      ),
+      default=_internal_maybe_named_schema,
+  )
+  return process_if_specified(name_or_schema)
+
+
 @optools.add_to_registry(aliases=['kde.with_schema'])
 @optools.as_backend_operator(
     'kde.schema.with_schema',
