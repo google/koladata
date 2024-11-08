@@ -297,6 +297,7 @@ cc_binary(
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
+        "//koladata/internal/op_utils:base62",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/dense_array",

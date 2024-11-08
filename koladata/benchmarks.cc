@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -24,12 +25,14 @@
 #include "absl/strings/string_view.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
+#include "koladata/data_bag_repr.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/base62.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"
 #include "koladata/shape_utils.h"
@@ -578,6 +581,70 @@ BENCHMARK(BM_DataSliceRepr_Int32)
     ->Args({1, 1000000, 1 << 30})
     ->Args({2, 3000, 1 << 30})
     ->Args({5, 10, 1 << 30});
+
+void BM_DataBagStatistics_Attributes(benchmark::State& state) {
+  DataBagPtr bag = DataBag::Empty();
+
+  int64_t size = state.range(0);
+  int64_t attr_size = state.range(1);
+  std::vector<std::string> attr_names;
+  attr_names.reserve(attr_size);
+
+  for (int i = 0; i < attr_size; ++i) {
+    attr_names.push_back(internal::Base62Repr(i));
+  }
+  std::vector<absl::string_view> attr_name_views(attr_names.begin(),
+                                                 attr_names.end());
+  auto values = std::vector<DataSlice>(attr_size, test::DataItem(12));
+  DataSlice::JaggedShape shape = DataSlice::JaggedShape::FlatFromSize(size);
+
+  // Batch creates the entities in the DataBag.
+  CHECK_OK(
+      EntityCreator::Shaped(bag, std::move(shape), attr_name_views, values));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(bag);
+    auto res = *DataBagStatistics(bag);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+void BM_DataBagStatistics_Attributes_SmallAlloc(benchmark::State& state) {
+  DataBagPtr bag = DataBag::Empty();
+  int64_t attr_size = state.range(1);
+  std::vector<std::string> attr_names;
+  attr_names.reserve(attr_size);
+
+  for (int i = 0; i < attr_size; ++i) {
+    attr_names.push_back(internal::Base62Repr(i));
+  }
+  std::vector<absl::string_view> attr_name_views(attr_names.begin(),
+                                                 attr_names.end());
+  auto values = std::vector<DataSlice>(attr_size, test::DataItem(12));
+
+  int64_t size = state.range(0);
+  for (int i = 0; i < size; ++i) {
+    // Creates one entity at a time with all attributes.
+    CHECK_OK(EntityCreator::FromAttrs(bag, attr_name_views, values));
+  }
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(bag);
+    auto res = *DataBagStatistics(bag);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_DataBagStatistics_Attributes)
+    // Item sizes, attribute sizes.
+    ->Args({10, 10})
+    ->Args({100, 100})
+    ->Args({1000, 1000});
+
+BENCHMARK(BM_DataBagStatistics_Attributes_SmallAlloc)
+    // Item sizes, attribute sizes.
+    ->Args({10, 10})
+    ->Args({100, 100})
+    ->Args({1000, 1000});
 
 }  // namespace
 }  // namespace koladata
