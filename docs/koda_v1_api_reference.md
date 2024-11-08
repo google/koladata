@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-07'
+  reviewed: '2024-11-08'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -51,8 +51,8 @@ Computes pointwise x + y.
 ``` {.no-copy}
 Returns `x` with values repeated according to `sizes`.
 
-The resulting slice has `rank = rank + 1`. The input `sizes` are broadcasted
-to `x`, and each value is repeated the given number of times.
+The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
+broadcasted to `x`, and each value is repeated the given number of times.
 
 Example:
   ds = kd.slice([[1, None], [3]])
@@ -77,8 +77,8 @@ Args:
 ``` {.no-copy}
 Returns `x` with present values repeated according to `sizes`.
 
-The resulting slice has `rank = rank + 1`. The input `sizes` are broadcasted
-to `x`, and each value is repeated the given number of times.
+The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
+broadcasted to `x`, and each value is repeated the given number of times.
 
 Example:
   ds = kd.slice([[1, None], [3]])
@@ -271,8 +271,8 @@ Returns:
 ``` {.no-copy}
 Expands all of the DataSlices in `args` to the same common shape.
 
-All DataSlices must be expandable to the shape of the slice with the largest
-number of dimensions.
+All DataSlices must be expandable to the shape of the DataSlice with the
+largest number of dimensions.
 
 Example:
   kd.align(kd.slice([[1, 2, 3], [4, 5]]), kd.slice('a'), kd.slice([1, 2]))
@@ -458,7 +458,7 @@ Returns:
 ### `attrs(x, /, *, update_schema, **attrs)` {#attrs}
 
 ``` {.no-copy}
-Returns a new Databag containing attribute updates for a slice `x`.
+Returns a new Databag containing attribute updates for `x`.
 ```
 
 ### `bag` {#bag}
@@ -702,7 +702,7 @@ Returns:
 ### `decode_itemid(ds)` {#decode_itemid}
 
 ``` {.no-copy}
-Returns the base62 text decoded into item ids.
+Returns ItemIds decoded from the base62 strings.
 ```
 
 ### `deep_clone(x, schema, **overrides)` {#deep_clone}
@@ -711,19 +711,19 @@ Returns the base62 text decoded into item ids.
 Eager version of `kde.deep_clone` operator.
 ```
 
-### `deep_uuid(obj, /, schema, *, seed)` {#deep_uuid}
+### `deep_uuid(x, /, schema, *, seed)` {#deep_uuid}
 
 ``` {.no-copy}
-Recursively computes uuid for obj.
+Recursively computes uuid for x.
 
 Args:
-  obj: The slice to take uuid on.
+  x: The slice to take uuid on.
   schema: The schema to use to resolve '*' and '**' tokens. If not specified,
-    will use the schema of the 'obj' DataSlice.
+    will use the schema of the 'x' DataSlice.
   seed: The seed to use for uuid computation.
 
 Returns:
-  Result of recursive uuid application for objs/lists/dicts.
+  Result of recursive uuid application `x`.
 ```
 
 ### `del_attr(x, attr_name)` {#del_attr}
@@ -925,11 +925,11 @@ Returns size of a Dict.
 ### `dict_update(x, keys, values)` {#dict_update}
 
 ``` {.no-copy}
-Returns DataBag containing updates to a slice of dicts.
+Returns DataBag containing updates to a DataSlice of dicts.
 
 This operator has two forms:
   kde.dict_update(x, keys, values) where keys and values are slices
-  kde.dict_update(x, dict_updates) where dict_updates is a slice of dicts
+  kde.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
 
 If both keys and values are specified, they must both be broadcastable to the
 shape of `x`. If only keys is specified (as dict_updates), it must be
@@ -1027,7 +1027,7 @@ Creates a DataSlice of missing items with the shape of `shape_from`.
 ### `encode_itemid(ds)` {#encode_itemid}
 
 ``` {.no-copy}
-Returns the base62 encoded item ids in `ds` as Text.
+Returns the base62 encoded ItemIds in `ds` as strings.
 ```
 
 ### `enriched(ds, *bag)` {#enriched}
@@ -1249,14 +1249,14 @@ Returns kd.slice(x, kd.EXPR).
 ### `extract(ds, schema)` {#extract}
 
 ``` {.no-copy}
-Creates a slice with a new DataBag containing only reachable objects.
+Creates a DataSlice with a new DataBag containing only reachable attrs.
 
 Args:
   ds: DataSlice to extract.
-  schema: schema of the extracted slice.
+  schema: schema of the extracted DataSlice.
 
 Returns:
-  The same data slice with a new DataBag attached.
+  A DataSlice with a new DataBag attached.
 ```
 
 ### `flatten(x, from_dim, to_dim)` {#flatten}
@@ -1555,7 +1555,7 @@ Args:
   y: DataSlice.
 ```
 
-### `get_attr(obj, attr_name, default)` {#get_attr}
+### `get_attr(x, attr_name, default)` {#get_attr}
 
 ``` {.no-copy}
 Resolves (ObjectId(s), attr_name) => (Value|ObjectId)s.
@@ -1563,18 +1563,18 @@ Resolves (ObjectId(s), attr_name) => (Value|ObjectId)s.
 In case attr points to Lists or Maps, the result is a DataSlice that
 contains "pointers" to the beginning of lists/dicts.
 
-For simple values ((obj, attr) => values), just returns
+For simple values ((entity, attr) => values), just returns
 DataSlice(primitive values)
 
 Args:
-  obj: DataSlice | DataItem of object ids.
+  x: DataSlice to get attribute from.
   attr_name: name of the attribute to access.
-  default: DataSlice | DataItem value that should be used for objects that do
-    not have this attribute. In case default is specified, this will not
-    warn/raise if the attribute does not exist in the schema, so one can use
-    default=None to suppress the missing attribute warning/error. When
-    default=None and the attribute is missing on all objects, this will return
-    an empty slices with OBJECT schema.
+  default: default value to use when `x` does not have such attribute. In
+    case default is specified, this will not warn/raise if the attribute does
+    not exist in the schema, so one can use `default=None` to suppress the
+    missing attribute warning/error. When `default=None` and the attribute is
+    missing on all entities, this will return an empty slices with NONE
+    schema.
 
 Returns:
   DataSlice
@@ -1833,7 +1833,7 @@ Values of the result is a permutation of `x`. `args` are used for the grouping
 keys. If length of `args` is greater than 1, the key is a tuple.
 If `args` is empty, the key is `x`.
 
-Groups are ordered by the appearance of the first object in the group.
+Groups are ordered by the appearance of the first item in the group.
 
 Example 1:
   x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])
@@ -1894,8 +1894,8 @@ The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
 dimensions are unchanged. The last two dimensions corresponds to the groups
 and the items within the groups.
 
-Values of the data slice are the indices of the objects within the parent
-dimension. `kde.take(x, kde.group_by_indices(x))` would group the objects in
+Values of the DataSlice are the indices of the items within the parent
+dimension. `kde.take(x, kde.group_by_indices(x))` would group the items in
 `x` by their values.
 
 Groups are ordered by the appearance of the first object in the group.
@@ -1905,7 +1905,7 @@ Example 1:
   result: kd.slice([[0, 3, 6], [1, 5, 7], [2, 4]])
 
   We have three groups in order: 1, 3, 2. Each sublist contains the indices of
-  the objects in the original DataSlice.
+  the items in the original DataSlice.
 
 Example 2:
   x: kd.slice([[1, 2, 1, 3, 1, 3], [1, 3, 1]])
@@ -1913,7 +1913,7 @@ Example 2:
 
   We have three groups in the first sublist in order: 1, 2, 3 and two groups
   in the second sublist in order: 1, 3.
-  Each sublist contains the indices of the objects in the original sublist.
+  Each sublist contains the indices of the items in the original sublist.
 
 Example 3:
   x: kd.slice([1, 3, 2, 1, None, 3, 1, None])
@@ -1952,7 +1952,7 @@ Example 1:
   result: kd.slice([[0, 3, 6], [2, 4], [1, 5, 7]])
 
   We have three groups in order: 1, 2, 3. Each sublist contains the indices of
-  the objects in the original DataSlice.
+  the items in the original DataSlice.
 
 Example 2:
   x: kd.slice([1, 2, 3, 1, 2, 3, 1, 3]),
@@ -1986,20 +1986,20 @@ Returns:
   DataSlice representing the presence of `x`.
 ```
 
-### `has_attr(obj, attr_name)` {#has_attr}
+### `has_attr(x, attr_name)` {#has_attr}
 
 ``` {.no-copy}
-Indicates whether the items in the slice have the given attribute.
+Indicates whether the items in `x` DataSlice have the given attribute.
 
 This function checks for attributes based on data rather than "schema" and may
 be slow in some cases.
 
 Args:
-  obj: DataSlice | DataItem instance
+  x: DataSlice
   attr_name: Name of the attribute to check.
 
 Returns:
-  A MASK slice with the same shape as `obj` that contains present if the
+  A MASK DataSlice with the same shape as `x` that contains present if the
   attribute exists for the corresponding item.
 ```
 
@@ -2180,7 +2180,7 @@ Returns:
 Returns true if all present items in ds are dicts.
 ```
 
-### `is_empty(obj)` {#is_empty}
+### `is_empty(x)` {#is_empty}
 
 ``` {.no-copy}
 Returns kd.present if all items in the DataSlice are missing.
@@ -2672,10 +2672,10 @@ Args:
 Computes pointwise max(x, y).
 ```
 
-### `maybe(obj, attr_name)` {#maybe}
+### `maybe(x, attr_name)` {#maybe}
 
 ``` {.no-copy}
-A shortcut for kde.get_attr(obj, attr_name, default=None).
+A shortcut for kde.get_attr(x, attr_name, default=None).
 ```
 
 ### `min(x)` {#min}
@@ -2700,7 +2700,7 @@ Computes pointwise min(x, y).
 ``` {.no-copy}
 Creates new Objects with an implicit stored schema.
 
-  Returned DataSlice has OBJECT schema.
+  Returned DataSlice has OBJECT schema and mutable DataBag.
 
   Args:
     arg: optional Python object to be converted to an Object.
@@ -2712,6 +2712,33 @@ Creates new Objects with an implicit stored schema.
 
   Returns:
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
+```
+
+### `named_schema(name, db)` {#named_schema}
+
+``` {.no-copy}
+Creates a named entity schema in the given DataBag.
+
+  A named schema will have its item id derived only from its name, which means
+  that two named schemas with the same name will have the same ItemId, even in
+  different DataBags.
+
+  Note that unlike other schema factories, this method does not take any attrs
+  to avoid confisuion with the behavior of uu_schema. Please use
+  named_schema(name).with_attrs(attrs) to create a named schema with attrs.
+
+  Currently the named schema does not put any triples into the provided
+  DataBag, but that might change in the future. For example, we might want to
+  store the schema name in the DataBag for printing.
+
+  Args:
+    name: The name to use to derive the item id of the schema.
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
+
+  Returns:
+    data_slice.DataSlice with the ItemId of the required schema and kd.SCHEMA
+    schema.
 ```
 
 ### `new(arg, *, schema, update_schema, itemid, db, **attrs)` {#new}
@@ -3230,8 +3257,8 @@ Returns:
 ``` {.no-copy}
 Returns `x` with values repeated according to `sizes`.
 
-The resulting slice has `rank = rank + 1`. The input `sizes` are broadcasted
-to `x`, and each value is repeated the given number of times.
+The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
+broadcasted to `x`, and each value is repeated the given number of times.
 
 Example:
   ds = kd.slice([[1, None], [3]])
@@ -3717,9 +3744,9 @@ Returns kd.slice(x, kd.STRING).
 ``` {.no-copy}
 Copies a DataSlice's schema stub to a new DataBag.
 
-The "schema stub" of a slice is a subset of its schema (including embedded
+The "schema stub" of a DataSlice is a subset of its schema (including embedded
 schemas) that contains just enough information to support direct updates to
-that slice.
+that DataSlice.
 
 Optionally copies `attrs` schema attributes to the new DataBag as well.
 
@@ -4142,7 +4169,7 @@ The resulting DataSlice has the same rank as `x`, but a different shape.
 The first `get_ndim(x) - 1` dimensions are unchanged. The last dimension
 contains the unique values.
 
-If `sort` is False elements are ordered by the appearance of the first object.
+If `sort` is False elements are ordered by the appearance of the first item.
 
 If `sort` is True:
 1. Elements are ordered by the value.
@@ -4445,7 +4472,8 @@ Returns a DataSlice with a new DataBag containing updated dicts.
 
 This operator has two forms:
   kde.with_dict_update(x, keys, values) where keys and values are slices
-  kde.with_dict_update(x, dict_updates) where dict_updates is a slice of dicts
+  kde.with_dict_update(x, dict_updates) where dict_updates is a DataSlice of
+    dicts
 
 If both keys and values are specified, they must both be broadcastable to the
 shape of `x`. If only keys is specified (as dict_updates), it must be
@@ -5852,6 +5880,12 @@ Copies all data from `other_bags` to this DataBag.
 
   Returns:
     self, so that multiple DataBag modifications can be chained.
+```
+
+### `<DataBag>.named_schema` {#<DataBag>.named_schema}
+
+``` {.no-copy}
+Creates a named schema with ItemId derived only from its name.
 ```
 
 ### `<DataBag>.new` {#<DataBag>.new}
