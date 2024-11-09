@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-08'
+  reviewed: '2024-11-09'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -455,10 +455,16 @@ Returns:
   A new DataSlice with items selected by indices.
 ```
 
+### `attr(x, attr_name, value, update_schema)` {#attr}
+
+``` {.no-copy}
+Returns a new DataBag containing attribute `attr_name` update for `x`.
+```
+
 ### `attrs(x, /, *, update_schema, **attrs)` {#attrs}
 
 ``` {.no-copy}
-Returns a new Databag containing attribute updates for `x`.
+Returns a new DataBag containing attribute updates for `x`.
 ```
 
 ### `bag` {#bag}
@@ -665,6 +671,21 @@ Args:
 
 Returns:
   DataSlice of items from `yes` and `no` based on `condition`.
+```
+
+### `container(*, db, **attrs)` {#container}
+
+``` {.no-copy}
+Creates new Objects with an implicit stored schema.
+
+  Returned DataSlice has OBJECT schema and mutable DataBag.
+
+  Args:
+    db: optional DataBag where object are created.
+    **attrs: attrs to set on the returned object.
+
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
 ```
 
 ### `count(x)` {#count}
@@ -2695,25 +2716,6 @@ Args:
 Computes pointwise min(x, y).
 ```
 
-### `mutable_obj(arg, *, itemid, db, **attrs)` {#mutable_obj}
-
-``` {.no-copy}
-Creates new Objects with an implicit stored schema.
-
-  Returned DataSlice has OBJECT schema and mutable DataBag.
-
-  Args:
-    arg: optional Python object to be converted to an Object.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-      itemid will only be set when the args is not a primitive or primitive
-      slice if args presents.
-    db: optional DataBag where object are created.
-    **attrs: attrs to set on the returned object.
-
-  Returns:
-    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
-```
-
 ### `named_schema(name, db)` {#named_schema}
 
 ``` {.no-copy}
@@ -2751,7 +2753,8 @@ Creates Entities with given attrs.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -2823,7 +2826,8 @@ Creates new Entities with the shape and sparsity from shape_and_mask_from.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -2874,7 +2878,8 @@ Creates new Entities with the given shape.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -2895,7 +2900,8 @@ Creates new Koda entities with shape of the given DataSlice.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -4447,6 +4453,12 @@ Returns:
   A DataSlice with the same shape as `x`.
 ```
 
+### `with_attr(x, attr_name, value, update_schema)` {#with_attr}
+
+``` {.no-copy}
+Returns a DataSlice with a new DataBag containing a single updated attribute.
+```
+
 ### `with_attrs(x, /, *, update_schema, **attrs)` {#with_attrs}
 
 ``` {.no-copy}
@@ -5581,10 +5593,10 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
     DataSlice of concatenated Lists
 ```
 
-### `<DataBag>.contents_repr` {#<DataBag>.contents_repr}
+### `<DataBag>.contents_repr(self, *, triple_limit)` {#<DataBag>.contents_repr}
 
 ``` {.no-copy}
-Returns a string representation of the contents of this DataBag.
+Returns a representation of the DataBag contents.
 ```
 
 ### `<DataBag>.dict(self, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict}
