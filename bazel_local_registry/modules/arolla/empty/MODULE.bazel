@@ -1,0 +1,5 @@
+module(
+    name = "arolla",
+    version = "empty",
+    compatibility_level = 0,
+)

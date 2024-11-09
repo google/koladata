@@ -4,23 +4,24 @@ module(
 )
 
 bazel_dep(name = "abseil-cpp", version = "20240722.0", repo_name = "com_google_absl")
+bazel_dep(name = "abseil-py", version = "2.1.0", repo_name = "com_google_absl_py")
+bazel_dep(name = "arolla", version = "empty", repo_name = "com_google_arolla")
 bazel_dep(name = "google_benchmark", version = "1.8.3", repo_name = "com_google_benchmark")
 bazel_dep(name = "googletest", version = "1.15.2", repo_name = "com_google_googletest")
 bazel_dep(name = "protobuf", version = "28.3", repo_name = "com_google_protobuf")
 bazel_dep(name = "pybind11_bazel", version = "2.12.0")
 bazel_dep(name = "pybind11_protobuf", version = "0.0.0-20240524-1d7a729", repo_name = "pybind11_protobuf")
-
-# Transitive from arolla.
-bazel_dep(name = "abseil-py", version = "2.1.0", repo_name = "com_google_absl_py")
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
-bazel_dep(name = "boost.math", version = "1.83.0")
-bazel_dep(name = "eigen", version = "3.4.0.bcr.1")
-bazel_dep(name = "platforms", version = "0.0.10")
-bazel_dep(name = "pybind11_abseil", version = "202402.0")
-bazel_dep(name = "re2", version = "2024-07-02", repo_name = "com_googlesource_code_re2")
-bazel_dep(name = "riegeli", version = "0.0.0-20240927-cdfb25a", repo_name = "com_google_riegeli")
 bazel_dep(name = "rules_cc", version = "0.0.13")
 bazel_dep(name = "rules_python", version = "0.37.1")
+
+# Note: We would like to use the latest version of Arolla during development.
+archive_override(
+    module_name = "arolla",
+    strip_prefix = "arolla-main",
+    urls = [
+        "https://github.com/google/arolla/archive/refs/heads/main.tar.gz",
+    ],
+)
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(
@@ -35,3 +36,37 @@ pip.parse(
     requirements_lock = "//:requirements.txt",
 )
 use_repo(pip, pip_deps = "koladata_pip_deps")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "com_google_cityhash",
+    build_file = "external/BUILD.cityhash",
+    integrity = "sha256-sNnBNfNr3Ev3ThP3/+i6otiBOC9n57A5/xc0vSQwIBg=",
+    patch_cmds = [
+        # Running "configure" creates the config.h file needed for this library.
+        # Then, the source files are moved to a new "cityhash" directory for
+        # consistency with the namespace.
+        "./configure",
+        "mkdir cityhash",
+        "mv config.h cityhash",
+        "mv src/city.h cityhash",
+        "mv src/citycrc.h cityhash",
+        "mv src/city.cc cityhash",
+    ],
+    patches = [
+        # Apply patches to add a "cityhash" namespace to the functions.
+        "external/cityhash.1.patch",
+        "external/cityhash.2.patch",
+        "external/cityhash.3.patch",
+    ],
+    strip_prefix = "cityhash-master",
+    url = "https://github.com/google/cityhash/archive/refs/heads/master.tar.gz",
+)
+
+http_archive(
+    name = "com_google_double_conversion",
+    integrity = "sha256-BOxERhhQq78zgk2oSXgEOyJVSJa1UsX9EanFrktNKW4=",
+    strip_prefix = "double-conversion-3.3.0",
+    url = "https://github.com/google/double-conversion/archive/refs/tags/v3.3.0.tar.gz",
+)

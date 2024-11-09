@@ -4,6 +4,13 @@ common --enable_platform_specific_config
 # Enable Bzlmod for every Bazel command.
 common --enable_bzlmod
 
+# Enable bazel_local_registry.
+#
+# TODO: b/376301639 - Remove the local registry once Arolla is available through
+# the central registry.
+common --registry=file:%workspace%/bazel_local_registry
+common --registry=https://bcr.bazel.build
+
 # Disable the automatic creation of `__init__.py` files, as it prevents the use
 # of namespace packages during build time.
 #
