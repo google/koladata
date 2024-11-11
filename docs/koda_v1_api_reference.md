@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-10'
+  reviewed: '2024-11-11'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -2038,6 +2038,23 @@ Args:
 
 Returns:
   DataSlice representing the non-presence of `x`.
+```
+
+### `hash_itemid(x)` {#hash_itemid}
+
+``` {.no-copy}
+Returns a INT64 DataSlice of hash values of `x`.
+
+The hash values are in the range of [-2**63, 2**63-1].
+
+The hash algorithm is subject to change. It is not guaranteed to be stable in
+future releases.
+
+Args:
+  x: DataSlice of ItemIds.
+
+Returns:
+  A DataSlice of INT64 hash values.
 ```
 
 ### `implode(x, ndim, db)` {#implode}
