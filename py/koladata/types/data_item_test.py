@@ -21,7 +21,9 @@ import sys
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata import kd as user_facing_kd
 from koladata.expr import input_container
+from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 # Register kde ops for e.g. jagged_shape.create_shape().
 from koladata.operators import kde_operators as _
@@ -250,6 +252,17 @@ class DataItemTest(parameterized.TestCase):
     fn = functor_factories.fn(I.x)
     my_bag = bag()
     testing.assert_equal(fn(x=my_bag, return_type_as=data_bag.DataBag), my_bag)
+
+  def test_bind(self):
+    fn = functor_factories.trace_py_fn(lambda x, y: x + y).bind(y=2)
+    self.assertEqual(fn(3), 5)
+    fn = functor_factories.trace_py_fn(
+        lambda x, y: user_facing_kd.attrs(x, my_attr=y)
+    ).bind(y=42, return_type_as=data_bag.DataBag)
+    x = fns.new()
+    self.assertEqual(
+        x.updated(fn(x, return_type_as=data_bag.DataBag)).my_attr, 42
+    )
 
   def test_signatures(self):
     # Tests that all methods have an inspectable signature. This is not added

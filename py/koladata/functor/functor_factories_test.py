@@ -563,6 +563,12 @@ class FunctorFactoriesTest(absltest.TestCase):
     res = f(return_type_as=data_bag.DataBag)
     self.assertIsInstance(res, data_bag.DataBag)
 
+  def test_bind_non_functor(self):
+    with self.assertRaisesRegex(
+        ValueError, re.escape('bind() expects a functor')
+    ):
+      functor_factories.bind(ds(1), y=2)
+
   def test_as_fn_expr(self):
     testing.assert_equal(
         kd.call(functor_factories.as_fn(I.x + I.y), x=ds([1, 2]), y=ds([3, 4])),

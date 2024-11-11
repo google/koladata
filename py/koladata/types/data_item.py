@@ -14,7 +14,7 @@
 
 """DataItem abstraction."""
 
-from typing import Any
+from typing import Any, Callable
 
 from arolla import arolla
 from koladata.types import data_item_py_ext as _data_item_py_ext
@@ -56,3 +56,75 @@ def _call(
         return_type_as=return_type_as,
         **kwargs
     )
+
+
+_bind_method_impl: Callable[..., data_slice.DataSlice] = None
+
+
+# As soon as this pattern is used >=3 times, please create a general
+# registration mechanism for non-operator-based DataItem methods.
+def register_bind_method_implementation(
+    fn: Callable[..., data_slice.DataSlice],
+):
+  """Registers a method implementation for DataItem.bind."""
+  global _bind_method_impl
+  _bind_method_impl = fn
+
+
+# Ideally we'd do this only for functors, but we don't have a fast way
+# to check if a DataItem is a functor now.
+@DataItem._add_method('bind')  # pylint: disable=protected-access
+def bind(
+    self,
+    *,
+    return_type_as: Any = data_slice.DataSlice,
+    **kwargs: Any,
+) -> data_slice.DataSlice:
+  """Returns a Koda functor that partially binds a function to `kwargs`.
+
+  This function is intended to work the same as functools.partial in Python.
+  More specifically, for every "k=something" argument that you pass to this
+  function, whenever the resulting functor is called, if the user did not
+  provide "k=something_else" at call time, we will add "k=something".
+
+  Note that you can only provide defaults for the arguments passed as keyword
+  arguments this way. Positional arguments must still be provided at call time.
+  Moreover, if the user provides a value for a positional-or-keyword argument
+  positionally, and it was previously bound using this method, an exception
+  will occur.
+
+  You can pass expressions with their own inputs as values in `kwargs`. Those
+  inputs will become inputs of the resulting functor, will be used to compute
+  those expressions, _and_ they will also be passed to the underying functor.
+  Use kdf.call_fn for a more clear separation of those inputs.
+
+  Example:
+    f = kdf.fn(I.x + I.y).bind(x=0)
+    kd.call(f, y=1)  # 1
+
+  Args:
+    self: A Koda functor.
+    return_type_as: The return type of the functor is expected to be the same as
+      the type of this value. This needs to be specified if the functor does not
+      return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
+      passed here.
+    **kwargs: Partial parameter binding. The values in this map may be Koda
+      expressions or DataItems. When they are expressions, they must evaluate to
+      a DataSlice/DataItem or a primitive that will be automatically wrapped
+      into a DataItem. This function creates auxiliary variables with names
+      starting with '_aux_fn', so it is not recommended to pass variables with
+      such names.
+
+  Returns:
+    A new Koda functor with some parameters bound.
+  """
+  # Since bind is not an operator, we cannot use the operator registration
+  # mechanism, and have a custom registration mechanism instead.
+  if _bind_method_impl is None:
+    raise ValueError(
+        'No implementation for DataItem.bind() was registered. If you are'
+        ' importing the entire koladata, this should never happen. If you are'
+        ' importing a subset of koladata modules, please import'
+        ' functor_factories.'
+    )
+  return _bind_method_impl(self, return_type_as=return_type_as, **kwargs)

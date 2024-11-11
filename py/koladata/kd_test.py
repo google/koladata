@@ -164,6 +164,10 @@ class KdTest(absltest.TestCase):
     )
     self.assertEqual(kdf.call(fn, 1, 2), 3)
 
+  def test_bind(self):
+    fn = kd.bind(kdf.trace_py_fn(lambda x, y: x + y), y=2)
+    self.assertEqual(fn(3), 5)
+
   def test_with_name(self):
     x = kd.slice([1, 2, 3])
     y = kd.with_name(x, 'foo')

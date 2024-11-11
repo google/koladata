@@ -28,6 +28,7 @@ from koladata.functor import py_functors_py_ext as _py_functors_py_ext
 from koladata.functor import signature_utils
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators
+from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import literal_operator
 from koladata.types import mask_constants
@@ -315,6 +316,8 @@ def bind(
   Returns:
     A new Koda functor with some parameters bound.
   """
+  if not is_fn(fn_def):
+    raise ValueError(f'bind() expects a functor, got {fn_def}')
   variables = {'_aux_fn': fn_def}
   expr_variables = {}
   for k, v in kwargs.items():
@@ -358,6 +361,9 @@ def bind(
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
       **variables,
   )
+
+
+data_item.register_bind_method_implementation(bind)
 
 
 # TODO: Add support for format strings here.

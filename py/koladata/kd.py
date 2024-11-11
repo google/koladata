@@ -156,6 +156,7 @@ expr.get_input_names = _introspection.get_input_names
 
 trace_as_fn = _eager_only(_tracing_decorator.TraceAsFnDecorator)
 is_fn = _eager_only(_functor_factories.is_fn)
+bind = _eager_only(_functor_factories.bind)
 
 
 ### Koda constants.
