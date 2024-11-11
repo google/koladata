@@ -376,8 +376,20 @@ class DataSliceView(BasicKodaView):
   def attrs(self, **attrs: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.attrs', self, **attrs)
 
+  def attr(self, attr_name: Any, value: Any, update_schema: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op(
+        'kde.attr', self, attr_name, value, update_schema
+    )
+
   def with_attrs(self, **attrs: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.with_attrs', self, **attrs)
+
+  def with_attr(
+      self, attr_name: Any, value: Any, update_schema: Any
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op(
+        'kde.with_attr', self, attr_name, value, update_schema
+    )
 
   def take(self, indices: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.take', self, indices)

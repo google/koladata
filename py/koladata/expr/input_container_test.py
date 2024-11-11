@@ -45,7 +45,7 @@ class InputContainerTest(parameterized.TestCase):
     I = input_container.InputContainer('I')
     self.assertEqual(repr(I.x), 'I.x')
     self.assertEqual(repr(I['-x']), "I['-x']")
-    self.assertEqual(repr((I.x + I.y).attr), '(I.x + I.y).attr')
+    self.assertEqual(repr((I.x + I.y).some_attr), '(I.x + I.y).some_attr')
     self.assertEqual(repr(I.self), 'S')
     self.assertEqual(repr(I.self.x), 'S.x')
 

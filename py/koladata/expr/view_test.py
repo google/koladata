@@ -549,8 +549,18 @@ class DataSliceViewTest(parameterized.TestCase):
   def test_attrs(self):
     testing.assert_equal(C.x.attrs(a=C.a), kde.attrs(C.x, a=C.a))
 
+  def test_attr(self):
+    testing.assert_equal(
+        C.x.attr('a', C.a, False), kde.attr(C.x, 'a', C.a, False)
+    )
+
   def test_with_attrs(self):
     testing.assert_equal(C.x.with_attrs(a=C.a), kde.with_attrs(C.x, a=C.a))
+
+  def test_with_attr(self):
+    testing.assert_equal(
+        C.x.with_attr('a', C.a, False), kde.with_attr(C.x, 'a', C.a, False)
+    )
 
   def test_take(self):
     testing.assert_equal(C.x.take(C.indices), kde.take(C.x, C.indices))
@@ -674,11 +684,11 @@ class DataSliceViewTest(parameterized.TestCase):
       (C.x**1, 'C.x ** DataItem(1, schema: INT32)'),
       (1**C.x, 'DataItem(1, schema: INT32) ** C.x'),
       # Getattr.
-      (C.x.attr, 'C.x.attr'),
+      (C.x.some_attr, 'C.x.some_attr'),
       (
-          kde.get_attr(C.x, 'attr', 1),
+          kde.get_attr(C.x, 'some_attr', 1),
           (
-              "kde.get_attr(C.x, DataItem('attr', schema: STRING), "
+              "kde.get_attr(C.x, DataItem('some_attr', schema: STRING), "
               'DataItem(1, schema: INT32))'
           ),
       ),

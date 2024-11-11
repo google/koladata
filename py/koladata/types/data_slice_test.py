@@ -2937,10 +2937,29 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_equal(obj2.y.no_bag(), ds(2))
     testing.assert_equal(obj2.z.no_bag(), ds(4))
 
+  # More comprehensive tests are in the core_attr_test.py.
+  def test_attr(self):
+    db1 = bag()
+    obj = db1.obj(x=1, y=2)
+    db2 = obj.attr('x', 3)
+    db3 = obj.attr('z', 4)
+    obj2 = obj.updated(db2).updated(db3)
+    testing.assert_equal(obj2.x.no_bag(), ds(3))
+    testing.assert_equal(obj2.y.no_bag(), ds(2))
+    testing.assert_equal(obj2.z.no_bag(), ds(4))
+
   # More comprehensive tests are in the core_with_attrs_test.py.
   def test_with_attrs(self):
     obj1 = bag().obj(x=1, y=2)
     obj2 = obj1.with_attrs(x=3, z=4)
+    testing.assert_equal(obj2.x.no_bag(), ds(3))
+    testing.assert_equal(obj2.y.no_bag(), ds(2))
+    testing.assert_equal(obj2.z.no_bag(), ds(4))
+
+  # More comprehensive tests are in the core_with_attr_test.py.
+  def test_with_attr(self):
+    obj1 = bag().obj(x=1, y=2)
+    obj2 = obj1.with_attr('x', 3).with_attr('z', 4)
     testing.assert_equal(obj2.x.no_bag(), ds(3))
     testing.assert_equal(obj2.y.no_bag(), ds(2))
     testing.assert_equal(obj2.z.no_bag(), ds(4))
