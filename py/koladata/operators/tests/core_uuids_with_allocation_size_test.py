@@ -104,23 +104,11 @@ class CoreUuidsWithAllocationSizeTest(parameterized.TestCase):
     )
     self.assertNotEqual(lhs.no_bag().fingerprint, rhs.no_bag().fingerprint)
 
-  def test_no_seed(self):
-    with self.assertRaisesRegex(
-        TypeError, re.escape("missing required keyword argument: 'seed'")
-    ):
-      _ = expr_eval.eval(kde.core.uuids_with_allocation_size(size=10))
-
   def test_no_size(self):
     with self.assertRaisesRegex(
         TypeError, re.escape("missing required keyword argument: 'size'")
     ):
-      _ = expr_eval.eval(kde.core.uuids_with_allocation_size(seed='foo'))
-
-  def test_forces_args_to_have_keywords(self):
-    with self.assertRaisesRegex(
-        TypeError, re.escape("missing required keyword argument: 'seed'")
-    ):
-      _ = expr_eval.eval(kde.core.uuids_with_allocation_size('seed', 4))
+      _ = expr_eval.eval(kde.core.uuids_with_allocation_size('foo'))
 
   @parameterized.parameters(
       (
@@ -192,7 +180,12 @@ class CoreUuidsWithAllocationSizeTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.uuids_with_allocation_size(seed='foo', size=I.size)),
-        "kde.core.uuids_with_allocation_size(seed=DataItem('foo', schema:"
+        "kde.core.uuids_with_allocation_size(DataItem('foo', schema:"
+        ' STRING), size=I.size)',
+    )
+    self.assertEqual(
+        repr(kde.core.uuids_with_allocation_size('foo', size=I.size)),
+        "kde.core.uuids_with_allocation_size(DataItem('foo', schema:"
         ' STRING), size=I.size)',
     )
 

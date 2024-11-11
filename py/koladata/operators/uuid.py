@@ -39,7 +39,7 @@ constraints = arolla.optools.constraints
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def uuid(seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
+def uuid(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
 
   Args:
@@ -67,7 +67,7 @@ def uuid(seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()):  # py
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uuid_for_list(
-    seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()
+    seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword()
 ):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
 
@@ -102,7 +102,7 @@ def uuid_for_list(
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uuid_for_dict(
-    seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()
+    seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword()
 ):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
 
@@ -138,7 +138,7 @@ def uuid_for_dict(
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uuids_with_allocation_size(
-    seed=py_boxing.keyword_only(), size=py_boxing.keyword_only()  # pylint: disable=unused-argument
+    seed=py_boxing.positional_or_keyword(''), size=py_boxing.keyword_only()  # pylint: disable=unused-argument
 ):
   """Creates a DataSlice whose items are uuids.
 

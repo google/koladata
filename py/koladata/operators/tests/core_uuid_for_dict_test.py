@@ -85,19 +85,19 @@ class KodaUuidForDictTest(parameterized.TestCase):
 
   def test_default_seed(self):
     lhs = expr_eval.eval(kde.core.uuid_for_dict(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core.uuid_for_dict(seed='', a=ds(1), b=ds(2)))
+    rhs = expr_eval.eval(kde.core.uuid_for_dict('', a=ds(1), b=ds(2)))
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_no_args(self):
     lhs = expr_eval.eval(kde.core.uuid_for_dict())
-    rhs = expr_eval.eval(kde.core.uuid_for_dict(seed=''))
+    rhs = expr_eval.eval(kde.core.uuid_for_dict(''))
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
-  def test_seed_keywod_only_args(self):
+  def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'expected 0 positional arguments but 1 were given'
+        TypeError, 'expected 1 positional arguments but 2 were given'
     ):
-      _ = expr_eval.eval(kde.core.uuid_for_dict(ds('a')))
+      _ = expr_eval.eval(kde.core.uuid_for_dict(ds('1'), ds('a')))
 
   @parameterized.parameters(
       (
@@ -157,8 +157,12 @@ class KodaUuidForDictTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.uuid_for_dict(a=I.a)),
-        "kde.core.uuid_for_dict(seed=DataItem('', schema: STRING), a=I.a)",
+        repr(kde.core.uuid_for_dict(seed=I.seed, a=I.a)),
+        'kde.core.uuid_for_dict(I.seed, a=I.a)',
+    )
+    self.assertEqual(
+        repr(kde.core.uuid_for_dict(I.seed, a=I.a)),
+        'kde.core.uuid_for_dict(I.seed, a=I.a)',
     )
 
 

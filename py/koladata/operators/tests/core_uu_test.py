@@ -154,19 +154,19 @@ class KodaUuTest(parameterized.TestCase):
 
   def test_default_seed(self):
     lhs = expr_eval.eval(kde.core.uu(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core.uu(seed='', a=ds(1), b=ds(2)))
+    rhs = expr_eval.eval(kde.core.uu('', a=ds(1), b=ds(2)))
     testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
   def test_no_args(self):
     lhs = expr_eval.eval(kde.core.uu())
-    rhs = expr_eval.eval(kde.core.uu(seed=''))
+    rhs = expr_eval.eval(kde.core.uu(''))
     testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
-  def test_seed_keywod_only_args(self):
+  def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'expected 0 positional arguments but 1 were given'
+        TypeError, 'expected 1 positional arguments but 2 were given'
     ):
-      _ = expr_eval.eval(kde.core.uu(ds('a')))
+      _ = expr_eval.eval(kde.core.uu(ds('1'), ds('a')))
 
   def test_bag_adoption(self):
     a = expr_eval.eval(kde.core.uu(a=1))
@@ -236,7 +236,12 @@ class KodaUuTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.uu(a=I.z, seed=I.seed)),
-        'kde.core.uu(seed=I.seed, schema=unspecified,'
+        'kde.core.uu(I.seed, schema=unspecified,'
+        ' update_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
+    )
+    self.assertEqual(
+        repr(kde.core.uu(I.seed, a=I.z)),
+        'kde.core.uu(I.seed, schema=unspecified,'
         ' update_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
     )
 

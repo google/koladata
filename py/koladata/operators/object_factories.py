@@ -38,7 +38,7 @@ constraints = arolla.optools.constraints
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def uuobj(seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
+def uuobj(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
   """Creates Object(s) whose ids are uuid(s) with the provided attributes.
 
   In order to create a different id from the same arguments, use
@@ -84,7 +84,7 @@ def uuobj(seed=py_boxing.keyword_only(''), kwargs=py_boxing.var_keyword()):  # p
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uu(
-    seed=py_boxing.keyword_only(''),
+    seed=py_boxing.positional_or_keyword(''),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     update_schema=py_boxing.keyword_only(False),
     kwargs=py_boxing.var_keyword(),

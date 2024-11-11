@@ -118,19 +118,19 @@ class KodaUuObjTest(parameterized.TestCase):
 
   def test_default_seed(self):
     lhs = expr_eval.eval(kde.core.uuobj(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core.uuobj(seed='', a=ds(1), b=ds(2)))
+    rhs = expr_eval.eval(kde.core.uuobj('', a=ds(1), b=ds(2)))
     testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
   def test_no_args(self):
     lhs = expr_eval.eval(kde.core.uuobj())
-    rhs = expr_eval.eval(kde.core.uuobj(seed=''))
+    rhs = expr_eval.eval(kde.core.uuobj(''))
     testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
-  def test_seed_keywod_only_args(self):
+  def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'expected 0 positional arguments but 1 were given'
+        TypeError, 'expected 1 positional arguments but 2 were given'
     ):
-      _ = expr_eval.eval(kde.core.uuobj(ds('a')))
+      _ = expr_eval.eval(kde.core.uuobj(ds('1'), ds('a')))
 
   def test_bag_adoption(self):
     a = expr_eval.eval(kde.core.uuobj(a=1))
@@ -182,7 +182,11 @@ class KodaUuObjTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.uuobj(a=I.z, seed=I.seed)),
-        'kde.core.uuobj(seed=I.seed, a=I.z)',
+        'kde.core.uuobj(I.seed, a=I.z)',
+    )
+    self.assertEqual(
+        repr(kde.core.uuobj(I.seed, a=I.z)),
+        'kde.core.uuobj(I.seed, a=I.z)',
     )
 
 
