@@ -29,6 +29,7 @@ from koladata.functor import kdf as _kdf
 from koladata.functor import tracing_decorator as _tracing_decorator
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators as _kde_operators
+from koladata.operators import optools as _optools
 from koladata.testing import testing as _testing
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_item as _data_item
@@ -78,6 +79,10 @@ types.ListItem = _list_item.ListItem
 types.DictItem = _dict_item.DictItem
 types.JaggedShape = _jagged_shape.JaggedShape
 types.SchemaItem = _schema_item.SchemaItem
+
+
+optools = _eager_only(_py_types.ModuleType('optools'))
+optools.add_alias = _optools.add_alias
 
 exceptions = _eager_only(_py_types.ModuleType('exceptions'))
 exceptions.KodaError = _exceptions.KodaError

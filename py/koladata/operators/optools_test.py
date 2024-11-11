@@ -27,7 +27,14 @@ from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
+
 ds = data_slice.DataSlice.from_vals
+
+
+def repr_fn(node, _):
+  res = arolla.abc.ReprToken()
+  res.text = f'MY_CUSTOM_M.{node.op.display_name}'
+  return res
 
 
 class OptoolsTest(parameterized.TestCase):
@@ -226,12 +233,6 @@ class OptoolsTest(parameterized.TestCase):
     )
 
   def test_add_to_registry_with_repr_fn(self):
-
-    def repr_fn(node, _):
-      res = arolla.abc.ReprToken()
-      res.text = f'MY_CUSTOM_M.{node.op.display_name}'
-      return res
-
     @optools.add_to_registry(aliases=['test.op_4_alias'], repr_fn=repr_fn)
     @arolla.optools.as_lambda_operator('test.op_4')
     def op_4(x):
@@ -243,6 +244,27 @@ class OptoolsTest(parameterized.TestCase):
         'MY_CUSTOM_M.test.op_4_alias',
     )
 
+  def test_add_alias(self):
+    @optools.add_to_registry(
+        aliases=['test.op_5_alias_1'],
+        view=view.DataBagView,
+        repr_fn=repr_fn,
+    )
+    @optools.as_lambda_operator('test.op_5')
+    def op_original(x):
+      return x
+
+    optools.add_alias('test.op_5', 'test.op_5_alias_2')
+
+    with self.subTest('correct_aliases'):
+      op_alias_1 = arolla.abc.lookup_operator('test.op_5_alias_1')
+      op_alias_2 = arolla.abc.lookup_operator('test.op_5_alias_2')
+      self.assertTrue(optools.equiv_to_op(op_alias_1, op_original))
+      self.assertTrue(optools.equiv_to_op(op_alias_2, op_original))
+      self.assertTrue(view.has_data_bag_view(op_alias_1(1)))
+      self.assertTrue(view.has_data_bag_view(op_alias_2(1)))
+      self.assertEqual(repr(op_alias_1(42)), 'MY_CUSTOM_M.test.op_5_alias_1')
+      self.assertEqual(repr(op_alias_2(42)), 'MY_CUSTOM_M.test.op_5_alias_2')
 
 if __name__ == '__main__':
   absltest.main()

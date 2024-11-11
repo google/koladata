@@ -14,6 +14,7 @@
 
 """Operator definition and registration tooling."""
 
+import dataclasses
 import functools
 import inspect
 from typing import Any, Callable, Collection, Sequence
@@ -26,6 +27,23 @@ from koladata.types import py_boxing
 
 
 P = input_container.InputContainer('P')
+
+
+@dataclasses.dataclass(frozen=True)
+class _RegisteredOp:
+  op: arolla.types.Operator
+  view: type[arolla.abc.ExprView]
+  repr_fn: op_repr.OperatorReprFn
+
+
+_REGISTERED_OPS: dict[str, _RegisteredOp] = {}
+
+
+def _clear_registered_ops():
+  _REGISTERED_OPS.clear()
+
+
+arolla.abc.cache_clear_callbacks.add(_clear_registered_ops)
 
 
 def add_to_registry(
@@ -62,11 +80,24 @@ def add_to_registry(
       )
       return registered_op
 
+    op_name = name or op.display_name
+    _REGISTERED_OPS[op_name] = _RegisteredOp(op, view, repr_fn)
+
     for alias in aliases:
       _register_op(op, alias)
+      _REGISTERED_OPS[alias] = _RegisteredOp(op, view, repr_fn)
     return _register_op(op, name)
 
   return impl
+
+
+def add_alias(name: str, alias: str):
+  registered_op = _REGISTERED_OPS.get(name)
+  if registered_op is None:
+    raise ValueError(f'Operator {name} is not registered.')
+  add_to_registry(
+      alias, view=registered_op.view, repr_fn=registered_op.repr_fn
+  )(registered_op.op)
 
 
 def as_backend_operator(
