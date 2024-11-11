@@ -38,25 +38,14 @@ INT64 = schema_constants.INT64
 present = ds(arolla.present())
 
 
-QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, arolla.UNSPECIFIED, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE, DATA_SLICE),
-    (
-        DATA_SLICE,
-        arolla.UNSPECIFIED,
-        arolla.UNSPECIFIED,
-        DATA_SLICE,
-        DATA_SLICE,
-    ),
-])
+def generate_qtypes():
+  for low_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
+    for high_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
+      for seed_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
+        yield DATA_SLICE, low_arg, high_arg, seed_arg, arolla.INT64, DATA_SLICE
+
+
+QTYPES = frozenset(generate_qtypes())
 
 
 class RandomRandintShapedAsTest(parameterized.TestCase):
@@ -107,6 +96,15 @@ class RandomRandintShapedAsTest(parameterized.TestCase):
     res2 = expr_eval.eval(kde.random.randint_shaped_as(x, seed=123))
     res3 = expr_eval.eval(kde.random.randint_shaped_as(x, seed=456))
     testing.assert_equal(res1, res2)
+    self.assertNotEqual(res1.fingerprint, res3.fingerprint)
+
+  def test_eval_without_seed(self):
+    x = ds([[1, 2], [3]])
+    expr = kde.random.randint_shaped_as(x)
+    res1 = expr_eval.eval(expr)
+    res2 = expr_eval.eval(expr)
+    res3 = expr_eval.eval(kde.random.randint_shaped_as(x))
+    self.assertNotEqual(res1.fingerprint, res2.fingerprint)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
   def test_wrong_type(self):

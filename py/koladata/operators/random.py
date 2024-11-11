@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.operators import allocation
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import core
@@ -25,6 +26,7 @@ from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema
 from koladata.types import data_slice
+from koladata.types import py_boxing
 
 
 M = arolla.OperatorsContainer(jagged_shape)
@@ -239,16 +241,22 @@ def sample_n(
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.low),
         qtype_utils.expect_data_slice_or_unspecified(P.high),
-        qtype_utils.expect_data_slice(P.seed),
+        qtype_utils.expect_data_slice_or_unspecified(P.seed),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def randint_shaped(
     shape,
     low=arolla.unspecified(),
     high=arolla.unspecified(),
-    seed=data_slice.DataSlice.from_vals(85852539),
-):
+    seed=arolla.unspecified(),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=unused-argument,g-doc-args
   """Returns a DataSlice of random INT64 numbers with the given shape.
+
+  When `seed` is not specified, the results are different across multiple
+  invocations given the same input.
 
   Args:
     shape: used for the shape of the resulting DataSlice.
@@ -256,8 +264,8 @@ def randint_shaped(
       this parameter is 0 and this value is used for high), inclusive.
     high: If provided, the largest integer to be drawn (see above behavior if
       high=None), exclusive.
-    seed: Seed for the random number generator. Make sure to set this to new
-      values to get distinct results.
+    seed: Seed for the random number generator. The same input with the same
+      seed generates the same random numbers.
 
   Returns:
     A DataSlice of random numbers.
@@ -280,6 +288,9 @@ def randint_shaped(
           ),
       )
   )
+  seed = M.core.default_if_unspecified(
+      seed, core.hash_itemid(allocation.new_itemid())
+  )
 
   flat_res = M.array.randint_with_shape(
       M.array.make_dense_array_shape(M.jagged.size(shape)),
@@ -297,16 +308,22 @@ def randint_shaped(
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.low),
         qtype_utils.expect_data_slice_or_unspecified(P.high),
-        qtype_utils.expect_data_slice(P.seed),
+        qtype_utils.expect_data_slice_or_unspecified(P.seed),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def randint_shaped_as(
     x,
     low=arolla.unspecified(),
     high=arolla.unspecified(),
-    seed=data_slice.DataSlice.from_vals(85852539),
-):
+    seed=arolla.unspecified(),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=unused-argument,g-doc-args
   """Returns a DataSlice of random INT64 numbers with the same shape as `x`.
+
+  When `seed` is not specified, the results are different across multiple
+  invocations given the same input.
 
   Args:
     x: used to determine the shape of the resulting DataSlice.
@@ -314,8 +331,8 @@ def randint_shaped_as(
       this parameter is 0 and this value is used for high), inclusive.
     high: If provided, the largest integer to be drawn (see above behavior if
       high=None), exclusive.
-    seed: Seed for the random number generator. Make sure to set this to new
-      values to get distinct results.
+    seed: Seed for the random number generator. The same input with the same
+      seed generates the same random numbers.
 
   Returns:
     A DataSlice of random numbers.
@@ -330,16 +347,22 @@ def randint_shaped_as(
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.low),
         qtype_utils.expect_data_slice_or_unspecified(P.high),
-        qtype_utils.expect_data_slice(P.seed),
+        qtype_utils.expect_data_slice_or_unspecified(P.seed),
+        qtype_utils.expect_accepts_hidden_seed(),
     ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def randint_like(
     x,
     low=arolla.unspecified(),
     high=arolla.unspecified(),
-    seed=data_slice.DataSlice.from_vals(85852539),
-):
+    seed=arolla.unspecified(),
+    hidden_seed=py_boxing.hidden_seed(),
+):  # pylint: disable=unused-argument,g-doc-args
   """Returns a DataSlice of random INT64 numbers with the same sparsity as `x`.
+
+  When `seed` is not specified, the results are different across multiple
+  invocations given the same input.
 
   Args:
     x: used to determine the shape and sparsity of the resulting DataSlice.
@@ -347,8 +370,8 @@ def randint_like(
       this parameter is 0 and this value is used for high), inclusive.
     high: If provided, the largest integer to be drawn (see above behavior if
       high=None), exclusive.
-    seed: Seed for the random number generator. Make sure to set this to new
-      values to get distinct results.
+    seed: Seed for the random number generator. The same input with the same
+      seed generates the same random numbers.
 
   Returns:
     A DataSlice of random numbers.
