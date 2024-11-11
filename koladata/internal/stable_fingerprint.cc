@@ -18,7 +18,7 @@
 
 #include "absl/numeric/int128.h"
 #include "absl/strings/string_view.h"
-#include "cityhash/city.h"
+#include "arolla/util/cityhash.h"
 #include "arolla/util/fingerprint.h"
 
 namespace koladata::internal {
@@ -39,8 +39,7 @@ arolla::Fingerprint StableFingerprintHasher::Finish() && {
 
 StableFingerprintHasher& StableFingerprintHasher::CombineRawBytes(
     const void* data, size_t size) {
-  state_ = cityhash::CityHash128WithSeed(
-      static_cast<const char*>(data), size, state_);
+  state_ = arolla::CityHash128WithSeed(data, size, state_);
   return *this;
 }
 
