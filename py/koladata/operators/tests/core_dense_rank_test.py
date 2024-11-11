@@ -139,6 +139,13 @@ class CoreOrdinalRankTest(parameterized.TestCase):
           1,
           ds([0, 1, None, 2], schema=INT64),
       ),
+      # NaN
+      (
+          ds([1.0, float('nan'), None, 6.0]),
+          False,
+          1,
+          ds([0, 2, None, 1], schema=INT64),
+      ),
       # INT64
       (
           ds([0, 3, None, 3, 6], schema=INT64),

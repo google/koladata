@@ -42,6 +42,7 @@ class MathMedianTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds([1, 3, None, 30]), ds(3)),
       (ds([[1, 3], [None, 30]]), ds(3)),
+      (ds([[1, 3], [float('nan'), 30]]), ds(float('nan'))),
       (ds(1), ds(1)),
       (ds([None]), ds(None)),
   )
