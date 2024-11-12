@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-11'
+  reviewed: '2024-11-12'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -471,6 +471,48 @@ Returns a new DataBag containing attribute updates for `x`.
 
 ``` {.no-copy}
 Returns an empty DataBag.
+```
+
+### `bind(fn_def, /, *, return_type_as, **kwargs)` {#bind}
+
+``` {.no-copy}
+Returns a Koda functor that partially binds a function to `kwargs`.
+
+  This function is intended to work the same as functools.partial in Python.
+  More specifically, for every "k=something" argument that you pass to this
+  function, whenever the resulting functor is called, if the user did not
+  provide "k=something_else" at call time, we will add "k=something".
+
+  Note that you can only provide defaults for the arguments passed as keyword
+  arguments this way. Positional arguments must still be provided at call time.
+  Moreover, if the user provides a value for a positional-or-keyword argument
+  positionally, and it was previously bound using this method, an exception
+  will occur.
+
+  You can pass expressions with their own inputs as values in `kwargs`. Those
+  inputs will become inputs of the resulting functor, will be used to compute
+  those expressions, _and_ they will also be passed to the underying functor.
+  Use kdf.call_fn for a more clear separation of those inputs.
+
+  Example:
+    f = kdf.bind(kdf.fn(I.x + I.y), x=0)
+    kd.call(f, y=1)  # 1
+
+  Args:
+    fn_def: A Koda functor.
+    return_type_as: The return type of the functor is expected to be the same as
+      the type of this value. This needs to be specified if the functor does not
+      return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
+      passed here.
+    **kwargs: Partial parameter binding. The values in this map may be Koda
+      expressions or DataItems. When they are expressions, they must evaluate to
+      a DataSlice/DataItem or a primitive that will be automatically wrapped
+      into a DataItem. This function creates auxiliary variables with names
+      starting with '_aux_fn', so it is not recommended to pass variables with
+      such names.
+
+  Returns:
+    A new Koda functor with some parameters bound.
 ```
 
 ### `bool(x)` {#bool}
@@ -3151,14 +3193,17 @@ Returns:
 ``` {.no-copy}
 Returns a DataSlice of random INT64 numbers with the same sparsity as `x`.
 
+When `seed` is not specified, the results are different across multiple
+invocations given the same input.
+
 Args:
   x: used to determine the shape and sparsity of the resulting DataSlice.
   low: Lowest (signed) integers to be drawn (unless high=None, in which case
     this parameter is 0 and this value is used for high), inclusive.
   high: If provided, the largest integer to be drawn (see above behavior if
     high=None), exclusive.
-  seed: Seed for the random number generator. Make sure to set this to new
-    values to get distinct results.
+  seed: Seed for the random number generator. The same input with the same
+    seed generates the same random numbers.
 
 Returns:
   A DataSlice of random numbers.
@@ -3169,14 +3214,17 @@ Returns:
 ``` {.no-copy}
 Returns a DataSlice of random INT64 numbers with the given shape.
 
+When `seed` is not specified, the results are different across multiple
+invocations given the same input.
+
 Args:
   shape: used for the shape of the resulting DataSlice.
   low: Lowest (signed) integers to be drawn (unless high=None, in which case
     this parameter is 0 and this value is used for high), inclusive.
   high: If provided, the largest integer to be drawn (see above behavior if
     high=None), exclusive.
-  seed: Seed for the random number generator. Make sure to set this to new
-    values to get distinct results.
+  seed: Seed for the random number generator. The same input with the same
+    seed generates the same random numbers.
 
 Returns:
   A DataSlice of random numbers.
@@ -3187,14 +3235,17 @@ Returns:
 ``` {.no-copy}
 Returns a DataSlice of random INT64 numbers with the same shape as `x`.
 
+When `seed` is not specified, the results are different across multiple
+invocations given the same input.
+
 Args:
   x: used to determine the shape of the resulting DataSlice.
   low: Lowest (signed) integers to be drawn (unless high=None, in which case
     this parameter is 0 and this value is used for high), inclusive.
   high: If provided, the largest integer to be drawn (see above behavior if
     high=None), exclusive.
-  seed: Seed for the random number generator. Make sure to set this to new
-    values to get distinct results.
+  seed: Seed for the random number generator. The same input with the same
+    seed generates the same random numbers.
 
 Returns:
   A DataSlice of random numbers.
@@ -4313,7 +4364,7 @@ Creates a uu_schema in the given DataBag.
     data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
 ```
 
-### `uuid(*, seed, **kwargs)` {#uuid}
+### `uuid(seed, **kwargs)` {#uuid}
 
 ``` {.no-copy}
 Creates a DataSlice whose items are Fingerprints identifying arguments.
@@ -4328,7 +4379,7 @@ Returns:
   item from each kwarg value.
 ```
 
-### `uuid_for_dict(*, seed, **kwargs)` {#uuid_for_dict}
+### `uuid_for_dict(seed, **kwargs)` {#uuid_for_dict}
 
 ``` {.no-copy}
 Creates a DataSlice whose items are Fingerprints identifying arguments.
@@ -4349,7 +4400,7 @@ Returns:
   item from each kwarg value.
 ```
 
-### `uuid_for_list(*, seed, **kwargs)` {#uuid_for_list}
+### `uuid_for_list(seed, **kwargs)` {#uuid_for_list}
 
 ``` {.no-copy}
 Creates a DataSlice whose items are Fingerprints identifying arguments.
@@ -4370,7 +4421,7 @@ Returns:
   item from each kwarg value.
 ```
 
-### `uuids_with_allocation_size(*, seed, size)` {#uuids_with_allocation_size}
+### `uuids_with_allocation_size(seed, *, size)` {#uuids_with_allocation_size}
 
 ``` {.no-copy}
 Creates a DataSlice whose items are uuids.
@@ -4388,7 +4439,7 @@ Returns:
   A 1-dimensional DataSlice with `size` distinct uuids.
 ```
 
-### `uuobj(*, seed, **kwargs)` {#uuobj}
+### `uuobj(seed, **kwargs)` {#uuobj}
 
 ``` {.no-copy}
 Creates Object(s) whose ids are uuid(s) with the provided attributes.
@@ -5077,6 +5128,10 @@ Returns a DataSlice with ANY schema.
 
 *No description*
 
+### `<DataSlice>.attr(self, attr_name, value, update_schema)` {#<DataSlice>.attr}
+
+*No description*
+
 ### `<DataSlice>.attrs(self, **attrs)` {#<DataSlice>.attrs}
 
 *No description*
@@ -5495,6 +5550,10 @@ Returns a readable python object from a DataSlice.
 ```
 
 ### `<DataSlice>.updated(self, *db)` {#<DataSlice>.updated}
+
+*No description*
+
+### `<DataSlice>.with_attr(self, attr_name, value, update_schema)` {#<DataSlice>.with_attr}
 
 *No description*
 
