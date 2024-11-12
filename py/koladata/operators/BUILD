@@ -23,6 +23,7 @@ load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
 package(default_visibility = [
     "//koladata:internal",
+    "//quality/arolla/koladata:__subpackages__",
 ])
 
 licenses(["notice"])

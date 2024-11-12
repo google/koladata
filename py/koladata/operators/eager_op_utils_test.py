@@ -188,6 +188,30 @@ class EagerOpUtilsTest(parameterized.TestCase):
         arolla.tuple(self.x, self.y),
     )
 
+  def test_custom_arolla_container(self):
+    module = types.ModuleType('test')
+
+    def get_namespaces():
+      return ['test', 'test.namespace_2']
+
+    module.get_namespaces = get_namespaces
+    arolla_container = arolla.OperatorsContainer(module)
+
+    self.assertTrue(
+        # Testing for subset here, in order to not depend on registered
+        # operators in other test cases.
+        set(['op', 'namespace_2']).issubset(
+            dir(eager_op_utils.operators_container('test', arolla_container))
+        )
+    )
+    namespace_2_ops = eager_op_utils.operators_container(
+        'test.namespace_2', arolla_container
+    )
+    self.assertCountEqual(dir(namespace_2_ops), ['op'])
+    testing.assert_equal(
+        namespace_2_ops.op(self.x, self.y), arolla.tuple(self.x, self.y)
+    )
+
   def test_non_deterministic_op(self):
 
     @optools.add_to_registry()

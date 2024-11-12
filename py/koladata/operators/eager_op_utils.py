@@ -125,18 +125,28 @@ def reset_operators_container():
   _GLOBAL_OPERATORS_CONTAINER.__dict__ = {}
 
 
-def operators_container(namespace: str | None = None) -> _OperatorsContainer:
-  """Access the container based on `namespace`.
+def operators_container(
+    namespace: str | None = None,
+    top_level_arolla_container: arolla.OperatorsContainer | None = None,
+) -> _OperatorsContainer:
+  """Gets an eager operator container based on `namespace`.
 
-  If `namespace` is None, access the top-level operator namespace.
+  `top_level_arolla_container` can be used to pass an Arolla container
+  containing custom Koda operators defined outside the core Koda library.
 
   Args:
     namespace: name of group of operators grouped by their purpose/function.
+    top_level_arolla_container: Top levelArolla container to use. If None, use
+      the global container by default.
 
   Returns:
     _OperatorsContainer
   """
-  container = _GLOBAL_OPERATORS_CONTAINER
+  container = (
+      _GLOBAL_OPERATORS_CONTAINER
+      if top_level_arolla_container is None
+      else _OperatorsContainer(top_level_arolla_container)
+  )
   if namespace is not None:
     for name in namespace.split('.'):
       container = getattr(container, name)

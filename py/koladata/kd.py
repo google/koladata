@@ -89,8 +89,8 @@ exceptions.KodaError = _exceptions.KodaError
 
 
 ### Eager operators / functions from operators.
-def _InitOpsAndContainers(op_container):
-  kd_ops = _eager_op_utils.operators_container(op_container)
+def _InitOpsAndContainers():
+  kd_ops = _eager_op_utils.operators_container('kde')
   for op_or_container_name in dir(kd_ops):
     globals()[op_or_container_name] = _dispatch(
         eager=getattr(kd_ops, op_or_container_name),
@@ -98,7 +98,7 @@ def _InitOpsAndContainers(op_container):
     )
 
 
-_InitOpsAndContainers('kde')
+_InitOpsAndContainers()
 
 
 ### Public functions.

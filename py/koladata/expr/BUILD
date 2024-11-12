@@ -19,6 +19,7 @@ load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
     "//koladata:internal",
+    "//quality/arolla/koladata:__subpackages__",
 ])
 
 licenses(["notice"])
