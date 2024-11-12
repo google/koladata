@@ -181,6 +181,8 @@ class ToPytreeTest(absltest.TestCase):
     self.assertEqual(
         fns.to_pytree(x),
         {'a': {'a': 1}, 'b': [1, 2, 3], 'c': {1: 2}})
+    # Check that the attribute order is alphabetical.
+    self.assertEqual(list(fns.to_pytree(x).keys()), ['a', 'b', 'c'])
 
     p = fns.schema.new_schema(
         x=schema_constants.INT32, y=schema_constants.INT32
