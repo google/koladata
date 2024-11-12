@@ -31,6 +31,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/s11n/codec.pb.h"
 #include "arolla/util/status_macros_backport.h"
@@ -151,6 +152,14 @@ absl::StatusOr<Error> SetIncompatibleSchemaError(
   ASSIGN_OR_RETURN(std::string expected_schema_str,
                    DataSliceToStr(expected_schema));
 
+  if (assigned_schema_item.holds_value<internal::ObjectId>() &&
+      expected_schema_item.holds_value<internal::ObjectId>() &&
+      assigned_schema_str == expected_schema_str) {
+    absl::StrAppend(&assigned_schema_str, " (diff id: ",
+                    assigned_schema_item.value<internal::ObjectId>(), ")");
+    absl::StrAppend(&expected_schema_str, " (diff id: ",
+                    expected_schema_item.value<internal::ObjectId>(), ")");
+  }
   std::string attr_str = cause.incompatible_schema().attr();
   if (attr_str == schema::kListItemsSchemaAttr) {
     cause.set_error_message(

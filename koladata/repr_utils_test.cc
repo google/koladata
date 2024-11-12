@@ -39,7 +39,7 @@ using ::koladata::internal::Error;
 using ::testing::MatchesRegex;
 using ::testing::StrEq;
 
-TEST(ReprUtilTest, TestAssembleError) {
+TEST(ReprUtilTest, TestAssembleError_NoCommonSchema) {
   DataBagPtr bag = DataBag::Empty();
 
   DataSlice value_1 = test::DataItem(1);
@@ -72,6 +72,78 @@ TEST(ReprUtilTest, TestAssembleError) {
               R"regex((.|\n)*the common schema\(s\) [0-9a-f]{32}:0: SCHEMA\(a=INT32, b=STRING\)(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*the first conflicting schema INT32: INT32(.|\n)*)regex")));
+}
+
+TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice schema_1,
+      CreateEntitySchema(bag, {"y"}, {test::Schema(schema::kInt32)}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice schema_2,
+      CreateEntitySchema(bag, {"y"}, {test::Schema(schema::kInt64)}));
+
+  Error error;
+  internal::IncompatibleSchema* incompatible_schema =
+      error.mutable_incompatible_schema();
+  incompatible_schema->set_attr("x");
+  ASSERT_OK_AND_ASSIGN(*incompatible_schema->mutable_expected_schema(),
+                       internal::EncodeDataItem(schema_1.item()));
+  ASSERT_OK_AND_ASSIGN(*incompatible_schema->mutable_assigned_schema(),
+                       internal::EncodeDataItem(schema_2.item()));
+
+  absl::Status status = AssembleErrorMessage(
+      internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
+      {bag});
+  std::optional<Error> payload = internal::GetErrorPayload(status);
+  EXPECT_TRUE(payload.has_value());
+  EXPECT_TRUE(payload->has_incompatible_schema());
+  EXPECT_THAT(
+      payload->error_message(),
+      AllOf(
+          MatchesRegex(
+              R"regex((.|\n)*the schema for attribute 'x' is incompatible(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*Expected schema for 'x': SCHEMA\(y=INT32\)(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*Assigned schema for 'x': SCHEMA\(y=INT64\)(.|\n)*)regex")));
+}
+
+TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
+  DataBagPtr bag = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice schema_1,
+      CreateEntitySchema(bag, {"y"}, {test::Schema(schema::kInt32)}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice schema_2,
+      CreateEntitySchema(bag, {"y"}, {test::Schema(schema::kInt32)}));
+
+  Error error;
+  internal::IncompatibleSchema* incompatible_schema =
+      error.mutable_incompatible_schema();
+  incompatible_schema->set_attr("x");
+  ASSERT_OK_AND_ASSIGN(*incompatible_schema->mutable_expected_schema(),
+                       internal::EncodeDataItem(schema_1.item()));
+  ASSERT_OK_AND_ASSIGN(*incompatible_schema->mutable_assigned_schema(),
+                       internal::EncodeDataItem(schema_2.item()));
+
+  absl::Status status = AssembleErrorMessage(
+      internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
+      {bag});
+  std::optional<Error> payload = internal::GetErrorPayload(status);
+  EXPECT_TRUE(payload.has_value());
+  EXPECT_TRUE(payload->has_incompatible_schema());
+  EXPECT_THAT(
+      payload->error_message(),
+      AllOf(
+          MatchesRegex(
+              R"regex((.|\n)*the schema for attribute 'x' is incompatible(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*Expected schema for 'x': SCHEMA\(y=INT32\) \(diff id: [0-9a-f]{32}:0\)(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*Assigned schema for 'x': SCHEMA\(y=INT32\) \(diff id: [0-9a-f]{32}:0\)(.|\n)*)regex")));
 }
 
 TEST(ReprUtilTest, TestAssembleErrorMissingContextData) {
