@@ -279,6 +279,56 @@ py_test(
 )
 
 py_test(
+    name = "new_schema_test",
+    srcs = ["new_schema_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "uu_schema_test",
+    srcs = ["uu_schema_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "named_schema_test",
+    srcs = ["named_schema_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "schema_from_py_type_test",
+    srcs = ["schema_from_py_type_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "new_test",
     srcs = ["new_test.py"],
     deps = [
@@ -358,34 +408,6 @@ py_test(
         "//py/koladata/types:list_item",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-py_test(
-    name = "new_schema_test",
-    srcs = ["new_schema_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "uu_schema_test",
-    srcs = ["uu_schema_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -794,16 +816,4 @@ proto_library(
 py_proto_library(
     name = "test_py_pb2",
     deps = [":test_proto"],
-)
-
-py_test(
-    name = "named_schema_test",
-    srcs = ["named_schema_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
 )
