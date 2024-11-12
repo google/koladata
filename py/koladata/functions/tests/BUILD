@@ -647,17 +647,6 @@ py_test(
 )
 
 py_test(
-    name = "tmp_non_deterministic_overrides_test",
-    srcs = ["tmp_non_deterministic_overrides_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-py_test(
     name = "int32_test",
     srcs = ["int32_test.py"],
     deps = [

@@ -33,7 +33,6 @@ py_library(
         ":py_conversions",
         ":s11n",
         ":schema",
-        ":tmp_non_deterministic_overrides",
         "//py/koladata/fstring",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
@@ -119,15 +118,6 @@ py_library(
     srcs = ["s11n.py"],
     deps = [
         "//py/koladata/types:data_bag",
-        "//py/koladata/types:data_slice",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_library(
-    name = "tmp_non_deterministic_overrides",
-    srcs = ["tmp_non_deterministic_overrides.py"],
-    deps = [
         "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
     ],

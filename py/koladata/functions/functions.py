@@ -25,9 +25,6 @@ from koladata.functions import proto_conversions as _proto_conversions
 from koladata.functions import py_conversions as _py_conversions
 from koladata.functions import s11n as _s11n
 from koladata.functions import schema as _schema
-# TODO: Remove after hidden_seed is properly handled in aux_eval_op
-# (or similar).
-from koladata.functions import tmp_non_deterministic_overrides as _tmp_non_deterministic_overrides
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_slice as _data_slice
 from koladata.types import general_eager_ops as _general_eager_ops
@@ -65,10 +62,8 @@ container = _object_factories.container
 empty_shaped = _object_factories.empty_shaped
 empty_shaped_as = _object_factories.empty_shaped_as
 
-clone = _tmp_non_deterministic_overrides.clone
-shallow_clone = _tmp_non_deterministic_overrides.shallow_clone
-deep_clone = _tmp_non_deterministic_overrides.deep_clone
-
+# NOTE: Explicitly overwrite operators that accept a DataBag as an argument or
+# are mutable in "core" namespace.
 core = _py_types.SimpleNamespace(
     bag=_object_factories.bag,
     uu=_object_factories.uu,
@@ -93,9 +88,6 @@ core = _py_types.SimpleNamespace(
     container=_object_factories.container,
     empty_shaped=_object_factories.empty_shaped,
     empty_shaped_as=_object_factories.empty_shaped_as,
-    clone=_tmp_non_deterministic_overrides.clone,
-    shallow_clone=_tmp_non_deterministic_overrides.shallow_clone,
-    deep_clone=_tmp_non_deterministic_overrides.deep_clone,
 )
 
 
