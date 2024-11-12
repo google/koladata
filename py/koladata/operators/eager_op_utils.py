@@ -55,7 +55,7 @@ def _get_eager_op(
     return rl_op._eval  # pylint: disable=protected-access
 
 
-class OperatorsContainer:
+class _OperatorsContainer:
   """Used to access and classify operators based on their purpose.
 
   The access to namespaces and operators is fetched dynamically from Arolla's
@@ -102,21 +102,21 @@ class OperatorsContainer:
   # be invoked the next time by Python runtime.
   def __getattr__(
       self, op_or_container_name: str
-  ) -> Any:
+  ) -> _OperatorsContainer | Callable[..., Any]:
     ret = None
     if self._overrides is not None and not op_or_container_name.startswith('_'):
       ret = getattr(self._overrides, op_or_container_name, None)
     if ret is None:
       rl_op_or_container = getattr(self._arolla_container, op_or_container_name)
       if isinstance(rl_op_or_container, arolla.OperatorsContainer):
-        ret = OperatorsContainer(rl_op_or_container)
+        ret = _OperatorsContainer(rl_op_or_container)
       else:
         ret = _get_eager_op(rl_op_or_container)
     self.__dict__[op_or_container_name] = ret
     return ret
 
 
-_GLOBAL_OPERATORS_CONTAINER = OperatorsContainer(
+_GLOBAL_OPERATORS_CONTAINER = _OperatorsContainer(
     arolla.OperatorsContainer(kde_operators)
 )
 
@@ -125,7 +125,7 @@ def reset_operators_container():
   _GLOBAL_OPERATORS_CONTAINER.__dict__ = {}
 
 
-def operators_container(namespace: str | None = None) -> OperatorsContainer:
+def operators_container(namespace: str | None = None) -> _OperatorsContainer:
   """Access the container based on `namespace`.
 
   If `namespace` is None, access the top-level operator namespace.
@@ -140,7 +140,7 @@ def operators_container(namespace: str | None = None) -> OperatorsContainer:
   if namespace is not None:
     for name in namespace.split('.'):
       container = getattr(container, name)
-  if not isinstance(container, OperatorsContainer):
+  if not isinstance(container, _OperatorsContainer):
     raise ValueError(f'{namespace} is not an OperatorsContainer')
   return container
 
@@ -148,8 +148,8 @@ def operators_container(namespace: str | None = None) -> OperatorsContainer:
 # This is a standalone method since the container's functions are all
 # user-visible and we do not want the user to invoke this.
 def add_overrides(
-    container: OperatorsContainer, overrides: types.SimpleNamespace
-) -> OperatorsContainer:
+    container: _OperatorsContainer, overrides: types.SimpleNamespace
+) -> _OperatorsContainer:
   """Adds overrides to the given container.
 
   Args:
@@ -161,8 +161,8 @@ def add_overrides(
   Returns:
     An updated container.
   """
-  if not isinstance(container, OperatorsContainer):
+  if not isinstance(container, _OperatorsContainer):
     raise AssertionError(f'{container} is not an eager operator container')
   if container._overrides is not None:  # pylint: disable=protected-access
     raise AssertionError('the container already has overrides')
-  return OperatorsContainer(container._arolla_container, overrides=overrides)  # pylint: disable=protected-access
+  return _OperatorsContainer(container._arolla_container, overrides=overrides)  # pylint: disable=protected-access
