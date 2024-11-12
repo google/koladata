@@ -1823,15 +1823,42 @@ TEST_P(ExtractTest, SchemaSlice) {
 TEST_P(ExtractTest, ObjectSchemaMissing) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
-  auto schema = DataItem(schema::kObject);
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kInt32)}}}};
+  TriplesT data_triples = {
+      {obj_ids[2], {{schema::kSchemaAttr, schema}, {"x", DataItem(1)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(
-      ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
-                                 {GetFallbackDb(db).get()}, nullptr, {}),
-      StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          ::testing::HasSubstr("__schema__ attribute is missing for some of")));
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, DataItem(schema::kObject),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, schema_triples);
+  SetDataTriples(*expected_db, data_triples);
+
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(ExtractTest, ObjectSchemaAllMissing) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, DataItem(schema::kObject),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
 TEST_P(ExtractTest, InvalidSchemaType) {

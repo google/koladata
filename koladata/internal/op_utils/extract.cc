@@ -501,9 +501,8 @@ class CopyingProcessor {
     }
     ASSIGN_OR_RETURN(auto old_schemas,
                      databag_.GetAttr(old_ds, schema::kSchemaAttr, fallbacks_));
-    if (old_schemas.present_count() != old_ds.present_count()) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "__schema__ attribute is missing for some of %v", old_ds));
+    if (old_schemas.is_empty_and_unknown()) {
+      return absl::OkStatus();
     }
     if (old_schemas.dtype() != arolla::GetQType<ObjectId>()) {
       return absl::InvalidArgumentError(absl::StrFormat(
