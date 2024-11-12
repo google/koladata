@@ -1372,7 +1372,17 @@ absl::StatusOr<DataSlice> Follow(const DataSlice& ds) {
 
 template <>
 absl::StatusOr<DataBagPtr> Freeze<DataBagPtr>(const DataBagPtr& x) {
-  if (x->IsMutable() || !x->GetFallbacks().empty()) {
+  if (x == nullptr) {
+    return x;
+  }
+  // TODO: Re-think freezing in the context of DataBag with
+  // mutable fallbacks.
+  if (x->HasMutableFallbacks()) {
+    return absl::FailedPreconditionError(
+        "freezing with mutable fallbacks is not supported. Please merge "
+        "fallbacks instead.");
+  }
+  if (x->IsMutable()) {
     return x->Fork(/*immutable=*/true);
   }
   return x;

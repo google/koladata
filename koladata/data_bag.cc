@@ -32,6 +32,7 @@
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/meta.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -45,6 +46,9 @@ DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
   for (int i = 0; i < fallbacks.size(); ++i) {
     if (fallbacks[i] != nullptr) {
       non_null_fallbacks.push_back(fallbacks[i]);
+      if (fallbacks[i]->is_mutable_ || fallbacks[i]->has_mutable_fallbacks_) {
+        res->has_mutable_fallbacks_ = true;
+      }
     }
   }
   res->fallbacks_ = std::move(non_null_fallbacks);
@@ -54,10 +58,10 @@ DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
 absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
   // TODO: Re-think forking in the context of DataBag with
   // mutable fallbacks.
-  if (!fallbacks_.empty()) {
+  if (has_mutable_fallbacks_) {
     return absl::FailedPreconditionError(
-        "forking with fallbacks is not supported. Please merge fallbacks "
-        "instead.");
+        "forking with mutable fallbacks is not supported. Please merge "
+        "fallbacks instead.");
   }
 
   DataBagPtr new_db;
@@ -68,6 +72,8 @@ absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
   }
   new_db->impl_ = impl_->PartiallyPersistentFork();
   new_db->impl_->AssignToDataBag();
+  new_db->fallbacks_ = fallbacks_;
+  // new_db->has_mutable_fallbacks_ is correctly false.
 
   // If the original DataBag is mutable, we need to assign a new implementation
   // to it, because it can be modified and the modifications will affect the
