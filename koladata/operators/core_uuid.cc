@@ -19,6 +19,7 @@
 #include <memory>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
@@ -145,10 +146,13 @@ class UuidForDictOperator : public arolla::QExprOperator {
 absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
                                    const DataSlice& schema,
                                    const DataSlice& seed) {
-  const auto& db = ds.GetBag();
+  absl::Nullable<DataBagPtr> db = ds.GetBag();
   if (db == nullptr) {
-    return absl::InvalidArgumentError(
-        "cannot compute deep uuid without a DataBag");
+    if (schema.IsEntitySchema()) {
+      return absl::InvalidArgumentError(
+          "cannot compute deep_uuid of entity slice without a DataBag");
+    }
+    db = DataBag::Empty();
   }
   const auto& schema_db = schema.GetBag();
   if (schema_db != nullptr && schema_db != db) {

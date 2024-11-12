@@ -60,12 +60,35 @@ class CoreDeepUuidTest(parameterized.TestCase):
     self.assertNotEqual(res_no_seed, res_with_seed)
     self.assertNotEqual(res_with_seed2, res_with_seed)
 
-  def test_no_bag(self):
+  def test_no_bag_object(self):
     x = bag().obj(x=1, y=2).no_bag()
     with self.assertRaisesRegex(
-        ValueError, 'cannot compute deep uuid without a DataBag'
+        ValueError,
+        'expected to have an entity schema in __schema__ attribute',
     ):
       expr_eval.eval(kde.core.deep_uuid(x))
+
+  def test_no_bag_entity(self):
+    x = bag().new(x=1, y=2).no_bag()
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot compute deep_uuid of entity slice without a DataBag',
+    ):
+      expr_eval.eval(kde.core.deep_uuid(x))
+
+  def test_no_bag_objects_only_primitives(self):
+    x = ds([1, None, 'foo']).no_bag()
+    testing.assert_equal(x.get_schema(), schema_constants.OBJECT)
+    res_1 = expr_eval.eval(kde.core.deep_uuid(x))
+    res_2 = expr_eval.eval(kde.core.deep_uuid(x))
+    testing.assert_equal(res_1, res_2)
+
+  def test_no_bag_primitives(self):
+    x = ds([1, None, 3]).no_bag()
+    testing.assert_equal(x.get_schema(), schema_constants.INT32)
+    res_1 = expr_eval.eval(kde.core.deep_uuid(x))
+    res_2 = expr_eval.eval(kde.core.deep_uuid(x))
+    testing.assert_equal(res_1, res_2)
 
   def test_seed_slice(self):
     x = bag().obj(x=ds([1, 2]), y=ds([3, 4]))
