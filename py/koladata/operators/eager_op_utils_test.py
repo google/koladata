@@ -62,7 +62,7 @@ class EagerOpUtilsTest(parameterized.TestCase):
 
     module.get_namespaces = get_namespaces
     eager_op_utils._GLOBAL_OPERATORS_CONTAINER = (
-        eager_op_utils._OperatorsContainer(arolla.OperatorsContainer(module))
+        eager_op_utils.OperatorsContainer(arolla.OperatorsContainer(module))
     )
 
     self.x = ds(arolla.dense_array([1, 2, 3]))
