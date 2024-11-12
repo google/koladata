@@ -408,20 +408,6 @@ def _stub(self) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.stub, self)
 
 
-@DataSlice._add_method('attrs')  # pylint: disable=protected-access
-def _attrs(self, **attrs) -> DataBag:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.attrs, self, **attrs)
-
-
-@DataSlice._add_method('attr')  # pylint: disable=protected-access
-def _attr(
-    self, attr_name: str | DataSlice, value: Any, update_schema: bool = False
-) -> DataBag:
-  return arolla.abc.aux_eval_op(
-      _op_impl_lookup.attr, self, attr_name, value, update_schema
-  )
-
-
 @DataSlice._add_method('with_attrs')  # pylint: disable=protected-access
 def _with_attrs(self, **attrs) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.with_attrs, self, **attrs)
