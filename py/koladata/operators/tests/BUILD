@@ -948,6 +948,28 @@ py_test(
 )
 
 py_test(
+    name = "math_cdf_test",
+    srcs = ["math_cdf_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "core_get_attr_test",
     srcs = ["core_get_attr_test.py"],
     deps = [
@@ -6007,6 +6029,20 @@ koda_operator_coverage_test(
     name = "kd_math_cum_sum_covers_math_cum_sum_test",
     arolla_op = "math.cum_sum",
     koda_op = "math.cum_sum",
+    skip_test_patterns = [
+        "(?i).*WEAK_FLOAT.*",
+        ".*uint64.*",
+    ],
+)
+
+koda_operator_coverage_test(
+    name = "kd_math_cdf_covers_math_cdf_test",
+    args_for_reshape = [
+        "x",
+        "weights",
+    ],
+    arolla_op = "math.cdf",
+    koda_op = "math.cdf",
     skip_test_patterns = [
         "(?i).*WEAK_FLOAT.*",
         ".*uint64.*",

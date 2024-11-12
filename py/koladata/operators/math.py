@@ -713,3 +713,56 @@ def cum_sum(x, ndim=arolla.unspecified()):
   """Returns the cumulative sum of items along the last ndim dimensions."""
   res = _cum_sum(jagged_shape_ops.flatten_last_ndim(x, ndim))
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.math._cdf',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.weights),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _cdf(x, weights):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.math.cdf',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.weights),
+        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
+    ],
+)
+def cdf(x, weights=arolla.unspecified(), ndim=arolla.unspecified()):
+  """Returns the CDF of x in the last ndim dimensions of x element-wise.
+
+  The CDF is an array of floating-point values of the same shape as x and
+  weights, where each element represents which percentile the corresponding
+  element in x is situated at in its sorted group, i.e. the percentage of values
+  in the group that are smaller than or equal to it.
+
+  Args:
+    x: a DataSlice of numbers.
+    weights: if provided, will compute weighted CDF: each output value will
+      correspond to the weight percentage of values smaller than or equal to x.
+    ndim: The number of dimensions to compute CDF over.
+  """
+
+  weights = M.core.default_if_unspecified(
+      weights,
+      data_slice.DataSlice.from_vals(1.0),
+  )
+
+  expanded_weights = jagged_shape_ops.expand_to_shape(
+      weights,
+      jagged_shape_ops.get_shape(x),
+  )
+  x_flattened = jagged_shape_ops.flatten_last_ndim(x, ndim)
+  weights_flattened = jagged_shape_ops.flatten_last_ndim(expanded_weights, ndim)
+
+  res = _cdf(x_flattened, weights_flattened)
+  return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))

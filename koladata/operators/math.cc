@@ -125,6 +125,12 @@ absl::StatusOr<DataSlice> CumSum(const DataSlice& x) {
   return SimpleAggOverEval("math.cum_sum", {x});
 }
 
+absl::StatusOr<DataSlice> Cdf(const DataSlice& x, const DataSlice& weights) {
+  return SimpleAggOverEval("math.cdf", {x, weights},
+                           /*output_schema=*/internal::DataItem(),
+                           /*edge_arg_index=*/2);
+}
+
 absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
   ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x),
                    internal::OperatorEvalError(std::move(_), "math.agg_sum",

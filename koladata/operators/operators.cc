@@ -169,6 +169,7 @@ OPERATOR("kde.math._agg_min", AggMin);
 OPERATOR("kde.math._agg_std", AggStd);
 OPERATOR("kde.math._agg_sum", AggSum);
 OPERATOR("kde.math._agg_var", AggVar);
+OPERATOR("kde.math._cdf", Cdf);
 OPERATOR("kde.math._cum_max", CumMax);
 OPERATOR("kde.math._cum_min", CumMin);
 OPERATOR("kde.math._cum_sum", CumSum);

@@ -83,6 +83,9 @@ absl::StatusOr<DataSlice> AggSum(const DataSlice& x);
 // kde.math._cum_sum.
 absl::StatusOr<DataSlice> CumSum(const DataSlice& x);
 
+// kde.math._cdf.
+absl::StatusOr<DataSlice> Cdf(const DataSlice& x, const DataSlice& weights);
+
 // kde.math._agg_mean.
 absl::StatusOr<DataSlice> AggMean(const DataSlice& x);
 

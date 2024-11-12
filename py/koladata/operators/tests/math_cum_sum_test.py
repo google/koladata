@@ -154,8 +154,8 @@ class MathCumSumTest(parameterized.TestCase):
           ),
       ),
   )
-  def test_eval_numeric_with_into(self, x, into, expected):
-    result = expr_eval.eval(kde.math.cum_sum(x, into))
+  def test_eval_numeric_with_ndim(self, x, ndim, expected):
+    result = expr_eval.eval(kde.math.cum_sum(x, ndim))
     testing.assert_allclose(result, expected)
 
   # Empty inputs of concrete and None types.
