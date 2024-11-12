@@ -53,7 +53,7 @@ class NewLikeTest(absltest.TestCase):
     x = fns.new_like(ds(None), a=42)
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(
-        kde.has._eval(x).no_bag(), ds(None, schema_constants.MASK)
+        kde.has(x).eval().no_bag(), ds(None, schema_constants.MASK)
     )
     testing.assert_equal(
         x.a, ds(None, schema_constants.INT32).with_bag(x.get_bag())

@@ -83,14 +83,14 @@ class CoreNewShapedAsTest(absltest.TestCase):
   def test_no_sparsity_item_with_empty_attr(self):
     x = kde.core.new_shaped_as(ds(None), a=42).eval()
     testing.assert_equal(
-        kde.has._eval(x).no_db(), ds(kd.present, schema_constants.MASK)
+        kde.has(x).eval().no_db(), ds(kd.present, schema_constants.MASK)
     )
 
   def test_no_sparsity_all_empty_slice(self):
     shape_from = ds([None, None])
     x = kde.core.new_shaped_as(shape_from, a=42).eval()
     testing.assert_equal(
-        kde.has._eval(x).no_db(),
+        kde.has(x).eval().no_db(),
         ds([kd.present, kd.present], schema_constants.MASK),
     )
     testing.assert_equal(

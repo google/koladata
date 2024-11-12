@@ -324,7 +324,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
     # Also ensure that we prefer QValues over Exprs for varargs and varkwargs,
     # making eager evaluation possible.
     testing.assert_equal(
-        op._eval(1, 2, 3, w=5, y=4, z=6, a=7),
+        arolla.abc.aux_eval_op(op, 1, 2, 3, w=5, y=4, z=6, a=7),
         arolla.tuple(
             ds(1),
             arolla.tuple(ds(2), ds(3)),

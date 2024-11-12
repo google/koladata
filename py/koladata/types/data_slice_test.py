@@ -2360,7 +2360,7 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
 
   def test_follow(self):
     x = bag().new()
-    testing.assert_equal(kde.nofollow._eval(x).follow(), x)
+    testing.assert_equal(kde.nofollow(x).eval().follow(), x)
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
       ds([1, 2, 3]).follow()
 

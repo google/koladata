@@ -1042,7 +1042,7 @@ Assigned schema for Dict key: INT32""",
     shape_and_mask_from = ds([[1, None, 1], [None, 2]])
     x = db.new_like(shape_and_mask_from)
     testing.assert_equal(
-        kde.has._eval(x).with_bag(None),  # pylint: disable=protected-access
+        kde.has(x).eval().with_bag(None),
         ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]]),
     )
     self.assertIsInstance(x, data_slice.DataSlice)
@@ -1116,7 +1116,7 @@ Assigned schema for Dict key: INT32""",
     shape_and_mask_from = ds([[1, None, 1], [None, 2]])
     x = db.obj_like(shape_and_mask_from)
     testing.assert_equal(
-        kde.has._eval(x).no_bag(),  # pylint: disable=protected-access
+        kde.has(x).eval().no_bag(),
         ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]]),
     )
     x.a = ds([[1, 2, 3], [4, 5]])

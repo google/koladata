@@ -52,7 +52,7 @@ class ObjLikeTest(absltest.TestCase):
     x = fns.obj_like(ds(None), a=42)
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(
-        kde.has._eval(x).no_bag(), ds(None, schema_constants.MASK)
+        kde.has(x).eval().no_bag(), ds(None, schema_constants.MASK)
     )
     testing.assert_equal(
         x.a, ds(None, schema_constants.OBJECT).with_bag(x.get_bag())
@@ -95,7 +95,7 @@ class ObjLikeTest(absltest.TestCase):
     x = fns.obj_like(ds([None, None]), a=42)
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        kde.has._eval(x).no_bag(), ds([None, None], schema_constants.MASK)
+        kde.has(x).eval().no_bag(), ds([None, None], schema_constants.MASK)
     )
     testing.assert_equal(
         x.a, ds([None, None], schema_constants.OBJECT).with_bag(x.get_bag())

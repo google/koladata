@@ -84,7 +84,7 @@ class SchemaItemTest(absltest.TestCase):
   def test_get_nofollowed_schema(self):
     db = bag()
     orig_schema = db.new().get_schema()
-    nofollow = kde.nofollow_schema._eval(orig_schema)
+    nofollow = kde.nofollow_schema(orig_schema).eval()
     testing.assert_equal(nofollow.get_nofollowed_schema(), orig_schema)
 
   def test_creating_entity(self):

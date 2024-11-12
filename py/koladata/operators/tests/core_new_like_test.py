@@ -82,14 +82,14 @@ class CoreNewlikeTest(absltest.TestCase):
   def test_sparsity_item_with_empty_attr(self):
     x = kde.core.new_like(ds(None), a=42).eval()
     testing.assert_equal(
-        kde.has._eval(x).no_db(), ds(None, schema_constants.MASK)
+        kde.has(x).eval().no_db(), ds(None, schema_constants.MASK)
     )
 
   def test_sparsity_all_empty_slice(self):
     shape_and_mask_from = ds([None, None])
     x = kde.core.new_like(shape_and_mask_from, a=42).eval()
     testing.assert_equal(
-        kde.has._eval(x).no_db(), ds([None, None], schema_constants.MASK)
+        kde.has(x).eval().no_db(), ds([None, None], schema_constants.MASK)
     )
     testing.assert_equal(
         x.a, ds([None, None], schema_constants.INT32).with_db(x.db)

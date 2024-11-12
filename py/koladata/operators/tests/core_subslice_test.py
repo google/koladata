@@ -195,7 +195,7 @@ class CoreSubsliceTest(parameterized.TestCase):
           ds([[1, 2], [3], [4, 5, 6]]),
           [slice(3, 5), slice(1, 5)],
           ds([], schema_constants.INT32).reshape(
-              kde.shapes.create._eval(0, [])
+              kde.shapes.create(0, []).eval()
           ),
       ),
       # Repeated indices
@@ -224,7 +224,7 @@ class CoreSubsliceTest(parameterized.TestCase):
           ds([[1, 2], [3], [4, 5, 6]]),
           [slice(5, 1), slice(1, 5)],
           ds([], schema_constants.INT32).reshape(
-              kde.shapes.create._eval(0, [])
+              kde.shapes.create(0, []).eval()
           ),
       ),
   )

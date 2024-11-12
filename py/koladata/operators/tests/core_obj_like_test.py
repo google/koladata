@@ -88,14 +88,14 @@ class CoreObjLikeTest(absltest.TestCase):
   def test_sparsity_item_with_empty_attr(self):
     x = kde.core.obj_like(ds(None), a=42).eval()
     testing.assert_equal(
-        kde.has._eval(x).no_db(), ds(None, schema_constants.MASK)
+        kde.has(x).eval().no_db(), ds(None, schema_constants.MASK)
     )
 
   def test_sparsity_all_empty_slice(self):
     x = kde.core.obj_like(ds([None, None]), a=42).eval()
     testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        kde.has._eval(x).no_db(), ds([None, None], schema_constants.MASK)
+        kde.has(x).eval().no_db(), ds([None, None], schema_constants.MASK)
     )
     testing.assert_equal(
         x.a, ds([None, None], schema_constants.OBJECT).with_db(x.db)

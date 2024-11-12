@@ -391,7 +391,7 @@ class FromPyTest(absltest.TestCase):
   def test_not_yet_implemented(self):
     with self.subTest('itemid'):
       with self.assertRaises(NotImplementedError):
-        fns.from_py({'a': {'b': [1, 2, 3]}}, itemid=kde.uuid._eval(a=1))  # pylint: disable=protected-access
+        fns.from_py({'a': {'b': [1, 2, 3]}}, itemid=kde.uuid(a=1).eval())
 
     with self.subTest('from_dim'):
       with self.assertRaises(NotImplementedError):

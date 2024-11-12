@@ -104,6 +104,9 @@ class EagerOpUtilsTest(parameterized.TestCase):
     self.assertEqual(
         first, getattr(eager_op_utils.operators_container(namespace), op_name)
     )
+    self.assertEqual(
+        inspect.signature(first.__call__), inspect.signature(first_op)
+    )
 
     testing.assert_equal(first(self.x, self.y), self.x)
 
@@ -232,6 +235,9 @@ class EagerOpUtilsTest(parameterized.TestCase):
     self.assertEqual(op.getdoc(), 'non_deterministic_op docstring.')
     self.assertEqual(
         inspect.signature(op), inspect.signature(non_deterministic_op)
+    )
+    self.assertEqual(
+        inspect.signature(op.__call__), inspect.signature(non_deterministic_op)
     )
     self.assertNotEqual(op(), op())
 

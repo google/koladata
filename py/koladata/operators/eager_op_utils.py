@@ -26,33 +26,74 @@ from koladata.operators import kde_operators
 from koladata.types import py_boxing
 
 
-class _NonDeterministicOp:
-  """Proxy for expr_eval.eval() exposing operator's doc-string and signature."""
-
+class _NonDeterministicEagerOpCallMethod:
   __slots__ = ('_op',)
 
-  def __init__(self, op: arolla.abc.RegisteredOperator):
+  def __init__(self, op: arolla.abc.Operator):
     self._op = op
+
+  @property
+  def __signature__(self) -> inspect.Signature:  # needed for colab suggest
+    return inspect.signature(self._op)
+
+  def __call__(self, *args: Any, **kwargs: Any) -> arolla.AnyQValue:
+    return expr_eval.eval(arolla.abc.aux_bind_op(self._op, *args, **kwargs))
+
+
+class _NonDeterministicEagerOp:
+  """An eager-mode adapter for non-deterministic operators."""
+
+  __slots__ = ('_op', '__call__')
+
+  def __init__(self, op: arolla.abc.Operator):
+    self._op = op
+    self.__call__ = _NonDeterministicEagerOpCallMethod(op)
 
   def getdoc(self) -> str:
     return self._op.getdoc()
 
   @property
-  def __signature__(self) -> inspect.Signature:
-    return arolla.abc.aux_inspect_signature(self._op)
+  def __signature__(self) -> inspect.Signature:  # needed for inspect.signature
+    return inspect.signature(self._op)
 
-  def __call__(self, *args: Any, **kwargs: Any) -> Any:
-    return expr_eval.eval(self._op(*args, **kwargs))
+
+class _DeterministicEagerOpCallMethod:
+  __slots__ = ('_op',)
+
+  def __init__(self, op: arolla.abc.Operator):
+    self._op = op
+
+  @property
+  def __signature__(self) -> inspect.Signature:  # needed for colab suggest
+    return inspect.signature(self._op)
+
+  def __call__(self, *args: Any, **kwargs: Any) -> arolla.AnyQValue:
+    return arolla.abc.aux_eval_op(self._op, *args, **kwargs)
+
+
+class _DeterministicEagerOp:
+  """An eager-mode adapter for deterministic operators."""
+
+  __slots__ = ('_op', '__call__')
+
+  def __init__(self, op: arolla.abc.Operator):
+    self._op = op
+    self.__call__ = _DeterministicEagerOpCallMethod(op)
+
+  def getdoc(self) -> str:
+    return self._op.getdoc()
+
+  @property
+  def __signature__(self) -> inspect.Signature:  # needed for inspect.signature
+    return inspect.signature(self._op)
 
 
 # TODO: Remove this after aux_eval_op supports hidden_seed.
-def _get_eager_op(
-    rl_op: arolla.abc.RegisteredOperator,
-) -> Callable[..., Any]:
+def _get_eager_op(rl_op: arolla.abc.RegisteredOperator) -> Callable[..., Any]:
   if py_boxing.is_non_deterministic_op(rl_op):
-    return _NonDeterministicOp(rl_op)
+    return _NonDeterministicEagerOp(rl_op)
   else:
-    return rl_op._eval  # pylint: disable=protected-access
+    return _DeterministicEagerOp(rl_op)
 
 
 class _OperatorsContainer:

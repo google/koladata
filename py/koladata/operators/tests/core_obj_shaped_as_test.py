@@ -86,14 +86,14 @@ class CoreObjShapedAsTest(absltest.TestCase):
   def test_item_with_empty_attr(self):
     x = kde.core.obj_shaped_as(ds(None), a=42).eval()
     testing.assert_equal(
-        kde.has._eval(x).no_db(), ds(kd.present, schema_constants.MASK)
+        kde.has(x).eval().no_db(), ds(kd.present, schema_constants.MASK)
     )
 
   def test_all_empty_slice(self):
     x = kde.core.obj_shaped_as(ds([None, None]), a=42).eval()
     testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        kde.has._eval(x).no_db(),
+        kde.has(x).eval().no_db(),
         ds([kd.present, kd.present], schema_constants.MASK),
     )
     testing.assert_equal(
