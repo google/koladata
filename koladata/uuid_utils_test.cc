@@ -198,6 +198,30 @@ TEST(UuidUtilsTest, CreateUuidFromFields_Empty) {
   EXPECT_FALSE(ds.item().value<ObjectId>().IsSchema());
 }
 
+TEST(UuidUtilsTest, CreateUuidFromFields_Empty_List) {
+  ASSERT_OK_AND_ASSIGN(auto ds, CreateListUuidFromFields("", {}, {}));
+  EXPECT_EQ(ds.size(), 1);
+
+  EXPECT_EQ(ds.GetShape().rank(), 0);
+  EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+  EXPECT_EQ(ds.GetSchemaImpl(), schema::kItemId);
+
+  EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
+  EXPECT_TRUE(ds.item().value<ObjectId>().IsList());
+}
+
+TEST(UuidUtilsTest, CreateUuidFromFields_Empty_Dict) {
+  ASSERT_OK_AND_ASSIGN(auto ds, CreateDictUuidFromFields("", {}, {}));
+  EXPECT_EQ(ds.size(), 1);
+
+  EXPECT_EQ(ds.GetShape().rank(), 0);
+  EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+  EXPECT_EQ(ds.GetSchemaImpl(), schema::kItemId);
+
+  EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
+  EXPECT_TRUE(ds.item().value<ObjectId>().IsDict());
+}
+
 absl::flat_hash_set<ObjectId> GetUniqueObjectIds(const DataSlice& ds) {
   CHECK_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
   absl::flat_hash_set<ObjectId> unique_object_ids;

@@ -45,7 +45,8 @@ absl::StatusOr<DataSlice> CreateUuidFromFieldsImpl(
     return DataSlice::Create(
         internal::CreateUuidFromFields(
             seed, {},
-            std::vector<std::reference_wrapper<const internal::DataItem>>{}),
+            std::vector<std::reference_wrapper<const internal::DataItem>>{},
+            uuid_type),
         internal::DataItem(schema::kItemId));
   }
   ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
