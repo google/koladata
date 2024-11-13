@@ -24,6 +24,7 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
+#include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -34,6 +35,7 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
+#include "koladata/uuid_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
@@ -174,6 +176,49 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
               R"regex((.|\n)*#[0-9a-zA-Z]{22}\.get_value_schema\(\) => INT64(.|\n)*)regex"))));
 }
 
+TEST(DataBagReprTest,
+     TestDataBagStringRepresentation_DictsDuplicatedInFallbackBags) {
+  auto fallback_db1 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto uuid, CreateDictUuidFromFields("seed", {"a"}, {test::DataItem(42)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto dict_schema,
+      CreateDictSchema(fallback_db1, test::Schema(schema::kString),
+                       test::Schema(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds1,
+      CreateDictShaped(fallback_db1, DataSlice::JaggedShape::Empty(),
+                       /*keys=*/test::DataSlice<arolla::Text>({"a", "b"}),
+                       /*values=*/test::DataSlice<int>({1, 2}), dict_schema,
+                       /*key_schema=*/absl::nullopt,
+                       /*value_schema=*/absl::nullopt,
+                       /*item_id=*/uuid));
+
+  auto fallback_db2 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds2,
+      CreateDictShaped(
+          fallback_db2, DataSlice::JaggedShape::Empty(),
+          /*keys=*/test::DataSlice<arolla::Text>({"a", "b", "c"}),
+          /*values=*/test::DataSlice<int>({10, 20, 30}), dict_schema,
+          /*key_schema=*/absl::nullopt, /*value_schema=*/absl::nullopt,
+          /*item_id=*/uuid));
+
+  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
+
+  // 'a' and 'b' from fallback_db1, and 'c' from fallback_db2.
+  EXPECT_THAT(DataBagToStr(db), IsOkAndHolds(MatchesRegex(
+                                              R"regex(DataBag \$[0-9a-f]{4}:
+\#[0-9a-zA-Z]{22}\['a'\] => 1
+\#[0-9a-zA-Z]{22}\['b'\] => 2
+\#[0-9a-zA-Z]{22}\['c'\] => 30
+
+SchemaBag:
+\#[0-9a-zA-Z]{22}\.get_key_schema\(\) => STRING
+\#[0-9a-zA-Z]{22}\.get_value_schema\(\) => INT64
+)regex")));
+}
+
 TEST(DataBagReprTest, TestDataBagStringRepresentation_List) {
   DataBagPtr bag = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto list_schema,
@@ -190,6 +235,44 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_List) {
           MatchesRegex(
               R"regex((.|\n)*#[0-9a-zA-Z]{22}\.get_item_schema\(\) => INT64(.|\n)*)regex"))));
 }
+
+TEST(DataBagReprTest,
+     TestDataBagStringRepresentation_ListsDuplicatedInFallbackBags) {
+  auto fallback_db1 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto uuid, CreateListUuidFromFields("seed", {"a"}, {test::DataItem(42)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto list_schema,
+      CreateListSchema(fallback_db1, test::Schema(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds1,
+      CreateListShaped(fallback_db1, DataSlice::JaggedShape::Empty(),
+                       /*values=*/test::DataSlice<int64_t>({1, 2, 3}),
+                       list_schema,
+                       /*item_schema=*/absl::nullopt,
+                       /*item_id=*/uuid));
+
+  auto fallback_db2 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds2,
+      CreateListShaped(fallback_db2, DataSlice::JaggedShape::Empty(),
+                       /*values=*/test::DataSlice<int64_t>({4, 5, 6}),
+                       list_schema,
+                       /*item_schema=*/absl::nullopt,
+                       /*item_id=*/uuid));
+
+  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
+
+  // 'a' and 'b' from fallback_db1, and 'c' from fallback_db2.
+  EXPECT_THAT(DataBagToStr(db), IsOkAndHolds(MatchesRegex(
+                                              R"regex(DataBag \$[0-9a-f]{4}:
+\#[0-9a-zA-Z]{22}\[:\] => \[1, 2, 3\]
+
+SchemaBag:
+\#[0-9a-zA-Z]{22}\.get_item_schema\(\) => INT64
+)regex")));
+}
+
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_FallbackBags) {
   auto fallback_db1 = DataBag::Empty();
@@ -208,7 +291,14 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_FallbackBags) {
   EXPECT_THAT(
       DataBagToStr(ds3.GetBag()),
       IsOkAndHolds(MatchesRegex(
-          R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-zA-Z]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-zA-Z]{22}\.a => 42(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-zA-Z]{22}\.a => INT32(.|\n)*  fallback #1 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-zA-Z]{22}\.b => 123(.|\n)*  SchemaBag:(.|\n)*  \$[0-9a-zA-Z]{22}\.b => INT32(.|\n)*)regex")));
+          R"regex(DataBag \$[0-9a-f]{4}:
+\$[0-9a-zA-Z]{22}\.a => 42
+\$[0-9a-zA-Z]{22}\.b => 123
+
+SchemaBag:
+\$[0-9a-zA-Z]{22}\.a => INT32
+\$[0-9a-zA-Z]{22}\.b => INT32
+)regex")));
 }
 
 TEST(DataBagReprTest,
@@ -322,20 +412,11 @@ TEST(DataBagReprTest,
       DataBagToStr(ds3.GetBag(), /*triple_limit=*/3),
       IsOkAndHolds(MatchesRegex(
           R"regex(DataBag \$[0-9a-f]{4}:
+\$[0-9a-zA-Z]{22}\.a => 42
+\$[0-9a-zA-Z]{22}\.b => 123
 
 SchemaBag:
-
-2 fallback DataBag\(s\):
-  fallback #0 \$[0-9a-f]{4}:
-  DataBag:
-  \$[0-9a-zA-Z]{22}\.a => 42
-
-  SchemaBag:
-  \$[0-9a-zA-Z]{22}\.a => INT32
-
-  fallback #1 \$[0-9a-f]{4}:
-  DataBag:
-  \$[0-9a-zA-Z]{22}\.b => 123
+\$[0-9a-zA-Z]{22}\.a => INT32
 \.\.\.
 
 Showing only the first 3 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
@@ -358,7 +439,48 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_DuplicatedFallbackBags) {
   EXPECT_THAT(
       DataBagToStr(db),
       IsOkAndHolds(MatchesRegex(
-          R"regex(DataBag \$[0-9a-f]{4}:(.|\n)*SchemaBag:(.|\n)*2 fallback DataBag\(s\):(.|\n)*  fallback #0 \$[0-9a-f]{4}:(.|\n)*  DataBag:(.|\n)*  \$[0-9a-zA-Z]{22}\.a => 42(.|\n)*  SchemaBag:(.|\n)*  fallback #1 duplicated, see db with id: \$[0-9a-f]{4})regex")));
+          R"regex(DataBag \$[0-9a-f]{4}:
+\$[0-9a-zA-Z]{22}\.a => 42
+
+SchemaBag:
+\$[0-9a-zA-Z]{22}\.a => INT32
+)regex")));
+}
+
+TEST(DataBagReprTest,
+     TestDataBagStringRepresentation_DuplicatedTriplesInFallbackBags) {
+  auto fallback_db1 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto ds1,
+                       CreateUuObject(fallback_db1, "seed", {"a", "b"},
+                                      {test::DataItem(42, fallback_db1),
+                                       test::DataItem(84, fallback_db1)}));
+
+  ASSERT_OK(ds1.SetAttr("a", test::DataItem(43, fallback_db1)));
+
+  auto fallback_db2 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto ds2,
+                       CreateUuObject(fallback_db2, "seed", {"a", "b"},
+                                      {test::DataItem(42, fallback_db2),
+                                       test::DataItem(84, fallback_db2)}));
+
+  ASSERT_OK(ds2.SetAttr("a", test::DataItem(43, fallback_db2)));
+  ASSERT_OK(ds2.SetAttr("b", test::DataItem(85, fallback_db2)));
+  ASSERT_OK(ds2.SetAttr("c", test::DataItem(126, fallback_db2)));
+
+  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
+
+  EXPECT_THAT(DataBagToStr(db), IsOkAndHolds(MatchesRegex(
+                                    R"regex(DataBag \$[0-9a-f]{4}:
+\#[0-9a-zA-Z]{22}\.get_obj_schema\(\) => \#[0-9a-zA-Z]{22}
+\#[0-9a-zA-Z]{22}\.a => 43
+\#[0-9a-zA-Z]{22}\.b => 84
+\#[0-9a-zA-Z]{22}\.c => 126
+
+SchemaBag:
+\#[0-9a-zA-Z]{22}\.a => INT32
+\#[0-9a-zA-Z]{22}\.b => INT32
+\#[0-9a-zA-Z]{22}\.c => INT32
+)regex")));
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_ListSchema) {

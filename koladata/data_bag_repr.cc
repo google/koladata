@@ -153,111 +153,172 @@ std::string AttributeRepr(const absl::string_view attribute) {
   }
 }
 
-std::string Etcetera(absl::string_view res, int64_t triple_count) {
-  return absl::StrCat(res, "...\n\n",
-                      absl::StrFormat("Showing only the first %d triples. Use "
-                                      "'triple_limit' parameter of "
-                                      "'db.contents_repr()' to adjust this\n",
-                                      triple_count));
-}
+class ContentsReprBuilder {
+ public:
+  explicit ContentsReprBuilder(const DataBagPtr& db, int64_t triple_limit)
+      : db_(db), triple_count_(0), triple_limit_(triple_limit) {}
 
-absl::StatusOr<std::string> DataBagToStrInternal(
-    const DataBagPtr& db, absl::flat_hash_set<const DataBag*>& seen_db,
-    const DataBagFormatOption& format_opt, int64_t& triple_count,
-    int64_t triple_limit) {
-  if (triple_limit <= 0) {
-    return absl::InvalidArgumentError(
-        "triple_limit must be a positiver integer");
-  }
-  std::string line_indent(format_opt.indentation * kTwoSpaceIndentation, ' ');
-  if (seen_db.contains(db.get())) {
-    return absl::StrCat(line_indent, "fallback #", *format_opt.fallback_index,
-                        " duplicated, see db with id: ", GetBagIdRepr(db));
-  }
-  seen_db.emplace(db.get());
+  absl::StatusOr<std::string> Build() && {
+    if (triple_limit_ <= 0) {
+      return absl::InvalidArgumentError(
+          "triple_limit must be a positive integer");
+    }
 
-  std::string res =
-      format_opt.fallback_index
-          ? absl::StrCat(line_indent, "fallback #", *format_opt.fallback_index,
-                         " ", GetBagIdRepr(db), ":\n", line_indent,
-                         "DataBag:\n")
-          : absl::StrCat(line_indent, "DataBag ", GetBagIdRepr(db), ":\n");
-  ASSIGN_OR_RETURN(DataBagContent content, db->GetImpl().ExtractContent());
-  Triples main_triples(content);
-  for (const AttrTriple& attr : main_triples.attributes()) {
-    absl::StrAppend(&res, line_indent,
-                    absl::StrFormat("%s.%s => %s\n", ObjectIdStr(attr.object),
-                                    AttributeRepr(attr.attribute),
-                                    internal::DataItemRepr(
-                                        attr.value, {.strip_quotes = true})));
-    if (++triple_count >= triple_limit) {
-      return res;
+    res_ = absl::StrCat("DataBag ", GetBagIdRepr(db_), ":\n");
+
+    // Triples in the main DataBag.
+    ASSIGN_OR_RETURN(DataBagContent content, db_->GetImpl().ExtractContent());
+    Triples main_triples(content);
+    AddDataTriples(main_triples);
+    if (triple_count_ >= triple_limit_) {
+      Etcetera();
+      return std::move(res_);
     }
-  }
-  for (const auto& [list_id, values] : main_triples.lists()) {
-    absl::StrAppend(
-        &res, line_indent,
-        absl::StrFormat(
-            "%s[:] => [%s]\n", ObjectIdStr(list_id),
-            absl::StrJoin(values.begin(), values.end(), ", ",
-                          [](std::string* out, const internal::DataItem& item) {
-                            out->append(internal::DataItemRepr(item));
-                          })));
-    if (++triple_count >= triple_limit) {
-      return res;
+
+    // Triples in the fallbacks.
+    FlattenFallbackFinder fallback_finder(*db_);
+    auto fallbacks = fallback_finder.GetFlattenFallbacks();
+    std::vector<Triples> fallback_triples;
+    for (const internal::DataBagImpl* const fallback : fallbacks) {
+      ASSIGN_OR_RETURN(DataBagContent fallback_content,
+                        fallback->ExtractContent());
+      fallback_triples.push_back(Triples(fallback_content));
+      AddDataTriples(fallback_triples.back());
+      if (triple_count_ >= triple_limit_) {
+        Etcetera();
+        return std::move(res_);
+      }
     }
+
+    absl::StrAppend(&res_, "\nSchemaBag:\n");
+    // Schema triples in the main DataBag.
+    RETURN_IF_ERROR(AddSchemaTriples(main_triples));
+    if (triple_count_ >= triple_limit_) {
+        Etcetera();
+        return std::move(res_);
+    }
+
+    // Schema triples in the fallbacks.
+    for (const auto& triples : fallback_triples) {
+      RETURN_IF_ERROR(AddSchemaTriples(triples));
+      if (triple_count_ >= triple_limit_) {
+        Etcetera();
+        return std::move(res_);
+      }
+    }
+    return std::move(res_);
   }
-  for (const DictItemTriple& dict : main_triples.dicts()) {
-    if (dict.object.IsDict()) {
-      absl::StrAppend(
-          &res, line_indent,
-          absl::StrFormat("%s[%s] => %s\n", ObjectIdStr(dict.object),
-                          internal::DataItemRepr(dict.key),
-                          internal::DataItemRepr(dict.value)));
-      if (++triple_count >= triple_limit) {
-        return res;
+
+ private:
+  void Etcetera() {
+    absl::StrAppend(&res_, "...\n\n",
+                    absl::StrFormat("Showing only the first %d triples. Use "
+                                    "'triple_limit' parameter of "
+                                    "'db.contents_repr()' to adjust this\n",
+                                    triple_count_));
+  }
+
+  void AddAttributeTriples(const Triples& triples) {
+    for (const AttrTriple& attr : triples.attributes()) {
+      if (seen_triples_.contains({attr.object, attr.attribute})) {
+        continue;
+      }
+      seen_triples_.insert({attr.object, attr.attribute});
+      absl::StrAppend(&res_,
+                      absl::StrFormat("%s.%s => %s\n", ObjectIdStr(attr.object),
+                                      AttributeRepr(attr.attribute),
+                                      internal::DataItemRepr(
+                                          attr.value, {.strip_quotes = true})));
+      if (++triple_count_ >= triple_limit_) {
+        return;
       }
     }
   }
-  absl::StrAppend(&res, "\n", line_indent, "SchemaBag:\n");
 
-  absl::flat_hash_map<ObjectId, AttrMap> schema_triple_map =
-      BuildSchemaAttrMap(main_triples.dicts());
-  for (const DictItemTriple& dict : main_triples.dicts()) {
-    if (dict.object.IsSchema()) {
-      ASSIGN_OR_RETURN(std::string value_str,
-                       SchemaToStr(dict.value, schema_triple_map));
+  void AddListTriples(const Triples& triples) {
+    for (const auto& [list_id, values] : triples.lists()) {
+      if (seen_triples_.contains({list_id, "[:]"})) {
+        continue;
+      }
+      seen_triples_.insert({list_id, "[:]"});
       absl::StrAppend(
-          &res, line_indent,
-          absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
-                          AttributeRepr(dict.key.value<arolla::Text>().view()),
-                          value_str));
-      if (++triple_count >= triple_limit) {
-        return res;
+          &res_, absl::StrFormat(
+                     "%s[:] => [%s]\n", ObjectIdStr(list_id),
+                     absl::StrJoin(
+                         values.begin(), values.end(), ", ",
+                         [](std::string* out, const internal::DataItem& item) {
+                           out->append(internal::DataItemRepr(item));
+                         })));
+      if (++triple_count_ >= triple_limit_) {
+        return;
       }
     }
   }
-  const std::vector<DataBagPtr>& fallbacks = db->GetFallbacks();
-  if (!fallbacks.empty()) {
-    absl::StrAppend(&res, "\n", line_indent, fallbacks.size(),
-                    " fallback DataBag(s):\n");
-  }
-  absl::string_view sep = "";
-  for (int i = 0; i < fallbacks.size(); ++i) {
-    ASSIGN_OR_RETURN(
-        std::string content,
-        DataBagToStrInternal(
-            fallbacks.at(i), seen_db,
-            {.indentation = format_opt.indentation + 1, .fallback_index = i},
-            triple_count, triple_limit));
-    absl::StrAppend(&res, sep, content);
-    sep = "\n";
-    if (triple_count >= triple_limit) {
-      return res;
+
+  void AddDictTriples(const Triples& triples) {
+    for (const DictItemTriple& dict : triples.dicts()) {
+      if (dict.object.IsDict()) {
+        const auto& attr_str = DataItemRepr(dict.key);
+        if (seen_triples_.contains({dict.object, attr_str})) {
+          continue;
+        }
+        seen_triples_.insert({dict.object, attr_str});
+        absl::StrAppend(
+            &res_,
+            absl::StrFormat("%s[%s] => %s\n", ObjectIdStr(dict.object),
+                            attr_str, internal::DataItemRepr(dict.value)));
+        if (++triple_count_ >= triple_limit_) {
+          return;
+        }
+      }
     }
   }
-  return res;
-}
+
+  void AddDataTriples(const Triples& triples) {
+    AddAttributeTriples(triples);
+    if (triple_count_ >= triple_limit_) {
+      return;
+    }
+    AddListTriples(triples);
+    if (triple_count_ >= triple_limit_) {
+      return;
+    }
+    AddDictTriples(triples);
+    if (triple_count_ >= triple_limit_) {
+      return;
+    }
+  }
+
+  absl::Status AddSchemaTriples(const Triples& triples) {
+    absl::flat_hash_map<ObjectId, AttrMap> schema_triple_map =
+        BuildSchemaAttrMap(triples.dicts());
+    for (const DictItemTriple& dict : triples.dicts()) {
+      if (dict.object.IsSchema()) {
+        const auto& attr_str =
+            std::string(dict.key.value<arolla::Text>().view());
+        if (seen_triples_.contains({dict.object, attr_str})) {
+          continue;
+        }
+        seen_triples_.insert({dict.object, attr_str});
+        ASSIGN_OR_RETURN(std::string value_str,
+                         SchemaToStr(dict.value, schema_triple_map));
+        absl::StrAppend(
+            &res_, absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
+                                   AttributeRepr(attr_str), value_str));
+        if (++triple_count_ >= triple_limit_) {
+          return absl::OkStatus();
+        }
+      }
+    }
+    return absl::OkStatus();
+  }
+
+  const DataBagPtr db_;
+  std::string res_;
+  int64_t triple_count_;
+  int64_t triple_limit_;
+  absl::flat_hash_set<std::pair<ObjectId, std::string>> seen_triples_;
+};
 
 template <typename Map>
 void UpdateCountMap(const typename Map::key_type& val, Map& count_dict) {
@@ -273,19 +334,8 @@ void UpdateCountMap(const typename Map::key_type& val, Map& count_dict) {
 
 absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db,
                                          int64_t triple_limit) {
-  if (triple_limit <= 0) {
-    return absl::InvalidArgumentError(
-        "triple_limit must be a positive integer");
-  }
-  absl::flat_hash_set<const DataBag*> seen_db;
-  int64_t triple_count = 0;
-  ASSIGN_OR_RETURN(std::string res,
-                   DataBagToStrInternal(db, seen_db, {.indentation = 0},
-                                        triple_count, triple_limit));
-  if (triple_count >= triple_limit) {
-    return Etcetera(res, triple_limit);
-  }
-  return res;
+  ContentsReprBuilder builder(db, triple_limit);
+  return std::move(builder).Build();
 }
 
 absl::StatusOr<std::string> DataBagStatistics(const DataBagPtr& db,

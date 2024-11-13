@@ -270,21 +270,10 @@ SchemaBag:
     ds2 = entity.with_bag(bag()).enriched(db)
     db_repr = repr(ds2.get_bag().contents_repr())
     expected_repr = r"""DataBag \$[0-9a-f]{4}:
+\$[0-9a-zA-Z]{22}\.x => 1
 
 SchemaBag:
-
-2 fallback DataBag\(s\):
-  fallback #0 \$[0-9a-f]{4}:
-  DataBag:
-
-  SchemaBag:
-
-  fallback #1 \$[0-9a-f]{4}:
-  DataBag:
-  \$[0-9a-zA-Z]{22}\.x => 1
-
-  SchemaBag:
-  \$[0-9a-zA-Z]{22}\.x => INT32
+\$[0-9a-zA-Z]{22}\.x => INT32
 """
     self.assertRegex(
         db_repr, expected_repr, msg=f'\n\nregex={expected_repr}\n\ndb={db_repr}'
@@ -298,34 +287,12 @@ SchemaBag:
       entity3 = entity2.with_bag(bag()).enriched(entity2.get_bag())
       db_repr = repr(entity3.get_bag().contents_repr())
       expected_repr = r"""DataBag \$[0-9a-f]{4}:
+\$[0-9a-zA-Z]{22}\.y => 2
+\$[0-9a-zA-Z]{22}\.x => 1
 
 SchemaBag:
-
-2 fallback DataBag\(s\):
-  fallback #0 \$[0-9a-f]{4}:
-  DataBag:
-
-  SchemaBag:
-
-  fallback #1 \$[0-9a-f]{4}:
-  DataBag:
-
-  SchemaBag:
-
-  2 fallback DataBag\(s\):
-    fallback #0 \$[0-9a-f]{4}:
-    DataBag:
-    \$[0-9a-zA-Z]{22}\.y => 2
-
-    SchemaBag:
-    \$[0-9a-zA-Z]{22}\.y => INT32
-
-    fallback #1 \$[0-9a-f]{4}:
-    DataBag:
-    \$[0-9a-zA-Z]{22}\.x => 1
-
-    SchemaBag:
-    \$[0-9a-zA-Z]{22}\.x => INT32
+\$[0-9a-zA-Z]{22}\.y => INT32
+\$[0-9a-zA-Z]{22}\.x => INT32
 """
       self.assertRegex(
           db_repr,
