@@ -197,6 +197,18 @@ Assigned schema for List item: INT32""",
     ):
       fns.list([[1, 2], [3]], item_schema=schema_constants.BYTES)
 
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""the schema for List item is incompatible.
+
+Expected schema for List item: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for List item: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
+    ):
+      db = fns.bag()
+      db.list(
+          [db.new(x=1)], item_schema=db.new_schema(x=schema_constants.INT32)
+      )
+
   def test_alias(self):
     self.assertIs(fns.list, fns.core.list)
 

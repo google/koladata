@@ -152,14 +152,17 @@ absl::StatusOr<Error> SetIncompatibleSchemaError(
   ASSIGN_OR_RETURN(std::string expected_schema_str,
                    DataSliceToStr(expected_schema));
 
+  // If conflicting schemas have the same repr, add ItemId to the repr to better
+  // distinguish them.
   if (assigned_schema_item.holds_value<internal::ObjectId>() &&
       expected_schema_item.holds_value<internal::ObjectId>() &&
       assigned_schema_str == expected_schema_str) {
-    absl::StrAppend(&assigned_schema_str, " (diff id: ",
-                    assigned_schema_item.value<internal::ObjectId>(), ")");
-    absl::StrAppend(&expected_schema_str, " (diff id: ",
-                    expected_schema_item.value<internal::ObjectId>(), ")");
+    absl::StrAppend(&assigned_schema_str, " with ItemId ",
+                    DataItemRepr(assigned_schema_item));
+    absl::StrAppend(&expected_schema_str, " with ItemId ",
+                    DataItemRepr(expected_schema_item));
   }
+
   std::string attr_str = cause.incompatible_schema().attr();
   if (attr_str == schema::kListItemsSchemaAttr) {
     cause.set_error_message(

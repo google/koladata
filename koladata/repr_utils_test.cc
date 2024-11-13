@@ -141,9 +141,9 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
           MatchesRegex(
               R"regex((.|\n)*the schema for attribute 'x' is incompatible(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*Expected schema for 'x': SCHEMA\(y=INT32\) \(diff id: [0-9a-f]{32}:0\)(.|\n)*)regex"),
+              R"regex((.|\n)*Expected schema for 'x': SCHEMA\(y=INT32\) with ItemId \$[0-9a-zA-Z]{22}(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*Assigned schema for 'x': SCHEMA\(y=INT32\) \(diff id: [0-9a-f]{32}:0\)(.|\n)*)regex")));
+              R"regex((.|\n)*Assigned schema for 'x': SCHEMA\(y=INT32\) with ItemId \$[0-9a-zA-Z]{22}(.|\n)*)regex")));
 }
 
 TEST(ReprUtilTest, TestAssembleErrorMissingContextData) {

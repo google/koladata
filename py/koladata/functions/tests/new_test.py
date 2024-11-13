@@ -314,6 +314,22 @@ schema.a = <desired_schema>"""
     ):
       fns.new(a='xyz', schema=schema)
 
+    db = fns.bag()
+    nested_schema = db.new_schema(b=schema)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""cannot create Item\(s\) with the provided schema: SCHEMA\(b=SCHEMA\(a=INT32\)\)
+
+The cause is: the schema for attribute 'b' is incompatible.
+
+Expected schema for 'b': SCHEMA\(a=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for 'b': SCHEMA\(a=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+
+To fix this, explicitly override schema of 'b' in the original schema. For example,
+schema.b = <desired_schema>""",
+    ):
+      fns.new(b=db.new(a=123), schema=nested_schema)
+
     db1 = fns.bag()
     _ = db1.uuobj(x=1)
     db2 = fns.bag()

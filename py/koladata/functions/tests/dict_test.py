@@ -336,6 +336,34 @@ Assigned schema for Dict key: STRING"""),
           value_schema=schema_constants.INT64,
       )
 
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""the schema for Dict key is incompatible.
+
+Expected schema for Dict key: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for Dict key: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
+    ):
+      db = fns.bag()
+      db.dict(
+          items_or_keys={db.new(x=1): 'a'},
+          key_schema=db.new_schema(x=schema_constants.INT32),
+          value_schema=schema_constants.STRING,
+      )
+
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""the schema for Dict value is incompatible.
+
+Expected schema for Dict value: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for Dict value: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
+    ):
+      db = fns.bag()
+      db.dict(
+          items_or_keys={'a': db.new(x=1)},
+          key_schema=schema_constants.STRING,
+          value_schema=db.new_schema(x=schema_constants.INT32),
+      )
+
   def test_alias(self):
     self.assertIs(fns.dict, fns.core.dict)
 
