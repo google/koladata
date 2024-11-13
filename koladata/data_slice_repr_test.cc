@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -38,6 +39,7 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -50,6 +52,7 @@ using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
 using ::arolla::OptionalValue;
 using ::koladata::internal::ObjectId;
+using ::testing::HasSubstr;
 using ::testing::MatchesRegex;
 using ::testing::StrEq;
 
@@ -852,26 +855,165 @@ TEST(DataSliceReprTest, ObjEntityExceedReprItemLimit) {
               IsOkAndHolds(StrEq("Entity(a=1, b=1, c=1, d=1, e=1, ...)")));
 }
 
-TEST(DataSliceReprTest, FormatHtml) {
+TEST(DataSliceReprTest, FormatHtml_AttrSpan) {
   DataBagPtr bag = DataBag::Empty();
-
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
-      CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
+      CreateNestedList(bag, test::DataSlice<int>({}),
                        /*schema=*/std::nullopt, test::Schema(schema::kAny)));
-  EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds(StrEq("List[1, 2, 3]")));
 
   std::vector<DataSlice> attr_values = {test::DataItem(1), data_slice};
   ASSERT_OK_AND_ASSIGN(
       DataSlice obj,
       ObjectCreator::FromAttrs(bag, {"a", "b"}, attr_values));
 
-  EXPECT_THAT(DataSliceToStr(obj, {.format_html = true}),
-            IsOkAndHolds(StrEq(
-                "Obj(<span class=\"attr \">a</span>=1, "
-                "<span class=\"attr clickable\">b</span>=List[1, 2, 3])")));
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(obj, {.format_html = true}));
+  EXPECT_THAT(result, HasSubstr("<span class=\"attr \">a</span>=1"));
+  EXPECT_THAT(result, HasSubstr(
+      "<span class=\"attr clickable\">b</span>=List[]"));
 }
 
+TEST(DataSliceReprTest, FormatHtml_SliceIndices) {
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 3}));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_shape,
+      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+
+  DataSlice ds = test::DataSlice<int>({1, 2, 3}, std::move(ds_shape));
+
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(ds, {.format_html = true}));
+  EXPECT_EQ(result, R"MULTILINE([
+  <span slice-index="0">[<span slice-index="0">1</span>, <span slice-index="1">2</span>]</span>,
+  <span slice-index="1">[<span slice-index="0">3</span>]</span>,
+])MULTILINE");
+}
+
+TEST(DataSliceReprTest, FormatHtml_ListIndices) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
+                       CreateEmptyList(bag, /*schema=*/std::nullopt,
+                                       test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice list_item,
+      CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice ds,
+      CreateNestedList(bag, test::DataSlice<ObjectId>({
+        empty_list.item().value<ObjectId>(),
+        list_item.item().value<ObjectId>()
+      }), /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(ds, {.format_html = true}));
+  EXPECT_EQ(result, R"MULTILINE(List[
+  <span list-index="0">List[]</span>,
+  <span list-index="1">List[
+    <span list-index="0">1</span>,
+    <span list-index="1">2</span>,
+    <span list-index="2">3</span>,
+  ]</span>,
+])MULTILINE");
+}
+
+TEST(DataSliceReprTest, FormatHtml_ObjEntity) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice obj,
+      ObjectCreator::FromAttrs(bag, {"a<>", "b\"&"},
+                               std::vector<DataSlice>(2, test::DataItem(1))));
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(obj, {.format_html = true}));
+  EXPECT_EQ(
+      result,
+      "Obj("
+      "<span schema-attr=\"a&lt;&gt;\"><span class=\"attr \">a&lt;&gt;"
+      "</span>=1</span>, "
+      "<span schema-attr=\"b&quot;&amp;\"><span class=\"attr \">b&quot;&amp;"
+      "</span>=1</span>)");
+}
+
+TEST(DataSliceReprTest, FormatHtml_Dict) {
+  DataBagPtr bag = DataBag::Empty();
+  ObjectId dict_id = internal::AllocateSingleDict();
+
+  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice keys = test::DataSlice<arolla::Text>({"<>&\""});
+  DataSlice values = test::DataSlice<int>({1});
+  ASSERT_OK(data_slice.SetInDict(keys, values));
+
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(data_slice, {.format_html = true}));
+  EXPECT_EQ(result,
+            "Dict{<span dict-key=\"&lt;&gt;&amp;&quot;\">"
+            "'&lt;&gt;&amp;&quot;'=1</span>}");
+}
+
+TEST(DataSliceReprTest, FormatHtml_ByteValues) {
+  DataBagPtr bag = DataBag::Empty();
+  ObjectId dict_id = internal::AllocateSingleDict();
+
+  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  char bytes[] = {16, 127, '<', 0};
+  DataSlice keys = test::DataSlice<int>({1});
+  DataSlice values = test::DataSlice<arolla::Bytes>({bytes});
+  ASSERT_OK(data_slice.SetInDict(keys, values));
+
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(data_slice, {.format_html = true}));
+  EXPECT_EQ(
+      result,
+      R"RAW(Dict{<span dict-key="1">1=b'\x10\x7f&lt;'</span>})RAW");
+}
+
+TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_Slice) {
+  ObjectId list_id_1 = internal::AllocateSingleList();
+  DataSlice ds = test::DataSlice<ObjectId>({list_id_1});
+
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(ds, {.format_html = true}));
+  EXPECT_THAT(result, HasSubstr("object-id clickable"));
+}
+
+TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_MaxDepth) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
+                       CreateEmptyList(bag, /*schema=*/std::nullopt,
+                                       test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+      std::string result, DataSliceToStr(
+          empty_list, {.depth = 0, .format_html = true}));
+  EXPECT_THAT(result, HasSubstr("object-id clickable"));
+}
+
+TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_NoBag) {
+  DataBagPtr bag = DataBag::Empty();
+  DataSlice value_1 = test::DataItem(1);
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::FromAttrs(bag, {"a"}, {value_1}));
+
+  entity = entity.WithBag(/*db=*/nullptr);
+  ASSERT_OK_AND_ASSIGN(
+      std::string result, DataSliceToStr(
+          entity, {.depth = 100, .format_html = true}));
+  EXPECT_THAT(result, HasSubstr("object-id clickable"));
+}
+
+TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_NoFollow) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::FromAttrs(bag, {"y"}, {test::DataItem<int>(1)}));
+  ASSERT_OK_AND_ASSIGN(DataSlice nofollow_entity, NoFollow(entity));
+
+  ASSERT_OK_AND_ASSIGN(
+      std::string result, DataSliceToStr(
+          nofollow_entity, {.depth = 100, .format_html = true}));
+  EXPECT_THAT(result, HasSubstr("object-id clickable"));
+}
 
 }  // namespace
 }  // namespace koladata
