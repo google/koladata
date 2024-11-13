@@ -646,5 +646,34 @@ BENCHMARK(BM_DataBagStatistics_Attributes_SmallAlloc)
     ->Args({100, 100})
     ->Args({1000, 1000});
 
+
+void BM_DataBagStatistics_Lists(benchmark::State& state) {
+  int64_t first_dim = state.range(0);
+  int64_t second_dim = state.range(1);
+  auto db = DataBag::Empty();
+  DataSlice::JaggedShape::Edge edge_1 = GetEdge(1, first_dim);
+  DataSlice::JaggedShape::Edge edge_2 = GetEdge(first_dim, second_dim);
+  DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+      {std::move(edge_1), std::move(edge_2)});
+  DataSlice values = *DataSlice::CreateWithSchemaFromData(
+      internal::DataSliceImpl::Create(
+          arolla::CreateConstDenseArray<int64_t>(first_dim * second_dim, 12)),
+      std::move(shape));
+
+  DataSlice list = *CreateListsFromLastDimension(
+      db, values, /*schema=*/std::nullopt, test::Schema(schema::kAny));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(db);
+    auto res = *DataBagStatistics(db);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_DataBagStatistics_Lists)
+    // First dim, second dim.
+    ->Args({10, 10})
+    ->Args({100, 100})
+    ->Args({1000, 1000});
+
 }  // namespace
 }  // namespace koladata
