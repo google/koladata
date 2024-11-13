@@ -17,7 +17,9 @@
 
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
@@ -91,12 +93,6 @@ class DataBag : public arolla::RefcountedBase {
   // Returns fallbacks in priority order.
   const std::vector<DataBagPtr>& GetFallbacks() const { return fallbacks_; }
 
-  // Returns true if any fallbacks are mutable or have any mutable fallbacks
-  // themselves (and so on recursively). If fallbacks are marked immutable at
-  // runtime using UnsafeMakeImmutable, this will have false positives, but it
-  // will never have false negatives.
-  bool HasMutableFallbacks() const { return has_mutable_fallbacks_; }
-
   // Returns a newly created immutable DataBag with fallbacks.
   static DataBagPtr ImmutableEmptyWithFallbacks(
       absl::Span<const DataBagPtr> fallbacks);
@@ -130,7 +126,6 @@ class DataBag : public arolla::RefcountedBase {
   explicit DataBag(bool is_mutable)
       : impl_(internal::DataBagImpl::CreateEmptyDatabag()),
         is_mutable_(is_mutable),
-        has_mutable_fallbacks_(false),
         // NOTE: consider lazy initialization of the fingerprint if it becomes
         // expensive to compute.
         fingerprint_(arolla::RandomFingerprint()) {}
@@ -141,7 +136,6 @@ class DataBag : public arolla::RefcountedBase {
   internal::DataBagImplPtr impl_;
   std::vector<DataBagPtr> fallbacks_;
   bool is_mutable_;
-  bool has_mutable_fallbacks_;
   arolla::Fingerprint fingerprint_;
 
   // Used to implement lazy forking for immutable DataBags.

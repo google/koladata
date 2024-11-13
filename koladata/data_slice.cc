@@ -1023,10 +1023,10 @@ absl::StatusOr<DataSlice> DataSlice::Freeze() const {
   }
   // TODO: Re-think forking in the context of DataBag with
   // mutable fallbacks.
-  if (db->HasMutableFallbacks()) {
+  if (!db->GetFallbacks().empty()) {
     return absl::FailedPreconditionError(
-        "freezing with mutable fallbacks is not supported. Please merge "
-        "fallbacks instead.");
+        "freezing with fallbacks is not supported. Please merge fallbacks "
+        "instead.");
   }
   if (!db->IsMutable()) {
     return *this;

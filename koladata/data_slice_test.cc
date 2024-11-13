@@ -391,30 +391,12 @@ TEST(DataSliceTest, ForkErrors) {
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
 
   ds = ds.WithBag(DataBag::ImmutableEmptyWithFallbacks({db}));
-  EXPECT_THAT(
-      ds.ForkDb(),
-      StatusIs(absl::StatusCode::kFailedPrecondition,
-               HasSubstr("forking with mutable fallbacks is not supported")));
-  EXPECT_THAT(
-      ds.Freeze(),
-      StatusIs(absl::StatusCode::kFailedPrecondition,
-               HasSubstr("freezing with mutable fallbacks is not supported")));
-}
-
-TEST(DataSliceTest, ForkImmutableFallbacks) {
-  auto db = DataBag::Empty();
-  auto ds_a = test::DataSlice<int>({1, 2});
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
-  db->UnsafeMakeImmutable();
-
-  ds = ds.WithBag(DataBag::ImmutableEmptyWithFallbacks({db}));
-  ASSERT_OK_AND_ASSIGN(auto forked_ds, ds.ForkDb());
-  EXPECT_TRUE(forked_ds.GetBag()->IsMutable());
-  EXPECT_THAT(forked_ds.GetBag()->GetFallbacks(), ElementsAre(db));
-
-  ASSERT_OK_AND_ASSIGN(auto frozen_ds, ds.Freeze());
-  EXPECT_FALSE(frozen_ds.GetBag()->IsMutable());
-  EXPECT_THAT(frozen_ds.GetBag()->GetFallbacks(), ElementsAre(db));
+  EXPECT_THAT(ds.ForkDb(),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("forking with fallbacks is not supported")));
+  EXPECT_THAT(ds.Freeze(),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("freezing with fallbacks is not supported")));
 }
 
 TEST(DataSliceTest, IsEquivalentTo) {

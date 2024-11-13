@@ -1712,20 +1712,12 @@ Assigned schema for Dict key: INT32""",
 
   # TODO: Re-think forking in the context of DataBag with mutable
   # fallbacks.
-  def test_freeze_with_mutable_fallbacks(self):
+  def test_freeze_with_fallbacks(self):
     db = bag().new().enriched(bag())
     with self.assertRaisesRegex(
-        ValueError, 'freezing with mutable fallbacks is not supported'
+        ValueError, 'freezing with fallbacks is not supported'
     ):
       db.freeze()
-
-  def test_freeze_with_immutable_fallbacks(self):
-    db1 = bag().freeze() >> bag().freeze()
-    db2 = db1.freeze()
-    self.assertFalse(db2.is_mutable())
-    db3 = db2.freeze()
-    self.assertFalse(db3.is_mutable())
-    testing.assert_equivalent(db3, db1)
 
   def test_with_name(self):
     x = bag()
