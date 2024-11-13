@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-12'
+  reviewed: '2024-11-13'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -570,10 +570,31 @@ Args:
   schema: Schema to cast to. Must be a scalar.
 ```
 
-### `clone(x, schema, **overrides)` {#clone}
+### `clone(x, /, *, itemid, schema, **overrides)` {#clone}
 
 ``` {.no-copy}
-Eager version of `kde.clone` operator.
+Creates a DataSlice with clones of provided entities in a new DataBag.
+
+The entities themselves and their top-level attributes are cloned (with new
+ItemIds) and non-top-level attributes are extracted (with the same ItemIds).
+
+Also see kd.shallow_clone and kd.deep_clone.
+
+Note that unlike kd.deep_clone, if there are multiple references to the same
+entity, the returned DataSlice will have multiple clones of it rather than
+references to the same clone.
+
+Args:
+  x: The DataSlice to copy.
+  itemid: The ItemId to assign to cloned entities. If not specified, new
+    ItemIds will be allocated.
+  schema: The schema to resolve attributes, and also to assign the schema to
+    the resulting DataSlice. If not specified, will use the schema of `x`.
+  **overrides: attribute overrides.
+
+Returns:
+  A copy of the entities where all top-level attributes are cloned (new
+  ItemIds) and all of the rest extracted.
 ```
 
 ### `coalesce(x, y)` {#coalesce}
@@ -768,10 +789,31 @@ Returns:
 Returns ItemIds decoded from the base62 strings.
 ```
 
-### `deep_clone(x, schema, **overrides)` {#deep_clone}
+### `deep_clone(x, /, schema, **overrides)` {#deep_clone}
 
 ``` {.no-copy}
-Eager version of `kde.deep_clone` operator.
+Creates a slice with a (deep) copy of the given slice.
+
+The entities themselves and all their attributes including both top-level and
+non-top-level attributes are cloned (with new ItemIds).
+
+Also see kd.shallow_clone and kd.clone.
+
+Note that unlike kd.clone, if there are multiple references to the same entity
+in `x`, or multiple ways to reach one entity through attributes, there will be
+exactly one clone made per entity.
+
+Args:
+  x: The slice to copy.
+  schema: The schema to use to find attributes to clone, and also to assign
+    the schema to the resulting DataSlice. If not specified, will use the
+    schema of 'x'.
+  **overrides: attribute overrides.
+
+Returns:
+  A (deep) copy of the given DataSlice.
+  All referenced entities will be copied with newly allocated ItemIds. Note
+  that UUIDs will be copied as ItemIds.
 ```
 
 ### `deep_uuid(x, /, schema, *, seed)` {#deep_uuid}
@@ -3553,6 +3595,28 @@ Returns:
   Sampled DataSlice.
 ```
 
+### `schema_from_py_type(tpe)` {#schema_from_py_type}
+
+``` {.no-copy}
+Creates a Koda schema corresponding to the given Python type.
+
+  This method supports the following Python types / type annotations
+  recursively:
+  - Primitive types: int, float, bool, str, bytes.
+  - Collections: list[...], dict[...].
+  - Unions: only "smth | None" or "Optional[smth]" is supported.
+  - Dataclasses.
+
+  Args:
+    tpe: The Python type to create a schema for.
+
+  Returns:
+    A Koda schema corresponding to the given Python type. The returned schema
+    is a uu-schema, in other words we always return the same output for the
+    same input. For dataclasses, we use the module name and the class name
+    to derive the itemid for the uu-schema.
+```
+
 ### `select(ds, fltr, expand_filter)` {#select}
 
 ``` {.no-copy}
@@ -3705,10 +3769,31 @@ Returns a copy of `x` with the provided `schema`.
     DataSlice with the new schema.
 ```
 
-### `shallow_clone(x, schema, **overrides)` {#shallow_clone}
+### `shallow_clone(x, /, *, itemid, schema, **overrides)` {#shallow_clone}
 
 ``` {.no-copy}
-Eager version of `kde.shallow_clone` operator.
+Creates a DataSlice with shallow clones of immediate attributes.
+
+The entities themselves get new ItemIds and their top-level attributes are
+copied by reference.
+
+Also see kd.clone and kd.deep_clone.
+
+Note that unlike kd.deep_clone, if there are multiple references to the same
+entity, the returned DataSlice will have multiple clones of it rather than
+references to the same clone.
+
+Args:
+  x: The DataSlice to copy.{SELF}
+  itemid: The ItemId to assign to cloned entities. If not specified, will
+    allocate new ItemIds.
+  schema: The schema to resolve attributes, and also to assign the schema to
+    the resulting DataSlice. If not specified, will use the schema of 'x'.
+  **overrides: attribute overrides.
+
+Returns:
+  A copy of the entities with new ItemIds where all top-level attributes are
+  copied by reference.
 ```
 
 ### `size(x)` {#size}
@@ -5125,14 +5210,6 @@ Returns a DataSlice with ANY schema.
 ```
 
 ### `<DataSlice>.as_itemid(self)` {#<DataSlice>.as_itemid}
-
-*No description*
-
-### `<DataSlice>.attr(self, attr_name, value, update_schema)` {#<DataSlice>.attr}
-
-*No description*
-
-### `<DataSlice>.attrs(self, **attrs)` {#<DataSlice>.attrs}
 
 *No description*
 
