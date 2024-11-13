@@ -1156,6 +1156,21 @@ TEST(DataBagTest, InternalSetUnitAttrAndReturnMissingObjects) {
               ElementsAreArray(ds_union.values<ObjectId>()));
 }
 
+TEST(DataBagTest, InternalSetUnitAttrAndReturnMissingObjectsSparseToDense) {
+  for (int64_t kSize : {2, 1000}) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto ds = DataSliceImpl::AllocateEmptyObjects(kSize);
+    for (int64_t sz : {kSize / 100 + 1, kSize}) {
+      auto objs_bldr = arolla::DenseArrayBuilder<ObjectId>(sz);
+      objs_bldr.Set(0, AllocateSingleObject());
+      auto objs = DataSliceImpl::CreateWithAllocIds(
+          ds.allocation_ids(), std::move(objs_bldr).Build());
+      ASSERT_OK_AND_ASSIGN(
+          auto _, db->InternalSetUnitAttrAndReturnMissingObjects(objs, "a"));
+    }
+  }
+}
+
 TEST(DataBagTest, SetGetDataItem) {
   auto ds_a = DataItem(57.0f);
   for (DataItem ds : {

@@ -770,6 +770,20 @@ TEST(DenseSourceTest, MergeFullReadOnly) {
   }
 }
 
+TEST(DenseSourceTest, TypedAfterEmptySet) {
+  int size = 100;
+  AllocationId alloc = Allocate(size);
+  auto objs =
+      DataSliceImpl::ObjectsFromAllocation(alloc, size).values<ObjectId>();
+  ASSERT_OK_AND_ASSIGN(
+      auto source, DenseSource::CreateMutable(
+                       alloc, size, /*main_type=*/arolla::GetQType<Unit>()));
+  ASSERT_OK(source->Set(objs, DataSliceImpl::CreateEmptyAndUnknownType(size)));
+  auto missing = std::vector<ObjectId>();
+  // Call a method that would fail on a multitype dense source.
+  ASSERT_OK(source->SetUnitAndUpdateMissingObjects(objs, missing));
+}
+
 TEST(DenseSourceTest, GetMultitype) {
   int size = 100;
   AllocationId alloc = Allocate(size);

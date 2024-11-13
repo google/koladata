@@ -1151,16 +1151,20 @@ class TypedDenseSource final : public DenseSource {
       return absl::FailedPreconditionError(
           "SetAttr is not allowed for an immutable DenseSource.");
     }
-    if (multitype_ || values.is_mixed_dtype() ||
-        values.dtype() != arolla::GetQType<T>()) {
-      if (!multitype_) {
-        CreateMultitype();
-      }
-      return multitype_->Set(objects, values);
-    }
     if (objects.size() != values.size()) {
       return arolla::SizeMismatchError(
           {objects.size(), static_cast<int64_t>(values.size())});
+    }
+    if (multitype_) {
+      return multitype_->Set(objects, values);
+    }
+    if (values.is_empty_and_unknown()) {
+      ValueArrayUnset(obj_allocation_id_, values_, objects);
+      return absl::OkStatus();
+    }
+    if (values.is_mixed_dtype() || values.dtype() != arolla::GetQType<T>()) {
+      CreateMultitype();
+      return multitype_->Set(objects, values);
     }
     if constexpr (std::is_same_v<T, ObjectId>) {
       attr_allocation_ids_.Insert(values.allocation_ids());
