@@ -23,9 +23,11 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/op_utils/utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
@@ -52,6 +54,11 @@ using ::arolla::DenseArrayPresentIndicesOp;
 using ::arolla::EvaluationContext;
 using ::arolla::JaggedDenseArrayShape;
 using ::arolla::Unit;
+
+constexpr absl::string_view kSelectOpName = "kd.select";
+constexpr absl::string_view kNonMaskError =
+    "`fltr` DataSlice must have all items of MASK dtype or can be evaluated to "
+    "such items (i.e. Python function or Koda Functor)";
 
 // Selects the present groups in the `edge` indicated by the
 // presence_mask_array.
@@ -86,16 +93,17 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
     const DataSliceImpl& ds_impl, const JaggedDenseArrayShape& ds_shape,
     const DataSliceImpl& filter, const JaggedDenseArrayShape& filter_shape) {
   if (filter_shape.rank() < 1) {
-    return absl::InvalidArgumentError("filter must have at least 1 dimension");
+    return OperatorEvalError(kSelectOpName,
+                             "`fltr` must have at least 1 dimension");
   }
   if (filter_shape.rank() > ds_shape.rank()) {
-    return absl::InvalidArgumentError(
-        "filter cannot have a higher rank than the DataSlice.");
+    return OperatorEvalError(kSelectOpName,
+                             "`fltr` cannot have a higher rank than `ds`.");
   }
 
   if (!filter_shape.IsBroadcastableTo(ds_shape)) {
-    return absl::FailedPreconditionError(
-        "filter should be broadcastable to the input DataSlice");
+    return OperatorEvalError(kSelectOpName,
+                             "`fltr` should be broadcastable to `ds`");
   }
 
   const absl::Span<const DenseArrayEdge> ds_edges = ds_shape.edges();
@@ -114,10 +122,7 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
     presence_mask_array =
         arolla::CreateEmptyDenseArray<arolla::Unit>(filter.size());
   } else if (filter.dtype() != arolla::GetQType<arolla::Unit>()) {
-    return absl::InvalidArgumentError(
-        "second argument to operator select must have all items "
-        "of MASK dtype or can be evaluated to such items (i.e. Python function "
-        "or Koda Functor)");
+    return OperatorEvalError(kSelectOpName, kNonMaskError);
   } else {
     presence_mask_array = filter.values<arolla::Unit>();
   }
@@ -178,9 +183,7 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
         {std::move(empty_slice), JaggedDenseArrayShape::Empty()});
   }
   if (filter.dtype() != arolla::GetQType<arolla::Unit>()) {
-    return absl::InvalidArgumentError(
-        "second argument to operator select must have all items "
-        "of MASK dtype");
+    return OperatorEvalError(kSelectOpName, kNonMaskError);
   }
   return SelectOp::Result<DataSliceImpl>({ds_impl, ds_shape});
 }
@@ -193,9 +196,7 @@ absl::StatusOr<SelectOp::Result<DataItem>> SelectOp::operator()(
         {DataItem(), JaggedDenseArrayShape::Empty()});
   }
   if (!filter.holds_value<arolla::Unit>()) {
-    return absl::InvalidArgumentError(
-        "second argument to operator select must have all items "
-        "of MASK dtype");
+    return OperatorEvalError(kSelectOpName, kNonMaskError);
   }
   return SelectOp::Result<DataItem>({ds_impl, ds_shape});
 }

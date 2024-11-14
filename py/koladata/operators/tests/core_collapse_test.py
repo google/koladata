@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.collapse."""
-
 import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -86,7 +85,11 @@ class CoreCollapseTest(parameterized.TestCase):
   def test_data_item_input_error(self):
     x = ds(1)
     with self.assertRaisesRegex(
-        ValueError, re.escape('kd.collapse is not supported for DataItem.')
+        exceptions.KodaError,
+        re.escape(
+            'operator kd.collapse failed during evaluation: DataItem is not'
+            ' supported'
+        ),
     ):
       expr_eval.eval(kde.core.collapse(x))
 

@@ -476,7 +476,7 @@ TEST(SelectTest, ErrorOnNotBroadcast) {
       JaggedDenseArrayShape::FlatFromSize(3);
 
   EXPECT_THAT(SelectOp()(ds, ds_shape, filter, filter_shape),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
+              StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("should be broadcastable to")));
 }
 
@@ -489,8 +489,7 @@ TEST(SelectTest, TypeMismatch) {
 
   EXPECT_THAT(SelectOp()(ds, shape, filter, shape),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("second argument to operator select must "
-                                 "have all items of MASK dtype")));
+                       HasSubstr("must have all items of MASK dtype")));
 }
 
 TEST(SelectTest, DataItemObjectId_PresentFilter) {
@@ -631,8 +630,7 @@ TEST(SelectTest, DataItemTypeMismatch) {
 
   EXPECT_THAT(SelectOp()(item, shape, filter, shape),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "second argument to operator select must "
-                       "have all items of MASK dtype"));
+                       HasSubstr("must have all items of MASK dtype")));
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<int>({1, std::nullopt, 4}));
   arolla::JaggedDenseArrayShape ds_shape =
@@ -640,8 +638,7 @@ TEST(SelectTest, DataItemTypeMismatch) {
 
   EXPECT_THAT(SelectOp()(ds, ds_shape, filter, shape),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "second argument to operator select must "
-                       "have all items of MASK dtype"));
+                       HasSubstr("must have all items of MASK dtype")));
 }
 
 TEST(SelectTest, InvalidCase) {

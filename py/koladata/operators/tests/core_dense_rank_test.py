@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for core.dense_rank."""
-
 import re
 
 from absl.testing import absltest
@@ -215,15 +213,17 @@ class CoreOrdinalRankTest(parameterized.TestCase):
 
   def test_multidim_descending_arg_error(self):
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('expected `descending` to be a scalar boolean'),
+        exceptions.KodaError,
+        'operator kd.dense_rank failed during evaluation: expected'
+        ' `descending` to be a scalar boolean value',
     ):
       expr_eval.eval(kde.core.dense_rank(ds([0, 3, 6]), descending=ds([True])))
 
   def test_missing_descending_arg_error(self):
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('expected `descending` to be a scalar boolean'),
+        exceptions.KodaError,
+        'operator kd.dense_rank failed during evaluation: expected'
+        ' `descending` to be a scalar boolean value',
     ):
       expr_eval.eval(kde.core.dense_rank(ds([0, 3, 6]), descending=ds(None)))
 

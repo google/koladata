@@ -900,12 +900,15 @@ DataSlice WithBag(const DataSlice& ds, const DataBagPtr& db) {
 }
 
 absl::StatusOr<DataSlice> WithMergedBag(const DataSlice& ds) {
+  constexpr absl::string_view kOperatorName = "kd.with_merged_bag";
   if (ds.GetBag() == nullptr) {
-    return absl::InvalidArgumentError(
-        "with_merged_bag expects the DataSlice to have a DataBag "
-        "attached");
+    return internal::OperatorEvalError(
+        kOperatorName, "expect the DataSlice to have a DataBag attached");
   }
-  ASSIGN_OR_RETURN(auto merged_db, ds.GetBag()->MergeFallbacks());
+  ASSIGN_OR_RETURN(
+      auto merged_db, ds.GetBag()->MergeFallbacks(),
+      internal::OperatorEvalError(std::move(_), kOperatorName,
+                                  "failed to merge fallback DataBags"));
   merged_db->UnsafeMakeImmutable();
   return ds.WithBag(std::move(merged_db));
 }
@@ -1045,15 +1048,20 @@ absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x) {
 absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
                                       const DataSlice& tie_breaker,
                                       const DataSlice& descending) {
+  constexpr absl::string_view kOperatorName = "kd.ordinal_rank";
   if (descending.GetShape().rank() != 0 ||
       !descending.item().holds_value<bool>()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "expected `descending` to be a scalar boolean value, got %s",
-        arolla::Repr(descending)));
+    return internal::OperatorEvalError(
+        kOperatorName,
+        absl::StrFormat(
+            "expected `descending` to be a scalar boolean value, got %s",
+            arolla::Repr(descending)));
   }
   ASSIGN_OR_RETURN(
       auto tie_breaker_int64,
-      CastToNarrow(tie_breaker, internal::DataItem(schema::kInt64)));
+      CastToNarrow(tie_breaker, internal::DataItem(schema::kInt64)),
+      internal::OperatorEvalError(std::move(_), kOperatorName,
+                                  "tie_breaker must be integers"));
   return SimpleAggOverEval(
       "array.ordinal_rank", {x, std::move(tie_breaker_int64), descending},
       /*output_schema=*/internal::DataItem(schema::kInt64), /*edge_index=*/2);
@@ -1061,11 +1069,14 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
 
 absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,
                                     const DataSlice& descending) {
+  constexpr absl::string_view kOperatorName = "kd.dense_rank";
   if (descending.GetShape().rank() != 0 ||
       !descending.item().holds_value<bool>()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "expected `descending` to be a scalar boolean value, got %s",
-        arolla::Repr(descending)));
+    return internal::OperatorEvalError(
+        kOperatorName,
+        absl::StrFormat(
+            "expected `descending` to be a scalar boolean value, got %s",
+            arolla::Repr(descending)));
   }
   return SimpleAggOverEval(
       "array.dense_rank", {x, descending},
@@ -1087,11 +1098,12 @@ absl::StatusOr<arolla::OperatorPtr> AlignOperatorFamily::DoGetOperator(
 }
 
 absl::StatusOr<DataSlice> Collapse(const DataSlice& ds) {
+  constexpr absl::string_view kOperatorName = "kd.collapse";
   const auto& shape = ds.GetShape();
   size_t rank = shape.rank();
   if (rank == 0) {
-    return absl::InvalidArgumentError(
-        "kd.collapse is not supported for DataItem.");
+    return internal::OperatorEvalError(kOperatorName,
+                                       "DataItem is not supported");
   }
   return DataSlice::Create(
       internal::CollapseOp()(ds.slice(), shape.edges().back()),
@@ -1394,17 +1406,23 @@ absl::StatusOr<DataSlice> Reverse(const DataSlice& obj) {
 
 absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
                                  const bool expand_filter) {
+  constexpr absl::string_view kSelectOpName = "kd.select";
   const internal::DataItem& schema = filter.GetSchemaImpl();
 
   if (schema != schema::kAny && schema != schema::kObject &&
       schema != schema::kMask) {
-    return absl::InvalidArgumentError(
-        "the schema of the filter DataSlice should only be Any, Object or "
-        "Mask");
+    return internal::OperatorEvalError(
+        kSelectOpName,
+        "the schema of the `fltr` DataSlice should only be ANY, OBJECT or "
+        "MASK or can be evaluated to such DataSlice (i.e. Python function or "
+        "Koda Functor)");
   }
   const DataSlice::JaggedShape& fltr_shape =
       expand_filter ? ds.GetShape() : filter.GetShape();
-  ASSIGN_OR_RETURN(auto fltr, BroadcastToShape(filter, fltr_shape));
+  ASSIGN_OR_RETURN(
+      auto fltr, BroadcastToShape(filter, fltr_shape),
+      internal::OperatorEvalError(std::move(_), kSelectOpName,
+                                  "failed to broadcast `fltr` to `ds`"));
   return ds.VisitImpl([&](const auto& ds_impl) {
     return fltr.VisitImpl(
         [&](const auto& filter_impl) -> absl::StatusOr<DataSlice> {

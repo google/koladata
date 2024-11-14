@@ -1651,6 +1651,7 @@ py_test(
     name = "core_select_test",
     srcs = ["core_select_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1756,6 +1757,7 @@ py_test(
     name = "core_remove_test",
     srcs = ["core_remove_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2898,6 +2900,7 @@ py_test(
     name = "core_collapse_test",
     srcs = ["core_collapse_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5453,6 +5456,7 @@ py_test(
     name = "core_with_merged_bag_test",
     srcs = ["core_with_merged_bag_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

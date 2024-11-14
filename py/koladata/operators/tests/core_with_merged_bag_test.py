@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -58,7 +59,9 @@ class CoreWithMergedBagTest(parameterized.TestCase):
 
   def test_no_bag_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'expects the DataSlice to have a DataBag attached'
+        exceptions.KodaError,
+        'operator kd.with_merged_bag failed during evaluation: expect the'
+        ' DataSlice to have a DataBag attached',
     ):
       expr_eval.eval(kde.core.with_merged_bag(ds(1)))
 

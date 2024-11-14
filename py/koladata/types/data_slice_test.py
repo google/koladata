@@ -1349,15 +1349,23 @@ foo.get_obj_schema().x = <desired_schema>"""),
   def test_select_filter_error(self):
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
-        ValueError,
-        'the schema of the filter DataSlice should only be Any, Object or Mask',
+        exceptions.KodaError,
+        re.escape(
+            'operator kd.select failed during evaluation: the schema of the'
+            ' `fltr` DataSlice should only be ANY, OBJECT or MASK or can be'
+            ' evaluated to such DataSlice (i.e. Python function or Koda'
+            ' Functor)'
+        ),
     ):
       x.select(ds([1, 2, 3]))
 
     with self.subTest('Shape mismatch'):
       with self.assertRaisesRegex(
-          ValueError,
-          r'DataSlice with shape=JaggedShape\(4\) cannot be expanded',
+          exceptions.KodaError,
+          re.escape(
+              'operator kd.select failed during evaluation: failed to broadcast'
+              ' `fltr` to `ds`'
+          ),
       ):
         x = ds([[1, 2], [None, None], [7, 8, 9]])
         y = ds([arolla.present(), arolla.present(), None, arolla.present()])

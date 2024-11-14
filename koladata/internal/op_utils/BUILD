@@ -346,11 +346,13 @@ cc_library(
     srcs = ["select.cc"],
     hdrs = ["select.h"],
     deps = [
+        ":utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/dense_array/ops",

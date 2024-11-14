@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.remove."""
+import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -166,7 +167,11 @@ class CoreRemoveTest(parameterized.TestCase):
     y = data_slice.DataSlice.from_vals([arolla.present(), None])
 
     with self.assertRaisesRegex(
-        ValueError, r'DataSlice with shape=JaggedShape\(2\) cannot be expanded'
+        exceptions.KodaError,
+        re.escape(
+            'operator kd.select failed during evaluation: failed to broadcast'
+            ' `fltr` to `ds`'
+        ),
     ):
       _ = expr_eval.eval(kde.core.remove(x, y))
 
