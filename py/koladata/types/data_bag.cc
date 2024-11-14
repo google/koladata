@@ -38,6 +38,7 @@
 #include "koladata/data_bag_repr.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
@@ -1399,6 +1400,17 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
   return WrapPyDataSlice(std::move(result));
 }
 
+absl::Nullable<PyObject*> PyDataBag_get_approx_size(PyObject* self, PyObject*) {
+  const DataBagPtr& db = UnsafeDataBagPtr(self);
+  FlattenFallbackFinder fallback_finder(*db);
+  int64_t size = db->GetImpl().GetApproxTotalSize();
+  for (const internal::DataBagImpl* fallback :
+       fallback_finder.GetFlattenFallbacks()) {
+    size += fallback->GetApproxTotalSize();
+  }
+  return PyLong_FromLongLong(size);
+}
+
 PyMethodDef kPyDataBag_methods[] = {
     {"is_mutable", (PyCFunction)PyDataBag_is_mutable, METH_NOARGS,
      "is_mutable()\n"
@@ -1684,6 +1696,10 @@ The list will be empty if the DataBag does not have fallbacks.)"""},
      "_from_proto(message_list, extensions_list, itemid, schema, /)\n"
      "--\n\n"
      "Returns a DataSlice converted from a list of proto messages."},
+    {"get_approx_size", PyDataBag_get_approx_size, METH_NOARGS,
+     "get_approx_size()\n"
+     "--\n\n"
+     "Returns approximate size of the DataBag."},
     {nullptr} /* sentinel */
 };
 

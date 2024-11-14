@@ -1801,6 +1801,32 @@ Assigned schema for Dict key: INT32""",
       if callable(fn):
         _ = inspect.signature(fn)  # Shouldn't raise.
 
+  def test_get_approx_size(self):
+    # This test approximate size of the DataBag. It is fine to change numbers
+    # here if some behavior is changed.
+    # It is just a demo.
+    db = bag()
+    db_fallback = bag()
+    self.assertEqual(db.get_approx_size(), 0)
+    for _ in range(1000):
+      _ = db.new(a=1)
+      db_fallback.obj(q=1)
+
+    # for each object we also store a schema
+    self.assertEqual(db.get_approx_size(), 2000)
+    # for each object we store a schema and object has an attributed pointing
+    # to the schema.
+    self.assertEqual(db_fallback.get_approx_size(), 3000)
+
+    db <<= db_fallback
+    self.assertEqual(db.get_approx_size(), 5000)
+
+    with self.subTest('with duplicated fallbacks'):
+      db_new = bag()
+      db_new <<= db
+      db_new <<= db_fallback
+      self.assertEqual(db_new.get_approx_size(), 5000)
+
 
 class NullDataBagTest(absltest.TestCase):
 
