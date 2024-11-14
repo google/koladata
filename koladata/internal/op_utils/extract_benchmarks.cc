@@ -19,7 +19,6 @@
 
 #include "benchmark/benchmark.h"
 #include "gmock/gmock.h"
-#include "absl/log/check.h"
 #include "absl/random/distributions.h"
 #include "absl/random/random.h"
 #include "absl/strings/str_cat.h"
@@ -30,6 +29,8 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/presence_and.h"
+#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
@@ -62,7 +63,7 @@ constexpr auto kLayersBenchmarkFn = [](auto* b) {
       ->Args({20, 100, 10, 10});
 };
 
-void RunBenchmarks(benchmark::State& state, DataSliceImpl& ds, DataItem& schema,
+void RunBenchmarks(benchmark::State& state, DataSliceImpl& ds, DataItem &schema,
                    DataBagImplPtr& databag,
                    DataBagImpl::FallbackSpan fallbacks = {}) {
   while (state.KeepRunning()) {
@@ -124,13 +125,39 @@ void BM_DisjointChains(benchmark::State& state) {
     auto child_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
     EXPECT_OK(db->SetSchemaAttr(schema, "child", child_schema));
     EXPECT_OK(db->SetAttr(ds, "child", child_ds));
-    ds = child_ds;
+    ds = std::move(child_ds);
     schema = child_schema;
   }
   RunBenchmarks(state, root_ds, root_schema, db);
 }
 
 BENCHMARK(BM_DisjointChains)->Apply(kBenchmarkFn);
+
+void BM_DisjointChainsObjects(benchmark::State& state) {
+  int64_t schema_depth = state.range(0);
+  int64_t ds_size = state.range(1);
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
+  auto ds = root_ds;
+  internal::DataItem kObjectSchema(schema::kObject);
+  auto kObjectSchemaSlice =
+      DataSliceImpl::Create(/*size=*/ds_size, kObjectSchema);
+  for (int64_t i = 0; i < schema_depth; ++i) {
+    ASSERT_OK_AND_ASSIGN(
+        auto schemas,
+        CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+            ds, schema::kImplicitSchemaSeed));
+    EXPECT_OK(db->SetAttr(ds, schema::kSchemaAttr, schemas));
+    auto child_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
+    EXPECT_OK(db->SetSchemaAttr(schemas, "child", kObjectSchemaSlice));
+    EXPECT_OK(db->SetAttr(ds, "child", child_ds));
+    ds = std::move(child_ds);
+  }
+  RunBenchmarks(state, root_ds, kObjectSchema, db);
+}
+
+BENCHMARK(BM_DisjointChainsObjects)->Apply(kBenchmarkFn);
 
 void BM_DAG(benchmark::State& state) {
   int64_t schema_depth = state.range(0);
@@ -154,13 +181,48 @@ void BM_DAG(benchmark::State& state) {
                             ApplyRandomMask(ShuffleObjectsSlice(child_ds, gen),
                                             presence_rate, gen)));
     }
-    ds = child_ds;
+    ds = std::move(child_ds);
     schema = child_schema;
   }
   RunBenchmarks(state, root_ds, root_schema, db);
 }
 
 BENCHMARK(BM_DAG)->Apply(kLayersBenchmarkFn);
+
+void BM_DAGObjects(benchmark::State& state) {
+  int64_t schema_depth = state.range(0);
+  int64_t attr_count = state.range(1);
+  int64_t presence_rate = state.range(2);
+  int64_t ds_size = state.range(3);
+  absl::BitGen gen;
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
+  auto ds = root_ds;
+
+  internal::DataItem kObjectSchema(schema::kObject);
+  auto kObjectSchemaSlice =
+      DataSliceImpl::Create(/*size=*/ds_size, kObjectSchema);
+  for (int64_t i = 0; i < schema_depth; ++i) {
+    ASSERT_OK_AND_ASSIGN(
+        auto schemas,
+        CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+            ds, schema::kImplicitSchemaSeed));
+    EXPECT_OK(db->SetAttr(ds, schema::kSchemaAttr, schemas));
+    auto child_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
+    for (int64_t j = 0; j < attr_count; ++j) {
+      std::string attr_name = absl::StrCat("layer_", i, "_child_", j);
+      EXPECT_OK(db->SetSchemaAttr(schemas, attr_name, kObjectSchemaSlice));
+      EXPECT_OK(db->SetAttr(ds, attr_name,
+                            ApplyRandomMask(ShuffleObjectsSlice(child_ds, gen),
+                                            presence_rate, gen)));
+    }
+    ds = std::move(child_ds);
+  }
+  RunBenchmarks(state, root_ds, kObjectSchema, db);
+}
+
+BENCHMARK(BM_DAGObjects)->Apply(kLayersBenchmarkFn);
 
 }  // namespace
 }  // namespace koladata::internal
