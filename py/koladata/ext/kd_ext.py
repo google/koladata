@@ -14,8 +14,10 @@
 
 """User-facing module for Koda external libraries related APIs."""
 
+from koladata.ext import nested_data as _nested_data
 from koladata.ext import npkd as _npkd
 from koladata.ext import pdkd as _pdkd
 
 npkd = _npkd
 pdkd = _pdkd
+nested_data = _nested_data

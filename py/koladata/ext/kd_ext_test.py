@@ -22,6 +22,7 @@ class KdExtTest(absltest.TestCase):
     modules = dir(kd_ext)
     self.assertIn('npkd', modules)
     self.assertIn('pdkd', modules)
+    self.assertIn('nested_data', modules)
 
 
 if __name__ == '__main__':

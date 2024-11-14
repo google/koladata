@@ -78,6 +78,7 @@ py_library(
     srcs = ["kd_ext.py"],
     visibility = ["//visibility:public"],
     deps = [
+        ":nested_data",
         ":npkd",
         ":pdkd",
         "@com_google_arolla//py/arolla",
@@ -91,5 +92,46 @@ py_test(
     deps = [
         ":kd_ext",
         "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "functools",
+    srcs = ["functools.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//py/koladata:kd",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "functools_test",
+    srcs = ["functools_test.py"],
+    deps = [
+        ":functools",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "nested_data",
+    srcs = ["nested_data.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":functools",
+        "//py/koladata:kd",
+    ],
+)
+
+py_test(
+    name = "nested_data_test",
+    srcs = ["nested_data_test.py"],
+    deps = [
+        ":nested_data",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
