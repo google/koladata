@@ -411,9 +411,11 @@ TEST(DataSliceReprTest, TestItemStringReprWithFallbackDB) {
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_Primitives) {
-  DataSlice ds = test::DataSlice<int>({1, 2, 3});
+  DataSlice ds0 = test::DataSlice<int>({});
+  EXPECT_THAT(DataSliceToStr(ds0), IsOkAndHolds("[]"));
 
-  EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[1, 2, 3]"));
+  DataSlice ds1 = test::DataSlice<int>({1, 2, 3});
+  EXPECT_THAT(DataSliceToStr(ds1), IsOkAndHolds("[1, 2, 3]"));
 
   DataSlice ds2 = test::DataSlice<int>({1, std::nullopt, 3});
   EXPECT_THAT(DataSliceToStr(ds2), IsOkAndHolds("[1, None, 3]"));
@@ -426,6 +428,9 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_Primitives) {
       {1, std::nullopt, std::nullopt},
       {std::nullopt, arolla::kUnit, std::nullopt});
   EXPECT_THAT(DataSliceToStr(ds4), IsOkAndHolds("[1, present, None]"));
+
+  DataSlice ds5 = test::DataSlice<int>({1, 2, 3});
+  EXPECT_THAT(DataSliceToStr(ds5, {.item_limit = 0}), IsOkAndHolds("[...]"));
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_EntitySlices) {

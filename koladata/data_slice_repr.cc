@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "absl/log/check.h"
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
@@ -42,7 +41,6 @@
 #include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
-#include "arolla/memory/optional_value.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -133,18 +131,17 @@ struct WrappingBehavior {
     return MaybeAnnotateAccess("list-index", index, std::move(repr));
   }
   std::string MaybeAnnotateSchemaAttr(
-      std::string repr, std::string attr_name) const {
-    return MaybeAnnotateAccess(
-        "schema-attr", std::move(attr_name), std::move(repr));
+      std::string repr, absl::string_view attr_name) const {
+    return MaybeAnnotateAccess("schema-attr", attr_name, std::move(repr));
   }
   std::string MaybeAnnotateDictKey(
-      std::string repr, std::string key_name) const {
-    return MaybeAnnotateAccess(
-        "dict-key", std::move(key_name), std::move(repr));
+      std::string repr, absl::string_view key_name) const {
+    return MaybeAnnotateAccess("dict-key", key_name, std::move(repr));
   }
 
-  std::string FormatSchemaAttrAndValue(
-      std::string attr, std::string value_str, bool is_list) const {
+  std::string FormatSchemaAttrAndValue(absl::string_view attr,
+                                       absl::string_view value_str,
+                                       bool is_list) const {
     absl::string_view stripped_attr =
         absl::StripPrefix(absl::StripSuffix(attr, "'"), "'");
 
@@ -155,7 +152,7 @@ struct WrappingBehavior {
       // to reconstruct the access path.
       std::string attr_str = absl::StrFormat(
           kAttrHtmlTemplate, clickable_class, stripped_attr, value_str);
-      return MaybeAnnotateSchemaAttr(std::move(attr_str), std::move(attr));
+      return MaybeAnnotateSchemaAttr(std::move(attr_str), attr);
     } else {
       return absl::StrFormat(kAttrTemplate, stripped_attr, value_str);
     }
@@ -202,103 +199,112 @@ std::string PrettyFormatStr(const std::vector<std::string>& parts,
   return absl::StrCat(joined_parts, suffix);
 }
 
-// Returns the string representation of the element in each edge group.
-absl::StatusOr<std::vector<std::string>> StringifyGroup(
-    const arolla::DenseArrayEdge& edge, std::vector<std::string> parts,
-    const ReprOption& option) {
-  std::vector<std::string> result;
-  result.reserve(edge.child_size());
-  const arolla::DenseArray<int64_t>& edge_values = edge.edge_values();
-  if (!edge_values.IsFull()) {
-    return absl::InternalError("Edge contains missing value.");
-  }
-
-  WrappingBehavior wrapping{.format_html = option.format_html};
-  for (int64_t i = 0; i < edge_values.size() - 1; ++i) {
-    arolla::OptionalValue<int64_t> start = edge_values[i];
-    arolla::OptionalValue<int64_t> end = edge_values[i + 1];
-    std::vector<std::string> elements;
-    elements.reserve(end.value - start.value);
-    size_t item_count = 0;
-    for (int64_t offset = start.value; offset < end.value; ++offset) {
-      if (item_count >= option.item_limit) {
-        elements.emplace_back(kEllipsis);
-        break;
-      }
-      elements.emplace_back(wrapping.MaybeAnnotateSliceIndex(
-          std::move(parts[offset]), offset - start.value));
-      ++item_count;
-    }
-    result.emplace_back(
-        PrettyFormatStr(elements, {.prefix = "[", .suffix = "]"}));
-  }
-  return result;
-}
-
 // Returns the string representation for the DataSlice. It requires the
 // DataSlice contains only DataItem.
-absl::StatusOr<std::string> DataItemToStr(
-    const DataSlice& ds,
-    const ReprOption& option,
-    const WrappingBehavior& wrapping);
+absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
+                                          const ReprOption& option,
+                                          const WrappingBehavior& wrapping);
 
-absl::StatusOr<std::vector<std::string>> StringifyByDimension(
-    const DataSlice& slice, int64_t dimension, const ReprOption& option) {
+std::string DataSliceItemRepr(const DataItem& item, const DataItem& schema,
+                              const ReprOption& option) {
   WrappingBehavior wrapping{.format_html = option.format_html,
                             .object_ids_clickable = true};
-  const internal::DataSliceImpl& slice_impl = slice.slice();
-  const absl::Span<const arolla::DenseArrayEdge> edges =
-      slice.GetShape().edges();
-  const arolla::DenseArrayEdge& edge = edges[dimension];
-  const DataItem& schema = slice.GetSchemaImpl();
-  if (dimension == edges.size() - 1) {
-    // Turns each items in slice into a string.
-    std::vector<std::string> parts;
-    parts.reserve(slice.size());
+  if (item.holds_value<ObjectId>()) {
+    absl::string_view item_prefix = "";
+    if (item.is_dict()) {
+      item_prefix = "Dict:";
+    } else if (item.is_list()) {
+      item_prefix = "List:";
+    } else if (schema == schema::kObject) {
+      item_prefix = "Obj:";
+    } else if (!item.is_schema()) {
+      item_prefix = "Entity:";
+    }
+    return absl::StrCat(item_prefix,
+                        wrapping.MaybeWrapObjectId(
+                            item, wrapping.MaybeEscape(DataItemRepr(item))));
+  } else {
     bool is_obj_or_any_schema =
         schema == schema::kObject || schema == schema::kAny;
     bool is_mask_schema = schema == schema::kMask;
-    for (const DataItem& item : slice_impl) {
-      if (item.holds_value<ObjectId>()) {
-        absl::string_view item_prefix = "";
-        if (item.is_dict()) {
-          item_prefix = "Dict:";
-        } else if (item.is_list()) {
-          item_prefix = "List:";
-        } else if (slice.GetSchemaImpl() == schema::kObject) {
-          item_prefix = "Obj:";
-        } else if (!item.is_schema()) {
-          item_prefix = "Entity:";
-        }
-        parts.push_back(absl::StrCat(
-            item_prefix,
-            wrapping.MaybeWrapObjectId(
-                item, wrapping.MaybeEscape(DataItemRepr(item)))));
-      } else {
-        parts.push_back(wrapping.MaybeEscape(DataItemRepr(
-            item, {.show_dtype = is_obj_or_any_schema,
-                   .show_missing = is_mask_schema})));
-      }
-    }
-    return StringifyGroup(edge, std::move(parts), option);
+    return wrapping.MaybeEscape(DataItemRepr(
+        item,
+        {.show_dtype = is_obj_or_any_schema, .show_missing = is_mask_schema}));
   }
+}
 
-  ReprOption next_option = option;
-  --next_option.depth;
-  ASSIGN_OR_RETURN(std::vector<std::string> parts,
-                   StringifyByDimension(slice, dimension + 1, next_option));
-  return StringifyGroup(edge, std::move(parts), option);
+// Returns the string representations for the value(s) of the `included_groups`
+// in the dimension `dim`. The returned vector has the same size as
+// `included_groups`.
+//
+// TODO: Support max-depth.
+std::vector<std::string> StringifyDimension(
+    const DataSlice& ds, size_t dim, absl::Span<const int64_t> included_groups,
+    const ReprOption& option) {
+  const auto& shape = ds.GetShape();
+  // We're at the last dimension. Print all the items.
+  if (dim >= shape.rank()) {
+    std::vector<std::string> result;
+    result.reserve(included_groups.size());
+    for (int64_t group : included_groups) {
+      result.push_back(
+          DataSliceItemRepr(ds.slice()[group], ds.GetSchemaImpl(), option));
+    }
+    return result;
+  }
+  // We have more dimensions to go: recurse.
+  //
+  // Create a list of at most `option.item_limit` children per group that are
+  // within the `included_groups`.
+  const auto& edge = shape.edges()[dim];
+  const auto& split_points = edge.edge_values().values.span();
+  std::vector<int64_t> next_groups;
+  next_groups.reserve(edge.child_size());  // Upper bound.
+  for (int64_t group : included_groups) {
+    int64_t size = std::min(split_points[group + 1] - split_points[group],
+                            static_cast<int64_t>(option.item_limit));
+    for (int64_t i = 0; i < size; ++i) {
+      next_groups.push_back(split_points[group] + i);
+    }
+  }
+  // Get the string representations of the children.
+  auto next_group_reprs = StringifyDimension(ds, dim + 1, next_groups, option);
+  // Group the representations of the children within a pair of brackets.
+  int group_start = 0;
+  std::vector<std::string> group_reprs;
+  group_reprs.reserve(included_groups.size());
+  WrappingBehavior wrapping{.format_html = option.format_html};
+  for (int64_t group : included_groups) {
+    int64_t group_size = split_points[group + 1] - split_points[group];
+    int64_t size =
+        std::min(group_size, static_cast<int64_t>(option.item_limit));
+    // A vector is created where each child repr has additional information
+    // about the current group context added. An ellipsis is also added to the
+    // data if truncation was done.
+    std::vector<std::string> current_group_reprs;
+    current_group_reprs.reserve(size + 1);
+    for (int64_t i = 0; i < size; ++i) {
+      current_group_reprs.push_back(wrapping.MaybeAnnotateSliceIndex(
+          std::move(next_group_reprs[group_start + i]), i));
+    }
+    if (group_size > size) {
+      current_group_reprs.emplace_back(kEllipsis);
+    }
+    group_reprs.push_back(
+        PrettyFormatStr(current_group_reprs, {.prefix = "[", .suffix = "]"}));
+    group_start += size;
+  }
+  return group_reprs;
 }
 
 // Returns the string for python __str__ and part of __repr__.
 // The DataSlice must have at least 1 dimension.
-// TODO: do truncation when ds is too large.
-absl::StatusOr<std::string> DataSliceImplToStr(
-    const DataSlice& ds, const ReprOption& option = ReprOption{}) {
-  ASSIGN_OR_RETURN(std::vector<std::string> parts,
-                   StringifyByDimension(ds, 0, option));
-  return PrettyFormatStr(
-      parts, {.prefix = "", .suffix = "", .enable_multiline = false});
+std::string DataSliceImplToStr(const DataSlice& ds,
+                               const ReprOption& option = ReprOption{}) {
+  std::vector<std::string> result =
+      StringifyDimension(ds, /*dim=*/0, /*included_groups=*/{0}, option);
+  DCHECK_EQ(result.size(), 1);
+  return std::move(result[0]);
 }
 
 // Returns the string representation of list schema. `schema` must be schema
@@ -432,8 +438,7 @@ absl::StatusOr<std::string> SchemaToStr(const DataSlice& ds,
     ASSIGN_OR_RETURN(std::string value_str,
                      DataItemToStr(value, option, wrapping));
     parts.emplace_back(wrapping.FormatSchemaAttrAndValue(
-        wrapping.MaybeEscape(attr_name),
-        std::move(value_str), value.item().is_list()));
+        wrapping.MaybeEscape(attr_name), value_str, value.item().is_list()));
     ++item_count;
   }
   return absl::StrJoin(parts, ", ");
