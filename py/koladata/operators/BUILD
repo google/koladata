@@ -429,7 +429,6 @@ py_library(
     srcs = ["eager_op_utils.py"],
     deps = [
         ":kde_operators",
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/abc:py_abc",

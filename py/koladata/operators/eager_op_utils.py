@@ -21,9 +21,49 @@ import types
 from typing import Any, Callable
 
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.operators import kde_operators
 from koladata.types import py_boxing
+
+
+_M_math_add_op = arolla.M.math.add
+_hidden_seed_fingerprint = py_boxing.HIDDEN_SEED_LEAF.fingerprint
+
+
+def _aux_eval_op(
+    op: arolla.abc.Operator, /, *args: Any, **kwargs: Any
+) -> arolla.AnyQValue:
+  """Returns the result of an operator evaluation with given arguments.
+
+  This is a generalization of arolla.abc.aux_eval_op() to accommodate
+  Koladata's needs, particularly supporting operators with a hidden_seed
+  parameter.
+
+  Args:
+    op: An operator, or the name of an operator in the registry.
+    *args: Positional arguments for the operator.
+    **kwargs: Keyword arguments for the operator.
+
+  Returns:
+    The evalution result.
+  """
+  input_nodes = arolla.abc.aux_bind_op(op, *args, **kwargs).node_deps
+  inputs = []
+  for i, input_node in enumerate(input_nodes):
+    input_node_qvalue = input_node.qvalue
+    if input_node_qvalue is not None:
+      inputs.append(input_node_qvalue)
+    elif (
+        input_node.op == _M_math_add_op
+        and input_node.node_deps[0].fingerprint == _hidden_seed_fingerprint
+    ):
+      inputs.append(arolla.int64(i))
+    else:
+      raise TypeError(
+          'expected all arguments to be values, got got an expression for'
+          ' the parameter'
+          f' {arolla.abc.get_operator_signature(op).parameters[i].name!r}'
+      )
+  return arolla.abc.invoke_op(op, tuple(inputs))
 
 
 class _NonDeterministicEagerOpCallMethod:
@@ -37,7 +77,7 @@ class _NonDeterministicEagerOpCallMethod:
     return inspect.signature(self._op)
 
   def __call__(self, *args: Any, **kwargs: Any) -> arolla.AnyQValue:
-    return expr_eval.eval(arolla.abc.aux_bind_op(self._op, *args, **kwargs))
+    return _aux_eval_op(self._op, *args, **kwargs)
 
 
 class _NonDeterministicEagerOp:

@@ -216,22 +216,37 @@ class EagerOpUtilsTest(parameterized.TestCase):
     )
 
   def test_non_deterministic_op(self):
+    @optools.as_lambda_operator(
+        'increase_counter', aux_policy=py_boxing.FULL_SIGNATURE_POLICY
+    )
+    def increase_counter_op(hidden_seed=py_boxing.hidden_seed()):
+
+      @arolla.optools.as_py_function_operator(
+          'impl', qtype_inference_expr=arolla.UNIT
+      )
+      def impl(_):
+        nonlocal counter
+        counter += 1
+        return arolla.unit()
+
+      return impl(hidden_seed)
 
     @optools.add_to_registry()
     @optools.as_lambda_operator(
         'test.non_deterministic_op',
-        qtype_constraints=[
-            qtype_utils.expect_accepts_hidden_seed(),
-        ],
+        qtype_constraints=[qtype_utils.expect_accepts_hidden_seed()],
         aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     )
-    def non_deterministic_op(hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+    def non_deterministic_op(arg=arolla.unit(), hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
       """non_deterministic_op docstring."""
-      return hidden_seed
+      return arolla.M.core.make_tuple(
+          arg, increase_counter_op(), increase_counter_op()
+      )
 
     op = getattr(
         eager_op_utils.operators_container('test'), 'non_deterministic_op'
     )
+
     self.assertEqual(op.getdoc(), 'non_deterministic_op docstring.')
     self.assertEqual(
         inspect.signature(op), inspect.signature(non_deterministic_op)
@@ -239,7 +254,18 @@ class EagerOpUtilsTest(parameterized.TestCase):
     self.assertEqual(
         inspect.signature(op.__call__), inspect.signature(non_deterministic_op)
     )
-    self.assertNotEqual(op(), op())
+    counter = 0
+    testing.assert_equal(
+        op(), arolla.tuple(arolla.unit(), arolla.unit(), arolla.unit())
+    )
+    self.assertEqual(counter, 2)
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'expected all arguments to be values, got got an expression for'
+        " the parameter 'arg'",
+    ):
+      op(arolla.P.x)
 
   def test_overrides(self):
     kd = eager_op_utils.operators_container('test.namespace_1')
