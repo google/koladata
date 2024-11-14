@@ -391,7 +391,9 @@ class DataSliceViewTest(parameterized.TestCase):
     testing.assert_equal(+C.x, kde.math.pos(C.x))
 
   def test_call(self):
-    testing.assert_equal(C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z))
+    testing.assert_equal(
+        C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z)
+    )
     testing.assert_equal(
         C.x(C.y, return_type_as=C.t, foo=C.z),
         kde.call(C.x, C.y, return_type_as=C.t, foo=C.z),
@@ -562,12 +564,12 @@ class DataSliceViewTest(parameterized.TestCase):
 
   def test_with_db(self):
     testing.assert_equal(
-        C.x.with_db(C.get_bag()), kde.with_bag(C.x, C.get_bag())
+        C.x.with_db(C.y.get_bag()), kde.with_bag(C.x, C.y.get_bag())
     )
 
   def test_with_bag(self):
     testing.assert_equal(
-        C.x.with_bag(C.get_bag()), kde.with_bag(C.x, C.get_bag())
+        C.x.with_bag(C.y.get_bag()), kde.with_bag(C.x, C.y.get_bag())
     )
 
   def test_get_size(self):
@@ -598,12 +600,12 @@ class DataSliceViewTest(parameterized.TestCase):
 
   def test_enriched(self):
     testing.assert_equal(
-        C.x.enriched(C.get_bag()), kde.enriched(C.x, C.get_bag())
+        C.x.enriched(C.y.get_bag()), kde.enriched(C.x, C.y.get_bag())
     )
 
   def test_updated(self):
     testing.assert_equal(
-        C.x.updated(C.get_bag()), kde.updated(C.x, C.get_bag())
+        C.x.updated(C.y.get_bag()), kde.updated(C.x, C.y.get_bag())
     )
 
   def test_get_present_count(self):

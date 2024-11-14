@@ -24,3 +24,6 @@ assert_dicts_values_equal = _test_utils.assert_dicts_values_equal
 assert_dicts_equal = _test_utils.assert_dicts_equal
 assert_nested_lists_equal = _test_utils.assert_nested_lists_equal
 assert_unordered_equal = _test_utils.assert_unordered_equal
+assert_non_deterministic_exprs_equal = (
+    _test_utils.assert_non_deterministic_exprs_equal
+)

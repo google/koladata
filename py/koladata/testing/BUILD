@@ -42,6 +42,7 @@ py_library(
         "//py/koladata/types:dict_item",
         "//py/koladata/types:ellipsis",
         "//py/koladata/types:jagged_shape",
+        "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -56,6 +57,7 @@ py_test(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:ellipsis",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
     ],
 )

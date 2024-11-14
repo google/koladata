@@ -15,6 +15,7 @@
 import re
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from arolla import arolla
 from koladata.operators import kde_operators
 from koladata.testing import test_utils
@@ -27,7 +28,7 @@ bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 
 
-class TestUtilsTest(absltest.TestCase):
+class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_equal(self):
     test_utils.assert_equal(ds([1, 2, 3]), ds([1, 2, 3]))
@@ -338,6 +339,49 @@ class TestUtilsTest(absltest.TestCase):
           ds(1).with_bag(bag()),
           ds(1).with_bag(bag()),
       )
+
+  @parameterized.parameters(
+      (kde.new(), kde.new()),
+      (kde.new(a=42, b='xyz'), kde.new(a=42, b='xyz')),
+      (kde.list(ds([1, 2, 3])), kde.list(ds([1, 2, 3]))),
+      (
+          kde.dict(ds([1, 2, 3]), ds([4, 5, 6])),
+          kde.dict(ds([1, 2, 3]), ds([4, 5, 6]))
+      ),
+      (
+          kde.explode(
+              kde.list(ds([1, 2, 3]))
+          ) + kde.explode(kde.list(ds([4, 5, 6]))),
+          kde.explode(
+              kde.list(ds([1, 2, 3]))
+          ) + kde.explode(kde.list(ds([4, 5, 6]))),
+      ),
+  )
+  def test_assert_non_deterministic_exprs_equal(
+      self, actual_expr, expected_expr
+  ):
+    with self.assertRaisesRegex(
+        AssertionError, 'Exprs not equal by fingerprint'
+    ):
+      test_utils.assert_equal(actual_expr, expected_expr)
+    test_utils.assert_non_deterministic_exprs_equal(actual_expr, expected_expr)
+
+  def test_assert_non_deterministic_exprs_equal_error(self):
+    with self.assertRaisesRegex(
+        AssertionError, 'Exprs not equal by fingerprint'
+    ):
+      test_utils.assert_non_deterministic_exprs_equal(
+          kde.new(a=12), kde.new(a=42)
+      )
+
+  def test_assert_non_deterministic_exprs_equal_repeated_expr(self):
+    expr = kde.explode(kde.list(ds([1])))
+    expr_1 = expr + expr
+    expr_2 = kde.explode(kde.list(ds([1]))) + kde.explode(kde.list(ds([1])))
+    with self.assertRaisesRegex(
+        AssertionError, 'Exprs not equal by fingerprint'
+    ):
+      test_utils.assert_non_deterministic_exprs_equal(expr_1, expr_2)
 
 
 if __name__ == '__main__':
