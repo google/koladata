@@ -666,6 +666,26 @@ py_test(
 )
 
 py_test(
+    name = "math_sigmoid_test",
+    srcs = ["math_sigmoid_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "math_abs_test",
     srcs = ["math_abs_test.py"],
     deps = [
@@ -5750,6 +5770,14 @@ koda_operator_coverage_test(
     name = "kd_math_exp_covers_math_exp_test",
     arolla_op = "math.exp",
     koda_op = "math.exp",
+    skip_test_patterns = ["(?i).*WEAK_FLOAT.*"],
+)
+
+koda_operator_coverage_test(
+    name = "kd_math_sigmoid_covers_math_sigmoid_test",
+    arolla_op = "math.sigmoid",
+    koda_op = "math.sigmoid",
+    shard_count = 50,  # TODO: Enormous test
     skip_test_patterns = ["(?i).*WEAK_FLOAT.*"],
 )
 

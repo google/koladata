@@ -83,6 +83,35 @@ def log10(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.math.sigmoid',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.half),
+        qtype_utils.expect_data_slice(P.slope),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def sigmoid(
+    x,  # pylint: disable=unused-argument
+    half=data_slice.DataSlice.from_vals(0.0),  # pylint: disable=unused-argument
+    slope=data_slice.DataSlice.from_vals(1.0),  # pylint: disable=unused-argument
+):
+  """Computes sigmoid of the input.
+
+  sigmoid(x) = 1 / (1 + exp(-slope * (x - half)))
+
+  Args:
+    x: A DataSlice of numbers.
+    half: A DataSlice of numbers.
+    slope: A DataSlice of numbers.
+  Return:
+    sigmoid(x) computed with the formula above.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.math.exp',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),

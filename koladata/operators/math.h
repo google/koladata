@@ -38,6 +38,13 @@ absl::StatusOr<DataSlice> Log10(const DataSlice& x);
 // kde.math.exp.
 absl::StatusOr<DataSlice> Exp(const DataSlice& x);
 
+
+// kde.math.sigmoid.
+absl::StatusOr<DataSlice> Sigmoid(
+    const DataSlice& x,
+    const DataSlice& half,
+    const DataSlice& slope);
+
 // kde.math.abs.
 absl::StatusOr<DataSlice> Abs(const DataSlice& x);
 

@@ -189,6 +189,7 @@ OPERATOR("kde.math.neg", Neg);
 OPERATOR("kde.math.pos", Pos);
 OPERATOR("kde.math.pow", Pow);
 OPERATOR("kde.math.round", Round);
+OPERATOR("kde.math.sigmoid", Sigmoid);
 OPERATOR("kde.math.sign", Sign);
 OPERATOR("kde.math.subtract", Subtract);
 //
