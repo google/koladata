@@ -347,19 +347,6 @@ py_test(
 )
 
 py_test(
-    name = "uu_test",
-    srcs = ["uu_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-py_test(
     name = "new_shaped_test",
     srcs = ["new_shaped_test.py"],
     deps = [
@@ -473,6 +460,33 @@ py_test(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",
         "//py/koladata/types:list_item",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
+    name = "uu_test",
+    srcs = ["uu_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
+    name = "uuobj_test",
+    srcs = ["uuobj_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
     ],

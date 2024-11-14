@@ -17,24 +17,20 @@ from koladata.functions import functions as fns
 from koladata.operators import kde_operators as _  # pylint: disable=unused-import
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 ds = data_slice.DataSlice.from_vals
 
 
-class UuTest(absltest.TestCase):
+class UuObjTest(absltest.TestCase):
 
   def test_default_bag(self):
-    x = fns.uu(
+    x = fns.uuobj(
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
-    testing.assert_equal(
-        x.get_schema(),
-        x.get_bag().uu_schema(
-            a=schema_constants.FLOAT64, b=schema_constants.STRING
-        ),
-    )
+    testing.assert_equal(x.has_attr('__schema__'), ds([mask_constants.present]))
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
     )
@@ -48,15 +44,12 @@ class UuTest(absltest.TestCase):
 
   def test_provided_bag(self):
     db = fns.bag()
-    x = fns.uu(
+    x = fns.uuobj(
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
         db=db,
     )
-    testing.assert_equal(
-        x.get_schema(),
-        db.uu_schema(a=schema_constants.FLOAT64, b=schema_constants.STRING),
-    )
+    testing.assert_equal(x.get_bag(), db)
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(db)
     )
@@ -68,12 +61,12 @@ class UuTest(absltest.TestCase):
 
   def test_uuid_consistency(self):
     db = fns.bag()
-    x = fns.uu(
+    x = fns.uuobj(
         db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
-    y = fns.uu(
+    y = fns.uuobj(
         db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
@@ -82,18 +75,18 @@ class UuTest(absltest.TestCase):
 
   def test_seed_arg(self):
     db = fns.bag()
-    x = fns.uu(
+    x = fns.uuobj(
         db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
-    y = fns.uu(
+    y = fns.uuobj(
         db=db,
         seed='seed',
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
-    z = fns.uu(
+    z = fns.uuobj(
         'seed',
         db=db,
         a=ds([3.14], schema_constants.FLOAT64),
@@ -102,46 +95,8 @@ class UuTest(absltest.TestCase):
     self.assertNotEqual(x.fingerprint, y.fingerprint)
     self.assertEqual(y.fingerprint, z.fingerprint)
 
-  def test_schema_arg(self):
-    x = fns.uu(
-        a=ds([3.14], schema_constants.FLOAT32),
-        schema=fns.uu_schema(a=schema_constants.FLOAT64),
-    )
-    testing.assert_equal(
-        x.get_schema(),
-        fns.uu_schema(a=schema_constants.FLOAT64).with_bag(x.get_bag()),
-    )
-    testing.assert_equal(
-        x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
-    )
-    testing.assert_allclose(
-        x.a,
-        ds([3.14], schema_constants.FLOAT64).with_bag(x.get_bag()),
-        atol=1e-6,
-    )
-
-  def test_update_schema_arg(self):
-    db = fns.bag()
-    x = fns.uu(
-        db=db,
-        a=ds([3.14], schema_constants.FLOAT32),
-        schema=fns.uu_schema(db=db, a=schema_constants.FLOAT64),
-        update_schema=True,
-    )
-    testing.assert_equal(
-        x.a.get_schema(), schema_constants.FLOAT32.with_bag(x.get_bag())
-    )
-    testing.assert_allclose(
-        x.a, ds([3.14], schema_constants.FLOAT32).with_bag(x.get_bag())
-    )
-
-  def test_schema_arg_update_schema_overwriting(self):
-    schema = fns.uu_schema(a=schema_constants.INT32)
-    x = fns.uu(a='xyz', schema=schema, update_schema=True)
-    testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
-
   def test_alias(self):
-    self.assertIs(fns.uu, fns.core.uu)
+    self.assertIs(fns.uuobj, fns.core.uuobj)
 
 
 if __name__ == '__main__':

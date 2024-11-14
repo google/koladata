@@ -656,8 +656,8 @@ def obj_like(
 
 
 def uu(
-    *,
     seed: str | None = None,
+    *,
     schema: data_slice.DataSlice | None = None,
     update_schema: bool = False,
     db: data_bag.DataBag | None = None,
@@ -682,6 +682,40 @@ def uu(
   if db is None:
     db = bag()
   return db.uu(seed=seed, schema=schema, update_schema=update_schema, **attrs)
+
+
+def uuobj(
+    seed: str | None = None,
+    *,
+    db: data_bag.DataBag | None = None,
+    **attrs: Any,
+) -> data_slice.DataSlice:
+  """Creates object(s) whose ids are uuid(s) with the provided attributes.
+
+  In order to create a different "Type" from the same arguments, use
+  `seed` key with the desired value, e.g.
+
+  kd.uuobj(seed='type_1', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+
+  and
+
+  kd.uuobj(seed='type_2', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+
+  have different ids.
+
+  Args:
+    seed: (str) Allows different uuobj(s) to have different ids when created
+      from the same inputs.
+    db: optional DataBag where entities are created.
+    **attrs: key-value pairs of object attributes where values are DataSlices
+      or can be converted to DataSlices using kd.new / kd.obj.
+
+  Returns:
+    data_slice.DataSlice
+  """
+  if db is None:
+    db = bag()
+  return db.uuobj(seed=seed, **attrs)
 
 
 def empty_shaped(

@@ -32,6 +32,7 @@ from koladata.types import general_eager_ops as _general_eager_ops
 bag = _object_factories.bag
 
 uu = _object_factories.uu
+uuobj = _object_factories.uuobj
 
 list = _object_factories.list_  # pylint: disable=redefined-builtin
 list_like = _object_factories.list_like
@@ -67,6 +68,7 @@ empty_shaped_as = _object_factories.empty_shaped_as
 core = _py_types.SimpleNamespace(
     bag=_object_factories.bag,
     uu=_object_factories.uu,
+    uuobj=_object_factories.uuobj,
     list=_object_factories.list_,
     list_like=_object_factories.list_like,
     list_shaped=_object_factories.list_shaped,

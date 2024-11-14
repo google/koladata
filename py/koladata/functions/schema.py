@@ -87,6 +87,7 @@ def dict_schema(
 
 def uu_schema(
     seed: str | None = None,
+    *,
     db: data_bag.DataBag | None = None,
     **attrs: data_slice.DataSlice
 ) -> data_slice.DataSlice:
@@ -108,6 +109,7 @@ def uu_schema(
 
 def named_schema(
     name: str | data_slice.DataSlice,
+    *,
     db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates a named entity schema in the given DataBag.
