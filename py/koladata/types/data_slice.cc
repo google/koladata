@@ -503,11 +503,12 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
   return 0;
 }
 
-PyObject* PyDataSlice_str(PyObject* self) {
+PyObject* PyDataSlice_str_with_options(
+    PyObject* self, const ReprOption& option) {
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
   std::string result;
   absl::StatusOr<std::string> item_str =
-      DataSliceToStr(self_ds, ReprOption{.strip_quotes = true});
+      DataSliceToStr(self_ds, option);
   if (item_str.ok()) {
     result = item_str.value();
   } else {
@@ -516,6 +517,15 @@ PyObject* PyDataSlice_str(PyObject* self) {
   }
 
   return PyUnicode_FromStringAndSize(result.c_str(), result.size());
+}
+
+PyObject* PyDataSlice_str(PyObject* self) {
+  return PyDataSlice_str_with_options(self, ReprOption{.strip_quotes = true});
+}
+
+PyObject* PyDataSlice_html_str(PyObject* self) {
+  return PyDataSlice_str_with_options(
+      self, ReprOption{.strip_quotes = true, .format_html = true});
 }
 
 absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {
@@ -996,6 +1006,10 @@ Args:
      "\n"
      "Args:\n"
      "  method_name: (str)\n"},
+    {"_internal_html_str", (PyCFunction)PyDataSlice_html_str, METH_NOARGS,
+    "_internal_html_str()\n"
+     "--\n\n"
+     "Used to generate HTML for interactive repr in Colab."},
     {nullptr}, /* sentinel */
 };
 

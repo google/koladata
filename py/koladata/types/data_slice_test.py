@@ -3047,6 +3047,10 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     x = x.freeze()
     self.assertFalse(x.is_mutable())
 
+  def test_internal_html_str(self):
+    d = ds([1, 2, 3])
+    self.assertIn('<span', d._internal_html_str())   # pylint: disable=protected-access
+
 
 if __name__ == '__main__':
   absltest.main()
