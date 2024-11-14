@@ -263,8 +263,7 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
     return nullptr;
   }
   std::optional<DataSlice> res;
-  // args.pos_kw_values[0] is "arg" positional-keyword argument.
-  if (FirstArgProvided(args.pos_kw_values[0])) {
+  if (FirstArgProvided(args.pos_only_args[0])) {
     if (!args.kw_values.empty()) {
       PyErr_SetString(
           PyExc_TypeError,
@@ -282,7 +281,7 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
     AdoptionQueue adoption_queue;
     ASSIGN_OR_RETURN(res,
                      FactoryHelperT::FromPyObject(
-                         args.pos_kw_values[0], schema_arg, db, adoption_queue),
+                         args.pos_only_args[0], schema_arg, db, adoption_queue),
                      SetKodaPyErrFromStatus(_));
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
         .With([&](const absl::Status& status) {
@@ -379,8 +378,8 @@ absl::Nullable<PyObject*> PyDataBag_new_factory(PyObject* self,
                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true,
-      {"schema", "update_schema", "itemid"}, /*pos_kw_args=*/"arg"));
+      /*pos_only_n=*/1, /*optional_positional_only=*/true,
+      /*parse_kwargs=*/true, {"schema", "update_schema", "itemid"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -403,8 +402,8 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory(PyObject* self,
                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"itemid"},
-      /*pos_kw_args=*/"arg"));
+      /*pos_only_n=*/1, /*optional_positional_only=*/true,
+      /*parse_kwargs=*/true, {"itemid"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -419,13 +418,10 @@ template <class FactoryHelperT>
 absl::Nullable<PyObject*> ProcessObjectShapedCreation(
     const DataBagPtr& db, const FastcallArgParser::Args& args) {
   std::optional<DataSlice> res;
-  // args.pos_kw_values[0] is "shape" positional-keyword argument.
-  if (args.pos_kw_values[0] == nullptr) {
-    PyErr_SetString(PyExc_TypeError, "expected mandatory 'shape' argument");
-    return nullptr;
-  }
+  // args.pos_only_args[0] is "shape" positional-only argument.
+  DCHECK_NE(args.pos_only_args[0], nullptr);
   const DataSlice::JaggedShape* shape =
-      UnwrapJaggedShape(args.pos_kw_values[0], "shape");
+      UnwrapJaggedShape(args.pos_only_args[0], "shape");
   if (shape == nullptr) {
     return nullptr;
   }
@@ -479,8 +475,8 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_shaped(PyObject* self,
                                                        PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true,
-      {"schema", "update_schema", "itemid"}, /*pos_kw_args=*/"shape"));
+      /*pos_only_n=*/1, /*parse_kwargs=*/true,
+      {"schema", "update_schema", "itemid"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -501,8 +497,7 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_shaped(PyObject* self,
                                                        PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"itemid"},
-      /*pos_kw_args=*/"shape"));
+      /*pos_only_n=*/1, /*parse_kwargs=*/true, {"itemid"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -517,14 +512,10 @@ template <class FactoryHelperT>
 absl::Nullable<PyObject*> ProcessObjectLikeCreation(
     const DataBagPtr& db, const FastcallArgParser::Args& args) {
   std::optional<DataSlice> res;
-  // args.pos_kw_values[0] is "shape_and_mask_from" positional-keyword argument.
-  if (args.pos_kw_values[0] == nullptr) {
-    PyErr_SetString(PyExc_TypeError,
-                    "expected mandatory 'shape_and_mask_from' argument");
-    return nullptr;
-  }
+  // args.pos_only_args[0] is "shape_and_mask_from" positional-only argument.
+  DCHECK_NE(args.pos_only_args[0], nullptr);
   const DataSlice* shape_and_mask_from =
-      UnwrapDataSlice(args.pos_kw_values[0], "shape_and_mask_from");
+      UnwrapDataSlice(args.pos_only_args[0], "shape_and_mask_from");
   if (shape_and_mask_from == nullptr) {
     return nullptr;
   }
@@ -578,9 +569,8 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_like(PyObject* self,
                                                      PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true,
-      {"schema", "update_schema", "itemid"},
-      /*pos_kw_args=*/"shape_and_mask_from"));
+      /*pos_only_n=*/1, /*parse_kwargs=*/true,
+      {"schema", "update_schema", "itemid"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -601,8 +591,7 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_like(PyObject* self,
                                                      PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"itemid"},
-      /*pos_kw_args=*/"shape_and_mask_from"));
+      /*pos_only_n=*/1, /*parse_kwargs=*/true, {"itemid"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;

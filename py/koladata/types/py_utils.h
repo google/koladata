@@ -76,6 +76,7 @@ absl::StatusOr<std::vector<DataSlice>> ConvertArgsToDataSlices(
 //
 // Initialized with:
 // * pos_only_n - number of positional only arguments;
+// * optional_positional_only - whether positional only arguments are optional;
 // * parse_kwargs - whether keyword only arguments passed as **kwargs are parsed
 //     into the result or unexpected keyword argument Error is reported.
 // * kw_only_arg_names [optional] - initializer_list of keyword-only arguments.
@@ -96,8 +97,7 @@ absl::StatusOr<std::vector<DataSlice>> ConvertArgsToDataSlices(
 class FastcallArgParser {
  public:
   struct Args {
-    // TODO: Consider if all arguments should be stored in this
-    // structure, including positional-only, as well. Although they are rare.
+    std::vector<PyObject*> pos_only_args;
     std::vector<PyObject*> pos_kw_values;
     absl::flat_hash_map<absl::string_view, PyObject*> kw_only_args;
     std::vector<absl::string_view> kw_names;
@@ -122,8 +122,22 @@ class FastcallArgParser {
         pos_kw_to_pos_(ArgNames(pos_kw_arg_names...).to_pos),
         kw_only_arg_names_(kw_only_arg_names) {}
 
-  // Parses the positional-keyword, keyword-only and variadic keyword arguments
-  // for FASTCALL methods into FastcallArgParser::Args, which contains:
+  template <typename... ArgName>
+  FastcallArgParser(size_t pos_only_n,
+                    bool optional_positional_only,
+                    bool parse_kwargs,
+                    std::initializer_list<absl::string_view> kw_only_arg_names,
+                    ArgName... pos_kw_arg_names)
+      : pos_only_n_(pos_only_n),
+        optional_positional_only_(optional_positional_only),
+        parse_kwargs_(parse_kwargs),
+        pos_kw_to_pos_(ArgNames(pos_kw_arg_names...).to_pos),
+        kw_only_arg_names_(kw_only_arg_names) {}
+
+  // Parses the positional-only, positional-keyword, keyword-only and variadic
+  // keyword arguments for FASTCALL methods into FastcallArgParser::Args, which
+  // contains:
+  // * pos_only_args - values of positional-only arguments;
   // * pos_kw_values - values of positional-keyword arguments;
   // * kw_only_args - a map from argument names to their values for keyword-only
   //     arguments;
@@ -143,9 +157,15 @@ class FastcallArgParser {
   // arguments will be parsed into a `kw_only_args` map. If FastcallArgParser
   // was initialized with `parse_kwargs=true`, the rest of the keyword arguments
   // are collected into `*kw_names` and `*kw_values`. Otherwise,
-  // unexpected-keyword error is raised. Positional-only arguments are ignored,
-  // while for missing arguments, the caller should decide after calling this
-  // method if they are optional or mandatory.
+  // unexpected-keyword error is raised. Positional-only arguments are stored in
+  // `pos_only_args`.
+  //
+  // For missing arguments, the caller should decide after calling this
+  // method if they are optional (== nullptr) or mandatory. By default, all
+  // positional-only arguments are mandatory to avoid confusion with optional
+  // positional-keyword argument. This behavior can be overrided with
+  // `optional_positional_only` flag, after which the caller should handle the
+  // missing argument case.
   //
   // `py_args`, `nargs` and `py_kwnames` should just be passed down from the
   // method / functions arguments that are registered as FASTCALL | KEYWORDS.
@@ -183,6 +203,7 @@ class FastcallArgParser {
   };
 
   size_t pos_only_n_;
+  bool optional_positional_only_ = false;
   bool parse_kwargs_ = false;
   // NOTE: Safe to use `absl::string_view` as those are literals and set in the
   // same scope in which this function is called.

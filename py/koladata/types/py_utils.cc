@@ -14,6 +14,7 @@
 //
 #include "py/koladata/types/py_utils.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -232,7 +233,7 @@ namespace {
 // Sets Python TypeError if inadequate number of positional arguments have been
 // passed to a function / method.
 bool InvalidPosArgCountError(Py_ssize_t nargs, size_t pos_only_n,
-                             size_t pos_keyword_n) {
+                             size_t pos_keyword_n, bool opt_pos_only) {
   if (pos_only_n > 0 || pos_keyword_n > 0) {
     if (pos_keyword_n == 0) {
       PyErr_Format(PyExc_TypeError,
@@ -242,8 +243,8 @@ bool InvalidPosArgCountError(Py_ssize_t nargs, size_t pos_only_n,
     } else {
       PyErr_Format(PyExc_TypeError,
                    "accepts %d to %d positional arguments but %d %s given",
-                   pos_only_n, pos_only_n + pos_keyword_n, nargs,
-                   nargs == 1 ? "was" : "were");
+                   opt_pos_only ? 0 : pos_only_n, pos_only_n + pos_keyword_n,
+                   nargs, nargs == 1 ? "was" : "were");
     }
   } else {
     PyErr_Format(PyExc_TypeError,
@@ -264,9 +265,16 @@ bool FastcallArgParser::Parse(PyObject* const* py_args, Py_ssize_t nargs,
   if (!kw_only_arg_names_.empty()) {
     args.kw_only_args.reserve(kw_only_arg_names_.size());
   }
+  args.pos_only_args.assign(pos_only_n_, nullptr);
   args.pos_kw_values.assign(pos_kw_to_pos_.size(), nullptr);
-  if (nargs < pos_only_n_ || nargs > pos_kw_to_pos_.size() + pos_only_n_) {
-    return InvalidPosArgCountError(nargs, pos_only_n_, pos_kw_to_pos_.size());
+  if ((!optional_positional_only_ && nargs < pos_only_n_) ||
+      nargs > pos_kw_to_pos_.size() + pos_only_n_) {
+    return InvalidPosArgCountError(nargs, pos_only_n_, pos_kw_to_pos_.size(),
+                                   optional_positional_only_);
+  }
+  for (size_t i = 0; i < std::min(pos_only_n_, static_cast<size_t>(nargs));
+       ++i) {
+    args.pos_only_args[i] = py_args[i];
   }
   for (size_t i = pos_only_n_; i < nargs; ++i) {
     args.pos_kw_values[i - pos_only_n_] = py_args[i];

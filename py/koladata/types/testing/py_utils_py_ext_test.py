@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for py_utils_py_ext."""
-
 from absl.testing import absltest
 from koladata.types.testing import py_utils_py_ext
 
@@ -200,6 +198,26 @@ class ParseArgsTest(absltest.TestCase):
         TypeError, 'accepts 0 to 2 positional arguments but 3 were given'
     ):
       _ = kw_only_pos_only_and_var_kwargs(15, 52, 37, a=42)
+
+  def test_optional_positional_only(self):
+    opt_pos_only = py_utils_py_ext.optional_positional_only
+
+    self.assertEqual(opt_pos_only(12, 42, 24, 21), (12, 42, 24, 21))
+    self.assertEqual(opt_pos_only(12, 42, pos_2=24, pos_1=21), (12, 42, 21, 24))
+    self.assertEqual(opt_pos_only(12, 42, 24, pos_2=21), (12, 42, 24, 21))
+
+    self.assertEqual(opt_pos_only(), (None, None, None, None))
+    self.assertEqual(opt_pos_only(12), (12, None, None, None))
+    self.assertEqual(opt_pos_only(12, 42), (12, 42, None, None))
+    self.assertEqual(opt_pos_only(12, 42, pos_2=37), (12, 42, None, 37))
+    self.assertEqual(opt_pos_only(12, pos_2=37), (12, None, None, 37))
+    self.assertEqual(opt_pos_only(12, pos_1=42, pos_2=37), (12, None, 42, 37))
+    self.assertEqual(opt_pos_only(pos_1=42, pos_2=37), (None, None, 42, 37))
+
+    with self.assertRaisesRegex(
+        TypeError, 'accepts 0 to 4 positional arguments but 5 were given'
+    ):
+      _ = opt_pos_only(15, 52, 37, 42, 12)
 
 
 if __name__ == '__main__':

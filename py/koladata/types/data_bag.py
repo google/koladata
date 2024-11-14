@@ -44,6 +44,7 @@ def _getitem(self: DataBag, sl: _DataSlice) -> _DataSlice:
 
 def _dict(
     self: DataBag,
+    /,
     items_or_keys: dict[Any, Any] | _DataSlice | None = None,
     values: _DataSlice | None = None,
     *,
@@ -115,6 +116,7 @@ def _dict(
 def _dict_like(
     self: DataBag,
     shape_and_mask_from: _DataSlice,
+    /,
     items_or_keys: dict[Any, Any] | _DataSlice | None = None,
     values: _DataSlice | None = None,
     *,
@@ -158,6 +160,7 @@ def _dict_like(
 def _dict_shaped(
     self: DataBag,
     shape: _jagged_shape.JaggedShape,
+    /,
     items_or_keys: dict[Any, Any] | _DataSlice | None = None,
     values: _DataSlice | None = None,
     *,
@@ -197,6 +200,7 @@ def _dict_shaped(
 
 def _list(
     self: DataBag,
+    /,
     items: list[Any] | _DataSlice | None = None,
     *,
     item_schema: _DataSlice | None = None,
@@ -235,6 +239,7 @@ def _list(
 def _list_shaped(
     self: DataBag,
     shape: _jagged_shape.JaggedShape,
+    /,
     items: list[Any] | _DataSlice | None = None,
     *,
     item_schema: _DataSlice | None = None,
@@ -262,6 +267,7 @@ def _list_shaped(
 def _list_like(
     self: DataBag,
     shape_and_mask_from: _DataSlice,
+    /,
     items: list[Any] | _DataSlice | None = None,
     *,
     item_schema: _DataSlice | None = None,
@@ -292,6 +298,7 @@ def _list_like(
 def _implode(
     self: DataBag,
     x: _DataSlice,
+    /,
     ndim: int | _DataSlice,
 ) -> _DataSlice:  # pylint: disable=g-doc-args
   """Implodes a Dataslice `x` a specified number of times.
@@ -325,7 +332,7 @@ def _implode(
   return self._implode(x, ndim)  # pylint: disable=protected-access
 
 
-def _concat_lists(self: DataBag, *lists: _DataSlice) -> _DataSlice:  # pylint: disable=g-doc-args
+def _concat_lists(self: DataBag, /, *lists: _DataSlice) -> _DataSlice:  # pylint: disable=g-doc-args
   """Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
   Each input DataSlice must contain only present List items, and the item
@@ -356,6 +363,7 @@ def _freeze(self: DataBag) -> DataBag:
 def _merge_inplace(
     self: DataBag,
     other_bags: DataBag | Iterable[DataBag],
+    /,
     *,
     overwrite: bool = True,
     allow_data_conflicts: bool = True,
@@ -415,7 +423,7 @@ class ContentsReprWrapper:
 
 
 def _contents_repr(
-    self: DataBag, *, triple_limit: int = 1000
+    self: DataBag, /, *, triple_limit: int = 1000
 ) -> ContentsReprWrapper:
   """Returns a representation of the DataBag contents."""
   return ContentsReprWrapper(self, triple_limit)

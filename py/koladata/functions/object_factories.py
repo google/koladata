@@ -71,6 +71,7 @@ def list_(
 
 def list_like(
     shape_and_mask_from: data_slice.DataSlice,
+    /,
     items: list[Any] | data_slice.DataSlice | None = None,
     *,
     item_schema: data_slice.DataSlice | None = None,
@@ -105,6 +106,7 @@ def list_like(
 
 def list_shaped(
     shape: jagged_shape.JaggedShape,
+    /,
     items: list[Any] | data_slice.DataSlice | None = None,
     *,
     item_schema: data_slice.DataSlice | None = None,
@@ -137,6 +139,7 @@ def list_shaped(
 
 def list_shaped_as(
     shape_from: data_slice.DataSlice,
+    /,
     items: list[Any] | data_slice.DataSlice | None = None,
     *,
     item_schema: data_slice.DataSlice | None = None,
@@ -234,6 +237,7 @@ def dict_(
 
 def dict_like(
     shape_and_mask_from: data_slice.DataSlice,
+    /,
     items_or_keys: Any | None = None,
     values: Any | None = None,
     *,
@@ -284,6 +288,7 @@ def dict_like(
 
 def dict_shaped(
     shape: jagged_shape.JaggedShape,
+    /,
     items_or_keys: Any | None = None,
     values: Any | None = None,
     key_schema: data_slice.DataSlice | None = None,
@@ -331,6 +336,7 @@ def dict_shaped(
 
 def dict_shaped_as(
     shape_from: data_slice.DataSlice,
+    /,
     items_or_keys: Any | None = None,
     values: Any | None = None,
     key_schema: data_slice.DataSlice | None = None,
@@ -378,6 +384,7 @@ def dict_shaped_as(
 
 def new(
     arg: Any = arolla.unspecified(),
+    /,
     *,
     schema: data_slice.DataSlice | str | None = None,
     update_schema: bool = False,
@@ -408,13 +415,13 @@ def new(
   if db is None:
     db = bag()
   return db.new(
-      arg=arg, schema=schema, update_schema=update_schema, itemid=itemid,
-      **attrs
+      arg, schema=schema, update_schema=update_schema, itemid=itemid, **attrs
   )
 
 
 def new_shaped(
     shape: jagged_shape.JaggedShape,
+    /,
     *,
     schema: data_slice.DataSlice | str | None = None,
     update_schema: bool = False,
@@ -449,6 +456,7 @@ def new_shaped(
 
 def new_shaped_as(
     shape_from: data_slice.DataSlice,
+    /,
     *,
     schema: data_slice.DataSlice | str | None = None,
     update_schema: bool = False,
@@ -486,6 +494,7 @@ def new_shaped_as(
 
 def new_like(
     shape_and_mask_from: data_slice.DataSlice,
+    /,
     *,
     schema: data_slice.DataSlice | str | None = None,
     update_schema: bool = False,
@@ -522,6 +531,7 @@ def new_like(
 
 def obj(
     arg: Any = arolla.unspecified(),
+    /,
     *,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
@@ -544,7 +554,7 @@ def obj(
   """
   if db is None:
     db = bag()
-  return db.obj(arg=arg, itemid=itemid, **attrs)
+  return db.obj(arg, itemid=itemid, **attrs)
 
 
 def container(
@@ -570,6 +580,7 @@ def container(
 
 def obj_shaped(
     shape: jagged_shape.JaggedShape,
+    /,
     *,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
@@ -595,6 +606,7 @@ def obj_shaped(
 
 def obj_shaped_as(
     shape_from: data_slice.DataSlice,
+    /,
     *,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
@@ -618,6 +630,7 @@ def obj_shaped_as(
 
 def obj_like(
     shape_and_mask_from: data_slice.DataSlice,
+    /,
     *,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
@@ -673,6 +686,7 @@ def uu(
 
 def empty_shaped(
     shape: data_slice.DataSlice,
+    /,
     *,
     schema: data_slice.DataSlice = schema_constants.MASK,
     db: data_bag.DataBag | None = None,
@@ -696,6 +710,7 @@ def empty_shaped(
 
 def empty_shaped_as(
     shape_from: data_slice.DataSlice,
+    /,
     *,
     schema: data_slice.DataSlice = schema_constants.MASK,
     db: data_bag.DataBag | None = None,
@@ -719,6 +734,7 @@ def empty_shaped_as(
 
 def implode(
     x: data_slice.DataSlice,
+    /,
     ndim: int | data_slice.DataSlice = 1,
     db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:

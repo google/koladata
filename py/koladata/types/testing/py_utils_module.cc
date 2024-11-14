@@ -34,6 +34,10 @@ int ToInt(PyObject* arg) {
   return PyLong_AsLong(arg);
 }
 
+PyObject* ArgOrNone(PyObject* py_arg) {
+  return Py_NewRef(py_arg ? py_arg : Py_None);
+}
+
 // All arguments must be present.
 PyObject* PositionalKeyword_2_Args(PyObject* /*self*/, PyObject* const* py_args,
                                    Py_ssize_t nargs, PyObject* py_kwnames) {
@@ -65,9 +69,7 @@ PyObject* PositionalOnly_And_PositionalKeyword_3_Args(
   }
   PyObject* tuple = PyTuple_New(args.pos_kw_values.size());
   for (size_t i = 0; i < args.pos_kw_values.size(); ++i) {
-    PyTuple_SetItem(
-        tuple, i,
-        Py_NewRef(args.pos_kw_values[i] ? args.pos_kw_values[i] : Py_None));
+    PyTuple_SetItem(tuple, i, ArgOrNone(args.pos_kw_values[i]));
   }
   return tuple;
 }
@@ -114,9 +116,8 @@ PyObject* PositionalKeyword_2_Args_And_Kwargs(
   PyTuple_SetItem(tuple, 1, PyTuple_New(args.kw_names.size()));
   PyTuple_SetItem(tuple, 2, PyTuple_New(args.kw_values.size()));
   for (size_t i = 0; i < args.pos_kw_values.size(); ++i) {
-      PyTuple_SetItem(
-          PyTuple_GetItem(tuple, 0), i,
-          Py_NewRef(args.pos_kw_values[i] ? args.pos_kw_values[i] : Py_None));
+      PyTuple_SetItem(PyTuple_GetItem(tuple, 0), i,
+                      ArgOrNone(args.pos_kw_values[i]));
   }
   for (size_t i = 0; i < args.kw_names.size(); ++i) {
     PyTuple_SetItem(
@@ -139,10 +140,8 @@ PyObject* KeywordOnly(PyObject* /*self*/, PyObject* const* py_args,
     return nullptr;
   }
   PyObject* tuple = PyTuple_New(2);
-  PyTuple_SetItem(tuple, 0, args.kw_only_args["a"] ? args.kw_only_args["a"]
-                                                   : Py_NewRef(Py_None));
-  PyTuple_SetItem(tuple, 1, args.kw_only_args["b"] ? args.kw_only_args["b"]
-                                                   : Py_NewRef(Py_None));
+  PyTuple_SetItem(tuple, 0, ArgOrNone(args.kw_only_args["a"]));
+  PyTuple_SetItem(tuple, 1, ArgOrNone(args.kw_only_args["b"]));
   return tuple;
 }
 
@@ -156,12 +155,10 @@ PyObject* KeywordOnly_And_PositionalOnly(
     return nullptr;
   }
   PyObject* tuple = PyTuple_New(4);
-  PyTuple_SetItem(tuple, 0, py_args[0]);
-  PyTuple_SetItem(tuple, 1, py_args[1]);
-  PyTuple_SetItem(tuple, 2, args.kw_only_args["a"] ? args.kw_only_args["a"]
-                                                   : Py_NewRef(Py_None));
-  PyTuple_SetItem(tuple, 3, args.kw_only_args["b"] ? args.kw_only_args["b"]
-                                                   : Py_NewRef(Py_None));
+  PyTuple_SetItem(tuple, 0, ArgOrNone(args.pos_only_args[0]));
+  PyTuple_SetItem(tuple, 1, ArgOrNone(args.pos_only_args[1]));
+  PyTuple_SetItem(tuple, 2, ArgOrNone(args.kw_only_args["a"]));
+  PyTuple_SetItem(tuple, 3, ArgOrNone(args.kw_only_args["b"]));
   return tuple;
 }
 
@@ -175,10 +172,8 @@ PyObject* KeywordOnly_And_VariadicKwargs(
     return nullptr;
   }
   PyObject* tuple = PyTuple_New(4);
-  PyTuple_SetItem(tuple, 0, args.kw_only_args["a"] ? args.kw_only_args["a"]
-                                                   : Py_NewRef(Py_None));
-  PyTuple_SetItem(tuple, 1, args.kw_only_args["b"] ? args.kw_only_args["b"]
-                                                   : Py_NewRef(Py_None));
+  PyTuple_SetItem(tuple, 0, ArgOrNone(args.kw_only_args["a"]));
+  PyTuple_SetItem(tuple, 1, ArgOrNone(args.kw_only_args["b"]));
   PyTuple_SetItem(tuple, 2, PyTuple_New(args.kw_names.size()));
   PyTuple_SetItem(tuple, 3, PyTuple_New(args.kw_values.size()));
   for (size_t i = 0; i < args.kw_names.size(); ++i) {
@@ -201,10 +196,8 @@ PyObject* KeywordOnly_PositionalKeyword_And_VariadicKwargs(
     return nullptr;
   }
   PyObject* tuple = PyTuple_New(4 + args.pos_kw_values.size());
-  PyTuple_SetItem(tuple, 0, args.kw_only_args["a"] ? args.kw_only_args["a"]
-                                                   : Py_NewRef(Py_None));
-  PyTuple_SetItem(tuple, 1, args.kw_only_args["b"] ? args.kw_only_args["b"]
-                                                   : Py_NewRef(Py_None));
+  PyTuple_SetItem(tuple, 0, ArgOrNone(args.kw_only_args["a"]));
+  PyTuple_SetItem(tuple, 1, ArgOrNone(args.kw_only_args["b"]));
   PyTuple_SetItem(tuple, 2, PyTuple_New(args.kw_names.size()));
   PyTuple_SetItem(tuple, 3, PyTuple_New(args.kw_values.size()));
   for (size_t i = 0; i < args.kw_names.size(); ++i) {
@@ -215,10 +208,27 @@ PyObject* KeywordOnly_PositionalKeyword_And_VariadicKwargs(
     PyTuple_SetItem(PyTuple_GetItem(tuple, 3), i, Py_NewRef(args.kw_values[i]));
   }
   for (size_t i = 0; i < args.pos_kw_values.size(); ++i) {
-    PyTuple_SetItem(
-        tuple, 4 + i,
-        Py_NewRef(args.pos_kw_values[i] ? args.pos_kw_values[i] : Py_None));
+    PyTuple_SetItem(tuple, 4 + i, ArgOrNone(args.pos_kw_values[i]));
   }
+  return tuple;
+}
+
+// Tests optional-positional-only.
+PyObject* OptionalPositionalOnly(PyObject* /*self*/, PyObject* const* py_args,
+                                 Py_ssize_t nargs, PyObject* py_kwnames) {
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/2, /*optional_positional_only=*/true,
+      /*parse_kwargs=*/false, {}, "pos_1", "pos_2"));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  PyObject* tuple = PyTuple_New(args.pos_only_args.size() +
+                                args.pos_kw_values.size());
+  PyTuple_SetItem(tuple, 0, ArgOrNone(args.pos_only_args[0]));
+  PyTuple_SetItem(tuple, 1, ArgOrNone(args.pos_only_args[1]));
+  PyTuple_SetItem(tuple, 2, ArgOrNone(args.pos_kw_values[0]));
+  PyTuple_SetItem(tuple, 3, ArgOrNone(args.pos_kw_values[1]));
   return tuple;
 }
 
@@ -245,6 +255,9 @@ PyMethodDef kPyUtilsModule_methods[] = {
      "Test function."},
     {"kw_only_pos_only_and_var_kwargs",
      (PyCFunction)KeywordOnly_PositionalKeyword_And_VariadicKwargs,
+     METH_FASTCALL | METH_KEYWORDS,
+     "Test function."},
+    {"optional_positional_only", (PyCFunction)OptionalPositionalOnly,
      METH_FASTCALL | METH_KEYWORDS,
      "Test function."},
     {nullptr} /* sentinel */

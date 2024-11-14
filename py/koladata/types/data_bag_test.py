@@ -959,7 +959,7 @@ Assigned schema for Dict key: INT32""",
     self.assertIsInstance(db.new_shaped(shape), data_item.DataItem)
 
     with self.assertRaisesRegex(
-        TypeError, r'expected mandatory \'shape\' argument'
+        TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
       db.new_shaped()
     with self.assertRaisesRegex(
@@ -1023,7 +1023,7 @@ Assigned schema for Dict key: INT32""",
     self.assertIsInstance(db.new_like(shape_and_mask_from), data_item.DataItem)
 
     with self.assertRaisesRegex(
-        TypeError, r'expected mandatory \'shape_and_mask_from\' argument'
+        TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
       db.new_like()
     with self.assertRaisesRegex(
@@ -1070,7 +1070,7 @@ Assigned schema for Dict key: INT32""",
     )
 
     with self.assertRaisesRegex(
-        TypeError, r'expected mandatory \'shape\' argument'
+        TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
       db.obj_shaped()
     with self.assertRaisesRegex(
@@ -1096,7 +1096,7 @@ Assigned schema for Dict key: INT32""",
     self.assertIsInstance(db.obj_like(shape_and_mask_from), data_item.DataItem)
 
     with self.assertRaisesRegex(
-        TypeError, r'expected mandatory \'shape_and_mask_from\' argument'
+        TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
       db.obj_like()
     with self.assertRaisesRegex(
