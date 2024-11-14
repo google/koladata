@@ -496,6 +496,7 @@ cc_library(
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
         "//koladata/internal:uuid_object",
+        "//koladata/internal/op_utils:utils",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",

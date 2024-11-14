@@ -84,6 +84,14 @@ absl::StatusOr<DataSlice> Explode(const DataSlice& x, const int64_t ndim) {
   return result;
 }
 
+absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
+                                  int64_t unused_hidden_seed) {
+  auto db = DataBag::Empty();
+  ASSIGN_OR_RETURN(auto result, Implode(db, x, ndim));
+  db->UnsafeMakeImmutable();
+  return result;
+}
+
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
   const auto& db = lists.GetBag();
   if (db == nullptr) {

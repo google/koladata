@@ -34,6 +34,10 @@ inline absl::StatusOr<DataSlice> GetListItemByRange(const DataSlice& ds,
 // kde.core._explode
 absl::StatusOr<DataSlice> Explode(const DataSlice& x, int64_t ndim);
 
+// kde.core._implode
+absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
+                                  int64_t unused_hidden_seed);
+
 // kde.core.list_size.
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 

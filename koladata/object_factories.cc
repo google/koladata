@@ -44,6 +44,7 @@
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/utils.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/repr_utils.h"
@@ -1074,12 +1075,14 @@ absl::StatusOr<DataSlice> CreateNestedList(
 
 absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
                                   int ndim) {
+  constexpr absl::string_view kOperatorName = "kd.implode";
   const size_t rank = values.GetShape().rank();
   if (ndim < 0) {
     ndim = values.GetShape().rank();  // ndim < 0 means implode all dimensions.
   }
   if (rank < ndim) {
-    return absl::InvalidArgumentError(
+    return internal::OperatorEvalError(
+        kOperatorName,
         absl::StrFormat("cannot implode 'x' to fold the last %d dimension(s) "
                         "because 'x' only has %d dimensions",
                         ndim, rank));
@@ -1088,7 +1091,11 @@ absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
   // Adopt `values` into `db`.
   AdoptionQueue adoption_queue;
   adoption_queue.Add(values);
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With([&](auto&& status) {
+    return internal::OperatorEvalError(
+        status, kOperatorName,
+        "cannot adopt input DataSlice into the new DataBag");
+  });
 
   if (ndim == 0) {
     return values.WithBag(db);

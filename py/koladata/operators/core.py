@@ -2460,7 +2460,7 @@ def is_shape_compatible(x, y):
 )
 def _explode(x, ndim):  # pylint: disable=unused-argument
   """Implementation of kde.core.explode."""
-  raise NotImplementedError('impleented in the backend')
+  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.explode'])
@@ -2495,6 +2495,60 @@ def explode(x, ndim=data_slice.DataSlice.from_vals(1)):
     DataSlice
   """
   return _explode(x, arolla_bridge.to_arolla_int64(ndim))
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.core._implode',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def _implode(x, ndim, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+  """Implementation of kde.core.implode."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.implode'])
+@optools.as_lambda_operator(
+    'kde.core.implode',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.ndim),
+        qtype_utils.expect_accepts_hidden_seed(),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def implode(
+    x,
+    ndim=data_slice.DataSlice.from_vals(1),
+    hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
+):  # pylint: disable=g-doc-args
+  """Implodes a Dataslice `x` a specified number of times.
+
+  A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
+  DataSlice of LIST[T], by folding the items in the last dimension of the
+  original DataSlice into newly-created Lists.
+
+  A single list implosion is equivalent to `kd.list(x, db)`.
+
+  If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
+
+  If `ndim` is set to a negative integer, implodes as many times as possible,
+  until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
+  nested List.
+
+  Args:
+    x: the DataSlice to implode
+    ndim: the number of implosion operations to perform
+
+  Returns:
+    DataSlice of nested Lists
+  """
+  return _implode(x, arolla_bridge.to_arolla_int64(ndim))
 
 
 @optools.add_to_registry(aliases=['kde.select_items'])

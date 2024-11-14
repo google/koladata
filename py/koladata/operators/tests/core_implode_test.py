@@ -16,22 +16,36 @@ import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata.exceptions import exceptions
-from koladata.functions import functions as fns
+from koladata.expr import expr_eval
+from koladata.expr import input_container
+from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.operators import optools
+from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import qtypes
 
 
+I = input_container.InputContainer("I")
+ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-db = fns.bag()
-ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
+bag = data_bag.DataBag.empty
 
+db = bag()
 OBJ1 = db.obj()
 OBJ2 = db.obj()
 
 
-class ImplodeTest(parameterized.TestCase):
+QTYPE_SIGNATURES = frozenset(
+    [(qtypes.DATA_SLICE, qtypes.DATA_SLICE, arolla.INT64, qtypes.DATA_SLICE)]
+)
+
+
+class ListLikeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(0), 0, ds(0)),
@@ -93,36 +107,16 @@ class ImplodeTest(parameterized.TestCase):
   )
   def test_eval(self, x, ndim, expected):
     # Test behavior with explicit existing DataBag.
-    result = db.implode(x, ndim)
+    result = expr_eval.eval(kde.core.implode(x, ndim))
     testing.assert_nested_lists_equal(result, expected)
-    self.assertEqual(result.get_bag().fingerprint, x.get_bag().fingerprint)
-
-    # Test behavior with implicit new DataBag.
-    result = fns.implode(x, ndim)
-    testing.assert_nested_lists_equal(result, expected)
-    self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
-
-    # Check behavior with explicit DataBag.
-    db2 = fns.bag()
-    result = fns.implode(x, ndim, db2)
-    testing.assert_nested_lists_equal(result, expected)
-    self.assertEqual(result.get_bag().fingerprint, db2.fingerprint)
+    self.assertFalse(result.is_mutable())
 
     # Check behavior with DataItem ndim.
-    result = fns.implode(x, ds(ndim))
+    result = expr_eval.eval(kde.core.implode(x, ds(ndim)))
     testing.assert_nested_lists_equal(result, expected)
-    self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
+    self.assertFalse(result.is_mutable())
 
   def test_ndim_error(self):
-    with self.assertRaisesRegex(TypeError, 'an integer is required'):
-      fns.implode(ds([]), ds(None))
-
-    with self.assertRaisesRegex(TypeError, 'an integer is required'):
-      fns.implode(ds([]), ds([1]))
-
-    with self.assertRaisesRegex(TypeError, 'an integer is required'):
-      fns.implode(ds([]), ds([1]))
-
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
@@ -130,8 +124,40 @@ class ImplodeTest(parameterized.TestCase):
             " to fold the last 2 dimension(s) because 'x' only has 1 dimensions"
         ),
     ):
-      fns.implode(ds([1, 2]), 2)
+      expr_eval.eval(kde.core.implode(ds([1, 2]), 2))
+
+  def test_non_determinism(self):
+    items = ds([1, None, 2])
+    res_1 = expr_eval.eval(kde.core.implode(items))
+    res_2 = expr_eval.eval(kde.core.implode(items))
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
+    self.assertNotEqual(res_1.no_bag().fingerprint, res_2.no_bag().fingerprint)
+    testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
+
+    expr = kde.core.implode(items)
+    res_1 = expr_eval.eval(expr)
+    res_2 = expr_eval.eval(expr)
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
+    self.assertNotEqual(res_1.no_bag().fingerprint, res_2.no_bag().fingerprint)
+    testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
+
+  def test_qtype_signatures(self):
+    arolla.testing.assert_qtype_signatures(
+        kde.core.implode,
+        QTYPE_SIGNATURES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+    )
+
+  def test_view(self):
+    self.assertTrue(view.has_data_slice_view(kde.core.implode(I.x)))
+
+  def test_alias(self):
+    self.assertTrue(optools.equiv_to_op(kde.core.implode, kde.core.implode))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   absltest.main()

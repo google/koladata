@@ -158,6 +158,7 @@ py_test(
     name = "implode_test",
     srcs = ["implode_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
