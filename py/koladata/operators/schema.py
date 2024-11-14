@@ -14,8 +14,6 @@
 
 """Schema operators."""
 
-import warnings
-
 from arolla import arolla
 from koladata.operators import assertion
 from koladata.operators import jagged_shape as jagged_shape_ops
@@ -503,10 +501,6 @@ def as_itemid(x):
 
   Deprecated, use `get_itemid` instead.
   """
-  warnings.warn(
-      'as_itemid is deprecated. Use get_itemid instead.',
-      RuntimeWarning,
-  )
   return to_itemid(x)
 # pylint: enable=g-doc-args,g-doc-return-or-yield
 
