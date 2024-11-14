@@ -265,9 +265,8 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
 // items. In case, edges is empty, we have a single value and treat it as 0-dim
 // output.
 absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
-    const std::vector<PyObject*>& flat_list,
-    DataSlice::JaggedShape::EdgeVec edges, DataItem schema,
-    AdoptionQueue& adoption_queue) {
+    const std::vector<PyObject*>& flat_list, DataSlice::JaggedShape shape,
+    DataItem schema, AdoptionQueue& adoption_queue) {
   int64_t res_size = flat_list.size();
 
   // Helper lambdas for parsing text and bytes.
@@ -355,8 +354,6 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
                        AssembleErrorMessage(
                            _, {.db = adoption_queue.GetBagWithFallbacks()}));
     }
-    ASSIGN_OR_RETURN(auto shape,
-                     DataSlice::JaggedShape::FromEdges(std::move(edges)));
     // The slice should be casted explicitly if the schema is provided by the
     // user. If this is gathered from data, it is validated to be implicitly
     // castable when finding the common schema. The schema attributes are not
@@ -378,18 +375,18 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
   }
 }
 
-// Parses the Python list and creates a DataSlice from its items with
-// appropriate JaggedShape and type of items. The `py_list` can also have rank
-// 0, in which case we treat it as a scalar Python value.
-absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
-                                              DataItem schema,
-                                              AdoptionQueue& adoption_queue) {
+// Parses the Python list and returns flattened items together with appropriate
+// JaggedShape.
+absl::StatusOr<std::pair<std::vector<PyObject*>, DataSlice::JaggedShape>>
+PyObjectsFromPyList(PyObject* py_list, AdoptionQueue& adoption_queue,
+                    size_t max_depth = 0) {
   arolla::python::DCheckPyGIL();
   DataSlice::JaggedShape::EdgeVec edges;
   std::vector<PyObject*> lst_items;
   lst_items.push_back(py_list);
   int cur_len = 1;
-  while (cur_len > 0) {
+  int cur_depth = 0;
+  while (cur_len > 0 && (max_depth == 0 || ++cur_depth < max_depth)) {
     std::vector<PyObject*> next_level_items;
     // There will be usually more than lst_items.size()/cur_len, but reserving
     // at least something. NOTE: This cannot be outside the loop, because of the
@@ -429,8 +426,23 @@ absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
       lst_items = std::move(next_level_items);
     }
   }
-  return DataSliceFromPyFlatList(lst_items, std::move(edges), schema,
-                                 adoption_queue);
+  ASSIGN_OR_RETURN(DataSlice::JaggedShape shape,
+                   DataSlice::JaggedShape::FromEdges(std::move(edges)));
+  return std::make_pair(std::move(lst_items), std::move(shape));
+}
+
+// Parses the Python list and creates a DataSlice from its items with
+// appropriate JaggedShape and type of items. The `py_list` can also have rank
+// 0, in which case we treat it as a scalar Python value.
+absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
+                                              DataItem schema,
+                                              AdoptionQueue& adoption_queue) {
+  arolla::python::DCheckPyGIL();
+  ASSIGN_OR_RETURN((auto [py_objects, shape]),
+                   PyObjectsFromPyList(py_list, adoption_queue));
+
+  return DataSliceFromPyFlatList(py_objects, std::move(shape),
+                                 std::move(schema), adoption_queue);
 }
 
 /****************** Building blocks for "To Python" ******************/
@@ -668,17 +680,37 @@ class UniversalConverter {
       : db_(db), adoption_queue_(adoption_queue), dict_as_obj_(dict_as_obj) {}
 
   absl::StatusOr<DataSlice> Convert(
-      PyObject* py_obj,
-      const std::optional<DataSlice>& schema = std::nullopt) && {
+      PyObject* py_obj, const std::optional<DataSlice>& schema = std::nullopt,
+      size_t from_dim = 0) && {
     if (schema) {
       adoption_queue_.Add(*schema);
     }
-    RETURN_IF_ERROR(CmdConvertPyObject(py_obj, schema, /*is_root=*/true));
-    RETURN_IF_ERROR(Run());
-    if (value_stack_.top().GetBag() == nullptr && !adoption_queue_.empty()) {
-      return value_stack_.top().WithBag(db_);
+
+    if (from_dim == 0) {
+      RETURN_IF_ERROR(CmdConvertPyObject(py_obj, schema, /*is_root=*/true));
+      RETURN_IF_ERROR(Run());
+      if (value_stack_.top().GetBag() == nullptr && !adoption_queue_.empty()) {
+        return value_stack_.top().WithBag(db_);
+      }
+      return std::move(value_stack_.top());
     }
-    return std::move(value_stack_.top());
+
+    ASSIGN_OR_RETURN(
+        (auto [py_objects, shape]),
+        PyObjectsFromPyList(py_obj, adoption_queue_, from_dim + 1));
+    for (int i = 0; i < py_objects.size(); ++i) {
+      cmd_stack_.push([this, py_obj = py_objects[i], &schema] {
+        return this->CmdConvertPyObject(py_obj, schema, /*is_root=*/true);
+      });
+    }
+    RETURN_IF_ERROR(Run());
+    ASSIGN_OR_RETURN(auto res, ComputeDataSlice(py_objects.size()));
+    ASSIGN_OR_RETURN(DataSlice reshaped_res, res.Reshape(std::move(shape)));
+
+    if (reshaped_res.GetBag() == nullptr && !adoption_queue_.empty()) {
+      return reshaped_res.WithBag(db_);
+    }
+    return std::move(reshaped_res);
   }
 
   // TODO: Consider passing `schema` here as well. This requires
@@ -1119,9 +1151,9 @@ absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
 
 absl::StatusOr<DataSlice> GenericFromPyObject(
     PyObject* py_obj, bool dict_as_obj, const std::optional<DataSlice>& schema,
-    const DataBagPtr& db, AdoptionQueue& adoption_queue) {
+    size_t from_dim, const DataBagPtr& db, AdoptionQueue& adoption_queue) {
   return UniversalConverter<EntityCreator>(db, adoption_queue, dict_as_obj)
-      .Convert(py_obj, schema);
+      .Convert(py_obj, schema, from_dim);
 }
 
 }  // namespace koladata::python

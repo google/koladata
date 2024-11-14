@@ -57,8 +57,6 @@ def from_py(
   """
   if itemid is not None:
     raise NotImplementedError('passing itemid is not yet supported')
-  if from_dim != 0:
-    raise NotImplementedError('passing from_dim is not yet supported')
   return data_bag.DataBag.empty()._from_py_impl(  # pylint: disable=protected-access
       py_obj, dict_as_obj, itemid, schema, from_dim
   )

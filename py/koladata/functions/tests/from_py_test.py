@@ -66,6 +66,10 @@ class FromPyTest(absltest.TestCase):
         nested_values[:], ds([1, 2, 3]).with_bag(obj.get_bag())
     )
 
+  def test_list(self):
+    l = fns.from_py([1, 2, 3])
+    testing.assert_equal(l[:].no_bag(), ds([1, 2, 3]))
+
   # More detailed tests for conversions to Koda Entities for Lists are located
   # in new_test.py.
   def test_list_with_schema(self):
@@ -80,6 +84,12 @@ class FromPyTest(absltest.TestCase):
     )
     testing.assert_allclose(
         l[:][:].no_bag(), ds([[1.0, 2.0], [42.0]], schema_constants.FLOAT64)
+    )
+
+    # TODO: this should return OBJECTs, not FLOAT32s.
+    l = fns.from_py([1, 3.14], schema=schema_constants.OBJECT)
+    testing.assert_equal(
+        l[:].no_bag(), ds([1.0, 3.14], schema_constants.FLOAT32)
     )
 
   # More detailed tests for conversions to Koda Entities for Dicts are located
@@ -101,10 +111,94 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(item, ds(42))
     item = fns.from_py(42, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(42.))
+    # TODO: this should return OBJECTs, not FLOAT32s.
+    item = fns.from_py(42, schema=schema_constants.OBJECT)
+    testing.assert_equal(item, ds(42, schema_constants.INT32))
 
   def test_primitive_casting_error(self):
     with self.assertRaisesRegex(ValueError, 'cannot cast BYTES to FLOAT32'):
       fns.from_py(b'xyz', schema=schema_constants.FLOAT32)
+
+  def test_list_from_dim(self):
+    input_list = [[1, 2], [3, 4]]
+
+    l0 = fns.from_py(input_list, from_dim=0)
+    self.assertEqual(l0.get_ndim(), 0)
+    testing.assert_equal(l0[:][:].no_bag(), ds([[1, 2], [3, 4]]))
+
+    l1 = fns.from_py(input_list, from_dim=1)
+    self.assertEqual(l1.get_ndim(), 1)
+    testing.assert_equal(l1[:].no_bag(), ds([[1, 2], [3, 4]]))
+
+    # TODO(b/378029690) this should not have a DataBag.
+    l2 = fns.from_py(input_list, from_dim=2)
+    self.assertEqual(l2.get_ndim(), 2)
+    testing.assert_equal(l2.no_bag(), ds([[1, 2], [3, 4]]))
+
+  def test_list_from_dim_with_schema(self):
+    input_list = [[1, 2], [3, 4]]
+
+    l0 = fns.from_py(
+        input_list,
+        schema=fns.list_schema(fns.list_schema(schema_constants.FLOAT64)),
+        from_dim=0,
+    )
+    self.assertEqual(l0.get_ndim(), 0)
+    testing.assert_equal(
+        l0[:][:].no_bag(), ds([[1, 2], [3, 4]], schema_constants.FLOAT64)
+    )
+
+    l1 = fns.from_py(
+        input_list, schema=fns.list_schema(schema_constants.FLOAT32), from_dim=1
+    )
+    self.assertEqual(l1.get_ndim(), 1)
+    testing.assert_equal(
+        l1[:].no_bag(), ds([[1, 2], [3, 4]], schema_constants.FLOAT32)
+    )
+
+    lst = fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.INT32)
+    testing.assert_equal(lst.no_bag(), ds([1, 3], schema_constants.INT32))
+
+    # TODO(b/378029690) this should not have a DataBag.
+    l2 = fns.from_py(input_list, schema=schema_constants.FLOAT64, from_dim=2)
+    self.assertEqual(l2.get_ndim(), 2)
+    testing.assert_equal(
+        l2.no_bag(), ds([[1, 2], [3, 4]], schema_constants.FLOAT64)
+    )
+
+  def test_dict_from_dim(self):
+    input_dict = [{ds('a'): [1, 2], 'b': [42]}, {ds('c'): [3, 4], 'd': [34]}]
+
+    d0 = fns.from_py(input_dict, from_dim=0)
+    inner_slice = d0[:]
+    testing.assert_dicts_keys_equal(inner_slice, ds([['a', 'b'], ['c', 'd']]))
+    testing.assert_equal(
+        inner_slice[ds([['a', 'b'], ['c', 'd']])][:].no_bag(),
+        ds([[[1, 2], [42]], [[3, 4], [34]]]),
+    )
+
+    d1 = fns.from_py(input_dict, from_dim=1)
+    testing.assert_dicts_keys_equal(d1, ds([['a', 'b'], ['c', 'd']]))
+    testing.assert_equal(
+        d1[ds([['a', 'b'], ['c', 'd']])][:].no_bag(),
+        ds([[[1, 2], [42]], [[3, 4], [34]]]),
+    )
+
+  def test_from_dim_error(self):
+    input_list = [[1, 2, 3], 4]
+
+    l0 = fns.from_py(input_list, from_dim=0)
+    self.assertEqual(l0.get_ndim(), 0)
+
+    l1 = fns.from_py(input_list, from_dim=1)
+    self.assertEqual(l1.get_ndim(), 1)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'input has to be a valid nested list. non-lists and lists cannot be'
+        ' mixed in a level',
+    ):
+      _ = fns.from_py(input_list, from_dim=2)
 
   def test_none(self):
     item = fns.from_py(None)
@@ -392,10 +486,6 @@ class FromPyTest(absltest.TestCase):
     with self.subTest('itemid'):
       with self.assertRaises(NotImplementedError):
         fns.from_py({'a': {'b': [1, 2, 3]}}, itemid=kde.uuid(a=1).eval())
-
-    with self.subTest('from_dim'):
-      with self.assertRaises(NotImplementedError):
-        fns.from_py({'a': {'b': [1, 2, 3]}}, from_dim=1)
 
   def test_arg_errors(self):
     with self.assertRaisesRegex(

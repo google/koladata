@@ -348,14 +348,12 @@ absl::Nullable<PyObject*> PyDataBag_from_py_impl(PyObject* self,
   // TODO: Python caller does not pass `itemid` yet. Remove after
   // fully supported.
   DCHECK(!itemid.has_value());
-  DCHECK_EQ(from_dim, 0);
   AdoptionQueue adoption_queue;
   const DataBagPtr& self_db = UnsafeDataBagPtr(self);
-  ASSIGN_OR_RETURN(
-      auto res,
-      GenericFromPyObject(
-          py_args[0], dict_as_obj, schema_arg, self_db, adoption_queue),
-      SetKodaPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res,
+                   GenericFromPyObject(py_args[0], dict_as_obj, schema_arg,
+                                       from_dim, self_db, adoption_queue),
+                   SetKodaPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
       .With([&](const absl::Status& status) {
         return SetKodaPyErrFromStatus(
