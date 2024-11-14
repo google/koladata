@@ -29,6 +29,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/strings/str_cat.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -1349,6 +1350,92 @@ TEST(DataBagTest, MergeInplace) {
   MergeOptions merge_options;
   ASSERT_OK(res_db->MergeInplace(*none_databag, merge_options));
   ASSERT_OK(res_db->MergeInplace(*big_alloc_databag, merge_options));
+}
+
+// Note that this test is testing the implementation of GetApproxTotalSize that
+// can be changed. It is fine to change numbers here.
+TEST(DataBagTest, GetApproxTotalSize) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_EQ(db->GetApproxTotalSize(), 0);
+  db = db->PartiallyPersistentFork();
+  EXPECT_EQ(db->GetApproxTotalSize(), 0);
+
+  {
+    SCOPED_TRACE("big allocs");
+    static constexpr int64_t kBigSize = 37;
+    auto db_cur = db->PartiallyPersistentFork();
+    auto ds1 = DataSliceImpl::AllocateEmptyObjects(kBigSize);
+    auto ds2 = DataSliceImpl::AllocateEmptyObjects(kBigSize);
+    ASSERT_OK(db_cur->SetAttr(ds1, "a", ds2));
+    int64_t approx_size = db_cur->GetApproxTotalSize();
+    // Big allocs are counted not precisely.
+    EXPECT_LE(approx_size, kBigSize * 2);
+    EXPECT_GE(approx_size, kBigSize);
+  }
+  {
+    SCOPED_TRACE("small allocs");
+    auto db_cur = db->PartiallyPersistentFork();
+    auto ds1 = DataSliceImpl::AllocateEmptyObjects(1);
+    auto ds2 = DataSliceImpl::AllocateEmptyObjects(1);
+    for (int i = 0; i < 1000; ++i) {
+      ASSERT_OK(db_cur->SetAttr(ds1, absl::StrCat("a", i), ds2));
+    }
+    // Small allocs are counted more precisely.
+    int64_t approx_size = db_cur->GetApproxTotalSize();
+    EXPECT_EQ(approx_size, 1000);
+  }
+
+  {
+    SCOPED_TRACE("lists");
+    auto db_cur = db->PartiallyPersistentFork();
+    DataSliceImpl lists =
+        DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+
+    ASSERT_OK(
+        db_cur->ExtendList(lists[0], DataSliceImpl::Create({DataItem(1)})));
+    ASSERT_OK(db_cur->ExtendList(
+        lists[1],
+        DataSliceImpl::Create({DataItem(4), DataItem(), DataItem(6)})));
+    ASSERT_OK(db_cur->ExtendList(
+        lists[2], DataSliceImpl::Create({DataItem(7), DataItem(8)})));
+    // List sizes are estimated as length.
+    EXPECT_EQ(db_cur->GetApproxTotalSize(), 6);
+  }
+
+  {
+    SCOPED_TRACE("dicts");
+    auto db_cur = db->PartiallyPersistentFork();
+    DataSliceImpl dicts =
+        DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+
+    ASSERT_OK(db_cur->SetInDict(dicts[0], DataItem(1), DataItem(2)));
+    ASSERT_OK(db_cur->SetInDict(dicts[1], DataItem(3), DataItem(4)));
+    ASSERT_OK(db_cur->SetInDict(dicts[1], DataItem(-3), DataItem(-4)));
+    ASSERT_OK(db_cur->SetInDict(dicts[2], DataItem(5), DataItem(6)));
+    ASSERT_OK(db_cur->SetInDict(dicts[2], DataItem(7), DataItem(8)));
+    ASSERT_OK(db_cur->SetInDict(dicts[2], DataItem(9), DataItem(0)));
+
+    // Dict sizes are estimated as length.
+    EXPECT_EQ(db_cur->GetApproxTotalSize(), 6);
+  }
+
+  {
+    SCOPED_TRACE("forks");
+    auto db_parent = db->PartiallyPersistentFork();
+    DataSliceImpl dicts =
+        DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+    DataSliceImpl lists =
+        DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+
+    ASSERT_OK(db_parent->SetInDict(dicts[0], DataItem(1), DataItem(2)));
+    ASSERT_OK(db_parent->SetInDict(dicts[1], DataItem(3), DataItem(4)));
+    auto db_cur = db_parent->PartiallyPersistentFork();
+    EXPECT_EQ(db_cur->GetApproxTotalSize(), 2);
+    ASSERT_OK(db_cur->AppendToList(lists[0], DataItem(1)));
+
+    // Dict sizes are estimated as length.
+    EXPECT_EQ(db_cur->GetApproxTotalSize(), 3);
+  }
 }
 
 // NOTE(b/343432263): msan regression test to ensure that the DataBagImpl

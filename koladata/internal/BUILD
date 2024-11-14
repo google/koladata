@@ -596,6 +596,7 @@ cc_test(
         "//koladata/testing:test_env",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/strings",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/dense_array/qtype",
         "@com_google_arolla//arolla/memory",

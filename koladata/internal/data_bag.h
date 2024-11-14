@@ -590,6 +590,13 @@ class DataBagImpl : public arolla::RefcountedBase {
     is_assigned_ = true;
   }
 
+  // ********* Utility functions
+
+  // Approximate total size of the DataBag.
+  //
+  // This is an estimate because some allocs are counted not precisely.
+  int64_t GetApproxTotalSize() const;
+
  private:
   DataBagImpl() = default;
 

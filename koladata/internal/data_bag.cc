@@ -3048,4 +3048,52 @@ absl::StatusOr<DataBagContent> DataBagImpl::ExtractContent(
   return content;
 }
 
+int64_t DataBagImpl::GetApproxTotalSize() const {
+  int64_t size = 0;
+
+  auto add_sparse_source = [&size](const SparseSource& s) {
+    size += static_cast<int64_t>(s.GetAll().size());
+  };
+  auto add_collection =
+      [&size, &add_sparse_source](const SourceCollection& collection) {
+        if (collection.mutable_dense_source != nullptr) {
+          size += collection.mutable_dense_source->size();
+        }
+        if (collection.const_dense_source != nullptr) {
+          size += collection.const_dense_source->size();
+        }
+        if (collection.mutable_sparse_source != nullptr) {
+          add_sparse_source(*collection.mutable_sparse_source);
+        }
+      };
+
+  auto add_lists = [&size](const DataListVector& lists) {
+    for (size_t i = 0; i < lists.size(); ++i) {
+      size += static_cast<int64_t>(lists.Get(i).size());
+    }
+  };
+
+  auto add_dicts = [&size](const DictVector& dicts) {
+    for (size_t i = 0; i < dicts.size(); ++i) {
+      size += static_cast<int64_t>(dicts[i].GetSizeNoFallbacks());
+    }
+  };
+
+  for (const auto* db = this; db != nullptr; db = db->parent_data_bag_.get()) {
+    for (const auto& [key, source_collection] : db->sources_) {
+      add_collection(source_collection);
+    }
+    for (const auto& [key, source] : db->small_alloc_sources_) {
+      add_sparse_source(source);
+    }
+    for (const auto& [key, lists] : db->lists_) {
+      add_lists(*lists);
+    }
+    for (const auto& [key, dicts] : db->dicts_) {
+      add_dicts(*dicts);
+    }
+  }
+  return size;
+}
+
 }  // namespace koladata::internal
