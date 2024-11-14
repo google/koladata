@@ -77,6 +77,10 @@ absl::StatusOr<DataSlice> Neg(const DataSlice& x) {
   return SimplePointwiseEval("math.neg", {x});
 }
 
+absl::StatusOr<DataSlice> Sign(const DataSlice& x) {
+  return SimplePointwiseEval("math.sign", {x});
+}
+
 absl::StatusOr<DataSlice> Pos(const DataSlice& x) {
   return SimplePointwiseEval("math.pos", {x});
 }

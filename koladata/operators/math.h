@@ -44,6 +44,9 @@ absl::StatusOr<DataSlice> Abs(const DataSlice& x);
 // kde.math.neg.
 absl::StatusOr<DataSlice> Neg(const DataSlice& x);
 
+// kde.math.sign.
+absl::StatusOr<DataSlice> Sign(const DataSlice& x);
+
 // kde.math.pos.
 absl::StatusOr<DataSlice> Pos(const DataSlice& x);
 

@@ -706,6 +706,26 @@ py_test(
 )
 
 py_test(
+    name = "math_sign_test",
+    srcs = ["math_sign_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "math_pos_test",
     srcs = ["math_pos_test.py"],
     deps = [
@@ -5758,6 +5778,13 @@ koda_operator_coverage_test(
     name = "kd_math_neg_covers_math_neg_test",
     arolla_op = "math.neg",
     koda_op = "math.neg",
+    skip_test_patterns = ["(?i).*WEAK_FLOAT.*"],
+)
+
+koda_operator_coverage_test(
+    name = "kd_math_sign_covers_math_sign_test",
+    arolla_op = "math.sign",
+    koda_op = "math.sign",
     skip_test_patterns = ["(?i).*WEAK_FLOAT.*"],
 )
 

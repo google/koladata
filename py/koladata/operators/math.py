@@ -120,6 +120,26 @@ def neg(x):  # pylint: disable=unused-argument,redefined-builtin
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.math.sign',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def sign(x):  # pylint: disable=unused-argument
+  """Computes the sign of the input.
+
+  Args:
+    x: A DataSlice of numbers.
+
+  Returns:
+    A dataslice of with {-1, 0, 1} of the same shape and type as the input.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(repr_fn=op_repr.pos_repr)
 @optools.as_backend_operator(
     'kde.math.pos',
