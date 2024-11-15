@@ -26,5 +26,6 @@ trace_py_fn = _functor_factories.trace_py_fn
 py_fn = _functor_factories.py_fn
 bind = _functor_factories.bind
 as_fn = _functor_factories.as_fn
+map_py_fn = _functor_factories.map_py_fn
 get_signature = _functor_factories.get_signature
 allow_arbitrary_unused_inputs = _functor_factories.allow_arbitrary_unused_inputs

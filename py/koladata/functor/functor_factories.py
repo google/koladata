@@ -402,6 +402,44 @@ def as_fn(
   raise TypeError(f'cannot convert {f} into a functor')
 
 
+def map_py_fn(
+    f: Callable[..., Any] | arolla.types.PyObject,
+    *,
+    schema: Any = None,
+    max_threads: Any = 1,
+    ndim: Any = 0,
+    **defaults: Any,
+) -> data_slice.DataSlice:
+  """Returns a Koda functor wrapping a python function for kd.map_py.
+
+  See kd.map_py for detailed APIs, and kdf.py_fn for details about function
+  wrapping. schema, max_threads and ndims cannot be Koda Expr or Koda functor.
+
+  Args:
+    f: Python function.
+    schema: The schema to use for resulting DataSlice.
+    max_threads: maximum number of threads to use.
+    ndim: Dimensionality of items to pass to `f`.
+    **defaults: Keyword defaults to pass to the function. The values in this map
+      may be kde expressions, format strings, or 0-dim DataSlices. See the
+      docstring for py_fn for more details.
+  """
+  f = fn(
+      arolla.abc.bind_op(
+          'kde.py.map_py',
+          py_boxing.as_qvalue(f),
+          args=I.args,
+          schema=py_boxing.as_qvalue(schema),
+          max_threads=py_boxing.as_qvalue(max_threads),
+          ndim=py_boxing.as_qvalue(ndim),
+          item_completed_callback=py_boxing.as_qvalue(None),
+          kwargs=I.kwargs,
+      ),
+      signature=signature_utils.ARGS_KWARGS_SIGNATURE,
+  )
+  return bind(f, **defaults) if defaults else f
+
+
 def get_signature(
     fn_def: data_slice.DataSlice,
 ) -> data_slice.DataSlice:

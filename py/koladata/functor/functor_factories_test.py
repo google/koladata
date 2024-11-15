@@ -639,6 +639,134 @@ class FunctorFactoriesTest(absltest.TestCase):
     ):
       functor_factories.as_fn(57)
 
+  def test_map_py_fn_by_reference(self):
+    def f(x, y):
+      return x + y if x < 2 else x
+
+    self.assertEqual(
+        kd.call(functor_factories.map_py_fn(f), x=1, y=2).to_py(), 3
+    )
+
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(f),
+            x=kdi.slice([1, 2, 3]),
+            y=kdi.slice([4, 5, 6]),
+        ).to_py(),
+        [5, 2, 3],
+    )
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(lambda x, y: x + y, x=1), y=2
+        ).to_py(),
+        3,
+    )
+
+  def test_map_py_fn_args_passed_to_eval(self):
+    def f_kwargs(x, y, **kwargs):
+      return x + y + kwargs['z']
+
+    map_fn = functor_factories.map_py_fn(f_kwargs)
+    self.assertEqual(kd.call(map_fn, x=1, y=2, z=3).to_py(), 6)
+    self.assertEqual(
+        kd.call(
+            map_fn,
+            x=kdi.slice([1, 2]),
+            y=kdi.slice([3, 4]),
+            z=kdi.slice([5, 6]),
+        ).to_py(),
+        [9, 12],
+    )
+    map_fn = functor_factories.map_py_fn(f_kwargs, x=0, z=1, unused=2)
+    self.assertEqual(kd.call(map_fn, x=1, y=2, z=3).to_py(), 6)
+    self.assertEqual(kd.call(map_fn, y=2).to_py(), 3)
+
+  def test_map_py_fn_ndim(self):
+    def fn(x):
+      return len(x) if isinstance(x, list) else 0
+
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(fn), x=kdi.slice([1, 2, 3])
+        ).to_py(),
+        [0, 0, 0],
+    )
+
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(fn, ndim=1), x=kdi.slice([1, 2, 3])
+        ).to_py(),
+        3,
+    )
+
+  def test_map_py_default_arguments(self):
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(lambda x, y=1: x + y),
+            x=kdi.slice([1, 2, 3]),
+        ).to_py(),
+        [2, 3, 4],
+    )
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(lambda x, y=1: x + y), x=5, y=2
+        ).to_py(),
+        7,
+    )
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(lambda x, y: x + y, y=1), x=5
+        ).to_py(),
+        6,
+    )
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(lambda x, y: x + y, y=1), x=5, y=2
+        ).to_py(),
+        7,
+    )
+
+  def test_map_py_var_keyword(self):
+    def g(x, **kwargs):
+      return x + kwargs['y']
+
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(g, y=1), x=kdi.slice([1, 2, 3])
+        ).to_py(),
+        [2, 3, 4],
+    )
+    # Extra kwargs are ignored
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(g, y=1, z=4), x=kdi.slice([1, 2, 3])
+        ).to_py(),
+        [2, 3, 4],
+    )
+
+  def test_map_py_positional_params(self):
+    def var_positional(*args):
+      return sum(args)
+
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(var_positional),
+            kdi.slice([1, 2]),
+            kdi.slice([3, 4]),
+        ).to_py(),
+        [4, 6],
+    )
+
+    def positional_only(args, /):
+      return args
+
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(positional_only), kdi.slice([1, 2])
+        ).to_py(),
+        [1, 2],
+    )
+
   def test_get_signature(self):
     fn = functor_factories.fn(I.x + I.y)
     sig = functor_factories.get_signature(fn)
