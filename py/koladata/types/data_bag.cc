@@ -1283,6 +1283,7 @@ absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self,
   return WrapDataBagPtr(std::move(res));
 }
 
+template <absl::StatusOr<std::string> ToStrFunc(const DataBagPtr&, int64_t)>
 absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self,
                                                   PyObject* const* py_args,
                                                   Py_ssize_t nargs,
@@ -1304,7 +1305,7 @@ absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self,
     }
   }
 
-  ASSIGN_OR_RETURN(std::string str, DataBagToStr(db, triple_limit),
+  ASSIGN_OR_RETURN(std::string str, ToStrFunc(db, triple_limit),
                    SetKodaPyErrFromStatus(_));
   return PyUnicode_FromStringAndSize(str.c_str(), str.size());
 }
@@ -1681,11 +1682,24 @@ Args:
 Returns:
   data_bag.DataBag
 )"""},
-    {"_contents_repr", (PyCFunction)PyDataBag_contents_repr,
+    {"_contents_repr", (PyCFunction)PyDataBag_contents_repr<DataBagToStr>,
      METH_FASTCALL | METH_KEYWORDS,
      "_contents_repr(triple_limit=1000)\n"
      "--\n\n"
      "Returns a string representation of the contents of this DataBag."},
+    {"_data_triples_repr",
+     (PyCFunction)PyDataBag_contents_repr<DataOnlyBagToStr>,
+     METH_FASTCALL | METH_KEYWORDS,
+     "_data_triples_repr(triple_limit=1000)\n"
+     "--\n\n"
+     "Returns a string representation of the contents of this DataBag, "
+     "omitting schema contents"},
+    {"_schema_triples_repr",
+     (PyCFunction)PyDataBag_contents_repr<SchemaOnlyBagToStr>,
+     METH_FASTCALL | METH_KEYWORDS,
+     "_schema_triples_repr(triple_limit=1000)\n"
+     "--\n\n"
+     "Returns a string representation of the schema contents of this DataBag"},
     {"get_fallbacks", PyDataBag_get_fallbacks, METH_NOARGS,
      "get_fallbacks()\n"
      "--\n\n"

@@ -471,29 +471,27 @@ TEST(DataBagReprTest,
   auto fallback_db1 = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto ds1,
                        CreateUuObject(fallback_db1, "seed", {"a", "b"},
-                                      {test::DataItem(42, fallback_db1),
-                                       test::DataItem(84, fallback_db1)}));
-
-  ASSERT_OK(ds1.SetAttr("a", test::DataItem(43, fallback_db1)));
+                                      {test::DataItem(1, fallback_db1),
+                                       test::DataItem(2, fallback_db1)}));
 
   auto fallback_db2 = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto ds2,
                        CreateUuObject(fallback_db2, "seed", {"a", "b"},
-                                      {test::DataItem(42, fallback_db2),
-                                       test::DataItem(84, fallback_db2)}));
+                                      {test::DataItem(1, fallback_db2),
+                                       test::DataItem(2, fallback_db2)}));
 
-  ASSERT_OK(ds2.SetAttr("a", test::DataItem(43, fallback_db2)));
-  ASSERT_OK(ds2.SetAttr("b", test::DataItem(85, fallback_db2)));
-  ASSERT_OK(ds2.SetAttr("c", test::DataItem(126, fallback_db2)));
+  ASSERT_OK(ds2.SetAttr("a", test::DataItem(10, fallback_db2)));
+  ASSERT_OK(ds2.SetAttr("b", test::DataItem(20, fallback_db2)));
+  ASSERT_OK(ds2.SetAttr("c", test::DataItem(30, fallback_db2)));
 
   auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
 
   EXPECT_THAT(DataBagToStr(db), IsOkAndHolds(MatchesRegex(
                                     R"regex(DataBag \$[0-9a-f]{4}:
 \#[0-9a-zA-Z]{22}\.get_obj_schema\(\) => \#[0-9a-zA-Z]{22}
-\#[0-9a-zA-Z]{22}\.a => 43
-\#[0-9a-zA-Z]{22}\.b => 84
-\#[0-9a-zA-Z]{22}\.c => 126
+\#[0-9a-zA-Z]{22}\.a => 1
+\#[0-9a-zA-Z]{22}\.b => 2
+\#[0-9a-zA-Z]{22}\.c => 30
 
 SchemaBag:
 \#[0-9a-zA-Z]{22}\.a => INT32
@@ -565,6 +563,43 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_SchemaCycle) {
       DataBagToStr(bag),
       IsOkAndHolds(MatchesRegex(
           R"regex((\n|.)*\$[0-9a-zA-Z]{22}\.dudulu => #[0-9a-zA-Z]{22}\[dict<INT32, #[0-9a-zA-Z]{22}\[dict<INT32, #[0-9a-zA-Z]{22}\[dict<INT32, #[0-9a-zA-Z]{22}\[dict<INT32, #[0-9a-zA-Z]{22}\[dict<INT32, \.\.\.>\]>\]>\]>\]>\](\n|.)*)regex")));
+}
+
+TEST(DataBagReprTest, TestDataBagStringRepresentation_DataOnlyBagToStr) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value = test::DataItem(1);
+
+  ASSERT_OK_AND_ASSIGN(DataSlice entity_1,
+                       ObjectCreator::FromAttrs(bag, {"a"}, {value}));
+  ASSERT_OK(ObjectCreator::FromAttrs(bag, {"b"}, {entity_1}));
+  EXPECT_THAT(
+      DataOnlyBagToStr(bag),
+      IsOkAndHolds(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}:
+\$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
+\$[0-9a-zA-Z]{22}\.a => 1
+\$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
+\$[0-9a-zA-Z]{22}\.b => \$[0-9a-zA-Z]{22}
+)regex")));
+}
+
+TEST(DataBagReprTest, TestDataBagStringRepresentation_SchemaOnlyBagToStr) {
+  DataBagPtr bag = DataBag::Empty();
+
+  DataSlice value = test::DataItem(1);
+
+  ASSERT_OK_AND_ASSIGN(DataSlice entity_1,
+                       ObjectCreator::FromAttrs(bag, {"a"}, {value}));
+  ASSERT_OK(ObjectCreator::FromAttrs(bag, {"b"}, {entity_1}));
+  EXPECT_THAT(
+      SchemaOnlyBagToStr(bag),
+      IsOkAndHolds(
+          MatchesRegex(
+              R"regex(SchemaBag \$[0-9a-f]{4}:
+\#[0-9a-zA-Z]{22}\.(b|a) => (INT32|OBJECT)
+\#[0-9a-zA-Z]{22}\.(b|a) => (OBJECT|INT32)
+)regex")));
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_Dict) {

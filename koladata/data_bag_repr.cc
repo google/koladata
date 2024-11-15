@@ -155,54 +155,67 @@ class ContentsReprBuilder {
   explicit ContentsReprBuilder(const DataBagPtr& db, int64_t triple_limit)
       : db_(db), triple_count_(0), triple_limit_(triple_limit) {}
 
-  absl::StatusOr<std::string> Build() && {
+  absl::StatusOr<std::string> Build(bool show_data, bool show_schema) && {
     if (triple_limit_ <= 0) {
       return absl::InvalidArgumentError(
           "triple_limit must be a positive integer");
     }
 
-    res_ = absl::StrCat("DataBag ", GetBagIdRepr(db_), ":\n");
-
-    // Triples in the main DataBag.
+    // Extract necessary triples.
     ASSIGN_OR_RETURN(DataBagContent content, db_->GetImpl().ExtractContent());
     Triples main_triples(content);
-    AddDataTriples(main_triples);
-    if (triple_count_ >= triple_limit_) {
-      Etcetera();
-      return std::move(res_);
-    }
-
-    // Triples in the fallbacks.
     FlattenFallbackFinder fallback_finder(*db_);
     auto fallbacks = fallback_finder.GetFlattenFallbacks();
     std::vector<Triples> fallback_triples;
+    fallback_triples.reserve(fallbacks.size());
     for (const internal::DataBagImpl* const fallback : fallbacks) {
       ASSIGN_OR_RETURN(DataBagContent fallback_content,
                         fallback->ExtractContent());
       fallback_triples.push_back(Triples(fallback_content));
-      AddDataTriples(fallback_triples.back());
+    }
+
+    if (show_data) {
+      res_ = absl::StrCat("DataBag ", GetBagIdRepr(db_), ":\n");
+      // Triples in the main DataBag.
+      AddDataTriples(main_triples);
       if (triple_count_ >= triple_limit_) {
         Etcetera();
         return std::move(res_);
       }
-    }
 
-    absl::StrAppend(&res_, "\nSchemaBag:\n");
-    // Schema triples in the main DataBag.
-    RETURN_IF_ERROR(AddSchemaTriples(main_triples));
-    if (triple_count_ >= triple_limit_) {
-        Etcetera();
-        return std::move(res_);
-    }
-
-    // Schema triples in the fallbacks.
-    for (const auto& triples : fallback_triples) {
-      RETURN_IF_ERROR(AddSchemaTriples(triples));
-      if (triple_count_ >= triple_limit_) {
-        Etcetera();
-        return std::move(res_);
+      // Triples in the fallbacks.
+      for (const auto& triples : fallback_triples) {
+        AddDataTriples(triples);
+        if (triple_count_ >= triple_limit_) {
+          Etcetera();
+          return std::move(res_);
+        }
       }
     }
+
+    if (show_schema) {
+      if (show_data) {
+        absl::StrAppend(&res_, "\nSchemaBag:\n");
+      } else {
+        res_ = absl::StrCat("SchemaBag ", GetBagIdRepr(db_), ":\n");
+      }
+      // Schema triples in the main DataBag.
+      RETURN_IF_ERROR(AddSchemaTriples(main_triples));
+      if (triple_count_ >= triple_limit_) {
+          Etcetera();
+          return std::move(res_);
+      }
+
+      // Schema triples in the fallbacks.
+      for (const auto& triples : fallback_triples) {
+        RETURN_IF_ERROR(AddSchemaTriples(triples));
+        if (triple_count_ >= triple_limit_) {
+          Etcetera();
+          return std::move(res_);
+        }
+      }
+    }
+
     return std::move(res_);
   }
 
@@ -333,7 +346,19 @@ void UpdateCountMap(const typename Map::key_type& val, Map& count_dict) {
 absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db,
                                          int64_t triple_limit) {
   ContentsReprBuilder builder(db, triple_limit);
-  return std::move(builder).Build();
+  return std::move(builder).Build(/*show_data=*/true, /*show_schema=*/true);
+}
+
+absl::StatusOr<std::string> DataOnlyBagToStr(const DataBagPtr& db,
+                                         int64_t triple_limit) {
+  ContentsReprBuilder builder(db, triple_limit);
+  return std::move(builder).Build(/*show_data=*/true, /*show_schema=*/false);
+}
+
+absl::StatusOr<std::string> SchemaOnlyBagToStr(const DataBagPtr& db,
+                                         int64_t triple_limit) {
+  ContentsReprBuilder builder(db, triple_limit);
+  return std::move(builder).Build(/*show_data=*/false, /*show_schema=*/true);
 }
 
 absl::StatusOr<std::string> DataBagStatistics(const DataBagPtr& db,

@@ -365,6 +365,30 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
 
     del r
 
+  def test_data_triples_repr(self):
+    db = bag()
+    db.obj(a=db.obj(b=1))
+    self.assertRegex(
+        repr(db.data_triples_repr()),
+        r"""DataBag \$[0-9a-f]{4}:
+\$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
+\$[0-9a-zA-Z]{22}\.b => 1
+\$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
+\$[0-9a-zA-Z]{22}\.a => \$[0-9a-zA-Z]{22}
+""",
+    )
+
+  def test_schema_triples_repr(self):
+    db = bag()
+    db.obj(a=db.obj(b=1))
+    self.assertRegex(
+        repr(db.schema_triples_repr()),
+        r"""SchemaBag \$[0-9a-f]{4}:
+\#[0-9a-zA-Z]{22}\.(b|a) => (INT32|OBJECT)
+\#[0-9a-zA-Z]{22}\.(b|a) => (OBJECT|INT32)
+""",
+    )
+
   def test_is_mutable(self):
     db = bag()
     self.assertTrue(db.is_mutable())

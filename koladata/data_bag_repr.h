@@ -29,6 +29,12 @@ constexpr int kDefaultTripleReprLimit = 1000;
 absl::StatusOr<std::string> DataBagToStr(
     const DataBagPtr& db, int64_t triple_limit = kDefaultTripleReprLimit);
 
+absl::StatusOr<std::string> DataOnlyBagToStr(
+    const DataBagPtr& db, int64_t triple_limit = kDefaultTripleReprLimit);
+
+absl::StatusOr<std::string> SchemaOnlyBagToStr(
+    const DataBagPtr& db, int64_t triple_limit = kDefaultTripleReprLimit);
+
 // Returns the stats string about the triples and attributes in the DataBag.
 //
 // Items in the list are counted as multiple triples: one for each item. E.g.

@@ -415,8 +415,8 @@ def _updated_bag(*dbs) -> DataBag:
 
 class ContentsReprWrapper:
 
-  def __init__(self, db: DataBag, triple_limit: int):
-    self._contents_repr = db._contents_repr(triple_limit=triple_limit)
+  def __init__(self, contents_repr: str):
+    self._contents_repr = contents_repr
 
   def __repr__(self):
     return self._contents_repr
@@ -426,7 +426,29 @@ def _contents_repr(
     self: DataBag, /, *, triple_limit: int = 1000
 ) -> ContentsReprWrapper:
   """Returns a representation of the DataBag contents."""
-  return ContentsReprWrapper(self, triple_limit)
+  return ContentsReprWrapper(
+      self._contents_repr(triple_limit=triple_limit)  # pylint: disable=protected-access
+  )
+
+
+def _data_triples_repr(
+    self: DataBag, *, triple_limit: int = 1000
+) -> ContentsReprWrapper:
+  """Returns a representation of the DataBag contents, omitting schema triples."""
+  return ContentsReprWrapper(
+      self._data_triples_repr(triple_limit=triple_limit)  # pylint: disable=protected-access
+  )
+
+
+def _schema_triples_repr(
+    self: DataBag, *, triple_limit: int = 1000
+) -> ContentsReprWrapper:
+  """Returns a representation of schema triples in the DataBag."""
+  return ContentsReprWrapper(
+      self._schema_triples_repr(  # pylint: disable=protected-access
+          triple_limit=triple_limit
+      )
+  )
 
 
 DataBag.__getitem__ = _getitem
@@ -450,6 +472,8 @@ DataBag.__irshift__ = lambda self, other: _merge_inplace(
     self, other, overwrite=False
 )
 DataBag.contents_repr = _contents_repr
+DataBag.data_triples_repr = _data_triples_repr
+DataBag.schema_triples_repr = _schema_triples_repr
 
 
 class NullDataBag(arolla.abc.QValue):
