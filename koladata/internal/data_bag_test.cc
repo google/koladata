@@ -1314,6 +1314,8 @@ TEST(DataBagTest, DataBagIndex) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(db->SetAttr(ds1, "a", ds2));
   ASSERT_OK(db->SetAttr(ds1, "b", ds2));
+  // Add small allocation to the attribute "b".
+  ASSERT_OK(db->SetAttr(DataItem(AllocateSingleObject()), "b", DataItem(57)));
   ASSERT_OK(db->SetAttr(ds2, "a", ds3));
 
   DataBagIndex index = db->CreateIndex();
@@ -1321,7 +1323,7 @@ TEST(DataBagTest, DataBagIndex) {
   EXPECT_TRUE(index.lists.empty());
   EXPECT_EQ(index.attrs.size(), 2);
   EXPECT_FALSE(index.attrs["a"].with_small_allocs);
-  EXPECT_FALSE(index.attrs["b"].with_small_allocs);
+  EXPECT_TRUE(index.attrs["b"].with_small_allocs);
   EXPECT_THAT(index.attrs["b"].allocations,
               ElementsAreArray(ds1.allocation_ids().ids()));
 

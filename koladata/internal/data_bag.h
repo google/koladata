@@ -68,7 +68,7 @@ struct MergeOptions {
 struct DataBagIndex {
   struct AttrIndex {
     std::vector<AllocationId> allocations;
-    bool with_small_allocs;
+    bool with_small_allocs = false;
   };
   absl::btree_map<std::string, AttrIndex> attrs;
   std::vector<AllocationId> lists;
