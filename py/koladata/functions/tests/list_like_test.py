@@ -89,13 +89,125 @@ class ListLikeTest(parameterized.TestCase):
         l[:], ds([[[1, 2, 7], []], [[5, 6, 7]]]).with_bag(l.get_bag())
     )
 
-  def test_itemid(self):
-    itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))
-    x = fns.list_like(ds([1, None]), ds([['a', 'b'], ['c']]), itemid=itemid)
-    testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], []]))
-    testing.assert_equal(
-        x.no_bag().get_itemid(), itemid & expr_eval.eval(kde.has(x))
-    )
+  def test_itemid_dataitem(self):
+    itemid = expr_eval.eval(kde.allocation.new_listid())
+    input_arg = ds(['a'])
+
+    with self.subTest('present DataItem and present itemid'):
+      x = fns.list_like(ds(1), input_arg, itemid=itemid)
+      testing.assert_equal(
+          x,
+          itemid.with_schema(x.get_schema()).with_bag(x.get_bag()),
+      )
+
+    with self.subTest('missing DataItem and missing itemid'):
+      x = fns.list_like(ds(None), input_arg, itemid=(itemid & None))
+      self.assertTrue(x.is_empty())
+
+    with self.subTest('missing DataItem and present itemid'):
+      x = fns.list_like(ds(None), input_arg, itemid=itemid)
+      self.assertTrue(x.is_empty())
+
+    with self.subTest('present DataItem and missing itemid'):
+      with self.assertRaisesRegex(
+          ValueError,
+          '`itemid` only has 0 present items but 1 are required',
+      ):
+        _ = fns.list_like(ds(1), input_arg, itemid=(itemid & None))
+
+  def test_itemid_dataslice(self):
+    id1 = expr_eval.eval(kde.allocation.new_listid())
+    id2 = expr_eval.eval(kde.allocation.new_listid())
+    id3 = expr_eval.eval(kde.allocation.new_listid())
+    input_arg = ds([['a'], ['b'], ['c']])
+
+    with self.subTest('full DataSlice and full itemid'):
+      x = fns.list_like(ds([1, 1, 1]), input_arg, itemid=ds([id1, id2, id3]))
+      testing.assert_equal(
+          x,
+          ds([id1, id2, id3]).with_schema(x.get_schema()).with_bag(x.get_bag()),
+      )
+
+    with self.subTest('full DataSlice and sparse itemid'):
+      with self.assertRaisesRegex(
+          ValueError,
+          '`itemid` only has 2 present items but 3 are required',
+      ):
+        _ = fns.list_like(
+            ds([1, 1, 1]),
+            input_arg,
+            itemid=ds([id1, None, id3]),
+        )
+
+    with self.subTest('full DataSlice and full itemid with duplicates'):
+      with self.assertRaisesRegex(
+          ValueError,
+          '`itemid` cannot have duplicate ItemIds',
+      ):
+        _ = fns.list_like(ds([1, 1, 1]), input_arg, itemid=ds([id1, id2, id1]))
+
+    with self.subTest('sparse DataSlice and sparse itemid'):
+      x = fns.list_like(
+          ds([1, None, 1]),
+          input_arg,
+          itemid=ds([id1, None, id3]),
+      )
+      testing.assert_equal(
+          x,
+          ds([id1, None, id3])
+          .with_schema(x.get_schema())
+          .with_bag(x.get_bag()),
+      )
+
+    with self.subTest(
+        'sparse DataSlice and sparse itemid with sparsity mismatch'
+    ):
+      with self.assertRaisesRegex(
+          ValueError,
+          '`itemid` and `shape_and_mask_from` must have the same sparsity',
+      ):
+        _ = fns.list_like(
+            ds([1, None, 1]), input_arg, itemid=ds([id1, id2, None])
+        )
+
+    with self.subTest('sparse DataSlice and full itemid'):
+      x = fns.list_like(
+          ds([1, None, 1]),
+          input_arg,
+          itemid=ds([id1, id2, id3]),
+      )
+      testing.assert_equal(
+          x,
+          ds([id1, None, id3])
+          .with_schema(x.get_schema())
+          .with_bag(x.get_bag()),
+      )
+
+    with self.subTest('sparse DataSlice and full itemid with duplicates'):
+      with self.assertRaisesRegex(
+          ValueError,
+          '`itemid` cannot have duplicate ItemIds',
+      ):
+        _ = fns.list_like(
+            ds([1, None, 1]),
+            input_arg,
+            itemid=ds([id1, id1, id1]),
+        )
+
+    with self.subTest(
+        'sparse DataSlice and full itemid with unused duplicates'
+    ):
+      x = fns.list_like(
+          ds([1, None, 1]),
+          input_arg,
+          itemid=ds([id1, id1, id3]),
+      )
+      testing.assert_equal(
+          x,
+          ds([id1, None, id3])
+          .with_schema(x.get_schema())
+          .with_bag(x.get_bag()),
+      )
 
   def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)

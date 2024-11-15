@@ -1445,9 +1445,8 @@ TYPED_TEST(CreatorTest, Shaped_ItemId_Error) {
     res_or = CreatorT::Shaped(
         db, shape, {std::string("a")}, {test::DataItem(42)}, itemid);
   }
-  EXPECT_THAT(res_or,
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("shape is different")));
+  EXPECT_THAT(res_or, StatusIs(absl::StatusCode::kInvalidArgument,
+                               HasSubstr("different from the shape")));
 }
 
 TYPED_TEST(CreatorTest, Like_WithAttrs) {
@@ -1631,9 +1630,8 @@ TYPED_TEST(CreatorTest, Like_ItemId_Error) {
         db, shape_and_mask_from, {std::string("a")}, {test::DataItem(42)},
         itemid);
   }
-  EXPECT_THAT(res_or,
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("shape is different")));
+  EXPECT_THAT(res_or, StatusIs(absl::StatusCode::kInvalidArgument,
+                               HasSubstr("different from the shape")));
 }
 
 TEST(ObjectFactoriesTest, CreateEmptyList) {
@@ -1729,11 +1727,10 @@ TEST(ObjectFactoriesTest, CreateEmptyList_ItemId_Error) {
           CreateDenseArray<ObjectId>({list_id, list_id})),
       DataSlice::JaggedShape::FlatFromSize(2),
       internal::DataItem(schema::kItemId));
-  EXPECT_THAT(
-      CreateEmptyList(db, /*schema=*/std::nullopt,
-                      /*item_schema=*/std::nullopt, itemid),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("itemid cannot have missing or duplicate items")));
+  EXPECT_THAT(CreateEmptyList(db, /*schema=*/std::nullopt,
+                              /*item_schema=*/std::nullopt, itemid),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("`itemid` cannot have duplicate ItemIds")));
 }
 
 TEST(ObjectFactoriesTest, CreateListsFromLastDimension) {
@@ -2400,7 +2397,7 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ShapeError) {
   EXPECT_THAT(CreateNestedList(db, values, /*schema=*/std::nullopt,
                                /*item_schema=*/std::nullopt, itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("shape is different")));
+                       HasSubstr("different from the shape")));
 
   ASSERT_OK_AND_ASSIGN(
       auto edge_1,
@@ -2416,7 +2413,7 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ShapeError) {
   EXPECT_THAT(CreateNestedList(db, values, /*schema=*/std::nullopt,
                                /*item_schema=*/std::nullopt, itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("shape is different")));
+                       HasSubstr("different from the shape")));
 }
 
 TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ItemIdTypeError) {
@@ -2737,13 +2734,13 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Errors) {
           internal::AllocateDicts(2), 2),
       DataSlice::JaggedShape::FlatFromSize(2),
       internal::DataItem(schema::kItemId));
-  EXPECT_THAT(CreateDictShaped(db, shape, /*keys=*/std::nullopt,
-                               /*values=*/std::nullopt, /*schema=*/std::nullopt,
-                               /*key_schema=*/std::nullopt,
-                               /*value_schema=*/std::nullopt,
-                               itemid_wrong_shape),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("shape is different")));
+  EXPECT_THAT(
+      CreateDictShaped(db, shape, /*keys=*/std::nullopt,
+                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
+                       /*key_schema=*/std::nullopt,
+                       /*value_schema=*/std::nullopt, itemid_wrong_shape),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("different from the shape")));
 
   auto itemid_wrong_itemid_type = *DataSlice::Create(
       internal::DataSliceImpl::ObjectsFromAllocation(
@@ -3074,10 +3071,9 @@ TEST(ObjectFactoriesTest, CreateDictLike_ItemId_Errors) {
   EXPECT_THAT(CreateDictLike(db, shape_and_mask_from, /*keys=*/std::nullopt,
                              /*values=*/std::nullopt, /*schema=*/std::nullopt,
                              /*key_schema=*/std::nullopt,
-                             /*value_schema=*/std::nullopt,
-                             itemid_wrong_shape),
+                             /*value_schema=*/std::nullopt, itemid_wrong_shape),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("shape is different")));
+                       HasSubstr("different from the shape")));
 
   auto itemid_wrong_itemid_type = *DataSlice::Create(
       internal::DataSliceImpl::ObjectsFromAllocation(
@@ -3388,10 +3384,9 @@ TEST(ObjectFactoriesTest, CreateListLike_ItemId_Errors) {
       internal::DataItem(schema::kItemId));
   EXPECT_THAT(CreateListLike(db, shape_and_mask_from, /*values=*/std::nullopt,
                              /*schema=*/std::nullopt,
-                             /*item_schema=*/std::nullopt,
-                             itemid_wrong_shape),
+                             /*item_schema=*/std::nullopt, itemid_wrong_shape),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("shape is different")));
+                       HasSubstr("different from the shape")));
 
   auto itemid_wrong_itemid_type = *DataSlice::Create(
       internal::DataSliceImpl::ObjectsFromAllocation(

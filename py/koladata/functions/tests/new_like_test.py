@@ -107,19 +107,105 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(x.get_schema(), y.get_schema().x.with_bag(x.get_bag()))
     testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.STRING)
 
-  def test_itemid(self):
-    itemid = expr_eval.eval(
-        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
-    )
-    x = fns.new_like(ds([[1, None], [1]]), a=42, itemid=itemid)
-    testing.assert_equal(x.a.no_bag(), ds([[42, None], [42]]))
-    testing.assert_equal(
-        x.no_bag().get_itemid(), itemid & expr_eval.eval(kde.has(x))
-    )
+  def test_itemid_dataitem(self):
+    itemid = expr_eval.eval(kde.allocation.new_itemid())
+
+    with self.subTest('present DataItem and present itemid'):
+      x = fns.new_like(ds(1), a=42, itemid=itemid)
+      testing.assert_equal(
+          x,
+          itemid.with_schema(x.get_schema()).with_bag(x.get_bag()),
+      )
+
+    with self.subTest('missing DataItem and missing itemid'):
+      x = fns.new_like(ds(None), a=42, itemid=(itemid & None))
+      self.assertTrue(x.is_empty())
+
+    with self.subTest('missing DataItem and present itemid'):
+      x = fns.new_like(ds(None), a=42, itemid=itemid)
+      self.assertTrue(x.is_empty())
+
+    with self.subTest('present DataItem and missing itemid'):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          '`itemid` only has 0 present items but 1 are required',
+      ):
+        _ = fns.new_like(ds(1), a=42, itemid=(itemid & None))
+
+  def test_itemid_dataslice(self):
+    id1 = expr_eval.eval(kde.allocation.new_itemid())
+    id2 = expr_eval.eval(kde.allocation.new_itemid())
+    id3 = expr_eval.eval(kde.allocation.new_itemid())
+
+    with self.subTest('full DataSlice and full itemid'):
+      x = fns.new_like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id3]))
+      testing.assert_equal(
+          x,
+          ds([id1, id2, id3]).with_schema(x.get_schema()).with_bag(x.get_bag()),
+      )
+
+    with self.subTest('full DataSlice and sparse itemid'):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          '`itemid` only has 2 present items but 3 are required',
+      ):
+        _ = fns.new_like(ds([1, 1, 1]), a=42, itemid=ds([id1, None, id3]))
+
+    with self.subTest('full DataSlice and full itemid with duplicates'):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          '`itemid` cannot have duplicate ItemIds',
+      ):
+        _ = fns.new_like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id1]))
+
+    with self.subTest('sparse DataSlice and sparse itemid'):
+      x = fns.new_like(ds([1, None, 1]), a=42, itemid=ds([id1, None, id3]))
+      testing.assert_equal(
+          x,
+          ds([id1, None, id3])
+          .with_schema(x.get_schema())
+          .with_bag(x.get_bag()),
+      )
+
+    with self.subTest(
+        'sparse DataSlice and sparse itemid with sparsity mismatch'
+    ):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          '`itemid` and `shape_and_mask_from` must have the same sparsity',
+      ):
+        _ = fns.new_like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, None]))
+
+    with self.subTest('sparse DataSlice and full itemid'):
+      x = fns.new_like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, id3]))
+      testing.assert_equal(
+          x,
+          ds([id1, None, id3])
+          .with_schema(x.get_schema())
+          .with_bag(x.get_bag()),
+      )
+
+    with self.subTest('sparse DataSlice and full itemid with duplicates'):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          '`itemid` cannot have duplicate ItemIds',
+      ):
+        _ = fns.new_like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id1]))
+
+    with self.subTest(
+        'sparse DataSlice and full itemid with unused duplicates'
+    ):
+      x = fns.new_like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id3]))
+      testing.assert_equal(
+          x,
+          ds([id1, None, id3])
+          .with_schema(x.get_schema())
+          .with_bag(x.get_bag()),
+      )
 
   def test_itemid_from_different_bag(self):
     itemid = fns.new(non_existent=ds([[42, 42], [42]])).get_itemid()
-    assert itemid.get_bag() is not None
+    self.assertIsNotNone(itemid.get_bag())
     # Successful.
     x = fns.new_like(ds([[1, None], [1]]), a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.

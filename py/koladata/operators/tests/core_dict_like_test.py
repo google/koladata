@@ -119,6 +119,165 @@ class DictLikeTest(parameterized.TestCase):
     d = expr_eval.eval(kde.core.dict_like(ds(5)))
     self.assertFalse(d.is_mutable())
 
+  def test_itemid_dataitem(self):
+    itemid = expr_eval.eval(kde.allocation.new_dictid())
+
+    with self.subTest('present DataItem and present itemid'):
+      x = expr_eval.eval(kde.core.dict_like(ds(1), 'a', 42, itemid=itemid))
+      testing.assert_equal(
+          x,
+          itemid.with_schema(x.get_schema()).with_bag(x.get_bag()),
+      )
+
+    with self.subTest('missing DataItem and missing itemid'):
+      x = expr_eval.eval(
+          kde.core.dict_like(ds(None), 'a', 42, itemid=(itemid & None))
+      )
+      self.assertTrue(x.is_empty())
+
+    with self.subTest('missing DataItem and present itemid'):
+      x = expr_eval.eval(kde.core.dict_like(ds(None), 'a', 42, itemid=itemid))
+      self.assertTrue(x.is_empty())
+
+    with self.subTest('present DataItem and missing itemid'):
+      with self.assertRaisesRegex(
+          ValueError,
+          '`itemid` only has 0 present items but 1 are required',
+      ):
+        _ = expr_eval.eval(
+            kde.core.dict_like(ds(1), 'a', 42, itemid=(itemid & None))
+        )
+
+  def test_itemid_dataslice(self):
+    id1 = expr_eval.eval(kde.allocation.new_dictid())
+    id2 = expr_eval.eval(kde.allocation.new_dictid())
+    id3 = expr_eval.eval(kde.allocation.new_dictid())
+
+    with self.subTest('full DataSlice and full itemid'):
+      x = expr_eval.eval(
+          kde.core.dict_like(ds([1, 1, 1]), 'a', 42, itemid=ds([id1, id2, id3]))
+      )
+      testing.assert_equal(
+          x,
+          ds([id1, id2, id3]).with_schema(x.get_schema()).with_bag(x.get_bag()),
+      )
+
+    with self.subTest('full DataSlice and sparse itemid'):
+      with self.assertRaisesRegex(
+          ValueError,
+          '`itemid` only has 2 present items but 3 are required',
+      ):
+        _ = expr_eval.eval(
+            kde.core.dict_like(
+                ds([1, 1, 1]),
+                'a',
+                42,
+                itemid=ds([id1, None, id3]),
+            )
+        )
+
+    with self.subTest('full DataSlice and full itemid with duplicates'):
+      with self.assertRaisesRegex(
+          ValueError,
+          '`itemid` cannot have duplicate ItemIds',
+      ):
+        _ = expr_eval.eval(
+            kde.core.dict_like(
+                ds([1, 1, 1]), 'a', 42, itemid=ds([id1, id2, id1])
+            )
+        )
+
+    with self.subTest('sparse DataSlice and sparse itemid'):
+      x = expr_eval.eval(
+          kde.core.dict_like(
+              ds([1, None, 1]),
+              'a',
+              42,
+              itemid=ds([id1, None, id3]),
+          )
+      )
+      testing.assert_equal(
+          x,
+          ds([id1, None, id3])
+          .with_schema(x.get_schema())
+          .with_bag(x.get_bag()),
+      )
+
+    with self.subTest(
+        'sparse DataSlice and sparse itemid with sparsity mismatch'
+    ):
+      with self.assertRaisesRegex(
+          ValueError,
+          '`itemid` and `shape_and_mask_from` must have the same sparsity',
+      ):
+        _ = expr_eval.eval(
+            kde.core.dict_like(
+                ds([1, None, 1]), 'a', 42, itemid=ds([id1, id2, None])
+            )
+        )
+
+    with self.subTest('sparse DataSlice and full itemid'):
+      x = expr_eval.eval(
+          kde.core.dict_like(
+              ds([1, None, 1]),
+              'a',
+              42,
+              itemid=ds([id1, id2, id3]),
+          )
+      )
+      testing.assert_equal(
+          x,
+          ds([id1, None, id3])
+          .with_schema(x.get_schema())
+          .with_bag(x.get_bag()),
+      )
+
+    with self.subTest('sparse DataSlice and full itemid with duplicates'):
+      with self.assertRaisesRegex(
+          ValueError,
+          '`itemid` cannot have duplicate ItemIds',
+      ):
+        _ = expr_eval.eval(
+            kde.core.dict_like(
+                ds([1, None, 1]),
+                'a',
+                42,
+                itemid=ds([id1, id1, id1]),
+            )
+        )
+
+    with self.subTest(
+        'sparse DataSlice and full itemid with unused duplicates'
+    ):
+      x = expr_eval.eval(
+          kde.core.dict_like(
+              ds([1, None, 1]),
+              'a',
+              42,
+              itemid=ds([id1, id1, id3]),
+          )
+      )
+      testing.assert_equal(
+          x,
+          ds([id1, None, id3])
+          .with_schema(x.get_schema())
+          .with_bag(x.get_bag()),
+      )
+
+  def test_itemid_from_different_bag(self):
+    triple = fns.new(non_existent=42)
+    itemid = fns.dict_shaped(ds([[1, 1], [1]]).get_shape(), 'a', triple)
+
+    # Successful.
+    x = expr_eval.eval(
+        kde.core.dict_like(ds([[1, None], [1]]), itemid=itemid.get_itemid())
+    )
+    # ITEMID's triples are stripped in the new DataBag.
+    with self.assertRaisesRegex(
+        ValueError, "attribute 'non_existent' is missing"
+    ):
+      _ = triple.with_bag(x.get_bag()).non_existent
+
   def test_wrong_shape_and_mask_from(self):
     with self.assertRaisesRegex(
         ValueError,
