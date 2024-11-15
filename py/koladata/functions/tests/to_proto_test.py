@@ -19,6 +19,7 @@ from koladata.functions import functions as fns
 from koladata.functions.tests import test_pb2
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import schema_constants
 
 
 ds = data_slice.DataSlice.from_vals
@@ -56,28 +57,28 @@ class ToProtoTest(absltest.TestCase):
   def test_single_empty_message(self):
     message = fns.to_proto(fns.obj(), test_pb2.MessageC)
     expected_message = test_pb2.MessageC()
-    self.assertTrue(message, expected_message)
+    self.assertEqual(message, expected_message)
 
   def test_single_none_message(self):
     bag = data_bag.DataBag.empty()
     message = fns.to_proto(ds(None).with_bag(bag), test_pb2.MessageC)
     expected_message = test_pb2.MessageC()
-    self.assertTrue(message, expected_message)
+    self.assertEqual(message, expected_message)
 
   def test_single_message(self):
     message = fns.to_proto(fns.new(int32_field=1), test_pb2.MessageC)
     expected_message = test_pb2.MessageC(int32_field=1)
-    self.assertTrue(message, expected_message)
+    self.assertEqual(message, expected_message)
 
   def test_single_message_object(self):
     message = fns.to_proto(fns.obj(int32_field=1), test_pb2.MessageC)
     expected_message = test_pb2.MessageC(int32_field=1)
-    self.assertTrue(message, expected_message)
+    self.assertEqual(message, expected_message)
 
   def test_single_message_any(self):
     message = fns.to_proto(fns.new(int32_field=1).as_any(), test_pb2.MessageC)
     expected_message = test_pb2.MessageC(int32_field=1)
-    self.assertTrue(message, expected_message)
+    self.assertEqual(message, expected_message)
 
   def test_multiple_messages(self):
     messages = fns.to_proto(
@@ -93,7 +94,7 @@ class ToProtoTest(absltest.TestCase):
         test_pb2.MessageC(int32_field=2),
         test_pb2.MessageC(int32_field=3),
     ]
-    self.assertTrue(messages, expected_messages)
+    self.assertEqual(messages, expected_messages)
 
   def test_extension_field(self):
     x = fns.obj()
@@ -107,7 +108,62 @@ class ToProtoTest(absltest.TestCase):
     expected_message.Extensions[
         test_pb2.MessageAExtension.message_a_extension
     ].extra = 123
-    self.assertTrue(message, expected_message)
+    self.assertEqual(message, expected_message)
+
+  def test_oneof(self):
+    # TODO: This should also work if we use OBJECT everywhere.
+    s = fns.new_schema(
+        oneof_int32_field=schema_constants.INT32,
+        oneof_bytes_field=schema_constants.BYTES,
+    )
+    x = ds([
+        fns.new(schema=s, oneof_int32_field=1),
+        fns.new(schema=s, oneof_bytes_field=b'2'),
+        fns.new(schema=s, oneof_message_field=fns.new(int32_field=3)),
+    ])
+
+    messages = fns.to_proto(x, test_pb2.MessageC)
+
+    expected_messages = [
+        test_pb2.MessageC(oneof_int32_field=1),
+        test_pb2.MessageC(oneof_bytes_field=b'2'),
+        test_pb2.MessageC(oneof_message_field=test_pb2.MessageC(int32_field=3)),
+    ]
+
+    self.assertEqual(messages, expected_messages)
+
+  def test_oneof_conflict(self):
+    # TODO: Throw an error here instead. Current behavior is that
+    # the lexicographically last field by name wins ("int32" > "bytes").
+    x = fns.new(oneof_bytes_field=b'2', oneof_int32_field=2)
+    message = fns.to_proto(x, test_pb2.MessageC)
+    expected_messages = test_pb2.MessageC(oneof_int32_field=2)
+    self.assertEqual(message, expected_messages)
+
+  def test_repeated_oneof(self):
+    s = fns.new_schema(
+        oneof_int32_field=schema_constants.INT32,
+        oneof_bytes_field=schema_constants.BYTES,
+    )
+    x = fns.new(repeated_message_field=fns.list([
+        fns.new(schema=s, oneof_int32_field=1),
+        fns.new(schema=s, oneof_bytes_field=b'2'),
+        fns.new(schema=s, oneof_message_field=fns.new(int32_field=3)),
+    ]))
+
+    message = fns.to_proto(x, test_pb2.MessageC)
+
+    expected_message = test_pb2.MessageC(
+        repeated_message_field=[
+            test_pb2.MessageC(oneof_int32_field=1),
+            test_pb2.MessageC(oneof_bytes_field=b'2'),
+            test_pb2.MessageC(
+                oneof_message_field=test_pb2.MessageC(int32_field=3)
+            ),
+        ]
+    )
+
+    self.assertEqual(message, expected_message)
 
   def test_invalid_input_list_none(self):
     with self.assertRaisesRegex(

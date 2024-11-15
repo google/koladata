@@ -86,6 +86,12 @@ message MessageC {
   repeated bytes repeated_bytes_field = 6;
   map<int32, int32> map_int32_int32_field = 7;
   map<int32, MessageC> map_int32_message_field = 8;
+
+  oneof a_oneof {
+    int32 oneof_int32_field = 9;
+    bytes oneof_bytes_field = 10;
+    MessageC oneof_message_field = 11;
+  }
 }
 
 // 100 fields, for benchmarking

@@ -29,6 +29,8 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/trampoline_executor.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/core_list.h"
@@ -400,6 +402,27 @@ absl::Status FillProtoMessage(
     return absl::InvalidArgumentError(absl::StrFormat(
         "proto message should have only entities/objects, found %s",
         slice.dtype()->name()));
+  }
+
+  // ANY schema doesn't give us a way to list attrs on the slice, so iterate
+  // over the descriptor fields instead.
+  if (slice.GetSchemaImpl() == schema::kAny) {
+    ASSIGN_OR_RETURN(
+        auto missing_attr_slice,
+        DataSlice::Create(
+            internal::DataSliceImpl::CreateEmptyAndUnknownType(slice.size()),
+            slice.GetShape(), slice.GetSchemaImpl(), slice.GetBag()));
+    for (int64_t i_field = 0; i_field < message_descriptor.field_count();
+         ++i_field) {
+      const auto& field = *message_descriptor.field(i_field);
+      ASSIGN_OR_RETURN(
+          const auto& attr_slice,
+          slice.GetAttrWithDefault(field.name(), missing_attr_slice));
+      if (!attr_slice.IsEmpty()) {
+        RETURN_IF_ERROR(FillProtoField(attr_slice, field, messages, executor));
+      }
+    }
+    return absl::OkStatus();
   }
 
   ASSIGN_OR_RETURN(const auto& attr_names, slice.GetAttrNames());
