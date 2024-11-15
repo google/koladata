@@ -363,6 +363,32 @@ def bind(
   )
 
 
+def fstr_fn(returns: str, **kwargs) -> data_slice.DataSlice:
+  """Returns a Koda functor from format string.
+
+  Format-string must be created via Python f-string syntax. It must contain at
+  least one formatted expression.
+
+  kwargs are used to assign values to the functor variables and can be used in
+  the formatted expression using V. syntax.
+
+  Each formatted expression must have custom format specification,
+  e.g. `{I.x:s}` or `{V.y:.2f}`.
+
+  Examples:
+    kd.call(fstr_fn(f'{I.x:s} {I.y:s}'), x=1, y=2)  # kd.slice('1 2')
+    kd.call(fstr_fn(f'{V.x:s} {I.y:s}', x=1), y=2)  # kd.slice('1 2')
+    kd.call(fstr_fn(f'{(I.x + I.y):s}'), x=1, y=2)  # kd.slice('3')
+    kd.call(fstr_fn('abc'))  # error - no substitutions
+    kd.call(fstr_fn('{I.x}'), x=1)  # error - format should be f-string
+
+  Args:
+    returns: A format string.
+    **kwargs: variable assignments.
+  """
+  return fn(kde.strings.fstr(returns), **kwargs)
+
+
 data_item.register_bind_method_implementation(bind)
 
 

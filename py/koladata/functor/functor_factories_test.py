@@ -438,6 +438,50 @@ class FunctorFactoriesTest(absltest.TestCase):
     )
     self.assertIsInstance(res, data_bag.DataBag)
 
+  def test_fstr_fn_simple(self):
+    testing.assert_equal(
+        kd.call(
+            functor_factories.fstr_fn(f'{I.x:s} {I.y:s}'), x=1, y=2
+        ),
+        ds('1 2'),
+    )
+
+    testing.assert_equal(
+        kd.call(
+            functor_factories.fstr_fn(f'{(I.x + I.y):s}'), x=1, y=2
+        ),
+        ds('3'),
+    )
+
+  def test_fstr_fn_expr(self):
+    testing.assert_equal(
+        kd.call(
+            functor_factories.fstr_fn(f'{kde.select(I.x, kdi.present):s}'),
+            x=ds([1, None]),
+        ),
+        ds(['1', None])
+    )
+
+  def test_fstr_fn_variable(self):
+    testing.assert_equal(
+        kd.call(
+            functor_factories.fstr_fn(f'{V.x:s} {I.y:s}', x=1), y=2
+        ),
+        ds('1 2'),
+    )
+
+  def test_fstr_fn_no_substitutions(self):
+    with self.assertRaisesRegex(
+        ValueError, 'FString has nothing to format'
+    ):
+      _ = kd.call(functor_factories.fstr_fn('abc'))
+
+    with self.assertRaisesRegex(
+        ValueError, 'FString has nothing to format'
+    ):
+      # we need to use fstring to avoid the error (f'{I.x}')
+      _ = kd.call(functor_factories.fstr_fn('{I.x}'), x=1)
+
   def test_bind_full_params(self):
     fn = functor_factories.fn(I.x + I.y)
     f = functor_factories.bind(fn, x=0, y=1)
