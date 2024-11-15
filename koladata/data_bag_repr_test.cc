@@ -31,7 +31,6 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
@@ -420,6 +419,26 @@ SchemaBag:
 \.\.\.
 
 Showing only the first 3 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this
+)regex")));
+}
+
+TEST(DataBagReprTest,
+     TestDataBagStringRepresentation_NestedEmptyNew) {
+  auto db1 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds1, EntityCreator::FromAttrs(db1, {}, {}));
+
+  auto db2 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds2, EntityCreator::FromAttrs(db2, {"a"}, {ds1}));
+
+  EXPECT_THAT(
+      DataBagToStr(db2),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(DataBag \$[0-9a-f]{4}:
+\$[0-9a-zA-Z]{22}\.a => \$[0-9a-zA-Z]{22}
+
+SchemaBag:
 )regex")));
 }
 
