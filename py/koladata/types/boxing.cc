@@ -72,6 +72,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
@@ -960,16 +961,23 @@ class UniversalConverter {
       return absl::OkStatus();
     }
     if (PyDict_CheckExact(py_obj)) {
-      if (dict_as_obj_) {
+      if (schema && schema->IsListSchema()) {
+        return absl::InvalidArgumentError(
+            absl::StrCat("Python Dict can be converted to either Entity or "
+                         "Dict, got schema: ",
+                         arolla::Repr(*schema)));
+      }
+
+      if (!dict_as_obj_ && (!schema || schema->IsDictSchema())) {
+        cmd_stack_.push([this, py_obj, schema = schema] {
+          return this->CmdComputeDict(py_obj, schema);
+        });
+        return ParsePyDict(py_obj, schema);
+      }
         cmd_stack_.push([this, schema = schema] {
           return this->CmdComputeObj(schema);
         });
         return ParsePyDictAsObj(py_obj, schema);
-      }
-      cmd_stack_.push([this, py_obj, schema = schema] {
-        return this->CmdComputeDict(py_obj, schema);
-      });
-      return ParsePyDict(py_obj, schema);
     }
     if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
       cmd_stack_.push([this, py_obj, schema = schema] {

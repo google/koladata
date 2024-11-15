@@ -234,6 +234,13 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equivalent(item.get_schema(), entity.get_schema().extract())
     testing.assert_equal(item.x.no_bag(), ds(None, schema_constants.INT32))
 
+  def test_dict_as_obj_if_schema_provided(self):
+    schema = fns.named_schema('foo').with_attrs(a=schema_constants.INT32)
+    d = fns.from_py({'a': 2}, schema=schema)
+    self.assertFalse(d.is_dict())
+    testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
+    testing.assert_equal(d.a, ds(2).with_bag(d.get_bag()))
+
   def test_dict_as_obj_object(self):
     obj = fns.from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,

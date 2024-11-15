@@ -166,7 +166,8 @@ class SchemaItemTest(absltest.TestCase):
     ):
       schema_constants.INT32.with_bag(bag())([1, 2, 3])
     with self.assertRaisesRegex(
-        ValueError, 'expected Dict schema, got INT32'
+        ValueError,
+        'processing Entity attributes requires Entity schema, got INT32',
     ):
       schema_constants.INT32.with_bag(bag())({'a': 42})
     with self.assertRaisesRegex(

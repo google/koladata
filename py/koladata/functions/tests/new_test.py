@@ -176,7 +176,13 @@ class NewTest(absltest.TestCase):
 
   def test_schema_arg_dict_schema_error(self):
     list_schema = fns.list_schema(item_schema=schema_constants.FLOAT32)
-    with self.assertRaisesRegex(ValueError, 'expected Dict schema'):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Python Dict can be converted to either Entity or Dict, got schema:'
+            ' DataItem(LIST[FLOAT32]'
+        ),
+    ):
       fns.new({'a': [1, 2, 3], 'b': [4, 5]}, schema=list_schema)
 
   def test_schema_arg_schema_with_fallback(self):
