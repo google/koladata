@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-14'
+  reviewed: '2024-11-15'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -919,7 +919,7 @@ Creates a Koda dict.
     A DataSlice with the dict.
 ```
 
-### `dict_like(shape_and_mask_from, items_or_keys, values, *, key_schema, value_schema, schema, itemid, db)` {#dict_like}
+### `dict_like(shape_and_mask_from, /, items_or_keys, values, *, key_schema, value_schema, schema, itemid, db)` {#dict_like}
 
 ``` {.no-copy}
 Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
@@ -964,7 +964,7 @@ Creates a dict schema in the given DataBag.
     data_slice.DataSlice representing a dict schema.
 ```
 
-### `dict_shaped(shape, items_or_keys, values, key_schema, value_schema, schema, itemid, db)` {#dict_shaped}
+### `dict_shaped(shape, /, items_or_keys, values, key_schema, value_schema, schema, itemid, db)` {#dict_shaped}
 
 ``` {.no-copy}
 Creates new Koda dicts with the given shape.
@@ -992,7 +992,7 @@ Creates new Koda dicts with the given shape.
     A DataSlice with the dicts.
 ```
 
-### `dict_shaped_as(shape_from, items_or_keys, values, key_schema, value_schema, schema, itemid, db)` {#dict_shaped_as}
+### `dict_shaped_as(shape_from, /, items_or_keys, values, key_schema, value_schema, schema, itemid, db)` {#dict_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda dicts with shape of the given DataSlice.
@@ -1093,7 +1093,7 @@ Returns a DataSlice with OBJECT schema.
     x: (DataSlice) whose schema is embedded.
 ```
 
-### `empty_shaped(shape, *, schema, db)` {#empty_shaped}
+### `empty_shaped(shape, /, *, schema, db)` {#empty_shaped}
 
 ``` {.no-copy}
 Creates a DataSlice of missing items with the given shape.
@@ -1111,7 +1111,7 @@ Creates a DataSlice of missing items with the given shape.
     A DataSlice with the given shape.
 ```
 
-### `empty_shaped_as(shape_from, *, schema, db)` {#empty_shaped_as}
+### `empty_shaped_as(shape_from, /, *, schema, db)` {#empty_shaped_as}
 
 ``` {.no-copy}
 Creates a DataSlice of missing items with the shape of `shape_from`.
@@ -2141,7 +2141,7 @@ Returns:
   A DataSlice of INT64 hash values.
 ```
 
-### `implode(x, ndim, db)` {#implode}
+### `implode(x, /, ndim, db)` {#implode}
 
 ``` {.no-copy}
 Implodes a Dataslice `x` a specified number of times.
@@ -2453,7 +2453,7 @@ Creates list(s) by collapsing `items`.
     The slice with list/lists.
 ```
 
-### `list_like(shape_and_mask_from, items, *, item_schema, schema, itemid, db)` {#list_like}
+### `list_like(shape_and_mask_from, /, items, *, item_schema, schema, itemid, db)` {#list_like}
 
 ``` {.no-copy}
 Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
@@ -2488,7 +2488,7 @@ Creates a list schema in the given DataBag.
     data_slice.DataSlice representing a list schema.
 ```
 
-### `list_shaped(shape, items, *, item_schema, schema, itemid, db)` {#list_shaped}
+### `list_shaped(shape, /, items, *, item_schema, schema, itemid, db)` {#list_shaped}
 
 ``` {.no-copy}
 Creates new Koda lists with the given shape.
@@ -2508,7 +2508,7 @@ Creates new Koda lists with the given shape.
     A DataSlice with the lists.
 ```
 
-### `list_shaped_as(shape_from, items, *, item_schema, schema, itemid, db)` {#list_shaped_as}
+### `list_shaped_as(shape_from, /, items, *, item_schema, schema, itemid, db)` {#list_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda lists with shape of the given DataSlice.
@@ -2817,7 +2817,7 @@ Args:
 Computes pointwise min(x, y).
 ```
 
-### `named_schema(name, db)` {#named_schema}
+### `named_schema(name, *, db)` {#named_schema}
 
 ``` {.no-copy}
 Creates a named entity schema in the given DataBag.
@@ -2844,7 +2844,7 @@ Creates a named entity schema in the given DataBag.
     schema.
 ```
 
-### `new(arg, *, schema, update_schema, itemid, db, **attrs)` {#new}
+### `new(arg, /, *, schema, update_schema, itemid, db, **attrs)` {#new}
 
 ``` {.no-copy}
 Creates Entities with given attrs.
@@ -2916,7 +2916,7 @@ Allocates new ItemIds of the given shape without any DataBag attached.
 Allocates new ItemIds with the shape of shape_from.
 ```
 
-### `new_like(shape_and_mask_from, *, schema, update_schema, itemid, db, **attrs)` {#new_like}
+### `new_like(shape_and_mask_from, /, *, schema, update_schema, itemid, db, **attrs)` {#new_like}
 
 ``` {.no-copy}
 Creates new Entities with the shape and sparsity from shape_and_mask_from.
@@ -2969,7 +2969,7 @@ Allocates new List ItemIds with the shape of shape_from.
 Deprecated. Use kd.schema.new_schema instead.
 ```
 
-### `new_shaped(shape, *, schema, update_schema, itemid, db, **attrs)` {#new_shaped}
+### `new_shaped(shape, /, *, schema, update_schema, itemid, db, **attrs)` {#new_shaped}
 
 ``` {.no-copy}
 Creates new Entities with the given shape.
@@ -2991,7 +2991,7 @@ Creates new Entities with the given shape.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `new_shaped_as(shape_from, *, schema, update_schema, itemid, db, **attrs)` {#new_shaped_as}
+### `new_shaped_as(shape_from, /, *, schema, update_schema, itemid, db, **attrs)` {#new_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda entities with shape of the given DataSlice.
@@ -3067,7 +3067,7 @@ Args:
   y: DataSlice.
 ```
 
-### `obj(arg, *, itemid, db, **attrs)` {#obj}
+### `obj(arg, /, *, itemid, db, **attrs)` {#obj}
 
 ``` {.no-copy}
 Creates new Objects with an implicit stored schema.
@@ -3086,7 +3086,7 @@ Creates new Objects with an implicit stored schema.
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
 ```
 
-### `obj_like(shape_and_mask_from, *, itemid, db, **attrs)` {#obj_like}
+### `obj_like(shape_and_mask_from, /, *, itemid, db, **attrs)` {#obj_like}
 
 ``` {.no-copy}
 Creates Objects with shape and sparsity from shape_and_mask_from.
@@ -3104,7 +3104,7 @@ Creates Objects with shape and sparsity from shape_and_mask_from.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `obj_shaped(shape, *, itemid, db, **attrs)` {#obj_shaped}
+### `obj_shaped(shape, /, *, itemid, db, **attrs)` {#obj_shaped}
 
 ``` {.no-copy}
 Creates Objects with the given shape.
@@ -3121,7 +3121,7 @@ Creates Objects with the given shape.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `obj_shaped_as(shape_from, *, itemid, db, **attrs)` {#obj_shaped_as}
+### `obj_shaped_as(shape_from, /, *, itemid, db, **attrs)` {#obj_shaped_as}
 
 ``` {.no-copy}
 Creates Objects with the shape of the given DataSlice.
@@ -4414,7 +4414,7 @@ Returns:
   An immutable DataBag updated by `bags`.
 ```
 
-### `uu(*, seed, schema, update_schema, db, **attrs)` {#uu}
+### `uu(seed, *, schema, update_schema, db, **attrs)` {#uu}
 
 ``` {.no-copy}
 Creates UuEntities with given attrs.
@@ -4434,7 +4434,7 @@ Creates UuEntities with given attrs.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `uu_schema(seed, db, **attrs)` {#uu_schema}
+### `uu_schema(seed, *, db, **attrs)` {#uu_schema}
 
 ``` {.no-copy}
 Creates a uu_schema in the given DataBag.
@@ -4524,31 +4524,31 @@ Returns:
   A 1-dimensional DataSlice with `size` distinct uuids.
 ```
 
-### `uuobj(seed, **kwargs)` {#uuobj}
+### `uuobj(seed, *, db, **attrs)` {#uuobj}
 
 ``` {.no-copy}
-Creates Object(s) whose ids are uuid(s) with the provided attributes.
+Creates object(s) whose ids are uuid(s) with the provided attributes.
 
-In order to create a different id from the same arguments, use
-`seed` argument with the desired value, e.g.
+  In order to create a different "Type" from the same arguments, use
+  `seed` key with the desired value, e.g.
 
-kd.uuobj(seed='type_1', x=[1, 2, 3], y=[4, 5, 6])
+  kd.uuobj(seed='type_1', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 
-and
+  and
 
-kd.uuobj(seed='type_2', x=[1, 2, 3], y=[4, 5, 6])
+  kd.uuobj(seed='type_2', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 
-have different ids.
+  have different ids.
 
-Args:
-  seed: text seed for the uuid computation.
-  kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
-    values must be alignable.
+  Args:
+    seed: (str) Allows different uuobj(s) to have different ids when created
+      from the same inputs.
+    db: optional DataBag where entities are created.
+    **attrs: key-value pairs of object attributes where values are DataSlices
+      or can be converted to DataSlices using kd.new / kd.obj.
 
-Returns:
-  (DataSlice) of uuids. The provided attributes are also set in a newly
-  created databag. The shape of this DataSlice is the result of aligning the
-  shapes of the kwarg DataSlices.
+  Returns:
+    data_slice.DataSlice
 ```
 
 ### `val_like(x, val)` {#val_like}
@@ -4982,6 +4982,33 @@ the following module is needed:
 <section class="zippy open">
 
 **Operators**
+
+### `nested_data.selected_path_update(root_ds, selection_ds_path, selection_ds)` {#nested_data.selected_path_update}
+
+```` {.no-copy}
+Returns a DataBag where only the selected items are present in child lists.
+
+  Example:
+    ```
+    selection_ds = root_ds.a[:].b.c[:].x > 1
+    ds = root_ds.updated(selected_path(root_ds, ['a', 'b', 'c'], selection_ds))
+    assert not kd.any(ds.a[:].b.c[:].x <= 1)
+    ```
+
+  Args:
+    root_ds: the DataSlice to be filtered / selected.
+    selection_ds_path: the path in root_ds where selection_ds should be applied.
+    selection_ds: the DataSlice defining what is filtered / selected, or a
+      functor or a Python function that can be evaluated to this DataSlice
+      passing the given root_ds as its argument.
+
+  Returns:
+    A DataBag where child items along the given path are filtered according to
+    the @selection_ds. When all items at a level are removed, their parent is
+    also removed. The output DataBag only contains modified lists, and it may
+    need to be combined with the @root_ds via
+    @root_ds.updated(selected_path(....)).
+````
 
 ### `npkd.ds_from_np(arr)` {#npkd.ds_from_np}
 
@@ -5723,7 +5750,7 @@ Returns:
   The DataSlice with this DataBag (including adopted data) attached.
 ```
 
-### `<DataBag>.concat_lists(self, *lists)` {#<DataBag>.concat_lists}
+### `<DataBag>.concat_lists(self, /, *lists)` {#<DataBag>.concat_lists}
 
 ``` {.no-copy}
 Returns a DataSlice of Lists concatenated from the List items of `lists`.
@@ -5746,13 +5773,13 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
     DataSlice of concatenated Lists
 ```
 
-### `<DataBag>.contents_repr(self, *, triple_limit)` {#<DataBag>.contents_repr}
+### `<DataBag>.contents_repr(self, /, *, triple_limit)` {#<DataBag>.contents_repr}
 
 ``` {.no-copy}
 Returns a representation of the DataBag contents.
 ```
 
-### `<DataBag>.dict(self, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict}
+### `<DataBag>.dict(self, /, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict}
 
 ``` {.no-copy}
 Creates a Koda dict.
@@ -5796,7 +5823,7 @@ Creates a Koda dict.
     A DataSlice with the dict.
 ```
 
-### `<DataBag>.dict_like(self, shape_and_mask_from, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict_like}
+### `<DataBag>.dict_like(self, shape_and_mask_from, /, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict_like}
 
 ``` {.no-copy}
 Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
@@ -5832,7 +5859,7 @@ Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 Returns a dict schema from the schemas of the keys and values
 ```
 
-### `<DataBag>.dict_shaped(self, shape, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict_shaped}
+### `<DataBag>.dict_shaped(self, shape, /, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict_shaped}
 
 ``` {.no-copy}
 Creates new Koda dicts with the given shape.
@@ -5892,6 +5919,12 @@ Returns:
 Returns a frozen DataBag equivalent to `self`.
 ```
 
+### `<DataBag>.get_approx_size` {#<DataBag>.get_approx_size}
+
+``` {.no-copy}
+Returns approximate size of the DataBag.
+```
+
 ### `<DataBag>.get_fallbacks` {#<DataBag>.get_fallbacks}
 
 ``` {.no-copy}
@@ -5900,7 +5933,7 @@ Returns the list of fallback DataBags in this DataBag.
 The list will be empty if the DataBag does not have fallbacks.
 ```
 
-### `<DataBag>.implode(self, x, ndim)` {#<DataBag>.implode}
+### `<DataBag>.implode(self, x, /, ndim)` {#<DataBag>.implode}
 
 ``` {.no-copy}
 Implodes a Dataslice `x` a specified number of times.
@@ -5936,7 +5969,7 @@ Implodes a Dataslice `x` a specified number of times.
 Returns present iff this DataBag is mutable.
 ```
 
-### `<DataBag>.list(self, items, *, item_schema, schema, itemid)` {#<DataBag>.list}
+### `<DataBag>.list(self, /, items, *, item_schema, schema, itemid)` {#<DataBag>.list}
 
 ``` {.no-copy}
 Creates list(s) by collapsing `items`.
@@ -5966,7 +5999,7 @@ Creates list(s) by collapsing `items`.
     A DataSlice with the list/lists.
 ```
 
-### `<DataBag>.list_like(self, shape_and_mask_from, items, *, item_schema, schema, itemid)` {#<DataBag>.list_like}
+### `<DataBag>.list_like(self, shape_and_mask_from, /, items, *, item_schema, schema, itemid)` {#<DataBag>.list_like}
 
 ``` {.no-copy}
 Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
@@ -5992,7 +6025,7 @@ Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 Returns a list schema from the schema of the items
 ```
 
-### `<DataBag>.list_shaped(self, shape, items, *, item_schema, schema, itemid)` {#<DataBag>.list_shaped}
+### `<DataBag>.list_shaped(self, shape, /, items, *, item_schema, schema, itemid)` {#<DataBag>.list_shaped}
 
 ``` {.no-copy}
 Creates new Koda lists with the given shape.
@@ -6017,7 +6050,7 @@ Creates new Koda lists with the given shape.
 Returns a new DataBag with all the fallbacks merged.
 ```
 
-### `<DataBag>.merge_inplace(self, other_bags, *, overwrite, allow_data_conflicts, allow_schema_conflicts)` {#<DataBag>.merge_inplace}
+### `<DataBag>.merge_inplace(self, other_bags, /, *, overwrite, allow_data_conflicts, allow_schema_conflicts)` {#<DataBag>.merge_inplace}
 
 ``` {.no-copy}
 Copies all data from `other_bags` to this DataBag.
