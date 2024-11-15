@@ -450,6 +450,10 @@ class DataBagImpl : public arolla::RefcountedBase {
   absl::StatusOr<DataSliceImpl> GetSchemaAttrs(
       const DataItem& schema_item, FallbackSpan fallbacks = {}) const;
 
+  // Same as GetSchemaAttrs, but returns a vector instead of a DataSliceImpl.
+  absl::StatusOr<std::vector<DataItem>> GetSchemaAttrsAsVector(
+      const DataItem& schema_item, FallbackSpan fallbacks = {}) const;
+
   // Returns a DataItem that represents schema of an attribute `attr` in the
   // given `schema_item`. In case the attribute is missing appropriate error is
   // returned. In case `schema_item` does not contain a schema object, error is

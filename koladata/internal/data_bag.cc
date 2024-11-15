@@ -2193,21 +2193,31 @@ absl::Status DataBagImpl::ClearDict(const DataItem& dict) {
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrs(
     const DataItem& schema_item, FallbackSpan fallbacks) const {
-  if (!schema_item.holds_value<ObjectId>()) {
-    if (!schema_item.has_value()) {
-      return DataSliceImpl::CreateEmptyAndUnknownType(0);
-    }
-    return InvalidSchemaObjectId(schema_item);
-  }
-  ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
-  std::vector<DataItem> keys =
-      GetDictKeysOrValuesAsVector</*kReturnValues=*/false>(schema_id,
-                                                           fallbacks);
+  ASSIGN_OR_RETURN(auto keys,
+                   GetSchemaAttrsAsVector(schema_item, fallbacks));
   if (keys.empty()) {
     return DataSliceImpl::Create(
         arolla::CreateEmptyDenseArray<arolla::Text>(/*size=*/0));
   }
-  return DataSliceImpl::Create(keys);
+  auto keys_array = arolla::DenseArrayBuilder<arolla::Text>(keys.size());
+  for (size_t i = 0; i < keys.size(); ++i) {
+    DCHECK(keys[i].holds_value<arolla::Text>());
+    keys_array.Add(i, keys[i].value<arolla::Text>());
+  }
+  return DataSliceImpl::Create(std::move(keys_array).Build());
+}
+
+absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVector(
+    const DataItem& schema_item, FallbackSpan fallbacks) const {
+  if (!schema_item.holds_value<ObjectId>()) {
+    if (!schema_item.has_value()) {
+      return std::vector<DataItem>();
+    }
+    return InvalidSchemaObjectId(schema_item);
+  }
+  ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
+  return GetDictKeysOrValuesAsVector</*kReturnValues=*/false>(schema_id,
+                                                           fallbacks);
 }
 
 absl::StatusOr<DataItem> DataBagImpl::GetSchemaAttr(

@@ -259,6 +259,87 @@ TEST(DataBagTest, OverwriteSchemaFieldsForEntireAllocation) {
   }
 }
 
+TEST(DataBagTest, GetSchemaAttrs) {
+  {
+    // Empty schema.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schema = DataItem(AllocateExplicitSchema());
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl schema_attrs,
+                         db->GetSchemaAttrs(schema));
+    EXPECT_TRUE(schema_attrs.is_empty_and_unknown());
+  }
+  {
+    // Single schema allocation.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schema = DataItem(AllocateExplicitSchema());
+    ASSERT_OK(db->SetSchemaAttr(schema, "value", DataItem(schema::kInt32)));
+    ASSERT_OK(db->SetSchemaAttr(schema, "self", schema));
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl schema_attrs,
+                         db->GetSchemaAttrs(schema));
+    EXPECT_THAT(schema_attrs.values<arolla::Text>(),
+                UnorderedElementsAre("value", "self"));
+  }
+  for (size_t size : {kSmallAllocMaxCapacity, kSmallAllocMaxCapacity + 1}) {
+    // Multiple schemas allocations.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schema_ds = DataSliceImpl::ObjectsFromAllocation(
+        AllocateExplicitSchemas(size), size);
+    ASSERT_OK(db->SetSchemaAttr(schema_ds, "self", schema_ds));
+    for (size_t i = 0; i < size; ++i) {
+      ASSERT_OK(db->SetSchemaAttr(schema_ds[i], "a" + std::to_string(i),
+                                  DataItem(schema::kInt32)));
+    }
+    for (size_t i = 0; i < size; ++i) {
+      ASSERT_OK_AND_ASSIGN(DataSliceImpl schema_attrs,
+                           db->GetSchemaAttrs(schema_ds[i]));
+      EXPECT_THAT(schema_attrs.values<arolla::Text>(),
+                  UnorderedElementsAre("a" + std::to_string(i), "self"));
+    }
+  }
+}
+
+TEST(DataBagTest, GetSchemaAttrsAsVector) {
+  {
+    // Empty schema.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schema = DataItem(AllocateExplicitSchema());
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl schema_attrs,
+                         db->GetSchemaAttrs(schema));
+    EXPECT_TRUE(schema_attrs.is_empty_and_unknown());
+  }
+  {
+    // Single schema allocation.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schema = DataItem(AllocateExplicitSchema());
+    ASSERT_OK(db->SetSchemaAttr(schema, "value", DataItem(schema::kInt32)));
+    ASSERT_OK(db->SetSchemaAttr(schema, "self", schema));
+    ASSERT_OK_AND_ASSIGN(std::vector<DataItem> schema_attrs,
+                         db->GetSchemaAttrsAsVector(schema));
+    EXPECT_THAT(schema_attrs,
+                UnorderedElementsAre(DataItem::View<arolla::Text>("value"),
+                                     DataItem::View<arolla::Text>("self")));
+  }
+  for (size_t size : {kSmallAllocMaxCapacity, kSmallAllocMaxCapacity + 1}) {
+    // Multiple schemas allocations.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schema_ds = DataSliceImpl::ObjectsFromAllocation(
+        AllocateExplicitSchemas(size), size);
+    ASSERT_OK(db->SetSchemaAttr(schema_ds, "self", schema_ds));
+    for (size_t i = 0; i < size; ++i) {
+      ASSERT_OK(db->SetSchemaAttr(schema_ds[i], "a" + std::to_string(i),
+                                  DataItem(schema::kInt32)));
+    }
+    for (size_t i = 0; i < size; ++i) {
+      ASSERT_OK_AND_ASSIGN(std::vector<DataItem> schema_attrs,
+                           db->GetSchemaAttrsAsVector(schema_ds[i]));
+      EXPECT_THAT(schema_attrs,
+                  UnorderedElementsAre(
+                      DataItem::View<arolla::Text>("a" + std::to_string(i)),
+                      DataItem::View<arolla::Text>("self")));
+    }
+  }
+}
+
 TEST(DataBagTest, GetAttrPrimitivesErrors) {
   {
     // DataSliceImpl - only primitives.

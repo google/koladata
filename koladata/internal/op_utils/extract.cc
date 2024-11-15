@@ -370,30 +370,24 @@ class CopyingProcessor {
     } else {
       old_schema = ds.schema;
     }
-    ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
-                     db.GetSchemaAttrs(old_schema, fallbacks));
-    if (attr_names_slice.size() == 0) {
+    ASSIGN_OR_RETURN(auto attr_names,
+                     db.GetSchemaAttrsAsVector(old_schema, fallbacks));
+    if (attr_names.empty()) {
       return absl::OkStatus();
     }
-    if (attr_names_slice.present_count() != attr_names_slice.size()) {
-      return absl::InternalError("schema attribute names should be present");
-    }
-    const auto& attr_names = attr_names_slice.values<arolla::Text>();
-
     bool has_list_items_attr = false;
     bool has_dict_keys_attr = false;
     bool has_dict_values_attr = false;
-    attr_names.ForEach(
-        [&](int64_t id, bool presence, const std::string_view attr_name) {
-          DCHECK(presence);
-          if (attr_name == schema::kListItemsSchemaAttr) {
-            has_list_items_attr = true;
-          } else if (attr_name == schema::kDictKeysSchemaAttr) {
-            has_dict_keys_attr = true;
-          } else if (attr_name == schema::kDictValuesSchemaAttr) {
-            has_dict_values_attr = true;
-          }
-        });
+    for (const auto& attr_name_item : attr_names) {
+      const std::string_view attr_name = attr_name_item.value<arolla::Text>();
+      if (attr_name == schema::kListItemsSchemaAttr) {
+        has_list_items_attr = true;
+      } else if (attr_name == schema::kDictKeysSchemaAttr) {
+        has_dict_keys_attr = true;
+      } else if (attr_name == schema::kDictValuesSchemaAttr) {
+        has_dict_values_attr = true;
+      }
+    }
     if (has_list_items_attr) {
       if (attr_names.size() != 1) {
         return absl::InvalidArgumentError(absl::StrFormat(
@@ -409,24 +403,15 @@ class CopyingProcessor {
       return ProcessDicts(ds, db, fallbacks);
     }
     absl::Status status = absl::OkStatus();
-    attr_names.ForEach(
-        [&](int64_t id, bool presence, const std::string_view attr_name) {
-          DCHECK(presence);
-          if (!status.ok()) {
-            return;
-          }
-          auto status_or_attr_schema =
-              CopyAttrSchema(ds.schema, db, fallbacks, attr_name);
-          if (!status_or_attr_schema.ok()) {
-            status = status_or_attr_schema.status();
-            return;
-          }
-          auto [attr_schema, was_schema_updated] = *status_or_attr_schema;
-          if (was_schema_updated || ds.slice.present_count() > 0) {
-            // Data or schema are not yet copied.
-            status = ProcessAttribute(ds, attr_name, attr_schema);
-          }
-        });
+    for (const auto& attr_name_item : attr_names) {
+      const std::string_view attr_name = attr_name_item.value<arolla::Text>();
+      ASSIGN_OR_RETURN((auto [attr_schema, was_schema_updated]),
+          CopyAttrSchema(ds.schema, db, fallbacks, attr_name));
+      if (was_schema_updated || ds.slice.present_count() > 0) {
+        // Data or schema are not yet copied.
+        status = ProcessAttribute(ds, attr_name, attr_schema);
+      }
+    }
     return status;
   }
 
