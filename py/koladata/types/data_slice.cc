@@ -1088,7 +1088,7 @@ PyTypeObject* InitPyDataSliceType() {
   };
 
   PyType_Spec spec = {
-      .name = "data_slice.DataSlice",
+      .name = "koladata.types.data_slice.DataSlice",
       .flags = (Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE),
       .slots = slots,
   };

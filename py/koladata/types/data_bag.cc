@@ -1733,7 +1733,7 @@ PyTypeObject* InitPyDataBagType() {
   };
 
   PyType_Spec spec = {
-      .name = "data_bag.DataBag",
+      .name = "koladata.types.data_bag.DataBag",
       .flags = Py_TPFLAGS_DEFAULT,
       .slots = slots,
   };

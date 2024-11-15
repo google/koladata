@@ -169,8 +169,8 @@ class EmptyShapedAsTest(parameterized.TestCase):
 
     with self.subTest('wrong db'):
       with self.assertRaisesRegex(
-          TypeError,
-          'expecting db to be a DataBag, got data_slice.DataSlice',
+          TypeError, 'expecting db to be a DataBag, got '
+                     'koladata.types.data_slice.DataSlice'
       ):
         fns.empty_shaped_as(ds([1, None, 3]), db=ds([1, 2]))
 

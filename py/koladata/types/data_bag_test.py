@@ -1590,8 +1590,8 @@ Assigned schema for Dict key: INT32""",
       db1.merge_inplace([data_bag.null_bag()])
     with self.assertRaisesRegex(
         TypeError,
-        'expecting each DataBag to be merged to be a DataBag, got'
-        ' data_item.DataItem',
+        'expecting each DataBag to be merged to be a DataBag, got '
+        'koladata.types.data_item.DataItem',
     ):
       db1.merge_inplace([x1])
 

@@ -100,7 +100,7 @@ PyTypeObject* InitPyDataItemType() {
   };
 
   PyType_Spec spec = {
-      .name = "data_item.DataItem",
+      .name = "koladata.types.data_item.DataItem",
       .flags = (Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE),
       .slots = slots,
   };

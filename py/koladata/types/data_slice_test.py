@@ -1520,7 +1520,8 @@ foo.get_obj_schema().x = <desired_schema>"""),
     testing.assert_equal(x.get_schema().y, schema_constants.STRING.with_bag(db))
 
     with self.assertRaisesRegex(
-        TypeError, 'expecting schema to be a DataSlice, got data_bag.DataBag'
+        TypeError, 'expecting schema to be a DataSlice, '
+                   'got koladata.types.data_bag.DataBag'
     ):
       x.with_schema(db)
 
@@ -1549,7 +1550,8 @@ foo.get_obj_schema().x = <desired_schema>"""),
     x = db.new(x=ds([1, 2, 3]))
 
     with self.assertRaisesRegex(
-        TypeError, 'expecting schema to be a DataSlice, got data_bag.DataBag'
+        TypeError, 'expecting schema to be a DataSlice, got '
+                   'koladata.types.data_bag.DataBag'
     ):
       x.set_schema(db)
 
@@ -2545,7 +2547,7 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
 
   def test_call(self):
     with self.assertRaisesRegex(
-        TypeError, "'data_slice.DataSlice' object is not callable"
+        TypeError, "data_slice.DataSlice' object is not callable"
     ):
       _ = ds([1, 2, 3])()
 
@@ -2916,7 +2918,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
 
   def test_disabled_data_item_magic_methods(self):
     with self.assertRaisesRegex(
-        TypeError, '__bool__ disabled for data_slice.DataSlice'
+        TypeError, '__bool__ disabled for koladata.types.data_slice.DataSlice'
     ):
       bool(ds([arolla.unit()]))
     with self.assertRaisesRegex(
