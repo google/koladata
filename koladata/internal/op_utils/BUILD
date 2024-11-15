@@ -473,7 +473,6 @@ cc_library(
 
 cc_test(
     name = "extract_benchmarks",
-    timeout = "long",  # Times out in bazel.
     srcs = ["extract_benchmarks.cc"],
     deps = [
         ":extract",
