@@ -47,6 +47,26 @@ py_library(
     ],
 )
 
+py_library(
+    name = "signature_test_utils",
+    srcs = ["signature_test_utils.py"],
+    visibility = ["//koladata:internal"],
+    deps = [
+        ":testing",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "signature_test_utils_test",
+    srcs = ["signature_test_utils_test.py"],
+    deps = [
+        ":signature_test_utils",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 py_test(
     name = "test_utils_test",
     srcs = ["test_utils_test.py"],

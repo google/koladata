@@ -19,6 +19,7 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.testing import signature_test_utils
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -205,6 +206,16 @@ class DataBagViewTest(parameterized.TestCase):
     # Check that all required attrs are present.
     missing_attrs = view_attrs - data_bag_attrs - skipped_view_attrs
     self.assertEmpty(missing_attrs)
+
+  @parameterized.named_parameters(
+      *signature_test_utils.generate_method_function_signature_compatibility_cases(
+          view.DataBagView(), kde
+      )
+  )
+  def test_consistent_signatures(self, *args, **kwargs):
+    signature_test_utils.check_method_function_signature_compatibility(
+        self, *args, **kwargs
+    )
 
 
 class DataSliceViewTest(parameterized.TestCase):
@@ -785,6 +796,16 @@ class DataSliceViewTest(parameterized.TestCase):
     # Check that all required attrs are present.
     missing_attrs = view_attrs - data_slice_attrs - skipped_view_attrs
     self.assertEmpty(missing_attrs)
+
+  @parameterized.named_parameters(
+      *signature_test_utils.generate_method_function_signature_compatibility_cases(
+          view.DataSliceView(), kde
+      )
+  )
+  def test_consistent_signatures(self, *args, **kwargs):
+    signature_test_utils.check_method_function_signature_compatibility(
+        self, *args, **kwargs
+    )
 
 
 class KodaTupleViewTest(parameterized.TestCase):

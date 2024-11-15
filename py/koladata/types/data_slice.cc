@@ -383,14 +383,16 @@ absl::Nullable<PyObject*> PyDataSlice_set_attrs(PyObject* self,
                                                 Py_ssize_t nargs,
                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "update_schema");
+  static const absl::NoDestructor parser(
+      FastcallArgParser(/*pos_only_n=*/0, /*parse_kwargs=*/true,
+                        /*kw_only_arg_names=*/{"update_schema"}));
+
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
   bool update_schema = false;
-  if (!ParseBoolArg(args, /*arg_pos=*/0, "update_schema", update_schema)) {
+  if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
   }
   AdoptionQueue adoption_queue;
@@ -802,7 +804,7 @@ PyMethodDef kPyDataSlice_methods[] = {
      "--\n\n"
      "Returns the attached DataBag."},
     {"with_bag", PyDataSlice_with_bag, METH_O,
-     "with_bag(db, /)\n"
+     "with_bag(bag, /)\n"
      "--\n\n"
      "Returns a copy of DataSlice with DataBag `db`."},
     {"no_bag", PyDataSlice_no_bag, METH_NOARGS,
@@ -943,7 +945,7 @@ Returns:
      "Returns values of all dicts in this DataSlice."},
     {"get_attr", (PyCFunction)PyDataSlice_get_attr,
      METH_FASTCALL | METH_KEYWORDS,
-     "get_attr(attr_name, /, default)\n"
+     "get_attr(attr_name, /, default=None)\n"
      "--\n\n"
      "Gets attribute `attr_name` where missing items are filled from "
      "`default`.\n\n"
@@ -960,7 +962,7 @@ Returns:
      "Sets an attribute `attr_name` to `value`."},
     {"set_attrs", (PyCFunction)PyDataSlice_set_attrs,
      METH_FASTCALL | METH_KEYWORDS,
-     "set_attrs(update_schema=False, **attrs)\n"
+     "set_attrs(*, update_schema=False, **attrs)\n"
      "--\n\n"
      R"""(Sets multiple attributes on an object / entity.
 
@@ -1007,7 +1009,7 @@ Args:
      "Args:\n"
      "  method_name: (str)\n"},
     {"_internal_html_str", (PyCFunction)PyDataSlice_html_str, METH_NOARGS,
-    "_internal_html_str()\n"
+     "_internal_html_str()\n"
      "--\n\n"
      "Used to generate HTML for interactive repr in Colab."},
     {nullptr}, /* sentinel */

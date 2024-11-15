@@ -239,8 +239,12 @@ class DataSliceView(BasicKodaView):
   def repeat(self, sizes: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.repeat', self, sizes)
 
-  def select(self, fltr: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.select', self, fltr)
+  def select(
+      self, fltr: Any, expand_filter: Any = data_slice.DataSlice.from_vals(True)
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op(
+        'kde.select', self, fltr, expand_filter=expand_filter
+    )
 
   def select_present(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.select_present', self)
@@ -265,11 +269,19 @@ class DataSliceView(BasicKodaView):
   def dict_size(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.dict_size', self)
 
-  def dict_update(self, *args, **kwargs) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.dict_update', self, *args, **kwargs)
+  def dict_update(
+      self, keys: Any, values: Any = arolla.unspecified()
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op(
+        'kde.dict_update', self, keys=keys, values=values
+    )
 
-  def with_dict_update(self, *args, **kwargs) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.with_dict_update', self, *args, **kwargs)
+  def with_dict_update(
+      self, keys: Any, values: Any = arolla.unspecified()
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op(
+        'kde.with_dict_update', self, keys=keys, values=values
+    )
 
   def follow(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.follow', self)
@@ -311,7 +323,7 @@ class DataSliceView(BasicKodaView):
       self,
       schema: Any = arolla.unspecified(),
       *,
-      seed: Any = '',
+      seed: Any = data_slice.DataSlice.from_vals(''),
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.deep_uuid', self, schema, seed=seed)
 
@@ -370,17 +382,29 @@ class DataSliceView(BasicKodaView):
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_attr', self, attr_name, default)
 
-  def stub(self) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.stub', self)
+  def stub(
+      self, attrs: Any = data_slice.DataSlice.from_vals([])
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.stub', self, attrs=attrs)
 
-  def with_attrs(self, **attrs: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.with_attrs', self, **attrs)
-
-  def with_attr(
-      self, attr_name: Any, value: Any, update_schema: Any
+  def with_attrs(
+      self,
+      *,
+      update_schema: Any = data_slice.DataSlice.from_vals(False),
+      **attrs: Any,
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op(
-        'kde.with_attr', self, attr_name, value, update_schema
+        'kde.with_attrs', self, update_schema=update_schema, **attrs
+    )
+
+  def with_attr(
+      self,
+      attr_name: Any,
+      value: Any,
+      update_schema: Any = data_slice.DataSlice.from_vals(False),
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op(
+        'kde.with_attr', self, attr_name, value, update_schema=update_schema
     )
 
   def take(self, indices: Any) -> arolla.Expr:
@@ -401,15 +425,15 @@ class DataSliceView(BasicKodaView):
   def get_keys(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_keys', self)
 
-  def get_values(self) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.get_values', self)
+  def get_values(self, key_ds: Any = arolla.unspecified()) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.get_values', self, key_ds=key_ds)
 
-  def with_bag(self, db: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.with_bag', self, db)
+  def with_bag(self, bag: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.with_bag', self, bag)
 
   # TODO: Remove this alias.
-  def with_db(self, db: Any) -> arolla.Expr:
-    return self.with_bag(db)
+  def with_db(self, bag: Any) -> arolla.Expr:
+    return self.with_bag(bag)
 
   def get_bag(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_bag', self)
@@ -429,11 +453,11 @@ class DataSliceView(BasicKodaView):
   def with_merged_bag(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.with_merged_bag', self)
 
-  def enriched(self, db: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.enriched', self, db)
+  def enriched(self, *bag: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.enriched', self, *bag)
 
-  def updated(self, db: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.updated', self, db)
+  def updated(self, *bag: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.updated', self, *bag)
 
   def get_schema(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_schema', self)

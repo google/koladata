@@ -160,7 +160,9 @@ def _reshape_as(self, shape_from: DataSlice) -> DataSlice:
 
 @DataSlice._add_method('flatten')  # pylint: disable=protected-access
 def _flatten(
-    self, from_dim: Any = 0, to_dim: Any = arolla.unspecified()
+    self,
+    from_dim: int | DataSlice = DataSlice.from_vals(arolla.int64(0)),
+    to_dim: Any = arolla.unspecified(),
 ) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.flatten, self, from_dim, to_dim)
 
@@ -176,8 +178,12 @@ def _repeat(self, sizes: Any) -> DataSlice:
 
 
 @DataSlice._add_method('select')  # pylint: disable=protected-access
-def _select(self, fltr: Any) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.select, self, fltr)
+def _select(
+    self, fltr: Any, expand_filter: bool | DataSlice = DataSlice.from_vals(True)
+) -> DataSlice:
+  return arolla.abc.aux_eval_op(
+      _op_impl_lookup.select, self, fltr, expand_filter=expand_filter
+  )
 
 
 @DataSlice._add_method('select_present')  # pylint: disable=protected-access
@@ -218,16 +224,20 @@ def _dict_size(self) -> DataSlice:
 
 
 @DataSlice._add_method('dict_update')  # pylint: disable=protected-access
-def _dict_update(self, *args, **kwargs) -> DataBag:
+def _dict_update(
+    self, keys: Any, values: Any = arolla.unspecified()
+) -> DataBag:
   return arolla.abc.aux_eval_op(
-      _op_impl_lookup.dict_update, self, *args, **kwargs
+      _op_impl_lookup.dict_update, self, keys=keys, values=values
   )
 
 
 @DataSlice._add_method('with_dict_update')  # pylint: disable=protected-access
-def _with_dict_update(self, *args, **kwargs) -> DataSlice:
+def _with_dict_update(
+    self, keys: Any, values: Any = arolla.unspecified()
+) -> DataSlice:
   return arolla.abc.aux_eval_op(
-      _op_impl_lookup.with_dict_update, self, *args, **kwargs
+      _op_impl_lookup.with_dict_update, self, keys=keys, values=values
   )
 
 
@@ -237,15 +247,16 @@ def _follow(self) -> DataSlice:
 
 
 @DataSlice._add_method('extract')  # pylint: disable=protected-access
-def _extract(self, schema: DataSlice = arolla.unspecified()) -> DataSlice:
+def _extract(self, schema: Any = arolla.unspecified()) -> DataSlice:
   return arolla.abc.aux_eval_op(_op_impl_lookup.extract, self, schema)
 
 
 @DataSlice._add_method('clone')  # pylint: disable=protected-access
 def _clone(
     self,
-    itemid: DataSlice = arolla.unspecified(),
-    schema: DataSlice = arolla.unspecified(),
+    *,
+    itemid: Any = arolla.unspecified(),
+    schema: Any = arolla.unspecified(),
     **overrides: Any,
 ) -> DataSlice:
   # TODO: Replace with aux_eval_op when it supports handling the
@@ -258,8 +269,9 @@ def _clone(
 @DataSlice._add_method('shallow_clone')  # pylint: disable=protected-access
 def _shallow_clone(
     self,
-    itemid: DataSlice = arolla.unspecified(),
-    schema: DataSlice = arolla.unspecified(),
+    *,
+    itemid: Any = arolla.unspecified(),
+    schema: Any = arolla.unspecified(),
     **overrides: Any,
 ) -> DataSlice:
   # TODO: Replace with aux_eval_op when it supports handling the
@@ -273,7 +285,7 @@ def _shallow_clone(
 
 @DataSlice._add_method('deep_clone')  # pylint: disable=protected-access
 def _deep_clone(
-    self, schema: DataSlice = arolla.unspecified(), **overrides: Any
+    self, schema: Any = arolla.unspecified(), **overrides: Any
 ) -> DataSlice:
   # TODO: Replace with aux_eval_op when it supports handling the
   # hidden_seed.
@@ -285,9 +297,9 @@ def _deep_clone(
 @DataSlice._add_method('deep_uuid')  # pylint: disable=protected-access
 def _deep_uuid(
     self,
-    schema: DataSlice = arolla.unspecified(),
+    schema: Any = arolla.unspecified(),
     *,
-    seed: DataSlice = '',
+    seed: str | DataSlice = DataSlice.from_vals(''),
 ) -> DataSlice:
   return arolla.abc.aux_eval_op(
       _op_impl_lookup.deep_uuid, self, schema, seed=seed
@@ -311,13 +323,13 @@ def _with_merged_bag(self) -> DataSlice:
 
 
 @DataSlice._add_method('enriched')  # pylint: disable=protected-access
-def _enriched(self, *db: DataBag) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.enriched, self, *db)
+def _enriched(self, *bag: DataBag) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.enriched, self, *bag)
 
 
 @DataSlice._add_method('updated')  # pylint: disable=protected-access
-def _updated(self, *db: DataBag) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.updated, self, *db)
+def _updated(self, *bag: DataBag) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.updated, self, *bag)
 
 
 @DataSlice._add_method('__neg__')  # pylint: disable=protected-access
@@ -404,18 +416,28 @@ def _get_value_schema(self) -> DataSlice:
 
 
 @DataSlice._add_method('stub')  # pylint: disable=protected-access
-def _stub(self) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.stub, self)
+def _stub(self, attrs: DataSlice = DataSlice.from_vals([])) -> DataSlice:
+  return arolla.abc.aux_eval_op(_op_impl_lookup.stub, self, attrs=attrs)
 
 
 @DataSlice._add_method('with_attrs')  # pylint: disable=protected-access
-def _with_attrs(self, **attrs) -> DataSlice:
-  return arolla.abc.aux_eval_op(_op_impl_lookup.with_attrs, self, **attrs)
+def _with_attrs(
+    self,
+    *,
+    update_schema: bool | DataSlice = DataSlice.from_vals(False),
+    **attrs,
+) -> DataSlice:
+  return arolla.abc.aux_eval_op(
+      _op_impl_lookup.with_attrs, self, update_schema=update_schema, **attrs
+  )
 
 
 @DataSlice._add_method('with_attr')  # pylint: disable=protected-access
 def _with_attr(
-    self, attr_name: str | DataSlice, value: Any, update_schema: bool = False
+    self,
+    attr_name: str | DataSlice,
+    value: Any,
+    update_schema: bool | DataSlice = DataSlice.from_vals(False),
 ) -> DataSlice:
   return arolla.abc.aux_eval_op(
       _op_impl_lookup.with_attr, self, attr_name, value, update_schema

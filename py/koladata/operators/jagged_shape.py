@@ -191,9 +191,9 @@ def reshape(x, shape):
 
 @optools.add_to_registry(aliases=['kde.reshape_as'])
 @optools.as_lambda_operator('kde.shapes.reshape_as')
-def reshape_as(x, y):
-  """Returns a DataSlice x reshaped to the shape of DataSlice y."""
-  return reshape(x, get_shape(y))
+def reshape_as(x, shape_from):
+  """Returns a DataSlice x reshaped to the shape of DataSlice shape_from."""
+  return reshape(x, get_shape(shape_from))
 
 
 @optools.add_to_registry(view=view.BasicKodaView)

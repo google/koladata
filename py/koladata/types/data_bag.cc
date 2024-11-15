@@ -1599,7 +1599,7 @@ Returns:
      "--\n\n"
      "Creates new uuschema from given types of attrs."},
     {"named_schema", (PyCFunction)PyDataBag_named_schema_factory, METH_O,
-     "named_schema(name)\n"
+     "named_schema(name, /)\n"
      "--\n\n"
      "Creates a named schema with ItemId derived only from its name."},
     {"_dict_shaped", (PyCFunction)PyDataBag_dict_shaped, METH_FASTCALL,

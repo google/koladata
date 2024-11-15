@@ -20,12 +20,14 @@ import sys
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata import kd as user_facing_kd
 from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.functions import functions as fns
 from koladata.functions.tests import test_pb2
 from koladata.functor import functor_factories
 from koladata.operators import kde_operators
+from koladata.testing import signature_test_utils
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item as _  # pylint: disable=unused-import
@@ -49,7 +51,7 @@ present = mask_constants.present
 missing = mask_constants.missing
 
 
-class DataSliceMethodsTest(absltest.TestCase):
+class DataSliceMethodsTest(parameterized.TestCase):
 
   def test_add_method(self):
     self.assertFalse(hasattr(data_slice.DataSlice, 'foo'))
@@ -121,6 +123,31 @@ class DataSliceMethodsTest(absltest.TestCase):
         pass
 
       del NonDataSliceSubType
+
+  @parameterized.named_parameters(
+      *signature_test_utils.generate_method_function_signature_compatibility_cases(
+          ds([1, 2, 3]),
+          user_facing_kd,
+          skip_methods={
+              'S',  # Has different meanings between method and function.
+              'get_values',  # TODO: fix this.
+          },
+          skip_params=[
+              ('with_bag', 0),  # bag is positional-only in C++
+              ('with_db', 0),  # bag is positional-only in C++
+              ('with_schema', 0),  # schema is positional-only in C++
+              ('set_schema', 0),  # schema is positional-only in C++
+              ('get_attr', 0),  # attr_name is positional-only in C++
+              ('get_attr', 1),  # default is None instead of unspecified
+              ('set_attr', 0),  # attr_name is positional-only in C++
+              ('set_attr', 1),  # value is positional-only in C++
+          ],
+      )
+  )
+  def test_consistent_signatures(self, *args, **kwargs):
+    signature_test_utils.check_method_function_signature_compatibility(
+        self, *args, **kwargs
+    )
 
 
 class DataSliceTest(parameterized.TestCase):
