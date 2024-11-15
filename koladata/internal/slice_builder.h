@@ -453,7 +453,8 @@ void SliceBuilder::UpdateTypesBuffer(uint8_t typeidx,
         }
       },
       arolla::DenseArray<arolla::Unit>{vb, mask},
-      arolla::DenseArray<arolla::Unit>{vb, presence});
+      arolla::DenseArray<arolla::Unit>{vb, presence})
+      .IgnoreError();  // we create the DenseArray ourselves
 }
 
 template <typename T>
