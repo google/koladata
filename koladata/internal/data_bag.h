@@ -135,6 +135,10 @@ class DataBagImpl : public arolla::RefcountedBase {
   using ConstSparseSourceArray = absl::InlinedVector<const SparseSource*, 1>;
   using FallbackSpan = absl::Span<const DataBagImpl* const>;
 
+  // Returns true if this DataBag has not been modified since it was created or
+  // forked, or has been modified back to a just-created or just-forked state.
+  bool IsPristine() const;
+
   // Returns DataSliceImpl with attribute for every object.
   // Missing values are looked up in the fallback databags.
   absl::StatusOr<DataSliceImpl> GetAttr(

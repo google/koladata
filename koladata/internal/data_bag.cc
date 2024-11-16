@@ -321,14 +321,17 @@ MergeOptions ReverseMergeOptions(const MergeOptions& options) {
 
 DataBagImplPtr DataBagImpl::PartiallyPersistentFork() const {
   auto res_db = DataBagImpl::CreateEmptyDatabag();
-  res_db->parent_data_bag_ = sources_.empty() && small_alloc_sources_.empty() &&
-                                     lists_.empty() && dicts_.empty()
-                                 ? parent_data_bag_
-                                 : DataBagImplConstPtr::NewRef(this);
+  res_db->parent_data_bag_ =
+      IsPristine() ? parent_data_bag_ : DataBagImplConstPtr::NewRef(this);
   return res_db;
 }
 
 // *******  Const interface
+
+bool DataBagImpl::IsPristine() const {
+  return sources_.empty() && small_alloc_sources_.empty() && lists_.empty() &&
+         dicts_.empty();
+}
 
 DataItem DataBagImpl::LookupAttrInDataSourcesMap(ObjectId object_id,
                                                  absl::string_view attr) const {

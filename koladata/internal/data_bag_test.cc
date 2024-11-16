@@ -62,6 +62,7 @@ using ::testing::UnorderedElementsAre;
 
 TEST(DataBagTest, Empty) {
   auto empty = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_TRUE(empty->IsPristine());
 
   DataBagImpl::ConstDenseSourceArray dense_sources;
   DataBagImpl::ConstSparseSourceArray sparse_sources;
@@ -86,6 +87,7 @@ TEST(DataBagTest, PariallyPersistentForkNoModifications) {
     ASSERT_OK_AND_ASSIGN(DataSliceImpl ds_a_get, db->GetAttr(ds, "a"));
     EXPECT_EQ(ds_a_get.size(), 3);
     db = db->PartiallyPersistentFork();
+    EXPECT_TRUE(db->IsPristine());
   }
 }
 
@@ -112,6 +114,7 @@ TEST(DataBagTest, DeepChainOfForks) {
     db = db->PartiallyPersistentFork();
     ASSERT_OK(db->SetAttr(objects, "a", values));
     ASSERT_THAT(db, Ne(old_db));
+    ASSERT_FALSE(db->IsPristine());
   }
 }
 
