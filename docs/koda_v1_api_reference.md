@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-15'
+  reviewed: '2024-11-16'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -3431,10 +3431,10 @@ Args:
     dimension.
 ```
 
-### `reshape_as(x, y)` {#reshape_as}
+### `reshape_as(x, shape_from)` {#reshape_as}
 
 ``` {.no-copy}
-Returns a DataSlice x reshaped to the shape of DataSlice y.
+Returns a DataSlice x reshaped to the shape of DataSlice shape_from.
 ```
 
 ### `reverse(ds)` {#reverse}
@@ -4895,6 +4895,32 @@ Creates a functor.
     A DataItem representing the functor.
 ```
 
+### `fstr_fn(returns, **kwargs)` {#fstr_fn}
+
+``` {.no-copy}
+Returns a Koda functor from format string.
+
+  Format-string must be created via Python f-string syntax. It must contain at
+  least one formatted expression.
+
+  kwargs are used to assign values to the functor variables and can be used in
+  the formatted expression using V. syntax.
+
+  Each formatted expression must have custom format specification,
+  e.g. `{I.x:s}` or `{V.y:.2f}`.
+
+  Examples:
+    kd.call(fstr_fn(f'{I.x:s} {I.y:s}'), x=1, y=2)  # kd.slice('1 2')
+    kd.call(fstr_fn(f'{V.x:s} {I.y:s}', x=1), y=2)  # kd.slice('1 2')
+    kd.call(fstr_fn(f'{(I.x + I.y):s}'), x=1, y=2)  # kd.slice('3')
+    kd.call(fstr_fn('abc'))  # error - no substitutions
+    kd.call(fstr_fn('{I.x}'), x=1)  # error - format should be f-string
+
+  Args:
+    returns: A format string.
+    **kwargs: variable assignments.
+```
+
 ### `get_signature(fn_def)` {#get_signature}
 
 ``` {.no-copy}
@@ -4905,6 +4931,24 @@ Retrieves the signature attached to the given functor.
 
   Returns:
     The signature(s) attached to the functor(s).
+```
+
+### `map_py_fn(f, *, schema, max_threads, ndim, **defaults)` {#map_py_fn}
+
+``` {.no-copy}
+Returns a Koda functor wrapping a python function for kd.map_py.
+
+  See kd.map_py for detailed APIs, and kdf.py_fn for details about function
+  wrapping. schema, max_threads and ndims cannot be Koda Expr or Koda functor.
+
+  Args:
+    f: Python function.
+    schema: The schema to use for resulting DataSlice.
+    max_threads: maximum number of threads to use.
+    ndim: Dimensionality of items to pass to `f`.
+    **defaults: Keyword defaults to pass to the function. The values in this map
+      may be kde expressions, format strings, or 0-dim DataSlices. See the
+      docstring for py_fn for more details.
 ```
 
 ### `py_fn(f, *, return_type_as, **defaults)` {#py_fn}
@@ -5246,7 +5290,7 @@ Returns a DataSlice with ANY schema.
 Clears all dicts or lists in this DataSlice
 ```
 
-### `<DataSlice>.clone(self, itemid, schema, **overrides)` {#<DataSlice>.clone}
+### `<DataSlice>.clone(self, *, itemid, schema, **overrides)` {#<DataSlice>.clone}
 
 *No description*
 
@@ -5268,7 +5312,7 @@ This property is deprecated, please use .get_bag().
 
 *No description*
 
-### `<DataSlice>.dict_update(self, *args, **kwargs)` {#<DataSlice>.dict_update}
+### `<DataSlice>.dict_update(self, keys, values)` {#<DataSlice>.dict_update}
 
 *No description*
 
@@ -5282,7 +5326,7 @@ Returns a DataSlice with OBJECT schema.
 * Embedding Entities requires a DataSlice to be associated with a DataBag.
 ```
 
-### `<DataSlice>.enriched(self, *db)` {#<DataSlice>.enriched}
+### `<DataSlice>.enriched(self, *bag)` {#<DataSlice>.enriched}
 
 *No description*
 
@@ -5554,7 +5598,7 @@ QType of the stored value.
 
 *No description*
 
-### `<DataSlice>.select(self, fltr)` {#<DataSlice>.select}
+### `<DataSlice>.select(self, fltr, expand_filter)` {#<DataSlice>.select}
 
 *No description*
 
@@ -5606,11 +5650,11 @@ Returns:
   DataSlice with the provided `schema`.
 ```
 
-### `<DataSlice>.shallow_clone(self, itemid, schema, **overrides)` {#<DataSlice>.shallow_clone}
+### `<DataSlice>.shallow_clone(self, *, itemid, schema, **overrides)` {#<DataSlice>.shallow_clone}
 
 *No description*
 
-### `<DataSlice>.stub(self)` {#<DataSlice>.stub}
+### `<DataSlice>.stub(self, attrs)` {#<DataSlice>.stub}
 
 *No description*
 
@@ -5653,7 +5697,7 @@ Returns a readable python object from a DataSlice.
       objects.
 ```
 
-### `<DataSlice>.updated(self, *db)` {#<DataSlice>.updated}
+### `<DataSlice>.updated(self, *bag)` {#<DataSlice>.updated}
 
 *No description*
 
@@ -5661,7 +5705,7 @@ Returns a readable python object from a DataSlice.
 
 *No description*
 
-### `<DataSlice>.with_attrs(self, **attrs)` {#<DataSlice>.with_attrs}
+### `<DataSlice>.with_attrs(self, *, update_schema, **attrs)` {#<DataSlice>.with_attrs}
 
 *No description*
 
@@ -5677,7 +5721,7 @@ Returns a copy of DataSlice with DataBag `db`.
 Returns a copy of DataSlice with DataBag `db`.
 ```
 
-### `<DataSlice>.with_dict_update(self, *args, **kwargs)` {#<DataSlice>.with_dict_update}
+### `<DataSlice>.with_dict_update(self, keys, values)` {#<DataSlice>.with_dict_update}
 
 *No description*
 
@@ -5777,6 +5821,12 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
 ``` {.no-copy}
 Returns a representation of the DataBag contents.
+```
+
+### `<DataBag>.data_triples_repr(self, *, triple_limit)` {#<DataBag>.data_triples_repr}
+
+``` {.no-copy}
+Returns a representation of the DataBag contents, omitting schema triples.
 ```
 
 ### `<DataBag>.dict(self, /, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict}
@@ -6211,6 +6261,12 @@ Returns:
 
 ``` {.no-copy}
 QType of the stored value.
+```
+
+### `<DataBag>.schema_triples_repr(self, *, triple_limit)` {#<DataBag>.schema_triples_repr}
+
+``` {.no-copy}
+Returns a representation of schema triples in the DataBag.
 ```
 
 ### `<DataBag>.uu` {#<DataBag>.uu}
