@@ -45,6 +45,9 @@ DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
   for (int i = 0; i < fallbacks.size(); ++i) {
     if (fallbacks[i] != nullptr) {
       non_null_fallbacks.push_back(fallbacks[i]);
+      if (fallbacks[i]->IsMutable() || fallbacks[i]->HasMutableFallbacks()) {
+        res->has_mutable_fallbacks_ = true;
+      }
     }
   }
   res->fallbacks_ = std::move(non_null_fallbacks);
