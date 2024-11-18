@@ -193,25 +193,6 @@ py_test(
     ],
 )
 
-py_library(
-    name = "operator_lookup",
-    srcs = ["operator_lookup.py"],
-    deps = [
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "operator_lookup_test",
-    srcs = ["operator_lookup_test.py"],
-    deps = [
-        ":operator_lookup",
-        "//py/koladata/operators:optools",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
 cc_library(
     name = "data_slice_cc_lib",
     srcs = ["data_slice.cc"],
@@ -262,7 +243,6 @@ py_library(
         ":data_slice_py_ext",
         ":general_eager_ops",
         ":jagged_shape",
-        ":operator_lookup",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
@@ -325,7 +305,7 @@ py_library(
     deps = [
         ":data_item_py_ext",
         ":data_slice",
-        ":operator_lookup",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -357,7 +337,7 @@ py_library(
     deps = [
         ":data_item",
         ":data_slice",
-        ":operator_lookup",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -414,7 +394,7 @@ py_library(
         ":data_bag",
         ":data_item",
         ":data_slice",
-        ":operator_lookup",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -534,7 +514,7 @@ py_library(
         ":data_slice_py_ext",
         ":general_eager_ops",
         ":jagged_shape",
-        ":operator_lookup",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -615,7 +595,7 @@ py_library(
     name = "jagged_shape",
     srcs = ["jagged_shape.py"],
     deps = [
-        "@com_google_arolla//py/arolla",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )

@@ -262,8 +262,8 @@ class EagerOpUtilsTest(parameterized.TestCase):
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'expected all arguments to be values, got got an expression for'
-        " the parameter 'arg'",
+        'kd.eval_op() expected all arguments to be values, got an expression'
+        " for the parameter 'arg'",
     ):
       op(arolla.P.x)
 

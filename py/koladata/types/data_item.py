@@ -17,14 +17,13 @@
 from typing import Any, Callable
 
 from arolla import arolla
+from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import data_item_py_ext as _data_item_py_ext
 # Used to initialize DataSlice, so it is available when defining subclasses of
 # DataItem.
 from koladata.types import data_slice
-from koladata.types import operator_lookup
 
-
-_op_impl_lookup = operator_lookup.OperatorLookup()
+_eval_op = _py_expr_eval_py_ext.eval_op
 
 DataItem = _data_item_py_ext.DataItem
 
@@ -45,16 +44,12 @@ def _call(
   if any(isinstance(arg, arolla.Expr) for arg in args) or any(
       isinstance(arg, arolla.Expr) for arg in kwargs.values()
   ):
-    return _op_impl_lookup.call(
-        self, *args, return_type_as=return_type_as, **kwargs
+    return arolla.abc.aux_bind_op(
+        'kde.call', self, *args, return_type_as=return_type_as, **kwargs
     )
   else:
-    return arolla.abc.aux_eval_op(
-        _op_impl_lookup.call,
-        self,
-        *args,
-        return_type_as=return_type_as,
-        **kwargs
+    return _eval_op(
+        'kde.call', self, *args, return_type_as=return_type_as, **kwargs
     )
 
 

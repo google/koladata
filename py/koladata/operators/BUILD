@@ -379,6 +379,7 @@ py_library(
         ":op_repr",
         ":optools",
         ":qtype_utils",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
@@ -429,7 +430,7 @@ py_library(
     srcs = ["eager_op_utils.py"],
     deps = [
         ":kde_operators",
-        "//py/koladata/types:py_boxing",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/abc:py_abc",
     ],

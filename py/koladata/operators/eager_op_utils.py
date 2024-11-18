@@ -21,52 +21,14 @@ import types
 from typing import Any, Callable
 
 from arolla import arolla
+from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import kde_operators
-from koladata.types import py_boxing
 
 
-_M_math_add_op = arolla.M.math.add
-_hidden_seed_fingerprint = py_boxing.HIDDEN_SEED_LEAF.fingerprint
+_eval_op = py_expr_eval_py_ext.eval_op
 
 
-def _aux_eval_op(
-    op: arolla.abc.Operator, /, *args: Any, **kwargs: Any
-) -> arolla.AnyQValue:
-  """Returns the result of an operator evaluation with given arguments.
-
-  This is a generalization of arolla.abc.aux_eval_op() to accommodate
-  Koladata's needs, particularly supporting operators with a hidden_seed
-  parameter.
-
-  Args:
-    op: An operator, or the name of an operator in the registry.
-    *args: Positional arguments for the operator.
-    **kwargs: Keyword arguments for the operator.
-
-  Returns:
-    The evalution result.
-  """
-  input_nodes = arolla.abc.aux_bind_op(op, *args, **kwargs).node_deps
-  inputs = []
-  for i, input_node in enumerate(input_nodes):
-    input_node_qvalue = input_node.qvalue
-    if input_node_qvalue is not None:
-      inputs.append(input_node_qvalue)
-    elif (
-        input_node.op == _M_math_add_op
-        and input_node.node_deps[0].fingerprint == _hidden_seed_fingerprint
-    ):
-      inputs.append(arolla.int64(i))
-    else:
-      raise TypeError(
-          'expected all arguments to be values, got got an expression for'
-          ' the parameter'
-          f' {arolla.abc.get_operator_signature(op).parameters[i].name!r}'
-      )
-  return arolla.abc.invoke_op(op, tuple(inputs))
-
-
-class _NonDeterministicEagerOpCallMethod:
+class _EagerOpCallMethod:
   __slots__ = ('_op',)
 
   def __init__(self, op: arolla.abc.Operator):
@@ -77,17 +39,17 @@ class _NonDeterministicEagerOpCallMethod:
     return inspect.signature(self._op)
 
   def __call__(self, *args: Any, **kwargs: Any) -> arolla.AnyQValue:
-    return _aux_eval_op(self._op, *args, **kwargs)
+    return _eval_op(self._op, *args, **kwargs)
 
 
-class _NonDeterministicEagerOp:
-  """An eager-mode adapter for non-deterministic operators."""
+class _EagerOp:
+  """An eager-mode adapter for an operator."""
 
   __slots__ = ('_op', '__call__')
 
   def __init__(self, op: arolla.abc.Operator):
     self._op = op
-    self.__call__ = _NonDeterministicEagerOpCallMethod(op)
+    self.__call__ = _EagerOpCallMethod(op)
 
   def getdoc(self) -> str:
     return self._op.getdoc()
@@ -95,45 +57,6 @@ class _NonDeterministicEagerOp:
   @property
   def __signature__(self) -> inspect.Signature:  # needed for inspect.signature
     return inspect.signature(self._op)
-
-
-class _DeterministicEagerOpCallMethod:
-  __slots__ = ('_op',)
-
-  def __init__(self, op: arolla.abc.Operator):
-    self._op = op
-
-  @property
-  def __signature__(self) -> inspect.Signature:  # needed for colab suggest
-    return inspect.signature(self._op)
-
-  def __call__(self, *args: Any, **kwargs: Any) -> arolla.AnyQValue:
-    return arolla.abc.aux_eval_op(self._op, *args, **kwargs)
-
-
-class _DeterministicEagerOp:
-  """An eager-mode adapter for deterministic operators."""
-
-  __slots__ = ('_op', '__call__')
-
-  def __init__(self, op: arolla.abc.Operator):
-    self._op = op
-    self.__call__ = _DeterministicEagerOpCallMethod(op)
-
-  def getdoc(self) -> str:
-    return self._op.getdoc()
-
-  @property
-  def __signature__(self) -> inspect.Signature:  # needed for inspect.signature
-    return inspect.signature(self._op)
-
-
-# TODO: Remove this after aux_eval_op supports hidden_seed.
-def _get_eager_op(rl_op: arolla.abc.RegisteredOperator) -> Callable[..., Any]:
-  if py_boxing.is_non_deterministic_op(rl_op):
-    return _NonDeterministicEagerOp(rl_op)
-  else:
-    return _DeterministicEagerOp(rl_op)
 
 
 class _OperatorsContainer:
@@ -174,7 +97,7 @@ class _OperatorsContainer:
       if self._overrides is not None and not op_name.startswith('_'):
         eager_op = getattr(self._overrides, op_name, None)
       if eager_op is None:
-        eager_op = _get_eager_op(self._arolla_container[op_name])
+        eager_op = _EagerOp(self._arolla_container[op_name])
       self.__dict__[op_name] = eager_op
     assert callable(eager_op)
     return eager_op
@@ -192,7 +115,7 @@ class _OperatorsContainer:
       if isinstance(rl_op_or_container, arolla.OperatorsContainer):
         ret = _OperatorsContainer(rl_op_or_container)
       else:
-        ret = _get_eager_op(rl_op_or_container)
+        ret = _EagerOp(rl_op_or_container)
     self.__dict__[op_or_container_name] = ret
     return ret
 

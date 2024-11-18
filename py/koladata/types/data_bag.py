@@ -15,20 +15,21 @@
 """DataBag abstraction."""
 
 from __future__ import annotations
+
 import functools
 from typing import Any, Iterable
 
 from arolla import arolla
+from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import data_bag_py_ext as _data_bag_py_ext
 from koladata.types import data_slice_py_ext as _data_slice_py_ext
 from koladata.types import general_eager_ops as _general_eager_ops
 from koladata.types import jagged_shape as _jagged_shape
-from koladata.types import operator_lookup
 
 
 DataBag = _data_bag_py_ext.DataBag
 _empty_shaped = _data_bag_py_ext._empty_shaped  # pylint: disable=protected-access
-_op_impl_lookup = operator_lookup.OperatorLookup()
+_eval_op = _py_expr_eval_py_ext.eval_op
 
 
 ### Implementation of the DataBag's additional functionality.
@@ -87,7 +88,7 @@ def _dict(
     value_schema: the schema of the dict values. If not specified, it will be
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
-        key_schema and value_schema must not be specified.
+      key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
@@ -134,8 +135,8 @@ def _dict_like(
 
   Args:
     self: the DataBag.
-    shape_and_mask_from: a DataSlice with the shape and sparsity for the
-      desired dicts.
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the desired
+      dicts.
     items_or_keys: either a Python dict (if `values` is None) or a DataSlice
       with keys. The Python dict case is supported only for scalar
       shape_and_mask_from.
@@ -145,15 +146,20 @@ def _dict_like(
     value_schema: the schema of the dict values. If not specified, it will be
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
-        key_schema and value_schema must not be specified.
+      key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
     A DataSlice with the dicts.
   """
   return self._dict_like(  # pylint: disable=protected-access
-      shape_and_mask_from, items_or_keys, values,
-      key_schema, value_schema, schema, itemid
+      shape_and_mask_from,
+      items_or_keys,
+      values,
+      key_schema,
+      value_schema,
+      schema,
+      itemid,
   )
 
 
@@ -187,7 +193,7 @@ def _dict_shaped(
     value_schema: the schema of the dict values. If not specified, it will be
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
-        key_schema and value_schema must not be specified.
+      key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
@@ -250,8 +256,8 @@ def _list_shaped(
 
   Args:
     shape: the desired shape.
-    items: optional items to assign to the newly created lists. If not
-      given, the function returns empty lists.
+    items: optional items to assign to the newly created lists. If not given,
+      the function returns empty lists.
     item_schema: the schema of the list items. If not specified, it will be
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
@@ -277,10 +283,10 @@ def _list_like(
   """Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
   Args:
-    shape_and_mask_from: a DataSlice with the shape and sparsity for the
-      desired lists.
-    items: optional items to assign to the newly created lists. If not
-      given, the function returns empty lists.
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the desired
+      lists.
+    items: optional items to assign to the newly created lists. If not given,
+      the function returns empty lists.
     item_schema: the schema of the list items. If not specified, it will be
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
@@ -291,7 +297,11 @@ def _list_like(
     A DataSlice with the lists.
   """
   return self._list_like(  # pylint: disable=protected-access
-      shape_and_mask_from, items, item_schema, schema, itemid,
+      shape_and_mask_from,
+      items,
+      item_schema,
+      schema,
+      itemid,
   )
 
 
@@ -357,7 +367,7 @@ def _concat_lists(self: DataBag, /, *lists: _DataSlice) -> _DataSlice:  # pylint
 
 def _freeze(self: DataBag) -> DataBag:
   """Returns a frozen DataBag equivalent to `self`."""
-  return arolla.abc.aux_eval_op(_op_impl_lookup.freeze, self)
+  return _eval_op('kde.freeze', self)
 
 
 def _merge_inplace(
@@ -405,12 +415,12 @@ def _merge_inplace(
 
 def _enriched_bag(*dbs) -> DataBag:
   """Returns a merged DataBag with priority for DataBags earlier in the list."""
-  return arolla.abc.aux_eval_op(_op_impl_lookup.enriched_bag, *dbs)
+  return _eval_op('kde.enriched_bag', *dbs)
 
 
 def _updated_bag(*dbs) -> DataBag:
   """Returns a merged DataBag with priority for DataBags later in the list."""
-  return arolla.abc.aux_eval_op(_op_impl_lookup.updated_bag, *dbs)
+  return _eval_op('kde.updated_bag', *dbs)
 
 
 class ContentsReprWrapper:
@@ -497,6 +507,4 @@ arolla.abc.register_qvalue_specialization(
 @functools.cache
 def null_bag():
   """Returns an instance of a null DataBag."""
-  return arolla.abc.aux_eval_op(
-      _op_impl_lookup.get_bag, _DataSlice.from_vals(None)
-  )
+  return _eval_op('kde.get_bag', _DataSlice.from_vals(None))

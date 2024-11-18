@@ -15,13 +15,13 @@
 """SchemaItem."""
 
 from arolla import arolla
+from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import operator_lookup
 
 
-_op_impl_lookup = operator_lookup.OperatorLookup()
+_eval_op = _py_expr_eval_py_ext.eval_op
 
 
 @data_slice.register_reserved_class_method_names
@@ -29,7 +29,7 @@ class SchemaItem(data_item.DataItem):
   """SchemaItem is a DataItem representing a Koda Schema."""
 
   def get_nofollowed_schema(self) -> data_item.DataItem:
-    return arolla.abc.aux_eval_op(_op_impl_lookup.get_nofollowed_schema, self)
+    return _eval_op('kde.get_nofollowed_schema', self)
 
   def __call__(self, *args, **kwargs):
     """Schema DataItem can be used as Entity creator."""

@@ -20,6 +20,7 @@ import itertools
 from typing import Any, Callable, Iterable
 
 from arolla import arolla
+from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import core as _
 from koladata.operators import logical as _
 from koladata.operators import op_repr
@@ -34,6 +35,7 @@ from koladata.types import schema_constants
 
 P = arolla.P
 constraints = arolla.optools.constraints
+eval_op = py_expr_eval_py_ext.eval_op
 
 
 def _expect_py_callable(
@@ -381,7 +383,7 @@ def _basic_map_py(
   Returns:
     The resulting DataSlice.
   """
-  args = arolla.abc.aux_eval_op('kde.core.align', *args)
+  args = eval_op('kde.core.align', *args)
   shape = args[0].get_shape()
   shape_rank = shape.rank()
   if ndim < 0 or ndim > shape_rank:
@@ -619,7 +621,7 @@ def map_py_on_cond(
       # Apply the cond mask to the arguments so that masked values don't need
       # unboxing.
       args = map(
-          lambda x: arolla.abc.aux_eval_op('kde.logical.apply_mask', x, cond),
+          lambda x: eval_op('kde.logical.apply_mask', x, cond),
           args,
       )
       task_fn = (
@@ -769,13 +771,13 @@ def map_py_on_present(
     if not args and not kwargs:
       raise TypeError('expected at least one input DataSlice, got none')
     cond = functools.reduce(
-        functools.partial(arolla.abc.aux_eval_op, 'kde.logical.mask_and'),
+        functools.partial(eval_op, 'kde.logical.mask_and'),
         map(
-            functools.partial(arolla.abc.aux_eval_op, 'kde.logical.has'),
+            functools.partial(eval_op, 'kde.logical.has'),
             itertools.chain(args, kwargs.values()),
         ),
     )
-    return arolla.abc.aux_eval_op(
+    return eval_op(
         map_py_on_selected,
         fn,
         cond,

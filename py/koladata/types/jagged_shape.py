@@ -16,8 +16,8 @@
 
 from typing import Any
 
-from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.expr import py_expr_eval_py_ext
 
 # Jagged shape alias for use in Kola.
 JaggedShape = jagged_shape.JaggedDenseArrayShape
@@ -25,4 +25,4 @@ JaggedShape = jagged_shape.JaggedDenseArrayShape
 
 def create_shape(*dimensions: Any) -> JaggedShape:
   """Returns a JaggedShape from sizes or edges."""
-  return arolla.abc.aux_eval_op('kde.shapes.create', *dimensions)
+  return py_expr_eval_py_ext.eval_op('kde.shapes.create', *dimensions)
