@@ -76,7 +76,6 @@ py_test(
     name = "exceptions_not_registered_test",
     srcs = ["exceptions_not_registered_test.py"],
     deps = [
-        ":error_py_proto",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "//py/koladata/exceptions/testing:testing_pybind",
         "@com_google_absl_py//absl/testing:absltest",

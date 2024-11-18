@@ -30,26 +30,9 @@ class ExceptionsTest(absltest.TestCase):
         cm.exception.err, error_pb2.Error(error_message='test error')
     )
 
-  def test_koda_error_from_arolla(self):
-    with self.assertRaises(exceptions.KodaError) as cm:
-      testing_pybind.raise_from_status_with_payload_from_arolla('test error')
-    self.assertEqual(str(cm.exception), 'test error')
-    self.assertEqual(
-        cm.exception.err, error_pb2.Error(error_message='test error')
-    )
-
   def test_missing_koda_error_message(self):
     with self.assertRaises(ValueError) as cm:
       testing_pybind.raise_from_status_with_payload('')
-    self.assertRegex(
-        str(cm.exception),
-        '.*error message is empty. A code path failed to generate user readable'
-        ' error message.*',
-    )
-
-  def test_missing_koda_error_message_from_arolla(self):
-    with self.assertRaises(ValueError) as cm:
-      testing_pybind.raise_from_status_with_payload_from_arolla('')
     self.assertRegex(
         str(cm.exception),
         '.*error message is empty. A code path failed to generate user readable'
@@ -64,20 +47,12 @@ class ExceptionsTest(absltest.TestCase):
         '[INTERNAL] test error'
     )
 
-  def test_raise_from_arolla_default(self):
-    with self.assertRaises(ValueError) as cm:
-      testing_pybind.raise_from_status_without_payload_from_arolla('test error')
-    self.assertStartsWith(
-        str(cm.exception),
-        '[INTERNAL] test error'
-    )
-
   def test_create_koda_exception_raises(self):
     with self.assertRaises(Exception) as cm:
       testing_pybind.create_koda_exception_raises('test error')
     self.assertIn(
         'Truncated message',
-        str(cm.exception)
+        str(cm.exception),
     )
 
   def test_nested_koda_error(self):
@@ -87,9 +62,12 @@ class ExceptionsTest(absltest.TestCase):
       testing_pybind.raise_from_status_with_serialized_payload(
           err_proto.SerializeToString()
       )
-    self.assertRegex(str(cm.exception), r'''test error
+    self.assertRegex(
+        str(cm.exception),
+        r"""test error
 
-The cause is: cause error''')
+The cause is: cause error""",
+    )
 
   def test_koda_error_create_fail(self):
     err_proto = error_pb2.Error(error_message='test error')
@@ -103,6 +81,7 @@ The cause is: cause error''')
         'error message is empty. A code path failed to generate user readable'
         ' error message',
     )
+
 
 if __name__ == '__main__':
   absltest.main()

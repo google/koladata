@@ -32,7 +32,6 @@
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "py/koladata/exceptions/py_exception_utils.h"
 #include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/qtype/typed_ref.h"
@@ -86,7 +85,7 @@ absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
         koladata::expr::EvalExprWithCompilationCache(expr, input_qvalues, {});
   }
   ASSIGN_OR_RETURN(auto result, std::move(result_or_error),
-                   (koladata::python::SetKodaPyErrFromStatus(_), nullptr));
+                   arolla::python::SetPyErrFromStatus(_));
   return arolla::python::WrapAsPyQValue(std::move(result));
 }
 

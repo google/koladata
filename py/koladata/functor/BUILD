@@ -33,7 +33,6 @@ cc_library(
         "//koladata/expr:expr_operators",
         "//koladata/functor",
         "//koladata/functor:signature_storage",
-        "//py/koladata/exceptions:py_exception_utils",
         "//py/koladata/types:py_utils",
         "//py/koladata/types:wrap_utils",
         "@com_google_absl//absl/base:no_destructor",

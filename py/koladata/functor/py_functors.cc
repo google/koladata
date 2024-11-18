@@ -29,7 +29,6 @@
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_storage.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "py/koladata/exceptions/py_exception_utils.h"
 #include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -123,7 +122,7 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
   }
   ASSIGN_OR_RETURN(auto result,
                    functor::CreateFunctor(*returns, signature, variables),
-                   (koladata::python::SetKodaPyErrFromStatus(_), nullptr));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
 }
 
@@ -134,7 +133,7 @@ absl::Nullable<PyObject*> PyIsFn(PyObject* /*self*/, PyObject* fn) {
     return nullptr;
   }
   ASSIGN_OR_RETURN(auto result, functor::IsFunctor(*unwrapped_fn),
-                   (koladata::python::SetKodaPyErrFromStatus(_), nullptr));
+                   arolla::python::SetPyErrFromStatus(_));
   if (result) {
     Py_RETURN_TRUE;
   } else {

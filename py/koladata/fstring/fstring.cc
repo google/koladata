@@ -23,7 +23,6 @@
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "py/koladata/exceptions/py_exception_utils.h"
 #include "py/koladata/fstring/fstring_processor.h"
 #include "py/koladata/types/py_utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -62,7 +61,7 @@ PyObject* PyFStringExprPlaceholder(PyObject* /*module*/,
   ASSIGN_OR_RETURN(
       auto placeholder,
       fstring::ToExprPlaceholder(expr, absl::string_view(format_spec, size)),
-      SetKodaPyErrFromStatus(_));
+      arolla::python::SetPyErrFromStatus(_));
   return PyUnicode_FromStringAndSize(
       placeholder.c_str(), static_cast<Py_ssize_t>(placeholder.size()));
 }
@@ -76,7 +75,7 @@ PyObject* PyEagerFStringEval(PyObject* /*module*/, PyObject* arg) {
   }
   ASSIGN_OR_RETURN(
       auto tv, fstring::EvaluateFStringDataSlice(absl::string_view(fstr, size)),
-      koladata::python::SetKodaPyErrFromStatus(_));
+      arolla::python::SetPyErrFromStatus(_));
   return arolla::python::WrapAsPyQValue(std::move(tv));
 }
 
@@ -88,10 +87,9 @@ absl::Nullable<PyObject*> PyCreateFstrExpr(PyObject* /*module*/,
   if (fstr == nullptr) {
     return nullptr;
   }
-  ASSIGN_OR_RETURN(
-      auto expr,
-      fstring::CreateFStringExpr(absl::string_view(fstr, size)),
-      koladata::python::SetKodaPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto expr,
+                   fstring::CreateFStringExpr(absl::string_view(fstr, size)),
+                   arolla::python::SetPyErrFromStatus(_));
   return arolla::python::WrapAsPyExpr(std::move(expr));
 }
 

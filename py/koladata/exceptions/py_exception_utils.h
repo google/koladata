@@ -14,12 +14,10 @@
 //
 #ifndef THIRD_PARTY_PY_KOLADATA_TYPES_PY_EXCEPTION_UTILS_H_
 #define THIRD_PARTY_PY_KOLADATA_TYPES_PY_EXCEPTION_UTILS_H_
+
 #include <Python.h>
 
-#include <cstddef>
-
 #include "absl/base/nullability.h"
-#include "absl/status/status.h"
 
 namespace koladata::python {
 
@@ -28,13 +26,6 @@ namespace koladata::python {
 // def func(proto: bytes) -> KodaError
 absl::Nullable<PyObject*> PyRegisterExceptionFactory(PyObject* /*module*/,
                                                      PyObject* factory);
-
-// Creates and raises the KodaError in python. `status` must not be ok. If
-// creating KodaError fails, or `status` doesn't contain koda specific error, it
-// calls arolla::python::SetPyErrFromStatus.
-// Examples:
-// ASSIGN_OR_RETURN(auto res, CallFn(), SetKodaPyErrFromStatus(_));
-std::nullptr_t SetKodaPyErrFromStatus(const absl::Status& status);
 
 }  // namespace koladata::python
 

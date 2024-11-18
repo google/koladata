@@ -199,7 +199,6 @@ cc_library(
         "//koladata/expr:constants",
         "//koladata/expr:expr_eval",
         "//koladata/expr:expr_operators",
-        "//py/koladata/exceptions:py_exception_utils",
         "//py/koladata/types:py_utils",
         "//py/koladata/types:wrap_utils",
         "@com_google_absl//absl/base:no_destructor",

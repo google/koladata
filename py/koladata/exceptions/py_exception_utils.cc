@@ -17,8 +17,6 @@
 #include <Python.h>
 
 #include <algorithm>
-#include <cstddef>
-#include <optional>
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
@@ -52,38 +50,6 @@ absl::Nullable<PyObject*> CreateKodaException(const absl::Cord& payload) {
   return PyObject_CallOneArg(exception_factory->get(), py_bytes.release());
 }
 
-}  // namespace
-
-PyObject* PyRegisterExceptionFactory(PyObject* /*module*/, PyObject* factory) {
-  if (*exception_factory == nullptr) {
-    *exception_factory = arolla::python::PyObjectPtr::NewRef(factory);
-  }
-  Py_RETURN_NONE;
-}
-
-std::nullptr_t SetKodaPyErrFromStatus(const absl::Status& status) {
-  DCHECK(!status.ok());
-  std::optional<absl::Cord> payload = status.GetPayload(internal::kErrorUrl);
-  if (!payload) {
-    return arolla::python::SetPyErrFromStatus(status);
-  }
-  if (exception_factory->get() == nullptr) {
-    PyErr_SetString(PyExc_Exception, "Koda exception factory is not set");
-    return nullptr;
-  }
-  PyObject* py_exception = CreateKodaException(payload.value());
-  if (Py_IsNone(py_exception)) {
-    return arolla::python::SetPyErrFromStatus(
-        internal::Annotate(status,
-                           "error message is empty. A code path failed to "
-                           "generate user readable error message."));
-  }
-  if (py_exception != nullptr) {
-    PyErr_SetObject((PyObject*)Py_TYPE(py_exception), py_exception);
-  }
-  return nullptr;
-}
-
 void HandleKodaPyErrStatus(absl::Cord payload, const absl::Status& status) {
   if (exception_factory->get() == nullptr) {
     PyErr_SetString(PyExc_Exception, "Koda exception factory is not set");
@@ -100,6 +66,16 @@ void HandleKodaPyErrStatus(absl::Cord payload, const absl::Status& status) {
   if (py_exception != nullptr) {
     PyErr_SetObject((PyObject*)Py_TYPE(py_exception), py_exception);
   }
+}
+
+}  // namespace
+
+absl::Nullable<PyObject*> PyRegisterExceptionFactory(PyObject* /*module*/,
+                                                     PyObject* factory) {
+  if (*exception_factory == nullptr) {
+    *exception_factory = arolla::python::PyObjectPtr::NewRef(factory);
+  }
+  Py_RETURN_NONE;
 }
 
 AROLLA_INITIALIZER(.init_fn = []() -> absl::Status {

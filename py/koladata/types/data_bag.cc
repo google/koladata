@@ -49,7 +49,6 @@
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "py/koladata/exceptions/py_exception_utils.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/pybind11_protobuf_wrapper.h"
@@ -254,7 +253,7 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
   ASSIGN_OR_RETURN(
       std::optional<DataSlice> schema_arg,
       ParseSchemaArgWithStringToNamedSchemaConversion(args, "schema"),
-      SetKodaPyErrFromStatus(_));
+      arolla::python::SetPyErrFromStatus(_));
   bool update_schema = false;
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
@@ -283,10 +282,10 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
     ASSIGN_OR_RETURN(res,
                      FactoryHelperT::FromPyObject(
                          args.pos_only_args[0], schema_arg, db, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
+                     arolla::python::SetPyErrFromStatus(_));
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
         .With([&](const absl::Status& status) {
-          return SetKodaPyErrFromStatus(
+          return arolla::python::SetPyErrFromStatus(
               CreateItemCreationError(status, schema_arg));
         });
   } else {
@@ -294,21 +293,22 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
     ASSIGN_OR_RETURN(
         std::vector<DataSlice> values,
         ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
-        SetKodaPyErrFromStatus(_));
+        arolla::python::SetPyErrFromStatus(_));
     // Because `EntityCreator` relies on accurate databags of attrs for error
     // messages, and because `EntityCreatorHelper` strips attr databags to avoid
     // double adoption, we need to do adoption before calling the helper to have
     // accurate databags for error messages.
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
         .With([&](const absl::Status& status) {
-          return SetKodaPyErrFromStatus(
+          return arolla::python::SetPyErrFromStatus(
               CreateItemCreationError(status, schema_arg));
         });
     ASSIGN_OR_RETURN(
         res,
-        FactoryHelperT::FromAttributes(
-            args.kw_names, values, schema_arg, update_schema, itemid, db),
-        SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
+        FactoryHelperT::FromAttributes(args.kw_names, values, schema_arg,
+                                       update_schema, itemid, db),
+        arolla::python::SetPyErrFromStatus(
+            CreateItemCreationError(_, schema_arg)));
   }
   return WrapPyDataSlice(*std::move(res));
 }
@@ -354,10 +354,10 @@ absl::Nullable<PyObject*> PyDataBag_from_py_impl(PyObject* self,
   ASSIGN_OR_RETURN(auto res,
                    GenericFromPyObject(py_args[0], dict_as_obj, schema_arg,
                                        from_dim, self_db, adoption_queue),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
       .With([&](const absl::Status& status) {
-        return SetKodaPyErrFromStatus(
+        return arolla::python::SetPyErrFromStatus(
             CreateItemCreationError(status, schema_arg));
       });
   return WrapPyDataSlice(std::move(res));
@@ -427,7 +427,7 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
   ASSIGN_OR_RETURN(
       std::optional<DataSlice> schema_arg,
       ParseSchemaArgWithStringToNamedSchemaConversion(args, "schema"),
-      SetKodaPyErrFromStatus(_));
+      arolla::python::SetPyErrFromStatus(_));
   bool update_schema = false;
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
@@ -443,22 +443,22 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
       ConvertArgsToDataSlices(
           db, /*prohibit_boxing_to_multi_dim_slice=*/shape->rank() != 0,
           args.kw_values, adoption_queue),
-      SetKodaPyErrFromStatus(_));
+      arolla::python::SetPyErrFromStatus(_));
   // Because `EntityCreator` relies on accurate databags of attrs for error
   // messages, and because `EntityCreatorHelper` strips attr databags to avoid
   // double adoption, we need to do adoption before calling the helper to have
   // accurate databags for error messages.
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
       .With([&](const absl::Status& status) {
-        return SetKodaPyErrFromStatus(
+        return arolla::python::SetPyErrFromStatus(
             CreateItemCreationError(status, schema_arg));
       });
   ASSIGN_OR_RETURN(
       res,
-      FactoryHelperT::Shaped(
-          *std::move(shape), args.kw_names, values, schema_arg, update_schema,
-          itemid, db),
-      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
+      FactoryHelperT::Shaped(*std::move(shape), args.kw_names, values,
+                             schema_arg, update_schema, itemid, db),
+      arolla::python::SetPyErrFromStatus(
+          CreateItemCreationError(_, schema_arg)));
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -521,7 +521,7 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
   ASSIGN_OR_RETURN(
       std::optional<DataSlice> schema_arg,
       ParseSchemaArgWithStringToNamedSchemaConversion(args, "schema"),
-      SetKodaPyErrFromStatus(_));
+      arolla::python::SetPyErrFromStatus(_));
   bool update_schema = false;
   if (!ParseBoolArg(args, "update_schema", update_schema)) {
     return nullptr;
@@ -537,22 +537,22 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
                               /*prohibit_boxing_to_multi_dim_slice=*/
                               shape_and_mask_from->GetShape().rank() != 0,
                               args.kw_values, adoption_queue),
-      SetKodaPyErrFromStatus(_));
+      arolla::python::SetPyErrFromStatus(_));
   // Because `EntityCreator` relies on accurate databags of attrs for error
   // messages, and because `EntityCreatorHelper` strips attr databags to avoid
   // double adoption, we need to do adoption before calling the helper to have
   // accurate databags for error messages.
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
       .With([&](const absl::Status& status) {
-        return SetKodaPyErrFromStatus(
+        return arolla::python::SetPyErrFromStatus(
             CreateItemCreationError(status, schema_arg));
       });
   ASSIGN_OR_RETURN(
       res,
-      FactoryHelperT::Like(
-          *shape_and_mask_from, args.kw_names, values, schema_arg,
-          update_schema, itemid, db),
-      SetKodaPyErrFromStatus(CreateItemCreationError(_, schema_arg)));
+      FactoryHelperT::Like(*shape_and_mask_from, args.kw_names, values,
+                           schema_arg, update_schema, itemid, db),
+      arolla::python::SetPyErrFromStatus(
+          CreateItemCreationError(_, schema_arg)));
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -617,9 +617,9 @@ absl::Nullable<PyObject*> PyDataBag_schema_factory(
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    UnwrapDataSlices(args.kw_values),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   ASSIGN_OR_RETURN(res, CreateSchema(db, args.kw_names, values),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -643,13 +643,13 @@ absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    UnwrapDataSlices(args.kw_values),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   absl::string_view seed("");
   if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed)) {
     return nullptr;
   }
   ASSIGN_OR_RETURN(res, CreateUuSchema(db, seed, args.kw_names, values),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -660,10 +660,10 @@ absl::Nullable<PyObject*> PyDataBag_named_schema_factory(PyObject* self,
   arolla::python::DCheckPyGIL();
   // We do no adoption here because we're just getting a string.
   ASSIGN_OR_RETURN(auto name_slice, DataSliceFromPyValueNoAdoption(name),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   auto db = UnsafeDataBagPtr(self);
   ASSIGN_OR_RETURN(DataSlice res, CreateNamedSchema(db, name_slice),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -694,7 +694,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   absl::string_view seed_arg("");
   if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed_arg)) {
     return nullptr;
@@ -712,11 +712,12 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
   // messages, and because `EntityCreatorHelper` strips attr databags to avoid
   // double adoption, we need to do adoption before calling the helper to have
   // accurate databags for error messages.
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
+      .With(arolla::python::SetPyErrFromStatus);
   ASSIGN_OR_RETURN(res,
                    CreateUu(db, seed_arg, args.kw_names, adopted_values,
                             schema_arg, update_schema),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -741,14 +742,15 @@ absl::Nullable<PyObject*> PyDataBag_uu_obj_factory(PyObject* self,
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   absl::string_view seed("");
   if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed)) {
     return nullptr;
   }
   ASSIGN_OR_RETURN(res, CreateUuObject(db, seed, args.kw_names, values),
-                   SetKodaPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+                   arolla::python::SetPyErrFromStatus(_));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
+      .With(arolla::python::SetPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -775,12 +777,12 @@ bool NormalizeDictKeysAndValues(PyObject* py_items_or_keys, PyObject* py_values,
                      AssignmentRhsFromPyValue(
                          py_items_or_keys, prohibit_boxing_to_multi_dim_slice,
                          db, adoption_queue),
-                     (SetKodaPyErrFromStatus(_), false));
+                     (arolla::python::SetPyErrFromStatus(_), false));
     ASSIGN_OR_RETURN(
         values,
         AssignmentRhsFromPyValue(py_values, prohibit_boxing_to_multi_dim_slice,
                                  db, adoption_queue),
-        (SetKodaPyErrFromStatus(_), false));
+        (arolla::python::SetPyErrFromStatus(_), false));
     return true;
   }
   if (py_items_or_keys && py_items_or_keys != Py_None) {
@@ -802,7 +804,7 @@ bool NormalizeDictKeysAndValues(PyObject* py_items_or_keys, PyObject* py_values,
     if (auto status = ConvertDictKeysAndValues(py_items_or_keys, db,
                                                adoption_queue, keys, values);
         !status.ok()) {
-      SetKodaPyErrFromStatus(status);
+      arolla::python::SetPyErrFromStatus(status);
       return false;
     }
   }
@@ -854,9 +856,9 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
   ASSIGN_OR_RETURN(auto res,
                    CreateDictShaped(self_db, *std::move(shape), keys, values,
                                     schema, key_schema, value_schema, itemid),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
-      .With(SetKodaPyErrFromStatus);
+      .With(arolla::python::SetPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -907,9 +909,9 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
       auto res,
       CreateDictLike(UnsafeDataBagPtr(self), *shape_and_mask_from, keys, values,
                      schema, key_schema, value_schema, itemid),
-      SetKodaPyErrFromStatus(_));
+      arolla::python::SetPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
-      .With(SetKodaPyErrFromStatus);
+      .With(arolla::python::SetPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -941,26 +943,25 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
   std::optional<DataSlice> res;
   if (Py_IsNone(py_values)) {
     ASSIGN_OR_RETURN(res, CreateEmptyList(self_db, schema, item_schema, itemid),
-                     SetKodaPyErrFromStatus(_));
+                     arolla::python::SetPyErrFromStatus(_));
   } else {
     ASSIGN_OR_RETURN(auto values,
                      DataSliceFromPyValue(py_values, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
+                     arolla::python::SetPyErrFromStatus(_));
     if (PyList_Check(py_values)) {
       ASSIGN_OR_RETURN(
           res, CreateNestedList(self_db, values, schema, item_schema, itemid),
-          SetKodaPyErrFromStatus(_));
+          arolla::python::SetPyErrFromStatus(_));
     } else {
-      ASSIGN_OR_RETURN(
-          res,
-          CreateListsFromLastDimension(self_db, values, schema, item_schema,
-                                       itemid),
-          SetKodaPyErrFromStatus(_));
+      ASSIGN_OR_RETURN(res,
+                       CreateListsFromLastDimension(self_db, values, schema,
+                                                    item_schema, itemid),
+                       arolla::python::SetPyErrFromStatus(_));
     }
   }
 
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
-      .With(SetKodaPyErrFromStatus);
+      .With(arolla::python::SetPyErrFromStatus);
   return WrapPyDataSlice(*std::move(res));
 }
 
@@ -989,7 +990,7 @@ absl::Nullable<PyObject*> PyDataBag_list_schema(
     return nullptr;
   }
   ASSIGN_OR_RETURN(DataSlice res, CreateListSchema(db, *item_schema),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -1031,7 +1032,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_schema(PyObject* self,
   }
   ASSIGN_OR_RETURN(DataSlice res,
                    CreateDictSchema(db, *key_schema, *value_schema),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -1061,7 +1062,7 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
   std::optional<DataSlice> values;
   if (!Py_IsNone(py_values)) {
     ASSIGN_OR_RETURN(values, DataSliceFromPyValue(py_values, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
+                     arolla::python::SetPyErrFromStatus(_));
   }
   std::optional<DataSlice> item_schema;
   std::optional<DataSlice> schema;
@@ -1075,10 +1076,10 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
   ASSIGN_OR_RETURN(
       auto res,
       CreateListShaped(self_db, *shape, values, schema, item_schema, itemid),
-      SetKodaPyErrFromStatus(_));
+      arolla::python::SetPyErrFromStatus(_));
 
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
-      .With(SetKodaPyErrFromStatus);
+      .With(arolla::python::SetPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -1109,7 +1110,7 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
   std::optional<DataSlice> values;
   if (!Py_IsNone(py_values)) {
     ASSIGN_OR_RETURN(values, DataSliceFromPyValue(py_values, adoption_queue),
-                     SetKodaPyErrFromStatus(_));
+                     arolla::python::SetPyErrFromStatus(_));
   }
   std::optional<DataSlice> item_schema;
   std::optional<DataSlice> schema;
@@ -1120,13 +1121,12 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
     return nullptr;
   }
 
-  ASSIGN_OR_RETURN(
-      auto res,
-      CreateListLike(self_db, *shape_and_mask_from, values, schema, item_schema,
-                     itemid),
-      SetKodaPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res,
+                   CreateListLike(self_db, *shape_and_mask_from, values, schema,
+                                  item_schema, itemid),
+                   arolla::python::SetPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
-      .With(SetKodaPyErrFromStatus);
+      .With(arolla::python::SetPyErrFromStatus);
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -1154,7 +1154,7 @@ absl::Nullable<PyObject*> PyDataBag_implode(PyObject* self,
   }
 
   ASSIGN_OR_RETURN(DataSlice result, Implode(self_db, *x_ptr, ndim),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
 }
 
@@ -1175,7 +1175,7 @@ absl::Nullable<PyObject*> PyDataBag_concat_lists(PyObject* self,
   }
 
   ASSIGN_OR_RETURN(DataSlice result, ConcatLists(self_db, std::move(inputs)),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
 }
 
@@ -1226,7 +1226,7 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
     }
     RETURN_IF_ERROR(db->MergeInplace(*other, overwrite, allow_data_conflicts,
                                      allow_schema_conflicts))
-        .With(SetKodaPyErrFromStatus);
+        .With(arolla::python::SetPyErrFromStatus);
   }
   Py_RETURN_NONE;
 }
@@ -1249,7 +1249,8 @@ absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self,
 
   AdoptionQueue adoption_queue;
   adoption_queue.Add(*slice);
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With(SetKodaPyErrFromStatus);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
+      .With(arolla::python::SetPyErrFromStatus);
 
   return WrapPyDataSlice(slice->WithBag(std::move(db)));
 }
@@ -1257,7 +1258,8 @@ absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self,
 absl::Nullable<PyObject*> PyDataBag_merge_fallbacks(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& db = UnsafeDataBagPtr(self);
-  ASSIGN_OR_RETURN(auto res, db->MergeFallbacks(), SetKodaPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res, db->MergeFallbacks(),
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapDataBagPtr(std::move(res));
 }
 
@@ -1279,7 +1281,7 @@ absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self,
 
   const auto& db = UnsafeDataBagPtr(self);
   ASSIGN_OR_RETURN(auto res, db->Fork(/*immutable=*/!_mutable),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapDataBagPtr(std::move(res));
 }
 
@@ -1306,7 +1308,7 @@ absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self,
   }
 
   ASSIGN_OR_RETURN(std::string str, ToStrFunc(db, triple_limit),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return PyUnicode_FromStringAndSize(str.c_str(), str.size());
 }
 
@@ -1358,7 +1360,7 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
     }
     ASSIGN_OR_RETURN((auto [message_ptr, message_owner]),
                      UnwrapPyProtoMessage(py_message),
-                     SetKodaPyErrFromStatus(_));
+                     arolla::python::SetPyErrFromStatus(_));
     message_owners.push_back(std::move(message_owner));
     message_ptrs.push_back(message_ptr);
   }
@@ -1397,7 +1399,7 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
 
   ASSIGN_OR_RETURN(DataSlice result,
                    FromProto(db, message_ptrs, extensions, itemid, schema),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
 }
 
@@ -1798,7 +1800,7 @@ absl::Nullable<PyObject*> PyEmptyShaped(PyObject* /*module*/,
   }
 
   ASSIGN_OR_RETURN(auto res, CreateEmptyShaped(*shape, *schema, *std::move(db)),
-                   SetKodaPyErrFromStatus(_));
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 

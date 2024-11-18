@@ -20,7 +20,7 @@
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "py/koladata/exceptions/py_exception_utils.h"
+#include "py/koladata/exceptions/py_exception_utils.h"  // IWYU pragma: keep, registration for HandleKodaPyErrStatus
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "arolla/util/init_arolla.h"
@@ -37,13 +37,12 @@ PYBIND11_MODULE(testing_pybind, m) {
   m.def("raise_from_status_with_payload", [](absl::string_view message) {
     Error error;
     error.set_error_message(message);
-    SetKodaPyErrFromStatus(
-        WithErrorPayload(absl::InternalError(message), error));
+    SetPyErrFromStatus(WithErrorPayload(absl::InternalError(message), error));
     throw pybind11::error_already_set();
   });
 
   m.def("raise_from_status_without_payload", [](absl::string_view message) {
-    SetKodaPyErrFromStatus(absl::InternalError(message));
+    SetPyErrFromStatus(absl::InternalError(message));
     throw pybind11::error_already_set();
   });
 
@@ -51,23 +50,8 @@ PYBIND11_MODULE(testing_pybind, m) {
         [](absl::string_view message) {
           Error error;
           error.ParseFromString(message);
-          SetKodaPyErrFromStatus(
-              WithErrorPayload(absl::InternalError("fail"), error));
-          throw pybind11::error_already_set();
-        });
-
-  m.def("raise_from_status_with_payload_from_arolla",
-        [](absl::string_view message) {
-          Error error;
-          error.set_error_message(message);
           SetPyErrFromStatus(
-              WithErrorPayload(absl::InternalError(message), error));
-          throw pybind11::error_already_set();
-        });
-
-  m.def("raise_from_status_without_payload_from_arolla",
-        [](absl::string_view message) {
-          SetPyErrFromStatus(absl::InternalError(message));
+              WithErrorPayload(absl::InternalError("fail"), error));
           throw pybind11::error_already_set();
         });
 
