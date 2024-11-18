@@ -220,7 +220,8 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataItem(
 absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
     const internal::DataSliceImpl& slice, const internal::DataItem& ds_schema,
     const internal::DataBagImpl& db_impl,
-    internal::DataBagImpl::FallbackSpan fallbacks) {
+    internal::DataBagImpl::FallbackSpan fallbacks,
+    bool union_object_attrs) {
   std::optional<DataSlice::AttrNamesSet> result;
   std::optional<internal::DataSliceImpl> schemas;
   if (ds_schema == schema::kSchema) {
@@ -263,7 +264,12 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
               return;
             }
             const auto& attrs = *attrs_or;
-            absl::erase_if(*result, [&](auto a) { return !attrs.contains(a); });
+            if (union_object_attrs) {
+              result->insert(attrs.begin(), attrs.end());
+            } else {
+              absl::erase_if(*result,
+                             [&](auto a) { return !attrs.contains(a); });
+            }
           });
         }
         return status;
@@ -1051,7 +1057,8 @@ bool DataSlice::IsEquivalentTo(const DataSlice& other) const {
   return true;
 }
 
-absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames() const {
+absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
+    bool union_object_attrs) const {
   if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot get available attributes without a DataBag");
@@ -1060,7 +1067,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames() const {
   FlattenFallbackFinder fb_finder(*GetBag());
   auto fallbacks = fb_finder.GetFlattenFallbacks();
   if (GetSchemaImpl().holds_value<internal::ObjectId>()) {
-    // For entities, just process `schema_` of a DataSlice.
+    // For entities, just process the schema of the DataSlice.
     return GetAttrsFromSchemaItem(GetSchemaImpl(), db_impl, fallbacks);
   }
   return VisitImpl(absl::Overload(
@@ -1068,8 +1075,8 @@ absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames() const {
         return GetAttrsFromDataItem(item, GetSchemaImpl(), db_impl, fallbacks);
       },
       [&](const internal::DataSliceImpl& slice) {
-        return GetAttrsFromDataSlice(slice, GetSchemaImpl(), db_impl,
-                                     fallbacks);
+        return GetAttrsFromDataSlice(slice, GetSchemaImpl(), db_impl, fallbacks,
+                                     union_object_attrs);
       }));
 }
 
@@ -1089,32 +1096,44 @@ absl::StatusOr<DataSlice> DataSlice::GetAttr(
   });
 }
 
-absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
-    absl::string_view attr_name, const DataSlice& default_value) const {
-  ASSIGN_OR_RETURN(auto expanded_default,
-                   BroadcastToShape(default_value, GetShape()));
+absl::StatusOr<DataSlice> DataSlice::GetAttrOrMissing(
+    absl::string_view attr_name) const {
   return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
     internal::DataItem res_schema;
-    ASSIGN_OR_RETURN(auto res, GetAttrImpl(GetBag(), impl, GetSchemaImpl(),
-                                           attr_name, res_schema,
-                                           /*allow_missing_schema=*/true));
+    ASSIGN_OR_RETURN(
+        auto res,
+        GetAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name, res_schema,
+                    /*allow_missing_schema=*/true),
+        AssembleErrorMessage(_, {.ds = *this}));
     if (!res_schema.has_value()) {
       res_schema = internal::DataItem(schema::kAny);
       if (res.present_count() == 0 && GetSchemaImpl() != schema::kAny) {
-        res_schema = default_value.GetSchemaImpl();
+        res_schema = internal::DataItem(schema::kNone);
       } else if (res.dtype() != arolla::GetNothingQType()) {
         ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(res.dtype()));
         res_schema = internal::DataItem(dtype);
       }
     }
-    ASSIGN_OR_RETURN(
-        res_schema,
-        schema::CommonSchema(res_schema, default_value.GetSchemaImpl()),
-        AssembleErrorMessage(_, {.ds = *this}));
-    auto res_db = DataBag::CommonDataBag({GetBag(), default_value.GetBag()});
+    return DataSlice::Create(std::move(res), GetShape(), std::move(res_schema),
+                             GetBag());
+  });
+}
+
+absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
+    absl::string_view attr_name, const DataSlice& default_value) const {
+  ASSIGN_OR_RETURN(auto expanded_default,
+                   BroadcastToShape(default_value, GetShape()));
+  return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto result_or_missing, GetAttrOrMissing(attr_name));
+    ASSIGN_OR_RETURN(auto result_schema,
+                     schema::CommonSchema(result_or_missing.GetSchemaImpl(),
+                                          default_value.GetSchemaImpl()),
+                     AssembleErrorMessage(_, {.ds = *this}));
+    auto result_db = DataBag::CommonDataBag({GetBag(), default_value.GetBag()});
     return DataSlice::Create(
-        CoalesceWithFiltered(impl, res, expanded_default.impl<T>()), GetShape(),
-        std::move(res_schema), std::move(res_db));
+        CoalesceWithFiltered(impl, result_or_missing.impl<T>(),
+                             expanded_default.impl<T>()),
+        GetShape(), std::move(result_schema), std::move(result_db));
   });
 }
 

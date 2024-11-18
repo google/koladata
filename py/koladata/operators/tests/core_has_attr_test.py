@@ -76,16 +76,14 @@ class CoreHasAttrTest(parameterized.TestCase):
         ds([present, present, present]),
     )
     # Although "a" is present in all objects, getting it might still fail.
-    # It's a bit unfortunate that the exception types and messages are so
-    # different, as the underlying issue is the same.
     with self.assertRaisesRegex(
         exceptions.KodaError,
         r'cannot find a common schema for provided schemas',
     ):
       expr_eval.eval(kde.core.get_attr(mixed_objects, 'a'))
     with self.assertRaisesRegex(
-        ValueError,
-        r'no common schema',
+        exceptions.KodaError,
+        r'cannot find a common schema for provided schemas',
     ):
       expr_eval.eval(kde.core.maybe(mixed_objects, 'a'))
 

@@ -42,7 +42,6 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/util/refcount_ptr.h"
 #include "arolla/util/repr.h"
-#include "arolla/util/text.h"
 
 namespace koladata {
 
@@ -230,17 +229,32 @@ class DataSlice {
   bool IsEquivalentTo(const DataSlice& other) const;
 
   // Returns all attribute names that are defined on this DataSlice. In case of
-  // OBJECT schema, attribute names are fetched from `__schema__` attribute.
-  absl::StatusOr<AttrNamesSet> GetAttrNames() const;
+  // OBJECT schema, attribute names are fetched from `__schema__` attribute, and
+  // the intersection of all object attributes is returned by default or the
+  // union of these attributes if `union_object_attrs` is true. For ANY schemas,
+  // an empty set of attributes is returned.
+  absl::StatusOr<AttrNamesSet> GetAttrNames(
+      bool union_object_attrs = false) const;
 
-  // Returns a new DataSlice with a reference to the same DataBag if it exists
-  // as an attribute `attr_name` of this Object. Returns a status error on
-  // missing or invalid attribute requests.
+  // Returns a new DataSlice containing the values of the attribute `attr_name`
+  // on the objects in this DataSlice. The result uses the same DataBag as this
+  // DataSlice. If the attribute is not defined in the schema, or the schema is
+  // OBJECT and any or all objects do not define it, returns an error.
   absl::StatusOr<DataSlice> GetAttr(absl::string_view attr_name) const;
 
-  // Returns a new DataSlice with a reference to the same DataBag. Missing
-  // values are filled with `default_value`. This also allows fetching an
-  // attribute that does not exist. Returns an error in case of missing DataBag.
+  // Returns a new DataSlice containing the values of the attribute `attr_name`
+  // on the objects in this DataSlice. The result uses the same DataBag as this
+  // DataSlice. If the attribute is not defined in the schema, or the schema is
+  // OBJECT and any or all objects do not define it, the corresponding result
+  // value is missing. This allows fetching an attribute that does not exist.
+  absl::StatusOr<DataSlice> GetAttrOrMissing(absl::string_view attr_name) const;
+
+  // Returns a new DataSlice containing the values of the attribute `attr_name`
+  // on the objects in this DataSlice. The result uses the common DataBag of
+  // this DataSlice and `default_value`. If the attribute is not defined in the
+  // schema, or the schema is OBJECT and any or all objects do not define it,
+  // values from `default_value` are used in their place. This allows fetching
+  // an attribute that does not exist.
   absl::StatusOr<DataSlice> GetAttrWithDefault(
       absl::string_view attr_name, const DataSlice& default_value) const;
 

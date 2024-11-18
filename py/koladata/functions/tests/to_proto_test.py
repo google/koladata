@@ -84,14 +84,14 @@ class ToProtoTest(absltest.TestCase):
     messages = fns.to_proto(
         ds([
             fns.obj(int32_field=1),
-            fns.obj(int32_field=2),
+            fns.obj(int32_field=2, bytes_field=b'b'),
             fns.obj(int32_field=3),
         ]),
         test_pb2.MessageC,
     )
     expected_messages = [
         test_pb2.MessageC(int32_field=1),
-        test_pb2.MessageC(int32_field=2),
+        test_pb2.MessageC(int32_field=2, bytes_field=b'b'),
         test_pb2.MessageC(int32_field=3),
     ]
     self.assertEqual(messages, expected_messages)
@@ -140,6 +140,23 @@ class ToProtoTest(absltest.TestCase):
     expected_messages = test_pb2.MessageC(oneof_int32_field=2)
     self.assertEqual(message, expected_messages)
 
+  def test_oneof_object(self):
+    x = ds([
+        fns.obj(oneof_int32_field=1),
+        fns.obj(oneof_bytes_field=b'2'),
+        fns.obj(oneof_message_field=fns.new(int32_field=3)),
+    ])
+
+    messages = fns.to_proto(x, test_pb2.MessageC)
+
+    expected_messages = [
+        test_pb2.MessageC(oneof_int32_field=1),
+        test_pb2.MessageC(oneof_bytes_field=b'2'),
+        test_pb2.MessageC(oneof_message_field=test_pb2.MessageC(int32_field=3)),
+    ]
+
+    self.assertEqual(messages, expected_messages)
+
   def test_repeated_oneof(self):
     s = fns.new_schema(
         oneof_int32_field=schema_constants.INT32,
@@ -149,6 +166,27 @@ class ToProtoTest(absltest.TestCase):
         fns.new(schema=s, oneof_int32_field=1),
         fns.new(schema=s, oneof_bytes_field=b'2'),
         fns.new(schema=s, oneof_message_field=fns.new(int32_field=3)),
+    ]))
+
+    message = fns.to_proto(x, test_pb2.MessageC)
+
+    expected_message = test_pb2.MessageC(
+        repeated_message_field=[
+            test_pb2.MessageC(oneof_int32_field=1),
+            test_pb2.MessageC(oneof_bytes_field=b'2'),
+            test_pb2.MessageC(
+                oneof_message_field=test_pb2.MessageC(int32_field=3)
+            ),
+        ]
+    )
+
+    self.assertEqual(message, expected_message)
+
+  def test_repeated_oneof_object(self):
+    x = fns.obj(repeated_message_field=fns.list([
+        fns.obj(oneof_int32_field=1),
+        fns.obj(oneof_bytes_field=b'2'),
+        fns.obj(oneof_message_field=fns.new(int32_field=3)),
     ]))
 
     message = fns.to_proto(x, test_pb2.MessageC)

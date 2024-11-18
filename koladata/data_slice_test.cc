@@ -983,6 +983,8 @@ TEST(DataSliceTest, GetAttrNames_Object_AttrsAtIntersection) {
                                        object_3.item().value<ObjectId>()})
                 .WithBag(db);
   EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b")));
+  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
+              IsOkAndHolds(ElementsAre("a", "b", "c", "d")));
 }
 
 TEST(DataSliceTest, GetAttrNames_Object_EmptyIntersection) {
@@ -1004,6 +1006,8 @@ TEST(DataSliceTest, GetAttrNames_Object_EmptyIntersection) {
                                        object_3.item().value<ObjectId>()})
                 .WithBag(db);
   EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre()));
+  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
+              IsOkAndHolds(ElementsAre("a", "b", "c", "d", "x", "y")));
 }
 
 TEST(DataSliceTest, GetAttrNames_NoFollow) {
@@ -1016,10 +1020,14 @@ TEST(DataSliceTest, GetAttrNames_NoFollow) {
       EntityCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
   ASSERT_OK_AND_ASSIGN(ds, NoFollow(ds));
   EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre()));
+  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
+              IsOkAndHolds(ElementsAre()));
   // Test the DataItem codepath.
   ASSERT_OK_AND_ASSIGN(ds, ds.Reshape(DataSlice::JaggedShape::Empty()));
   ASSERT_EQ(ds.GetShape().rank(), 0);
   EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre()));
+  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
+              IsOkAndHolds(ElementsAre()));
 }
 
 TEST(DataSliceTest, GetAttrNames_Primitives) {
@@ -1028,6 +1036,9 @@ TEST(DataSliceTest, GetAttrNames_Primitives) {
                                           HasSubstr("without a DataBag")));
   EXPECT_THAT(ds.WithBag(DataBag::Empty()).GetAttrNames(),
               IsOkAndHolds(ElementsAre()));
+  EXPECT_THAT(
+      ds.WithBag(DataBag::Empty()).GetAttrNames(/*union_object_attrs=*/true),
+      IsOkAndHolds(ElementsAre()));
 }
 
 TEST(DataSliceTest, GetAttrNames_MixedObjectAndPrimitive) {
@@ -1036,13 +1047,14 @@ TEST(DataSliceTest, GetAttrNames_MixedObjectAndPrimitive) {
   auto b = test::DataItem("a");
   auto c = test::DataItem(3.14);
   ASSERT_OK_AND_ASSIGN(
-      auto object,
-      ObjectCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
+      auto object, ObjectCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
   auto ds =
       test::MixedDataSlice<int, ObjectId>(
           {42, std::nullopt}, {std::nullopt, object.item().value<ObjectId>()})
           .WithBag(db);
   EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b", "c")));
+  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
+              IsOkAndHolds(ElementsAre("a", "b", "c")));
 }
 
 TEST(DataSliceTest, GetAttrErrors) {
@@ -2830,6 +2842,68 @@ TEST(DataSliceTest, GetAttrWithDefault_AnyNoSchema) {
   EXPECT_THAT(ds_primitive_get.slice(),
               ElementsAre(1, arolla::Text("abc"), std::nullopt));
   EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kAny);
+}
+
+TEST(DataSliceTest, GetAttrOrMissing_Primitives_EntityCreator) {
+  auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
+  auto db = DataBag::Empty();
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
+  ASSERT_OK(ds.SetAttr("a", ds_primitive));
+
+  ASSERT_OK_AND_ASSIGN(auto ds_attr_or_missing, ds.GetAttrOrMissing("a"));
+  EXPECT_THAT(ds_attr_or_missing.slice(), ElementsAre(1, std::nullopt, 3));
+  EXPECT_EQ(ds_attr_or_missing.GetSchemaImpl(), schema::kInt32);
+}
+
+TEST(DataSliceTest, GetAttrOrMissing_Objects_EntityCreator) {
+  auto db = DataBag::Empty();
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
+  auto object_id_1 = internal::AllocateSingleObject();
+  auto object_id_2 = internal::AllocateSingleObject();
+  auto explicit_schema = internal::AllocateExplicitSchema();
+  auto ds_object = test::DataSlice<ObjectId>(
+      {object_id_1, std::nullopt, object_id_2}, explicit_schema, ds.GetBag());
+  ASSERT_OK(ds.SetAttr("a", ds_object));
+
+  ASSERT_OK_AND_ASSIGN(auto ds_attr_or_missing, ds.GetAttrOrMissing("a"));
+  EXPECT_THAT(ds_attr_or_missing.slice(),
+              ElementsAre(object_id_1, std::nullopt, object_id_2));
+  EXPECT_EQ(ds_attr_or_missing.GetSchemaImpl(), explicit_schema);
+}
+
+TEST(DataSliceTest, GetAttrOrMissing_EntityCreator) {
+  auto db = DataBag::Empty();
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
+
+  ASSERT_OK_AND_ASSIGN(auto ds_attr, ds.GetAttrOrMissing("a"));
+  EXPECT_THAT(ds_attr.slice(),
+              ElementsAre(std::nullopt, std::nullopt, std::nullopt));
+  EXPECT_EQ(ds_attr.GetSchemaImpl(), schema::kNone);
+}
+
+TEST(DataSliceTest, GetAttrOrMissing_Primitives_ObjectCreator) {
+  auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
+  auto db = DataBag::Empty();
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db, shape, {}, {}));
+  ASSERT_OK(ds.SetAttr("a", ds_primitive));
+
+  ASSERT_OK_AND_ASSIGN(auto ds_attr, ds.GetAttrOrMissing("a"));
+  EXPECT_THAT(ds_attr.slice(), ElementsAre(1, std::nullopt, 3));
+  EXPECT_EQ(ds_attr.GetSchemaImpl(), schema::kInt32);
+}
+
+TEST(DataSliceTest, GetAttrOrMissing_SchemaSlice) {
+  ASSERT_OK_AND_ASSIGN(auto entity,
+                       EntityCreator::FromAttrs(DataBag::Empty(), {}, {}));
+  auto entity_schema = entity.GetSchema();
+  ASSERT_OK_AND_ASSIGN(auto schema_attr,
+                       entity_schema.GetAttrOrMissing("attr"));
+  EXPECT_EQ(schema_attr.item(), DataItem());
+  EXPECT_EQ(schema_attr.GetSchemaImpl(), schema::kSchema);
 }
 
 TEST(DataSliceTest, DelAttr_EntityCreator) {
