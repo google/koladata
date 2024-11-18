@@ -28,15 +28,18 @@ PyMethodDef kPyExprEvalModule_methods[] = {
      "Clears Koda specific eval caches."},
     {"unspecified_self_input", (PyCFunction)PyUnspecifiedSelfInput, METH_NOARGS,
      "Returns the constant representing the unspecified self input."},
+    {"eval_op", (PyCFunction)PyEvalOp, METH_FASTCALL | METH_KEYWORDS,
+     ("eval_op(op, *args, **kwrgas)\n--\n\n"
+      "Evaluates an operator on the provided arguments.")},
     {nullptr} /* sentinel */
 };
 
 struct PyModuleDef py_expr_eval_module = {
-  PyModuleDef_HEAD_INIT,
-  kThisModuleName,
-  /*module docstring=*/"Koda Expr evaluation.",
-  -1,
-  /*methods=*/kPyExprEvalModule_methods,
+    PyModuleDef_HEAD_INIT,
+    kThisModuleName,
+    /*module docstring=*/"Koda Expr evaluation.",
+    -1,
+    /*methods=*/kPyExprEvalModule_methods,
 };
 
 // NOTE: This PyInit function must be named this way

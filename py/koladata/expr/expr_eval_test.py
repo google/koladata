@@ -82,7 +82,7 @@ class PyExprEvalTest(absltest.TestCase):
       py_expr_eval.eval_expr(expr, x=x)
 
 
-class ExprEvalTest(absltest.TestCase):
+class ExprEval(absltest.TestCase):
 
   def test_eval(self):
     x = ds([1, 2, 3])

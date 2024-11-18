@@ -189,6 +189,22 @@ py_test(
     ],
 )
 
+py_test(
+    name = "eval_op_test",
+    srcs = ["eval_op_test.py"],
+    deps = [
+        ":input_container",
+        ":py_expr_eval_py_ext",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 cc_library(
     name = "py_expr_eval_cc_lib",
     srcs = ["py_expr_eval.cc"],
@@ -205,6 +221,8 @@ cc_library(
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",

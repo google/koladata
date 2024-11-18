@@ -25,6 +25,10 @@ namespace koladata::python {
 absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
                                      Py_ssize_t nargs, PyObject* py_kwnames);
 
+// Evaluates an operator on the provided arguments.
+absl::Nullable<PyObject*> PyEvalOp(PyObject* /*self*/, PyObject** py_args,
+                                   Py_ssize_t nargs, PyObject* py_kwnames);
+
 // Returns the constant representing the unspecified self input.
 PyObject* PyUnspecifiedSelfInput(PyObject* /*self*/, PyObject* /*py_args*/);
 

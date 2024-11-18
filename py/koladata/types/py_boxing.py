@@ -255,9 +255,7 @@ def find_hidden_seed_param(signature: inspect.Signature) -> int | None:
   return None
 
 
-HIDDEN_SEED_LEAF = arolla.abc.leaf(
-    '_koladata_hidden_seed_leaf'
-)
+HIDDEN_SEED_LEAF = arolla.abc.leaf('_koladata_hidden_seed_leaf')
 
 
 # Isolated PRNG instance. Global to avoid overhead of repeated instantiation.
@@ -270,7 +268,8 @@ def _random_int64() -> arolla.QValue:
 
 def with_unique_hidden_seed(expr: arolla.Expr) -> arolla.Expr:
   return arolla.sub_by_fingerprint(
-      expr, {HIDDEN_SEED_LEAF.fingerprint: arolla.literal(_random_int64())},
+      expr,
+      {HIDDEN_SEED_LEAF.fingerprint: arolla.literal(_random_int64())},
   )
 
 
@@ -521,7 +520,8 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
           bound_values.append(arolla.tuple(*boxed_args))
         else:
           bound_values.append(
-              arolla.abc.bind_op('core.make_tuple', *map(as_expr, boxed_args)))
+              arolla.abc.bind_op('core.make_tuple', *map(as_expr, boxed_args))
+          )
         args_queue.clear()
       elif is_keyword_only(marker_type):
         if param.name in kwargs:
