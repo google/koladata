@@ -292,19 +292,16 @@ absl::Status InitItemIdsForDicts(const DataSlice& itemid,
   return itemid.WithBag(db).ClearDictOrList();
 }
 
-// Verifies that the given itemid is valid for creating Koda Items.
-// `check_item_id_type_fn should accept a function pointer that accepts a
-// DataSlice and returns an `absl::Status`. To check that itemid(s) are Lists,
-// pass `VerifyItemIdsAreLists` and to check they are Dicts, pass
-// `VerifyItemIdsAreDicts`.
+// Verifies that the given itemid is valid for creating Koda Items, optionally
+// filtering it to the given mask first. Returns the filtered itemid,
+// which is guaranteed to be full when required_mask == std::nullopt, or have
+// exactly the same sparsity as required_mask otherwise. It is also guaranteed
+// to not have duplicates.
 //
 // NOTE: itemid's attached DataBag is ignored if present.
-template <typename InitItemIdFn>
-absl::Status VerifyAndInitItemId(const DataSlice& itemid,
-                                 const DataSlice::JaggedShape& shape,
-                                 const std::optional<DataSlice>& required_mask,
-                                 InitItemIdFn init_itemid_fn,
-                                 const DataBagPtr& db) {
+absl::StatusOr<DataSlice> VerifyAndFilterItemId(
+    const DataSlice& itemid, const DataSlice::JaggedShape& shape,
+    const std::optional<DataSlice>& required_mask) {
   if (itemid.GetSchemaImpl() != schema::kItemId) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "`itemid` expected ITEMID schema, got %v", itemid.GetSchemaImpl()));
@@ -324,14 +321,15 @@ absl::Status VerifyAndInitItemId(const DataSlice& itemid,
         itemid.present_count(), required_count));
   }
   if (itemid.present_count() == 0) {
-    return absl::OkStatus();
+    return itemid;
   }
   if (itemid.dtype() != arolla::GetQType<internal::ObjectId>()) {
     return absl::InternalError("`itemid` must have ItemIds");
   }
-  RETURN_IF_ERROR(init_itemid_fn(itemid, db));
   if (itemid.GetShape().rank() == 0) {
-    return absl::OkStatus();
+    return required_count == 0
+               ? DataSlice::Create(internal::DataItem(), itemid.GetSchemaImpl())
+               : itemid;
   }
   arolla::EvaluationContext ctx;
   auto itemid_array = itemid.slice().values<internal::ObjectId>();
@@ -352,7 +350,11 @@ absl::Status VerifyAndInitItemId(const DataSlice& itemid,
   if (unique_itemid.PresentCount() != required_count) {
     return absl::InvalidArgumentError("`itemid` cannot have duplicate ItemIds");
   }
-  return absl::OkStatus();
+  // TODO: keep only necessary allocation ids.
+  return DataSlice::Create(
+      internal::DataSliceImpl::CreateObjectsDataSlice(
+          std::move(itemid_array), itemid.slice().allocation_ids()),
+      itemid.GetShape(), itemid.GetSchemaImpl());
 }
 
 // Creates a DataSlice with objects constructed by allocate_single_fn /
@@ -367,32 +369,13 @@ absl::StatusOr<DataSlice> CreateLike(const DataBagPtr& db,
                                      const std::optional<DataSlice>& itemid,
                                      InitItemIdFn init_itemid_fn) {
   if (itemid) {
-    RETURN_IF_ERROR(VerifyAndInitItemId(*itemid, shape_and_mask_from.GetShape(),
-                                        shape_and_mask_from, init_itemid_fn,
-                                        db));
-    return shape_and_mask_from.VisitImpl([&]<class T>(const T& impl) {
-      if constexpr (std::is_same_v<T, internal::DataItem>) {
-        return DataSlice::Create(impl.has_value()
-                                     ? itemid->item() : internal::DataItem(),
-                                 schema, db);
-      } else {
-        arolla::DenseArrayBuilder<internal::ObjectId> result_impl_builder(
-            itemid->size());
-        const arolla::DenseArray<internal::ObjectId>& item_ids =
-            itemid->slice().values<internal::ObjectId>();
-        impl.VisitValues([&](const auto& array) {
-          array.ForEachPresent([&](int64_t id, const auto& _) {
-            // NOTE: VerifyAndInitItemId makes sure `itemid` is present whenever
-            // `shape_and_mask_from` is present.
-            result_impl_builder.Set(id, item_ids[id].value);
-          });
-        });
-        return DataSlice::Create(
-            internal::DataSliceImpl::CreateObjectsDataSlice(
-                std::move(result_impl_builder).Build(),
-                itemid->slice().allocation_ids()),
-            shape_and_mask_from.GetShape(), schema, db);
-      }
+    ASSIGN_OR_RETURN(
+        auto filtered_itemid,
+        VerifyAndFilterItemId(*itemid, shape_and_mask_from.GetShape(),
+                              shape_and_mask_from));
+    RETURN_IF_ERROR(init_itemid_fn(filtered_itemid, db));
+    return filtered_itemid.VisitImpl([&](const auto& impl) {
+      return DataSlice::Create(impl, filtered_itemid.GetShape(), schema, db);
     });
   } else {
     return AllocateLike(shape_and_mask_from, allocate_single_fn,
@@ -412,10 +395,13 @@ absl::StatusOr<DataSlice> CreateShaped(const DataBagPtr& db,
                                        const std::optional<DataSlice>& itemid,
                                        InitItemIdFn init_itemid_fn) {
   if (itemid) {
-    RETURN_IF_ERROR(
-        VerifyAndInitItemId(*itemid, shape, std::nullopt, init_itemid_fn, db));
-    return itemid->VisitImpl([&](const auto& impl) {
-      return DataSlice::Create(impl, itemid->GetShape(), schema, db);
+    ASSIGN_OR_RETURN(auto filtered_itemid,
+                     VerifyAndFilterItemId(*itemid, shape, std::nullopt));
+    // There is no filtering happening in the line above, but we keep using
+    // filtered_itemid below for consistency with CreateLike implementation.
+    RETURN_IF_ERROR(init_itemid_fn(filtered_itemid, db));
+    return filtered_itemid.VisitImpl([&](const auto& impl) {
+      return DataSlice::Create(impl, filtered_itemid.GetShape(), schema, db);
     });
   }
   if (shape.rank() == 0) {

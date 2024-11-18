@@ -3029,6 +3029,52 @@ TEST(ObjectFactoriesTest, CreateDictLike_ItemId_WithValues) {
   EXPECT_EQ(ds.slice()[1], itemid.slice()[1]);
 }
 
+TEST(ObjectFactoriesTest, CreateDictLike_ItemId_Overwrite) {
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  auto db = DataBag::Empty();
+
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
+      {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
+      shape);
+  auto itemid =
+      *DataSlice::Create(internal::DataSliceImpl::ObjectsFromAllocation(
+                             internal::AllocateDicts(3), 3),
+                         shape, internal::DataItem(schema::kItemId));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, CreateDictShaped(db, shape, test::DataSlice<int>({1, 2, 3}),
+                                test::DataSlice<int64_t>({57, 58, 59}),
+                                /*schema=*/std::nullopt,
+                                /*key_schema=*/std::nullopt,
+                                /*value_schema=*/std::nullopt, itemid));
+  // Overwrite.
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_like,
+      CreateDictLike(db, shape_and_mask_from,
+                     test::DataSlice<arolla::Text>({"a", "b", "c"}),
+                     test::DataSlice<int>({1, 2, 3}),
+                     /*schema=*/std::nullopt,
+                     /*key_schema=*/std::nullopt,
+                     /*value_schema=*/std::nullopt, itemid));
+
+  EXPECT_THAT(ds_like.GetSchema().GetAttr("__keys__"),
+              IsOkAndHolds(Property(&DataSlice::item, schema::kString)));
+  EXPECT_THAT(ds_like.GetSchema().GetAttr("__values__"),
+              IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
+  EXPECT_EQ(ds_like.slice()[0], itemid.slice()[0]);
+  EXPECT_EQ(ds_like.slice()[1], itemid.slice()[1]);
+  EXPECT_FALSE(ds_like.slice()[2].has_value());
+  // We overwrote 2 out of 3 dicts.
+  EXPECT_THAT(ds.GetFromDict(test::DataSlice<int>({1, 2, 3})),
+              IsOkAndHolds(Property(
+                  &DataSlice::slice,
+                  ElementsAre(MissingDataItem(), MissingDataItem(), 59))));
+  EXPECT_THAT(
+      ds_like.GetFromDict(test::DataSlice<arolla::Text>({"a", "b", "c"})),
+      IsOkAndHolds(
+          Property(&DataSlice::slice, ElementsAre(1, 2, MissingDataItem()))));
+}
+
 TEST(ObjectFactoriesTest, CreateDictLike_Errors) {
   auto db = DataBag::Empty();
   auto shape_and_mask_from = test::DataItem(
@@ -3320,27 +3366,27 @@ TEST(ObjectFactoriesTest, CreateListLike_ItemId_Overwrite) {
       shape, internal::DataItem(schema::kItemId));
 
   ASSERT_OK_AND_ASSIGN(auto ds,
-                       CreateListLike(db, shape_and_mask_from,
-                                      test::DataItem(42),
-                                      /*schema=*/std::nullopt,
-                                      /*item_schema=*/std::nullopt,
-                                      itemid));
-  // Overwrite.
-  ASSERT_OK_AND_ASSIGN(ds,
-                       CreateListLike(db, shape_and_mask_from,
-                                      test::DataItem("abc"),
-                                      /*schema=*/std::nullopt,
-                                      /*item_schema=*/std::nullopt,
-                                      itemid));
+                       CreateListShaped(db, shape, test::DataItem(42),
+                                        /*schema=*/std::nullopt,
+                                        /*item_schema=*/std::nullopt, itemid));
+  // Overwrite 2 out of 3.
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_like,
+      CreateListLike(db, shape_and_mask_from, test::DataItem("abc"),
+                     /*schema=*/std::nullopt,
+                     /*item_schema=*/std::nullopt, itemid));
 
-  EXPECT_THAT(ds.GetSchema().GetAttr("__items__"),
+  EXPECT_THAT(ds_like.GetSchema().GetAttr("__items__"),
               IsOkAndHolds(Property(&DataSlice::item, schema::kString)));
-  EXPECT_EQ(ds.slice()[0], itemid.slice()[0]);
-  EXPECT_EQ(ds.slice()[1], itemid.slice()[1]);
-  EXPECT_THAT(ds.ExplodeList(0, std::nullopt),
-              IsOkAndHolds(Property(&DataSlice::slice,
-                                    ElementsAre(arolla::Text("abc"),
-                                                arolla::Text("abc")))));
+  EXPECT_EQ(ds_like.slice()[0], itemid.slice()[0]);
+  EXPECT_EQ(ds_like.slice()[1], itemid.slice()[1]);
+  // For the list that was not overwritten, we still expect the original values.
+  ASSERT_OK_AND_ASSIGN(auto ds_any,
+                       ds.WithSchema(test::DataItem(schema::kAny)));
+  EXPECT_THAT(ds_any.ExplodeList(0, std::nullopt),
+              IsOkAndHolds(Property(
+                  &DataSlice::slice,
+                  ElementsAre(arolla::Text("abc"), arolla::Text("abc"), 42))));
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_ListSchemaError) {
