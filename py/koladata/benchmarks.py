@@ -294,20 +294,77 @@ def create_dict(state):
     _ = kd.dict(d)
 
 
+_SCHEMA_ARG = {
+    0: kd.OBJECT,
+    1: kd.INT32,
+    2: kd.FLOAT32,
+}
+
+
 @google_benchmark.register
+@google_benchmark.option.arg_names(['schema', 'from_dim'])
+@google_benchmark.option.args([0, 0])
+@google_benchmark.option.args([0, 1])
+@google_benchmark.option.args([1, 0])
+@google_benchmark.option.args([1, 1])
+@google_benchmark.option.args([2, 0])
+@google_benchmark.option.args([2, 1])
 def universal_converter_no_caching_flat(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
+  schema = _SCHEMA_ARG[state.range(0)]
+  from_dim = state.range(1)
+  if schema != kd.OBJECT and from_dim == 0:
+    schema = kd.list_schema(schema)
   l = list(range(10000))
   while (state):
-    _ = kd.from_py(l)
+    _ = kd.from_py(l, from_dim=from_dim, schema=schema)
 
 
 @google_benchmark.register
+@google_benchmark.option.arg_names(['schema', 'from_dim'])
+@google_benchmark.option.args([0, 0])
+@google_benchmark.option.args([0, 1])
+@google_benchmark.option.args([1, 0])
+@google_benchmark.option.args([1, 1])
+@google_benchmark.option.args([2, 0])
+@google_benchmark.option.args([2, 1])
 def universal_converter_no_caching_nested(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
+  schema = _SCHEMA_ARG[state.range(0)]
+  from_dim = state.range(1)
+  if schema != kd.OBJECT:
+    schema = kd.list_schema(schema)
+  if schema != kd.OBJECT and from_dim == 0:
+    schema = kd.list_schema(schema)
   nested_l = [[x, x + 1] for x in range(5000)]
   while (state):
-    _ = kd.from_py(nested_l)
+    _ = kd.from_py(nested_l, from_dim=from_dim, schema=schema)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['schema', 'from_dim'])
+@google_benchmark.option.args([0, 0])
+@google_benchmark.option.args([0, 12])
+@google_benchmark.option.args([1, 0])
+@google_benchmark.option.args([1, 12])
+@google_benchmark.option.args([2, 0])
+@google_benchmark.option.args([2, 12])
+def universal_converter_no_caching_deep_nesting(state):
+  # NOTE: There is no caching of Python objects, as all of them are unique.
+  schema = _SCHEMA_ARG[state.range(0)]
+  from_dim = state.range(1)
+  if schema != kd.OBJECT and from_dim == 0:
+    schema = kd.list_schema(schema)
+  lst = list(range(4096))  # 2 ^ 12 elements
+  for _ in range(11):  # 12 levels-deep
+    new_lst = []
+    if schema != kd.OBJECT and from_dim == 0:
+      schema = kd.list_schema(schema)
+    for i in range(0, len(lst), 2):
+      new_lst.append([lst[i], lst[i + 1]])
+    lst = new_lst
+  while state:
+    _ = kd.from_py(lst, from_dim=from_dim, schema=schema)
 
 
 @google_benchmark.register
