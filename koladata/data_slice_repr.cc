@@ -312,12 +312,9 @@ std::string DataSliceImplToStr(const DataSlice& ds,
 // schema attr.
 absl::StatusOr<std::string> ListSchemaStr(const DataSlice& schema,
                                           const ReprOption& option) {
-  ASSIGN_OR_RETURN(
-      DataSlice empty,
-      DataSlice::Create(DataItem(std::nullopt), schema.GetSchema().item()));
-  ASSIGN_OR_RETURN(DataSlice attr, schema.GetAttrWithDefault(
-                                       schema::kListItemsSchemaAttr, empty));
-  if (attr.impl_empty_and_unknown()) {
+  ASSIGN_OR_RETURN(DataSlice attr,
+                   schema.GetAttrOrMissing(schema::kListItemsSchemaAttr));
+  if (attr.IsEmpty()) {
     return "";
   }
   ASSIGN_OR_RETURN(std::string str, DataItemToStr(
@@ -330,16 +327,11 @@ absl::StatusOr<std::string> ListSchemaStr(const DataSlice& schema,
 // schema attr.
 absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
                                           const ReprOption& option) {
-  ASSIGN_OR_RETURN(
-      DataSlice empty,
-      DataSlice::Create(DataItem(std::nullopt), schema.GetSchema().item()));
-  ASSIGN_OR_RETURN(DataSlice key_attr, schema.GetAttrWithDefault(
-                                           schema::kDictKeysSchemaAttr, empty));
-  ASSIGN_OR_RETURN(
-      DataSlice value_attr,
-      schema.GetAttrWithDefault(schema::kDictValuesSchemaAttr, empty));
-  if (key_attr.impl_empty_and_unknown() ||
-      value_attr.impl_empty_and_unknown()) {
+  ASSIGN_OR_RETURN(DataSlice key_attr,
+                   schema.GetAttrOrMissing(schema::kDictKeysSchemaAttr));
+  ASSIGN_OR_RETURN(DataSlice value_attr,
+                   schema.GetAttrOrMissing(schema::kDictValuesSchemaAttr));
+  if (key_attr.IsEmpty() || value_attr.IsEmpty()) {
     return "";
   }
 

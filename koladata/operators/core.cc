@@ -736,13 +736,9 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool update_schema,
     ASSIGN_OR_RETURN(auto src_schema,
                      object_mode ? obj.GetObjSchema() : obj.GetSchema());
     auto dst_schema = src_schema.WithBag(result_db);
-    ASSIGN_OR_RETURN(
-        auto empty_schema,
-        DataSlice::Create(internal::DataItem(std::nullopt),
-                          internal::DataItem(schema::kSchema), nullptr));
     for (const auto& attr_name : attr_names) {
       ASSIGN_OR_RETURN(auto attr_schema,
-                       src_schema.GetAttrWithDefault(attr_name, empty_schema));
+                       src_schema.GetAttrOrMissing(attr_name));
       if (!attr_schema.IsEmpty()) {
         // We remove the bag so that we don't try to adopt the schema,
         // as it is only necessary for conflict detection.

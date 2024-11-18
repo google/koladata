@@ -99,16 +99,12 @@ absl::StatusOr<bool> IsFunctor(const DataSlice& slice) {
   if (slice.GetBag() == nullptr) {
     return false;
   }
-  static absl::NoDestructor<DataSlice> missing{*DataSlice::Create(
-      internal::DataItem(arolla::kMissing), internal::DataItem(schema::kMask))};
   // TODO: use HasAttr when it is implemented.
-  ASSIGN_OR_RETURN(auto returns,
-                   slice.GetAttrWithDefault(kReturnsAttrName, *missing));
+  ASSIGN_OR_RETURN(auto returns, slice.GetAttrOrMissing(kReturnsAttrName));
   if (!returns.present_count()) {
     return false;
   }
-  ASSIGN_OR_RETURN(auto signature,
-                   slice.GetAttrWithDefault(kSignatureAttrName, *missing));
+  ASSIGN_OR_RETURN(auto signature, slice.GetAttrOrMissing(kSignatureAttrName));
   if (!signature.present_count()) {
     return false;
   }
