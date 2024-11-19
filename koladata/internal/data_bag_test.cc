@@ -58,6 +58,7 @@ using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 using ::testing::Ne;
+using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
 
 TEST(DataBagTest, Empty) {
@@ -1436,6 +1437,181 @@ TEST(DataBagTest, MergeInplace) {
   MergeOptions merge_options;
   ASSERT_OK(res_db->MergeInplace(*none_databag, merge_options));
   ASSERT_OK(res_db->MergeInplace(*big_alloc_databag, merge_options));
+}
+
+TEST(DataBagTest, GetStatistics_Lists) {
+  {
+    DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();
+    AllocationId alloc_id = AllocateLists(5);
+    DataSliceImpl lists = DataSliceImpl::ObjectsFromAllocation(alloc_id, 5);
+    // Empty list is not stored in databag.
+    ASSERT_OK(db->AppendToList(
+        lists, DataSliceImpl::Create(arolla::CreateDenseArray<float>(
+                   {std::nullopt, 11.0f, std::nullopt, 2.0f, 3.0f}))));
+
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_EQ(stats.total_non_empty_lists, 5);
+    EXPECT_EQ(stats.total_items_in_lists, 5);
+  }
+  {
+    // Small allocs.
+    DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();
+    for (int i = 0; i < 3; ++i) {
+      ObjectId obj_id = AllocateSingleList();
+      ASSERT_OK(db->AppendToList(DataItem(obj_id), DataItem(i)));
+    }
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_EQ(stats.total_non_empty_lists, 3);
+    EXPECT_EQ(stats.total_items_in_lists, 3);
+  }
+}
+
+TEST(DataBagTest, GetStatistics_Dicts) {
+  {
+    DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();
+    AllocationId dict_alloc_id = AllocateDicts(5);
+    DataSliceImpl dicts =
+        DataSliceImpl::ObjectsFromAllocation(dict_alloc_id, 5);
+    ASSERT_OK(db->SetInDict(dicts,
+                            DataSliceImpl::Create(arolla::CreateDenseArray<int>(
+                                {1, std::nullopt, 3, 4, 5})),
+                            DataSliceImpl::Create(arolla::CreateDenseArray<int>(
+                                {5, 6, 7, 8, std::nullopt}))));
+
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_EQ(stats.total_non_empty_dicts, 3);
+    EXPECT_EQ(stats.total_items_in_dicts, 3);
+  }
+  {
+    DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();
+    AllocationId dict_alloc_id = AllocateDicts(5);
+    DataSliceImpl dicts =
+        DataSliceImpl::ObjectsFromAllocation(dict_alloc_id, 5);
+    ASSERT_OK(db->SetInDict(dicts,
+                            DataSliceImpl::Create(arolla::CreateDenseArray<int>(
+                                {1, std::nullopt, 3, 4, 5})),
+                            DataSliceImpl::Create(arolla::CreateDenseArray<int>(
+                                {5, 6, 7, 8, std::nullopt}))));
+    DataSliceImpl sub_dicts =
+        DataSliceImpl::ObjectsFromAllocation(dict_alloc_id, 3);
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_EQ(stats.total_non_empty_dicts, 3);
+    EXPECT_EQ(stats.total_items_in_dicts, 3);
+
+    ASSERT_OK(db->SetInDict(sub_dicts,
+                            DataSliceImpl::Create(arolla::CreateDenseArray<int>(
+                                {7, std::nullopt, 8})),
+                            DataSliceImpl::Create(arolla::CreateDenseArray<int>(
+                                {7, 8, std::nullopt}))));
+    ASSERT_OK_AND_ASSIGN(stats, db->GetStatistics());
+    EXPECT_EQ(stats.total_non_empty_dicts, 3);
+    EXPECT_EQ(stats.total_items_in_dicts, 4);
+  }
+  {
+    DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();
+    for (int i = 0; i < 3; ++i) {
+      ObjectId obj_id = AllocateSingleDict();
+      ASSERT_OK(db->SetInDict(DataItem(obj_id), DataItem(i), DataItem(i)));
+    }
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_EQ(stats.total_non_empty_dicts, 3);
+    EXPECT_EQ(stats.total_items_in_dicts, 3);
+  }
+}
+
+TEST(DataBagTest, GetStatistics_Schemas) {
+  {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    DataItem int_s = DataItem(schema::kInt64);
+    DataItem float_s = DataItem(schema::kFloat32);
+    DataItem int_s2 = DataItem(schema::kInt64);
+    std::vector<std::reference_wrapper<const DataItem>> items1{
+        std::cref(int_s), std::cref(float_s)};
+    ASSERT_OK_AND_ASSIGN(auto schema_item, db->CreateExplicitSchemaFromFields(
+                                               {"a", "b"}, items1));
+    std::vector<std::reference_wrapper<const DataItem>> items2{
+        std::cref(int_s2), schema_item};
+    ASSERT_OK_AND_ASSIGN(
+        schema_item, db->CreateExplicitSchemaFromFields({"a", "b"}, items2));
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_EQ(stats.total_explicit_schema_attrs, 4);
+    EXPECT_EQ(stats.total_explicit_schemas, 2);
+  }
+  {
+    // UU schema
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    DataItem int_s = DataItem(schema::kInt64);
+    DataItem float_s = DataItem(schema::kFloat32);
+    ASSERT_OK_AND_ASSIGN(
+        auto schema_item,
+        db->CreateUuSchemaFromFields("", {"a", "b"},
+                                     {std::cref(int_s), std::cref(float_s)}));
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_EQ(stats.total_explicit_schema_attrs, 2);
+    EXPECT_EQ(stats.total_explicit_schemas, 1);
+  }
+}
+
+TEST(DataBagTest, GetStatistics_Attrs) {
+  {
+    // Small allocs.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    DataSliceImpl ds_a =
+        DataSliceImpl::Create(arolla::CreateDenseArray<int>({1, std::nullopt}));
+    DataSliceImpl ds_b =
+        DataSliceImpl::Create(arolla::CreateDenseArray<int>({std::nullopt, 2}));
+    ASSERT_OK(db->CreateObjectsFromFields({"a", "b"}, {ds_a, ds_b}));
+    DataSliceImpl ds_c =
+        DataSliceImpl::Create(arolla::CreateDenseArray<int>({3, 2}));
+    ASSERT_OK(db->CreateObjectsFromFields({"a", "c"}, {ds_c, ds_c}));
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_THAT(stats.attr_values_sizes,
+                UnorderedElementsAre(Pair("a", 3), Pair("b", 1), Pair("c", 2)));
+    EXPECT_EQ(stats.entity_and_object_count, 4);
+  }
+  {
+    // Big allocs.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto values_a =
+        DataSliceImpl::Create(arolla::CreateConstDenseArray<int32_t>(100, 57));
+    auto ds_a = DataSliceImpl::Create(
+        arolla::CreateDenseArray<int>({std::nullopt, 1, 2, 3, 4}));
+    auto ds_b = DataSliceImpl::Create(
+        arolla::CreateDenseArray<int>({2, 3, 4, 5, std::nullopt}));
+    ASSERT_OK(db->CreateObjectsFromFields({"a", "b"}, {ds_a, ds_b}));
+    ASSERT_OK(db->CreateObjectsFromFields({"a"}, {values_a}));
+
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_THAT(stats.attr_values_sizes,
+                UnorderedElementsAre(Pair("a", 104), Pair("b", 4)));
+    EXPECT_EQ(stats.entity_and_object_count, 105);
+  }
+  {
+    // Combination
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto ds_a = DataSliceImpl::Create(
+        arolla::CreateDenseArray<int>({std::nullopt, 1, 2, 3, 4}));
+    auto ds_b = DataSliceImpl::Create(
+        arolla::CreateDenseArray<int>({2, 3, 4, 5, std::nullopt}));
+    ASSERT_OK(db->CreateObjectsFromFields({"a", "b"}, {ds_a, ds_b}));
+    ObjectId obj_id = AllocateSingleObject();
+    ASSERT_OK(db->SetAttr(DataItem(obj_id), "a", DataItem(57)));
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_THAT(stats.attr_values_sizes,
+                UnorderedElementsAre(Pair("a", 5), Pair("b", 4)));
+    EXPECT_EQ(stats.entity_and_object_count, 6);
+  }
+  {
+    // Ignore internal attributes.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto ds_a = DataSliceImpl::Create(
+        arolla::CreateDenseArray<int>({std::nullopt, 1, 2, 3, 4}));
+    auto ds_b = DataSliceImpl::Create(
+        arolla::CreateDenseArray<int>({2, 3, 4, 5, std::nullopt}));
+    ASSERT_OK(db->CreateObjectsFromFields({"__a__", "__b__"}, {ds_a, ds_b}));
+    ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
+    EXPECT_THAT(stats.attr_values_sizes, IsEmpty());
+  }
 }
 
 // Note that this test is testing the implementation of GetApproxTotalSize that

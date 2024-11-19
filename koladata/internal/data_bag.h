@@ -103,6 +103,25 @@ struct DataBagContent {
   std::vector<DictContent> dicts;
 };
 
+// Statistics about the DataBag.
+struct DataBagStatistics {
+  absl::flat_hash_map<std::string, size_t> attr_values_sizes;
+  // Collects the sizes of non-empty lists and dicts. Because:
+  // 1. When dicts and lists are created without elements, they are not stored
+  //    in the DataBag.
+  // 2. The allocation size is usually larger than user requested size. Then the
+  //    trailing parts are empty.
+  // For avoiding confusion, we only show users the number of non-empty lists
+  // and dicts.
+  size_t total_non_empty_lists = 0;
+  size_t total_items_in_lists = 0;
+  size_t total_non_empty_dicts = 0;
+  size_t total_items_in_dicts = 0;
+  size_t total_explicit_schemas = 0;
+  size_t total_explicit_schema_attrs = 0;
+  size_t entity_and_object_count = 0;
+};
+
 // Returns merge options that would achieve the same result, but when
 // the DataBags are merged in the reverse order.
 MergeOptions ReverseMergeOptions(const MergeOptions& options);
@@ -193,6 +212,14 @@ class DataBagImpl : public arolla::RefcountedBase {
   absl::StatusOr<DataBagContent> ExtractContent() const {
     return ExtractContent(CreateIndex());
   }
+
+  // Returns statistics about the DataBag.
+  //
+  // The statistics are approximate of the following:
+  // - the sizes of each non empty list and dict.
+  // - The sizes of values of each attribute.
+  // - The upper bound of the number of entities/objects.
+  absl::StatusOr<DataBagStatistics> GetStatistics() const;
 
   // *******  Mutable interface
 

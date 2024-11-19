@@ -3019,6 +3019,104 @@ absl::StatusOr<DataBagContent::AttrContent> DataBagImpl::ExtractAttrContent(
   return content;
 }
 
+absl::StatusOr<DataBagStatistics> DataBagImpl::GetStatistics() const {
+  const DataBagIndex index = CreateIndex();
+
+  DataBagStatistics stats;
+
+  // Lists
+  for (AllocationId alloc : index.lists) {
+    DCHECK(alloc.IsListsAlloc());
+    if (const std::shared_ptr<DataListVector>* list_vector =
+            DataBagImpl::GetConstListsOrNull(alloc);
+        list_vector != nullptr) {
+      for (size_t list_id = 0; list_id < (*list_vector)->size(); ++list_id) {
+        // Only count non empty list to users for avoiding confusion because:
+        // 1. Emtpy lists created by `kd.list_like` are not stored in the
+        // data bag.
+        // 2. Allocation size is usually larger than user requested and the
+        // trailing parts are empty and invisible to users.
+        if (size_t list_size = (*list_vector)->Get(list_id).size();
+            list_size != 0) {
+          stats.total_items_in_lists += list_size;
+          ++stats.total_non_empty_lists;
+        }
+      }
+    }
+  }
+
+  stats.attr_values_sizes.reserve(index.attrs.size());
+  // Dicts and explicit schemas
+  for (AllocationId alloc : index.dicts) {
+    bool is_dict = alloc.IsDictsAlloc();
+    bool is_schema = alloc.IsSchemasAlloc();
+    DCHECK(is_dict || is_schema);
+    if (const std::shared_ptr<DictVector>* dict_vector =
+            DataBagImpl::GetConstDictsOrNull(alloc);
+        dict_vector != nullptr) {
+      for (size_t i = 0; i < (**dict_vector).size(); ++i) {
+        if (size_t dict_size = (**dict_vector)[i].GetSizeNoFallbacks()) {
+          if (is_dict) {
+            stats.total_items_in_dicts += dict_size;
+            ++stats.total_non_empty_dicts;
+          } else {
+            stats.total_explicit_schema_attrs += dict_size;
+            ++stats.total_explicit_schemas;
+          }
+        }
+      }
+    }
+  }
+
+  // Attrs
+  absl::flat_hash_set<internal::ObjectId> object_set;
+  absl::flat_hash_map<internal::AllocationId, size_t> allocation_sizes;
+  for (const auto& [attr_name, attr_index] : index.attrs) {
+    size_t value_count = 0;
+
+    if (attr_name.starts_with("__")) {
+      continue;
+    }
+    if (attr_index.with_small_allocs) {
+      ConstSparseSourceArray sources;
+      GetSmallAllocDataSources(attr_name, sources);
+      for (const SparseSource* source : sources) {
+        for (const auto& [obj, value] : source->GetAll()) {
+          object_set.insert(obj);
+          if (value.has_value()) {
+            ++value_count;
+          }
+        }
+      }
+    }
+    for (const auto& alloc : attr_index.allocations) {
+      ConstDenseSourceArray dense_sources;
+      ConstSparseSourceArray sparse_sources;
+      int64_t size = GetAttributeDataSources(alloc, attr_name, dense_sources,
+                                             sparse_sources);
+
+      allocation_sizes[alloc] = size;
+      auto objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
+      ASSIGN_OR_RETURN(
+          auto values,
+          GetAttributeFromSources(objects, dense_sources, sparse_sources));
+      value_count += values.present_count();
+    }
+
+    stats.attr_values_sizes[attr_name] += value_count;
+  }
+
+  for (ObjectId obj : object_set) {
+    stats.entity_and_object_count +=
+        allocation_sizes.contains(AllocationId(obj)) ? 0 : 1;
+  }
+  for (const auto& [alloc, size] : allocation_sizes) {
+    stats.entity_and_object_count += size;
+  }
+
+  return stats;
+}
+
 absl::StatusOr<DataBagContent> DataBagImpl::ExtractContent(
     const DataBagIndex& index) const {
   DataBagContent content;
