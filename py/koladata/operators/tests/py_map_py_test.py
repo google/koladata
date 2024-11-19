@@ -540,7 +540,7 @@ class PyMapPyTest(parameterized.TestCase):
     self.assertEqual(total, sum(range(size)) + size)
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.py.map_py(I.fn, I.arg)))
+    self.assertTrue(view.has_koda_view(kde.py.map_py(I.fn, I.arg)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.py.map_py, kde.map_py))

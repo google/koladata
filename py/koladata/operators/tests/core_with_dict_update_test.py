@@ -126,9 +126,7 @@ class CoreWithDictUpdateTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(
-            kde.core.with_dict_update(I.x, I.keys, I.attrs)
-        )
+        view.has_koda_view(kde.core.with_dict_update(I.x, I.keys, I.attrs))
     )
 
   def test_alias(self):

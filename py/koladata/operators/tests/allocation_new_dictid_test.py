@@ -64,7 +64,7 @@ class AllocationNewDictIdTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.allocation.new_dictid()))
+    self.assertTrue(view.has_koda_view(kde.allocation.new_dictid()))
 
   def test_alias(self):
     self.assertTrue(

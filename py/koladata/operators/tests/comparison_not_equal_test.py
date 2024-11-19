@@ -101,9 +101,7 @@ class ComparisonNotEqualTest(parameterized.TestCase):
     self.assertEqual(repr(kde.not_equal(I.x, I.y)), 'I.x != I.y')
 
   def test_view(self):
-    self.assertTrue(
-        view.has_data_slice_view(kde.comparison.not_equal(I.x, I.y))
-    )
+    self.assertTrue(view.has_koda_view(kde.comparison.not_equal(I.x, I.y)))
 
   def test_alias(self):
     self.assertTrue(

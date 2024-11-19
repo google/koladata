@@ -153,7 +153,7 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.take(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.take(I.x, I.y)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.take, kde.take))

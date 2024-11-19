@@ -428,7 +428,7 @@ class StringsRfindTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.strings.rfind(I.a, I.b)))
+    self.assertTrue(view.has_koda_view(kde.strings.rfind(I.a, I.b)))
 
 
 if __name__ == '__main__':

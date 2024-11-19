@@ -87,7 +87,7 @@ class SchemaToBytesTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema.to_bytes(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.to_bytes(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.schema.to_bytes, kde.to_bytes))

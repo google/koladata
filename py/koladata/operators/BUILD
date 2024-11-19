@@ -280,7 +280,6 @@ py_library(
     srcs = ["tuple.py"],
     deps = [
         ":optools",
-        "//py/koladata/expr:view",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
@@ -302,7 +301,6 @@ py_library(
         ":qtype_utils",
         ":schema",
         "//koladata/operators",
-        "//py/koladata/expr:view",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",

@@ -77,8 +77,8 @@ class CoreEncodeDecodeItemIdTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.encode_itemid(I.ds)))
-    self.assertTrue(view.has_data_slice_view(kde.core.decode_itemid(I.ds)))
+    self.assertTrue(view.has_koda_view(kde.core.encode_itemid(I.ds)))
+    self.assertTrue(view.has_koda_view(kde.core.decode_itemid(I.ds)))
 
   def test_alias(self):
     self.assertTrue(

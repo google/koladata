@@ -239,7 +239,7 @@ class StringsFormatTest(parameterized.TestCase):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds([1, 'foo'])))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.strings.format('{x}', x=I.x)))
+    self.assertTrue(view.has_koda_view(kde.strings.format('{x}', x=I.x)))
 
   def test_repr(self):
     self.assertEqual(

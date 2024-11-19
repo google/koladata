@@ -136,8 +136,8 @@ class KodaToArollaDenseArrayInt64Test(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(
-        view.has_basic_koda_view(arolla_bridge.to_arolla_dense_array_int64(I.x))
+    self.assertFalse(
+        view.has_koda_view(arolla_bridge.to_arolla_dense_array_int64(I.x))
     )
 
 

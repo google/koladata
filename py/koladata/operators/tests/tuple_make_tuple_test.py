@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.tuple.make_tuple."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -101,19 +99,22 @@ class TupleMakeTupleTest(parameterized.TestCase):
 
   def test_view(self):
     x_tuple = kde.tuple.make_tuple(I.x, I.y)
-    self.assertTrue(view.has_koda_tuple_view(x_tuple))
+    self.assertTrue(view.has_koda_view(x_tuple))
     self.assertLen(x_tuple.node_deps, 2)
 
+    # TODO: Add kd.get_nth with KodaView and use it to not have to
+    # annotate the inputs.
     # DataSlice view is only expected if we know the type of the inputs.
     x_tuple = kde.tuple.make_tuple(
         arolla.M.annotation.qtype(I.x, DATA_SLICE),
         arolla.M.annotation.qtype(I.y, DATA_SLICE),
     )
-    self.assertTrue(view.has_data_slice_view(x_tuple[0]))
-    self.assertTrue(view.has_data_slice_view(x_tuple[1]))
+    # TODO: Support __getitem__ for tuples.
+    # self.assertTrue(view.has_koda_view(x_tuple[0]))
+    # self.assertTrue(view.has_koda_view(x_tuple[1]))
     x, y = x_tuple
-    self.assertTrue(view.has_data_slice_view(x))
-    self.assertTrue(view.has_data_slice_view(y))
+    self.assertTrue(view.has_koda_view(x))
+    self.assertTrue(view.has_koda_view(y))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.tuple.make_tuple, kde.make_tuple))

@@ -94,9 +94,7 @@ class KodaToArollaFloat64Test(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(
-        view.has_basic_koda_view(arolla_bridge.to_arolla_float64(I.x))
-    )
+    self.assertFalse(view.has_koda_view(arolla_bridge.to_arolla_float64(I.x)))
 
 
 if __name__ == '__main__':

@@ -56,7 +56,7 @@ class ShapesGetShapeTest(parameterized.TestCase):
 
   def test_view(self):
     x = data_slice.DataSlice.from_vals([1])
-    self.assertTrue(view.has_basic_koda_view(kde.shapes.get_shape(x)))
+    self.assertTrue(view.has_koda_view(kde.shapes.get_shape(x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.shapes.get_shape, kde.get_shape))

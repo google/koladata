@@ -172,9 +172,7 @@ class RandomSampleTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(
-        view.has_data_slice_view(kde.random.sample(I.x, I.ratio, I.seed))
-    )
+    self.assertTrue(view.has_koda_view(kde.random.sample(I.x, I.ratio, I.seed)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.random.sample, kde.sample))

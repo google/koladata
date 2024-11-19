@@ -242,7 +242,7 @@ class StringsAggJoinTest(parameterized.TestCase):
       expr_eval.eval(kde.strings.agg_join(x, ndim=ndim))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.strings.agg_join(I.x)))
+    self.assertTrue(view.has_koda_view(kde.strings.agg_join(I.x)))
 
 
 if __name__ == '__main__':

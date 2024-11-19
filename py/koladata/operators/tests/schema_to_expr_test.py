@@ -90,7 +90,7 @@ class SchemaToExprTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema.to_expr(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.to_expr(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.schema.to_expr, kde.to_expr))

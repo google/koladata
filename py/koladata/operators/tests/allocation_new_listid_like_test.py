@@ -67,9 +67,7 @@ class AllocationNewListIdLikeTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(
-        view.has_data_slice_view(kde.allocation.new_listid_like(I.x))
-    )
+    self.assertTrue(view.has_koda_view(kde.allocation.new_listid_like(I.x)))
 
   def test_alias(self):
     self.assertTrue(

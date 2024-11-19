@@ -189,7 +189,7 @@ class MathRoundTest(parameterized.TestCase):
     self.assertEqual(repr(kde.math.round(I.x)), 'kde.math.round(I.x)')
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.math.round(I.x)))
+    self.assertTrue(view.has_koda_view(kde.math.round(I.x)))
 
 
 if __name__ == '__main__':

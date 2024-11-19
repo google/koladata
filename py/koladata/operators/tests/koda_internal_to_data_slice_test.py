@@ -111,7 +111,7 @@ class KodaToDataSliceTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(arolla_bridge.to_data_slice(I.x)))
+    self.assertTrue(view.has_koda_view(arolla_bridge.to_data_slice(I.x)))
 
 
 if __name__ == '__main__':

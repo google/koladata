@@ -71,7 +71,7 @@ class SchemaDictSchemaTest(parameterized.TestCase):
       _ = expr_eval.eval(kde.schema.dict_schema(ds(1), ds(2)))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema.dict_schema(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.schema.dict_schema(I.x, I.y)))
 
   def test_qtype_signature(self):
     self.assertCountEqual(

@@ -16,7 +16,6 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
-from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import optools
@@ -49,7 +48,7 @@ def _expect_slices_or_edges(value):
   )
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.shapes.create',
     qtype_constraints=[_expect_slices_or_edges(P.dimensions)],
@@ -89,7 +88,7 @@ def create_shape(*dimensions):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.shapes._create_with_size',
     qtype_constraints=[
@@ -130,7 +129,7 @@ def size(shape):
   return arolla_bridge.to_data_slice(M.jagged.size(shape))
 
 
-@optools.add_to_registry(aliases=['kde.get_shape'], view=view.BasicKodaView)
+@optools.add_to_registry(aliases=['kde.get_shape'])
 @optools.as_backend_operator(
     'kde.shapes.get_shape',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -196,7 +195,7 @@ def reshape_as(x, shape_from):
   return reshape(x, get_shape(shape_from))
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal._flatten_last_ndim',
     qtype_constraints=[
@@ -250,7 +249,7 @@ def _flatten_last_ndim(x, ndim):
   return arolla.optools.dispatch[flatten_shape, flatten_slice](x, ndim)
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal.flatten_last_ndim',
     qtype_constraints=[(
@@ -282,7 +281,7 @@ def flatten_last_ndim(x, ndim):
   return flatten_if_specified(x, ndim)
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal._remove_last_ndim',
     qtype_constraints=[
@@ -300,7 +299,7 @@ def _remove_last_ndim(x, ndim):
   return M.jagged.remove_dims(x, x_rank - ndim)
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal.remove_last_ndim',
     qtype_constraints=[

@@ -94,7 +94,7 @@ class SchemaToItemidTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema.to_itemid(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.to_itemid(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.schema.to_itemid, kde.to_itemid))

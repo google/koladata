@@ -32,7 +32,7 @@ P = input_container.InputContainer('P')
 @dataclasses.dataclass(frozen=True)
 class _RegisteredOp:
   op: arolla.types.Operator
-  view: type[arolla.abc.ExprView]
+  view: type[arolla.abc.ExprView] | None
   repr_fn: op_repr.OperatorReprFn
 
 
@@ -51,7 +51,7 @@ def add_to_registry(
     *,
     aliases: Collection[str] = (),
     unsafe_override: bool = False,
-    view: type[arolla.abc.ExprView] = view_lib.DataSliceView,
+    view: type[arolla.abc.ExprView] | None = view_lib.KodaView,
     repr_fn: op_repr.OperatorReprFn = op_repr.default_op_repr,
 ):
   """Wrapper around Arolla's add_to_registry with Koda functionality.
@@ -60,7 +60,8 @@ def add_to_registry(
     name: Optional name of the operator. Otherwise, inferred from the op.
     aliases: Optional aliases for the operator.
     unsafe_override: Whether to override an existing operator.
-    view: Optional view to use for the operator.
+    view: Optional view to use for the operator. If None, the default arolla
+      ExprView will be used.
     repr_fn: Optional repr function to use for the operator and its aliases.
 
   Returns:
@@ -127,7 +128,7 @@ def as_lambda_operator(
   """Wrapper around Arolla as_lambda_operator with additional Koda specifics.
 
   Koda specifics:
-    - Adds a DataSliceView to the inputs during tracing, allowing prefix / infix
+    - Adds a KodaView to the inputs during tracing, allowing prefix / infix
       notation.
 
   Args:

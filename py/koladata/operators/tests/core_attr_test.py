@@ -144,7 +144,7 @@ class CoreAttrTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_bag_view(kde.core.attr(I.x, I.a, I.y)))
+    self.assertTrue(view.has_koda_view(kde.core.attr(I.x, I.a, I.y)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.attr, kde.attr))

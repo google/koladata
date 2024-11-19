@@ -244,7 +244,7 @@ class CoreCloneTest(parameterized.TestCase):
     testing.assert_equal(res.d.no_bag(), ds(4))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.clone(I.x)))
+    self.assertTrue(view.has_koda_view(kde.clone(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.clone, kde.clone))

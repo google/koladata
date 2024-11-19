@@ -53,7 +53,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(kde.py.map_py_on_present(I.fn, I.cond, I.arg))
+        view.has_koda_view(kde.py.map_py_on_present(I.fn, I.cond, I.arg))
     )
 
   def test_alias(self):

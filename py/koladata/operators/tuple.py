@@ -16,7 +16,6 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
-from koladata.expr import view
 from koladata.operators import optools
 from koladata.types import schema_constants
 
@@ -26,7 +25,7 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry(aliases=['kde.make_tuple'], view=view.KodaTupleView)
+@optools.add_to_registry(aliases=['kde.make_tuple'])
 @optools.as_lambda_operator(
     'kde.tuple.make_tuple',
 )

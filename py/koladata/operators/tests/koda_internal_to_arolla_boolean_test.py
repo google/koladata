@@ -79,9 +79,7 @@ class KodaToArollaBooleanTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(
-        view.has_basic_koda_view(arolla_bridge.to_arolla_boolean(I.x))
-    )
+    self.assertFalse(view.has_koda_view(arolla_bridge.to_arolla_boolean(I.x)))
 
 
 if __name__ == '__main__':

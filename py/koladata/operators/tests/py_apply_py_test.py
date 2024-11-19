@@ -140,7 +140,7 @@ class PyApplyPyTest(parameterized.TestCase):
   # def test_qtype_signatures(self): ...
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.py.apply_py(I.fn, I.cond)))
+    self.assertTrue(view.has_koda_view(kde.py.apply_py(I.fn, I.cond)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.py.apply_py, kde.apply_py))

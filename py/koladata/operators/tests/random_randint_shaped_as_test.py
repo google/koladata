@@ -150,7 +150,7 @@ class RandomRandintShapedAsTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(
+        view.has_koda_view(
             kde.random.randint_shaped_as(I.x, I.low, I.high, I.seed)
         )
     )

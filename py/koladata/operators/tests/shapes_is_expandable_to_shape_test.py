@@ -106,7 +106,7 @@ class ShapesIsExpandableToShapeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(kde.shapes.is_expandable_to_shape(I.x, I.y))
+        view.has_koda_view(kde.shapes.is_expandable_to_shape(I.x, I.y))
     )
 
 

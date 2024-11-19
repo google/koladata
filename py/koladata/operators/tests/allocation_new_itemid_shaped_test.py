@@ -69,9 +69,7 @@ class AllocationNewItemIdShapedTest(parameterized.TestCase):
 
   def test_view(self):
     shape = jagged_shape.create_shape([2])
-    self.assertTrue(
-        view.has_data_slice_view(kde.allocation.new_itemid_shaped(shape))
-    )
+    self.assertTrue(view.has_koda_view(kde.allocation.new_itemid_shaped(shape)))
 
   def test_alias(self):
     self.assertTrue(

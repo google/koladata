@@ -135,7 +135,7 @@ class LogicalApplyMaskTest(parameterized.TestCase):
     self.assertEqual(repr(kde.apply_mask(I.x, I.y)), 'I.x & I.y')
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.logical.apply_mask(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.logical.apply_mask(I.x, I.y)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.logical.apply_mask, kde.apply_mask))

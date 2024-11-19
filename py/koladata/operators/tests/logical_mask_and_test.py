@@ -97,7 +97,7 @@ class LogicalMaskAndTest(parameterized.TestCase):
     self.assertTrue(optools.equiv_to_op(kde.logical.mask_and, kde.mask_and))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.logical.mask_and(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.logical.mask_and(I.x, I.y)))
 
 
 if __name__ == '__main__':

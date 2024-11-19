@@ -39,7 +39,7 @@ class InputContainerTest(parameterized.TestCase):
 
   def test_view(self):
     I = input_container.InputContainer('I')
-    self.assertTrue(view.has_data_slice_view(I.x))
+    self.assertTrue(view.has_koda_view(I.x))
 
   def test_repr(self):
     I = input_container.InputContainer('I')

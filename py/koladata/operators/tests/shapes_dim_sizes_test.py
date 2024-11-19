@@ -87,7 +87,7 @@ class ShapesDimSizesTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.shapes.dim_sizes(I.x, I.dim)))
+    self.assertTrue(view.has_koda_view(kde.shapes.dim_sizes(I.x, I.dim)))
 
 
 if __name__ == '__main__':

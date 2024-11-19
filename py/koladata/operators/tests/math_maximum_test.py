@@ -143,7 +143,7 @@ class MathMaximumTest(parameterized.TestCase):
     self.assertTrue(optools.equiv_to_op(kde.math.maximum, kde.maximum))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.math.maximum(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.math.maximum(I.x, I.y)))
 
 
 if __name__ == '__main__':

@@ -234,9 +234,7 @@ class StringsReplaceTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(
-        view.has_data_slice_view(kde.strings.replace(I.a, I.b, I.c))
-    )
+    self.assertTrue(view.has_koda_view(kde.strings.replace(I.a, I.b, I.c)))
 
 
 if __name__ == '__main__':

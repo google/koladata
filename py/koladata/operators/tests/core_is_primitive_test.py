@@ -62,7 +62,7 @@ class KodaIsPrimitiveTest(parameterized.TestCase):
     self.assertFalse(expr_eval.eval(kde.core.is_primitive(param)))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.is_primitive(I.x)))
+    self.assertTrue(view.has_koda_view(kde.core.is_primitive(I.x)))
 
   def test_alias(self):
     self.assertTrue(

@@ -91,7 +91,7 @@ class KolaInputTest(absltest.TestCase):
     self.assertEqual(repr(expr), "I['a.b']")
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(_KOLA_INPUT_OP('I', 'x')))
+    self.assertTrue(view.has_koda_view(_KOLA_INPUT_OP('I', 'x')))
 
 
 if __name__ == '__main__':

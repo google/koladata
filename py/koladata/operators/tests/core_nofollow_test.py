@@ -115,7 +115,7 @@ class CoreNofollowTest(parameterized.TestCase):
       expr_eval.eval(kde.follow(ds([1, 2, 3]).as_any()))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.nofollow(I.x)))
+    self.assertTrue(view.has_koda_view(kde.nofollow(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.nofollow, kde.nofollow))

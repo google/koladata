@@ -76,7 +76,7 @@ class LogicalHasTest(parameterized.TestCase):
     self.assertEqual(repr(kde.logical.has(I.x)), 'kde.logical.has(I.x)')
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.logical.has(I.x)))
+    self.assertTrue(view.has_koda_view(kde.logical.has(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.logical.has, kde.has))

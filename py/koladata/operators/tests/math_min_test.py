@@ -60,7 +60,7 @@ class MathMinTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.math.min(I.x)))
+    self.assertTrue(view.has_koda_view(kde.math.min(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.math.min, kde.min))

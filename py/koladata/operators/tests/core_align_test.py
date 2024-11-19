@@ -91,10 +91,10 @@ class CoreAlignTest(parameterized.TestCase):
     ix = arolla.M.annotation.qtype(I.x, DATA_SLICE)
     iy = arolla.M.annotation.qtype(I.x, DATA_SLICE)
     x_tuple = kde.core.align(ix, iy)
-    self.assertTrue(view.has_koda_tuple_view(x_tuple))
+    self.assertTrue(view.has_koda_view(x_tuple))
     x, y = x_tuple
-    self.assertTrue(view.has_data_slice_view(x))
-    self.assertTrue(view.has_data_slice_view(y))
+    self.assertTrue(view.has_koda_view(x))
+    self.assertTrue(view.has_koda_view(y))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.align, kde.align))

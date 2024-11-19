@@ -158,9 +158,7 @@ class ShapesCreateWithSizeTest(parameterized.TestCase):
       expr_eval.eval(kde.shapes._create_with_size(ds(0), ds(2), ds(-1), ds(0)))
 
   def test_view(self):
-    self.assertTrue(
-        view.has_basic_koda_view(kde.shapes._create_with_size(ds(1)))
-    )
+    self.assertTrue(view.has_koda_view(kde.shapes._create_with_size(ds(1))))
 
 
 if __name__ == '__main__':

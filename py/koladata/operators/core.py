@@ -16,7 +16,6 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
-from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import functor
@@ -75,7 +74,6 @@ def add(x, y):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(
     aliases=['kde.bag'],
-    view=view.DataBagView,
     repr_fn=op_repr.full_signature_repr,
 )
 @optools.as_backend_operator(
@@ -135,7 +133,7 @@ def is_dict(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.align'], view=view.KodaTupleView)
+@optools.add_to_registry(aliases=['kde.align'])
 @optools.as_backend_operator(
     'kde.core.align',
     qtype_constraints=[
@@ -786,9 +784,7 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
 
 
 @optools.add_to_registry(
-    aliases=['kde.attrs'],
-    view=view.DataBagView,
-    repr_fn=op_repr.full_signature_repr,
+    aliases=['kde.attrs'], repr_fn=op_repr.full_signature_repr
 )
 @optools.as_backend_operator(
     'kde.core.attrs',
@@ -809,9 +805,7 @@ def _attrs(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.attr'], view=view.DataBagView,
-)
+@optools.add_to_registry(aliases=['kde.attr'])
 @optools.as_backend_operator(
     'kde.core.attr',
     qtype_constraints=[
@@ -3133,7 +3127,7 @@ def follow(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.DataBagView)
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._freeze_bag',
     qtype_constraints=[qtype_utils.expect_data_bag(P.x)],
@@ -3177,7 +3171,7 @@ def freeze(x):  # pylint: disable=unused-argument
   )(x)
 
 
-@optools.add_to_registry(aliases=['kde.get_bag'], view=view.DataBagView)
+@optools.add_to_registry(aliases=['kde.get_bag'])
 @optools.as_backend_operator(
     'kde.core.get_bag',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
@@ -3298,7 +3292,7 @@ def updated(ds, *bag):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.enriched_bag'], view=view.DataBagView)
+@optools.add_to_registry(aliases=['kde.enriched_bag'])
 @optools.as_backend_operator(
     'kde.core.enriched_bag',
     qtype_constraints=[
@@ -3326,7 +3320,7 @@ def enriched_bag(*bags):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.updated_bag'], view=view.DataBagView)
+@optools.add_to_registry(aliases=['kde.updated_bag'])
 @optools.as_backend_operator(
     'kde.core.updated_bag',
     qtype_constraints=[
@@ -4166,7 +4160,7 @@ def _dict_update(x, keys, values):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.dict_update'], view=view.DataBagView)
+@optools.add_to_registry(aliases=['kde.dict_update'])
 @optools.as_lambda_operator(
     'kde.core.dict_update',
     qtype_constraints=[

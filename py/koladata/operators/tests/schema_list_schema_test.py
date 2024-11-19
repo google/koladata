@@ -64,7 +64,7 @@ class SchemaListSchemaTest(parameterized.TestCase):
       _ = expr_eval.eval(kde.schema.list_schema(ds(1)))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema.list_schema(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.list_schema(I.x)))
 
   def test_qtype_signature(self):
     self.assertCountEqual(

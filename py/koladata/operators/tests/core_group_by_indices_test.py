@@ -178,7 +178,7 @@ class CoreGroupByIndicesTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.group_by_indices(I.x)))
+    self.assertTrue(view.has_koda_view(kde.core.group_by_indices(I.x)))
 
   def test_alias(self):
     self.assertTrue(

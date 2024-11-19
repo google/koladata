@@ -44,9 +44,7 @@ class AnnotationWithNameTest(absltest.TestCase):
       kde.annotation.with_name(1, b'bar')
 
   def test_view(self):
-    self.assertTrue(
-        view.has_data_slice_view(kde.annotation.with_name(I.x, 'foo'))
-    )
+    self.assertTrue(view.has_koda_view(kde.annotation.with_name(I.x, 'foo')))
 
   def test_alias(self):
     self.assertTrue(

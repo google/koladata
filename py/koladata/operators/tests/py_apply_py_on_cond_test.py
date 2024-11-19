@@ -171,9 +171,7 @@ class PyApplyPyOnCondTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(
-            kde.py.apply_py_on_cond(I.yes_fn, I.no_fn, I.cond)
-        )
+        view.has_koda_view(kde.py.apply_py_on_cond(I.yes_fn, I.no_fn, I.cond))
     )
 
   def test_alias(self):

@@ -191,7 +191,7 @@ class CoreTranslateGroupTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(
+        view.has_koda_view(
             kde.core.translate_group(I.keys_to, I.keys_from, I.values_from)
         )
     )

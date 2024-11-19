@@ -94,9 +94,9 @@ class OptoolsTest(parameterized.TestCase):
     def op_view_in_lambda_operator(x, y=arolla.int32(1), *args):
       # Set these rather than assert to ensure that the lambda has been traced.
       nonlocal x_has_view, y_has_view, args_has_view
-      x_has_view = view.has_data_slice_view(x)
-      y_has_view = view.has_data_slice_view(y)
-      args_has_view = view.has_data_slice_view(*args)
+      x_has_view = view.has_koda_view(x)
+      y_has_view = view.has_koda_view(y)
+      args_has_view = view.has_koda_view(*args)
       return fake_add(x, y)
 
     self.assertTrue(x_has_view)
@@ -158,13 +158,13 @@ class OptoolsTest(parameterized.TestCase):
 
     with self.subTest('default_view'):
       op_1 = optools.add_to_registry()(op)
-      self.assertTrue(view.has_data_slice_view(op_1(1)))
+      self.assertTrue(view.has_koda_view(op_1(1)))
 
-    with self.subTest('explicit_view'):
+    with self.subTest('no_view'):
       op_2 = optools.add_to_registry(
-          'test_add_to_registry_with_view.op_2', view=view.BasicKodaView
+          'test_add_to_registry_with_view.op_2', view=None
       )(op)
-      self.assertTrue(view.has_basic_koda_view(op_2(1)))
+      self.assertFalse(view.has_koda_view(op_2(1)))
 
   def test_equiv_to_op(self):
     @arolla.optools.as_lambda_operator('test.test_equiv_to_op.foo')
@@ -209,15 +209,15 @@ class OptoolsTest(parameterized.TestCase):
       self.assertIsInstance(op_original, arolla.types.RegisteredOperator)
       self.assertEqual(op_original.display_name, 'test.op_original')
       testing.assert_equal(arolla.eval(op_original(42)), ds(42))
-      self.assertTrue(view.has_data_slice_view(op_original(1)))
+      self.assertTrue(view.has_koda_view(op_original(1)))
 
     with self.subTest('correct_aliases'):
       op_alias_1 = arolla.abc.lookup_operator('test.op_alias_1')
       op_alias_2 = arolla.abc.lookup_operator('test.op_alias_2')
       self.assertTrue(optools.equiv_to_op(op_alias_1, op_original))
       self.assertTrue(optools.equiv_to_op(op_alias_2, op_original))
-      self.assertTrue(view.has_data_slice_view(op_alias_1(1)))
-      self.assertTrue(view.has_data_slice_view(op_alias_2(1)))
+      self.assertTrue(view.has_koda_view(op_alias_1(1)))
+      self.assertTrue(view.has_koda_view(op_alias_2(1)))
 
   def test_add_to_registry_without_repr_fn(self):
 
@@ -245,26 +245,39 @@ class OptoolsTest(parameterized.TestCase):
     )
 
   def test_add_alias(self):
-    @optools.add_to_registry(
-        aliases=['test.op_5_alias_1'],
-        view=view.DataBagView,
-        repr_fn=repr_fn,
-    )
-    @optools.as_lambda_operator('test.op_5')
-    def op_original(x):
-      return x
+
+    @arolla.optools.as_lambda_operator('test.op_5')
+    def op(x):
+      del x
+      return arolla.int64(1)
+
+    op_original = optools.add_to_registry(
+        aliases=['test.op_5_alias_1'], repr_fn=repr_fn
+    )(op)
+    op_original_no_view = optools.add_to_registry(
+        'test.op_5_no_view', view=None, repr_fn=repr_fn
+    )(op)
 
     optools.add_alias('test.op_5', 'test.op_5_alias_2')
+    optools.add_alias('test.op_5_no_view', 'test.op_5_alias_no_view')
 
     with self.subTest('correct_aliases'):
       op_alias_1 = arolla.abc.lookup_operator('test.op_5_alias_1')
       op_alias_2 = arolla.abc.lookup_operator('test.op_5_alias_2')
+      op_alias_no_view = arolla.abc.lookup_operator('test.op_5_alias_no_view')
       self.assertTrue(optools.equiv_to_op(op_alias_1, op_original))
       self.assertTrue(optools.equiv_to_op(op_alias_2, op_original))
-      self.assertTrue(view.has_data_bag_view(op_alias_1(1)))
-      self.assertTrue(view.has_data_bag_view(op_alias_2(1)))
+      self.assertTrue(
+          optools.equiv_to_op(op_alias_no_view, op_original_no_view)
+      )
+      self.assertTrue(view.has_koda_view(op_alias_1(1)))
+      self.assertTrue(view.has_koda_view(op_alias_2(1)))
+      self.assertFalse(view.has_koda_view(op_alias_no_view(1)))
       self.assertEqual(repr(op_alias_1(42)), 'MY_CUSTOM_M.test.op_5_alias_1')
       self.assertEqual(repr(op_alias_2(42)), 'MY_CUSTOM_M.test.op_5_alias_2')
+      self.assertEqual(
+          repr(op_alias_no_view(42)), 'MY_CUSTOM_M.test.op_5_alias_no_view'
+      )
 
 if __name__ == '__main__':
   absltest.main()

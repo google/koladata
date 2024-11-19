@@ -107,7 +107,7 @@ class KodaInternalRemoveLastNdimTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_basic_koda_view(jagged_shape_ops.remove_last_ndim(I.x, I.ndim))
+        view.has_koda_view(jagged_shape_ops.remove_last_ndim(I.x, I.ndim))
     )
 
 

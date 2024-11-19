@@ -177,7 +177,7 @@ class MathSignTest(parameterized.TestCase):
     self.assertEqual(repr(kde.math.sign(I.x)), 'kde.math.sign(I.x)')
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.math.sign(I.x)))
+    self.assertTrue(view.has_koda_view(kde.math.sign(I.x)))
 
 
 if __name__ == '__main__':

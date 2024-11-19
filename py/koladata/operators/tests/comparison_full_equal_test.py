@@ -143,9 +143,7 @@ class ComparisonFullEqualTest(parameterized.TestCase):
       )
 
   def test_view(self):
-    self.assertTrue(
-        view.has_data_slice_view(kde.comparison.full_equal(I.x, I.y))
-    )
+    self.assertTrue(view.has_koda_view(kde.comparison.full_equal(I.x, I.y)))
 
   def test_alias(self):
     self.assertTrue(

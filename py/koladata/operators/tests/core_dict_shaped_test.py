@@ -280,10 +280,8 @@ Assigned schema for Dict key: STRING""",
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.dict_shaped(I.x)))
-    self.assertTrue(
-        view.has_data_slice_view(kde.core.dict_shaped(I.x, keys=I.y))
-    )
+    self.assertTrue(view.has_koda_view(kde.core.dict_shaped(I.x)))
+    self.assertTrue(view.has_koda_view(kde.core.dict_shaped(I.x, keys=I.y)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.dict_shaped, kde.dict_shaped))

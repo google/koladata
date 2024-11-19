@@ -58,7 +58,7 @@ class CoreWithBagTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.with_bag(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.core.with_bag(I.x, I.y)))
 
   def test_aliases(self):
     self.assertTrue(optools.equiv_to_op(kde.core.with_bag, kde.with_bag))

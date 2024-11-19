@@ -169,7 +169,7 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema.get_obj_schema(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.get_obj_schema(I.x)))
 
   def test_alias(self):
     self.assertTrue(

@@ -44,13 +44,11 @@ def op(*args):
   return args[0]
 
 
-class BasicKodaViewTest(parameterized.TestCase):
+class KodaViewTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    arolla.abc.set_expr_view_for_registered_operator(
-        'test.op', view.BasicKodaView
-    )
+    arolla.abc.set_expr_view_for_registered_operator('test.op', view.KodaView)
 
   def tearDown(self):
     # Clear the view.
@@ -58,10 +56,10 @@ class BasicKodaViewTest(parameterized.TestCase):
     super().tearDown()
 
   def test_expr_view_tag(self):
-    self.assertTrue(view.has_basic_koda_view(op()))
-    self.assertFalse(view.has_data_slice_view(op()))
-    self.assertFalse(view.has_data_bag_view(op()))
-    self.assertFalse(view.has_koda_tuple_view(op()))
+    self.assertTrue(view.has_koda_view(op()))
+    # Check that C.x has the KodaView, meaning we can use it for further
+    # tests instead of `op(...)`.
+    self.assertTrue(view.has_koda_view(C.x))
 
   def test_eval(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
@@ -82,167 +80,6 @@ class BasicKodaViewTest(parameterized.TestCase):
     expr = op(1, 2, 3).with_name('my_op')
     self.assertEqual(introspection.get_name(expr), 'my_op')
     testing.assert_equal(introspection.unwrap_named(expr), op(1, 2, 3))
-
-
-class DataBagViewTest(parameterized.TestCase):
-
-  def setUp(self):
-    super().setUp()
-    arolla.abc.set_expr_view_for_registered_operator(
-        'test.op', view.DataBagView
-    )
-
-  def tearDown(self):
-    # Clear the view.
-    arolla.abc.set_expr_view_for_registered_operator('test.op', None)
-    super().tearDown()
-
-  def test_expr_view_tag(self):
-    self.assertFalse(view.has_basic_koda_view(op()))
-    self.assertFalse(view.has_data_slice_view(op()))
-    self.assertTrue(view.has_data_bag_view(op()))
-    self.assertFalse(view.has_koda_tuple_view(op()))
-
-  def test_basic_koda_view_subclass(self):
-    # Allows both views to be registered simultaneously without issue.
-    self.assertTrue(issubclass(view.DataBagView, view.BasicKodaView))
-
-  def test_eval(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        op(I.x).eval(x=1),
-        arolla.tuple(data_slice.DataSlice.from_vals(1)),
-    )
-
-  def test_inputs(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-    self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
-
-  def test_get_item(self):
-    testing.assert_equal(op(C.x)[C.s], kde.get_item(op(C.x), C.s))
-
-  def test_freeze(self):
-    testing.assert_equal(op(C.x).freeze(), kde.core._freeze_bag(op(C.x)))
-
-  def test_lshift(self):
-    testing.assert_equal(
-        op(C.x) << op(C.y), kde.core.updated_bag(op(C.x), op(C.y))
-    )
-
-  def test_rshift(self):
-    testing.assert_equal(
-        op(C.x) >> op(C.y), kde.core.enriched_bag(op(C.x), op(C.y))
-    )
-
-  def test_repr(self):
-    # We avoid parametrization since the view is registered in setUp.
-    self.assertEqual(repr(op(op(C.x)[C.y])), 'M.test.op(M.test.op(C.x)[C.y])')
-
-  def test_data_bag_attrs_are_in_view(self):
-    # Asserts that all attrs / methods of DataBag are present in the
-    # DataBagView, or that they are explicitly skipped.
-    #
-    # attrs / methods should be skipped iff they cannot be added by design, not
-    # because of laziness.
-    skipped_data_bag_attrs = {
-        # go/keep-sorted start
-        'adopt',
-        'concat_lists',
-        'contents_repr',
-        'data_triples_repr',
-        'dict',
-        'dict_like',
-        'dict_schema',
-        'dict_shaped',
-        'empty',
-        'fingerprint',
-        'fork',
-        'get_approx_size',
-        'get_fallbacks',
-        'implode',
-        'is_mutable',
-        'list',
-        'list_like',
-        'list_schema',
-        'list_shaped',
-        'merge_fallbacks',
-        'merge_inplace',
-        'named_schema',
-        'new',
-        'new_like',
-        'new_schema',
-        'new_shaped',
-        'obj',
-        'obj_like',
-        'obj_shaped',
-        'qtype',
-        'schema_triples_repr',
-        'uu',
-        'uu_schema',
-        'uuobj',
-        # go/keep-sorted end
-    }
-    view_attrs = {m for m in dir(view.DataBagView) if not m.startswith('_')}
-    data_bag_attrs = {m for m in dir(data_bag.DataBag) if not m.startswith('_')}
-    # Only skip those attrs that are absolutely necessary.
-    self.assertEmpty(skipped_data_bag_attrs - data_bag_attrs)
-    self.assertEmpty(skipped_data_bag_attrs & view_attrs)
-    # Check that all required attrs are present.
-    missing_attrs = data_bag_attrs - view_attrs - skipped_data_bag_attrs
-    self.assertEmpty(missing_attrs)
-
-  def test_view_attrs_are_in_data_bag(self):
-    # Asserts that all attrs / methods of DataBagView are present in the
-    # DataBagView, or that they are explicitly skipped.
-    #
-    # attrs / methods should be skipped iff they cannot be added by design, not
-    # because of laziness.
-    skipped_view_attrs = {'eval', 'inputs'}
-    view_attrs = {m for m in dir(view.DataBagView) if not m.startswith('_')}
-    data_bag_attrs = {m for m in dir(data_bag.DataBag) if not m.startswith('_')}
-    # Only skip those attrs that are absolutely necessary.
-    self.assertEmpty(skipped_view_attrs - view_attrs)
-    self.assertEmpty(skipped_view_attrs & data_bag_attrs)
-    # Check that all required attrs are present.
-    missing_attrs = view_attrs - data_bag_attrs - skipped_view_attrs
-    self.assertEmpty(missing_attrs)
-
-  @parameterized.named_parameters(
-      *signature_test_utils.generate_method_function_signature_compatibility_cases(
-          view.DataBagView(), kde
-      )
-  )
-  def test_consistent_signatures(self, *args, **kwargs):
-    signature_test_utils.check_method_function_signature_compatibility(
-        self, *args, **kwargs
-    )
-
-
-class DataSliceViewTest(parameterized.TestCase):
-
-  def setUp(self):
-    super().setUp()
-    arolla.abc.set_expr_view_for_registered_operator(
-        'test.op', view.DataSliceView
-    )
-
-  def tearDown(self):
-    # Clear the view.
-    arolla.abc.set_expr_view_for_registered_operator('test.op', None)
-    super().tearDown()
-
-  def test_expr_view_tag(self):
-    self.assertFalse(view.has_basic_koda_view(op()))
-    self.assertTrue(view.has_data_slice_view(op()))
-    self.assertFalse(view.has_data_bag_view(op()))
-    self.assertFalse(view.has_koda_tuple_view(op()))
-    # Check that C.x has the DataSliceView, meaning we can use it for further
-    # tests instead of `op(...)`.
-    self.assertTrue(view.has_data_slice_view(C.x))
-
-  def test_basic_koda_view_subclass(self):
-    # Allows both views to be registered simultaneously without issue.
-    self.assertTrue(issubclass(view.DataSliceView, view.BasicKodaView))
 
   def test_get_attr(self):
     testing.assert_equal(C.x.val, kde.get_attr(C.x, 'val'))
@@ -648,13 +485,48 @@ class DataSliceViewTest(parameterized.TestCase):
         C.x.is_primitive_schema(), kde.schema.is_primitive_schema(C.x)
     )
 
-  def test_eval(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-    testing.assert_equal(I.x.eval(x=1), data_slice.DataSlice.from_vals(1))
+  def test_lshift(self):
+    testing.assert_equal(
+        op(C.x) << op(C.y), kde.core.updated_bag(op(C.x), op(C.y))
+    )
 
-  def test_inputs(self):
+  def test_rshift(self):
+    testing.assert_equal(
+        op(C.x) >> op(C.y), kde.core.enriched_bag(op(C.x), op(C.y))
+    )
+
+  # TODO: Add kd.get_nth with KodaView and use it to not have to
+  # annotate the inputs.
+  def test_unpacking(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-    self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
+    expr = op(
+        arolla.M.annotation.qtype(I.x, qtypes.DATA_SLICE),
+        arolla.M.annotation.qtype(I.y, qtypes.DATA_SLICE),
+    )
+
+    x, y = expr
+    self.assertTrue(view.has_koda_view(x))
+    self.assertTrue(view.has_koda_view(y))
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        x,
+        arolla.M.core.get_nth(expr, arolla.int64(0)),
+    )
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        y, arolla.M.core.get_nth(expr, arolla.int64(1))
+    )
+
+    # TODO: Support __getitem__ for tuples.
+    # arolla.testing.assert_expr_equal_by_fingerprint(x, expr[0])
+    # arolla.testing.assert_expr_equal_by_fingerprint(y, expr[1])
+
+    x_val = data_slice.DataSlice.from_vals(1)
+    y_val = data_slice.DataSlice.from_vals(2)
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        x.eval(x=x_val, y=y_val), x_val
+    )
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        y.eval(x=x_val, y=y_val), y_val
+    )
 
   @parameterized.parameters(
       # Slicing helper.
@@ -742,7 +614,7 @@ class DataSliceViewTest(parameterized.TestCase):
 
   def test_data_slice_attrs_are_in_view(self):
     # Asserts that all attrs / methods of DataSlice are present in the
-    # DataSliceView, or that they are explicitly skipped.
+    # KodaView, or that they are explicitly skipped.
     #
     # attrs / methods should be skipped iff they cannot be added by design, not
     # because of laziness.
@@ -768,7 +640,7 @@ class DataSliceViewTest(parameterized.TestCase):
         'to_pytree',
         # go/keep-sorted end
     }
-    view_attrs = {m for m in dir(view.DataSliceView) if not m.startswith('_')}
+    view_attrs = {m for m in dir(view.KodaView) if not m.startswith('_')}
     data_slice_attrs = {
         m for m in dir(data_slice.DataSlice) if not m.startswith('_')
     }
@@ -779,97 +651,85 @@ class DataSliceViewTest(parameterized.TestCase):
     missing_attrs = data_slice_attrs - view_attrs - skipped_data_slice_attrs
     self.assertEmpty(missing_attrs)
 
-  def test_view_attrs_are_in_data_slice(self):
-    # Asserts that all attrs / methods of DataSliceView are present in the
-    # DataSlice, or that they are explicitly skipped.
+  def test_data_bag_attrs_are_in_view(self):
+    # Asserts that all attrs / methods of DataBag are present in the
+    # KodaView, or that they are explicitly skipped.
+    #
+    # attrs / methods should be skipped iff they cannot be added by design, not
+    # because of laziness.
+    skipped_data_bag_attrs = {
+        # go/keep-sorted start
+        'adopt',
+        'concat_lists',
+        'contents_repr',
+        'data_triples_repr',
+        'dict',
+        'dict_like',
+        'dict_schema',
+        'dict_shaped',
+        'empty',
+        'fingerprint',
+        'fork',
+        'get_approx_size',
+        'get_fallbacks',
+        'implode',
+        'is_mutable',
+        'list',
+        'list_like',
+        'list_schema',
+        'list_shaped',
+        'merge_fallbacks',
+        'merge_inplace',
+        'named_schema',
+        'new',
+        'new_like',
+        'new_schema',
+        'new_shaped',
+        'obj',
+        'obj_like',
+        'obj_shaped',
+        'qtype',
+        'schema_triples_repr',
+        'uu',
+        'uu_schema',
+        'uuobj',
+        # go/keep-sorted end
+    }
+    view_attrs = {m for m in dir(view.KodaView) if not m.startswith('_')}
+    data_bag_attrs = {m for m in dir(data_bag.DataBag) if not m.startswith('_')}
+    # Only skip those attrs that are absolutely necessary.
+    self.assertEmpty(skipped_data_bag_attrs - data_bag_attrs)
+    self.assertEmpty(skipped_data_bag_attrs & view_attrs)
+    # Check that all required attrs are present.
+    missing_attrs = data_bag_attrs - view_attrs - skipped_data_bag_attrs
+    self.assertEmpty(missing_attrs)
+
+  def test_view_attrs_are_in_data_slice_or_data_bag(self):
+    # Asserts that all attrs / methods of KodaView are present in DataSlice or
+    # DataBag, or that they are explicitly skipped.
     #
     # attrs / methods should be skipped iff they cannot be added by design, not
     # because of laziness.
     skipped_view_attrs = {'eval', 'inputs'}
-    view_attrs = {m for m in dir(view.DataSliceView) if not m.startswith('_')}
-    data_slice_attrs = {
+    view_attrs = {m for m in dir(view.KodaView) if not m.startswith('_')}
+    data_slice_or_bag_attrs = {
         m for m in dir(data_slice.DataSlice) if not m.startswith('_')
-    }
+    } | {m for m in dir(data_bag.DataBag) if not m.startswith('_')}
     # Only skip those attrs that are absolutely necessary.
     self.assertEmpty(skipped_view_attrs - view_attrs)
-    self.assertEmpty(skipped_view_attrs & data_slice_attrs)
+    self.assertEmpty(skipped_view_attrs & data_slice_or_bag_attrs)
     # Check that all required attrs are present.
-    missing_attrs = view_attrs - data_slice_attrs - skipped_view_attrs
+    missing_attrs = view_attrs - data_slice_or_bag_attrs - skipped_view_attrs
     self.assertEmpty(missing_attrs)
 
   @parameterized.named_parameters(
       *signature_test_utils.generate_method_function_signature_compatibility_cases(
-          view.DataSliceView(), kde
+          view.KodaView(), kde
       )
   )
   def test_consistent_signatures(self, *args, **kwargs):
     signature_test_utils.check_method_function_signature_compatibility(
         self, *args, **kwargs
-    )
-
-
-class KodaTupleViewTest(parameterized.TestCase):
-
-  def setUp(self):
-    super().setUp()
-    arolla.abc.set_expr_view_for_registered_operator(
-        'test.op', view.KodaTupleView
-    )
-
-  def tearDown(self):
-    # Clear the view.
-    arolla.abc.set_expr_view_for_registered_operator('test.op', None)
-    super().tearDown()
-
-  def test_expr_view_tag(self):
-    self.assertFalse(view.has_basic_koda_view(op()))
-    self.assertFalse(view.has_data_slice_view(op()))
-    self.assertFalse(view.has_data_bag_view(op()))
-    self.assertTrue(view.has_koda_tuple_view(op()))
-
-  def test_basic_koda_view_subclass(self):
-    # Allows both views to be registered simultaneously without issue.
-    self.assertTrue(issubclass(view.KodaTupleView, view.BasicKodaView))
-
-  def test_eval(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        op(I.x).eval(x=1),
-        arolla.tuple(data_slice.DataSlice.from_vals(1)),
-    )
-
-  def test_inputs(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-    self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
-
-  def test_unpacking(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-    expr = op(
-        arolla.M.annotation.qtype(I.x, qtypes.DATA_SLICE),
-        arolla.M.annotation.qtype(I.y, qtypes.DATA_SLICE),
-    )
-
-    x, y = expr
-    self.assertTrue(view.has_data_slice_view(x))
-    self.assertTrue(view.has_data_slice_view(y))
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        x,
-        arolla.M.core.get_nth(expr, arolla.int64(0)),
-    )
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        y, arolla.M.core.get_nth(expr, arolla.int64(1))
-    )
-
-    arolla.testing.assert_expr_equal_by_fingerprint(x, expr[0])
-    arolla.testing.assert_expr_equal_by_fingerprint(y, expr[1])
-
-    x_val = data_slice.DataSlice.from_vals(1)
-    y_val = data_slice.DataSlice.from_vals(2)
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        x.eval(x=x_val, y=y_val), x_val
-    )
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        y.eval(x=x_val, y=y_val), y_val
     )
 
 

@@ -338,7 +338,7 @@ Assigned schema for List item: INT32""",
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.list_like(I.x)))
+    self.assertTrue(view.has_koda_view(kde.core.list_like(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.list_like, kde.core.list_like))

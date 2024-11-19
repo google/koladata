@@ -31,10 +31,44 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 
 
-class BasicKodaView(arolla.abc.ExprView):
-  """Basic ExprView applicable to all Koda types."""
+class SlicingHelper:
+  """Slicing helper for KodaView.
 
-  _basic_koda_view_tag = True
+  It is a syntactic sugar for kde.subslice. That is, kde.subslice(ds, *slices)
+  is equivalent to ds.S[*slices].
+  """
+
+  def __init__(self, ds: 'KodaView'):
+    self._ds = ds
+
+  def __getitem__(self, s):
+    slices = s if isinstance(s, tuple) else [s]
+    return arolla.abc.aux_bind_op(
+        'kde.core._subslice_for_slicing_helper', self._ds, *slices
+    )
+
+
+class ListSlicingHelper:
+  """ListSlicing helper for KodaView.
+
+  x.L on KodaView returns a ListSlicingHelper, which treats the first dimension
+  of KodaView x as a a list.
+  """
+
+  def __init__(self, ds: 'KodaView'):
+    self._ds = ds
+
+  def __getitem__(self, s):
+    return arolla.abc.aux_bind_op('kde.core.subslice', self._ds, s, ...)
+
+
+class KodaView(arolla.abc.ExprView):
+  """ExprView applicable to all Koda types.
+
+  See go/koda-expr-view for details.
+  """
+
+  _koda_view_tag = True
 
   def eval(
       self,
@@ -50,61 +84,17 @@ class BasicKodaView(arolla.abc.ExprView):
   def with_name(self, name: str | arolla.types.Text) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.with_name', self, name)
 
-
-class DataBagView(BasicKodaView):
-  """ExprView for DataBags."""
-
-  _data_bag_view_tag = True
-
   def __getitem__(self, x: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_item', self, x)
 
   def freeze(self) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.core._freeze_bag', self)
+    return arolla.abc.aux_bind_op('kde.freeze', self)
 
   def __lshift__(self, other) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.core.updated_bag', self, other)
 
   def __rshift__(self, other) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.core.enriched_bag', self, other)
-
-
-class SlicingHelper:
-  """Slicing helper for DataSliceView.
-
-  It is a syntactic sugar for kde.subslice. That is, kde.subslice(ds, *slices)
-  is equivalent to ds.S[*slices].
-  """
-
-  def __init__(self, ds: 'DataSliceView'):
-    self._ds = ds
-
-  def __getitem__(self, s):
-    slices = s if isinstance(s, tuple) else [s]
-    return arolla.abc.aux_bind_op(
-        'kde.core._subslice_for_slicing_helper', self._ds, *slices
-    )
-
-
-class ListSlicingHelper:
-  """ListSlicing helper for DataSliceViews.
-
-  x.L on DataSliceView returns a ListSlicingHelper, which treats the first
-  dimension
-  of DataSliceView x as a a list.
-  """
-
-  def __init__(self, ds: 'DataSliceView'):
-    self._ds = ds
-
-  def __getitem__(self, s):
-    return arolla.abc.aux_bind_op('kde.core.subslice', self._ds, s, ...)
-
-
-class DataSliceView(BasicKodaView):
-  """ExprView for DataSlices."""
-
-  _data_slice_view_tag = True
 
   def __getattr__(self, attr_name: str) -> arolla.Expr:
     if (
@@ -114,9 +104,6 @@ class DataSliceView(BasicKodaView):
     ):
       raise AttributeError(attr_name)
     return arolla.abc.aux_bind_op('kde.get_attr', self, attr_name)
-
-  def __getitem__(self, s):
-    return arolla.abc.aux_bind_op('kde.get_item', self, s)
 
   def __format__(self, format_spec: str, /):
     return fstring.fstr_expr_placeholder(self, format_spec)
@@ -285,9 +272,6 @@ class DataSliceView(BasicKodaView):
 
   def follow(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.follow', self)
-
-  def freeze(self) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.freeze', self)
 
   def ref(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.ref', self)
@@ -486,52 +470,28 @@ class DataSliceView(BasicKodaView):
   def is_primitive_schema(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.schema.is_primitive_schema', self)
 
-
-class KodaTupleView(BasicKodaView):
-  """ExprView for tuples of Koda values, for operators returning tuples."""
-
-  _koda_tuple_view_tag = True
-
-  def __getitem__(self, index: int) -> arolla.Expr:
-    return self._arolla_sequence_getitem_(index)
-
+  # TODO: Support __getitem__ for tuples.
   # Support sequence contract, for tuple unpacking.
   def _arolla_sequence_getitem_(self, index: int) -> arolla.Expr:
     if index < 0 or index >= len(self.node_deps):
       raise IndexError('tuple index out of range')
+    # TODO: Add kd.get_nth with KodaView and use it to attach a
+    # view to the result.
     return arolla.M.core.get_nth(self, arolla.int64(index))
 
 
-def has_basic_koda_view(node: arolla.Expr) -> bool:
-  """Returns true iff the node has a basic koda view (only)."""
-  return (
-      hasattr(node, '_basic_koda_view_tag')
-      and not hasattr(node, '_data_bag_view_tag')
-      and not hasattr(node, '_data_slice_view_tag')
-      and not hasattr(node, '_koda_tuple_view_tag')
-  )
+def has_koda_view(node: arolla.Expr) -> bool:
+  """Returns true iff the node has a koda view (only)."""
+  return hasattr(node, '_koda_view_tag')
 
 
-def has_data_bag_view(node: arolla.Expr) -> bool:
-  """Returns true iff the node has a data bag view (only)."""
-  return hasattr(node, '_data_bag_view_tag')
-
-
-def has_data_slice_view(node: arolla.Expr) -> bool:
-  """Returns true iff the node has a data slice view (only)."""
-  return hasattr(node, '_data_slice_view_tag')
-
-
-def has_koda_tuple_view(node: arolla.Expr) -> bool:
-  """Returns true iff the node has a tuple view (only)."""
-  return hasattr(node, '_koda_tuple_view_tag')
-
-
-arolla.abc.set_expr_view_for_qtype(qtypes.DATA_SLICE, DataSliceView)
-arolla.abc.set_expr_view_for_qtype(qtypes.DATA_BAG, DataBagView)
+arolla.abc.set_expr_view_for_qtype(qtypes.DATA_SLICE, KodaView)
+arolla.abc.set_expr_view_for_qtype(qtypes.DATA_BAG, KodaView)
 arolla.abc.set_expr_view_for_registered_operator(
-    'koda_internal.input', DataSliceView
+    'koda_internal.input', KodaView
 )
+# NOTE: This attaches a KodaView to all literals, including e.g. Arolla values.
+# This is not ideal, but we want e.g. the `eval` method to be attached.
 arolla.abc.set_expr_view_for_operator_family(
-    '::koladata::expr::LiteralOperator', BasicKodaView
+    '::koladata::expr::LiteralOperator', KodaView
 )

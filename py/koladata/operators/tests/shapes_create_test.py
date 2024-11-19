@@ -99,7 +99,7 @@ class ShapesCreateTest(parameterized.TestCase):
       expr_eval.eval(kde.shapes.create(ds(2), ds([1])))
 
   def test_view(self):
-    self.assertTrue(view.has_basic_koda_view(kde.shapes.create()))
+    self.assertTrue(view.has_koda_view(kde.shapes.create()))
 
 
 if __name__ == '__main__':

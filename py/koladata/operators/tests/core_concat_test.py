@@ -242,7 +242,7 @@ class CoreConcatImplTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.concat(I.x, I.y, I.z)))
+    self.assertTrue(view.has_koda_view(kde.core.concat(I.x, I.y, I.z)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.concat, kde.concat))

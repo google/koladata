@@ -57,7 +57,7 @@ class CoreBagTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_bag_view(kde.core.bag()))
+    self.assertTrue(view.has_koda_view(kde.core.bag()))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.bag, kde.bag))

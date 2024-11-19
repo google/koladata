@@ -111,7 +111,7 @@ class KodaNewSchemaTest(parameterized.TestCase):
       )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.schema.new_schema()))
+    self.assertTrue(view.has_koda_view(kde.schema.new_schema()))
 
   def test_repr(self):
     # This has a hidden seed which is stripped...

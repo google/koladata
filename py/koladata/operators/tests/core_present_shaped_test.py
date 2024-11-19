@@ -64,7 +64,7 @@ class CorePresentShapedTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.present_shaped(I.shape)))
+    self.assertTrue(view.has_koda_view(kde.core.present_shaped(I.shape)))
 
 
 if __name__ == '__main__':

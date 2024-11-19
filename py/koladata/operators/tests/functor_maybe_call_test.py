@@ -92,7 +92,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(kde.functor._maybe_call(I.maybe_fn, I.arg))
+        view.has_koda_view(kde.functor._maybe_call(I.maybe_fn, I.arg))
     )
 
 if __name__ == '__main__':

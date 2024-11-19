@@ -142,7 +142,7 @@ class CoreAddDimTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.add_dim(I.x, I.sizes)))
+    self.assertTrue(view.has_koda_view(kde.core.add_dim(I.x, I.sizes)))
 
   @parameterized.parameters(kde.repeat, kde.core.repeat, kde.add_dim)
   def test_alias(self, alias):

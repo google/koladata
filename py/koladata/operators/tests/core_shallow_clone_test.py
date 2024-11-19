@@ -211,7 +211,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
       expr_eval.eval(kde.shallow_clone(o))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.shallow_clone(I.x)))
+    self.assertTrue(view.has_koda_view(kde.shallow_clone(I.x)))
 
   def test_alias(self):
     self.assertTrue(

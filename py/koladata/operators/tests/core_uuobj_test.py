@@ -174,7 +174,7 @@ class KodaUuObjTest(parameterized.TestCase):
       )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.uuobj(seed=I.seed)))
+    self.assertTrue(view.has_koda_view(kde.core.uuobj(seed=I.seed)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.uuobj, kde.uuobj))

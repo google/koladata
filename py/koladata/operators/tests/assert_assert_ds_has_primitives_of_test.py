@@ -124,7 +124,7 @@ class AssertionAssertDtypeIsTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(
+        view.has_koda_view(
             kde.assertion.assert_ds_has_primitives_of(I.ds, I.dtype, I.message)
         )
     )

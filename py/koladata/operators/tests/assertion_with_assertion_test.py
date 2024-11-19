@@ -108,7 +108,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(
+        view.has_koda_view(
             kde.assertion.with_assertion(I.ds, I.dtype, I.message)
         )
     )

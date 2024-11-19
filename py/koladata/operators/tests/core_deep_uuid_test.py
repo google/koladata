@@ -103,7 +103,7 @@ class CoreDeepUuidTest(parameterized.TestCase):
     _ = expr_eval.eval(kde.core.deep_uuid(x, schema=s, seed='seed'))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.deep_uuid(I.x)))
+    self.assertTrue(view.has_koda_view(kde.deep_uuid(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.deep_uuid, kde.deep_uuid))

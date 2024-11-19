@@ -170,7 +170,7 @@ class ShapesReshapeTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.shapes.reshape(I.x, I.shape)))
+    self.assertTrue(view.has_koda_view(kde.shapes.reshape(I.x, I.shape)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.shapes.reshape, kde.reshape))
@@ -188,7 +188,7 @@ class ShapesReshapeAsTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.shapes.reshape_as(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.shapes.reshape_as(I.x, I.y)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.shapes.reshape_as, kde.reshape_as))

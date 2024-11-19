@@ -146,7 +146,7 @@ class CoreAddDimToPresentTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(kde.core.add_dim_to_present(I.x, I.sizes))
+        view.has_koda_view(kde.core.add_dim_to_present(I.x, I.sizes))
     )
 
   def test_alias(self):

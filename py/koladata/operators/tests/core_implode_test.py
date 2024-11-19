@@ -153,7 +153,7 @@ class ListLikeTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.implode(I.x)))
+    self.assertTrue(view.has_koda_view(kde.core.implode(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.implode, kde.core.implode))

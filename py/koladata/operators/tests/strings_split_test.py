@@ -211,7 +211,7 @@ class StringsSplitTest(parameterized.TestCase):
       expr_eval.eval(kde.strings.split(ds(['foo', 'bar']), sep=ds(['', ''])))
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.strings.split(I.x)))
+    self.assertTrue(view.has_koda_view(kde.strings.split(I.x)))
 
 
 if __name__ == '__main__':

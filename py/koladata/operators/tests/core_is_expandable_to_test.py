@@ -100,9 +100,7 @@ class CoreIsExpandableToTest(parameterized.TestCase):
       expr_eval.eval(kde.is_expandable_to(ds(1), ds(0), 1))
 
   def test_view(self):
-    self.assertTrue(
-        view.has_data_slice_view(kde.core.is_expandable_to(I.x, I.y))
-    )
+    self.assertTrue(view.has_koda_view(kde.core.is_expandable_to(I.x, I.y)))
 
   def test_alias(self):
     self.assertTrue(

@@ -228,7 +228,7 @@ class FunctorCallTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.call(I.fn)))
+    self.assertTrue(view.has_koda_view(kde.call(I.fn)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.functor.call, kde.call))

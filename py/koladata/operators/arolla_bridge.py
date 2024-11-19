@@ -15,7 +15,6 @@
 """Operator(s) for evaluating normal Arolla expressions on DataSlice(s)."""
 
 from arolla import arolla
-from koladata.expr import view
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import qtypes
@@ -40,7 +39,7 @@ def _reshape(x, shape):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_int64',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -62,7 +61,7 @@ def to_arolla_int64(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_float64',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -84,7 +83,7 @@ def to_arolla_float64(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_boolean',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -106,7 +105,7 @@ def to_arolla_boolean(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_optional_unit',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -128,7 +127,7 @@ def to_arolla_optional_unit(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_dense_array_int64',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -151,7 +150,7 @@ def to_arolla_dense_array_int64(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_dense_array_unit',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -174,7 +173,7 @@ def to_arolla_dense_array_unit(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.BasicKodaView)
+@optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_dense_array_text',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],

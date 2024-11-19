@@ -136,7 +136,7 @@ class ComparisonGreaterTest(parameterized.TestCase):
     self.assertEqual(repr(kde.greater(I.x, I.y)), 'I.x > I.y')
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.comparison.greater(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.comparison.greater(I.x, I.y)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.comparison.greater, kde.greater))

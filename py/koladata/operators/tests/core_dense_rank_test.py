@@ -248,7 +248,7 @@ class CoreOrdinalRankTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.core.dense_rank(I.x)))
+    self.assertTrue(view.has_koda_view(kde.core.dense_rank(I.x)))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.dense_rank, kde.dense_rank))

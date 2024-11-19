@@ -184,7 +184,7 @@ class CoreDictUpdateTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_bag_view(kde.core.dict_update(I.x, I.keys, I.values))
+        view.has_koda_view(kde.core.dict_update(I.x, I.keys, I.values))
     )
 
   def test_alias(self):

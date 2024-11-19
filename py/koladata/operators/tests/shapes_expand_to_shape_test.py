@@ -158,7 +158,7 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_data_slice_view(kde.shapes.expand_to_shape(I.x, I.shape))
+        view.has_koda_view(kde.shapes.expand_to_shape(I.x, I.shape))
     )
 
   def test_alias(self):

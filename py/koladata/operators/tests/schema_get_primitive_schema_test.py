@@ -92,9 +92,7 @@ class SchemaGetPrimitiveSchemaTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(
-        view.has_data_slice_view(kde.schema.get_primitive_schema(I.ds))
-    )
+    self.assertTrue(view.has_koda_view(kde.schema.get_primitive_schema(I.ds)))
 
   def test_alias(self):
     self.assertTrue(

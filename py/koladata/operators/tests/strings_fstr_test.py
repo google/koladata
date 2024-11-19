@@ -201,7 +201,7 @@ class StringsFstrTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_data_slice_view(kde.strings.fstr(f'{I.x:s}')))
+    self.assertTrue(view.has_koda_view(kde.strings.fstr(f'{I.x:s}')))
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.strings.fstr, kde.fstr))
