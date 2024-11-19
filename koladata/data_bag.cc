@@ -175,7 +175,7 @@ void FlattenFallbackFinder::CollectFlattenFallbacks(
 
   auto add_fallback = [&](const DataBag* fallback) {
     if (seen_db.insert(fallback).second) {
-      fallback_holder_.push_back(&fallback->GetImpl());
+      flattened_fallbacks_.push_back(&fallback->GetImpl());
       return true;
     }
     return false;
@@ -198,7 +198,6 @@ void FlattenFallbackFinder::CollectFlattenFallbacks(
       }
     }
   }
-  fallback_span_ = absl::MakeConstSpan(fallback_holder_);
 }
 
 std::string GetBagIdRepr(const DataBagPtr& db) {

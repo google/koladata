@@ -14,7 +14,10 @@
 //
 #include "koladata/data_bag.h"
 
+#include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -33,6 +36,7 @@ using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
+using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
 using ::testing::MatchesRegex;
 
@@ -145,6 +149,54 @@ TEST(DataBagTest, CollectFlattenFallbacks) {
     }
     FlattenFallbackFinder fbf(*db);
     EXPECT_EQ(fbf.GetFlattenFallbacks().size(), kSteps * 2);
+  }
+}
+
+// Regression test for separate span storage in FlattenFallbackFinder.
+TEST(DataBagTest, FlattenFallbackFinderCopiableAndMovable) {
+  for (int size = 1; size < 10; ++size) {
+    std::vector<DataBagPtr> dbs;
+    std::vector<const internal::DataBagImpl*> db_impls;
+    for (int i = 0; i < size; ++i) {
+      dbs.push_back(DataBag::Empty());
+      db_impls.push_back(&dbs.back()->GetImpl());
+    }
+    auto new_db = DataBag::ImmutableEmptyWithFallbacks(dbs);
+    auto fake_db = DataBag::ImmutableEmptyWithFallbacks(
+        {DataBag::Empty(), DataBag::Empty()});
+
+    auto test_fallbacks = [&](const FlattenFallbackFinder& f) {
+      EXPECT_THAT(f.GetFlattenFallbacks(), ElementsAreArray(db_impls));
+    };
+
+    {
+      SCOPED_TRACE("copy constructor/assignment");
+      std::optional<FlattenFallbackFinder> prototype(*new_db);
+      std::optional<FlattenFallbackFinder> f;
+      f.emplace(*prototype);
+      prototype.emplace(
+          FlattenFallbackFinder(*fake_db));  // make sure nothing point to it.
+      test_fallbacks(*f);
+      FlattenFallbackFinder f2(*fake_db);
+      f2 = *f;
+      f.emplace(
+          FlattenFallbackFinder(*fake_db));  // make sure nothing point to it.
+      test_fallbacks(f2);
+    }
+    {
+      SCOPED_TRACE("move constructor/assignment");
+      std::optional<FlattenFallbackFinder> prototype(*new_db);
+      std::optional<FlattenFallbackFinder> f;
+      f.emplace(std::move(*prototype));
+      prototype.emplace(
+          FlattenFallbackFinder(*fake_db));  // make sure nothing point to it.
+      test_fallbacks(*f);
+      FlattenFallbackFinder f2(*fake_db);
+      f2 = std::move(*f);
+      f.emplace(
+          FlattenFallbackFinder(*fake_db));  // make sure nothing point to it.
+      test_fallbacks(f2);
+    }
   }
 }
 

@@ -164,8 +164,9 @@ class FlattenFallbackFinder {
 
   // Returns DatBagImpl fallbacks in the decreasing priority order.
   // All duplicates are removed.
+  // The returned span is valid as long as the FlattenFallbackFinder is alive.
   internal::DataBagImpl::FallbackSpan GetFlattenFallbacks() const {
-    return fallback_span_;
+    return flattened_fallbacks_;
   }
 
  private:
@@ -173,8 +174,7 @@ class FlattenFallbackFinder {
   void CollectFlattenFallbacks(const DataBag& bag,
                                const std::vector<DataBagPtr>& fallbacks);
 
-  absl::InlinedVector<const internal::DataBagImpl*, 2> fallback_holder_;
-  internal::DataBagImpl::FallbackSpan fallback_span_;
+  absl::InlinedVector<const internal::DataBagImpl*, 2> flattened_fallbacks_;
 };
 
 // Returns the string representation of the DataBag.
