@@ -69,10 +69,6 @@ class KodaNewSchemaTest(parameterized.TestCase):
       expr_2 = kde.schema.new_schema(**kwargs)
       self.assertNotEqual(expr_1.fingerprint, expr_2.fingerprint)
 
-    with self.subTest('replace hidden arg'):
-      expr = py_boxing.with_unique_hidden_seed(expr)
-      testing.assert_equal(expr_eval.eval(expr), expr_eval.eval(expr))
-
     with self.subTest('error'):
       with self.assertRaisesRegex(ValueError, 'expected numerics, got x: TEXT'):
         arolla.sub_by_fingerprint(

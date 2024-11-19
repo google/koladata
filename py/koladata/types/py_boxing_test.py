@@ -578,12 +578,6 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     # Two different operator evaluations have different results.
     self.assertNotEqual(
-        expr_eval.eval(py_boxing.with_unique_hidden_seed(expr)).fingerprint,
-        expr_eval.eval(py_boxing.with_unique_hidden_seed(expr)).fingerprint,
-    )
-
-    # Two different operator evaluations have different results.
-    self.assertNotEqual(
         expr_eval.eval(expr).fingerprint,
         expr_eval.eval(expr).fingerprint,
     )

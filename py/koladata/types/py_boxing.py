@@ -267,13 +267,6 @@ def _random_int64() -> arolla.QValue:
   return arolla.int64(_RANDOM.randint(-(2**63), 2**63 - 1))
 
 
-def with_unique_hidden_seed(expr: arolla.Expr) -> arolla.Expr:
-  return arolla.sub_by_fingerprint(
-      expr,
-      {HIDDEN_SEED_LEAF.fingerprint: arolla.literal(_random_int64())},
-  )
-
-
 # NOTE: This function should prefer to return QValues whenever possible to be as
 # friendly to eager evaluation as possible.
 def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
