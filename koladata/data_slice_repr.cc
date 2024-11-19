@@ -81,6 +81,10 @@ std::string EscapeHtml(std::string value) {
 // this can not be merged with ReprOption because some contexts need to set
 // object_ids_clickable differently.
 //
+// It is passed by mutable reference everywhere because it must track the number
+// of HTML characters added. This allows us to know the number of content
+// characters in a string when considering multiline formatting.
+//
 // In the following discussion an "access path" refers to the sequence of
 // operations on a DataSlice object that is required to access something from
 // the DataSlice. For example, if we have a list of objects with ObjectIds in
@@ -103,47 +107,41 @@ struct WrappingBehavior {
   bool format_html = false;
   // True in contexts where object ids are clickable.
   bool object_ids_clickable = false;
+  // Number of HTML characters added by wrapping with HTML.
+  size_t html_char_count = 0;
 
-  std::string MaybeWrapObjectId(
-      const DataItem& item, std::string item_repr) const {
+  std::string MaybeWrapObjectId(const DataItem& item, std::string item_repr) {
     if (format_html && item.holds_value<ObjectId>()) {
-      return absl::StrFormat(
+      std::string result = absl::StrFormat(
           "<span class=\"object-id %s\">%s</span>",
           object_ids_clickable ? "clickable" : "", item_repr);
+      UpdateHtmlCharCount(result, item_repr);
+      return result;
     }
     return item_repr;
   }
 
-  // Annotates an access attribute.
-  template <typename T>
-  std::string MaybeAnnotateAccess(
-      absl::string_view access_type, T access_value, std::string repr) const {
-    if (format_html) {
-      return absl::StrFormat(
-          "<span %s=\"%s\">%s</span>", access_type,
-          absl::StrCat(access_value), repr);
-    }
-    return repr;
-  }
-
-  std::string MaybeAnnotateSliceIndex(std::string repr, size_t index) const {
+  std::string MaybeAnnotateSliceIndex(std::string repr, size_t index) {
     return MaybeAnnotateAccess("slice-index", index, std::move(repr));
   }
-  std::string MaybeAnnotateListIndex(std::string repr, size_t index) const {
+  std::string MaybeAnnotateListIndex(std::string repr, size_t index) {
     return MaybeAnnotateAccess("list-index", index, std::move(repr));
   }
+  // The attr_name argument should not be escaped.
   std::string MaybeAnnotateSchemaAttr(
-      std::string repr, absl::string_view attr_name) const {
+      std::string repr, absl::string_view attr_name) {
     return MaybeAnnotateAccess("schema-attr", attr_name, std::move(repr));
   }
+  // The key_name argument should not be escaped.
   std::string MaybeAnnotateDictKey(
-      std::string repr, absl::string_view key_name) const {
+      std::string repr, absl::string_view key_name) {
     return MaybeAnnotateAccess("dict-key", key_name, std::move(repr));
   }
 
+  // The attr argument should not be escaped.
   std::string FormatSchemaAttrAndValue(absl::string_view attr,
                                        absl::string_view value_str,
-                                       bool is_list) const {
+                                       bool is_list) {
     absl::string_view stripped_attr =
         absl::StripPrefix(absl::StripSuffix(attr, "'"), "'");
 
@@ -152,9 +150,15 @@ struct WrappingBehavior {
       // The inner StrFormat wraps the visible attribute name and the outer
       // MaybeAnnotateSchemaAttr annotates both attr and value with metadata
       // to reconstruct the access path.
+      std::string escaped_attr = MaybeEscape(std::string(stripped_attr));
       std::string attr_str = absl::StrFormat(
-          kAttrHtmlTemplate, clickable_class, stripped_attr, value_str);
-      return MaybeAnnotateSchemaAttr(std::move(attr_str), attr);
+          kAttrHtmlTemplate, clickable_class,
+          escaped_attr, value_str);
+      // The base size of the content is the sum of the value, stripped
+      // attribute name, and the '=' in the template.
+      UpdateHtmlCharCount(attr_str.size(),
+                          value_str.size() + escaped_attr.size() + 1);
+      return MaybeAnnotateSchemaAttr(std::move(attr_str), stripped_attr);
     } else {
       return absl::StrFormat(kAttrTemplate, stripped_attr, value_str);
     }
@@ -163,18 +167,50 @@ struct WrappingBehavior {
   // This must be invoked around all raw repr strings. The assumption of
   // other methods in this class is that their string arguments have already
   // been escaped if necessary.
-  std::string MaybeEscape(std::string value) const {
+  std::string MaybeEscape(std::string value) {
     if (format_html) {
-      return EscapeHtml(std::move(value));
+      // We can't use UpdateHtmlCharCount here because the value is moved.
+      size_t initial_value_size = value.size();
+      std::string result = EscapeHtml(std::move(value));
+      UpdateHtmlCharCount(result.size(), initial_value_size);
+      return result;
     }
     return value;
+  }
+
+ private:
+  // Annotates an access attribute. We escape the access attribute value in
+  // because the public MaybeEscape counts the additional characters, but
+  // the entire attribute value is not visible content.
+  template <typename T>
+  std::string MaybeAnnotateAccess(
+      absl::string_view access_type, T access_value, std::string repr) {
+    if (format_html) {
+      std::string result = absl::StrFormat(
+          "<span %s=\"%s\">%s</span>", access_type,
+          EscapeHtml(absl::StrCat(access_value)), repr);
+      UpdateHtmlCharCount(result, repr);
+      return result;
+    }
+    return repr;
+  }
+
+  void UpdateHtmlCharCount(
+      absl::string_view new_str, absl::string_view old_str) {
+    UpdateHtmlCharCount(new_str.size(), old_str.size());
+  }
+
+  void UpdateHtmlCharCount(size_t new_size, size_t old_size) {
+    html_char_count += new_size - old_size;
   }
 };
 
 // Returns the string format of DataSlice content with proper (multiline)
-// layout and separators.
+// layout and separators. non_content_char_count is the number of characters
+// added by wrappers that will not be visible (e.g. HTML tags).
 std::string PrettyFormatStr(const std::vector<std::string>& parts,
-                            const FormatOptions& options) {
+                            const FormatOptions& options,
+                            size_t non_content_char_count) {
   bool parts_multilined =
       std::find_if(parts.begin(), parts.end(), [](const std::string& str) {
         return absl::StrContains(str, '\n');
@@ -184,8 +220,10 @@ std::string PrettyFormatStr(const std::vector<std::string>& parts,
         return sum + str.size() + 2 /*separator has length 2*/;
       });
 
-  bool use_multiline = options.enable_multiline &&
-                       (parts_multilined || total_len > options.max_width);
+  bool use_multiline =
+      options.enable_multiline
+      && (parts_multilined
+          || total_len - non_content_char_count > options.max_width);
 
   absl::string_view sep = use_multiline ? ",\n" : ", ";
   absl::string_view indent = "\n";
@@ -205,12 +243,13 @@ std::string PrettyFormatStr(const std::vector<std::string>& parts,
 // DataSlice contains only DataItem.
 absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
                                           const ReprOption& option,
-                                          const WrappingBehavior& wrapping);
+                                          WrappingBehavior& wrapping);
 
-std::string DataSliceItemRepr(const DataItem& item, const DataItem& schema,
-                              const ReprOption& option) {
-  WrappingBehavior wrapping{.format_html = option.format_html,
-                            .object_ids_clickable = true};
+std::string DataSliceItemRepr(
+    const DataItem& item, const DataItem& schema,
+    const ReprOption& option, WrappingBehavior& wrapping) {
+  wrapping.object_ids_clickable = true;
+
   if (item.holds_value<ObjectId>()) {
     absl::string_view item_prefix = "";
     if (item.is_dict()) {
@@ -242,59 +281,62 @@ std::string DataSliceItemRepr(const DataItem& item, const DataItem& schema,
 // TODO: Support max-depth.
 std::vector<std::string> StringifyDimension(
     const DataSlice& ds, size_t dim, absl::Span<const int64_t> included_groups,
-    const ReprOption& option) {
+    const ReprOption& option, WrappingBehavior& wrapping) {
   const auto& shape = ds.GetShape();
   // We're at the last dimension. Print all the items.
   if (dim >= shape.rank()) {
     std::vector<std::string> result;
     result.reserve(included_groups.size());
     for (int64_t group : included_groups) {
-      result.push_back(
-          DataSliceItemRepr(ds.slice()[group], ds.GetSchemaImpl(), option));
+      result.push_back(DataSliceItemRepr(
+          ds.slice()[group], ds.GetSchemaImpl(), option, wrapping));
     }
     return result;
   }
+
   // We have more dimensions to go: recurse.
-  //
-  // Create a list of at most `option.item_limit` children per group that are
-  // within the `included_groups`.
   const auto& edge = shape.edges()[dim];
   const auto& split_points = edge.edge_values().values.span();
-  std::vector<int64_t> next_groups;
-  next_groups.reserve(edge.child_size());  // Upper bound.
-  for (int64_t group : included_groups) {
-    int64_t size = std::min(split_points[group + 1] - split_points[group],
-                            static_cast<int64_t>(option.item_limit));
-    for (int64_t i = 0; i < size; ++i) {
-      next_groups.push_back(split_points[group] + i);
-    }
-  }
-  // Get the string representations of the children.
-  auto next_group_reprs = StringifyDimension(ds, dim + 1, next_groups, option);
-  // Group the representations of the children within a pair of brackets.
-  int group_start = 0;
+
+  // We resize this vector to be empty on each iteration, but reserve enough
+  // space for the largest group using the upper bound of edge.child_size().
+  std::vector<int64_t> group_indices;
+  group_indices.reserve(edge.child_size());
+
+  // We add one to the reserved size to avoid a reallocation in the case that
+  // we need to append an ellipsis after returning from an recursive call.
   std::vector<std::string> group_reprs;
-  group_reprs.reserve(included_groups.size());
-  WrappingBehavior wrapping{.format_html = option.format_html};
+  group_reprs.reserve(included_groups.size() + 1);
   for (int64_t group : included_groups) {
+    // Create a list of at most `option.item_limit` children per group that are
+    // within each `included_groups`.
     int64_t group_size = split_points[group + 1] - split_points[group];
-    int64_t size =
-        std::min(group_size, static_cast<int64_t>(option.item_limit));
-    // A vector is created where each child repr has additional information
-    // about the current group context added. An ellipsis is also added to the
-    // data if truncation was done.
-    std::vector<std::string> current_group_reprs;
-    current_group_reprs.reserve(size + 1);
+    int64_t size = std::min(group_size,
+                            static_cast<int64_t>(option.item_limit));
+    size_t initial_html_char_count = wrapping.html_char_count;
+
+    // Get the string representations of the elements. Note that the resize
+    // here never reduces capacity and should stay within allocated capacity.
+    group_indices.resize(size);
+    std::iota(group_indices.begin(), group_indices.end(), split_points[group]);
+    auto elem_reprs = StringifyDimension(
+        ds, dim + 1, group_indices, option, wrapping);
+
     for (int64_t i = 0; i < size; ++i) {
-      current_group_reprs.push_back(wrapping.MaybeAnnotateSliceIndex(
-          std::move(next_group_reprs[group_start + i]), i));
+      elem_reprs[i] = wrapping.MaybeAnnotateSliceIndex(
+          std::move(elem_reprs[i]), i);
     }
+
+    // Append ellipsis if we are hiding elements.
     if (group_size > size) {
-      current_group_reprs.emplace_back(kEllipsis);
+      elem_reprs.emplace_back(kEllipsis);
     }
-    group_reprs.push_back(
-        PrettyFormatStr(current_group_reprs, {.prefix = "[", .suffix = "]"}));
-    group_start += size;
+
+    // Compose final presentation of the group.
+    group_reprs.push_back(PrettyFormatStr(
+        elem_reprs,
+        {.prefix = "[", .suffix = "]"},
+        wrapping.html_char_count - initial_html_char_count));
   }
   return group_reprs;
 }
@@ -302,9 +344,11 @@ std::vector<std::string> StringifyDimension(
 // Returns the string for python __str__ and part of __repr__.
 // The DataSlice must have at least 1 dimension.
 std::string DataSliceImplToStr(const DataSlice& ds,
-                               const ReprOption& option = ReprOption{}) {
+                               const ReprOption& option,
+                               WrappingBehavior& wrapping) {
   std::vector<std::string> result =
-      StringifyDimension(ds, /*dim=*/0, /*included_groups=*/{0}, option);
+      StringifyDimension(
+          ds, /*dim=*/0, /*included_groups=*/{0}, option, wrapping);
   DCHECK_EQ(result.size(), 1);
   return std::move(result[0]);
 }
@@ -313,14 +357,16 @@ std::string DataSliceImplToStr(const DataSlice& ds,
 // type and DataItem. Returns empty string if it doesn't contain list item
 // schema attr.
 absl::StatusOr<std::string> ListSchemaStr(const DataSlice& schema,
-                                          const ReprOption& option) {
+                                          const ReprOption& option,
+                                          WrappingBehavior& wrapping) {
   ASSIGN_OR_RETURN(DataSlice attr,
                    schema.GetAttrOrMissing(schema::kListItemsSchemaAttr));
   if (attr.IsEmpty()) {
     return "";
   }
-  ASSIGN_OR_RETURN(std::string str, DataItemToStr(
-      attr, option, {.format_html = option.format_html}));
+
+  wrapping.object_ids_clickable = false;
+  ASSIGN_OR_RETURN(std::string str, DataItemToStr(attr, option, wrapping));
   return absl::StrCat("LIST[", str, "]");
 }
 
@@ -328,7 +374,8 @@ absl::StatusOr<std::string> ListSchemaStr(const DataSlice& schema,
 // type and DataItem. Returns empty string if it doesn't contain list item
 // schema attr.
 absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
-                                          const ReprOption& option) {
+                                          const ReprOption& option,
+                                          WrappingBehavior& wrapping) {
   ASSIGN_OR_RETURN(DataSlice key_attr,
                    schema.GetAttrOrMissing(schema::kDictKeysSchemaAttr));
   ASSIGN_OR_RETURN(DataSlice value_attr,
@@ -337,7 +384,7 @@ absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
     return "";
   }
 
-  WrappingBehavior wrapping{.format_html = option.format_html};
+  wrapping.object_ids_clickable = false;
   ASSIGN_OR_RETURN(std::string key_attr_str,
                    DataItemToStr(key_attr, option, wrapping));
   ASSIGN_OR_RETURN(std::string value_attr_str,
@@ -347,14 +394,16 @@ absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
 
 // Returns the string representation of list item.
 absl::StatusOr<std::string> ListToStr(const DataSlice& ds,
-                                      const ReprOption& option) {
+                                      const ReprOption& option,
+                                      WrappingBehavior& wrapping) {
   ASSIGN_OR_RETURN(const DataSlice list, ds.ExplodeList(0, std::nullopt));
 
   auto stringfy_list_items =
-      [&option, &list](const internal::DataSliceImpl& list_impl)
+      [&option, &list, &wrapping](const internal::DataSliceImpl& list_impl)
       -> absl::StatusOr<std::string> {
-    WrappingBehavior wrapping{.format_html = option.format_html,
-                              .object_ids_clickable = true};
+    wrapping.object_ids_clickable = true;
+    size_t initial_html_char_count = wrapping.html_char_count;
+
     std::vector<std::string> elements;
     elements.reserve(list_impl.size());
     size_t item_count = 0;
@@ -374,7 +423,9 @@ absl::StatusOr<std::string> ListToStr(const DataSlice& ds,
           wrapping.MaybeAnnotateListIndex(std::move(item_str), i));
       ++item_count;
     }
-    return PrettyFormatStr(elements, {.prefix = "[", .suffix = "]"});
+    return PrettyFormatStr(
+        elements, {.prefix = "[", .suffix = "]"},
+        wrapping.html_char_count - initial_html_char_count);
   };
   ASSIGN_OR_RETURN(const std::string str, stringfy_list_items(list.slice()));
   return absl::StrCat("List", str);
@@ -382,13 +433,14 @@ absl::StatusOr<std::string> ListToStr(const DataSlice& ds,
 
 // Returns the string representation of dict item.
 absl::StatusOr<std::string> DictToStr(const DataSlice& ds,
-                                      const ReprOption& option) {
+                                      const ReprOption& option,
+                                      WrappingBehavior& wrapping) {
   ASSIGN_OR_RETURN(const DataSlice keys, ds.GetDictKeys());
+  wrapping.object_ids_clickable = true;
   const internal::DataSliceImpl& key_slice = keys.slice();
-  WrappingBehavior wrapping{.format_html = option.format_html,
-                            .object_ids_clickable = true};
   std::vector<std::string> elements;
   elements.reserve(key_slice.size());
+  size_t initial_html_char_count = wrapping.html_char_count;
   size_t item_count = 0;
   for (const DataItem& item : key_slice) {
     if (item_count >= option.item_limit) {
@@ -406,19 +458,22 @@ absl::StatusOr<std::string> DictToStr(const DataSlice& ds,
     elements.emplace_back(
         wrapping.MaybeAnnotateDictKey(
             absl::StrCat(key_str, "=", value_str),
-            wrapping.MaybeEscape(
-                DataItemRepr(key.item(), {.strip_quotes = true}))));
+            DataItemRepr(item, {.strip_quotes = true})));;
     ++item_count;
   }
-  return absl::StrCat("Dict{", absl::StrJoin(elements, ", "), "}");
+
+  return PrettyFormatStr(
+      elements, {.prefix = "Dict{", .suffix = "}"},
+      wrapping.html_char_count - initial_html_char_count);
 }
 
-// Returns the string representation of schema item.
-absl::StatusOr<std::string> SchemaToStr(const DataSlice& ds,
-                                        const ReprOption& option) {
+// Returns the string representation of schema items or objects.
+absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
+    const DataSlice& ds,
+    const ReprOption& option,
+    WrappingBehavior& wrapping) {
   ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names, ds.GetAttrNames());
-  WrappingBehavior wrapping{.format_html = option.format_html,
-                            .object_ids_clickable = true};
+  wrapping.object_ids_clickable = true;
   std::vector<std::string> parts;
   parts.reserve(attr_names.size());
   size_t item_count = 0;
@@ -432,15 +487,16 @@ absl::StatusOr<std::string> SchemaToStr(const DataSlice& ds,
     ASSIGN_OR_RETURN(std::string value_str,
                      DataItemToStr(value, option, wrapping));
     parts.emplace_back(wrapping.FormatSchemaAttrAndValue(
-        wrapping.MaybeEscape(attr_name), value_str, value.item().is_list()));
+        attr_name, value_str, value.item().is_list()));
     ++item_count;
   }
-  return absl::StrJoin(parts, ", ");
+
+  return parts;
 }
 
 absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
                                           const ReprOption& option,
-                                          const WrappingBehavior& wrapping) {
+                                          WrappingBehavior& wrapping) {
   // Helper that applies the wrapping to DataItemRepr to be used when
   // the item holds an ObjectId.
   auto repr_with_wrapping = [&wrapping](const DataItem& item) {
@@ -472,10 +528,10 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
                           repr_with_wrapping(data_item), ")");
     }
     if (obj.IsList()) {
-      return ListToStr(ds, next_option);
+      return ListToStr(ds, next_option, wrapping);
     }
     if (obj.IsDict()) {
-      return DictToStr(ds, next_option);
+      return DictToStr(ds, next_option, wrapping);
     }
     absl::string_view prefix = "Entity(";
     if (obj.IsNoFollowSchema()) {
@@ -488,12 +544,12 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
           "NOFOLLOW(", wrapping.MaybeEscape(DataItemRepr(original)), ")");
     } else if (obj.IsExplicitSchema()) {
       ASSIGN_OR_RETURN(std::string list_schema_str,
-                       ListSchemaStr(ds, next_option));
+                       ListSchemaStr(ds, next_option, wrapping));
       if (!list_schema_str.empty()) {
         return list_schema_str;
       }
       ASSIGN_OR_RETURN(std::string dict_schema_str,
-                       DictSchemaStr(ds, next_option));
+                       DictSchemaStr(ds, next_option, wrapping));
       if (!dict_schema_str.empty()) {
         return dict_schema_str;
       }
@@ -503,12 +559,18 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
     } else if (schema == schema::kObject) {
       prefix = "Obj(";
     }
-    ASSIGN_OR_RETURN(std::string schema_str, SchemaToStr(ds, next_option));
-    if (schema_str.empty() && !obj.IsSchema()) {
+
+    size_t initial_html_char_count = wrapping.html_char_count;
+    ASSIGN_OR_RETURN(std::vector<std::string> schema_parts,
+                     AttrsToStrParts(ds, next_option, wrapping));
+    // Append ItemId if there is no attribute
+    if (schema_parts.empty() && !obj.IsSchema()) {
       return absl::StrCat(prefix, "):", wrapping.MaybeEscape(
           DataItemRepr(data_item)));
     }
-    return absl::StrCat(prefix, schema_str, ")");
+    return PrettyFormatStr(
+      schema_parts, {.prefix = prefix, .suffix = ")"},
+      wrapping.html_char_count - initial_html_char_count);
   }
   bool is_obj_or_any_schema =
       schema == schema::kObject || schema == schema::kAny;
@@ -530,7 +592,7 @@ absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds,
       const T& impl) {
     return std::is_same_v<T, DataItem>
         ? DataItemToStr(ds, option, wrapping)
-        : DataSliceImplToStr(ds, option);
+        : DataSliceImplToStr(ds, option, wrapping);
   });
 }
 

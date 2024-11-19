@@ -124,6 +124,27 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_NestedDict) {
               IsOkAndHolds("Dict{'x'=Dict{'a'=1}}"));
 }
 
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictMultiline) {
+  DataBagPtr bag = DataBag::Empty();
+  ObjectId dict_id = internal::AllocateSingleDict();
+
+  std::string large_key0(50, 'a');
+  std::string large_key1(50, 'x');
+  DataSlice keys = test::DataSlice<arolla::Text>(
+      {large_key0.c_str(), large_key1.c_str()});
+  DataSlice values = test::DataSlice<int>({1, 1});
+
+  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  ASSERT_OK(data_slice.SetInDict(keys, values));
+
+  EXPECT_THAT(
+      DataSliceToStr(data_slice),
+      IsOkAndHolds(MatchesRegex(
+          absl::StrFormat(
+              "Dict\\{(\n  '%s'=1,\n  '%s'=1|\n  '%s'=1,\n  '%s'=1),\n\\}",
+              large_key0, large_key1, large_key1, large_key0))));
+}
+
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_List) {
   DataBagPtr bag = DataBag::Empty();
 
@@ -760,7 +781,9 @@ TEST(DataSliceReprTest, CycleInObject) {
   EXPECT_THAT(
       DataSliceToStr(schema),
       IsOkAndHolds(MatchesRegex(
-          R"regex(IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=#[0-9a-zA-Z]{22}\)\)\)\)\))regex")));
+          R"regex(IMPLICIT_SCHEMA\(
+  a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=#[0-9a-zA-Z]{22}\)\)\)\),
+\))regex")));
 
   ASSERT_OK(obj.SetAttr("a", obj));
   EXPECT_THAT(
@@ -857,6 +880,21 @@ TEST(DataSliceReprTest, ObjEntityExceedReprItemLimit) {
               IsOkAndHolds("Entity(a=1, b=1, c=1, d=1, e=1, ...)"));
 }
 
+TEST(DataSliceReprTest, ObjEntityMultiline) {
+  DataBagPtr bag = DataBag::Empty();
+
+  std::string large_attr0(50, 'a');
+  std::string large_attr1(50, 'x');
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice obj,
+      ObjectCreator::FromAttrs(bag, {large_attr0, large_attr1},
+                               std::vector<DataSlice>(2, test::DataItem(1))));
+
+  EXPECT_THAT(DataSliceToStr(obj, {.item_limit = 5}),
+              IsOkAndHolds(absl::StrFormat(
+                  "Obj(\n  %s=1,\n  %s=1,\n)", large_attr0, large_attr1)));
+}
+
 TEST(DataSliceReprTest, FormatHtml_AttrSpan) {
   DataBagPtr bag = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
@@ -887,10 +925,12 @@ TEST(DataSliceReprTest, FormatHtml_SliceIndices) {
 
   ASSERT_OK_AND_ASSIGN(
     std::string result, DataSliceToStr(ds, {.format_html = true}));
-  EXPECT_EQ(result, R"MULTILINE([
-  <span slice-index="0">[<span slice-index="0">1</span>, <span slice-index="1">2</span>]</span>,
-  <span slice-index="1">[<span slice-index="0">3</span>]</span>,
-])MULTILINE");
+  EXPECT_EQ(
+      result,
+      "[<span slice-index=\"0\">["
+        "<span slice-index=\"0\">1</span>, <span slice-index=\"1\">2</span>"
+        "]</span>, "
+      "<span slice-index=\"1\">[<span slice-index=\"0\">3</span>]</span>]");
 }
 
 TEST(DataSliceReprTest, FormatHtml_ListIndices) {
@@ -910,14 +950,14 @@ TEST(DataSliceReprTest, FormatHtml_ListIndices) {
       }), /*schema=*/std::nullopt, test::Schema(schema::kAny)));
   ASSERT_OK_AND_ASSIGN(
     std::string result, DataSliceToStr(ds, {.format_html = true}));
-  EXPECT_EQ(result, R"MULTILINE(List[
-  <span list-index="0">List[]</span>,
-  <span list-index="1">List[
-    <span list-index="0">1</span>,
-    <span list-index="1">2</span>,
-    <span list-index="2">3</span>,
-  ]</span>,
-])MULTILINE");
+  EXPECT_EQ(result,
+            "List["
+              "<span list-index=\"0\">List[]</span>, "
+              "<span list-index=\"1\">List["
+              "<span list-index=\"0\">1</span>, "
+              "<span list-index=\"1\">2</span>, "
+              "<span list-index=\"2\">3</span>"
+            "]</span>]");
 }
 
 TEST(DataSliceReprTest, FormatHtml_ObjEntity) {
@@ -937,6 +977,19 @@ TEST(DataSliceReprTest, FormatHtml_ObjEntity) {
       "</span>=1</span>)");
 }
 
+TEST(DataSliceReprTest, FormatHtml_ObjEntity_NoMultiLineForKeyNearLimit) {
+  DataBagPtr bag = DataBag::Empty();
+  std::string lots_of_amps(80, '&');
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice obj,
+      ObjectCreator::FromAttrs(
+          bag, {lots_of_amps},
+          std::vector<DataSlice>(1, test::DataItem(1))));
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(obj, {.format_html = true}));
+  EXPECT_THAT(result, Not(HasSubstr("\n")));
+}
+
 TEST(DataSliceReprTest, FormatHtml_Dict) {
   DataBagPtr bag = DataBag::Empty();
   ObjectId dict_id = internal::AllocateSingleDict();
@@ -951,6 +1004,19 @@ TEST(DataSliceReprTest, FormatHtml_Dict) {
   EXPECT_EQ(result,
             "Dict{<span dict-key=\"&lt;&gt;&amp;&quot;\">"
             "'&lt;&gt;&amp;&quot;'=1</span>}");
+}
+
+TEST(DataSliceReprTest, FormatHtml_Dict_NoMultiLineForKeyNearLimit) {
+  DataBagPtr bag = DataBag::Empty();
+  std::string lots_of_amps(80, '&');
+  ObjectId dict_id = internal::AllocateSingleDict();
+  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice keys = test::DataSlice<arolla::Text>({lots_of_amps.c_str()});
+  DataSlice values = test::DataSlice<int>({1});
+  ASSERT_OK(data_slice.SetInDict(keys, values));
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(data_slice, {.format_html = true}));
+  EXPECT_THAT(result, Not(HasSubstr("\n")));
 }
 
 TEST(DataSliceReprTest, FormatHtml_ByteValues) {
