@@ -233,6 +233,16 @@ class CoreCloneTest(parameterized.TestCase):
     testing.assert_equal(res_1.y.no_bag(), res_2.y.no_bag())
     testing.assert_equal(res_1.y.a.no_bag(), res_2.y.a.no_bag())
 
+  def test_inner_update_does_not_crash(self):
+    x = kde.core.new(b=kde.core.new(c=1)).with_attrs(d=4)
+    x = x.updated(kde.attrs(x.b, c=5))
+    x = x.eval()
+    res = x.clone()
+    self.assertNotEqual(res.no_bag(), x.no_bag())
+    testing.assert_equal(res.b.no_bag(), x.b.no_bag())
+    testing.assert_equal(res.b.c.no_bag(), ds(5))
+    testing.assert_equal(res.d.no_bag(), ds(4))
+
   def test_view(self):
     self.assertTrue(view.has_data_slice_view(kde.clone(I.x)))
 
