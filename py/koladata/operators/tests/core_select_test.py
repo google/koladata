@@ -272,8 +272,8 @@ class CoreSelectTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'operator kd.select failed during evaluation: the schema of the'
-            ' `fltr` DataSlice should only be ANY, OBJECT or MASK'
+            'kd.select: the schema of the `fltr` DataSlice should only be ANY,'
+            ' OBJECT or MASK'
         ),
     ):
       expr_eval.eval(kde.core.select(val, val))
@@ -344,10 +344,7 @@ class CoreSelectTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(
-            'operator kd.select failed during evaluation: failed to broadcast'
-            ' `fltr` to `ds`'
-        ),
+        re.escape('kd.select: failed to broadcast `fltr` to `ds`'),
     ):
       _ = expr_eval.eval(kde.core.select(x, y))
 

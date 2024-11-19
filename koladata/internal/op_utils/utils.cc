@@ -29,15 +29,16 @@ absl::Status OperatorEvalError(absl::Status status,
                                absl::string_view operator_name,
                                absl::string_view error_message) {
   internal::Error error;
-  error.set_error_message(
-      absl::StrFormat("operator %s failed during evaluation: %s", operator_name,
-                      error_message));
   std::optional<internal::Error> cause = internal::GetErrorPayload(status);
   if (cause) {
     *error.mutable_cause() = *std::move(cause);
-  } else {
+  } else if (!error_message.empty()) {
     error.mutable_cause()->set_error_message(status.message());
+  } else {
+    error_message = status.message();
   }
+  error.set_error_message(
+      absl::StrFormat("%s: %s", operator_name, error_message));
   return internal::WithErrorPayload(std::move(status), error);
 }
 
@@ -45,8 +46,7 @@ absl::Status OperatorEvalError(absl::string_view operator_name,
                                absl::string_view error_message) {
   internal::Error error;
   error.set_error_message(
-      absl::StrFormat("operator %s failed during evaluation: %s", operator_name,
-                      error_message));
+      absl::StrFormat("%s: %s", operator_name, error_message));
   // Note error_message inside the status is not used by the error handling
   // logic in the CPython layer.
   return internal::WithErrorPayload(absl::InvalidArgumentError(error_message),

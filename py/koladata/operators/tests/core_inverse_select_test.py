@@ -120,15 +120,14 @@ class CoreInverseSelectTest(parameterized.TestCase):
   def test_invalid_type_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.inverse_select failed during evaluation: the schema of the fltr'
-        ' DataSlice should only be Any, Object or Mask',
+        'kd.inverse_select: the schema of the fltr DataSlice should only be'
+        ' Any, Object or Mask',
     ):
       expr_eval.eval(kde.core.inverse_select(ds([1]), ds([1, 2])))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'operator kd.inverse_select failed during evaluation: fltr argument'
-        ' must have all items of MASK dtype',
+        'kd.inverse_select: fltr argument must have all items of MASK dtype',
     ):
       expr_eval.eval(kde.core.inverse_select(ds([1]), ds([1, 2]).as_any()))
 
@@ -136,9 +135,8 @@ class CoreInverseSelectTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'operator kd.inverse_select failed during evaluation: the rank of'
-            ' the ds and fltr DataSlice must be the same. Got rank(ds): 0,'
-            ' rank(fltr): 1'
+            'kd.inverse_select: the rank of the ds and fltr DataSlice must be'
+            ' the same. Got rank(ds): 0, rank(fltr): 1'
         ),
     ):
       expr_eval.eval(
@@ -148,9 +146,8 @@ class CoreInverseSelectTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'operator kd.inverse_select failed during evaluation: the shape of'
-            ' `ds` and the shape of the present elements in `fltr` do not'
-            ' match: JaggedShape(2) vs JaggedShape(1)'
+            'kd.inverse_select: the shape of `ds` and the shape of the present'
+            ' elements in `fltr` do not match: JaggedShape(2) vs JaggedShape(1)'
         ),
     ):
       expr_eval.eval(

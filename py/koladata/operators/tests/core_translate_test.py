@@ -159,9 +159,8 @@ class CoreTranslateTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'operator kd.translate failed during evaluation:'
-            ' keys_from.get_shape()[:-1] must be broadcastable to keys_to, but'
-            ' got JaggedShape(1) vs JaggedShape(2, [2, 1])'
+            'kd.translate: keys_from.get_shape()[:-1] must be broadcastable to'
+            ' keys_to, but got JaggedShape(1) vs JaggedShape(2, [2, 1])'
         ),
     ):
       expr_eval.eval(

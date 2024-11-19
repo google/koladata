@@ -36,7 +36,7 @@ class PointwiseArollaOpErrorTest(absltest.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """operator math.subtract failed during evaluation: cannot align all inputs to a common shape
+            """math.subtract: cannot align all inputs to a common shape
 
 The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1])"""
         ),
@@ -46,7 +46,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """operator math.subtract failed during evaluation: cannot align all inputs to a common shape
+            """math.subtract: cannot align all inputs to a common shape
 
 The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1])"""
         ),
@@ -58,11 +58,9 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
   def test_entity_input_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(
-            """operator math.subtract failed during evaluation: invalid inputs
+        re.escape("""math.subtract: invalid inputs
 
-The cause is: DataSlice with Entity schema is not supported:"""
-        ),
+The cause is: DataSlice with Entity schema is not supported:"""),
     ):
       expr_eval.eval(
           kde.math.subtract(bag().new(x=ds([1, 2, 3])), ds([1, 2, 3]))
@@ -71,11 +69,9 @@ The cause is: DataSlice with Entity schema is not supported:"""
   def test_object_input_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(
-            """operator math.subtract failed during evaluation: invalid inputs
+        re.escape("""math.subtract: invalid inputs
 
-The cause is: DataSlice has no primitive schema"""
-        ),
+The cause is: DataSlice has no primitive schema"""),
     ):
       expr_eval.eval(
           kde.math.subtract(bag().obj(x=ds([1, 2, 3])), ds([1, 2, 3]))
@@ -85,7 +81,7 @@ The cause is: DataSlice has no primitive schema"""
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """operator math.subtract failed during evaluation: invalid inputs
+            """math.subtract: invalid inputs
 
 The cause is: DataSlice with mixed types is not supported: DataSlice([[1, '2'], [3]], schema: OBJECT, shape: JaggedShape(2, [2, 1]))"""
         ),
@@ -96,7 +92,7 @@ The cause is: DataSlice with mixed types is not supported: DataSlice([[1, '2'], 
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """operator strings.substr failed during evaluation: invalid end argument
+            """strings.substr: invalid end argument
 
 The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice"""
         ),
@@ -107,7 +103,7 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """operator math.subtract failed during evaluation: successfully converted input DataSlice(s) to DenseArray(s) but failed to evaluate the Arolla operator
+            """math.subtract: successfully converted input DataSlice(s) to DenseArray(s) but failed to evaluate the Arolla operator
 
 The cause is: expected numerics, got y: DENSE_ARRAY_TEXT"""
         ),

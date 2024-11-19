@@ -126,8 +126,8 @@ class ImplodeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "operator kd.implode failed during evaluation: cannot implode 'x'"
-            " to fold the last 2 dimension(s) because 'x' only has 1 dimensions"
+            "kd.implode: cannot implode 'x' to fold the last 2 dimension(s)"
+            " because 'x' only has 1 dimensions"
         ),
     ):
       fns.implode(ds([1, 2]), 2)

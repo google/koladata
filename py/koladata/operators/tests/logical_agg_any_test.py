@@ -114,10 +114,7 @@ class LogicalAggAnyTest(parameterized.TestCase):
   def test_non_mask_input_error(self, x):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(
-            'operator kd.agg_any failed during evaluation: `x` must only'
-            ' contain MASK values'
-        ),
+        re.escape('kd.agg_any: `x` must only contain MASK values'),
     ):
       expr_eval.eval(kde.logical.agg_any(x))
 

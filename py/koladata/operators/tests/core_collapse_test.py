@@ -86,10 +86,7 @@ class CoreCollapseTest(parameterized.TestCase):
     x = ds(1)
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(
-            'operator kd.collapse failed during evaluation: DataItem is not'
-            ' supported'
-        ),
+        re.escape('kd.collapse: DataItem is not supported'),
     ):
       expr_eval.eval(kde.core.collapse(x))
 

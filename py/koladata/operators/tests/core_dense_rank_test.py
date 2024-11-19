@@ -214,16 +214,14 @@ class CoreOrdinalRankTest(parameterized.TestCase):
   def test_multidim_descending_arg_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'operator kd.dense_rank failed during evaluation: expected'
-        ' `descending` to be a scalar boolean value',
+        'kd.dense_rank: expected `descending` to be a scalar boolean value',
     ):
       expr_eval.eval(kde.core.dense_rank(ds([0, 3, 6]), descending=ds([True])))
 
   def test_missing_descending_arg_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'operator kd.dense_rank failed during evaluation: expected'
-        ' `descending` to be a scalar boolean value',
+        'kd.dense_rank: expected `descending` to be a scalar boolean value',
     ):
       expr_eval.eval(kde.core.dense_rank(ds([0, 3, 6]), descending=ds(None)))
 

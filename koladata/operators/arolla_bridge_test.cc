@@ -184,9 +184,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
                  HasSubstr("DataSlice with Entity schema is not supported")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(
-        payload->error_message(),
-        StrEq("operator math.add failed during evaluation: invalid inputs"));
+    EXPECT_THAT(payload->error_message(), StrEq("math.add: invalid inputs"));
     EXPECT_THAT(payload->cause().error_message(),
                 HasSubstr("DataSlice with Entity schema is not supported"));
   }
@@ -203,9 +201,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
                  HasSubstr("DataSlice with mixed types is not supported")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(
-        payload->error_message(),
-        StrEq("operator math.add failed during evaluation: invalid inputs"));
+    EXPECT_THAT(payload->error_message(), StrEq("math.add: invalid inputs"));
     EXPECT_THAT(payload->cause().error_message(),
                 HasSubstr("DataSlice with mixed types is not supported"));
   }
@@ -220,9 +216,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
                          HasSubstr("DataSlice has no primitive schema")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(
-        payload->error_message(),
-        StrEq("operator math.add failed during evaluation: invalid inputs"));
+    EXPECT_THAT(payload->error_message(), StrEq("math.add: invalid inputs"));
     EXPECT_THAT(payload->cause().error_message(),
                 HasSubstr("DataSlice has no primitive schema"));
   }
@@ -238,8 +232,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
-                StrEq("operator math.add failed during evaluation: cannot "
-                      "align all inputs to a common shape"));
+                StrEq("math.add: cannot align all inputs to a common shape"));
     EXPECT_THAT(
         payload->cause().error_message(),
         HasSubstr(
@@ -258,8 +251,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
-                StrEq("operator math.add failed during evaluation: cannot "
-                      "align all inputs to a common shape"));
+                StrEq("math.add: cannot align all inputs to a common shape"));
     EXPECT_THAT(
         payload->cause().error_message(),
         HasSubstr(
@@ -279,9 +271,8 @@ TEST(ArollaEval, SimplePointwiseEval) {
     EXPECT_TRUE(payload.has_value());
     EXPECT_THAT(
         payload->error_message(),
-        StrEq("operator math.add failed during evaluation: successfully "
-              "converted input DataSlice(s) to DenseArray(s) but "
-              "failed to evaluate the Arolla operator"));
+        StrEq("math.add: successfully converted input DataSlice(s) to "
+              "DenseArray(s) but failed to evaluate the Arolla operator"));
     EXPECT_THAT(payload->cause().error_message(),
                 HasSubstr("expected numerics, got y: DENSE_ARRAY_TEXT"));
   }
@@ -296,9 +287,8 @@ TEST(ArollaEval, SimplePointwiseEval) {
     EXPECT_TRUE(payload.has_value());
     EXPECT_THAT(
         payload->error_message(),
-        StrEq("operator math.floordiv failed during evaluation: successfully "
-              "converted input DataSlice(s) to DenseArray(s) but "
-              "failed to evaluate the Arolla operator"));
+        StrEq("math.floordiv: successfully converted input DataSlice(s) to "
+              "DenseArray(s) but failed to evaluate the Arolla operator"));
     EXPECT_THAT(payload->cause().error_message(),
                 HasSubstr("division by zero"));
   }
@@ -444,9 +434,8 @@ TEST(ArollaEval, SimpleAggIntoEval) {
                          HasSubstr("expected rank(x) > 0")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(),
-                StrEq("operator math.sum failed during evaluation: expected "
-                      "rank(x) > 0"));
+    EXPECT_THAT(payload->error_message(), StrEq("math.sum: expected "
+                                                "rank(x) > 0"));
   }
   {
     // Mixed input error.
@@ -459,9 +448,7 @@ TEST(ArollaEval, SimpleAggIntoEval) {
                  HasSubstr("DataSlice with mixed types is not supported")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(
-        payload->error_message(),
-        StrEq("operator math.sum failed during evaluation: invalid inputs"));
+    EXPECT_THAT(payload->error_message(), StrEq("math.sum: invalid inputs"));
     EXPECT_THAT(payload->cause().error_message(),
                 HasSubstr("DataSlice with mixed types is not supported"));
   }
@@ -475,11 +462,10 @@ TEST(ArollaEval, SimpleAggIntoEval) {
                  HasSubstr("expected numerics, got x: DENSE_ARRAY_TEXT")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(
-        payload->error_message(),
-        StrEq("operator math.max failed during evaluation: successfully "
-              "converted input DataSlice(s) to DenseArray(s) but failed to "
-              "evaluate the Arolla operator"));
+    EXPECT_THAT(payload->error_message(),
+                StrEq("math.max: successfully converted input DataSlice(s) to "
+                      "DenseArray(s) but failed to "
+                      "evaluate the Arolla operator"));
     EXPECT_THAT(payload->cause().error_message(),
                 HasSubstr("expected numerics, got x: DENSE_ARRAY_TEXT"));
   }
@@ -610,8 +596,7 @@ TEST(ArollaEval, SimpleAggOverEval) {
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
-                StrEq("operator math.sum failed during evaluation: expected "
-                      "rank(x) > 0"));
+                StrEq("math.sum: expected rank(x) > 0"));
   }
   {
     // Mixed input error.
@@ -626,8 +611,7 @@ TEST(ArollaEval, SimpleAggOverEval) {
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
-                StrEq("operator array.inverse_mapping failed during "
-                      "evaluation: invalid inputs"));
+                StrEq("array.inverse_mapping: invalid inputs"));
     EXPECT_THAT(payload->cause().error_message(),
                 HasSubstr("DataSlice with mixed types is not supported"));
   }

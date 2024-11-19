@@ -38,7 +38,7 @@ class SimpleAggArollaOpErrorTest(absltest.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """operator math.max failed during evaluation: invalid inputs
+            """math.max: invalid inputs
 
 The cause is: DataSlice with mixed types is not supported: DataSlice([1, 2.0], schema: OBJECT, shape: JaggedShape(2))"""
         ),
@@ -50,11 +50,9 @@ The cause is: DataSlice with mixed types is not supported: DataSlice([1, 2.0], s
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(
-            """operator math.max failed during evaluation: invalid inputs
+        re.escape("""math.max: invalid inputs
 
-The cause is: DataSlice with Entity schema is not supported:"""
-        ),
+The cause is: DataSlice with Entity schema is not supported:"""),
     ):
       expr_eval.eval(kde.agg_max(x))
 
@@ -63,7 +61,7 @@ The cause is: DataSlice with Entity schema is not supported:"""
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        """operator math.max failed during evaluation: invalid inputs
+        """math.max: invalid inputs
 
 The cause is: DataSlice has no primitive schema""",
     ):
@@ -72,9 +70,7 @@ The cause is: DataSlice has no primitive schema""",
   def test_expect_rank_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(
-            """operator math.max failed during evaluation: expected rank(x) > 0"""
-        ),
+        re.escape("""math.max: expected rank(x) > 0"""),
     ):
       expr_eval.eval(kde.agg_max(ds(1)))
 
@@ -83,7 +79,7 @@ The cause is: DataSlice has no primitive schema""",
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """operator math.max failed during evaluation: successfully converted input DataSlice(s) to DenseArray(s) but failed to evaluate the Arolla operator
+            """math.max: successfully converted input DataSlice(s) to DenseArray(s) but failed to evaluate the Arolla operator
 
 The cause is: expected numerics, got x: DENSE_ARRAY_TEXT;"""
         ),
@@ -94,7 +90,7 @@ The cause is: expected numerics, got x: DENSE_ARRAY_TEXT;"""
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """operator math.var failed during evaluation: expected unbiased to be a scalar boolean value, got DataSlice([True], schema: BOOLEAN, shape: JaggedShape(1))"""
+            """math.var: expected unbiased to be a scalar boolean value, got DataSlice([True], schema: BOOLEAN, shape: JaggedShape(1))"""
         ),
     ):
       expr_eval.eval(kde.math.agg_var(ds([1]), unbiased=ds([True])))

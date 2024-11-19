@@ -36,43 +36,49 @@ TEST(OperatorEvalError, NoCause) {
   std::optional<internal::Error> payload =
       internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
-  EXPECT_THAT(
-      payload->error_message(),
-      StrEq("operator op_name failed during evaluation: error_message"));
+  EXPECT_THAT(payload->error_message(), StrEq("op_name: error_message"));
   EXPECT_FALSE(payload->has_cause());
 }
 
 TEST(OperatorEvalError, WithStatus) {
-  absl::Status stutus = absl::InvalidArgumentError("Test error");
-  absl::Status new_status =
-      OperatorEvalError(stutus, "op_name", "error_message");
+  absl::Status status = absl::InvalidArgumentError("Test error");
+  absl::Status new_status = OperatorEvalError(status, "op_name");
   EXPECT_THAT(new_status,
               StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
   std::optional<internal::Error> payload =
       internal::GetErrorPayload(new_status);
   EXPECT_TRUE(payload.has_value());
-  EXPECT_THAT(
-      payload->error_message(),
-      StrEq("operator op_name failed during evaluation: error_message"));
+  EXPECT_THAT(payload->error_message(), StrEq("op_name: Test error"));
+  EXPECT_THAT(payload->cause().error_message(), StrEq(""));
+}
+
+TEST(OperatorEvalError, WithStatusAndErrorMessage) {
+  absl::Status status = absl::InvalidArgumentError("Test error");
+  absl::Status new_status =
+      OperatorEvalError(status, "op_name", "error_message");
+  EXPECT_THAT(new_status,
+              StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
+  std::optional<internal::Error> payload =
+      internal::GetErrorPayload(new_status);
+  EXPECT_TRUE(payload.has_value());
+  EXPECT_THAT(payload->error_message(), StrEq("op_name: error_message"));
   EXPECT_THAT(payload->cause().error_message(), StrEq("Test error"));
 }
 
 TEST(OperatorEvalError, WithStatusContainingCause) {
   internal::Error error;
   error.set_error_message("cause");
-  absl::Status stutus = absl::InvalidArgumentError("Test error");
-  stutus = internal::WithErrorPayload(stutus, error);
+  absl::Status status = absl::InvalidArgumentError("Test error");
+  status = internal::WithErrorPayload(status, error);
 
   absl::Status new_status =
-      OperatorEvalError(stutus, "op_name", "error_message");
+      OperatorEvalError(status, "op_name", "error_message");
   EXPECT_THAT(new_status,
               StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
   std::optional<internal::Error> payload =
       internal::GetErrorPayload(new_status);
   EXPECT_TRUE(payload.has_value());
-  EXPECT_THAT(
-      payload->error_message(),
-      StrEq("operator op_name failed during evaluation: error_message"));
+  EXPECT_THAT(payload->error_message(), StrEq("op_name: error_message"));
   EXPECT_THAT(payload->cause().error_message(), StrEq("cause"));
 }
 

@@ -315,8 +315,8 @@ class CoreOrdinalRankTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'operator kd.ordinal_rank failed during evaluation: expected'
-            ' `descending` to be a scalar boolean value'
+            'kd.ordinal_rank: expected `descending` to be a scalar boolean'
+            ' value'
         ),
     ):
       expr_eval.eval(
@@ -327,8 +327,8 @@ class CoreOrdinalRankTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'operator kd.ordinal_rank failed during evaluation: expected'
-            ' `descending` to be a scalar boolean value'
+            'kd.ordinal_rank: expected `descending` to be a scalar boolean'
+            ' value'
         ),
     ):
       expr_eval.eval(kde.core.ordinal_rank(ds([0, 3, 6]), descending=ds(None)))
@@ -340,8 +340,7 @@ class CoreOrdinalRankTest(parameterized.TestCase):
   def test_non_integral_tie_breaker(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'operator kd.ordinal_rank failed during evaluation: tie_breaker must be'
-        ' integers',
+        'kd.ordinal_rank: tie_breaker must be integers',
     ):
       expr_eval.eval(kde.core.ordinal_rank(ds([0, 3, 6]), ds([0.0, 1.0, 2.0])))
 

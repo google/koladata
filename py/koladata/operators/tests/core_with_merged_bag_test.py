@@ -60,8 +60,7 @@ class CoreWithMergedBagTest(parameterized.TestCase):
   def test_no_bag_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'operator kd.with_merged_bag failed during evaluation: expect the'
-        ' DataSlice to have a DataBag attached',
+        'kd.with_merged_bag: expect the DataSlice to have a DataBag attached',
     ):
       expr_eval.eval(kde.core.with_merged_bag(ds(1)))
 

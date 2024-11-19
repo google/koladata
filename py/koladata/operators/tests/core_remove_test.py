@@ -168,10 +168,7 @@ class CoreRemoveTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(
-            'operator kd.select failed during evaluation: failed to broadcast'
-            ' `fltr` to `ds`'
-        ),
+        re.escape('kd.select: failed to broadcast `fltr` to `ds`'),
     ):
       _ = expr_eval.eval(kde.core.remove(x, y))
 
