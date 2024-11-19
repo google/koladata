@@ -155,6 +155,7 @@ Top attrs:$""",
 Top attrs:""",
       ),
       (
+          # TODO: Correctly support statistics in fallback cases.
           'fallback',
           bag().new(a=1).enriched(bag().list([1, 2]).get_bag()).get_bag(),
           r"""^DataBag \$[0-9a-f]{4}:
@@ -166,6 +167,7 @@ Top attrs:""",
 Top attrs:$""",
       ),
       (
+          # TODO: Correctly support statistics in fallback cases.
           'two_fallbacks',
           bag()
           .new(a=1)
