@@ -135,3 +135,21 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
+
+py_test(
+    name = "benchmarks",
+    srcs = ["benchmarks.py"],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        ":nested_data",
+        "//py/koladata:kd",
+        "//py/google_benchmark",
+        # Enables python functions in profile.
+        # Enables --cpu_profile.
+        # Enables --peakheap_profile.
+        # Memory usage counters.
+    ],
+)
