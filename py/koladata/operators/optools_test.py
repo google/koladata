@@ -279,5 +279,143 @@ class OptoolsTest(parameterized.TestCase):
           repr(op_alias_no_view(42)), 'MY_CUSTOM_M.test.op_5_alias_no_view'
       )
 
+  def test_add_to_registry_as_overloadable_defaults(self):
+
+    @optools.add_to_registry_as_overloadable('test.op_6')
+    def op(x, y):
+      del x, y
+      raise NotImplementedError('overloadable operator')
+
+    @arolla.optools.add_to_registry_as_overload(
+        overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED
+    )
+    @arolla.optools.as_lambda_operator('test.op_6.overload_1')
+    def overload_1(x, y):  # pylint: disable=unused-variable
+      del y
+      return core.add(x, 1)
+
+    @arolla.optools.add_to_registry_as_overload(
+        overload_condition_expr=arolla.P.y != arolla.UNSPECIFIED
+    )
+    @arolla.optools.as_lambda_operator('test.op_6.overload_2')
+    def overload_2(x, y):  # pylint: disable=unused-variable
+      del y
+      return core.add(x, -1)
+
+    # Tests through the overloadable operator itself.
+    self.assertIsInstance(op, arolla.types.RegisteredOperator)
+    self.assertEqual(op.display_name, 'test.op_6')
+    self.assertIsInstance(
+        arolla.abc.decay_registered_operator(op), arolla.types.GenericOperator
+    )
+
+    # Tests through overloads.
+    self.assertTrue(view.has_koda_view(op(1, arolla.unspecified())))
+    self.assertEqual(
+        repr(op(42, arolla.unspecified())),
+        'test.op_6(DataItem(42, schema: INT32), unspecified)',
+    )
+    testing.assert_equal(arolla.eval(op(42, arolla.unspecified())), ds(43))
+    testing.assert_equal(arolla.eval(op(42, 5)), ds(41))
+
+  def test_add_to_registry_as_overloadable_overrides(self):
+
+    # Will be overridden.
+    @optools.add_to_registry_as_overloadable('test.op_7')
+    def op_fake(x):  # pylint: disable=unused-variable
+      del x
+      raise NotImplementedError('overloadable operator')
+
+    # Will override the previous one. Includes overrides for defaults.
+    @optools.add_to_registry_as_overloadable(
+        'test.op_7',
+        unsafe_override=True,
+        view=None,
+        repr_fn=repr_fn,
+        aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
+    )
+    def op_actual(x, y):  # pylint: disable=unused-variable
+      del x, y
+      raise NotImplementedError('overloadable operator')
+
+    @arolla.optools.add_to_registry_as_overload(
+        overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED
+    )
+    @arolla.optools.as_lambda_operator('test.op_7.overload')
+    def overload(x, y):  # pylint: disable=unused-variable
+      del y
+      return x + 1
+
+    op = arolla.abc.lookup_operator('test.op_7')
+    self.assertFalse(view.has_koda_view(op(1, arolla.unspecified())))
+    self.assertEqual(
+        repr(op(42, arolla.unspecified())), 'MY_CUSTOM_M.test.op_7'
+    )
+    testing.assert_equal(
+        arolla.eval(op(42, arolla.unspecified())), arolla.int32(43)
+    )
+
+  def test_add_to_registry_as_overload(self):
+
+    @optools.add_to_registry_as_overloadable('test.op_8')
+    def op(x, y):
+      del x, y
+      raise NotImplementedError('overloadable operator')
+
+    @optools.add_to_registry_as_overload(
+        overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED
+    )
+    @arolla.optools.as_lambda_operator('test.op_8.overload_1')
+    def overload_1(x, y):  # pylint: disable=unused-variable
+      del y
+      return core.add(x, 1)
+
+    @optools.add_to_registry_as_overload(
+        overload_condition_expr=arolla.P.y != arolla.UNSPECIFIED
+    )
+    @arolla.optools.as_lambda_operator('test.op_8.overload_2')
+    def overload_2(x, y):  # pylint: disable=unused-variable
+      del y
+      return core.add(x, -1)
+
+    # Is registered as an overload.
+    reg_overload_1 = arolla.abc.lookup_operator('test.op_8.overload_1')
+    self.assertIsInstance(reg_overload_1, arolla.types.RegisteredOperator)
+    self.assertIsInstance(
+        arolla.abc.decay_registered_operator(reg_overload_1),
+        arolla.types.GenericOperatorOverload,
+    )
+    # But the returned decorator is _not_ the overloaded op but the wrapped one
+    # (allowing us to chain decorators more easily).
+    self.assertIsInstance(overload_1, arolla.types.LambdaOperator)
+
+    # Evaluation works as expected.
+    testing.assert_equal(arolla.eval(op(42, arolla.unspecified())), ds(43))
+    testing.assert_equal(arolla.eval(op(42, 5)), ds(41))
+
+  def test_add_to_registry_as_overloadable_alias(self):
+    # Tests that aliases are supported for overloadable operators. The alias
+    # function is tested more thoroughly in the `test_add_alias` tests.
+
+    @optools.add_to_registry_as_overloadable('test.op_9')
+    def op(x, y):
+      del x, y
+      raise NotImplementedError('overloadable operator')
+
+    @optools.add_to_registry_as_overload(
+        overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED
+    )
+    @arolla.optools.as_lambda_operator('test.op_9.overload')
+    def overload(x, y):  # pylint: disable=unused-variable
+      del y
+      return core.add(x, 1)
+
+    optools.add_alias('test.op_9', 'test.op_9_alias')
+    op_alias = arolla.abc.lookup_operator('test.op_9_alias')
+    self.assertTrue(optools.equiv_to_op(op, op_alias))
+    testing.assert_equal(
+        arolla.eval(op_alias(42, arolla.unspecified())), ds(43)
+    )
+
 if __name__ == '__main__':
   absltest.main()

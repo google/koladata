@@ -85,7 +85,7 @@ class KodaView(arolla.abc.ExprView):
     return arolla.abc.aux_bind_op('kde.with_name', self, name)
 
   def __getitem__(self, x: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.get_item', self, x)
+    return arolla.abc.aux_bind_op('koda_internal.view.get_item', self, x)
 
   def freeze(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.freeze', self)

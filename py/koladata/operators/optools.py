@@ -92,6 +92,85 @@ def add_to_registry(
   return impl
 
 
+def add_to_registry_as_overloadable(
+    name: str,
+    *,
+    unsafe_override: bool = False,
+    view: type[arolla.abc.ExprView] | None = view_lib.KodaView,
+    repr_fn: op_repr.OperatorReprFn = op_repr.default_op_repr,
+    aux_policy: str = py_boxing.DEFAULT_BOXING_POLICY,
+):
+  """Koda wrapper around Arolla's add_to_registry_as_overloadable.
+
+  Performs additional Koda-specific registration, such as setting the view and
+  repr function.
+
+  Args:
+    name: Name of the operator.
+    unsafe_override: Whether to override an existing operator.
+    view: Optional view to use for the operator.
+    repr_fn: Optional repr function to use for the operator and its aliases.
+    aux_policy: Aux policy for the operator.
+
+  Returns:
+    An overloadable registered operator.
+  """
+
+  def impl(fn) -> arolla.types.RegisteredOperator:
+    overloadable_op = arolla.optools.add_to_registry_as_overloadable(
+        name,
+        unsafe_override=unsafe_override,
+        experimental_aux_policy=aux_policy,
+    )(fn)
+    arolla.abc.set_expr_view_for_registered_operator(
+        overloadable_op.display_name, view
+    )
+    arolla.abc.register_op_repr_fn_by_registration_name(
+        overloadable_op.display_name, repr_fn
+    )
+    _REGISTERED_OPS[overloadable_op.display_name] = _RegisteredOp(
+        overloadable_op, view, repr_fn
+    )
+    return overloadable_op
+
+  return impl
+
+
+def add_to_registry_as_overload(
+    name: str | None = None,
+    *,
+    overload_condition_expr: Any,
+    unsafe_override: bool = False,
+):
+  """Koda wrapper around Arolla's add_to_registry_as_overload.
+
+  Note that for e.g. `name = "foo.bar.baz"`, the wrapped operator will
+  be registered as an overload `"baz"` of the overloadable operator `"foo.bar"`.
+
+  Performs no additional Koda-specific registration.
+
+  Args:
+    name: Optional name of the operator. Otherwise, inferred from the op.
+    overload_condition_expr: Condition for the overload.
+    unsafe_override: Whether to override an existing operator.
+
+  Returns:
+    A decorator that registers an overload for the operator with the
+    corresponding name. Returns the original operator (unlinke the arolla
+    equivalent).
+  """
+
+  def impl(op: arolla.types.Operator) -> arolla.types.Operator:
+    _ = arolla.optools.add_to_registry_as_overload(
+        name,
+        unsafe_override=unsafe_override,
+        overload_condition_expr=overload_condition_expr,
+    )(op)
+    return op
+
+  return impl
+
+
 def add_alias(name: str, alias: str):
   registered_op = _REGISTERED_OPS.get(name)
   if registered_op is None:

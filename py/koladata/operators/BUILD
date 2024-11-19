@@ -300,6 +300,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         ":schema",
+        ":view_overloads",
         "//koladata/operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
@@ -465,6 +466,16 @@ py_library(
     deps = [
         ":optools",
         "//py/koladata/types:py_boxing",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "view_overloads",
+    srcs = ["view_overloads.py"],
+    deps = [
+        ":op_repr",
+        ":optools",
         "@com_google_arolla//py/arolla",
     ],
 )

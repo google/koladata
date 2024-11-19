@@ -26,6 +26,7 @@ from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema as schema_ops
+from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
@@ -1297,6 +1298,14 @@ def with_bag(ds, bag):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry_as_overload(
+    overload_condition_expr=P.bag == qtypes.DATA_BAG
+)
+@optools.as_lambda_operator('koda_internal.view.get_item._bag')
+def _get_item_bag(bag, ds):
+  return with_bag(ds, bag)
+
+
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._get_list_item_by_range',
@@ -1359,28 +1368,26 @@ def _get_item(x, key_or_index):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry_as_overload(
+    'koda_internal.view.get_item._slice',
+    overload_condition_expr=P.x == qtypes.DATA_SLICE,
+)
 @optools.add_to_registry(
-    aliases=['kde.get_item'], repr_fn=op_repr.get_item_repr
+    'kde.core.get_item', aliases=['kde.get_item'], repr_fn=op_repr.get_item_repr
 )
 @optools.as_lambda_operator(
     'kde.core.get_item',
     qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
         (
-            (P.x == qtypes.DATA_SLICE) | (P.x == qtypes.DATA_BAG),
-            'x must be DataSlice or DataBag',
-        ),
-        (
-            (P.key == qtypes.DATA_SLICE) | M.qtype.is_slice_qtype(P.key),
-            'key must be DataSlice or Slice',
+            (P.key_or_index == qtypes.DATA_SLICE)
+            | M.qtype.is_slice_qtype(P.key_or_index),
+            'key_or_index must be DataSlice or Slice',
         ),
     ],
 )
-def get_item(x, key):
-  """Get items from from `x` by `key`.
-
-  `x` must be a DataSlice of Dicts or Lists, or DataBag. If `x` is a DataSlice,
-  `key` is used as a slice or index. If `x` is a DataBag, `key` is used as a
-  view into the DataBag (equivalent to `kde.with_bag(key, x))`).
+def get_item(x, key_or_index):
+  """Get items from Lists or Dicts in `x` by `key_or_index`.
 
   Examples:
   l = kd.list([1, 2, 3])
@@ -1393,28 +1400,21 @@ def get_item(x, key):
   # Get Dict values by keys
   kde.get_item(d, kd.slice(['a', 'c'])) -> kd.slice([1, None])
 
-  # db lookup.
-  kde.get_item(l.get_bag(), l.ref()) -> l.
-
   Args:
-    x: List or Dict DataSlice, or DataBag.
-    key: DataSlice or Slice.
+    x: List or Dict DataSlice.
+    key_or_index: DataSlice or Slice.
 
   Returns:
     Result DataSlice.
   """
   return arolla.types.DispatchOperator(
-      'x, key',
-      data_bag_case=arolla.types.DispatchCase(
-          with_bag(P.key, P.x),
-          condition=P.x == qtypes.DATA_BAG,
+      'x, key_or_index',
+      unspecified_case=arolla.types.DispatchCase(
+          _get_item(P.x, P.key_or_index),
+          condition=P.key_or_index == qtypes.DATA_SLICE,
       ),
-      data_slice_index_case=arolla.types.DispatchCase(
-          _get_item(P.x, P.key),
-          condition=(P.x == qtypes.DATA_SLICE) & (P.key == qtypes.DATA_SLICE),
-      ),
-      default=_get_list_item_by_slice(P.x, P.key),
-  )(x, key)
+      default=_get_list_item_by_slice(P.x, P.key_or_index),
+  )(x, key_or_index)
 
 
 @optools.add_to_registry(aliases=['kde.get_keys'])

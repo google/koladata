@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.get_item."""
-
-import itertools
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -24,6 +20,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators import view_overloads
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -135,20 +132,9 @@ class CoreGetItemTest(parameterized.TestCase):
   )
   def test_slice_eval(self, x, keys_or_indices, expected):
     result = expr_eval.eval(kde.get_item(x, keys_or_indices))
+    view_result = expr_eval.eval(view_overloads.get_item(x, keys_or_indices))
     testing.assert_equal(result, expected)
-
-  @parameterized.parameters(
-      (list_item,),
-      (nested_list_item,),
-      (list_slice,),
-      (dict_item,),
-      (dict_slice,),
-      (ds(None, schema_constants.OBJECT).with_bag(db),),
-      (ds(1).with_bag(db),),
-  )
-  def test_bag_eval(self, x):
-    result = expr_eval.eval(kde.get_item(x.get_bag(), x.no_bag()))
-    testing.assert_equal(result, x)
+    testing.assert_equal(view_result, expected)
 
   def test_slice_expr(self):
     expr = kde.get_item(I.x, arolla.M.core.make_slice(I.start, I.end))
@@ -196,24 +182,10 @@ class CoreGetItemTest(parameterized.TestCase):
     self.assertEqual(repr(I.x[slice(1, -1)]), 'I.x[1:-1]')
 
   def test_qtype_signatures(self):
-    slice_qtypes = tuple(
-        arolla.eval(arolla.M.qtype.make_slice_qtype(q1, q2, q3))
-        for q1, q2, q3 in itertools.product(
-            (arolla.INT32, arolla.INT64, qtypes.DATA_SLICE, arolla.UNSPECIFIED),
-            repeat=3,
-        )
-    )
     arolla.testing.assert_qtype_signatures(
         kde.core.get_item,
-        (
-            (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-            (qtypes.DATA_BAG, DATA_SLICE, DATA_SLICE),
-            *(
-                (DATA_SLICE, slice_qtype, DATA_SLICE)
-                for slice_qtype in slice_qtypes
-            ),
-        ),
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES + slice_qtypes,
+        ((DATA_SLICE, DATA_SLICE, DATA_SLICE),),
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

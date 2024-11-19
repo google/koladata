@@ -20,6 +20,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators import view_overloads
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -42,6 +43,17 @@ class CoreWithBagTest(parameterized.TestCase):
   def test_eval(self, x):
     testing.assert_equal(
         expr_eval.eval(kde.core.with_bag(x.with_bag(None), x.get_bag())), x
+    )
+
+  @parameterized.parameters(
+      bag().obj(),
+      bag().list([1, 2, 3]),
+      ds([bag().obj(a=1)]),
+  )
+  def test_view_overload_eval(self, x):
+    testing.assert_equal(
+        expr_eval.eval(view_overloads.get_item(x.get_bag(), x.with_bag(None))),
+        x,
     )
 
   def test_null_bag(self):

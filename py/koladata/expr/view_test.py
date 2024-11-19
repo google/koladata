@@ -19,6 +19,7 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.operators import view_overloads
 from koladata.testing import signature_test_utils
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -125,9 +126,9 @@ class KodaViewTest(parameterized.TestCase):
     )
 
   def test_get_item(self):
-    testing.assert_equal(C.x[C.s], kde.get_item(C.x, C.s))
+    testing.assert_equal(C.x[C.s], view_overloads.get_item(C.x, C.s))
     testing.assert_equal(
-        C.x[slice(1, 2)], kde.get_item(C.x, arolla.types.Slice(1, 2))
+        C.x[slice(1, 2)], view_overloads.get_item(C.x, arolla.types.Slice(1, 2))
     )
 
   def test_add(self):

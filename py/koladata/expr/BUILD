@@ -158,6 +158,7 @@ py_test(
         ":introspection",
         ":view",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:view_overloads",
         "//py/koladata/testing",
         "//py/koladata/testing:signature_test_utils",
         "//py/koladata/types:data_bag",
