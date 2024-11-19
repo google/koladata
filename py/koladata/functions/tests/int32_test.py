@@ -19,6 +19,7 @@ from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 kde = kde_operators.kde
@@ -27,13 +28,16 @@ ds = data_slice.DataSlice.from_vals
 
 class Int32Test(parameterized.TestCase):
 
-  @parameterized.parameters([1], [[1, 2, 3]], [None], [1.0], [ds(1.0)])
+  @parameterized.parameters(
+      [1], [[1, 2, 3]], [None], [1.0], [ds(1.0)], [b'1'], ['1']
+  )
   def test_int32(self, x):
     testing.assert_equal(fns.int32(x), ds(x, schema_constants.INT32))
 
   @parameterized.parameters(
-      ('foo', 'cannot cast STRING to INT32'),
-      (b'test', 'cannot cast BYTES to INT32'),
+      (mask_constants.present, 'unsupported schema: MASK'),
+      ('foo', 'unable to parse INT32: foo'),
+      (b'test', 'unable to parse INT32: test'),
       (2**45, f'cannot cast int64{{{2**45}}} to int32'),
   )
   def test_int32_errors(self, x, expected_error_msg):

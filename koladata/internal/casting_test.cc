@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/casting.h"
 
+#include <cmath>
 #include <cstdint>
 #include <limits>
 
@@ -61,6 +62,21 @@ TEST(CastingTest, ToInt32_DataItem) {
               IsOkAndHolds(IsEquivalentTo(DataItem(1))));
   EXPECT_THAT(to_int32(DataItem(false)),
               IsOkAndHolds(IsEquivalentTo(DataItem(0))));
+  // String -> int32 parsing.
+  EXPECT_THAT(to_int32(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
+  EXPECT_THAT(to_int32(DataItem(arolla::Bytes("1"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1))));
+  EXPECT_THAT(to_int32(DataItem(arolla::Text("1"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1))));
+  EXPECT_THAT(to_int32(DataItem(arolla::Bytes("+123"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(123))));
+  EXPECT_THAT(to_int32(DataItem(arolla::Text("+123"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(123))));
+  EXPECT_THAT(to_int32(DataItem(arolla::Bytes("-123"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(-123))));
+  EXPECT_THAT(to_int32(DataItem(arolla::Text("-123"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(-123))));
+  // Errors.
   EXPECT_THAT(to_int32(DataItem(int64_t{1ll << 38})),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast int64{274877906944} to int32"));
@@ -70,6 +86,24 @@ TEST(CastingTest, ToInt32_DataItem) {
   EXPECT_THAT(to_int32(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to INT32"));
+  EXPECT_THAT(to_int32(DataItem(arolla::Bytes("1.5"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT32: 1.5"));
+  EXPECT_THAT(to_int32(DataItem(arolla::Text("1.5"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT32: 1.5"));
+  EXPECT_THAT(to_int32(DataItem(arolla::Bytes("1e2"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT32: 1e2"));
+  EXPECT_THAT(to_int32(DataItem(arolla::Text("1e2"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT32: 1e2"));
+  EXPECT_THAT(to_int32(DataItem(arolla::Text("274877906944"))),  // Too large.
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT32: 274877906944"));
+  EXPECT_THAT(to_int32(DataItem(arolla::Bytes("274877906944"))),  // Too large.
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT32: 274877906944"));
 }
 
 TEST(CastingTest, ToInt32_DataSlice) {
@@ -94,6 +128,14 @@ TEST(CastingTest, ToInt32_DataSlice) {
   EXPECT_THAT(to_int32(DataSliceImpl::Create({DataItem(true), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(
                   DataSliceImpl::Create({DataItem(1), DataItem()}))));
+  EXPECT_THAT(to_int32(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("1")), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(1), DataItem()}))));
+  EXPECT_THAT(to_int32(DataSliceImpl::Create(
+                  {DataItem(arolla::Bytes("1")), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(1), DataItem()}))));
   EXPECT_THAT(
       to_int32(DataSliceImpl::Create({DataItem(1), DataItem(int64_t{2})})),
       IsOkAndHolds(
@@ -110,6 +152,10 @@ TEST(CastingTest, ToInt32_DataSlice) {
       to_int32(DataSliceImpl::Create({DataItem(1), DataItem(arolla::kUnit)})),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "cannot cast MASK to INT32"));
+  EXPECT_THAT(to_int32(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("1.5")), DataItem(1)})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT32: 1.5"));
 }
 
 TEST(CastingTest, ToInt64_DataItem) {
@@ -127,12 +173,39 @@ TEST(CastingTest, ToInt64_DataItem) {
               IsOkAndHolds(IsEquivalentTo(DataItem(int64_t{1}))));
   EXPECT_THAT(to_int64(DataItem(false)),
               IsOkAndHolds(IsEquivalentTo(DataItem(int64_t{0}))));
+  // String -> int64 parsing.
+  EXPECT_THAT(to_int64(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
+  EXPECT_THAT(to_int64(DataItem(arolla::Bytes("1"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(int64_t{1}))));
+  EXPECT_THAT(to_int64(DataItem(arolla::Text("1"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(int64_t{1}))));
+  EXPECT_THAT(to_int64(DataItem(arolla::Bytes("+123"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(int64_t{123}))));
+  EXPECT_THAT(to_int64(DataItem(arolla::Text("+123"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(int64_t{123}))));
+  EXPECT_THAT(to_int64(DataItem(arolla::Bytes("-123"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(int64_t{-123}))));
+  EXPECT_THAT(to_int64(DataItem(arolla::Text("-123"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(int64_t{-123}))));
+  // Errors.
   EXPECT_THAT(
       to_int64(DataItem(std::numeric_limits<float>::infinity())),
       StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast inf to int64"));
   EXPECT_THAT(to_int64(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to INT64"));
+  EXPECT_THAT(to_int64(DataItem(arolla::Bytes("1.5"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT64: 1.5"));
+  EXPECT_THAT(to_int64(DataItem(arolla::Text("1.5"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT64: 1.5"));
+  EXPECT_THAT(to_int64(DataItem(arolla::Bytes("1e2"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT64: 1e2"));
+  EXPECT_THAT(to_int64(DataItem(arolla::Text("1e2"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT64: 1e2"));
 }
 
 TEST(CastingTest, ToInt64_DataSlice) {
@@ -156,6 +229,14 @@ TEST(CastingTest, ToInt64_DataSlice) {
   EXPECT_THAT(to_int64(DataSliceImpl::Create({DataItem(true), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(
                   DataSliceImpl::Create({DataItem(int64_t{1}), DataItem()}))));
+  EXPECT_THAT(to_int64(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("1")), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(int64_t{1}), DataItem()}))));
+  EXPECT_THAT(to_int64(DataSliceImpl::Create(
+                  {DataItem(arolla::Bytes("1")), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(int64_t{1}), DataItem()}))));
   EXPECT_THAT(
       to_int64(DataSliceImpl::Create({DataItem(1), DataItem(int64_t{2})})),
       IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
@@ -168,6 +249,10 @@ TEST(CastingTest, ToInt64_DataSlice) {
       to_int64(DataSliceImpl::Create({DataItem(1), DataItem(arolla::kUnit)})),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "cannot cast MASK to INT64"));
+  EXPECT_THAT(to_int64(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("1.5")), DataItem(1)})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT64: 1.5"));
 }
 
 TEST(CastingTest, ToFloat32_DataItem) {
@@ -185,9 +270,42 @@ TEST(CastingTest, ToFloat32_DataItem) {
               IsOkAndHolds(IsEquivalentTo(DataItem(1.0f))));
   EXPECT_THAT(to_float32(DataItem(false)),
               IsOkAndHolds(IsEquivalentTo(DataItem(0.0f))));
+  // String -> float32 parsing.
+  EXPECT_THAT(to_float32(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
+  EXPECT_THAT(to_float32(DataItem(arolla::Bytes("1"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1.0f))));
+  EXPECT_THAT(to_float32(DataItem(arolla::Text("1"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1.0f))));
+  EXPECT_THAT(to_float32(DataItem(arolla::Bytes("+123.5"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(123.5f))));
+  EXPECT_THAT(to_float32(DataItem(arolla::Text("+123.5"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(123.5f))));
+  EXPECT_THAT(to_float32(DataItem(arolla::Bytes("-123.3"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(-123.3f))));
+  EXPECT_THAT(to_float32(DataItem(arolla::Text("-123.3"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(-123.3f))));
+  EXPECT_THAT(to_float32(DataItem(arolla::Bytes("1e2"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(100.0f))));
+  EXPECT_THAT(to_float32(DataItem(arolla::Text("1e2"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(100.0f))));
+  EXPECT_THAT(to_float32(DataItem(arolla::Bytes("-inf"))),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataItem(-std::numeric_limits<float>::infinity()))));
+  EXPECT_THAT(to_float32(DataItem(arolla::Text("-inf"))),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataItem(-std::numeric_limits<float>::infinity()))));
+  ASSERT_OK_AND_ASSIGN(auto nan, to_float32(DataItem(arolla::Text("nan"))));
+  EXPECT_TRUE(std::isnan(nan.value<float>()));
+  // Errors.
   EXPECT_THAT(to_float32(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to FLOAT32"));
+  EXPECT_THAT(to_float32(DataItem(arolla::Bytes("foo"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse FLOAT32: foo"));
+  EXPECT_THAT(to_float32(DataItem(arolla::Text("foo"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse FLOAT32: foo"));
 }
 
 TEST(CastingTest, ToFloat32_DataSlice) {
@@ -211,6 +329,14 @@ TEST(CastingTest, ToFloat32_DataSlice) {
   EXPECT_THAT(to_float32(DataSliceImpl::Create({DataItem(true), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(
                   DataSliceImpl::Create({DataItem(1.0f), DataItem()}))));
+  EXPECT_THAT(to_float32(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("1.5")), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(1.5f), DataItem()}))));
+  EXPECT_THAT(to_float32(DataSliceImpl::Create(
+                  {DataItem(arolla::Bytes("1.5")), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(1.5f), DataItem()}))));
   EXPECT_THAT(
       to_float32(DataSliceImpl::Create({DataItem(1), DataItem(int64_t{2})})),
       IsOkAndHolds(IsEquivalentTo(
@@ -219,6 +345,10 @@ TEST(CastingTest, ToFloat32_DataSlice) {
                   {DataItem(1.0f), DataItem(arolla::kUnit)})),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to FLOAT32"));
+  EXPECT_THAT(to_float32(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("foo")), DataItem(1)})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse FLOAT32: foo"));
 }
 
 TEST(CastingTest, ToFloat64_DataItem) {
@@ -236,9 +366,42 @@ TEST(CastingTest, ToFloat64_DataItem) {
               IsOkAndHolds(IsEquivalentTo(DataItem(1.0))));
   EXPECT_THAT(to_float64(DataItem(false)),
               IsOkAndHolds(IsEquivalentTo(DataItem(0.0))));
+  // String -> float64 parsing.
+  EXPECT_THAT(to_float64(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
+  EXPECT_THAT(to_float64(DataItem(arolla::Bytes("1"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1.0))));
+  EXPECT_THAT(to_float64(DataItem(arolla::Text("1"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1.0))));
+  EXPECT_THAT(to_float64(DataItem(arolla::Bytes("+123.5"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(123.5))));
+  EXPECT_THAT(to_float64(DataItem(arolla::Text("+123.5"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(123.5))));
+  EXPECT_THAT(to_float64(DataItem(arolla::Bytes("-123.3"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(-123.3))));
+  EXPECT_THAT(to_float64(DataItem(arolla::Text("-123.3"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(-123.3))));
+  EXPECT_THAT(to_float64(DataItem(arolla::Bytes("1e2"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(100.0))));
+  EXPECT_THAT(to_float64(DataItem(arolla::Text("1e2"))),
+              IsOkAndHolds(IsEquivalentTo(DataItem(100.0))));
+  EXPECT_THAT(to_float64(DataItem(arolla::Bytes("-inf"))),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataItem(-std::numeric_limits<double>::infinity()))));
+  EXPECT_THAT(to_float64(DataItem(arolla::Text("-inf"))),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataItem(-std::numeric_limits<double>::infinity()))));
+  ASSERT_OK_AND_ASSIGN(auto nan, to_float64(DataItem(arolla::Text("nan"))));
+  EXPECT_TRUE(std::isnan(nan.value<double>()));
+  // Errors.
   EXPECT_THAT(to_float64(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to FLOAT64"));
+  EXPECT_THAT(to_float64(DataItem(arolla::Bytes("foo"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse FLOAT64: foo"));
+  EXPECT_THAT(to_float64(DataItem(arolla::Text("foo"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse FLOAT64: foo"));
 }
 
 TEST(CastingTest, ToFloat64_DataSlice) {
@@ -262,6 +425,14 @@ TEST(CastingTest, ToFloat64_DataSlice) {
   EXPECT_THAT(to_float64(DataSliceImpl::Create({DataItem(true), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(
                   DataSliceImpl::Create({DataItem(1.0), DataItem()}))));
+  EXPECT_THAT(to_float64(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("1.5")), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(1.5), DataItem()}))));
+  EXPECT_THAT(to_float64(DataSliceImpl::Create(
+                  {DataItem(arolla::Bytes("1.5")), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(
+                  DataSliceImpl::Create({DataItem(1.5), DataItem()}))));
   EXPECT_THAT(
       to_float64(DataSliceImpl::Create({DataItem(1), DataItem(int64_t{2})})),
       IsOkAndHolds(IsEquivalentTo(
@@ -270,6 +441,10 @@ TEST(CastingTest, ToFloat64_DataSlice) {
                   {DataItem(1.0), DataItem(arolla::kUnit)})),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to FLOAT64"));
+  EXPECT_THAT(to_float64(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("foo")), DataItem(1)})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse FLOAT64: foo"));
 }
 
 TEST(CastingTest, ToNone_DataItem) {
@@ -512,8 +687,8 @@ TEST(CastingTest, Encode_DataSlice) {
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Bytes("te\0xt")), DataItem()}))));
   EXPECT_THAT(encode(DataSliceImpl::Create({DataItem(arolla::Bytes("foo")),
-                                              DataItem(arolla::Text("te\0xt")),
-                                              DataItem()})),
+                                            DataItem(arolla::Text("te\0xt")),
+                                            DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Bytes("foo")),
                    DataItem(arolla::Bytes("te\0xt")), DataItem()}))));

@@ -17,6 +17,7 @@
 Extensive testing is done in C++.
 """
 
+import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -48,6 +49,8 @@ class SchemaToInt32Test(parameterized.TestCase):
       (ds(1.5, schema_constants.ANY), ds(1)),
       (ds(1.5, schema_constants.OBJECT), ds(1)),
       (ds(True), ds(1)),
+      (ds("1"), ds(1)),
+      (ds(b"1"), ds(1)),
       (ds([1]), ds([1])),
       (ds([1], schema_constants.INT64), ds([1])),
       (ds([1.5]), ds([1])),
@@ -58,7 +61,7 @@ class SchemaToInt32Test(parameterized.TestCase):
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
-      ds("a"), ds(arolla.present())
+      ds(arolla.quote(arolla.L.x)), ds(arolla.present())
   )
   def test_not_castable_error(self, value):
     with self.assertRaisesRegex(
@@ -67,9 +70,15 @@ class SchemaToInt32Test(parameterized.TestCase):
       expr_eval.eval(kde.schema.to_int32(value))
 
   def test_not_castable_internal_value(self):
-    x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast STRING to INT32"):
+    x = ds(arolla.present(), schema_constants.OBJECT)
+    with self.assertRaisesRegex(ValueError, "cannot cast MASK to INT32"):
       expr_eval.eval(kde.schema.to_int32(x))
+
+  def test_not_parseable_error(self):
+    with self.assertRaisesRegex(
+        ValueError, re.escape("unable to parse INT32: 1.5")
+    ):
+      expr_eval.eval(kde.schema.to_int32(ds("1.5")))
 
   def test_boxing(self):
     testing.assert_equal(

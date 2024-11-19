@@ -19,6 +19,7 @@ from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 kde = kde_operators.kde
@@ -28,14 +29,21 @@ ds = data_slice.DataSlice.from_vals
 class Float64Test(parameterized.TestCase):
 
   @parameterized.parameters(
-      [1], [[1, 2, 3]], [None], [1.0], [ds(1.0, schema_constants.FLOAT64)]
+      [1],
+      [[1, 2, 3]],
+      [None],
+      [1.0],
+      [ds(1.0, schema_constants.FLOAT64)],
+      [b'1'],
+      ['1'],
   )
   def test_float64(self, x):
     testing.assert_equal(fns.float64(x), ds(x, schema_constants.FLOAT64))
 
   @parameterized.parameters(
-      ('foo', 'cannot cast STRING to FLOAT64'),
-      (b'test', 'cannot cast BYTES to FLOAT64'),
+      (mask_constants.present, 'unsupported schema: MASK'),
+      ('foo', 'unable to parse FLOAT64: foo'),
+      (b'test', 'unable to parse FLOAT64: test'),
   )
   def test_float64_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

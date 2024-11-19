@@ -62,7 +62,8 @@ absl::StatusOr<DataSlice> ToNumericLike(const DataSlice& slice,
                                         schema::DType dst_dtype) {
   constexpr DTypeMask kAllowedSchemas = GetDTypeMask(
       schema::kNone, schema::kInt32, schema::kInt64, schema::kFloat32,
-      schema::kFloat64, schema::kBool, schema::kObject, schema::kAny);
+      schema::kFloat64, schema::kBool, schema::kString, schema::kBytes,
+      schema::kObject, schema::kAny);
   RETURN_IF_ERROR(VerifyCompatibleSchema(slice, kAllowedSchemas));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, ToNumericImpl()(impl));
@@ -212,12 +213,20 @@ absl::StatusOr<DataSlice> ToMask(const DataSlice& slice) {
 }
 
 absl::StatusOr<DataSlice> ToBool(const DataSlice& slice) {
-  return ToNumericLike<schema::ToBool>(slice, schema::kBool);
+  constexpr DTypeMask kAllowedSchemas = GetDTypeMask(
+      schema::kNone, schema::kInt32, schema::kInt64, schema::kFloat32,
+      schema::kFloat64, schema::kBool, schema::kObject, schema::kAny);
+  RETURN_IF_ERROR(VerifyCompatibleSchema(slice, kAllowedSchemas));
+  return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto impl_res, schema::ToBool()(impl));
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
+                             internal::DataItem(schema::kBool), slice.GetBag());
+  });
 }
 
 absl::StatusOr<DataSlice> ToAny(const DataSlice& slice) {
   return slice.VisitImpl([&](const auto& impl) {
-    return DataSlice::Create(std::move(impl), slice.GetShape(),
+    return DataSlice::Create(impl, slice.GetShape(),
                              internal::DataItem(schema::kAny), slice.GetBag());
   });
 }

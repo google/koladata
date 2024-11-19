@@ -19,6 +19,7 @@ from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 kde = kde_operators.kde
@@ -28,14 +29,15 @@ ds = data_slice.DataSlice.from_vals
 class Int64Test(parameterized.TestCase):
 
   @parameterized.parameters(
-      [1], [[1, 2, 3]], [None], [1.0], [ds(1.0)], [2**70 + 1]
+      [1], [[1, 2, 3]], [None], [1.0], [ds(1.0)], [2**70 + 1], [b'1'], ['1']
   )
   def test_int64(self, x):
     testing.assert_equal(fns.int64(x), ds(x, schema_constants.INT64))
 
   @parameterized.parameters(
-      ('foo', 'cannot cast STRING to INT64'),
-      (b'test', 'cannot cast BYTES to INT64'),
+      (mask_constants.present, 'unsupported schema: MASK'),
+      ('foo', 'unable to parse INT64: foo'),
+      (b'test', 'unable to parse INT64: test'),
   )
   def test_int64_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

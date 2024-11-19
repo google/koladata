@@ -17,6 +17,7 @@
 Extensive testing is done in C++.
 """
 
+import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -49,6 +50,8 @@ class SchemaToInt64Test(parameterized.TestCase):
       (ds(1.5, schema_constants.ANY), ds(1, schema_constants.INT64)),
       (ds(1.5, schema_constants.OBJECT), ds(1, schema_constants.INT64)),
       (ds(True), ds(1, schema_constants.INT64)),
+      (ds("1"), ds(1, schema_constants.INT64)),
+      (ds(b"1"), ds(1, schema_constants.INT64)),
       (
           ds([None], schema_constants.FLOAT64),
           ds([None], schema_constants.INT64),
@@ -66,7 +69,7 @@ class SchemaToInt64Test(parameterized.TestCase):
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
-      ds(None, schema_constants.STRING), ds("a"), ds(arolla.present())
+      ds(arolla.quote(arolla.L.x)), ds(arolla.present())
   )
   def test_not_castable_error(self, value):
     with self.assertRaisesRegex(
@@ -75,9 +78,15 @@ class SchemaToInt64Test(parameterized.TestCase):
       expr_eval.eval(kde.schema.to_int64(value))
 
   def test_not_castable_internal_value(self):
-    x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast STRING to INT64"):
+    x = ds(arolla.present(), schema_constants.OBJECT)
+    with self.assertRaisesRegex(ValueError, "cannot cast MASK to INT64"):
       expr_eval.eval(kde.schema.to_int64(x))
+
+  def test_not_parseable_error(self):
+    with self.assertRaisesRegex(
+        ValueError, re.escape("unable to parse INT64: 1.5")
+    ):
+      expr_eval.eval(kde.schema.to_int64(ds("1.5")))
 
   def test_boxing(self):
     testing.assert_equal(

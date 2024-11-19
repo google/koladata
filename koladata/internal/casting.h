@@ -155,51 +155,76 @@ struct ToDST {
   }
 };
 
+// Casts the given scalar value to the provided numeric type DST. Supports
+// numeric casting as well as parsing of string values.
+template <typename DST, typename ParseOp>
+struct ToNumericImpl {
+  template <typename T>
+  auto operator()(const T& value) const {
+    if constexpr (arolla::meta::contains_v<kNumericsCompatible, T>) {
+      return arolla::CastOp<DST>()(value);
+    } else {
+      return ParseOp()(value);
+    }
+  }
+};
+
 }  // namespace schema_internal
 
 // Casts the given item/slice to int32.
 //
 // The following cases are supported:
-// - {INT32, INT64, FLOAT32, FLOAT64, BOOL} QType -> INT32.
+// - {INT32, INT64, FLOAT32, FLOAT64, BOOL, STRING, BYTES} QType -> INT32.
 // - Empty -> empty.
 // - Mixed types -> INT32 if all items are in {INT32, INT64, FLOAT32, FLOAT64,
-// BOOL}.
-struct ToInt32 : schema_internal::ToDST<arolla::CastOp<int>, int,
-                                        schema_internal::kNumericsCompatible> {
-};
+// BOOL, STRING, BYTES}.
+struct ToInt32
+    : schema_internal::ToDST<
+          schema_internal::ToNumericImpl<int, arolla::StringsParseInt32>, int,
+          arolla::meta::concat_t<schema_internal::kNumericsCompatible,
+                                 schema_internal::kStrings>> {};
 
 // Casts the given item/slice to int64.
 //
 // The following cases are supported:
-// - {INT32, INT64, FLOAT32, FLOAT64, BOOL} QType -> INT64.
+// - {INT32, INT64, FLOAT32, FLOAT64, BOOL, STRING, BYTES} QType -> INT64.
 // - Empty -> empty.
 // - Mixed types -> INT64 if all items are in {INT32, INT64, FLOAT32, FLOAT64,
-// BOOL}.
-struct ToInt64 : schema_internal::ToDST<arolla::CastOp<int64_t>, int64_t,
-                                        schema_internal::kNumericsCompatible> {
-};
+// BOOL, STRING, BYTES}.
+struct ToInt64
+    : schema_internal::ToDST<
+          schema_internal::ToNumericImpl<int64_t, arolla::StringsParseInt64>,
+          int64_t,
+          arolla::meta::concat_t<schema_internal::kNumericsCompatible,
+                                 schema_internal::kStrings>> {};
 
 // Casts the given item/slice to float.
 //
 // The following cases are supported:
-// - {INT32, INT64, FLOAT32, FLOAT64, BOOL} QType -> FLOAT32.
+// - {INT32, INT64, FLOAT32, FLOAT64, BOOL, STRING, BYTES} QType -> FLOAT32.
 // - Empty -> empty.
 // - Mixed types -> FLOAT32 if all items are in {INT32, INT64, FLOAT32,
-// FLOAT64, BOOL}.
+// FLOAT64, BOOL, STRING, BYTES}.
 struct ToFloat32
-    : schema_internal::ToDST<arolla::CastOp<float>, float,
-                             schema_internal::kNumericsCompatible> {};
+    : schema_internal::ToDST<
+          schema_internal::ToNumericImpl<float, arolla::StringsParseFloat32>,
+          float,
+          arolla::meta::concat_t<schema_internal::kNumericsCompatible,
+                                 schema_internal::kStrings>> {};
 
 // Casts the given item/slice to double.
 //
 // The following cases are supported:
-// - {INT32, INT64, FLOAT32, FLOAT64, BOOL} QType -> FLOAT64.
+// - {INT32, INT64, FLOAT32, FLOAT64, BOOL, STRING, BYTES} QType -> FLOAT64.
 // - Empty -> empty.
 // - Mixed types -> FLOAT64 if all items are in {INT32, INT64, FLOAT32,
-// FLOAT64, BOOL}.
+// FLOAT64, BOOL, STRING, BYTES}.
 struct ToFloat64
-    : schema_internal::ToDST<arolla::CastOp<double>, double,
-                             schema_internal::kNumericsCompatible> {};
+    : schema_internal::ToDST<
+          schema_internal::ToNumericImpl<double, arolla::StringsParseFloat64>,
+          double,
+          arolla::meta::concat_t<schema_internal::kNumericsCompatible,
+                                 schema_internal::kStrings>> {};
 
 // Casts the given item/slice to None.
 //

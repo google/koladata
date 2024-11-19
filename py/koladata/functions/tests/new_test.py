@@ -386,8 +386,8 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
     testing.assert_equal(item.no_bag(), ds([1.0, 2.0]))
 
   def test_universal_converter_primitive_casting_error(self):
-    with self.assertRaisesRegex(ValueError, 'cannot cast BYTES to FLOAT32'):
-      fns.new(b'xyz', schema=schema_constants.FLOAT32)
+    with self.assertRaisesRegex(ValueError, 'cannot cast BYTES to MASK'):
+      fns.new(b'xyz', schema=schema_constants.MASK)
 
   def test_universal_converter_none(self):
     item = fns.new(None)

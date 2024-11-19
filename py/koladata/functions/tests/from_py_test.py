@@ -116,8 +116,8 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(item, ds(42, schema_constants.INT32))
 
   def test_primitive_casting_error(self):
-    with self.assertRaisesRegex(ValueError, 'cannot cast BYTES to FLOAT32'):
-      fns.from_py(b'xyz', schema=schema_constants.FLOAT32)
+    with self.assertRaisesRegex(ValueError, 'cannot cast BYTES to MASK'):
+      fns.from_py(b'xyz', schema=schema_constants.MASK)
 
   def test_list_from_dim(self):
     input_list = [[1, 2], [3, 4]]

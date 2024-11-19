@@ -157,6 +157,12 @@ INSTANTIATE_TEST_SUITE_P(
            int32_slice},
           {test::DataSlice<bool>({true, false, std::nullopt}, schema::kBool),
            test::DataSlice<int>({1, 0, std::nullopt}, schema::kInt32)},
+          {test::DataSlice<arolla::Text>({"1", "2", std::nullopt},
+                                         schema::kString),
+           int32_slice},
+          {test::DataSlice<arolla::Bytes>({"1", "2", std::nullopt},
+                                          schema::kBytes),
+           int32_slice},
           {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kObject),
            int32_slice},
           {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kAny),
@@ -176,6 +182,10 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(1.0, schema::kFloat64),
            test::DataItem(1, schema::kInt32)},
           {test::DataItem(true, schema::kBool),
+           test::DataItem(1, schema::kInt32)},
+          {test::DataItem(arolla::Text("1"), schema::kString),
+           test::DataItem(1, schema::kInt32)},
+          {test::DataItem(arolla::Bytes("1"), schema::kBytes),
            test::DataItem(1, schema::kInt32)},
           {test::DataItem(1, schema::kObject),
            test::DataItem(1, schema::kInt32)},
@@ -201,6 +211,9 @@ TEST(Casting, Int32Errors) {
   EXPECT_THAT(ToInt32(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to INT32"));
+  EXPECT_THAT(ToInt32(test::DataItem(arolla::Text("1.5"), schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT32: 1.5"));
 }
 
 TEST_P(CastingToInt64Test, Casting) {
@@ -227,6 +240,12 @@ INSTANTIATE_TEST_SUITE_P(
            int64_slice},
           {test::DataSlice<bool>({true, false, std::nullopt}, schema::kBool),
            test::DataSlice<int64_t>({1, 0, std::nullopt}, schema::kInt64)},
+          {test::DataSlice<arolla::Text>({"1", "2", std::nullopt},
+                                         schema::kString),
+           int64_slice},
+          {test::DataSlice<arolla::Bytes>({"1", "2", std::nullopt},
+                                          schema::kBytes),
+           int64_slice},
           {test::DataSlice<int>({1, 2, std::nullopt}, schema::kObject),
            int64_slice},
           {test::DataSlice<int>({1, 2, std::nullopt}, schema::kAny),
@@ -246,6 +265,10 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(1.0, schema::kFloat64),
            test::DataItem(int64_t{1}, schema::kInt64)},
           {test::DataItem(true, schema::kBool),
+           test::DataItem(int64_t{1}, schema::kInt64)},
+          {test::DataItem(arolla::Text("1"), schema::kString),
+           test::DataItem(int64_t{1}, schema::kInt64)},
+          {test::DataItem(arolla::Bytes("1"), schema::kBytes),
            test::DataItem(int64_t{1}, schema::kInt64)},
           {test::DataItem(1, schema::kObject),
            test::DataItem(int64_t{1}, schema::kInt64)},
@@ -272,6 +295,9 @@ TEST(Casting, Int64Errors) {
   EXPECT_THAT(ToInt64(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to INT64"));
+  EXPECT_THAT(ToInt64(test::DataItem(arolla::Text("1.5"), schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT64: 1.5"));
 }
 
 TEST_P(CastingToFloat32Test, Casting) {
@@ -299,6 +325,12 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataSlice<bool>({true, false, std::nullopt}, schema::kBool),
            test::DataSlice<float>({1.0f, 0.0f, std::nullopt},
                                   schema::kFloat32)},
+          {test::DataSlice<arolla::Text>({"1.0", "2", std::nullopt},
+                                         schema::kString),
+           float32_slice},
+          {test::DataSlice<arolla::Bytes>({"1.0", "2", std::nullopt},
+                                          schema::kBytes),
+           float32_slice},
           {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kObject),
            float32_slice},
           {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kAny),
@@ -318,6 +350,10 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(1.0, schema::kFloat64),
            test::DataItem(1.0f, schema::kFloat32)},
           {test::DataItem(true, schema::kBool),
+           test::DataItem(1.0f, schema::kFloat32)},
+          {test::DataItem(arolla::Text("1.0"), schema::kString),
+           test::DataItem(1.0f, schema::kFloat32)},
+          {test::DataItem(arolla::Bytes("1.0"), schema::kBytes),
            test::DataItem(1.0f, schema::kFloat32)},
           {test::DataItem(1, schema::kObject),
            test::DataItem(1.0f, schema::kFloat32)},
@@ -344,6 +380,9 @@ TEST(Casting, Float32Errors) {
   EXPECT_THAT(ToFloat32(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to FLOAT32"));
+  EXPECT_THAT(ToFloat32(test::DataItem(arolla::Text("foo"), schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse FLOAT32: foo"));
 }
 
 TEST_P(CastingToFloat64Test, Casting) {
@@ -370,6 +409,12 @@ INSTANTIATE_TEST_SUITE_P(
           {float64_slice, float64_slice},
           {test::DataSlice<bool>({true, false, std::nullopt}, schema::kBool),
            test::DataSlice<double>({1.0, 0.0, std::nullopt}, schema::kFloat64)},
+          {test::DataSlice<arolla::Text>({"1.0", "2", std::nullopt},
+                                         schema::kString),
+           float64_slice},
+          {test::DataSlice<arolla::Bytes>({"1.0", "2", std::nullopt},
+                                          schema::kBytes),
+           float64_slice},
           {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kObject),
            float64_slice},
           {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kAny),
@@ -389,6 +434,10 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(1.0, schema::kFloat64),
            test::DataItem(1.0, schema::kFloat64)},
           {test::DataItem(true, schema::kBool),
+           test::DataItem(1.0, schema::kFloat64)},
+          {test::DataItem(arolla::Text("1.0"), schema::kString),
+           test::DataItem(1.0, schema::kFloat64)},
+          {test::DataItem(arolla::Bytes("1.0"), schema::kBytes),
            test::DataItem(1.0, schema::kFloat64)},
           {test::DataItem(1, schema::kObject),
            test::DataItem(1.0, schema::kFloat64)},
@@ -415,6 +464,9 @@ TEST(Casting, Float64Errors) {
   EXPECT_THAT(ToFloat64(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to FLOAT64"));
+  EXPECT_THAT(ToFloat64(test::DataItem(arolla::Text("foo"), schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse FLOAT64: foo"));
 }
 
 TEST_P(CastingToNoneTest, Casting) {
