@@ -610,16 +610,17 @@ TEST(DataBagReprTest, TestDataBagStatistics_Dict) {
       DataSlice dicts,
       CreateDictShaped(bag, shape, /*keys=*/test::DataSlice<int>({1, 2, 3}),
                        /*values=*/test::DataSlice<int64_t>({57, 58, 59})));
-
   EXPECT_THAT(
       DataBagStatistics(bag),
       IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}(.|\n)*)regex"),
           MatchesRegex(
-              R"regex(DataBag \$[0-9a-f]{4} with 3 values in 3 attrs, plus 2 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
+              R"regex((.|\n)*0 Entities/Objects with 0 values in 0 attrs(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*<dict value>: 1 values(.|\n)*<dict value>: 1 values(.|\n)*<dict value>: 1 values(.|\n)*)regex"),
+              R"regex((.|\n)*0 non empty Lists with 0 items(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*Use db\.contents_repr\(\) to see the actual values\.)regex"))));
+              R"regex((.|\n)*3 non empty Dicts with 3 key/value entries(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*1 schemas with 2 values(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_TwoDicts) {
@@ -634,17 +635,19 @@ TEST(DataBagReprTest, TestDataBagStatistics_TwoDicts) {
   ASSERT_OK_AND_ASSIGN(
       DataSlice dict2,
       CreateDictShaped(bag, shape, /*keys=*/test::DataSlice<int>({3, 5}),
-                       /*values=*/test::DataSlice<int64_t>({5, 6})));
+                       /*values=*/test::DataSlice<int32_t>({5, 6})));
 
   EXPECT_THAT(
       DataBagStatistics(bag),
       IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}(.|\n)*)regex"),
           MatchesRegex(
-              R"regex(DataBag \$[0-9a-f]{4} with 4 values in 3 attrs, plus 2 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
+              R"regex((.|\n)*0 Entities/Objects with 0 values in 0 attrs(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*<dict value>: 2 values(.|\n)*<dict value>: 1 values(.|\n)*<dict value>: 1 values(.|\n)*)regex"),
+              R"regex((.|\n)*0 non empty Lists with 0 items(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*Use db\.contents_repr\(\) to see the actual values\.)regex"))));
+              R"regex((.|\n)*2 non empty Dicts with 4 key/value entries(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*2 schemas with 4 values(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_Entity) {
@@ -657,10 +660,16 @@ TEST(DataBagReprTest, TestDataBagStatistics_Entity) {
   EXPECT_THAT(
       DataBagStatistics(bag),
       IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}(.|\n)*)regex"),
           MatchesRegex(
-              R"regex(DataBag \$[0-9a-f]{4} with 3 values in 2 attrs, plus 2 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
+              R"regex((.|\n)*2 Entities/Objects with 3 values in 2 attrs(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*b: 2 values(.|\n)*a: 1 values(.|\n)*)regex"))));
+              R"regex((.|\n)*0 non empty Lists with 0 items(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*0 non empty Dicts with 0 key/value entries(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*1 schemas with 2 values(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*b: 2 values(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*a: 1 values(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_Object) {
@@ -673,10 +682,16 @@ TEST(DataBagReprTest, TestDataBagStatistics_Object) {
   EXPECT_THAT(
       DataBagStatistics(bag),
       IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}(.|\n)*)regex"),
           MatchesRegex(
-              R"regex(DataBag \$[0-9a-f]{4} with 6 values in 3 attrs, plus 6 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
+              R"regex((.|\n)*3 Entities/Objects with 3 values in 2 attrs(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*<object schemas>: 3 values(.|\n)*b: 2 values(.|\n)*a: 1 values(.|\n)*)regex"))));
+              R"regex((.|\n)*0 non empty Lists with 0 items(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*0 non empty Dicts with 0 key/value entries(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*3 schemas with 6 values(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*b: 2 values(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*a: 1 values(.|\n)*)regex"))));
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_NestedList) {
@@ -701,27 +716,14 @@ TEST(DataBagReprTest, TestDataBagStatistics_NestedList) {
   EXPECT_THAT(
       DataBagStatistics(bag),
       IsOkAndHolds(AllOf(
+          MatchesRegex(R"regex(DataBag \$[0-9a-f]{4}(.|\n)*)regex"),
           MatchesRegex(
-              R"regex(DataBag \$[0-9a-f]{4} with 6 values in 1 attrs, plus 2 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*<list items>: 6 values(.|\n)*)regex"))));
-}
-
-TEST(DataBagReprTest, TestDataBagStatistics_List) {
-  DataBagPtr bag = DataBag::Empty();
-
-  ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
-                       CreateEmptyList(bag, /*schema=*/std::nullopt,
-                                       test::Schema(schema::kAny)));
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice data_slice,
-      CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
-  EXPECT_THAT(
-      DataBagStatistics(bag),
-      IsOkAndHolds(AllOf(
+              R"regex((.|\n)*0 Entities/Objects with 0 values in 0 attrs(.|\n)*)regex"),
           MatchesRegex(
-              R"regex(DataBag \$[0-9a-f]{4} with 3 values in 1 attrs, plus 1 schema values and 0 fallbacks\. Top attrs:(.|\n)*)regex"),
-          MatchesRegex(R"regex((.|\n)*<list items>: 3 values(.|\n)*)regex"))));
+              R"regex((.|\n)*3 non empty Lists with 6 items(.|\n)*)regex"),
+          MatchesRegex(
+              R"regex((.|\n)*0 non empty Dicts with 0 key/value entries(.|\n)*)regex"),
+          MatchesRegex(R"regex((.|\n)*2 schemas with 2 values(.|\n)*)regex"))));
 }
 }  // namespace
 }  // namespace koladata

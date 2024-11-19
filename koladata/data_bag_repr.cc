@@ -15,6 +15,7 @@
 #include "koladata/data_bag_repr.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <numeric>
@@ -362,85 +363,52 @@ absl::StatusOr<std::string> SchemaOnlyBagToStr(const DataBagPtr& db,
 }
 
 absl::StatusOr<std::string> DataBagStatistics(const DataBagPtr& db,
-                                              int64_t top_attr_limit) {
-  ASSIGN_OR_RETURN(DataBagContent content, db->GetImpl().ExtractContent());
-  Triples main_triples(content);
+                                              size_t top_attr_limit) {
+  ASSIGN_OR_RETURN(internal::DataBagStatistics stats,
+                   db->GetImpl().GetStatistics());
 
-  std::vector<std::pair<int, std::string>> top_attrs;
-
-  // counts the number of attrs.
-  {
-    absl::flat_hash_map<std::string, int64_t> attribute_count;
-    for (const AttrTriple& triple : main_triples.attributes()) {
-      if (triple.attribute == schema::kSchemaAttr) {
-        UpdateCountMap(std::string(kSchemaNameReplacement), attribute_count);
-      } else {
-        UpdateCountMap(triple.attribute, attribute_count);
-      }
-    }
-    for (const auto& [attr, count] : attribute_count) {
-      top_attrs.emplace_back(count, attr);
-    }
+  std::vector<std::pair<int, absl::string_view>> top_attrs;
+  top_attrs.reserve(stats.attr_values_sizes.size());
+  for (const auto& [attr, count] : stats.attr_values_sizes) {
+    top_attrs.emplace_back(count, attr);
   }
 
-  // counts the number of lists.
-  {
-    int64_t list_item_count = std::accumulate(
-        main_triples.lists().begin(), main_triples.lists().end(), 0,
-        [](int64_t acc,
-           const std::pair<const ObjectId, std::vector<internal::DataItem>>&
-               list) { return acc + list.second.size(); });
-    if (list_item_count > 0) {
-      top_attrs.emplace_back(list_item_count, kListItemsNameReplacement);
-    }
+  std::nth_element(
+      top_attrs.begin(),
+      top_attrs.begin() + std::min(top_attr_limit, top_attrs.size()),
+      top_attrs.end(), std::greater<std::pair<size_t, absl::string_view>>());
+  if (top_attrs.size() > top_attr_limit) {
+    top_attrs.resize(top_attr_limit);
   }
-
-  // counts the number of keys in dicts.
-  {
-    absl::flat_hash_map<DataItem, int64_t, DataItem::Hash, DataItem::Eq>
-        key_count;
-
-    for (const DictItemTriple& dict_triple : main_triples.dicts()) {
-      if (!dict_triple.object.IsDict()) {
-        continue;
-      }
-      UpdateCountMap(dict_triple.key, key_count);
-    }
-
-    if (!key_count.empty()) {
-      for (const auto& [key, count] : key_count) {
-        top_attrs.emplace_back(count, kDictValuesNameReplacement);
-      }
-    }
-  }
-
-  int64_t schema_count = std::count_if(
-      main_triples.dicts().begin(), main_triples.dicts().end(),
-      [](const DictItemTriple& item) { return item.object.IsSchema(); });
-
-  int64_t value_count = std::accumulate(
-      top_attrs.begin(), top_attrs.end(), 0,
-      [](int64_t acc, const std::pair<int, std::string>& attr_count) {
+  std::sort(top_attrs.begin(), top_attrs.end(),
+            std::greater<std::pair<size_t, absl::string_view>>());
+  size_t attr_value_count_sum = std::accumulate(
+      top_attrs.begin(), top_attrs.end(), size_t{0},
+      [](int64_t acc, const std::pair<int, absl::string_view>& attr_count) {
         return acc + attr_count.first;
       });
 
   std::string res = absl::StrFormat(
-      "DataBag %s with %d values in %d attrs, plus %d schema values and %d "
-      "fallbacks. Top attrs:\n",
-      GetBagIdRepr(db), value_count, top_attrs.size(), schema_count,
-      db->GetFallbacks().size());
+      R"(DataBag %s:
+  %d Entities/Objects with %d values in %d attrs
+  %d non empty Lists with %d items
+  %d non empty Dicts with %d key/value entries
+  %d schemas with %d values
 
-  std::sort(top_attrs.begin(), top_attrs.end(),
-            std::greater<std::pair<int64_t, std::string>>());
+Top attrs:
+)",
+      GetBagIdRepr(db), stats.entity_and_object_count, attr_value_count_sum,
+      stats.attr_values_sizes.size(), stats.total_non_empty_lists,
+      stats.total_items_in_lists, stats.total_non_empty_dicts,
+      stats.total_items_in_dicts, stats.total_explicit_schemas,
+      stats.total_explicit_schema_attrs);
 
-  if (top_attrs.size() > top_attr_limit) {
-    top_attrs.resize(top_attr_limit);
-  }
-
+  std::vector<std::string> top_attr_names;
+  top_attr_names.reserve(top_attrs.size());
   for (const auto& [count, attr] : top_attrs) {
-    absl::StrAppend(&res, absl::StrFormat("  %s: %d values\n", attr, count));
+    top_attr_names.push_back(absl::StrFormat("  %s: %d values", attr, count));
   }
-  absl::StrAppend(&res, "Use db.contents_repr() to see the actual values.");
+  res.append(absl::StrJoin(top_attr_names, "\n"));
 
   return res;
 }

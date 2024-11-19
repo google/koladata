@@ -35,15 +35,13 @@ absl::StatusOr<std::string> DataOnlyBagToStr(
 absl::StatusOr<std::string> SchemaOnlyBagToStr(
     const DataBagPtr& db, int64_t triple_limit = kDefaultTripleReprLimit);
 
-// Returns the stats string about the triples and attributes in the DataBag.
+// Returns the stats string about the number of lists, dicts, schemas, objects,
+// entity, and top attributes in the DataBag.
 //
-// Items in the list are counted as multiple triples: one for each item. E.g.
-// $123[:] -> [1, 2, 3] counts as three triples. A key/value pair in the dict is
-// counted as one triple for the attribute derived from the key. For
-// example, a dict with two values $456[1] = 2 and $456[3] = 4 counts as one
-// triples for the 1->2 pair, one triples for the 3->4 pair.
+// top_attr_limit is the number of top attributes to print. The statistics will
+// include the data in fallback databags.
 absl::StatusOr<std::string> DataBagStatistics(const DataBagPtr& db,
-                                              int64_t top_attr_limit = 5);
+                                              size_t top_attr_limit = 5);
 }  // namespace koladata
 
 #endif  // KOLADATA_DATA_BAG_REPR_H_

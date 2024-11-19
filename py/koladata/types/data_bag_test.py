@@ -100,52 +100,70 @@ class DataBagTest(parameterized.TestCase):
       (
           'empty',
           bag(),
-          (
-              r'^DataBag \$[0-9a-f]{4} with 0 values in 0 attrs, plus 0 schema'
-              r' values and 0 fallbacks. Top attrs:\n'
-              r'Use db.contents_repr\(\) to see the actual values\.$'
-          ),
+          r"""^DataBag \$[0-9a-f]{4}:
+  0 Entities/Objects with 0 values in 0 attrs
+  0 non empty Lists with 0 items
+  0 non empty Dicts with 0 key/value entries
+  0 schemas with 0 values
+
+Top attrs:$""",
       ),
       (
           'attributes',
-          bag().new(a=1, b='a').get_bag(),
-          (
-              r'^DataBag \$[0-9a-f]{4} with 2 values in 2 attrs, plus 2 schema'
-              r' values and 0 fallbacks. Top attrs:\n'
-              r'  b: 1 values\n'
-              r'  a: 1 values\n'
-              r'Use db.contents_repr\(\) to see the actual values\.$'
-          ),
+          bag()
+          .new(
+              x=ds([1, 2]),
+              b=ds('a', None),
+              c=ds([1.0, None]),
+              d=ds([b'c', b'a']),
+              e=bag().new(b=ds([1, 1]), a=ds([1, None])),
+          )
+          .get_bag(),
+          r"""^DataBag \$[0-9a-f]{4}:
+  4 Entities/Objects with 11 values in 6 attrs
+  0 non empty Lists with 0 items
+  0 non empty Dicts with 0 key/value entries
+  2 schemas with 7 values
+
+Top attrs:
+  b: 4 values
+  x: 2 values
+  e: 2 values
+  d: 2 values
+  c: 1 values""",
       ),
       (
           'lists',
           bag().list([[1, 2], [3]]).get_bag(),
-          (
-              r'DataBag \$[0-9a-f]{4} with 5 values in 1 attrs, plus 2 schema'
-              r' values and 0 fallbacks. Top attrs:\n'
-              r'  <list items>: 5 values\n'
-              r'Use db.contents_repr\(\) to see the actual values\.$'
-          ),
+          r"""DataBag \$[0-9a-f]{4}:
+  0 Entities/Objects with 0 values in 0 attrs
+  3 non empty Lists with 5 items
+  0 non empty Dicts with 0 key/value entries
+  2 schemas with 2 values
+
+Top attrs:$""",
       ),
       (
           'dicts',
           bag().dict({'a': {'inner': 42}}).get_bag(),
-          (
-              r'^DataBag \$[0-9a-f]{4} with 2 values in 2 attrs, plus 4 schema'
-              r' values and 0 fallbacks. Top attrs:\n'
-              r'  <dict value>: 1 values\n'
-              r'  <dict value>: 1 values\n'
-              r'Use db.contents_repr\(\) to see the actual values\.$'
-          ),
+          r"""^DataBag \$[0-9a-f]{4}:
+  0 Entities/Objects with 0 values in 0 attrs
+  0 non empty Lists with 0 items
+  2 non empty Dicts with 2 key/value entries
+  2 schemas with 4 values
+
+Top attrs:""",
       ),
       (
           'fallback',
           bag().new(a=1).enriched(bag().list([1, 2]).get_bag()).get_bag(),
-          (
-              r'^DataBag \$[0-9a-f]{4} with 0 values in 0 attrs, plus 0 schema'
-              r' values and 2 fallbacks. Top attrs:\n'
-              r'Use db.contents_repr\(\) to see the actual values.$'
-          ),
+          r"""^DataBag \$[0-9a-f]{4}:
+  0 Entities/Objects with 0 values in 0 attrs
+  0 non empty Lists with 0 items
+  0 non empty Dicts with 0 key/value entries
+  0 schemas with 0 values
+
+Top attrs:$""",
       ),
       (
           'two_fallbacks',
@@ -154,11 +172,13 @@ class DataBagTest(parameterized.TestCase):
           .enriched(bag().list([1, 2]).get_bag())
           .enriched(bag().dict({'a': 42}).get_bag())
           .get_bag(),
-          (
-              r'^DataBag \$[0-9a-f]{4} with 0 values in 0 attrs, plus 0 schema'
-              r' values and 2 fallbacks. Top attrs:\n'
-              r'Use db.contents_repr\(\) to see the actual values\.$'
-          ),
+          r"""^DataBag \$[0-9a-f]{4}:
+  0 Entities/Objects with 0 values in 0 attrs
+  0 non empty Lists with 0 items
+  0 non empty Dicts with 0 key/value entries
+  0 schemas with 0 values
+
+Top attrs:$""",
       ),
   )
   def test_repr(self, db, expected_repr):
