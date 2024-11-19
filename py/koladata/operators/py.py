@@ -138,8 +138,6 @@ def _unwrap_optional_schema(
     'kde.py.apply_py',
     qtype_constraints=[
         _expect_py_callable(P.fn),
-        qtype_utils.expect_data_slice_args(P.args),
-        qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )

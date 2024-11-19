@@ -282,6 +282,25 @@ class FunctorFactoriesTest(absltest.TestCase):
         ds([5, 7, 9]),
     )
 
+  def test_py_fn_py_reference(self):
+    def f(x, y, z):
+      return x + y + z.py_value().a
+
+    class _A:
+
+      def __init__(self, a):
+        self.a = a
+
+    testing.assert_equal(
+        kd.call(
+            functor_factories.py_fn(f),
+            x=1,
+            y=2,
+            z=kdi.py_reference(_A(3)),
+        ),
+        ds(6),
+    )
+
   def test_py_fn_var_keyword(self):
     def f_kwargs(x, y, **kwargs):
       return x + y + kwargs['z']

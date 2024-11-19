@@ -110,7 +110,9 @@ py_library(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",
         "//py/koladata/types:list_item",
+        "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
     ],
 )
 

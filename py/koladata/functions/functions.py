@@ -147,6 +147,8 @@ to_pylist = _py_conversions.to_pylist
 to_py = _py_conversions.to_py
 to_pytree = _py_conversions.to_pytree
 
+py_reference = _py_conversions.py_reference
+
 int32 = _py_conversions.int32
 int64 = _py_conversions.int64
 float32 = _py_conversions.float32

@@ -16,10 +16,12 @@
 
 from typing import Any
 
+from arolla import arolla
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import dict_item  # pylint: disable=unused-import
 from koladata.types import list_item  # pylint: disable=unused-import
+from koladata.types import py_boxing
 from koladata.types import schema_constants
 
 
@@ -87,6 +89,25 @@ def to_pytree(
   return ds.to_pytree(
       max_depth=max_depth, include_missing_attrs=include_missing_attrs
   )
+
+
+def py_reference(obj: Any) -> arolla.types.PyObject:
+  """Wraps into a Arolla QValue using reference for serialization.
+
+  py_reference can be used to pass arbitrary python objects through
+  kd.apply_py/kd.py_fn.
+
+  Note that using reference for serialization means that the resulting
+  QValue (and Exprs created using it) will only be valid within the
+  same process. Trying to deserialize it in a different process
+  will result in an exception.
+
+  Args:
+    obj: the python object to wrap.
+  Returns:
+    The wrapped python object as Arolla QValue.
+  """
+  return arolla.types.PyObject(obj, codec=py_boxing.REF_CODEC)
 
 
 def int32(x: Any) -> data_slice.DataSlice:
