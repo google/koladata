@@ -21,6 +21,7 @@
 
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
+#include "arolla/util/repr.h"
 
 namespace koladata {
 
@@ -42,6 +43,9 @@ struct ReprOption {
 // Returns the string for python __str__.
 absl::StatusOr<std::string> DataSliceToStr(
     const DataSlice& ds, const ReprOption& option = ReprOption{});
+
+// Returns the string for python __repr__ and arolla::Repr.
+std::string DataSliceRepr(const DataSlice& ds);
 
 }  // namespace koladata
 

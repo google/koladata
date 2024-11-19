@@ -33,6 +33,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "absl/types/span.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -41,6 +42,7 @@
 #include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -531,5 +533,31 @@ absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds,
         : DataSliceImplToStr(ds, option);
   });
 }
+
+std::string DataSliceRepr(const DataSlice& ds) {
+  std::string result;
+  absl::StrAppend(&result, ds.is_item() ? "DataItem(" : "DataSlice(");
+  if (auto content = DataSliceToStr(ds); content.ok()) {
+    absl::StrAppend(&result, *content);
+  } else {
+    ds.VisitImpl(
+        [&](const auto& impl) { return absl::StrAppend(&result, impl); });
+  }
+  absl::StrAppend(&result, ", schema: ");
+  if (auto schema = DataSliceToStr(ds.GetSchema()); schema.ok()) {
+    absl::StrAppend(&result, *schema);
+  } else {
+    absl::StrAppend(&result, ds.GetSchemaImpl());
+  }
+  if (!ds.is_item()) {
+    absl::StrAppend(&result, ", shape: ", arolla::Repr(ds.GetShape()));
+  }
+  if (ds.GetBag() != nullptr) {
+    absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(ds.GetBag()));
+  }
+  absl::StrAppend(&result, ")");
+  return result;
+}
+
 
 }  // namespace koladata

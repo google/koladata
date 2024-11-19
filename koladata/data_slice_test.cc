@@ -110,6 +110,7 @@ TEST(DataSliceTest, Create_DataSliceImpl) {
                          DataSlice::Create(ds_impl, shape, int_schema, db));
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetBag(), db);
+    ASSERT_FALSE(ds.is_item());
     EXPECT_THAT(ds.slice(), IsEquivalentTo(ds_impl));
   }
   {
@@ -121,6 +122,7 @@ TEST(DataSliceTest, Create_DataSliceImpl) {
         auto ds, DataSlice::Create(ds_impl_single_item, shape, int_schema, db));
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetBag(), db);
+    ASSERT_TRUE(ds.is_item());
     EXPECT_THAT(ds.item(), IsEquivalentTo(ds_impl[0]));
   }
   {
@@ -198,6 +200,7 @@ TEST(DataSliceTest, Create_DataItem) {
                          DataSlice::Create(data_item, shape, int_schema, db));
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetBag(), db);
+    ASSERT_TRUE(ds.is_item());
     EXPECT_THAT(ds.item(), IsEquivalentTo(data_item));
   }
   {
@@ -206,6 +209,7 @@ TEST(DataSliceTest, Create_DataItem) {
     auto shape = DataSlice::JaggedShape::Empty();
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetBag(), db);
+    ASSERT_TRUE(ds.is_item());
     EXPECT_THAT(ds.item(), IsEquivalentTo(data_item));
   }
   {
@@ -217,6 +221,7 @@ TEST(DataSliceTest, Create_DataItem) {
                          DataSlice::Create(data_item, shape, int_schema, db));
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
     EXPECT_EQ(ds.GetBag(), db);
+    ASSERT_FALSE(ds.is_item());
     EXPECT_THAT(ds.slice(), IsEquivalentTo(ds_impl));
   }
   {
@@ -4565,37 +4570,15 @@ TEST(DataSliceTest, PresentCount) {
 }
 
 TEST(DataSliceTest, Repr) {
-  // NOTE: More extensive repr tests are done in Python.
+  // NOTE: More extensive repr tests are done in data_slice_repr_test.cc and in
+  // Python.
   auto db = DataBag::Empty();
-  {
-    // DataSlice repr without db.
-    auto ds = test::DataSlice<int>({1});
-    EXPECT_THAT(arolla::GenReprToken(ds),
-                ReprTokenEq("DataSlice([1], schema: INT32, "
-                            "shape: JaggedShape(1))"));
-  }
-  {
-    // DataSlice repr with db.
-    auto ds = test::DataSlice<int>({1}, schema::kInt32, db);
-    std::string expected_repr = absl::StrFormat(
-        "DataSlice([1], schema: INT32, shape: JaggedShape(1), bag_id: $%s)",
-        TypedValue::FromValue(db).GetFingerprint().AsString().substr(32 - 4));
-    EXPECT_THAT(arolla::GenReprToken(ds), ReprTokenEq(expected_repr));
-  }
-  {
-    // DataItem repr without db.
-    auto ds = test::DataItem(1);
-    EXPECT_THAT(arolla::GenReprToken(ds),
-                ReprTokenEq("DataItem(1, schema: INT32)"));
-  }
-  {
-    // DataItem repr with db.
-    auto ds = test::DataItem(1, db);
-    std::string expected_repr = absl::StrFormat(
-        "DataItem(1, schema: INT32, bag_id: $%s)",
-        TypedValue::FromValue(db).GetFingerprint().AsString().substr(32 - 4));
-    EXPECT_THAT(arolla::GenReprToken(ds), ReprTokenEq(expected_repr));
-  }
+  auto ds = test::DataItem(1, db);
+  EXPECT_THAT(arolla::Repr(ds),
+              Eq(absl::StrFormat(
+                  "DataItem(1, schema: INT32, bag_id: $%s)",
+                  TypedValue::FromValue(db).GetFingerprint().AsString().substr(
+                      32 - 4))));
 }
 
 TEST(DataSliceCastingTest, ToIn64_Entity) {

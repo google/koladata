@@ -15,11 +15,8 @@
 #include "koladata/data_slice_qtype.h"
 
 #include <string>
-#include <type_traits>
 
 #include "absl/base/no_destructor.h"
-#include "absl/log/check.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -35,53 +32,6 @@ namespace arolla {
 
 using ::koladata::DataBagPtr;
 using ::koladata::DataSlice;
-using ::koladata::DataSliceToStr;
-using ::koladata::internal::DataItem;
-
-namespace {
-
-// Returns the string format of the content and schema of the DataSlice.
-std::string GetReprInternal(const DataSlice& value) {
-  std::string result;
-  absl::StatusOr<std::string> item_str = DataSliceToStr(value);
-  if (item_str.ok()) {
-    absl::StrAppend(&result, item_str.value());
-  } else {
-    value.VisitImpl(
-        [&](const auto& impl) { return absl::StrAppend(&result, impl); });
-  }
-  absl::StrAppend(&result, ", schema: ");
-  absl::StatusOr<std::string> schema_str = DataSliceToStr(value.GetSchema());
-  if (schema_str.ok()) {
-    absl::StrAppend(&result, schema_str.value());
-  } else {
-    absl::StrAppend(&result, value.GetSchemaImpl());
-  }
-  return result;
-}
-
-std::string GetItemRepr(const DataSlice& value) {
-  std::string result;
-  absl::StrAppend(&result, "DataItem(", GetReprInternal(value));
-  if (value.GetBag() != nullptr) {
-    absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(value.GetBag()));
-  }
-  absl::StrAppend(&result, ")");
-  return result;
-}
-
-std::string GetSliceRepr(const DataSlice& value) {
-  std::string result;
-  absl::StrAppend(&result, "DataSlice(", GetReprInternal(value),
-                  ", shape: ", Repr(value.GetShape()));
-  if (value.GetBag() != nullptr) {
-    absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(value.GetBag()));
-  }
-  absl::StrAppend(&result, ")");
-  return result;
-}
-
-}  // namespace
 
 QTypePtr QTypeTraits<DataSlice>::type() {
   struct DataSliceQType final : SimpleQType {
@@ -110,16 +60,8 @@ void FingerprintHasherTraits<DataSlice>::operator()(FingerprintHasher* hasher,
   }
 }
 
-// TODO:
-//   * Implement proper Repr for multi-dim DataSlice.
 ReprToken ReprTraits<DataSlice>::operator()(const DataSlice& value) const {
-  return value.VisitImpl([&]<class T>(const T&) {
-    if constexpr (std::is_same_v<T, DataItem>) {
-      return ReprToken{GetItemRepr(value)};
-    } else {
-      return ReprToken{GetSliceRepr(value)};
-    }
-  });
+  return ReprToken{DataSliceRepr(value)};
 }
 
 }  // namespace arolla

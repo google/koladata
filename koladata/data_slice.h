@@ -396,6 +396,11 @@ class DataSlice {
     return VisitImpl([&](const auto& impl) { return impl.dtype(); });
   }
 
+  // Returns true iff the underlying implementation is DataItem.
+  bool is_item() const {
+    return std::holds_alternative<internal::DataItem>(internal_->impl);
+  }
+
   // T can be internal::DataSliceImpl or internal::DataItem, depending on what
   // this DataSlice holds. It is a runtime error in case DataSlice does not hold
   // T.

@@ -25,6 +25,7 @@
 #include "absl/log/log.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -39,6 +40,7 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
@@ -52,9 +54,9 @@ using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
 using ::arolla::OptionalValue;
 using ::koladata::internal::ObjectId;
+using ::testing::Eq;
 using ::testing::HasSubstr;
 using ::testing::MatchesRegex;
-using ::testing::StrEq;
 
 absl::StatusOr<DenseArrayEdge> EdgeFromSplitPoints(
     absl::Span<const OptionalValue<int64_t>> split_points) {
@@ -64,13 +66,13 @@ absl::StatusOr<DenseArrayEdge> EdgeFromSplitPoints(
 
 TEST(DataSliceReprTest, TestItemStringRepresentation_Primitives) {
   DataSlice item = test::DataItem(1);
-  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds(StrEq("1")));
+  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("1"));
 
   DataSlice item2 = test::DataItem(arolla::kUnit);
-  EXPECT_THAT(DataSliceToStr(item2), IsOkAndHolds(StrEq("present")));
+  EXPECT_THAT(DataSliceToStr(item2), IsOkAndHolds("present"));
 
   DataSlice item3 = test::DataItem(std::nullopt, schema::kMask);
-  EXPECT_THAT(DataSliceToStr(item3), IsOkAndHolds(StrEq("missing")));
+  EXPECT_THAT(DataSliceToStr(item3), IsOkAndHolds("missing"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
@@ -78,7 +80,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
   ObjectId dict_id = internal::AllocateSingleDict();
 
   DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
-  EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds(StrEq("Dict{}")));
+  EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds("Dict{}"));
 
   DataSlice keys = test::DataSlice<arolla::Text>({"a", "x"});
   DataSlice values = test::DataSlice<int>({1, 4});
@@ -128,12 +130,12 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_List) {
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
                                        test::Schema(schema::kAny)));
-  EXPECT_THAT(DataSliceToStr(empty_list), IsOkAndHolds(StrEq("List[]")));
+  EXPECT_THAT(DataSliceToStr(empty_list), IsOkAndHolds("List[]"));
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
       CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
                        /*schema=*/std::nullopt, test::Schema(schema::kAny)));
-  EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds(StrEq("List[1, 2, 3]")));
+  EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds("List[1, 2, 3]"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_List_Text) {
@@ -146,8 +148,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_List_Text) {
       DataSlice data_slice,
       CreateNestedList(bag, test::DataSlice<arolla::Text>({"a", "b", "c"}),
                        /*schema=*/std::nullopt, test::Schema(schema::kAny)));
-  EXPECT_THAT(DataSliceToStr(data_slice),
-              IsOkAndHolds(StrEq("List['a', 'b', 'c']")));
+  EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds("List['a', 'b', 'c']"));
 }
 
 TEST(DataSliceReprTest, TestItemStringRepresentation_NestedList) {
@@ -169,7 +170,7 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_NestedList) {
       CreateNestedList(bag, std::move(nested_list),
                        /*schema=*/std::nullopt, test::Schema(schema::kAny)));
   EXPECT_THAT(DataSliceToStr(data_slice),
-              IsOkAndHolds(StrEq("List[List[1], List[2, 3]]")));
+              IsOkAndHolds("List[List[1], List[2, 3]]"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictInList) {
@@ -198,9 +199,8 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictInList) {
       DataSlice data_slice,
       CreateNestedList(bag, std::move(dict_slice), /*schema=*/std::nullopt,
                        test::Schema(schema::kAny)));
-  EXPECT_THAT(
-      DataSliceToStr(data_slice),
-      IsOkAndHolds(StrEq("List[Dict{'a'=1}, Dict{'a'=1}, Dict{'a'=1}]")));
+  EXPECT_THAT(DataSliceToStr(data_slice),
+              IsOkAndHolds("List[Dict{'a'=1}, Dict{'a'=1}, Dict{'a'=1}]"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_ObjectsInList) {
@@ -216,7 +216,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ObjectsInList) {
 
   ASSERT_OK_AND_ASSIGN(DataSlice data_slice, CreateNestedList(bag, obj));
   EXPECT_THAT(DataSliceToStr(data_slice),
-              IsOkAndHolds(StrEq("List[Obj(a=1), Obj(a=2)]")));
+              IsOkAndHolds("List[Obj(a=1), Obj(a=2)]"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_EntitiesInList) {
@@ -232,7 +232,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_EntitiesInList) {
 
   ASSERT_OK_AND_ASSIGN(DataSlice data_slice, CreateNestedList(bag, obj));
   EXPECT_THAT(DataSliceToStr(data_slice),
-              IsOkAndHolds(StrEq("List[Entity(a=1), Entity(a=2)]")));
+              IsOkAndHolds("List[Entity(a=1), Entity(a=2)]"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Object) {
@@ -279,15 +279,14 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ListSchema) {
       DataSlice list,
       CreateListShaped(bag, DataSlice::JaggedShape::Empty(), list_item));
 
-  EXPECT_THAT(DataSliceToStr(list.GetSchema()),
-              IsOkAndHolds(StrEq("LIST[INT32]")));
+  EXPECT_THAT(DataSliceToStr(list.GetSchema()), IsOkAndHolds("LIST[INT32]"));
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice list_of_list,
       CreateListShaped(bag, DataSlice::JaggedShape::Empty(), list));
 
   EXPECT_THAT(DataSliceToStr(list_of_list.GetSchema()),
-              IsOkAndHolds(StrEq("LIST[LIST[INT32]]")));
+              IsOkAndHolds("LIST[LIST[INT32]]"));
 }
 
 TEST(DataSliceReprTest, TestItemStringRepresentation_DictSchema) {
@@ -301,7 +300,7 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_DictSchema) {
                                         key_item, value_item));
 
   EXPECT_THAT(DataSliceToStr(dict.GetSchema()),
-              IsOkAndHolds(StrEq("DICT{INT32, STRING}")));
+              IsOkAndHolds("DICT{INT32, STRING}"));
 
   DataSlice second_key_item = test::DataItem("foo");
   DataSlice second_value_item =
@@ -314,9 +313,8 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_DictSchema) {
                        CreateDictShaped(bag, DataSlice::JaggedShape::Empty(),
                                         dict, second_dict));
 
-  EXPECT_THAT(
-      DataSliceToStr(nested_dict.GetSchema()),
-      IsOkAndHolds(StrEq("DICT{DICT{INT32, STRING}, DICT{STRING, OBJECT}}")));
+  EXPECT_THAT(DataSliceToStr(nested_dict.GetSchema()),
+              IsOkAndHolds("DICT{DICT{INT32, STRING}, DICT{STRING, OBJECT}}"));
 }
 
 TEST(DataSliceReprTest, TestItemStringRepresentation_ExplicitSchema) {
@@ -794,7 +792,7 @@ TEST(DataSliceReprTest, ListExceedReprItemLimit) {
       CreateListShaped(bag, DataSlice::JaggedShape::Empty(), list_item));
 
   EXPECT_THAT(DataSliceToStr(list, {.item_limit = 5}),
-              IsOkAndHolds(StrEq("List[1, 2, 3, 4, 5, ...]")));
+              IsOkAndHolds("List[1, 2, 3, 4, 5, ...]"));
 }
 
 TEST(DataSliceReprTest, NestedListExceedReprItemLimit) {
@@ -829,15 +827,14 @@ TEST(DataSliceReprTest, NestedListExceedReprItemLimit) {
                            internal::DataSliceImpl::Create(std::move(ds_array)),
                            std::move(ds_shape)));
   ASSERT_OK_AND_ASSIGN(DataSlice list, CreateNestedList(bag, ds));
-  EXPECT_THAT(DataSliceToStr(list, {.item_limit = 5}),
-              IsOkAndHolds(StrEq(R"(List[
+  EXPECT_THAT(DataSliceToStr(list, {.item_limit = 5}), IsOkAndHolds(R"(List[
   List[0, 1, 2, 3, 4, ...],
   List[0, 1, 2, 3, 4, ...],
   List[0, 1, 2, 3, 4, ...],
   List[0, 1, 2, 3, 4, ...],
   List[0, 1, 2, 3, 4, ...],
   ...,
-])")));
+])"));
 }
 
 TEST(DataSliceReprTest, ObjEntityExceedReprItemLimit) {
@@ -849,7 +846,7 @@ TEST(DataSliceReprTest, ObjEntityExceedReprItemLimit) {
                                std::vector<DataSlice>(6, test::DataItem(1))));
 
   EXPECT_THAT(DataSliceToStr(obj, {.item_limit = 5}),
-              IsOkAndHolds(StrEq("Obj(a=1, b=1, c=1, d=1, e=1, ...)")));
+              IsOkAndHolds("Obj(a=1, b=1, c=1, d=1, e=1, ...)"));
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice entity,
@@ -857,7 +854,7 @@ TEST(DataSliceReprTest, ObjEntityExceedReprItemLimit) {
                                std::vector<DataSlice>(6, test::DataItem(1))));
 
   EXPECT_THAT(DataSliceToStr(entity, {.item_limit = 5}),
-              IsOkAndHolds(StrEq("Entity(a=1, b=1, c=1, d=1, e=1, ...)")));
+              IsOkAndHolds("Entity(a=1, b=1, c=1, d=1, e=1, ...)"));
 }
 
 TEST(DataSliceReprTest, FormatHtml_AttrSpan) {
@@ -1018,6 +1015,40 @@ TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_NoFollow) {
       std::string result, DataSliceToStr(
           nofollow_entity, {.depth = 100, .format_html = true}));
   EXPECT_THAT(result, HasSubstr("object-id clickable"));
+}
+
+TEST(DataSliceReprTest, DataSliceRepr) {
+  // NOTE: More extensive repr tests are done in Python.
+  auto db = DataBag::Empty();
+  {
+    // DataSlice repr without db.
+    auto ds = test::DataSlice<int>({1});
+    EXPECT_THAT(DataSliceRepr(ds), Eq("DataSlice([1], schema: INT32, "
+                                      "shape: JaggedShape(1))"));
+  }
+  {
+    // DataSlice repr with db.
+    auto ds = test::DataSlice<int>({1}, schema::kInt32, db);
+    std::string expected_repr = absl::StrFormat(
+        "DataSlice([1], schema: INT32, shape: JaggedShape(1), bag_id: $%s)",
+        arolla::TypedValue::FromValue(db).GetFingerprint().AsString().substr(
+            32 - 4));
+    EXPECT_THAT(DataSliceRepr(ds), Eq(expected_repr));
+  }
+  {
+    // DataItem repr without db.
+    auto ds = test::DataItem(1);
+    EXPECT_THAT(DataSliceRepr(ds), Eq("DataItem(1, schema: INT32)"));
+  }
+  {
+    // DataItem repr with db.
+    auto ds = test::DataItem(1, db);
+    std::string expected_repr = absl::StrFormat(
+        "DataItem(1, schema: INT32, bag_id: $%s)",
+        arolla::TypedValue::FromValue(db).GetFingerprint().AsString().substr(
+            32 - 4));
+    EXPECT_THAT(DataSliceRepr(ds), Eq(expected_repr));
+  }
 }
 
 }  // namespace
