@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-18'
+  reviewed: '2024-11-19'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -5866,7 +5866,7 @@ Creates a Koda dict.
     value_schema: the schema of the dict values. If not specified, it will be
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
-        key_schema and value_schema must not be specified.
+      key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
@@ -5885,8 +5885,8 @@ Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 
   Args:
     self: the DataBag.
-    shape_and_mask_from: a DataSlice with the shape and sparsity for the
-      desired dicts.
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the desired
+      dicts.
     items_or_keys: either a Python dict (if `values` is None) or a DataSlice
       with keys. The Python dict case is supported only for scalar
       shape_and_mask_from.
@@ -5896,7 +5896,7 @@ Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
     value_schema: the schema of the dict values. If not specified, it will be
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
-        key_schema and value_schema must not be specified.
+      key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
@@ -5930,7 +5930,7 @@ Creates new Koda dicts with the given shape.
     value_schema: the schema of the dict values. If not specified, it will be
       deduced from values or defaulted to OBJECT.
     schema: The schema to use for the newly created Dict. If specified, then
-        key_schema and value_schema must not be specified.
+      key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
@@ -6055,10 +6055,10 @@ Creates list(s) by collapsing `items`.
 Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
   Args:
-    shape_and_mask_from: a DataSlice with the shape and sparsity for the
-      desired lists.
-    items: optional items to assign to the newly created lists. If not
-      given, the function returns empty lists.
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the desired
+      lists.
+    items: optional items to assign to the newly created lists. If not given,
+      the function returns empty lists.
     item_schema: the schema of the list items. If not specified, it will be
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
@@ -6082,8 +6082,8 @@ Creates new Koda lists with the given shape.
 
   Args:
     shape: the desired shape.
-    items: optional items to assign to the newly created lists. If not
-      given, the function returns empty lists.
+    items: optional items to assign to the newly created lists. If not given,
+      the function returns empty lists.
     item_schema: the schema of the list items. If not specified, it will be
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
