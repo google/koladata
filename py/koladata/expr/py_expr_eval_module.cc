@@ -14,10 +14,17 @@
 //
 #include <Python.h>
 
+#include <string>
+
+#include "koladata/expr/expr_eval.h"
+#include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/expr/py_expr_eval.h"
 
 namespace koladata::python {
 namespace {
+
+using ::arolla::python::PyObjectPtr;
+using ::koladata::expr::kHiddenSeedLeafKey;
 
 constexpr const char* kThisModuleName = "koladata.expr.py_expr_eval";
 
@@ -45,7 +52,15 @@ struct PyModuleDef py_expr_eval_module = {
 // NOTE: This PyInit function must be named this way
 // (PyInit_{py_extension.name}). Otherwise it does not get initialized.
 PyMODINIT_FUNC PyInit_py_expr_eval_py_ext(void) {
-  return PyModule_Create(&py_expr_eval_module);
+  auto result = PyObjectPtr::Own(PyModule_Create(&py_expr_eval_module));
+  if (result == nullptr) {
+    return nullptr;
+  }
+  if (PyModule_AddStringConstant(result.get(), "HIDDEN_SEED_LEAF_KEY",
+                                 std::string(kHiddenSeedLeafKey).c_str()) < 0) {
+    return nullptr;
+  }
+  return result.release();
 }
 
 }  // namespace

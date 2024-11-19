@@ -20,12 +20,17 @@
 #include <vector>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 
 namespace koladata::expr {
+
+// Name of the leaf used to pass a hidden seed value to the expression.
+// This leaf is not visible in the expression and is not passed to "eval".
+constexpr absl::string_view kHiddenSeedLeafKey = "_koladata_hidden_seed_leaf";
 
 // Evaluates the given expression with the provided inputs and variables.
 // The expression must refer to inputs/variables via InputOperator, not via

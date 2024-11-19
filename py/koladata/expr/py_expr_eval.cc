@@ -65,6 +65,7 @@ using ::arolla::python::SetPyErrFromStatus;
 using ::arolla::python::UnwrapPyExpr;
 using ::arolla::python::UnwrapPyQValue;
 using ::arolla::python::WrapAsPyQValue;
+using ::koladata::expr::kHiddenSeedLeafKey;
 
 absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
                                      Py_ssize_t nargs, PyObject* py_kwnames) {
@@ -182,8 +183,8 @@ absl::Nullable<PyObject*> PyEvalOp(PyObject* /*self*/, PyObject** py_args,
     if (IsRegisteredOperator(expr->op()) &&
         expr->op()->display_name() == "math.add" &&
         expr->node_deps().size() == 2 &&
-        expr->node_deps()[0]->leaf_key() == "_koladata_hidden_seed_leaf") {
-      holder.push_back(TypedValue::FromValue<int64_t>(static_cast<int64_t>(i)));
+        expr->node_deps()[0]->leaf_key() == kHiddenSeedLeafKey) {
+      holder.push_back(TypedValue::FromValue(static_cast<int64_t>(i)));
       input_qvalues.push_back(holder.back().AsRef());
       continue;
     }

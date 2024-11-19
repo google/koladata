@@ -61,9 +61,6 @@ constexpr int64_t kCacheSize = 4096;
 
 // Support for non-determinism in specific Koda operators.
 constexpr int64_t kHiddenSeedValue = (1l << 31) - 1;
-// TODO: Try to share this string constant between this code and
-// py_boxing.py on the Python side.
-constexpr absl::string_view kHiddenSeedLeafName = "_koladata_hidden_seed_leaf";
 
 arolla::TypedRef HiddenSeedArgValueRef() {
   static absl::NoDestructor<const arolla::TypedValue> value(
@@ -135,7 +132,7 @@ absl::StatusOr<TransformedExpr> ReplaceInputsWithLeaves(
   auto transform_expr = [&res](arolla::expr::ExprNodePtr node)
       -> absl::StatusOr<arolla::expr::ExprNodePtr> {
     if (node->is_leaf()) {
-      if (node->leaf_key() != kHiddenSeedLeafName) {
+      if (node->leaf_key() != kHiddenSeedLeafKey) {
         return absl::InvalidArgumentError(
             absl::StrFormat("the inputs to kd.eval() must be specified as I.x, "
                             "but the provided expression has leaves: [%s, ...]",
@@ -297,7 +294,7 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
   // Parse inputs.
   std::vector<arolla::TypedRef> input_qvalues(
       expr_info.leaf_keys.size(), arolla::TypedRef::UnsafeFromRawPointer(
-                                          arolla::GetNothingQType(), nullptr));
+                                      arolla::GetNothingQType(), nullptr));
   int64_t input_count = 0;
   if (expr_info.hidden_seed_index) {
     input_qvalues[*expr_info.hidden_seed_index] = HiddenSeedArgValueRef();

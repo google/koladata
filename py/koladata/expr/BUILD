@@ -233,5 +233,9 @@ cc_library(
 koladata_py_extension(
     name = "py_expr_eval_py_ext",
     srcs = ["py_expr_eval_module.cc"],
-    deps = [":py_expr_eval_cc_lib"],
+    deps = [
+        ":py_expr_eval_cc_lib",
+        "//koladata/expr:expr_eval",
+        "@com_google_arolla//py/arolla/py_utils",
+    ],
 )

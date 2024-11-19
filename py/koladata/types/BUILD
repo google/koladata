@@ -167,6 +167,7 @@ py_library(
         ":data_slice",
         ":ellipsis",
         ":literal_operator",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/fstring",
         "@com_google_arolla//py/arolla",
     ],

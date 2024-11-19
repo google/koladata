@@ -22,6 +22,7 @@ import types as py_types
 from typing import Any, Callable
 
 from arolla import arolla
+from koladata.expr import py_expr_eval_py_ext
 from koladata.fstring import fstring as _fstring
 from koladata.types import data_bag
 # NOTE: To allow Python scalar values to have DataItem Python type.
@@ -255,7 +256,7 @@ def find_hidden_seed_param(signature: inspect.Signature) -> int | None:
   return None
 
 
-HIDDEN_SEED_LEAF = arolla.abc.leaf('_koladata_hidden_seed_leaf')
+HIDDEN_SEED_LEAF = arolla.abc.leaf(py_expr_eval_py_ext.HIDDEN_SEED_LEAF_KEY)
 
 
 # Isolated PRNG instance. Global to avoid overhead of repeated instantiation.
