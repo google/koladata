@@ -878,6 +878,13 @@ TEST(DataSliceTest, GetObjSchema) {
   }
 
   {
+    // DType DataItem
+    auto item = test::DataItem(schema::kInt32, schema::kObject);
+    EXPECT_THAT(item.GetObjSchema(),
+                IsOkAndHolds(IsEquivalentTo(test::Schema(schema::kSchema))));
+  }
+
+  {
     // Object DataItem
     auto db = DataBag::Empty();
     ASSERT_OK_AND_ASSIGN(
@@ -893,6 +900,15 @@ TEST(DataSliceTest, GetObjSchema) {
         {std::nullopt, 3.14, std::nullopt}, {1, std::nullopt, std::nullopt});
     auto schema_ds = test::DataSlice<schema::DType>(
         {schema::kInt32, schema::kFloat32, std::nullopt});
+    EXPECT_THAT(ds.GetObjSchema(), IsOkAndHolds(IsEquivalentTo(schema_ds)));
+  }
+
+  {
+    // DType DataSlice
+    auto ds = test::DataSlice<schema::DType>(
+        {schema::kInt32, std::nullopt, schema::kSchema}, schema::kObject);
+    auto schema_ds = test::DataSlice<schema::DType>(
+        {schema::kSchema, std::nullopt, schema::kSchema});
     EXPECT_THAT(ds.GetObjSchema(), IsOkAndHolds(IsEquivalentTo(schema_ds)));
   }
 
@@ -914,15 +930,6 @@ TEST(DataSliceTest, GetObjSchema) {
     EXPECT_THAT(item.GetObjSchema(),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("DataSlice must have OBJECT schema")));
-  }
-
-  {
-    // DType DataItem
-    auto item = test::DataItem(schema::kInt32, schema::kObject);
-    EXPECT_THAT(
-        item.GetObjSchema(),
-        StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("DataSlice cannot contain primitive schema")));
   }
 
   {

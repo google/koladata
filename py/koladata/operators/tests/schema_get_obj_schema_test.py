@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.schema.get_obj_schema."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -47,6 +45,11 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
       (ds(None, schema_constants.OBJECT), ds(None, schema_constants.SCHEMA)),
       # Primitive DataItem
       (ds(1, schema_constants.OBJECT), schema_constants.INT32),
+      # Schema DataItem
+      (
+          ds(schema_constants.INT32).with_schema(schema_constants.OBJECT),
+          schema_constants.SCHEMA,
+      ),
       # DataSlice with mixed primitives
       (
           ds([1, 1.2, None, "a"]),
@@ -55,6 +58,17 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
               schema_constants.FLOAT32,
               None,
               schema_constants.STRING,
+          ]),
+      ),
+      # Schema DataSlice
+      (
+          ds(
+              [schema_constants.INT32, None, schema_constants.SCHEMA]
+          ).with_schema(schema_constants.OBJECT),
+          ds([
+              schema_constants.SCHEMA,
+              None,
+              schema_constants.SCHEMA,
           ]),
       ),
       # All missing DataSlice
@@ -66,14 +80,21 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
       (obj, obj.get_attr("__schema__")),
       # Object DataSlice
       (objs, objs.get_attr("__schema__")),
-      # DataSlice with mixed primitives and object
+      # DataSlice with mixed primitives, object and DType
       (
-          ds([1, 1.2, obj, "a"]),
+          ds([
+              1,
+              1.2,
+              obj,
+              "a",
+              schema_constants.INT32.with_schema(schema_constants.OBJECT),
+          ]),
           ds([
               schema_constants.INT32,
               schema_constants.FLOAT32,
               obj.get_attr("__schema__"),
               schema_constants.STRING,
+              schema_constants.SCHEMA,
           ]),
       ),
   )
@@ -95,28 +116,6 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
       expr_eval.eval(kde.schema.get_obj_schema(db.new(x=ds([1, 2]))))
 
   def test_invalid_items(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        "DataSlice cannot contain primitive schema items",
-    ):
-      expr_eval.eval(
-          kde.schema.get_obj_schema(
-              schema_constants.INT32.with_schema(schema_constants.OBJECT)
-          )
-      )
-
-    with self.assertRaisesRegex(
-        ValueError,
-        "DataSlice cannot contain primitive schema items",
-    ):
-      expr_eval.eval(
-          kde.schema.get_obj_schema(
-              ds(
-                  [schema_constants.INT32, schema_constants.FLOAT32]
-              ).with_schema(schema_constants.OBJECT)
-          )
-      )
-
     with self.assertRaisesRegex(
         ValueError,
         "missing __schema__ attribute",

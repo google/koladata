@@ -107,6 +107,10 @@ absl::StatusOr<internal::DataItem> GetObjSchemaImpl(
       // Primitive
       res = internal::DataItem(schema::GetDType<T>());
       return absl::OkStatus();
+    } else if constexpr (std::is_same_v<T, schema::DType>) {
+      // Dtype
+      res = internal::DataItem(schema::kSchema);
+      return absl::OkStatus();
     } else if constexpr (std::is_same_v<T, internal::ObjectId>) {
       // Object
       if (db == nullptr) {
@@ -123,9 +127,7 @@ absl::StatusOr<internal::DataItem> GetObjSchemaImpl(
       // Missing value
       return absl::OkStatus();
     } else {
-      // Dtype is not supported
-      return absl::InvalidArgumentError(
-          "DataSlice cannot contain primitive schema items for get_obj_schema");
+      return absl::InternalError("invalid variant type in GetObjSchemaImpl");
     }
   }));
   return res;
@@ -144,6 +146,13 @@ absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
       auto typed_builder = builder.typed<schema::DType>();
       array.ForEachPresent([&](int64_t id, arolla::view_type_t<T> value) {
         typed_builder.InsertIfNotSet(id, schema::GetDType<T>());
+      });
+      return absl::OkStatus();
+    } else if constexpr (std::is_same_v<T, schema::DType>) {
+      // Dtype
+      auto typed_builder = builder.typed<schema::DType>();
+      array.ForEachPresent([&](int64_t id, arolla::view_type_t<T> value) {
+        typed_builder.InsertIfNotSet(id, schema::kSchema);
       });
       return absl::OkStatus();
     } else if constexpr (std::is_same_v<T, internal::ObjectId>) {
@@ -165,9 +174,7 @@ absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
           values.bitmap, arolla::bitmap::Bitmap(), values.values);
       return absl::OkStatus();
     } else {
-      // DTypes are not supported
-      return absl::InvalidArgumentError(
-          "DataSlice cannot contain primitive schema items for get_obj_schema");
+      return absl::InternalError("invalid variant type in GetObjSchemaImpl");
     }
   }));
   return std::move(builder).Build();
