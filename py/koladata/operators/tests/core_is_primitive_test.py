@@ -37,27 +37,47 @@ class KodaIsPrimitiveTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(1),),
-      (ds(None, schema_constants.INT32),),
       (ds([1, 2, 3]),),
       (ds('hello'),),
       (ds(['hello', None, 'world']),),
       (ds(arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2))),),
-      # Mixed types.
+      # Mixed types
       (ds(['hello', None, 1]),),
+      # Dtypes
       (ds([schema_constants.STRING, None, schema_constants.SCHEMA]),),
+      # Missing
+      (ds(None, schema_constants.INT32),),
+      (ds(None, schema_constants.OBJECT),),
+      (ds(None, schema_constants.ANY),),
+      (ds(None, schema_constants.SCHEMA),),
+      (ds([None, None], schema_constants.INT32),),
+      (ds([None, None], schema_constants.OBJECT),),
+      (ds([None, None], schema_constants.ANY),),
+      (ds([None, None], schema_constants.SCHEMA),),
   )
   def test_is_primitive(self, param):
     self.assertTrue(expr_eval.eval(kde.core.is_primitive(param)))
 
   @parameterized.parameters(
-      (None,),
-      (ds([None, None]),),
+      # List/Dict/Object/Entity
       (bag().list([1, 2, 3]),),
       (bag().dict(ds(['hello', 'world']), ds([1, 2])),),
-      (bag().obj(a=ds(1), b=ds(2)),),
-      (ds([bag().obj(a=ds(1), b=ds(2)), 42, 'abc']),),
+      (bag().obj(a=1, b=2),),
+      (bag().new(a=1, b=2),),
+      (bag().list(ds([[1, 2], [3]])),),
+      (bag().dict(ds([['hello'], ['world']]), ds([[1], [2]])),),
+      (bag().obj(a=ds([1, 2]), b=ds([1, 2])),),
+      (bag().new(a=ds([1, 2]), b=ds([1, 2])),),
+      # Entity schemas
       (bag().new_schema(),),
+      (ds([bag().new_schema(), bag().new_schema()]),),
+      # Mixed types
+      (ds([bag().obj(a=ds(1), b=ds(2)), 42, 'abc']),),
       (ds([schema_constants.INT32, bag().new_schema()]),),
+      # Missing
+      (ds(None),),
+      (ds([None, None]),),
+      (bag().new(a=1, b=2) & None,),
   )
   def test_is_not_primitive(self, param):
     self.assertFalse(expr_eval.eval(kde.core.is_primitive(param)))
