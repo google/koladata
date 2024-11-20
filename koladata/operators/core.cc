@@ -1365,7 +1365,7 @@ absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds) {
 }
 
 absl::StatusOr<DataSlice> IsDict(const DataSlice& dicts) {
-  return AsMask(dicts.ContainsOnlyDicts());
+  return AsMask(dicts.IsDict());
 }
 
 absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds) {

@@ -68,7 +68,7 @@ def is_primitive(x):  # pylint: disable=unused-argument
 
   `x` is a primitive DataSlice if it meets one of the following conditions:
     1) it has a primitive schema
-    2) it has at least one primitive and only has primitives.
+    2) it has OBJECT/ANY/SCHEMA schema and only has primitives
 
   Also see `kd.are_primitives` for a pointwise version. But note that
   `kd.all(kd.are_primitives(x))` is not always equivalent to
@@ -78,6 +78,68 @@ def is_primitive(x):  # pylint: disable=unused-argument
     kd.all(kd.are_primitives(kd.int32(None))) -> invalid for kd.all
     kd.is_primitive(kd.int32([None])) -> kd.present
     kd.all(kd.are_primitives(kd.int32([None]))) -> kd.missing
+
+  Args:
+    x: DataSlice to check.
+
+  Returns:
+    A MASK DataItem.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.is_list'])
+@optools.as_backend_operator(
+    'kde.core.is_list',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_list(x):  # pylint: disable=unused-argument
+  """Returns whether x is a List DataSlice.
+
+  `x` is a List DataSlice if it meets one of the following conditions:
+    1) it has a List schema
+    2) it has OBJECT/ANY schema and only has List items
+
+  Also see `kd.are_lists` for a pointwise version. But note that
+  `kd.all(kd.are_lists(x))` is not always equivalent to
+  `kd.is_list(x)`. For example,
+
+    kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
+    kd.all(kd.are_lists(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
+    kd.all(kd.are_lists(kd.item([None], kd.OBJECT))) -> kd.missing
+
+  Args:
+    x: DataSlice to check.
+
+  Returns:
+    A MASK DataItem.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.is_dict'])
+@optools.as_backend_operator(
+    'kde.core.is_dict',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_dict(x):  # pylint: disable=unused-argument
+  """Returns whether x is a Dict DataSlice.
+
+  `x` is a Dict DataSlice if it meets one of the following conditions:
+    1) it has a Dict schema
+    2) it has OBJECT/ANY schema and only has Dict items
+
+  Also see `kd.are_dicts` for a pointwise version. But note that
+  `kd.all(kd.are_dicts(x))` is not always equivalent to
+  `kd.is_dict(x)`. For example,
+
+    kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
+    kd.all(kd.are_dicts(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
+    kd.all(kd.are_dicts(kd.item([None], kd.OBJECT))) -> kd.missing
 
   Args:
     x: DataSlice to check.

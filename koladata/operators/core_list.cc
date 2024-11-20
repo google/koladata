@@ -66,12 +66,12 @@ absl::StatusOr<DataSlice> Explode(const DataSlice& x, const int64_t ndim) {
             " because the correct number of times to explode is ambiguous");
       }
 
-      if (!result.ContainsOnlyLists()) break;
+      if (!result.IsList()) break;
       ASSIGN_OR_RETURN(result, result.ExplodeList(0, std::nullopt));
     }
   } else {
     for (int i = 0; i < ndim; ++i) {
-      if (!result.ContainsOnlyLists()) {
+      if (!result.IsList()) {
         return absl::InvalidArgumentError(absl::StrFormat(
             "cannot explode 'x' to have additional %d dimension(s), the "
             "maximum number of additional dimension(s) is %d",
@@ -116,7 +116,7 @@ absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
 }
 
 absl::StatusOr<DataSlice> IsList(const DataSlice& lists) {
-  return AsMask(lists.ContainsOnlyLists());
+  return AsMask(lists.IsList());
 }
 
 absl::StatusOr<DataSlice> List(const DataSlice& items,

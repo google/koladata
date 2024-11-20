@@ -1309,9 +1309,8 @@ bool DataSlice::ShouldApplyListOp() const {
   return GetSchema().IsListSchema();
 }
 
-bool DataSlice::ContainsOnlyLists() const {
-  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny ||
-      GetSchemaImpl() == schema::kItemId) {
+bool DataSlice::IsList() const {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny) {
     return VisitImpl([]<typename T>(const T& impl) -> bool {
       return impl.ContainsOnlyLists();
     });
@@ -1320,9 +1319,8 @@ bool DataSlice::ContainsOnlyLists() const {
   }
 }
 
-bool DataSlice::ContainsOnlyDicts() const {
-  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny ||
-      GetSchemaImpl() == schema::kItemId) {
+bool DataSlice::IsDict() const {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny) {
     return VisitImpl([]<typename T>(const T& impl) -> bool {
       return impl.ContainsOnlyDicts();
     });

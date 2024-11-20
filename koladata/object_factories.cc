@@ -200,7 +200,12 @@ absl::Status DefaultInitItemIdType(const DataSlice& itemid,
 
 absl::Status InitItemIdsForLists(const DataSlice& itemid,
                                  const DataBagPtr& db) {
-  if (!itemid.ContainsOnlyLists()) {
+  // itemid is guaranteed to have ITEMID schema.
+  bool contains_only_lists =
+      itemid.VisitImpl([]<typename T>(const T& impl) -> bool {
+        return impl.ContainsOnlyLists();
+      });
+  if (!contains_only_lists) {
     return absl::InvalidArgumentError(
         "itemid argument to list creation, requires List ItemIds");
   }
@@ -209,7 +214,12 @@ absl::Status InitItemIdsForLists(const DataSlice& itemid,
 
 absl::Status InitItemIdsForDicts(const DataSlice& itemid,
                                  const DataBagPtr& db) {
-  if (!itemid.ContainsOnlyDicts()) {
+  // itemid is guaranteed to have ITEMID schema.
+  bool contains_only_dicts =
+      itemid.VisitImpl([]<typename T>(const T& impl) -> bool {
+        return impl.ContainsOnlyDicts();
+      });
+  if (!contains_only_dicts) {
     return absl::InvalidArgumentError(
         "itemid argument to dict creation, requires Dict ItemIds");
   }
@@ -1061,7 +1071,7 @@ absl::StatusOr<DataSlice> ConcatLists(const DataBagPtr& db,
   }
 
   for (const DataSlice& input_slice : inputs) {
-    if (!input_slice.ContainsOnlyLists()) {
+    if (!input_slice.IsList()) {
       return absl::InvalidArgumentError(
           "concat_lists expects all input slices to contain lists");
     }

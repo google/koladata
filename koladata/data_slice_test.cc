@@ -1481,34 +1481,34 @@ TEST(DataSliceTest, EmbedSchema_NotAllowed_On_NoFollowSlice) {
                        "schema must not be a NoFollow schema"));
 }
 
-TEST(DataSliceTest, ContainsOnlyLists_Empty) {
+TEST(DataSliceTest, IsList_Empty) {
   // schema INT64
-  EXPECT_FALSE(test::DataSlice<int64_t>({}).ContainsOnlyLists());
-  EXPECT_FALSE(test::DataSlice<int64_t>({std::nullopt}).ContainsOnlyLists());
+  EXPECT_FALSE(test::DataSlice<int64_t>({}).IsList());
+  EXPECT_FALSE(test::DataSlice<int64_t>({std::nullopt}).IsList());
 
   // schema ANY (type-erased INT64)
   EXPECT_TRUE(test::DataSlice<int64_t>({})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .ContainsOnlyLists());
+                  .IsList());
   EXPECT_TRUE(test::DataSlice<int64_t>({std::nullopt})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .ContainsOnlyLists());
+                  .IsList());
 
   // schema ANY (type-erased ObjectId)
   EXPECT_TRUE(test::DataSlice<ObjectId>({})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .ContainsOnlyLists());
+                  .IsList());
   EXPECT_TRUE(test::DataSlice<ObjectId>({})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .ContainsOnlyLists());
+                  .IsList());
 
   // schema OBJECT
-  EXPECT_TRUE(test::DataSlice<ObjectId>({}).ContainsOnlyLists());
-  EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}).ContainsOnlyLists());
+  EXPECT_TRUE(test::DataSlice<ObjectId>({}).IsList());
+  EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}).IsList());
 
   // schema LIST[INT32]
   auto db = DataBag::Empty();
@@ -1517,75 +1517,76 @@ TEST(DataSliceTest, ContainsOnlyLists_Empty) {
   EXPECT_TRUE(test::DataSlice<ObjectId>({}, db)
                   .WithSchema(list_schema)
                   .value()
-                  .ContainsOnlyLists());
+                  .IsList());
   EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}, db)
                   .WithSchema(list_schema)
                   .value()
-                  .ContainsOnlyLists());
+                  .IsList());
 }
 
-TEST(DataSliceTest, ContainsOnlyLists_NonEmpty) {
+TEST(DataSliceTest, IsList_NonEmpty) {
   auto db = DataBag::Empty();
   auto list_schema = *CreateListSchema(db, test::Schema(schema::kInt32));
 
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
                   .WithSchema(list_schema)
-                  ->ContainsOnlyLists());
+                  ->IsList());
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
                   .WithSchema(test::DataItem(schema::kAny))
-                  ->ContainsOnlyLists());
+                  ->IsList());
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
                   .WithSchema(test::DataItem(schema::kObject))
-                  ->ContainsOnlyLists());
-  EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
-                  .WithSchema(test::DataItem(schema::kItemId))
-                  ->ContainsOnlyLists());
+                  ->IsList());
 
   // Note: behavior if list_schema is used with non-list values is unspecified.
   // Do not rely on the following line's implications in other code.
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                   .WithSchema(list_schema)
-                  ->ContainsOnlyLists());
+                  ->IsList());
 
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kAny))
-                   ->ContainsOnlyLists());
+                   ->IsList());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kObject))
-                   ->ContainsOnlyLists());
+                   ->IsList());
+
+  EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
+                   .WithSchema(test::DataItem(schema::kItemId))
+                   ->IsList());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kItemId))
-                   ->ContainsOnlyLists());
+                   ->IsList());
 }
 
-TEST(DataSliceTest, ContainsOnlyDicts_Empty) {
+TEST(DataSliceTest, IsDict_Empty) {
   // schema INT64
-  EXPECT_FALSE(test::DataSlice<int64_t>({}).ContainsOnlyDicts());
-  EXPECT_FALSE(test::DataSlice<int64_t>({std::nullopt}).ContainsOnlyDicts());
+  EXPECT_FALSE(test::DataSlice<int64_t>({}).IsDict());
+  EXPECT_FALSE(test::DataSlice<int64_t>({std::nullopt}).IsDict());
 
   // schema ANY (type-erased INT64)
   EXPECT_TRUE(test::DataSlice<int64_t>({})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .ContainsOnlyDicts());
+                  .IsDict());
   EXPECT_TRUE(test::DataSlice<int64_t>({std::nullopt})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .ContainsOnlyDicts());
+                  .IsDict());
 
   // schema ANY (type-erased ObjectId)
   EXPECT_TRUE(test::DataSlice<ObjectId>({})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .ContainsOnlyDicts());
+                  .IsDict());
   EXPECT_TRUE(test::DataSlice<ObjectId>({})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .ContainsOnlyDicts());
+                  .IsDict());
 
   // schema OBJECT
-  EXPECT_TRUE(test::DataSlice<ObjectId>({}).ContainsOnlyDicts());
-  EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}).ContainsOnlyDicts());
+  EXPECT_TRUE(test::DataSlice<ObjectId>({}).IsDict());
+  EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}).IsDict());
 
   // schema DICT{INT32, INT32}
   auto db = DataBag::Empty();
@@ -1595,46 +1596,47 @@ TEST(DataSliceTest, ContainsOnlyDicts_Empty) {
   EXPECT_TRUE(test::DataSlice<ObjectId>({}, db)
                   .WithSchema(dict_schema)
                   .value()
-                  .ContainsOnlyDicts());
+                  .IsDict());
   EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}, db)
                   .WithSchema(dict_schema)
                   .value()
-                  .ContainsOnlyDicts());
+                  .IsDict());
 }
 
-TEST(DataSliceTest, ContainsOnlyDicts_NonEmpty) {
+TEST(DataSliceTest, IsDict_NonEmpty) {
   auto db = DataBag::Empty();
   auto dict_schema = *CreateDictSchema(db, test::Schema(schema::kInt32),
                                        test::Schema(schema::kInt32));
 
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                   .WithSchema(dict_schema)
-                  ->ContainsOnlyDicts());
+                  ->IsDict());
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                   .WithSchema(test::DataItem(schema::kAny))
-                  ->ContainsOnlyDicts());
+                  ->IsDict());
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                   .WithSchema(test::DataItem(schema::kObject))
-                  ->ContainsOnlyDicts());
-  EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
-                  .WithSchema(test::DataItem(schema::kItemId))
-                  ->ContainsOnlyDicts());
+                  ->IsDict());
 
   // Note: behavior if dict_schema is used with non-dict values is unspecified.
   // Do not rely on the following line's implications in other code.
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                   .WithSchema(dict_schema)
-                  ->ContainsOnlyDicts());
+                  ->IsDict());
 
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kAny))
-                   ->ContainsOnlyDicts());
+                   ->IsDict());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kObject))
-                   ->ContainsOnlyDicts());
+                   ->IsDict());
+
+  EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
+                   .WithSchema(test::DataItem(schema::kItemId))
+                   ->IsDict());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kItemId))
-                   ->ContainsOnlyDicts());
+                   ->IsDict());
 }
 
 TEST(DataSliceTest, SetGetPrimitiveAttributes_EntityCreator) {

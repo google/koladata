@@ -184,7 +184,7 @@ absl::Status FillProtoRepeatedMessageField(
     const DataSlice& attr_slice, const FieldDescriptor& field_descriptor,
     absl::Span<const absl::Nonnull<Message*>> parent_messages,
     internal::TrampolineExecutor& executor) {
-  if (!attr_slice.ContainsOnlyLists()) {
+  if (!attr_slice.IsList()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("proto repeated message field %s expected Koda "
                         "DataSlice to contain only Lists but got %s",
@@ -212,7 +212,7 @@ absl::Status FillProtoRepeatedMessageField(
 absl::Status FillProtoRepeatedPrimitiveField(
     const DataSlice& attr_slice, const FieldDescriptor& field_descriptor,
     absl::Span<const absl::Nonnull<Message*>> parent_messages) {
-  if (!attr_slice.ContainsOnlyLists()) {
+  if (!attr_slice.IsList()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("proto repeated primitive field %s expected Koda "
                         "DataSlice to contain only Lists but got %s",
@@ -333,7 +333,7 @@ absl::Status FillProtoMapField(
     const DataSlice& attr_slice, const FieldDescriptor& field_descriptor,
     absl::Span<const absl::Nonnull<Message*>> parent_messages,
     internal::TrampolineExecutor& executor) {
-  if (!attr_slice.ContainsOnlyDicts()) {
+  if (!attr_slice.IsDict()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "proto map field %s expected Koda DataSlice to contain only Dicts but "
         "got %s", field_descriptor.name(), arolla::Repr(attr_slice)));

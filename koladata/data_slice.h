@@ -284,12 +284,12 @@ class DataSlice {
   bool ShouldApplyListOp() const;
 
   // Returns true iff the schema of this slice is LIST[T], or the schema of this
-  // slice is ANY or OBJECT and all present values in this slice are lists.
-  bool ContainsOnlyLists() const;
+  // slice is ANY or OBJECT and all present items in this slice are lists.
+  bool IsList() const;
 
   // Returns true iff the schema of this slice is DICT{K, V}, or the schema of
-  // this slice is ANY or OBJECT and all present values in this slice are dicts.
-  bool ContainsOnlyDicts() const;
+  // this slice is ANY or OBJECT and all present items in this slice are dicts.
+  bool IsDict() const;
 
   // Gets a value from each dict in this slice (it must be slice of dicts) using
   // the corresponding keys (the shape of `keys` must be compatible with shape

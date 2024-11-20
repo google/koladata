@@ -50,7 +50,7 @@ absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
     return absl::InvalidArgumentError(
         "cannot update a DataSlice of dicts without a DataBag");
   }
-  if (!x.ContainsOnlyDicts()) {
+  if (!x.IsDict()) {
     return absl::InvalidArgumentError("expected a DataSlice of dicts");
   }
 

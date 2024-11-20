@@ -633,13 +633,13 @@ absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self,
 absl::Nullable<PyObject*> PyDataSlice_is_dict(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  return WrapPyDataSlice(AsMask(ds.ContainsOnlyDicts()));
+  return WrapPyDataSlice(AsMask(ds.IsDict()));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_is_list(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  return WrapPyDataSlice(AsMask(ds.ContainsOnlyLists()));
+  return WrapPyDataSlice(AsMask(ds.IsList()));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_is_primitive_schema(PyObject* self,
