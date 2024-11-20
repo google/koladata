@@ -122,6 +122,15 @@ class PyApplyPyOnSelectedTest(parameterized.TestCase):
         ds([5, None, 9]),
     )
 
+  def test_return_python_type(self):
+    f = ds(
+        [mask_constants.present, mask_constants.missing, mask_constants.present]
+    )
+    testing.assert_equal(
+        expr_eval.eval(kde.py.apply_py_on_selected(lambda: 1, f)),
+        ds(1),
+    )
+
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
         kde.py.apply_py_on_selected,

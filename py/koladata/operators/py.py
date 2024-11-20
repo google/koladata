@@ -144,7 +144,7 @@ def _unwrap_optional_schema(
 def apply_py(
     fn,
     args=py_boxing.var_positional(),
-    return_type_as=py_boxing.keyword_only(data_slice.DataSlice),
+    return_type_as=py_boxing.keyword_only(arolla.unspecified()),
     kwargs=py_boxing.var_keyword(),
 ):
   # pylint: disable=g-doc-args  # *args, **kwargs
@@ -171,12 +171,23 @@ def apply_py(
 
   @arolla.optools.as_py_function_operator(
       'kde.py.apply_py._impl',
-      qtype_inference_expr=P.return_type_as,
+      qtype_inference_expr=arolla.M.qtype.conditional_qtype(
+          P.return_type_as == arolla.UNSPECIFIED,
+          qtypes.DATA_SLICE,
+          P.return_type_as,
+      ),
   )
   def impl(fn, args, return_type_as, kwargs):
-    del return_type_as  # Only used for type inference.
     fn = _unwrap_py_callable(fn, param_name='fn')
-    return py_boxing.as_qvalue(fn(*args, **kwargs.as_dict()))
+    result = py_boxing.as_qvalue(fn(*args, **kwargs.as_dict()))
+    if return_type_as.qtype == arolla.UNSPECIFIED and not isinstance(
+        result, data_slice.DataSlice
+    ):
+      raise ValueError(
+          f'expected the result to have qtype DATA_SLICE, got {result.qtype};'
+          ' consider specifying the `return_type_as=` parameter'
+      )
+    return result
 
   return impl(fn, args, return_type_as, kwargs)
 
@@ -235,14 +246,19 @@ def apply_py_on_cond(
     no_fn = _unwrap_optional_py_callable(no_fn, param_name='no_fn')
     args = tuple(args)
     kwargs = kwargs.as_dict()
-    result = yes_fn(
-        *(x & cond for x in args), **{k: v & cond for k, v in kwargs.items()}
+    result = py_boxing.as_qvalue(
+        yes_fn(
+            *(x & cond for x in args),
+            **{k: v & cond for k, v in kwargs.items()},
+        )
     )
     if no_fn is not None:
       inv_cond = ~cond
-      result = result | no_fn(
-          *(x & inv_cond for x in args),
-          **{k: v & inv_cond for k, v in kwargs.items()},
+      result = result | py_boxing.as_qvalue(
+          no_fn(
+              *(x & inv_cond for x in args),
+              **{k: v & inv_cond for k, v in kwargs.items()},
+          )
       )
     return result
 
@@ -287,19 +303,9 @@ def apply_py_on_selected(
   Returns:
     Result of fn applied on filtered args.
   """
-
-  @arolla.optools.as_py_function_operator(
-      'kde.py.apply_py_on_selected._impl',
-      qtype_inference_expr=qtypes.DATA_SLICE,
+  return arolla.abc.bind_op(
+      apply_py_on_cond, fn, py_boxing.as_qvalue(None), cond, args, kwargs
   )
-  def impl(fn, cond, args, kwargs):
-    fn = _unwrap_py_callable(fn, param_name='fn')
-    return fn(
-        *(x & cond for x in args),
-        **{k: v & cond for k, v in kwargs.as_dict().items()},
-    )
-
-  return impl(fn, cond, args, kwargs)
 
 
 #
