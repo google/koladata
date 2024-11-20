@@ -20,8 +20,12 @@
 
 namespace koladata::ops {
 
-// Returns true if the DataSlice consists only of primitives.
+// Returns true if the DataSlice has a primitive schema or consists of at least
+// one primitive and only primitives.
 absl::StatusOr<DataSlice> IsPrimitive(const DataSlice& x);
+
+// Returns a MASK DataSlice with present for each item in `x` that is primitive.
+absl::StatusOr<DataSlice> ArePrimitives(const DataSlice& x);
 
 }  // namespace koladata::ops
 

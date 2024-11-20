@@ -497,6 +497,9 @@ def _to_py_impl(
   if existing is not None:
     return existing
 
+  if ds.is_empty():
+    return None
+
   if ds.is_primitive():
     return ds.internal_as_py()
 

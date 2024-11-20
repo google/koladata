@@ -173,6 +173,25 @@ class ToPyTest(absltest.TestCase):
     self.assertEqual(fns.to_py(x, obj_as_dict=True),
                      {'a': {'x': 1, 'y': 'abc'}, 'b': 2})
 
+  def test_missing(self):
+    x = ds(None)
+    self.assertIsNone(fns.to_py(x), None)
+
+    x = fns.new(x=1) & None
+    self.assertIsNone(fns.to_py(x), None)
+
+    x = fns.obj(x=1) & None
+    self.assertIsNone(fns.to_py(x), None)
+
+    x = fns.list([1, 2, 3]) & None
+    self.assertIsNone(fns.to_py(x), None)
+
+    x = fns.dict({1: 2}) & None
+    self.assertIsNone(fns.to_py(x), None)
+
+    x = fns.new(x=1).get_itemid() & None
+    self.assertIsNone(fns.to_py(x), None)
+
 
 class ToPytreeTest(absltest.TestCase):
 

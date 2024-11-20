@@ -181,6 +181,14 @@ class DataItem {
     return holds_value<schema::DType>() && (*this) == schema::kAny;
   }
 
+  bool is_object_schema() const {
+    return holds_value<schema::DType>() && (*this) == schema::kObject;
+  }
+
+  bool is_schema_schema() const {
+    return holds_value<schema::DType>() && (*this) == schema::kSchema;
+  }
+
   bool is_itemid_schema() const {
     return holds_value<schema::DType>() && (*this) == schema::kItemId;;
   }

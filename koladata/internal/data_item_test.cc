@@ -411,6 +411,50 @@ TEST(DataItemTest, IsImplicitSchema) {
           .is_implicit_schema());
 }
 
+TEST(DataItemTest, IsAnySchema) {
+  EXPECT_FALSE(DataItem(schema::kMask).is_any_schema());
+  EXPECT_FALSE(DataItem(schema::kObject).is_any_schema());
+  EXPECT_FALSE(DataItem(schema::kItemId).is_any_schema());
+  EXPECT_FALSE(DataItem(AllocateSingleObject()).is_any_schema());
+  EXPECT_FALSE(DataItem(0).is_any_schema());
+  EXPECT_FALSE(DataItem(4.f).is_any_schema());
+  EXPECT_FALSE(DataItem(AllocateExplicitSchema()).is_any_schema());
+  EXPECT_TRUE(DataItem(schema::kAny).is_any_schema());
+}
+
+TEST(DataItemTest, IsObjectSchema) {
+  EXPECT_FALSE(DataItem(schema::kMask).is_object_schema());
+  EXPECT_FALSE(DataItem(schema::kAny).is_object_schema());
+  EXPECT_FALSE(DataItem(schema::kItemId).is_object_schema());
+  EXPECT_FALSE(DataItem(AllocateSingleObject()).is_object_schema());
+  EXPECT_FALSE(DataItem(0).is_object_schema());
+  EXPECT_FALSE(DataItem(4.f).is_object_schema());
+  EXPECT_FALSE(DataItem(AllocateExplicitSchema()).is_object_schema());
+  EXPECT_TRUE(DataItem(schema::kObject).is_object_schema());
+}
+
+TEST(DataItemTest, IsSchemaSchema) {
+  EXPECT_FALSE(DataItem(schema::kMask).is_schema_schema());
+  EXPECT_FALSE(DataItem(schema::kObject).is_schema_schema());
+  EXPECT_FALSE(DataItem(schema::kItemId).is_schema_schema());
+  EXPECT_FALSE(DataItem(AllocateSingleObject()).is_schema_schema());
+  EXPECT_FALSE(DataItem(0).is_schema_schema());
+  EXPECT_FALSE(DataItem(4.f).is_schema_schema());
+  EXPECT_FALSE(DataItem(AllocateExplicitSchema()).is_schema_schema());
+  EXPECT_TRUE(DataItem(schema::kSchema).is_schema_schema());
+}
+
+TEST(DataItemTest, IsItemIdSchema) {
+  EXPECT_FALSE(DataItem(schema::kMask).is_itemid_schema());
+  EXPECT_FALSE(DataItem(schema::kObject).is_itemid_schema());
+  EXPECT_FALSE(DataItem(schema::kAny).is_itemid_schema());
+  EXPECT_FALSE(DataItem(AllocateSingleObject()).is_itemid_schema());
+  EXPECT_FALSE(DataItem(0).is_itemid_schema());
+  EXPECT_FALSE(DataItem(4.f).is_itemid_schema());
+  EXPECT_FALSE(DataItem(AllocateExplicitSchema()).is_itemid_schema());
+  EXPECT_TRUE(DataItem(schema::kItemId).is_itemid_schema());
+}
+
 TEST(DataItemTest, ContainsOnlyLists) {
   EXPECT_TRUE(DataItem(AllocateSingleList()).ContainsOnlyLists());
   EXPECT_TRUE(DataItem().ContainsOnlyLists());

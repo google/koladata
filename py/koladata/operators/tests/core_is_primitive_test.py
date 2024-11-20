@@ -18,7 +18,6 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.types import data_bag
@@ -33,30 +32,32 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
 
-kd = eager_op_utils.operators_container('kde')
-
 
 class KodaIsPrimitiveTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (None,),
       (ds(1),),
+      (ds(None, schema_constants.INT32),),
       (ds([1, 2, 3]),),
       (ds('hello'),),
-      (ds(['hello', 'world']),),
+      (ds(['hello', None, 'world']),),
       (ds(arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2))),),
       # Mixed types.
-      (ds(['hello', 1, 'world']),),
-      (ds(schema_constants.STRING),),
+      (ds(['hello', None, 1]),),
+      (ds([schema_constants.STRING, None, schema_constants.SCHEMA]),),
   )
   def test_is_primitive(self, param):
     self.assertTrue(expr_eval.eval(kde.core.is_primitive(param)))
 
   @parameterized.parameters(
+      (None,),
+      (ds([None, None]),),
       (bag().list([1, 2, 3]),),
       (bag().dict(ds(['hello', 'world']), ds([1, 2])),),
       (bag().obj(a=ds(1), b=ds(2)),),
-      (ds([bag().obj(a=ds(1), b=ds(2)), 42, 'abc']),)
+      (ds([bag().obj(a=ds(1), b=ds(2)), 42, 'abc']),),
+      (bag().new_schema(),),
+      (ds([schema_constants.INT32, bag().new_schema()]),),
   )
   def test_is_not_primitive(self, param):
     self.assertFalse(expr_eval.eval(kde.core.is_primitive(param)))

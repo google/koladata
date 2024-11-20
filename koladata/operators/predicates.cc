@@ -14,7 +14,8 @@
 //
 #include "koladata/operators/predicates.h"
 
-#include <type_traits>
+#include <cstdint>
+#include <utility>
 
 #include "absl/functional/overload.h"
 #include "absl/status/statusor.h"
@@ -23,44 +24,97 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/operators/logical.h"
+#include "koladata/operators/utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/view_types.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
 namespace {
 
-template <typename T>
-struct IsPrimitiveT : std::true_type {};
+absl::StatusOr<internal::DataItem> ArePrimitivesImpl(
+    const internal::DataItem& item) {
+  return item.VisitValue([]<class T>(const T& value) {
+    if constexpr (std::is_same_v<T, internal::ObjectId>) {
+      return internal::DataItem();
+    } else {
+      return internal::DataItem(arolla::Unit());
+    }
+  });
+}
 
-template <>
-struct IsPrimitiveT<internal::ObjectId> : std::false_type {};
+absl::StatusOr<internal::DataSliceImpl> ArePrimitivesImpl(
+    const internal::DataSliceImpl& slice) {
+  internal::SliceBuilder builder(slice.size());
+  auto typed_builder = builder.typed<arolla::Unit>();
+  slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
+    if constexpr (!std::is_same_v<T, internal::ObjectId>) {
+      values.ForEachPresent([&](int64_t id, arolla::view_type_t<T> value) {
+        typed_builder.InsertIfNotSet(id, arolla::Unit());
+      });
+    }
+  });
+  return std::move(builder).Build();
+}
 
 }  // namespace
 
-absl::StatusOr<DataSlice> IsPrimitive(const DataSlice& x) {
-  if (x.GetSchema().IsPrimitiveSchema()) {
-    return DataSlice::Create(
-        internal::DataItem(arolla::Unit()),
-                           internal::DataItem(schema::kMask), nullptr);
+absl::StatusOr<DataSlice> ArePrimitives(const DataSlice& x) {
+  auto schema = x.GetSchemaImpl();
+  // Trust the schema if it is a primitive schema.
+  if (schema.is_primitive_schema()) {
+    return Has(x);
   }
+  // For non-primitive schemas which cannot contain primitives, return a
+  // all-missing DataSlice.
+  if (!schema.is_any_schema() && !schema.is_object_schema() &&
+      !schema.is_schema_schema()) {
+    return DataSlice::Create(
+        internal::DataSliceImpl::CreateEmptyAndUnknownType(x.size()),
+        x.GetShape(), internal::DataItem(schema::kMask), nullptr);
+  }
+  // Derive from the data for OBJECT, ANY and SCHEMA schemas. Note that
+  // primitive schemas (e.g. INT32, SCHEMA) are stored as DTypes and considered
+  // as primitives.
+  return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto res, ArePrimitivesImpl(impl));
+    return DataSlice::Create(std::move(res), x.GetShape(),
+                             internal::DataItem(schema::kMask), nullptr);
+  });
+}
+
+absl::StatusOr<DataSlice> IsPrimitive(const DataSlice& x) {
+  auto schema = x.GetSchemaImpl();
+  // Trust the schema if it is a primitive schema.
+  if (schema.is_primitive_schema()) {
+    return AsMask(true);
+  }
+  // For non-primitive schemas which cannot contain primitives, return missing.
+  if (!schema.is_any_schema() && !schema.is_object_schema() &&
+      !schema.is_schema_schema()) {
+    return AsMask(false);
+  }
+  // Derive from the data for OBJECT, ANY and SCHEMA schemas. Note that
+  // primitive schemas (e.g. INT32, SCHEMA) are stored as DTypes and considered
+  // as primitives.
   bool contains_only_primitives = x.VisitImpl(absl::Overload(
       [](const internal::DataItem& item) {
         return item.VisitValue([]<class T>(const T& value) {
-          return IsPrimitiveT<T>::value;
+          return !std::is_same_v<T, internal::ObjectId>;
         });
       },
       [](const internal::DataSliceImpl& slice) {
         bool res = true;
         slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
-          res &= IsPrimitiveT<T>::value;
+          res &= !std::is_same_v<T, internal::ObjectId>;
         });
         return res;
       }));
-  return DataSlice::Create(
-      internal::DataItem(arolla::OptionalUnit(contains_only_primitives)),
-      internal::DataItem(schema::kMask), nullptr);
+  return AsMask(contains_only_primitives);
 }
 
 }  // namespace koladata::ops
