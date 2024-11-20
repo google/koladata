@@ -2158,6 +2158,58 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchema) {
           DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue()))));
 }
 
+TEST(ObjectFactoriesTest, CreateListShaped_ListSchema_Adopt) {
+  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
+                                       CreateDenseArray<int64_t>({0, 2})));
+  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
+                                       CreateDenseArray<int64_t>({0, 2, 4})));
+  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
+                                       {std::move(edge1), std::move(edge2)}));
+  auto schema_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto entity_schema,
+      CreateEntitySchema(schema_db, {"a"}, {test::Schema(schema::kInt32)}));
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto list_schema,
+                         CreateListSchema(schema_db, entity_schema));
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         CreateListShaped(db, shape, /*values=*/std::nullopt,
+                                          /*schema=*/list_schema));
+    EXPECT_THAT(
+        ds.slice(),
+        ElementsAre(
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue()))));
+
+    ASSERT_OK_AND_ASSIGN(auto list_items, ds.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(list_items.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({}, list_items.GetShape(), db))));
+  }
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         CreateListShaped(db, shape, /*values=*/std::nullopt,
+                                          /*schema=*/std::nullopt,
+                                          /*item_schema=*/entity_schema));
+    EXPECT_THAT(
+        ds.slice(),
+        ElementsAre(
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue()))));
+
+    ASSERT_OK_AND_ASSIGN(auto list_items, ds.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(list_items.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({}, list_items.GetShape(), db))));
+  }
+}
+
 TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaAny) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto ds,
@@ -2547,6 +2599,69 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema) {
                   Property(&DataSlice::dtype, arolla::GetQType<int64_t>()))));
 }
 
+TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema_Adopt) {
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+
+  auto key_schema_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto key_schema,
+      CreateEntitySchema(key_schema_db, {"a"}, {test::Schema(schema::kInt32)}));
+  auto value_schema_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto value_schema,
+      CreateEntitySchema(value_schema_db,
+                         {"b"}, {test::Schema(schema::kInt64)}));
+  {
+    auto db = DataBag::Empty();
+    auto schema_db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                         CreateDictSchema(schema_db, key_schema, value_schema));
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         CreateDictShaped(db, shape, /*keys=*/std::nullopt,
+                                          /*values=*/std::nullopt,
+                                          /*schema=*/dict_schema));
+    EXPECT_THAT(
+        ds.slice(),
+        ElementsAre(
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue()))));
+
+    ASSERT_OK_AND_ASSIGN(auto dict_keys, ds.GetDictKeys());
+    EXPECT_THAT(dict_keys.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({}, dict_keys.GetShape(), db))));
+    ASSERT_OK_AND_ASSIGN(auto dict_values, ds.GetDictValues());
+    EXPECT_THAT(dict_values.GetAttr("b"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int64_t>({}, dict_values.GetShape(), db))));
+  }
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         CreateDictShaped(db, shape, /*keys=*/std::nullopt,
+                                          /*values=*/std::nullopt,
+                                          /*schema=*/std::nullopt,
+                                          /*key_schema=*/key_schema,
+                                          /*value_schema=*/value_schema));
+    EXPECT_THAT(
+        ds.slice(),
+        ElementsAre(
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue()))));
+
+    ASSERT_OK_AND_ASSIGN(auto dict_keys, ds.GetDictKeys());
+    EXPECT_THAT(dict_keys.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({}, dict_keys.GetShape(), db))));
+    ASSERT_OK_AND_ASSIGN(auto dict_values, ds.GetDictValues());
+    EXPECT_THAT(dict_values.GetAttr("b"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int64_t>({}, dict_values.GetShape(), db))));
+  }
+}
+
 TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaAny) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();
@@ -2925,6 +3040,81 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues_WithSchema) {
                                   IsEquivalentTo(expected_keys_shape)))));
 }
 
+TEST(ObjectFactoriesTest, CreateDictLike_DictSchema_Adopt) {
+  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
+                                       CreateDenseArray<int64_t>({0, 2})));
+  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
+                                       CreateDenseArray<int64_t>({0, 2, 4})));
+  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
+                                       {std::move(edge1), std::move(edge2)}));
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
+      {1, std::nullopt, std::nullopt, 3},
+      {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
+
+  auto key_schema_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto key_schema,
+      CreateEntitySchema(key_schema_db, {"a"}, {test::Schema(schema::kInt32)}));
+  auto value_schema_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto value_schema,
+      CreateEntitySchema(value_schema_db,
+                         {"b"}, {test::Schema(schema::kInt64)}));
+  {
+    auto db = DataBag::Empty();
+    auto schema_db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                         CreateDictSchema(schema_db, key_schema, value_schema));
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         CreateDictLike(db, shape_and_mask_from,
+                                        /*keys=*/std::nullopt,
+                                        /*values=*/std::nullopt,
+                                        /*schema=*/dict_schema));
+    EXPECT_THAT(
+        ds.slice(),
+        ElementsAre(
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
+            MissingDataItem(),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue()))));
+
+    ASSERT_OK_AND_ASSIGN(auto dict_keys, ds.GetDictKeys());
+    EXPECT_THAT(dict_keys.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({}, dict_keys.GetShape(), db))));
+    ASSERT_OK_AND_ASSIGN(auto dict_values, ds.GetDictValues());
+    EXPECT_THAT(dict_values.GetAttr("b"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int64_t>({}, dict_values.GetShape(), db))));
+  }
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         CreateDictLike(db, shape_and_mask_from,
+                                        /*keys=*/std::nullopt,
+                                        /*values=*/std::nullopt,
+                                        /*schema=*/std::nullopt,
+                                        /*key_schema=*/key_schema,
+                                        /*value_schema=*/value_schema));
+    EXPECT_THAT(
+        ds.slice(),
+        ElementsAre(
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
+            MissingDataItem(),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue()))));
+
+    ASSERT_OK_AND_ASSIGN(auto dict_keys, ds.GetDictKeys());
+    EXPECT_THAT(dict_keys.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({}, dict_keys.GetShape(), db))));
+    ASSERT_OK_AND_ASSIGN(auto dict_values, ds.GetDictValues());
+    EXPECT_THAT(dict_values.GetAttr("b"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int64_t>({}, dict_values.GetShape(), db))));
+  }
+}
+
 TEST(ObjectFactoriesTest, CreateDictLike_DataItem) {
   auto db = DataBag::Empty();
   auto shape_and_mask_from = test::DataItem(57, schema::kAny, db);
@@ -3272,6 +3462,64 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema) {
           DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
           MissingDataItem(),
           DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue()))));
+}
+
+TEST(ObjectFactoriesTest, CreateListLike_ListSchema_Adopt) {
+  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
+                                       CreateDenseArray<int64_t>({0, 2})));
+  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
+                                       CreateDenseArray<int64_t>({0, 2, 4})));
+  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
+                                       {std::move(edge1), std::move(edge2)}));
+  auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
+      {1, std::nullopt, std::nullopt, 3},
+      {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
+
+  auto schema_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto entity_schema,
+      CreateEntitySchema(schema_db, {"a"}, {test::Schema(schema::kInt32)}));
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto list_schema,
+                         CreateListSchema(schema_db, entity_schema));
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         CreateListLike(db, shape_and_mask_from,
+                                        /*values=*/std::nullopt,
+                                        /*schema=*/list_schema));
+    EXPECT_THAT(
+        ds.slice(),
+        ElementsAre(
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+            MissingDataItem(),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue()))));
+
+    ASSERT_OK_AND_ASSIGN(auto list_items, ds.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(list_items.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({}, list_items.GetShape(), db))));
+  }
+  {
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         CreateListLike(db, shape_and_mask_from,
+                                        /*values=*/std::nullopt,
+                                        /*schema=*/std::nullopt,
+                                        /*item_schema=*/entity_schema));
+    EXPECT_THAT(
+        ds.slice(),
+        ElementsAre(
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())),
+            MissingDataItem(),
+            DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue()))));
+
+    ASSERT_OK_AND_ASSIGN(auto list_items, ds.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(list_items.GetAttr("a"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({}, list_items.GetShape(), db))));
+  }
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_ListSchemaAny) {

@@ -103,82 +103,6 @@ absl::StatusOr<DataSlice> CreateEntitiesFromFields(
                            db);
 }
 
-// Copies all schema attributes for schema `schema_item` from `schema_db` to
-// `db_mutable_impl`. Returns an Error if schema is not Any or Entity or in case
-// internal invariants are broken.
-// TODO: This solution is mid-term, as we will either optimize it
-// to rely on fast copying of dictionaries from one DataBag to another or will
-// apply merging before invoking `EntityCreator`. Invoking merging will allow
-// the full functionality of `update_schema=true`.
-absl::Status CopyEntitySchema(const DataBagPtr& schema_db,
-                              const internal::DataItem& schema_item,
-                              internal::DataBagImpl& db_mutable_impl) {
-  if (schema_item == schema::kAny) {
-    return absl::OkStatus();
-  }
-  if (!schema_item.is_entity_schema()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "processing Entity attributes requires Entity schema, got %v",
-        schema_item));
-  }
-  if (schema_db == nullptr) {
-    // NOTE: If `update_schema=true`, the attribute schemas will just be set at
-    // the point of creating Entities. If `update_schema=false`, the error will
-    // be returned from the caller, as attributes will have missing schema in
-    // the DataBag the caller is creating Entity into.
-    return absl::OkStatus();
-  }
-  const internal::DataBagImpl& schema_db_impl = schema_db->GetImpl();
-  FlattenFallbackFinder fb_finder = FlattenFallbackFinder(*schema_db);
-  auto fallbacks = fb_finder.GetFlattenFallbacks();
-  ASSIGN_OR_RETURN(internal::DataSliceImpl attr_names_slice,
-                   schema_db_impl.GetSchemaAttrs(schema_item, fallbacks));
-
-  std::vector<absl::string_view> attr_names;
-  attr_names.reserve(attr_names_slice.size());
-  // All are present.
-  attr_names_slice.values<arolla::Text>().ForEachPresent(
-      [&](int64_t, absl::string_view attr_name) {
-        attr_names.push_back(attr_name);
-      });
-  std::deque<internal::DataItem> attr_schema_owners;
-  std::vector<std::reference_wrapper<const internal::DataItem>> attr_schemas;
-  attr_schemas.reserve(attr_names_slice.size());
-  for (const auto& attr_name : attr_names) {
-    ASSIGN_OR_RETURN(
-        attr_schema_owners.emplace_back(),
-        schema_db_impl.GetSchemaAttrAllowMissing(schema_item, attr_name,
-                                                 fallbacks));
-    attr_schemas.push_back(std::cref(attr_schema_owners.back()));
-  }
-  return db_mutable_impl.OverwriteSchemaFields(
-      schema_item, attr_names, attr_schemas);
-}
-
-absl::Status CopyListSchema(const DataSlice& list_schema,
-                            const DataBagPtr& db) {
-  RETURN_IF_ERROR(list_schema.VerifyIsListSchema());
-  if (list_schema.GetBag() == db) {
-    return absl::OkStatus();
-  }
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
-  return CopyEntitySchema(list_schema.GetBag(), list_schema.item(),
-                          db_mutable_impl);
-}
-
-absl::Status CopyDictSchema(const DataSlice& dict_schema,
-                            const DataBagPtr& db) {
-  RETURN_IF_ERROR(dict_schema.VerifyIsDictSchema());
-  if (dict_schema.GetBag() == db) {
-    return absl::OkStatus();
-  }
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   db->GetMutableImpl());
-  return CopyEntitySchema(dict_schema.GetBag(), dict_schema.item(),
-                          db_mutable_impl);
-}
-
 template <class ImplT>
 absl::Status SetObjectSchema(
     internal::DataBagImpl& db_mutable_impl, const ImplT& ds_impl,
@@ -472,14 +396,18 @@ absl::StatusOr<DataSlice> CreateDictImpl(
     const std::optional<DataSlice>& key_schema,
     const std::optional<DataSlice>& value_schema) {
   internal::DataItem dict_schema;
+  AdoptionQueue schema_adoption_queue;
   if (schema) {
     if (key_schema.has_value() || value_schema.has_value()) {
       return absl::InvalidArgumentError(
           "creating dicts with schema accepts either a dict schema or key/value"
           " schemas, but not both");
     }
-    RETURN_IF_ERROR(CopyDictSchema(*schema, db));
+    RETURN_IF_ERROR(schema->VerifyIsDictSchema());
     dict_schema = schema->item();
+    if (dict_schema != schema::kAny && schema->GetBag() != db) {
+      schema_adoption_queue.Add(*schema);
+    }
   } else {
     ASSIGN_OR_RETURN(auto deduced_key_schema,
                      DeduceItemSchema(keys, key_schema));
@@ -487,7 +415,16 @@ absl::StatusOr<DataSlice> CreateDictImpl(
                      DeduceItemSchema(values, value_schema));
     ASSIGN_OR_RETURN(dict_schema, CreateDictSchemaItem(db, deduced_key_schema,
                                                        deduced_value_schema));
+    if (key_schema && key_schema->item() != schema::kAny &&
+        key_schema->GetBag() != db) {
+      schema_adoption_queue.Add(*key_schema);
+    }
+    if (value_schema && value_schema->item() != schema::kAny &&
+        value_schema->GetBag() != db) {
+      schema_adoption_queue.Add(*value_schema);
+    }
   }
+  RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
   ASSIGN_OR_RETURN(DataSlice res, create_dicts_fn(dict_schema));
   if (keys.has_value() && values.has_value()) {
     RETURN_IF_ERROR(res.SetInDict(*keys, *values));
@@ -1185,20 +1122,29 @@ absl::StatusOr<DataSlice> CreateListShaped(
     const std::optional<DataSlice>& item_schema,
     const std::optional<DataSlice>& itemid) {
   internal::DataItem list_schema;
+  AdoptionQueue schema_adoption_queue;
   if (schema) {
     if (item_schema.has_value()) {
       return absl::InvalidArgumentError(
           "creating lists with schema accepts either a list schema or item "
           "schema, but not both");
     }
-    RETURN_IF_ERROR(CopyListSchema(*schema, db));
+    RETURN_IF_ERROR(schema->VerifyIsListSchema());
     list_schema = schema->item();
+    if (list_schema != schema::kAny && schema->GetBag() != db) {
+      schema_adoption_queue.Add(*schema);
+    }
   } else {
     ASSIGN_OR_RETURN(auto deduced_item_schema,
                      DeduceItemSchema(values, item_schema));
     ASSIGN_OR_RETURN(list_schema,
                      CreateListSchemaItem(db, deduced_item_schema));
+    if (item_schema && item_schema->item() != schema::kAny &&
+        item_schema->GetBag() != db) {
+      schema_adoption_queue.Add(*item_schema);
+    }
   }
+  RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
   ASSIGN_OR_RETURN(auto result, CreateShaped(db, std::move(shape), list_schema,
                                              internal::AllocateSingleList,
                                              internal::AllocateLists,
@@ -1217,20 +1163,29 @@ absl::StatusOr<DataSlice> CreateListLike(
     const std::optional<DataSlice>& item_schema,
     const std::optional<DataSlice>& itemid) {
   internal::DataItem list_schema;
+  AdoptionQueue schema_adoption_queue;
   if (schema) {
     if (item_schema.has_value()) {
       return absl::InvalidArgumentError(
           "creating lists with schema accepts either a list schema or item "
           "schema, but not both");
     }
-    RETURN_IF_ERROR(CopyListSchema(*schema, db));
+    RETURN_IF_ERROR(schema->VerifyIsListSchema());
     list_schema = schema->item();
+    if (list_schema != schema::kAny && schema->GetBag() != db) {
+      schema_adoption_queue.Add(*schema);
+    }
   } else {
     ASSIGN_OR_RETURN(auto deduced_item_schema,
                      DeduceItemSchema(values, item_schema));
     ASSIGN_OR_RETURN(list_schema,
                      CreateListSchemaItem(db, deduced_item_schema));
+    if (item_schema && item_schema->item() != schema::kAny &&
+        item_schema->GetBag() != db) {
+      schema_adoption_queue.Add(*item_schema);
+    }
   }
+  RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
   ASSIGN_OR_RETURN(auto result, CreateLike(db, shape_and_mask_from, list_schema,
                                            internal::AllocateSingleList,
                                            internal::AllocateLists,

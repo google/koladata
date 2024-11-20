@@ -181,7 +181,7 @@ koladata::DataSlice DataSlice(
     std::initializer_list<
         arolla::OptionalValue<typename test_val<T>::t>> values,
     DataSlice::JaggedShape shape, DataBagPtr db = nullptr) {
-  return DataSlice<T, schema::DType>(values, shape, DeduceSchema<T>());
+  return DataSlice<T, schema::DType>(values, shape, DeduceSchema<T>(), db);
 }
 
 template <typename T, typename U, typename V = void>
