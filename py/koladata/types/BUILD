@@ -19,9 +19,16 @@ load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
-package(default_visibility = [
+default_visibility = [
     "//koladata:internal",
-])
+]
+
+# TODO(b/379873449); remove once we have a public API to define user operators.
+user_ops_visibility = [
+    "//quality/arolla/projects/rankchain/experimental/llm:__subpackages__",
+]
+
+package(default_visibility = default_visibility)
 
 licenses(["notice"])
 
@@ -161,6 +168,7 @@ cc_library(
 py_library(
     name = "py_boxing",
     srcs = ["py_boxing.py"],
+    visibility = default_visibility + user_ops_visibility,
     deps = [
         ":data_bag",
         ":data_item",
@@ -422,6 +430,7 @@ py_test(
 py_library(
     name = "qtypes",
     srcs = ["qtypes.py"],
+    visibility = default_visibility + user_ops_visibility,
     deps = [
         ":data_bag_py_ext",
         ":data_slice_py_ext",

@@ -21,10 +21,17 @@ load(
 )
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
-package(default_visibility = [
-    "//koladata:internal",
+default_visibility = [
     "//quality/arolla/koladata:__subpackages__",
-])
+    "//koladata:internal",
+]
+
+# TODO(b/379873449); remove once we have a public API to define user operators.
+user_ops_visibility = [
+    "//quality/arolla/projects/rankchain/experimental/llm:__subpackages__",
+]
+
+package(default_visibility = default_visibility)
 
 licenses(["notice"])
 
@@ -78,6 +85,7 @@ arolla_operator_package_snapshot(
 py_library(
     name = "optools",
     srcs = ["optools.py"],
+    visibility = default_visibility + user_ops_visibility,
     deps = [
         ":op_repr",
         "//py/koladata/expr:input_container",
@@ -111,6 +119,7 @@ py_test(
 py_library(
     name = "qtype_utils",
     srcs = ["qtype_utils.py"],
+    visibility = default_visibility + user_ops_visibility,
     deps = [
         "//koladata/operators",
         "//py/koladata/types:qtypes",
