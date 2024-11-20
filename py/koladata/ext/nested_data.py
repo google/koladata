@@ -30,6 +30,10 @@ def selected_path_update(
 ) -> kdi.types.DataBag:
   """Returns a DataBag where only the selected items are present in child lists.
 
+  The selection_ds_path must contain at least one list attribute. In general,
+  all lists must use an explicit list schema; this function does not work for
+  lists stored as kd.OBJECT.
+
   Example:
     ```
     selection_ds = root_ds.a[:].b.c[:].x > 1
@@ -60,86 +64,50 @@ def selected_path_update(
   if not selection_ds_path:
     raise ValueError('selection_ds_path must be a non-empty list of str')
 
-  source_slices = []
-  curr_item = root_ds
-  for curr_path in selection_ds_path:
-    try:
-      if kdi.schema.is_list_schema(curr_item.get_schema()):
-        curr_item = curr_item[:].get_attr(curr_path)
-      else:
-        curr_item = curr_item.get_attr(curr_path)
-    except Exception as e:
-      raise ValueError(
-          f'Processing {selection_ds_path}: '
-          f"cannot find '{curr_path}' in {curr_item!r}"
-      ) from e
-    source_slices.append(curr_item)
+  attr_is_list = []
+  slices = [root_ds]
+  for a in selection_ds_path:
+    value = slices[-1].get_attr(a)
+    if value.get_schema().is_list_schema():
+      attr_is_list.append(True)
+      slices.append(value[:])
+    else:
+      attr_is_list.append(False)
+      slices.append(value)
 
-  last_ds = source_slices[-1]
-  last_ds = (
-      last_ds[:] if kdi.schema.is_list_schema(last_ds.get_schema()) else last_ds
-  )
-  if selection_ds.get_shape() != last_ds.get_shape():
+  if selection_ds.get_shape() != slices[-1].get_shape():
     raise ValueError(
         f'The selection_ds {selection_ds!r} does not match the shape of the '
         f'slice at {selection_ds_path}: {selection_ds.get_shape()} != '
-        f'{last_ds.get_shape()}'
+        f'{slices[-1].get_shape()}'
+    )
+  if not any(attr_is_list):
+    raise ValueError(
+        'selection_ds_path must contain at least one list attribute. '
+        f'That is not the case for: {selection_ds_path}'
     )
 
-  # We will clone each of the source_slices starting from the slice at the
-  # selection_ds towards to root.
-  # The cloned slices are filtered to remove all items that have not been
-  # selected.
-
   db = kdi.bag()
-
-  curr_filter = selection_ds
-  prev_ds = None  # None or (prev_path, prev_selected_ds)
-  selected_ds = None  # None or the last filtered DataSlice
-  for (
-      ds_path,
-      src_ds,
-  ) in reversed(list(zip(selection_ds_path, source_slices))):
-    if kdi.schema.is_list_schema(src_ds.get_schema()):
-      # e.g. a repeated Message field in a proto buffer.
-      selected_ds = kdi.select(src_ds[:], curr_filter, expand_filter=False)
-    else:
-      # e.g. an optional Message field in a proto buffer.
-      selected_ds = kdi.select(src_ds, curr_filter, expand_filter=False)
-
-    # Here we copy the filtered DataSlice to the output DataBag. For efficiency
-    # the output DataBag only contains the minimal set of Entities required to
-    # correctly "store" the selection. For this reason we need to call `as_any`
-    # as the output DataBag does not have the Embedded schemas if selected_ds
-    # contains Objects.
-    selected_ds = selected_ds.with_db(db).as_any()
-
-    if prev_ds is not None:
-      prev_ds_path, prev_selected_ds = prev_ds
-      selected_ds.set_attr(prev_ds_path, prev_selected_ds)
-
-    if kdi.schema.is_list_schema(src_ds.get_schema()):
-      if selected_ds.get_ndim() <= 1:
-        # We have reached the first item above root.
-        # Even if child index is empty, we never filter out root.
-        break
-
-      # We also need to filter all empty items in selected_ds otherwise they
-      # will be returned as empty lists.
-      non_empty_items = kdi.agg_count(selected_ds) > 0
-      selected_ds = kdi.select(
-          selected_ds, non_empty_items, expand_filter=False
+  mask = selection_ds
+  for parent_slice, child_slice, attribute, make_list in reversed(
+      list(
+          zip(
+              slices[:-1],
+              slices[1:],
+              selection_ds_path,
+              attr_is_list,
+          )
       )
-      curr_filter = non_empty_items
-      prev_ds = (ds_path, db.list(selected_ds))
-    else:
-      prev_ds = (ds_path, selected_ds)
-
-  assert selected_ds is not None
-  # TODO: consider moving this last assignment in the loop.
-  out_root = root_ds.with_db(db).as_any()
-  # Here we assume that the first DataSlice under root is a list. The reason is
-  # that the first DataSlice corresponds to the "dataset", i.e. a collection of
-  # protos, or a Pandas dataframe and this DataSlice corresponds to their rows.
-  out_root.set_attr(selection_ds_path[0], db.list(selected_ds))
+  ):
+    child_slice = child_slice.no_bag()
+    if make_list:
+      child_slice = kdi.select(child_slice, mask)
+      if parent_slice.get_ndim() == root_ds.get_ndim():
+        # For the root, we must update all lists, since the user will query
+        # them as we do not return the filtered root.
+        mask = kdi.has(root_ds)
+      else:
+        mask = kdi.agg_any(mask)
+      child_slice = db.list_like(mask, child_slice)
+    (parent_slice & mask).with_bag(db).as_any().set_attr(attribute, child_slice)
   return db

@@ -429,7 +429,7 @@ class NestedDataTest(parameterized.TestCase):
     in_ds = create_test_input()
 
     with self.assertRaisesRegex(
-        ValueError, re.escape("Processing ['m']: cannot find 'm' in ")
+        ValueError, re.escape("the attribute 'm' is missing")
     ):
       nested_data.selected_path_update(in_ds, ['m'], in_ds.q[:].qt[:].qtid == 0)
 
@@ -527,6 +527,63 @@ class NestedDataTest(parameterized.TestCase):
         data, ['x', 'y', 'z'], kdf.fn(S.x[:].y.z[:] > 3)
     )
     self.assertEqual(data.updated(selected_db).x[:].y.z[:].to_py(), [[4, 5]])
+
+  def test_root_object_can_see_updates(self):
+    # Shows that `mask = kdi.has(root_ds)` is required in the root case. If that
+    # isn't used, then the root is "filtered out", but because there are no
+    # removed values (i.e. removal isn't made explicit), it will appear as if
+    # nothing was filtered.
+    root = kdi.new(
+        x=kdi.list(
+            kdi.new(y=kdi.new(z=kdi.list(kdi.slice([[1, 2], [3, 4, 5]]))))
+        )
+    )
+    selected_db = nested_data.selected_path_update(
+        root, ['x', 'y', 'z'], lambda s: s.x[:].y.z[:] > 100
+    )
+    self.assertEqual(root.updated(selected_db).x[:].to_py(), [])
+
+  def test_root_slice_can_see_updates(self):
+    # Shows that `mask = kdi.has(root_ds)` is required in the root case.
+    root = kdi.slice([
+        kdi.new(
+            x=kdi.list(
+                kdi.new(y=kdi.new(z=kdi.list(kdi.slice([[1, 2], [3, 4, 5]]))))
+            )
+        )
+    ])
+    selected_db = nested_data.selected_path_update(
+        root, ['x', 'y', 'z'], lambda s: s.x[:].y.z[:] > 100
+    )
+    self.assertEqual(
+        root.updated(selected_db).x[:].to_py(),
+        [[]],
+    )
+
+  def test_selection_needs_lists(self):
+    root_item = kdi.new(x=kdi.new(y=1))
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'selection_ds_path must contain at least one list attribute. That'
+            " is not the case for: ['x', 'y']"
+        ),
+    ):
+      nested_data.selected_path_update(
+          root_item, ['x', 'y'], lambda s: s.x.y > 100
+      )
+
+    root_slice = kdi.slice([root_item])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'selection_ds_path must contain at least one list attribute. That'
+            " is not the case for: ['x', 'y']"
+        ),
+    ):
+      nested_data.selected_path_update(
+          root_slice, ['x', 'y'], lambda s: s.x.y > 100
+      )
 
 
 if __name__ == '__main__':
