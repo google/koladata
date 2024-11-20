@@ -100,6 +100,8 @@ OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
 OPERATOR("kde.core.add", Add);
 OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
+OPERATOR("kde.core.are_dicts", AreDicts);
+OPERATOR("kde.core.are_lists", AreLists);
 OPERATOR("kde.core.are_primitives", ArePrimitives);
 OPERATOR("kde.core.attr", Attr);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());

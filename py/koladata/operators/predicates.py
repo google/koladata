@@ -88,6 +88,37 @@ def is_primitive(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.are_lists'])
+@optools.as_backend_operator(
+    'kde.core.are_lists',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def are_lists(x):  # pylint: disable=unused-argument
+  """Returns present for each item in `x` that is List.
+
+  Note that this is a pointwise operation.
+
+  Also see `kd.is_list` for checking if `x` is a List DataSlice. But note that
+  `kd.all(kd.are_lists(x))` is not always equivalent to `kd.is_list(x)`. For
+  example,
+
+    kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
+    kd.all(kd.are_lists(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
+    kd.all(kd.are_lists(kd.item([None], kd.OBJECT))) -> kd.missing
+
+  Args:
+    x: DataSlice to check.
+
+  Returns:
+    A MASK DataSlice with the same shape as `x`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.is_list'])
 @optools.as_backend_operator(
     'kde.core.is_list',
@@ -102,8 +133,8 @@ def is_list(x):  # pylint: disable=unused-argument
     2) it has OBJECT/ANY schema and only has List items
 
   Also see `kd.are_lists` for a pointwise version. But note that
-  `kd.all(kd.are_lists(x))` is not always equivalent to
-  `kd.is_list(x)`. For example,
+  `kd.all(kd.are_lists(x))` is not always equivalent to `kd.is_list(x)`. For
+  example,
 
     kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
     kd.all(kd.are_lists(kd.item(None, kd.OBJECT))) -> invalid for kd.all
@@ -115,6 +146,37 @@ def is_list(x):  # pylint: disable=unused-argument
 
   Returns:
     A MASK DataItem.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.are_dicts'])
+@optools.as_backend_operator(
+    'kde.core.are_dicts',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def are_dicts(x):  # pylint: disable=unused-argument
+  """Returns present for each item in `x` that is Dict.
+
+  Note that this is a pointwise operation.
+
+  Also see `kd.is_dict` for checking if `x` is a Dict DataSlice. But note that
+  `kd.all(kd.are_dicts(x))` is not always equivalent to `kd.is_dict(x)`. For
+  example,
+
+    kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
+    kd.all(kd.are_dicts(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
+    kd.all(kd.are_dicts(kd.item([None], kd.OBJECT))) -> kd.missing
+
+  Args:
+    x: DataSlice to check.
+
+  Returns:
+    A MASK DataSlice with the same shape as `x`.
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -133,8 +195,8 @@ def is_dict(x):  # pylint: disable=unused-argument
     2) it has OBJECT/ANY schema and only has Dict items
 
   Also see `kd.are_dicts` for a pointwise version. But note that
-  `kd.all(kd.are_dicts(x))` is not always equivalent to
-  `kd.is_dict(x)`. For example,
+  `kd.all(kd.are_dicts(x))` is not always equivalent to `kd.is_dict(x)`. For
+  example,
 
     kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
     kd.all(kd.are_dicts(kd.item(None, kd.OBJECT))) -> invalid for kd.all

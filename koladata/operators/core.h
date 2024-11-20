@@ -179,9 +179,6 @@ absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds);
 // kde.core.decode_itemid
 absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds);
 
-// kde.core.is_dict.
-absl::StatusOr<DataSlice> IsDict(const DataSlice& dicts);
-
 // kde.core.get_nofollowed_schema.
 absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds);
 

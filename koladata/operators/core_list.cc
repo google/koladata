@@ -115,10 +115,6 @@ absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
   });
 }
 
-absl::StatusOr<DataSlice> IsList(const DataSlice& lists) {
-  return AsMask(lists.IsList());
-}
-
 absl::StatusOr<DataSlice> List(const DataSlice& items,
                                const DataSlice& item_schema,
                                const DataSlice& schema, const DataSlice& itemid,

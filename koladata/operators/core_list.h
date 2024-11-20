@@ -41,9 +41,6 @@ absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
 // kde.core.list_size.
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 
-// kde.core.is_list.
-absl::StatusOr<DataSlice> IsList(const DataSlice& lists);
-
 // kde.core.list operator.
 absl::StatusOr<DataSlice> List(const DataSlice& items,
                                const DataSlice& item_schema,
