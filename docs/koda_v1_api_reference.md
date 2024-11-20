@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-19'
+  reviewed: '2024-11-20'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -403,6 +403,29 @@ Args:
 
 Returns:
   Result of fn applied on filtered args.
+```
+
+### `are_primitives(x)` {#are_primitives}
+
+``` {.no-copy}
+Returns present for each item in `x` that is primitive.
+
+Note that this is a pointwise operation.
+
+Also see `kd.is_primitive` for checking if `x` is a primitive DataSlice. But
+note that `kd.all(kd.are_primitives(x))` is not always equivalent to
+`kd.is_primitive(x)`. For example,
+
+  kd.is_primitive(kd.int32(None)) -> kd.present
+  kd.all(kd.are_primitives(kd.int32(None))) -> invalid for kd.all
+  kd.is_primitive(kd.int32([None])) -> kd.present
+  kd.all(kd.are_primitives(kd.int32([None]))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataSlice with the same shape as `x`.
 ```
 
 ### `as_any(x)` {#as_any}
@@ -1727,14 +1750,10 @@ Returns:
   a primitive schema DataSlice.
 ```
 
-### `get_item(x, key)` {#get_item}
+### `get_item(x, key_or_index)` {#get_item}
 
 ``` {.no-copy}
-Get items from from `x` by `key`.
-
-`x` must be a DataSlice of Dicts or Lists, or DataBag. If `x` is a DataSlice,
-`key` is used as a slice or index. If `x` is a DataBag, `key` is used as a
-view into the DataBag (equivalent to `kde.with_bag(key, x))`).
+Get items from Lists or Dicts in `x` by `key_or_index`.
 
 Examples:
 l = kd.list([1, 2, 3])
@@ -1747,12 +1766,9 @@ d = kd.dict({'a': 1, 'b': 2})
 # Get Dict values by keys
 kde.get_item(d, kd.slice(['a', 'c'])) -> kd.slice([1, None])
 
-# db lookup.
-kde.get_item(l.get_bag(), l.ref()) -> l.
-
 Args:
-  x: List or Dict DataSlice, or DataBag.
-  key: DataSlice or Slice.
+  x: List or Dict DataSlice.
+  key_or_index: DataSlice or Slice.
 
 Returns:
   Result DataSlice.
@@ -2356,6 +2372,25 @@ Returns true if all present items in ds are lists.
 
 ``` {.no-copy}
 Returns whether x is a primitive DataSlice.
+
+`x` is a primitive DataSlice if it meets one of the following conditions:
+  1) it has a primitive schema
+  2) it has at least one primitive and only has primitives.
+
+Also see `kd.are_primitives` for a pointwise version. But note that
+`kd.all(kd.are_primitives(x))` is not always equivalent to
+`kd.is_primitive(x)`. For example,
+
+  kd.is_primitive(kd.int32(None)) -> kd.present
+  kd.all(kd.are_primitives(kd.int32(None))) -> invalid for kd.all
+  kd.is_primitive(kd.int32([None])) -> kd.present
+  kd.all(kd.are_primitives(kd.int32([None]))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataItem.
 ```
 
 ### `is_shape_compatible(x, y)` {#is_shape_compatible}
@@ -3228,6 +3263,25 @@ Args:
 
 Returns:
   A DataSlice with the same shape as `x`.
+```
+
+### `py_reference(obj)` {#py_reference}
+
+``` {.no-copy}
+Wraps into a Arolla QValue using reference for serialization.
+
+  py_reference can be used to pass arbitrary python objects through
+  kd.apply_py/kd.py_fn.
+
+  Note that using reference for serialization means that the resulting
+  QValue (and Exprs created using it) will only be valid within the
+  same process. Trying to deserialize it in a different process
+  will result in an exception.
+
+  Args:
+    obj: the python object to wrap.
+  Returns:
+    The wrapped python object as Arolla QValue.
 ```
 
 ### `randint_like(x, low, high, seed)` {#randint_like}
