@@ -37,8 +37,11 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
+#include "koladata/operators/core.h"
+#include "koladata/operators/logical.h"
 #include "koladata/proto/to_proto.h"
 #include "koladata/uuid_utils.h"
 #include "google/protobuf/message.h"
@@ -50,6 +53,7 @@
 #include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/pybind11_protobuf_wrapper.h"
 #include "py/koladata/types/wrap_utils.h"
+#include "arolla/dense_array/dense_array.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
@@ -165,7 +169,7 @@ absl::Nullable<PyObject*> PyDataSlice_to_proto(PyObject* self,
                                                Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   const DataSlice& slice = UnsafeDataSliceRef(self);
-  const size_t num_messages = slice.size();
+  const size_t num_messages = slice.present_count();
   if (slice.GetShape().rank() > 1) {
     PyErr_Format(PyExc_ValueError,
                  "to_proto expects a DataSlice with ndim 0 or 1, got ndim=%d",
@@ -209,34 +213,58 @@ absl::Nullable<PyObject*> PyDataSlice_to_proto(PyObject* self,
   }
 
   ASSIGN_OR_RETURN(auto flat_slice,
-                   slice.Reshape(slice.GetShape().FlatFromSize(num_messages)),
+                   slice.Reshape(slice.GetShape().FlatFromSize(slice.size())),
                    arolla::python::SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(ToProto(std::move(flat_slice), message_ptrs))
+  ASSIGN_OR_RETURN(auto mask, ops::Has(flat_slice),
+                   arolla::python::SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto dense_flat_slice,
+                   ops::Select(std::move(flat_slice), mask, false),
+                   arolla::python::SetPyErrFromStatus(_));
+
+  RETURN_IF_ERROR(ToProto(std::move(dense_flat_slice), message_ptrs))
       .With(arolla::python::SetPyErrFromStatus);
 
-  // If the input was a DataItem, return a single message.
+  // If the input was a DataItem, return a single message (or None).
   if (slice.is_item()) {
-    auto py_message = WrapProtoMessage(std::move(messages[0]), py_message_class,
-                                       using_fast_cpp_proto);
-    if (py_message == nullptr) {
-      return nullptr;
+    if (num_messages == 0) {
+      return Py_None;
+    } else {
+      auto py_message = WrapProtoMessage(
+          std::move(messages[0]), py_message_class, using_fast_cpp_proto);
+      if (py_message == nullptr) {
+        return nullptr;
+      }
+      return py_message.release();
     }
-    return py_message.release();
   }
 
+  const auto& mask_impl = mask.impl<internal::DataSliceImpl>();
+  const arolla::DenseArray<arolla::Unit>* mask_values =
+      mask_impl.is_empty_and_unknown() ? nullptr
+                                       : &mask_impl.values<arolla::Unit>();
+
   auto py_result_list =
-      arolla::python::PyObjectPtr::Own(PyList_New(num_messages));
+      arolla::python::PyObjectPtr::Own(PyList_New(slice.size()));
   if (py_result_list == nullptr) {
     return nullptr;
   }
-  for (Py_ssize_t i = 0; i < num_messages; ++i) {
-    auto py_message = WrapProtoMessage(std::move(messages[i]), py_message_class,
-                                       using_fast_cpp_proto);
+  Py_ssize_t i_message = 0;
+  for (Py_ssize_t i = 0; i < slice.size(); ++i) {
+    if (mask_values == nullptr || !mask_values->present(i)) {
+      PyList_SET_ITEM(py_result_list.get(), i, Py_None);
+      continue;
+    }
+    auto py_message =
+        WrapProtoMessage(std::move(messages[i_message]), py_message_class,
+                          using_fast_cpp_proto);
+    ++i_message;
     if (py_message == nullptr) {
       return nullptr;
     }
     PyList_SET_ITEM(py_result_list.get(), i, py_message.release());
   }
+  DCHECK_EQ(i_message, num_messages);
+
   return py_result_list.release();
 }
 

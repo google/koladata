@@ -63,7 +63,7 @@ class ToProtoTest(absltest.TestCase):
   def test_single_none_message(self):
     bag = data_bag.DataBag.empty()
     message = fns.to_proto(ds(None).with_bag(bag), test_pb2.MessageC)
-    expected_message = test_pb2.MessageC()
+    expected_message = None
     self.assertEqual(message, expected_message)
 
   def test_single_message(self):
@@ -86,6 +86,7 @@ class ToProtoTest(absltest.TestCase):
         ds([
             fns.obj(int32_field=1),
             fns.obj(int32_field=2, bytes_field=b'b'),
+            mask_constants.missing,
             fns.obj(int32_field=3),
         ]),
         test_pb2.MessageC,
@@ -93,6 +94,7 @@ class ToProtoTest(absltest.TestCase):
     expected_messages = [
         test_pb2.MessageC(int32_field=1),
         test_pb2.MessageC(int32_field=2, bytes_field=b'b'),
+        None,
         test_pb2.MessageC(int32_field=3),
     ]
     self.assertEqual(messages, expected_messages)
