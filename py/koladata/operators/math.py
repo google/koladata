@@ -815,3 +815,63 @@ def cdf(x, weights=arolla.unspecified(), ndim=arolla.unspecified()):
 
   res = _cdf(x_flattened, weights_flattened)
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.math._agg_inverse_cdf',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.cdf_arg),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _agg_inverse_cdf(x, cdf_arg):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.math.agg_inverse_cdf',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.cdf_arg),
+        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
+    ],
+)
+def agg_inverse_cdf(x, cdf_arg, ndim=arolla.unspecified()):
+  """Returns the value with CDF (in [0, 1]) approximately equal to the input.
+
+  The value is computed along the last ndim dimensions.
+
+  The return value will have an offset of floor((cdf - 1e-6) * size()) in the
+  (ascendingly) sorted array.
+
+  Args:
+    x: a DataSlice of numbers.
+    cdf_arg: (float) CDF value.
+    ndim: The number of dimensions to compute inverse CDF over. Requires 0 <=
+      ndim <= get_ndim(x).
+  """
+  return _agg_inverse_cdf(jagged_shape_ops.flatten_last_ndim(x, ndim), cdf_arg)
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.math.inverse_cdf',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.cdf_arg),
+    ],
+)
+def inverse_cdf(x, cdf_arg):
+  """Returns the value with CDF (in [0, 1]) approximately equal to the input.
+
+  The return value is computed over all dimensions. It will have an offset of
+  floor((cdf - 1e-6) * size()) in the (ascendingly) sorted array.
+
+  Args:
+    x: a DataSlice of numbers.
+    cdf_arg: (float) CDF value.
+  """
+  return agg_inverse_cdf(jagged_shape_ops.flatten(x), cdf_arg)

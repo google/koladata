@@ -20,6 +20,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
@@ -144,6 +145,21 @@ absl::StatusOr<DataSlice> Cdf(const DataSlice& x, const DataSlice& weights) {
   return SimpleAggOverEval("math.cdf", {x, weights},
                            /*output_schema=*/internal::DataItem(),
                            /*edge_arg_index=*/2);
+}
+
+absl::StatusOr<DataSlice> AggInverseCdf(const DataSlice& x,
+                                        const DataSlice& cdf_arg) {
+  if (!ToArollaScalar<double>(cdf_arg).ok()) {
+    return internal::OperatorEvalError(
+        "agg_inverse_cdf",
+        absl::StrFormat("expected cdf_arg to be a scalar float value, got %s",
+                        arolla::Repr(cdf_arg)));
+  }
+
+  return SimpleAggIntoEval("math.inverse_cdf", {x, cdf_arg},
+                           /*output_schema=*/internal::DataItem(),
+                           /*edge_arg_index=*/2,
+                           /*primary_operand_indices=*/{{0}});
 }
 
 absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
