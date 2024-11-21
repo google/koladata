@@ -103,7 +103,7 @@ class FunctorCallTest(absltest.TestCase):
 
   def test_var_positional(self):
     fn = functor_factories.fn(
-        returns=arolla.M.core.get_nth(I.x, 1),
+        returns=kde.tuple.get_nth(I.x, 1),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.VAR_POSITIONAL
@@ -165,7 +165,7 @@ class FunctorCallTest(absltest.TestCase):
       _ = expr_eval.eval(kde.call(fn, fns.new(bar=57)))
 
   def test_call_non_dataslice_inputs(self):
-    fn = functor_factories.fn(arolla.M.core.get_nth(I.x, 1))
+    fn = functor_factories.fn(kde.tuple.get_nth(I.x, 1))
     testing.assert_equal(
         expr_eval.eval(kde.call(fn, x=arolla.tuple(ds(1), ds(2), ds(3)))), ds(2)
     )

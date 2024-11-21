@@ -288,7 +288,9 @@ py_library(
     name = "tuple",
     srcs = ["tuple.py"],
     deps = [
+        ":arolla_bridge",
         ":optools",
+        ":qtype_utils",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
@@ -309,6 +311,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         ":schema",
+        ":tuple",
         ":view_overloads",
         "//koladata/operators",
         "//py/koladata/types:data_slice",

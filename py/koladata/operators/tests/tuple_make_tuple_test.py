@@ -102,13 +102,7 @@ class TupleMakeTupleTest(parameterized.TestCase):
     self.assertTrue(view.has_koda_view(x_tuple))
     self.assertLen(x_tuple.node_deps, 2)
 
-    # TODO: Add kd.get_nth with KodaView and use it to not have to
-    # annotate the inputs.
-    # DataSlice view is only expected if we know the type of the inputs.
-    x_tuple = kde.tuple.make_tuple(
-        arolla.M.annotation.qtype(I.x, DATA_SLICE),
-        arolla.M.annotation.qtype(I.y, DATA_SLICE),
-    )
+    x_tuple = kde.tuple.make_tuple(I.x, I.y)
     # TODO: Support __getitem__ for tuples.
     # self.assertTrue(view.has_koda_view(x_tuple[0]))
     # self.assertTrue(view.has_koda_view(x_tuple[1]))

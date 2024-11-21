@@ -25,7 +25,6 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import ellipsis
-from koladata.types import qtypes
 
 kde = kde_operators.kde
 C = input_container.InputContainer('C')
@@ -496,24 +495,18 @@ class KodaViewTest(parameterized.TestCase):
         op(C.x) >> op(C.y), kde.core.enriched_bag(op(C.x), op(C.y))
     )
 
-  # TODO: Add kd.get_nth with KodaView and use it to not have to
-  # annotate the inputs.
   def test_unpacking(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-    expr = op(
-        arolla.M.annotation.qtype(I.x, qtypes.DATA_SLICE),
-        arolla.M.annotation.qtype(I.y, qtypes.DATA_SLICE),
-    )
+    expr = op(I.x, I.y)
 
     x, y = expr
     self.assertTrue(view.has_koda_view(x))
     self.assertTrue(view.has_koda_view(y))
     arolla.testing.assert_expr_equal_by_fingerprint(
-        x,
-        arolla.M.core.get_nth(expr, arolla.int64(0)),
+        x, kde.tuple.get_nth(expr, 0)
     )
     arolla.testing.assert_expr_equal_by_fingerprint(
-        y, arolla.M.core.get_nth(expr, arolla.int64(1))
+        y, kde.tuple.get_nth(expr, 1)
     )
 
     # TODO: Support __getitem__ for tuples.

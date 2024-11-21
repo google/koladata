@@ -16,7 +16,9 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.operators import arolla_bridge
 from koladata.operators import optools
+from koladata.operators import qtype_utils
 from koladata.types import schema_constants
 
 M = arolla.OperatorsContainer(jagged_shape)
@@ -35,3 +37,22 @@ def make_tuple(*args):
   # containing the Arolla tuple of the actual args, so we need to unpack here.
   args_tuple, = args
   return args_tuple
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.tuple.get_nth',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.n)],
+)
+def get_nth(x, n):
+  """Returns the nth element of the tuple `x`.
+
+  Note that `n` _must_ be a literal integer in [0, len(x)).
+
+  Args:
+    x: a tuple.
+    n: the index of the element to return. _Must_ be a literal integer in the
+      range [0, len(x)).
+  """
+  n = arolla_bridge.to_arolla_int64(n)
+  return M.core.get_nth(x, n)

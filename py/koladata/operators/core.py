@@ -26,6 +26,7 @@ from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema as schema_ops
+from koladata.operators import tuple as tuple_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -1324,9 +1325,9 @@ def _get_list_item_by_slice(x, s):
       ),
       default=P.n,
   )
-  start = normalize_slice_arg(M.core.get_nth(s, 0), 0)
-  stop = normalize_slice_arg(M.core.get_nth(s, 1), arolla.int64(2**63 - 1))
-  step = normalize_slice_arg(M.core.get_nth(s, 2), 1)
+  start = normalize_slice_arg(tuple_ops.get_nth(s, 0), 0)
+  stop = normalize_slice_arg(tuple_ops.get_nth(s, 1), arolla.int64(2**63 - 1))
+  step = normalize_slice_arg(tuple_ops.get_nth(s, 2), 1)
   x = assertion.with_assertion(
       x, step == 1, 'Slice with step != 1 is not supported'
   )

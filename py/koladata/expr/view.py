@@ -475,9 +475,7 @@ class KodaView(arolla.abc.ExprView):
   def _arolla_sequence_getitem_(self, index: int) -> arolla.Expr:
     if index < 0 or index >= len(self.node_deps):
       raise IndexError('tuple index out of range')
-    # TODO: Add kd.get_nth with KodaView and use it to attach a
-    # view to the result.
-    return arolla.M.core.get_nth(self, arolla.int64(index))
+    return arolla.abc.aux_bind_op('kde.tuple.get_nth', self, index)
 
 
 def has_koda_view(node: arolla.Expr) -> bool:
