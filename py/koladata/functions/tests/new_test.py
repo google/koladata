@@ -157,7 +157,7 @@ class NewTest(absltest.TestCase):
     d = fns.new({'a': 37, 'b': 42}, schema=dict_schema)
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(
-        d[['a', 'b']],
+        d[ds(['a', 'b'])],
         ds([37, 42], schema_constants.INT64).with_bag(d.get_bag()),
     )
 
@@ -429,7 +429,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
     )
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(
-        d[['a', 'b']],
+        d[ds(['a', 'b'])],
         ds([42, 37], schema_constants.INT64).with_bag(d.get_bag()),
     )
 

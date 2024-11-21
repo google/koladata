@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for schema_item."""
-
 import itertools
 
 from absl.testing import absltest
@@ -125,7 +123,7 @@ class SchemaItemTest(absltest.TestCase):
     dct = d({'a': 42, 'b': 37})
     testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
     testing.assert_equal(
-        dct[['a', 'b']], ds([42.0, 37.0]).with_bag(dct.get_bag())
+        dct[ds(['a', 'b'])], ds([42.0, 37.0]).with_bag(dct.get_bag())
     )
     with self.assertRaises(AssertionError):
       testing.assert_equal(dct.get_bag(), d.get_bag())
@@ -140,7 +138,7 @@ class SchemaItemTest(absltest.TestCase):
     dct = d(ds(['a', 'b']), ds([42, 37]))
     testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
     testing.assert_equal(
-        dct[['a', 'b']], ds([42.0, 37.0]).with_bag(dct.get_bag())
+        dct[ds(['a', 'b'])], ds([42.0, 37.0]).with_bag(dct.get_bag())
     )
     with self.assertRaises(AssertionError):
       testing.assert_equal(dct.get_bag(), d.get_bag())
@@ -148,7 +146,7 @@ class SchemaItemTest(absltest.TestCase):
     dct = d(values=ds([42, 37]), items_or_keys=ds(['a', 'b']))
     testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
     testing.assert_equal(
-        dct[['a', 'b']], ds([42.0, 37.0]).with_bag(dct.get_bag())
+        dct[ds(['a', 'b'])], ds([42.0, 37.0]).with_bag(dct.get_bag())
     )
     with self.assertRaises(AssertionError):
       testing.assert_equal(dct.get_bag(), d.get_bag())

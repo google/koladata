@@ -1916,7 +1916,7 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
 
     many_lists[:] = ds([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     many_lists[1] = None
-    many_lists[[0, 0, 2]] = ds(['a', 'b', None])
+    many_lists[ds([0, 0, 2])] = ds(['a', 'b', None])
     testing.assert_equal(
         many_lists[:],
         ds([['a', None, 3], ['b', None, 6], [7, None, None]]).with_bag(db),
@@ -1944,7 +1944,7 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     testing.assert_equal(single_list[:], ds([3]).with_bag(db))
 
     many_lists[:] = ds([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    del many_lists[[-2, -1, 0]]
+    del many_lists[ds([-2, -1, 0])]
     testing.assert_equal(
         many_lists[:], ds([[1, 3], [4, 5], [8, 9]]).with_bag(db)
     )
@@ -1963,7 +1963,7 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     testing.assert_equal(many_lists[:], ds([[], [4], []]).with_bag(db))
 
     many_lists[:] = ds([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    del many_lists[[2, 1, -1]]
+    del many_lists[ds([2, 1, -1])]
     testing.assert_equal(
         many_lists[:], ds([[1, 2], [4, 6], [7, 8]]).with_bag(db)
     )
@@ -2196,6 +2196,62 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
         exceptions.KodaError, 'the schema for Dict key is incompatible'
     ):
       _ = (db.dict({'a': 42}) & ds(None))[42]
+
+  def test_list_subscript_key_error(self):
+    lst = bag().list([1, 2, 3])
+    testing.assert_equal(lst[1].no_bag(), ds(2))
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      _ = lst[1, 2]
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      _ = lst[[1, 2]]
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      lst[1, 2] = 42
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      lst[[1, 2]] = 42
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      del lst[1, 2]
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      del lst[[1, 2]]
+
+  def test_dict_subscript_key_error(self):
+    dct = bag().dict({'a': 42})
+    testing.assert_equal(dct['a'].no_bag(), ds(42))
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      _ = dct['a', 'b']
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      _ = dct[['a', 'b']]
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      dct['a', 'b'] = 42
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      dct[['a', 'b']] = 42
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      del dct['a', 'b']
+    with self.assertRaisesRegex(
+        ValueError, 'passing a Python list/tuple.*is ambiguous'
+    ):
+      del dct[['a', 'b']]
 
   def test_magic_methods(self):
     x = ds([1, 2, 3])

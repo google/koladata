@@ -71,7 +71,7 @@ class DictTest(parameterized.TestCase):
     self.assertIsInstance(d, dict_item.DictItem)
     self.assertEqual(d.get_shape().rank(), 0)
     d['b'] = 1
-    testing.assert_equal(d[['a', 'b']], ds([1, 1]).with_bag(d.get_bag()))
+    testing.assert_equal(d[ds(['a', 'b'])], ds([1, 1]).with_bag(d.get_bag()))
 
   def test_two_args_error(self):
     with self.assertRaisesRegex(

@@ -148,7 +148,7 @@ class CoreObjTest(parameterized.TestCase):
     testing.assert_equal(d.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(
-        d[['a', 'b']],
+        d[ds(['a', 'b'])],
         ds([42, 37], schema_constants.INT64).with_bag(d.get_bag()),
     )
 

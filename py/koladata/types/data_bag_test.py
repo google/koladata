@@ -1228,20 +1228,20 @@ Assigned schema for Dict key: INT32""",
     testing.assert_equal(x['a'], ds(42).with_bag(db))
     x = db.dict({'a': {b'x': 42, b'y': 12}, 'b': {b'z': 15}})
     testing.assert_equal(
-        x[['a', 'b']][[b'x', b'x'], [b'z']],
+        x[ds(['a', 'b'])][ds([[b'x', b'x'], [b'z']])],
         ds([[42, 42], [15]]).with_bag(db),
     )
 
     # 2-arg
     x = db.dict(ds(['a', 'b']), 1)
     self.assertEqual(x.get_shape().rank(), 0)
-    testing.assert_equal(x[['a', 'b']], ds([1, 1]).with_bag(db))
+    testing.assert_equal(x[ds(['a', 'b'])], ds([1, 1]).with_bag(db))
 
     x = db.dict(ds([['a', 'b'], ['c']]), 1)
     # NOTE: Dimension of dicts is reduced by 1.
     self.assertEqual(x.get_shape().rank(), 1)
     testing.assert_equal(
-        x[['a', 'b'], ['d']],
+        x[ds([['a', 'b'], ['d']])],
         ds([[1, 1], [None]]).with_bag(db),
     )
 

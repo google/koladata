@@ -177,7 +177,7 @@ class ObjTest(absltest.TestCase):
     testing.assert_equal(d.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(
-        d[['a', 'b']],
+        d[ds(['a', 'b'])],
         ds([42, 37], schema_constants.INT64).with_bag(d.get_bag()),
     )
 
@@ -187,7 +187,9 @@ class ObjTest(absltest.TestCase):
     obj = fns.obj(d)
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_dicts_keys_equal(obj, ds(['a', 'b']))
-    testing.assert_equal(obj[['a', 'b']], ds([42, 37]).with_bag(obj.get_bag()))
+    testing.assert_equal(
+        obj[ds(['a', 'b'])], ds([42, 37]).with_bag(obj.get_bag())
+    )
 
   def test_universal_converter_empty_dict(self):
     d = fns.obj({})
