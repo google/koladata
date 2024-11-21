@@ -14,6 +14,7 @@
 //
 #include "koladata/expr/expr_operators.h"
 
+#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -22,6 +23,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
 #include "koladata/internal/ellipsis.h"
 #include "arolla/expr/annotation_expr_operators.h"
@@ -31,6 +33,7 @@
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/expr/lambda_expr_operator.h"
 #include "arolla/expr/registered_expr_operator.h"
+#include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
@@ -109,6 +112,50 @@ absl::string_view LiteralOperator::py_qvalue_specialization_key() const {
 
 const arolla::TypedValue& LiteralOperator::value() const { return value_; }
 
+ToArollaInt64Operator::ToArollaInt64Operator()
+    : arolla::expr::ExprOperatorWithFixedSignature(
+          "koda_internal.to_arolla_int64",
+          arolla::expr::ExprOperatorSignature({{"x"}},
+                                              "koladata_default_boxing"),
+          "Returns `x` converted into an arolla int64 value.\n"
+          "\n"
+          "Note that `x` must adhere to the following requirements:\n"
+          "* `rank = 0`.\n"
+          "* Have one of the following schemas: NONE, INT32, INT64, OBJECT, "
+          "ANY.\n"
+          "* Have a present value with type INT32 or INT64.\n"
+          "\n"
+          "In all other cases, an exception is raised.\n\n"
+          "Args:\n"
+          "  x: A DataItem to be converted into an arolla int64 value.",
+          arolla::FingerprintHasher("::koladata::expr::ToArollaInt64Operator")
+              .Finish()) {}
+
+absl::StatusOr<arolla::expr::ExprAttributes>
+ToArollaInt64Operator::InferAttributes(
+    absl::Span<const arolla::expr::ExprAttributes> inputs) const {
+  RETURN_IF_ERROR(ValidateOpInputsCount(inputs));
+  if (!inputs[0].qtype()) {
+    return arolla::expr::ExprAttributes{};  // Not ready yet.
+  }
+  if (inputs[0].qtype() != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected DATA_SLICE, got x: %s", inputs[0].qtype()->name()));
+  }
+  // Eval if possible.
+  if (inputs[0].qvalue()) {
+    ASSIGN_OR_RETURN(auto casted_value,
+                     arolla::InvokeOperator("koda_internal.to_arolla_int64",
+                                            {*inputs[0].qvalue()},
+                                            arolla::GetQType<int64_t>()));
+    return arolla::expr::ExprAttributes{std::move(casted_value)};
+  }
+  // Otherwise, return the output qtype.
+  return arolla::expr::ExprAttributes{arolla::GetQType<int64_t>()};
+}
+
+// koladata_default_boxing
+
 AROLLA_INITIALIZER(
         .reverse_deps = {arolla::initializer_dep::kOperators},
         .init_fn = []() -> absl::Status {
@@ -122,11 +169,15 @@ AROLLA_INITIALIZER(
                                    arolla::expr::Literal(internal::Ellipsis{})))
                   .status());
           RETURN_IF_ERROR(
-              RegisterOperator(
+              arolla::expr::RegisterOperator(
                   "koda_internal.with_name",
                   std::make_shared<arolla::expr::NameAnnotation>(
                       /*aux_policy=*/"_koladata_annotation_with_name"))
                   .status());
+          RETURN_IF_ERROR(arolla::expr::RegisterOperator(
+                              "koda_internal.to_arolla_int64",
+                              std::make_shared<ToArollaInt64Operator>())
+                              .status());
           return absl::OkStatus();
         })
 

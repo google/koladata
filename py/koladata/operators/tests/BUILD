@@ -3746,6 +3746,7 @@ py_test(
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:literal_operator",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",

@@ -227,10 +227,7 @@ def _flatten_last_ndim(x, ndim):
       default=P.ndim,
   )
 
-  @arolla.optools.as_lambda_operator(
-      'koda_internal.flatten_last_ndim.shape',
-      qtype_constraints=[qtype_utils.expect_jagged_shape(P.x)],
-  )
+  @arolla.optools.as_lambda_operator('koda_internal.flatten_last_ndim.shape')
   def flatten_shape(x, ndim):
     rank = M.jagged.rank(x)
     ndim = to_int64(ndim)
@@ -239,14 +236,18 @@ def _flatten_last_ndim(x, ndim):
     )
     return M.jagged.flatten(x, rank - ndim)
 
-  @arolla.optools.as_lambda_operator(
-      'koda_internal.flatten_last_ndim.slice',
-      qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-  )
+  @arolla.optools.as_lambda_operator('koda_internal.flatten_last_ndim.slice')
   def flatten_slice(x, ndim):
     return reshape(x, flatten_shape(get_shape(x), ndim))
 
-  return arolla.optools.dispatch[flatten_shape, flatten_slice](x, ndim)
+  return arolla.types.DispatchOperator(
+      'x, ndim',
+      data_slice_case=arolla.types.DispatchCase(
+          flatten_shape(P.x, P.ndim),
+          condition=P.x == qtypes.JAGGED_SHAPE,
+      ),
+      default=flatten_slice(P.x, P.ndim),
+  )(x, ndim)
 
 
 @optools.add_to_registry()

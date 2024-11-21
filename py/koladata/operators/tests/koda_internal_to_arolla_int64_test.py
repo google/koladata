@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for koda_to_arolla_int64."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -26,6 +24,7 @@ from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import literal_operator
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -61,6 +60,20 @@ class KodaToArollaInt64Test(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
       expr_eval.eval(arolla_bridge.to_arolla_int64(x))
 
+  def test_boxing(self):
+    testing.assert_equal(
+        arolla_bridge.to_arolla_int64(1),
+        arolla.abc.bind_op(
+            arolla_bridge.to_arolla_int64,
+            literal_operator.literal(ds(1)),
+        ),
+    )
+
+  def test_bind_time_evaluation(self):
+    # Allows it to be used in operators that require literal inputs.
+    expr = arolla_bridge.to_arolla_int64(ds(1))
+    testing.assert_equal(expr.qvalue, arolla.int64(1))
+
   def test_unsupported_schema_error(self):
     x = data_slice.DataSlice.from_vals(arolla.unit())
     with self.assertRaisesRegex(
@@ -89,6 +102,12 @@ class KodaToArollaInt64Test(parameterized.TestCase):
         ValueError, 'unsupported narrowing cast to INT64'
     ):
       expr_eval.eval(arolla_bridge.to_arolla_int64(bag().obj(x=1)))
+
+  def test_non_data_slice_error(self):
+    with self.assertRaisesRegex(
+        ValueError, 'expected DATA_SLICE, got x: BYTES'
+    ):
+      arolla.eval(arolla_bridge.to_arolla_int64(arolla.bytes(b'foobar')))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

@@ -58,6 +58,19 @@ class LiteralOperator final
   arolla::TypedValue value_;
 };
 
+// Non-lowerable operator `koda_internal.to_arolla_int64(x)` that converts
+// DataSlice to int64_t. Supports evaluation at operator binding time if the
+// provided input is a literal.
+class ToArollaInt64Operator final
+    : public arolla::expr::BackendExprOperatorTag,
+      public arolla::expr::ExprOperatorWithFixedSignature {
+ public:
+  ToArollaInt64Operator();
+
+  absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(
+      absl::Span<const arolla::expr::ExprAttributes> inputs) const final;
+};
+
 }  // namespace koladata::expr
 
 #endif  // KOLADATA_EXPR_EXPR_OPERATORS_H_

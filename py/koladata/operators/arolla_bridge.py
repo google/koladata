@@ -23,6 +23,9 @@ M = arolla.M
 P = arolla.P
 constraints = arolla.optools.constraints
 
+# NOTE: Implemented in C++ to allow bind-time literal evaluation.
+to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
+
 
 # Implemented here to avoid a dependency cycle between jagged_shape and here.
 @optools.add_to_registry()
@@ -36,28 +39,6 @@ constraints = arolla.optools.constraints
 )
 def _reshape(x, shape):  # pylint: disable=unused-argument
   """Returns a DataSlice with the provided shape."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(view=None)
-@optools.as_backend_operator(
-    'koda_internal.to_arolla_int64',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=arolla.INT64,
-)
-def to_arolla_int64(x):  # pylint: disable=unused-argument
-  """Returns `x` converted into an arolla int64 value.
-
-  Note that `x` must adhere to the following requirements:
-  * `rank = 0`.
-  * Have one of the following schemas: NONE, INT32, INT64, OBJECT, ANY.
-  * Have a present value with type INT32 or INT64.
-
-  In all other cases, an exception is raised.
-
-  Args:
-    x: A DataItem to be converted into an arolla int64 value.
-  """
   raise NotImplementedError('implemented in the backend')
 
 

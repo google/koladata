@@ -26,6 +26,7 @@ cc_library(
     hdrs = ["expr_operators.h"],
     tags = ["keep_dep"],
     deps = [
+        "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/internal:ellipsis",
         "@com_google_absl//absl/status",
@@ -35,6 +36,7 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/expr/operators:bootstrap",
+        "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
