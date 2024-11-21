@@ -103,6 +103,25 @@ class ListShapedTest(parameterized.TestCase):
     ):
       _ = triple.with_bag(x.get_bag()).non_existent
 
+  def test_adopt_values(self):
+    shape = jagged_shape.create_shape([2])
+    lst = fns.list(ds([[1, 2], [3]]))
+    lst2 = fns.list_shaped(shape, lst)
+
+    testing.assert_equal(
+        lst2[:][:],
+        ds([[[1, 2]], [[3]]], schema_constants.INT32).with_bag(lst2.get_bag()),
+    )
+
+  def test_adopt_schema(self):
+    shape = jagged_shape.create_shape([2])
+    list_schema = fns.list_schema(fns.uu_schema(a=schema_constants.INT32))
+    lst = fns.list_shaped(shape, schema=list_schema)
+
+    testing.assert_equal(
+        lst[:].a.no_bag(), ds([[], []], schema_constants.INT32)
+    )
+
   def test_bag_arg(self):
     shape = jagged_shape.create_shape([2], [2, 1])
     db = fns.bag()

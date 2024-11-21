@@ -80,6 +80,25 @@ class DictLikeTest(parameterized.TestCase):
     )
     testing.assert_equal(x['b'], ds([None, 42]).with_bag(x.get_bag()))
 
+  def test_adopt_values(self):
+    dct = fns.dict('a', 7)
+    dct2 = fns.dict_like(ds([None, 0]), 'obj', dct)
+
+    testing.assert_equal(
+        dct2['obj']['a'],
+        ds([None, 7], schema_constants.INT32).with_bag(dct2.get_bag()),
+    )
+
+  def test_adopt_schema(self):
+    dict_schema = fns.dict_schema(
+        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
+    )
+    dct = fns.dict_like(ds([None, 0]), schema=dict_schema)
+
+    testing.assert_equal(
+        dct[ds(None)].a.no_bag(), ds([None, None], schema_constants.INT32)
+    )
+
   def test_itemid_dataitem(self):
     itemid = expr_eval.eval(kde.allocation.new_dictid())
 

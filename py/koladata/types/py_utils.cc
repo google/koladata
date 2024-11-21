@@ -26,6 +26,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -148,6 +149,16 @@ absl::StatusOr<std::vector<DataSlice>> ConvertArgsToDataSlices(
     values.push_back(std::move(value));
   }
   return std::move(values);
+}
+
+std::vector<DataSlice> ManyWithBag(absl::Span<const DataSlice> values,
+                                   const DataBagPtr& bag) {
+  std::vector<DataSlice> values_with_db;
+  values_with_db.reserve(values.size());
+  for (size_t i = 0; i < values.size(); ++i) {
+    values_with_db.push_back(values[i].WithBag(bag));
+  }
+  return values_with_db;
 }
 
 bool ParseUnicodeArg(const FastcallArgParser::Args& args, size_t arg_pos,

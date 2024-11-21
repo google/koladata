@@ -218,15 +218,6 @@ class UuObjOperator : public arolla::QExprOperator {
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
-          koladata::AdoptionQueue adoption_queue;
-          for (const auto& ds : values) {
-            adoption_queue.Add(ds);
-          }
-          auto status = adoption_queue.AdoptInto(*db);
-          if (!status.ok()) {
-            ctx->set_status(std::move(status));
-            return;
-          }
           ASSIGN_OR_RETURN(auto result,
                            CreateUuObject(db, seed, attr_names, values),
                            ctx->set_status(std::move(_)));

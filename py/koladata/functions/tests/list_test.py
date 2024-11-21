@@ -105,22 +105,22 @@ class ListTest(parameterized.TestCase):
         repr(fns.list([1, 2, 3])), r'DataItem\(.*, schema: .*, bag_id: .*\)'
     )
 
-  def test_create_list_merge_bags(self):
-    lst = fns.list()
-    lst.append(7)
-    nested_lst = fns.list()
-    nested_lst.append(lst)
-    nested_lst.append(lst)
-    lst2 = fns.list(items=nested_lst[:])
+  def test_adopt_values(self):
+    lst = fns.list(ds([[1, 2], [3]]))
+    lst2 = fns.list(lst)
+
     testing.assert_equal(
-        lst2[0][0], ds(7, schema_constants.OBJECT).with_bag(lst2.get_bag())
-    )
-    testing.assert_equal(
-        lst2[1][0], ds(7, schema_constants.OBJECT).with_bag(lst2.get_bag())
+        lst2[:][:],
+        ds([[1, 2], [3]], schema_constants.INT32).with_bag(lst2.get_bag()),
     )
 
-    l = fns.list([fns.list([1, 2]), fns.list([3, 4])])
-    testing.assert_equal(l[:][:], ds([[1, 2], [3, 4]]).with_bag(l.get_bag()))
+  def test_adopt_schema(self):
+    list_schema = fns.list_schema(fns.uu_schema(a=schema_constants.INT32))
+    lst = fns.list(schema=list_schema)
+
+    testing.assert_equal(
+        lst[:].a.no_bag(), ds([], schema_constants.INT32)
+    )
 
   @parameterized.parameters(
       # No schema, no list items provided.

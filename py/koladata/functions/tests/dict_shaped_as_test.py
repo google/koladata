@@ -82,14 +82,6 @@ class DictShapedAsTest(parameterized.TestCase):
         schema_constants.OBJECT,
     )
 
-  def test_itemid(self):
-    itemid = expr_eval.eval(
-        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))
-    )
-    x = fns.dict_shaped_as(itemid, 'a', 42, itemid=itemid)
-    testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
-    testing.assert_equal(x.no_bag().get_itemid(), itemid)
-
   def test_schema(self):
     x = fns.dict_shaped_as(
         ds([[0, 0], [0]]),
@@ -102,6 +94,34 @@ class DictShapedAsTest(parameterized.TestCase):
     testing.assert_equal(
         x.get_schema().get_attr('__values__').with_bag(None),
         schema_constants.OBJECT,
+    )
+
+  def test_itemid(self):
+    itemid = expr_eval.eval(
+        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))
+    )
+    x = fns.dict_shaped_as(itemid, 'a', 42, itemid=itemid)
+    testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
+    testing.assert_equal(x.no_bag().get_itemid(), itemid)
+
+  def test_adopt_values(self):
+    dct = fns.dict('a', 7)
+    dct2 = fns.dict_shaped_as(ds([[0, 0], [0]]), 'obj', dct)
+
+    testing.assert_equal(
+        dct2['obj']['a'],
+        ds([[7, 7], [7]], schema_constants.INT32).with_bag(dct2.get_bag()),
+    )
+
+  def test_adopt_schema(self):
+    dict_schema = fns.dict_schema(
+        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
+    )
+    dct = fns.dict_shaped_as(ds([[0, 0], [0]]), schema=dict_schema)
+
+    testing.assert_equal(
+        dct[ds(None)].a.no_bag(),
+        ds([[None, None], [None]], schema_constants.INT32)
     )
 
   def test_alias(self):

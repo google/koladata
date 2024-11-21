@@ -59,6 +59,17 @@
 namespace koladata::python {
 namespace {
 
+// If `db` is not nullptr, adopt collected DataBags into it. This utility is
+// useful, in order to rely on error reporting from lower-level utilities that
+// do not work on DataSlices without DataBags.
+absl::Status TryAdoptInto(const AdoptionQueue& adoption_queue,
+                          absl::Nullable<const DataBagPtr>& db) {
+  if (db == nullptr) {
+    return absl::OkStatus();
+  }
+  return adoption_queue.AdoptInto(*db);
+}
+
 absl::Nullable<PyObject*> PyDataSlice_get_bag(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   auto db = UnsafeDataSliceRef(self).GetBag();
@@ -467,31 +478,45 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
         stop == PY_SSIZE_T_MAX ? std::optional<int64_t>(std::nullopt)
                                : std::optional<int64_t>(stop);
     if (value_ds.has_value()) {
-      status = self_ds.ReplaceInList(start, stop_or_end, *value_ds);
+      RETURN_IF_ERROR(TryAdoptInto(adoption_queue, self_ds.GetBag()))
+          .With([&](const absl::Status& status) {
+            arolla::python::SetPyErrFromStatus(status);
+            return -1;
+          });
+      auto adopted_values = value_ds->WithBag(self_ds.GetBag());
+      status = self_ds.ReplaceInList(start, stop_or_end, adopted_values);
     } else {
       status = self_ds.RemoveInList(start, stop_or_end);
     }
   } else {
-    ASSIGN_OR_RETURN(auto key_ds, DataSliceFromPyValue(key, adoption_queue),
+    ASSIGN_OR_RETURN(std::optional<DataSlice> key_ds,
+                     DataSliceFromPyValue(key, adoption_queue),
                      (arolla::python::SetPyErrFromStatus(_), -1));
+    // TODO: If we prevent non-scalars for keys in __getitem__ and
+    // __setitem__, this can become simpler as we can adopt only above for
+    // values.
+    RETURN_IF_ERROR(TryAdoptInto(adoption_queue, self_ds.GetBag()))
+        .With([&](const absl::Status& status) {
+          arolla::python::SetPyErrFromStatus(status);
+          return -1;
+        });
+    auto [adopted_keys, adopted_values] = FewWithBag(self_ds.GetBag(), key_ds,
+                                                     value_ds);
     if (self_ds.ShouldApplyListOp()) {
-      if (value_ds.has_value()) {
-        status = self_ds.SetInList(key_ds, *value_ds);
+      if (adopted_values.has_value()) {
+        status = self_ds.SetInList(*adopted_keys, *adopted_values);
       } else {
-        status = self_ds.RemoveInList(key_ds);
+        status = self_ds.RemoveInList(*adopted_keys);
       }
     } else {
-      if (!value_ds.has_value()) {
-        ASSIGN_OR_RETURN(value_ds,
+      if (!adopted_values.has_value()) {
+        ASSIGN_OR_RETURN(adopted_values,
                          DataSlice::Create(internal::DataItem(),
                                            internal::DataItem(schema::kNone)),
                          (arolla::python::SetPyErrFromStatus(_), -1));
       }
-      status = self_ds.SetInDict(key_ds, *value_ds);
+      status = self_ds.SetInDict(*adopted_keys, *adopted_values);
     }
-  }
-  if (status.ok()) {
-    status = adoption_queue.AdoptInto(*self_ds.GetBag());
   }
   if (!status.ok()) {
     arolla::python::SetPyErrFromStatus(status);
@@ -552,12 +577,12 @@ absl::Nullable<PyObject*> PyDataSlice_append(PyObject* self,
   }
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
   AdoptionQueue adoption_queue;
-  ASSIGN_OR_RETURN(auto ds,
+  ASSIGN_OR_RETURN(auto items,
                    AssignmentRhsFromPyValue(self_ds, args[0], adoption_queue),
                    arolla::python::SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(self_ds.AppendToList(ds))
+  RETURN_IF_ERROR(TryAdoptInto(adoption_queue, self_ds.GetBag()))
       .With(arolla::python::SetPyErrFromStatus);
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
+  RETURN_IF_ERROR(self_ds.AppendToList(items.WithBag(self_ds.GetBag())))
       .With(arolla::python::SetPyErrFromStatus);
   Py_RETURN_NONE;
 }

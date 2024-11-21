@@ -87,6 +87,23 @@ class ListShapedAsTest(parameterized.TestCase):
         schema_constants.FLOAT32,
     )
 
+  def test_adopt_values(self):
+    lst = fns.list(ds([[1, 2], [3]]))
+    lst2 = fns.list_shaped_as(ds([0, 0]), lst)
+
+    testing.assert_equal(
+        lst2[:][:],
+        ds([[[1, 2]], [[3]]], schema_constants.INT32).with_bag(lst2.get_bag()),
+    )
+
+  def test_adopt_schema(self):
+    list_schema = fns.list_schema(fns.uu_schema(a=schema_constants.INT32))
+    lst = fns.list_shaped_as(ds([0, 0]), schema=list_schema)
+
+    testing.assert_equal(
+        lst[:].a.no_bag(), ds([[], []], schema_constants.INT32)
+    )
+
   def test_alias(self):
     self.assertIs(fns.list_shaped_as, fns.core.list_shaped_as)
 

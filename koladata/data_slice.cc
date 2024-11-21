@@ -1383,6 +1383,7 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
                                             values.GetShape().rank());
                    }));
 
+  AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> keys_handler(
@@ -1396,6 +1397,9 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
   RETURN_IF_ERROR(values_handler.ProcessSchema(*this, db_mutable_impl,
                                                /*fallbacks=*/{}));
 
+  adoption_queue.Add(keys);
+  adoption_queue.Add(values);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*GetBag()));
   return expanded_this.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
     return db_mutable_impl.SetInDict(impl, keys_handler.GetValues().impl<T>(),
                                      values_handler.GetValues().impl<T>());
@@ -1596,6 +1600,7 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
         arolla::Repr(GetShape()), arolla::Repr(shape)));
   }
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape));
+  AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
   RhsHandler</*is_readonly=*/false> data_handler(RhsHandlerContext::kListItem,
@@ -1605,6 +1610,8 @@ absl::Status DataSlice::AppendToList(const DataSlice& values) const {
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}));
 
+  adoption_queue.Add(values);
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*GetBag()));
   if (GetShape().rank() < shape.rank()) {
     return VisitImpl([&]<class T>(const T& impl) -> absl::Status {
       if constexpr (std::is_same_v<T, internal::DataItem>) {

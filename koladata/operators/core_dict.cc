@@ -56,12 +56,6 @@ absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
 
   DataBagPtr result_db = DataBag::Empty();
   RETURN_IF_ERROR(AdoptStub(result_db, x));
-  // TODO: Remove after `SetInDict` performs its own adoption.
-  AdoptionQueue adoption_queue;
-  adoption_queue.Add(keys);
-  adoption_queue.Add(values);
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
-
   RETURN_IF_ERROR(x.WithBag(result_db).SetInDict(keys, values));
   result_db->UnsafeMakeImmutable();
   return result_db;

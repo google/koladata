@@ -134,14 +134,23 @@ class DictTest(parameterized.TestCase):
         r'DataItem\(.*, schema: .*, bag_id: .*\)',
     )
 
-  def test_merge_values(self):
-    dct = fns.dict()
-    dct['a'] = 7
+  def test_adopt_values(self):
+    dct = fns.dict('a', 7)
     dct2 = fns.dict(ds(['obj']), dct)
 
     testing.assert_equal(
         dct2['obj']['a'],
-        ds(7, schema_constants.OBJECT).with_bag(dct2.get_bag()),
+        ds(7, schema_constants.INT32).with_bag(dct2.get_bag()),
+    )
+
+  def test_adopt_schema(self):
+    dict_schema = fns.dict_schema(
+        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
+    )
+    dct = fns.dict(schema=dict_schema)
+
+    testing.assert_equal(
+        dct[ds(None)].a.no_bag(), ds(None, schema_constants.INT32)
     )
 
   @parameterized.parameters(

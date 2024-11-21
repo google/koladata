@@ -99,6 +99,25 @@ class ListLikeTest(parameterized.TestCase):
     lst = expr_eval.eval(kde.core.list(ds([[1, None], [3]])))
     self.assertFalse(lst.is_mutable())
 
+  def test_adopt_values(self):
+    lst = kde.core.list(ds([[1, 2], [3]])).eval()
+    lst2 = kde.core.list(lst).eval()
+
+    testing.assert_equal(
+        lst2[:][:],
+        ds([[1, 2], [3]], schema_constants.INT32).with_bag(lst2.get_bag()),
+    )
+
+  def test_adopt_schema(self):
+    list_schema = kde.schema.list_schema(
+        fns.uu_schema(a=schema_constants.INT32)
+    ).eval()
+    lst = kde.core.list(schema=list_schema).eval()
+
+    testing.assert_equal(
+        lst[:].a.no_bag(), ds([], schema_constants.INT32)
+    )
+
   def test_wrong_items(self):
     with self.assertRaisesRegex(
         ValueError,

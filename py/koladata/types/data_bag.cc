@@ -81,17 +81,6 @@ absl::Nullable<PyObject*> PyDataBag_empty(PyTypeObject* cls, PyObject*) {
       PyDataBag_Type(), arolla::TypedValue::FromValue(DataBag::Empty()));
 }
 
-// Attach `db` to each DataSlice in `values`.
-std::vector<DataSlice> ManyWithBag(absl::Span<const DataSlice> values,
-                                   const DataBagPtr& db) {
-  std::vector<DataSlice> values_with_db;
-  values_with_db.reserve(values.size());
-  for (size_t i = 0; i < values.size(); ++i) {
-    values_with_db.push_back(values[i].WithBag(db));
-  }
-  return values_with_db;
-}
-
 absl::StatusOr<std::optional<DataSlice>>
 ParseSchemaArgWithStringToNamedSchemaConversion(
     const FastcallArgParser::Args& args, absl::string_view arg_name) {
@@ -747,10 +736,11 @@ absl::Nullable<PyObject*> PyDataBag_uu_obj_factory(PyObject* self,
   if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed)) {
     return nullptr;
   }
-  ASSIGN_OR_RETURN(res, CreateUuObject(db, seed, args.kw_names, values),
-                   arolla::python::SetPyErrFromStatus(_));
+  auto adopted_values = ManyWithBag(values, db);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
       .With(arolla::python::SetPyErrFromStatus);
+  ASSIGN_OR_RETURN(res, CreateUuObject(db, seed, args.kw_names, adopted_values),
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -853,12 +843,14 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
       !UnwrapDataSliceOptionalArg(py_itemid, "itemid", itemid)) {
     return nullptr;
   }
-  ASSIGN_OR_RETURN(auto res,
-                   CreateDictShaped(self_db, *std::move(shape), keys, values,
-                                    schema, key_schema, value_schema, itemid),
-                   arolla::python::SetPyErrFromStatus(_));
+  auto [adopted_keys, adopted_values] = FewWithBag(self_db, keys, values);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
       .With(arolla::python::SetPyErrFromStatus);
+  ASSIGN_OR_RETURN(
+      auto res,
+      CreateDictShaped(self_db, *std::move(shape), adopted_keys, adopted_values,
+                       schema, key_schema, value_schema, itemid),
+      arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -905,13 +897,15 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
       !UnwrapDataSliceOptionalArg(py_itemid, "itemid", itemid)) {
     return nullptr;
   }
-  ASSIGN_OR_RETURN(
-      auto res,
-      CreateDictLike(UnsafeDataBagPtr(self), *shape_and_mask_from, keys, values,
-                     schema, key_schema, value_schema, itemid),
-      arolla::python::SetPyErrFromStatus(_));
+  auto [adopted_keys, adopted_values] = FewWithBag(self_db, keys, values);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
       .With(arolla::python::SetPyErrFromStatus);
+  ASSIGN_OR_RETURN(
+      auto res,
+      CreateDictLike(UnsafeDataBagPtr(self), *shape_and_mask_from,
+                     adopted_keys, adopted_values,
+                     schema, key_schema, value_schema, itemid),
+      arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 

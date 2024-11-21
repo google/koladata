@@ -21,6 +21,7 @@
 #include <initializer_list>
 #include <memory>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -69,6 +70,21 @@ absl::StatusOr<std::vector<DataSlice>> UnwrapDataSlices(
 absl::StatusOr<std::vector<DataSlice>> ConvertArgsToDataSlices(
     const DataBagPtr& db, bool prohibit_boxing_to_multi_dim_slice,
     const std::vector<PyObject*>& args, AdoptionQueue& adoption_queue);
+
+// Attach `bag` to each DataSlice in `values`.
+std::vector<DataSlice> ManyWithBag(absl::Span<const DataSlice> values,
+                                   const DataBagPtr& bag);
+
+// Attach `bag` to each DataSlice in `values`. Returns a tuple of optional
+// DataSlices.
+template <class... OptDS>
+auto FewWithBag(const DataBagPtr& bag, const OptDS&... values) {
+  auto with_bag_fn = [&bag](const std::optional<DataSlice>& value) {
+    return value.has_value() ?
+        std::make_optional(value->WithBag(bag)) : std::nullopt;
+  };
+  return std::make_tuple(with_bag_fn(values)...);
+}
 
 // Abstraction that facilitates parsing of arguments passed to a Python function
 // or method implemented in C Python and registered with FASTCALL | KEYWORD

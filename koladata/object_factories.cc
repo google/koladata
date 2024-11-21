@@ -860,6 +860,9 @@ absl::StatusOr<DataSlice> CreateUuObject(
         RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, impl_res.value(),
                                         attr_names, schemas,
                                         /*overwrite_schemas=*/false));
+        // Adopt into the databag only at the end to avoid garbage in the
+        // databag in case of error.
+        RETURN_IF_ERROR(AdoptValuesInto(values, *db));
         return DataSlice::Create(
             impl_res.value(), aligned_values.begin()->GetShape(),
             internal::DataItem(schema::kObject), db);

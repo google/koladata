@@ -3886,6 +3886,23 @@ TEST(DataSliceTest, AppendToList_DifferentShapes) {
   }
 }
 
+TEST(DataSliceTest, AppendToList_Adopt) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto lst, CreateEmptyList(db));
+  auto items_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto items,
+      EntityCreator::Shaped(items_db, DataSlice::JaggedShape::FlatFromSize(1),
+                            {"a"}, {test::DataItem(42)}));
+  ASSERT_OK(lst.AppendToList(items));
+
+  ASSERT_OK_AND_ASSIGN(auto lst_items, lst.ExplodeList(0, std::nullopt));
+  EXPECT_THAT(
+      lst_items.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::DataSlice<int>({42}, lst_items.GetShape(), db))));
+}
+
 TEST(DataSliceTest, RemoveInList) {
   auto edge_1 = CreateEdge({0, 2});
   auto edge_2 = CreateEdge({0, 1, 3});
@@ -4297,6 +4314,35 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                "the schema for dict keys is incompatible: "
                                "expected INT64, assigned ITEMID"));
+}
+
+TEST(DataSliceTest, SetInDict_Adopt) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto dct,
+      CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                       /*keys=*/std::nullopt, /*values=*/std::nullopt));
+  auto keys_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto keys,
+      EntityCreator::FromAttrs(keys_db, {"a"}, {test::DataItem(42)}));
+  auto values_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto values,
+      EntityCreator::FromAttrs(values_db, {"b"}, {test::DataItem("abc")}));
+  ASSERT_OK(dct.SetInDict(keys, values));
+
+  ASSERT_OK_AND_ASSIGN(auto dct_keys, dct.GetDictKeys());
+  EXPECT_THAT(
+      dct_keys.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::DataSlice<int>({42}, dct_keys.GetShape(), db))));
+
+  ASSERT_OK_AND_ASSIGN(auto dct_values, dct.GetDictValues());
+  EXPECT_THAT(
+      dct_values.GetAttr("b"),
+      IsOkAndHolds(IsEquivalentTo(
+          test::DataSlice<arolla::Text>({"abc"}, dct_values.GetShape(), db))));
 }
 
 TEST(DataSliceTest, GetFromDict_NoneSchema_NotAList) {

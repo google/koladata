@@ -89,6 +89,23 @@ class ListLikeTest(parameterized.TestCase):
         l[:], ds([[[1, 2, 7], []], [[5, 6, 7]]]).with_bag(l.get_bag())
     )
 
+  def test_adopt_values(self):
+    lst = fns.list(ds([[1, 2], [3]]))
+    lst2 = fns.list_like(ds([None, 0]), lst)
+
+    testing.assert_equal(
+        lst2[:][:],
+        ds([[], [[3]]], schema_constants.INT32).with_bag(lst2.get_bag()),
+    )
+
+  def test_adopt_schema(self):
+    list_schema = fns.list_schema(fns.uu_schema(a=schema_constants.INT32))
+    lst = fns.list_like(ds([None, 0]), schema=list_schema)
+
+    testing.assert_equal(
+        lst[:].a.no_bag(), ds([[], []], schema_constants.INT32)
+    )
+
   def test_itemid_dataitem(self):
     itemid = expr_eval.eval(kde.allocation.new_listid())
     input_arg = ds(['a'])

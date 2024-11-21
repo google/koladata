@@ -105,6 +105,28 @@ class DictShapedTest(parameterized.TestCase):
     d = expr_eval.eval(kde.core.dict_shaped(jagged_shape.create_shape()))
     self.assertFalse(d.is_mutable())
 
+  def test_adopt_values(self):
+    shape = ds([[0, 0], [0]]).get_shape()
+    dct = kde.core.dict('a', 7).eval()
+    dct2 = kde.core.dict_shaped(shape, 'obj', dct).eval()
+
+    testing.assert_equal(
+        dct2['obj']['a'],
+        ds([[7, 7], [7]], schema_constants.INT32).with_bag(dct2.get_bag()),
+    )
+
+  def test_adopt_schema(self):
+    shape = ds([[0, 0], [0]]).get_shape()
+    dict_schema = kde.schema.dict_schema(
+        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
+    ).eval()
+    dct = kde.core.dict_shaped(shape, schema=dict_schema).eval()
+
+    testing.assert_equal(
+        dct[ds(None)].a.no_bag(),
+        ds([[None, None], [None]], schema_constants.INT32)
+    )
+
   def test_wrong_shape_and_mask_from(self):
     with self.assertRaisesRegex(
         ValueError,

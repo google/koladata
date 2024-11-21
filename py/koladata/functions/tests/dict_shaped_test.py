@@ -78,6 +78,28 @@ class DictShapedTest(parameterized.TestCase):
     testing.assert_equal(x['a'], ds([[1, 1], [None]]).with_bag(x.get_bag()))
     testing.assert_equal(x['b'], ds([[None, None], [2]]).with_bag(x.get_bag()))
 
+  def test_adopt_values(self):
+    shape = ds([[0, 0], [0]]).get_shape()
+    dct = fns.dict('a', 7)
+    dct2 = fns.dict_shaped(shape, 'obj', dct)
+
+    testing.assert_equal(
+        dct2['obj']['a'],
+        ds([[7, 7], [7]], schema_constants.INT32).with_bag(dct2.get_bag()),
+    )
+
+  def test_adopt_schema(self):
+    shape = ds([[0, 0], [0]]).get_shape()
+    dict_schema = fns.dict_schema(
+        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
+    )
+    dct = fns.dict_shaped(shape, schema=dict_schema)
+
+    testing.assert_equal(
+        dct[ds(None)].a.no_bag(),
+        ds([[None, None], [None]], schema_constants.INT32)
+    )
+
   @parameterized.parameters(
       dict(
           keys=None,
