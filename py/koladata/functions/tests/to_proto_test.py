@@ -19,6 +19,7 @@ from koladata.functions import functions as fns
 from koladata.functions.tests import test_pb2
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 
@@ -249,6 +250,98 @@ class ToProtoTest(absltest.TestCase):
     )
 
     self.assertEqual(fns.to_proto(x, test_pb2.MessageA), m)
+
+  def test_mask_in_bool_field(self):
+    x = fns.obj(bool_field=ds([mask_constants.present, mask_constants.missing]))
+    messages = fns.to_proto(x, test_pb2.MessageC)
+    expected_messages = [
+        test_pb2.MessageC(bool_field=True),
+        test_pb2.MessageC(),
+    ]
+    self.assertEqual(messages, expected_messages)
+
+  def test_int32_in_float_field(self):
+    x = fns.obj(float_field=ds([1, 2**24, -2**24]))
+    messages = fns.to_proto(x, test_pb2.MessageC)
+    expected_messages = [
+        test_pb2.MessageC(float_field=1.0),
+        test_pb2.MessageC(float_field=2**24),
+        test_pb2.MessageC(float_field=-2**24),
+    ]
+    self.assertEqual(messages, expected_messages)
+
+  def test_int32_in_float_field_out_of_range(self):
+    x = fns.obj(float_field=ds(2**24 + 1))
+    with self.assertRaisesRegex(
+        ValueError,
+        'value 16777217 is not in the range of integers that can be exactly'
+        ' represented by proto field float_field with value type float',
+    ):
+      _ = fns.to_proto(x, test_pb2.MessageC)
+
+    x = fns.obj(float_field=ds(-2**24 - 1))
+    with self.assertRaisesRegex(
+        ValueError,
+        'value -16777217 is not in the range of integers that can be exactly'
+        ' represented by proto field float_field with value type float',
+    ):
+      _ = fns.to_proto(x, test_pb2.MessageC)
+
+  def test_int64_in_float_field(self):
+    x = fns.obj(float_field=ds([1, 2**24, -2**24], schema_constants.INT64))
+    messages = fns.to_proto(x, test_pb2.MessageC)
+    expected_messages = [
+        test_pb2.MessageC(float_field=1.0),
+        test_pb2.MessageC(float_field=2**24),
+        test_pb2.MessageC(float_field=-2**24),
+    ]
+    self.assertEqual(messages, expected_messages)
+
+  def test_int64_in_float_field_out_of_range(self):
+    x = fns.obj(float_field=ds(2**24 + 1, schema_constants.INT64))
+    with self.assertRaisesRegex(
+        ValueError,
+        'value 16777217 is not in the range of integers that can be exactly'
+        ' represented by proto field float_field with value type float',
+    ):
+      _ = fns.to_proto(x, test_pb2.MessageC)
+
+    x = fns.obj(float_field=ds(-2**24 - 1, schema_constants.INT64))
+    with self.assertRaisesRegex(
+        ValueError,
+        'value -16777217 is not in the range of integers that can be exactly'
+        ' represented by proto field float_field with value type float',
+    ):
+      _ = fns.to_proto(x, test_pb2.MessageC)
+
+  def test_int64_in_double_field(self):
+    x = fns.obj(double_field=ds([1, 2**53, -2**53], schema_constants.INT64))
+    messages = fns.to_proto(x, test_pb2.MessageC)
+    expected_messages = [
+        test_pb2.MessageC(double_field=1.0),
+        test_pb2.MessageC(double_field=2**53),
+        test_pb2.MessageC(double_field=-2**53),
+    ]
+    self.assertEqual(messages, expected_messages)
+
+  def test_int64_in_double_field_out_of_range(self):
+    x = fns.obj(double_field=ds(2**53 + 1, schema_constants.INT64))
+    with self.assertRaisesRegex(
+        ValueError,
+        'value 9007199254740993 is not in the range of integers that can be'
+        ' exactly represented by proto field double_field with value type'
+        ' double',
+    ):
+      _ = fns.to_proto(x, test_pb2.MessageC)
+
+    x = fns.obj(double_field=ds(-2**53 - 1, schema_constants.INT64))
+    with self.assertRaisesRegex(
+        ValueError,
+        'value -9007199254740993 is not in the range of integers that can be'
+        ' exactly represented by proto field double_field with value type'
+        ' double',
+    ):
+      _ = fns.to_proto(x, test_pb2.MessageC)
 
 
 if __name__ == '__main__':

@@ -43,6 +43,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -145,6 +146,39 @@ absl::StatusOr<DstT> Convert(const FieldDescriptor& field,
     // in FromProto, so we are more tolerant here to ensure that all uint64
     // values can be round-tripped.
     return value;
+  }
+  if constexpr (std::is_integral_v<SrcT> && std::is_floating_point_v<DstT>) {
+    // Allow storing integers in floating-point fields if they are in the range
+    // of integers that the floating-point field can store exactly.
+    //
+    // Note that we could reasonably try to store integers that are outside of
+    // this range but still are representable exactly (e.g. large powers of 2).
+    // This is difficult to get right: the naive approach of round-tripping and
+    // comparing causes UB if we round to outside of the integer's representable
+    // range. It is also hard to explain to users.
+    if constexpr (std::is_same_v<DstT, float>) {
+      if (value < -(1 << 24) || value > (1 << 24)) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "value %d is not in the range of integers that can be exactly "
+            "represented by proto field %s with value type %s",
+            value, field.name(), field.cpp_type_name()));
+      }
+      return value;
+    }
+    if constexpr (std::is_same_v<DstT, double>) {
+      if (value < -(1L << 53) || value > (1L << 53)) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "value %d is not in the range of integers that can be exactly "
+            "represented by proto field %s with value type %s",
+            value, field.name(), field.cpp_type_name()));
+      }
+      return value;
+    }
+  }
+  if constexpr (std::is_same_v<SrcT, arolla::Unit> &&
+                std::is_same_v<DstT, bool>) {
+    // Store MASK present as true. MASK missing is stored as unset implicitly.
+    return true;
   }
   if constexpr (std::is_same_v<SrcT, DstT> && (std::is_floating_point_v<DstT> ||
                                                std::is_same_v<DstT, bool>)) {
