@@ -291,6 +291,7 @@ py_library(
         ":arolla_bridge",
         ":optools",
         ":qtype_utils",
+        ":view_overloads",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",

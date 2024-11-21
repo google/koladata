@@ -19,6 +19,7 @@ from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import view_overloads as _
 from koladata.types import schema_constants
 
 M = arolla.OperatorsContainer(jagged_shape)
@@ -39,6 +40,11 @@ def make_tuple(*args):
   return args_tuple
 
 
+@optools.add_to_registry_as_overload(
+    'koda_internal.view.get_item._tuple',
+    overload_condition_expr=arolla.M.qtype.is_tuple_qtype(arolla.P.x)
+    | arolla.M.qtype.is_slice_qtype(arolla.P.x),
+)
 @optools.add_to_registry()
 @optools.as_lambda_operator(
     'kde.tuple.get_nth',

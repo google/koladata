@@ -20,6 +20,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.operators import view_overloads
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
@@ -50,7 +51,9 @@ class TupleGetNthTest(parameterized.TestCase):
   )
   def test_eval(self, tpl, n, expected):
     result = expr_eval.eval(kde.tuple.get_nth(tpl, n))
+    view_result = expr_eval.eval(view_overloads.get_item(tpl, n))
     testing.assert_equal(result, expected)
+    testing.assert_equal(view_result, expected)
 
   def test_eval_non_literal_x(self):
     result = expr_eval.eval(kde.tuple.get_nth(I.tpl, 0), tpl=(1, 2, 3))

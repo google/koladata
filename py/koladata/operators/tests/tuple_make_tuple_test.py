@@ -103,9 +103,8 @@ class TupleMakeTupleTest(parameterized.TestCase):
     self.assertLen(x_tuple.node_deps, 2)
 
     x_tuple = kde.tuple.make_tuple(I.x, I.y)
-    # TODO: Support __getitem__ for tuples.
-    # self.assertTrue(view.has_koda_view(x_tuple[0]))
-    # self.assertTrue(view.has_koda_view(x_tuple[1]))
+    self.assertTrue(view.has_koda_view(x_tuple[0]))
+    self.assertTrue(view.has_koda_view(x_tuple[1]))
     x, y = x_tuple
     self.assertTrue(view.has_koda_view(x))
     self.assertTrue(view.has_koda_view(y))

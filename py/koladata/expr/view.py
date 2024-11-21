@@ -470,12 +470,11 @@ class KodaView(arolla.abc.ExprView):
   def is_primitive_schema(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.schema.is_primitive_schema', self)
 
-  # TODO: Support __getitem__ for tuples.
   # Support sequence contract, for tuple unpacking.
   def _arolla_sequence_getitem_(self, index: int) -> arolla.Expr:
     if index < 0 or index >= len(self.node_deps):
       raise IndexError('tuple index out of range')
-    return arolla.abc.aux_bind_op('kde.tuple.get_nth', self, index)
+    return self[index]
 
 
 def has_koda_view(node: arolla.Expr) -> bool:

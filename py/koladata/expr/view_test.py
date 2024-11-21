@@ -502,25 +502,16 @@ class KodaViewTest(parameterized.TestCase):
     x, y = expr
     self.assertTrue(view.has_koda_view(x))
     self.assertTrue(view.has_koda_view(y))
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        x, kde.tuple.get_nth(expr, 0)
-    )
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        y, kde.tuple.get_nth(expr, 1)
-    )
+    testing.assert_equal(x, view_overloads.get_item(expr, 0))
+    testing.assert_equal(y, view_overloads.get_item(expr, 1))
 
-    # TODO: Support __getitem__ for tuples.
-    # arolla.testing.assert_expr_equal_by_fingerprint(x, expr[0])
-    # arolla.testing.assert_expr_equal_by_fingerprint(y, expr[1])
+    testing.assert_equal(x, expr[ds(0)])
+    testing.assert_equal(y, expr[1])  # auto-boxing
 
     x_val = data_slice.DataSlice.from_vals(1)
     y_val = data_slice.DataSlice.from_vals(2)
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        x.eval(x=x_val, y=y_val), x_val
-    )
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        y.eval(x=x_val, y=y_val), y_val
-    )
+    testing.assert_equal(x.eval(x=x_val, y=y_val), x_val)
+    testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
 
   @parameterized.parameters(
       # Slicing helper.
