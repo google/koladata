@@ -22,6 +22,7 @@
 #include "absl/status/status_matchers.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 namespace {
@@ -80,6 +81,20 @@ TEST(OperatorEvalError, WithStatusContainingCause) {
   EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), StrEq("op_name: error_message"));
   EXPECT_THAT(payload->cause().error_message(), StrEq("cause"));
+}
+
+TEST(OperatorEvalError, ToOperatorEvalError) {
+  auto status = []() {
+    RETURN_IF_ERROR(absl::InvalidArgumentError("Test error"))
+        .With(ToOperatorEvalError("op_name"));
+    return absl::OkStatus();
+  }();
+  EXPECT_THAT(status,
+              StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
+  std::optional<internal::Error> payload = internal::GetErrorPayload(status);
+  EXPECT_TRUE(payload.has_value());
+  EXPECT_THAT(payload->error_message(), StrEq("op_name: Test error"));
+  EXPECT_FALSE(payload->has_cause());
 }
 
 }  // namespace

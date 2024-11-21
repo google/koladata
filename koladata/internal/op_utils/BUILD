@@ -835,6 +835,7 @@ cc_test(
         "//koladata/internal:error_utils",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/util:status_backport",
         "@com_google_googletest//:gtest_main",
     ],
 )

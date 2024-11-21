@@ -15,6 +15,10 @@
 #ifndef KOLADATA_SCHEMA_UTILS_H_
 #define KOLADATA_SCHEMA_UTILS_H_
 
+#include "absl/base/nullability.h"
+#include "absl/status/status.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 
@@ -29,6 +33,26 @@ namespace koladata {
 //  * GetNarrowedSchema(kd.slice([1, 2.0], OBJECT)) -> FLOAT32.
 //  * GetNarrowedSchema(kd.slice([None, None], OBJECT)) -> NONE.
 internal::DataItem GetNarrowedSchema(const DataSlice& slice);
+
+// Returns OK if the DataSlice's schema is a numeric type.
+absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg);
+
+namespace schema_utils_internal {
+
+absl::Status ExpectConsistentStringOrBytesImpl(
+    absl::Span<const absl::string_view> arg_names,
+    absl::Span<absl::Nonnull<const DataSlice* const>> args);
+
+}  // namespace schema_utils_internal
+
+// Returns OK if the DataSlices' schemas are all strings or byteses, and they
+// are not mixed.
+template <typename... DataSlices>
+absl::Status ExpectConsistentStringOrBytes(
+    absl::Span<const absl::string_view> arg_names, const DataSlices&... args) {
+  return schema_utils_internal::ExpectConsistentStringOrBytesImpl(arg_names,
+                                                                  {&args...});
+}
 
 }  // namespace koladata
 

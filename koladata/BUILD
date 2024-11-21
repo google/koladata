@@ -660,6 +660,8 @@ cc_test(
         "//koladata/internal/testing:matchers",
         "//koladata/testing:matchers",
         "//koladata/testing:test_env",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],

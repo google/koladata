@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -117,8 +119,10 @@ class MathSubtractTest(parameterized.TestCase):
     y = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'expected numerics, got y: DENSE_ARRAY_TEXT',
+        re.escape(
+            "kd.math.subtract: expected a numeric value, got y=DataSlice(['1',"
+            " '2', '3'], schema: STRING, shape: JaggedShape(3))"
+        ),
     ):
       expr_eval.eval(kde.math.subtract(I.x, I.y), x=x, y=y)
 

@@ -25,12 +25,14 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/utils.h"
 #include "koladata/operators/arolla_bridge.h"
+#include "koladata/schema_utils.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
-
 namespace {
+
+constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
 
 absl::StatusOr<DataSlice> AsScalarBool(absl::string_view op_name,
                                        const DataSlice& x,
@@ -46,6 +48,8 @@ absl::StatusOr<DataSlice> AsScalarBool(absl::string_view op_name,
 }  // namespace
 
 absl::StatusOr<DataSlice> Subtract(const DataSlice& x, const DataSlice& y) {
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.subtract"));
+  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kd.math.subtract"));
   return SimplePointwiseEval("math.subtract", {x, y});
 }
 

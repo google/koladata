@@ -15,6 +15,8 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_UTILS_H_
 #define KOLADATA_INTERNAL_OP_UTILS_UTILS_H_
 
+#include <utility>
+
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 
@@ -28,6 +30,14 @@ namespace koladata::internal {
 absl::Status OperatorEvalError(absl::Status status,
                                absl::string_view operator_name,
                                absl::string_view error_message = "");
+
+// absl::Status adaptor that attaches operator name and wraps the given status
+// into an OperatorEvalError.
+inline auto ToOperatorEvalError(absl::string_view operator_name) {
+  return [operator_name](absl::Status status) {
+    return OperatorEvalError(std::move(status), operator_name);
+  };
+}
 
 // Returns a absl::InvalidArgumentError status with a Koda error payload
 // containing the given error message.

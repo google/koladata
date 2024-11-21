@@ -58,9 +58,11 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
   def test_entity_input_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape("""math.subtract: invalid inputs
-
-The cause is: DataSlice with Entity schema is not supported:"""),
+        re.compile(
+            r'kd.math.subtract: expected a numeric value, got'
+            r' x=DataSlice\(.*schema: SCHEMA\(x=INT32\).*\)',
+            re.DOTALL,
+        ),
     ):
       expr_eval.eval(
           kde.math.subtract(bag().new(x=ds([1, 2, 3])), ds([1, 2, 3]))
@@ -69,9 +71,8 @@ The cause is: DataSlice with Entity schema is not supported:"""),
   def test_object_input_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape("""math.subtract: invalid inputs
-
-The cause is: DataSlice has no primitive schema"""),
+        r'kd.math.subtract: expected a numeric value, got'
+        r' x=DataSlice\(.*schema: OBJECT.*\)',
     ):
       expr_eval.eval(
           kde.math.subtract(bag().obj(x=ds([1, 2, 3])), ds([1, 2, 3]))
@@ -81,9 +82,8 @@ The cause is: DataSlice has no primitive schema"""),
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """math.subtract: invalid inputs
-
-The cause is: DataSlice with mixed types is not supported: DataSlice([[1, '2'], [3]], schema: OBJECT, shape: JaggedShape(2, [2, 1]))"""
+            'kd.math.subtract: expected a numeric value, got y=DataSlice([[1,'
+            " '2'], [3]], schema: OBJECT, shape: JaggedShape(2, [2, 1]))",
         ),
     ):
       expr_eval.eval(kde.math.subtract(ds([1, 2, 3]), ds([[1, '2'], [3]])))
@@ -103,9 +103,8 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """math.subtract: successfully converted input DataSlice(s) to DenseArray(s) but failed to evaluate the Arolla operator
-
-The cause is: expected numerics, got y: DENSE_ARRAY_TEXT"""
+            "kd.math.subtract: expected a numeric value, got y=DataSlice(['1',"
+            " '2', '3'], schema: STRING, shape: JaggedShape(3))"
         ),
     ):
       expr_eval.eval(kde.math.subtract(ds([1, 2, 3]), ds(['1', '2', '3'])))

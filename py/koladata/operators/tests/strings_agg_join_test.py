@@ -227,13 +227,41 @@ class StringsAggJoinTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError, re.escape('expected rank(x) > 0')
     ):
-      expr_eval.eval(kde.strings.agg_join(ds(1)))
+      expr_eval.eval(kde.strings.agg_join(ds('foo')))
 
   def test_data_slice_sep_error(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape('expected rank(sep) == 0')
+        exceptions.KodaError,
+        re.escape('strings.agg_join: expected rank(sep) == 0'),
     ):
       expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(['', ''])))
+
+  def test_type_errors(self):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'strings.agg_join: expected a string or bytes, got x=DataSlice([1,'
+            ' 2], schema: INT32, shape: JaggedShape(2))'
+        ),
+    ):
+      expr_eval.eval(kde.strings.agg_join(ds([1, 2]), sep=ds(b', ')))
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'kd.strings.agg_join: expected a string or bytes, got'
+            ' sep=DataItem(1, schema: INT32)'
+        ),
+    ):
+      expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(1)))
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'kd.strings.agg_join: mixing bytes and string arguments is not'
+            " allowed, got x=DataSlice(['foo', 'bar'], schema: STRING, shape:"
+            " JaggedShape(2)) and sep=DataItem(b', ', schema: BYTES)"
+        ),
+    ):
+      expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(b', ')))
 
   @parameterized.parameters(-1, 2)
   def test_out_of_bounds_ndim_error(self, ndim):

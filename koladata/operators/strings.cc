@@ -24,7 +24,6 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
@@ -38,6 +37,7 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
+#include "koladata/schema_utils.h"
 #include "koladata/shape_utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
@@ -50,13 +50,14 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
-
 namespace {
+
+using ::koladata::internal::OperatorEvalError;
+constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
 
 absl::StatusOr<DataSlice> EvalFormatOp(absl::string_view op_name,
                                        const DataSlice& fmt,
@@ -123,8 +124,12 @@ absl::StatusOr<arolla::OperatorPtr> FormatOperatorFamily::DoGetOperator(
 }
 
 absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "sep"}, x, sep))
+      .With(OpError("kd.strings.agg_join"));
   if (sep.GetShape().rank() != 0) {
-    return absl::InvalidArgumentError("expected rank(sep) == 0");
+    return OperatorEvalError(
+        absl::InvalidArgumentError("expected rank(sep) == 0"),
+        "kd.strings.agg_join");
   }
   return SimpleAggIntoEval("strings.agg_join", {x, sep});
 }
