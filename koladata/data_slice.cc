@@ -761,7 +761,8 @@ absl::Status AssertIsSliceSchema(const internal::DataItem& schema) {
 absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
                                             JaggedShape shape,
                                             internal::DataItem schema,
-                                            DataBagPtr db) {
+                                            DataBagPtr db,
+                                            Wholeness wholeness) {
   if (shape.size() != impl.size()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("shape size must be compatible with number of items: "
@@ -775,27 +776,28 @@ absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
                                     impl.is_empty_and_unknown()));
   if (shape.rank() == 0) {
     return DataSlice(impl[0], std::move(shape), std::move(schema),
-                     std::move(db));
+                     std::move(db), wholeness == Wholeness::kWhole);
   }
   return DataSlice(std::move(impl), std::move(shape), std::move(schema),
-                   std::move(db));
+                   std::move(db), wholeness == Wholeness::kWhole);
 }
 
 absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             internal::DataItem schema,
-                                            DataBagPtr db) {
+                                            DataBagPtr db,
+                                            Wholeness wholeness) {
   RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   // NOTE: Checking the invariant to avoid doing non-trivial verification in
   // prod.
   DCHECK_OK(VerifySchemaConsistency(schema, item.dtype(),
                                     /*empty_and_unknown=*/!item.has_value()));
-  return DataSlice(item, JaggedShape::Empty(), std::move(schema),
-                   std::move(db));
+  return DataSlice(item, JaggedShape::Empty(), std::move(schema), std::move(db),
+                   wholeness == Wholeness::kWhole);
 }
 
 absl::StatusOr<DataSlice> DataSlice::CreateWithSchemaFromData(
-    internal::DataSliceImpl impl, JaggedShape shape,
-    DataBagPtr db) {
+    internal::DataSliceImpl impl, JaggedShape shape, DataBagPtr db,
+    Wholeness wholeness) {
   if (impl.is_empty_and_unknown() || impl.is_mixed_dtype() ||
       impl.dtype() == arolla::GetQType<internal::ObjectId>()) {
     return absl::InvalidArgumentError(
@@ -808,43 +810,45 @@ absl::StatusOr<DataSlice> DataSlice::CreateWithSchemaFromData(
     schema = internal::DataItem(dtype);
   }
   return Create(std::move(impl), std::move(shape), std::move(schema),
-                std::move(db));
+                std::move(db), wholeness);
 }
 
 absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             JaggedShape shape,
                                             internal::DataItem schema,
-                                            DataBagPtr db) {
+                                            DataBagPtr db,
+                                            Wholeness wholeness) {
   RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   DCHECK_OK(VerifySchemaConsistency(schema, item.dtype(),
                                     /*empty_and_unknown=*/!item.has_value()));
   if (shape.rank() == 0) {
-    return DataSlice(item, std::move(shape), std::move(schema), std::move(db));
+    return DataSlice(item, std::move(shape), std::move(schema), std::move(db),
+                     wholeness == Wholeness::kWhole);
   } else {
     return DataSlice::Create(internal::DataSliceImpl::Create({item}),
-                             std::move(shape), std::move(schema),
-                             std::move(db));
+                             std::move(shape), std::move(schema), std::move(db),
+                             wholeness);
   }
 }
 
 absl::StatusOr<DataSlice> DataSlice::Create(
     absl::StatusOr<internal::DataSliceImpl> slice_or, JaggedShape shape,
-    internal::DataItem schema, DataBagPtr db) {
+    internal::DataItem schema, DataBagPtr db, Wholeness wholeness) {
   if (!slice_or.ok()) {
     return std::move(slice_or).status();
   }
   return DataSlice::Create(*std::move(slice_or), std::move(shape),
-                           std::move(schema), std::move(db));
+                           std::move(schema), std::move(db), wholeness);
 }
 
 absl::StatusOr<DataSlice> DataSlice::Create(
     absl::StatusOr<internal::DataItem> item_or, JaggedShape shape,
-    internal::DataItem schema, DataBagPtr db) {
+    internal::DataItem schema, DataBagPtr db, Wholeness wholeness) {
   if (!item_or.ok()) {
     return std::move(item_or).status();
   }
   return DataSlice::Create(*std::move(item_or), std::move(shape),
-                           std::move(schema), std::move(db));
+                           std::move(schema), std::move(db), wholeness);
 }
 
 absl::StatusOr<DataSlice> DataSlice::Reshape(
@@ -1023,10 +1027,19 @@ absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {
                    GetBag());
 }
 
+bool DataSlice::IsWhole() const {
+  const auto& bag = GetBag();
+  if (bag == nullptr) {
+    return true;  // If there is no data, it is all reachable.
+  }
+  return internal_->is_whole_if_db_unmodified && !bag->HasMutableFallbacks() &&
+         (!bag->IsMutable() || bag->GetImpl().IsPristine());
+}
+
 absl::StatusOr<DataSlice> DataSlice::ForkDb() const {
   ASSIGN_OR_RETURN(auto forked_db, GetBag()->Fork());
   return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(),
-                   std::move(forked_db));
+                   std::move(forked_db), IsWhole());
 }
 
 absl::StatusOr<DataSlice> DataSlice::Freeze() const {
@@ -1046,7 +1059,7 @@ absl::StatusOr<DataSlice> DataSlice::Freeze() const {
   }
   ASSIGN_OR_RETURN(auto frozen_db, db->Fork(/*immutable=*/true));
   return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(),
-                   std::move(frozen_db));
+                   std::move(frozen_db), IsWhole());
 }
 
 bool DataSlice::IsEquivalentTo(const DataSlice& other) const {

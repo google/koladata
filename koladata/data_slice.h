@@ -73,6 +73,16 @@ class DataSlice {
   using JaggedShape = arolla::JaggedDenseArrayShape;
   using AttrNamesSet = absl::btree_set<std::string, std::less<>>;
 
+  // Indicates whether a DataSlice is "whole". A DataSlice is whole if we know
+  // that all of the data in its DataBag are reachable from items in the
+  // DataSlice. This allows certain optimizations, like skipping extraction.
+  //
+  // DataSlice Create methods take an optional wholeness argument. This should
+  // be set to kWhole only if you are confident that the constructed DataSlice
+  // will be whole at creation time. Otherwise, the IsWhole method may silently
+  // return false positives for this or descendant DataSlices.
+  enum class Wholeness { kNotWhole, kWhole };
+
   // Creates a DataSlice with necessary invariant checks:
   // * shape must be compatible with the size of DataSliceImpl;
   // * schema must be consistent with the contents.
@@ -80,10 +90,10 @@ class DataSlice {
   // Callers must ensure that schema will be compatible with passed data. If the
   // caller does not handle schema itself, it should rely on
   // DataSlice::WithSchema, instead.
-  static absl::StatusOr<DataSlice> Create(internal::DataSliceImpl impl,
-                                          JaggedShape shape,
-                                          internal::DataItem schema,
-                                          DataBagPtr db = nullptr);
+  static absl::StatusOr<DataSlice> Create(
+      internal::DataSliceImpl impl, JaggedShape shape,
+      internal::DataItem schema, DataBagPtr db = nullptr,
+      Wholeness wholeness = Wholeness::kNotWhole);
 
   // Same as above, but creates a DataSlice from DataItem. Shape is created
   // implicitly with rank == 0.
@@ -91,33 +101,36 @@ class DataSlice {
   // Callers must ensure that schema will be compatible with passed data. If the
   // caller does not handle schema itself, it should rely on
   // DataSlice::WithSchema, instead.
-  static absl::StatusOr<DataSlice> Create(const internal::DataItem& item,
-                                          internal::DataItem schema,
-                                          DataBagPtr db = nullptr);
+  static absl::StatusOr<DataSlice> Create(
+      const internal::DataItem& item, internal::DataItem schema,
+      DataBagPtr db = nullptr, Wholeness wholeness = Wholeness::kNotWhole);
 
   // Creates a DataSlice with schema built from data's dtype. Supported only for
   // primitive DTypes.
   static absl::StatusOr<DataSlice> CreateWithSchemaFromData(
-      internal::DataSliceImpl impl, JaggedShape shape, DataBagPtr db = nullptr);
+      internal::DataSliceImpl impl, JaggedShape shape, DataBagPtr db = nullptr,
+      Wholeness wholeness = Wholeness::kNotWhole);
 
   // Convenience factory method that accepts JaggedShape, so that we can use
   // implementation-agnostic constructions in visitors passed to VisitImpl.
-  static absl::StatusOr<DataSlice> Create(const internal::DataItem& item,
-                                          JaggedShape shape,
-                                          internal::DataItem schema,
-                                          DataBagPtr db = nullptr);
+  static absl::StatusOr<DataSlice> Create(
+      const internal::DataItem& item, JaggedShape shape,
+      internal::DataItem schema, DataBagPtr db = nullptr,
+      Wholeness wholeness = Wholeness::kNotWhole);
 
   // Convenience factory method that creates a DataSlice from StatusOr. Returns
   // the same error in case of error.
   static absl::StatusOr<DataSlice> Create(
       absl::StatusOr<internal::DataSliceImpl> slice_or, JaggedShape shape,
-      internal::DataItem schema, DataBagPtr db = nullptr);
+      internal::DataItem schema, DataBagPtr db = nullptr,
+      Wholeness wholeness = Wholeness::kNotWhole);
 
   // Convenience factory method that creates a DataSlice from StatusOr. Returns
   // the same error in case of error.
   static absl::StatusOr<DataSlice> Create(
       absl::StatusOr<internal::DataItem> item_or, JaggedShape shape,
-      internal::DataItem schema, DataBagPtr db = nullptr);
+      internal::DataItem schema, DataBagPtr db = nullptr,
+      Wholeness wholeness = Wholeness::kNotWhole);
 
   // Default-constructed DataSlice is a single missing item with scalar shape
   // and unknown dtype.
@@ -207,6 +220,10 @@ class DataSlice {
 
   // Returns a reference to a DataBag that this DataSlice has a reference to.
   const absl::Nullable<DataBagPtr>& GetBag() const { return internal_->db; }
+
+  // Returns true if all data in this DataSlice's DataBag is reachable from this
+  // DataSlice. If this returns false, whether all data is reachable is unknown.
+  bool IsWhole() const;
 
   // Returns a new DataSlice with a new reference to DataBag `db`.
   DataSlice WithBag(DataBagPtr db) const {
@@ -472,10 +489,10 @@ class DataSlice {
   using ImplVariant = std::variant<internal::DataItem, internal::DataSliceImpl>;
 
   DataSlice(ImplVariant impl, JaggedShape shape, internal::DataItem schema,
-            DataBagPtr db = nullptr)
+            DataBagPtr db = nullptr, bool is_whole_if_db_unmodified = false)
       : internal_(arolla::RefcountPtr<Internal>::Make(
             std::move(impl), std::move(shape), std::move(schema),
-            std::move(db))) {}
+            std::move(db), is_whole_if_db_unmodified)) {}
 
   // Returns an Error if `schema` cannot be used for data whose type is defined
   // by `dtype`. `dtype` has a value of NothingQType in case the contents are
@@ -507,15 +524,20 @@ class DataSlice {
     // Can be shared between multiple DataSlice(s) and underlying storage
     // can be changed outside of control of this DataSlice.
     DataBagPtr db;
+    // If true, this DataSlice is "whole" (all data in its DataBag is reachable
+    // from it) if `db` has not been modified since this DataSlice was
+    // constructed.
+    bool is_whole_if_db_unmodified = false;
 
     Internal() : shape(JaggedShape::Empty()), schema(schema::kAny) {}
 
     Internal(ImplVariant impl, JaggedShape shape, internal::DataItem schema,
-             DataBagPtr db = nullptr)
+             DataBagPtr db = nullptr, bool is_whole_if_db_unmodified = false)
         : impl(std::move(impl)),
           shape(std::move(shape)),
           schema(std::move(schema)),
-          db(std::move(db)) {
+          db(std::move(db)),
+          is_whole_if_db_unmodified(is_whole_if_db_unmodified) {
       DCHECK(schema.has_value());
       DCHECK(!schema.is_implicit_schema())
           << "implicit schemas are not allowed to be used as a DataSlice "

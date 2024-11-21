@@ -337,6 +337,108 @@ TEST(DataSliceUtils, CreateWithSchemaFromDataError) {
                        HasSubstr("for primitive types")));
 }
 
+TEST(DataSliceTest, IsWhole) {
+  {
+    // No DataBag, trivially whole.
+    EXPECT_TRUE((test::DataSlice<int>({1, 2}).IsWhole()));
+  }
+
+  {
+    // Flag is false on DataSlice creation.
+    auto db = DataBag::Empty();
+    auto ds = *DataSlice::Create(internal::DataItem(),
+                                 internal::DataItem(schema::kInt32), db,
+                                 DataSlice::Wholeness::kNotWhole);
+    EXPECT_FALSE(ds.IsWhole());
+  }
+
+  {
+    // Flag is true on DataSlice creation, no fallbacks, mutable but unmodified
+    // DataBag.
+    auto db = DataBag::Empty();
+    auto ds = *DataSlice::Create(internal::DataItem(),
+                                 internal::DataItem(schema::kInt32), db,
+                                 DataSlice::Wholeness::kWhole);
+    EXPECT_TRUE(ds.IsWhole());
+  }
+
+  {
+    // Flag is true on DataSlice creation, no fallbacks, mutable DataBag with
+    // modifications.
+    auto db = DataBag::Empty();
+    auto ds = *DataSlice::Create(internal::DataItem(),
+                                 internal::DataItem(schema::kInt32), db,
+                                 DataSlice::Wholeness::kWhole);
+    ASSERT_OK_AND_ASSIGN(
+        auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+    EXPECT_FALSE(ds.IsWhole());
+  }
+
+  {
+    // Flag is true on DataSlice creation, no fallbacks, mutable DataBag forked
+    // after modifications but not modified further.
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+    ASSERT_OK_AND_ASSIGN(auto db2, db->Fork(/*immutable=*/false));
+    auto ds = *DataSlice::Create(internal::DataItem(),
+                                 internal::DataItem(schema::kInt32), db2,
+                                 DataSlice::Wholeness::kWhole);
+    EXPECT_TRUE(ds.IsWhole());
+  }
+
+  {
+    // Flag is true on DataSlice creation, immutable DataBag with mutable
+    // fallbacks.
+    auto db = DataBag::Empty();
+    auto db2 = DataBag::ImmutableEmptyWithFallbacks({db});
+    auto ds = *DataSlice::Create(internal::DataItem(),
+                                 internal::DataItem(schema::kInt32), db2,
+                                 DataSlice::Wholeness::kWhole);
+    EXPECT_FALSE(ds.IsWhole());
+  }
+
+  {
+    // Flag is true on DataSlice creation, immutable DataBag with immutable
+    // fallbacks.
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+    db->UnsafeMakeImmutable();
+    auto db2 = DataBag::ImmutableEmptyWithFallbacks({db});
+    auto ds = *DataSlice::Create(internal::DataItem(),
+                                 internal::DataItem(schema::kInt32), db2,
+                                 DataSlice::Wholeness::kWhole);
+    EXPECT_TRUE(ds.IsWhole());
+  }
+
+  {
+    // Flag is true on DataSlice creation, forked DataBag with no modifications.
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+    db->UnsafeMakeImmutable();
+    auto ds = *DataSlice::Create(internal::DataItem(),
+                                 internal::DataItem(schema::kInt32), db,
+                                 DataSlice::Wholeness::kWhole);
+    auto ds2 = *ds.ForkDb();
+    EXPECT_TRUE(ds2.IsWhole());
+  }
+
+  {
+    // Flag is true on DataSlice creation, frozen DataBag with no modifications.
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+    db->UnsafeMakeImmutable();
+    auto ds = *DataSlice::Create(internal::DataItem(),
+                                 internal::DataItem(schema::kInt32), db,
+                                 DataSlice::Wholeness::kWhole);
+    auto ds2 = *ds.Freeze();
+    EXPECT_TRUE(ds2.IsWhole());
+  }
+}
+
 TEST(DataSliceTest, ForkDb) {
   auto db = DataBag::Empty();
   auto ds_a = test::DataSlice<int>({1, 2});
