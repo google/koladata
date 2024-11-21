@@ -137,6 +137,12 @@ struct WrappingBehavior {
       std::string repr, absl::string_view key_name) {
     return MaybeAnnotateAccess("dict-key", key_name, std::move(repr));
   }
+  // A schema access path is a single attribute name with an empty value. These
+  // indicate an access path into a SCHEMA DataItem.
+  std::string MaybeAnnotateSchemaAccess(
+      absl::string_view schema_access, std::string repr) {
+    return MaybeAnnotateAccess(schema_access, "", std::move(repr));
+  }
 
   // The attr argument should not be escaped.
   std::string FormatSchemaAttrAndValue(absl::string_view attr,
@@ -367,7 +373,9 @@ absl::StatusOr<std::string> ListSchemaStr(const DataSlice& schema,
 
   wrapping.object_ids_clickable = false;
   ASSIGN_OR_RETURN(std::string str, DataItemToStr(attr, option, wrapping));
-  return absl::StrCat("LIST[", str, "]");
+  return absl::StrCat(
+      "LIST[", wrapping.MaybeAnnotateSchemaAccess(
+          "item-schema", std::move(str)), "]");
 }
 
 // Returns the string representation of list schema. `schema` must be schema
@@ -389,7 +397,13 @@ absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
                    DataItemToStr(key_attr, option, wrapping));
   ASSIGN_OR_RETURN(std::string value_attr_str,
                    DataItemToStr(value_attr, option, wrapping));
-  return absl::StrCat("DICT{", key_attr_str, ", ", value_attr_str, "}");
+  return absl::StrCat(
+      "DICT{",
+      wrapping.MaybeAnnotateSchemaAccess("key-schema", std::move(key_attr_str)),
+      ", ",
+      wrapping.MaybeAnnotateSchemaAccess("value-schema",
+                                         std::move(value_attr_str)),
+      "}");
 }
 
 // Returns the string representation of list item.

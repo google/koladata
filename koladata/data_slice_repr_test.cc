@@ -960,6 +960,18 @@ TEST(DataSliceReprTest, FormatHtml_ListIndices) {
             "]</span>]");
 }
 
+TEST(DataSliceReprTest, FormatHtml_ListSchema) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice list_item,
+      CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
+                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(
+        list_item.GetSchema(), {.format_html = true}));
+  EXPECT_EQ(result, "LIST[<span item-schema=\"\">ANY</span>]");
+}
+
 TEST(DataSliceReprTest, FormatHtml_ObjEntity) {
   DataBagPtr bag = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
@@ -1017,6 +1029,24 @@ TEST(DataSliceReprTest, FormatHtml_Dict_NoMultiLineForKeyNearLimit) {
   ASSERT_OK_AND_ASSIGN(
     std::string result, DataSliceToStr(data_slice, {.format_html = true}));
   EXPECT_THAT(result, Not(HasSubstr("\n")));
+}
+
+TEST(DataSliceReprTest, FormatHtml_DictSchema) {
+  DataBagPtr bag = DataBag::Empty();
+  auto dict_schema = *CreateDictSchema(
+      bag, test::Schema(schema::kInt32), test::Schema(schema::kInt32));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice data_slice,
+      test::DataSlice<ObjectId>(
+          {internal::AllocateSingleDict()}, bag).WithSchema(dict_schema));
+  DataSlice keys = test::DataSlice<int>({0});
+  DataSlice values = test::DataSlice<int>({1});
+  ASSERT_OK(data_slice.SetInDict(keys, values));
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(
+        data_slice.GetSchema(), {.format_html = true}));
+  EXPECT_EQ(result, "DICT{<span key-schema=\"\">INT32</span>, "
+                    "<span value-schema=\"\">INT32</span>}");
 }
 
 TEST(DataSliceReprTest, FormatHtml_ByteValues) {
