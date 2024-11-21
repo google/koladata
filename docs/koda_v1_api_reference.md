@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-20'
+  reviewed: '2024-11-21'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -403,6 +403,52 @@ Args:
 
 Returns:
   Result of fn applied on filtered args.
+```
+
+### `are_dicts(x)` {#are_dicts}
+
+``` {.no-copy}
+Returns present for each item in `x` that is Dict.
+
+Note that this is a pointwise operation.
+
+Also see `kd.is_dict` for checking if `x` is a Dict DataSlice. But note that
+`kd.all(kd.are_dicts(x))` is not always equivalent to `kd.is_dict(x)`. For
+example,
+
+  kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.are_dicts(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.are_dicts(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataSlice with the same shape as `x`.
+```
+
+### `are_lists(x)` {#are_lists}
+
+``` {.no-copy}
+Returns present for each item in `x` that is List.
+
+Note that this is a pointwise operation.
+
+Also see `kd.is_list` for checking if `x` is a List DataSlice. But note that
+`kd.all(kd.are_lists(x))` is not always equivalent to `kd.is_list(x)`. For
+example,
+
+  kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.are_lists(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.are_lists(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataSlice with the same shape as `x`.
 ```
 
 ### `are_primitives(x)` {#are_primitives}
@@ -2312,10 +2358,29 @@ Returns:
   Reverse filtered DataSlice.
 ```
 
-### `is_dict(ds)` {#is_dict}
+### `is_dict(x)` {#is_dict}
 
 ``` {.no-copy}
-Returns true if all present items in ds are dicts.
+Returns whether x is a Dict DataSlice.
+
+`x` is a Dict DataSlice if it meets one of the following conditions:
+  1) it has a Dict schema
+  2) it has OBJECT/ANY schema and only has Dict items
+
+Also see `kd.are_dicts` for a pointwise version. But note that
+`kd.all(kd.are_dicts(x))` is not always equivalent to `kd.is_dict(x)`. For
+example,
+
+  kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.are_dicts(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.are_dicts(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataItem.
 ```
 
 ### `is_empty(x)` {#is_empty}
@@ -2362,10 +2427,29 @@ Checks if `obj` represents a functor.
 Returns kd.present if the given object is a scalar DataItem and kd.missing otherwise.
 ```
 
-### `is_list(ds)` {#is_list}
+### `is_list(x)` {#is_list}
 
 ``` {.no-copy}
-Returns true if all present items in ds are lists.
+Returns whether x is a List DataSlice.
+
+`x` is a List DataSlice if it meets one of the following conditions:
+  1) it has a List schema
+  2) it has OBJECT/ANY schema and only has List items
+
+Also see `kd.are_lists` for a pointwise version. But note that
+`kd.all(kd.are_lists(x))` is not always equivalent to `kd.is_list(x)`. For
+example,
+
+  kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.are_lists(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.are_lists(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataItem.
 ```
 
 ### `is_primitive(x)` {#is_primitive}
@@ -2375,7 +2459,7 @@ Returns whether x is a primitive DataSlice.
 
 `x` is a primitive DataSlice if it meets one of the following conditions:
   1) it has a primitive schema
-  2) it has at least one primitive and only has primitives.
+  2) it has OBJECT/ANY/SCHEMA schema and only has primitives
 
 Also see `kd.are_primitives` for a pointwise version. But note that
 `kd.all(kd.are_primitives(x))` is not always equivalent to
@@ -5085,6 +5169,10 @@ the following module is needed:
 
 ```` {.no-copy}
 Returns a DataBag where only the selected items are present in child lists.
+
+  The selection_ds_path must contain at least one list attribute. In general,
+  all lists must use an explicit list schema; this function does not work for
+  lists stored as kd.OBJECT.
 
   Example:
     ```
