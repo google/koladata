@@ -64,7 +64,7 @@ absl::StatusOr<std::pair<std::vector<DataSlice>, DataSlice::JaggedShape>>
 AlignNonScalars(std::vector<DataSlice> slices) {
   ASSIGN_OR_RETURN(auto shape, GetCommonShape(slices));
   for (auto& slice : slices) {
-    if (slice.GetShape().rank() != 0) {
+    if (!slice.is_item()) {
       ASSIGN_OR_RETURN(slice, BroadcastToShape(std::move(slice), shape));
     }
   }

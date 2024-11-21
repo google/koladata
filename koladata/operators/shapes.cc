@@ -154,7 +154,7 @@ absl::StatusOr<int> GetPlaceholderDimension(
       continue;
     }
     const auto& slice = frame.Get(input_slot.UnsafeToSlot<DataSlice>());
-    if (slice.GetShape().rank() == 0) {
+    if (slice.is_item()) {
       ASSIGN_OR_RETURN(int64_t value, ToArollaScalar<int64_t>(slice));
       if (value == -1) {
         if (dim != -1) {

@@ -37,7 +37,7 @@ constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
 absl::StatusOr<DataSlice> AsScalarBool(absl::string_view op_name,
                                        const DataSlice& x,
                                        absl::string_view attr_name) {
-  if (x.GetShape().rank() != 0 || !x.item().holds_value<bool>()) {
+  if (!x.is_item() || !x.item().holds_value<bool>()) {
     return internal::OperatorEvalError(op_name,
         absl::StrFormat("expected %s to be a scalar boolean value, got %s",
                         attr_name, arolla::Repr(x)));

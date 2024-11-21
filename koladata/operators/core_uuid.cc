@@ -241,13 +241,13 @@ absl::StatusOr<arolla::OperatorPtr> UuidForDictOperatorFamily::DoGetOperator(
 
 absl::StatusOr<DataSlice> UuidsWithAllocationSize(const DataSlice& seed,
                                                   const DataSlice& size) {
-  if (seed.GetShape().rank() != 0 || !seed.item().holds_value<arolla::Text>()) {
+  if (!seed.is_item() || !seed.item().holds_value<arolla::Text>()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("requires seed to be DataItem holding a STRING, got %s",
                         arolla::Repr(seed)));
   }
   absl::string_view seed_value = seed.item().value<arolla::Text>();
-  if (size.GetShape().rank() != 0) {
+  if (!size.is_item()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "requires size to be a scalar, got %s", arolla::Repr(size)));
   }

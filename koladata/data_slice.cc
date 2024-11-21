@@ -873,7 +873,7 @@ absl::StatusOr<DataSlice> DataSlice::GetObjSchema() const {
 }
 
 bool DataSlice::IsEntitySchema() const {
-  return GetSchemaImpl() == schema::kSchema && GetShape().rank() == 0 &&
+  return GetSchemaImpl() == schema::kSchema && is_item() &&
          item().is_entity_schema();
 }
 
@@ -910,17 +910,17 @@ bool DataSlice::IsDictSchema() const {
 }
 
 bool DataSlice::IsPrimitiveSchema() const {
-  return (GetSchemaImpl() == schema::kSchema) && (GetShape().rank() == 0) &&
+  return (GetSchemaImpl() == schema::kSchema) && is_item() &&
          item().is_primitive_schema();
 }
 
 bool DataSlice::IsAnySchema() const {
-  return (GetSchemaImpl() == schema::kSchema) && (GetShape().rank() == 0) &&
+  return (GetSchemaImpl() == schema::kSchema) && is_item() &&
          item().is_any_schema();
 }
 
 bool DataSlice::IsItemIdSchema() const {
-  return (GetSchemaImpl() == schema::kSchema) && (GetShape().rank() == 0) &&
+  return (GetSchemaImpl() == schema::kSchema) && is_item() &&
          item().is_itemid_schema();
 }
 

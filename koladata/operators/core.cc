@@ -1045,8 +1045,7 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
                                       const DataSlice& tie_breaker,
                                       const DataSlice& descending) {
   constexpr absl::string_view kOperatorName = "kd.ordinal_rank";
-  if (descending.GetShape().rank() != 0 ||
-      !descending.item().holds_value<bool>()) {
+  if (!descending.is_item() || !descending.item().holds_value<bool>()) {
     return internal::OperatorEvalError(
         kOperatorName,
         absl::StrFormat(
@@ -1066,8 +1065,7 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
 absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,
                                     const DataSlice& descending) {
   constexpr absl::string_view kOperatorName = "kd.dense_rank";
-  if (descending.GetShape().rank() != 0 ||
-      !descending.item().holds_value<bool>()) {
+  if (!descending.is_item() || !descending.item().holds_value<bool>()) {
     return internal::OperatorEvalError(
         kOperatorName,
         absl::StrFormat(
@@ -1235,10 +1233,10 @@ absl::StatusOr<DataSlice> GroupByIndicesSorted(
 }
 
 absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
-  if (x.GetShape().rank() == 0) {
+  if (x.is_item()) {
     return x;
   }
-  if (sort.GetShape().rank() != 0 || !sort.item().holds_value<bool>()) {
+  if (!sort.is_item() || !sort.item().holds_value<bool>()) {
     return absl::FailedPreconditionError("sort must be a boolean scalar");
   }
   bool sort_bool = sort.item().value<bool>();
@@ -1388,7 +1386,7 @@ absl::StatusOr<DataSlice> Freeze<DataSlice>(const DataSlice& x) {
 }
 
 absl::StatusOr<DataSlice> Reverse(const DataSlice& obj) {
-  if (obj.impl_empty_and_unknown() || obj.GetShape().rank() == 0) {
+  if (obj.impl_empty_and_unknown() || obj.is_item()) {
     return obj;
   }
   return DataSlice::Create(

@@ -122,7 +122,7 @@ absl::StatusOr<arolla::DenseArray<T>> ToArollaDenseArray(const DataSlice& x) {
   if (x_casted.IsEmpty()) {
     return arolla::CreateEmptyDenseArray<T>(x.GetShape().size());
   }
-  if (x_casted.GetShape().rank() == 0) {
+  if (x_casted.is_item()) {
     return internal::DataSliceImpl::Create(1, x_casted.item()).values<T>();
   } else {
     return x_casted.slice().values<T>();

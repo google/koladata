@@ -82,7 +82,7 @@ absl::StatusOr<DataSlice> ParameterKindToKoda(Signature::Parameter::Kind kind) {
 absl::StatusOr<Signature::Parameter::Kind> KodaToParameterKind(
     const DataSlice& kind) {
   using enum Signature::Parameter::Kind;
-  if (kind.GetShape().rank() != 0) {
+  if (!kind.is_item()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("kind must be a data item, but has shape: %s",
                         arolla::Repr(kind.GetShape())));
@@ -149,7 +149,7 @@ absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
 
 absl::StatusOr<Signature> KodaSignatureToCppSignature(
     const DataSlice& signature) {
-  if (signature.GetShape().rank() != 0) {
+  if (!signature.is_item()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("signature must be a data item, but has shape: %s",
                         arolla::Repr(signature.GetShape())));
@@ -162,8 +162,7 @@ absl::StatusOr<Signature> KodaSignatureToCppSignature(
     return absl::InvalidArgumentError("parameters are missing");
   }
   ASSIGN_OR_RETURN(auto list_size, ops::ListSize(parameter_list));
-  if (list_size.GetShape().rank() != 0 ||
-      !list_size.item().holds_value<int64_t>()) {
+  if (!list_size.is_item() || !list_size.item().holds_value<int64_t>()) {
     return absl::InternalError("ListSize did not return an int64_t scalar");
   }
   auto list_size_val = list_size.item().value<int64_t>();

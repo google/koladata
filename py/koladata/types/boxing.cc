@@ -241,7 +241,7 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
     // Handling DataItem(s).
     if (typed_value.GetType() == arolla::GetQType<DataSlice>()) {
       const auto& ds = typed_value.UnsafeAs<DataSlice>();
-      if (ds.GetShape().rank() != 0) {
+      if (!ds.is_item()) {
         return absl::InvalidArgumentError(
             "list containing multi-dim DataSlice(s) is not convertible to a "
             "DataSlice");
@@ -575,7 +575,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(PyObject* py_obj,
 
 absl::Nullable<PyObject*> DataSliceToPyValue(const DataSlice& ds) {
   arolla::python::DCheckPyGIL();
-  if (ds.GetShape().rank() == 0) {
+  if (ds.is_item()) {
     DCHECK_EQ(ds.size(), 1);  // Invariant ensured by DataSlice creation.
     return PyObjectFromDataItem(ds.item(), ds.GetSchemaImpl(), ds.GetBag());
   }

@@ -153,7 +153,7 @@ absl::StatusOr<DataSlice> NamedSchema(const DataSlice& name) {
 
 absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
     const DataSlice& name_or_schema) {
-  if (name_or_schema.GetShape().rank() == 0 &&
+  if (name_or_schema.is_item() &&
       name_or_schema.item().holds_value<arolla::Text>()) {
     return NamedSchema(name_or_schema);
   } else {

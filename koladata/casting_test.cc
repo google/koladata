@@ -104,7 +104,7 @@ void AssertLowerBoundDTypesAreTested(
       continue;
     }
     auto dtype = schema.value<schema::DType>();
-    if (test_case.input.GetShape().rank() == 0) {
+    if (test_case.input.is_item()) {
       tested_item_dtypes.insert(dtype);
     } else {
       tested_slice_dtypes.insert(dtype);

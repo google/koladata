@@ -92,7 +92,7 @@ absl::StatusOr<Error> SetMissingObjectAttributeError(
 
   std::string item_str = internal::DataItemRepr(missing_schema_item);
 
-  if (ds->GetShape().rank() == 0) {
+  if (ds->is_item()) {
     cause.set_error_message(absl::StrFormat(
         "object schema is missing for the DataItem whose item is: %s\n\n"
         "  DataItem with the kd.OBJECT schema usually store its schema as an "

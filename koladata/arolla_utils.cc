@@ -228,7 +228,7 @@ absl::StatusOr<DataSlice> DataSliceFromArollaValue(
 }
 
 absl::StatusOr<arolla::TypedValue> DataSliceToDenseArray(const DataSlice& ds) {
-  if (ds.GetShape().rank() == 0) {
+  if (ds.is_item()) {
     internal::SliceBuilder bldr(1);
     bldr.InsertIfNotSetAndUpdateAllocIds(0, ds.item());
     ASSIGN_OR_RETURN(

@@ -204,7 +204,7 @@ absl::Nullable<PyObject*> PyDataSlice_to_proto(PyObject* self,
       .With(arolla::python::SetPyErrFromStatus);
 
   // If the input was a DataItem, return a single message.
-  if (slice.GetShape().rank() == 0) {
+  if (slice.is_item()) {
     auto py_message = WrapProtoMessage(std::move(messages[0]), py_message_class,
                                        using_fast_cpp_proto);
     if (py_message == nullptr) {

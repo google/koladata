@@ -44,7 +44,7 @@ namespace koladata::functor {
 absl::StatusOr<DataSlice> CreateFunctor(
     const DataSlice& returns, const std::optional<DataSlice>& signature,
     absl::Span<const std::pair<std::string, DataSlice>> variables) {
-  if (returns.GetShape().rank() != 0) {
+  if (!returns.is_item()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("returns must be a data item, but has shape: %s",
                         arolla::Repr(returns.GetShape())));
@@ -57,7 +57,7 @@ absl::StatusOr<DataSlice> CreateFunctor(
   variable_names.push_back(kReturnsAttrName);
   variable_values.push_back(returns);
   for (const auto& [name, value] : variables) {
-    if (value.GetShape().rank() != 0) {
+    if (!value.is_item()) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "variable [%s] must be a data item, but has shape: %s", name,
           arolla::Repr(value.GetShape())));
@@ -93,7 +93,7 @@ absl::StatusOr<DataSlice> CreateFunctor(
 }
 
 absl::StatusOr<bool> IsFunctor(const DataSlice& slice) {
-  if (slice.GetShape().rank() != 0) {
+  if (!slice.is_item()) {
     return false;
   }
   if (slice.GetBag() == nullptr) {

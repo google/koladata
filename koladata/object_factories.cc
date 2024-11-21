@@ -260,7 +260,7 @@ absl::StatusOr<DataSlice> VerifyAndFilterItemId(
   if (itemid.dtype() != arolla::GetQType<internal::ObjectId>()) {
     return absl::InternalError("`itemid` must have ItemIds");
   }
-  if (itemid.GetShape().rank() == 0) {
+  if (itemid.is_item()) {
     return required_count == 0
                ? DataSlice::Create(internal::DataItem(), itemid.GetSchemaImpl())
                : itemid;
@@ -910,7 +910,7 @@ absl::StatusOr<DataSlice> CreateUuSchema(
 
 absl::StatusOr<DataSlice> CreateNamedSchema(const DataBagPtr& db,
                                             const DataSlice& name) {
-  if (name.GetShape().rank() != 0 || !name.item().holds_value<arolla::Text>()) {
+  if (!name.is_item() || !name.item().holds_value<arolla::Text>()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("requires name to be DataItem holding Text, got %s",
                         arolla::Repr(name)));
