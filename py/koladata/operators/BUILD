@@ -28,7 +28,7 @@ default_visibility = [
 
 # TODO(b/379873449); remove once we have a public API to define user operators.
 user_ops_visibility = [
-    "//quality/arolla/projects/rankchain/experimental/llm:__subpackages__",
+    "//quality/arolla/projects/rankchain/experimental/koda_v1/llm:__subpackages__",
 ]
 
 package(default_visibility = default_visibility)
@@ -119,7 +119,6 @@ py_test(
 py_library(
     name = "qtype_utils",
     srcs = ["qtype_utils.py"],
-    visibility = default_visibility + user_ops_visibility,
     deps = [
         "//koladata/operators",
         "//py/koladata/types:qtypes",
