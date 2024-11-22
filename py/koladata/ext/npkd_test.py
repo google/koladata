@@ -85,14 +85,14 @@ class NpkdTest(parameterized.TestCase):
 
     with self.subTest('int ds any schema'):
       x = kd.slice([1, 2, 3]).as_any()
-      expected_x = kd.slice([1, 2, 3], schema=schema_constants.INT64)
+      expected_x = kd.slice([1, 2, 3])
       res_np = npkd.ds_to_np(x)
       res_ds = npkd.ds_from_np(res_np)
       testing.assert_equal(res_ds, expected_x)
 
     with self.subTest('int ds object schema'):
       x = kd.slice([1, 2, 3]).with_schema(kd.OBJECT)
-      expected_x = kd.slice([1, 2, 3], schema=schema_constants.INT64)
+      expected_x = kd.slice([1, 2, 3])
       res_np = npkd.ds_to_np(x)
       res_ds = npkd.ds_from_np(res_np)
       testing.assert_equal(res_ds, expected_x)

@@ -27,7 +27,7 @@ _DATA_SLICE_ONE = data_slice.DataSlice.from_vals(1)
 
 def ds_to_np(ds: data_slice.DataSlice) -> np.ndarray:
   """Converts a DataSlice to a numpy array."""
-  if ds.get_schema().is_primitive_schema():
+  if not ds.get_dtype().is_empty():
     return numpy_conversion.as_numpy_array(ds.internal_as_dense_array())
 
   return np.array(ds.internal_as_py())
