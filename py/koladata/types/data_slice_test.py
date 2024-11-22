@@ -3137,8 +3137,24 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     self.assertFalse(x.is_mutable())
 
   def test_internal_html_str(self):
-    d = ds([1, 2, 3])
-    self.assertIn('<span', d._internal_html_str())   # pylint: disable=protected-access
+    d = fns.obj(a=fns.obj(b=fns.obj(c=fns.obj(d=1))))
+    html_str = d._internal_html_str(1)  # pylint: disable=protected-access
+    self.assertIn('schema-attr="a"', html_str)
+    self.assertNotIn('schema-attr="b"', html_str)
+
+    html_str = d._internal_html_str(2)  # pylint: disable=protected-access
+    self.assertIn('schema-attr="a"', html_str)
+    self.assertIn('schema-attr="b"', html_str)
+    self.assertNotIn('schema-attr="c"', html_str)
+
+  def test_internal_str_with_depth(self):
+    d = fns.obj(a=fns.obj(b=fns.obj(c=fns.obj(d=1))))
+    self.assertRegex(
+        d._internal_str_with_depth(1), r'Obj\(a=\$[0-9a-zA-Z]{22}\)'  # pylint: disable=protected-access
+    )
+    self.assertRegex(
+        d._internal_str_with_depth(2), r'Obj\(a=Obj\(b=\$[0-9a-zA-Z]{22}\)\)'  # pylint: disable=protected-access
+    )
 
 
 if __name__ == '__main__':

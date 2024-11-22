@@ -578,9 +578,38 @@ PyObject* PyDataSlice_str(PyObject* self) {
   return PyDataSlice_str_with_options(self, ReprOption{.strip_quotes = true});
 }
 
-PyObject* PyDataSlice_html_str(PyObject* self) {
+PyObject* PyDataSlice_html_str(PyObject* self, PyObject* const* args,
+                               Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  if (nargs != 1) {
+    PyErr_Format(
+        PyExc_ValueError,
+        "DataBag._internal_html_str accepts exactly 1 argument, got %d", nargs);
+    return nullptr;
+  }
+
+  PyObject* const py_depth = args[0];
+  Py_ssize_t depth = PyLong_AsSsize_t(py_depth);
   return PyDataSlice_str_with_options(
-      self, ReprOption{.strip_quotes = true, .format_html = true});
+      self,
+      ReprOption{.depth = depth, .strip_quotes = true, .format_html = true});
+}
+
+PyObject* PyDataSlice_str_with_depth(PyObject* self, PyObject* const* args,
+                                     Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  if (nargs != 1) {
+    PyErr_Format(
+        PyExc_ValueError,
+        "DataBag._internal_str_with_depth accepts exactly 1 argument, got %d",
+        nargs);
+    return nullptr;
+  }
+
+  PyObject* const py_depth = args[0];
+  Py_ssize_t depth = PyLong_AsSsize_t(py_depth);
+  return PyDataSlice_str_with_options(
+      self, ReprOption{.depth = depth, .strip_quotes = true});
 }
 
 absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {
@@ -1059,10 +1088,15 @@ Args:
      "\n"
      "Args:\n"
      "  method_name: (str)\n"},
-    {"_internal_html_str", (PyCFunction)PyDataSlice_html_str, METH_NOARGS,
-     "_internal_html_str()\n"
+    {"_internal_html_str", (PyCFunction)PyDataSlice_html_str, METH_FASTCALL,
+     "_internal_html_str(depth)\n"
      "--\n\n"
      "Used to generate HTML for interactive repr in Colab."},
+    {"_internal_str_with_depth", (PyCFunction)PyDataSlice_str_with_depth,
+     METH_FASTCALL,
+     "_internal_str_with_depth(depth)\n"
+     "--\n\n"
+     "Used to generate str representation for interactive repr in Colab."},
     {nullptr}, /* sentinel */
 };
 
