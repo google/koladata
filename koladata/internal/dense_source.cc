@@ -130,7 +130,13 @@ class SimpleValueArray {
                Buffer<Word>(nullptr, absl::Span<Word>(
                                          mutable_presence_,
                                          arolla::bitmap::BitmapSize(size)))}) {
-    ABSL_ANNOTATE_MEMORY_IS_INITIALIZED(mutable_values_, size * sizeof(T));
+    // For some types (e.g. bool) not all values are valid. In such
+    // cases we have to initialize the memory to avoid undefined behavior.
+    if constexpr (std::is_enum_v<T> || std::is_same_v<T, bool>) {
+      std::memset(mutable_values_, 0, size * sizeof(T));
+    } else {
+      ABSL_ANNOTATE_MEMORY_IS_INITIALIZED(mutable_values_, size * sizeof(T));
+    }
   }
 
   SimpleValueArray(const SimpleValueArray&) = delete;

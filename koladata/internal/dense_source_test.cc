@@ -831,5 +831,20 @@ TEST(DenseSourceTest, GetMultitype) {
   }
 }
 
+// Test that boolean values are initialized and we do not have undefined
+// behavior in ForEachPresent.
+TEST(DenseSourceTest, MergeSelfBoolInitialized) {
+  AllocationId alloc = Allocate(3);
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, DenseSource::CreateMutable(alloc, 3, arolla::GetQType<bool>()));
+  ASSERT_OK(ds->Set(alloc.ObjectByOffset(1), DataItem(true)));
+  ASSERT_OK(
+      ds->Merge(*ds, DenseSource::ConflictHandlingOption::kRaiseOnConflict));
+
+  EXPECT_EQ(ds->Get(alloc.ObjectByOffset(0)), DataItem());
+  EXPECT_EQ(ds->Get(alloc.ObjectByOffset(1)), DataItem(true));
+  EXPECT_EQ(ds->Get(alloc.ObjectByOffset(2)), DataItem());
+}
+
 }  // namespace
 }  // namespace koladata::internal
