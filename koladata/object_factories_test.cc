@@ -586,7 +586,7 @@ TEST(EntityCreatorTest, EntityToEntity) {
   EXPECT_EQ(entity.GetSchemaImpl(), entity_val.GetSchemaImpl());
 }
 
-TEST(UuCreatorTest, DataSlice) {
+TEST(CreateUuTest, DataSlice) {
   constexpr int64_t kSize = 3;
   auto db = DataBag::Empty();
 
@@ -666,6 +666,28 @@ TEST(CreateUuTest, DataItem) {
   EXPECT_THAT(ds.item(), Not(IsEquivalentTo(ds_3.item())));
 }
 
+TEST(CreateUuTest, NoArgs) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto ds, CreateUu(db, "", {}, {}));
+  EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsSchema());
+  EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsExplicitSchema());
+  EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsUuid());
+  EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
+
+  ASSERT_OK_AND_ASSIGN(auto ds_2, CreateUu(db, "", {}, {}));
+  EXPECT_THAT(ds.item(), IsEquivalentTo(ds_2.item()));
+  EXPECT_THAT(ds.GetSchemaImpl(), IsEquivalentTo(ds_2.GetSchemaImpl()));
+
+  ASSERT_OK_AND_ASSIGN(auto ds_3, CreateUu(db, "other_seed", {}, {}));
+  EXPECT_THAT(ds.item(), Not(IsEquivalentTo(ds_3.item())));
+  EXPECT_THAT(ds.GetSchemaImpl(), Not(IsEquivalentTo(ds_3.GetSchemaImpl())));
+
+  ASSERT_OK_AND_ASSIGN(auto ds_4,
+                       CreateUu(db, "", {"a"}, {test::DataItem(42)}));
+  EXPECT_THAT(ds.item(), Not(IsEquivalentTo(ds_4.item())));
+  EXPECT_THAT(ds.GetSchemaImpl(), Not(IsEquivalentTo(ds_4.GetSchemaImpl())));
+}
+
 TEST(CreateUuTest, SchemaArg) {
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);
@@ -684,7 +706,7 @@ TEST(CreateUuTest, SchemaArg) {
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(db))));
 }
 
-TEST(UuCreatorTest, SchemaArg_InvalidSchema) {
+TEST(CreateUuTest, SchemaArg_InvalidSchema) {
   auto db = DataBag::Empty();
   EXPECT_THAT(
       CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},

@@ -771,9 +771,10 @@ absl::StatusOr<DataSlice> CreateUu(
   }
   // schema_item is finalized at this point.
   if (values.empty()) {
-    return DataSlice::Create(
-        internal::DataItem(internal::AllocateSingleObject()),
-        std::move(schema_item), db);
+    auto uuid = internal::CreateUuidFromFields(
+        seed, {},
+        std::vector<std::reference_wrapper<const internal::DataItem>>{});
+    return DataSlice::Create(uuid, std::move(schema_item), db);
   }
   ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
   // All DataSlices have the same shape at this point and thus the same internal
