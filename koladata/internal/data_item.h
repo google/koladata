@@ -409,6 +409,14 @@ struct DataItemReprOption {
   // If true, missing values will be shown as "missing". Otherwise, they will
   // be shown as "None".
   bool show_missing = false;
+  // If true, object ids are encoded in encoded in hex instead of base62
+  // with a UUID indicator prefix.
+  bool hex_object_ids = false;
+  // Maximum length of repr string content to show for text and bytes. This
+  // length does not include additional fixed strings such as quotes around
+  // the value. If -1, the entire repr will be shown. Strings longer than
+  // this will be truncated to this length and an ellipsis is appended.
+  int32_t unbounded_type_max_len = -1;
 };
 
 // Returns the string representation for the DataItem. It supports different

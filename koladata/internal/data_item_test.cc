@@ -580,6 +580,15 @@ TEST(DataItemTest, TestRepr) {
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Unit())), "present");
   EXPECT_EQ(DataItemRepr(DataItem()), "None");
   EXPECT_EQ(DataItemRepr(DataItem(), {.show_missing = true}), "missing");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("aaaaaaaaaa")),
+                                  {.unbounded_type_max_len = 3}), "'aaa...'");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("aaaaaaaaaa")),
+                         {.strip_quotes = true,
+                          .unbounded_type_max_len = 3}), "aaa...");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("aaaaaaaaaa")),
+                         {.unbounded_type_max_len = 3}), "b'aaa...'");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("aaaaaaaaaa")),
+                         {.unbounded_type_max_len = -1}), "b'aaaaaaaaaa'");
 }
 
 }  // namespace

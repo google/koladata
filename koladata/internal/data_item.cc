@@ -117,25 +117,38 @@ void DataItem::ArollaFingerprint(arolla::FingerprintHasher* hasher) const {
       data_);
 }
 
-std::string DataItem::DebugString() const {
-  return std::visit(
-      [](const auto& val) -> std::string {
-        using T = std::decay_t<decltype(val)>;
+namespace {
+  std::string Truncate(absl::string_view str, int32_t max_len) {
+    if (max_len < 0 || str.length() <= max_len) {
+      return std::string(str);
+    }
+    return absl::StrCat(str.substr(0, max_len), "...");
+  }
+}  // namespace
+
+std::string DataItemRepr(const DataItem& item,
+                         const DataItemReprOption& option) {
+  return item.VisitValue(
+      [&option]<class T>(const T& val) -> std::string {
         if constexpr (std::is_same_v<T, MissingValue>) {
-          return "None";
+          return option.show_missing ? "missing" : "None";
         } else if constexpr (std::is_same_v<T, arolla::Unit>) {
           return "present";
         } else if constexpr (std::is_same_v<T, arolla::Text>) {
-          return absl::StrCat("'", absl::string_view(val), "'");
+          std::string truncated = Truncate(absl::string_view(val),
+                                           option.unbounded_type_max_len);
+          return option.strip_quotes
+              ? truncated :absl::StrCat("'", truncated, "'");
         } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
-          return absl::StrCat("b'", absl::CHexEscape(absl::string_view(val)),
-                              "'");
+          std::string truncated = Truncate(
+              absl::string_view(val), option.unbounded_type_max_len);
+          return absl::StrCat("b'", absl::CHexEscape(truncated), "'");
         } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
           return ExprQuoteDebugString(val);
         } else if constexpr (std::is_same_v<T, bool>) {
           return val ? "True" : "False";
-        } else if constexpr (std::is_same_v<T, float> ||
-                             std::is_same_v<T, double>) {
+        } else if constexpr (std::is_same_v<T, float>
+                             || std::is_same_v<T, double>) {
           static const double_conversion::DoubleToStringConverter converter(
               double_conversion::DoubleToStringConverter::
                       EMIT_TRAILING_ZERO_AFTER_POINT |
@@ -145,34 +158,27 @@ std::string DataItem::DebugString() const {
           char buf[128];
           double_conversion::StringBuilder builder(buf, sizeof(buf));
           converter.ToShortestSingle(val, &builder);
-          return std::string(builder.Finalize());
+          std::string result = std::string(builder.Finalize());
+          if constexpr (std::is_same_v<T, double>) {
+            if (option.show_dtype) {
+              return absl::StrCat("float64{", result, "}");
+            }
+          }
+          return result;
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+          return option.show_dtype
+              ? absl::StrCat("int64{", val, "}") : absl::StrCat(val);
+        } else if constexpr (std::is_same_v<T, ObjectId>) {
+          return option.hex_object_ids
+              ? absl::StrCat(val) : ObjectIdStr(val);
         } else {
           return absl::StrCat(val);
         }
-      },
-      data_);
+      });
 }
 
-std::string DataItemRepr(const DataItem& item,
-                         const DataItemReprOption& option) {
-  if (item.holds_value<ObjectId>()) {
-    return ObjectIdStr(item.value<ObjectId>());
-  }
-  if (item.holds_value<arolla::Text>() && option.strip_quotes) {
-    return std::string(item.value<arolla::Text>());
-  }
-  if (option.show_dtype) {
-    if (item.holds_value<double>()) {
-      return absl::StrCat("float64{", item, "}");
-    }
-    if (item.holds_value<int64_t>()) {
-      return absl::StrCat("int64{", item, "}");
-    }
-  }
-  if (option.show_missing && !item.has_value()) {
-    return "missing";
-  }
-  return absl::StrCat(item);
+std::string DataItem::DebugString() const {
+  return DataItemRepr(*this, {.hex_object_ids = true});
 }
 
 }  // namespace koladata::internal

@@ -37,6 +37,8 @@ struct ReprOption {
   // When true, attributes and object ids are wrapped in HTML tags to make it
   // possible to style with CSS and interpret interactions with JS.
   bool format_html = false;
+  // Maximum length of repr string to show for text and bytes if non negative.
+  int32_t unbounded_type_max_len = -1;
   // TODO: Add option to control DataSlice truncation.
 };
 

@@ -1113,6 +1113,25 @@ TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_NoFollow) {
   EXPECT_THAT(result, HasSubstr("object-id clickable"));
 }
 
+TEST(DataSliceReprTest, UnboundedTypeMaxLength) {
+  // We only need to test two cases here because other call sites of
+  // DataItemRepr do not need this param. In those other call sites, we know
+  // the DataItem does not contain an unbounded type.
+  DataBagPtr bag = DataBag::Empty();
+  ObjectId dict_id = internal::AllocateSingleDict();
+
+  std::string large_str(50, 'a');
+  DataSlice dict = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice key = test::DataSlice<arolla::Text>({large_str.c_str()});
+  DataSlice value = test::DataSlice<arolla::Text>({large_str.c_str()});
+  ASSERT_OK(dict.SetInDict(key, value));
+
+  EXPECT_THAT(DataSliceToStr(key, {.unbounded_type_max_len = 3}),
+              IsOkAndHolds("['aaa...']"));
+  EXPECT_THAT(DataSliceToStr(dict, {.unbounded_type_max_len = 3}),
+              IsOkAndHolds("Dict{'aaa...'='aaa...'}"));
+}
+
 TEST(DataSliceReprTest, DataSliceRepr) {
   // NOTE: More extensive repr tests are done in Python.
   auto db = DataBag::Empty();

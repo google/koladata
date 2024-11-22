@@ -276,7 +276,9 @@ std::string DataSliceItemRepr(
     bool is_mask_schema = schema == schema::kMask;
     return wrapping.MaybeEscape(DataItemRepr(
         item,
-        {.show_dtype = is_obj_or_any_schema, .show_missing = is_mask_schema}));
+        {.show_dtype = is_obj_or_any_schema,
+         .show_missing = is_mask_schema,
+         .unbounded_type_max_len = option.unbounded_type_max_len}));
   }
 }
 
@@ -590,9 +592,11 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
       schema == schema::kObject || schema == schema::kAny;
   bool is_mask_schema = schema == schema::kMask;
   return wrapping.MaybeEscape(
-      DataItemRepr(data_item, {.strip_quotes = option.strip_quotes,
-                               .show_dtype = is_obj_or_any_schema,
-                               .show_missing = is_mask_schema}));
+      DataItemRepr(data_item, {
+        .strip_quotes = option.strip_quotes,
+        .show_dtype = is_obj_or_any_schema,
+        .show_missing = is_mask_schema,
+        .unbounded_type_max_len = option.unbounded_type_max_len}));
 }
 
 }  // namespace
