@@ -114,7 +114,6 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(message, expected_message)
 
   def test_oneof(self):
-    # TODO: This should also work if we use OBJECT everywhere.
     s = fns.new_schema(
         oneof_int32_field=schema_constants.INT32,
         oneof_bytes_field=schema_constants.BYTES,
@@ -136,12 +135,21 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(messages, expected_messages)
 
   def test_oneof_conflict(self):
-    # TODO: Throw an error here instead. Current behavior is that
-    # the lexicographically last field by name wins ("int32" > "bytes").
     x = fns.new(oneof_bytes_field=b'2', oneof_int32_field=2)
-    message = fns.to_proto(x, test_pb2.MessageC)
-    expected_messages = test_pb2.MessageC(oneof_int32_field=2)
-    self.assertEqual(message, expected_messages)
+    with self.assertRaisesRegex(
+        ValueError,
+        'multiple fields set in proto oneof a_oneof, already had'
+        ' oneof_bytes_field but attempted to set oneof_int32_field',
+    ):
+      _ = fns.to_proto(x, test_pb2.MessageC)
+
+    x = fns.new(oneof_bytes_field=b'1', oneof_message_field=fns.new())
+    with self.assertRaisesRegex(
+        ValueError,
+        'multiple fields set in proto oneof a_oneof, already had'
+        ' oneof_bytes_field but attempted to set oneof_message_field',
+    ):
+      _ = fns.to_proto(x, test_pb2.MessageC)
 
   def test_oneof_object(self):
     x = ds([

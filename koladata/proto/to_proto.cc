@@ -47,17 +47,19 @@
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
-using ::google::protobuf::Message;
 using ::google::protobuf::Descriptor;
 using ::google::protobuf::FieldDescriptor;
+using ::google::protobuf::Message;
+using ::google::protobuf::Reflection;
 
 namespace koladata {
 namespace {
 
-// Note: no explicit error handling, field must always have the matching type.
+// Note: no explicit error handling of type errors, field must always have the
+// matching type.
 template <typename T>
-void SetField(T value, const FieldDescriptor& field, Message& message) {
-  const auto& refl = *message.GetReflection();
+void SetField(T value, const FieldDescriptor& field, Message& message,
+              const Reflection& refl) {
   if constexpr (std::is_same_v<T, int32_t>) {
     if (field.enum_type() != nullptr) {
       refl.SetEnumValue(&message, &field, value);
@@ -208,6 +210,21 @@ absl::StatusOr<DstT> Convert(const FieldDescriptor& field,
       field.name(), field.type_name(), value_repr, dtype->name()));
 }
 
+// Returns an error if the oneof containing `field` (if it is in a oneof) is
+// already set on `message`.
+absl::Status EnsureOneofUnset(const FieldDescriptor& field, Message& message,
+                              const Reflection& refl) {
+  const auto* oneof = field.containing_oneof();
+  if (oneof != nullptr && refl.HasOneof(message, oneof)) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "multiple fields set in proto oneof %s, already had %s but attempted "
+        "to set %s",
+        oneof->name(), refl.GetOneofFieldDescriptor(message, oneof)->name(),
+        field.name()));
+  }
+  return absl::OkStatus();
+}
+
 // Forward declarations for recursion.
 absl::Status FillProtoMessageBreakRecursion(
     DataSlice slice, const Descriptor& message_descriptor,
@@ -320,14 +337,28 @@ absl::Status FillProtoMessageField(
                    ops::Select(attr_slice, mask, false));
 
   std::vector<absl::Nonnull<Message*>> dense_child_messages;
-  mask.slice().VisitValues([&](const auto& values) {
+  RETURN_IF_ERROR(mask.slice().VisitValues([&](const auto& values)
+                                               -> absl::Status {
+    absl::Status status = absl::OkStatus();
     values.ForEachPresent([&](int64_t id, auto value) {
+      if (!status.ok()) {
+        return;
+      }
+
       auto& parent_message = *parent_messages[id];
       const auto& refl = *parent_message.GetReflection();
+      auto oneof_status =
+          EnsureOneofUnset(field_descriptor, parent_message, refl);
+      if (!oneof_status.ok()) {
+        status = std::move(oneof_status);
+        return;
+      }
+
       dense_child_messages.push_back(
           refl.MutableMessage(&parent_message, &field_descriptor));
     });
-  });
+    return status;
+  }));
 
   return FillProtoMessageBreakRecursion(
       std::move(dense_attr_slice), *field_descriptor.message_type(),
@@ -346,17 +377,28 @@ absl::Status FillProtoPrimitiveField(
               absl::Status status = absl::OkStatus();
               values.ForEachPresent(
                   [&](int64_t id, arolla::view_type_t<SrcT> value) {
-                    if (status.ok()) {
-                      auto field_value_or = Convert<DstT, SrcT>(
-                          field_descriptor, attr_slice.dtype(),
-                          std::move(value));
-                      if (field_value_or.ok()) {
-                        SetField(*std::move(field_value_or),
-                                 field_descriptor, *parent_messages[id]);
-                      } else {
-                        status = std::move(field_value_or).status();
-                      }
+                    if (!status.ok()) {
+                      return;
                     }
+
+                    auto field_value_or = Convert<DstT, SrcT>(
+                        field_descriptor, attr_slice.dtype(), std::move(value));
+                    if (!field_value_or.ok()) {
+                      status = std::move(field_value_or).status();
+                      return;
+                    }
+
+                    auto& message = *parent_messages[id];
+                    auto& refl = *message.GetReflection();
+                    auto oneof_status =
+                        EnsureOneofUnset(field_descriptor, message, refl);
+                    if (!oneof_status.ok()) {
+                      status = std::move(oneof_status);
+                      return;
+                    }
+
+                    SetField(*std::move(field_value_or), field_descriptor,
+                             message, refl);
                   });
               return status;
             });
