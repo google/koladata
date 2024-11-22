@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-21'
+  reviewed: '2024-11-22'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -4301,7 +4301,8 @@ Converts a DataSlice or DataItem to one or more proto messages.
 
   If `x` is a DataItem, this returns a single proto message object. Otherwise,
   `x` must be a 1-D DataSlice, and this returns a list of proto message objects
-  with the same size as the input.
+  with the same size as the input. Missing items in the input are returned as
+  python None in place of a message.
 
   Koda data structures are converted to equivalent proto messages, primitive
   fields, repeated fields, maps, and enums, based on the proto schema. Koda
