@@ -496,6 +496,7 @@ cc_library(
         "//koladata:object_factories",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/operators:lib",
         "//koladata/proto:from_proto",

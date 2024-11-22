@@ -31,11 +31,9 @@ class FromProtoTest(absltest.TestCase):
     x = fns.from_proto([])
     testing.assert_equal(x.no_bag(), ds([]))
 
-  def test_invalid_input_none(self):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'messages must be Message or list of Message, got None'
-    ):
-      fns.from_proto(None)  # pytype: disable=wrong-arg-types
+  def test_single_none(self):
+    x = fns.from_proto(None)
+    testing.assert_equal(x.no_bag(), ds(None, schema_constants.OBJECT))
 
   def test_invalid_input_primitive(self):
     with self.assertRaisesWithLiteralMatch(
@@ -43,11 +41,9 @@ class FromProtoTest(absltest.TestCase):
     ):
       fns.from_proto(1)  # pytype: disable=wrong-arg-types
 
-  def test_invalid_input_list_none(self):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'messages must be Message or list of Message, got [None]'
-    ):
-      fns.from_proto([None])  # pytype: disable=wrong-arg-types
+  def test_list_with_none(self):
+    x = fns.from_proto([None])
+    testing.assert_equal(x.no_bag(), ds([None], schema_constants.OBJECT))
 
   def test_invalid_input_list_primitive(self):
     with self.assertRaisesWithLiteralMatch(

@@ -23,7 +23,7 @@ from koladata.types import data_slice
 
 
 def from_proto(
-    messages: message.Message | list[message.Message],
+    messages: message.Message | None | list[message.Message | None],
     /,
     *,
     extensions: list[str] | None = None,
@@ -74,7 +74,8 @@ def from_proto(
   list of proto Messages, the result is an 1D DataSlice.
 
   Args:
-    messages: Message or list of Message of the same type.
+    messages: Message or list of Message of the same type. Any of the messages
+      may be None, which will produce missing items in the result.
     extensions: List of proto extension paths.
     itemid: The ItemId(s) to use for the root object(s). If not specified, will
       allocate new id(s). If specified, will also infer the ItemIds for all
@@ -93,12 +94,12 @@ def from_proto(
   """
   if isinstance(messages, (list, tuple)):
     messages = list(messages)
-    if not all(isinstance(m, message.Message) for m in messages):
+    if not all(m is None or isinstance(m, message.Message) for m in messages):
       raise ValueError(
           f'messages must be Message or list of Message, got {messages}'
       )
     result_is_item = False
-  elif isinstance(messages, message.Message):
+  elif messages is None or isinstance(messages, message.Message):
     messages = [messages]
     result_is_item = True
   else:

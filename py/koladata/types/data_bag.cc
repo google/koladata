@@ -40,8 +40,11 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/core.h"
 #include "koladata/operators/schema.h"
 #include "koladata/proto/from_proto.h"
 #include "koladata/repr_utils.h"
@@ -1341,23 +1344,34 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
                  Py_TYPE(py_messages_list)->tp_name);
     return nullptr;
   }
-  const Py_ssize_t messages_len = PyList_Size(py_messages_list);
+  const Py_ssize_t messages_list_len = PyList_Size(py_messages_list);
 
+  internal::SliceBuilder message_mask_builder(messages_list_len);
+  auto typed_message_mask_builder = message_mask_builder.typed<arolla::Unit>();
   std::vector<std::any> message_owners;
-  message_owners.reserve(messages_len);
+  message_owners.reserve(messages_list_len);
   std::vector<absl::Nonnull<const ::google::protobuf::Message*>> message_ptrs;
-  message_ptrs.reserve(messages_len);
-  for (Py_ssize_t i = 0; i < messages_len; ++i) {
+  message_ptrs.reserve(messages_list_len);
+  for (Py_ssize_t i = 0; i < messages_list_len; ++i) {
     PyObject* py_message = PyList_GetItem(py_messages_list, i);  // Borrowed.
     if (!py_message) {
       return nullptr;
     }
-    ASSIGN_OR_RETURN((auto [message_ptr, message_owner]),
-                     UnwrapPyProtoMessage(py_message),
-                     arolla::python::SetPyErrFromStatus(_));
-    message_owners.push_back(std::move(message_owner));
-    message_ptrs.push_back(message_ptr);
+    if (py_message != Py_None) {
+      typed_message_mask_builder.InsertIfNotSet(i, arolla::kUnit);
+      ASSIGN_OR_RETURN((auto [message_ptr, message_owner]),
+                      UnwrapPyProtoMessage(py_message),
+                      arolla::python::SetPyErrFromStatus(_));
+      message_owners.push_back(std::move(message_owner));
+      message_ptrs.push_back(message_ptr);
+    }
   }
+  ASSIGN_OR_RETURN(
+      auto message_mask,
+      DataSlice::Create(std::move(message_mask_builder).Build(),
+                        DataSlice::JaggedShape::FlatFromSize(messages_list_len),
+                        internal::DataItem(schema::kMask)),
+      arolla::python::SetPyErrFromStatus(_));
 
   if (!PyList_CheckExact(py_extensions_list)) {
     PyErr_Format(PyExc_ValueError,
@@ -1391,8 +1405,11 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
     return nullptr;
   }
 
-  ASSIGN_OR_RETURN(DataSlice result,
+  ASSIGN_OR_RETURN(DataSlice dense_result,
                    FromProto(db, message_ptrs, extensions, itemid, schema),
+                   arolla::python::SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(DataSlice result,
+                   ops::InverseSelect(dense_result, message_mask),
                    arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
 }
