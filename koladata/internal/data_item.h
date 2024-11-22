@@ -411,6 +411,7 @@ struct DataItemReprOption {
   bool show_missing = false;
   // If true, object ids are encoded in encoded in hex instead of base62
   // with a UUID indicator prefix.
+  // TODO: Remove this option and standardize on base62 encoding.
   bool hex_object_ids = false;
   // Maximum length of repr string content to show for text and bytes. This
   // length does not include additional fixed strings such as quotes around

@@ -55,7 +55,7 @@ using ::koladata::internal::ObjectId;
 constexpr absl::string_view kEllipsis = "...";
 constexpr absl::string_view kAttrTemplate = "%s=%s";
 constexpr absl::string_view kAttrHtmlTemplate =
-    "<span class=\"attr %s\">%s</span>=%s";
+    "<span class=\"attr\">%s</span>=%s";
 
 struct FormatOptions {
   absl::string_view prefix = "";
@@ -78,8 +78,7 @@ std::string EscapeHtml(std::string value) {
 // Wraps a DataItem repr string with HTML tags if requested. Although this class
 // purely handles HTML, it is named `WrapBehavior` because we may be able to
 // generalize to other representations in the future if necessary. Note that
-// this can not be merged with ReprOption because some contexts need to set
-// object_ids_clickable differently.
+// this can not be merged with ReprOption because it needs to track state.
 //
 // It is passed by mutable reference everywhere because it must track the number
 // of HTML characters added. This allows us to know the number of content
@@ -92,29 +91,21 @@ std::string EscapeHtml(std::string value) {
 // list would be `[1].abc`.
 //
 // There are several types of tags:
-// 1) Object ids are wrapped in <span class="object-id"> tags. These will
-//    have a "clickable" class if object_ids_clickable is true. Object ids
-//    should only be clickable in contexts where it is possible to construct
-//    the exact access path.
+// 1) Object ids are wrapped in <span class="object-id"> tags.
 // 2) Access path wrappers wrap sections of the repr string with HTML tags
 //    that include metadata on how to access the corresponding data in the
 //    DataSlice. For example, <span list-index="1"> indicates that everything
 //    in that span belongs to the 2nd item in the list.
-// 3) Attribute names are wrapped in <span class="attr"> and have a
-//    "clickable" class if the corresponding value is a list. This enables
-//    an interaction to explode the list in the interactive repr.
+// 3) Attribute names are wrapped in <span class="attr">.
 struct WrappingBehavior {
   bool format_html = false;
-  // True in contexts where object ids are clickable.
-  bool object_ids_clickable = false;
   // Number of HTML characters added by wrapping with HTML.
   size_t html_char_count = 0;
 
   std::string MaybeWrapObjectId(const DataItem& item, std::string item_repr) {
     if (format_html && item.holds_value<ObjectId>()) {
       std::string result = absl::StrFormat(
-          "<span class=\"object-id %s\">%s</span>",
-          object_ids_clickable ? "clickable" : "", item_repr);
+          "<span class=\"object-id\">%s</span>", item_repr);
       UpdateHtmlCharCount(result, item_repr);
       return result;
     }
@@ -132,11 +123,20 @@ struct WrappingBehavior {
       std::string repr, absl::string_view attr_name) {
     return MaybeAnnotateAccess("schema-attr", attr_name, std::move(repr));
   }
-  // The key_name argument should not be escaped.
-  std::string MaybeAnnotateDictKey(
-      std::string repr, absl::string_view key_name) {
-    return MaybeAnnotateAccess("dict-key", key_name, std::move(repr));
+  // This is an access path that attempts to access the key of a dict using
+  // the index of the key in the dict's keys DataSlice.
+  std::string MaybeAnnotateDictKeyIndex(
+      std::string repr, size_t key_index) {
+    return MaybeAnnotateAccess("dict-key-index", key_index, std::move(repr));
   }
+  // This is an access path that attempts to access the value of a dict using
+  // the index of the value in the dict's values DataSlice.
+  std::string MaybeAnnotateDictValueIndex(
+      std::string repr, size_t key_index) {
+    return MaybeAnnotateAccess("dict-value-index",
+                               key_index, std::move(repr));
+  }
+
   // A schema access path is a single attribute name with an empty value. These
   // indicate an access path into a SCHEMA DataItem.
   std::string MaybeAnnotateSchemaAccess(
@@ -152,14 +152,12 @@ struct WrappingBehavior {
         absl::StripPrefix(absl::StripSuffix(attr, "'"), "'");
 
     if (format_html) {
-      absl::string_view clickable_class = is_list ? "clickable" : "";
       // The inner StrFormat wraps the visible attribute name and the outer
       // MaybeAnnotateSchemaAttr annotates both attr and value with metadata
       // to reconstruct the access path.
       std::string escaped_attr = MaybeEscape(std::string(stripped_attr));
       std::string attr_str = absl::StrFormat(
-          kAttrHtmlTemplate, clickable_class,
-          escaped_attr, value_str);
+          kAttrHtmlTemplate, escaped_attr, value_str);
       // The base size of the content is the sum of the value, stripped
       // attribute name, and the '=' in the template.
       UpdateHtmlCharCount(attr_str.size(),
@@ -254,8 +252,6 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
 std::string DataSliceItemRepr(
     const DataItem& item, const DataItem& schema,
     const ReprOption& option, WrappingBehavior& wrapping) {
-  wrapping.object_ids_clickable = true;
-
   if (item.holds_value<ObjectId>()) {
     absl::string_view item_prefix = "";
     if (item.is_dict()) {
@@ -373,7 +369,6 @@ absl::StatusOr<std::string> ListSchemaStr(const DataSlice& schema,
     return "";
   }
 
-  wrapping.object_ids_clickable = false;
   ASSIGN_OR_RETURN(std::string str, DataItemToStr(attr, option, wrapping));
   return absl::StrCat(
       "LIST[", wrapping.MaybeAnnotateSchemaAccess(
@@ -394,7 +389,6 @@ absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
     return "";
   }
 
-  wrapping.object_ids_clickable = false;
   ASSIGN_OR_RETURN(std::string key_attr_str,
                    DataItemToStr(key_attr, option, wrapping));
   ASSIGN_OR_RETURN(std::string value_attr_str,
@@ -417,7 +411,6 @@ absl::StatusOr<std::string> ListToStr(const DataSlice& ds,
   auto stringfy_list_items =
       [&option, &list, &wrapping](const internal::DataSliceImpl& list_impl)
       -> absl::StatusOr<std::string> {
-    wrapping.object_ids_clickable = true;
     size_t initial_html_char_count = wrapping.html_char_count;
 
     std::vector<std::string> elements;
@@ -452,13 +445,17 @@ absl::StatusOr<std::string> DictToStr(const DataSlice& ds,
                                       const ReprOption& option,
                                       WrappingBehavior& wrapping) {
   ASSIGN_OR_RETURN(const DataSlice keys, ds.GetDictKeys());
-  wrapping.object_ids_clickable = true;
   const internal::DataSliceImpl& key_slice = keys.slice();
   std::vector<std::string> elements;
   elements.reserve(key_slice.size());
   size_t initial_html_char_count = wrapping.html_char_count;
   size_t item_count = 0;
-  for (const DataItem& item : key_slice) {
+
+  ReprOption key_option = option;
+  key_option.depth = 0;
+
+  for (size_t i = 0; i < key_slice.size(); ++i) {
+    const DataItem& item = key_slice[i];
     if (item_count >= option.item_limit) {
       elements.emplace_back(kEllipsis);
       break;
@@ -468,13 +465,15 @@ absl::StatusOr<std::string> DictToStr(const DataSlice& ds,
         DataSlice::Create(item, keys.GetSchemaImpl(), ds.GetBag()));
     ASSIGN_OR_RETURN(DataSlice value, ds.GetFromDict(key));
     ASSIGN_OR_RETURN(std::string key_str,
-                     DataItemToStr(key, option, wrapping));
+                     DataItemToStr(key, key_option, wrapping));
     ASSIGN_OR_RETURN(std::string value_str,
                      DataItemToStr(value, option, wrapping));
-    elements.emplace_back(
-        wrapping.MaybeAnnotateDictKey(
-            absl::StrCat(key_str, "=", value_str),
-            DataItemRepr(item, {.strip_quotes = true})));;
+
+    elements.emplace_back(absl::StrCat(
+        wrapping.MaybeAnnotateDictKeyIndex(std::move(key_str), i),
+        "=",
+        wrapping.MaybeAnnotateDictValueIndex(
+            std::move(value_str), i)));
     ++item_count;
   }
 
@@ -489,7 +488,6 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
     const ReprOption& option,
     WrappingBehavior& wrapping) {
   ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names, ds.GetAttrNames());
-  wrapping.object_ids_clickable = true;
   std::vector<std::string> parts;
   parts.reserve(attr_names.size());
   size_t item_count = 0;
@@ -515,9 +513,11 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
                                           WrappingBehavior& wrapping) {
   // Helper that applies the wrapping to DataItemRepr to be used when
   // the item holds an ObjectId.
-  auto repr_with_wrapping = [&wrapping](const DataItem& item) {
+  auto repr_with_wrapping = [&option, &wrapping](const DataItem& item) {
     return wrapping.MaybeWrapObjectId(
-        item, wrapping.MaybeEscape(DataItemRepr(item)));
+        item, wrapping.MaybeEscape(
+            DataItemRepr(item, {
+              .unbounded_type_max_len = option.unbounded_type_max_len})));
   };
 
   const DataItem& data_item = ds.item();
@@ -604,8 +604,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
 absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds,
                                            const ReprOption& option) {
   DCHECK_GE(option.depth, 0);
-  WrappingBehavior wrapping{.format_html = option.format_html,
-                            .object_ids_clickable = true};
+  WrappingBehavior wrapping{.format_html = option.format_html};
   return ds.VisitImpl([&ds, &option, &wrapping]<typename T>(
       const T& impl) {
     return std::is_same_v<T, DataItem>

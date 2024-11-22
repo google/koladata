@@ -3169,6 +3169,10 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     self.assertIn('schema-attr="b"', html_str)
     self.assertNotIn('schema-attr="c"', html_str)
 
+    self.assertLess(
+        len(ds('a'*1000)._internal_html_str(2)),  # pylint: disable=protected-access
+        500)
+
   def test_internal_str_with_depth(self):
     d = fns.obj(a=fns.obj(b=fns.obj(c=fns.obj(d=1))))
     self.assertRegex(
@@ -3177,7 +3181,9 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     self.assertRegex(
         d._internal_str_with_depth(2), r'Obj\(a=Obj\(b=\$[0-9a-zA-Z]{22}\)\)'  # pylint: disable=protected-access
     )
-
+    self.assertLess(
+        len(ds('a'*1000)._internal_str_with_depth(2)),  # pylint: disable=protected-access
+        500)
 
 if __name__ == '__main__':
   absltest.main()

@@ -592,7 +592,11 @@ PyObject* PyDataSlice_html_str(PyObject* self, PyObject* const* args,
   Py_ssize_t depth = PyLong_AsSsize_t(py_depth);
   return PyDataSlice_str_with_options(
       self,
-      ReprOption{.depth = depth, .strip_quotes = true, .format_html = true});
+      ReprOption{
+        .depth = depth,
+        .strip_quotes = true,
+        .format_html = true,
+        .unbounded_type_max_len = 256});
 }
 
 PyObject* PyDataSlice_str_with_depth(PyObject* self, PyObject* const* args,
@@ -609,7 +613,9 @@ PyObject* PyDataSlice_str_with_depth(PyObject* self, PyObject* const* args,
   PyObject* const py_depth = args[0];
   Py_ssize_t depth = PyLong_AsSsize_t(py_depth);
   return PyDataSlice_str_with_options(
-      self, ReprOption{.depth = depth, .strip_quotes = true});
+      self, ReprOption{.depth = depth,
+                       .strip_quotes = true,
+                       .unbounded_type_max_len = 256});
 }
 
 absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {

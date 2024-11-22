@@ -909,9 +909,9 @@ TEST(DataSliceReprTest, FormatHtml_AttrSpan) {
 
   ASSERT_OK_AND_ASSIGN(
     std::string result, DataSliceToStr(obj, {.format_html = true}));
-  EXPECT_THAT(result, HasSubstr("<span class=\"attr \">a</span>=1"));
+  EXPECT_THAT(result, HasSubstr("<span class=\"attr\">a</span>=1"));
   EXPECT_THAT(result, HasSubstr(
-      "<span class=\"attr clickable\">b</span>=List[]"));
+      "<span class=\"attr\">b</span>=List[]"));
 }
 
 TEST(DataSliceReprTest, FormatHtml_SliceIndices) {
@@ -983,9 +983,9 @@ TEST(DataSliceReprTest, FormatHtml_ObjEntity) {
   EXPECT_EQ(
       result,
       "Obj("
-      "<span schema-attr=\"a&lt;&gt;\"><span class=\"attr \">a&lt;&gt;"
+      "<span schema-attr=\"a&lt;&gt;\"><span class=\"attr\">a&lt;&gt;"
       "</span>=1</span>, "
-      "<span schema-attr=\"b&quot;&amp;\"><span class=\"attr \">b&quot;&amp;"
+      "<span schema-attr=\"b&quot;&amp;\"><span class=\"attr\">b&quot;&amp;"
       "</span>=1</span>)");
 }
 
@@ -1014,8 +1014,29 @@ TEST(DataSliceReprTest, FormatHtml_Dict) {
   ASSERT_OK_AND_ASSIGN(
     std::string result, DataSliceToStr(data_slice, {.format_html = true}));
   EXPECT_EQ(result,
-            "Dict{<span dict-key=\"&lt;&gt;&amp;&quot;\">"
-            "'&lt;&gt;&amp;&quot;'=1</span>}");
+            "Dict{"
+            "<span dict-key-index=\"0\">'&lt;&gt;&amp;&quot;'</span>="
+            "<span dict-value-index=\"0\">1</span>}");
+}
+
+TEST(DataSliceReprTest, FormatHtml_DictObjectIdKey) {
+  DataBagPtr bag = DataBag::Empty();
+  ObjectId dict_id = internal::AllocateSingleDict();
+
+  ObjectId dict_as_key = internal::AllocateSingleDict();
+  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice values = test::DataSlice<int>({1});
+
+  ASSERT_OK(data_slice.SetInDict(
+      test::DataSlice<ObjectId>({dict_as_key}), values));
+  EXPECT_THAT(
+      DataSliceToStr(data_slice, {.format_html = true}),
+      IsOkAndHolds(absl::StrFormat(
+          "Dict{"
+          "<span dict-key-index=\"0\"><span class=\"object-id\">"
+              "%s</span></span>="
+          "<span dict-value-index=\"0\">1</span>}",
+          ObjectIdStr(dict_as_key))));
 }
 
 TEST(DataSliceReprTest, FormatHtml_Dict_NoMultiLineForKeyNearLimit) {
@@ -1063,19 +1084,19 @@ TEST(DataSliceReprTest, FormatHtml_ByteValues) {
     std::string result, DataSliceToStr(data_slice, {.format_html = true}));
   EXPECT_EQ(
       result,
-      R"RAW(Dict{<span dict-key="1">1=b'\x10\x7f&lt;'</span>})RAW");
+      R"RAW(Dict{<span dict-key-index="0">1</span>=<span dict-value-index="0">b'\x10\x7f&lt;'</span>})RAW");
 }
 
-TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_Slice) {
+TEST(DataSliceReprTest, FormatHtml_ObjectId_Slice) {
   ObjectId list_id_1 = internal::AllocateSingleList();
   DataSlice ds = test::DataSlice<ObjectId>({list_id_1});
 
   ASSERT_OK_AND_ASSIGN(
     std::string result, DataSliceToStr(ds, {.format_html = true}));
-  EXPECT_THAT(result, HasSubstr("object-id clickable"));
+  EXPECT_THAT(result, HasSubstr("object-id"));
 }
 
-TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_MaxDepth) {
+TEST(DataSliceReprTest, FormatHtml_ObjectId_MaxDepth) {
   DataBagPtr bag = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
@@ -1083,10 +1104,10 @@ TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_MaxDepth) {
   ASSERT_OK_AND_ASSIGN(
       std::string result, DataSliceToStr(
           empty_list, {.depth = 0, .format_html = true}));
-  EXPECT_THAT(result, HasSubstr("object-id clickable"));
+  EXPECT_THAT(result, HasSubstr("object-id"));
 }
 
-TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_NoBag) {
+TEST(DataSliceReprTest, FormatHtml_ObjectId_NoBag) {
   DataBagPtr bag = DataBag::Empty();
   DataSlice value_1 = test::DataItem(1);
   ASSERT_OK_AND_ASSIGN(
@@ -1097,10 +1118,10 @@ TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_NoBag) {
   ASSERT_OK_AND_ASSIGN(
       std::string result, DataSliceToStr(
           entity, {.depth = 100, .format_html = true}));
-  EXPECT_THAT(result, HasSubstr("object-id clickable"));
+  EXPECT_THAT(result, HasSubstr("object-id"));
 }
 
-TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_NoFollow) {
+TEST(DataSliceReprTest, FormatHtml_ObjectId_NoFollow) {
   DataBagPtr bag = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       DataSlice entity,
@@ -1110,7 +1131,7 @@ TEST(DataSliceReprTest, FormatHtml_ClickableObjectId_NoFollow) {
   ASSERT_OK_AND_ASSIGN(
       std::string result, DataSliceToStr(
           nofollow_entity, {.depth = 100, .format_html = true}));
-  EXPECT_THAT(result, HasSubstr("object-id clickable"));
+  EXPECT_THAT(result, HasSubstr("object-id"));
 }
 
 TEST(DataSliceReprTest, UnboundedTypeMaxLength) {
