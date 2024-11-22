@@ -297,6 +297,9 @@ class KodaViewTest(parameterized.TestCase):
   def test_extract(self):
     testing.assert_equal(C.x.extract(), kde.extract(C.x))
 
+  def test_extract_bag(self):
+    testing.assert_equal(C.x.extract_bag(), kde.extract_bag(C.x))
+
   def test_clone(self):
     testing.assert_equal(
         _without_hidden_seed(C.x.clone(schema=C.schema, a=C.a)),

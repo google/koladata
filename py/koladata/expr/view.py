@@ -314,6 +314,9 @@ class KodaView(arolla.abc.ExprView):
   def extract(self, schema: Any = arolla.unspecified()) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.extract', self, schema)
 
+  def extract_bag(self, schema: Any = arolla.unspecified()) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.extract_bag', self, schema)
+
   def get_itemid(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_itemid', self)
 

@@ -2478,6 +2478,28 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
   @parameterized.product(
       pass_schema=[True, False],
   )
+  def test_extract_bag(self, pass_schema):
+    db = bag()
+    b_slice = db.new(a=ds([1, None, 2]))
+    o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    if pass_schema:
+      result = o.extract_bag(o.get_schema())
+    else:
+      result = o.extract_bag()
+
+    self.assertNotEqual(o.get_bag().fingerprint, result.fingerprint)
+    res_o = o.with_bag(result)
+    testing.assert_equal(res_o.b.no_bag(), o.b.no_bag())
+    testing.assert_equal(res_o.c.no_bag(), o.c.no_bag())
+    testing.assert_equal(res_o.b.a.no_bag(), o.b.a.no_bag())
+    testing.assert_equal(res_o.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_equal(
+        res_o.b.get_schema().no_bag(), o.b.get_schema().no_bag()
+    )
+
+  @parameterized.product(
+      pass_schema=[True, False],
+  )
   def test_clone(self, pass_schema):
     db = bag()
     b_slice = db.new(a=ds([1, None, 2]))

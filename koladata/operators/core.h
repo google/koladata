@@ -115,6 +115,10 @@ absl::StatusOr<DataSlice> ConcatOrStack(
 // kde.core._extract
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds, const DataSlice& schema);
 
+// kde.core._extract_bag
+absl::StatusOr<DataBagPtr> ExtractBag(const DataSlice& ds,
+                                      const DataSlice& schema);
+
 // kde.core.is_empty.
 absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj);
 

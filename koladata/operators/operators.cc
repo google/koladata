@@ -76,6 +76,7 @@ OPERATOR("kde.core._dict_shaped", DictShaped);
 OPERATOR("kde.core._dict_update", DictUpdate);
 OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);
+OPERATOR("kde.core._extract_bag", ExtractBag);
 OPERATOR("kde.core._freeze_bag", Freeze<DataBagPtr>);
 OPERATOR("kde.core._freeze_slice", Freeze<DataSlice>);
 OPERATOR("kde.core._get_attr", GetAttr);

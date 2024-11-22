@@ -241,6 +241,11 @@ def _extract(self, schema: Any = arolla.unspecified()) -> DataSlice:
   return _eval_op('kde.extract', self, schema)
 
 
+@DataSlice._add_method('extract_bag')  # pylint: disable=protected-access
+def _extract_bag(self, schema: Any = arolla.unspecified()) -> DataBag:
+  return _eval_op('kde.extract_bag', self, schema)
+
+
 @DataSlice._add_method('clone')  # pylint: disable=protected-access
 def _clone(
     self,
