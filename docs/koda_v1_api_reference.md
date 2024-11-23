@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-22'
+  reviewed: '2024-11-23'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -1433,6 +1433,19 @@ Returns:
   A DataSlice with a new DataBag attached.
 ```
 
+### `extract_bag(ds, schema)` {#extract_bag}
+
+``` {.no-copy}
+Creates a new DataBag containing only reachable attrs from 'ds'.
+
+Args:
+  ds: DataSlice to extract.
+  schema: schema of the extracted DataSlice.
+
+Returns:
+  A new immutable DataBag with only the reachable attrs from 'ds'.
+```
+
 ### `flatten(x, from_dim, to_dim)` {#flatten}
 
 ``` {.no-copy}
@@ -1594,7 +1607,8 @@ Returns a DataSlice representing proto data.
   list of proto Messages, the result is an 1D DataSlice.
 
   Args:
-    messages: Message or list of Message of the same type.
+    messages: Message or list of Message of the same type. Any of the messages
+      may be None, which will produce missing items in the result.
     extensions: List of proto extension paths.
     itemid: The ItemId(s) to use for the root object(s). If not specified, will
       allocate new id(s). If specified, will also infer the ItemIds for all
@@ -5478,6 +5492,10 @@ Returns a DataSlice with OBJECT schema.
 *No description*
 
 ### `<DataSlice>.extract(self, schema)` {#<DataSlice>.extract}
+
+*No description*
+
+### `<DataSlice>.extract_bag(self, schema)` {#<DataSlice>.extract_bag}
 
 *No description*
 
