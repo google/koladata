@@ -25,7 +25,10 @@
 #include <variant>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/base/attributes.h"
+#include "absl/base/nullability.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
