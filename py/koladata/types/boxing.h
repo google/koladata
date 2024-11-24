@@ -17,6 +17,7 @@
 
 #include <Python.h>
 
+#include <cstddef>
 #include <optional>
 
 #include "absl/base/nullability.h"
