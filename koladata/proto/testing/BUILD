@@ -14,6 +14,8 @@
 
 # Testing utilities for koladata.
 
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
+
 package(default_visibility = [
     "//koladata:internal",
 ])

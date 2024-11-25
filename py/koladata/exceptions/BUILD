@@ -15,6 +15,7 @@
 # Custom C++/Python bindings for Koda errors.
 
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("@rules_python//python:proto.bzl", "py_proto_library")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
