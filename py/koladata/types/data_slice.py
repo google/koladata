@@ -128,6 +128,12 @@ DataSlice._add_method('with_db')(DataSlice.with_bag)  # pylint: disable=protecte
 DataSlice._add_method('no_db')(DataSlice.no_bag)  # pylint: disable=protected-access
 
 
+@DataSlice._add_method('__dir__')  # pylint: disable=protected-access
+def _dir(self) -> list[str]:
+  """Returns a sorted list of unique attribute names."""
+  return self.get_attr_names(intersection=True)
+
+
 @DataSlice._add_method('maybe')  # pylint: disable=protected-access
 def _maybe(self, attr_name: str) -> DataSlice:
   # NOTE: Calling `get_attr`, instead of _eval_op, because it is implemented

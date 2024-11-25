@@ -615,6 +615,7 @@ class KodaViewTest(parameterized.TestCase):
         'fork_bag',
         'fork_db',
         'from_vals',
+        'get_attr_names',
         'internal_as_arolla_value',
         'internal_as_dense_array',
         'internal_as_py',

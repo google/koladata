@@ -126,3 +126,43 @@ def del_attr(
 ):
   """Deletes an attribute `attr_name` from `x`."""
   x.__delattr__(attr_name)
+
+
+def get_attr_names(x: data_slice.DataSlice, *, intersection: bool) -> list[str]:
+  """Returns a sorted list of unique attribute names of the given DataSlice.
+
+  In case of OBJECT schema, attribute names are fetched from the `__schema__`
+  attribute. In case of Entity schema, the attribute names are fetched from the
+  schema. In case of ANY (or primitives), an empty list is returned.
+
+  Args:
+    x: A DataSlice.
+    intersection: If True, the intersection of all object attributes is
+      returned. Otherwise, the union is returned.
+
+  Returns:
+    A list of unique attributes sorted by alphabetical order.
+  """
+  return x.get_attr_names(intersection=intersection)
+
+
+def dir_(x: data_slice.DataSlice) -> list[str]:
+  """Returns a sorted list of unique attribute names of the given DataSlice.
+
+  This is equivalent to `kd.get_attr_names(ds, intersection=True)`. For more
+  finegrained control, use `kd.get_attr_names` directly instead.
+
+  In case of OBJECT schema, attribute names are fetched from the `__schema__`
+  attribute. In case of Entity schema, the attribute names are fetched from the
+  schema. In case of ANY (or primitives), an empty list is returned.
+
+  Args:
+    x: A DataSlice.
+
+  Returns:
+    A list of unique attributes sorted by alphabetical order.
+  """
+  return x.get_attr_names(intersection=True)
+
+
+dir = dir_  # pylint: disable=redefined-builtin

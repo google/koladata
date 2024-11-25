@@ -820,9 +820,33 @@ absl::Nullable<PyObject*> PyDataSlice_embed_schema(PyObject* self, PyObject*) {
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_dir(PyObject* self, PyObject*) {
+absl::Nullable<PyObject*> PyDataSlice_get_attr_names(PyObject* self,
+                                                     PyObject* const* py_args,
+                                                     Py_ssize_t nargs,
+                                                     PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
-  ASSIGN_OR_RETURN(auto attr_names, UnsafeDataSliceRef(self).GetAttrNames(),
+  static const absl::NoDestructor parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/false, {"intersection"}));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  PyObject* py_intersection = args.kw_only_args["intersection"];
+  if (py_intersection == nullptr) {
+    PyErr_SetString(PyExc_TypeError,
+                    "get_attr_names() missing 1 required keyword-only "
+                    "argument: 'intersection'");
+    return nullptr;
+  }
+  if (!PyBool_Check(py_intersection)) {
+    PyErr_Format(PyExc_TypeError,
+                 "get_attr_names() expected bool for `intersection`, got: %s",
+                 Py_TYPE(py_intersection)->tp_name);
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(auto attr_names,
+                   UnsafeDataSliceRef(self).GetAttrNames(
+                       /*union_object_attrs=*/PyObject_Not(py_intersection)),
                    arolla::python::SetPyErrFromStatus(_));
   auto attr_name_list =
       arolla::python::PyObjectPtr::Own(PyList_New(/*len=*/attr_names.size()));
@@ -1077,8 +1101,23 @@ Args:
 * For Entities schema is stored as '__schema__' attribute.
 * Embedding Entities requires a DataSlice to be associated with a DataBag.
 )"""},
-    {"__dir__", PyDataSlice_dir, METH_NOARGS,
-     "Returns a list of attributes available."},
+    {"get_attr_names", (PyCFunction)PyDataSlice_get_attr_names,
+     METH_FASTCALL | METH_KEYWORDS,
+     "get_attr_names(*, intersection)\n"
+     "--\n\n"
+     R"""(Returns a sorted list of unique attribute names of this DataSlice.
+
+In case of OBJECT schema, attribute names are fetched from the `__schema__`
+attribute. In case of Entity schema, the attribute names are fetched from the
+schema. In case of ANY (or primitives), an empty list is returned.
+
+Args:
+  intersection: If True, the intersection of all object attributes is returned.
+    Otherwise, the union is returned.
+
+Returns:
+  A list of unique attributes sorted by alphabetical order.
+)"""},
     {"__format__", (PyCFunction)PyDataSlice_format, METH_O,
      "Returns a format representation with a special support for non empty "
      "specification.\n\nDataSlice will be replaced with base64 encoded "

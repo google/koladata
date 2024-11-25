@@ -626,6 +626,102 @@ class DataSliceTest(parameterized.TestCase):
         ['a', 'b', 'c'],
     )
 
+  def test_get_attr_names_entity(self):
+    db = bag()
+    fb = bag()
+    x = db.new(a=1, b='abc')
+    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
+    self.assertEqual(ds([x]).get_attr_names(intersection=True), ['a', 'b'])
+    x.with_bag(fb).set_attr('c', 42)
+    self.assertEqual(
+        x.with_bag(db).enriched(fb).get_attr_names(intersection=True),
+        ['a', 'b', 'c'],
+    )
+    self.assertEqual(
+        ds([x]).with_bag(db).enriched(fb).get_attr_names(intersection=True),
+        ['a', 'b', 'c'],
+    )
+    with self.assertRaisesRegex(
+        ValueError, 'cannot get available attributes without a DataBag'
+    ):
+      x.no_bag().get_attr_names(intersection=True)
+
+  def test_get_attr_names_object(self):
+    db = bag()
+    x = db.obj(a=1, b='abc')
+    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
+    self.assertEqual(ds([x]).get_attr_names(intersection=True), ['a', 'b'])
+    # Returns either the intersection of attributes...
+    self.assertEqual(
+        ds([x, db.obj(a='def', c=123)]).get_attr_names(intersection=True), ['a']
+    )
+    # ... or the union of attributes.
+    self.assertEqual(
+        ds([x, db.obj(a='def', c=123)]).get_attr_names(intersection=False),
+        ['a', 'b', 'c'],
+    )
+    with self.assertRaisesRegex(
+        ValueError, 'cannot get available attributes without a DataBag'
+    ):
+      x.no_bag().get_attr_names(intersection=True)
+    with self.assertRaisesRegex(
+        ValueError, 'object.*is missing __schema__ attribute'
+    ):
+      db.new(a=1, b='abc').with_schema(schema_constants.OBJECT).get_attr_names(
+          intersection=True
+      )
+
+  def test_get_attr_names_primitive(self):
+    x = ds([1, 2, 3]).with_bag(bag())
+    self.assertEqual(x.get_attr_names(intersection=True), [])
+
+  def test_get_attr_names_schema(self):
+    db = bag()
+    self.assertEqual(
+        schema_constants.INT32.with_bag(db).get_attr_names(intersection=True),
+        [],
+    )
+    schema1 = db.new_schema(
+        a=schema_constants.INT32, b=schema_constants.FLOAT32
+    )
+    schema2 = db.new_schema(
+        a=schema_constants.INT32, c=schema_constants.FLOAT32
+    )
+    schemas = ds([schema1, schema2])
+    # Returns either the intersection of attributes...
+    self.assertEqual(schemas.get_attr_names(intersection=True), ['a'])
+    # ... or the union of attributes.
+    self.assertEqual(
+        schemas.get_attr_names(intersection=False), ['a', 'b', 'c']
+    )
+
+  def test_get_attr_names_reserved_names(self):
+    db = bag()
+    x = db.new(_x=1, getdoc=2, reshape=3)
+    # Reserved names and names starting with `_` _are_ included.
+    self.assertEqual(
+        x.get_attr_names(intersection=True), ['_x', 'getdoc', 'reshape']
+    )
+
+  def test_get_attr_names_call_errors(self):
+    db = bag()
+    x = db.new(x=1)
+    with self.assertRaisesRegex(
+        TypeError,
+        re.escape(
+            'get_attr_names() missing 1 required keyword-only argument:'
+            " 'intersection'"
+        ),
+    ):
+      x.get_attr_names()
+    with self.assertRaisesRegex(
+        TypeError,
+        re.escape(
+            'get_attr_names() expected bool for `intersection`, got: str'
+        ),
+    ):
+      x.get_attr_names(intersection='foo')
+
   def test_internal_as_py(self):
     x = ds([[1, 2], [3], [4, 5]])
     self.assertEqual(x.internal_as_py(), [[1, 2], [3], [4, 5]])

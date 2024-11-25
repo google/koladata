@@ -829,6 +829,27 @@ py_test(
     ],
 )
 
+py_test(
+    name = "dir_test",
+    srcs = ["dir_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
+    name = "get_attr_names_test",
+    srcs = ["get_attr_names_test.py"],
+    deps = [
+        "//py/koladata/functions",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 proto_library(
     name = "test_proto",
     srcs = ["test.proto"],

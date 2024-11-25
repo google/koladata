@@ -135,6 +135,8 @@ set_attr = _attrs.set_attr
 set_attrs = _attrs.set_attrs
 del_attr = _attrs.del_attr
 update_schema = _attrs.update_schema_fn
+get_attr_names = _attrs.get_attr_names
+dir = _attrs.dir  # pylint: disable=redefined-builtin
 
 is_expr = _predicates.is_expr
 is_item = _predicates.is_item
