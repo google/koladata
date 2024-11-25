@@ -98,10 +98,10 @@ class SchemaFromPyTypeTest(absltest.TestCase):
         bar_schema.u,
         fns.dict_schema(schema_constants.STRING, int_str_pair_schema)
     )
-    self.assertCountEqual(dir(bar_schema), ['s', 'u', 't', 'z'])
+    self.assertCountEqual(fns.dir(bar_schema), ['s', 'u', 't', 'z'])
     self.assertEqual(int_str_pair_schema.x, schema_constants.INT64)
     self.assertEqual(int_str_pair_schema.y, schema_constants.STRING)
-    self.assertCountEqual(dir(int_str_pair_schema), ['x', 'y'])
+    self.assertCountEqual(fns.dir(int_str_pair_schema), ['x', 'y'])
 
   def test_schema_from_py_type_uses_qualname(self):
 

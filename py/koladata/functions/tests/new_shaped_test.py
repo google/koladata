@@ -122,7 +122,7 @@ class NewShapedTest(absltest.TestCase):
     x = fns.new_shaped(
         jagged_shape.create_shape([2]), a=42, b='xyz', schema=schema
     )
-    self.assertEqual(dir(x), ['a', 'b'])
+    self.assertEqual(fns.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
@@ -144,7 +144,7 @@ class NewShapedTest(absltest.TestCase):
         ),
         schema=schema
     )
-    self.assertEqual(dir(x), ['a', 'b', 'nested'])
+    self.assertEqual(fns.dir(x), ['a', 'b', 'nested'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -157,7 +157,7 @@ class NewShapedTest(absltest.TestCase):
   def test_schema_arg_implicit_casting(self):
     schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = fns.new_shaped(jagged_shape.create_shape([2]), a=42, schema=schema)
-    self.assertEqual(dir(x), ['a'])
+    self.assertEqual(fns.dir(x), ['a'])
     testing.assert_equal(
         x.a, ds([42, 42], schema_constants.FLOAT32).with_bag(x.get_bag())
     )
@@ -187,7 +187,7 @@ class NewShapedTest(absltest.TestCase):
         schema=schema,
         update_schema=True,
     )
-    self.assertEqual(dir(x), ['a', 'b'])
+    self.assertEqual(fns.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
@@ -216,7 +216,7 @@ class NewShapedTest(absltest.TestCase):
         a=1, b='a',
         schema=schema_constants.ANY
     )
-    self.assertEqual(dir(x), [])
+    self.assertEqual(fns.dir(x), [])
     testing.assert_equal(x.get_schema().no_bag(), schema_constants.ANY)
     testing.assert_equal(x.a, ds([1, 1]).as_any().with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds(['a', 'a']).as_any().with_bag(x.get_bag()))
@@ -228,7 +228,7 @@ class NewShapedTest(absltest.TestCase):
         a=fns.new(p=42, q='xyz'),
         schema=schema
     )
-    self.assertEqual(dir(x), ['a'])
+    self.assertEqual(fns.dir(x), ['a'])
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
         x.a.get_attr('__schema__').p.no_bag(), schema_constants.INT32

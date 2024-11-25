@@ -116,7 +116,7 @@ class CoreNewTest(absltest.TestCase):
         a=schema_constants.INT32, b=schema_constants.STRING
     )
     x = kde.core.new(a=42, b='xyz', schema=schema).eval()
-    self.assertEqual(dir(x), ['a', 'b'])
+    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -135,7 +135,7 @@ class CoreNewTest(absltest.TestCase):
         nested=kde.core.new(p=b'0123', schema=nested_schema),
         schema=schema,
     ).eval()
-    self.assertEqual(dir(x), ['a', 'b', 'nested'])
+    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b', 'nested'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -151,7 +151,7 @@ class CoreNewTest(absltest.TestCase):
     schema.with_bag(fallback_bag).set_attr('b', schema_constants.STRING)
     schema = schema.enriched(fallback_bag)
     x = kde.core.new(a=42, b='xyz', schema=schema).eval()
-    self.assertEqual(dir(x), ['a', 'b'])
+    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -160,7 +160,7 @@ class CoreNewTest(absltest.TestCase):
   def test_schema_arg_implicit_casting(self):
     schema = bag().new_schema(a=schema_constants.FLOAT32)
     x = kde.core.new(a=42, schema=schema).eval()
-    self.assertEqual(dir(x), ['a'])
+    self.assertEqual(x.get_attr_names(intersection=True), ['a'])
     testing.assert_equal(
         x.a, ds(42, schema_constants.FLOAT32).with_bag(x.get_bag())
     )
@@ -176,7 +176,7 @@ class CoreNewTest(absltest.TestCase):
   def test_schema_arg_update_schema(self):
     schema = bag().new_schema(a=schema_constants.FLOAT32)
     x = kde.core.new(a=42, b='xyz', schema=schema, update_schema=True).eval()
-    self.assertEqual(dir(x), ['a', 'b'])
+    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -184,7 +184,7 @@ class CoreNewTest(absltest.TestCase):
 
   def test_schema_arg_any(self):
     x = kde.core.new(a=1, b='a', schema=schema_constants.ANY).eval()
-    self.assertEqual(dir(x), [])
+    self.assertEqual(x.get_attr_names(intersection=True), [])
     testing.assert_equal(x.get_schema().no_bag(), schema_constants.ANY)
     testing.assert_equal(x.a, ds(1).as_any().with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds('a').as_any().with_bag(x.get_bag()))
@@ -198,7 +198,7 @@ class CoreNewTest(absltest.TestCase):
   def test_schema_arg_embed_schema(self):
     schema = bag().new_schema(a=schema_constants.OBJECT)
     x = kde.core.new(a=kde.core.new(p=42, q='xyz'), schema=schema).eval()
-    self.assertEqual(dir(x), ['a'])
+    self.assertEqual(x.get_attr_names(intersection=True), ['a'])
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
         x.a.get_attr('__schema__').p.no_bag(), schema_constants.INT32

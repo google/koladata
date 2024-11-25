@@ -67,13 +67,12 @@ _SPECIAL_COLUMN_NAMES = ('__items__', '__keys__', '__values__')
 
 
 def _get_column_names(ds: data_slice.DataSlice) -> set[str]:
-  # TODO: use ds.get_unique_attributes once it is implemented.
-  column_names = set(dir(ds.get_schema()))
+  column_names = set(kdi.dir(ds.get_schema()))
   if column_names:
     return column_names
   for o in ds.flatten().internal_as_py():
     if isinstance(o, data_slice.DataSlice):
-      column_names.update(dir(o))
+      column_names.update(kdi.dir(o))
   return column_names
 
 

@@ -246,7 +246,7 @@ class FromPyTest(absltest.TestCase):
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
     )
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    self.assertCountEqual(dir(obj), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(obj), ['a', 'b', 'c'])
     testing.assert_equal(obj.a.no_bag(), ds(42))
     b = obj.b
     testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
@@ -264,7 +264,7 @@ class FromPyTest(absltest.TestCase):
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(dir(entity), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(entity), ['a', 'b', 'c'])
     testing.assert_equal(entity.a.no_bag(), ds(42.0))
     b = entity.b
     testing.assert_equal(b.get_schema().no_bag(), schema.b.no_bag())
@@ -282,7 +282,7 @@ class FromPyTest(absltest.TestCase):
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(dir(entity), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(entity), ['a', 'b', 'c'])
     testing.assert_equal(entity.a.no_bag(), ds(42, schema_constants.INT64))
     obj_b = entity.b
     testing.assert_equal(obj_b.get_schema().no_bag(), schema_constants.OBJECT)
@@ -296,7 +296,7 @@ class FromPyTest(absltest.TestCase):
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(dir(entity), ['b'])
+    self.assertCountEqual(fns.dir(entity), ['b'])
     testing.assert_equal(
         entity.b.get_schema().no_bag(), schema_constants.OBJECT
     )
@@ -309,7 +309,7 @@ class FromPyTest(absltest.TestCase):
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(dir(entity), [])
+    self.assertCountEqual(fns.dir(entity), [])
 
   def test_dict_as_obj_bag_adoption(self):
     obj_b = fns.from_py({'x': 'abc'}, dict_as_obj=True)
@@ -333,7 +333,7 @@ class FromPyTest(absltest.TestCase):
   def test_dict_as_obj_dict_key_is_data_item(self):
     # Object.
     obj = fns.from_py({ds('a'): 42}, dict_as_obj=True)
-    self.assertCountEqual(dir(obj), ['a'])
+    self.assertCountEqual(fns.dir(obj), ['a'])
     testing.assert_equal(obj.a.no_bag(), ds(42))
     # Entity - non STRING schema with STRING item.
     entity = fns.from_py(
@@ -341,7 +341,7 @@ class FromPyTest(absltest.TestCase):
         dict_as_obj=True,
         schema=fns.schema.new_schema(a=schema_constants.INT32),
     )
-    self.assertCountEqual(dir(entity), ['a'])
+    self.assertCountEqual(fns.dir(entity), ['a'])
     testing.assert_equal(entity.a.no_bag(), ds(42))
 
   def test_dict_as_obj_non_unicode_key(self):
@@ -362,7 +362,7 @@ class FromPyTest(absltest.TestCase):
   def test_dataclasses(self):
     obj = fns.from_py(TestKlass(42, NestedKlass('abc'), b'xyz'))
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    self.assertCountEqual(dir(obj), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(obj), ['a', 'b', 'c'])
     testing.assert_equal(obj.a.no_bag(), ds(42))
     b = obj.b
     testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
@@ -379,7 +379,7 @@ class FromPyTest(absltest.TestCase):
         TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(dir(entity), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(entity), ['a', 'b', 'c'])
     testing.assert_equal(entity.a.no_bag(), ds(42.0))
     b = entity.b
     testing.assert_equal(b.get_schema().no_bag(), schema.b.no_bag())
@@ -394,7 +394,7 @@ class FromPyTest(absltest.TestCase):
         TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(dir(entity), ['a'])
+    self.assertCountEqual(fns.dir(entity), ['a'])
     testing.assert_equal(entity.a.no_bag(), ds(42.0))
 
   def test_list_of_dataclasses(self):
@@ -423,7 +423,7 @@ class FromPyTest(absltest.TestCase):
     )
     entity = fns.from_py(Test(schema.koda(x=1)), schema=schema)
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(dir(entity), ['koda'])
+    self.assertCountEqual(fns.dir(entity), ['koda'])
     koda = entity.koda
     testing.assert_equal(koda.get_schema().no_bag(), schema.koda.no_bag())
     testing.assert_equal(koda.x.no_bag(), ds(1))

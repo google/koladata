@@ -163,7 +163,7 @@ class CoreNewShapedAsTest(absltest.TestCase):
         schema=schema,
         update_schema=True,
     ).eval()
-    self.assertEqual(dir(x), ['a', 'b'])
+    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))

@@ -531,8 +531,9 @@ def _to_py_impl(
   is_dict = ds.is_dict()
 
   # Remove special attributes
-  attr_names = list(
-      sorted(set(dir(ds)) - set(['__items__', '__keys__', '__values__']))
+  attr_names = sorted(
+      set(ds.get_attr_names(intersection=True))
+      - {'__items__', '__keys__', '__values__'}
   )
   assert not (attr_names and (is_list or is_dict))
 

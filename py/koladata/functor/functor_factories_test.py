@@ -116,7 +116,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     x = ds([1, -2, 3, -4])
     fn = functor_factories.fn(I.x * x)
     testing.assert_equal(fn(x=x), ds([1, 4, 9, 16]))
-    self.assertNotIn('aux_0', dir(fn))
+    self.assertNotIn('aux_0', kdi.dir(fn))
 
     fn = functor_factories.fn(I.x * x, auto_variables=True)
     testing.assert_equal(fn(x=x), ds([1, 4, 9, 16]))
@@ -149,7 +149,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     )
     testing.assert_equal(fn5().no_bag(), ds([[1, 2], [3]]))
     testing.assert_equal(fn5.foo[:][:].no_bag(), ds([[1, 2], [3]]))
-    self.assertNotIn('aux_0', dir(fn5))
+    self.assertNotIn('aux_0', kdi.dir(fn5))
 
     # TODO: Make this work.
     # fn6 = functor_factories.fn(
@@ -157,7 +157,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     # )
     # testing.assert_equal(fn6(), ds([1, 2, 3]))
     # testing.assert_equal(fn6.foo[:][:].no_bag(), ds([1, 2, 3]))
-    # self.assertNotIn('aux_0', dir(fn6))
+    # self.assertNotIn('aux_0', kdi.dir(fn6))
 
   def test_auto_variables_nested_names(self):
     x = kde.with_name(kde.with_name(I.x, 'foo'), 'bar')
@@ -179,10 +179,10 @@ class FunctorFactoriesTest(absltest.TestCase):
         auto_variables=True,
     )
     testing.assert_equal(fn(), ds([8, -1, 2, -5]))
-    self.assertIn('foo_0', dir(fn))
-    self.assertIn('foo_2', dir(fn))
+    self.assertIn('foo_0', kdi.dir(fn))
+    self.assertIn('foo_2', kdi.dir(fn))
     self.assertNotIn(
-        'foo_3', dir(fn)
+        'foo_3', kdi.dir(fn)
     )  # To make sure we don't have too many copies.
 
   def test_auto_variables_with_none(self):
@@ -226,7 +226,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
         ds(1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5),
     )
-    self.assertNotIn('weights', dir(fn))
+    self.assertNotIn('weights', kdi.dir(fn))
 
     fn = functor_factories.trace_py_fn(my_model, x=fns.obj(a=3.0, b=4.0, c=5.0))
     testing.assert_equal(fn(), ds(3.0 * 1.0 + 4.0 * 0.5 + 5.0 * 1.5))

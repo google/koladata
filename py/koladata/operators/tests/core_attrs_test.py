@@ -75,12 +75,16 @@ class CoreAttrsTest(absltest.TestCase):
     testing.assert_equal(o.updated(db2).b.no_bag(), ds('p'))
     testing.assert_equal(o.updated(db2).c[:].no_bag(), ds([1, 2]))
 
-    self.assertSameElements(dir(o.get_schema()), ['x', 'y'])
     self.assertSameElements(
-        dir(o.updated(db2).get_schema()), ['x', 'y', 'a', 'b', 'c']
+        o.get_schema().get_attr_names(intersection=True), ['x', 'y']
     )
     self.assertSameElements(
-        dir(o.with_bag(db2).get_schema()), ['x', 'a', 'b', 'c']
+        o.updated(db2).get_schema().get_attr_names(intersection=True),
+        ['x', 'y', 'a', 'b', 'c'],
+    )
+    self.assertSameElements(
+        o.with_bag(db2).get_schema().get_attr_names(intersection=True),
+        ['x', 'a', 'b', 'c'],
     )
 
   def test_multi_attr_update_object_schema(self):
@@ -96,12 +100,16 @@ class CoreAttrsTest(absltest.TestCase):
     testing.assert_equal(o.updated(db2).b.no_bag(), ds('p'))
     testing.assert_equal(o.updated(db2).c[:].no_bag(), ds([1, 2]))
 
-    self.assertSameElements(dir(o.get_obj_schema()), ['x', 'y'])
     self.assertSameElements(
-        dir(o.updated(db2).get_obj_schema()), ['x', 'y', 'a', 'b', 'c']
+        o.get_obj_schema().get_attr_names(intersection=True), ['x', 'y']
     )
     self.assertSameElements(
-        dir(o.with_bag(db2).get_obj_schema()), ['x', 'a', 'b', 'c']
+        o.updated(db2).get_obj_schema().get_attr_names(intersection=True),
+        ['x', 'y', 'a', 'b', 'c'],
+    )
+    self.assertSameElements(
+        o.with_bag(db2).get_obj_schema().get_attr_names(intersection=True),
+        ['x', 'a', 'b', 'c'],
     )
 
   def test_entity_as_obj_conflict(self):

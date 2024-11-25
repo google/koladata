@@ -57,7 +57,9 @@ class CoreStubTest(parameterized.TestCase):
         x_stub.no_bag(),
         x.no_bag(),
     )
-    self.assertSameElements(dir(x_stub.get_schema()), [])
+    self.assertSameElements(
+        x_stub.get_schema().get_attr_names(intersection=True), []
+    )
 
   def test_object_entity(self):
     x = bag().obj(x=ds([1, 2, 3]))
@@ -69,7 +71,9 @@ class CoreStubTest(parameterized.TestCase):
     testing.assert_equal(
         x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
-    self.assertSameElements(dir(x_stub.get_schema()), [])
+    self.assertSameElements(
+        x_stub.get_schema().get_attr_names(intersection=True), []
+    )
 
   def test_list_no_nesting(self):
     x = bag().list([1, 2, 3])
@@ -78,7 +82,9 @@ class CoreStubTest(parameterized.TestCase):
         x_stub.no_bag(),
         x.no_bag(),
     )
-    self.assertSameElements(dir(x_stub.get_schema()), ['__items__'])
+    self.assertSameElements(
+        x_stub.get_schema().get_attr_names(intersection=True), ['__items__']
+    )
 
   def test_object_list(self):
     db = bag()
@@ -91,7 +97,9 @@ class CoreStubTest(parameterized.TestCase):
     testing.assert_equal(
         x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
-    self.assertSameElements(dir(x_stub.get_obj_schema()), ['__items__'])
+    self.assertSameElements(
+        x_stub.get_obj_schema().get_attr_names(intersection=True), ['__items__']
+    )
 
   def test_list_nested(self):
     db = bag()
@@ -103,9 +111,15 @@ class CoreStubTest(parameterized.TestCase):
     )
     testing.assert_equal(x_stub[:].no_bag(), x[:].no_bag())
     testing.assert_equal(x_stub[:][:].no_bag(), x[:][:].no_bag())
-    self.assertSameElements(dir(x_stub.get_schema()), ['__items__'])
     self.assertSameElements(
-        dir(x[:].get_schema().with_bag(x_stub.get_bag())), ['__items__']
+        x_stub.get_schema().get_attr_names(intersection=True), ['__items__']
+    )
+    self.assertSameElements(
+        x[:]
+        .get_schema()
+        .with_bag(x_stub.get_bag())
+        .get_attr_names(intersection=True),
+        ['__items__'],
     )
 
   def test_object_list_nested(self):
@@ -126,7 +140,9 @@ class CoreStubTest(parameterized.TestCase):
     testing.assert_equal(
         x_stub[:].get_obj_schema().no_bag(), x[:].get_obj_schema().no_bag()
     )
-    self.assertSameElements(dir(x_stub.get_obj_schema()), ['__items__'])
+    self.assertSameElements(
+        x_stub.get_obj_schema().get_attr_names(intersection=True), ['__items__']
+    )
 
   def test_dict(self):
     x = bag().dict({1: 2, 3: 4})
@@ -136,7 +152,8 @@ class CoreStubTest(parameterized.TestCase):
         x.no_bag(),
     )
     self.assertSameElements(
-        dir(x_stub.get_schema()), ['__keys__', '__values__']
+        x_stub.get_schema().get_attr_names(intersection=True),
+        ['__keys__', '__values__'],
     )
 
   def test_object_dict(self):
@@ -151,7 +168,8 @@ class CoreStubTest(parameterized.TestCase):
         x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
     self.assertSameElements(
-        dir(x_stub.get_obj_schema()), ['__keys__', '__values__']
+        x_stub.get_obj_schema().get_attr_names(intersection=True),
+        ['__keys__', '__values__'],
     )
 
   def test_object_ref(self):

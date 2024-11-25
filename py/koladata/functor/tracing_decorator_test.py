@@ -53,7 +53,7 @@ class TracingDecoratorTest(absltest.TestCase):
     fn = functor_factories.trace_py_fn(lambda x: f2(f1(x)))
     testing.assert_equal(fn(x=1), ds(4))
     self.assertCountEqual(
-        dir(fn),
+        fn.get_attr_names(intersection=True),
         ['returns', '<lambda>', '<lambda>_0', '__signature__'],
     )
 
@@ -81,7 +81,7 @@ class TracingDecoratorTest(absltest.TestCase):
     fn = functor_factories.trace_py_fn(lambda x: f(x=x + 2))
     testing.assert_equal(fn(x=1), ds(4))
     testing.assert_equal(fn.foo(x=1), ds(2))
-    self.assertNotIn('f', dir(fn))
+    self.assertNotIn('f', fn.get_attr_names(intersection=True))
 
   def test_py_fn_mode(self):
     @tracing_decorator.TraceAsFnDecorator(py_fn=True)
@@ -103,7 +103,9 @@ class TracingDecoratorTest(absltest.TestCase):
     testing.assert_equal(fn(x=1), ds(20))
     testing.assert_equal(fn.f(x=1), ds(2))
     # Make sure we have only one copy of 'f'.
-    self.assertCountEqual(dir(fn), ['returns', 'f', '__signature__'])
+    self.assertCountEqual(
+        fn.get_attr_names(intersection=True), ['returns', 'f', '__signature__']
+    )
 
   # TODO: Reenable this when we have kd.attrs.
   # def test_output_structure_when_used_with_kd_updated(self):

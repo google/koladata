@@ -165,7 +165,7 @@ class FromProtoTest(absltest.TestCase):
 
     x_noext = fns.from_proto(m)
     self.assertCountEqual(
-        dir(x_noext),
+        x_noext.get_attr_names(intersection=True),
         [
             'some_text',
             'some_float',
@@ -185,7 +185,7 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        dir(x),
+        x.get_attr_names(intersection=True),
         [
             'some_text',
             'some_float',
@@ -196,7 +196,7 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        dir(x.message_set_extensions),
+        x.message_set_extensions.get_attr_names(intersection=True),
         [
             '(koladata.functions.testing.MessageAExtension.message_set_extension)'
         ],
@@ -209,11 +209,9 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        dir(
-            x.get_attr(
-                '(koladata.functions.testing.MessageAExtension.message_a_extension)'
-            )
-        ),
+        x.get_attr(
+            '(koladata.functions.testing.MessageAExtension.message_a_extension)'
+        ).get_attr_names(intersection=True),
         [
             'extra',
             '(koladata.functions.testing.MessageAExtensionExtension.message_a_extension_extension)',
@@ -227,11 +225,9 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        dir(
-            x.get_attr(
-                '(koladata.functions.testing.MessageAExtension.message_a_extension)'
-            )
-        ),
+        x.get_attr(
+            '(koladata.functions.testing.MessageAExtension.message_a_extension)'
+        ).get_attr_names(intersection=True),
         [
             'extra',
             '(koladata.functions.testing.MessageAExtensionExtension.message_a_extension_extension)',
@@ -249,7 +245,7 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        dir(x.message_b_list[:]),
+        x.message_b_list[:].get_attr_names(intersection=True),
         [
             'text',
             '(koladata.functions.testing.MessageBExtension.message_b_extension)',

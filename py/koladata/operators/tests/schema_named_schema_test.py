@@ -49,7 +49,7 @@ class KodaNamedSchemaTest(parameterized.TestCase):
     rhs = expr_eval.eval(kde.schema.named_schema(I.x), x=rhs_name)
     testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
     self.assertFalse(lhs.is_mutable())
-    self.assertCountEqual(dir(lhs), [])
+    self.assertCountEqual(lhs.get_attr_names(intersection=True), [])
 
   def test_not_equal(self):
     lhs = expr_eval.eval(kde.schema.named_schema('name1'))

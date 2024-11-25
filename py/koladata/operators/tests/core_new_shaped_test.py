@@ -105,7 +105,7 @@ class CoreNewShapedTest(absltest.TestCase):
         ),
         schema=schema,
     ).eval()
-    self.assertEqual(dir(x), ['a', 'b', 'nested'])
+    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b', 'nested'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -120,7 +120,7 @@ class CoreNewShapedTest(absltest.TestCase):
     x = kde.core.new_shaped(
         jagged_shape.create_shape([2]), a=42, schema=schema
     ).eval()
-    self.assertEqual(dir(x), ['a'])
+    self.assertEqual(x.get_attr_names(intersection=True), ['a'])
     testing.assert_equal(
         x.a, ds([42, 42], schema_constants.FLOAT32).with_bag(x.get_bag())
     )
@@ -175,7 +175,7 @@ class CoreNewShapedTest(absltest.TestCase):
         schema=schema,
         update_schema=True,
     ).eval()
-    self.assertEqual(dir(x), ['a', 'b'])
+    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))

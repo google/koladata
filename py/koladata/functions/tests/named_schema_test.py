@@ -25,7 +25,7 @@ class UuSchemaTest(absltest.TestCase):
 
   def test_simple_schema(self):
     schema = fns.named_schema('name')
-    self.assertCountEqual(dir(schema), [])
+    self.assertCountEqual(fns.dir(schema), [])
 
   def test_equal_by_fingerprint(self):
     x = fns.named_schema('name')

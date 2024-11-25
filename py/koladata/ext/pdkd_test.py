@@ -60,7 +60,7 @@ class NpkdTest(parameterized.TestCase):
     with self.subTest('non-primitive df'):
       df = pd.DataFrame({'self_': ['$1', '$2', '$3'], 'x': [1, 2, 3]})
       ds = pdkd.from_dataframe(df)
-      self.assertCountEqual(dir(ds), ['self_', 'x'])
+      self.assertCountEqual(kd.dir(ds), ['self_', 'x'])
       self.assertNotEqual(ds.get_schema(), schema_constants.OBJECT)
       testing.assert_equal(
           ds.get_attr('self_'),
@@ -76,7 +76,7 @@ class NpkdTest(parameterized.TestCase):
     with self.subTest('non-primitive df with as_obj set to True'):
       df = pd.DataFrame({'self_': ['$1', '$2', '$3'], 'x': [1, 2, 3]})
       ds = pdkd.from_dataframe(df, as_obj=True)
-      self.assertCountEqual(dir(ds), ['self_', 'x'])
+      self.assertCountEqual(kd.dir(ds), ['self_', 'x'])
       self.assertEqual(ds.get_schema(), schema_constants.OBJECT)
       testing.assert_equal(
           ds.get_attr('self_'),

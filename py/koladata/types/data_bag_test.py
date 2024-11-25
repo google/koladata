@@ -695,7 +695,7 @@ Assigned schema for 'a': SCHEMA(b=STRING)"""),
   def test_named_schema(self):
     db = bag()
     x = db.named_schema('name')
-    self.assertCountEqual(dir(x), [])
+    self.assertCountEqual(x.get_attr_names(intersection=True), [])
     self.assertEqual(x.get_schema(), schema_constants.SCHEMA)
 
     y = db.named_schema('other name')

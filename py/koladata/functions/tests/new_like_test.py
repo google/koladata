@@ -224,7 +224,7 @@ class NewLikeTest(absltest.TestCase):
         a=schema_constants.INT32, b=schema_constants.STRING
     )
     x = fns.new_like(ds([1, None]), a=42, b='xyz', schema=schema)
-    self.assertEqual(dir(x), ['a', 'b'])
+    self.assertEqual(fns.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, None]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', None]).with_bag(x.get_bag()))
@@ -233,7 +233,7 @@ class NewLikeTest(absltest.TestCase):
   def test_schema_arg_implicit_casting(self):
     schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = fns.new_like(ds([1, 1]), a=42, schema=schema)
-    self.assertEqual(dir(x), ['a'])
+    self.assertEqual(fns.dir(x), ['a'])
     testing.assert_equal(
         x.a, ds([42, 42], schema_constants.FLOAT32).with_bag(x.get_bag())
     )
@@ -244,7 +244,7 @@ class NewLikeTest(absltest.TestCase):
     x = fns.new_like(
         ds([1, 1]), a=42, b='xyz', schema=schema, update_schema=True
     )
-    self.assertEqual(dir(x), ['a', 'b'])
+    self.assertEqual(fns.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
