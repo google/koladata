@@ -12,18 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for tracing_decorator."""
-
 from absl.testing import absltest
+from koladata import kd as user_facing_kd
 from koladata.expr import input_container
 from koladata.expr import introspection
+from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
+from koladata.operators import kde_operators
 from koladata.testing import testing
+from koladata.types import data_bag
+from koladata.types import data_item
 from koladata.types import data_slice
 
 I = input_container.InputContainer('I')
+V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
 
 
 class TracingDecoratorTest(absltest.TestCase):
@@ -107,24 +112,78 @@ class TracingDecoratorTest(absltest.TestCase):
         fn.get_attr_names(intersection=True), ['returns', 'f', '__signature__']
     )
 
-  # TODO: Reenable this when we have kd.attrs.
-  # def test_output_structure_when_used_with_kd_updated(self):
-  #   @tracing_decorator.TraceAsFnDecorator()
-  #   def f(x):
-  #     return user_facing_kd.attrs(x, foo=1)
+  def test_return_type_as(self):
+    @tracing_decorator.TraceAsFnDecorator(return_type_as=data_bag.DataBag)
+    def f(x):
+      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()
 
-  #   x = fns.new(bar=2)
+    fn = functor_factories.trace_py_fn(
+        lambda: user_facing_kd.uu(seed='test').with_bag(f(5)).x
+    )
+    testing.assert_equal(fn().no_bag(), ds(5))
 
-  #   fn = functor_factories.trace_py_fn(lambda x: x.updated(f))
-  #   self.assertEqual(fn(x).to_pytree(), {'foo': 1, 'bar': 2})
-  #   testing.assert_equal(
-  #       introspection.unpack_expr(fn.returns),
-  #       I.x.updated(V.f(I.x)),
-  #   )
-  #   testing.assert_equal(
-  #       introspection.unpack_expr(fn.f.returns),
-  #       kde.attrs(I.x, foo=1),
-  #   )
+  def test_return_type_as_py_fn(self):
+    @tracing_decorator.TraceAsFnDecorator(
+        return_type_as=data_bag.DataBag, py_fn=True
+    )
+    def f(x):
+      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()
+
+    fn = functor_factories.trace_py_fn(
+        lambda: user_facing_kd.uu(seed='test').with_bag(f(5)).x
+    )
+    testing.assert_equal(fn().no_bag(), ds(5))
+
+  def test_return_type_as_errors(self):
+    @tracing_decorator.TraceAsFnDecorator()
+    def f(x):
+      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'The function [f] annotated with @kd.trace_as_fn() was expected to'
+        ' return `DATA_SLICE` as the output type, but the computation resulted'
+        ' in type `DATA_BAG` instead. Consider adding or updating'
+        ' return_type_as= argument to @kd.trace_as_fn().',
+    ):
+      f(5)
+
+    fn = functor_factories.trace_py_fn(f)
+    with self.assertRaisesRegex(
+        ValueError,
+        'the functor was called with `DATA_SLICE` as the output type, but the'
+        ' computation resulted in type `DATA_BAG` instead',
+    ):
+      fn(5)
+
+  def test_result_boxing(self):
+    @tracing_decorator.TraceAsFnDecorator()
+    def f(x):
+      return x + 1
+
+    res = f(5)
+    self.assertIsInstance(res, data_item.DataItem)
+    testing.assert_equal(res, ds(6))
+
+  def test_output_structure_when_used_with_kd_updated(self):
+    empty_bag = data_bag.DataBag.empty()
+
+    @tracing_decorator.TraceAsFnDecorator(return_type_as=empty_bag)
+    def f(x):
+      return user_facing_kd.attrs(x, foo=1)
+
+    x = fns.new(bar=2)
+
+    fn = functor_factories.trace_py_fn(lambda x: x.updated(f(x)))
+    self.assertEqual(fn(x).to_pytree(), {'foo': 1, 'bar': 2})
+    testing.assert_equal(
+        introspection.unpack_expr(fn.returns),
+        I.x.updated(V.f(I.x, return_type_as=empty_bag)),
+    )
+    testing.assert_equal(
+        introspection.unpack_expr(fn.f.returns),
+        kde.attrs(I.x, foo=1),
+    )
 
 
 if __name__ == '__main__':

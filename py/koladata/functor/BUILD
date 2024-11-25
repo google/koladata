@@ -125,6 +125,7 @@ py_library(
     deps = [
         ":functor_factories",
         "//py/koladata/expr:tracing_mode",
+        "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
     ],
 )
@@ -135,9 +136,14 @@ py_test(
     deps = [
         ":functor_factories",
         ":tracing_decorator",
+        "//py/koladata:kd",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
     ],
