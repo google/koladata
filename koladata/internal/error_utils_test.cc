@@ -43,7 +43,6 @@ using ::koladata::schema::AnyDType;
 using ::koladata::schema::DType;
 using ::koladata::schema::GetDType;
 using ::koladata::schema::ItemIdDType;
-using ::koladata::schema::NoneDType;
 using ::koladata::schema::ObjectDType;
 using ::koladata::schema::SchemaDType;
 using ::testing::HasSubstr;

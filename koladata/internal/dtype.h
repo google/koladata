@@ -25,6 +25,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "koladata/internal/missing_value.h"
 #include "koladata/internal/stable_fingerprint.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/quote.h"
@@ -61,10 +62,6 @@ struct ObjectDType {};
 // schema ObjectId(s) or other DType(s).
 struct SchemaDType {};
 
-// Used as schema for DataSlices that can only contain None values, and that a
-// more specific type is not known.
-struct NoneDType {};
-
 // When supporting a new type U, update either `supported_primitives_dtypes` or
 // `supported_dtype_values` (depending on what kind of type U is being added)
 // and add its name to `DType::kDTypeNames` at `TypeId<U>()` position. E.g.:
@@ -76,7 +73,7 @@ using supported_primitive_dtypes =
 using supported_dtype_values = arolla::meta::concat_t<
     supported_primitive_dtypes,
     arolla::meta::type_list<AnyDType, ItemIdDType, ObjectDType, SchemaDType,
-                            NoneDType>>;
+                            internal::MissingValue>>;
 
 using DTypeId = int8_t;
 
@@ -218,7 +215,7 @@ class DType {
         res[GetDTypeId<ItemIdDType>()] = "ITEMID";
         res[GetDTypeId<ObjectDType>()] = "OBJECT";
         res[GetDTypeId<SchemaDType>()] = "SCHEMA";
-        res[GetDTypeId<NoneDType>()] = "NONE";
+        res[GetDTypeId<internal::MissingValue>()] = "NONE";
         return res;
       }();
 
@@ -248,9 +245,8 @@ constexpr DType kAny = GetDType<schema::AnyDType>();
 constexpr DType kObject = GetDType<schema::ObjectDType>();
 constexpr DType kSchema = GetDType<schema::SchemaDType>();
 constexpr DType kItemId = GetDType<schema::ItemIdDType>();
-// Kept as non-primitive since it is created from a special DType, and we will
-// not encounter such values directly in the data.
-constexpr DType kNone = GetDType<schema::NoneDType>();
+// Kept as non-primitive since one cannot have values of MissingValue.
+constexpr DType kNone = GetDType<internal::MissingValue>();
 
 }  // namespace koladata::schema
 

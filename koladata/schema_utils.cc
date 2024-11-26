@@ -32,7 +32,6 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
@@ -44,10 +43,7 @@ namespace {
 // A wrapper around schema::GetDType<T>().name() to handle a few special cases.
 template <typename T>
 constexpr absl::string_view DTypeName() {
-  if constexpr (std::is_same_v<T, koladata::internal::MissingValue>) {
-    // TODO: b/375621456 - follow-up by moving this into GetDType<T>().
-    return "NONE";
-  } else if constexpr (std::is_same_v<T, koladata::internal::ObjectId>) {
+  if constexpr (std::is_same_v<T, koladata::internal::ObjectId>) {
     // NOTE: internal::ObjectId can also mean OBJECT or SCHEMA, but for now we
     // decided to disambiguate it in the error messages.
     return "ITEMID";

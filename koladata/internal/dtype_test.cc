@@ -24,6 +24,7 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
+#include "koladata/internal/missing_value.h"
 #include "koladata/internal/stable_fingerprint.h"
 #include "koladata/internal/types.h"
 #include "arolla/dense_array/dense_array.h"
@@ -96,7 +97,7 @@ std::vector<DType> SupportedDTypes() {
           GetDType<ItemIdDType>(),
           GetDType<ObjectDType>(),
           GetDType<SchemaDType>(),
-          GetDType<NoneDType>()};
+          GetDType<internal::MissingValue>()};
 }
 
 // Make sure that all dtypes defined for DataItem and DataSlice (without DType)
@@ -189,7 +190,8 @@ TEST(DType, FromQType) {
   EXPECT_EQ(GetDType<ItemIdDType>().qtype(), arolla::GetNothingQType());
   EXPECT_EQ(GetDType<ObjectDType>().qtype(), arolla::GetNothingQType());
   EXPECT_EQ(GetDType<SchemaDType>().qtype(), arolla::GetNothingQType());
-  EXPECT_EQ(GetDType<NoneDType>().qtype(), arolla::GetNothingQType());
+  EXPECT_EQ(GetDType<internal::MissingValue>().qtype(),
+            arolla::GetNothingQType());
 }
 
 TEST(DType, TypeId) {

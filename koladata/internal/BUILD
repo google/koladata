@@ -897,6 +897,7 @@ cc_library(
     srcs = ["dtype.cc"],
     hdrs = ["dtype.h"],
     deps = [
+        ":missing_value",
         ":stable_fingerprint",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -915,6 +916,7 @@ cc_test(
     srcs = ["dtype_test.cc"],
     deps = [
         ":dtype",
+        ":missing_value",
         ":stable_fingerprint",
         ":types",
         "@com_google_absl//absl/hash:hash_testing",
