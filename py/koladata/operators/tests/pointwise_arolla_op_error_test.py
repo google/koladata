@@ -58,10 +58,9 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
   def test_entity_input_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.compile(
-            r'kd.math.subtract: expected a numeric value, got'
-            r' x=DataSlice\(.*schema: SCHEMA\(x=INT32\).*\)',
-            re.DOTALL,
+        re.escape(
+            'kd.math.subtract: argument `x` must be a slice of numeric values,'
+            ' got a slice of SCHEMA(x=INT32)',
         ),
     ):
       expr_eval.eval(
@@ -71,8 +70,10 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
   def test_object_input_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r'kd.math.subtract: expected a numeric value, got'
-        r' x=DataSlice\(.*schema: OBJECT.*\)',
+        re.escape(
+            'kd.math.subtract: argument `x` must be a slice of numeric values,'
+            ' got a slice of OBJECT'
+        ),
     ):
       expr_eval.eval(
           kde.math.subtract(bag().obj(x=ds([1, 2, 3])), ds([1, 2, 3]))
@@ -82,8 +83,8 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.math.subtract: expected a numeric value, got y=DataSlice([[1,'
-            " '2'], [3]], schema: OBJECT, shape: JaggedShape(2, [2, 1]))",
+            'kd.math.subtract: argument `y` must be a slice of numeric values,'
+            ' got a slice of OBJECT',
         ),
     ):
       expr_eval.eval(kde.math.subtract(ds([1, 2, 3]), ds([[1, '2'], [3]])))
@@ -103,8 +104,8 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.math.subtract: expected a numeric value, got y=DataSlice(['1',"
-            " '2', '3'], schema: STRING, shape: JaggedShape(3))"
+            'kd.math.subtract: argument `y` must be a slice of numeric values,'
+            ' got a slice of STRING'
         ),
     ):
       expr_eval.eval(kde.math.subtract(ds([1, 2, 3]), ds(['1', '2', '3'])))

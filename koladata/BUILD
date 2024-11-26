@@ -654,6 +654,7 @@ cc_test(
     name = "schema_utils_test",
     srcs = ["schema_utils_test.cc"],
     deps = [
+        ":data_bag",
         ":data_slice",
         ":test_utils",
         "//koladata/internal:data_item",

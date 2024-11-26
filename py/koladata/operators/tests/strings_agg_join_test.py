@@ -240,16 +240,16 @@ class StringsAggJoinTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'strings.agg_join: expected a string or bytes, got x=DataSlice([1,'
-            ' 2], schema: INT32, shape: JaggedShape(2))'
+            'kd.strings.agg_join: argument `x` must be a slice of strings or'
+            ' byteses, got a slice of INT32'
         ),
     ):
       expr_eval.eval(kde.strings.agg_join(ds([1, 2]), sep=ds(b', ')))
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.strings.agg_join: expected a string or bytes, got'
-            ' sep=DataItem(1, schema: INT32)'
+            'kd.strings.agg_join: argument `sep` must be a slice of strings or'
+            ' byteses, got a slice of INT32'
         ),
     ):
       expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(1)))
@@ -257,8 +257,7 @@ class StringsAggJoinTest(parameterized.TestCase):
         exceptions.KodaError,
         re.escape(
             'kd.strings.agg_join: mixing bytes and string arguments is not'
-            " allowed, got x=DataSlice(['foo', 'bar'], schema: STRING, shape:"
-            " JaggedShape(2)) and sep=DataItem(b', ', schema: BYTES)"
+            ' allowed, but `x` contains strings and `sep` contains byteses'
         ),
     ):
       expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(b', ')))

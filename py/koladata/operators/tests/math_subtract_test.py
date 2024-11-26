@@ -120,8 +120,8 @@ class MathSubtractTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.math.subtract: expected a numeric value, got y=DataSlice(['1',"
-            " '2', '3'], schema: STRING, shape: JaggedShape(3))"
+            'kd.math.subtract: argument `y` must be a slice of numeric values,'
+            ' got a slice of STRING'
         ),
     ):
       expr_eval.eval(kde.math.subtract(I.x, I.y), x=x, y=y)

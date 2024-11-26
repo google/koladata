@@ -16,19 +16,49 @@
 
 #include <cstddef>
 #include <optional>
+#include <string>
+#include <utility>
 
 #include "absl/base/nullability.h"
+#include "absl/functional/overload.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/util/string.h"
 
 namespace koladata {
+namespace {
+
+// A wrapper around schema::GetDType<T>().name() to handle a few special cases.
+template <typename T>
+constexpr absl::string_view DTypeName() {
+  if constexpr (std::is_same_v<T, koladata::internal::MissingValue>) {
+    // TODO: b/375621456 - follow-up by moving this into GetDType<T>().
+    return "NONE";
+  } else if constexpr (std::is_same_v<T, koladata::internal::ObjectId>) {
+    // NOTE: internal::ObjectId can also mean OBJECT or SCHEMA, but for now we
+    // decided to disambiguate it in the error messages.
+    return "ITEMID";
+  } else if constexpr (std::is_same_v<T, koladata::schema::DType>) {
+    return "DTYPE";
+  } else {
+    return schema::GetDType<T>().name();
+  }
+}
+
+}  // namespace
 
 internal::DataItem GetNarrowedSchema(const DataSlice& slice) {
   const auto& schema = slice.GetSchemaImpl();
@@ -50,12 +80,45 @@ absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg) {
   if (!schema::IsImplicitlyCastableTo(narrowed_schema,
                                       internal::DataItem(schema::kFloat64))) {
     return absl::InvalidArgumentError(absl::StrFormat(
-        "expected a numeric value, got %s=%s", arg_name, DataSliceRepr(arg)));
+        "argument `%s` must be a slice of numeric values, got a slice of %s",
+        arg_name, schema_utils_internal::DescribeSliceSchema(arg)));
   }
   return absl::OkStatus();
 }
 
 namespace schema_utils_internal {
+
+std::string DescribeSliceSchema(const DataSlice& slice) {
+  if (slice.GetSchemaImpl() == schema::kObject ||
+      slice.GetSchemaImpl() == schema::kAny) {
+    std::string result =
+        absl::StrCat(slice.GetSchemaImpl(), " with ",
+                     slice.size() == 1 ? "an item" : "items", " of ",
+                     slice.impl_has_mixed_dtype() ? "types" : "type", " ");
+    slice.VisitImpl(absl::Overload(
+        [&](const internal::DataItem& impl) {
+          impl.VisitValue([&]<typename T>(const T& value) {
+            absl::StrAppend(&result, DTypeName<T>());
+          });
+        },
+        [&](const internal::DataSliceImpl& impl) {
+          bool first = true;
+          impl.VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
+            absl::StrAppend(&result, arolla::NonFirstComma(first),
+                            DTypeName<T>());
+          });
+        }));
+    return result;
+  } else {
+    absl::StatusOr<std::string> schema_str = DataSliceToStr(slice.GetSchema());
+    // NOTE: schema_str might be always ok(). I don't know a breaking
+    // scenario, so adding the "if" just in case.
+    if (!schema_str.ok()) {
+      schema_str = absl::StrCat(slice.GetSchemaImpl());
+    }
+    return *std::move(schema_str);
+  }
+}
 
 absl::Status ExpectConsistentStringOrBytesImpl(
     absl::Span<const absl::string_view> arg_names,
@@ -76,8 +139,9 @@ absl::Status ExpectConsistentStringOrBytesImpl(
       continue;  // NONE schema.
     } else if (!is_string && !is_bytes) {
       return absl::InvalidArgumentError(
-          absl::StrFormat("expected a string or bytes, got %s=%s", arg_names[i],
-                          DataSliceRepr(*args[i])));
+          absl::StrFormat("argument `%s` must be a slice of strings or "
+                          "byteses, got a slice of %s",
+                          arg_names[i], DescribeSliceSchema(*args[i])));
     } else if (is_string) {
       string_arg_index = string_arg_index.value_or(i);
     } else /* is_bytes */ {
@@ -86,9 +150,9 @@ absl::Status ExpectConsistentStringOrBytesImpl(
   }
   if (string_arg_index.has_value() && bytes_arg_index.has_value()) {
     return absl::InvalidArgumentError(absl::StrFormat(
-        "mixing bytes and string arguments is not allowed, got %s=%s and %s=%s",
-        arg_names[*string_arg_index], DataSliceRepr(*args[*string_arg_index]),
-        arg_names[*bytes_arg_index], DataSliceRepr(*args[*bytes_arg_index])));
+        "mixing bytes and string arguments is not allowed, but "
+        "`%s` contains strings and `%s` contains byteses",
+        arg_names[*string_arg_index], arg_names[*bytes_arg_index]));
   }
   return absl::OkStatus();
 }

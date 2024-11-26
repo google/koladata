@@ -21,6 +21,8 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "koladata/casting.h"
+#include "koladata/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
@@ -36,7 +38,7 @@ using ::absl_testing::IsOk;
 using ::absl_testing::StatusIs;
 using ::koladata::internal::ObjectId;
 using ::koladata::testing::IsEquivalentTo;
-using ::testing::ContainsRegex;
+using ::testing::MatchesRegex;
 
 TEST(SchemaUtilsTest, GetNarrowedSchema_Item) {
   {
@@ -127,8 +129,72 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Slice) {
   }
 }
 
-TEST(Constraints, ExpectNumeric) {
+TEST(SchemaUtilsTest, DescribeSliceSchema) {
+  // Primitives.
+
+  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(test::DataItem(57)),
+            "INT32");
+  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
+                test::DataItem(schema::kInt32)),
+            "SCHEMA");
+  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
+                test::DataSlice<arolla::Text>({"a", "b", std::nullopt})),
+            "STRING");
+  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
+                test::DataItem(57, schema::kObject)),
+            "OBJECT with an item of type INT32");
+  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
+                test::DataItem(std::nullopt, schema::kAny)),
+            "ANY with an item of type NONE");
+  EXPECT_EQ(
+      schema_utils_internal::DescribeSliceSchema(test::DataSlice<arolla::Text>(
+          {"a", "b", std::nullopt}, schema::kObject)),
+      "OBJECT with items of type STRING");
+
+  // Entities and objects.
+
+  auto entity_schema = internal::AllocateExplicitSchema();
+  auto db = DataBag::Empty();
+  auto entity = test::AllocateDataSlice(3, entity_schema, db);
+  ASSERT_OK(db->GetMutableImpl()->get().SetSchemaAttr(
+      internal::DataItem(entity_schema), "x",
+      internal::DataItem(schema::kInt32)));
+  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(entity),
+            "SCHEMA(x=INT32)");
+  // Without a DataBag we can only print an object id.
+  EXPECT_THAT(
+      schema_utils_internal::DescribeSliceSchema(entity.WithBag(nullptr)),
+      MatchesRegex(R"(\$\w+)"));
+
+  ASSERT_OK_AND_ASSIGN(auto object, ToObject(entity));
+  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(object),
+            "OBJECT with items of type ITEMID");
+  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(object.WithBag(nullptr)),
+            "OBJECT with items of type ITEMID");
+
+  // Mixed slices.
+  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
+                test::MixedDataSlice<arolla::Text, std::string>(
+                    {"foo", std::nullopt, std::nullopt},
+                    {std::nullopt, "bar", std::nullopt})),
+            "OBJECT with items of types STRING, BYTES");
+  EXPECT_EQ(
+      schema_utils_internal::DescribeSliceSchema(
+          test::MixedDataSlice<arolla::Text, internal::ObjectId>(
+              {"foo", std::nullopt, std::nullopt},
+              {std::nullopt, internal::AllocateSingleObject(), std::nullopt})),
+      "OBJECT with items of types STRING, ITEMID");
+}
+
+TEST(SchemaUtilsTest, ExpectNumeric) {
   auto empty_and_unknown = test::DataItem(std::nullopt, schema::kObject);
+  auto str = test::DataSlice<arolla::Text>({"a", "b", std::nullopt});
+  auto str_obj =
+      test::DataSlice<arolla::Text>({"a", "b", std::nullopt}, schema::kObject);
+  auto object = test::DataItem(internal::AllocateSingleObject());
+  auto entity = test::AllocateDataSlice(3, internal::AllocateExplicitSchema(),
+                                        DataBag::Empty());
+
   EXPECT_THAT(ExpectNumeric("foo", empty_and_unknown), IsOk());
   EXPECT_THAT(ExpectNumeric("foo", test::DataSlice<int>({1, 2, std::nullopt})),
               IsOk());
@@ -145,11 +211,34 @@ TEST(Constraints, ExpectNumeric) {
   EXPECT_THAT(
       ExpectNumeric("foo", test::DataSlice<bool>({true, false, std::nullopt})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "expected a numeric value, got foo=DataSlice([True, False, "
-               "None], schema: BOOLEAN, shape: JaggedShape(3))"));
+               "argument `foo` must be a slice of numeric values, got a slice "
+               "of BOOLEAN"));
+  EXPECT_THAT(ExpectNumeric("foo", str),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of numeric values, got "
+                       "a slice of STRING"));
+  EXPECT_THAT(ExpectNumeric("foo", str_obj),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of numeric values, got "
+                       "a slice of OBJECT with items of type STRING"));
+  EXPECT_THAT(ExpectNumeric("foo", object),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of numeric values, got "
+                       "a slice of OBJECT with an item of type ITEMID"));
+  EXPECT_THAT(ExpectNumeric("foo", entity),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of numeric values, got "
+                       "a slice of SCHEMA()"));
+  EXPECT_THAT(
+      ExpectNumeric("foo", test::MixedDataSlice<arolla::Text, std::string>(
+                               {"foo", std::nullopt, std::nullopt},
+                               {std::nullopt, "bar", std::nullopt})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of numeric values, got a slice "
+               "of OBJECT with items of types STRING, BYTES"));
 }
 
-TEST(Constraints, ExpectConsistentStringOrBytes) {
+TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
   auto empty_and_unknown = test::DataItem(std::nullopt, schema::kObject);
   auto integer = test::DataSlice<int>({1, 2, std::nullopt});
   auto bytes = test::DataSlice<std::string>({"a", "b", std::nullopt});
@@ -159,6 +248,8 @@ TEST(Constraints, ExpectConsistentStringOrBytes) {
   auto str_obj =
       test::DataSlice<arolla::Text>({"a", "b", std::nullopt}, schema::kObject);
   auto object = test::DataItem(internal::AllocateSingleObject());
+  auto entity = test::AllocateDataSlice(3, internal::AllocateExplicitSchema(),
+                                        DataBag::Empty());
 
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, empty_and_unknown),
               IsOk());
@@ -172,32 +263,37 @@ TEST(Constraints, ExpectConsistentStringOrBytes) {
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo", "bar", "baz"}, bytes,
                                             empty_and_unknown, bytes_any),
               IsOk());
-  EXPECT_THAT(
-      ExpectConsistentStringOrBytes({"foo"}, integer),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "expected a string or bytes, got foo=DataSlice([1, 2, None], "
-               "schema: INT32, shape: JaggedShape(3))"));
+
+  // Unexpected type of one argument.
+
+  EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, integer),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of strings or byteses, "
+                       "got a slice of INT32"));
+  EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, object),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of strings or byteses, "
+                       "got a slice of OBJECT with an item of type ITEMID"));
   EXPECT_THAT(
       ExpectConsistentStringOrBytes(
           {"foo"}, test::MixedDataSlice<arolla::Text, std::string>(
                        {"foo", std::nullopt, std::nullopt},
                        {std::nullopt, "bar", std::nullopt})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "expected a string or bytes, got foo=DataSlice(['foo', "
-               "b'bar', None], schema: OBJECT, shape: JaggedShape(3))"));
-  EXPECT_THAT(
-      ExpectConsistentStringOrBytes({"foo"}, object),
-      StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          ContainsRegex(
-              "expected a string or bytes, got foo=DataItem.*schema: OBJECT")));
+               "argument `foo` must be a slice of strings or byteses, got a "
+               "slice of OBJECT with items of types STRING, BYTES"));
+  EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, entity),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of strings or byteses, "
+                       "got a slice of SCHEMA()"));
+
+  // Mixing bytes and string arguments.
+
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo", "bar", "baz"}, str,
                                             empty_and_unknown, bytes),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "mixing bytes and string arguments is not allowed, got "
-                       "foo=DataSlice(['a', 'b', None], schema: STRING, shape: "
-                       "JaggedShape(3)) and baz=DataSlice([b'a', b'b', None], "
-                       "schema: BYTES, shape: JaggedShape(3))"));
+                       "mixing bytes and string arguments is not allowed, but "
+                       "`foo` contains strings and `baz` contains byteses"));
 }
 
 }  // namespace
