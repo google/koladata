@@ -254,6 +254,13 @@ std::string DataSliceItemRepr(
     const DataItem& item, const DataItem& schema,
     const ReprOption& option, WrappingBehavior& wrapping) {
   if (item.holds_value<ObjectId>()) {
+    const ObjectId& obj = item.value<ObjectId>();
+    if (schema == schema::kItemId) {
+      return ObjectIdStr(obj, /*show_flag_prefix=*/true);
+    }
+    if (obj == ObjectId::NoFollowObjectSchemaId()) {
+      return "NOFOLLOW(OBJECT)";
+    }
     absl::string_view item_prefix = "";
     if (item.is_dict()) {
       item_prefix = "Dict:";

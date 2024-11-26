@@ -584,6 +584,63 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SplitLines) {
 ])"));
 }
 
+TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_ItemId) {
+  {
+    // Dict with ITEMID schema.
+    ObjectId dict_id_1 = internal::AllocateSingleDict();
+    ObjectId dict_id_2 = internal::AllocateSingleDict();
+
+    DataSlice ds =
+        test::DataSlice<ObjectId>({dict_id_1, dict_id_2}, schema::kItemId);
+    EXPECT_THAT(
+        DataSliceToStr(ds),
+        IsOkAndHolds(MatchesRegex(
+            R"regex(\[Dict:\$[0-9a-zA-Z]{22}, Dict:\$[0-9a-zA-Z]{22}\])regex")));
+  }
+  {
+    // List with ITEMID schema.
+    ObjectId list_id_1 = internal::AllocateSingleList();
+    ObjectId list_id_2 = internal::AllocateSingleList();
+    DataSlice ds =
+        test::DataSlice<ObjectId>({list_id_1, list_id_2}, schema::kItemId);
+    EXPECT_THAT(
+        DataSliceToStr(ds),
+        IsOkAndHolds(MatchesRegex(
+            R"regex(\[List:\$[0-9a-zA-Z]{22}, List:\$[0-9a-zA-Z]{22}\])regex")));
+  }
+  {
+    // Schema with ITEMID schema.
+    ObjectId schema_id_1 = internal::AllocateExplicitSchema();
+    ObjectId schema_id_2 = internal::AllocateExplicitSchema();
+    DataSlice ds =
+        test::DataSlice<ObjectId>({schema_id_1, schema_id_2}, schema::kItemId);
+    EXPECT_THAT(
+        DataSliceToStr(ds),
+        IsOkAndHolds(MatchesRegex(
+            R"regex(\[Schema:\$[0-9a-zA-Z]{22}, Schema:\$[0-9a-zA-Z]{22}\])regex")));
+  }
+  {
+    // Entity with ITEMID schema.
+    ObjectId entity_id_1 = internal::AllocateSingleObject();
+    ObjectId entity_id_2 = internal::AllocateSingleObject();
+    DataSlice ds =
+        test::DataSlice<ObjectId>({entity_id_1, entity_id_2}, schema::kItemId);
+    EXPECT_THAT(
+        DataSliceToStr(ds),
+        IsOkAndHolds(MatchesRegex(
+            R"regex(\[Entity:\$[0-9a-zA-Z]{22}, Entity:\$[0-9a-zA-Z]{22}\])regex")));
+  }
+}
+
+TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_NoFollowSchema) {
+  DataSlice ds = test::DataSlice<ObjectId>(
+      {ObjectId::NoFollowObjectSchemaId(), ObjectId::NoFollowObjectSchemaId()},
+      schema::kSchema);
+  EXPECT_THAT(
+      DataSliceToStr(ds),
+      IsOkAndHolds("[NOFOLLOW(OBJECT), NOFOLLOW(OBJECT)]"));
+}
+
 TEST(DataSliceReprTest, TestStringRepresentation_NoFollow) {
   DataBagPtr bag = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
