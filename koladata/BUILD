@@ -546,6 +546,39 @@ cc_test(
 )
 
 cc_library(
+    name = "pointwise_utils",
+    hdrs = ["pointwise_utils.h"],
+    deps = [
+        ":data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:missing_value",
+        "@com_google_absl//absl/functional:overload",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "pointwise_utils_test",
+    srcs = ["pointwise_utils_test.cc"],
+    deps = [
+        ":pointwise_utils",
+        ":test_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "test_utils",
     testonly = 1,
     hdrs = ["test_utils.h"],

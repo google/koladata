@@ -270,6 +270,7 @@ py_library(
     srcs = ["strings.py"],
     deps = [
         ":jagged_shape",
+        ":logical",
         ":op_repr",
         ":optools",
         ":qtype_utils",

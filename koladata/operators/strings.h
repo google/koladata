@@ -54,6 +54,13 @@ absl::StatusOr<DataSlice> Contains(const DataSlice& x, const DataSlice& substr);
 // kde.strings.count.
 absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr);
 //
+// kde.strings._decode_base64
+absl::StatusOr<DataSlice> DecodeBase64(const DataSlice& x,
+                                       bool missing_if_invalid);
+//
+// kde.strings.encode_base64
+absl::StatusOr<DataSlice> EncodeBase64(const DataSlice& x);
+//
 // kde.strings.find.
 absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,
                                const DataSlice& start, const DataSlice& end,

@@ -18,12 +18,15 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
@@ -31,15 +34,18 @@
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/utils.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
+#include "koladata/pointwise_utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/shape_utils.h"
 #include "arolla/memory/frame.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
@@ -50,6 +56,10 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/meta.h"
+#include "arolla/util/repr.h"
+#include "arolla/util/string.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -144,6 +154,64 @@ absl::StatusOr<DataSlice> Contains(const DataSlice& x,
 absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr) {
   return SimplePointwiseEval("strings.count", {x, substr},
                              internal::DataItem(schema::kInt32));
+}
+
+absl::StatusOr<DataSlice> DecodeBase64(const DataSlice& x,
+                                       bool missing_if_invalid) {
+  static constexpr std::string_view kOperatorName = "kd.strings.decode_base64";
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x"}, x))
+      .With(OpError(kOperatorName));
+  return ApplyUnaryPointwiseFn(
+      x,
+      [&]<typename T>(arolla::meta::type<T>, const auto& value_view)
+          -> absl::StatusOr<arolla::OptionalValue<arolla::Bytes>> {
+        if constexpr (std::is_same_v<T, arolla::Text> ||
+                      std::is_same_v<T, arolla::Bytes>) {
+          std::string dst;
+          if (!absl::Base64Unescape(value_view, &dst)) {
+            if (missing_if_invalid) {
+              return std::nullopt;
+            }
+            return OperatorEvalError(
+                kOperatorName,
+                absl::StrFormat(
+                    "invalid base64 string: %s",
+                    arolla::Truncate(
+                        arolla::Repr(internal::DataItem(T(value_view))), 200)));
+          }
+          return arolla::Bytes(std::move(dst));
+        } else {
+          return OperatorEvalError(
+              kOperatorName, absl::StrFormat("expected bytes or string, got %s",
+                                             arolla::GetQType<T>()->name()));
+        }
+      },
+      internal::DataItem(schema::kBytes));
+}
+
+absl::StatusOr<DataSlice> EncodeBase64(const DataSlice& x) {
+  static constexpr std::string_view kOperatorName = "kd.strings.encode_base64";
+  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(x),
+                                      internal::DataItem(schema::kBytes))) {
+    return OperatorEvalError(
+        kOperatorName,
+        absl::StrFormat("expected bytes, got %s", DataSliceRepr(x)));
+  }
+  return ApplyUnaryPointwiseFn(
+      x,
+      [&]<typename T>(arolla::meta::type<T>,
+                      const auto& value_view) -> absl::StatusOr<arolla::Text> {
+        if constexpr (std::is_same_v<T, arolla::Bytes>) {
+          std::string dst;
+          absl::Base64Escape(value_view, &dst);
+          return arolla::Text(std::move(dst));
+        } else {
+          return OperatorEvalError(
+              kOperatorName, absl::StrFormat("expected bytes, got %s",
+                                             arolla::GetQType<T>()->name()));
+        }
+      },
+      internal::DataItem(schema::kString));
 }
 
 absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,

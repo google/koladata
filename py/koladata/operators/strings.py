@@ -17,6 +17,7 @@
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import jagged_shape as jagged_shape_ops
+from koladata.operators import logical as logical_ops
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
@@ -802,4 +803,76 @@ def decode(x):  # pylint: disable=unused-argument
 )
 def encode(x):  # pylint: disable=unused-argument
   """Encodes `x` as BYTES using UTF-8 encoding."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.strings._decode_base64',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        constraints.expect_boolean(P.missing_if_invalid),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _decode_base64(x, missing_if_invalid):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.strings.decode_base64',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.on_invalid),
+    ],
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def decode_base64(
+    x=py_boxing.positional_only(),
+    on_invalid=py_boxing.keyword_only(arolla.unspecified()),
+):  # pylint: disable=unused-argument
+  """Decodes BYTES from `x` using base64 encoding (RFC 4648 section 4).
+
+  The input strings may either have no padding, or must have the correct amount
+  of padding. ASCII whitespace characters anywhere in the string are ignored.
+
+  Args:
+    x: DataSlice of STRING or BYTES containing base64-encoded strings.
+    on_invalid: If unspecified (the default), any invalid base64 strings in `x`
+      will cause an error. Otherwise, this must be a DataSlice broadcastable to
+      `x` with a schema compatible with BYTES, and will be used in the result
+      wherever the input string was not valid base64.
+
+  Returns:
+    DataSlice of BYTES.
+  """
+  return arolla.types.DispatchOperator(
+      'x, on_invalid',
+      error_if_invalid_case=arolla.types.DispatchCase(
+          _decode_base64(P.x, arolla.boolean(False)),
+          condition=P.on_invalid == arolla.UNSPECIFIED,
+      ),
+      default=logical_ops.coalesce(
+          _decode_base64(P.x, arolla.boolean(True)),
+          logical_ops.apply_mask(P.on_invalid, logical_ops.has(P.x)),
+      ),
+  )(x, on_invalid)
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.strings.encode_base64',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def encode_base64(x):  # pylint: disable=unused-argument
+  """Encodes BYTES `x` using base64 encoding (RFC 4648 section 4), with padding.
+
+  Args:
+    x: DataSlice of BYTES to encode.
+
+  Returns:
+    DataSlice of STRING.
+  """
   raise NotImplementedError('implemented in the backend')

@@ -234,12 +234,14 @@ OPERATOR_FAMILY("kde.shapes.create",
 OPERATOR("kde.shapes.get_shape", GetShape);
 //
 OPERATOR("kde.strings._agg_join", AggJoin);
+OPERATOR("kde.strings._decode_base64", DecodeBase64);
 OPERATOR_FAMILY("kde.strings._test_only_format_wrapper",
                 arolla::MakeVariadicInputOperatorFamily(TestOnlyFormatWrapper));
 OPERATOR("kde.strings.contains", Contains);
 OPERATOR("kde.strings.count", Count);
 OPERATOR("kde.strings.decode", Decode);
 OPERATOR("kde.strings.encode", Encode);
+OPERATOR("kde.strings.encode_base64", EncodeBase64);
 OPERATOR("kde.strings.find", Find);
 OPERATOR_FAMILY("kde.strings.format", std::make_unique<FormatOperatorFamily>());
 OPERATOR_FAMILY("kde.strings.join",
