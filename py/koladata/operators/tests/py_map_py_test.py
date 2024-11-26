@@ -75,8 +75,7 @@ class PyMapPyTest(parameterized.TestCase):
       res = expr_eval.eval(kde.py.map_py(my_lambda, x))
       testing.assert_equal(res.x.no_bag(), ds([[1, 1], [2]]))
       testing.assert_equal(res.y.no_bag(), ds([[2, 2], [1]]))
-      # TODO: b/323305977 - This should be addressed in .from_py.
-      # self.assertFalse(res.is_mutable())
+      self.assertFalse(res.is_mutable())
 
       res = expr_eval.eval(kde.py.map_py(my_lambda, x.S[0, 0]))
       testing.assert_equal(res.x.no_bag(), ds(1))
@@ -169,6 +168,7 @@ class PyMapPyTest(parameterized.TestCase):
     testing.assert_equal(res.no_bag(), ds([], schema_constants.FLOAT32))
 
   def test_map_py_with_schema(self):
+    val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     schema = functions.schema.new_schema(
         u=schema_constants.INT32, v=schema_constants.INT32
     )
@@ -186,10 +186,6 @@ class PyMapPyTest(parameterized.TestCase):
     def my_func_correct_schema(x):
       return None if x is None else functions.new(u=x, v=x + 1, schema=schema)
 
-    val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
-    schema = functions.schema.new_schema(
-        u=schema_constants.INT32, v=schema_constants.INT32
-    )
     res = expr_eval.eval(
         kde.py.map_py(my_func_correct_schema, val, schema=schema)
     )
@@ -197,8 +193,7 @@ class PyMapPyTest(parameterized.TestCase):
     testing.assert_equal(
         res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
-    # TODO: b/323305977 - This should be addressed in .from_py.
-    # self.assertFalse(res.is_mutable())
+    self.assertFalse(res.is_mutable())
 
     res = expr_eval.eval(
         kde.py.map_py(my_func_correct_schema, ds([]), schema=schema)
@@ -206,8 +201,7 @@ class PyMapPyTest(parameterized.TestCase):
     self.assertEqual(res.get_schema(), schema)
     testing.assert_equal(res.v.no_bag(), ds([], schema_constants.INT32))
     self.assertTrue(res.is_mutable())
-    # TODO: b/323305977 - This should be addressed in .from_py.
-    # self.assertIs(res.get_bag(), schema.get_bag())
+    testing.assert_equal(res.get_bag(), schema.get_bag())
 
     res = expr_eval.eval(
         kde.py.map_py(
@@ -222,8 +216,7 @@ class PyMapPyTest(parameterized.TestCase):
     testing.assert_equal(
         res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
-    # TODO: b/323305977 - This should be addressed in .from_py.
-    # self.assertFalse(res.is_mutable())
+    self.assertFalse(res.is_mutable())
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
@@ -234,8 +227,8 @@ class PyMapPyTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
-        re.escape('the schema for List item is incompatible'),
+        ValueError,
+        'the schema is incompatible.*assigned ANY',
     ):
       _ = expr_eval.eval(
           kde.py.map_py(my_func_any_schema, ds([1, 2]), schema=schema)
@@ -266,8 +259,7 @@ class PyMapPyTest(parameterized.TestCase):
         res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
     self.assertTrue(res.is_mutable())
-    # TODO: b/323305977 - This should be addressed in .from_py.
-    # self.assertIs(res.get_bag(), db)
+    testing.assert_equal(res.get_bag(), db)
 
     res = expr_eval.eval(
         kde.py.map_py(
@@ -278,9 +270,7 @@ class PyMapPyTest(parameterized.TestCase):
     testing.assert_equal(
         res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
-    # We had to create new triples to adopt the schema, so the DataBag is new.
-    # TODO: b/323305977 - This should be addressed in .from_py.
-    # self.assertFalse(res.is_mutable())
+    self.assertFalse(res.is_mutable())
 
     res = expr_eval.eval(
         kde.py.map_py(
@@ -295,9 +285,7 @@ class PyMapPyTest(parameterized.TestCase):
     testing.assert_equal(
         res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
-    # We had to create new triples to embed the schema, so the DataBag is new.
-    # TODO: b/323305977 - This should be addressed in .from_py.
-    # self.assertFalse(res.is_mutable())
+    self.assertFalse(res.is_mutable())
 
   def test_map_py_empty_input(self):
     def add_one(x):

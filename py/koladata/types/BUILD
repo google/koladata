@@ -91,6 +91,7 @@ cc_library(
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
         "//koladata/internal:types",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",

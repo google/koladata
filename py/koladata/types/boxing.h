@@ -112,13 +112,9 @@ absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
 // This version of deep conversion supports a mode in which Python dictionaries
 // are converted into Koda Objects / Entities (depending on which schema is
 // provided).
-//
-// `db` and `adoption_queue` are side outputs. `db` is used to create Koda
-// objects found under `py_obj`, while `adoption_queue` is used to collect
-// DataBag(s) of DataSlice(s) from nested `py_obj`.
 absl::StatusOr<DataSlice> GenericFromPyObject(
     PyObject* py_obj, bool dict_as_obj, const std::optional<DataSlice>& schema,
-    size_t from_dim, const DataBagPtr& db, AdoptionQueue& adoption_queue);
+    size_t from_dim);
 
 }  // namespace koladata::python
 

@@ -305,56 +305,6 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
   return WrapPyDataSlice(*std::move(res));
 }
 
-// Low-level interface for implementing `kd.from_py` behavior. See the docstring
-// of `kd.from_py` for details.
-absl::Nullable<PyObject*> PyDataBag_from_py_impl(PyObject* self,
-                                                 PyObject* const* py_args,
-                                                 Py_ssize_t nargs) {
-  arolla::python::DCheckPyGIL();
-  if (nargs != 5) {
-    PyErr_Format(PyExc_ValueError,
-                 "DataBag._from_py_impl accepts exactly 5 arguments, got %d",
-                 nargs);
-    return nullptr;
-  }
-  if (!PyBool_Check(py_args[1])) {
-    PyErr_Format(PyExc_TypeError, "expecting dict_as_obj to be a bool, got %s",
-                 Py_TYPE(py_args[1])->tp_name);
-    return nullptr;
-  }
-  bool dict_as_obj = py_args[1] == Py_True;
-  if (!PyLong_Check(py_args[4])) {
-    PyErr_Format(PyExc_TypeError, "expecting from_dim to be an int, got %s",
-                 Py_TYPE(py_args[4])->tp_name);
-    return nullptr;
-  }
-  size_t from_dim = PyLong_AsSize_t(py_args[4]);
-  if (PyErr_Occurred()) {
-    return nullptr;
-  }
-  std::optional<DataSlice> itemid;
-  std::optional<DataSlice> schema_arg;
-  if (!UnwrapDataSliceOptionalArg(py_args[2], "itemid", itemid) ||
-      !UnwrapDataSliceOptionalArg(py_args[3], "schema", schema_arg)) {
-    return nullptr;
-  }
-  // TODO: Python caller does not pass `itemid` yet. Remove after
-  // fully supported.
-  DCHECK(!itemid.has_value());
-  AdoptionQueue adoption_queue;
-  const DataBagPtr& self_db = UnsafeDataBagPtr(self);
-  ASSIGN_OR_RETURN(auto res,
-                   GenericFromPyObject(py_args[0], dict_as_obj, schema_arg,
-                                       from_dim, self_db, adoption_queue),
-                   arolla::python::SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
-      .With([&](const absl::Status& status) {
-        return arolla::python::SetPyErrFromStatus(
-            CreateItemCreationError(status, schema_arg));
-      });
-  return WrapPyDataSlice(std::move(res));
-}
-
 // Returns a DataSlice that represents an entity with the given DataBag
 // associated with it.
 //
@@ -1674,10 +1624,6 @@ Args:
 Returns:
   The DataSlice with this DataBag (including adopted data) attached.
 )"""},
-    {"_from_py_impl", (PyCFunction)PyDataBag_from_py_impl, METH_FASTCALL,
-     "_from_py_impl(x, dict_as_obj, itemid, schema, from_dim, /)\n"
-     "--\n\n"
-     "DataBag._from_py_impl"},
     {"merge_fallbacks", PyDataBag_merge_fallbacks, METH_NOARGS,
      "merge_fallbacks()\n"
      "--\n\n"

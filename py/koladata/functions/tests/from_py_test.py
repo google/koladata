@@ -66,9 +66,75 @@ class FromPyTest(absltest.TestCase):
         nested_values[:], ds([1, 2, 3]).with_bag(obj.get_bag())
     )
 
+    ref = fns.obj().ref()
+    testing.assert_equal(fns.from_py([ref], from_dim=1), ds([ref]))
+
+  def test_same_bag(self):
+    db = fns.bag()
+    o1 = db.obj()
+    o2 = db.obj()
+
+    res = fns.from_py(o1)
+    testing.assert_equal(res.get_bag(), db)
+
+    res = fns.from_py([[o1, o2], [42]], from_dim=2)
+    self.assertTrue(res.get_bag().is_mutable())
+    testing.assert_equal(
+        res, ds([[o1, o2], [42]], schema_constants.OBJECT).with_bag(db)
+    )
+
+    # The result databag is not the same in case of entity schema.
+    l1 = db.list()
+    l2 = db.list()
+    res = fns.from_py([[l1, l2], [o1, o2]], from_dim=2)
+    testing.assert_equivalent(
+        res, ds([[l1, l2], [o1, o2]], schema_constants.OBJECT)
+    )
+
+    res = fns.from_py([[o1, o2], [l1, l2], [42]], from_dim=2)
+    testing.assert_equivalent(
+        res,
+        ds([[o1, o2], [l1, l2], [42]], schema_constants.OBJECT),
+    )
+
+  def test_does_not_borrow_data_from_input_db(self):
+    db = fns.bag()
+    e1 = db.new(a=42, schema='S')
+    e2 = db.new(a=12, schema='S')
+    lst = [e1, e2]
+    res = fns.from_py(lst)
+    self.assertNotEqual(e1.get_bag().fingerprint, res.get_bag().fingerprint)
+    self.assertFalse(res.get_bag().is_mutable())
+
+  def test_any_schema(self):
+    db = fns.bag()
+    e1 = db.new(a=42, schema='S')
+    e2 = db.new(a=12, schema='S')
+    lst = [e1, e2]
+    res = fns.from_py(lst, schema=schema_constants.ANY.with_bag(fns.bag()))
+    self.assertNotEqual(e1.get_bag().fingerprint, res.get_bag().fingerprint)
+
+  def test_can_use_frozen_input_bag(self):
+    db = fns.bag()
+    e = db.new(a=12, schema='S').freeze()
+    lst = [e]
+    res = fns.from_py(lst)
+    testing.assert_equal(res[:].a.no_bag(), ds([12], schema_constants.INT32))
+
+  def test_different_bags(self):
+    o1 = fns.obj()  # bag 1
+    o2 = fns.list()  # bag 2
+
+    res = fns.from_py([[o1, o2], [42]], from_dim=2)
+    testing.assert_equal(
+        res.no_bag(),
+        ds([[o1, o2], [42]], schema_constants.OBJECT).no_bag(),
+    )
+
   def test_list(self):
     l = fns.from_py([1, 2, 3])
     testing.assert_equal(l[:].no_bag(), ds([1, 2, 3]))
+    self.assertFalse(l.get_bag().is_mutable())
 
   # More detailed tests for conversions to Koda Entities for Lists are located
   # in new_test.py.
@@ -135,14 +201,12 @@ class FromPyTest(absltest.TestCase):
 
   def test_primitives_common_schema(self):
     res = fns.from_py([1, 3.14], from_dim=1)
-    # TODO(b/378029690) this should not have a DataBag.
-    testing.assert_equal(res.no_bag(), ds([1.0, 3.14]))
+    testing.assert_equal(res, ds([1.0, 3.14]))
 
   def test_primitives_object(self):
     res = fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.OBJECT)
     # TODO: this should return OBJECTs, not FLOAT32s.
-    # TODO(b/378029690) this should not have a DataBag.
-    testing.assert_equal(res.no_bag(), ds([1.0, 3.14]))
+    testing.assert_equal(res, ds([1.0, 3.14]))
 
   def test_list_from_dim(self):
     input_list = [[1, 2], [3, 4]]
@@ -155,10 +219,12 @@ class FromPyTest(absltest.TestCase):
     self.assertEqual(l1.get_ndim(), 1)
     testing.assert_equal(l1[:].no_bag(), ds([[1, 2], [3, 4]]))
 
-    # TODO(b/378029690) this should not have a DataBag.
     l2 = fns.from_py(input_list, from_dim=2)
     self.assertEqual(l2.get_ndim(), 2)
-    testing.assert_equal(l2.no_bag(), ds([[1, 2], [3, 4]]))
+    testing.assert_equal(l2, ds([[1, 2], [3, 4]]))
+
+    l3 = fns.from_py([1, 2], from_dim=1)
+    testing.assert_equal(l3, ds([1, 2]))
 
   def test_list_from_dim_with_schema(self):
     input_list = [[1, 2], [3, 4]]
@@ -181,12 +247,9 @@ class FromPyTest(absltest.TestCase):
         l1[:].no_bag(), ds([[1, 2], [3, 4]], schema_constants.FLOAT32)
     )
 
-    # TODO(b/378029690) this should not have a DataBag.
     l2 = fns.from_py(input_list, schema=schema_constants.FLOAT64, from_dim=2)
     self.assertEqual(l2.get_ndim(), 2)
-    testing.assert_equal(
-        l2.no_bag(), ds([[1, 2], [3, 4]], schema_constants.FLOAT64)
-    )
+    testing.assert_equal(l2, ds([[1, 2], [3, 4]], schema_constants.FLOAT64))
 
   def test_dict_from_dim(self):
     input_dict = [{ds('a'): [1, 2], 'b': [42]}, {ds('c'): [3, 4], 'd': [34]}]
@@ -227,6 +290,7 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(item, ds(None))
     item = fns.from_py(None, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(None, schema_constants.FLOAT32))
+
     schema = fns.schema.new_schema(
         a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
     )
@@ -260,10 +324,9 @@ class FromPyTest(absltest.TestCase):
     )
 
     item = fns.from_py(entity.ref(), schema=entity.get_schema())
-    testing.assert_equal(item.no_bag(), entity.no_bag())
-    # no data triples (item.x => 42) in the DataBag.
-    testing.assert_equivalent(item.get_schema(), entity.get_schema().extract())
-    testing.assert_equal(item.x.no_bag(), ds(None, schema_constants.INT32))
+    self.assertTrue(item.get_bag().is_mutable())
+    # NOTE: Schema bag is unchanged and treated similar to other inputs.
+    testing.assert_equal(item, entity)
 
   def test_any_to_entity_casting_error(self):
     with self.assertRaisesRegex(
@@ -544,28 +607,21 @@ class FromPyTest(absltest.TestCase):
     ):
       fns.from_py([1, 2], dict_as_obj=42)  # pytype: disable=wrong-arg-types
 
-  # pylint: disable=protected-access
-  # TODO: Migrate these to test_arg_errors.
-  def test_internal_arg_errors(self):
     with self.assertRaisesRegex(
-        ValueError, '_from_py_impl accepts exactly 5 arguments, got 2'
+        NotImplementedError, 'passing itemid is not yet supported'
     ):
-      fns.bag()._from_py_impl([1, 2], 42)
-    with self.assertRaisesRegex(
-        TypeError, 'expecting itemid to be a DataSlice, got int'
-    ):
-      fns.bag()._from_py_impl([1, 2], False, 42, fns.schema.new_schema(), 0)
+      fns.from_py(
+          [1, 2],
+          dict_as_obj=False,
+          itemid=42,
+          schema=fns.schema.new_schema(),
+          from_dim=0,
+      )
+
     with self.assertRaisesRegex(
         TypeError, 'expecting from_dim to be an int, got str'
     ):
-      fns.bag()._from_py_impl(
-          [1, 2], False, fns.new(), fns.schema.new_schema(), 'abc'
-      )
-    with self.assertRaisesRegex(OverflowError, 'Python int too large'):
-      fns.bag()._from_py_impl(
-          [1, 2], False, fns.new(), fns.schema.new_schema(), 1 << 100
-      )
-  # pylint: enable=protected-access
+      fns.from_py([1, 2], from_dim='abc')  # pytype: disable=wrong-arg-types
 
 
 if __name__ == '__main__':

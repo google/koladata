@@ -17,7 +17,6 @@
 from typing import Any
 
 from arolla import arolla
-from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import dict_item  # pylint: disable=unused-import
 from koladata.types import list_item  # pylint: disable=unused-import
@@ -59,7 +58,7 @@ def from_py(
   """
   if itemid is not None:
     raise NotImplementedError('passing itemid is not yet supported')
-  return data_bag.DataBag.empty()._from_py_impl(  # pylint: disable=protected-access
+  return data_slice.DataSlice._from_py_impl(  # pylint: disable=protected-access
       py_obj, dict_as_obj, itemid, schema, from_dim
   )
 

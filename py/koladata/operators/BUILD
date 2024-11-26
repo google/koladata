@@ -391,7 +391,6 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//py/koladata/expr:py_expr_eval_py_ext",
-        "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",

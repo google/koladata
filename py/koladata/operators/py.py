@@ -26,7 +26,6 @@ from koladata.operators import logical as _
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -398,19 +397,15 @@ def _basic_map_py(
       max_threads=max_threads,
       item_completed_callback=item_completed_callback,
   )
-  # TODO: b/323305977 - Use .from_py(..., from_dim=1) instead of the manual list
-  # explosion when available.
-  bag = data_bag.DataBag.empty()
-  from_py_schema = (
-      schema_constants.OBJECT if schema is None else bag.list_schema(schema)
-  )
-  result = bag._from_py_impl(  # pylint: disable=protected-access
+  if schema is None:
+    schema = schema_constants.OBJECT
+  result = data_slice.DataSlice._from_py_impl(  # pylint: disable=protected-access
       result,
       False,  # dict_as_obj=
       None,  # itemid=
-      from_py_schema,  # schema=
-      0,  # from_dim=,
-  )[:]
+      schema,  # schema=
+      1,  # from_dim=,
+  )
   return result.reshape(shape[: shape_rank - ndim])
 
 
