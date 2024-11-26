@@ -53,6 +53,7 @@
 #include "koladata/internal/types.h"
 #include "koladata/object_factories.h"
 #include "koladata/repr_utils.h"
+#include "koladata/schema_utils.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -96,6 +97,17 @@ absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
                    DataSlice::Create(std::move(impl), std::move(shape),
                                      DataItem(schema::kAny), std::move(db)));
   return CastToExplicit(res_any, schema, /*validate_schema=*/false);
+}
+
+// Returns an Error with incompatible schema information during narrow casting.
+absl::Status CreateIncompatibleSchemaError(
+    const internal::DataItem& expected_schema,
+    const internal::DataItem& actual_schema) {
+  // TODO: Improve the error message with payload and deep schema
+  // information.
+  return absl::InvalidArgumentError(absl::StrFormat(
+      "the schema is incompatible: expected %s, assigned %s",
+      DataItemRepr(expected_schema), DataItemRepr(actual_schema)));
 }
 
 // Helper class for embedding schemas into an auxiliary DataBag.
@@ -688,12 +700,23 @@ class UniversalConverter {
     }
 
     if (from_dim == 0) {
-      RETURN_IF_ERROR(CmdConvertPyObject(py_obj, schema, /*is_root=*/true));
+      RETURN_IF_ERROR(CmdConvertPyObject(py_obj, schema));
       RETURN_IF_ERROR(Run());
-      if (value_stack_.top().GetBag() == nullptr && !adoption_queue_.empty()) {
-        return value_stack_.top().WithBag(db_);
+      // TODO: When OBJECT is no longer a default argument to
+      // kd.from_py, remove it as a special case here, as casting to OBJECT will
+      // happen even for primitives in kd.from_py (not only in kd.obj).
+      DataSlice res = std::move(value_stack_.top());
+      if (schema && schema->item() != schema::kObject) {
+        ASSIGN_OR_RETURN(res, CastToNarrow(res, schema->item()),
+                         [&](absl::Status status) {
+                           return CreateIncompatibleSchemaError(
+                               schema->item(), GetNarrowedSchema(res));
+                         }(_));
       }
-      return std::move(value_stack_.top());
+      if (res.GetBag() == nullptr && !adoption_queue_.empty()) {
+        return res.WithBag(db_);
+      }
+      return res;
     }
 
     ASSIGN_OR_RETURN(
@@ -701,13 +724,13 @@ class UniversalConverter {
         PyObjectsFromPyList(py_obj, adoption_queue_, from_dim + 1));
     for (int i = 0; i < py_objects.size(); ++i) {
       cmd_stack_.push([this, py_obj = py_objects[i], &schema] {
-        return this->CmdConvertPyObject(py_obj, schema, /*is_root=*/true);
+        return this->CmdConvertPyObject(py_obj, schema);
       });
     }
     RETURN_IF_ERROR(Run());
-    ASSIGN_OR_RETURN(auto res, ComputeDataSlice(py_objects.size()));
+    ASSIGN_OR_RETURN(DataSlice res,
+                     ComputeDataSlice(py_objects.size(), schema));
     ASSIGN_OR_RETURN(DataSlice reshaped_res, res.Reshape(std::move(shape)));
-
     if (reshaped_res.GetBag() == nullptr && !adoption_queue_.empty()) {
       return reshaped_res.WithBag(db_);
     }
@@ -759,21 +782,34 @@ class UniversalConverter {
 
   // Takes `size` preconstructed DataItems from `value_stack_` and constructs
   // a DataSlice.
-  absl::StatusOr<DataSlice> ComputeDataSlice(size_t size) {
+  absl::StatusOr<DataSlice> ComputeDataSlice(
+      size_t size,
+      const std::optional<DataSlice>& input_schema = std::nullopt) {
     internal::SliceBuilder bldr(size);
     schema::CommonSchemaAggregator schema_agg;
+    if (input_schema && input_schema->item() != schema::kObject) {
+      schema_agg.Add(schema::kNone);  // All missing -> NONE.
+    }
     for (size_t i = 0; i < size; ++i) {
       bldr.InsertIfNotSetAndUpdateAllocIds(i, value_stack_.top().item());
-      schema_agg.Add(value_stack_.top().GetSchemaImpl());
+      schema_agg.Add(GetNarrowedSchema(value_stack_.top()));
       value_stack_.pop();
     }
     ASSIGN_OR_RETURN(
-        auto schema, std::move(schema_agg).Get(),
+        DataItem schema_item, std::move(schema_agg).Get(),
         AssembleErrorMessage(_, {.db = adoption_queue_.GetBagWithFallbacks()}));
-    // Creating with casting so that all items are converted to `schema`.
+    // TODO: When OBJECT is no longer a default argument to
+    // kd.from_py, remove it as a special case here, as casting to OBJECT will
+    // happen even for primitives in kd.from_py (not only in kd.obj).
+    if (input_schema && input_schema->item() != schema::kObject) {
+      if (!schema::IsImplicitlyCastableTo(schema_item, input_schema->item())) {
+        return CreateIncompatibleSchemaError(input_schema->item(), schema_item);
+      }
+      schema_item = input_schema->item();
+    }
     return CreateWithSchema(std::move(bldr).Build(),
-                            DataSlice::JaggedShape::FlatFromSize(size), schema,
-                            db_);
+                            DataSlice::JaggedShape::FlatFromSize(size),
+                            schema_item, db_);
   }
 
   // Collects the keys and values of the python dictionary `py_obj`, and
@@ -830,7 +866,7 @@ class UniversalConverter {
         DataSlice::Create(
             internal::DataSliceImpl::Create(attr_names),
             DataSlice::JaggedShape::FlatFromSize(attr_names.size()),
-            internal::DataItem(schema::kString)));
+            DataItem(schema::kString)));
     cmd_stack_.push([this, attr_names_ds = std::move(attr_names_ds)] {
       this->value_stack_.push(attr_names_ds);
       return absl::OkStatus();
@@ -936,8 +972,7 @@ class UniversalConverter {
   // `schema` is used to create an appropriate Koda Abstraction with appropriate
   // schema. Schema is processed recursively.
   absl::Status CmdConvertPyObject(PyObject* py_obj,
-                                  const std::optional<DataSlice>& schema,
-                                  bool is_root = false) {
+                                  const std::optional<DataSlice>& schema) {
     // Push `std::nullopt` to detect recursive Python structures.
     auto [computed_iter, emplaced] = computed_.emplace(
         MakeCacheKey(py_obj, schema), std::nullopt);
@@ -974,10 +1009,10 @@ class UniversalConverter {
         });
         return ParsePyDict(py_obj, schema);
       }
-        cmd_stack_.push([this, schema = schema] {
-          return this->CmdComputeObj(schema);
-        });
-        return ParsePyDictAsObj(py_obj, schema);
+      cmd_stack_.push([this, schema = schema] {
+        return this->CmdComputeObj(schema);
+      });
+      return ParsePyDictAsObj(py_obj, schema);
     }
     if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
       cmd_stack_.push([this, py_obj, schema = schema] {
@@ -993,21 +1028,19 @@ class UniversalConverter {
       });
       return ParsePyAttrProvider(py_obj, *attr_result, schema);
     }
-    // NOTE: If !is_root, casting is left for List / Dict / Object / Entity to
-    // handle, because of error messages with appropriate context.
-    ASSIGN_OR_RETURN(
-        auto res,
-        DataSliceFromPyValue(py_obj, adoption_queue_,
-                             is_root && schema ? &(*schema) : nullptr));
-    if (res.GetShape().rank() > 0) {
+    // NOTE: No schema is passed to DataSliceFromPyValue (in which case explicit
+    // casting would happend), because universal conversion relies on implicit /
+    // narrowing casting in all use-cases.
+    ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue_));
+    if (!res.is_item()) {
       return absl::InvalidArgumentError(
           "dict / list containing multi-dim DataSlice(s) is not convertible"
           " to a DataSlice");
     }
     // Only Entities are converted using Factory, while primitives are kept as
-    // is, unless they are the ones being converted explicitly (e.g.
-    // kd.obj(42), in which case `is_root` is true).
-    if (res.GetSchemaImpl().is_entity_schema() || is_root) {
+    // is, because building an OBJECT slice in ComputeDataSlice is not possilbe
+    // if Entities are not already converted.
+    if (res.GetSchemaImpl().is_entity_schema()) {
       ASSIGN_OR_RETURN(res, Factory::ConvertWithoutAdopt(db_, res));
     }
     value_stack_.push(res);
@@ -1024,8 +1057,8 @@ class UniversalConverter {
     ASSIGN_OR_RETURN(auto values, ComputeDataSlice(dict_size));
     ASSIGN_OR_RETURN(
         auto res,
-        CreateDictShaped(db_, DataSlice::JaggedShape::Empty(), std::move(keys),
-                         std::move(values), dict_schema));
+        CreateDictShaped(db_, DataSlice::JaggedShape::Empty(),
+                         std::move(keys), std::move(values), dict_schema));
     // NOTE: Factory is not applied on keys and values DataSlices (just on their
     // elements and dict created from those keys and values).
     ASSIGN_OR_RETURN(value_stack_.emplace(),
@@ -1042,9 +1075,8 @@ class UniversalConverter {
     const size_t list_size = PySequence_Fast_GET_SIZE(py_obj);
     ASSIGN_OR_RETURN(auto items, ComputeDataSlice(list_size));
     ASSIGN_OR_RETURN(
-        auto res,
-        CreateListShaped(db_, DataSlice::JaggedShape::Empty(), std::move(items),
-                         list_schema));
+        auto res, CreateListShaped(db_, DataSlice::JaggedShape::Empty(),
+                                   std::move(items), list_schema));
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::ConvertWithoutAdopt(db_, res));
     computed_.insert_or_assign(

@@ -116,8 +116,33 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(item, ds(42, schema_constants.INT32))
 
   def test_primitive_casting_error(self):
-    with self.assertRaisesRegex(ValueError, 'cannot cast BYTES to MASK'):
+    with self.assertRaisesRegex(
+        ValueError, 'the schema is incompatible: expected MASK, assigned BYTES'
+    ):
       fns.from_py(b'xyz', schema=schema_constants.MASK)
+
+  def test_primitive_down_casting_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'the schema is incompatible: expected INT32, assigned FLOAT32'
+    ):
+      fns.from_py(3.14, schema=schema_constants.INT32)
+    with self.assertRaisesRegex(
+        ValueError,
+        'the schema is incompatible: expected INT32, assigned FLOAT32'
+    ):
+      fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.INT32)
+
+  def test_primitives_common_schema(self):
+    res = fns.from_py([1, 3.14], from_dim=1)
+    # TODO(b/378029690) this should not have a DataBag.
+    testing.assert_equal(res.no_bag(), ds([1.0, 3.14]))
+
+  def test_primitives_object(self):
+    res = fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.OBJECT)
+    # TODO: this should return OBJECTs, not FLOAT32s.
+    # TODO(b/378029690) this should not have a DataBag.
+    testing.assert_equal(res.no_bag(), ds([1.0, 3.14]))
 
   def test_list_from_dim(self):
     input_list = [[1, 2], [3, 4]]
@@ -155,9 +180,6 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(
         l1[:].no_bag(), ds([[1, 2], [3, 4]], schema_constants.FLOAT32)
     )
-
-    lst = fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.INT32)
-    testing.assert_equal(lst.no_bag(), ds([1, 3], schema_constants.INT32))
 
     # TODO(b/378029690) this should not have a DataBag.
     l2 = fns.from_py(input_list, schema=schema_constants.FLOAT64, from_dim=2)
@@ -212,6 +234,15 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equivalent(item.get_schema(), schema)
     testing.assert_equal(item.no_bag(), ds(None).with_schema(schema.no_bag()))
 
+  def test_empty_slice(self):
+    res = fns.from_py([], from_dim=1, schema=schema_constants.FLOAT32)
+    testing.assert_equal(res.no_bag(), ds([], schema_constants.FLOAT32))
+    schema = fns.schema.new_schema(
+        a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
+    )
+    res = fns.from_py([], from_dim=1, schema=schema)
+    testing.assert_equal(res.no_bag(), ds([], schema))
+
   def test_obj_reference(self):
     obj = fns.obj()
     item = fns.from_py(obj.ref())
@@ -233,6 +264,15 @@ class FromPyTest(absltest.TestCase):
     # no data triples (item.x => 42) in the DataBag.
     testing.assert_equivalent(item.get_schema(), entity.get_schema().extract())
     testing.assert_equal(item.x.no_bag(), ds(None, schema_constants.INT32))
+
+  def test_any_to_entity_casting_error(self):
+    with self.assertRaisesRegex(
+        ValueError, 'the schema is incompatible: expected .*, assigned ANY'
+    ):
+      fns.from_py(
+          [fns.new(x=42).as_any(), fns.new(x=12).as_any()],
+          from_dim=1, schema=fns.uu_schema(x=schema_constants.INT32)
+      )
 
   def test_dict_as_obj_if_schema_provided(self):
     schema = fns.named_schema('foo').with_attrs(a=schema_constants.INT32)

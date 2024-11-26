@@ -386,7 +386,9 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
     testing.assert_equal(item.no_bag(), ds([1.0, 2.0]))
 
   def test_universal_converter_primitive_casting_error(self):
-    with self.assertRaisesRegex(ValueError, 'cannot cast BYTES to MASK'):
+    with self.assertRaisesRegex(
+        ValueError, 'the schema is incompatible: expected MASK, assigned BYTES'
+    ):
       fns.new(b'xyz', schema=schema_constants.MASK)
 
   def test_universal_converter_none(self):
