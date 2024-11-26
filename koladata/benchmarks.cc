@@ -22,6 +22,7 @@
 
 #include "benchmark/benchmark.h"
 #include "absl/log/check.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
@@ -39,6 +40,7 @@
 #include "koladata/test_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {
@@ -55,6 +57,77 @@ DataSlice::JaggedShape::Edge GetEdge(int64_t parent_size, int64_t children) {
   return DataSlice::JaggedShape::Edge::FromSplitPoints(
              CreateDenseArray<int64_t>(std::move(split_points)))
       .value();
+}
+
+absl::Status CreateAttributeDataBag(DataBagPtr bag, int64_t size,
+                                    int64_t attr_size) {
+  std::vector<std::string> attr_names;
+  attr_names.reserve(attr_size);
+
+  for (int i = 0; i < attr_size; ++i) {
+    attr_names.push_back(internal::Base62Repr(i));
+  }
+  std::vector<absl::string_view> attr_name_views(attr_names.begin(),
+                                                 attr_names.end());
+  auto values = std::vector<DataSlice>(attr_size, test::DataItem(12));
+  DataSlice::JaggedShape shape = DataSlice::JaggedShape::FlatFromSize(size);
+
+  // Batch creates the entities in the DataBag.
+  ASSIGN_OR_RETURN(
+      auto _,
+      EntityCreator::Shaped(bag, std::move(shape), attr_name_views, values));
+  return absl::OkStatus();
+}
+
+absl::Status CreateSmallAllocDataBag(DataBagPtr bag, int64_t size,
+                                     int64_t attr_size) {
+  std::vector<std::string> attr_names;
+  attr_names.reserve(attr_size);
+
+  for (int i = 0; i < attr_size; ++i) {
+    attr_names.push_back(internal::Base62Repr(i));
+  }
+  std::vector<absl::string_view> attr_name_views(attr_names.begin(),
+                                                 attr_names.end());
+  auto values = std::vector<DataSlice>(attr_size, test::DataItem(12));
+
+  for (int i = 0; i < size; ++i) {
+    // Creates one entity at a time with all attributes.
+    ASSIGN_OR_RETURN(auto _,
+                     EntityCreator::FromAttrs(bag, attr_name_views, values));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status Create1DListDataBag(DataBagPtr bag, int64_t size, int64_t dim) {
+  DataSlice::JaggedShape shape = DataSlice::JaggedShape::FlatFromSize(dim);
+  ASSIGN_OR_RETURN(DataSlice values, DataSlice::CreateWithSchemaFromData(
+      internal::DataSliceImpl::Create(
+          arolla::CreateConstDenseArray<int64_t>(dim, 12)),
+      std::move(shape)));
+
+  for (int i = 0; i < size; ++i) {
+    // Creates one list at a time.
+    ASSIGN_OR_RETURN(auto _, CreateListsFromLastDimension(
+        bag, values, /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status Create2DListDataBag(DataBagPtr bag, int64_t first_dim,
+                                 int64_t second_dim) {
+  DataSlice::JaggedShape::Edge edge_1 = GetEdge(1, first_dim);
+  DataSlice::JaggedShape::Edge edge_2 = GetEdge(first_dim, second_dim);
+  DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+      {std::move(edge_1), std::move(edge_2)});
+  ASSIGN_OR_RETURN(DataSlice values, DataSlice::CreateWithSchemaFromData(
+      internal::DataSliceImpl::Create(
+          arolla::CreateConstDenseArray<int64_t>(first_dim * second_dim, 12)),
+      std::move(shape)));
+
+  ASSIGN_OR_RETURN(DataSlice list, CreateListsFromLastDimension(
+      bag, values, /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+  return absl::OkStatus();
 }
 
 void BM_IsEquivalentToSameImpl(benchmark::State& state) {
@@ -587,46 +660,8 @@ void BM_DataBagStatistics_Attributes(benchmark::State& state) {
 
   int64_t size = state.range(0);
   int64_t attr_size = state.range(1);
-  std::vector<std::string> attr_names;
-  attr_names.reserve(attr_size);
 
-  for (int i = 0; i < attr_size; ++i) {
-    attr_names.push_back(internal::Base62Repr(i));
-  }
-  std::vector<absl::string_view> attr_name_views(attr_names.begin(),
-                                                 attr_names.end());
-  auto values = std::vector<DataSlice>(attr_size, test::DataItem(12));
-  DataSlice::JaggedShape shape = DataSlice::JaggedShape::FlatFromSize(size);
-
-  // Batch creates the entities in the DataBag.
-  CHECK_OK(
-      EntityCreator::Shaped(bag, std::move(shape), attr_name_views, values));
-  for (auto _ : state) {
-    benchmark::DoNotOptimize(bag);
-    auto res = *DataBagStatistics(bag);
-    benchmark::DoNotOptimize(res);
-  }
-}
-
-void BM_DataBagStatistics_Attributes_SmallAlloc(benchmark::State& state) {
-  DataBagPtr bag = DataBag::Empty();
-  int64_t attr_size = state.range(1);
-  std::vector<std::string> attr_names;
-  attr_names.reserve(attr_size);
-
-  for (int i = 0; i < attr_size; ++i) {
-    attr_names.push_back(internal::Base62Repr(i));
-  }
-  std::vector<absl::string_view> attr_name_views(attr_names.begin(),
-                                                 attr_names.end());
-  auto values = std::vector<DataSlice>(attr_size, test::DataItem(12));
-
-  int64_t size = state.range(0);
-  for (int i = 0; i < size; ++i) {
-    // Creates one entity at a time with all attributes.
-    CHECK_OK(EntityCreator::FromAttrs(bag, attr_name_views, values));
-  }
-
+  CHECK_OK(CreateAttributeDataBag(bag, size, attr_size));
   for (auto _ : state) {
     benchmark::DoNotOptimize(bag);
     auto res = *DataBagStatistics(bag);
@@ -640,28 +675,69 @@ BENCHMARK(BM_DataBagStatistics_Attributes)
     ->Args({100, 100})
     ->Args({1000, 1000});
 
+void BM_DataBagContentsRepr_Attributes_BigAlloc(benchmark::State& state) {
+  DataBagPtr bag = DataBag::Empty();
+
+  int64_t size = state.range(0);
+  int64_t attr_size = state.range(1);
+
+  CHECK_OK(CreateAttributeDataBag(bag, size, attr_size));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(bag);
+    auto res = *DataBagToStr(bag);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_DataBagContentsRepr_Attributes_BigAlloc)
+    // Item sizes, attribute sizes.
+    ->Args({10, 10})
+    ->Args({100, 100})
+    ->Args({1000, 1000});
+
+void BM_DataBagStatistics_Attributes_SmallAlloc(benchmark::State& state) {
+  DataBagPtr bag = DataBag::Empty();
+  int64_t size = state.range(0);
+  int64_t attr_size = state.range(1);
+
+  CHECK_OK(CreateSmallAllocDataBag(bag, size, attr_size));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(bag);
+    auto res = *DataBagStatistics(bag);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
 BENCHMARK(BM_DataBagStatistics_Attributes_SmallAlloc)
     // Item sizes, attribute sizes.
     ->Args({10, 10})
     ->Args({100, 100})
     ->Args({1000, 1000});
 
+void BM_DataBagContentsRepr_Attributes_SmallAlloc(benchmark::State& state) {
+  DataBagPtr bag = DataBag::Empty();
+  int64_t size = state.range(0);
+  int64_t attr_size = state.range(1);
+
+  CHECK_OK(CreateSmallAllocDataBag(bag, size, attr_size));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(bag);
+    auto res = DataBagToStr(bag);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_DataBagContentsRepr_Attributes_SmallAlloc)
+    // Item sizes, attribute sizes.
+    ->Args({10, 10})
+    ->Args({100, 100})
+    ->Args({1000, 1000});
 
 void BM_DataBagStatistics_Lists(benchmark::State& state) {
   int64_t first_dim = state.range(0);
   int64_t second_dim = state.range(1);
   auto db = DataBag::Empty();
-  DataSlice::JaggedShape::Edge edge_1 = GetEdge(1, first_dim);
-  DataSlice::JaggedShape::Edge edge_2 = GetEdge(first_dim, second_dim);
-  DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-      {std::move(edge_1), std::move(edge_2)});
-  DataSlice values = *DataSlice::CreateWithSchemaFromData(
-      internal::DataSliceImpl::Create(
-          arolla::CreateConstDenseArray<int64_t>(first_dim * second_dim, 12)),
-      std::move(shape));
-
-  DataSlice list = *CreateListsFromLastDimension(
-      db, values, /*schema=*/std::nullopt, test::Schema(schema::kAny));
+  CHECK_OK(Create2DListDataBag(db, first_dim, second_dim));
   for (auto _ : state) {
     benchmark::DoNotOptimize(db);
     auto res = *DataBagStatistics(db);
@@ -675,5 +751,22 @@ BENCHMARK(BM_DataBagStatistics_Lists)
     ->Args({100, 100})
     ->Args({1000, 1000});
 
+void BM_DataBagContentsRepr_Lists(benchmark::State& state) {
+  int64_t size = state.range(0);
+  int64_t dim = state.range(1);
+  auto db = DataBag::Empty();
+  CHECK_OK(Create1DListDataBag(db, size, dim));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(db);
+    auto res = *DataBagToStr(db);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_DataBagContentsRepr_Lists)
+    // First dim, second dim.
+    ->Args({10, 10})
+    ->Args({1000, 100})
+    ->Args({10000, 100});
 }  // namespace
 }  // namespace koladata
