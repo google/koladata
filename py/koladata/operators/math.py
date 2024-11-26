@@ -766,6 +766,47 @@ def cum_sum(x, ndim=arolla.unspecified()):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.math._softmax',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.weights),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _softmax(x, weights):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.math.softmax',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.beta),
+        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
+    ],
+)
+def softmax(
+    x, beta=data_slice.DataSlice.from_vals(1.0), ndim=arolla.unspecified()
+):
+  """Returns the softmax of x alon the last ndim dimensions.
+
+  The softmax represents Exp(x * beta) / Sum(Exp(x * beta)) over last ndim
+  dimensions of x.
+
+  Args:
+    x: An array of numbers.
+    beta: A floating point scalar number that controls the smooth of the
+      softmax.
+    ndim: The number of last dimensions to compute softmax over.
+  """
+  x_flattened = jagged_shape_ops.flatten_last_ndim(x, ndim)
+  res = _softmax(x_flattened, beta)
+  return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.math._cdf',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),

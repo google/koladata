@@ -179,6 +179,7 @@ OPERATOR("kde.math._cdf", Cdf);
 OPERATOR("kde.math._cum_max", CumMax);
 OPERATOR("kde.math._cum_min", CumMin);
 OPERATOR("kde.math._cum_sum", CumSum);
+OPERATOR("kde.math._softmax", Softmax);
 OPERATOR("kde.math.abs", Abs);
 OPERATOR("kde.math.ceil", Ceil);
 OPERATOR("kde.math.divide", Divide);

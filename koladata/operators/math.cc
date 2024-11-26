@@ -141,6 +141,12 @@ absl::StatusOr<DataSlice> CumSum(const DataSlice& x) {
   return SimpleAggOverEval("math.cum_sum", {x});
 }
 
+absl::StatusOr<DataSlice> Softmax(const DataSlice& x, const DataSlice& beta) {
+  return SimpleAggOverEval("math.softmax", {x, beta},
+                           /*output_schema=*/internal::DataItem(),
+                           /*edge_arg_index=*/2);
+}
+
 absl::StatusOr<DataSlice> Cdf(const DataSlice& x, const DataSlice& weights) {
   return SimpleAggOverEval("math.cdf", {x, weights},
                            /*output_schema=*/internal::DataItem(),
