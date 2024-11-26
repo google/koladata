@@ -758,6 +758,17 @@ TEST(ObjectIdTest, ObjectIdStringFormat) {
               MatchesRegex(R"regex(\$[0-9a-zA-Z]{22})regex"));
 }
 
+TEST(ObjectIdTest, ObjectIdStringFormat_ShowFlagPrefix) {
+  EXPECT_THAT(ObjectIdStr(AllocateSingleList(), /*show_flag_prefix=*/true),
+              MatchesRegex(R"regex(List:\$[0-9a-zA-Z]{22})regex"));
+  EXPECT_THAT(ObjectIdStr(AllocateSingleDict(), /*show_flag_prefix=*/true),
+              MatchesRegex(R"regex(Dict:\$[0-9a-zA-Z]{22})regex"));
+  EXPECT_THAT(ObjectIdStr(AllocateSingleObject(), /*show_flag_prefix=*/true),
+              MatchesRegex(R"regex(Entity:\$[0-9a-zA-Z]{22})regex"));
+  EXPECT_THAT(ObjectIdStr(AllocateExplicitSchema(), /*show_flag_prefix=*/true),
+              MatchesRegex(R"regex(Schema:\$[0-9a-zA-Z]{22})regex"));
+}
+
 TEST(ObjectIdTest, AllocateUuids) {
   for (size_t size = 1; size <= 257; ++size) {
     AllocationId alloc_id = AllocateUuids(

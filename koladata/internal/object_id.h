@@ -15,6 +15,7 @@
 #ifndef KOLADATA_INTERNAL_OBJECT_ID_H_
 #define KOLADATA_INTERNAL_OBJECT_ID_H_
 
+#include <stdbool.h>
 #include <algorithm>
 #include <compare>
 #include <cstddef>
@@ -518,11 +519,24 @@ inline ObjectId GetOriginalFromNoFollow(ObjectId nofollow_object_id) {
   return id;
 }
 
-// Returns the string representation for the ObjectId. UUID has prefix 'k',
-// others are '$'.
-inline std::string ObjectIdStr(const ObjectId& id) {
-  absl::string_view prefix = id.IsUuid() ? "#" : "$";
-  return absl::StrCat(prefix, Base62Repr(id.ToRawInt128()));
+// Returns the string representation for the ObjectId. UUID has prefix '#',
+// others are '$'. If show_flag_prefix is true, then the string will be prefixed
+// with the type of the object.
+inline std::string ObjectIdStr(const ObjectId& id,
+                               bool show_flag_prefix = false) {
+  absl::string_view flag_prefix = "";
+  if (show_flag_prefix) {
+    flag_prefix = "Entity:";
+    if (id.IsDict()) {
+      flag_prefix = "Dict:";
+    } else if (id.IsList()) {
+      flag_prefix = "List:";
+    } else if (id.IsSchema()) {
+      flag_prefix = "Schema:";
+    }
+  }
+  absl::string_view id_prefix = id.IsUuid() ? "#" : "$";
+  return absl::StrCat(flag_prefix, id_prefix, Base62Repr(id.ToRawInt128()));
 }
 
 // Represents set of unique allocation ids.

@@ -264,18 +264,16 @@ std::string DataSliceItemRepr(
       item_prefix = "Entity:";
     }
     return absl::StrCat(item_prefix,
-                        wrapping.MaybeWrapObjectId(
-                            item, wrapping.MaybeEscape(DataItemRepr(item))));
-  } else {
-    bool is_obj_or_any_schema =
-        schema == schema::kObject || schema == schema::kAny;
-    bool is_mask_schema = schema == schema::kMask;
-    return wrapping.MaybeEscape(DataItemRepr(
-        item,
-        {.show_dtype = is_obj_or_any_schema,
-         .show_missing = is_mask_schema,
-         .unbounded_type_max_len = option.unbounded_type_max_len}));
+                        wrapping.MaybeWrapObjectId(item, DataItemRepr(item)));
   }
+  bool is_obj_or_any_schema =
+      schema == schema::kObject || schema == schema::kAny;
+  bool is_mask_schema = schema == schema::kMask;
+  return wrapping.MaybeEscape(DataItemRepr(
+      item,
+      {.show_dtype = is_obj_or_any_schema,
+        .show_missing = is_mask_schema,
+        .unbounded_type_max_len = option.unbounded_type_max_len}));
 }
 
 // Returns the string representations for the value(s) of the `included_groups`
@@ -520,7 +518,12 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
               .unbounded_type_max_len = option.unbounded_type_max_len})));
   };
 
+  const DataItem& schema = ds.GetSchemaImpl();
   const DataItem& data_item = ds.item();
+  if (!data_item.has_value()) {
+    return DataItemRepr(data_item, {.show_missing = (schema == schema::kMask)});
+  }
+
   DCHECK_GE(option.depth, 0);
   if (option.depth == 0) {
     return repr_with_wrapping(data_item);
@@ -529,7 +532,51 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
   ReprOption next_option = option;
   --next_option.depth;
 
-  const DataItem& schema = ds.GetSchemaImpl();
+  // When DataSlice holds a schema DataItem.
+  if (schema.is_schema_schema()) {
+    if (data_item.holds_value<schema::DType>()) {
+      return absl::StrCat(data_item.value<schema::DType>());
+    }
+    DCHECK(data_item.holds_value<ObjectId>());
+    const ObjectId& obj = data_item.value<ObjectId>();
+    if (ds.GetBag() == nullptr) {
+      return ObjectIdStr(obj);
+    }
+    if (obj.IsNoFollowSchema()) {
+      if (obj == ObjectId::NoFollowObjectSchemaId()) {
+        return "NOFOLLOW(OBJECT)";
+      }
+      const ObjectId original = internal::GetOriginalFromNoFollow(obj);
+      return absl::StrCat("NOFOLLOW(", ObjectIdStr(original), ")");
+    }
+    if (ds.IsListSchema()) {
+      return ListSchemaStr(ds, next_option, wrapping);
+    }
+    if (ds.IsDictSchema()) {
+      return DictSchemaStr(ds, next_option, wrapping);
+    }
+    absl::string_view prefix = "";
+    if (obj.IsExplicitSchema()) {
+      prefix = "SCHEMA(";
+    } else if (obj.IsImplicitSchema()) {
+      prefix = "IMPLICIT_SCHEMA(";
+    }
+    size_t initial_html_char_count = wrapping.html_char_count;
+    ASSIGN_OR_RETURN(std::vector<std::string> schema_parts,
+                     AttrsToStrParts(ds, next_option, wrapping));
+    return PrettyFormatStr(
+      schema_parts, {.prefix = prefix, .suffix = ")"},
+      wrapping.html_char_count - initial_html_char_count);
+  }
+
+  // Handle ITEMID schema explicitly. We should not show any additional
+  // detail about the ObjectId in this case.
+  if (schema.is_itemid_schema()) {
+    DCHECK(data_item.holds_value<ObjectId>());
+    return ObjectIdStr(data_item.value<ObjectId>(),
+                                  /*show_flag_prefix=*/true);
+  }
+
   if (data_item.holds_value<ObjectId>()) {
     // STRING items inside Lists and Dicts are quoted.
     next_option.strip_quotes = false;
@@ -540,8 +587,8 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
     const ObjectId& obj = data_item.value<ObjectId>();
     if (schema.holds_value<ObjectId>() &&
         schema.value<ObjectId>().IsNoFollowSchema()) {
-      return absl::StrCat("Nofollow(Entity:",
-                          repr_with_wrapping(data_item), ")");
+      return absl::StrCat("Nofollow(",
+                          ObjectIdStr(obj, /*show_flag_prefix=*/true), ")");
     }
     if (obj.IsList()) {
       return ListToStr(ds, next_option, wrapping);
@@ -549,53 +596,24 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
     if (obj.IsDict()) {
       return DictToStr(ds, next_option, wrapping);
     }
-    absl::string_view prefix = "Entity(";
-    if (obj.IsNoFollowSchema()) {
-      if (obj == ObjectId::NoFollowObjectSchemaId()) {
-        return "NOFOLLOW(OBJECT)";
-      }
-      const DataItem original =
-          DataItem(internal::GetOriginalFromNoFollow(obj));
-      return absl::StrCat(
-          "NOFOLLOW(", wrapping.MaybeEscape(DataItemRepr(original)), ")");
-    } else if (obj.IsExplicitSchema()) {
-      ASSIGN_OR_RETURN(std::string list_schema_str,
-                       ListSchemaStr(ds, next_option, wrapping));
-      if (!list_schema_str.empty()) {
-        return list_schema_str;
-      }
-      ASSIGN_OR_RETURN(std::string dict_schema_str,
-                       DictSchemaStr(ds, next_option, wrapping));
-      if (!dict_schema_str.empty()) {
-        return dict_schema_str;
-      }
-      prefix = "SCHEMA(";
-    } else if (obj.IsImplicitSchema()) {
-      prefix = "IMPLICIT_SCHEMA(";
-    } else if (schema == schema::kObject) {
-      prefix = "Obj(";
-    }
 
+    absl::string_view prefix = (schema == schema::kObject) ? "Obj(" : "Entity(";
     size_t initial_html_char_count = wrapping.html_char_count;
-    ASSIGN_OR_RETURN(std::vector<std::string> schema_parts,
+    ASSIGN_OR_RETURN(std::vector<std::string> attr_parts,
                      AttrsToStrParts(ds, next_option, wrapping));
     // Append ItemId if there is no attribute
-    if (schema_parts.empty() && !obj.IsSchema()) {
-      return absl::StrCat(prefix, "):", wrapping.MaybeEscape(
-          DataItemRepr(data_item)));
+    if (attr_parts.empty()) {
+      return absl::StrCat(prefix, "):", ObjectIdStr(obj));
     }
-    return PrettyFormatStr(
-      schema_parts, {.prefix = prefix, .suffix = ")"},
-      wrapping.html_char_count - initial_html_char_count);
+    return PrettyFormatStr(attr_parts, {.prefix = prefix, .suffix = ")"},
+                           wrapping.html_char_count - initial_html_char_count);
   }
   bool is_obj_or_any_schema =
       schema == schema::kObject || schema == schema::kAny;
-  bool is_mask_schema = schema == schema::kMask;
   return wrapping.MaybeEscape(
       DataItemRepr(data_item, {
         .strip_quotes = option.strip_quotes,
         .show_dtype = is_obj_or_any_schema,
-        .show_missing = is_mask_schema,
         .unbounded_type_max_len = option.unbounded_type_max_len}));
 }
 

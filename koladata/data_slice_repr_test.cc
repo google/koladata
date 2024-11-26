@@ -405,6 +405,8 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_NoBag) {
 
   EXPECT_THAT(DataSliceToStr(entity),
               IsOkAndHolds(MatchesRegex(R"regex(\$[0-9a-zA-Z]{22})regex")));
+  EXPECT_THAT(DataSliceToStr(entity.GetSchema()),
+              IsOkAndHolds(MatchesRegex(R"regex(\$[0-9a-zA-Z]{22})regex")));
 }
 
 TEST(DataSliceReprTest, TestItemStringReprWithFallbackDB) {
@@ -618,7 +620,7 @@ TEST(DataSliceReprTest, TestStringRepresentation_NoFollow) {
   ASSERT_OK_AND_ASSIGN(DataSlice nofollow_dict, NoFollow(dict));
   EXPECT_THAT(DataSliceToStr(nofollow_dict),
               IsOkAndHolds(MatchesRegex(
-                  R"regex(Nofollow\(Entity:\$[0-9a-zA-Z]{22}\))regex")));
+                  R"regex(Nofollow\(Dict:\$[0-9a-zA-Z]{22}\))regex")));
   EXPECT_THAT(
       DataSliceToStr(nofollow_dict.GetSchema()),
       IsOkAndHolds(MatchesRegex(R"regex(NOFOLLOW\(#[0-9a-zA-Z]{22}\))regex")));
@@ -629,7 +631,7 @@ TEST(DataSliceReprTest, TestStringRepresentation_NoFollow) {
   ASSERT_OK_AND_ASSIGN(DataSlice nofollow_list, NoFollow(list));
   EXPECT_THAT(DataSliceToStr(nofollow_list),
               IsOkAndHolds(MatchesRegex(
-                  R"regex(Nofollow\(Entity:\$[0-9a-zA-Z]{22}\))regex")));
+                  R"regex(Nofollow\(List:\$[0-9a-zA-Z]{22}\))regex")));
   EXPECT_THAT(
       DataSliceToStr(nofollow_list.GetSchema()),
       IsOkAndHolds(MatchesRegex(R"regex(NOFOLLOW\(#[0-9a-zA-Z]{22}\))regex")));
@@ -690,6 +692,37 @@ TEST(DataSliceReprTest, TestStringRepresentation_ShowDtypeOnAnyAndObject) {
                                                 schema::kAny);
   EXPECT_THAT(DataSliceToStr(slice),
               IsOkAndHolds("[float64{1.234}, int64{123}]"));
+}
+
+TEST(DataSliceReprTest, TestStringRepresentation_ItemId) {
+  {
+    ObjectId item_id = internal::AllocateSingleObject();
+    DataSlice item = test::DataItem<ObjectId>(item_id, schema::kItemId);
+    EXPECT_THAT(
+        DataSliceToStr(item),
+        IsOkAndHolds(MatchesRegex(R"regex(Entity:\$[0-9a-zA-Z]{22})regex")));
+  }
+  {
+    ObjectId dict_id = internal::AllocateSingleDict();
+    DataSlice item = test::DataItem<ObjectId>(dict_id, schema::kItemId);
+    EXPECT_THAT(
+        DataSliceToStr(item),
+        IsOkAndHolds(MatchesRegex(R"regex(Dict:\$[0-9a-zA-Z]{22})regex")));
+  }
+  {
+    ObjectId list_id = internal::AllocateSingleList();
+    DataSlice item = test::DataItem<ObjectId>(list_id, schema::kItemId);
+    EXPECT_THAT(
+        DataSliceToStr(item),
+        IsOkAndHolds(MatchesRegex(R"regex(List:\$[0-9a-zA-Z]{22})regex")));
+  }
+  {
+    ObjectId entity_id = internal::AllocateExplicitSchema();
+    DataSlice item = test::DataItem<ObjectId>(entity_id, schema::kItemId);
+    EXPECT_THAT(
+        DataSliceToStr(item),
+        IsOkAndHolds(MatchesRegex(R"regex(Schema:\$[0-9a-zA-Z]{22})regex")));
+  }
 }
 
 TEST(DataSliceReprTest, CycleInDict) {
@@ -1131,7 +1164,21 @@ TEST(DataSliceReprTest, FormatHtml_ObjectId_NoFollow) {
   ASSERT_OK_AND_ASSIGN(
       std::string result, DataSliceToStr(
           nofollow_entity, {.depth = 100, .format_html = true}));
-  EXPECT_THAT(result, HasSubstr("object-id"));
+  // NoFollow entities shows normal text.
+  EXPECT_THAT(result, Not(HasSubstr("object-id")));
+}
+
+TEST(DataSliceReprTest, FormatHtml_ObjectId_ItemId_NoObjctIdHtmlAttr) {
+  DataBagPtr bag = DataBag::Empty();
+  DataSlice value_1 = test::DataItem(1);
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::FromAttrs(bag, {"a"}, {value_1}));
+  DataSlice item = test::DataItem<ObjectId>(entity.item().value<ObjectId>(),
+                                           schema::kItemId);
+  ASSERT_OK_AND_ASSIGN(
+      std::string result, DataSliceToStr(item, {.format_html = true}));
+  EXPECT_THAT(result, Not(HasSubstr("object-id")));
 }
 
 TEST(DataSliceReprTest, UnboundedTypeMaxLength) {
