@@ -557,7 +557,6 @@ cc_library(
         ":schema_utils",
         ":sparse_source",
         ":uuid_object",
-        "//koladata/internal/op_utils:has",
         "//koladata/internal/op_utils:presence_or",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:no_destructor",

@@ -35,7 +35,6 @@
 #include "koladata/internal/types.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/memory/buffer.h"
 #include "arolla/util/meta.h"
 
 namespace koladata::internal {
@@ -90,8 +89,9 @@ arolla::bitmap::Bitmap TypesBuffer::ToBitmap(uint8_t type_idx) const {
 
 arolla::bitmap::Bitmap TypesBuffer::ToPresenceBitmap() const {
   arolla::bitmap::Builder bldr(id_to_typeidx.size());
-  bldr.AddForEach(id_to_typeidx,
-                  [&](uint8_t t) { return t != kRemoved && t != kUnset; });
+  bldr.AddForEach(id_to_typeidx, [&](uint8_t t) {
+    return t != kMaybeRemoved && t != kRemoved && t != kUnset;
+  });
   return std::move(bldr).Build();
 }
 

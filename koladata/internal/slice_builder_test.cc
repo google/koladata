@@ -165,7 +165,7 @@ TEST(SliceBuilderTest, ScalarInsertIfNotSet) {
 
   EXPECT_THAT(bldr.types_buffer().ToBitmap(TypesBuffer::kUnset),
               ElementsAre(0b0010100001));
-  EXPECT_THAT(bldr.types_buffer().ToBitmap(TypesBuffer::kRemoved),
+  EXPECT_THAT(bldr.types_buffer().ToBitmap(TypesBuffer::kMaybeRemoved),
               ElementsAre(0b0000010100));
   EXPECT_FALSE(bldr.is_finalized());
 

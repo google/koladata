@@ -57,6 +57,7 @@ struct TypesBuffer {
   // Special values in id_to_typeidx.
   static constexpr uint8_t kUnset = 0xff;
   static constexpr uint8_t kRemoved = 0xfe;  // explicitly set to missing
+  static constexpr uint8_t kMaybeRemoved = 0xfd;
 
   // Index in `types` (or kUnset/kRemoved) per element.
   absl::InlinedVector<uint8_t, 16> id_to_typeidx;
@@ -70,7 +71,7 @@ struct TypesBuffer {
   KodaTypeId id_to_scalar_typeid(int64_t id) const {
     DCHECK(0 <= id && id < size());
     uint8_t index = id_to_typeidx[id];
-    if (index == kRemoved || index == kUnset) {
+    if (index == kRemoved || index == kMaybeRemoved || index == kUnset) {
       return ScalarTypeId<MissingValue>();  // unset or removed
     }
     DCHECK_LT(index, types.size());
@@ -127,6 +128,23 @@ class SliceBuilder {
         unset_count_--;
       }
     });
+  }
+
+  void ConvertMaybeRemovedToUnset() {
+    for (uint8_t& t : types_buffer_.id_to_typeidx) {
+      if (t == TypesBuffer::kMaybeRemoved) {
+        t = TypesBuffer::kUnset;
+        unset_count_++;
+      }
+    }
+  }
+
+  void ConvertMaybeRemovedToRemoved() {
+    for (uint8_t& t : types_buffer_.id_to_typeidx) {
+      if (t == TypesBuffer::kMaybeRemoved) {
+        t = TypesBuffer::kRemoved;
+      }
+    }
   }
 
   // Set value with given id to `v`. Value can be DataItem, DataItem::View, any
@@ -384,7 +402,7 @@ void SliceBuilder::InsertIfNotSet(int64_t id, const T& v) {
   }
   unset_count_--;
   if (SliceBuilder::IsMissing(v)) {
-    types_buffer_.id_to_typeidx[id] = TypesBuffer::kRemoved;
+    types_buffer_.id_to_typeidx[id] = TypesBuffer::kMaybeRemoved;
     return;
   }
   if constexpr (arolla::is_optional_v<T>) {
@@ -411,7 +429,7 @@ void SliceBuilder::TypedBuilder<T>::InsertIfNotSet(int64_t id,
   }
   base_.unset_count_--;
   if (SliceBuilder::IsMissing(v)) {
-    id_to_typeidx_[id] = TypesBuffer::kRemoved;
+    id_to_typeidx_[id] = TypesBuffer::kMaybeRemoved;
     return;
   }
   if constexpr (arolla::is_optional_v<OptionalOrT>) {
@@ -445,7 +463,7 @@ void SliceBuilder::UpdateTypesBuffer(uint8_t typeidx,
       [&](int64_t id, bool valid, arolla::Unit, arolla::OptionalUnit presence) {
         if (valid && !IsSet(id)) {
           types_buffer_.id_to_typeidx[id] =
-              presence ? typeidx : TypesBuffer::kRemoved;
+              presence ? typeidx : TypesBuffer::kMaybeRemoved;
           unset_count_--;
           if (presence) {
             add_value_fn(id);

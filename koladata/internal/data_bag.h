@@ -658,10 +658,6 @@ class DataBagImpl : public arolla::RefcountedBase {
   DataItem LookupAttrInDataSourcesMap(ObjectId object_id,
                                       absl::string_view attr) const;
 
-  // Lower level utility for batch GetAttr without fallbacks support.
-  absl::StatusOr<DataSliceImpl> GetAttrFromSources(
-    const DataSliceImpl& objects, absl::string_view attr) const;
-
   template <bool kReturnValues>
   absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
   GetDictKeysOrValues(const DataSliceImpl& dicts, FallbackSpan fallbacks) const;

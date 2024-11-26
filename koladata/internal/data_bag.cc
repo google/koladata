@@ -51,9 +51,9 @@
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/sparse_source.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
@@ -371,22 +371,6 @@ SparseSource& DataBagImpl::GetMutableSmallAllocSource(absl::string_view attr) {
   return small_alloc_sources_[attr];
 }
 
-absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrFromSources(
-    const DataSliceImpl& objects, absl::string_view attr) const {
-  ConstDenseSourceArray dense_sources;
-  ConstSparseSourceArray sparse_sources;
-  if (objects.allocation_ids().contains_small_allocation_id()) {
-    GetSmallAllocDataSources(attr, sparse_sources);
-  }
-  if (objects.allocation_ids().empty() && sparse_sources.empty()) {
-    return DataSliceImpl::CreateEmptyAndUnknownType(objects.size());
-  }
-  for (AllocationId alloc_id : objects.allocation_ids()) {
-    GetAttributeDataSources(alloc_id, attr, dense_sources, sparse_sources);
-  }
-  return GetAttributeFromSources(objects, dense_sources, sparse_sources);
-}
-
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttr(
     const DataSliceImpl& objects, absl::string_view attr,
     FallbackSpan fallbacks) const {
@@ -397,26 +381,72 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttr(
     return absl::FailedPreconditionError(
         "getting attributes of primitives is not allowed");
   }
-  ASSIGN_OR_RETURN(auto result, GetAttrFromSources(objects, attr));
-  if (fallbacks.empty()) {
-    return result;
+  const arolla::DenseArray<ObjectId>& objs = objects.values<ObjectId>();
+  absl::Span<const ObjectId> objs_span = objs.values.span();
+
+  auto next_fallback = [&fallbacks]() -> const DataBagImpl* {
+    if (fallbacks.empty()) {
+      return nullptr;
+    }
+    auto res = fallbacks.front();
+    fallbacks = fallbacks.subspan(1);
+    return res;
+  };
+
+  std::optional<SliceBuilder> bldr;
+  for (const DataBagImpl* db = this; db != nullptr; db = next_fallback()) {
+    ConstDenseSourceArray dense_sources;
+    ConstSparseSourceArray sparse_sources;
+    if (objects.allocation_ids().contains_small_allocation_id()) {
+      db->GetSmallAllocDataSources(attr, sparse_sources);
+    }
+    for (AllocationId alloc_id : objects.allocation_ids()) {
+      db->GetAttributeDataSources(alloc_id, attr, dense_sources,
+                                  sparse_sources);
+    }
+    if (dense_sources.empty() && sparse_sources.empty()) {
+      continue;
+    }
+
+    if (!bldr.has_value()) {
+      // Performance optimization: get data from a single dense source without
+      // creating a builder.
+      if (fallbacks.empty() && sparse_sources.empty() &&
+          dense_sources.size() == 1) {
+        bool check_alloc_id =
+          objects.allocation_ids().contains_small_allocation_id() ||
+          objects.allocation_ids().ids().size() > 1;
+        return dense_sources[0]->Get(objs, check_alloc_id);
+      }
+
+      bldr.emplace(objs.size());
+      bldr->ApplyMask(objs.ToMask());
+    }
+
+    // Sparse sources have priority over dense sources.
+    for (const SparseSource* source : sparse_sources) {
+      if (bldr->is_finalized()) {
+        break;
+      }
+      source->Get(objs_span, *bldr);
+    }
+    for (const DenseSource* source : dense_sources) {
+      if (bldr->is_finalized()) {
+        break;
+      }
+      source->Get(objs_span, *bldr);
+    }
+    bldr->ConvertMaybeRemovedToUnset();
+    if (bldr->is_finalized()) {
+      break;
+    }
   }
 
-  if (result.is_empty_and_unknown()) {
-    return fallbacks[0]->GetAttr(objects, attr, fallbacks.subspan(1));
+  if (bldr.has_value()) {
+    return std::move(*bldr).Build();
+  } else {
+    return DataSliceImpl::CreateEmptyAndUnknownType(objects.size());
   }
-
-  auto presence_result = PresenceDenseArray(result);
-  if (presence_result.PresentCount() == objects.present_count()) {
-    return result;
-  }
-
-  for (const DataBagImpl* fallback : fallbacks) {
-    ASSIGN_OR_RETURN(auto fb_result,
-                     fallback->GetAttrFromSources(objects, attr));
-    ASSIGN_OR_RETURN(result, PresenceOrOp{}(result, fb_result));
-  }
-  return result;
 }
 
 absl::StatusOr<DataItem> DataBagImpl::GetAttr(const DataItem& object,
