@@ -273,6 +273,28 @@ absl::Nullable<PyObject*> PyDataSlice_to_proto(PyObject* self,
 absl::flat_hash_set<absl::string_view>&
 PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore();
 
+// Returns true if the given attr_name is be possible to access through
+// `getattr(slice, my_attr)`. For example, it should not be an already reserved
+// attr.
+bool IsCompliantAttrName(absl::string_view attr_name) {
+  return (attr_name.empty() || attr_name[0] != '_') &&
+         !PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore().contains(
+             attr_name);
+}
+
+// classmethod
+absl::Nullable<PyObject*> PyDataSlice_is_compliant_attr_name(
+    PyObject* cls, PyObject* attr_name) {
+  arolla::python::DCheckPyGIL();
+  Py_ssize_t size;
+  const char* attr_name_ptr = PyUnicode_AsUTF8AndSize(attr_name, &size);
+  if (attr_name_ptr == nullptr) {
+    return nullptr;
+  }
+  auto attr_name_view = absl::string_view(attr_name_ptr, size);
+  return PyBool_FromLong(IsCompliantAttrName(attr_name_view));
+}
+
 absl::Nullable<PyObject*> PyDataSlice_getattro(PyObject* self,
                                                PyObject* attr_name) {
   arolla::python::DCheckPyGIL();
@@ -285,9 +307,7 @@ absl::Nullable<PyObject*> PyDataSlice_getattro(PyObject* self,
   // NOTE: DataBag attributes starting with '_' or that share the same name as
   // some of the methods/reserved attrs can still be fetched by using a method
   // <DataSlice>.get_attr.
-  if ((size > 0 && attr_name_view[0] == '_') ||
-      PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore().contains(
-          attr_name_view)) {
+  if (!IsCompliantAttrName(attr_name_view)) {
     // Calling GenericGetAttr conditionally for performance reasons, as that
     // function covers a lot of Python's core functionality (fetching method
     // names, which is a lookup into __class__ and its base classes, etc.)
@@ -343,9 +363,7 @@ int PyDataSlice_setattro(PyObject* self, PyObject* attr_name, PyObject* value) {
   // NOTE: DataBag attributes starting with '_' or that share the same name as
   // some of the methods/reserved attrs can still be set by using a method
   // <DataSlice>.set_attr.
-  if ((size > 0 && attr_name_view[0] == '_') ||
-      PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore().contains(
-          attr_name_view)) {
+  if (!IsCompliantAttrName(attr_name_view)) {
     return PyObject_GenericSetAttr(self, attr_name, value);
   }
   const auto& self_ds = UnsafeDataSliceRef(self);
@@ -1143,6 +1161,12 @@ Returns:
      "_internal_str_with_depth(depth)\n"
      "--\n\n"
      "Used to generate str representation for interactive repr in Colab."},
+    {"internal_is_compliant_attr_name",
+     (PyCFunction)PyDataSlice_is_compliant_attr_name, METH_CLASS | METH_O,
+     "internal_is_compliant_attr_name(attr_name, /)\n"
+     "--\n\n"
+     "Returns true iff `attr_name` can be accessed through "
+     "`getattr(slice, attr_name)`."},
     {nullptr}, /* sentinel */
 };
 

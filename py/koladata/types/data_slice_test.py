@@ -30,7 +30,7 @@ from koladata.operators import kde_operators
 from koladata.testing import signature_test_utils
 from koladata.testing import testing
 from koladata.types import data_bag
-from koladata.types import data_item as _  # pylint: disable=unused-import
+from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import dict_item as _  # pylint: disable=unused-import
 from koladata.types import jagged_shape
@@ -615,16 +615,46 @@ class DataSliceTest(parameterized.TestCase):
 
   def test_dir(self):
     db = bag()
-    fb = bag()
-    x = db.new(a=1, b='abc')
-    self.assertEqual(dir(x), ['a', 'b'])
-    self.assertEqual(dir(ds([x])), ['a', 'b'])
-    x.with_bag(fb).set_attr('c', 42)
-    self.assertEqual(dir(x.with_bag(db).enriched(fb)), ['a', 'b', 'c'])
+    # No attrs (primitive with no bag).
     self.assertEqual(
-        dir(ds([x]).with_bag(db).enriched(fb)),
-        ['a', 'b', 'c'],
+        dir(ds([1, 2, 3])),
+        sorted(dir(data_slice.DataSlice)),
     )
+    # With attrs.
+    self.assertEqual(
+        dir(db.new(a=ds([1]), b=ds(['abc']))),
+        sorted({'a', 'b'} | set(dir(data_slice.DataSlice))),
+    )
+    # With attrs DataItem (more methods than DataSlice)
+    self.assertEqual(
+        dir(db.new(a=1, b='abc')),
+        sorted({'a', 'b'} | set(dir(data_item.DataItem))),
+    )
+    # No available attrs (no db).
+    self.assertEqual(
+        dir(db.new(a=ds([1]), b=ds(['abc'])).no_bag()),
+        sorted(dir(data_slice.DataSlice)),
+    )
+    # No available attrs (no __schema__ attr on object).
+    self.assertEqual(
+        dir(db.new(a=ds([1])).with_schema(schema_constants.OBJECT)),
+        sorted(dir(data_slice.DataSlice)),
+    )
+    # Intersection of attrs.
+    self.assertEqual(
+        dir(ds([db.obj(a=1, b='abc'), db.obj(a='def', c=123)])),
+        sorted({'a'} | set(dir(data_slice.DataSlice))),
+    )
+
+  def test_dir_reserved_names(self):
+    db = bag()
+    x = db.new(_x=1, getdoc=2, reshape=3, y=4)
+    setattr(x, '', 5)
+    # Reserved names and names starting with `_` are _not_ included. Reshape is
+    # included in dir(DataItem) since it's a method there, and `''` is included
+    # since it's a valid attribute name even though it's only accessible via
+    # getattr(x, '') and not via x.<smth>.
+    self.assertEqual(dir(x), sorted({'y', ''} | set(dir(data_item.DataItem))))
 
   def test_get_attr_names_entity(self):
     db = bag()

@@ -130,8 +130,16 @@ DataSlice._add_method('no_db')(DataSlice.no_bag)  # pylint: disable=protected-ac
 
 @DataSlice._add_method('__dir__')  # pylint: disable=protected-access
 def _dir(self) -> list[str]:
-  """Returns a sorted list of unique attribute names."""
-  return self.get_attr_names(intersection=True)
+  """Returns the list of attrs accessible through `getattr(slice, my_attr)`."""
+  attrs = []
+  try:
+    attrs = self.get_attr_names(intersection=True)
+  except ValueError:
+    pass
+  # We only include those attributes that can be called through `slice.my_attr`.
+  attrs = {attr for attr in attrs if self.internal_is_compliant_attr_name(attr)}
+  methods = set(super(DataSlice, self).__dir__())
+  return sorted(methods | attrs)
 
 
 @DataSlice._add_method('maybe')  # pylint: disable=protected-access

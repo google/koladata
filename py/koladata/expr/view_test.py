@@ -619,6 +619,7 @@ class KodaViewTest(parameterized.TestCase):
         'internal_as_arolla_value',
         'internal_as_dense_array',
         'internal_as_py',
+        'internal_is_compliant_attr_name',
         'internal_register_reserved_class_method_name',
         'is_mutable',
         'qtype',
