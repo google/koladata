@@ -67,7 +67,6 @@ using ::arolla::CreateDenseArray;
 using ::arolla::CreateFullDenseArray;
 using ::arolla::GetQType;
 using ::arolla::TypedValue;
-using ::arolla::testing::ReprTokenEq;
 using ::koladata::internal::DataItem;
 using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::testing::DataItemWith;
