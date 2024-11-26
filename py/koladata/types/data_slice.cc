@@ -584,7 +584,8 @@ PyObject* PyDataSlice_html_str(PyObject* self, PyObject* const* args,
   if (nargs != 1) {
     PyErr_Format(
         PyExc_ValueError,
-        "DataBag._internal_html_str accepts exactly 1 argument, got %d", nargs);
+        "DataSlice._internal_html_str accepts exactly 1 argument, got %d",
+        nargs);
     return nullptr;
   }
 
@@ -605,7 +606,7 @@ PyObject* PyDataSlice_str_with_depth(PyObject* self, PyObject* const* args,
   if (nargs != 1) {
     PyErr_Format(
         PyExc_ValueError,
-        "DataBag._internal_str_with_depth accepts exactly 1 argument, got %d",
+        "DataSlice._internal_str_with_depth accepts exactly 1 argument, got %d",
         nargs);
     return nullptr;
   }
