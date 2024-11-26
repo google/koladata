@@ -319,20 +319,15 @@ def bind(
   if not is_fn(fn_def):
     raise ValueError(f'bind() expects a functor, got {fn_def}')
   variables = {'_aux_fn': fn_def}
-  expr_variables = {}
-  for k, v in kwargs.items():
-    if isinstance(v, arolla.Expr) or introspection.is_packed_expr(v):
-      variables[k] = arolla.M.namedtuple.get_field(V['_aux_fn_variables'], k)
-      expr_variables[k] = v
-    else:
-      variables[k] = v
-
-  if expr_variables:
+  if any(
+      isinstance(v, arolla.Expr) or introspection.is_packed_expr(v)
+      for v in kwargs.values()
+  ):
     # We create a sub-functor to take care of proper input binding while
     # being able to forward all arguments to the original functor.
     variables['_aux_fn_compute_variables'] = fn(
-        arolla.M.namedtuple.make(**{k: V[k] for k in expr_variables}),
-        **expr_variables,
+        arolla.M.namedtuple.make(**{k: V[k] for k in kwargs}),
+        **kwargs,
     )
     # Note: we bypass the binding policy of functor.call since we already
     # have the args/kwargs as tuple and namedtuple.
@@ -340,11 +335,15 @@ def bind(
         'kde.functor.call',
         V['_aux_fn_compute_variables'],
         args=I.args,
-        return_type_as=arolla.namedtuple(**{
-            k: py_boxing.as_qvalue(data_slice.DataSlice) for k in expr_variables
-        }),
+        return_type_as=arolla.namedtuple(
+            **{k: py_boxing.as_qvalue(data_slice.DataSlice) for k in kwargs}
+        ),
         kwargs=I.kwargs,
     )
+    for k in kwargs:
+      variables[k] = arolla.M.namedtuple.get_field(V['_aux_fn_variables'], k)
+  else:
+    variables.update(kwargs)
 
   return fn(
       # Note: we bypass the binding policy of functor.call since we already

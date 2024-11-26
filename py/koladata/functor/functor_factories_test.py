@@ -526,6 +526,17 @@ class FunctorFactoriesTest(absltest.TestCase):
     f = functor_factories.bind(fn, y=I.z)
     testing.assert_equal(kd.call(f, x=1, z=2), ds(3))
 
+  def test_bind_to_expr_with_variables(self):
+    fn = functor_factories.fn(I.x + I.y)
+    f = functor_factories.bind(fn, y=V.z * 2, z=3)
+    testing.assert_equal(kd.call(f, x=1), ds(7))
+
+  def test_bind_no_inner_functor_without_expr(self):
+    fn = functor_factories.fn(I.x + I.y)
+    f = functor_factories.bind(fn, y=5)
+    testing.assert_equal(kd.call(f, x=1), ds(6))
+    testing.assert_equal(f.y, ds(5).with_bag(f.get_bag()))
+
   def test_bind_to_packed_expr(self):
     fn = functor_factories.fn(I.x + I.y)
     f = functor_factories.bind(fn, y=introspection.pack_expr(I.z))
