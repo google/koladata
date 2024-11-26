@@ -66,16 +66,6 @@ def from_dataframe(
 _SPECIAL_COLUMN_NAMES = ('__items__', '__keys__', '__values__')
 
 
-def _get_column_names(ds: data_slice.DataSlice) -> set[str]:
-  column_names = set(kdi.dir(ds.get_schema()))
-  if column_names:
-    return column_names
-  for o in ds.flatten().internal_as_py():
-    if isinstance(o, data_slice.DataSlice):
-      column_names.update(kdi.dir(o))
-  return column_names
-
-
 def to_dataframe(
     ds: data_slice.DataSlice,
     cols: Optional[list[str | arolla.Expr]] = None,
@@ -154,7 +144,7 @@ def to_dataframe(
     cols = ['self_']
   elif cols is None:
     cols = ['self_']
-    cols.extend(_get_column_names(ds))
+    cols.extend(ds.get_attr_names(intersection=False))
     get_attr_fn = kdi.maybe
 
   col_dss = []
