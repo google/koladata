@@ -32,6 +32,8 @@ struct ReprOption {
   // all dimensions. When it is a DataItem, it means the maximum number of
   // entity/object attributes, list items, or dict key/value pairs to show.
   size_t item_limit = 20;
+  // The maximum number of items to show per dimension in a DataSlice.
+  size_t item_limit_per_dimension = 5;
   // Don't add quotes around text values.
   bool strip_quotes = false;
   // When true, attributes and object ids are wrapped in HTML tags to make it
@@ -39,7 +41,6 @@ struct ReprOption {
   bool format_html = false;
   // Maximum length of repr string to show for text and bytes if non negative.
   int32_t unbounded_type_max_len = -1;
-  // TODO: Add option to control DataSlice truncation.
 };
 
 // Returns the string for python __str__.

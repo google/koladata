@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <numeric>
 #include <optional>
 #include <string>
@@ -276,81 +277,84 @@ std::string DataSliceItemRepr(
         .unbounded_type_max_len = option.unbounded_type_max_len}));
 }
 
-// Returns the string representations for the value(s) of the `included_groups`
-// in the dimension `dim`. The returned vector has the same size as
-// `included_groups`.
-//
-// TODO: Support max-depth.
-std::vector<std::string> StringifyDimension(
-    const DataSlice& ds, size_t dim, absl::Span<const int64_t> included_groups,
-    const ReprOption& option, WrappingBehavior& wrapping) {
-  const auto& shape = ds.GetShape();
-  // We're at the last dimension. Print all the items.
-  if (dim >= shape.rank()) {
-    std::vector<std::string> result;
-    result.reserve(included_groups.size());
-    for (int64_t group : included_groups) {
-      result.push_back(DataSliceItemRepr(
-          ds.slice()[group], ds.GetSchemaImpl(), option, wrapping));
-    }
-    return result;
-  }
-
-  // We have more dimensions to go: recurse.
-  const auto& edge = shape.edges()[dim];
-  const auto& split_points = edge.edge_values().values.span();
-
-  // We resize this vector to be empty on each iteration, but reserve enough
-  // space for the largest group using the upper bound of edge.child_size().
-  std::vector<int64_t> group_indices;
-  group_indices.reserve(edge.child_size());
-
-  // We add one to the reserved size to avoid a reallocation in the case that
-  // we need to append an ellipsis after returning from an recursive call.
-  std::vector<std::string> group_reprs;
-  group_reprs.reserve(included_groups.size() + 1);
-  for (int64_t group : included_groups) {
-    // Create a list of at most `option.item_limit` children per group that are
-    // within each `included_groups`.
-    int64_t group_size = split_points[group + 1] - split_points[group];
-    int64_t size = std::min(group_size,
-                            static_cast<int64_t>(option.item_limit));
-    size_t initial_html_char_count = wrapping.html_char_count;
-
-    // Get the string representations of the elements. Note that the resize
-    // here never reduces capacity and should stay within allocated capacity.
-    group_indices.resize(size);
-    std::iota(group_indices.begin(), group_indices.end(), split_points[group]);
-    auto elem_reprs = StringifyDimension(
-        ds, dim + 1, group_indices, option, wrapping);
-
-    for (int64_t i = 0; i < size; ++i) {
-      elem_reprs[i] = wrapping.MaybeAnnotateSliceIndex(
-          std::move(elem_reprs[i]), i);
-    }
-
-    // Append ellipsis if we are hiding elements.
-    if (group_size > size) {
-      elem_reprs.emplace_back(kEllipsis);
-    }
-
-    // Compose final presentation of the group.
-    group_reprs.push_back(PrettyFormatStr(
-        elem_reprs,
-        {.prefix = "[", .suffix = "]"},
-        wrapping.html_char_count - initial_html_char_count));
-  }
-  return group_reprs;
-}
-
 // Returns the string for python __str__ and part of __repr__.
 // The DataSlice must have at least 1 dimension.
-std::string DataSliceImplToStr(const DataSlice& ds,
-                               const ReprOption& option,
+std::string DataSliceImplToStr(const DataSlice& ds, const ReprOption& option,
                                WrappingBehavior& wrapping) {
-  std::vector<std::string> result =
-      StringifyDimension(
-          ds, /*dim=*/0, /*included_groups=*/{0}, option, wrapping);
+  const auto& shape = ds.GetShape();
+  int item_limit = option.item_limit;
+
+  // Returns the string representations for the value(s) of the
+  // `included_groups` in the dimension `dim`. The returned vector has the same
+  // size as `included_groups`.
+  std::function<std::vector<std::string>(size_t, absl::Span<const int64_t>)>
+      stringify_dimension;
+  stringify_dimension = [&](size_t dim,
+                            absl::Span<const int64_t> included_groups)
+      -> std::vector<std::string> {
+    // We're at the last dimension. Print all the items.
+    if (dim >= shape.rank()) {
+      std::vector<std::string> result;
+      result.reserve(included_groups.size());
+      for (int64_t group : included_groups) {
+        result.push_back(DataSliceItemRepr(
+            ds.slice()[group], ds.GetSchemaImpl(), option, wrapping));
+      }
+      item_limit -= result.size();
+      DCHECK_GE(item_limit, 0);
+      return result;
+    }
+
+    // We have more dimensions to go: recurse.
+    const auto& edge = shape.edges()[dim];
+    const auto& split_points = edge.edge_values().values.span();
+
+    // We resize this vector to be empty on each iteration, but reserve enough
+    // space for the largest group using the upper bound of edge.child_size().
+    std::vector<int64_t> group_indices;
+    group_indices.reserve(edge.child_size());
+
+    // We add one to the reserved size to avoid a reallocation in the case that
+    // we need to append an ellipsis after returning from an recursive call.
+    std::vector<std::string> group_reprs;
+    group_reprs.reserve(included_groups.size() + 1);
+    for (int64_t group : included_groups) {
+      // Create a list of at most `option.item_limit_per_dimension` children per
+      // group that are within each `included_groups`.
+      int64_t group_size = split_points[group + 1] - split_points[group];
+      int64_t size =
+          std::min(group_size,
+                   static_cast<int64_t>(dim + 1 == shape.rank()
+                                            ? item_limit
+                                            : option.item_limit_per_dimension));
+      size_t initial_html_char_count = wrapping.html_char_count;
+
+      // Get the string representations of the elements. Note that the resize
+      // here never reduces capacity and should stay within allocated capacity.
+      group_indices.resize(size);
+      std::iota(group_indices.begin(), group_indices.end(),
+                split_points[group]);
+      auto elem_reprs = stringify_dimension(dim + 1, group_indices);
+
+      for (int64_t i = 0; i < size; ++i) {
+        elem_reprs[i] =
+            wrapping.MaybeAnnotateSliceIndex(std::move(elem_reprs[i]), i);
+      }
+
+      // Append ellipsis if we are hiding elements.
+      if (group_size > size) {
+        elem_reprs.emplace_back(kEllipsis);
+      }
+
+      // Compose final presentation of the group.
+      group_reprs.push_back(
+          PrettyFormatStr(elem_reprs, {.prefix = "[", .suffix = "]"},
+                          wrapping.html_char_count - initial_html_char_count));
+    }
+    return group_reprs;
+  };
+
+  std::vector<std::string> result = stringify_dimension(0, {0});
   DCHECK_EQ(result.size(), 1);
   return std::move(result[0]);
 }

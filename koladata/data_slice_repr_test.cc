@@ -451,7 +451,8 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_Primitives) {
   EXPECT_THAT(DataSliceToStr(ds4), IsOkAndHolds("[1, present, None]"));
 
   DataSlice ds5 = test::DataSlice<int>({1, 2, 3});
-  EXPECT_THAT(DataSliceToStr(ds5, {.item_limit = 0}), IsOkAndHolds("[...]"));
+  EXPECT_THAT(DataSliceToStr(ds5, {.item_limit = 0}),
+              IsOkAndHolds("[...]"));
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_EntitySlices) {
@@ -545,21 +546,21 @@ TEST(DataSliceReprTest,
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SplitLines) {
   std::vector<arolla::OptionalValue<int64_t>> input;
-  for (int i = 0; i < 10; ++i) {
-    for (int j = 0; j < 10; ++j) {
+  for (int i = 0; i < 11; ++i) {
+    for (int j = 0; j < 11; ++j) {
       input.emplace_back(j);
     }
   }
 
   std::vector<arolla::OptionalValue<int64_t>> edge2_input;
-  for (int i = 0; i <= 10; ++i) {
-    edge2_input.emplace_back(i * 10);
+  for (int i = 0; i <= 11; ++i) {
+    edge2_input.emplace_back(i * 11);
   }
 
   arolla::DenseArray<int64_t> edge2_array =
       arolla::CreateDenseArray<int64_t>(absl::MakeSpan(edge2_input));
 
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 10}));
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 11}));
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2,
                        DenseArrayEdge::FromSplitPoints(std::move(edge2_array)));
   ASSERT_OK_AND_ASSIGN(
@@ -574,16 +575,12 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SplitLines) {
                            std::move(ds_shape)));
 
   EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds(R"([
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, ...],
+  [...],
+  [...],
+  [...],
+  ...,
 ])"));
 }
 
