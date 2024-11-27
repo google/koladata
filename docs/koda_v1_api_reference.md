@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-26'
+  reviewed: '2024-11-27'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -1115,6 +1115,25 @@ Args:
   values: A DataSlice of values, or unspecified if `keys` contains dicts.
 ```
 
+### `dir(x)` {#dir}
+
+``` {.no-copy}
+Returns a sorted list of unique attribute names of the given DataSlice.
+
+  This is equivalent to `kd.get_attr_names(ds, intersection=True)`. For more
+  finegrained control, use `kd.get_attr_names` directly instead.
+
+  In case of OBJECT schema, attribute names are fetched from the `__schema__`
+  attribute. In case of Entity schema, the attribute names are fetched from the
+  schema. In case of ANY (or primitives), an empty list is returned.
+
+  Args:
+    x: A DataSlice.
+
+  Returns:
+    A list of unique attributes sorted by alphabetical order.
+```
+
 ### `disjoint_coalesce(x, y)` {#disjoint_coalesce}
 
 ``` {.no-copy}
@@ -1766,6 +1785,24 @@ Args:
 
 Returns:
   DataSlice
+```
+
+### `get_attr_names(x, *, intersection)` {#get_attr_names}
+
+``` {.no-copy}
+Returns a sorted list of unique attribute names of the given DataSlice.
+
+  In case of OBJECT schema, attribute names are fetched from the `__schema__`
+  attribute. In case of Entity schema, the attribute names are fetched from the
+  schema. In case of ANY (or primitives), an empty list is returned.
+
+  Args:
+    x: A DataSlice.
+    intersection: If True, the intersection of all object attributes is
+      returned. Otherwise, the union is returned.
+
+  Returns:
+    A list of unique attributes sorted by alphabetical order.
 ```
 
 ### `get_bag(ds)` {#get_bag}
@@ -4371,7 +4408,7 @@ Casts `x` to STRING using explicit (permissive) casting rules.
 Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
-### `trace_as_fn(*, name, py_fn)` {#trace_as_fn}
+### `trace_as_fn(*, name, py_fn, return_type_as)` {#trace_as_fn}
 
 ``` {.no-copy}
 A decorator to customize the tracing behavior for a particular function.
@@ -4397,6 +4434,12 @@ A decorator to customize the tracing behavior for a particular function.
   When applying it to a class method, it is likely to fail in tracing mode
   because it will try to auto-box the class instance into an expr, which is
   likely not supported.
+
+  When executing the resulting function in eager mode, we will evaluate the
+  underlying function directly instead of evaluating the functor, to have
+  nicer stack traces in case of an exception. However, we will still apply
+  the boxing rules on the returned value (for example, convert Python primitives
+  to DataItems), to better emulate what will happen in tracing mode.
 ```
 
 ### `translate(keys_to, keys_from, values_from)` {#translate}
@@ -5546,6 +5589,23 @@ Args:
            Note that this value can be fully omitted.
 ```
 
+### `<DataSlice>.get_attr_names` {#<DataSlice>.get_attr_names}
+
+``` {.no-copy}
+Returns a sorted list of unique attribute names of this DataSlice.
+
+In case of OBJECT schema, attribute names are fetched from the `__schema__`
+attribute. In case of Entity schema, the attribute names are fetched from the
+schema. In case of ANY (or primitives), an empty list is returned.
+
+Args:
+  intersection: If True, the intersection of all object attributes is returned.
+    Otherwise, the union is returned.
+
+Returns:
+  A list of unique attributes sorted by alphabetical order.
+```
+
 ### `<DataSlice>.get_bag` {#<DataSlice>.get_bag}
 
 ``` {.no-copy}
@@ -5635,6 +5695,12 @@ Returns a Python object equivalent to this DataSlice.
 
 If the values in this DataSlice represent objects, then the returned python
 structure will contain DataItems.
+```
+
+### `<DataSlice>.internal_is_compliant_attr_name` {#<DataSlice>.internal_is_compliant_attr_name}
+
+``` {.no-copy}
+Returns true iff `attr_name` can be accessed through `getattr(slice, attr_name)`.
 ```
 
 ### `<DataSlice>.internal_register_reserved_class_method_name` {#<DataSlice>.internal_register_reserved_class_method_name}
