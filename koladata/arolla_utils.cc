@@ -162,7 +162,7 @@ absl::StatusOr<DataSlice> DataSliceFromPrimitivesArray(
   }
   std::optional<absl::StatusOr<DataSlice>> res;
   arolla::meta::foreach_type(
-      internal::supported_primitives_list(), [&](auto tpe) {
+      schema::supported_primitive_dtypes(), [&](auto tpe) {
         using T = typename decltype(tpe)::type;
         if (values.GetType()->value_qtype() == arolla::GetQType<T>()) {
           auto ds_impl = internal::DataSliceImpl::Create(
@@ -170,15 +170,7 @@ absl::StatusOr<DataSlice> DataSliceFromPrimitivesArray(
               .ForceNoBitmapBitOffset());
           size_t size = ds_impl.size();
           internal::DataItem dtype;
-          if constexpr (std::is_same_v<T, internal::MissingValue> ||
-                        std::is_same_v<T, schema::DType>) {
-            // These types are not supported in schema::GetDType<T>.
-            LOG(FATAL) << "InternalError: unsupported type that couldn't be "
-                          "stored in TypedRef";
-            return;
-          } else {
-            dtype = internal::DataItem(schema::GetDType<T>());
-          }
+          dtype = internal::DataItem(schema::GetDType<T>());
           res = DataSlice::Create(std::move(ds_impl),
                                   DataSlice::JaggedShape::FlatFromSize(size),
                                   dtype,
