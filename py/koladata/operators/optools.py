@@ -260,3 +260,27 @@ def equiv_to_op(
   this_op = arolla.abc.decay_registered_operator(this_op)
   that_op = arolla.abc.decay_registered_operator(that_op)
   return this_op == that_op
+
+
+def reload_operator_view(view: type[arolla.abc.ExprView]) -> None:
+  """Re-registers the view for all registered operators with the same view.
+
+  Uses the fully qualified name (including module) of the view to compare the
+  new view with the existing one.
+
+  Note that only operators registered through `optools.add_to_registry` are
+  affected.
+
+  Args:
+    view: The view to use for the operators.
+  """
+  for registered_op in _REGISTERED_OPS.values():
+    old_view = registered_op.view
+    if (
+        old_view is not None
+        and old_view.__module__ == view.__module__
+        and old_view.__qualname__ == view.__qualname__
+    ):
+      arolla.abc.set_expr_view_for_registered_operator(
+          registered_op.op.display_name, view
+      )

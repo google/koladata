@@ -103,6 +103,7 @@ py_test(
         ":core",
         ":jagged_shape",
         ":optools",
+        ":optools_test_utils",
         ":qtype_utils",
         "//py/koladata/expr:view",
         "//py/koladata/testing",
@@ -490,6 +491,13 @@ py_library(
         ":optools",
         "@com_google_arolla//py/arolla",
     ],
+)
+
+py_library(
+    name = "optools_test_utils",
+    testonly = True,
+    srcs = ["optools_test_utils.py"],
+    deps = ["@com_google_arolla//py/arolla"],
 )
 
 py_test(

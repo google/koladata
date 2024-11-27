@@ -20,6 +20,7 @@ from koladata.operators import comparison as _  # pylint: disable=unused-import
 from koladata.operators import core
 from koladata.operators import jagged_shape
 from koladata.operators import optools
+from koladata.operators import optools_test_utils
 from koladata.operators import qtype_utils
 from koladata.testing import testing
 from koladata.types import data_item as _  # pylint: disable=unused-import
@@ -416,6 +417,85 @@ class OptoolsTest(parameterized.TestCase):
     testing.assert_equal(
         arolla.eval(op_alias(42, arolla.unspecified())), ds(43)
     )
+
+  def test_reload_operator_view(self):
+
+    class OptoolsTestView(arolla.abc.ExprView):
+
+      def fn1(self):
+        return self
+
+    @optools.add_to_registry(view=OptoolsTestView)
+    @optools.as_lambda_operator('test.op_10')
+    def op(x):
+      return x
+
+    self.assertTrue(hasattr(op(arolla.L.x), 'fn1'))
+    self.assertFalse(hasattr(op(arolla.L.x), 'fn2'))
+
+    # Attaching it doesn't have any effect on the operator.
+    OptoolsTestView.fn2 = lambda x: x
+    self.assertTrue(hasattr(OptoolsTestView, 'fn2'))
+    self.assertFalse(hasattr(op(arolla.L.x), 'fn2'))
+
+    # After reloading, the operator will have the new method.
+    optools.reload_operator_view(OptoolsTestView)
+    self.assertTrue(hasattr(op(arolla.L.x), 'fn2'))
+
+  def test_reload_operator_view_module_name(self):
+
+    class OptoolsTestView(arolla.abc.ExprView):
+      pass
+
+    @optools.add_to_registry(view=OptoolsTestView)
+    @optools.as_lambda_operator('test.op_11')
+    def op(x):
+      return x
+
+    @optools.add_to_registry(view=optools_test_utils.OptoolsTestView)
+    @optools.as_lambda_operator('test.op_12')
+    def op2(x):
+      return x
+
+    self.assertFalse(hasattr(op(arolla.L.x), 'fn2'))
+    self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
+
+    OptoolsTestView.fn2 = lambda x: x
+    optools.reload_operator_view(OptoolsTestView)
+    self.assertTrue(hasattr(op(arolla.L.x), 'fn2'))
+    # Not attached to op2 since it's in a different module.
+    self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
+
+  def test_reload_operator_view_qualname(self):
+    class A:
+
+      class OptoolsTestView(arolla.abc.ExprView):
+        pass
+
+    class B:
+
+      class OptoolsTestView(arolla.abc.ExprView):
+        pass
+
+    @optools.add_to_registry(view=A.OptoolsTestView)
+    @optools.as_lambda_operator('test.op_13')
+    def op(x):
+      return x
+
+    @optools.add_to_registry(view=B.OptoolsTestView)
+    @optools.as_lambda_operator('test.op_14')
+    def op2(x):
+      return x
+
+    self.assertFalse(hasattr(op(arolla.L.x), 'fn2'))
+    self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
+
+    A.OptoolsTestView.fn2 = lambda x: x
+    optools.reload_operator_view(A.OptoolsTestView)
+    self.assertTrue(hasattr(op(arolla.L.x), 'fn2'))
+    # Not attached to op2 since it has a different qualname.
+    self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
+
 
 if __name__ == '__main__':
   absltest.main()
