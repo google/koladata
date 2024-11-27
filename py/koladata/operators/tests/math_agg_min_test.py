@@ -152,7 +152,11 @@ class MathAggMinTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with Entity schema is not supported'
+        exceptions.KodaError,
+        re.escape(
+            'kde.math.agg_min: argument `x` must be a slice of numeric values,'
+            ' got a slice of SCHEMA(x=INT32)'
+        ),
     ):
       expr_eval.eval(kde.math.agg_min(x))
 
@@ -160,7 +164,11 @@ class MathAggMinTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice has no primitive schema'
+        exceptions.KodaError,
+        re.escape(
+            'kde.math.agg_min: argument `x` must be a slice of numeric values,'
+            ' got a slice of OBJECT'
+        ),
     ):
       expr_eval.eval(kde.math.agg_min(x))
 

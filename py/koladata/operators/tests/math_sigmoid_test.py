@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -91,8 +92,10 @@ class MathSigmoidTest(parameterized.TestCase):
     x = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'expected numerics, got x: DENSE_ARRAY_TEXT',
+        re.escape(
+            'kde.math.log: argument `x` must be a slice of numeric values, got'
+            ' a slice of STRING'
+        ),
     ):
       expr_eval.eval(kde.math.log(I.x), x=x)
 

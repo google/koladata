@@ -200,7 +200,11 @@ class MathAggStdTest(parameterized.TestCase):
   def test_non_scalar_unbiased_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape('expected unbiased to be a scalar boolean value'),
+        re.escape(
+            'kde.math.agg_std: argument `unbiased` must contain a scalar'
+            ' boolean value, got DataSlice([True], schema: BOOLEAN, shape:'
+            ' JaggedShape(1))'
+        ),
     ):
       expr_eval.eval(kde.math.agg_std(ds([1]), unbiased=ds([True])))
 
@@ -221,7 +225,11 @@ class MathAggStdTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with Entity schema is not supported'
+        exceptions.KodaError,
+        re.escape(
+            'kde.math.agg_std: argument `x` must be a slice of numeric values,'
+            ' got a slice of SCHEMA(x=INT32)'
+        ),
     ):
       expr_eval.eval(kde.math.agg_std(x))
 
@@ -229,7 +237,11 @@ class MathAggStdTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice has no primitive schema'
+        exceptions.KodaError,
+        re.escape(
+            'kde.math.agg_std: argument `x` must be a slice of numeric values,'
+            ' got a slice of OBJECT'
+        ),
     ):
       expr_eval.eval(kde.math.agg_std(x))
 

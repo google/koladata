@@ -189,8 +189,10 @@ class MathCumMaxTest(parameterized.TestCase):
     x = data_slice.DataSlice.from_vals(['1', '2', '3'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'expected numerics, got x: DENSE_ARRAY_TEXT',
+        re.escape(
+            'kde.math.cum_max: argument `x` must be a slice of numeric values,'
+            ' got a slice of STRING'
+        ),
     ):
       expr_eval.eval(kde.math.cum_max(I.x), x=x)
 

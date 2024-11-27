@@ -45,28 +45,6 @@ The cause is: DataSlice with mixed types is not supported: DataSlice([1, 2.0], s
     ):
       expr_eval.eval(kde.agg_max(x))
 
-  def test_entity_input_error(self):
-    db = data_bag.DataBag.empty()
-    x = db.new(x=ds([1]))
-    with self.assertRaisesRegex(
-        exceptions.KodaError,
-        re.escape("""math.max: invalid inputs
-
-The cause is: DataSlice with Entity schema is not supported:"""),
-    ):
-      expr_eval.eval(kde.agg_max(x))
-
-  def test_object_slice_error(self):
-    db = data_bag.DataBag.empty()
-    x = db.obj(x=ds([1]))
-    with self.assertRaisesRegex(
-        exceptions.KodaError,
-        """math.max: invalid inputs
-
-The cause is: DataSlice has no primitive schema""",
-    ):
-      expr_eval.eval(kde.math.agg_max(x))
-
   def test_expect_rank_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
@@ -79,9 +57,8 @@ The cause is: DataSlice has no primitive schema""",
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """math.max: successfully converted input DataSlice(s) to DenseArray(s) but failed to evaluate the Arolla operator
-
-The cause is: expected numerics, got x: DENSE_ARRAY_TEXT;"""
+            'kde.math.agg_max: argument `x` must be a slice of numeric values,'
+            ' got a slice of STRING'
         ),
     ):
       expr_eval.eval(kde.agg_max(x))
@@ -90,7 +67,9 @@ The cause is: expected numerics, got x: DENSE_ARRAY_TEXT;"""
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """math.var: expected unbiased to be a scalar boolean value, got DataSlice([True], schema: BOOLEAN, shape: JaggedShape(1))"""
+            'kde.math.agg_var: argument `unbiased` must contain a scalar'
+            ' boolean value, got DataSlice([True], schema: BOOLEAN, shape:'
+            ' JaggedShape(1))'
         ),
     ):
       expr_eval.eval(kde.math.agg_var(ds([1]), unbiased=ds([True])))
