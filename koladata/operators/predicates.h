@@ -25,21 +25,21 @@ namespace koladata::ops {
 absl::StatusOr<DataSlice> IsPrimitive(const DataSlice& x);
 
 // Returns a MASK DataSlice with present for each item in `x` that is primitive.
-absl::StatusOr<DataSlice> ArePrimitives(const DataSlice& x);
+absl::StatusOr<DataSlice> HasPrimitive(const DataSlice& x);
 
 // Returns true if the DataSlice has a List schema or only contains lists if the
 // schema is OBJECT or ANY.
 absl::StatusOr<DataSlice> IsList(const DataSlice& x);
 
 // Returns a MASK DataSlice with present for each item in `x` that is List.
-absl::StatusOr<DataSlice> AreLists(const DataSlice& x);
+absl::StatusOr<DataSlice> HasList(const DataSlice& x);
 
 // Returns true if the DataSlice has a Dict schema or only contains dicts if the
 // schema is OBJECT or ANY.
 absl::StatusOr<DataSlice> IsDict(const DataSlice& x);
 
 // Returns a MASK DataSlice with present for each item in `x` that is Dict.
-absl::StatusOr<DataSlice> AreDicts(const DataSlice& x);
+absl::StatusOr<DataSlice> HasDict(const DataSlice& x);
 
 }  // namespace koladata::ops
 

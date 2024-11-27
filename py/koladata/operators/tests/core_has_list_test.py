@@ -38,24 +38,24 @@ present = mask_constants.present
 missing = mask_constants.missing
 
 
-class KodaAreDictsTest(parameterized.TestCase):
+class KodaHasListTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # DataItem
       (ds(None), missing),
-      (bag().dict() & None, missing),
-      (bag().dict(), present),
-      (bag().dict({1: 2}), present),
-      (bag().dict({1: 2}).embed_schema(), present),
-      (bag().dict({1: 2}).as_any(), present),
+      (bag().list() & None, missing),
+      (bag().list(), present),
+      (bag().list([1, 2]), present),
+      (bag().list([1, 2]).embed_schema(), present),
+      (bag().list([1, 2]).as_any(), present),
       (ds('hello'), missing),
       (bag().new(), missing),
       (bag().obj(), missing),
-      (bag().list(), missing),
+      (bag().dict(), missing),
       (bag().new_schema(), missing),
       # DataSlice
       (
-          ds([bag().dict({1: 2}), None, bag().dict({3: 4})]),
+          ds([bag().list([1, 2]), None, bag().list([3, 4])]),
           ds([present, missing, present]),
       ),
       (ds([None, None]), ds([missing, missing])),
@@ -64,18 +64,18 @@ class KodaAreDictsTest(parameterized.TestCase):
       (ds([None, None], schema_constants.ANY), ds([missing, missing])),
       # Mixed types.
       (
-          ds([bag().dict({1: 2}).embed_schema(), None, 'world', bag().obj()]),
+          ds([bag().list([1, 2]).embed_schema(), None, 'world', bag().obj()]),
           ds([present, missing, missing, missing]),
       ),
   )
   def test_eval(self, x, expected):
-    testing.assert_equal(expr_eval.eval(kde.core.are_dicts(x)), expected)
+    testing.assert_equal(expr_eval.eval(kde.core.has_list(x)), expected)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.are_dicts(I.x)))
+    self.assertTrue(view.has_koda_view(kde.core.has_list(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.are_dicts, kde.are_dicts))
+    self.assertTrue(optools.equiv_to_op(kde.core.has_list, kde.has_list))
 
 
 if __name__ == '__main__':

@@ -101,9 +101,6 @@ OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
 OPERATOR("kde.core.add", Add);
 OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
-OPERATOR("kde.core.are_dicts", AreDicts);
-OPERATOR("kde.core.are_lists", AreLists);
-OPERATOR("kde.core.are_primitives", ArePrimitives);
 OPERATOR("kde.core.attr", Attr);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR("kde.core.bag", Bag);
@@ -122,6 +119,9 @@ OPERATOR_FAMILY("kde.core.group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndicesSorted));
+OPERATOR("kde.core.has_dict", HasDict);
+OPERATOR("kde.core.has_list", HasList);
+OPERATOR("kde.core.has_primitive", HasPrimitive);
 OPERATOR("kde.core.inverse_select", InverseSelect);
 OPERATOR("kde.core.is_dict", IsDict);
 OPERATOR("kde.core.is_empty", IsEmpty);

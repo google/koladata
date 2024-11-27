@@ -27,7 +27,6 @@
 #include "koladata/operators/logical.h"
 #include "koladata/operators/utils.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/memory/optional_value.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
@@ -36,7 +35,7 @@ namespace koladata::ops {
 
 namespace {
 
-absl::StatusOr<internal::DataItem> ArePrimitivesImpl(
+absl::StatusOr<internal::DataItem> HasPrimitiveImpl(
     const internal::DataItem& item) {
   return item.VisitValue([]<class T>(const T& value) {
     if constexpr (std::is_same_v<T, internal::ObjectId>) {
@@ -47,7 +46,7 @@ absl::StatusOr<internal::DataItem> ArePrimitivesImpl(
   });
 }
 
-absl::StatusOr<internal::DataSliceImpl> ArePrimitivesImpl(
+absl::StatusOr<internal::DataSliceImpl> HasPrimitiveImpl(
     const internal::DataSliceImpl& slice) {
   internal::SliceBuilder builder(slice.size());
   auto typed_builder = builder.typed<arolla::Unit>();
@@ -61,8 +60,7 @@ absl::StatusOr<internal::DataSliceImpl> ArePrimitivesImpl(
   return std::move(builder).Build();
 }
 
-absl::StatusOr<internal::DataItem> AreListsImpl(
-    const internal::DataItem& item) {
+absl::StatusOr<internal::DataItem> HasListImpl(const internal::DataItem& item) {
   if (item.is_list()) {
     return internal::DataItem(arolla::Unit());
   } else {
@@ -70,7 +68,7 @@ absl::StatusOr<internal::DataItem> AreListsImpl(
   }
 }
 
-absl::StatusOr<internal::DataSliceImpl> AreListsImpl(
+absl::StatusOr<internal::DataSliceImpl> HasListImpl(
     const internal::DataSliceImpl& slice) {
   internal::SliceBuilder builder(slice.size());
   auto typed_builder = builder.typed<arolla::Unit>();
@@ -87,8 +85,7 @@ absl::StatusOr<internal::DataSliceImpl> AreListsImpl(
   return std::move(builder).Build();
 }
 
-absl::StatusOr<internal::DataItem> AreDictsImpl(
-    const internal::DataItem& item) {
+absl::StatusOr<internal::DataItem> HasDictImpl(const internal::DataItem& item) {
   if (item.is_dict()) {
     return internal::DataItem(arolla::Unit());
   } else {
@@ -96,7 +93,7 @@ absl::StatusOr<internal::DataItem> AreDictsImpl(
   }
 }
 
-absl::StatusOr<internal::DataSliceImpl> AreDictsImpl(
+absl::StatusOr<internal::DataSliceImpl> HasDictImpl(
     const internal::DataSliceImpl& slice) {
   internal::SliceBuilder builder(slice.size());
   auto typed_builder = builder.typed<arolla::Unit>();
@@ -115,7 +112,7 @@ absl::StatusOr<internal::DataSliceImpl> AreDictsImpl(
 
 }  // namespace
 
-absl::StatusOr<DataSlice> ArePrimitives(const DataSlice& x) {
+absl::StatusOr<DataSlice> HasPrimitive(const DataSlice& x) {
   auto schema = x.GetSchemaImpl();
   // Trust the schema if it is a primitive schema.
   if (schema.is_primitive_schema()) {
@@ -127,7 +124,7 @@ absl::StatusOr<DataSlice> ArePrimitives(const DataSlice& x) {
   if (schema.is_any_schema() || schema.is_object_schema() ||
       schema.is_schema_schema()) {
     return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-      ASSIGN_OR_RETURN(auto res, ArePrimitivesImpl(impl));
+      ASSIGN_OR_RETURN(auto res, HasPrimitiveImpl(impl));
       return DataSlice::Create(std::move(res), x.GetShape(),
                                internal::DataItem(schema::kMask), nullptr);
     });
@@ -137,7 +134,7 @@ absl::StatusOr<DataSlice> ArePrimitives(const DataSlice& x) {
       x.GetShape(), internal::DataItem(schema::kMask), nullptr);
 }
 
-absl::StatusOr<DataSlice> AreLists(const DataSlice& x) {
+absl::StatusOr<DataSlice> HasList(const DataSlice& x) {
   auto schema = x.GetSchemaImpl();
   // Trust the schema if it is a List schema.
   if (x.GetSchema().IsListSchema()) {
@@ -146,7 +143,7 @@ absl::StatusOr<DataSlice> AreLists(const DataSlice& x) {
   // Derive from the data for OBJECT and ANY schemas.
   if (schema.is_any_schema() || schema.is_object_schema()) {
     return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-      ASSIGN_OR_RETURN(auto res, AreListsImpl(impl));
+      ASSIGN_OR_RETURN(auto res, HasListImpl(impl));
       return DataSlice::Create(std::move(res), x.GetShape(),
                                internal::DataItem(schema::kMask), nullptr);
     });
@@ -156,7 +153,7 @@ absl::StatusOr<DataSlice> AreLists(const DataSlice& x) {
       x.GetShape(), internal::DataItem(schema::kMask), nullptr);
 }
 
-absl::StatusOr<DataSlice> AreDicts(const DataSlice& x) {
+absl::StatusOr<DataSlice> HasDict(const DataSlice& x) {
   auto schema = x.GetSchemaImpl();
   // Trust the schema if it is a Dict schema.
   if (x.GetSchema().IsDictSchema()) {
@@ -165,7 +162,7 @@ absl::StatusOr<DataSlice> AreDicts(const DataSlice& x) {
   // Derive from the data for OBJECT and ANY schemas.
   if (schema.is_any_schema() || schema.is_object_schema()) {
     return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-      ASSIGN_OR_RETURN(auto res, AreDictsImpl(impl));
+      ASSIGN_OR_RETURN(auto res, HasDictImpl(impl));
       return DataSlice::Create(std::move(res), x.GetShape(),
                                internal::DataItem(schema::kMask), nullptr);
     });

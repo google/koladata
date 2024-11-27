@@ -38,44 +38,44 @@ present = mask_constants.present
 missing = mask_constants.missing
 
 
-class KodaArePrimitivesTest(parameterized.TestCase):
+class KodaHasDictTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # DataItem
       (ds(None), missing),
-      (ds(None, schema_constants.INT32), missing),
-      (ds(1), present),
-      (ds([1, None, 3]), ds([present, missing, present])),
-      (ds('hello'), present),
-      (ds(schema_constants.INT32), present),
+      (bag().dict() & None, missing),
+      (bag().dict(), present),
+      (bag().dict({1: 2}), present),
+      (bag().dict({1: 2}).embed_schema(), present),
+      (bag().dict({1: 2}).as_any(), present),
+      (ds('hello'), missing),
+      (bag().new(), missing),
+      (bag().obj(), missing),
+      (bag().list(), missing),
+      (bag().new_schema(), missing),
       # DataSlice
-      (ds(['hello', None, 'world']), ds([present, missing, present])),
-      (ds(arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2))), present),
-      # Mixed types.
-      (ds(['hello', 1, 'world']), ds([present, present, present])),
-      (bag().list([1, 2, 3]), missing),
-      (bag().dict(ds(['hello', 'world']), ds([1, 2])), missing),
-      (bag().obj(a=ds(1), b=ds(2)), missing),
       (
-          ds([bag().obj(a=ds(1), b=ds(2)), 42, 'abc']),
-          ds([missing, present, present]),
+          ds([bag().dict({1: 2}), None, bag().dict({3: 4})]),
+          ds([present, missing, present]),
       ),
-      # Schemas
+      (ds([None, None]), ds([missing, missing])),
+      (ds([None, None], schema_constants.INT32), ds([missing, missing])),
+      (ds([None, None], schema_constants.OBJECT), ds([missing, missing])),
+      (ds([None, None], schema_constants.ANY), ds([missing, missing])),
+      # Mixed types.
       (
-          ds([schema_constants.STRING, None, bag().new_schema()]),
-          ds([present, missing, missing]),
+          ds([bag().dict({1: 2}).embed_schema(), None, 'world', bag().obj()]),
+          ds([present, missing, missing, missing]),
       ),
   )
   def test_eval(self, x, expected):
-    testing.assert_equal(expr_eval.eval(kde.core.are_primitives(x)), expected)
+    testing.assert_equal(expr_eval.eval(kde.core.has_dict(x)), expected)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.are_primitives(I.x)))
+    self.assertTrue(view.has_koda_view(kde.core.has_dict(I.x)))
 
   def test_alias(self):
-    self.assertTrue(
-        optools.equiv_to_op(kde.core.are_primitives, kde.are_primitives)
-    )
+    self.assertTrue(optools.equiv_to_op(kde.core.has_dict, kde.has_dict))
 
 
 if __name__ == '__main__':

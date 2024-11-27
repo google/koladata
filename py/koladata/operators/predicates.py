@@ -24,27 +24,27 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry(aliases=['kde.are_primitives'])
+@optools.add_to_registry(aliases=['kde.has_primitive'])
 @optools.as_backend_operator(
-    'kde.core.are_primitives',
+    'kde.core.has_primitive',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def are_primitives(x):  # pylint: disable=unused-argument
+def has_primitive(x):  # pylint: disable=unused-argument
   """Returns present for each item in `x` that is primitive.
 
   Note that this is a pointwise operation.
 
   Also see `kd.is_primitive` for checking if `x` is a primitive DataSlice. But
-  note that `kd.all(kd.are_primitives(x))` is not always equivalent to
+  note that `kd.all(kd.has_primitive(x))` is not always equivalent to
   `kd.is_primitive(x)`. For example,
 
     kd.is_primitive(kd.int32(None)) -> kd.present
-    kd.all(kd.are_primitives(kd.int32(None))) -> invalid for kd.all
+    kd.all(kd.has_primitive(kd.int32(None))) -> invalid for kd.all
     kd.is_primitive(kd.int32([None])) -> kd.present
-    kd.all(kd.are_primitives(kd.int32([None]))) -> kd.missing
+    kd.all(kd.has_primitive(kd.int32([None]))) -> kd.missing
 
   Args:
     x: DataSlice to check.
@@ -70,14 +70,14 @@ def is_primitive(x):  # pylint: disable=unused-argument
     1) it has a primitive schema
     2) it has OBJECT/ANY/SCHEMA schema and only has primitives
 
-  Also see `kd.are_primitives` for a pointwise version. But note that
-  `kd.all(kd.are_primitives(x))` is not always equivalent to
+  Also see `kd.has_primitive` for a pointwise version. But note that
+  `kd.all(kd.has_primitive(x))` is not always equivalent to
   `kd.is_primitive(x)`. For example,
 
     kd.is_primitive(kd.int32(None)) -> kd.present
-    kd.all(kd.are_primitives(kd.int32(None))) -> invalid for kd.all
+    kd.all(kd.has_primitive(kd.int32(None))) -> invalid for kd.all
     kd.is_primitive(kd.int32([None])) -> kd.present
-    kd.all(kd.are_primitives(kd.int32([None]))) -> kd.missing
+    kd.all(kd.has_primitive(kd.int32([None]))) -> kd.missing
 
   Args:
     x: DataSlice to check.
@@ -88,27 +88,27 @@ def is_primitive(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.are_lists'])
+@optools.add_to_registry(aliases=['kde.has_list'])
 @optools.as_backend_operator(
-    'kde.core.are_lists',
+    'kde.core.has_list',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def are_lists(x):  # pylint: disable=unused-argument
+def has_list(x):  # pylint: disable=unused-argument
   """Returns present for each item in `x` that is List.
 
   Note that this is a pointwise operation.
 
   Also see `kd.is_list` for checking if `x` is a List DataSlice. But note that
-  `kd.all(kd.are_lists(x))` is not always equivalent to `kd.is_list(x)`. For
+  `kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
   example,
 
     kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
-    kd.all(kd.are_lists(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.all(kd.has_list(kd.item(None, kd.OBJECT))) -> invalid for kd.all
     kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
-    kd.all(kd.are_lists(kd.item([None], kd.OBJECT))) -> kd.missing
+    kd.all(kd.has_list(kd.item([None], kd.OBJECT))) -> kd.missing
 
   Args:
     x: DataSlice to check.
@@ -132,14 +132,14 @@ def is_list(x):  # pylint: disable=unused-argument
     1) it has a List schema
     2) it has OBJECT/ANY schema and only has List items
 
-  Also see `kd.are_lists` for a pointwise version. But note that
-  `kd.all(kd.are_lists(x))` is not always equivalent to `kd.is_list(x)`. For
+  Also see `kd.has_list` for a pointwise version. But note that
+  `kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
   example,
 
     kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
-    kd.all(kd.are_lists(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.all(kd.has_list(kd.item(None, kd.OBJECT))) -> invalid for kd.all
     kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
-    kd.all(kd.are_lists(kd.item([None], kd.OBJECT))) -> kd.missing
+    kd.all(kd.has_list(kd.item([None], kd.OBJECT))) -> kd.missing
 
   Args:
     x: DataSlice to check.
@@ -150,27 +150,27 @@ def is_list(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.are_dicts'])
+@optools.add_to_registry(aliases=['kde.has_dict'])
 @optools.as_backend_operator(
-    'kde.core.are_dicts',
+    'kde.core.has_dict',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def are_dicts(x):  # pylint: disable=unused-argument
+def has_dict(x):  # pylint: disable=unused-argument
   """Returns present for each item in `x` that is Dict.
 
   Note that this is a pointwise operation.
 
   Also see `kd.is_dict` for checking if `x` is a Dict DataSlice. But note that
-  `kd.all(kd.are_dicts(x))` is not always equivalent to `kd.is_dict(x)`. For
+  `kd.all(kd.has_dict(x))` is not always equivalent to `kd.is_dict(x)`. For
   example,
 
     kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
-    kd.all(kd.are_dicts(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.all(kd.has_dict(kd.item(None, kd.OBJECT))) -> invalid for kd.all
     kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
-    kd.all(kd.are_dicts(kd.item([None], kd.OBJECT))) -> kd.missing
+    kd.all(kd.has_dict(kd.item([None], kd.OBJECT))) -> kd.missing
 
   Args:
     x: DataSlice to check.
@@ -194,14 +194,14 @@ def is_dict(x):  # pylint: disable=unused-argument
     1) it has a Dict schema
     2) it has OBJECT/ANY schema and only has Dict items
 
-  Also see `kd.are_dicts` for a pointwise version. But note that
-  `kd.all(kd.are_dicts(x))` is not always equivalent to `kd.is_dict(x)`. For
+  Also see `kd.has_dict` for a pointwise version. But note that
+  `kd.all(kd.has_dict(x))` is not always equivalent to `kd.is_dict(x)`. For
   example,
 
     kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
-    kd.all(kd.are_dicts(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.all(kd.has_dict(kd.item(None, kd.OBJECT))) -> invalid for kd.all
     kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
-    kd.all(kd.are_dicts(kd.item([None], kd.OBJECT))) -> kd.missing
+    kd.all(kd.has_dict(kd.item([None], kd.OBJECT))) -> kd.missing
 
   Args:
     x: DataSlice to check.

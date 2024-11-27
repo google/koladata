@@ -503,8 +503,8 @@ py_test(
 )
 
 py_test(
-    name = "core_are_lists_test",
-    srcs = ["core_are_lists_test.py"],
+    name = "core_has_list_test",
+    srcs = ["core_has_list_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -546,8 +546,8 @@ py_test(
 )
 
 py_test(
-    name = "core_are_dicts_test",
-    srcs = ["core_are_dicts_test.py"],
+    name = "core_has_dict_test",
+    srcs = ["core_has_dict_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2851,8 +2851,8 @@ py_test(
 )
 
 py_test(
-    name = "core_are_primitives_test",
-    srcs = ["core_are_primitives_test.py"],
+    name = "core_has_primitive_test",
+    srcs = ["core_has_primitive_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
