@@ -14,7 +14,6 @@
 
 # Custom C++/Python bindings for Kola types.
 
-load("@com_google_arolla//py/arolla/dynamic_deps:build_defs.bzl", "arolla_py_cc_deps")
 load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
@@ -115,13 +114,6 @@ cc_library(
     ],
 )
 
-arolla_py_cc_deps(
-    name = "operator_test_invalid_unicode_op_clib",
-    testonly = True,
-    dynamic_deps = ["//py/koladata/dynamic_deps:koladata_test_so"],
-    deps = ["//py/koladata/types/testing:operator_test_invalid_unicode_op"],
-)
-
 py_test(
     name = "boxing_test",
     srcs = ["boxing_test.py"],
@@ -130,12 +122,12 @@ py_test(
         ":data_item",
         ":data_slice",
         ":mask_constants",
-        ":operator_test_invalid_unicode_op_clib",  # buildcleaner: keep
         ":qtypes",
         ":schema_constants",
         "//py/koladata/exceptions",
         "//py/koladata/operators:comparison",
         "//py/koladata/testing",
+        "//py/koladata/types/testing:operator_test_invalid_unicode_op_clib",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
@@ -649,19 +641,13 @@ py_test(
     ],
 )
 
-arolla_py_cc_deps(
-    name = "expr_operators_clib",
-    dynamic_deps = ["//py/koladata/dynamic_deps:koladata_so"],
-    deps = ["//koladata/expr:expr_operators"],
-)
-
 py_library(
     name = "ellipsis",
     srcs = ["ellipsis.py"],
     deps = [
-        ":expr_operators_clib",
         "//koladata/s11n",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
 )

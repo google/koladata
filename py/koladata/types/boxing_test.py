@@ -25,9 +25,9 @@ from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import mask_constants
-from koladata.types import operator_test_invalid_unicode_op_clib as _
 from koladata.types import qtypes
 from koladata.types import schema_constants
+from koladata.types.testing import operator_test_invalid_unicode_op_clib as _
 
 INT32 = schema_constants.INT32
 INT64 = schema_constants.INT64

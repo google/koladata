@@ -19,12 +19,11 @@ load(
     "operator_libraries",
     "operator_overload_list",
 )
+load("@com_google_arolla//py/arolla/dynamic_deps:build_defs.bzl", "arolla_py_cc_deps")
 load("@rules_python//python:defs.bzl", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
-package(default_visibility = [
-    "//koladata:internal",
-])
+package(default_visibility = ["//visibility:private"])
 
 licenses(["notice"])
 
@@ -55,10 +54,19 @@ operator_libraries(
     ),
 )
 
+arolla_py_cc_deps(
+    name = "operator_test_invalid_unicode_op_clib",
+    testonly = True,
+    dynamic_deps = ["//py/koladata/dynamic_deps:koladata_so"],
+    visibility = ["//koladata:internal"],
+    deps = ["//py/koladata/types/testing:operator_test_invalid_unicode_op"],
+)
+
 koladata_py_extension(
     name = "py_utils_py_ext",
     testonly = True,
     srcs = ["py_utils_module.cc"],
+    visibility = ["//koladata:internal"],
     deps = [
         "//py/koladata/types:py_utils",
         "@com_google_absl//absl/base:no_destructor",

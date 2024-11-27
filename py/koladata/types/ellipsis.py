@@ -15,9 +15,9 @@
 """Ellipsis QType and QValue."""
 
 from arolla import arolla
-from koladata.types import expr_operators_clib as _
+from koladata.expr import py_expr_eval_py_ext
 
-_ellipsis = arolla.abc.invoke_op('koda_internal.ellipsis')
+_ellipsis = py_expr_eval_py_ext.eval_op('koda_internal.ellipsis')
 ELLIPSIS = _ellipsis.qtype
 
 

@@ -47,24 +47,6 @@ cc_shared_library(
     ],
 )
 
-cc_shared_library(
-    name = "koladata_test_so",
-    testonly = True,
-    dynamic_deps = [
-        "@com_google_arolla//py/arolla/dynamic_deps:base_so",
-        "@com_google_arolla//py/arolla/dynamic_deps:arolla_so",
-        "@com_google_arolla//py/arolla/dynamic_deps:arolla_py_abc_so",
-        "@com_google_arolla//py/arolla/dynamic_deps:arolla_standard_operators_so",
-        ":koladata_so",
-    ],
-    exports_filter = [
-        "//py/koladata/types/testing:__subpackages__",
-    ],
-    deps = [
-        "//py/koladata/types/testing:operator_test_invalid_unicode_op",
-    ],
-)
-
 bzl_library(
     name = "py_extension_bzl",
     srcs = ["py_extension.bzl"],
