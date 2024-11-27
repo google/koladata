@@ -144,18 +144,30 @@ class CoreSortTest(parameterized.TestCase):
 
   def test_data_item(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('expected rank(x) > 0')
+        exceptions.KodaError,
+        # TODO: b/375621456 - Must start with 'kde.core.sort: '.
+        re.escape('array.ordinal_rank: expected rank(x) > 0'),
     ):
       expr_eval.eval(kde.core.sort(ds(0)))
 
   def test_different_shape(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape('must have the same shape')
+        # TODO: b/375621456 - Raise KodaError.
+        ValueError,
+        re.escape(
+            'kde.core.sort: arguments `x` and `sort_by` must have the same'
+            ' shape'
+        ),
     ):
       expr_eval.eval(kde.core.sort(ds([0, 3, 6]), ds([0, 3, 6, 1])))
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('must have the same shape')
+        # TODO: b/375621456 - Raise KodaError.
+        ValueError,
+        re.escape(
+            'kde.core.sort: arguments `x` and `sort_by` must have the same'
+            ' shape'
+        ),
     ):
       expr_eval.eval(kde.core.sort(ds([0, 3, 6]), ds([[1], [2, 3], [4]])))
 

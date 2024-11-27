@@ -476,7 +476,7 @@ def remove(ds, fltr):
     Filtered DataSlice.
   """
   fltr = assertion.assert_ds_has_primitives_of(
-      fltr, MASK, '`fltr` must have kd.MASK dtype.'
+      fltr, MASK, 'kde.core.remove: argument `fltr` must have kd.MASK dtype'
   )
   return select(ds=ds, fltr=~fltr)
 
@@ -591,7 +591,9 @@ def get_ndim(x):
 )
 def isin(x, y):
   """Returns a DataItem indicating whether DataItem x is present in y."""
-  x = assertion.with_assertion(x, get_ndim(x) == 0, "'x' must be a DataItem.")
+  x = assertion.with_assertion(
+      x, get_ndim(x) == 0, 'kde.core.isin: argument `x` must be a DataItem'
+  )
   return logical.any_(x == y)
 
 
@@ -1329,7 +1331,7 @@ def _get_list_item_by_slice(x, s):
   stop = normalize_slice_arg(tuple_ops.get_nth(s, 1), arolla.int64(2**63 - 1))
   step = normalize_slice_arg(tuple_ops.get_nth(s, 2), 1)
   x = assertion.with_assertion(
-      x, step == 1, 'Slice with step != 1 is not supported'
+      x, step == 1, 'kde.core.get_item: slice with step != 1 is not supported'
   )
   return _get_list_item_by_range(x, start, stop)
 
@@ -2373,7 +2375,9 @@ def index(x, dim=arolla.unspecified()):
       If unspecified, it is set to the last dimension of x.
   """
   x = assertion.with_assertion(
-      x, get_ndim(x) != 0, "'x' must have non-zero rank."
+      x,
+      get_ndim(x) != 0,
+      'kde.core.index: argument `x` must have non-zero rank',
   )
 
   dim = M.core.default_if_unspecified(dim, get_ndim(x) - 1)
@@ -2382,7 +2386,7 @@ def index(x, dim=arolla.unspecified()):
   ndim = assertion.with_assertion(
       ndim,
       (ndim < get_ndim(x)) & (ndim >= 0),
-      'expected 0 <= dim < rank',
+      'kde.core.index: expected 0 <= dim < rank',
   )
 
   aggregated = logical.agg_has(x, ndim)
@@ -3691,7 +3695,7 @@ def sort(
               jagged_shape_ops.get_shape(P.x),
               jagged_shape_ops.get_shape(P.sort_by),
           ),
-          "'x' and 'sort_by' must have the same shape.",
+          'kde.core.sort: arguments `x` and `sort_by` must have the same shape',
       ),
   )
   assert_sparsity_less = arolla.types.LambdaOperator(
@@ -3699,7 +3703,7 @@ def sort(
       assertion.with_assertion(
           P.sort_by,
           count(logical.has(P.x) & logical.has_not(P.sort_by)) == 0,
-          "trying to sort 'x' by 'sort_by' that is more sparse.",
+          'kde.core.sort: trying to sort `x` by `sort_by` that is more sparse',
       ),
   )
   sort_by = arolla.types.DispatchOperator(
@@ -4142,7 +4146,8 @@ def translate_group(keys_to, keys_from, values_from):
               jagged_shape_ops.get_shape(P.keys_from),
               jagged_shape_ops.get_shape(P.values_from),
           ),
-          'keys_from and values_from must have the same shape.',
+          'kde.core.translate_group: `keys_from` and `values_from` must have'
+          ' the same shape',
       ),
   )
   keys_from = assert_same_shape(keys_from, values_from)

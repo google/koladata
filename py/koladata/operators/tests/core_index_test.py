@@ -109,14 +109,18 @@ class CoreIndexTest(parameterized.TestCase):
   def test_data_item_input_error(self):
     x = ds(1)
     with self.assertRaisesRegex(
-        ValueError, re.escape("'x' must have non-zero rank.")
+        ValueError,
+        re.escape('kde.core.index: argument `x` must have non-zero rank'),
     ):
       expr_eval.eval(kde.core.index(x))
 
   @parameterized.parameters(-1, 2)
   def test_out_of_bounds_ndim_error(self, ndim):
     x = data_slice.DataSlice.from_vals([1, 2, 3])
-    with self.assertRaisesRegex(ValueError, 'expected 0 <= dim < rank'):
+    with self.assertRaisesRegex(
+        # TODO: b/375621456 - Raise KodaError.
+        ValueError, 'kde.core.index: expected 0 <= dim < rank'
+    ):
       expr_eval.eval(kde.core.index(x, ndim))
 
   def test_qtype_signatures(self):

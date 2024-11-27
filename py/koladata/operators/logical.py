@@ -175,10 +175,14 @@ def mask_and(x, y):
     DataSlice.
   """
   x = assertion.assert_ds_has_primitives_of(
-      x, schema_constants.MASK, '`x` must have kd.MASK dtype.'
+      x,
+      schema_constants.MASK,
+      'kde.logical.mask_and: argument `x` must have kd.MASK dtype',
   )
   y = assertion.assert_ds_has_primitives_of(
-      y, schema_constants.MASK, '`y` must have kd.MASK dtype.'
+      y,
+      schema_constants.MASK,
+      'kde.logical.mask_and: argument `y` must have kd.MASK dtype',
   )
   return schema.with_schema(x & y, schema_constants.MASK)
 
@@ -210,10 +214,14 @@ def mask_or(x, y):
     DataSlice.
   """
   x = assertion.assert_ds_has_primitives_of(
-      x, schema_constants.MASK, '`x` must have kd.MASK dtype.'
+      x,
+      schema_constants.MASK,
+      'kde.logical.mask_or: argument `x` must have kd.MASK dtype',
   )
   y = assertion.assert_ds_has_primitives_of(
-      y, schema_constants.MASK, '`y` must have kd.MASK dtype.'
+      y,
+      schema_constants.MASK,
+      'kde.logical.mask_or: argument `y` must have kd.MASK dtype',
   )
   return schema.with_schema(x | y, schema_constants.MASK)
 
@@ -246,10 +254,14 @@ def mask_equal(x, y):
     DataSlice.
   """
   x = assertion.assert_ds_has_primitives_of(
-      x, schema_constants.MASK, '`x` must have kd.MASK dtype.'
+      x,
+      schema_constants.MASK,
+      'kde.logical.mask_equal: argument `x` must have kd.MASK dtype',
   )
   y = assertion.assert_ds_has_primitives_of(
-      y, schema_constants.MASK, '`y` must have kd.MASK dtype.'
+      y,
+      schema_constants.MASK,
+      'kde.logical.mask_equal: argument `y` must have kd.MASK dtype',
   )
   return schema.with_schema((x & y) | (~x & ~y), schema_constants.MASK)
 
@@ -425,6 +437,6 @@ def disjoint_coalesce(x, y):
   x = assertion.with_assertion(
       x,
       ~any_(has(x) & has(y)),
-      '`x` and `y` in disjoint_coalesce cannot intersect.',
+      'kde.logical.disjoint_coalesce: `x` and `y` cannot intersect',
   )
   return coalesce(x, y)

@@ -142,15 +142,16 @@ class CoreRemoveTest(parameterized.TestCase):
     val = data_slice.DataSlice.from_vals([1, 2, None, 4])
     with self.assertRaisesRegex(
         ValueError,
-        '`fltr` must have kd.MASK dtype.',
+        'kde.core.remove: argument `fltr` must have kd.MASK dtype',
     ):
       expr_eval.eval(kde.core.remove(val, val))
 
   def test_remove_wrong_filter_type(self):
     val = data_slice.DataSlice.from_vals([1, 2, None, 4]).as_any()
     with self.assertRaisesRegex(
+        # TODO: b/375621456 - Raise KodaError.
         ValueError,
-        '`fltr` must have kd.MASK dtype.',
+        'kde.core.remove: argument `fltr` must have kd.MASK dtype',
     ):
       expr_eval.eval(kde.core.remove(val, val))
 

@@ -85,7 +85,10 @@ class CoreIsInTest(parameterized.TestCase):
     testing.assert_equal(expr_eval.eval(kde.core.isin(x, y)), result)
 
   def test_x_not_an_item(self):
-    with self.assertRaisesRegex(ValueError, '\'x\' must be a DataItem'):
+    with self.assertRaisesRegex(
+        # TODO: b/375621456 - Raise KodaError.
+        ValueError, 'kde.core.isin: argument `x` must be a DataItem'
+    ):
       expr_eval.eval(kde.core.isin(ds([1, 2, 3]), ds([1, 2, 3])))
 
   def test_x_not_a_ds(self):

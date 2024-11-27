@@ -164,7 +164,9 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('`x` and `y` in disjoint_coalesce cannot intersect'),
+        re.escape(
+            'kde.logical.disjoint_coalesce: `x` and `y` cannot intersect'
+        ),
     ):
       _ = expr_eval.eval(
           kde.logical.disjoint_coalesce(ds([1, 2]), ds([None, 1]))

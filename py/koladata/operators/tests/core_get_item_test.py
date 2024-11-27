@@ -149,8 +149,9 @@ class CoreGetItemTest(parameterized.TestCase):
       expr_eval.eval(kde.get_item(ds([1, 2, 3]), slice('a', 3)))
 
     with self.assertRaisesRegex(
+        # TODO: b/375621456 - Raise KodaError.
         ValueError,
-        'Slice with step != 1 is not supported',
+        'kde.core.get_item: slice with step != 1 is not supported',
     ):
       expr_eval.eval(kde.get_item(ds([1, 2, 3]), slice(3, 5, 2)))
 

@@ -137,8 +137,10 @@ class CoreTranslateGroupTest(parameterized.TestCase):
 
   def test_incompatible_shapes(self):
     with self.assertRaisesRegex(
+        # TODO: b/375621456 - Raise KodaError.
         ValueError,
-        'keys_from and values_from must have the same shape',
+        'kde.core.translate_group: `keys_from` and `values_from` must have the'
+        ' same shape',
     ):
       expr_eval.eval(
           kde.core.translate_group(
