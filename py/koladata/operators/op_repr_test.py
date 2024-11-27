@@ -484,7 +484,7 @@ class OpReprTest(parameterized.TestCase):
       ),
   )
   def test_full_signature_repr(self, expr, expected_repr):
-    register(full_signature_op, op_repr.full_signature_repr)
+    register(full_signature_op, op_repr.default_op_repr)
     self.assertEqual(repr(expr), expected_repr)
 
   def test_full_signature_repr_hidden_seed(self):
@@ -503,7 +503,7 @@ class OpReprTest(parameterized.TestCase):
       del hidden_seed
       return x, args, y, kwargs
 
-    register(full_signature_with_hidden_seed_op, op_repr.full_signature_repr)
+    register(full_signature_with_hidden_seed_op, op_repr.default_op_repr)
     self.assertEqual(
         repr(full_signature_with_hidden_seed_op(I.x, I.a, y=I.y, z=I.z)),
         'test.full_signature_with_hidden_seed_op(I.x, I.a, y=I.y, z=I.z)',

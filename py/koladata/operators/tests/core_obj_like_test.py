@@ -285,10 +285,9 @@ class CoreObjLikeTest(absltest.TestCase):
     self.assertTrue(optools.equiv_to_op(kde.core.obj_like, kde.obj_like))
 
   def test_repr(self):
-    self.assertIn(
-        "kde.core.obj_like(I.x, unspecified, M.namedtuple.make('a', I.y),"
-        ' L._koladata_hidden_seed_leaf + int64{',
+    self.assertEqual(
         repr(kde.core.obj_like(I.x, a=I.y)),
+        'kde.core.obj_like(I.x, itemid=unspecified, a=I.y)',
     )
 
 

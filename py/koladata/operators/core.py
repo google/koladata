@@ -74,10 +74,7 @@ def add(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.bag'],
-    repr_fn=op_repr.full_signature_repr,
-)
+@optools.add_to_registry(aliases=['kde.bag'])
 @optools.as_backend_operator(
     'kde.core.bag',
     qtype_constraints=[
@@ -192,9 +189,7 @@ def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,red
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.concat'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.concat'])
 @optools.as_lambda_operator(
     'kde.core.concat',
     qtype_constraints=[
@@ -265,9 +260,7 @@ def concat(
   )
 
 
-@optools.add_to_registry(
-    aliases=['kde.stack'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.stack'])
 @optools.as_lambda_operator(
     'kde.core.stack',
     qtype_constraints=[
@@ -326,9 +319,7 @@ def stack(
   )
 
 
-@optools.add_to_registry(
-    aliases=['kde.zip'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.zip'])
 @optools.as_lambda_operator(
     'kde.core.zip',
     qtype_constraints=[
@@ -765,9 +756,7 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.attrs'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.attrs'])
 @optools.as_backend_operator(
     'kde.core.attrs',
     qtype_constraints=[
@@ -805,9 +794,7 @@ def _attr(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.with_attrs'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.with_attrs'])
 @optools.as_backend_operator(
     'kde.core.with_attrs',
     qtype_constraints=[
@@ -868,9 +855,7 @@ def _new(arg, schema, update_schema, itemid, attrs, hidden_seed):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.new'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.new'])
 @optools.as_lambda_operator(
     'kde.core.new',
     qtype_constraints=[
@@ -946,9 +931,7 @@ def _new_shaped(shape, schema, update_schema, itemid, attrs, hidden_seed):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.new_shaped'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.new_shaped'])
 @optools.as_lambda_operator(
     'kde.core.new_shaped',
     qtype_constraints=[
@@ -995,9 +978,7 @@ def new_shaped(
   )
 
 
-@optools.add_to_registry(
-    aliases=['kde.new_shaped_as'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.new_shaped_as'])
 @optools.as_lambda_operator(
     'kde.core.new_shaped_as',
     qtype_constraints=[
@@ -1113,9 +1094,7 @@ def new_like(
   )
 
 
-@optools.add_to_registry(
-    aliases=['kde.obj'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.obj'])
 @optools.as_backend_operator(
     'kde.core.obj',
     qtype_constraints=[
@@ -1150,9 +1129,7 @@ def _obj(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.obj_shaped'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.obj_shaped'])
 @optools.as_backend_operator(
     'kde.core.obj_shaped',
     qtype_constraints=[
@@ -1185,9 +1162,7 @@ def obj_shaped(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.obj_shaped_as'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.obj_shaped_as'])
 @optools.as_lambda_operator(
     'kde.core.obj_shaped_as',
     qtype_constraints=[
@@ -2674,9 +2649,7 @@ def _shallow_clone(x, itemid, schema, hidden_seed):  # pylint: disable=unused-ar
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.shallow_clone'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.shallow_clone'])
 @optools.as_lambda_operator(
     'kde.core.shallow_clone',
     qtype_constraints=[
@@ -2751,9 +2724,7 @@ def _clone(x, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.clone'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.clone'])
 @optools.as_lambda_operator(
     'kde.core.clone',
     qtype_constraints=[
@@ -2827,9 +2798,7 @@ def _deep_clone(x, schema, hidden_seed):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.deep_clone'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.deep_clone'])
 @optools.as_lambda_operator(
     'kde.core.deep_clone',
     qtype_constraints=[
@@ -2900,9 +2869,7 @@ def _deep_uuid(x, schema, seed):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.deep_uuid'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.deep_uuid'])
 @optools.as_lambda_operator(
     'kde.core.deep_uuid',
     qtype_constraints=[
@@ -4257,9 +4224,7 @@ def _list(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.list'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.list'])
 @optools.as_lambda_operator(
     'kde.core.list',
     qtype_constraints=[
@@ -4315,9 +4280,7 @@ def _list_like(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.list_like'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.list_like'])
 @optools.as_lambda_operator(
     'kde.core.list_like',
     qtype_constraints=[
@@ -4376,9 +4339,7 @@ def _list_shaped(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.list_shaped'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.list_shaped'])
 @optools.as_lambda_operator(
     'kde.core.list_shaped',
     qtype_constraints=[
@@ -4424,9 +4385,7 @@ def list_shaped(
   return _list_shaped(shape, items, item_schema, schema, itemid, hidden_seed)
 
 
-@optools.add_to_registry(
-    aliases=['kde.list_shaped_as'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.list_shaped_as'])
 @optools.as_lambda_operator(
     'kde.core.list_shaped_as',
     qtype_constraints=[

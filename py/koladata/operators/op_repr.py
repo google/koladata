@@ -26,17 +26,9 @@ OperatorReprFn = Callable[
 ]
 
 
-def default_op_repr(
+def _full_signature_varargs_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-) -> arolla.abc.ReprToken:
-  """Default repr function for Koda operators."""
-  res = arolla.abc.ReprToken()
-  dep_txt = ', '.join(tokens[node].text for node in node.node_deps)
-  res.text = f'{node.op.display_name}({dep_txt})'
-  return res
-
-
-def _varargs_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> str:
+) -> str:
   """Repr for varargs. Assumes node is a tuple (op or qvalue)."""
   if node.qvalue is None:
     if arolla.abc.decay_registered_operator(
@@ -50,7 +42,9 @@ def _varargs_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> str:
     return ', '.join(repr(v) for v in node.qvalue)
 
 
-def _varkwargs_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> str:
+def _full_signature_varkwargs_repr(
+    node: arolla.Expr, tokens: arolla.abc.NodeTokenView
+) -> str:
   """Repr for varkwargs. Assumes node is a namedtuple (op or qvalue)."""
   # pytype: disable=attribute-error
   if node.qvalue is None:
@@ -68,16 +62,18 @@ def _varkwargs_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> str:
   # pytype: enable=attribute-error
 
 
-def full_signature_repr(
-    node: arolla.Expr, tokens: arolla.abc.NodeTokenView
+# Note: We pass `node_op` and `node_op_signature` directly only to avoid
+# retrieving them again, saving a few cycles.
+def _full_signature_op_repr(
+    node: arolla.Expr,
+    node_op: arolla.abc.Operator,
+    node_op_signature: arolla.abc.Signature,
+    tokens: arolla.abc.NodeTokenView,
 ) -> arolla.abc.ReprToken:
   """Repr function for Koda operators with FULL_SIGNATURE_POLICY aux policy."""
-  assert node.op is not None
   node_dep_reprs = []
   for dep, param in zip(
-      node.node_deps,
-      arolla.abc.get_operator_signature(node.op).parameters,
-      strict=True,
+      node.node_deps, node_op_signature.parameters, strict=True
   ):
     if not isinstance(
         param.default, arolla.abc.QValue
@@ -86,10 +82,10 @@ def full_signature_repr(
     elif py_boxing.is_hidden_seed(param.default[1]):
       continue
     elif py_boxing.is_var_positional(param.default[1]):
-      if repr_ := _varargs_repr(dep, tokens):
+      if repr_ := _full_signature_varargs_repr(dep, tokens):
         node_dep_reprs.append(repr_)
     elif py_boxing.is_var_keyword(param.default[1]):
-      if repr_ := _varkwargs_repr(dep, tokens):
+      if repr_ := _full_signature_varkwargs_repr(dep, tokens):
         node_dep_reprs.append(repr_)
     elif py_boxing.is_keyword_only(param.default[1]):
       node_dep_reprs.append(f'{param.name}={tokens[dep].text}')
@@ -97,6 +93,21 @@ def full_signature_repr(
       node_dep_reprs.append(tokens[dep].text)
   res = arolla.abc.ReprToken()
   dep_txt = ', '.join(node_dep_reprs)
+  res.text = f'{node_op.display_name}({dep_txt})'
+  return res
+
+
+def default_op_repr(
+    node: arolla.Expr, tokens: arolla.abc.NodeTokenView
+) -> arolla.abc.ReprToken:
+  """Default repr function for Koda operators."""
+  op = node.op
+  assert op is not None
+  signature = arolla.abc.get_operator_signature(op)
+  if signature.aux_policy == py_boxing.FULL_SIGNATURE_POLICY:
+    return _full_signature_op_repr(node, op, signature, tokens)
+  res = arolla.abc.ReprToken()
+  dep_txt = ', '.join(tokens[node].text for node in node.node_deps)
   res.text = f'{node.op.display_name}({dep_txt})'
   return res
 

@@ -135,8 +135,7 @@ class DictLikeTest(parameterized.TestCase):
     dct = kde.core.dict_like(ds([None, 0]), schema=dict_schema).eval()
 
     testing.assert_equal(
-        dct[ds(None)].a.no_bag(),
-        ds([None, None], schema_constants.INT32)
+        dct[ds(None)].a.no_bag(), ds([None, None], schema_constants.INT32)
     )
 
   def test_itemid_dataitem(self):
@@ -473,11 +472,10 @@ Assigned schema for Dict key: STRING""",
     self.assertTrue(optools.equiv_to_op(kde.core.dict_like, kde.dict_like))
 
   def test_repr(self):
-    self.assertIn(
-        'kde.core.dict_like(I.x, I.y, unspecified, unspecified,'
-        ' unspecified, unspecified, unspecified, L._koladata_hidden_seed_leaf +'
-        ' int64{',
+    self.assertEqual(
         repr(kde.core.dict_like(I.x, keys=I.y)),
+        'kde.core.dict_like(I.x, I.y, unspecified, key_schema=unspecified,'
+        ' value_schema=unspecified, schema=unspecified, itemid=unspecified)',
     )
 
 

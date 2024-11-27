@@ -23,7 +23,6 @@ from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import core as _
 from koladata.operators import logical as _
-from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_item
@@ -130,9 +129,7 @@ def _unwrap_optional_schema(
 #
 
 
-@optools.add_to_registry(
-    aliases=['kde.apply_py'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.apply_py'])
 @optools.as_lambda_operator(
     'kde.py.apply_py',
     qtype_constraints=[
@@ -191,9 +188,7 @@ def apply_py(
   return impl(fn, args, return_type_as, kwargs)
 
 
-@optools.add_to_registry(
-    aliases=['kde.apply_py_on_cond'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.apply_py_on_cond'])
 @optools.as_lambda_operator(
     'kde.py.apply_py_on_cond',
     qtype_constraints=[
@@ -264,9 +259,7 @@ def apply_py_on_cond(
   return impl(yes_fn, no_fn, cond, args, kwargs)
 
 
-@optools.add_to_registry(
-    aliases=['kde.apply_py_on_selected'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.apply_py_on_selected'])
 @optools.as_lambda_operator(
     'kde.py.apply_py_on_selected',
     qtype_constraints=[
@@ -412,9 +405,7 @@ def _basic_map_py(
 # TODO: b/365026427 - Add a reference to kd.py_cloudpickle in the docstring.
 # TODO: b/370978592 - Consider implementing this operator using kdf.map
 #   combined with kd.py_fn, especially if the performance is comparable.
-@optools.add_to_registry(
-    aliases=['kde.map_py'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.map_py'])
 @optools.as_lambda_operator(
     'kde.py.map_py',
     qtype_constraints=[
@@ -534,9 +525,7 @@ def map_py(
   )
 
 
-@optools.add_to_registry(
-    aliases=['kde.map_py_on_cond'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.map_py_on_cond'])
 @optools.as_lambda_operator(
     'kde.py.map_py_on_cond',
     qtype_constraints=[
@@ -656,9 +645,7 @@ def map_py_on_cond(
   )
 
 
-@optools.add_to_registry(
-    aliases=['kde.map_py_on_selected'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.map_py_on_selected'])
 @optools.as_lambda_operator(
     'kde.py.map_py_on_selected',
     qtype_constraints=[
@@ -719,9 +706,7 @@ def map_py_on_selected(
   )
 
 
-@optools.add_to_registry(
-    aliases=['kde.map_py_on_present'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.map_py_on_present'])
 @optools.as_lambda_operator(
     'kde.py.map_py_on_present',
     qtype_constraints=[

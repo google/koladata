@@ -15,7 +15,6 @@
 """Object factory operators."""
 
 from arolla import arolla
-from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import py_boxing
@@ -26,9 +25,7 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry(
-    aliases=['kde.uuobj'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.uuobj'])
 @optools.as_backend_operator(
     'kde.core.uuobj',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -65,9 +62,7 @@ def uuobj(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.uu'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.uu'])
 @optools.as_backend_operator(
     'kde.core.uu',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,

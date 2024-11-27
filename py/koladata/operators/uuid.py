@@ -15,7 +15,6 @@
 """UUID operators."""
 
 from arolla import arolla
-from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import py_boxing
@@ -27,9 +26,7 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry(
-    aliases=['kde.uuid'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.uuid'])
 @optools.as_backend_operator(
     'kde.core.uuid',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -54,9 +51,7 @@ def uuid(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.uuid_for_list'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.uuid_for_list'])
 @optools.as_backend_operator(
     'kde.core.uuid_for_list',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -89,9 +84,7 @@ def uuid_for_list(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.uuid_for_dict'], repr_fn=op_repr.full_signature_repr
-)
+@optools.add_to_registry(aliases=['kde.uuid_for_dict'])
 @optools.as_backend_operator(
     'kde.core.uuid_for_dict',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -124,10 +117,7 @@ def uuid_for_dict(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
-    aliases=['kde.uuids_with_allocation_size'],
-    repr_fn=op_repr.full_signature_repr,
-)
+@optools.add_to_registry(aliases=['kde.uuids_with_allocation_size'])
 @optools.as_backend_operator(
     'kde.core.uuids_with_allocation_size',
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,

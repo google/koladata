@@ -264,10 +264,10 @@ Assigned schema for Dict key: STRING""",
     self.assertTrue(optools.equiv_to_op(kde.core.dict, kde.dict))
 
   def test_repr(self):
-    self.assertIn(
-        'kde.core.dict(I.x, unspecified, unspecified, unspecified,'
-        ' unspecified, unspecified, L._koladata_hidden_seed_leaf + int64{',
+    self.assertEqual(
         repr(kde.core.dict(keys=I.x)),
+        'kde.core.dict(I.x, unspecified, key_schema=unspecified,'
+        ' value_schema=unspecified, schema=unspecified, itemid=unspecified)',
     )
 
 

@@ -122,7 +122,7 @@ class DictShapedAsTest(parameterized.TestCase):
 
     testing.assert_equal(
         dct[ds(None)].a.no_bag(),
-        ds([[None, None], [None]], schema_constants.INT32)
+        ds([[None, None], [None]], schema_constants.INT32),
     )
 
   def test_wrong_shape_and_mask_from(self):
@@ -301,11 +301,10 @@ Assigned schema for Dict key: STRING""",
     )
 
   def test_repr(self):
-    self.assertIn(
-        'kde.core.dict_shaped_as(I.x, I.y, unspecified, unspecified,'
-        ' unspecified, unspecified, unspecified, L._koladata_hidden_seed_leaf +'
-        ' int64{',
+    self.assertEqual(
         repr(kde.core.dict_shaped_as(I.x, keys=I.y)),
+        'kde.core.dict_shaped_as(I.x, I.y, unspecified, key_schema=unspecified,'
+        ' value_schema=unspecified, schema=unspecified, itemid=unspecified)',
     )
 
 

@@ -196,7 +196,6 @@ py_library(
     name = "uuid",
     srcs = ["uuid.py"],
     deps = [
-        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -210,7 +209,6 @@ py_library(
     name = "object_factories",
     srcs = ["object_factories.py"],
     deps = [
-        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -226,7 +224,6 @@ py_library(
     deps = [
         ":assertion",
         ":jagged_shape",
-        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -272,7 +269,6 @@ py_library(
     deps = [
         ":jagged_shape",
         ":logical",
-        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -389,7 +385,6 @@ py_library(
     deps = [
         ":core",
         ":logical",
-        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -462,7 +457,6 @@ py_library(
     name = "functor",
     srcs = ["functor.py"],
     deps = [
-        ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/functor:operators",

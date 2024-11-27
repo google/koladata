@@ -349,11 +349,11 @@ class CoreNewlikeTest(absltest.TestCase):
     self.assertTrue(optools.equiv_to_op(kde.core.new_like, kde.new_like))
 
   def test_repr(self):
-    self.assertIn(
-        'kde.core.new_like(I.x, unspecified, DataItem(False, schema: BOOLEAN), '
-        "unspecified, M.namedtuple.make('a', I.y),"
-        ' L._koladata_hidden_seed_leaf + int64{',
+    self.assertEqual(
         repr(kde.core.new_like(I.x, a=I.y)),
+        'kde.core.new_like(I.x, schema=unspecified,'
+        ' update_schema=DataItem(False, schema: BOOLEAN), itemid=unspecified,'
+        ' a=I.y)',
     )
 
 
