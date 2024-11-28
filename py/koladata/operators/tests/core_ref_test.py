@@ -45,6 +45,7 @@ class CoreRefTest(parameterized.TestCase):
       ds(bag().obj(), schema_constants.ANY),
       ds(bag().obj(), schema_constants.ITEMID),
       ds(None).with_bag(bag()),
+      bag().uu_schema(a=schema_constants.INT32),
   )
   def test_eval(self, x):
     testing.assert_equal(expr_eval.eval(kde.core.ref(x)), x.no_bag())
@@ -56,6 +57,10 @@ class CoreRefTest(parameterized.TestCase):
   def test_primitive_data_error(self):
     with self.assertRaisesRegex(ValueError, 'cast INT32 to ITEMID'):
       expr_eval.eval(kde.core.ref(ds(123, schema_constants.OBJECT)))
+
+  def test_dtype_schema_error(self):
+    with self.assertRaisesRegex(ValueError, 'cannot cast DTYPE to ITEMID'):
+      expr_eval.eval(kde.core.ref(schema_constants.INT32))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

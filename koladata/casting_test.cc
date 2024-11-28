@@ -1099,6 +1099,7 @@ INSTANTIATE_TEST_SUITE_P(
       auto item_id_slice = *DataSlice::Create(
           empty_objects, DataSlice::JaggedShape::FlatFromSize(3),
           internal::DataItem(schema::kItemId));
+      auto explicit_schema = internal::AllocateExplicitSchema();
       std::vector<CastingTestCase> test_cases = {
           // DataSliceImpl cases.
           {test::EmptyDataSlice(3, schema::kNone),
@@ -1119,6 +1120,12 @@ INSTANTIATE_TEST_SUITE_P(
                empty_objects, DataSlice::JaggedShape::FlatFromSize(3),
                internal::DataItem(internal::AllocateExplicitSchema())),
            item_id_slice},
+          {test::DataSlice<internal::ObjectId>(
+              {explicit_schema, std::nullopt, explicit_schema},
+              schema::kSchema),
+           test::DataSlice<internal::ObjectId>(
+              {explicit_schema, std::nullopt, explicit_schema},
+              schema::kItemId)},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kItemId)},
@@ -1130,6 +1137,8 @@ INSTANTIATE_TEST_SUITE_P(
            test::DataItem(empty_objects[0], schema::kItemId)},
           {test::DataItem(empty_objects[0], internal::AllocateExplicitSchema()),
            test::DataItem(empty_objects[0], schema::kItemId)},
+          {test::Schema(explicit_schema),
+           test::DataItem(explicit_schema, schema::kItemId)},
       };
       AssertLowerBoundDTypesAreTested(schema::kItemId, test_cases);
       return test_cases;
@@ -1152,6 +1161,9 @@ TEST(Casting, ItemIdErrors) {
   EXPECT_THAT(ToItemId(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast MASK to ITEMID"));
+  EXPECT_THAT(ToItemId(test::Schema(schema::kInt32)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast DTYPE to ITEMID"));
 }
 
 TEST_P(CastingToSchemaTest, Casting) {

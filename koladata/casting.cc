@@ -234,7 +234,8 @@ absl::StatusOr<DataSlice> ToAny(const DataSlice& slice) {
 absl::StatusOr<DataSlice> ToItemId(const DataSlice& slice) {
   if (slice.GetSchemaImpl().holds_value<schema::DType>()) {
     constexpr DTypeMask kAllowedSchemas = GetDTypeMask(
-        schema::kNone, schema::kItemId, schema::kObject, schema::kAny);
+        schema::kNone, schema::kItemId, schema::kObject, schema::kSchema,
+        schema::kAny);
     RETURN_IF_ERROR(VerifyCompatibleSchema(slice, kAllowedSchemas));
   }
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
