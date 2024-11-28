@@ -4,15 +4,11 @@
 
 go/koda-v1-overview
 
-<!--*
-# Document freshness: For more information, see go/fresh-source.
-freshness: { owner: 'dilumich' reviewed: '2024-11-25' }
-*-->
-
 This guide gives a quick 60-minute overview of **Koda**, geared mainly for new
-users. You can see more detailed introduction in the Koda Fundamentals guide.
+users. You can see more detailed introduction in the
+[Koda Fundamentals](Fundamentals.md) guide.
 
-Also see Koda Cheatsheet for quick references.
+Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
 
 [TOC]
 
