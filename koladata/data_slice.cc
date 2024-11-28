@@ -1002,7 +1002,7 @@ absl::Status DataSlice::VerifyIsPrimitiveSchema() const {
 }
 
 absl::Status DataSlice::VerifyIsListSchema() const {
-  if (IsListSchema() || item() == schema::kAny) {
+  if (IsListSchema() || (is_item() && item() == schema::kAny)) {
     return absl::OkStatus();
   }
   RETURN_IF_ERROR(VerifyIsSchema());
@@ -1011,7 +1011,7 @@ absl::Status DataSlice::VerifyIsListSchema() const {
 }
 
 absl::Status DataSlice::VerifyIsDictSchema() const {
-  if (IsDictSchema() || item() == schema::kAny) {
+  if (IsDictSchema() || (is_item() && item() == schema::kAny)) {
     return absl::OkStatus();
   }
   RETURN_IF_ERROR(VerifyIsSchema());

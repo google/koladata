@@ -732,6 +732,10 @@ TEST(DataSliceTest, VerifyIsListSchema) {
   EXPECT_THAT(test::DataItem(42).VerifyIsListSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("must be SCHEMA, got: INT32")));
+
+  EXPECT_THAT(test::DataSlice<int>({1, 2, 3}).VerifyIsListSchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("must be SCHEMA, got: INT32")));
 }
 
 TEST(DataSliceTest, VerifyIsDictSchema) {
@@ -748,6 +752,10 @@ TEST(DataSliceTest, VerifyIsDictSchema) {
                        HasSubstr("expected Dict schema, got OBJECT")));
 
   EXPECT_THAT(test::DataItem(42).VerifyIsDictSchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("must be SCHEMA, got: INT32")));
+
+  EXPECT_THAT(test::DataSlice<int>({1, 2, 3}).VerifyIsDictSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("must be SCHEMA, got: INT32")));
 }

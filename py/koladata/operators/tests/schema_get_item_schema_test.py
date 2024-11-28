@@ -71,6 +71,12 @@ class SchemaGetItemSchemaTest(parameterized.TestCase):
           kde.schema.get_item_schema(db.new_schema(x=schema_constants.INT32))
       )
 
+    with self.assertRaisesRegex(
+        ValueError,
+        "expected List schema for get_item_schema",
+    ):
+      expr_eval.eval(kde.schema.get_item_schema(ds([1, 2, 3])))
+
   def test_boxing(self):
     with self.assertRaisesRegex(
         ValueError,

@@ -106,9 +106,9 @@ inline absl::StatusOr<DataSlice> GetObjSchema(const DataSlice& ds) {
 // kde.schema.get_item_schema operator.
 inline absl::StatusOr<DataSlice> GetItemSchema(const DataSlice& list_schema) {
   if (!list_schema.IsListSchema()) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("expected List schema for get_item_schema, got %v",
-                        list_schema.item()));
+    return absl::InvalidArgumentError(absl::StrCat(
+        "expected List schema for get_item_schema, got ",
+        arolla::Repr(list_schema)));
   }
   return list_schema.GetAttr(schema::kListItemsSchemaAttr);
 }
@@ -116,9 +116,9 @@ inline absl::StatusOr<DataSlice> GetItemSchema(const DataSlice& list_schema) {
 // kde.schema.get_key_schema operator.
 inline absl::StatusOr<DataSlice> GetKeySchema(const DataSlice& dict_schema) {
   if (!dict_schema.IsDictSchema()) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("expected Dict schema for get_key_schema, got %v",
-                        dict_schema.item()));
+    return absl::InvalidArgumentError(absl::StrCat(
+        "expected Dict schema for get_key_schema, got ",
+        arolla::Repr(dict_schema)));
   }
   return dict_schema.GetAttr(schema::kDictKeysSchemaAttr);
 }
@@ -126,9 +126,9 @@ inline absl::StatusOr<DataSlice> GetKeySchema(const DataSlice& dict_schema) {
 // kde.schema.get_value_schema operator.
 inline absl::StatusOr<DataSlice> GetValueSchema(const DataSlice& dict_schema) {
   if (!dict_schema.IsDictSchema()) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("expected Dict schema for get_value_schema, got %v",
-                        dict_schema.item()));
+    return absl::InvalidArgumentError(absl::StrCat(
+        "expected Dict schema for get_value_schema, got ",
+        arolla::Repr(dict_schema)));
   }
   return dict_schema.GetAttr(schema::kDictValuesSchemaAttr);
 }

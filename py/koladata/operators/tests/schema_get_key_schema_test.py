@@ -71,6 +71,12 @@ class SchemaGetKeySchemaTest(parameterized.TestCase):
           kde.schema.get_key_schema(db.new_schema(x=schema_constants.INT32))
       )
 
+    with self.assertRaisesRegex(
+        ValueError,
+        "expected Dict schema for get_key_schema",
+    ):
+      expr_eval.eval(kde.schema.get_key_schema(ds([1, 2, 3])))
+
   def test_boxing(self):
     with self.assertRaisesRegex(
         ValueError,
