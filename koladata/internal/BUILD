@@ -355,6 +355,21 @@ cc_test(
 )
 
 cc_library(
+    name = "types_buffer",
+    srcs = ["types_buffer.cc"],
+    hdrs = ["types_buffer.h"],
+    deps = [
+        ":missing_value",
+        ":types",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/container:inlined_vector",
+        "@com_google_absl//absl/log:check",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/qtype",
+    ],
+)
+
+cc_library(
     name = "data_slice",
     srcs = [
         "data_slice.cc",
@@ -370,8 +385,8 @@ cc_library(
         ":missing_value",
         ":object_id",
         ":types",
+        ":types_buffer",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/container:inlined_vector",

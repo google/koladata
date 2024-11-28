@@ -21,79 +21,19 @@
 #include <utility>
 #include <variant>
 
-#if defined(__SSE2__)
-#include <emmintrin.h>
-#endif
-
 #include "absl/log/check.h"
 #include "absl/log/log.h"
-#include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/types.h"
+#include "koladata/internal/types_buffer.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/meta.h"
 
 namespace koladata::internal {
-
-namespace {
-
-arolla::bitmap::Word GetEqualityMask16(const uint8_t* data, uint8_t type_idx) {
-#if defined(__SSE2__)
-  const auto match = _mm_set1_epi8(static_cast<char>(type_idx));
-  auto ctrl = _mm_loadu_si128(reinterpret_cast<const __m128i*>(data));
-  return static_cast<arolla::bitmap::Word>(
-      _mm_movemask_epi8(_mm_cmpeq_epi8(match, ctrl)));
-#else
-  arolla::bitmap::Word mask = 0;
-  for (int64_t i = 0; i < 16; ++i) {
-    mask |= ((data[i] == type_idx) << i);
-  }
-  return mask;
-#endif
-}
-
-}  // namespace
-
-arolla::bitmap::Bitmap TypesBuffer::ToBitmap(uint8_t type_idx) const {
-  static_assert(arolla::bitmap::kWordBitCount == 32);
-  arolla::bitmap::Bitmap::Builder bldr(
-      arolla::bitmap::BitmapSize(id_to_typeidx.size()));
-  auto bitmask = bldr.GetMutableSpan();
-
-  int64_t offset = 0;
-  const int64_t limit32 = static_cast<int64_t>(id_to_typeidx.size()) - 31;
-  for (; offset < limit32; offset += 32) {
-    arolla::bitmap::Word mask0 =
-        GetEqualityMask16(id_to_typeidx.begin() + offset, type_idx);
-    arolla::bitmap::Word mask1 =
-        GetEqualityMask16(id_to_typeidx.begin() + offset + 16, type_idx);
-    bitmask[offset / arolla::bitmap::kWordBitCount] = mask0 | (mask1 << 16);
-  }
-
-  int64_t limit = static_cast<int64_t>(id_to_typeidx.size()) - offset;
-  if (limit > 0) {
-    arolla::bitmap::Word mask = 0;
-    for (int64_t i = 0; i < limit; ++i) {
-      mask |= static_cast<arolla::bitmap::Word>(id_to_typeidx[offset + i] ==
-                                                type_idx)
-              << i;
-    }
-    bitmask.back() = mask;
-  }
-  return std::move(bldr).Build();
-}
-
-arolla::bitmap::Bitmap TypesBuffer::ToPresenceBitmap() const {
-  arolla::bitmap::Builder bldr(id_to_typeidx.size());
-  bldr.AddForEach(id_to_typeidx, [&](uint8_t t) {
-    return t != kMaybeRemoved && t != kRemoved && t != kUnset;
-  });
-  return std::move(bldr).Build();
-}
 
 SliceBuilder::SliceBuilder(size_t size) {
   types_buffer_.id_to_typeidx.resize(size);
