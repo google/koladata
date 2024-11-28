@@ -546,21 +546,21 @@ TEST(DataSliceReprTest,
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SplitLines) {
   std::vector<arolla::OptionalValue<int64_t>> input;
-  for (int i = 0; i < 11; ++i) {
-    for (int j = 0; j < 11; ++j) {
+  for (int i = 0; i < 10; ++i) {
+    for (int j = 0; j < 10; ++j) {
       input.emplace_back(j);
     }
   }
 
   std::vector<arolla::OptionalValue<int64_t>> edge2_input;
-  for (int i = 0; i <= 11; ++i) {
-    edge2_input.emplace_back(i * 11);
+  for (int i = 0; i <= 10; ++i) {
+    edge2_input.emplace_back(i * 10);
   }
 
   arolla::DenseArray<int64_t> edge2_array =
       arolla::CreateDenseArray<int64_t>(absl::MakeSpan(edge2_input));
 
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 11}));
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 10}));
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2,
                        DenseArrayEdge::FromSplitPoints(std::move(edge2_array)));
   ASSERT_OK_AND_ASSIGN(
@@ -575,13 +575,83 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SplitLines) {
                            std::move(ds_shape)));
 
   EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds(R"([
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, ...],
-  [...],
-  [...],
+  [0, 1, 2, 3, 4, ...],
+  [0, 1, 2, 3, 4, ...],
+  [0, 1, 2, 3, 4, ...],
+  [0, 1, 2, 3, 4, ...],
   [...],
   ...,
 ])"));
+}
+
+TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_ApplyLimit) {
+  std::vector<arolla::OptionalValue<int64_t>> input;
+  std::vector<arolla::OptionalValue<int64_t>> edge2_input;
+  edge2_input.emplace_back(0);
+  for (int i = 0; i < 10; ++i) {
+    for (int j = 0; j < (i + 4); ++j) {
+      input.emplace_back(j);
+    }
+    edge2_input.emplace_back(edge2_input.back().value + i + 4);
+  }
+
+  arolla::DenseArray<int64_t> edge2_array =
+      arolla::CreateDenseArray<int64_t>(absl::MakeSpan(edge2_input));
+
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 10}));
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2,
+                       DenseArrayEdge::FromSplitPoints(std::move(edge2_array)));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_shape,
+      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+
+  arolla::DenseArray<int64_t> ds_array =
+      arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
+  ASSERT_OK_AND_ASSIGN(DataSlice ds,
+                       DataSlice::CreateWithSchemaFromData(
+                           internal::DataSliceImpl::Create(std::move(ds_array)),
+                           std::move(ds_shape)));
+
+  EXPECT_THAT(DataSliceToStr(ds),
+              IsOkAndHolds("[[0, 1, 2, 3], [0, 1, 2, 3, 4], [0, 1, 2, 3, 4, "
+                           "...], [0, 1, 2, 3, 4, ...], [0, ...], ...]"));
+}
+
+TEST(DataSliceReprTest,
+     TestDataSliceImplStringRepresentation_NotExceedingTotalItemLimit) {
+  std::vector<arolla::OptionalValue<int64_t>> input;
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 6; ++j) {
+      input.emplace_back(j);
+    }
+  }
+
+  std::vector<arolla::OptionalValue<int64_t>> edge2_input;
+  for (int i = 0; i <= 3; ++i) {
+    edge2_input.emplace_back(i * 6);
+  }
+
+  arolla::DenseArray<int64_t> edge2_array =
+      arolla::CreateDenseArray<int64_t>(absl::MakeSpan(edge2_input));
+
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
+  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2,
+                       DenseArrayEdge::FromSplitPoints(std::move(edge2_array)));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_shape,
+      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+
+  arolla::DenseArray<int64_t> ds_array =
+      arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
+  ASSERT_OK_AND_ASSIGN(DataSlice ds,
+                       DataSlice::CreateWithSchemaFromData(
+                           internal::DataSliceImpl::Create(std::move(ds_array)),
+                           std::move(ds_shape)));
+
+  EXPECT_THAT(
+      DataSliceToStr(ds),
+      IsOkAndHolds(
+          "[[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]]"));
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_ItemId) {

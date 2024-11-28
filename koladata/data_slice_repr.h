@@ -32,7 +32,8 @@ struct ReprOption {
   // all dimensions. When it is a DataItem, it means the maximum number of
   // entity/object attributes, list items, or dict key/value pairs to show.
   size_t item_limit = 20;
-  // The maximum number of items to show per dimension in a DataSlice.
+  // The maximum number of items to show per dimension in a DataSlice. It is
+  // only enforced when the size of DataSlice is larger than `item_limit`.
   size_t item_limit_per_dimension = 5;
   // Don't add quotes around text values.
   bool strip_quotes = false;

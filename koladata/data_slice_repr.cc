@@ -289,7 +289,8 @@ std::string DataSliceItemRepr(
 std::string DataSliceImplToStr(const DataSlice& ds, const ReprOption& option,
                                WrappingBehavior& wrapping) {
   const auto& shape = ds.GetShape();
-  int item_limit = option.item_limit;
+  size_t total_item_limit = option.item_limit;
+  bool should_enforce_item_limit = ds.size() > total_item_limit;
 
   // Returns the string representations for the value(s) of the
   // `included_groups` in the dimension `dim`. The returned vector has the same
@@ -307,8 +308,8 @@ std::string DataSliceImplToStr(const DataSlice& ds, const ReprOption& option,
         result.push_back(DataSliceItemRepr(
             ds.slice()[group], ds.GetSchemaImpl(), option, wrapping));
       }
-      item_limit -= result.size();
-      DCHECK_GE(item_limit, 0);
+      total_item_limit -= result.size();
+      DCHECK_GE(total_item_limit, 0);
       return result;
     }
 
@@ -326,14 +327,16 @@ std::string DataSliceImplToStr(const DataSlice& ds, const ReprOption& option,
     std::vector<std::string> group_reprs;
     group_reprs.reserve(included_groups.size() + 1);
     for (int64_t group : included_groups) {
-      // Create a list of at most `option.item_limit_per_dimension` children per
-      // group that are within each `included_groups`.
       int64_t group_size = split_points[group + 1] - split_points[group];
-      int64_t size =
-          std::min(group_size,
-                   static_cast<int64_t>(dim + 1 == shape.rank()
-                                            ? item_limit
-                                            : option.item_limit_per_dimension));
+      size_t size = group_size;
+      if (should_enforce_item_limit) {
+        size_t item_limit = option.item_limit_per_dimension;
+        if (dim + 1 == shape.rank()) {
+          item_limit =
+              std::min(option.item_limit_per_dimension, total_item_limit);
+        }
+        size = std::min(size, item_limit);
+      }
       size_t initial_html_char_count = wrapping.html_char_count;
 
       // Get the string representations of the elements. Note that the resize
