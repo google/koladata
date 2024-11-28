@@ -1,0 +1,90 @@
+/**
+ * Styles for the markdown cheatsheet
+ */
+
+/* General rules */
+.g3doc-content {
+  font-family: Arial, sans-serif;
+}
+.g3doc-content p {
+  font-size: 0.85em;
+}
+/* Override the styles for displaying the content in an iframe in Code Search */
+.g3doc-api {
+  font-family: inherit;
+  line-height: inherit;
+  margin: 8px;
+  max-width: inherit;
+  padding: inherit;
+}
+
+/* Rules for multi-column layout */
+.g3doc-content {
+  -moz-column-width: 22em;
+  -webkit-column-width: 22em;
+}
+
+section {
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
+.g3doc-content section:first-of-type {
+  margin-top: -15px;
+}
+
+/* Headings */
+.g3doc-content h1, .g3doc-content h2, .g3doc-content h3 {
+  font-family: "Open Sans", Arial, sans-serif;
+}
+.g3doc-content h1, .g3doc-content h2 {
+  font-size: 1.25em;
+  margin-bottom: 0.25em;
+  text-align: center;
+  -webkit-column-span: all;
+}
+
+/* Links */
+.g3doc-content a {
+  text-decoration: none;
+}
+.g3doc-content a:hover {
+  text-decoration: underline;
+}
+
+/* Go link */
+h1 + p {
+  font-weight: bold;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+  text-align: center;
+  -webkit-column-span: all;
+}
+h1 + p:before {
+  content: "- ";
+}
+h1 + p:after {
+  content: " -";
+}
+.g3doc-content h3 {
+  font-size: 1em;
+}
+
+/* Code blocks */
+.g3doc-content pre {
+  background-color: #fafafa;
+  border: solid 1px #ddd;
+  font-family: monospace;
+  margin: 0.25em;
+  padding: 0.25em;
+  overflow: auto;
+  /* Let users resize the code block */
+  resize: both;
+  /* Don't break the column in the middle of a code block */
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+/* Inline code */
+.g3doc-content code {
+  color: black;
+}
