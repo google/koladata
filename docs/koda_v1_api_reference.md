@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-11-27'
+  reviewed: '2024-11-28'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -403,75 +403,6 @@ Args:
 
 Returns:
   Result of fn applied on filtered args.
-```
-
-### `are_dicts(x)` {#are_dicts}
-
-``` {.no-copy}
-Returns present for each item in `x` that is Dict.
-
-Note that this is a pointwise operation.
-
-Also see `kd.is_dict` for checking if `x` is a Dict DataSlice. But note that
-`kd.all(kd.are_dicts(x))` is not always equivalent to `kd.is_dict(x)`. For
-example,
-
-  kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
-  kd.all(kd.are_dicts(kd.item(None, kd.OBJECT))) -> invalid for kd.all
-  kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
-  kd.all(kd.are_dicts(kd.item([None], kd.OBJECT))) -> kd.missing
-
-Args:
-  x: DataSlice to check.
-
-Returns:
-  A MASK DataSlice with the same shape as `x`.
-```
-
-### `are_lists(x)` {#are_lists}
-
-``` {.no-copy}
-Returns present for each item in `x` that is List.
-
-Note that this is a pointwise operation.
-
-Also see `kd.is_list` for checking if `x` is a List DataSlice. But note that
-`kd.all(kd.are_lists(x))` is not always equivalent to `kd.is_list(x)`. For
-example,
-
-  kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
-  kd.all(kd.are_lists(kd.item(None, kd.OBJECT))) -> invalid for kd.all
-  kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
-  kd.all(kd.are_lists(kd.item([None], kd.OBJECT))) -> kd.missing
-
-Args:
-  x: DataSlice to check.
-
-Returns:
-  A MASK DataSlice with the same shape as `x`.
-```
-
-### `are_primitives(x)` {#are_primitives}
-
-``` {.no-copy}
-Returns present for each item in `x` that is primitive.
-
-Note that this is a pointwise operation.
-
-Also see `kd.is_primitive` for checking if `x` is a primitive DataSlice. But
-note that `kd.all(kd.are_primitives(x))` is not always equivalent to
-`kd.is_primitive(x)`. For example,
-
-  kd.is_primitive(kd.int32(None)) -> kd.present
-  kd.all(kd.are_primitives(kd.int32(None))) -> invalid for kd.all
-  kd.is_primitive(kd.int32([None])) -> kd.present
-  kd.all(kd.are_primitives(kd.int32([None]))) -> kd.missing
-
-Args:
-  x: DataSlice to check.
-
-Returns:
-  A MASK DataSlice with the same shape as `x`.
 ```
 
 ### `as_any(x)` {#as_any}
@@ -2221,6 +2152,52 @@ Returns:
   attribute exists for the corresponding item.
 ```
 
+### `has_dict(x)` {#has_dict}
+
+``` {.no-copy}
+Returns present for each item in `x` that is Dict.
+
+Note that this is a pointwise operation.
+
+Also see `kd.is_dict` for checking if `x` is a Dict DataSlice. But note that
+`kd.all(kd.has_dict(x))` is not always equivalent to `kd.is_dict(x)`. For
+example,
+
+  kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.has_dict(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.has_dict(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataSlice with the same shape as `x`.
+```
+
+### `has_list(x)` {#has_list}
+
+``` {.no-copy}
+Returns present for each item in `x` that is List.
+
+Note that this is a pointwise operation.
+
+Also see `kd.is_list` for checking if `x` is a List DataSlice. But note that
+`kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
+example,
+
+  kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.has_list(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.has_list(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataSlice with the same shape as `x`.
+```
+
 ### `has_not(x)` {#has_not}
 
 ``` {.no-copy}
@@ -2235,6 +2212,29 @@ Args:
 
 Returns:
   DataSlice representing the non-presence of `x`.
+```
+
+### `has_primitive(x)` {#has_primitive}
+
+``` {.no-copy}
+Returns present for each item in `x` that is primitive.
+
+Note that this is a pointwise operation.
+
+Also see `kd.is_primitive` for checking if `x` is a primitive DataSlice. But
+note that `kd.all(kd.has_primitive(x))` is not always equivalent to
+`kd.is_primitive(x)`. For example,
+
+  kd.is_primitive(kd.int32(None)) -> kd.present
+  kd.all(kd.has_primitive(kd.int32(None))) -> invalid for kd.all
+  kd.is_primitive(kd.int32([None])) -> kd.present
+  kd.all(kd.has_primitive(kd.int32([None]))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataSlice with the same shape as `x`.
 ```
 
 ### `hash_itemid(x)` {#hash_itemid}
@@ -2418,14 +2418,14 @@ Returns whether x is a Dict DataSlice.
   1) it has a Dict schema
   2) it has OBJECT/ANY schema and only has Dict items
 
-Also see `kd.are_dicts` for a pointwise version. But note that
-`kd.all(kd.are_dicts(x))` is not always equivalent to `kd.is_dict(x)`. For
+Also see `kd.has_dict` for a pointwise version. But note that
+`kd.all(kd.has_dict(x))` is not always equivalent to `kd.is_dict(x)`. For
 example,
 
   kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
-  kd.all(kd.are_dicts(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.all(kd.has_dict(kd.item(None, kd.OBJECT))) -> invalid for kd.all
   kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
-  kd.all(kd.are_dicts(kd.item([None], kd.OBJECT))) -> kd.missing
+  kd.all(kd.has_dict(kd.item([None], kd.OBJECT))) -> kd.missing
 
 Args:
   x: DataSlice to check.
@@ -2487,14 +2487,14 @@ Returns whether x is a List DataSlice.
   1) it has a List schema
   2) it has OBJECT/ANY schema and only has List items
 
-Also see `kd.are_lists` for a pointwise version. But note that
-`kd.all(kd.are_lists(x))` is not always equivalent to `kd.is_list(x)`. For
+Also see `kd.has_list` for a pointwise version. But note that
+`kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
 example,
 
   kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
-  kd.all(kd.are_lists(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.all(kd.has_list(kd.item(None, kd.OBJECT))) -> invalid for kd.all
   kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
-  kd.all(kd.are_lists(kd.item([None], kd.OBJECT))) -> kd.missing
+  kd.all(kd.has_list(kd.item([None], kd.OBJECT))) -> kd.missing
 
 Args:
   x: DataSlice to check.
@@ -2512,14 +2512,14 @@ Returns whether x is a primitive DataSlice.
   1) it has a primitive schema
   2) it has OBJECT/ANY/SCHEMA schema and only has primitives
 
-Also see `kd.are_primitives` for a pointwise version. But note that
-`kd.all(kd.are_primitives(x))` is not always equivalent to
+Also see `kd.has_primitive` for a pointwise version. But note that
+`kd.all(kd.has_primitive(x))` is not always equivalent to
 `kd.is_primitive(x)`. For example,
 
   kd.is_primitive(kd.int32(None)) -> kd.present
-  kd.all(kd.are_primitives(kd.int32(None))) -> invalid for kd.all
+  kd.all(kd.has_primitive(kd.int32(None))) -> invalid for kd.all
   kd.is_primitive(kd.int32([None])) -> kd.present
-  kd.all(kd.are_primitives(kd.int32([None]))) -> kd.missing
+  kd.all(kd.has_primitive(kd.int32([None]))) -> kd.missing
 
 Args:
   x: DataSlice to check.
@@ -5513,6 +5513,10 @@ This property is deprecated, please use .get_bag().
 *No description*
 
 ### `<DataSlice>.dict_update(self, keys, values)` {#<DataSlice>.dict_update}
+
+*No description*
+
+### `<DataSlice>.display(self, num_items, detail_width, detail_height)` {#<DataSlice>.display}
 
 *No description*
 
