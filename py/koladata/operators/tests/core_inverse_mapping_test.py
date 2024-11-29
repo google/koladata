@@ -138,10 +138,12 @@ class CoreInverseMappingTest(parameterized.TestCase):
       )
 
   def test_invalid_type_error(self):
-    # TODO: Use a more appropriate error message.
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'expected integers, got indices: DENSE_ARRAY_FLOAT32',
+        re.escape(
+            'kd.core.inverse_mapping: argument `x` must be a slice of integer'
+            ' values, got a slice of FLOAT32'
+        ),
     ):
       expr_eval.eval(
           kde.core.inverse_mapping(ds([0.0, 2.0, None, 1.0]), ndim=1)

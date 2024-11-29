@@ -14,6 +14,7 @@
 //
 #include "koladata/schema_utils.h"
 
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -198,9 +199,10 @@ TEST(SchemaUtilsTest, ExpectNumeric) {
   EXPECT_THAT(ExpectNumeric("foo", empty_and_unknown), IsOk());
   EXPECT_THAT(ExpectNumeric("foo", test::DataSlice<int>({1, 2, std::nullopt})),
               IsOk());
-  EXPECT_THAT(ExpectNumeric("foo", test::DataSlice<int>({1, 2, std::nullopt},
-                                                        schema::kObject)),
-              IsOk());
+  EXPECT_THAT(
+      ExpectNumeric("foo", test::DataSlice<float>({1., 2., std::nullopt},
+                                                  schema::kObject)),
+      IsOk());
   EXPECT_THAT(ExpectNumeric("foo", test::DataSlice<int>({1, 2, std::nullopt},
                                                         schema::kAny)),
               IsOk());
@@ -235,6 +237,58 @@ TEST(SchemaUtilsTest, ExpectNumeric) {
                                {std::nullopt, "bar", std::nullopt})),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "argument `foo` must be a slice of numeric values, got a slice "
+               "of OBJECT with items of types STRING, BYTES"));
+}
+
+TEST(SchemaUtilsTest, ExpectInteger) {
+  auto empty_and_unknown = test::DataItem(std::nullopt, schema::kObject);
+  auto str = test::DataSlice<arolla::Text>({"a", "b", std::nullopt});
+  auto str_obj =
+      test::DataSlice<arolla::Text>({"a", "b", std::nullopt}, schema::kObject);
+  auto object = test::DataItem(internal::AllocateSingleObject());
+  auto entity = test::AllocateDataSlice(3, internal::AllocateExplicitSchema(),
+                                        DataBag::Empty());
+
+  EXPECT_THAT(ExpectInteger("foo", empty_and_unknown), IsOk());
+  EXPECT_THAT(ExpectInteger("foo", test::DataSlice<int>({1, 2, std::nullopt})),
+              IsOk());
+  EXPECT_THAT(ExpectInteger("foo", test::DataSlice<int>({1, 2, std::nullopt},
+                                                        schema::kObject)),
+              IsOk());
+  EXPECT_THAT(ExpectInteger("foo", test::DataSlice<int>({1, 2, std::nullopt},
+                                                        schema::kAny)),
+              IsOk());
+  EXPECT_THAT(ExpectInteger("foo", test::MixedDataSlice<int, int64_t>(
+                                       {1, std::nullopt, std::nullopt},
+                                       {std::nullopt, 2, std::nullopt})),
+              IsOk());
+  EXPECT_THAT(
+      ExpectInteger("foo", test::DataSlice<float>({1, 3, std::nullopt})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of integer values, got a slice "
+               "of FLOAT32"));
+  EXPECT_THAT(ExpectInteger("foo", str),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of integer values, got "
+                       "a slice of STRING"));
+  EXPECT_THAT(ExpectInteger("foo", str_obj),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of integer values, got "
+                       "a slice of OBJECT with items of type STRING"));
+  EXPECT_THAT(ExpectInteger("foo", object),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of integer values, got "
+                       "a slice of OBJECT with an item of type ITEMID"));
+  EXPECT_THAT(ExpectInteger("foo", entity),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of integer values, got "
+                       "a slice of SCHEMA()"));
+  EXPECT_THAT(
+      ExpectInteger("foo", test::MixedDataSlice<arolla::Text, std::string>(
+                               {"foo", std::nullopt, std::nullopt},
+                               {std::nullopt, "bar", std::nullopt})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of integer values, got a slice "
                "of OBJECT with items of types STRING, BYTES"));
 }
 

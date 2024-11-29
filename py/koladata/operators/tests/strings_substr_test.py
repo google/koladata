@@ -243,7 +243,8 @@ class StringsSubstrTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'unsupported narrowing cast to INT64 for the given STRING DataSlice'
+            'kd.strings.substr: argument `end` must be a slice of integer'
+            ' values, got a slice of STRING'
         ),
     ):
       expr_eval.eval(kde.strings.substr('meeting', start=1, end='foo'))

@@ -1044,6 +1044,8 @@ EnrichedOrUpdatedDbOperatorFamily::DoGetOperator(
 }
 
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x) {
+  RETURN_IF_ERROR(ExpectInteger("x", x))
+      .With(OpError("kd.core.inverse_mapping"));
   return SimpleAggOverEval("array.inverse_mapping", {x});
 }
 

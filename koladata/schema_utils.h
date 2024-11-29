@@ -39,6 +39,9 @@ internal::DataItem GetNarrowedSchema(const DataSlice& slice);
 // Returns OK if the DataSlice's schema is a numeric type or narrowed to it.
 absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg);
 
+// Returns OK if the DataSlice contains integer values.
+absl::Status ExpectInteger(absl::string_view arg_name, const DataSlice& arg);
+
 // Returns OK if the DataSlice contains a scalar boolean value.
 absl::Status ExpectScalarBool(absl::string_view arg_name, const DataSlice& arg);
 

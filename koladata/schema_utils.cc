@@ -82,6 +82,17 @@ absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg) {
   return absl::OkStatus();
 }
 
+absl::Status ExpectInteger(absl::string_view arg_name, const DataSlice& arg) {
+  internal::DataItem narrowed_schema = GetNarrowedSchema(arg);
+  if (!schema::IsImplicitlyCastableTo(narrowed_schema,
+                                      internal::DataItem(schema::kInt64))) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be a slice of integer values, got a slice of %s",
+        arg_name, schema_utils_internal::DescribeSliceSchema(arg)));
+  }
+  return absl::OkStatus();
+}
+
 absl::Status ExpectScalarBool(absl::string_view arg_name,
                               const DataSlice& arg) {
   if (arg.GetShape().rank() != 0) {

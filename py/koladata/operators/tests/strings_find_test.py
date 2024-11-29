@@ -205,10 +205,10 @@ class StringsFindTest(parameterized.TestCase):
 
   def test_three_args_wrong_types(self):
     with self.assertRaisesRegex(
-        ValueError,
-        # TODO: Make errors Koda friendly.
+        exceptions.KodaError,
         re.escape(
-            'unsupported narrowing cast to INT64 for the given STRING DataSlice'
+            'kd.strings.find: argument `start` must be a slice of integer'
+            ' values, got a slice of STRING'
         ),
     ):
       expr_eval.eval(kde.strings.find(None, None, 'foo'))

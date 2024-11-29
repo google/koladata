@@ -69,6 +69,13 @@ namespace {
 using ::koladata::internal::OperatorEvalError;
 constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
 
+// A wrapper around CastToNarrow with nicer error message.
+absl::StatusOr<DataSlice> NarrowToInt64(const DataSlice& arg,
+                                        absl::string_view arg_name) {
+  RETURN_IF_ERROR(ExpectInteger(arg_name, arg));
+  return CastToNarrow(arg, internal::DataItem(schema::kInt64));
+}
+
 absl::StatusOr<DataSlice> EvalFormatOp(absl::string_view op_name,
                                        const DataSlice& fmt,
                                        std::vector<DataSlice> slices) {
@@ -217,13 +224,13 @@ absl::StatusOr<DataSlice> EncodeBase64(const DataSlice& x) {
 absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,
                                const DataSlice& start, const DataSlice& end,
                                const DataSlice& failure_value) {
-  ASSIGN_OR_RETURN(auto typed_start,
-                   CastToNarrow(start, internal::DataItem(schema::kInt64)));
-  ASSIGN_OR_RETURN(auto typed_end,
-                   CastToNarrow(end, internal::DataItem(schema::kInt64)));
-  ASSIGN_OR_RETURN(
-      auto typed_failure_value,
-      CastToNarrow(failure_value, internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(auto typed_start, NarrowToInt64(start, "start"),
+                   _.With(OpError("kd.strings.find")));
+  ASSIGN_OR_RETURN(auto typed_end, NarrowToInt64(end, "end"),
+                   _.With(OpError("kd.strings.find")));
+  ASSIGN_OR_RETURN(auto typed_failure_value,
+                   NarrowToInt64(failure_value, "failure_value"),
+                   _.With(OpError("kd.strings.find")));
   return SimplePointwiseEval(
       "strings.find",
       {x, substr, std::move(typed_start), std::move(typed_end),
@@ -347,6 +354,9 @@ absl::StatusOr<DataSlice> Replace(const DataSlice& s,
                                   const DataSlice& old_substr,
                                   const DataSlice& new_substr,
                                   const DataSlice& max_subs) {
+  RETURN_IF_ERROR(ExpectInteger("max_subs", max_subs))
+      .With(OpError("kd.strings.replace"));
+  // TODO: b/381410131 - use NarrowToInt64 instead.
   ASSIGN_OR_RETURN(auto typed_max_subs,
                    CastToNarrow(max_subs, internal::DataItem(schema::kInt32)));
   return SimplePointwiseEval(
@@ -358,13 +368,13 @@ absl::StatusOr<DataSlice> Replace(const DataSlice& s,
 absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
                                 const DataSlice& start, const DataSlice& end,
                                 const DataSlice& failure_value) {
-  ASSIGN_OR_RETURN(auto typed_start,
-                   CastToNarrow(start, internal::DataItem(schema::kInt64)));
-  ASSIGN_OR_RETURN(auto typed_end,
-                   CastToNarrow(end, internal::DataItem(schema::kInt64)));
-  ASSIGN_OR_RETURN(
-      auto typed_failure_value,
-      CastToNarrow(failure_value, internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(auto typed_start, NarrowToInt64(start, "start"),
+                   _.With(OpError("kd.strings.rfind")));
+  ASSIGN_OR_RETURN(auto typed_end, NarrowToInt64(end, "end"),
+                   _.With(OpError("kd.strings.rfind")));
+  ASSIGN_OR_RETURN(auto typed_failure_value,
+                   NarrowToInt64(failure_value, "failure_value"),
+                   _.With(OpError("kd.strings.rfind")));
   return SimplePointwiseEval(
       "strings.rfind",
       {x, substr, std::move(typed_start), std::move(typed_end),
@@ -426,15 +436,11 @@ absl::StatusOr<DataSlice> Strip(const DataSlice& s, const DataSlice& chars) {
 
 absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
                                  const DataSlice& end) {
-  constexpr std::string_view kOperatorName = "strings.substr";
-  ASSIGN_OR_RETURN(auto typed_start,
-                   CastToNarrow(start, internal::DataItem(schema::kInt64)),
-                   internal::OperatorEvalError(std::move(_), kOperatorName,
-                                               "invalid start argument"));
-  ASSIGN_OR_RETURN(auto typed_end,
-                   CastToNarrow(end, internal::DataItem(schema::kInt64)),
-                   internal::OperatorEvalError(std::move(_), kOperatorName,
-                                               "invalid end argument"));
+  constexpr std::string_view kOperatorName = "kd.strings.substr";
+  ASSIGN_OR_RETURN(auto typed_start, NarrowToInt64(start, "start"),
+                   _.With(OpError(kOperatorName)));
+  ASSIGN_OR_RETURN(auto typed_end, NarrowToInt64(end, "end"),
+                   _.With(OpError(kOperatorName)));
   return SimplePointwiseEval("strings.substr",
                              {x, std::move(typed_start), std::move(typed_end)},
                              /*output_schema=*/x.GetSchemaImpl(),
