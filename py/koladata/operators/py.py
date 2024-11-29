@@ -390,8 +390,6 @@ def _basic_map_py(
       max_threads=max_threads,
       item_completed_callback=item_completed_callback,
   )
-  if schema is None:
-    schema = schema_constants.OBJECT
   result = data_slice.DataSlice._from_py_impl(  # pylint: disable=protected-access
       result,
       False,  # dict_as_obj=

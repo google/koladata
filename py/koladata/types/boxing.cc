@@ -559,7 +559,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(PyObject* py_obj,
           adoption_queue.Add(db);
         }
         // Schema attr validation is handled during adoption queue merging.
-        return CastToExplicit(res.WithBag(db), dtype->item(),
+        return CastToExplicit(res.WithBag(std::move(db)), dtype->item(),
                               /*validate_schema=*/false);
       } else {
         // Makes a copy of DataSlice object. Keeps the reference to DataBag.
@@ -699,13 +699,14 @@ class UniversalConverter {
       adoption_queue_.Add(*schema);
     }
 
+    std::optional<DataSlice> parse_schema = std::nullopt;
+    if constexpr (std::is_same_v<Factory, EntityCreator>) {
+      parse_schema = schema;
+    }
     if (from_dim == 0) {
-      RETURN_IF_ERROR(CmdConvertPyObject(py_obj, schema));
+      RETURN_IF_ERROR(CmdConvertPyObject(py_obj, parse_schema));
       RETURN_IF_ERROR(Run());
-      // TODO: When OBJECT is no longer a default argument to
-      // kd.from_py, remove it as a special case here, as casting to OBJECT will
-      // happen even for primitives in kd.from_py (not only in kd.obj).
-      if (schema && schema->item() != schema::kObject) {
+      if (schema) {
         ASSIGN_OR_RETURN(
             DataSlice res, CastToNarrow(value_stack_.top(), schema->item()),
             [&](absl::Status status) {
@@ -721,13 +722,13 @@ class UniversalConverter {
         (auto [py_objects, shape]),
         PyObjectsFromPyList(py_obj, adoption_queue_, from_dim + 1));
     for (int i = 0; i < py_objects.size(); ++i) {
-      cmd_stack_.push([this, py_obj = py_objects[i], &schema] {
-        return this->CmdConvertPyObject(py_obj, schema);
+      cmd_stack_.push([this, py_obj = py_objects[i], &parse_schema] {
+        return this->CmdConvertPyObject(py_obj, parse_schema);
       });
     }
     RETURN_IF_ERROR(Run());
-    ASSIGN_OR_RETURN(DataSlice res,
-                     ComputeDataSlice(py_objects.size(), schema));
+    ASSIGN_OR_RETURN(DataSlice res, ComputeDataSlice(py_objects.size(), schema,
+                                                     /*is_root=*/true));
     ASSIGN_OR_RETURN(DataSlice reshaped_res, res.Reshape(std::move(shape)));
     return std::move(reshaped_res);
   }
@@ -737,7 +738,8 @@ class UniversalConverter {
   absl::Status ConvertDictKeysAndValues(PyObject* py_obj,
                                         std::optional<DataSlice>& keys,
                                         std::optional<DataSlice>& values) && {
-    RETURN_IF_ERROR(ParsePyDict(py_obj, /*dict_schema=*/std::nullopt));
+    RETURN_IF_ERROR(ParsePyDict(py_obj, /*dict_schema=*/std::nullopt,
+                                /*compute_dict=*/false));
     RETURN_IF_ERROR(Run());
     size_t dict_size = PyDict_Size(py_obj);
     ASSIGN_OR_RETURN(keys, ComputeDataSlice(dict_size));
@@ -776,13 +778,15 @@ class UniversalConverter {
   }
 
   // Takes `size` preconstructed DataItems from `value_stack_` and constructs
-  // a DataSlice.
+  // a DataSlice. If `input_schema` is provided, the result is casted to it.
+  // `is_root` is used by ObjectCreator: in that case leaves will be converted
+  // to Objects.
   absl::StatusOr<DataSlice> ComputeDataSlice(
-      size_t size,
-      const std::optional<DataSlice>& input_schema = std::nullopt) {
+      size_t size, const std::optional<DataSlice>& input_schema = std::nullopt,
+      bool is_root = false) {
     internal::SliceBuilder bldr(size);
     schema::CommonSchemaAggregator schema_agg;
-    if (input_schema && input_schema->item() != schema::kObject) {
+    if (input_schema) {
       schema_agg.Add(schema::kNone);  // All missing -> NONE.
     }
     for (size_t i = 0; i < size; ++i) {
@@ -793,14 +797,16 @@ class UniversalConverter {
     ASSIGN_OR_RETURN(
         DataItem schema_item, std::move(schema_agg).Get(),
         AssembleErrorMessage(_, {.db = adoption_queue_.GetBagWithFallbacks()}));
-    // TODO: When OBJECT is no longer a default argument to
-    // kd.from_py, remove it as a special case here, as casting to OBJECT will
-    // happen even for primitives in kd.from_py (not only in kd.obj).
-    if (input_schema && input_schema->item() != schema::kObject) {
+    if (input_schema) {
       if (!schema::IsImplicitlyCastableTo(schema_item, input_schema->item())) {
         return CreateIncompatibleSchemaError(input_schema->item(), schema_item);
       }
       schema_item = input_schema->item();
+    }
+    if constexpr (std::is_same_v<Factory, ObjectCreator>) {
+      if (!is_root) {
+        schema_item = internal::DataItem(schema::kObject);
+      }
     }
     return CreateWithSchema(std::move(bldr).Build(),
                             DataSlice::JaggedShape::FlatFromSize(size),
@@ -809,8 +815,11 @@ class UniversalConverter {
 
   // Collects the keys and values of the python dictionary `py_obj`, and
   // arranges the appropriate commands on the stack for their processing.
+  // If `compute_dict` is false, only the keys and values DataSlices are
+  // computed, while dict from those keys and values is not.
   absl::Status ParsePyDict(PyObject* py_obj,
-                           const std::optional<DataSlice>& dict_schema) {
+                           const std::optional<DataSlice>& dict_schema,
+                           bool compute_dict = true) {
     DCHECK(PyDict_CheckExact(py_obj));
     const size_t dict_size = PyDict_Size(py_obj);
     // Notes:
@@ -837,6 +846,13 @@ class UniversalConverter {
       }
       // Otherwise, the key_schema / value_schema should not be used
       // (i.e. they should remain std::nullopt).
+    }
+    if (compute_dict) {
+      cmd_stack_.push([this, py_obj, dict_schema = dict_schema,
+                       key_schema = key_schema, value_schema = value_schema] {
+        return this->CmdComputeDict(py_obj, dict_schema, key_schema,
+                                    value_schema);
+      });
     }
     for (auto* py_key : keys) {
       cmd_stack_.push([this, py_key, key_schema] {
@@ -886,6 +902,8 @@ class UniversalConverter {
                                 const std::optional<DataSlice>& schema) {
     DCHECK(PyDict_CheckExact(py_obj));
     DataSlice::AttrNamesSet allowed_attr_names;
+    cmd_stack_.push(
+        [this, schema = schema] { return this->CmdComputeObj(schema); });
     if (schema) {
       ASSIGN_OR_RETURN(allowed_attr_names, schema->GetAttrNames());
     }
@@ -924,6 +942,10 @@ class UniversalConverter {
       // Otherwise, the item_schema should not be used (i.e. they should remain
       // std::nullopt).
     }
+    cmd_stack_.push(
+        [this, py_obj, list_schema = list_schema, item_schema = item_schema] {
+          return this->CmdComputeList(py_obj, list_schema, item_schema);
+        });
     for (auto* py_item : absl::Span<PyObject*>(
              PySequence_Fast_ITEMS(py_obj), PySequence_Fast_GET_SIZE(py_obj))) {
       cmd_stack_.push([this, py_item, item_schema] {
@@ -940,6 +962,8 @@ class UniversalConverter {
                                    const AttrProvider::AttrResult& attr_result,
                                    const std::optional<DataSlice>& schema) {
     DataSlice::AttrNamesSet allowed_attr_names;
+    cmd_stack_.push(
+        [this, schema = schema] { return this->CmdComputeObj(schema); });
     if (schema) {
       ASSIGN_OR_RETURN(allowed_attr_names, schema->GetAttrNames());
     }
@@ -980,14 +1004,14 @@ class UniversalConverter {
       return absl::OkStatus();
     }
     if (schema && schema->item() == schema::kObject) {
-      // When processing Entities, if OBJECT schema is reached, the rest of the
-      // Python tree is converted as Object.
+      // When processing Entities, if OBJECT schema is reached, the rest of
+      // the Python tree is converted as Object.
       ASSIGN_OR_RETURN(
           value_stack_.emplace(),
           UniversalConverter<ObjectCreator>(db_, adoption_queue_, dict_as_obj_)
               .Convert(py_obj));
-      computed_.insert_or_assign(
-          MakeCacheKey(py_obj, schema), value_stack_.top());
+      computed_.insert_or_assign(MakeCacheKey(py_obj, schema),
+                                 value_stack_.top());
       return absl::OkStatus();
     }
     if (PyDict_CheckExact(py_obj)) {
@@ -1000,30 +1024,18 @@ class UniversalConverter {
       }
 
       if (!dict_as_obj_ && (!schema || schema->IsDictSchema())) {
-        cmd_stack_.push([this, py_obj, schema = schema] {
-          return this->CmdComputeDict(py_obj, schema);
-        });
         return ParsePyDict(py_obj, schema);
       }
-      cmd_stack_.push([this, schema = schema] {
-        return this->CmdComputeObj(schema);
-      });
       return ParsePyDictAsObj(py_obj, schema);
     }
     if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
       MaybeCreateEmptyBag();
-      cmd_stack_.push([this, py_obj, schema = schema] {
-        return this->CmdComputeList(py_obj, schema);
-      });
       return ParsePyList(py_obj, schema);
     }
     ASSIGN_OR_RETURN(auto attr_result,
                      attr_provider_.GetAttrNamesAndValues(py_obj));
     if (attr_result) {
       MaybeCreateEmptyBag();
-      cmd_stack_.push([this, schema = schema] {
-        return this->CmdComputeObj(schema);
-      });
       return ParsePyAttrProvider(py_obj, *attr_result, schema);
     }
     // NOTE: No schema is passed to DataSliceFromPyValue (in which case explicit
@@ -1054,10 +1066,12 @@ class UniversalConverter {
   // Takes preconstructed keys and values from `value_stack_`, assembles them
   // into a dictionary and pushes it to `value_stack_`.
   absl::Status CmdComputeDict(PyObject* py_obj,
-                              const std::optional<DataSlice>& dict_schema) {
+                              const std::optional<DataSlice>& dict_schema,
+                              const std::optional<DataSlice>& key_schema,
+                              const std::optional<DataSlice>& value_schema) {
     size_t dict_size = PyDict_Size(py_obj);
-    ASSIGN_OR_RETURN(auto keys, ComputeDataSlice(dict_size));
-    ASSIGN_OR_RETURN(auto values, ComputeDataSlice(dict_size));
+    ASSIGN_OR_RETURN(auto keys, ComputeDataSlice(dict_size, key_schema));
+    ASSIGN_OR_RETURN(auto values, ComputeDataSlice(dict_size, value_schema));
     ASSIGN_OR_RETURN(
         auto res,
         CreateDictShaped(db_, DataSlice::JaggedShape::Empty(),
@@ -1074,9 +1088,11 @@ class UniversalConverter {
   // Takes preconstructed items from `value_stack_`, assembles them into a list
   // and pushes it to `value_stack_`.
   absl::Status CmdComputeList(PyObject* py_obj,
-                              const std::optional<DataSlice>& list_schema) {
+                              const std::optional<DataSlice>& list_schema,
+                              const std::optional<DataSlice>& item_schema) {
     const size_t list_size = PySequence_Fast_GET_SIZE(py_obj);
-    ASSIGN_OR_RETURN(auto items, ComputeDataSlice(list_size));
+    ASSIGN_OR_RETURN(auto items, ComputeDataSlice(list_size, item_schema));
+
     ASSIGN_OR_RETURN(
         auto res, CreateListShaped(db_, DataSlice::JaggedShape::Empty(),
                                    std::move(items), list_schema));
@@ -1208,13 +1224,10 @@ absl::StatusOr<DataSlice> GenericFromPyObject(
   AdoptionQueue adoption_queue;
   DataSlice res_slice;
 
-  if (schema && schema->item() == schema::kObject) {
-    // We pass `schema = std::nullopt` to avoid creating nested
-    // UniversalConverter; however it can still happen if some nested schema in
-    // EntityCreator is OBJECT.
+  if (!schema || schema->item() == schema::kObject) {
     ASSIGN_OR_RETURN(res_slice, UniversalConverter<ObjectCreator>(
                                     nullptr, adoption_queue, dict_as_obj)
-                                    .Convert(py_obj, std::nullopt, from_dim));
+                                    .Convert(py_obj, schema, from_dim));
   } else {
     ASSIGN_OR_RETURN(res_slice, UniversalConverter<EntityCreator>(
                                     nullptr, adoption_queue, dict_as_obj)

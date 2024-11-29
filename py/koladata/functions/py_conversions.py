@@ -29,7 +29,7 @@ def from_py(
     *,
     dict_as_obj: bool = False,
     itemid: data_slice.DataSlice | None = None,
-    schema: data_slice.DataSlice = schema_constants.OBJECT,
+    schema: data_slice.DataSlice | None = None,
     from_dim: int = 0,
 ) -> data_slice.DataSlice:
   """Converts Python object into DataSlice.

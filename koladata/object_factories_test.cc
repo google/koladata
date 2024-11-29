@@ -1039,18 +1039,17 @@ TEST(ObjectCreatorTest, InvalidSchemaArg) {
 TEST(ObjectCreatorTest, PrimitiveToObject) {
   auto db = DataBag::Empty();
   auto db_val = DataBag::Empty();
-  EXPECT_THAT(
-      ObjectCreator::ConvertWithoutAdopt(
-          db, test::DataSlice<int>({1, 2, 3}, db_val)),
-      IsOkAndHolds(
-          AllOf(Property(&DataSlice::slice, ElementsAre(1, 2, 3)),
-                Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
-                Property(&DataSlice::GetBag, Eq(db_val)))));
+  EXPECT_THAT(ObjectCreator::ConvertWithoutAdopt(
+                  db, test::DataSlice<int>({1, 2, 3}, db_val)),
+              IsOkAndHolds(AllOf(
+                  Property(&DataSlice::slice, ElementsAre(1, 2, 3)),
+                  Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
+                  Property(&DataSlice::GetBag, Eq(db_val)))));
   EXPECT_THAT(ObjectCreator::ConvertWithoutAdopt(db, test::DataItem(42)),
-              IsOkAndHolds(
-                  AllOf(Property(&DataSlice::item, Eq(42)),
-                        Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt32)),
-                        Property(&DataSlice::GetBag, Eq(nullptr)))));
+              IsOkAndHolds(AllOf(
+                  Property(&DataSlice::item, Eq(42)),
+                  Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
+                  Property(&DataSlice::GetBag, Eq(nullptr)))));
 }
 
 TEST(ObjectCreatorTest, EntityToObject) {

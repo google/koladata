@@ -170,9 +170,12 @@ class NewTest(absltest.TestCase):
     testing.assert_dicts_keys_equal(d, ds([42, 37], schema_constants.INT64))
     inner_d1 = d[42]
     inner_d2 = d[37]
-    # Inner dict keys are not casted if they are primitives.
-    testing.assert_dicts_keys_equal(inner_d1, ds(['a']))
-    testing.assert_dicts_keys_equal(inner_d2, ds(['b']))
+    testing.assert_dicts_keys_equal(
+        inner_d1, ds(['a'], schema_constants.OBJECT)
+    )
+    testing.assert_dicts_keys_equal(
+        inner_d2, ds(['b'], schema_constants.OBJECT)
+    )
 
   def test_schema_arg_dict_schema_error(self):
     list_schema = fns.list_schema(item_schema=schema_constants.FLOAT32)
@@ -502,11 +505,13 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
         )
     )
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for Dict key is incompatible'
+        ValueError,
+        'the schema is incompatible: expected STRING, assigned BYTES',
     ):
       fns.new([{b'x': [1, 2, 3]}], schema=s)
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for List item is incompatible'
+        ValueError,
+        'the schema is incompatible: expected FLOAT32, assigned OBJECT',
     ):
       fns.new([{'x': [1, 'x', 3]}], schema=s)
 
@@ -530,14 +535,19 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
         fns.dict_schema(schema_constants.STRING, schema_constants.OBJECT),
     )
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for Dict key is incompatible'
+        ValueError,
+        'the schema is incompatible: expected STRING, assigned BYTES',
     ):
       fns.new([{b'x': [1, 2, 3]}], schema=s)
 
     l = fns.new([{'x': [1, 3.14, 3]}, {'y': 42}, {'z': {'a': 42}}], schema=s)
-    testing.assert_allclose(l[0]['x'][:].no_bag(), ds([1, 3.14, 3]))
+    testing.assert_equal(
+        l[0]['x'][:].no_bag(), ds([1, 3.14, 3], schema_constants.OBJECT)
+    )
     testing.assert_equal(l[1]['y'].no_bag(), ds(42, schema_constants.OBJECT))
-    testing.assert_dicts_keys_equal(l[2]['z'], ds(['a']))
+    testing.assert_dicts_keys_equal(
+        l[2]['z'], ds(['a'], schema_constants.OBJECT)
+    )
 
   def test_universal_converter_entity(self):
     with self.subTest('item'):

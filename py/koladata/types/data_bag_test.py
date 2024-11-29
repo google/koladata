@@ -844,11 +844,8 @@ Assigned schema for 'a': SCHEMA(c=STRING)"""),
     db = bag()
     schema = db.list_schema(schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
-        r"""the schema for List item is incompatible.
-
-Expected schema for List item: INT32
-Assigned schema for List item: STRING""",
+        ValueError,
+        r"""the schema is incompatible: expected INT32, assigned STRING""",
     ):
       _ = schema(['a'])
 

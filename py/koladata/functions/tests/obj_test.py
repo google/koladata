@@ -155,7 +155,9 @@ class ObjTest(absltest.TestCase):
   def test_universal_converter_list(self):
     l = fns.obj([1, 2, 3])
     testing.assert_equal(l.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(l[:], ds([1, 2, 3]).with_bag(l.get_bag()))
+    testing.assert_equal(
+        l[:], ds([1, 2, 3], schema_constants.OBJECT).with_bag(l.get_bag())
+    )
 
     l = fns.list([[1, 2], [3]])
     with self.assertRaises(AssertionError):
@@ -175,10 +177,12 @@ class ObjTest(absltest.TestCase):
   def test_universal_converter_dict(self):
     d = fns.obj({'a': 42, 'b': ds(37, schema_constants.INT64)})
     testing.assert_equal(d.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
+    testing.assert_dicts_keys_equal(d, ds(['a', 'b'], schema_constants.OBJECT))
     testing.assert_equal(
         d[ds(['a', 'b'])],
-        ds([42, 37], schema_constants.INT64).with_bag(d.get_bag()),
+        ds(
+            [42, ds(37, schema_constants.INT64)], schema_constants.OBJECT
+        ).with_bag(d.get_bag()),
     )
 
     d = fns.dict({'a': 42, 'b': 37})
@@ -228,16 +232,17 @@ class ObjTest(absltest.TestCase):
   def test_nested_universal_converter(self):
     obj = fns.obj({'a': {'b': [1, 2, 3]}})
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(obj, ds(['a']))
+    testing.assert_dicts_keys_equal(obj, ds(['a'], schema_constants.OBJECT))
     values = obj['a']
     testing.assert_equal(values.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(values, ds(['b']))
+    testing.assert_dicts_keys_equal(values, ds(['b'], schema_constants.OBJECT))
     nested_values = values['b']
     testing.assert_equal(
         nested_values.get_schema().no_bag(), schema_constants.OBJECT
     )
     testing.assert_equal(
-        nested_values[:], ds([1, 2, 3]).with_bag(obj.get_bag())
+        nested_values[:],
+        ds([1, 2, 3], schema_constants.OBJECT).with_bag(obj.get_bag()),
     )
 
   def test_universal_converter_adopt_bag_data(self):
@@ -255,20 +260,23 @@ class ObjTest(absltest.TestCase):
         [1, {b'xyz': ds(42, schema_constants.INT64)}, 3]
     ])
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(obj[0], ds(['a']))
-    testing.assert_dicts_keys_equal(obj[1], ds(['b']))
+    testing.assert_dicts_keys_equal(obj[0], ds(['a'], schema_constants.OBJECT))
+    testing.assert_dicts_keys_equal(obj[1], ds(['b'], schema_constants.OBJECT))
     testing.assert_equal(
         obj[2], ds(42, schema_constants.OBJECT).with_bag(obj.get_bag())
     )
     testing.assert_equal(
         obj[3][0], ds(1, schema_constants.OBJECT).with_bag(obj.get_bag())
     )
-    testing.assert_dicts_keys_equal(obj[3][1], ds([b'xyz']))
+    testing.assert_dicts_keys_equal(
+        obj[3][1], ds([b'xyz'], schema_constants.OBJECT)
+    )
     testing.assert_equal(
         obj[3][1].get_schema().no_bag(), schema_constants.OBJECT
     )
     testing.assert_equal(
-        obj[3][1][b'xyz'].no_bag(), ds(42, schema_constants.INT64)
+        obj[3][1][b'xyz'].no_bag(),
+        ds(ds(42, schema_constants.INT64), schema_constants.OBJECT),
     )
     testing.assert_equal(
         obj[3][-1], ds(3, schema_constants.OBJECT).with_bag(obj.get_bag())
@@ -279,27 +287,33 @@ class ObjTest(absltest.TestCase):
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
         obj[:].get_attr('__schema__').get_attr('__items__').no_bag(),
-        ds([schema_constants.INT32, schema_constants.FLOAT32]),
+        ds([schema_constants.OBJECT, schema_constants.OBJECT]),
     )
     # TODO: Cannot access obj[:][:] because we have a mixed slice
     # with FLOAT32 common schema.
-    testing.assert_equal(obj[0][:].no_bag(), ds([1, 2]))
-    testing.assert_equal(obj[1][:].no_bag(), ds([3.14]))
+    testing.assert_equal(
+        obj[0][:].no_bag(), ds([1, 2], schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        obj[1][:].no_bag(), ds([3.14], schema_constants.OBJECT)
+    )
 
     obj = fns.obj([[1, 2], ['xyz']])
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
         obj[:].get_attr('__schema__').get_attr('__items__').no_bag(),
-        ds([schema_constants.INT32, schema_constants.STRING]),
+        ds([schema_constants.OBJECT, schema_constants.OBJECT]),
     )
     testing.assert_equal(obj[:][:].no_bag(), ds([[1, 2], ['xyz']]))
 
     obj = fns.obj([[1, 2], [3]])
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
-        obj[:][:].get_schema().no_bag(), schema_constants.INT32
+        obj[:][:].get_schema().no_bag(), schema_constants.OBJECT
     )
-    testing.assert_equal(obj[:][:].no_bag(), ds([[1, 2], [3]]))
+    testing.assert_equal(
+        obj[:][:].no_bag(), ds([[1, 2], [3]], schema_constants.OBJECT)
+    )
 
   def test_universal_converter_container_contains_multi_dim_data_slice(self):
     with self.assertRaisesRegex(
@@ -313,7 +327,7 @@ class ObjTest(absltest.TestCase):
 
   def test_universal_converter_tuple_as_list(self):
     l = fns.obj(tuple([1, 2, 3]))
-    testing.assert_equal(l[:].no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(l[:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT))
 
   def test_universal_converter_with_cross_ref(self):
     d1 = {'a': 42}
@@ -322,10 +336,14 @@ class ObjTest(absltest.TestCase):
     d = {'d1': d1, 'd2': d2}
     obj = fns.obj(d)
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(obj, ds(['d1', 'd2']))
+    testing.assert_dicts_keys_equal(
+        obj, ds(['d1', 'd2'], schema_constants.OBJECT)
+    )
     obj_d2 = obj['d2']
     testing.assert_equal(obj['d1']['d'], obj_d2)
-    testing.assert_equal(obj_d2['b'], ds(37).with_bag(obj.get_bag()))
+    testing.assert_equal(
+        obj_d2['b'], ds(37, schema_constants.OBJECT).with_bag(obj.get_bag())
+    )
     testing.assert_equal(
         obj['d1']['a'], ds(42, schema_constants.OBJECT).with_bag(obj.get_bag())
     )
@@ -335,21 +353,21 @@ class ObjTest(absltest.TestCase):
     for _ in range(2):
       d = {12: d, 42: d}
     obj = fns.obj(d)
-    testing.assert_dicts_keys_equal(obj, ds([12, 42]))
+    testing.assert_dicts_keys_equal(obj, ds([12, 42], schema_constants.OBJECT))
     d1 = obj[12]
-    testing.assert_dicts_keys_equal(d1, ds([12, 42]))
+    testing.assert_dicts_keys_equal(d1, ds([12, 42], schema_constants.OBJECT))
     d2 = obj[42]
-    testing.assert_dicts_keys_equal(d2, ds([12, 42]))
+    testing.assert_dicts_keys_equal(d2, ds([12, 42], schema_constants.OBJECT))
     # d1 and d2 share the same ItemId.
     testing.assert_equal(d1, d2)
     d11 = d1[12]
-    testing.assert_dicts_keys_equal(d11, ds(['abc']))
+    testing.assert_dicts_keys_equal(d11, ds(['abc'], schema_constants.OBJECT))
     d12 = d1[42]
-    testing.assert_dicts_keys_equal(d12, ds(['abc']))
+    testing.assert_dicts_keys_equal(d12, ds(['abc'], schema_constants.OBJECT))
     d21 = d1[12]
-    testing.assert_dicts_keys_equal(d21, ds(['abc']))
+    testing.assert_dicts_keys_equal(d21, ds(['abc'], schema_constants.OBJECT))
     d22 = d1[42]
-    testing.assert_dicts_keys_equal(d22, ds(['abc']))
+    testing.assert_dicts_keys_equal(d22, ds(['abc'], schema_constants.OBJECT))
 
   def test_universal_converter_with_reusing_lists(self):
     l = [42, 57]
@@ -358,9 +376,10 @@ class ObjTest(absltest.TestCase):
     obj = fns.obj(l)
     testing.assert_equal(
         obj[:][:][:],
-        ds([[[42, 57], [42, 57]], [[42, 57], [42, 57]]]).with_bag(
-            obj.get_bag()
-        ),
+        ds(
+            [[[42, 57], [42, 57]], [[42, 57], [42, 57]]],
+            schema_constants.OBJECT,
+        ).with_bag(obj.get_bag()),
     )
 
   def test_deep_universal_converter(self):
@@ -368,14 +387,16 @@ class ObjTest(absltest.TestCase):
     for _ in range(3):
       d = {12: d}
     obj = fns.obj(d)
-    testing.assert_dicts_keys_equal(obj, ds([12]))
+    testing.assert_dicts_keys_equal(obj, ds([12], schema_constants.OBJECT))
     d = obj[12]
-    testing.assert_dicts_keys_equal(d, ds([12]))
+    testing.assert_dicts_keys_equal(d, ds([12], schema_constants.OBJECT))
     d = d[12]
-    testing.assert_dicts_keys_equal(d, ds([12]))
+    testing.assert_dicts_keys_equal(d, ds([12], schema_constants.OBJECT))
     d = d[12]
-    testing.assert_dicts_keys_equal(d, ds(['abc']))
-    testing.assert_equal(d['abc'], ds(42).with_bag(obj.get_bag()))
+    testing.assert_dicts_keys_equal(d, ds(['abc'], schema_constants.OBJECT))
+    testing.assert_equal(
+        d['abc'], ds(42, schema_constants.OBJECT).with_bag(obj.get_bag())
+    )
 
   def test_universal_converter_recursive_object_error(self):
     d = {'a': 42}

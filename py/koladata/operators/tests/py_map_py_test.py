@@ -334,10 +334,12 @@ class PyMapPyTest(parameterized.TestCase):
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     res = expr_eval.eval(kde.py.map_py(as_dict, val))
     testing.assert_equal(
-        res['x'].no_bag(), ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
+        res['x'].no_bag(),
+        ds([[1, 2, None, 4], [None, None], [7, 8, 9]], schema_constants.OBJECT),
     )
     testing.assert_equal(
-        res['y'].no_bag(), ds([[2, 3, 57, 5], [57, 57], [8, 9, 10]])
+        res['y'].no_bag(),
+        ds([[2, 3, 57, 5], [57, 57], [8, 9, 10]], schema_constants.OBJECT),
     )
 
   def test_map_py_invalid_qtype(self):

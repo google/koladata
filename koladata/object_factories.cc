@@ -730,7 +730,7 @@ absl::StatusOr<DataSlice> ObjectCreator::ConvertWithoutAdopt(
       value.GetSchemaImpl() != schema::kObject) {
     return value.WithBag(db).EmbedSchema();
   }
-  return value;
+  return value.WithSchema(internal::DataItem(schema::kObject));
 }
 
 absl::StatusOr<DataSlice> CreateUu(

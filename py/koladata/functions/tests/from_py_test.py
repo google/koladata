@@ -54,16 +54,17 @@ class FromPyTest(absltest.TestCase):
   def test_object(self):
     obj = fns.from_py({'a': {'b': [1, 2, 3]}})
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(obj, ds(['a']))
+    testing.assert_dicts_keys_equal(obj, ds(['a'], schema_constants.OBJECT))
     values = obj['a']
     testing.assert_equal(values.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(values, ds(['b']))
+    testing.assert_dicts_keys_equal(values, ds(['b'], schema_constants.OBJECT))
     nested_values = values['b']
     testing.assert_equal(
         nested_values.get_schema().no_bag(), schema_constants.OBJECT
     )
     testing.assert_equal(
-        nested_values[:], ds([1, 2, 3]).with_bag(obj.get_bag())
+        nested_values[:],
+        ds([1, 2, 3], schema_constants.OBJECT).with_bag(obj.get_bag()),
     )
 
     ref = fns.obj().ref()
@@ -133,8 +134,11 @@ class FromPyTest(absltest.TestCase):
 
   def test_list(self):
     l = fns.from_py([1, 2, 3])
-    testing.assert_equal(l[:].no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(l[:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT))
     self.assertFalse(l.get_bag().is_mutable())
+
+    l = fns.from_py([1, 3.14])
+    testing.assert_equal(l[:].no_bag(), ds([1, 3.14], schema_constants.OBJECT))
 
   # More detailed tests for conversions to Koda Entities for Lists are located
   # in new_test.py.
@@ -152,11 +156,8 @@ class FromPyTest(absltest.TestCase):
         l[:][:].no_bag(), ds([[1.0, 2.0], [42.0]], schema_constants.FLOAT64)
     )
 
-    # TODO: this should return OBJECTs, not FLOAT32s.
-    l = fns.from_py([1, 3.14], schema=schema_constants.OBJECT)
-    testing.assert_equal(
-        l[:].no_bag(), ds([1.0, 3.14], schema_constants.FLOAT32)
-    )
+    l = fns.from_py([1, 3.14], schema=fns.list_schema(schema_constants.OBJECT))
+    testing.assert_equal(l[:].no_bag(), ds([1, 3.14], schema_constants.OBJECT))
 
   # More detailed tests for conversions to Koda Entities for Dicts are located
   # in new_test.py.
@@ -172,14 +173,24 @@ class FromPyTest(absltest.TestCase):
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(d[ds(['a', 'b'])][:].no_bag(), ds([[1, 2], [42]]))
 
+    d = fns.from_py(
+        {ds('a'): 1, 'b': 3.14},
+        schema=fns.dict_schema(
+            schema_constants.STRING, schema_constants.OBJECT
+        ),
+    )
+    testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
+    testing.assert_equal(
+        d[ds(['a', 'b'])].no_bag(), ds([1, 3.14], schema_constants.OBJECT)
+    )
+
   def test_primitive(self):
     item = fns.from_py(42)
     testing.assert_equal(item, ds(42))
     item = fns.from_py(42, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(42.))
-    # TODO: this should return OBJECTs, not FLOAT32s.
     item = fns.from_py(42, schema=schema_constants.OBJECT)
-    testing.assert_equal(item, ds(42, schema_constants.INT32))
+    testing.assert_equal(item, ds(42, schema_constants.OBJECT))
 
   def test_primitive_casting_error(self):
     with self.assertRaisesRegex(
@@ -205,29 +216,34 @@ class FromPyTest(absltest.TestCase):
 
   def test_primitives_object(self):
     res = fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.OBJECT)
-    # TODO: this should return OBJECTs, not FLOAT32s.
-    testing.assert_equal(res, ds([1.0, 3.14]))
+    testing.assert_equal(res, ds([1, 3.14], schema_constants.OBJECT))
 
   def test_list_from_dim(self):
-    input_list = [[1, 2], [3, 4]]
+    input_list = [[1, 2.0], [3, 4]]
 
     l0 = fns.from_py(input_list, from_dim=0)
     self.assertEqual(l0.get_ndim(), 0)
-    testing.assert_equal(l0[:][:].no_bag(), ds([[1, 2], [3, 4]]))
+    testing.assert_equal(
+        l0[:][:],
+        ds([[1, 2.0], [3, 4]], schema_constants.OBJECT).with_bag(l0.get_bag()),
+    )
 
     l1 = fns.from_py(input_list, from_dim=1)
     self.assertEqual(l1.get_ndim(), 1)
-    testing.assert_equal(l1[:].no_bag(), ds([[1, 2], [3, 4]]))
+    testing.assert_equal(
+        l1[:],
+        ds([[1, 2.0], [3, 4]], schema_constants.OBJECT).with_bag(l1.get_bag()),
+    )
 
     l2 = fns.from_py(input_list, from_dim=2)
     self.assertEqual(l2.get_ndim(), 2)
-    testing.assert_equal(l2, ds([[1, 2], [3, 4]]))
+    testing.assert_equal(l2, ds([[1.0, 2.0], [3.0, 4.0]]))
 
     l3 = fns.from_py([1, 2], from_dim=1)
     testing.assert_equal(l3, ds([1, 2]))
 
   def test_list_from_dim_with_schema(self):
-    input_list = [[1, 2], [3, 4]]
+    input_list = [[1, 2.0], [3, 4]]
 
     l0 = fns.from_py(
         input_list,
@@ -237,6 +253,18 @@ class FromPyTest(absltest.TestCase):
     self.assertEqual(l0.get_ndim(), 0)
     testing.assert_equal(
         l0[:][:].no_bag(), ds([[1, 2], [3, 4]], schema_constants.FLOAT64)
+    )
+
+    l0_object = fns.from_py(
+        input_list,
+        schema=schema_constants.OBJECT,
+        from_dim=0,
+    )
+    self.assertEqual(l0.get_ndim(), 0)
+
+    testing.assert_equal(
+        l0_object[:][:].no_bag(),
+        ds([[1, 2.0], [3, 4]], schema_constants.OBJECT),
     )
 
     l1 = fns.from_py(
@@ -251,22 +279,30 @@ class FromPyTest(absltest.TestCase):
     self.assertEqual(l2.get_ndim(), 2)
     testing.assert_equal(l2, ds([[1, 2], [3, 4]], schema_constants.FLOAT64))
 
+    l3 = fns.from_py(input_list, schema=schema_constants.OBJECT, from_dim=2)
+    self.assertEqual(l3.get_ndim(), 2)
+    testing.assert_equal(l3, ds([[1, 2.0], [3, 4]], schema_constants.OBJECT))
+
   def test_dict_from_dim(self):
     input_dict = [{ds('a'): [1, 2], 'b': [42]}, {ds('c'): [3, 4], 'd': [34]}]
 
     d0 = fns.from_py(input_dict, from_dim=0)
     inner_slice = d0[:]
-    testing.assert_dicts_keys_equal(inner_slice, ds([['a', 'b'], ['c', 'd']]))
+    testing.assert_dicts_keys_equal(
+        inner_slice, ds([['a', 'b'], ['c', 'd']], schema_constants.OBJECT)
+    )
     testing.assert_equal(
         inner_slice[ds([['a', 'b'], ['c', 'd']])][:].no_bag(),
-        ds([[[1, 2], [42]], [[3, 4], [34]]]),
+        ds([[[1, 2], [42]], [[3, 4], [34]]], schema_constants.OBJECT),
     )
 
     d1 = fns.from_py(input_dict, from_dim=1)
-    testing.assert_dicts_keys_equal(d1, ds([['a', 'b'], ['c', 'd']]))
+    testing.assert_dicts_keys_equal(
+        d1, ds([['a', 'b'], ['c', 'd']], schema_constants.OBJECT)
+    )
     testing.assert_equal(
         d1[ds([['a', 'b'], ['c', 'd']])][:].no_bag(),
-        ds([[[1, 2], [42]], [[3, 4], [34]]]),
+        ds([[[1, 2], [42]], [[3, 4], [34]]], schema_constants.OBJECT),
     )
 
   def test_from_dim_error(self):
@@ -514,7 +550,9 @@ class FromPyTest(absltest.TestCase):
 
     obj = fns.from_py(Test([1, 2, 3]))
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(obj.l[:].no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(
+        obj.l[:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
+    )
 
   def test_dataclass_with_koda_obj(self):
     @dataclasses.dataclass
@@ -587,10 +625,12 @@ class FromPyTest(absltest.TestCase):
   def test_alias(self):
     obj = fns.from_pytree({'a': 42})
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(obj, ds(['a']))
+    testing.assert_dicts_keys_equal(obj, ds(['a'], schema_constants.OBJECT))
     values = obj['a']
-    testing.assert_equal(values.get_schema().no_bag(), schema_constants.INT32)
-    testing.assert_equal(values, ds(42).with_bag(values.get_bag()))
+    testing.assert_equal(values.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_equal(
+        values, ds(42, schema_constants.OBJECT).with_bag(values.get_bag())
+    )
 
   def test_not_yet_implemented(self):
     with self.subTest('itemid'):
