@@ -32,6 +32,7 @@
 #include "koladata/operators/core_uuid.h"
 #include "koladata/operators/logical.h"
 #include "koladata/operators/math.h"
+#include "koladata/operators/non_deterministic_op.h"
 #include "koladata/operators/predicates.h"
 #include "koladata/operators/schema.h"
 #include "koladata/operators/shapes.h"
@@ -96,6 +97,7 @@ OPERATOR_FAMILY("kde.core._new_like",
                 std::make_unique<NewLikeOperatorFamily>());
 OPERATOR_FAMILY("kde.core._new_shaped",
                 std::make_unique<NewShapedOperatorFamily>());
+OPERATOR("kde.core._non_deterministic", NonDeterministicOp);
 OPERATOR("kde.core._ordinal_rank", OrdinalRank);
 OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);

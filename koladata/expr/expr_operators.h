@@ -71,6 +71,25 @@ class ToArollaInt64Operator final
       absl::Span<const arolla::expr::ExprAttributes> inputs) const final;
 };
 
+// Non-lowerable operator
+// ```
+// koda_internal.non_deterministic(
+//     L._koladata_hidden_seed_leaf, <random int64>
+// )
+// ```
+// that ensures that each Expr containing non-deterministic operators created
+// in the same form has different Fingerprint and does not get literally folded
+// during compilation.
+class NonDeterministicOperator final
+    : public arolla::expr::BackendExprOperatorTag,
+      public arolla::expr::ExprOperatorWithFixedSignature {
+ public:
+  NonDeterministicOperator();
+
+  absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(
+      absl::Span<const arolla::expr::ExprAttributes> inputs) const final;
+};
+
 }  // namespace koladata::expr
 
 #endif  // KOLADATA_EXPR_EXPR_OPERATORS_H_

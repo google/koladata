@@ -1092,3 +1092,14 @@ cc_library(
         "@com_google_arolla//arolla/util",
     ],
 )
+
+cc_library(
+    name = "non_deterministic_token",
+    srcs = ["non_deterministic_token.cc"],
+    hdrs = ["non_deterministic_token.h"],
+    deps = [
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)

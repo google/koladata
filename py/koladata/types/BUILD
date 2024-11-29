@@ -433,6 +433,7 @@ py_library(
         ":data_slice_py_ext",
         ":ellipsis",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )

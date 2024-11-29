@@ -129,5 +129,6 @@ message KodaV1Proto {
 
     bool ellipsis_qtype = 11;
     bool data_bag_qtype = 12;
+    bool non_deterministic_token_qtype = 13;
   }
 }

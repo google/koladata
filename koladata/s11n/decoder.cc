@@ -36,6 +36,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/ellipsis.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/s11n/codec.pb.h"
@@ -336,6 +337,9 @@ absl::StatusOr<ValueDecoderResult> DecodeKodaValue(
       return DecodeDataSliceValue(input_values);
     case KodaV1Proto::kDataBagValue:
       return DecodeDataBagValue(koda_proto.data_bag_value(), input_values);
+    case KodaV1Proto::kNonDeterministicTokenQtype:
+      return TypedValue::FromValue(
+          arolla::GetQType<internal::NonDeterministicToken>());
     case KodaV1Proto::VALUE_NOT_SET:
       return absl::InvalidArgumentError("missing value");
   }

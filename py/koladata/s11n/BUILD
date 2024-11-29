@@ -71,3 +71,15 @@ py_test(
         "@com_google_arolla//py/arolla/s11n/testing:codec_test_case",
     ],
 )
+
+py_test(
+    name = "non_deterministic_s11n_test",
+    srcs = ["non_deterministic_s11n_test.py"],
+    deps = [
+        "//koladata/s11n:codec_py_proto",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/s11n/testing:codec_test_case",
+    ],
+)

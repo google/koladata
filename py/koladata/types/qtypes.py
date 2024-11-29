@@ -14,6 +14,7 @@
 
 """Koda QTypes."""
 
+from arolla import arolla
 from arolla.jagged_shape import jagged_shape as _jagged_shape
 from koladata.types import data_bag_py_ext as _data_bag_py_ext
 from koladata.types import data_slice_py_ext as _data_slice_py_ext
@@ -24,3 +25,7 @@ DATA_SLICE = _data_slice_py_ext.DataSlice.from_vals(None).qtype
 DATA_BAG = _data_bag_py_ext.DataBag.empty().qtype
 JAGGED_SHAPE = _jagged_shape.JAGGED_DENSE_ARRAY_SHAPE
 ELLIPSIS = _ellipsis.ELLIPSIS
+NON_DETERMINISTIC_TOKEN = arolla.abc.bind_op(
+    'koda_internal.non_deterministic',
+    arolla.unit(), arolla.literal(arolla.int64(0)),
+).qtype

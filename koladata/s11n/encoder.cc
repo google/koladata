@@ -33,6 +33,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/ellipsis.h"
 #include "koladata/internal/missing_value.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/s11n/codec.pb.h"
@@ -159,6 +160,22 @@ absl::StatusOr<ValueProto> EncodeEllipsis(arolla::TypedRef value,
   } else {
     DCHECK_EQ(value.GetType(), arolla::GetQType<internal::Ellipsis>());
     koda_proto->set_ellipsis_value(true);
+  }
+  return value_proto;
+}
+
+absl::StatusOr<ValueProto> EncodeNonDeterministic(arolla::TypedRef value,
+                                                  Encoder& encoder) {
+  ASSIGN_OR_RETURN(auto value_proto, GenValueProto(encoder));
+  auto* koda_proto = value_proto.MutableExtension(KodaV1Proto::extension);
+  if (value.GetType() == arolla::GetQType<arolla::QTypePtr>()) {
+    DCHECK_EQ(value.UnsafeAs<arolla::QTypePtr>(),
+              arolla::GetQType<internal::NonDeterministicToken>());
+    koda_proto->set_non_deterministic_token_qtype(true);
+  } else {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("%s does not support serialization of %s",
+                        kKodaV1Codec, value.GetType()->name()));
   }
   return value_proto;
 }
@@ -355,6 +372,9 @@ AROLLA_INITIALIZER(
               arolla::GetQType<DataSlice>(), EncodeDataSlice));
           RETURN_IF_ERROR(RegisterValueEncoderByQType(
               arolla::GetQType<internal::Ellipsis>(), EncodeEllipsis));
+          RETURN_IF_ERROR(RegisterValueEncoderByQType(
+              arolla::GetQType<internal::NonDeterministicToken>(),
+              EncodeNonDeterministic));
           RETURN_IF_ERROR(RegisterValueEncoderByQType(
               arolla::GetQType<DataBagPtr>(), EncodeDataBag));
           RETURN_IF_ERROR(RegisterValueEncoderByQType(

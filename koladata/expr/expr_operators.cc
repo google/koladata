@@ -26,6 +26,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
 #include "koladata/internal/ellipsis.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "arolla/expr/annotation_expr_operators.h"
 #include "arolla/expr/basic_expr_operator.h"
 #include "arolla/expr/expr.h"
@@ -154,6 +155,22 @@ ToArollaInt64Operator::InferAttributes(
   return arolla::expr::ExprAttributes{arolla::GetQType<int64_t>()};
 }
 
+NonDeterministicOperator::NonDeterministicOperator()
+  : arolla::expr::ExprOperatorWithFixedSignature(
+      "koda_internal.non_deterministic",
+      arolla::expr::ExprOperatorSignature{{"arg"}, {"random"}},
+      "Returns a non_deterministic value.",
+      arolla::FingerprintHasher("::koladata::ops::NonDeterministicOp")
+      .Finish()) {}
+
+absl::StatusOr<arolla::expr::ExprAttributes>
+NonDeterministicOperator::InferAttributes(
+    absl::Span<const arolla::expr::ExprAttributes> inputs) const {
+  RETURN_IF_ERROR(ValidateOpInputsCount(inputs));
+  return arolla::expr::ExprAttributes(
+      arolla::GetQType<internal::NonDeterministicToken>());
+}
+
 // koladata_default_boxing
 
 AROLLA_INITIALIZER(
@@ -178,6 +195,9 @@ AROLLA_INITIALIZER(
                               "koda_internal.to_arolla_int64",
                               std::make_shared<ToArollaInt64Operator>())
                               .status());
+          RETURN_IF_ERROR(
+              arolla::expr::RegisterOperator<NonDeterministicOperator>(
+                  "koda_internal.non_deterministic").status());
           return absl::OkStatus();
         })
 

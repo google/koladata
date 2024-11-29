@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for qtypes."""
-
 from absl.testing import absltest
 from koladata.types import data_bag
 from koladata.types import data_item
@@ -43,6 +41,11 @@ class QTypesTest(absltest.TestCase):
 
   def test_ellipsis_qtype(self):
     self.assertEqual(ellipsis.ellipsis().qtype, qtypes.ELLIPSIS)
+
+  def test_non_deterministic_qtype(self):
+    self.assertEqual(
+        qtypes.NON_DETERMINISTIC_TOKEN, qtypes.NON_DETERMINISTIC_TOKEN
+    )
 
 
 if __name__ == '__main__':

@@ -43,6 +43,7 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal:ellipsis",
         "//koladata/internal:missing_value",
+        "//koladata/internal:non_deterministic_token",
         "//koladata/internal:object_id",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/log:check",
