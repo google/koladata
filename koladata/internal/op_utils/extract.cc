@@ -65,11 +65,11 @@ const std::string_view kMappingAttrName = "m";
 enum class SchemaSource { kSchemaDatabag = 1, kDataDatabag = 2 };
 
 struct QueuedSlice {
-  const DataSliceImpl slice;
-  const DataItem schema;
-  const SchemaSource
-      schema_source;  // schema_source indicates which (schema or data) DataBag
-                      // we are using to retrieve schema for the current slice.
+  DataSliceImpl slice;
+  DataItem schema;
+  // schema_source indicates which (schema or data) DataBag we are using to
+  // retrieve schema for the current slice.
+  SchemaSource schema_source;
 };
 
 class CopyingProcessor {
@@ -88,7 +88,7 @@ class CopyingProcessor {
         objects_tracker_(DataBagImpl::CreateEmptyDatabag()),
         is_shallow_clone_(is_shallow_clone) {}
 
-  absl::Status ExtractSlice(QueuedSlice slice) {
+  absl::Status ExtractSlice(const QueuedSlice& slice) {
     RETURN_IF_ERROR(VisitImpl(slice));
     return ProcessQueue();
   }
