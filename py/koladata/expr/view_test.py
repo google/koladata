@@ -464,20 +464,12 @@ class KodaViewTest(parameterized.TestCase):
   def test_get_present_count(self):
     testing.assert_equal(C.x.get_present_count(), kde.count(C.x))
 
-  def test_is_any_schema(self):
-    testing.assert_equal(C.x.is_any_schema(), kde.schema.is_any_schema(C.x))
-
   def test_is_dict_schema(self):
     testing.assert_equal(C.x.is_dict_schema(), kde.schema.is_dict_schema(C.x))
 
   def test_is_entity_schema(self):
     testing.assert_equal(
         C.x.is_entity_schema(), kde.schema.is_entity_schema(C.x)
-    )
-
-  def test_is_itemid_schema(self):
-    testing.assert_equal(
-        C.x.is_itemid_schema(), kde.schema.is_itemid_schema(C.x)
     )
 
   def test_is_list_schema(self):
@@ -619,7 +611,9 @@ class KodaViewTest(parameterized.TestCase):
         'internal_as_arolla_value',
         'internal_as_dense_array',
         'internal_as_py',
+        'internal_is_any_schema',
         'internal_is_compliant_attr_name',
+        'internal_is_itemid_schema',
         'internal_register_reserved_class_method_name',
         'is_mutable',
         'qtype',
