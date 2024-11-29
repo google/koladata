@@ -82,6 +82,23 @@ absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg) {
   return absl::OkStatus();
 }
 
+absl::Status ExpectScalarBool(absl::string_view arg_name,
+                              const DataSlice& arg) {
+  if (arg.GetShape().rank() != 0) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("argument `%s` must be an item holding boolean, got a "
+                        "slice of rank %i > 0",
+                        arg_name, arg.GetShape().rank()));
+  }
+  internal::DataItem narrowed_schema = GetNarrowedSchema(arg);
+  if (narrowed_schema != schema::kBool) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be an item holding boolean, got an item of %s",
+        arg_name, schema_utils_internal::DescribeSliceSchema(arg)));
+  }
+  return absl::OkStatus();
+}
+
 namespace schema_utils_internal {
 
 std::string DescribeSliceSchema(const DataSlice& slice) {

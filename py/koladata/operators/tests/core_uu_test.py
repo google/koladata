@@ -211,8 +211,8 @@ class KodaUuTest(parameterized.TestCase):
           0,
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
           (
-              r'requires `update_schema` to be DataItem holding bool, got'
-              r' DataItem\(0, schema: INT32\)'
+              'argument `update_schema` must be an item holding boolean, got an'
+              ' item of INT32'
           ),
       ),
   )

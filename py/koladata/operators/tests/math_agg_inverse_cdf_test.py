@@ -115,12 +115,12 @@ class MathAggInverseCdfTest(parameterized.TestCase):
       # OBJECT/ANY
       (
           ds([[2, None], [None]], schema_constants.OBJECT),
-          ds(0.1),
+          ds(0.1, schema_constants.OBJECT),
           ds([2, None], schema_constants.OBJECT),
       ),
       (
           ds([[2, None], [None]], schema_constants.ANY),
-          ds(0.1),
+          ds(0.1, schema_constants.ANY),
           ds([2, None], schema_constants.ANY),
       ),
       # Empty and unknown inputs.
@@ -203,17 +203,6 @@ class MathAggInverseCdfTest(parameterized.TestCase):
         ),
     ):
       expr_eval.eval(kde.math.agg_inverse_cdf(x, ds([0.1, 0.2])))
-
-    with self.assertRaisesRegex(
-        exceptions.KodaError,
-        re.escape(
-            'DataSlice for the non-primary operand 2 should have a primitive'
-            ' schema'
-        ),
-    ):
-      expr_eval.eval(
-          kde.math.agg_inverse_cdf(x, ds(0.1, schema_constants.OBJECT))
-      )
 
   def test_no_cdf_arg_error(self):
     x = ds([1, 2, 3])

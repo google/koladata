@@ -17,7 +17,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
@@ -32,21 +31,8 @@
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
-namespace {
 
 constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
-
-absl::StatusOr<DataSlice> AsScalarBool(absl::string_view attr_name,
-                                       const DataSlice& x) {
-  if (!x.is_item() || !x.item().holds_value<bool>()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "argument `%s` must contain a scalar boolean value, got %s", attr_name,
-        arolla::Repr(x)));
-  }
-  return x.WithSchema(internal::DataItem(schema::kBool));
-}
-
-}  // namespace
 
 absl::StatusOr<DataSlice> Subtract(const DataSlice& x, const DataSlice& y) {
   RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.subtract"));
@@ -245,10 +231,10 @@ absl::StatusOr<DataSlice> AggMedian(const DataSlice& x) {
 
 absl::StatusOr<DataSlice> AggStd(const DataSlice& x,
                                  const DataSlice& unbiased) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.agg_std"));
-  ASSIGN_OR_RETURN(auto unbiased_bool, AsScalarBool("unbiased", unbiased),
-                   _.With(OpError("kde.math.agg_std")));
-  return SimpleAggIntoEval("math.std", {x, std::move(unbiased_bool)},
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.agg_std"));
+  RETURN_IF_ERROR(ExpectScalarBool("unbiased", unbiased))
+      .With(OpError("kd.math.agg_std"));
+  return SimpleAggIntoEval("math.std", {x, unbiased},
                            /*output_schema=*/internal::DataItem(),
                            /*edge_arg_index=*/1,
                            /*primary_operand_indices=*/{{0}});
@@ -256,10 +242,10 @@ absl::StatusOr<DataSlice> AggStd(const DataSlice& x,
 
 absl::StatusOr<DataSlice> AggVar(const DataSlice& x,
                                  const DataSlice& unbiased) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.agg_var"));
-  ASSIGN_OR_RETURN(auto unbiased_bool, AsScalarBool("unbiased", unbiased),
-                   _.With(OpError("kde.math.agg_var")));
-  return SimpleAggIntoEval("math.var", {x, std::move(unbiased_bool)},
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.agg_var"));
+  RETURN_IF_ERROR(ExpectScalarBool("unbiased", unbiased))
+      .With(OpError("kd.math.agg_var"));
+  return SimpleAggIntoEval("math.var", {x, unbiased},
                            /*output_schema=*/internal::DataItem(),
                            /*edge_arg_index=*/1,
                            /*primary_operand_indices=*/{{0}});

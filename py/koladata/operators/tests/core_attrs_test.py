@@ -126,11 +126,15 @@ class CoreAttrsTest(absltest.TestCase):
   def test_non_bool_update_schema(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(
-        ValueError, 'requires `update_schema` to be DataItem holding bool'
+        ValueError,
+        'argument `update_schema` must be an item holding boolean, got an'
+        ' item of INT32',
     ):
       kde.core.attrs(o, x=2, update_schema=1).eval()
     with self.assertRaisesRegex(
-        ValueError, 'requires `update_schema` to be DataItem holding bool'
+        ValueError,
+        'argument `update_schema` must be an item holding boolean, got a'
+        ' slice of rank 1 > 0',
     ):
       kde.core.attrs(o, x=2, update_schema=ds([True])).eval()
 

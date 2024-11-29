@@ -201,9 +201,8 @@ class MathAggStdTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_std: argument `unbiased` must contain a scalar'
-            ' boolean value, got DataSlice([True], schema: BOOLEAN, shape:'
-            ' JaggedShape(1))'
+            'argument `unbiased` must be an item holding boolean, got a slice'
+            ' of rank 1 > 0'
         ),
     ):
       expr_eval.eval(kde.math.agg_std(ds([1]), unbiased=ds([True])))
@@ -227,7 +226,7 @@ class MathAggStdTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_std: argument `x` must be a slice of numeric values,'
+            'kd.math.agg_std: argument `x` must be a slice of numeric values,'
             ' got a slice of SCHEMA(x=INT32)'
         ),
     ):
@@ -239,7 +238,7 @@ class MathAggStdTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_std: argument `x` must be a slice of numeric values,'
+            'kd.math.agg_std: argument `x` must be a slice of numeric values,'
             ' got a slice of OBJECT'
         ),
     ):

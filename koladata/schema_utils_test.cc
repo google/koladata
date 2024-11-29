@@ -238,6 +238,29 @@ TEST(SchemaUtilsTest, ExpectNumeric) {
                "of OBJECT with items of types STRING, BYTES"));
 }
 
+TEST(SchemaUtilsTest, ExpectScalarBool) {
+  EXPECT_THAT(ExpectScalarBool("foo", test::DataItem(true, schema::kBool)),
+              IsOk());
+  EXPECT_THAT(ExpectScalarBool("foo", test::DataItem(true, schema::kObject)),
+              IsOk());
+  EXPECT_THAT(ExpectScalarBool("foo", test::DataItem(true, schema::kAny)),
+              IsOk());
+  EXPECT_THAT(ExpectScalarBool(
+                  "foo", test::DataSlice<bool>({true, false, std::nullopt})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be an item holding boolean, "
+                       "got a slice of rank 1 > 0"));
+  EXPECT_THAT(
+      ExpectScalarBool("foo", test::DataItem(std::nullopt, schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be an item holding boolean, got an "
+               "item of OBJECT with an item of type NONE"));
+  EXPECT_THAT(ExpectScalarBool("foo", test::DataItem("true", schema::kAny)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be an item holding boolean, "
+                       "got an item of ANY with an item of type STRING"));
+}
+
 TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
   auto empty_and_unknown = test::DataItem(std::nullopt, schema::kObject);
   auto integer = test::DataSlice<int>({1, 2, std::nullopt});

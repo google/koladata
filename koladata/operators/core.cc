@@ -68,12 +68,14 @@
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
 #include "koladata/repr_utils.h"
+#include "koladata/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/quote.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/jagged_shape/util/concat.h"
+#include "arolla/memory/buffer.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
@@ -88,7 +90,7 @@
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/repr.h"
-#include "arolla/util/text.h"
+#include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -96,6 +98,7 @@ namespace {
 
 constexpr absl::string_view kSubsliceOperatorName = "kd.subslice";
 constexpr absl::string_view kTakeOperatorName = "kd.take";
+constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
 
 class AlignOperator : public arolla::QExprOperator {
  public:
@@ -1047,14 +1050,9 @@ absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x) {
 absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
                                       const DataSlice& tie_breaker,
                                       const DataSlice& descending) {
-  constexpr absl::string_view kOperatorName = "kd.ordinal_rank";
-  if (!descending.is_item() || !descending.item().holds_value<bool>()) {
-    return internal::OperatorEvalError(
-        kOperatorName,
-        absl::StrFormat(
-            "expected `descending` to be a scalar boolean value, got %s",
-            arolla::Repr(descending)));
-  }
+  constexpr absl::string_view kOperatorName = "kd.core.ordinal_rank";
+  RETURN_IF_ERROR(ExpectScalarBool("descending", descending))
+      .With(OpError(kOperatorName));
   ASSIGN_OR_RETURN(
       auto tie_breaker_int64,
       CastToNarrow(tie_breaker, internal::DataItem(schema::kInt64)),
@@ -1067,14 +1065,9 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
 
 absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,
                                     const DataSlice& descending) {
-  constexpr absl::string_view kOperatorName = "kd.dense_rank";
-  if (!descending.is_item() || !descending.item().holds_value<bool>()) {
-    return internal::OperatorEvalError(
-        kOperatorName,
-        absl::StrFormat(
-            "expected `descending` to be a scalar boolean value, got %s",
-            arolla::Repr(descending)));
-  }
+  constexpr absl::string_view kOperatorName = "kd.core.dense_rank";
+  RETURN_IF_ERROR(ExpectScalarBool("descending", descending))
+      .With(OpError(kOperatorName));
   return SimpleAggOverEval(
       "array.dense_rank", {x, descending},
       /*output_schema=*/internal::DataItem(schema::kInt64));
@@ -1254,10 +1247,7 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
   if (x.is_item()) {
     return x;
   }
-  if (!sort.is_item() || !sort.item().holds_value<bool>()) {
-    return absl::FailedPreconditionError("sort must be a boolean scalar");
-  }
-  bool sort_bool = sort.item().value<bool>();
+  ASSIGN_OR_RETURN(bool sort_bool, GetBoolArgument(sort, "sort"));
   if (sort_bool) {
     if (x.slice().is_mixed_dtype()) {
       return absl::FailedPreconditionError(

@@ -41,6 +41,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/utils.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/schema_utils.h"
 #include "koladata/shape_utils.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/registered_expr_operator.h"
@@ -154,7 +155,8 @@ absl::StatusOr<PrimaryOperandSchemaInfo> GetPrimaryOperandSchemaInfo(
   for (int i = 0; i < inputs.size(); ++i) {
     const DataSlice& x = inputs[i];
     if (!is_primary_operand[i]) {
-      if (!x.GetSchemaImpl().is_primitive_schema()) {
+      internal::DataItem narrowed_schema = GetNarrowedSchema(x);
+      if (!narrowed_schema.is_primitive_schema()) {
         return absl::InternalError(
             absl::StrCat("DataSlice for the non-primary operand ", i + 1,
                          " should have a primitive schema"));

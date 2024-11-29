@@ -28,6 +28,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
+#include "koladata/schema_utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qtype/named_field_qtype.h"
 #include "arolla/qtype/qtype.h"
@@ -37,6 +38,7 @@
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
@@ -77,11 +79,7 @@ std::vector<DataSlice> GetValueDataSlices(arolla::TypedSlot named_tuple_slot,
 
 absl::StatusOr<bool> GetBoolArgument(const DataSlice& slice,
                                      absl::string_view arg_name) {
-  if (!slice.is_item() || !slice.item().holds_value<bool>()) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("requires `%s` to be DataItem holding bool, got %s",
-                        arg_name, arolla::Repr(slice)));
-  }
+  RETURN_IF_ERROR(ExpectScalarBool(arg_name, slice));
   return slice.item().value<bool>();
 }
 

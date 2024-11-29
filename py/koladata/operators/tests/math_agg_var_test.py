@@ -210,9 +210,8 @@ class MathAggVarTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_var: argument `unbiased` must contain a scalar'
-            ' boolean value, got DataSlice([True], schema: BOOLEAN, shape:'
-            ' JaggedShape(1))'
+            'kd.math.agg_var: argument `unbiased` must be an item holding'
+            ' boolean, got a slice of rank 1 > 0'
         ),
     ):
       expr_eval.eval(kde.math.agg_var(ds([1]), unbiased=ds([True])))
@@ -236,7 +235,7 @@ class MathAggVarTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_var: argument `x` must be a slice of numeric values,'
+            'kd.math.agg_var: argument `x` must be a slice of numeric values,'
             ' got a slice of SCHEMA(x=INT32)'
         ),
     ):
@@ -247,7 +246,7 @@ class MathAggVarTest(parameterized.TestCase):
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kde.math.agg_var: argument `x` must be a slice of numeric values, got'
+        'kd.math.agg_var: argument `x` must be a slice of numeric values, got'
         ' a slice of OBJECT',
     ):
       expr_eval.eval(kde.math.agg_var(x))
