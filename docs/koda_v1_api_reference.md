@@ -4392,12 +4392,6 @@ Returns:
   The schema unchanged, or a named schema with the given name.
 ```
 
-### `kd.schema.is_any_schema(x)` {#kd.schema.is_any_schema}
-
-``` {.no-copy}
-Returns true iff `x` is an ANY schema DataItem.
-```
-
 ### `kd.schema.is_dict_schema(x)` {#kd.schema.is_dict_schema}
 
 ``` {.no-copy}
@@ -4408,12 +4402,6 @@ Returns true iff `x` is a Dict schema DataItem.
 
 ``` {.no-copy}
 Returns true iff `x` is an Entity schema DataItem.
-```
-
-### `kd.schema.is_itemid_schema(x)` {#kd.schema.is_itemid_schema}
-
-``` {.no-copy}
-Returns true iff `x` is an ITEMID schema DataItem.
 ```
 
 ### `kd.schema.is_list_schema(x)` {#kd.schema.is_list_schema}
@@ -5989,13 +5977,13 @@ Slicing helper for DataSlice.
 
 *No description*
 
-### `<DataSlice>.append` {#<DataSlice>.append}
+### `<DataSlice>.append(value, /)` {#<DataSlice>.append}
 
 ``` {.no-copy}
 Append a value to each list in this DataSlice
 ```
 
-### `<DataSlice>.as_any` {#<DataSlice>.as_any}
+### `<DataSlice>.as_any()` {#<DataSlice>.as_any}
 
 ``` {.no-copy}
 Returns a DataSlice with ANY schema.
@@ -6005,7 +5993,7 @@ Returns a DataSlice with ANY schema.
 
 *No description*
 
-### `<DataSlice>.clear` {#<DataSlice>.clear}
+### `<DataSlice>.clear()` {#<DataSlice>.clear}
 
 ``` {.no-copy}
 Clears all dicts or lists in this DataSlice
@@ -6041,7 +6029,7 @@ This property is deprecated, please use .get_bag().
 
 *No description*
 
-### `<DataSlice>.embed_schema` {#<DataSlice>.embed_schema}
+### `<DataSlice>.embed_schema()` {#<DataSlice>.embed_schema}
 
 ``` {.no-copy}
 Returns a DataSlice with OBJECT schema.
@@ -6089,7 +6077,7 @@ Unique identifier of the value.
 
 *No description*
 
-### `<DataSlice>.freeze` {#<DataSlice>.freeze}
+### `<DataSlice>.freeze()` {#<DataSlice>.freeze}
 
 ``` {.no-copy}
 Returns a frozen DataSlice equivalent to `self`.
@@ -6103,7 +6091,7 @@ If `schema` is set, that schema is used,
 otherwise the schema is inferred from `value`.
 ```
 
-### `<DataSlice>.get_attr` {#<DataSlice>.get_attr}
+### `<DataSlice>.get_attr(attr_name, /, default)` {#<DataSlice>.get_attr}
 
 ``` {.no-copy}
 Gets attribute `attr_name` where missing items are filled from `default`.
@@ -6114,7 +6102,7 @@ Args:
            Note that this value can be fully omitted.
 ```
 
-### `<DataSlice>.get_attr_names` {#<DataSlice>.get_attr_names}
+### `<DataSlice>.get_attr_names(*, intersection)` {#<DataSlice>.get_attr_names}
 
 ``` {.no-copy}
 Returns a sorted list of unique attribute names of this DataSlice.
@@ -6131,7 +6119,7 @@ Returns:
   A list of unique attributes sorted by alphabetical order.
 ```
 
-### `<DataSlice>.get_bag` {#<DataSlice>.get_bag}
+### `<DataSlice>.get_bag()` {#<DataSlice>.get_bag}
 
 ``` {.no-copy}
 Returns the attached DataBag.
@@ -6153,7 +6141,7 @@ Returns the attached DataBag.
 
 *No description*
 
-### `<DataSlice>.get_keys` {#<DataSlice>.get_keys}
+### `<DataSlice>.get_keys()` {#<DataSlice>.get_keys}
 
 ``` {.no-copy}
 Returns keys of all dicts in this DataSlice.
@@ -6171,13 +6159,13 @@ Returns keys of all dicts in this DataSlice.
 
 *No description*
 
-### `<DataSlice>.get_schema` {#<DataSlice>.get_schema}
+### `<DataSlice>.get_schema()` {#<DataSlice>.get_schema}
 
 ``` {.no-copy}
 Returns a schema DataItem with type information about this DataSlice.
 ```
 
-### `<DataSlice>.get_shape` {#<DataSlice>.get_shape}
+### `<DataSlice>.get_shape()` {#<DataSlice>.get_shape}
 
 ``` {.no-copy}
 Returns the shape of the DataSlice.
@@ -6191,7 +6179,7 @@ Returns the shape of the DataSlice.
 
 *No description*
 
-### `<DataSlice>.get_values` {#<DataSlice>.get_values}
+### `<DataSlice>.get_values()` {#<DataSlice>.get_values}
 
 ``` {.no-copy}
 Returns values of all dicts in this DataSlice.
@@ -6201,19 +6189,19 @@ Returns values of all dicts in this DataSlice.
 
 *No description*
 
-### `<DataSlice>.internal_as_arolla_value` {#<DataSlice>.internal_as_arolla_value}
+### `<DataSlice>.internal_as_arolla_value()` {#<DataSlice>.internal_as_arolla_value}
 
 ``` {.no-copy}
 Converts primitive DataSlice / DataItem into an equivalent Arolla value.
 ```
 
-### `<DataSlice>.internal_as_dense_array` {#<DataSlice>.internal_as_dense_array}
+### `<DataSlice>.internal_as_dense_array()` {#<DataSlice>.internal_as_dense_array}
 
 ``` {.no-copy}
 Converts primitive DataSlice to an Arolla DenseArray with appropriate qtype.
 ```
 
-### `<DataSlice>.internal_as_py` {#<DataSlice>.internal_as_py}
+### `<DataSlice>.internal_as_py()` {#<DataSlice>.internal_as_py}
 
 ``` {.no-copy}
 Returns a Python object equivalent to this DataSlice.
@@ -6222,10 +6210,22 @@ If the values in this DataSlice represent objects, then the returned python
 structure will contain DataItems.
 ```
 
+### `<DataSlice>.internal_is_any_schema()` {#<DataSlice>.internal_is_any_schema}
+
+``` {.no-copy}
+Returns present iff this DataSlice is ANY Schema.
+```
+
 ### `<DataSlice>.internal_is_compliant_attr_name` {#<DataSlice>.internal_is_compliant_attr_name}
 
 ``` {.no-copy}
 Returns true iff `attr_name` can be accessed through `getattr(slice, attr_name)`.
+```
+
+### `<DataSlice>.internal_is_itemid_schema()` {#<DataSlice>.internal_is_itemid_schema}
+
+``` {.no-copy}
+Returns present iff this DataSlice is ITEMID Schema.
 ```
 
 ### `<DataSlice>.internal_register_reserved_class_method_name` {#<DataSlice>.internal_register_reserved_class_method_name}
@@ -6239,31 +6239,25 @@ Args:
   method_name: (str)
 ```
 
-### `<DataSlice>.is_any_schema` {#<DataSlice>.is_any_schema}
-
-``` {.no-copy}
-Returns present iff this DataSlice is ANY Schema.
-```
-
-### `<DataSlice>.is_dict` {#<DataSlice>.is_dict}
+### `<DataSlice>.is_dict()` {#<DataSlice>.is_dict}
 
 ``` {.no-copy}
 Returns present iff this DataSlice contains only dicts.
 ```
 
-### `<DataSlice>.is_dict_schema` {#<DataSlice>.is_dict_schema}
+### `<DataSlice>.is_dict_schema()` {#<DataSlice>.is_dict_schema}
 
 ``` {.no-copy}
 Returns present iff this DataSlice is a Dict Schema.
 ```
 
-### `<DataSlice>.is_empty` {#<DataSlice>.is_empty}
+### `<DataSlice>.is_empty()` {#<DataSlice>.is_empty}
 
 ``` {.no-copy}
 Returns present iff this DataSlice is empty.
 ```
 
-### `<DataSlice>.is_entity_schema` {#<DataSlice>.is_entity_schema}
+### `<DataSlice>.is_entity_schema()` {#<DataSlice>.is_entity_schema}
 
 ``` {.no-copy}
 Returns present iff this DataSlice represents an Entity Schema.
@@ -6274,25 +6268,19 @@ Returns:
   Present iff this DataSlice represents an Entity Schema.
 ```
 
-### `<DataSlice>.is_itemid_schema` {#<DataSlice>.is_itemid_schema}
-
-``` {.no-copy}
-Returns present iff this DataSlice is ITEMID Schema.
-```
-
-### `<DataSlice>.is_list` {#<DataSlice>.is_list}
+### `<DataSlice>.is_list()` {#<DataSlice>.is_list}
 
 ``` {.no-copy}
 Returns present iff this DataSlice contains only lists.
 ```
 
-### `<DataSlice>.is_list_schema` {#<DataSlice>.is_list_schema}
+### `<DataSlice>.is_list_schema()` {#<DataSlice>.is_list_schema}
 
 ``` {.no-copy}
 Returns present iff this DataSlice is a List Schema.
 ```
 
-### `<DataSlice>.is_mutable` {#<DataSlice>.is_mutable}
+### `<DataSlice>.is_mutable()` {#<DataSlice>.is_mutable}
 
 ``` {.no-copy}
 Returns present iff the attached DataBag is mutable.
@@ -6302,7 +6290,7 @@ Returns present iff the attached DataBag is mutable.
 
 *No description*
 
-### `<DataSlice>.is_primitive_schema` {#<DataSlice>.is_primitive_schema}
+### `<DataSlice>.is_primitive_schema()` {#<DataSlice>.is_primitive_schema}
 
 ``` {.no-copy}
 Returns present iff this DataSlice is a primitive (scalar) Schema.
@@ -6316,13 +6304,13 @@ Returns present iff this DataSlice is a primitive (scalar) Schema.
 
 *No description*
 
-### `<DataSlice>.no_bag` {#<DataSlice>.no_bag}
+### `<DataSlice>.no_bag()` {#<DataSlice>.no_bag}
 
 ``` {.no-copy}
 Returns a copy of DataSlice without DataBag.
 ```
 
-### `<DataSlice>.no_db` {#<DataSlice>.no_db}
+### `<DataSlice>.no_db()` {#<DataSlice>.no_db}
 
 ``` {.no-copy}
 Returns a copy of DataSlice without DataBag.
@@ -6370,13 +6358,13 @@ QType of the stored value.
 
 *No description*
 
-### `<DataSlice>.set_attr` {#<DataSlice>.set_attr}
+### `<DataSlice>.set_attr(attr_name, value, /, update_schema)` {#<DataSlice>.set_attr}
 
 ``` {.no-copy}
 Sets an attribute `attr_name` to `value`.
 ```
 
-### `<DataSlice>.set_attrs` {#<DataSlice>.set_attrs}
+### `<DataSlice>.set_attrs(*, update_schema, **attrs)` {#<DataSlice>.set_attrs}
 
 ``` {.no-copy}
 Sets multiple attributes on an object / entity.
@@ -6388,7 +6376,7 @@ Args:
     adoption.
 ```
 
-### `<DataSlice>.set_schema` {#<DataSlice>.set_schema}
+### `<DataSlice>.set_schema(schema, /)` {#<DataSlice>.set_schema}
 
 ``` {.no-copy}
 Returns a copy of DataSlice with the provided `schema`.
@@ -6461,13 +6449,13 @@ Returns a readable python object from a DataSlice.
 
 *No description*
 
-### `<DataSlice>.with_bag` {#<DataSlice>.with_bag}
+### `<DataSlice>.with_bag(bag, /)` {#<DataSlice>.with_bag}
 
 ``` {.no-copy}
 Returns a copy of DataSlice with DataBag `db`.
 ```
 
-### `<DataSlice>.with_db` {#<DataSlice>.with_db}
+### `<DataSlice>.with_db(bag, /)` {#<DataSlice>.with_db}
 
 ``` {.no-copy}
 Returns a copy of DataSlice with DataBag `db`.
@@ -6499,7 +6487,7 @@ Checks that the `name` is a string and returns `obj` unchanged.
     obj unchanged.
 ```
 
-### `<DataSlice>.with_schema` {#<DataSlice>.with_schema}
+### `<DataSlice>.with_schema(schema, /)` {#<DataSlice>.with_schema}
 
 ``` {.no-copy}
 Returns a copy of DataSlice with the provided `schema`.
@@ -6518,12 +6506,6 @@ Returns:
 
 *No description*
 
-### `<DataSlice>.db` {#<DataSlice>.db}
-
-``` {.no-copy}
-A DataBag associated with DataSlice.
-```
-
 </section>
 
 ## `DataBag` methods {#DataBag_category}
@@ -6534,7 +6516,7 @@ A DataBag associated with DataSlice.
 
 **Operators**
 
-### `<DataBag>.adopt` {#<DataBag>.adopt}
+### `<DataBag>.adopt(slice, /)` {#<DataBag>.adopt}
 
 ``` {.no-copy}
 Adopts all data reachable from the given slice into this DataBag.
@@ -6655,7 +6637,7 @@ Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
     A DataSlice with the dicts.
 ```
 
-### `<DataBag>.dict_schema` {#<DataBag>.dict_schema}
+### `<DataBag>.dict_schema(key_schema, value_schema)` {#<DataBag>.dict_schema}
 
 ``` {.no-copy}
 Returns a dict schema from the schemas of the keys and values
@@ -6701,7 +6683,7 @@ Returns an empty DataBag.
 Unique identifier of the value.
 ```
 
-### `<DataBag>.fork` {#<DataBag>.fork}
+### `<DataBag>.fork(mutable)` {#<DataBag>.fork}
 
 ``` {.no-copy}
 Returns a newly created DataBag with the same content as self.
@@ -6721,13 +6703,13 @@ Returns:
 Returns a frozen DataBag equivalent to `self`.
 ```
 
-### `<DataBag>.get_approx_size` {#<DataBag>.get_approx_size}
+### `<DataBag>.get_approx_size()` {#<DataBag>.get_approx_size}
 
 ``` {.no-copy}
 Returns approximate size of the DataBag.
 ```
 
-### `<DataBag>.get_fallbacks` {#<DataBag>.get_fallbacks}
+### `<DataBag>.get_fallbacks()` {#<DataBag>.get_fallbacks}
 
 ``` {.no-copy}
 Returns the list of fallback DataBags in this DataBag.
@@ -6765,7 +6747,7 @@ Implodes a Dataslice `x` a specified number of times.
     DataSlice of nested Lists
 ```
 
-### `<DataBag>.is_mutable` {#<DataBag>.is_mutable}
+### `<DataBag>.is_mutable()` {#<DataBag>.is_mutable}
 
 ``` {.no-copy}
 Returns present iff this DataBag is mutable.
@@ -6821,7 +6803,7 @@ Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
     A DataSlice with the lists.
 ```
 
-### `<DataBag>.list_schema` {#<DataBag>.list_schema}
+### `<DataBag>.list_schema(item_schema)` {#<DataBag>.list_schema}
 
 ``` {.no-copy}
 Returns a list schema from the schema of the items
@@ -6846,7 +6828,7 @@ Creates new Koda lists with the given shape.
     A DataSlice with the lists.
 ```
 
-### `<DataBag>.merge_fallbacks` {#<DataBag>.merge_fallbacks}
+### `<DataBag>.merge_fallbacks()` {#<DataBag>.merge_fallbacks}
 
 ``` {.no-copy}
 Returns a new DataBag with all the fallbacks merged.
@@ -6882,13 +6864,13 @@ Copies all data from `other_bags` to this DataBag.
     self, so that multiple DataBag modifications can be chained.
 ```
 
-### `<DataBag>.named_schema` {#<DataBag>.named_schema}
+### `<DataBag>.named_schema(name, /)` {#<DataBag>.named_schema}
 
 ``` {.no-copy}
 Creates a named schema with ItemId derived only from its name.
 ```
 
-### `<DataBag>.new` {#<DataBag>.new}
+### `<DataBag>.new(arg, *, schema, update_schema, itemid, **attrs)` {#<DataBag>.new}
 
 ``` {.no-copy}
 Creates Entities with given attrs.
@@ -6910,7 +6892,7 @@ Returns:
   data_slice.DataSlice with the given attrs.
 ```
 
-### `<DataBag>.new_like` {#<DataBag>.new_like}
+### `<DataBag>.new_like(shape_and_mask_from, *, schema, update_schema, itemid, **attrs)` {#<DataBag>.new_like}
 
 ``` {.no-copy}
 Creates new Entities with the shape and sparsity from shape_and_mask_from.
@@ -6931,13 +6913,13 @@ Returns:
   data_slice.DataSlice with the given attrs.
 ```
 
-### `<DataBag>.new_schema` {#<DataBag>.new_schema}
+### `<DataBag>.new_schema(**attrs)` {#<DataBag>.new_schema}
 
 ``` {.no-copy}
 Creates new schema object with given types of attrs.
 ```
 
-### `<DataBag>.new_shaped` {#<DataBag>.new_shaped}
+### `<DataBag>.new_shaped(shape, *, schema, update_schema, itemid, **attrs)` {#<DataBag>.new_shaped}
 
 ``` {.no-copy}
 Creates new Entities with the given shape.
@@ -6957,7 +6939,7 @@ Returns:
   data_slice.DataSlice with the given attrs.
 ```
 
-### `<DataBag>.obj` {#<DataBag>.obj}
+### `<DataBag>.obj(arg, *, itemid, **attrs)` {#<DataBag>.obj}
 
 ``` {.no-copy}
 Creates new Objects with an implicit stored schema.
@@ -6975,7 +6957,7 @@ Returns:
   data_slice.DataSlice with the given attrs and kd.OBJECT schema.
 ```
 
-### `<DataBag>.obj_like` {#<DataBag>.obj_like}
+### `<DataBag>.obj_like(shape_and_mask_from, *, itemid, **attrs)` {#<DataBag>.obj_like}
 
 ``` {.no-copy}
 Creates Objects with shape and sparsity from shape_and_mask_from.
@@ -6993,7 +6975,7 @@ Returns:
   data_slice.DataSlice with the given attrs.
 ```
 
-### `<DataBag>.obj_shaped` {#<DataBag>.obj_shaped}
+### `<DataBag>.obj_shaped(shape, *, itemid, **attrs)` {#<DataBag>.obj_shaped}
 
 ``` {.no-copy}
 Creates Objects with the given shape.
@@ -7021,7 +7003,7 @@ QType of the stored value.
 Returns a representation of schema triples in the DataBag.
 ```
 
-### `<DataBag>.uu` {#<DataBag>.uu}
+### `<DataBag>.uu(seed, *, schema, update_schema, **kwargs)` {#<DataBag>.uu}
 
 ``` {.no-copy}
 Creates an item whose ids are uuid(s) with the set attributes.
@@ -7053,13 +7035,13 @@ Returns:
   data_slice.DataSlice
 ```
 
-### `<DataBag>.uu_schema` {#<DataBag>.uu_schema}
+### `<DataBag>.uu_schema(seed, **attrs)` {#<DataBag>.uu_schema}
 
 ``` {.no-copy}
 Creates new uuschema from given types of attrs.
 ```
 
-### `<DataBag>.uuobj` {#<DataBag>.uuobj}
+### `<DataBag>.uuobj(seed, **kwargs)` {#<DataBag>.uuobj}
 
 ``` {.no-copy}
 Creates object(s) whose ids are uuid(s) with the provided attributes.
