@@ -244,15 +244,15 @@ def is_hidden_seed(marker_type: arolla.abc.QValue | None) -> bool:
   )
 
 
-def find_hidden_seed_param(signature: inspect.Signature) -> int | None:
-  """Returns the index of the hidden seed param, or None if there isn't one."""
-  for i_param, param in enumerate(signature.parameters.values()):
+def find_hidden_seed_param(signature: inspect.Signature) -> str | None:
+  """Returns name of the hidden seed param, or None if there isn't one."""
+  for param in signature.parameters.values():
     if (
         isinstance(param.default, arolla.QValue)
         and is_param_marker(param.default)
         and is_hidden_seed(param.default[1])
     ):
-      return i_param
+      return param.name
   return None
 
 

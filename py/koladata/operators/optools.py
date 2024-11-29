@@ -15,9 +15,9 @@
 """Operator definition and registration tooling."""
 
 import dataclasses
-import functools
 import inspect
-from typing import Any, Callable, Collection, Sequence
+import types
+from typing import Any, Callable, Collection
 
 from arolla import arolla
 from koladata.expr import input_container
@@ -180,31 +180,58 @@ def add_alias(name: str, alias: str):
   )(registered_op.op)
 
 
+def _build_operator_signature_from_fn(
+    fn: types.FunctionType, aux_policy: str
+) -> arolla.abc.Signature:
+  """Builds an operator signature from a python function."""
+  signature = arolla.abc.make_operator_signature(
+      inspect.signature(fn), as_qvalue=py_boxing.as_qvalue
+  )
+  return arolla.abc.Signature((signature.parameters, aux_policy))
+
+
 def as_backend_operator(
     name: str,
     *,
     qtype_inference_expr: arolla.Expr | arolla.QType,
-    qtype_constraints: Sequence[tuple[arolla.Expr, str]] = (),
-    aux_policy: str | None = None,
-) -> Callable[[Callable[..., Any]], arolla.types.BackendOperator]:
-  """Wrapper around Arolla as_backend_operator with Koda default aux policy."""
-  if aux_policy is None:
-    aux_policy = py_boxing.DEFAULT_BOXING_POLICY
-  return arolla.optools.as_backend_operator(
-      name=name,
-      qtype_inference_expr=qtype_inference_expr,
-      qtype_constraints=qtype_constraints,
-      experimental_aux_policy=aux_policy,
+    qtype_constraints: arolla.types.QTypeConstraints = (),
+    aux_policy: str = py_boxing.DEFAULT_BOXING_POLICY,
+) -> Callable[[types.FunctionType], arolla.types.BackendOperator]:
+  """A decorator for defining Koladata-specific backend operators."""
+
+  def impl(fn):
+    return arolla.types.BackendOperator(
+        name,
+        _build_operator_signature_from_fn(fn, aux_policy),
+        doc=inspect.getdoc(fn) or '',
+        qtype_inference_expr=qtype_inference_expr,
+        qtype_constraints=qtype_constraints,
+    )
+
+  return impl
+
+
+def _build_lambda_body_from_fn(fn: types.FunctionType):
+  """Builds a lambda body expression from a python function."""
+  unmangling = {}
+
+  def gen_tracer(name: str):
+    result = P[name]
+    unmangling[result.fingerprint] = arolla.abc.placeholder(name)
+    return result
+
+  return arolla.abc.sub_by_fingerprint(
+      arolla.optools.trace_function(fn, gen_tracer=gen_tracer), unmangling
   )
 
 
 def as_lambda_operator(
     name: str,
     *,
-    qtype_constraints: Sequence[tuple[arolla.Expr, str]] = (),
+    qtype_constraints: arolla.types.QTypeConstraints = (),
     aux_policy: str = py_boxing.DEFAULT_BOXING_POLICY,
-) -> Callable[[Callable[..., Any]], arolla.types.RestrictedLambdaOperator]:
-  """Wrapper around Arolla as_lambda_operator with additional Koda specifics.
+) -> Callable[[types.FunctionType], arolla.types.RestrictedLambdaOperator]:
+  """A decorator for defining Koladata-specific lambda operators.
 
   Koda specifics:
     - Adds a KodaView to the inputs during tracing, allowing prefix / infix
@@ -220,35 +247,31 @@ def as_lambda_operator(
   """
 
   def impl(fn):
+    op_sig = _build_operator_signature_from_fn(fn, aux_policy)
+    op_expr = _build_lambda_body_from_fn(fn)
 
-    @arolla.optools.as_lambda_operator(
-        name=name,
-        qtype_constraints=qtype_constraints,
-        experimental_aux_policy=aux_policy,
-    )
-    @functools.wraps(fn)  # preserves the `fn` signature.
-    def fn_wrapper(*args):
-      koda_placeholders = [P[arolla_p.placeholder_key] for arolla_p in args]
-      subs = {
-          koda_p.fingerprint: arolla_p
-          for koda_p, arolla_p in zip(koda_placeholders, args)
-      }
-
-      # If there is a `py_boxing.hidden_seed()`-marked param on the `fn`
-      # signature, use its value for the `py_boxing.HIDDEN_SEED_LEAF` leaf.
-      if aux_policy == py_boxing.FULL_SIGNATURE_POLICY:
-        hidden_seed_param_index = py_boxing.find_hidden_seed_param(
-            inspect.signature(fn)
+    # If there is a `py_boxing.hidden_seed()`-marked param on the `fn`
+    # signature, use its value for the `py_boxing.HIDDEN_SEED_LEAF` leaf.
+    if aux_policy == py_boxing.FULL_SIGNATURE_POLICY:
+      hidden_seed_param = py_boxing.find_hidden_seed_param(
+          inspect.signature(fn)
+      )
+      if hidden_seed_param is not None:
+        op_expr = arolla.abc.sub_by_fingerprint(
+            op_expr,
+            {
+                py_boxing.HIDDEN_SEED_LEAF.fingerprint: arolla.abc.placeholder(
+                    hidden_seed_param
+                )
+            },
         )
-        if hidden_seed_param_index is not None:
-          subs[py_boxing.HIDDEN_SEED_LEAF.fingerprint] = (
-              args[hidden_seed_param_index]
-          )
-
-      body_expr = fn(*koda_placeholders)
-      return arolla.sub_by_fingerprint(body_expr, subs)
-
-    return fn_wrapper
+    return arolla.optools.make_lambda(
+        op_sig,
+        op_expr,
+        qtype_constraints=qtype_constraints,
+        name=name,
+        doc=inspect.getdoc(fn) or '',
+    )
 
   return impl
 
