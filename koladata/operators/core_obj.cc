@@ -69,7 +69,7 @@ absl::StatusOr<DataSlice> ConvertWithAdoption(const DataBagPtr& db,
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
   }
   ASSIGN_OR_RETURN(auto res, ObjectCreator::ConvertWithoutAdopt(db, value));
-  return res.WithBag(db).WithSchema(internal::DataItem(schema::kObject));
+  return res.WithBag(db);
 }
 
 class ObjOperator final : public arolla::QExprOperator {

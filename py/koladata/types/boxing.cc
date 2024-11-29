@@ -762,12 +762,11 @@ class UniversalConverter {
   //
   // * when we want to convert keys and values of a dict, but not dict itself
   //   (we do NOT want garbage triples in a DataBag that won't be used), the
-  //   caller should call `CollectDictInputs`, which will push "keys" and
-  //   "values" arguments to the stack for processing. The caller should expect
-  //   the top values on the `value_stack_` to represent converted `keys` and
-  //   `values` (keys are on the top, while values are accessible after popping
-  //   the keys).
-  //
+  //   caller should call `ParsePyDict(..., /*compute_dict=*/false)`, which will
+  //   push "keys" and "values" arguments to the stack for processing. The
+  //   caller should expect the top values on the `value_stack_` to represent
+  //   converted `keys` and `values` (keys are on the top, while values are
+  //   accessible after popping the keys).
   absl::Status Run() {
     while (!cmd_stack_.empty()) {
       auto cmd = std::move(cmd_stack_.top());
@@ -1224,6 +1223,9 @@ absl::StatusOr<DataSlice> GenericFromPyObject(
   AdoptionQueue adoption_queue;
   DataSlice res_slice;
 
+  if (schema) {
+    RETURN_IF_ERROR(schema->VerifyIsSchema());
+  }
   if (!schema || schema->item() == schema::kObject) {
     ASSIGN_OR_RETURN(res_slice, UniversalConverter<ObjectCreator>(
                                     nullptr, adoption_queue, dict_as_obj)

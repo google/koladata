@@ -643,6 +643,14 @@ class FromPyTest(absltest.TestCase):
     ):
       fns.from_py([1, 2], schema=42)
     with self.assertRaisesRegex(
+        ValueError, r'schema\'s schema must be SCHEMA, got: INT32'
+    ):
+      fns.from_py([1, 2], schema=ds(42))
+    with self.assertRaisesRegex(
+        ValueError, r'schema\'s schema must be SCHEMA, got: INT32'
+    ):
+      fns.from_py([1, 2], schema=ds([42]))
+    with self.assertRaisesRegex(
         TypeError, 'expecting dict_as_obj to be a bool, got int'
     ):
       fns.from_py([1, 2], dict_as_obj=42)  # pytype: disable=wrong-arg-types
