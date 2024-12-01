@@ -106,16 +106,16 @@ class StringsDecodeBase64Test(parameterized.TestCase):
   def test_schema_error(self):
     with self.assertRaisesWithLiteralMatch(
         exceptions.KodaError,
-        'kd.strings.decode_base64: argument `x` must be a slice of strings or'
-        ' byteses, got a slice of INT32',
+        'kd.strings.decode_base64: argument `x` must be a slice of either'
+        ' STRING or BYTES, got a slice of INT32',
     ):
       _ = kde.strings.decode_base64(ds(1)).eval()
 
   def test_dtype_error(self):
     with self.assertRaisesWithLiteralMatch(
         exceptions.KodaError,
-        'kd.strings.decode_base64: argument `x` must be a slice of strings or'
-        ' byteses, got a slice of OBJECT with an item of type INT32',
+        'kd.strings.decode_base64: argument `x` must be a slice of either'
+        ' STRING or BYTES, got a slice of OBJECT with an item of type INT32',
     ):
       _ = kde.strings.decode_base64(ds(1, schema_constants.OBJECT)).eval()
 

@@ -153,12 +153,16 @@ absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep) {
 
 absl::StatusOr<DataSlice> Contains(const DataSlice& x,
                                    const DataSlice& substr) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "substr"}, x, substr))
+      .With(OpError("kd.strings.contains"));
   return SimplePointwiseEval(
       "strings.contains", {x, substr},
       /*output_schema=*/internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "substr"}, x, substr))
+      .With(OpError("kd.strings.count"));
   return SimplePointwiseEval("strings.count", {x, substr},
                              internal::DataItem(schema::kInt32));
 }
@@ -166,7 +170,7 @@ absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr) {
 absl::StatusOr<DataSlice> DecodeBase64(const DataSlice& x,
                                        bool missing_if_invalid) {
   static constexpr std::string_view kOperatorName = "kd.strings.decode_base64";
-  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x"}, x))
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("x", x))
       .With(OpError(kOperatorName));
   return ApplyUnaryPointwiseFn(
       x,
@@ -198,12 +202,7 @@ absl::StatusOr<DataSlice> DecodeBase64(const DataSlice& x,
 
 absl::StatusOr<DataSlice> EncodeBase64(const DataSlice& x) {
   static constexpr std::string_view kOperatorName = "kd.strings.encode_base64";
-  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(x),
-                                      internal::DataItem(schema::kBytes))) {
-    return OperatorEvalError(
-        kOperatorName,
-        absl::StrFormat("expected bytes, got %s", DataSliceRepr(x)));
-  }
+  RETURN_IF_ERROR(ExpectBytes("x", x)).With(OpError(kOperatorName));
   return ApplyUnaryPointwiseFn(
       x,
       [&]<typename T>(arolla::meta::type<T>,
@@ -224,6 +223,8 @@ absl::StatusOr<DataSlice> EncodeBase64(const DataSlice& x) {
 absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,
                                const DataSlice& start, const DataSlice& end,
                                const DataSlice& failure_value) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "substr"}, x, substr))
+      .With(OpError("kd.strings.find"));
   ASSIGN_OR_RETURN(auto typed_start, NarrowToInt64(start, "start"),
                    _.With(OpError("kd.strings.find")));
   ASSIGN_OR_RETURN(auto typed_end, NarrowToInt64(end, "end"),
@@ -273,6 +274,7 @@ absl::StatusOr<DataSlice> TestOnlyFormatWrapper(std::vector<DataSlice> slices) {
 }
 
 absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices) {
+  // TODO: b/375621456 - a variadic version of ExpectConsistentStringOrBytes.
   if (slices.empty()) {
     return absl::InvalidArgumentError("expected at least one input");
   }
@@ -280,22 +282,29 @@ absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices) {
 }
 
 absl::StatusOr<DataSlice> Length(const DataSlice& x) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("x", x))
+      .With(OpError("kd.strings.count"));
   return SimplePointwiseEval("strings.length", {x},
                              internal::DataItem(schema::kInt32));
 }
 
 absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
   // TODO: Add support for BYTES.
+  RETURN_IF_ERROR(ExpectString("x", x)).With(OpError("kd.strings.lower"));
   return SimplePointwiseEval("strings.lower", {x},
                              internal::DataItem(schema::kString));
 }
 
 absl::StatusOr<DataSlice> Lstrip(const DataSlice& s, const DataSlice& chars) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"s", "chars"}, s, chars))
+      .With(OpError("kd.strings.lstrip"));
   return SimplePointwiseEval("strings.lstrip", {s, chars});
 }
 
 absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
                                        const DataSlice& regex) {
+  RETURN_IF_ERROR(ExpectString("text", text))
+      .With(OpError("kd.strings.extract_regex"));
   ASSIGN_OR_RETURN(absl::string_view regex_view,
                    GetStringArgument(regex, "regex"));
   ASSIGN_OR_RETURN(auto text_schema, GetPrimitiveArollaSchema(text));
@@ -325,6 +334,8 @@ absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
 
 absl::StatusOr<DataSlice> RegexMatch(const DataSlice& text,
                                      const DataSlice& regex) {
+  RETURN_IF_ERROR(ExpectString("text", text))
+      .With(OpError("kd.strings.regex_match"));
   ASSIGN_OR_RETURN(absl::string_view regex_view,
                    GetStringArgument(regex, "regex"));
   ASSIGN_OR_RETURN(auto text_schema, GetPrimitiveArollaSchema(text));
@@ -354,6 +365,10 @@ absl::StatusOr<DataSlice> Replace(const DataSlice& s,
                                   const DataSlice& old_substr,
                                   const DataSlice& new_substr,
                                   const DataSlice& max_subs) {
+  RETURN_IF_ERROR(
+      ExpectConsistentStringOrBytes({"s", "old_substr", "new_substr"}, s,
+                                    old_substr, new_substr))
+      .With(OpError("kd.strings.replace"));
   RETURN_IF_ERROR(ExpectInteger("max_subs", max_subs))
       .With(OpError("kd.strings.replace"));
   // TODO: b/381410131 - use NarrowToInt64 instead.
@@ -368,6 +383,8 @@ absl::StatusOr<DataSlice> Replace(const DataSlice& s,
 absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
                                 const DataSlice& start, const DataSlice& end,
                                 const DataSlice& failure_value) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "substr"}, x, substr))
+      .With(OpError("kd.strings.rfind"));
   ASSIGN_OR_RETURN(auto typed_start, NarrowToInt64(start, "start"),
                    _.With(OpError("kd.strings.rfind")));
   ASSIGN_OR_RETURN(auto typed_end, NarrowToInt64(end, "end"),
@@ -384,10 +401,14 @@ absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
 }
 
 absl::StatusOr<DataSlice> Rstrip(const DataSlice& s, const DataSlice& chars) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"s", "chars"}, s, chars))
+      .With(OpError("kd.strings.rstrip"));
   return SimplePointwiseEval("strings.rstrip", {s, chars});
 }
 
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "sep"}, x, sep))
+      .With(OpError("kd.strings.split"));
   const auto& x_shape = x.GetShape();
   if (sep.GetShape().rank() != 0) {
     return absl::InvalidArgumentError("expected rank(sep) == 0");
@@ -431,11 +452,15 @@ absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
 }
 
 absl::StatusOr<DataSlice> Strip(const DataSlice& s, const DataSlice& chars) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"s", "chars"}, s, chars))
+      .With(OpError("kd.strings.strip"));
   return SimplePointwiseEval("strings.strip", {s, chars});
 }
 
 absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
                                  const DataSlice& end) {
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("x", x))
+      .With(OpError("kd.strings.substr"));
   constexpr std::string_view kOperatorName = "kd.strings.substr";
   ASSIGN_OR_RETURN(auto typed_start, NarrowToInt64(start, "start"),
                    _.With(OpError(kOperatorName)));
@@ -449,6 +474,7 @@ absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
 
 absl::StatusOr<DataSlice> Upper(const DataSlice& x) {
   // TODO: Add support for BYTES.
+  RETURN_IF_ERROR(ExpectString("x", x)).With(OpError("kd.strings.upper"));
   return SimplePointwiseEval("strings.upper", {x},
                              internal::DataItem(schema::kString));
 }

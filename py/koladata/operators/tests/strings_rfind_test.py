@@ -102,20 +102,18 @@ class StringsRfindTest(parameterized.TestCase):
   def test_eval_two_args_wrong_types(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
         re.escape(
-            'unsupported argument types'
-            ' (OPTIONAL_INT32,INT32,INT64,OPTIONAL_INT64,OPTIONAL_INT64)'
+            'kd.strings.rfind: argument `substr` must be a slice of either'
+            ' STRING or BYTES, got a slice of INT32'
         ),
     ):
       expr_eval.eval(kde.strings.rfind(None, 123))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
         re.escape(
-            'unsupported argument types'
-            ' (TEXT,BYTES,INT64,OPTIONAL_INT64,OPTIONAL_INT64)'
+            'kd.strings.rfind: mixing STRING and BYTES arguments is not'
+            ' allowed, but `x` contains STRING and `substr` contains BYTES'
         ),
     ):
       expr_eval.eval(kde.strings.rfind('a', b'a'))
@@ -390,8 +388,8 @@ class StringsRfindTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'unsupported argument types'
-            ' (TEXT,BYTES,INT64,OPTIONAL_INT64,OPTIONAL_INT64)'
+            'kd.strings.rfind: mixing STRING and BYTES arguments is not'
+            ' allowed, but `x` contains STRING and `substr` contains BYTES'
         ),
     ):
       expr_eval.eval(kde.strings.rfind(ds('foo'), ds(b'f')))
@@ -400,8 +398,8 @@ class StringsRfindTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'unsupported argument types'
-            ' (DENSE_ARRAY_TEXT,INT32,INT64,OPTIONAL_INT64,OPTIONAL_INT64)'
+            'kd.strings.rfind: argument `substr` must be a slice of either'
+            ' STRING or BYTES, got a slice of INT32'
         ),
     ):
       expr_eval.eval(
@@ -410,7 +408,9 @@ class StringsRfindTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError,
+        'kd.strings.rfind: argument `substr` must be a slice of either STRING'
+        ' or BYTES, got a slice of OBJECT with items of types INT32, STRING',
     ):
       expr_eval.eval(kde.strings.rfind(ds('foo'), ds([1, 'fo'])))
 

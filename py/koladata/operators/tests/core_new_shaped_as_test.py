@@ -173,7 +173,7 @@ class CoreNewShapedAsTest(absltest.TestCase):
     shape_from = ds([6, 7])
     with self.assertRaisesRegex(
         ValueError,
-        'argument `update_schema` must be an item holding boolean, got an item'
+        'argument `update_schema` must be an item holding BOOLEAN, got an item'
         ' of INT32',
     ):
       kde.core.new_shaped_as(

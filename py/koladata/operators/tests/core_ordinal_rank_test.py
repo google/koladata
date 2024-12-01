@@ -316,7 +316,7 @@ class CoreOrdinalRankTest(parameterized.TestCase):
         exceptions.KodaError,
         re.escape(
             'kd.core.ordinal_rank: argument `descending` must be an item'
-            ' holding boolean, got a slice of rank 1 > 0'
+            ' holding BOOLEAN, got a slice of rank 1 > 0'
         ),
     ):
       expr_eval.eval(
@@ -328,7 +328,7 @@ class CoreOrdinalRankTest(parameterized.TestCase):
         exceptions.KodaError,
         re.escape(
             'kd.core.ordinal_rank: argument `descending` must be an item'
-            ' holding boolean, got an item of NONE'
+            ' holding BOOLEAN, got an item of NONE'
         ),
     ):
       expr_eval.eval(kde.core.ordinal_rank(ds([0, 3, 6]), descending=ds(None)))

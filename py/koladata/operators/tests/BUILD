@@ -5551,6 +5551,7 @@ py_test(
     name = "strings_regex_extract_test",
     srcs = ["strings_regex_extract_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5570,6 +5571,7 @@ py_test(
     name = "strings_regex_match_test",
     srcs = ["strings_regex_match_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

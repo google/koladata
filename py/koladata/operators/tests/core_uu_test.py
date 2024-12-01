@@ -186,7 +186,10 @@ class KodaUuTest(parameterized.TestCase):
           arolla.unspecified(),
           False,
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
-          'requires `seed` to be DataItem holding string, got DataSlice',
+          (
+              'argument `seed` must be an item holding STRING, got a slice of'
+              ' rank 1 > 0'
+          ),
       ),
       (
           0,
@@ -194,8 +197,8 @@ class KodaUuTest(parameterized.TestCase):
           False,
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
           (
-              r'requires `seed` to be DataItem holding string, got DataItem\(0'
-              r', schema: INT32\)'
+              'argument `seed` must be an item holding STRING, got an item of'
+              ' INT32'
           ),
       ),
       (
@@ -211,7 +214,7 @@ class KodaUuTest(parameterized.TestCase):
           0,
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
           (
-              'argument `update_schema` must be an item holding boolean, got an'
+              'argument `update_schema` must be an item holding BOOLEAN, got an'
               ' item of INT32'
           ),
       ),

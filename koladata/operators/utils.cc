@@ -20,7 +20,6 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
@@ -35,7 +34,6 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_slot.h"
-#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
@@ -79,17 +77,13 @@ std::vector<DataSlice> GetValueDataSlices(arolla::TypedSlot named_tuple_slot,
 
 absl::StatusOr<bool> GetBoolArgument(const DataSlice& slice,
                                      absl::string_view arg_name) {
-  RETURN_IF_ERROR(ExpectScalarBool(arg_name, slice));
+  RETURN_IF_ERROR(ExpectPresentScalar(arg_name, slice, schema::kBool));
   return slice.item().value<bool>();
 }
 
 absl::StatusOr<absl::string_view> GetStringArgument(
     const DataSlice& slice, absl::string_view arg_name) {
-  if (!slice.is_item() || !slice.item().holds_value<arolla::Text>()) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("requires `%s` to be DataItem holding string, got %s",
-                        arg_name, arolla::Repr(slice)));
-  }
+  RETURN_IF_ERROR(ExpectPresentScalar(arg_name, slice, schema::kString));
   return slice.item().value<arolla::Text>().view();
 }
 

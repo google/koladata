@@ -72,8 +72,7 @@ internal::DataItem GetNarrowedSchema(const DataSlice& slice) {
 }
 
 absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg) {
-  internal::DataItem narrowed_schema = GetNarrowedSchema(arg);
-  if (!schema::IsImplicitlyCastableTo(narrowed_schema,
+  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(arg),
                                       internal::DataItem(schema::kFloat64))) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "argument `%s` must be a slice of numeric values, got a slice of %s",
@@ -83,8 +82,7 @@ absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg) {
 }
 
 absl::Status ExpectInteger(absl::string_view arg_name, const DataSlice& arg) {
-  internal::DataItem narrowed_schema = GetNarrowedSchema(arg);
-  if (!schema::IsImplicitlyCastableTo(narrowed_schema,
+  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(arg),
                                       internal::DataItem(schema::kInt64))) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "argument `%s` must be a slice of integer values, got a slice of %s",
@@ -93,19 +91,44 @@ absl::Status ExpectInteger(absl::string_view arg_name, const DataSlice& arg) {
   return absl::OkStatus();
 }
 
-absl::Status ExpectScalarBool(absl::string_view arg_name,
-                              const DataSlice& arg) {
+absl::Status ExpectString(absl::string_view arg_name, const DataSlice& arg) {
+  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(arg),
+                                      internal::DataItem(schema::kString))) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be a slice of %v, got a slice of %s", arg_name,
+        schema::kString, schema_utils_internal::DescribeSliceSchema(arg)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status ExpectBytes(absl::string_view arg_name, const DataSlice& arg) {
+  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(arg),
+                                      internal::DataItem(schema::kBytes))) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be a slice of %v, got a slice of %s", arg_name,
+        schema::kBytes, schema_utils_internal::DescribeSliceSchema(arg)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status ExpectPresentScalar(absl::string_view arg_name,
+                                 const DataSlice& arg,
+                                 const schema::DType expected_dtype) {
   if (arg.GetShape().rank() != 0) {
     return absl::InvalidArgumentError(
-        absl::StrFormat("argument `%s` must be an item holding boolean, got a "
+        absl::StrFormat("argument `%s` must be an item holding %v, got a "
                         "slice of rank %i > 0",
-                        arg_name, arg.GetShape().rank()));
+                        arg_name, expected_dtype, arg.GetShape().rank()));
   }
-  internal::DataItem narrowed_schema = GetNarrowedSchema(arg);
-  if (narrowed_schema != schema::kBool) {
+  if (GetNarrowedSchema(arg) != expected_dtype) {
     return absl::InvalidArgumentError(absl::StrFormat(
-        "argument `%s` must be an item holding boolean, got an item of %s",
-        arg_name, schema_utils_internal::DescribeSliceSchema(arg)));
+        "argument `%s` must be an item holding %v, got an item of %s", arg_name,
+        expected_dtype, schema_utils_internal::DescribeSliceSchema(arg)));
+  }
+  if (arg.present_count() != 1) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("argument `%s` must be an item holding %v, got missing",
+                        arg_name, expected_dtype));
   }
   return absl::OkStatus();
 }
@@ -162,10 +185,10 @@ absl::Status ExpectConsistentStringOrBytesImpl(
     if (is_string && is_bytes) {
       continue;  // NONE schema.
     } else if (!is_string && !is_bytes) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("argument `%s` must be a slice of strings or "
-                          "byteses, got a slice of %s",
-                          arg_names[i], DescribeSliceSchema(*args[i])));
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "argument `%s` must be a slice of either %v or %v, got a slice of %s",
+          arg_names[i], schema::kString, schema::kBytes,
+          DescribeSliceSchema(*args[i])));
     } else if (is_string) {
       string_arg_index = string_arg_index.value_or(i);
     } else /* is_bytes */ {
@@ -174,9 +197,10 @@ absl::Status ExpectConsistentStringOrBytesImpl(
   }
   if (string_arg_index.has_value() && bytes_arg_index.has_value()) {
     return absl::InvalidArgumentError(absl::StrFormat(
-        "mixing bytes and string arguments is not allowed, but "
-        "`%s` contains strings and `%s` contains byteses",
-        arg_names[*string_arg_index], arg_names[*bytes_arg_index]));
+        "mixing %v and %v arguments is not allowed, but "
+        "`%s` contains %v and `%s` contains %v",
+        schema::kString, schema::kBytes, arg_names[*string_arg_index],
+        schema::kString, arg_names[*bytes_arg_index], schema::kBytes));
   }
   return absl::OkStatus();
 }

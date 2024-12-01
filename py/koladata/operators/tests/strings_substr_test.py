@@ -273,7 +273,11 @@ class StringsSubstrTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with Entity schema is not supported'
+        exceptions.KodaError,
+        re.escape(
+            'kd.strings.substr: argument `x` must be a slice of either STRING'
+            ' or BYTES, got a slice of SCHEMA(x=INT32)'
+        ),
     ):
       expr_eval.eval(kde.strings.substr(x))
 

@@ -215,7 +215,7 @@ class CoreOrdinalRankTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.core.dense_rank: argument `descending` must be an item holding'
-        ' boolean, got a slice of rank 1 > 0',
+        ' BOOLEAN, got a slice of rank 1 > 0',
     ):
       expr_eval.eval(kde.core.dense_rank(ds([0, 3, 6]), descending=ds([True])))
 
@@ -223,7 +223,7 @@ class CoreOrdinalRankTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.core.dense_rank: argument `descending` must be an item holding'
-        ' boolean, got an item of NONE',
+        ' BOOLEAN, got an item of NONE',
     ):
       expr_eval.eval(kde.core.dense_rank(ds([0, 3, 6]), descending=ds(None)))
 

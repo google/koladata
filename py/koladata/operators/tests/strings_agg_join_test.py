@@ -240,24 +240,24 @@ class StringsAggJoinTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.strings.agg_join: argument `x` must be a slice of strings or'
-            ' byteses, got a slice of INT32'
+            'kd.strings.agg_join: argument `x` must be a slice of either STRING'
+            ' or BYTES, got a slice of INT32'
         ),
     ):
       expr_eval.eval(kde.strings.agg_join(ds([1, 2]), sep=ds(b', ')))
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.strings.agg_join: argument `sep` must be a slice of strings or'
-            ' byteses, got a slice of INT32'
+            'kd.strings.agg_join: argument `sep` must be a slice of either'
+            ' STRING or BYTES, got a slice of INT32'
         ),
     ):
       expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(1)))
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.strings.agg_join: mixing bytes and string arguments is not'
-            ' allowed, but `x` contains strings and `sep` contains byteses'
+            'kd.strings.agg_join: mixing STRING and BYTES arguments is not'
+            ' allowed, but `x` contains STRING and `sep` contains BYTES'
         ),
     ):
       expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(b', ')))

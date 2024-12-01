@@ -232,7 +232,7 @@ absl::StatusOr<DataSlice> AggMedian(const DataSlice& x) {
 absl::StatusOr<DataSlice> AggStd(const DataSlice& x,
                                  const DataSlice& unbiased) {
   RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.agg_std"));
-  RETURN_IF_ERROR(ExpectScalarBool("unbiased", unbiased))
+  RETURN_IF_ERROR(ExpectPresentScalar("unbiased", unbiased, schema::kBool))
       .With(OpError("kd.math.agg_std"));
   return SimpleAggIntoEval("math.std", {x, unbiased},
                            /*output_schema=*/internal::DataItem(),
@@ -243,7 +243,7 @@ absl::StatusOr<DataSlice> AggStd(const DataSlice& x,
 absl::StatusOr<DataSlice> AggVar(const DataSlice& x,
                                  const DataSlice& unbiased) {
   RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.agg_var"));
-  RETURN_IF_ERROR(ExpectScalarBool("unbiased", unbiased))
+  RETURN_IF_ERROR(ExpectPresentScalar("unbiased", unbiased, schema::kBool))
       .With(OpError("kd.math.agg_var"));
   return SimpleAggIntoEval("math.var", {x, unbiased},
                            /*output_schema=*/internal::DataItem(),

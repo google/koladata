@@ -61,16 +61,16 @@ class StringsEncodeBase64Test(parameterized.TestCase):
   def test_schema_error(self):
     with self.assertRaisesWithLiteralMatch(
         exceptions.KodaError,
-        "kd.strings.encode_base64: expected bytes, got DataItem('a', schema:"
-        ' STRING)',
+        'kd.strings.encode_base64: argument `x` must be a slice of BYTES, got a'
+        ' slice of STRING',
     ):
       _ = kde.strings.encode_base64(ds('a')).eval()
 
   def test_dtype_error(self):
     with self.assertRaisesWithLiteralMatch(
         exceptions.KodaError,
-        "kd.strings.encode_base64: expected bytes, got DataItem('a', schema:"
-        ' OBJECT)',
+        'kd.strings.encode_base64: argument `x` must be a slice of BYTES, got a'
+        ' slice of OBJECT with an item of type STRING',
     ):
       _ = kde.strings.encode_base64(ds('a', schema_constants.OBJECT)).eval()
 

@@ -201,7 +201,7 @@ class MathAggStdTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'argument `unbiased` must be an item holding boolean, got a slice'
+            'argument `unbiased` must be an item holding BOOLEAN, got a slice'
             ' of rank 1 > 0'
         ),
     ):

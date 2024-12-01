@@ -23,6 +23,7 @@
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
 
 namespace koladata {
 
@@ -42,8 +43,16 @@ absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg);
 // Returns OK if the DataSlice contains integer values.
 absl::Status ExpectInteger(absl::string_view arg_name, const DataSlice& arg);
 
-// Returns OK if the DataSlice contains a scalar boolean value.
-absl::Status ExpectScalarBool(absl::string_view arg_name, const DataSlice& arg);
+// Returns OK if the DataSlice contains strings.
+absl::Status ExpectString(absl::string_view arg_name, const DataSlice& arg);
+
+// Returns OK if the DataSlice contains bytes.
+absl::Status ExpectBytes(absl::string_view arg_name, const DataSlice& arg);
+
+// Returns OK if the DataSlice contains a present scalar of the expected dtype.
+absl::Status ExpectPresentScalar(absl::string_view arg_name,
+                                 const DataSlice& arg,
+                                 schema::DType expected_dtype);
 
 namespace schema_utils_internal {
 
@@ -58,13 +67,21 @@ std::string DescribeSliceSchema(const DataSlice& slice);
 
 }  // namespace schema_utils_internal
 
-// Returns OK if the DataSlices' schemas are all strings or byteses, and they
-// are not mixed.
+// Returns OK if the DataSlices contain either strings or byteses, but not their
+// mix.
 template <typename... DataSlices>
 absl::Status ExpectConsistentStringOrBytes(
     absl::Span<const absl::string_view> arg_names, const DataSlices&... args) {
   return schema_utils_internal::ExpectConsistentStringOrBytesImpl(arg_names,
                                                                   {&args...});
+}
+
+// Returns OK if the DataSlice contains either strings or byteses, but not their
+// mix.
+inline absl::Status ExpectConsistentStringOrBytes(absl::string_view arg_name,
+                                                  const DataSlice& arg) {
+  return schema_utils_internal::ExpectConsistentStringOrBytesImpl({arg_name},
+                                                                  {&arg});
 }
 
 }  // namespace koladata

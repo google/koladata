@@ -86,22 +86,24 @@ class StringsLowerTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'expected texts or array of texts, got x: DENSE_ARRAY_INT32',
+        'kd.strings.lower: argument `x` must be a slice of STRING, got a slice'
+        ' of INT32',
     ):
       expr_eval.eval(kde.strings.lower(I.x), x=x)
 
     x = ds([b'ABC', b'DEF'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'expected texts or array of texts, got x: DENSE_ARRAY_BYTES',
+        'kd.strings.lower: argument `x` must be a slice of STRING, got a slice'
+        ' of BYTES',
     ):
       expr_eval.eval(kde.strings.lower(I.x), x=x)
 
     x = ds(['ABC', b'DEF'])
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError,
+        'kd.strings.lower: argument `x` must be a slice of STRING, got a slice'
+        ' of OBJECT with items of types',
     ):
       expr_eval.eval(kde.strings.lower(I.x), x=x)
 

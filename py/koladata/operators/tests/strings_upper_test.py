@@ -90,22 +90,24 @@ class StringsUpperTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'expected texts or array of texts, got x: DENSE_ARRAY_INT32',
+        'kd.strings.upper: argument `x` must be a slice of STRING, got a slice'
+        ' of INT32',
     ):
       expr_eval.eval(kde.strings.upper(I.x), x=x)
 
     x = ds([b'abc', b'def'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'expected texts or array of texts, got x: DENSE_ARRAY_BYTES',
+        'kd.strings.upper: argument `x` must be a slice of STRING, got a slice'
+        ' of BYTES',
     ):
       expr_eval.eval(kde.strings.upper(I.x), x=x)
 
     x = ds(['abc', b'def'])
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError,
+        'kd.strings.upper: argument `x` must be a slice of STRING, got a slice'
+        ' of OBJECT with items of types',
     ):
       expr_eval.eval(kde.strings.upper(I.x), x=x)
 

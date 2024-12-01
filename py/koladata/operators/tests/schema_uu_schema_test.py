@@ -140,21 +140,24 @@ class KodaUuSchemaTest(parameterized.TestCase):
       (
           ds(['seed1', 'seed2']),
           dict(a=schema_constants.INT32, b=schema_constants.FLOAT32),
-          'requires `seed` to be DataItem holding string, got DataSlice',
+          (
+              'argument `seed` must be an item holding STRING, got a slice of'
+              ' rank 1 > 0'
+          ),
       ),
       (
           0,
           dict(a=schema_constants.INT32, b=schema_constants.FLOAT32),
           (
-              r'requires `seed` to be DataItem holding string, got DataItem\(0'
-              r', schema: INT32\)'
+              'argument `seed` must be an item holding STRING, got an item of'
+              ' INT32'
           ),
       ),
       (
           ds('seed1'),
           dict(a=ds(0), b=schema_constants.FLOAT32),
-          'schema\'s schema must be SCHEMA, got: INT32',
-      )
+          "schema's schema must be SCHEMA, got: INT32",
+      ),
   )
   def test_error(self, seed, kwargs, err_regex):
     with self.assertRaisesRegex(

@@ -74,11 +74,11 @@ class CoreAttrTest(parameterized.TestCase):
   def test_invalid_attr_name(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(
-        ValueError, 'requires `attr_name` to be DataItem holding string'
+        ValueError, 'argument `attr_name` must be an item holding STRING'
     ):
       kde.core.attr(o, 42, 42).eval()
     with self.assertRaisesRegex(
-        ValueError, 'requires `attr_name` to be DataItem holding string'
+        ValueError, 'argument `attr_name` must be an item holding STRING'
     ):
       kde.core.attr(o, ds(['a']), 42).eval()
 
@@ -86,13 +86,13 @@ class CoreAttrTest(parameterized.TestCase):
     o = bag().new(x=1)
     with self.assertRaisesRegex(
         ValueError,
-        'argument `update_schema` must be an item holding boolean, got an'
+        'argument `update_schema` must be an item holding BOOLEAN, got an'
         ' item of INT32',
     ):
       kde.core.attr(o, 'x', 2, update_schema=1).eval()
     with self.assertRaisesRegex(
         ValueError,
-        'argument `update_schema` must be an item holding boolean, got a slice'
+        'argument `update_schema` must be an item holding BOOLEAN, got a slice'
         ' of rank 1 > 0',
     ):
       kde.core.attr(o, 'x', 2, update_schema=ds([True])).eval()

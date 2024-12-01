@@ -156,17 +156,18 @@ class StringsLstripTest(parameterized.TestCase):
   def test_incompatible_types(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        re.escape('unsupported argument types (TEXT,BYTES)'),
+        re.escape(
+            'mixing STRING and BYTES arguments is not allowed, but `s` contains'
+            ' STRING and `chars` contains BYTES'
+        ),
     ):
       expr_eval.eval(kde.strings.lstrip(ds('foo'), ds(b'f')))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
         re.escape(
-            'expected `chars` to be bytes, text, or unspecified, got chars:'
-            ' INT32'
+            'kd.strings.lstrip: argument `chars` must be a slice of either'
+            ' STRING or BYTES, got a slice of INT32'
         ),
     ):
       expr_eval.eval(
@@ -175,17 +176,18 @@ class StringsLstripTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
         re.escape(
-            'expected texts/byteses or corresponding array, got s:'
-            ' OPTIONAL_INT32'
+            'kd.strings.lstrip: argument `chars` must be a slice of either'
+            ' STRING or BYTES, got a slice of INT32'
         ),
     ):
       expr_eval.eval(kde.strings.lstrip(None, 123))
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError,
+        'kd.strings.lstrip: argument `chars` must be a slice of either STRING'
+        ' or BYTES, got a slice of OBJECT with items of types',
     ):
       expr_eval.eval(kde.strings.lstrip(ds('foo'), ds(['fo', 123])))
 

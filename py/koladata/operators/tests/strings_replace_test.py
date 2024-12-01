@@ -113,9 +113,9 @@ class StringsReplaceTest(parameterized.TestCase):
   def test_three_args_wrong_types(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
         re.escape(
-            'unsupported argument types (TEXT,BYTES,TEXT,OPTIONAL_INT32)'
+            'kd.strings.replace: mixing STRING and BYTES arguments is not'
+            ' allowed, but `s` contains STRING and `old_substr` contains BYTES'
         ),
     ):
       expr_eval.eval(kde.strings.replace('foo', b'oo', 'ar'))
@@ -192,9 +192,9 @@ class StringsReplaceTest(parameterized.TestCase):
   def test_incompatible_types_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
         re.escape(
-            'unsupported argument types (TEXT,BYTES,TEXT,OPTIONAL_INT32)'
+            'kd.strings.replace: mixing STRING and BYTES arguments is not'
+            ' allowed, but `s` contains STRING and `old_substr` contains BYTES'
         ),
     ):
       expr_eval.eval(kde.strings.replace(ds('foo'), ds(b'f'), ds('bar')))
@@ -202,10 +202,9 @@ class StringsReplaceTest(parameterized.TestCase):
   def test_another_incompatible_types_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
         re.escape(
-            'unsupported argument types'
-            ' (DENSE_ARRAY_TEXT,INT32,TEXT,OPTIONAL_INT32)'
+            'kd.strings.replace: argument `old_substr` must be a slice of'
+            ' either STRING or BYTES, got a slice of INT32'
         ),
     ):
       expr_eval.eval(
@@ -216,7 +215,9 @@ class StringsReplaceTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError,
+        'kd.strings.replace: argument `old_substr` must be a slice of either'
+        ' STRING or BYTES, got a slice of OBJECT with items of types',
     ):
       expr_eval.eval(kde.strings.replace(ds('foo'), ds([1, 'fo']), ds('bar')))
 

@@ -292,26 +292,71 @@ TEST(SchemaUtilsTest, ExpectInteger) {
                "of OBJECT with items of types STRING, BYTES"));
 }
 
-TEST(SchemaUtilsTest, ExpectScalarBool) {
-  EXPECT_THAT(ExpectScalarBool("foo", test::DataItem(true, schema::kBool)),
+TEST(SchemaUtilsTest, ExpectString) {
+  EXPECT_THAT(
+      ExpectString("foo", test::DataItem(std::nullopt, schema::kObject)),
+      IsOk());
+  EXPECT_THAT(ExpectString("foo", test::DataSlice<arolla::Text>(
+                                      {"a", "b", std::nullopt})),
               IsOk());
-  EXPECT_THAT(ExpectScalarBool("foo", test::DataItem(true, schema::kObject)),
-              IsOk());
-  EXPECT_THAT(ExpectScalarBool("foo", test::DataItem(true, schema::kAny)),
-              IsOk());
-  EXPECT_THAT(ExpectScalarBool(
-                  "foo", test::DataSlice<bool>({true, false, std::nullopt})),
+  EXPECT_THAT(
+      ExpectString("foo", test::DataSlice<arolla::Text>(
+                              {"a", "b", std::nullopt}, schema::kObject)),
+      IsOk());
+  EXPECT_THAT(ExpectString("foo", test::DataSlice<std::string>(
+                                      {"a", "b", std::nullopt}, schema::kAny)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "argument `foo` must be an item holding boolean, "
+                       "argument `foo` must be a slice of STRING, got a slice "
+                       "of ANY with items of type BYTES"));
+}
+
+TEST(SchemaUtilsTest, ExpectBytes) {
+  EXPECT_THAT(ExpectBytes("foo", test::DataItem(std::nullopt, schema::kObject)),
+              IsOk());
+  EXPECT_THAT(ExpectBytes("foo", test::DataSlice<std::string>(
+                                     {"a", "b", std::nullopt})),
+              IsOk());
+  EXPECT_THAT(
+      ExpectBytes("foo", test::DataSlice<std::string>({"a", "b", std::nullopt},
+                                                      schema::kObject)),
+      IsOk());
+  EXPECT_THAT(ExpectBytes("foo", test::DataSlice<arolla::Text>(
+                                     {"a", "b", std::nullopt}, schema::kAny)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of BYTES, got a slice "
+                       "of ANY with items of type STRING"));
+}
+
+TEST(SchemaUtilsTest, ExpectPresentScalar) {
+  EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem(true, schema::kBool),
+                                  schema::kBool),
+              IsOk());
+  EXPECT_THAT(ExpectPresentScalar(
+                  "foo", test::DataItem(arolla::Text("bar"), schema::kString),
+                  schema::kString),
+              IsOk());
+  EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem(true, schema::kObject),
+                                  schema::kBool),
+              IsOk());
+  EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem(true, schema::kAny),
+                                  schema::kBool),
+              IsOk());
+  EXPECT_THAT(ExpectPresentScalar(
+                  "foo", test::DataSlice<bool>({true, false, std::nullopt}),
+                  schema::kBool),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be an item holding BOOLEAN, "
                        "got a slice of rank 1 > 0"));
   EXPECT_THAT(
-      ExpectScalarBool("foo", test::DataItem(std::nullopt, schema::kObject)),
+      ExpectPresentScalar("foo", test::DataItem(std::nullopt, schema::kObject),
+                          schema::kBool),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "argument `foo` must be an item holding boolean, got an "
+               "argument `foo` must be an item holding BOOLEAN, got an "
                "item of OBJECT with an item of type NONE"));
-  EXPECT_THAT(ExpectScalarBool("foo", test::DataItem("true", schema::kAny)),
+  EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem("true", schema::kAny),
+                                  schema::kBool),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "argument `foo` must be an item holding boolean, "
+                       "argument `foo` must be an item holding BOOLEAN, "
                        "got an item of ANY with an item of type STRING"));
 }
 
@@ -343,34 +388,50 @@ TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
 
   // Unexpected type of one argument.
 
-  EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, integer),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "argument `foo` must be a slice of strings or byteses, "
-                       "got a slice of INT32"));
-  EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, object),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "argument `foo` must be a slice of strings or byteses, "
-                       "got a slice of OBJECT with an item of type ITEMID"));
+  EXPECT_THAT(
+      ExpectConsistentStringOrBytes({"foo"}, integer),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of either STRING or BYTES, "
+               "got a slice of INT32"));
+  EXPECT_THAT(
+      ExpectConsistentStringOrBytes({"foo"}, object),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of either STRING or BYTES, "
+               "got a slice of OBJECT with an item of type ITEMID"));
   EXPECT_THAT(
       ExpectConsistentStringOrBytes(
           {"foo"}, test::MixedDataSlice<arolla::Text, std::string>(
                        {"foo", std::nullopt, std::nullopt},
                        {std::nullopt, "bar", std::nullopt})),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "argument `foo` must be a slice of either STRING or BYTES, got a "
+          "slice of OBJECT with items of types STRING, BYTES"));
+  EXPECT_THAT(
+      ExpectConsistentStringOrBytes({"foo"}, entity),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "argument `foo` must be a slice of strings or byteses, got a "
-               "slice of OBJECT with items of types STRING, BYTES"));
-  EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, entity),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "argument `foo` must be a slice of strings or byteses, "
-                       "got a slice of SCHEMA()"));
+               "argument `foo` must be a slice of either STRING or BYTES, "
+               "got a slice of SCHEMA()"));
 
   // Mixing bytes and string arguments.
 
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo", "bar", "baz"}, str,
                                             empty_and_unknown, bytes),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "mixing bytes and string arguments is not allowed, but "
-                       "`foo` contains strings and `baz` contains byteses"));
+                       "mixing STRING and BYTES arguments is not allowed, but "
+                       "`foo` contains STRING and `baz` contains BYTES"));
+
+  // One-argument version.
+
+  EXPECT_THAT(
+      ExpectConsistentStringOrBytes(
+          "foo", test::MixedDataSlice<arolla::Text, std::string>(
+                     {"foo", std::nullopt, std::nullopt},
+                     {std::nullopt, "bar", std::nullopt})),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "argument `foo` must be a slice of either STRING or BYTES, got a "
+          "slice of OBJECT with items of types STRING, BYTES"));
 }
 
 }  // namespace

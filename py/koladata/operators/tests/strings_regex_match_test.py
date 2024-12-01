@@ -17,6 +17,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -26,6 +27,7 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -77,8 +79,8 @@ class StringsRegexMatchTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            "requires `regex` to be DataItem holding string, got "
-            "DataItem(b'f', schema: BYTES)"
+            'argument `regex` must be an item holding STRING, got an item of'
+            ' BYTES'
         ),
     ):
       expr_eval.eval(kde.strings.regex_match(ds('foo'), ds(b'f')))
@@ -86,8 +88,8 @@ class StringsRegexMatchTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'requires `regex` to be DataItem holding string, got '
-            'DataItem(123, schema: INT32)'
+            'argument `regex` must be an item holding STRING, got an item of'
+            ' INT32'
         ),
     ):
       expr_eval.eval(
@@ -97,8 +99,7 @@ class StringsRegexMatchTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'requires `regex` to be DataItem holding string, got '
-            'DataItem(None, schema: STRING)'
+            'argument `regex` must be an item holding STRING, got missing'
         ),
     ):
       expr_eval.eval(
@@ -109,7 +110,9 @@ class StringsRegexMatchTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError,
+        'kd.strings.regex_match: argument `text` must be a slice of STRING, got'
+        ' a slice of OBJECT with items of types',
     ):
       expr_eval.eval(kde.strings.regex_match(ds([1, 'fo']), ds('foo')))
 

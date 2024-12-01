@@ -1053,7 +1053,7 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
                                       const DataSlice& tie_breaker,
                                       const DataSlice& descending) {
   constexpr absl::string_view kOperatorName = "kd.core.ordinal_rank";
-  RETURN_IF_ERROR(ExpectScalarBool("descending", descending))
+  RETURN_IF_ERROR(ExpectPresentScalar("descending", descending, schema::kBool))
       .With(OpError(kOperatorName));
   ASSIGN_OR_RETURN(
       auto tie_breaker_int64,
@@ -1068,7 +1068,7 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
 absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,
                                     const DataSlice& descending) {
   constexpr absl::string_view kOperatorName = "kd.core.dense_rank";
-  RETURN_IF_ERROR(ExpectScalarBool("descending", descending))
+  RETURN_IF_ERROR(ExpectPresentScalar("descending", descending, schema::kBool))
       .With(OpError(kOperatorName));
   return SimpleAggOverEval(
       "array.dense_rank", {x, descending},

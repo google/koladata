@@ -68,7 +68,7 @@ The cause is: DataSlice with mixed types is not supported: DataSlice([1, 2.0], s
         exceptions.KodaError,
         re.escape(
             'kd.math.agg_var: argument `unbiased` must be an item holding'
-            ' boolean, got a slice of rank 1 > 0'
+            ' BOOLEAN, got a slice of rank 1 > 0'
         ),
     ):
       expr_eval.eval(kde.math.agg_var(ds([1]), unbiased=ds([True])))

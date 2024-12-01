@@ -164,7 +164,7 @@ class CoreUniqueTest(parameterized.TestCase):
   def test_eval_wrong_sort(self, sort):
     with self.assertRaisesRegex(
         ValueError,
-        'argument `sort` must be an item holding boolean',
+        'argument `sort` must be an item holding BOOLEAN',
     ):
       expr_eval.eval(kde.unique(ds([1, 2, 3]), sort=sort))
 
