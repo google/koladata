@@ -91,11 +91,7 @@ def log10(x):  # pylint: disable=unused-argument
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def sigmoid(
-    x,  # pylint: disable=unused-argument
-    half=data_slice.DataSlice.from_vals(0.0),  # pylint: disable=unused-argument
-    slope=data_slice.DataSlice.from_vals(1.0),  # pylint: disable=unused-argument
-):
+def sigmoid(x, half=0.0, slope=1.0):  # pylint: disable=unused-argument
   """Computes sigmoid of the input.
 
   sigmoid(x) = 1 / (1 + exp(-slope * (x - half)))
@@ -466,7 +462,7 @@ def median(x):
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _agg_std(x, unbiased=data_slice.DataSlice.from_vals(True)):  # pylint: disable=unused-argument
+def _agg_std(x, unbiased=True):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
@@ -479,9 +475,7 @@ def _agg_std(x, unbiased=data_slice.DataSlice.from_vals(True)):  # pylint: disab
         qtype_utils.expect_data_slice(P.unbiased),
     ],
 )
-def agg_std(
-    x, unbiased=data_slice.DataSlice.from_vals(True), ndim=arolla.unspecified()
-):
+def agg_std(x, unbiased=True, ndim=arolla.unspecified()):
   """Returns the standard deviation along the last ndim dimensions.
 
   The resulting slice has `rank = rank - ndim` and shape: `shape =
@@ -514,7 +508,7 @@ def agg_std(
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _agg_var(x, unbiased=data_slice.DataSlice.from_vals(True)):  # pylint: disable=unused-argument
+def _agg_var(x, unbiased=True):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
@@ -527,9 +521,7 @@ def _agg_var(x, unbiased=data_slice.DataSlice.from_vals(True)):  # pylint: disab
         qtype_utils.expect_data_slice(P.unbiased),
     ],
 )
-def agg_var(
-    x, unbiased=data_slice.DataSlice.from_vals(True), ndim=arolla.unspecified()
-):
+def agg_var(x, unbiased=True, ndim=arolla.unspecified()):
   """Returns the variance along the last ndim dimensions.
 
   The resulting slice has `rank = rank - ndim` and shape: `shape =
@@ -786,9 +778,7 @@ def _softmax(x, weights):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
     ],
 )
-def softmax(
-    x, beta=data_slice.DataSlice.from_vals(1.0), ndim=arolla.unspecified()
-):
+def softmax(x, beta=1.0, ndim=arolla.unspecified()):
   """Returns the softmax of x alon the last ndim dimensions.
 
   The softmax represents Exp(x * beta) / Sum(Exp(x * beta)) over last ndim

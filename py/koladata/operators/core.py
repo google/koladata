@@ -386,7 +386,7 @@ def _select(ds, fltr, expand_filter):  # pylint: disable=unused-argument
     ],
     aux_policy=py_boxing.SELECT_POLICY,
 )
-def select(ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)):
+def select(ds, fltr, expand_filter=True):
   """Creates a new DataSlice by filtering out missing items in fltr.
 
   The dimensions of `fltr` needs to be compatible with the dimensions of `ds`.
@@ -787,9 +787,7 @@ def _attrs(
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
 )
-def _attr(
-    x, attr_name, value, update_schema=data_slice.DataSlice.from_vals(False)
-):
+def _attr(x, attr_name, value, update_schema=False):
   """Returns a new DataBag containing attribute `attr_name` update for `x`."""
   raise NotImplementedError('implemented in the backend')
 
@@ -825,9 +823,7 @@ def with_attrs(
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def with_attr(
-    x, attr_name, value, update_schema=data_slice.DataSlice.from_vals(False)
-):
+def with_attr(x, attr_name, value, update_schema=False):
   """Returns a DataSlice with a new DataBag containing a single updated attribute."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2168,12 +2164,7 @@ def group_by(x, *args):
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def unique(
-    x,  # pylint: disable=unused-argument
-    sort=data_slice.DataSlice.from_vals(  # pylint: disable=redefined-outer-name,unused-argument
-        False
-    ),
-):
+def unique(x, sort=False):  # pylint: disable=redefined-outer-name,unused-argument
   """Returns a DataSlice with unique values within each dimension.
 
   The resulting DataSlice has the same rank as `x`, but a different shape.
@@ -2423,7 +2414,7 @@ def _explode(x, ndim):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.ndim),
     ],
 )
-def explode(x, ndim=data_slice.DataSlice.from_vals(1)):
+def explode(x, ndim=1):
   """Explodes a List DataSlice `x` a specified number of times.
 
   A single list "explosion" converts a rank-K DataSlice of LIST[T] to a
@@ -2476,7 +2467,7 @@ def _implode(x, ndim, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=u
 )
 def implode(
     x,
-    ndim=data_slice.DataSlice.from_vals(1),
+    ndim=1,
     hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Implodes a Dataslice `x` a specified number of times.
@@ -3431,7 +3422,7 @@ def _ordinal_rank(x, tie_breaker, descending):  # pylint: disable=unused-argumen
 def ordinal_rank(
     x,
     tie_breaker=arolla.unspecified(),
-    descending=data_slice.DataSlice.from_vals(False),
+    descending=False,
     ndim=arolla.unspecified(),
 ):
   """Returns ordinal ranks of items in `x` over the last `ndim` dimensions.
@@ -3508,11 +3499,7 @@ def _dense_rank(x, descending):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
     ],
 )
-def dense_rank(
-    x,
-    descending=data_slice.DataSlice.from_vals(False),
-    ndim=arolla.unspecified(),
-):
+def dense_rank(x, descending=False, ndim=arolla.unspecified()):
   """Returns dense ranks of items in `x` over the last `ndim` dimensions.
 
   Items are grouped over the last `ndim` dimensions and ranked within the group.
@@ -3616,11 +3603,7 @@ def inverse_mapping(x, ndim=arolla.unspecified()):
         qtype_utils.expect_data_slice(P.descending),
     ],
 )
-def sort(
-    x,
-    sort_by=arolla.unspecified(),
-    descending=data_slice.DataSlice.from_vals(False),
-):
+def sort(x, sort_by=arolla.unspecified(), descending=False):
   """Sorts the items in `x` over the last dimension.
 
   When `sort_by` is specified, it is used to sort items in `x`. `sort_by` must
