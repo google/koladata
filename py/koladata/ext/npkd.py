@@ -14,6 +14,8 @@
 
 """Tools to move from DataSlice to the numpy world and back."""
 
+import warnings
+
 from arolla import arolla
 from arolla.experimental import numpy_conversion
 from koladata import kd
@@ -25,7 +27,7 @@ kdi = kd.kdi
 _DATA_SLICE_ONE = data_slice.DataSlice.from_vals(1)
 
 
-def ds_to_np(ds: data_slice.DataSlice) -> np.ndarray:
+def to_array(ds: data_slice.DataSlice) -> np.ndarray:
   """Converts a DataSlice to a numpy array."""
   if not ds.get_dtype().is_empty():
     return numpy_conversion.as_numpy_array(ds.internal_as_dense_array())
@@ -33,7 +35,17 @@ def ds_to_np(ds: data_slice.DataSlice) -> np.ndarray:
   return np.array(ds.internal_as_py())
 
 
-def ds_from_np(arr: np.ndarray) -> data_slice.DataSlice:
+# TODO: Remove this.
+def ds_to_np(ds: data_slice.DataSlice) -> np.ndarray:
+  """Deprecated alias for to_array."""
+  warnings.warn(
+      'ds_to_np is deprecated. Use to_array instead.',
+      RuntimeWarning,
+  )
+  return to_array(ds)
+
+
+def from_array(arr: np.ndarray) -> data_slice.DataSlice:
   """Converts a numpy array to a DataSlice."""
 
   # Convert to Python list for objects/strings/bytes as it can handle objects.
@@ -45,6 +57,16 @@ def ds_from_np(arr: np.ndarray) -> data_slice.DataSlice:
     return data_slice.DataSlice.from_vals(list(arr))
   else:
     return data_slice.DataSlice.from_vals(arolla.dense_array(arr))
+
+
+# TODO: Remove this.
+def ds_from_np(arr: np.ndarray) -> data_slice.DataSlice:
+  """Deprecated alias for from_array."""
+  warnings.warn(
+      'ds_from_np is deprecated. Use from_array instead.',
+      RuntimeWarning,
+  )
+  return from_array(arr)
 
 
 _TO_INT64_EXPR = arolla.M.core.to_int64(arolla.L.x)

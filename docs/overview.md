@@ -1018,8 +1018,8 @@ pdkd.to_dataframe(kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6])), cols=['x
 **From/to Numpy Arrays**
 
 ```py
-npkd.ds_to_np(kd.slice([1, 2, None, 3]))
-npkd.ds_from_np(np.array([1, 2, 0, 3]))
+npkd.to_array(kd.slice([1, 2, None, 3]))
+npkd.from_array(np.array([1, 2, 0, 3]))
 ```
 
 **From/to Proto**

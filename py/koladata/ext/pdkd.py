@@ -47,7 +47,7 @@ def from_dataframe(
   Returns:
     DataSlice of items with attributes from DataFrame columns.
   """
-  kwargs = {c: npkd.ds_from_np(df[c].to_numpy()) for c in df.columns}
+  kwargs = {c: npkd.from_array(df[c].to_numpy()) for c in df.columns}
 
   if not kwargs:
     raise ValueError('DataFrame has no columns.')
@@ -177,7 +177,7 @@ def to_dataframe(
     raise ValueError('All columns must have compatible shapes.') from e
 
   col_dict = {
-      name: npkd.ds_to_np(col_ds.flatten())
+      name: npkd.to_array(col_ds.flatten())
       for col_ds, name in zip(col_dss, col_names)
   }
 

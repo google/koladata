@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for npkd."""
+from unittest import mock
+import warnings
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -39,16 +40,16 @@ class NpkdTest(parameterized.TestCase):
       ('mixed ds', kd.slice([kd.obj(), kd.obj(kd.list()), 1, '2'])),
   )
   def test_numpy_roundtrip(self, ds):
-    res_np = npkd.ds_to_np(ds)
-    res_ds = npkd.ds_from_np(res_np)
+    res_np = npkd.to_array(ds)
+    res_ds = npkd.from_array(res_np)
     testing.assert_equal(res_ds, ds)
 
   # Cases that need special checks rather than equality match.
   def test_numpy_roundtrip_special_cases(self):
     with self.subTest('float ds with nan'):
       x = kd.slice([1.0, np.nan, 3.0])
-      res_np = npkd.ds_to_np(x)
-      res_ds = npkd.ds_from_np(res_np)
+      res_np = npkd.to_array(x)
+      res_ds = npkd.from_array(res_np)
       self.assertSameElements(
           np.isnan(res_ds.internal_as_py()), [False, True, False]
       )
@@ -57,8 +58,8 @@ class NpkdTest(parameterized.TestCase):
 
     with self.subTest('sparse ds float'):
       x = kd.slice([1.0, None, 3.0])
-      res_np = npkd.ds_to_np(x)
-      res_ds = npkd.ds_from_np(res_np)
+      res_np = npkd.to_array(x)
+      res_ds = npkd.from_array(res_np)
       self.assertSameElements(
           np.isnan(res_ds.internal_as_py()), [False, True, False]
       )
@@ -68,14 +69,14 @@ class NpkdTest(parameterized.TestCase):
     with self.subTest('sparse ds int'):
       x = kd.slice([1, None, 3])
       expected_x = kd.slice([1, 0, 3], schema=schema_constants.INT32)
-      res_np = npkd.ds_to_np(x)
-      res_ds = npkd.ds_from_np(res_np)
+      res_np = npkd.to_array(x)
+      res_ds = npkd.from_array(res_np)
       testing.assert_equal(res_ds, expected_x)
 
     with self.subTest('mixed ds with nan'):
       x = kd.slice([True, False, np.nan])
-      res_np = npkd.ds_to_np(x)
-      res_ds = npkd.ds_from_np(res_np)
+      res_np = npkd.to_array(x)
+      res_ds = npkd.from_array(res_np)
       self.assertSameElements(
           np.isnan(res_ds.internal_as_py()), [False, False, True]
       )
@@ -86,15 +87,15 @@ class NpkdTest(parameterized.TestCase):
     with self.subTest('int ds any schema'):
       x = kd.slice([1, 2, 3]).as_any()
       expected_x = kd.slice([1, 2, 3])
-      res_np = npkd.ds_to_np(x)
-      res_ds = npkd.ds_from_np(res_np)
+      res_np = npkd.to_array(x)
+      res_ds = npkd.from_array(res_np)
       testing.assert_equal(res_ds, expected_x)
 
     with self.subTest('int ds object schema'):
       x = kd.slice([1, 2, 3]).with_schema(kd.OBJECT)
       expected_x = kd.slice([1, 2, 3])
-      res_np = npkd.ds_to_np(x)
-      res_ds = npkd.ds_from_np(res_np)
+      res_np = npkd.to_array(x)
+      res_ds = npkd.from_array(res_np)
       testing.assert_equal(res_ds, expected_x)
 
   @parameterized.named_parameters(
@@ -109,23 +110,23 @@ class NpkdTest(parameterized.TestCase):
       ('byte ds with None', [b'a', None, b'c']),
   )
   def test_ds_roundtrip(self, x):
-    res_ds = npkd.ds_from_np(np.array(x))
-    res_np = npkd.ds_to_np(res_ds)
+    res_ds = npkd.from_array(np.array(x))
+    res_np = npkd.to_array(res_ds)
     self.assertSameElements(x, res_np)
 
   def test_ds_roundtrip_special_cases(self):
     with self.subTest('float ds with nan'):
       x = [1.0, np.nan, 3.0]
-      res_ds = npkd.ds_from_np(np.array(x))
-      res_np = npkd.ds_to_np(res_ds)
+      res_ds = npkd.from_array(np.array(x))
+      res_np = npkd.to_array(res_ds)
       self.assertSameElements(np.isnan(res_np), [False, True, False])
       self.assertEqual(res_np[0], 1.0)
       self.assertEqual(res_np[2], 3.0)
 
     with self.subTest('mixed ds with nan'):
       x = [True, False, np.nan]
-      res_ds = npkd.ds_from_np(np.array(x))
-      res_np = npkd.ds_to_np(res_ds)
+      res_ds = npkd.from_array(np.array(x))
+      res_np = npkd.to_array(res_ds)
       self.assertSameElements(np.isnan(res_np), [False, False, True])
       self.assertEqual(res_np[0], True)
       self.assertEqual(res_np[1], False)
@@ -222,6 +223,16 @@ class NpkdTest(parameterized.TestCase):
     indices = npkd.get_elements_indices_from_ds(ds)
     converted_back = npkd.reshape_based_on_indices(ds.flatten(), indices)
     testing.assert_equal(converted_back, ds)
+
+  # TODO: Remove this.
+  def test_deprecated_names(self):
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      arr = npkd.ds_to_np(kd.slice([1, 2, 3]))
+      mock_warn.assert_called_once()
+    testing.assert_equal(kd.slice([1, 2, 3]), npkd.from_array(arr))
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      testing.assert_equal(kd.slice([1, 2, 3]), npkd.ds_from_np(arr))
+      mock_warn.assert_called_once()
 
 
 if __name__ == '__main__':

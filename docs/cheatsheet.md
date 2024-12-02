@@ -704,8 +704,8 @@ pdkd.from_dataframe(
 
 # Numpy
 from koladata.ext import npkd
-npkd.ds_to_np(ds)
-npkd.ds_from_np(np.array([1, 2, 0, 3]))
+npkd.to_array(ds)
+npkd.from_array(np.array([1, 2, 0, 3]))
 ```
 
 </section>
