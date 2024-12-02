@@ -18,8 +18,10 @@ import typing
 from typing import Callable
 
 from arolla import arolla
+from koladata.operators import unified_binding_policy
 from koladata.types import data_slice
 from koladata.types import py_boxing
+
 
 OperatorReprFn = Callable[
     [arolla.Expr, arolla.abc.NodeTokenView], arolla.abc.ReprToken
@@ -106,6 +108,10 @@ def default_op_repr(
   signature = arolla.abc.get_operator_signature(op)
   if signature.aux_policy == py_boxing.FULL_SIGNATURE_POLICY:
     return _full_signature_op_repr(node, op, signature, tokens)
+  if signature.aux_policy.startswith(
+      unified_binding_policy.UNIFIED_POLICY_PREFIX
+  ):
+    return unified_binding_policy.unified_op_repr(node, op, signature, tokens)
   res = arolla.abc.ReprToken()
   dep_txt = ', '.join(tokens[node].text for node in node.node_deps)
   res.text = f'{node.op.display_name}({dep_txt})'

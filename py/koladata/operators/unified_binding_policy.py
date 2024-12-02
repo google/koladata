@@ -421,4 +421,84 @@ class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
     return result  # pytype: disable=bad-return-type
 
 
+_make_tuple_op = arolla.abc.decay_registered_operator('core.make_tuple')
+_make_namedtuple_op = arolla.abc.decay_registered_operator('namedtuple.make')
+
+
+def _is_make_tuple_op(op: arolla.abc.Operator | None) -> bool:
+  return (
+      op is not None
+      and arolla.abc.decay_registered_operator(op) == _make_tuple_op
+  )
+
+
+def _is_make_namedtuple_op(op: arolla.abc.Operator | None) -> bool:
+  return (
+      op is not None
+      and arolla.abc.decay_registered_operator(op) == _make_namedtuple_op
+  )
+
+
+def _unified_op_repr_var_positional(
+    var_positional_node: arolla.Expr, tokens: arolla.abc.NodeTokenView
+) -> list[str]:
+  """Repr for varargs. Assumes node is a tuple (op or qvalue)."""
+  if _is_make_tuple_op(var_positional_node.op):
+    return [tokens[dep].text for dep in var_positional_node.node_deps]
+  if isinstance(var_positional_node.qvalue, arolla.types.Tuple):
+    return [repr(v) for v in var_positional_node.qvalue]
+  token = tokens[var_positional_node]
+  if token.precedence.left < 0:
+    return [f'*{token.text}']
+  return [f'*({token.text})']
+
+
+def _unified_op_repr_var_keyword(
+    var_keyword_node: arolla.Expr, tokens: arolla.abc.NodeTokenView
+) -> list[str]:
+  """Repr for varkwargs. Assumes node is a namedtuple (op or qvalue)."""
+  if _is_make_namedtuple_op(var_keyword_node.op):
+    keys = var_keyword_node.node_deps[0].qvalue.py_value().split(',')
+    values = (tokens[dep] for dep in var_keyword_node.node_deps[1:])
+    return [f'{k.strip()}={v.text}' for k, v in zip(keys, values)]
+  if isinstance(var_keyword_node.qvalue, arolla.types.NamedTuple):
+    return [f'{k}={v!r}' for k, v in var_keyword_node.qvalue.as_dict().items()]
+  token = tokens[var_keyword_node]
+  if token.precedence.left < 0:
+    return [f'**{token.text}']
+  return [f'**({token.text})']
+
+
+# Note: We pass `node_op` and `node_op_signature` directly only to avoid
+# retrieving them again, saving a few cycles.
+def unified_op_repr(
+    node: arolla.Expr,
+    node_op: arolla.abc.Operator,
+    node_op_signature: arolla.abc.Signature,
+    tokens: arolla.abc.NodeTokenView,
+) -> arolla.abc.ReprToken:
+  """Repr function for Koda operators with UNIFIED_BINDING_POLICY aux policy."""
+  opts = node_op_signature.aux_policy.removeprefix(UNIFIED_POLICY_PREFIX)
+  node_deps = node.node_deps
+  node_dep_reprs = []
+  for i, param in enumerate(node_op_signature.parameters):
+    opt = opts[i]
+    dep = node_deps[i]
+    if opt == '_' or opt == 'p':
+      node_dep_reprs.append(tokens[dep].text)
+    elif opt == 'P':
+      node_dep_reprs.extend(_unified_op_repr_var_positional(dep, tokens))
+    elif opt == 'k' or opt == 'd':
+      node_dep_reprs.append(f'{param.name}={tokens[dep].text}')
+    elif opt == 'K':
+      node_dep_reprs.extend(_unified_op_repr_var_keyword(dep, tokens))
+    elif opt == 'H':
+      pass
+    else:
+      raise RuntimeError(f'unexpected option={opt!r}, param={param.name!r}')
+  res = arolla.abc.ReprToken()
+  res.text = f'{node_op.display_name}({", ".join(node_dep_reprs)})'
+  return res
+
+
 arolla.abc.register_aux_binding_policy(UNIFIED_POLICY, UnifiedBindingPolicy())

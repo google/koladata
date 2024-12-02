@@ -96,6 +96,7 @@ py_test(
     name = "unified_binding_policy_test",
     srcs = ["unified_binding_policy_test.py"],
     deps = [
+        ":op_repr",
         ":unified_binding_policy",
         "//py/koladata/testing",
         "//py/koladata/types:py_boxing",
@@ -470,6 +471,7 @@ py_library(
     name = "op_repr",
     srcs = ["op_repr.py"],
     deps = [
+        ":unified_binding_policy",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",

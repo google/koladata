@@ -18,6 +18,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.operators import op_repr
 from koladata.operators import unified_binding_policy
 from koladata.testing import testing
 from koladata.types import py_boxing
@@ -506,6 +507,91 @@ class BindArgumentsTest(parameterized.TestCase):
     )
     (x,) = policy.bind_arguments(sig, a=0, b=P.a)
     testing.assert_equal(x, M.namedtuple.make(a=py_boxing.as_expr(0), b=P.a))
+
+
+unified_op = arolla.abc.register_operator(
+    'test.unified_op',
+    arolla.optools.make_lambda(
+        unified_binding_policy.make_unified_signature(
+            inspect.signature(
+                lambda a, /, x, args=unified_binding_policy.var_positional(), *, y, z, h=unified_binding_policy.non_deterministic(), kwargs=unified_binding_policy.var_keyword(): None
+            )
+        ),
+        (P.a, P.x, P.args, P.y, P.z, P.h, P.kwargs),
+        name='unified_op',
+    ),
+)
+arolla.abc.register_op_repr_fn_by_registration_name(
+    unified_op.display_name, op_repr.default_op_repr
+)
+
+
+class UnifiedOpReprTest(parameterized.TestCase):
+
+  @parameterized.parameters(
+      # Simple.
+      (
+          unified_op(P.a, x=P.x, y=P.y, z=P.z),
+          'test.unified_op(P.a, P.x, y=P.y, z=P.z)',
+      ),
+      # Varargs.
+      (
+          unified_op(P.a, P.x, P.b, y=P.y, z=P.z),
+          'test.unified_op(P.a, P.x, P.b, y=P.y, z=P.z)',
+      ),
+      (
+          unified_op(P.a, P.x, P.b, P.b, y=P.y, z=P.z),
+          'test.unified_op(P.a, P.x, P.b, P.b, y=P.y, z=P.z)',
+      ),
+      (
+          unified_op(P.a, P.x, 1, 2, y=P.y, z=P.z),
+          (
+              'test.unified_op(P.a, P.x, DataItem(1, schema: INT32),'
+              ' DataItem(2, schema: INT32), y=P.y, z=P.z)'
+          ),
+      ),
+      # Varkwargs.
+      (
+          unified_op(P.a, P.x, y=P.y, z=P.z, w=P.w),
+          'test.unified_op(P.a, P.x, y=P.y, z=P.z, w=P.w)',
+      ),
+      (
+          unified_op(P.a, P.x, y=P.y, z=P.z, w=P.w, v=P.v),
+          'test.unified_op(P.a, P.x, y=P.y, z=P.z, w=P.w, v=P.v)',
+      ),
+      (
+          unified_op(P.a, P.x, y=P.y, z=P.z, w=1, v=2),
+          (
+              'test.unified_op(P.a, P.x, y=P.y, z=P.z, w=DataItem(1,'
+              ' schema: INT32), v=DataItem(2, schema: INT32))'
+          ),
+      ),
+      # Both.
+      (
+          unified_op(P.a, P.x, P.b, P.c, y=P.y, z=P.z, w=P.w, v=P.v),
+          'test.unified_op(P.a, P.x, P.b, P.c, y=P.y, z=P.z, w=P.w, v=P.v)',
+      ),
+  )
+  def test_repr(self, expr, expected_repr):
+    self.assertEqual(repr(expr), expected_repr)
+
+  def test_repr_args_kwargs_fallback(self):
+    self.assertEqual(
+        repr(
+            arolla.abc.bind_op(
+                unified_op, P.a, P.x, P.args, P.y, P.z, P.h, P.kwargs
+            )
+        ),
+        'test.unified_op(P.a, P.x, *P.args, y=P.y, z=P.z, **P.kwargs)',
+    )
+    self.assertEqual(
+        repr(
+            arolla.abc.bind_op(
+                unified_op, P.a, P.x, +P.args, P.y, P.z, P.h, -P.kwargs
+            )
+        ),
+        'test.unified_op(P.a, P.x, *(+P.args), y=P.y, z=P.z, **(-P.kwargs))',
+    )
 
 
 if __name__ == '__main__':
