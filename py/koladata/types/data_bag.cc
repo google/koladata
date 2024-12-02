@@ -17,7 +17,6 @@
 #include <Python.h>
 
 #include <any>
-#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <optional>
