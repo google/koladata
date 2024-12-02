@@ -14,10 +14,12 @@
 //
 #include "koladata/schema_utils.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/functional/overload.h"
@@ -25,6 +27,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
@@ -149,11 +152,13 @@ std::string DescribeSliceSchema(const DataSlice& slice) {
           });
         },
         [&](const internal::DataSliceImpl& impl) {
-          bool first = true;
+          std::vector<absl::string_view> type_names;
+          // TODO: b/381785498 - We may add type_names.reserve() here.
           impl.VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
-            absl::StrAppend(&result, arolla::NonFirstComma(first),
-                            DTypeName<T>());
+            type_names.push_back(DTypeName<T>());
           });
+          std::sort(type_names.begin(), type_names.end());
+          absl::StrAppend(&result, absl::StrJoin(type_names, ", "));
         }));
     return result;
   } else {

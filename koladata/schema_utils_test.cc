@@ -178,13 +178,13 @@ TEST(SchemaUtilsTest, DescribeSliceSchema) {
                 test::MixedDataSlice<arolla::Text, std::string>(
                     {"foo", std::nullopt, std::nullopt},
                     {std::nullopt, "bar", std::nullopt})),
-            "OBJECT with items of types STRING, BYTES");
+            "OBJECT with items of types BYTES, STRING");
   EXPECT_EQ(
       schema_utils_internal::DescribeSliceSchema(
           test::MixedDataSlice<arolla::Text, internal::ObjectId>(
               {"foo", std::nullopt, std::nullopt},
               {std::nullopt, internal::AllocateSingleObject(), std::nullopt})),
-      "OBJECT with items of types STRING, ITEMID");
+      "OBJECT with items of types ITEMID, STRING");
 }
 
 TEST(SchemaUtilsTest, ExpectNumeric) {
@@ -237,7 +237,7 @@ TEST(SchemaUtilsTest, ExpectNumeric) {
                                {std::nullopt, "bar", std::nullopt})),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "argument `foo` must be a slice of numeric values, got a slice "
-               "of OBJECT with items of types STRING, BYTES"));
+               "of OBJECT with items of types BYTES, STRING"));
 }
 
 TEST(SchemaUtilsTest, ExpectInteger) {
@@ -289,7 +289,7 @@ TEST(SchemaUtilsTest, ExpectInteger) {
                                {std::nullopt, "bar", std::nullopt})),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "argument `foo` must be a slice of integer values, got a slice "
-               "of OBJECT with items of types STRING, BYTES"));
+               "of OBJECT with items of types BYTES, STRING"));
 }
 
 TEST(SchemaUtilsTest, ExpectString) {
@@ -406,7 +406,7 @@ TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "argument `foo` must be a slice of either STRING or BYTES, got a "
-          "slice of OBJECT with items of types STRING, BYTES"));
+          "slice of OBJECT with items of types BYTES, STRING"));
   EXPECT_THAT(
       ExpectConsistentStringOrBytes({"foo"}, entity),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -431,7 +431,7 @@ TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "argument `foo` must be a slice of either STRING or BYTES, got a "
-          "slice of OBJECT with items of types STRING, BYTES"));
+          "slice of OBJECT with items of types BYTES, STRING"));
 }
 
 }  // namespace
