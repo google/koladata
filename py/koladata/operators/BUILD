@@ -83,6 +83,29 @@ arolla_operator_package_snapshot(
 )
 
 py_library(
+    name = "unified_binding_policy",
+    srcs = ["unified_binding_policy.py"],
+    visibility = default_visibility + user_ops_visibility,
+    deps = [
+        "//py/koladata/types:py_boxing",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "unified_binding_policy_test",
+    srcs = ["unified_binding_policy_test.py"],
+    deps = [
+        ":unified_binding_policy",
+        "//py/koladata/testing",
+        "//py/koladata/types:py_boxing",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
     name = "optools",
     srcs = ["optools.py"],
     visibility = default_visibility + user_ops_visibility,
