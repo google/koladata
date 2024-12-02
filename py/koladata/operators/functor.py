@@ -51,17 +51,17 @@ def call(
 ):
   """Calls a functor.
 
-  See the docstring of `kdf.fn` on how to create a functor.
+  See the docstring of `kd.fn` on how to create a functor.
 
   Example:
-    kd.call(kdf.fn(I.x + I.y), x=2, y=3)
+    kd.call(kd.fn(I.x + I.y), x=2, y=3)
     # returns kd.item(5)
 
-    kde.call(I.fn, x=2, y=3).eval(fn=kdf.fn(I.x + I.y))
+    kde.call(I.fn, x=2, y=3).eval(fn=kd.fn(I.x + I.y))
     # returns kd.item(5)
 
   Args:
-    fn: The functor to be called, typically created via kdf.fn().
+    fn: The functor to be called, typically created via kd.fn().
     args: The positional arguments to pass to the call. Scalars will be
       auto-boxed to DataItems.
     return_type_as: The return type of the call is expected to be the same as

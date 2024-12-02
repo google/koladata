@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from koladata import kd
 from koladata.ext import kd_ext
+from koladata.testing import testing
 
 
 class KdExtTest(absltest.TestCase):
@@ -23,6 +25,12 @@ class KdExtTest(absltest.TestCase):
     self.assertIn('npkd', modules)
     self.assertIn('pdkd', modules)
     self.assertIn('nested_data', modules)
+
+  def test_functor_factories(self):
+    testing.assert_equal(kd_ext.Fn(lambda: 5)(), kd.item(5))
+    testing.assert_equal(
+        kd_ext.PyFn(lambda x: 5 if x == 2 else 10)(2), kd.item(5)
+    )
 
 
 if __name__ == '__main__':

@@ -1540,7 +1540,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
       ),
       (
           bag().list([1, 2, 3]),
-          functor_factories.fn(I.self >= 2),
+          functor_factories.expr_fn(I.self >= 2),
           ds([2, 3]),
       ),
       (
@@ -1566,7 +1566,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
       ),
       (
           ds([bag().dict({1: 1}), bag().dict({2: 2}), bag().dict({3: 3})]),
-          functor_factories.fn(I.self == 1),
+          functor_factories.expr_fn(I.self == 1),
           ds([[1], [], []]),
       ),
       (
@@ -1592,7 +1592,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
       ),
       (
           ds([bag().dict({4: 1}), bag().dict({5: 2}), bag().dict({6: 3})]),
-          functor_factories.fn(I.self == 1),
+          functor_factories.expr_fn(I.self == 1),
           ds([[1], [], []]),
       ),
       (

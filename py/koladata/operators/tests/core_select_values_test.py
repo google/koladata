@@ -54,7 +54,7 @@ class CoreSelectValuesTest(parameterized.TestCase):
       ),
       (
           ds([db.dict({4: 1}), db.dict({5: 2}), db.dict({6: 3})]),
-          functor_factories.fn(I.self == 1),
+          functor_factories.expr_fn(I.self == 1),
           ds([[1], [], []]),
       ),
       (
@@ -79,7 +79,7 @@ class CoreSelectValuesTest(parameterized.TestCase):
       ),
       (
           db.dict({3: 1, 4: 2, 5: 3}),
-          functor_factories.fn(I.self == 2),
+          functor_factories.expr_fn(I.self == 2),
           ds([2]),
       ),
   )
@@ -89,7 +89,7 @@ class CoreSelectValuesTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (lambda x: x >= 2),
-      (functor_factories.fn(I.self >= 2)),
+      (functor_factories.expr_fn(I.self >= 2)),
   )
   def test_eval_with_expr_input(self, fltr):
     result = expr_eval.eval(

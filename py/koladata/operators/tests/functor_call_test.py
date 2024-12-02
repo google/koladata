@@ -38,7 +38,7 @@ kde = kde_operators.kde
 class FunctorCallTest(absltest.TestCase):
 
   def test_call_simple(self):
-    fn = functor_factories.fn(
+    fn = functor_factories.expr_fn(
         returns=I.x + V.foo,
         foo=I.y * I.x,
     )
@@ -47,14 +47,14 @@ class FunctorCallTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(kde.call(fn, x=2, y=3, z=4)), ds(8))
 
   def test_call_with_self(self):
-    fn = functor_factories.fn(
+    fn = functor_factories.expr_fn(
         returns=S.x + V.foo,
         foo=S.y * S.x,
     )
     testing.assert_equal(expr_eval.eval(kde.call(fn, fns.new(x=2, y=3))), ds(8))
 
   def test_call_explicit_signature(self):
-    fn = functor_factories.fn(
+    fn = functor_factories.expr_fn(
         returns=I.x + V.foo,
         signature=signature_utils.signature([
             signature_utils.parameter(
@@ -70,11 +70,11 @@ class FunctorCallTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(kde.call(fn, 1, y=2)), ds(3))
 
   def test_call_with_no_expr(self):
-    fn = functor_factories.fn(57, signature=signature_utils.signature([]))
+    fn = functor_factories.expr_fn(57, signature=signature_utils.signature([]))
     testing.assert_equal(expr_eval.eval(kde.call(fn)).no_bag(), ds(57))
 
   def test_positional_only(self):
-    fn = functor_factories.fn(
+    fn = functor_factories.expr_fn(
         returns=I.x,
         signature=signature_utils.signature([
             signature_utils.parameter(
@@ -89,7 +89,7 @@ class FunctorCallTest(absltest.TestCase):
       _ = expr_eval.eval(kde.call(fn, x=57))
 
   def test_keyword_only(self):
-    fn = functor_factories.fn(
+    fn = functor_factories.expr_fn(
         returns=I.x,
         signature=signature_utils.signature([
             signature_utils.parameter(
@@ -102,7 +102,7 @@ class FunctorCallTest(absltest.TestCase):
       _ = expr_eval.eval(kde.call(fn, 57))
 
   def test_var_positional(self):
-    fn = functor_factories.fn(
+    fn = functor_factories.expr_fn(
         returns=kde.tuple.get_nth(I.x, 1),
         signature=signature_utils.signature([
             signature_utils.parameter(
@@ -113,7 +113,7 @@ class FunctorCallTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(kde.call(fn, 1, 2, 3)), ds(2))
 
   def test_var_keyword(self):
-    fn = functor_factories.fn(
+    fn = functor_factories.expr_fn(
         returns=arolla.M.namedtuple.get_field(I.x, 'y'),
         signature=signature_utils.signature([
             signature_utils.parameter(
@@ -124,7 +124,7 @@ class FunctorCallTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(kde.call(fn, x=1, y=2, z=3)), ds(2))
 
   def test_default_value(self):
-    fn = functor_factories.fn(
+    fn = functor_factories.expr_fn(
         returns=I.x,
         signature=signature_utils.signature([
             signature_utils.parameter(
@@ -136,7 +136,7 @@ class FunctorCallTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(kde.call(fn, 43)), ds(43))
 
   def test_obj_as_default_value(self):
-    fn = functor_factories.fn(
+    fn = functor_factories.expr_fn(
         returns=I.x,
         signature=signature_utils.signature([
             signature_utils.parameter(
@@ -150,7 +150,7 @@ class FunctorCallTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(kde.call(fn, 43)), ds(43))
 
   def test_call_eval_error(self):
-    fn = functor_factories.fn(
+    fn = functor_factories.expr_fn(
         returns=I.x.foo,
         signature=signature_utils.signature([
             signature_utils.parameter(
@@ -165,13 +165,13 @@ class FunctorCallTest(absltest.TestCase):
       _ = expr_eval.eval(kde.call(fn, fns.new(bar=57)))
 
   def test_call_non_dataslice_inputs(self):
-    fn = functor_factories.fn(kde.tuple.get_nth(I.x, 1))
+    fn = functor_factories.expr_fn(kde.tuple.get_nth(I.x, 1))
     testing.assert_equal(
         expr_eval.eval(kde.call(fn, x=arolla.tuple(ds(1), ds(2), ds(3)))), ds(2)
     )
 
   def test_call_returns_non_dataslice(self):
-    fn = functor_factories.fn(I.x)
+    fn = functor_factories.expr_fn(I.x)
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -190,7 +190,7 @@ class FunctorCallTest(absltest.TestCase):
     testing.assert_equal(res, arolla.tuple(1, 2))
 
   def test_call_returns_databag(self):
-    fn = functor_factories.fn(I.x.get_bag())
+    fn = functor_factories.expr_fn(I.x.get_bag())
     obj = fns.obj(x=1)
     res = expr_eval.eval(
         kde.call(
@@ -202,7 +202,7 @@ class FunctorCallTest(absltest.TestCase):
     testing.assert_equal(res, obj.get_bag())
 
   def test_call_return_type_errors(self):
-    fn = functor_factories.fn(I.x)
+    fn = functor_factories.expr_fn(I.x)
     with self.assertRaisesRegex(
         ValueError,
         re.escape('object with unsupported type: "type"'),
@@ -210,13 +210,13 @@ class FunctorCallTest(absltest.TestCase):
       _ = expr_eval.eval(kde.call(fn, x=1, return_type_as=int))
 
   def test_call_with_functor_as_input(self):
-    fn = functor_factories.fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
         expr_eval.eval(kde.call(I.fn, x=I.u, y=I.v), fn=fn, u=2, v=3), ds(5)
     )
 
   def test_call_with_computed_functor(self):
-    fn = functor_factories.fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
         expr_eval.eval(
             kde.call(I.my_functors.fn, x=I.u, y=I.v),

@@ -52,7 +52,7 @@ class CoreSelectItemsTest(parameterized.TestCase):
       ),
       (
           db.list([1, 2, 3]),
-          functor_factories.fn(I.self >= 2),
+          functor_factories.expr_fn(I.self >= 2),
           ds([2, 3]),
       ),
       (
@@ -77,7 +77,7 @@ class CoreSelectItemsTest(parameterized.TestCase):
       ),
       (
           db.list([1, 2, 3]),
-          functor_factories.fn(I.self >= 2),
+          functor_factories.expr_fn(I.self >= 2),
           ds([2, 3]),
       ),
   )
@@ -87,7 +87,7 @@ class CoreSelectItemsTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (lambda x: x >= 2),
-      (functor_factories.fn(I.self >= 2),),
+      (functor_factories.expr_fn(I.self >= 2),),
   )
   def test_eval_with_expr_input(self, fltr):
     result = expr_eval.eval(

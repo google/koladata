@@ -24,9 +24,7 @@ from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
 from koladata.expr import tracing_mode as _tracing_mode
 from koladata.functions import functions as _functions
-from koladata.functor import functor_factories as _functor_factories
-from koladata.functor import kdf as _kdf
-from koladata.functor import tracing_decorator as _tracing_decorator
+from koladata.functor import functions as _functor_functions
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators as _kde_operators
 from koladata.operators import optools as _optools
@@ -91,7 +89,8 @@ exceptions.KodaError = _exceptions.KodaError
 ### Eager operators / functions from operators.
 def _InitOpsAndContainers():
   kd_ops = _eager_op_utils.operators_container('kde')
-  for op_or_container_name in dir(kd_ops):
+  # We cannot use dir() since it is overridden in this module.
+  for op_or_container_name in kd_ops.__dir__():
     globals()[op_or_container_name] = _dispatch(
         eager=getattr(kd_ops, op_or_container_name),
         tracing=getattr(_kde_operators.kde, op_or_container_name),
@@ -111,27 +110,36 @@ slice = _eager_only(_data_slice.DataSlice.from_vals)  # pylint: disable=redefine
 
 
 # Impure functions (kd.bag, kd.list, kd.new, kd.set_attr, ...).
-def _LoadImpureFunctions():
+def _LoadImpureFunctions(*modules: _py_types.ModuleType):
   """Injects the functions from functions.py into kd.py."""
-  for fn_name in dir(_functions):
-    if not fn_name.startswith('_'):
-      fn_val = getattr(_functions, fn_name)
-      # If the name exists already, it means it is defined both in Expr operator
-      # and function. E.g. kd.obj/dict/list. We need to override the eager
-      # operator derived from Expr op with the function.
-      if fn_name in globals():
-        if isinstance(fn_val, _py_types.SimpleNamespace):
-          # Override operator containers via function namespaces for now.
-          fn_val = _eager_op_utils.add_overrides(globals()[fn_name], fn_val)
-        globals()[fn_name] = _dispatch(
-            eager=fn_val,
-            tracing=getattr(_kde_operators.kde, fn_name),
-        )
-      else:
-        globals()[fn_name] = _eager_only(fn_val)
+  seen_names = set()
+  for module in modules:
+    # We cannot use dir() since it is overridden in this module.
+    for fn_name in module.__dir__():
+      if not fn_name.startswith('_'):
+        if fn_name in seen_names:
+          raise ValueError(
+              'The same function is overridden in two different modules:'
+              f' {fn_name}'
+          )
+        seen_names.add(fn_name)
+        fn_val = getattr(module, fn_name)
+        # If the name exists already, it means it is defined both in Expr
+        # operator and function. E.g. kd.obj/dict/list. We need to override the
+        # eager operator derived from Expr op with the function.
+        if fn_name in globals():
+          if isinstance(fn_val, _py_types.SimpleNamespace):
+            # Override operator containers via function namespaces for now.
+            fn_val = _eager_op_utils.add_overrides(globals()[fn_name], fn_val)
+          globals()[fn_name] = _dispatch(
+              eager=fn_val,
+              tracing=getattr(_kde_operators.kde, fn_name),
+          )
+        else:
+          globals()[fn_name] = _eager_only(fn_val)
 
 
-_LoadImpureFunctions()
+_LoadImpureFunctions(_functions, _functor_functions)
 
 
 ### Expr-related functions, Input/Variable containers and operator container.
@@ -153,10 +161,6 @@ expr.sub_inputs = _introspection.sub_inputs
 expr.sub_by_name = _introspection.sub_by_name
 expr.sub = _introspection.sub
 expr.get_input_names = _introspection.get_input_names
-
-trace_as_fn = _eager_only(_tracing_decorator.TraceAsFnDecorator)
-is_fn = _eager_only(_functor_factories.is_fn)
-bind = _eager_only(_functor_factories.bind)
 
 
 ### Koda constants.
@@ -188,7 +192,6 @@ present = _same_when_tracing(_mask_constants.present)
 
 ### Public submodules.
 
-kdf = _eager_only(_kdf)
 testing = _eager_only(_testing)
 kdi = _eager_only(_py_types.ModuleType('kdi'))
 

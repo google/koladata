@@ -94,7 +94,7 @@ def bind(
   Use kdf.call_fn for a more clear separation of those inputs.
 
   Example:
-    f = kdf.fn(I.x + I.y).bind(x=0)
+    f = kd.fn(I.x + I.y).bind(x=0)
     kd.call(f, y=1)  # 1
 
   Args:

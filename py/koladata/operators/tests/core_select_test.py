@@ -115,10 +115,10 @@ class CoreSelectTest(parameterized.TestCase):
           ds([], schema_constants.INT32),
       ),
       # Functor
-      (ds([1, 2, 3]), functor_factories.fn(I.self >= 2), ds([2, 3])),
+      (ds([1, 2, 3]), functor_factories.expr_fn(I.self >= 2), ds([2, 3])),
       (
           ds([[1], [2], [3]]),
-          functor_factories.fn(I.self == 2),
+          functor_factories.expr_fn(I.self == 2),
           ds([[], [2], []]),
       ),
       # Python function
@@ -132,7 +132,7 @@ class CoreSelectTest(parameterized.TestCase):
       (ds(1), ds(arolla.missing()), ds(None, schema_constants.INT32)),
       (
           ds(1),
-          functor_factories.fn(I.self > 1),
+          functor_factories.expr_fn(I.self > 1),
           ds(None, schema_constants.INT32),
       ),
   )
@@ -142,7 +142,7 @@ class CoreSelectTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (lambda x: x >= 2,),
-      (functor_factories.fn(I.self >= 2),),
+      (functor_factories.expr_fn(I.self >= 2),),
   )
   def test_eval_with_expr_input(self, fltr):
     result = expr_eval.eval(kde.core.select(I.x, fltr), x=ds([1, 2, 3]))
@@ -305,7 +305,7 @@ class CoreSelectTest(parameterized.TestCase):
       ),
       (
           ds([1, 2, None, 4]),
-          functor_factories.fn(I.self == 1).no_bag(),
+          functor_factories.expr_fn(I.self == 1).no_bag(),
           (
               '`fltr` DataSlice must have all items of MASK dtype or can be'
               ' evaluated to such items (i.e. Python function or Koda Functor)'
@@ -313,7 +313,7 @@ class CoreSelectTest(parameterized.TestCase):
       ),
       (
           ds([1, 2, None, 4]),
-          functor_factories.fn(I.self),
+          functor_factories.expr_fn(I.self),
           (
               'the schema of the `fltr` DataSlice should only be ANY, OBJECT or'
               ' MASK or can be evaluated to such DataSlice (i.e. Python'

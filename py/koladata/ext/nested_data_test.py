@@ -19,7 +19,7 @@ from absl.testing import parameterized
 from koladata import kd
 from koladata.ext import nested_data
 
-kdf = kd.kdf
+kdf = kd.functor
 kdi = kd.kdi
 I = kd.I
 S = kd.S
@@ -524,7 +524,7 @@ class NestedDataTest(parameterized.TestCase):
         )
     )
     selected_db = nested_data.selected_path_update(
-        data, ['x', 'y', 'z'], kdf.fn(S.x[:].y.z[:] > 3)
+        data, ['x', 'y', 'z'], kdf.expr_fn(S.x[:].y.z[:] > 3)
     )
     self.assertEqual(data.updated(selected_db).x[:].y.z[:].to_py(), [[4, 5]])
 

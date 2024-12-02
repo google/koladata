@@ -18,6 +18,7 @@ import inspect
 import types as py_types
 import typing
 from typing import Any, Callable
+import warnings
 
 from arolla import arolla
 from koladata.expr import input_container
@@ -128,7 +129,7 @@ def _extract_auto_variables(variables: dict[str, Any]) -> dict[str, Any]:
   return variables
 
 
-def fn(
+def expr_fn(
     returns: Any,
     *,
     signature: data_slice.DataSlice | None = None,
@@ -177,7 +178,7 @@ def is_fn(obj: Any) -> data_slice.DataSlice:
 
   Returns:
     kd.present if `obj` is a DataSlice representing a functor, kd.missing
-    otherwise (for example if fn has wrong type).
+    otherwise (for example if obj has wrong type).
   """
   if isinstance(obj, data_slice.DataSlice) and _py_functors_py_ext.is_fn(obj):
     return mask_constants.present
@@ -201,9 +202,10 @@ def trace_py_fn(
       based on the traced expression. All DataSlice literals become their own
       variables, and all named subexpressions become their own variables. This
       helps readability and manipulation of the resulting functor. Note that
-      this defaults to True here, while it defaults to False in kdf.fn.
+      this defaults to True here, while it defaults to False in
+      kd.functor.expr_fn.
     **defaults: Keyword defaults to bind to the function. The values in this map
-      may be Koda expressions or DataItems (see docstring for kdf.bind for more
+      may be Koda expressions or DataItems (see docstring for kd.bind for more
       details). Defaults can be overridden through kd.call arguments. **defaults
       and inputs to kd.call will be combined and passed through to the function.
       If a parameter that is not passed does not have a default value defined by
@@ -214,7 +216,7 @@ def trace_py_fn(
   """
   traced_expr = tracing.trace(f)
   signature = signature_utils.from_py_signature(inspect.signature(f))
-  f = fn(traced_expr, signature=signature, auto_variables=auto_variables)
+  f = expr_fn(traced_expr, signature=signature, auto_variables=auto_variables)
   return bind(f, **defaults) if defaults else f
 
 
@@ -231,7 +233,8 @@ def py_fn(
 
   Functions wrapped with py_fn are not serializable.
 
-  Note that unlike the functors created by kdf.fn from an Expr, this functor
+  Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
+  functor
   will have exactly the same signature as the original function. In particular,
   if the original function does not accept variadic keyword arguments and
   and unknown argument is passed when calling the functor, an exception will
@@ -247,7 +250,7 @@ def py_fn(
       into a DataItem. kd.types.DataSlice and kd.types.DataBag can also be
       passed here.
     **defaults: Keyword defaults to bind to the function. The values in this map
-      may be Koda expressions or DataItems (see docstring for kdf.bind for more
+      may be Koda expressions or DataItems (see docstring for kd.bind for more
       details). Defaults can be overridden through kd.call arguments. **defaults
       and inputs to kd.call will be combined and passed through to the function.
       If a parameter that is not passed does not have a default value defined by
@@ -256,7 +259,7 @@ def py_fn(
   Returns:
     A DataItem representing the functor.
   """
-  f = fn(
+  f = expr_fn(
       # Note: we bypass the binding policy of apply_py since we already
       # have the args/kwargs as tuple and namedtuple.
       arolla.abc.bind_op(
@@ -294,10 +297,10 @@ def bind(
   You can pass expressions with their own inputs as values in `kwargs`. Those
   inputs will become inputs of the resulting functor, will be used to compute
   those expressions, _and_ they will also be passed to the underying functor.
-  Use kdf.call_fn for a more clear separation of those inputs.
+  Use kd.functor.call_fn for a more clear separation of those inputs.
 
   Example:
-    f = kdf.bind(kdf.fn(I.x + I.y), x=0)
+    f = kd.bind(kd.fn(I.x + I.y), x=0)
     kd.call(f, y=1)  # 1
 
   Args:
@@ -325,7 +328,7 @@ def bind(
   ):
     # We create a sub-functor to take care of proper input binding while
     # being able to forward all arguments to the original functor.
-    variables['_aux_fn_compute_variables'] = fn(
+    variables['_aux_fn_compute_variables'] = expr_fn(
         arolla.M.namedtuple.make(**{k: V[k] for k in kwargs}),
         **kwargs,
     )
@@ -345,7 +348,7 @@ def bind(
   else:
     variables.update(kwargs)
 
-  return fn(
+  return expr_fn(
       # Note: we bypass the binding policy of functor.call since we already
       # have the args/kwargs as tuple and namedtuple.
       arolla.abc.bind_op(
@@ -385,20 +388,19 @@ def fstr_fn(returns: str, **kwargs) -> data_slice.DataSlice:
     returns: A format string.
     **kwargs: variable assignments.
   """
-  return fn(kde.strings.fstr(returns), **kwargs)
+  return expr_fn(kde.strings.fstr(returns), **kwargs)
 
 
 data_item.register_bind_method_implementation(bind)
 
 
-# TODO: Add support for format strings here.
-def as_fn(
+def fn(
     f: Any, *, use_tracing: bool = True, **kwargs: Any
 ) -> data_slice.DataSlice:
   """Returns a Koda functor representing `f`.
 
-  This is the most generic version of the kdf builder functions.
-  It accepts all kdf supported function types including python functions,
+  This is the most generic version of the functools builder functions.
+  It accepts all functools supported function types including python functions,
   Koda Expr.
 
   Args:
@@ -406,13 +408,13 @@ def as_fn(
       functor (the latter will be just returned unchanged).
     use_tracing: Whether tracing should be used for Python functions.
     **kwargs: Either variables or defaults to pass to the function. See the
-      documentation of `fn` and `py_fn` for more details.
+      documentation of `expr_fn` and `py_fn` for more details.
 
   Returns:
     A Koda functor representing `f`.
   """
   if isinstance(f, arolla.Expr) or introspection.is_packed_expr(f):
-    return fn(f, **kwargs)
+    return expr_fn(f, **kwargs)
   if isinstance(f, py_types.FunctionType):
     if use_tracing:
       return trace_py_fn(f, **kwargs)
@@ -420,11 +422,21 @@ def as_fn(
       return py_fn(f, **kwargs)
   if is_fn(f):
     if kwargs:
-      raise ValueError(
-          'passed kwargs when calling as_fn on an existing functor'
-      )
+      raise ValueError('passed kwargs when calling fn on an existing functor')
     return f
   raise TypeError(f'cannot convert {f} into a functor')
+
+
+# TODO: Remove this after some time.
+def as_fn(
+    f: Any, *, use_tracing: bool = True, **kwargs: Any
+) -> data_slice.DataSlice:
+  """A deprecated alias for kd.fn."""
+  warnings.warn(
+      'as_fn is deprecated. Use fn instead.',
+      RuntimeWarning,
+  )
+  return fn(f, use_tracing=use_tracing, **kwargs)
 
 
 def map_py_fn(
@@ -437,7 +449,7 @@ def map_py_fn(
 ) -> data_slice.DataSlice:
   """Returns a Koda functor wrapping a python function for kd.map_py.
 
-  See kd.map_py for detailed APIs, and kdf.py_fn for details about function
+  See kd.map_py for detailed APIs, and kd.py_fn for details about function
   wrapping. schema, max_threads and ndims cannot be Koda Expr or Koda functor.
 
   Args:
@@ -449,7 +461,7 @@ def map_py_fn(
       may be kde expressions, format strings, or 0-dim DataSlices. See the
       docstring for py_fn for more details.
   """
-  f = fn(
+  f = expr_fn(
       arolla.abc.bind_op(
           'kde.py.map_py',
           py_boxing.as_qvalue(f),
@@ -491,8 +503,8 @@ def allow_arbitrary_unused_inputs(
   This means that if the functor already accepts arbitrary inputs but fails
   on unknown inputs further down the line (for example, when calling another
   functor), this method will not fix it. In particular, this method has no
-  effect on the return values of kdf.py_fn or kdf.bind. It does however work
-  on the output of kdf.trace_py_fn.
+  effect on the return values of kd.py_fn or kd.bind. It does however work
+  on the output of kd.trace_py_fn.
 
   Args:
     fn_def: The input functor.

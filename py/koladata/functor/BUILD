@@ -50,12 +50,12 @@ koladata_py_extension(
 )
 
 py_library(
-    name = "kdf",
-    srcs = ["kdf.py"],
+    name = "functions",
+    srcs = ["functions.py"],
     deps = [
         ":functor_factories",
         ":signature_utils",
-        "//py/koladata/operators:eager_op_utils",
+        ":tracing_decorator",
     ],
 )
 
@@ -159,23 +159,6 @@ py_test(
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "kdf_test",
-    srcs = ["kdf_test.py"],
-    deps = [
-        ":functor_factories",
-        ":kdf",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:introspection",
-        "//py/koladata/expr:view",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],

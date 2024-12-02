@@ -14,6 +14,7 @@
 
 """User-facing module for Koda external libraries related APIs."""
 
+from koladata import kd as _kd
 from koladata.ext import nested_data as _nested_data
 from koladata.ext import npkd as _npkd
 from koladata.ext import pdkd as _pdkd
@@ -21,3 +22,8 @@ from koladata.ext import pdkd as _pdkd
 npkd = _npkd
 pdkd = _pdkd
 nested_data = _nested_data
+
+# CamelCase versions in ext since we're still not sure what we will eventually
+# recommend, and 'kd' is consistently lowercase for all operations.
+Fn = _kd.fn
+PyFn = _kd.py_fn

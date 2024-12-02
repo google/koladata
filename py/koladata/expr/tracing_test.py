@@ -19,7 +19,7 @@ from koladata.expr import tracing
 from koladata.testing import testing
 
 kde = kd.kde
-kdf = kd.kdf
+kdf = kd.functor
 I = kd.I
 
 
@@ -118,7 +118,7 @@ class TracingTest(absltest.TestCase):
     )
 
   def test_functor_call(self):
-    fn = kdf.fn(I.x + I.y)
+    fn = kdf.expr_fn(I.x + I.y)
     self.assertEqual(
         tracing.trace(lambda a, b: kd.call(fn, x=a, y=b)).eval(a=1, b=2), 3
     )

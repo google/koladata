@@ -21,7 +21,7 @@ from typing import Any, Callable
 from arolla import arolla
 from koladata import kd
 
-kdf = kd.kdf
+kdf = kd.functor
 
 
 def MaybeEval(

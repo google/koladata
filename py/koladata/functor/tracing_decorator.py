@@ -31,7 +31,7 @@ class TraceAsFnDecorator:
   In traced expressions that call the function, that functor is invoked as a
   sub-functor via by 'kde.call', rather than the function being re-traced.
   Additionally, the result of 'kde.call' is also assigned a name, so that
-  when auto_variables=True is used (which is the default in kdf.trace_py_fn),
+  when auto_variables=True is used (which is the default in kd.trace_py_fn),
   the functor for the decorated function will become an attribute of the
   functor for the outer function being traced.
 
@@ -69,7 +69,7 @@ class TraceAsFnDecorator:
     Args:
       name: The name to assign to the sub-functor. If not provided, the name of
         the function being decorated is used.
-      py_fn: Whether the function to trace should just be wrapped in kdf.py_fn
+      py_fn: Whether the function to trace should just be wrapped in kd.py_fn
         and executed as Python code later instead of being traced to create the
         sub-functor. This is useful for functions that are not fully supported
         by the tracing infrastructure, and to add debug prints.

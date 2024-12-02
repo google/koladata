@@ -20,7 +20,7 @@ MaybeEval = functools.MaybeEval
 
 
 S = kd.S
-kdf = kd.kdf
+kdf = kd.functor
 
 
 class FunctoolsTest(absltest.TestCase):
@@ -36,7 +36,7 @@ class FunctoolsTest(absltest.TestCase):
           MaybeEval(S.x + S.y, root=kd.obj(x=1, y=2)).no_bag(), kd.item(3)
       )
       kd.testing.assert_equal(
-          MaybeEval(kdf.as_fn(S.x + S.y), kd.obj(x=1, y=2)).no_bag(), kd.item(3)
+          MaybeEval(kd.fn(S.x + S.y), kd.obj(x=1, y=2)).no_bag(), kd.item(3)
       )
       kd.testing.assert_equal(
           MaybeEval(lambda s: s.x + s.y, kd.obj(x=1, y=2)).no_bag(), kd.item(3)

@@ -46,17 +46,17 @@ class FunctorMaybeCallTest(parameterized.TestCase):
           ds([1, 2, 3]),
       ),
       (
-          functor_factories.fn(I.self + 1),
+          functor_factories.expr_fn(I.self + 1),
           ds([1, 2, 3]),
           ds([2, 3, 4]),
-      )
+      ),
   )
   def test_call_with_functor(self, maybe_fn, arg, expected):
     result = expr_eval.eval(kde.functor._maybe_call(maybe_fn, arg))
     testing.assert_equal(result, expected)
 
   def test_call_with_error(self):
-    f = functor_factories.fn(I.self.some_attr)
+    f = functor_factories.expr_fn(I.self.some_attr)
 
     data = ds([1, 2, 3])
     with self.assertRaisesRegex(
@@ -64,7 +64,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.functor._maybe_call(f, data))
 
-    f = functor_factories.fn(I.self.get_bag())
+    f = functor_factories.expr_fn(I.self.get_bag())
     entity = data_bag.DataBag.empty().new()
     with self.assertRaisesRegex(
         ValueError,

@@ -27,7 +27,7 @@ V = kd.V
 S = kd.S
 kde = kd.kde
 kdi = kd.kdi
-kdf = kd.kdf
+kdf = kd.functor
 
 
 # pylint: disable=missing-function-docstring
@@ -801,7 +801,7 @@ def add_kd_call(state):
   x = kd.slice([1])
   y = kd.slice([2])
   # To initialize all lazy initializers and reduce variance.
-  fn = kdf.fn(kde.add(I.x, I.y))
+  fn = kdf.expr_fn(kde.add(I.x, I.y))
   _ = kd.call(fn, x=x, y=y)
   while state:
     kd.call(fn, x=x, y=y)
@@ -812,7 +812,7 @@ def add_10000_kd_call(state):
   x = kd.slice([1] * 10000)
   y = kd.slice([2] * 10000)
   # To initialize all lazy initializers and reduce variance.
-  fn = kdf.fn(kde.add(I.x, I.y))
+  fn = kdf.expr_fn(kde.add(I.x, I.y))
   _ = kd.call(fn, x=x, y=y)
   while state:
     kd.call(fn, x=x, y=y)
@@ -1217,7 +1217,7 @@ def kd_call_with_many_variables(state):
   nvars = state.range(0)
   vars_ = {f'v{i}': V[f'v{i+1}'] for i in range(nvars - 1)}
   vars_[f'v{nvars-1}'] = S
-  fn = kdf.fn(V.v0, **vars_)
+  fn = kdf.expr_fn(V.v0, **vars_)
   # To initialize all lazy initializers and reduce variance.
   _ = kd.call(fn, 57)
   while state:
@@ -1245,20 +1245,20 @@ def create_large_expr(state):
 def create_large_functor(state):
   # To initialize all lazy initializers and reduce variance.
   expr = _create_large_expr()
-  _ = kdf.fn(expr)
+  _ = kdf.expr_fn(expr)
   while state:
     expr = _create_large_expr()
-    _ = kdf.fn(expr)
+    _ = kdf.expr_fn(expr)
 
 
 @google_benchmark.register
 def create_large_functor_auto_variables(state):
   # To initialize all lazy initializers and reduce variance.
   expr = _create_large_expr()
-  _ = kdf.fn(expr, auto_variables=True)
+  _ = kdf.expr_fn(expr, auto_variables=True)
   while state:
     expr = _create_large_expr()
-    _ = kdf.fn(expr, auto_variables=True)
+    _ = kdf.expr_fn(expr, auto_variables=True)
 
 
 if __name__ == '__main__':

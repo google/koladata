@@ -236,12 +236,12 @@ class DataItemTest(parameterized.TestCase):
     )
 
   def test_call(self):
-    fn = functor_factories.fn(I.x * I.y)
+    fn = functor_factories.expr_fn(I.x * I.y)
     self.assertEqual(fn(x=2, y=3), 6)
     self.assertIsInstance(fn(x=2, y=I.z), arolla.Expr)
     self.assertEqual(fn(x=2, y=I.z).eval(z=3), 6)
 
-    fn = functor_factories.fn(S.x * S.y)
+    fn = functor_factories.expr_fn(S.x * S.y)
     self.assertEqual(fn(bag().new(x=2, y=3)), 6)
 
     with self.assertRaisesRegex(
@@ -249,7 +249,7 @@ class DataItemTest(parameterized.TestCase):
     ):
       ds(1)()
 
-    fn = functor_factories.fn(I.x)
+    fn = functor_factories.expr_fn(I.x)
     my_bag = bag()
     testing.assert_equal(fn(x=my_bag, return_type_as=data_bag.DataBag), my_bag)
 

@@ -95,8 +95,9 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
   }
 
   if (nargs < 2) {
-    return PyErr_Format(PyExc_ValueError,
-                        "kdf.fn() expects exactly two positional inputs");
+    return PyErr_Format(
+        PyExc_ValueError,
+        "kd.functor.expr_fn() expects exactly two positional inputs");
   }
   const auto* returns = UnwrapDataSlice(py_args[0], "returns");
   if (returns == nullptr) {

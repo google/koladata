@@ -762,13 +762,11 @@ x.shallow_clone()
 
 ### Tracing and functors
 
-<!-- TODO: Update kd.kdf.as_fn once it's renamed. -->
-
 ```py
 # Create functor.
-kd.kdf.as_fn(lambda x: x + 1)
+kd.fn(lambda x: x + 1)
 # Functor with no tracing.
-kd.kdf.as_py_fn(lambda x: x + 1)
+kd.py_fn(lambda x: x + 1)
 
 # Check if obj represents a functor.
 kd.is_fn(obj)

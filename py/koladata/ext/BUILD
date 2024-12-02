@@ -81,6 +81,7 @@ py_library(
         ":nested_data",
         ":npkd",
         ":pdkd",
+        "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -91,6 +92,8 @@ py_test(
     tags = ["nooss"],
     deps = [
         ":kd_ext",
+        "//py/koladata:kd",
+        "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )

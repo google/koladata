@@ -29,7 +29,7 @@ kdi = kd.kdi
 I = kd.I
 V = kd.V
 S = kd.S
-kdf = kd.kdf
+kdf = kd.functor
 
 
 class KdTest(absltest.TestCase):
@@ -150,7 +150,7 @@ class KdTest(absltest.TestCase):
     self.assertIs(sig.parameters['e'].annotation, kd.exceptions.KodaError)
 
   def test_kdf(self):
-    fn = kdf.fn(
+    fn = kdf.expr_fn(
         returns=I.x + V.foo,
         signature=signature_utils.signature([
             signature_utils.parameter(
@@ -165,7 +165,7 @@ class KdTest(absltest.TestCase):
     self.assertEqual(kdf.call(fn, 1, 2), 3)
 
   def test_bind(self):
-    fn = kd.bind(kdf.trace_py_fn(lambda x, y: x + y), y=2)
+    fn = kd.bind(kd.trace_py_fn(lambda x, y: x + y), y=2)
     self.assertEqual(fn(3), 5)
 
   def test_with_name(self):
@@ -200,7 +200,7 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.expr.is_packed_expr(I.x + I.y), kd.missing)
 
   def test_is_fn(self):
-    fn = kdf.fn(57, signature=signature_utils.signature([]))
+    fn = kdf.expr_fn(57, signature=signature_utils.signature([]))
     self.assertTrue(kd.is_fn(fn))
     self.assertEqual(kd.is_fn(fn).get_schema(), schema_constants.MASK)
     del fn.returns
@@ -315,17 +315,17 @@ class KdTest(absltest.TestCase):
     def g(x):
       return f(x) + 2
 
-    fn = kdf.trace_py_fn(g)
+    fn = kd.trace_py_fn(g)
     kd.testing.assert_equal(kd.expr.unpack_expr(fn.returns), V.f(I.x) + 2)
     kd.testing.assert_equal(kd.expr.unpack_expr(fn.f.returns), I.x + 1)
 
   def test_call_with_kd_types_return_type(self):
-    fn = kdf.fn(returns=I.x.get_bag())
+    fn = kdf.expr_fn(returns=I.x.get_bag())
     obj = kd.obj(x=1)
     kd.testing.assert_equal(
         fn(x=obj, return_type_as=kd.types.DataBag), obj.get_bag()
     )
-    fn = kdf.fn(returns=I.x)
+    fn = kdf.expr_fn(returns=I.x)
     obj = kd.obj(x=1)
     kd.testing.assert_equal(fn(x=obj, return_type_as=kd.types.DataSlice), obj)
 
@@ -359,14 +359,46 @@ class KdTest(absltest.TestCase):
     def f1():
       return kd.obj(a=1)
 
-    x = kdf.trace_py_fn(f1)()
+    x = kd.trace_py_fn(f1)()
     self.assertFalse(x.db.is_mutable())
 
     def f2():
       return kd.core.obj(a=1)
 
-    x = kdf.trace_py_fn(f2)()
+    x = kd.trace_py_fn(f2)()
     self.assertFalse(x.db.is_mutable())
+
+  def test_functor_expr_fn(self):
+    fn = kd.functor.expr_fn(returns=I.x + V.foo, foo=I.y)
+    kd.testing.assert_equal(kd.call(fn, x=1, y=2), kd.item(3))
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))
+    self.assertTrue(kd.is_fn(fn))
+    self.assertFalse(kd.is_fn(57))
+
+  def test_functor_factorial(self):
+    fn = kd.functor.expr_fn(
+        kde.cond(I.n == 0, V.stop, V.go)(n=I.n),
+        go=kd.functor.expr_fn(I.n * V.rec(n=I.n - 1)),
+        stop=kd.functor.expr_fn(1),
+    )
+    fn.go.rec = fn
+    kd.testing.assert_equal(fn(n=5), kd.item(120))
+
+  def test_trace_py_fn(self):
+    fn = kd.trace_py_fn(lambda x, y: x + y)
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))
+    kd.testing.assert_equal(kd.expr.unpack_expr(fn.returns), I.x + I.y)
+
+  def test_py_fn(self):
+    fn = kd.py_fn(lambda x, y: x + 1 if y == 2 else x + 3)
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(2))
+    kd.testing.assert_equal(fn(x=1, y=3), kd.item(4))
+
+  def test_fn(self):
+    fn = kd.fn(lambda x, y: x + y)
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))
+    fn = kd.fn(I.x + I.y)
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))
 
 
 if __name__ == '__main__':
