@@ -708,8 +708,6 @@ npkd.ds_to_np(ds)
 npkd.ds_from_np(np.array([1, 2, 0, 3]))
 ```
 
-```
-
 </section>
 
 <section>
