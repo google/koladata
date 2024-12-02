@@ -29,28 +29,28 @@ namespace koladata::ops {
 absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
                                      int64_t unused_hidden_seed = 0);
 
-// kde.core.new.
+// kde.core._new.
 class NewOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.core.new_shaped.
+// kde.core._new_shaped.
 class NewShapedOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.core.new_like.
+// kde.core._new_like.
 class NewLikeOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.core.uu operator.
+// kde.core._uu operator.
 // Creates a DataSlice of UuEntities.
 class UuOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

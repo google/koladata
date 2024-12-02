@@ -17,6 +17,7 @@
 from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import schema as schema_ops
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
@@ -62,10 +63,19 @@ def uuobj(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.uu'])
+@optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.core._uu',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _uu(seed, schema, update_schema, kwargs):
+  """Internal implementation of kde.uu."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.uu'])
+@optools.as_lambda_operator(
     'kde.core.uu',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -76,14 +86,14 @@ def uuobj(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword
         ),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def uu(
     seed=py_boxing.positional_or_keyword(''),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     update_schema=py_boxing.keyword_only(False),
     kwargs=py_boxing.var_keyword(),
-):  # pylint: disable=unused-argument
+):
   """Creates Entities whose ids are uuid(s) with the provided attributes.
 
   In order to create a different id from the same arguments, use
@@ -91,7 +101,9 @@ def uu(
 
   Args:
     seed: text seed for the uuid computation.
-    schema: shared schema of created entities.
+    schema: shared schema of created entities. If not specified, a uu_schema
+      based on the schemas of the passed **kwargs will be created. Can also be
+      specified as a string, which is a shortcut for kd.named_schema(name).
     update_schema: if True, overwrite the provided schema with the schema
       derived from the keyword values in the resulting Databag.
     kwargs: DataSlice kwargs defining the attributes of the entities. The
@@ -102,4 +114,9 @@ def uu(
     created databag. The shape of this DataSlice is the result of aligning the
     shapes of the kwarg DataSlices.
   """
-  raise NotImplementedError('implemented in the backend')
+  return _uu(
+      seed=seed,
+      schema=schema_ops.internal_maybe_named_schema(schema),
+      update_schema=update_schema,
+      kwargs=kwargs,
+  )

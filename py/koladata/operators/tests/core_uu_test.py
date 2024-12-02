@@ -135,6 +135,28 @@ class KodaUuTest(parameterized.TestCase):
         atol=1e-6,
     )
 
+  def test_str_as_schema_arg(self):
+    db = data_bag.DataBag.empty()
+    uu = expr_eval.eval(
+        kde.core.uu(
+            seed='anything',
+            a=ds([3.14], schema_constants.FLOAT32),
+            schema='a',
+        )
+    )
+    testing.assert_equal(
+        uu.get_schema(),
+        db.named_schema('a').with_bag(uu.get_bag()),
+    )
+    testing.assert_equal(
+        uu.a.get_schema(), schema_constants.FLOAT32.with_bag(uu.get_bag())
+    )
+    testing.assert_allclose(
+        uu.a,
+        ds([3.14], schema_constants.FLOAT32).with_bag(uu.get_bag()),
+        atol=1e-6,
+    )
+
   def test_update_schema_arg(self):
     db = data_bag.DataBag.empty()
     uu = expr_eval.eval(

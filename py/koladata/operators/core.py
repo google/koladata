@@ -831,19 +831,6 @@ def with_attr(x, attr_name, value, update_schema=False):
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._new',
-    qtype_constraints=[
-        (
-            (P.arg == arolla.UNSPECIFIED),
-            'kde.new does not support converter use-case. For converting'
-            ' Python '
-            + 'objects to Entities, please use eager only kd.kdi.new',
-        ),
-        qtype_utils.expect_data_slice_or_unspecified(P.schema),
-        qtype_utils.expect_data_slice(P.update_schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
-    ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _new(arg, schema, update_schema, itemid, attrs, hidden_seed):
@@ -912,14 +899,6 @@ def new(
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._new_shaped',
-    qtype_constraints=[
-        qtype_utils.expect_jagged_shape(P.shape),
-        qtype_utils.expect_data_slice_or_unspecified(P.schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_data_slice(P.update_schema),
-        qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
-    ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _new_shaped(shape, schema, update_schema, itemid, attrs, hidden_seed):
@@ -1025,14 +1004,6 @@ def new_shaped_as(
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.core._new_like',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.shape_and_mask_from),
-        qtype_utils.expect_data_slice_or_unspecified(P.schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_data_slice(P.update_schema),
-        qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
-    ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _new_like(

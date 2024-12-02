@@ -211,6 +211,7 @@ py_library(
     deps = [
         ":optools",
         ":qtype_utils",
+        ":schema",
         "//koladata/operators",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",

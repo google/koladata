@@ -101,6 +101,7 @@ OPERATOR("kde.core._non_deterministic", NonDeterministicOp);
 OPERATOR("kde.core._ordinal_rank", OrdinalRank);
 OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
+OPERATOR_FAMILY("kde.core._uu", std::make_unique<UuOperatorFamily>());
 OPERATOR("kde.core.add", Add);
 OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kde.core.attr", Attr);
@@ -148,7 +149,6 @@ OPERATOR("kde.core.unique", Unique);
 OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());
 OPERATOR_FAMILY("kde.core.updated_bag",
                 std::make_unique<UpdatedDbOperatorFamily>());
-OPERATOR_FAMILY("kde.core.uu", std::make_unique<UuOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uuid", std::make_unique<UuidOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uuid_for_dict",
                 std::make_unique<UuidForDictOperatorFamily>());
