@@ -15,7 +15,6 @@
 """The unified binding policy for Koladata operators."""
 
 import inspect
-import random
 from typing import Any
 
 from arolla import arolla
@@ -208,13 +207,6 @@ def _as_qvalue_or_expr_namedtuple(
   return arolla.namedtuple(**dict(zip(kwargs, args)))
 
 
-def _gen_non_deterministic_expr():
-  return arolla.abc.unsafe_make_operator_node(
-      'math.add',
-      (_non_deterministic_leaf, arolla.int64(random.randint(0, 2**63 - 1))),
-  )
-
-
 _MISSING_SENTINEL = object()
 
 
@@ -371,7 +363,7 @@ class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
         result[j] = _as_qvalue_or_expr_namedtuple(kwargs)
         kwargs.clear()
       elif opt == 'H':
-        result[j] = _gen_non_deterministic_expr()
+        result[j] = py_boxing.new_non_deterministic_token()
       else:
         raise RuntimeError(f'unexpected option={opt!r}, param={param.name!r}')
 

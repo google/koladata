@@ -22,6 +22,7 @@ from koladata.operators import op_repr
 from koladata.operators import unified_binding_policy
 from koladata.testing import testing
 from koladata.types import py_boxing
+from koladata.types import qtypes
 
 policy = unified_binding_policy.UnifiedBindingPolicy()
 
@@ -361,14 +362,8 @@ class BindArgumentsTest(parameterized.TestCase):
     (expr_1,) = policy.bind_arguments(sig)
     (expr_2,) = policy.bind_arguments(sig)
     self.assertNotEqual(expr_1.fingerprint, expr_2.fingerprint)
-    self.assertEqual(expr_1.op, M.math.add)
-    self.assertEqual(expr_2.op, M.math.add)
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        expr_1.node_deps[0], py_boxing.HIDDEN_SEED_LEAF
-    )
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        expr_2.node_deps[0], py_boxing.HIDDEN_SEED_LEAF
-    )
+    self.assertEqual(expr_1.qtype, qtypes.NON_DETERMINISTIC_TOKEN)
+    self.assertEqual(expr_2.qtype, qtypes.NON_DETERMINISTIC_TOKEN)
 
   def test_error_missing_positional_parameters(self):
     sig = arolla.abc.make_operator_signature(

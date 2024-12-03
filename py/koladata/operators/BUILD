@@ -100,6 +100,7 @@ py_test(
         ":unified_binding_policy",
         "//py/koladata/testing",
         "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
