@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-12-02'
+  reviewed: '2024-12-03'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -11,7 +11,7 @@
 go/koda-v1-apis
 
 This document lists public **Koda** APIs, including operators (accessible from
-`kd`, `kde` and `kdf` packages) and methods of main abstractions (e.g.
+`kd` and `kde` packages) and methods of main abstractions (e.g.
 DataSlice, DataBag, etc.).
 
 [TOC]
@@ -24,7 +24,7 @@ Category  | Subcategory | Description
  | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
  | [comparison](#kd.comparison) | Operators that compare DataSlices.
  | [core](#kd.core) | Core operators that are not part of other categories.
- | [functor](#kd.functor) | Operators to call functors.
+ | [functor](#kd.functor) | Operators to create and call functors.
  | [logical](#kd.logical) | Logical operators.
  | [math](#kd.math) | Arithmetic operators.
  | [py](#kd.py) | Operators that call Python functions.
@@ -33,7 +33,6 @@ Category  | Subcategory | Description
  | [shapes](#kd.shapes) | Operators that work on shapes
  | [strings](#kd.strings) | Operators that work with strings data.
  | [tuple](#kd.tuple) | Operators to create tuples.
-[kdf-ops](#kdf-ops_category) | | `kdf` operators
 [kd-ext-ops](#kd-ext-ops_category) | | `kd_ext` operators
 [DataSlice](#DataSlice_category) | | `DataSlice` methods
 [DataBag](#DataBag_category) | | `DataBag` methods
@@ -145,10 +144,22 @@ Annotation operators.
 
 **Operators**
 
-### `kd.annotation.with_name(expr, /, name)` {#kd.annotation.with_name}
+### `kd.annotation.with_name(obj, name)` {#kd.annotation.with_name}
 
 ``` {.no-copy}
-Name annotation.
+Checks that the `name` is a string and returns `obj` unchanged.
+
+  This method is useful in tracing workflows: when tracing, we will assign
+  the given name to the subexpression computing `obj`. In eager mode, this
+  method is effectively a no-op.
+
+  Args:
+    obj: Any object.
+    name: The name to be used for this sub-expression when tracing this code.
+      Must be a string.
+
+  Returns:
+    obj unchanged.
 ```
 
 </section>
@@ -522,7 +533,7 @@ Returns a new DataBag containing attribute `attr_name` update for `x`.
 Returns a new DataBag containing attribute updates for `x`.
 ```
 
-### `kd.core.bag()` {#kd.core.bag}
+### `kd.core.bag` {#kd.core.bag}
 
 ``` {.no-copy}
 Returns an empty DataBag.
@@ -633,6 +644,44 @@ Returns:
   The contatenation of the input DataSlices on dimension `rank-ndim`. In case
   the input DataSlices come from different DataBags, this will refer to a
   new merged immutable DataBag.
+```
+
+### `kd.core.concat_lists(*lists, db)` {#kd.core.concat_lists}
+
+``` {.no-copy}
+Returns a DataSlice of Lists concatenated from the List items of `lists`.
+
+  Each input DataSlice must contain only present List items, and the item
+  schemas of each input must be compatible. Input DataSlices are aligned (see
+  `kde.align`) automatically before concatenation.
+
+  If `lists` is empty, this returns a single empty list with OBJECT item schema.
+
+  The specified `db` is used to create the new concatenated lists, and is the
+  DataBag used by the result DataSlice. If `db` is not specified, a new DataBag
+  is created for this purpose.
+
+  Args:
+    *lists: the DataSlices of Lists to concatenate
+    db: optional DataBag to populate with the result
+
+  Returns:
+    DataSlice of concatenated Lists
+```
+
+### `kd.core.container(*, db, **attrs)` {#kd.core.container}
+
+``` {.no-copy}
+Creates new Objects with an implicit stored schema.
+
+  Returned DataSlice has OBJECT schema and mutable DataBag.
+
+  Args:
+    db: optional DataBag where object are created.
+    **attrs: attrs to set on the returned object.
+
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
 ```
 
 ### `kd.core.count(x)` {#kd.core.count}
@@ -753,116 +802,135 @@ Returns:
   A DataSlice of dense ranks.
 ```
 
-### `kd.core.dict(keys, values, *, key_schema, value_schema, schema, itemid)` {#kd.core.dict}
+### `kd.core.dict(items_or_keys, values, *, key_schema, value_schema, schema, itemid, db)` {#kd.core.dict}
 
 ``` {.no-copy}
 Creates a Koda dict.
 
-Acceptable arguments are:
-  1) no argument: a single empty dict
-  2) two DataSlices/DataItems as keys and values: a DataSlice of dicts whose
-     shape is the last N-1 dimensions of keys/values DataSlice
+  Acceptable arguments are:
+    1) no argument: a single empty dict
+    2) a Python dict whose keys are either primitives or DataItems and values
+       are primitives, DataItems, Python list/dict which can be converted to a
+       List/Dict DataItem, or a DataSlice which can folded into a List DataItem:
+       a single dict
+    3) two DataSlices/DataItems as keys and values: a DataSlice of dicts whose
+       shape is the last N-1 dimensions of keys/values DataSlice
 
-Examples:
-dict() -> returns a single new dict
-dict(kd.slice([1, 2]), kd.slice([3, 4]))
-  -> returns a dict ({1: 3, 2: 4})
-dict(kd.slice([[1], [2]]), kd.slice([3, 4]))
-  -> returns a 1-D DataSlice that holds two dicts ({1: 3} and {2: 4})
-dict('key', 12) -> returns a single dict mapping 'key'->12
+  Examples:
+  dict() -> returns a single new dict
+  dict({1: 2, 3: 4}) -> returns a single new dict
+  dict({1: [1, 2]}) -> returns a single dict, mapping 1->List[1, 2]
+  dict({1: kd.slice([1, 2])}) -> returns a single dict, mapping 1->List[1, 2]
+  dict({db.uuobj(x=1, y=2): 3}) -> returns a single dict, mapping uuid->3
+  dict(kd.slice([1, 2]), kd.slice([3, 4]))
+    -> returns a dict ({1: 3, 2: 4})
+  dict(kd.slice([[1], [2]]), kd.slice([3, 4]))
+    -> returns a 1-D DataSlice that holds two dicts ({1: 3} and {2: 4})
+  dict('key', 12) -> returns a single dict mapping 'key'->12
 
-Args:
-  keys: a DataSlice with keys.
-  values: a DataSlice with values.
-  key_schema: the schema of the dict keys. If not specified, it will be
-    deduced from keys or defaulted to OBJECT.
-  value_schema: the schema of the dict values. If not specified, it will be
-    deduced from values or defaulted to OBJECT.
-  schema: the schema to use for the newly created Dict. If specified, then
-    key_schema and value_schema must not be specified.
-  itemid: ITEMID DataSlice used as ItemIds of the resulting lists.
+  Args:
+    items_or_keys: a Python dict in case of items and a DataSlice in case of
+      keys.
+    values: a DataSlice. If provided, `items_or_keys` must be a DataSlice as
+      keys.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: The schema to use for the newly created Dict. If specified, then
+        key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where dict(s) are created.
 
-Returns:
-  A DataSlice with the dict.
+  Returns:
+    A DataSlice with the dict.
 ```
 
-### `kd.core.dict_like(shape_and_mask_from, /, keys, values, *, key_schema, value_schema, schema, itemid)` {#kd.core.dict_like}
+### `kd.core.dict_like(shape_and_mask_from, /, items_or_keys, values, *, key_schema, value_schema, schema, itemid, db)` {#kd.core.dict_like}
 
 ``` {.no-copy}
 Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 
-If items_or_keys and values are not provided, creates empty dicts. Otherwise,
-the function assigns the given keys and values to the newly created dicts. So
-the keys and values must be either broadcastable to shape_and_mask_from
-shape, or one dimension higher.
+  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
+  the function assigns the given keys and values to the newly created dicts. So
+  the keys and values must be either broadcastable to shape_and_mask_from
+  shape, or one dimension higher.
 
-Args:
-  shape_and_mask_from: a DataSlice with the shape and sparsity for the desired
-    dicts.
-  keys: a DataSlice with keys.
-  values: a DataSlice of values.
-  key_schema: the schema of the dict keys. If not specified, it will be
-    deduced from keys or defaulted to OBJECT.
-  value_schema: the schema of the dict values. If not specified, it will be
-    deduced from values or defaulted to OBJECT.
-  schema: the schema to use for the newly created Dict. If specified, then
-    key_schema and value_schema must not be specified.
-  itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+  Args:
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the
+      desired dicts.
+    items_or_keys: either a Python dict (if `values` is None) or a DataSlice
+      with keys. The Python dict case is supported only for scalar
+      shape_and_mask_from.
+    values: a DataSlice of values, when `items_or_keys` represents keys.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: The schema to use for the newly created Dict. If specified, then
+        key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where dicts are created.
 
-Returns:
-  A DataSlice with the dicts.
+  Returns:
+    A DataSlice with the dicts.
 ```
 
-### `kd.core.dict_shaped(shape, /, keys, values, *, key_schema, value_schema, schema, itemid)` {#kd.core.dict_shaped}
+### `kd.core.dict_shaped(shape, /, items_or_keys, values, key_schema, value_schema, schema, itemid, db)` {#kd.core.dict_shaped}
 
 ``` {.no-copy}
 Creates new Koda dicts with the given shape.
 
-If keys and values are not provided, creates empty dicts. Otherwise,
-the function assigns the given keys and values to the newly created dicts. So
-the keys and values must be either broadcastable to `shape` or one dimension
-higher.
+  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
+  the function assigns the given keys and values to the newly created dicts. So
+  the keys and values must be either broadcastable to `shape` or one dimension
+  higher.
 
-Args:
-  shape: the desired shape.
-  keys: a DataSlice with keys.
-  values: a DataSlice of values.
-  key_schema: the schema of the dict keys. If not specified, it will be
-    deduced from keys or defaulted to OBJECT.
-  value_schema: the schema of the dict values. If not specified, it will be
-    deduced from values or defaulted to OBJECT.
-  schema: the schema to use for the newly created Dict. If specified, then
-    key_schema and value_schema must not be specified.
-  itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+  Args:
+    shape: the desired shape.
+    items_or_keys: either a Python dict (if `values` is None) or a DataSlice
+      with keys. The Python dict case is supported only for scalar shape.
+    values: a DataSlice of values, when `items_or_keys` represents keys.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: The schema to use for the newly created Dict. If specified, then
+        key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: Optional DataBag where dicts are created.
 
-Returns:
-  A DataSlice with the dicts.
+  Returns:
+    A DataSlice with the dicts.
 ```
 
-### `kd.core.dict_shaped_as(shape_from, /, keys, values, *, key_schema, value_schema, schema, itemid)` {#kd.core.dict_shaped_as}
+### `kd.core.dict_shaped_as(shape_from, /, items_or_keys, values, key_schema, value_schema, schema, itemid, db)` {#kd.core.dict_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda dicts with shape of the given DataSlice.
 
-If keys and values are not provided, creates empty dicts. Otherwise,
-the function assigns the given keys and values to the newly created dicts. So
-the keys and values must be either broadcastable to `shape` or one dimension
-higher.
+  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
+  the function assigns the given keys and values to the newly created dicts. So
+  the keys and values must be either broadcastable to `shape` or one dimension
+  higher.
 
-Args:
-  shape_from: a DataSlice, whose shape the returned DataSlice will have.
-  keys: a DataSlice with keys.
-  values: a DataSlice of values.
-  key_schema: the schema of the dict keys. If not specified, it will be
-    deduced from keys or defaulted to OBJECT.
-  value_schema: the schema of the dict values. If not specified, it will be
-    deduced from values or defaulted to OBJECT.
-  schema: the schema to use for the newly created Dict. If specified, then
-    key_schema and value_schema must not be specified.
-  itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+  Args:
+    shape_from: mandatory DataSlice, whose shape the returned DataSlice will
+      have.
+    items_or_keys: either a Python dict (if `values` is None) or a DataSlice
+      with keys. The Python dict case is supported only for scalar shape.
+    values: a DataSlice of values, when `items_or_keys` represents keys.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: The schema to use for the newly created Dict. If specified, then
+      key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: Optional DataBag where dicts are created.
 
-Returns:
-  A DataSlice with the dicts.
+  Returns:
+    A DataSlice with the dicts.
 ```
 
 ### `kd.core.dict_size(dict_slice)` {#kd.core.dict_size}
@@ -888,6 +956,42 @@ Args:
   x: DataSlice of dicts to update.
   keys: A DataSlice of keys, or a DataSlice of dicts of updates.
   values: A DataSlice of values, or unspecified if `keys` contains dicts.
+```
+
+### `kd.core.empty_shaped(shape, /, *, schema, db)` {#kd.core.empty_shaped}
+
+``` {.no-copy}
+Creates a DataSlice of missing items with the given shape.
+
+  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
+  created and attached to the resulting DataSlice and `schema` is adopted into
+  the DataBag.
+
+  Args:
+    shape: Shape of the resulting DataSlice.
+    schema: optional schema of the resulting DataSlice.
+    db: optional DataBag to hold the schema if applicable.
+
+  Returns:
+    A DataSlice with the given shape.
+```
+
+### `kd.core.empty_shaped_as(shape_from, /, *, schema, db)` {#kd.core.empty_shaped_as}
+
+``` {.no-copy}
+Creates a DataSlice of missing items with the shape of `shape_from`.
+
+  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
+  created and attached to the resulting DataSlice and `schema` is adopted into
+  the DataBag.
+
+  Args:
+    shape_from: used for the shape of the resulting DataSlice.
+    schema: optional schema of the resulting DataSlice.
+    db: optional DataBag to hold the schema if applicable.
+
+  Returns:
+    A DataSlice with the shape of the given DataSlice.
 ```
 
 ### `kd.core.encode_itemid(ds)` {#kd.core.encode_itemid}
@@ -1437,29 +1541,34 @@ Returns:
   A DataSlice of INT64 hash values.
 ```
 
-### `kd.core.implode(x, ndim)` {#kd.core.implode}
+### `kd.core.implode(x, /, ndim, db)` {#kd.core.implode}
 
 ``` {.no-copy}
 Implodes a Dataslice `x` a specified number of times.
 
-A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
-DataSlice of LIST[T], by folding the items in the last dimension of the
-original DataSlice into newly-created Lists.
+  A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
+  DataSlice of LIST[T], by folding the items in the last dimension of the
+  original DataSlice into newly-created Lists.
 
-A single list implosion is equivalent to `kd.list(x, db)`.
+  A single list implosion is equivalent to `kd.list(x, db)`.
 
-If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
+  If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
 
-If `ndim` is set to a negative integer, implodes as many times as possible,
-until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
-nested List.
+  If `ndim` is set to a negative integer, implodes as many times as possible,
+  until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
+  nested List.
 
-Args:
-  x: the DataSlice to implode
-  ndim: the number of implosion operations to perform
+  The specified `db` is used to create any new Lists, and is the DataBag of the
+  result DataSlice. If `db` is not specified, a new DataBag is created for this
+  purpose.
 
-Returns:
-  DataSlice of nested Lists
+  Args:
+    x: the DataSlice to implode
+    ndim: the number of implosion operations to perform
+    db: optional DataBag where Lists are created from
+
+  Returns:
+    DataSlice of nested Lists
 ```
 
 ### `kd.core.index(x, dim)` {#kd.core.index}
@@ -1691,85 +1800,97 @@ Returns:
 Returns a DataItem indicating whether DataItem x is present in y.
 ```
 
-### `kd.core.list(items, /, *, item_schema, schema, itemid)` {#kd.core.list}
+### `kd.core.list(items, *, item_schema, schema, itemid, db)` {#kd.core.list}
 
 ``` {.no-copy}
 Creates list(s) by collapsing `items`.
 
-If there is no argument, returns an empty Koda List. If the argument is a
-DataSlice, creates a DataSlice of Koda Lists.
+  If there is no argument, returns an empty Koda List.
+  If the argument is a DataSlice, creates a slice of Koda Lists.
+  If the argument is a Python list, creates a nested Koda List.
 
-Args:
-  items: items of the resulting lists. If not specified, an empty list of
-    OBJECTs will be created.
-  item_schema: optional schema of the list items. If not specified, it will be
-    deduced from `items` or defaulted to OBJECT.
-  schema: optional schema to use for the list. If specified, then item_schema
-    must not be specified.
-  itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+  Examples:
+  list() -> a single empty Koda List
+  list([1, 2, 3]) -> Koda List with items 1, 2, 3
+  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
+  list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
+  list(kd.slice([[1, 2, 3], [4, 5]]))
+    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
 
-Returns:
-  The DataSlice with list/lists.
+  Args:
+    items: The items to use. If not specified, an empty list of OBJECTs will be
+      created.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where list(s) are created.
+
+  Returns:
+    The slice with list/lists.
 ```
 
-### `kd.core.list_like(shape_and_mask_from, /, items, *, item_schema, schema, itemid)` {#kd.core.list_like}
+### `kd.core.list_like(shape_and_mask_from, /, items, *, item_schema, schema, itemid, db)` {#kd.core.list_like}
 
 ``` {.no-copy}
 Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
-Args:
-  shape_and_mask_from: a DataSlice with the shape and sparsity for the
-    desired lists.
-  items: optional items to assign to the newly created lists. If not
-    given, the function returns empty lists.
-  item_schema: the schema of the list items. If not specified, it will be
-    deduced from `items` or defaulted to OBJECT.
-  schema: The schema to use for the list. If specified, then item_schema must
-    not be specified.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+  Args:
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the
+      desired lists.
+    items: optional items to assign to the newly created lists. If not
+      given, the function returns empty lists.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where lists are created.
 
-Returns:
-  A DataSlice with the lists.
+  Returns:
+    A DataSlice with the lists.
 ```
 
-### `kd.core.list_shaped(shape, /, items, *, item_schema, schema, itemid)` {#kd.core.list_shaped}
+### `kd.core.list_shaped(shape, /, items, *, item_schema, schema, itemid, db)` {#kd.core.list_shaped}
 
 ``` {.no-copy}
 Creates new Koda lists with the given shape.
 
-Args:
-  shape: the desired shape.
-  items: optional items to assign to the newly created lists. If not
-    given, the function returns empty lists.
-  item_schema: the schema of the list items. If not specified, it will be
-    deduced from `items` or defaulted to OBJECT.
-  schema: The schema to use for the list. If specified, then item_schema must
-    not be specified.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-  db: optional DataBag where lists are created.
+  Args:
+    shape: the desired shape.
+    items: optional items to assign to the newly created lists. If not
+      given, the function returns empty lists.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where lists are created.
 
-Returns:
-  A DataSlice with the lists.
+  Returns:
+    A DataSlice with the lists.
 ```
 
-### `kd.core.list_shaped_as(shape_from, /, items, *, item_schema, schema, itemid)` {#kd.core.list_shaped_as}
+### `kd.core.list_shaped_as(shape_from, /, items, *, item_schema, schema, itemid, db)` {#kd.core.list_shaped_as}
 
 ``` {.no-copy}
-Creates new Koda lists with the shape of the given DataSlice.
+Creates new Koda lists with shape of the given DataSlice.
 
-Args:
-  shape_from: DataSlice of the desired shape.
-  items: optional items to assign to the newly created lists. If not
-    given, the function returns empty lists.
-  item_schema: the schema of the list items. If not specified, it will be
-    deduced from `items` or defaulted to OBJECT.
-  schema: The schema to use for the list. If specified, then item_schema must
-    not be specified.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-  db: optional DataBag where lists are created.
+  Args:
+    shape_from: mandatory DataSlice, whose shape the returned DataSlice will
+      have.
+    items: optional items to assign to the newly created lists. If not given,
+      the function returns empty lists.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where lists are created.
 
-Returns:
-  A DataSlice with the lists.
+  Returns:
+    A DataSlice with the lists.
 ```
 
 ### `kd.core.list_size(list_slice)` {#kd.core.list_size}
@@ -1784,91 +1905,95 @@ Returns size of a List.
 A shortcut for kde.get_attr(x, attr_name, default=None).
 ```
 
-### `kd.core.new(arg, /, *, schema, update_schema, itemid, **attrs)` {#kd.core.new}
+### `kd.core.new(arg, /, *, schema, update_schema, itemid, db, **attrs)` {#kd.core.new}
 
 ``` {.no-copy}
 Creates Entities with given attrs.
 
-First argument `arg` is used for interface consistency with its eager version.
-Reports that eager version should be used for converting Python objects into
-Koda Entities.
+  Args:
+    arg: optional Python object to be converted to an Entity.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+      itemid will only be set when the args is not a primitive or primitive
+      slice if args present.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
 
-Args:
-  arg: should keep the default arolla.unspecified() value.
-  schema: optional DataSlice schema. If not specified, a new explicit schema
-    will be automatically created based on the schemas of the passed **attrs.
-    Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
-    kd.ANY schema instead.
-  update_schema: if schema attribute is missing and the attribute is being set
-    through `attrs`, schema is successfully updated.
-  itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    itemid will only be set when the args is not a primitive or primitive
-    DataSlice if args present.
-  **attrs: attrs to set in the returned Entity.
-
-Returns:
-  data_slice.DataSlice with the given attrs.
+  Returns:
+    data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.new_like(shape_and_mask_from, /, *, schema, update_schema, itemid, **attrs)` {#kd.core.new_like}
+### `kd.core.new_like(shape_and_mask_from, /, *, schema, update_schema, itemid, db, **attrs)` {#kd.core.new_like}
 
 ``` {.no-copy}
 Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
-Args:
-  shape_and_mask_from: DataSlice, whose shape and sparsity the returned
-    DataSlice will have.
-  schema: optional DataSlice schema. If not specified, a new explicit schema
-    will be automatically created based on the schemas of the passed **attrs.
-    Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
-    kd.ANY schema instead.
-  update_schema: if schema attribute is missing and the attribute is being set
-    through `attrs`, schema is successfully updated.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
-  **attrs: attrs to set in the returned Entity.
+  Args:
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
 
-Returns:
-  data_slice.DataSlice with the given attrs.
+  Returns:
+    data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.new_shaped(shape, /, *, schema, update_schema, itemid, **attrs)` {#kd.core.new_shaped}
+### `kd.core.new_shaped(shape, /, *, schema, update_schema, itemid, db, **attrs)` {#kd.core.new_shaped}
 
 ``` {.no-copy}
 Creates new Entities with the given shape.
 
-Args:
-  shape: JaggedShape that the returned DataSlice will have.
-  schema: optional DataSlice schema. If not specified, a new explicit schema
-    will be automatically created based on the schemas of the passed **attrs.
-    Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
-    kd.ANY schema instead.
-  update_schema: if schema attribute is missing and the attribute is being set
-    through `attrs`, schema is successfully updated.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
-  **attrs: attrs to set in the returned Entity.
+  Args:
+    shape: JaggedShape that the returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
 
-Returns:
-  data_slice.DataSlice with the given attrs.
+  Returns:
+    data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.new_shaped_as(shape_from, /, *, schema, update_schema, itemid, **attrs)` {#kd.core.new_shaped_as}
+### `kd.core.new_shaped_as(shape_from, /, *, schema, update_schema, itemid, db, **attrs)` {#kd.core.new_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda entities with shape of the given DataSlice.
 
-Args:
-  shape_from: DataSlice, whose shape the returned DataSlice will have.
-  schema: optional DataSlice schema. If not specified, a new explicit schema
-    will be automatically created based on the schemas of the passed **attrs.
-    Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
-    kd.ANY schema instead.
-  update_schema: if schema attribute is missing and the attribute is being set
-    through `attrs`, schema is successfully updated.
-  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
-  **attrs: attrs to set in the returned Entity.
+  Args:
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
 
-Returns:
-  data_slice.DataSlice with the given attrs.
+  Returns:
+    data_slice.DataSlice with the given attrs.
 ```
 
 ### `kd.core.no_bag(ds)` {#kd.core.no_bag}
@@ -1911,74 +2036,75 @@ Args:
   schema: Schema DataSlice to wrap.
 ```
 
-### `kd.core.obj(arg, /, *, itemid, **attrs)` {#kd.core.obj}
+### `kd.core.obj(arg, /, *, itemid, db, **attrs)` {#kd.core.obj}
 
 ``` {.no-copy}
 Creates new Objects with an implicit stored schema.
 
-Returned DataSlice has OBJECT schema.
+  Returned DataSlice has OBJECT schema.
 
-Args:
-  arg: optional Python object to be converted to an Object.
-  itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    ItemIds will only be set when the args is not a primitive or primitive
-    DataSlice.
-  **attrs: attrs to set on the returned object.
+  Args:
+    arg: optional Python object to be converted to an Object.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+      itemid will only be set when the args is not a primitive or primitive
+      slice if args presents.
+    db: optional DataBag where object are created.
+    **attrs: attrs to set on the returned object.
 
-Returns:
-  data_slice.DataSlice with the given attrs and kd.OBJECT schema.
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
 ```
 
-### `kd.core.obj_like(shape_and_mask_from, /, *, itemid, **attrs)` {#kd.core.obj_like}
+### `kd.core.obj_like(shape_and_mask_from, /, *, itemid, db, **attrs)` {#kd.core.obj_like}
 
 ``` {.no-copy}
-Returns a new DataSlice with object schema and the shape and mask of given DataSlice.
+Creates Objects with shape and sparsity from shape_and_mask_from.
 
-Please note the difference to obj_shaped_as:
+  Returned DataSlice has OBJECT schema.
 
-x = kde.obj_like(ds([None, None]), a=42).eval()
-  kde.has._eval(x) # => ds([None, None], schema_constants.MASK)
-  x.a # => ds([None, None], schema_constants.OBJECT)
+  Args:
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
 
-Args:
-  shape_and_mask_from: DataSlice to copy the shape and mask from.
-  itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-  attrs: attrs to set on the returned object.
-
-Returns:
-  data_slice.DataSlice with the given attrs and kd.OBJECT schema.
+  Returns:
+    data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.obj_shaped(shape, /, *, itemid, **attrs)` {#kd.core.obj_shaped}
+### `kd.core.obj_shaped(shape, /, *, itemid, db, **attrs)` {#kd.core.obj_shaped}
 
 ``` {.no-copy}
 Creates Objects with the given shape.
 
-Returned DataSlice has OBJECT schema.
+  Returned DataSlice has OBJECT schema.
 
-Args:
-  shape: JaggedShape that the returned DataSlice will have.
-  itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-  **attrs: attrs to set in the returned Entity.
+  Args:
+    shape: JaggedShape that the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
 
-Returns:
-  data_slice.DataSlice with the given attrs.
+  Returns:
+    data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.obj_shaped_as(shape_from, /, *, itemid, **attrs)` {#kd.core.obj_shaped_as}
+### `kd.core.obj_shaped_as(shape_from, /, *, itemid, db, **attrs)` {#kd.core.obj_shaped_as}
 
 ``` {.no-copy}
 Creates Objects with the shape of the given DataSlice.
 
-Returned DataSlice has OBJECT schema.
+  Returned DataSlice has OBJECT schema.
 
-Args:
-  shape_from: DataSlice, whose shape the returned DataSlice will have.
-  itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-  **attrs: attrs to set in the returned Entity.
+  Args:
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
 
-Returns:
-  data_slice.DataSlice with the given attrs.
+  Returns:
+    data_slice.DataSlice with the given attrs.
 ```
 
 ### `kd.core.ordinal_rank(x, tie_breaker, descending, ndim)` {#kd.core.ordinal_rank}
@@ -2773,26 +2899,24 @@ Returns:
   An immutable DataBag updated by `bags`.
 ```
 
-### `kd.core.uu(seed, *, schema, update_schema, **kwargs)` {#kd.core.uu}
+### `kd.core.uu(seed, *, schema, update_schema, db, **attrs)` {#kd.core.uu}
 
 ``` {.no-copy}
-Creates Entities whose ids are uuid(s) with the provided attributes.
+Creates UuEntities with given attrs.
 
-In order to create a different id from the same arguments, use
-`seed` argument with the desired value.
+  Args:
+    seed: string to seed the uuid computation with.
+    schema: optional DataSlice schema. If not specified, a UuSchema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead.
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
 
-Args:
-  seed: text seed for the uuid computation.
-  schema: shared schema of created entities.
-  update_schema: if True, overwrite the provided schema with the schema
-    derived from the keyword values in the resulting Databag.
-  kwargs: DataSlice kwargs defining the attributes of the entities. The
-    DataSlice values must be alignable.
-
-Returns:
-  (DataSlice) of uuids. The provided attributes are also set in a newly
-  created databag. The shape of this DataSlice is the result of aligning the
-  shapes of the kwarg DataSlices.
+  Returns:
+    data_slice.DataSlice with the given attrs.
 ```
 
 ### `kd.core.uuid(seed, **kwargs)` {#kd.core.uuid}
@@ -2870,31 +2994,31 @@ Returns:
   A 1-dimensional DataSlice with `size` distinct uuids.
 ```
 
-### `kd.core.uuobj(seed, **kwargs)` {#kd.core.uuobj}
+### `kd.core.uuobj(seed, *, db, **attrs)` {#kd.core.uuobj}
 
 ``` {.no-copy}
-Creates Object(s) whose ids are uuid(s) with the provided attributes.
+Creates object(s) whose ids are uuid(s) with the provided attributes.
 
-In order to create a different id from the same arguments, use
-`seed` argument with the desired value, e.g.
+  In order to create a different "Type" from the same arguments, use
+  `seed` key with the desired value, e.g.
 
-kd.uuobj(seed='type_1', x=[1, 2, 3], y=[4, 5, 6])
+  kd.uuobj(seed='type_1', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 
-and
+  and
 
-kd.uuobj(seed='type_2', x=[1, 2, 3], y=[4, 5, 6])
+  kd.uuobj(seed='type_2', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 
-have different ids.
+  have different ids.
 
-Args:
-  seed: text seed for the uuid computation.
-  kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
-    values must be alignable.
+  Args:
+    seed: (str) Allows different uuobj(s) to have different ids when created
+      from the same inputs.
+    db: optional DataBag where entities are created.
+    **attrs: key-value pairs of object attributes where values are DataSlices
+      or can be converted to DataSlices using kd.new / kd.obj.
 
-Returns:
-  (DataSlice) of uuids. The provided attributes are also set in a newly
-  created databag. The shape of this DataSlice is the result of aligning the
-  shapes of the kwarg DataSlices.
+  Returns:
+    data_slice.DataSlice
 ```
 
 ### `kd.core.val_like(x, val)` {#kd.core.val_like}
@@ -3046,28 +3170,100 @@ Returns:
 
 ### kd.functor {#kd.functor}
 
-Operators to call functors.
+Operators to create and call functors.
 
 <section class="zippy closed">
 
 **Operators**
+
+### `kd.functor.allow_arbitrary_unused_inputs(fn_def)` {#kd.functor.allow_arbitrary_unused_inputs}
+
+``` {.no-copy}
+Returns a functor that allows unused inputs but otherwise behaves the same.
+
+  This is done by adding a `**__extra_inputs__` argument to the signature if
+  there is no existing variadic keyword argument there. If there is a variadic
+  keyword argument, this function will return the original functor.
+
+  This means that if the functor already accepts arbitrary inputs but fails
+  on unknown inputs further down the line (for example, when calling another
+  functor), this method will not fix it. In particular, this method has no
+  effect on the return values of kd.py_fn or kd.bind. It does however work
+  on the output of kd.trace_py_fn.
+
+  Args:
+    fn_def: The input functor.
+
+  Returns:
+    The input functor if it already has a variadic keyword argument, or its copy
+    but with an additional `**__extra_inputs__` variadic keyword argument if
+    there is no existing variadic keyword argument.
+```
+
+### `kd.functor.as_fn(f, *, use_tracing, **kwargs)` {#kd.functor.as_fn}
+
+``` {.no-copy}
+A deprecated alias for kd.fn.
+```
+
+### `kd.functor.bind(fn_def, /, *, return_type_as, **kwargs)` {#kd.functor.bind}
+
+``` {.no-copy}
+Returns a Koda functor that partially binds a function to `kwargs`.
+
+  This function is intended to work the same as functools.partial in Python.
+  More specifically, for every "k=something" argument that you pass to this
+  function, whenever the resulting functor is called, if the user did not
+  provide "k=something_else" at call time, we will add "k=something".
+
+  Note that you can only provide defaults for the arguments passed as keyword
+  arguments this way. Positional arguments must still be provided at call time.
+  Moreover, if the user provides a value for a positional-or-keyword argument
+  positionally, and it was previously bound using this method, an exception
+  will occur.
+
+  You can pass expressions with their own inputs as values in `kwargs`. Those
+  inputs will become inputs of the resulting functor, will be used to compute
+  those expressions, _and_ they will also be passed to the underying functor.
+  Use kd.functor.call_fn for a more clear separation of those inputs.
+
+  Example:
+    f = kd.bind(kd.fn(I.x + I.y), x=0)
+    kd.call(f, y=1)  # 1
+
+  Args:
+    fn_def: A Koda functor.
+    return_type_as: The return type of the functor is expected to be the same as
+      the type of this value. This needs to be specified if the functor does not
+      return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
+      passed here.
+    **kwargs: Partial parameter binding. The values in this map may be Koda
+      expressions or DataItems. When they are expressions, they must evaluate to
+      a DataSlice/DataItem or a primitive that will be automatically wrapped
+      into a DataItem. This function creates auxiliary variables with names
+      starting with '_aux_fn', so it is not recommended to pass variables with
+      such names.
+
+  Returns:
+    A new Koda functor with some parameters bound.
+```
 
 ### `kd.functor.call(fn, *args, return_type_as, **kwargs)` {#kd.functor.call}
 
 ``` {.no-copy}
 Calls a functor.
 
-See the docstring of `kdf.fn` on how to create a functor.
+See the docstring of `kd.fn` on how to create a functor.
 
 Example:
-  kd.call(kdf.fn(I.x + I.y), x=2, y=3)
+  kd.call(kd.fn(I.x + I.y), x=2, y=3)
   # returns kd.item(5)
 
-  kde.call(I.fn, x=2, y=3).eval(fn=kdf.fn(I.x + I.y))
+  kde.call(I.fn, x=2, y=3).eval(fn=kd.fn(I.x + I.y))
   # returns kd.item(5)
 
 Args:
-  fn: The functor to be called, typically created via kdf.fn().
+  fn: The functor to be called, typically created via kd.fn().
   args: The positional arguments to pass to the call. Scalars will be
     auto-boxed to DataItems.
   return_type_as: The return type of the call is expected to be the same as
@@ -3080,6 +3276,224 @@ Args:
 
 Returns:
   The result of the call.
+```
+
+### `kd.functor.expr_fn(returns, *, signature, auto_variables, **variables)` {#kd.functor.expr_fn}
+
+``` {.no-copy}
+Creates a functor.
+
+  Args:
+    returns: What should calling a functor return. Will typically be an Expr to
+      be evaluated, but can also be a DataItem in which case calling will just
+      return this DataItem, or a primitive that will be wrapped as a DataItem.
+      When this is an Expr, it either must evaluate to a DataSlice/DataItem, or
+      the return_type_as= argument should be specified at kd.call time.
+    signature: The signature of the functor. Will be used to map from args/
+      kwargs passed at calling time to I.smth inputs of the expressions. When
+      None, the default signature will be created based on the inputs from the
+      expressions involved.
+    auto_variables: When true, we create additional variables automatically
+      based on the provided expressions for 'returns' and user-provided
+      variables. All non-scalar DataSlice literals become their own variables,
+      and all named subexpressions become their own variables. This helps
+      readability and manipulation of the resulting functor.
+    **variables: The variables of the functor. Each variable can either be an
+      expression to be evaluated, or a DataItem, or a primitive that will be
+      wrapped as a DataItem. The result of evaluating the variable can be
+      accessed as V.smth in other expressions.
+
+  Returns:
+    A DataItem representing the functor.
+```
+
+### `kd.functor.fn(f, *, use_tracing, **kwargs)` {#kd.functor.fn}
+
+``` {.no-copy}
+Returns a Koda functor representing `f`.
+
+  This is the most generic version of the functools builder functions.
+  It accepts all functools supported function types including python functions,
+  Koda Expr.
+
+  Args:
+    f: Python function, Koda Expr, Expr packed into a DataItem, or a Koda
+      functor (the latter will be just returned unchanged).
+    use_tracing: Whether tracing should be used for Python functions.
+    **kwargs: Either variables or defaults to pass to the function. See the
+      documentation of `expr_fn` and `py_fn` for more details.
+
+  Returns:
+    A Koda functor representing `f`.
+```
+
+### `kd.functor.fstr_fn(returns, **kwargs)` {#kd.functor.fstr_fn}
+
+``` {.no-copy}
+Returns a Koda functor from format string.
+
+  Format-string must be created via Python f-string syntax. It must contain at
+  least one formatted expression.
+
+  kwargs are used to assign values to the functor variables and can be used in
+  the formatted expression using V. syntax.
+
+  Each formatted expression must have custom format specification,
+  e.g. `{I.x:s}` or `{V.y:.2f}`.
+
+  Examples:
+    kd.call(fstr_fn(f'{I.x:s} {I.y:s}'), x=1, y=2)  # kd.slice('1 2')
+    kd.call(fstr_fn(f'{V.x:s} {I.y:s}', x=1), y=2)  # kd.slice('1 2')
+    kd.call(fstr_fn(f'{(I.x + I.y):s}'), x=1, y=2)  # kd.slice('3')
+    kd.call(fstr_fn('abc'))  # error - no substitutions
+    kd.call(fstr_fn('{I.x}'), x=1)  # error - format should be f-string
+
+  Args:
+    returns: A format string.
+    **kwargs: variable assignments.
+```
+
+### `kd.functor.get_signature(fn_def)` {#kd.functor.get_signature}
+
+``` {.no-copy}
+Retrieves the signature attached to the given functor.
+
+  Args:
+    fn_def: The functor to retrieve the signature for, or a slice thereof.
+
+  Returns:
+    The signature(s) attached to the functor(s).
+```
+
+### `kd.functor.is_fn(obj)` {#kd.functor.is_fn}
+
+``` {.no-copy}
+Checks if `obj` represents a functor.
+
+  Args:
+    obj: The value to check.
+
+  Returns:
+    kd.present if `obj` is a DataSlice representing a functor, kd.missing
+    otherwise (for example if obj has wrong type).
+```
+
+### `kd.functor.map_py_fn(f, *, schema, max_threads, ndim, **defaults)` {#kd.functor.map_py_fn}
+
+``` {.no-copy}
+Returns a Koda functor wrapping a python function for kd.map_py.
+
+  See kd.map_py for detailed APIs, and kd.py_fn for details about function
+  wrapping. schema, max_threads and ndims cannot be Koda Expr or Koda functor.
+
+  Args:
+    f: Python function.
+    schema: The schema to use for resulting DataSlice.
+    max_threads: maximum number of threads to use.
+    ndim: Dimensionality of items to pass to `f`.
+    **defaults: Keyword defaults to pass to the function. The values in this map
+      may be kde expressions, format strings, or 0-dim DataSlices. See the
+      docstring for py_fn for more details.
+```
+
+### `kd.functor.py_fn(f, *, return_type_as, **defaults)` {#kd.functor.py_fn}
+
+``` {.no-copy}
+Returns a Koda functor wrapping a python function.
+
+  This is the most flexible way to wrap a python function and is recommended
+  for large, complex code.
+
+  Functions wrapped with py_fn are not serializable.
+
+  Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
+  functor
+  will have exactly the same signature as the original function. In particular,
+  if the original function does not accept variadic keyword arguments and
+  and unknown argument is passed when calling the functor, an exception will
+  occur.
+
+  Args:
+    f: Python function. It is required that this function returns a
+      DataSlice/DataItem or a primitive that will be automatically wrapped into
+      a DataItem.
+    return_type_as: The return type of the function is expected to be the same
+      as the type of this value. This needs to be specified if the function does
+      not return a DataSlice/DataItem or a primitive that would be auto-boxed
+      into a DataItem. kd.types.DataSlice and kd.types.DataBag can also be
+      passed here.
+    **defaults: Keyword defaults to bind to the function. The values in this map
+      may be Koda expressions or DataItems (see docstring for kd.bind for more
+      details). Defaults can be overridden through kd.call arguments. **defaults
+      and inputs to kd.call will be combined and passed through to the function.
+      If a parameter that is not passed does not have a default value defined by
+      the function then an exception will occur.
+
+  Returns:
+    A DataItem representing the functor.
+```
+
+### `kd.functor.trace_as_fn(*, name, py_fn, return_type_as)` {#kd.functor.trace_as_fn}
+
+``` {.no-copy}
+A decorator to customize the tracing behavior for a particular function.
+
+  A function with this decorator is converted to an internally-stored functor.
+  In traced expressions that call the function, that functor is invoked as a
+  sub-functor via by 'kde.call', rather than the function being re-traced.
+  Additionally, the result of 'kde.call' is also assigned a name, so that
+  when auto_variables=True is used (which is the default in kd.trace_py_fn),
+  the functor for the decorated function will become an attribute of the
+  functor for the outer function being traced.
+
+  This can be used to avoid excessive re-tracing and recompilation of shared
+  python functions, to quickly add structure to the functor produced by tracing
+  for complex computations, or to conveniently embed a py_fn into a traced
+  expression.
+
+  This decorator is intended to be applied to standalone functions.
+
+  When applying it to a lambda, consider specifying an explicit name, otherwise
+  it will be called '<lambda>' or '<lambda>_0' etc, which is not very useful.
+
+  When applying it to a class method, it is likely to fail in tracing mode
+  because it will try to auto-box the class instance into an expr, which is
+  likely not supported.
+
+  When executing the resulting function in eager mode, we will evaluate the
+  underlying function directly instead of evaluating the functor, to have
+  nicer stack traces in case of an exception. However, we will still apply
+  the boxing rules on the returned value (for example, convert Python primitives
+  to DataItems), to better emulate what will happen in tracing mode.
+```
+
+### `kd.functor.trace_py_fn(f, *, auto_variables, **defaults)` {#kd.functor.trace_py_fn}
+
+``` {.no-copy}
+Returns a Koda functor created by tracing a given Python function.
+
+  When 'f' has variadic positional (*args) or variadic keyword
+  (**kwargs) arguments, their name must start with 'unused', and they
+  must actually be unused inside 'f'.
+  'f' must not use Python control flow operations such as if or for.
+
+  Args:
+    f: Python function.
+    auto_variables: When true, we create additional variables automatically
+      based on the traced expression. All DataSlice literals become their own
+      variables, and all named subexpressions become their own variables. This
+      helps readability and manipulation of the resulting functor. Note that
+      this defaults to True here, while it defaults to False in
+      kd.functor.expr_fn.
+    **defaults: Keyword defaults to bind to the function. The values in this map
+      may be Koda expressions or DataItems (see docstring for kd.bind for more
+      details). Defaults can be overridden through kd.call arguments. **defaults
+      and inputs to kd.call will be combined and passed through to the function.
+      If a parameter that is not passed does not have a default value defined by
+      the function then an exception will occur.
+
+  Returns:
+    A DataItem representing the functor.
 ```
 
 </section>
@@ -4262,10 +4676,19 @@ Args:
   schema: Schema to cast to. Must be a scalar.
 ```
 
-### `kd.schema.dict_schema(key_schema, value_schema)` {#kd.schema.dict_schema}
+### `kd.schema.dict_schema(key_schema, value_schema, db)` {#kd.schema.dict_schema}
 
 ``` {.no-copy}
-Returns a Dict schema with the provided `key_schema` and `value_schema`.
+Creates a dict schema in the given DataBag.
+
+  Args:
+    key_schema: schema of the keys in the list.
+    value_schema: schema of the values in the list.
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
+
+  Returns:
+    data_slice.DataSlice representing a dict schema.
 ```
 
 ### `kd.schema.get_dtype(ds)` {#kd.schema.get_dtype}
@@ -4416,48 +4839,81 @@ Returns true iff `x` is a List schema DataItem.
 Returns true iff `x` is a primitive schema DataItem.
 ```
 
-### `kd.schema.list_schema(item_schema)` {#kd.schema.list_schema}
+### `kd.schema.list_schema(item_schema, db)` {#kd.schema.list_schema}
 
 ``` {.no-copy}
-Returns a List schema with the provided `item_schema`.
+Creates a list schema in the given DataBag.
+
+  Args:
+    item_schema: schema of the items in the list.
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
+
+  Returns:
+    data_slice.DataSlice representing a list schema.
 ```
 
-### `kd.schema.named_schema(name)` {#kd.schema.named_schema}
+### `kd.schema.named_schema(name, *, db)` {#kd.schema.named_schema}
 
 ``` {.no-copy}
 Creates a named entity schema in the given DataBag.
 
-A named schema will have its item id derived only from its name, which means
-that two named schemas with the same name will have the same item id, even in
-different DataBags.
+  A named schema will have its item id derived only from its name, which means
+  that two named schemas with the same name will have the same ItemId, even in
+  different DataBags.
 
-Note that unlike other schema factories, this method does not take any attrs
-to avoid confisuion with the behavior of uu_schema. Please use
-named_schema(name).with_attrs(attrs) to create a named schema with attrs.
+  Note that unlike other schema factories, this method does not take any attrs
+  to avoid confisuion with the behavior of uu_schema. Please use
+  named_schema(name).with_attrs(attrs) to create a named schema with attrs.
 
-Currently the named schema does not put any triples into the provided
-DataBag, but that might change in the future. For example, we might want to
-store the schema name in the DataBag for printing.
+  Currently the named schema does not put any triples into the provided
+  DataBag, but that might change in the future. For example, we might want to
+  store the schema name in the DataBag for printing.
 
-Args:
-  name: The name to use to derive the item id of the schema.
+  Args:
+    name: The name to use to derive the item id of the schema.
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
 
-Returns:
-  data_slice.DataSlice with the item id of the required schema and kd.SCHEMA
-  schema, with a new immutable DataBag attached.
+  Returns:
+    data_slice.DataSlice with the ItemId of the required schema and kd.SCHEMA
+    schema.
 ```
 
-### `kd.schema.new_schema(**kwargs)` {#kd.schema.new_schema}
+### `kd.schema.new_schema(db, **attrs)` {#kd.schema.new_schema}
 
 ``` {.no-copy}
-Creates a new allocated schema.
+Creates new schema in the given DataBag.
 
-Args:
-  kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
-    values must be schemas themselves.
+  Args:
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
+    **attrs: attrs to set on the schema. Must be schemas.
 
-Returns:
-  (DataSlice) containing the schema id.
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
+```
+
+### `kd.schema.schema_from_py_type(tpe)` {#kd.schema.schema_from_py_type}
+
+``` {.no-copy}
+Creates a Koda schema corresponding to the given Python type.
+
+  This method supports the following Python types / type annotations
+  recursively:
+  - Primitive types: int, float, bool, str, bytes.
+  - Collections: list[...], dict[...].
+  - Unions: only "smth | None" or "Optional[smth]" is supported.
+  - Dataclasses.
+
+  Args:
+    tpe: The Python type to create a schema for.
+
+  Returns:
+    A Koda schema corresponding to the given Python type. The returned schema
+    is a uu-schema, in other words we always return the same output for the
+    same input. For dataclasses, we use the module name and the class name
+    to derive the itemid for the uu-schema.
 ```
 
 ### `kd.schema.to_any(x)` {#kd.schema.to_any}
@@ -4550,29 +5006,19 @@ Casts `x` to STRING using explicit (permissive) casting rules.
 Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
-### `kd.schema.uu_schema(seed, **kwargs)` {#kd.schema.uu_schema}
+### `kd.schema.uu_schema(seed, *, db, **attrs)` {#kd.schema.uu_schema}
 
 ``` {.no-copy}
-Creates a UUSchema, i.e. a schema keyed by a uuid.
+Creates a uu_schema in the given DataBag.
 
-In order to create a different id from the same arguments, use
-`seed` argument with the desired value, e.g.
+  Args:
+    seed: optional string to seed the uuid computation with.
+    db: optional DataBag where the schema is created. If not provided, a new
+      Databag is created.
+    **attrs: attrs to set on the schema. Must be schemas.
 
-kd.uu_schema(seed='type_1', x=kd.INT32, y=kd.FLOAT32)
-
-and
-
-kd.uu_schema(seed='type_2', x=kd.INT32, y=kd.FLOAT32)
-
-have different ids.
-
-Args:
-  seed: string seed for the uuid computation.
-  kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
-    values must be schemas themselves.
-
-Returns:
-  (DataSlice) containing the schema uuid.
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
 ```
 
 ### `kd.schema.with_schema(x, schema)` {#kd.schema.with_schema}
@@ -5058,48 +5504,47 @@ Returns:
   The formatted string.
 ```
 
-### `kd.strings.fstr(fstr, /)` {#kd.strings.fstr}
+### `kd.strings.fstr` {#kd.strings.fstr}
 
 ``` {.no-copy}
-Transforms Koda f-string into an expression.
+Evaluates Koladata f-string into DataSlice.
 
-f-string must be created via Python f-string syntax. It must contain at least
-one formatted DataSlice or Expression.
-Each DataSlice/Expression must have custom format specification,
-e.g. `{ds:s}` or `{expr:.2f}`.
-Find more about format specification in kde.strings.format docs.
+  f-string must be created via Python f-string syntax. It must contain at least
+  one formatted DataSlice.
+  Each DataSlice must have custom format specification,
+  e.g. `{ds:s}` or `{ds:.2f}`.
+  Find more about format specification in kd.strings.format docs.
 
-NOTE: `{ds:s}` can be used for any type to achieve default string conversion.
+  NOTE: `{ds:s}` can be used for any type to achieve default string conversion.
 
-Examples:
-  greeting_expr = kde.fstr(f'Hello, {I.countries:s}!')
+  Examples:
+    countries = kd.slice(['USA', 'Schweiz'])
+    kd.fstr(f'Hello, {countries:s}!')
+      # -> kd.slice(['Hello, USA!', 'Hello, Schweiz!'])
 
-  countries = kd.slice(['USA', 'Schweiz'])
-  kd.eval(greeting_expr, countries=countries)
-    # -> kd.slice(['Hello, USA!', 'Hello, Schweiz!'])
+    greetings = kd.slice(['Hello', 'Gruezi'])
+    kd.fstr(f'{greetings:s}, {countries:s}!')
+      # -> kd.slice(['Hello, USA!', 'Gruezi, Schweiz!'])
 
-  local_greetings = ds(['Hello', 'Gruezi'])
-  # Data slice is interpreted as literal.
-  local_greeting_expr = kde.fstr(
-      f'{local_greetings:s}, {I.countries:s}!'
-  )
-  kd.eval(local_greeting_expr, countries=countries)
-    # -> kd.slice(['Hello, USA!', 'Gruezi, Schweiz!'])
+    states = kd.slice([['California', 'Arizona', 'Nevada'], ['Zurich', 'Bern']])
+    kd.fstr(f'{greetings:s}, {states:s} in {countries:s}!')
+      # -> kd.slice([
+               ['Hello, California in USA!',
+                'Hello, Arizona in USA!',
+                'Hello, Nevada in USA!'],
+               ['Gruezi, Zurich in Schweiz!',
+                'Gruezi, Bern in Schweiz!']]),
 
-  price_expr = kde.fstr(
-      f'Lunch price in {I.countries:s} is {I.prices:.2f} {I.currencies:s}.')
-  kd.eval(price_expr,
-          countries=countries,
-          prices=kd.slice([35.5, 49.2]),
-          currencies=kd.slice(['USD', 'CHF']))
-    # -> kd.slice(['Lunch price in USA is 35.50 USD.',
-                   'Lunch price in Schweiz is 49.20 CHF.'])
+    prices = kd.slice([35.5, 49.2])
+    currencies = kd.slice(['USD', 'CHF'])
+    kd.fstr(f'Lunch price in {countries:s} is {prices:.2f} {currencies:s}.')
+      # -> kd.slice(['Lunch price in USA is 35.50 USD.',
+                     'Lunch price in Schweiz is 49.20 CHF.'])
 
-Args:
-  fmt: f-string to evaluate.
-
-Returns:
-  Expr that formats provided f-string.
+  Args:
+    s: f-string to evaluate.
+  Returns:
+    DataSlice with evaluated f-string.
 ```
 
 ### `kd.strings.join(*args)` {#kd.strings.join}
@@ -5474,252 +5919,6 @@ Returns a tuple-like object containing the given `*args`.
 </section>
 </section>
 
-## `kdf` operators {#kdf-ops_category}
-
-Operators under the `kdf` module used for Functor creation or miscellaneous
-utilities.
-
-<section class="zippy closed">
-
-**Operators**
-
-### `allow_arbitrary_unused_inputs(fn_def)` {#allow_arbitrary_unused_inputs}
-
-``` {.no-copy}
-Returns a functor that allows unused inputs but otherwise behaves the same.
-
-  This is done by adding a `**__extra_inputs__` argument to the signature if
-  there is no existing variadic keyword argument there. If there is a variadic
-  keyword argument, this function will return the original functor.
-
-  This means that if the functor already accepts arbitrary inputs but fails
-  on unknown inputs further down the line (for example, when calling another
-  functor), this method will not fix it. In particular, this method has no
-  effect on the return values of kdf.py_fn or kdf.bind. It does however work
-  on the output of kdf.trace_py_fn.
-
-  Args:
-    fn_def: The input functor.
-
-  Returns:
-    The input functor if it already has a variadic keyword argument, or its copy
-    but with an additional `**__extra_inputs__` variadic keyword argument if
-    there is no existing variadic keyword argument.
-```
-
-### `as_fn(f, *, use_tracing, **kwargs)` {#as_fn}
-
-``` {.no-copy}
-Returns a Koda functor representing `f`.
-
-  This is the most generic version of the kdf builder functions.
-  It accepts all kdf supported function types including python functions,
-  Koda Expr.
-
-  Args:
-    f: Python function, Koda Expr, Expr packed into a DataItem, or a Koda
-      functor (the latter will be just returned unchanged).
-    use_tracing: Whether tracing should be used for Python functions.
-    **kwargs: Either variables or defaults to pass to the function. See the
-      documentation of `fn` and `py_fn` for more details.
-
-  Returns:
-    A Koda functor representing `f`.
-```
-
-### `bind(fn_def, /, *, return_type_as, **kwargs)` {#bind}
-
-``` {.no-copy}
-Returns a Koda functor that partially binds a function to `kwargs`.
-
-  This function is intended to work the same as functools.partial in Python.
-  More specifically, for every "k=something" argument that you pass to this
-  function, whenever the resulting functor is called, if the user did not
-  provide "k=something_else" at call time, we will add "k=something".
-
-  Note that you can only provide defaults for the arguments passed as keyword
-  arguments this way. Positional arguments must still be provided at call time.
-  Moreover, if the user provides a value for a positional-or-keyword argument
-  positionally, and it was previously bound using this method, an exception
-  will occur.
-
-  You can pass expressions with their own inputs as values in `kwargs`. Those
-  inputs will become inputs of the resulting functor, will be used to compute
-  those expressions, _and_ they will also be passed to the underying functor.
-  Use kdf.call_fn for a more clear separation of those inputs.
-
-  Example:
-    f = kdf.bind(kdf.fn(I.x + I.y), x=0)
-    kd.call(f, y=1)  # 1
-
-  Args:
-    fn_def: A Koda functor.
-    return_type_as: The return type of the functor is expected to be the same as
-      the type of this value. This needs to be specified if the functor does not
-      return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
-      passed here.
-    **kwargs: Partial parameter binding. The values in this map may be Koda
-      expressions or DataItems. When they are expressions, they must evaluate to
-      a DataSlice/DataItem or a primitive that will be automatically wrapped
-      into a DataItem. This function creates auxiliary variables with names
-      starting with '_aux_fn', so it is not recommended to pass variables with
-      such names.
-
-  Returns:
-    A new Koda functor with some parameters bound.
-```
-
-### `fn(returns, *, signature, auto_variables, **variables)` {#fn}
-
-``` {.no-copy}
-Creates a functor.
-
-  Args:
-    returns: What should calling a functor return. Will typically be an Expr to
-      be evaluated, but can also be a DataItem in which case calling will just
-      return this DataItem, or a primitive that will be wrapped as a DataItem.
-      When this is an Expr, it either must evaluate to a DataSlice/DataItem, or
-      the return_type_as= argument should be specified at kd.call time.
-    signature: The signature of the functor. Will be used to map from args/
-      kwargs passed at calling time to I.smth inputs of the expressions. When
-      None, the default signature will be created based on the inputs from the
-      expressions involved.
-    auto_variables: When true, we create additional variables automatically
-      based on the provided expressions for 'returns' and user-provided
-      variables. All non-scalar DataSlice literals become their own variables,
-      and all named subexpressions become their own variables. This helps
-      readability and manipulation of the resulting functor.
-    **variables: The variables of the functor. Each variable can either be an
-      expression to be evaluated, or a DataItem, or a primitive that will be
-      wrapped as a DataItem. The result of evaluating the variable can be
-      accessed as V.smth in other expressions.
-
-  Returns:
-    A DataItem representing the functor.
-```
-
-### `fstr_fn(returns, **kwargs)` {#fstr_fn}
-
-``` {.no-copy}
-Returns a Koda functor from format string.
-
-  Format-string must be created via Python f-string syntax. It must contain at
-  least one formatted expression.
-
-  kwargs are used to assign values to the functor variables and can be used in
-  the formatted expression using V. syntax.
-
-  Each formatted expression must have custom format specification,
-  e.g. `{I.x:s}` or `{V.y:.2f}`.
-
-  Examples:
-    kd.call(fstr_fn(f'{I.x:s} {I.y:s}'), x=1, y=2)  # kd.slice('1 2')
-    kd.call(fstr_fn(f'{V.x:s} {I.y:s}', x=1), y=2)  # kd.slice('1 2')
-    kd.call(fstr_fn(f'{(I.x + I.y):s}'), x=1, y=2)  # kd.slice('3')
-    kd.call(fstr_fn('abc'))  # error - no substitutions
-    kd.call(fstr_fn('{I.x}'), x=1)  # error - format should be f-string
-
-  Args:
-    returns: A format string.
-    **kwargs: variable assignments.
-```
-
-### `get_signature(fn_def)` {#get_signature}
-
-``` {.no-copy}
-Retrieves the signature attached to the given functor.
-
-  Args:
-    fn_def: The functor to retrieve the signature for, or a slice thereof.
-
-  Returns:
-    The signature(s) attached to the functor(s).
-```
-
-### `map_py_fn(f, *, schema, max_threads, ndim, **defaults)` {#map_py_fn}
-
-``` {.no-copy}
-Returns a Koda functor wrapping a python function for kd.map_py.
-
-  See kd.map_py for detailed APIs, and kdf.py_fn for details about function
-  wrapping. schema, max_threads and ndims cannot be Koda Expr or Koda functor.
-
-  Args:
-    f: Python function.
-    schema: The schema to use for resulting DataSlice.
-    max_threads: maximum number of threads to use.
-    ndim: Dimensionality of items to pass to `f`.
-    **defaults: Keyword defaults to pass to the function. The values in this map
-      may be kde expressions, format strings, or 0-dim DataSlices. See the
-      docstring for py_fn for more details.
-```
-
-### `py_fn(f, *, return_type_as, **defaults)` {#py_fn}
-
-``` {.no-copy}
-Returns a Koda functor wrapping a python function.
-
-  This is the most flexible way to wrap a python function and is recommended
-  for large, complex code.
-
-  Functions wrapped with py_fn are not serializable.
-
-  Note that unlike the functors created by kdf.fn from an Expr, this functor
-  will have exactly the same signature as the original function. In particular,
-  if the original function does not accept variadic keyword arguments and
-  and unknown argument is passed when calling the functor, an exception will
-  occur.
-
-  Args:
-    f: Python function. It is required that this function returns a
-      DataSlice/DataItem or a primitive that will be automatically wrapped into
-      a DataItem.
-    return_type_as: The return type of the function is expected to be the same
-      as the type of this value. This needs to be specified if the function does
-      not return a DataSlice/DataItem or a primitive that would be auto-boxed
-      into a DataItem. kd.types.DataSlice and kd.types.DataBag can also be
-      passed here.
-    **defaults: Keyword defaults to bind to the function. The values in this map
-      may be Koda expressions or DataItems (see docstring for kdf.bind for more
-      details). Defaults can be overridden through kd.call arguments. **defaults
-      and inputs to kd.call will be combined and passed through to the function.
-      If a parameter that is not passed does not have a default value defined by
-      the function then an exception will occur.
-
-  Returns:
-    A DataItem representing the functor.
-```
-
-### `trace_py_fn(f, *, auto_variables, **defaults)` {#trace_py_fn}
-
-``` {.no-copy}
-Returns a Koda functor created by tracing a given Python function.
-
-  When 'f' has variadic positional (*args) or variadic keyword
-  (**kwargs) arguments, their name must start with 'unused', and they
-  must actually be unused inside 'f'.
-  'f' must not use Python control flow operations such as if or for.
-
-  Args:
-    f: Python function.
-    auto_variables: When true, we create additional variables automatically
-      based on the traced expression. All DataSlice literals become their own
-      variables, and all named subexpressions become their own variables. This
-      helps readability and manipulation of the resulting functor. Note that
-      this defaults to True here, while it defaults to False in kdf.fn.
-    **defaults: Keyword defaults to bind to the function. The values in this map
-      may be Koda expressions or DataItems (see docstring for kdf.bind for more
-      details). Defaults can be overridden through kd.call arguments. **defaults
-      and inputs to kd.call will be combined and passed through to the function.
-      If a parameter that is not passed does not have a default value defined by
-      the function then an exception will occur.
-
-  Returns:
-    A DataItem representing the functor.
-```
-
-</section>
-
 ## `kd_ext` operators {#kd-ext-ops_category}
 
 Operators under the `kd_ext.xxx` modules for extension utilities. Importing from
@@ -5764,13 +5963,19 @@ Returns a DataBag where only the selected items are present in child lists.
 ### `npkd.ds_from_np(arr)` {#npkd.ds_from_np}
 
 ``` {.no-copy}
-Converts a numpy array to a DataSlice.
+Deprecated alias for from_array.
 ```
 
 ### `npkd.ds_to_np(ds)` {#npkd.ds_to_np}
 
 ``` {.no-copy}
-Converts a DataSlice to a numpy array.
+Deprecated alias for to_array.
+```
+
+### `npkd.from_array(arr)` {#npkd.from_array}
+
+``` {.no-copy}
+Converts a numpy array to a DataSlice.
 ```
 
 ### `npkd.get_elements_indices_from_ds(ds)` {#npkd.get_elements_indices_from_ds}
@@ -5843,6 +6048,12 @@ Reshapes a DataSlice corresponding to the given indices.
 
   Returns:
     DataSlice reshaped based on the given indices.
+```
+
+### `npkd.to_array(ds)` {#npkd.to_array}
+
+``` {.no-copy}
+Converts a DataSlice to a numpy array.
 ```
 
 ### `pdkd.from_dataframe(df, as_obj)` {#pdkd.from_dataframe}
