@@ -69,19 +69,16 @@ class EvalOpTest(absltest.TestCase):
     testing.assert_equal(eval_op(op_identity, 1), ds(1))
 
   def test_op_with_hidden_seed(self):
-    @optools.as_lambda_operator(
-        'increase_counter', aux_policy=py_boxing.FULL_SIGNATURE_POLICY
+
+    @arolla.optools.as_py_function_operator(
+        'increase_counter',
+        qtype_inference_expr=arolla.UNIT,
+        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     )
     def increase_counter(_=py_boxing.hidden_seed()):
-      @arolla.optools.as_py_function_operator(
-          'impl', qtype_inference_expr=arolla.UNIT
-      )
-      def impl(_):
-        nonlocal counter
-        counter += 1
-        return arolla.unit()
-
-      return impl(_)
+      nonlocal counter
+      counter += 1
+      return arolla.unit()
 
     @optools.as_lambda_operator(
         'increase_counter_twice', aux_policy=py_boxing.FULL_SIGNATURE_POLICY

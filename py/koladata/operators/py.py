@@ -130,12 +130,15 @@ def _unwrap_optional_schema(
 
 
 @optools.add_to_registry(aliases=['kde.apply_py'])
-@optools.as_lambda_operator(
+@arolla.optools.as_py_function_operator(
     'kde.py.apply_py',
-    qtype_constraints=[
-        _expect_py_callable(P.fn),
-    ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    qtype_inference_expr=arolla.M.qtype.conditional_qtype(
+        P.return_type_as == arolla.UNSPECIFIED,
+        qtypes.DATA_SLICE,
+        P.return_type_as,
+    ),
+    qtype_constraints=[_expect_py_callable(P.fn)],
+    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def apply_py(
     fn,
@@ -164,32 +167,20 @@ def apply_py(
   Returns:
     Result of fn applied on the arguments.
   """
-
-  @arolla.optools.as_py_function_operator(
-      'kde.py.apply_py._impl',
-      qtype_inference_expr=arolla.M.qtype.conditional_qtype(
-          P.return_type_as == arolla.UNSPECIFIED,
-          qtypes.DATA_SLICE,
-          P.return_type_as,
-      ),
-  )
-  def impl(fn, args, return_type_as, kwargs):
-    fn = _unwrap_py_callable(fn, param_name='fn')
-    result = py_boxing.as_qvalue(fn(*args, **kwargs.as_dict()))
-    if return_type_as.qtype == arolla.UNSPECIFIED and not isinstance(
-        result, data_slice.DataSlice
-    ):
-      raise ValueError(
-          f'expected the result to have qtype DATA_SLICE, got {result.qtype};'
-          ' consider specifying the `return_type_as=` parameter'
-      )
-    return result
-
-  return impl(fn, args, return_type_as, kwargs)
+  fn = _unwrap_py_callable(fn, param_name='fn')
+  result = py_boxing.as_qvalue(fn(*args, **kwargs.as_dict()))  # pytype: disable=attribute-error
+  if return_type_as.qtype == arolla.UNSPECIFIED and not isinstance(
+      result, data_slice.DataSlice
+  ):
+    raise ValueError(
+        f'expected the result to have qtype DATA_SLICE, got {result.qtype};'
+        ' consider specifying the `return_type_as=` parameter'
+    )
+  return result
 
 
 @optools.add_to_registry(aliases=['kde.apply_py_on_cond'])
-@optools.as_lambda_operator(
+@arolla.optools.as_py_function_operator(
     'kde.py.apply_py_on_cond',
     qtype_constraints=[
         _expect_py_callable(P.yes_fn),
@@ -198,7 +189,8 @@ def apply_py(
         qtype_utils.expect_data_slice_args(P.args),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def apply_py_on_cond(
     yes_fn,
@@ -231,32 +223,25 @@ def apply_py_on_cond(
   Returns:
     The union of results of yes_fn and no_fn applied on filtered args.
   """
-
-  @arolla.optools.as_py_function_operator(
-      'kde.py.apply_py_on_cond._impl', qtype_inference_expr=qtypes.DATA_SLICE
+  yes_fn = _unwrap_py_callable(yes_fn, param_name='yes_fn')
+  no_fn = _unwrap_optional_py_callable(no_fn, param_name='no_fn')
+  args = tuple(args)
+  kwargs = kwargs.as_dict()  # pytype: disable=attribute-error
+  result = py_boxing.as_qvalue(
+      yes_fn(
+          *(x & cond for x in args),
+          **{k: v & cond for k, v in kwargs.items()},
+      )
   )
-  def impl(yes_fn, no_fn, cond, args, kwargs):
-    yes_fn = _unwrap_py_callable(yes_fn, param_name='yes_fn')
-    no_fn = _unwrap_optional_py_callable(no_fn, param_name='no_fn')
-    args = tuple(args)
-    kwargs = kwargs.as_dict()
-    result = py_boxing.as_qvalue(
-        yes_fn(
-            *(x & cond for x in args),
-            **{k: v & cond for k, v in kwargs.items()},
+  if no_fn is not None:
+    inv_cond = ~cond
+    result = result | py_boxing.as_qvalue(
+        no_fn(
+            *(x & inv_cond for x in args),
+            **{k: v & inv_cond for k, v in kwargs.items()},
         )
     )
-    if no_fn is not None:
-      inv_cond = ~cond
-      result = result | py_boxing.as_qvalue(
-          no_fn(
-              *(x & inv_cond for x in args),
-              **{k: v & inv_cond for k, v in kwargs.items()},
-          )
-      )
-    return result
-
-  return impl(yes_fn, no_fn, cond, args, kwargs)
+  return result
 
 
 @optools.add_to_registry(aliases=['kde.apply_py_on_selected'])
@@ -404,7 +389,7 @@ def _basic_map_py(
 # TODO: b/370978592 - Consider implementing this operator using kdf.map
 #   combined with kd.py_fn, especially if the performance is comparable.
 @optools.add_to_registry(aliases=['kde.map_py'])
-@optools.as_lambda_operator(
+@arolla.optools.as_py_function_operator(
     'kde.py.map_py',
     qtype_constraints=[
         _expect_py_callable(P.fn),
@@ -413,7 +398,8 @@ def _basic_map_py(
         _expect_optional_schema(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def map_py(
     fn,
@@ -493,38 +479,27 @@ def map_py(
   Returns:
     Result DataSlice.
   """
-
-  @arolla.optools.as_py_function_operator(
-      'kde.py.map_py._impl', qtype_inference_expr=qtypes.DATA_SLICE
-  )
-  def impl(
-      fn, args, schema, ndim, max_threads, item_completed_callback, kwargs
-  ):
-    fn = _unwrap_py_callable(fn, param_name='fn')
-    kwargs = kwargs.as_dict()
-    args = [*args, *kwargs.values()]
-    if not args:
-      raise TypeError('expected at least one input DataSlice, got none')
-    vcall = arolla.abc.vectorcall
-    kwnames = tuple(kwargs.keys())
-    return _basic_map_py(
-        lambda *task_args: vcall(fn, *task_args, kwnames),
-        *args,
-        schema=_unwrap_optional_schema(schema, param_name='schema'),
-        ndim=int(ndim),
-        max_threads=int(max_threads),
-        item_completed_callback=_unwrap_optional_py_callable(
-            item_completed_callback, param_name='item_completed_callback'
-        ),
-    )
-
-  return impl(
-      fn, args, schema, ndim, max_threads, item_completed_callback, kwargs
+  fn = _unwrap_py_callable(fn, param_name='fn')
+  kwargs = kwargs.as_dict()  # pytype: disable=attribute-error
+  args = [*args, *kwargs.values()]
+  if not args:
+    raise TypeError('expected at least one input DataSlice, got none')
+  vcall = arolla.abc.vectorcall
+  kwnames = tuple(kwargs.keys())
+  return _basic_map_py(
+      lambda *task_args: vcall(fn, *task_args, kwnames),
+      *args,
+      schema=_unwrap_optional_schema(schema, param_name='schema'),
+      ndim=int(ndim),
+      max_threads=int(max_threads),
+      item_completed_callback=_unwrap_optional_py_callable(
+          item_completed_callback, param_name='item_completed_callback'
+      ),
   )
 
 
 @optools.add_to_registry(aliases=['kde.map_py_on_cond'])
-@optools.as_lambda_operator(
+@arolla.optools.as_py_function_operator(
     'kde.py.map_py_on_cond',
     qtype_constraints=[
         _expect_py_callable(P.true_fn),
@@ -535,7 +510,8 @@ def map_py(
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def map_py_on_cond(
     true_fn,
@@ -575,71 +551,46 @@ def map_py_on_cond(
   Returns:
     Result DataSlice.
   """
-
-  @arolla.optools.as_py_function_operator(
-      'kde.py.map_py_on_cond._impl', qtype_inference_expr=qtypes.DATA_SLICE
-  )
-  def impl(
-      true_fn,
-      false_fn,
-      cond,
-      args,
-      schema,
-      max_threads,
-      item_completed_callback,
-      kwargs,
-  ):
-    true_fn = _unwrap_py_callable(true_fn, param_name='true_fn')
-    false_fn = _unwrap_optional_py_callable(false_fn, param_name='false_fn')
-    kwargs = kwargs.as_dict()
-    args = [*args, *kwargs.values()]
-    if not args:
-      raise TypeError('expected at least one input DataSlice, got none')
-    if cond.get_schema() != schema_constants.MASK:
-      raise ValueError(f'expected a mask, got cond: {cond.get_schema()}')
-    if cond.get_ndim() > max(arg.get_ndim() for arg in args):
-      raise ValueError(
-          "'cond' must have the same or smaller dimension than args + kwargs"
-      )
-    vcall = arolla.abc.vectorcall
-    kwnames = tuple(kwargs.keys())
-    if false_fn is None:
-      # Apply the cond mask to the arguments so that masked values don't need
-      # unboxing.
-      args = map(
-          lambda x: eval_op('kde.logical.apply_mask', x, cond),
-          args,
-      )
-      task_fn = (
-          lambda task_cond, *task_args: None
-          if task_cond is None
-          else vcall(true_fn, *task_args, kwnames)
-      )
-    else:
-      task_fn = lambda task_cond, *task_args: vcall(
-          false_fn if task_cond is None else true_fn, *task_args, kwnames
-      )
-    return _basic_map_py(
-        task_fn,
-        cond,
-        *args,
-        schema=_unwrap_optional_schema(schema, param_name='schema'),
-        ndim=0,
-        max_threads=int(max_threads),
-        item_completed_callback=_unwrap_optional_py_callable(
-            item_completed_callback, param_name='item_completed_callback'
-        ),
+  true_fn = _unwrap_py_callable(true_fn, param_name='true_fn')
+  false_fn = _unwrap_optional_py_callable(false_fn, param_name='false_fn')
+  kwargs = kwargs.as_dict()  # pytype: disable=attribute-error
+  args = [*args, *kwargs.values()]
+  if not args:
+    raise TypeError('expected at least one input DataSlice, got none')
+  if cond.get_schema() != schema_constants.MASK:
+    raise ValueError(f'expected a mask, got cond: {cond.get_schema()}')
+  if cond.get_ndim() > max(arg.get_ndim() for arg in args):
+    raise ValueError(
+        "'cond' must have the same or smaller dimension than args + kwargs"
     )
-
-  return impl(
-      true_fn,
-      false_fn,
+  vcall = arolla.abc.vectorcall
+  kwnames = tuple(kwargs.keys())
+  if false_fn is None:
+    # Apply the cond mask to the arguments so that masked values don't need
+    # unboxing.
+    args = map(
+        lambda x: eval_op('kde.logical.apply_mask', x, cond),
+        args,
+    )
+    task_fn = (
+        lambda task_cond, *task_args: None
+        if task_cond is None
+        else vcall(true_fn, *task_args, kwnames)
+    )
+  else:
+    task_fn = lambda task_cond, *task_args: vcall(
+        false_fn if task_cond is None else true_fn, *task_args, kwnames
+    )
+  return _basic_map_py(
+      task_fn,
       cond,
-      args,
-      schema,
-      max_threads,
-      item_completed_callback,
-      kwargs,
+      *args,
+      schema=_unwrap_optional_schema(schema, param_name='schema'),
+      ndim=0,
+      max_threads=int(max_threads),
+      item_completed_callback=_unwrap_optional_py_callable(
+          item_completed_callback, param_name='item_completed_callback'
+      ),
   )
 
 
@@ -705,7 +656,7 @@ def map_py_on_selected(
 
 
 @optools.add_to_registry(aliases=['kde.map_py_on_present'])
-@optools.as_lambda_operator(
+@arolla.optools.as_py_function_operator(
     'kde.py.map_py_on_present',
     qtype_constraints=[
         _expect_py_callable(P.fn),
@@ -714,7 +665,8 @@ def map_py_on_selected(
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def map_py_on_present(
     fn,
@@ -743,31 +695,24 @@ def map_py_on_present(
   Returns:
     Result DataSlice.
   """
-
-  @arolla.optools.as_py_function_operator(
-      'kde.py.map_py_on_present._impl', qtype_inference_expr=qtypes.DATA_SLICE
+  args = tuple(args)
+  kwargs = kwargs.as_dict()  # pytype: disable=attribute-error
+  if not args and not kwargs:
+    raise TypeError('expected at least one input DataSlice, got none')
+  cond = functools.reduce(
+      functools.partial(eval_op, 'kde.logical.mask_and'),
+      map(
+          functools.partial(eval_op, 'kde.logical.has'),
+          itertools.chain(args, kwargs.values()),
+      ),
   )
-  def impl(fn, args, schema, max_threads, item_completed_callback, kwargs):
-    args = tuple(args)
-    kwargs = kwargs.as_dict()
-    if not args and not kwargs:
-      raise TypeError('expected at least one input DataSlice, got none')
-    cond = functools.reduce(
-        functools.partial(eval_op, 'kde.logical.mask_and'),
-        map(
-            functools.partial(eval_op, 'kde.logical.has'),
-            itertools.chain(args, kwargs.values()),
-        ),
-    )
-    return eval_op(
-        map_py_on_selected,
-        fn,
-        cond,
-        *args,
-        schema=schema,
-        max_threads=max_threads,
-        item_completed_callback=item_completed_callback,
-        **kwargs,
-    )
-
-  return impl(fn, args, schema, max_threads, item_completed_callback, kwargs)
+  return eval_op(
+      map_py_on_selected,
+      fn,
+      cond,
+      *args,
+      schema=schema,
+      max_threads=max_threads,
+      item_completed_callback=item_completed_callback,
+      **kwargs,
+  )
