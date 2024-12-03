@@ -37,6 +37,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/strings/substitute.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/arolla_utils.h"
@@ -399,7 +400,7 @@ PyObjectsFromPyList(PyObject* py_list, AdoptionQueue& adoption_queue,
   lst_items.push_back(py_list);
   int cur_len = 1;
   int cur_depth = 0;
-  while (cur_len > 0 && (max_depth == 0 || ++cur_depth < max_depth)) {
+  while (cur_len > 0 && (max_depth == 0 || cur_depth < max_depth)) {
     std::vector<PyObject*> next_level_items;
     // There will be usually more than lst_items.size()/cur_len, but reserving
     // at least something. NOTE: This cannot be outside the loop, because of the
@@ -438,6 +439,14 @@ PyObjectsFromPyList(PyObject* py_list, AdoptionQueue& adoption_queue,
               arolla::CreateFullDenseArray<int64_t>(cur_split_points)));
       lst_items = std::move(next_level_items);
     }
+    if (is_list) {
+      ++cur_depth;
+    }
+  }
+  if (max_depth > 0 && cur_depth < max_depth) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "could not traverse the nested list of depth %d up to the level %d",
+        cur_depth, max_depth));
   }
   ASSIGN_OR_RETURN(DataSlice::JaggedShape shape,
                    DataSlice::JaggedShape::FromEdges(std::move(edges)));
@@ -718,9 +727,8 @@ class UniversalConverter {
       return std::move(value_stack_.top());
     }
 
-    ASSIGN_OR_RETURN(
-        (auto [py_objects, shape]),
-        PyObjectsFromPyList(py_obj, adoption_queue_, from_dim + 1));
+    ASSIGN_OR_RETURN((auto [py_objects, shape]),
+                     PyObjectsFromPyList(py_obj, adoption_queue_, from_dim));
     for (int i = 0; i < py_objects.size(); ++i) {
       cmd_stack_.push([this, py_obj = py_objects[i], &parse_schema] {
         return this->CmdConvertPyObject(py_obj, parse_schema);

@@ -321,6 +321,27 @@ class FromPyTest(absltest.TestCase):
     ):
       _ = fns.from_py(input_list, from_dim=2)
 
+    with self.assertRaisesRegex(
+        ValueError,
+        'could not traverse the nested list of depth 1 up to the level 12',
+    ):
+      _ = fns.from_py([1, 3.14], from_dim=12)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'could not traverse the nested list of depth 1 up to the level 2',
+    ):
+      _ = fns.from_py([], from_dim=2)
+
+    schema = fns.schema.new_schema(
+        a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        'could not traverse the nested list of depth 1 up to the level 2',
+    ):
+      _ = fns.from_py([], from_dim=2, schema=schema)
+
   def test_none(self):
     item = fns.from_py(None)
     testing.assert_equal(item, ds(None))
