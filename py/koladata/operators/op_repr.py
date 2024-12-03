@@ -81,7 +81,7 @@ def _full_signature_op_repr(
         param.default, arolla.abc.QValue
     ) or not py_boxing.is_param_marker(param.default):
       node_dep_reprs.append(tokens[dep].text)
-    elif py_boxing.is_hidden_seed(param.default[1]):
+    elif py_boxing.is_non_deterministic(param.default[1]):
       continue
     elif py_boxing.is_var_positional(param.default[1]):
       if repr_ := _full_signature_varargs_repr(dep, tokens):

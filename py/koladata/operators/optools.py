@@ -253,18 +253,18 @@ def as_lambda_operator(
     op_expr = _build_lambda_body_from_fn(fn)
 
     # If there is a `py_boxing.hidden_seed()`-marked param on the `fn`
-    # signature, use its value for the `py_boxing.HIDDEN_SEED_LEAF` leaf.
+    # signature, use its value for the `py_boxing.NON_DETERMINISTIC_TOKEN_LEAF`
+    # leaf.
     if aux_policy == py_boxing.FULL_SIGNATURE_POLICY:
-      hidden_seed_param = py_boxing.find_hidden_seed_param(
+      hidden_seed_param = py_boxing.find_non_deterministic_param(
           inspect.signature(fn)
       )
       if hidden_seed_param is not None:
         op_expr = arolla.abc.sub_by_fingerprint(
             op_expr,
             {
-                py_boxing.HIDDEN_SEED_LEAF.fingerprint: arolla.abc.placeholder(
-                    hidden_seed_param
-                )
+                py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint:
+                arolla.abc.placeholder(hidden_seed_param)
             },
         )
     return arolla.optools.make_lambda(
@@ -368,8 +368,9 @@ def as_unified_lambda_operator(
     )
     op_expr = _build_lambda_body_from_fn(fn)
     if deterministic:
-      if py_boxing.HIDDEN_SEED_LEAF.leaf_key in arolla.abc.get_leaf_keys(
-          op_expr
+      if (
+          py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.leaf_key in
+          arolla.abc.get_leaf_keys(op_expr)
       ):
         raise ValueError(
             'the lambda operator is based on a non-deterministic expression;'
@@ -384,7 +385,7 @@ def as_unified_lambda_operator(
       op_expr = arolla.abc.sub_by_fingerprint(
           op_expr,
           {
-              py_boxing.HIDDEN_SEED_LEAF.fingerprint: (
+              py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
                   unified_binding_policy.NON_DETERMINISTIC_PARAM
               )
           },

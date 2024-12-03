@@ -590,7 +590,7 @@ class OptoolsTest(parameterized.TestCase):
 
     @optools.as_unified_lambda_operator('op', deterministic=False)
     def op(x):
-      return x + counter_op(py_boxing.HIDDEN_SEED_LEAF)
+      return x + counter_op(py_boxing.NON_DETERMINISTIC_TOKEN_LEAF)
 
     self.assertNotEqual(op(I.x).fingerprint, op(I.x).fingerprint)
     testing.assert_equal(

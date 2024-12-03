@@ -123,7 +123,7 @@ absl::StatusOr<TransformedExpr> ReplaceInputsWithLeaves(
   auto transform_expr = [&res](arolla::expr::ExprNodePtr node)
       -> absl::StatusOr<arolla::expr::ExprNodePtr> {
     if (node->is_leaf()) {
-      if (node->leaf_key() != kNonDeterministicLeafKey) {
+      if (node->leaf_key() != kNonDeterministicTokenLeafKey) {
         return absl::InvalidArgumentError(
             absl::StrFormat("the inputs to kd.eval() must be specified as I.x, "
                             "but the provided expression has leaves: [%s, ...]",

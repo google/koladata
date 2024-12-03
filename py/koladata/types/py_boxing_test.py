@@ -558,17 +558,17 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         ),
     )
 
-  def test_hidden_seed_no_arguments(self):
+  def test_non_deterministic_no_arguments(self):
     @arolla.optools.as_py_function_operator(
         'py_fn',
         qtype_inference_expr=arolla.INT64,
         experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     )
-    def op(hidden_seed=py_boxing.hidden_seed()):
-      del hidden_seed
+    def op(non_deterministic=py_boxing.non_deterministic()):
+      del non_deterministic
       return py_boxing._random_int64()
 
-    # hidden_seed parameter is stripped from the Python signature.
+    # non_deterministic parameter is stripped from the Python signature.
     self.assertEqual(
         inspect.signature(op),
         inspect.signature(lambda: None),
@@ -589,7 +589,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         op().fingerprint,
     )
 
-  def test_hidden_seed_with_args(self):
+  def test_non_deterministic_with_args(self):
     @arolla.optools.as_lambda_operator(
         'op',
         experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -599,18 +599,18 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         args=py_boxing.var_positional(),
         y=py_boxing.keyword_only(),
         kwargs=py_boxing.var_keyword(),
-        hidden_seed=py_boxing.hidden_seed(),
+        non_deterministic=py_boxing.non_deterministic(),
     ):
-      _ = hidden_seed
+      _ = non_deterministic
       return arolla.M.core.make_tuple(x, args, y, kwargs)
 
-    # hidden_seed parameter is stripped from the Python signature.
+    # non_deterministic parameter is stripped from the Python signature.
     self.assertEqual(
         inspect.signature(op),
         inspect.signature(lambda x, *args, y, **kwargs: None),
     )
 
-    expr = op(1, 2, y=3, z=4, hidden_seed=5)
+    expr = op(1, 2, y=3, z=4, non_deterministic=5)
 
     testing.assert_equal(
         expr_eval.eval(expr),
@@ -618,7 +618,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
             ds(1),
             arolla.tuple(ds(2)),
             ds(3),
-            arolla.namedtuple(z=ds(4), hidden_seed=ds(5)),
+            arolla.namedtuple(z=ds(4), non_deterministic=ds(5)),
         ),
     )
 
@@ -637,8 +637,8 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         qtype_inference_expr=arolla.P.x,
         experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     )
-    def py_fn_with_seed(x, hidden_seed=py_boxing.hidden_seed()):
-      _ = hidden_seed
+    def py_fn_with_seed(x, non_deterministic=py_boxing.non_deterministic()):
+      _ = non_deterministic
       nonlocal num_calls
       num_calls += 1
       return x
@@ -648,8 +648,8 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         qtype_constraints=[],
         aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     )
-    def fn(x, hidden_seed=py_boxing.hidden_seed()):
-      _ = hidden_seed
+    def fn(x, non_deterministic=py_boxing.non_deterministic()):
+      _ = non_deterministic
       return py_fn_with_seed(x)
 
     i = input_container.InputContainer('I')
@@ -815,7 +815,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
     self.assertTrue(py_boxing.is_param_marker(py_boxing.var_positional()))
     self.assertTrue(py_boxing.is_param_marker(py_boxing.keyword_only()))
     self.assertTrue(py_boxing.is_param_marker(py_boxing.var_keyword()))
-    self.assertTrue(py_boxing.is_param_marker(py_boxing.hidden_seed()))
+    self.assertTrue(py_boxing.is_param_marker(py_boxing.non_deterministic()))
 
   def test_is_positional_only(self):
     self.assertFalse(py_boxing.is_positional_only(None))
@@ -852,10 +852,14 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
     self.assertTrue(py_boxing.is_var_keyword(py_boxing.var_keyword()[1]))
     self.assertFalse(py_boxing.is_var_keyword(py_boxing.positional_only()[1]))
 
-  def test_is_hidden_seed(self):
-    self.assertFalse(py_boxing.is_hidden_seed(None))
-    self.assertTrue(py_boxing.is_hidden_seed(py_boxing.hidden_seed()[1]))
-    self.assertFalse(py_boxing.is_hidden_seed(py_boxing.positional_only()[1]))
+  def test_is_non_deterministic(self):
+    self.assertFalse(py_boxing.is_non_deterministic(None))
+    self.assertTrue(
+        py_boxing.is_non_deterministic(py_boxing.non_deterministic()[1])
+    )
+    self.assertFalse(
+        py_boxing.is_non_deterministic(py_boxing.positional_only()[1])
+    )
 
   def test_is_non_deterministic_op(self):
     # (x, *args, y, z='z', **kwargs)
@@ -881,9 +885,9 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         args=py_boxing.var_positional(),
         y=py_boxing.keyword_only(),
         kwargs=py_boxing.var_keyword(),
-        hidden_seed=py_boxing.hidden_seed(),
+        non_deterministic=py_boxing.non_deterministic(),
     ):
-      _ = hidden_seed
+      _ = non_deterministic
       return arolla.M.core.make_tuple(x, args, y, kwargs)
 
     self.assertFalse(py_boxing.is_non_deterministic_op(op1))

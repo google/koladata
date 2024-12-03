@@ -23,7 +23,7 @@ from koladata.types import py_boxing
 _as_qvalue_or_expr = py_boxing.as_qvalue_or_expr
 _as_qvalue = py_boxing.as_qvalue
 _as_expr = py_boxing.as_expr
-_non_deterministic_leaf = py_boxing.HIDDEN_SEED_LEAF
+_non_deterministic_leaf = py_boxing.NON_DETERMINISTIC_TOKEN_LEAF
 
 
 UNIFIED_POLICY = 'koladata_unified_binding_policy'

@@ -30,8 +30,8 @@ namespace koladata::expr {
 
 // Name of the leaf used to pass a non-deterministic value to the expression.
 // This leaf is not visible in the expression and is not passed to "eval".
-constexpr absl::string_view kNonDeterministicLeafKey =
-    "_koladata_hidden_seed_leaf";
+constexpr absl::string_view kNonDeterministicTokenLeafKey =
+    "_koladata_non_deterministic_token_leaf";
 
 // Evaluates the given expression with the provided inputs and variables.
 // The expression must refer to inputs/variables via InputOperator, not via

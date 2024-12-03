@@ -77,7 +77,7 @@ _POSITIONAL_OR_KEYWORD_MARKER_TYPE = arolla.text('positional_or_keyword')
 _VAR_POSITIONAL_MARKER_TYPE = arolla.text('var_positional')
 _KEYWORD_ONLY_MARKER_TYPE = arolla.text('keyword_only')
 _VAR_KEYWORD_MARKER_TYPE = arolla.text('var_keyword')
-_HIDDEN_SEED_MARKER_TYPE = arolla.text('hidden_seed')
+_NON_DETERMINISTIC_MARKER_TYPE = arolla.text('non_deterministic')
 
 _NO_DEFAULT_VALUE = object()
 
@@ -160,9 +160,15 @@ def var_keyword(*, boxing_policy=DEFAULT_BOXING_POLICY) -> arolla.abc.QValue:
   )
 
 
+def non_deterministic() -> arolla.abc.QValue:
+  """Marks operator that has a parameter with this marker non-deterministic."""
+  return _make_param_marker(_NON_DETERMINISTIC_MARKER_TYPE)
+
+
+# TODO: Will be replaced with `non_deterministic = True` and thus
+# deleted from here.
 def hidden_seed() -> arolla.abc.QValue:
-  """Marks a parameter as a hidden seed parameter."""
-  return _make_param_marker(_HIDDEN_SEED_MARKER_TYPE)
+  return non_deterministic()
 
 
 def _unpack_param_marker(param: arolla.abc.SignatureParameter) -> tuple[
@@ -237,26 +243,28 @@ def is_var_keyword(marker_type: arolla.abc.QValue | None) -> bool:
   )
 
 
-def is_hidden_seed(marker_type: arolla.abc.QValue | None) -> bool:
+def is_non_deterministic(marker_type: arolla.abc.QValue | None) -> bool:
   return (
       marker_type is not None
-      and marker_type.fingerprint == _HIDDEN_SEED_MARKER_TYPE.fingerprint
+      and marker_type.fingerprint == _NON_DETERMINISTIC_MARKER_TYPE.fingerprint
   )
 
 
-def find_hidden_seed_param(signature: inspect.Signature) -> str | None:
-  """Returns name of the hidden seed param, or None if there isn't one."""
+def find_non_deterministic_param(signature: inspect.Signature) -> str | None:
+  """Returns name of the non_deterministic param, or None if there isn't one."""
   for param in signature.parameters.values():
     if (
         isinstance(param.default, arolla.QValue)
         and is_param_marker(param.default)
-        and is_hidden_seed(param.default[1])
+        and is_non_deterministic(param.default[1])
     ):
       return param.name
   return None
 
 
-HIDDEN_SEED_LEAF = arolla.abc.leaf(py_expr_eval_py_ext.HIDDEN_SEED_LEAF_KEY)
+NON_DETERMINISTIC_TOKEN_LEAF = arolla.abc.leaf(
+    py_expr_eval_py_ext.NON_DETERMINISTIC_TOKEN_LEAF_KEY
+)
 
 
 # Isolated PRNG instance. Global to avoid overhead of repeated instantiation.
@@ -268,9 +276,10 @@ def _random_int64() -> arolla.QValue:
 
 
 def new_non_deterministic_token() -> arolla.Expr:
-  """Returns a new unique value for argument marked with hidden_seed marker."""
+  """Returns a new unique value for argument marked with non_deterministic marker."""
   return arolla.abc.bind_op(
-      'koda_internal.non_deterministic', HIDDEN_SEED_LEAF, _random_int64()
+      'koda_internal.non_deterministic',
+      NON_DETERMINISTIC_TOKEN_LEAF, _random_int64()
   )
 
 
@@ -342,7 +351,7 @@ def is_non_deterministic_op(op: arolla.abc.RegisteredOperator) -> bool:
   sig = arolla.abc.get_operator_signature(op)
   for param in sig.parameters:
     marker_type, _, _ = _unpack_param_marker(param)
-    if is_hidden_seed(marker_type):
+    if is_non_deterministic(marker_type):
       return True
   return False
 
@@ -412,9 +421,9 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
     an optional default value. Even though this is the default behavior, it may
     be necessary because earlier arguments in the signature have default values
     used for markers.
-  - `hidden_seed()` marks a parameter as a hidden seed parameter, which will
-    be removed from the Python signature, and will be populated with a unique
-    Arolla int64 value on every invocation.
+  - `hidden_seed()` marks a parameter as a non_deterministic parameter, which
+    will be removed from the Python signature, and will be populated with a
+    unique Arolla int64 value on every invocation.
 
   The implied Python signature must be a valid Python signature (`**kwargs`
   must be last, args after `*` must be keyword-only, etc.)
@@ -465,10 +474,10 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
         else:
           # positional-or-keyword (before var-positional)
           python_param_kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
-      elif is_hidden_seed(marker_type):
-        # Strip hidden_seed params from the Python signature. These params will
-        # be automatically populated by bind_arguments, and we don't want the
-        # caller to accidentally pass in a value (which would be ignored).
+      elif is_non_deterministic(marker_type):
+        # Strip non_deterministic params from the Python signature. These params
+        # will be automatically populated by bind_arguments, and we don't want
+        # the caller to accidentally pass in a value (which would be ignored).
         continue
       else:
         raise ValueError(f'unknown param marker type {marker_type}')
@@ -548,7 +557,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
               )
           )
         kwargs.clear()
-      elif is_hidden_seed(marker_type):
+      elif is_non_deterministic(marker_type):
         bound_values.append(new_non_deterministic_token())
       else:
         raise TypeError(f'unknown param marker type {marker_type}')

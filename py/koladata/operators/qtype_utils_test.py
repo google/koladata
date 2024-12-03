@@ -165,7 +165,7 @@ class KodaQTypesTest(absltest.TestCase):
     with self.subTest('success'):
       _op(py_expr_eval_py_ext.eval_expr(arolla.abc.bind_op(
           'koda_internal.non_deterministic',
-          arolla.L[py_expr_eval_py_ext.HIDDEN_SEED_LEAF_KEY],
+          arolla.L[py_expr_eval_py_ext.NON_DETERMINISTIC_TOKEN_LEAF_KEY],
           arolla.literal(arolla.int64(0))
       )))
 
