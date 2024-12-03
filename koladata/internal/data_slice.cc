@@ -33,7 +33,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
-#include "arolla/dense_array/bitmap.h"
+#include "koladata/internal/types_buffer.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/buffer.h"
@@ -61,6 +61,16 @@ struct VariantArgsMetaFn {
   template <class... Args>
   arolla::meta::type_list<Args...> operator()(std::variant<Args...>);
 };
+
+template <class T>
+void AddToTypesBuffer(TypesBuffer& types_buffer,
+                      const arolla::DenseArray<T>& data) {
+  uint8_t tidx = types_buffer.types.size();
+  types_buffer.types.push_back(ScalarTypeId<T>());
+  data.ForEachPresent([&](int64_t id, arolla::view_type_t<T>) {
+    types_buffer.id_to_typeidx[id] = tidx;
+  });
+}
 
 }  // namespace
 
@@ -230,8 +240,11 @@ bool DataSliceImpl::ContainsOnlyDicts() const {
 
 DataItem DataSliceImpl::operator[](int64_t offset) const {
   DCHECK_LT(offset, internal_->size);
-  DataItem result;
-  for (const auto& value : internal_->values) {
+  if (internal_->values.empty()) {
+    return DataItem();
+  }
+  if (internal_->values.size() == 1) {
+    DataItem result;
     std::visit(
         [offset, &result](const auto& array) {
           using T = typename std::decay_t<decltype(array)>::base_type;
@@ -239,11 +252,36 @@ DataItem DataSliceImpl::operator[](int64_t offset) const {
             result = DataItem(T(array.values[offset]));
           }
         },
-        value);
-    if (result.has_value()) {
-      break;
-    }
+        internal_->values.front());
+    return result;
   }
+  uint8_t idx = internal_->types_buffer.id_to_typeidx[offset];
+  if (!TypesBuffer::is_present_type_idx(idx)) {
+    return DataItem();
+  }
+  DataItem result;
+  std::visit(
+      [offset, &result](const auto& array) {
+        using T = typename std::decay_t<decltype(array)>::base_type;
+        result = DataItem(T(array.values[offset]));
+      },
+      internal_->values[idx]);
+  return result;
+}
+
+bool DataSliceImpl::present(int64_t offset) const {
+  DCHECK_LT(offset, internal_->size);
+  if (!internal_->types_buffer.id_to_typeidx.empty()) {
+    return TypesBuffer::is_present_type_idx(
+        internal_->types_buffer.id_to_typeidx[offset]);
+  }
+  if (internal_->values.empty()) {
+    return false;
+  }
+  bool result;
+  std::visit(
+      [offset, &result](const auto& array) { result = array.present(offset); },
+      internal_->values.front());
   return result;
 }
 
@@ -324,6 +362,17 @@ void DataSliceImpl::RemoveEmptyValues() {
           return GetQType<typename std::decay_t<decltype(array)>::base_type>();
         },
         internal_->values[0]);
+  }
+}
+
+void DataSliceImpl::InitTypesBuffer(Internal& impl) {
+  impl.types_buffer.id_to_typeidx.resize(impl.size);
+  std::fill(impl.types_buffer.id_to_typeidx.begin(),
+            impl.types_buffer.id_to_typeidx.end(), TypesBuffer::kUnset);
+  for (const auto& vals : impl.values) {
+    std::visit(
+        [&](const auto& arr) { AddToTypesBuffer(impl.types_buffer, arr); },
+        vals);
   }
 }
 

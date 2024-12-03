@@ -25,8 +25,6 @@
 #include <variant>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -34,9 +32,8 @@
 #include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/types.h"
+#include "koladata/internal/types_buffer.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
@@ -54,6 +51,8 @@
 #include "arolla/util/unit.h"
 
 namespace koladata::internal {
+
+class SliceBuilder;
 
 // Multidimensional Jagged Array storing ObjectId's or primitives.
 class DataSliceImpl {
@@ -172,6 +171,8 @@ class DataSliceImpl {
   // Returns DataItem with given offset.
   DataItem operator[](int64_t offset) const;
 
+  bool present(int64_t offset) const;
+
   // Returns a DenseArray of DataItems for DataSlice's items.
   // Missing items in the DataSlice are converted to missings in the DenseArray
   // rather than empty DataItems.
@@ -260,11 +261,15 @@ class DataSliceImpl {
     // element at index `i` in one of the underlying DenseArrays. If no such
     // element is present, the DataSliceImpl element is considered missing.
     absl::InlinedVector<Variant, 1> values;
+
+    TypesBuffer types_buffer;
   };
 
   // Removes all values with all non present items.
   // Sets dtype to dtype of single value or GetNothingQType otherwise.
   void RemoveEmptyValues();
+
+  static void InitTypesBuffer(Internal& impl);
 
   template <class T, class... Ts>
   static void CreateImpl(DataSliceImpl& res, arolla::DenseArray<T> main_values,
@@ -339,6 +344,9 @@ void DataSliceImpl::CreateImpl(DataSliceImpl& res,
   if constexpr (sizeof...(values) > 0) {
     (impl.values.emplace_back(std::move(values)), ...);
     res.RemoveEmptyValues();
+    if (impl.values.size() > 1) {
+      InitTypesBuffer(impl);
+    }
   }
 }
 

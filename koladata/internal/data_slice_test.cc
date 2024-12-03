@@ -33,8 +33,6 @@
 #include "koladata/internal/types.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
-#include "arolla/expr/expr.h"
-#include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -275,6 +273,8 @@ TEST(DataSliceImpl, AsDataItemDenseArray) {
     DataSliceImpl ds = DataSliceImpl::CreateEmptyAndUnknownType(6);
     auto expected = arolla::CreateEmptyDenseArray<DataItem>(6);
     EXPECT_THAT(ds.AsDataItemDenseArray(), ElementsAreArray(expected));
+    EXPECT_EQ(ds.present(3), false);
+    EXPECT_EQ(ds.present(4), false);
   }
   {
     // Single dtype
@@ -284,6 +284,8 @@ TEST(DataSliceImpl, AsDataItemDenseArray) {
     EXPECT_THAT(ds.AsDataItemDenseArray(),
                 ElementsAre(DataItem{1}, DataItem{1}, std::nullopt,
                             std::nullopt, DataItem{12}, DataItem{12}));
+    EXPECT_EQ(ds.present(3), false);
+    EXPECT_EQ(ds.present(4), true);
   }
   {
     // Mixed dtypes
@@ -295,6 +297,8 @@ TEST(DataSliceImpl, AsDataItemDenseArray) {
     EXPECT_THAT(ds.AsDataItemDenseArray(),
                 ElementsAre(DataItem{1}, DataItem{1}, DataItem{12.1f},
                             DataItem{12.1f}, std::nullopt, DataItem{12}));
+    EXPECT_EQ(ds.present(3), true);
+    EXPECT_EQ(ds.present(4), false);
   }
   {
     // Mixed dtypes with ObjectIds
@@ -313,6 +317,8 @@ TEST(DataSliceImpl, AsDataItemDenseArray) {
                 ElementsAre(DataItem{1}, DataItem{1}, DataItem{obj_id_1},
                             DataItem{obj_id_1}, DataItem{obj_id_2},
                             std::nullopt, DataItem{12}));
+    EXPECT_EQ(ds.present(3), true);
+    EXPECT_EQ(ds.present(4), true);
   }
 }
 
@@ -376,6 +382,7 @@ TEST(DataSliceImpl, CreateEmptyAndUnknownType) {
   EXPECT_EQ(ds.size(), kSize);
   EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
   EXPECT_TRUE(ds.is_empty_and_unknown());
+  EXPECT_EQ(ds.present(43), false);
 }
 
 TEST(DataSliceImpl, CreateMixed) {
@@ -409,6 +416,9 @@ TEST(DataSliceImpl, CreateMixed) {
   EXPECT_EQ(ds[1], DataItem(5));
   EXPECT_EQ(ds[2], DataItem(Bytes("57")));
   EXPECT_THAT(ds, ElementsAre(7.0f, 5, Bytes("57")));
+  EXPECT_EQ(ds.present(0), true);
+  EXPECT_EQ(ds.present(1), true);
+  EXPECT_EQ(ds.present(2), true);
 }
 
 TEST(DataSliceImpl, CreateMixedWithEmptyArrays) {
@@ -441,6 +451,9 @@ TEST(DataSliceImpl, CreateMixedAllEmptyArrays) {
   EXPECT_TRUE(ds.is_empty_and_unknown());
   EXPECT_THAT(ds.allocation_ids(), IsEmpty());
   EXPECT_THAT(ds, ElementsAre(std::nullopt, std::nullopt, std::nullopt));
+  EXPECT_EQ(ds.present(0), false);
+  EXPECT_EQ(ds.present(1), false);
+  EXPECT_EQ(ds.present(2), false);
 }
 
 TEST(DataSliceImpl, PresentCount) {

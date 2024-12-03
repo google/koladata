@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <variant>
 
@@ -202,10 +203,16 @@ class SliceBuilder {
       TypedStorage<schema::DType>>;
 
   // Moves data out of StorageVariant, builds DenseArray of the corresponding
-  // type. Returns true and DataSliceImpl::Variant containing the DenseArray if
-  // the data is not empty. Returns false if all the data is missing.
-  std::pair<bool, DataSliceImpl::Variant> BuildDataSliceVariant(
+  // type. Returns true, TypedStorage<T>::type_index and DataSliceImpl::Variant
+  // containing the DenseArray if the data is not empty. Returns false and
+  // TypedStorage<T>::type_index if all the data is missing.
+  std::tuple<bool, uint8_t, DataSliceImpl::Variant> BuildDataSliceVariant(
       StorageVariant& sv);
+
+  // Used during DataSliceImpl construction. Removes StorageVariants with
+  // specified idx and dchecks that they were empty.
+  static void RemoveEmptyTypes(DataSliceImpl::Internal& impl,
+                               absl::Span<uint8_t> idx_to_remove);
 
   // Sets `current_type_id_` and makes `current_storage_` pointing to
   // StorageVariant for the given type. If it is a new type the a new

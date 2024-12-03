@@ -34,6 +34,10 @@ struct TypesBuffer {
   static constexpr uint8_t kRemoved = 0xfe;  // explicitly set to missing
   static constexpr uint8_t kMaybeRemoved = 0xfd;
 
+  static constexpr bool is_present_type_idx(uint8_t idx) {
+    return (idx & 0x80) == 0;
+  }
+
   // Index in `types` (or kUnset/kRemoved) per element.
   absl::InlinedVector<uint8_t, 16> id_to_typeidx;
 
@@ -46,7 +50,7 @@ struct TypesBuffer {
   KodaTypeId id_to_scalar_typeid(int64_t id) const {
     DCHECK(0 <= id && id < size());
     uint8_t index = id_to_typeidx[id];
-    if (index == kRemoved || index == kMaybeRemoved || index == kUnset) {
+    if (!is_present_type_idx(index)) {
       return ScalarTypeId<MissingValue>();  // unset or removed
     }
     DCHECK_LT(index, types.size());
