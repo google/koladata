@@ -321,8 +321,8 @@ py_test(
 )
 
 py_test(
-    name = "schema_from_py_type_test",
-    srcs = ["schema_from_py_type_test.py"],
+    name = "schema_from_py_test",
+    srcs = ["schema_from_py_test.py"],
     deps = [
         "//py/koladata/functions",
         "//py/koladata/types:schema_constants",

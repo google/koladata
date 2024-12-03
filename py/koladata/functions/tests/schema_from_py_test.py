@@ -14,6 +14,8 @@
 
 import dataclasses
 from typing import Optional
+from unittest import mock
+import warnings
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
@@ -27,60 +29,52 @@ class IntStrPair:
   y: str
 
 
-class SchemaFromPyTypeTest(absltest.TestCase):
+class SchemaFromPyTest(absltest.TestCase):
 
-  def test_schema_from_py_type_primitives(self):
-    self.assertEqual(fns.schema_from_py_type(int), schema_constants.INT64)
-    self.assertEqual(fns.schema_from_py_type(float), schema_constants.FLOAT32)
-    self.assertEqual(fns.schema_from_py_type(bool), schema_constants.BOOLEAN)
-    self.assertEqual(fns.schema_from_py_type(str), schema_constants.STRING)
-    self.assertEqual(fns.schema_from_py_type(bytes), schema_constants.BYTES)
-    self.assertEqual(
-        fns.schema_from_py_type(bytes | None), schema_constants.BYTES
-    )
+  def test_schema_from_py_primitives(self):
+    self.assertEqual(fns.schema_from_py(int), schema_constants.INT64)
+    self.assertEqual(fns.schema_from_py(float), schema_constants.FLOAT32)
+    self.assertEqual(fns.schema_from_py(bool), schema_constants.BOOLEAN)
+    self.assertEqual(fns.schema_from_py(str), schema_constants.STRING)
+    self.assertEqual(fns.schema_from_py(bytes), schema_constants.BYTES)
+    self.assertEqual(fns.schema_from_py(bytes | None), schema_constants.BYTES)
 
-  def test_schema_from_py_type_collections(self):
+  def test_schema_from_py_collections(self):
     self.assertEqual(
-        fns.schema_from_py_type(list[int]),
-        fns.list_schema(schema_constants.INT64)
+        fns.schema_from_py(list[int]), fns.list_schema(schema_constants.INT64)
     )
     self.assertEqual(
-        fns.schema_from_py_type(list[int]).get_item_schema(),
-        schema_constants.INT64
+        fns.schema_from_py(list[int]).get_item_schema(), schema_constants.INT64
     )
     self.assertEqual(
-        fns.schema_from_py_type(dict[int, str]),
+        fns.schema_from_py(dict[int, str]),
         fns.dict_schema(schema_constants.INT64, schema_constants.STRING),
     )
     self.assertEqual(
-        fns.schema_from_py_type(dict[int, str]).get_key_schema(),
-        schema_constants.INT64
+        fns.schema_from_py(dict[int, str]).get_key_schema(),
+        schema_constants.INT64,
     )
     self.assertEqual(
-        fns.schema_from_py_type(dict[int, str]).get_value_schema(),
-        schema_constants.STRING
+        fns.schema_from_py(dict[int, str]).get_value_schema(),
+        schema_constants.STRING,
     )
     self.assertEqual(
-        fns.schema_from_py_type(list[list[float]]),
+        fns.schema_from_py(list[list[float]]),
         fns.list_schema(fns.list_schema(schema_constants.FLOAT32)),
     )
 
-  def test_schema_from_py_type_dataclasses(self):
+  def test_schema_from_py_dataclasses(self):
 
     @dataclasses.dataclass
     class MyClass:
       x: int
       y: str
 
-    self.assertEqual(fns.schema_from_py_type(MyClass).x, schema_constants.INT64)
-    self.assertEqual(
-        fns.schema_from_py_type(MyClass).y, schema_constants.STRING
-    )
-    self.assertEqual(
-        fns.schema_from_py_type(MyClass), fns.schema_from_py_type(MyClass)
-    )
+    self.assertEqual(fns.schema_from_py(MyClass).x, schema_constants.INT64)
+    self.assertEqual(fns.schema_from_py(MyClass).y, schema_constants.STRING)
+    self.assertEqual(fns.schema_from_py(MyClass), fns.schema_from_py(MyClass))
 
-  def test_schema_from_py_type_a_bit_of_everything(self):
+  def test_schema_from_py_a_bit_of_everything(self):
 
     @dataclasses.dataclass
     class Bar:
@@ -89,8 +83,8 @@ class SchemaFromPyTypeTest(absltest.TestCase):
       s: Optional[str]
       u: dict[str, IntStrPair]
 
-    bar_schema = fns.schema_from_py_type(Bar)
-    int_str_pair_schema = fns.schema_from_py_type(IntStrPair)
+    bar_schema = fns.schema_from_py(Bar)
+    int_str_pair_schema = fns.schema_from_py(IntStrPair)
     self.assertEqual(bar_schema.z, fns.list_schema(int_str_pair_schema))
     self.assertEqual(bar_schema.t, schema_constants.STRING)
     self.assertEqual(bar_schema.s, schema_constants.STRING)
@@ -103,7 +97,7 @@ class SchemaFromPyTypeTest(absltest.TestCase):
     self.assertEqual(int_str_pair_schema.y, schema_constants.STRING)
     self.assertCountEqual(fns.dir(int_str_pair_schema), ['x', 'y'])
 
-  def test_schema_from_py_type_uses_qualname(self):
+  def test_schema_from_py_uses_qualname(self):
 
     class Inner:
 
@@ -112,20 +106,26 @@ class SchemaFromPyTypeTest(absltest.TestCase):
         x: int
         y: str
 
-    global_int_str_pair_schema = fns.schema_from_py_type(IntStrPair)
-    local_int_str_pair_schema = fns.schema_from_py_type(Inner.IntStrPair)
+    global_int_str_pair_schema = fns.schema_from_py(IntStrPair)
+    local_int_str_pair_schema = fns.schema_from_py(Inner.IntStrPair)
     self.assertNotEqual(global_int_str_pair_schema, local_int_str_pair_schema)
 
   def test_errors(self):
     with self.assertRaisesRegex(TypeError, 'unsupported.*tuple'):
-      _ = fns.schema_from_py_type(tuple[int, int])
+      _ = fns.schema_from_py(tuple[int, int])
     with self.assertRaisesRegex(TypeError, 'expects a Python type, got 57'):
-      _ = fns.schema_from_py_type(57)  # pytype: disable=wrong-arg-types
+      _ = fns.schema_from_py(57)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(TypeError, 'unsupported union type'):
-      _ = fns.schema_from_py_type(int | float)
+      _ = fns.schema_from_py(int | float)
+
+  def test_deprecated_alias(self):
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      int_schema = fns.schema_from_py_type(int)
+      mock_warn.assert_called_once()
+    self.assertEqual(int_schema, schema_constants.INT64)
 
   def test_alias(self):
-    self.assertIs(fns.schema_from_py_type, fns.schema.schema_from_py_type)
+    self.assertIs(fns.schema_from_py, fns.schema.schema_from_py)
 
 
 if __name__ == '__main__':
