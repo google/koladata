@@ -371,9 +371,8 @@ absl::StatusOr<DataSlice> Replace(const DataSlice& s,
       .With(OpError("kd.strings.replace"));
   RETURN_IF_ERROR(ExpectInteger("max_subs", max_subs))
       .With(OpError("kd.strings.replace"));
-  // TODO: b/381410131 - use NarrowToInt64 instead.
-  ASSIGN_OR_RETURN(auto typed_max_subs,
-                   CastToNarrow(max_subs, internal::DataItem(schema::kInt32)));
+  ASSIGN_OR_RETURN(auto typed_max_subs, NarrowToInt64(max_subs, "max_subs"),
+                   _.With(OpError("kd.strings.replace")));
   return SimplePointwiseEval(
       "strings.replace", {s, old_substr, new_substr, std::move(typed_max_subs)},
       /*output_schema=*/s.GetSchemaImpl(),
