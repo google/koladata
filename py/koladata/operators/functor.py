@@ -18,7 +18,6 @@ from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
-from koladata.types import py_boxing
 from koladata.types import qtypes
 
 M = arolla.M
@@ -27,9 +26,8 @@ constraints = arolla.optools.constraints
 
 
 @optools.add_to_registry(aliases=['kde.call'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.functor.call',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fn),
         (
@@ -45,9 +43,10 @@ constraints = arolla.optools.constraints
 )
 def call(
     fn,
-    args=py_boxing.var_positional(),
-    return_type_as=py_boxing.keyword_only(data_slice.DataSlice),
-    kwargs=py_boxing.var_keyword(),
+    args=optools.var_positional(),
+    *,
+    return_type_as=data_slice.DataSlice,
+    kwargs=optools.var_keyword(),
 ):
   """Calls a functor.
 

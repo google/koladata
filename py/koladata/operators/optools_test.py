@@ -12,23 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import comparison as _  # pylint: disable=unused-import
+from koladata.operators import comparison as _
 from koladata.operators import core
 from koladata.operators import jagged_shape
 from koladata.operators import optools
 from koladata.operators import optools_test_utils
 from koladata.operators import qtype_utils
 from koladata.testing import testing
-from koladata.types import data_item as _  # pylint: disable=unused-import
+from koladata.types import data_item as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
-
+I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 
 
@@ -495,6 +499,55 @@ class OptoolsTest(parameterized.TestCase):
     self.assertTrue(hasattr(op(arolla.L.x), 'fn2'))
     # Not attached to op2 since it has a different qualname.
     self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
+
+  def test_as_unified_backend_operator(self):
+    @optools.as_unified_backend_operator(
+        'my_op_name',
+        qtype_inference_expr=arolla.P.a,
+        qtype_constraints=[(arolla.P.a != arolla.UNIT, 'my_qtype_constraint')],
+    )
+    def op(a, /, b, *, c, d=optools.non_deterministic()):
+      """MyDocstring."""
+      del a, b, c, d
+
+    self.assertIsInstance(op, arolla.types.BackendOperator)
+    self.assertEqual(op.display_name, 'my_op_name')
+    self.assertEqual(op.getdoc(), 'MyDocstring.')
+    self.assertEqual(
+        inspect.signature(op), inspect.signature(lambda a, /, b, *, c: None)
+    )
+    with self.assertRaisesRegex(ValueError, re.escape('my_qtype_constraint')):
+      op(arolla.unit(), 2, c=3)
+    with self.assertRaisesRegex(
+        ValueError, re.escape('expected NON_DETERMINISTIC_TOKEN')
+    ):
+      arolla.abc.bind_op(op, I.a, I.b, I.c, arolla.unit())
+
+  def test_as_unified_lambda_operator(self):
+    @optools.as_unified_lambda_operator(
+        'my_op_name',
+        qtype_constraints=[(arolla.P.a != arolla.UNIT, 'my_qtype_constraint')],
+    )
+    def op(a, /, b, *, c, _=optools.non_deterministic()):
+      """MyDocstring."""
+      return a + b * c
+
+    self.assertIsInstance(op, arolla.types.RestrictedLambdaOperator)
+    self.assertEqual(op.display_name, 'my_op_name')
+    self.assertEqual(op.getdoc(), 'MyDocstring.')
+    self.assertEqual(
+        inspect.signature(op), inspect.signature(lambda a, /, b, *, c: None)
+    )
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        arolla.abc.to_lower_node(op(1, 2, c=3)),
+        py_boxing.as_expr(1) + py_boxing.as_expr(2) * py_boxing.as_expr(3),
+    )
+    with self.assertRaisesRegex(ValueError, re.escape('my_qtype_constraint')):
+      op(arolla.unit(), 2, c=3)
+    with self.assertRaisesRegex(
+        ValueError, re.escape('expected NON_DETERMINISTIC_TOKEN')
+    ):
+      arolla.abc.bind_op(op, I.a, I.b, I.c, arolla.unit())
 
 
 if __name__ == '__main__':

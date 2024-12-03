@@ -23,6 +23,8 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view as view_lib
 from koladata.operators import op_repr
+from koladata.operators import qtype_utils
+from koladata.operators import unified_binding_policy
 from koladata.types import py_boxing
 
 
@@ -269,6 +271,93 @@ def as_lambda_operator(
         op_sig,
         op_expr,
         qtype_constraints=qtype_constraints,
+        name=name,
+        doc=inspect.getdoc(fn) or '',
+    )
+
+  return impl
+
+
+var_positional = unified_binding_policy.var_positional
+var_keyword = unified_binding_policy.var_keyword
+non_deterministic = unified_binding_policy.non_deterministic
+
+
+def as_unified_backend_operator(
+    name: str,
+    *,
+    qtype_inference_expr: arolla.Expr | arolla.QType,
+    qtype_constraints: arolla.types.QTypeConstraints = (),
+) -> Callable[[types.FunctionType], arolla.types.BackendOperator]:
+  """Decorator for Koladata backend operators with a unified binding policy."""
+
+  def impl(fn):
+    qtype_constraints_copy = list(qtype_constraints)
+    op_sig = unified_binding_policy.make_unified_signature(
+        inspect.signature(fn)
+    )
+    non_deterministic_param_name = (
+        unified_binding_policy.find_non_deterministic_parameter_name(op_sig)
+    )
+    if non_deterministic_param_name is not None:
+      param = arolla.abc.placeholder(non_deterministic_param_name)
+      qtype_constraints_copy.append(
+          qtype_utils.expect_non_deterministic(param)
+      )
+    return arolla.types.BackendOperator(
+        name,
+        op_sig,
+        doc=inspect.getdoc(fn) or '',
+        qtype_inference_expr=py_boxing.as_expr(qtype_inference_expr),
+        qtype_constraints=qtype_constraints_copy,
+    )
+
+  return impl
+
+
+def as_unified_lambda_operator(
+    name: str,
+    *,
+    qtype_constraints: arolla.types.QTypeConstraints = (),
+) -> Callable[
+    [types.FunctionType],
+    arolla.types.LambdaOperator | arolla.types.RestrictedLambdaOperator,
+]:
+  """Decorator for Koladata lambda operators with a unified binding policy.
+
+  Koda specifics:
+    - Adds a KodaView to the inputs during tracing, allowing prefix / infix
+      notation.
+
+  Args:
+    name: Name of the operator.
+    qtype_constraints: QType constraints for the operator.
+
+  Returns:
+    A decorator that constructs a lambda operator by tracing a python function.
+  """
+
+  def impl(fn):
+    qtype_constraints_copy = list(qtype_constraints)
+    op_sig = unified_binding_policy.make_unified_signature(
+        inspect.signature(fn)
+    )
+    op_expr = _build_lambda_body_from_fn(fn)
+    non_deterministic_param_name = (
+        unified_binding_policy.find_non_deterministic_parameter_name(op_sig)
+    )
+    if non_deterministic_param_name is not None:
+      param = arolla.abc.placeholder(non_deterministic_param_name)
+      qtype_constraints_copy.append(
+          qtype_utils.expect_non_deterministic(param)
+      )
+      op_expr = arolla.abc.sub_by_fingerprint(
+          op_expr, {py_boxing.HIDDEN_SEED_LEAF.fingerprint: param}
+      )
+    return arolla.optools.make_lambda(
+        op_sig,
+        op_expr,
+        qtype_constraints=qtype_constraints_copy,
         name=name,
         doc=inspect.getdoc(fn) or '',
     )

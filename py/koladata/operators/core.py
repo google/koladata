@@ -190,7 +190,7 @@ def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,red
 
 
 @optools.add_to_registry(aliases=['kde.concat'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.concat',
     qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
@@ -200,12 +200,8 @@ def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,red
         ],
         qtype_utils.expect_data_slice(P.ndim),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def concat(
-    args=py_boxing.var_positional(),
-    ndim=py_boxing.keyword_only(default_value=1),
-):
+def concat(args=optools.var_positional(), *, ndim=1):
   """Returns the concatenation of the given DataSlices on dimension `rank-ndim`.
 
   All given DataSlices must have the same rank, and the shapes of the first
@@ -261,7 +257,7 @@ def concat(
 
 
 @optools.add_to_registry(aliases=['kde.stack'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.stack',
     qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
@@ -271,11 +267,8 @@ def concat(
         ],
         qtype_utils.expect_data_slice(P.ndim),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def stack(
-    args=py_boxing.var_positional(),
-    ndim=py_boxing.keyword_only(default_value=0)):
+def stack(args=optools.var_positional(), *, ndim=0):
   """Stacks the given DataSlices, creating a new dimension at index `rank-ndim`.
 
   The given DataSlices must have the same rank, and the shapes of the first
@@ -4362,7 +4355,7 @@ def list_shaped(
 
 
 @optools.add_to_registry(aliases=['kde.list_shaped_as'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.list_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
@@ -4370,17 +4363,17 @@ def list_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def list_shaped_as(
-    shape_from=py_boxing.positional_only(),
-    items=py_boxing.positional_or_keyword(arolla.unspecified()),
-    item_schema=py_boxing.keyword_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    non_deterministic=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
+    shape_from,
+    /,
+    items=arolla.unspecified(),
+    *,
+    item_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    itemid=arolla.unspecified(),
+    hidden_seed=optools.non_deterministic(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Creates new Koda lists with the shape of the given DataSlice.
 

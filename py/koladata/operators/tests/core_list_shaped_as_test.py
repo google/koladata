@@ -233,5 +233,6 @@ Assigned schema for List item: INT32""",
         ' schema=unspecified, itemid=unspecified)',
     )
 
+
 if __name__ == '__main__':
   absltest.main()

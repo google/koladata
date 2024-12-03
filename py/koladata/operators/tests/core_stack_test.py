@@ -36,6 +36,12 @@ DATA_SLICE = qtypes.DATA_SLICE
 
 
 QTYPES = frozenset([
+    (arolla.make_tuple_qtype(DATA_SLICE), DATA_SLICE),
+    (arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE), DATA_SLICE),
+    (
+        arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE, DATA_SLICE),
+        DATA_SLICE,
+    ),
     (arolla.make_tuple_qtype(DATA_SLICE), DATA_SLICE, DATA_SLICE),
     (arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE), DATA_SLICE, DATA_SLICE),
     (
@@ -52,30 +58,22 @@ class CoreStackTest(parameterized.TestCase):
   @parameterized.parameters(
       # single input
       (
-          (
-              ds([[[0]]]),
-          ),
+          (ds([[[0]]]),),
           0,
           ds([[[[0]]]]),
       ),
       (
-          (
-              ds([[[0]]]),
-          ),
+          (ds([[[0]]]),),
           1,
           ds([[[[0]]]]),
       ),
       (
-          (
-              ds([[[0]]]),
-          ),
+          (ds([[[0]]]),),
           2,
           ds([[[[0]]]]),
       ),
       (
-          (
-              ds([[[0]]]),
-          ),
+          (ds([[[0]]]),),
           3,
           ds([[[[0]]]]),
       ),
@@ -188,7 +186,8 @@ class CoreStackTest(parameterized.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.core.stack,
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES + (
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
+        + (
             arolla.make_tuple_qtype(),
             arolla.make_tuple_qtype(DATA_SLICE),
             arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE),

@@ -39,6 +39,15 @@ DATA_SLICE = qtypes.DATA_SLICE
 # policy, this is not 1:1 with the Python operator signature, which is actually
 # `concat(arg: DATA_SLICE, *args: DATA_SLICE, ndim: DATA_SLICE)`.
 QTYPES = frozenset([
+    (arolla.make_tuple_qtype(DATA_SLICE), DATA_SLICE),
+    (
+        arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE),
+        DATA_SLICE,
+    ),
+    (
+        arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE, DATA_SLICE),
+        DATA_SLICE,
+    ),
     (arolla.make_tuple_qtype(DATA_SLICE), DATA_SLICE, DATA_SLICE),
     (
         arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE),
