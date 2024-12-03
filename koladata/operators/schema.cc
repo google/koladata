@@ -99,6 +99,35 @@ class UuSchemaOperator : public arolla::QExprOperator {
   }
 };
 
+class NamedSchemaOperator : public arolla::QExprOperator {
+ public:
+  explicit NamedSchemaOperator(absl::Span<const arolla::QTypePtr> input_types)
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            input_types, arolla::GetQType<DataSlice>())) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [name_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
+         named_tuple_slot = input_slots[1],
+         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          ASSIGN_OR_RETURN(absl::string_view name,
+                           GetStringArgument(frame.Get(name_slot), "name"),
+                           ctx->set_status(std::move(_)));
+          auto attr_names = GetAttrNames(named_tuple_slot);
+          auto values = GetValueDataSlices(named_tuple_slot, frame);
+          auto db = koladata::DataBag::Empty();
+          ASSIGN_OR_RETURN(auto result,
+                           CreateNamedSchema(db, name, attr_names, values),
+                           ctx->set_status(std::move(_)));
+          db->UnsafeMakeImmutable();
+          frame.Set(output_slot, std::move(result));
+        });
+  }
+};
+
 absl::StatusOr<DataSlice> WithAdoptedSchema(const DataSlice& x,
                                             const DataSlice& schema) {
   DataBagPtr schema_bag = nullptr;
@@ -144,18 +173,32 @@ absl::StatusOr<arolla::OperatorPtr> UuSchemaOperatorFamily::DoGetOperator(
       output_type);
 }
 
-absl::StatusOr<DataSlice> NamedSchema(const DataSlice& name) {
-  auto db = koladata::DataBag::Empty();
-  ASSIGN_OR_RETURN(auto res, CreateNamedSchema(db, name));
-  db->UnsafeMakeImmutable();
-  return res;
+absl::StatusOr<arolla::OperatorPtr> NamedSchemaOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires exactly 2 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires first argument to be DataSlice");
+  }
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<NamedSchemaOperator>(input_types), input_types,
+      output_type);
 }
 
 absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
     const DataSlice& name_or_schema) {
   if (name_or_schema.is_item() &&
       name_or_schema.item().holds_value<arolla::Text>()) {
-    return NamedSchema(name_or_schema);
+    ASSIGN_OR_RETURN(absl::string_view name,
+                     GetStringArgument(name_or_schema, "name"));
+    auto db = koladata::DataBag::Empty();
+    ASSIGN_OR_RETURN(auto res, CreateNamedSchema(db, name, {}, {}));
+    db->UnsafeMakeImmutable();
+    return res;
   } else {
     RETURN_IF_ERROR(name_or_schema.VerifyIsSchema());
     return name_or_schema;

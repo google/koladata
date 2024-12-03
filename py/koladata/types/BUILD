@@ -145,6 +145,7 @@ cc_library(
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata:object_factories",
+        "//koladata/operators:lib",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/log:check",
@@ -156,6 +157,7 @@ cc_library(
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
+        "@com_google_arolla//py/arolla/py_utils",
     ],
 )
 

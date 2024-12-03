@@ -239,9 +239,11 @@ class FastcallArgParser {
 // also sets Python Exception.
 //
 // Returned string_view is valid as long as `args` are not deallocated.
-bool ParseUnicodeArg(const FastcallArgParser::Args& args, size_t arg_pos,
-                     absl::string_view arg_name_for_error,
-                     absl::string_view& arg);
+// Also supports the case where this argument is a DataItem containing a string.
+bool ParseStringOrDataItemArg(const FastcallArgParser::Args& args,
+                              size_t arg_pos,
+                              absl::string_view arg_name_for_error,
+                              absl::string_view& arg);
 
 // Populates `arg` DataSlice output argument if `args` contain a valid argument
 // named `arg_name`. Returns true on success, false on error, in which case it

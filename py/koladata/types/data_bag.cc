@@ -587,7 +587,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
                    UnwrapDataSlices(args.kw_values),
                    arolla::python::SetPyErrFromStatus(_));
   absl::string_view seed("");
-  if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed)) {
+  if (!ParseStringOrDataItemArg(args, /*arg_pos=*/0, "seed", seed)) {
     return nullptr;
   }
   ASSIGN_OR_RETURN(res, CreateUuSchema(db, seed, args.kw_names, values),
@@ -597,14 +597,26 @@ absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
 
 // Returns a DataSlice that represents a named schema with its item id derived
 // only from its name.
-absl::Nullable<PyObject*> PyDataBag_named_schema_factory(PyObject* self,
-                                                         PyObject* name) {
+absl::Nullable<PyObject*> PyDataBag_named_schema_factory(
+    PyObject* self, PyObject* const* py_args, Py_ssize_t nargs,
+    PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
-  // We do no adoption here because we're just getting a string.
-  ASSIGN_OR_RETURN(auto name_slice, DataSliceFromPyValueNoAdoption(name),
-                   arolla::python::SetPyErrFromStatus(_));
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, "name");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
   auto db = UnsafeDataBagPtr(self);
-  ASSIGN_OR_RETURN(DataSlice res, CreateNamedSchema(db, name_slice),
+  DataSlice res;
+  ASSIGN_OR_RETURN(std::vector<DataSlice> values,
+                   UnwrapDataSlices(args.kw_values),
+                   arolla::python::SetPyErrFromStatus(_));
+  absl::string_view name("");
+  if (!ParseStringOrDataItemArg(args, /*arg_pos=*/0, "name", name)) {
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(res, CreateNamedSchema(db, name, args.kw_names, values),
                    arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
@@ -638,7 +650,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
                    arolla::python::SetPyErrFromStatus(_));
   absl::string_view seed_arg("");
-  if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed_arg)) {
+  if (!ParseStringOrDataItemArg(args, /*arg_pos=*/0, "seed", seed_arg)) {
     return nullptr;
   }
   std::optional<DataSlice> schema_arg;
@@ -687,7 +699,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_obj_factory(PyObject* self,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
                    arolla::python::SetPyErrFromStatus(_));
   absl::string_view seed("");
-  if (!ParseUnicodeArg(args, /*arg_pos=*/0, "seed", seed)) {
+  if (!ParseStringOrDataItemArg(args, /*arg_pos=*/0, "seed", seed)) {
     return nullptr;
   }
   // Add `db` to each DataSlice value to avoid double adoption work.
@@ -1569,8 +1581,9 @@ Returns:
      "uu_schema(seed, **attrs)\n"
      "--\n\n"
      "Creates new uuschema from given types of attrs."},
-    {"named_schema", (PyCFunction)PyDataBag_named_schema_factory, METH_O,
-     "named_schema(name, /)\n"
+    {"named_schema", (PyCFunction)PyDataBag_named_schema_factory,
+     METH_FASTCALL | METH_KEYWORDS,
+     "named_schema(name, **attrs)\n"
      "--\n\n"
      "Creates a named schema with ItemId derived only from its name."},
     {"_dict_shaped", (PyCFunction)PyDataBag_dict_shaped, METH_FASTCALL,

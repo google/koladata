@@ -273,8 +273,10 @@ absl::StatusOr<DataSlice> CreateUuSchema(
     absl::Span<const DataSlice> schemas);
 
 // Returns a named entity schema with its ItemId derived only from its name.
-absl::StatusOr<DataSlice> CreateNamedSchema(const DataBagPtr& db,
-                                            const DataSlice& name);
+absl::StatusOr<DataSlice> CreateNamedSchema(
+    const DataBagPtr& db, absl::string_view name,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> schemas);
 
 // Returns an allocated schema with attributes `attr_names` set to `schemas` in
 // `db`.

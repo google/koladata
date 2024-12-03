@@ -32,7 +32,9 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/utils.h"
 #include "py/arolla/abc/py_qvalue.h"
+#include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -161,9 +163,10 @@ std::vector<DataSlice> ManyWithBag(absl::Span<const DataSlice> values,
   return values_with_db;
 }
 
-bool ParseUnicodeArg(const FastcallArgParser::Args& args, size_t arg_pos,
-                     absl::string_view arg_name_for_error,
-                     absl::string_view& arg) {
+bool ParseStringOrDataItemArg(const FastcallArgParser::Args& args,
+                              size_t arg_pos,
+                              absl::string_view arg_name_for_error,
+                              absl::string_view& arg) {
   if (args.pos_kw_values.size() <= arg_pos || !args.pos_kw_values[arg_pos] ||
       args.pos_kw_values[arg_pos] == Py_None) {
     // The argument was not specified and arg will retain its value from the
@@ -171,6 +174,16 @@ bool ParseUnicodeArg(const FastcallArgParser::Args& args, size_t arg_pos,
     return true;
   }
   auto arg_py = args.pos_kw_values[arg_pos];
+  if (arolla::python::IsPyQValueInstance(arg_py)) {
+    const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(arg_py);
+    if (typed_value.GetType() == arolla::GetQType<DataSlice>()) {
+      ASSIGN_OR_RETURN(arg,
+                       ops::GetStringArgument(typed_value.UnsafeAs<DataSlice>(),
+                                              arg_name_for_error),
+                       (arolla::python::SetPyErrFromStatus(_), false));
+      return true;
+    }
+  }
   Py_ssize_t unicode_size;
   auto unicode_ptr = PyUnicode_AsUTF8AndSize(arg_py, &unicode_size);
   if (unicode_ptr == nullptr) {

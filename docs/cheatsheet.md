@@ -190,8 +190,7 @@ kd.slice([1, 2, 3]).get_dtype()
 
 # Schema can be set and created explicitly.
 kd.slice([None, None]).with_schema(kd.INT32)
-kd.named_schema('Point').with_attrs(x=kd.INT32,
-                                    y=kd.INT32)
+kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
 
 # Universally-unique schema.
 kd.uu_schema(x=kd.INT32)

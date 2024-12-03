@@ -109,36 +109,32 @@ def uu_schema(
 
 
 def named_schema(
-    name: str | data_slice.DataSlice,
+    name: str,
     *,
     db: data_bag.DataBag | None = None,
+    **attrs: data_slice.DataSlice,
 ) -> data_slice.DataSlice:
   """Creates a named entity schema in the given DataBag.
 
   A named schema will have its item id derived only from its name, which means
-  that two named schemas with the same name will have the same ItemId, even in
-  different DataBags.
-
-  Note that unlike other schema factories, this method does not take any attrs
-  to avoid confisuion with the behavior of uu_schema. Please use
-  named_schema(name).with_attrs(attrs) to create a named schema with attrs.
-
-  Currently the named schema does not put any triples into the provided
-  DataBag, but that might change in the future. For example, we might want to
-  store the schema name in the DataBag for printing.
+  that two named schemas with the same name will have the same item id, even in
+  different DataBags, or with different kwargs passed to this method.
 
   Args:
     name: The name to use to derive the item id of the schema.
     db: optional DataBag where the schema is created. If not provided, a new
       Databag is created.
+    **attrs: A mapping of attribute names to DataSlices. The DataSlice values
+      must be schemas themselves.
 
   Returns:
-    data_slice.DataSlice with the ItemId of the required schema and kd.SCHEMA
-    schema.
+    data_slice.DataSlice with the item id of the required schema and kd.SCHEMA
+    schema, with the DataBag attached containing the provided
+    attrs.
   """
   if db is None:
     db = bag()
-  return db.named_schema(name)
+  return db.named_schema(name, **attrs)
 
 
 def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:

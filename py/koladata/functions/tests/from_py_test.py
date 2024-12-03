@@ -395,7 +395,7 @@ class FromPyTest(absltest.TestCase):
       )
 
   def test_dict_as_obj_if_schema_provided(self):
-    schema = fns.named_schema('foo').with_attrs(a=schema_constants.INT32)
+    schema = fns.named_schema('foo', a=schema_constants.INT32)
     d = fns.from_py({'a': 2}, schema=schema)
     self.assertFalse(d.is_dict())
     testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))

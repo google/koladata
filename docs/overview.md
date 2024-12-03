@@ -191,8 +191,8 @@ vectorized operations.
 # kd.new creates new entities and assigns schemas to them
 kd.new(x=1, y=2, schema='Point')
 
-# Can also explicitly create schema and add attributes to it before using.
-my_schema = kd.named_schema('Point').with_attrs(x=kd.INT32, y=kd.INT32)
+# Can also explicitly create schema with attributes before using.
+my_schema = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
 x = kd.new(x=1, y=2, schema=my_schema)
 x.get_schema() == my_schema  # yes
 
@@ -303,7 +303,7 @@ x, y = kd.new(a=1), kd.new(b=2)
 kd.slice([kd.obj(x), kd.obj(y)])  # convert both entities to objects
 
 # Objects can be converted to entities
-my_schema = kd.named_schema('Point').with_attrs(x=kd.INT32, y=kd.INT32)
+my_schema = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
 kd.obj(x=1, y=2).with_schema(my_schema)
 kd.from_py({'x': 1, 'y': 2}, dict_as_obj=True).with_schema(my_schema)  # the same as above
 ```

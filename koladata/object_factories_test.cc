@@ -99,17 +99,35 @@ TEST(NamedSchemaTest, CreateNamedSchema) {
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(auto named_schema,
-                       CreateNamedSchema(db, test::DataItem("name")));
+                       CreateNamedSchema(db, "name", {}, {}));
   EXPECT_EQ(named_schema.GetSchemaImpl(), schema::kSchema);
   EXPECT_OK(named_schema.VerifyIsSchema());
   EXPECT_TRUE(named_schema.item().value<ObjectId>().IsUuid());
 
   ASSERT_OK_AND_ASSIGN(auto named_schema_2,
-                       CreateNamedSchema(db, test::DataItem("name")));
+                       CreateNamedSchema(db, "name", {}, {}));
   ASSERT_OK_AND_ASSIGN(auto named_schema_3,
-                       CreateNamedSchema(db, test::DataItem("other name")));
+                       CreateNamedSchema(db, "other name", {}, {}));
   EXPECT_EQ(named_schema_2.item(), named_schema.item());
   EXPECT_NE(named_schema_3.item(), named_schema.item());
+}
+
+TEST(NamedSchemaTest, CreateNamedSchema_Attrs) {
+  auto db = DataBag::Empty();
+  auto attr_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto attr_s,
+      CreateEntitySchema(attr_db, {"a"}, {test::Schema(schema::kFloat32)}));
+  ASSERT_OK_AND_ASSIGN(auto named_schema,
+                       CreateNamedSchema(db, "name", {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto named_schema_2,
+                       CreateNamedSchema(db, "name", {"attr"}, {attr_s}));
+  EXPECT_THAT(named_schema_2, IsEquivalentTo(named_schema.WithBag(db)));
+  ASSERT_OK_AND_ASSIGN(auto attr_s2, named_schema_2.GetAttr("attr"));
+  EXPECT_THAT(attr_s2, IsEquivalentTo(attr_s.WithBag(db)));
+  EXPECT_THAT(
+      attr_s2.GetAttr("a"),
+      IsOkAndHolds(IsEquivalentTo(test::Schema(schema::kFloat32).WithBag(db))));
 }
 
 TEST(EntitySchemaTest, Error) {

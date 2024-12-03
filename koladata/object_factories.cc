@@ -911,15 +911,18 @@ absl::StatusOr<DataSlice> CreateUuSchema(
   return result;
 }
 
-absl::StatusOr<DataSlice> CreateNamedSchema(const DataBagPtr& db,
-                                            const DataSlice& name) {
-  if (!name.is_item() || !name.item().holds_value<arolla::Text>()) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("requires name to be DataItem holding Text, got %s",
-                        arolla::Repr(name)));
-  }
-  auto name_str = name.item().value<arolla::Text>().view();
-  return CreateUuSchema(db, absl::StrCat("__named_schema__", name_str), {}, {});
+absl::StatusOr<DataSlice> CreateNamedSchema(
+    const DataBagPtr& db, absl::string_view name,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> schemas) {
+  // Note that we do not pass attributes here since we do not want the schema
+  // id to depend on them.
+  ASSIGN_OR_RETURN(
+      auto res,
+      CreateUuSchema(db, absl::StrCat("__named_schema__", name), {}, {}));
+  RETURN_IF_ERROR(res.SetAttrs(attr_names, schemas, /*update_schema=*/false));
+  RETURN_IF_ERROR(AdoptValuesInto(schemas, *db));
+  return res;
 }
 
 absl::StatusOr<DataSlice> CreateSchema(

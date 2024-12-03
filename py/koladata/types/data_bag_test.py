@@ -704,16 +704,55 @@ Assigned schema for 'a': SCHEMA(b=STRING)"""),
     z = db.named_schema('name')
     testing.assert_equal(x, z)
 
-    # This is not perfect as the operator allows passing it as a keyword
-    # argument, but it seems minor enough to bother complicating the
-    # implementation.
-    with self.assertRaisesRegex(TypeError, 'no keyword arguments'):
-      _ = db.named_schema(name='name')
+    t = db.named_schema(name='name')
+    testing.assert_equal(x, t)
+
+    u = db.named_schema(ds('name'))
+    testing.assert_equal(x, u)
 
     with self.assertRaisesRegex(
-        ValueError, 'requires name to be DataItem holding Text'
+        TypeError, 'name must be a utf8 string, got bytes'
     ):
       _ = db.named_schema(b'name')
+
+    with self.assertRaisesRegex(
+        ValueError, 'argument `name` must be an item holding STRING'
+    ):
+      _ = db.named_schema(ds(b'name'))
+
+  def test_named_schema_attrs(self):
+    db = bag()
+    schema = db.named_schema('name', a=schema_constants.FLOAT32)
+    db2 = bag()
+    schema2 = db2.named_schema('name')
+    testing.assert_equal(schema.a, schema_constants.FLOAT32.with_bag(db))
+    testing.assert_equal(schema, schema2.with_bag(db))
+
+  def test_named_schema_nested_attrs(self):
+    db = bag()
+    schema = db.named_schema('name', a=schema_constants.FLOAT32)
+    db2 = bag()
+    outer_schema = db2.named_schema('name2', x=schema)
+    testing.assert_equal(
+        outer_schema.x.a, schema_constants.FLOAT32.with_bag(db2)
+    )
+
+  def test_named_schema_wrong_attr_type(self):
+    db = bag()
+    with self.assertRaisesRegex(
+        ValueError, 'expected DataSlice argument, got float'
+    ):
+      db.named_schema('name', a=1.0)
+    with self.assertRaisesRegex(
+        ValueError, 'only schemas can be assigned as attributes of schemas'
+    ):
+      db.named_schema('name', a=ds(1.0))
+    with self.assertRaisesRegex(
+        ValueError,
+        'trying to assign a slice with 1 dimensions to a slice with only 0'
+        ' dimensions',
+    ):
+      db.named_schema('name', a=ds([schema_constants.INT32]))
 
   def test_new_schema(self):
     db = bag()

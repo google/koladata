@@ -179,32 +179,35 @@ def uu_schema(
 @optools.add_to_registry(aliases=['kde.named_schema'])
 @optools.as_backend_operator(
     'kde.schema.named_schema',
+    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.name),
+        (
+            M.qtype.is_namedtuple_qtype(P.kwargs),
+            f'expected named tuple, got {constraints.name_type_msg(P.kwargs)}',
+        ),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def named_schema(name):
+def named_schema(
+    name=py_boxing.positional_or_keyword(), kwargs=py_boxing.var_keyword()
+):
   """Creates a named entity schema in the given DataBag.
 
   A named schema will have its item id derived only from its name, which means
   that two named schemas with the same name will have the same item id, even in
-  different DataBags.
-
-  Note that unlike other schema factories, this method does not take any attrs
-  to avoid confisuion with the behavior of uu_schema. Please use
-  named_schema(name).with_attrs(attrs) to create a named schema with attrs.
-
-  Currently the named schema does not put any triples into the provided
-  DataBag, but that might change in the future. For example, we might want to
-  store the schema name in the DataBag for printing.
+  different DataBags, or with different kwargs passed to this method.
 
   Args:
     name: The name to use to derive the item id of the schema.
+    kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+      values must be schemas themselves.
 
   Returns:
     data_slice.DataSlice with the item id of the required schema and kd.SCHEMA
-    schema, with a new immutable DataBag attached.
+    schema, with a new immutable DataBag attached containing the provided
+    kwargs.
   """
   raise NotImplementedError('implemented in the backend')
 

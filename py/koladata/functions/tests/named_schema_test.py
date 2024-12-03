@@ -16,6 +16,7 @@ from absl.testing import absltest
 from koladata.functions import functions as fns
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import schema_constants
 
 ds = data_slice.DataSlice.from_vals
 bag = fns.bag
@@ -47,6 +48,38 @@ class UuSchemaTest(absltest.TestCase):
     schema = fns.named_schema('name', db=db)
     no_bag_schema = fns.named_schema('name')
     testing.assert_equal(schema, no_bag_schema.with_bag(db))
+
+  def test_attrs(self):
+    schema = fns.named_schema('name', a=schema_constants.FLOAT32)
+    schema2 = fns.named_schema('name')
+    testing.assert_equal(
+        schema.a, schema_constants.FLOAT32.with_bag(schema.get_bag())
+    )
+    testing.assert_equal(schema, schema2.with_bag(schema.get_bag()))
+
+  def test_nested_attrs(self):
+    schema = fns.named_schema('name', a=schema_constants.FLOAT32)
+    outer_schema = fns.named_schema('name2', x=schema)
+    testing.assert_equal(
+        outer_schema.x.a,
+        schema_constants.FLOAT32.with_bag(outer_schema.get_bag()),
+    )
+
+  def test_wrong_attr_type(self):
+    with self.assertRaisesRegex(
+        ValueError, 'expected DataSlice argument, got float'
+    ):
+      fns.named_schema('name', a=1.0)
+    with self.assertRaisesRegex(
+        ValueError, 'only schemas can be assigned as attributes of schemas'
+    ):
+      fns.named_schema('name', a=ds(1.0))
+    with self.assertRaisesRegex(
+        ValueError,
+        'trying to assign a slice with 1 dimensions to a slice with only 0'
+        ' dimensions',
+    ):
+      fns.named_schema('name', a=ds([schema_constants.INT32]))
 
   def test_alias(self):
     self.assertIs(fns.named_schema, fns.schema.named_schema)

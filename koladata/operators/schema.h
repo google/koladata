@@ -63,7 +63,11 @@ inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
 
 // kde.schema.named_schema operator.
 // Creates a named entity schema with its item id derived only from its name.
-absl::StatusOr<DataSlice> NamedSchema(const DataSlice& name);
+class NamedSchemaOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
 
 // kde.schema._internal_maybe_named_schema operator.
 // Creates a named entity schema if the given slice is a text DataItem,

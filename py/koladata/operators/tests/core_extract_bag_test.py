@@ -68,7 +68,7 @@ class CoreExtractBagTest(absltest.TestCase):
     db = data_bag.DataBag.empty()
     o1 = db.list(db.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz'])))
     new_schema = kde.list_schema(
-        kde.named_schema('test').with_attrs(b=schema_constants.INT32)
+        kde.named_schema('test', b=schema_constants.INT32)
     ).eval()
     bag2 = kde.extract_bag(o1, new_schema).eval()
     o2 = o1.with_bag(bag2).with_schema(new_schema.no_bag())

@@ -20,15 +20,13 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
-from koladata.types import qtypes
+from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 M = arolla.M
 ds = data_slice.DataSlice.from_vals
-DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
 
 
@@ -66,14 +64,11 @@ class KodaNamedSchemaTest(parameterized.TestCase):
   @parameterized.parameters(
       (
           ds(['name1', 'name2']),
-          'requires name to be DataItem holding Text, got DataSlice',
+          'argument `name` must be an item holding STRING',
       ),
       (
           0,
-          (
-              r'requires name to be DataItem holding Text, got DataItem\(0'
-              r', schema: INT32\)'
-          ),
+          'argument `name` must be an item holding STRING',
       ),
   )
   def test_error(self, name, err_regex):
@@ -83,14 +78,39 @@ class KodaNamedSchemaTest(parameterized.TestCase):
     ):
       _ = expr_eval.eval(kde.schema.named_schema(name))
 
-  def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.schema.named_schema,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        ((DATA_SLICE, DATA_SLICE),),
+  def test_attrs(self):
+    schema = expr_eval.eval(
+        kde.schema.named_schema('name', a=schema_constants.FLOAT32)
     )
+    schema2 = expr_eval.eval(kde.schema.named_schema('name'))
+    testing.assert_equal(
+        schema.a, schema_constants.FLOAT32.with_bag(schema.get_bag())
+    )
+    testing.assert_equal(schema, schema2.with_bag(schema.get_bag()))
+
+  def test_nested_attrs(self):
+    schema = kde.schema.named_schema('name', a=schema_constants.FLOAT32)
+    outer_schema = kde.schema.named_schema('name2', x=schema).eval()
+    testing.assert_equal(
+        outer_schema.x.a,
+        schema_constants.FLOAT32.with_bag(outer_schema.get_bag()),
+    )
+
+  def test_wrong_attr_type(self):
+    with self.assertRaisesRegex(
+        ValueError, 'only schemas can be assigned as attributes of schemas'
+    ):
+      kde.schema.named_schema('name', a=1.0).eval()
+    with self.assertRaisesRegex(
+        ValueError, 'only schemas can be assigned as attributes of schemas'
+    ):
+      kde.schema.named_schema('name', a=ds(1.0)).eval()
+    with self.assertRaisesRegex(
+        ValueError,
+        'trying to assign a slice with 1 dimensions to a slice with only 0'
+        ' dimensions',
+    ):
+      kde.schema.named_schema('name', a=ds([schema_constants.INT32])).eval()
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.schema.named_schema(I.name)))
