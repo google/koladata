@@ -63,7 +63,9 @@ def uuobj(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+# This operator does not have qtype constraints and is not registered since it
+# is only supposed to be used only by kde.core.uu which would duplicate the
+# constraints.
 @optools.as_backend_operator(
     'kde.core._uu',
     qtype_inference_expr=qtypes.DATA_SLICE,

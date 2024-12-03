@@ -828,7 +828,9 @@ def with_attr(x, attr_name, value, update_schema=False):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+# This operator does not have qtype constraints and is not registered since it
+# is only supposed to be used only by kde.core.new which would duplicate the
+# constraints.
 @optools.as_backend_operator(
     'kde.core._new',
     qtype_inference_expr=qtypes.DATA_SLICE,
@@ -896,7 +898,9 @@ def new(
   )
 
 
-@optools.add_to_registry()
+# This operator does not have qtype constraints and is not registered since it
+# is only supposed to be used only by kde.core.new_shaped which would duplicate
+# the constraints.
 @optools.as_backend_operator(
     'kde.core._new_shaped',
     qtype_inference_expr=qtypes.DATA_SLICE,
@@ -1001,7 +1005,9 @@ def new_shaped_as(
   )
 
 
-@optools.add_to_registry()
+# This operator does not have qtype constraints and is not registered since it
+# is only supposed to be used only by kde.core.new_like which would duplicate
+# the constraints.
 @optools.as_backend_operator(
     'kde.core._new_like',
     qtype_inference_expr=qtypes.DATA_SLICE,
@@ -1474,7 +1480,9 @@ def select_values(ds, fltr):
   return select(ds=get_values(ds), fltr=fltr)
 
 
-@optools.add_to_registry()
+# This operator does not have qtype constraints and is not registered since it
+# is only supposed to be used only by kde.core.dict_shaped which would duplicate
+# the constraints.
 @optools.as_backend_operator(
     'kde.core._dict_shaped', qtype_inference_expr=qtypes.DATA_SLICE
 )
@@ -1688,7 +1696,9 @@ def dict_shaped_as(
   )
 
 
-@optools.add_to_registry()
+# This operator does not have qtype constraints and is not registered since it
+# is only supposed to be used only by kde.core.dict_like which would duplicate
+# the constraints.
 @optools.as_backend_operator(
     'kde.core._dict_like', qtype_inference_expr=qtypes.DATA_SLICE
 )
@@ -4223,7 +4233,9 @@ def list_(
   return _list(items, item_schema, schema, itemid, hidden_seed)
 
 
-@optools.add_to_registry()
+# This operator does not have qtype constraints and is not registered since it
+# is only supposed to be used only by kde.core.list_like which would duplicate
+# the constraints.
 @optools.as_backend_operator(
     'kde.core._list_like', qtype_inference_expr=qtypes.DATA_SLICE
 )
@@ -4282,7 +4294,9 @@ def list_like(
   )
 
 
-@optools.add_to_registry()
+# This operator does not have qtype constraints and is not registered since it
+# is only supposed to be used only by kde.core.list_shaped which would duplicate
+# the constraints.
 @optools.as_backend_operator(
     'kde.core._list_shaped', qtype_inference_expr=qtypes.DATA_SLICE
 )
