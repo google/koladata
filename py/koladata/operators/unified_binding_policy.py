@@ -59,6 +59,15 @@ def var_keyword():
   return _VAR_KEYWORD
 
 
+_OPT_CHR_POSITIONAL_ONLY = '_'
+_OPT_CHR_POSITIONAL_OR_KEYWORD = 'p'
+_OPT_CHR_VAR_POSITIONAL = 'P'
+_OPT_CHR_REQUIRED_KEYWORD_ONLY = 'k'
+_OPT_CHR_OPTIONAL_KEYWORD_ONLY = 'd'
+_OPT_CHR_VAR_KEYWORD = 'K'
+_OPT_CHR_NON_DETERMINISTIC = 'H'
+
+
 def make_unified_signature(
     signature: inspect.Signature, *, deterministic: bool
 ) -> arolla.abc.Signature:
@@ -96,36 +105,36 @@ def make_unified_signature(
     if param.kind == param.POSITIONAL_ONLY:
       if param.default is param.empty:
         sig_spec.append(param.name)
-        aux_opts.append('_')
+        aux_opts.append(_OPT_CHR_POSITIONAL_ONLY)
       else:
         sig_spec.append(param.name + '=')
         sig_vals.append(param.default)
-        aux_opts.append('_')
+        aux_opts.append(_OPT_CHR_POSITIONAL_ONLY)
     elif param.kind == param.POSITIONAL_OR_KEYWORD:
       if param.default is _VAR_POSITIONAL:
         sig_spec.append(param.name + '=')
         sig_vals.append(_EMPTY_TUPLE)
-        aux_opts.append('P')
+        aux_opts.append(_OPT_CHR_VAR_POSITIONAL)
       elif param.default is param.empty:
         sig_spec.append(param.name)
-        aux_opts.append('p')
+        aux_opts.append(_OPT_CHR_POSITIONAL_OR_KEYWORD)
       else:
         sig_spec.append(param.name + '=')
         sig_vals.append(param.default)
-        aux_opts.append('p')
+        aux_opts.append(_OPT_CHR_POSITIONAL_OR_KEYWORD)
     elif param.kind == param.KEYWORD_ONLY:
       if param.default is _VAR_KEYWORD:
         sig_spec.append(param.name + '=')
         sig_vals.append(_EMPTY_NAMEDTUPLE)
-        aux_opts.append('K')
+        aux_opts.append(_OPT_CHR_VAR_KEYWORD)
       elif param.default is param.empty:
         sig_spec.append(param.name + '=')
         sig_vals.append(arolla.unspecified())
-        aux_opts.append('k')
+        aux_opts.append(_OPT_CHR_REQUIRED_KEYWORD_ONLY)
       else:
         sig_spec.append(param.name + '=')
         sig_vals.append(param.default)
-        aux_opts.append('d')
+        aux_opts.append(_OPT_CHR_OPTIONAL_KEYWORD_ONLY)
     elif param.kind == param.VAR_POSITIONAL:
       raise ValueError(
           f'a signature with `*{param.name}` is not supported; please use'
@@ -142,13 +151,13 @@ def make_unified_signature(
   if not deterministic:
     sig_spec.append(NON_DETERMINISTIC_PARAM_NAME + '=')
     sig_vals.append(arolla.unspecified())
-    aux_opts.append('H')
+    aux_opts.append(_OPT_CHR_NON_DETERMINISTIC)
   aux_opts = ''.join(aux_opts)
 
   # Perform a sanity check on the parameter order.
-  if aux_opts.count('P') > 1:
+  if aux_opts.count(_OPT_CHR_VAR_POSITIONAL) > 1:
     raise ValueError('only one var_positional() is allowed')
-  if 'K' in aux_opts[: deterministic - 2]:
+  if _OPT_CHR_VAR_KEYWORD in aux_opts[: deterministic - 2]:
     raise ValueError('arguments cannot follow var-keyword argument')
   if 'Pp' in aux_opts:
     raise ValueError(
@@ -156,10 +165,7 @@ def make_unified_signature(
         ' a variadic-positional parameter'
     )
   return arolla.abc.make_operator_signature(  # pytype: disable=bad-return-type
-      (
-          ','.join(sig_spec) + f'|{UNIFIED_POLICY_PREFIX}{aux_opts}',
-          *sig_vals,
-      ),
+      (','.join(sig_spec) + f'|{UNIFIED_POLICY_PREFIX}{aux_opts}', *sig_vals),
       as_qvalue=_as_qvalue,
   )
 
@@ -226,7 +232,7 @@ class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
     result_params = []
     for i, param in enumerate(signature.parameters):
       opt = opts[i]
-      if opt == '_':
+      if opt == _OPT_CHR_POSITIONAL_ONLY:
         if param.default is None:
           result_params.append(
               inspect.Parameter(param.name, inspect.Parameter.POSITIONAL_ONLY)
@@ -239,7 +245,7 @@ class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
                   default=param.default,
               )
           )
-      elif opt == 'p':
+      elif opt == _OPT_CHR_POSITIONAL_OR_KEYWORD:
         if param.default is None:
           result_params.append(
               inspect.Parameter(
@@ -254,15 +260,15 @@ class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
                   default=param.default,
               )
           )
-      elif opt == 'P':
+      elif opt == _OPT_CHR_VAR_POSITIONAL:
         result_params.append(
             inspect.Parameter(param.name, inspect.Parameter.VAR_POSITIONAL)
         )
-      elif opt == 'k':
+      elif opt == _OPT_CHR_REQUIRED_KEYWORD_ONLY:
         result_params.append(
             inspect.Parameter(param.name, inspect.Parameter.KEYWORD_ONLY)
         )
-      elif opt == 'd':
+      elif opt == _OPT_CHR_OPTIONAL_KEYWORD_ONLY:
         result_params.append(
             inspect.Parameter(
                 param.name,
@@ -270,11 +276,11 @@ class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
                 default=param.default,
             )
         )
-      elif opt == 'K':
+      elif opt == _OPT_CHR_VAR_KEYWORD:
         result_params.append(
             inspect.Parameter(param.name, inspect.Parameter.VAR_KEYWORD)
         )
-      elif opt == 'H':
+      elif opt == _OPT_CHR_NON_DETERMINISTIC:
         continue
       else:
         raise RuntimeError(f'unexpected option={opt!r}, param={param.name!r}')
@@ -295,16 +301,16 @@ class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
     # Bind the positional parameters using `args`.
     while i < args_len and i < opts_len:
       opt = opts[i]
-      if opt == '_':
+      if opt == _OPT_CHR_POSITIONAL_ONLY:
         result[i] = _as_qvalue_or_expr(args[i])
-      elif opt == 'p':
+      elif opt == _OPT_CHR_POSITIONAL_OR_KEYWORD:
         if params[i].name in kwargs:
           raise TypeError(f'multiple values for argument {params[i].name!r}')
         result[i] = _as_qvalue_or_expr(args[i])
       else:
         break
       i += 1
-    if i < opts_len and opts[i] == 'P':
+    if i < opts_len and opts[i] == _OPT_CHR_VAR_POSITIONAL:
       result[i] = _as_qvalue_or_expr_tuple(args[i:])
       has_unprocessed_args = False
       i += 1
@@ -317,12 +323,12 @@ class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
     for j in range(i, opts_len):
       opt = opts[j]
       param = params[j]
-      if opt == '_':
+      if opt == _OPT_CHR_POSITIONAL_ONLY:
         if param.default is None:
           missing_positional_params.append(param.name)
         else:
           result[j] = param.default
-      elif opt == 'p':
+      elif opt == _OPT_CHR_POSITIONAL_OR_KEYWORD:
         value = kwargs.pop(param.name, _MISSING_SENTINEL)
         if value is _MISSING_SENTINEL:
           if param.default is None:
@@ -331,24 +337,24 @@ class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
             result[j] = param.default
         else:
           result[j] = _as_qvalue_or_expr(value)
-      elif opt == 'P':
+      elif opt == _OPT_CHR_VAR_POSITIONAL:
         result[j] = _EMPTY_TUPLE
-      elif opt == 'k':
+      elif opt == _OPT_CHR_REQUIRED_KEYWORD_ONLY:
         value = kwargs.pop(param.name, _MISSING_SENTINEL)
         if value is _MISSING_SENTINEL:
           missing_keyword_only_params.append(param.name)
         else:
           result[j] = _as_qvalue_or_expr(value)
-      elif opt == 'd':
+      elif opt == _OPT_CHR_OPTIONAL_KEYWORD_ONLY:
         value = kwargs.pop(param.name, _MISSING_SENTINEL)
         if value is _MISSING_SENTINEL:
           result[j] = param.default
         else:
           result[j] = _as_qvalue_or_expr(value)
-      elif opt == 'K':
+      elif opt == _OPT_CHR_VAR_KEYWORD:
         result[j] = _as_qvalue_or_expr_namedtuple(kwargs)
         kwargs.clear()
-      elif opt == 'H':
+      elif opt == _OPT_CHR_NON_DETERMINISTIC:
         result[j] = py_boxing.new_non_deterministic_token()
       else:
         raise RuntimeError(f'unexpected option={opt!r}, param={param.name!r}')
@@ -379,7 +385,9 @@ class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
       )
 
     if has_unprocessed_args:
-      count_positionals = opts.count('_') + opts.count('p')
+      count_positionals = opts.count(_OPT_CHR_POSITIONAL_ONLY) + opts.count(
+          _OPT_CHR_POSITIONAL_OR_KEYWORD
+      )
       count_no_defaults = sum(param.default is None for param in params)
       if count_positionals == count_no_defaults:
         if count_positionals == 1:
@@ -462,15 +470,18 @@ def unified_op_repr(
   for i, param in enumerate(node_op_signature.parameters):
     opt = opts[i]
     dep = node_deps[i]
-    if opt == '_' or opt == 'p':
+    if opt == _OPT_CHR_POSITIONAL_ONLY or opt == _OPT_CHR_POSITIONAL_OR_KEYWORD:
       node_dep_reprs.append(tokens[dep].text)
-    elif opt == 'P':
+    elif opt == _OPT_CHR_VAR_POSITIONAL:
       node_dep_reprs.extend(_unified_op_repr_var_positional(dep, tokens))
-    elif opt == 'k' or opt == 'd':
+    elif (
+        opt == _OPT_CHR_REQUIRED_KEYWORD_ONLY
+        or opt == _OPT_CHR_OPTIONAL_KEYWORD_ONLY
+    ):
       node_dep_reprs.append(f'{param.name}={tokens[dep].text}')
-    elif opt == 'K':
+    elif opt == _OPT_CHR_VAR_KEYWORD:
       node_dep_reprs.extend(_unified_op_repr_var_keyword(dep, tokens))
-    elif opt == 'H':
+    elif opt == _OPT_CHR_NON_DETERMINISTIC:
       pass
     else:
       raise RuntimeError(f'unexpected option={opt!r}, param={param.name!r}')
