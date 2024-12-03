@@ -170,6 +170,7 @@ cc_library(
     name = "dense_source",
     srcs = [
         "dense_source.cc",
+        "value_array.h",
     ],
     hdrs = ["dense_source.h"],
     deps = [
