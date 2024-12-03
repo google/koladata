@@ -41,59 +41,63 @@ QTYPES = frozenset([
 class StringsCountTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds('foo'), ds('oo'), ds(1)),
-      (ds('foo'), ds('zoo'), ds(0)),
-      (ds(b'foo'), ds(b'o'), ds(2)),
-      (ds(b'foo'), ds(b'boo'), ds(0)),
-      (ds(['foo', 'zoo', 'bar']), ds('o'), ds([2, 2, 0])),
+      (ds('foo'), ds('oo'), ds(1, schema_constants.INT64)),
+      (ds('foo'), ds('zoo'), ds(0, schema_constants.INT64)),
+      (ds(b'foo'), ds(b'o'), ds(2, schema_constants.INT64)),
+      (ds(b'foo'), ds(b'boo'), ds(0, schema_constants.INT64)),
+      (
+          ds(['foo', 'zoo', 'bar']),
+          ds('o'),
+          ds([2, 2, 0], schema_constants.INT64),
+      ),
       (
           ds([b'foo', b'zoo', b'bar']),
           ds(b'o'),
-          ds([2, 2, 0]),
+          ds([2, 2, 0], schema_constants.INT64),
       ),
       (
           ds([['foo', 'zooo'], ['bar']]),
           ds(['oo', 'a']),
-          ds([[1, 2], [1]]),
+          ds([[1, 2], [1]], schema_constants.INT64),
       ),
       (
           ds([['foo', 'zoo'], ['baba']]),
           ds(['zo', 'ba']),
-          ds([[0, 1], [2]]),
+          ds([[0, 1], [2]], schema_constants.INT64),
       ),
-      (ds('foo'), ds(None), ds(None, schema_constants.INT32)),
+      (ds('foo'), ds(None), ds(None, schema_constants.INT64)),
       (
           ds('foo'),
           ds(None, schema_constants.OBJECT),
-          ds(None, schema_constants.INT32),
+          ds(None, schema_constants.INT64),
       ),
       (
           ds(['foo'], schema_constants.ANY),
           ds('foo'),
-          ds([1]),
+          ds([1], schema_constants.INT64),
       ),
       # Empty and unknown.
       (
           ds([None, None]),
           ds([None, None]),
-          ds([None, None], schema_constants.INT32),
+          ds([None, None], schema_constants.INT64),
       ),
       (
           ds([None, None], schema_constants.STRING),
           ds(None, schema_constants.STRING),
-          ds([None, None], schema_constants.INT32),
+          ds([None, None], schema_constants.INT64),
       ),
       (
           ds([None, None], schema_constants.BYTES),
           ds(None, schema_constants.BYTES),
-          ds([None, None], schema_constants.INT32),
+          ds([None, None], schema_constants.INT64),
       ),
       (
           ds([None, None], schema_constants.OBJECT),
           ds(None, schema_constants.OBJECT),
-          ds([None, None], schema_constants.INT32),
+          ds([None, None], schema_constants.INT64),
       ),
-      (ds([None, None]), ds('abc'), ds([None, None], schema_constants.INT32)),
+      (ds([None, None]), ds('abc'), ds([None, None], schema_constants.INT64)),
   )
   def test_eval(self, s, substr, expected):
     result = expr_eval.eval(kde.strings.count(s, substr))

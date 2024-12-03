@@ -40,47 +40,47 @@ QTYPES = frozenset([
 class StringsLengthTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds('abcde'), ds(5)),
+      (ds('abcde'), ds(5, schema_constants.INT64)),
       (
           ds(['abc', None, '', 'ef']),
-          ds([3, None, 0, 2]),
+          ds([3, None, 0, 2], schema_constants.INT64),
       ),
       (
           ds([['abc', None], ['', 'ef']]),
-          ds([[3, None], [0, 2]]),
+          ds([[3, None], [0, 2]], schema_constants.INT64),
       ),
-      (ds('你好'), ds(2)),
+      (ds('你好'), ds(2, schema_constants.INT64)),
       # Bytes
       (
           ds([b'abc', None, b'', b'ef']),
-          ds([3, None, 0, 2]),
+          ds([3, None, 0, 2], schema_constants.INT64),
       ),
-      (ds('你好'.encode()), ds(6)),
+      (ds('你好'.encode()), ds(6, schema_constants.INT64)),
       # OBJECT/ANY
       (
           ds(['abc', None, '', 'ef'], schema_constants.OBJECT),
-          ds([3, None, 0, 2]),
+          ds([3, None, 0, 2], schema_constants.INT64),
       ),
       (
           ds(['abc', None, '', 'ef'], schema_constants.ANY),
-          ds([3, None, 0, 2]),
+          ds([3, None, 0, 2], schema_constants.INT64),
       ),
       # Empty and unknown inputs.
       (
           ds([None, None, None], schema_constants.OBJECT),
-          ds([None, None, None], schema_constants.INT32),
+          ds([None, None, None], schema_constants.INT64),
       ),
       (
           ds([None, None, None]),
-          ds([None, None, None], schema_constants.INT32),
+          ds([None, None, None], schema_constants.INT64),
       ),
       (
           ds([None, None, None], schema_constants.ANY),
-          ds([None, None, None], schema_constants.INT32),
+          ds([None, None, None], schema_constants.INT64),
       ),
       (
           ds([None, None, None], schema_constants.STRING),
-          ds([None, None, None], schema_constants.INT32),
+          ds([None, None, None], schema_constants.INT64),
       ),
   )
   def test_eval(self, x, expected):

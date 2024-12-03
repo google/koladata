@@ -34,7 +34,6 @@
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_slice.h"
-#include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/utils.h"
@@ -164,7 +163,7 @@ absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr) {
   RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "substr"}, x, substr))
       .With(OpError("kd.strings.count"));
   return SimplePointwiseEval("strings.count", {x, substr},
-                             internal::DataItem(schema::kInt32));
+                             internal::DataItem(schema::kInt64));
 }
 
 absl::StatusOr<DataSlice> DecodeBase64(const DataSlice& x,
@@ -285,7 +284,7 @@ absl::StatusOr<DataSlice> Length(const DataSlice& x) {
   RETURN_IF_ERROR(ExpectConsistentStringOrBytes("x", x))
       .With(OpError("kd.strings.count"));
   return SimplePointwiseEval("strings.length", {x},
-                             internal::DataItem(schema::kInt32));
+                             internal::DataItem(schema::kInt64));
 }
 
 absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
