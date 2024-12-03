@@ -132,6 +132,7 @@ py_test(
         ":optools",
         ":optools_test_utils",
         ":qtype_utils",
+        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/testing",

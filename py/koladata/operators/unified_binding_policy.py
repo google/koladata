@@ -29,11 +29,12 @@ _non_deterministic_leaf = py_boxing.HIDDEN_SEED_LEAF
 UNIFIED_POLICY = 'koladata_unified_binding_policy'
 UNIFIED_POLICY_PREFIX = f'{UNIFIED_POLICY}:'
 
+NON_DETERMINISTIC_PARAM_NAME = '_non_deterministic_token'
+NON_DETERMINISTIC_PARAM = arolla.abc.placeholder(NON_DETERMINISTIC_PARAM_NAME)
 
 # Marker for a variadic-positional parameter
 _VAR_POSITIONAL = type('VarPositional', (), {})()
 _VAR_KEYWORD = type('VarKeyword', (), {})()
-_NON_DETERMINISTIC = type('NonDeterministic', (), {})()
 
 # Precomputed values
 _EMPTY_TUPLE = arolla.tuple()
@@ -58,30 +59,22 @@ def var_keyword():
   return _VAR_KEYWORD
 
 
-def non_deterministic():
-  """Returns a marker for a non-deterministic parameter.
-
-  This marker should be used as the default value for a keyword-only parameter.
-  """
-  return _NON_DETERMINISTIC
-
-
-def find_non_deterministic_parameter_name(
-    unified_signature: arolla.abc.Signature,
-) -> str | None:
-  aux_policy = unified_signature.aux_policy
-  assert aux_policy.startswith(UNIFIED_POLICY_PREFIX)
-  opts = aux_policy[len(UNIFIED_POLICY_PREFIX) :]
-  i = opts.find('H')
-  if i < 0:
-    return None
-  return unified_signature.parameters[i].name
-
-
 def make_unified_signature(
-    signature: inspect.Signature,
+    signature: inspect.Signature, *, deterministic: bool
 ) -> arolla.abc.Signature:
-  """Returns an operator signature with the unified binding policy."""
+  """Returns an operator signature with a unified binding policy.
+
+  Args:
+    signature: An `inspect.Signature` object representing the expected python
+      signature.
+    deterministic: If set to False, a hidden parameter (with the name
+      `NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the signature. This
+      parameter receives special handling by the binding policy implementation.
+
+  Returns:
+    arolla.abc.Signature: An operator signature with the unified binding
+    policy applied.
+  """
   sig_spec = []
   sig_vals = []
   aux_opts = []
@@ -97,12 +90,6 @@ def make_unified_signature(
       if param.kind != param.KEYWORD_ONLY:
         raise ValueError(
             'the marker var_keyword() can only be used with'
-            ' a keyword-only parameter'
-        )
-    elif param.default is _NON_DETERMINISTIC:
-      if param.kind != param.KEYWORD_ONLY:
-        raise ValueError(
-            'the marker non_deterministic() can only be used with'
             ' a keyword-only parameter'
         )
 
@@ -131,10 +118,6 @@ def make_unified_signature(
         sig_spec.append(param.name + '=')
         sig_vals.append(_EMPTY_NAMEDTUPLE)
         aux_opts.append('K')
-      elif param.default is _NON_DETERMINISTIC:
-        sig_spec.append(param.name + '=')
-        sig_vals.append(arolla.unspecified())
-        aux_opts.append('H')
       elif param.default is param.empty:
         sig_spec.append(param.name + '=')
         sig_vals.append(arolla.unspecified())
@@ -155,14 +138,17 @@ def make_unified_signature(
       )
     else:
       raise ValueError(f'unsupported parameter: {param}')
+
+  if not deterministic:
+    sig_spec.append(NON_DETERMINISTIC_PARAM_NAME + '=')
+    sig_vals.append(arolla.unspecified())
+    aux_opts.append('H')
   aux_opts = ''.join(aux_opts)
 
   # Perform a sanity check on the parameter order.
   if aux_opts.count('P') > 1:
     raise ValueError('only one var_positional() is allowed')
-  if aux_opts.count('H') > 1:
-    raise ValueError('only one non_deterministic() is allowed')
-  if 'K' in aux_opts[:-1]:
+  if 'K' in aux_opts[: deterministic - 2]:
     raise ValueError('arguments cannot follow var-keyword argument')
   if 'Pp' in aux_opts:
     raise ValueError(

@@ -280,7 +280,6 @@ def as_lambda_operator(
 
 var_positional = unified_binding_policy.var_positional
 var_keyword = unified_binding_policy.var_keyword
-non_deterministic = unified_binding_policy.non_deterministic
 
 
 def as_unified_backend_operator(
@@ -288,21 +287,40 @@ def as_unified_backend_operator(
     *,
     qtype_inference_expr: arolla.Expr | arolla.QType,
     qtype_constraints: arolla.types.QTypeConstraints = (),
+    deterministic: bool = True,
 ) -> Callable[[types.FunctionType], arolla.types.BackendOperator]:
-  """Decorator for Koladata backend operators with a unified binding policy."""
+  """Decorator for Koladata backend operators with a unified binding policy.
+
+  Args:
+    name: The name of the operator.
+    qtype_inference_expr: Expression that computes operator's output type.
+      Argument types can be referenced using `arolla.P.arg_name`.
+    qtype_constraints: List of `(predicate_expr, error_message)` pairs.
+      `predicate_expr` may refer to the argument QType using
+      `arolla.P.arg_name`. If a type constraint is not fulfilled, the
+      corresponding `error_message` is used. Placeholders, like `{arg_name}`,
+      get replaced with the actual type names during the error message
+      formatting.
+    deterministic: If set to False, a hidden parameter (with the name
+      `optools.NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the
+      signature. This parameter receives special handling by the binding policy
+      implementation.
+
+  Returns:
+    A decorator that constructs a backend operator based on the provided Python
+    function signature.
+  """
 
   def impl(fn):
     qtype_constraints_copy = list(qtype_constraints)
     op_sig = unified_binding_policy.make_unified_signature(
-        inspect.signature(fn)
+        inspect.signature(fn), deterministic=deterministic
     )
-    non_deterministic_param_name = (
-        unified_binding_policy.find_non_deterministic_parameter_name(op_sig)
-    )
-    if non_deterministic_param_name is not None:
-      param = arolla.abc.placeholder(non_deterministic_param_name)
+    if not deterministic:
       qtype_constraints_copy.append(
-          qtype_utils.expect_non_deterministic(param)
+          qtype_utils.expect_non_deterministic(
+              unified_binding_policy.NON_DETERMINISTIC_PARAM
+          )
       )
     return arolla.types.BackendOperator(
         name,
@@ -319,40 +337,57 @@ def as_unified_lambda_operator(
     name: str,
     *,
     qtype_constraints: arolla.types.QTypeConstraints = (),
+    deterministic: bool = True,
 ) -> Callable[
     [types.FunctionType],
     arolla.types.LambdaOperator | arolla.types.RestrictedLambdaOperator,
 ]:
   """Decorator for Koladata lambda operators with a unified binding policy.
 
-  Koda specifics:
-    - Adds a KodaView to the inputs during tracing, allowing prefix / infix
-      notation.
-
   Args:
-    name: Name of the operator.
-    qtype_constraints: QType constraints for the operator.
+    name: The name of the operator.
+    qtype_constraints: List of `(predicate_expr, error_message)` pairs.
+      `predicate_expr` may refer to the argument QType using
+      `arolla.P.arg_name`. If a type constraint is not fulfilled, the
+      corresponding `error_message` is used. Placeholders, like `{arg_name}`,
+      get replaced with the actual type names during the error message
+      formatting.
+    deterministic: If set to False, a hidden parameter (with the name
+      `optools.NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the
+      signature. This parameter receives special handling by the binding policy
+      implementation.
 
   Returns:
-    A decorator that constructs a lambda operator by tracing a python function.
+    A decorator that constructs a lambda operator by tracing a Python function.
   """
 
   def impl(fn):
     qtype_constraints_copy = list(qtype_constraints)
     op_sig = unified_binding_policy.make_unified_signature(
-        inspect.signature(fn)
+        inspect.signature(fn), deterministic=deterministic
     )
     op_expr = _build_lambda_body_from_fn(fn)
-    non_deterministic_param_name = (
-        unified_binding_policy.find_non_deterministic_parameter_name(op_sig)
-    )
-    if non_deterministic_param_name is not None:
-      param = arolla.abc.placeholder(non_deterministic_param_name)
+    if deterministic:
+      if py_boxing.HIDDEN_SEED_LEAF.leaf_key in arolla.abc.get_leaf_keys(
+          op_expr
+      ):
+        raise ValueError(
+            'the lambda operator is based on a non-deterministic expression;'
+            ' please, specify `deterministic=False` in the declaration'
+        )
+    else:
       qtype_constraints_copy.append(
-          qtype_utils.expect_non_deterministic(param)
+          qtype_utils.expect_non_deterministic(
+              unified_binding_policy.NON_DETERMINISTIC_PARAM
+          )
       )
       op_expr = arolla.abc.sub_by_fingerprint(
-          op_expr, {py_boxing.HIDDEN_SEED_LEAF.fingerprint: param}
+          op_expr,
+          {
+              py_boxing.HIDDEN_SEED_LEAF.fingerprint: (
+                  unified_binding_policy.NON_DETERMINISTIC_PARAM
+              )
+          },
       )
     return arolla.optools.make_lambda(
         op_sig,

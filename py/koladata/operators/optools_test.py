@@ -18,6 +18,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import comparison as _
@@ -500,15 +501,15 @@ class OptoolsTest(parameterized.TestCase):
     # Not attached to op2 since it has a different qualname.
     self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
 
-  def test_as_unified_backend_operator(self):
+  def test_as_unified_backend_operator_properties(self):
     @optools.as_unified_backend_operator(
         'my_op_name',
         qtype_inference_expr=arolla.P.a,
         qtype_constraints=[(arolla.P.a != arolla.UNIT, 'my_qtype_constraint')],
     )
-    def op(a, /, b, *, c, d=optools.non_deterministic()):
+    def op(a, /, b, *, c):
       """MyDocstring."""
-      del a, b, c, d
+      del a, b, c
 
     self.assertIsInstance(op, arolla.types.BackendOperator)
     self.assertEqual(op.display_name, 'my_op_name')
@@ -517,18 +518,38 @@ class OptoolsTest(parameterized.TestCase):
         inspect.signature(op), inspect.signature(lambda a, /, b, *, c: None)
     )
     with self.assertRaisesRegex(ValueError, re.escape('my_qtype_constraint')):
-      op(arolla.unit(), 2, c=3)
+      arolla.abc.infer_attr(op, (arolla.UNIT, None, None))
+
+  def test_as_unified_backend_operator_deterministic(self):
+    @optools.as_unified_backend_operator('op', qtype_inference_expr=arolla.UNIT)
+    def op(x):
+      del x
+
+    self.assertEqual(op(I.x).fingerprint, op(I.x).fingerprint)
+    with self.assertRaisesRegex(
+        ValueError, re.escape('incorrect number of dependencies')
+    ):
+      arolla.abc.infer_attr(op, (None, arolla.UNIT))
+
+  def test_as_unified_backend_operator_non_deterministic(self):
+    @optools.as_unified_backend_operator(
+        'op', qtype_inference_expr=arolla.UNIT, deterministic=False
+    )
+    def op(x):
+      del x
+
+    self.assertNotEqual(op(I.x).fingerprint, op(I.x).fingerprint)
     with self.assertRaisesRegex(
         ValueError, re.escape('expected NON_DETERMINISTIC_TOKEN')
     ):
-      arolla.abc.bind_op(op, I.a, I.b, I.c, arolla.unit())
+      arolla.abc.infer_attr(op, (None, arolla.UNIT))
 
   def test_as_unified_lambda_operator(self):
     @optools.as_unified_lambda_operator(
         'my_op_name',
         qtype_constraints=[(arolla.P.a != arolla.UNIT, 'my_qtype_constraint')],
     )
-    def op(a, /, b, *, c, _=optools.non_deterministic()):
+    def op(a, /, b, *, c):
       """MyDocstring."""
       return a + b * c
 
@@ -544,10 +565,56 @@ class OptoolsTest(parameterized.TestCase):
     )
     with self.assertRaisesRegex(ValueError, re.escape('my_qtype_constraint')):
       op(arolla.unit(), 2, c=3)
+
+  def test_as_unified_lambda_operator_deterministic(self):
+    @optools.as_unified_lambda_operator('op')
+    def op(x):
+      return x
+
+    self.assertEqual(op(I.x).fingerprint, op(I.x).fingerprint)
     with self.assertRaisesRegex(
-        ValueError, re.escape('expected NON_DETERMINISTIC_TOKEN')
+        ValueError, re.escape('incorrect number of dependencies')
     ):
-      arolla.abc.bind_op(op, I.a, I.b, I.c, arolla.unit())
+      arolla.abc.infer_attr(op, (None, arolla.UNIT))
+
+  def test_as_unified_lambda_operator_non_deterministic(self):
+    counter = 0
+
+    @arolla.optools.as_py_function_operator(
+        'counter', qtype_inference_expr=qtypes.DATA_SLICE
+    )
+    def counter_op(_):
+      nonlocal counter
+      counter += 1
+      return ds(counter)
+
+    @optools.as_unified_lambda_operator('op', deterministic=False)
+    def op(x):
+      return x + counter_op(py_boxing.HIDDEN_SEED_LEAF)
+
+    self.assertNotEqual(op(I.x).fingerprint, op(I.x).fingerprint)
+    testing.assert_equal(
+        expr_eval.eval(core.add(op(I.x), op(I.x)), x=0), ds(1 + 2)
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('expected NON_DETERMINISTIC_TOKEN'),
+    ):
+      arolla.abc.infer_attr(op, (None, arolla.UNIT))
+
+  def test_error_deterministic_calls_non_deterministic(self):
+
+    @optools.as_unified_backend_operator(
+        'op1', qtype_inference_expr=qtypes.DATA_SLICE, deterministic=False
+    )
+    def op1():
+      pass
+
+    with self.assertRaisesRegex(ValueError, 'deterministic=False'):
+
+      @optools.as_unified_lambda_operator('op2')
+      def op2():
+        return op1()
 
 
 if __name__ == '__main__':

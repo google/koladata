@@ -4364,6 +4364,7 @@ def list_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
+    deterministic=False,
 )
 def list_shaped_as(
     shape_from,
@@ -4373,7 +4374,6 @@ def list_shaped_as(
     item_schema=arolla.unspecified(),
     schema=arolla.unspecified(),
     itemid=arolla.unspecified(),
-    hidden_seed=optools.non_deterministic(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Creates new Koda lists with the shape of the given DataSlice.
 

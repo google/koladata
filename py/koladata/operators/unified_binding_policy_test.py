@@ -36,7 +36,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     def op(x, y=arolla.unit(), /):
       del x, y
 
-    sig = unified_binding_policy.make_unified_signature(inspect.signature(op))
+    sig = unified_binding_policy.make_unified_signature(
+        inspect.signature(op), deterministic=True
+    )
     self.assertEqual(sig.aux_policy, 'koladata_unified_binding_policy:__')
     self.assertLen(sig.parameters, 2)
 
@@ -50,15 +52,13 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
         sig.parameters[1].default, arolla.unit()
     )
 
-    self.assertIsNone(
-        unified_binding_policy.find_non_deterministic_parameter_name(sig)
-    )
-
   def test_positional_or_keyword_parameters(self):
     def op(x, y=arolla.unit(), z=unified_binding_policy.var_positional()):
       del x, y, z
 
-    sig = unified_binding_policy.make_unified_signature(inspect.signature(op))
+    sig = unified_binding_policy.make_unified_signature(
+        inspect.signature(op), deterministic=True
+    )
     self.assertEqual(sig.aux_policy, 'koladata_unified_binding_policy:ppP')
     self.assertLen(sig.parameters, 3)
 
@@ -78,22 +78,19 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
         sig.parameters[2].default, arolla.tuple()
     )
 
-    self.assertIsNone(
-        unified_binding_policy.find_non_deterministic_parameter_name(sig)
-    )
-
   def test_keyword_parameters(self):
     def op(
         *,
         x=arolla.unit(),
         y,
-        h=unified_binding_policy.non_deterministic(),
         z=unified_binding_policy.var_keyword(),
     ):
-      del x, y, h, z
+      del x, y, z
 
-    sig = unified_binding_policy.make_unified_signature(inspect.signature(op))
-    self.assertEqual(sig.aux_policy, 'koladata_unified_binding_policy:dkHK')
+    sig = unified_binding_policy.make_unified_signature(
+        inspect.signature(op), deterministic=False
+    )
+    self.assertEqual(sig.aux_policy, 'koladata_unified_binding_policy:dkKH')
     self.assertLen(sig.parameters, 4)
 
     self.assertEqual(sig.parameters[0].name, 'x')
@@ -108,20 +105,19 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
         sig.parameters[1].default, arolla.unspecified()
     )
 
-    self.assertEqual(sig.parameters[2].name, 'h')
+    self.assertEqual(sig.parameters[2].name, 'z')
     self.assertEqual(sig.parameters[2].kind, 'positional-or-keyword')
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[2].default, arolla.unspecified()
-    )
-
-    self.assertEqual(sig.parameters[3].name, 'z')
-    self.assertEqual(sig.parameters[3].kind, 'positional-or-keyword')
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[3].default, arolla.namedtuple()
+        sig.parameters[2].default, arolla.namedtuple()
     )
 
     self.assertEqual(
-        unified_binding_policy.find_non_deterministic_parameter_name(sig), 'h'
+        sig.parameters[3].name,
+        unified_binding_policy.NON_DETERMINISTIC_PARAM_NAME,
+    )
+    self.assertEqual(sig.parameters[3].kind, 'positional-or-keyword')
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        sig.parameters[3].default, arolla.unspecified()
     )
 
   def test_error_var_positional_kind(self):
@@ -135,7 +131,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
             ' `args=var_positional()`'
         ),
     ):
-      _ = unified_binding_policy.make_unified_signature(inspect.signature(op))
+      _ = unified_binding_policy.make_unified_signature(
+          inspect.signature(op), deterministic=False
+      )
 
   def test_error_var_keyword_kind(self):
     def op(**kwargs):
@@ -148,7 +146,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
             ' `*, kwargs=var_keyword()`'
         ),
     ):
-      _ = unified_binding_policy.make_unified_signature(inspect.signature(op))
+      _ = unified_binding_policy.make_unified_signature(
+          inspect.signature(op), deterministic=False
+      )
 
   def test_error_multiple_var_positionals(self):
     def op(
@@ -160,20 +160,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         ValueError, 'only one var_positional() is allowed'
     ):
-      _ = unified_binding_policy.make_unified_signature(inspect.signature(op))
-
-  def test_error_multiple_non_deterministics(self):
-    def op(
-        *,
-        x=unified_binding_policy.non_deterministic(),
-        y=unified_binding_policy.non_deterministic(),
-    ):
-      del x, y
-
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'only one non_deterministic() is allowed'
-    ):
-      _ = unified_binding_policy.make_unified_signature(inspect.signature(op))
+      _ = unified_binding_policy.make_unified_signature(
+          inspect.signature(op), deterministic=False
+      )
 
   def test_error_positional_or_keyword_after_var_positional(self):
     def op(args=unified_binding_policy.var_positional(), x=arolla.unit()):
@@ -186,7 +175,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
             ' a variadic-positional parameter'
         ),
     ):
-      _ = unified_binding_policy.make_unified_signature(inspect.signature(op))
+      _ = unified_binding_policy.make_unified_signature(
+          inspect.signature(op), deterministic=False
+      )
 
   def test_error_keyword_only_after_var_keyword(self):
     def op(*, args=unified_binding_policy.var_keyword(), x=arolla.unit()):
@@ -195,7 +186,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         ValueError, 'arguments cannot follow var-keyword argument'
     ):
-      _ = unified_binding_policy.make_unified_signature(inspect.signature(op))
+      _ = unified_binding_policy.make_unified_signature(
+          inspect.signature(op), deterministic=False
+      )
 
   @parameterized.parameters(
       lambda x=unified_binding_policy.var_positional(), /: None,
@@ -207,7 +200,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
         'the marker var_positional() can only be used with'
         ' a keyword-or-positional parameter',
     ):
-      _ = unified_binding_policy.make_unified_signature(inspect.signature(op))
+      _ = unified_binding_policy.make_unified_signature(
+          inspect.signature(op), deterministic=False
+      )
 
   @parameterized.parameters(
       lambda x=unified_binding_policy.var_keyword(), /: None,
@@ -219,19 +214,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
         'the marker var_keyword() can only be used with'
         ' a keyword-only parameter',
     ):
-      _ = unified_binding_policy.make_unified_signature(inspect.signature(op))
-
-  @parameterized.parameters(
-      lambda x=unified_binding_policy.non_deterministic(), /: None,
-      lambda x=unified_binding_policy.non_deterministic(): None,
-  )
-  def test_error_non_deterministic_marker_misuse(self, op):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        'the marker non_deterministic() can only be used with'
-        ' a keyword-only parameter',
-    ):
-      _ = unified_binding_policy.make_unified_signature(inspect.signature(op))
+      _ = unified_binding_policy.make_unified_signature(
+          inspect.signature(op), deterministic=False
+      )
 
 
 class MakePythonSignatureTest(parameterized.TestCase):
@@ -509,10 +494,11 @@ unified_op = arolla.abc.register_operator(
     arolla.optools.make_lambda(
         unified_binding_policy.make_unified_signature(
             inspect.signature(
-                lambda a, /, x, args=unified_binding_policy.var_positional(), *, y, z, h=unified_binding_policy.non_deterministic(), kwargs=unified_binding_policy.var_keyword(): None
-            )
+                lambda a, /, x, args=unified_binding_policy.var_positional(), *, y, z, kwargs=unified_binding_policy.var_keyword(): None
+            ),
+            deterministic=False,
         ),
-        (P.a, P.x, P.args, P.y, P.z, P.h, P.kwargs),
+        (P.a, P.x, P.args, P.y, P.z, P.kwargs),
         name='unified_op',
     ),
 )
@@ -574,7 +560,7 @@ class UnifiedOpReprTest(parameterized.TestCase):
     self.assertEqual(
         repr(
             arolla.abc.bind_op(
-                unified_op, P.a, P.x, P.args, P.y, P.z, P.h, P.kwargs
+                unified_op, P.a, P.x, P.args, P.y, P.z, P.kwargs, P.h
             )
         ),
         'test.unified_op(P.a, P.x, *P.args, y=P.y, z=P.z, **P.kwargs)',
@@ -582,7 +568,7 @@ class UnifiedOpReprTest(parameterized.TestCase):
     self.assertEqual(
         repr(
             arolla.abc.bind_op(
-                unified_op, P.a, P.x, +P.args, P.y, P.z, P.h, -P.kwargs
+                unified_op, P.a, P.x, +P.args, P.y, P.z, -P.kwargs, P.h
             )
         ),
         'test.unified_op(P.a, P.x, *(+P.args), y=P.y, z=P.z, **(-P.kwargs))',
