@@ -30,12 +30,12 @@ P = arolla.P
     'kde.allocation.new_itemid_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_itemid_shaped(shape, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_itemid_shaped(shape, non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Allocates new ItemIds of the given shape without any DataBag attached."""
   raise NotImplementedError('implemented in the backend')
 
@@ -44,11 +44,11 @@ def new_itemid_shaped(shape, hidden_seed=py_boxing.hidden_seed()):  # pylint: di
 @optools.as_lambda_operator(
     'kde.allocation.new_itemid',
     qtype_constraints=[
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_itemid(hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_itemid(non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Allocates new ItemId."""
   return new_itemid_shaped(jagged_shape.create_shape())
 
@@ -58,12 +58,14 @@ def new_itemid(hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-a
     'kde.allocation.new_itemid_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_itemid_like(shape_and_mask_from, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_itemid_like(
+    shape_and_mask_from, non_deterministic=py_boxing.hidden_seed()
+):  # pylint: disable=unused-argument
   """Allocates new ItemIds with the shape and sparsity of shape_and_mask_from."""
   raise NotImplementedError('implemented in the backend')
 
@@ -73,11 +75,11 @@ def new_itemid_like(shape_and_mask_from, hidden_seed=py_boxing.hidden_seed()):  
     'kde.allocation.new_itemid_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_itemid_shaped_as(shape_from, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_itemid_shaped_as(shape_from, non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Allocates new ItemIds with the shape of shape_from."""
   return new_itemid_shaped(jagged_shape.get_shape(shape_from))
 
@@ -87,12 +89,12 @@ def new_itemid_shaped_as(shape_from, hidden_seed=py_boxing.hidden_seed()):  # py
     'kde.allocation.new_listid_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_listid_shaped(shape, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_listid_shaped(shape, non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Allocates new List ItemIds of the given shape."""
   raise NotImplementedError('implemented in the backend')
 
@@ -100,10 +102,12 @@ def new_listid_shaped(shape, hidden_seed=py_boxing.hidden_seed()):  # pylint: di
 @optools.add_to_registry(aliases=['kde.new_listid'])
 @optools.as_lambda_operator(
     'kde.allocation.new_listid',
-    qtype_constraints=[qtype_utils.expect_accepts_hidden_seed()],
+    qtype_constraints=[
+        qtype_utils.expect_non_deterministic(P.non_deterministic)
+    ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_listid(hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_listid(non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Allocates new List ItemId."""
   return new_listid_shaped(jagged_shape.create_shape())
 
@@ -113,12 +117,14 @@ def new_listid(hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-a
     'kde.allocation.new_listid_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic)
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_listid_like(shape_and_mask_from, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_listid_like(
+    shape_and_mask_from, non_deterministic=py_boxing.hidden_seed()
+):  # pylint: disable=unused-argument
   """Allocates new List ItemIds with the shape and sparsity of shape_and_mask_from."""
   raise NotImplementedError('implemented in the backend')
 
@@ -128,11 +134,11 @@ def new_listid_like(shape_and_mask_from, hidden_seed=py_boxing.hidden_seed()):  
     'kde.allocation.new_listid_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic)
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_listid_shaped_as(shape_from, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_listid_shaped_as(shape_from, non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Allocates new List ItemIds with the shape of shape_from."""
   return new_listid_shaped(jagged_shape.get_shape(shape_from))
 
@@ -142,12 +148,12 @@ def new_listid_shaped_as(shape_from, hidden_seed=py_boxing.hidden_seed()):  # py
     'kde.allocation.new_dictid_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic)
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_dictid_shaped(shape, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_dictid_shaped(shape, non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Allocates new Dict ItemIds of the given shape."""
   raise NotImplementedError('implemented in the backend')
 
@@ -155,10 +161,12 @@ def new_dictid_shaped(shape, hidden_seed=py_boxing.hidden_seed()):  # pylint: di
 @optools.add_to_registry(aliases=['kde.new_dictid'])
 @optools.as_lambda_operator(
     'kde.allocation.new_dictid',
-    qtype_constraints=[qtype_utils.expect_accepts_hidden_seed()],
+    qtype_constraints=[
+        qtype_utils.expect_non_deterministic(P.non_deterministic)
+    ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_dictid(hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_dictid(non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Allocates new Dict ItemId."""
   return new_dictid_shaped(jagged_shape.create_shape())
 
@@ -168,12 +176,14 @@ def new_dictid(hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-a
     'kde.allocation.new_dictid_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic)
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_dictid_like(shape_and_mask_from, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_dictid_like(
+    shape_and_mask_from, non_deterministic=py_boxing.hidden_seed()
+):  # pylint: disable=unused-argument
   """Allocates new Dict ItemIds with the shape and sparsity of shape_and_mask_from."""
   raise NotImplementedError('implemented in the backend')
 
@@ -183,10 +193,10 @@ def new_dictid_like(shape_and_mask_from, hidden_seed=py_boxing.hidden_seed()):  
     'kde.allocation.new_dictid_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic)
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def new_dictid_shaped_as(shape_from, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def new_dictid_shaped_as(shape_from, non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Allocates new Dict ItemIds with the shape of shape_from."""
   return new_dictid_shaped(jagged_shape.get_shape(shape_from))

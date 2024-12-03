@@ -39,7 +39,10 @@ kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 
 QTYPE_SIGNATURES = list(
-    (qtypes.JAGGED_SHAPE, *args, arolla.INT64, qtypes.DATA_SLICE)
+    (
+        qtypes.JAGGED_SHAPE, *args, qtypes.NON_DETERMINISTIC_TOKEN,
+        qtypes.DATA_SLICE
+    )
     for args in itertools.product(
         [qtypes.DATA_SLICE, arolla.UNSPECIFIED], repeat=4
     )

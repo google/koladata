@@ -27,6 +27,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/schema_utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qtype/named_field_qtype.h"
@@ -34,6 +35,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_slot.h"
+#include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
@@ -52,6 +54,19 @@ absl::Status VerifyNamedTuple(arolla::QTypePtr qtype) {
     }
   }
   return absl::OkStatus();
+}
+
+absl::Status VerifyIsNonDeterministicToken(arolla::QTypePtr qtype) {
+  if (qtype != arolla::GetQType<internal::NonDeterministicToken>()) {
+    return absl::InvalidArgumentError(
+        "requires last argument to be NON_DETERMINISTIC_TOKEN");
+  }
+  return absl::OkStatus();
+}
+
+bool IsDataSliceOrUnspecified(arolla::QTypePtr type) {
+  return type == arolla::GetQType<DataSlice>() ||
+         type == arolla::GetUnspecifiedQType();
 }
 
 std::vector<absl::string_view> GetAttrNames(

@@ -40,9 +40,10 @@ OBJ1 = db.obj()
 OBJ2 = db.obj()
 
 
-QTYPE_SIGNATURES = frozenset(
-    [(qtypes.DATA_SLICE, qtypes.DATA_SLICE, arolla.INT64, qtypes.DATA_SLICE)]
-)
+QTYPE_SIGNATURES = frozenset([(
+    qtypes.DATA_SLICE, qtypes.DATA_SLICE, qtypes.NON_DETERMINISTIC_TOKEN,
+    qtypes.DATA_SLICE
+)])
 
 
 class ListLikeTest(parameterized.TestCase):

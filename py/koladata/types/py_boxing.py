@@ -267,6 +267,13 @@ def _random_int64() -> arolla.QValue:
   return arolla.int64(_RANDOM.randint(-(2**63), 2**63 - 1))
 
 
+def new_non_deterministic_token() -> arolla.Expr:
+  """Returns a new unique value for argument marked with hidden_seed marker."""
+  return arolla.abc.bind_op(
+      'koda_internal.non_deterministic', HIDDEN_SEED_LEAF, _random_int64()
+  )
+
+
 # NOTE: This function should prefer to return QValues whenever possible to be as
 # friendly to eager evaluation as possible.
 def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
@@ -542,9 +549,7 @@ class _FullSignatureBindingPolicy(BasicBindingPolicy):
           )
         kwargs.clear()
       elif is_hidden_seed(marker_type):
-        bound_values.append(
-            arolla.M.math.add(HIDDEN_SEED_LEAF, _random_int64())
-        )
+        bound_values.append(new_non_deterministic_token())
       else:
         raise TypeError(f'unknown param marker type {marker_type}')
 

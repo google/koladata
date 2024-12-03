@@ -23,7 +23,7 @@ from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _  # pylint: disable=unused-import
 from koladata.types import ellipsis as _ellipsis
 from koladata.types import jagged_shape as _jagged_shape
-from koladata.types import py_boxing as _py_boxing
+from koladata.types import qtypes as _qtypes
 
 _KodaVal = (
     _data_bag.DataBag
@@ -450,21 +450,18 @@ def assert_non_deterministic_exprs_equal(
     AssertionError: If actual_expr and expected_expr do not represent equal Koda
       expressions modulo non-deterministic property.
   """
-  def _replace_hidden_seed(expr: _arolla.Expr) -> _arolla.Expr:
-    """Replaces all nodes with hidden_seed leaf with INT64 constant."""
-    hidden_seed_nodes = []
+  def _replace_non_deterministic(expr: _arolla.Expr) -> _arolla.Expr:
+    """Makes all non-deterministic nodes deterministic."""
+    non_deterministic_nodes = []
     for node in _arolla.abc.post_order(expr):
-      if (
-          node.is_operator and node.node_deps and node.node_deps[0].is_leaf and
-          node.node_deps[0].leaf_key == _py_boxing.HIDDEN_SEED_LEAF.leaf_key
-      ):
-        hidden_seed_nodes.append(node)
+      if node.qtype == _qtypes.NON_DETERMINISTIC_TOKEN:
+        non_deterministic_nodes.append(node.node_deps[1])
     return _arolla.sub_by_fingerprint(expr, {
-        hidden_seed.fingerprint: _arolla.literal(_arolla.int64(i))
-        for i, hidden_seed in enumerate(hidden_seed_nodes)
+        non_deterministic.fingerprint: _arolla.literal(_arolla.int64(i))
+        for i, non_deterministic in enumerate(non_deterministic_nodes)
     })
 
-  actual_expr = _replace_hidden_seed(actual_expr)
-  expected_expr = _replace_hidden_seed(expected_expr)
+  actual_expr = _replace_non_deterministic(actual_expr)
+  expected_expr = _replace_non_deterministic(expected_expr)
   _assert_expr_equal_by_fingerprint(actual_expr, expected_expr)
   return

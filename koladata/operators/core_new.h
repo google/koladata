@@ -20,6 +20,7 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
@@ -27,7 +28,7 @@ namespace koladata::ops {
 
 // kde.core._new_ids_like
 absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
-                                     int64_t unused_hidden_seed = 0);
+                                     internal::NonDeterministicToken);
 
 // kde.core._new.
 class NewOperatorFamily final : public arolla::OperatorFamily {

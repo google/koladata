@@ -13,9 +13,11 @@
 // limitations under the License.
 //
 #include "koladata/operators/core_dict.h"
+
 #include <cstdint>
 #include <optional>
 #include <utility>
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/adoption_utils.h"
@@ -23,6 +25,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/object_factories.h"
 #include "koladata/uuid_utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -65,7 +68,8 @@ absl::StatusOr<DataSlice> DictShaped(
     const DataSlice::JaggedShape& shape, const DataSlice& keys,
     const DataSlice& values, const DataSlice& key_schema,
     const DataSlice& value_schema, const DataSlice& schema,
-    const DataSlice& itemid, int64_t unused_hidden_seed) {
+    const DataSlice& itemid,
+    internal::NonDeterministicToken) {
   DataBagPtr db = DataBag::Empty();
   ASSIGN_OR_RETURN(
       auto result,
@@ -92,7 +96,8 @@ absl::StatusOr<DataSlice> DictLike(
     const DataSlice& shape_and_mask_from, const DataSlice& keys,
     const DataSlice& values, const DataSlice& key_schema,
     const DataSlice& value_schema, const DataSlice& schema,
-    const DataSlice& itemid, int64_t unused_hidden_seed) {
+    const DataSlice& itemid,
+    internal::NonDeterministicToken) {
   DataBagPtr db = DataBag::Empty();
   ASSIGN_OR_RETURN(
       auto result,

@@ -33,6 +33,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "koladata/uuid_utils.h"
@@ -84,7 +85,7 @@ absl::StatusOr<DataSlice> Explode(const DataSlice& x, const int64_t ndim) {
 }
 
 absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
-                                  int64_t unused_hidden_seed) {
+                                  internal::NonDeterministicToken) {
   auto db = DataBag::Empty();
   ASSIGN_OR_RETURN(auto result, Implode(db, x, ndim));
   db->UnsafeMakeImmutable();
@@ -114,10 +115,10 @@ absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
   });
 }
 
-absl::StatusOr<DataSlice> List(const DataSlice& items,
-                               const DataSlice& item_schema,
-                               const DataSlice& schema, const DataSlice& itemid,
-                               int64_t unused_hidden_seed) {
+absl::StatusOr<DataSlice> List(
+    const DataSlice& items, const DataSlice& item_schema,
+    const DataSlice& schema, const DataSlice& itemid,
+    internal::NonDeterministicToken) {
   auto db = DataBag::Empty();
   std::optional<DataSlice> result;
   auto schema_or = IsUnspecifiedDataSlice(schema) ? std::nullopt
@@ -139,12 +140,11 @@ absl::StatusOr<DataSlice> List(const DataSlice& items,
   return *std::move(result);
 }
 
-absl::StatusOr<DataSlice> ListLike(const DataSlice& shape_and_mask_from,
-                                   const DataSlice& items,
-                                   const DataSlice& item_schema,
-                                   const DataSlice& schema,
-                                   const DataSlice& itemid,
-                                   int64_t unused_hidden_seed) {
+absl::StatusOr<DataSlice> ListLike(
+    const DataSlice& shape_and_mask_from, const DataSlice& items,
+    const DataSlice& item_schema, const DataSlice& schema,
+    const DataSlice& itemid,
+    internal::NonDeterministicToken) {
   auto db = DataBag::Empty();
   ASSIGN_OR_RETURN(
       auto result,
@@ -162,12 +162,11 @@ absl::StatusOr<DataSlice> ListLike(const DataSlice& shape_and_mask_from,
   return result;
 }
 
-absl::StatusOr<DataSlice> ListShaped(const DataSlice::JaggedShape& shape,
-                                     const DataSlice& items,
-                                     const DataSlice& item_schema,
-                                     const DataSlice& schema,
-                                     const DataSlice& itemid,
-                                     int64_t unused_hidden_seed) {
+absl::StatusOr<DataSlice> ListShaped(
+    const DataSlice::JaggedShape& shape, const DataSlice& items,
+    const DataSlice& item_schema, const DataSlice& schema,
+    const DataSlice& itemid,
+    internal::NonDeterministicToken) {
   auto db = DataBag::Empty();
   ASSIGN_OR_RETURN(
       auto result,

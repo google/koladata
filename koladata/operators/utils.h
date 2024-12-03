@@ -29,6 +29,12 @@ namespace koladata::ops {
 // Verifies that a qtype is named tuple and has only DataSlice values.
 absl::Status VerifyNamedTuple(arolla::QTypePtr qtype);
 
+// Returns true if the qtype is NonDeterministicToken QType.
+absl::Status VerifyIsNonDeterministicToken(arolla::QTypePtr qtype);
+
+// Returns true if the qtype is either DataSlice or Unspecified.
+bool IsDataSliceOrUnspecified(arolla::QTypePtr type);
+
 // Returns the names of attributes associated with an already validated
 // named tuple slot.
 std::vector<absl::string_view> GetAttrNames(

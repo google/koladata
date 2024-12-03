@@ -24,7 +24,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
@@ -37,6 +36,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "koladata/expr/expr_operators.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_visitor.h"
@@ -59,21 +59,12 @@ namespace {
 // since in most cases we have 1:1 correspondence between them.
 constexpr int64_t kCacheSize = 4096;
 
-// Support for non-determinism in specific Koda operators.
-constexpr int64_t kHiddenSeedValue = (1l << 31) - 1;
-
-arolla::TypedRef HiddenSeedArgValueRef() {
-  static absl::NoDestructor<const arolla::TypedValue> value(
-      arolla::TypedValue::FromValue(kHiddenSeedValue));
-  return value->AsRef();
-}
-
 // Information about an expression for fetching inputs for evaluation.
 struct ExprInfo {
   std::vector<std::string> leaf_keys;
   absl::flat_hash_map<std::string, size_t> input_leaf_index;
   absl::flat_hash_map<std::string, size_t> variable_leaf_index;
-  std::optional<size_t> hidden_seed_index;
+  std::optional<size_t> non_deterministic_index;
 };
 
 // An expression and associated information compatible with the Arolla C++
@@ -132,14 +123,14 @@ absl::StatusOr<TransformedExpr> ReplaceInputsWithLeaves(
   auto transform_expr = [&res](arolla::expr::ExprNodePtr node)
       -> absl::StatusOr<arolla::expr::ExprNodePtr> {
     if (node->is_leaf()) {
-      if (node->leaf_key() != kHiddenSeedLeafKey) {
+      if (node->leaf_key() != kNonDeterministicLeafKey) {
         return absl::InvalidArgumentError(
             absl::StrFormat("the inputs to kd.eval() must be specified as I.x, "
                             "but the provided expression has leaves: [%s, ...]",
                             node->leaf_key()));
       }
-      if (!res.info.hidden_seed_index) {
-        res.info.hidden_seed_index = res.info.leaf_keys.size();
+      if (!res.info.non_deterministic_index) {
+        res.info.non_deterministic_index = res.info.leaf_keys.size();
         res.info.leaf_keys.emplace_back(std::string(node->leaf_key()));
       }
       return node;
@@ -296,8 +287,9 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
       expr_info.leaf_keys.size(), arolla::TypedRef::UnsafeFromRawPointer(
                                       arolla::GetNothingQType(), nullptr));
   int64_t input_count = 0;
-  if (expr_info.hidden_seed_index) {
-    input_qvalues[*expr_info.hidden_seed_index] = HiddenSeedArgValueRef();
+  if (expr_info.non_deterministic_index) {
+    input_qvalues[*expr_info.non_deterministic_index] =
+        internal::NonDeterministicTokenValue().AsRef();
     ++input_count;
   }
   for (const auto& [input_name, input_value] : inputs) {

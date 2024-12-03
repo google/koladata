@@ -116,12 +116,10 @@ def expect_jagged_shape_or_unspecified(param) -> constraints.QTypeConstraint:
   )
 
 
-def expect_accepts_hidden_seed() -> constraints.QTypeConstraint:
-  """Returns a constraint that there is a hidden_seed argument."""
+def expect_non_deterministic(param) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is non_deterministic."""
   return (
-      P.hidden_seed == arolla.types.INT64,
-      (
-          'expected hidden_seed to be INT64, got'
-          f' {constraints.name_type_msg(P.hidden_seed)}'
-      ),
+      param == qtypes.NON_DETERMINISTIC_TOKEN,
+      'expected NON_DETERMINISTIC_TOKEN, got '
+      f'{constraints.name_type_msg(param)}',
   )

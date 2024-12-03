@@ -39,7 +39,7 @@ bag = data_bag.DataBag.empty
 
 
 QTYPE_SIGNATURES = list(
-    (*args, arolla.INT64, qtypes.DATA_SLICE)
+    (*args, qtypes.NON_DETERMINISTIC_TOKEN, qtypes.DATA_SLICE)
     for args in itertools.product(
         [qtypes.DATA_SLICE, arolla.UNSPECIFIED], repeat=4
     )

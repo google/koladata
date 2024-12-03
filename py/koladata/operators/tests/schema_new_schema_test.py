@@ -21,7 +21,6 @@ from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
-from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -68,13 +67,6 @@ class KodaNewSchemaTest(parameterized.TestCase):
       expr_1 = kde.schema.new_schema(**kwargs)
       expr_2 = kde.schema.new_schema(**kwargs)
       self.assertNotEqual(expr_1.fingerprint, expr_2.fingerprint)
-
-    with self.subTest('error'):
-      with self.assertRaisesRegex(ValueError, 'expected numerics, got x: TEXT'):
-        arolla.sub_by_fingerprint(
-            kde.schema.new_schema(**kwargs),
-            {py_boxing.HIDDEN_SEED_LEAF.fingerprint: arolla.literal('error')}
-        )
 
   def test_bag_adoption(self):
     a = expr_eval.eval(kde.schema.new_schema(a=schema_constants.INT32))

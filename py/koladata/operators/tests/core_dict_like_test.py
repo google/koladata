@@ -37,10 +37,11 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 DATA_SLICE = qtypes.DATA_SLICE
+NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 
 
 QTYPE_SIGNATURES = list(
-    (DATA_SLICE, *args, arolla.INT64, DATA_SLICE)
+    (DATA_SLICE, *args, NON_DETERMINISTIC_TOKEN, DATA_SLICE)
     for args in itertools.product([DATA_SLICE, arolla.UNSPECIFIED], repeat=6)
 )
 

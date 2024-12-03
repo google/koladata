@@ -1097,8 +1097,19 @@ cc_library(
     srcs = ["non_deterministic_token.cc"],
     hdrs = ["non_deterministic_token.h"],
     deps = [
+        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "non_deterministic_token_test",
+    srcs = ["non_deterministic_token_test.cc"],
+    deps = [
+        ":non_deterministic_token",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
     ],
 )

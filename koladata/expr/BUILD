@@ -65,8 +65,8 @@ cc_library(
     hdrs = ["expr_eval.h"],
     deps = [
         ":expr_operators",
+        "//koladata/internal:non_deterministic_token",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",

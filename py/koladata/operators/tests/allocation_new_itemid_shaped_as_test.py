@@ -64,7 +64,11 @@ class AllocationNewItemIdShapedAsTest(parameterized.TestCase):
             kde.allocation.new_itemid_shaped_as,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
-        frozenset([(qtypes.DATA_SLICE, arolla.INT64, qtypes.DATA_SLICE)]),
+        frozenset([(
+            qtypes.DATA_SLICE,
+            qtypes.NON_DETERMINISTIC_TOKEN,
+            qtypes.DATA_SLICE,
+        )]),
     )
 
   def test_view(self):

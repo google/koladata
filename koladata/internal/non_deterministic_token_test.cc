@@ -14,23 +14,23 @@
 //
 #include "koladata/internal/non_deterministic_token.h"
 
-#include "absl/base/no_destructor.h"
-#include "arolla/qtype/simple_qtype.h"
-#include "arolla/qtype/typed_value.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "arolla/util/fingerprint.h"
 
 namespace koladata::internal {
+namespace {
 
-const arolla::TypedValue& NonDeterministicTokenValue() {
-  static const absl::NoDestructor value(
-      arolla::TypedValue::FromValue(NonDeterministicToken{}));
-  return *value;
+TEST(NonDeterministicToken, DeterministicFingerprint) {
+  // NOTE: If ever used as part of Expr for computing the cache key for some
+  // Expr-Input-Value caching in the future, it should have non-deterministic
+  // fingerprint (consistent for a particular instance).
+  EXPECT_EQ(
+      arolla::FingerprintHasher("salt").Combine(NonDeterministicToken{})
+          .Finish(),
+      arolla::FingerprintHasher("salt").Combine(NonDeterministicToken{})
+          .Finish());
 }
 
+}  // namespace
 }  // namespace koladata::internal
-
-namespace arolla {
-
-AROLLA_DEFINE_SIMPLE_QTYPE(NON_DETERMINISTIC_TOKEN,
-                           koladata::internal::NonDeterministicToken);
-
-}  // namespace arolla

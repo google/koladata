@@ -43,7 +43,7 @@ def generate_qtypes():
           arolla.make_namedtuple_qtype(a=DATA_SLICE),
           arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
       ]:
-        yield DATA_SLICE, schema_arg_type, DATA_SLICE, itemid_arg_type, attrs_type, arolla.types.INT64, DATA_SLICE
+        yield DATA_SLICE, schema_arg_type, DATA_SLICE, itemid_arg_type, attrs_type, qtypes.NON_DETERMINISTIC_TOKEN, DATA_SLICE
 
 
 QTYPES = list(generate_qtypes())

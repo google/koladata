@@ -34,6 +34,7 @@ ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty
 DATA_SLICE = qtypes.DATA_SLICE
 JAGGED_SHAPE = qtypes.JAGGED_SHAPE
+NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 
 
 def generate_qtypes():
@@ -43,7 +44,7 @@ def generate_qtypes():
         arolla.make_namedtuple_qtype(a=DATA_SLICE),
         arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
     ]:
-      yield JAGGED_SHAPE, itemid_arg_type, attrs_type, arolla.types.INT64, DATA_SLICE
+      yield JAGGED_SHAPE, itemid_arg_type, attrs_type, NON_DETERMINISTIC_TOKEN, DATA_SLICE
 
 
 QTYPES = list(generate_qtypes())

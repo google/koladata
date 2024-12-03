@@ -33,6 +33,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
@@ -55,11 +56,6 @@
 
 namespace koladata::ops {
 namespace {
-
-bool IsDataSliceOrUnspecified(arolla::QTypePtr type) {
-  return type == arolla::GetQType<DataSlice>() ||
-         type == arolla::GetUnspecifiedQType();
-}
 
 class NewOperator final : public arolla::QExprOperator {
  public:
@@ -266,7 +262,7 @@ absl::StatusOr<arolla::OperatorPtr> UuOperatorFamily::DoGetOperator(
 }
 
 absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
-                                     int64_t unused_hidden_seed) {
+                                     internal::NonDeterministicToken) {
   return ds.VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
     if constexpr (std::is_same_v<T, internal::DataSliceImpl>) {
       return DataSlice::Create(internal::NewIdsLike(impl), ds.GetShape(),
@@ -300,6 +296,7 @@ absl::StatusOr<arolla::OperatorPtr> NewOperatorFamily::DoGetOperator(
         "requires itemid argument to be DataSlice or unspecified");
   }
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[4]));
+  RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[5]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<NewOperator>(input_types), input_types,
       output_type);
@@ -328,6 +325,7 @@ absl::StatusOr<arolla::OperatorPtr> NewShapedOperatorFamily::DoGetOperator(
         "requires itemid argument to be DataSlice or unspecified");
   }
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[4]));
+  RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[5]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<NewShapedOperator>(input_types), input_types,
       output_type);
@@ -356,6 +354,7 @@ absl::StatusOr<arolla::OperatorPtr> NewLikeOperatorFamily::DoGetOperator(
         "requires itemid argument to be DataSlice or unspecified");
   }
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[4]));
+  RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[5]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<NewLikeOperator>(input_types), input_types, output_type);
 }

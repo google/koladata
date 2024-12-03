@@ -18,9 +18,12 @@
 // Dict operators implementations.
 
 #include <cstdint>
+
 #include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/non_deterministic_token.h"
+
 namespace koladata::ops {
 
 // kde.core.dict_size.
@@ -51,14 +54,16 @@ absl::StatusOr<DataSlice> DictShaped(
     const DataSlice::JaggedShape& shape, const DataSlice& keys,
     const DataSlice& values, const DataSlice& key_schema,
     const DataSlice& value_schema, const DataSlice& schema,
-    const DataSlice& itemid, int64_t unused_hidden_seed);
+    const DataSlice& itemid,
+    internal::NonDeterministicToken);
 
 // kde.core._dict_like operator.
 absl::StatusOr<DataSlice> DictLike(
     const DataSlice& shape_and_mask_from, const DataSlice& keys,
     const DataSlice& values, const DataSlice& key_schema,
     const DataSlice& value_schema, const DataSlice& schema,
-    const DataSlice& itemid, int64_t unused_hidden_seed);
+    const DataSlice& itemid,
+    internal::NonDeterministicToken);
 
 }  // namespace koladata::ops
 

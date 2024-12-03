@@ -60,7 +60,7 @@ class AllocationNewDictIdTest(absltest.TestCase):
             kde.allocation.new_dictid,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
-        frozenset([(arolla.INT64, qtypes.DATA_SLICE)]),
+        frozenset([(qtypes.NON_DETERMINISTIC_TOKEN, qtypes.DATA_SLICE)]),
     )
 
   def test_view(self):

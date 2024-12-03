@@ -24,7 +24,7 @@ namespace koladata::python {
 namespace {
 
 using ::arolla::python::PyObjectPtr;
-using ::koladata::expr::kHiddenSeedLeafKey;
+using ::koladata::expr::kNonDeterministicLeafKey;
 
 constexpr const char* kThisModuleName = "koladata.expr.py_expr_eval";
 
@@ -56,8 +56,9 @@ PyMODINIT_FUNC PyInit_py_expr_eval_py_ext(void) {
   if (result == nullptr) {
     return nullptr;
   }
-  if (PyModule_AddStringConstant(result.get(), "HIDDEN_SEED_LEAF_KEY",
-                                 std::string(kHiddenSeedLeafKey).c_str()) < 0) {
+  if (PyModule_AddStringConstant(
+      result.get(), "HIDDEN_SEED_LEAF_KEY",
+      std::string(kNonDeterministicLeafKey).c_str()) < 0) {
     return nullptr;
   }
   return result.release();

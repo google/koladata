@@ -17,6 +17,7 @@
 
 #include "absl/strings/string_view.h"
 #include "arolla/qtype/simple_qtype.h"
+#include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
 
@@ -39,10 +40,17 @@ struct NonDeterministicToken {
     return {"NonDeterministicToken"};
   }
   void ArollaFingerprint(arolla::FingerprintHasher* hasher) const {
-    hasher->Combine(
-        absl::string_view("::koladata::internal::NonDeterministicToken"));
+    // NOTE: If ever used as part of Expr for computing the cache key for some
+    // Expr-Input-Value caching in the future, it should have non-deterministic
+    // fingerprint (consistent for a particular instance).
+    hasher->Combine(absl::string_view(
+        "::koladata::internal::NonDeterministicToken"));
   }
 };
+
+// Returns a reference to statically instantiated NonDeterministicToken
+// TypedValue.
+const arolla::TypedValue& NonDeterministicTokenValue();
 
 }  // namespace koladata::internal
 

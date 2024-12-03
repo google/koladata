@@ -14,11 +14,13 @@
 
 from absl.testing import absltest
 from arolla import arolla
+from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import kde_operators as _  # pylint: disable=unused-import
 from koladata.operators import qtype_utils
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import jagged_shape
+from koladata.types import qtypes as _  # pylint: disable=unused-import
 
 
 class KodaQTypesTest(absltest.TestCase):
@@ -149,22 +151,28 @@ class KodaQTypesTest(absltest.TestCase):
             )
         )
 
-  def test_expect_accepts_hidden_seed(self):
+  def test_expect_non_deterministic(self):
     @arolla.optools.as_lambda_operator(
         'op4.name',
-        qtype_constraints=[qtype_utils.expect_accepts_hidden_seed()],
+        qtype_constraints=[
+            qtype_utils.expect_non_deterministic(arolla.P.non_deterministic)
+        ],
     )
-    def _op(hidden_seed):
-      del hidden_seed  # unused
+    def _op(non_deterministic):
+      del non_deterministic  # unused
       return 123
 
     with self.subTest('success'):
-      _op(arolla.int64(123))
+      _op(py_expr_eval_py_ext.eval_expr(arolla.abc.bind_op(
+          'koda_internal.non_deterministic',
+          arolla.L[py_expr_eval_py_ext.HIDDEN_SEED_LEAF_KEY],
+          arolla.literal(arolla.int64(0))
+      )))
 
     with self.subTest('failure'):
       with self.assertRaisesRegex(
           ValueError,
-          'expected hidden_seed to be INT64, got hidden_seed: DATA_SLICE',
+          'expected NON_DETERMINISTIC_TOKEN, got non_deterministic: DATA_SLICE',
       ):
         _op(data_slice.DataSlice.from_vals(123))
 

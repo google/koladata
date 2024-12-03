@@ -52,7 +52,7 @@ class CoreBagTest(absltest.TestCase):
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
         kde.core.bag,
-        frozenset([(arolla.INT64, qtypes.DATA_BAG)]),
+        frozenset([(qtypes.NON_DETERMINISTIC_TOKEN, qtypes.DATA_BAG)]),
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
     )
 

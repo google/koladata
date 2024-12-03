@@ -25,14 +25,13 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
-from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-INT64 = schema_constants.INT64
+NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 missing = ds(arolla.missing())
 
 
@@ -40,7 +39,7 @@ def generate_qtypes():
   for low_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
     for high_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
       for seed_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
-        yield DATA_SLICE, low_arg, high_arg, seed_arg, arolla.INT64, DATA_SLICE
+        yield DATA_SLICE, low_arg, high_arg, seed_arg, NON_DETERMINISTIC_TOKEN, DATA_SLICE
 
 
 QTYPES = frozenset(generate_qtypes())
@@ -141,7 +140,9 @@ class RandomRandintLikeTest(parameterized.TestCase):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
             kde.random.randint_like,
-            possible_qtypes=(arolla.UNSPECIFIED, DATA_SLICE, arolla.INT64),
+            possible_qtypes=(
+                arolla.UNSPECIFIED, DATA_SLICE, NON_DETERMINISTIC_TOKEN
+            ),
         ),
         QTYPES,
     )

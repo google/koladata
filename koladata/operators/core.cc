@@ -52,6 +52,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/ellipsis.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/at.h"
 #include "koladata/internal/op_utils/collapse.h"
@@ -820,7 +821,7 @@ absl::StatusOr<DataSlice> WithAttrs(
 
 }  // namespace
 
-DataBagPtr Bag(int64_t hidden_seed) {
+DataBagPtr Bag(internal::NonDeterministicToken) {
   return DataBag::Empty();
 }
 
@@ -1470,9 +1471,9 @@ absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,
   });
 }
 
-absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& itemid,
-                                const DataSlice& schema,
-                                int64_t unused_hidden_seed) {
+absl::StatusOr<DataSlice> Clone(
+    const DataSlice& ds, const DataSlice& itemid, const DataSlice& schema,
+    internal::NonDeterministicToken) {
   const auto& db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
@@ -1483,10 +1484,9 @@ absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& itemid,
   return Extract(std::move(shallow_clone_with_fallback), schema);
 }
 
-absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
-                                       const DataSlice& itemid,
-                                       const DataSlice& schema,
-                                       int64_t unused_hidden_seed) {
+absl::StatusOr<DataSlice> ShallowClone(
+    const DataSlice& obj, const DataSlice& itemid, const DataSlice& schema,
+    internal::NonDeterministicToken) {
   const auto& db = obj.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
@@ -1524,9 +1524,9 @@ absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
   });
 }
 
-absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
-                                    const DataSlice& schema,
-                                    int64_t unused_hidden_seed) {
+absl::StatusOr<DataSlice> DeepClone(
+    const DataSlice& ds, const DataSlice& schema,
+    internal::NonDeterministicToken) {
   const auto& db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");

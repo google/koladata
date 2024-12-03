@@ -242,7 +242,7 @@ def sample_n(
         qtype_utils.expect_data_slice_or_unspecified(P.low),
         qtype_utils.expect_data_slice_or_unspecified(P.high),
         qtype_utils.expect_data_slice_or_unspecified(P.seed),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -251,7 +251,7 @@ def randint_shaped(
     low=arolla.unspecified(),
     high=arolla.unspecified(),
     seed=arolla.unspecified(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=unused-argument,g-doc-args
   """Returns a DataSlice of random INT64 numbers with the given shape.
 
@@ -309,7 +309,7 @@ def randint_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.low),
         qtype_utils.expect_data_slice_or_unspecified(P.high),
         qtype_utils.expect_data_slice_or_unspecified(P.seed),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -318,7 +318,7 @@ def randint_shaped_as(
     low=arolla.unspecified(),
     high=arolla.unspecified(),
     seed=arolla.unspecified(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=unused-argument,g-doc-args
   """Returns a DataSlice of random INT64 numbers with the same shape as `x`.
 
@@ -348,7 +348,7 @@ def randint_shaped_as(
         qtype_utils.expect_data_slice_or_unspecified(P.low),
         qtype_utils.expect_data_slice_or_unspecified(P.high),
         qtype_utils.expect_data_slice_or_unspecified(P.seed),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -357,7 +357,7 @@ def randint_like(
     low=arolla.unspecified(),
     high=arolla.unspecified(),
     seed=arolla.unspecified(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=unused-argument,g-doc-args
   """Returns a DataSlice of random INT64 numbers with the same sparsity as `x`.
 

@@ -33,6 +33,7 @@ kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
+NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 
 
 def generate_qtypes():
@@ -43,7 +44,7 @@ def generate_qtypes():
           arolla.make_namedtuple_qtype(a=DATA_SLICE),
           arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
       ]:
-        yield arolla.UNSPECIFIED, schema_arg_type, DATA_SLICE, itemid_arg_type, attrs_type, arolla.types.INT64, DATA_SLICE
+        yield arolla.UNSPECIFIED, schema_arg_type, DATA_SLICE, itemid_arg_type, attrs_type, NON_DETERMINISTIC_TOKEN, DATA_SLICE
 
 
 QTYPES = list(generate_qtypes())

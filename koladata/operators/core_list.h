@@ -21,6 +21,7 @@
 
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/non_deterministic_token.h"
 
 namespace koladata::ops {
 
@@ -36,32 +37,30 @@ absl::StatusOr<DataSlice> Explode(const DataSlice& x, int64_t ndim);
 
 // kde.core._implode
 absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
-                                  int64_t unused_hidden_seed);
+                                  internal::NonDeterministicToken);
 
 // kde.core.list_size.
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 
 // kde.core.list operator.
-absl::StatusOr<DataSlice> List(const DataSlice& items,
-                               const DataSlice& item_schema,
-                               const DataSlice& schema, const DataSlice& itemid,
-                               int64_t unused_hidden_seed);
+absl::StatusOr<DataSlice> List(
+    const DataSlice& items, const DataSlice& item_schema,
+    const DataSlice& schema, const DataSlice& itemid,
+    internal::NonDeterministicToken);
 
 // kde.core._list_like operator.
-absl::StatusOr<DataSlice> ListLike(const DataSlice& shape_and_mask_from,
-                                   const DataSlice& items,
-                                   const DataSlice& item_schema,
-                                   const DataSlice& schema,
-                                   const DataSlice& itemid,
-                                   int64_t unused_hidden_seed);
+absl::StatusOr<DataSlice> ListLike(
+    const DataSlice& shape_and_mask_from, const DataSlice& items,
+    const DataSlice& item_schema, const DataSlice& schema,
+    const DataSlice& itemid,
+    internal::NonDeterministicToken);
 
 // kde.core._list_shaped operator.
-absl::StatusOr<DataSlice> ListShaped(const DataSlice::JaggedShape& shape,
-                                     const DataSlice& items,
-                                     const DataSlice& item_schema,
-                                     const DataSlice& schema,
-                                     const DataSlice& itemid,
-                                     int64_t unused_hidden_seed);
+absl::StatusOr<DataSlice> ListShaped(
+    const DataSlice::JaggedShape& shape, const DataSlice& items,
+    const DataSlice& item_schema, const DataSlice& schema,
+    const DataSlice& itemid,
+    internal::NonDeterministicToken);
 
 }  // namespace koladata::ops
 

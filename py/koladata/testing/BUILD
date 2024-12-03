@@ -42,7 +42,7 @@ py_library(
         "//py/koladata/types:dict_item",
         "//py/koladata/types:ellipsis",
         "//py/koladata/types:jagged_shape",
-        "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )

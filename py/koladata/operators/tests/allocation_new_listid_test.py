@@ -57,7 +57,7 @@ class AllocationNewListIdTest(absltest.TestCase):
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         frozenset([(
-            arolla.INT64,
+            qtypes.NON_DETERMINISTIC_TOKEN,
             qtypes.DATA_SLICE,
         )]),
     )

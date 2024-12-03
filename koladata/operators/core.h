@@ -21,6 +21,7 @@
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
@@ -30,7 +31,7 @@ namespace koladata::ops {
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y);
 
 // kde.core.bag.
-DataBagPtr Bag(int64_t unused_hidden_seed = 0);
+DataBagPtr Bag(internal::NonDeterministicToken);
 
 // kde.core.no_bag.
 DataSlice NoBag(const DataSlice& ds);
@@ -212,20 +213,19 @@ absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,
                                         const DataSlice& filter);
 
 // kde.core._clone.
-absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& itemid,
-                                const DataSlice& schema,
-                                int64_t unused_hidden_seed = 0);
+absl::StatusOr<DataSlice> Clone(
+    const DataSlice& ds, const DataSlice& itemid, const DataSlice& schema,
+    internal::NonDeterministicToken);
 
 // kde.core._shallow_clone
-absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
-                                       const DataSlice& itemid,
-                                       const DataSlice& schema,
-                                       int64_t unused_hidden_seed = 0);
+absl::StatusOr<DataSlice> ShallowClone(
+    const DataSlice& obj, const DataSlice& itemid, const DataSlice& schema,
+    internal::NonDeterministicToken = {});
 
 // kde.core._deep_clone
-absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
-                                    const DataSlice& schema,
-                                    int64_t unused_hidden_seed = 0);
+absl::StatusOr<DataSlice> DeepClone(
+    const DataSlice& ds, const DataSlice& schema,
+    internal::NonDeterministicToken = {});
 
 // kde.core.subslice operator.
 class SubsliceOperatorFamily : public arolla::OperatorFamily {

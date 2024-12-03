@@ -46,20 +46,11 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
-#include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
-namespace {
-
-bool IsDataSliceOrUnspecified(arolla::QTypePtr type) {
-  return type == arolla::GetQType<DataSlice>() ||
-         type == arolla::GetUnspecifiedQType();
-}
-
-}  // namespace
 
 absl::StatusOr<DataSlice> ConvertWithAdoption(const DataBagPtr& db,
                                               const DataSlice& value) {
@@ -242,6 +233,7 @@ absl::StatusOr<arolla::OperatorPtr> ObjOperatorFamily::DoGetOperator(
   }
 
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[2]));
+  RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[3]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<ObjOperator>(input_types), input_types,
       output_type);
@@ -263,6 +255,7 @@ absl::StatusOr<arolla::OperatorPtr> ObjShapedOperatorFamily::DoGetOperator(
   }
 
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[2]));
+  RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[3]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<ObjShapedOperator>(input_types), input_types,
       output_type);
@@ -284,6 +277,7 @@ absl::StatusOr<arolla::OperatorPtr> ObjLikeOperatorFamily::DoGetOperator(
   }
 
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[2]));
+  RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[3]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<ObjLikeOperator>(input_types), input_types, output_type);
 }

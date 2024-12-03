@@ -234,10 +234,14 @@ class EagerOpUtilsTest(parameterized.TestCase):
     @optools.add_to_registry()
     @optools.as_lambda_operator(
         'test.non_deterministic_op',
-        qtype_constraints=[qtype_utils.expect_accepts_hidden_seed()],
+        qtype_constraints=[
+            qtype_utils.expect_non_deterministic(arolla.P.non_deterministic)
+        ],
         aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     )
-    def non_deterministic_op(arg=arolla.unit(), hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+    def non_deterministic_op(
+        arg=arolla.unit(), non_deterministic=py_boxing.hidden_seed()
+    ):  # pylint: disable=unused-argument
       """non_deterministic_op docstring."""
       return arolla.M.core.make_tuple(
           arg, increase_counter_op(), increase_counter_op()

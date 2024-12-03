@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.random.randint_shaped_as."""
-
 import re
 
 from absl.testing import absltest
@@ -27,14 +25,13 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
-from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-INT64 = schema_constants.INT64
+NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 present = ds(arolla.present())
 
 
@@ -42,7 +39,7 @@ def generate_qtypes():
   for low_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
     for high_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
       for seed_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
-        yield DATA_SLICE, low_arg, high_arg, seed_arg, arolla.INT64, DATA_SLICE
+        yield DATA_SLICE, low_arg, high_arg, seed_arg, NON_DETERMINISTIC_TOKEN, DATA_SLICE
 
 
 QTYPES = frozenset(generate_qtypes())
@@ -142,8 +139,10 @@ class RandomRandintShapedAsTest(parameterized.TestCase):
     # Limit the allowed qtypes and a random QType to speed up the test.
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.random.randint_shaped_as,
-            possible_qtypes=(arolla.UNSPECIFIED, DATA_SLICE, arolla.INT64),
+            kde.random.randint_like,
+            possible_qtypes=(
+                arolla.UNSPECIFIED, DATA_SLICE, NON_DETERMINISTIC_TOKEN
+            ),
         ),
         QTYPES,
     )

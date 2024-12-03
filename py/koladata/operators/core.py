@@ -78,12 +78,12 @@ def add(x, y):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.core.bag',
     qtype_constraints=[
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def _bag(hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def _bag(non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Returns an empty DataBag."""
   raise NotImplementedError('implemented in the backend')
 
@@ -835,7 +835,7 @@ def with_attr(x, attr_name, value, update_schema=False):
     'kde.core._new',
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _new(arg, schema, update_schema, itemid, attrs, hidden_seed):
+def _new(arg, schema, update_schema, itemid, attrs, non_deterministic):
   """Internal implementation of kde.core.new."""
   raise NotImplementedError('implemented in the backend')
 
@@ -854,7 +854,7 @@ def _new(arg, schema, update_schema, itemid, attrs, hidden_seed):
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -864,7 +864,7 @@ def new(
     update_schema=py_boxing.keyword_only(False),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args
   """Creates Entities with given attrs.
 
@@ -894,7 +894,7 @@ def new(
       update_schema=update_schema,
       itemid=itemid,
       attrs=attrs,
-      hidden_seed=hidden_seed,
+      non_deterministic=non_deterministic,
   )
 
 
@@ -905,7 +905,7 @@ def new(
     'kde.core._new_shaped',
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _new_shaped(shape, schema, update_schema, itemid, attrs, hidden_seed):
+def _new_shaped(shape, schema, update_schema, itemid, attrs, non_deterministic):
   """Internal implementation of kde.core.new_shaped."""
   raise NotImplementedError('implemented in the backend')
 
@@ -919,7 +919,7 @@ def _new_shaped(shape, schema, update_schema, itemid, attrs, hidden_seed):
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -929,7 +929,7 @@ def new_shaped(
     update_schema=py_boxing.keyword_only(False),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=unused-argument,g-doc-args
   """Creates new Entities with the given shape.
 
@@ -953,7 +953,7 @@ def new_shaped(
       update_schema=update_schema,
       itemid=itemid,
       attrs=attrs,
-      hidden_seed=hidden_seed,
+      non_deterministic=non_deterministic,
   )
 
 
@@ -966,7 +966,7 @@ def new_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -976,7 +976,7 @@ def new_shaped_as(
     update_schema=py_boxing.keyword_only(False),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=unused-argument,g-doc-args
   """Creates new Koda entities with shape of the given DataSlice.
 
@@ -1001,7 +1001,7 @@ def new_shaped_as(
       update_schema=update_schema,
       itemid=itemid,
       attrs=attrs,
-      hidden_seed=hidden_seed,
+      non_deterministic=non_deterministic,
   )
 
 
@@ -1013,7 +1013,7 @@ def new_shaped_as(
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _new_like(
-    shape_and_mask_from, schema, update_schema, itemid, attrs, hidden_seed
+    shape_and_mask_from, schema, update_schema, itemid, attrs, non_deterministic
 ):
   """Internal implementation of kde.core.new_like."""
   raise NotImplementedError('implemented in the backend')
@@ -1028,7 +1028,7 @@ def _new_like(
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -1038,7 +1038,7 @@ def new_like(
     update_schema=py_boxing.keyword_only(False),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=unused-argument,g-doc-args
   """Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
@@ -1063,7 +1063,7 @@ def new_like(
       update_schema=update_schema,
       itemid=itemid,
       attrs=attrs,
-      hidden_seed=hidden_seed,
+      non_deterministic=non_deterministic,
   )
 
 
@@ -1074,7 +1074,7 @@ def new_like(
         qtype_utils.expect_data_slice_or_unspecified(P.arg),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -1083,7 +1083,7 @@ def _obj(
     arg=py_boxing.positional_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=unused-argument,g-doc-args
   """Creates new Objects with an implicit stored schema.
 
@@ -1109,7 +1109,7 @@ def _obj(
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -1118,7 +1118,7 @@ def obj_shaped(
     shape=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=unused-argument,g-doc-args
   """Creates Objects with the given shape.
 
@@ -1142,7 +1142,7 @@ def obj_shaped(
         qtype_utils.expect_data_slice(P.shape_from),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -1150,7 +1150,7 @@ def obj_shaped_as(
     shape_from=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=unused-argument,g-doc-args
   """Creates Objects with the shape of the given DataSlice.
 
@@ -1169,7 +1169,7 @@ def obj_shaped_as(
       shape=jagged_shape_ops.get_shape(shape_from),
       itemid=itemid,
       attrs=attrs,
-      hidden_seed=hidden_seed,
+      non_deterministic=non_deterministic,
   )
 
 
@@ -1180,7 +1180,7 @@ def obj_shaped_as(
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
@@ -1189,7 +1189,7 @@ def obj_like(
     shape_and_mask_from=py_boxing.positional_only(),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     attrs=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=unused-argument,g-doc-args
   """Returns a new DataSlice with object schema and the shape and mask of given DataSlice.
 
@@ -1487,8 +1487,9 @@ def select_values(ds, fltr):
     'kde.core._dict_shaped', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _dict_shaped(
-    shape, keys, values, key_schema, value_schema, schema, itemid, hidden_seed  # pylint: disable=unused-argument
-):
+    shape, keys, values, key_schema, value_schema, schema, itemid,
+    non_deterministic,
+):  # pylint: disable=unused-argument
   """Implementation of `kde.core.dict_shaped`."""
   raise NotImplementedError('implemented in the backend')
 
@@ -1504,7 +1505,7 @@ def _dict_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -1516,7 +1517,7 @@ def dict_shaped(
     value_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args
   """Creates new Koda dicts with the given shape.
 
@@ -1558,7 +1559,7 @@ def dict_shaped(
       value_schema=value_schema,
       schema=schema,
       itemid=itemid,
-      hidden_seed=hidden_seed,
+      non_deterministic=non_deterministic,
   )
 
 
@@ -1572,7 +1573,7 @@ def dict_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -1583,7 +1584,7 @@ def dict_(
     value_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args
   """Creates a Koda dict.
 
@@ -1632,7 +1633,7 @@ def dict_(
       value_schema=value_schema,
       schema=schema,
       itemid=itemid,
-      hidden_seed=hidden_seed,
+      non_deterministic=non_deterministic,
   )
 
 
@@ -1647,7 +1648,7 @@ def dict_(
         qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -1659,7 +1660,7 @@ def dict_shaped_as(
     value_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args
   """Creates new Koda dicts with shape of the given DataSlice.
 
@@ -1692,7 +1693,7 @@ def dict_shaped_as(
       value_schema=value_schema,
       schema=schema,
       itemid=itemid,
-      hidden_seed=hidden_seed,
+      non_deterministic=non_deterministic,
   )
 
 
@@ -1703,8 +1704,9 @@ def dict_shaped_as(
     'kde.core._dict_like', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _dict_like(
-    shape_and_mask_from, keys, values, key_schema, value_schema, schema, itemid, hidden_seed  # pylint: disable=unused-argument
-):
+    shape_and_mask_from, keys, values, key_schema, value_schema, schema, itemid,
+    non_deterministic,
+):  # pylint: disable=unused-argument
   """Implementation of `kde.core.dict_like`."""
   raise NotImplementedError('implemented in the backend')
 
@@ -1720,7 +1722,7 @@ def _dict_like(
         qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -1732,7 +1734,7 @@ def dict_like(
     value_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args, unused-argument
   """Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 
@@ -1775,7 +1777,7 @@ def dict_like(
       value_schema=value_schema,
       schema=schema,
       itemid=itemid,
-      hidden_seed=hidden_seed,
+      non_deterministic=non_deterministic,
   )
 
 
@@ -2426,12 +2428,12 @@ def explode(x, ndim=1):
     'kde.core._implode',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def _implode(x, ndim, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def _implode(x, ndim, non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
   """Implementation of kde.core.implode."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2442,14 +2444,14 @@ def _implode(x, ndim, hidden_seed=py_boxing.hidden_seed()):  # pylint: disable=u
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.ndim),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def implode(
     x,
     ndim=1,
-    hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
+    non_deterministic=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Implodes a Dataslice `x` a specified number of times.
 
@@ -2502,11 +2504,11 @@ def select_items(ds, fltr):
     'kde.core._new_ids_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _new_ids_like(x, hidden_seed):  # pylint: disable=unused-argument
+def _new_ids_like(x, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with new ItemIds of a similar kind."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2612,11 +2614,11 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.itemid),
         qtype_utils.expect_data_slice(P.schema),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _shallow_clone(x, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
+def _shallow_clone(x, itemid, schema, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with shallow clones of immediate attributes."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2629,7 +2631,7 @@ def _shallow_clone(x, itemid, schema, hidden_seed):  # pylint: disable=unused-ar
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -2638,7 +2640,7 @@ def shallow_clone(
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     overrides=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args
   """Creates a DataSlice with shallow clones of immediate attributes.
 
@@ -2663,21 +2665,23 @@ def shallow_clone(
     A copy of the entities with new ItemIds where all top-level attributes are
     copied by reference.
   """
-  itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x, hidden_seed))
+  itemid = M.core.default_if_unspecified(
+      itemid, _new_ids_like(x, non_deterministic)
+  )
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
-      'x, itemid, schema, overrides, hidden_seed',
+      'x, itemid, schema, overrides, non_deterministic',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _shallow_clone(P.x, P.itemid, P.schema, P.hidden_seed),
+              _shallow_clone(P.x, P.itemid, P.schema, P.non_deterministic),
               update_schema=py_boxing.as_qvalue(False),
               attrs=P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_shallow_clone(P.x, P.itemid, P.schema, P.hidden_seed),
-  )(x, itemid, schema, overrides, hidden_seed)
+      default=_shallow_clone(P.x, P.itemid, P.schema, P.non_deterministic),
+  )(x, itemid, schema, overrides, non_deterministic)
 
 
 @optools.add_to_registry()
@@ -2687,11 +2691,11 @@ def shallow_clone(
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.itemid),
         qtype_utils.expect_data_slice(P.schema),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _clone(x, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
+def _clone(x, itemid, schema, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with clones of provided entities in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2704,7 +2708,7 @@ def _clone(x, itemid, schema, hidden_seed):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -2713,7 +2717,7 @@ def clone(
     itemid=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     overrides=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
+    non_deterministic=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Creates a DataSlice with clones of provided entities in a new DataBag.
 
@@ -2738,21 +2742,23 @@ def clone(
     A copy of the entities where all top-level attributes are cloned (new
     ItemIds) and all of the rest extracted.
   """
-  itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x, hidden_seed))
+  itemid = M.core.default_if_unspecified(
+      itemid, _new_ids_like(x, non_deterministic)
+  )
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
-      'x, itemid, schema, overrides, hidden_seed',
+      'x, itemid, schema, overrides, non_deterministic',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _clone(P.x, P.itemid, P.schema, P.hidden_seed),
+              _clone(P.x, P.itemid, P.schema, P.non_deterministic),
               update_schema=py_boxing.as_qvalue(False),
               attrs=P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_clone(P.x, P.itemid, P.schema, P.hidden_seed),
-  )(x, itemid, schema, overrides, hidden_seed)
+      default=_clone(P.x, P.itemid, P.schema, P.non_deterministic),
+  )(x, itemid, schema, overrides, non_deterministic)
 
 
 @optools.add_to_registry()
@@ -2761,11 +2767,11 @@ def clone(
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _deep_clone(x, schema, hidden_seed):  # pylint: disable=unused-argument
+def _deep_clone(x, schema, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with a deep copy of `x`."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2777,7 +2783,7 @@ def _deep_clone(x, schema, hidden_seed):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -2785,7 +2791,7 @@ def deep_clone(
     x=py_boxing.positional_only(),
     schema=arolla.unspecified(),
     overrides=py_boxing.var_keyword(),
-    hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
+    non_deterministic=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Creates a slice with a (deep) copy of the given slice.
 
@@ -2812,18 +2818,18 @@ def deep_clone(
   """
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
-      'x, schema, overrides, hidden_seed',
+      'x, schema, overrides, non_deterministic',
       overrides_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
               with_attrs,
-              _deep_clone(P.x, P.schema, P.hidden_seed),
+              _deep_clone(P.x, P.schema, P.non_deterministic),
               update_schema=py_boxing.as_qvalue(False),
               attrs=P.overrides,
           ),
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
-      default=_deep_clone(P.x, P.schema, P.hidden_seed),
-  )(x, schema, overrides, hidden_seed)
+      default=_deep_clone(P.x, P.schema, P.non_deterministic),
+  )(x, schema, overrides, non_deterministic)
 
 
 @optools.add_to_registry()
@@ -4182,7 +4188,7 @@ def with_dict_update(x, keys, values=arolla.unspecified()):
     'kde.core._list', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _list(
-    items, item_schema, schema, itemid, hidden_seed  # pylint: disable=unused-argument
+    items, item_schema, schema, itemid, non_deterministic  # pylint: disable=unused-argument
 ):
   """Implementation of `kde.core.list`."""
   raise NotImplementedError('implemented in the backend')
@@ -4196,7 +4202,7 @@ def _list(
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -4205,7 +4211,7 @@ def list_(
     item_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args
   """Creates list(s) by collapsing `items`.
 
@@ -4230,7 +4236,7 @@ def list_(
   )
   schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
-  return _list(items, item_schema, schema, itemid, hidden_seed)
+  return _list(items, item_schema, schema, itemid, non_deterministic)
 
 
 # This operator does not have qtype constraints and is not registered since it
@@ -4240,7 +4246,7 @@ def list_(
     'kde.core._list_like', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _list_like(
-    shape_and_mask_from, items, item_schema, schema, itemid, hidden_seed  # pylint: disable=unused-argument
+    shape_and_mask_from, items, item_schema, schema, itemid, non_deterministic  # pylint: disable=unused-argument
 ):
   """Implementation of `kde.core.list_like`."""
   raise NotImplementedError('implemented in the backend')
@@ -4255,7 +4261,7 @@ def _list_like(
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -4265,7 +4271,7 @@ def list_like(
     item_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args
   """Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
@@ -4290,7 +4296,7 @@ def list_like(
   schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
   return _list_like(
-      shape_and_mask_from, items, item_schema, schema, itemid, hidden_seed
+      shape_and_mask_from, items, item_schema, schema, itemid, non_deterministic
   )
 
 
@@ -4301,7 +4307,7 @@ def list_like(
     'kde.core._list_shaped', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _list_shaped(
-    shape, items, item_schema, schema, itemid, hidden_seed  # pylint: disable=unused-argument
+    shape, items, item_schema, schema, itemid, non_deterministic  # pylint: disable=unused-argument
 ):
   """Implementation of `kde.core.list_shaped`."""
   raise NotImplementedError('implemented in the backend')
@@ -4316,7 +4322,7 @@ def _list_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -4326,7 +4332,7 @@ def list_shaped(
     item_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
-    hidden_seed=py_boxing.hidden_seed(),
+    non_deterministic=py_boxing.hidden_seed(),
 ):  # pylint: disable=g-doc-args
   """Creates new Koda lists with the given shape.
 
@@ -4350,7 +4356,9 @@ def list_shaped(
   )
   schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
-  return _list_shaped(shape, items, item_schema, schema, itemid, hidden_seed)
+  return _list_shaped(
+      shape, items, item_schema, schema, itemid, non_deterministic
+  )
 
 
 @optools.add_to_registry(aliases=['kde.list_shaped_as'])
@@ -4362,7 +4370,7 @@ def list_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_accepts_hidden_seed(),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
@@ -4372,7 +4380,7 @@ def list_shaped_as(
     item_schema=py_boxing.keyword_only(arolla.unspecified()),
     schema=py_boxing.keyword_only(arolla.unspecified()),
     itemid=py_boxing.keyword_only(arolla.unspecified()),
-    hidden_seed=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
+    non_deterministic=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
 ):  # pylint: disable=g-doc-args
   """Creates new Koda lists with the shape of the given DataSlice.
 

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.random.randint_shaped."""
-
 import re
 
 from absl.testing import absltest
@@ -28,7 +26,6 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import jagged_shape
 from koladata.types import qtypes
-from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -36,7 +33,7 @@ bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 JAGGED_SHAPE = qtypes.JAGGED_SHAPE
-INT64 = schema_constants.INT64
+NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 present = ds(arolla.present())
 
 
@@ -44,7 +41,7 @@ def generate_qtypes():
   for low_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
     for high_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
       for seed_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
-        yield JAGGED_SHAPE, low_arg, high_arg, seed_arg, arolla.INT64, DATA_SLICE
+        yield JAGGED_SHAPE, low_arg, high_arg, seed_arg, NON_DETERMINISTIC_TOKEN, DATA_SLICE
 
 
 QTYPES = frozenset(generate_qtypes())
@@ -141,7 +138,7 @@ class RandomRandintShapedTest(parameterized.TestCase):
                 arolla.UNSPECIFIED,
                 DATA_SLICE,
                 JAGGED_SHAPE,
-                arolla.INT64,
+                NON_DETERMINISTIC_TOKEN,
             ),
         ),
         QTYPES,

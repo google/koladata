@@ -97,7 +97,6 @@ OPERATOR_FAMILY("kde.core._new_like",
                 std::make_unique<NewLikeOperatorFamily>());
 OPERATOR_FAMILY("kde.core._new_shaped",
                 std::make_unique<NewShapedOperatorFamily>());
-OPERATOR("kde.core._non_deterministic", NonDeterministicOp);
 OPERATOR("kde.core._ordinal_rank", OrdinalRank);
 OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
@@ -264,6 +263,7 @@ OPERATOR("kde.strings.strip", Strip);
 OPERATOR("kde.strings.substr", Substr);
 OPERATOR("kde.strings.upper", Upper);
 //
+OPERATOR("koda_internal.non_deterministic", NonDeterministicOp);
 OPERATOR("koda_internal.to_arolla_boolean", ToArollaScalar<bool>);
 OPERATOR("koda_internal.to_arolla_dense_array_int64",
          ToArollaDenseArray<int64_t>);

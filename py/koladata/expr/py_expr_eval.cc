@@ -32,6 +32,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/constants.h"
 #include "koladata/expr/expr_eval.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "py/arolla/abc/py_aux_binding_policy.h"
 #include "py/arolla/abc/py_cached_eval.h"
 #include "py/arolla/abc/py_expr.h"
@@ -44,6 +45,7 @@
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/expr/registered_expr_operator.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/status_macros_backport.h"
@@ -65,7 +67,6 @@ using ::arolla::python::SetPyErrFromStatus;
 using ::arolla::python::UnwrapPyExpr;
 using ::arolla::python::UnwrapPyQValue;
 using ::arolla::python::WrapAsPyQValue;
-using ::koladata::expr::kHiddenSeedLeafKey;
 
 absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
                                      Py_ssize_t nargs, PyObject* py_kwnames) {
@@ -172,7 +173,6 @@ absl::Nullable<PyObject*> PyEvalOp(PyObject* /*self*/, PyObject** py_args,
   };
 
   std::vector<TypedRef> input_qvalues;
-  std::vector<TypedValue> holder;
   input_qvalues.reserve(bound_args.size());
   for (size_t i = 0; i < bound_args.size(); ++i) {
     if (auto* qvalue = std::get_if<TypedValue>(&bound_args[i])) {
@@ -180,12 +180,8 @@ absl::Nullable<PyObject*> PyEvalOp(PyObject* /*self*/, PyObject** py_args,
       continue;
     }
     const auto& expr = *std::get_if<ExprNodePtr>(&bound_args[i]);
-    if (IsRegisteredOperator(expr->op()) &&
-        expr->op()->display_name() == "math.add" &&
-        expr->node_deps().size() == 2 &&
-        expr->node_deps()[0]->leaf_key() == kHiddenSeedLeafKey) {
-      holder.push_back(TypedValue::FromValue(static_cast<int64_t>(i)));
-      input_qvalues.push_back(holder.back().AsRef());
+    if (expr->qtype() == arolla::GetQType<internal::NonDeterministicToken>()) {
+      input_qvalues.push_back(internal::NonDeterministicTokenValue().AsRef());
       continue;
     }
     return PyErr_Format(PyExc_TypeError,
