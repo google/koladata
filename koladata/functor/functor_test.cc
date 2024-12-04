@@ -14,6 +14,7 @@
 //
 #include "koladata/functor/functor.h"
 
+#include <cstdint>
 #include <optional>
 #include <utility>
 
@@ -31,6 +32,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
+#include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
@@ -207,6 +209,13 @@ TEST(IsFunctorTest, Basic) {
   ASSERT_OK(fn3.DelAttr(kSignatureAttrName));
   EXPECT_THAT(IsFunctor(fn3), IsOkAndHolds(false));
   EXPECT_OK(IsFunctor(fn.WithBag(nullptr)));
+}
+
+TEST(IsFunctorTest, PrimitiveWithBag) {
+  auto x = test::DataItem<int32_t>(1).WithBag(DataBag::Empty());
+  EXPECT_THAT(IsFunctor(x), IsOkAndHolds(false));
+  EXPECT_THAT(IsFunctor(*x.WithSchema(test::Schema(schema::kObject))),
+              IsOkAndHolds(false));
 }
 
 }  // namespace

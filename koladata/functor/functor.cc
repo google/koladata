@@ -31,10 +31,10 @@
 #include "koladata/functor/default_signature.h"
 #include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "arolla/expr/quote.h"
-#include "arolla/memory/optional_value.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -96,6 +96,9 @@ absl::StatusOr<bool> IsFunctor(const DataSlice& slice) {
     return false;
   }
   if (slice.GetBag() == nullptr) {
+    return false;
+  }
+  if (slice.item().dtype() != arolla::GetQType<internal::ObjectId>()) {
     return false;
   }
   // TODO: use HasAttr when it is implemented.
