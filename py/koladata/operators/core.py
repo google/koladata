@@ -3838,16 +3838,16 @@ def size(x):
 
 
 @optools.add_to_registry(
-    aliases=['kde.add_dim', 'kde.repeat', 'kde.core.repeat']
+    aliases=['kde.add_dim', 'kde.core.add_dim', 'kde.repeat']
 )
 @optools.as_lambda_operator(
-    'kde.core.add_dim',
+    'kde.core.repeat',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.sizes),
     ],
 )
-def add_dim(x, sizes):
+def repeat(x, sizes):
   """Returns `x` with values repeated according to `sizes`.
 
   The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
@@ -3856,15 +3856,15 @@ def add_dim(x, sizes):
   Example:
     ds = kd.slice([[1, None], [3]])
     sizes = kd.slice([[1, 2], [3]])
-    kd.add_dim(ds, sizes)  # -> kd.slice([[[1], [None, None]], [[3, 3, 3]]])
+    kd.repeat(ds, sizes)  # -> kd.slice([[[1], [None, None]], [[3, 3, 3]]])
 
     ds = kd.slice([[1, None], [3]])
     sizes = kd.slice([2, 3])
-    kd.add_dim(ds, sizes)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3, 3]]])
+    kd.repeat(ds, sizes)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3, 3]]])
 
     ds = kd.slice([[1, None], [3]])
     size = kd.item(2)
-    kd.add_dim(ds, size)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3]]])
+    kd.repeat(ds, size)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3]]])
 
   Args:
     x: A DataSlice of data.
@@ -3879,15 +3879,21 @@ def add_dim(x, sizes):
   return jagged_shape_ops.expand_to_shape(x, target_shape)
 
 
-@optools.add_to_registry(aliases=['kde.add_dim_to_present'])
+@optools.add_to_registry(
+    aliases=[
+        'kde.add_dim_to_present',
+        'kde.core.add_dim_to_present',
+        'kde.repeat_present',
+    ]
+)
 @optools.as_lambda_operator(
-    'kde.core.add_dim_to_present',
+    'kde.core.repeat_present',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.sizes),
     ],
 )
-def add_dim_to_present(x, sizes):
+def repeat_present(x, sizes):
   """Returns `x` with present values repeated according to `sizes`.
 
   The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
@@ -3896,15 +3902,15 @@ def add_dim_to_present(x, sizes):
   Example:
     ds = kd.slice([[1, None], [3]])
     sizes = kd.slice([[1, 2], [3]])
-    kd.add_dim_to_present(ds, sizes)  # -> kd.slice([[[1], []], [[3, 3, 3]]])
+    kd.repeat_present(ds, sizes)  # -> kd.slice([[[1], []], [[3, 3, 3]]])
 
     ds = kd.slice([[1, None], [3]])
     sizes = kd.slice([2, 3])
-    kd.add_dim(ds, sizes)  # -> kd.slice([[[1, 1], []], [[3, 3, 3]]])
+    kd.repeat_present(ds, sizes)  # -> kd.slice([[[1, 1], []], [[3, 3, 3]]])
 
     ds = kd.slice([[1, None], [3]])
     size = kd.item(2)
-    kd.add_dim(ds, size)  # -> kd.slice([[[1, 1], []], [[3, 3]]])
+    kd.repeat_present(ds, size)  # -> kd.slice([[[1, 1], []], [[3, 3]]])
 
   Args:
     x: A DataSlice of data.
@@ -3913,7 +3919,7 @@ def add_dim_to_present(x, sizes):
   expanded_sizes = jagged_shape_ops.expand_to_shape(
       sizes, jagged_shape_ops.get_shape(x)
   )
-  return add_dim(x, logical.cond(logical.has(x), expanded_sizes, 0))
+  return repeat(x, logical.cond(logical.has(x), expanded_sizes, 0))
 
 
 @optools.add_to_registry()
@@ -3929,9 +3935,7 @@ def internal_range(start, end):
   start, end = align(start, end)
   return schema_ops.with_schema(
       (
-          index(
-              add_dim(start, (math.maximum(math.subtract(end, start), 0) | 0))
-          )
+          index(repeat(start, (math.maximum(math.subtract(end, start), 0) | 0)))
           + start
       ),
       schema_constants.INT64,

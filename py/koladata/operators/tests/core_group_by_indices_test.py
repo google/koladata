@@ -118,13 +118,13 @@ class CoreGroupByIndicesTest(parameterized.TestCase):
   def test_eval_with_empty_or_unknown_input_flat(self):
     x = ds([1, 2, 1])
     y = ds([None] * 3)
-    expected = kd.slice([], schema_constants.INT64).add_dim(0)
+    expected = kd.slice([], schema_constants.INT64).repeat(0)
     testing.assert_equal(expr_eval.eval(kde.group_by_indices(x, y)), expected)
 
   def test_eval_with_empty_or_unknown_input_2d(self):
     x = ds([[1, 2, 1, 2], [2, 3, 2]])
     y = ds([[None] * 4, [None] * 3])
-    expected = ds([[], []], schema_constants.INT64).add_dim(0)
+    expected = ds([[], []], schema_constants.INT64).repeat(0)
     testing.assert_equal(expr_eval.eval(kde.group_by_indices(x, y)), expected)
 
   @parameterized.parameters(1, ds(1))

@@ -118,9 +118,9 @@ class CoreGroupByTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
-      (ds([None] * 3), kd.slice([], kd.NONE).add_dim(0)),
-      (ds([]), kd.slice([]).add_dim(0)),
-      (ds([[None] * 3, [None] * 5]), kd.slice([[], []], kd.NONE).add_dim(0)),
+      (ds([None] * 3), kd.slice([], kd.NONE).repeat(0)),
+      (ds([]), kd.slice([]).repeat(0)),
+      (ds([[None] * 3, [None] * 5]), kd.slice([[], []], kd.NONE).repeat(0)),
   )
   def test_eval_with_empty_or_unknown_single_arg(self, x, expected):
     testing.assert_equal(expr_eval.eval(kde.group_by(x)), expected)
@@ -129,12 +129,12 @@ class CoreGroupByTest(parameterized.TestCase):
       (
           ds([1, 2, 1], schema_constants.INT32),
           ds([None] * 3),
-          kd.slice([], schema_constants.INT32).add_dim(0),
+          kd.slice([], schema_constants.INT32).repeat(0),
       ),
       (
           ds([[1, 2, 1, 2], [2, 3, 2]], schema_constants.FLOAT64),
           ds([[None] * 4, [None] * 3]),
-          ds([[], []], schema_constants.FLOAT64).add_dim(0),
+          ds([[], []], schema_constants.FLOAT64).repeat(0),
       ),
   )
   def test_eval_with_empty_or_unknown_keys(self, x, y, expected):

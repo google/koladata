@@ -87,7 +87,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
         ValueError,
         "'cond' must have the same or smaller dimension than args + kwargs",
     ):
-      expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val.add_dim(1) > 2, val))
+      expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val.repeat(1) > 2, val))
 
   def test_view(self):
     self.assertTrue(

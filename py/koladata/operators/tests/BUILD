@@ -3513,8 +3513,8 @@ py_test(
 )
 
 py_test(
-    name = "core_add_dim_test",
-    srcs = ["core_add_dim_test.py"],
+    name = "core_repeat_test",
+    srcs = ["core_repeat_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3535,8 +3535,8 @@ py_test(
 )
 
 py_test(
-    name = "core_add_dim_to_present_test",
-    srcs = ["core_add_dim_to_present_test.py"],
+    name = "core_repeat_present_test",
+    srcs = ["core_repeat_present_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",

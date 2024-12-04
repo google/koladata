@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.add_dim_to_present."""
-
 import itertools
 import re
 
@@ -46,7 +44,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreAddDimToPresentTest(parameterized.TestCase):
+class CoreRepeatPresentTest(parameterized.TestCase):
 
   @parameterized.parameters(
       itertools.product(
@@ -89,21 +87,21 @@ class CoreAddDimToPresentTest(parameterized.TestCase):
   def test_eval(self, args, size_schema):
     x, size, expected = args
     size = ds(size, size_schema)
-    actual_value = expr_eval.eval(kde.core.add_dim_to_present(x, size))
+    actual_value = expr_eval.eval(kde.core.repeat_present(x, size))
     testing.assert_equal(actual_value, expected)
 
-  def test_zero_add_dim_to_present(self):
+  def test_zero_repeat_present(self):
     # Special case this since ds([[]]) creates empty_and_unknown DataSliceImpl,
     # while the operator result has a known dtype.
-    res = expr_eval.eval(kde.core.add_dim_to_present(ds([[1, 2], [3]]), ds(0)))
+    res = expr_eval.eval(kde.core.repeat_present(ds([[1, 2], [3]]), ds(0)))
     print(res)
     testing.assert_equal(res, ds([[[], []], [[]]], schema_constants.INT32))
 
   def test_boxing_scalars(self):
     testing.assert_equal(
-        kde.core.add_dim_to_present(1, 2),
+        kde.core.repeat_present(1, 2),
         arolla.abc.bind_op(
-            kde.core.add_dim_to_present,
+            kde.core.repeat_present,
             literal_operator.literal(ds(1)),
             literal_operator.literal(ds(2)),
         ),
@@ -119,26 +117,26 @@ class CoreAddDimToPresentTest(parameterized.TestCase):
             f' shape={x.get_shape()}'
         ),
     ):
-      expr_eval.eval(kde.core.add_dim_to_present(x, sizes))
+      expr_eval.eval(kde.core.repeat_present(x, sizes))
 
   def test_non_int_sizes_error(self):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      expr_eval.eval(kde.core.add_dim_to_present(ds([1, 2, 3]), 2.0))
+      expr_eval.eval(kde.core.repeat_present(ds([1, 2, 3]), 2.0))
 
   def test_missing_sizes_error(self):
     with self.assertRaisesRegex(
         ValueError, 'operator edge.from_sizes expects no missing size values'
     ):
       expr_eval.eval(
-          kde.core.add_dim_to_present(ds([1, 2, 3]), ds([1, None, 1]))
+          kde.core.repeat_present(ds([1, 2, 3]), ds([1, None, 1]))
       )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.add_dim_to_present,
+            kde.core.repeat_present,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
@@ -146,15 +144,14 @@ class CoreAddDimToPresentTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.core.add_dim_to_present(I.x, I.sizes))
+        view.has_koda_view(kde.core.repeat_present(I.x, I.sizes))
     )
 
-  def test_alias(self):
-    self.assertTrue(
-        optools.equiv_to_op(
-            kde.core.add_dim_to_present, kde.add_dim_to_present
-        )
-    )
+  @parameterized.parameters(
+      kde.repeat_present, kde.core.add_dim_to_present, kde.add_dim_to_present
+  )
+  def test_alias(self, alias):
+    self.assertTrue(optools.equiv_to_op(kde.core.repeat_present, alias))
 
 
 if __name__ == '__main__':

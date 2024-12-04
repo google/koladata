@@ -225,10 +225,9 @@ ds.reshape_as(ds1)
 ds.reshape(ds1.get_shape())
 
 # Repeats values of ds.
-ds.add_dim(3)
-ds.repeat(3)  # Same.
+ds.repeat(3)
 # Repeats present values of ds.
-ds.add_dim_to_present(3)
+ds.repeat_present(3)
 
 # Stacks the DataSlices,
 # creating a new dimension at index rank-ndim.

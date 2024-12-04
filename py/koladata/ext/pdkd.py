@@ -133,7 +133,7 @@ def to_dataframe(
     DataFrame with columns from DataSlice fields.
   """
   if ds.get_ndim() == 0:
-    ds = ds.add_dim(1)
+    ds = ds.repeat(1)
 
   get_attr_fn = kdi.get_attr
   if ds.get_bag() is None:

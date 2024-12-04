@@ -524,7 +524,7 @@ def allow_arbitrary_unused_inputs(
           sig.parameters[:].extract(),
           signature_utils.parameter(
               '__extra_inputs__', signature_utils.ParameterKind.VAR_KEYWORD
-          ).add_dim(1),
+          ).repeat(1),
       )
   )
   return fn_def.clone(__signature__=sig)

@@ -248,9 +248,8 @@ Some operations can actually add dimensions.
 ```py
 kd.range(0, kd.slice([3, 2, 1]))  # [[0, 1, 2], [0, 1], [0]]
 kd.item(1).repeat(3).repeat(4) # a simple recipe to create 3 x 4 "grid"
-kd.item(1).add_dim(3).add_dim(4) # the same as above
 # can have different sizes when adding new dimensions
-kd.slice([1, 2]).add_dim(kd.slice([3, 2]))  # [[1, 1, 1], [2, 2]]
+kd.slice([1, 2]).repeat(kd.slice([3, 2]))  # [[1, 1, 1], [2, 2]]
 
 ds = kd.slice([[[1, 2], [3, 4, 5]], [[6], [], [7, 8, 9, 10]]])
 kd.zip(ds,9)  # [[[[1, 9], [2, 9]], [[3, 9], ...
@@ -441,8 +440,8 @@ kd.implode(kd.concat(x[:], y[:]))  # the same as above
 
 # append, by creating a new list with one item
 z = 5
-kd.concat_lists(x, kd.implode(kd.item(z).add_dim(1)))
-kd.implode(kd.concat(x[:], kd.item(z).add_dim(1)))  # the same as above
+kd.concat_lists(x, kd.implode(kd.item(z).repeat(1)))
+kd.implode(kd.concat(x[:], kd.item(z).repeat(1)))  # the same as above
 
 x = kd.obj(y=kd.list([1, 2, 3, 4]), z=kd.list([5, 6, 7, 8]), u=4)
 x = x.with_attrs(a=kd.concat_lists(x.y, x.z))

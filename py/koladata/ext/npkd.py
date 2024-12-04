@@ -182,7 +182,7 @@ def reshape_based_on_indices(
   # For now we create a system of nested dicts:
   # {index0 -> {index1 -> {... -> {'value' -> value}}}}
   lookup = kdi.dict(key_schema=kdi.ANY, value_schema=kdi.ANY)
-  cur_lookup = lookup.add_dim(ds.get_size())
+  cur_lookup = lookup.repeat(ds.get_size())
 
   for index in indices:
     # This creates some unused dicts as only the last dict assigned to
@@ -194,6 +194,6 @@ def reshape_based_on_indices(
   prefix = lookup
   for _ in range(len(indices)):
     num_children = (kdi.agg_max(prefix.get_keys()) + 1) | 0
-    prefix = prefix.add_dim(num_children)
+    prefix = prefix.repeat(num_children)
     prefix = prefix[kdi.index(prefix)]
   return prefix['ds'].with_bag(ds.get_bag()).with_schema(ds.get_schema())
