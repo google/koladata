@@ -990,6 +990,38 @@ class UniversalConverter {
                         py_values, schema);
   }
 
+  // Parses `py_obj` as if it was a supported Python scalar (bool, str, bytes,
+  // int, DataItem, etc.). On failure, returns proper status error. The error
+  // means that it is not a Python scalar supported by Koda and the caller
+  // should evaluate other possibilities before returning this error.
+  absl::Status TryParsePythonScalar(PyObject* py_obj,
+                                    std::optional<DataSlice>& cache_value) {
+    // NOTE: No schema is passed to DataSliceFromPyValue (in which case explicit
+    // casting would happen), because universal conversion relies on implicit /
+    // narrowing casting in all use-cases.
+    ASSIGN_OR_RETURN(DataSlice res,
+                     DataSliceFromPyValue(py_obj, adoption_queue_));
+    // The original bag was added to the adoption_queue.
+    res = std::move(res).WithBag(nullptr);
+    if (!res.is_item()) {
+      return absl::InvalidArgumentError(
+          "dict / list containing multi-dim DataSlice(s) is not convertible"
+          " to a DataSlice");
+    }
+    // Only Entities are converted using Factory, while primitives are kept as
+    // is, because building an OBJECT slice in ComputeDataSlice is not possilbe
+    // if Entities are not already converted.
+    if (res.GetSchemaImpl().is_entity_schema()) {
+      if constexpr (std::is_same_v<Factory, ObjectCreator>) {
+        MaybeCreateEmptyBag();
+        ASSIGN_OR_RETURN(res, Factory::ConvertWithoutAdopt(db_, res));
+      }
+    }
+    value_stack_.push(res);
+    cache_value = std::move(res);
+    return absl::OkStatus();
+  }
+
   // Processes py_obj, and depending on its type, either immediately
   // converts it to a Koda value (and pushes the result to `value_stack_`),
   // or schedules additional actions for the conversion (by pushing them to
@@ -1039,35 +1071,19 @@ class UniversalConverter {
       MaybeCreateEmptyBag();
       return ParsePyList(py_obj, schema);
     }
+    // First trying the Python "scalar" conversion to avoid doing expensive
+    // `AttrProvider` checks (e.g. dataclasses) on each leaf Python object.
+    absl::Status status = TryParsePythonScalar(py_obj, computed_iter->second);
+    if (status.ok()) {
+      return status;
+    }
     ASSIGN_OR_RETURN(auto attr_result,
                      attr_provider_.GetAttrNamesAndValues(py_obj));
     if (attr_result) {
       MaybeCreateEmptyBag();
       return ParsePyAttrProvider(py_obj, *attr_result, schema);
     }
-    // NOTE: No schema is passed to DataSliceFromPyValue (in which case explicit
-    // casting would happend), because universal conversion relies on implicit /
-    // narrowing casting in all use-cases.
-    ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue_));
-    res = res.WithBag(nullptr);  // The original bag was added to the
-                                 // adoption_queue.
-    if (!res.is_item()) {
-      return absl::InvalidArgumentError(
-          "dict / list containing multi-dim DataSlice(s) is not convertible"
-          " to a DataSlice");
-    }
-    // Only Entities are converted using Factory, while primitives are kept as
-    // is, because building an OBJECT slice in ComputeDataSlice is not possilbe
-    // if Entities are not already converted.
-    if (res.GetSchemaImpl().is_entity_schema()) {
-      if constexpr (std::is_same_v<Factory, ObjectCreator>) {
-        MaybeCreateEmptyBag();
-        ASSIGN_OR_RETURN(res, Factory::ConvertWithoutAdopt(db_, res));
-      }
-    }
-    value_stack_.push(res);
-    computed_iter->second = std::move(res);
-    return absl::OkStatus();
+    return status;
   }
 
   // Takes preconstructed keys and values from `value_stack_`, assembles them
