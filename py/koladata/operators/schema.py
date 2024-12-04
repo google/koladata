@@ -193,7 +193,7 @@ def uu_schema(
 def named_schema(
     name=py_boxing.positional_or_keyword(), kwargs=py_boxing.var_keyword()
 ):
-  """Creates a named entity schema in the given DataBag.
+  """Creates a named entity schema.
 
   A named schema will have its item id derived only from its name, which means
   that two named schemas with the same name will have the same item id, even in
