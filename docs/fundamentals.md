@@ -275,7 +275,7 @@ kd.concat(ds1, ds2)  # [[1, 2, 4, 5, 6], [3, 7, 8]]
 items. Both don't change the order, meaning unique == group_by + collapse
 
 ```py
-ds = kd.slice([4,3,4,2,2,1,4,1,2])
+ds = kd.slice([4, 3, 4, 2, 2, 1, 4, 1, 2])
 # group
 kd.group_by(ds)  # [[4, 4, 4], [3], [2, 2, 2], [1, 1]]
 # group and collapse
@@ -283,8 +283,8 @@ kd.collapse(kd.group_by(ds))  # [4, 3, 2, 1]
 kd.unique(ds)  # the same as above
 
 # group by key (or keys)
-ds1 = kd.slice([1,2,3,4,5,6,7,8,9])
-ds2 = kd.slice([1,2,1,3,3,4,1,4,3])
+ds1 = kd.slice([1, 2, 3, 4, 5, 6, 7, 8, 9])
+ds2 = kd.slice([1, 2, 1, 3, 3, 4, 1, 4, 3])
 kd.group_by(ds1, ds2) # [[1, 3, 7], [2], [4, 5, 9], [6, 8]]
 ```
 
@@ -376,7 +376,7 @@ Lists, similar to python, represent "lists" (not slices!) of items:
 ```py
 # Create lists
 a = kd.list([1, 2, 3, 4])  # List[1, 2, 3, 4]
-a = kd.from_py([1,2,3,4])  # the same as above
+a = kd.from_py([1, 2, 3, 4])  # the same as above
 kd.is_primitive(a)  # no
 kd.is_list(a)  # yes
 
@@ -1116,4 +1116,923 @@ r.z  # [20, None]
 r.get_obj_schema().z  # [INT32, INT32]
 r.S[1].get_obj_schema().z  # INT32
 r.S[0].get_obj_schema() == r.S[1].get_obj_schema()  # yes - shared
+```
+
+### Broadcasting and Aligning
+
+DataSlices are **compatible**, if they have compatible partition trees
+(JaggedShapes): when partition trees are the same or one is a sub-tree of
+another. Compatible DataSlices make possible (auto-)broadcasting and more.
+
+If partition trees are compatible, it's possible to broadcast: expand the items
+from the smaller tree into the deeper one.
+
+```py
+# Root
+# ├── i:0 -> 100
+# └── i:1 -> 200
+x = kd.slice([100, 200])
+
+# Root
+# ├── i:0
+# │   ├── j:0 -> 100
+# │   └── j:1 -> 100
+# └── i:1
+#     ├── j:0 -> 200
+#     ├── j:1 -> 200
+#     └── j:2 -> 200
+y = kd.slice([[1,2,3], [4,5]])
+
+kd.is_expandable_to(x, y)  # yes
+kd.is_expandable_to(y, x)  # no
+x.expand_to(y)  # kd.slice([[100, 100, 100], [200, 200]])
+kd.is_shape_compatible(x, y)  # yes - one can be expanded to the other
+x, y = kd.align(x, y)  # works for compatible shapes, and expands to the deeper one
+
+kd.item(100).expand_to(y)  # kd.slice([[100, 100, 100], [100, 100]])
+kd.item(100).expand_to(x)  # the same as above, as x and y were aligned
+```
+
+Compatible DataSlices can be used in vectorized operations and broadcasting is
+applied automatically when necessary.
+
+```py
+kd.slice([[1, 2, 3], [4, 5]]) + kd.slice([[10, 20, 30], [40, 50]])  # [[11, 22, 33], [44, 55]]
+kd.slice([[1, 2, 3], [4, 5]]) + kd.slice(100)  # [[101, 102, 103], [104, 105]]
+kd.slice([[1, 2, 3], [4, 5]]) + 100 # the same as above
+kd.slice([100, 200]) + kd.slice([[1, 2, 3], [4, 5]])  # [[101, 102, 103], [204, 205]]
+```
+
+DataSlices produced by aggregational operations are compatible with original
+input DataSlice(s).
+
+```py
+s = kd.slice([[1, 3],[3, 6, 9]])
+kd.agg_max(s).expand_to(s)  # [[3, 3], [9, 9, 9]]
+s - kd.agg_min(s)  # [[0, 2], [0, 3, 6]]
+kd.zip(s, kd.math.agg_median(s))  # [[[1, 1], [3, 1]], [[3, 6], [6, 6], [9, 6]]]
+```
+
+`expand_to` also takes a `ndim` argument, which can "push" the last few
+dimensions, and helps to do cross-joins or ops like Numpy's outer. In that case,
+the DataSlice after being imploded by `ndim` dimensions should be compatible
+with the target.
+
+```py
+x = kd.slice([1, 2, 3])
+y = kd.slice([5, 6])
+
+# y.expand_to(x)  # would fail, as x and y shapes are incomptabile
+y.expand_to(x, ndim=1)  # [[5, 6], [5, 6], [5, 6]]
+kd.implode(y, ndim=1).expand_to(x)[:]  # the same as above: implode and explode
+
+# the same as np.outer(np.array([1, 2, 3]), np.array([5, 6]))
+x * y.expand_to(x, ndim=1) # [[5, 6], [10, 12], [15, 18]]
+x * kd.implode(y).expand_to(x)[:]  # the same as above
+```
+
+Broadcasting and aligning are applicable to DataSlices of complex objects too.
+
+```py
+# list of objs of lists of objs
+x = kd.from_py([{'d': [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]},
+                {'d': [{'a': 5, 'b': 6}]}],
+               dict_as_obj=True)
+x[:].d[:].a  # [[1, 3], [5]]
+x[:].d[:].a - kd.agg_min(x[:].d[:].a)  # [[0, 2], [0]]
+
+# lists of lists
+x = kd.list([[1,7], [4,6,9]])
+x[:][:]  # kd.slice([[1, 7], [4, 6, 9]])
+x[:][:] - kd.agg_min(x[:][:])  # [[0, 6], [0, 2, 5]]
+x[:][:] - kd.agg_min(x[:][:], ndim=2)  # [[0, 6], [3, 5, 8]]
+x[:][:] - kd.min(x[:][:])  # the same as above
+```
+
+Input DataSlices used for object creation are auto-aligned.
+
+```py
+objs = kd.obj(x=kd.slice([1, 2, 3, 4]), y=1)
+# Object creation auto-aligns inputs:
+ds.x  # [1, 2, 3, 4]
+ds.y  # [1, 1, 1, 1]
+
+# Note, list attributes can be also 'items' that would be auto-aligned
+objs = kd.obj(x=kd.slice([1, 2, 3, 4]), y=kd.list([5, 6]))
+objs.y  # [kd.list([5, 6]), kd.list([5, 6]), ...]
+objs.y[0]  # [5, 5, 5, 5]
+
+# Auto-aligning works for with_attrs, and makes it easy to auto-propagate
+# aggregational results
+a = kd.obj(x=kd.slice([1, 2, 3, 4]), y=1)
+a.with_attrs(z=kd.agg_sum(a.x - a.y)).z  # [6, 6, 6, 6]
+```
+
+Instead of auto-aligning, it's possible to specify the shape/sparsity for result
+DataSlice using corresponding `xxx_shaped_as`, `xxx_shape` or `xxx_like`
+operators.
+
+```py
+a = kd.slice([[1, 2, 3], [4, 5]])
+r = kd.obj_like(a)  # 2-dim DataSlice of objects
+r.with_attrs(z=3).z  # [[3, 3, 3], [3, 3]]
+kd.obj_shaped_as(a).with_attrs(z=3).z  # the same as above, as a is dense
+
+# Note, _shaped_as and _like work the same for dense data, but not for sparse
+# data, which is discussed later
+a = kd.slice([[None, 2, 3], [4, None]])
+kd.obj_like(a).with_attrs(z=3).z  # [[None, 3, 3], [3, None]]
+kd.obj_shaped_as(a).with_attrs(z=3).z  # [[3, 3, 3], [3, 3]]
+
+x = kd.slice([[5, 6], [1, 2], [3, 4, 7]])
+# list_like will craete only two lists
+kd.list_like(kd.agg_sum(x) > 3, x)[:]  # [[5, 6], [], [3, 4, 7]]
+```
+
+We can also use expand_to to push lists/objects/dicts, which enables cross-joins
+or other similar operations:
+
+```py
+x = kd.list([[1, 7], [4, 6, 9]])
+x[:].expand_to(x[:][:])  # 2-dim DataSlice of lists
+
+# cross of the last two dimensions
+x[:].expand_to(x[:][:])[:]  # [[[1, 7], [1, 7]], [[4, 6, 9], [4, 6, 9], [4, 6, 9]]]
+x[:][:].expand_to(x[:][:], ndim=1)  # the same as above
+
+x.expand_to(x[:][:])  # 2-dim DataSlice of *nested* lists
+# 4-dim slice: cross of the last two dimensions
+x.expand_to(x[:][:])[:][:]  # [[[[1, 7], [4, 6, 9]], [[1, 7], [4, 6, 9]]] ...
+x[:][:].expand_to(x[:][:], ndim=2)  # the same as above
+
+# This works for objects too
+x = kd.from_py([{'d': [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]},
+                {'d': [{'a': 5, 'b': 6}]}],
+               dict_as_obj=True)
+x[:].d.expand_to(x[:].d[:])[:].a  # [[[1, 3], [1, 3]], [[5]]]
+
+# Using this trick, it's easy to create various types of pairs
+a = kd.slice([[kd.obj(x=1), kd.obj(x=2)],
+              [kd.obj(x=3), kd.obj(x=4), kd.obj(x=5)]])
+a.x  # [[1, 2], [3, 4, 5]]
+a.expand_to(a, ndim=1).x  # [[[1, 2], [1, 2]], [[3, 4, 5], [3, 4, 5], [3, 4, 5]]]
+kd.implode(a).expand_to(a)[:].x  # the same as above
+
+# It's possible to create pair objects:
+a = kd.slice([[kd.obj(x=1), kd.obj(x=2)],
+              [kd.obj(x=3), kd.obj(x=4), kd.obj(x=5)]])
+a1 = a
+a2 = a.expand_to(a, ndim=1) # or a2 = kd.implode(a).expand_to(a)[:]
+# 3-dim slice objects, where we have crosses of objects in the last dimension
+aa = kd.obj(a1=a1, a2=a2)
+# cross-join
+aa.a1.x  # [[[1, 1], [2, 2]], [[3, 3, 3], [4, 4, 4], [5, 5, 5]]]
+aa.a2.x  # [[[1, 2], [1, 2]], [[3, 4, 5], [3, 4, 5], [3, 4, 5]]]
+
+# alternatively to above, can zip pairs of objects
+a1 = a
+a2 = a.expand_to(a, ndim=1)
+kd.zip(a1, a2).flatten(-3, -1).x  # [[[1, 1], [1, 2], [2, 1], [2, 2]], [[3, 3]] ....
+```
+
+`kd.collapse` is useful to get the "parent" shape.
+
+```py
+x = kd.slice([[[1], [2, 3]], [[3, 4], [5]]])
+kd.collapse(x)
+kd.collapse(x, ndim=2)
+
+kd.sum(x).expand_to(kd.collapse(x))  # [[18, 18], [18, 18]]
+kd.val_shaped_as(kd.collapse(x, ndim=2), 10)  # [10, 10]
+kd.val_shaped_as(kd.agg_has(x, ndim=2), 10)  # the same as above
+kd.val_shaped(x.get_shape()[:-2], 10)  # the same as above
+
+# take 0,1,4 inex items inside the last dimension
+a = kd.slice([[4, 3], [5, 7, 6, 8]])
+b = kd.slice([0, 3, 0])
+a.take(b.expand_to(kd.collapse(a), ndim=1))  # [[4, None, 4], [5, 8, 5]]
+```
+
+### Sparsity and Logical Operators
+
+Sparsity in Koda is the first class citizen, and each item in a DataSlice can be
+present or missing. `kd.has(x)` returns masks (`kd.MASK`), which is a special
+primitive type which can be either `kd.present` or `kd.missing`.
+
+```py
+ds = kd.slice([None, 2, None, 4, None, 6])  # sparse DataSlice
+kd.has(ds)  # [missing, present, missing, present, missing, present]
+kd.has_not(ds)  # [present, missing, present, missing, present, missing]
+ds.get_present_count()  # 3
+kd.count(ds)  # the same as bove
+kd.sum(ds)  # 12 - ignore missing
+
+ds = kd.slice([[None, 2, None], [None], [4, None, 6]])
+kd.agg_has(ds)  # [present, None, present]
+kd.agg_count(ds)  # [1, 0, 2]
+kd.agg_sum(ds)  # [2, 0, 10]
+
+ds = kd.slice([[kd.present, kd.missing], [], [kd.missing], [kd.present]])
+kd.agg_any(ds)  # [present, None, None, present]
+
+kd.slice([[None, 2],[None, 4]]).is_empty()  # no
+kd.slice([[None, None],[None, None]]).is_empty()  # yes
+
+# Create a DataSlice with all missing items
+# Use explicit dtype, when it might not be possible to auto-derive it
+kd.slice([None, None, None], schema=kd.STRING)
+```
+
+Almost all pointwise operators in Koda follow the general sparsity rule: the
+item in the result DataSlice is missing whenever the corresponding item(s) are
+missing in input DataSlices.
+
+```py
+x = kd.slice([[None, 2], [None, 4, None, 6]])
+y = kd.slice([[10, 20], [None, None, 50, 60]])
+
+x + y # [[None, 22], [None, None, None, 66]]
+kd.math.pow(x, 2) # [[None, 4.0], [None, 16.0, None, 36.0]]
+```
+
+Aggregational operators in Koda ignore the missing items during aggregation.
+
+```py
+x = kd.slice([[None, 2], [None, 4, None, 6]])
+
+kd.agg_sum(x) # [2, 10]
+kd.agg_count(x) # [1, 2]
+kd.index(x) # [[None, 1], [None, 1, None, 3]]
+```
+
+Masks can be created directly with `kd.present`/`kd.missing`, or using `==` or
+`!=` operator.
+
+```py
+kd.present # 'present' item
+kd.missing # 'missing' item
+# Create [present, present, missing, present] mask
+kd.slice([kd.present, kd.present, kd.missing, kd.present])
+kd.slice([1, 1, 0, 1]) == 1 # the same as above
+kd.slice([1, 1, None, 1]) == 1 # the same as above
+kd.slice([True, True, False, True]) == True # the same as above
+kd.slice([1, 1, 0, 1]) != 1  # [missing, missing, present, missing]
+```
+
+Use `~` to invert masks.
+
+```py
+x = kd.slice([kd.present, kd.present, kd.missing, kd.present])
+~x  # [missing, missing, present, missing]
+# the same as kd.slice([1, 1, 0, 1]) != 1
+~(kd.slice([1, 1, 0, 1]) == 1)
+```
+
+Comparison operators (`<`, `==`, `!=`, `>`) return masks, not booleans.
+
+```py
+x = kd.slice([1, 2, 3, 4])
+x >= 3  # [missing, missing, present, present]
+(x <= 1) | (x >= 3)  # [present, missing, present, present]
+~(x <= 1) & ~(x >= 3)  # [missing, present, missing, missing]
+
+x = kd.slice([[1, 20], [3, 4, 5], [60, 70]])
+kd.agg_any(x >= 10)  # [present, missing, present]
+
+# can also have corresponding logical operations
+a = kd.slice([1, 2, 3, 4])
+b = kd.slice([4, 2, 1, 3])
+kd.greater(a, b) # a > b
+kd.less_equal(a, b) # a <= b
+kd.equal(a, b) # a==b
+```
+
+Compatible DataSlices can be coalesced (fill in the missing values of the left
+DataSlice with the values from the right DataSlice) with `kd.coalesce` or using
+`|` shortcut.
+
+```py
+x = kd.slice([None, 2, None, 4, None, 6])
+y = kd.slice([10, 20, None, None, 50, 60])
+kd.coalesce(x, y)  # [10, 2, None, 4, 50, 6]
+x | y  # the same as above
+
+# Replace None with 100
+kd.coalesce(x, 100) # [100, 2, 100, 4, 100, 6]
+x | 100  # the same as aboe
+x | y | 100  # [10, 2, 100, 4, 50, 6]
+```
+
+Masks can be used to set items in a DataSlice to missing, which is useful to
+filter out items without changing the DataSlice's shape. Use `&` as shortcut for
+`apply_mask` (works only when the right side is mask).
+
+`kd.cond(m, x)` is equivalent to `kd.apply_mask(x, m)`, but can also be used for
+yes/no values: `kd.cond(m, x, y)`.
+
+```py
+x = kd.slice([1, 2, 3, 4])
+m = kd.slice([kd.present, kd.missing, kd.present, kd.missing])
+kd.apply_mask(x, m)  # [1, None, 3, None]
+x & m # the same as above
+kd.cond(m, x)  # the same as above
+# "x if m else 0"
+x & m | 10  # [1, 10, 3, 10]
+kd.cond(m, x, 10)  # the same as above
+kd.cond(x >= 3, x) # [None, None, 3, 4]
+x & (x >= 3)  # the same as above
+x & ((x >= 4) | (x <= 1))  # [1, None, None, 4]
+```
+
+As `&` and `|` are shortcuts for `apply_mask` and `coalesce` and work for
+non-mask DataSlices, we also have special `mask_and` and `mask_or` operators
+which work the same as `&` and `|` but require inputs to be masks.
+
+```py
+a = kd.slice([1, 2, 3, 4])
+b = kd.slice([4, 2, 1, 3])
+
+kd.logical.mask_and(a > b, a < b + 2)  # same as (a>b) & (a<b+2)
+kd.logical.mask_or(a > b, b == 2)  # same as (a>b) | (b==2)
+```
+
+We cannot compare equality of masks using `==` or `!=` to which the general
+sparsity rule applies. Instead, Koda provides special operators `mask_equal` and
+`mask_not_equal` to compare masks.
+
+IMPORTANT: Masks are not booleans! Don't use `==` or `!=` on them and use
+`mask_equal` and `mask_not_equal` instead.
+
+```py
+kd.missing == kd.missing # kd.missing
+kd.present != kd.missing # kd.missing
+
+kd.logical.mask_equal(kd.missing, kd.missing) # present
+kd.logical.mask_not_equal(kd.present, kd.missing) # present
+```
+
+As we have seen, `apply_mask` sets corresponding items to missing without
+changing the shape. `kd.select` and `kd.select_present` can be used to filter
+out missing items and change the DataSlice shape.
+
+```py
+ds = kd.slice([1, 2, 3, 4])
+kd.select(ds, ds >= 3)  # [3, 4]
+ds.select(ds >= 3)  # the same as above
+(ds & (ds >= 3)).select_present()  # the same as above
+ds.select(lambda x: x >= 3)  # the same as above
+```
+
+`inverse_select` can be used to put the items into the same positions before
+select. Of course, the removed items will be still missing.
+
+NOTE: `inverse_select(select(x, f), f)` is a lossy operation, unless `f` is
+full. At the same time `inverse_select(select(x, f), f) |
+inverse_select(select(x, ~f), ~f) == x`.
+
+```py
+# inverse_select can be used to put items on the same position as pre-select
+x = kd.slice([[1, 2, 3, 4,5], [6,7,8]])
+m = x % 2 == 0
+x1 = kd.select(x, m)  # [[2, 4], [6, 8]]
+# of course, removed during select items will be still missing
+x2 = kd.inverse_select(x1, m)  # [[None, 2, None, 4, None], [6, None, 8]]
+
+kd.inverse_select(kd.select(x, m), m) | kd.inverse_select(kd.select(x, ~m), ~m)  # == x
+
+# inverse_select can be used to apply different ops on different items
+x1 = kd.inverse_select(kd.select(x, m) * 10, m)
+x2 = kd.inverse_select(kd.select(x, ~m) // 2, ~m)
+x1 | x2  # [[0, 20, 1, 40, 2], [60, 3, 80]]
+```
+
+Masks are used for the logical operations and not booleans (True/False) to
+support the case when certain values (e.g. proto fields) can be True, False or
+missing, and to avoid working with 3-boolean logic.
+
+```py
+bool(kd.item(5) > 3)  # python True
+bool(kd.all(kd.slice([1, 2, 3]) >= 2))  # python False, converted from kd.missing
+# bool(kd.slice([1,2,3]) >= 2) # fails, as only mask items (0-dim slices) can be converted
+
+x = kd.slice([1, 2, 3, 4])
+# mask => boolean (present=>True, missing=>False)
+True & (x >= 3) | False  # [False, False, True, True]
+kd.cond(x >=3, True, False) # same as above
+# boolean => mask (True => present, False => missing, missing => missing)
+kd.slice([True, False, True, False]) == True  # [present, missing, present, missing]
+
+# Using booleans as flags (not recommended as it can cause confusion)
+x = kd.obj(a=kd.slice([True, False, True]), b=kd.slice([1, 2, 3]))
+x.b & (x.a == True)  # [1, None, 3]
+```
+
+It is recommended to use 1/0 for "flags" instead of booleans (more concise, as
+efficient and avoids confusion)
+
+```py
+a = kd.obj(x=kd.slice([1, 2, 3]))
+a = a.with_attrs(y=1 & (a.x >= 2) | 0)
+a = a.with_attrs(y=kd.cond(a.x >= 2, 1, 0)) # the same as above
+a.x & (a.y == 1)  #  [None, 2, 3]
+```
+
+`xxx_like` operators follow sparsity, and `xxx_shaped` and `xxx_shaped_as`
+operators follow just shape.
+
+```py
+x = kd.slice([[1, None], [None, 3, 4]])
+kd.val_like(x, 9)  # [[9, None], [None, 9, 9]]
+9 & kd.has(x)  # The same as above
+kd.present_shaped_as(x)  # [[present, present], [present, present, present]]
+kd.val_shaped_as(x, 9)  # [[9, 9], [9, 9, 9]]
+9 & kd.present_shaped_as(x)  # the same as above
+```
+
+`agg_any`, `agg_all` and `agg_has` are good alternatives for collapsing to the
+parent shape, and tracking if everything / anything is missing.
+
+```py
+x = kd.slice([[[1], [None, 3]], [[3, 4], [None]]])
+kd.val_like(kd.agg_any(kd.has(x)), 10)  # [[10, 10], [10, None]]
+kd.val_like(kd.agg_has(x), 10)  # the same as above
+kd.val_like(kd.agg_all(kd.has(x)), 10)  # [[10, None], [10, None]]
+```
+
+`add_dim_to_present` add a dimension, but skips missing items.
+
+```py
+x = kd.slice([kd.obj(a=1), None, kd.obj(a=2)])
+kd.add_dim(x, 1).a  # [[1], [None], [2]]
+kd.add_dim_to_present(x, 1).a  # [[1], [], [2]]
+```
+
+Use `empty_shaped_as` to create an empty DataSlice of masks, objects or other
+types.
+
+```py
+x = kd.slice([[1, 2, 3],[4, 5]])
+kd.empty_shaped_as(x)  # MASK: [[missing, missing, missing], [missing, missing]]
+kd.empty_shaped_as(x, schema=kd.OBJECT)  # OBJECT: [[None, None, None], [None, None]]
+kd.empty_shaped_as(x, schema=kd.STRING)  # STRING: [[None, None, None], [None, None]]
+'' & kd.empty_shaped_as(x) # The same as above
+```
+
+Individual items can also be missing.
+
+```py
+kd.item(None, schema=kd.INT32)  # INT32: None
+kd.int32(None)  # the same as above
+1 & kd.missing  # the same as above
+kd.str(None)  # STRING: None
+
+kd.str(None).is_empty()  # yes
+~kd.str('hello').is_empty()  # yes
+
+kd.obj(None)  # Empty object
+kd.obj(None).is_empty()  # yes
+
+my_schema = kd.new_schema(x=kd.INT32, y=kd.INT32)
+kd.new(None, schema=my_schema)  # missing with some schema
+```
+
+Use `map_py_on_present` to apply python functions to potentially sparse
+DataSlices.
+
+```py
+s = kd.slice(["Hello", None, "World"])
+# Returns: ['HELLO', None, 'WORLD']
+kd.map_py_on_present(lambda x: x.upper(), s, schema=kd.STRING, max_threads=4)
+
+# Schema is passed to handle empty inputs (otherwise cannot derive the schema)
+ds = kd.slice([None, None, None], schema=kd.STRING)
+kd.map_py_on_present(lambda x: x.upper(), ds, max_threads=4)  # None return schema
+kd.map_py_on_present(lambda x: x.upper(), ds, schema=kd.STRING, max_threads=4)  # None return schema
+kd.str(kd.map_py_on_present(lambda x: x.upper(), ds, max_threads=4))  # The same as above
+```
+
+Sparsity can be also used to manipulate subsets of objects/entities.
+
+```py
+a = kd.new(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
+a.updated(kd.attrs(a & (a.y >=5), z=kd.slice([7,8,9]))).z  # [None, 8 ,9]
+```
+
+### ItemIds, UUIDs and Hashes
+
+Each non-primitive item has an uniquely allocated 128-bit ItemId associated with
+them. For efficiency, ItemIds of DataSlices can are consecutively allocated.
+It's possible to directly allocate ItemIds and set them to entities or objects
+(during creation or while cloning).
+
+```py
+x = kd.obj(x=1, y=2)
+x.get_itemid()  # itemid
+kd.encode_itemid(x)  # itemid converted into base-62 number (as string)
+'id:' + kd.encode_itemid(x)  # encode_itemid returns a string
+kd.decode_itemid(kd.encode_itemid(x)) == x.get_itemid()  # yes
+
+# Each item in a DataSlice gets allocated a consecutive id
+x = kd.obj_like(kd.slice([1,2,3,4]))
+kd.encode_itemid(x)  # consecutive base-62 numbers (as strings)
+
+# New itemids can be explicitly allocated
+id = kd.new_itemid_like(kd.slice([1, 2, 3, 4]))
+# and set during entity creation
+kd.new_like(id, a=3, itemid=id)
+# or during cloning
+kd.new(a=kd.slice([5, 6, 7, 8])).clone(itemid=id)
+```
+
+Alternatively to allocating ItemIds, we can compute **universally-uniquely**
+computed ids from the attribute values, so they could be deterministically
+generated and be the same in different processes/machines across times.
+
+```py
+kd.uuid(x=1, y=2) == kd.uuid(x=1, y=2)  # yes
+# allocate DataSlice of uuid's
+kd.uuid(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))  # 3 uuid's
+# can use seeds to
+kd.uuid(seed='my_seed', x=1, y=2) == kd.uuid(seed='my_seed', x=1, y=2)  # yes
+kd.uuid(seed='my_seed1', x=1, y=2) == kd.uuid(seed='my_seed2', x=1, y=2)  # no
+
+id = kd.uuid(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
+# use uuid's to create entities or objects
+kd.obj_like(s, itemid=id).with_attrs(z=kd.slice([7,8,9]))
+
+# Aggregational operations can be used to compute uuids of multiple items
+kd.agg_uuid(kd.slice([[1,2,3], [4,5,6]]))  # slice of 2 uuid's
+```
+
+As shortcut, `uu` and `uuobj` creates entities and objects with
+deterministically computed ids, and set their attributes.
+
+```py
+kd.uu(x=1, y=2)
+kd.new(itemid=kd.uuid(x=1, y=2), x=1, y=2)  # the same as above
+kd.uu(x=1, y=2).get_itemid() == kd.uuid(x=1, y=2)  # yes
+# nested uuobj
+a = kd.uuobj(x=1, y=2, z=kd.uuobj(a=3, b=4))
+a.z == kd.uuobj(a=3, b=4)  # yes
+```
+
+IMPORTANT: using entities and objects with the same ItemId's but different
+attributes can lead to conflicts when mixed together.
+
+```py
+# works, as each kd.obj has different id
+kd.obj().with_attrs(a=kd.obj(a=3).with_attrs(x=1),
+                    b=kd.obj(a=3).with_attrs(x=2))  # works
+
+# works, as uuobj has same id, and same attributes
+kd.obj().with_attrs(a=kd.uuobj(a=3).with_attrs(x=1),
+                    b=kd.uuobj(a=3).with_attrs(x=1))
+
+# fails, as uuobj have same ids, but different attributes
+# kd.obj().with_attrs(a=kd.uuobj(a=3).with_attrs(x=1),
+#                     b=kd.uuobj(a=3).with_attrs(x=2))
+```
+
+Note, uuid computation is shallow by default (takes the passed values),
+including using ItemId's of objects and entities as input. Use `deep_uuid`
+doesn't use id's, but traverse objects/entities and uses only the attribute
+values (including deep ones).
+
+```py
+# kd.obj allocates new ItemId's, and so b is different in both cases
+kd.uuid(a=1, b=kd.obj(y=2)) != kd.uuid(a=1, b=kd.obj(y=2))  # yes
+
+# To traverse attributes of objects and entities instead of using their ItemId, use deep_uuid
+kd.uuid(a=1, b=kd.deep_uuid(kd.obj(y=2))) == kd.uuid(a=1, b=kd.deep_uuid(kd.obj(y=2)))  # yes
+kd.deep_uuid(kd.obj(a=1, b=kd.obj(y=2))) # guaranteed to be the same in different processes
+kd.deep_uuid(kd.obj(a=1, b=kd.obj(y=2))) == kd.deep_uuid(kd.obj(a=1, b=kd.obj(y=2)))  # yes
+kd.deep_uuid(kd.from_py({'h': 'hello', 'u': {'a': 'world', 'b': 'hello'}}, dict_as_obj=True))
+```
+
+ItemId's can be used for fingerprinting / hashing.
+
+```py
+kd.hash_itemid(kd.uuid(a=1, b=2))
+kd.hash_itemid(kd.deep_uuid(kd.obj(a=1, b=2, seed='my_seed')))
+kd.hash_itemid(kd.new_itemid())
+```
+
+### Strings & Bytes
+
+`kd.strings.*` module and `kd.fstr` provide convenient ways to work with
+strings.
+
+```py
+ds = kd.slice([['aa', 'bb'], ['cc', 'dd']])
+
+# fstr needs type ':s' specification and can use f-strings format
+kd.fstr(f'${ds:s}')  # [['$aa', '$bb'], ['$cc', '$dd']]
+kd.strings.fstr(f'${ds:s}')  # the same as above
+kd.fstr(f'{kd.index(ds):d}-{ds:s}')  # [['0-aa', '1-bb'], ['0-cc', '1-dd']]
+
+# printf and format other ways to format strings
+kd.strings.printf("%d-%s", kd.index(ds), ds)  # [['0-aa', '1-bb'], ['0-cc', '1-dd']]
+kd.strings.format("{index}-{val}", index=kd.index(ds), val=ds)  # the same as above
+
+# split would create +1 dim slice:
+kd.strings.split(kd.slice(["a b", "c d e"]))  # [['a', 'b'], ['c', 'd', 'e']]
+kd.strings.split(kd.slice(["a,b", "c,d,e"]), ',')  # [['a', 'b'], ['c', 'd', 'e']]
+
+# # agg_join helps to aggregate lower dimensions
+ds = kd.slice([['aa', 'bb'], ['cc', 'dd']])
+kd.strings.agg_join(ds, '-')  # ['aa-bb', 'cc-dd']
+kd.strings.agg_join(ds, '-', ndim=2)  # ['aa-bb-cc-dd']
+
+# can split then join
+ds = kd.slice(["a,b", "c,d,e"])
+kd.strings.agg_join(kd.strings.split(ds, ','), '-')  # ['a-b', 'c-d-e']
+
+# regex_match and regex_extract allows using regexps:
+ds = kd.slice([['ab', 'ba'], ['cd', 'ad']])
+kd.strings.regex_match(ds, '^a')  # [[present, None], [None, present]]
+
+ds = kd.slice(['ab:cd', 'ef:gh'])
+kd.strings.regex_extract(ds, '^(.*):')  # ['ab', 'ef']
+
+# a traditional set of string operations
+ds = kd.slice([['ab', 'bcb'], ['cdc', 'de']])
+kd.strings.contains(ds, 'c')  # [[None, present], [present, None]]
+kd.strings.count(ds, 'c')  # [[0, 1], [2, 0]]
+kd.strings.find(ds, 'c')  # [[None, 1], [0, None]]
+kd.strings.rfind(ds, 'c')  # [[None, 1], [2, None]]
+kd.strings.join(ds, ds)  # [['abab', 'bcbbcb'], ['cdccdc', 'dede']]
+kd.strings.length(ds)  # [[2, 3], [3, 2]]
+kd.strings.lower(ds)  # [['ab', 'bcb'], ['cdc', 'de']]
+kd.strings.upper(ds)  # [['AB', 'BCB'], ['CDC', 'DE']]
+kd.strings.lstrip(ds, 'ac')  # [['b', 'bcb'], ['dc', 'de']]
+kd.strings.rstrip(ds, 'ac')  # [['ab', 'bcb'], ['cd', 'de']]
+kd.strings.replace(ds, 'b', 'z')  # [['az', 'zcz'], ['cdc', 'de']]
+kd.strings.strip(ds, 'c')  # [['ab', 'bcb'], ['d', 'de']]
+kd.strings.substr(ds, 1, 3)  # [['b', 'cb'], ['dc', 'e']]
+```
+
+NOTE: most of these operators work for bytes as well.
+
+```py
+kd.strings.split(kd.slice([b"a,b", b"c,d,e"]), b',')  # [[b'a', b'b'], [b'c', b'd', b'e']]
+
+ds = kd.slice([[b'ab', b'bcb'], [b'cdc', b'de']])
+kd.strings.contains(ds, b'c')  # [[None, present], [present, None]]
+kd.strings.count(ds, b'c')  # [[0, 1], [2, 0]]
+kd.strings.find(ds, b'c')  # [[None, 1], [0, None]]
+kd.strings.rfind(ds, b'c')  # [[None, 1], [2, None]]
+kd.strings.join(ds, ds)  # [[b'abab', b'bcbbcb'], [b'cdccdc', b'dede']]
+kd.strings.length(ds)  # [[2, 3], [3, 2]]
+```
+
+Strings and bytes can be converted using UTF-8.
+
+```py
+# Decodes x as STRING using UTF-8 decoding.
+kd.strings.decode(kd.slice([b'abc', b'def']))
+# Encodes x as BYTES using UTF-8 encoding.
+kd.strings.encode(kd.slice(['abc', 'def']))
+```
+
+Strings and bytes can be converted using base64 encoding. base64 encoding is
+useful to representing bytes in a pure string format (e.g. using JSON format
+with LLM).
+
+```py
+# Encodes x as STRING using base64 decoding.
+kd.strings.encode_base64(kd.slice([b'abc', b'def'])) # ['YWJj', 'ZGVm']
+# Decodes x as BYTES using base64 encoding.
+kd.strings.decode_base64(kd.slice([['YWJj', 'ZGVm']])) # [b'abc', b'def']
+```
+
+### Math and Ranking
+
+Koda has a traditional set of math operators.
+
+```py
+x = kd.slice([[3., -1., 2.], [0.5, -0.7]])
+y = kd.slice([[1., 2., 0.5], [0.9, 0.3]])
+
+# math has most math ops
+kd.math.abs(x)  # [[3.,1.,2.], [0.5,0.7]]
+kd.math.agg_max(x)  # [3.,0.5]
+kd.math.agg_mean(x)  # [1.33, -0.1]
+kd.math.agg_median(x)  # [2, -0.7]
+kd.math.agg_min(x)
+kd.math.agg_std(x)
+kd.math.agg_sum(x)
+kd.math.agg_var(x)
+kd.math.ceil(x)
+kd.math.cum_max(x)
+kd.math.cum_min(x)
+kd.math.cum_sum(x)
+kd.math.divide(x,y)
+kd.math.exp(x)
+kd.math.floor(x)
+kd.math.floordiv(x,y)
+kd.math.log(x)
+kd.math.log10(x)
+kd.math.max(x)
+kd.math.maximum(x,y)
+kd.math.mean(x)
+kd.math.median(x)
+kd.math.min(x)
+kd.math.mod(x,y)
+kd.math.multiply(x,y)
+kd.math.pow(x,y)
+kd.math.round(x)
+kd.math.subtract(x,y)
+kd.math.sum(x)
+
+kd.math.cdf(x)
+
+# some ops have shortcuts
+kd.sum(x)
+kd.max(x)  # max among all the items
+kd.min(x)  # min among all the items
+kd.maximum(x, y)  # item-wise max
+kd.minimum(x, y)  # item-wise min
+```
+
+Use `ordinal_rank` and `dense_rank` to compute the ranks of items sorted by
+their value.
+
+```py
+x = kd.slice([[5., 4., 6., 4., 5.], [8., None, 2.]])
+
+# ordinal_rank ignores missing values, resolves ties by index
+kd.ordinal_rank(x)  # [[2, 0, 4, 1, 3], [1, None, 0]]
+# can use a different tie-breaker:
+kd.ordinal_rank(x, tie_breaker=-kd.index(x))
+# inverse ranking (higher values first)
+kd.ordinal_rank(x, descending=True)  # [[1, 3, 0, 4, 2], [0, None, 1]]
+# compute rank across multiple dimensions
+kd.ordinal_rank(x, ndim=2)  # [[3, 1, 5, 2, 4], [6, None, 0]]
+
+# the same values get the same rank
+kd.dense_rank(x)  # [[1, 0, 2, 0, 1], [1, None, 0]]
+```
+
+Use random numbers and sampling.
+
+```py
+x = kd.slice([[1., 2., 3.], [4., 5.]])
+
+# Generate random integers
+kd.randint_like(x)
+kd.randint_like(x, seed=123)  # fix seed
+# random int between 0 and 10
+kd.randint_like(x, 10, seed=123)
+# random int between -5 and 200
+kd.randint_like(x, -5, 200, seed=123)
+
+x = kd.slice([[1., None, 3., 5], [None, 5., 6.]])
+# Can use randint + take to sample with replacement (including missing)
+x.take(kd.randint_shaped_as(kd.collapse(x).repeat(5), seed=123) % kd.agg_size(x))
+# Can keep only present items
+x = x.select_present()
+x.take(kd.randint_shaped_as(kd.collapse(x).repeat(5), seed=123) % kd.agg_size(x))
+
+x = kd.slice([[1., 2., 3., 5., 6.], [7., 8., 9.]])
+# Sample without replacement from the last dimension.
+kd.sample(x, ratio=0.7, seed=42)
+# Can also use key to make individual item selection robust (f(seed, key) < 0.7)
+kd.sample(x, ratio=0.7, seed=42, key=kd.index(x))
+# Select n items from last dimension.
+kd.sample_n(x, n=2, seed=342)
+```
+
+### Applying Python functions
+
+`kd.apply_py`, `kd.apply_py_on_selected` and `kd.apply_py_cond` can be used to
+apply python functions to DataSlices directly. Note, DataSlices can potentially
+sparse.
+
+```py
+a = kd.slice([1, 2, 3, 4])
+b = kd.slice([3, 4, 5, 6])
+# the same as (lambda x,y: x+y)(a, b)
+kd.apply_py(lambda x, y: x + y, a, b)  # [4,5,8,10]
+# the same as (lambda x,y: x+y)(a & (a>=2), b & (b >= 2))
+kd.apply_py_on_selected(lambda x, y: x + y, a >= 2, a, b)  # [None,6,8,10]
+# the same as (lambda x,y: x+y)(a & (a>=2), b & (b >= 2)) | (lambda x,y: x-y)(a & ~(a>=2), b & ~(b >= 2))
+kd.apply_py_on_cond(lambda x, y: x + y, lambda x, y: x - y, a >= 2, a, b)  # [-2,6,8,10]
+```
+
+Alternatively, can use `map_py` and its variants to use python functions that
+would be applied to individual items (or lists of items).
+
+```py
+ds = kd.slice([[[1,2],[3,4,5]],[[6],[],[7,8,9,10]]])
+
+# can change number of dimensions to be passed into map_py
+# min over the last two dimensions
+kd.map_py(lambda x: min([b for a in x for b in a], default=None) if x else None,
+          ds, ndim=2) # [1, 6]
+
+# map_py can be used simply for debugging:
+kd.map_py(lambda x: print(x) if x else None, ds, ndim=2)
+```
+
+### Serialization, protos
+
+It's possible to serialize DataSlices into bytes.
+
+```py
+a = kd.obj(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
+foo = kd.dumps(a) # bytes - can be stored on disk or anywhere
+a1 = kd.loads(foo)
+a1.x  # [1, 2, 3]
+```
+
+Note that we serialize the bag of attributes together with the DataSlice, and
+create a new bag from the data after deserialization. In case you have very
+large bags of data, this might require some care to avoid loading the data
+twice. The concept of bag will be covered in the
+[Bags of Attributes](#bags_of_attributes) section later.
+
+```py
+a = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+a.x.get_bag().fingerprint == a.y.get_bag().fingerprint  # True
+x1 = kd.loads(kd.dumps(a.x))
+y1 = kd.loads(kd.dumps(a.y))
+x1.get_bag().fingerprint == y1.get_bag().fingerprint  # False
+```
+
+The serialized format is complex but readable by standard Google tools if you
+need to debug outside of Koda:
+
+```py
+import tempfile
+import subprocess
+a = kd.obj(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
+with tempfile.NamedTemporaryFile() as f:
+  f.write(kd.dumps(a))
+  f.flush()
+  decoded_proto = subprocess.check_output(f'gqui from {f.name}'.split(), stderr=subprocess.STDOUT).decode()
+  # print(decoded_proto)
+```
+
+You can also convert structured data to and from protos. For demonstration
+purposes, we create a proto on the fly.
+
+```proto
+message MessageA {
+  optional string text = 1;
+  optional MessageB b = 2;
+  repeated MessageB b_list = 3;
+}
+
+message MessageB {
+  optional int32 int = 1;
+}
+```
+
+```py
+p1 = MessageA(text='txt1', b_list=[MessageB(int=1), MessageB(int=2)])
+p2 = MessageA(ext='txt2', b=MessageB(int=3))
+
+ds1 = kd.from_proto(p1) # Entity(text='txt1', b_list=List[Entity(int=1), Entity(int=2)])
+ds2 = kd.from_proto([p1, None, p2])
+# [
+#   Entity(text='txt1', b_list=List[Entity(int=1), Entity(int=2)]),
+#   missing,
+#   Entity(text='txt1', b=Entity(int=3)),
+# ]
+
+p = kd.to_proto(ds1, MessageA)
+p_list = kd.to_proto(ds2, MessageA)
+```
+
+### Multi-threading
+
+Processing items in parallel.
+
+```py
+import time
+def expensive_fn(x):
+  print('Start', x)
+  time.sleep(0.1)
+  print('Done', x)
+  return x + 1
+kd.map_py_on_present(expensive_fn, kd.slice([1,None,3]), schema=kd.INT32, max_threads=16)
+```
+
+Processing batches in parallel.
+
+```py
+import time
+def expensive_fn(x):
+  x = x[:][:]
+  print('Start', x)
+  time.sleep(0.1)
+  print('Done', x)
+  return kd.implode(x + 1, ndim=2)
+
+data = kd.slice([[1, 2], [3, 4, 5], [6, 7, 8, 9], [10, 11], [12]])
+imploded_data = kd.implode(data)
+batched_data = kd.group_by(imploded_data, kd.index(imploded_data) // 2)
+batches = kd.implode(batched_data)
+res = kd.map_py_on_present(expensive_fn, batches, schema=kd.list_schema(kd.list_schema(kd.INT32)), max_threads=16)
+res[:][:].flatten(0, 2)
 ```
