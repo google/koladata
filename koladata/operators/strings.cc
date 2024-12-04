@@ -220,21 +220,15 @@ absl::StatusOr<DataSlice> EncodeBase64(const DataSlice& x) {
 }
 
 absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,
-                               const DataSlice& start, const DataSlice& end,
-                               const DataSlice& failure_value) {
+                               const DataSlice& start, const DataSlice& end) {
   RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "substr"}, x, substr))
       .With(OpError("kd.strings.find"));
   ASSIGN_OR_RETURN(auto typed_start, NarrowToInt64(start, "start"),
                    _.With(OpError("kd.strings.find")));
   ASSIGN_OR_RETURN(auto typed_end, NarrowToInt64(end, "end"),
                    _.With(OpError("kd.strings.find")));
-  ASSIGN_OR_RETURN(auto typed_failure_value,
-                   NarrowToInt64(failure_value, "failure_value"),
-                   _.With(OpError("kd.strings.find")));
   return SimplePointwiseEval(
-      "strings.find",
-      {x, substr, std::move(typed_start), std::move(typed_end),
-       std::move(typed_failure_value)},
+      "strings.find", {x, substr, std::move(typed_start), std::move(typed_end)},
       /*output_schema=*/internal::DataItem(schema::kInt64),
       /*primary_operand_indices=*/{{0, 1}});
 }
@@ -379,21 +373,16 @@ absl::StatusOr<DataSlice> Replace(const DataSlice& s,
 }
 
 absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
-                                const DataSlice& start, const DataSlice& end,
-                                const DataSlice& failure_value) {
+                                const DataSlice& start, const DataSlice& end) {
   RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "substr"}, x, substr))
       .With(OpError("kd.strings.rfind"));
   ASSIGN_OR_RETURN(auto typed_start, NarrowToInt64(start, "start"),
                    _.With(OpError("kd.strings.rfind")));
   ASSIGN_OR_RETURN(auto typed_end, NarrowToInt64(end, "end"),
                    _.With(OpError("kd.strings.rfind")));
-  ASSIGN_OR_RETURN(auto typed_failure_value,
-                   NarrowToInt64(failure_value, "failure_value"),
-                   _.With(OpError("kd.strings.rfind")));
   return SimplePointwiseEval(
       "strings.rfind",
-      {x, substr, std::move(typed_start), std::move(typed_end),
-       std::move(typed_failure_value)},
+      {x, substr, std::move(typed_start), std::move(typed_end)},
       /*output_schema=*/internal::DataItem(schema::kInt64),
       /*primary_operand_indices=*/{{0, 1}});
 }

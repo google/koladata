@@ -306,10 +306,9 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
     DataSlice start = test::DataSlice<int>({1, 2, 0}, schema::kInt32);
     DataSlice end = test::DataSlice<int>(
         {std::nullopt, std::nullopt, std::nullopt}, schema::kInt32);
-    DataSlice failure_value = test::EmptyDataSlice(3, schema::kInt32);
     ASSERT_OK_AND_ASSIGN(
         auto result, SimplePointwiseEval(
-                         "strings.find", {x, substr, start, end, failure_value},
+                         "strings.find", {x, substr, start, end},
                          /*output_schema=*/internal::DataItem(schema::kInt64),
                          /*primary_operand_indices=*/{{0, 1}}));
     EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int64_t>(
@@ -326,16 +325,15 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
     DataSlice start = test::DataSlice<int>({1, 2, 0}, schema::kInt32);
     DataSlice end = test::DataSlice<int>(
         {std::nullopt, std::nullopt, std::nullopt}, schema::kInt32);
-    DataSlice failure_value = test::EmptyDataSlice(3, schema::kInt32);
     EXPECT_THAT(
         SimplePointwiseEval(
-            "strings.find", {x, substr, start, end, failure_value},
+            "strings.find", {x, substr, start, end},
             /*output_schema=*/internal::DataItem(schema::kInt64),
             /*primary_operand_indices=*/{{0, 1}}),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("unsupported argument types "
                            "(DENSE_ARRAY_TEXT,DENSE_ARRAY_BYTES,DENSE_ARRAY_"
-                           "INT32,DENSE_ARRAY_INT32,DENSE_ARRAY_INT32)")));
+                           "INT32,DENSE_ARRAY_INT32)")));
   }
   {
     // Passing a non-primary operand with unknown schema.
@@ -349,9 +347,8 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
     // This schema is unknown:
     DataSlice end = test::DataSlice<int>(
         {std::nullopt, std::nullopt, std::nullopt}, schema::kAny);
-    DataSlice failure_value = test::EmptyDataSlice(3, schema::kInt32);
     EXPECT_THAT(SimplePointwiseEval(
-                    "strings.find", {x, substr, start, end, failure_value},
+                    "strings.find", {x, substr, start, end},
                     /*output_schema=*/internal::DataItem(schema::kInt64),
                     /*primary_operand_indices=*/{{0, 1}}),
                 StatusIs(absl::StatusCode::kInternal,
@@ -370,9 +367,8 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
     // This has no primitive schema:
     DataSlice end =
         test::DataItem(std::nullopt, internal::AllocateExplicitSchema());
-    DataSlice failure_value = test::EmptyDataSlice(3, schema::kInt32);
     EXPECT_THAT(SimplePointwiseEval(
-                    "strings.find", {x, substr, start, end, failure_value},
+                    "strings.find", {x, substr, start, end},
                     /*output_schema=*/internal::DataItem(schema::kInt64),
                     /*primary_operand_indices=*/{{0, 1}}),
                 StatusIs(absl::StatusCode::kInternal,

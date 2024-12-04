@@ -63,8 +63,7 @@ absl::StatusOr<DataSlice> EncodeBase64(const DataSlice& x);
 //
 // kde.strings.find.
 absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,
-                               const DataSlice& start, const DataSlice& end,
-                               const DataSlice& failure_value);
+                               const DataSlice& start, const DataSlice& end);
 //
 // kde.strings.join.
 absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices);
@@ -97,8 +96,7 @@ absl::StatusOr<DataSlice> Replace(const DataSlice& s,
 //
 // kde.strings.rfind.
 absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
-                                const DataSlice& start, const DataSlice& end,
-                                const DataSlice& failure_value);
+                                const DataSlice& start, const DataSlice& end);
 //
 // kde.strings.rstrip.
 absl::StatusOr<DataSlice> Rstrip(const DataSlice& s, const DataSlice& chars);

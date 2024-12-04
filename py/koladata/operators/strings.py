@@ -140,7 +140,6 @@ def count(s, substr):  # pylint: disable=unused-argument,redefined-outer-name
         qtype_utils.expect_data_slice(P.substr),
         qtype_utils.expect_data_slice(P.start),
         qtype_utils.expect_data_slice(P.end),
-        qtype_utils.expect_data_slice(P.failure_value),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
@@ -150,26 +149,22 @@ def find(
     substr,
     start=data_slice.DataSlice.from_vals(0, schema_constants.INT64),
     end=data_slice.DataSlice.from_vals(None, schema_constants.INT64),
-    failure_value=data_slice.DataSlice.from_vals(None, schema_constants.INT64),
 ):  # pylint: enable=unused-argument,redefined-outer-name
   """Returns the offset of the first occurrence of `substr` in `s`.
-
-  Searches within the offset range of `[start, end)`. If nothing is found,
-  returns `failure_value`.
 
   The units of `start`, `end`, and the return value are all byte offsets if `s`
   is `BYTES` and codepoint offsets if `s` is `STRING`.
 
   Args:
    s: (STRING or BYTES) Strings to search in.
-   substr: (STRING or BYTES)  Strings to search for in `s`. Should have the same
+   substr: (STRING or BYTES) Strings to search for in `s`. Should have the same
      dtype as `s`.
-   start: (optional int) Offset to start the search. Defaults to 0.
-   end: (optional int) Offset to stop the search.
-   failure_value: (optional int) Reported if `substr` is not found in `s`.
+   start: (optional int) Offset to start the search, defaults to 0.
+   end: (optional int) Offset to stop the search, defaults to end of the string.
 
   Returns:
-    The offset of the first occurrence of `substr` in `s`.
+    The offset of the last occurrence of `substr` in `s`, or missing if there
+    are no occurrences.
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -570,7 +565,6 @@ def replace(
         qtype_utils.expect_data_slice(P.substr),
         qtype_utils.expect_data_slice(P.start),
         qtype_utils.expect_data_slice(P.end),
-        qtype_utils.expect_data_slice(P.failure_value),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
@@ -580,26 +574,22 @@ def rfind(
     substr,
     start=data_slice.DataSlice.from_vals(0, schema_constants.INT64),
     end=data_slice.DataSlice.from_vals(None, schema_constants.INT64),
-    failure_value=data_slice.DataSlice.from_vals(None, schema_constants.INT64),
 ):  # pylint: enable=unused-argument,redefined-outer-name
   """Returns the offset of the last occurrence of `substr` in `s`.
-
-  Searches within the offset range of `[start, end)`. If nothing is found,
-  returns `failure_value`.
 
   The units of `start`, `end`, and the return value are all byte offsets if `s`
   is `BYTES` and codepoint offsets if `s` is `STRING`.
 
   Args:
    s: (STRING or BYTES) Strings to search in.
-   substr: (STRING or BYTES)  Strings to search for in `s`. Should have the same
+   substr: (STRING or BYTES) Strings to search for in `s`. Should have the same
      dtype as `s`.
-   start: (optional int) Offset to start the search. Defaults to 0.
-   end: (optional int) Offset to stop the search.
-   failure_value: (optional int) Reported if `substr` is not found in `s`.
+   start: (optional int) Offset to start the search, defaults to 0.
+   end: (optional int) Offset to stop the search, defaults to end of the string.
 
   Returns:
-    The offset of the last occurrence of `substr` in `s`.
+    The offset of the last occurrence of `substr` in `s`, or missing if there
+    are no occurrences.
   """
   raise NotImplementedError('implemented in the backend')
 

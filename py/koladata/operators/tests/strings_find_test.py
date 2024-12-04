@@ -36,7 +36,6 @@ QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
 ])
 
 
@@ -277,111 +276,6 @@ class StringsFindTest(parameterized.TestCase):
   )
   def test_four_args(self, s, substr, start, end, expected):
     result = expr_eval.eval(kde.strings.find(s, substr, start, end))
-    testing.assert_equal(result, expected)
-
-  @parameterized.parameters(
-      (
-          ds('fooaaoo'),
-          ds('oo'),
-          ds(0),
-          ds(3),
-          ds(-1),
-          ds(1, schema_constants.INT64),
-      ),
-      (
-          ds('fooaaoo'),
-          ds('oo'),
-          ds(0),
-          ds(2),
-          ds(-1),
-          ds(-1, schema_constants.INT64),
-      ),
-      (
-          ds('fooaaoo'),
-          ds('oo'),
-          ds(0),
-          ds(None),
-          ds(-1),
-          ds(1, schema_constants.INT64),
-      ),
-      (
-          ds('fooaaoo'),
-          ds('oo'),
-          ds(0),
-          ds(1),
-          ds(-5),
-          ds(-5, schema_constants.INT64),
-      ),
-      (
-          ds('fooaaoo'),
-          ds('oo'),
-          ds(0),
-          ds(-5),
-          ds(1000),
-          ds(1000, schema_constants.INT64),
-      ),
-      (
-          ds(['fooaaoo', 'zbboo', 'oobar']),
-          ds('oo'),
-          ds(1),
-          ds(3),
-          ds([-1, -2, -3]),
-          ds([1, -2, -3], schema_constants.INT64),
-      ),
-      (
-          ds([['foo', 'bzboo', 'bzbooa'], ['barioooooi']]),
-          ds(['oo', 'i']),
-          ds([2, 4]),
-          ds([-1, None]),
-          ds([-4, None]),
-          ds([[-4, -4, 3], [9]], schema_constants.INT64),
-      ),
-      # Empty and unknown.
-      (
-          ds([None, None]),
-          ds([None, None]),
-          ds([None, None]),
-          ds([None, None]),
-          ds([None, None]),
-          ds([None, None], schema_constants.INT64),
-      ),
-      (
-          ds([None, None], schema_constants.STRING),
-          ds(None, schema_constants.STRING),
-          ds(None, schema_constants.INT64),
-          ds(None, schema_constants.INT64),
-          ds(None, schema_constants.INT64),
-          ds([None, None], schema_constants.INT64),
-      ),
-      (
-          ds([None, None], schema_constants.BYTES),
-          ds(None, schema_constants.BYTES),
-          ds(None, schema_constants.INT64),
-          ds(None, schema_constants.INT64),
-          ds(None, schema_constants.INT64),
-          ds([None, None], schema_constants.INT64),
-      ),
-      (
-          ds([None, None], schema_constants.OBJECT),
-          ds(None, schema_constants.OBJECT),
-          ds(None, schema_constants.OBJECT),
-          ds(None, schema_constants.OBJECT),
-          ds(None, schema_constants.OBJECT),
-          ds([None, None], schema_constants.INT64),
-      ),
-      (
-          ds([None, None]),
-          ds('abc'),
-          ds(1),
-          ds(3),
-          ds(-1),
-          ds([None, None], schema_constants.INT64),
-      ),
-  )
-  def test_five_args(self, s, substr, start, end, failure_value, expected):
-    result = expr_eval.eval(
-        kde.strings.find(s, substr, start, end, failure_value)
-    )
     testing.assert_equal(result, expected)
 
   def test_incompatible_types_error(self):
