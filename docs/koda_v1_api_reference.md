@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-12-03'
+  reviewed: '2024-12-04'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -4853,31 +4853,26 @@ Creates a list schema in the given DataBag.
     data_slice.DataSlice representing a list schema.
 ```
 
-### `kd.schema.named_schema(name, *, db)` {#kd.schema.named_schema}
+### `kd.schema.named_schema(name, *, db, **attrs)` {#kd.schema.named_schema}
 
 ``` {.no-copy}
 Creates a named entity schema in the given DataBag.
 
   A named schema will have its item id derived only from its name, which means
-  that two named schemas with the same name will have the same ItemId, even in
-  different DataBags.
-
-  Note that unlike other schema factories, this method does not take any attrs
-  to avoid confisuion with the behavior of uu_schema. Please use
-  named_schema(name).with_attrs(attrs) to create a named schema with attrs.
-
-  Currently the named schema does not put any triples into the provided
-  DataBag, but that might change in the future. For example, we might want to
-  store the schema name in the DataBag for printing.
+  that two named schemas with the same name will have the same item id, even in
+  different DataBags, or with different kwargs passed to this method.
 
   Args:
     name: The name to use to derive the item id of the schema.
     db: optional DataBag where the schema is created. If not provided, a new
       Databag is created.
+    **attrs: A mapping of attribute names to DataSlices. The DataSlice values
+      must be schemas themselves.
 
   Returns:
-    data_slice.DataSlice with the ItemId of the required schema and kd.SCHEMA
-    schema.
+    data_slice.DataSlice with the item id of the required schema and kd.SCHEMA
+    schema, with the DataBag attached containing the provided
+    attrs.
 ```
 
 ### `kd.schema.new_schema(db, **attrs)` {#kd.schema.new_schema}
@@ -4894,10 +4889,10 @@ Creates new schema in the given DataBag.
     data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
 ```
 
-### `kd.schema.schema_from_py_type(tpe)` {#kd.schema.schema_from_py_type}
+### `kd.schema.schema_from_py(tpe)` {#kd.schema.schema_from_py}
 
 ``` {.no-copy}
-Creates a Koda schema corresponding to the given Python type.
+Creates a Koda entity schema corresponding to the given Python type.
 
   This method supports the following Python types / type annotations
   recursively:
@@ -4906,14 +4901,27 @@ Creates a Koda schema corresponding to the given Python type.
   - Unions: only "smth | None" or "Optional[smth]" is supported.
   - Dataclasses.
 
+  This can be used in conjunction with kd.from_py to convert lists of Python
+  objects to efficient Koda DataSlices. Because of the 'efficient' goal, we
+  create an entity schema and do not use kd.OBJECT inside, which also results
+  in strict type checking. If you do not care
+  about efficiency or type safety, you can use kd.from_py(..., schema=kd.OBJECT)
+  directly.
+
   Args:
     tpe: The Python type to create a schema for.
 
   Returns:
-    A Koda schema corresponding to the given Python type. The returned schema
-    is a uu-schema, in other words we always return the same output for the
-    same input. For dataclasses, we use the module name and the class name
+    A Koda entity schema corresponding to the given Python type. The returned
+    schema is a uu-schema, in other words we always return the same output for
+    the same input. For dataclasses, we use the module name and the class name
     to derive the itemid for the uu-schema.
+```
+
+### `kd.schema.schema_from_py_type(tpe)` {#kd.schema.schema_from_py_type}
+
+``` {.no-copy}
+A deprecated alias for kd.schema.schema_from_py.
 ```
 
 ### `kd.schema.to_any(x)` {#kd.schema.to_any}
@@ -7075,7 +7083,7 @@ Copies all data from `other_bags` to this DataBag.
     self, so that multiple DataBag modifications can be chained.
 ```
 
-### `<DataBag>.named_schema(name, /)` {#<DataBag>.named_schema}
+### `<DataBag>.named_schema(name, **attrs)` {#<DataBag>.named_schema}
 
 ``` {.no-copy}
 Creates a named schema with ItemId derived only from its name.
