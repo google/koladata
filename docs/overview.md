@@ -35,15 +35,15 @@ Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
     decision making logic and evaluation flows (scoring, ranking, metrics etc.),
     work with models and more, where your data is tables, protos, structs,
     graphs etc.
-*   **What-if experiments**: change input data, change evaluation or
-    orchestration logic, and get insights instantly.
+*   **What-if experiments**: change input data, change evaluation
+    logic, and get insights instantly.
 *   **Zoom in on your data**: utilize **data views, updates, overlays,
     versions**, including when working with **large data sources**, and use only
     parts of the data needed at the moment.
 *   **Performance**: computation is vectorized and performed in highly optimized
     C++.
-*   **Evaluate in distributed environment or serve in production**: convert LLM
-    orchestration and evaluation logic into **computational graphs** (ASTs) that
+*   **Evaluate in distributed environment or serve in production**: convert
+    evaluation logic into **computational graphs** (ASTs) that
     can be introspected, optimized then evaluated in distributed environment or
     served in production.
 
@@ -988,9 +988,9 @@ db = kd.loads(serialized_bytes)
 **Multi-threading**
 
 ```py
-def call_llm_fn(prompt):
-  return call_llm(prompt)
-kd.map_py_on_present(call_llm_fn, kd.slice(['hello', None, 'world']), max_threads=16)
+def call_slow_fn(prompt):
+  return slow_fn(prompt)
+kd.map_py_on_present(call_slow_fn, kd.slice(['hello', None, 'world']), max_threads=16)
 ```
 
 ## Interoperability
