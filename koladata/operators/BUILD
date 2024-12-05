@@ -169,22 +169,6 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "compile_expr_operators",
-    srcs = ["compile_expr_operators.cc"],
-    deps = [
-        "//koladata/expr:expr_operators",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_arolla//arolla/expr",
-        "@com_google_arolla//arolla/expr/eval",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util:status_backport",
-    ],
-    alwayslink = 1,
-)
-
 to_data_slice_types = [
     "int32_t",
     "int64_t",

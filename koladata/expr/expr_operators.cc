@@ -15,7 +15,6 @@
 #include "koladata/expr/expr_operators.h"
 
 #include <cstdint>
-#include <memory>
 #include <utility>
 
 #include "absl/status/status.h"
@@ -25,21 +24,15 @@
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
-#include "koladata/internal/ellipsis.h"
 #include "koladata/internal/non_deterministic_token.h"
-#include "arolla/expr/annotation_expr_operators.h"
 #include "arolla/expr/basic_expr_operator.h"
-#include "arolla/expr/expr.h"
 #include "arolla/expr/expr_attributes.h"
 #include "arolla/expr/expr_operator_signature.h"
-#include "arolla/expr/lambda_expr_operator.h"
-#include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
-#include "arolla/util/init_arolla.h"
 #include "arolla/util/string.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
@@ -170,35 +163,5 @@ NonDeterministicOperator::InferAttributes(
   return arolla::expr::ExprAttributes(
       arolla::GetQType<internal::NonDeterministicToken>());
 }
-
-// koladata_default_boxing
-
-AROLLA_INITIALIZER(
-        .reverse_deps = {arolla::initializer_dep::kOperators},
-        .init_fn = []() -> absl::Status {
-          RETURN_IF_ERROR(arolla::expr::RegisterOperator<InputOperator>(
-                              "koda_internal.input")
-                              .status());
-          RETURN_IF_ERROR(
-              RegisterOperator("koda_internal.ellipsis",
-                               arolla::expr::MakeLambdaOperator(
-                                   arolla::expr::ExprOperatorSignature{},
-                                   arolla::expr::Literal(internal::Ellipsis{})))
-                  .status());
-          RETURN_IF_ERROR(
-              arolla::expr::RegisterOperator(
-                  "koda_internal.with_name",
-                  std::make_shared<arolla::expr::NameAnnotation>(
-                      /*aux_policy=*/"_koladata_annotation_with_name"))
-                  .status());
-          RETURN_IF_ERROR(arolla::expr::RegisterOperator(
-                              "koda_internal.to_arolla_int64",
-                              std::make_shared<ToArollaInt64Operator>())
-                              .status());
-          RETURN_IF_ERROR(
-              arolla::expr::RegisterOperator<NonDeterministicOperator>(
-                  "koda_internal.non_deterministic").status());
-          return absl::OkStatus();
-        })
 
 }  // namespace koladata::expr

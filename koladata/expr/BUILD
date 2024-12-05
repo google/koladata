@@ -24,7 +24,6 @@ cc_library(
     name = "expr_operators",
     srcs = ["expr_operators.cc"],
     hdrs = ["expr_operators.h"],
-    tags = ["keep_dep"],
     deps = [
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -44,19 +43,30 @@ cc_library(
     ],
 )
 
+# Registers koda_internal.* operators, their reprs and compilation.
 cc_library(
-    name = "expr_operators_repr",
-    srcs = ["expr_operators_repr.cc"],
-    tags = ["keep_dep"],
+    name = "init",
+    srcs = [
+        "compile_expr_operators.cc",
+        "expr_operators_repr.cc",
+        "init_expr_operators.cc",
+    ],
     deps = [
         ":expr_operators",
+        "//koladata:data_slice_qtype",
+        "//koladata/internal:ellipsis",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/eval",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
     ],
+    alwayslink = 1,
 )
 
 cc_library(
@@ -65,8 +75,10 @@ cc_library(
     hdrs = ["expr_eval.h"],
     deps = [
         ":expr_operators",
+        ":init",
         "//koladata/internal:non_deterministic_token",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
@@ -115,8 +127,7 @@ cc_test(
     srcs = ["expr_eval_test.cc"],
     deps = [
         ":expr_eval",
-        ":expr_operators",
-        "//koladata/operators:compile_expr_operators",
+        ":init",
         "//koladata/testing:test_env",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",

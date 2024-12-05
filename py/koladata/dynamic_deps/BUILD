@@ -36,8 +36,7 @@ cc_shared_library(
     deps = [
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
-        "//koladata/expr:expr_operators",
-        "//koladata/expr:expr_operators_repr",
+        "//koladata/expr:init",
         "//koladata/functor:operators",
         "//koladata/operators",
         "//koladata/s11n",

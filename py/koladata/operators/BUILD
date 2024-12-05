@@ -39,10 +39,16 @@ licenses(["notice"])
 arolla_cc_operator_package(
     name = "operators",
     arolla_initializer = {
-        "deps": ["arolla_operators/jagged_shape"],
+        "deps": [
+            "arolla_operators/jagged_shape",
+            "arolla_operators/koda_internal",
+        ],
     },
     snapshot = ":operator_package.pb2",
-    deps = ["@com_google_arolla//arolla/jagged_shape/expr"],
+    deps = [
+        "//koladata/expr:init",
+        "@com_google_arolla//arolla/jagged_shape/expr",
+    ],
 )
 
 arolla_operator_package_snapshot(

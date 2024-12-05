@@ -28,9 +28,7 @@ py_library(
     name = "input_container",
     srcs = ["input_container.py"],
     deps = [
-        "//koladata/expr:expr_operators",
-        "//koladata/expr:expr_operators_repr",
-        "//koladata/operators:compile_expr_operators",
+        "//koladata/expr:init",
         "//py/koladata/types:literal_operator",
         "@com_google_arolla//py/arolla",
     ],

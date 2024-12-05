@@ -3723,9 +3723,7 @@ py_test(
     name = "koda_internal_input_test",
     srcs = ["koda_internal_input_test.py"],
     deps = [
-        "//koladata/expr:expr_operators",
-        "//koladata/expr:expr_operators_repr",
-        "//koladata/operators:compile_expr_operators",
+        "//koladata/expr:init",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
