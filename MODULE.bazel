@@ -1,7 +1,4 @@
-module(
-    name = "koladata",
-    repo_name = "com_google_koladata",
-)
+module(name = "koladata")
 
 bazel_dep(name = "abseil-cpp", version = "20240722.0", repo_name = "com_google_absl")
 bazel_dep(name = "abseil-py", version = "2.1.0", repo_name = "com_google_absl_py")
@@ -33,7 +30,7 @@ pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip", dev_depen
 pip.parse(
     hub_name = "koladata_pip_deps",
     python_version = "3.11",
-    requirements_lock = "//:requirements.txt",
+    requirements_lock = "//:requirements_lock.txt",
 )
 use_repo(pip, pip_deps = "koladata_pip_deps")
 

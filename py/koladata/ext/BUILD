@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@pip_deps//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
 # Tools for working with external libraries, such as numpy, pandas, etc.
@@ -29,6 +30,7 @@ py_library(
     deps = [
         "//py/koladata:kd",
         "//py/koladata/types:data_slice",
+        requirement("numpy"),
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/experimental",
     ],
@@ -42,6 +44,7 @@ py_test(
         "//py/koladata:kd",
         "//py/koladata/testing",
         "//py/koladata/types:schema_constants",
+        requirement("numpy"),
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
     ],
@@ -55,6 +58,7 @@ py_library(
         ":npkd",
         "//py/koladata:kd",
         "//py/koladata/types:data_slice",
+        requirement("pandas"),
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -62,12 +66,13 @@ py_library(
 py_test(
     name = "pdkd_test",
     srcs = ["pdkd_test.py"],
-    tags = ["nooss"],
     deps = [
         ":pdkd",
         "//py/koladata:kd",
         "//py/koladata/testing",
         "//py/koladata/types:schema_constants",
+        requirement("numpy"),
+        requirement("pandas"),
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
     ],
@@ -89,7 +94,6 @@ py_library(
 py_test(
     name = "kd_ext_test",
     srcs = ["kd_ext_test.py"],
-    tags = ["nooss"],
     deps = [
         ":kd_ext",
         "//py/koladata:kd",
