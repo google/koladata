@@ -48,6 +48,7 @@ namespace koladata {
 namespace {
 
 using ::koladata::internal::DataBagContent;
+using ::koladata::internal::DataBagIndex;
 using ::koladata::internal::DataItem;
 using ::koladata::internal::ObjectId;
 using ::koladata::internal::debug::AttrTriple;
@@ -151,6 +152,72 @@ std::string AttributeRepr(const absl::string_view attribute) {
   }
 }
 
+// Create a queue of DatabagIndexes for extraction that puts small allocations
+// first.
+std::vector<DataBagIndex> CreateIndexQueue(const internal::DataBagImpl& db) {
+  const auto& full_index = db.CreateIndex();
+
+  // Create allocation id to DatabagIndex map for attribute allocations.
+  // One allocation id can have multiple attributes.
+  DataBagIndex small_alloc_index;
+  absl::flat_hash_map<internal::AllocationId, DataBagIndex>
+      attribute_index_by_allocation_id;
+  for (const auto& [attr_name, attr_index] : full_index.attrs) {
+    if (attr_index.with_small_allocs) {
+      small_alloc_index.attrs.insert({attr_name, {{}, true}});
+    }
+    for (const auto& allocation_id : attr_index.allocations) {
+      auto it = attribute_index_by_allocation_id.find(allocation_id);
+      if (it != attribute_index_by_allocation_id.end()) {
+        it->second.attrs.insert({attr_name, {{allocation_id}, false}});
+      } else {
+        attribute_index_by_allocation_id.insert(
+            {allocation_id,
+            {{{attr_name, {{allocation_id}, false}}}, {}, {}}});
+      }
+    }
+  }
+
+  std::vector<DataBagIndex> index_queue;
+  index_queue.reserve(attribute_index_by_allocation_id.size() +
+                      full_index.lists.size() +
+                      full_index.dicts.size());
+
+  // Small alloc index first.
+  index_queue.push_back(std::move(small_alloc_index));
+  std::vector<std::pair<internal::AllocationId, DataBagIndex>>
+      sorted_attribute_indexes;
+  sorted_attribute_indexes.reserve(attribute_index_by_allocation_id.size());
+  for (const auto& [allocation_id, attr_index] :
+      attribute_index_by_allocation_id) {
+    sorted_attribute_indexes.push_back({allocation_id, attr_index});
+  }
+  // Sort attribute allocations by capacity(estimate of size).
+  std::sort(sorted_attribute_indexes.begin(), sorted_attribute_indexes.end(),
+            [](const auto& a, const auto& b) {
+              return a.first.Capacity() < b.first.Capacity();
+            });
+  // Queue allocations in order of size estimate.
+  for (const auto& [_, index] : sorted_attribute_indexes) {
+    index_queue.push_back(index);
+  }
+  // List and Dict allocations are not sorted, since there isn't a good way to
+  // take into account list size or dict size.
+  for (const auto& allocation_id : full_index.lists) {
+    index_queue.push_back({{}, {allocation_id}, {}});
+  }
+  for (const auto& allocation_id : full_index.dicts) {
+    index_queue.push_back({{}, {}, {allocation_id}});
+  }
+  return index_queue;
+}
+
+DataBagIndex CreateSchemaIndex(
+    const internal::DataBagImpl& db) {
+  const auto& full_index = db.CreateIndex();
+  return {{}, {}, full_index.dicts};
+}
+
 class ContentsReprBuilder {
  public:
   explicit ContentsReprBuilder(const DataBagPtr& db, int64_t triple_limit)
@@ -162,31 +229,20 @@ class ContentsReprBuilder {
           "triple_limit must be a positive integer");
     }
 
-    // Extract necessary triples.
-    ASSIGN_OR_RETURN(DataBagContent content, db_->GetImpl().ExtractContent());
-    Triples main_triples(content);
-    FlattenFallbackFinder fallback_finder(*db_);
-    auto fallbacks = fallback_finder.GetFlattenFallbacks();
-    std::vector<Triples> fallback_triples;
-    fallback_triples.reserve(fallbacks.size());
-    for (const internal::DataBagImpl* const fallback : fallbacks) {
-      ASSIGN_OR_RETURN(DataBagContent fallback_content,
-                        fallback->ExtractContent());
-      fallback_triples.push_back(Triples(fallback_content));
-    }
-
     if (show_data) {
       res_ = absl::StrCat("DataBag ", GetBagIdRepr(db_), ":\n");
       // Triples in the main DataBag.
-      AddDataTriples(main_triples);
+      RETURN_IF_ERROR(ProcessDataBag(db_->GetImpl()));
       if (triple_count_ >= triple_limit_) {
         Etcetera();
         return std::move(res_);
       }
 
       // Triples in the fallbacks.
-      for (const auto& triples : fallback_triples) {
-        AddDataTriples(triples);
+      FlattenFallbackFinder fallback_finder(*db_);
+      auto fallbacks = fallback_finder.GetFlattenFallbacks();
+      for (const internal::DataBagImpl* const fallback : fallbacks) {
+        RETURN_IF_ERROR(ProcessDataBag(*fallback));
         if (triple_count_ >= triple_limit_) {
           Etcetera();
           return std::move(res_);
@@ -200,16 +256,19 @@ class ContentsReprBuilder {
       } else {
         res_ = absl::StrCat("SchemaBag ", GetBagIdRepr(db_), ":\n");
       }
+
       // Schema triples in the main DataBag.
-      RETURN_IF_ERROR(AddSchemaTriples(main_triples));
+      RETURN_IF_ERROR(ProcessSchemaBag(db_->GetImpl()));
       if (triple_count_ >= triple_limit_) {
           Etcetera();
           return std::move(res_);
       }
 
       // Schema triples in the fallbacks.
-      for (const auto& triples : fallback_triples) {
-        RETURN_IF_ERROR(AddSchemaTriples(triples));
+      FlattenFallbackFinder fallback_finder(*db_);
+      auto fallbacks = fallback_finder.GetFlattenFallbacks();
+      for (const internal::DataBagImpl* const fallback : fallbacks) {
+        RETURN_IF_ERROR(ProcessSchemaBag(*fallback));
         if (triple_count_ >= triple_limit_) {
           Etcetera();
           return std::move(res_);
@@ -221,6 +280,30 @@ class ContentsReprBuilder {
   }
 
  private:
+  absl::Status ProcessDataBag(const internal::DataBagImpl& db_impl) {
+    auto index_queue = CreateIndexQueue(db_impl);
+    for (const auto& index : index_queue) {
+      ASSIGN_OR_RETURN(DataBagContent content, db_impl.ExtractContent(index));
+      Triples triples(content);
+      AddDataTriples(triples);
+      if (triple_count_ >= triple_limit_) {
+        return absl::OkStatus();
+      }
+    }
+    return absl::OkStatus();
+  }
+
+  absl::Status ProcessSchemaBag(const internal::DataBagImpl& db_impl) {
+    auto index = CreateSchemaIndex(db_impl);
+    ASSIGN_OR_RETURN(DataBagContent content, db_impl.ExtractContent(index));
+    Triples triples(content);
+    RETURN_IF_ERROR(AddSchemaTriples(triples));
+    if (triple_count_ >= triple_limit_) {
+      return absl::OkStatus();
+    }
+    return absl::OkStatus();
+  }
+
   void Etcetera() {
     absl::StrAppend(&res_, "...\n\n",
                     absl::StrFormat("Showing only the first %d triples. Use "
