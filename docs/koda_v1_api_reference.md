@@ -2,12 +2,6 @@
 
 # Koda API Reference
 
-<!--* freshness: {
-  reviewed: '2024-12-05'
-  owner: 'amik'
-  owner: 'olgasilina'
-} *-->
-
 go/koda-v1-apis
 
 This document lists public **Koda** APIs, including operators (accessible from
@@ -63,72 +57,96 @@ Operators that allocate new ItemIds.
 **Operators**
 
 ### `kd.allocation.new_dictid()` {#kd.allocation.new_dictid}
+Aliases:
+<a id="kd.new_dictid">kd.new_dictid</a>
 
 ``` {.no-copy}
 Allocates new Dict ItemId.
 ```
 
 ### `kd.allocation.new_dictid_like(shape_and_mask_from)` {#kd.allocation.new_dictid_like}
+Aliases:
+<a id="kd.new_dictid_like">kd.new_dictid_like</a>
 
 ``` {.no-copy}
 Allocates new Dict ItemIds with the shape and sparsity of shape_and_mask_from.
 ```
 
 ### `kd.allocation.new_dictid_shaped(shape)` {#kd.allocation.new_dictid_shaped}
+Aliases:
+<a id="kd.new_dictid_shaped">kd.new_dictid_shaped</a>
 
 ``` {.no-copy}
 Allocates new Dict ItemIds of the given shape.
 ```
 
 ### `kd.allocation.new_dictid_shaped_as(shape_from)` {#kd.allocation.new_dictid_shaped_as}
+Aliases:
+<a id="kd.new_dictid_shaped_as">kd.new_dictid_shaped_as</a>
 
 ``` {.no-copy}
 Allocates new Dict ItemIds with the shape of shape_from.
 ```
 
 ### `kd.allocation.new_itemid()` {#kd.allocation.new_itemid}
+Aliases:
+<a id="kd.new_itemid">kd.new_itemid</a>
 
 ``` {.no-copy}
 Allocates new ItemId.
 ```
 
 ### `kd.allocation.new_itemid_like(shape_and_mask_from)` {#kd.allocation.new_itemid_like}
+Aliases:
+<a id="kd.new_itemid_like">kd.new_itemid_like</a>
 
 ``` {.no-copy}
 Allocates new ItemIds with the shape and sparsity of shape_and_mask_from.
 ```
 
 ### `kd.allocation.new_itemid_shaped(shape)` {#kd.allocation.new_itemid_shaped}
+Aliases:
+<a id="kd.new_itemid_shaped">kd.new_itemid_shaped</a>
 
 ``` {.no-copy}
 Allocates new ItemIds of the given shape without any DataBag attached.
 ```
 
 ### `kd.allocation.new_itemid_shaped_as(shape_from)` {#kd.allocation.new_itemid_shaped_as}
+Aliases:
+<a id="kd.new_itemid_shaped_as">kd.new_itemid_shaped_as</a>
 
 ``` {.no-copy}
 Allocates new ItemIds with the shape of shape_from.
 ```
 
 ### `kd.allocation.new_listid()` {#kd.allocation.new_listid}
+Aliases:
+<a id="kd.new_listid">kd.new_listid</a>
 
 ``` {.no-copy}
 Allocates new List ItemId.
 ```
 
 ### `kd.allocation.new_listid_like(shape_and_mask_from)` {#kd.allocation.new_listid_like}
+Aliases:
+<a id="kd.new_listid_like">kd.new_listid_like</a>
 
 ``` {.no-copy}
 Allocates new List ItemIds with the shape and sparsity of shape_and_mask_from.
 ```
 
 ### `kd.allocation.new_listid_shaped(shape)` {#kd.allocation.new_listid_shaped}
+Aliases:
+<a id="kd.new_listid_shaped">kd.new_listid_shaped</a>
 
 ``` {.no-copy}
 Allocates new List ItemIds of the given shape.
 ```
 
 ### `kd.allocation.new_listid_shaped_as(shape_from)` {#kd.allocation.new_listid_shaped_as}
+Aliases:
+<a id="kd.new_listid_shaped_as">kd.new_listid_shaped_as</a>
 
 ``` {.no-copy}
 Allocates new List ItemIds with the shape of shape_from.
@@ -232,6 +250,8 @@ Operators that compare DataSlices.
 **Operators**
 
 ### `kd.comparison.equal(x, y)` {#kd.comparison.equal}
+Aliases:
+<a id="kd.equal">kd.equal</a>
 
 ``` {.no-copy}
 Returns present iff `x` and `y` are equal.
@@ -246,6 +266,8 @@ Args:
 ```
 
 ### `kd.comparison.full_equal(x, y)` {#kd.comparison.full_equal}
+Aliases:
+<a id="kd.full_equal">kd.full_equal</a>
 
 ``` {.no-copy}
 Returns present iff all present items in `x` and `y` are equal.
@@ -264,6 +286,8 @@ Args:
 ```
 
 ### `kd.comparison.greater(x, y)` {#kd.comparison.greater}
+Aliases:
+<a id="kd.greater">kd.greater</a>
 
 ``` {.no-copy}
 Returns present iff `x` is greater than `y`.
@@ -278,6 +302,8 @@ Args:
 ```
 
 ### `kd.comparison.greater_equal(x, y)` {#kd.comparison.greater_equal}
+Aliases:
+<a id="kd.greater_equal">kd.greater_equal</a>
 
 ``` {.no-copy}
 Returns present iff `x` is greater than or equal to `y`.
@@ -292,6 +318,8 @@ Args:
 ```
 
 ### `kd.comparison.less(x, y)` {#kd.comparison.less}
+Aliases:
+<a id="kd.less">kd.less</a>
 
 ``` {.no-copy}
 Returns present iff `x` is less than `y`.
@@ -306,6 +334,8 @@ Args:
 ```
 
 ### `kd.comparison.less_equal(x, y)` {#kd.comparison.less_equal}
+Aliases:
+<a id="kd.less_equal">kd.less_equal</a>
 
 ``` {.no-copy}
 Returns present iff `x` is less than or equal to `y`.
@@ -320,6 +350,8 @@ Args:
 ```
 
 ### `kd.comparison.not_equal(x, y)` {#kd.comparison.not_equal}
+Aliases:
+<a id="kd.not_equal">kd.not_equal</a>
 
 ``` {.no-copy}
 Returns present iff `x` and `y` are not equal.
@@ -344,12 +376,18 @@ Core operators that are not part of other categories.
 **Operators**
 
 ### `kd.core.add(x, y)` {#kd.core.add}
+Aliases:
+<a id="kd.add">kd.add</a>
 
 ``` {.no-copy}
 Computes pointwise x + y.
 ```
 
 ### `kd.core.add_dim(x, sizes)` {#kd.core.add_dim}
+Aliases:
+<a id="kd.add_dim">kd.add_dim</a>
+<a id="kd.core.repeat">kd.core.repeat</a>
+<a id="kd.repeat">kd.repeat</a>
 
 ``` {.no-copy}
 Returns `x` with values repeated according to `sizes`.
@@ -376,6 +414,10 @@ Args:
 ```
 
 ### `kd.core.add_dim_to_present(x, sizes)` {#kd.core.add_dim_to_present}
+Aliases:
+<a id="kd.add_dim_to_present">kd.add_dim_to_present</a>
+<a id="kd.core.repeat_present">kd.core.repeat_present</a>
+<a id="kd.repeat_present">kd.repeat_present</a>
 
 ``` {.no-copy}
 Returns `x` with present values repeated according to `sizes`.
@@ -401,7 +443,9 @@ Args:
   sizes: A DataSlice of sizes that each value in `x` should be repeated for.
 ```
 
-### `kd.core.agg_count(x, ndim)` {#kd.core.agg_count}
+### `kd.core.agg_count(x, ndim=unspecified)` {#kd.core.agg_count}
+Aliases:
+<a id="kd.agg_count">kd.agg_count</a>
 
 ``` {.no-copy}
 Returns counts of present items over the last ndim dimensions.
@@ -421,7 +465,9 @@ Args:
     get_ndim(x).
 ```
 
-### `kd.core.agg_size(x, ndim)` {#kd.core.agg_size}
+### `kd.core.agg_size(x, ndim=unspecified)` {#kd.core.agg_size}
+Aliases:
+<a id="kd.agg_size">kd.agg_size</a>
 
 ``` {.no-copy}
 Returns number of items in `x` over the last ndim dimensions.
@@ -446,7 +492,9 @@ Returns:
   A DataSlice of number of items in `x` over the last `ndim` dimensions.
 ```
 
-### `kd.core.agg_uuid(x, ndim)` {#kd.core.agg_uuid}
+### `kd.core.agg_uuid(x, ndim=unspecified)` {#kd.core.agg_uuid}
+Aliases:
+<a id="kd.agg_uuid">kd.agg_uuid</a>
 
 ``` {.no-copy}
 Computes aggregated uuid of elements over the last `ndim` dimensions.
@@ -462,6 +510,8 @@ Returns:
 ```
 
 ### `kd.core.align(*args)` {#kd.core.align}
+Aliases:
+<a id="kd.align">kd.align</a>
 
 ``` {.no-copy}
 Expands all of the DataSlices in `args` to the same common shape.
@@ -486,6 +536,10 @@ Returns:
 ```
 
 ### `kd.core.at(x, indices)` {#kd.core.at}
+Aliases:
+<a id="kd.at">kd.at</a>
+<a id="kd.core.take">kd.core.take</a>
+<a id="kd.take">kd.take</a>
 
 ``` {.no-copy}
 Returns a new DataSlice with items at provided indices.
@@ -521,13 +575,17 @@ Returns:
   A new DataSlice with items selected by indices.
 ```
 
-### `kd.core.attr(x, attr_name, value, update_schema)` {#kd.core.attr}
+### `kd.core.attr(x, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#kd.core.attr}
+Aliases:
+<a id="kd.attr">kd.attr</a>
 
 ``` {.no-copy}
 Returns a new DataBag containing attribute `attr_name` update for `x`.
 ```
 
-### `kd.core.attrs(x, /, *, update_schema, **attrs)` {#kd.core.attrs}
+### `kd.core.attrs(x, /, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.core.attrs}
+Aliases:
+<a id="kd.attrs">kd.attrs</a>
 
 ``` {.no-copy}
 Returns a new DataBag containing attribute updates for `x`.
@@ -539,7 +597,9 @@ Returns a new DataBag containing attribute updates for `x`.
 Returns an empty DataBag.
 ```
 
-### `kd.core.clone(x, /, *, itemid, schema, **overrides)` {#kd.core.clone}
+### `kd.core.clone(x, /, *, itemid=unspecified, schema=unspecified, **overrides)` {#kd.core.clone}
+Aliases:
+<a id="kd.clone">kd.clone</a>
 
 ``` {.no-copy}
 Creates a DataSlice with clones of provided entities in a new DataBag.
@@ -566,7 +626,9 @@ Returns:
   ItemIds) and all of the rest extracted.
 ```
 
-### `kd.core.collapse(x, ndim)` {#kd.core.collapse}
+### `kd.core.collapse(x, ndim=unspecified)` {#kd.core.collapse}
+Aliases:
+<a id="kd.collapse">kd.collapse</a>
 
 ``` {.no-copy}
 Collapses the same items over the last ndim dimensions.
@@ -593,7 +655,9 @@ Returns:
   Collapsed DataSlice.
 ```
 
-### `kd.core.concat(*args, ndim)` {#kd.core.concat}
+### `kd.core.concat(*args, ndim=DataItem(1, schema: INT32))` {#kd.core.concat}
+Aliases:
+<a id="kd.concat">kd.concat</a>
 
 ``` {.no-copy}
 Returns the concatenation of the given DataSlices on dimension `rank-ndim`.
@@ -646,7 +710,7 @@ Returns:
   new merged immutable DataBag.
 ```
 
-### `kd.core.concat_lists(*lists, db)` {#kd.core.concat_lists}
+### `kd.core.concat_lists(*lists, db=None)` {#kd.core.concat_lists}
 
 ``` {.no-copy}
 Returns a DataSlice of Lists concatenated from the List items of `lists`.
@@ -669,7 +733,7 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
     DataSlice of concatenated Lists
 ```
 
-### `kd.core.container(*, db, **attrs)` {#kd.core.container}
+### `kd.core.container(*, db=None, **attrs)` {#kd.core.container}
 
 ``` {.no-copy}
 Creates new Objects with an implicit stored schema.
@@ -685,6 +749,8 @@ Creates new Objects with an implicit stored schema.
 ```
 
 ### `kd.core.count(x)` {#kd.core.count}
+Aliases:
+<a id="kd.count">kd.count</a>
 
 ``` {.no-copy}
 Returns the count of present items over all dimensions.
@@ -695,7 +761,9 @@ Args:
   x: A DataSlice of numbers.
 ```
 
-### `kd.core.cum_count(x, ndim)` {#kd.core.cum_count}
+### `kd.core.cum_count(x, ndim=unspecified)` {#kd.core.cum_count}
+Aliases:
+<a id="kd.cum_count">kd.cum_count</a>
 
 ``` {.no-copy}
 Computes a partial count of present items over the last `ndim` dimensions.
@@ -717,12 +785,16 @@ Returns:
 ```
 
 ### `kd.core.decode_itemid(ds)` {#kd.core.decode_itemid}
+Aliases:
+<a id="kd.decode_itemid">kd.decode_itemid</a>
 
 ``` {.no-copy}
 Returns ItemIds decoded from the base62 strings.
 ```
 
-### `kd.core.deep_clone(x, /, schema, **overrides)` {#kd.core.deep_clone}
+### `kd.core.deep_clone(x, /, schema=unspecified, **overrides)` {#kd.core.deep_clone}
+Aliases:
+<a id="kd.deep_clone">kd.deep_clone</a>
 
 ``` {.no-copy}
 Creates a slice with a (deep) copy of the given slice.
@@ -749,7 +821,9 @@ Returns:
   that UUIDs will be copied as ItemIds.
 ```
 
-### `kd.core.deep_uuid(x, /, schema, *, seed)` {#kd.core.deep_uuid}
+### `kd.core.deep_uuid(x, /, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#kd.core.deep_uuid}
+Aliases:
+<a id="kd.deep_uuid">kd.deep_uuid</a>
 
 ``` {.no-copy}
 Recursively computes uuid for x.
@@ -764,7 +838,9 @@ Returns:
   Result of recursive uuid application `x`.
 ```
 
-### `kd.core.dense_rank(x, descending, ndim)` {#kd.core.dense_rank}
+### `kd.core.dense_rank(x, descending=DataItem(False, schema: BOOLEAN), ndim=unspecified)` {#kd.core.dense_rank}
+Aliases:
+<a id="kd.dense_rank">kd.dense_rank</a>
 
 ``` {.no-copy}
 Returns dense ranks of items in `x` over the last `ndim` dimensions.
@@ -802,7 +878,7 @@ Returns:
   A DataSlice of dense ranks.
 ```
 
-### `kd.core.dict(items_or_keys, values, *, key_schema, value_schema, schema, itemid, db)` {#kd.core.dict}
+### `kd.core.dict(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.core.dict}
 
 ``` {.no-copy}
 Creates a Koda dict.
@@ -846,7 +922,7 @@ Creates a Koda dict.
     A DataSlice with the dict.
 ```
 
-### `kd.core.dict_like(shape_and_mask_from, /, items_or_keys, values, *, key_schema, value_schema, schema, itemid, db)` {#kd.core.dict_like}
+### `kd.core.dict_like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.core.dict_like}
 
 ``` {.no-copy}
 Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
@@ -876,7 +952,7 @@ Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
     A DataSlice with the dicts.
 ```
 
-### `kd.core.dict_shaped(shape, /, items_or_keys, values, key_schema, value_schema, schema, itemid, db)` {#kd.core.dict_shaped}
+### `kd.core.dict_shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.core.dict_shaped}
 
 ``` {.no-copy}
 Creates new Koda dicts with the given shape.
@@ -904,7 +980,7 @@ Creates new Koda dicts with the given shape.
     A DataSlice with the dicts.
 ```
 
-### `kd.core.dict_shaped_as(shape_from, /, items_or_keys, values, key_schema, value_schema, schema, itemid, db)` {#kd.core.dict_shaped_as}
+### `kd.core.dict_shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.core.dict_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda dicts with shape of the given DataSlice.
@@ -934,12 +1010,16 @@ Creates new Koda dicts with shape of the given DataSlice.
 ```
 
 ### `kd.core.dict_size(dict_slice)` {#kd.core.dict_size}
+Aliases:
+<a id="kd.dict_size">kd.dict_size</a>
 
 ``` {.no-copy}
 Returns size of a Dict.
 ```
 
-### `kd.core.dict_update(x, keys, values)` {#kd.core.dict_update}
+### `kd.core.dict_update(x, keys, values=unspecified)` {#kd.core.dict_update}
+Aliases:
+<a id="kd.dict_update">kd.dict_update</a>
 
 ``` {.no-copy}
 Returns DataBag containing updates to a DataSlice of dicts.
@@ -958,7 +1038,7 @@ Args:
   values: A DataSlice of values, or unspecified if `keys` contains dicts.
 ```
 
-### `kd.core.empty_shaped(shape, /, *, schema, db)` {#kd.core.empty_shaped}
+### `kd.core.empty_shaped(shape, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.core.empty_shaped}
 
 ``` {.no-copy}
 Creates a DataSlice of missing items with the given shape.
@@ -976,7 +1056,7 @@ Creates a DataSlice of missing items with the given shape.
     A DataSlice with the given shape.
 ```
 
-### `kd.core.empty_shaped_as(shape_from, /, *, schema, db)` {#kd.core.empty_shaped_as}
+### `kd.core.empty_shaped_as(shape_from, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.core.empty_shaped_as}
 
 ``` {.no-copy}
 Creates a DataSlice of missing items with the shape of `shape_from`.
@@ -995,12 +1075,16 @@ Creates a DataSlice of missing items with the shape of `shape_from`.
 ```
 
 ### `kd.core.encode_itemid(ds)` {#kd.core.encode_itemid}
+Aliases:
+<a id="kd.encode_itemid">kd.encode_itemid</a>
 
 ``` {.no-copy}
 Returns the base62 encoded ItemIds in `ds` as strings.
 ```
 
 ### `kd.core.enriched(ds, *bag)` {#kd.core.enriched}
+Aliases:
+<a id="kd.enriched">kd.enriched</a>
 
 ``` {.no-copy}
 Returns a copy of a DataSlice with a additional fallback DataBag(s).
@@ -1023,6 +1107,8 @@ Returns:
 ```
 
 ### `kd.core.enriched_bag(*bags)` {#kd.core.enriched_bag}
+Aliases:
+<a id="kd.enriched_bag">kd.enriched_bag</a>
 
 ``` {.no-copy}
 Creates a new immutable DataBag enriched by `bags`.
@@ -1042,7 +1128,9 @@ Returns:
   An immutable DataBag enriched by `bags`.
 ```
 
-### `kd.core.expand_to(x, target, ndim)` {#kd.core.expand_to}
+### `kd.core.expand_to(x, target, ndim=unspecified)` {#kd.core.expand_to}
+Aliases:
+<a id="kd.expand_to">kd.expand_to</a>
 
 ``` {.no-copy}
 Expands `x` based on the shape of `target`.
@@ -1098,7 +1186,9 @@ Returns:
   Expanded DataSlice
 ```
 
-### `kd.core.explode(x, ndim)` {#kd.core.explode}
+### `kd.core.explode(x, ndim=DataItem(1, schema: INT32))` {#kd.core.explode}
+Aliases:
+<a id="kd.explode">kd.explode</a>
 
 ``` {.no-copy}
 Explodes a List DataSlice `x` a specified number of times.
@@ -1124,7 +1214,9 @@ Returns:
   DataSlice
 ```
 
-### `kd.core.extract(ds, schema)` {#kd.core.extract}
+### `kd.core.extract(ds, schema=unspecified)` {#kd.core.extract}
+Aliases:
+<a id="kd.extract">kd.extract</a>
 
 ``` {.no-copy}
 Creates a DataSlice with a new DataBag containing only reachable attrs.
@@ -1137,7 +1229,9 @@ Returns:
   A DataSlice with a new DataBag attached.
 ```
 
-### `kd.core.extract_bag(ds, schema)` {#kd.core.extract_bag}
+### `kd.core.extract_bag(ds, schema=unspecified)` {#kd.core.extract_bag}
+Aliases:
+<a id="kd.extract_bag">kd.extract_bag</a>
 
 ``` {.no-copy}
 Creates a new DataBag containing only reachable attrs from 'ds'.
@@ -1151,6 +1245,8 @@ Returns:
 ```
 
 ### `kd.core.follow(x)` {#kd.core.follow}
+Aliases:
+<a id="kd.follow">kd.follow</a>
 
 ``` {.no-copy}
 Returns the original DataSlice from a NoFollow DataSlice.
@@ -1166,12 +1262,16 @@ Args:
 ```
 
 ### `kd.core.freeze(x)` {#kd.core.freeze}
+Aliases:
+<a id="kd.freeze">kd.freeze</a>
 
 ``` {.no-copy}
 Returns a frozen version of `x`.
 ```
 
-### `kd.core.get_attr(x, attr_name, default)` {#kd.core.get_attr}
+### `kd.core.get_attr(x, attr_name, default=unspecified)` {#kd.core.get_attr}
+Aliases:
+<a id="kd.get_attr">kd.get_attr</a>
 
 ``` {.no-copy}
 Resolves (ObjectId(s), attr_name) => (Value|ObjectId)s.
@@ -1197,6 +1297,8 @@ Returns:
 ```
 
 ### `kd.core.get_bag(ds)` {#kd.core.get_bag}
+Aliases:
+<a id="kd.get_bag">kd.get_bag</a>
 
 ``` {.no-copy}
 Returns the attached DataBag.
@@ -1211,6 +1313,8 @@ Returns:
 ```
 
 ### `kd.core.get_item(x, key_or_index)` {#kd.core.get_item}
+Aliases:
+<a id="kd.get_item">kd.get_item</a>
 
 ``` {.no-copy}
 Get items from Lists or Dicts in `x` by `key_or_index`.
@@ -1235,6 +1339,8 @@ Returns:
 ```
 
 ### `kd.core.get_keys(dict_ds)` {#kd.core.get_keys}
+Aliases:
+<a id="kd.get_keys">kd.get_keys</a>
 
 ``` {.no-copy}
 Returns keys of all Dicts in `dict_ds`.
@@ -1251,12 +1357,16 @@ Returns:
 ```
 
 ### `kd.core.get_ndim(x)` {#kd.core.get_ndim}
+Aliases:
+<a id="kd.get_ndim">kd.get_ndim</a>
 
 ``` {.no-copy}
 Returns the number of dimensions of DataSlice `x`.
 ```
 
 ### `kd.core.get_nofollowed_schema(schema)` {#kd.core.get_nofollowed_schema}
+Aliases:
+<a id="kd.get_nofollowed_schema">kd.get_nofollowed_schema</a>
 
 ``` {.no-copy}
 Returns the original schema from nofollow schema.
@@ -1268,7 +1378,9 @@ Args:
   schema: nofollow schema DataSlice.
 ```
 
-### `kd.core.get_values(dict_ds, key_ds)` {#kd.core.get_values}
+### `kd.core.get_values(dict_ds, key_ds=unspecified)` {#kd.core.get_values}
+Aliases:
+<a id="kd.get_values">kd.get_values</a>
 
 ``` {.no-copy}
 Returns values corresponding to `key_ds` for dicts in `dict_ds`.
@@ -1289,6 +1401,8 @@ Returns:
 ```
 
 ### `kd.core.group_by(x, *args)` {#kd.core.group_by}
+Aliases:
+<a id="kd.group_by">kd.group_by</a>
 
 ``` {.no-copy}
 Returns permutation of `x` with injected grouped_by dimension.
@@ -1354,6 +1468,8 @@ Returns:
 ```
 
 ### `kd.core.group_by_indices(*args)` {#kd.core.group_by_indices}
+Aliases:
+<a id="kd.group_by_indices">kd.group_by_indices</a>
 
 ``` {.no-copy}
 Returns a indices DataSlice with injected grouped_by dimension.
@@ -1406,6 +1522,8 @@ Returns:
 ```
 
 ### `kd.core.group_by_indices_sorted(*args)` {#kd.core.group_by_indices_sorted}
+Aliases:
+<a id="kd.group_by_indices_sorted">kd.group_by_indices_sorted</a>
 
 ``` {.no-copy}
 Similar to `group_by_indices` but groups are sorted by the value.
@@ -1439,6 +1557,8 @@ Returns:
 ```
 
 ### `kd.core.has_attr(x, attr_name)` {#kd.core.has_attr}
+Aliases:
+<a id="kd.has_attr">kd.has_attr</a>
 
 ``` {.no-copy}
 Indicates whether the items in `x` DataSlice have the given attribute.
@@ -1456,6 +1576,8 @@ Returns:
 ```
 
 ### `kd.core.has_dict(x)` {#kd.core.has_dict}
+Aliases:
+<a id="kd.has_dict">kd.has_dict</a>
 
 ``` {.no-copy}
 Returns present for each item in `x` that is Dict.
@@ -1479,6 +1601,8 @@ Returns:
 ```
 
 ### `kd.core.has_list(x)` {#kd.core.has_list}
+Aliases:
+<a id="kd.has_list">kd.has_list</a>
 
 ``` {.no-copy}
 Returns present for each item in `x` that is List.
@@ -1502,6 +1626,8 @@ Returns:
 ```
 
 ### `kd.core.has_primitive(x)` {#kd.core.has_primitive}
+Aliases:
+<a id="kd.has_primitive">kd.has_primitive</a>
 
 ``` {.no-copy}
 Returns present for each item in `x` that is primitive.
@@ -1525,6 +1651,8 @@ Returns:
 ```
 
 ### `kd.core.hash_itemid(x)` {#kd.core.hash_itemid}
+Aliases:
+<a id="kd.hash_itemid">kd.hash_itemid</a>
 
 ``` {.no-copy}
 Returns a INT64 DataSlice of hash values of `x`.
@@ -1541,7 +1669,7 @@ Returns:
   A DataSlice of INT64 hash values.
 ```
 
-### `kd.core.implode(x, /, ndim, db)` {#kd.core.implode}
+### `kd.core.implode(x, /, ndim=1, db=None)` {#kd.core.implode}
 
 ``` {.no-copy}
 Implodes a Dataslice `x` a specified number of times.
@@ -1571,7 +1699,9 @@ Implodes a Dataslice `x` a specified number of times.
     DataSlice of nested Lists
 ```
 
-### `kd.core.index(x, dim)` {#kd.core.index}
+### `kd.core.index(x, dim=unspecified)` {#kd.core.index}
+Aliases:
+<a id="kd.index">kd.index</a>
 
 ``` {.no-copy}
 Returns the indices of the elements computed over the last dim dimensions.
@@ -1604,7 +1734,9 @@ Args:
     If unspecified, it is set to the last dimension of x.
 ```
 
-### `kd.core.inverse_mapping(x, ndim)` {#kd.core.inverse_mapping}
+### `kd.core.inverse_mapping(x, ndim=unspecified)` {#kd.core.inverse_mapping}
+Aliases:
+<a id="kd.inverse_mapping">kd.inverse_mapping</a>
 
 ``` {.no-copy}
 Returns inverse permutations of indices over the last `ndim` dimension.
@@ -1637,6 +1769,10 @@ Returns:
 ```
 
 ### `kd.core.inverse_select(ds, fltr)` {#kd.core.inverse_select}
+Aliases:
+<a id="kd.core.reverse_select">kd.core.reverse_select</a>
+<a id="kd.inverse_select">kd.inverse_select</a>
+<a id="kd.reverse_select">kd.reverse_select</a>
 
 ``` {.no-copy}
 Creates a DataSlice by putting items in ds to present positions in fltr.
@@ -1685,6 +1821,8 @@ Returns:
 ```
 
 ### `kd.core.is_dict(x)` {#kd.core.is_dict}
+Aliases:
+<a id="kd.is_dict">kd.is_dict</a>
 
 ``` {.no-copy}
 Returns whether x is a Dict DataSlice.
@@ -1710,12 +1848,16 @@ Returns:
 ```
 
 ### `kd.core.is_empty(x)` {#kd.core.is_empty}
+Aliases:
+<a id="kd.is_empty">kd.is_empty</a>
 
 ``` {.no-copy}
 Returns kd.present if all items in the DataSlice are missing.
 ```
 
-### `kd.core.is_expandable_to(x, target, ndim)` {#kd.core.is_expandable_to}
+### `kd.core.is_expandable_to(x, target, ndim=unspecified)` {#kd.core.is_expandable_to}
+Aliases:
+<a id="kd.is_expandable_to">kd.is_expandable_to</a>
 
 ``` {.no-copy}
 Returns true if `x` is expandable to `target`.
@@ -1729,6 +1871,8 @@ See `expand_to` for a detailed description of expansion.
 ```
 
 ### `kd.core.is_list(x)` {#kd.core.is_list}
+Aliases:
+<a id="kd.is_list">kd.is_list</a>
 
 ``` {.no-copy}
 Returns whether x is a List DataSlice.
@@ -1754,6 +1898,8 @@ Returns:
 ```
 
 ### `kd.core.is_primitive(x)` {#kd.core.is_primitive}
+Aliases:
+<a id="kd.is_primitive">kd.is_primitive</a>
 
 ``` {.no-copy}
 Returns whether x is a primitive DataSlice.
@@ -1779,6 +1925,8 @@ Returns:
 ```
 
 ### `kd.core.is_shape_compatible(x, y)` {#kd.core.is_shape_compatible}
+Aliases:
+<a id="kd.is_shape_compatible">kd.is_shape_compatible</a>
 
 ``` {.no-copy}
 Returns present if the shapes of `x` and `y` are compatible.
@@ -1795,12 +1943,14 @@ Returns:
 ```
 
 ### `kd.core.isin(x, y)` {#kd.core.isin}
+Aliases:
+<a id="kd.isin">kd.isin</a>
 
 ``` {.no-copy}
 Returns a DataItem indicating whether DataItem x is present in y.
 ```
 
-### `kd.core.list(items, *, item_schema, schema, itemid, db)` {#kd.core.list}
+### `kd.core.list(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.core.list}
 
 ``` {.no-copy}
 Creates list(s) by collapsing `items`.
@@ -1831,7 +1981,7 @@ Creates list(s) by collapsing `items`.
     The slice with list/lists.
 ```
 
-### `kd.core.list_like(shape_and_mask_from, /, items, *, item_schema, schema, itemid, db)` {#kd.core.list_like}
+### `kd.core.list_like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.core.list_like}
 
 ``` {.no-copy}
 Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
@@ -1852,7 +2002,7 @@ Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
     A DataSlice with the lists.
 ```
 
-### `kd.core.list_shaped(shape, /, items, *, item_schema, schema, itemid, db)` {#kd.core.list_shaped}
+### `kd.core.list_shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.core.list_shaped}
 
 ``` {.no-copy}
 Creates new Koda lists with the given shape.
@@ -1872,7 +2022,7 @@ Creates new Koda lists with the given shape.
     A DataSlice with the lists.
 ```
 
-### `kd.core.list_shaped_as(shape_from, /, items, *, item_schema, schema, itemid, db)` {#kd.core.list_shaped_as}
+### `kd.core.list_shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.core.list_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda lists with shape of the given DataSlice.
@@ -1894,18 +2044,22 @@ Creates new Koda lists with shape of the given DataSlice.
 ```
 
 ### `kd.core.list_size(list_slice)` {#kd.core.list_size}
+Aliases:
+<a id="kd.list_size">kd.list_size</a>
 
 ``` {.no-copy}
 Returns size of a List.
 ```
 
 ### `kd.core.maybe(x, attr_name)` {#kd.core.maybe}
+Aliases:
+<a id="kd.maybe">kd.maybe</a>
 
 ``` {.no-copy}
 A shortcut for kde.get_attr(x, attr_name, default=None).
 ```
 
-### `kd.core.new(arg, /, *, schema, update_schema, itemid, db, **attrs)` {#kd.core.new}
+### `kd.core.new(arg=unspecified, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.core.new}
 
 ``` {.no-copy}
 Creates Entities with given attrs.
@@ -1929,7 +2083,7 @@ Creates Entities with given attrs.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.new_like(shape_and_mask_from, /, *, schema, update_schema, itemid, db, **attrs)` {#kd.core.new_like}
+### `kd.core.new_like(shape_and_mask_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.core.new_like}
 
 ``` {.no-copy}
 Creates new Entities with the shape and sparsity from shape_and_mask_from.
@@ -1952,7 +2106,7 @@ Creates new Entities with the shape and sparsity from shape_and_mask_from.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.new_shaped(shape, /, *, schema, update_schema, itemid, db, **attrs)` {#kd.core.new_shaped}
+### `kd.core.new_shaped(shape, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.core.new_shaped}
 
 ``` {.no-copy}
 Creates new Entities with the given shape.
@@ -1974,7 +2128,7 @@ Creates new Entities with the given shape.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.new_shaped_as(shape_from, /, *, schema, update_schema, itemid, db, **attrs)` {#kd.core.new_shaped_as}
+### `kd.core.new_shaped_as(shape_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.core.new_shaped_as}
 
 ``` {.no-copy}
 Creates new Koda entities with shape of the given DataSlice.
@@ -1997,18 +2151,28 @@ Creates new Koda entities with shape of the given DataSlice.
 ```
 
 ### `kd.core.no_bag(ds)` {#kd.core.no_bag}
+Aliases:
+<a id="kd.core.no_db">kd.core.no_db</a>
+<a id="kd.no_bag">kd.no_bag</a>
+<a id="kd.no_db">kd.no_db</a>
 
 ``` {.no-copy}
 Returns DataSlice without any DataBag attached.
 ```
 
 ### `kd.core.no_db(ds)` {#kd.core.no_db}
+Aliases:
+<a id="kd.core.no_bag">kd.core.no_bag</a>
+<a id="kd.no_bag">kd.no_bag</a>
+<a id="kd.no_db">kd.no_db</a>
 
 ``` {.no-copy}
 Returns DataSlice without any DataBag attached.
 ```
 
 ### `kd.core.nofollow(x)` {#kd.core.nofollow}
+Aliases:
+<a id="kd.nofollow">kd.nofollow</a>
 
 ``` {.no-copy}
 Returns a nofollow DataSlice targeting the given slice.
@@ -2023,6 +2187,8 @@ Args:
 ```
 
 ### `kd.core.nofollow_schema(schema)` {#kd.core.nofollow_schema}
+Aliases:
+<a id="kd.nofollow_schema">kd.nofollow_schema</a>
 
 ``` {.no-copy}
 Returns a NoFollow schema of the provided schema.
@@ -2036,7 +2202,7 @@ Args:
   schema: Schema DataSlice to wrap.
 ```
 
-### `kd.core.obj(arg, /, *, itemid, db, **attrs)` {#kd.core.obj}
+### `kd.core.obj(arg=unspecified, /, *, itemid=None, db=None, **attrs)` {#kd.core.obj}
 
 ``` {.no-copy}
 Creates new Objects with an implicit stored schema.
@@ -2055,7 +2221,7 @@ Creates new Objects with an implicit stored schema.
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
 ```
 
-### `kd.core.obj_like(shape_and_mask_from, /, *, itemid, db, **attrs)` {#kd.core.obj_like}
+### `kd.core.obj_like(shape_and_mask_from, /, *, itemid=None, db=None, **attrs)` {#kd.core.obj_like}
 
 ``` {.no-copy}
 Creates Objects with shape and sparsity from shape_and_mask_from.
@@ -2073,7 +2239,7 @@ Creates Objects with shape and sparsity from shape_and_mask_from.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.obj_shaped(shape, /, *, itemid, db, **attrs)` {#kd.core.obj_shaped}
+### `kd.core.obj_shaped(shape, /, *, itemid=None, db=None, **attrs)` {#kd.core.obj_shaped}
 
 ``` {.no-copy}
 Creates Objects with the given shape.
@@ -2090,7 +2256,7 @@ Creates Objects with the given shape.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.obj_shaped_as(shape_from, /, *, itemid, db, **attrs)` {#kd.core.obj_shaped_as}
+### `kd.core.obj_shaped_as(shape_from, /, *, itemid=None, db=None, **attrs)` {#kd.core.obj_shaped_as}
 
 ``` {.no-copy}
 Creates Objects with the shape of the given DataSlice.
@@ -2107,7 +2273,9 @@ Creates Objects with the shape of the given DataSlice.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.ordinal_rank(x, tie_breaker, descending, ndim)` {#kd.core.ordinal_rank}
+### `kd.core.ordinal_rank(x, tie_breaker=unspecified, descending=DataItem(False, schema: BOOLEAN), ndim=unspecified)` {#kd.core.ordinal_rank}
+Aliases:
+<a id="kd.ordinal_rank">kd.ordinal_rank</a>
 
 ``` {.no-copy}
 Returns ordinal ranks of items in `x` over the last `ndim` dimensions.
@@ -2152,6 +2320,8 @@ Returns:
 ```
 
 ### `kd.core.present_like(x)` {#kd.core.present_like}
+Aliases:
+<a id="kd.present_like">kd.present_like</a>
 
 ``` {.no-copy}
 Creates a DataSlice of present masks with the shape and sparsity of `x`.
@@ -2168,6 +2338,8 @@ Returns:
 ```
 
 ### `kd.core.present_shaped(shape)` {#kd.core.present_shaped}
+Aliases:
+<a id="kd.present_shaped">kd.present_shaped</a>
 
 ``` {.no-copy}
 Creates a DataSlice of present masks with the given shape.
@@ -2184,6 +2356,8 @@ Returns:
 ```
 
 ### `kd.core.present_shaped_as(x)` {#kd.core.present_shaped_as}
+Aliases:
+<a id="kd.present_shaped_as">kd.present_shaped_as</a>
 
 ``` {.no-copy}
 Creates a DataSlice of present masks with the shape of `x`.
@@ -2199,7 +2373,9 @@ Returns:
   A DataSlice with the same shape as `x`.
 ```
 
-### `kd.core.range(start, end)` {#kd.core.range}
+### `kd.core.range(start, end=unspecified)` {#kd.core.range}
+Aliases:
+<a id="kd.range">kd.range</a>
 
 ``` {.no-copy}
 Returns a DataSlice of INT64s with range [start, end).
@@ -2226,6 +2402,8 @@ Returns:
 ```
 
 ### `kd.core.ref(ds)` {#kd.core.ref}
+Aliases:
+<a id="kd.ref">kd.ref</a>
 
 ``` {.no-copy}
 Returns `ds` with the DataBag removed.
@@ -2242,12 +2420,16 @@ Args:
 ```
 
 ### `kd.core.reify(ds, source)` {#kd.core.reify}
+Aliases:
+<a id="kd.reify">kd.reify</a>
 
 ``` {.no-copy}
 Assigns a bag and schema from `source` to the slice `ds`.
 ```
 
 ### `kd.core.remove(ds, fltr)` {#kd.core.remove}
+Aliases:
+<a id="kd.remove">kd.remove</a>
 
 ``` {.no-copy}
 Creates a new DataSlice by filtering out present items in fltr.
@@ -2275,6 +2457,10 @@ Returns:
 ```
 
 ### `kd.core.repeat(x, sizes)` {#kd.core.repeat}
+Aliases:
+<a id="kd.add_dim">kd.add_dim</a>
+<a id="kd.core.add_dim">kd.core.add_dim</a>
+<a id="kd.repeat">kd.repeat</a>
 
 ``` {.no-copy}
 Returns `x` with values repeated according to `sizes`.
@@ -2301,6 +2487,10 @@ Args:
 ```
 
 ### `kd.core.repeat_present(x, sizes)` {#kd.core.repeat_present}
+Aliases:
+<a id="kd.add_dim_to_present">kd.add_dim_to_present</a>
+<a id="kd.core.add_dim_to_present">kd.core.add_dim_to_present</a>
+<a id="kd.repeat_present">kd.repeat_present</a>
 
 ``` {.no-copy}
 Returns `x` with present values repeated according to `sizes`.
@@ -2327,6 +2517,8 @@ Args:
 ```
 
 ### `kd.core.reverse(ds)` {#kd.core.reverse}
+Aliases:
+<a id="kd.reverse">kd.reverse</a>
 
 ``` {.no-copy}
 Returns a DataSlice with items reversed on the last dimension.
@@ -2346,6 +2538,10 @@ Returns:
 ```
 
 ### `kd.core.reverse_select(ds, fltr)` {#kd.core.reverse_select}
+Aliases:
+<a id="kd.core.inverse_select">kd.core.inverse_select</a>
+<a id="kd.inverse_select">kd.inverse_select</a>
+<a id="kd.reverse_select">kd.reverse_select</a>
 
 ``` {.no-copy}
 Creates a DataSlice by putting items in ds to present positions in fltr.
@@ -2393,7 +2589,9 @@ Returns:
   Reverse filtered DataSlice.
 ```
 
-### `kd.core.select(ds, fltr, expand_filter)` {#kd.core.select}
+### `kd.core.select(ds, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#kd.core.select}
+Aliases:
+<a id="kd.select">kd.select</a>
 
 ``` {.no-copy}
 Creates a new DataSlice by filtering out missing items in fltr.
@@ -2426,6 +2624,8 @@ Returns:
 ```
 
 ### `kd.core.select_items(ds, fltr)` {#kd.core.select_items}
+Aliases:
+<a id="kd.select_items">kd.select_items</a>
 
 ``` {.no-copy}
 Selects List items by filtering out missing items in fltr.
@@ -2442,6 +2642,8 @@ Returns:
 ```
 
 ### `kd.core.select_keys(ds, fltr)` {#kd.core.select_keys}
+Aliases:
+<a id="kd.select_keys">kd.select_keys</a>
 
 ``` {.no-copy}
 Selects Dict keys by filtering out missing items in `fltr`.
@@ -2458,12 +2660,16 @@ Returns:
 ```
 
 ### `kd.core.select_present(ds)` {#kd.core.select_present}
+Aliases:
+<a id="kd.select_present">kd.select_present</a>
 
 ``` {.no-copy}
 Creates a new DataSlice by removing missing items.
 ```
 
 ### `kd.core.select_values(ds, fltr)` {#kd.core.select_values}
+Aliases:
+<a id="kd.select_values">kd.select_values</a>
 
 ``` {.no-copy}
 Selects Dict values by filtering out missing items in `fltr`.
@@ -2479,7 +2685,9 @@ Returns:
   Filtered DataSlice.
 ```
 
-### `kd.core.shallow_clone(x, /, *, itemid, schema, **overrides)` {#kd.core.shallow_clone}
+### `kd.core.shallow_clone(x, /, *, itemid=unspecified, schema=unspecified, **overrides)` {#kd.core.shallow_clone}
+Aliases:
+<a id="kd.shallow_clone">kd.shallow_clone</a>
 
 ``` {.no-copy}
 Creates a DataSlice with shallow clones of immediate attributes.
@@ -2507,6 +2715,8 @@ Returns:
 ```
 
 ### `kd.core.size(x)` {#kd.core.size}
+Aliases:
+<a id="kd.size">kd.size</a>
 
 ``` {.no-copy}
 Returns the number of items in `x`, including missing items.
@@ -2518,7 +2728,9 @@ Returns:
   The size of `x`.
 ```
 
-### `kd.core.sort(x, sort_by, descending)` {#kd.core.sort}
+### `kd.core.sort(x, sort_by=unspecified, descending=DataItem(False, schema: BOOLEAN))` {#kd.core.sort}
+Aliases:
+<a id="kd.sort">kd.sort</a>
 
 ``` {.no-copy}
 Sorts the items in `x` over the last dimension.
@@ -2555,7 +2767,9 @@ Returns:
   DataSlice with last dimension sorted.
 ```
 
-### `kd.core.stack(*args, ndim)` {#kd.core.stack}
+### `kd.core.stack(*args, ndim=DataItem(0, schema: INT32))` {#kd.core.stack}
+Aliases:
+<a id="kd.stack">kd.stack</a>
 
 ``` {.no-copy}
 Stacks the given DataSlices, creating a new dimension at index `rank-ndim`.
@@ -2594,7 +2808,9 @@ Returns:
   this will refer to a merged immutable DataBag.
 ```
 
-### `kd.core.stub(x, attrs)` {#kd.core.stub}
+### `kd.core.stub(x, attrs=DataSlice([], schema: OBJECT, shape: JaggedShape(0)))` {#kd.core.stub}
+Aliases:
+<a id="kd.stub">kd.stub</a>
 
 ``` {.no-copy}
 Copies a DataSlice's schema stub to a new DataBag.
@@ -2625,6 +2841,8 @@ Returns:
 ```
 
 ### `kd.core.subslice(x, *slices)` {#kd.core.subslice}
+Aliases:
+<a id="kd.subslice">kd.subslice</a>
 
 ``` {.no-copy}
 Slices `x` across all of its dimensions based on the provided `slices`.
@@ -2728,6 +2946,10 @@ Returns:
 ```
 
 ### `kd.core.take(x, indices)` {#kd.core.take}
+Aliases:
+<a id="kd.at">kd.at</a>
+<a id="kd.core.at">kd.core.at</a>
+<a id="kd.take">kd.take</a>
 
 ``` {.no-copy}
 Returns a new DataSlice with items at provided indices.
@@ -2764,6 +2986,8 @@ Returns:
 ```
 
 ### `kd.core.translate(keys_to, keys_from, values_from)` {#kd.core.translate}
+Aliases:
+<a id="kd.translate">kd.translate</a>
 
 ``` {.no-copy}
 Translates `keys_to` based on `keys_from`->`values_from` mapping.
@@ -2799,6 +3023,8 @@ Returns:
 ```
 
 ### `kd.core.translate_group(keys_to, keys_from, values_from)` {#kd.core.translate_group}
+Aliases:
+<a id="kd.translate_group">kd.translate_group</a>
 
 ``` {.no-copy}
 Translates `keys_to` based on `keys_from`->`values_from` mapping.
@@ -2836,7 +3062,9 @@ Returns:
   A DataSlice of translated values.
 ```
 
-### `kd.core.unique(x, sort)` {#kd.core.unique}
+### `kd.core.unique(x, sort=DataItem(False, schema: BOOLEAN))` {#kd.core.unique}
+Aliases:
+<a id="kd.unique">kd.unique</a>
 
 ``` {.no-copy}
 Returns a DataSlice with unique values within each dimension.
@@ -2884,6 +3112,8 @@ Returns:
 ```
 
 ### `kd.core.updated(ds, *bag)` {#kd.core.updated}
+Aliases:
+<a id="kd.updated">kd.updated</a>
 
 ``` {.no-copy}
 Returns a copy of a DataSlice with DataBag(s) of updates applied.
@@ -2906,6 +3136,8 @@ Returns:
 ```
 
 ### `kd.core.updated_bag(*bags)` {#kd.core.updated_bag}
+Aliases:
+<a id="kd.updated_bag">kd.updated_bag</a>
 
 ``` {.no-copy}
 Creates a new immutable DataBag updated by `bags`.
@@ -2925,7 +3157,7 @@ Returns:
   An immutable DataBag updated by `bags`.
 ```
 
-### `kd.core.uu(seed, *, schema, update_schema, db, **attrs)` {#kd.core.uu}
+### `kd.core.uu(seed=None, *, schema=None, update_schema=False, db=None, **attrs)` {#kd.core.uu}
 
 ``` {.no-copy}
 Creates UuEntities with given attrs.
@@ -2945,7 +3177,9 @@ Creates UuEntities with given attrs.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.core.uuid(seed, **kwargs)` {#kd.core.uuid}
+### `kd.core.uuid(seed=DataItem('', schema: STRING), **kwargs)` {#kd.core.uuid}
+Aliases:
+<a id="kd.uuid">kd.uuid</a>
 
 ``` {.no-copy}
 Creates a DataSlice whose items are Fingerprints identifying arguments.
@@ -2960,7 +3194,9 @@ Returns:
   item from each kwarg value.
 ```
 
-### `kd.core.uuid_for_dict(seed, **kwargs)` {#kd.core.uuid_for_dict}
+### `kd.core.uuid_for_dict(seed=DataItem('', schema: STRING), **kwargs)` {#kd.core.uuid_for_dict}
+Aliases:
+<a id="kd.uuid_for_dict">kd.uuid_for_dict</a>
 
 ``` {.no-copy}
 Creates a DataSlice whose items are Fingerprints identifying arguments.
@@ -2981,7 +3217,9 @@ Returns:
   item from each kwarg value.
 ```
 
-### `kd.core.uuid_for_list(seed, **kwargs)` {#kd.core.uuid_for_list}
+### `kd.core.uuid_for_list(seed=DataItem('', schema: STRING), **kwargs)` {#kd.core.uuid_for_list}
+Aliases:
+<a id="kd.uuid_for_list">kd.uuid_for_list</a>
 
 ``` {.no-copy}
 Creates a DataSlice whose items are Fingerprints identifying arguments.
@@ -3002,7 +3240,9 @@ Returns:
   item from each kwarg value.
 ```
 
-### `kd.core.uuids_with_allocation_size(seed, *, size)` {#kd.core.uuids_with_allocation_size}
+### `kd.core.uuids_with_allocation_size(seed=DataItem('', schema: STRING), *, size)` {#kd.core.uuids_with_allocation_size}
+Aliases:
+<a id="kd.uuids_with_allocation_size">kd.uuids_with_allocation_size</a>
 
 ``` {.no-copy}
 Creates a DataSlice whose items are uuids.
@@ -3020,7 +3260,7 @@ Returns:
   A 1-dimensional DataSlice with `size` distinct uuids.
 ```
 
-### `kd.core.uuobj(seed, *, db, **attrs)` {#kd.core.uuobj}
+### `kd.core.uuobj(seed=None, *, db=None, **attrs)` {#kd.core.uuobj}
 
 ``` {.no-copy}
 Creates object(s) whose ids are uuid(s) with the provided attributes.
@@ -3048,6 +3288,8 @@ Creates object(s) whose ids are uuid(s) with the provided attributes.
 ```
 
 ### `kd.core.val_like(x, val)` {#kd.core.val_like}
+Aliases:
+<a id="kd.val_like">kd.val_like</a>
 
 ``` {.no-copy}
 Creates a DataSlice with `val` masked and expanded to the shape of `x`.
@@ -3067,6 +3309,8 @@ Returns:
 ```
 
 ### `kd.core.val_shaped(shape, val)` {#kd.core.val_shaped}
+Aliases:
+<a id="kd.val_shaped">kd.val_shaped</a>
 
 ``` {.no-copy}
 Creates a DataSlice with `val` expanded to the given shape.
@@ -3085,6 +3329,8 @@ Returns:
 ```
 
 ### `kd.core.val_shaped_as(x, val)` {#kd.core.val_shaped_as}
+Aliases:
+<a id="kd.val_shaped_as">kd.val_shaped_as</a>
 
 ``` {.no-copy}
 Creates a DataSlice with `val` expanded to the shape of `x`.
@@ -3102,31 +3348,45 @@ Returns:
   A DataSlice with the same shape as `x`.
 ```
 
-### `kd.core.with_attr(x, attr_name, value, update_schema)` {#kd.core.with_attr}
+### `kd.core.with_attr(x, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#kd.core.with_attr}
+Aliases:
+<a id="kd.with_attr">kd.with_attr</a>
 
 ``` {.no-copy}
 Returns a DataSlice with a new DataBag containing a single updated attribute.
 ```
 
-### `kd.core.with_attrs(x, /, *, update_schema, **attrs)` {#kd.core.with_attrs}
+### `kd.core.with_attrs(x, /, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.core.with_attrs}
+Aliases:
+<a id="kd.with_attrs">kd.with_attrs</a>
 
 ``` {.no-copy}
 Returns a DataSlice with a new DataBag containing updated attributes.
 ```
 
 ### `kd.core.with_bag(ds, bag)` {#kd.core.with_bag}
+Aliases:
+<a id="kd.core.with_db">kd.core.with_db</a>
+<a id="kd.with_bag">kd.with_bag</a>
+<a id="kd.with_db">kd.with_db</a>
 
 ``` {.no-copy}
 Returns a DataSlice with the given DataBatg attached.
 ```
 
 ### `kd.core.with_db(ds, bag)` {#kd.core.with_db}
+Aliases:
+<a id="kd.core.with_bag">kd.core.with_bag</a>
+<a id="kd.with_bag">kd.with_bag</a>
+<a id="kd.with_db">kd.with_db</a>
 
 ``` {.no-copy}
 Returns a DataSlice with the given DataBatg attached.
 ```
 
-### `kd.core.with_dict_update(x, keys, values)` {#kd.core.with_dict_update}
+### `kd.core.with_dict_update(x, keys, values=unspecified)` {#kd.core.with_dict_update}
+Aliases:
+<a id="kd.with_dict_update">kd.with_dict_update</a>
 
 ``` {.no-copy}
 Returns a DataSlice with a new DataBag containing updated dicts.
@@ -3147,6 +3407,8 @@ Args:
 ```
 
 ### `kd.core.with_merged_bag(ds)` {#kd.core.with_merged_bag}
+Aliases:
+<a id="kd.with_merged_bag">kd.with_merged_bag</a>
 
 ``` {.no-copy}
 Returns a DataSlice with the DataBag of `ds` merged with its fallbacks.
@@ -3166,6 +3428,8 @@ Returns:
 ```
 
 ### `kd.core.zip(*args)` {#kd.core.zip}
+Aliases:
+<a id="kd.zip">kd.zip</a>
 
 ``` {.no-copy}
 Zips the given DataSlices into a new DataSlice with a new last dimension.
@@ -3226,13 +3490,13 @@ Returns a functor that allows unused inputs but otherwise behaves the same.
     there is no existing variadic keyword argument.
 ```
 
-### `kd.functor.as_fn(f, *, use_tracing, **kwargs)` {#kd.functor.as_fn}
+### `kd.functor.as_fn(f, *, use_tracing=True, **kwargs)` {#kd.functor.as_fn}
 
 ``` {.no-copy}
 A deprecated alias for kd.fn.
 ```
 
-### `kd.functor.bind(fn_def, /, *, return_type_as, **kwargs)` {#kd.functor.bind}
+### `kd.functor.bind(fn_def, /, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs)` {#kd.functor.bind}
 
 ``` {.no-copy}
 Returns a Koda functor that partially binds a function to `kwargs`.
@@ -3274,7 +3538,9 @@ Returns a Koda functor that partially binds a function to `kwargs`.
     A new Koda functor with some parameters bound.
 ```
 
-### `kd.functor.call(fn, *args, return_type_as, **kwargs)` {#kd.functor.call}
+### `kd.functor.call(fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.call}
+Aliases:
+<a id="kd.call">kd.call</a>
 
 ``` {.no-copy}
 Calls a functor.
@@ -3304,7 +3570,7 @@ Returns:
   The result of the call.
 ```
 
-### `kd.functor.expr_fn(returns, *, signature, auto_variables, **variables)` {#kd.functor.expr_fn}
+### `kd.functor.expr_fn(returns, *, signature=None, auto_variables=False, **variables)` {#kd.functor.expr_fn}
 
 ``` {.no-copy}
 Creates a functor.
@@ -3333,7 +3599,7 @@ Creates a functor.
     A DataItem representing the functor.
 ```
 
-### `kd.functor.fn(f, *, use_tracing, **kwargs)` {#kd.functor.fn}
+### `kd.functor.fn(f, *, use_tracing=True, **kwargs)` {#kd.functor.fn}
 
 ``` {.no-copy}
 Returns a Koda functor representing `f`.
@@ -3404,7 +3670,7 @@ Checks if `obj` represents a functor.
     otherwise (for example if obj has wrong type).
 ```
 
-### `kd.functor.map_py_fn(f, *, schema, max_threads, ndim, **defaults)` {#kd.functor.map_py_fn}
+### `kd.functor.map_py_fn(f, *, schema=None, max_threads=1, ndim=0, **defaults)` {#kd.functor.map_py_fn}
 
 ``` {.no-copy}
 Returns a Koda functor wrapping a python function for kd.map_py.
@@ -3422,7 +3688,7 @@ Returns a Koda functor wrapping a python function for kd.map_py.
       docstring for py_fn for more details.
 ```
 
-### `kd.functor.py_fn(f, *, return_type_as, **defaults)` {#kd.functor.py_fn}
+### `kd.functor.py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults)` {#kd.functor.py_fn}
 
 ``` {.no-copy}
 Returns a Koda functor wrapping a python function.
@@ -3459,7 +3725,7 @@ Returns a Koda functor wrapping a python function.
     A DataItem representing the functor.
 ```
 
-### `kd.functor.trace_as_fn(*, name, py_fn, return_type_as)` {#kd.functor.trace_as_fn}
+### `kd.functor.trace_as_fn(*, name=None, py_fn=False, return_type_as=<class 'koladata.types.data_slice.DataSlice'>)` {#kd.functor.trace_as_fn}
 
 ``` {.no-copy}
 A decorator to customize the tracing behavior for a particular function.
@@ -3493,7 +3759,7 @@ A decorator to customize the tracing behavior for a particular function.
   to DataItems), to better emulate what will happen in tracing mode.
 ```
 
-### `kd.functor.trace_py_fn(f, *, auto_variables, **defaults)` {#kd.functor.trace_py_fn}
+### `kd.functor.trace_py_fn(f, *, auto_variables=True, **defaults)` {#kd.functor.trace_py_fn}
 
 ``` {.no-copy}
 Returns a Koda functor created by tracing a given Python function.
@@ -3532,7 +3798,9 @@ Logical operators.
 
 **Operators**
 
-### `kd.logical.agg_all(x, ndim)` {#kd.logical.agg_all}
+### `kd.logical.agg_all(x, ndim=unspecified)` {#kd.logical.agg_all}
+Aliases:
+<a id="kd.agg_all">kd.agg_all</a>
 
 ``` {.no-copy}
 Returns present if all elements are present along the last ndim dimensions.
@@ -3548,7 +3816,9 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.logical.agg_any(x, ndim)` {#kd.logical.agg_any}
+### `kd.logical.agg_any(x, ndim=unspecified)` {#kd.logical.agg_any}
+Aliases:
+<a id="kd.agg_any">kd.agg_any</a>
 
 ``` {.no-copy}
 Returns present if any element is present along the last ndim dimensions.
@@ -3564,7 +3834,9 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.logical.agg_has(x, ndim)` {#kd.logical.agg_has}
+### `kd.logical.agg_has(x, ndim=unspecified)` {#kd.logical.agg_has}
+Aliases:
+<a id="kd.agg_has">kd.agg_has</a>
 
 ``` {.no-copy}
 Returns present iff any element is present along the last ndim dimensions.
@@ -3581,6 +3853,8 @@ Args:
 ```
 
 ### `kd.logical.all(x)` {#kd.logical.all}
+Aliases:
+<a id="kd.all">kd.all</a>
 
 ``` {.no-copy}
 Returns present iff all elements are present over all dimensions.
@@ -3594,6 +3868,8 @@ Args:
 ```
 
 ### `kd.logical.any(x)` {#kd.logical.any}
+Aliases:
+<a id="kd.any">kd.any</a>
 
 ``` {.no-copy}
 Returns present iff any element is present over all dimensions.
@@ -3607,6 +3883,8 @@ Args:
 ```
 
 ### `kd.logical.apply_mask(x, y)` {#kd.logical.apply_mask}
+Aliases:
+<a id="kd.apply_mask">kd.apply_mask</a>
 
 ``` {.no-copy}
 Filters `x` to items where `y` is present.
@@ -3623,6 +3901,8 @@ Returns:
 ```
 
 ### `kd.logical.coalesce(x, y)` {#kd.logical.coalesce}
+Aliases:
+<a id="kd.coalesce">kd.coalesce</a>
 
 ``` {.no-copy}
 Fills in missing values of `x` with values of `y`.
@@ -3639,7 +3919,9 @@ Returns:
   Coalesced DataSlice.
 ```
 
-### `kd.logical.cond(condition, yes, no)` {#kd.logical.cond}
+### `kd.logical.cond(condition, yes, no=DataItem(None, schema: NONE))` {#kd.logical.cond}
+Aliases:
+<a id="kd.cond">kd.cond</a>
 
 ``` {.no-copy}
 Returns `yes` where `condition` is present, otherwise `no`.
@@ -3659,6 +3941,8 @@ Returns:
 ```
 
 ### `kd.logical.disjoint_coalesce(x, y)` {#kd.logical.disjoint_coalesce}
+Aliases:
+<a id="kd.disjoint_coalesce">kd.disjoint_coalesce</a>
 
 ``` {.no-copy}
 Fills in missing values of `x` with values of `y`.
@@ -3675,6 +3959,8 @@ Returns:
 ```
 
 ### `kd.logical.has(x)` {#kd.logical.has}
+Aliases:
+<a id="kd.has">kd.has</a>
 
 ``` {.no-copy}
 Returns presence of `x`.
@@ -3691,6 +3977,8 @@ Returns:
 ```
 
 ### `kd.logical.has_not(x)` {#kd.logical.has_not}
+Aliases:
+<a id="kd.has_not">kd.has_not</a>
 
 ``` {.no-copy}
 Returns present iff `x` is missing element-wise.
@@ -3707,6 +3995,8 @@ Returns:
 ```
 
 ### `kd.logical.mask_and(x, y)` {#kd.logical.mask_and}
+Aliases:
+<a id="kd.mask_and">kd.mask_and</a>
 
 ``` {.no-copy}
 Applies pointwise MASK_AND operation on `x` and `y`.
@@ -3728,6 +4018,8 @@ Returns:
 ```
 
 ### `kd.logical.mask_equal(x, y)` {#kd.logical.mask_equal}
+Aliases:
+<a id="kd.mask_equal">kd.mask_equal</a>
 
 ``` {.no-copy}
 Applies pointwise MASK_EQUAL operation on `x` and `y`.
@@ -3750,6 +4042,8 @@ Returns:
 ```
 
 ### `kd.logical.mask_not_equal(x, y)` {#kd.logical.mask_not_equal}
+Aliases:
+<a id="kd.mask_not_equal">kd.mask_not_equal</a>
 
 ``` {.no-copy}
 Applies pointwise MASK_NOT_EQUAL operation on `x` and `y`.
@@ -3809,7 +4103,7 @@ Arithmetic operators.
 Computes pointwise absolute value of the input.
 ```
 
-### `kd.math.agg_inverse_cdf(x, cdf_arg, ndim)` {#kd.math.agg_inverse_cdf}
+### `kd.math.agg_inverse_cdf(x, cdf_arg, ndim=unspecified)` {#kd.math.agg_inverse_cdf}
 
 ``` {.no-copy}
 Returns the value with CDF (in [0, 1]) approximately equal to the input.
@@ -3826,7 +4120,9 @@ Args:
     ndim <= get_ndim(x).
 ```
 
-### `kd.math.agg_max(x, ndim)` {#kd.math.agg_max}
+### `kd.math.agg_max(x, ndim=unspecified)` {#kd.math.agg_max}
+Aliases:
+<a id="kd.agg_max">kd.agg_max</a>
 
 ``` {.no-copy}
 Returns the maximum of items along the last ndim dimensions.
@@ -3846,7 +4142,7 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.math.agg_mean(x, ndim)` {#kd.math.agg_mean}
+### `kd.math.agg_mean(x, ndim=unspecified)` {#kd.math.agg_mean}
 
 ``` {.no-copy}
 Returns the means along the last ndim dimensions.
@@ -3866,7 +4162,7 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.math.agg_median(x, ndim)` {#kd.math.agg_median}
+### `kd.math.agg_median(x, ndim=unspecified)` {#kd.math.agg_median}
 
 ``` {.no-copy}
 Returns the medians along the last ndim dimensions.
@@ -3886,7 +4182,9 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.math.agg_min(x, ndim)` {#kd.math.agg_min}
+### `kd.math.agg_min(x, ndim=unspecified)` {#kd.math.agg_min}
+Aliases:
+<a id="kd.agg_min">kd.agg_min</a>
 
 ``` {.no-copy}
 Returns the minimum of items along the last ndim dimensions.
@@ -3906,7 +4204,7 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.math.agg_std(x, unbiased, ndim)` {#kd.math.agg_std}
+### `kd.math.agg_std(x, unbiased=DataItem(True, schema: BOOLEAN), ndim=unspecified)` {#kd.math.agg_std}
 
 ``` {.no-copy}
 Returns the standard deviation along the last ndim dimensions.
@@ -3927,7 +4225,9 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.math.agg_sum(x, ndim)` {#kd.math.agg_sum}
+### `kd.math.agg_sum(x, ndim=unspecified)` {#kd.math.agg_sum}
+Aliases:
+<a id="kd.agg_sum">kd.agg_sum</a>
 
 ``` {.no-copy}
 Returns the sums along the last ndim dimensions.
@@ -3947,7 +4247,7 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.math.agg_var(x, unbiased, ndim)` {#kd.math.agg_var}
+### `kd.math.agg_var(x, unbiased=DataItem(True, schema: BOOLEAN), ndim=unspecified)` {#kd.math.agg_var}
 
 ``` {.no-copy}
 Returns the variance along the last ndim dimensions.
@@ -3968,7 +4268,7 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.math.cdf(x, weights, ndim)` {#kd.math.cdf}
+### `kd.math.cdf(x, weights=unspecified, ndim=unspecified)` {#kd.math.cdf}
 
 ``` {.no-copy}
 Returns the CDF of x in the last ndim dimensions of x element-wise.
@@ -3994,19 +4294,19 @@ rounding up: returns the smallest integer value that is not less than the
 input.
 ```
 
-### `kd.math.cum_max(x, ndim)` {#kd.math.cum_max}
+### `kd.math.cum_max(x, ndim=unspecified)` {#kd.math.cum_max}
 
 ``` {.no-copy}
 Returns the cumulative max of items along the last ndim dimensions.
 ```
 
-### `kd.math.cum_min(x, ndim)` {#kd.math.cum_min}
+### `kd.math.cum_min(x, ndim=unspecified)` {#kd.math.cum_min}
 
 ``` {.no-copy}
 Returns the cumulative minimum of items along the last ndim dimensions.
 ```
 
-### `kd.math.cum_sum(x, ndim)` {#kd.math.cum_sum}
+### `kd.math.cum_sum(x, ndim=unspecified)` {#kd.math.cum_sum}
 
 ``` {.no-copy}
 Returns the cumulative sum of items along the last ndim dimensions.
@@ -4065,6 +4365,8 @@ Computes pointwise logarithm in base 10 of the input.
 ```
 
 ### `kd.math.max(x)` {#kd.math.max}
+Aliases:
+<a id="kd.max">kd.max</a>
 
 ``` {.no-copy}
 Returns the maximum of items over all dimensions.
@@ -4076,6 +4378,8 @@ Args:
 ```
 
 ### `kd.math.maximum(x, y)` {#kd.math.maximum}
+Aliases:
+<a id="kd.maximum">kd.maximum</a>
 
 ``` {.no-copy}
 Computes pointwise max(x, y).
@@ -4110,6 +4414,8 @@ Args:
 ```
 
 ### `kd.math.min(x)` {#kd.math.min}
+Aliases:
+<a id="kd.min">kd.min</a>
 
 ``` {.no-copy}
 Returns the minimum of items over all dimensions.
@@ -4121,6 +4427,8 @@ Args:
 ```
 
 ### `kd.math.minimum(x, y)` {#kd.math.minimum}
+Aliases:
+<a id="kd.minimum">kd.minimum</a>
 
 ``` {.no-copy}
 Computes pointwise min(x, y).
@@ -4174,7 +4482,7 @@ round(-1.6) == -2.0
 round(-2.5) == -3.0 # not -2.0
 ```
 
-### `kd.math.sigmoid(x, half, slope)` {#kd.math.sigmoid}
+### `kd.math.sigmoid(x, half=DataItem(0.0, schema: FLOAT32), slope=DataItem(1.0, schema: FLOAT32))` {#kd.math.sigmoid}
 
 ``` {.no-copy}
 Computes sigmoid of the input.
@@ -4201,7 +4509,7 @@ Returns:
   A dataslice of with {-1, 0, 1} of the same shape and type as the input.
 ```
 
-### `kd.math.softmax(x, beta, ndim)` {#kd.math.softmax}
+### `kd.math.softmax(x, beta=DataItem(1.0, schema: FLOAT32), ndim=unspecified)` {#kd.math.softmax}
 
 ``` {.no-copy}
 Returns the softmax of x alon the last ndim dimensions.
@@ -4223,6 +4531,8 @@ Computes pointwise x - y.
 ```
 
 ### `kd.math.sum(x)` {#kd.math.sum}
+Aliases:
+<a id="kd.sum">kd.sum</a>
 
 ``` {.no-copy}
 Returns the sum of elements over all dimensions.
@@ -4243,7 +4553,9 @@ Operators that call Python functions.
 
 **Operators**
 
-### `kd.py.apply_py(fn, *args, return_type_as, **kwargs)` {#kd.py.apply_py}
+### `kd.py.apply_py(fn, *args, return_type_as=unspecified, **kwargs)` {#kd.py.apply_py}
+Aliases:
+<a id="kd.apply_py">kd.apply_py</a>
 
 ``` {.no-copy}
 Applies Python function `fn` on args.
@@ -4268,6 +4580,8 @@ Returns:
 ```
 
 ### `kd.py.apply_py_on_cond(yes_fn, no_fn, cond, *args, **kwargs)` {#kd.py.apply_py_on_cond}
+Aliases:
+<a id="kd.apply_py_on_cond">kd.apply_py_on_cond</a>
 
 ``` {.no-copy}
 Applies Python functions on args filtered with `cond` and `~cond`.
@@ -4295,6 +4609,8 @@ Returns:
 ```
 
 ### `kd.py.apply_py_on_selected(fn, cond, *args, **kwargs)` {#kd.py.apply_py_on_selected}
+Aliases:
+<a id="kd.apply_py_on_selected">kd.apply_py_on_selected</a>
 
 ``` {.no-copy}
 Applies Python function `fn` on args filtered with cond.
@@ -4316,7 +4632,9 @@ Returns:
   Result of fn applied on filtered args.
 ```
 
-### `kd.py.map_py(fn, *args, schema, max_threads, ndim, item_completed_callback, **kwargs)` {#kd.py.map_py}
+### `kd.py.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), ndim=DataItem(0, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py}
+Aliases:
+<a id="kd.map_py">kd.map_py</a>
 
 ``` {.no-copy}
 Apply the python function `fn` on provided `args` and `kwargs`.
@@ -4389,7 +4707,9 @@ Returns:
   Result DataSlice.
 ```
 
-### `kd.py.map_py_on_cond(true_fn, false_fn, cond, *args, schema, max_threads, item_completed_callback, **kwargs)` {#kd.py.map_py_on_cond}
+### `kd.py.map_py_on_cond(true_fn, false_fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_cond}
+Aliases:
+<a id="kd.map_py_on_cond">kd.map_py_on_cond</a>
 
 ``` {.no-copy}
 Apply python functions on `args` and `kwargs` based on `cond`.
@@ -4421,7 +4741,9 @@ Returns:
   Result DataSlice.
 ```
 
-### `kd.py.map_py_on_present(fn, *args, schema, max_threads, item_completed_callback, **kwargs)` {#kd.py.map_py_on_present}
+### `kd.py.map_py_on_present(fn, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_present}
+Aliases:
+<a id="kd.map_py_on_present">kd.map_py_on_present</a>
 
 ``` {.no-copy}
 Apply python function `fn` to items present in all `args` and `kwargs`.
@@ -4444,7 +4766,9 @@ Returns:
   Result DataSlice.
 ```
 
-### `kd.py.map_py_on_selected(fn, cond, *args, schema, max_threads, item_completed_callback, **kwargs)` {#kd.py.map_py_on_selected}
+### `kd.py.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_selected}
+Aliases:
+<a id="kd.map_py_on_selected">kd.map_py_on_selected</a>
 
 ``` {.no-copy}
 Apply python function `fn` on `args` and `kwargs` based on `cond`.
@@ -4484,7 +4808,9 @@ Random and sampling operators.
 
 **Operators**
 
-### `kd.random.randint_like(x, low, high, seed)` {#kd.random.randint_like}
+### `kd.random.randint_like(x, low=unspecified, high=unspecified, seed=unspecified)` {#kd.random.randint_like}
+Aliases:
+<a id="kd.randint_like">kd.randint_like</a>
 
 ``` {.no-copy}
 Returns a DataSlice of random INT64 numbers with the same sparsity as `x`.
@@ -4505,7 +4831,9 @@ Returns:
   A DataSlice of random numbers.
 ```
 
-### `kd.random.randint_shaped(shape, low, high, seed)` {#kd.random.randint_shaped}
+### `kd.random.randint_shaped(shape, low=unspecified, high=unspecified, seed=unspecified)` {#kd.random.randint_shaped}
+Aliases:
+<a id="kd.randint_shaped">kd.randint_shaped</a>
 
 ``` {.no-copy}
 Returns a DataSlice of random INT64 numbers with the given shape.
@@ -4526,7 +4854,9 @@ Returns:
   A DataSlice of random numbers.
 ```
 
-### `kd.random.randint_shaped_as(x, low, high, seed)` {#kd.random.randint_shaped_as}
+### `kd.random.randint_shaped_as(x, low=unspecified, high=unspecified, seed=unspecified)` {#kd.random.randint_shaped_as}
+Aliases:
+<a id="kd.randint_shaped_as">kd.randint_shaped_as</a>
 
 ``` {.no-copy}
 Returns a DataSlice of random INT64 numbers with the same shape as `x`.
@@ -4547,7 +4877,9 @@ Returns:
   A DataSlice of random numbers.
 ```
 
-### `kd.random.sample(x, ratio, seed, key)` {#kd.random.sample}
+### `kd.random.sample(x, ratio, seed, key=unspecified)` {#kd.random.sample}
+Aliases:
+<a id="kd.sample">kd.sample</a>
 
 ``` {.no-copy}
 Randomly sample items in `x` based on ratio.
@@ -4594,7 +4926,9 @@ Returns:
   Sampled DataSlice.
 ```
 
-### `kd.random.sample_n(x, n, seed, key)` {#kd.random.sample_n}
+### `kd.random.sample_n(x, n, seed, key=unspecified)` {#kd.random.sample_n}
+Aliases:
+<a id="kd.sample_n">kd.sample_n</a>
 
 ``` {.no-copy}
 Randomly sample n items in `x` from the last dimension.
@@ -4649,12 +4983,18 @@ Schema-related operators.
 **Operators**
 
 ### `kd.schema.as_any(x)` {#kd.schema.as_any}
+Aliases:
+<a id="kd.as_any">kd.as_any</a>
+<a id="kd.schema.to_any">kd.schema.to_any</a>
+<a id="kd.to_any">kd.to_any</a>
 
 ``` {.no-copy}
 Casts `x` to ANY using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.as_itemid(x)` {#kd.schema.as_itemid}
+Aliases:
+<a id="kd.as_itemid">kd.as_itemid</a>
 
 ``` {.no-copy}
 Casts `x` to ITEMID using explicit (permissive) casting rules.
@@ -4663,6 +5003,8 @@ Deprecated, use `get_itemid` instead.
 ```
 
 ### `kd.schema.cast_to(x, schema)` {#kd.schema.cast_to}
+Aliases:
+<a id="kd.cast_to">kd.cast_to</a>
 
 ``` {.no-copy}
 Returns `x` casted to the provided `schema` using explicit casting rules.
@@ -4702,7 +5044,7 @@ Args:
   schema: Schema to cast to. Must be a scalar.
 ```
 
-### `kd.schema.dict_schema(key_schema, value_schema, db)` {#kd.schema.dict_schema}
+### `kd.schema.dict_schema(key_schema, value_schema, db=None)` {#kd.schema.dict_schema}
 
 ``` {.no-copy}
 Creates a dict schema in the given DataBag.
@@ -4718,6 +5060,10 @@ Creates a dict schema in the given DataBag.
 ```
 
 ### `kd.schema.get_dtype(ds)` {#kd.schema.get_dtype}
+Aliases:
+<a id="kd.get_dtype">kd.get_dtype</a>
+<a id="kd.get_primitive_schema">kd.get_primitive_schema</a>
+<a id="kd.schema.get_primitive_schema">kd.schema.get_primitive_schema</a>
 
 ``` {.no-copy}
 Returns a primitive schema representing the underlying items' dtype.
@@ -4746,24 +5092,34 @@ Returns:
 ```
 
 ### `kd.schema.get_item_schema(list_schema)` {#kd.schema.get_item_schema}
+Aliases:
+<a id="kd.get_item_schema">kd.get_item_schema</a>
 
 ``` {.no-copy}
 Returns the item schema of a List schema`.
 ```
 
 ### `kd.schema.get_itemid(x)` {#kd.schema.get_itemid}
+Aliases:
+<a id="kd.get_itemid">kd.get_itemid</a>
+<a id="kd.schema.to_itemid">kd.schema.to_itemid</a>
+<a id="kd.to_itemid">kd.to_itemid</a>
 
 ``` {.no-copy}
 Casts `x` to ITEMID using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.get_key_schema(dict_schema)` {#kd.schema.get_key_schema}
+Aliases:
+<a id="kd.get_key_schema">kd.get_key_schema</a>
 
 ``` {.no-copy}
 Returns the key schema of a Dict schema`.
 ```
 
 ### `kd.schema.get_obj_schema(x)` {#kd.schema.get_obj_schema}
+Aliases:
+<a id="kd.get_obj_schema">kd.get_obj_schema</a>
 
 ``` {.no-copy}
 Returns a DataSlice of schemas for Objects and primitives in `x`.
@@ -4785,6 +5141,10 @@ Returns:
 ```
 
 ### `kd.schema.get_primitive_schema(ds)` {#kd.schema.get_primitive_schema}
+Aliases:
+<a id="kd.get_dtype">kd.get_dtype</a>
+<a id="kd.get_primitive_schema">kd.get_primitive_schema</a>
+<a id="kd.schema.get_dtype">kd.schema.get_dtype</a>
 
 ``` {.no-copy}
 Returns a primitive schema representing the underlying items' dtype.
@@ -4813,12 +5173,16 @@ Returns:
 ```
 
 ### `kd.schema.get_schema(x)` {#kd.schema.get_schema}
+Aliases:
+<a id="kd.get_schema">kd.get_schema</a>
 
 ``` {.no-copy}
 Returns the schema of `x`.
 ```
 
 ### `kd.schema.get_value_schema(dict_schema)` {#kd.schema.get_value_schema}
+Aliases:
+<a id="kd.get_value_schema">kd.get_value_schema</a>
 
 ``` {.no-copy}
 Returns the value schema of a Dict schema`.
@@ -4865,7 +5229,7 @@ Returns true iff `x` is a List schema DataItem.
 Returns true iff `x` is a primitive schema DataItem.
 ```
 
-### `kd.schema.list_schema(item_schema, db)` {#kd.schema.list_schema}
+### `kd.schema.list_schema(item_schema, db=None)` {#kd.schema.list_schema}
 
 ``` {.no-copy}
 Creates a list schema in the given DataBag.
@@ -4879,7 +5243,7 @@ Creates a list schema in the given DataBag.
     data_slice.DataSlice representing a list schema.
 ```
 
-### `kd.schema.named_schema(name, *, db, **attrs)` {#kd.schema.named_schema}
+### `kd.schema.named_schema(name, *, db=None, **attrs)` {#kd.schema.named_schema}
 
 ``` {.no-copy}
 Creates a named entity schema in the given DataBag.
@@ -4901,7 +5265,7 @@ Creates a named entity schema in the given DataBag.
     attrs.
 ```
 
-### `kd.schema.new_schema(db, **attrs)` {#kd.schema.new_schema}
+### `kd.schema.new_schema(db=None, **attrs)` {#kd.schema.new_schema}
 
 ``` {.no-copy}
 Creates new schema in the given DataBag.
@@ -4951,96 +5315,134 @@ A deprecated alias for kd.schema.schema_from_py.
 ```
 
 ### `kd.schema.to_any(x)` {#kd.schema.to_any}
+Aliases:
+<a id="kd.as_any">kd.as_any</a>
+<a id="kd.schema.as_any">kd.schema.as_any</a>
+<a id="kd.to_any">kd.to_any</a>
 
 ``` {.no-copy}
 Casts `x` to ANY using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_bool(x)` {#kd.schema.to_bool}
+Aliases:
+<a id="kd.to_bool">kd.to_bool</a>
 
 ``` {.no-copy}
 Casts `x` to BOOLEAN using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_bytes(x)` {#kd.schema.to_bytes}
+Aliases:
+<a id="kd.to_bytes">kd.to_bytes</a>
 
 ``` {.no-copy}
 Casts `x` to BYTES using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_expr(x)` {#kd.schema.to_expr}
+Aliases:
+<a id="kd.to_expr">kd.to_expr</a>
 
 ``` {.no-copy}
 Casts `x` to EXPR using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_float32(x)` {#kd.schema.to_float32}
+Aliases:
+<a id="kd.to_float32">kd.to_float32</a>
 
 ``` {.no-copy}
 Casts `x` to FLOAT32 using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_float64(x)` {#kd.schema.to_float64}
+Aliases:
+<a id="kd.to_float64">kd.to_float64</a>
 
 ``` {.no-copy}
 Casts `x` to FLOAT64 using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_int32(x)` {#kd.schema.to_int32}
+Aliases:
+<a id="kd.to_int32">kd.to_int32</a>
 
 ``` {.no-copy}
 Casts `x` to INT32 using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_int64(x)` {#kd.schema.to_int64}
+Aliases:
+<a id="kd.to_int64">kd.to_int64</a>
 
 ``` {.no-copy}
 Casts `x` to INT64 using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_itemid(x)` {#kd.schema.to_itemid}
+Aliases:
+<a id="kd.get_itemid">kd.get_itemid</a>
+<a id="kd.schema.get_itemid">kd.schema.get_itemid</a>
+<a id="kd.to_itemid">kd.to_itemid</a>
 
 ``` {.no-copy}
 Casts `x` to ITEMID using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_mask(x)` {#kd.schema.to_mask}
+Aliases:
+<a id="kd.to_mask">kd.to_mask</a>
 
 ``` {.no-copy}
 Casts `x` to MASK using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_none(x)` {#kd.schema.to_none}
+Aliases:
+<a id="kd.to_none">kd.to_none</a>
 
 ``` {.no-copy}
 Casts `x` to NONE using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_object(x)` {#kd.schema.to_object}
+Aliases:
+<a id="kd.to_object">kd.to_object</a>
 
 ``` {.no-copy}
 Casts `x` to OBJECT using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_schema(x)` {#kd.schema.to_schema}
+Aliases:
+<a id="kd.to_schema">kd.to_schema</a>
 
 ``` {.no-copy}
 Casts `x` to SCHEMA using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_str(x)` {#kd.schema.to_str}
+Aliases:
+<a id="kd.schema.to_text">kd.schema.to_text</a>
+<a id="kd.to_str">kd.to_str</a>
+<a id="kd.to_text">kd.to_text</a>
 
 ``` {.no-copy}
 Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_text(x)` {#kd.schema.to_text}
+Aliases:
+<a id="kd.schema.to_str">kd.schema.to_str</a>
+<a id="kd.to_str">kd.to_str</a>
+<a id="kd.to_text">kd.to_text</a>
 
 ``` {.no-copy}
 Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
-### `kd.schema.uu_schema(seed, *, db, **attrs)` {#kd.schema.uu_schema}
+### `kd.schema.uu_schema(seed=None, *, db=None, **attrs)` {#kd.schema.uu_schema}
 
 ``` {.no-copy}
 Creates a uu_schema in the given DataBag.
@@ -5056,6 +5458,8 @@ Creates a uu_schema in the given DataBag.
 ```
 
 ### `kd.schema.with_schema(x, schema)` {#kd.schema.with_schema}
+Aliases:
+<a id="kd.with_schema">kd.with_schema</a>
 
 ``` {.no-copy}
 Returns a copy of `x` with the provided `schema`.
@@ -5098,6 +5502,8 @@ Returns:
 ```
 
 ### `kd.schema.with_schema_from_obj(x)` {#kd.schema.with_schema_from_obj}
+Aliases:
+<a id="kd.with_schema_from_obj">kd.with_schema_from_obj</a>
 
 ``` {.no-copy}
 Returns `x` with its embedded schema set as the schema.
@@ -5184,7 +5590,9 @@ Args:
   dim: the dimension to get the sizes for.
 ```
 
-### `kd.shapes.expand_to_shape(x, shape, ndim)` {#kd.shapes.expand_to_shape}
+### `kd.shapes.expand_to_shape(x, shape, ndim=unspecified)` {#kd.shapes.expand_to_shape}
+Aliases:
+<a id="kd.expand_to_shape">kd.expand_to_shape</a>
 
 ``` {.no-copy}
 Expands `x` based on the provided `shape`.
@@ -5239,7 +5647,9 @@ Returns:
   Expanded DataSlice
 ```
 
-### `kd.shapes.flatten(x, from_dim, to_dim)` {#kd.shapes.flatten}
+### `kd.shapes.flatten(x, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#kd.shapes.flatten}
+Aliases:
+<a id="kd.flatten">kd.flatten</a>
 
 ``` {.no-copy}
 Returns `x` with dimensions `[from_dim:to_dim]` flattened.
@@ -5281,12 +5691,14 @@ Args:
 ```
 
 ### `kd.shapes.get_shape(x)` {#kd.shapes.get_shape}
+Aliases:
+<a id="kd.get_shape">kd.get_shape</a>
 
 ``` {.no-copy}
 Returns the shape of `x`.
 ```
 
-### `kd.shapes.is_expandable_to_shape(x, target_shape, ndim)` {#kd.shapes.is_expandable_to_shape}
+### `kd.shapes.is_expandable_to_shape(x, target_shape, ndim=unspecified)` {#kd.shapes.is_expandable_to_shape}
 
 ``` {.no-copy}
 Returns true if `x` is expandable to `target_shape`.
@@ -5301,18 +5713,24 @@ Args:
 ```
 
 ### `kd.shapes.ndim(shape)` {#kd.shapes.ndim}
+Aliases:
+<a id="kd.shapes.rank">kd.shapes.rank</a>
 
 ``` {.no-copy}
 Returns the rank of the jagged shape.
 ```
 
 ### `kd.shapes.rank(shape)` {#kd.shapes.rank}
+Aliases:
+<a id="kd.shapes.ndim">kd.shapes.ndim</a>
 
 ``` {.no-copy}
 Returns the rank of the jagged shape.
 ```
 
 ### `kd.shapes.reshape(x, shape)` {#kd.shapes.reshape}
+Aliases:
+<a id="kd.reshape">kd.reshape</a>
 
 ``` {.no-copy}
 Returns a DataSlice with the provided shape.
@@ -5350,6 +5768,8 @@ Args:
 ```
 
 ### `kd.shapes.reshape_as(x, shape_from)` {#kd.shapes.reshape_as}
+Aliases:
+<a id="kd.reshape_as">kd.reshape_as</a>
 
 ``` {.no-copy}
 Returns a DataSlice x reshaped to the shape of DataSlice shape_from.
@@ -5371,7 +5791,7 @@ Operators that work with strings data.
 
 **Operators**
 
-### `kd.strings.agg_join(x, sep, ndim)` {#kd.strings.agg_join}
+### `kd.strings.agg_join(x, sep=DataItem(None, schema: NONE), ndim=unspecified)` {#kd.strings.agg_join}
 
 ``` {.no-copy}
 Returns a DataSlice of strings joined on last ndim dimensions.
@@ -5437,7 +5857,7 @@ Returns:
 Decodes `x` as STRING using UTF-8 decoding.
 ```
 
-### `kd.strings.decode_base64(x, /, *, on_invalid)` {#kd.strings.decode_base64}
+### `kd.strings.decode_base64(x, /, *, on_invalid=unspecified)` {#kd.strings.decode_base64}
 
 ``` {.no-copy}
 Decodes BYTES from `x` using base64 encoding (RFC 4648 section 4).
@@ -5474,7 +5894,7 @@ Returns:
   DataSlice of STRING.
 ```
 
-### `kd.strings.find(s, substr, start, end)` {#kd.strings.find}
+### `kd.strings.find(s, substr, start=DataItem(0, schema: INT64), end=DataItem(None, schema: INT64))` {#kd.strings.find}
 
 ``` {.no-copy}
 Returns the offset of the first occurrence of `substr` in `s`.
@@ -5495,6 +5915,8 @@ Returns:
 ```
 
 ### `kd.strings.format(fmt, /, **kwargs)` {#kd.strings.format}
+Aliases:
+<a id="kd.format">kd.format</a>
 
 ``` {.no-copy}
 Formats strings according to python str.format style.
@@ -5634,7 +6056,7 @@ Returns:
   A String DataSlice of lowercase strings.
 ```
 
-### `kd.strings.lstrip(s, chars)` {#kd.strings.lstrip}
+### `kd.strings.lstrip(s, chars=DataItem(None, schema: NONE))` {#kd.strings.lstrip}
 
 ``` {.no-copy}
 Strips whitespaces or the specified characters from the left side of `s`.
@@ -5746,7 +6168,7 @@ Returns:
   `present` if `text` matches `regex`.
 ```
 
-### `kd.strings.replace(s, old, new, max_subs)` {#kd.strings.replace}
+### `kd.strings.replace(s, old, new, max_subs=DataItem(None, schema: INT32))` {#kd.strings.replace}
 
 ``` {.no-copy}
 Replaces up to `max_subs` occurrences of `old` within `s` with `new`.
@@ -5769,7 +6191,7 @@ Returns:
   String with applied substitutions.
 ```
 
-### `kd.strings.rfind(s, substr, start, end)` {#kd.strings.rfind}
+### `kd.strings.rfind(s, substr, start=DataItem(0, schema: INT64), end=DataItem(None, schema: INT64))` {#kd.strings.rfind}
 
 ``` {.no-copy}
 Returns the offset of the last occurrence of `substr` in `s`.
@@ -5789,7 +6211,7 @@ Returns:
   are no occurrences.
 ```
 
-### `kd.strings.rstrip(s, chars)` {#kd.strings.rstrip}
+### `kd.strings.rstrip(s, chars=DataItem(None, schema: NONE))` {#kd.strings.rstrip}
 
 ``` {.no-copy}
 Strips whitespaces or the specified characters from the right side of `s`.
@@ -5816,7 +6238,7 @@ Returns:
   Stripped string.
 ```
 
-### `kd.strings.split(x, sep)` {#kd.strings.split}
+### `kd.strings.split(x, sep=DataItem(None, schema: NONE))` {#kd.strings.split}
 
 ``` {.no-copy}
 Returns x split by the provided separator.
@@ -5831,7 +6253,7 @@ Args:
     strings, otherwise will split by whitespaces while omitting empty strings.
 ```
 
-### `kd.strings.strip(s, chars)` {#kd.strings.strip}
+### `kd.strings.strip(s, chars=DataItem(None, schema: NONE))` {#kd.strings.strip}
 
 ``` {.no-copy}
 Strips whitespaces or the specified characters from both sides of `s`.
@@ -5858,7 +6280,7 @@ Returns:
   Stripped string.
 ```
 
-### `kd.strings.substr(x, start, end)` {#kd.strings.substr}
+### `kd.strings.substr(x, start=DataItem(0, schema: INT64), end=DataItem(None, schema: INT64))` {#kd.strings.substr}
 
 ``` {.no-copy}
 Returns a DataSlice of substrings with indices [start, end).
@@ -5939,6 +6361,8 @@ Args:
 ```
 
 ### `kd.tuple.make_tuple(*args)` {#kd.tuple.make_tuple}
+Aliases:
+<a id="kd.make_tuple">kd.make_tuple</a>
 
 ``` {.no-copy}
 Returns a tuple-like object containing the given `*args`.
@@ -6084,7 +6508,7 @@ Reshapes a DataSlice corresponding to the given indices.
 Converts a DataSlice to a numpy array.
 ```
 
-### `pdkd.from_dataframe(df, as_obj)` {#pdkd.from_dataframe}
+### `pdkd.from_dataframe(df, as_obj=False)` {#pdkd.from_dataframe}
 
 ``` {.no-copy}
 Creates a DataSlice from the given pandas DataFrame.
@@ -6107,7 +6531,7 @@ Creates a DataSlice from the given pandas DataFrame.
     DataSlice of items with attributes from DataFrame columns.
 ```
 
-### `pdkd.to_dataframe(ds, cols)` {#pdkd.to_dataframe}
+### `pdkd.to_dataframe(ds, cols=None)` {#pdkd.to_dataframe}
 
 ``` {.no-copy}
 Creates a pandas DataFrame from the given DataSlice.
@@ -6238,7 +6662,7 @@ Returns a DataSlice with ANY schema.
 Clears all dicts or lists in this DataSlice
 ```
 
-### `<DataSlice>.clone(self, *, itemid, schema, **overrides)` {#<DataSlice>.clone}
+### `<DataSlice>.clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#<DataSlice>.clone}
 
 *No description*
 
@@ -6248,11 +6672,11 @@ Clears all dicts or lists in this DataSlice
 This property is deprecated, please use .get_bag().
 ```
 
-### `<DataSlice>.deep_clone(self, schema, **overrides)` {#<DataSlice>.deep_clone}
+### `<DataSlice>.deep_clone(self, schema=unspecified, **overrides)` {#<DataSlice>.deep_clone}
 
 *No description*
 
-### `<DataSlice>.deep_uuid(self, schema, *, seed)` {#<DataSlice>.deep_uuid}
+### `<DataSlice>.deep_uuid(self, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#<DataSlice>.deep_uuid}
 
 *No description*
 
@@ -6260,11 +6684,11 @@ This property is deprecated, please use .get_bag().
 
 *No description*
 
-### `<DataSlice>.dict_update(self, keys, values)` {#<DataSlice>.dict_update}
+### `<DataSlice>.dict_update(self, keys, values=unspecified)` {#<DataSlice>.dict_update}
 
 *No description*
 
-### `<DataSlice>.display(self, num_items, detail_width, detail_height)` {#<DataSlice>.display}
+### `<DataSlice>.display(self, num_items=64, detail_width=None, detail_height=300)` {#<DataSlice>.display}
 
 *No description*
 
@@ -6282,15 +6706,15 @@ Returns a DataSlice with OBJECT schema.
 
 *No description*
 
-### `<DataSlice>.expand_to(self, target, ndim)` {#<DataSlice>.expand_to}
+### `<DataSlice>.expand_to(self, target, ndim=unspecified)` {#<DataSlice>.expand_to}
 
 *No description*
 
-### `<DataSlice>.extract(self, schema)` {#<DataSlice>.extract}
+### `<DataSlice>.extract(self, schema=unspecified)` {#<DataSlice>.extract}
 
 *No description*
 
-### `<DataSlice>.extract_bag(self, schema)` {#<DataSlice>.extract_bag}
+### `<DataSlice>.extract_bag(self, schema=unspecified)` {#<DataSlice>.extract_bag}
 
 *No description*
 
@@ -6300,7 +6724,7 @@ Returns a DataSlice with OBJECT schema.
 Unique identifier of the value.
 ```
 
-### `<DataSlice>.flatten(self, from_dim, to_dim)` {#<DataSlice>.flatten}
+### `<DataSlice>.flatten(self, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#<DataSlice>.flatten}
 
 *No description*
 
@@ -6330,7 +6754,7 @@ If `schema` is set, that schema is used,
 otherwise the schema is inferred from `value`.
 ```
 
-### `<DataSlice>.get_attr(attr_name, /, default)` {#<DataSlice>.get_attr}
+### `<DataSlice>.get_attr(attr_name, /, default=None)` {#<DataSlice>.get_attr}
 
 ``` {.no-copy}
 Gets attribute `attr_name` where missing items are filled from `default`.
@@ -6577,7 +7001,7 @@ QType of the stored value.
 
 *No description*
 
-### `<DataSlice>.select(self, fltr, expand_filter)` {#<DataSlice>.select}
+### `<DataSlice>.select(self, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#<DataSlice>.select}
 
 *No description*
 
@@ -6597,13 +7021,13 @@ QType of the stored value.
 
 *No description*
 
-### `<DataSlice>.set_attr(attr_name, value, /, update_schema)` {#<DataSlice>.set_attr}
+### `<DataSlice>.set_attr(attr_name, value, /, update_schema=False)` {#<DataSlice>.set_attr}
 
 ``` {.no-copy}
 Sets an attribute `attr_name` to `value`.
 ```
 
-### `<DataSlice>.set_attrs(*, update_schema, **attrs)` {#<DataSlice>.set_attrs}
+### `<DataSlice>.set_attrs(*, update_schema=False, **attrs)` {#<DataSlice>.set_attrs}
 
 ``` {.no-copy}
 Sets multiple attributes on an object / entity.
@@ -6629,11 +7053,11 @@ Returns:
   DataSlice with the provided `schema`.
 ```
 
-### `<DataSlice>.shallow_clone(self, *, itemid, schema, **overrides)` {#<DataSlice>.shallow_clone}
+### `<DataSlice>.shallow_clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#<DataSlice>.shallow_clone}
 
 *No description*
 
-### `<DataSlice>.stub(self, attrs)` {#<DataSlice>.stub}
+### `<DataSlice>.stub(self, attrs=DataSlice([], schema: OBJECT, shape: JaggedShape(0)))` {#<DataSlice>.stub}
 
 *No description*
 
@@ -6641,7 +7065,7 @@ Returns:
 
 *No description*
 
-### `<DataSlice>.to_py(ds, max_depth, obj_as_dict, include_missing_attrs)` {#<DataSlice>.to_py}
+### `<DataSlice>.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True)` {#<DataSlice>.to_py}
 
 ``` {.no-copy}
 Returns a readable python object from a DataSlice.
@@ -6658,7 +7082,7 @@ Returns a readable python object from a DataSlice.
       objects.
 ```
 
-### `<DataSlice>.to_pytree(ds, max_depth, include_missing_attrs)` {#<DataSlice>.to_pytree}
+### `<DataSlice>.to_pytree(ds, max_depth=2, include_missing_attrs=True)` {#<DataSlice>.to_pytree}
 
 ``` {.no-copy}
 Returns a readable python object from a DataSlice.
@@ -6680,11 +7104,11 @@ Returns a readable python object from a DataSlice.
 
 *No description*
 
-### `<DataSlice>.with_attr(self, attr_name, value, update_schema)` {#<DataSlice>.with_attr}
+### `<DataSlice>.with_attr(self, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#<DataSlice>.with_attr}
 
 *No description*
 
-### `<DataSlice>.with_attrs(self, *, update_schema, **attrs)` {#<DataSlice>.with_attrs}
+### `<DataSlice>.with_attrs(self, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#<DataSlice>.with_attrs}
 
 *No description*
 
@@ -6700,7 +7124,7 @@ Returns a copy of DataSlice with DataBag `db`.
 Returns a copy of DataSlice with DataBag `db`.
 ```
 
-### `<DataSlice>.with_dict_update(self, keys, values)` {#<DataSlice>.with_dict_update}
+### `<DataSlice>.with_dict_update(self, keys, values=unspecified)` {#<DataSlice>.with_dict_update}
 
 *No description*
 
@@ -6790,19 +7214,19 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
     DataSlice of concatenated Lists
 ```
 
-### `<DataBag>.contents_repr(self, /, *, triple_limit)` {#<DataBag>.contents_repr}
+### `<DataBag>.contents_repr(self, /, *, triple_limit=1000)` {#<DataBag>.contents_repr}
 
 ``` {.no-copy}
 Returns a representation of the DataBag contents.
 ```
 
-### `<DataBag>.data_triples_repr(self, *, triple_limit)` {#<DataBag>.data_triples_repr}
+### `<DataBag>.data_triples_repr(self, *, triple_limit=1000)` {#<DataBag>.data_triples_repr}
 
 ``` {.no-copy}
 Returns a representation of the DataBag contents, omitting schema triples.
 ```
 
-### `<DataBag>.dict(self, /, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict}
+### `<DataBag>.dict(self, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#<DataBag>.dict}
 
 ``` {.no-copy}
 Creates a Koda dict.
@@ -6846,7 +7270,7 @@ Creates a Koda dict.
     A DataSlice with the dict.
 ```
 
-### `<DataBag>.dict_like(self, shape_and_mask_from, /, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict_like}
+### `<DataBag>.dict_like(self, shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#<DataBag>.dict_like}
 
 ``` {.no-copy}
 Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
@@ -6882,7 +7306,7 @@ Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 Returns a dict schema from the schemas of the keys and values
 ```
 
-### `<DataBag>.dict_shaped(self, shape, /, items_or_keys, values, *, key_schema, value_schema, schema, itemid)` {#<DataBag>.dict_shaped}
+### `<DataBag>.dict_shaped(self, shape, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#<DataBag>.dict_shaped}
 
 ``` {.no-copy}
 Creates new Koda dicts with the given shape.
@@ -6922,7 +7346,7 @@ Returns an empty DataBag.
 Unique identifier of the value.
 ```
 
-### `<DataBag>.fork(mutable)` {#<DataBag>.fork}
+### `<DataBag>.fork(mutable=True)` {#<DataBag>.fork}
 
 ``` {.no-copy}
 Returns a newly created DataBag with the same content as self.
@@ -6992,7 +7416,7 @@ Implodes a Dataslice `x` a specified number of times.
 Returns present iff this DataBag is mutable.
 ```
 
-### `<DataBag>.list(self, /, items, *, item_schema, schema, itemid)` {#<DataBag>.list}
+### `<DataBag>.list(self, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#<DataBag>.list}
 
 ``` {.no-copy}
 Creates list(s) by collapsing `items`.
@@ -7022,7 +7446,7 @@ Creates list(s) by collapsing `items`.
     A DataSlice with the list/lists.
 ```
 
-### `<DataBag>.list_like(self, shape_and_mask_from, /, items, *, item_schema, schema, itemid)` {#<DataBag>.list_like}
+### `<DataBag>.list_like(self, shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#<DataBag>.list_like}
 
 ``` {.no-copy}
 Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
@@ -7048,7 +7472,7 @@ Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 Returns a list schema from the schema of the items
 ```
 
-### `<DataBag>.list_shaped(self, shape, /, items, *, item_schema, schema, itemid)` {#<DataBag>.list_shaped}
+### `<DataBag>.list_shaped(self, shape, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#<DataBag>.list_shaped}
 
 ``` {.no-copy}
 Creates new Koda lists with the given shape.
@@ -7073,7 +7497,7 @@ Creates new Koda lists with the given shape.
 Returns a new DataBag with all the fallbacks merged.
 ```
 
-### `<DataBag>.merge_inplace(self, other_bags, /, *, overwrite, allow_data_conflicts, allow_schema_conflicts)` {#<DataBag>.merge_inplace}
+### `<DataBag>.merge_inplace(self, other_bags, /, *, overwrite=True, allow_data_conflicts=True, allow_schema_conflicts=False)` {#<DataBag>.merge_inplace}
 
 ``` {.no-copy}
 Copies all data from `other_bags` to this DataBag.
@@ -7109,7 +7533,7 @@ Copies all data from `other_bags` to this DataBag.
 Creates a named schema with ItemId derived only from its name.
 ```
 
-### `<DataBag>.new(arg, *, schema, update_schema, itemid, **attrs)` {#<DataBag>.new}
+### `<DataBag>.new(arg, *, schema=None, update_schema=False, itemid=None, **attrs)` {#<DataBag>.new}
 
 ``` {.no-copy}
 Creates Entities with given attrs.
@@ -7131,7 +7555,7 @@ Returns:
   data_slice.DataSlice with the given attrs.
 ```
 
-### `<DataBag>.new_like(shape_and_mask_from, *, schema, update_schema, itemid, **attrs)` {#<DataBag>.new_like}
+### `<DataBag>.new_like(shape_and_mask_from, *, schema=None, update_schema=False, itemid=None, **attrs)` {#<DataBag>.new_like}
 
 ``` {.no-copy}
 Creates new Entities with the shape and sparsity from shape_and_mask_from.
@@ -7158,7 +7582,7 @@ Returns:
 Creates new schema object with given types of attrs.
 ```
 
-### `<DataBag>.new_shaped(shape, *, schema, update_schema, itemid, **attrs)` {#<DataBag>.new_shaped}
+### `<DataBag>.new_shaped(shape, *, schema=None, update_schema=False, itemid=None, **attrs)` {#<DataBag>.new_shaped}
 
 ``` {.no-copy}
 Creates new Entities with the given shape.
@@ -7178,7 +7602,7 @@ Returns:
   data_slice.DataSlice with the given attrs.
 ```
 
-### `<DataBag>.obj(arg, *, itemid, **attrs)` {#<DataBag>.obj}
+### `<DataBag>.obj(arg, *, itemid=None, **attrs)` {#<DataBag>.obj}
 
 ``` {.no-copy}
 Creates new Objects with an implicit stored schema.
@@ -7196,7 +7620,7 @@ Returns:
   data_slice.DataSlice with the given attrs and kd.OBJECT schema.
 ```
 
-### `<DataBag>.obj_like(shape_and_mask_from, *, itemid, **attrs)` {#<DataBag>.obj_like}
+### `<DataBag>.obj_like(shape_and_mask_from, *, itemid=None, **attrs)` {#<DataBag>.obj_like}
 
 ``` {.no-copy}
 Creates Objects with shape and sparsity from shape_and_mask_from.
@@ -7214,7 +7638,7 @@ Returns:
   data_slice.DataSlice with the given attrs.
 ```
 
-### `<DataBag>.obj_shaped(shape, *, itemid, **attrs)` {#<DataBag>.obj_shaped}
+### `<DataBag>.obj_shaped(shape, *, itemid=None, **attrs)` {#<DataBag>.obj_shaped}
 
 ``` {.no-copy}
 Creates Objects with the given shape.
@@ -7236,13 +7660,13 @@ Returns:
 QType of the stored value.
 ```
 
-### `<DataBag>.schema_triples_repr(self, *, triple_limit)` {#<DataBag>.schema_triples_repr}
+### `<DataBag>.schema_triples_repr(self, *, triple_limit=1000)` {#<DataBag>.schema_triples_repr}
 
 ``` {.no-copy}
 Returns a representation of schema triples in the DataBag.
 ```
 
-### `<DataBag>.uu(seed, *, schema, update_schema, **kwargs)` {#<DataBag>.uu}
+### `<DataBag>.uu(seed, *, schema=None, update_schema=False, **kwargs)` {#<DataBag>.uu}
 
 ``` {.no-copy}
 Creates an item whose ids are uuid(s) with the set attributes.

@@ -29,6 +29,7 @@ default_visibility = [
 # TODO(b/379873449); remove once we have a public API to define user operators.
 user_ops_visibility = [
     "//quality/arolla/projects/rankchain/experimental/koda_v1/llm:__subpackages__",
+    "//quality/arolla/doc:__subpackages__",
 ]
 
 package(default_visibility = default_visibility)
@@ -212,7 +213,6 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
-        "//py/koladata/expr:view",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
@@ -385,7 +385,6 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
-        "//py/koladata/expr:view",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
@@ -472,6 +471,7 @@ py_test(
 py_library(
     name = "eager_op_utils",
     srcs = ["eager_op_utils.py"],
+    visibility = default_visibility + user_ops_visibility,
     deps = [
         ":kde_operators",
         "//py/koladata/expr:py_expr_eval_py_ext",
