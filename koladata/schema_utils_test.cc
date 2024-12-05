@@ -327,6 +327,32 @@ TEST(SchemaUtilsTest, ExpectBytes) {
                        "of ANY with items of type STRING"));
 }
 
+TEST(SchemaUtilsTest, ExpectSchema) {
+  EXPECT_THAT(
+      ExpectSchema("foo", test::DataItem(std::nullopt, schema::kObject)),
+      IsOk());
+  EXPECT_THAT(
+      ExpectSchema("foo", test::DataSlice<schema::DType>(
+                              {schema::kBool, schema::kInt32, std::nullopt})),
+      IsOk());
+  EXPECT_THAT(
+      ExpectSchema("foo", test::DataSlice<schema::DType>(
+                              {schema::kBool, schema::kInt32, std::nullopt},
+                              schema::kObject)),
+      IsOk());
+  auto schema = internal::AllocateExplicitSchema();
+  EXPECT_THAT(ExpectSchema("foo", test::MixedDataSlice<schema::DType, ObjectId>(
+                                      {schema::kBool, std::nullopt},
+                                      {std::nullopt, schema}, schema::kSchema)),
+              IsOk());
+  EXPECT_THAT(
+      ExpectSchema("foo", test::DataSlice<arolla::Text>(
+                              {"a", "b", std::nullopt}, schema::kAny)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of SCHEMA, got a slice "
+               "of ANY with items of type STRING"));
+}
+
 TEST(SchemaUtilsTest, ExpectPresentScalar) {
   EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem(true, schema::kBool),
                                   schema::kBool),

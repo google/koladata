@@ -38,7 +38,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/util/string.h"
 
 namespace koladata {
 namespace {
@@ -110,6 +109,16 @@ absl::Status ExpectBytes(absl::string_view arg_name, const DataSlice& arg) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "argument `%s` must be a slice of %v, got a slice of %s", arg_name,
         schema::kBytes, schema_utils_internal::DescribeSliceSchema(arg)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status ExpectSchema(absl::string_view arg_name, const DataSlice& arg) {
+  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(arg),
+                                      internal::DataItem(schema::kSchema))) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be a slice of %v, got a slice of %s", arg_name,
+        schema::kSchema, schema_utils_internal::DescribeSliceSchema(arg)));
   }
   return absl::OkStatus();
 }
