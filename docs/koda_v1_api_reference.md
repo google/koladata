@@ -3,7 +3,7 @@
 # Koda API Reference
 
 <!--* freshness: {
-  reviewed: '2024-12-04'
+  reviewed: '2024-12-05'
   owner: 'amik'
   owner: 'olgasilina'
 } *-->
@@ -360,15 +360,15 @@ broadcasted to `x`, and each value is repeated the given number of times.
 Example:
   ds = kd.slice([[1, None], [3]])
   sizes = kd.slice([[1, 2], [3]])
-  kd.add_dim(ds, sizes)  # -> kd.slice([[[1], [None, None]], [[3, 3, 3]]])
+  kd.repeat(ds, sizes)  # -> kd.slice([[[1], [None, None]], [[3, 3, 3]]])
 
   ds = kd.slice([[1, None], [3]])
   sizes = kd.slice([2, 3])
-  kd.add_dim(ds, sizes)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3, 3]]])
+  kd.repeat(ds, sizes)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3, 3]]])
 
   ds = kd.slice([[1, None], [3]])
   size = kd.item(2)
-  kd.add_dim(ds, size)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3]]])
+  kd.repeat(ds, size)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3]]])
 
 Args:
   x: A DataSlice of data.
@@ -386,15 +386,15 @@ broadcasted to `x`, and each value is repeated the given number of times.
 Example:
   ds = kd.slice([[1, None], [3]])
   sizes = kd.slice([[1, 2], [3]])
-  kd.add_dim_to_present(ds, sizes)  # -> kd.slice([[[1], []], [[3, 3, 3]]])
+  kd.repeat_present(ds, sizes)  # -> kd.slice([[[1], []], [[3, 3, 3]]])
 
   ds = kd.slice([[1, None], [3]])
   sizes = kd.slice([2, 3])
-  kd.add_dim(ds, sizes)  # -> kd.slice([[[1, 1], []], [[3, 3, 3]]])
+  kd.repeat_present(ds, sizes)  # -> kd.slice([[[1, 1], []], [[3, 3, 3]]])
 
   ds = kd.slice([[1, None], [3]])
   size = kd.item(2)
-  kd.add_dim(ds, size)  # -> kd.slice([[[1, 1], []], [[3, 3]]])
+  kd.repeat_present(ds, size)  # -> kd.slice([[[1, 1], []], [[3, 3]]])
 
 Args:
   x: A DataSlice of data.
@@ -2285,15 +2285,41 @@ broadcasted to `x`, and each value is repeated the given number of times.
 Example:
   ds = kd.slice([[1, None], [3]])
   sizes = kd.slice([[1, 2], [3]])
-  kd.add_dim(ds, sizes)  # -> kd.slice([[[1], [None, None]], [[3, 3, 3]]])
+  kd.repeat(ds, sizes)  # -> kd.slice([[[1], [None, None]], [[3, 3, 3]]])
 
   ds = kd.slice([[1, None], [3]])
   sizes = kd.slice([2, 3])
-  kd.add_dim(ds, sizes)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3, 3]]])
+  kd.repeat(ds, sizes)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3, 3]]])
 
   ds = kd.slice([[1, None], [3]])
   size = kd.item(2)
-  kd.add_dim(ds, size)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3]]])
+  kd.repeat(ds, size)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3]]])
+
+Args:
+  x: A DataSlice of data.
+  sizes: A DataSlice of sizes that each value in `x` should be repeated for.
+```
+
+### `kd.core.repeat_present(x, sizes)` {#kd.core.repeat_present}
+
+``` {.no-copy}
+Returns `x` with present values repeated according to `sizes`.
+
+The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
+broadcasted to `x`, and each value is repeated the given number of times.
+
+Example:
+  ds = kd.slice([[1, None], [3]])
+  sizes = kd.slice([[1, 2], [3]])
+  kd.repeat_present(ds, sizes)  # -> kd.slice([[[1], []], [[3, 3, 3]]])
+
+  ds = kd.slice([[1, None], [3]])
+  sizes = kd.slice([2, 3])
+  kd.repeat_present(ds, sizes)  # -> kd.slice([[[1, 1], []], [[3, 3, 3]]])
+
+  ds = kd.slice([[1, None], [3]])
+  size = kd.item(2)
+  kd.repeat_present(ds, size)  # -> kd.slice([[[1, 1], []], [[3, 3]]])
 
 Args:
   x: A DataSlice of data.
@@ -5448,27 +5474,24 @@ Returns:
   DataSlice of STRING.
 ```
 
-### `kd.strings.find(s, substr, start, end, failure_value)` {#kd.strings.find}
+### `kd.strings.find(s, substr, start, end)` {#kd.strings.find}
 
 ``` {.no-copy}
 Returns the offset of the first occurrence of `substr` in `s`.
-
-Searches within the offset range of `[start, end)`. If nothing is found,
-returns `failure_value`.
 
 The units of `start`, `end`, and the return value are all byte offsets if `s`
 is `BYTES` and codepoint offsets if `s` is `STRING`.
 
 Args:
  s: (STRING or BYTES) Strings to search in.
- substr: (STRING or BYTES)  Strings to search for in `s`. Should have the same
+ substr: (STRING or BYTES) Strings to search for in `s`. Should have the same
    dtype as `s`.
- start: (optional int) Offset to start the search. Defaults to 0.
- end: (optional int) Offset to stop the search.
- failure_value: (optional int) Reported if `substr` is not found in `s`.
+ start: (optional int) Offset to start the search, defaults to 0.
+ end: (optional int) Offset to stop the search, defaults to end of the string.
 
 Returns:
-  The offset of the first occurrence of `substr` in `s`.
+  The offset of the last occurrence of `substr` in `s`, or missing if there
+  are no occurrences.
 ```
 
 ### `kd.strings.format(fmt, /, **kwargs)` {#kd.strings.format}
@@ -5746,27 +5769,24 @@ Returns:
   String with applied substitutions.
 ```
 
-### `kd.strings.rfind(s, substr, start, end, failure_value)` {#kd.strings.rfind}
+### `kd.strings.rfind(s, substr, start, end)` {#kd.strings.rfind}
 
 ``` {.no-copy}
 Returns the offset of the last occurrence of `substr` in `s`.
-
-Searches within the offset range of `[start, end)`. If nothing is found,
-returns `failure_value`.
 
 The units of `start`, `end`, and the return value are all byte offsets if `s`
 is `BYTES` and codepoint offsets if `s` is `STRING`.
 
 Args:
  s: (STRING or BYTES) Strings to search in.
- substr: (STRING or BYTES)  Strings to search for in `s`. Should have the same
+ substr: (STRING or BYTES) Strings to search for in `s`. Should have the same
    dtype as `s`.
- start: (optional int) Offset to start the search. Defaults to 0.
- end: (optional int) Offset to stop the search.
- failure_value: (optional int) Reported if `substr` is not found in `s`.
+ start: (optional int) Offset to start the search, defaults to 0.
+ end: (optional int) Offset to stop the search, defaults to end of the string.
 
 Returns:
-  The offset of the last occurrence of `substr` in `s`.
+  The offset of the last occurrence of `substr` in `s`, or missing if there
+  are no occurrences.
 ```
 
 ### `kd.strings.rstrip(s, chars)` {#kd.strings.rstrip}
