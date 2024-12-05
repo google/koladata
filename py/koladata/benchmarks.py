@@ -1261,5 +1261,26 @@ def create_large_functor_auto_variables(state):
     _ = kdf.expr_fn(expr, auto_variables=True)
 
 
+@google_benchmark.register
+@google_benchmark.option.arg_names(['fallback_count', 'same_attr_name'])
+@google_benchmark.option.args([1, False])
+@google_benchmark.option.args([10, False])
+@google_benchmark.option.args([100, False])
+@google_benchmark.option.args([1000, False])
+@google_benchmark.option.args([1, True])
+@google_benchmark.option.args([10, True])
+@google_benchmark.option.args([100, True])
+@google_benchmark.option.args([1000, True])
+def databag_repr_fallbacks(state):
+  """Benchmark repr for a DataBag with many fallbacks."""
+  fallback_count = state.range(0)
+  e = kd.new_like(kd.slice([1, 2, 3, 4, 5, 6, 7]))
+  for i in range(fallback_count):
+    attr_name = 'abc' if state.range(1) else f'abc{i}'
+    e = kd.with_attr(e, attr_name, kd.slice([1, 2, 3, 4, 5, 6, 7]))
+  while state:
+    _ = repr(e.db)
+
+
 if __name__ == '__main__':
   google_benchmark.main()
