@@ -1794,8 +1794,7 @@ kd.strings.encode(kd.slice(['abc', 'def']))
 ```
 
 Strings and bytes can be converted using base64 encoding. base64 encoding is
-useful to representing bytes in a pure string format (e.g. using JSON format
-with LLM).
+useful to representing bytes in a pure string format (e.g. using JSON format).
 
 ```py
 # Encodes x as STRING using base64 decoding.
