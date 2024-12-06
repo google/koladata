@@ -616,6 +616,54 @@ class OptoolsTest(parameterized.TestCase):
       def op2():
         return op1()
 
+  def test_as_py_function_operator_defaults(self):
+
+    @optools.as_py_function_operator('py_op')
+    def fn(x, y=py_boxing.keyword_only()):
+      return x + y
+
+    self.assertIsInstance(fn, arolla.types.PyFunctionOperator)
+    self.assertEqual(fn.display_name, 'py_op')
+    self.assertEqual(arolla.abc.get_operator_signature(fn).aux_policy,
+                     py_boxing.FULL_SIGNATURE_POLICY)
+    self.assertEqual(
+        inspect.signature(fn), inspect.signature(lambda x, *, y: x + y)
+    )
+    testing.assert_equal(arolla.eval(fn(1, y=2)), ds(3))
+    with self.assertRaisesRegex(ValueError, 'missing serialization codec'):
+      arolla.s11n.dumps(fn)
+
+  def test_as_py_function_operator_overrides(self):
+    ref_codec = arolla.types.PyObjectReferenceCodec()
+
+    @optools.as_py_function_operator(
+        'py_op',
+        qtype_constraints=[(arolla.P.x == arolla.INT32, 'expected INT32')],
+        qtype_inference_expr=arolla.TEXT,
+        aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
+        codec=ref_codec.name,
+    )
+    def fn(x, y):
+      return arolla.text('foo') if x + y > 2 else arolla.text('bar')
+
+    self.assertIsInstance(fn, arolla.types.PyFunctionOperator)
+    self.assertEqual(fn.display_name, 'py_op')
+    self.assertEqual(
+        arolla.abc.get_operator_signature(fn).aux_policy,
+        py_boxing.DEFAULT_AROLLA_POLICY,
+    )
+    testing.assert_equal(
+        arolla.eval(fn(arolla.int32(1), arolla.int32(2))), arolla.text('foo')
+    )
+    with self.assertRaisesRegex(ValueError, 'expected INT32'):
+      arolla.eval(fn(arolla.int64(1), arolla.int32(2)))
+
+    loaded_fn = arolla.s11n.loads(arolla.s11n.dumps(fn))
+    self.assertEqual(
+        arolla.eval(loaded_fn(arolla.int32(1), arolla.int32(1))),
+        arolla.text('bar'),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

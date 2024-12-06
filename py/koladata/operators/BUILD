@@ -120,6 +120,7 @@ py_library(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )

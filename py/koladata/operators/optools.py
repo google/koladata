@@ -26,6 +26,7 @@ from koladata.operators import op_repr
 from koladata.operators import qtype_utils
 from koladata.operators import unified_binding_policy
 from koladata.types import py_boxing
+from koladata.types import qtypes
 
 
 P = input_container.InputContainer('P')
@@ -272,6 +273,53 @@ def as_lambda_operator(
         op_expr,
         qtype_constraints=qtype_constraints,
         name=name,
+        doc=inspect.getdoc(fn) or '',
+    )
+
+  return impl
+
+
+def as_py_function_operator(
+    name: str,
+    *,
+    qtype_inference_expr: (
+        arolla.abc.QType | arolla.abc.Expr
+    ) = qtypes.DATA_SLICE,
+    qtype_constraints: arolla.types.QTypeConstraints = (),
+    aux_policy: str = py_boxing.FULL_SIGNATURE_POLICY,
+    codec: bytes | None = None,
+) -> Callable[[types.FunctionType], arolla.types.PyFunctionOperator]:
+  """Returns a decorator for defining Koladata-specific py function operators.
+
+  The wrapped function should take QValues as input and should return a single
+  QValue as output.
+
+  IMPORTANT: The callable should be pure and functionally const (i.e. it should
+  not be mutated or depend on objects that are mutated between evaluations). No
+  guarantees are made for the correctness of functions that rely on side-effects
+  or on changing non-local data, as we may e.g. cache evaluation results.
+
+  The resulting operator is serializable if it is added to the operator registry
+  or if a serialization `codec` is provided.
+
+  Args:
+    name: Name of the operator.
+    qtype_inference_expr: expression that computes operator's output qtype; an
+      argument qtype can be referenced as P.arg_name.
+    qtype_constraints: QType constraints for the operator.
+    aux_policy: Aux policy for the operator.
+    codec: A PyObject serialization codec for the wrapped function, compatible
+      with `arolla.types.encode_py_object`.
+  """
+
+  def impl(fn):
+    signature = _build_operator_signature_from_fn(fn, aux_policy)
+    return arolla.types.PyFunctionOperator(
+        name,
+        signature,
+        arolla.types.PyObject(fn, codec=codec),
+        qtype_inference_expr=qtype_inference_expr,
+        qtype_constraints=qtype_constraints,
         doc=inspect.getdoc(fn) or '',
     )
 
