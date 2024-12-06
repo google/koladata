@@ -17,7 +17,7 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_format.h"
+#include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -27,6 +27,7 @@
 #include "koladata/operators/utils.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/util/repr.h"
 
 namespace koladata::ops {
 
@@ -166,6 +167,9 @@ inline DataSlice IsListSchema(const DataSlice& schema) {
 inline DataSlice IsPrimitiveSchema(const DataSlice& schema) {
   return AsMask(schema.IsPrimitiveSchema());
 }
+
+// kde.schema._agg_common_schema operator.
+absl::StatusOr<DataSlice> AggCommonSchema(const DataSlice& x);
 
 }  // namespace koladata::ops
 

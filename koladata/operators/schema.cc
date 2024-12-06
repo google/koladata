@@ -26,9 +26,12 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/op_utils/agg_common_schema.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
+#include "koladata/schema_utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
@@ -38,7 +41,6 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
-#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -245,6 +247,19 @@ absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
                    CreateDictSchema(db, key_schema, value_schema));
   db->UnsafeMakeImmutable();
   return dict_schema;
+}
+
+absl::StatusOr<DataSlice> AggCommonSchema(const DataSlice& x) {
+  RETURN_IF_ERROR(ExpectSchema("x", x));
+  if (x.is_item()) {
+    return absl::InvalidArgumentError(
+        "aggregation is not supported for scalar DataItems");
+  }
+  const auto& shape = x.GetShape();
+  ASSIGN_OR_RETURN(
+      auto res, internal::AggCommonSchemaOp(x.slice(), shape.edges().back()));
+  return DataSlice::Create(std::move(res), shape.RemoveDims(shape.rank() - 1),
+                           internal::DataItem(schema::kSchema), x.GetBag());
 }
 
 }  // namespace koladata::ops

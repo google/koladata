@@ -201,6 +201,7 @@ OPERATOR("kde.math.sigmoid", Sigmoid);
 OPERATOR("kde.math.sign", Sign);
 OPERATOR("kde.math.subtract", Subtract);
 //
+OPERATOR("kde.schema._agg_common_schema", AggCommonSchema);
 OPERATOR("kde.schema._internal_maybe_named_schema", InternalMaybeNamedSchema);
 OPERATOR("kde.schema.cast_to", CastTo);
 OPERATOR("kde.schema.cast_to_implicit", CastToImplicit);

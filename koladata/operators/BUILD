@@ -119,6 +119,7 @@ cc_library(
         "//koladata/internal:non_deterministic_token",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
+        "//koladata/internal/op_utils:agg_common_schema",
         "//koladata/internal/op_utils:agg_uuid",
         "//koladata/internal/op_utils:at",
         "//koladata/internal/op_utils:collapse",

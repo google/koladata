@@ -713,3 +713,60 @@ def is_list_schema(x):  # pylint: disable=unused-argument
 def is_primitive_schema(x):  # pylint: disable=unused-argument
   """Returns true iff `x` is a primitive schema DataItem."""
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.schema._agg_common_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _agg_common_schema(x):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.schema.agg_common_schema',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
+    ],
+)
+def agg_common_schema(x, ndim=arolla.unspecified()):
+  """Returns the common schema of `x` along the last `ndim` dimensions.
+
+  The "common schema" is defined according to go/koda-type-promotion.
+
+  Examples:
+    kd.agg_common_schema(kd.slice([kd.INT32, None, kd.FLOAT32]))
+      # -> kd.FLOAT32
+
+    kd.agg_common_schema(kd.slice([[kd.INT32, None], [kd.FLOAT32, kd.FLOAT64]]))
+      # -> kd.slice([kd.INT32, kd.FLOAT64])
+
+    kd.agg_common_schema(
+        kd.slice([[kd.INT32, None], [kd.FLOAT32, kd.FLOAT64]]), ndim=2)
+      # -> kd.FLOAT64
+
+  Args:
+    x: DataSlice of schemas.
+    ndim: The number of last dimensions to aggregate over.
+  """
+  return _agg_common_schema(jagged_shape_ops.flatten_last_ndim(x, ndim))
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kde.schema.common_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+)
+def common_schema(x):
+  """Returns the common schema as a scalar DataItem of `x`.
+
+  The "common schema" is defined according to go/koda-type-promotion.
+
+  Args:
+    x: DataSlice of schemas.
+  """
+  return agg_common_schema(jagged_shape_ops.flatten(x))
