@@ -256,8 +256,8 @@ py_library(
     name = "schema",
     srcs = ["schema.py"],
     deps = [
-        ":assertion",
         ":jagged_shape",
+        ":logical",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -364,7 +364,6 @@ py_library(
         ":op_repr",
         ":optools",
         ":qtype_utils",
-        ":schema",
         "//koladata/operators",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",

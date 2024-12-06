@@ -49,6 +49,14 @@ class SchemaWithSchemaFromObjTest(parameterized.TestCase):
       (ds([obj, None]), ds([entity, None])),
       (ds([[obj], [obj, None]]), ds([[entity], [entity, None]])),
       (ds([1, 2, None], schema_constants.OBJECT), ds([1, 2, None])),
+      # Common schema for primitives.
+      (ds([1, 2.0, None], schema_constants.OBJECT), ds([1.0, 2.0, None])),
+      (
+          ds([1, 'abc', None], schema_constants.OBJECT),
+          ds([1, 'abc', None], schema_constants.OBJECT),
+      ),
+      # Empty.
+      (ds([None, None], schema_constants.OBJECT), ds([None, None])),
   )
   def test_eval(self, x, expected):
     res = expr_eval.eval(kde.schema.with_schema_from_obj(x))
@@ -62,17 +70,15 @@ class SchemaWithSchemaFromObjTest(parameterized.TestCase):
       expr_eval.eval(kde.schema.with_schema_from_obj(x))
 
   def test_mixed_entity_schemas_error(self):
-    x = ds([db.obj(x=1), db.obj(x=1)])
-    with self.assertRaisesRegex(
-        ValueError, 'objects or primitives in `x` do not have an uniform schema'
-    ):
+    o1 = db.new(x=1).embed_schema()
+    o2 = db.new(x=1).embed_schema()
+    x = ds([o1, o2, None])
+    with self.assertRaisesRegex(ValueError, 'no common schema'):
       expr_eval.eval(kde.schema.with_schema_from_obj(x))
 
-  def test_empty_data_error(self):
-    x = ds([None, None], schema_constants.OBJECT)
-    with self.assertRaisesRegex(
-        ValueError, 'objects or primitives in `x` do not have an uniform schema'
-    ):
+  def test_mixed_entity_and_primitive_schemas_error(self):
+    x = ds([obj, 1, None])
+    with self.assertRaisesRegex(ValueError, 'no common schema'):
       expr_eval.eval(kde.schema.with_schema_from_obj(x))
 
   def test_non_obj_schema_error(self):

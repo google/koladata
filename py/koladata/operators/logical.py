@@ -20,15 +20,85 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.operators import schema
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
 M = arolla.M
 P = arolla.P
 
-# Implemented in schema.py to avoid a dependency cycle.
-has = schema._has  # pylint: disable=protected-access
+
+@optools.add_to_registry(aliases=['kde.has'])
+@optools.as_backend_operator(
+    'kde.logical.has',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def has(x):  # pylint: disable=unused-argument
+  """Returns presence of `x`.
+
+  Pointwise operator which take a DataSlice and return a MASK indicating the
+  presence of each item in `x`. Returns `kd.present` for present items and
+  `kd.missing` for missing items.
+
+  Args:
+    x: DataSlice.
+
+  Returns:
+    DataSlice representing the presence of `x`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+# Implemented here to avoid a dependency cycle.
+@optools.add_to_registry(aliases=['kde.with_schema'])
+@optools.as_backend_operator(
+    'kde.schema.with_schema',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.schema),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _with_schema(x, schema):  # pylint: disable=unused-argument
+  """Returns a copy of `x` with the provided `schema`.
+
+  If `schema` is an Entity schema, it must have no DataBag or the same DataBag
+  as `x`. To set schema with a different DataBag, use `kd.set_schema` instead.
+
+  It only changes the schemas of `x` and does not change the items in `x`. To
+  change the items in `x`, use `kd.cast_to` instead. For example,
+
+    kd.with_schema(kd.ds([1, 2, 3]), kd.FLOAT32) -> fails because the items in
+        `x` are not compatible with FLOAT32.
+    kd.cast_to(kd.ds([1, 2, 3]), kd.FLOAT32) -> kd.ds([1.0, 2.0, 3.0])
+
+  When items in `x` are primitives or `schemas` is a primitive schema, it checks
+  items and schema are compatible. When items are ItemIds and `schema` is a
+  non-primitive schema, it does not check the underlying data matches the
+  schema. For example,
+
+    kd.with_schema(kd.ds([1, 2, 3], schema=kd.ANY), kd.INT32) ->
+        kd.ds([1, 2, 3])
+    kd.with_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
+
+    db = kd.bag()
+    kd.with_schema(kd.ds(1).with_bag(db), db.new_schema(x=kd.INT32)) -> fail due
+        to incompatible schema
+    kd.with_schema(db.new(x=1), kd.INT32) -> fail due to incompatible schema
+    kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32)) -> fail due to
+        different DataBag
+    kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32).no_bag()) ->
+    work
+    kd.with_schema(db.new(x=1), db.new_schema(x=kd.INT64)) -> work
+
+  Args:
+    x: DataSlice to change the schema of.
+    schema: DataSlice containing the new schema.
+
+  Returns:
+    DataSlice with the new schema.
+  """
+  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(
@@ -183,7 +253,7 @@ def mask_and(x, y):
       schema_constants.MASK,
       'kde.logical.mask_and: argument `y` must have kd.MASK dtype',
   )
-  return schema.with_schema(x & y, schema_constants.MASK)
+  return _with_schema(x & y, schema_constants.MASK)
 
 
 @optools.add_to_registry()
@@ -222,7 +292,7 @@ def mask_or(x, y):
       schema_constants.MASK,
       'kde.logical.mask_or: argument `y` must have kd.MASK dtype',
   )
-  return schema.with_schema(x | y, schema_constants.MASK)
+  return _with_schema(x | y, schema_constants.MASK)
 
 
 @optools.add_to_registry(aliases=['kde.mask_equal'])
@@ -262,7 +332,7 @@ def mask_equal(x, y):
       schema_constants.MASK,
       'kde.logical.mask_equal: argument `y` must have kd.MASK dtype',
   )
-  return schema.with_schema((x & y) | (~x & ~y), schema_constants.MASK)
+  return _with_schema((x & y) | (~x & ~y), schema_constants.MASK)
 
 
 @optools.add_to_registry(aliases=['kde.mask_not_equal'])

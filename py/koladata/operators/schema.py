@@ -15,8 +15,8 @@
 """Schema operators."""
 
 from arolla import arolla
-from koladata.operators import assertion
 from koladata.operators import jagged_shape as jagged_shape_ops
+from koladata.operators import logical
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import py_boxing
@@ -26,6 +26,9 @@ from koladata.types import schema_constants
 M = arolla.M
 P = arolla.P
 constraints = arolla.optools.constraints
+
+# Implemented in logical.py to avoid a dependency cycle.
+with_schema = logical._with_schema  # pylint: disable=protected-access
 
 
 @optools.add_to_registry()
@@ -82,29 +85,6 @@ def _collapse(x, ndim=arolla.unspecified()):
     Collapsed DataSlice.
   """
   return _collapse_impl(jagged_shape_ops.flatten_last_ndim(x, ndim))
-
-
-# NOTE: Implemented here to avoid a dependency cycle between logical and schema.
-@optools.add_to_registry(aliases=['kde.has'])
-@optools.as_backend_operator(
-    'kde.logical.has',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def _has(x):  # pylint: disable=unused-argument
-  """Returns presence of `x`.
-
-  Pointwise operator which take a DataSlice and return a MASK indicating the
-  presence of each item in `x`. Returns `kd.present` for present items and
-  `kd.missing` for missing items.
-
-  Args:
-    x: DataSlice.
-
-  Returns:
-    DataSlice representing the presence of `x`.
-  """
-  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
@@ -249,57 +229,6 @@ def internal_maybe_named_schema(name_or_schema):
       default=_internal_maybe_named_schema,
   )
   return process_if_specified(name_or_schema)
-
-
-@optools.add_to_registry(aliases=['kde.with_schema'])
-@optools.as_backend_operator(
-    'kde.schema.with_schema',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.schema),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def with_schema(x, schema):  # pylint: disable=unused-argument
-  """Returns a copy of `x` with the provided `schema`.
-
-  If `schema` is an Entity schema, it must have no DataBag or the same DataBag
-  as `x`. To set schema with a different DataBag, use `kd.set_schema` instead.
-
-  It only changes the schemas of `x` and does not change the items in `x`. To
-  change the items in `x`, use `kd.cast_to` instead. For example,
-
-    kd.with_schema(kd.ds([1, 2, 3]), kd.FLOAT32) -> fails because the items in
-        `x` are not compatible with FLOAT32.
-    kd.cast_to(kd.ds([1, 2, 3]), kd.FLOAT32) -> kd.ds([1.0, 2.0, 3.0])
-
-  When items in `x` are primitives or `schemas` is a primitive schema, it checks
-  items and schema are compatible. When items are ItemIds and `schema` is a
-  non-primitive schema, it does not check the underlying data matches the
-  schema. For example,
-
-    kd.with_schema(kd.ds([1, 2, 3], schema=kd.ANY), kd.INT32) ->
-        kd.ds([1, 2, 3])
-    kd.with_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
-
-    db = kd.bag()
-    kd.with_schema(kd.ds(1).with_bag(db), db.new_schema(x=kd.INT32)) -> fail due
-        to incompatible schema
-    kd.with_schema(db.new(x=1), kd.INT32) -> fail due to incompatible schema
-    kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32)) -> fail due to
-        different DataBag
-    kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32).no_bag()) ->
-    work
-    kd.with_schema(db.new(x=1), db.new_schema(x=kd.INT64)) -> work
-
-  Args:
-    x: DataSlice to change the schema of.
-    schema: DataSlice containing the new schema.
-
-  Returns:
-    DataSlice with the new schema.
-  """
-  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
@@ -647,30 +576,6 @@ def get_value_schema(dict_schema):  # pylint: disable=unused-argument,redefined-
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.with_schema_from_obj'])
-@optools.as_lambda_operator(
-    'kde.schema.with_schema_from_obj',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-)
-def with_schema_from_obj(x):
-  """Returns `x` with its embedded schema set as the schema.
-
-  * `x` must have OBJECT schema.
-  * All items in `x` must have the same embedded schema.
-  * At least one value in `x` must be present.
-
-  Args:
-    x: An OBJECT DataSlice.
-  """
-  embedded_schema = _collapse(jagged_shape_ops.flatten(get_obj_schema(x)))
-  embedded_schema = assertion.with_assertion(
-      embedded_schema,
-      _has(embedded_schema),
-      'objects or primitives in `x` do not have an uniform schema',
-  )
-  return with_schema(x, embedded_schema)
-
-
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.schema.is_dict_schema',
@@ -770,3 +675,28 @@ def common_schema(x):
     x: DataSlice of schemas.
   """
   return agg_common_schema(jagged_shape_ops.flatten(x))
+
+
+@optools.add_to_registry(aliases=['kde.with_schema_from_obj'])
+@optools.as_lambda_operator(
+    'kde.schema.with_schema_from_obj',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+)
+def with_schema_from_obj(x):
+  """Returns `x` with its embedded common schema set as the schema.
+
+  * `x` must have OBJECT schema.
+  * All items in `x` must have a common schema.
+  * If `x` is empty, the schema is set to NONE.
+  * If `x` contains mixed primitives without a common primitive type, the output
+    will have OBJECT schema.
+
+  Args:
+    x: An OBJECT DataSlice.
+  """
+  schema = common_schema(get_obj_schema(x))
+  schema = schema | schema_constants.NONE
+  # Explicit casting is safe since the compatibility is guaranteed by
+  # `get_obj_schema` (returning the schema of the data) and `common_schema`
+  # (returning a safe common alternative).
+  return cast_to(x, schema)
