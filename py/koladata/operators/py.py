@@ -131,7 +131,7 @@ def _unwrap_optional_schema(
 
 
 @optools.add_to_registry(aliases=['kde.apply_py'])
-@arolla.optools.as_py_function_operator(
+@optools.as_py_function_operator(
     'kde.py.apply_py',
     qtype_inference_expr=arolla.M.qtype.conditional_qtype(
         P.return_type_as == arolla.UNSPECIFIED,
@@ -139,7 +139,6 @@ def _unwrap_optional_schema(
         P.return_type_as,
     ),
     qtype_constraints=[_expect_py_callable(P.fn)],
-    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def apply_py(
     fn,
@@ -181,7 +180,7 @@ def apply_py(
 
 
 @optools.add_to_registry(aliases=['kde.apply_py_on_cond'])
-@arolla.optools.as_py_function_operator(
+@optools.as_py_function_operator(
     'kde.py.apply_py_on_cond',
     qtype_constraints=[
         _expect_py_callable(P.yes_fn),
@@ -190,8 +189,6 @@ def apply_py(
         qtype_utils.expect_data_slice_args(P.args),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def apply_py_on_cond(
     yes_fn,
@@ -390,7 +387,7 @@ def _basic_map_py(
 # TODO: b/370978592 - Consider implementing this operator using kdf.map
 #   combined with kd.py_fn, especially if the performance is comparable.
 @optools.add_to_registry(aliases=['kde.map_py'])
-@arolla.optools.as_py_function_operator(
+@optools.as_py_function_operator(
     'kde.py.map_py',
     qtype_constraints=[
         _expect_py_callable(P.fn),
@@ -399,8 +396,6 @@ def _basic_map_py(
         _expect_optional_schema(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def map_py(
     fn,
@@ -500,7 +495,7 @@ def map_py(
 
 
 @optools.add_to_registry(aliases=['kde.map_py_on_cond'])
-@arolla.optools.as_py_function_operator(
+@optools.as_py_function_operator(
     'kde.py.map_py_on_cond',
     qtype_constraints=[
         _expect_py_callable(P.true_fn),
@@ -511,8 +506,6 @@ def map_py(
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def map_py_on_cond(
     true_fn,
@@ -657,7 +650,7 @@ def map_py_on_selected(
 
 
 @optools.add_to_registry(aliases=['kde.map_py_on_present'])
-@arolla.optools.as_py_function_operator(
+@optools.as_py_function_operator(
     'kde.py.map_py_on_present',
     qtype_constraints=[
         _expect_py_callable(P.fn),
@@ -666,8 +659,6 @@ def map_py_on_selected(
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def map_py_on_present(
     fn,

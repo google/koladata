@@ -217,10 +217,8 @@ class EagerOpUtilsTest(parameterized.TestCase):
 
   def test_non_deterministic_op(self):
 
-    @arolla.optools.as_py_function_operator(
-        'increase_counter',
-        qtype_inference_expr=arolla.UNIT,
-        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    @optools.as_py_function_operator(
+        'increase_counter', qtype_inference_expr=arolla.UNIT
     )
     def increase_counter_op(_=py_boxing.hidden_seed()):
       nonlocal counter

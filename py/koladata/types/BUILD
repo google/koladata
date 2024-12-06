@@ -426,7 +426,7 @@ py_test(
 py_library(
     name = "qtypes",
     srcs = ["qtypes.py"],
-    visibility = default_visibility + user_ops_visibility,
+    visibility = default_visibility,
     deps = [
         ":data_bag_py_ext",
         ":data_slice_py_ext",

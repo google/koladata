@@ -70,10 +70,8 @@ class EvalOpTest(absltest.TestCase):
 
   def test_op_with_hidden_seed(self):
 
-    @arolla.optools.as_py_function_operator(
-        'increase_counter',
-        qtype_inference_expr=arolla.UNIT,
-        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    @optools.as_py_function_operator(
+        'increase_counter', qtype_inference_expr=arolla.UNIT
     )
     def increase_counter(_=py_boxing.hidden_seed()):
       nonlocal counter
