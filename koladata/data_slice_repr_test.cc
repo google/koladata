@@ -1176,6 +1176,24 @@ TEST(DataSliceReprTest, FormatHtml_Dict) {
             "<span dict-value-index=\"0\">1</span>}");
 }
 
+TEST(DataSliceReprTest, FormatHtml_DictLongStrings) {
+  DataBagPtr bag = DataBag::Empty();
+  ObjectId dict_id = internal::AllocateSingleDict();
+
+  std::string long_string_a(20, 'a');
+  std::string long_string_b(20, 'b');
+  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice keys = test::DataSlice<arolla::Text>({long_string_a.c_str()});
+  DataSlice values = test::DataSlice<arolla::Text>({long_string_b.c_str()});
+  ASSERT_OK(data_slice.SetInDict(keys, values));
+
+  ASSERT_OK_AND_ASSIGN(
+    std::string result, DataSliceToStr(
+        data_slice, {.format_html = true, .unbounded_type_max_len = 10}));
+  EXPECT_THAT(result, HasSubstr("a<span class=\"truncated\">...</span>'"));
+  EXPECT_THAT(result, HasSubstr("b<span class=\"truncated\">...</span>'"));
+}
+
 TEST(DataSliceReprTest, FormatHtml_DictObjectIdKey) {
   DataBagPtr bag = DataBag::Empty();
   ObjectId dict_id = internal::AllocateSingleDict();

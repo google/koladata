@@ -54,6 +54,8 @@ using ::koladata::internal::DataItemRepr;
 using ::koladata::internal::ObjectId;
 
 constexpr absl::string_view kEllipsis = "...";
+// This is the suffix we expect when DataItemRepr truncates a string.
+constexpr absl::string_view kTruncationSuffix = "...'";
 constexpr absl::string_view kAttrTemplate = "%s=%s";
 constexpr absl::string_view kAttrHtmlTemplate =
     "<span class=\"attr\">%s</span>=%s";
@@ -177,6 +179,16 @@ struct WrappingBehavior {
       // We can't use UpdateHtmlCharCount here because the value is moved.
       size_t initial_value_size = value.size();
       std::string result = EscapeHtml(std::move(value));
+
+      // Wrap truncation suffix in a span to make it interactive. We can not
+      // do this before escaping (e.g. by passing a truncation suffix to
+      // DataItemRepr) because it would be escaped by the line above.
+      if (result.ends_with(kTruncationSuffix)) {
+        result = absl::StrCat(
+            result.substr(0, result.size() - kTruncationSuffix.length()),
+            "<span class=\"truncated\">...</span>'");
+      }
+
       UpdateHtmlCharCount(result.size(), initial_value_size);
       return result;
     }
