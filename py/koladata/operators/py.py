@@ -22,7 +22,7 @@ from typing import Any, Callable, Iterable
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import core as _
-from koladata.operators import logical as _
+from koladata.operators import logical
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_item
@@ -32,6 +32,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 P = arolla.P
+M = arolla.M
 constraints = arolla.optools.constraints
 eval_op = py_expr_eval_py_ext.eval_op
 
@@ -715,4 +716,64 @@ def map_py_on_present(
       max_threads=max_threads,
       item_completed_callback=item_completed_callback,
       **kwargs,
+  )
+
+
+@optools.add_to_registry(aliases=['kde.map'])
+@arolla.optools.as_lambda_operator(
+    'kde.functor.map',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.fn),
+        qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+    ],
+    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+)
+def _map(
+    fn,
+    args=py_boxing.var_positional(),
+    kwargs=py_boxing.var_keyword(),
+):  # pylint: disable=g-doc-args
+  """Aligns fn and args/kwargs and calls corresponding fn on corresponding arg.
+
+  Current implentaion is a wrapper around kde.py.map_py_on_cond (Python
+  based) so it might be slow and intended for experiments only.
+
+  If certain items of fn are missing, the corresponding items of the result will
+  be also missing.
+  If certain items of args/kwars are missing we are still calling the functor
+  on those missing args/kwargs.
+
+  Example:
+    fn1 = kdf.fn(lambda x, y: x + y)
+    fn2 = kdf.fn(lambda x, y: x - y)
+    fn = kd.slice([fn1, fn2])
+    x = kd.slice([[1, None, 3], [4, 5, 6]])
+    y = kd.slice(1)
+
+    kd.map(kd.slice([fn1, fn2]), x=x, y=y)
+    # returns kd.slice([[2, None, 4], [3, 4, 5]])
+
+    kd.map(kd.slice([fn1, None]), x=x, y=y)
+    # returns kd.slice([[2, None, 4], [None, None, None]])
+
+  Args:
+    fn: DataSlice containing the functor(s) to evaluate. All functors must
+      return a DataItem.
+    *args: The positional argument(s) to pass to the functions.
+    **kwargs: The keyword argument(s) to pass to the functions.
+
+  Returns:
+    The evaluation result.
+  """
+
+  return arolla.abc.bind_op(
+      map_py_on_selected,
+      py_boxing.as_qvalue(lambda _fn, *args, **kwargs: _fn(*args, **kwargs)),
+      logical.has(fn),
+      schema=data_slice.DataSlice.from_vals(None),
+      item_completed_callback=py_boxing.as_qvalue(None),
+      max_threads=py_boxing.as_qvalue(1),
+      args=M.core.concat_tuples(M.core.make_tuple(fn), args),
+      kwargs=kwargs,
   )
