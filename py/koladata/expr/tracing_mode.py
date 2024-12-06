@@ -194,6 +194,7 @@ def prepare_module_for_tracing(
   # We need to create a new class to be able to use descriptors:
   # https://docs.python.org/3/howto/descriptor.html
   class _Dispatcher:
+    """A class to dispatch calls to the eager or tracing version of the API."""
 
     def __init__(self, mod: types.ModuleType):
       # We need to keep a reference to the original module so that it's
@@ -205,6 +206,12 @@ def prepare_module_for_tracing(
 
     def __dir__(self):
       return self.__all__
+
+    # Pickle will store _ref_to_mod by module name, so on unpickling we'll
+    # rerun the import and _Dispatcher will be recreated, therefore we
+    # just pass "lambda x: x" as the constructing function.
+    def __reduce__(self):
+      return (lambda x: x, (self._ref_to_mod,))
 
   # For nicer error messages on missing attributes.
   _Dispatcher.__name__ = mod.__name__

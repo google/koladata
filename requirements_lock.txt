@@ -4,6 +4,10 @@
 #
 #    bazel run //:requirements.update
 #
+cloudpickle==3.1.0 \
+    --hash=sha256:81a929b6e3c7335c863c771d673d105f02efdb89dfaba0c90495d1c64796601b \
+    --hash=sha256:fe11acda67f61aaaec473e3afe030feb131d78a43461b718185363384f1ba12e
+    # via -r requirements.in
 numpy==2.0.1 \
     --hash=sha256:08458fbf403bff5e2b45f08eda195d4b0c9b35682311da5a5a0a0925b11b9bd8 \
     --hash=sha256:0fbb536eac80e27a2793ffd787895242b7f18ef792563d742c2d673bfcb75134 \

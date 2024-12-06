@@ -18,6 +18,7 @@ from koladata import kd as _kd
 from koladata.ext import nested_data as _nested_data
 from koladata.ext import npkd as _npkd
 from koladata.ext import pdkd as _pdkd
+from koladata.ext import py_cloudpickle as _py_cloudpickle
 
 npkd = _npkd
 pdkd = _pdkd
@@ -27,3 +28,5 @@ nested_data = _nested_data
 # recommend, and 'kd' is consistently lowercase for all operations.
 Fn = _kd.fn
 PyFn = _kd.py_fn
+
+py_cloudpickle = _py_cloudpickle.py_cloudpickle

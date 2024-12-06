@@ -383,7 +383,6 @@ def _basic_map_py(
   return result.reshape(shape[: shape_rank - ndim])
 
 
-# TODO: b/365026427 - Add a reference to kd.py_cloudpickle in the docstring.
 # TODO: b/370978592 - Consider implementing this operator using kdf.map
 #   combined with kd.py_fn, especially if the performance is comparable.
 @optools.add_to_registry(aliases=['kde.map_py'])
@@ -458,6 +457,11 @@ def map_py(
     # the inner items like this:
     print(res[:][:])
 
+  It's also possible to set custom serialization for the fn (i.e. if you want to
+  serialize the expression and later deserialize it in the different process).
+
+  For example to serialize the function using cloudpickle you can use
+  `kd_ext.py_cloudpickle(fn)` instead of fn.
 
   Args:
     fn: Function.

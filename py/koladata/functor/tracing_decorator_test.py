@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from koladata import kd as user_facing_kd
 from koladata.expr import input_container
 from koladata.expr import introspection
@@ -31,7 +32,7 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-class TracingDecoratorTest(absltest.TestCase):
+class TracingDecoratorTest(parameterized.TestCase):
 
   def test_default_behavior(self):
     @tracing_decorator.TraceAsFnDecorator()
@@ -184,6 +185,19 @@ class TracingDecoratorTest(absltest.TestCase):
         introspection.unpack_expr(fn.f.returns),
         kde.attrs(I.x, foo=1),
     )
+
+  @parameterized.parameters(True, False)
+  def test_wrapper(self, py_fn):
+    @tracing_decorator.TraceAsFnDecorator(
+        py_fn=py_fn, wrapper=lambda func: lambda x: func(x + 5)
+    )
+    def f(x):
+      return x + 1
+
+    fn = functor_factories.trace_py_fn(f)
+
+    testing.assert_equal(f(ds([1, 2])), ds([2, 3]))
+    testing.assert_equal(fn(ds([1, 2])), ds([7, 8]))
 
 
 if __name__ == '__main__':

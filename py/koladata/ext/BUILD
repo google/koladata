@@ -79,6 +79,26 @@ py_test(
 )
 
 py_library(
+    name = "py_cloudpickle",
+    srcs = ["py_cloudpickle.py"],
+    deps = [
+        requirement("cloudpickle"),
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "py_cloudpickle_test",
+    srcs = ["py_cloudpickle_test.py"],
+    deps = [
+        ":py_cloudpickle",
+        "//py/koladata:kd",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
     name = "kd_ext",
     srcs = ["kd_ext.py"],
     visibility = ["//visibility:public"],
@@ -86,6 +106,7 @@ py_library(
         ":nested_data",
         ":npkd",
         ":pdkd",
+        ":py_cloudpickle",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
     ],

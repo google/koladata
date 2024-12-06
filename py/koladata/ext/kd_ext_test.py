@@ -32,6 +32,17 @@ class KdExtTest(absltest.TestCase):
         kd_ext.PyFn(lambda x: 5 if x == 2 else 10)(2), kd.item(5)
     )
 
+  def test_py_fn(self):
+    def pickled_f(x, y, z=3):
+      return x + y + z
+
+    testing.assert_equal(
+        kd.call(
+            kd.py_fn(kd_ext.py_cloudpickle(pickled_f)), x=1, y=2
+        ),
+        kd.item(6),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

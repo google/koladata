@@ -146,6 +146,18 @@ class TracingModeTest(absltest.TestCase):
     gc.collect()
     self.assertIsNotNone(mod_ref())
 
+  def test_dispatcher_reduce(self):
+    mod = types.ModuleType('mod')
+    mod.__all__ = ['a', 'b']
+    mod.a = {'a': 1}
+    mod.b = {'b': 2}
+    configs = {}
+    tracing_mode.configure_tracing(configs, mod.a, 1)
+    tracing_mode.same_when_tracing(configs, mod.b)
+    res = tracing_mode.prepare_module_for_tracing(mod, configs)
+    fn, args = res.__reduce__()
+    self.assertIs(fn(*args), mod)
+
 
 if __name__ == '__main__':
   absltest.main()

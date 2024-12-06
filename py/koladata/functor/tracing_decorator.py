@@ -16,7 +16,7 @@
 
 import functools
 import types as py_types
-from typing import Any
+from typing import Any, Callable, Optional
 
 from koladata.expr import tracing_mode
 from koladata.functor import functor_factories
@@ -56,13 +56,13 @@ class TraceAsFnDecorator:
   to DataItems), to better emulate what will happen in tracing mode.
   """
 
-  # TODO: Add support for py_cloudpcikle here.
   def __init__(
       self,
       *,
       name: str | None = None,
       py_fn: bool = False,
       return_type_as: Any = data_slice.DataSlice,
+      wrapper: Optional[Callable[[py_types.FunctionType], Any]] = None,
   ):
     """Initializes the decorator.
 
@@ -78,17 +78,26 @@ class TraceAsFnDecorator:
         does not return a DataSlice/DataItem or a primitive that would be
         auto-boxed into a DataItem. kd.types.DataSlice and kd.types.DataBag can
         also be passed here.
+      wrapper: Extra wrapper to apply to the function before converting to a
+        functor. I.e. can be a serialization wrapper (kd.py_reference or
+        kd_ext.py_cloudpickle).
     """
     self._name = name
     self._py_fn = py_fn
     self._return_type_as = py_boxing.as_qvalue(return_type_as)
+    self._wrapper = wrapper
 
   def __call__(self, fn: py_types.FunctionType) -> py_types.FunctionType:
     name = self._name if self._name is not None else fn.__name__
+    wrapped_fn = fn
+    if self._wrapper is not None:
+      wrapped_fn = self._wrapper(fn)
+
     if self._py_fn:
-      to_call = functor_factories.py_fn(fn, return_type_as=self._return_type_as)
+      to_call = functor_factories.py_fn(
+          wrapped_fn, return_type_as=self._return_type_as)
     else:
-      to_call = functor_factories.trace_py_fn(fn)
+      to_call = functor_factories.trace_py_fn(wrapped_fn)
     # It is important to create this expr once per function, so that its
     # fingerprint is stable and when we call it multiple times the functor
     # will only be extracted once by the auto-variables logic.
