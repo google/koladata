@@ -3670,6 +3670,44 @@ Checks if `obj` represents a functor.
     otherwise (for example if obj has wrong type).
 ```
 
+### `kd.functor.map(fn, *args, **kwargs)` {#kd.functor.map}
+Aliases:
+<a id="kd.map">kd.map</a>
+
+``` {.no-copy}
+Aligns fn and args/kwargs and calls corresponding fn on corresponding arg.
+
+Current implentaion is a wrapper around kde.py.map_py_on_cond (Python
+based) so it might be slow and intended for experiments only.
+
+If certain items of fn are missing, the corresponding items of the result will
+be also missing.
+If certain items of args/kwars are missing we are still calling the functor
+on those missing args/kwargs.
+
+Example:
+  fn1 = kdf.fn(lambda x, y: x + y)
+  fn2 = kdf.fn(lambda x, y: x - y)
+  fn = kd.slice([fn1, fn2])
+  x = kd.slice([[1, None, 3], [4, 5, 6]])
+  y = kd.slice(1)
+
+  kd.map(kd.slice([fn1, fn2]), x=x, y=y)
+  # returns kd.slice([[2, None, 4], [3, 4, 5]])
+
+  kd.map(kd.slice([fn1, None]), x=x, y=y)
+  # returns kd.slice([[2, None, 4], [None, None, None]])
+
+Args:
+  fn: DataSlice containing the functor(s) to evaluate. All functors must
+    return a DataItem.
+  *args: The positional argument(s) to pass to the functions.
+  **kwargs: The keyword argument(s) to pass to the functions.
+
+Returns:
+  The evaluation result.
+```
+
 ### `kd.functor.map_py_fn(f, *, schema=None, max_threads=1, ndim=0, **defaults)` {#kd.functor.map_py_fn}
 
 ``` {.no-copy}
@@ -3725,7 +3763,7 @@ Returns a Koda functor wrapping a python function.
     A DataItem representing the functor.
 ```
 
-### `kd.functor.trace_as_fn(*, name=None, py_fn=False, return_type_as=<class 'koladata.types.data_slice.DataSlice'>)` {#kd.functor.trace_as_fn}
+### `kd.functor.trace_as_fn(*, name=None, py_fn=False, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, wrapper=None)` {#kd.functor.trace_as_fn}
 
 ``` {.no-copy}
 A decorator to customize the tracing behavior for a particular function.
@@ -4689,6 +4727,11 @@ For example:
   # the inner items like this:
   print(res[:][:])
 
+It's also possible to set custom serialization for the fn (i.e. if you want to
+serialize the expression and later deserialize it in the different process).
+
+For example to serialize the function using cloudpickle you can use
+`kd_ext.py_cloudpickle(fn)` instead of fn.
 
 Args:
   fn: Function.
@@ -4982,6 +5025,29 @@ Schema-related operators.
 
 **Operators**
 
+### `kd.schema.agg_common_schema(x, ndim=unspecified)` {#kd.schema.agg_common_schema}
+
+``` {.no-copy}
+Returns the common schema of `x` along the last `ndim` dimensions.
+
+The "common schema" is defined according to go/koda-type-promotion.
+
+Examples:
+  kd.agg_common_schema(kd.slice([kd.INT32, None, kd.FLOAT32]))
+    # -> kd.FLOAT32
+
+  kd.agg_common_schema(kd.slice([[kd.INT32, None], [kd.FLOAT32, kd.FLOAT64]]))
+    # -> kd.slice([kd.INT32, kd.FLOAT64])
+
+  kd.agg_common_schema(
+      kd.slice([[kd.INT32, None], [kd.FLOAT32, kd.FLOAT64]]), ndim=2)
+    # -> kd.FLOAT64
+
+Args:
+  x: DataSlice of schemas.
+  ndim: The number of last dimensions to aggregate over.
+```
+
 ### `kd.schema.as_any(x)` {#kd.schema.as_any}
 Aliases:
 <a id="kd.as_any">kd.as_any</a>
@@ -5042,6 +5108,17 @@ Follows the casting rules of `kd.cast_to_implicit` for the narrowed schema.
 Args:
   x: DataSlice to cast.
   schema: Schema to cast to. Must be a scalar.
+```
+
+### `kd.schema.common_schema(x)` {#kd.schema.common_schema}
+
+``` {.no-copy}
+Returns the common schema as a scalar DataItem of `x`.
+
+The "common schema" is defined according to go/koda-type-promotion.
+
+Args:
+  x: DataSlice of schemas.
 ```
 
 ### `kd.schema.dict_schema(key_schema, value_schema, db=None)` {#kd.schema.dict_schema}
@@ -5506,11 +5583,13 @@ Aliases:
 <a id="kd.with_schema_from_obj">kd.with_schema_from_obj</a>
 
 ``` {.no-copy}
-Returns `x` with its embedded schema set as the schema.
+Returns `x` with its embedded common schema set as the schema.
 
 * `x` must have OBJECT schema.
-* All items in `x` must have the same embedded schema.
-* At least one value in `x` must be present.
+* All items in `x` must have a common schema.
+* If `x` is empty, the schema is set to NONE.
+* If `x` contains mixed primitives without a common primitive type, the output
+  will have OBJECT schema.
 
 Args:
   x: An OBJECT DataSlice.
