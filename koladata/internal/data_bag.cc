@@ -313,6 +313,20 @@ MergeOptions ReverseMergeOptions(const MergeOptions& options) {
   };
 }
 
+void DataBagStatistics::Add(const DataBagStatistics& other) {
+  entity_and_object_count +=
+        other.entity_and_object_count;
+  total_non_empty_lists += other.total_non_empty_lists;
+  total_items_in_lists += other.total_items_in_lists;
+  total_non_empty_dicts += other.total_non_empty_dicts;
+  total_items_in_dicts += other.total_items_in_dicts;
+  total_explicit_schemas += other.total_explicit_schemas;
+  total_explicit_schema_attrs += other.total_explicit_schema_attrs;
+  for (const auto& [attr, size] : other.attr_values_sizes) {
+    attr_values_sizes[attr] += size;
+  }
+}
+
 // *******  Factory interface
 
 /*static*/ DataBagImplPtr DataBagImpl::CreateEmptyDatabag() {

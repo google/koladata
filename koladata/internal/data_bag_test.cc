@@ -1439,6 +1439,39 @@ TEST(DataBagTest, MergeInplace) {
   ASSERT_OK(res_db->MergeInplace(*big_alloc_databag, merge_options));
 }
 
+TEST(DataBagTest, StatisticsAdds) {
+  auto stats = DataBagStatistics{
+      .attr_values_sizes = {{"a", 1}, {"b", 2}},
+      .total_non_empty_lists = 5,
+      .total_items_in_lists = 6,
+      .total_non_empty_dicts = 7,
+      .total_items_in_dicts = 8,
+      .total_explicit_schemas = 9,
+      .total_explicit_schema_attrs = 10,
+      .entity_and_object_count = 11,
+  };
+  auto other = DataBagStatistics{
+      .attr_values_sizes = {{"a", 3}, {"c", 5}},
+      .total_non_empty_lists = 11,
+      .total_items_in_lists = 10,
+      .total_non_empty_dicts = 9,
+      .total_items_in_dicts = 8,
+      .total_explicit_schemas = 7,
+      .total_explicit_schema_attrs = 6,
+      .entity_and_object_count = 5,
+  };
+  stats.Add(other);
+  EXPECT_THAT(stats.attr_values_sizes,
+              UnorderedElementsAre(Pair("a", 4), Pair("b", 2), Pair("c", 5)));
+  EXPECT_EQ(stats.total_non_empty_lists, 16);
+  EXPECT_EQ(stats.total_items_in_lists, 16);
+  EXPECT_EQ(stats.total_non_empty_dicts, 16);
+  EXPECT_EQ(stats.total_items_in_dicts, 16);
+  EXPECT_EQ(stats.total_explicit_schemas, 16);
+  EXPECT_EQ(stats.total_explicit_schema_attrs, 16);
+  EXPECT_EQ(stats.entity_and_object_count, 16);
+}
+
 TEST(DataBagTest, GetStatistics_Lists) {
   {
     DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();

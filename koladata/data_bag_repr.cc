@@ -415,16 +415,6 @@ class ContentsReprBuilder {
   absl::flat_hash_set<std::pair<ObjectId, std::string>> seen_triples_;
 };
 
-template <typename Map>
-void UpdateCountMap(const typename Map::key_type& val, Map& count_dict) {
-  static_assert(std::is_same<typename Map::mapped_type, int64_t>::value,
-                "mapped_type must be int64_t");
-  auto [it, inserted] = count_dict.emplace(val, 1);
-  if (!inserted) {
-    ++it->second;
-  }
-}
-
 }  // namespace
 
 absl::StatusOr<std::string> DataBagToStr(const DataBagPtr& db,
@@ -447,8 +437,15 @@ absl::StatusOr<std::string> SchemaOnlyBagToStr(const DataBagPtr& db,
 
 absl::StatusOr<std::string> DataBagStatistics(const DataBagPtr& db,
                                               size_t top_attr_limit) {
+  FlattenFallbackFinder fallback_finder(*db);
   ASSIGN_OR_RETURN(internal::DataBagStatistics stats,
                    db->GetImpl().GetStatistics());
+  for (const internal::DataBagImpl* const fallback :
+       fallback_finder.GetFlattenFallbacks()) {
+        ASSIGN_OR_RETURN(internal::DataBagStatistics fallback_stats,
+                         fallback->GetStatistics());
+    stats.Add(fallback_stats);
+  }
 
   std::vector<std::pair<int, absl::string_view>> top_attrs;
   top_attrs.reserve(stats.attr_values_sizes.size());

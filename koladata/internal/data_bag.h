@@ -120,6 +120,9 @@ struct DataBagStatistics {
   size_t total_explicit_schemas = 0;
   size_t total_explicit_schema_attrs = 0;
   size_t entity_and_object_count = 0;
+
+  // Add the statistics of the other DataBag into this one.
+  void Add(const DataBagStatistics& other);
 };
 
 // Returns merge options that would achieve the same result, but when

@@ -155,32 +155,35 @@ Top attrs:$""",
 Top attrs:""",
       ),
       (
-          # TODO: Correctly support statistics in fallback cases.
           'fallback',
           bag().new(a=1).enriched(bag().list([1, 2]).get_bag()).get_bag(),
           r"""^DataBag \$[0-9a-f]{4}:
-  0 Entities/Objects with 0 values in 0 attrs
-  0 non empty Lists with 0 items
+  1 Entities/Objects with 1 values in 1 attrs
+  1 non empty Lists with 2 items
   0 non empty Dicts with 0 key/value entries
-  0 schemas with 0 values
+  2 schemas with 2 values
 
-Top attrs:$""",
+Top attrs:
+  a: 1 values$""",
       ),
       (
-          # TODO: Correctly support statistics in fallback cases.
-          'two_fallbacks',
+          'multiple_fallbacks',
           bag()
-          .new(a=1)
+          .new(a=ds([1, 2, 3]), b=ds([1, 2, 3]))
           .enriched(bag().list([1, 2]).get_bag())
+          .enriched(bag().new(c=ds([3, 4, 5]), a=ds([4, 5, 6])).get_bag())
           .enriched(bag().dict({'a': 42}).get_bag())
           .get_bag(),
           r"""^DataBag \$[0-9a-f]{4}:
-  0 Entities/Objects with 0 values in 0 attrs
-  0 non empty Lists with 0 items
-  0 non empty Dicts with 0 key/value entries
-  0 schemas with 0 values
+  6 Entities/Objects with 12 values in 3 attrs
+  1 non empty Lists with 2 items
+  1 non empty Dicts with 1 key/value entries
+  4 schemas with 7 values
 
-Top attrs:$""",
+Top attrs:
+  a: 6 values
+  c: 3 values
+  b: 3 values$""",
       ),
   )
   def test_repr(self, db, expected_repr):
