@@ -321,7 +321,11 @@ absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
   if (allow_missing && per_item_types.present_count() == 0) {
     return internal::DataItem();
   } else {
-    return schema::CommonSchema(per_item_types);
+    ASSIGN_OR_RETURN(auto common_schema, schema::CommonSchema(per_item_types));
+    if (common_schema.has_value()) {
+      return common_schema;
+    }
+    return internal::DataItem(schema::kObject);
   }
 }
 

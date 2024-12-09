@@ -234,7 +234,7 @@ absl::StatusOr<internal::DataItem> CommonSchemaAggregator::Get() && {
   }
   if (!res_object_id_) {
     DCHECK(!res_dtype);
-    return internal::DataItem(kObject);
+    return internal::DataItem();
   }
   return WithErrorPayload(
       absl::InvalidArgumentError("no common schema"),

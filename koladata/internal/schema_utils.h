@@ -83,7 +83,7 @@ class CommonSchemaAggregator {
   void Add(internal::ObjectId schema_obj);
 
   // Returns the common schema or an appropriate error. If no common schema can
-  // be found because no schemas were seen, `kObject` is returned.
+  // be found because no schemas were seen, an empty DataItem is returned.
   absl::StatusOr<internal::DataItem> Get() &&;
 
  private:
@@ -94,7 +94,7 @@ class CommonSchemaAggregator {
 
 // Validates and returns the schema according to the type promotion lattice
 // defined in go/koda-type-promotion. If the `schema` is not a schema, an error
-// is returned. If `schema` is missing, `kObject` is returned.
+// is returned. If `schema` is missing, an empty DataItem is returned.
 //
 // This is a convenience wrapper around CommonSchemaAggregator on a single
 // value.
@@ -108,7 +108,7 @@ inline absl::StatusOr<internal::DataItem> CommonSchema(
 // Finds the supremum schema of lhs and rhs according to the type promotion
 // lattice defined in go/koda-type-promotion. If common / supremum schema cannot
 // be determined, appropriate error is returned. If both lhs and rhs are
-// missing, `kObject` is returned.
+// missing, an empty DataItem is returned.
 //
 // This is a convenience wrapper around CommonSchemaAggregator on two elements.
 inline absl::StatusOr<internal::DataItem> CommonSchema(DType lhs, DType rhs) {
@@ -128,8 +128,8 @@ inline absl::StatusOr<internal::DataItem> CommonSchema(
 // Finds the supremum schema of all schemas in `schema_ids` according to the
 // type promotion lattice defined in go/koda-type-promotion. If common /
 // supremum schema cannot be determined, appropriate error is returned. If
-// schema cannot be found, because all `schema_ids` are missing, `kObject` is
-// returned.
+// schema cannot be found, because all `schema_ids` are missing, an empty
+// DataItem is returned.
 absl::StatusOr<internal::DataItem> CommonSchema(
     const internal::DataSliceImpl& schema_ids);
 

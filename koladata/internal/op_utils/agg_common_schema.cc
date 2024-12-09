@@ -14,7 +14,6 @@
 //
 #include "koladata/internal/op_utils/agg_common_schema.h"
 
-#include <cstdint>
 #include <utility>
 
 #include "absl/status/status.h"
@@ -44,21 +43,13 @@ class AggCommonSchemaAggregator
  public:
   void Reset() final {
     aggregator_ = schema::CommonSchemaAggregator();
-    cnt_ = 0;
   }
 
   void Add(DataItem item) final {
     aggregator_.Add(item);
-    ++cnt_;
   }
 
   DataItem GetResult() final {
-    // TODO: Consider changing the default behavior from returning
-    // kObject to either 1) allowing a default value to be specified, or 2)
-    // returning an empty DataItem.
-    if (cnt_ == 0) {
-      return DataItem();
-    }
     // Note that this leaves `aggregator_` in an unspecified but valid state.
     // `Reset()` is guaranteed to be called before the next call to Add or
     // GetResult, making this safe.
@@ -74,7 +65,6 @@ class AggCommonSchemaAggregator
 
  private:
   schema::CommonSchemaAggregator aggregator_;
-  int64_t cnt_ = 0;
   absl::Status status_ = absl::OkStatus();
 };
 

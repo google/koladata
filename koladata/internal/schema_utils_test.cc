@@ -90,7 +90,7 @@ TEST(SchemaUtilsTest, DTypeLatticeIsAcyclic) {
 
 struct CommonDTypeTestCase {
   std::vector<schema::DType> input_dtypes;
-  schema::DType expected_dtype;
+  std::optional<schema::DType> expected_dtype;
 };
 
 using CommonDTypeTest = ::testing::TestWithParam<CommonDTypeTestCase>;
@@ -121,7 +121,7 @@ INSTANTIATE_TEST_SUITE_P(
       // Test additional cases manually.
       //
       // Default output.
-      test_cases.push_back({{}, schema::kObject});
+      test_cases.push_back({{}, std::nullopt});
       // Single input.
       test_cases.push_back({{schema::kInt32}, schema::kInt32});
       // Non-adjacent types.
@@ -136,7 +136,9 @@ INSTANTIATE_TEST_SUITE_P(
     }()),
     [](const ::testing::TestParamInfo<CommonDTypeTest::ParamType>& info) {
       return absl::StrCat(absl::StrJoin(info.param.input_dtypes, "_"), "_",
-                          info.param.expected_dtype);
+                          info.param.expected_dtype
+                              ? absl::StrCat(*info.param.expected_dtype)
+                              : "nullopt");
     });
 
 using CommonDTypeBinaryTest = ::testing::TestWithParam<CommonDTypeTestCase>;
@@ -172,7 +174,9 @@ INSTANTIATE_TEST_SUITE_P(
     }()),
     [](const ::testing::TestParamInfo<CommonDTypeTest::ParamType>& info) {
       return absl::StrCat(absl::StrJoin(info.param.input_dtypes, "_"), "_",
-                          info.param.expected_dtype);
+                          info.param.expected_dtype
+                              ? absl::StrCat(*info.param.expected_dtype)
+                              : "nullopt");
     });
 
 TEST(SchemaUtilsTest, CommonSchemaUnary) {
@@ -185,7 +189,7 @@ TEST(SchemaUtilsTest, CommonSchemaUnary) {
     auto explicit_schema = DataItem(internal::AllocateExplicitSchema());
     EXPECT_THAT(CommonSchema(DataItem(explicit_schema)),
                 IsOkAndHolds(explicit_schema));
-    EXPECT_THAT(CommonSchema(DataItem()), IsOkAndHolds(schema::kObject));
+    EXPECT_THAT(CommonSchema(DataItem()), IsOkAndHolds(std::nullopt));
   }
   {
     // Not a schema error.
@@ -203,7 +207,7 @@ TEST(SchemaUtilsTest, CommonSchemaBinary) {
     EXPECT_THAT(CommonSchema(DataItem(), DataItem(schema::kInt32)),
                 IsOkAndHolds(schema::kInt32));
     EXPECT_THAT(CommonSchema(DataItem(), DataItem()),
-                IsOkAndHolds(schema::kObject));
+                IsOkAndHolds(std::nullopt));
   }
   {
     // Identical entity schemas.
@@ -397,14 +401,12 @@ TEST(SchemaUtilsTest, CommonSchema_InvalidInput) {
 TEST(SchemaUtilsTest, DefaultIfMissing) {
   {
     CommonSchemaAggregator agg;
-    EXPECT_THAT(CommonSchemaAggregator().Get(),
-                IsOkAndHolds(DataItem(schema::kObject)));
+    EXPECT_THAT(CommonSchemaAggregator().Get(), IsOkAndHolds(DataItem()));
   }
   {
     CommonSchemaAggregator agg;
     agg.Add(DataItem());
-    EXPECT_THAT(CommonSchemaAggregator().Get(),
-                IsOkAndHolds(DataItem(schema::kObject)));
+    EXPECT_THAT(CommonSchemaAggregator().Get(), IsOkAndHolds(DataItem()));
   }
 }
 

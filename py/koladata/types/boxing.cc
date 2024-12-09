@@ -366,6 +366,9 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
       ASSIGN_OR_RETURN(schema, std::move(schema_agg).Get(),
                        AssembleErrorMessage(
                            _, {.db = adoption_queue.GetBagWithFallbacks()}));
+      if (!schema.has_value()) {
+        schema = DataItem(schema::kObject);
+      }
     }
     // The slice should be casted explicitly if the schema is provided by the
     // user. If this is gathered from data, it is validated to be implicitly
@@ -792,9 +795,6 @@ class UniversalConverter {
       bool is_root = false) {
     internal::SliceBuilder bldr(size);
     schema::CommonSchemaAggregator schema_agg;
-    if (input_schema) {
-      schema_agg.Add(schema::kNone);  // All missing -> NONE.
-    }
     for (size_t i = 0; i < size; ++i) {
       bldr.InsertIfNotSetAndUpdateAllocIds(i, value_stack_.top().item());
       schema_agg.Add(GetNarrowedSchema(value_stack_.top()));
@@ -804,10 +804,13 @@ class UniversalConverter {
         DataItem schema_item, std::move(schema_agg).Get(),
         AssembleErrorMessage(_, {.db = adoption_queue_.GetBagWithFallbacks()}));
     if (input_schema) {
-      if (!schema::IsImplicitlyCastableTo(schema_item, input_schema->item())) {
+      if (schema_item.has_value() &&
+          !schema::IsImplicitlyCastableTo(schema_item, input_schema->item())) {
         return CreateIncompatibleSchemaError(input_schema->item(), schema_item);
       }
       schema_item = input_schema->item();
+    } else if (!schema_item.has_value()) {
+      schema_item = internal::DataItem(schema::kObject);
     }
     if constexpr (std::is_same_v<Factory, ObjectCreator>) {
       if (!is_root) {
