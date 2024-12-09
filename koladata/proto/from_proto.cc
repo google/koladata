@@ -253,53 +253,6 @@ absl::StatusOr<DataSlice> CreateBareProtoUuSchema(
 
 constexpr static absl::string_view kChildItemIdSeed = "__from_proto_child__";
 
-absl::StatusOr<DataSlice> MakeTextItem(absl::string_view text) {
-  return DataSlice::Create(internal::DataItem(arolla::Text(text)),
-                           internal::DataItem(schema::kString));
-}
-
-absl::StatusOr<std::optional<DataSlice>> MakeChildObjectAttrItemIds(
-    const std::optional<DataSlice>& parent_itemid,
-    absl::string_view attr_name) {
-  if (!parent_itemid.has_value()) {
-    return std::nullopt;
-  }
-  ASSIGN_OR_RETURN(auto attr_name_slice, MakeTextItem(attr_name));
-  ASSIGN_OR_RETURN(
-      auto child_itemids,
-      CreateUuidFromFields(kChildItemIdSeed, {"parent", "attr_name"},
-                           {*parent_itemid, std::move(attr_name_slice)}));
-  return std::move(child_itemids);
-}
-
-absl::StatusOr<std::optional<DataSlice>> MakeChildListAttrItemIds(
-    const std::optional<DataSlice>& parent_itemid,
-    absl::string_view attr_name) {
-  if (!parent_itemid.has_value()) {
-    return std::nullopt;
-  }
-  ASSIGN_OR_RETURN(auto attr_name_slice, MakeTextItem(attr_name));
-  ASSIGN_OR_RETURN(
-      auto child_itemids,
-      CreateListUuidFromFields(kChildItemIdSeed, {"parent", "attr_name"},
-                               {*parent_itemid, std::move(attr_name_slice)}));
-  return std::move(child_itemids);
-}
-
-absl::StatusOr<std::optional<DataSlice>> MakeChildDictAttrItemIds(
-    const std::optional<DataSlice>& parent_itemid,
-    absl::string_view attr_name) {
-  if (!parent_itemid.has_value()) {
-    return std::nullopt;
-  }
-  ASSIGN_OR_RETURN(auto attr_name_slice, MakeTextItem(attr_name));
-  ASSIGN_OR_RETURN(
-      auto child_itemids,
-      CreateDictUuidFromFields(kChildItemIdSeed, {"parent", "attr_name"},
-                               {*parent_itemid, std::move(attr_name_slice)}));
-  return std::move(child_itemids);
-}
-
 // Returns a rank-1 DataSlice of ITEMID containing unique uuids for each index
 // in the 2D shape `items_shape` (or nullopt if `parent_itemid` is nullopt).
 // The result is flattened, but has the same total size as `items_shape`.
@@ -395,8 +348,9 @@ absl::Status ListFromProtoRepeatedMessageField(
   auto vars = std::make_unique<CallbackVars>();
 
   ASSIGN_OR_RETURN(vars->schema, GetChildAttrSchema(parent_schema, attr_name));
-  ASSIGN_OR_RETURN(vars->itemid,
-                   MakeChildListAttrItemIds(parent_itemid, attr_name));
+  ASSIGN_OR_RETURN(
+      vars->itemid,
+      MakeChildListAttrItemIds(parent_itemid, kChildItemIdSeed, attr_name));
   const auto* extension_map =
       GetChildExtensionMap(parent_extension_map, field_name);
 
@@ -477,8 +431,9 @@ absl::StatusOr<std::optional<DataSlice>> ListFromProtoRepeatedPrimitiveField(
     }
 
     ASSIGN_OR_RETURN(auto schema, GetChildAttrSchema(parent_schema, attr_name));
-    ASSIGN_OR_RETURN(auto itemid,
-                     MakeChildListAttrItemIds(parent_itemid, attr_name));
+    ASSIGN_OR_RETURN(
+        auto itemid,
+        MakeChildListAttrItemIds(parent_itemid, kChildItemIdSeed, attr_name));
 
     ASSIGN_OR_RETURN(auto items_shape, std::move(shape_builder).Build());
     ASSIGN_OR_RETURN(
@@ -577,8 +532,9 @@ absl::Status FromProtoMessageField(
   }
 
   ASSIGN_OR_RETURN(auto schema, GetChildAttrSchema(parent_schema, attr_name));
-  ASSIGN_OR_RETURN(auto itemid,
-                   MakeChildObjectAttrItemIds(parent_itemid, attr_name));
+  ASSIGN_OR_RETURN(
+      auto itemid,
+      MakeChildObjectAttrItemIds(parent_itemid, kChildItemIdSeed, attr_name));
   const auto* extension_map =
       GetChildExtensionMap(parent_extension_map, field_name);
 
@@ -772,8 +728,9 @@ absl::Status DictFromProtoMapField(
   const auto* extension_map =
       GetChildExtensionMap(parent_extension_map, field_name);
   ASSIGN_OR_RETURN(vars->schema, GetChildAttrSchema(parent_schema, attr_name));
-  ASSIGN_OR_RETURN(vars->itemid,
-                   MakeChildDictAttrItemIds(parent_itemid, attr_name));
+  ASSIGN_OR_RETURN(
+      vars->itemid,
+      MakeChildDictAttrItemIds(parent_itemid, kChildItemIdSeed, attr_name));
   ASSIGN_OR_RETURN(vars->items_shape, std::move(shape_builder).Build());
   ASSIGN_OR_RETURN(
       auto flat_items_itemid,

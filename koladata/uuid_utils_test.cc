@@ -222,6 +222,51 @@ TEST(UuidUtilsTest, CreateUuidFromFields_Empty_Dict) {
   EXPECT_TRUE(ds.item().value<ObjectId>().IsDict());
 }
 
+TEST(UuidUtilsTest, MakeChildObjectAttrItemIds) {
+  ASSERT_OK_AND_ASSIGN(auto parent_ds, CreateUuidFromFields("", {}, {}));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, MakeChildObjectAttrItemIds(parent_ds, "__child__", "attr_name"));
+  ASSERT_TRUE(ds.has_value());
+  EXPECT_EQ(ds->size(), 1);
+
+  EXPECT_EQ(ds->GetShape().rank(), 0);
+  EXPECT_EQ(ds->dtype(), arolla::GetQType<ObjectId>());
+  EXPECT_EQ(ds->GetSchemaImpl(), schema::kItemId);
+
+  EXPECT_TRUE(ds->item().value<ObjectId>().IsUuid());
+  EXPECT_FALSE(ds->item().value<ObjectId>().IsSchema());
+}
+
+TEST(UuidUtilsTest, MakeChildListAttrItemIds) {
+  ASSERT_OK_AND_ASSIGN(auto parent_ds, CreateUuidFromFields("", {}, {}));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, MakeChildListAttrItemIds(parent_ds, "__child__", "attr_name"));
+  ASSERT_TRUE(ds.has_value());
+  EXPECT_EQ(ds->size(), 1);
+
+  EXPECT_EQ(ds->GetShape().rank(), 0);
+  EXPECT_EQ(ds->dtype(), arolla::GetQType<ObjectId>());
+  EXPECT_EQ(ds->GetSchemaImpl(), schema::kItemId);
+
+  EXPECT_TRUE(ds->item().value<ObjectId>().IsUuid());
+  EXPECT_TRUE(ds->item().value<ObjectId>().IsList());
+}
+
+TEST(UuidUtilsTest, MakeChildDictAttrItemIds) {
+  ASSERT_OK_AND_ASSIGN(auto parent_ds, CreateUuidFromFields("", {}, {}));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, MakeChildDictAttrItemIds(parent_ds, "__child__", "attr_name"));
+  ASSERT_TRUE(ds.has_value());
+  EXPECT_EQ(ds->size(), 1);
+
+  EXPECT_EQ(ds->GetShape().rank(), 0);
+  EXPECT_EQ(ds->dtype(), arolla::GetQType<ObjectId>());
+  EXPECT_EQ(ds->GetSchemaImpl(), schema::kItemId);
+
+  EXPECT_TRUE(ds->item().value<ObjectId>().IsUuid());
+  EXPECT_TRUE(ds->item().value<ObjectId>().IsDict());
+}
+
 absl::flat_hash_set<ObjectId> GetUniqueObjectIds(const DataSlice& ds) {
   CHECK_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
   absl::flat_hash_set<ObjectId> unique_object_ids;

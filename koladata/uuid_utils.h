@@ -16,6 +16,7 @@
 #define KOLADATA_UUID_UTILS_H_
 
 #include <cstdint>
+#include <optional>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -71,6 +72,36 @@ absl::StatusOr<DataSlice> CreateDictUuidFromFields(
 // [fingerprint(seed, size, i) for i in range(size)]
 absl::StatusOr<DataSlice> CreateUuidsWithAllocationSize(absl::string_view seed,
                                                         int64_t size);
+
+// Creates a DataSlice of uuids that represent child objects of the given
+// parent object.
+//
+// The result is a DataSlice with the same shape as `parent_itemid`.
+// Conceptually the result contains
+// [fingerprint(child_itemid_seed, parent_itemid, attr_name)]
+absl::StatusOr<std::optional<DataSlice>> MakeChildObjectAttrItemIds(
+    const std::optional<DataSlice>& parent_itemid,
+    absl::string_view child_itemid_seed, absl::string_view attr_name);
+
+// Creates a DataSlice of uuids that represent child lists of the given
+// parent object.
+//
+// The result is a DataSlice with the same shape as `parent_itemid`.
+// Conceptually the result contains
+// [fingerprint(child_itemid_seed, parent_itemid, attr_name)]
+absl::StatusOr<std::optional<DataSlice>> MakeChildListAttrItemIds(
+    const std::optional<DataSlice>& parent_itemid,
+    absl::string_view child_itemid_seed, absl::string_view attr_name);
+
+// Creates a DataSlice of uuids that represent child dictionaries of the given
+// parent object.
+//
+// The result is a DataSlice with the same shape as `parent_itemid`.
+// Conceptually the result contains
+// [fingerprint(child_itemid_seed, parent_itemid, attr_name)]
+absl::StatusOr<std::optional<DataSlice>> MakeChildDictAttrItemIds(
+    const std::optional<DataSlice>& parent_itemid,
+    absl::string_view child_itemid_seed, absl::string_view attr_name);
 
 }  // namespace koladata
 

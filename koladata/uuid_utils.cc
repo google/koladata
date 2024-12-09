@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -30,6 +31,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/shape_utils.h"
+#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -61,6 +63,11 @@ absl::StatusOr<DataSlice> CreateUuidFromFieldsImpl(
                              aligned_values.begin()->GetShape(),
                              internal::DataItem(schema::kItemId), nullptr);
   });
+}
+
+absl::StatusOr<DataSlice> MakeTextItem(absl::string_view text) {
+  return DataSlice::Create(internal::DataItem(arolla::Text(text)),
+                           internal::DataItem(schema::kString));
 }
 
 }  // namespace
@@ -106,6 +113,48 @@ absl::StatusOr<DataSlice> CreateUuidsWithAllocationSize(absl::string_view seed,
   return DataSlice::Create(internal::CreateUuidsWithAllocationSize(seed, size),
                            DataSlice::JaggedShape::FlatFromSize(size),
                            internal::DataItem(schema::kItemId), /*db=*/nullptr);
+}
+
+absl::StatusOr<std::optional<DataSlice>> MakeChildObjectAttrItemIds(
+    const std::optional<DataSlice>& parent_itemid,
+    absl::string_view child_itemid_seed, absl::string_view attr_name) {
+  if (!parent_itemid.has_value()) {
+    return std::nullopt;
+  }
+  ASSIGN_OR_RETURN(auto attr_name_slice, MakeTextItem(attr_name));
+  ASSIGN_OR_RETURN(
+      auto child_itemids,
+      CreateUuidFromFields(child_itemid_seed, {"parent", "attr_name"},
+                           {*parent_itemid, std::move(attr_name_slice)}));
+  return std::move(child_itemids);
+}
+
+absl::StatusOr<std::optional<DataSlice>> MakeChildListAttrItemIds(
+    const std::optional<DataSlice>& parent_itemid,
+    absl::string_view child_itemid_seed, absl::string_view attr_name) {
+  if (!parent_itemid.has_value()) {
+    return std::nullopt;
+  }
+  ASSIGN_OR_RETURN(auto attr_name_slice, MakeTextItem(attr_name));
+  ASSIGN_OR_RETURN(
+      auto child_itemids,
+      CreateListUuidFromFields(child_itemid_seed, {"parent", "attr_name"},
+                               {*parent_itemid, std::move(attr_name_slice)}));
+  return std::move(child_itemids);
+}
+
+absl::StatusOr<std::optional<DataSlice>> MakeChildDictAttrItemIds(
+    const std::optional<DataSlice>& parent_itemid,
+    absl::string_view child_itemid_seed, absl::string_view attr_name) {
+  if (!parent_itemid.has_value()) {
+    return std::nullopt;
+  }
+  ASSIGN_OR_RETURN(auto attr_name_slice, MakeTextItem(attr_name));
+  ASSIGN_OR_RETURN(
+      auto child_itemids,
+      CreateDictUuidFromFields(child_itemid_seed, {"parent", "attr_name"},
+                               {*parent_itemid, std::move(attr_name_slice)}));
+  return std::move(child_itemids);
 }
 
 }  // namespace koladata
