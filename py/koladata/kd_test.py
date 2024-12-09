@@ -42,17 +42,24 @@ class KdTest(absltest.TestCase):
     self.assertIsInstance(kd.bag().list([1, 2]), kd.types.ListItem)
     self.assertIsInstance(kd.bag().dict({'a': 42}), kd.types.DictItem)
     self.assertIsInstance(kd.INT32, kd.types.SchemaItem)
+    self.assertIsInstance(I.x, kd.types.Expr)
+    self.assertIsInstance(I.x + I.y, kd.types.Expr)
 
   def test_type_annotations(self):
+
     def f(
-        bag: kd.types.DataBag, item: kd.types.DataItem, sl: kd.types.DataSlice  # pylint: disable=unused-argument
+        bag: kd.types.DataBag,
+        item: kd.types.DataItem,
+        sl: kd.types.DataSlice,
+        ex: kd.types.Expr,
     ):
-      pass
+      del bag, item, sl, ex
 
     sig = inspect.signature(f)
     self.assertIs(sig.parameters['bag'].annotation, kd.types.DataBag)
     self.assertIs(sig.parameters['item'].annotation, kd.types.DataItem)
     self.assertIs(sig.parameters['sl'].annotation, kd.types.DataSlice)
+    self.assertIs(sig.parameters['ex'].annotation, kd.types.Expr)
 
   def test_bag_returns_new_instance(self):
     db1 = kd.bag()

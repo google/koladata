@@ -18,6 +18,7 @@ import sys as _sys
 import types as _py_types
 import typing as _typing
 
+from arolla import arolla as _arolla
 from koladata.exceptions import exceptions as _exceptions
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
@@ -77,6 +78,7 @@ types.ListItem = _list_item.ListItem
 types.DictItem = _dict_item.DictItem
 types.JaggedShape = _jagged_shape.JaggedShape
 types.SchemaItem = _schema_item.SchemaItem
+types.Expr = _arolla.Expr
 
 
 optools = _eager_only(_py_types.ModuleType('optools'))
