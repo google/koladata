@@ -17,7 +17,6 @@
 #include <Python.h>  // IWYU pragma: keep
 
 #include <cstddef>
-#include <cstdint>
 #include <string>
 #include <utility>
 #include <variant>
