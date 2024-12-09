@@ -19,7 +19,7 @@ licenses(["notice"])
 py_library(
     name = "call",
     srcs = ["call.py"],
-    visibility = ["//py/koladata/ext:__pkg__"],
+    visibility = ["//py/koladata:__pkg__"],
     deps = [
         ":task_repository",
         "//py/koladata:kd",

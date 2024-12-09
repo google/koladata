@@ -99,32 +99,6 @@ py_test(
 )
 
 py_library(
-    name = "kd_ext",
-    srcs = ["kd_ext.py"],
-    visibility = ["//visibility:public"],
-    deps = [
-        ":nested_data",
-        ":npkd",
-        ":pdkd",
-        ":py_cloudpickle",
-        "//py/koladata:kd",
-        "//py/koladata/ext/experimental/parallel_call:call",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "kd_ext_test",
-    srcs = ["kd_ext_test.py"],
-    deps = [
-        ":kd_ext",
-        "//py/koladata:kd",
-        "//py/koladata/testing",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-py_library(
     name = "functools",
     srcs = ["functools.py"],
     visibility = ["//visibility:public"],
@@ -151,6 +125,23 @@ py_library(
     deps = [
         ":functools",
         "//py/koladata:kd",
+    ],
+)
+
+py_library(
+    name = "kd_ext",
+    srcs = ["kd_ext.py"],
+    visibility = ["//visibility:public"],
+    deps = ["//py/koladata:kd_ext"],
+)
+
+py_test(
+    name = "kd_ext_test",
+    srcs = ["kd_ext_test.py"],
+    deps = [
+        ":kd_ext",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
 

@@ -61,6 +61,17 @@ py_library(
 )
 
 py_test(
+    name = "kd_ext_test",
+    srcs = ["kd_ext_test.py"],
+    deps = [
+        ":kd",
+        ":kd_ext",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "kd_test",
     srcs = ["kd_test.py"],
     deps = [
@@ -70,6 +81,21 @@ py_test(
         "//py/koladata/types:jagged_shape",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "kd_ext",
+    srcs = ["kd_ext.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":kd",
+        "//py/koladata/ext:nested_data",
+        "//py/koladata/ext:npkd",
+        "//py/koladata/ext:pdkd",
+        "//py/koladata/ext:py_cloudpickle",
+        "//py/koladata/ext/experimental/parallel_call:call",
         "@com_google_arolla//py/arolla",
     ],
 )

@@ -12,29 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""User-facing module for Koda external libraries related APIs."""
+"""A deprecated version of koladata/kd_ext.py.
 
-import types as _py_types
+TODO: Remove this file.
+"""
 
-from koladata import kd as _kd
-from koladata.ext import nested_data as _nested_data
-from koladata.ext import npkd as _npkd
-from koladata.ext import pdkd as _pdkd
-from koladata.ext import py_cloudpickle as _py_cloudpickle
-from koladata.ext.experimental.parallel_call import call as _call
+import typing as _typing
+import warnings as _warnings
+from koladata import kd_ext as _kd_ext
 
-npkd = _npkd
-pdkd = _pdkd
-nested_data = _nested_data
 
-# CamelCase versions in ext since we're still not sure what we will eventually
-# recommend, and 'kd' is consistently lowercase for all operations.
-Fn = _kd.fn
-PyFn = _kd.py_fn
-
-py_cloudpickle = _py_cloudpickle.py_cloudpickle
-
-experimental = _py_types.SimpleNamespace(
-    call_multithreaded=_call.call_multithreaded,
-    call_multithreaded_with_debug=_call.call_multithreaded_with_debug,
-)
+def __getattr__(name: str) -> _typing.Any:  # pylint: disable=invalid-name
+  _warnings.warn(
+      'You are importing kd_ext from a deprecated location. Please import'
+      ' kd_ext via `from koladata import kd_ext`.',
+      RuntimeWarning,
+  )
+  return getattr(_kd_ext, name)
