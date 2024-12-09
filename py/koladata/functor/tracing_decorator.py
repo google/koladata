@@ -30,10 +30,13 @@ class TraceAsFnDecorator:
   A function with this decorator is converted to an internally-stored functor.
   In traced expressions that call the function, that functor is invoked as a
   sub-functor via by 'kde.call', rather than the function being re-traced.
-  Additionally, the result of 'kde.call' is also assigned a name, so that
+  Additionally, the functor passed to 'kde.call' is assigned a name, so that
   when auto_variables=True is used (which is the default in kd.trace_py_fn),
   the functor for the decorated function will become an attribute of the
   functor for the outer function being traced.
+  The result of 'kde.call' is also assigned a name with a '_result' suffix, so
+  that it also becomes an separate variable in the outer function being traced.
+  This is useful for debugging, and also to use kd_ext.call_multithreaded.
 
   This can be used to avoid excessive re-tracing and recompilation of shared
   python functions, to quickly add structure to the functor produced by tracing
@@ -108,7 +111,9 @@ class TraceAsFnDecorator:
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
       if tracing_mode.is_tracing_enabled():
-        return to_call(*args, **kwargs, return_type_as=return_type_as)
+        return to_call(
+            *args, **kwargs, return_type_as=return_type_as
+        ).with_name(f'{name}_result')
       else:
         res = py_boxing.as_qvalue(fn(*args, **kwargs))
         if res.qtype != self._return_type_as.qtype:

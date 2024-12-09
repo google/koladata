@@ -14,11 +14,14 @@
 
 """User-facing module for Koda external libraries related APIs."""
 
+import types as _py_types
+
 from koladata import kd as _kd
 from koladata.ext import nested_data as _nested_data
 from koladata.ext import npkd as _npkd
 from koladata.ext import pdkd as _pdkd
 from koladata.ext import py_cloudpickle as _py_cloudpickle
+from koladata.ext.experimental.parallel_call import call as _call
 
 npkd = _npkd
 pdkd = _pdkd
@@ -30,3 +33,8 @@ Fn = _kd.fn
 PyFn = _kd.py_fn
 
 py_cloudpickle = _py_cloudpickle.py_cloudpickle
+
+experimental = _py_types.SimpleNamespace(
+    call_multithreaded=_call.call_multithreaded,
+    call_multithreaded_with_debug=_call.call_multithreaded_with_debug,
+)

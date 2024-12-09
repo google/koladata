@@ -60,7 +60,14 @@ class TracingDecoratorTest(parameterized.TestCase):
     testing.assert_equal(fn(x=1), ds(4))
     self.assertCountEqual(
         fn.get_attr_names(intersection=True),
-        ['returns', '<lambda>', '<lambda>_0', '__signature__'],
+        [
+            'returns',
+            '<lambda>',
+            '<lambda>_0',
+            '<lambda>_result',
+            '<lambda>_result_0',
+            '__signature__',
+        ],
     )
 
   def test_class_method_does_not_work(self):
@@ -108,9 +115,10 @@ class TracingDecoratorTest(parameterized.TestCase):
     fn = functor_factories.trace_py_fn(lambda x: f(x=x + 2) * f(x=x + 3))
     testing.assert_equal(fn(x=1), ds(20))
     testing.assert_equal(fn.f(x=1), ds(2))
-    # Make sure we have only one copy of 'f'.
+    # Make sure we have only one copy of 'f' but two versions of 'f_result'.
     self.assertCountEqual(
-        fn.get_attr_names(intersection=True), ['returns', 'f', '__signature__']
+        fn.get_attr_names(intersection=True),
+        ['returns', 'f', 'f_result', 'f_result_0', '__signature__'],
     )
 
   def test_return_type_as(self):
@@ -179,7 +187,11 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertEqual(fn(x).to_pytree(), {'foo': 1, 'bar': 2})
     testing.assert_equal(
         introspection.unpack_expr(fn.returns),
-        I.x.updated(V.f(I.x, return_type_as=empty_bag)),
+        I.x.updated(V.f_result),
+    )
+    testing.assert_equal(
+        introspection.unpack_expr(fn.f_result),
+        V.f(I.x, return_type_as=empty_bag),
     )
     testing.assert_equal(
         introspection.unpack_expr(fn.f.returns),

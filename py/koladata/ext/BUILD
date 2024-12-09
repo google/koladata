@@ -108,6 +108,7 @@ py_library(
         ":pdkd",
         ":py_cloudpickle",
         "//py/koladata:kd",
+        "//py/koladata/ext/experimental/parallel_call:call",
         "@com_google_arolla//py/arolla",
     ],
 )

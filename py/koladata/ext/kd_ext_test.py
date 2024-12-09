@@ -43,6 +43,14 @@ class KdExtTest(absltest.TestCase):
         kd.item(6),
     )
 
+  def test_call_multithreaded(self):
+    testing.assert_equal(
+        kd_ext.experimental.call_multithreaded(
+            kd.fn(lambda x: x + 1), x=kd.slice([1, 2])
+        ),
+        kd.slice([2, 3]),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
