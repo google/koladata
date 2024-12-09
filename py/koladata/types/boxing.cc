@@ -37,7 +37,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "absl/strings/substitute.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/arolla_utils.h"
