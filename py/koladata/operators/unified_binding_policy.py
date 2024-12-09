@@ -15,22 +15,37 @@
 """The unified binding policy for Koladata operators."""
 
 import inspect
-from typing import Any
 
 from arolla import arolla
+from koladata.operators import py_optools_py_ext
 from koladata.types import py_boxing
 
-_as_qvalue_or_expr = py_boxing.as_qvalue_or_expr
-_as_qvalue = py_boxing.as_qvalue
-_as_expr = py_boxing.as_expr
-_non_deterministic_leaf = py_boxing.NON_DETERMINISTIC_TOKEN_LEAF
+UNIFIED_POLICY_PREFIX = f'{py_optools_py_ext.UNIFIED_POLICY}:'
 
-
-UNIFIED_POLICY = 'koladata_unified_binding_policy'
-UNIFIED_POLICY_PREFIX = f'{UNIFIED_POLICY}:'
-
+# Name of the hidden parameter used to indicate non-deterministic input.
 NON_DETERMINISTIC_PARAM_NAME = '_non_deterministic_token'
+
+# Placeholder for the hidden parameter.
 NON_DETERMINISTIC_PARAM = arolla.abc.placeholder(NON_DETERMINISTIC_PARAM_NAME)
+
+# Note: The options must match the C++ implementation.
+#
+_OPT_CHR_POSITIONAL_ONLY = py_optools_py_ext.UNIFIED_POLICY_OPT_POSITIONAL_ONLY
+_OPT_CHR_POSITIONAL_OR_KEYWORD = (
+    py_optools_py_ext.UNIFIED_POLICY_OPT_POSITIONAL_OR_KEYWORD
+)
+_OPT_CHR_VAR_POSITIONAL = py_optools_py_ext.UNIFIED_POLICY_OPT_VAR_POSITIONAL
+_OPT_CHR_REQUIRED_KEYWORD_ONLY = (
+    py_optools_py_ext.UNIFIED_POLICY_OPT_REQUIRED_KEYWORD_ONLY
+)
+_OPT_CHR_OPTIONAL_KEYWORD_ONLY = (
+    py_optools_py_ext.UNIFIED_POLICY_OPT_OPTIONAL_KEYWORD_ONLY
+)
+_OPT_CHR_VAR_KEYWORD = py_optools_py_ext.UNIFIED_POLICY_OPT_VAR_KEYWORD
+_OPT_CHR_NON_DETERMINISTIC = (
+    py_optools_py_ext.UNIFIED_POLICY_OPT_NON_DETERMINISTIC
+)
+
 
 # Marker for a variadic-positional parameter
 _VAR_POSITIONAL = type('VarPositional', (), {})()
@@ -57,15 +72,6 @@ def var_keyword():
   parameter.
   """
   return _VAR_KEYWORD
-
-
-_OPT_CHR_POSITIONAL_ONLY = '_'
-_OPT_CHR_POSITIONAL_OR_KEYWORD = 'p'
-_OPT_CHR_VAR_POSITIONAL = 'P'
-_OPT_CHR_REQUIRED_KEYWORD_ONLY = 'k'
-_OPT_CHR_OPTIONAL_KEYWORD_ONLY = 'd'
-_OPT_CHR_VAR_KEYWORD = 'K'
-_OPT_CHR_NON_DETERMINISTIC = 'H'
 
 
 def make_unified_signature(
@@ -166,245 +172,8 @@ def make_unified_signature(
     )
   return arolla.abc.make_operator_signature(  # pytype: disable=bad-return-type
       (','.join(sig_spec) + f'|{UNIFIED_POLICY_PREFIX}{aux_opts}', *sig_vals),
-      as_qvalue=_as_qvalue,
+      as_qvalue=py_boxing.as_qvalue,
   )
-
-
-def _as_qvalue_or_expr_tuple(
-    args: tuple[Any, ...],
-) -> arolla.QValue | arolla.Expr:
-  if not args:
-    return _EMPTY_TUPLE
-  args = tuple(map(_as_qvalue_or_expr, args))
-  if any(isinstance(arg, arolla.Expr) for arg in args):
-    return arolla.abc.make_operator_node(
-        'core.make_tuple', tuple(map(_as_expr, args))
-    )
-  return arolla.tuple(*args)
-
-
-# TODO: b/381852425 - Consider Koladata's versions of operators
-# for make_tuple and make_namedtuple.
-def _as_qvalue_or_expr_namedtuple(
-    kwargs: dict[str, Any],
-) -> arolla.QValue | arolla.Expr:
-  if not kwargs:
-    return _EMPTY_NAMEDTUPLE
-  args = tuple(map(_as_qvalue_or_expr, kwargs.values()))
-  if any(isinstance(arg, arolla.Expr) for arg in args):
-    return arolla.abc.make_operator_node(
-        'namedtuple.make',
-        (arolla.text(','.join(kwargs)), *map(_as_expr, args)),
-    )
-  return arolla.namedtuple(**dict(zip(kwargs, args)))
-
-
-_MISSING_SENTINEL = object()
-
-
-class UnifiedBindingPolicy(py_boxing.BasicBindingPolicy):
-  """Unified Binding Policy.
-
-  This is a binding policy for Koladata operators, adding support for
-  positional-only, keyword-only, and variadic keyword parameters.
-
-  It encodes additional information about parameters in signature.aux_policy
-  using the following format:
-
-     koladata_unified_binding_policy:<options>
-
-  Each character in '<options>' represents a parameter and encodes its kind:
-
-    `_`-- positional-only parameter
-    `p`-- positional-or-keyword parameter
-    `P`-- variadic-positional (*args)
-    `k`-- keyword-only, no default
-    `d`-- keyword-only, with default value
-    `K`-- variadic-keyword (**kwargs)
-    `H`-- non-deterministic input
-  """
-
-  @staticmethod
-  def make_python_signature(
-      signature: arolla.abc.Signature,
-  ) -> inspect.Signature:
-    opts = signature.aux_policy.removeprefix(UNIFIED_POLICY_PREFIX)
-    result_params = []
-    for i, param in enumerate(signature.parameters):
-      opt = opts[i]
-      if opt == _OPT_CHR_POSITIONAL_ONLY:
-        if param.default is None:
-          result_params.append(
-              inspect.Parameter(param.name, inspect.Parameter.POSITIONAL_ONLY)
-          )
-        else:
-          result_params.append(
-              inspect.Parameter(
-                  param.name,
-                  inspect.Parameter.POSITIONAL_ONLY,
-                  default=param.default,
-              )
-          )
-      elif opt == _OPT_CHR_POSITIONAL_OR_KEYWORD:
-        if param.default is None:
-          result_params.append(
-              inspect.Parameter(
-                  param.name, inspect.Parameter.POSITIONAL_OR_KEYWORD
-              )
-          )
-        else:
-          result_params.append(
-              inspect.Parameter(
-                  param.name,
-                  inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                  default=param.default,
-              )
-          )
-      elif opt == _OPT_CHR_VAR_POSITIONAL:
-        result_params.append(
-            inspect.Parameter(param.name, inspect.Parameter.VAR_POSITIONAL)
-        )
-      elif opt == _OPT_CHR_REQUIRED_KEYWORD_ONLY:
-        result_params.append(
-            inspect.Parameter(param.name, inspect.Parameter.KEYWORD_ONLY)
-        )
-      elif opt == _OPT_CHR_OPTIONAL_KEYWORD_ONLY:
-        result_params.append(
-            inspect.Parameter(
-                param.name,
-                inspect.Parameter.KEYWORD_ONLY,
-                default=param.default,
-            )
-        )
-      elif opt == _OPT_CHR_VAR_KEYWORD:
-        result_params.append(
-            inspect.Parameter(param.name, inspect.Parameter.VAR_KEYWORD)
-        )
-      elif opt == _OPT_CHR_NON_DETERMINISTIC:
-        continue
-      else:
-        raise RuntimeError(f'unexpected option={opt!r}, param={param.name!r}')
-    return inspect.Signature(parameters=result_params)
-
-  @staticmethod
-  def bind_arguments(
-      signature: arolla.abc.Signature, *args: Any, **kwargs: Any
-  ) -> list[arolla.QValue | arolla.Expr]:
-    params = signature.parameters
-    opts = signature.aux_policy.removeprefix(UNIFIED_POLICY_PREFIX)
-    opts_len = len(opts)
-    args_len = len(args)
-    assert len(params) == opts_len
-    result = [None] * opts_len
-    i = 0
-
-    # Bind the positional parameters using `args`.
-    while i < args_len and i < opts_len:
-      opt = opts[i]
-      if opt == _OPT_CHR_POSITIONAL_ONLY:
-        result[i] = _as_qvalue_or_expr(args[i])
-      elif opt == _OPT_CHR_POSITIONAL_OR_KEYWORD:
-        if params[i].name in kwargs:
-          raise TypeError(f'multiple values for argument {params[i].name!r}')
-        result[i] = _as_qvalue_or_expr(args[i])
-      else:
-        break
-      i += 1
-    if i < opts_len and opts[i] == _OPT_CHR_VAR_POSITIONAL:
-      result[i] = _as_qvalue_or_expr_tuple(args[i:])
-      has_unprocessed_args = False
-      i += 1
-    else:
-      has_unprocessed_args = len(args) > i
-
-    # Bind remaining parameters using `kwargs` and the default values.
-    missing_positional_params = []
-    missing_keyword_only_params = []
-    for j in range(i, opts_len):
-      opt = opts[j]
-      param = params[j]
-      if opt == _OPT_CHR_POSITIONAL_ONLY:
-        if param.default is None:
-          missing_positional_params.append(param.name)
-        else:
-          result[j] = param.default
-      elif opt == _OPT_CHR_POSITIONAL_OR_KEYWORD:
-        value = kwargs.pop(param.name, _MISSING_SENTINEL)
-        if value is _MISSING_SENTINEL:
-          if param.default is None:
-            missing_positional_params.append(param.name)
-          else:
-            result[j] = param.default
-        else:
-          result[j] = _as_qvalue_or_expr(value)
-      elif opt == _OPT_CHR_VAR_POSITIONAL:
-        result[j] = _EMPTY_TUPLE
-      elif opt == _OPT_CHR_REQUIRED_KEYWORD_ONLY:
-        value = kwargs.pop(param.name, _MISSING_SENTINEL)
-        if value is _MISSING_SENTINEL:
-          missing_keyword_only_params.append(param.name)
-        else:
-          result[j] = _as_qvalue_or_expr(value)
-      elif opt == _OPT_CHR_OPTIONAL_KEYWORD_ONLY:
-        value = kwargs.pop(param.name, _MISSING_SENTINEL)
-        if value is _MISSING_SENTINEL:
-          result[j] = param.default
-        else:
-          result[j] = _as_qvalue_or_expr(value)
-      elif opt == _OPT_CHR_VAR_KEYWORD:
-        result[j] = _as_qvalue_or_expr_namedtuple(kwargs)
-        kwargs.clear()
-      elif opt == _OPT_CHR_NON_DETERMINISTIC:
-        result[j] = py_boxing.new_non_deterministic_token()
-      else:
-        raise RuntimeError(f'unexpected option={opt!r}, param={param.name!r}')
-
-    # Report for missing arguments.
-    if missing_positional_params:
-      if len(missing_positional_params) == 1:
-        raise TypeError(
-            'missing 1 required positional argument:'
-            f' {missing_positional_params[0]!r}'
-        )
-      raise TypeError(
-          f'missing {len(missing_positional_params)} required positional'
-          f' arguments: {", ".join(map(repr, missing_positional_params[:-1]))}'
-          f' and {missing_positional_params[-1]!r}'
-      )
-    if missing_keyword_only_params:
-      if len(missing_keyword_only_params) == 1:
-        raise TypeError(
-            'missing 1 required keyword-only argument:'
-            f' {missing_keyword_only_params[0]!r}'
-        )
-      raise TypeError(
-          f'missing {len(missing_keyword_only_params)} required keyword-only'
-          ' arguments:'
-          f' {", ".join(map(repr, missing_keyword_only_params[:-1]))} and'
-          f' {missing_keyword_only_params[-1]!r}'
-      )
-
-    if has_unprocessed_args:
-      count_positionals = opts.count(_OPT_CHR_POSITIONAL_ONLY) + opts.count(
-          _OPT_CHR_POSITIONAL_OR_KEYWORD
-      )
-      count_no_defaults = sum(param.default is None for param in params)
-      if count_positionals == count_no_defaults:
-        if count_positionals == 1:
-          raise TypeError(
-              f'takes 1 positional argument but {len(args)} were given'
-          )
-        raise TypeError(
-            f'takes {count_positionals} positional arguments but'
-            f' {len(args)} were given'
-        )
-      raise TypeError(
-          f'takes from {count_no_defaults} to {count_positionals} positional'
-          f' arguments but {len(args)} were given'
-      )
-    if kwargs:
-      raise TypeError(f'an unexpected keyword argument: {next(iter(kwargs))!r}')
-    return result  # pytype: disable=bad-return-type
 
 
 _make_tuple_op = arolla.abc.decay_registered_operator('core.make_tuple')
@@ -488,6 +257,3 @@ def unified_op_repr(
   res = arolla.abc.ReprToken()
   res.text = f'{node_op.display_name}({", ".join(node_dep_reprs)})'
   return res
-
-
-arolla.abc.register_aux_binding_policy(UNIFIED_POLICY, UnifiedBindingPolicy())

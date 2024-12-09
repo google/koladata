@@ -203,11 +203,19 @@ class FunctorCallTest(absltest.TestCase):
 
   def test_call_return_type_errors(self):
     fn = functor_factories.expr_fn(I.x)
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape('object with unsupported type: "type"'),
-    ):
+    try:
       _ = expr_eval.eval(kde.call(fn, x=1, return_type_as=int))
+    except ValueError as ex:
+      outer_ex = ex
+    self.assertEqual(
+        str(outer_ex),
+        'unable to represent argument `return_type_as` as QValue or Expr',
+    )
+    self.assertIsInstance(outer_ex.__cause__, ValueError)
+    self.assertRegex(
+        str(outer_ex.__cause__),
+        re.escape('object with unsupported type: "type" in nested list'),
+    )
 
   def test_call_with_functor_as_input(self):
     fn = functor_factories.expr_fn(I.x + I.y)

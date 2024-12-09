@@ -20,6 +20,7 @@ load(
     "arolla_operator_package_snapshot",
 )
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 default_visibility = [
     "//koladata:internal",
@@ -30,6 +31,32 @@ user_ops_visibility = []
 package(default_visibility = default_visibility)
 
 licenses(["notice"])
+
+koladata_py_extension(
+    name = "py_optools_py_ext",
+    srcs = [
+        "py_optools_module.cc",
+        "py_unified_binding_policy.cc",
+        "py_unified_binding_policy.h",
+    ],
+    deps = [
+        "//koladata/expr:expr_eval",
+        "//koladata/expr:expr_operators",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_arolla//py/arolla/abc:py_abc",
+        "@com_google_arolla//py/arolla/py_utils",
+    ],
+)
 
 # The package allows to use operators defined in Python from C++.
 arolla_cc_operator_package(
@@ -89,6 +116,7 @@ py_library(
     srcs = ["unified_binding_policy.py"],
     visibility = default_visibility + user_ops_visibility,
     deps = [
+        ":py_optools_py_ext",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
     ],
