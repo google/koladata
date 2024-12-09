@@ -10,28 +10,28 @@ DataSlice, DataBag, etc.).
 
 [TOC]
 
-Category                         | Subcategory                  | Description
--------------------------------- | ---------------------------- | -----------
-[kd](#kd_category)               |                              | `kd` and `kde` operators
-                                 | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
-                                 | [annotation](#kd.annotation) | Annotation operators.
-                                 | [assertion](#kd.assertion)   | Operators that assert properties of DataSlices.
-                                 | [comparison](#kd.comparison) | Operators that compare DataSlices.
-                                 | [core](#kd.core)             | Core operators that are not part of other categories.
-                                 | [functor](#kd.functor)       | Operators to create and call functors.
-                                 | [logical](#kd.logical)       | Logical operators.
-                                 | [math](#kd.math)             | Arithmetic operators.
-                                 | [py](#kd.py)                 | Operators that call Python functions.
-                                 | [random](#kd.random)         | Random and sampling operators.
-                                 | [schema](#kd.schema)         | Schema-related operators.
-                                 | [shapes](#kd.shapes)         | Operators that work on shapes
-                                 | [strings](#kd.strings)       | Operators that work with strings data.
-                                 | [tuple](#kd.tuple)           | Operators to create tuples.
-[kd_ext](#kd_ext_category)       |                              | `kd_ext` operators
-[DataSlice](#DataSlice_category) |                              | `DataSlice` methods
-[DataBag](#DataBag_category)     |                              | `DataBag` methods
+Category  | Subcategory | Description
+--------- | ----------- | ------------
+[kd-ops](#kd-ops_category) | | `kd` and `kde` operators
+ | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
+ | [annotation](#kd.annotation) | Annotation operators.
+ | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
+ | [comparison](#kd.comparison) | Operators that compare DataSlices.
+ | [core](#kd.core) | Core operators that are not part of other categories.
+ | [functor](#kd.functor) | Operators to create and call functors.
+ | [logical](#kd.logical) | Logical operators.
+ | [math](#kd.math) | Arithmetic operators.
+ | [py](#kd.py) | Operators that call Python functions.
+ | [random](#kd.random) | Random and sampling operators.
+ | [schema](#kd.schema) | Schema-related operators.
+ | [shapes](#kd.shapes) | Operators that work on shapes
+ | [strings](#kd.strings) | Operators that work with strings data.
+ | [tuple](#kd.tuple) | Operators to create tuples.
+[kd-ext-ops](#kd-ext-ops_category) | | `kd_ext` operators
+[DataSlice](#DataSlice_category) | | `DataSlice` methods
+[DataBag](#DataBag_category) | | `DataBag` methods
 
-## `kd` and `kde` operators {#kd_category}
+## `kd` and `kde` operators {#kd-ops_category}
 
 `kd` and `kde` modules are containers for eager and lazy operators respectively.
 
@@ -6450,7 +6450,7 @@ Returns a tuple-like object containing the given `*args`.
 </section>
 </section>
 
-## `kd_ext` operators {#kd_ext_category}
+## `kd_ext` operators {#kd-ext-ops_category}
 
 Operators under the `kd_ext.xxx` modules for extension utilities. Importing from
 the following module is needed:
@@ -6460,7 +6460,7 @@ the following module is needed:
 
 **Operators**
 
-### `kd_ext.nested_data.selected_path_update(root_ds, selection_ds_path, selection_ds)` {#kd_ext.nested_data.selected_path_update}
+### `nested_data.selected_path_update(root_ds, selection_ds_path, selection_ds)` {#nested_data.selected_path_update}
 
 ```` {.no-copy}
 Returns a DataBag where only the selected items are present in child lists.
@@ -6491,25 +6491,25 @@ Returns a DataBag where only the selected items are present in child lists.
     @root_ds.updated(selected_path(....)).
 ````
 
-### `kd_ext.npkd.ds_from_np(arr)` {#kd_ext.npkd.ds_from_np}
+### `npkd.ds_from_np(arr)` {#npkd.ds_from_np}
 
 ``` {.no-copy}
 Deprecated alias for from_array.
 ```
 
-### `kd_ext.npkd.ds_to_np(ds)` {#kd_ext.npkd.ds_to_np}
+### `npkd.ds_to_np(ds)` {#npkd.ds_to_np}
 
 ``` {.no-copy}
 Deprecated alias for to_array.
 ```
 
-### `kd_ext.npkd.from_array(arr)` {#kd_ext.npkd.from_array}
+### `npkd.from_array(arr)` {#npkd.from_array}
 
 ``` {.no-copy}
 Converts a numpy array to a DataSlice.
 ```
 
-### `kd_ext.npkd.get_elements_indices_from_ds(ds)` {#kd_ext.npkd.get_elements_indices_from_ds}
+### `npkd.get_elements_indices_from_ds(ds)` {#npkd.get_elements_indices_from_ds}
 
 ``` {.no-copy}
 Returns a list of np arrays representing the DataSlice's indices.
@@ -6543,7 +6543,7 @@ Returns a list of np arrays representing the DataSlice's indices.
     list of np arrays representing the DataSlice's elements indices.
 ```
 
-### `kd_ext.npkd.reshape_based_on_indices(ds, indices)` {#kd_ext.npkd.reshape_based_on_indices}
+### `npkd.reshape_based_on_indices(ds, indices)` {#npkd.reshape_based_on_indices}
 
 ``` {.no-copy}
 Reshapes a DataSlice corresponding to the given indices.
@@ -6581,13 +6581,13 @@ Reshapes a DataSlice corresponding to the given indices.
     DataSlice reshaped based on the given indices.
 ```
 
-### `kd_ext.npkd.to_array(ds)` {#kd_ext.npkd.to_array}
+### `npkd.to_array(ds)` {#npkd.to_array}
 
 ``` {.no-copy}
 Converts a DataSlice to a numpy array.
 ```
 
-### `kd_ext.pdkd.from_dataframe(df, as_obj=False)` {#kd_ext.pdkd.from_dataframe}
+### `pdkd.from_dataframe(df, as_obj=False)` {#pdkd.from_dataframe}
 
 ``` {.no-copy}
 Creates a DataSlice from the given pandas DataFrame.
@@ -6610,7 +6610,7 @@ Creates a DataSlice from the given pandas DataFrame.
     DataSlice of items with attributes from DataFrame columns.
 ```
 
-### `kd_ext.pdkd.to_dataframe(ds, cols=None)` {#kd_ext.pdkd.to_dataframe}
+### `pdkd.to_dataframe(ds, cols=None)` {#pdkd.to_dataframe}
 
 ``` {.no-copy}
 Creates a pandas DataFrame from the given DataSlice.
