@@ -14,7 +14,6 @@
 //
 #include "koladata/internal/non_deterministic_token.h"
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "arolla/util/fingerprint.h"
 
