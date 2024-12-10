@@ -70,6 +70,8 @@ class Task:
       assert isinstance(dep, Task)
       # We use a weak reference to avoid a reference cycle, so that
       # we don't need garbage collection to clean up the memory.
+      # TODO: add a test that would check if this works as
+      # intended.
       dep._result_goes_to.append((weakref.ref(self), pos))  # pylint: disable=protected-access
     self._deps_results = [dep._result for dep in deps]  # pylint: disable=protected-access
     self._deps_pending = sum(1 for x in self._deps_results if x is None)
