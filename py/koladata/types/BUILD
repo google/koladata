@@ -80,6 +80,7 @@ cc_library(
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata:object_factories",
+        "//koladata/internal:casting",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",

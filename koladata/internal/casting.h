@@ -361,6 +361,18 @@ class ToObject {
   absl::Nullable<internal::DataBagImpl*> db_impl_;
 };
 
+// Casts the given item/slice to the provided schema.
+//
+// Dispatches to the appropriate schema::To<Schema> functor. Note that `schema`
+// is _required_ to be a valid schema.
+//
+// Does _not_ support embedding or schema validation. Please use ToObject
+// directly or the higher level CastToExplicit (and friends) instead.
+absl::StatusOr<internal::DataItem> CastDataTo(const internal::DataItem& value,
+                                              const internal::DataItem& schema);
+absl::StatusOr<internal::DataSliceImpl> CastDataTo(
+    const internal::DataSliceImpl& value, const internal::DataItem& schema);
+
 }  // namespace koladata::schema
 
 #endif  // KOLADATA_INTERNAL_CASTING_H_

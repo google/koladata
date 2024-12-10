@@ -44,6 +44,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/casting.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -93,10 +94,10 @@ using ::koladata::internal::DataItem;
 absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
                                            DataSlice::JaggedShape shape,
                                            const DataItem& schema) {
-  ASSIGN_OR_RETURN(auto res_any,
-                   DataSlice::Create(std::move(impl), std::move(shape),
-                                     DataItem(schema::kAny)));
-  return CastToExplicit(res_any, schema, /*validate_schema=*/false);
+  // NOTE: CastDataTo does not do schema validation or schema embedding (in case
+  // schema is OBJECT).
+  ASSIGN_OR_RETURN(impl, schema::CastDataTo(impl, schema));
+  return DataSlice::Create(std::move(impl), std::move(shape), DataItem(schema));
 }
 
 // Returns an Error with incompatible schema information during narrow casting.

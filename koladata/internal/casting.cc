@@ -19,6 +19,8 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
+#include "absl/base/optimization.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -58,6 +60,50 @@ absl::Status AssertDbImpl(internal::DataBagImpl* db_impl) {
         "cannot embed object schema without a mutable DataBag");
   }
   return absl::OkStatus();
+}
+
+template <typename ImplT>
+absl::StatusOr<ImplT> CastDataToImpl(const ImplT& value,
+                                     const internal::DataItem& schema) {
+  DCHECK(schema.is_schema());
+  if (schema.holds_value<internal::ObjectId>()) {
+    return ToItemId()(value);
+  }
+  switch (schema.value<schema::DType>().type_id()) {
+    case schema::kNone.type_id():
+      return ToNone()(value);
+    case schema::kInt32.type_id():
+      return ToInt32()(value);
+    case schema::kInt64.type_id():
+      return ToInt64()(value);
+    case schema::kFloat32.type_id():
+      return ToFloat32()(value);
+    case schema::kFloat64.type_id():
+      return ToFloat64()(value);
+    case schema::kBool.type_id():
+      return ToBool()(value);
+    case schema::kMask.type_id():
+      return ToMask()(value);
+    case schema::kString.type_id():
+      return ToStr()(value);
+    case schema::kBytes.type_id():
+      return ToBytes()(value);
+    case schema::kExpr.type_id():
+      return ToExpr()(value);
+    case schema::kItemId.type_id():
+      return ToItemId()(value);
+    case schema::kSchema.type_id():
+      return ToSchema()(value);
+    case schema::kObject.type_id(): {
+      ASSIGN_OR_RETURN(auto to_object,
+                       ToObject::Make(/*validate_schema=*/false));
+      RETURN_IF_ERROR(to_object(value));
+      return value;
+    }
+    case schema::kAny.type_id():
+      return value;
+  }
+  ABSL_UNREACHABLE();
 }
 
 }  // namespace
@@ -147,8 +193,7 @@ absl::StatusOr<ToObject> ToObject::Make(
                         std::move(db_impl));
 }
 
-absl::Status ToObject::operator()(
-    const internal::DataItem& item) const {
+absl::Status ToObject::operator()(const internal::DataItem& item) const {
   if (!item.has_value()) {
     return absl::OkStatus();
   }
@@ -182,8 +227,7 @@ absl::Status ToObject::operator()(
   return absl::OkStatus();
 }
 
-absl::Status ToObject::operator()(
-    const internal::DataSliceImpl& slice) const {
+absl::Status ToObject::operator()(const internal::DataSliceImpl& slice) const {
   if (slice.present_count() == 0) {
     return absl::OkStatus();
   }
@@ -229,6 +273,16 @@ absl::Status ToObject::operator()(
         }));
   }
   return absl::OkStatus();
+}
+
+absl::StatusOr<internal::DataItem> CastDataTo(
+    const internal::DataItem& value, const internal::DataItem& schema) {
+  return CastDataToImpl(value, schema);
+}
+
+absl::StatusOr<internal::DataSliceImpl> CastDataTo(
+    const internal::DataSliceImpl& value, const internal::DataItem& schema) {
+  return CastDataToImpl(value, schema);
 }
 
 }  // namespace koladata::schema

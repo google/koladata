@@ -34,6 +34,7 @@
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -1184,6 +1185,164 @@ TEST(CastingTest, ToObject_DataSlice) {
                 DataSliceImpl::Create({entity_schema, schema2, DataItem()}),
                 schema2)));
   }
+}
+
+TEST(Casting, CastDataTo_DataItem) {
+  {
+    // Primitive casting.
+    // Success.
+    EXPECT_THAT(CastDataTo(DataItem(1.0f), DataItem(schema::kInt32)),
+                IsOkAndHolds(IsEquivalentTo(DataItem(1))));
+    // Failure.
+    EXPECT_THAT(CastDataTo(DataItem(1.0f), DataItem(schema::kNone)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "only missing values can be converted to NONE"));
+  }
+  {
+    // Casting to OBJECT - no embedding is done.
+    auto obj = DataItem(internal::AllocateSingleObject());
+    EXPECT_THAT(CastDataTo(obj, DataItem(schema::kObject)),
+                IsOkAndHolds(IsEquivalentTo(obj)));
+  }
+  {
+    // Casting to entity.
+    // Success.
+    auto obj = DataItem(internal::AllocateSingleObject());
+    auto schema = DataItem(internal::AllocateExplicitSchema());
+    EXPECT_THAT(CastDataTo(obj, schema), IsOkAndHolds(IsEquivalentTo(obj)));
+    // Failure.
+    EXPECT_THAT(CastDataTo(DataItem(1.0f), schema),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "cannot cast FLOAT32 to ITEMID"));
+  }
+}
+
+TEST(Casting, CastDataTo_DataSlice) {
+  {
+    // Primitive casting.
+    // Success.
+    EXPECT_THAT(CastDataTo(DataSliceImpl::Create({DataItem(1.0f), DataItem()}),
+                           DataItem(schema::kInt32)),
+                IsOkAndHolds(IsEquivalentTo(
+                    DataSliceImpl::Create({DataItem(1), DataItem()}))));
+    // Failure.
+    EXPECT_THAT(CastDataTo(DataSliceImpl::Create({DataItem(1.0f), DataItem()}),
+                           DataItem(schema::kNone)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "only empty slices can be converted to NONE"));
+  }
+  {
+    // Casting to OBJECT - no embedding is done.
+    auto obj = DataItem(internal::AllocateSingleObject());
+    EXPECT_THAT(
+        CastDataTo(DataSliceImpl::Create({obj, DataItem()}),
+                   DataItem(schema::kObject)),
+        IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create({obj, DataItem()}))));
+  }
+  {
+    // Casting to entity.
+    // Success.
+    auto obj = DataItem(internal::AllocateSingleObject());
+    auto schema = DataItem(internal::AllocateExplicitSchema());
+    EXPECT_THAT(CastDataTo(DataSliceImpl::Create({obj}), schema),
+                IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create({obj}))));
+    // Failure.
+    EXPECT_THAT(CastDataTo(DataSliceImpl::Create({DataItem(1.0f)}), schema),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "cannot cast FLOAT32 to ITEMID"));
+  }
+}
+
+TEST(Casting, CastDataTo_CastingTest) {
+  // Tests that the casts actually does something.
+  EXPECT_THAT(CastDataTo(DataItem(), DataItem(schema::kNone)),
+              IsOkAndHolds(IsEquivalentTo(DataItem())));
+  EXPECT_THAT(CastDataTo(DataItem(1.0f), DataItem(schema::kInt32)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1))));
+  EXPECT_THAT(CastDataTo(DataItem(1.0f), DataItem(schema::kInt64)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(int64_t{1}))));
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kFloat32)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1.0f))));
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kFloat64)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1.0))));
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kBool)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(true))));
+  EXPECT_THAT(CastDataTo(DataItem(arolla::Unit()), DataItem(schema::kMask)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Unit()))));
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kMask)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast INT32 to MASK"));
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kString)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("1")))));
+  EXPECT_THAT(
+      CastDataTo(DataItem(arolla::Bytes("abc")), DataItem(schema::kBytes)),
+      IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Bytes("abc")))));
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kBytes)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast INT32 to BYTES"));
+  EXPECT_THAT(
+      CastDataTo(DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x"))),
+                 DataItem(schema::kExpr)),
+      IsOkAndHolds(IsEquivalentTo(
+          DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x"))))));
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kExpr)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast INT32 to EXPR"));
+  auto obj = DataItem(internal::AllocateSingleObject());
+  EXPECT_THAT(CastDataTo(obj, DataItem(schema::kItemId)),
+              IsOkAndHolds(IsEquivalentTo(obj)));
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kItemId)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast INT32 to ITEMID"));
+  EXPECT_THAT(CastDataTo(DataItem(schema::kInt32), DataItem(schema::kSchema)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(schema::kInt32))));
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kSchema)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast INT32 to SCHEMA"));
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kObject)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1))));  // No diff.
+  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kAny)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(1))));  // No diff.
+  auto schema = internal::DataItem(internal::AllocateExplicitSchema());
+  EXPECT_THAT(CastDataTo(obj, schema), IsOkAndHolds(IsEquivalentTo(obj)));
+  EXPECT_THAT(CastDataTo(DataItem(1), schema),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast INT32 to ITEMID"));
+}
+
+TEST(Casting, CastDataTo_CoversAllDTypes_DataItem) {
+  // Ensures that all schemas are supported by CastDataTo.
+  // DTypes.
+  arolla::meta::foreach_type(schema::supported_dtype_values(), [&](auto tpe) {
+    using T = typename decltype(tpe)::type;
+    schema::DType schema = schema::GetDType<T>();
+    internal::DataItem schema_item(schema);
+    EXPECT_THAT(CastDataTo(DataItem(), schema_item),
+                IsOkAndHolds(IsEquivalentTo(DataItem())));
+  });
+  // Entities.
+  auto schema = internal::DataItem(internal::AllocateExplicitSchema());
+  EXPECT_THAT(CastDataTo(DataItem(), schema),
+              IsOkAndHolds(IsEquivalentTo(DataItem())));
+}
+
+TEST(Casting, CastDataTo_CoversAllDTypes_DataSlice) {
+  // Ensures that all schemas are supported by CastDataTo.
+  // DTypes.
+  arolla::meta::foreach_type(schema::supported_dtype_values(), [&](auto tpe) {
+    using T = typename decltype(tpe)::type;
+    schema::DType schema = schema::GetDType<T>();
+    internal::DataItem schema_item(schema);
+    EXPECT_THAT(
+        CastDataTo(DataSliceImpl::CreateEmptyAndUnknownType(3), schema_item),
+        IsOkAndHolds(
+            IsEquivalentTo(DataSliceImpl::CreateEmptyAndUnknownType(3))));
+  });
+  // Entities.
+  auto schema = internal::DataItem(internal::AllocateExplicitSchema());
+  EXPECT_THAT(CastDataTo(DataSliceImpl::CreateEmptyAndUnknownType(3), schema),
+              IsOkAndHolds(
+                  IsEquivalentTo(DataSliceImpl::CreateEmptyAndUnknownType(3))));
 }
 
 }  // namespace
