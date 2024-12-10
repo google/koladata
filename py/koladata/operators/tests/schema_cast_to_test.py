@@ -51,14 +51,6 @@ class SchemaCastToTest(parameterized.TestCase):
           ds([1, 2], schema_constants.INT64),
       ),
       (ENTITY, ENTITY.get_schema(), ENTITY),
-      (OBJ, ENTITY.get_schema(), OBJ.with_schema(ENTITY.get_schema())),
-      (
-          ds([ENTITY, OBJ], schema_constants.ANY),
-          ENTITY.get_schema(),
-          ds([ENTITY, OBJ], schema_constants.ANY).with_schema(
-              ENTITY.get_schema()
-          ),
-      ),
   )
   def test_eval(self, x, schema, expected):
     res = expr_eval.eval(kde.schema.cast_to(x, schema))
@@ -66,16 +58,17 @@ class SchemaCastToTest(parameterized.TestCase):
 
   def test_adoption(self):
     bag1 = data_bag.DataBag.empty()
-    bag2 = data_bag.DataBag.empty()
     entity = bag1.new(x=ds([1]))
-    schema = bag2.new_schema(x=schema_constants.INT32)
+    schema = entity.get_schema().extract()
+    del entity.get_schema().x
+
     result = expr_eval.eval(kde.schema.cast_to(entity, schema))
     testing.assert_equal(result.x.no_db(), ds([1]))
     testing.assert_equal(
         result.no_db(), entity.no_db().with_schema(schema.no_db())
     )
     self.assertNotEqual(result.x.db.fingerprint, bag1.fingerprint)
-    self.assertNotEqual(result.x.db.fingerprint, bag2.fingerprint)
+    self.assertNotEqual(result.x.db.fingerprint, schema.get_bag().fingerprint)
 
   def test_adoption_conflict(self):
     bag1 = data_bag.DataBag.empty()
@@ -118,6 +111,16 @@ class SchemaCastToTest(parameterized.TestCase):
         ValueError, "schema must be SCHEMA, got: INT32"
     ):
       expr_eval.eval(kde.schema.cast_to(ds(1), ds(1)))
+
+  def test_unsupported_schema_error(self):
+    db = data_bag.DataBag.empty()
+    e1 = db.new()
+    e2_schema = db.new().get_schema()
+    with self.assertRaisesRegex(
+        ValueError,
+        "casting from.*to entity schema.*is currently not supported",
+    ):
+      expr_eval.eval(kde.schema.cast_to(e1, e2_schema))
 
   def test_multidim_schema_error(self):
     with self.assertRaisesRegex(

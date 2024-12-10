@@ -266,16 +266,17 @@ absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
     return absl::InvalidArgumentError(
         absl::StrFormat("expected an entity schema, got: %v", entity_schema));
   }
-  if (slice.GetSchemaImpl().holds_value<schema::DType>()) {
-    constexpr DTypeMask kAllowedSchemas = GetDTypeMask(
-        schema::kNone, schema::kObject, schema::kItemId, schema::kAny);
-    RETURN_IF_ERROR(VerifyCompatibleSchema(slice, kAllowedSchemas));
+  // TODO: Support deep casting to entity schema.
+  if (!schema::IsImplicitlyCastableTo(slice.GetSchemaImpl(), entity_schema)) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "(deep) casting from %v to entity schema %v is currently not supported "
+        "- please cast each attribute separately or use `kd.with_schema` if "
+        "you are certain it is safe to do so",
+        slice.GetSchemaImpl(), entity_schema));
   }
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    ASSIGN_OR_RETURN(auto impl_res, schema::ToItemId()(impl),
-                     _ << "while casting to entity schema: " << entity_schema);
-    return DataSlice::Create(std::move(impl_res), slice.GetShape(),
-                             entity_schema, slice.GetBag());
+    return DataSlice::Create(impl, slice.GetShape(), entity_schema,
+                             slice.GetBag());
   });
 }
 

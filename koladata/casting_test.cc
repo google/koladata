@@ -1257,7 +1257,6 @@ INSTANTIATE_TEST_SUITE_P(
     CastingToEntityTestSuite, CastingToEntityTest, ::testing::ValuesIn([] {
       auto obj = internal::AllocateSingleObject();
       auto entity_schema_1 = internal::AllocateExplicitSchema();
-      auto entity_schema_2 = internal::AllocateExplicitSchema();
 
       // Write a bogus schema to the db.
       auto entity_schema_3 = internal::AllocateExplicitSchema();
@@ -1273,33 +1272,23 @@ INSTANTIATE_TEST_SUITE_P(
            test::EmptyDataSlice(3, entity_schema_1)},
           {test::DataSlice<ObjectId>({obj}, entity_schema_1),
            test::DataSlice<ObjectId>({obj}, entity_schema_1)},
-          {test::DataSlice<ObjectId>({obj}, entity_schema_1),
-           test::DataSlice<ObjectId>({obj}, entity_schema_2)},
           {test::DataSlice<ObjectId>({obj}, entity_schema_1, db),
-           test::DataSlice<ObjectId>({obj}, entity_schema_2, db)},
-          {test::DataSlice<ObjectId>({obj}, schema::kObject),
-           test::DataSlice<ObjectId>({obj}, entity_schema_1)},
-          {test::DataSlice<ObjectId>({obj}, schema::kAny),
-           test::DataSlice<ObjectId>({obj}, entity_schema_1)},
+           test::DataSlice<ObjectId>({obj}, entity_schema_1, db)},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, entity_schema_1)},
           {test::DataItem(obj, entity_schema_1),
            test::DataItem(obj, entity_schema_1)},
-          {test::DataItem(obj, entity_schema_1),
-           test::DataItem(obj, entity_schema_2)},
           {test::DataItem(obj, entity_schema_1, db),
-           test::DataItem(obj, entity_schema_2, db)},
-          {test::DataItem(obj, schema::kObject),
-           test::DataItem(obj, entity_schema_1)},
-          {test::DataItem(obj, schema::kAny),
-           test::DataItem(obj, entity_schema_1)},
+           test::DataItem(obj, entity_schema_1, db)},
       };
       return test_cases;
     }()));
 
 TEST(Casting, EntityErrors) {
-  auto entity_schema = internal::DataItem(internal::AllocateExplicitSchema());
+  auto obj = internal::AllocateSingleObject();
+  auto entity_schema = internal::AllocateExplicitSchema();
+  auto entity_schema_2 = internal::AllocateExplicitSchema();
   EXPECT_THAT(ToEntity(test::EmptyDataSlice(3, schema::kNone),
                        internal::DataItem(schema::kInt32)),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1311,29 +1300,30 @@ TEST(Casting, EntityErrors) {
   EXPECT_THAT(
       ToEntity(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                              schema::kMask),
-               entity_schema),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+               internal::DataItem(entity_schema)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr(absl::StrFormat("(deep) casting from MASK to entity "
+                                         "schema %v is currently not supported",
+                                         internal::DataItem(entity_schema)))));
   EXPECT_THAT(
       ToEntity(
           test::MixedDataSlice<internal::ObjectId, arolla::Unit>(
               {internal::AllocateSingleObject(), std::nullopt, std::nullopt},
               {std::nullopt, arolla::kUnit, std::nullopt}),
-          entity_schema),
+          internal::DataItem(entity_schema)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr(absl::StrFormat("(deep) casting from OBJECT to entity "
+                                         "schema %v is currently not supported",
+                                         internal::DataItem(entity_schema)))));
+  EXPECT_THAT(
+      ToEntity(test::DataSlice<ObjectId>({obj, std::nullopt}, entity_schema),
+               internal::DataItem(entity_schema_2)),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
-          absl::StrFormat(
-              "cannot cast MASK to ITEMID; while casting to entity schema: %v",
-              entity_schema)));
-  EXPECT_THAT(
-      ToEntity(test::DataItem(arolla::kUnit, schema::kMask), entity_schema),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(
-      ToEntity(test::DataItem(arolla::kUnit, schema::kObject), entity_schema),
-      StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          absl::StrFormat(
-              "cannot cast MASK to ITEMID; while casting to entity schema: %v",
-              entity_schema)));
+          HasSubstr(absl::StrFormat("(deep) casting from %v to entity "
+                                    "schema %v is currently not supported",
+                                    internal::DataItem(entity_schema),
+                                    internal::DataItem(entity_schema_2)))));
 }
 
 TEST_P(CastingToObjectTest, Casting) {
@@ -1660,11 +1650,14 @@ TEST(Casting, CastToExplicit) {
                        internal::DataItem(schema::kInt32)),
         IsOkAndHolds(IsEquivalentTo(test::DataItem(1, schema::kInt32))));
     // But it can also fail if the explicit cast is not allowed.
+    auto entity_schema = internal::DataItem(internal::AllocateExplicitSchema());
     EXPECT_THAT(
-        CastToExplicit(test::DataItem(1, schema::kInt32),
-                       internal::DataItem(internal::AllocateExplicitSchema())),
-        StatusIs(absl::StatusCode::kInvalidArgument,
-                 "unsupported schema: INT32"));
+        CastToExplicit(test::DataItem(1, schema::kInt32), entity_schema),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            HasSubstr(absl::StrFormat("(deep) casting from INT32 to entity "
+                                      "schema %v is currently not supported",
+                                      entity_schema))));
   }
   {
     // Casting to OBJECT with embedding.

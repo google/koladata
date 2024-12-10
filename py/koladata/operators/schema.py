@@ -677,6 +677,17 @@ def common_schema(x):
   return agg_common_schema(jagged_shape_ops.flatten(x))
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kde.schema._unsafe_cast_to',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _unsafe_cast_to(x, schema):  # pylint: disable=unused-argument
+  """Casts x to schema using explicit casting rules, allowing entity casts."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.with_schema_from_obj'])
 @optools.as_lambda_operator(
     'kde.schema.with_schema_from_obj',
@@ -699,4 +710,7 @@ def with_schema_from_obj(x):
   # Explicit casting is safe since the compatibility is guaranteed by
   # `get_obj_schema` (returning the schema of the data) and `common_schema`
   # (returning a safe common alternative).
-  return cast_to(x, schema)
+  #
+  # TODO: Support deep casting to entity schema, allowing cast_to
+  # to be used directly.
+  return _unsafe_cast_to(x, schema)

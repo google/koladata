@@ -203,6 +203,7 @@ OPERATOR("kde.math.subtract", Subtract);
 //
 OPERATOR("kde.schema._agg_common_schema", AggCommonSchema);
 OPERATOR("kde.schema._internal_maybe_named_schema", InternalMaybeNamedSchema);
+OPERATOR("kde.schema._unsafe_cast_to", UnsafeCastTo);
 OPERATOR("kde.schema.cast_to", CastTo);
 OPERATOR("kde.schema.cast_to_implicit", CastToImplicit);
 OPERATOR("kde.schema.cast_to_narrow", CastToNarrow);

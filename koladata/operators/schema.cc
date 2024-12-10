@@ -233,6 +233,15 @@ absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
   return ::koladata::CastToNarrow(x_with_bag, schema.item());
 }
 
+absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,
+                                       const DataSlice& schema) {
+  if (schema.IsEntitySchema()) {
+    return x.WithSchema(schema);
+  } else {
+    return CastTo(x, schema);
+  }
+}
+
 absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema) {
   auto db = koladata::DataBag::Empty();
   ASSIGN_OR_RETURN(auto list_schema, CreateListSchema(db, item_schema));
