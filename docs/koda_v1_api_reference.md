@@ -12,7 +12,7 @@ DataSlice, DataBag, etc.).
 
 Category  | Subcategory | Description
 --------- | ----------- | ------------
-[kd-ops](#kd-ops_category) | | `kd` and `kde` operators
+[kd](#kd_category) | | `kd` and `kde` operators
  | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
  | [annotation](#kd.annotation) | Annotation operators.
  | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
@@ -27,11 +27,11 @@ Category  | Subcategory | Description
  | [shapes](#kd.shapes) | Operators that work on shapes
  | [strings](#kd.strings) | Operators that work with strings data.
  | [tuple](#kd.tuple) | Operators to create tuples.
-[kd-ext-ops](#kd-ext-ops_category) | | `kd_ext` operators
+[kd_ext](#kd_ext_category) | | `kd_ext` operators
 [DataSlice](#DataSlice_category) | | `DataSlice` methods
 [DataBag](#DataBag_category) | | `DataBag` methods
 
-## `kd` and `kde` operators {#kd-ops_category}
+## `kd` and `kde` operators {#kd_category}
 
 `kd` and `kde` modules are containers for eager and lazy operators respectively.
 
@@ -6450,7 +6450,7 @@ Returns a tuple-like object containing the given `*args`.
 </section>
 </section>
 
-## `kd_ext` operators {#kd-ext-ops_category}
+## `kd_ext` operators {#kd_ext_category}
 
 Operators under the `kd_ext.xxx` modules for extension utilities. Importing from
 the following module is needed:
@@ -6460,7 +6460,7 @@ the following module is needed:
 
 **Operators**
 
-### `nested_data.selected_path_update(root_ds, selection_ds_path, selection_ds)` {#nested_data.selected_path_update}
+### `kd_ext.nested_data.selected_path_update(root_ds, selection_ds_path, selection_ds)` {#kd_ext.nested_data.selected_path_update}
 
 ```` {.no-copy}
 Returns a DataBag where only the selected items are present in child lists.
@@ -6491,25 +6491,25 @@ Returns a DataBag where only the selected items are present in child lists.
     @root_ds.updated(selected_path(....)).
 ````
 
-### `npkd.ds_from_np(arr)` {#npkd.ds_from_np}
+### `kd_ext.npkd.ds_from_np(arr)` {#kd_ext.npkd.ds_from_np}
 
 ``` {.no-copy}
 Deprecated alias for from_array.
 ```
 
-### `npkd.ds_to_np(ds)` {#npkd.ds_to_np}
+### `kd_ext.npkd.ds_to_np(ds)` {#kd_ext.npkd.ds_to_np}
 
 ``` {.no-copy}
 Deprecated alias for to_array.
 ```
 
-### `npkd.from_array(arr)` {#npkd.from_array}
+### `kd_ext.npkd.from_array(arr)` {#kd_ext.npkd.from_array}
 
 ``` {.no-copy}
 Converts a numpy array to a DataSlice.
 ```
 
-### `npkd.get_elements_indices_from_ds(ds)` {#npkd.get_elements_indices_from_ds}
+### `kd_ext.npkd.get_elements_indices_from_ds(ds)` {#kd_ext.npkd.get_elements_indices_from_ds}
 
 ``` {.no-copy}
 Returns a list of np arrays representing the DataSlice's indices.
@@ -6543,7 +6543,7 @@ Returns a list of np arrays representing the DataSlice's indices.
     list of np arrays representing the DataSlice's elements indices.
 ```
 
-### `npkd.reshape_based_on_indices(ds, indices)` {#npkd.reshape_based_on_indices}
+### `kd_ext.npkd.reshape_based_on_indices(ds, indices)` {#kd_ext.npkd.reshape_based_on_indices}
 
 ``` {.no-copy}
 Reshapes a DataSlice corresponding to the given indices.
@@ -6581,13 +6581,13 @@ Reshapes a DataSlice corresponding to the given indices.
     DataSlice reshaped based on the given indices.
 ```
 
-### `npkd.to_array(ds)` {#npkd.to_array}
+### `kd_ext.npkd.to_array(ds)` {#kd_ext.npkd.to_array}
 
 ``` {.no-copy}
 Converts a DataSlice to a numpy array.
 ```
 
-### `pdkd.from_dataframe(df, as_obj=False)` {#pdkd.from_dataframe}
+### `kd_ext.pdkd.from_dataframe(df, as_obj=False)` {#kd_ext.pdkd.from_dataframe}
 
 ``` {.no-copy}
 Creates a DataSlice from the given pandas DataFrame.
@@ -6610,7 +6610,7 @@ Creates a DataSlice from the given pandas DataFrame.
     DataSlice of items with attributes from DataFrame columns.
 ```
 
-### `pdkd.to_dataframe(ds, cols=None)` {#pdkd.to_dataframe}
+### `kd_ext.pdkd.to_dataframe(ds, cols=None)` {#kd_ext.pdkd.to_dataframe}
 
 ``` {.no-copy}
 Creates a pandas DataFrame from the given DataSlice.
@@ -6674,6 +6674,69 @@ Creates a pandas DataFrame from the given DataSlice.
 
   Returns:
     DataFrame with columns from DataSlice fields.
+```
+
+### `kd_ext.Fn(f, *, use_tracing=True, **kwargs)` {#kd_ext.Fn}
+
+``` {.no-copy}
+Returns a Koda functor representing `f`.
+
+  This is the most generic version of the functools builder functions.
+  It accepts all functools supported function types including python functions,
+  Koda Expr.
+
+  Args:
+    f: Python function, Koda Expr, Expr packed into a DataItem, or a Koda
+      functor (the latter will be just returned unchanged).
+    use_tracing: Whether tracing should be used for Python functions.
+    **kwargs: Either variables or defaults to pass to the function. See the
+      documentation of `expr_fn` and `py_fn` for more details.
+
+  Returns:
+    A Koda functor representing `f`.
+```
+
+### `kd_ext.PyFn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults)` {#kd_ext.PyFn}
+
+``` {.no-copy}
+Returns a Koda functor wrapping a python function.
+
+  This is the most flexible way to wrap a python function and is recommended
+  for large, complex code.
+
+  Functions wrapped with py_fn are not serializable.
+
+  Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
+  functor
+  will have exactly the same signature as the original function. In particular,
+  if the original function does not accept variadic keyword arguments and
+  and unknown argument is passed when calling the functor, an exception will
+  occur.
+
+  Args:
+    f: Python function. It is required that this function returns a
+      DataSlice/DataItem or a primitive that will be automatically wrapped into
+      a DataItem.
+    return_type_as: The return type of the function is expected to be the same
+      as the type of this value. This needs to be specified if the function does
+      not return a DataSlice/DataItem or a primitive that would be auto-boxed
+      into a DataItem. kd.types.DataSlice and kd.types.DataBag can also be
+      passed here.
+    **defaults: Keyword defaults to bind to the function. The values in this map
+      may be Koda expressions or DataItems (see docstring for kd.bind for more
+      details). Defaults can be overridden through kd.call arguments. **defaults
+      and inputs to kd.call will be combined and passed through to the function.
+      If a parameter that is not passed does not have a default value defined by
+      the function then an exception will occur.
+
+  Returns:
+    A DataItem representing the functor.
+```
+
+### `kd_ext.py_cloudpickle(obj)` {#kd_ext.py_cloudpickle}
+
+``` {.no-copy}
+Wraps into a Arolla QValue using cloudpickle for serialization.
 ```
 
 </section>
