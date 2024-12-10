@@ -1891,6 +1891,16 @@ Assigned schema for Dict value: STRING"""),
     ):
       d['a'] = 'a'
 
+    d = db.obj(d)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(r"""the schema for Dict value is incompatible.
+
+Expected schema for Dict value: INT32
+Assigned schema for Dict value: STRING"""),
+    ):
+      d['a'] = 'a'
+
     d2 = db.dict(db.new(x=ds([1, 2]), y=ds([3, 4])), ds(1))
     with self.assertRaisesRegex(
         exceptions.KodaError,
@@ -2151,6 +2161,17 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
   def test_list_op_schema_error(self):
     db = bag()
     l = db.list([1, 2, 3])
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'the schema for List item is incompatible.\n\n'
+            'Expected schema for List item: INT32\n'
+            'Assigned schema for List item: STRING'
+        ),
+    ):
+      l[:] = ds(['el', 'psy', 'congroo'])
+
+    l = db.obj(l)
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(

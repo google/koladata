@@ -2711,7 +2711,7 @@ TEST(DataSliceTest, SetGetError) {
               arolla::Repr(ds_a.GetShape()), arolla::Repr(ds.GetShape())))));
 }
 
-TEST(DataSliceTest, MissingAttribute_EntityCreator) {
+TEST(DataSliceTest, UpdatingEntitySchema_WithNoAttributes_EntityCreator) {
   auto ds_int32 = test::DataSlice<int>({42, 42, 42});
   auto ds_text = test::DataSlice<arolla::Text>({"abc", "abc", "abc"});
 
@@ -2723,7 +2723,8 @@ TEST(DataSliceTest, MissingAttribute_EntityCreator) {
               IsOkAndHolds(IsEquivalentTo(ds_int32.WithBag(db))));
 }
 
-TEST(DataSliceTest, SetGetError_ObjectCreator) {
+// Some schemas are implicit and some are explicit.
+TEST(DataSliceTest, UpdatingEntitySchema_SomeMissingAttributes_ObjectCreator) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
@@ -2745,7 +2746,26 @@ TEST(DataSliceTest, SetGetError_ObjectCreator) {
   EXPECT_THAT(explicit_schema_get.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(test::DataSlice<DType>(
                   {schema::kString, schema::kString, schema::kString}, db))));
+}
 
+TEST(DataSliceTest, SetGetError_ObjectCreator) {
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto implicit_schema,
+                       objects.GetAttr(schema::kSchemaAttr));
+  auto mixed_implicit_explicit_schema = test::DataSlice<ObjectId>(
+      {implicit_schema.slice()[0].value<internal::ObjectId>(),
+       internal::AllocateExplicitSchema(), internal::AllocateExplicitSchema()},
+      schema::kSchema, db);
+  ASSERT_OK(
+      objects.SetAttr(schema::kSchemaAttr, mixed_implicit_explicit_schema));
+  ASSERT_OK_AND_ASSIGN(auto explicit_schema_get,
+                       objects.GetAttr(schema::kSchemaAttr));
+  EXPECT_THAT(explicit_schema_get,
+              IsEquivalentTo(mixed_implicit_explicit_schema));
+
+  auto ds_a = test::DataItem("foo");
   auto float_schema = test::Schema(schema::kFloat32);
   ASSERT_OK(mixed_implicit_explicit_schema.SetAttr("a", float_schema));
   absl::Status status = objects.SetAttr("a", ds_a);
@@ -3608,6 +3628,54 @@ TEST(DataSliceTest, ExplodeList_ObjectSchema) {
       IsOkAndHolds(Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt64))));
 }
 
+TEST(DataSliceTest, SchemaAttr_MissingItemsAttr_ForLists) {
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FromEdges({CreateEdge({0, 3})}));
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto lists,
+                       DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
+                                             internal::AllocateLists(3), 3),
+                                         shape, DataItem(schema::kObject), db));
+
+  ASSERT_OK_AND_ASSIGN(auto list_int32_schema,
+                       CreateListSchema(db, test::Schema(schema::kInt32)));
+  auto schema = test::DataSlice<ObjectId>({
+    list_int32_schema.item().value<ObjectId>(),
+    // Implicit missing __items__.
+    GenerateImplicitSchema(),
+    list_int32_schema.item().value<ObjectId>()}, schema::kSchema);
+
+  ASSERT_OK(lists.SetAttr(schema::kSchemaAttr, schema));
+  EXPECT_THAT(
+      lists.ExplodeList(0, std::nullopt),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("the attribute '__items__' is missing")));
+
+  auto values = test::DataSlice<int>({1, 2, 3}, shape);
+  // Implicit missing __items__ gets overwritten.
+  ASSERT_OK(lists.AppendToList(values));
+  EXPECT_THAT(
+      lists.ExplodeList(0, std::nullopt)->Reshape(shape),
+      IsOkAndHolds(IsEquivalentTo(values.WithBag(db))));
+
+  schema = test::DataSlice<ObjectId>({
+    list_int32_schema.item().value<ObjectId>(),
+    // Explicit missing __items__.
+    internal::AllocateExplicitSchema(),
+    list_int32_schema.item().value<ObjectId>()}, schema::kSchema);
+
+  ASSERT_OK(lists.SetAttr(schema::kSchemaAttr, schema));
+  EXPECT_THAT(
+      lists.ExplodeList(0, std::nullopt),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("the attribute '__items__' is missing")));
+
+  // Explicit missing __items__ raises an Error.
+  EXPECT_THAT(lists.AppendToList(values),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("the schema for list items is missing")));
+}
+
 TEST(DataSliceTest, ExplodeList_NoneSchema_NotAList) {
   auto db = DataBag::Empty();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
@@ -4312,6 +4380,68 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
           test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kObject)),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("DataBag is immutable")));
+}
+
+TEST(DataSliceTest, SchemaAttr_MissingValuesAttr_ForDicts) {
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FromEdges({CreateEdge({0, 3})}));
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dicts,
+                       DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
+                                             internal::AllocateDicts(3), 3),
+                                         shape, DataItem(schema::kObject), db));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto dict_schema,
+      CreateDictSchema(db, test::Schema(schema::kInt32),
+                       test::Schema(schema::kInt32)));
+  auto schema = test::DataSlice<ObjectId>({
+    dict_schema.item().value<ObjectId>(),
+    // Implicit missing __keys__ and __values__.
+    GenerateImplicitSchema(),
+    dict_schema.item().value<ObjectId>()}, schema::kSchema);
+
+  ASSERT_OK(dicts.SetAttr(schema::kSchemaAttr, schema));
+  EXPECT_THAT(
+      dicts.GetDictKeys(),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("the attribute '__keys__' is missing")));
+  EXPECT_THAT(
+      dicts.GetDictValues(),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("the attribute '__values__' is missing")));
+
+  auto keys = test::DataSlice<int>({1, 2, 3}, shape);
+  auto values = test::DataSlice<int>({1, 2, 3}, shape);
+  // Implicit missing __keys__ and __values__ get overwritten.
+  ASSERT_OK(dicts.SetInDict(keys, values));
+  EXPECT_THAT(
+      dicts.GetDictKeys()->Reshape(shape),
+      IsOkAndHolds(IsEquivalentTo(keys.WithBag(db))));
+  EXPECT_THAT(
+      dicts.GetDictValues()->Reshape(shape),
+      IsOkAndHolds(IsEquivalentTo(values.WithBag(db))));
+
+  schema = test::DataSlice<ObjectId>({
+    dict_schema.item().value<ObjectId>(),
+    // Explicit missing __items__.
+    internal::AllocateExplicitSchema(),
+    dict_schema.item().value<ObjectId>()}, schema::kSchema);
+
+  ASSERT_OK(dicts.SetAttr(schema::kSchemaAttr, schema));
+  EXPECT_THAT(
+      dicts.GetDictKeys(),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("the attribute '__keys__' is missing")));
+  EXPECT_THAT(
+      dicts.GetDictValues(),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("the attribute '__values__' is missing")));
+
+  // Explicit missing __items__ raises an Error.
+  EXPECT_THAT(dicts.SetInDict(keys, values),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("the schema for dict keys is missing")));
 }
 
 TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
