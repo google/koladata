@@ -406,6 +406,7 @@ class DataSliceTest(parameterized.TestCase):
   def test_repr_and_str_no_bag(self, x, expected_repr, expected_str):
     self.assertEqual(repr(x), expected_repr)
     self.assertEqual(str(x), expected_str)
+    self.assertEqual(x._debug_repr(), expected_repr)
 
   def test_repr_with_bag(self):
     db = bag()

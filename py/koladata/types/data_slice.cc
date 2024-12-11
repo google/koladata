@@ -951,6 +951,13 @@ absl::Nullable<PyObject*> PyDataSlice_unspecified(PyTypeObject*, PyObject*) {
   return WrapPyDataSlice(std::move(unspecified));
 }
 
+absl::Nullable<PyObject*> PyDataSlice_debug_repr(PyObject* self) {
+  arolla::python::DCheckPyGIL();
+  std::string debug_repr = DataSliceRepr(UnsafeDataSliceRef(self));
+  return PyUnicode_FromStringAndSize(
+      debug_repr.c_str(), static_cast<Py_ssize_t>(debug_repr.size()));
+}
+
 // classmethod
 absl::Nullable<PyObject*>
 PyDataSlice_internal_register_reserved_class_method_name(
@@ -1219,6 +1226,10 @@ Returns:
      "--\n\n"
      "Returns true iff `attr_name` can be accessed through "
      "`getattr(slice, attr_name)`."},
+    {"_debug_repr", (PyCFunction)PyDataSlice_debug_repr, METH_NOARGS,
+    "_debug_repr()\n"
+    "--\n\n"
+    "Returns a string representation of the DataSlice for debugging purposes."},
     {nullptr}, /* sentinel */
 };
 
