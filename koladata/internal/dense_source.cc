@@ -38,6 +38,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
 #include "koladata/internal/value_array.h"
 #include "arolla/dense_array/bitmap.h"
@@ -453,6 +454,8 @@ class MultitypeDenseSource : public DenseSource {
   template <class T, class ValueArray>
   friend class TypedDenseSource;
 
+  friend class ReadOnlyDenseSource;
+
   void OverwriteAllSkipMissing(const DataSliceImpl& values) {
     if constexpr (can_be_mutable) {
       attr_allocation_ids_.Insert(values.allocation_ids());
@@ -759,6 +762,157 @@ TypedDenseSource<T, ValueArray>::CreateMutableCopy() const {
   }
 }
 
+// Uses DataSliceImpl as data storage. Can be created from existing
+// DataSliceImpl without copying data.
+class ReadOnlyDenseSource : public DenseSource {
+ public:
+  ReadOnlyDenseSource(AllocationId alloc, const DataSliceImpl& data)
+      : obj_allocation_id_(alloc), data_(data) {}
+
+  AllocationId allocation_id() const final { return obj_allocation_id_; }
+
+  int64_t size() const final { return data_.size(); }
+
+  DataItem Get(ObjectId object) const override {
+    DCHECK(obj_allocation_id_.Contains(object));
+    return data_[object.Offset()];
+  }
+
+  DataSliceImpl Get(const ObjectIdArray& objects,
+                    bool check_alloc_id) const override {
+    SliceBuilder bldr(objects.size());
+    bldr.ApplyMask(objects.ToMask());
+    Get(objects.values.span(), bldr);
+    return std::move(bldr).Build();
+  }
+
+  void Get(absl::Span<const ObjectId> objects,
+           SliceBuilder& bldr) const override {
+    DCHECK_EQ(bldr.size(), objects.size());
+    bldr.GetMutableAllocationIds().Insert(data_.allocation_ids());
+    data_.VisitValues([&]<class T>(const DenseArray<T>& arr) {
+      auto typed_bldr = bldr.typed<T>();
+      for (int64_t i = 0; i < objects.size(); ++i) {
+        ObjectId obj = objects[i];
+        if (typed_bldr.IsSet(i) || !obj_allocation_id_.Contains(obj)) {
+          continue;
+        }
+        int64_t offset = obj.Offset();
+        if (arr.present(offset)) {
+          typed_bldr.InsertIfNotSet(i, arr.values[offset]);
+        }
+      }
+    });
+  }
+
+  bool IsMutable() const final { return false; }
+
+  absl::Status Set(ObjectId, const DataItem&) final {
+    return absl::FailedPreconditionError(
+        "SetAttr is not allowed for an immutable DenseSource.");
+  }
+
+  absl::Status Set(const ObjectIdArray&, const DataSliceImpl&) final {
+    return absl::FailedPreconditionError(
+        "SetAttr is not allowed for an immutable DenseSource.");
+  }
+
+  absl::Status SetUnitAndUpdateMissingObjects(const ObjectIdArray&,
+                                              std::vector<ObjectId>&) final {
+    return absl::FailedPreconditionError(
+        "SetAttr is not allowed for an immutable DenseSource.");
+  }
+
+  std::shared_ptr<DenseSource> CreateMutableCopy() const override {
+    auto res = std::make_shared<MultitypeDenseSource</*can_be_mutable=*/true>>(
+        obj_allocation_id_, size());
+    res->attr_allocation_ids_ = data_.allocation_ids();
+    data_.VisitValues([&]<class T>(const DenseArray<T>& arr) {
+      using RO_VA = ValueArray<T, /*can_be_mutable=*/false>;
+      res->values_.emplace_back(RO_VA(arr).CreateMutableCopy());
+    });
+    return res;
+  }
+
+ protected:
+  const AllocationIdSet& attr_allocation_ids() const {
+    return data_.allocation_ids();
+  }
+
+ private:
+  DataSliceImpl GetAll() const final { return data_; }
+
+  absl::Status SetAllSkipMissing(const DataSliceImpl&,
+                                 ConflictHandlingOption) final {
+    return absl::FailedPreconditionError(
+        "SetAttr is not allowed for an immutable DenseSource.");
+  }
+
+  AllocationId obj_allocation_id_;
+  DataSliceImpl data_;
+};
+
+// ReadOnlyDenseSource that can hold only single-type slices. Its implementation
+// of `Get` has less overhead as it works only with `T` and gets data directly
+// from `DenseArray<T>`.
+template <class T>
+class TypedReadOnlyDenseSource final : public ReadOnlyDenseSource {
+ public:
+  TypedReadOnlyDenseSource(AllocationId alloc, const DataSliceImpl& data)
+      : ReadOnlyDenseSource(alloc, data),
+        data_(data.values<T>()),
+        value_array_(data_) {}
+
+  DataItem Get(ObjectId object) const override {
+    DCHECK(allocation_id().Contains(object));
+    int64_t offset = object.Offset();
+    if (data_.present(offset)) {
+      return DataItem(T(data_.values[offset]));
+    } else {
+      return DataItem();
+    }
+  }
+
+  DataSliceImpl Get(const ObjectIdArray& objects,
+                    bool check_alloc_id) const override {
+    auto res = check_alloc_id
+                   ? value_array_.template Get<true>(objects, allocation_id())
+                   : value_array_.template Get<false>(objects, allocation_id());
+    if constexpr (std::is_same_v<T, ObjectId>) {
+      return DataSliceImpl::CreateWithAllocIds(attr_allocation_ids(),
+                                               std::move(res));
+    } else {
+      return DataSliceImpl::Create(std::move(res));
+    }
+  }
+
+  void Get(absl::Span<const ObjectId> objects,
+           SliceBuilder& bldr) const override {
+    DCHECK_EQ(bldr.size(), objects.size());
+    bldr.GetMutableAllocationIds().Insert(attr_allocation_ids());
+    auto typed_bldr = bldr.typed<T>();
+    for (int64_t i = 0; i < objects.size(); ++i) {
+      ObjectId obj = objects[i];
+      if (bldr.IsSet(i) || !allocation_id().Contains(obj)) {
+        continue;
+      }
+      typed_bldr.InsertIfNotSet(i, data_[obj.Offset()]);
+    }
+  }
+
+  std::shared_ptr<DenseSource> CreateMutableCopy() const override {
+    using can_be_mutableValueArray = decltype(value_array_.CreateMutableCopy());
+    return std::make_shared<TypedDenseSource<T, can_be_mutableValueArray>>(
+        allocation_id(), attr_allocation_ids(),
+        value_array_.CreateMutableCopy());
+  }
+
+ private:
+  DenseArray<T> data_;
+  // TODO: Stop using ValueArray here.
+  ValueArray<T, /*can_be_mutable=*/false> value_array_;
+};
+
 }  // namespace
 
 absl::StatusOr<std::shared_ptr<DenseSource>> DenseSource::CreateReadonly(
@@ -772,21 +926,18 @@ absl::StatusOr<std::shared_ptr<DenseSource>> DenseSource::CreateReadonly(
         "Empty and unknown slices should be handled at a higher-level: "
         "DataBagImpl::SourceCollection");
   }
-  if (data.is_mixed_dtype()) {
-    return std::make_shared<MultitypeDenseSource<false>>(alloc, data);
+  if (data.is_single_dtype()) {
+    std::shared_ptr<DenseSource> res = nullptr;
+    data.VisitValues([&](const auto& array) {
+      using T = typename std::decay_t<decltype(array)>::base_type;
+      res = std::make_shared<TypedReadOnlyDenseSource<T>>(alloc, data);
+    });
+    DCHECK(res);
+    if (res) {
+      return res;
+    }
   }
-  std::shared_ptr<DenseSource> res = nullptr;
-  data.VisitValues([&](const auto& array) {
-    using T = typename std::decay_t<decltype(array)>::base_type;
-    res = std::make_shared<
-        TypedDenseSource<T, ValueArray<T, /*can_be_mutable=*/false>>>(
-        alloc, data.allocation_ids(), array);
-  });
-  if (!res) {
-    return absl::UnimplementedError(
-        absl::StrCat("Unsupported type: ", data.dtype()->name()));
-  }
-  return res;
+  return std::make_shared<ReadOnlyDenseSource>(alloc, data);
 }
 
 absl::StatusOr<std::shared_ptr<DenseSource>> DenseSource::CreateMutable(
