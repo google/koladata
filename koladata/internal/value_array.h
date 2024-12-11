@@ -51,6 +51,80 @@ using ::arolla::Unit;
 using ::arolla::bitmap::AlmostFullBuilder;
 using ::arolla::bitmap::Word;
 
+template <bool CheckAllocId, class T>
+arolla::DenseArray<T> GetByObjOffsets(const DenseArray<T>& data,
+                                      const ObjectIdArray& objects,
+                                      AllocationId obj_allocation_id) {
+  AlmostFullBuilder bitmap_builder(objects.size());
+
+  if constexpr (std::is_same_v<arolla::view_type_t<T>, absl::string_view>) {
+    AlmostFullBuilder bitmap_builder(objects.size());
+    arolla::StringsBuffer::ReshuffleBuilder values_builder(
+        objects.size(), data.values, std::nullopt);
+
+    objects.ForEach([&](int64_t id, bool present, ObjectId obj) {
+      bool res_present = false;
+      int64_t offset = obj.Offset();
+      if constexpr (CheckAllocId) {
+        if (present && obj_allocation_id.Contains(obj)) {
+          res_present = data.present(offset);
+          values_builder.CopyValue(id, offset);
+        }
+      } else if (present) {
+        DCHECK(obj_allocation_id.Contains(obj));
+        res_present = data.present(offset);
+        values_builder.CopyValue(id, offset);
+      }
+      if (!res_present) {
+        bitmap_builder.AddMissed(id);
+      }
+    });
+    return DenseArray<T>{std::move(values_builder).Build(),
+                         std::move(bitmap_builder).Build()};
+  } else if constexpr(std::is_same_v<T, Unit>) {
+    objects.ForEach([&](int64_t id, bool present, ObjectId obj) {
+      int64_t offset = obj.Offset();
+      if constexpr (CheckAllocId) {
+        if (!present || !obj_allocation_id.Contains(obj) ||
+            !data.present(offset)) {
+          bitmap_builder.AddMissed(id);
+        }
+      } else {
+        DCHECK(!present || obj_allocation_id.Contains(obj));
+        if (!present || !data.present(offset)) {
+          bitmap_builder.AddMissed(id);
+        }
+      }
+    });
+    return DenseArray<Unit>{
+        std::move(typename Buffer<Unit>::Builder(objects.size())).Build(),
+        std::move(bitmap_builder).Build()};
+  } else {
+    typename Buffer<T>::Builder values_builder(objects.size());
+    const T* values = data.values.span().data();
+
+    objects.ForEach([&](int64_t id, bool present, ObjectId obj) {
+      bool res_present = false;
+      int64_t offset = obj.Offset();
+      if constexpr (CheckAllocId) {
+        if (present && obj_allocation_id.Contains(obj)) {
+          res_present = data.present(offset);
+          values_builder.Set(id, values[offset]);
+        }
+      } else if (present) {
+        DCHECK(obj_allocation_id.Contains(obj));
+        res_present = data.present(offset);
+        values_builder.Set(id, values[offset]);
+      }
+      if (!res_present) {
+        bitmap_builder.AddMissed(id);
+      }
+    });
+    return DenseArray<T>{std::move(values_builder).Build(),
+                         std::move(bitmap_builder).Build()};
+  }
+}
+
 // ValueArray for value with `view_type_t<T>` same as `T` (currently everything
 // except Text/Bytes), T != Unit.
 template <typename T>
@@ -60,7 +134,25 @@ class SimpleValueArray {
 
   static_assert(std::is_same_v<T, arolla::view_type_t<T>>);
 
-  explicit SimpleValueArray(DenseArray<T> data) : data_(std::move(data)) {}
+  explicit SimpleValueArray(const DenseArray<T>& data)
+      : mutable_presence_(static_cast<Word*>(
+            calloc(arolla::bitmap::BitmapSize(data.size()), sizeof(Word)))),
+        mutable_values_(new T[data.size()]),
+        data_({Buffer<T>(nullptr, absl::Span<T>(mutable_values_, data.size())),
+               Buffer<Word>(nullptr,
+                            absl::Span<Word>(
+                                mutable_presence_,
+                                arolla::bitmap::BitmapSize(data.size())))}) {
+    if (data.bitmap.empty()) {
+      std::fill(mutable_presence_, mutable_presence_ + data_.bitmap.size(),
+                arolla::bitmap::kFullWord);
+    } else {
+      DCHECK_EQ(data.bitmap_bit_offset, 0);
+      std::copy(data.bitmap.begin(), data.bitmap.end(), mutable_presence_);
+    }
+    std::copy(data.values.begin(), data.values.end(), mutable_values_);
+  }
+
   explicit SimpleValueArray(size_t size)
       : mutable_presence_(static_cast<Word*>(
             calloc(arolla::bitmap::BitmapSize(size), sizeof(Word)))),
@@ -104,29 +196,7 @@ class SimpleValueArray {
   template <bool CheckAllocId>
   DenseArray<T> Get(const ObjectIdArray& objects,
                     AllocationId obj_allocation_id) const {
-    AlmostFullBuilder bitmap_builder(objects.size());
-    typename Buffer<T>::Builder values_builder(objects.size());
-    const T* values = data_.values.span().data();
-
-    objects.ForEach([&](int64_t id, bool present, ObjectId obj) {
-      bool res_present = false;
-      int64_t offset = obj.Offset();
-      if constexpr (CheckAllocId) {
-        if (present && obj_allocation_id.Contains(obj)) {
-          res_present = data_.present(offset);
-          values_builder.Set(id, values[offset]);
-        }
-      } else if (present) {
-        DCHECK(obj_allocation_id.Contains(obj));
-        res_present = data_.present(offset);
-        values_builder.Set(id, values[offset]);
-      }
-      if (!res_present) {
-        bitmap_builder.AddMissed(id);
-      }
-    });
-    return DenseArray<T>{std::move(values_builder).Build(),
-                         std::move(bitmap_builder).Build()};
+    return GetByObjOffsets<CheckAllocId>(data_, objects, obj_allocation_id);
   }
 
   const DenseArray<T>& GetAll() const { return data_; }
@@ -176,23 +246,8 @@ class SimpleValueArray {
     return status;
   }
 
-  SimpleValueArray<T> CreateMutableCopy() const {
-    SimpleValueArray<T> res(data_.size());
-    if (data_.bitmap.empty()) {
-      std::fill(res.mutable_presence_,
-                res.mutable_presence_ + res.data_.bitmap.size(),
-                arolla::bitmap::kFullWord);
-    } else if (data_.bitmap_bit_offset == 0) {
-      std::copy(data_.bitmap.begin(), data_.bitmap.end(),
-                res.mutable_presence_);
-    } else {
-      for (int64_t i = 0; i < res.data_.bitmap.size(); ++i) {
-        res.mutable_presence_[i] = arolla::bitmap::GetWordWithOffset(
-            data_.bitmap, i, data_.bitmap_bit_offset);
-      }
-    }
-    std::copy(data_.values.begin(), data_.values.end(), res.mutable_values_);
-    return res;
+  SimpleValueArray<T> Copy() const {
+    return SimpleValueArray<T>(data_);
   }
 
   // Applies bitwise or to the arrays's presence and the given bitmap.
@@ -231,7 +286,23 @@ class MaskValueArray {
  public:
   using base_type = Unit;
 
-  explicit MaskValueArray(DenseArray<Unit> data) : data_(std::move(data)) {}
+  explicit MaskValueArray(const DenseArray<Unit>& data)
+      : mutable_presence_(static_cast<Word*>(
+            calloc(arolla::bitmap::BitmapSize(data.size()), sizeof(Word)))),
+        data_({data.values,
+               Buffer<Word>(nullptr,
+                            absl::Span<Word>(
+                                mutable_presence_,
+                                arolla::bitmap::BitmapSize(data.size())))}) {
+    if (data.bitmap.empty()) {
+      std::fill(mutable_presence_, mutable_presence_ + data_.bitmap.size(),
+                arolla::bitmap::kFullWord);
+    } else {
+      DCHECK_EQ(data.bitmap_bit_offset, 0);
+      std::copy(data.bitmap.begin(), data.bitmap.end(), mutable_presence_);
+    }
+  }
+
   explicit MaskValueArray(size_t size)
       : mutable_presence_(static_cast<Word*>(
             calloc(arolla::bitmap::BitmapSize(size), sizeof(Word)))),
@@ -263,24 +334,7 @@ class MaskValueArray {
   template <bool CheckAllocId>
   DenseArray<Unit> Get(const ObjectIdArray& objects,
                        AllocationId obj_allocation_id) const {
-    AlmostFullBuilder bitmap_builder(objects.size());
-    objects.ForEach([&](int64_t id, bool present, ObjectId obj) {
-      int64_t offset = obj.Offset();
-      if constexpr (CheckAllocId) {
-        if (!present || !obj_allocation_id.Contains(obj) ||
-            !data_.present(offset)) {
-          bitmap_builder.AddMissed(id);
-        }
-      } else {
-        DCHECK(!present || obj_allocation_id.Contains(obj));
-        if (!present || !data_.present(offset)) {
-          bitmap_builder.AddMissed(id);
-        }
-      }
-    });
-    return DenseArray<Unit>{
-      std::move(typename Buffer<Unit>::Builder(objects.size())).Build(),
-      std::move(bitmap_builder).Build()};
+    return GetByObjOffsets<CheckAllocId>(data_, objects, obj_allocation_id);
   }
 
   const DenseArray<Unit>& GetAll() const { return data_; }
@@ -314,23 +368,7 @@ class MaskValueArray {
     return absl::OkStatus();
   }
 
-  MaskValueArray CreateMutableCopy() const {
-    MaskValueArray res(data_.size());
-    if (data_.bitmap.empty()) {
-      std::fill(res.mutable_presence_,
-                res.mutable_presence_ + res.data_.bitmap.size(),
-                arolla::bitmap::kFullWord);
-    } else if (data_.bitmap_bit_offset == 0) {
-      std::copy(data_.bitmap.begin(), data_.bitmap.end(),
-                res.mutable_presence_);
-    } else {
-      for (int64_t i = 0; i < res.data_.bitmap.size(); ++i) {
-        res.mutable_presence_[i] = arolla::bitmap::GetWordWithOffset(
-            data_.bitmap, i, data_.bitmap_bit_offset);
-      }
-    }
-    return res;
-  }
+  MaskValueArray Copy() const { return MaskValueArray(data_); }
 
   // Applies bitwise or to the arrays's presence and the given bitmap.
   // Stores result back to the `bitmap` argument.
@@ -349,14 +387,20 @@ class MaskValueArray {
 };
 
 template <typename T>
-class MutableStringArray {
+class StringValueArray {
  public:
   using base_type = T;
 
   static_assert(std::is_same_v<absl::string_view, arolla::view_type_t<T>>);
 
-  explicit MutableStringArray(DenseArray<T> data) = delete;
-  explicit MutableStringArray(size_t size) { data_.resize(size); }
+  explicit StringValueArray(const DenseArray<T>& data) {
+    data_.resize(data.size());
+    data.ForEachPresent([this](int64_t offset, absl::string_view value) {
+      data_[offset] = value;
+    });
+  }
+
+  explicit StringValueArray(size_t size) { data_.resize(size); }
 
   size_t size() const { return data_.size(); }
   bool IsMutable() const { return true; }
@@ -455,7 +499,7 @@ class MutableStringArray {
     return status;
   }
 
-  MutableStringArray<T> CreateMutableCopy() const { return *this; }
+  StringValueArray<T> Copy() const { return *this; }
 
   // Applies bitwise or to the arrays's presence and the given bitmap.
   // Stores result back to the `bitmap` argument.
@@ -471,92 +515,14 @@ class MutableStringArray {
   std::vector<std::optional<std::string>> data_;
 };
 
-template <typename T>
-class ImmutableStringArray {
- public:
-  using base_type = T;
-
-  static_assert(std::is_same_v<absl::string_view, arolla::view_type_t<T>>);
-
-  explicit ImmutableStringArray(DenseArray<T> data) : data_(std::move(data)) {}
-  explicit ImmutableStringArray(size_t size) = delete;
-
-  size_t size() const { return data_.size(); }
-  bool IsMutable() const { return false; }
-
-  arolla::OptionalValue<absl::string_view> Get(int64_t offset) const {
-    return data_[offset];
-  }
-
-  template <bool CheckAllocId>
-  DenseArray<T> Get(const ObjectIdArray& objects,
-                    AllocationId obj_allocation_id) const {
-    AlmostFullBuilder bitmap_builder(objects.size());
-    arolla::StringsBuffer::ReshuffleBuilder values_builder(
-        objects.size(), data_.values, std::nullopt);
-
-    objects.ForEach([&](int64_t id, bool present, ObjectId obj) {
-      bool res_present = false;
-      int64_t offset = obj.Offset();
-      if constexpr (CheckAllocId) {
-        if (present && obj_allocation_id.Contains(obj)) {
-          res_present = data_.present(offset);
-          values_builder.CopyValue(id, offset);
-        }
-      } else if (present) {
-        DCHECK(obj_allocation_id.Contains(obj));
-        res_present = data_.present(offset);
-        values_builder.CopyValue(id, offset);
-      }
-      if (!res_present) {
-        bitmap_builder.AddMissed(id);
-      }
-    });
-    return DenseArray<T>{std::move(values_builder).Build(),
-                         std::move(bitmap_builder).Build()};
-  }
-
-  const DenseArray<T>& GetAll() const { return data_; }
-
-  void Set(size_t offset, absl::string_view value) {
-    LOG(FATAL) << "ImmutableStringArray::Set is not allowed";
-  }
-  void Unset(size_t offset) {
-    LOG(FATAL) << "ImmutableStringArray::Unset is not allowed";
-  }
-  void MergeOverwrite(const DenseArray<T>& vals) {
-    LOG(FATAL) << "ImmutableStringArray::MergeOverwrite is not allowed";
-  }
-  void MergeKeepOriginal(const DenseArray<T>& vals) {
-    LOG(FATAL) << "ImmutableStringArray::MergeKeepOriginal is not allowed";
-  }
-  template <class ConflictFn>
-  absl::Status MergeRaiseOnConflict(const DenseArray<T>& vals, ConflictFn&&) {
-    return absl::FailedPreconditionError(
-        "ImmutableStringArray::MergeRaiseOnConflict is not allowed");
-  }
-
-  MutableStringArray<T> CreateMutableCopy() const {
-    MutableStringArray<T> res(data_.size());
-    data_.ForEachPresent([&res](int64_t offset, absl::string_view value) {
-      res.Set(offset, value);
-    });
-    return res;
-  }
-
- private:
-  DenseArray<T> data_;
-};
-
 }  // namespace value_array_impl
 
 // ValueArray is used as an internal storage in MultitypeDenseSource and
 // TypedDenseSource.
-template <class T, bool can_be_mutable>
+template <class T>
 using ValueArray = std::conditional_t<
     std::is_same_v<arolla::view_type_t<T>, absl::string_view>,
-    std::conditional_t<can_be_mutable, value_array_impl::MutableStringArray<T>,
-                       value_array_impl::ImmutableStringArray<T>>,
+    value_array_impl::StringValueArray<T>,
     std::conditional_t<std::is_same_v<T, arolla::Unit>,
                        value_array_impl::MaskValueArray,
                        value_array_impl::SimpleValueArray<T>>>;
