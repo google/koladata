@@ -81,7 +81,7 @@ arolla::DenseArray<T> GetByObjOffsets(const DenseArray<T>& data,
     });
     return DenseArray<T>{std::move(values_builder).Build(),
                          std::move(bitmap_builder).Build()};
-  } else if constexpr(std::is_same_v<T, Unit>) {
+  } else if constexpr (std::is_same_v<T, Unit>) {
     objects.ForEach([&](int64_t id, bool present, ObjectId obj) {
       int64_t offset = obj.Offset();
       if constexpr (CheckAllocId) {
@@ -180,14 +180,11 @@ class SimpleValueArray {
   }
 
   ~SimpleValueArray() {
-    if (IsMutable()) {
-      delete[] mutable_values_;
-      free(mutable_presence_);
-    }
+    delete[] mutable_values_;
+    free(mutable_presence_);
   }
 
   size_t size() const { return data_.size(); }
-  bool IsMutable() const { return mutable_values_ != nullptr; }
 
   arolla::OptionalValue<T> Get(int64_t offset) const {
     return data_[offset];
@@ -202,18 +199,15 @@ class SimpleValueArray {
   const DenseArray<T>& GetAll() const { return data_; }
 
   void Set(size_t offset, T value) {
-    DCHECK(IsMutable());
     arolla::bitmap::SetBit(mutable_presence_, offset);
     mutable_values_[offset] = value;
   }
 
   void Unset(size_t offset) {
-    DCHECK(IsMutable());
     arolla::bitmap::UnsetBit(mutable_presence_, offset);
   }
 
   void MergeOverwrite(const DenseArray<T>& vals) {
-    DCHECK(IsMutable());
     vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
       mutable_values_[offset] = v;
     });
@@ -221,7 +215,6 @@ class SimpleValueArray {
   }
 
   void MergeKeepOriginal(const DenseArray<T>& vals) {
-    DCHECK(IsMutable());
     vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
       if (!arolla::bitmap::GetBit(mutable_presence_, offset)) {
         mutable_values_[offset] = v;
@@ -233,7 +226,6 @@ class SimpleValueArray {
   template <class ConflictFn>
   absl::Status MergeRaiseOnConflict(const DenseArray<T>& vals,
                                     ConflictFn&& conflict) {
-    DCHECK(IsMutable());
     absl::Status status = absl::OkStatus();
     vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
       if (!arolla::bitmap::GetBit(mutable_presence_, offset)) {
@@ -246,9 +238,7 @@ class SimpleValueArray {
     return status;
   }
 
-  SimpleValueArray<T> Copy() const {
-    return SimpleValueArray<T>(data_);
-  }
+  SimpleValueArray<T> Copy() const { return SimpleValueArray<T>(data_); }
 
   // Applies bitwise or to the arrays's presence and the given bitmap.
   // Stores result back to the `bitmap` argument.
@@ -269,9 +259,9 @@ class SimpleValueArray {
       std::fill(mutable_presence_, mutable_presence_ + bitmap_size,
                 arolla::bitmap::kFullWord);
     } else {
+      DCHECK_EQ(vals.bitmap_bit_offset, 0);
       for (size_t i = 0; i < bitmap_size; ++i) {
-        mutable_presence_[i] |= arolla::bitmap::GetWordWithOffset(
-            vals.bitmap, i, vals.bitmap_bit_offset);
+        mutable_presence_[i] |= arolla::bitmap::GetWord(vals.bitmap, i);
       }
     }
   }
@@ -318,14 +308,9 @@ class MaskValueArray {
     other.mutable_presence_ = nullptr;
   }
 
-  ~MaskValueArray() {
-    if (IsMutable()) {
-      free(mutable_presence_);
-    }
-  }
+  ~MaskValueArray() { free(mutable_presence_); }
 
   size_t size() const { return data_.size(); }
-  bool IsMutable() const { return mutable_presence_ != nullptr; }
 
   arolla::OptionalValue<Unit> Get(int64_t offset) const {
     return data_[offset];
@@ -340,21 +325,16 @@ class MaskValueArray {
   const DenseArray<Unit>& GetAll() const { return data_; }
 
   void Set(size_t offset, Unit value) {
-    DCHECK(IsMutable());
     arolla::bitmap::SetBit(mutable_presence_, offset);
   }
 
   void Unset(size_t offset) {
-    DCHECK(IsMutable());
     arolla::bitmap::UnsetBit(mutable_presence_, offset);
   }
 
-  void MergeOverwrite(const DenseArray<Unit>& vals) {
-    DCHECK(IsMutable());
-    MergeKeepOriginal(vals); }
+  void MergeOverwrite(const DenseArray<Unit>& vals) { MergeKeepOriginal(vals); }
 
   void MergeKeepOriginal(const DenseArray<Unit>& vals) {
-    DCHECK(IsMutable());
     vals.ForEachPresent([&](int64_t offset, Unit) {
       arolla::bitmap::SetBit(mutable_presence_, offset);
     });
@@ -363,7 +343,6 @@ class MaskValueArray {
   template <class ConflictFn>
   absl::Status MergeRaiseOnConflict(const DenseArray<Unit>& vals,
                                     ConflictFn&&) {
-    DCHECK(IsMutable());
     MergeKeepOriginal(vals);
     return absl::OkStatus();
   }
@@ -403,7 +382,6 @@ class StringValueArray {
   explicit StringValueArray(size_t size) { data_.resize(size); }
 
   size_t size() const { return data_.size(); }
-  bool IsMutable() const { return true; }
 
   arolla::OptionalValue<absl::string_view> Get(int64_t offset) const {
     const std::optional<std::string>& v = data_[offset];
