@@ -110,6 +110,18 @@ def create_obj_shaped(state):
 
 
 @google_benchmark.register
+def get_attr_names_10000_obj(state):
+  size = 10000
+  val_1 = kd.slice([12] * size)
+  val_2 = kd.slice([13] * size)
+  val_3 = kd.slice([14] * size)
+  db = kd.bag()
+  ds = db.obj(val_1=val_1, val_2=val_2, val_3=val_3)
+  while state:
+    _ = ds.get_attr_names(intersection=True)
+
+
+@google_benchmark.register
 def set_get_attr_entity_with_merging(state):
   ds = kd.new()
   val = kd.new(a=1)  # Non-empty DataBag.
