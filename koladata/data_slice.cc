@@ -543,47 +543,66 @@ class RhsHandler {
     absl::Status status = absl::OkStatus();
     lhs_schema.template values<internal::ObjectId>().ForEachPresent(
         [&](int64_t id, internal::ObjectId schema_id) {
-          if (!status.ok()) {
-            return;
-          }
-          if (schema_id.IsNoFollowSchema()) {
+          if (status.ok() && schema_id.IsNoFollowSchema()) {
             status = CannotSetAttrOnNoFollowSchemaErrorStatus();
-            return;
-          }
-          if (!update_schema_) {
-            auto attr_stored_schema = attr_stored_schemas[id];
-            if (schema_id.IsImplicitSchema()) {
-              has_implicit_schema = true;
-              if (attr_stored_schema != rhs_.GetSchemaImpl()) {
-                should_update_schema = true;
-              }
-              return;
-            }
-            // lhs_schema is EXPLICIT.
-            if (!attr_stored_schema.has_value()) {
-              if (context_ == RhsHandlerContext::kAttr) {
-                should_update_schema = true;
-              } else {
-                status = AttrSchemaMissingErrorStatus();
-              }
-              return;
-            }
-            if (cast_to.has_value() && *cast_to != attr_stored_schema) {
-              // NOTE: If cast_to and attr_stored_schema are different, but
-              // compatible, we are still returning an error.
-              status = internal::WithErrorPayload(
-                  absl::InvalidArgumentError(
-                      absl::StrFormat("assignment would require to cast values "
-                                      "to two different "
-                                      "types: %v and %v",
-                                      attr_stored_schema, *cast_to)),
-                  MakeIncompatibleSchemaError(attr_stored_schema));
-              return;
-            }
-            cast_to = std::move(attr_stored_schema);
           }
         });
     RETURN_IF_ERROR(status);
+    if (!update_schema_) {
+      if (attr_stored_schemas.present_count() < lhs_schema.present_count()) {
+        if (context_ == RhsHandlerContext::kAttr) {
+          should_update_schema = true;
+        } else {
+          return AttrSchemaMissingErrorStatus();
+        }
+      }
+      RETURN_IF_ERROR(attr_stored_schemas.VisitValues(
+          [&]<class T>(const arolla::DenseArray<T>& attr_stored_schemas_array)
+              -> absl::Status {
+            absl::Status status = absl::OkStatus();
+            if constexpr (std::is_same_v<T, internal::ObjectId> ||
+                          std::is_same_v<T, schema::DType>) {
+              RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
+                  [&](int64_t id, internal::ObjectId schema_id,
+                      arolla::view_type_t<T> attr_stored_schema) {
+                    if (!status.ok()) {
+                      return;
+                    }
+                    if (schema_id.IsImplicitSchema()) {
+                      has_implicit_schema = true;
+                      if (value_schema != attr_stored_schema) {
+                        should_update_schema = true;
+                      }
+                      return;
+                    }
+                    // lhs_schema is EXPLICIT.
+                    if (cast_to.has_value() && cast_to != attr_stored_schema) {
+                      // NOTE: If cast_to and attr_stored_schema are different,
+                      // but compatible, we are still returning an error.
+                      status = internal::WithErrorPayload(
+                          absl::InvalidArgumentError(absl::StrFormat(
+                              "assignment would require to cast values "
+                              "to two different "
+                              "types: %v and %v",
+                              internal::DataItem(T(attr_stored_schema)),
+                              *cast_to)),
+                          MakeIncompatibleSchemaError(
+                              internal::DataItem(T(attr_stored_schema))));
+                      return;
+                    }
+                    if (!cast_to.has_value()) {
+                      cast_to =
+                          internal::DataItem(T(std::move(attr_stored_schema)));
+                    }
+                  },
+                  lhs_schema.values<internal::ObjectId>(),
+                  attr_stored_schemas_array));
+            } else {
+              DCHECK(false);
+            }
+            return status;
+          }));
+    }
     if (cast_to.has_value()) {
       RETURN_IF_ERROR(CastRhsTo(*cast_to, db_impl));
       value_schema = *cast_to;

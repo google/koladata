@@ -3652,11 +3652,11 @@ TEST(DataSliceTest, SchemaAttr_MissingItemsAttr_ForLists) {
                HasSubstr("the attribute '__items__' is missing")));
 
   auto values = test::DataSlice<int>({1, 2, 3}, shape);
-  // Implicit missing __items__ gets overwritten.
-  ASSERT_OK(lists.AppendToList(values));
+  // Implicit missing __items__ raises an Error.
   EXPECT_THAT(
-      lists.ExplodeList(0, std::nullopt)->Reshape(shape),
-      IsOkAndHolds(IsEquivalentTo(values.WithBag(db))));
+      lists.AppendToList(values),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("the schema for list items is missing")));
 
   schema = test::DataSlice<ObjectId>({
     list_int32_schema.item().value<ObjectId>(),
@@ -4413,14 +4413,10 @@ TEST(DataSliceTest, SchemaAttr_MissingValuesAttr_ForDicts) {
 
   auto keys = test::DataSlice<int>({1, 2, 3}, shape);
   auto values = test::DataSlice<int>({1, 2, 3}, shape);
-  // Implicit missing __keys__ and __values__ get overwritten.
-  ASSERT_OK(dicts.SetInDict(keys, values));
-  EXPECT_THAT(
-      dicts.GetDictKeys()->Reshape(shape),
-      IsOkAndHolds(IsEquivalentTo(keys.WithBag(db))));
-  EXPECT_THAT(
-      dicts.GetDictValues()->Reshape(shape),
-      IsOkAndHolds(IsEquivalentTo(values.WithBag(db))));
+  // Implicit missing __keys__ and __values__ raises an Error.
+  EXPECT_THAT(dicts.SetInDict(keys, values),
+            StatusIs(absl::StatusCode::kInvalidArgument,
+                      HasSubstr("the schema for dict keys is missing")));
 
   schema = test::DataSlice<ObjectId>({
     dict_schema.item().value<ObjectId>(),
@@ -4553,6 +4549,35 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                "the schema for dict keys is incompatible: "
                                "expected INT64, assigned ITEMID"));
+}
+
+TEST(DataSliceTest, SchemaAttr_GetFromDict_ImplicitSchemaKeys) {
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FromEdges({CreateEdge({0, 3})}));
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dicts,
+                       DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
+                                             internal::AllocateDicts(3), 3),
+                                         shape, DataItem(schema::kObject), db));
+  auto schema = test::DataSlice<ObjectId>(
+      {GenerateImplicitSchema(), GenerateImplicitSchema(),
+       GenerateImplicitSchema()},
+      schema::kSchema, db);
+  ASSERT_OK(schema.SetAttr(schema::kDictKeysSchemaAttr,
+                           test::Schema(schema::kInt32)));
+  ASSERT_OK(schema.SetAttr(schema::kDictValuesSchemaAttr,
+                           test::Schema(schema::kInt32)));
+  ASSERT_OK(dicts.SetAttr(schema::kSchemaAttr, schema));
+
+  auto keys = test::DataSlice<int>({1, 2, 3}, shape);
+  auto keys_int64 = test::DataSlice<int64_t>({1, 2, 3}, shape);
+  // Implicit having different type raises an Error.
+  EXPECT_THAT(dicts.GetFromDict(keys_int64),
+              StatusIs(absl::StatusCode::kInternal,
+                       HasSubstr("cannot update schemas in readonly mode")));
+
+  // Implicit having same type is Ok.
+  ASSERT_OK_AND_ASSIGN(auto values, dicts.GetFromDict(keys));
 }
 
 TEST(DataSliceTest, SetInDict_Adopt) {
