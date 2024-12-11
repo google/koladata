@@ -23,6 +23,7 @@ from koladata.exceptions import exceptions as _exceptions
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
+from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.expr import tracing_mode as _tracing_mode
 from koladata.functions import functions as _functions
 from koladata.functor import functions as _functor_functions
@@ -149,6 +150,7 @@ I = _eager_only(_input_container.InputContainer('I'))
 V = _eager_only(_input_container.InputContainer('V'))
 S = _eager_only(I.self)
 eval = _eager_only(_expr_eval.eval)  # pylint: disable=redefined-builtin
+clear_eval_cache = _eager_only(_py_expr_eval_py_ext.clear_eval_cache)
 kde = _eager_only(_kde_operators.kde)
 
 expr = _eager_only(_py_types.ModuleType('expr'))

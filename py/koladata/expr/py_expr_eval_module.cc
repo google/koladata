@@ -33,6 +33,8 @@ PyMethodDef kPyExprEvalModule_methods[] = {
      "Evaluates an expression on provided input QValues."},
     {"clear_eval_cache", PyClearEvalCache, METH_NOARGS,
      "Clears Koda specific eval caches."},
+    {"clear_arolla_op_cache", PyClearArollaOpCache, METH_NOARGS,
+     "Clears the cache of Arolla operators invoked from Koda QExpr operators."},
     {"unspecified_self_input", (PyCFunction)PyUnspecifiedSelfInput, METH_NOARGS,
      "Returns the constant representing the unspecified self input."},
     {"eval_op", (PyCFunction)PyEvalOp, METH_FASTCALL | METH_KEYWORDS,

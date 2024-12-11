@@ -353,6 +353,28 @@ class KdTest(absltest.TestCase):
     itemid2 = kd.new_itemid()
     self.assertNotEqual(itemid1.fingerprint, itemid2.fingerprint)
 
+  def test_clear_eval_cache(self):
+    obj = kd.obj(a=42)
+    expr = kd.kde.extract(obj)
+    first_eval = expr.eval()
+    cached_eval = expr.eval()  # literal-folded computation.
+    kd.testing.assert_equal(first_eval, cached_eval)
+    self.assertEqual(first_eval.fingerprint, cached_eval.fingerprint)
+    kd.clear_eval_cache()
+    eval_after_clear_cache = expr.eval()
+    kd.testing.assert_equivalent(first_eval, eval_after_clear_cache)
+    self.assertNotEqual(
+        first_eval.fingerprint, eval_after_clear_cache.fingerprint
+    )
+    kd.testing.assert_equal(eval_after_clear_cache, expr.eval())
+
+  def test_clear_all_arolla_caches_does_not_break(self):
+    obj = kd.obj(a=42)
+    expr = kd.kde.get_attr(obj, 'a') - 12
+    kd.testing.assert_equal(expr.eval(), kd.slice(30))
+    arolla.abc.clear_caches()
+    kd.testing.assert_equal(expr.eval(), kd.slice(30))
+
   def test_eager_op_overrides_expr_op(self):
     x = kd.obj(a=1)
     self.assertTrue(x.db.is_mutable())

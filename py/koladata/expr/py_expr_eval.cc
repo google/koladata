@@ -32,6 +32,7 @@
 #include "koladata/expr/constants.h"
 #include "koladata/expr/expr_eval.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "koladata/operators/arolla_bridge.h"
 #include "py/arolla/abc/py_aux_binding_policy.h"
 #include "py/arolla/abc/py_cached_eval.h"
 #include "py/arolla/abc/py_expr.h"
@@ -128,6 +129,15 @@ PyObject* PyClearEvalCache(PyObject* /*self*/, PyObject* /*py_args*/) {
   {
     ReleasePyGIL guard;
     koladata::expr::ClearCompilationCache();
+  }
+  Py_RETURN_NONE;
+}
+
+PyObject* PyClearArollaOpCache(PyObject* /*self*/, PyObject* /*py_args*/) {
+  DCheckPyGIL();
+  {
+    ReleasePyGIL guard;
+    koladata::ops::ClearCompilationCache();
   }
   Py_RETURN_NONE;
 }

@@ -260,8 +260,6 @@ CompiledOp Lookup(absl::string_view op_name,
   return EvalCompiler::Lookup(op_name, inputs);
 }
 
-void ClearCache() { return EvalCompiler::Clear(); }
-
 }  // namespace compiler_internal
 
 absl::StatusOr<arolla::TypedValue> EvalExpr(
@@ -269,6 +267,8 @@ absl::StatusOr<arolla::TypedValue> EvalExpr(
   ASSIGN_OR_RETURN(auto fn, EvalCompiler::Compile(op_name, inputs));
   return fn(inputs);
 }
+
+void ClearCompilationCache() { return EvalCompiler::Clear(); }
 
 absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
     const DataSlice& x) {

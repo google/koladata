@@ -137,17 +137,16 @@ struct KeyEq {
 CompiledOp Lookup(absl::string_view op_name,
                   absl::Span<const arolla::TypedRef> inputs);
 
-// Clears the compilation cache.
-//
-// Exposed for testing purposes.
-void ClearCache();
-
 }  // namespace compiler_internal
 
 // Evaluates the registered operator of the given name on the given inputs,
 // using a compilation cache.
 absl::StatusOr<arolla::TypedValue> EvalExpr(
     absl::string_view op_name, absl::Span<const arolla::TypedRef> inputs);
+
+// Clears the compilation cache of Arolla operators invoked from Koda QExpr
+// operators.
+void ClearCompilationCache();
 
 // Returns the schema of the data of `x` that is compatible with Arolla.
 // * If the schema of `x` is a primitive schema, returns it.
