@@ -564,7 +564,7 @@ class RhsHandler {
                           std::is_same_v<T, schema::DType>) {
               RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
                   [&](int64_t id, internal::ObjectId schema_id,
-                      arolla::view_type_t<T> attr_stored_schema) {
+                      T attr_stored_schema) {
                     if (!status.ok()) {
                       return;
                     }
@@ -591,8 +591,7 @@ class RhsHandler {
                       return;
                     }
                     if (!cast_to.has_value()) {
-                      cast_to =
-                          internal::DataItem(T(std::move(attr_stored_schema)));
+                      cast_to = internal::DataItem(attr_stored_schema);
                     }
                   },
                   lhs_schema.values<internal::ObjectId>(),
