@@ -13,9 +13,9 @@
 // limitations under the License.
 //
 #include "koladata/extract_utils.h"
+
 #include <utility>
 
-#include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_bag.h"

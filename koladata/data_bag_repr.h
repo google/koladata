@@ -15,6 +15,7 @@
 #ifndef KOLADATA_DATA_BAG_REPR_H_
 #define KOLADATA_DATA_BAG_REPR_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
