@@ -14,6 +14,7 @@
 
 import inspect
 import re
+import sys
 from unittest import mock
 
 from absl.testing import absltest
@@ -262,6 +263,7 @@ class MakePythonSignatureTest(parameterized.TestCase):
   def test_error_mismatch_of_options_and_parameters(self):
     try:
       _ = _make_python_signature('x|koladata_unified_binding_policy:__')
+      self.fail('expected a RuntimeError')
     except RuntimeError as ex:
       outer_ex = ex
     self.assertEqual(
@@ -397,6 +399,7 @@ class BindArgumentsTest(parameterized.TestCase):
     )
     try:
       _ = arolla.abc.aux_bind_arguments(sig)
+      self.fail('expected a RuntimeError')
     except RuntimeError as ex:
       outer_ex = ex
     self.assertEqual(
@@ -568,6 +571,7 @@ class BindArgumentsTest(parameterized.TestCase):
         m.side_effect = Exception('Boom!')
         try:
           _ = arolla.abc.aux_bind_arguments(sig, None)
+          self.fail('expected a RuntimeError')
         except RuntimeError as ex:
           outer_ex = ex
         self.assertRegex(str(outer_ex), 'auxiliary binding policy has failed')
@@ -578,6 +582,7 @@ class BindArgumentsTest(parameterized.TestCase):
         m.return_value = object()
         try:
           _ = arolla.abc.aux_bind_arguments(sig, None)
+          self.fail('expected a RuntimeError')
         except RuntimeError as ex:
           outer_ex = ex
         self.assertRegex(str(outer_ex), 'auxiliary binding policy has failed')
@@ -600,6 +605,7 @@ class BindArgumentsTest(parameterized.TestCase):
       m.side_effect = TypeError('unsupported type')
       try:
         _ = arolla.abc.aux_bind_arguments(sig, None)
+        self.fail('expected a RuntimeError')
       except TypeError as ex:
         outer_ex = ex
       self.assertEqual(
@@ -611,6 +617,7 @@ class BindArgumentsTest(parameterized.TestCase):
       m.side_effect = ValueError('unsupported value')
       try:
         _ = arolla.abc.aux_bind_arguments(sig, None)
+        self.fail('expected a RuntimeError')
       except ValueError as ex:
         outer_ex = ex
       self.assertEqual(
@@ -636,6 +643,7 @@ class BindArgumentsTest(parameterized.TestCase):
       m.return_value = arolla.unit()
       try:
         _ = arolla.abc.aux_bind_arguments(sig, None, None)
+        self.fail('expected a RuntimeError')
       except TypeError as ex:
         outer_ex = ex
       self.assertEqual(
@@ -648,6 +656,7 @@ class BindArgumentsTest(parameterized.TestCase):
       m.return_value = arolla.unit()
       try:
         _ = arolla.abc.aux_bind_arguments(sig, None, None)
+        self.fail('expected a RuntimeError')
       except ValueError as ex:
         outer_ex = ex
       self.assertEqual(
@@ -673,6 +682,7 @@ class BindArgumentsTest(parameterized.TestCase):
       m.return_value = arolla.unit()
       try:
         _ = arolla.abc.aux_bind_arguments(sig, a=None, b=None)
+        self.fail('expected a RuntimeError')
       except TypeError as ex:
         outer_ex = ex
       self.assertEqual(
@@ -685,6 +695,7 @@ class BindArgumentsTest(parameterized.TestCase):
       m.return_value = arolla.unit()
       try:
         _ = arolla.abc.aux_bind_arguments(sig, a=None, b=None)
+        self.fail('expected a RuntimeError')
       except ValueError as ex:
         outer_ex = ex
       self.assertEqual(
@@ -692,6 +703,29 @@ class BindArgumentsTest(parameterized.TestCase):
       )
       self.assertIsInstance(outer_ex.__cause__, ValueError)
       self.assertEqual(str(outer_ex.__cause__), 'unsupported value')
+
+  def test_error_import_py_boxing(self):
+    sig = arolla.abc.make_operator_signature(
+        'x|koladata_unified_binding_policy:_'
+    )
+    assert sys.modules['koladata.types.py_boxing'] is py_boxing
+    del sys.modules['koladata.types.py_boxing']
+    try:
+      _ = arolla.abc.aux_bind_arguments(sig, 1)
+      self.fail('expected a RuntimeError')
+    except RuntimeError as ex:
+      outer_ex = ex
+    finally:
+      sys.modules['koladata.types.py_boxing'] = py_boxing
+    self.assertRegex(
+        str(outer_ex),
+        re.escape('auxiliary binding policy has failed'),
+    )
+    self.assertIsInstance(outer_ex.__cause__, ImportError)
+    self.assertEqual(
+        str(outer_ex.__cause__),
+        '`koladata.types.py_boxing` is not imported yet',
+    )
 
 
 unified_op = arolla.abc.register_operator(

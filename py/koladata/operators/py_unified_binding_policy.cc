@@ -56,6 +56,8 @@
 namespace koladata::python {
 namespace {
 
+using ::arolla::MakeEmptyNamedTuple;
+using ::arolla::MakeEmptyTuple;
 using ::arolla::MakeNamedTuple;
 using ::arolla::MakeTuple;
 using ::arolla::Text;
@@ -364,12 +366,23 @@ absl::StatusOr<ExprNodePtr> GenNonDeterministicToken() {
 PyObjectPtr GetPyCallableAsQValueOrExprFn() {
   static PyObject* module_name =
       PyUnicode_InternFromString("koladata.types.py_boxing");
-  auto py_module = PyObjectPtr::Own(PyImport_GetModule(module_name));
-  if (py_module != nullptr) {
-    return PyObjectPtr::Own(
-        PyObject_GetAttrString(py_module.get(), "as_qvalue_or_expr"));
+  static PyObject* function_name =
+      PyUnicode_InternFromString("as_qvalue_or_expr");
+
+  auto py_module_dict = PyObjectPtr::NewRef(PyImport_GetModuleDict());
+  if (py_module_dict == nullptr) {
+    return PyObjectPtr{};
   }
-  return PyObjectPtr{};
+  auto py_module = PyObjectPtr::NewRef(
+      PyDict_GetItemWithError(py_module_dict.get(), module_name));
+  if (py_module == nullptr) {
+    if (!PyErr_Occurred()) {
+      PyErr_SetString(PyExc_ImportError,
+                      "`koladata.types.py_boxing` is not imported yet");
+    }
+    return PyObjectPtr{};
+  }
+  return PyObjectPtr::Own(PyObject_GetAttr(py_module.get(), function_name));
 }
 
 // Returns QValue|Expr if successful. Otherwise, returns `std::nullopt` and
@@ -423,9 +436,7 @@ std::optional<QValueOrExpr> AsQValueOrExprVarArgs(
     PyObject* py_callable_as_qvalue_or_expr, absl::string_view arg_name,
     absl::Span<PyObject* const> py_args) {
   if (py_args.empty()) {  // Fast empty case.
-    static const absl::NoDestructor<QValueOrExpr> kEmptyTuple(
-        MakeTuple(absl::Span<TypedRef>{}));
-    return *kEmptyTuple;
+    return MakeEmptyTuple();
   }
   // Apply the boxing rules to the arguments.
   std::vector<QValueOrExpr> args;
@@ -482,9 +493,7 @@ std::optional<QValueOrExpr> AsQValueOrExprVarKwArgs(
     const absl::flat_hash_map<absl::string_view, PyObject**>& py_kwargs) {
   const size_t n = py_kwargs.size();
   if (n == 0) {  // Fast empty case.
-    static const absl::NoDestructor<QValueOrExpr> kEmptyNamedtuple(
-        *MakeNamedTuple({}, absl::Span<const TypedRef>{}));
-    return *kEmptyNamedtuple;
+    return MakeEmptyNamedTuple();
   }
   std::vector<std::pair<absl::string_view, PyObject**>> ordered_py_kwargs(
       py_kwargs.begin(), py_kwargs.end());
@@ -608,7 +617,7 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
                                  py_result_var_kwargs)) {
       return false;
     }
-    const auto py_callable_as_qvalue_or_expr = GetPyCallableAsQValueOrExprFn();
+    auto py_callable_as_qvalue_or_expr = GetPyCallableAsQValueOrExprFn();
     if (py_callable_as_qvalue_or_expr == nullptr) {
       return false;
     }
