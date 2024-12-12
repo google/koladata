@@ -19,6 +19,7 @@
 #include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <functional>
 #include <optional>
@@ -56,6 +57,7 @@
 #include "koladata/object_factories.h"
 #include "koladata/repr_utils.h"
 #include "koladata/schema_utils.h"
+#include "koladata/uuid_utils.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -686,6 +688,100 @@ absl::StatusOr<absl::string_view> PyDictKeyAsStringView(PyObject* py_key) {
           Py_TYPE(py_key)->tp_name));
 }
 
+constexpr static absl::string_view kChildItemIdSeed = "__from_py_child__";
+constexpr static absl::string_view kChildAttributeAttributeName = "attr_name";
+constexpr static absl::string_view kChildListItemAttributeName =
+    "list_item_index";
+constexpr static absl::string_view kChildDictKeyAttributeName =
+    "dict_key_index";
+constexpr static absl::string_view kChildDictValueAttributeName =
+    "dict_value_index";
+
+absl::StatusOr<DataSlice> MakeIntItem(int64_t value) {
+  return DataSlice::Create(internal::DataItem(value),
+                           internal::DataItem(schema::kInt64));
+}
+
+absl::StatusOr<DataSlice> MakeTextItem(absl::string_view text) {
+  return DataSlice::Create(internal::DataItem(arolla::Text(text)),
+                           internal::DataItem(schema::kString));
+}
+
+struct ChildItemIdAttrsDescriptor {
+  ChildItemIdAttrsDescriptor() = default;
+  explicit ChildItemIdAttrsDescriptor(absl::string_view attr_name)
+      : attr_name(attr_name) {}
+  ChildItemIdAttrsDescriptor(absl::string_view index_attr_name, int64_t index)
+      : attr_name_and_index(index_attr_name, index) {}
+
+  absl::string_view attr_name;
+  std::pair<absl::string_view, int64_t> attr_name_and_index;
+};
+
+// Creates a DataSlice of uuids that represent child objects of the given
+// parent object.
+//
+// The result is a DataSlice with the same shape as `parent_itemid`.
+// Conceptually the result contains
+// [fingerprint(child_itemid_seed, parent_itemid, attr)]
+// Where `attr` is either `kChildAttributeAttributeName` ->
+// `attr_descriptor.attr_name` or `attr_descriptor.attr_name_and_index.first` ->
+// `attr_descriptor.attr_name_and_index.second`.
+//
+// If `attr_descriptor` is empty, returns `parent_itemid`.
+template <typename Fn>
+absl::StatusOr<std::optional<DataSlice>> MaybeMakeChildAttrItemId(
+    const std::optional<DataSlice>& parent_itemid,
+    const ChildItemIdAttrsDescriptor& attr_descriptor, Fn create_uuid_fn) {
+  if (!parent_itemid.has_value()) {
+    return std::nullopt;
+  }
+  if (attr_descriptor.attr_name.empty() &&
+      attr_descriptor.attr_name_and_index.first.empty()) {
+    // This happens when we call Convert for the root object and parent_itemid
+    // is actually the itemid for the root object.
+    return parent_itemid;
+  }
+
+  if (!attr_descriptor.attr_name.empty()) {
+    ASSIGN_OR_RETURN(auto attr_name_slice,
+                     MakeTextItem(attr_descriptor.attr_name));
+    return std::move(create_uuid_fn(
+        kChildItemIdSeed, {"parent", kChildAttributeAttributeName},
+        {*parent_itemid, std::move(attr_name_slice)}));
+  }
+
+  ASSIGN_OR_RETURN(auto element_index,
+                   MakeIntItem(attr_descriptor.attr_name_and_index.second));
+  ASSIGN_OR_RETURN(
+      auto child_itemids,
+      create_uuid_fn(kChildItemIdSeed,
+                     {"parent", attr_descriptor.attr_name_and_index.first},
+                     {*parent_itemid, std::move(element_index)}));
+  return std::move(child_itemids);
+}
+
+absl::StatusOr<std::optional<DataSlice>> MaybeMakeChildObjectAttrItemId(
+    const std::optional<DataSlice>& parent_itemid,
+    const ChildItemIdAttrsDescriptor& attr_descriptor) {
+  return MaybeMakeChildAttrItemId(parent_itemid, attr_descriptor,
+                                  CreateUuidFromFields);
+}
+
+absl::StatusOr<std::optional<DataSlice>> MaybeMakeChildDictAttrItemId(
+    const std::optional<DataSlice>& parent_itemid,
+    const ChildItemIdAttrsDescriptor& attr_descriptor) {
+  return MaybeMakeChildAttrItemId(parent_itemid, attr_descriptor,
+                                  CreateDictUuidFromFields);
+}
+
+absl::StatusOr<std::optional<DataSlice>> MaybeMakeChildListAttrItemId(
+    const std::optional<DataSlice>& parent_itemid,
+    const ChildItemIdAttrsDescriptor& attr_descriptor) {
+  return MaybeMakeChildAttrItemId(parent_itemid, attr_descriptor,
+                                  CreateListUuidFromFields);
+}
+
 // Converts Python objects into DataSlices and converts them into appropriate
 // Koda abstractions using `Factory`.
 // `Factory` can be:
@@ -706,7 +802,9 @@ class UniversalConverter {
 
   absl::StatusOr<DataSlice> Convert(
       PyObject* py_obj, const std::optional<DataSlice>& schema = std::nullopt,
-      size_t from_dim = 0) && {
+      size_t from_dim = 0,
+      const std::optional<DataSlice>& parent_itemid = std::nullopt,
+      const ChildItemIdAttrsDescriptor& attr_descriptor = {}) && {
     if (schema) {
       adoption_queue_.Add(*schema);
     }
@@ -715,8 +813,10 @@ class UniversalConverter {
     if constexpr (std::is_same_v<Factory, EntityCreator>) {
       parse_schema = schema;
     }
+
     if (from_dim == 0) {
-      RETURN_IF_ERROR(CmdConvertPyObject(py_obj, parse_schema));
+      RETURN_IF_ERROR(CmdConvertPyObject(py_obj, parse_schema, parent_itemid,
+                                         attr_descriptor));
       RETURN_IF_ERROR(Run());
       if (schema) {
         ASSIGN_OR_RETURN(
@@ -732,9 +832,30 @@ class UniversalConverter {
 
     ASSIGN_OR_RETURN((auto [py_objects, shape]),
                      PyObjectsFromPyList(py_obj, adoption_queue_, from_dim));
+    if (parent_itemid) {
+      if (parent_itemid->is_item()) {
+        return absl::InvalidArgumentError(
+            "ItemId for DataSlice must be a DataSlice of non-zero rank if "
+            "from_dim > 0");
+      }
+      if (parent_itemid->size() != py_objects.size()) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "ItemId for DataSlice size=%d does not match the "
+            "input list size=%d when from_dim=%d",
+            parent_itemid->size(), py_objects.size(), from_dim));
+      }
+    }
     for (int i = 0; i < py_objects.size(); ++i) {
-      cmd_stack_.push([this, py_obj = py_objects[i], &parse_schema] {
-        return this->CmdConvertPyObject(py_obj, parse_schema);
+      std::optional<DataSlice> ith_itemid;
+      if (parent_itemid) {
+        ASSIGN_OR_RETURN(
+            ith_itemid, DataSlice::Create(parent_itemid->slice()[i],
+                                          internal::DataItem(schema::kItemId)));
+      }
+
+      cmd_stack_.push([this, py_obj = py_objects[i], &parse_schema,
+                       ith_itemid_ds = std::move(ith_itemid)] {
+        return this->CmdConvertPyObject(py_obj, parse_schema, ith_itemid_ds);
       });
     }
     RETURN_IF_ERROR(Run());
@@ -827,9 +948,11 @@ class UniversalConverter {
   // arranges the appropriate commands on the stack for their processing.
   // If `compute_dict` is false, only the keys and values DataSlices are
   // computed, while dict from those keys and values is not.
-  absl::Status ParsePyDict(PyObject* py_obj,
-                           const std::optional<DataSlice>& dict_schema,
-                           bool compute_dict = true) {
+  absl::Status ParsePyDict(
+      PyObject* py_obj, const std::optional<DataSlice>& dict_schema,
+      bool compute_dict = true,
+      const std::optional<DataSlice>& parent_itemid = std::nullopt,
+      const ChildItemIdAttrsDescriptor& attr_descriptor = {}) {
     DCHECK(PyDict_CheckExact(py_obj));
     const size_t dict_size = PyDict_Size(py_obj);
     // Notes:
@@ -857,31 +980,49 @@ class UniversalConverter {
       // Otherwise, the key_schema / value_schema should not be used
       // (i.e. they should remain std::nullopt).
     }
+    ASSIGN_OR_RETURN(
+        const std::optional<DataSlice> child_itemid,
+        MaybeMakeChildDictAttrItemId(parent_itemid, attr_descriptor));
     if (compute_dict) {
       cmd_stack_.push([this, py_obj, dict_schema = dict_schema,
-                       key_schema = key_schema, value_schema = value_schema] {
+                       key_schema = key_schema, value_schema = value_schema,
+                       itemid = child_itemid] {
         return this->CmdComputeDict(py_obj, dict_schema, key_schema,
-                                    value_schema);
+                                    value_schema, itemid);
       });
     }
+    int64_t child_key_index = keys.size() - 1;
     for (auto* py_key : keys) {
-      cmd_stack_.push([this, py_key, key_schema] {
-        return this->CmdConvertPyObject(py_key, key_schema);
-      });
+      cmd_stack_.push(
+          [this, py_key, key_schema, itemid = child_itemid, child_key_index] {
+            return this->CmdConvertPyObject(
+                py_key, key_schema, itemid,
+                ChildItemIdAttrsDescriptor(kChildDictKeyAttributeName,
+                                           child_key_index));
+          });
+      --child_key_index;
     }
+    int child_value_index = values.size() - 1;
     for (auto* py_value : values) {
-      cmd_stack_.push([this, py_value, value_schema] {
-        return this->CmdConvertPyObject(py_value, value_schema);
+      cmd_stack_.push([this, py_value, value_schema, itemid = child_itemid,
+                       child_value_index] {
+        return this->CmdConvertPyObject(
+            py_value, value_schema, itemid,
+            ChildItemIdAttrsDescriptor(kChildDictValueAttributeName,
+                                       child_value_index));
       });
+      --child_value_index;
     }
     return absl::OkStatus();
   }
 
   // Helper method to push commands for creating Object / Entity attributes and
   // commands for parsing individual attribute values.
-  absl::Status PushObjAttrs(const arolla::DenseArray<arolla::Text>& attr_names,
-                            const std::vector<PyObject*>& py_values,
-                            const std::optional<DataSlice>& schema) {
+  absl::Status PushObjAttrs(
+      const arolla::DenseArray<arolla::Text>& attr_names,
+      const std::vector<PyObject*>& py_values,
+      const std::optional<DataSlice>& schema,
+      const std::optional<DataSlice>& itemid = std::nullopt) {
     ASSIGN_OR_RETURN(
         auto attr_names_ds,
         DataSlice::Create(
@@ -899,8 +1040,10 @@ class UniversalConverter {
                          schema->GetAttr(attr_names[id++].value));
       }
       cmd_stack_.push([this, py_val = py_values[i],
-                          value_schema = std::move(value_schema)] {
-        return this->CmdConvertPyObject(py_val, value_schema);
+                       value_schema = std::move(value_schema), itemid = itemid,
+                       attr_name = attr_names[i].value] {
+        return this->CmdConvertPyObject(py_val, value_schema, itemid,
+                                        ChildItemIdAttrsDescriptor(attr_name));
       });
     }
     return absl::OkStatus();
@@ -908,12 +1051,18 @@ class UniversalConverter {
 
   // Collects the keys and values of the python dictionary `py_obj`, and
   // arranges the appropriate commands on the stack to create Object / Entity.
-  absl::Status ParsePyDictAsObj(PyObject* py_obj,
-                                const std::optional<DataSlice>& schema) {
+  absl::Status ParsePyDictAsObj(
+      PyObject* py_obj, const std::optional<DataSlice>& schema,
+      const std::optional<DataSlice>& parent_itemid = std::nullopt,
+      const ChildItemIdAttrsDescriptor& attr_descriptor = {}) {
     DCHECK(PyDict_CheckExact(py_obj));
     DataSlice::AttrNamesSet allowed_attr_names;
-    cmd_stack_.push(
-        [this, schema = schema] { return this->CmdComputeObj(schema); });
+    ASSIGN_OR_RETURN(
+        const std::optional<DataSlice> child_itemid,
+        MaybeMakeChildObjectAttrItemId(parent_itemid, attr_descriptor));
+    cmd_stack_.push([this, schema = schema, itemid = child_itemid] {
+      return this->CmdComputeObj(schema, itemid);
+    });
     if (schema) {
       ASSIGN_OR_RETURN(allowed_attr_names, schema->GetAttrNames());
     }
@@ -933,13 +1082,15 @@ class UniversalConverter {
       }
     }
     return PushObjAttrs(std::move(attr_names_bldr).Build(new_attr_names_size),
-                        py_values, schema);
+                        py_values, schema, child_itemid);
   }
 
   // Collects the keys and values of the python list/tuple `py_obj`, and
   // arranges the appropriate commands on the stack for their processing.
-  absl::Status ParsePyList(PyObject* py_obj,
-                           const std::optional<DataSlice>& list_schema) {
+  absl::Status ParsePyList(
+      PyObject* py_obj, const std::optional<DataSlice>& list_schema,
+      const std::optional<DataSlice>& parent_itemid = std::nullopt,
+      ChildItemIdAttrsDescriptor attr_descriptor = {}) {
     DCHECK(PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj));
     std::optional<DataSlice> item_schema;
     if (list_schema) {
@@ -952,15 +1103,24 @@ class UniversalConverter {
       // Otherwise, the item_schema should not be used (i.e. they should remain
       // std::nullopt).
     }
-    cmd_stack_.push(
-        [this, py_obj, list_schema = list_schema, item_schema = item_schema] {
-          return this->CmdComputeList(py_obj, list_schema, item_schema);
-        });
+    ASSIGN_OR_RETURN(
+        const std::optional<DataSlice> child_itemid,
+        MaybeMakeChildListAttrItemId(parent_itemid, attr_descriptor));
+    cmd_stack_.push([this, py_obj, list_schema = list_schema,
+                     item_schema = item_schema, itemid = child_itemid] {
+      return this->CmdComputeList(py_obj, list_schema, item_schema, itemid);
+    });
+    int child_index = 0;
     for (auto* py_item : absl::Span<PyObject*>(
              PySequence_Fast_ITEMS(py_obj), PySequence_Fast_GET_SIZE(py_obj))) {
-      cmd_stack_.push([this, py_item, item_schema] {
-        return this->CmdConvertPyObject(py_item, item_schema);
-      });
+      cmd_stack_.push(
+          [this, py_item, item_schema, itemid = child_itemid, child_index] {
+            return this->CmdConvertPyObject(
+                py_item, item_schema, itemid,
+                ChildItemIdAttrsDescriptor(kChildListItemAttributeName,
+                                           child_index));
+          });
+      ++child_index;
     }
     return absl::OkStatus();
   }
@@ -968,12 +1128,18 @@ class UniversalConverter {
   // Collects the attribute names and values from the python object (e.g.
   // dataclass) `py_obj`, and arranges the appropriate commands on the stack to
   // create Object / Entity.
-  absl::Status ParsePyAttrProvider(PyObject* py_obj,
-                                   const AttrProvider::AttrResult& attr_result,
-                                   const std::optional<DataSlice>& schema) {
+  absl::Status ParsePyAttrProvider(
+      PyObject* py_obj, const AttrProvider::AttrResult& attr_result,
+      const std::optional<DataSlice>& schema,
+      const std::optional<DataSlice>& parent_itemid = std::nullopt,
+      const ChildItemIdAttrsDescriptor& attr_descriptor = {}) {
     DataSlice::AttrNamesSet allowed_attr_names;
-    cmd_stack_.push(
-        [this, schema = schema] { return this->CmdComputeObj(schema); });
+    ASSIGN_OR_RETURN(
+        const std::optional<DataSlice> child_itemid,
+        MaybeMakeChildObjectAttrItemId(parent_itemid, attr_descriptor));
+    cmd_stack_.push([this, schema = schema, itemid = child_itemid] {
+      return this->CmdComputeObj(schema, itemid);
+    });
     if (schema) {
       ASSIGN_OR_RETURN(allowed_attr_names, schema->GetAttrNames());
     }
@@ -990,7 +1156,7 @@ class UniversalConverter {
       }
     }
     return PushObjAttrs(std::move(attr_names_bldr).Build(new_attr_names_size),
-                        py_values, schema);
+                        py_values, schema, child_itemid);
   }
 
   // Parses `py_obj` as if it was a supported Python scalar (bool, str, bytes,
@@ -1032,8 +1198,10 @@ class UniversalConverter {
   //
   // `schema` is used to create an appropriate Koda Abstraction with appropriate
   // schema. Schema is processed recursively.
-  absl::Status CmdConvertPyObject(PyObject* py_obj,
-                                  const std::optional<DataSlice>& schema) {
+  absl::Status CmdConvertPyObject(
+      PyObject* py_obj, const std::optional<DataSlice>& schema,
+      const std::optional<DataSlice>& parent_itemid = std::nullopt,
+      const ChildItemIdAttrsDescriptor& attr_descriptor = {}) {
     // Push `std::nullopt` to detect recursive Python structures.
     auto [computed_iter, emplaced] = computed_.emplace(
         MakeCacheKey(py_obj, schema), std::nullopt);
@@ -1051,7 +1219,8 @@ class UniversalConverter {
       ASSIGN_OR_RETURN(
           value_stack_.emplace(),
           UniversalConverter<ObjectCreator>(db_, adoption_queue_, dict_as_obj_)
-              .Convert(py_obj));
+              .Convert(py_obj, /*schema=*/std::nullopt, /*from_dim=*/0,
+                       parent_itemid, attr_descriptor));
       computed_.insert_or_assign(MakeCacheKey(py_obj, schema),
                                  value_stack_.top());
       return absl::OkStatus();
@@ -1064,15 +1233,15 @@ class UniversalConverter {
                          "Dict, got schema: ",
                          arolla::Repr(*schema)));
       }
-
       if (!dict_as_obj_ && (!schema || schema->IsDictSchema())) {
-        return ParsePyDict(py_obj, schema);
+        return ParsePyDict(py_obj, schema, true, parent_itemid,
+                           attr_descriptor);
       }
-      return ParsePyDictAsObj(py_obj, schema);
+      return ParsePyDictAsObj(py_obj, schema, parent_itemid, attr_descriptor);
     }
     if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
       MaybeCreateEmptyBag();
-      return ParsePyList(py_obj, schema);
+      return ParsePyList(py_obj, schema, parent_itemid, attr_descriptor);
     }
     // First trying the Python "scalar" conversion to avoid doing expensive
     // `AttrProvider` checks (e.g. dataclasses) on each leaf Python object.
@@ -1084,24 +1253,27 @@ class UniversalConverter {
                      attr_provider_.GetAttrNamesAndValues(py_obj));
     if (attr_result) {
       MaybeCreateEmptyBag();
-      return ParsePyAttrProvider(py_obj, *attr_result, schema);
+      return ParsePyAttrProvider(py_obj, *attr_result, schema, parent_itemid,
+                                 attr_descriptor);
     }
     return status;
   }
 
   // Takes preconstructed keys and values from `value_stack_`, assembles them
   // into a dictionary and pushes it to `value_stack_`.
-  absl::Status CmdComputeDict(PyObject* py_obj,
-                              const std::optional<DataSlice>& dict_schema,
-                              const std::optional<DataSlice>& key_schema,
-                              const std::optional<DataSlice>& value_schema) {
+  absl::Status CmdComputeDict(
+      PyObject* py_obj, const std::optional<DataSlice>& dict_schema,
+      const std::optional<DataSlice>& key_schema,
+      const std::optional<DataSlice>& value_schema,
+      const std::optional<DataSlice>& itemid = std::nullopt) {
     size_t dict_size = PyDict_Size(py_obj);
     ASSIGN_OR_RETURN(auto keys, ComputeDataSlice(dict_size, key_schema));
     ASSIGN_OR_RETURN(auto values, ComputeDataSlice(dict_size, value_schema));
-    ASSIGN_OR_RETURN(
-        auto res,
-        CreateDictShaped(db_, DataSlice::JaggedShape::Empty(),
-                         std::move(keys), std::move(values), dict_schema));
+    ASSIGN_OR_RETURN(auto res,
+                     CreateDictShaped(db_, DataSlice::JaggedShape::Empty(),
+                                      std::move(keys), std::move(values),
+                                      dict_schema, /*key_schema=*/std::nullopt,
+                                      /*value_schema=*/std::nullopt, itemid));
     // NOTE: Factory is not applied on keys and values DataSlices (just on their
     // elements and dict created from those keys and values).
     ASSIGN_OR_RETURN(value_stack_.emplace(),
@@ -1113,15 +1285,16 @@ class UniversalConverter {
 
   // Takes preconstructed items from `value_stack_`, assembles them into a list
   // and pushes it to `value_stack_`.
-  absl::Status CmdComputeList(PyObject* py_obj,
-                              const std::optional<DataSlice>& list_schema,
-                              const std::optional<DataSlice>& item_schema) {
+  absl::Status CmdComputeList(
+      PyObject* py_obj, const std::optional<DataSlice>& list_schema,
+      const std::optional<DataSlice>& item_schema,
+      const std::optional<DataSlice>& itemid = std::nullopt) {
     const size_t list_size = PySequence_Fast_GET_SIZE(py_obj);
     ASSIGN_OR_RETURN(auto items, ComputeDataSlice(list_size, item_schema));
-
     ASSIGN_OR_RETURN(
-        auto res, CreateListShaped(db_, DataSlice::JaggedShape::Empty(),
-                                   std::move(items), list_schema));
+        auto res,
+        CreateListShaped(db_, DataSlice::JaggedShape::Empty(), std::move(items),
+                         list_schema, /*item_schema=*/std::nullopt, itemid));
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::ConvertWithoutAdopt(db_, res));
     computed_.insert_or_assign(
@@ -1134,7 +1307,9 @@ class UniversalConverter {
   //
   // NOTE: expects all attribute names to be stored as a single DataSlice of
   // STRING values on `value_stack_`.
-  absl::Status CmdComputeObj(const std::optional<DataSlice>& entity_schema) {
+  absl::Status CmdComputeObj(
+      const std::optional<DataSlice>& entity_schema,
+      const std::optional<DataSlice>& itemid = std::nullopt) {
     DataSlice attr_names_ds = std::move(value_stack_.top());
     value_stack_.pop();
     std::vector<absl::string_view> attr_names;
@@ -1155,11 +1330,12 @@ class UniversalConverter {
     if constexpr (std::is_same_v<Factory, EntityCreator>) {
       ASSIGN_OR_RETURN(
           value_stack_.emplace(),
-          Factory::FromAttrs(db_, attr_names, values, entity_schema));
+          Factory::FromAttrs(db_, attr_names, values, entity_schema,
+                             /*update_schema=*/false, itemid));
     } else {
       DCHECK(!entity_schema) << "only EntityCreator should accept schema here";
       ASSIGN_OR_RETURN(value_stack_.emplace(),
-                       Factory::FromAttrs(db_, attr_names, values));
+                       Factory::FromAttrs(db_, attr_names, values, itemid));
     }
     return absl::OkStatus();
   }
@@ -1246,21 +1422,20 @@ absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
 
 absl::StatusOr<DataSlice> GenericFromPyObject(
     PyObject* py_obj, bool dict_as_obj, const std::optional<DataSlice>& schema,
-    size_t from_dim) {
+    size_t from_dim, const std::optional<DataSlice>& itemid) {
   AdoptionQueue adoption_queue;
   DataSlice res_slice;
-
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
   }
   if (!schema || schema->item() == schema::kObject) {
     ASSIGN_OR_RETURN(res_slice, UniversalConverter<ObjectCreator>(
                                     nullptr, adoption_queue, dict_as_obj)
-                                    .Convert(py_obj, schema, from_dim));
+                                    .Convert(py_obj, schema, from_dim, itemid));
   } else {
     ASSIGN_OR_RETURN(res_slice, UniversalConverter<EntityCreator>(
                                     nullptr, adoption_queue, dict_as_obj)
-                                    .Convert(py_obj, schema, from_dim));
+                                    .Convert(py_obj, schema, from_dim, itemid));
   }
   DataBagPtr res_db = res_slice.GetBag();
   DCHECK(res_db == nullptr || res_db->IsMutable());

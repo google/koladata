@@ -173,14 +173,11 @@ absl::Nullable<PyObject*> PyDataSlice_from_py(PyTypeObject* cls,
       !UnwrapDataSliceOptionalArg(py_args[3], "schema", schema_arg)) {
     return nullptr;
   }
-  // TODO: Python caller does not pass `itemid` yet. Remove after
-  // fully supported.
-  DCHECK(!itemid.has_value());
 
-  ASSIGN_OR_RETURN(
-      auto res,
-      GenericFromPyObject(py_args[0], dict_as_obj, schema_arg, from_dim),
-      arolla::python::SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto res,
+                   GenericFromPyObject(py_args[0], dict_as_obj, schema_arg,
+                                       from_dim, itemid),
+                   arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -1002,7 +999,7 @@ PyMethodDef kPyDataSlice_methods[] = {
      "otherwise the schema is inferred from `value`."},
     {"_from_py_impl", (PyCFunction)PyDataSlice_from_py,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
-     "_from_py_impl(py_obj, /, schema=None, from_dim=None)\n"
+     "_from_py_impl(py_obj, /, itemid=None, schema=None, from_dim=None)\n"
      "--\n\n"
      "Creates a complex Koda object by parsing recursive `py_obj` structure."},
     {"_unspecified", (PyCFunction)PyDataSlice_unspecified,
@@ -1227,9 +1224,10 @@ Returns:
      "Returns true iff `attr_name` can be accessed through "
      "`getattr(slice, attr_name)`."},
     {"_debug_repr", (PyCFunction)PyDataSlice_debug_repr, METH_NOARGS,
-    "_debug_repr()\n"
-    "--\n\n"
-    "Returns a string representation of the DataSlice for debugging purposes."},
+     "_debug_repr()\n"
+     "--\n\n"
+     "Returns a string representation of the DataSlice for debugging "
+     "purposes."},
     {nullptr}, /* sentinel */
 };
 

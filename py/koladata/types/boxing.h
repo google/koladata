@@ -114,7 +114,7 @@ absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
 // provided).
 absl::StatusOr<DataSlice> GenericFromPyObject(
     PyObject* py_obj, bool dict_as_obj, const std::optional<DataSlice>& schema,
-    size_t from_dim);
+    size_t from_dim, const std::optional<DataSlice>& itemid = std::nullopt);
 
 }  // namespace koladata::python
 

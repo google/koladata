@@ -32,6 +32,8 @@ ds = data_slice.DataSlice.from_vals
 @dataclasses.dataclass
 class NestedKlass:
   x: str
+  def __hash__(self):
+    return hash(self.x)
 
 
 @dataclasses.dataclass
@@ -39,6 +41,7 @@ class TestKlass:
   a: int
   b: NestedKlass
   c: bytes
+  x: str = 'x'
 
 
 @dataclasses.dataclass
@@ -522,12 +525,13 @@ class FromPyTest(absltest.TestCase):
   def test_dataclasses(self):
     obj = fns.from_py(TestKlass(42, NestedKlass('abc'), b'xyz'))
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    self.assertCountEqual(fns.dir(obj), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(obj), ['a', 'b', 'c', 'x'])
     testing.assert_equal(obj.a.no_bag(), ds(42))
     b = obj.b
     testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(b.x.no_bag(), ds('abc'))
     testing.assert_equal(obj.c.no_bag(), ds(b'xyz'))
+    self.assertFalse(b.is_dict())
 
   def test_dataclasses_with_schema(self):
     schema = fns.schema.new_schema(
@@ -643,6 +647,299 @@ class FromPyTest(absltest.TestCase):
       with self.assertRaisesRegex(ValueError, 'invalid unicode object'):
         fns.from_py(TestKlassInternals(42, 3.14))
 
+  def test_item_id(self):
+    with self.subTest('list'):
+      l1 = fns.from_py([1, 2, 3], itemid=kde.uuid_for_list('1').eval())
+      l2 = fns.from_py([1, 2, 3], itemid=kde.uuid_for_list('1').eval())
+      testing.assert_equivalent(l1, l2)
+      testing.assert_equal(
+          l1.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
+      )
+
+      l3 = fns.from_py(
+          [[1, 2], [3]],
+          itemid=kde.uuid_for_list('1').eval(),
+      )
+      l4 = fns.from_py(
+          [[1, 2], [3]],
+          itemid=kde.uuid_for_list('1').eval(),
+      )
+      testing.assert_equivalent(l3, l4)
+      testing.assert_equal(
+          l3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
+      )
+      self.assertNotEqual(l3[:].S[0].fingerprint, l3[:].S[1].fingerprint)
+
+      l5 = fns.from_py(
+          [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
+          itemid=kde.uuid_for_list(a=ds('1')).eval(),
+      )
+      l6 = fns.from_py(
+          [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
+          itemid=kde.uuid_for_list(a=ds('1')).eval(),
+      )
+      testing.assert_equivalent(l5, l6)
+      testing.assert_equal(
+          l5.no_bag().get_itemid(), kde.uuid_for_list(a=ds('1')).eval()
+      )
+      self.assertNotEqual(l5[:].S[0].fingerprint, l5[:].S[1].fingerprint)
+
+    with self.subTest('dict'):
+      d1 = fns.from_py({'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval())
+      d2 = fns.from_py({'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval())
+      testing.assert_equivalent(d1, d2)
+      testing.assert_equal(
+          d1.no_bag().get_itemid(), kde.uuid_for_dict('1').eval()
+      )
+
+      d3 = fns.from_py(
+          [{'a': 1, 'b': 2}, [1, 2, 3]], itemid=kde.uuid_for_list('1').eval()
+      )
+      d4 = fns.from_py(
+          [{'a': 1, 'b': 2}, [1, 2, 3]], itemid=kde.uuid_for_list('1').eval()
+      )
+      testing.assert_equivalent(d3, d4)
+      testing.assert_equal(
+          d3[1][:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
+      )
+      testing.assert_equal(
+          d3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
+      )
+
+      d5 = fns.from_py(
+          {'a': [1, 2, 3], 'b': {'x': 'abc'}},
+          itemid=kde.uuid_for_dict('1').eval(),
+      )
+      d6 = fns.from_py(
+          {'a': [1, 2, 3], 'b': {'x': 'abc'}},
+          itemid=kde.uuid_for_dict('1').eval(),
+      )
+      testing.assert_equivalent(d5, d6)
+      testing.assert_equal(
+          d5['a'][:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
+      )
+      testing.assert_equal(
+          d5['b']['x'].no_bag(), ds('abc', schema_constants.OBJECT)
+      )
+      testing.assert_equal(
+          d5.no_bag().get_itemid(), kde.uuid_for_dict('1').eval()
+      )
+
+    with self.subTest('obj'):
+      o1 = fns.from_py(
+          TestKlass(a=42, b=NestedKlass('abc'), c=b'xyz', x='123'),
+          itemid=kde.uuid('1').eval(),
+      )
+      o2 = fns.from_py(
+          TestKlass(a=42, b=NestedKlass('abc'), c=b'xyz', x='123'),
+          itemid=kde.uuid('1').eval(),
+      )
+      testing.assert_equivalent(o1, o2)
+      self.assertNotEqual(o1.x.fingerprint, o1.b.x.fingerprint)
+      testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())
+
+    with self.subTest('dict_as_obj'):
+      o1 = fns.from_py(
+          {'a': 1, 'b': 2}, dict_as_obj=True, itemid=kde.uuid('1').eval()
+      )
+      o2 = fns.from_py(
+          {'a': 1, 'b': 2}, dict_as_obj=True, itemid=kde.uuid('1').eval()
+      )
+      testing.assert_equivalent(o1, o2)
+      self.assertNotEqual(o1.a.fingerprint, o1.b.fingerprint)
+      testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())
+
+      o3 = fns.from_py(
+          [{'a': 1, 'b': 2}, [1, 2, 3]],
+          dict_as_obj=True,
+          itemid=kde.uuid_for_list('1').eval(),
+      )
+      o4 = fns.from_py(
+          [{'a': 1, 'b': 2}, [1, 2, 3]],
+          dict_as_obj=True,
+          itemid=kde.uuid_for_list('1').eval(),
+      )
+      testing.assert_equivalent(o3, o4)
+      self.assertNotEqual(o3[:].S[0].fingerprint, o3[:].S[1].fingerprint)
+
+      testing.assert_equal(
+          o3[1][:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
+      )
+      testing.assert_equal(
+          o3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
+      )
+
+    with self.subTest('nested obj'):
+      o1 = fns.from_py(
+          {'a': 1, 'b': {'a': 'abc'}},
+          dict_as_obj=True,
+          itemid=kde.uuid('1').eval(),
+      )
+      o2 = fns.from_py(
+          {'a': 1, 'b': {'a': 'abc'}},
+          dict_as_obj=True,
+          itemid=kde.uuid('1').eval(),
+      )
+      testing.assert_equivalent(o1, o2)
+      self.assertNotEqual(o1.a.fingerprint, o1.b.a.fingerprint)
+      testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())
+      self.assertFalse(o1.b.is_dict())
+
+    with self.subTest('attr_name child itemid'):
+      parent_itemid = kde.uuid('1').eval()
+      child_itemid = kde.uuid(
+          '__from_py_child__', parent=parent_itemid, attr_name='a'
+      ).eval()
+      obj = fns.from_py(
+          {'a': {'b': '1'}},
+          schema=fns.uu_schema(a=fns.uu_schema(b=schema_constants.STRING)),
+          itemid=parent_itemid,
+      )
+      testing.assert_equal(obj.no_bag().get_itemid(), parent_itemid)
+      testing.assert_equal(obj.a.no_bag().get_itemid(), child_itemid)
+
+    with self.subTest('dict_value_index child itemid'):
+      parent_itemid = kde.uuid('1').eval()
+      child_itemid = kde.uuid(
+          '__from_py_child__', parent=parent_itemid, attr_name='a'
+      ).eval()
+      child_dict_itemid = kde.uuid_for_dict(
+          '__from_py_child__', parent=child_itemid, attr_name='b'
+      ).eval()
+
+      child_list_itemid = kde.uuid_for_list(
+          '__from_py_child__',
+          parent=child_dict_itemid,
+          dict_value_index=ds([0, 1], schema_constants.INT64),
+      ).eval()
+      obj = fns.from_py(
+          {'a': {'b': {'1': [1, 2, 3], '2': [4, 5]}}},
+          schema=fns.uu_schema(
+              a=fns.uu_schema(
+                  b=fns.dict_schema(
+                      schema_constants.STRING,
+                      fns.list_schema(schema_constants.INT32),
+                  )
+              )
+          ),
+          itemid=parent_itemid,
+      )
+      testing.assert_equal(obj.no_bag().get_itemid(), parent_itemid)
+      testing.assert_equal(obj.a.no_bag().get_itemid(), child_itemid)
+      testing.assert_equal(
+          obj.a.b[ds(['1', '2'])].no_bag().get_itemid(), child_list_itemid
+      )
+
+    with self.subTest('dict_key_index child itemid'):
+      parent_itemid = kde.uuid_for_dict('1').eval()
+
+      child_keys_itemid = kde.uuid(
+          '__from_py_child__',
+          parent=parent_itemid,
+          dict_key_index=ds([0, 1], schema_constants.INT64),
+      ).eval()
+      key1 = NestedKlass('1')
+      key2 = NestedKlass('2')
+      obj = fns.from_py(
+          {key1: [1, 2, 3], key2: [4, 5]},
+          itemid=parent_itemid,
+      )
+      testing.assert_equal(obj.no_bag().get_itemid(), parent_itemid)
+      testing.assert_dicts_keys_equal(
+          obj, child_keys_itemid.with_schema(schema_constants.OBJECT)
+      )
+
+    with self.subTest('list_item_index child itemid'):
+      parent_itemid = kde.uuid_for_list('1').eval()
+      child_list_itemid = kde.uuid_for_list(
+          '__from_py_child__',
+          parent=parent_itemid,
+          list_item_index=ds([0, 1], schema_constants.INT64),
+      ).eval()
+      obj = fns.from_py(
+          [[1, 2, 3], [4, 5, 6]],
+          itemid=parent_itemid,
+          from_dim=0,
+      )
+      testing.assert_equal(obj.no_bag().get_itemid(), parent_itemid)
+      testing.assert_equal(
+          obj[:].no_bag().get_itemid(), child_list_itemid
+      )
+
+    with self.subTest('list_with_from_dim'):
+      l1 = fns.from_py(
+          [[1, 2], [3]],
+          itemid=kde.uuid_for_list(a=ds(['1', '2'])).eval(),
+          from_dim=1,
+      )
+      l2 = fns.from_py(
+          [[1, 2], [3]],
+          itemid=kde.uuid_for_list(a=ds(['1', '2'])).eval(),
+          from_dim=1,
+      )
+      testing.assert_equivalent(l1, l2)
+      testing.assert_equal(
+          l1.no_bag().get_itemid(), kde.uuid_for_list(a=ds(['1', '2'])).eval()
+      )
+
+    with self.subTest('dict_with_from_dim'):
+      d1 = fns.from_py(
+          [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
+          itemid=kde.uuid_for_dict(a=ds(['1', '2'])).eval(),
+          from_dim=1,
+      )
+      d2 = fns.from_py(
+          [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
+          itemid=kde.uuid_for_dict(a=ds(['1', '2'])).eval(),
+          from_dim=1,
+      )
+      testing.assert_equivalent(d1, d2)
+      testing.assert_equal(
+          d1.no_bag().get_itemid(), kde.uuid_for_dict(a=ds(['1', '2'])).eval()
+      )
+
+  def test_item_id_errors(self):
+    with self.assertRaisesRegex(
+        ValueError, '`itemid` expected ITEMID schema, got INT32'
+    ):
+      _ = fns.from_py([1, 2], itemid=ds(42))
+    with self.assertRaisesRegex(
+        ValueError,
+        'ItemId for DataSlice size=1 does not match the input list size=2 when'
+        ' from_dim=1',
+    ):
+      _ = fns.from_py(
+          [[1, 2], [3]],
+          itemid=kde.uuid_for_list(a=ds(['1'])).eval(),
+          from_dim=1,
+      )
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'ItemId for DataSlice must be a DataSlice of non-zero rank if'
+        ' from_dim > 0',
+    ):
+      _ = fns.from_py(
+          [[1, 2], [3]],
+          itemid=kde.uuid_for_list(a=ds('1')).eval(),
+          from_dim=1,
+      )
+    with self.assertRaisesRegex(
+        ValueError, 'itemid argument to list creation, requires List ItemIds'
+    ):
+      _ = fns.from_py(
+          [[1, 2], [3]],
+          itemid=kde.uuid_for_dict(a=ds('1')).eval(),
+      )
+
+    with self.assertRaisesRegex(
+        ValueError, 'itemid argument to dict creation, requires Dict ItemIds'
+    ):
+      _ = fns.from_py(
+          {'a': 1, 'b': 2},
+          itemid=kde.uuid(a=ds('1')).eval(),
+      )
+
   def test_alias(self):
     obj = fns.from_pytree({'a': 42})
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
@@ -652,11 +949,6 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(
         values, ds(42, schema_constants.OBJECT).with_bag(values.get_bag())
     )
-
-  def test_not_yet_implemented(self):
-    with self.subTest('itemid'):
-      with self.assertRaises(NotImplementedError):
-        fns.from_py({'a': {'b': [1, 2, 3]}}, itemid=kde.uuid(a=1).eval())
 
   def test_arg_errors(self):
     with self.assertRaisesRegex(
@@ -677,7 +969,7 @@ class FromPyTest(absltest.TestCase):
       fns.from_py([1, 2], dict_as_obj=42)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
-        NotImplementedError, 'passing itemid is not yet supported'
+        TypeError, 'expecting itemid to be a DataSlice, got int'
     ):
       fns.from_py(
           [1, 2],

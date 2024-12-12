@@ -56,8 +56,6 @@ def from_py(
   Returns:
     A DataItem with the converted data.
   """
-  if itemid is not None:
-    raise NotImplementedError('passing itemid is not yet supported')
   return data_slice.DataSlice._from_py_impl(  # pylint: disable=protected-access
       py_obj, dict_as_obj, itemid, schema, from_dim
   )
