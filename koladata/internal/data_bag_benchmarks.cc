@@ -928,7 +928,7 @@ struct OverwriteFn {
       DataBagImplPtr& db, const DataSliceImpl& schema_slice,
       const std::vector<absl::string_view>& attr_names,
       const std::vector<std::reference_wrapper<const DataItem>>& items) {
-    return db->OverwriteSchemaFields(schema_slice, attr_names, items);
+    return db->SetSchemaFields(schema_slice, attr_names, items);
   }
 };
 
@@ -941,11 +941,6 @@ struct SetFn {
   }
 };
 
-BENCHMARK(BM_SetSchemaFields<OverwriteFn>)
-    ->ArgPair(10, 5)
-    ->ArgPair(1000, 15)
-    ->ArgPair(100000, 7)
-    ->ArgPair(10000, 1000);
 BENCHMARK(BM_SetSchemaFields<SetFn>)
     ->ArgPair(10, 5)
     ->ArgPair(1000, 15)

@@ -35,6 +35,9 @@ namespace koladata::internal::debug {
 void Triples::CollectDict(const DataBagContent::DictContent& dc,
                           std::vector<DictItemTriple>& dicts) {
   DCHECK_EQ(dc.keys.size(), dc.values.size());
+  if (dc.dict_id.IsSchema() && !dc.dict_id.IsSmallAlloc()) {
+    return;
+  }
   for (int64_t i = 0; i < dc.keys.size(); ++i) {
     dicts.push_back({dc.dict_id, dc.keys[i], dc.values[i]});
   }

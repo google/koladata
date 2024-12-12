@@ -15,19 +15,16 @@
 #ifndef KOLADATA_INTERNAL_TRIPLES_H_
 #define KOLADATA_INTERNAL_TRIPLES_H_
 
-#include <cstdint>
 #include <string>
 #include <tuple>
 #include <vector>
 
 #include "absl/container/btree_map.h"
-#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/object_id.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal::debug {
 

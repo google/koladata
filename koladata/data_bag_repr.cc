@@ -25,6 +25,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
@@ -215,7 +216,29 @@ std::vector<DataBagIndex> CreateIndexQueue(const internal::DataBagImpl& db) {
 DataBagIndex CreateSchemaIndex(
     const internal::DataBagImpl& db) {
   const auto& full_index = db.CreateIndex();
-  return {{}, {}, full_index.dicts};
+  absl::btree_map<std::string, internal::DataBagIndex::AttrIndex> schema_attrs;
+  for (const auto& [attr_name, attr_index] : full_index.attrs) {
+    if (attr_name == schema::kSchemaAttr) {
+      continue;
+    }
+    auto index =
+        internal::DataBagIndex::AttrIndex({}, attr_index.with_small_allocs);
+    for (const auto& allocation_id : attr_index.allocations) {
+      if (allocation_id.IsSchemasAlloc()) {
+        index.allocations.push_back(allocation_id);
+      }
+    }
+    if (!index.allocations.empty()) {
+      schema_attrs.insert({attr_name, std::move(index)});
+    }
+  }
+  std::vector<internal::AllocationId> schema_dicts;
+  for (const auto& allocation_id : full_index.dicts) {
+    if (allocation_id.IsSchemasAlloc() && allocation_id.IsSmall()) {
+      schema_dicts.push_back(allocation_id);
+    }
+  }
+  return {std::move(schema_attrs), {}, std::move(schema_dicts)};
 }
 
 class ContentsReprBuilder {
@@ -317,6 +340,9 @@ class ContentsReprBuilder {
       if (seen_triples_.contains({attr.object, attr.attribute})) {
         continue;
       }
+      if (attr.object.IsSchema() && attr.attribute != schema::kSchemaAttr) {
+        continue;
+      }
       seen_triples_.insert({attr.object, attr.attribute});
       absl::StrAppend(&res_,
                       absl::StrFormat("%s.%s => %s\n", ObjectIdStr(attr.object),
@@ -403,6 +429,20 @@ class ContentsReprBuilder {
         if (++triple_count_ >= triple_limit_) {
           return absl::OkStatus();
         }
+      }
+    }
+    for (const AttrTriple& attr : triples.attributes()) {
+      if (seen_triples_.contains({attr.object, attr.attribute})) {
+        continue;
+      }
+      seen_triples_.insert({attr.object, attr.attribute});
+      absl::StrAppend(&res_,
+                      absl::StrFormat("%s.%s => %s\n", ObjectIdStr(attr.object),
+                                      AttributeRepr(attr.attribute),
+                                      internal::DataItemRepr(
+                                          attr.value, {.strip_quotes = true})));
+      if (++triple_count_ >= triple_limit_) {
+        return absl::OkStatus();
       }
     }
     return absl::OkStatus();

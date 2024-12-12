@@ -558,127 +558,6 @@ TEST(DataBagTest, CreateUuSchemaFromFields) {
                                  " schemas, got: 42")));
 }
 
-TEST(DataBagTest, OverwriteSchemaFields) {
-  auto db = internal::DataBagImpl::CreateEmptyDatabag();
-
-  std::vector<absl::string_view> attrs{"a", "b", "c"};
-  auto int_s = GetIntSchema();
-  auto float_s = GetFloatSchema();
-  auto schema_s = DataItem(AllocateExplicitSchema());
-  std::vector<std::reference_wrapper<const DataItem>> items{
-    std::cref(int_s), std::cref(float_s), std::cref(schema_s)
-  };
-
-  {
-    // DataItem.
-    ASSERT_OK_AND_ASSIGN(
-        auto schema_item,
-        CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-            DataItem(AllocateSingleObject()), schema::kImplicitSchemaSeed));
-    ASSERT_OK(db->OverwriteSchemaFields<DataItem>(schema_item, attrs, items));
-
-    ASSERT_OK_AND_ASSIGN(auto ds_impl, db->GetSchemaAttrs(schema_item));
-    EXPECT_THAT(ds_impl, UnorderedElementsAre(arolla::Text("a"),
-                                              arolla::Text("b"),
-                                              arolla::Text("c")));
-
-    EXPECT_THAT(db->GetSchemaAttr(schema_item, "a"), IsOkAndHolds(int_s));
-    EXPECT_THAT(db->GetSchemaAttr(schema_item, "b"), IsOkAndHolds(float_s));
-    EXPECT_THAT(db->GetSchemaAttr(schema_item, "c"), IsOkAndHolds(schema_s));
-  }
-  {
-    // DataSliceImpl - Schema slice is returned.
-    ASSERT_OK_AND_ASSIGN(
-        auto schema_slice,
-        CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-            DataSliceImpl::AllocateEmptyObjects(2),
-            schema::kImplicitSchemaSeed));
-    ASSERT_OK(
-        db->OverwriteSchemaFields<DataSliceImpl>(schema_slice, attrs, items));
-
-    for (int i = 0; i < schema_slice.size(); ++i) {
-      ASSERT_OK_AND_ASSIGN(auto ds_impl, db->GetSchemaAttrs(schema_slice[i]));
-      EXPECT_THAT(ds_impl, UnorderedElementsAre(arolla::Text("a"),
-                                                arolla::Text("b"),
-                                                arolla::Text("c")));
-    }
-    EXPECT_THAT(db->GetSchemaAttr(schema_slice, "a"),
-                IsOkAndHolds(ElementsAre(int_s, int_s)));
-    EXPECT_THAT(db->GetSchemaAttr(schema_slice, "b"),
-                IsOkAndHolds(ElementsAre(float_s, float_s)));
-    EXPECT_THAT(db->GetSchemaAttr(schema_slice, "c"),
-                IsOkAndHolds(ElementsAre(schema_s, schema_s)));
-  }
-  {
-    // DataSliceImpl - overwriting existing schemas
-    ASSERT_OK_AND_ASSIGN(
-        auto schema_slice,
-        CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-            DataSliceImpl::AllocateEmptyObjects(2),
-            schema::kImplicitSchemaSeed));
-    ASSERT_OK(
-        db->OverwriteSchemaFields<DataSliceImpl>(schema_slice, attrs, items));
-    std::vector<absl::string_view> new_attrs{"a", "b", "d"};
-    ASSERT_OK(
-        db->OverwriteSchemaFields<DataSliceImpl>(
-            schema_slice, new_attrs, items));
-
-    for (int i = 0; i < schema_slice.size(); ++i) {
-      ASSERT_OK_AND_ASSIGN(auto ds_impl, db->GetSchemaAttrs(schema_slice[i]));
-      EXPECT_THAT(ds_impl, UnorderedElementsAre(arolla::Text("a"),
-                                                arolla::Text("b"),
-                                                arolla::Text("d")));
-    }
-    EXPECT_THAT(db->GetSchemaAttr(schema_slice, "a"),
-                IsOkAndHolds(ElementsAre(int_s, int_s)));
-    EXPECT_THAT(db->GetSchemaAttr(schema_slice, "b"),
-                IsOkAndHolds(ElementsAre(float_s, float_s)));
-    EXPECT_THAT(db->GetSchemaAttr(schema_slice, "d"),
-                IsOkAndHolds(ElementsAre(schema_s, schema_s)));
-  }
-  {
-    // Empty item / slice.
-    ASSERT_OK(db->OverwriteSchemaFields(DataItem(), attrs, items));
-    ASSERT_OK(db->OverwriteSchemaFields(
-        DataSliceImpl::CreateEmptyAndUnknownType(2), attrs, items));
-  }
-  {
-    // Error.
-    ASSERT_OK_AND_ASSIGN(
-        auto schema_item,
-        CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-            DataItem(AllocateSingleObject()), schema::kImplicitSchemaSeed));
-    schema_s = DataItem(42);
-    std::vector<std::reference_wrapper<const DataItem>> items_error{
-      std::cref(int_s), std::cref(float_s), std::cref(schema_s)
-    };
-    EXPECT_THAT(
-        db->OverwriteSchemaFields<DataItem>(schema_item, attrs, items_error),
-        StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("only schemas can be assigned as attributes of "
-                           "schemas, got: 42")));
-
-    EXPECT_THAT(
-        db->OverwriteSchemaFields<DataSliceImpl>(
-            DataSliceImpl::AllocateEmptyObjects(2), attrs,
-            {std::cref(int_s), std::cref(float_s), std::cref(int_s)}),
-        StatusIs(absl::StatusCode::kFailedPrecondition,
-                 HasSubstr("dicts expected")));
-
-    ASSERT_OK_AND_ASSIGN(
-        auto schema_slice,
-        CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-            DataSliceImpl::AllocateEmptyObjects(2),
-            schema::kImplicitSchemaSeed));
-    EXPECT_THAT(
-        db->OverwriteSchemaFields<DataSliceImpl>(schema_slice, attrs,
-                                                 items_error),
-        StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("only schemas can be assigned as attributes of "
-                           "schemas, got: 42")));
-  }
-}
-
 TEST(DataBagTest, SetSchemaFields) {
   auto db = internal::DataBagImpl::CreateEmptyDatabag();
 
@@ -772,8 +651,9 @@ TEST(DataBagTest, SetSchemaFields) {
         db->SetSchemaFields<DataSliceImpl>(
             DataSliceImpl::AllocateEmptyObjects(2), attrs_1,
             {std::cref(int_s), std::cref(float_s)}),
-        StatusIs(absl::StatusCode::kFailedPrecondition,
-                 HasSubstr("dicts expected")));
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            HasSubstr("cannot set schema attribute of a non-schema slice")));
 
     ASSERT_OK_AND_ASSIGN(
         auto schema_slice,

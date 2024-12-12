@@ -106,19 +106,13 @@ template <class ImplT>
 absl::Status SetObjectSchema(
     internal::DataBagImpl& db_mutable_impl, const ImplT& ds_impl,
     absl::Span<const absl::string_view> attr_names,
-    absl::Span<const std::reference_wrapper<const DataItem>> schemas,
-    bool overwrite_schemas = true) {
+    absl::Span<const std::reference_wrapper<const DataItem>> schemas) {
   ASSIGN_OR_RETURN(
       auto schema_impl,
       CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
           ds_impl, schema::kImplicitSchemaSeed));
-  if (overwrite_schemas) {
-    RETURN_IF_ERROR(db_mutable_impl.OverwriteSchemaFields<ImplT>(
-        schema_impl, attr_names, schemas));
-  } else {
-    RETURN_IF_ERROR(db_mutable_impl.SetSchemaFields<ImplT>(
-        schema_impl, attr_names, schemas));
-  }
+  RETURN_IF_ERROR(
+      db_mutable_impl.SetSchemaFields<ImplT>(schema_impl, attr_names, schemas));
   RETURN_IF_ERROR(
       db_mutable_impl.SetAttr(ds_impl, schema::kSchemaAttr, schema_impl));
   return absl::OkStatus();
@@ -147,7 +141,7 @@ absl::Status OverwriteObjectSchemaForEntireAllocation(
                        ds_impl[0], schema::kImplicitSchemaSeed));
   auto schema_alloc = AllocationId(schema_first_obj.value<ObjectId>());
 
-  RETURN_IF_ERROR(db_mutable_impl.OverwriteSchemaFieldsForEntireAllocation(
+  RETURN_IF_ERROR(db_mutable_impl.SetSchemaFieldsForEntireAllocation(
       schema_alloc, ds_impl.size(), attr_names, schemas));
   auto schema_impl =
       DataSliceImpl::ObjectsFromAllocation(schema_alloc, ds_impl.size());
@@ -821,8 +815,7 @@ absl::StatusOr<DataSlice> CreateUuObject(
         std::vector<std::reference_wrapper<const internal::DataItem>>{});
     ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                      db->GetMutableImpl());
-    RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, uuid, {}, {},
-                                    /*overwrite_schemas=*/false));
+    RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, uuid, {}, {}));
     return DataSlice::Create(uuid, internal::DataItem(schema::kObject), db);
   }
   ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
@@ -858,8 +851,7 @@ absl::StatusOr<DataSlice> CreateUuObject(
                                                   aligned_values_impl[i]));
         }
         RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, impl_res.value(),
-                                        attr_names, schemas,
-                                        /*overwrite_schemas=*/false));
+                                        attr_names, schemas));
         // Adopt into the databag only at the end to avoid garbage in the
         // databag in case of error.
         RETURN_IF_ERROR(AdoptValuesInto(values, *db));

@@ -30,6 +30,7 @@
 #include "absl/base/optimization.h"
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/hash/hash.h"
 #include "absl/log/log.h"
@@ -579,31 +580,17 @@ class DataBagImpl : public arolla::RefcountedBase {
       const ImplT&, absl::Span<const absl::string_view> attr_names,
       absl::Span<const std::reference_wrapper<const DataItem>> items);
 
-  // Sets attributes from `attr_names` to schemas in `items` in the same order.
-  // All schemas are overwritten. It is the fast version of SetSchemaFields for
-  // cases in which existing schemas don't need to be preserved. This should
-  // be preferred in case either can be used.
-  // In case some of the `items` are not valid schemas, appropriate error is
-  // returned. The passed DataItem/DataSliceImpl must be an item / slice of
-  // ObjectIds which are schemas. Otherwise, an error is returned.
-  template <typename ImplT>
-  absl::Status OverwriteSchemaFields(
-      const ImplT&, absl::Span<const absl::string_view> attr_names,
-      absl::Span<const std::reference_wrapper<const DataItem>> items);
-
-  // Specialization for OverwriteSchemaFields that assign the same schema
+  // Specialization for SetSchemaFields that assign the same schema
   // fields for the entire allocation.
   // This function is significantly faster and use significantly less RAM.
   // Prefer to use it during construction of the new objects in the same
   // allocation.
   //
-  // If alloc_id is not newly created, function will fallback to
-  // OverwriteSchemaFields.
   // In case some of the `items` are not valid schemas, appropriate error is
   // returned.
   // AllocationId must be schema allocation id.
   // If size is unknown, use schema_alloc_id.Capacity().
-  absl::Status OverwriteSchemaFieldsForEntireAllocation(
+  absl::Status SetSchemaFieldsForEntireAllocation(
       AllocationId schema_alloc_id, size_t size,
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const std::reference_wrapper<const DataItem>> items);
@@ -711,6 +698,9 @@ class DataBagImpl : public arolla::RefcountedBase {
       absl::string_view attr_name) const;
   absl::StatusOr<DataBagContent::AttrContent> ExtractAttrContent(
       absl::string_view attr_name, const DataBagIndex::AttrIndex& index) const;
+
+  // Returns a copy of `slice` with all small allocs removed.
+  DataSliceImpl WithoutSmallAllocs(const DataSliceImpl& slice) const;
 
   // *** Merging helpers
   absl::Status MergeSmallAllocInplace(const DataBagImpl& other,
@@ -868,7 +858,8 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Create (if not yet created) and return DictVector for given `alloc_id`
   // in `this->dicts_`. Uses a corresponding DictVector from
   // parent_data_bag_ as a parent if available.
-  DictVector& GetOrCreateMutableDicts(AllocationId alloc_id);
+  DictVector& GetOrCreateMutableDicts(
+      AllocationId alloc_id, std::optional<size_t> size = std::nullopt);
 
   // Like GetOrCreateMutableDicts, but also selects a Dict for `object_id`.
   Dict& GetOrCreateMutableDict(ObjectId object_id);

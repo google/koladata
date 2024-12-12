@@ -38,6 +38,7 @@
 #include "koladata/internal/ellipsis.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
@@ -234,7 +235,11 @@ absl::Status DecodeAttrProto(const KodaV1Proto::AttrProto& attr_proto,
       }
       auto objects =
           internal::DataSliceImpl::ObjectsFromAllocation(alloc, values.size());
-      RETURN_IF_ERROR(db.SetAttr(objects, attr_proto.name(), values));
+      if (alloc.IsSchemasAlloc() && attr_proto.name() != schema::kSchemaAttr) {
+        RETURN_IF_ERROR(db.SetSchemaAttr(objects, attr_proto.name(), values));
+      } else {
+        RETURN_IF_ERROR(db.SetAttr(objects, attr_proto.name(), values));
+      }
     }
   }
   return absl::OkStatus();
@@ -261,13 +266,15 @@ absl::Status DecodeDictProto(const KodaV1Proto::DictProto& dict_proto,
                    GetInputValue<internal::DataSliceImpl>(
                        input_values, dict_proto.values_subindex()));
   if (dict_id.IsSchema()) {
-    internal::DataItem schema(dict_id);
-    for (int i = 0; i < keys.size(); ++i) {
-      if (!keys[i].holds_value<arolla::Text>()) {
-        return absl::InvalidArgumentError("schema key must be arolla::Text");
+    if (dict_id.IsSmallAlloc()) {
+      internal::DataItem schema(dict_id);
+      for (int i = 0; i < keys.size(); ++i) {
+        if (!keys[i].holds_value<arolla::Text>()) {
+          return absl::InvalidArgumentError("schema key must be arolla::Text");
+        }
+        RETURN_IF_ERROR(
+            db.SetSchemaAttr(schema, keys[i].value<arolla::Text>(), values[i]));
       }
-      RETURN_IF_ERROR(
-          db.SetSchemaAttr(schema, keys[i].value<arolla::Text>(), values[i]));
     }
     return absl::OkStatus();
   } else {

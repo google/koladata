@@ -198,14 +198,14 @@ TEST(DataBagTest, GetObjSchemaAttr) {
                        HasSubstr("missing __schema__ attribute")));
 }
 
-TEST(DataBagTest, OverwriteSchemaFieldsForEntireAllocation) {
+TEST(DataBagTest, SetSchemaFieldsForEntireAllocation) {
   constexpr int64_t kSize = 13;
   auto db = DataBagImpl::CreateEmptyDatabag();
 
   auto int32 = DataItem(schema::kInt32);
   auto float32 = DataItem(schema::kFloat32);
   // Doesn't fail.
-  ASSERT_OK(db->OverwriteSchemaFieldsForEntireAllocation(
+  ASSERT_OK(db->SetSchemaFieldsForEntireAllocation(
       AllocateExplicitSchemas(0), 0, {"a", "b"},
       {std::cref(int32), std::cref(float32)}));
 
@@ -214,7 +214,7 @@ TEST(DataBagTest, OverwriteSchemaFieldsForEntireAllocation) {
   auto schema_alloc =
       AllocationId(CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
           alloc_id.ObjectByOffset(0), arolla::Fingerprint(57)));
-  ASSERT_OK(db->OverwriteSchemaFieldsForEntireAllocation(
+  ASSERT_OK(db->SetSchemaFieldsForEntireAllocation(
       schema_alloc, kSize, {"a", "b"}, {std::cref(int32), std::cref(float32)}));
 
   auto ds_schema = DataSliceImpl::ObjectsFromAllocation(schema_alloc, kSize);
@@ -251,7 +251,7 @@ TEST(DataBagTest, OverwriteSchemaFieldsForEntireAllocation) {
   }
 
   // Make sure we can overwrite existent schemas.
-  ASSERT_OK(db->OverwriteSchemaFieldsForEntireAllocation(
+  ASSERT_OK(db->SetSchemaFieldsForEntireAllocation(
       schema_alloc, kSize, {"a", "b"}, {std::cref(float32), std::cref(int32)}));
   for (DataItem obj : ds) {
     ASSERT_OK_AND_ASSIGN(DataItem schema, db->GetAttr(obj, "__schema__"));
@@ -280,6 +280,7 @@ TEST(DataBagTest, GetSchemaAttrs) {
     ASSERT_OK(db->SetSchemaAttr(schema, "self", schema));
     ASSERT_OK_AND_ASSIGN(DataSliceImpl schema_attrs,
                          db->GetSchemaAttrs(schema));
+    EXPECT_EQ(schema_attrs.dtype(), arolla::GetQType<arolla::Text>());
     EXPECT_THAT(schema_attrs.values<arolla::Text>(),
                 UnorderedElementsAre("value", "self"));
   }
