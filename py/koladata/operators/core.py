@@ -201,7 +201,7 @@ def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,red
         qtype_utils.expect_data_slice(P.ndim),
     ],
 )
-def concat(args=optools.var_positional(), *, ndim=1):
+def concat(*args, ndim=1):
   """Returns the concatenation of the given DataSlices on dimension `rank-ndim`.
 
   All given DataSlices must have the same rank, and the shapes of the first
@@ -243,7 +243,7 @@ def concat(args=optools.var_positional(), *, ndim=1):
     [[[1, 2, 1], [3, 2]], [[5, 3], [7, 8, 4]]]
 
   Args:
-    args: The DataSlices to concatenate.
+    *args: The DataSlices to concatenate.
     ndim: The number of last dimensions to concatenate (default 1).
 
   Returns:
@@ -251,6 +251,7 @@ def concat(args=optools.var_positional(), *, ndim=1):
     the input DataSlices come from different DataBags, this will refer to a
     new merged immutable DataBag.
   """
+  args = arolla.optools.fix_trace_args(args)
   return M.core.apply_varargs(
       _concat_or_stack, data_slice.DataSlice.from_vals(False), ndim, args
   )
@@ -268,7 +269,7 @@ def concat(args=optools.var_positional(), *, ndim=1):
         qtype_utils.expect_data_slice(P.ndim),
     ],
 )
-def stack(args=optools.var_positional(), *, ndim=0):
+def stack(*args, ndim=0):
   """Stacks the given DataSlices, creating a new dimension at index `rank-ndim`.
 
   The given DataSlices must have the same rank, and the shapes of the first
@@ -297,18 +298,16 @@ def stack(args=optools.var_positional(), *, ndim=0):
   kd.stack(a, b) -> the same as kd.stack(a, b, ndim=0)
 
   Args:
-    args: The DataSlices to stack.
+    *args: The DataSlices to stack.
     ndim: The number of last dimensions to stack (default 0).
 
   Returns:
     The stacked DataSlice. If the input DataSlices come from different DataBags,
     this will refer to a merged immutable DataBag.
   """
+  args = arolla.optools.fix_trace_args(args)
   return M.core.apply_varargs(
-      _concat_or_stack,
-      data_slice.DataSlice.from_vals(True),
-      ndim,
-      args,
+      _concat_or_stack, data_slice.DataSlice.from_vals(True), ndim, args
   )
 
 
@@ -1096,23 +1095,17 @@ def _obj(
 
 
 @optools.add_to_registry(aliases=['kde.obj_shaped'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.obj_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
-def obj_shaped(
-    shape=py_boxing.positional_only(),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    attrs=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+def obj_shaped(shape, /, *, itemid=arolla.unspecified(), **attrs):  # pylint: disable=unused-argument
   """Creates Objects with the given shape.
 
   Returned DataSlice has OBJECT schema.
@@ -1129,22 +1122,16 @@ def obj_shaped(
 
 
 @optools.add_to_registry(aliases=['kde.obj_shaped_as'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.obj_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
-def obj_shaped_as(
-    shape_from=py_boxing.positional_only(),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    attrs=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+def obj_shaped_as(shape_from, /, *, itemid=arolla.unspecified(), **attrs):
   """Creates Objects with the shape of the given DataSlice.
 
   Returned DataSlice has OBJECT schema.
@@ -1157,12 +1144,13 @@ def obj_shaped_as(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
   return arolla.abc.bind_op(
       obj_shaped,
       shape=jagged_shape_ops.get_shape(shape_from),
       itemid=itemid,
       attrs=attrs,
-      non_deterministic=non_deterministic,
+      **optools.unified_non_deterministic_kwarg(),
   )
 
 
@@ -2493,15 +2481,13 @@ def select_items(ds, fltr):
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core._new_ids_like',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
-    ],
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
     qtype_inference_expr=qtypes.DATA_SLICE,
+    deterministic=False,
 )
-def _new_ids_like(x, non_deterministic):  # pylint: disable=unused-argument
+def _new_ids_like(x):  # pylint: disable=unused-argument
   """Creates a DataSlice with new ItemIds of a similar kind."""
   raise NotImplementedError('implemented in the backend')
 
@@ -2617,24 +2603,24 @@ def _shallow_clone(x, itemid, schema, non_deterministic):  # pylint: disable=unu
 
 
 @optools.add_to_registry(aliases=['kde.shallow_clone'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.shallow_clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def shallow_clone(
-    x=py_boxing.positional_only(),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    overrides=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args
+    x,
+    /,
+    *,
+    itemid=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    **overrides,
+):
   """Creates a DataSlice with shallow clones of immediate attributes.
 
   The entities themselves get new ItemIds and their top-level attributes are
@@ -2658,9 +2644,8 @@ def shallow_clone(
     A copy of the entities with new ItemIds where all top-level attributes are
     copied by reference.
   """
-  itemid = M.core.default_if_unspecified(
-      itemid, _new_ids_like(x, non_deterministic)
-  )
+  overrides = arolla.optools.fix_trace_kwargs(overrides)
+  itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x))
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
       'x, itemid, schema, overrides, non_deterministic',
@@ -2674,7 +2659,7 @@ def shallow_clone(
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
       default=_shallow_clone(P.x, P.itemid, P.schema, P.non_deterministic),
-  )(x, itemid, schema, overrides, non_deterministic)
+  )(x, itemid, schema, overrides, optools.unified_non_deterministic_arg())
 
 
 @optools.add_to_registry()
@@ -2735,9 +2720,7 @@ def clone(
     A copy of the entities where all top-level attributes are cloned (new
     ItemIds) and all of the rest extracted.
   """
-  itemid = M.core.default_if_unspecified(
-      itemid, _new_ids_like(x, non_deterministic)
-  )
+  itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x))
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
       'x, itemid, schema, overrides, non_deterministic',
@@ -4378,19 +4361,18 @@ def list_shaped_as(
     item_schema=arolla.unspecified(),
     schema=arolla.unspecified(),
     itemid=arolla.unspecified(),
-):  # pylint: disable=g-doc-args
+):
   """Creates new Koda lists with the shape of the given DataSlice.
 
   Args:
     shape_from: DataSlice of the desired shape.
-    items: optional items to assign to the newly created lists. If not
-      given, the function returns empty lists.
+    items: optional items to assign to the newly created lists. If not given,
+      the function returns empty lists.
     item_schema: the schema of the list items. If not specified, it will be
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
 
   Returns:
     A DataSlice with the lists.
@@ -4400,5 +4382,5 @@ def list_shaped_as(
       items=items,
       item_schema=item_schema,
       schema=schema,
-      itemid=itemid
+      itemid=itemid,
   )

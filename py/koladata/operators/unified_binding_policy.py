@@ -25,9 +25,6 @@ UNIFIED_POLICY_PREFIX = f'{py_optools_py_ext.UNIFIED_POLICY}:'
 # Name of the hidden parameter used to indicate non-deterministic input.
 NON_DETERMINISTIC_PARAM_NAME = '_non_deterministic_token'
 
-# Placeholder for the hidden parameter.
-NON_DETERMINISTIC_PARAM = arolla.abc.placeholder(NON_DETERMINISTIC_PARAM_NAME)
-
 # Note: The options must match the C++ implementation.
 #
 _OPT_CHR_POSITIONAL_ONLY = py_optools_py_ext.UNIFIED_POLICY_OPT_POSITIONAL_ONLY
@@ -45,33 +42,6 @@ _OPT_CHR_VAR_KEYWORD = py_optools_py_ext.UNIFIED_POLICY_OPT_VAR_KEYWORD
 _OPT_CHR_NON_DETERMINISTIC = (
     py_optools_py_ext.UNIFIED_POLICY_OPT_NON_DETERMINISTIC
 )
-
-
-# Marker for a variadic-positional parameter
-_VAR_POSITIONAL = type('VarPositional', (), {})()
-_VAR_KEYWORD = type('VarKeyword', (), {})()
-
-# Precomputed values
-_EMPTY_TUPLE = arolla.tuple()
-_EMPTY_NAMEDTUPLE = arolla.namedtuple()
-
-
-def var_positional():
-  """Returns a marker a variadic-positional parameter.
-
-  This marker should be used as the default value for the last
-  positional-or-keyword parameter.
-  """
-  return _VAR_POSITIONAL
-
-
-def var_keyword():
-  """Returns a marker a variadic-keyword parameter.
-
-  This marker should be used as the default value for the last keyword-only
-  parameter.
-  """
-  return _VAR_KEYWORD
 
 
 def make_unified_signature(
@@ -94,20 +64,6 @@ def make_unified_signature(
   sig_vals = []
   aux_opts = []
   for param in signature.parameters.values():
-    # Perform a sanity check on the special marker values.
-    if param.default is _VAR_POSITIONAL:
-      if param.kind != param.POSITIONAL_OR_KEYWORD:
-        raise ValueError(
-            'the marker var_positional() can only be used with'
-            ' a keyword-or-positional parameter'
-        )
-    elif param.default is _VAR_KEYWORD:
-      if param.kind != param.KEYWORD_ONLY:
-        raise ValueError(
-            'the marker var_keyword() can only be used with'
-            ' a keyword-only parameter'
-        )
-
     if param.kind == param.POSITIONAL_ONLY:
       if param.default is param.empty:
         sig_spec.append(param.name)
@@ -117,11 +73,7 @@ def make_unified_signature(
         sig_vals.append(param.default)
         aux_opts.append(_OPT_CHR_POSITIONAL_ONLY)
     elif param.kind == param.POSITIONAL_OR_KEYWORD:
-      if param.default is _VAR_POSITIONAL:
-        sig_spec.append(param.name + '=')
-        sig_vals.append(_EMPTY_TUPLE)
-        aux_opts.append(_OPT_CHR_VAR_POSITIONAL)
-      elif param.default is param.empty:
+      if param.default is param.empty:
         sig_spec.append(param.name)
         aux_opts.append(_OPT_CHR_POSITIONAL_OR_KEYWORD)
       else:
@@ -129,11 +81,7 @@ def make_unified_signature(
         sig_vals.append(param.default)
         aux_opts.append(_OPT_CHR_POSITIONAL_OR_KEYWORD)
     elif param.kind == param.KEYWORD_ONLY:
-      if param.default is _VAR_KEYWORD:
-        sig_spec.append(param.name + '=')
-        sig_vals.append(_EMPTY_NAMEDTUPLE)
-        aux_opts.append(_OPT_CHR_VAR_KEYWORD)
-      elif param.default is param.empty:
+      if param.default is param.empty:
         sig_spec.append(param.name + '=')
         sig_vals.append(arolla.unspecified())
         aux_opts.append(_OPT_CHR_REQUIRED_KEYWORD_ONLY)
@@ -142,15 +90,13 @@ def make_unified_signature(
         sig_vals.append(param.default)
         aux_opts.append(_OPT_CHR_OPTIONAL_KEYWORD_ONLY)
     elif param.kind == param.VAR_POSITIONAL:
-      raise ValueError(
-          f'a signature with `*{param.name}` is not supported; please use'
-          f' `{param.name}=var_positional()` instead.'
-      )
+      sig_spec.append(param.name + '=')
+      sig_vals.append(arolla.tuple())
+      aux_opts.append('P')
     elif param.kind == param.VAR_KEYWORD:
-      raise ValueError(
-          f'a signature with `**{param.name}` is not supported; please use'
-          f' `*, {param.name}=var_keyword()` instead.'
-      )
+      sig_spec.append(param.name + '=')
+      sig_vals.append(arolla.namedtuple())
+      aux_opts.append('K')
     else:
       raise ValueError(f'unsupported parameter: {param}')
 
@@ -158,18 +104,8 @@ def make_unified_signature(
     sig_spec.append(NON_DETERMINISTIC_PARAM_NAME + '=')
     sig_vals.append(arolla.unspecified())
     aux_opts.append(_OPT_CHR_NON_DETERMINISTIC)
-  aux_opts = ''.join(aux_opts)
 
-  # Perform a sanity check on the parameter order.
-  if aux_opts.count(_OPT_CHR_VAR_POSITIONAL) > 1:
-    raise ValueError('only one var_positional() is allowed')
-  if _OPT_CHR_VAR_KEYWORD in aux_opts[: deterministic - 2]:
-    raise ValueError('arguments cannot follow var-keyword argument')
-  if 'Pp' in aux_opts:
-    raise ValueError(
-        'a keyword-or-positional parameter cannot appear after'
-        ' a variadic-positional parameter'
-    )
+  aux_opts = ''.join(aux_opts)
   return arolla.abc.make_operator_signature(  # pytype: disable=bad-return-type
       (','.join(sig_spec) + f'|{UNIFIED_POLICY_PREFIX}{aux_opts}', *sig_vals),
       as_qvalue=py_boxing.as_qvalue,

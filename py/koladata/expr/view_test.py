@@ -34,7 +34,7 @@ ds = data_slice.DataSlice.from_vals
 @arolla.optools.add_to_registry()
 @arolla.optools.as_lambda_operator('test.op')
 def op(*args):
-  return args[0]
+  return arolla.optools.fix_trace_args(args)
 
 
 class KodaViewTest(parameterized.TestCase):

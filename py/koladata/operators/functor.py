@@ -41,13 +41,7 @@ constraints = arolla.optools.constraints
     ],
     qtype_inference_expr=P.return_type_as,
 )
-def call(
-    fn,
-    args=optools.var_positional(),
-    *,
-    return_type_as=data_slice.DataSlice,
-    kwargs=optools.var_keyword(),
-):
+def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):
   """Calls a functor.
 
   See the docstring of `kd.fn` on how to create a functor.
@@ -61,14 +55,14 @@ def call(
 
   Args:
     fn: The functor to be called, typically created via kd.fn().
-    args: The positional arguments to pass to the call. Scalars will be
+    *args: The positional arguments to pass to the call. Scalars will be
       auto-boxed to DataItems.
     return_type_as: The return type of the call is expected to be the same as
       the return type of this expression. In most cases, this will be a literal
       of the corresponding type. This needs to be specified if the functor does
       not return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also
       be passed here.
-    kwargs: The keyword arguments to pass to the call. Scalars will be
+    **kwargs: The keyword arguments to pass to the call. Scalars will be
       auto-boxed to DataItems.
 
   Returns:
@@ -78,7 +72,7 @@ def call(
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.functor._maybe_call',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.maybe_fn),

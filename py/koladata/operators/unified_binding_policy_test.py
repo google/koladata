@@ -53,7 +53,8 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     )
 
   def test_positional_or_keyword_parameters(self):
-    def op(x, y=arolla.unit(), z=unified_binding_policy.var_positional()):
+
+    def op(x, y=arolla.unit(), *z):
       del x, y, z
 
     sig = unified_binding_policy.make_unified_signature(
@@ -79,12 +80,8 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     )
 
   def test_keyword_parameters(self):
-    def op(
-        *,
-        x=arolla.unit(),
-        y,
-        z=unified_binding_policy.var_keyword(),
-    ):
+
+    def op(*, x=arolla.unit(), y, **z):
       del x, y, z
 
     sig = unified_binding_policy.make_unified_signature(
@@ -119,104 +116,6 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         sig.parameters[3].default, arolla.unspecified()
     )
-
-  def test_error_var_positional_kind(self):
-    def op(*args):
-      del args
-
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'a signature with `*args` is not supported; please use'
-            ' `args=var_positional()`'
-        ),
-    ):
-      _ = unified_binding_policy.make_unified_signature(
-          inspect.signature(op), deterministic=False
-      )
-
-  def test_error_var_keyword_kind(self):
-    def op(**kwargs):
-      del kwargs
-
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'a signature with `**kwargs` is not supported; please use'
-            ' `*, kwargs=var_keyword()`'
-        ),
-    ):
-      _ = unified_binding_policy.make_unified_signature(
-          inspect.signature(op), deterministic=False
-      )
-
-  def test_error_multiple_var_positionals(self):
-    def op(
-        x=unified_binding_policy.var_positional(),
-        y=unified_binding_policy.var_positional(),
-    ):
-      del x, y
-
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'only one var_positional() is allowed'
-    ):
-      _ = unified_binding_policy.make_unified_signature(
-          inspect.signature(op), deterministic=False
-      )
-
-  def test_error_positional_or_keyword_after_var_positional(self):
-    def op(args=unified_binding_policy.var_positional(), x=arolla.unit()):
-      del args, x
-
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'a keyword-or-positional parameter cannot appear after'
-            ' a variadic-positional parameter'
-        ),
-    ):
-      _ = unified_binding_policy.make_unified_signature(
-          inspect.signature(op), deterministic=False
-      )
-
-  def test_error_keyword_only_after_var_keyword(self):
-    def op(*, args=unified_binding_policy.var_keyword(), x=arolla.unit()):
-      del args, x
-
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'arguments cannot follow var-keyword argument'
-    ):
-      _ = unified_binding_policy.make_unified_signature(
-          inspect.signature(op), deterministic=False
-      )
-
-  @parameterized.parameters(
-      lambda x=unified_binding_policy.var_positional(), /: None,
-      lambda *, x=unified_binding_policy.var_positional(): None,
-  )
-  def test_error_var_positional_marker_misuse(self, op):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        'the marker var_positional() can only be used with'
-        ' a keyword-or-positional parameter',
-    ):
-      _ = unified_binding_policy.make_unified_signature(
-          inspect.signature(op), deterministic=False
-      )
-
-  @parameterized.parameters(
-      lambda x=unified_binding_policy.var_keyword(), /: None,
-      lambda x=unified_binding_policy.var_keyword(): None,
-  )
-  def test_error_var_keyword_marker_misuse(self, op):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        'the marker var_keyword() can only be used with'
-        ' a keyword-only parameter',
-    ):
-      _ = unified_binding_policy.make_unified_signature(
-          inspect.signature(op), deterministic=False
-      )
 
 
 def _make_python_signature(sig: str | arolla.abc.Signature):
@@ -732,9 +631,7 @@ unified_op = arolla.abc.register_operator(
     'test.unified_op',
     arolla.optools.make_lambda(
         unified_binding_policy.make_unified_signature(
-            inspect.signature(
-                lambda a, /, x, args=unified_binding_policy.var_positional(), *, y, z, kwargs=unified_binding_policy.var_keyword(): None
-            ),
+            inspect.signature(lambda a, /, x, *args, y, z, **kwargs: None),
             deterministic=False,
         ),
         (P.a, P.x, P.args, P.y, P.z, P.kwargs),

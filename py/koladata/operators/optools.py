@@ -264,8 +264,9 @@ def as_lambda_operator(
         op_expr = arolla.abc.sub_by_fingerprint(
             op_expr,
             {
-                py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint:
-                arolla.abc.placeholder(hidden_seed_param)
+                py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
+                    arolla.abc.placeholder(hidden_seed_param)
+                )
             },
         )
     return arolla.optools.make_lambda(
@@ -326,8 +327,23 @@ def as_py_function_operator(
   return impl
 
 
-var_positional = unified_binding_policy.var_positional
-var_keyword = unified_binding_policy.var_keyword
+UNIFIED_NON_DETERMINISTIC_PARAM_NAME = (
+    unified_binding_policy.NON_DETERMINISTIC_PARAM_NAME
+)
+
+UNIFIED_NON_DETERMINISTIC_PARAM = arolla.abc.placeholder(
+    unified_binding_policy.NON_DETERMINISTIC_PARAM_NAME
+)
+
+
+def unified_non_deterministic_arg():
+  """Returns a non-deterministic token for use with `bind_op(..., arg)`."""
+  return py_boxing.new_non_deterministic_token()
+
+
+def unified_non_deterministic_kwarg():
+  """Returns a non-deterministic token for use with `bind_op(..., **kwarg)`."""
+  return {UNIFIED_NON_DETERMINISTIC_PARAM_NAME: unified_non_deterministic_arg()}
 
 
 def as_unified_backend_operator(
@@ -350,7 +366,7 @@ def as_unified_backend_operator(
       get replaced with the actual type names during the error message
       formatting.
     deterministic: If set to False, a hidden parameter (with the name
-      `optools.NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the
+      `optools.UNIFIED_NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the
       signature. This parameter receives special handling by the binding policy
       implementation.
 
@@ -366,9 +382,7 @@ def as_unified_backend_operator(
     )
     if not deterministic:
       qtype_constraints_copy.append(
-          qtype_utils.expect_non_deterministic(
-              unified_binding_policy.NON_DETERMINISTIC_PARAM
-          )
+          qtype_utils.expect_non_deterministic(UNIFIED_NON_DETERMINISTIC_PARAM)
       )
     return arolla.types.BackendOperator(
         name,
@@ -381,6 +395,8 @@ def as_unified_backend_operator(
   return impl
 
 
+# TOOD: b/383536303 - Consider improving the error messages for "unfixed"
+# variadic `*args` and `**kwargs` during tracing.
 def as_unified_lambda_operator(
     name: str,
     *,
@@ -401,7 +417,7 @@ def as_unified_lambda_operator(
       get replaced with the actual type names during the error message
       formatting.
     deterministic: If set to False, a hidden parameter (with the name
-      `optools.NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the
+      `optools.UNIFIED_NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the
       signature. This parameter receives special handling by the binding policy
       implementation.
 
@@ -417,8 +433,8 @@ def as_unified_lambda_operator(
     op_expr = _build_lambda_body_from_fn(fn)
     if deterministic:
       if (
-          py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.leaf_key in
-          arolla.abc.get_leaf_keys(op_expr)
+          py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.leaf_key
+          in arolla.abc.get_leaf_keys(op_expr)
       ):
         raise ValueError(
             'the lambda operator is based on a non-deterministic expression;'
@@ -426,15 +442,13 @@ def as_unified_lambda_operator(
         )
     else:
       qtype_constraints_copy.append(
-          qtype_utils.expect_non_deterministic(
-              unified_binding_policy.NON_DETERMINISTIC_PARAM
-          )
+          qtype_utils.expect_non_deterministic(UNIFIED_NON_DETERMINISTIC_PARAM)
       )
       op_expr = arolla.abc.sub_by_fingerprint(
           op_expr,
           {
               py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
-                  unified_binding_policy.NON_DETERMINISTIC_PARAM
+                  UNIFIED_NON_DETERMINISTIC_PARAM
               )
           },
       )
