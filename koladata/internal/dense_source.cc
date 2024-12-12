@@ -489,7 +489,9 @@ class TypedDenseSource final : public DenseSource {
   }
 
   AllocationId allocation_id() const final { return obj_allocation_id_; }
-  int64_t size() const final { return values_.size(); }
+  int64_t size() const final {
+    return multitype_ ? multitype_->size() : values_.size();
+  }
 
   DataItem Get(ObjectId object) const final {
     if (multitype_) {

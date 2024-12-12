@@ -542,6 +542,7 @@ TEST(DenseSourceTest, MutableWithMixedTypes) {
     ASSERT_OK(source->Set(alloc.ObjectByOffset(1), DataItem(true)));
 
     // get all
+    ASSERT_EQ(source->size(), 5);
     EXPECT_EQ(source->Get(alloc.ObjectByOffset(0)),
               DataItem(arolla::Bytes("bytes")));
     EXPECT_EQ(source->Get(alloc.ObjectByOffset(1)), DataItem(true));
