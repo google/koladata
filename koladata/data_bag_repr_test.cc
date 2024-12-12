@@ -450,6 +450,22 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_TripleLimit_Invalid) {
                testing::HasSubstr("triple_limit must be a positive integer")));
 }
 
+TEST(DataBagReprTest, TestDataBagStringRepresentation_NamedSchema) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto named_schema,
+                       CreateNamedSchema(bag, "test_schema", {"a", "b"},
+                                         {test::Schema(schema::kString),
+                                          test::Schema(schema::kInt32)}));
+  EXPECT_THAT(DataBagToStr(bag), IsOkAndHolds(MatchesRegex(
+                                     R"regex(DataBag \$[0-9a-f]{4}:
+\#[0-9a-zA-Z]{22}\.__schema_name__ => test_schema
+
+SchemaBag:
+\#[0-9a-zA-Z]{22}\.a => STRING
+\#[0-9a-zA-Z]{22}\.b => INT32
+)regex")));
+}
+
 TEST(DataBagReprTest, TestDataBagStringRepresentation_DuplicatedFallbackBags) {
   auto fallback_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto ds1, EntityCreator::FromAttrs(

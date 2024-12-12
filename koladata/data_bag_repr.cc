@@ -340,7 +340,7 @@ class ContentsReprBuilder {
       if (seen_triples_.contains({attr.object, attr.attribute})) {
         continue;
       }
-      if (attr.object.IsSchema() && attr.attribute != schema::kSchemaAttr) {
+      if (attr.object.IsSchema() && attr.attribute != schema::kSchemaNameAttr) {
         continue;
       }
       seen_triples_.insert({attr.object, attr.attribute});

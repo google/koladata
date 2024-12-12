@@ -235,7 +235,8 @@ absl::Status DecodeAttrProto(const KodaV1Proto::AttrProto& attr_proto,
       }
       auto objects =
           internal::DataSliceImpl::ObjectsFromAllocation(alloc, values.size());
-      if (alloc.IsSchemasAlloc() && attr_proto.name() != schema::kSchemaAttr) {
+      if (alloc.IsSchemasAlloc() &&
+          attr_proto.name() != schema::kSchemaNameAttr) {
         RETURN_IF_ERROR(db.SetSchemaAttr(objects, attr_proto.name(), values));
       } else {
         RETURN_IF_ERROR(db.SetAttr(objects, attr_proto.name(), values));
