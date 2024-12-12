@@ -420,6 +420,18 @@ def universal_converter_list_of_obj_primitives(state):
 
 
 @google_benchmark.register
+def create_item(state):
+  while state:
+    _ = kd.item(42)
+
+
+@google_benchmark.register
+def create_item_through_slice(state):
+  while state:
+    _ = kd.slice(42)
+
+
+@google_benchmark.register
 def from_py(state):
   lst = [12] * 1000 + ['abc'] * 2000 + [b'abc'] * 3000 + [3.14] * 4000
   while state:
