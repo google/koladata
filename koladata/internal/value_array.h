@@ -23,7 +23,6 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include "absl/base/dynamic_annotations.h"
 #include "absl/container/fixed_array.h"
@@ -163,7 +162,7 @@ class SimpleValueArray {
 
   size_t size() const { return values_.size(); }
 
-  arolla::OptionalValue<T> Get(int64_t offset) const {
+  arolla::OptionalValue<arolla::view_type_t<T>> Get(int64_t offset) const {
     return {arolla::bitmap::GetBit(presence_.data(), offset), values_[offset]};
   }
 
