@@ -100,6 +100,7 @@ def sigmoid(x, half=0.0, slope=1.0):  # pylint: disable=unused-argument
     x: A DataSlice of numbers.
     half: A DataSlice of numbers.
     slope: A DataSlice of numbers.
+
   Return:
     sigmoid(x) computed with the formula above.
   """
@@ -294,11 +295,8 @@ def mod(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._agg_sum',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._agg_sum', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_sum(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
@@ -345,11 +343,8 @@ def sum(x):
   return agg_sum(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._agg_mean',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._agg_mean', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_mean(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
@@ -396,11 +391,8 @@ def mean(x):
   return agg_mean(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._agg_median',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._agg_median', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_median(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
@@ -453,14 +445,8 @@ def median(x):
   return agg_median(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._agg_std',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.unbiased),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._agg_std', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_std(x, unbiased=True):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
@@ -499,14 +485,8 @@ def agg_std(x, unbiased=True, ndim=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._agg_var',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.unbiased),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._agg_var', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_var(x, unbiased=True):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
@@ -573,11 +553,8 @@ def minimum(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._agg_max',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._agg_max', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_max(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
@@ -624,13 +601,8 @@ def _max(x):
   return agg_max(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._cum_max',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._cum_max', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _cum_max(x):  # pylint: disable=unused-argument
   """Returns the cumulative max of items."""
@@ -651,11 +623,8 @@ def cum_max(x, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._agg_min',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._agg_min', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_min(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
@@ -702,13 +671,8 @@ def _min(x):
   return agg_min(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._cum_min',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._cum_min', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _cum_min(x):  # pylint: disable=unused-argument
   """Returns the cumulative minimum of items."""
@@ -729,13 +693,8 @@ def cum_min(x, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._cum_sum',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._cum_sum', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _cum_sum(x):  # pylint: disable=unused-argument
   """Returns the cumulative sum of items."""
@@ -756,14 +715,8 @@ def cum_sum(x, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._softmax',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.weights),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._softmax', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _softmax(x, weights):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
@@ -795,14 +748,8 @@ def softmax(x, beta=1.0, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._cdf',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.weights),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._cdf', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _cdf(x, weights):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
@@ -848,14 +795,8 @@ def cdf(x, weights=arolla.unspecified(), ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math._agg_inverse_cdf',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.cdf_arg),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.math._agg_inverse_cdf', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_inverse_cdf(x, cdf_arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')

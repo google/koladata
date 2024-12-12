@@ -31,14 +31,8 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings._agg_join',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.sep),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.strings._agg_join', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_join(x, sep):  # pylint: disable=unused-argument
   """Returns a DataSlice of strings joined on last dimension."""
@@ -790,12 +784,7 @@ def encode(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings._decode_base64',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        constraints.expect_boolean(P.missing_if_invalid),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.strings._decode_base64', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _decode_base64(x, missing_if_invalid):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')

@@ -61,12 +61,8 @@ def uuobj(seed='', **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-# This operator does not have qtype constraints and is not registered since it
-# is only supposed to be used only by kde.core.uu which would duplicate the
-# constraints.
 @optools.as_backend_operator(
-    'kde.core._uu',
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.core._uu', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _uu(seed, schema, update_schema, kwargs):
   """Internal implementation of kde.uu."""

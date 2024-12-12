@@ -66,10 +66,6 @@ class CoreFreezeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.core.freeze(I.x)))
-    # NOTE: freeze does not trigger the view based on lowered expr.
-    self.assertTrue(
-        view.has_koda_view(kde.core._freeze_bag(kde.core.get_bag(I.x)))
-    )
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.nofollow, kde.nofollow))

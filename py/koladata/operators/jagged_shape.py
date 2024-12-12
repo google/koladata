@@ -327,15 +327,8 @@ def remove_last_ndim(x, ndim):
   return remove_last_ndim_if_specified(x, ndim)
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.shapes._expand_to_shape',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_jagged_shape(P.shape),
-        constraints.expect_scalar_integer(P.ndim),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.shapes._expand_to_shape', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _expand_to_shape(x, shape, ndim):  # pylint: disable=unused-argument
   """Broadcasts a DataSlice to the provided shape."""

@@ -31,13 +31,8 @@ constraints = arolla.optools.constraints
 with_schema = logical._with_schema  # pylint: disable=protected-access
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.core._collapse',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.core._collapse', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _collapse_impl(ds):  # pylint: disable=unused-argument
   """Creates a new DataSlice by collapsing 'ds' over its last dimension.
@@ -172,12 +167,8 @@ def named_schema(name, **kwargs):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.schema._internal_maybe_named_schema',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.name_or_schema),
-    ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _internal_maybe_named_schema(name_or_schema):
@@ -186,7 +177,12 @@ def _internal_maybe_named_schema(name_or_schema):
 
 
 @optools.add_to_registry()
-@optools.as_lambda_operator('kde.schema.internal_maybe_named_schema')
+@optools.as_lambda_operator(
+    'kde.schema.internal_maybe_named_schema',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice_or_unspecified(P.name_or_schema),
+    ],
+)
 def internal_maybe_named_schema(name_or_schema):
   """Converts a string to a named schema, passes through schema otherwise.
 
@@ -411,6 +407,8 @@ def as_itemid(x):
   Deprecated, use `get_itemid` instead.
   """
   return to_itemid(x)
+
+
 # pylint: enable=g-doc-args,g-doc-return-or-yield
 
 
@@ -600,11 +598,8 @@ def is_primitive_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.schema._agg_common_schema',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.schema._agg_common_schema', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_common_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')

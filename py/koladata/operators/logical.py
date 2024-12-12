@@ -156,11 +156,8 @@ def coalesce(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.logical._has_not',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.logical._has_not', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _has_not(x):  # pylint: disable=unused-argument
   """Returns present iff `x` is missing element-wise."""
@@ -366,11 +363,8 @@ def mask_not_equal(x, y):
   return ~mask_equal(x, y)
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.logical._agg_any',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.logical._agg_any', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_any(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
@@ -433,11 +427,8 @@ def agg_has(x, ndim=arolla.unspecified()):
   return agg_any(has(x), ndim=ndim)
 
 
-@optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.logical._agg_all',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.logical._agg_all', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _agg_all(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
