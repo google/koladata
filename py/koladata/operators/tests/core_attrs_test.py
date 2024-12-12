@@ -37,6 +37,8 @@ DATA_BAG = qtypes.DATA_BAG
 
 
 QTYPES = frozenset([
+    (DATA_SLICE, DATA_BAG),
+    (DATA_SLICE, DATA_SLICE, DATA_BAG),
     (DATA_SLICE, DATA_SLICE, arolla.make_namedtuple_qtype(), DATA_BAG),
     (
         DATA_SLICE,

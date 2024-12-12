@@ -106,7 +106,7 @@ class CoreUuidsWithAllocationSizeTest(parameterized.TestCase):
 
   def test_no_size(self):
     with self.assertRaisesRegex(
-        TypeError, re.escape("missing required keyword argument: 'size'")
+        TypeError, re.escape("missing 1 required keyword-only argument: 'size'")
     ):
       _ = expr_eval.eval(kde.core.uuids_with_allocation_size('foo'))
 

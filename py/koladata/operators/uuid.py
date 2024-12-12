@@ -17,7 +17,6 @@
 from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import py_boxing
 from koladata.types import qtypes
 
 
@@ -27,21 +26,20 @@ constraints = arolla.optools.constraints
 
 
 @optools.add_to_registry(aliases=['kde.uuid'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.uuid',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def uuid(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
+def uuid(seed='', **kwargs):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
 
   Args:
     seed: text seed for the uuid computation.
-    kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
       values must be alignable.
 
   Returns:
@@ -52,18 +50,15 @@ def uuid(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword(
 
 
 @optools.add_to_registry(aliases=['kde.uuid_for_list'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.uuid_for_list',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def uuid_for_list(
-    seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword()
-):  # pylint: disable=unused-argument
+def uuid_for_list(seed='', **kwargs):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
 
   To be used for keying list items.
@@ -74,7 +69,7 @@ def uuid_for_list(
 
   Args:
     seed: text seed for the uuid computation.
-    kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
       values must be alignable.
 
   Returns:
@@ -85,18 +80,15 @@ def uuid_for_list(
 
 
 @optools.add_to_registry(aliases=['kde.uuid_for_dict'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.uuid_for_dict',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def uuid_for_dict(
-    seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword()
-):  # pylint: disable=unused-argument
+def uuid_for_dict(seed='', **kwargs):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
 
   To be used for keying dict items.
@@ -107,7 +99,7 @@ def uuid_for_dict(
 
   Args:
     seed: text seed for the uuid computation.
-    kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
       values must be alignable.
 
   Returns:
@@ -118,18 +110,15 @@ def uuid_for_dict(
 
 
 @optools.add_to_registry(aliases=['kde.uuids_with_allocation_size'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.uuids_with_allocation_size',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice(P.size),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def uuids_with_allocation_size(
-    seed=py_boxing.positional_or_keyword(''), size=py_boxing.keyword_only()  # pylint: disable=unused-argument
-):
+def uuids_with_allocation_size(seed='', *, size):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are uuids.
 
   The uuids are allocated in a single allocation. They are all distinct.

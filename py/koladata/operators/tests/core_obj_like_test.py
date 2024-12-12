@@ -244,7 +244,8 @@ class CoreObjLikeTest(absltest.TestCase):
 
   def test_fails_without_shape(self):
     with self.assertRaisesRegex(
-        TypeError, "missing required positional argument: 'shape_and_mask_from'"
+        TypeError,
+        "missing 1 required positional argument: 'shape_and_mask_from'",
     ):
       _ = kde.core.obj_like().eval()
 

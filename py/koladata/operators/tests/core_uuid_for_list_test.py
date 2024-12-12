@@ -95,7 +95,7 @@ class KodaUuidForListTest(parameterized.TestCase):
 
   def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'expected 1 positional arguments but 2 were given'
+        TypeError, 'takes from 0 to 1 positional arguments but 2 were given'
     ):
       _ = expr_eval.eval(kde.core.uuid_for_list(ds('1'), ds('a')))
 

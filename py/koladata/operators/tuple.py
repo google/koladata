@@ -28,16 +28,9 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry(aliases=['kde.make_tuple'])
-@optools.as_lambda_operator(
-    'kde.tuple.make_tuple',
-)
-def make_tuple(*args):
-  """Returns a tuple-like object containing the given `*args`."""
-  # Somewhat confusingly, lambda operator *args are a length-1 Python tuple
-  # containing the Arolla tuple of the actual args, so we need to unpack here.
-  args_tuple, = args
-  return args_tuple
+optools.add_to_registry(
+    name='kde.tuple.make_tuple', aliases=['kde.make_tuple']
+)(arolla.M.core.make_tuple)
 
 
 @optools.add_to_registry_as_overload(

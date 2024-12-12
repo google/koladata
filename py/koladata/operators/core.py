@@ -75,15 +75,12 @@ def add(x, y):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.bag'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.bag',
-    qtype_constraints=[
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
-    ],
     qtype_inference_expr=qtypes.DATA_BAG,
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
-def _bag(non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def _bag():
   """Returns an empty DataBag."""
   raise NotImplementedError('implemented in the backend')
 
@@ -312,7 +309,7 @@ def stack(*args, ndim=0):
 
 
 @optools.add_to_registry(aliases=['kde.zip'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.zip',
     qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
@@ -321,9 +318,8 @@ def stack(*args, ndim=0):
             'expected a nonzero number of args',
         ],
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def _zip(args=py_boxing.var_positional()):
+def _zip(*args):
   """Zips the given DataSlices into a new DataSlice with a new last dimension.
 
   Input DataSlices are automatically aligned. The result has the shape of the
@@ -341,12 +337,13 @@ def _zip(args=py_boxing.var_positional()):
   kd.zip(a, b) ->  [[[1, 7], [None, 7], [3, 7]], [[4, None]]]
 
   Args:
-    args: The DataSlices to zip.
+    *args: The DataSlices to zip.
 
   Returns:
     The zipped DataSlice. If the input DataSlices come from different DataBags,
     this will refer to a merged immutable DataBag.
   """
+  args = arolla.optools.fix_trace_args(args)
   return M.core.apply_varargs(
       _concat_or_stack,
       data_slice.DataSlice.from_vals(True),
@@ -749,7 +746,7 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
 
 
 @optools.add_to_registry(aliases=['kde.attrs'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
@@ -757,13 +754,8 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def _attrs(
-    x=py_boxing.positional_only(),
-    update_schema=py_boxing.keyword_only(False),
-    attrs=py_boxing.var_keyword(),
-):
+def _attrs(x, /, *, update_schema=False, **attrs):
   """Returns a new DataBag containing attribute updates for `x`."""
   raise NotImplementedError('implemented in the backend')
 
@@ -785,7 +777,7 @@ def _attr(x, attr_name, value, update_schema=False):
 
 
 @optools.add_to_registry(aliases=['kde.with_attrs'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.with_attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
@@ -793,13 +785,8 @@ def _attr(x, attr_name, value, update_schema=False):
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def with_attrs(
-    x=py_boxing.positional_only(),
-    update_schema=py_boxing.keyword_only(False),
-    attrs=py_boxing.var_keyword(),
-):
+def with_attrs(x, /, *, update_schema=False, **attrs):
   """Returns a DataSlice with a new DataBag containing updated attributes."""
   raise NotImplementedError('implemented in the backend')
 
@@ -823,17 +810,16 @@ def with_attr(x, attr_name, value, update_schema=False):
 # This operator does not have qtype constraints and is not registered since it
 # is only supposed to be used only by kde.core.new which would duplicate the
 # constraints.
-@optools.as_backend_operator(
-    'kde.core._new',
-    qtype_inference_expr=qtypes.DATA_SLICE,
+@optools.as_unified_backend_operator(
+    'kde.core._new', qtype_inference_expr=qtypes.DATA_SLICE, deterministic=False
 )
-def _new(arg, schema, update_schema, itemid, attrs, non_deterministic):
+def _new(arg, schema, update_schema, itemid, attrs):
   """Internal implementation of kde.core.new."""
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.new'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.new',
     qtype_constraints=[
         (
@@ -846,18 +832,18 @@ def _new(arg, schema, update_schema, itemid, attrs, non_deterministic):
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def new(
-    arg=py_boxing.positional_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    update_schema=py_boxing.keyword_only(False),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    attrs=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args
+    arg=arolla.unspecified(),
+    /,
+    *,
+    schema=arolla.unspecified(),
+    update_schema=False,
+    itemid=arolla.unspecified(),
+    **attrs,
+):
   """Creates Entities with given attrs.
 
   First argument `arg` is used for interface consistency with its eager version.
@@ -880,30 +866,31 @@ def new(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
   return _new(
       arg=arg,
       schema=schema_ops.internal_maybe_named_schema(schema),
       update_schema=update_schema,
       itemid=itemid,
       attrs=attrs,
-      non_deterministic=non_deterministic,
   )
 
 
 # This operator does not have qtype constraints and is not registered since it
 # is only supposed to be used only by kde.core.new_shaped which would duplicate
 # the constraints.
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core._new_shaped',
     qtype_inference_expr=qtypes.DATA_SLICE,
+    deterministic=False,
 )
-def _new_shaped(shape, schema, update_schema, itemid, attrs, non_deterministic):
+def _new_shaped(shape, schema, update_schema, itemid, attrs):
   """Internal implementation of kde.core.new_shaped."""
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.new_shaped'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.new_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
@@ -911,18 +898,18 @@ def _new_shaped(shape, schema, update_schema, itemid, attrs, non_deterministic):
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def new_shaped(
-    shape=py_boxing.positional_only(),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    update_schema=py_boxing.keyword_only(False),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    attrs=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+    shape,
+    /,
+    *,
+    schema=arolla.unspecified(),
+    update_schema=False,
+    itemid=arolla.unspecified(),
+    **attrs,
+):
   """Creates new Entities with the given shape.
 
   Args:
@@ -939,18 +926,18 @@ def new_shaped(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
   return _new_shaped(
       shape=shape,
       schema=schema_ops.internal_maybe_named_schema(schema),
       update_schema=update_schema,
       itemid=itemid,
       attrs=attrs,
-      non_deterministic=non_deterministic,
   )
 
 
 @optools.add_to_registry(aliases=['kde.new_shaped_as'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.new_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
@@ -958,18 +945,18 @@ def new_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def new_shaped_as(
-    shape_from=py_boxing.positional_only(),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    update_schema=py_boxing.keyword_only(False),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    attrs=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+    shape_from,
+    /,
+    *,
+    schema=arolla.unspecified(),
+    update_schema=False,
+    itemid=arolla.unspecified(),
+    **attrs,
+):
   """Creates new Koda entities with shape of the given DataSlice.
 
   Args:
@@ -986,33 +973,31 @@ def new_shaped_as(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  return arolla.abc.bind_op(
-      new_shaped,
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
+  return _new_shaped(
       shape=jagged_shape_ops.get_shape(shape_from),
-      schema=schema,
+      schema=schema_ops.internal_maybe_named_schema(schema),
       update_schema=update_schema,
       itemid=itemid,
       attrs=attrs,
-      non_deterministic=non_deterministic,
   )
 
 
 # This operator does not have qtype constraints and is not registered since it
 # is only supposed to be used only by kde.core.new_like which would duplicate
 # the constraints.
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core._new_like',
     qtype_inference_expr=qtypes.DATA_SLICE,
+    deterministic=False,
 )
-def _new_like(
-    shape_and_mask_from, schema, update_schema, itemid, attrs, non_deterministic
-):
+def _new_like(shape_and_mask_from, schema, update_schema, itemid, attrs):
   """Internal implementation of kde.core.new_like."""
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.new_like'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.new_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
@@ -1020,18 +1005,18 @@ def _new_like(
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def new_like(
-    shape_and_mask_from=py_boxing.positional_only(),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    update_schema=py_boxing.keyword_only(False),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    attrs=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+    shape_and_mask_from,
+    /,
+    *,
+    schema=arolla.unspecified(),
+    update_schema=False,
+    itemid=arolla.unspecified(),
+    **attrs,
+):
   """Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
   Args:
@@ -1049,34 +1034,28 @@ def new_like(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
   return _new_like(
       shape_and_mask_from=shape_and_mask_from,
       schema=schema_ops.internal_maybe_named_schema(schema),
       update_schema=update_schema,
       itemid=itemid,
       attrs=attrs,
-      non_deterministic=non_deterministic,
   )
 
 
 @optools.add_to_registry(aliases=['kde.obj'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.obj',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.arg),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
-def _obj(
-    arg=py_boxing.positional_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    attrs=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+def _obj(arg=arolla.unspecified(), /, *, itemid=arolla.unspecified(), **attrs):
   """Creates new Objects with an implicit stored schema.
 
   Returned DataSlice has OBJECT schema.
@@ -1155,23 +1134,19 @@ def obj_shaped_as(shape_from, /, *, itemid=arolla.unspecified(), **attrs):
 
 
 @optools.add_to_registry(aliases=['kde.obj_like'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.obj_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def obj_like(
-    shape_and_mask_from=py_boxing.positional_only(),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    attrs=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+    shape_and_mask_from, /, *, itemid=arolla.unspecified(), **attrs
+):  # pylint: disable=unused-argument
   """Returns a new DataSlice with object schema and the shape and mask of given DataSlice.
 
   Please note the difference to obj_shaped_as:
@@ -1183,7 +1158,7 @@ def obj_like(
   Args:
     shape_and_mask_from: DataSlice to copy the shape and mask from.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    attrs: attrs to set on the returned object.
+    **attrs: attrs to set on the returned object.
 
   Returns:
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
@@ -1464,19 +1439,20 @@ def select_values(ds, fltr):
 # This operator does not have qtype constraints and is not registered since it
 # is only supposed to be used only by kde.core.dict_shaped which would duplicate
 # the constraints.
-@optools.as_backend_operator(
-    'kde.core._dict_shaped', qtype_inference_expr=qtypes.DATA_SLICE
+@optools.as_unified_backend_operator(
+    'kde.core._dict_shaped',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    deterministic=False,
 )
 def _dict_shaped(
-    shape, keys, values, key_schema, value_schema, schema, itemid,
-    non_deterministic,
+    shape, keys, values, key_schema, value_schema, schema, itemid
 ):  # pylint: disable=unused-argument
   """Implementation of `kde.core.dict_shaped`."""
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.dict_shaped'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.dict_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
@@ -1486,20 +1462,20 @@ def _dict_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def dict_shaped(
-    shape=py_boxing.positional_only(),
-    keys=py_boxing.positional_or_keyword(arolla.unspecified()),
-    values=py_boxing.positional_or_keyword(arolla.unspecified()),
-    key_schema=py_boxing.keyword_only(arolla.unspecified()),
-    value_schema=py_boxing.keyword_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args
+    shape,
+    /,
+    keys=arolla.unspecified(),
+    values=arolla.unspecified(),
+    *,
+    key_schema=arolla.unspecified(),
+    value_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    itemid=arolla.unspecified(),
+):
   """Creates new Koda dicts with the given shape.
 
   If keys and values are not provided, creates empty dicts. Otherwise,
@@ -1540,12 +1516,11 @@ def dict_shaped(
       value_schema=value_schema,
       schema=schema,
       itemid=itemid,
-      non_deterministic=non_deterministic,
   )
 
 
 @optools.add_to_registry(aliases=['kde.dict'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.dict',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.keys),
@@ -1554,19 +1529,18 @@ def dict_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def dict_(
-    keys=py_boxing.positional_or_keyword(arolla.unspecified()),
-    values=py_boxing.positional_or_keyword(arolla.unspecified()),
-    key_schema=py_boxing.keyword_only(arolla.unspecified()),
-    value_schema=py_boxing.keyword_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args
+    keys=arolla.unspecified(),
+    values=arolla.unspecified(),
+    *,
+    key_schema=arolla.unspecified(),
+    value_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    itemid=arolla.unspecified(),
+):
   """Creates a Koda dict.
 
   Acceptable arguments are:
@@ -1614,12 +1588,11 @@ def dict_(
       value_schema=value_schema,
       schema=schema,
       itemid=itemid,
-      non_deterministic=non_deterministic,
   )
 
 
 @optools.add_to_registry(aliases=['kde.dict_shaped_as'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.dict_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
@@ -1629,20 +1602,20 @@ def dict_(
         qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def dict_shaped_as(
-    shape_from=py_boxing.positional_only(),
-    keys=py_boxing.positional_or_keyword(arolla.unspecified()),
-    values=py_boxing.positional_or_keyword(arolla.unspecified()),
-    key_schema=py_boxing.keyword_only(arolla.unspecified()),
-    value_schema=py_boxing.keyword_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args
+    shape_from,
+    /,
+    keys=arolla.unspecified(),
+    values=arolla.unspecified(),
+    *,
+    key_schema=arolla.unspecified(),
+    value_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    itemid=arolla.unspecified(),
+):
   """Creates new Koda dicts with shape of the given DataSlice.
 
   If keys and values are not provided, creates empty dicts. Otherwise,
@@ -1674,26 +1647,27 @@ def dict_shaped_as(
       value_schema=value_schema,
       schema=schema,
       itemid=itemid,
-      non_deterministic=non_deterministic,
+      **optools.unified_non_deterministic_kwarg(),
   )
 
 
 # This operator does not have qtype constraints and is not registered since it
 # is only supposed to be used only by kde.core.dict_like which would duplicate
 # the constraints.
-@optools.as_backend_operator(
-    'kde.core._dict_like', qtype_inference_expr=qtypes.DATA_SLICE
+@optools.as_unified_backend_operator(
+    'kde.core._dict_like',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    deterministic=False,
 )
 def _dict_like(
-    shape_and_mask_from, keys, values, key_schema, value_schema, schema, itemid,
-    non_deterministic,
+    shape_and_mask_from, keys, values, key_schema, value_schema, schema, itemid
 ):  # pylint: disable=unused-argument
   """Implementation of `kde.core.dict_like`."""
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.dict_like'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.dict_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
@@ -1703,20 +1677,20 @@ def _dict_like(
         qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def dict_like(
-    shape_and_mask_from=py_boxing.positional_only(),
-    keys=py_boxing.positional_or_keyword(arolla.unspecified()),
-    values=py_boxing.positional_or_keyword(arolla.unspecified()),
-    key_schema=py_boxing.keyword_only(arolla.unspecified()),
-    value_schema=py_boxing.keyword_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args, unused-argument
+    shape_and_mask_from,
+    /,
+    keys=arolla.unspecified(),
+    values=arolla.unspecified(),
+    *,
+    key_schema=arolla.unspecified(),
+    value_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    itemid=arolla.unspecified(),
+):
   """Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 
   If items_or_keys and values are not provided, creates empty dicts. Otherwise,
@@ -1758,7 +1732,6 @@ def dict_like(
       value_schema=value_schema,
       schema=schema,
       itemid=itemid,
-      non_deterministic=non_deterministic,
   )
 
 
@@ -2405,35 +2378,26 @@ def explode(x, ndim=1):
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core._implode',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
-    ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
-def _implode(x, ndim, non_deterministic=py_boxing.hidden_seed()):  # pylint: disable=unused-argument
+def _implode(x, ndim):  # pylint: disable=unused-argument
   """Implementation of kde.core.implode."""
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.implode'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.implode',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.ndim),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
-def implode(
-    x,
-    ndim=1,
-    non_deterministic=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
-):  # pylint: disable=g-doc-args
+def implode(x, ndim=1):
   """Implodes a Dataslice `x` a specified number of times.
 
   A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
@@ -2679,24 +2643,24 @@ def _clone(x, itemid, schema, non_deterministic):  # pylint: disable=unused-argu
 
 
 @optools.add_to_registry(aliases=['kde.clone'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def clone(
-    x=py_boxing.positional_only(),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    overrides=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
-):  # pylint: disable=g-doc-args
+    x,
+    /,
+    *,
+    itemid=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    **overrides,
+):
   """Creates a DataSlice with clones of provided entities in a new DataBag.
 
   The entities themselves and their top-level attributes are cloned (with new
@@ -2720,6 +2684,7 @@ def clone(
     A copy of the entities where all top-level attributes are cloned (new
     ItemIds) and all of the rest extracted.
   """
+  overrides = arolla.optools.fix_trace_kwargs(overrides)
   itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x))
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
@@ -2734,7 +2699,7 @@ def clone(
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
       default=_clone(P.x, P.itemid, P.schema, P.non_deterministic),
-  )(x, itemid, schema, overrides, non_deterministic)
+  )(x, itemid, schema, overrides, optools.unified_non_deterministic_arg())
 
 
 @optools.add_to_registry()
@@ -2753,22 +2718,16 @@ def _deep_clone(x, schema, non_deterministic):  # pylint: disable=unused-argumen
 
 
 @optools.add_to_registry(aliases=['kde.deep_clone'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.deep_clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
-def deep_clone(
-    x=py_boxing.positional_only(),
-    schema=arolla.unspecified(),
-    overrides=py_boxing.var_keyword(),
-    non_deterministic=py_boxing.hidden_seed(),  # pylint: disable=unused-argument
-):  # pylint: disable=g-doc-args
+def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
   """Creates a slice with a (deep) copy of the given slice.
 
   The entities themselves and all their attributes including both top-level and
@@ -2792,6 +2751,7 @@ def deep_clone(
     All referenced entities will be copied with newly allocated ItemIds. Note
     that UUIDs will be copied as ItemIds.
   """
+  overrides = arolla.optools.fix_trace_kwargs(overrides)
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
       'x, schema, overrides, non_deterministic',
@@ -2805,18 +2765,12 @@ def deep_clone(
           condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
       default=_deep_clone(P.x, P.schema, P.non_deterministic),
-  )(x, schema, overrides, non_deterministic)
+  )(x, schema, overrides, optools.unified_non_deterministic_arg())
 
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.core._deep_uuid',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.schema),
-        qtype_utils.expect_data_slice(P.seed),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.core._deep_uuid', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _deep_uuid(x, schema, seed):  # pylint: disable=unused-argument
   """Creates a slice with a (deep) uuid of the given slice."""
@@ -2824,20 +2778,15 @@ def _deep_uuid(x, schema, seed):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.deep_uuid'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.deep_uuid',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice(P.seed),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def deep_uuid(
-    x=py_boxing.positional_only(),
-    schema=arolla.unspecified(),
-    seed=py_boxing.keyword_only(''),
-):
+def deep_uuid(x, /, schema=arolla.unspecified(), *, seed=''):
   """Recursively computes uuid for x.
 
   Args:
@@ -4164,35 +4113,35 @@ def with_dict_update(x, keys, values=arolla.unspecified()):
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
-    'kde.core._list', qtype_inference_expr=qtypes.DATA_SLICE
+@optools.as_unified_backend_operator(
+    'kde.core._list',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    deterministic=False,
 )
-def _list(
-    items, item_schema, schema, itemid, non_deterministic  # pylint: disable=unused-argument
-):
+def _list(items, item_schema, schema, itemid):  # pylint: disable=unused-argument
   """Implementation of `kde.core.list`."""
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.list'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.list',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.items),
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def list_(
-    items=py_boxing.positional_only(arolla.unspecified()),
-    item_schema=py_boxing.keyword_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args
+    items=arolla.unspecified(),
+    /,
+    *,
+    item_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    itemid=arolla.unspecified(),
+):
   """Creates list(s) by collapsing `items`.
 
   If there is no argument, returns an empty Koda List. If the argument is a
@@ -4216,24 +4165,26 @@ def list_(
   )
   schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
-  return _list(items, item_schema, schema, itemid, non_deterministic)
+  return _list(items, item_schema, schema, itemid)
 
 
 # This operator does not have qtype constraints and is not registered since it
 # is only supposed to be used only by kde.core.list_like which would duplicate
 # the constraints.
-@optools.as_backend_operator(
-    'kde.core._list_like', qtype_inference_expr=qtypes.DATA_SLICE
+@optools.as_unified_backend_operator(
+    'kde.core._list_like',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    deterministic=False,
 )
 def _list_like(
-    shape_and_mask_from, items, item_schema, schema, itemid, non_deterministic  # pylint: disable=unused-argument
+    shape_and_mask_from, items, item_schema, schema, itemid  # pylint: disable=unused-argument
 ):
   """Implementation of `kde.core.list_like`."""
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.list_like'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.list_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
@@ -4241,25 +4192,25 @@ def _list_like(
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def list_like(
-    shape_and_mask_from=py_boxing.positional_only(),
-    items=py_boxing.positional_or_keyword(arolla.unspecified()),
-    item_schema=py_boxing.keyword_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args
+    shape_and_mask_from,
+    /,
+    items=arolla.unspecified(),
+    *,
+    item_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    itemid=arolla.unspecified(),
+):
   """Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
   Args:
-    shape_and_mask_from: a DataSlice with the shape and sparsity for the
-      desired lists.
-    items: optional items to assign to the newly created lists. If not
-      given, the function returns empty lists.
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the desired
+      lists.
+    items: optional items to assign to the newly created lists. If not given,
+      the function returns empty lists.
     item_schema: the schema of the list items. If not specified, it will be
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
@@ -4275,26 +4226,24 @@ def list_like(
   )
   schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
-  return _list_like(
-      shape_and_mask_from, items, item_schema, schema, itemid, non_deterministic
-  )
+  return _list_like(shape_and_mask_from, items, item_schema, schema, itemid)
 
 
 # This operator does not have qtype constraints and is not registered since it
 # is only supposed to be used only by kde.core.list_shaped which would duplicate
 # the constraints.
-@optools.as_backend_operator(
-    'kde.core._list_shaped', qtype_inference_expr=qtypes.DATA_SLICE
+@optools.as_unified_backend_operator(
+    'kde.core._list_shaped',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    deterministic=False,
 )
-def _list_shaped(
-    shape, items, item_schema, schema, itemid, non_deterministic  # pylint: disable=unused-argument
-):
+def _list_shaped(shape, items, item_schema, schema, itemid):  # pylint: disable=unused-argument
   """Implementation of `kde.core.list_shaped`."""
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.list_shaped'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.list_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
@@ -4302,30 +4251,29 @@ def _list_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def list_shaped(
-    shape=py_boxing.positional_only(),
-    items=py_boxing.positional_or_keyword(arolla.unspecified()),
-    item_schema=py_boxing.keyword_only(arolla.unspecified()),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    itemid=py_boxing.keyword_only(arolla.unspecified()),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=g-doc-args
+    shape,
+    /,
+    items=arolla.unspecified(),
+    *,
+    item_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    itemid=arolla.unspecified(),
+):
   """Creates new Koda lists with the given shape.
 
   Args:
     shape: the desired shape.
-    items: optional items to assign to the newly created lists. If not
-      given, the function returns empty lists.
+    items: optional items to assign to the newly created lists. If not given,
+      the function returns empty lists.
     item_schema: the schema of the list items. If not specified, it will be
       deduced from `items` or defaulted to OBJECT.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
 
   Returns:
     A DataSlice with the lists.
@@ -4336,9 +4284,7 @@ def list_shaped(
   )
   schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
-  return _list_shaped(
-      shape, items, item_schema, schema, itemid, non_deterministic
-  )
+  return _list_shaped(shape, items, item_schema, schema, itemid)
 
 
 @optools.add_to_registry(aliases=['kde.list_shaped_as'])

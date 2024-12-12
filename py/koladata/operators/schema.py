@@ -88,25 +88,19 @@ def _collapse(x, ndim=arolla.unspecified()):
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.schema.new_schema',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
-        (
-            M.qtype.is_namedtuple_qtype(P.kwargs),
-            f'expected named tuple, got {constraints.name_type_msg(P.kwargs)}',
-        ),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+    deterministic=False,
 )
-def new_schema(
-    kwargs=py_boxing.var_keyword(), hidden_seed=py_boxing.hidden_seed()
-):  # pylint: disable=unused-argument,g-doc-args
+def new_schema(**kwargs):  # pylint: disable=unused-argument
   """Creates a new allocated schema.
 
   Args:
-    kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
       values must be schemas themselves.
 
   Returns:
@@ -116,22 +110,15 @@ def new_schema(
 
 
 @optools.add_to_registry(aliases=['kde.uu_schema'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.schema.uu_schema',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
-        (
-            M.qtype.is_namedtuple_qtype(P.kwargs),
-            f'expected named tuple, got {constraints.name_type_msg(P.kwargs)}',
-        ),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def uu_schema(
-    seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword()  # pylint: disable=unused-argument
-):
+def uu_schema(seed='', **kwargs):  # pylint: disable=unused-argument
   """Creates a UUSchema, i.e. a schema keyed by a uuid.
 
   In order to create a different id from the same arguments, use
@@ -147,7 +134,7 @@ def uu_schema(
 
   Args:
     seed: string seed for the uuid computation.
-    kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
       values must be schemas themselves.
 
   Returns:
@@ -157,22 +144,15 @@ def uu_schema(
 
 
 @optools.add_to_registry(aliases=['kde.named_schema'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.schema.named_schema',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.name),
-        (
-            M.qtype.is_namedtuple_qtype(P.kwargs),
-            f'expected named tuple, got {constraints.name_type_msg(P.kwargs)}',
-        ),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def named_schema(
-    name=py_boxing.positional_or_keyword(), kwargs=py_boxing.var_keyword()
-):
+def named_schema(name, **kwargs):
   """Creates a named entity schema.
 
   A named schema will have its item id derived only from its name, which means
@@ -181,7 +161,7 @@ def named_schema(
 
   Args:
     name: The name to use to derive the item id of the schema.
-    kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
       values must be schemas themselves.
 
   Returns:

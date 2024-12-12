@@ -196,7 +196,7 @@ class CoreObjTest(parameterized.TestCase):
 
   def test_converter_on_python_objects(self):
     with self.assertRaisesRegex(
-        ValueError, 'object with unsupported type: "dict"'
+        ValueError, 'unable to represent argument `arg` as QValue or Expr'
     ):
       kde.core.obj({'a': 42}, itemid=I.itemid)
 

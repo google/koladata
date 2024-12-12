@@ -18,7 +18,6 @@ from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema as schema_ops
-from koladata.types import py_boxing
 from koladata.types import qtypes
 
 M = arolla.M
@@ -27,16 +26,15 @@ constraints = arolla.optools.constraints
 
 
 @optools.add_to_registry(aliases=['kde.uuobj'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.core.uuobj',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def uuobj(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword()):  # pylint: disable=unused-argument
+def uuobj(seed='', **kwargs):  # pylint: disable=unused-argument
   """Creates Object(s) whose ids are uuid(s) with the provided attributes.
 
   In order to create a different id from the same arguments, use
@@ -52,7 +50,7 @@ def uuobj(seed=py_boxing.positional_or_keyword(''), kwargs=py_boxing.var_keyword
 
   Args:
     seed: text seed for the uuid computation.
-    kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
       values must be alignable.
 
   Returns:
@@ -76,7 +74,7 @@ def _uu(seed, schema, update_schema, kwargs):
 
 
 @optools.add_to_registry(aliases=['kde.uu'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.core.uu',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
@@ -88,14 +86,8 @@ def _uu(seed, schema, update_schema, kwargs):
         ),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def uu(
-    seed=py_boxing.positional_or_keyword(''),
-    schema=py_boxing.keyword_only(arolla.unspecified()),
-    update_schema=py_boxing.keyword_only(False),
-    kwargs=py_boxing.var_keyword(),
-):
+def uu(seed='', *, schema=arolla.unspecified(), update_schema=False, **kwargs):
   """Creates Entities whose ids are uuid(s) with the provided attributes.
 
   In order to create a different id from the same arguments, use
@@ -108,7 +100,7 @@ def uu(
       specified as a string, which is a shortcut for kd.named_schema(name).
     update_schema: if True, overwrite the provided schema with the schema
       derived from the keyword values in the resulting Databag.
-    kwargs: DataSlice kwargs defining the attributes of the entities. The
+    **kwargs: DataSlice kwargs defining the attributes of the entities. The
       DataSlice values must be alignable.
 
   Returns:
@@ -116,6 +108,7 @@ def uu(
     created databag. The shape of this DataSlice is the result of aligning the
     shapes of the kwarg DataSlices.
   """
+  kwargs = arolla.optools.fix_trace_kwargs(kwargs)
   return _uu(
       seed=seed,
       schema=schema_ops.internal_maybe_named_schema(schema),

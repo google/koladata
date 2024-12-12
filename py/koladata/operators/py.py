@@ -243,7 +243,7 @@ def apply_py_on_cond(
 
 
 @optools.add_to_registry(aliases=['kde.apply_py_on_selected'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.py.apply_py_on_selected',
     qtype_constraints=[
         _expect_py_callable(P.fn),
@@ -251,15 +251,8 @@ def apply_py_on_cond(
         qtype_utils.expect_data_slice_args(P.args),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def apply_py_on_selected(
-    fn,
-    cond,
-    args=py_boxing.var_positional(),
-    kwargs=py_boxing.var_keyword(),
-):
-  # pylint: disable=g-doc-args  # *args, **kwargs
+def apply_py_on_selected(fn, cond, *args, **kwargs):
   """Applies Python function `fn` on args filtered with cond.
 
   It is equivalent to
@@ -278,6 +271,7 @@ def apply_py_on_selected(
   Returns:
     Result of fn applied on filtered args.
   """
+  args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
   return arolla.abc.bind_op(
       apply_py_on_cond, fn, py_boxing.as_qvalue(None), cond, args, kwargs
   )
@@ -593,7 +587,7 @@ def map_py_on_cond(
 
 
 @optools.add_to_registry(aliases=['kde.map_py_on_selected'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.py.map_py_on_selected',
     qtype_constraints=[
         _expect_py_callable(P.fn),
@@ -603,17 +597,16 @@ def map_py_on_cond(
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
 def map_py_on_selected(
     fn,
     cond,
-    args=py_boxing.var_positional(),
-    schema=py_boxing.keyword_only(None),
-    max_threads=py_boxing.keyword_only(1),
-    item_completed_callback=py_boxing.keyword_only(None),
-    kwargs=py_boxing.var_keyword(),
-):  # pylint: disable=g-doc-args
+    *args,
+    schema=None,
+    max_threads=1,
+    item_completed_callback=None,
+    **kwargs,
+):
   """Apply python function `fn` on `args` and `kwargs` based on `cond`.
 
   `cond`, `args` and `kwargs` are first aligned. `cond` cannot have a higher
@@ -640,6 +633,7 @@ def map_py_on_selected(
   Returns:
     Result DataSlice.
   """
+  args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
   return arolla.abc.bind_op(
       map_py_on_cond,
       true_fn=fn,
@@ -715,20 +709,15 @@ def map_py_on_present(
 
 
 @optools.add_to_registry(aliases=['kde.map'])
-@arolla.optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.functor.map',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fn),
         qtype_utils.expect_data_slice_args(P.args),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def _map(
-    fn,
-    args=py_boxing.var_positional(),
-    kwargs=py_boxing.var_keyword(),
-):  # pylint: disable=g-doc-args
+def _map(fn, *args, **kwargs):
   """Aligns fn and args/kwargs and calls corresponding fn on corresponding arg.
 
   Current implentaion is a wrapper around kde.py.map_py_on_cond (Python
@@ -761,10 +750,10 @@ def _map(
   Returns:
     The evaluation result.
   """
-
+  args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
   return arolla.abc.bind_op(
       map_py_on_selected,
-      py_boxing.as_qvalue(lambda _fn, *args, **kwargs: _fn(*args, **kwargs)),
+      arolla.abc.PyObject(lambda _fn, *args, **kwargs: _fn(*args, **kwargs)),
       logical.has(fn),
       schema=data_slice.DataSlice.from_vals(None),
       item_completed_callback=py_boxing.as_qvalue(None),

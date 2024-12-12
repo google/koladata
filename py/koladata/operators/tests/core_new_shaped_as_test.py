@@ -185,7 +185,7 @@ class CoreNewShapedAsTest(absltest.TestCase):
 
   def test_fails_without_shape(self):
     with self.assertRaisesRegex(
-        TypeError, "missing required positional argument: 'shape_from'"
+        TypeError, "missing 1 required positional argument: 'shape_from'"
     ):
       _ = kde.core.new_shaped_as().eval()
 

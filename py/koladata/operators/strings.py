@@ -199,18 +199,15 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.format'])
-@optools.as_backend_operator(
+@optools.as_unified_backend_operator(
     'kde.strings.format',
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def format_(
-    fmt=py_boxing.positional_only(), kwargs=py_boxing.var_keyword()
-):  # pylint: disable=unused-argument
+def format_(fmt, /, **kwargs):  # pylint: disable=unused-argument
   """Formats strings according to python str.format style.
 
   Format support is slightly different from Python:
@@ -243,7 +240,7 @@ def format_(
 
   Args:
     fmt: Format string (String or Bytes).
-    kwargs: Arguments to format.
+    **kwargs: Arguments to format.
 
   Returns:
     The formatted string.
@@ -805,18 +802,14 @@ def _decode_base64(x, missing_if_invalid):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry()
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.strings.decode_base64',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.on_invalid),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
 )
-def decode_base64(
-    x=py_boxing.positional_only(),
-    on_invalid=py_boxing.keyword_only(arolla.unspecified()),
-):  # pylint: disable=unused-argument
+def decode_base64(x, /, *, on_invalid=arolla.unspecified()):
   """Decodes BYTES from `x` using base64 encoding (RFC 4648 section 4).
 
   The input strings may either have no padding, or must have the correct amount

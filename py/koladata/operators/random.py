@@ -26,7 +26,6 @@ from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema
 from koladata.types import data_slice
-from koladata.types import py_boxing
 
 
 M = arolla.OperatorsContainer(jagged_shape)
@@ -235,24 +234,22 @@ def sample_n(
 
 
 @optools.add_to_registry(aliases=['kde.randint_shaped'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.random.randint_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.low),
         qtype_utils.expect_data_slice_or_unspecified(P.high),
         qtype_utils.expect_data_slice_or_unspecified(P.seed),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def randint_shaped(
     shape,
     low=arolla.unspecified(),
     high=arolla.unspecified(),
     seed=arolla.unspecified(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+):
   """Returns a DataSlice of random INT64 numbers with the given shape.
 
   When `seed` is not specified, the results are different across multiple
@@ -302,24 +299,22 @@ def randint_shaped(
 
 
 @optools.add_to_registry(aliases=['kde.randint_shaped_as'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.random.randint_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.low),
         qtype_utils.expect_data_slice_or_unspecified(P.high),
         qtype_utils.expect_data_slice_or_unspecified(P.seed),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def randint_shaped_as(
     x,
     low=arolla.unspecified(),
     high=arolla.unspecified(),
     seed=arolla.unspecified(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+):
   """Returns a DataSlice of random INT64 numbers with the same shape as `x`.
 
   When `seed` is not specified, the results are different across multiple
@@ -341,24 +336,22 @@ def randint_shaped_as(
 
 
 @optools.add_to_registry(aliases=['kde.randint_like'])
-@optools.as_lambda_operator(
+@optools.as_unified_lambda_operator(
     'kde.random.randint_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.low),
         qtype_utils.expect_data_slice_or_unspecified(P.high),
         qtype_utils.expect_data_slice_or_unspecified(P.seed),
-        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
-    aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    deterministic=False,
 )
 def randint_like(
     x,
     low=arolla.unspecified(),
     high=arolla.unspecified(),
     seed=arolla.unspecified(),
-    non_deterministic=py_boxing.hidden_seed(),
-):  # pylint: disable=unused-argument,g-doc-args
+):
   """Returns a DataSlice of random INT64 numbers with the same sparsity as `x`.
 
   When `seed` is not specified, the results are different across multiple

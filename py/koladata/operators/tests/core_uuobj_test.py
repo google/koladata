@@ -94,7 +94,7 @@ class KodaUuObjTest(parameterized.TestCase):
           '',
           dict(a=ds(1), b=ds(2)),
           '',
-          dict(a=ds(1), c=ds(2))
+          dict(a=ds(1), c=ds(2)),
       ),
       (
           '',
@@ -128,7 +128,7 @@ class KodaUuObjTest(parameterized.TestCase):
 
   def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'expected 1 positional arguments but 2 were given'
+        TypeError, 'takes from 0 to 1 positional arguments but 2 were given'
     ):
       _ = expr_eval.eval(kde.core.uuobj(ds('1'), ds('a')))
 
@@ -169,7 +169,7 @@ class KodaUuObjTest(parameterized.TestCase):
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
-        ValueError, 'expected all arguments to be DATA_SLICE',
+        ValueError, 'expected all arguments to be DATA_SLICE'
     ):
       _ = kde.core.uuobj(
           a=ds(1),
