@@ -54,7 +54,8 @@ def from_array(arr: np.ndarray) -> data_slice.DataSlice:
       or np.issubdtype(arr.dtype, np.str_)
       or np.issubdtype(arr.dtype, np.bytes_)
   ):
-    return data_slice.DataSlice.from_vals(list(arr))
+    return kdi.from_py(list(arr), from_dim=1)
+
   else:
     return data_slice.DataSlice.from_vals(arolla.dense_array(arr))
 

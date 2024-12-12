@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import dataclasses
 from unittest import mock
 import warnings
 
@@ -33,9 +34,6 @@ class NpkdTest(parameterized.TestCase):
       ('bool ds', kd.slice([True, False, None])),
       ('text ds', kd.slice(['a', 'b', 'c', None])),
       ('byte ds', kd.slice([b'a', b'b', b'c', None])),
-      ('list ds', kd.slice([kd.list(), kd.list(), kd.list()])),
-      ('dict ds', kd.slice([kd.dict(), kd.dict(), kd.dict()])),
-      ('entity ds', kd.new(x=kd.slice([1, 2, 3, None]))),
       ('object ds', kd.obj(x=kd.slice([1, 2, 3]))),
       ('mixed ds', kd.slice([kd.obj(), kd.obj(kd.list()), 1, '2'])),
   )
@@ -43,6 +41,19 @@ class NpkdTest(parameterized.TestCase):
     res_np = npkd.to_array(ds)
     res_ds = npkd.from_array(res_np)
     testing.assert_equal(res_ds, ds)
+
+  @parameterized.named_parameters(
+      ('list ds', kd.slice([kd.list(), kd.list(), kd.list()])),
+      ('dict ds', kd.slice([kd.dict(), kd.dict(), kd.dict()])),
+      ('entity ds', kd.new(x=kd.slice([1, 2, 3, None]))),
+  )
+  def test_numpy_roundtrip_entity(self, ds):
+    res_np = npkd.to_array(ds)
+    res_ds = npkd.from_array(res_np)
+    testing.assert_equal(
+        res_ds,
+        ds.with_schema(schema_constants.OBJECT).with_bag(res_ds.get_bag()),
+    )
 
   # Cases that need special checks rather than equality match.
   def test_numpy_roundtrip_special_cases(self):
@@ -130,6 +141,43 @@ class NpkdTest(parameterized.TestCase):
       self.assertSameElements(np.isnan(res_np), [False, False, True])
       self.assertEqual(res_np[0], True)
       self.assertEqual(res_np[1], False)
+
+    with self.subTest('Python list'):
+      res_ds = npkd.ds_from_np(np.array([[1, 2], [3]], dtype=object))
+      testing.assert_equal(
+          res_ds[:].no_bag(),
+          kd.slice([[1, 2], [3]], schema=schema_constants.OBJECT),
+      )
+
+    with self.subTest('Python dict'):
+      res_ds = npkd.ds_from_np(np.array([{1: 2}, {3: 4}], dtype=object))
+      testing.assert_equal(
+          res_ds.get_keys().no_bag(),
+          kd.slice([[1], [3]], schema=schema_constants.OBJECT),
+      )
+      testing.assert_equal(
+          res_ds.get_values().no_bag(),
+          kd.slice([[2], [4]], schema=schema_constants.OBJECT),
+      )
+
+    with self.subTest('Python dataclass'):
+
+      @dataclasses.dataclass
+      class PyCls:
+        a: int
+        b: str
+
+      res_ds = npkd.ds_from_np(
+          np.array([PyCls(1, 'a'), PyCls(2, 'b')], dtype=object)
+      )
+      testing.assert_equal(
+          res_ds.a.no_bag(),
+          kd.slice([1, 2]),
+      )
+      testing.assert_equal(
+          res_ds.b.no_bag(),
+          kd.slice(['a', 'b']),
+      )
 
   def test_reshape_based_on_indices(self):
     with self.subTest('1d'):

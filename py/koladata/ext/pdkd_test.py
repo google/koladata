@@ -89,6 +89,19 @@ class NpkdTest(parameterized.TestCase):
           ),
       )
 
+    with self.subTest('object df'):
+      df = pd.DataFrame({'x': np.array([{1: 2}, {3: 4}], dtype=object)})
+      ds = pdkd.from_dataframe(df)
+      self.maxDiff = None
+      testing.assert_equal(
+          ds.x.get_keys().no_bag(),
+          kd.slice([[1], [3]], schema=schema_constants.OBJECT),
+      )
+      testing.assert_equal(
+          ds.x.get_values().no_bag(),
+          kd.slice([[2], [4]], schema=schema_constants.OBJECT),
+      )
+
     with self.subTest('empty df'):
       with self.assertRaisesRegex(ValueError, 'DataFrame has no columns'):
         _ = pdkd.from_dataframe(pd.DataFrame())
