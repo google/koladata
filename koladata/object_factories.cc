@@ -920,6 +920,12 @@ absl::StatusOr<DataSlice> CreateNamedSchema(
   ASSIGN_OR_RETURN(
       auto res,
       CreateUuSchema(db, absl::StrCat("__named_schema__", name), {}, {}));
+
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  RETURN_IF_ERROR(db_mutable_impl.SetAttr(res.item(), schema::kSchemaNameAttr,
+                                          DataItem(arolla::Text(name))));
+
   RETURN_IF_ERROR(res.SetAttrs(attr_names, schemas, /*update_schema=*/false));
   RETURN_IF_ERROR(AdoptValuesInto(schemas, *db));
   return res;

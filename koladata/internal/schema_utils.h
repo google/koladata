@@ -65,6 +65,7 @@ constexpr absl::string_view kSchemaAttr = "__schema__";
 constexpr absl::string_view kListItemsSchemaAttr = "__items__";
 constexpr absl::string_view kDictKeysSchemaAttr = "__keys__";
 constexpr absl::string_view kDictValuesSchemaAttr = "__values__";
+constexpr absl::string_view kSchemaNameAttr = "__schema_name__";
 
 constexpr absl::string_view kImplicitSchemaSeed = "__implicit_schema__";
 constexpr absl::string_view kNoFollowSchemaSeed = "__nofollow_schema__";
