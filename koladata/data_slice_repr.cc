@@ -36,6 +36,7 @@
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -44,6 +45,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -532,6 +534,25 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
   return parts;
 }
 
+
+// Returns the schema name from __schema_name__ attribute. The schema must hold
+// an ObjectId with schema flag and bag must not be null.
+std::string GetSchemaNameOrEmpty(const DataBagPtr& bag,
+                                 const DataItem& schema) {
+  DCHECK(bag != nullptr);
+  DCHECK(schema.holds_value<ObjectId>());
+  const internal::DataBagImpl & bag_impl = bag->GetImpl();
+  FlattenFallbackFinder finder(*bag);
+  ASSIGN_OR_RETURN(DataItem schema_name,
+                   bag_impl.GetAttr(schema, schema::kSchemaNameAttr,
+                                           finder.GetFlattenFallbacks()),
+                   [](const absl::Status& status) { return ""; }(_));
+  if (!schema_name.has_value()) {
+    return "";
+  }
+  return std::string(schema_name.value<arolla::Text>().view());
+}
+
 absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
                                           const ReprOption& option,
                                           WrappingBehavior& wrapping) {
@@ -581,11 +602,15 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
     if (ds.IsDictSchema()) {
       return DictSchemaStr(ds, next_option, wrapping);
     }
-    absl::string_view prefix = "";
+    std::string prefix = "";
     if (obj.IsExplicitSchema()) {
-      prefix = "SCHEMA(";
+      absl::StrAppend(&prefix, "SCHEMA(");
     } else if (obj.IsImplicitSchema()) {
-      prefix = "IMPLICIT_SCHEMA(";
+      absl::StrAppend(&prefix, "IMPLICIT_SCHEMA(");
+    }
+    std::string schema_name = GetSchemaNameOrEmpty(ds.GetBag(), data_item);
+    if (!schema_name.empty()) {
+      absl::StrAppend(&prefix, schema_name, ":");
     }
     size_t initial_html_char_count = wrapping.html_char_count;
     ASSIGN_OR_RETURN(std::vector<std::string> schema_parts,

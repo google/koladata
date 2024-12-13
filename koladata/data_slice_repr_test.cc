@@ -391,6 +391,16 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ImplicitSchema) {
               IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=STRING)"));
 }
 
+TEST(DataSliceReprTest, TestItemStringRepresentation_SchemaName) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(DataSlice schema,
+                       CreateNamedSchema(bag, "foo", {"a", "b"},
+                                         {test::DataItem(schema::kInt64),
+                                          test::DataItem(schema::kString)}));
+  EXPECT_THAT(DataSliceToStr(schema),
+              IsOkAndHolds("SCHEMA(foo:a=INT64, b=STRING)"));
+}
+
 TEST(DataSliceReprTest, TestItemStringRepresentation_NoBag) {
   DataBagPtr bag = DataBag::Empty();
 
