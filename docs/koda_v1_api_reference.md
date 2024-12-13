@@ -749,7 +749,7 @@ kd.concat(a, b) -> should it be which of the following?
   [[[1, 2, 1], [3, 2]], [[5, 3], [7, 8, 4]]]
 
 Args:
-  args: The DataSlices to concatenate.
+  *args: The DataSlices to concatenate.
   ndim: The number of last dimensions to concatenate (default 1).
 
 Returns:
@@ -2874,7 +2874,7 @@ kd.stack(a, b, ndim=4) -> raise an exception
 kd.stack(a, b) -> the same as kd.stack(a, b, ndim=0)
 
 Args:
-  args: The DataSlices to stack.
+  *args: The DataSlices to stack.
   ndim: The number of last dimensions to stack (default 0).
 
 Returns:
@@ -3235,7 +3235,7 @@ Creates a DataSlice whose items are Fingerprints identifying arguments.
 
 Args:
   seed: text seed for the uuid computation.
-  kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
     values must be alignable.
 
 Returns:
@@ -3259,7 +3259,7 @@ kd.dict(['a', 'b'], [1, 2], itemid=kd.uuid_for_dict(seed='seed', a=ds(1)))
 
 Args:
   seed: text seed for the uuid computation.
-  kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
     values must be alignable.
 
 Returns:
@@ -3283,7 +3283,7 @@ kd.list([1, 2, 3], itemid=kd.uuid_for_list(seed='seed', a=ds(1)))
 
 Args:
   seed: text seed for the uuid computation.
-  kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
     values must be alignable.
 
 Returns:
@@ -3509,7 +3509,7 @@ b = kd.slice([7, None])
 kd.zip(a, b) ->  [[[1, 7], [None, 7], [3, 7]], [[4, None]]]
 
 Args:
-  args: The DataSlices to zip.
+  *args: The DataSlices to zip.
 
 Returns:
   The zipped DataSlice. If the input DataSlices come from different DataBags,
@@ -3620,14 +3620,14 @@ Example:
 
 Args:
   fn: The functor to be called, typically created via kd.fn().
-  args: The positional arguments to pass to the call. Scalars will be
+  *args: The positional arguments to pass to the call. Scalars will be
     auto-boxed to DataItems.
   return_type_as: The return type of the call is expected to be the same as
     the return type of this expression. In most cases, this will be a literal
     of the corresponding type. This needs to be specified if the functor does
     not return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also
     be passed here.
-  kwargs: The keyword arguments to pass to the call. Scalars will be
+  **kwargs: The keyword arguments to pass to the call. Scalars will be
     auto-boxed to DataItems.
 
 Returns:
@@ -6158,7 +6158,7 @@ Examples:
 
 Args:
   fmt: Format string (String or Bytes).
-  kwargs: Arguments to format.
+  **kwargs: Arguments to format.
 
 Returns:
   The formatted string.
@@ -6576,7 +6576,7 @@ Aliases:
 - [kd.make_tuple](#kd.make_tuple)
 
 ``` {.no-copy}
-Returns a tuple-like object containing the given `*args`.
+Returns a tuple constructed from the given arguments.
 ```
 
 </section>
@@ -6879,7 +6879,7 @@ Alias for [kd.core.enriched_bag](#kd.core.enriched_bag) operator.
 
 Alias for [kd.comparison.equal](#kd.comparison.equal) operator.
 
-### `kd.eval(expr, self_input=DataItem(Entity(self_not_specified=present), schema: SCHEMA(self_not_specified=MASK), bag_id: $da7f), /, **input_values)` {#kd.eval}
+### `kd.eval(expr, self_input=DataItem(Entity(self_not_specified=present), schema: SCHEMA(self_not_specified=MASK), bag_id: $a76a), /, **input_values)` {#kd.eval}
 
 ``` {.no-copy}
 Returns the expr evaluated on the given `input_values`.
