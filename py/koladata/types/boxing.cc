@@ -257,9 +257,9 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
     if (typed_value.GetType() == arolla::GetQType<DataSlice>()) {
       const auto& ds = typed_value.UnsafeAs<DataSlice>();
       if (!ds.is_item()) {
-        return absl::InvalidArgumentError(
-            "list containing multi-dim DataSlice(s) is not convertible to a "
-            "DataSlice");
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "python list can only contain DataItems, got DataSlice with shape "
+            "%s", arolla::Repr(ds.GetShape())));
       }
       adoption_queue.Add(ds);
       schema_agg.Add(ds.GetSchemaImpl());
@@ -671,9 +671,10 @@ absl::StatusOr<absl::string_view> PyDictKeyAsStringView(PyObject* py_key) {
         typed_value.GetType() == arolla::GetQType<DataSlice>()) {
       const auto& ds = typed_value.UnsafeAs<DataSlice>();
       // NOTE: This cannot happen, because multi-dim DataSlice is not hashable.
-      if (ds.GetShape().rank() != 0) {
-        return absl::InvalidArgumentError(
-            "dict keys cannot be multi-dim DataSlices");
+      if (!ds.is_item()) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "python dict keys can only be DataItems, got DataSlice with shape "
+            "%s", arolla::Repr(ds.GetShape())));
       }
       if (ds.item().holds_value<arolla::Text>()) {
         return ds.item().value<arolla::Text>().view();
@@ -1173,9 +1174,9 @@ class UniversalConverter {
     // The original bag was added to the adoption_queue.
     res = std::move(res).WithBag(nullptr);
     if (!res.is_item()) {
-      return absl::InvalidArgumentError(
-          "dict / list containing multi-dim DataSlice(s) is not convertible"
-          " to a DataSlice");
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "python dict / list / dataclass can only contain DataItems, got "
+          "DataSlice with shape %s", arolla::Repr(res.GetShape())));
     }
     // Only Entities are converted using Factory, while primitives are kept as
     // is, because building an OBJECT slice in ComputeDataSlice is not possilbe
@@ -1380,16 +1381,19 @@ class UniversalConverter {
 absl::StatusOr<DataSlice> EntitiesFromPyObject(PyObject* py_obj,
                                                const DataBagPtr& db,
                                                AdoptionQueue& adoption_queue) {
-  return EntitiesFromPyObject(py_obj, /*schema=*/std::nullopt, db,
-                              adoption_queue);
+  return EntitiesFromPyObject(
+      py_obj, /*schema=*/std::nullopt, /*itemid=*/std::nullopt, db,
+      adoption_queue);
 }
 
 absl::StatusOr<DataSlice> EntitiesFromPyObject(
-    PyObject* py_obj, const std::optional<DataSlice>& schema,
+    PyObject* py_obj,
+    const std::optional<DataSlice>& schema,
+    const std::optional<DataSlice>& itemid,
     const DataBagPtr& db, AdoptionQueue& adoption_queue) {
   // NOTE: UniversalConverter does not allow converting multi-dimensional
   // DataSlices, so we are processing it before invoking the UniversalConverter.
-  if (arolla::python::IsPyQValueInstance(py_obj)) {
+  if (arolla::python::IsPyQValueInstance(py_obj) && !itemid.has_value()) {
     ASSIGN_OR_RETURN(
         auto res,
         DataSliceFromPyValue(py_obj, adoption_queue,
@@ -1397,19 +1401,22 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
     return EntityCreator::ConvertWithoutAdopt(db, res);
   }
   return UniversalConverter<EntityCreator>(db, adoption_queue)
-      .Convert(py_obj, schema);
+      .Convert(py_obj, schema, /*from_dim=*/0, itemid);
 }
 
-absl::StatusOr<DataSlice> ObjectsFromPyObject(PyObject* py_obj,
-                                              const DataBagPtr& db,
-                                              AdoptionQueue& adoption_queue) {
+absl::StatusOr<DataSlice> ObjectsFromPyObject(
+    PyObject* py_obj,
+    const std::optional<DataSlice>& itemid,
+    const DataBagPtr& db,
+    AdoptionQueue& adoption_queue) {
   // NOTE: UniversalConverter does not allow converting multi-dimensional
   // DataSlices, so we are processing it before invoking the UniversalConverter.
-  if (arolla::python::IsPyQValueInstance(py_obj)) {
+  if (arolla::python::IsPyQValueInstance(py_obj) && !itemid.has_value()) {
     ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue));
     return ObjectCreator::ConvertWithoutAdopt(db, res);
   }
-  return UniversalConverter<ObjectCreator>(db, adoption_queue).Convert(py_obj);
+  return UniversalConverter<ObjectCreator>(db, adoption_queue)
+      .Convert(py_obj, /*schema=*/std::nullopt, /*from_dim=*/0, itemid);
 }
 
 absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,

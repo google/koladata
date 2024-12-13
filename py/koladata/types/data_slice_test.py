@@ -1265,7 +1265,9 @@ foo.get_obj_schema().x = <desired_schema>"""),
         ValueError, 'only supported for Koda List DataItem'
     ):
       x.b = [4, 5, 6]
-    with self.assertRaisesRegex(ValueError, 'multi-dim DataSlice'):
+    with self.assertRaisesRegex(
+        ValueError, r'got DataSlice with shape JaggedShape\(2\)'
+    ):
       x.b = [1, 2, ds([3, 4])]
     with self.assertRaisesRegex(
         ValueError, 'only supported for Koda Dict DataItem'
@@ -1281,10 +1283,14 @@ foo.get_obj_schema().x = <desired_schema>"""),
 
       x.b = {'a': Obj()}
 
-    with self.assertRaisesRegex(ValueError, 'multi-dim DataSlice'):
+    with self.assertRaisesRegex(
+        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
+    ):
       x.b = {'a': ds([1, 2, 3])}
 
-    with self.assertRaisesRegex(ValueError, 'multi-dim DataSlice'):
+    with self.assertRaisesRegex(
+        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
+    ):
       x.b = {'a': {42: ds([1, 2, 3])}}
 
   def test_set_multiple_attrs(self):

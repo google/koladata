@@ -445,9 +445,7 @@ class BoxingTest(parameterized.TestCase):
     ):
       ds([[Klass(), Klass()], [Klass()]])
     with self.assertRaisesRegex(
-        ValueError,
-        r'list containing multi-dim DataSlice\(s\) is not convertible to a '
-        'DataSlice',
+        ValueError, r'got DataSlice with shape JaggedShape\(2\)'
     ):
       ds([ds([1, 2])])
     with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to BYTES'):

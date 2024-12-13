@@ -78,6 +78,7 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
 absl::StatusOr<DataSlice> EntitiesFromPyObject(
     PyObject* py_obj,
     const std::optional<DataSlice>& schema,
+    const std::optional<DataSlice>& itemid,
     const DataBagPtr& db, AdoptionQueue& adoption_queue);
 
 // Converts Python objects into DataSlices and converts them into appropriate
@@ -89,7 +90,8 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
 // used to create all Koda objects into. `adoption_queue` is used to collect
 // DataBag(s) of DataSlice(s) from nested `py_obj`.
 absl::StatusOr<DataSlice> ObjectsFromPyObject(
-    PyObject* py_obj, const DataBagPtr& db, AdoptionQueue& adoption_queue);
+    PyObject* py_obj, const std::optional<DataSlice>& itemid,
+    const DataBagPtr& db, AdoptionQueue& adoption_queue);
 
 // Applies UniversalConverter (with EntityCreator) to each key and value of a
 // dict `py_obj` and returns them as DataSlices.

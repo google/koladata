@@ -16,7 +16,6 @@ import re
 
 from absl.testing import absltest
 from koladata.exceptions import exceptions
-from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -85,9 +84,7 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
-    itemid = expr_eval.eval(
-        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
-    )
+    itemid = kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]])).eval()
     x = fns.new(a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
@@ -374,12 +371,6 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
     with self.assertRaisesRegex(ValueError, 'assigning a Python dict'):
       fns.new(x=ds([1, 2, 3]), dct={'a': 42})
 
-  def test_universal_converter_into_itemid_is_not_supported(self):
-    with self.assertRaisesRegex(
-        NotImplementedError, 'do not support `itemid` in converter mode'
-    ):
-      _ = fns.new([1, 2, 3], itemid=expr_eval.eval(kde.allocation.new_itemid()))
-
   def test_universal_converter_primitive(self):
     item = fns.new(42)
     testing.assert_equal(item.no_bag(), ds(42))
@@ -485,11 +476,11 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
 
   def test_universal_converter_container_contains_multi_dim_data_slice(self):
     with self.assertRaisesRegex(
-        ValueError, 'dict / list containing multi-dim DataSlice'
+        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
     ):
       fns.new([ds([1, 2, 3]), 42])
     with self.assertRaisesRegex(
-        ValueError, 'dict / list containing multi-dim DataSlice'
+        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
     ):
       fns.new({42: ds([1, 2, 3])})
 
@@ -589,6 +580,27 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
         exceptions.KodaError, 'cannot find a common schema'
     ):
       fns.new(d)
+
+  def test_universal_converter_with_itemid(self):
+    itemid = kde.uuid_for_list('new').eval()
+    res = fns.new([{'a': 42, 'b': 17}, {'c': 12}], itemid=itemid)
+    child_itemid = kde.uuid_for_dict(
+        '__from_py_child__', parent=itemid,
+        list_item_index=ds([0, 1], schema_constants.INT64)
+    ).eval()
+    testing.assert_equal(res.no_bag().get_itemid(), itemid)
+    testing.assert_dicts_keys_equal(res[:], ds([['a', 'b'], ['c']]))
+    testing.assert_equal(res[:].no_bag().get_itemid(), child_itemid)
+
+    with self.assertRaisesRegex(
+        ValueError, 'itemid argument to list creation, requires List ItemIds'
+    ):
+      _ = fns.new([1, 2], itemid=kde.allocation.new_itemid().eval())
+
+    with self.assertRaisesRegex(
+        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
+    ):
+      _ = fns.new(ds([1, 2, 3]), itemid=kde.allocation.new_itemid().eval())
 
   def test_universal_converter_recursive_object_error(self):
     d = {'a': 42}

@@ -150,9 +150,11 @@ struct EntityCreatorHelper {
 
   static absl::StatusOr<DataSlice> FromPyObject(
       PyObject* py_obj, const std::optional<DataSlice>& schema_arg,
+      const std::optional<DataSlice>& itemid,
       const DataBagPtr& db, AdoptionQueue& adoption_queue) {
-    ASSIGN_OR_RETURN(DataSlice res, EntitiesFromPyObject(py_obj, schema_arg, db,
-                                                         adoption_queue));
+    ASSIGN_OR_RETURN(DataSlice res,
+                     EntitiesFromPyObject(py_obj, schema_arg, itemid, db,
+                                          adoption_queue));
     return res.WithBag(db);
   }
 };
@@ -214,12 +216,13 @@ struct ObjectCreatorHelper {
 
   static absl::StatusOr<DataSlice> FromPyObject(
       PyObject* py_obj, const std::optional<DataSlice>& schema_arg,
+      const std::optional<DataSlice>& itemid,
       const DataBagPtr& db, AdoptionQueue& adoption_queue) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     ASSIGN_OR_RETURN(DataSlice res,
-                     ObjectsFromPyObject(py_obj, db, adoption_queue));
+                     ObjectsFromPyObject(py_obj, itemid, db, adoption_queue));
     return res.WithBag(db).WithSchema(internal::DataItem(schema::kObject));
   }
 };
@@ -264,17 +267,12 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
               .c_str());
       return nullptr;
     }
-    if (itemid) {
-      PyErr_SetString(
-          PyExc_NotImplementedError,
-          "kd.new and kd.obj do not support `itemid` in converter mode");
-      return nullptr;
-    }
     AdoptionQueue adoption_queue;
-    ASSIGN_OR_RETURN(res,
-                     FactoryHelperT::FromPyObject(
-                         args.pos_only_args[0], schema_arg, db, adoption_queue),
-                     arolla::python::SetPyErrFromStatus(_));
+    ASSIGN_OR_RETURN(
+        res,
+        FactoryHelperT::FromPyObject(
+            args.pos_only_args[0], schema_arg, itemid, db, adoption_queue),
+        arolla::python::SetPyErrFromStatus(_));
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
         .With([&](const absl::Status& status) {
           return arolla::python::SetPyErrFromStatus(

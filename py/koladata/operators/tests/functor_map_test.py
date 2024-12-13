@@ -25,7 +25,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 
 
-I = input_container.InputContainer("I")
+I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty
 kde = kde_operators.kde
@@ -137,9 +137,7 @@ class MapTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     fn = kdf.fn(f)
     with self.assertRaisesRegex(
-        ValueError,
-        "dict / list containing multi-dim DataSlice.*is not convertible to a"
-        " DataSlice",
+        ValueError, r'got DataSlice with shape JaggedShape\(2\)'
     ):
       _ = expr_eval.eval(kde.functor.map(I.fn, x=I.x), fn=fn, x=x)
 
@@ -151,8 +149,8 @@ class MapTest(parameterized.TestCase):
     fn = kdf.fn(f)
     with self.assertRaisesRegex(
         ValueError,
-        "the functor was called with `DATA_SLICE` as the output type, but the"
-        " computation resulted in type `DATA_BAG` instead",
+        'the functor was called with `DATA_SLICE` as the output type, but the'
+        ' computation resulted in type `DATA_BAG` instead',
     ):
       _ = expr_eval.eval(kde.functor.map(I.fn, unused_x=I.x), fn=fn, x=x)
 
@@ -165,9 +163,9 @@ class MapTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.functor.map(I.fn, x=I.x, y=I.y)),
-        "kde.functor.map(I.fn, x=I.x, y=I.y)",
+        'kde.functor.map(I.fn, x=I.x, y=I.y)',
     )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()

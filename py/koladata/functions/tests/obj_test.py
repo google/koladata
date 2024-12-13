@@ -14,7 +14,6 @@
 
 from absl.testing import absltest
 from koladata.exceptions import exceptions
-from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -86,9 +85,7 @@ class ObjTest(absltest.TestCase):
     testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
-    itemid = expr_eval.eval(
-        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
-    )
+    itemid = kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]])).eval()
     x = fns.obj(a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
@@ -138,11 +135,28 @@ class ObjTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'assigning a Python dict'):
       fns.obj(x=ds([1, 2, 3]), dct={'a': 42})
 
-  def test_universal_converter_into_itemid_is_not_supported(self):
+  def test_universal_converter_with_itemid(self):
+    itemid = kde.uuid_for_list('obj').eval()
+    res = fns.obj([{'a': 42, 'b': 17}, {'c': 12}], itemid=itemid)
+    child_itemid = kde.uuid_for_dict(
+        '__from_py_child__', parent=itemid,
+        list_item_index=ds([0, 1], schema_constants.INT64)
+    ).eval()
+    testing.assert_equal(res.no_bag().get_itemid(), itemid)
+    testing.assert_dicts_keys_equal(
+        res[:], ds([['a', 'b'], ['c']], schema_constants.OBJECT)
+    )
+    testing.assert_equal(res[:].no_bag().get_itemid(), child_itemid)
+
     with self.assertRaisesRegex(
-        NotImplementedError, 'do not support `itemid` in converter mode'
+        ValueError, 'itemid argument to list creation, requires List ItemIds'
     ):
-      _ = fns.obj([1, 2, 3], itemid=expr_eval.eval(kde.allocation.new_itemid()))
+      _ = fns.obj([1, 2], itemid=kde.allocation.new_itemid().eval())
+
+    with self.assertRaisesRegex(
+        ValueError, r'got DataSlice with shape JaggedShape\(2, \[2, 1\]\)'
+    ):
+      _ = fns.obj(ds([[1, 2], [3]]), itemid=kde.allocation.new_itemid().eval())
 
   def test_universal_converter_primitive(self):
     item = fns.obj(42)
@@ -317,11 +331,11 @@ class ObjTest(absltest.TestCase):
 
   def test_universal_converter_container_contains_multi_dim_data_slice(self):
     with self.assertRaisesRegex(
-        ValueError, 'dict / list containing multi-dim DataSlice'
+        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
     ):
       fns.obj([ds([1, 2, 3]), 42])
     with self.assertRaisesRegex(
-        ValueError, 'dict / list containing multi-dim DataSlice'
+        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
     ):
       fns.obj({42: ds([1, 2, 3])})
 
