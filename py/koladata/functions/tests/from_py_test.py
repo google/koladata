@@ -898,6 +898,14 @@ class FromPyTest(absltest.TestCase):
           d1.no_bag().get_itemid(), kde.uuid_for_dict(a=ds(['1', '2'])).eval()
       )
 
+    with self.subTest('itemid caching'):
+      d = {'a': 42}
+      l1 = fns.from_py([d, d], itemid=kde.uuid_for_list('1').eval())
+      self.assertNotEqual(l1[:].S[0].fingerprint, l1[:].S[1].fingerprint)
+
+      d1 = fns.from_py({'a': d, 'b': d}, itemid=kde.uuid_for_dict('1').eval())
+      self.assertNotEqual(d1['a'].fingerprint, d1['b'].fingerprint)
+
   def test_item_id_errors(self):
     with self.assertRaisesRegex(
         ValueError, '`itemid` expected ITEMID schema, got INT32'

@@ -1061,8 +1061,8 @@ class UniversalConverter {
     ASSIGN_OR_RETURN(
         const std::optional<DataSlice> child_itemid,
         MaybeMakeChildObjectAttrItemId(parent_itemid, attr_descriptor));
-    cmd_stack_.push([this, schema = schema, itemid = child_itemid] {
-      return this->CmdComputeObj(schema, itemid);
+    cmd_stack_.push([this, py_obj, schema = schema, itemid = child_itemid] {
+      return this->CmdComputeObj(py_obj, schema, itemid);
     });
     if (schema) {
       ASSIGN_OR_RETURN(allowed_attr_names, schema->GetAttrNames());
@@ -1138,8 +1138,8 @@ class UniversalConverter {
     ASSIGN_OR_RETURN(
         const std::optional<DataSlice> child_itemid,
         MaybeMakeChildObjectAttrItemId(parent_itemid, attr_descriptor));
-    cmd_stack_.push([this, schema = schema, itemid = child_itemid] {
-      return this->CmdComputeObj(schema, itemid);
+    cmd_stack_.push([this, py_obj, schema = schema, itemid = child_itemid] {
+      return this->CmdComputeObj(py_obj, schema, itemid);
     });
     if (schema) {
       ASSIGN_OR_RETURN(allowed_attr_names, schema->GetAttrNames());
@@ -1164,8 +1164,11 @@ class UniversalConverter {
   // int, DataItem, etc.). On failure, returns proper status error. The error
   // means that it is not a Python scalar supported by Koda and the caller
   // should evaluate other possibilities before returning this error.
+  // `cache_value` is filled with the result on success, to avoid recomputing
+  // hash and re-inserting in the hash_map, when the reference to the value is
+  // available.
   absl::Status TryParsePythonScalar(PyObject* py_obj,
-                                    std::optional<DataSlice>& cache_value) {
+                                    std::optional<DataSlice>* cache_value) {
     // NOTE: No schema is passed to DataSliceFromPyValue (in which case explicit
     // casting would happen), because universal conversion relies on implicit /
     // narrowing casting in all use-cases.
@@ -1179,7 +1182,7 @@ class UniversalConverter {
           "DataSlice with shape %s", arolla::Repr(res.GetShape())));
     }
     // Only Entities are converted using Factory, while primitives are kept as
-    // is, because building an OBJECT slice in ComputeDataSlice is not possilbe
+    // is, because building an OBJECT slice in ComputeDataSlice is not possible
     // if Entities are not already converted.
     if (res.GetSchemaImpl().is_entity_schema()) {
       if constexpr (std::is_same_v<Factory, ObjectCreator>) {
@@ -1188,7 +1191,9 @@ class UniversalConverter {
       }
     }
     value_stack_.push(res);
-    cache_value = std::move(res);
+    if (cache_value != nullptr) {
+      *cache_value = std::move(res);
+    }
     return absl::OkStatus();
   }
 
@@ -1204,15 +1209,21 @@ class UniversalConverter {
       const std::optional<DataSlice>& parent_itemid = std::nullopt,
       const ChildItemIdAttrsDescriptor& attr_descriptor = {}) {
     // Push `std::nullopt` to detect recursive Python structures.
-    auto [computed_iter, emplaced] = computed_.emplace(
-        MakeCacheKey(py_obj, schema), std::nullopt);
-    if (!emplaced) {
-      if (!computed_iter->second.has_value()) {
-        return absl::InvalidArgumentError(
-            "recursive Python structures cannot be converted to Koda object");
+
+    std::optional<DataSlice>* cache_value = nullptr;
+    // Do not cache if itemid is set, since values will get different itemids.
+    if (!parent_itemid.has_value()) {
+      auto [computed_iter, emplaced] =
+          computed_.emplace(MakeCacheKey(py_obj, schema), std::nullopt);
+      if (!emplaced) {
+        if (!computed_iter->second.has_value()) {
+          return absl::InvalidArgumentError(
+              "recursive Python structures cannot be converted to Koda object");
+        }
+        value_stack_.push(*computed_iter->second);
+        return absl::OkStatus();
       }
-      value_stack_.push(*computed_iter->second);
-      return absl::OkStatus();
+      cache_value = &computed_iter->second;
     }
     if (schema && schema->item() == schema::kObject) {
       // When processing Entities, if OBJECT schema is reached, the rest of
@@ -1222,8 +1233,10 @@ class UniversalConverter {
           UniversalConverter<ObjectCreator>(db_, adoption_queue_, dict_as_obj_)
               .Convert(py_obj, /*schema=*/std::nullopt, /*from_dim=*/0,
                        parent_itemid, attr_descriptor));
-      computed_.insert_or_assign(MakeCacheKey(py_obj, schema),
-                                 value_stack_.top());
+      if (!parent_itemid.has_value()) {
+        computed_.insert_or_assign(MakeCacheKey(py_obj, schema),
+                                   value_stack_.top());
+      }
       return absl::OkStatus();
     }
     if (PyDict_CheckExact(py_obj)) {
@@ -1246,7 +1259,7 @@ class UniversalConverter {
     }
     // First trying the Python "scalar" conversion to avoid doing expensive
     // `AttrProvider` checks (e.g. dataclasses) on each leaf Python object.
-    absl::Status status = TryParsePythonScalar(py_obj, computed_iter->second);
+    absl::Status status = TryParsePythonScalar(py_obj, cache_value);
     if (status.ok()) {
       return status;
     }
@@ -1279,8 +1292,10 @@ class UniversalConverter {
     // elements and dict created from those keys and values).
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::ConvertWithoutAdopt(db_, res));
-    computed_.insert_or_assign(
-        MakeCacheKey(py_obj, dict_schema), value_stack_.top());
+    if (!itemid.has_value()) {
+      computed_.insert_or_assign(MakeCacheKey(py_obj, dict_schema),
+                                 value_stack_.top());
+    }
     return absl::OkStatus();
   }
 
@@ -1298,8 +1313,10 @@ class UniversalConverter {
                          list_schema, /*item_schema=*/std::nullopt, itemid));
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::ConvertWithoutAdopt(db_, res));
-    computed_.insert_or_assign(
-        MakeCacheKey(py_obj, list_schema), value_stack_.top());
+    if (!itemid.has_value()) {
+      computed_.insert_or_assign(MakeCacheKey(py_obj, list_schema),
+                                 value_stack_.top());
+    }
     return absl::OkStatus();
   }
 
@@ -1309,7 +1326,7 @@ class UniversalConverter {
   // NOTE: expects all attribute names to be stored as a single DataSlice of
   // STRING values on `value_stack_`.
   absl::Status CmdComputeObj(
-      const std::optional<DataSlice>& entity_schema,
+      PyObject* py_obj, const std::optional<DataSlice>& entity_schema,
       const std::optional<DataSlice>& itemid = std::nullopt) {
     DataSlice attr_names_ds = std::move(value_stack_.top());
     value_stack_.pop();
@@ -1333,6 +1350,10 @@ class UniversalConverter {
           value_stack_.emplace(),
           Factory::FromAttrs(db_, attr_names, values, entity_schema,
                              /*update_schema=*/false, itemid));
+      if (!itemid.has_value()) {
+        computed_.insert_or_assign(MakeCacheKey(py_obj, entity_schema),
+                                   value_stack_.top());
+      }
     } else {
       DCHECK(!entity_schema) << "only EntityCreator should accept schema here";
       ASSIGN_OR_RETURN(value_stack_.emplace(),
