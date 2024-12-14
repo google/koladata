@@ -55,7 +55,6 @@ namespace koladata::python {
 using ::arolla::TypedRef;
 using ::arolla::TypedValue;
 using ::arolla::expr::ExprNodePtr;
-using ::arolla::expr::IsRegisteredOperator;
 using ::arolla::python::AuxBindArguments;
 using ::arolla::python::AuxBindingPolicyPtr;
 using ::arolla::python::DCheckPyGIL;
