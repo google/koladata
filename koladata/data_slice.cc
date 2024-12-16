@@ -800,7 +800,6 @@ absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
                         "shape_size=%d != items_size=%d",
                         shape.size(), impl.size()));
   }
-  RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   RETURN_IF_ERROR(VerifySchemaConsistency(schema, impl.dtype(),
                                           impl.is_empty_and_unknown()));
   if (shape.rank() == 0) {
@@ -815,7 +814,6 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             internal::DataItem schema,
                                             DataBagPtr db,
                                             Wholeness wholeness) {
-  RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   RETURN_IF_ERROR(
       VerifySchemaConsistency(schema, item.dtype(),
                               /*empty_and_unknown=*/!item.has_value()));
@@ -846,7 +844,6 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             internal::DataItem schema,
                                             DataBagPtr db,
                                             Wholeness wholeness) {
-  RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   RETURN_IF_ERROR(
       VerifySchemaConsistency(schema, item.dtype(),
                               /*empty_and_unknown=*/!item.has_value()));
@@ -1857,6 +1854,7 @@ absl::Status DataSlice::ClearDictOrList() const {
 absl::Status DataSlice::VerifySchemaConsistency(
     const internal::DataItem& schema, arolla::QTypePtr dtype,
     bool empty_and_unknown) {
+  RETURN_IF_ERROR(AssertIsSliceSchema(schema));
   if (empty_and_unknown) {
     // Any schema can be assigned in this case, because there is no data in the
     // DataSlice.
