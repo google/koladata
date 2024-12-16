@@ -1797,6 +1797,34 @@ TEST(DataSliceTest, SetGetPrimitiveAttributes_ObjectCreator) {
   }
 }
 
+TEST(DataSliceTest, GetAttr_ImplicitCasting_Object) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto o1, ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {"a"},
+                                     {test::DataItem(1)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto o2, ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {"a"},
+                                     {test::DataItem(2.0f)}));
+  auto objs = test::DataSlice<ObjectId>(
+      {o1.item().value<ObjectId>(), o2.item().value<ObjectId>()},
+      schema::kObject, db);
+  ASSERT_OK_AND_ASSIGN(auto result, objs.GetAttr("a"));
+  EXPECT_THAT(result.slice(), ElementsAre(1.0f, 2.0f));
+}
+
+TEST(DataSliceTest, GetAttr_ImplicitCasting_Entity) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto entity, EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
+                                         {"a"}, {test::DataItem(1)}));
+  ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kFloat32)));
+  EXPECT_THAT(
+      entity.GetAttr("a"),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("FLOAT32 schema can only be assigned to a DataSlice "
+                         "that contains only primitives of FLOAT32")));
+}
+
 TEST(DataSliceTest, SetGetAttr_FromEmptyItem_EntityCreator) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
@@ -3049,6 +3077,34 @@ TEST(DataSliceTest, GetAttrOrMissing_SchemaSlice) {
   EXPECT_EQ(schema_attr.GetSchemaImpl(), schema::kSchema);
 }
 
+TEST(DataSliceTest, GetAttrOrMissing_ImplicitCasting_Object) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto o1, ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {"a"},
+                                     {test::DataItem(1)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto o2, ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {"a"},
+                                     {test::DataItem(2.0f)}));
+  auto objs = test::DataSlice<ObjectId>(
+      {o1.item().value<ObjectId>(), o2.item().value<ObjectId>()},
+      schema::kObject, db);
+  ASSERT_OK_AND_ASSIGN(auto result, objs.GetAttrOrMissing("a"));
+  EXPECT_THAT(result.slice(), ElementsAre(1.0f, 2.0f));
+}
+
+TEST(DataSliceTest, GetAttrOrMissing_ImplicitCasting_Entity) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto entity, EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
+                                         {"a"}, {test::DataItem(1)}));
+  ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kFloat32)));
+  EXPECT_THAT(
+      entity.GetAttrOrMissing("a"),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("FLOAT32 schema can only be assigned to a DataSlice "
+                         "that contains only primitives of FLOAT32")));
+}
+
 TEST(DataSliceTest, DelAttr_EntityCreator) {
   auto db = DataBag::Empty();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
@@ -3436,6 +3492,41 @@ TEST(DataSliceTest, GetFromList_ObjectSchema) {
   EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kObject));
 }
 
+TEST(DataSliceTest, GetFromList_ImplicitCast_Entity) {
+  // Modifying the entity schema yields an error.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto list,
+                       CreateListShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<int>({1})));
+  ASSERT_OK(list.GetSchema().SetAttr(schema::kListItemsSchemaAttr,
+                                     test::DataItem(schema::kFloat32)));
+  EXPECT_THAT(
+      list.GetFromList(test::DataSlice<int64_t>({0})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("FLOAT32 schema can only be assigned to a DataSlice "
+                         "that contains only primitives of FLOAT32")));
+}
+
+TEST(DataSliceTest, GetFromList_ImplicitCast_Object) {
+  // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
+  // mixed data.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto list_1,
+                       CreateListShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<int>({1})));
+  ASSERT_OK_AND_ASSIGN(list_1, list_1.EmbedSchema());
+  ASSERT_OK_AND_ASSIGN(auto list_2,
+                       CreateListShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<float>({2.0f})));
+  ASSERT_OK_AND_ASSIGN(list_2, list_2.EmbedSchema());
+  auto lists = test::DataSlice<ObjectId>(
+      {list_1.item().value<ObjectId>(), list_2.item().value<ObjectId>()},
+      schema::kObject, db);
+  ASSERT_OK_AND_ASSIGN(auto result, lists.GetFromList(test::DataItem(0)));
+  EXPECT_THAT(result.slice(), ElementsAre(DataItemWith<float>(1.0f),
+                                          DataItemWith<float>(2.0f)));
+}
+
 TEST(DataSliceTest, GetFromList_NoneSchema_NotAList) {
   auto db = DataBag::Empty();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
@@ -3545,6 +3636,43 @@ TEST(DataSliceTest, PopFromList_ObjectSchema) {
               IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(12))));
 }
 
+TEST(DataSliceTest, PopFromList_ImplicitCast_Entity) {
+  // Modifying the entity schema yields an error.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto list,
+                       CreateListShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<int>({1})));
+  ASSERT_OK(list.GetSchema().SetAttr(schema::kListItemsSchemaAttr,
+                                     test::DataItem(schema::kFloat32)));
+  EXPECT_THAT(
+      list.PopFromList(test::DataSlice<int64_t>({0})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("FLOAT32 schema can only be assigned to a DataSlice "
+                         "that contains only primitives of FLOAT32")));
+}
+
+TEST(DataSliceTest, PopFromList_ImplicitCast_Object) {
+  // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
+  // mixed data.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto list_1,
+                       CreateListShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<int>({1})));
+  ASSERT_OK_AND_ASSIGN(list_1, list_1.EmbedSchema());
+  ASSERT_OK_AND_ASSIGN(auto list_2,
+                       CreateListShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<float>({2.0f})));
+  ASSERT_OK_AND_ASSIGN(list_2, list_2.EmbedSchema());
+  auto lists = test::DataSlice<ObjectId>(
+      {list_1.item().value<ObjectId>(), list_2.item().value<ObjectId>()},
+      schema::kObject, db);
+  ASSERT_OK_AND_ASSIGN(auto result, lists.PopFromList(test::DataItem(0)));
+  EXPECT_THAT(result.slice(), ElementsAre(DataItemWith<float>(1.0f),
+                                          DataItemWith<float>(2.0f)));
+  EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
+              IsOkAndHolds(Property(&DataSlice::slice, ElementsAre())));
+}
+
 TEST(DataSliceTest, PopFromList_NoneSchema_NotAList) {
   auto db = DataBag::Empty();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
@@ -3626,6 +3754,41 @@ TEST(DataSliceTest, ExplodeList_ObjectSchema) {
   EXPECT_THAT(
       lists.ExplodeList(0, std::nullopt),
       IsOkAndHolds(Property(&DataSlice::GetSchemaImpl, Eq(schema::kInt64))));
+}
+
+TEST(DataSliceTest, ExplodeList_ImplicitCast_Entity) {
+  // Modifying the entity schema yields an error.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto list,
+                       CreateListShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<int>({1})));
+  ASSERT_OK(list.GetSchema().SetAttr(schema::kListItemsSchemaAttr,
+                                     test::DataItem(schema::kFloat32)));
+  EXPECT_THAT(
+      list.ExplodeList(0, std::nullopt),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("FLOAT32 schema can only be assigned to a DataSlice "
+                         "that contains only primitives of FLOAT32")));
+}
+
+TEST(DataSliceTest, ExplodeList_ImplicitCast_Object) {
+  // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
+  // mixed data.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto list_1,
+                       CreateListShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<int>({1})));
+  ASSERT_OK_AND_ASSIGN(list_1, list_1.EmbedSchema());
+  ASSERT_OK_AND_ASSIGN(auto list_2,
+                       CreateListShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<float>({2.0f})));
+  ASSERT_OK_AND_ASSIGN(list_2, list_2.EmbedSchema());
+  auto lists = test::DataSlice<ObjectId>(
+      {list_1.item().value<ObjectId>(), list_2.item().value<ObjectId>()},
+      schema::kObject, db);
+  ASSERT_OK_AND_ASSIGN(auto result, lists.ExplodeList(0, std::nullopt));
+  EXPECT_THAT(result.slice(), ElementsAre(DataItemWith<float>(1.0f),
+                                          DataItemWith<float>(2.0f)));
 }
 
 TEST(DataSliceTest, SchemaAttr_MissingItemsAttr_ForLists) {
@@ -4382,6 +4545,45 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
                HasSubstr("DataBag is immutable")));
 }
 
+TEST(DataSliceTest, GetFromDict_ImplicitCast_Entity) {
+  // Modifying the entity schema yields an error.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto dict,
+      CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                       test::DataSlice<int>({0}), test::DataSlice<int>({1})));
+  ASSERT_OK(dict.GetSchema().SetAttr(schema::kDictValuesSchemaAttr,
+                                     test::DataItem(schema::kFloat32)));
+  EXPECT_THAT(
+      dict.GetFromDict(test::DataItem(0)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("FLOAT32 schema can only be assigned to a DataSlice "
+                         "that contains only primitives of FLOAT32")));
+}
+
+TEST(DataSliceTest, GetFromDict_ImplicitCast_Object) {
+  // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
+  // mixed data.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto dict_1,
+      CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                       test::DataSlice<int>({0}), test::DataSlice<int>({1})));
+  ASSERT_OK_AND_ASSIGN(dict_1, dict_1.EmbedSchema());
+  ASSERT_OK_AND_ASSIGN(auto dict_2,
+                       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<int>({0}),
+                                        test::DataSlice<float>({2.0f})));
+  ASSERT_OK_AND_ASSIGN(dict_2, dict_2.EmbedSchema());
+  auto dicts = test::DataSlice<ObjectId>(
+      {dict_1.item().value<ObjectId>(), dict_2.item().value<ObjectId>()},
+      schema::kObject, db);
+  ASSERT_OK_AND_ASSIGN(auto result, dicts.GetFromDict(test::DataItem(0)));
+  EXPECT_THAT(result.slice(), UnorderedElementsAre(DataItemWith<float>(1.0f),
+                                                   DataItemWith<float>(2.0f)));
+}
+
+
 TEST(DataSliceTest, SchemaAttr_MissingValuesAttr_ForDicts) {
   ASSERT_OK_AND_ASSIGN(auto shape,
                        DataSlice::JaggedShape::FromEdges({CreateEdge({0, 3})}));
@@ -4578,6 +4780,82 @@ TEST(DataSliceTest, SchemaAttr_GetFromDict_ImplicitSchemaKeys) {
 
   // Implicit having same type is Ok.
   ASSERT_OK_AND_ASSIGN(auto values, dicts.GetFromDict(keys));
+}
+
+TEST(DataSliceTest, GetDictKeys_ImplicitCast_Entity) {
+  // Modifying the entity schema yields an error.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto dict,
+      CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                       test::DataSlice<int>({0}), test::DataSlice<int>({1})));
+  ASSERT_OK(dict.GetSchema().SetAttr(schema::kDictKeysSchemaAttr,
+                                     test::DataItem(schema::kInt64)));
+  EXPECT_THAT(
+      dict.GetDictKeys(),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("INT64 schema can only be assigned to a DataSlice "
+                         "that contains only primitives of INT64")));
+}
+
+TEST(DataSliceTest, GetDictKeys_ImplicitCast_Object) {
+  // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
+  // mixed data.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto dict_1,
+      CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                       test::DataSlice<int>({0}), test::DataSlice<int>({1})));
+  ASSERT_OK_AND_ASSIGN(dict_1, dict_1.EmbedSchema());
+  ASSERT_OK_AND_ASSIGN(auto dict_2,
+                       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<int64_t>({1}),
+                                        test::DataSlice<float>({2.0f})));
+  ASSERT_OK_AND_ASSIGN(dict_2, dict_2.EmbedSchema());
+  auto dicts = test::DataSlice<ObjectId>(
+      {dict_1.item().value<ObjectId>(), dict_2.item().value<ObjectId>()},
+      schema::kObject, db);
+  ASSERT_OK_AND_ASSIGN(auto result, dicts.GetDictKeys());
+  EXPECT_THAT(result.slice(), UnorderedElementsAre(DataItemWith<int64_t>(0),
+                                                   DataItemWith<int64_t>(1)));
+}
+
+TEST(DataSliceTest, GetDictValues_ImplicitCast_Entity) {
+  // Modifying the entity schema yields an error.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto dict,
+      CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                       test::DataSlice<int>({0}), test::DataSlice<int>({1})));
+  ASSERT_OK(dict.GetSchema().SetAttr(schema::kDictValuesSchemaAttr,
+                                     test::DataItem(schema::kFloat32)));
+  EXPECT_THAT(
+      dict.GetDictValues(),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("FLOAT32 schema can only be assigned to a DataSlice "
+                         "that contains only primitives of FLOAT32")));
+}
+
+TEST(DataSliceTest, GetDictValues_ImplicitCast_Object) {
+  // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
+  // mixed data.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto dict_1,
+      CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                       test::DataSlice<int>({0}), test::DataSlice<int>({1})));
+  ASSERT_OK_AND_ASSIGN(dict_1, dict_1.EmbedSchema());
+  ASSERT_OK_AND_ASSIGN(auto dict_2,
+                       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
+                                        test::DataSlice<int>({1}),
+                                        test::DataSlice<float>({2.0f})));
+  ASSERT_OK_AND_ASSIGN(dict_2, dict_2.EmbedSchema());
+  auto dicts = test::DataSlice<ObjectId>(
+      {dict_1.item().value<ObjectId>(), dict_2.item().value<ObjectId>()},
+      schema::kObject, db);
+  ASSERT_OK_AND_ASSIGN(auto result, dicts.GetDictValues());
+  EXPECT_THAT(result.slice(), UnorderedElementsAre(DataItemWith<float>(1.0f),
+                                                   DataItemWith<float>(2.0f)));
 }
 
 TEST(DataSliceTest, SetInDict_Adopt) {

@@ -938,13 +938,10 @@ class DataSliceTest(parameterized.TestCase):
       x = db.obj(abc=ds([42, 12]))
       e_schema = db.new(abc=ds(42, schema_constants.INT64)).get_schema()
       x.set_attr('__schema__', e_schema)
-      # TODO: The following assertion returns different
-      # fingerprints. Most likely due to data stored as INT32, even if schema is
-      # INT64.
-      # testing.assert_equal(
-      #     x.get_attr('abc'),
-      #     ds([42, 12], schema_constants.INT64).with_bag(db)
-      # )
+      testing.assert_equal(
+          x.get_attr('abc'),
+          ds([42, 12], schema_constants.INT64).with_bag(db)
+      )
       self.assertEqual(x.get_attr('abc').internal_as_py(), [42, 12])
       testing.assert_equal(
           x.get_attr('abc').get_schema(), schema_constants.INT64.with_bag(db)
@@ -1077,6 +1074,11 @@ foo.get_obj_schema().x = <desired_schema>"""),
     testing.assert_equal(
         x.a, ds([None, None], schema_constants.OBJECT).with_bag(x.get_bag())
     )
+
+  def test_get_attr_object_mixed_data_implicit_cast(self):
+    db = bag()
+    x = ds([db.obj(a=1), db.obj(a=2.0)])
+    testing.assert_equal(x.a, ds([1.0, 2.0]).with_bag(db))
 
   def test_set_get_attr_object_missing_schema_attr(self):
     obj = bag().obj(a=1)

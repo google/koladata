@@ -778,6 +778,15 @@ absl::Status AssertIsSliceSchema(const internal::DataItem& schema) {
   return absl::OkStatus();
 }
 
+// Aligns `impl` with `to_schema` if `from_schema` allows it (e.g. is OBJECT).
+template <class ImplT>
+absl::StatusOr<ImplT> AlignDataWithSchema(
+    ImplT impl, const internal::DataItem& from_schema,
+    const internal::DataItem& to_schema) {
+  return from_schema == schema::kObject ? schema::CastDataTo(impl, to_schema)
+                                        : impl;
+}
+
 }  // namespace
 
 absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
@@ -792,10 +801,8 @@ absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
                         shape.size(), impl.size()));
   }
   RETURN_IF_ERROR(AssertIsSliceSchema(schema));
-  // NOTE: Checking the invariant to avoid doing non-trivial verification in
-  // prod.
-  DCHECK_OK(VerifySchemaConsistency(schema, impl.dtype(),
-                                    impl.is_empty_and_unknown()));
+  RETURN_IF_ERROR(VerifySchemaConsistency(schema, impl.dtype(),
+                                          impl.is_empty_and_unknown()));
   if (shape.rank() == 0) {
     return DataSlice(impl[0], std::move(shape), std::move(schema),
                      std::move(db), wholeness == Wholeness::kWhole);
@@ -809,10 +816,9 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             DataBagPtr db,
                                             Wholeness wholeness) {
   RETURN_IF_ERROR(AssertIsSliceSchema(schema));
-  // NOTE: Checking the invariant to avoid doing non-trivial verification in
-  // prod.
-  DCHECK_OK(VerifySchemaConsistency(schema, item.dtype(),
-                                    /*empty_and_unknown=*/!item.has_value()));
+  RETURN_IF_ERROR(
+      VerifySchemaConsistency(schema, item.dtype(),
+                              /*empty_and_unknown=*/!item.has_value()));
   return DataSlice(item, JaggedShape::Empty(), std::move(schema), std::move(db),
                    wholeness == Wholeness::kWhole);
 }
@@ -841,8 +847,9 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             DataBagPtr db,
                                             Wholeness wholeness) {
   RETURN_IF_ERROR(AssertIsSliceSchema(schema));
-  DCHECK_OK(VerifySchemaConsistency(schema, item.dtype(),
-                                    /*empty_and_unknown=*/!item.has_value()));
+  RETURN_IF_ERROR(
+      VerifySchemaConsistency(schema, item.dtype(),
+                              /*empty_and_unknown=*/!item.has_value()));
   if (shape.rank() == 0) {
     return DataSlice(item, std::move(shape), std::move(schema), std::move(db),
                      wholeness == Wholeness::kWhole);
@@ -967,11 +974,10 @@ absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
 
 absl::StatusOr<DataSlice> DataSlice::WithSchema(
     internal::DataItem schema_item) const {
-  RETURN_IF_ERROR(AssertIsSliceSchema(schema_item));
-  RETURN_IF_ERROR(
-      VerifySchemaConsistency(schema_item, dtype(), impl_empty_and_unknown()));
-  return DataSlice(internal_->impl, GetShape(), std::move(schema_item),
-                   GetBag());
+  return VisitImpl([&](const auto& impl) {
+    return DataSlice::Create(impl, GetShape(), std::move(schema_item),
+                             GetBag());
+  });
 }
 
 absl::StatusOr<DataSlice> DataSlice::SetSchema(const DataSlice& schema) const {
@@ -1131,10 +1137,10 @@ absl::StatusOr<DataSlice> DataSlice::GetAttr(
         GetAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name, res_schema,
                     /*allow_missing_schema=*/false),
         AssembleErrorMessage(_, {.ds = *this}));
-    // TODO: Use DataSlice::Create instead of verifying manually.
-    RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
-    return DataSlice(std::move(res), GetShape(), std::move(res_schema),
-                     GetBag());
+    ASSIGN_OR_RETURN(
+        res, AlignDataWithSchema(std::move(res), GetSchemaImpl(), res_schema));
+    return DataSlice::Create(std::move(res), GetShape(), std::move(res_schema),
+                             GetBag());
   });
 }
 
@@ -1156,6 +1162,8 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrOrMissing(
         res_schema = internal::DataItem(dtype);
       }
     }
+    ASSIGN_OR_RETURN(
+        res, AlignDataWithSchema(std::move(res), GetSchemaImpl(), res_schema));
     return DataSlice::Create(std::move(res), GetShape(), std::move(res_schema),
                              GetBag());
   });
@@ -1388,16 +1396,17 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
                                             /*allow_missing=*/false);
                    }),
                    AssembleErrorMessage(_, {.ds = *this}));
-  // TODO: Use DataSlice::Create instead of verifying manually.
-  RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
   return expanded_this.VisitImpl(
       [&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
         ASSIGN_OR_RETURN(auto res_impl,
                          GetBag()->GetImpl().GetFromDict(
                              impl, keys_handler.GetValues().impl<T>(),
                              fb_finder.GetFlattenFallbacks()));
-        return DataSlice(std::move(res_impl), shape, std::move(res_schema),
-                         GetBag());
+        ASSIGN_OR_RETURN(
+            res_impl, AlignDataWithSchema(std::move(res_impl), GetSchemaImpl(),
+                                          res_schema));
+        return DataSlice::Create(std::move(res_impl), shape,
+                                 std::move(res_schema), GetBag());
       });
 }
 
@@ -1458,6 +1467,8 @@ absl::StatusOr<DataSlice> DataSlice::GetDictKeys() const {
         (auto [slice, edge]),
         GetBag()->GetImpl().GetDictKeys(impl, fb_finder.GetFlattenFallbacks()));
     ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({std::move(edge)}));
+    ASSIGN_OR_RETURN(slice, AlignDataWithSchema(std::move(slice),
+                                                GetSchemaImpl(), res_schema));
     return DataSlice::Create(std::move(slice), std::move(shape),
                              std::move(res_schema), GetBag());
   });
@@ -1480,6 +1491,8 @@ absl::StatusOr<DataSlice> DataSlice::GetDictValues() const {
                      GetBag()->GetImpl().GetDictValues(
                          impl, fb_finder.GetFlattenFallbacks()));
     ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({std::move(edge)}));
+    ASSIGN_OR_RETURN(slice, AlignDataWithSchema(std::move(slice),
+                                                GetSchemaImpl(), res_schema));
     return DataSlice::Create(std::move(slice), std::move(shape),
                              std::move(res_schema), GetBag());
   });
@@ -1508,8 +1521,6 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
                                             /*allow_missing=*/false);
                    }),
                    AssembleErrorMessage(_, {.ds = *this}));
-  // TODO: Use DataSlice::Create instead of verifying manually.
-  RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
   if (expanded_indices.present_count() == 0) {
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetBag());
   }
@@ -1519,16 +1530,22 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
     ASSIGN_OR_RETURN(auto res_impl, GetBag()->GetImpl().GetFromList(
                                         expanded_this.item(), index,
                                         fb_finder.GetFlattenFallbacks()));
-    return DataSlice(std::move(res_impl), shape, std::move(res_schema),
-                     GetBag());
+    ASSIGN_OR_RETURN(
+        res_impl,
+        AlignDataWithSchema(std::move(res_impl), GetSchemaImpl(), res_schema));
+    return DataSlice::Create(std::move(res_impl), shape, std::move(res_schema),
+                             GetBag());
   } else {
     ASSIGN_OR_RETURN(
         auto res_impl,
         GetBag()->GetImpl().GetFromLists(
             expanded_this.slice(), expanded_indices.slice().values<int64_t>(),
             fb_finder.GetFlattenFallbacks()));
-    return DataSlice(std::move(res_impl), shape, std::move(res_schema),
-                     GetBag());
+    ASSIGN_OR_RETURN(
+        res_impl,
+        AlignDataWithSchema(std::move(res_impl), GetSchemaImpl(), res_schema));
+    return DataSlice::Create(std::move(res_impl), shape, std::move(res_schema),
+                             GetBag());
   }
 }
 
@@ -1553,6 +1570,8 @@ absl::StatusOr<DataSlice> DataSlice::ExplodeList(
                        GetBag()->GetImpl().ExplodeList(
                            impl, internal::DataBagImpl::ListRange(start, stop),
                            fb_finder.GetFlattenFallbacks()));
+      ASSIGN_OR_RETURN(values, AlignDataWithSchema(std::move(values),
+                                                   GetSchemaImpl(), schema));
       auto shape = JaggedShape::FlatFromSize(values.size());
       return DataSlice::Create(std::move(values), std::move(shape),
                                std::move(schema), GetBag());
@@ -1561,6 +1580,8 @@ absl::StatusOr<DataSlice> DataSlice::ExplodeList(
                        GetBag()->GetImpl().ExplodeLists(
                            impl, internal::DataBagImpl::ListRange(start, stop),
                            fb_finder.GetFlattenFallbacks()));
+      ASSIGN_OR_RETURN(values, AlignDataWithSchema(std::move(values),
+                                                   GetSchemaImpl(), schema));
       ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({edge}));
       return DataSlice::Create(std::move(values), std::move(shape),
                                std::move(schema), GetBag());
@@ -1593,8 +1614,6 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
                          /*allow_missing=*/false);
                    }),
                    AssembleErrorMessage(_, {.ds = *this}));
-  // TODO: Use DataSlice::Create instead of verifying manually.
-  RETURN_IF_ERROR(AssertIsSliceSchema(res_schema));
   if (expanded_indices.present_count() == 0) {
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetBag());
   }
@@ -1603,15 +1622,21 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
     int64_t index = expanded_indices.item().value<int64_t>();
     ASSIGN_OR_RETURN(auto res_impl,
                      db_mutable_impl.PopFromList(expanded_this.item(), index));
-    return DataSlice(std::move(res_impl), shape, std::move(res_schema),
-                     GetBag());
+    ASSIGN_OR_RETURN(
+        res_impl,
+        AlignDataWithSchema(std::move(res_impl), GetSchemaImpl(), res_schema));
+    return DataSlice::Create(std::move(res_impl), shape, std::move(res_schema),
+                             GetBag());
   } else {
     ASSIGN_OR_RETURN(
         auto res_impl,
         db_mutable_impl.PopFromLists(
             expanded_this.slice(), expanded_indices.slice().values<int64_t>()));
-    return DataSlice(std::move(res_impl), shape, std::move(res_schema),
-                     GetBag());
+    ASSIGN_OR_RETURN(
+        res_impl,
+        AlignDataWithSchema(std::move(res_impl), GetSchemaImpl(), res_schema));
+    return DataSlice::Create(std::move(res_impl), shape, std::move(res_schema),
+                             GetBag());
   }
 }
 

@@ -303,13 +303,14 @@ class ObjTest(absltest.TestCase):
         obj[:].get_attr('__schema__').get_attr('__items__').no_bag(),
         ds([schema_constants.OBJECT, schema_constants.OBJECT]),
     )
-    # TODO: Cannot access obj[:][:] because we have a mixed slice
-    # with FLOAT32 common schema.
     testing.assert_equal(
         obj[0][:].no_bag(), ds([1, 2], schema_constants.OBJECT)
     )
     testing.assert_equal(
         obj[1][:].no_bag(), ds([3.14], schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        obj[:][:].no_bag(), ds([[1, 2], [3.14]], schema_constants.OBJECT)
     )
 
     obj = fns.obj([[1, 2], ['xyz']])

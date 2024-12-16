@@ -70,29 +70,19 @@ class SchemaCastToTest(parameterized.TestCase):
     self.assertNotEqual(result.x.db.fingerprint, bag1.fingerprint)
     self.assertNotEqual(result.x.db.fingerprint, schema.get_bag().fingerprint)
 
-  def test_adoption_conflict(self):
+  def test_casting_conflict(self):
     bag1 = data_bag.DataBag.empty()
     bag2 = data_bag.DataBag.empty()
     entity = bag1.new(x=1)
     schema = entity.get_schema().with_db(bag2)
     schema.x = schema_constants.FLOAT32
     result = expr_eval.eval(kde.schema.cast_to(entity, schema))
-    testing.assert_equal(
-        result.x.no_db().internal_as_arolla_value(), arolla.int32(1)
-    )
-    testing.assert_equal(
-        result.x.no_db().get_schema(), schema_constants.FLOAT32
-    )
-    testing.assert_equal(
-        result.no_db(), entity.no_db().with_schema(schema.no_db())
-    )
-    self.assertNotEqual(result.x.db.fingerprint, bag1.fingerprint)
-    self.assertNotEqual(result.x.db.fingerprint, bag2.fingerprint)
-    # Sanity check: should be the same as with_schema.
-    testing.assert_equal(
-        expr_eval.eval(kde.schema.cast_to(entity, schema)).no_db(),
-        entity.with_schema(schema).no_db(),
-    )
+    with self.assertRaisesRegex(
+        ValueError,
+        "FLOAT32 schema can only be assigned to a DataSlice that contains only"
+        " primitives of FLOAT32",
+    ):
+      _ = result.x
 
   def test_entity_to_object_casting_error(self):
     db = data_bag.DataBag.empty()
