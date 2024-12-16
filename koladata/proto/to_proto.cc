@@ -29,6 +29,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/trampoline_executor.h"
@@ -239,7 +240,7 @@ absl::Status FillProtoRepeatedMessageField(
     return absl::InvalidArgumentError(
         absl::StrFormat("proto repeated message field %s expected Koda "
                         "DataSlice to contain only Lists but got %s",
-                        field_descriptor.name(), arolla::Repr(attr_slice)));
+                        field_descriptor.name(), DataSliceRepr(attr_slice)));
   }
 
   ASSIGN_OR_RETURN(DataSlice items, ops::Explode(attr_slice, 1));
@@ -267,14 +268,14 @@ absl::Status FillProtoRepeatedPrimitiveField(
     return absl::InvalidArgumentError(
         absl::StrFormat("proto repeated primitive field %s expected Koda "
                         "DataSlice to contain only Lists but got %s",
-                        field_descriptor.name(), arolla::Repr(attr_slice)));
+                        field_descriptor.name(), DataSliceRepr(attr_slice)));
   }
 
   ASSIGN_OR_RETURN(DataSlice items, ops::Explode(attr_slice, 1));
   if (items.present_count() != items.size()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "proto repeated field %s cannot represent missing values, but got %s",
-        field_descriptor.name(), arolla::Repr(items)));
+        field_descriptor.name(), DataSliceRepr(items)));
   }
   const auto& splits = items.GetShape().edges().back().edge_values().values;
   return CallWithPrimitiveFieldCppType(
@@ -412,7 +413,8 @@ absl::Status FillProtoMapField(
   if (!attr_slice.IsDict()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "proto map field %s expected Koda DataSlice to contain only Dicts but "
-        "got %s", field_descriptor.name(), arolla::Repr(attr_slice)));
+        "got %s",
+        field_descriptor.name(), DataSliceRepr(attr_slice)));
   }
 
   ASSIGN_OR_RETURN(DataSlice keys, attr_slice.GetDictKeys());

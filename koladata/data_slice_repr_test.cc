@@ -1386,5 +1386,37 @@ TEST(DataSliceReprTest, DataSliceRepr) {
   }
 }
 
+TEST(DataSliceReprTest, DataSliceRepr_ShowAttribute) {
+  auto db = DataBag::Empty();
+
+  auto value_1 = test::DataSlice<int>({1, 2});
+  ASSERT_OK_AND_ASSIGN(DataSlice entity,
+                       EntityCreator::FromAttrs(db, {"a"}, {value_1}));
+  ASSERT_OK_AND_ASSIGN(DataSlice entity_2,
+                       EntityCreator::FromAttrs(db, {"b"}, {entity}));
+
+  EXPECT_THAT(DataSliceRepr(entity_2, {.show_attributes = true,
+                                       .show_databag_id = false,
+                                       .show_shape = false}),
+              Eq("DataSlice([Entity(b=Entity(a=1)), Entity(b=Entity(a=2))], "
+                 "schema: SCHEMA(b=SCHEMA(a=INT32)), ndims: 1)"));
+}
+
+TEST(DataSliceReprTest, DataSliceRepr_ShowAttrsOnLargeEntity) {
+  auto db = DataBag::Empty();
+
+  auto value_1 = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::FromAttrs(db, {"a", "b"}, {value_1, value_1}));
+  EXPECT_THAT(DataSliceRepr(entity, {.item_limit = 2,
+                                     .item_limit_per_dimension = 2,
+                                     .show_attributes = true,
+                                     .show_databag_id = false,
+                                     .show_shape = false}),
+              Eq("DataSlice(attrs: [a, b], schema: SCHEMA(a=INT32, b=INT32), "
+                 "ndims: 1)"));
+}
+
 }  // namespace
 }  // namespace koladata

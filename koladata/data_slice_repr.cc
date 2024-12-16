@@ -264,9 +264,28 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
                                           const ReprOption& option,
                                           WrappingBehavior& wrapping);
 
-std::string DataSliceItemRepr(
-    const DataItem& item, const DataItem& schema,
-    const ReprOption& option, WrappingBehavior& wrapping) {
+// A helper function to convert low-level DataItem to string.
+absl::StatusOr<std::string> DataItemToStr(const DataItem& item,
+                                          const DataItem& schema,
+                                          const DataBagPtr& bag,
+                                          const ReprOption& option,
+                                          WrappingBehavior& wrapping) {
+  ASSIGN_OR_RETURN(DataSlice item_slice, DataSlice::Create(item, schema, bag));
+  return DataItemToStr(item_slice, option, wrapping);
+}
+
+std::string DataSliceItemRepr(const DataItem& item, const DataItem& schema,
+                              const DataBagPtr& bag, const ReprOption& option,
+                              WrappingBehavior& wrapping) {
+  if (option.show_attributes) {
+    ReprOption next_option = option;
+    // Show quotes on Text for non item slice.
+    next_option.strip_quotes = false;
+    if (auto content = DataItemToStr(item, schema, bag, next_option, wrapping);
+        content.ok()) {
+      return std::move(content.value());
+    }
+  }
   if (item.holds_value<ObjectId>()) {
     const ObjectId& obj = item.value<ObjectId>();
     if (schema == schema::kItemId) {
@@ -319,8 +338,9 @@ std::string DataSliceImplToStr(const DataSlice& ds, const ReprOption& option,
       std::vector<std::string> result;
       result.reserve(included_groups.size());
       for (int64_t group : included_groups) {
-        result.push_back(DataSliceItemRepr(
-            ds.slice()[group], ds.GetSchemaImpl(), option, wrapping));
+        result.push_back(DataSliceItemRepr(ds.slice()[group],
+                                           ds.GetSchemaImpl(), ds.GetBag(),
+                                           option, wrapping));
       }
       total_item_limit -= result.size();
       DCHECK_GE(total_item_limit, 0);
@@ -682,30 +702,51 @@ absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds,
   });
 }
 
-std::string DataSliceRepr(const DataSlice& ds) {
+// Returns the string representation of the attribute names of the DataSlice.
+// Returns empty string if failed to get the attribute names.
+std::string AttrNamesOrEmpty(const DataSlice& ds) {
+  if (auto attr_names = ds.GetAttrNames(/*union_object_attrs=*/true);
+      attr_names.ok()) {
+    return absl::StrCat("[", absl::StrJoin(*attr_names, ", "), "]");
+  }
+  return "";
+}
+
+std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
   std::string result;
   absl::StrAppend(&result, ds.is_item() ? "DataItem(" : "DataSlice(");
-  if (auto content = DataSliceToStr(ds); content.ok()) {
+  const DataItem& schema = ds.GetSchemaImpl();
+  bool only_print_attr_names =
+      (schema.is_entity_schema() || schema.is_object_schema()) &&
+      ds.size() >= option.item_limit;
+  // If the data slice is too large, we will not print the
+  // whole data slice.
+  if (only_print_attr_names) {
+    absl::StrAppend(&result, "attrs: ", AttrNamesOrEmpty(ds));
+  } else if (auto content = DataSliceToStr(ds, option); content.ok()) {
     absl::StrAppend(&result, *content);
   } else {
     ds.VisitImpl(
         [&](const auto& impl) { return absl::StrAppend(&result, impl); });
   }
   absl::StrAppend(&result, ", schema: ");
-  if (auto schema = DataSliceToStr(ds.GetSchema()); schema.ok()) {
+  if (auto schema = DataSliceToStr(ds.GetSchema(), option); schema.ok()) {
     absl::StrAppend(&result, *schema);
   } else {
     absl::StrAppend(&result, ds.GetSchemaImpl());
   }
   if (!ds.is_item()) {
-    absl::StrAppend(&result, ", shape: ", arolla::Repr(ds.GetShape()));
+    if (option.show_shape) {
+      absl::StrAppend(&result, ", shape: ", arolla::Repr(ds.GetShape()));
+    } else {
+      absl::StrAppend(&result, ", ndims: ", ds.GetShape().rank());
+    }
   }
-  if (ds.GetBag() != nullptr) {
+  if (option.show_databag_id && ds.GetBag() != nullptr) {
     absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(ds.GetBag()));
   }
   absl::StrAppend(&result, ")");
   return result;
 }
-
 
 }  // namespace koladata

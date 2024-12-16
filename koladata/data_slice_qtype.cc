@@ -61,7 +61,9 @@ void FingerprintHasherTraits<DataSlice>::operator()(FingerprintHasher* hasher,
 }
 
 ReprToken ReprTraits<DataSlice>::operator()(const DataSlice& value) const {
-  return ReprToken{DataSliceRepr(value)};
+  return ReprToken{DataSliceRepr(value, {.show_attributes = true,
+                                         .show_databag_id = false,
+                                         .show_shape = false})};
 }
 
 }  // namespace arolla

@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/testing/matchers.h"
 #include "arolla/jagged_shape/testing/matchers.h"
 #include "arolla/util/repr.h"
@@ -38,17 +39,17 @@ class DataSliceEquivalentMatcher {
   bool MatchAndExplain(const DataSlice& slice,
                        ::testing::MatchResultListener* listener) const {
     bool is_equivalent = slice.IsEquivalentTo(expected_slice_);
-    *listener << arolla::Repr(slice)
+    *listener << DataSliceRepr(slice)
               << (is_equivalent ? " which is equivalent"
                                 : " which is not equivalent");
     return is_equivalent;
   }
 
   void DescribeTo(::std::ostream* os) const {
-    *os << "is equivalent to " << arolla::Repr(expected_slice_);
+    *os << "is equivalent to " << DataSliceRepr(expected_slice_);
   }
   void DescribeNegationTo(::std::ostream* os) const {
-    *os << "is not equivalent to " << arolla::Repr(expected_slice_);
+    *os << "is not equivalent to " << DataSliceRepr(expected_slice_);
   }
 
  private:
@@ -79,7 +80,7 @@ namespace koladata {
 
 // go/gunitadvanced#teaching-googletest-how-to-print-your-values.
 inline void PrintTo(const DataSlice& slice, std::ostream* os) {
-  *os << arolla::Repr(slice);
+  *os << DataSliceRepr(slice);
 }
 
 }  // namespace koladata

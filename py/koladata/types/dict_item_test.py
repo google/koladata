@@ -85,7 +85,6 @@ class DictItemTest(parameterized.TestCase):
         ds(False),
         db.dict({1: 2}),
     ]
-    bag_id = '$' + str(db.fingerprint)[-4:]
     for key, value in itertools.product(py_keys, py_values):
       d = db.dict({key: value})
       key_str = str(key)
@@ -96,8 +95,7 @@ class DictItemTest(parameterized.TestCase):
       self.assertEqual(
           repr(d),
           f'DataItem(Dict{{{key_str}={value_str}}}, schema:'
-          f' DICT{{{str(key.get_schema())}, {str(value.get_schema())}}},'
-          f' bag_id: {bag_id})',
+          f' DICT{{{str(key.get_schema())}, {str(value.get_schema())}}})',
       )
 
   def test_len(self):

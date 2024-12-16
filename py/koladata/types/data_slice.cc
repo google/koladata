@@ -635,7 +635,8 @@ PyObject* PyDataSlice_str_with_options(
 }
 
 PyObject* PyDataSlice_str(PyObject* self) {
-  return PyDataSlice_str_with_options(self, ReprOption{.strip_quotes = true});
+  return PyDataSlice_str_with_options(
+      self, ReprOption{.strip_quotes = true, .show_attributes = true});
 }
 
 PyObject* PyDataSlice_html_str(PyObject* self, PyObject* const* args,

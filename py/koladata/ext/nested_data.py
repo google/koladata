@@ -77,9 +77,9 @@ def selected_path_update(
 
   if selection_ds.get_shape() != slices[-1].get_shape():
     raise ValueError(
-        f'The selection_ds {selection_ds!r} does not match the shape of the '
-        f'slice at {selection_ds_path}: {selection_ds.get_shape()} != '
-        f'{slices[-1].get_shape()}'
+        f'the selection_ds {selection_ds._debug_repr()} does not match the'  # pylint: disable=protected-access
+        f' shape of the slice at {selection_ds_path}:'
+        f' {selection_ds.get_shape()} != {slices[-1].get_shape()}'
     )
   if not any(attr_is_list):
     raise ValueError(

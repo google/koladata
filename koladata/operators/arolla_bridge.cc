@@ -37,6 +37,7 @@
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/utils.h"
@@ -274,7 +275,7 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
     const DataSlice& x) {
   auto create_error = [&](absl::string_view message) {
     return absl::InvalidArgumentError(
-        absl::StrCat(message, ": ", arolla::Repr(x)));
+        absl::StrCat(message, ": ", DataSliceRepr(x)));
   };
 
   const auto& schema = x.GetSchemaImpl();

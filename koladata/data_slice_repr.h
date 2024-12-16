@@ -42,6 +42,13 @@ struct ReprOption {
   bool format_html = false;
   // Maximum length of repr string to show for text and bytes if non negative.
   int32_t unbounded_type_max_len = -1;
+  // When true, show the attributes of the entity/object in non DataItem
+  // DataSlice.
+  bool show_attributes = false;
+  // When true, the repr will show the databag id.
+  bool show_databag_id = true;
+  // When true, the repr will show the shape, otherwise only show ndims.
+  bool show_shape = true;
 };
 
 // Returns the string for python __str__.
@@ -49,7 +56,8 @@ absl::StatusOr<std::string> DataSliceToStr(
     const DataSlice& ds, const ReprOption& option = ReprOption{});
 
 // Returns the string for python __repr__ and arolla::Repr.
-std::string DataSliceRepr(const DataSlice& ds);
+std::string DataSliceRepr(const DataSlice& ds,
+                          const ReprOption& option = ReprOption{});
 
 }  // namespace koladata
 

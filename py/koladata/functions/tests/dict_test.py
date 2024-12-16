@@ -131,7 +131,7 @@ class DictTest(parameterized.TestCase):
   def test_repr(self):
     self.assertRegex(
         repr(fns.dict({'a': 1, 'b': 2})),
-        r'DataItem\(.*, schema: .*, bag_id: .*\)',
+        r'DataItem\(.*, schema: .*\)',
     )
 
   def test_adopt_values(self):

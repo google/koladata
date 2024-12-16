@@ -31,6 +31,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -249,12 +250,12 @@ absl::StatusOr<DataSlice> UuidsWithAllocationSize(const DataSlice& seed,
   absl::string_view seed_value = seed.item().value<arolla::Text>();
   if (!size.is_item()) {
     return absl::InvalidArgumentError(absl::StrFormat(
-        "requires size to be a scalar, got %s", arolla::Repr(size)));
+        "requires size to be a scalar, got %s", DataSliceRepr(size)));
   }
   absl::StatusOr<DataSlice> casted_size = ToInt64(size);
   if (!casted_size.ok()) {
     return absl::InvalidArgumentError(absl::StrFormat(
-        "requires size to be castable to int64, got %s", arolla::Repr(size)));
+        "requires size to be castable to int64, got %s", DataSliceRepr(size)));
   }
   const int64_t size_value = casted_size->item().value<int64_t>();
   return koladata::CreateUuidsWithAllocationSize(seed_value, size_value);

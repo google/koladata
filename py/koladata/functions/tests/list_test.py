@@ -101,9 +101,7 @@ class ListTest(parameterized.TestCase):
     testing.assert_equal(l.get_bag(), db)
 
   def test_repr(self):
-    self.assertRegex(
-        repr(fns.list([1, 2, 3])), r'DataItem\(.*, schema: .*, bag_id: .*\)'
-    )
+    self.assertRegex(repr(fns.list([1, 2, 3])), r'DataItem\(.*, schema: .*\)')
 
   def test_adopt_values(self):
     lst = fns.list(ds([[1, 2], [3]]))

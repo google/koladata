@@ -5172,10 +5172,7 @@ TEST(DataSliceTest, Repr) {
   auto db = DataBag::Empty();
   auto ds = test::DataItem(1, db);
   EXPECT_THAT(arolla::Repr(ds),
-              Eq(absl::StrFormat(
-                  "DataItem(1, schema: INT32, bag_id: $%s)",
-                  TypedValue::FromValue(db).GetFingerprint().AsString().substr(
-                      32 - 4))));
+              Eq(absl::StrFormat("DataItem(1, schema: INT32)")));
 }
 
 TEST(DataSliceCastingTest, ToIn64_Entity) {

@@ -22,12 +22,12 @@
 #include "absl/strings/string_view.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/utils.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/schema_utils.h"
-#include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -186,7 +186,7 @@ absl::StatusOr<DataSlice> AggInverseCdf(const DataSlice& x,
         "kde.math.agg_inverse_cdf",
         absl::StrFormat("expected `cdf_arg` argument to contain a scalar float "
                         "value, got %s",
-                        arolla::Repr(cdf_arg)));
+                        DataSliceRepr(cdf_arg)));
   }
 
   return SimpleAggIntoEval("math.inverse_cdf", {x, cdf_arg},

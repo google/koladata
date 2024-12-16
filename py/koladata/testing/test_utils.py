@@ -197,8 +197,9 @@ def _assert_equal_shape(
       actual_value.get_shape(),
       expected_value.get_shape(),
       msg=(
-          f'{actual_value!r} and {expected_value!r} have different shapes\n\n'
-          f'  {actual_value.get_shape()} != {expected_value.get_shape()}'
+          f'{actual_value._debug_repr()} and'  # pylint: disable=protected-access
+          f' {expected_value._debug_repr()} have different shapes\n\n '  # pylint: disable=protected-access
+          f' {actual_value.get_shape()} != {expected_value.get_shape()}'
       ),
   )
 
@@ -211,8 +212,9 @@ def _assert_equal_schema(
       actual_value.get_schema().no_bag(),
       expected_value.get_schema().no_bag(),
       msg=(
-          f'{actual_value!r} and {expected_value!r} have different schemas\n\n'
-          f'  {actual_value.get_schema()} != {expected_value.get_schema()}'
+          f'{actual_value._debug_repr()} and'  # pylint: disable=protected-access
+          f' {expected_value._debug_repr()} have different schemas\n\n '  # pylint: disable=protected-access
+          f' {actual_value.get_schema()} != {expected_value.get_schema()}'
       ),
   )
 
@@ -267,7 +269,9 @@ def _expect_dicts(dicts: _data_slice.DataSlice):
     _expect_data_slice(dicts)
     _ = dicts.get_keys()
   except ValueError:
-    raise AssertionError(f'expected Koda Dicts, got {dicts!r}') from None
+    raise AssertionError(
+        f'expected Koda Dicts, got {dicts._debug_repr()}'  # pylint: disable=protected-access
+    ) from None
 
 
 def assert_unordered_equal(
@@ -307,7 +311,8 @@ def assert_unordered_equal(
         not is_list and actual != expected
     ):
       raise AssertionError(
-          f'Unordered DataSlice {actual_value!r} != {expected_value!r}'
+          f'Unordered DataSlice {actual_value._debug_repr()} !='  # pylint: disable=protected-access
+          f' {expected_value._debug_repr()}'  # pylint: disable=protected-access
       )
 
 
