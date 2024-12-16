@@ -41,8 +41,6 @@ constraints = arolla.optools.constraints
 # Implemented in schema.py to avoid a dependency cycle.
 collapse = schema_ops._collapse  # pylint: disable=protected-access
 
-_AGG_UUID_MISSING_VALUE_REPLACEMENT = '__empty_input_to_uuid__'
-
 
 @arolla.optools.add_to_registry()
 @arolla.optools.as_lambda_operator('kde.core._add_impl')
@@ -1709,38 +1707,6 @@ def agg_count(x, ndim=arolla.unspecified()):
   )
 
 
-@optools.as_backend_operator(
-    'kde.core._agg_uuid', qtype_inference_expr=qtypes.DATA_SLICE
-)
-def _agg_uuid(x):  # pylint: disable=unused-argument
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.agg_uuid'])
-@optools.as_lambda_operator(
-    'kde.core.agg_uuid',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
-    ],
-)
-def agg_uuid(x, ndim=arolla.unspecified()):
-  """Computes aggregated uuid of elements over the last `ndim` dimensions.
-
-  Args:
-    x: A DataSlice.
-    ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
-      get_ndim(x).
-
-  Returns:
-    DataSlice with that has `rank = rank - ndim` and shape: `shape =
-    shape[:-ndim]`.
-  """
-  x = jagged_shape_ops.flatten_last_ndim(x, ndim)
-  x = schema_ops.to_any(x) | _AGG_UUID_MISSING_VALUE_REPLACEMENT
-  return _agg_uuid(x)
-
-
 @optools.add_to_registry(aliases=['kde.cum_count'])
 @optools.as_lambda_operator(
     'kde.core.cum_count',
@@ -2660,39 +2626,6 @@ def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
   )(x, schema, overrides, optools.unified_non_deterministic_arg())
 
 
-@optools.as_backend_operator(
-    'kde.core._deep_uuid', qtype_inference_expr=qtypes.DATA_SLICE
-)
-def _deep_uuid(x, schema, seed):  # pylint: disable=unused-argument
-  """Creates a slice with a (deep) uuid of the given slice."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.deep_uuid'])
-@optools.as_unified_lambda_operator(
-    'kde.core.deep_uuid',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice_or_unspecified(P.schema),
-        qtype_utils.expect_data_slice(P.seed),
-    ],
-)
-def deep_uuid(x, /, schema=arolla.unspecified(), *, seed=''):
-  """Recursively computes uuid for x.
-
-  Args:
-    x: The slice to take uuid on.
-    schema: The schema to use to resolve '*' and '**' tokens. If not specified,
-      will use the schema of the 'x' DataSlice.
-    seed: The seed to use for uuid computation.
-
-  Returns:
-    Result of recursive uuid application `x`.
-  """
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
-  return _deep_uuid(x, schema, seed)
-
-
 @optools.add_to_registry(
     aliases=['kde.subslice'], repr_fn=op_repr.subslice_repr
 )
@@ -3100,58 +3033,6 @@ def updated_bag(*bags):  # pylint: disable=unused-argument
     An immutable DataBag updated by `bags`.
   """
   raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.encode_itemid'])
-@optools.as_backend_operator(
-    'kde.core.encode_itemid',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def encode_itemid(ds):  # pylint: disable=unused-argument
-  """Returns the base62 encoded ItemIds in `ds` as strings."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.decode_itemid'])
-@optools.as_backend_operator(
-    'kde.core.decode_itemid',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def decode_itemid(ds):  # pylint: disable=unused-argument
-  """Returns ItemIds decoded from the base62 strings."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.hash_itemid'])
-@optools.as_lambda_operator(
-    'kde.core.hash_itemid',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-)
-def hash_itemid(x):
-  """Returns a INT64 DataSlice of hash values of `x`.
-
-  The hash values are in the range of [-2**63, 2**63-1].
-
-  The hash algorithm is subject to change. It is not guaranteed to be stable in
-  future releases.
-
-  Args:
-    x: DataSlice of ItemIds.
-
-  Returns:
-    A DataSlice of INT64 hash values.
-  """
-  hash_value = M.random.cityhash(
-      arolla_bridge.to_arolla_dense_array_text(encode_itemid(x)),
-      arolla.int64(85852539),
-  )
-  return arolla_bridge.to_data_slice(hash_value, jagged_shape_ops.get_shape(x))
 
 
 @arolla.optools.as_backend_operator(

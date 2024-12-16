@@ -54,9 +54,9 @@ class CoreDeepUuidTest(parameterized.TestCase):
 
   def test_with_seed(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
-    res_no_seed = expr_eval.eval(kde.core.deep_uuid(x))
-    res_with_seed = expr_eval.eval(kde.core.deep_uuid(x, seed='seed'))
-    res_with_seed2 = expr_eval.eval(kde.core.deep_uuid(x, seed='seed2'))
+    res_no_seed = expr_eval.eval(kde.ids.deep_uuid(x))
+    res_with_seed = expr_eval.eval(kde.ids.deep_uuid(x, seed='seed'))
+    res_with_seed2 = expr_eval.eval(kde.ids.deep_uuid(x, seed='seed2'))
     self.assertNotEqual(res_no_seed, res_with_seed)
     self.assertNotEqual(res_with_seed2, res_with_seed)
 
@@ -66,7 +66,7 @@ class CoreDeepUuidTest(parameterized.TestCase):
         ValueError,
         'expected to have an entity schema in __schema__ attribute',
     ):
-      expr_eval.eval(kde.core.deep_uuid(x))
+      expr_eval.eval(kde.ids.deep_uuid(x))
 
   def test_no_bag_entity(self):
     x = bag().new(x=1, y=2).no_bag()
@@ -74,20 +74,20 @@ class CoreDeepUuidTest(parameterized.TestCase):
         ValueError,
         'cannot compute deep_uuid of entity slice without a DataBag',
     ):
-      expr_eval.eval(kde.core.deep_uuid(x))
+      expr_eval.eval(kde.ids.deep_uuid(x))
 
   def test_no_bag_objects_only_primitives(self):
     x = ds([1, None, 'foo']).no_bag()
     testing.assert_equal(x.get_schema(), schema_constants.OBJECT)
-    res_1 = expr_eval.eval(kde.core.deep_uuid(x))
-    res_2 = expr_eval.eval(kde.core.deep_uuid(x))
+    res_1 = expr_eval.eval(kde.ids.deep_uuid(x))
+    res_2 = expr_eval.eval(kde.ids.deep_uuid(x))
     testing.assert_equal(res_1, res_2)
 
   def test_no_bag_primitives(self):
     x = ds([1, None, 3]).no_bag()
     testing.assert_equal(x.get_schema(), schema_constants.INT32)
-    res_1 = expr_eval.eval(kde.core.deep_uuid(x))
-    res_2 = expr_eval.eval(kde.core.deep_uuid(x))
+    res_1 = expr_eval.eval(kde.ids.deep_uuid(x))
+    res_2 = expr_eval.eval(kde.ids.deep_uuid(x))
     testing.assert_equal(res_1, res_2)
 
   def test_seed_slice(self):
@@ -95,23 +95,23 @@ class CoreDeepUuidTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, r'seed can only be 0-rank schema slice, got: rank\(1\)'
     ):
-      expr_eval.eval(kde.core.deep_uuid(x, seed=ds(['a', 'b'])))
+      expr_eval.eval(kde.ids.deep_uuid(x, seed=ds(['a', 'b'])))
 
   def test_with_schema_and_seed(self):
     s = bag().new_schema(x=schema_constants.INT32)
     x = bag().obj(x=42, y='abc')
-    _ = expr_eval.eval(kde.core.deep_uuid(x, schema=s, seed='seed'))
+    _ = expr_eval.eval(kde.ids.deep_uuid(x, schema=s, seed='seed'))
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.deep_uuid(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.deep_uuid, kde.deep_uuid))
+    self.assertTrue(optools.equiv_to_op(kde.ids.deep_uuid, kde.deep_uuid))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.deep_uuid(I.x, schema=I.schema, seed=I.y)),
-        'kde.core.deep_uuid(I.x, I.schema, seed=I.y)',
+        repr(kde.ids.deep_uuid(I.x, schema=I.schema, seed=I.y)),
+        'kde.ids.deep_uuid(I.x, I.schema, seed=I.y)',
     )
 
 

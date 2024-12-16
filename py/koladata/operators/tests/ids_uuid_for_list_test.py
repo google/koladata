@@ -31,11 +31,7 @@ DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
 
 
-def _named_tuple(**kwargs):
-  return arolla.eval(M.namedtuple.make(**kwargs))
-
-
-class KodaUuidTest(parameterized.TestCase):
+class KodaUuidForListTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
@@ -64,8 +60,8 @@ class KodaUuidTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core.uuid(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core.uuid(seed=rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.ids.uuid_for_list(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.ids.uuid_for_list(seed=rhs_seed, **rhs_kwargs))
     testing.assert_equal(lhs, rhs)
 
   @parameterized.parameters(
@@ -83,25 +79,25 @@ class KodaUuidTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core.uuid(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core.uuid(seed=rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.ids.uuid_for_list(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.ids.uuid_for_list(seed=rhs_seed, **rhs_kwargs))
     self.assertNotEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_default_seed(self):
-    lhs = expr_eval.eval(kde.core.uuid(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core.uuid('', a=ds(1), b=ds(2)))
+    lhs = expr_eval.eval(kde.ids.uuid_for_list(a=ds(1), b=ds(2)))
+    rhs = expr_eval.eval(kde.ids.uuid_for_list('', a=ds(1), b=ds(2)))
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_no_args(self):
-    lhs = expr_eval.eval(kde.core.uuid())
-    rhs = expr_eval.eval(kde.core.uuid(''))
+    lhs = expr_eval.eval(kde.ids.uuid_for_list())
+    rhs = expr_eval.eval(kde.ids.uuid_for_list(''))
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'takes from 0 to 1 positional arguments but 2 were given'
     ):
-      _ = expr_eval.eval(kde.core.uuid(ds('1'), ds('a')))
+      _ = expr_eval.eval(kde.ids.uuid_for_list(ds('1'), ds('a')))
 
   @parameterized.parameters(
       (
@@ -121,8 +117,8 @@ class KodaUuidTest(parameterized.TestCase):
           0,
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
           (
-              r'argument `seed` must be an item holding STRING, got an item of'
-              r' INT32'
+              'argument `seed` must be an item holding STRING, got an item of'
+              ' INT32'
           ),
       ),
       (
@@ -139,7 +135,7 @@ class KodaUuidTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.core.uuid(seed=seed, **kwargs))
+      _ = expr_eval.eval(kde.ids.uuid_for_list(seed=seed, **kwargs))
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
@@ -147,25 +143,27 @@ class KodaUuidTest(parameterized.TestCase):
         'expected all arguments to be DATA_SLICE, got kwargs:'
         ' namedtuple<a=DATA_SLICE,b=UNSPECIFIED>',
     ):
-      _ = kde.core.uuid(
+      _ = kde.ids.uuid_for_list(
           a=ds(1),
           b=arolla.unspecified(),
       )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.uuid(seed=I.seed)))
+    self.assertTrue(view.has_koda_view(kde.ids.uuid_for_list(seed=I.seed)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.uuid, kde.uuid))
+    self.assertTrue(
+        optools.equiv_to_op(kde.ids.uuid_for_list, kde.uuid_for_list)
+    )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.uuid(I.seed, a=I.a)),
-        'kde.core.uuid(I.seed, a=I.a)',
+        repr(kde.ids.uuid_for_list(seed=I.seed, a=I.a)),
+        'kde.ids.uuid_for_list(I.seed, a=I.a)',
     )
     self.assertEqual(
-        repr(kde.core.uuid(seed=I.seed, a=I.a)),
-        'kde.core.uuid(I.seed, a=I.a)',
+        repr(kde.ids.uuid_for_list(I.seed, a=I.a)),
+        'kde.ids.uuid_for_list(I.seed, a=I.a)',
     )
 
 

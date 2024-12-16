@@ -62,10 +62,10 @@ class CoreUuidsWithAllocationSizeTest(parameterized.TestCase):
   )
   def test_equal(self, lhs_seed, lhs_size, rhs_seed, rhs_size):
     lhs = expr_eval.eval(
-        kde.core.uuids_with_allocation_size(seed=lhs_seed, size=lhs_size)
+        kde.ids.uuids_with_allocation_size(seed=lhs_seed, size=lhs_size)
     )
     rhs = expr_eval.eval(
-        kde.core.uuids_with_allocation_size(seed=rhs_seed, size=rhs_size)
+        kde.ids.uuids_with_allocation_size(seed=rhs_seed, size=rhs_size)
     )
     testing.assert_equal(lhs, rhs)
 
@@ -97,10 +97,10 @@ class CoreUuidsWithAllocationSizeTest(parameterized.TestCase):
   )
   def test_not_equal(self, lhs_seed, lhs_size, rhs_seed, rhs_size):
     lhs = expr_eval.eval(
-        kde.core.uuids_with_allocation_size(seed=lhs_seed, size=lhs_size)
+        kde.ids.uuids_with_allocation_size(seed=lhs_seed, size=lhs_size)
     )
     rhs = expr_eval.eval(
-        kde.core.uuids_with_allocation_size(seed=rhs_seed, size=rhs_size)
+        kde.ids.uuids_with_allocation_size(seed=rhs_seed, size=rhs_size)
     )
     self.assertNotEqual(lhs.no_bag().fingerprint, rhs.no_bag().fingerprint)
 
@@ -108,7 +108,7 @@ class CoreUuidsWithAllocationSizeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, re.escape("missing 1 required keyword-only argument: 'size'")
     ):
-      _ = expr_eval.eval(kde.core.uuids_with_allocation_size('foo'))
+      _ = expr_eval.eval(kde.ids.uuids_with_allocation_size('foo'))
 
   @parameterized.parameters(
       (
@@ -150,7 +150,7 @@ class CoreUuidsWithAllocationSizeTest(parameterized.TestCase):
         err_regex,
     ):
       _ = expr_eval.eval(
-          kde.core.uuids_with_allocation_size(seed=seed, size=size)
+          kde.ids.uuids_with_allocation_size(seed=seed, size=size)
       )
 
   def test_non_data_slice_binding(self):
@@ -158,7 +158,7 @@ class CoreUuidsWithAllocationSizeTest(parameterized.TestCase):
         ValueError,
         'expected DATA_SLICE, got size: UNSPECIFIED',
     ):
-      _ = kde.core.uuids_with_allocation_size(
+      _ = kde.ids.uuids_with_allocation_size(
           seed=ds('foo'),
           size=arolla.unspecified(),
       )
@@ -166,32 +166,32 @@ class CoreUuidsWithAllocationSizeTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.core.uuids_with_allocation_size(seed=I.seed, size=I.size)
+            kde.ids.uuids_with_allocation_size(seed=I.seed, size=I.size)
         )
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.core.uuids_with_allocation_size, kde.uuids_with_allocation_size
+            kde.ids.uuids_with_allocation_size, kde.uuids_with_allocation_size
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.uuids_with_allocation_size(seed='foo', size=I.size)),
-        "kde.core.uuids_with_allocation_size(DataItem('foo', schema:"
+        repr(kde.ids.uuids_with_allocation_size(seed='foo', size=I.size)),
+        "kde.ids.uuids_with_allocation_size(DataItem('foo', schema:"
         ' STRING), size=I.size)',
     )
     self.assertEqual(
-        repr(kde.core.uuids_with_allocation_size('foo', size=I.size)),
-        "kde.core.uuids_with_allocation_size(DataItem('foo', schema:"
+        repr(kde.ids.uuids_with_allocation_size('foo', size=I.size)),
+        "kde.ids.uuids_with_allocation_size(DataItem('foo', schema:"
         ' STRING), size=I.size)',
     )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.uuids_with_allocation_size,
+        kde.ids.uuids_with_allocation_size,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )

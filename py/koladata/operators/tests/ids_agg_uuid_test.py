@@ -54,7 +54,7 @@ class CoreAggUuidTest(parameterized.TestCase):
       (ds([[[1, 2], [3]], [[4], [5, None, 6]]]), 3),
   )
   def test_eval_shapes(self, x, ndim):
-    y = expr_eval.eval(kde.core.agg_uuid(I.x, ndim=ndim), x=x)
+    y = expr_eval.eval(kde.ids.agg_uuid(I.x, ndim=ndim), x=x)
     self.assertEqual(y.get_ndim(), x.get_ndim() - ndim)
     self.assertIsNone(y.get_bag())
     self.assertEqual(y.get_schema(), schema_constants.ITEMID)
@@ -69,13 +69,13 @@ class CoreAggUuidTest(parameterized.TestCase):
        ds([1, 2], schema=schema_constants.INT64), False),
   )
   def test_eval_equal(self, x, y, expected_equal):
-    is_equal = kde.core.agg_uuid(I.x) == kde.core.agg_uuid(I.y)
+    is_equal = kde.ids.agg_uuid(I.x) == kde.ids.agg_uuid(I.y)
     self.assertEqual(bool(expr_eval.eval(is_equal, x=x, y=y)), expected_equal)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.agg_uuid,
+            kde.ids.agg_uuid,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
@@ -85,7 +85,7 @@ class CoreAggUuidTest(parameterized.TestCase):
     self.assertTrue(view.has_koda_view(kde.core.list_size(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.agg_uuid, kde.agg_uuid))
+    self.assertTrue(optools.equiv_to_op(kde.ids.agg_uuid, kde.agg_uuid))
 
 
 if __name__ == '__main__':

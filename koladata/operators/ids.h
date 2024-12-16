@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_OPERATORS_CORE_UUID_H_
-#define KOLADATA_OPERATORS_CORE_UUID_H_
+#ifndef KOLADATA_OPERATORS_IDS_H_
+#define KOLADATA_OPERATORS_IDS_H_
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -23,15 +23,15 @@
 
 namespace koladata::ops {
 
-// kde.core._deep_uuid
+// kde.ids._deep_uuid
 absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
                                    const DataSlice& schema,
                                    const DataSlice& seed);
 
-// kde.core.agg_uuid operator.
+// kde.ids.agg_uuid operator.
 absl::StatusOr<DataSlice> AggUuid(const DataSlice& x);
 
-// kde.core.uuid operator.
+// kde.ids.uuid operator.
 // Creates a DataSlice whose items are Fingerprints identifying arguments
 class UuidOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
@@ -39,7 +39,7 @@ class UuidOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.core.uuid_for_list operator.
+// kde.ids.uuid_for_list operator.
 // Creates a DataSlice whose items are Fingerprints identifying arguments, used
 // for keying ListItems.
 class UuidForListOperatorFamily : public arolla::OperatorFamily {
@@ -48,7 +48,7 @@ class UuidForListOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.core.uuid_for_dict operator.
+// kde.ids.uuid_for_dict operator.
 // Creates a DataSlice whose items are Fingerprints identifying arguments, used
 // for keying DictItems.
 class UuidForDictOperatorFamily : public arolla::OperatorFamily {
@@ -57,11 +57,17 @@ class UuidForDictOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.core.uuids_with_allocation_size operator.
+// kde.ids.uuids_with_allocation_size operator.
 // Creates a DataSlice whose items are uuids that share the same allocation.
 absl::StatusOr<DataSlice> UuidsWithAllocationSize(const DataSlice& seed,
                                                   const DataSlice& size);
 
+// kde.ids.encode_itemid
+absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds);
+
+// kde.ids.decode_itemid
+absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds);
+
 }  // namespace koladata::ops
 
-#endif  // KOLADATA_OPERATORS_CORE_UUID_H_
+#endif  // KOLADATA_OPERATORS_IDS_H_

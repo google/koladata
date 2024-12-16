@@ -44,7 +44,6 @@
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "koladata/data_slice_op.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/extract_utils.h"
 #include "koladata/internal/data_bag.h"
@@ -59,7 +58,6 @@
 #include "koladata/internal/op_utils/deep_clone.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/inverse_select.h"
-#include "koladata/internal/op_utils/itemid.h"
 #include "koladata/internal/op_utils/reverse.h"
 #include "koladata/internal/op_utils/select.h"
 #include "koladata/internal/op_utils/utils.h"
@@ -1347,30 +1345,6 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
                            std::move(split_points_builder).Build())}));
   return DataSlice::Create(*std::move(res_impl), std::move(new_shape),
                            x.GetSchemaImpl(), x.GetBag());
-}
-
-absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds) {
-  ASSIGN_OR_RETURN(auto res,
-                   DataSliceOp<internal::EncodeItemId>()(
-                       ds, ds.GetShape(), internal::DataItem(schema::kString),
-                       /*db=*/nullptr),
-                   internal::OperatorEvalError(
-                       std::move(_), "kd.encode_itemid",
-                       absl::StrFormat("only ItemIds can be encoded, got %v",
-                                       ds.GetSchemaImpl())));
-  return std::move(res);
-}
-
-absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds) {
-  ASSIGN_OR_RETURN(auto res,
-                   DataSliceOp<internal::DecodeItemId>()(
-                       ds, ds.GetShape(), internal::DataItem(schema::kItemId),
-                       /*db=*/nullptr),
-                   internal::OperatorEvalError(
-                       std::move(_), "kd.decode_itemid",
-                       absl::StrFormat("only STRING can be decoded, got %v",
-                                       ds.GetSchemaImpl())));
-  return std::move(res);
 }
 
 absl::StatusOr<DataSlice> Follow(const DataSlice& ds) {

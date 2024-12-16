@@ -8,26 +8,27 @@ DataSlice, DataBag, etc.).
 
 [TOC]
 
-Category                         | Subcategory                  | Description
--------------------------------- | ---------------------------- | -----------
-[kd](#kd_category)               |                              | `kd` and `kde` operators
-                                 | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
-                                 | [annotation](#kd.annotation) | Annotation operators.
-                                 | [assertion](#kd.assertion)   | Operators that assert properties of DataSlices.
-                                 | [comparison](#kd.comparison) | Operators that compare DataSlices.
-                                 | [core](#kd.core)             | Core operators that are not part of other categories.
-                                 | [functor](#kd.functor)       | Operators to create and call functors.
-                                 | [masking](#kd.masking)       | Masking operators.
-                                 | [math](#kd.math)             | Arithmetic operators.
-                                 | [py](#kd.py)                 | Operators that call Python functions.
-                                 | [random](#kd.random)         | Random and sampling operators.
-                                 | [schema](#kd.schema)         | Schema-related operators.
-                                 | [shapes](#kd.shapes)         | Operators that work on shapes
-                                 | [strings](#kd.strings)       | Operators that work with strings data.
-                                 | [tuple](#kd.tuple)           | Operators to create tuples.
-[kd_ext](#kd_ext_category)       |                              | `kd_ext` operators
-[DataSlice](#DataSlice_category) |                              | `DataSlice` methods
-[DataBag](#DataBag_category)     |                              | `DataBag` methods
+Category  | Subcategory | Description
+--------- | ----------- | ------------
+[kd](#kd_category) | | `kd` and `kde` operators
+ | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
+ | [annotation](#kd.annotation) | Annotation operators.
+ | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
+ | [comparison](#kd.comparison) | Operators that compare DataSlices.
+ | [core](#kd.core) | Core operators that are not part of other categories.
+ | [functor](#kd.functor) | Operators to create and call functors.
+ | [ids](#kd.ids) | Operators that work with ItemIds.
+ | [masking](#kd.masking) | Masking operators.
+ | [math](#kd.math) | Arithmetic operators.
+ | [py](#kd.py) | Operators that call Python functions.
+ | [random](#kd.random) | Random and sampling operators.
+ | [schema](#kd.schema) | Schema-related operators.
+ | [shapes](#kd.shapes) | Operators that work on shapes
+ | [strings](#kd.strings) | Operators that work with strings data.
+ | [tuple](#kd.tuple) | Operators to create tuples.
+[kd_ext](#kd_ext_category) | | `kd_ext` operators
+[DataSlice](#DataSlice_category) | | `DataSlice` methods
+[DataBag](#DataBag_category) | | `DataBag` methods
 
 ## `kd` and `kde` operators {#kd_category}
 
@@ -525,24 +526,6 @@ Returns:
   A DataSlice of number of items in `x` over the last `ndim` dimensions.
 ```
 
-### `kd.core.agg_uuid(x, ndim=unspecified)` {#kd.core.agg_uuid}
-Aliases:
-
-- [kd.agg_uuid](#kd.agg_uuid)
-
-``` {.no-copy}
-Computes aggregated uuid of elements over the last `ndim` dimensions.
-
-Args:
-  x: A DataSlice.
-  ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
-    get_ndim(x).
-
-Returns:
-  DataSlice with that has `rank = rank - ndim` and shape: `shape =
-  shape[:-ndim]`.
-```
-
 ### `kd.core.align(*args)` {#kd.core.align}
 Aliases:
 
@@ -840,15 +823,6 @@ Returns:
   A DataSlice of INT64 with the same shape and sparsity as `x`.
 ```
 
-### `kd.core.decode_itemid(ds)` {#kd.core.decode_itemid}
-Aliases:
-
-- [kd.decode_itemid](#kd.decode_itemid)
-
-``` {.no-copy}
-Returns ItemIds decoded from the base62 strings.
-```
-
 ### `kd.core.deep_clone(x, /, schema=unspecified, **overrides)` {#kd.core.deep_clone}
 Aliases:
 
@@ -877,24 +851,6 @@ Returns:
   A (deep) copy of the given DataSlice.
   All referenced entities will be copied with newly allocated ItemIds. Note
   that UUIDs will be copied as ItemIds.
-```
-
-### `kd.core.deep_uuid(x, /, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#kd.core.deep_uuid}
-Aliases:
-
-- [kd.deep_uuid](#kd.deep_uuid)
-
-``` {.no-copy}
-Recursively computes uuid for x.
-
-Args:
-  x: The slice to take uuid on.
-  schema: The schema to use to resolve '*' and '**' tokens. If not specified,
-    will use the schema of the 'x' DataSlice.
-  seed: The seed to use for uuid computation.
-
-Returns:
-  Result of recursive uuid application `x`.
 ```
 
 ### `kd.core.dense_rank(x, descending=DataItem(False, schema: BOOLEAN), ndim=unspecified)` {#kd.core.dense_rank}
@@ -1152,15 +1108,6 @@ Creates a DataSlice of missing items with the shape of `shape_from`.
 
   Returns:
     A DataSlice with the shape of the given DataSlice.
-```
-
-### `kd.core.encode_itemid(ds)` {#kd.core.encode_itemid}
-Aliases:
-
-- [kd.encode_itemid](#kd.encode_itemid)
-
-``` {.no-copy}
-Returns the base62 encoded ItemIds in `ds` as strings.
 ```
 
 ### `kd.core.enriched(ds, *bag)` {#kd.core.enriched}
@@ -1751,26 +1698,6 @@ Args:
 
 Returns:
   A MASK DataSlice with the same shape as `x`.
-```
-
-### `kd.core.hash_itemid(x)` {#kd.core.hash_itemid}
-Aliases:
-
-- [kd.hash_itemid](#kd.hash_itemid)
-
-``` {.no-copy}
-Returns a INT64 DataSlice of hash values of `x`.
-
-The hash values are in the range of [-2**63, 2**63-1].
-
-The hash algorithm is subject to change. It is not guaranteed to be stable in
-future releases.
-
-Args:
-  x: DataSlice of ItemIds.
-
-Returns:
-  A DataSlice of INT64 hash values.
 ```
 
 ### `kd.core.implode(x, /, ndim=1, db=None)` {#kd.core.implode}
@@ -2882,7 +2809,7 @@ Returns:
   this will refer to a merged immutable DataBag.
 ```
 
-### `kd.core.stub(x, attrs=DataSlice([], schema: OBJECT, shape: JaggedShape(0)))` {#kd.core.stub}
+### `kd.core.stub(x, attrs=DataSlice([], schema: OBJECT, ndims: 1, size: 0))` {#kd.core.stub}
 Aliases:
 
 - [kd.stub](#kd.stub)
@@ -3223,93 +3150,6 @@ Creates UuEntities with given attrs.
 
   Returns:
     data_slice.DataSlice with the given attrs.
-```
-
-### `kd.core.uuid(seed=DataItem('', schema: STRING), **kwargs)` {#kd.core.uuid}
-Aliases:
-
-- [kd.uuid](#kd.uuid)
-
-``` {.no-copy}
-Creates a DataSlice whose items are Fingerprints identifying arguments.
-
-Args:
-  seed: text seed for the uuid computation.
-  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
-    values must be alignable.
-
-Returns:
-  DataSlice of Uuids. The i-th uuid is computed by taking the i-th (aligned)
-  item from each kwarg value.
-```
-
-### `kd.core.uuid_for_dict(seed=DataItem('', schema: STRING), **kwargs)` {#kd.core.uuid_for_dict}
-Aliases:
-
-- [kd.uuid_for_dict](#kd.uuid_for_dict)
-
-``` {.no-copy}
-Creates a DataSlice whose items are Fingerprints identifying arguments.
-
-To be used for keying dict items.
-
-e.g.
-
-kd.dict(['a', 'b'], [1, 2], itemid=kd.uuid_for_dict(seed='seed', a=ds(1)))
-
-Args:
-  seed: text seed for the uuid computation.
-  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
-    values must be alignable.
-
-Returns:
-  DataSlice of Uuids. The i-th uuid is computed by taking the i-th (aligned)
-  item from each kwarg value.
-```
-
-### `kd.core.uuid_for_list(seed=DataItem('', schema: STRING), **kwargs)` {#kd.core.uuid_for_list}
-Aliases:
-
-- [kd.uuid_for_list](#kd.uuid_for_list)
-
-``` {.no-copy}
-Creates a DataSlice whose items are Fingerprints identifying arguments.
-
-To be used for keying list items.
-
-e.g.
-
-kd.list([1, 2, 3], itemid=kd.uuid_for_list(seed='seed', a=ds(1)))
-
-Args:
-  seed: text seed for the uuid computation.
-  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
-    values must be alignable.
-
-Returns:
-  DataSlice of Uuids. The i-th uuid is computed by taking the i-th (aligned)
-  item from each kwarg value.
-```
-
-### `kd.core.uuids_with_allocation_size(seed=DataItem('', schema: STRING), *, size)` {#kd.core.uuids_with_allocation_size}
-Aliases:
-
-- [kd.uuids_with_allocation_size](#kd.uuids_with_allocation_size)
-
-``` {.no-copy}
-Creates a DataSlice whose items are uuids.
-
-The uuids are allocated in a single allocation. They are all distinct.
-You can think of the result as a DataSlice created with:
-[fingerprint(seed, size, i) for i in range(size)]
-
-Args:
-  seed: text seed for the uuid computation.
-  size: the size of the allocation. It will also be used for the uuid
-    computation.
-
-Returns:
-  A 1-dimensional DataSlice with `size` distinct uuids.
 ```
 
 ### `kd.core.uuobj(seed=None, *, db=None, **attrs)` {#kd.core.uuobj}
@@ -3915,6 +3755,177 @@ Returns a Koda functor created by tracing a given Python function.
 
 </section>
 
+### kd.ids {#kd.ids}
+
+Operators that work with ItemIds.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.ids.agg_uuid(x, ndim=unspecified)` {#kd.ids.agg_uuid}
+Aliases:
+
+- [kd.agg_uuid](#kd.agg_uuid)
+
+``` {.no-copy}
+Computes aggregated uuid of elements over the last `ndim` dimensions.
+
+Args:
+  x: A DataSlice.
+  ndim: The number of dimensions to aggregate over. Requires 0 <= ndim <=
+    get_ndim(x).
+
+Returns:
+  DataSlice with that has `rank = rank - ndim` and shape: `shape =
+  shape[:-ndim]`.
+```
+
+### `kd.ids.decode_itemid(ds)` {#kd.ids.decode_itemid}
+Aliases:
+
+- [kd.decode_itemid](#kd.decode_itemid)
+
+``` {.no-copy}
+Returns ItemIds decoded from the base62 strings.
+```
+
+### `kd.ids.deep_uuid(x, /, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#kd.ids.deep_uuid}
+Aliases:
+
+- [kd.deep_uuid](#kd.deep_uuid)
+
+``` {.no-copy}
+Recursively computes uuid for x.
+
+Args:
+  x: The slice to take uuid on.
+  schema: The schema to use to resolve '*' and '**' tokens. If not specified,
+    will use the schema of the 'x' DataSlice.
+  seed: The seed to use for uuid computation.
+
+Returns:
+  Result of recursive uuid application `x`.
+```
+
+### `kd.ids.encode_itemid(ds)` {#kd.ids.encode_itemid}
+Aliases:
+
+- [kd.encode_itemid](#kd.encode_itemid)
+
+``` {.no-copy}
+Returns the base62 encoded ItemIds in `ds` as strings.
+```
+
+### `kd.ids.hash_itemid(x)` {#kd.ids.hash_itemid}
+Aliases:
+
+- [kd.hash_itemid](#kd.hash_itemid)
+
+``` {.no-copy}
+Returns a INT64 DataSlice of hash values of `x`.
+
+The hash values are in the range of [-2**63, 2**63-1].
+
+The hash algorithm is subject to change. It is not guaranteed to be stable in
+future releases.
+
+Args:
+  x: DataSlice of ItemIds.
+
+Returns:
+  A DataSlice of INT64 hash values.
+```
+
+### `kd.ids.uuid(seed=DataItem('', schema: STRING), **kwargs)` {#kd.ids.uuid}
+Aliases:
+
+- [kd.uuid](#kd.uuid)
+
+``` {.no-copy}
+Creates a DataSlice whose items are Fingerprints identifying arguments.
+
+Args:
+  seed: text seed for the uuid computation.
+  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    values must be alignable.
+
+Returns:
+  DataSlice of Uuids. The i-th uuid is computed by taking the i-th (aligned)
+  item from each kwarg value.
+```
+
+### `kd.ids.uuid_for_dict(seed=DataItem('', schema: STRING), **kwargs)` {#kd.ids.uuid_for_dict}
+Aliases:
+
+- [kd.uuid_for_dict](#kd.uuid_for_dict)
+
+``` {.no-copy}
+Creates a DataSlice whose items are Fingerprints identifying arguments.
+
+To be used for keying dict items.
+
+e.g.
+
+kd.dict(['a', 'b'], [1, 2], itemid=kd.uuid_for_dict(seed='seed', a=ds(1)))
+
+Args:
+  seed: text seed for the uuid computation.
+  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    values must be alignable.
+
+Returns:
+  DataSlice of Uuids. The i-th uuid is computed by taking the i-th (aligned)
+  item from each kwarg value.
+```
+
+### `kd.ids.uuid_for_list(seed=DataItem('', schema: STRING), **kwargs)` {#kd.ids.uuid_for_list}
+Aliases:
+
+- [kd.uuid_for_list](#kd.uuid_for_list)
+
+``` {.no-copy}
+Creates a DataSlice whose items are Fingerprints identifying arguments.
+
+To be used for keying list items.
+
+e.g.
+
+kd.list([1, 2, 3], itemid=kd.uuid_for_list(seed='seed', a=ds(1)))
+
+Args:
+  seed: text seed for the uuid computation.
+  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    values must be alignable.
+
+Returns:
+  DataSlice of Uuids. The i-th uuid is computed by taking the i-th (aligned)
+  item from each kwarg value.
+```
+
+### `kd.ids.uuids_with_allocation_size(seed=DataItem('', schema: STRING), *, size)` {#kd.ids.uuids_with_allocation_size}
+Aliases:
+
+- [kd.uuids_with_allocation_size](#kd.uuids_with_allocation_size)
+
+``` {.no-copy}
+Creates a DataSlice whose items are uuids.
+
+The uuids are allocated in a single allocation. They are all distinct.
+You can think of the result as a DataSlice created with:
+[fingerprint(seed, size, i) for i in range(size)]
+
+Args:
+  seed: text seed for the uuid computation.
+  size: the size of the allocation. It will also be used for the uuid
+    computation.
+
+Returns:
+  A 1-dimensional DataSlice with `size` distinct uuids.
+```
+
+</section>
+
 ### kd.masking {#kd.masking}
 
 Masking operators.
@@ -3924,7 +3935,6 @@ Masking operators.
 **Operators**
 
 ### `kd.masking.agg_all(x, ndim=unspecified)` {#kd.masking.agg_all}
-
 Aliases:
 
 - [kd.agg_all](#kd.agg_all)
@@ -3944,7 +3954,6 @@ Args:
 ```
 
 ### `kd.masking.agg_any(x, ndim=unspecified)` {#kd.masking.agg_any}
-
 Aliases:
 
 - [kd.agg_any](#kd.agg_any)
@@ -3964,7 +3973,6 @@ Args:
 ```
 
 ### `kd.masking.agg_has(x, ndim=unspecified)` {#kd.masking.agg_has}
-
 Aliases:
 
 - [kd.agg_has](#kd.agg_has)
@@ -3984,7 +3992,6 @@ Args:
 ```
 
 ### `kd.masking.all(x)` {#kd.masking.all}
-
 Aliases:
 
 - [kd.all](#kd.all)
@@ -4001,7 +4008,6 @@ Args:
 ```
 
 ### `kd.masking.any(x)` {#kd.masking.any}
-
 Aliases:
 
 - [kd.any](#kd.any)
@@ -4018,7 +4024,6 @@ Args:
 ```
 
 ### `kd.masking.apply_mask(x, y)` {#kd.masking.apply_mask}
-
 Aliases:
 
 - [kd.apply_mask](#kd.apply_mask)
@@ -4038,7 +4043,6 @@ Returns:
 ```
 
 ### `kd.masking.coalesce(x, y)` {#kd.masking.coalesce}
-
 Aliases:
 
 - [kd.coalesce](#kd.coalesce)
@@ -4059,7 +4063,6 @@ Returns:
 ```
 
 ### `kd.masking.cond(condition, yes, no=DataItem(None, schema: NONE))` {#kd.masking.cond}
-
 Aliases:
 
 - [kd.cond](#kd.cond)
@@ -4082,7 +4085,6 @@ Returns:
 ```
 
 ### `kd.masking.disjoint_coalesce(x, y)` {#kd.masking.disjoint_coalesce}
-
 Aliases:
 
 - [kd.disjoint_coalesce](#kd.disjoint_coalesce)
@@ -4102,7 +4104,6 @@ Returns:
 ```
 
 ### `kd.masking.has(x)` {#kd.masking.has}
-
 Aliases:
 
 - [kd.has](#kd.has)
@@ -4122,7 +4123,6 @@ Returns:
 ```
 
 ### `kd.masking.has_not(x)` {#kd.masking.has_not}
-
 Aliases:
 
 - [kd.has_not](#kd.has_not)
@@ -4142,7 +4142,6 @@ Returns:
 ```
 
 ### `kd.masking.mask_and(x, y)` {#kd.masking.mask_and}
-
 Aliases:
 
 - [kd.mask_and](#kd.mask_and)
@@ -4167,7 +4166,6 @@ Returns:
 ```
 
 ### `kd.masking.mask_equal(x, y)` {#kd.masking.mask_equal}
-
 Aliases:
 
 - [kd.mask_equal](#kd.mask_equal)
@@ -4193,7 +4191,6 @@ Returns:
 ```
 
 ### `kd.masking.mask_not_equal(x, y)` {#kd.masking.mask_not_equal}
-
 Aliases:
 
 - [kd.mask_not_equal](#kd.mask_not_equal)
@@ -4653,6 +4650,7 @@ Args:
   x: A DataSlice of numbers.
   half: A DataSlice of numbers.
   slope: A DataSlice of numbers.
+
 Return:
   sigmoid(x) computed with the formula above.
 ```
@@ -6645,7 +6643,7 @@ Alias for [kd.math.agg_sum](#kd.math.agg_sum) operator.
 
 ### `kd.agg_uuid(x, ndim=unspecified)` {#kd.agg_uuid}
 
-Alias for [kd.core.agg_uuid](#kd.core.agg_uuid) operator.
+Alias for [kd.ids.agg_uuid](#kd.ids.agg_uuid) operator.
 
 ### `kd.align(*args)` {#kd.align}
 
@@ -6767,7 +6765,7 @@ Alias for [kd.core.cum_count](#kd.core.cum_count) operator.
 
 ### `kd.decode_itemid(ds)` {#kd.decode_itemid}
 
-Alias for [kd.core.decode_itemid](#kd.core.decode_itemid) operator.
+Alias for [kd.ids.decode_itemid](#kd.ids.decode_itemid) operator.
 
 ### `kd.deep_clone(x, /, schema=unspecified, **overrides)` {#kd.deep_clone}
 
@@ -6775,7 +6773,7 @@ Alias for [kd.core.deep_clone](#kd.core.deep_clone) operator.
 
 ### `kd.deep_uuid(x, /, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#kd.deep_uuid}
 
-Alias for [kd.core.deep_uuid](#kd.core.deep_uuid) operator.
+Alias for [kd.ids.deep_uuid](#kd.ids.deep_uuid) operator.
 
 ### `kd.del_attr(x, attr_name)` {#kd.del_attr}
 
@@ -6836,8 +6834,7 @@ Returns a sorted list of unique attribute names of the given DataSlice.
 
 ### `kd.disjoint_coalesce(x, y)` {#kd.disjoint_coalesce}
 
-Alias for [kd.masking.disjoint_coalesce](#kd.masking.disjoint_coalesce)
-operator.
+Alias for [kd.masking.disjoint_coalesce](#kd.masking.disjoint_coalesce) operator.
 
 ### `kd.dumps(x, /, *, riegeli_options='')` {#kd.dumps}
 
@@ -6880,7 +6877,7 @@ Alias for [kd.core.empty_shaped_as](#kd.core.empty_shaped_as) operator.
 
 ### `kd.encode_itemid(ds)` {#kd.encode_itemid}
 
-Alias for [kd.core.encode_itemid](#kd.core.encode_itemid) operator.
+Alias for [kd.ids.encode_itemid](#kd.ids.encode_itemid) operator.
 
 ### `kd.enriched(ds, *bag)` {#kd.enriched}
 
@@ -6894,7 +6891,7 @@ Alias for [kd.core.enriched_bag](#kd.core.enriched_bag) operator.
 
 Alias for [kd.comparison.equal](#kd.comparison.equal) operator.
 
-### `kd.eval(expr, self_input=DataItem(Entity(self_not_specified=present), schema: SCHEMA(self_not_specified=MASK), bag_id: $9f8e), /, **input_values)` {#kd.eval}
+### `kd.eval(expr, self_input=DataItem(Entity(self_not_specified=present), schema: SCHEMA(self_not_specified=MASK)), /, **input_values)` {#kd.eval}
 
 ``` {.no-copy}
 Returns the expr evaluated on the given `input_values`.
@@ -7205,7 +7202,7 @@ Alias for [kd.core.has_primitive](#kd.core.has_primitive) operator.
 
 ### `kd.hash_itemid(x)` {#kd.hash_itemid}
 
-Alias for [kd.core.hash_itemid](#kd.core.hash_itemid) operator.
+Alias for [kd.ids.hash_itemid](#kd.ids.hash_itemid) operator.
 
 ### `kd.implode(x, /, ndim=1, db=None)` {#kd.implode}
 
@@ -7288,9 +7285,15 @@ Alias for [kd.core.isin](#kd.core.isin) operator.
 ### `kd.item` {#kd.item}
 
 ``` {.no-copy}
-Creates a DataSlice from `value`.
-If `schema` is set, that schema is used,
-otherwise the schema is inferred from `value`.
+Returns a DataItem created from Python `value`.
+
+If `schema` is set, that schema is used, otherwise the schema is inferred from
+`value`. Python value must be convertible to Koda scalar and the result cannot
+be multidimensional DataSlice.
+
+Args:
+  x: Python value.
+  schema: schema DataSlice to set.
 ```
 
 ### `kd.less(x, y)` {#kd.less}
@@ -7710,9 +7713,14 @@ Aliases:
 - [DataSlice.from_vals](#DataSlice.from_vals)
 
 ``` {.no-copy}
-Creates a DataSlice from `value`.
-If `schema` is set, that schema is used,
-otherwise the schema is inferred from `value`.
+Returns a DataSlice created from Python `value`.
+
+If `schema` is set, that schema is used, otherwise the schema is inferred from
+`value`.
+
+Args:
+  x: Python value.
+  schema: schema DataSlice to set.
 ```
 
 ### `kd.sort(x, sort_by=unspecified, descending=DataItem(False, schema: BOOLEAN))` {#kd.sort}
@@ -7732,7 +7740,7 @@ Aliases:
 Returns kd.slice(x, kd.STRING).
 ```
 
-### `kd.stub(x, attrs=DataSlice([], schema: OBJECT, shape: JaggedShape(0)))` {#kd.stub}
+### `kd.stub(x, attrs=DataSlice([], schema: OBJECT, ndims: 1, size: 0))` {#kd.stub}
 
 Alias for [kd.core.stub](#kd.core.stub) operator.
 
@@ -7899,19 +7907,19 @@ Alias for [kd.schema.uu_schema](#kd.schema.uu_schema) operator.
 
 ### `kd.uuid(seed=DataItem('', schema: STRING), **kwargs)` {#kd.uuid}
 
-Alias for [kd.core.uuid](#kd.core.uuid) operator.
+Alias for [kd.ids.uuid](#kd.ids.uuid) operator.
 
 ### `kd.uuid_for_dict(seed=DataItem('', schema: STRING), **kwargs)` {#kd.uuid_for_dict}
 
-Alias for [kd.core.uuid_for_dict](#kd.core.uuid_for_dict) operator.
+Alias for [kd.ids.uuid_for_dict](#kd.ids.uuid_for_dict) operator.
 
 ### `kd.uuid_for_list(seed=DataItem('', schema: STRING), **kwargs)` {#kd.uuid_for_list}
 
-Alias for [kd.core.uuid_for_list](#kd.core.uuid_for_list) operator.
+Alias for [kd.ids.uuid_for_list](#kd.ids.uuid_for_list) operator.
 
 ### `kd.uuids_with_allocation_size(seed=DataItem('', schema: STRING), *, size)` {#kd.uuids_with_allocation_size}
 
-Alias for [kd.core.uuids_with_allocation_size](#kd.core.uuids_with_allocation_size) operator.
+Alias for [kd.ids.uuids_with_allocation_size](#kd.ids.uuids_with_allocation_size) operator.
 
 ### `kd.uuobj(seed=None, *, db=None, **attrs)` {#kd.uuobj}
 
@@ -8683,7 +8691,7 @@ Returns:
 ### `DataSlice.shallow_clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#DataSlice.shallow_clone}
 *No description*
 
-### `DataSlice.stub(self, attrs=DataSlice([], schema: OBJECT, shape: JaggedShape(0)))` {#DataSlice.stub}
+### `DataSlice.stub(self, attrs=DataSlice([], schema: OBJECT, ndims: 1, size: 0))` {#DataSlice.stub}
 *No description*
 
 ### `DataSlice.take(self, indices)` {#DataSlice.take}

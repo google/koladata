@@ -20,6 +20,7 @@ from koladata.operators import allocation
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import core
+from koladata.operators import ids
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking
 from koladata.operators import optools
@@ -286,7 +287,7 @@ def randint_shaped(
       )
   )
   seed = M.core.default_if_unspecified(
-      seed, core.hash_itemid(allocation.new_itemid())
+      seed, ids.hash_itemid(allocation.new_itemid())
   )
 
   flat_res = M.array.randint_with_shape(

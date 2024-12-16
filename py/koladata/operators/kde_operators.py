@@ -23,6 +23,7 @@ from koladata.operators import assertion as _
 from koladata.operators import comparison as _
 from koladata.operators import core as _
 from koladata.operators import functor as _
+from koladata.operators import ids as _
 from koladata.operators import jagged_shape as _
 from koladata.operators import koda_internal as _
 from koladata.operators import masking as _
@@ -34,7 +35,6 @@ from koladata.operators import random as _
 from koladata.operators import schema as _
 from koladata.operators import strings as _
 from koladata.operators import tuple as _
-from koladata.operators import uuid as _
 
 
 def get_namespaces() -> list[str]:
@@ -47,6 +47,7 @@ def get_namespaces() -> list[str]:
       'kde.comparison',
       'kde.core',
       'kde.functor',
+      'kde.ids',
       'kde.masking',
       'kde.math',
       'kde.py',

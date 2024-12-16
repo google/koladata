@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/operators/core_uuid.h"
+#include "koladata/operators/ids.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -30,6 +30,7 @@
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_op.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
@@ -37,6 +38,8 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/agg_uuid.h"
 #include "koladata/internal/op_utils/deep_uuid.h"
+#include "koladata/internal/op_utils/itemid.h"
+#include "koladata/internal/op_utils/utils.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/utils.h"
 #include "koladata/uuid_utils.h"
@@ -259,6 +262,30 @@ absl::StatusOr<DataSlice> UuidsWithAllocationSize(const DataSlice& seed,
   }
   const int64_t size_value = casted_size->item().value<int64_t>();
   return koladata::CreateUuidsWithAllocationSize(seed_value, size_value);
+}
+
+absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds) {
+  ASSIGN_OR_RETURN(auto res,
+                   DataSliceOp<internal::EncodeItemId>()(
+                       ds, ds.GetShape(), internal::DataItem(schema::kString),
+                       /*db=*/nullptr),
+                   internal::OperatorEvalError(
+                       std::move(_), "kd.encode_itemid",
+                       absl::StrFormat("only ItemIds can be encoded, got %v",
+                                       ds.GetSchemaImpl())));
+  return std::move(res);
+}
+
+absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds) {
+  ASSIGN_OR_RETURN(auto res,
+                   DataSliceOp<internal::DecodeItemId>()(
+                       ds, ds.GetShape(), internal::DataItem(schema::kItemId),
+                       /*db=*/nullptr),
+                   internal::OperatorEvalError(
+                       std::move(_), "kd.decode_itemid",
+                       absl::StrFormat("only STRING can be decoded, got %v",
+                                       ds.GetSchemaImpl())));
+  return std::move(res);
 }
 
 }  // namespace koladata::ops

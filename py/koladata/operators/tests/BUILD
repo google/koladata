@@ -1038,7 +1038,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
@@ -1081,7 +1080,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
@@ -1103,7 +1101,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
@@ -1944,8 +1941,8 @@ py_test(
 )
 
 py_test(
-    name = "core_encode_decode_itemid_test",
-    srcs = ["core_encode_decode_itemid_test.py"],
+    name = "ids_encode_decode_itemid_test",
+    srcs = ["ids_encode_decode_itemid_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -2911,8 +2908,8 @@ py_test(
 )
 
 py_test(
-    name = "core_uuid_test",
-    srcs = ["core_uuid_test.py"],
+    name = "ids_uuid_test",
+    srcs = ["ids_uuid_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2929,8 +2926,8 @@ py_test(
 )
 
 py_test(
-    name = "core_uuid_for_list_test",
-    srcs = ["core_uuid_for_list_test.py"],
+    name = "ids_uuid_for_list_test",
+    srcs = ["ids_uuid_for_list_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2947,8 +2944,8 @@ py_test(
 )
 
 py_test(
-    name = "core_uuid_for_dict_test",
-    srcs = ["core_uuid_for_dict_test.py"],
+    name = "ids_uuid_for_dict_test",
+    srcs = ["ids_uuid_for_dict_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3003,8 +3000,8 @@ py_test(
 )
 
 py_test(
-    name = "core_agg_uuid_test",
-    srcs = ["core_agg_uuid_test.py"],
+    name = "ids_agg_uuid_test",
+    srcs = ["ids_agg_uuid_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3209,7 +3206,6 @@ py_test(
     name = "core_explode_test",
     srcs = ["core_explode_test.py"],
     deps = [
-        "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3888,8 +3884,8 @@ py_test(
 )
 
 py_test(
-    name = "core_deep_uuid_test",
-    srcs = ["core_deep_uuid_test.py"],
+    name = "ids_deep_uuid_test",
+    srcs = ["ids_deep_uuid_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -5790,8 +5786,8 @@ py_test(
 )
 
 py_test(
-    name = "core_uuids_with_allocation_size_test",
-    srcs = ["core_uuids_with_allocation_size_test.py"],
+    name = "ids_uuids_with_allocation_size_test",
+    srcs = ["ids_uuids_with_allocation_size_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -5809,8 +5805,8 @@ py_test(
 )
 
 py_test(
-    name = "core_hash_itemid_test",
-    srcs = ["core_hash_itemid_test.py"],
+    name = "ids_hash_itemid_test",
+    srcs = ["ids_hash_itemid_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",

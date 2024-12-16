@@ -29,7 +29,7 @@
 #include "koladata/operators/core_list.h"
 #include "koladata/operators/core_new.h"
 #include "koladata/operators/core_obj.h"
-#include "koladata/operators/core_uuid.h"
+#include "koladata/operators/ids.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/math.h"
 #include "koladata/operators/non_deterministic_op.h"
@@ -63,14 +63,12 @@ OPERATOR("kde.comparison.greater", Greater);
 OPERATOR("kde.comparison.greater_equal", GreaterEqual);
 OPERATOR("kde.comparison.less", Less);
 OPERATOR("kde.comparison.less_equal", LessEqual);
-OPERATOR("kde.core._agg_uuid", AggUuid);
 //
 OPERATOR("kde.core._clone", Clone);
 OPERATOR("kde.core._collapse", Collapse);
 OPERATOR_FAMILY("kde.core._concat_or_stack",
                 arolla::MakeVariadicInputOperatorFamily(ConcatOrStack));
 OPERATOR("kde.core._deep_clone", DeepClone);
-OPERATOR("kde.core._deep_uuid", DeepUuid);
 OPERATOR("kde.core._dense_rank", DenseRank);
 OPERATOR("kde.core._dict_like", DictLike);
 OPERATOR("kde.core._dict_shaped", DictShaped);
@@ -106,9 +104,7 @@ OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kde.core.attr", Attr);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR("kde.core.bag", Bag);
-OPERATOR("kde.core.decode_itemid", DecodeItemId);
 OPERATOR("kde.core.dict_size", DictSize);
-OPERATOR("kde.core.encode_itemid", EncodeItemId);
 OPERATOR_FAMILY("kde.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
 OPERATOR_FAMILY("kde.core.enriched_bag",
@@ -146,18 +142,22 @@ OPERATOR("kde.core.unique", Unique);
 OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());
 OPERATOR_FAMILY("kde.core.updated_bag",
                 std::make_unique<UpdatedDbOperatorFamily>());
-OPERATOR_FAMILY("kde.core.uuid", std::make_unique<UuidOperatorFamily>());
-OPERATOR_FAMILY("kde.core.uuid_for_dict",
-                std::make_unique<UuidForDictOperatorFamily>());
-OPERATOR_FAMILY("kde.core.uuid_for_list",
-                std::make_unique<UuidForListOperatorFamily>());
-OPERATOR("kde.core.uuids_with_allocation_size", UuidsWithAllocationSize);
 OPERATOR_FAMILY("kde.core.uuobj", std::make_unique<UuObjOperatorFamily>());
 OPERATOR("kde.core.with_attr", WithAttr);
 OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kde.core.with_bag", WithBag);
 OPERATOR("kde.core.with_merged_bag", WithMergedBag);
+OPERATOR("kde.ids._agg_uuid", AggUuid);
+OPERATOR("kde.ids._deep_uuid", DeepUuid);
+OPERATOR("kde.ids.decode_itemid", DecodeItemId);
+OPERATOR("kde.ids.encode_itemid", EncodeItemId);
+OPERATOR_FAMILY("kde.ids.uuid", std::make_unique<UuidOperatorFamily>());
+OPERATOR_FAMILY("kde.ids.uuid_for_dict",
+                std::make_unique<UuidForDictOperatorFamily>());
+OPERATOR_FAMILY("kde.ids.uuid_for_list",
+                std::make_unique<UuidForListOperatorFamily>());
+OPERATOR("kde.ids.uuids_with_allocation_size", UuidsWithAllocationSize);
 //
 OPERATOR("kde.masking._agg_all", AggAll);
 OPERATOR("kde.masking._agg_any", AggAny);
