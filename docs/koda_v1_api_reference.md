@@ -1458,7 +1458,7 @@ Aliases:
 Returns the number of dimensions of DataSlice `x`.
 ```
 
-### `kd.core.get_nofollowed_schema(schema)` {#kd.core.get_nofollowed_schema}
+### `kd.schema.get_nofollowed_schema(schema)` {#kd.schema.get_nofollowed_schema}
 Aliases:
 
 - [kd.get_nofollowed_schema](#kd.get_nofollowed_schema)
@@ -2329,7 +2329,7 @@ Args:
   x: DataSlice to wrap.
 ```
 
-### `kd.core.nofollow_schema(schema)` {#kd.core.nofollow_schema}
+### `kd.schema.nofollow_schema(schema)` {#kd.schema.nofollow_schema}
 Aliases:
 
 - [kd.nofollow_schema](#kd.nofollow_schema)
@@ -7133,7 +7133,7 @@ Alias for [kd.core.get_ndim](#kd.core.get_ndim) operator.
 
 ### `kd.get_nofollowed_schema(schema)` {#kd.get_nofollowed_schema}
 
-Alias for [kd.core.get_nofollowed_schema](#kd.core.get_nofollowed_schema) operator.
+Alias for [kd.schema.get_nofollowed_schema](#kd.schema.get_nofollowed_schema) operator.
 
 ### `kd.get_obj_schema(x)` {#kd.get_obj_schema}
 
@@ -7481,7 +7481,7 @@ Alias for [kd.core.nofollow](#kd.core.nofollow) operator.
 
 ### `kd.nofollow_schema(schema)` {#kd.nofollow_schema}
 
-Alias for [kd.core.nofollow_schema](#kd.core.nofollow_schema) operator.
+Alias for [kd.schema.nofollow_schema](#kd.schema.nofollow_schema) operator.
 
 ### `kd.not_equal(x, y)` {#kd.not_equal}
 

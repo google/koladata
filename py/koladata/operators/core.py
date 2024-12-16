@@ -2832,26 +2832,6 @@ def nofollow(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.nofollow_schema'])
-@optools.as_backend_operator(
-    'kde.core.nofollow_schema',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.schema)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def nofollow_schema(schema):  # pylint: disable=unused-argument
-  """Returns a NoFollow schema of the provided schema.
-
-  `nofollow_schema` is reversible with `get_actual_schema`.
-
-  `nofollow_schema` can only be called on implicit and explicit schemas and
-  OBJECT. It raises an Error if called on ANY, primitive schemas, ITEMID, etc.
-
-  Args:
-    schema: Schema DataSlice to wrap.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
 # TODO: Remove the *_db alias.
 @optools.add_to_registry(aliases=['kde.no_bag', 'kde.no_db', 'kde.core.no_db'])
 @optools.as_backend_operator(
@@ -3118,24 +3098,6 @@ def updated_bag(*bags):  # pylint: disable=unused-argument
 
   Returns:
     An immutable DataBag updated by `bags`.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.get_nofollowed_schema'])
-@optools.as_backend_operator(
-    'kde.core.get_nofollowed_schema',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.schema)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def get_nofollowed_schema(schema):  # pylint: disable=unused-argument
-  """Returns the original schema from nofollow schema.
-
-  Requires `nofollow_schema` to be a nofollow schema, i.e. that it wraps some
-  other schema.
-
-  Args:
-    schema: nofollow schema DataSlice.
   """
   raise NotImplementedError('implemented in the backend')
 

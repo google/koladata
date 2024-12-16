@@ -1373,10 +1373,6 @@ absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds) {
   return std::move(res);
 }
 
-absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds) {
-  return schema_ds.GetNoFollowedSchema();
-}
-
 absl::StatusOr<DataSlice> Follow(const DataSlice& ds) {
   ASSIGN_OR_RETURN(auto nofollowed_schema_item,
                    schema::GetNoFollowedSchemaItem(ds.GetSchemaImpl()));

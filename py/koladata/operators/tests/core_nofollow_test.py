@@ -40,8 +40,8 @@ class CoreNofollowTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (kde.core.nofollow,),
-      (kde.core.nofollow_schema,),
-      (kde.core.get_nofollowed_schema,),
+      (kde.schema.nofollow_schema,),
+      (kde.schema.get_nofollowed_schema,),
   )
   def test_qtype_signatures(self, op):
     self.assertCountEqual(
@@ -120,11 +120,11 @@ class CoreNofollowTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.nofollow, kde.nofollow))
     self.assertTrue(
-        optools.equiv_to_op(kde.core.nofollow_schema, kde.nofollow_schema)
+        optools.equiv_to_op(kde.schema.nofollow_schema, kde.nofollow_schema)
     )
     self.assertTrue(
         optools.equiv_to_op(
-            kde.core.get_nofollowed_schema, kde.get_nofollowed_schema
+            kde.schema.get_nofollowed_schema, kde.get_nofollowed_schema
         )
     )
     self.assertTrue(optools.equiv_to_op(kde.core.follow, kde.follow))

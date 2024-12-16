@@ -116,7 +116,6 @@ OPERATOR_FAMILY("kde.core.enriched_bag",
 OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.get_bag", GetBag);
 OPERATOR("kde.core.get_keys", GetKeys);
-OPERATOR("kde.core.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR_FAMILY("kde.core.group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
@@ -132,7 +131,6 @@ OPERATOR("kde.core.is_primitive", IsPrimitive);
 OPERATOR("kde.core.list_size", ListSize);
 OPERATOR("kde.core.no_bag", NoBag);
 OPERATOR("kde.core.nofollow", NoFollow);
-OPERATOR("kde.core.nofollow_schema", CreateNoFollowSchema);
 OPERATOR_FAMILY("kde.core.obj", std::make_unique<ObjOperatorFamily>());
 OPERATOR_FAMILY("kde.core.obj_like", std::make_unique<ObjLikeOperatorFamily>());
 OPERATOR_FAMILY("kde.core.obj_shaped",
@@ -210,6 +208,7 @@ OPERATOR("kde.schema.cast_to_narrow", CastToNarrow);
 OPERATOR("kde.schema.dict_schema", DictSchema);
 OPERATOR("kde.schema.get_item_schema", GetItemSchema);
 OPERATOR("kde.schema.get_key_schema", GetKeySchema);
+OPERATOR("kde.schema.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR("kde.schema.get_obj_schema", GetObjSchema);
 OPERATOR("kde.schema.get_primitive_schema", GetPrimitiveSchema);
 OPERATOR("kde.schema.get_schema", GetSchema);
@@ -225,6 +224,7 @@ OPERATOR_FAMILY("kde.schema.named_schema",
                 std::make_unique<NamedSchemaOperatorFamily>());
 OPERATOR_FAMILY("kde.schema.new_schema",
                 std::make_unique<NewSchemaOperatorFamily>());
+OPERATOR("kde.schema.nofollow_schema", CreateNoFollowSchema);
 OPERATOR_FAMILY("kde.schema.uu_schema",
                 std::make_unique<UuSchemaOperatorFamily>());
 OPERATOR("kde.schema.with_schema", WithSchema);

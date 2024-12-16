@@ -175,6 +175,9 @@ inline DataSlice IsPrimitiveSchema(const DataSlice& schema) {
 // kde.schema._agg_common_schema operator.
 absl::StatusOr<DataSlice> AggCommonSchema(const DataSlice& x);
 
+// kde.schema.get_nofollowed_schema.
+absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_SCHEMA_H_

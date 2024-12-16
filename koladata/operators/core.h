@@ -15,7 +15,6 @@
 #ifndef KOLADATA_OPERATORS_CORE_H_
 #define KOLADATA_OPERATORS_CORE_H_
 
-#include <cstdint>
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -183,9 +182,6 @@ absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds);
 
 // kde.core.decode_itemid
 absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds);
-
-// kde.core.get_nofollowed_schema.
-absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds);
 
 // kde.core.follow.
 absl::StatusOr<DataSlice> Follow(const DataSlice& ds);

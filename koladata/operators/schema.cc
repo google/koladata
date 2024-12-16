@@ -271,4 +271,8 @@ absl::StatusOr<DataSlice> AggCommonSchema(const DataSlice& x) {
                            internal::DataItem(schema::kSchema), x.GetBag());
 }
 
+absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds) {
+  return schema_ds.GetNoFollowedSchema();
+}
+
 }  // namespace koladata::ops
