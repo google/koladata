@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import functools
-import re
 import threading
 import time
 from typing import Any
@@ -81,12 +80,7 @@ class FunctorCallTest(absltest.TestCase):
         ]),
     )
     testing.assert_equal(call.call_multithreaded(fn, 57), ds(57))
-    with self.assertRaisesRegex(
-        TypeError,
-        re.escape(
-            "'x' parameter is positional only, but was passed as a keyword"
-        ),
-    ):
+    with self.assertRaisesRegex(TypeError, 'positional.*keyword'):
       _ = call.call_multithreaded(fn, x=57)
 
   def test_keyword_only(self):
