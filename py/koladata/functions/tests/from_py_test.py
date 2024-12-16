@@ -948,6 +948,146 @@ class FromPyTest(absltest.TestCase):
           itemid=kde.uuid(a=ds('1')).eval(),
       )
 
+  def test_deep_dict_with_repetitions(self):
+    py_d = {'abc': 42}
+    schema = fns.dict_schema(schema_constants.STRING, schema_constants.INT32)
+    for _ in range(2):
+      py_d = {12: py_d, 42: py_d}
+      schema = fns.dict_schema(schema_constants.INT32, schema)
+
+    d = fns.from_py(py_d)
+    testing.assert_dicts_keys_equal(d, ds([12, 42], schema_constants.OBJECT))
+    d1 = d[12]
+    d2 = d[42]
+    testing.assert_dicts_keys_equal(d1, ds([12, 42], schema_constants.OBJECT))
+    testing.assert_dicts_keys_equal(d2, ds([12, 42], schema_constants.OBJECT))
+    d11 = d1[12]
+    d12 = d1[12]
+    d21 = d2[42]
+    d22 = d2[42]
+    testing.assert_dicts_keys_equal(d11, ds(['abc'], schema_constants.OBJECT))
+    testing.assert_dicts_keys_equal(d12, ds(['abc'], schema_constants.OBJECT))
+    testing.assert_dicts_keys_equal(d21, ds(['abc'], schema_constants.OBJECT))
+    testing.assert_dicts_keys_equal(d22, ds(['abc'], schema_constants.OBJECT))
+
+    d = fns.from_py(py_d, schema=schema)
+    testing.assert_dicts_keys_equal(d, ds([12, 42]))
+    d1 = d[12]
+    d2 = d[42]
+    testing.assert_dicts_keys_equal(d1, ds([12, 42]))
+    testing.assert_dicts_keys_equal(d2, ds([12, 42]))
+    d11 = d1[12]
+    d12 = d1[12]
+    d21 = d2[42]
+    d22 = d2[42]
+    testing.assert_dicts_keys_equal(d11, ds(['abc']))
+    testing.assert_dicts_keys_equal(d12, ds(['abc']))
+    testing.assert_dicts_keys_equal(d21, ds(['abc']))
+    testing.assert_dicts_keys_equal(d22, ds(['abc']))
+
+  def test_deep_dict_recursive_error(self):
+    py_d = {'a': 42}
+    schema = fns.dict_schema(schema_constants.STRING, schema_constants.OBJECT)
+    bottom_d = py_d
+    for i in range(3):
+      py_d = {f'd{i}': py_d}
+      schema = fns.dict_schema(schema_constants.STRING, schema)
+    level_1_d = py_d
+    py_d = {'top': level_1_d}
+    bottom_d['cycle'] = level_1_d
+    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+      fns.from_py(py_d)
+    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+      fns.from_py(py_d, schema=schema)
+
+  def test_deep_list_with_repetitions(self):
+    py_l = [1, 2, 3]
+    schema = fns.list_schema(schema_constants.INT32)
+    for _ in range(2):
+      py_l = [py_l, py_l]
+      schema = fns.list_schema(schema)
+
+    testing.assert_equal(
+        fns.from_py(py_l)[:][:][:].no_bag(),
+        ds(
+            [[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]],
+            schema_constants.OBJECT
+        )
+    )
+
+    testing.assert_equal(
+        fns.from_py(py_l, schema=schema)[:][:][:].no_bag(),
+        ds([[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]])
+    )
+
+  def test_deep_list_recursive_error(self):
+    py_l = [1, 2, 3]
+    schema = fns.list_schema(schema_constants.INT32)
+    bottom_l = py_l
+    for _ in range(3):
+      py_l = [py_l, py_l]
+      schema = fns.list_schema(schema)
+    level_1_l = py_l
+    py_l = [level_1_l]
+    bottom_l.append(level_1_l)
+    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+      fns.from_py(py_l)
+    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+      fns.from_py(py_l, schema=schema)
+
+  def test_deep_object_repetitions(self):
+    py_d = {'abc': 42}
+    schema = fns.uu_schema(abc=schema_constants.INT32)
+    for _ in range(2):
+      py_d = {'x': py_d, 'y': py_d}
+      schema = fns.uu_schema(x=schema, y=schema)
+
+    obj = fns.from_py(py_d, dict_as_obj=True)
+    testing.assert_equal(obj.x.x.abc.no_bag(), ds(42))
+    testing.assert_equal(obj.x.y.abc.no_bag(), ds(42))
+    testing.assert_equal(obj.y.x.abc.no_bag(), ds(42))
+    testing.assert_equal(obj.y.y.abc.no_bag(), ds(42))
+
+    entity = fns.from_py(py_d, dict_as_obj=True, schema=schema)
+    testing.assert_equal(entity.x.x.abc.no_bag(), ds(42))
+    testing.assert_equal(entity.x.y.abc.no_bag(), ds(42))
+    testing.assert_equal(entity.y.x.abc.no_bag(), ds(42))
+    testing.assert_equal(entity.y.y.abc.no_bag(), ds(42))
+
+  def test_deep_object_recursive_error(self):
+    py_d = {'a': 42}
+    schema = fns.uu_schema(
+        a=schema_constants.INT32, cycle=schema_constants.OBJECT
+    )
+    bottom_d = py_d
+    for i in range(3):
+      py_d = {f'd{i}': py_d}
+      schema = fns.uu_schema(**{f'd{i}': schema})
+    level_1_d = py_d
+    py_d = {'top': level_1_d}
+    schema = fns.uu_schema(top=schema)
+    bottom_d['cycle'] = level_1_d
+    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+      fns.from_py(py_d, dict_as_obj=True)
+    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+      fns.from_py(py_d, dict_as_obj=True, schema=schema)
+
+  # TODO: This causes an infinite loop, until OOM.
+  # def test_deep_itemid_recursive_error(self):
+  #   py_l = [1, 2, 3]
+  #   schema = fns.list_schema(schema_constants.INT32)
+  #   bottom_l = py_l
+  #   for _ in range(3):
+  #     py_l = [py_l, py_l]
+  #     schema = fns.list_schema(schema)
+  #   level_1_l = py_l
+  #   py_l = [level_1_l]
+  #   bottom_l.append(level_1_l)
+  #   with self.assertRaisesRegex(
+  #       ValueError, 'recursive .* cannot be converted'
+  #   ):
+  #     fns.from_py(py_l, itemid=kde.uuid_for_list('list').eval())
+
   def test_alias(self):
     obj = fns.from_pytree({'a': 42})
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)

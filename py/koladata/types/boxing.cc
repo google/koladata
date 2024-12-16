@@ -1350,14 +1350,14 @@ class UniversalConverter {
           value_stack_.emplace(),
           Factory::FromAttrs(db_, attr_names, values, entity_schema,
                              /*update_schema=*/false, itemid));
-      if (!itemid.has_value()) {
-        computed_.insert_or_assign(MakeCacheKey(py_obj, entity_schema),
-                                   value_stack_.top());
-      }
     } else {
       DCHECK(!entity_schema) << "only EntityCreator should accept schema here";
       ASSIGN_OR_RETURN(value_stack_.emplace(),
                        Factory::FromAttrs(db_, attr_names, values, itemid));
+    }
+    if (!itemid.has_value()) {
+      computed_.insert_or_assign(MakeCacheKey(py_obj, entity_schema),
+                                 value_stack_.top());
     }
     return absl::OkStatus();
   }

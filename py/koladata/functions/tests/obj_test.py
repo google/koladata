@@ -431,7 +431,7 @@ class ObjTest(absltest.TestCase):
     d = {'top': d}
     bottom_d['cycle'] = level_1_d
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      fns.obj(d2)
+      fns.obj(d)
     # Cycle in list:
     l = [[1, 2], 3]
     l[0].append(l)

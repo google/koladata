@@ -386,9 +386,19 @@ def universal_converter_caching(state):
     # NOTE: Here we use the same instance `d` to make sure we re-use them from
     # cache and avoid duplicate computation on each level.
     d = {12: d, 42: d}
-  obj = kd.obj()
   while (state):
-    obj.d = d
+    _ = kd.from_py(d)
+
+
+@google_benchmark.register
+def universal_converter_caching_dict_as_obj(state):
+  d = {'abc': 42}
+  for _ in range(10):
+    # NOTE: Here we use the same instance `d` to make sure we re-use them from
+    # cache and avoid duplicate computation on each level.
+    d = {'x': d, 'y': d}
+  while (state):
+    _ = kd.from_py(d, dict_as_obj=True)
 
 
 @google_benchmark.register
@@ -396,9 +406,8 @@ def deep_universal_converter(state):
   d = {'abc': 42}
   for _ in range(1000):
     d = {12: d.copy()}
-  obj = kd.obj()
   while (state):
-    obj.d = d
+    _ = kd.from_py(d)
 
 
 @google_benchmark.register
@@ -406,9 +415,8 @@ def universal_converter_list(state):
   l = [1, 2, 3]
   for _ in range(10):
     l = [copy.deepcopy(l), copy.deepcopy(l), copy.deepcopy(l)]
-  obj = kd.obj()
   while (state):
-    obj.l = l
+    _ = kd.from_py(l)
 
 
 @google_benchmark.register
@@ -416,7 +424,16 @@ def universal_converter_list_of_obj_primitives(state):
   l = [42] * 10000
   s = kd.list_schema(kd.OBJECT)
   while (state):
-    kd.new(l, schema=s)
+    _ = kd.from_py(l, schema=s)
+
+
+@google_benchmark.register
+def universal_converter_itemid(state):
+  l = [1, 2, 3]
+  for _ in range(10):
+    l = [copy.deepcopy(l), copy.deepcopy(l), copy.deepcopy(l)]
+  while (state):
+    _ = kd.from_py(l, itemid=kd.uuid_for_list('itemid'))
 
 
 @google_benchmark.register
