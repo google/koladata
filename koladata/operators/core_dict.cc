@@ -14,7 +14,6 @@
 //
 #include "koladata/operators/core_dict.h"
 
-#include <cstdint>
 #include <optional>
 #include <utility>
 

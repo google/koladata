@@ -14,7 +14,6 @@
 //
 #include "koladata/operators/core_new.h"
 
-#include <cstdint>
 #include <memory>
 #include <optional>
 #include <type_traits>
