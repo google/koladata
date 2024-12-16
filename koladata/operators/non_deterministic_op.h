@@ -17,7 +17,11 @@
 
 #include <cstdint>
 
+#include "absl/status/statusor.h"
+#include "absl/types/span.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "arolla/qexpr/operators.h"
+#include "arolla/qtype/qtype.h"
 
 namespace koladata::ops {
 
@@ -26,6 +30,14 @@ inline internal::NonDeterministicToken NonDeterministicOp(
     internal::NonDeterministicToken arg, int64_t random) {
   return arg;
 }
+
+// koda_internal.non_deterministic_identity
+class NonDeterministicIdentityOpFamily final : public arolla::OperatorFamily {
+ public:
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
 
 }  // namespace koladata::ops
 

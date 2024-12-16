@@ -75,6 +75,7 @@ cc_library(
         "core_obj.cc",
         "core_uuid.cc",
         "math.cc",
+        "non_deterministic_op.cc",
         "predicates.cc",
         "schema.cc",
         "shapes.cc",

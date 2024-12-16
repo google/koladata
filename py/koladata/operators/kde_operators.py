@@ -24,6 +24,7 @@ from koladata.operators import comparison as _
 from koladata.operators import core as _
 from koladata.operators import functor as _
 from koladata.operators import jagged_shape as _
+from koladata.operators import koda_internal as _
 from koladata.operators import masking as _
 from koladata.operators import math as _
 from koladata.operators import object_factories as _

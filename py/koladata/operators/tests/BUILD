@@ -3733,6 +3733,19 @@ py_test(
 )
 
 py_test(
+    name = "koda_internal_non_deterministic_identity_test",
+    srcs = ["koda_internal_non_deterministic_identity_test.py"],
+    deps = [
+        "//koladata/expr:init",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/operators:kde_operators",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "koda_internal_to_arolla_boolean_test",
     srcs = ["koda_internal_to_arolla_boolean_test.py"],
     deps = [

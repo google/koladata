@@ -467,6 +467,7 @@ py_library(
         ":core",
         ":functor",
         ":jagged_shape",
+        ":koda_internal",
         ":masking",
         ":math",
         ":object_factories",
@@ -477,6 +478,15 @@ py_library(
         ":strings",
         ":tuple",
         ":uuid",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "koda_internal",
+    srcs = ["koda_internal.py"],
+    deps = [
+        ":optools",
         "@com_google_arolla//py/arolla",
     ],
 )
