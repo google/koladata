@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_OPERATORS_LOGICAL_H_
-#define KOLADATA_OPERATORS_LOGICAL_H_
+#ifndef KOLADATA_OPERATORS_MASKING_H_
+#define KOLADATA_OPERATORS_MASKING_H_
 
 #include <memory>
 #include <utility>
@@ -40,14 +40,14 @@
 
 namespace koladata::ops {
 
-// kde.logical.apply_mask.
+// kde.masking.apply_mask.
 inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
                                            const DataSlice& mask) {
   return DataSliceOp<internal::PresenceAndOp>()(obj, mask, obj.GetSchemaImpl(),
                                                 obj.GetBag());
 }
 
-// kde.logical.coalesce.
+// kde.masking.coalesce.
 inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
                                           const DataSlice& y) {
   auto res_db = DataBag::CommonDataBag({x.GetBag(), y.GetBag()});
@@ -58,22 +58,22 @@ inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
       aligned_slices.common_schema, std::move(res_db));
 }
 
-// kde.logical.has.
+// kde.masking.has.
 inline absl::StatusOr<DataSlice> Has(const DataSlice& obj) {
   return DataSliceOp<internal::HasOp>()(
       obj, obj.GetShape(), internal::DataItem(schema::kMask), nullptr);
 }
 
-// kde.logical._has_not.
+// kde.masking._has_not.
 inline absl::StatusOr<DataSlice> HasNot(const DataSlice& x) {
   // Must be a mask, which is normally guaranteed by `x` being constructed from
-  // kde.logical.has. This ensures that M.core.presence_not is always called.
+  // kde.masking.has. This ensures that M.core.presence_not is always called.
   DCHECK_EQ(x.GetSchemaImpl(), internal::DataItem(schema::kMask));
   return SimplePointwiseEval("core.presence_not", {x},
                              internal::DataItem(schema::kMask));
 }
 
-// kde.logical._agg_any.
+// kde.masking._agg_any.
 inline absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
   ASSIGN_OR_RETURN(
       auto typed_x, CastToNarrow(x, internal::DataItem(schema::kMask)),
@@ -84,7 +84,7 @@ inline absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
   return SimpleAggIntoEval("core.any", {std::move(typed_x)});
 }
 
-// kde.logical._agg_all.
+// kde.masking._agg_all.
 inline absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
   ASSIGN_OR_RETURN(
       auto typed_x, CastToNarrow(x, internal::DataItem(schema::kMask)),
@@ -97,4 +97,4 @@ inline absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
 
 }  // namespace koladata::ops
 
-#endif  // KOLADATA_OPERATORS_LOGICAL_H_
+#endif  // KOLADATA_OPERATORS_MASKING_H_

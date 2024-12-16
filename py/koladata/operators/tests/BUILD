@@ -1637,8 +1637,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_apply_mask_test",
-    srcs = ["logical_apply_mask_test.py"],
+    name = "masking_apply_mask_test",
+    srcs = ["masking_apply_mask_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1657,8 +1657,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_mask_and_test",
-    srcs = ["logical_mask_and_test.py"],
+    name = "masking_mask_and_test",
+    srcs = ["masking_mask_and_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1677,8 +1677,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_mask_or_test",
-    srcs = ["logical_mask_or_test.py"],
+    name = "masking_mask_or_test",
+    srcs = ["masking_mask_or_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1696,8 +1696,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_mask_equal_test",
-    srcs = ["logical_mask_equal_test.py"],
+    name = "masking_mask_equal_test",
+    srcs = ["masking_mask_equal_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1716,8 +1716,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_mask_not_equal_test",
-    srcs = ["logical_mask_not_equal_test.py"],
+    name = "masking_mask_not_equal_test",
+    srcs = ["masking_mask_not_equal_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1966,8 +1966,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_coalesce_test",
-    srcs = ["logical_coalesce_test.py"],
+    name = "masking_coalesce_test",
+    srcs = ["masking_coalesce_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -1988,8 +1988,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_disjoint_coalesce_test",
-    srcs = ["logical_disjoint_coalesce_test.py"],
+    name = "masking_disjoint_coalesce_test",
+    srcs = ["masking_disjoint_coalesce_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -2010,8 +2010,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_cond_test",
-    srcs = ["logical_cond_test.py"],
+    name = "masking_cond_test",
+    srcs = ["masking_cond_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -2302,8 +2302,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_has_test",
-    srcs = ["logical_has_test.py"],
+    name = "masking_has_test",
+    srcs = ["masking_has_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2323,8 +2323,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_has_not_test",
-    srcs = ["logical_has_not_test.py"],
+    name = "masking_has_not_test",
+    srcs = ["masking_has_not_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2590,8 +2590,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_agg_any_test",
-    srcs = ["logical_agg_any_test.py"],
+    name = "masking_agg_any_test",
+    srcs = ["masking_agg_any_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -2612,8 +2612,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_any_test",
-    srcs = ["logical_any_test.py"],
+    name = "masking_any_test",
+    srcs = ["masking_any_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2631,30 +2631,8 @@ py_test(
 )
 
 py_test(
-    name = "logical_agg_has_test",
-    srcs = ["logical_agg_has_test.py"],
-    deps = [
-        "//py/koladata/exceptions",
-        "//py/koladata/expr:expr_eval",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
-        "//py/koladata/operators/tests/util:qtypes",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_bag",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:qtypes",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "logical_agg_all_test",
-    srcs = ["logical_agg_all_test.py"],
+    name = "masking_agg_has_test",
+    srcs = ["masking_agg_has_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -2675,8 +2653,30 @@ py_test(
 )
 
 py_test(
-    name = "logical_all_test",
-    srcs = ["logical_all_test.py"],
+    name = "masking_agg_all_test",
+    srcs = ["masking_agg_all_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "masking_all_test",
+    srcs = ["masking_all_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -5844,9 +5844,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_logical_agg_any_covers_core_any_test",
+    name = "kd_masking_agg_any_covers_core_any_test",
     arolla_op = "core.any",
-    koda_op = "logical.agg_any",
+    koda_op = "masking.agg_any",
     # Arolla operator supports scalar inputs that we don't.
     skip_test_patterns = [
         r".*\(missing.*",
@@ -5856,9 +5856,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_logical_agg_all_covers_core_all_test",
+    name = "kd_masking_agg_all_covers_core_all_test",
     arolla_op = "core.all",
-    koda_op = "logical.agg_all",
+    koda_op = "masking.agg_all",
     # Arolla operator supports scalar inputs that we don't.
     skip_test_patterns = [
         r".*\(missing.*",
@@ -6002,9 +6002,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_logical_apply_mask_covers_core_presence_and_test",
+    name = "kd_masking_apply_mask_covers_core_presence_and_test",
     arolla_op = "core.presence_and",
-    koda_op = "logical.apply_mask",
+    koda_op = "masking.apply_mask",
     skip_test_patterns = [
         ".*weak_float.*",
         ".*uint64.*",
@@ -6012,9 +6012,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_logical_cond_covers_core_where_test",
+    name = "kd_masking_cond_covers_core_where_test",
     arolla_op = "core.where",
-    koda_op = "logical.cond",
+    koda_op = "masking.cond",
     skip_test_patterns = [
         ".*weak_float.*",
         ".*uint64.*",
@@ -6025,9 +6025,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_logical_coalesce_covers_core_presence_or_test",
+    name = "kd_masking_coalesce_covers_core_presence_or_test",
     arolla_op = "core.presence_or",
-    koda_op = "logical.coalesce",
+    koda_op = "masking.coalesce",
     skip_test_patterns = [
         ".*weak_float.*",
         ".*uint64.*",
@@ -6100,9 +6100,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_logical_has_covers_core_has_test",
+    name = "kd_masking_has_covers_core_has_test",
     arolla_op = "core.has",
-    koda_op = "logical.has",
+    koda_op = "masking.has",
     skip_test_patterns = [
         ".*weak_float.*",
         ".*uint64.*",
@@ -6110,9 +6110,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_logical_has_not_covers_core_presence_not_test",
+    name = "kd_masking_has_not_covers_core_presence_not_test",
     arolla_op = "core.presence_not",
-    koda_op = "logical.has_not",
+    koda_op = "masking.has_not",
     skip_test_patterns = [
         ".*weak_float.*",
         ".*uint64.*",

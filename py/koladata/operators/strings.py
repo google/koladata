@@ -17,7 +17,7 @@
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import jagged_shape as jagged_shape_ops
-from koladata.operators import logical as logical_ops
+from koladata.operators import masking as masking_ops
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
@@ -820,9 +820,9 @@ def decode_base64(x, /, *, on_invalid=arolla.unspecified()):
           _decode_base64(P.x, arolla.boolean(False)),
           condition=P.on_invalid == arolla.UNSPECIFIED,
       ),
-      default=logical_ops.coalesce(
+      default=masking_ops.coalesce(
           _decode_base64(P.x, arolla.boolean(True)),
-          logical_ops.apply_mask(P.on_invalid, logical_ops.has(P.x)),
+          masking_ops.apply_mask(P.on_invalid, masking_ops.has(P.x)),
       ),
   )(x, on_invalid)
 

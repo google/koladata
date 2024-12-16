@@ -92,7 +92,7 @@ cc_library(
         "core_new.h",
         "core_obj.h",
         "core_uuid.h",
-        "logical.h",
+        "masking.h",
         "math.h",
         "non_deterministic_op.h",
         "predicates.h",

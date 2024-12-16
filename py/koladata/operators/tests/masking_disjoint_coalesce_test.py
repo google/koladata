@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.logical.coalesce."""
+import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -41,13 +41,13 @@ QTYPES = frozenset([
 ])
 
 
-class LogicalCoalesceTest(parameterized.TestCase):
+class LogicalDisjointCoalesceTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
           # x, y, expected
           ds([1, None, 2, 3, None]),
-          ds([5, 6, 7, None, None]),
+          ds([None, 6, None, None, None]),
           ds([1, 6, 2, 3, None]),
       ),
       # Mixed types.
@@ -58,25 +58,29 @@ class LogicalCoalesceTest(parameterized.TestCase):
       ),
       (
           ds([None, 1, None, None, 'b', 2.5, 2]),
-          ds(['a', None, None, 1.5, 'b', 2.5, None]),
+          ds(['a', None, None, 1.5, None, None, None]),
           ds(['a', 1, None, 1.5, 'b', 2.5, 2]),
       ),
       (
           ds([1], schema_constants.OBJECT),
-          ds([2.0], schema_constants.OBJECT),
+          ds([None], schema_constants.OBJECT),
           ds([1], schema_constants.OBJECT),
       ),
       (
           ds(['a', None], schema_constants.OBJECT),
-          ds([b'c', b'd'], schema_constants.OBJECT),
+          ds([None, b'd'], schema_constants.OBJECT),
           ds(['a', b'd'], schema_constants.OBJECT),
       ),
-      (ds(['a']), ds([b'b']), ds(['a'], schema_constants.OBJECT)),
+      (
+          ds(['a']),
+          ds([None], schema_constants.BYTES),
+          ds(['a'], schema_constants.OBJECT),
+      ),
       # Scalar input, scalar output.
-      (ds(1), ds(2), ds(1)),
-      (ds(1), ds(2.0), ds(1.0)),
+      (ds(1), ds(None), ds(1)),
+      (ds(None), ds(1.0), ds(1.0)),
       (ds(None, schema_constants.INT32), ds(1), ds(1)),
-      (ds(1), ds(arolla.present()), ds(1, schema_constants.OBJECT)),
+      (ds(1), ds(arolla.missing()), ds(1, schema_constants.OBJECT)),
       (ds(None, schema_constants.MASK), ds(1), ds(1, schema_constants.OBJECT)),
       (
           ds(None, schema_constants.MASK),
@@ -89,7 +93,7 @@ class LogicalCoalesceTest(parameterized.TestCase):
           ds(None, schema_constants.MASK),
       ),
       # Auto-broadcasting.
-      (ds([1, None, None]), ds(2), ds([1, 2, 2])),
+      (ds([[1, None], [None]]), ds([None, 2]), ds([[1, None], [2]])),
       (
           ds([1, None, None]),
           ds(None, schema_constants.INT32),
@@ -98,14 +102,14 @@ class LogicalCoalesceTest(parameterized.TestCase):
       (ds(None, schema_constants.INT32), ds([1, None, 2]), ds([1, None, 2])),
       # Multi-dimensional.
       (
-          ds([[None, None], [4, 5, None], [7, 8]]),
-          ds([[1, None], [None, 5, 6], [7, None]]),
+          ds([[None, None], [4, 5, None], [None, 8]]),
+          ds([[1, None], [None, None, 6], [7, None]]),
           ds([[1, None], [4, 5, 6], [7, 8]]),
       ),
       # Mixed types.
       (
           ds([[1, 2], [None, None, None], [arolla.present()]]),
-          ds([[None, None], ['a', 'b', 'c'], [1.5]]),
+          ds([[None, None], ['a', 'b', 'c'], [None]]),
           ds(
               [[1, 2], ['a', 'b', 'c'], [arolla.present()]],
               schema_constants.OBJECT,
@@ -118,7 +122,9 @@ class LogicalCoalesceTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, y, expected):
-    testing.assert_equal(expr_eval.eval(kde.logical.coalesce(x, y)), expected)
+    res = expr_eval.eval(kde.masking.disjoint_coalesce(x, y))
+    testing.assert_equal(res, expected)
+    testing.assert_equal(expr_eval.eval(kde.masking.coalesce(x, y)), res)
 
   def test_merging(self):
     mask = ds([arolla.present(), None])
@@ -130,19 +136,19 @@ class LogicalCoalesceTest(parameterized.TestCase):
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
     self.assertNotEqual(x.get_bag().fingerprint, y.get_bag().fingerprint)
     testing.assert_equivalent(
-        expr_eval.eval(kde.logical.coalesce(x, y)).a,
+        expr_eval.eval(kde.masking.disjoint_coalesce(x, y)).a,
         ds([1, 'xyz']).with_bag(x.get_bag()).enriched(y.get_bag()),
     )
 
   def test_same_bag(self):
     db = data_bag.DataBag.empty()
     x = db.new()
-    y = db.new().with_schema(x.get_schema())
-    testing.assert_equal(expr_eval.eval(kde.logical.coalesce(x, y)), x)
+    y = db.new().with_schema(x.get_schema()) & ds(arolla.missing())
+    testing.assert_equal(expr_eval.eval(kde.masking.disjoint_coalesce(x, y)), x)
 
   def test_incompatible_schema_error(self):
     x = ds([1, None])
-    y = data_bag.DataBag.empty().new()
+    y = data_bag.DataBag.empty().new() & ds(arolla.missing())
     with self.assertRaisesRegex(
         exceptions.KodaError,
         r"""cannot find a common schema for provided schemas
@@ -150,26 +156,38 @@ class LogicalCoalesceTest(parameterized.TestCase):
  the common schema\(s\) INT32: INT32
  the first conflicting schema [0-9a-f]{32}:0: SCHEMA\(\)""",
     ):
-      expr_eval.eval(kde.logical.coalesce(x, y))
+      expr_eval.eval(kde.masking.disjoint_coalesce(x, y))
+
+  def test_intersecting_x_and_y_error(self):
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'kde.masking.disjoint_coalesce: `x` and `y` cannot intersect'
+        ),
+    ):
+      _ = expr_eval.eval(
+          kde.masking.disjoint_coalesce(ds([1, 2]), ds([None, 1]))
+      )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.logical.coalesce,
+            kde.masking.disjoint_coalesce,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
-  def test_repr(self):
-    self.assertEqual(repr(kde.logical.coalesce(I.x, I.y)), 'I.x | I.y')
-    self.assertEqual(repr(kde.coalesce(I.x, I.y)), 'I.x | I.y')
+  def test_alias(self):
+    self.assertTrue(
+        optools.equiv_to_op(
+            kde.masking.disjoint_coalesce, kde.disjoint_coalesce
+        )
+    )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.logical.coalesce(I.x, I.y)))
-
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.logical.coalesce, kde.coalesce))
+    self.assertTrue(view.has_koda_view(kde.masking.disjoint_coalesce(I.x, I.y)))
 
 
 if __name__ == '__main__':

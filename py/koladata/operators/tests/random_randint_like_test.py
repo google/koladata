@@ -49,8 +49,8 @@ class RandomRandintLikeTest(parameterized.TestCase):
 
   def assert_shape_and_range(self, res, x, low, high):
     testing.assert_equal(
-        expr_eval.eval(kde.logical.has(res)),
-        expr_eval.eval(kde.logical.has(x)),
+        expr_eval.eval(kde.masking.has(res)),
+        expr_eval.eval(kde.masking.has(x)),
     )
     # Test none of the result items is outside the range[low, high).
     testing.assert_equal(expr_eval.eval(kde.any(res < low)), missing)

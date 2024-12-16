@@ -48,7 +48,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     )
 
     res = expr_eval.eval(
-        kde.py.map_py_on_selected(fn, kde.logical.has_not(val) | (val > 2), val)
+        kde.py.map_py_on_selected(fn, kde.masking.has_not(val) | (val > 2), val)
     )
     testing.assert_equal(
         res.no_bag(), ds([[None, None, 0, 5], [0, 0], [8, 9, 10]])

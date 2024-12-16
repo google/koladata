@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.logical.any."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -38,37 +36,40 @@ QTYPES = frozenset([
 ])
 
 
-class LogicalAnyTest(parameterized.TestCase):
+class LogicalAllTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds([arolla.present(), None, arolla.present()]), ds(arolla.present())),
-      (ds([None, None]), ds(arolla.missing())),
+      (
+          ds([arolla.present(), arolla.present(), arolla.present()]),
+          ds(arolla.present()),
+      ),
+      (ds([None, arolla.present()]), ds(arolla.missing())),
       (
           ds([[arolla.present(), arolla.present()], [None, None]]),
-          ds(arolla.present()),
+          ds(arolla.missing()),
       ),
       (ds(None), ds(arolla.missing())),
       (ds(arolla.present()), ds(arolla.present())),
   )
   def test_eval(self, *args_and_expected):
     args, expected_value = args_and_expected[:-1], args_and_expected[-1]
-    result = expr_eval.eval(kde.logical.any(*args))
+    result = expr_eval.eval(kde.masking.all(*args))
     testing.assert_equal(result, expected_value)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.logical.any,
+            kde.masking.all,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.logical.any(I.x)))
+    self.assertTrue(view.has_koda_view(kde.masking.all(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.logical.any, kde.any))
+    self.assertTrue(optools.equiv_to_op(kde.masking.all, kde.all))
 
 
 if __name__ == '__main__':

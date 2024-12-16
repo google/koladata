@@ -83,7 +83,7 @@ arolla_operator_package_snapshot(
         "koladata.operators.comparison",
         "koladata.operators.core",
         "koladata.operators.jagged_shape",
-        "koladata.operators.logical",
+        "koladata.operators.masking",
         "koladata.operators.math",
         "koladata.operators.random",
         "koladata.operators.strings",
@@ -99,7 +99,7 @@ arolla_operator_package_snapshot(
         ":comparison",
         ":core",
         ":jagged_shape",
-        ":logical",
+        ":masking",
         ":math",
         ":object_factories",
         ":predicates",
@@ -285,7 +285,7 @@ py_library(
     srcs = ["schema.py"],
     deps = [
         ":jagged_shape",
-        ":logical",
+        ":masking",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -315,7 +315,7 @@ py_library(
     name = "comparison",
     srcs = ["comparison.py"],
     deps = [
-        ":logical",
+        ":masking",
         ":op_repr",
         ":optools",
         ":qtype_utils",
@@ -330,7 +330,7 @@ py_library(
     srcs = ["strings.py"],
     deps = [
         ":jagged_shape",
-        ":logical",
+        ":masking",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
@@ -365,7 +365,7 @@ py_library(
         ":assertion",
         ":functor",
         ":jagged_shape",
-        ":logical",
+        ":masking",
         ":math",
         ":op_repr",
         ":optools",
@@ -384,8 +384,8 @@ py_library(
 )
 
 py_library(
-    name = "logical",
-    srcs = ["logical.py"],
+    name = "masking",
+    srcs = ["masking.py"],
     deps = [
         ":assertion",
         ":jagged_shape",
@@ -426,7 +426,7 @@ py_library(
         ":assertion",
         ":core",
         ":jagged_shape",
-        ":logical",
+        ":masking",
         ":optools",
         ":qtype_utils",
         ":schema",
@@ -443,7 +443,7 @@ py_library(
     srcs = ["py.py"],
     deps = [
         ":core",
-        ":logical",
+        ":masking",
         ":optools",
         ":qtype_utils",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -467,7 +467,7 @@ py_library(
         ":core",
         ":functor",
         ":jagged_shape",
-        ":logical",
+        ":masking",
         ":math",
         ":object_factories",
         ":predicates",

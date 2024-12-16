@@ -43,36 +43,26 @@ QTYPES = frozenset([
 ])
 
 
-class LogicalAggAllTest(parameterized.TestCase):
+class LogicalAggAnyTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
-          ds([arolla.present(), arolla.present(), arolla.present()]),
-          ds(arolla.present()),
-      ),
-      (
           ds([arolla.present(), None, arolla.present()]),
-          ds(arolla.missing()),
+          ds(arolla.present()),
       ),
       (ds([None]), ds(arolla.missing())),
       (ds([None], schema_constants.MASK), ds(arolla.missing())),
       (
-          ds([[arolla.present(), arolla.present()], [arolla.present(), None]]),
+          ds([[arolla.present(), arolla.present()], [None]]),
           ds([arolla.present(), arolla.missing()]),
       ),
       # OBJECT/ANY
       (
-          ds(
-              [[arolla.present(), arolla.present()], [arolla.present(), None]],
-              schema_constants.OBJECT,
-          ),
+          ds([[arolla.present(), None], [None]], schema_constants.OBJECT),
           ds([arolla.present(), None], schema_constants.MASK),
       ),
       (
-          ds(
-              [[arolla.present(), arolla.present()], [arolla.present(), None]],
-              schema_constants.ANY,
-          ),
+          ds([[arolla.present(), None], [None]], schema_constants.ANY),
           ds([arolla.present(), None], schema_constants.MASK),
       ),
       # Empty and unknown inputs.
@@ -99,7 +89,7 @@ class LogicalAggAllTest(parameterized.TestCase):
   )
   def test_eval(self, *args_and_expected):
     args, expected_value = args_and_expected[:-1], args_and_expected[-1]
-    result = expr_eval.eval(kde.logical.agg_all(*args))
+    result = expr_eval.eval(kde.masking.agg_any(*args))
     testing.assert_equal(result, expected_value)
 
   def test_data_item_input_error(self):
@@ -107,13 +97,13 @@ class LogicalAggAllTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError, re.escape('expected rank(x) > 0')
     ):
-      expr_eval.eval(kde.logical.agg_all(x))
+      expr_eval.eval(kde.masking.agg_any(x))
 
   @parameterized.parameters(-1, 2)
   def test_out_of_bounds_ndim_error(self, ndim):
-    x = data_slice.DataSlice.from_vals([1, 2, 3])
+    x = ds([1, 2, 3])
     with self.assertRaisesRegex(ValueError, 'expected 0 <= ndim <= rank'):
-      expr_eval.eval(kde.logical.agg_all(x, ndim=ndim))
+      expr_eval.eval(kde.masking.agg_any(x, ndim=ndim))
 
   @parameterized.parameters(
       (ds([1, 2, 3])),
@@ -124,24 +114,24 @@ class LogicalAggAllTest(parameterized.TestCase):
   def test_non_mask_input_error(self, x):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape('kd.agg_all: `x` must only contain MASK values'),
+        re.escape('kd.agg_any: `x` must only contain MASK values'),
     ):
-      expr_eval.eval(kde.logical.agg_all(x))
+      expr_eval.eval(kde.masking.agg_any(x))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.logical.agg_all,
+            kde.masking.agg_any,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.logical.agg_all(I.x)))
+    self.assertTrue(view.has_koda_view(kde.masking.agg_any(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.logical.agg_all, kde.agg_all))
+    self.assertTrue(optools.equiv_to_op(kde.masking.agg_any, kde.agg_any))
 
 
 if __name__ == '__main__':

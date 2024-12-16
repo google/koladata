@@ -43,26 +43,38 @@ QTYPES = frozenset([
 ])
 
 
-class LogicalAggAnyTest(parameterized.TestCase):
+class LogicalAggHasTest(parameterized.TestCase):
 
   @parameterized.parameters(
+      (ds([1, 2, None, 3]), ds(arolla.present())),
+      (ds([None], ds(arolla.INT32)), ds(arolla.missing())),
+      (ds([[1, 'a'], [None]]), ds([arolla.present(), arolla.missing()])),
       (
-          ds([arolla.present(), None, arolla.present()]),
-          ds(arolla.present()),
-      ),
-      (ds([None]), ds(arolla.missing())),
-      (ds([None], schema_constants.MASK), ds(arolla.missing())),
-      (
-          ds([[arolla.present(), arolla.present()], [None]]),
+          ds([[data_bag.DataBag.empty().new(x=ds(1))], [None]]),
           ds([arolla.present(), arolla.missing()]),
+      ),
+      (
+          ds([[1, None], [3, 4], [None, None]]),
+          ds([arolla.present(), arolla.present(), None]),
+      ),
+      (
+          ds([[1, None], [3, 4], [None, None]]),
+          arolla.unspecified(),
+          ds([arolla.present(), arolla.present(), None]),
+      ),
+      (ds([[1, None], [3, 4], [None, None]]), ds(2), ds(arolla.present())),
+      (
+          ds([[[1, None], [3, 4]], [[None, None]]]),
+          ds([[arolla.present(), arolla.present()], [None]]),
+      ),
+      (
+          ds([[1, None, None], [3, 4], [None, None]]),
+          arolla.unspecified(),
+          ds([arolla.present(), arolla.present(), None]),
       ),
       # OBJECT/ANY
       (
-          ds([[arolla.present(), None], [None]], schema_constants.OBJECT),
-          ds([arolla.present(), None], schema_constants.MASK),
-      ),
-      (
-          ds([[arolla.present(), None], [None]], schema_constants.ANY),
+          ds([[2, None], [None]], schema_constants.OBJECT),
           ds([arolla.present(), None], schema_constants.MASK),
       ),
       # Empty and unknown inputs.
@@ -75,7 +87,7 @@ class LogicalAggAnyTest(parameterized.TestCase):
           ds([None, None], schema_constants.MASK),
       ),
       (
-          ds([[None, None], [None]], schema_constants.MASK),
+          ds([[None, None], [None]], schema_constants.FLOAT32),
           ds([None, None], schema_constants.MASK),
       ),
       (
@@ -89,49 +101,36 @@ class LogicalAggAnyTest(parameterized.TestCase):
   )
   def test_eval(self, *args_and_expected):
     args, expected_value = args_and_expected[:-1], args_and_expected[-1]
-    result = expr_eval.eval(kde.logical.agg_any(*args))
+    result = expr_eval.eval(kde.masking.agg_has(*args))
     testing.assert_equal(result, expected_value)
 
   def test_data_item_input_error(self):
-    x = ds(arolla.present())
+    x = ds(1)
     with self.assertRaisesRegex(
         exceptions.KodaError, re.escape('expected rank(x) > 0')
     ):
-      expr_eval.eval(kde.logical.agg_any(x))
+      expr_eval.eval(kde.masking.agg_has(x))
 
   @parameterized.parameters(-1, 2)
   def test_out_of_bounds_ndim_error(self, ndim):
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(ValueError, 'expected 0 <= ndim <= rank'):
-      expr_eval.eval(kde.logical.agg_any(x, ndim=ndim))
-
-  @parameterized.parameters(
-      (ds([1, 2, 3])),
-      (ds([1, 2, 3], schema_constants.ANY)),
-      (ds([1, 2, 3], schema_constants.OBJECT)),
-      (data_bag.DataBag.empty().new(x=ds([1, 2, 3]))),
-  )
-  def test_non_mask_input_error(self, x):
-    with self.assertRaisesRegex(
-        exceptions.KodaError,
-        re.escape('kd.agg_any: `x` must only contain MASK values'),
-    ):
-      expr_eval.eval(kde.logical.agg_any(x))
+      expr_eval.eval(kde.masking.agg_has(x, ndim=ndim))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.logical.agg_any,
+            kde.masking.agg_has,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.logical.agg_any(I.x)))
+    self.assertTrue(view.has_koda_view(kde.masking.agg_has(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.logical.agg_any, kde.agg_any))
+    self.assertTrue(optools.equiv_to_op(kde.masking.agg_has, kde.agg_has))
 
 
 if __name__ == '__main__':

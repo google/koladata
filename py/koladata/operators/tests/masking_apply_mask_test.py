@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.logical.apply_mask."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -118,27 +116,27 @@ class LogicalApplyMaskTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, values, mask, expected):
-    result = expr_eval.eval(kde.logical.apply_mask(values, mask))
+    result = expr_eval.eval(kde.masking.apply_mask(values, mask))
     testing.assert_equal(result, expected)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.logical.apply_mask,
+            kde.masking.apply_mask,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.logical.apply_mask(I.x, I.y)), 'I.x & I.y')
+    self.assertEqual(repr(kde.masking.apply_mask(I.x, I.y)), 'I.x & I.y')
     self.assertEqual(repr(kde.apply_mask(I.x, I.y)), 'I.x & I.y')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.logical.apply_mask(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.masking.apply_mask(I.x, I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.logical.apply_mask, kde.apply_mask))
+    self.assertTrue(optools.equiv_to_op(kde.masking.apply_mask, kde.apply_mask))
 
 
 if __name__ == '__main__':

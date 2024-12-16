@@ -41,7 +41,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/operators/core.h"
-#include "koladata/operators/logical.h"
+#include "koladata/operators/masking.h"
 #include "koladata/proto/to_proto.h"
 #include "koladata/uuid_utils.h"
 #include "google/protobuf/message.h"

@@ -40,74 +40,70 @@ missing = arolla.missing()
 QTYPES = frozenset([(DATA_SLICE, DATA_SLICE, DATA_SLICE)])
 
 
-class LogicalMaskNotEqualTest(parameterized.TestCase):
+class LogicalMaskEqualTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds(present), ds(present), ds(missing)),
-      (ds(present), ds(missing), ds(present)),
-      (ds(missing), ds(present), ds(present)),
-      (ds(missing), ds(missing), ds(missing)),
+      (ds(present), ds(present), ds(present)),
+      (ds(present), ds(missing), ds(missing)),
+      (ds(missing), ds(present), ds(missing)),
+      (ds(missing), ds(missing), ds(present)),
       (
           ds([present, present, missing, missing]),
           ds([present, missing, present, missing]),
-          ds([missing, present, present, missing]),
+          ds([present, missing, missing, present]),
       ),
       (
           ds([[present, present], [missing, missing]]),
           ds([[present, missing], [present, missing]]),
-          ds([[missing, present], [present, missing]]),
+          ds([[present, missing], [missing, present]]),
       ),
       (
           ds([present, missing]),
           ds([[present, missing], [present, missing]]),
-          ds([[missing, present], [present, missing]]),
+          ds([[present, missing], [missing, present]]),
       ),
       (
           ds([present, present, missing, missing], schema_constants.OBJECT),
           ds([present, missing, present, missing], schema_constants.ANY),
-          ds([missing, present, present, missing]),
+          ds([present, missing, missing, present]),
       ),
   )
   def test_eval(self, x, y, expected):
-    result = expr_eval.eval(kde.logical.mask_not_equal(x, y))
+    result = expr_eval.eval(kde.masking.mask_equal(x, y))
     testing.assert_equal(result, expected)
 
   def test_invalid_input(self):
 
     with self.assertRaisesRegex(
-        # TODO: b/375621456 - Raise KodaError.
         ValueError,
         re.escape(
-            'kde.logical.mask_equal: argument `x` must have kd.MASK dtype'
+            'kde.masking.mask_equal: argument `x` must have kd.MASK dtype'
         ),
     ):
-      _ = expr_eval.eval(kde.logical.mask_not_equal(ds(1), ds(present)))
+      _ = expr_eval.eval(kde.masking.mask_equal(ds(1), ds(present)))
 
     with self.assertRaisesRegex(
-        # TODO: b/375621456 - Raise KodaError.
         ValueError,
         re.escape(
-            'kde.logical.mask_equal: argument `y` must have kd.MASK dtype'
+            'kde.masking.mask_equal: argument `y` must have kd.MASK dtype'
         ),
     ):
-      _ = expr_eval.eval(kde.logical.mask_not_equal(ds(present), ds(1)))
+      _ = expr_eval.eval(kde.masking.mask_equal(ds(present), ds(1)))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.logical.mask_not_equal,
+            kde.masking.mask_equal,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.logical.mask_not_equal(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.masking.mask_equal(I.x, I.y)))
 
   def test_alias(self):
-    self.assertTrue(
-        optools.equiv_to_op(kde.logical.mask_not_equal, kde.mask_not_equal)
-    )
+    self.assertTrue(optools.equiv_to_op(kde.masking.mask_equal, kde.mask_equal))
 
 
 if __name__ == '__main__':

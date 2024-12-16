@@ -35,7 +35,7 @@
 #include "koladata/internal/op_utils/trampoline_executor.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/core_list.h"
-#include "koladata/operators/logical.h"
+#include "koladata/operators/masking.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/dynamic_message.h"
 #include "google/protobuf/message.h"

@@ -81,7 +81,7 @@ class LogicalCondTest(parameterized.TestCase):
   )
   def test_eval(self, condition, yes, no, expected):
     testing.assert_equal(
-        expr_eval.eval(kde.logical.cond(condition, yes, no)), expected
+        expr_eval.eval(kde.masking.cond(condition, yes, no)), expected
     )
 
   @parameterized.parameters(
@@ -161,7 +161,7 @@ class LogicalCondTest(parameterized.TestCase):
       ),
   )
   def test_binary_eval(self, values, mask, expected):
-    result = expr_eval.eval(kde.logical.cond(mask, values))
+    result = expr_eval.eval(kde.masking.cond(mask, values))
     testing.assert_equal(result, expected)
 
   def test_merging(self):
@@ -176,7 +176,7 @@ class LogicalCondTest(parameterized.TestCase):
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
     self.assertNotEqual(x.get_bag().fingerprint, y.get_bag().fingerprint)
     testing.assert_equivalent(
-        expr_eval.eval(kde.logical.cond(mask, x, y)).a,
+        expr_eval.eval(kde.masking.cond(mask, x, y)).a,
         ds([1, 'xyz']).with_bag(x.get_bag()).enriched(y.get_bag()),
     )
 
@@ -186,12 +186,12 @@ class LogicalCondTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError, 'cannot find a common schema for provided schemas'
     ):
-      expr_eval.eval(kde.logical.cond(ds(arolla.present()), x, y))
+      expr_eval.eval(kde.masking.cond(ds(arolla.present()), x, y))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.logical.cond,
+            kde.masking.cond,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
@@ -199,15 +199,15 @@ class LogicalCondTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.logical.cond(I.x, I.y, I.z)),
-        'kde.logical.cond(I.x, I.y, I.z)',
+        repr(kde.masking.cond(I.x, I.y, I.z)),
+        'kde.masking.cond(I.x, I.y, I.z)',
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.logical.cond(I.x, I.y, I.z)))
+    self.assertTrue(view.has_koda_view(kde.masking.cond(I.x, I.y, I.z)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.logical.cond, kde.cond))
+    self.assertTrue(optools.equiv_to_op(kde.masking.cond, kde.cond))
 
 
 if __name__ == '__main__':

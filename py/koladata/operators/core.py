@@ -20,7 +20,7 @@ from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import functor
 from koladata.operators import jagged_shape as jagged_shape_ops
-from koladata.operators import logical
+from koladata.operators import masking
 from koladata.operators import math
 from koladata.operators import op_repr
 from koladata.operators import optools
@@ -407,7 +407,7 @@ def select(ds, fltr, expand_filter=True):
 )
 def select_present(ds):
   """Creates a new DataSlice by removing missing items."""
-  return select(ds=ds, fltr=logical.has(ds))
+  return select(ds=ds, fltr=masking.has(ds))
 
 
 @optools.add_to_registry(aliases=['kde.remove'])
@@ -561,7 +561,7 @@ def isin(x, y):
   x = assertion.with_assertion(
       x, get_ndim(x) == 0, 'kde.core.isin: argument `x` must be a DataItem'
   )
-  return logical.any_(x == y)
+  return masking.any_(x == y)
 
 
 @optools.as_backend_operator(
@@ -670,9 +670,9 @@ def has_attr(x, attr_name):
     A MASK DataSlice with the same shape as `x` that contains present if the
     attribute exists for the corresponding item.
   """
-  return logical.has(
+  return masking.has(
       maybe(x & (x.get_schema() == schema_constants.SCHEMA), attr_name)
-  ) | logical.has(
+  ) | masking.has(
       maybe(
           (x & (x.get_schema() != schema_constants.SCHEMA)).as_any(),
           attr_name,
@@ -1701,7 +1701,7 @@ def agg_count(x, ndim=arolla.unspecified()):
       get_ndim(x).
   """
   x = jagged_shape_ops.flatten_last_ndim(x, ndim)
-  flat_units = arolla_bridge.to_arolla_dense_array_unit(logical.has(x))
+  flat_units = arolla_bridge.to_arolla_dense_array_unit(masking.has(x))
   shape = jagged_shape_ops.get_shape(x)
   flat_res = M.array.count(flat_units, into=M.jagged.edge_at(shape, -1))
   return arolla_bridge.to_data_slice(
@@ -1768,7 +1768,7 @@ def cum_count(x, ndim=arolla.unspecified()):
     A DataSlice of INT64 with the same shape and sparsity as `x`.
   """
   x_shape = jagged_shape_ops.get_shape(x)
-  flat_units = arolla_bridge.to_arolla_dense_array_unit(logical.has(x))
+  flat_units = arolla_bridge.to_arolla_dense_array_unit(masking.has(x))
   flat_res = M.array.cum_count(
       flat_units,
       over=M.jagged.edge_at(
@@ -2227,8 +2227,8 @@ def index(x, dim=arolla.unspecified()):
       'kde.core.index: expected 0 <= dim < rank',
   )
 
-  aggregated = logical.agg_has(x, ndim)
-  flat_units = arolla_bridge.to_arolla_dense_array_unit(logical.has(aggregated))
+  aggregated = masking.agg_has(x, ndim)
+  flat_units = arolla_bridge.to_arolla_dense_array_unit(masking.has(aggregated))
   shape = jagged_shape_ops.get_shape(aggregated)
   flat_res = M.array.agg_index(
       flat_units,
@@ -3433,7 +3433,7 @@ def sort(x, sort_by=arolla.unspecified(), descending=False):
       'x, sort_by',
       assertion.with_assertion(
           P.sort_by,
-          count(logical.has(P.x) & logical.has_not(P.sort_by)) == 0,
+          count(masking.has(P.x) & masking.has_not(P.sort_by)) == 0,
           'kde.core.sort: trying to sort `x` by `sort_by` that is more sparse',
       ),
   )
@@ -3525,7 +3525,7 @@ def val_like(x, val):
   Returns:
     A DataSlice with the same shape as `x` and masked by `x`.
   """
-  return val_shaped_as(x, val) & logical.has(x)
+  return val_shaped_as(x, val) & masking.has(x)
 
 
 @optools.add_to_registry(aliases=['kde.present_shaped'])
@@ -3720,7 +3720,7 @@ def repeat_present(x, sizes):
   expanded_sizes = jagged_shape_ops.expand_to_shape(
       sizes, jagged_shape_ops.get_shape(x)
   )
-  return repeat(x, logical.cond(logical.has(x), expanded_sizes, 0))
+  return repeat(x, masking.cond(masking.has(x), expanded_sizes, 0))
 
 
 @optools.add_to_registry()

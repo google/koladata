@@ -15,7 +15,7 @@
 """Comparison DataSlice operators."""
 
 from arolla import arolla
-from koladata.operators import logical
+from koladata.operators import masking
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
@@ -70,7 +70,7 @@ def full_equal(x, y):  # pylint: disable=unused-argument
     x: DataSlice.
     y: DataSlice.
   """
-  return logical.all_((x == y) | (logical.has_not(x) & logical.has_not(y)))
+  return masking.all_((x == y) | (masking.has_not(x) & masking.has_not(y)))
 
 
 @optools.add_to_registry(
@@ -94,7 +94,7 @@ def not_equal(x, y):
     x: DataSlice.
     y: DataSlice.
   """
-  return ~(x == y) & (logical.has(x) & logical.has(y))
+  return ~(x == y) & (masking.has(x) & masking.has(y))
 
 
 @optools.add_to_registry(aliases=['kde.greater'], repr_fn=op_repr.greater_repr)

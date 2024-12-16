@@ -43,38 +43,36 @@ QTYPES = frozenset([
 ])
 
 
-class LogicalAggHasTest(parameterized.TestCase):
+class LogicalAggAllTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds([1, 2, None, 3]), ds(arolla.present())),
-      (ds([None], ds(arolla.INT32)), ds(arolla.missing())),
-      (ds([[1, 'a'], [None]]), ds([arolla.present(), arolla.missing()])),
       (
-          ds([[data_bag.DataBag.empty().new(x=ds(1))], [None]]),
+          ds([arolla.present(), arolla.present(), arolla.present()]),
+          ds(arolla.present()),
+      ),
+      (
+          ds([arolla.present(), None, arolla.present()]),
+          ds(arolla.missing()),
+      ),
+      (ds([None]), ds(arolla.missing())),
+      (ds([None], schema_constants.MASK), ds(arolla.missing())),
+      (
+          ds([[arolla.present(), arolla.present()], [arolla.present(), None]]),
           ds([arolla.present(), arolla.missing()]),
-      ),
-      (
-          ds([[1, None], [3, 4], [None, None]]),
-          ds([arolla.present(), arolla.present(), None]),
-      ),
-      (
-          ds([[1, None], [3, 4], [None, None]]),
-          arolla.unspecified(),
-          ds([arolla.present(), arolla.present(), None]),
-      ),
-      (ds([[1, None], [3, 4], [None, None]]), ds(2), ds(arolla.present())),
-      (
-          ds([[[1, None], [3, 4]], [[None, None]]]),
-          ds([[arolla.present(), arolla.present()], [None]]),
-      ),
-      (
-          ds([[1, None, None], [3, 4], [None, None]]),
-          arolla.unspecified(),
-          ds([arolla.present(), arolla.present(), None]),
       ),
       # OBJECT/ANY
       (
-          ds([[2, None], [None]], schema_constants.OBJECT),
+          ds(
+              [[arolla.present(), arolla.present()], [arolla.present(), None]],
+              schema_constants.OBJECT,
+          ),
+          ds([arolla.present(), None], schema_constants.MASK),
+      ),
+      (
+          ds(
+              [[arolla.present(), arolla.present()], [arolla.present(), None]],
+              schema_constants.ANY,
+          ),
           ds([arolla.present(), None], schema_constants.MASK),
       ),
       # Empty and unknown inputs.
@@ -87,7 +85,7 @@ class LogicalAggHasTest(parameterized.TestCase):
           ds([None, None], schema_constants.MASK),
       ),
       (
-          ds([[None, None], [None]], schema_constants.FLOAT32),
+          ds([[None, None], [None]], schema_constants.MASK),
           ds([None, None], schema_constants.MASK),
       ),
       (
@@ -101,36 +99,49 @@ class LogicalAggHasTest(parameterized.TestCase):
   )
   def test_eval(self, *args_and_expected):
     args, expected_value = args_and_expected[:-1], args_and_expected[-1]
-    result = expr_eval.eval(kde.logical.agg_has(*args))
+    result = expr_eval.eval(kde.masking.agg_all(*args))
     testing.assert_equal(result, expected_value)
 
   def test_data_item_input_error(self):
-    x = ds(1)
+    x = ds(arolla.present())
     with self.assertRaisesRegex(
         exceptions.KodaError, re.escape('expected rank(x) > 0')
     ):
-      expr_eval.eval(kde.logical.agg_has(x))
+      expr_eval.eval(kde.masking.agg_all(x))
 
   @parameterized.parameters(-1, 2)
   def test_out_of_bounds_ndim_error(self, ndim):
-    x = ds([1, 2, 3])
+    x = data_slice.DataSlice.from_vals([1, 2, 3])
     with self.assertRaisesRegex(ValueError, 'expected 0 <= ndim <= rank'):
-      expr_eval.eval(kde.logical.agg_has(x, ndim=ndim))
+      expr_eval.eval(kde.masking.agg_all(x, ndim=ndim))
+
+  @parameterized.parameters(
+      (ds([1, 2, 3])),
+      (ds([1, 2, 3], schema_constants.ANY)),
+      (ds([1, 2, 3], schema_constants.OBJECT)),
+      (data_bag.DataBag.empty().new(x=ds([1, 2, 3]))),
+  )
+  def test_non_mask_input_error(self, x):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape('kd.agg_all: `x` must only contain MASK values'),
+    ):
+      expr_eval.eval(kde.masking.agg_all(x))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.logical.agg_has,
+            kde.masking.agg_all,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.logical.agg_has(I.x)))
+    self.assertTrue(view.has_koda_view(kde.masking.agg_all(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.logical.agg_has, kde.agg_has))
+    self.assertTrue(optools.equiv_to_op(kde.masking.agg_all, kde.agg_all))
 
 
 if __name__ == '__main__':

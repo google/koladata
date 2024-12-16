@@ -30,7 +30,7 @@
 #include "koladata/operators/core_new.h"
 #include "koladata/operators/core_obj.h"
 #include "koladata/operators/core_uuid.h"
-#include "koladata/operators/logical.h"
+#include "koladata/operators/masking.h"
 #include "koladata/operators/math.h"
 #include "koladata/operators/non_deterministic_op.h"
 #include "koladata/operators/predicates.h"
@@ -161,12 +161,12 @@ OPERATOR_FAMILY("kde.core.with_attrs",
 OPERATOR("kde.core.with_bag", WithBag);
 OPERATOR("kde.core.with_merged_bag", WithMergedBag);
 //
-OPERATOR("kde.logical._agg_all", AggAll);
-OPERATOR("kde.logical._agg_any", AggAny);
-OPERATOR("kde.logical._has_not", HasNot);
-OPERATOR("kde.logical.apply_mask", ApplyMask);
-OPERATOR("kde.logical.coalesce", Coalesce);
-OPERATOR("kde.logical.has", Has);
+OPERATOR("kde.masking._agg_all", AggAll);
+OPERATOR("kde.masking._agg_any", AggAny);
+OPERATOR("kde.masking._has_not", HasNot);
+OPERATOR("kde.masking.apply_mask", ApplyMask);
+OPERATOR("kde.masking.coalesce", Coalesce);
+OPERATOR("kde.masking.has", Has);
 //
 OPERATOR("kde.math._agg_inverse_cdf", AggInverseCdf);
 OPERATOR("kde.math._agg_max", AggMax);

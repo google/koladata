@@ -24,7 +24,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/operators/logical.h"
+#include "koladata/operators/masking.h"
 #include "koladata/operators/utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/unit.h"

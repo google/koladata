@@ -29,7 +29,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/logical.h"
+#include "koladata/operators/masking.h"
 #include "koladata/proto/testing/test_proto2.pb.h"
 #include "koladata/proto/testing/test_proto3.pb.h"
 #include "koladata/test_utils.h"

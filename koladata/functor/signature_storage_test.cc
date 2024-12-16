@@ -26,7 +26,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/logical.h"
+#include "koladata/operators/masking.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/memory/optional_value.h"

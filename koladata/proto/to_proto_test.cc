@@ -33,7 +33,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/logical.h"
+#include "koladata/operators/masking.h"
 #include "koladata/proto/from_proto.h"
 #include "koladata/proto/testing/test_proto2.pb.h"
 #include "koladata/proto/testing/test_proto3.pb.h"

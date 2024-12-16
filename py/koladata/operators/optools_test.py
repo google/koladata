@@ -124,7 +124,7 @@ class OptoolsTest(parameterized.TestCase):
   def test_backend_default_boxing(self):
     # NOTE: For simplicity re-using existing backend operator.
     @optools.as_backend_operator(
-        'kde.logical.has',
+        'kde.masking.has',
         qtype_constraints=[qtype_utils.expect_data_slice(arolla.P.x)],
         qtype_inference_expr=qtypes.DATA_SLICE,
     )

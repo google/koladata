@@ -8,26 +8,26 @@ DataSlice, DataBag, etc.).
 
 [TOC]
 
-Category  | Subcategory | Description
---------- | ----------- | ------------
-[kd](#kd_category) | | `kd` and `kde` operators
- | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
- | [annotation](#kd.annotation) | Annotation operators.
- | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
- | [comparison](#kd.comparison) | Operators that compare DataSlices.
- | [core](#kd.core) | Core operators that are not part of other categories.
- | [functor](#kd.functor) | Operators to create and call functors.
- | [logical](#kd.logical) | Logical operators.
- | [math](#kd.math) | Arithmetic operators.
- | [py](#kd.py) | Operators that call Python functions.
- | [random](#kd.random) | Random and sampling operators.
- | [schema](#kd.schema) | Schema-related operators.
- | [shapes](#kd.shapes) | Operators that work on shapes
- | [strings](#kd.strings) | Operators that work with strings data.
- | [tuple](#kd.tuple) | Operators to create tuples.
-[kd_ext](#kd_ext_category) | | `kd_ext` operators
-[DataSlice](#DataSlice_category) | | `DataSlice` methods
-[DataBag](#DataBag_category) | | `DataBag` methods
+Category                         | Subcategory                  | Description
+-------------------------------- | ---------------------------- | -----------
+[kd](#kd_category)               |                              | `kd` and `kde` operators
+                                 | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
+                                 | [annotation](#kd.annotation) | Annotation operators.
+                                 | [assertion](#kd.assertion)   | Operators that assert properties of DataSlices.
+                                 | [comparison](#kd.comparison) | Operators that compare DataSlices.
+                                 | [core](#kd.core)             | Core operators that are not part of other categories.
+                                 | [functor](#kd.functor)       | Operators to create and call functors.
+                                 | [masking](#kd.masking)       | Masking operators.
+                                 | [math](#kd.math)             | Arithmetic operators.
+                                 | [py](#kd.py)                 | Operators that call Python functions.
+                                 | [random](#kd.random)         | Random and sampling operators.
+                                 | [schema](#kd.schema)         | Schema-related operators.
+                                 | [shapes](#kd.shapes)         | Operators that work on shapes
+                                 | [strings](#kd.strings)       | Operators that work with strings data.
+                                 | [tuple](#kd.tuple)           | Operators to create tuples.
+[kd_ext](#kd_ext_category)       |                              | `kd_ext` operators
+[DataSlice](#DataSlice_category) |                              | `DataSlice` methods
+[DataBag](#DataBag_category)     |                              | `DataBag` methods
 
 ## `kd` and `kde` operators {#kd_category}
 
@@ -3915,15 +3915,16 @@ Returns a Koda functor created by tracing a given Python function.
 
 </section>
 
-### kd.logical {#kd.logical}
+### kd.masking {#kd.masking}
 
-Logical operators.
+Masking operators.
 
 <section class="zippy closed">
 
 **Operators**
 
-### `kd.logical.agg_all(x, ndim=unspecified)` {#kd.logical.agg_all}
+### `kd.masking.agg_all(x, ndim=unspecified)` {#kd.masking.agg_all}
+
 Aliases:
 
 - [kd.agg_all](#kd.agg_all)
@@ -3942,7 +3943,8 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.logical.agg_any(x, ndim=unspecified)` {#kd.logical.agg_any}
+### `kd.masking.agg_any(x, ndim=unspecified)` {#kd.masking.agg_any}
+
 Aliases:
 
 - [kd.agg_any](#kd.agg_any)
@@ -3961,7 +3963,8 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.logical.agg_has(x, ndim=unspecified)` {#kd.logical.agg_has}
+### `kd.masking.agg_has(x, ndim=unspecified)` {#kd.masking.agg_has}
+
 Aliases:
 
 - [kd.agg_has](#kd.agg_has)
@@ -3980,7 +3983,8 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.logical.all(x)` {#kd.logical.all}
+### `kd.masking.all(x)` {#kd.masking.all}
+
 Aliases:
 
 - [kd.all](#kd.all)
@@ -3996,7 +4000,8 @@ Args:
   x: A DataSlice.
 ```
 
-### `kd.logical.any(x)` {#kd.logical.any}
+### `kd.masking.any(x)` {#kd.masking.any}
+
 Aliases:
 
 - [kd.any](#kd.any)
@@ -4012,7 +4017,8 @@ Args:
   x: A DataSlice.
 ```
 
-### `kd.logical.apply_mask(x, y)` {#kd.logical.apply_mask}
+### `kd.masking.apply_mask(x, y)` {#kd.masking.apply_mask}
+
 Aliases:
 
 - [kd.apply_mask](#kd.apply_mask)
@@ -4031,7 +4037,8 @@ Returns:
   Masked DataSlice.
 ```
 
-### `kd.logical.coalesce(x, y)` {#kd.logical.coalesce}
+### `kd.masking.coalesce(x, y)` {#kd.masking.coalesce}
+
 Aliases:
 
 - [kd.coalesce](#kd.coalesce)
@@ -4051,7 +4058,8 @@ Returns:
   Coalesced DataSlice.
 ```
 
-### `kd.logical.cond(condition, yes, no=DataItem(None, schema: NONE))` {#kd.logical.cond}
+### `kd.masking.cond(condition, yes, no=DataItem(None, schema: NONE))` {#kd.masking.cond}
+
 Aliases:
 
 - [kd.cond](#kd.cond)
@@ -4073,7 +4081,8 @@ Returns:
   DataSlice of items from `yes` and `no` based on `condition`.
 ```
 
-### `kd.logical.disjoint_coalesce(x, y)` {#kd.logical.disjoint_coalesce}
+### `kd.masking.disjoint_coalesce(x, y)` {#kd.masking.disjoint_coalesce}
+
 Aliases:
 
 - [kd.disjoint_coalesce](#kd.disjoint_coalesce)
@@ -4092,7 +4101,8 @@ Returns:
   Coalesced DataSlice.
 ```
 
-### `kd.logical.has(x)` {#kd.logical.has}
+### `kd.masking.has(x)` {#kd.masking.has}
+
 Aliases:
 
 - [kd.has](#kd.has)
@@ -4111,7 +4121,8 @@ Returns:
   DataSlice representing the presence of `x`.
 ```
 
-### `kd.logical.has_not(x)` {#kd.logical.has_not}
+### `kd.masking.has_not(x)` {#kd.masking.has_not}
+
 Aliases:
 
 - [kd.has_not](#kd.has_not)
@@ -4130,7 +4141,8 @@ Returns:
   DataSlice representing the non-presence of `x`.
 ```
 
-### `kd.logical.mask_and(x, y)` {#kd.logical.mask_and}
+### `kd.masking.mask_and(x, y)` {#kd.masking.mask_and}
+
 Aliases:
 
 - [kd.mask_and](#kd.mask_and)
@@ -4154,7 +4166,8 @@ Returns:
   DataSlice.
 ```
 
-### `kd.logical.mask_equal(x, y)` {#kd.logical.mask_equal}
+### `kd.masking.mask_equal(x, y)` {#kd.masking.mask_equal}
+
 Aliases:
 
 - [kd.mask_equal](#kd.mask_equal)
@@ -4179,7 +4192,8 @@ Returns:
   DataSlice.
 ```
 
-### `kd.logical.mask_not_equal(x, y)` {#kd.logical.mask_not_equal}
+### `kd.masking.mask_not_equal(x, y)` {#kd.masking.mask_not_equal}
+
 Aliases:
 
 - [kd.mask_not_equal](#kd.mask_not_equal)
@@ -4205,7 +4219,7 @@ Returns:
   DataSlice.
 ```
 
-### `kd.logical.mask_or(x, y)` {#kd.logical.mask_or}
+### `kd.masking.mask_or(x, y)` {#kd.masking.mask_or}
 
 ``` {.no-copy}
 Applies pointwise MASK_OR operation on `x` and `y`.
@@ -6599,11 +6613,11 @@ Alias for [kd.core.add_dim_to_present](#kd.core.add_dim_to_present) operator.
 
 ### `kd.agg_all(x, ndim=unspecified)` {#kd.agg_all}
 
-Alias for [kd.logical.agg_all](#kd.logical.agg_all) operator.
+Alias for [kd.masking.agg_all](#kd.masking.agg_all) operator.
 
 ### `kd.agg_any(x, ndim=unspecified)` {#kd.agg_any}
 
-Alias for [kd.logical.agg_any](#kd.logical.agg_any) operator.
+Alias for [kd.masking.agg_any](#kd.masking.agg_any) operator.
 
 ### `kd.agg_count(x, ndim=unspecified)` {#kd.agg_count}
 
@@ -6611,7 +6625,7 @@ Alias for [kd.core.agg_count](#kd.core.agg_count) operator.
 
 ### `kd.agg_has(x, ndim=unspecified)` {#kd.agg_has}
 
-Alias for [kd.logical.agg_has](#kd.logical.agg_has) operator.
+Alias for [kd.masking.agg_has](#kd.masking.agg_has) operator.
 
 ### `kd.agg_max(x, ndim=unspecified)` {#kd.agg_max}
 
@@ -6639,15 +6653,15 @@ Alias for [kd.core.align](#kd.core.align) operator.
 
 ### `kd.all(x)` {#kd.all}
 
-Alias for [kd.logical.all](#kd.logical.all) operator.
+Alias for [kd.masking.all](#kd.masking.all) operator.
 
 ### `kd.any(x)` {#kd.any}
 
-Alias for [kd.logical.any](#kd.logical.any) operator.
+Alias for [kd.masking.any](#kd.masking.any) operator.
 
 ### `kd.apply_mask(x, y)` {#kd.apply_mask}
 
-Alias for [kd.logical.apply_mask](#kd.logical.apply_mask) operator.
+Alias for [kd.masking.apply_mask](#kd.masking.apply_mask) operator.
 
 ### `kd.apply_py(fn, *args, return_type_as=unspecified, **kwargs)` {#kd.apply_py}
 
@@ -6721,7 +6735,7 @@ Alias for [kd.core.clone](#kd.core.clone) operator.
 
 ### `kd.coalesce(x, y)` {#kd.coalesce}
 
-Alias for [kd.logical.coalesce](#kd.logical.coalesce) operator.
+Alias for [kd.masking.coalesce](#kd.masking.coalesce) operator.
 
 ### `kd.collapse(x, ndim=unspecified)` {#kd.collapse}
 
@@ -6737,7 +6751,7 @@ Alias for [kd.core.concat_lists](#kd.core.concat_lists) operator.
 
 ### `kd.cond(condition, yes, no=DataItem(None, schema: NONE))` {#kd.cond}
 
-Alias for [kd.logical.cond](#kd.logical.cond) operator.
+Alias for [kd.masking.cond](#kd.masking.cond) operator.
 
 ### `kd.container(*, db=None, **attrs)` {#kd.container}
 
@@ -6822,7 +6836,8 @@ Returns a sorted list of unique attribute names of the given DataSlice.
 
 ### `kd.disjoint_coalesce(x, y)` {#kd.disjoint_coalesce}
 
-Alias for [kd.logical.disjoint_coalesce](#kd.logical.disjoint_coalesce) operator.
+Alias for [kd.masking.disjoint_coalesce](#kd.masking.disjoint_coalesce)
+operator.
 
 ### `kd.dumps(x, /, *, riegeli_options='')` {#kd.dumps}
 
@@ -7166,7 +7181,7 @@ Alias for [kd.core.group_by_indices_sorted](#kd.core.group_by_indices_sorted) op
 
 ### `kd.has(x)` {#kd.has}
 
-Alias for [kd.logical.has](#kd.logical.has) operator.
+Alias for [kd.masking.has](#kd.masking.has) operator.
 
 ### `kd.has_attr(x, attr_name)` {#kd.has_attr}
 
@@ -7182,7 +7197,7 @@ Alias for [kd.core.has_list](#kd.core.has_list) operator.
 
 ### `kd.has_not(x)` {#kd.has_not}
 
-Alias for [kd.logical.has_not](#kd.logical.has_not) operator.
+Alias for [kd.masking.has_not](#kd.masking.has_not) operator.
 
 ### `kd.has_primitive(x)` {#kd.has_primitive}
 
@@ -7348,15 +7363,15 @@ Returns kd.slice(x, kd.MASK).
 
 ### `kd.mask_and(x, y)` {#kd.mask_and}
 
-Alias for [kd.logical.mask_and](#kd.logical.mask_and) operator.
+Alias for [kd.masking.mask_and](#kd.masking.mask_and) operator.
 
 ### `kd.mask_equal(x, y)` {#kd.mask_equal}
 
-Alias for [kd.logical.mask_equal](#kd.logical.mask_equal) operator.
+Alias for [kd.masking.mask_equal](#kd.masking.mask_equal) operator.
 
 ### `kd.mask_not_equal(x, y)` {#kd.mask_not_equal}
 
-Alias for [kd.logical.mask_not_equal](#kd.logical.mask_not_equal) operator.
+Alias for [kd.masking.mask_not_equal](#kd.masking.mask_not_equal) operator.
 
 ### `kd.max(x)` {#kd.max}
 

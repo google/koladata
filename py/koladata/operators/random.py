@@ -21,7 +21,7 @@ from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import core
 from koladata.operators import jagged_shape as jagged_shape_ops
-from koladata.operators import logical
+from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema
@@ -369,4 +369,4 @@ def randint_like(
   Returns:
     A DataSlice of random numbers.
   """
-  return randint_shaped_as(x, low, high, seed) & logical.has(x)
+  return randint_shaped_as(x, low, high, seed) & masking.has(x)

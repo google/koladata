@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.logical.has."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -43,43 +41,72 @@ QTYPES = frozenset([
 db = data_bag.DataBag.empty()
 
 
-class LogicalHasTest(parameterized.TestCase):
+class LogicalHasNotTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds([1, None, 3]), ds([arolla.present(), None, arolla.present()])),
+      (ds([1, None, 3]), ds([None, arolla.present(), None])),
+      (ds([1, 2, 3]), ds([None, None, None], schema_constants.MASK)),
       (
           ds(['a', 1, None, 1.5]),
-          ds([arolla.present(), arolla.present(), None, arolla.present()]),
+          ds([None, None, arolla.present(), None]),
       ),
       # Scalar input, scalar output.
-      (1, ds(arolla.present())),
-      (ds(arolla.missing()), ds(arolla.missing(), schema_constants.MASK)),
+      (1, ds(arolla.missing(), schema_constants.MASK)),
+      (ds(arolla.missing()), ds(arolla.present())),
+      # Objects
       (
           ds([db.obj(), None, db.obj()]),
-          ds([arolla.present(), None, arolla.present()]),
+          ds([None, arolla.present(), None]),
+      ),
+      # OBJECT/ANY
+      (
+          ds([1, None, 5], schema_constants.OBJECT),
+          ds([None, arolla.present(), None]),
+      ),
+      (
+          ds([1, 2, 5], schema_constants.OBJECT),
+          ds([None, None, None], schema_constants.MASK),
+      ),
+      # Empty and unknown inputs.
+      (
+          ds([None, None, None], schema_constants.OBJECT),
+          ds([arolla.present(), arolla.present(), arolla.present()]),
+      ),
+      (
+          ds([None, None, None]),
+          ds([arolla.present(), arolla.present(), arolla.present()]),
+      ),
+      (
+          ds([None, None, None], schema_constants.ANY),
+          ds([arolla.present(), arolla.present(), arolla.present()]),
+      ),
+      (
+          ds([None, None, None], schema_constants.FLOAT32),
+          ds([arolla.present(), arolla.present(), arolla.present()]),
       ),
   )
   def test_eval(self, values, expected):
-    result = expr_eval.eval(kde.logical.has(values))
+    result = expr_eval.eval(kde.masking.has_not(values))
     testing.assert_equal(result, expected)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.logical.has,
+            kde.masking.has_not,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.logical.has(I.x)), 'kde.logical.has(I.x)')
+    self.assertEqual(repr(kde.masking.has_not(I.x)), '~I.x')
+    self.assertEqual(repr(kde.has_not(I.x)), '~I.x')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.logical.has(I.x)))
+    self.assertTrue(view.has_koda_view(kde.masking.has_not(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.logical.has, kde.has))
+    self.assertTrue(optools.equiv_to_op(kde.masking.has_not, kde.has_not))
 
 
 if __name__ == '__main__':

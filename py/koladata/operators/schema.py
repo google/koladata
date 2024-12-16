@@ -16,7 +16,7 @@
 
 from arolla import arolla
 from koladata.operators import jagged_shape as jagged_shape_ops
-from koladata.operators import logical
+from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import py_boxing
@@ -27,8 +27,8 @@ M = arolla.M
 P = arolla.P
 constraints = arolla.optools.constraints
 
-# Implemented in logical.py to avoid a dependency cycle.
-with_schema = logical._with_schema  # pylint: disable=protected-access
+# Implemented in masking.py to avoid a dependency cycle.
+with_schema = masking._with_schema  # pylint: disable=protected-access
 
 
 @optools.as_backend_operator(

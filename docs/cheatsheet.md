@@ -393,10 +393,10 @@ a | b # Same
 
 kd.cond(c > 1, a, b)
 
-kd.logical.mask_and(a, b)
-kd.logical.mask_or(a, b)
-kd.logical.mask_equal(a, b)
-kd.logical.mask_not_equal(a, b)
+kd.masking.mask_and(a, b)
+kd.masking.mask_or(a, b)
+kd.masking.mask_equal(a, b)
+kd.masking.mask_not_equal(a, b)
 ```
 
 </section>

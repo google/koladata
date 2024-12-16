@@ -1451,8 +1451,8 @@ which work the same as `&` and `|` but require inputs to be masks.
 a = kd.slice([1, 2, 3, 4])
 b = kd.slice([4, 2, 1, 3])
 
-kd.logical.mask_and(a > b, a < b + 2)  # same as (a>b) & (a<b+2)
-kd.logical.mask_or(a > b, b == 2)  # same as (a>b) | (b==2)
+kd.masking.mask_and(a > b, a < b + 2)  # same as (a>b) & (a<b+2)
+kd.masking.mask_or(a > b, b == 2)  # same as (a>b) | (b==2)
 ```
 
 We cannot compare equality of masks using `==` or `!=` to which the general
@@ -1466,8 +1466,8 @@ IMPORTANT: Masks are not booleans! Don't use `==` or `!=` on them and use
 kd.missing == kd.missing # kd.missing
 kd.present != kd.missing # kd.missing
 
-kd.logical.mask_equal(kd.missing, kd.missing) # present
-kd.logical.mask_not_equal(kd.present, kd.missing) # present
+kd.masking.mask_equal(kd.missing, kd.missing) # present
+kd.masking.mask_not_equal(kd.present, kd.missing) # present
 ```
 
 As we have seen, `apply_mask` sets corresponding items to missing without

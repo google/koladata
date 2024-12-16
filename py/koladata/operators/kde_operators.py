@@ -24,7 +24,7 @@ from koladata.operators import comparison as _
 from koladata.operators import core as _
 from koladata.operators import functor as _
 from koladata.operators import jagged_shape as _
-from koladata.operators import logical as _
+from koladata.operators import masking as _
 from koladata.operators import math as _
 from koladata.operators import object_factories as _
 from koladata.operators import predicates as _
@@ -46,7 +46,7 @@ def get_namespaces() -> list[str]:
       'kde.comparison',
       'kde.core',
       'kde.functor',
-      'kde.logical',
+      'kde.masking',
       'kde.math',
       'kde.py',
       'kde.random',

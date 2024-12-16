@@ -21,7 +21,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -40,36 +39,36 @@ missing = arolla.missing()
 QTYPES = frozenset([(DATA_SLICE, DATA_SLICE, DATA_SLICE)])
 
 
-class LogicalMaskAndTest(parameterized.TestCase):
+class LogicalMaskOrTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(present), ds(present), ds(present)),
-      (ds(present), ds(missing), ds(missing)),
-      (ds(missing), ds(present), ds(missing)),
+      (ds(present), ds(missing), ds(present)),
+      (ds(missing), ds(present), ds(present)),
       (ds(missing), ds(missing), ds(missing)),
       (
           ds([present, present, missing, missing]),
           ds([present, missing, present, missing]),
-          ds([present, missing, missing, missing]),
+          ds([present, present, present, missing]),
       ),
       (
           ds([[present, present], [missing, missing]]),
           ds([[present, missing], [present, missing]]),
-          ds([[present, missing], [missing, missing]]),
+          ds([[present, present], [present, missing]]),
       ),
       (
           ds([present, missing]),
           ds([[present, missing], [present, missing]]),
-          ds([[present, missing], [missing, missing]]),
+          ds([[present, present], [present, missing]]),
       ),
       (
           ds([present, present, missing, missing], schema_constants.OBJECT),
           ds([present, missing, present, missing], schema_constants.ANY),
-          ds([present, missing, missing, missing]),
+          ds([present, present, present, missing]),
       ),
   )
   def test_eval(self, x, y, expected):
-    result = expr_eval.eval(kde.logical.mask_and(x, y))
+    result = expr_eval.eval(kde.masking.mask_or(x, y))
     testing.assert_equal(result, expected)
 
   def test_invalid_input(self):
@@ -77,31 +76,28 @@ class LogicalMaskAndTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         # TODO: b/375621456 - Raise KodaError.
         ValueError,
-        re.escape('kde.logical.mask_and: argument `x` must have kd.MASK dtype'),
+        re.escape('kde.masking.mask_or: argument `x` must have kd.MASK dtype'),
     ):
-      _ = expr_eval.eval(kde.logical.mask_and(ds(1), ds(present)))
+      _ = expr_eval.eval(kde.masking.mask_or(ds(1), ds(present)))
 
     with self.assertRaisesRegex(
         # TODO: b/375621456 - Raise KodaError.
         ValueError,
-        re.escape('kde.logical.mask_and: argument `y` must have kd.MASK dtype'),
+        re.escape('kde.masking.mask_or: argument `y` must have kd.MASK dtype'),
     ):
-      _ = expr_eval.eval(kde.logical.mask_and(ds(present), ds(1)))
+      _ = expr_eval.eval(kde.masking.mask_or(ds(present), ds(1)))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.logical.mask_and,
+            kde.masking.mask_or,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.logical.mask_and, kde.mask_and))
-
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.logical.mask_and(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.masking.mask_or(I.x, I.y)))
 
 
 if __name__ == '__main__':

@@ -22,7 +22,7 @@ from typing import Any, Callable, Iterable
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import core as _
-from koladata.operators import logical
+from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_item
@@ -561,7 +561,7 @@ def map_py_on_cond(
     # Apply the cond mask to the arguments so that masked values don't need
     # unboxing.
     args = map(
-        lambda x: eval_op('kde.logical.apply_mask', x, cond),
+        lambda x: eval_op('kde.masking.apply_mask', x, cond),
         args,
     )
     task_fn = (
@@ -690,9 +690,9 @@ def map_py_on_present(
   if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
   cond = functools.reduce(
-      functools.partial(eval_op, 'kde.logical.mask_and'),
+      functools.partial(eval_op, 'kde.masking.mask_and'),
       map(
-          functools.partial(eval_op, 'kde.logical.has'),
+          functools.partial(eval_op, 'kde.masking.has'),
           itertools.chain(args, kwargs.values()),
       ),
   )
@@ -754,7 +754,7 @@ def _map(fn, *args, **kwargs):
   return arolla.abc.bind_op(
       map_py_on_selected,
       arolla.abc.PyObject(lambda _fn, *args, **kwargs: _fn(*args, **kwargs)),
-      logical.has(fn),
+      masking.has(fn),
       schema=data_slice.DataSlice.from_vals(None),
       item_completed_callback=py_boxing.as_qvalue(None),
       max_threads=py_boxing.as_qvalue(1),
