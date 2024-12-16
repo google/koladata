@@ -158,7 +158,7 @@ class PyApplyPyOnCondTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         ValueError,
         'expected a python callable, got no_fn=DataSlice([missing], schema:'
-        ' MASK, ndims: 1)',
+        ' MASK, ndims: 1, size: 1)',
     ):
       _ = expr_eval.eval(kde.py.apply_py_on_cond(lambda x, y: x + y, x, x))
 

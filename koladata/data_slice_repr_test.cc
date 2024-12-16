@@ -1399,7 +1399,7 @@ TEST(DataSliceReprTest, DataSliceRepr_ShowAttribute) {
                                        .show_databag_id = false,
                                        .show_shape = false}),
               Eq("DataSlice([Entity(b=Entity(a=1)), Entity(b=Entity(a=2))], "
-                 "schema: SCHEMA(b=SCHEMA(a=INT32)), ndims: 1)"));
+                 "schema: SCHEMA(b=SCHEMA(a=INT32)), ndims: 1, size: 2)"));
 }
 
 TEST(DataSliceReprTest, DataSliceRepr_ShowAttrsOnLargeEntity) {
@@ -1415,7 +1415,7 @@ TEST(DataSliceReprTest, DataSliceRepr_ShowAttrsOnLargeEntity) {
                                      .show_databag_id = false,
                                      .show_shape = false}),
               Eq("DataSlice(attrs: [a, b], schema: SCHEMA(a=INT32, b=INT32), "
-                 "ndims: 1)"));
+                 "ndims: 1, size: 10)"));
 }
 
 }  // namespace

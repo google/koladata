@@ -739,7 +739,8 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
     if (option.show_shape) {
       absl::StrAppend(&result, ", shape: ", arolla::Repr(ds.GetShape()));
     } else {
-      absl::StrAppend(&result, ", ndims: ", ds.GetShape().rank());
+      absl::StrAppend(&result, ", ndims: ", ds.GetShape().rank(),
+                      ", size: ", ds.GetShape().size());
     }
   }
   if (option.show_databag_id && ds.GetBag() != nullptr) {
