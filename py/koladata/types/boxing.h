@@ -43,19 +43,26 @@ namespace koladata::python {
 // appropriate Status error is returned.
 absl::StatusOr<DataSlice> DataSliceFromPyValue(
     PyObject* py_obj, AdoptionQueue& adoption_queue,
-    const DataSlice* dtype = nullptr);
+    const std::optional<DataSlice>& dtype = std::nullopt);
 
 // If `py_obj` is a python list of DataItems, merges their DataBags and attaches
 // to the resulted DataSlice. Otherwise returns a DataSlice without DataBag.
 absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
-    PyObject* py_obj, const DataSlice* dtype = nullptr);
+    PyObject* py_obj, const std::optional<DataSlice>& dtype = std::nullopt);
 
 // If `py_obj` is a python list of DataItems, ignores their DataBags.
 inline absl::StatusOr<DataSlice> DataSliceFromPyValueNoAdoption(
-    PyObject* py_obj, const DataSlice* dtype = nullptr) {
+    PyObject* py_obj, const std::optional<DataSlice>& dtype = std::nullopt) {
   AdoptionQueue adoption_queue;
   return DataSliceFromPyValue(py_obj, adoption_queue, dtype);
 }
+
+// Returns a new reference to DataItem created from Python value which can be a
+// supported Python or Arolla scalar (int, float, bool, DataItem, etc.).
+//
+// In case of unsupported types , appropriate Status error is returned.
+absl::StatusOr<DataSlice> DataItemFromPyValue(
+    PyObject* py_obj, const std::optional<DataSlice>& dtype = std::nullopt);
 
 // Converts a DataSlice `ds` to an equivalent Python value. In case of presence
 // of multiple dimensions, a nested list of items is returned. Returns a new

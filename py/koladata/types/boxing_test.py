@@ -210,6 +210,8 @@ class BoxingTest(parameterized.TestCase):
   )
   def test_scalars_roundtrip(self, value, dtype, expected, expected_schema):
     x = ds(value, schema=dtype)
+    x_item = data_item.DataItem.from_vals(value, schema=dtype)
+    testing.assert_equal(x, x_item)
     self.assertIsInstance(x, data_item.DataItem)
     self.assertAlmostEqual(x.internal_as_py(), expected, places=5)
     testing.assert_equal(x.get_schema(), expected_schema)
@@ -338,6 +340,16 @@ class BoxingTest(parameterized.TestCase):
     testing.assert_equal(
         e1.get_attr('__schema__'), ds(None, SCHEMA).with_bag(db)
     )
+    res = data_item.DataItem.from_vals(e1, OBJECT)
+    testing.assert_equal(res, e1.with_bag(res.get_bag()).with_schema(OBJECT))
+    testing.assert_equal(
+        res.get_attr('__schema__'),
+        e1.get_schema().with_bag(res.get_bag()),
+    )
+    # The original bag is unaffected.
+    testing.assert_equal(
+        e1.get_attr('__schema__'), ds(None, SCHEMA).with_bag(db)
+    )
 
   def test_schema_embedding_conflicting_schema(self):
     db1 = data_bag.DataBag.empty()
@@ -453,7 +465,7 @@ class BoxingTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'cannot cast STRING to BYTES'):
       ds('foo', BYTES)
     with self.assertRaisesRegex(
-        ValueError, 'schema can only be 0-rank schema slice, got: rank: 1'
+        ValueError, r'schema can only be 0-rank schema slice, got: rank\(1\)'
     ):
       ds(12, ds([None], SCHEMA))
 
@@ -463,9 +475,13 @@ class BoxingTest(parameterized.TestCase):
     ):
       ds(1, 2, 3)
     with self.assertRaisesRegex(
-        TypeError, 'expected DataItem for `schema`, got: .*QType'
+        TypeError, 'expecting schema to be a DataSlice, got .*QType'
     ):
       ds(1, arolla.INT32)
+    with self.assertRaisesRegex(
+        ValueError, 'schema must be SCHEMA, got: INT32'
+    ):
+      ds(1, ds(1))
     with self.assertRaisesRegex(
         ValueError, 'unsupported array element type: UINT64'
     ):

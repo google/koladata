@@ -118,24 +118,12 @@ absl::Nullable<PyObject*> PyDataSlice_from_vals(PyTypeObject* cls,
     return nullptr;
   }
   PyObject* list = py_args[0];
-  const DataSlice* dtype = nullptr;
-  if (PyObject* py_schema = args.pos_kw_values[0];
-      py_schema != nullptr && py_schema != Py_None) {
-    if (!PyType_IsSubtype(Py_TYPE(py_schema), PyDataSlice_Type())) {
-      PyErr_Format(PyExc_TypeError, "expected DataItem for `schema`, got: %s",
-                   Py_TYPE(py_schema)->tp_name);
-      return nullptr;
-    }
-    dtype = &UnsafeDataSliceRef(py_schema);
+  std::optional<DataSlice> dtype;
+  if (!UnwrapDataSliceOptionalArg(args.pos_kw_values[0], "schema", dtype)) {
+    return nullptr;
   }
   ASSIGN_OR_RETURN(auto ds, DataSliceFromPyValueWithAdoption(list, dtype),
                    arolla::python::SetPyErrFromStatus(_));
-  if (ds.GetShape().rank() != 0 && cls != PyDataSlice_Type()) {
-    PyErr_SetString(PyExc_TypeError,
-                    "DataItem and other 0-rank class method `from_vals` "
-                    "cannot create multi-dim DataSlice");
-    return nullptr;
-  }
   return WrapPyDataSlice(std::move(ds));
 }
 
@@ -995,9 +983,15 @@ PyMethodDef kPyDataSlice_methods[] = {
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
      "from_vals(x, /, schema=None)\n"
      "--\n\n"
-     "Creates a DataSlice from `value`.\n"
-     "If `schema` is set, that schema is used,\n"
-     "otherwise the schema is inferred from `value`."},
+     R"""(Returns a DataSlice created from Python `value`.
+
+If `schema` is set, that schema is used, otherwise the schema is inferred from
+`value`.
+
+Args:
+  x: Python value.
+  schema: schema DataSlice to set.
+)"""},
     {"_from_py_impl", (PyCFunction)PyDataSlice_from_py,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
      "_from_py_impl(py_obj, /, itemid=None, schema=None, from_dim=None)\n"

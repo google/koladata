@@ -26,7 +26,7 @@ from koladata.expr import py_expr_eval_py_ext
 from koladata.fstring import fstring as _fstring
 from koladata.types import data_bag
 # NOTE: To allow Python scalar values to have DataItem Python type.
-from koladata.types import data_item as _
+from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import ellipsis
 from koladata.types import literal_operator
@@ -316,10 +316,10 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
   if isinstance(arg, (py_types.FunctionType, functools.partial)):
     return arolla.abc.PyObject(arg, codec=REF_CODEC)
   if arg is data_slice.DataSlice:
-    return data_slice.DataSlice.from_vals(None)
+    return data_item.DataItem.from_vals(None)
   if arg is data_bag.DataBag:
     return data_bag.DataBag.empty()
-  return data_slice.DataSlice.from_vals(arg)
+  return data_item.DataItem.from_vals(arg)
 
 
 def as_qvalue_or_expr_with_list_to_slice_support(

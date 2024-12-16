@@ -15,15 +15,21 @@
 #include "py/koladata/types/data_item.h"
 
 #include <cstdint>
+#include <optional>
+#include <utility>
 
+#include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/types/boxing.h"
 #include "py/koladata/types/data_slice.h"
+#include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 
@@ -82,6 +88,52 @@ absl::Nullable<PyObject*> PyDataItem_float(PyObject* self) {
   return nullptr;
 }
 
+// classmethod
+absl::Nullable<PyObject*> PyDataItem_from_vals(PyTypeObject* cls,
+                                               PyObject* const* py_args,
+                                               Py_ssize_t nargs,
+                                               PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/1, /*parse_kwargs=*/false, "schema");
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  PyObject* py_obj = py_args[0];
+  if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
+    PyErr_SetString(PyExc_TypeError,
+                    "DataItem and other 0-rank class method `from_vals` "
+                    "cannot create multi-dim DataSlice");
+    return nullptr;
+  }
+  std::optional<DataSlice> dtype;
+  if (!UnwrapDataSliceOptionalArg(args.pos_kw_values[0], "schema", dtype)) {
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(auto ds, DataItemFromPyValue(py_obj, dtype),
+                   arolla::python::SetPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(ds));
+}
+
+PyMethodDef kPyDataItem_methods[] = {
+    {"from_vals", (PyCFunction)PyDataItem_from_vals,
+     METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
+     "from_vals(x, /, schema=None)\n"
+     "--\n\n"
+     R"""(Returns a DataItem created from Python `value`.
+
+If `schema` is set, that schema is used, otherwise the schema is inferred from
+`value`. Python value must be convertible to Koda scalar and the result cannot
+be multidimensional DataSlice.
+
+Args:
+  x: Python value.
+  schema: schema DataSlice to set.
+)"""},
+    {nullptr}, /* sentinel */
+};
+
 // Creates and initializes PyTypeObject for Python DataItem class.
 PyTypeObject* InitPyDataItemType() {
   arolla::python::CheckPyGIL();
@@ -92,6 +144,7 @@ PyTypeObject* InitPyDataItemType() {
   PyType_Slot slots[] = {
       // By being a subclass of DataSlice, it is also a subclass of QValue.
       {Py_tp_base, py_data_slice_type},
+      {Py_tp_methods, kPyDataItem_methods},
       {Py_nb_bool, (void*)PyDataItem_bool},
       {Py_nb_index, (void*)PyDataItem_index},
       {Py_nb_float, (void*)PyDataItem_float},

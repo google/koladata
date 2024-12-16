@@ -81,6 +81,22 @@ class DataItemTest(parameterized.TestCase):
         TypeError, 'DataItem.* cannot create multi-dim DataSlice'
     ):
       _ = data_item.DataItem.from_vals([1, 2, 3])
+    with self.assertRaisesRegex(
+        TypeError, 'accepts 1 to 2 positional arguments but 3 were given'
+    ):
+      _ = data_item.DataItem.from_vals(1, 2, 3)
+    with self.assertRaisesRegex(
+        TypeError, 'accepts 1 to 2 positional arguments but 0 were given'
+    ):
+      _ = data_item.DataItem.from_vals(schema=schema_constants.INT32)
+    with self.assertRaisesRegex(
+        TypeError, 'expecting schema to be a DataSlice, got .*QType'
+    ):
+      data_item.DataItem.from_vals(1, arolla.INT32)
+    with self.assertRaisesRegex(
+        ValueError, 'schema must be SCHEMA, got: INT32'
+    ):
+      data_item.DataItem.from_vals(1, ds(1))
 
   def test_hash(self):
     items = [ds(12), ds(121), ds('abc'), data_bag.DataBag.empty().new(x=12)]

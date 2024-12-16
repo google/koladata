@@ -93,13 +93,22 @@ using ::koladata::internal::DataItem;
 
 // Creates a DataSlice and optionally casts data according to `schema`
 // argument.
-absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
-                                           DataSlice::JaggedShape shape,
-                                           const DataItem& schema) {
+absl::StatusOr<DataSlice> CreateWithSchema(DataItem impl,
+                                           DataItem schema) {
   // NOTE: CastDataTo does not do schema validation or schema embedding (in case
   // schema is OBJECT).
   ASSIGN_OR_RETURN(impl, schema::CastDataTo(impl, schema));
-  return DataSlice::Create(std::move(impl), std::move(shape), DataItem(schema));
+  return DataSlice::Create(std::move(impl), std::move(schema));
+}
+
+absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
+                                           DataSlice::JaggedShape shape,
+                                           DataItem schema) {
+  // NOTE: CastDataTo does not do schema validation or schema embedding (in case
+  // schema is OBJECT).
+  ASSIGN_OR_RETURN(impl, schema::CastDataTo(impl, schema));
+  return DataSlice::Create(
+      std::move(impl), std::move(shape), std::move(schema));
 }
 
 // Returns an Error with incompatible schema information during narrow casting.
@@ -258,8 +267,8 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
       const auto& ds = typed_value.UnsafeAs<DataSlice>();
       if (!ds.is_item()) {
         return absl::InvalidArgumentError(absl::StrFormat(
-            "python list can only contain DataItems, got DataSlice with shape "
-            "%s", arolla::Repr(ds.GetShape())));
+            "python object can only contain DataItems, got DataSlice with shape"
+            " %s", arolla::Repr(ds.GetShape())));
       }
       adoption_queue.Add(ds);
       schema_agg.Add(ds.GetSchemaImpl());
@@ -377,14 +386,12 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     // user. If this is gathered from data, it is validated to be implicitly
     // castable when finding the common schema. The schema attributes are not
     // validated, and are instead assumed to be part of the adoption queue.
-    ASSIGN_OR_RETURN(auto res, CreateWithSchema(std::move(bldr).Build(),
-                                                std::move(shape), schema));
+    ASSIGN_OR_RETURN(auto res,
+                     CreateWithSchema(std::move(bldr).Build(), std::move(shape),
+                                      std::move(schema)));
     // Entity slices embedded to the aux db should be part of the final merged
     // db.
-    const auto& db = embedding_db.GetBag();
-    if (db != nullptr) {
-      adoption_queue.Add(db);
-    }
+    adoption_queue.Add(embedding_db.GetBag());
     return res;
   };
   if (schema.has_value()) {
@@ -397,8 +404,8 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
 // Parses the Python list and returns flattened items together with appropriate
 // JaggedShape.
 absl::StatusOr<std::pair<std::vector<PyObject*>, DataSlice::JaggedShape>>
-PyObjectsFromPyList(PyObject* py_list, AdoptionQueue& adoption_queue,
-                    size_t max_depth = 0) {
+FlattenPyList(PyObject* py_list, AdoptionQueue& adoption_queue,
+              size_t max_depth = 0) {
   arolla::python::DCheckPyGIL();
   DataSlice::JaggedShape::EdgeVec edges;
   std::vector<PyObject*> lst_items;
@@ -466,7 +473,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
                                               AdoptionQueue& adoption_queue) {
   arolla::python::DCheckPyGIL();
   ASSIGN_OR_RETURN((auto [py_objects, shape]),
-                   PyObjectsFromPyList(py_list, adoption_queue));
+                   FlattenPyList(py_list, adoption_queue));
 
   return DataSliceFromPyFlatList(py_objects, std::move(shape),
                                  std::move(schema), adoption_queue);
@@ -549,14 +556,12 @@ absl::Nullable<PyObject*> PyObjectFromDataItem(const DataItem& item,
 
 }  // namespace
 
-absl::StatusOr<DataSlice> DataSliceFromPyValue(PyObject* py_obj,
-                                               AdoptionQueue& adoption_queue,
-                                               const DataSlice* dtype) {
+absl::StatusOr<DataSlice> DataSliceFromPyValue(
+    PyObject* py_obj, AdoptionQueue& adoption_queue,
+    const std::optional<DataSlice>& dtype) {
   arolla::python::DCheckPyGIL();
-  if (dtype && dtype->GetShape().rank() != 0) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("schema can only be 0-rank schema slice, got: rank: ",
-                     dtype->GetShape().rank()));
+  if (dtype) {
+    RETURN_IF_ERROR(dtype->VerifyIsSchema());
   }
   if (arolla::python::IsPyQValueInstance(py_obj)) {
     const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
@@ -595,8 +600,50 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(PyObject* py_obj,
       return DataSliceFromPrimitivesArray(typed_value.AsRef());
     }
   }
+  if (!PyList_CheckExact(py_obj) && !PyTuple_CheckExact(py_obj)) {
+    return DataItemFromPyValue(py_obj, dtype);
+  }
   return DataSliceFromPyList(py_obj, dtype ? dtype->item() : DataItem(),
                              adoption_queue);
+}
+
+absl::StatusOr<DataSlice> DataItemFromPyValue(
+    PyObject* py_obj, const std::optional<DataSlice>& dtype) {
+  AdoptionQueue adoption_queue;
+  internal::DataItem res_item;
+  internal::DataItem schema_item;
+  auto to_data_item_fn = [&res_item]<class T>(T&& value) {
+    res_item = internal::DataItem(std::forward<T>(value));
+  };
+  // NOTE: If there is a DataBag `py_obj`, it is added to the adoption_queue.
+  if (dtype.has_value()) {
+    RETURN_IF_ERROR(dtype->VerifyIsSchema());
+    schema_item = dtype->item();
+    EmbeddingDataBag embedding_db;
+    schema::CommonSchemaAggregator unused_schema_agg;
+    RETURN_IF_ERROR(ParsePyObject</*explicit_cast=*/true>(
+        py_obj, /*explicit_schema=*/schema_item, adoption_queue,
+        unused_schema_agg, embedding_db, to_data_item_fn));
+    // Entity slices embedded to the aux db should be part of the final merged
+    // db.
+    adoption_queue.Add(embedding_db.GetBag());
+  } else {
+    schema::CommonSchemaAggregator schema_agg;
+    EmbeddingDataBag unused_embedding_db;
+    RETURN_IF_ERROR(ParsePyObject</*explicit_cast=*/false>(
+        py_obj, /*explicit_schema=*/internal::DataItem(), adoption_queue,
+        schema_agg, unused_embedding_db, to_data_item_fn));
+    DCHECK_EQ(unused_embedding_db.GetBag(), nullptr);
+    ASSIGN_OR_RETURN(schema_item, std::move(schema_agg).Get());
+  }
+  ASSIGN_OR_RETURN(
+      DataSlice res,
+      CreateWithSchema(std::move(res_item), std::move(schema_item)));
+  if (adoption_queue.empty()) {
+    return res;
+  }
+  ASSIGN_OR_RETURN(DataBagPtr res_bag, adoption_queue.GetCommonOrMergedDb());
+  return res.WithBag(std::move(res_bag));
 }
 
 absl::Nullable<PyObject*> DataSliceToPyValue(const DataSlice& ds) {
@@ -645,7 +692,7 @@ absl::Nullable<PyObject*> DataSliceToPyValue(const DataSlice& ds) {
 }
 
 absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
-    PyObject* py_obj, const DataSlice* dtype) {
+    PyObject* py_obj, const std::optional<DataSlice>& dtype) {
   AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(DataSlice res_no_db,
                    DataSliceFromPyValue(py_obj, adoption_queue, dtype));
@@ -832,7 +879,7 @@ class UniversalConverter {
     }
 
     ASSIGN_OR_RETURN((auto [py_objects, shape]),
-                     PyObjectsFromPyList(py_obj, adoption_queue_, from_dim));
+                     FlattenPyList(py_obj, adoption_queue_, from_dim));
     if (parent_itemid) {
       if (parent_itemid->is_item()) {
         return absl::InvalidArgumentError(
@@ -862,8 +909,7 @@ class UniversalConverter {
     RETURN_IF_ERROR(Run());
     ASSIGN_OR_RETURN(DataSlice res, ComputeDataSlice(py_objects.size(), schema,
                                                      /*is_root=*/true));
-    ASSIGN_OR_RETURN(DataSlice reshaped_res, res.Reshape(std::move(shape)));
-    return std::move(reshaped_res);
+    return res.Reshape(std::move(shape));
   }
 
   // TODO: Consider passing `schema` here as well. This requires
@@ -942,7 +988,7 @@ class UniversalConverter {
     }
     return CreateWithSchema(std::move(bldr).Build(),
                             DataSlice::JaggedShape::FlatFromSize(size),
-                            schema_item);
+                            std::move(schema_item));
   }
 
   // Collects the keys and values of the python dictionary `py_obj`, and
@@ -1167,24 +1213,35 @@ class UniversalConverter {
   // `cache_value` is filled with the result on success, to avoid recomputing
   // hash and re-inserting in the hash_map, when the reference to the value is
   // available.
+  //
+  // NOTE: This is not recommended as a general pattern, as returning error can
+  // also be expensive. Here, it is justified as it is followed by more
+  // expensive callbacks to Python (parsing dataclasses) and the point of this
+  // `Try...` method is to skip doing expensive Python callbacks on each Python
+  // scalar.
   absl::Status TryParsePythonScalar(PyObject* py_obj,
                                     std::optional<DataSlice>* cache_value) {
-    // NOTE: No schema is passed to DataSliceFromPyValue (in which case explicit
-    // casting would happen), because universal conversion relies on implicit /
-    // narrowing casting in all use-cases.
-    ASSIGN_OR_RETURN(DataSlice res,
-                     DataSliceFromPyValue(py_obj, adoption_queue_));
-    // The original bag was added to the adoption_queue.
-    res = std::move(res).WithBag(nullptr);
-    if (!res.is_item()) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "python dict / list / dataclass can only contain DataItems, got "
-          "DataSlice with shape %s", arolla::Repr(res.GetShape())));
-    }
+    EmbeddingDataBag unused_embedding_db;
+    schema::CommonSchemaAggregator schema_agg;
+    internal::DataItem res_item;
+    internal::DataItem schema_item;
+    auto to_data_item_fn = [&res_item]<class T>(T&& value) {
+      res_item = internal::DataItem(std::forward<T>(value));
+    };
+    // NOTE: If there is a DataBag `py_obj`, it is added to the adoption_queue.
+    RETURN_IF_ERROR(ParsePyObject</*explicit_cast=*/false>(
+        py_obj, /*explicit_schema=*/internal::DataItem(), adoption_queue_,
+        schema_agg, unused_embedding_db, to_data_item_fn));
+    DCHECK_EQ(unused_embedding_db.GetBag(), nullptr);
+    ASSIGN_OR_RETURN(schema_item, std::move(schema_agg).Get());
+    // The original bag was added to the adoption_queue, so returning an item
+    // without a DataBag to respect the algorithm in UniversalConverter that
+    // expects bag of the result only when it created a DataBag.
+    ASSIGN_OR_RETURN(DataSlice res, DataSlice::Create(res_item, schema_item));
     // Only Entities are converted using Factory, while primitives are kept as
     // is, because building an OBJECT slice in ComputeDataSlice is not possible
     // if Entities are not already converted.
-    if (res.GetSchemaImpl().is_entity_schema()) {
+    if (schema_item.is_entity_schema()) {
       if constexpr (std::is_same_v<Factory, ObjectCreator>) {
         MaybeCreateEmptyBag();
         ASSIGN_OR_RETURN(res, Factory::ConvertWithoutAdopt(db_, res));
@@ -1415,10 +1472,8 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
   // NOTE: UniversalConverter does not allow converting multi-dimensional
   // DataSlices, so we are processing it before invoking the UniversalConverter.
   if (arolla::python::IsPyQValueInstance(py_obj) && !itemid.has_value()) {
-    ASSIGN_OR_RETURN(
-        auto res,
-        DataSliceFromPyValue(py_obj, adoption_queue,
-                             schema ? &(*schema) : nullptr));
+    ASSIGN_OR_RETURN(auto res,
+                     DataSliceFromPyValue(py_obj, adoption_queue, schema));
     return EntityCreator::ConvertWithoutAdopt(db, res);
   }
   return UniversalConverter<EntityCreator>(db, adoption_queue)

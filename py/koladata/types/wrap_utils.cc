@@ -78,7 +78,7 @@ absl::Nullable<PyObject*> WrapPyDataSlice(DataSlice&& ds) {
 bool UnwrapDataSliceOptionalArg(PyObject* py_obj,
                                 absl::string_view name_for_error,
                                 std::optional<DataSlice>& arg) {
-  if (Py_IsNone(py_obj)) {
+  if (Py_IsNone(py_obj) || py_obj == nullptr) {
     arg = std::nullopt;
     return true;
   }
