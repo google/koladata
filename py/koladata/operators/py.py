@@ -133,20 +133,14 @@ def _unwrap_optional_schema(
 @optools.add_to_registry(aliases=['kde.apply_py'])
 @optools.as_py_function_operator(
     'kde.py.apply_py',
+    qtype_constraints=[_expect_py_callable(P.fn)],
     qtype_inference_expr=arolla.M.qtype.conditional_qtype(
         P.return_type_as == arolla.UNSPECIFIED,
         qtypes.DATA_SLICE,
         P.return_type_as,
     ),
-    qtype_constraints=[_expect_py_callable(P.fn)],
 )
-def apply_py(
-    fn,
-    args=py_boxing.var_positional(),
-    return_type_as=py_boxing.keyword_only(arolla.unspecified()),
-    kwargs=py_boxing.var_keyword(),
-):
-  # pylint: disable=g-doc-args  # *args, **kwargs
+def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
   """Applies Python function `fn` on args.
 
   It is equivalent to fn(*args, **kwargs).
@@ -168,7 +162,7 @@ def apply_py(
     Result of fn applied on the arguments.
   """
   fn = _unwrap_py_callable(fn, param_name='fn')
-  result = py_boxing.as_qvalue(fn(*args, **kwargs.as_dict()))  # pytype: disable=attribute-error
+  result = py_boxing.as_qvalue(fn(*args, **kwargs))
   if return_type_as.qtype == arolla.UNSPECIFIED and not isinstance(
       result, data_slice.DataSlice
   ):
@@ -190,14 +184,7 @@ def apply_py(
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
 )
-def apply_py_on_cond(
-    yes_fn,
-    no_fn,
-    cond,
-    args=py_boxing.var_positional(),
-    kwargs=py_boxing.var_keyword(),
-):
-  # pylint: disable=g-doc-args  # *args, **kwargs
+def apply_py_on_cond(yes_fn, no_fn, cond, *args, **kwargs):
   """Applies Python functions on args filtered with `cond` and `~cond`.
 
   It is equivalent to
@@ -223,8 +210,6 @@ def apply_py_on_cond(
   """
   yes_fn = _unwrap_py_callable(yes_fn, param_name='yes_fn')
   no_fn = _unwrap_optional_py_callable(no_fn, param_name='no_fn')
-  args = tuple(args)
-  kwargs = kwargs.as_dict()  # pytype: disable=attribute-error
   result = py_boxing.as_qvalue(
       yes_fn(
           *(x & cond for x in args),
@@ -392,13 +377,13 @@ def _basic_map_py(
 )
 def map_py(
     fn,
-    args=py_boxing.var_positional(),
-    schema=py_boxing.keyword_only(None),
-    max_threads=py_boxing.keyword_only(1),
-    ndim=py_boxing.keyword_only(0),
-    item_completed_callback=py_boxing.keyword_only(None),
-    kwargs=py_boxing.var_keyword(),
-):  # pylint: disable=g-doc-args
+    *args,
+    schema=None,
+    max_threads=1,
+    ndim=0,
+    item_completed_callback=None,
+    **kwargs,
+):
   """Apply the python function `fn` on provided `args` and `kwargs`.
 
   Example:
@@ -474,7 +459,6 @@ def map_py(
     Result DataSlice.
   """
   fn = _unwrap_py_callable(fn, param_name='fn')
-  kwargs = kwargs.as_dict()  # pytype: disable=attribute-error
   args = [*args, *kwargs.values()]
   if not args:
     raise TypeError('expected at least one input DataSlice, got none')
@@ -509,12 +493,12 @@ def map_py_on_cond(
     true_fn,
     false_fn,
     cond,
-    args=py_boxing.var_positional(),
-    schema=py_boxing.keyword_only(None),
-    max_threads=py_boxing.keyword_only(1),
-    item_completed_callback=py_boxing.keyword_only(None),
-    kwargs=py_boxing.var_keyword(),
-):  # pylint: disable=g-doc-args
+    *args,
+    schema=None,
+    max_threads=1,
+    item_completed_callback=None,
+    **kwargs,
+):
   """Apply python functions on `args` and `kwargs` based on `cond`.
 
   `cond`, `args` and `kwargs` are first aligned. `cond` cannot have a higher
@@ -545,7 +529,6 @@ def map_py_on_cond(
   """
   true_fn = _unwrap_py_callable(true_fn, param_name='true_fn')
   false_fn = _unwrap_optional_py_callable(false_fn, param_name='false_fn')
-  kwargs = kwargs.as_dict()  # pytype: disable=attribute-error
   args = [*args, *kwargs.values()]
   if not args:
     raise TypeError('expected at least one input DataSlice, got none')
@@ -660,12 +643,12 @@ def map_py_on_selected(
 )
 def map_py_on_present(
     fn,
-    args=py_boxing.var_positional(),
-    schema=py_boxing.keyword_only(None),
-    max_threads=py_boxing.keyword_only(1),
-    item_completed_callback=py_boxing.keyword_only(None),
-    kwargs=py_boxing.var_keyword(),
-):  # pylint: disable=g-doc-args
+    *args,
+    schema=None,
+    max_threads=1,
+    item_completed_callback=None,
+    **kwargs,
+):
   """Apply python function `fn` to items present in all `args` and `kwargs`.
 
   Also see kd.map_py().
@@ -685,8 +668,6 @@ def map_py_on_present(
   Returns:
     Result DataSlice.
   """
-  args = tuple(args)
-  kwargs = kwargs.as_dict()  # pytype: disable=attribute-error
   if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
   cond = functools.reduce(

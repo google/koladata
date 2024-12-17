@@ -29,9 +29,6 @@ from koladata.types import py_boxing
 from koladata.types import qtypes
 
 
-P = input_container.InputContainer('P')
-
-
 @dataclasses.dataclass(frozen=True)
 class _RegisteredOp:
   op: arolla.types.Operator
@@ -214,12 +211,15 @@ def as_backend_operator(
   return impl
 
 
+_P = input_container.InputContainer('P')
+
+
 def _build_lambda_body_from_fn(fn: types.FunctionType):
   """Builds a lambda body expression from a python function."""
   unmangling = {}
 
   def gen_tracer(name: str):
-    result = P[name]
+    result = _P[name]
     unmangling[result.fingerprint] = arolla.abc.placeholder(name)
     return result
 
@@ -274,53 +274,6 @@ def as_lambda_operator(
         op_expr,
         qtype_constraints=qtype_constraints,
         name=name,
-        doc=inspect.getdoc(fn) or '',
-    )
-
-  return impl
-
-
-def as_py_function_operator(
-    name: str,
-    *,
-    qtype_inference_expr: (
-        arolla.abc.QType | arolla.abc.Expr
-    ) = qtypes.DATA_SLICE,
-    qtype_constraints: arolla.types.QTypeConstraints = (),
-    aux_policy: str = py_boxing.FULL_SIGNATURE_POLICY,
-    codec: bytes | None = None,
-) -> Callable[[types.FunctionType], arolla.types.PyFunctionOperator]:
-  """Returns a decorator for defining Koladata-specific py function operators.
-
-  The wrapped function should take QValues as input and should return a single
-  QValue as output.
-
-  IMPORTANT: The callable should be pure and functionally const (i.e. it should
-  not be mutated or depend on objects that are mutated between evaluations). No
-  guarantees are made for the correctness of functions that rely on side-effects
-  or on changing non-local data, as we may e.g. cache evaluation results.
-
-  The resulting operator is serializable if it is added to the operator registry
-  or if a serialization `codec` is provided.
-
-  Args:
-    name: Name of the operator.
-    qtype_inference_expr: expression that computes operator's output qtype; an
-      argument qtype can be referenced as P.arg_name.
-    qtype_constraints: QType constraints for the operator.
-    aux_policy: Aux policy for the operator.
-    codec: A PyObject serialization codec for the wrapped function, compatible
-      with `arolla.types.encode_py_object`.
-  """
-
-  def impl(fn):
-    signature = _build_operator_signature_from_fn(fn, aux_policy)
-    return arolla.types.PyFunctionOperator(
-        name,
-        signature,
-        arolla.types.PyObject(fn, codec=codec),
-        qtype_inference_expr=qtype_inference_expr,
-        qtype_constraints=qtype_constraints,
         doc=inspect.getdoc(fn) or '',
     )
 
@@ -452,6 +405,162 @@ def as_unified_lambda_operator(
               )
           },
       )
+    return arolla.optools.make_lambda(
+        op_sig,
+        op_expr,
+        qtype_constraints=qtype_constraints_copy,
+        name=name,
+        doc=inspect.getdoc(fn) or '',
+    )
+
+  return impl
+
+
+def as_py_function_operator(
+    name: str,
+    *,
+    qtype_inference_expr: arolla.Expr | arolla.QType = qtypes.DATA_SLICE,
+    qtype_constraints: arolla.types.QTypeConstraints = (),
+    codec: bytes | None = None,
+    deterministic: bool = True,
+) -> Callable[[types.FunctionType], arolla.abc.Operator]:
+  """Returns a decorator for defining Koladata-specific py-function operators.
+
+  The decorated function should accept QValues as input and returns a single
+  QValue. Variadic positional and keyword arguments are passed as tuples and
+  dictionaries of QValues, respectively.
+
+  Importantly, it is recommended that the function on which the operator is
+  based be pure -- that is, deterministic and without side effects.
+  If the function is not pure, please specify deterministic=False.
+
+  Args:
+    name: The name of the operator.
+    qtype_inference_expr: expression that computes operator's output qtype; an
+      argument qtype can be referenced as P.arg_name.
+    qtype_constraints: QType constraints for the operator.
+    codec: A PyObject serialization codec for the wrapped function, compatible
+      with `arolla.types.encode_py_object`. The resulting operator is
+      serializable only if the codec is specified.
+    deterministic: Set this to `False` if the wrapped function is not pure
+      (i.e., non-deterministic or has side effects).
+  """
+
+  def impl(fn):
+    # Analyse the signature.
+    sig = inspect.signature(fn)
+    positional_params = []
+    var_positional_params = []
+    keyword_params = []
+    var_keyword_params = []
+    for param in sig.parameters.values():
+      if (
+          param.kind == param.POSITIONAL_ONLY
+          or param.kind == param.POSITIONAL_OR_KEYWORD
+      ):
+        positional_params.append(param.name)
+      elif param.kind == param.VAR_POSITIONAL:
+        var_positional_params.append(param.name)
+      elif param.kind == param.KEYWORD_ONLY:
+        keyword_params.append(param.name)
+      elif param.kind == param.VAR_KEYWORD:
+        var_keyword_params.append(param.name)
+      else:
+        raise ValueError(f'unsupported parameter: {param}')
+    all_params = (
+        positional_params
+        + var_positional_params
+        + keyword_params
+        + var_keyword_params
+    )
+    assert len(var_positional_params) <= 1
+    assert len(var_keyword_params) <= 1
+
+    # Prepare an expression for return_type. This expression must be computable
+    # at compile time. To achieve this, we declare a backend operator using
+    # the provided qtype_inference_expr (without actually defining it in
+    # the backend), and we use `M.qtype.qtype_of(...)` to transform
+    # the attribute into a value that is accessible at compile time.
+    #
+    # Importantly, we wrap both `M.qtype.qtype_of` and the backend operator in
+    # a lambda to ensure compatibility, regardless of whether literal folding is
+    # enabled:
+    #  * if literal folding is enabled, the lambda will fold without lowering,
+    #    as it infers the qvalue attribute;
+    #  * if literal folding is disabled, the node M.qtype.qtype_of replaces
+    #    itself with a literal during lowering.
+    stub_op_signature = arolla.abc.make_operator_signature(','.join(all_params))
+    return_type_expr = arolla.types.LambdaOperator(
+        stub_op_signature,
+        arolla.M.qtype.qtype_of(
+            arolla.types.BackendOperator(
+                'koda_internal._undefined_backend_op',
+                stub_op_signature,
+                qtype_inference_expr=qtype_inference_expr,
+            )(*map(arolla.abc.placeholder, all_params))
+        ),
+        name='return_type_stub_op',
+    )(*map(arolla.abc.placeholder, all_params))
+
+    # Prepare an expression for `args`.
+    if positional_params and var_positional_params:
+      args_expr = arolla.M.core.concat_tuples(
+          arolla.M.core.make_tuple(
+              *map(arolla.abc.placeholder, positional_params)
+          ),
+          arolla.abc.placeholder(var_positional_params[0]),
+      )
+    elif positional_params:
+      args_expr = arolla.M.core.make_tuple(
+          *map(arolla.abc.placeholder, positional_params)
+      )
+    elif var_positional_params:
+      args_expr = arolla.abc.placeholder(var_positional_params[0])
+    else:
+      args_expr = arolla.tuple()
+
+    # Prepare an expression for `kwargs`.
+    if keyword_params and var_keyword_params:
+      # TODO: b/384077837 - Consider detecting cases where a dynamic `**kwargs`
+      # shadows `keyword-only` arguments.
+      kwargs_expr = arolla.M.namedtuple.union(
+          arolla.M.namedtuple.make(
+              **{k: arolla.abc.placeholder(k) for k in keyword_params}
+          ),
+          arolla.abc.placeholder(var_keyword_params[0]),
+      )
+    elif keyword_params:
+      kwargs_expr = arolla.M.namedtuple.make(
+          **{k: arolla.abc.placeholder(k) for k in keyword_params}
+      )
+    elif var_keyword_params:
+      kwargs_expr = arolla.abc.placeholder(var_keyword_params[0])
+    else:
+      kwargs_expr = arolla.namedtuple()
+
+    # Construct a lambda operator.
+    fn_expr = arolla.types.PyObject(fn, codec=codec)
+    qtype_constraints_copy = list(qtype_constraints)
+    if not deterministic:
+      fn_expr = arolla.abc.sub_by_fingerprint(
+          arolla.abc.aux_bind_op(
+              'koda_internal.non_deterministic_identity', fn_expr
+          ),
+          {
+              py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
+                  UNIFIED_NON_DETERMINISTIC_PARAM
+              )
+          },
+      )
+      qtype_constraints_copy.append(
+          qtype_utils.expect_non_deterministic(UNIFIED_NON_DETERMINISTIC_PARAM)
+      )
+    op_sig = unified_binding_policy.make_unified_signature(
+        sig, deterministic=deterministic
+    )
+    op_expr = arolla.abc.bind_op(
+        'py.call', fn_expr, return_type_expr, args_expr, kwargs_expr
+    )
     return arolla.optools.make_lambda(
         op_sig,
         op_expr,

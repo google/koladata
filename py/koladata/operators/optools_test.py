@@ -24,6 +24,7 @@ from koladata.expr import view
 from koladata.operators import comparison as _
 from koladata.operators import core
 from koladata.operators import jagged_shape
+from koladata.operators import koda_internal as _
 from koladata.operators import optools
 from koladata.operators import optools_test_utils
 from koladata.operators import qtype_utils
@@ -602,7 +603,9 @@ class OptoolsTest(parameterized.TestCase):
     ):
       arolla.abc.infer_attr(op, (None, arolla.UNIT))
 
-  def test_error_deterministic_calls_non_deterministic(self):
+  def test_as_unified_lambda_operator_error_deterministic_calls_non_deterministic(
+      self,
+  ):
 
     @optools.as_unified_backend_operator(
         'op1', qtype_inference_expr=qtypes.DATA_SLICE, deterministic=False
@@ -616,53 +619,155 @@ class OptoolsTest(parameterized.TestCase):
       def op2():
         return op1()
 
-  def test_as_py_function_operator_defaults(self):
+  def test_as_py_function_operator_basic_eval(self):
 
-    @optools.as_py_function_operator('py_op')
-    def fn(x, y=py_boxing.keyword_only()):
+    @optools.as_py_function_operator(
+        'my_op', qtype_inference_expr=qtypes.DATA_SLICE
+    )
+    def op(x, *, y):
+      """MyDocstring."""
       return x + y
 
-    self.assertIsInstance(fn, arolla.types.PyFunctionOperator)
-    self.assertEqual(fn.display_name, 'py_op')
-    self.assertEqual(arolla.abc.get_operator_signature(fn).aux_policy,
-                     py_boxing.FULL_SIGNATURE_POLICY)
+    self.assertEqual(op.display_name, 'my_op')
+    self.assertEqual(op.getdoc(), 'MyDocstring.')
     self.assertEqual(
-        inspect.signature(fn), inspect.signature(lambda x, *, y: x + y)
+        inspect.signature(op), inspect.signature(lambda x, *, y: None)
     )
-    testing.assert_equal(arolla.eval(fn(1, y=2)), ds(3))
+    testing.assert_equal(arolla.eval(op(1, y=2)), ds(3))
     with self.assertRaisesRegex(ValueError, 'missing serialization codec'):
-      arolla.s11n.dumps(fn)
+      arolla.s11n.dumps(op)
 
-  def test_as_py_function_operator_overrides(self):
+  @parameterized.parameters(
+      (False, 2),
+      (True, 1),
+  )
+  def test_as_py_function_operator_deterministic_option(
+      self, deterministic, expected_counter
+  ):
+    counter = 0
+
+    @optools.as_py_function_operator(
+        'op', qtype_inference_expr=arolla.UNIT, deterministic=deterministic
+    )
+    def op():
+      nonlocal counter
+      counter += 1
+      return arolla.unit()
+
+    _ = expr_eval.eval((op(), op()))
+    self.assertEqual(counter, expected_counter)
+
+  def test_as_py_function_operator_serialization(self):
     ref_codec = arolla.types.PyObjectReferenceCodec()
 
     @optools.as_py_function_operator(
-        'py_op',
+        'op',
         qtype_constraints=[(arolla.P.x == arolla.INT32, 'expected INT32')],
         qtype_inference_expr=arolla.TEXT,
-        aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
         codec=ref_codec.name,
     )
-    def fn(x, y):
+    def op(x, y):
       return arolla.text('foo') if x + y > 2 else arolla.text('bar')
 
-    self.assertIsInstance(fn, arolla.types.PyFunctionOperator)
-    self.assertEqual(fn.display_name, 'py_op')
-    self.assertEqual(
-        arolla.abc.get_operator_signature(fn).aux_policy,
-        py_boxing.DEFAULT_AROLLA_POLICY,
-    )
     testing.assert_equal(
-        arolla.eval(fn(arolla.int32(1), arolla.int32(2))), arolla.text('foo')
+        arolla.eval(op(arolla.int32(1), arolla.int32(2))), arolla.text('foo')
     )
     with self.assertRaisesRegex(ValueError, 'expected INT32'):
-      arolla.eval(fn(arolla.int64(1), arolla.int32(2)))
+      arolla.eval(op(arolla.int64(1), arolla.int32(2)))
 
-    loaded_fn = arolla.s11n.loads(arolla.s11n.dumps(fn))
-    self.assertEqual(
-        arolla.eval(loaded_fn(arolla.int32(1), arolla.int32(1))),
-        arolla.text('bar'),
+    loaded_op = arolla.s11n.loads(arolla.s11n.dumps(op))
+    testing.assert_equal(
+        arolla.eval(loaded_op(arolla.int32(1), arolla.int32(2))),
+        arolla.text('foo'),
     )
+    with self.assertRaisesRegex(ValueError, 'expected INT32'):
+      arolla.eval(loaded_op(arolla.int64(1), arolla.int32(2)))
+
+  def test_as_py_function_operator_sig_positional_only(self):
+    @optools.as_py_function_operator(
+        'op', qtype_inference_expr=qtypes.DATA_SLICE
+    )
+    def op(x, /):
+      return x
+
+    self.assertEqual(
+        inspect.signature(op), inspect.signature(lambda x, /: None)
+    )
+    testing.assert_equal(arolla.eval(op(1)), ds(1))
+
+  def test_as_py_function_operator_sig_positional_or_keyword(self):
+
+    @optools.as_py_function_operator(
+        'op', qtype_inference_expr=qtypes.DATA_SLICE
+    )
+    def op(x):
+      return x
+
+    self.assertEqual(inspect.signature(op), inspect.signature(lambda x: None))
+    testing.assert_equal(arolla.eval(op(1)), ds(1))
+
+  def test_as_py_function_operator_sig_var_positional(self):
+
+    @optools.as_py_function_operator(
+        'op', qtype_inference_expr=qtypes.DATA_SLICE
+    )
+    def op(*x):
+      return sum(x)
+
+    self.assertEqual(inspect.signature(op), inspect.signature(lambda *x: None))
+    testing.assert_equal(arolla.eval(op(1, 2, 3, 4)), ds(10))
+
+  def test_as_py_function_operator_sig_keyword_only(self):
+
+    @optools.as_py_function_operator(
+        'op', qtype_inference_expr=qtypes.DATA_SLICE
+    )
+    def op(*, x):
+      return x
+
+    self.assertEqual(
+        inspect.signature(op), inspect.signature(lambda *, x: None)
+    )
+    testing.assert_equal(arolla.eval(op(x=1)), ds(1))
+
+  def test_as_py_function_operator_sig_var_keyword(self):
+
+    @optools.as_py_function_operator(
+        'op', qtype_inference_expr=qtypes.DATA_SLICE
+    )
+    def op(**x):
+      return x['a'] + len(x)
+
+    self.assertEqual(inspect.signature(op), inspect.signature(lambda **x: None))
+    testing.assert_equal(arolla.eval(op(a=1, b=2, c=3)), ds(4))
+
+  def test_as_py_function_operator_sig_complex(self):
+
+    @optools.as_py_function_operator(
+        'op', qtype_inference_expr=qtypes.DATA_SLICE
+    )
+    def op(a, /, b, *c, d, **e):
+      return a + b + sum(c) + len(c) + d + sum(e.values()) + len(e)
+
+    self.assertEqual(
+        inspect.signature(op),
+        inspect.signature(lambda a, /, b, *c, d, **e: None),
+    )
+    testing.assert_equal(arolla.eval(op(1, 2, 3, 4, 5, d=6, e=7, f=8)), ds(41))
+
+  def test_as_py_function_operator_sig_default_values(self):
+    @optools.as_py_function_operator(
+        'op', qtype_inference_expr=arolla.UNIT
+    )
+    def op(a=1, /, b=2, *c, d=3, **e):
+      testing.assert_equal(a, ds(1))
+      testing.assert_equal(b, ds(2))
+      assert not c
+      testing.assert_equal(d, ds(3))
+      assert not e
+      return arolla.unit()
+
+    testing.assert_equal(arolla.eval(op()), arolla.unit())
 
 
 if __name__ == '__main__':

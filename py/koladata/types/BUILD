@@ -22,8 +22,6 @@ default_visibility = [
     "//koladata:internal",
 ]
 
-user_ops_visibility = []
-
 package(default_visibility = default_visibility)
 
 licenses(["notice"])
@@ -163,7 +161,6 @@ cc_library(
 py_library(
     name = "py_boxing",
     srcs = ["py_boxing.py"],
-    visibility = default_visibility + user_ops_visibility,
     deps = [
         ":data_bag",
         ":data_item",

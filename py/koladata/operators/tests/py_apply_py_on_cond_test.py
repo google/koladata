@@ -29,16 +29,16 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
+PY_OBJECT = arolla.abc.PY_OBJECT
+UNSPECIFIED = arolla.abc.UNSPECIFIED
+DATA_BAG = qtypes.DATA_BAG
+DATA_SLICE = qtypes.DATA_SLICE
+
 
 def gen_possible_qtypes():
   # We limit the tested types to ensure the qtype_signature test
   # runs in a reasonable time.
-  base_qtypes = (
-      arolla.abc.PY_OBJECT,
-      arolla.abc.UNSPECIFIED,
-      qtypes.DATA_BAG,
-      qtypes.DATA_SLICE,
-  )
+  base_qtypes = (PY_OBJECT, UNSPECIFIED, DATA_BAG, DATA_SLICE)
   yield from base_qtypes
   for q in base_qtypes:
     for n in range(3):
@@ -47,27 +47,31 @@ def gen_possible_qtypes():
 
 
 def gen_qtype_signatures():
+  yield (PY_OBJECT, PY_OBJECT, DATA_SLICE, DATA_SLICE)
+  yield (PY_OBJECT, DATA_SLICE, DATA_SLICE, DATA_SLICE)
   for n in range(3):
+    args_qtype = arolla.types.make_tuple_qtype(*([DATA_SLICE] * n))
+    yield (PY_OBJECT, PY_OBJECT, DATA_SLICE, args_qtype, DATA_SLICE)
+    yield (PY_OBJECT, DATA_SLICE, DATA_SLICE, args_qtype, DATA_SLICE)
     for m in range(3):
-      args_qtype = arolla.types.make_tuple_qtype(*([qtypes.DATA_SLICE] * n))
       kwargs_qtype = arolla.types.make_namedtuple_qtype(
-          **dict(zip(['a', 'b'], [qtypes.DATA_SLICE] * m))
+          **dict(zip(['a', 'b'], [DATA_SLICE] * m))
       )
       yield (
-          arolla.abc.PY_OBJECT,
-          arolla.abc.PY_OBJECT,
-          qtypes.DATA_SLICE,
-          args_qtype,
-          kwargs_qtype,
-          qtypes.DATA_SLICE,
+          PY_OBJECT,  # yes_fn
+          PY_OBJECT,  # no_fn
+          DATA_SLICE,  # cond
+          args_qtype,  # args
+          kwargs_qtype,  # kwargs
+          DATA_SLICE,  # return_type
       )
       yield (
-          arolla.abc.PY_OBJECT,
-          qtypes.DATA_SLICE,
-          qtypes.DATA_SLICE,
+          PY_OBJECT,
+          DATA_SLICE,
+          DATA_SLICE,
           args_qtype,
           kwargs_qtype,
-          qtypes.DATA_SLICE,
+          DATA_SLICE,
       )
 
 

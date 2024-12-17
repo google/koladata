@@ -162,6 +162,7 @@ py_test(
         ":comparison",
         ":core",
         ":jagged_shape",
+        ":koda_internal",
         ":optools",
         ":optools_test_utils",
         ":qtype_utils",
@@ -572,10 +573,8 @@ py_test(
     deps = [
         ":eager_op_utils",
         ":optools",
-        ":qtype_utils",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:py_boxing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",

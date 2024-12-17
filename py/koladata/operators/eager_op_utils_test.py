@@ -20,10 +20,8 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.operators import eager_op_utils
 from koladata.operators import optools
-from koladata.operators import qtype_utils
 from koladata.testing import testing
 from koladata.types import data_slice
-from koladata.types import py_boxing
 
 ds = data_slice.DataSlice.from_vals
 
@@ -218,24 +216,20 @@ class EagerOpUtilsTest(parameterized.TestCase):
   def test_non_deterministic_op(self):
 
     @optools.as_py_function_operator(
-        'increase_counter', qtype_inference_expr=arolla.UNIT
+        'increase_counter',
+        qtype_inference_expr=arolla.UNIT,
+        deterministic=False,
     )
-    def increase_counter_op(_=py_boxing.hidden_seed()):
+    def increase_counter_op():
       nonlocal counter
       counter += 1
       return arolla.unit()
 
     @optools.add_to_registry()
-    @optools.as_lambda_operator(
-        'test.non_deterministic_op',
-        qtype_constraints=[
-            qtype_utils.expect_non_deterministic(arolla.P.non_deterministic)
-        ],
-        aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
+    @optools.as_unified_lambda_operator(
+        'test.non_deterministic_op', deterministic=False
     )
-    def non_deterministic_op(
-        arg=arolla.unit(), non_deterministic=py_boxing.hidden_seed()
-    ):  # pylint: disable=unused-argument
+    def non_deterministic_op(arg=arolla.unit()):
       """non_deterministic_op docstring."""
       return arolla.M.core.make_tuple(
           arg, increase_counter_op(), increase_counter_op()
