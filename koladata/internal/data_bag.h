@@ -875,6 +875,11 @@ class DataBagImpl : public arolla::RefcountedBase {
   absl::flat_hash_map<std::string, SparseSource> small_alloc_sources_;
 
   absl::flat_hash_map<AllocationId, std::shared_ptr<DataListVector>> lists_;
+  // We also use `dicts_` to store schema attributes:
+  // - for small allocations, we store the schema attribute values in `dicts_`.
+  // - for big allocations, attribute values are stored as normal attributes.
+  //   While we use the DictVector with a single element, where we set `present`
+  //   value for every attribute name that appears in the allocation.
   absl::flat_hash_map<AllocationId, std::shared_ptr<DictVector>> dicts_;
 };
 

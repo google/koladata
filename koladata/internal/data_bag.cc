@@ -2339,44 +2339,45 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrAllowMissing(
         "cannot get schema attribute of a non-schema slice %v", schema_slice));
   }
   const AllocationIdSet& alloc_ids = schema_slice.allocation_ids();
-  std::optional<DataSliceImpl> result;
+  std::optional<DataSliceImpl> big_alloc_result;
   if (!alloc_ids.empty()) {
     if (!alloc_ids.contains_small_allocation_id()) {
       return GetAttr(schema_slice, attr, fallbacks);
     } else {
       ASSIGN_OR_RETURN(
-          result, GetAttr(WithoutSmallAllocs(schema_slice), attr, fallbacks));
+          big_alloc_result,
+          GetAttr(WithoutSmallAllocs(schema_slice), attr, fallbacks));
     }
   }
   // For small allocations, we store the schema attribute values directly in the
   // dict.
   // TODO: we may consider to change that for a few reasons
   // (including code simplicity).
-  SliceBuilder result_builder(schema_slice.size());
+  SliceBuilder small_alloc_result_builder(schema_slice.size());
   absl::Status status = absl::OkStatus();
-  schema_slice.values<ObjectId>().ForEachPresent([&](int64_t offset,
-                                                     ObjectId schema_id) {
-    if (!status.ok()) {
-      return;
-    }
-    if (!schema_id.IsSmallAlloc()) {
-      return;
-    }
-    auto attr_value_or =
-        GetSchemaAttrAllowMissing(DataItem(schema_id), attr, fallbacks);
-    if (!attr_value_or.ok()) {
-      status = attr_value_or.status();
-      return;
-    }
-    result_builder.InsertIfNotSetAndUpdateAllocIds(offset, *attr_value_or);
-  });
-  if (!status.ok()) {
-    return status;
+  schema_slice.values<ObjectId>().ForEachPresent(
+      [&](int64_t offset, ObjectId schema_id) {
+        if (!status.ok()) {
+          return;
+        }
+        if (!schema_id.IsSmallAlloc()) {
+          return;
+        }
+        auto attr_value_or =
+            GetSchemaAttrAllowMissing(DataItem(schema_id), attr, fallbacks);
+        if (!attr_value_or.ok()) {
+          status = attr_value_or.status();
+          return;
+        }
+        small_alloc_result_builder.InsertIfNotSetAndUpdateAllocIds(
+            offset, *attr_value_or);
+      });
+  RETURN_IF_ERROR(std::move(status));
+  if (!big_alloc_result.has_value()) {
+    return std::move(small_alloc_result_builder).Build();
   }
-  if (!result.has_value()) {
-    return std::move(result_builder).Build();
-  }
-  return PresenceOrOp{}(*result, std::move(result_builder).Build());
+  return PresenceOrOp{}(*big_alloc_result,
+                        std::move(small_alloc_result_builder).Build());
 }
 
 namespace {
@@ -2405,7 +2406,8 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataItem& schema_item,
   RETURN_IF_ERROR(VerifyIsSchema(value));
   ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
   if (!schema_id.IsSmallAlloc()) {
-    auto& dict = GetOrCreateMutableDicts(AllocationId(schema_id), 1)[0];
+    auto& dict =
+        GetOrCreateMutableDicts(AllocationId(schema_id), /*size=*/1)[0];
     RETURN_IF_ERROR(SetAttr(schema_item, attr, value));
     dict.Set(DataItem::View<arolla::Text>(attr), DataItem(arolla::kPresent));
   } else {
@@ -2447,7 +2449,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
     if (ABSL_PREDICT_FALSE(!schemas_alloc_check_fn(alloc_id))) {
       status = InvalidLhsSetSchemaAttrError(schema_slice);
     } else {
-      Dict& schema_dict = GetOrCreateMutableDicts(alloc_id, 1)[0];
+      Dict& schema_dict = GetOrCreateMutableDicts(alloc_id, /*size=*/1)[0];
       schema_dict.Set(DataItem::View<arolla::Text>(attr),
                       DataItem(arolla::kPresent));
     }
@@ -2493,20 +2495,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
     if (!alloc_ids.contains_small_allocation_id()) {
       RETURN_IF_ERROR(SetAttr(schema_slice, attr, values));
     } else {
-      arolla::DenseArrayBuilder<ObjectId> big_alloc_objs(schema_slice.size());
-      schema_slice.values<ObjectId>().ForEachPresent(
-          [&](int64_t offset, ObjectId schema_id) {
-            if (!schema_id.IsSmallAlloc()) {
-              big_alloc_objs.Add(offset, schema_id);
-            }
-          });
-      AllocationIdSet big_alloc_ids;
-      for (const auto& alloc_id : alloc_ids) {
-        big_alloc_ids.Insert(alloc_id);
-      }
-      DataSliceImpl big_alloc_slice = DataSliceImpl::CreateObjectsDataSlice(
-          std::move(big_alloc_objs).Build(), std::move(big_alloc_ids));
-      RETURN_IF_ERROR(SetAttr(big_alloc_slice, attr, values));
+      RETURN_IF_ERROR(SetAttr(WithoutSmallAllocs(schema_slice), attr, values));
     }
   }
   SchemasAllocCheckFn schemas_alloc_check_fn;
@@ -2515,7 +2504,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
     if (ABSL_PREDICT_FALSE(!schemas_alloc_check_fn(alloc_id))) {
       status = InvalidLhsSetSchemaAttrError(schema_slice);
     } else {
-      Dict& schema_dict = GetOrCreateMutableDicts(alloc_id, 1)[0];
+      Dict& schema_dict = GetOrCreateMutableDicts(alloc_id, /*size=*/1)[0];
       schema_dict.Set(DataItem::View<arolla::Text>(attr),
                       DataItem(arolla::kPresent));
     }
@@ -2658,7 +2647,7 @@ absl::Status DataBagImpl::SetSchemaFieldsForEntireAllocation(
         DataSliceImpl::ObjectsFromAllocation(schema_alloc_id, size), attr_names,
         items);
   }
-  Dict& schema_dict = GetOrCreateMutableDicts(schema_alloc_id, 1)[0];
+  Dict& schema_dict = GetOrCreateMutableDicts(schema_alloc_id, /*size=*/1)[0];
   for (int i = 0; i < attr_names.size(); ++i) {
     schema_dict.Set(DataItem::View<arolla::Text>(attr_names[i]),
                     DataItem(arolla::kPresent));
