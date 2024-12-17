@@ -1072,21 +1072,18 @@ class FromPyTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
       fns.from_py(py_d, dict_as_obj=True, schema=schema)
 
-  # TODO: This causes an infinite loop, until OOM.
-  # def test_deep_itemid_recursive_error(self):
-  #   py_l = [1, 2, 3]
-  #   schema = fns.list_schema(schema_constants.INT32)
-  #   bottom_l = py_l
-  #   for _ in range(3):
-  #     py_l = [py_l, py_l]
-  #     schema = fns.list_schema(schema)
-  #   level_1_l = py_l
-  #   py_l = [level_1_l]
-  #   bottom_l.append(level_1_l)
-  #   with self.assertRaisesRegex(
-  #       ValueError, 'recursive .* cannot be converted'
-  #   ):
-  #     fns.from_py(py_l, itemid=kde.uuid_for_list('list').eval())
+  def test_deep_itemid_recursive_error(self):
+    py_l = [1, 2, 3]
+    schema = fns.list_schema(schema_constants.INT32)
+    bottom_l = py_l
+    for _ in range(3):
+      py_l = [py_l, py_l]
+      schema = fns.list_schema(schema)
+    level_1_l = py_l
+    py_l = [level_1_l]
+    bottom_l.append(level_1_l)
+    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+      fns.from_py(py_l, itemid=kde.uuid_for_list('list').eval())
 
   def test_alias(self):
     obj = fns.from_pytree({'a': 42})

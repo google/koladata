@@ -1268,20 +1268,23 @@ class UniversalConverter {
     // Push `std::nullopt` to detect recursive Python structures.
 
     std::optional<DataSlice>* cache_value = nullptr;
-    // Do not cache if itemid is set, since values will get different itemids.
-    if (!parent_itemid.has_value()) {
-      auto [computed_iter, emplaced] =
-          computed_.emplace(MakeCacheKey(py_obj, schema), std::nullopt);
-      if (!emplaced) {
-        if (!computed_iter->second.has_value()) {
-          return absl::InvalidArgumentError(
-              "recursive Python structures cannot be converted to Koda object");
-        }
+
+    auto [computed_iter, emplaced] =
+        computed_.emplace(MakeCacheKey(py_obj, schema), std::nullopt);
+    if (!emplaced) {
+      if (!computed_iter->second.has_value()) {
+        return absl::InvalidArgumentError(
+            "recursive Python structures cannot be converted to Koda object");
+      }
+      // If itemid is set, values will get different itemids; in this case,
+      // we don't return the cached value, but use it only to detect recursive
+      // Python structures.
+      if (!parent_itemid.has_value()) {
         value_stack_.push(*computed_iter->second);
         return absl::OkStatus();
       }
-      cache_value = &computed_iter->second;
     }
+    cache_value = &computed_iter->second;
     if (schema && schema->item() == schema::kObject) {
       // When processing Entities, if OBJECT schema is reached, the rest of
       // the Python tree is converted as Object.
@@ -1290,10 +1293,8 @@ class UniversalConverter {
           UniversalConverter<ObjectCreator>(db_, adoption_queue_, dict_as_obj_)
               .Convert(py_obj, /*schema=*/std::nullopt, /*from_dim=*/0,
                        parent_itemid, attr_descriptor));
-      if (!parent_itemid.has_value()) {
         computed_.insert_or_assign(MakeCacheKey(py_obj, schema),
                                    value_stack_.top());
-      }
       return absl::OkStatus();
     }
     if (PyDict_CheckExact(py_obj)) {
@@ -1349,10 +1350,8 @@ class UniversalConverter {
     // elements and dict created from those keys and values).
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::ConvertWithoutAdopt(db_, res));
-    if (!itemid.has_value()) {
       computed_.insert_or_assign(MakeCacheKey(py_obj, dict_schema),
                                  value_stack_.top());
-    }
     return absl::OkStatus();
   }
 
@@ -1370,10 +1369,8 @@ class UniversalConverter {
                          list_schema, /*item_schema=*/std::nullopt, itemid));
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::ConvertWithoutAdopt(db_, res));
-    if (!itemid.has_value()) {
       computed_.insert_or_assign(MakeCacheKey(py_obj, list_schema),
                                  value_stack_.top());
-    }
     return absl::OkStatus();
   }
 
@@ -1412,10 +1409,8 @@ class UniversalConverter {
       ASSIGN_OR_RETURN(value_stack_.emplace(),
                        Factory::FromAttrs(db_, attr_names, values, itemid));
     }
-    if (!itemid.has_value()) {
       computed_.insert_or_assign(MakeCacheKey(py_obj, entity_schema),
                                  value_stack_.top());
-    }
     return absl::OkStatus();
   }
 
