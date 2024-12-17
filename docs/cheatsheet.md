@@ -9,7 +9,7 @@
 ### Primitives and DataItem
 
 ```py
-# Primitive dtypes.
+# Primitive dtypes
 kd.INT32
 kd.INT64
 kd.FLOAT32
@@ -19,16 +19,18 @@ kd.BYTES
 kd.BOOLEAN
 kd.MASK
 
-# MASK type values.
+# MASK type values
 kd.present
 kd.missing
 
-# DataItem.
+# DataItem creation
 i = kd.item(1)
+
 kd.is_item(i)
 kd.is_primitive(i)
+kd.get_dtype(i) # kd.INT32
 
-# DataItem creation.
+# DataItem creation with explicit dtypes
 kd.int32(1)
 kd.int64(2)
 kd.float32(1.1)
@@ -38,6 +40,12 @@ kd.bytes(b'a')
 kd.bool(True)
 kd.mask(None)
 
+# Or use kd.item with explicit dtype
+kd.item(1, kd.INT32)
+kd.item(2, kd.INT64)
+
+# kd.from_py is a universal converter
+# Same as kd.item
 kd.from_py(1)
 ```
 
@@ -48,31 +56,57 @@ kd.from_py(1)
 ### DataSlice
 
 ```py
-ds = kd.slice([[1,2],[3,4,5]])
+ds = kd.slice([[1, 2], [3, None, 5]])
 kd.is_slice(ds)
 
 ds.get_size()
 ds.get_ndim()
 ds.get_shape()
 
-# Navigate DataSlice as "nested" lists.
+ds.get_dtype() # kd.INT32
+
+# DataSlice creation with explicit dtypes
+kd.int32([[1, 2], [3, None, 5]])
+kd.int64([[1, 2], [3, None, 5]])
+kd.float32([[1., 2.],[3., None, 5.]])
+kd.float64([[1., 2.],[3., None, 5.]])
+kd.str(['a', None, 'b'])
+kd.bytes([b'a', None, b'b'])
+kd.bool([True, None, False])
+kd.mask([kd.present, kd.missing])
+
+# Or use kd.slice with explicit dtype
+kd.slice([[1, 2], [3, None, 5]], kd.INT32)
+kd.slice([[1, 2], [3, None, 5]], kd.INT64)
+
+# kd.from_py is a universal converter
+# Same as kd.slice
+kd.from_py([[1, 2], [3, None, 5]])
+
+ds = kd.slice([[1, 2], [3, None, 5]])
+# Navigate DataSlice as "nested" lists
 ds.L[1].L[2]
-# Python list of one-dim DataSlice.
+# Python list of one-dim DataSlice
 ds.L[:]
-# Items at idx in the first dims.
+# Items at idx in the first dims
 ds.L[idx]
 
-# Subslice.
+# Subslice
 ds.S[1, 2]
-ds.S[2]  # Take 2nd item in the last dimension.
+ds.S[2]  # Take 2nd item in the last dimension
 ds.S[1:, :2]
 
-# Expand the outermost dimension into a list.
+# Expand the outermost dimension into a list
 ds.to_pylist()
 
 ds.to_py()
 ds.to_str()
+
+# DataItem is 0-dim DataSlice
+i = kd.slice(1) # same as kd.item(1)
+i.get_ndim() # 0
 ```
+
 </section>
 
 <section>
@@ -80,12 +114,56 @@ ds.to_str()
 ### Entities
 
 ```py
+# Entity creation with named schema
 e = kd.new(x=1, y=2, schema='Point')
+es = kd.new(x=kd.slice([1, 2, None]),
+            y=kd.slice([4, None, 6]),
+            schema='Point')
 
-# Update attributes (creates a new entity).
-e.with_attrs(z=4, y=10)
-# Allows mixing multiple updates.
-e.updated(kd.attrs(e, z=4) | kd.attrs(e, y=10))
+e.get_schema()
+assert e.get_schema() == es.get_schema()
+
+# Use an existing schema
+s = kd.new_schema(x=kd.INT32, y=kd.INT32)
+e = kd.new(x=1, y=2, schema=s)
+
+# When `schema=` is not provided, a new
+# schema is created for each invocation
+e1 = kd.new(x=1, y=2)
+e2 = kd.new(x=1, y=2)
+assert e1.get_schema() != e2.get_schema()
+
+# Use provided itemids
+itemid = kd.new_itemid()
+e3 = kd.new(x=1, y=2, itemid=itemid)
+e4 = kd.new(x=1, y=2, itemid=itemid)
+assert e3.get_itemid() == e4.get_itemid()
+
+# Access attribute
+e.x # 1
+e.get_attr('y') # 2
+e.maybe('z') # None
+e.get_attr('z', default=0) # 0
+es.get_attr('x', default=0) # [1, 2, 0]
+
+# Update attributes
+# Update a single attribute
+e1 = e.with_attr('x', 3)
+e1 = e.with_attr('z', 4)
+# Also override schema
+e1 = e.with_attr('y', 'a', update_schema=True)
+
+# Update multiple attributes
+e2 = e.with_attrs(z=4, x=3)
+# Also override schema for 'y'
+e2 = e.with_attrs(z=4, y='a', update_schema=True)
+
+# Create an update and apply it separately
+upd = kd.attrs(e, z=4, y=10)
+e3 = e.updated(upd)
+
+# Allows mixing multiple updates
+e4 = e.updated(kd.attrs(e, z=4), kd.attrs(e, y=10))
 ```
 
 </section>
@@ -95,12 +173,51 @@ e.updated(kd.attrs(e, z=4) | kd.attrs(e, y=10))
 ### Objects
 
 ```py
-o = kd.obj(a=1, b=2)
+o = kd.obj(x=1, y=2)
+os = kd.obj(x=kd.slice([1, 2, None]),
+            y=kd.slice([4, None, 6]))
 
-o.get_attr('a', default=4)
-o.has_attr('a')
-# Return missing if not found.
-o.maybe('a')
+os = kd.slice([kd.obj(x=1),
+               kd.obj(y=2.0),
+               kd.obj(x=1.0, y='a')])
+
+os.get_schema() # kd.OBJECT
+os.get_obj_schema()
+# [IMPLICIT_SCHEMA(x=INT32),
+#  IMPLICIT_SCHEMA(y=FLOAT32),
+#  IMPLICIT_SCHEMA(x=INT32, y=STRING)]
+
+# Use provided itemids
+itemid = kd.new_itemid()
+o1 = kd.obj(x=1, y=2, itemid=itemid)
+o2 = kd.obj(x=1, y=2, itemid=itemid)
+assert o1.get_itemid() == o2.get_itemid()
+
+# Access attribute
+o.x # 1
+o.get_attr('y') # 2
+o.maybe('z') # None
+o.get_attr('z', default=0) # 0
+os.get_attr('x', default=0) # [1, 0, 'a']
+
+# Update a single attribute
+o1 = o.with_attr('x', 3)
+o1 = o.with_attr('z', 4)
+# Also override schema
+# no update_schema=True is needed
+o1 = o.with_attr('y', 'a')
+
+# Update multiple attributes
+o2 = o.with_attrs(z=4, x=3)
+# Also override schema for 'y'
+o2 = o.with_attrs(z=4, y='a')
+
+# Create an update and apply it separately
+upd = kd.attrs(o, z=4, y=10)
+o3 = o.updated(upd)
+
+# Allows mixing multiple updates
+o4 = o.updated(kd.attrs(o, z=4), kd.attrs(o, y=10))
 ```
 
 </section>
@@ -110,27 +227,52 @@ o.maybe('a')
 ### Lists
 
 ```py
-l = kd.list([1, 2, 3])
-# Nested lists.
-l = kd.list([[1, 2], [3], [4, 5]])
+# Create a list from a Python list
+l1 = kd.list([1, 2, 3])
+l2 = kd.list([[1, 2], [3], [4, 5]])
 
-kd.is_list(l)
-kd.list_size(l)
+# Create multiple lists by imploding
+# the last dimension of a DataSlice
+l3 = kd.list(kd.slice([[1, 2], [3], [4, 5]]))
 
-# Python-like list operations.
-l[0]  # Same as kd.get_item(l, 0)
-l[1:]
+# l2 and l3 are different
+kd.is_item(l2)
+l2.get_size() # 1
+l3.get_size() # 3
 
-# Explode the list to a DataSlice.
-l1[:]
+kd.is_list(l1)
+kd.list_size(l1) # 3
+
+# Use provided itemids
+itemid = kd.new_listid()
+l4 = kd.list([1, 2, 3], itemid=itemid)
+l5 = kd.list([4, 5, 6], itemid=itemid)
+assert l4.get_itemid() == l5.get_itemid()
+
+# Python-like list operations
+l1[0] # 1
+kd.get_item(l1, 0) # 1
+l1[1:] # [2, 3]
+
+# Slice by a DataSlice
+l1[kd.slice([0, 2])] # [1, 3]
+l1[kd.slice([[2, 1], [0, None]])] # [[3, 2], [1, None]]
+
+# Explode a list
+l1[:] # [1, 2, 3]
+kd.explode(l1) # [1, 2, 3]
+
+kd.explode(l2, ndim=2)
+# Explode all lists repeatedly
+kd.explode(l2, ndim=-1)
+
+# Filter out items
+l6 = kd.list([1, 2, None, 4])
+l6.select_items(lambda x: x >= 2) # [2, 4]
 
 # Returns a DataSlice of lists concatenated from
 # the list items of arguments.
 kd.concat_lists(kd.list([1, 2]), kd.list([3, 4]))
-
-# Filter out missing items from a list DataSlice.
-kd.list([1, 2, None, 4]).select_items(
-    lambda x: x > 2)
 ```
 
 </section>
@@ -140,28 +282,210 @@ kd.list([1, 2, None, 4]).select_items(
 ### Dicts
 
 ```py
+# Create a dict from a Python dict
+d1 = kd.dict({'a': 1, 'b': 2})
+d1 = kd.dict(kd.slice(['a', 'b'],
+             kd.slice([1, 2]))) # Same as above
+
+# Create multiple dicts
+d2 = kd.dict(kd.slice([['a', 'b'], ['c']],
+             kd.slice([[1, 2], [3]])))
+
+kd.is_dict(d1)
+d1.dict_size() # 2
+
+# Use provided itemids
+itemid = kd.new_dictid()
+d3 = kd.dict({'a': 1, 'b': 2}, itemid=itemid)
+d4 = kd.dict({'c': 3, 'd': 4}, itemid=itemid)
+assert d3.get_itemid() == d4.get_itemid()
+
+d1.get_keys() # ['a', 'b']
+d1.get_values() # [1, 2]
+d1['a']
+d1.get_item('a') # Same as above
+
+# Filter out keys/values
+d1.select_keys(lambda k: k != 'b') # ['a']
+d1.select_values(lambda v: v > 1) # [2]
+
+# Update a key/value
+d4 = d1.with_dict_update('c', 5)
+# Update multiple key/values
+another_dict = kd.dict({'a': 3, 'c': 5})
+d5 = d1.with_dict_update(another_dict)
+# Same as above
+d5 = d1.with_dict_update(kd.slice(['a', 'c']),
+                         kd.slice([3, 5]))
+
+# Create an update and apply it separately
+upd = d1.dict_update(another_dict)
+d6 = d1.updated(upd)
+
+# Allows mixing multiple updates
+d7 = d1.updated(d1.dict_update('c', 5),
+                d1.dict_update(another_dict))
+```
+
+</section>
+
+<section>
+
+### From_py
+
+```py
+# Primitives
+kd.from_py(1)
+kd.from_py(1, schema=kd.INT64)
+kd.from_py(1.0)
+kd.from_py(1.0, schema=kd.FLOAT64)
+kd.from_py('a')
+kd.from_py(b'a')
+kd.from_py(True)
+kd.from_py(None) # NONE schema rather than MASK
+
+# Entity/Object
+@dataclasses.dataclass
+class PyObj:
+  x: int
+  y: float
+
+py_obj = PyObj(x=1, y=2.0)
+
+kd.from_py(py_obj) # Object
+kd.from_py(py_obj, schema=kd.OBJECT) # Same as above
+s1 = kd.new_schema(x=kd.INT32, y=kd.FLOAT64)
+kd.from_py(py_obj, schema=s1) # Entity
+
+# dict_as_obj=True
+py_dict = {'x': 1, 'y': 2.0}
+kd.from_py(py_dict, dict_as_obj=True) # Object
+kd.from_py(py_dict, schema=kd.OBJECT) # Same as above
+kd.from_py(py_dict, dict_as_obj=True,
+           schema=s) # Entity
+
+# List
+py_list = [[1, 2], [3], [4, 5]]
+kd.from_py(py_list)
+s2 = kd.list_schema(kd.list_schema(kd.INT64))
+kd.from_py(py_list, schema=s2)
+
+# Dict
+py_dict = {'x': 1, 'y': 2.0}
+kd.from_py(py_dict)
+s3 = kd.dict_schema(kd.STRING, kd.FLOAT64)
+kd.from_py(py_dict, schema=s3)
+
+# Use provided itemids
+id1 = kd.new_itemid()
+kd.from_py(py_obj, itemid=id1)
+id2 = kd.new_listid()
+kd.from_py(py_list, itemid=id2)
+id3 = kd.new_dictid()
+kd.from_py(py_dict, itemid=id3)
+
+# Use from_dim to treat the first X Phthon
+# lists as DataSlice dimensions
+py_list = [[1, 2], [3], [4, 5]]
+kd.from_py(py_list, from_dim=2)
+
+py_dicts = [{'x': 1, 'y': 2.0}, {'x': 3, 'y': 4.0}]
+# Dicts as Objects
+kd.from_py(py_dicts, from_dim=1)
+# Dicts as Objects
+kd.from_py(py_dicts, from_dim=1, schema=s3)
+```
+
+</section>
+
+<section>
+
+### To_py
+
+```py
+# Primitive DataItem
+kd.item(1.0).to_py() # 1.0
+kd.int64(1).to_py() # 1
+# There is no MASK type in Python
+kd.present.to_py() # kd.present
+kd.missing.to_py() # None
+
+# DataSlice of primitives
+ds = kd.slice([[1, 2], [3], [4, 5]])
+py_list = kd.to_py(ds)
+py_list = ds.to_py() # same as above
+assert py_list == [[1, 2], [3], [4, 5]]
+
+# Entity DataItem
+e = kd.new(x=1, y=2.0)
+e.to_py() # Obj(x=1, y=2.0)
+e.to_py(obj_as_dict=True) # {'x': 1, 'y': 2.0}
+s = kd.new_schema(x=kd.INT32, y=kd.FLOAT32)
+e1 = kd.new(x=1, schema=s)
+e1.to_py(obj_as_dict=True) # {'x': 1, 'y': None}
+e1.to_py(obj_as_dict=True,
+         include_missing_attrs=False) # {'x': 1}
+
+# Object DataItem
+o = kd.obj(x=1, y=2.0)
+o.to_py() # Obj(x=1, y=2.0)
+o.to_py(obj_as_dict=True) # {'x': 1, 'y': 2.0}
+
+# List DataItem
+l = kd.list([1, 2, 3])
+l.to_py() # [1, 2, 3]
+
+# Dict DataItem
 d = kd.dict({'a': 1, 'b': 2})
+py_dict = d.to_py() # {'a': 1, 'b': 2}
 
-kd.is_dict(d)
-d.dict_size()
+# Nested Entity/Object/List/Dict item
+# Each item is counted as one depth
+# When max_depth (default to 2) is reached,
+# the item is kept as a DataItem
+i = kd.obj(a=kd.obj(b=kd.obj(c=1),
+                    d=kd.list([2, 3]),
+                    e=kd.dict({'f': 4})))
+i.to_py()
+# Obj(a=Obj(b=DataItem(Obj(c=1)),
+#           d=DataItem(List[2, 3]),
+#           e=DataItem(Dict{'f'=4})))
+i.to_py(max_depth=3)
+# Obj(a=Obj(b=Obj(c=1), d=[2, 3], e={'f': 4}))
+# Use -1 to convert everything to Python
+i.to_py(max_depth=-1)
+# Obj(a=Obj(b=Obj(c=1), d=[2, 3], e={'f': 4}))
 
-d.get_keys()
-d.get_values()
-d['a']  # Same as d.get_item('a')
+# Primitive DataSlice
+ds = kd.slice([[1, 2], [None, 3]])
+ds.to_py() # [[1, 2], [None, 3]]
 
-# Create a new dict, since dicts are immutable.
-d = d.with_dict_update('c', 5)
-# Same as dict_update.
-d.updated(
-  kd.dict_update(d, 'c', 30) |
-  kd.dict_update(d, 'a', 10))
+# Entity DataSlice
+ds = kd.new(a=kd.slice([1, None, 3]),
+            y=kd.slice([4, 5, None]))
+res = ds.to_py()
+# [Obj(x=1, y=4),
+#  Obj(x=None, y=5),
+#  Obj(x=3, y=None)]
+# Note that each object has its own Python class
+assert res[0].__class__ != res[1].__class__
 
-# Select dict keys by filtering out
-# missing items in fltr.
-d.select_keys(fltr)
-# Select dict values by filtering out
-# missing items in fltr.
-d.select_values(fltr)
+# Object DataSlice
+ds = kd.obj(a=kd.slice([1, None, 3]),
+            y=kd.slice([4, 5, None]))
+res = ds.to_py()
+# [Obj(x=1, y=4),
+#  Obj(x=None, y=5),
+#  Obj(x=3, y=None)]
+
+# List DataSlice
+lists = kd.list(kd.slice([[1, 2], [None, 3]]))
+lists.to_py() # [[1, 2], [None, 3]]
+
+# Dict DataSlice
+dicts = kd.dict(kd.slice([['a', 'b'], ['c']]),
+                kd.slice([[1, None], [3]]))
+dicts.to_py() # [{'a': 1}, {'c': 3}]
 ```
 
 </section>

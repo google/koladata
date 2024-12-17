@@ -20,8 +20,8 @@
 
 /* Rules for multi-column layout */
 .g3doc-content {
-  -moz-column-width: 22em;
-  -webkit-column-width: 22em;
+  -moz-column-width: 24em;
+  -webkit-column-width: 24em;
 }
 
 section {
