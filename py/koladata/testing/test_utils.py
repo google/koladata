@@ -66,6 +66,46 @@ def _assert_expr_equal_by_fingerprint(
   raise AssertionError(msg)
 
 
+def _assert_qvalue_equal_by_fingerprint(actual_value: _KodaVal,
+                                        expected_value: _KodaVal,
+                                        *,
+                                        msg: str | None = None):
+  """Koda specific qvalue equality check by fingerprint."""
+  if not isinstance(actual_value, _arolla.QValue):
+    raise TypeError('`actual_value` must be a QValue, got ', type(actual_value))
+  if not isinstance(expected_value, _arolla.QValue):
+    raise TypeError(
+        '`expected_value` must be a QValue, got ', type(expected_value)
+    )
+  if actual_value.fingerprint == expected_value.fingerprint:
+    return
+  if isinstance(actual_value, _data_slice.DataSlice) and isinstance(
+      expected_value, _data_slice.DataSlice
+  ):
+    raise AssertionError(
+        msg
+        or (
+            'DataSlices are not equal by fingerprint:\n\n '
+            f' actual_fingerprint={actual_value.fingerprint},'
+            f' expected_fingerprint={expected_value.fingerprint}\n  actual:\n  '
+            f'  {actual_value._debug_repr()}\n  expected:\n   '  # pylint: disable=protected-access
+            f' {expected_value._debug_repr()}'  # pylint: disable=protected-access
+        )
+    )
+  raise AssertionError(
+      msg
+      or (
+          'QValues not equal by fingerprint:\n'
+          + f'  actual_fingerprint={actual_value.fingerprint}, '
+          + f'expected_fingerprint={expected_value.fingerprint}\n'
+          + '  actual:\n    '
+          + '\n    '.join(f'{actual_value!r}'.split('\n'))
+          + '\n  expected:\n    '
+          + '\n    '.join(f'{expected_value!r}'.split('\n'))
+      )
+  )
+
+
 def assert_equal(
     actual_value: _KodaVal, expected_value: _KodaVal, *, msg: str | None = None
 ) -> None:
@@ -96,7 +136,7 @@ def assert_equal(
   ):
     _assert_expr_equal_by_fingerprint(actual_value, expected_value, msg=msg)
     return
-  _arolla.testing.assert_qvalue_equal_by_fingerprint(
+  _assert_qvalue_equal_by_fingerprint(
       actual_value, expected_value, msg=msg
   )
 
@@ -160,7 +200,7 @@ def assert_equivalent(
   if isinstance(actual_value, _data_slice.DataSlice) and isinstance(
       expected_value, _data_slice.DataSlice
   ):
-    _arolla.testing.assert_qvalue_equal_by_fingerprint(
+    _assert_qvalue_equal_by_fingerprint(
         actual_value.no_bag(), expected_value.no_bag(), msg=msg
     )
     try:
@@ -175,7 +215,7 @@ def assert_equivalent(
           )
       ) from None
     return
-  _arolla.testing.assert_qvalue_equal_by_fingerprint(
+  _assert_qvalue_equal_by_fingerprint(
       actual_value, expected_value, msg=msg
   )
 
@@ -256,6 +296,9 @@ def assert_allclose(
       _as_arolla_value(expected_value),
       rtol=rtol,
       atol=atol,
+      msg=f'the values are not close up to the given tolerance:\n\n'
+      f'expected: {actual_value._debug_repr()}\n'  # pylint: disable=protected-access
+      f'actual: {expected_value._debug_repr()}',  # pylint: disable=protected-access
   )
   assert_equal(
       actual_value.get_bag(),

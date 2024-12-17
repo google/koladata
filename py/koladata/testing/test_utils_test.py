@@ -79,19 +79,31 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_equal_error(self):
     with self.assertRaisesRegex(
-        AssertionError, 'not equal: DataSlice.* != DataSlice*'
+        AssertionError,
+        re.compile(
+            'DataSlices are not equal by fingerprint:.*DataSlice.*DataSlice.*',
+            re.MULTILINE | re.DOTALL,
+        ),
     ):
       test_utils.assert_equal(ds([1, 2, 3]), ds([[1, 2], [3]]))
     with self.assertRaisesRegex(
-        AssertionError, 'not equal: JaggedShape.* != JaggedShape*'
+        AssertionError,
+        re.compile(
+            'not equal by fingerprint:.*JaggedShape.*JaggedShape*',
+            re.MULTILINE | re.DOTALL
+        ),
     ):
       test_utils.assert_equal(
           ds([1, 2, 3]).get_shape(), ds([[1, 2], [3]]).get_shape()
       )
     with self.assertRaisesRegex(
         AssertionError,
-        r'not equal: .*DataBag \$[0-9a-f]{4}(\n|.)* != DataBag'
-        r' \$[0-9a-f]{4}(\n|.)*',
+        re.compile(
+            r'not equal by fingerprint:.*DataBag \$[0-9a-f]{4}(\n|.)*'
+            r' DataBag'
+            r' \$[0-9a-f]{4}(\n|.)*',
+            re.MULTILINE | re.DOTALL,
+        ),
     ):
       test_utils.assert_equal(bag(), bag().new(a=1).get_bag())
 
@@ -185,7 +197,13 @@ class TestUtilsTest(parameterized.TestCase):
           ds([[2.71], [2.71]]),
           ds([2.71, 2.71]),
       )
-    with self.assertRaisesRegex(AssertionError, 'not close: 3.145.* != 3'):
+    with self.assertRaisesRegex(
+        AssertionError,
+        re.compile(
+            'the values are not close up to the given tolerance:.*3.145.*3',
+            re.M | re.DOTALL,
+        ),
+    ):
       test_utils.assert_allclose(ds(3.145678), ds(3.0))
     with self.assertRaisesRegex(
         AssertionError, r'3.14, \'abc\'.* cannot be converted to Arolla value'
@@ -298,7 +316,7 @@ class TestUtilsTest(parameterized.TestCase):
   def test_assert_nested_lists_equal_error(self):
     l1 = bag().list([[1], [2, 3]])
     l2 = bag().list([[1, 2], [3]])
-    with self.assertRaisesRegex(AssertionError, 'QValues not equal'):
+    with self.assertRaisesRegex(AssertionError, 'DataSlices are not equal'):
       test_utils.assert_nested_lists_equal(l1, l2)
 
   def test_assert_unordered_equal(self):
