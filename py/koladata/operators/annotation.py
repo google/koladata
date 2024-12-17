@@ -22,7 +22,7 @@ from koladata.types import py_boxing
 
 with_name = optools.add_to_registry(
     name='kde.annotation.with_name', aliases=['kde.with_name']
-)(arolla.abc.decay_registered_operator('koda_internal.with_name'))
+)(arolla.abc.lookup_operator('koda_internal.with_name'))
 
 
 class _WithNameBindingPolicy(py_boxing.BasicBindingPolicy):

@@ -78,6 +78,7 @@ arolla_operator_package_snapshot(
     name = "operator_package.pb2",
     imports = [
         "koladata.operators.allocation",
+        "koladata.operators.annotation",
         "koladata.operators.arolla_bridge",
         "koladata.operators.assertion",
         "koladata.operators.comparison",
@@ -95,6 +96,7 @@ arolla_operator_package_snapshot(
     ],
     deps = [
         ":allocation",
+        ":annotation",
         ":assertion",
         ":comparison",
         ":core",
