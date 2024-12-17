@@ -94,17 +94,6 @@ def dict_size(dict_slice):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.list_size'])
-@optools.as_backend_operator(
-    'kde.core.list_size',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.list_slice)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def list_size(list_slice):  # pylint: disable=unused-argument
-  """Returns size of a List."""
-  raise NotImplementedError('implemented in the backend')
-
-
 @optools.add_to_registry(aliases=['kde.align'])
 @optools.as_backend_operator(
     'kde.core.align',
@@ -1434,7 +1423,7 @@ def dict_shaped(
       deduced from values or defaulted to OBJECT.
     schema: the schema to use for the newly created Dict. If specified, then
       key_schema and value_schema must not be specified.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
     A DataSlice with the dicts.
@@ -1506,7 +1495,7 @@ def dict_(
       deduced from values or defaulted to OBJECT.
     schema: the schema to use for the newly created Dict. If specified, then
       key_schema and value_schema must not be specified.
-    itemid: ITEMID DataSlice used as ItemIds of the resulting lists.
+    itemid: ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
     A DataSlice with the dict.
@@ -1574,7 +1563,7 @@ def dict_shaped_as(
       deduced from values or defaulted to OBJECT.
     schema: the schema to use for the newly created Dict. If specified, then
       key_schema and value_schema must not be specified.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
     A DataSlice with the dicts.
@@ -1647,7 +1636,7 @@ def dict_like(
       deduced from values or defaulted to OBJECT.
     schema: the schema to use for the newly created Dict. If specified, then
       key_schema and value_schema must not be specified.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting dicts.
 
   Returns:
     A DataSlice with the dicts.
@@ -2229,114 +2218,6 @@ def is_shape_compatible(x, y):
     A MASK DataItem indicating whether 'x' and 'y' are compatible.
   """
   return is_expandable_to(x, y) | is_expandable_to(y, x)
-
-
-@optools.as_backend_operator(
-    'kde.core._explode', qtype_inference_expr=qtypes.DATA_SLICE
-)
-def _explode(x, ndim):  # pylint: disable=unused-argument
-  """Implementation of kde.core.explode."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.explode'])
-@optools.as_lambda_operator(
-    'kde.core.explode',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.ndim),
-    ],
-)
-def explode(x, ndim=1):
-  """Explodes a List DataSlice `x` a specified number of times.
-
-  A single list "explosion" converts a rank-K DataSlice of LIST[T] to a
-  rank-(K+1) DataSlice of T, by unpacking the items in the Lists in the original
-  DataSlice as a new DataSlice dimension in the result. Missing values in the
-  original DataSlice are treated as empty lists.
-
-  A single list explosion can also be done with `x[:]`.
-
-  If `ndim` is set to a non-negative integer, explodes recursively `ndim` times.
-  An `ndim` of zero is a no-op.
-
-  If `ndim` is set to a negative integer, explodes as many times as possible,
-  until at least one of the items of the resulting DataSlice is not a List.
-
-  Args:
-    x: DataSlice of Lists to explode
-    ndim: the number of explosion operations to perform, defaults to 1
-
-  Returns:
-    DataSlice
-  """
-  return _explode(x, arolla_bridge.to_arolla_int64(ndim))
-
-
-@optools.as_unified_backend_operator(
-    'kde.core._implode',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
-def _implode(x, ndim):  # pylint: disable=unused-argument
-  """Implementation of kde.core.implode."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.implode'])
-@optools.as_unified_lambda_operator(
-    'kde.core.implode',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.ndim),
-    ],
-    deterministic=False,
-)
-def implode(x, ndim=1):
-  """Implodes a Dataslice `x` a specified number of times.
-
-  A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
-  DataSlice of LIST[T], by folding the items in the last dimension of the
-  original DataSlice into newly-created Lists.
-
-  A single list implosion is equivalent to `kd.list(x, db)`.
-
-  If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
-
-  If `ndim` is set to a negative integer, implodes as many times as possible,
-  until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
-  nested List.
-
-  Args:
-    x: the DataSlice to implode
-    ndim: the number of implosion operations to perform
-
-  Returns:
-    DataSlice of nested Lists
-  """
-  return _implode(x, arolla_bridge.to_arolla_int64(ndim))
-
-
-@optools.add_to_registry(aliases=['kde.select_items'])
-@optools.as_lambda_operator(
-    'kde.core.select_items',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-    aux_policy=py_boxing.SELECT_ITEMS_POLICY,
-)
-def select_items(ds, fltr):
-  """Selects List items by filtering out missing items in fltr.
-
-  Also see kd.select.
-
-  Args:
-    ds: List DataSlice to be filtered
-    fltr: filter can be a DataSlice with dtype as kd.MASK. It can also be a Koda
-      Functor or a Python function which can be evalauted to such DataSlice.
-
-  Returns:
-    Filtered DataSlice.
-  """
-  return select(ds=explode(ds), fltr=fltr)
 
 
 @optools.as_unified_backend_operator(
@@ -3816,216 +3697,3 @@ def with_dict_update(x, keys, values=arolla.unspecified()):
     values: A DataSlice of values, or unspecified if `keys` contains dicts.
   """
   return updated(x, dict_update(x, keys, values))
-
-
-@optools.as_unified_backend_operator(
-    'kde.core._list',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
-def _list(items, item_schema, schema, itemid):  # pylint: disable=unused-argument
-  """Implementation of `kde.core.list`."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.list'])
-@optools.as_unified_lambda_operator(
-    'kde.core.list',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice_or_unspecified(P.items),
-        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-    ],
-    deterministic=False,
-)
-def list_(
-    items=arolla.unspecified(),
-    /,
-    *,
-    item_schema=arolla.unspecified(),
-    schema=arolla.unspecified(),
-    itemid=arolla.unspecified(),
-):
-  """Creates list(s) by collapsing `items`.
-
-  If there is no argument, returns an empty Koda List. If the argument is a
-  DataSlice, creates a DataSlice of Koda Lists.
-
-  Args:
-    items: items of the resulting lists. If not specified, an empty list of
-      OBJECTs will be created.
-    item_schema: optional schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: optional schema to use for the list. If specified, then item_schema
-      must not be specified.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
-
-  Returns:
-    The DataSlice with list/lists.
-  """
-  items = M.core.default_if_unspecified(items, data_slice.unspecified())
-  item_schema = M.core.default_if_unspecified(
-      item_schema, data_slice.unspecified()
-  )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
-  return _list(items, item_schema, schema, itemid)
-
-
-@optools.as_unified_backend_operator(
-    'kde.core._list_like',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
-def _list_like(
-    shape_and_mask_from, items, item_schema, schema, itemid  # pylint: disable=unused-argument
-):
-  """Implementation of `kde.core.list_like`."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.list_like'])
-@optools.as_unified_lambda_operator(
-    'kde.core.list_like',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.shape_and_mask_from),
-        qtype_utils.expect_data_slice_or_unspecified(P.items),
-        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-    ],
-    deterministic=False,
-)
-def list_like(
-    shape_and_mask_from,
-    /,
-    items=arolla.unspecified(),
-    *,
-    item_schema=arolla.unspecified(),
-    schema=arolla.unspecified(),
-    itemid=arolla.unspecified(),
-):
-  """Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
-
-  Args:
-    shape_and_mask_from: a DataSlice with the shape and sparsity for the desired
-      lists.
-    items: optional items to assign to the newly created lists. If not given,
-      the function returns empty lists.
-    item_schema: the schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: The schema to use for the list. If specified, then item_schema must
-      not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-
-  Returns:
-    A DataSlice with the lists.
-  """
-  items = M.core.default_if_unspecified(items, data_slice.unspecified())
-  item_schema = M.core.default_if_unspecified(
-      item_schema, data_slice.unspecified()
-  )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
-  return _list_like(shape_and_mask_from, items, item_schema, schema, itemid)
-
-
-@optools.as_unified_backend_operator(
-    'kde.core._list_shaped',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
-def _list_shaped(shape, items, item_schema, schema, itemid):  # pylint: disable=unused-argument
-  """Implementation of `kde.core.list_shaped`."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.list_shaped'])
-@optools.as_unified_lambda_operator(
-    'kde.core.list_shaped',
-    qtype_constraints=[
-        qtype_utils.expect_jagged_shape(P.shape),
-        qtype_utils.expect_data_slice_or_unspecified(P.items),
-        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-    ],
-    deterministic=False,
-)
-def list_shaped(
-    shape,
-    /,
-    items=arolla.unspecified(),
-    *,
-    item_schema=arolla.unspecified(),
-    schema=arolla.unspecified(),
-    itemid=arolla.unspecified(),
-):
-  """Creates new Koda lists with the given shape.
-
-  Args:
-    shape: the desired shape.
-    items: optional items to assign to the newly created lists. If not given,
-      the function returns empty lists.
-    item_schema: the schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: The schema to use for the list. If specified, then item_schema must
-      not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-
-  Returns:
-    A DataSlice with the lists.
-  """
-  items = M.core.default_if_unspecified(items, data_slice.unspecified())
-  item_schema = M.core.default_if_unspecified(
-      item_schema, data_slice.unspecified()
-  )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
-  return _list_shaped(shape, items, item_schema, schema, itemid)
-
-
-@optools.add_to_registry(aliases=['kde.list_shaped_as'])
-@optools.as_unified_lambda_operator(
-    'kde.core.list_shaped_as',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.shape_from),
-        qtype_utils.expect_data_slice_or_unspecified(P.items),
-        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-    ],
-    deterministic=False,
-)
-def list_shaped_as(
-    shape_from,
-    /,
-    items=arolla.unspecified(),
-    *,
-    item_schema=arolla.unspecified(),
-    schema=arolla.unspecified(),
-    itemid=arolla.unspecified(),
-):
-  """Creates new Koda lists with the shape of the given DataSlice.
-
-  Args:
-    shape_from: DataSlice of the desired shape.
-    items: optional items to assign to the newly created lists. If not given,
-      the function returns empty lists.
-    item_schema: the schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: The schema to use for the list. If specified, then item_schema must
-      not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-
-  Returns:
-    A DataSlice with the lists.
-  """
-  return list_shaped(
-      jagged_shape_ops.get_shape(shape_from),
-      items=items,
-      item_schema=item_schema,
-      schema=schema,
-      itemid=itemid,
-  )

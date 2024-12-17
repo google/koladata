@@ -82,7 +82,7 @@ class CoreSelectItemsTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, value, fltr, expected):
-    result = expr_eval.eval(kde.core.select_items(value, fltr))
+    result = expr_eval.eval(kde.lists.select_items(value, fltr))
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -91,14 +91,14 @@ class CoreSelectItemsTest(parameterized.TestCase):
   )
   def test_eval_with_expr_input(self, fltr):
     result = expr_eval.eval(
-        kde.core.select_items(I.x, fltr), x=db.list([1, 2, 3])
+        kde.lists.select_items(I.x, fltr), x=db.list([1, 2, 3])
     )
     testing.assert_equal(result, ds([2, 3]))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.select_items,
+            kde.lists.select_items,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
@@ -109,7 +109,7 @@ class CoreSelectItemsTest(parameterized.TestCase):
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.select_items, kde.select_items)
+        optools.equiv_to_op(kde.lists.select_items, kde.select_items)
     )
 
 

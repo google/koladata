@@ -26,6 +26,7 @@ from koladata.operators import functor as _
 from koladata.operators import ids as _
 from koladata.operators import jagged_shape as _
 from koladata.operators import koda_internal as _
+from koladata.operators import lists as _
 from koladata.operators import masking as _
 from koladata.operators import math as _
 from koladata.operators import object_factories as _
@@ -48,6 +49,7 @@ def get_namespaces() -> list[str]:
       'kde.core',
       'kde.functor',
       'kde.ids',
+      'kde.lists',
       'kde.masking',
       'kde.math',
       'kde.py',

@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde_operators."""
-
-import collections
-
 from absl.testing import absltest
 from arolla import arolla
 from koladata.operators import kde_operators
@@ -29,27 +25,21 @@ class KdeOperatorsTest(absltest.TestCase):
     # Tests that all `kde` operators are present in a subnamespace of
     # `kde` as well.
     kde_top_ops = set()
-    op_from_basic_name = collections.defaultdict(set)
+    subnamespace_op_fingerprints = set()
     for op_name in arolla.abc.list_registered_operators():
       op = arolla.abc.lookup_operator(op_name)
       split_name = op_name.split('.')
       if op_name.startswith('kde.') and len(split_name) == 2:
         kde_top_ops.add(op)
-      op_from_basic_name[split_name[-1]].add(op)
+      else:
+        fp = arolla.abc.decay_registered_operator(op).fingerprint
+        subnamespace_op_fingerprints.add(fp)
 
     has_corresponding_op = set()
     for op in kde_top_ops:
-      decayed_op = arolla.abc.decay_registered_operator(op)
-      for corresponding_op in op_from_basic_name[
-          op.display_name.split('.')[-1]
-      ]:
-        if (
-            corresponding_op != op
-            and arolla.abc.decay_registered_operator(corresponding_op)
-            == decayed_op
-        ):
-          has_corresponding_op.add(op)
-          break
+      fp = arolla.abc.decay_registered_operator(op).fingerprint
+      if fp in subnamespace_op_fingerprints:
+        has_corresponding_op.add(op)
     self.assertEmpty(
         kde_top_ops - has_corresponding_op,
         msg=(

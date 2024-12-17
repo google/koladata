@@ -100,7 +100,7 @@ class ImplodeTest(parameterized.TestCase):
     self.assertEqual(result.get_bag().fingerprint, db2.fingerprint)
 
   def test_alias(self):
-    self.assertIs(fns.concat_lists, fns.core.concat_lists)
+    self.assertIs(fns.concat_lists, fns.lists.concat)
 
 
 if __name__ == '__main__':

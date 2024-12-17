@@ -88,68 +88,6 @@ def is_primitive(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.has_list'])
-@optools.as_backend_operator(
-    'kde.core.has_list',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def has_list(x):  # pylint: disable=unused-argument
-  """Returns present for each item in `x` that is List.
-
-  Note that this is a pointwise operation.
-
-  Also see `kd.is_list` for checking if `x` is a List DataSlice. But note that
-  `kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
-  example,
-
-    kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
-    kd.all(kd.has_list(kd.item(None, kd.OBJECT))) -> invalid for kd.all
-    kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
-    kd.all(kd.has_list(kd.item([None], kd.OBJECT))) -> kd.missing
-
-  Args:
-    x: DataSlice to check.
-
-  Returns:
-    A MASK DataSlice with the same shape as `x`.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.is_list'])
-@optools.as_backend_operator(
-    'kde.core.is_list',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
-def is_list(x):  # pylint: disable=unused-argument
-  """Returns whether x is a List DataSlice.
-
-  `x` is a List DataSlice if it meets one of the following conditions:
-    1) it has a List schema
-    2) it has OBJECT/ANY schema and only has List items
-
-  Also see `kd.has_list` for a pointwise version. But note that
-  `kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
-  example,
-
-    kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
-    kd.all(kd.has_list(kd.item(None, kd.OBJECT))) -> invalid for kd.all
-    kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
-    kd.all(kd.has_list(kd.item([None], kd.OBJECT))) -> kd.missing
-
-  Args:
-    x: DataSlice to check.
-
-  Returns:
-    A MASK DataItem.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
 @optools.add_to_registry(aliases=['kde.has_dict'])
 @optools.as_backend_operator(
     'kde.core.has_dict',

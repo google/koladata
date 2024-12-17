@@ -105,7 +105,7 @@ class ListShapedAsTest(parameterized.TestCase):
     )
 
   def test_alias(self):
-    self.assertIs(fns.list_shaped_as, fns.core.list_shaped_as)
+    self.assertIs(fns.list_shaped_as, fns.lists.shaped_as)
 
 
 if __name__ == '__main__':

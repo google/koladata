@@ -208,7 +208,7 @@ Assigned schema for List item: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""
       )
 
   def test_alias(self):
-    self.assertIs(fns.list, fns.core.list)
+    self.assertIs(fns.list, fns.lists.create)
 
 
 if __name__ == '__main__':

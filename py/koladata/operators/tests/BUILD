@@ -365,8 +365,8 @@ py_test(
 )
 
 py_test(
-    name = "core_list_test",
-    srcs = ["core_list_test.py"],
+    name = "lists_make_test",
+    srcs = ["lists_make_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -388,8 +388,8 @@ py_test(
 )
 
 py_test(
-    name = "core_list_like_test",
-    srcs = ["core_list_like_test.py"],
+    name = "lists_like_test",
+    srcs = ["lists_like_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -411,8 +411,8 @@ py_test(
 )
 
 py_test(
-    name = "core_list_shaped_test",
-    srcs = ["core_list_shaped_test.py"],
+    name = "lists_shaped_test",
+    srcs = ["lists_shaped_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -435,8 +435,8 @@ py_test(
 )
 
 py_test(
-    name = "core_list_shaped_as_test",
-    srcs = ["core_list_shaped_as_test.py"],
+    name = "lists_shaped_as_test",
+    srcs = ["lists_shaped_as_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -458,8 +458,8 @@ py_test(
 )
 
 py_test(
-    name = "core_list_size_test",
-    srcs = ["core_list_size_test.py"],
+    name = "lists_size_test",
+    srcs = ["lists_size_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -481,8 +481,8 @@ py_test(
 )
 
 py_test(
-    name = "core_is_list_test",
-    srcs = ["core_is_list_test.py"],
+    name = "lists_is_list_test",
+    srcs = ["lists_is_list_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -503,8 +503,8 @@ py_test(
 )
 
 py_test(
-    name = "core_has_list_test",
-    srcs = ["core_has_list_test.py"],
+    name = "lists_has_list_test",
+    srcs = ["lists_has_list_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1794,8 +1794,8 @@ py_test(
 )
 
 py_test(
-    name = "core_select_items_test",
-    srcs = ["core_select_items_test.py"],
+    name = "lists_select_items_test",
+    srcs = ["lists_select_items_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3203,8 +3203,8 @@ py_test(
 )
 
 py_test(
-    name = "core_explode_test",
-    srcs = ["core_explode_test.py"],
+    name = "lists_explode_test",
+    srcs = ["lists_explode_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3225,8 +3225,8 @@ py_test(
 )
 
 py_test(
-    name = "core_implode_test",
-    srcs = ["core_implode_test.py"],
+    name = "lists_implode_test",
+    srcs = ["lists_implode_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",

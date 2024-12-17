@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.explode."""
-
 import re
 
 from absl.testing import absltest
@@ -123,7 +121,7 @@ class CoreExplodeTest(parameterized.TestCase):
       (db.list([None]), -1, ds([None]))
   )
   def test_eval(self, x, ndim, expected):
-    result = expr_eval.eval(kde.core.explode(x, ndim))
+    result = expr_eval.eval(kde.lists.explode(x, ndim))
     testing.assert_equal(result, expected)
 
     # Check consistency with x[:] operator if applicable.
@@ -138,7 +136,7 @@ class CoreExplodeTest(parameterized.TestCase):
             " number of additional dimension(s) is 1"
         ),
     ):
-      expr_eval.eval(kde.core.explode(LIST1, 2))
+      expr_eval.eval(kde.lists.explode(LIST1, 2))
 
   def test_expand_fully_any_error(self):
     with self.assertRaisesRegex(
@@ -146,7 +144,7 @@ class CoreExplodeTest(parameterized.TestCase):
         re.escape("cannot fully explode 'x' with ANY schema"),
     ):
       # DataItem(List[None], schema: ANY)
-      expr_eval.eval(kde.core.explode(db.list([]).with_schema(ANY), -1))
+      expr_eval.eval(kde.lists.explode(db.list([]).with_schema(ANY), -1))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -154,7 +152,7 @@ class CoreExplodeTest(parameterized.TestCase):
     ):
       # DataItem(List[None], schema: LIST[ANY])
       expr_eval.eval(
-          kde.core.explode(db.list([di(None).with_schema(ANY)]), -1)
+          kde.lists.explode(db.list([di(None).with_schema(ANY)]), -1)
       )
 
   def test_expand_fully_itemid_error(self):
@@ -163,7 +161,7 @@ class CoreExplodeTest(parameterized.TestCase):
         re.escape("cannot fully explode 'x' with ITEMID schema"),
     ):
       # DataItem(List[None], schema: ITEMID)
-      expr_eval.eval(kde.core.explode(db.list([]).with_schema(ITEMID), -1))
+      expr_eval.eval(kde.lists.explode(db.list([]).with_schema(ITEMID), -1))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -171,7 +169,7 @@ class CoreExplodeTest(parameterized.TestCase):
     ):
       # DataItem(List[None], schema: LIST[ITEMID])
       expr_eval.eval(
-          kde.core.explode(db.list([di(None).with_schema(ITEMID)]), -1)
+          kde.lists.explode(db.list([di(None).with_schema(ITEMID)]), -1)
       )
 
   def test_expand_fully_object_error(self):
@@ -183,7 +181,7 @@ class CoreExplodeTest(parameterized.TestCase):
         ),
     ):
       # DataItem(List[None], schema: LIST[OBJECT])
-      expr_eval.eval(kde.core.explode(LIST0, -1))
+      expr_eval.eval(kde.lists.explode(LIST0, -1))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -194,7 +192,7 @@ class CoreExplodeTest(parameterized.TestCase):
     ):
       # DataItem(List[None], schema: LIST[OBJECT])
       expr_eval.eval(
-          kde.core.explode(
+          kde.lists.explode(
               db.list([db.obj() & di(None, schema_constants.MASK)]), -1
           )
       )
@@ -202,7 +200,7 @@ class CoreExplodeTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.explode,
+            kde.lists.explode,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         [
@@ -212,10 +210,10 @@ class CoreExplodeTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.explode(I.x)))
+    self.assertTrue(view.has_koda_view(kde.lists.explode(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.explode, kde.explode))
+    self.assertTrue(optools.equiv_to_op(kde.lists.explode, kde.explode))
 
 
 if __name__ == "__main__":

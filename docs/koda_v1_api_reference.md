@@ -18,6 +18,7 @@ Category  | Subcategory | Description
  | [core](#kd.core) | Core operators that are not part of other categories.
  | [functor](#kd.functor) | Operators to create and call functors.
  | [ids](#kd.ids) | Operators that work with ItemIds.
+ | [lists](#kd.lists) | Operators working with lists.
  | [masking](#kd.masking) | Masking operators.
  | [math](#kd.math) | Arithmetic operators.
  | [py](#kd.py) | Operators that call Python functions.
@@ -741,32 +742,6 @@ Returns:
   new merged immutable DataBag.
 ```
 
-### `kd.core.concat_lists(*lists, db=None)` {#kd.core.concat_lists}
-Aliases:
-
-- [kd.concat_lists](#kd.concat_lists)
-
-``` {.no-copy}
-Returns a DataSlice of Lists concatenated from the List items of `lists`.
-
-  Each input DataSlice must contain only present List items, and the item
-  schemas of each input must be compatible. Input DataSlices are aligned (see
-  `kde.align`) automatically before concatenation.
-
-  If `lists` is empty, this returns a single empty list with OBJECT item schema.
-
-  The specified `db` is used to create the new concatenated lists, and is the
-  DataBag used by the result DataSlice. If `db` is not specified, a new DataBag
-  is created for this purpose.
-
-  Args:
-    *lists: the DataSlices of Lists to concatenate
-    db: optional DataBag to populate with the result
-
-  Returns:
-    DataSlice of concatenated Lists
-```
-
 ### `kd.core.container(*, db=None, **attrs)` {#kd.core.container}
 Aliases:
 
@@ -1217,35 +1192,6 @@ Returns:
   Expanded DataSlice
 ```
 
-### `kd.core.explode(x, ndim=DataItem(1, schema: INT32))` {#kd.core.explode}
-Aliases:
-
-- [kd.explode](#kd.explode)
-
-``` {.no-copy}
-Explodes a List DataSlice `x` a specified number of times.
-
-A single list "explosion" converts a rank-K DataSlice of LIST[T] to a
-rank-(K+1) DataSlice of T, by unpacking the items in the Lists in the original
-DataSlice as a new DataSlice dimension in the result. Missing values in the
-original DataSlice are treated as empty lists.
-
-A single list explosion can also be done with `x[:]`.
-
-If `ndim` is set to a non-negative integer, explodes recursively `ndim` times.
-An `ndim` of zero is a no-op.
-
-If `ndim` is set to a negative integer, explodes as many times as possible,
-until at least one of the items of the resulting DataSlice is not a List.
-
-Args:
-  x: DataSlice of Lists to explode
-  ndim: the number of explosion operations to perform, defaults to 1
-
-Returns:
-  DataSlice
-```
-
 ### `kd.core.extract(ds, schema=unspecified)` {#kd.core.extract}
 Aliases:
 
@@ -1633,32 +1579,6 @@ Returns:
   A MASK DataSlice with the same shape as `x`.
 ```
 
-### `kd.core.has_list(x)` {#kd.core.has_list}
-Aliases:
-
-- [kd.has_list](#kd.has_list)
-
-``` {.no-copy}
-Returns present for each item in `x` that is List.
-
-Note that this is a pointwise operation.
-
-Also see `kd.is_list` for checking if `x` is a List DataSlice. But note that
-`kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
-example,
-
-  kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
-  kd.all(kd.has_list(kd.item(None, kd.OBJECT))) -> invalid for kd.all
-  kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
-  kd.all(kd.has_list(kd.item([None], kd.OBJECT))) -> kd.missing
-
-Args:
-  x: DataSlice to check.
-
-Returns:
-  A MASK DataSlice with the same shape as `x`.
-```
-
 ### `kd.core.has_primitive(x)` {#kd.core.has_primitive}
 Aliases:
 
@@ -1683,39 +1603,6 @@ Args:
 
 Returns:
   A MASK DataSlice with the same shape as `x`.
-```
-
-### `kd.core.implode(x, /, ndim=1, db=None)` {#kd.core.implode}
-Aliases:
-
-- [kd.implode](#kd.implode)
-
-``` {.no-copy}
-Implodes a Dataslice `x` a specified number of times.
-
-  A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
-  DataSlice of LIST[T], by folding the items in the last dimension of the
-  original DataSlice into newly-created Lists.
-
-  A single list implosion is equivalent to `kd.list(x, db)`.
-
-  If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
-
-  If `ndim` is set to a negative integer, implodes as many times as possible,
-  until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
-  nested List.
-
-  The specified `db` is used to create any new Lists, and is the DataBag of the
-  result DataSlice. If `db` is not specified, a new DataBag is created for this
-  purpose.
-
-  Args:
-    x: the DataSlice to implode
-    ndim: the number of implosion operations to perform
-    db: optional DataBag where Lists are created from
-
-  Returns:
-    DataSlice of nested Lists
 ```
 
 ### `kd.core.index(x, dim=unspecified)` {#kd.core.index}
@@ -1897,34 +1784,6 @@ Args:
 See `expand_to` for a detailed description of expansion.
 ```
 
-### `kd.core.is_list(x)` {#kd.core.is_list}
-Aliases:
-
-- [kd.is_list](#kd.is_list)
-
-``` {.no-copy}
-Returns whether x is a List DataSlice.
-
-`x` is a List DataSlice if it meets one of the following conditions:
-  1) it has a List schema
-  2) it has OBJECT/ANY schema and only has List items
-
-Also see `kd.has_list` for a pointwise version. But note that
-`kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
-example,
-
-  kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
-  kd.all(kd.has_list(kd.item(None, kd.OBJECT))) -> invalid for kd.all
-  kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
-  kd.all(kd.has_list(kd.item([None], kd.OBJECT))) -> kd.missing
-
-Args:
-  x: DataSlice to check.
-
-Returns:
-  A MASK DataItem.
-```
-
 ### `kd.core.is_primitive(x)` {#kd.core.is_primitive}
 Aliases:
 
@@ -1979,120 +1838,6 @@ Aliases:
 
 ``` {.no-copy}
 Returns a DataItem indicating whether DataItem x is present in y.
-```
-
-### `kd.core.list(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.core.list}
-Aliases:
-
-- [kd.list](#kd.list)
-
-``` {.no-copy}
-Creates list(s) by collapsing `items`.
-
-  If there is no argument, returns an empty Koda List.
-  If the argument is a DataSlice, creates a slice of Koda Lists.
-  If the argument is a Python list, creates a nested Koda List.
-
-  Examples:
-  list() -> a single empty Koda List
-  list([1, 2, 3]) -> Koda List with items 1, 2, 3
-  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
-  list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
-  list(kd.slice([[1, 2, 3], [4, 5]]))
-    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
-
-  Args:
-    items: The items to use. If not specified, an empty list of OBJECTs will be
-      created.
-    item_schema: the schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: The schema to use for the list. If specified, then item_schema must
-      not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where list(s) are created.
-
-  Returns:
-    The slice with list/lists.
-```
-
-### `kd.core.list_like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.core.list_like}
-Aliases:
-
-- [kd.list_like](#kd.list_like)
-
-``` {.no-copy}
-Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
-
-  Args:
-    shape_and_mask_from: a DataSlice with the shape and sparsity for the
-      desired lists.
-    items: optional items to assign to the newly created lists. If not
-      given, the function returns empty lists.
-    item_schema: the schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: The schema to use for the list. If specified, then item_schema must
-      not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
-
-  Returns:
-    A DataSlice with the lists.
-```
-
-### `kd.core.list_shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.core.list_shaped}
-Aliases:
-
-- [kd.list_shaped](#kd.list_shaped)
-
-``` {.no-copy}
-Creates new Koda lists with the given shape.
-
-  Args:
-    shape: the desired shape.
-    items: optional items to assign to the newly created lists. If not
-      given, the function returns empty lists.
-    item_schema: the schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: The schema to use for the list. If specified, then item_schema must
-      not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
-
-  Returns:
-    A DataSlice with the lists.
-```
-
-### `kd.core.list_shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.core.list_shaped_as}
-Aliases:
-
-- [kd.list_shaped_as](#kd.list_shaped_as)
-
-``` {.no-copy}
-Creates new Koda lists with shape of the given DataSlice.
-
-  Args:
-    shape_from: mandatory DataSlice, whose shape the returned DataSlice will
-      have.
-    items: optional items to assign to the newly created lists. If not given,
-      the function returns empty lists.
-    item_schema: the schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: The schema to use for the list. If specified, then item_schema must
-      not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
-
-  Returns:
-    A DataSlice with the lists.
-```
-
-### `kd.core.list_size(list_slice)` {#kd.core.list_size}
-Aliases:
-
-- [kd.list_size](#kd.list_size)
-
-``` {.no-copy}
-Returns size of a List.
 ```
 
 ### `kd.core.maybe(x, attr_name)` {#kd.core.maybe}
@@ -2579,25 +2324,6 @@ Args:
   ds: DataSlice to be filtered
   fltr: filter DataSlice with dtype as kd.MASK.
   expand_filter: flag indicating if the 'filter' should be expanded to 'ds'
-
-Returns:
-  Filtered DataSlice.
-```
-
-### `kd.core.select_items(ds, fltr)` {#kd.core.select_items}
-Aliases:
-
-- [kd.select_items](#kd.select_items)
-
-``` {.no-copy}
-Selects List items by filtering out missing items in fltr.
-
-Also see kd.select.
-
-Args:
-  ds: List DataSlice to be filtered
-  fltr: filter can be a DataSlice with dtype as kd.MASK. It can also be a Koda
-    Functor or a Python function which can be evalauted to such DataSlice.
 
 Returns:
   Filtered DataSlice.
@@ -3890,6 +3616,291 @@ Args:
 
 Returns:
   A 1-dimensional DataSlice with `size` distinct uuids.
+```
+
+</section>
+
+### kd.lists {#kd.lists}
+
+Operators working with lists.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.lists.concat(*lists, db=None)` {#kd.lists.concat}
+Aliases:
+
+- [kd.concat_lists](#kd.concat_lists)
+
+``` {.no-copy}
+Returns a DataSlice of Lists concatenated from the List items of `lists`.
+
+  Each input DataSlice must contain only present List items, and the item
+  schemas of each input must be compatible. Input DataSlices are aligned (see
+  `kde.align`) automatically before concatenation.
+
+  If `lists` is empty, this returns a single empty list with OBJECT item schema.
+
+  The specified `db` is used to create the new concatenated lists, and is the
+  DataBag used by the result DataSlice. If `db` is not specified, a new DataBag
+  is created for this purpose.
+
+  Args:
+    *lists: the DataSlices of Lists to concatenate
+    db: optional DataBag to populate with the result
+
+  Returns:
+    DataSlice of concatenated Lists
+```
+
+### `kd.lists.explode(x, ndim=DataItem(1, schema: INT32))` {#kd.lists.explode}
+Aliases:
+
+- [kd.explode](#kd.explode)
+
+``` {.no-copy}
+Explodes a List DataSlice `x` a specified number of times.
+
+A single list "explosion" converts a rank-K DataSlice of LIST[T] to a
+rank-(K+1) DataSlice of T, by unpacking the items in the Lists in the original
+DataSlice as a new DataSlice dimension in the result. Missing values in the
+original DataSlice are treated as empty lists.
+
+A single list explosion can also be done with `x[:]`.
+
+If `ndim` is set to a non-negative integer, explodes recursively `ndim` times.
+An `ndim` of zero is a no-op.
+
+If `ndim` is set to a negative integer, explodes as many times as possible,
+until at least one of the items of the resulting DataSlice is not a List.
+
+Args:
+  x: DataSlice of Lists to explode
+  ndim: the number of explosion operations to perform, defaults to 1
+
+Returns:
+  DataSlice
+```
+
+### `kd.lists.has_list(x)` {#kd.lists.has_list}
+Aliases:
+
+- [kd.has_list](#kd.has_list)
+
+``` {.no-copy}
+Returns present for each item in `x` that is List.
+
+Note that this is a pointwise operation.
+
+Also see `kd.is_list` for checking if `x` is a List DataSlice. But note that
+`kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
+example,
+
+  kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.has_list(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.has_list(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataSlice with the same shape as `x`.
+```
+
+### `kd.lists.implode(x, /, ndim=1, db=None)` {#kd.lists.implode}
+Aliases:
+
+- [kd.implode](#kd.implode)
+
+``` {.no-copy}
+Implodes a Dataslice `x` a specified number of times.
+
+  A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
+  DataSlice of LIST[T], by folding the items in the last dimension of the
+  original DataSlice into newly-created Lists.
+
+  A single list implosion is equivalent to `kd.list(x, db)`.
+
+  If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
+
+  If `ndim` is set to a negative integer, implodes as many times as possible,
+  until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
+  nested List.
+
+  The specified `db` is used to create any new Lists, and is the DataBag of the
+  result DataSlice. If `db` is not specified, a new DataBag is created for this
+  purpose.
+
+  Args:
+    x: the DataSlice to implode
+    ndim: the number of implosion operations to perform
+    db: optional DataBag where Lists are created from
+
+  Returns:
+    DataSlice of nested Lists
+```
+
+### `kd.lists.is_list(x)` {#kd.lists.is_list}
+Aliases:
+
+- [kd.is_list](#kd.is_list)
+
+``` {.no-copy}
+Returns whether x is a List DataSlice.
+
+`x` is a List DataSlice if it meets one of the following conditions:
+  1) it has a List schema
+  2) it has OBJECT/ANY schema and only has List items
+
+Also see `kd.has_list` for a pointwise version. But note that
+`kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
+example,
+
+  kd.is_list(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.has_list(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_list(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.has_list(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataItem.
+```
+
+### `kd.lists.like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.like}
+Aliases:
+
+- [kd.list_like](#kd.list_like)
+
+``` {.no-copy}
+Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
+
+  Args:
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the
+      desired lists.
+    items: optional items to assign to the newly created lists. If not
+      given, the function returns empty lists.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where lists are created.
+
+  Returns:
+    A DataSlice with the lists.
+```
+
+### `kd.lists.create(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.create}
+Aliases:
+
+- [kd.list](#kd.list)
+
+``` {.no-copy}
+Creates list(s) by collapsing `items`.
+
+  If there is no argument, returns an empty Koda List.
+  If the argument is a DataSlice, creates a slice of Koda Lists.
+  If the argument is a Python list, creates a nested Koda List.
+
+  Examples:
+  list() -> a single empty Koda List
+  list([1, 2, 3]) -> Koda List with items 1, 2, 3
+  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
+  list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
+  list(kd.slice([[1, 2, 3], [4, 5]]))
+    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
+
+  Args:
+    items: The items to use. If not specified, an empty list of OBJECTs will be
+      created.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where list(s) are created.
+
+  Returns:
+    The slice with list/lists.
+```
+
+### `kd.lists.select_items(ds, fltr)` {#kd.lists.select_items}
+Aliases:
+
+- [kd.select_items](#kd.select_items)
+
+``` {.no-copy}
+Selects List items by filtering out missing items in fltr.
+
+Also see kd.select.
+
+Args:
+  ds: List DataSlice to be filtered
+  fltr: filter can be a DataSlice with dtype as kd.MASK. It can also be a Koda
+    Functor or a Python function which can be evalauted to such DataSlice.
+
+Returns:
+  Filtered DataSlice.
+```
+
+### `kd.lists.shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.shaped}
+Aliases:
+
+- [kd.list_shaped](#kd.list_shaped)
+
+``` {.no-copy}
+Creates new Koda lists with the given shape.
+
+  Args:
+    shape: the desired shape.
+    items: optional items to assign to the newly created lists. If not
+      given, the function returns empty lists.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where lists are created.
+
+  Returns:
+    A DataSlice with the lists.
+```
+
+### `kd.lists.shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.shaped_as}
+Aliases:
+
+- [kd.list_shaped_as](#kd.list_shaped_as)
+
+``` {.no-copy}
+Creates new Koda lists with shape of the given DataSlice.
+
+  Args:
+    shape_from: mandatory DataSlice, whose shape the returned DataSlice will
+      have.
+    items: optional items to assign to the newly created lists. If not given,
+      the function returns empty lists.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where lists are created.
+
+  Returns:
+    A DataSlice with the lists.
+```
+
+### `kd.lists.size(list_slice)` {#kd.lists.size}
+Aliases:
+
+- [kd.list_size](#kd.list_size)
+
+``` {.no-copy}
+Returns size of a List.
 ```
 
 </section>
@@ -6745,7 +6756,7 @@ Alias for [kd.core.concat](#kd.core.concat) operator.
 
 ### `kd.concat_lists(*lists, db=None)` {#kd.concat_lists}
 
-Alias for [kd.core.concat_lists](#kd.core.concat_lists) operator.
+Alias for [kd.lists.concat](#kd.lists.concat) operator.
 
 ### `kd.cond(condition, yes, no=DataItem(None, schema: NONE))` {#kd.cond}
 
@@ -6918,7 +6929,7 @@ Alias for [kd.shapes.expand_to_shape](#kd.shapes.expand_to_shape) operator.
 
 ### `kd.explode(x, ndim=DataItem(1, schema: INT32))` {#kd.explode}
 
-Alias for [kd.core.explode](#kd.core.explode) operator.
+Alias for [kd.lists.explode](#kd.lists.explode) operator.
 
 ### `kd.expr_quote(x)` {#kd.expr_quote}
 
@@ -7190,7 +7201,7 @@ Alias for [kd.core.has_dict](#kd.core.has_dict) operator.
 
 ### `kd.has_list(x)` {#kd.has_list}
 
-Alias for [kd.core.has_list](#kd.core.has_list) operator.
+Alias for [kd.lists.has_list](#kd.lists.has_list) operator.
 
 ### `kd.has_not(x)` {#kd.has_not}
 
@@ -7206,7 +7217,7 @@ Alias for [kd.ids.hash_itemid](#kd.ids.hash_itemid) operator.
 
 ### `kd.implode(x, /, ndim=1, db=None)` {#kd.implode}
 
-Alias for [kd.core.implode](#kd.core.implode) operator.
+Alias for [kd.lists.implode](#kd.lists.implode) operator.
 
 ### `kd.index(x, dim=unspecified)` {#kd.index}
 
@@ -7262,7 +7273,7 @@ Returns kd.present if the given object is a scalar DataItem and kd.missing other
 
 ### `kd.is_list(x)` {#kd.is_list}
 
-Alias for [kd.core.is_list](#kd.core.is_list) operator.
+Alias for [kd.lists.is_list](#kd.lists.is_list) operator.
 
 ### `kd.is_primitive(x)` {#kd.is_primitive}
 
@@ -7306,11 +7317,11 @@ Alias for [kd.comparison.less_equal](#kd.comparison.less_equal) operator.
 
 ### `kd.list(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list}
 
-Alias for [kd.core.list](#kd.core.list) operator.
+Alias for [kd.lists.create](#kd.lists.create) operator.
 
 ### `kd.list_like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list_like}
 
-Alias for [kd.core.list_like](#kd.core.list_like) operator.
+Alias for [kd.lists.like](#kd.lists.like) operator.
 
 ### `kd.list_schema(item_schema, db=None)` {#kd.list_schema}
 
@@ -7318,15 +7329,15 @@ Alias for [kd.schema.list_schema](#kd.schema.list_schema) operator.
 
 ### `kd.list_shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list_shaped}
 
-Alias for [kd.core.list_shaped](#kd.core.list_shaped) operator.
+Alias for [kd.lists.shaped](#kd.lists.shaped) operator.
 
 ### `kd.list_shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list_shaped_as}
 
-Alias for [kd.core.list_shaped_as](#kd.core.list_shaped_as) operator.
+Alias for [kd.lists.shaped_as](#kd.lists.shaped_as) operator.
 
 ### `kd.list_size(list_slice)` {#kd.list_size}
 
-Alias for [kd.core.list_size](#kd.core.list_size) operator.
+Alias for [kd.lists.size](#kd.lists.size) operator.
 
 ### `kd.loads(x)` {#kd.loads}
 
@@ -7619,7 +7630,7 @@ Alias for [kd.core.select](#kd.core.select) operator.
 
 ### `kd.select_items(ds, fltr)` {#kd.select_items}
 
-Alias for [kd.core.select_items](#kd.core.select_items) operator.
+Alias for [kd.lists.select_items](#kd.lists.select_items) operator.
 
 ### `kd.select_keys(ds, fltr)` {#kd.select_keys}
 

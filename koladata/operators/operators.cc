@@ -26,10 +26,10 @@
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/core_dict.h"
-#include "koladata/operators/core_list.h"
 #include "koladata/operators/core_new.h"
 #include "koladata/operators/core_obj.h"
 #include "koladata/operators/ids.h"
+#include "koladata/operators/lists.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/math.h"
 #include "koladata/operators/non_deterministic_op.h"
@@ -73,7 +73,6 @@ OPERATOR("kde.core._dense_rank", DenseRank);
 OPERATOR("kde.core._dict_like", DictLike);
 OPERATOR("kde.core._dict_shaped", DictShaped);
 OPERATOR("kde.core._dict_update", DictUpdate);
-OPERATOR("kde.core._explode", Explode);
 OPERATOR("kde.core._extract", Extract);
 OPERATOR("kde.core._extract_bag", ExtractBag);
 OPERATOR("kde.core._freeze_bag", Freeze<DataBagPtr>);
@@ -84,11 +83,7 @@ OPERATOR("kde.core._get_item", GetItem);
 OPERATOR("kde.core._get_list_item_by_range", GetListItemByRange);
 OPERATOR("kde.core._get_values", GetValues);
 OPERATOR("kde.core._get_values_by_keys", GetValuesByKeys);
-OPERATOR("kde.core._implode", Implode);
 OPERATOR("kde.core._inverse_mapping", InverseMapping);
-OPERATOR("kde.core._list", List);
-OPERATOR("kde.core._list_like", ListLike);
-OPERATOR("kde.core._list_shaped", ListShaped);
 OPERATOR_FAMILY("kde.core._new", std::make_unique<NewOperatorFamily>());
 OPERATOR("kde.core._new_ids_like", NewIdsLike);
 OPERATOR_FAMILY("kde.core._new_like",
@@ -117,14 +112,11 @@ OPERATOR_FAMILY("kde.core.group_by_indices",
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndicesSorted));
 OPERATOR("kde.core.has_dict", HasDict);
-OPERATOR("kde.core.has_list", HasList);
 OPERATOR("kde.core.has_primitive", HasPrimitive);
 OPERATOR("kde.core.inverse_select", InverseSelect);
 OPERATOR("kde.core.is_dict", IsDict);
 OPERATOR("kde.core.is_empty", IsEmpty);
-OPERATOR("kde.core.is_list", IsList);
 OPERATOR("kde.core.is_primitive", IsPrimitive);
-OPERATOR("kde.core.list_size", ListSize);
 OPERATOR("kde.core.no_bag", NoBag);
 OPERATOR("kde.core.nofollow", NoFollow);
 OPERATOR_FAMILY("kde.core.obj", std::make_unique<ObjOperatorFamily>());
@@ -148,6 +140,7 @@ OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kde.core.with_bag", WithBag);
 OPERATOR("kde.core.with_merged_bag", WithMergedBag);
+//
 OPERATOR("kde.ids._agg_uuid", AggUuid);
 OPERATOR("kde.ids._deep_uuid", DeepUuid);
 OPERATOR("kde.ids.decode_itemid", DecodeItemId);
@@ -158,6 +151,15 @@ OPERATOR_FAMILY("kde.ids.uuid_for_dict",
 OPERATOR_FAMILY("kde.ids.uuid_for_list",
                 std::make_unique<UuidForListOperatorFamily>());
 OPERATOR("kde.ids.uuids_with_allocation_size", UuidsWithAllocationSize);
+//
+OPERATOR("kde.lists._explode", Explode);
+OPERATOR("kde.lists._implode", Implode);
+OPERATOR("kde.lists._like", ListLike);
+OPERATOR("kde.lists._make", List);
+OPERATOR("kde.lists._shaped", ListShaped);
+OPERATOR("kde.lists.has_list", HasList);
+OPERATOR("kde.lists.is_list", IsList);
+OPERATOR("kde.lists.size", ListSize);
 //
 OPERATOR("kde.masking._agg_all", AggAll);
 OPERATOR("kde.masking._agg_any", AggAny);

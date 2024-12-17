@@ -69,13 +69,13 @@ class KodaHasListTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    testing.assert_equal(expr_eval.eval(kde.core.has_list(x)), expected)
+    testing.assert_equal(expr_eval.eval(kde.lists.has_list(x)), expected)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.has_list(I.x)))
+    self.assertTrue(view.has_koda_view(kde.lists.has_list(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.has_list, kde.has_list))
+    self.assertTrue(optools.equiv_to_op(kde.lists.has_list, kde.has_list))
 
 
 if __name__ == '__main__':

@@ -68,7 +68,7 @@ class CoreIsListTest(parameterized.TestCase):
       (bag().obj(a=1) & None,),
   )
   def test_is_list(self, x):
-    self.assertTrue(expr_eval.eval(kde.core.is_list(x)))
+    self.assertTrue(expr_eval.eval(kde.lists.is_list(x)))
 
   @parameterized.parameters(
       # Primitive
@@ -91,22 +91,22 @@ class CoreIsListTest(parameterized.TestCase):
       (bag().dict({1: 2}) & None,),
   )
   def test_is_not_list(self, x):
-    self.assertFalse(expr_eval.eval(kde.core.is_list(x)))
+    self.assertFalse(expr_eval.eval(kde.lists.is_list(x)))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.is_list,
+            kde.lists.is_list,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.is_list(I.x)))
+    self.assertTrue(view.has_koda_view(kde.lists.is_list(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.is_list, kde.is_list))
+    self.assertTrue(optools.equiv_to_op(kde.lists.is_list, kde.is_list))
 
 
 if __name__ == '__main__':

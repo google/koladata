@@ -85,6 +85,7 @@ arolla_operator_package_snapshot(
         "koladata.operators.core",
         "koladata.operators.ids",
         "koladata.operators.jagged_shape",
+        "koladata.operators.lists",
         "koladata.operators.masking",
         "koladata.operators.math",
         "koladata.operators.random",
@@ -102,6 +103,7 @@ arolla_operator_package_snapshot(
         ":core",
         ":ids",
         ":jagged_shape",
+        ":lists",
         ":masking",
         ":math",
         ":object_factories",
@@ -387,6 +389,26 @@ py_library(
 )
 
 py_library(
+    name = "lists",
+    srcs = ["lists.py"],
+    deps = [
+        ":arolla_bridge",
+        ":core",
+        ":jagged_shape",
+        ":optools",
+        ":qtype_utils",
+        ":view_overloads",
+        "//koladata/operators",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/jagged_shape",
+    ],
+)
+
+py_library(
     name = "masking",
     srcs = ["masking.py"],
     deps = [
@@ -472,6 +494,7 @@ py_library(
         ":ids",
         ":jagged_shape",
         ":koda_internal",
+        ":lists",
         ":masking",
         ":math",
         ":object_factories",

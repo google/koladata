@@ -108,12 +108,12 @@ class ListLikeTest(parameterized.TestCase):
   )
   def test_eval(self, x, ndim, expected):
     # Test behavior with explicit existing DataBag.
-    result = expr_eval.eval(kde.core.implode(x, ndim))
+    result = expr_eval.eval(kde.lists.implode(x, ndim))
     testing.assert_nested_lists_equal(result, expected)
     self.assertFalse(result.is_mutable())
 
     # Check behavior with DataItem ndim.
-    result = expr_eval.eval(kde.core.implode(x, ds(ndim)))
+    result = expr_eval.eval(kde.lists.implode(x, ds(ndim)))
     testing.assert_nested_lists_equal(result, expected)
     self.assertFalse(result.is_mutable())
 
@@ -125,19 +125,19 @@ class ListLikeTest(parameterized.TestCase):
             " because 'x' only has 1 dimensions"
         ),
     ):
-      expr_eval.eval(kde.core.implode(ds([1, 2]), 2))
+      expr_eval.eval(kde.lists.implode(ds([1, 2]), 2))
 
   def test_non_determinism(self):
     items = ds([1, None, 2])
-    res_1 = expr_eval.eval(kde.core.implode(items))
-    res_2 = expr_eval.eval(kde.core.implode(items))
+    res_1 = expr_eval.eval(kde.lists.implode(items))
+    res_2 = expr_eval.eval(kde.lists.implode(items))
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
     self.assertNotEqual(res_1.no_bag().fingerprint, res_2.no_bag().fingerprint)
     testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
 
-    expr = kde.core.implode(items)
+    expr = kde.lists.implode(items)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(
@@ -148,16 +148,16 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.implode,
+        kde.lists.implode,
         QTYPE_SIGNATURES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.implode(I.x)))
+    self.assertTrue(view.has_koda_view(kde.lists.implode(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.implode, kde.core.implode))
+    self.assertTrue(optools.equiv_to_op(kde.lists.implode, kde.lists.implode))
 
 
 if __name__ == "__main__":

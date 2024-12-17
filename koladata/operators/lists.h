@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_OPERATORS_CORE_LIST_H_
-#define KOLADATA_OPERATORS_CORE_LIST_H_
+#ifndef KOLADATA_OPERATORS_LISTS_H_
+#define KOLADATA_OPERATORS_LISTS_H_
 
 // List operator implementations.
 
@@ -32,30 +32,30 @@ inline absl::StatusOr<DataSlice> GetListItemByRange(const DataSlice& ds,
   return ds.ExplodeList(start, stop);
 }
 
-// kde.core._explode
+// kde.lists._explode
 absl::StatusOr<DataSlice> Explode(const DataSlice& x, int64_t ndim);
 
-// kde.core._implode
+// kde.lists._implode
 absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
                                   internal::NonDeterministicToken);
 
-// kde.core.list_size.
+// kde.lists.size.
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 
-// kde.core.list operator.
+// kde.lists.create operator.
 absl::StatusOr<DataSlice> List(
     const DataSlice& items, const DataSlice& item_schema,
     const DataSlice& schema, const DataSlice& itemid,
     internal::NonDeterministicToken);
 
-// kde.core._list_like operator.
+// kde.lists._list_like operator.
 absl::StatusOr<DataSlice> ListLike(
     const DataSlice& shape_and_mask_from, const DataSlice& items,
     const DataSlice& item_schema, const DataSlice& schema,
     const DataSlice& itemid,
     internal::NonDeterministicToken);
 
-// kde.core._list_shaped operator.
+// kde.lists._list_shaped operator.
 absl::StatusOr<DataSlice> ListShaped(
     const DataSlice::JaggedShape& shape, const DataSlice& items,
     const DataSlice& item_schema, const DataSlice& schema,
@@ -64,4 +64,4 @@ absl::StatusOr<DataSlice> ListShaped(
 
 }  // namespace koladata::ops
 
-#endif  // KOLADATA_OPERATORS_CORE_LIST_H_
+#endif  // KOLADATA_OPERATORS_LISTS_H_

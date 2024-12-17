@@ -350,7 +350,7 @@ Assigned schema for List item: INT32""",
       )
 
   def test_alias(self):
-    self.assertIs(fns.list_like, fns.core.list_like)
+    self.assertIs(fns.list_like, fns.lists.like)
 
 
 if __name__ == '__main__':

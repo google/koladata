@@ -230,7 +230,7 @@ Assigned schema for List item: INT32""",
       )
 
   def test_alias(self):
-    self.assertIs(fns.list_shaped, fns.core.list_shaped)
+    self.assertIs(fns.list_shaped, fns.lists.shaped)
 
 
 if __name__ == '__main__':

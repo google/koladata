@@ -59,22 +59,22 @@ class CoreListSizeTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, d, sizes):
-    testing.assert_equal(expr_eval.eval(kde.core.list_size(I.d), d=d), sizes)
+    testing.assert_equal(expr_eval.eval(kde.lists.size(I.d), d=d), sizes)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.list_size,
+            kde.lists.size,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.list_size(I.x)))
+    self.assertTrue(view.has_koda_view(kde.lists.size(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.list_size, kde.list_size))
+    self.assertTrue(optools.equiv_to_op(kde.lists.size, kde.list_size))
 
 
 if __name__ == '__main__':
