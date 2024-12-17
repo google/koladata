@@ -1405,21 +1405,6 @@ Aliases:
 Returns the number of dimensions of DataSlice `x`.
 ```
 
-### `kd.schema.get_nofollowed_schema(schema)` {#kd.schema.get_nofollowed_schema}
-Aliases:
-
-- [kd.get_nofollowed_schema](#kd.get_nofollowed_schema)
-
-``` {.no-copy}
-Returns the original schema from nofollow schema.
-
-Requires `nofollow_schema` to be a nofollow schema, i.e. that it wraps some
-other schema.
-
-Args:
-  schema: nofollow schema DataSlice.
-```
-
 ### `kd.core.get_values(dict_ds, key_ds=unspecified)` {#kd.core.get_values}
 Aliases:
 
@@ -2254,23 +2239,6 @@ traversed during extract, clone, deep_clone, etc.
 
 Args:
   x: DataSlice to wrap.
-```
-
-### `kd.schema.nofollow_schema(schema)` {#kd.schema.nofollow_schema}
-Aliases:
-
-- [kd.nofollow_schema](#kd.nofollow_schema)
-
-``` {.no-copy}
-Returns a NoFollow schema of the provided schema.
-
-`nofollow_schema` is reversible with `get_actual_schema`.
-
-`nofollow_schema` can only be called on implicit and explicit schemas and
-OBJECT. It raises an Error if called on ANY, primitive schemas, ITEMID, etc.
-
-Args:
-  schema: Schema DataSlice to wrap.
 ```
 
 ### `kd.core.obj(arg=unspecified, /, *, itemid=None, db=None, **attrs)` {#kd.core.obj}
@@ -5343,6 +5311,21 @@ Aliases:
 Returns the key schema of a Dict schema`.
 ```
 
+### `kd.schema.get_nofollowed_schema(schema)` {#kd.schema.get_nofollowed_schema}
+Aliases:
+
+- [kd.get_nofollowed_schema](#kd.get_nofollowed_schema)
+
+``` {.no-copy}
+Returns the original schema from nofollow schema.
+
+Requires `nofollow_schema` to be a nofollow schema, i.e. that it wraps some
+other schema.
+
+Args:
+  schema: nofollow schema DataSlice.
+```
+
 ### `kd.schema.get_obj_schema(x)` {#kd.schema.get_obj_schema}
 Aliases:
 
@@ -5484,6 +5467,23 @@ Creates new schema in the given DataBag.
 
   Returns:
     data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
+```
+
+### `kd.schema.nofollow_schema(schema)` {#kd.schema.nofollow_schema}
+Aliases:
+
+- [kd.nofollow_schema](#kd.nofollow_schema)
+
+``` {.no-copy}
+Returns a NoFollow schema of the provided schema.
+
+`nofollow_schema` is reversible with `get_actual_schema`.
+
+`nofollow_schema` can only be called on implicit and explicit schemas and
+OBJECT. It raises an Error if called on ANY, primitive schemas, ITEMID, etc.
+
+Args:
+  schema: Schema DataSlice to wrap.
 ```
 
 ### `kd.schema.schema_from_py(tpe)` {#kd.schema.schema_from_py}
