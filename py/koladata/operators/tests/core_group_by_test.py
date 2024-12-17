@@ -174,17 +174,17 @@ class CoreGroupByTest(parameterized.TestCase):
       )
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.core.group_by,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-            max_arity=3,
+    expected_qtype_signatures = [
+        (DATA_SLICE, DATA_SLICE),
+        *(
+            (DATA_SLICE, args_qtype, DATA_SLICE)
+            for args_qtype in test_qtypes.TUPLES_OF_DATA_SLICES
         ),
-        (
-            (DATA_SLICE, DATA_SLICE),
-            (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-            (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-        ),
+    ]
+    arolla.testing.assert_qtype_signatures(
+        kde.core.group_by,
+        expected_qtype_signatures,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

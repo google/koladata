@@ -70,7 +70,7 @@ def _uu(seed, schema, update_schema, kwargs):
 
 
 @optools.add_to_registry(aliases=['kde.uu'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.uu',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),

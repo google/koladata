@@ -20,7 +20,6 @@ from koladata.operators import kde_operators as _
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
-from koladata.types import py_boxing
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
@@ -31,11 +30,9 @@ eval_op = py_expr_eval_py_ext.eval_op
 class EvalOpTest(absltest.TestCase):
 
   def test_basics(self):
-    @optools.as_lambda_operator(
-        'tuple', aux_policy=py_boxing.FULL_SIGNATURE_POLICY
-    )
-    def op_tuple(args=py_boxing.var_positional()):
-      return args
+    @optools.as_lambda_operator('tuple')
+    def op_tuple(*args):
+      return arolla.optools.fix_trace_args(args)
 
     @optools.as_lambda_operator('first')
     def op_first(x=arolla.unspecified(), *args):
@@ -60,10 +57,8 @@ class EvalOpTest(absltest.TestCase):
     )
 
   def test_aux_policy_boxing(self):
-    @optools.as_lambda_operator(
-        'identity', aux_policy=py_boxing.FULL_SIGNATURE_POLICY
-    )
-    def op_identity(x=py_boxing.positional_only()):
+    @optools.as_lambda_operator('identity')
+    def op_identity(x, /):
       return x
 
     testing.assert_equal(eval_op(op_identity, 1), ds(1))
@@ -80,9 +75,7 @@ class EvalOpTest(absltest.TestCase):
       counter += 1
       return arolla.unit()
 
-    @optools.as_unified_lambda_operator(
-        'increase_counter_twice', deterministic=False
-    )
+    @optools.as_lambda_operator('increase_counter_twice', deterministic=False)
     def increase_counter_twice():
       return arolla.M.core.make_tuple(increase_counter(), increase_counter())
 
@@ -124,17 +117,15 @@ class EvalOpTest(absltest.TestCase):
       eval_op('operator.not.found')
 
   def test_error_expected_values(self):
-    @optools.as_lambda_operator('tuple_1')
+    @arolla.optools.as_lambda_operator('tuple_1')
     def op_tuple_1(*args):
-      return args[0]
+      return arolla.optools.fix_trace_args(args)
 
-    @optools.as_lambda_operator(
-        'tuple_2', aux_policy=py_boxing.FULL_SIGNATURE_POLICY
-    )
-    def op_tuple_2(args=py_boxing.var_positional()):
-      return args
+    @optools.as_lambda_operator('tuple_2')
+    def op_tuple_2(*args):
+      return arolla.optools.fix_trace_args(args)
 
-    @optools.as_lambda_operator('first')
+    @arolla.optools.as_lambda_operator('first')
     def op_first(x=arolla.unspecified(), *args):
       del args
       return x

@@ -167,7 +167,7 @@ def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,red
 
 
 @optools.add_to_registry(aliases=['kde.concat'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.concat',
     qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
@@ -235,7 +235,7 @@ def concat(*args, ndim=1):
 
 
 @optools.add_to_registry(aliases=['kde.stack'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.stack',
     qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
@@ -289,7 +289,7 @@ def stack(*args, ndim=0):
 
 
 @optools.add_to_registry(aliases=['kde.zip'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.zip',
     qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
@@ -340,16 +340,16 @@ def _select(ds, fltr, expand_filter):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.select'])
-@optools.as_lambda_operator(
+@arolla.optools.as_lambda_operator(
     'kde.core.select',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
         qtype_utils.expect_data_slice(P.expand_filter),
     ],
-    aux_policy=py_boxing.SELECT_POLICY,
+    experimental_aux_policy=py_boxing.SELECT_POLICY,
 )
-def select(ds, fltr, expand_filter=True):
+def select(ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)):
   """Creates a new DataSlice by filtering out missing items in fltr.
 
   The dimensions of `fltr` needs to be compatible with the dimensions of `ds`.
@@ -777,7 +777,7 @@ def _new(arg, schema, update_schema, itemid, attrs):
 
 
 @optools.add_to_registry(aliases=['kde.new'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.new',
     qtype_constraints=[
         (
@@ -845,7 +845,7 @@ def _new_shaped(shape, schema, update_schema, itemid, attrs):
 
 
 @optools.add_to_registry(aliases=['kde.new_shaped'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.new_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
@@ -892,7 +892,7 @@ def new_shaped(
 
 
 @optools.add_to_registry(aliases=['kde.new_shaped_as'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.new_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
@@ -949,7 +949,7 @@ def _new_like(shape_and_mask_from, schema, update_schema, itemid, attrs):
 
 
 @optools.add_to_registry(aliases=['kde.new_like'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.new_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
@@ -1053,7 +1053,7 @@ def obj_shaped(shape, /, *, itemid=arolla.unspecified(), **attrs):  # pylint: di
 
 
 @optools.add_to_registry(aliases=['kde.obj_shaped_as'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.obj_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
@@ -1320,13 +1320,13 @@ def get_values(dict_ds, key_ds=arolla.unspecified()):
 
 
 @optools.add_to_registry(aliases=['kde.select_keys'])
-@optools.as_lambda_operator(
+@arolla.optools.as_lambda_operator(
     'kde.core.select_keys',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
-    aux_policy=py_boxing.SELECT_KEYS_POLICY,
+    experimental_aux_policy=py_boxing.SELECT_KEYS_POLICY,
 )
 def select_keys(ds, fltr):
   """Selects Dict keys by filtering out missing items in `fltr`.
@@ -1345,13 +1345,13 @@ def select_keys(ds, fltr):
 
 
 @optools.add_to_registry(aliases=['kde.select_values'])
-@optools.as_lambda_operator(
+@arolla.optools.as_lambda_operator(
     'kde.core.select_values',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
-    aux_policy=py_boxing.SELECT_VALUES_POLICY,
+    experimental_aux_policy=py_boxing.SELECT_VALUES_POLICY,
 )
 def select_values(ds, fltr):
   """Selects Dict values by filtering out missing items in `fltr`.
@@ -1382,7 +1382,7 @@ def _dict_shaped(
 
 
 @optools.add_to_registry(aliases=['kde.dict_shaped'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.dict_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
@@ -1450,7 +1450,7 @@ def dict_shaped(
 
 
 @optools.add_to_registry(aliases=['kde.dict'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.dict',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.keys),
@@ -1522,7 +1522,7 @@ def dict_(
 
 
 @optools.add_to_registry(aliases=['kde.dict_shaped_as'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.dict_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
@@ -1594,7 +1594,7 @@ def _dict_like(
 
 
 @optools.add_to_registry(aliases=['kde.dict_like'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.dict_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
@@ -1970,6 +1970,7 @@ def group_by(x, *args):
     DataSlice with the same shape and schema as `x` with injected grouped
     by dimension.
   """
+  args = arolla.optools.fix_trace_args(args)
   dispatch_op = arolla.types.DispatchOperator(
       'x, args',
       x_is_key_case=arolla.types.DispatchCase(
@@ -1979,7 +1980,7 @@ def group_by(x, *args):
       # TODO: add assertion: x has the same shape as other args.
       default=take(P.x, M.core.apply_varargs(group_by_indices, P.args)),
   )
-  return dispatch_op(x, *args)
+  return dispatch_op(x, args)
 
 
 @optools.add_to_registry(aliases=['kde.unique'])
@@ -2321,7 +2322,7 @@ def _shallow_clone(x, itemid, schema, non_deterministic):  # pylint: disable=unu
 
 
 @optools.add_to_registry(aliases=['kde.shallow_clone'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.shallow_clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
@@ -2389,7 +2390,7 @@ def _clone(x, itemid, schema, non_deterministic):  # pylint: disable=unused-argu
 
 
 @optools.add_to_registry(aliases=['kde.clone'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
@@ -2457,7 +2458,7 @@ def _deep_clone(x, schema, non_deterministic):  # pylint: disable=unused-argumen
 
 
 @optools.add_to_registry(aliases=['kde.deep_clone'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.core.deep_clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),

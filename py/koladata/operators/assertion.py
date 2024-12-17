@@ -28,7 +28,7 @@ constraints = arolla.optools.constraints
 
 
 @optools.add_to_registry()
-@optools.as_lambda_operator(
+@arolla.optools.as_lambda_operator(  # Default Arolla boxing (for message).
     'kde.assertion.with_assertion',
     qtype_constraints=[
         (
@@ -42,8 +42,6 @@ constraints = arolla.optools.constraints
         ),
         constraints.expect_scalar_text(P.message),
     ],
-    # Default Arolla boxing (for message).
-    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def with_assertion(x, condition, message):
   """Returns `x` if `condition` is present, else raises error `message`.

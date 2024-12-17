@@ -86,7 +86,8 @@ class ShapesReshapeTest(parameterized.TestCase):
   )
   def test_eval(self, x, shape, expected_output):
     x_shaped = expr_eval.eval(
-        kde.shapes.reshape(I.x, I.shape), x=x, shape=shape)
+        kde.shapes.reshape(I.x, I.shape), x=x, shape=shape
+    )
     testing.assert_equal(x_shaped, expected_output)
     res = expr_eval.eval(kde.shapes.reshape_as(I.x, I.y), x=x, y=x_shaped)
     testing.assert_equal(res, expected_output)
@@ -105,9 +106,7 @@ class ShapesReshapeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'only one dimension can be a placeholder'
     ):
-      expr_eval.eval(
-          kde.shapes.reshape(ds(1), arolla.tuple(ds(-1), ds(-1)))
-      )
+      expr_eval.eval(kde.shapes.reshape(ds(1), arolla.tuple(ds(-1), ds(-1))))
 
   def test_incompatible_dimension_specification_exception(self):
     with self.assertRaisesRegex(
@@ -161,12 +160,17 @@ class ShapesReshapeTest(parameterized.TestCase):
       kde.shapes.reshape(ds([1, 2, 3]), (2, [1, 2]))
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.shapes.reshape,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+    expected_qtype_signatures = [
+        (DATA_SLICE, JAGGED_SHAPE, DATA_SLICE),
+        *(
+            (DATA_SLICE, shape_qtype, DATA_SLICE)
+            for shape_qtype in test_qtypes.TUPLES_OF_DATA_SLICES
         ),
-        frozenset([(DATA_SLICE, JAGGED_SHAPE, DATA_SLICE)])
+    ]
+    arolla.testing.assert_qtype_signatures(
+        kde.shapes.reshape,
+        expected_qtype_signatures,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
@@ -184,7 +188,7 @@ class ShapesReshapeAsTest(absltest.TestCase):
             kde.shapes.reshape_as,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
-        frozenset([(DATA_SLICE, DATA_SLICE, DATA_SLICE)])
+        frozenset([(DATA_SLICE, DATA_SLICE, DATA_SLICE)]),
     )
 
   def test_view(self):
@@ -192,6 +196,7 @@ class ShapesReshapeAsTest(absltest.TestCase):
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.shapes.reshape_as, kde.reshape_as))
+
 
 if __name__ == '__main__':
   absltest.main()

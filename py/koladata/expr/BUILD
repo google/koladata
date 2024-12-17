@@ -196,7 +196,6 @@ py_test(
         "//py/koladata/operators:optools",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:py_boxing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],

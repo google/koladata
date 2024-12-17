@@ -182,7 +182,7 @@ def _deep_uuid(x, schema, seed):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.deep_uuid'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.ids.deep_uuid',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),

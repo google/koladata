@@ -235,7 +235,7 @@ def sample_n(
 
 
 @optools.add_to_registry(aliases=['kde.randint_shaped'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.random.randint_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
@@ -300,7 +300,7 @@ def randint_shaped(
 
 
 @optools.add_to_registry(aliases=['kde.randint_shaped_as'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.random.randint_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
@@ -337,7 +337,7 @@ def randint_shaped_as(
 
 
 @optools.add_to_registry(aliases=['kde.randint_like'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.random.randint_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),

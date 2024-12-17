@@ -45,7 +45,7 @@ def _make(items, item_schema, schema, itemid):  # pylint: disable=unused-argumen
 
 
 @optools.add_to_registry(aliases=['kde.list'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.lists.create',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.items),
@@ -102,7 +102,7 @@ def _like(
 
 
 @optools.add_to_registry(aliases=['kde.list_like'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.lists.like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
@@ -158,7 +158,7 @@ def _shaped(shape, items, item_schema, schema, itemid):  # pylint: disable=unuse
 
 
 @optools.add_to_registry(aliases=['kde.list_shaped'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.lists.shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
@@ -203,7 +203,7 @@ def shaped(
 
 
 @optools.add_to_registry(aliases=['kde.list_shaped_as'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.lists.shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
@@ -300,7 +300,7 @@ def _implode(x, ndim):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.implode'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.lists.implode',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
@@ -407,10 +407,10 @@ def is_list(x):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.select_items'])
-@optools.as_lambda_operator(
+@arolla.optools.as_lambda_operator(
     'kde.lists.select_items',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-    aux_policy=py_boxing.SELECT_ITEMS_POLICY,
+    experimental_aux_policy=py_boxing.SELECT_ITEMS_POLICY,
 )
 def select_items(ds, fltr):
   """Selects List items by filtering out missing items in fltr.

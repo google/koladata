@@ -269,9 +269,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     self.assertEqual(
         inspect.signature(op),
-        inspect.signature(
-            lambda x, *args, y, z=ds('z'), **kwargs: None
-        ),
+        inspect.signature(lambda x, *args, y, z=ds('z'), **kwargs: None),
     )
 
     testing.assert_equal(
@@ -291,9 +289,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
         arolla.abc.bind_op(
             op,
             literal_operator.literal(ds(1)),
-            literal_operator.literal(
-                arolla.tuple(ds(2), ds(3))
-            ),
+            literal_operator.literal(arolla.tuple(ds(2), ds(3))),
             literal_operator.literal(ds(4)),
             literal_operator.literal(ds(6)),
             literal_operator.literal(
@@ -355,9 +351,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
     self.assertEqual(
         inspect.signature(op),
         inspect.signature(
-            lambda a, b=ds('b'), /, x=ds(
-                'x'
-            ), *, y=ds('y'), **kwargs: None
+            lambda a, b=ds('b'), /, x=ds('x'), *, y=ds('y'), **kwargs: None
         ),
     )
 
@@ -395,7 +389,8 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     self.assertEqual(
         inspect.signature(op),
-        inspect.signature(lambda x, *args, y, **kwargs: None))
+        inspect.signature(lambda x, *args, y, **kwargs: None),
+    )
 
     testing.assert_equal(
         op(
@@ -462,9 +457,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
 
     self.assertEqual(
         inspect.signature(op),
-        inspect.signature(
-            lambda x=ds(1), *args, y=ds(2), **kwargs: None
-        ),
+        inspect.signature(lambda x=ds(1), *args, y=ds(2), **kwargs: None),
     )
 
     testing.assert_equal(
@@ -643,13 +636,8 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
       num_calls += 1
       return x
 
-    @optools.as_lambda_operator(
-        'fn',
-        qtype_constraints=[],
-        aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
-    )
-    def fn(x, non_deterministic=py_boxing.non_deterministic()):
-      _ = non_deterministic
+    @optools.as_lambda_operator('fn', deterministic=False)
+    def fn(x):
       return py_fn_with_seed(x)
 
     i = input_container.InputContainer('I')
@@ -663,11 +651,7 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
     ):
 
       # Pure lambda operator that calls impure `py_fn_with_seed``.
-      @optools.as_lambda_operator(
-          'fn2',
-          qtype_constraints=[],
-          aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
-      )
+      @arolla.optools.as_lambda_operator('fn2')
       def fn2(x):
         return py_fn_with_seed(x)
 
@@ -767,19 +751,23 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
       return x, y, args, z, kwargs
 
     with self.assertRaisesWithLiteralMatch(
-        TypeError, "missing required positional argument: 'x'"):
+        TypeError, "missing required positional argument: 'x'"
+    ):
       _ = op()
 
     with self.assertRaisesWithLiteralMatch(
-        TypeError, "missing required positional argument: 'y'"):
+        TypeError, "missing required positional argument: 'y'"
+    ):
       _ = op(1)
 
     with self.assertRaisesWithLiteralMatch(
-        TypeError, "missing required keyword argument: 'z'"):
+        TypeError, "missing required keyword argument: 'z'"
+    ):
       _ = op(1, 2)
 
     with self.assertRaisesWithLiteralMatch(
-        TypeError, "got multiple values for argument 'y'"):
+        TypeError, "got multiple values for argument 'y'"
+    ):
       _ = op(1, 2, y=3, z=4)
 
     @arolla.optools.as_lambda_operator(
@@ -790,7 +778,8 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
       return x, y, kwargs
 
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'expected 2 positional arguments but 3 were given'):
+        TypeError, 'expected 2 positional arguments but 3 were given'
+    ):
       _ = op_with_kwargs(1, 2, 3)
 
     @arolla.optools.as_lambda_operator(
@@ -803,7 +792,8 @@ class FullSignatureBoxingPolicyTest(absltest.TestCase):
       return x, args, y
 
     with self.assertRaisesWithLiteralMatch(
-        TypeError, "got an unexpected keyword argument 'z'"):
+        TypeError, "got an unexpected keyword argument 'z'"
+    ):
       _ = op_with_args(1, 2, y=3, z=4, w=5)
 
   def test_is_param_marker(self):
@@ -909,9 +899,7 @@ class FstrBindingPolicyTest(absltest.TestCase):
     self.op = op_like_fstr
 
   def test_binding_item(self):
-    testing.assert_equal(
-        expr_eval.eval(self.op(f'{ds(1):s}')), ds('1')
-    )
+    testing.assert_equal(expr_eval.eval(self.op(f'{ds(1):s}')), ds('1'))
 
   def test_binding_slice(self):
     testing.assert_equal(

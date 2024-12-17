@@ -228,7 +228,7 @@ def apply_py_on_cond(yes_fn, no_fn, cond, *args, **kwargs):
 
 
 @optools.add_to_registry(aliases=['kde.apply_py_on_selected'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.py.apply_py_on_selected',
     qtype_constraints=[
         _expect_py_callable(P.fn),
@@ -570,7 +570,7 @@ def map_py_on_cond(
 
 
 @optools.add_to_registry(aliases=['kde.map_py_on_selected'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.py.map_py_on_selected',
     qtype_constraints=[
         _expect_py_callable(P.fn),
@@ -690,7 +690,7 @@ def map_py_on_present(
 
 
 @optools.add_to_registry(aliases=['kde.map'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.functor.map',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fn),

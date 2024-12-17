@@ -17,10 +17,55 @@
 from arolla import arolla
 from koladata.types import qtypes
 
+DATA_BAG = qtypes.DATA_BAG
+DATA_SLICE = qtypes.DATA_SLICE
+JAGGED_SHAPE = qtypes.JAGGED_SHAPE
 
-DETECT_SIGNATURES_QTYPES = arolla.testing.DETECT_SIGNATURES_DEFAULT_QTYPES + (
-    qtypes.JAGGED_SHAPE,
-    qtypes.DATA_BAG,
-    qtypes.DATA_SLICE,
-    qtypes.NON_DETERMINISTIC_TOKEN,
+
+EMPTY_TUPLE = arolla.make_tuple_qtype()
+
+TUPLES_OF_DATA_BAGS = (
+    EMPTY_TUPLE,
+    arolla.make_tuple_qtype(DATA_BAG),
+    arolla.make_tuple_qtype(DATA_BAG, DATA_BAG),
+)
+
+TUPLES_OF_DATA_SLICES = (
+    EMPTY_TUPLE,
+    arolla.make_tuple_qtype(DATA_SLICE),
+    arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE),
+)
+
+
+EMPTY_NAMEDTUPLE = arolla.make_namedtuple_qtype()
+
+NAMEDTUPLES_OF_DATA_BAGS = (
+    EMPTY_NAMEDTUPLE,
+    arolla.make_namedtuple_qtype(kwarg_0=DATA_BAG),
+    arolla.make_namedtuple_qtype(kwarg_0=DATA_BAG, kwarg_1=DATA_BAG),
+)
+
+NAMEDTUPLES_OF_DATA_SLICES = (
+    EMPTY_NAMEDTUPLE,
+    arolla.make_namedtuple_qtype(kwarg_0=DATA_SLICE),
+    arolla.make_namedtuple_qtype(kwarg_0=DATA_SLICE, kwarg_1=DATA_SLICE),
+)
+
+
+DETECT_SIGNATURES_QTYPES = tuple(
+    dict.fromkeys(
+        arolla.testing.DETECT_SIGNATURES_DEFAULT_QTYPES
+        + (
+            qtypes.JAGGED_SHAPE,
+            DATA_BAG,
+            DATA_SLICE,
+            qtypes.NON_DETERMINISTIC_TOKEN,
+            EMPTY_TUPLE,
+            EMPTY_NAMEDTUPLE,
+            *TUPLES_OF_DATA_BAGS,
+            *NAMEDTUPLES_OF_DATA_BAGS,
+            *TUPLES_OF_DATA_SLICES,
+            *NAMEDTUPLES_OF_DATA_SLICES,
+        )
+    )
 )

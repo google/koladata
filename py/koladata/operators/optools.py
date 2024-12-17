@@ -211,80 +211,11 @@ def as_backend_operator(
   return impl
 
 
-_P = input_container.InputContainer('P')
-
-
-def _build_lambda_body_from_fn(fn: types.FunctionType):
-  """Builds a lambda body expression from a python function."""
-  unmangling = {}
-
-  def gen_tracer(name: str):
-    result = _P[name]
-    unmangling[result.fingerprint] = arolla.abc.placeholder(name)
-    return result
-
-  return arolla.abc.sub_by_fingerprint(
-      arolla.optools.trace_function(fn, gen_tracer=gen_tracer), unmangling
-  )
-
-
-def as_lambda_operator(
-    name: str,
-    *,
-    qtype_constraints: arolla.types.QTypeConstraints = (),
-    aux_policy: str = py_boxing.DEFAULT_BOXING_POLICY,
-) -> Callable[[types.FunctionType], arolla.types.RestrictedLambdaOperator]:
-  """A decorator for defining Koladata-specific lambda operators.
-
-  Koda specifics:
-    - Adds a KodaView to the inputs during tracing, allowing prefix / infix
-      notation.
-
-  Args:
-    name: Name of the operator.
-    qtype_constraints: QType constraints for the operator.
-    aux_policy: Aux policy for the operator.
-
-  Returns:
-    A decorator that constructs a lambda operator by tracing a python function.
-  """
-
-  def impl(fn):
-    op_sig = _build_operator_signature_from_fn(fn, aux_policy)
-    op_expr = _build_lambda_body_from_fn(fn)
-
-    # If there is a `py_boxing.hidden_seed()`-marked param on the `fn`
-    # signature, use its value for the `py_boxing.NON_DETERMINISTIC_TOKEN_LEAF`
-    # leaf.
-    if aux_policy == py_boxing.FULL_SIGNATURE_POLICY:
-      hidden_seed_param = py_boxing.find_non_deterministic_param(
-          inspect.signature(fn)
-      )
-      if hidden_seed_param is not None:
-        op_expr = arolla.abc.sub_by_fingerprint(
-            op_expr,
-            {
-                py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
-                    arolla.abc.placeholder(hidden_seed_param)
-                )
-            },
-        )
-    return arolla.optools.make_lambda(
-        op_sig,
-        op_expr,
-        qtype_constraints=qtype_constraints,
-        name=name,
-        doc=inspect.getdoc(fn) or '',
-    )
-
-  return impl
-
-
 UNIFIED_NON_DETERMINISTIC_PARAM_NAME = (
     unified_binding_policy.NON_DETERMINISTIC_PARAM_NAME
 )
 
-UNIFIED_NON_DETERMINISTIC_PARAM = arolla.abc.placeholder(
+_UNIFIED_NON_DETERMINISTIC_PARAM = arolla.abc.placeholder(
     unified_binding_policy.NON_DETERMINISTIC_PARAM_NAME
 )
 
@@ -335,7 +266,7 @@ def as_unified_backend_operator(
     )
     if not deterministic:
       qtype_constraints_copy.append(
-          qtype_utils.expect_non_deterministic(UNIFIED_NON_DETERMINISTIC_PARAM)
+          qtype_utils.expect_non_deterministic(_UNIFIED_NON_DETERMINISTIC_PARAM)
       )
     return arolla.types.BackendOperator(
         name,
@@ -348,9 +279,26 @@ def as_unified_backend_operator(
   return impl
 
 
+_P = input_container.InputContainer('P')
+
+
+def _build_lambda_body_from_fn(fn: types.FunctionType):
+  """Builds a lambda body expression from a python function."""
+  unmangling = {}
+
+  def gen_tracer(name: str):
+    result = _P[name]
+    unmangling[result.fingerprint] = arolla.abc.placeholder(name)
+    return result
+
+  return arolla.abc.sub_by_fingerprint(
+      arolla.optools.trace_function(fn, gen_tracer=gen_tracer), unmangling
+  )
+
+
 # TOOD: b/383536303 - Consider improving the error messages for "unfixed"
 # variadic `*args` and `**kwargs` during tracing.
-def as_unified_lambda_operator(
+def as_lambda_operator(
     name: str,
     *,
     qtype_constraints: arolla.types.QTypeConstraints = (),
@@ -395,13 +343,13 @@ def as_unified_lambda_operator(
         )
     else:
       qtype_constraints_copy.append(
-          qtype_utils.expect_non_deterministic(UNIFIED_NON_DETERMINISTIC_PARAM)
+          qtype_utils.expect_non_deterministic(_UNIFIED_NON_DETERMINISTIC_PARAM)
       )
       op_expr = arolla.abc.sub_by_fingerprint(
           op_expr,
           {
               py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
-                  UNIFIED_NON_DETERMINISTIC_PARAM
+                  _UNIFIED_NON_DETERMINISTIC_PARAM
               )
           },
       )
@@ -548,12 +496,12 @@ def as_py_function_operator(
           ),
           {
               py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
-                  UNIFIED_NON_DETERMINISTIC_PARAM
+                  _UNIFIED_NON_DETERMINISTIC_PARAM
               )
           },
       )
       qtype_constraints_copy.append(
-          qtype_utils.expect_non_deterministic(UNIFIED_NON_DETERMINISTIC_PARAM)
+          qtype_utils.expect_non_deterministic(_UNIFIED_NON_DETERMINISTIC_PARAM)
       )
     op_sig = unified_binding_policy.make_unified_signature(
         sig, deterministic=deterministic

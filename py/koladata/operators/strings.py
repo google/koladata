@@ -243,9 +243,9 @@ def format_(fmt, /, **kwargs):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.fstr'])
-@optools.as_lambda_operator(
+@arolla.optools.as_lambda_operator(
     'kde.strings.fstr',
-    aux_policy=py_boxing.FSTR_POLICY,
+    experimental_aux_policy=py_boxing.FSTR_POLICY,
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
     ],
@@ -791,7 +791,7 @@ def _decode_base64(x, missing_if_invalid):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry()
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.strings.decode_base64',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),

@@ -68,7 +68,7 @@ class OptoolsTest(parameterized.TestCase):
       return x
 
     with self.assertRaisesRegex(
-        ValueError, 'unable to represent as QValue or Expr'
+        ValueError, 'unable to represent argument `x` as QValue or Expr'
     ):
       op_default_boxing([1, 2, 3])
 
@@ -90,20 +90,18 @@ class OptoolsTest(parameterized.TestCase):
 
     x_has_view, y_has_view, args_has_view = False, False, False
 
-    @arolla.optools.as_lambda_operator('test.fake_add')
+    @optools.as_lambda_operator('test.fake_add')
     def fake_add(x, y):
       return x + y
 
-    @optools.as_lambda_operator(
-        'test.op_view_in_lambda_operator',
-        aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
-    )
-    def op_view_in_lambda_operator(x, y=arolla.int32(1), *args):
+    @optools.as_lambda_operator('test.op_view_in_lambda_operator')
+    def op_view_in_lambda_operator(x, y=1, *args):
+      args = arolla.optools.fix_trace_args(args)
       # Set these rather than assert to ensure that the lambda has been traced.
       nonlocal x_has_view, y_has_view, args_has_view
       x_has_view = view.has_koda_view(x)
       y_has_view = view.has_koda_view(y)
-      args_has_view = view.has_koda_view(*args)
+      args_has_view = view.has_koda_view(args)
       return fake_add(x, y)
 
     self.assertTrue(x_has_view)
@@ -119,7 +117,7 @@ class OptoolsTest(parameterized.TestCase):
     # Assert that default values are handled correctly.
     arolla.testing.assert_expr_equal_by_fingerprint(
         arolla.abc.to_lower_node(op_view_in_lambda_operator(arolla.L.x)),
-        fake_add(arolla.L.x, arolla.int32(1)),
+        fake_add(arolla.L.x, ds(1)),
     )
 
   def test_backend_default_boxing(self):
@@ -545,8 +543,8 @@ class OptoolsTest(parameterized.TestCase):
     ):
       arolla.abc.infer_attr(op, (None, arolla.UNIT))
 
-  def test_as_unified_lambda_operator(self):
-    @optools.as_unified_lambda_operator(
+  def test_as_lambda_operator(self):
+    @optools.as_lambda_operator(
         'my_op_name',
         qtype_constraints=[(arolla.P.a != arolla.UNIT, 'my_qtype_constraint')],
     )
@@ -567,8 +565,8 @@ class OptoolsTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, re.escape('my_qtype_constraint')):
       op(arolla.unit(), 2, c=3)
 
-  def test_as_unified_lambda_operator_deterministic(self):
-    @optools.as_unified_lambda_operator('op')
+  def test_as_lambda_operator_deterministic(self):
+    @optools.as_lambda_operator('op')
     def op(x):
       return x
 
@@ -578,7 +576,7 @@ class OptoolsTest(parameterized.TestCase):
     ):
       arolla.abc.infer_attr(op, (None, arolla.UNIT))
 
-  def test_as_unified_lambda_operator_non_deterministic(self):
+  def test_as_lambda_operator_non_deterministic(self):
     counter = 0
 
     @arolla.optools.as_py_function_operator(
@@ -589,7 +587,7 @@ class OptoolsTest(parameterized.TestCase):
       counter += 1
       return ds(counter)
 
-    @optools.as_unified_lambda_operator('op', deterministic=False)
+    @optools.as_lambda_operator('op', deterministic=False)
     def op(x):
       return x + counter_op(py_boxing.NON_DETERMINISTIC_TOKEN_LEAF)
 
@@ -599,11 +597,11 @@ class OptoolsTest(parameterized.TestCase):
     )
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('expected NON_DETERMINISTIC_TOKEN'),
+        re.escape('expected NON_DETERMINISTIC_TOKEN')
     ):
       arolla.abc.infer_attr(op, (None, arolla.UNIT))
 
-  def test_as_unified_lambda_operator_error_deterministic_calls_non_deterministic(
+  def test_as_lambda_operator_error_deterministic_calls_non_deterministic(
       self,
   ):
 
@@ -615,7 +613,7 @@ class OptoolsTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(ValueError, 'deterministic=False'):
 
-      @optools.as_unified_lambda_operator('op2')
+      @optools.as_lambda_operator('op2', deterministic=True)
       def op2():
         return op1()
 
@@ -756,9 +754,7 @@ class OptoolsTest(parameterized.TestCase):
     testing.assert_equal(arolla.eval(op(1, 2, 3, 4, 5, d=6, e=7, f=8)), ds(41))
 
   def test_as_py_function_operator_sig_default_values(self):
-    @optools.as_py_function_operator(
-        'op', qtype_inference_expr=arolla.UNIT
-    )
+    @optools.as_py_function_operator('op', qtype_inference_expr=arolla.UNIT)
     def op(a=1, /, b=2, *c, d=3, **e):
       testing.assert_equal(a, ds(1))
       testing.assert_equal(b, ds(2))

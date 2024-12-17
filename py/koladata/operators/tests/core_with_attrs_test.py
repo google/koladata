@@ -36,18 +36,9 @@ DATA_SLICE = qtypes.DATA_SLICE
 QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, arolla.make_namedtuple_qtype(), DATA_SLICE),
-    (
-        DATA_SLICE,
-        DATA_SLICE,
-        arolla.make_namedtuple_qtype(a=DATA_SLICE),
-        DATA_SLICE,
-    ),
-    (
-        DATA_SLICE,
-        DATA_SLICE,
-        arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
-        DATA_SLICE,
+    *(
+        (DATA_SLICE, DATA_SLICE, attrs_qtype, DATA_SLICE)
+        for attrs_qtype in test_qtypes.NAMEDTUPLES_OF_DATA_SLICES
     ),
     # etc. for all possible namedtuples with DATA_SLICE values.
 ])
@@ -100,11 +91,7 @@ class CoreWithAttrsTest(absltest.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.core.with_attrs,
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES + (
-            arolla.make_namedtuple_qtype(),
-            arolla.make_namedtuple_qtype(a=DATA_SLICE),
-            arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
-        ),
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

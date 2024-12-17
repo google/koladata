@@ -39,7 +39,7 @@ def new_itemid_shaped(shape):
 
 
 @optools.add_to_registry(aliases=['kde.new_itemid'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.allocation.new_itemid', deterministic=False
 )
 def new_itemid():
@@ -62,7 +62,7 @@ def new_itemid_like(shape_and_mask_from):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.new_itemid_shaped_as'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.allocation.new_itemid_shaped_as', deterministic=False
 )
 def new_itemid_shaped_as(shape_from):
@@ -85,7 +85,7 @@ def new_listid_shaped(shape):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.new_listid'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.allocation.new_listid', deterministic=False
 )
 def new_listid():
@@ -108,7 +108,7 @@ def new_listid_like(shape_and_mask_from):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.new_listid_shaped_as'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.allocation.new_listid_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
@@ -135,7 +135,7 @@ def new_dictid_shaped(shape):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.new_dictid'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.allocation.new_dictid', deterministic=False
 )
 def new_dictid():
@@ -158,7 +158,7 @@ def new_dictid_like(shape_and_mask_from):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.new_dictid_shaped_as'])
-@optools.as_unified_lambda_operator(
+@optools.as_lambda_operator(
     'kde.allocation.new_dictid_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),

@@ -48,7 +48,7 @@ class CoreIsInTest(parameterized.TestCase):
       (
           ds(b'xyz'),
           ds([b'axy', b'1234', None, None, b'xyz']),
-          mask_constants.present
+          mask_constants.present,
       ),
       (ds(42), ds([1, 2, None, 34]), mask_constants.missing),
       (ds(42), ds([42, 1, 2, None, 34]), mask_constants.present),
@@ -58,7 +58,7 @@ class CoreIsInTest(parameterized.TestCase):
       (
           ds(float('nan')),
           ds([1.0, 2.0, float('nan'), float('nan')]),
-          mask_constants.missing
+          mask_constants.missing,
       ),
       # Mixed.
       (ds('a'), ds(['b', 'c', 42]), mask_constants.missing),
@@ -87,7 +87,8 @@ class CoreIsInTest(parameterized.TestCase):
   def test_x_not_an_item(self):
     with self.assertRaisesRegex(
         # TODO: b/375621456 - Raise KodaError.
-        ValueError, 'kde.core.isin: argument `x` must be a DataItem'
+        ValueError,
+        'kde.core.isin: argument `x` must be a DataItem',
     ):
       expr_eval.eval(kde.core.isin(ds([1, 2, 3]), ds([1, 2, 3])))
 
@@ -97,7 +98,7 @@ class CoreIsInTest(parameterized.TestCase):
     ):
       kde.core.isin(bag(), ds([1, 2, 3]))
     with self.assertRaisesRegex(
-        ValueError, 'unable to represent as QValue or Expr'
+        ValueError, 'unable to represent argument `x` as QValue or Expr'
     ):
       kde.core.isin({'a': 42}, ds([1, 2, 3]))
 

@@ -175,7 +175,8 @@ class MathInverseCdfTest(parameterized.TestCase):
   def test_no_cdf_arg_error(self):
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
-        TypeError, re.escape("missing 1 required argument: 'cdf_arg'")
+        TypeError,
+        re.escape("missing 1 required positional argument: 'cdf_arg'"),
     ):
       expr_eval.eval(kde.math.inverse_cdf(x))
 

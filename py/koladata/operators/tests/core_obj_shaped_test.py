@@ -39,11 +39,7 @@ NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 
 def generate_qtypes():
   for itemid_arg_type in [DATA_SLICE, arolla.UNSPECIFIED]:
-    for attrs_type in [
-        arolla.make_namedtuple_qtype(),
-        arolla.make_namedtuple_qtype(a=DATA_SLICE),
-        arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
-    ]:
+    for attrs_type in test_qtypes.NAMEDTUPLES_OF_DATA_SLICES:
       yield JAGGED_SHAPE, itemid_arg_type, attrs_type, NON_DETERMINISTIC_TOKEN, DATA_SLICE
 
 
@@ -129,12 +125,7 @@ class CoreObjShapedTest(absltest.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.core.obj_shaped,
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
-        + (
-            arolla.make_namedtuple_qtype(),
-            arolla.make_namedtuple_qtype(a=DATA_SLICE),
-            arolla.make_namedtuple_qtype(a=DATA_SLICE, b=DATA_SLICE),
-        ),
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

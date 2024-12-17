@@ -226,7 +226,7 @@ class EagerOpUtilsTest(parameterized.TestCase):
       return arolla.unit()
 
     @optools.add_to_registry()
-    @optools.as_unified_lambda_operator(
+    @optools.as_lambda_operator(
         'test.non_deterministic_op', deterministic=False
     )
     def non_deterministic_op(arg=arolla.unit()):
