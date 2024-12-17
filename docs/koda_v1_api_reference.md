@@ -869,7 +869,7 @@ Returns:
   A DataSlice of dense ranks.
 ```
 
-### `kd.core.dict(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.core.dict}
+### `kd.dicts.create(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.create}
 Aliases:
 
 - [kd.dict](#kd.dict)
@@ -916,7 +916,7 @@ Creates a Koda dict.
     A DataSlice with the dict.
 ```
 
-### `kd.core.dict_like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.core.dict_like}
+### `kd.dicts.like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.like}
 Aliases:
 
 - [kd.dict_like](#kd.dict_like)
@@ -949,7 +949,7 @@ Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
     A DataSlice with the dicts.
 ```
 
-### `kd.core.dict_shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.core.dict_shaped}
+### `kd.dicts.shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.shaped}
 Aliases:
 
 - [kd.dict_shaped](#kd.dict_shaped)
@@ -980,7 +980,7 @@ Creates new Koda dicts with the given shape.
     A DataSlice with the dicts.
 ```
 
-### `kd.core.dict_shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.core.dict_shaped_as}
+### `kd.dicts.shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.shaped_as}
 Aliases:
 
 - [kd.dict_shaped_as](#kd.dict_shaped_as)
@@ -1012,7 +1012,7 @@ Creates new Koda dicts with shape of the given DataSlice.
     A DataSlice with the dicts.
 ```
 
-### `kd.core.dict_size(dict_slice)` {#kd.core.dict_size}
+### `kd.dicts.dict_size(dict_slice)` {#kd.dicts.dict_size}
 Aliases:
 
 - [kd.dict_size](#kd.dict_size)
@@ -1021,7 +1021,7 @@ Aliases:
 Returns size of a Dict.
 ```
 
-### `kd.core.dict_update(x, keys, values=unspecified)` {#kd.core.dict_update}
+### `kd.dicts.dict_update(x, keys, values=unspecified)` {#kd.dicts.dict_update}
 Aliases:
 
 - [kd.dict_update](#kd.dict_update)
@@ -1323,7 +1323,7 @@ Returns:
   Result DataSlice.
 ```
 
-### `kd.core.get_keys(dict_ds)` {#kd.core.get_keys}
+### `kd.dicts.get_keys(dict_ds)` {#kd.dicts.get_keys}
 Aliases:
 
 - [kd.get_keys](#kd.get_keys)
@@ -1351,7 +1351,7 @@ Aliases:
 Returns the number of dimensions of DataSlice `x`.
 ```
 
-### `kd.core.get_values(dict_ds, key_ds=unspecified)` {#kd.core.get_values}
+### `kd.dicts.get_values(dict_ds, key_ds=unspecified)` {#kd.dicts.get_values}
 Aliases:
 
 - [kd.get_values](#kd.get_values)
@@ -1553,7 +1553,7 @@ Returns:
   attribute exists for the corresponding item.
 ```
 
-### `kd.core.has_dict(x)` {#kd.core.has_dict}
+### `kd.dicts.has_dict(x)` {#kd.dicts.has_dict}
 Aliases:
 
 - [kd.has_dict](#kd.has_dict)
@@ -1731,7 +1731,7 @@ Returns:
   Reverse filtered DataSlice.
 ```
 
-### `kd.core.is_dict(x)` {#kd.core.is_dict}
+### `kd.dicts.is_dict(x)` {#kd.dicts.is_dict}
 Aliases:
 
 - [kd.is_dict](#kd.is_dict)
@@ -2329,7 +2329,7 @@ Returns:
   Filtered DataSlice.
 ```
 
-### `kd.core.select_keys(ds, fltr)` {#kd.core.select_keys}
+### `kd.dicts.select_keys(ds, fltr)` {#kd.dicts.select_keys}
 Aliases:
 
 - [kd.select_keys](#kd.select_keys)
@@ -2357,7 +2357,7 @@ Aliases:
 Creates a new DataSlice by removing missing items.
 ```
 
-### `kd.core.select_values(ds, fltr)` {#kd.core.select_values}
+### `kd.dicts.select_values(ds, fltr)` {#kd.dicts.select_values}
 Aliases:
 
 - [kd.select_values](#kd.select_values)
@@ -2975,7 +2975,7 @@ Returns a DataSlice with the given DataBatg attached.
 
 Alias for [kd.core.with_bag](#kd.core.with_bag) operator.
 
-### `kd.core.with_dict_update(x, keys, values=unspecified)` {#kd.core.with_dict_update}
+### `kd.dicts.with_dict_update(x, keys, values=unspecified)` {#kd.dicts.with_dict_update}
 Aliases:
 
 - [kd.with_dict_update](#kd.with_dict_update)
@@ -6798,11 +6798,11 @@ Alias for [kd.core.dense_rank](#kd.core.dense_rank) operator.
 
 ### `kd.dict(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dict}
 
-Alias for [kd.core.dict](#kd.core.dict) operator.
+Alias for [kd.dicts.create](#kd.dicts.create) operator.
 
 ### `kd.dict_like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dict_like}
 
-Alias for [kd.core.dict_like](#kd.core.dict_like) operator.
+Alias for [kd.dicts.like](#kd.dicts.like) operator.
 
 ### `kd.dict_schema(key_schema, value_schema, db=None)` {#kd.dict_schema}
 
@@ -6810,19 +6810,19 @@ Alias for [kd.schema.dict_schema](#kd.schema.dict_schema) operator.
 
 ### `kd.dict_shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dict_shaped}
 
-Alias for [kd.core.dict_shaped](#kd.core.dict_shaped) operator.
+Alias for [kd.dicts.shaped](#kd.dicts.shaped) operator.
 
 ### `kd.dict_shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dict_shaped_as}
 
-Alias for [kd.core.dict_shaped_as](#kd.core.dict_shaped_as) operator.
+Alias for [kd.dicts.shaped_as](#kd.dicts.shaped_as) operator.
 
 ### `kd.dict_size(dict_slice)` {#kd.dict_size}
 
-Alias for [kd.core.dict_size](#kd.core.dict_size) operator.
+Alias for [kd.dicts.dict_size](#kd.dicts.dict_size) operator.
 
 ### `kd.dict_update(x, keys, values=unspecified)` {#kd.dict_update}
 
-Alias for [kd.core.dict_update](#kd.core.dict_update) operator.
+Alias for [kd.dicts.dict_update](#kd.dicts.dict_update) operator.
 
 ### `kd.dir(x)` {#kd.dir}
 
@@ -7133,7 +7133,7 @@ Alias for [kd.schema.get_key_schema](#kd.schema.get_key_schema) operator.
 
 ### `kd.get_keys(dict_ds)` {#kd.get_keys}
 
-Alias for [kd.core.get_keys](#kd.core.get_keys) operator.
+Alias for [kd.dicts.get_keys](#kd.dicts.get_keys) operator.
 
 ### `kd.get_ndim(x)` {#kd.get_ndim}
 
@@ -7165,7 +7165,7 @@ Alias for [kd.schema.get_value_schema](#kd.schema.get_value_schema) operator.
 
 ### `kd.get_values(dict_ds, key_ds=unspecified)` {#kd.get_values}
 
-Alias for [kd.core.get_values](#kd.core.get_values) operator.
+Alias for [kd.dicts.get_values](#kd.dicts.get_values) operator.
 
 ### `kd.greater(x, y)` {#kd.greater}
 
@@ -7197,7 +7197,7 @@ Alias for [kd.core.has_attr](#kd.core.has_attr) operator.
 
 ### `kd.has_dict(x)` {#kd.has_dict}
 
-Alias for [kd.core.has_dict](#kd.core.has_dict) operator.
+Alias for [kd.dicts.has_dict](#kd.dicts.has_dict) operator.
 
 ### `kd.has_list(x)` {#kd.has_list}
 
@@ -7245,7 +7245,7 @@ Alias for [kd.core.inverse_select](#kd.core.inverse_select) operator.
 
 ### `kd.is_dict(x)` {#kd.is_dict}
 
-Alias for [kd.core.is_dict](#kd.core.is_dict) operator.
+Alias for [kd.dicts.is_dict](#kd.dicts.is_dict) operator.
 
 ### `kd.is_empty(x)` {#kd.is_empty}
 
@@ -7634,7 +7634,7 @@ Alias for [kd.lists.select_items](#kd.lists.select_items) operator.
 
 ### `kd.select_keys(ds, fltr)` {#kd.select_keys}
 
-Alias for [kd.core.select_keys](#kd.core.select_keys) operator.
+Alias for [kd.dicts.select_keys](#kd.dicts.select_keys) operator.
 
 ### `kd.select_present(ds)` {#kd.select_present}
 
@@ -7642,7 +7642,7 @@ Alias for [kd.core.select_present](#kd.core.select_present) operator.
 
 ### `kd.select_values(ds, fltr)` {#kd.select_values}
 
-Alias for [kd.core.select_values](#kd.core.select_values) operator.
+Alias for [kd.dicts.select_values](#kd.dicts.select_values) operator.
 
 ### `kd.set_attr(x, attr_name, value, update_schema=False)` {#kd.set_attr}
 
@@ -7966,7 +7966,7 @@ Alias for [kd.core.with_bag](#kd.core.with_bag) operator.
 
 ### `kd.with_dict_update(x, keys, values=unspecified)` {#kd.with_dict_update}
 
-Alias for [kd.core.with_dict_update](#kd.core.with_dict_update) operator.
+Alias for [kd.dicts.with_dict_update](#kd.dicts.with_dict_update) operator.
 
 ### `kd.with_merged_bag(ds)` {#kd.with_merged_bag}
 

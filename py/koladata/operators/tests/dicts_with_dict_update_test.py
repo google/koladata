@@ -105,7 +105,7 @@ class CoreWithDictUpdateTest(parameterized.TestCase):
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(ValueError, 'expected a DataSlice of dicts'):
-      _ = kde.core.with_dict_update(
+      _ = kde.dicts.with_dict_update(
           ds(0).with_bag(bag()), fns.dict({'x': 1})
       ).eval()
 
@@ -115,23 +115,23 @@ class CoreWithDictUpdateTest(parameterized.TestCase):
         ValueError,
         'cannot update a DataSlice of dicts without a DataBag',
     ):
-      _ = kde.core.with_dict_update(o, fns.dict({'x': 1})).eval()
+      _ = kde.dicts.with_dict_update(o, fns.dict({'x': 1})).eval()
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.with_dict_update,
+        kde.dicts.with_dict_update,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.core.with_dict_update(I.x, I.keys, I.attrs))
+        view.has_koda_view(kde.dicts.with_dict_update(I.x, I.keys, I.attrs))
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.with_dict_update, kde.with_dict_update)
+        optools.equiv_to_op(kde.dicts.with_dict_update, kde.with_dict_update)
     )
 
 

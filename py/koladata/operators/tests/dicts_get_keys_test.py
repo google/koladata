@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.get_keys."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -136,7 +134,7 @@ class CoreGetKeysTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.get_keys,
+            kde.dicts.get_keys,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
@@ -146,7 +144,7 @@ class CoreGetKeysTest(parameterized.TestCase):
     self.assertTrue(view.has_koda_view(kde.get_keys(I.dict_ds)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.get_keys, kde.get_keys))
+    self.assertTrue(optools.equiv_to_op(kde.dicts.get_keys, kde.get_keys))
 
 
 if __name__ == '__main__':

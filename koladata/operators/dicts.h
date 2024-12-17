@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_OPERATORS_CORE_DICT_H_
-#define KOLADATA_OPERATORS_CORE_DICT_H_
+#ifndef KOLADATA_OPERATORS_DICTS_H_
+#define KOLADATA_OPERATORS_DICTS_H_
 
 // Dict operators implementations.
 
@@ -26,30 +26,30 @@
 
 namespace koladata::ops {
 
-// kde.core.dict_size.
+// kde.dicts.dict_size.
 absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts);
 
-// kde.core.get_keys.
+// kde.dicts.get_keys.
 inline absl::StatusOr<DataSlice> GetKeys(const DataSlice& dict_ds) {
   return dict_ds.GetDictKeys();
 }
 
-// kde.core._get_values.
+// kde.dicts._get_values.
 inline absl::StatusOr<DataSlice> GetValues(const DataSlice& dict_ds) {
   return dict_ds.GetDictValues();
 }
 
-// kde.core._get_values_by_keys.
+// kde.dicts._get_values_by_keys.
 inline absl::StatusOr<DataSlice> GetValuesByKeys(const DataSlice& dict_ds,
                                                  const DataSlice& key_ds) {
   return dict_ds.GetFromDict(key_ds);
 }
 
-// kde.core._dict_update
+// kde.dicts._dict_update
 absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
                                       const DataSlice& values);
 
-// kde.core._dict_shaped operator.
+// kde.dicts._shaped operator.
 absl::StatusOr<DataSlice> DictShaped(
     const DataSlice::JaggedShape& shape, const DataSlice& keys,
     const DataSlice& values, const DataSlice& key_schema,
@@ -57,7 +57,7 @@ absl::StatusOr<DataSlice> DictShaped(
     const DataSlice& itemid,
     internal::NonDeterministicToken);
 
-// kde.core._dict_like operator.
+// kde.dicts._like operator.
 absl::StatusOr<DataSlice> DictLike(
     const DataSlice& shape_and_mask_from, const DataSlice& keys,
     const DataSlice& values, const DataSlice& key_schema,
@@ -67,4 +67,4 @@ absl::StatusOr<DataSlice> DictLike(
 
 }  // namespace koladata::ops
 
-#endif  // KOLADATA_OPERATORS_CORE_DICT_H_
+#endif  // KOLADATA_OPERATORS_DICTS_H_

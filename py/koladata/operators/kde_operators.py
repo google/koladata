@@ -22,6 +22,7 @@ from koladata.operators import annotation as _
 from koladata.operators import assertion as _
 from koladata.operators import comparison as _
 from koladata.operators import core as _
+from koladata.operators import dicts as _
 from koladata.operators import functor as _
 from koladata.operators import ids as _
 from koladata.operators import jagged_shape as _
@@ -47,6 +48,7 @@ def get_namespaces() -> list[str]:
       'kde.assertion',
       'kde.comparison',
       'kde.core',
+      'kde.dicts',
       'kde.functor',
       'kde.ids',
       'kde.lists',

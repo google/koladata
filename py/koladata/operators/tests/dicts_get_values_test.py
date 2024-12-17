@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.get_values."""
-
 import re
 
 from absl.testing import absltest
@@ -205,7 +203,7 @@ class CoreGetValuesTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.get_values,
+            kde.dicts.get_values,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
@@ -215,7 +213,7 @@ class CoreGetValuesTest(parameterized.TestCase):
     self.assertTrue(view.has_koda_view(kde.get_values(I.dict_ds)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.get_values, kde.get_values))
+    self.assertTrue(optools.equiv_to_op(kde.dicts.get_values, kde.get_values))
 
 
 if __name__ == '__main__':

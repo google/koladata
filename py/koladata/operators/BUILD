@@ -83,6 +83,7 @@ arolla_operator_package_snapshot(
         "koladata.operators.assertion",
         "koladata.operators.comparison",
         "koladata.operators.core",
+        "koladata.operators.dicts",
         "koladata.operators.ids",
         "koladata.operators.jagged_shape",
         "koladata.operators.lists",
@@ -101,6 +102,7 @@ arolla_operator_package_snapshot(
         ":assertion",
         ":comparison",
         ":core",
+        ":dicts",
         ":ids",
         ":jagged_shape",
         ":lists",
@@ -490,6 +492,7 @@ py_library(
         ":assertion",
         ":comparison",
         ":core",
+        ":dicts",
         ":functor",
         ":ids",
         ":jagged_shape",
@@ -588,6 +591,24 @@ py_library(
     testonly = True,
     srcs = ["optools_test_utils.py"],
     deps = ["@com_google_arolla//py/arolla"],
+)
+
+py_library(
+    name = "dicts",
+    srcs = ["dicts.py"],
+    deps = [
+        ":core",
+        ":jagged_shape",
+        ":optools",
+        ":qtype_utils",
+        ":view_overloads",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/jagged_shape",
+    ],
 )
 
 py_test(

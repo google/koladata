@@ -276,7 +276,7 @@ class DictShapedTest(parameterized.TestCase):
       fns.dict_shaped(shape)  # pytype: disable=wrong-arg-types
 
   def test_alias(self):
-    self.assertIs(fns.dict_shaped, fns.core.dict_shaped)
+    self.assertIs(fns.dict_shaped, fns.dicts.shaped)
 
 
 if __name__ == '__main__':

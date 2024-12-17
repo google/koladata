@@ -125,7 +125,7 @@ class DictShapedAsTest(parameterized.TestCase):
     )
 
   def test_alias(self):
-    self.assertIs(fns.dict_shaped_as, fns.core.dict_shaped_as)
+    self.assertIs(fns.dict_shaped_as, fns.dicts.shaped_as)
 
 
 if __name__ == '__main__':

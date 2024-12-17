@@ -76,7 +76,7 @@ class DictLikeTest(parameterized.TestCase):
       ),
   )
   def test_value(self, shape_and_mask_from, kwargs):
-    actual = expr_eval.eval(kde.core.dict_like(shape_and_mask_from, **kwargs))
+    actual = expr_eval.eval(kde.dicts.like(shape_and_mask_from, **kwargs))
     expected = bag().dict_like(shape_and_mask_from, **kwargs)
     testing.assert_dicts_equal(actual, expected)
 
@@ -85,7 +85,7 @@ class DictLikeTest(parameterized.TestCase):
     keys = ds(['a', 'b'])
     values = ds([3, 7])
     actual = expr_eval.eval(
-        kde.core.dict_like(
+        kde.dicts.like(
             shape_and_mask_from,
             keys=keys,
             values=values,
@@ -103,7 +103,7 @@ class DictLikeTest(parameterized.TestCase):
     keys = ds(['a', 'b', 'c'])
     values = ds([3, 7, 8])
     actual = expr_eval.eval(
-        kde.core.dict_like(
+        kde.dicts.like(
             shape_and_mask_from,
             keys,
             values,
@@ -117,12 +117,12 @@ class DictLikeTest(parameterized.TestCase):
     testing.assert_dicts_equal(actual, expected)
 
   def test_db_is_immutable(self):
-    d = expr_eval.eval(kde.core.dict_like(ds(5)))
+    d = expr_eval.eval(kde.dicts.like(ds(5)))
     self.assertFalse(d.is_mutable())
 
   def test_adopt_values(self):
-    dct = kde.core.dict('a', 7).eval()
-    dct2 = kde.core.dict_like(ds([None, 0]), 'obj', dct).eval()
+    dct = kde.dicts.create('a', 7).eval()
+    dct2 = kde.dicts.like(ds([None, 0]), 'obj', dct).eval()
 
     testing.assert_equal(
         dct2['obj']['a'],
@@ -133,7 +133,7 @@ class DictLikeTest(parameterized.TestCase):
     dict_schema = kde.schema.dict_schema(
         schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
     ).eval()
-    dct = kde.core.dict_like(ds([None, 0]), schema=dict_schema).eval()
+    dct = kde.dicts.like(ds([None, 0]), schema=dict_schema).eval()
 
     testing.assert_equal(
         dct[ds(None)].a.no_bag(), ds([None, None], schema_constants.INT32)
@@ -143,7 +143,7 @@ class DictLikeTest(parameterized.TestCase):
     itemid = expr_eval.eval(kde.allocation.new_dictid())
 
     with self.subTest('present DataItem and present itemid'):
-      x = expr_eval.eval(kde.core.dict_like(ds(1), 'a', 42, itemid=itemid))
+      x = expr_eval.eval(kde.dicts.like(ds(1), 'a', 42, itemid=itemid))
       testing.assert_equal(
           x,
           itemid.with_schema(x.get_schema()).with_bag(x.get_bag()),
@@ -151,12 +151,12 @@ class DictLikeTest(parameterized.TestCase):
 
     with self.subTest('missing DataItem and missing itemid'):
       x = expr_eval.eval(
-          kde.core.dict_like(ds(None), 'a', 42, itemid=(itemid & None))
+          kde.dicts.like(ds(None), 'a', 42, itemid=(itemid & None))
       )
       self.assertTrue(x.is_empty())
 
     with self.subTest('missing DataItem and present itemid'):
-      x = expr_eval.eval(kde.core.dict_like(ds(None), 'a', 42, itemid=itemid))
+      x = expr_eval.eval(kde.dicts.like(ds(None), 'a', 42, itemid=itemid))
       self.assertTrue(x.is_empty())
 
     with self.subTest('present DataItem and missing itemid'):
@@ -165,7 +165,7 @@ class DictLikeTest(parameterized.TestCase):
           '`itemid` only has 0 present items but 1 are required',
       ):
         _ = expr_eval.eval(
-            kde.core.dict_like(ds(1), 'a', 42, itemid=(itemid & None))
+            kde.dicts.like(ds(1), 'a', 42, itemid=(itemid & None))
         )
 
   def test_itemid_dataslice(self):
@@ -175,7 +175,7 @@ class DictLikeTest(parameterized.TestCase):
 
     with self.subTest('full DataSlice and full itemid'):
       x = expr_eval.eval(
-          kde.core.dict_like(ds([1, 1, 1]), 'a', 42, itemid=ds([id1, id2, id3]))
+          kde.dicts.like(ds([1, 1, 1]), 'a', 42, itemid=ds([id1, id2, id3]))
       )
       testing.assert_equal(
           x,
@@ -188,7 +188,7 @@ class DictLikeTest(parameterized.TestCase):
           '`itemid` only has 2 present items but 3 are required',
       ):
         _ = expr_eval.eval(
-            kde.core.dict_like(
+            kde.dicts.like(
                 ds([1, 1, 1]),
                 'a',
                 42,
@@ -202,14 +202,14 @@ class DictLikeTest(parameterized.TestCase):
           '`itemid` cannot have duplicate ItemIds',
       ):
         _ = expr_eval.eval(
-            kde.core.dict_like(
+            kde.dicts.like(
                 ds([1, 1, 1]), 'a', 42, itemid=ds([id1, id2, id1])
             )
         )
 
     with self.subTest('sparse DataSlice and sparse itemid'):
       x = expr_eval.eval(
-          kde.core.dict_like(
+          kde.dicts.like(
               ds([1, None, 1]),
               'a',
               42,
@@ -231,14 +231,14 @@ class DictLikeTest(parameterized.TestCase):
           '`itemid` and `shape_and_mask_from` must have the same sparsity',
       ):
         _ = expr_eval.eval(
-            kde.core.dict_like(
+            kde.dicts.like(
                 ds([1, None, 1]), 'a', 42, itemid=ds([id1, id2, None])
             )
         )
 
     with self.subTest('sparse DataSlice and full itemid'):
       x = expr_eval.eval(
-          kde.core.dict_like(
+          kde.dicts.like(
               ds([1, None, 1]),
               'a',
               42,
@@ -258,7 +258,7 @@ class DictLikeTest(parameterized.TestCase):
           '`itemid` cannot have duplicate ItemIds',
       ):
         _ = expr_eval.eval(
-            kde.core.dict_like(
+            kde.dicts.like(
                 ds([1, None, 1]),
                 'a',
                 42,
@@ -270,7 +270,7 @@ class DictLikeTest(parameterized.TestCase):
         'sparse DataSlice and full itemid with unused duplicates'
     ):
       x = expr_eval.eval(
-          kde.core.dict_like(
+          kde.dicts.like(
               ds([1, None, 1]),
               'a',
               42,
@@ -290,7 +290,7 @@ class DictLikeTest(parameterized.TestCase):
 
     # Successful.
     x = expr_eval.eval(
-        kde.core.dict_like(ds([[1, None], [1]]), itemid=itemid.get_itemid())
+        kde.dicts.like(ds([[1, None], [1]]), itemid=itemid.get_itemid())
     )
     # ITEMID's triples are stripped in the new DataBag.
     with self.assertRaisesRegex(
@@ -304,26 +304,26 @@ class DictLikeTest(parameterized.TestCase):
         'expected DATA_SLICE, got shape_and_mask_from:'
         ' JAGGED_DENSE_ARRAY_SHAPE',
     ):
-      expr_eval.eval(kde.core.dict_like(jagged_shape.create_shape([2])))
+      expr_eval.eval(kde.dicts.like(jagged_shape.create_shape([2])))
 
   def test_only_keys_arg_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'creating a dict requires both keys and values, got only keys',
     ):
-      expr_eval.eval(kde.core.dict_like(ds([5, 6]), keys=ds(['a', 'b'])))
+      expr_eval.eval(kde.dicts.like(ds([5, 6]), keys=ds(['a', 'b'])))
 
   def test_only_values_arg_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'creating a dict requires both keys and values, got only values',
     ):
-      expr_eval.eval(kde.core.dict_like(ds([5, 6]), values=ds([3, 7])))
+      expr_eval.eval(kde.dicts.like(ds([5, 6]), values=ds([3, 7])))
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
       expr_eval.eval(
-          kde.core.dict_like(
+          kde.dicts.like(
               ds([5, 6]),
               keys=ds([1, 2, 3]),
               values=ds([4, 5, 6]),
@@ -333,7 +333,7 @@ class DictLikeTest(parameterized.TestCase):
   def test_schema_arg_error(self):
     with self.assertRaisesRegex(ValueError, 'expected Dict schema, got INT64'):
       expr_eval.eval(
-          kde.core.dict_like(
+          kde.dicts.like(
               ds([5, 6]),
               schema=schema_constants.INT64,
           )
@@ -346,7 +346,7 @@ class DictLikeTest(parameterized.TestCase):
         ' schemas, but not both',
     ):
       expr_eval.eval(
-          kde.core.dict_like(
+          kde.dicts.like(
               ds([[1, 2, 3], [4]]),
               key_schema=schema_constants.INT64,
               schema=fns.dict_schema(
@@ -362,7 +362,7 @@ class DictLikeTest(parameterized.TestCase):
         ' schemas, but not both',
     ):
       expr_eval.eval(
-          kde.core.dict_like(
+          kde.dicts.like(
               ds([[1, 2, 3], [4]]),
               value_schema=schema_constants.INT64,
               schema=fns.dict_schema(
@@ -376,15 +376,15 @@ class DictLikeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.core.dict_like(shape_from, key_schema=42))
+      expr_eval.eval(kde.dicts.like(shape_from, key_schema=42))
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.core.dict_like(shape_from, value_schema=42))
+      expr_eval.eval(kde.dicts.like(shape_from, value_schema=42))
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.core.dict_like(shape_from, schema=42))
+      expr_eval.eval(kde.dicts.like(shape_from, schema=42))
 
   def test_key_schema_errors(self):
     with self.assertRaisesRegex(
@@ -395,7 +395,7 @@ Expected schema for Dict key: INT32
 Assigned schema for Dict key: STRING""",
     ):
       expr_eval.eval(
-          kde.core.dict_like(
+          kde.dicts.like(
               ds([[1, 2, 3], [4]]),
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
@@ -412,7 +412,7 @@ Expected schema for Dict value: STRING
 Assigned schema for Dict value: INT32""",
     ):
       expr_eval.eval(
-          kde.core.dict_like(
+          kde.dicts.like(
               ds([[1, 2, 3], [4]]),
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
@@ -429,7 +429,7 @@ Expected schema for Dict key: INT64
 Assigned schema for Dict key: STRING""",
     ):
       expr_eval.eval(
-          kde.core.dict_like(
+          kde.dicts.like(
               ds([[1, 2, 3], [4]]),
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
@@ -444,15 +444,15 @@ Assigned schema for Dict key: STRING""",
     keys = ds([2, 3])
     values = ds([3, 7])
     res_1 = expr_eval.eval(
-        kde.core.dict_like(shape_and_mask_from, keys=keys, values=values)
+        kde.dicts.like(shape_and_mask_from, keys=keys, values=values)
     )
     res_2 = expr_eval.eval(
-        kde.core.dict_like(shape_and_mask_from, keys=keys, values=values)
+        kde.dicts.like(shape_and_mask_from, keys=keys, values=values)
     )
     self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
     testing.assert_dicts_equal(res_1, res_2)
 
-    expr = kde.core.dict_like(shape_and_mask_from, keys=keys, values=values)
+    expr = kde.dicts.like(shape_and_mask_from, keys=keys, values=values)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
@@ -460,22 +460,22 @@ Assigned schema for Dict key: STRING""",
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.dict_like,
+        kde.dicts.like,
         QTYPE_SIGNATURES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.dict_like(I.x)))
-    self.assertTrue(view.has_koda_view(kde.core.dict_like(I.x, keys=I.y)))
+    self.assertTrue(view.has_koda_view(kde.dicts.like(I.x)))
+    self.assertTrue(view.has_koda_view(kde.dicts.like(I.x, keys=I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.dict_like, kde.dict_like))
+    self.assertTrue(optools.equiv_to_op(kde.dicts.like, kde.dict_like))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.dict_like(I.x, keys=I.y)),
-        'kde.core.dict_like(I.x, I.y, unspecified, key_schema=unspecified,'
+        repr(kde.dicts.like(I.x, keys=I.y)),
+        'kde.dicts.like(I.x, I.y, unspecified, key_schema=unspecified,'
         ' value_schema=unspecified, schema=unspecified, itemid=unspecified)',
     )
 

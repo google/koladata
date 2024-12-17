@@ -69,10 +69,6 @@ core = _py_types.SimpleNamespace(
     bag=_object_factories.bag,
     uu=_object_factories.uu,
     uuobj=_object_factories.uuobj,
-    dict=_object_factories.dict_,
-    dict_like=_object_factories.dict_like,
-    dict_shaped=_object_factories.dict_shaped,
-    dict_shaped_as=_object_factories.dict_shaped_as,
     new=_object_factories.new,
     new_like=_object_factories.new_like,
     new_shaped=_object_factories.new_shaped,
@@ -84,6 +80,13 @@ core = _py_types.SimpleNamespace(
     container=_object_factories.container,
     empty_shaped=_object_factories.empty_shaped,
     empty_shaped_as=_object_factories.empty_shaped_as,
+)
+
+dicts = _py_types.SimpleNamespace(
+    create=_object_factories.dict_,
+    like=_object_factories.dict_like,
+    shaped=_object_factories.dict_shaped,
+    shaped_as=_object_factories.dict_shaped_as,
 )
 
 lists = _py_types.SimpleNamespace(

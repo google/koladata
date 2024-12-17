@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/operators/core_dict.h"
+#include "koladata/operators/dicts.h"
 
 #include <optional>
 #include <utility>

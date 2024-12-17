@@ -82,7 +82,7 @@ class CoreSelectKeysTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, value, fltr, expected):
-    result = expr_eval.eval(kde.core.select_keys(value, fltr))
+    result = expr_eval.eval(kde.dicts.select_keys(value, fltr))
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -91,25 +91,25 @@ class CoreSelectKeysTest(parameterized.TestCase):
   )
   def test_eval_with_expr_input(self, fltr):
     result = expr_eval.eval(
-        kde.core.select_keys(I.x, fltr), x=db.dict({1: 4, 2: 5, 3: 6})
+        kde.dicts.select_keys(I.x, fltr), x=db.dict({1: 4, 2: 5, 3: 6})
     )
     testing.assert_unordered_equal(result, ds([2, 3]))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.select_keys,
+            kde.dicts.select_keys,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.select_keys(I.x, I.fltr)))
+    self.assertTrue(view.has_koda_view(kde.dicts.select_keys(I.x, I.fltr)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.select_keys, kde.select_keys)
+        optools.equiv_to_op(kde.dicts.select_keys, kde.select_keys)
     )
 
 

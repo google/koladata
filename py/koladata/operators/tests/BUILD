@@ -296,8 +296,8 @@ py_test(
 )
 
 py_test(
-    name = "core_dict_size_test",
-    srcs = ["core_dict_size_test.py"],
+    name = "dicts_size_test",
+    srcs = ["dicts_size_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -319,8 +319,8 @@ py_test(
 )
 
 py_test(
-    name = "core_dict_update_test",
-    srcs = ["core_dict_update_test.py"],
+    name = "dicts_dict_update_test",
+    srcs = ["dicts_dict_update_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -342,8 +342,8 @@ py_test(
 )
 
 py_test(
-    name = "core_with_dict_update_test",
-    srcs = ["core_with_dict_update_test.py"],
+    name = "dicts_with_dict_update_test",
+    srcs = ["dicts_with_dict_update_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -524,8 +524,8 @@ py_test(
 )
 
 py_test(
-    name = "core_is_dict_test",
-    srcs = ["core_is_dict_test.py"],
+    name = "dicts_is_dict_test",
+    srcs = ["dicts_is_dict_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -546,8 +546,8 @@ py_test(
 )
 
 py_test(
-    name = "core_has_dict_test",
-    srcs = ["core_has_dict_test.py"],
+    name = "dicts_has_dict_test",
+    srcs = ["dicts_has_dict_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1455,8 +1455,8 @@ py_test(
 )
 
 py_test(
-    name = "core_dict_test",
-    srcs = ["core_dict_test.py"],
+    name = "dicts_create_test",
+    srcs = ["dicts_create_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -1478,32 +1478,8 @@ py_test(
 )
 
 py_test(
-    name = "core_dict_shaped_test",
-    srcs = ["core_dict_shaped_test.py"],
-    deps = [
-        "//py/koladata/exceptions",
-        "//py/koladata/expr:expr_eval",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
-        "//py/koladata/functions",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
-        "//py/koladata/operators/tests/util:qtypes",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_bag",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:jagged_shape",
-        "//py/koladata/types:qtypes",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "core_dict_shaped_as_test",
-    srcs = ["core_dict_shaped_as_test.py"],
+    name = "dicts_shaped_test",
+    srcs = ["dicts_shaped_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -1526,8 +1502,32 @@ py_test(
 )
 
 py_test(
-    name = "core_dict_like_test",
-    srcs = ["core_dict_like_test.py"],
+    name = "dicts_shaped_as_test",
+    srcs = ["dicts_shaped_as_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:jagged_shape",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "dicts_like_test",
+    srcs = ["dicts_like_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -1572,8 +1572,8 @@ py_test(
 )
 
 py_test(
-    name = "core_get_keys_test",
-    srcs = ["core_get_keys_test.py"],
+    name = "dicts_get_keys_test",
+    srcs = ["dicts_get_keys_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1593,8 +1593,8 @@ py_test(
 )
 
 py_test(
-    name = "core_get_values_test",
-    srcs = ["core_get_values_test.py"],
+    name = "dicts_get_values_test",
+    srcs = ["dicts_get_values_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1815,8 +1815,8 @@ py_test(
 )
 
 py_test(
-    name = "core_select_keys_test",
-    srcs = ["core_select_keys_test.py"],
+    name = "dicts_select_keys_test",
+    srcs = ["dicts_select_keys_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1837,8 +1837,8 @@ py_test(
 )
 
 py_test(
-    name = "core_select_values_test",
-    srcs = ["core_select_values_test.py"],
+    name = "dicts_select_values_test",
+    srcs = ["dicts_select_values_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",

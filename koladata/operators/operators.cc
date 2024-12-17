@@ -25,7 +25,7 @@
 #include "koladata/operators/assertion.h"
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/core.h"
-#include "koladata/operators/core_dict.h"
+#include "koladata/operators/dicts.h"
 #include "koladata/operators/core_new.h"
 #include "koladata/operators/core_obj.h"
 #include "koladata/operators/ids.h"
@@ -70,9 +70,6 @@ OPERATOR_FAMILY("kde.core._concat_or_stack",
                 arolla::MakeVariadicInputOperatorFamily(ConcatOrStack));
 OPERATOR("kde.core._deep_clone", DeepClone);
 OPERATOR("kde.core._dense_rank", DenseRank);
-OPERATOR("kde.core._dict_like", DictLike);
-OPERATOR("kde.core._dict_shaped", DictShaped);
-OPERATOR("kde.core._dict_update", DictUpdate);
 OPERATOR("kde.core._extract", Extract);
 OPERATOR("kde.core._extract_bag", ExtractBag);
 OPERATOR("kde.core._freeze_bag", Freeze<DataBagPtr>);
@@ -81,8 +78,6 @@ OPERATOR("kde.core._get_attr", GetAttr);
 OPERATOR("kde.core._get_attr_with_default", GetAttrWithDefault);
 OPERATOR("kde.core._get_item", GetItem);
 OPERATOR("kde.core._get_list_item_by_range", GetListItemByRange);
-OPERATOR("kde.core._get_values", GetValues);
-OPERATOR("kde.core._get_values_by_keys", GetValuesByKeys);
 OPERATOR("kde.core._inverse_mapping", InverseMapping);
 OPERATOR_FAMILY("kde.core._new", std::make_unique<NewOperatorFamily>());
 OPERATOR("kde.core._new_ids_like", NewIdsLike);
@@ -99,22 +94,18 @@ OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kde.core.attr", Attr);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR("kde.core.bag", Bag);
-OPERATOR("kde.core.dict_size", DictSize);
 OPERATOR_FAMILY("kde.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
 OPERATOR_FAMILY("kde.core.enriched_bag",
                 std::make_unique<EnrichedDbOperatorFamily>());
 OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.get_bag", GetBag);
-OPERATOR("kde.core.get_keys", GetKeys);
 OPERATOR_FAMILY("kde.core.group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
 OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndicesSorted));
-OPERATOR("kde.core.has_dict", HasDict);
 OPERATOR("kde.core.has_primitive", HasPrimitive);
 OPERATOR("kde.core.inverse_select", InverseSelect);
-OPERATOR("kde.core.is_dict", IsDict);
 OPERATOR("kde.core.is_empty", IsEmpty);
 OPERATOR("kde.core.is_primitive", IsPrimitive);
 OPERATOR("kde.core.no_bag", NoBag);
@@ -140,6 +131,16 @@ OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kde.core.with_bag", WithBag);
 OPERATOR("kde.core.with_merged_bag", WithMergedBag);
+//
+OPERATOR("kde.dicts._dict_update", DictUpdate);
+OPERATOR("kde.dicts._get_values", GetValues);
+OPERATOR("kde.dicts._get_values_by_keys", GetValuesByKeys);
+OPERATOR("kde.dicts._like", DictLike);
+OPERATOR("kde.dicts._shaped", DictShaped);
+OPERATOR("kde.dicts.get_keys", GetKeys);
+OPERATOR("kde.dicts.has_dict", HasDict);
+OPERATOR("kde.dicts.is_dict", IsDict);
+OPERATOR("kde.dicts.size", DictSize);
 //
 OPERATOR("kde.ids._agg_uuid", AggUuid);
 OPERATOR("kde.ids._deep_uuid", DeepUuid);

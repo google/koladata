@@ -69,13 +69,13 @@ class KodaHasDictTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    testing.assert_equal(expr_eval.eval(kde.core.has_dict(x)), expected)
+    testing.assert_equal(expr_eval.eval(kde.dicts.has_dict(x)), expected)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.has_dict(I.x)))
+    self.assertTrue(view.has_koda_view(kde.dicts.has_dict(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.has_dict, kde.has_dict))
+    self.assertTrue(optools.equiv_to_op(kde.dicts.has_dict, kde.has_dict))
 
 
 if __name__ == '__main__':
