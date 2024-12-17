@@ -30,6 +30,7 @@ from koladata.functor import functions as _functor_functions
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators as _kde_operators
 from koladata.operators import optools as _optools
+from koladata.operators import qtype_utils as _qtype_utils
 from koladata.testing import testing as _testing
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_item as _data_item
@@ -40,6 +41,7 @@ from koladata.types import list_item as _list_item
 from koladata.types import literal_operator as _literal_operator
 from koladata.types import mask_constants as _mask_constants
 from koladata.types import py_boxing as _py_boxing
+from koladata.types import qtypes as _qtypes
 from koladata.types import schema_constants as _schema_constants
 from koladata.types import schema_item as _schema_item
 
@@ -81,9 +83,37 @@ types.JaggedShape = _jagged_shape.JaggedShape
 types.SchemaItem = _schema_item.SchemaItem
 types.Expr = _arolla.Expr
 
+### Koda QTypes.
+qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))
+qtypes.DATA_SLICE = _qtypes.DATA_SLICE
+qtypes.DATA_BAG = _qtypes.DATA_BAG
 
+### Tools for defining operators.
 optools = _eager_only(_py_types.ModuleType('optools'))
 optools.add_alias = _optools.add_alias
+optools.add_to_registry = _optools.add_to_registry
+optools.as_backend_operator = _optools.as_unified_backend_operator
+optools.as_lambda_operator = _optools.as_unified_lambda_operator
+optools.as_py_function_operator = _optools.as_py_function_operator
+optools.equiv_to_op = _optools.equiv_to_op
+optools.as_qvalue = _py_boxing.as_qvalue
+optools.as_qvalue_or_expr = _py_boxing.as_qvalue_or_expr
+
+### Operator constraints.
+optools.constraints = _py_types.ModuleType('constraints')
+optools.constraints.expect_data_slice = _qtype_utils.expect_data_slice
+optools.constraints.expect_data_slice_args = _qtype_utils.expect_data_slice_args
+optools.constraints.expect_data_slice_kwargs = (
+    _qtype_utils.expect_data_slice_kwargs
+)
+optools.constraints.expect_data_slice_or_unspecified = (
+    _qtype_utils.expect_data_slice_or_unspecified
+)
+optools.constraints.expect_data_bag_args = _qtype_utils.expect_data_bag_args
+optools.constraints.expect_jagged_shape = _qtype_utils.expect_jagged_shape
+optools.constraints.expect_jagged_shape_or_unspecified = (
+    _qtype_utils.expect_jagged_shape_or_unspecified
+)
 
 exceptions = _eager_only(_py_types.ModuleType('exceptions'))
 exceptions.KodaError = _exceptions.KodaError

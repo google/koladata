@@ -430,6 +430,74 @@ class KdTest(absltest.TestCase):
     fn = kd.fn(I.x + I.y)
     kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))
 
+  def test_operator_definition(self):
+
+    @kd.optools.add_to_registry()
+    @kd.optools.as_py_function_operator(
+        'kde.core.kd_test_op',
+        qtype_constraints=[
+            kd.optools.constraints.expect_data_slice(arolla.P.x)
+        ],
+        qtype_inference_expr=kd.qtypes.DATA_SLICE,
+    )
+    def kd_test_op(x):
+      return x + 1
+
+    # Can access and eval op.
+    expr = kde.core.kd_test_op(kd.slice([1, 2]))
+    kd.testing.assert_equal(kd.eval(expr), kd.slice([2, 3]))
+    kd.testing.assert_equal(
+        kd.core.kd_test_op(kd.slice([1, 2])), kd.slice([2, 3])
+    )
+    # Only accepts DataSlices.
+    with self.assertRaisesRegex(
+        ValueError, 'expected DATA_SLICE, got x: DATA_BAG'
+    ):
+      kd_test_op(kd.bag())
+
+  def test_equiv_to_op(self):
+    @kd.optools.add_to_registry()
+    @kd.optools.as_lambda_operator('kd_test.bad_op')
+    def bad_op(x):  # pylint: disable=unused-variable
+      return x
+
+    @kd.optools.add_to_registry()
+    @kd.optools.as_lambda_operator('kd_test.equiv_to_op_op')
+    def equiv_to_op_op(x):  # pylint: disable=unused-variable
+      return x
+
+    kd.optools.add_alias('kd_test.equiv_to_op_op', 'kd_test.equiv_to_op_alias')
+    self.assertTrue(
+        kd.optools.equiv_to_op(
+            'kd_test.equiv_to_op_op', 'kd_test.equiv_to_op_op'
+        )
+    )
+    self.assertTrue(
+        kd.optools.equiv_to_op(
+            'kd_test.equiv_to_op_op', 'kd_test.equiv_to_op_alias'
+        )
+    )
+    self.assertFalse(
+        kd.optools.equiv_to_op('kd_test.equiv_to_op_op', 'kd_test.bad_op')
+    )
+
+  def test_as_qvalue(self):
+    kd.testing.assert_equal(kd.optools.as_qvalue(1), kd.item(1))
+
+  def test_as_qvalue_or_expr(self):
+    kd.testing.assert_equal(kd.optools.as_qvalue_or_expr(1), kd.item(1))
+    kd.testing.assert_equal(kd.optools.as_qvalue_or_expr(I.x), I.x)
+
+  def test_qtypes(self):
+    kd.testing.assert_equal(kd.item(1).qtype, kd.qtypes.DATA_SLICE)
+    kd.testing.assert_equal(kd.bag().qtype, kd.qtypes.DATA_BAG)
+
+    @kd.trace_as_fn(return_type_as=arolla.INT32)
+    def get_data_slice():
+      return kd.qtypes.DATA_SLICE
+
+    kd.testing.assert_equal(get_data_slice(), kd.qtypes.DATA_SLICE)
+
 
 if __name__ == '__main__':
   absltest.main()
