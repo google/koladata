@@ -118,11 +118,11 @@ absl::Nullable<PyObject*> PyDataSlice_from_vals(PyTypeObject* cls,
     return nullptr;
   }
   PyObject* list = py_args[0];
-  std::optional<DataSlice> dtype;
-  if (!UnwrapDataSliceOptionalArg(args.pos_kw_values[0], "schema", dtype)) {
+  std::optional<DataSlice> schema;
+  if (!UnwrapDataSliceOptionalArg(args.pos_kw_values[0], "schema", schema)) {
     return nullptr;
   }
-  ASSIGN_OR_RETURN(auto ds, DataSliceFromPyValueWithAdoption(list, dtype),
+  ASSIGN_OR_RETURN(auto ds, DataSliceFromPyValueWithAdoption(list, schema),
                    arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(ds));
 }

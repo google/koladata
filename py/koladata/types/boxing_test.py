@@ -166,8 +166,8 @@ class BoxingTest(parameterized.TestCase):
           EXPR,
       ),
   )
-  def test_roundtrip(self, val, dtype, expected, expected_schema):
-    x = ds(val, schema=dtype)
+  def test_roundtrip(self, val, schema, expected, expected_schema):
+    x = ds(val, schema=schema)
     self.assertEqual(x.internal_as_py(), expected)
     testing.assert_equal(x.get_schema(), expected_schema)
 
@@ -208,9 +208,9 @@ class BoxingTest(parameterized.TestCase):
           EXPR,
       ),
   )
-  def test_scalars_roundtrip(self, value, dtype, expected, expected_schema):
-    x = ds(value, schema=dtype)
-    x_item = data_item.DataItem.from_vals(value, schema=dtype)
+  def test_scalars_roundtrip(self, value, schema, expected, expected_schema):
+    x = ds(value, schema=schema)
+    x_item = data_item.DataItem.from_vals(value, schema=schema)
     testing.assert_equal(x, x_item)
     self.assertIsInstance(x, data_item.DataItem)
     self.assertAlmostEqual(x.internal_as_py(), expected, places=5)
@@ -219,7 +219,7 @@ class BoxingTest(parameterized.TestCase):
   def test_missing_unit_schema(self):
     testing.assert_equal(ds(arolla.missing()).get_schema(), MASK)
 
-  def test_dtype_none(self):
+  def test_schema_none(self):
     x = ds([1, 2, 3], schema=None)
     self.assertEqual(x.internal_as_py(), [1, 2, 3])
     self.assertEqual(x.get_schema(), INT32)
@@ -228,7 +228,7 @@ class BoxingTest(parameterized.TestCase):
     self.assertEqual(x.internal_as_py(), [1, 2, 3])
     self.assertEqual(x.get_schema(), INT32)
 
-  def test_invalid_dtype_argument_usage(self):
+  def test_invalid_schema_argument_usage(self):
     with self.assertRaisesRegex(TypeError, "got an unexpected keyword 'c'"):
       ds(None, c=12)
 
@@ -407,14 +407,14 @@ class BoxingTest(parameterized.TestCase):
     with self.subTest('float'):
       py_val = 3.14371857238947
       self.assertEqual(ds(py_val, FLOAT64).internal_as_py(), py_val)
-      for dtype in (None, FLOAT32):
-        self.assertNotEqual(ds(py_val, dtype).internal_as_py(), py_val)
+      for schema in (None, FLOAT32):
+        self.assertNotEqual(ds(py_val, schema).internal_as_py(), py_val)
         self.assertAlmostEqual(
-            ds(py_val, dtype).internal_as_py(), py_val, places=5
+            ds(py_val, schema).internal_as_py(), py_val, places=5
         )
 
   def test_from_vals_all_empty(self):
-    with self.subTest('no dtype provided'):
+    with self.subTest('no schema provided'):
       x = ds([[None, None, None], [None, None]])
       testing.assert_equal(x.get_schema(), NONE)
       self.assertEqual(x.internal_as_py(), [[None, None, None], [None, None]])
@@ -433,7 +433,7 @@ class BoxingTest(parameterized.TestCase):
       self.assertEqual(x.internal_as_py(), [None, None])
       testing.assert_equal(x.get_schema(), ANY)
 
-    with self.subTest('dtype provided'):
+    with self.subTest('schema provided'):
       x = ds([None, None, None], INT32)
       testing.assert_equal(x.get_schema(), INT32)
       self.assertEqual(x.internal_as_py(), [None, None, None])
@@ -493,11 +493,11 @@ class BoxingTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'unsupported QType: UINT64'):
       ds(arolla.types.UINT64)
     with self.assertRaisesRegex(
-        ValueError, '`dtype` should not be passed.*from Arolla Array'
+        ValueError, '`schema` should not be passed.*from Arolla Array'
     ):
       ds(arolla.array([1, 2]), INT64)
     with self.assertRaisesRegex(
-        ValueError, '`dtype` should not be passed.*from Arolla DenseArray'
+        ValueError, '`schema` should not be passed.*from Arolla DenseArray'
     ):
       ds(arolla.dense_array([1, 2]), INT64)
 

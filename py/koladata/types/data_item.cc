@@ -107,11 +107,11 @@ absl::Nullable<PyObject*> PyDataItem_from_vals(PyTypeObject* cls,
                     "cannot create multi-dim DataSlice");
     return nullptr;
   }
-  std::optional<DataSlice> dtype;
-  if (!UnwrapDataSliceOptionalArg(args.pos_kw_values[0], "schema", dtype)) {
+  std::optional<DataSlice> schema;
+  if (!UnwrapDataSliceOptionalArg(args.pos_kw_values[0], "schema", schema)) {
     return nullptr;
   }
-  ASSIGN_OR_RETURN(auto ds, DataItemFromPyValue(py_obj, dtype),
+  ASSIGN_OR_RETURN(auto ds, DataItemFromPyValue(py_obj, schema),
                    arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(ds));
 }

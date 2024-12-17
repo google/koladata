@@ -558,10 +558,10 @@ absl::Nullable<PyObject*> PyObjectFromDataItem(const DataItem& item,
 
 absl::StatusOr<DataSlice> DataSliceFromPyValue(
     PyObject* py_obj, AdoptionQueue& adoption_queue,
-    const std::optional<DataSlice>& dtype) {
+    const std::optional<DataSlice>& schema) {
   arolla::python::DCheckPyGIL();
-  if (dtype) {
-    RETURN_IF_ERROR(dtype->VerifyIsSchema());
+  if (schema) {
+    RETURN_IF_ERROR(schema->VerifyIsSchema());
   }
   if (arolla::python::IsPyQValueInstance(py_obj)) {
     const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
@@ -569,46 +569,46 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(
       const auto& res = typed_value.UnsafeAs<DataSlice>();
       adoption_queue.Add(res);
       // Cast the input.
-      if (dtype && res.GetSchemaImpl() != dtype->item()) {
+      if (schema && res.GetSchemaImpl() != schema->item()) {
         DataBagPtr db = nullptr;
         // We need to embed the schema.
         if (res.GetSchemaImpl().is_entity_schema() &&
-            dtype->item() == schema::kObject) {
+            schema->item() == schema::kObject) {
           db = DataBag::Empty();
           adoption_queue.Add(db);
         }
         // Schema attr validation is handled during adoption queue merging.
-        return CastToExplicit(res.WithBag(std::move(db)), dtype->item(),
+        return CastToExplicit(res.WithBag(std::move(db)), schema->item(),
                               /*validate_schema=*/false);
       } else {
         // Makes a copy of DataSlice object. Keeps the reference to DataBag.
         return res;
       }
     } else if (arolla::IsDenseArrayQType(typed_value.GetType())) {
-      if (dtype) {
+      if (schema) {
         return absl::InvalidArgumentError(
-            "`dtype` should not be passed when creating a DataSlice from Arolla"
-            " DenseArray");
+            "`schema` should not be passed when creating a DataSlice from "
+            "Arolla DenseArray");
       }
       return DataSliceFromPrimitivesDenseArray(typed_value.AsRef());
     } else if (arolla::IsArrayQType(typed_value.GetType())) {
-      if (dtype) {
+      if (schema) {
         return absl::InvalidArgumentError(
-            "`dtype` should not be passed when creating a DataSlice from Arolla"
-            " Array");
+            "`schema` should not be passed when creating a DataSlice from "
+            "Arolla Array");
       }
       return DataSliceFromPrimitivesArray(typed_value.AsRef());
     }
   }
   if (!PyList_CheckExact(py_obj) && !PyTuple_CheckExact(py_obj)) {
-    return DataItemFromPyValue(py_obj, dtype);
+    return DataItemFromPyValue(py_obj, schema);
   }
-  return DataSliceFromPyList(py_obj, dtype ? dtype->item() : DataItem(),
+  return DataSliceFromPyList(py_obj, schema ? schema->item() : DataItem(),
                              adoption_queue);
 }
 
 absl::StatusOr<DataSlice> DataItemFromPyValue(
-    PyObject* py_obj, const std::optional<DataSlice>& dtype) {
+    PyObject* py_obj, const std::optional<DataSlice>& schema) {
   AdoptionQueue adoption_queue;
   internal::DataItem res_item;
   internal::DataItem schema_item;
@@ -616,9 +616,9 @@ absl::StatusOr<DataSlice> DataItemFromPyValue(
     res_item = internal::DataItem(std::forward<T>(value));
   };
   // NOTE: If there is a DataBag `py_obj`, it is added to the adoption_queue.
-  if (dtype.has_value()) {
-    RETURN_IF_ERROR(dtype->VerifyIsSchema());
-    schema_item = dtype->item();
+  if (schema.has_value()) {
+    RETURN_IF_ERROR(schema->VerifyIsSchema());
+    schema_item = schema->item();
     EmbeddingDataBag embedding_db;
     schema::CommonSchemaAggregator unused_schema_agg;
     RETURN_IF_ERROR(ParsePyObject</*explicit_cast=*/true>(
@@ -692,10 +692,10 @@ absl::Nullable<PyObject*> DataSliceToPyValue(const DataSlice& ds) {
 }
 
 absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
-    PyObject* py_obj, const std::optional<DataSlice>& dtype) {
+    PyObject* py_obj, const std::optional<DataSlice>& schema) {
   AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(DataSlice res_no_db,
-                   DataSliceFromPyValue(py_obj, adoption_queue, dtype));
+                   DataSliceFromPyValue(py_obj, adoption_queue, schema));
   ASSIGN_OR_RETURN(auto db, adoption_queue.GetCommonOrMergedDb());
   return res_no_db.WithBag(std::move(db));
 }
