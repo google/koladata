@@ -289,7 +289,6 @@ absl::Status FillProtoRepeatedPrimitiveField(
           const int64_t split_begin = splits[i];
           const int64_t split_end = splits[i + 1];
           repeated_field_ref.Clear();
-          repeated_field_ref.Reserve(split_end - split_begin);
 
           // If there are multiple dtypes, this will perform multiple passes
           // over the repeated field. On the first pass, we use Add to populate
