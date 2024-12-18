@@ -16,6 +16,7 @@ Category  | Subcategory | Description
  | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
  | [comparison](#kd.comparison) | Operators that compare DataSlices.
  | [core](#kd.core) | Core operators that are not part of other categories.
+ | [dicts](#kd.dicts) | Operators working with dictionaries.
  | [functor](#kd.functor) | Operators to create and call functors.
  | [ids](#kd.ids) | Operators that work with ItemIds.
  | [lists](#kd.lists) | Operators working with lists.
@@ -869,180 +870,6 @@ Returns:
   A DataSlice of dense ranks.
 ```
 
-### `kd.dicts.create(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.create}
-Aliases:
-
-- [kd.dict](#kd.dict)
-
-``` {.no-copy}
-Creates a Koda dict.
-
-  Acceptable arguments are:
-    1) no argument: a single empty dict
-    2) a Python dict whose keys are either primitives or DataItems and values
-       are primitives, DataItems, Python list/dict which can be converted to a
-       List/Dict DataItem, or a DataSlice which can folded into a List DataItem:
-       a single dict
-    3) two DataSlices/DataItems as keys and values: a DataSlice of dicts whose
-       shape is the last N-1 dimensions of keys/values DataSlice
-
-  Examples:
-  dict() -> returns a single new dict
-  dict({1: 2, 3: 4}) -> returns a single new dict
-  dict({1: [1, 2]}) -> returns a single dict, mapping 1->List[1, 2]
-  dict({1: kd.slice([1, 2])}) -> returns a single dict, mapping 1->List[1, 2]
-  dict({db.uuobj(x=1, y=2): 3}) -> returns a single dict, mapping uuid->3
-  dict(kd.slice([1, 2]), kd.slice([3, 4]))
-    -> returns a dict ({1: 3, 2: 4})
-  dict(kd.slice([[1], [2]]), kd.slice([3, 4]))
-    -> returns a 1-D DataSlice that holds two dicts ({1: 3} and {2: 4})
-  dict('key', 12) -> returns a single dict mapping 'key'->12
-
-  Args:
-    items_or_keys: a Python dict in case of items and a DataSlice in case of
-      keys.
-    values: a DataSlice. If provided, `items_or_keys` must be a DataSlice as
-      keys.
-    key_schema: the schema of the dict keys. If not specified, it will be
-      deduced from keys or defaulted to OBJECT.
-    value_schema: the schema of the dict values. If not specified, it will be
-      deduced from values or defaulted to OBJECT.
-    schema: The schema to use for the newly created Dict. If specified, then
-        key_schema and value_schema must not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where dict(s) are created.
-
-  Returns:
-    A DataSlice with the dict.
-```
-
-### `kd.dicts.like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.like}
-Aliases:
-
-- [kd.dict_like](#kd.dict_like)
-
-``` {.no-copy}
-Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
-
-  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
-  the function assigns the given keys and values to the newly created dicts. So
-  the keys and values must be either broadcastable to shape_and_mask_from
-  shape, or one dimension higher.
-
-  Args:
-    shape_and_mask_from: a DataSlice with the shape and sparsity for the
-      desired dicts.
-    items_or_keys: either a Python dict (if `values` is None) or a DataSlice
-      with keys. The Python dict case is supported only for scalar
-      shape_and_mask_from.
-    values: a DataSlice of values, when `items_or_keys` represents keys.
-    key_schema: the schema of the dict keys. If not specified, it will be
-      deduced from keys or defaulted to OBJECT.
-    value_schema: the schema of the dict values. If not specified, it will be
-      deduced from values or defaulted to OBJECT.
-    schema: The schema to use for the newly created Dict. If specified, then
-        key_schema and value_schema must not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where dicts are created.
-
-  Returns:
-    A DataSlice with the dicts.
-```
-
-### `kd.dicts.shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.shaped}
-Aliases:
-
-- [kd.dict_shaped](#kd.dict_shaped)
-
-``` {.no-copy}
-Creates new Koda dicts with the given shape.
-
-  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
-  the function assigns the given keys and values to the newly created dicts. So
-  the keys and values must be either broadcastable to `shape` or one dimension
-  higher.
-
-  Args:
-    shape: the desired shape.
-    items_or_keys: either a Python dict (if `values` is None) or a DataSlice
-      with keys. The Python dict case is supported only for scalar shape.
-    values: a DataSlice of values, when `items_or_keys` represents keys.
-    key_schema: the schema of the dict keys. If not specified, it will be
-      deduced from keys or defaulted to OBJECT.
-    value_schema: the schema of the dict values. If not specified, it will be
-      deduced from values or defaulted to OBJECT.
-    schema: The schema to use for the newly created Dict. If specified, then
-        key_schema and value_schema must not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: Optional DataBag where dicts are created.
-
-  Returns:
-    A DataSlice with the dicts.
-```
-
-### `kd.dicts.shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.shaped_as}
-Aliases:
-
-- [kd.dict_shaped_as](#kd.dict_shaped_as)
-
-``` {.no-copy}
-Creates new Koda dicts with shape of the given DataSlice.
-
-  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
-  the function assigns the given keys and values to the newly created dicts. So
-  the keys and values must be either broadcastable to `shape` or one dimension
-  higher.
-
-  Args:
-    shape_from: mandatory DataSlice, whose shape the returned DataSlice will
-      have.
-    items_or_keys: either a Python dict (if `values` is None) or a DataSlice
-      with keys. The Python dict case is supported only for scalar shape.
-    values: a DataSlice of values, when `items_or_keys` represents keys.
-    key_schema: the schema of the dict keys. If not specified, it will be
-      deduced from keys or defaulted to OBJECT.
-    value_schema: the schema of the dict values. If not specified, it will be
-      deduced from values or defaulted to OBJECT.
-    schema: The schema to use for the newly created Dict. If specified, then
-      key_schema and value_schema must not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: Optional DataBag where dicts are created.
-
-  Returns:
-    A DataSlice with the dicts.
-```
-
-### `kd.dicts.dict_size(dict_slice)` {#kd.dicts.dict_size}
-Aliases:
-
-- [kd.dict_size](#kd.dict_size)
-
-``` {.no-copy}
-Returns size of a Dict.
-```
-
-### `kd.dicts.dict_update(x, keys, values=unspecified)` {#kd.dicts.dict_update}
-Aliases:
-
-- [kd.dict_update](#kd.dict_update)
-
-``` {.no-copy}
-Returns DataBag containing updates to a DataSlice of dicts.
-
-This operator has two forms:
-  kde.dict_update(x, keys, values) where keys and values are slices
-  kde.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
-
-If both keys and values are specified, they must both be broadcastable to the
-shape of `x`. If only keys is specified (as dict_updates), it must be
-broadcastable to 'x'.
-
-Args:
-  x: DataSlice of dicts to update.
-  keys: A DataSlice of keys, or a DataSlice of dicts of updates.
-  values: A DataSlice of values, or unspecified if `keys` contains dicts.
-```
-
 ### `kd.core.empty_shaped(shape, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.core.empty_shaped}
 Aliases:
 
@@ -1323,25 +1150,6 @@ Returns:
   Result DataSlice.
 ```
 
-### `kd.dicts.get_keys(dict_ds)` {#kd.dicts.get_keys}
-Aliases:
-
-- [kd.get_keys](#kd.get_keys)
-
-``` {.no-copy}
-Returns keys of all Dicts in `dict_ds`.
-
-The result DataSlice has one more dimension used to represent keys in each
-dict than `dict_ds`. While the order of keys within a dict is arbitrary, it is
-the same as get_values().
-
-Args:
-  dict_ds: DataSlice of Dicts.
-
-Returns:
-  A DataSlice of keys.
-```
-
 ### `kd.core.get_ndim(x)` {#kd.core.get_ndim}
 Aliases:
 
@@ -1349,29 +1157,6 @@ Aliases:
 
 ``` {.no-copy}
 Returns the number of dimensions of DataSlice `x`.
-```
-
-### `kd.dicts.get_values(dict_ds, key_ds=unspecified)` {#kd.dicts.get_values}
-Aliases:
-
-- [kd.get_values](#kd.get_values)
-
-``` {.no-copy}
-Returns values corresponding to `key_ds` for dicts in `dict_ds`.
-
-When `key_ds` is specified, it is equivalent to dict_ds[key_ds].
-
-When `key_ds` is unspecified, it returns all values in `dict_ds`. The result
-DataSlice has one more dimension used to represent values in each dict than
-`dict_ds`. While the order of values within a dict is arbitrary, it is the
-same as get_keys().
-
-Args:
-  dict_ds: DataSlice of Dicts.
-  key_ds: DataSlice of keys or unspecified.
-
-Returns:
-  A DataSlice of values.
 ```
 
 ### `kd.core.group_by(x, *args)` {#kd.core.group_by}
@@ -1553,32 +1338,6 @@ Returns:
   attribute exists for the corresponding item.
 ```
 
-### `kd.dicts.has_dict(x)` {#kd.dicts.has_dict}
-Aliases:
-
-- [kd.has_dict](#kd.has_dict)
-
-``` {.no-copy}
-Returns present for each item in `x` that is Dict.
-
-Note that this is a pointwise operation.
-
-Also see `kd.is_dict` for checking if `x` is a Dict DataSlice. But note that
-`kd.all(kd.has_dict(x))` is not always equivalent to `kd.is_dict(x)`. For
-example,
-
-  kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
-  kd.all(kd.has_dict(kd.item(None, kd.OBJECT))) -> invalid for kd.all
-  kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
-  kd.all(kd.has_dict(kd.item([None], kd.OBJECT))) -> kd.missing
-
-Args:
-  x: DataSlice to check.
-
-Returns:
-  A MASK DataSlice with the same shape as `x`.
-```
-
 ### `kd.core.has_primitive(x)` {#kd.core.has_primitive}
 Aliases:
 
@@ -1729,34 +1488,6 @@ Args:
 
 Returns:
   Reverse filtered DataSlice.
-```
-
-### `kd.dicts.is_dict(x)` {#kd.dicts.is_dict}
-Aliases:
-
-- [kd.is_dict](#kd.is_dict)
-
-``` {.no-copy}
-Returns whether x is a Dict DataSlice.
-
-`x` is a Dict DataSlice if it meets one of the following conditions:
-  1) it has a Dict schema
-  2) it has OBJECT/ANY schema and only has Dict items
-
-Also see `kd.has_dict` for a pointwise version. But note that
-`kd.all(kd.has_dict(x))` is not always equivalent to `kd.is_dict(x)`. For
-example,
-
-  kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
-  kd.all(kd.has_dict(kd.item(None, kd.OBJECT))) -> invalid for kd.all
-  kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
-  kd.all(kd.has_dict(kd.item([None], kd.OBJECT))) -> kd.missing
-
-Args:
-  x: DataSlice to check.
-
-Returns:
-  A MASK DataItem.
 ```
 
 ### `kd.core.is_empty(x)` {#kd.core.is_empty}
@@ -2329,25 +2060,6 @@ Returns:
   Filtered DataSlice.
 ```
 
-### `kd.dicts.select_keys(ds, fltr)` {#kd.dicts.select_keys}
-Aliases:
-
-- [kd.select_keys](#kd.select_keys)
-
-``` {.no-copy}
-Selects Dict keys by filtering out missing items in `fltr`.
-
-Also see kd.select.
-
-Args:
-  ds: Dict DataSlice to be filtered
-  fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or
-    a Python function which can be evalauted to such DataSlice.
-
-Returns:
-  Filtered DataSlice.
-```
-
 ### `kd.core.select_present(ds)` {#kd.core.select_present}
 Aliases:
 
@@ -2355,25 +2067,6 @@ Aliases:
 
 ``` {.no-copy}
 Creates a new DataSlice by removing missing items.
-```
-
-### `kd.dicts.select_values(ds, fltr)` {#kd.dicts.select_values}
-Aliases:
-
-- [kd.select_values](#kd.select_values)
-
-``` {.no-copy}
-Selects Dict values by filtering out missing items in `fltr`.
-
-Also see kd.select.
-
-Args:
-  ds: Dict DataSlice to be filtered
-  fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or
-    a Python function which can be evalauted to such DataSlice.
-
-Returns:
-  Filtered DataSlice.
 ```
 
 ### `kd.core.shallow_clone(x, /, *, itemid=unspecified, schema=unspecified, **overrides)` {#kd.core.shallow_clone}
@@ -2975,29 +2668,6 @@ Returns a DataSlice with the given DataBatg attached.
 
 Alias for [kd.core.with_bag](#kd.core.with_bag) operator.
 
-### `kd.dicts.with_dict_update(x, keys, values=unspecified)` {#kd.dicts.with_dict_update}
-Aliases:
-
-- [kd.with_dict_update](#kd.with_dict_update)
-
-``` {.no-copy}
-Returns a DataSlice with a new DataBag containing updated dicts.
-
-This operator has two forms:
-  kde.with_dict_update(x, keys, values) where keys and values are slices
-  kde.with_dict_update(x, dict_updates) where dict_updates is a DataSlice of
-    dicts
-
-If both keys and values are specified, they must both be broadcastable to the
-shape of `x`. If only keys is specified (as dict_updates), it must be
-broadcastable to 'x'.
-
-Args:
-  x: DataSlice of dicts to update.
-  keys: A DataSlice of keys, or a DataSlice of dicts of updates.
-  values: A DataSlice of values, or unspecified if `keys` contains dicts.
-```
-
 ### `kd.core.with_merged_bag(ds)` {#kd.core.with_merged_bag}
 Aliases:
 
@@ -3048,6 +2718,347 @@ Args:
 Returns:
   The zipped DataSlice. If the input DataSlices come from different DataBags,
   this will refer to a merged immutable DataBag.
+```
+
+</section>
+
+### kd.dicts {#kd.dicts}
+
+Operators working with dictionaries.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.dicts.create(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.create}
+Aliases:
+
+- [kd.dict](#kd.dict)
+
+``` {.no-copy}
+Creates a Koda dict.
+
+  Acceptable arguments are:
+    1) no argument: a single empty dict
+    2) a Python dict whose keys are either primitives or DataItems and values
+       are primitives, DataItems, Python list/dict which can be converted to a
+       List/Dict DataItem, or a DataSlice which can folded into a List DataItem:
+       a single dict
+    3) two DataSlices/DataItems as keys and values: a DataSlice of dicts whose
+       shape is the last N-1 dimensions of keys/values DataSlice
+
+  Examples:
+  dict() -> returns a single new dict
+  dict({1: 2, 3: 4}) -> returns a single new dict
+  dict({1: [1, 2]}) -> returns a single dict, mapping 1->List[1, 2]
+  dict({1: kd.slice([1, 2])}) -> returns a single dict, mapping 1->List[1, 2]
+  dict({db.uuobj(x=1, y=2): 3}) -> returns a single dict, mapping uuid->3
+  dict(kd.slice([1, 2]), kd.slice([3, 4]))
+    -> returns a dict ({1: 3, 2: 4})
+  dict(kd.slice([[1], [2]]), kd.slice([3, 4]))
+    -> returns a 1-D DataSlice that holds two dicts ({1: 3} and {2: 4})
+  dict('key', 12) -> returns a single dict mapping 'key'->12
+
+  Args:
+    items_or_keys: a Python dict in case of items and a DataSlice in case of
+      keys.
+    values: a DataSlice. If provided, `items_or_keys` must be a DataSlice as
+      keys.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: The schema to use for the newly created Dict. If specified, then
+        key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where dict(s) are created.
+
+  Returns:
+    A DataSlice with the dict.
+```
+
+### `kd.dicts.dict_update(x, keys, values=unspecified)` {#kd.dicts.dict_update}
+Aliases:
+
+- [kd.dict_update](#kd.dict_update)
+
+``` {.no-copy}
+Returns DataBag containing updates to a DataSlice of dicts.
+
+This operator has two forms:
+  kde.dict_update(x, keys, values) where keys and values are slices
+  kde.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
+
+If both keys and values are specified, they must both be broadcastable to the
+shape of `x`. If only keys is specified (as dict_updates), it must be
+broadcastable to 'x'.
+
+Args:
+  x: DataSlice of dicts to update.
+  keys: A DataSlice of keys, or a DataSlice of dicts of updates.
+  values: A DataSlice of values, or unspecified if `keys` contains dicts.
+```
+
+### `kd.dicts.get_keys(dict_ds)` {#kd.dicts.get_keys}
+Aliases:
+
+- [kd.get_keys](#kd.get_keys)
+
+``` {.no-copy}
+Returns keys of all Dicts in `dict_ds`.
+
+The result DataSlice has one more dimension used to represent keys in each
+dict than `dict_ds`. While the order of keys within a dict is arbitrary, it is
+the same as get_values().
+
+Args:
+  dict_ds: DataSlice of Dicts.
+
+Returns:
+  A DataSlice of keys.
+```
+
+### `kd.dicts.get_values(dict_ds, key_ds=unspecified)` {#kd.dicts.get_values}
+Aliases:
+
+- [kd.get_values](#kd.get_values)
+
+``` {.no-copy}
+Returns values corresponding to `key_ds` for dicts in `dict_ds`.
+
+When `key_ds` is specified, it is equivalent to dict_ds[key_ds].
+
+When `key_ds` is unspecified, it returns all values in `dict_ds`. The result
+DataSlice has one more dimension used to represent values in each dict than
+`dict_ds`. While the order of values within a dict is arbitrary, it is the
+same as get_keys().
+
+Args:
+  dict_ds: DataSlice of Dicts.
+  key_ds: DataSlice of keys or unspecified.
+
+Returns:
+  A DataSlice of values.
+```
+
+### `kd.dicts.has_dict(x)` {#kd.dicts.has_dict}
+Aliases:
+
+- [kd.has_dict](#kd.has_dict)
+
+``` {.no-copy}
+Returns present for each item in `x` that is Dict.
+
+Note that this is a pointwise operation.
+
+Also see `kd.is_dict` for checking if `x` is a Dict DataSlice. But note that
+`kd.all(kd.has_dict(x))` is not always equivalent to `kd.is_dict(x)`. For
+example,
+
+  kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.has_dict(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.has_dict(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataSlice with the same shape as `x`.
+```
+
+### `kd.dicts.is_dict(x)` {#kd.dicts.is_dict}
+Aliases:
+
+- [kd.is_dict](#kd.is_dict)
+
+``` {.no-copy}
+Returns whether x is a Dict DataSlice.
+
+`x` is a Dict DataSlice if it meets one of the following conditions:
+  1) it has a Dict schema
+  2) it has OBJECT/ANY schema and only has Dict items
+
+Also see `kd.has_dict` for a pointwise version. But note that
+`kd.all(kd.has_dict(x))` is not always equivalent to `kd.is_dict(x)`. For
+example,
+
+  kd.is_dict(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.has_dict(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_dict(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.has_dict(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataItem.
+```
+
+### `kd.dicts.like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.like}
+Aliases:
+
+- [kd.dict_like](#kd.dict_like)
+
+``` {.no-copy}
+Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
+
+  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
+  the function assigns the given keys and values to the newly created dicts. So
+  the keys and values must be either broadcastable to shape_and_mask_from
+  shape, or one dimension higher.
+
+  Args:
+    shape_and_mask_from: a DataSlice with the shape and sparsity for the
+      desired dicts.
+    items_or_keys: either a Python dict (if `values` is None) or a DataSlice
+      with keys. The Python dict case is supported only for scalar
+      shape_and_mask_from.
+    values: a DataSlice of values, when `items_or_keys` represents keys.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: The schema to use for the newly created Dict. If specified, then
+        key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where dicts are created.
+
+  Returns:
+    A DataSlice with the dicts.
+```
+
+### `kd.dicts.select_keys(ds, fltr)` {#kd.dicts.select_keys}
+Aliases:
+
+- [kd.select_keys](#kd.select_keys)
+
+``` {.no-copy}
+Selects Dict keys by filtering out missing items in `fltr`.
+
+Also see kd.select.
+
+Args:
+  ds: Dict DataSlice to be filtered
+  fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
+    function which can be evalauted to such DataSlice.
+
+Returns:
+  Filtered DataSlice.
+```
+
+### `kd.dicts.select_values(ds, fltr)` {#kd.dicts.select_values}
+Aliases:
+
+- [kd.select_values](#kd.select_values)
+
+``` {.no-copy}
+Selects Dict values by filtering out missing items in `fltr`.
+
+Also see kd.select.
+
+Args:
+  ds: Dict DataSlice to be filtered
+  fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
+    function which can be evalauted to such DataSlice.
+
+Returns:
+  Filtered DataSlice.
+```
+
+### `kd.dicts.shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.shaped}
+Aliases:
+
+- [kd.dict_shaped](#kd.dict_shaped)
+
+``` {.no-copy}
+Creates new Koda dicts with the given shape.
+
+  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
+  the function assigns the given keys and values to the newly created dicts. So
+  the keys and values must be either broadcastable to `shape` or one dimension
+  higher.
+
+  Args:
+    shape: the desired shape.
+    items_or_keys: either a Python dict (if `values` is None) or a DataSlice
+      with keys. The Python dict case is supported only for scalar shape.
+    values: a DataSlice of values, when `items_or_keys` represents keys.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: The schema to use for the newly created Dict. If specified, then
+        key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: Optional DataBag where dicts are created.
+
+  Returns:
+    A DataSlice with the dicts.
+```
+
+### `kd.dicts.shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.shaped_as}
+Aliases:
+
+- [kd.dict_shaped_as](#kd.dict_shaped_as)
+
+``` {.no-copy}
+Creates new Koda dicts with shape of the given DataSlice.
+
+  If items_or_keys and values are not provided, creates empty dicts. Otherwise,
+  the function assigns the given keys and values to the newly created dicts. So
+  the keys and values must be either broadcastable to `shape` or one dimension
+  higher.
+
+  Args:
+    shape_from: mandatory DataSlice, whose shape the returned DataSlice will
+      have.
+    items_or_keys: either a Python dict (if `values` is None) or a DataSlice
+      with keys. The Python dict case is supported only for scalar shape.
+    values: a DataSlice of values, when `items_or_keys` represents keys.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: The schema to use for the newly created Dict. If specified, then
+      key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: Optional DataBag where dicts are created.
+
+  Returns:
+    A DataSlice with the dicts.
+```
+
+### `kd.dicts.size(dict_slice)` {#kd.dicts.size}
+Aliases:
+
+- [kd.dict_size](#kd.dict_size)
+
+``` {.no-copy}
+Returns size of a Dict.
+```
+
+### `kd.dicts.with_dict_update(x, keys, values=unspecified)` {#kd.dicts.with_dict_update}
+Aliases:
+
+- [kd.with_dict_update](#kd.with_dict_update)
+
+``` {.no-copy}
+Returns a DataSlice with a new DataBag containing updated dicts.
+
+This operator has two forms:
+  kde.with_dict_update(x, keys, values) where keys and values are slices
+  kde.with_dict_update(x, dict_updates) where dict_updates is a DataSlice of
+    dicts
+
+If both keys and values are specified, they must both be broadcastable to the
+shape of `x`. If only keys is specified (as dict_updates), it must be
+broadcastable to 'x'.
+
+Args:
+  x: DataSlice of dicts to update.
+  keys: A DataSlice of keys, or a DataSlice of dicts of updates.
+  values: A DataSlice of values, or unspecified if `keys` contains dicts.
 ```
 
 </section>
@@ -3654,6 +3665,40 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
     DataSlice of concatenated Lists
 ```
 
+### `kd.lists.create(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.create}
+Aliases:
+
+- [kd.list](#kd.list)
+
+``` {.no-copy}
+Creates list(s) by collapsing `items`.
+
+  If there is no argument, returns an empty Koda List.
+  If the argument is a DataSlice, creates a slice of Koda Lists.
+  If the argument is a Python list, creates a nested Koda List.
+
+  Examples:
+  list() -> a single empty Koda List
+  list([1, 2, 3]) -> Koda List with items 1, 2, 3
+  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
+  list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
+  list(kd.slice([[1, 2, 3], [4, 5]]))
+    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
+
+  Args:
+    items: The items to use. If not specified, an empty list of OBJECTs will be
+      created.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where list(s) are created.
+
+  Returns:
+    The slice with list/lists.
+```
+
 ### `kd.lists.explode(x, ndim=DataItem(1, schema: INT32))` {#kd.lists.explode}
 Aliases:
 
@@ -3792,40 +3837,6 @@ Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
   Returns:
     A DataSlice with the lists.
-```
-
-### `kd.lists.create(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.create}
-Aliases:
-
-- [kd.list](#kd.list)
-
-``` {.no-copy}
-Creates list(s) by collapsing `items`.
-
-  If there is no argument, returns an empty Koda List.
-  If the argument is a DataSlice, creates a slice of Koda Lists.
-  If the argument is a Python list, creates a nested Koda List.
-
-  Examples:
-  list() -> a single empty Koda List
-  list([1, 2, 3]) -> Koda List with items 1, 2, 3
-  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
-  list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
-  list(kd.slice([[1, 2, 3], [4, 5]]))
-    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
-
-  Args:
-    items: The items to use. If not specified, an empty list of OBJECTs will be
-      created.
-    item_schema: the schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: The schema to use for the list. If specified, then item_schema must
-      not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where list(s) are created.
-
-  Returns:
-    The slice with list/lists.
 ```
 
 ### `kd.lists.select_items(ds, fltr)` {#kd.lists.select_items}
@@ -6818,7 +6829,7 @@ Alias for [kd.dicts.shaped_as](#kd.dicts.shaped_as) operator.
 
 ### `kd.dict_size(dict_slice)` {#kd.dict_size}
 
-Alias for [kd.dicts.dict_size](#kd.dicts.dict_size) operator.
+Alias for [kd.dicts.size](#kd.dicts.size) operator.
 
 ### `kd.dict_update(x, keys, values=unspecified)` {#kd.dict_update}
 
