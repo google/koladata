@@ -19,15 +19,14 @@ import warnings
 from arolla import arolla
 from arolla.experimental import numpy_conversion
 from koladata import kd
-from koladata.types import data_slice
 import numpy as np
 
 kdi = kd.kdi
 
-_DATA_SLICE_ONE = data_slice.DataSlice.from_vals(1)
+_DATA_SLICE_ONE = kd.item(1)
 
 
-def to_array(ds: data_slice.DataSlice) -> np.ndarray:
+def to_array(ds: kd.types.DataSlice) -> np.ndarray:
   """Converts a DataSlice to a numpy array."""
   if not ds.get_dtype().is_empty():
     return numpy_conversion.as_numpy_array(ds.internal_as_dense_array())
@@ -36,7 +35,7 @@ def to_array(ds: data_slice.DataSlice) -> np.ndarray:
 
 
 # TODO: Remove this.
-def ds_to_np(ds: data_slice.DataSlice) -> np.ndarray:
+def ds_to_np(ds: kd.types.DataSlice) -> np.ndarray:
   """Deprecated alias for to_array."""
   warnings.warn(
       'ds_to_np is deprecated. Use to_array instead.',
@@ -45,7 +44,7 @@ def ds_to_np(ds: data_slice.DataSlice) -> np.ndarray:
   return to_array(ds)
 
 
-def from_array(arr: np.ndarray) -> data_slice.DataSlice:
+def from_array(arr: np.ndarray) -> kd.types.DataSlice:
   """Converts a numpy array to a DataSlice."""
 
   # Convert to Python list for objects/strings/bytes as it can handle objects.
@@ -57,11 +56,11 @@ def from_array(arr: np.ndarray) -> data_slice.DataSlice:
     return kdi.from_py(list(arr), from_dim=1)
 
   else:
-    return data_slice.DataSlice.from_vals(arolla.dense_array(arr))
+    return kd.slice(arolla.dense_array(arr))
 
 
 # TODO: Remove this.
-def ds_from_np(arr: np.ndarray) -> data_slice.DataSlice:
+def ds_from_np(arr: np.ndarray) -> kd.types.DataSlice:
   """Deprecated alias for from_array."""
   warnings.warn(
       'ds_from_np is deprecated. Use from_array instead.',
@@ -80,7 +79,7 @@ _TO_INT64_EXPR = arolla.M.core.to_int64(arolla.L.x)
 # reshape_based_on_indices(ds.flatten(), get_indices_from_ds(ds)) == ds.
 
 
-def get_elements_indices_from_ds(ds: data_slice.DataSlice) -> list[np.ndarray]:
+def get_elements_indices_from_ds(ds: kd.types.DataSlice) -> list[np.ndarray]:
   """Returns a list of np arrays representing the DataSlice's indices.
 
   You can consider this as a n-dimensional coordinates of the items, p.ex. for a
@@ -124,9 +123,9 @@ def get_elements_indices_from_ds(ds: data_slice.DataSlice) -> list[np.ndarray]:
 
 
 def reshape_based_on_indices(
-    ds: data_slice.DataSlice,
+    ds: kd.types.DataSlice,
     indices: list[np.ndarray],
-) -> data_slice.DataSlice:
+) -> kd.types.DataSlice:
   """Reshapes a DataSlice corresponding to the given indices.
 
   Inverse operation to get_elements_indices_from_ds.
@@ -175,7 +174,7 @@ def reshape_based_on_indices(
       )
 
   indices = [
-      data_slice.DataSlice.from_vals(arolla.dense_array_int64(index_dimension))
+      kd.slice(arolla.dense_array_int64(index_dimension))
       for index_dimension in indices
   ]
 

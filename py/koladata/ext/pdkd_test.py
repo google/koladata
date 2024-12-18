@@ -16,8 +16,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
 from koladata.ext import pdkd
-from koladata.testing import testing
-from koladata.types import schema_constants
 import numpy as np
 import pandas as pd
 
@@ -39,9 +37,9 @@ class NpkdTest(parameterized.TestCase):
     with self.subTest('primitive df'):
       df = pd.DataFrame({'x': [1, 2, 3]})
       ds = pdkd.from_dataframe(df)
-      testing.assert_equal(
+      kd.testing.assert_equal(
           ds.x,
-          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_bag(
+          kd.slice([1, 2, 3], schema=kd.INT64).with_bag(
               ds.get_bag()
           ),
       )
@@ -50,56 +48,52 @@ class NpkdTest(parameterized.TestCase):
       index = pd.MultiIndex.from_arrays([[0, 0, 1, 3, 3], [0, 1, 0, 0, 1]])
       df = pd.DataFrame({'x': [1, 2, 3, 4, 5]}, index=index)
       ds = pdkd.from_dataframe(df)
-      testing.assert_equal(
+      kd.testing.assert_equal(
           ds.x,
-          kd.slice(
-              [[1, 2], [3], [], [4, 5]], schema=schema_constants.INT64
-          ).with_bag(ds.get_bag()),
+          kd.slice([[1, 2], [3], [], [4, 5]], schema=kd.INT64).with_bag(
+              ds.get_bag()
+          ),
       )
 
     with self.subTest('non-primitive df'):
       df = pd.DataFrame({'self_': ['$1', '$2', '$3'], 'x': [1, 2, 3]})
       ds = pdkd.from_dataframe(df)
       self.assertCountEqual(kd.dir(ds), ['self_', 'x'])
-      self.assertNotEqual(ds.get_schema(), schema_constants.OBJECT)
-      testing.assert_equal(
+      self.assertNotEqual(ds.get_schema(), kd.OBJECT)
+      kd.testing.assert_equal(
           ds.get_attr('self_'),
           kd.slice(['$1', '$2', '$3']).with_bag(ds.get_bag()),
       )
-      testing.assert_equal(
+      kd.testing.assert_equal(
           ds.x,
-          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_bag(
-              ds.get_bag()
-          ),
+          kd.slice([1, 2, 3], schema=kd.INT64).with_bag(ds.get_bag()),
       )
 
     with self.subTest('non-primitive df with as_obj set to True'):
       df = pd.DataFrame({'self_': ['$1', '$2', '$3'], 'x': [1, 2, 3]})
       ds = pdkd.from_dataframe(df, as_obj=True)
       self.assertCountEqual(kd.dir(ds), ['self_', 'x'])
-      self.assertEqual(ds.get_schema(), schema_constants.OBJECT)
-      testing.assert_equal(
+      self.assertEqual(ds.get_schema(), kd.OBJECT)
+      kd.testing.assert_equal(
           ds.get_attr('self_'),
           kd.slice(['$1', '$2', '$3']).with_bag(ds.get_bag()),
       )
-      testing.assert_equal(
+      kd.testing.assert_equal(
           ds.x,
-          kd.slice([1, 2, 3], schema=schema_constants.INT64).with_bag(
-              ds.get_bag()
-          ),
+          kd.slice([1, 2, 3], schema=kd.INT64).with_bag(ds.get_bag()),
       )
 
     with self.subTest('object df'):
       df = pd.DataFrame({'x': np.array([{1: 2}, {3: 4}], dtype=object)})
       ds = pdkd.from_dataframe(df)
       self.maxDiff = None
-      testing.assert_equal(
+      kd.testing.assert_equal(
           ds.x.get_keys().no_bag(),
-          kd.slice([[1], [3]], schema=schema_constants.OBJECT),
+          kd.slice([[1], [3]], schema=kd.OBJECT),
       )
-      testing.assert_equal(
+      kd.testing.assert_equal(
           ds.x.get_values().no_bag(),
-          kd.slice([[2], [4]], schema=schema_constants.OBJECT),
+          kd.slice([[2], [4]], schema=kd.OBJECT),
       )
 
     with self.subTest('empty df'):

@@ -28,8 +28,11 @@ exports_files(["LICENSE"])
 package_group(
     name = "internal",
     packages = [
+        # TODO: b/379873449 - consider placing all internal code in a `_src` subdirectory and only
+        # including that in the internal package (i.e. allow-list instead of block-list).
         "//koladata/...",
         "//py/koladata/...",
+        "-//py/koladata/ext/...",
     ],
 )
 

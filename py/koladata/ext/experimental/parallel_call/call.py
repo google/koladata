@@ -30,10 +30,7 @@ from typing import Any, Collection, Mapping
 
 from arolla import arolla
 from koladata import kd
-from koladata.expr import expr_eval
 from koladata.ext.experimental.parallel_call import task_repository
-from koladata.operators import optools
-from koladata.types import py_boxing
 
 
 @dataclasses.dataclass
@@ -136,9 +133,9 @@ def _execute_expr(
     inputs[name] = val
   if 'self' in inputs:
     self_val = inputs.pop('self')
-    return expr_eval.eval(expr, self_val, **inputs)
+    return kd.eval(expr, self_val, **inputs)
   else:
-    return expr_eval.eval(expr, **inputs)
+    return kd.eval(expr, **inputs)
 
 
 def _schedule_call_after_deps_done(
@@ -239,7 +236,7 @@ def _assert_no_inner_calls(var_name: str, expr: kd.types.Expr):
       for node in arolla.abc.post_order(expr)
       if node.fingerprint != expr.fingerprint
       and node.op is not None
-      and optools.equiv_to_op(node.op, call_op)
+      and kd.optools.equiv_to_op(node.op, call_op)
   ]
   if call_nodes:
     # If we have inner calls, the implementation below would need to split
@@ -285,7 +282,9 @@ def _schedule_expr_execution(
   inputs = dict(fn_call.inputs)
   deps = tuple(_get_variable_task(repo, fn_call, name) for name in var_names)
   _assert_no_inner_calls(var_name, expr)
-  if expr.op is not None and optools.equiv_to_op(expr.op, kd.kde.functor.call):
+  if expr.op is not None and kd.optools.equiv_to_op(
+      expr.op, kd.kde.functor.call
+  ):
     call_deps_expr = kd.kde.make_tuple(*expr.node_deps)
     call_deps_task = repo.add(
         task_repository.Task(
@@ -431,8 +430,8 @@ def call_multithreaded_with_debug(
     attribute with a list of children that have the same structure
     recursively.
   """
-  args = [py_boxing.as_qvalue(arg) for arg in args]
-  kwargs = {k: py_boxing.as_qvalue(v) for k, v in kwargs.items()}
+  args = [kd.optools.as_qvalue(arg) for arg in args]
+  kwargs = {k: kd.optools.as_qvalue(v) for k, v in kwargs.items()}
   repo = task_repository.TaskRepository()
   debug_db = kd.bag()
   root_debug = debug_db.obj(children=[])

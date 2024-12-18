@@ -21,14 +21,12 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
 from koladata.ext.experimental.parallel_call import call
-from koladata.operators import kde_operators
-from koladata.testing import testing
 
 I = kd.I
 V = kd.V
 S = kd.S
 ds = kd.slice
-kde = kde_operators.kde
+kde = kd.kde
 signature_utils = kd.functor.signature_utils
 
 
@@ -39,16 +37,18 @@ class FunctorCallTest(absltest.TestCase):
         returns=I.x + V.foo,
         foo=I.y * I.x,
     )
-    testing.assert_equal(call.call_multithreaded(fn, x=2, y=3), ds(8))
+    kd.testing.assert_equal(call.call_multithreaded(fn, x=2, y=3), ds(8))
     # Unused inputs are ignored with the "default" signature.
-    testing.assert_equal(call.call_multithreaded(fn, x=2, y=3, z=4), ds(8))
+    kd.testing.assert_equal(call.call_multithreaded(fn, x=2, y=3, z=4), ds(8))
 
   def test_call_with_self(self):
     fn = kd.functor.expr_fn(
         returns=S.x + V.foo,
         foo=S.y * S.x,
     )
-    testing.assert_equal(call.call_multithreaded(fn, kd.new(x=2, y=3)), ds(8))
+    kd.testing.assert_equal(
+        call.call_multithreaded(fn, kd.new(x=2, y=3)), ds(8)
+    )
 
   def test_call_explicit_signature(self):
     fn = kd.functor.expr_fn(
@@ -63,12 +63,12 @@ class FunctorCallTest(absltest.TestCase):
         ]),
         foo=I.y,
     )
-    testing.assert_equal(call.call_multithreaded(fn, 1, 2), ds(3))
-    testing.assert_equal(call.call_multithreaded(fn, 1, y=2), ds(3))
+    kd.testing.assert_equal(call.call_multithreaded(fn, 1, 2), ds(3))
+    kd.testing.assert_equal(call.call_multithreaded(fn, 1, y=2), ds(3))
 
   def test_call_with_no_expr(self):
     fn = kd.functor.expr_fn(57, signature=signature_utils.signature([]))
-    testing.assert_equal(call.call_multithreaded(fn).no_bag(), ds(57))
+    kd.testing.assert_equal(call.call_multithreaded(fn).no_bag(), ds(57))
 
   def test_positional_only(self):
     fn = kd.functor.expr_fn(
@@ -79,7 +79,7 @@ class FunctorCallTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(call.call_multithreaded(fn, 57), ds(57))
+    kd.testing.assert_equal(call.call_multithreaded(fn, 57), ds(57))
     with self.assertRaisesRegex(TypeError, 'positional.*keyword'):
       _ = call.call_multithreaded(fn, x=57)
 
@@ -92,7 +92,7 @@ class FunctorCallTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(call.call_multithreaded(fn, x=57), ds(57))
+    kd.testing.assert_equal(call.call_multithreaded(fn, x=57), ds(57))
     with self.assertRaisesRegex(TypeError, 'too many positional arguments'):
       _ = call.call_multithreaded(fn, 57)
 
@@ -105,7 +105,7 @@ class FunctorCallTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(call.call_multithreaded(fn, 1, 2, 3), ds(2))
+    kd.testing.assert_equal(call.call_multithreaded(fn, 1, 2, 3), ds(2))
 
   def test_var_keyword(self):
     fn = kd.functor.expr_fn(
@@ -116,7 +116,7 @@ class FunctorCallTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(call.call_multithreaded(fn, x=1, y=2, z=3), ds(2))
+    kd.testing.assert_equal(call.call_multithreaded(fn, x=1, y=2, z=3), ds(2))
 
   def test_default_value(self):
     fn = kd.functor.expr_fn(
@@ -127,8 +127,8 @@ class FunctorCallTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(call.call_multithreaded(fn).no_bag(), ds(57))
-    testing.assert_equal(call.call_multithreaded(fn, 43), ds(43))
+    kd.testing.assert_equal(call.call_multithreaded(fn).no_bag(), ds(57))
+    kd.testing.assert_equal(call.call_multithreaded(fn, 43), ds(43))
 
   def test_obj_as_default_value(self):
     fn = kd.functor.expr_fn(
@@ -141,8 +141,8 @@ class FunctorCallTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(call.call_multithreaded(fn).foo.no_bag(), ds(57))
-    testing.assert_equal(call.call_multithreaded(fn, 43), ds(43))
+    kd.testing.assert_equal(call.call_multithreaded(fn).foo.no_bag(), ds(57))
+    kd.testing.assert_equal(call.call_multithreaded(fn, 43), ds(43))
 
   def test_call_eval_error(self):
     fn = kd.functor.expr_fn(
@@ -153,7 +153,7 @@ class FunctorCallTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(
+    kd.testing.assert_equal(
         call.call_multithreaded(fn, kd.new(foo=57)).no_bag(), ds(57)
     )
     with self.assertRaisesRegex(ValueError, "the attribute 'foo' is missing"):
@@ -161,7 +161,7 @@ class FunctorCallTest(absltest.TestCase):
 
   def test_call_non_dataslice_inputs(self):
     fn = kd.functor.expr_fn(kde.tuple.get_nth(I.x, 1))
-    testing.assert_equal(
+    kd.testing.assert_equal(
         call.call_multithreaded(fn, x=arolla.tuple(ds(1), ds(2), ds(3))), ds(2)
     )
 
@@ -169,13 +169,13 @@ class FunctorCallTest(absltest.TestCase):
     fn = kd.functor.expr_fn(I.x)
     # So far we ignore return_type_as.
     res = call.call_multithreaded(fn, x=arolla.tuple(1, 2))
-    testing.assert_equal(res, arolla.tuple(1, 2))
+    kd.testing.assert_equal(res, arolla.tuple(1, 2))
     res = call.call_multithreaded(
         fn,
         x=arolla.tuple(1, 2),
         return_type_as=arolla.tuple(5, 7),
     )
-    testing.assert_equal(res, arolla.tuple(1, 2))
+    kd.testing.assert_equal(res, arolla.tuple(1, 2))
 
   def test_call_returns_databag(self):
     fn = kd.functor.expr_fn(I.x.get_bag())
@@ -185,11 +185,11 @@ class FunctorCallTest(absltest.TestCase):
         x=obj,
         return_type_as=kd.types.DataBag,
     )
-    testing.assert_equal(res, obj.get_bag())
+    kd.testing.assert_equal(res, obj.get_bag())
 
   def test_call_with_functor_as_input(self):
     fn = kd.functor.expr_fn(I.x + I.y)
-    testing.assert_equal(
+    kd.testing.assert_equal(
         call.call_multithreaded(
             kd.functor.expr_fn(kde.call(I.fn, x=I.u, y=I.v)),
             fn=fn,
@@ -201,7 +201,7 @@ class FunctorCallTest(absltest.TestCase):
 
   def test_call_with_computed_functor(self):
     fn = kd.functor.expr_fn(I.x + I.y)
-    testing.assert_equal(
+    kd.testing.assert_equal(
         call.call_multithreaded(
             kd.functor.expr_fn(kde.call(I.my_functors.fn, x=I.u, y=I.v)),
             my_functors=kd.new(fn=fn),
@@ -255,7 +255,7 @@ class FunctorCallTest(absltest.TestCase):
     def f5(x):
       return f3(x) + f4(x)
 
-    testing.assert_equal(call.call_multithreaded(kd.fn(f5), x=ds(1)), ds(4))
+    kd.testing.assert_equal(call.call_multithreaded(kd.fn(f5), x=ds(1)), ds(4))
 
   def test_debug(self):
 
@@ -277,7 +277,7 @@ class FunctorCallTest(absltest.TestCase):
 
     fn = kd.fn(f2)
     res, debug = call.call_multithreaded_with_debug(fn, x=ds(1))
-    testing.assert_equal(res, ds(1))
+    kd.testing.assert_equal(res, ds(1))
     self.assertFalse(debug.is_mutable())
     self.assertEqual(debug.name, '<root>')
     self.assertLen(debug.children[:].L, 1)

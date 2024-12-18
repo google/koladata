@@ -29,7 +29,6 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         "//py/koladata:kd",
-        "//py/koladata/types:data_slice",
         requirement("numpy"),
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/experimental",
@@ -42,8 +41,6 @@ py_test(
     deps = [
         ":npkd",
         "//py/koladata:kd",
-        "//py/koladata/testing",
-        "//py/koladata/types:schema_constants",
         requirement("numpy"),
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -57,7 +54,6 @@ py_library(
     deps = [
         ":npkd",
         "//py/koladata:kd",
-        "//py/koladata/types:data_slice",
         requirement("pandas"),
         "@com_google_arolla//py/arolla",
     ],
@@ -69,8 +65,6 @@ py_test(
     deps = [
         ":pdkd",
         "//py/koladata:kd",
-        "//py/koladata/testing",
-        "//py/koladata/types:schema_constants",
         requirement("numpy"),
         requirement("pandas"),
         "@com_google_absl_py//absl/testing:absltest",
@@ -93,7 +87,6 @@ py_test(
     deps = [
         ":py_cloudpickle",
         "//py/koladata:kd",
-        "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )

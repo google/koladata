@@ -23,9 +23,6 @@ py_library(
     deps = [
         ":task_repository",
         "//py/koladata:kd",
-        "//py/koladata/expr:expr_eval",
-        "//py/koladata/operators:optools",
-        "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -36,8 +33,6 @@ py_test(
     deps = [
         ":call",
         "//py/koladata:kd",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],

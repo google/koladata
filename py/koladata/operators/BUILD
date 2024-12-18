@@ -26,8 +26,6 @@ default_visibility = [
     "//koladata:internal",
 ]
 
-user_ops_visibility = []
-
 package(default_visibility = default_visibility)
 
 licenses(["notice"])
@@ -120,7 +118,6 @@ arolla_operator_package_snapshot(
 py_library(
     name = "unified_binding_policy",
     srcs = ["unified_binding_policy.py"],
-    visibility = default_visibility + user_ops_visibility,
     deps = [
         ":py_optools_py_ext",
         "//py/koladata/types:py_boxing",
@@ -146,7 +143,6 @@ py_test(
 py_library(
     name = "optools",
     srcs = ["optools.py"],
-    visibility = default_visibility + user_ops_visibility,
     deps = [
         ":op_repr",
         ":qtype_utils",
@@ -533,7 +529,6 @@ py_test(
 py_library(
     name = "eager_op_utils",
     srcs = ["eager_op_utils.py"],
-    visibility = default_visibility + user_ops_visibility,
     deps = [
         ":kde_operators",
         "//py/koladata/expr:py_expr_eval_py_ext",

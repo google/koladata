@@ -17,7 +17,6 @@ import threading
 from absl.testing import absltest
 from koladata import kd
 from koladata.ext import py_cloudpickle
-from koladata.testing import testing
 
 
 ds = kd.types.DataSlice.from_vals
@@ -29,7 +28,7 @@ class PyCloudpickleTest(absltest.TestCase):
     def pickled_f(x, y, z=3):
       return x + y + z
 
-    testing.assert_equal(
+    kd.testing.assert_equal(
         kd.call(
             kd.py_fn(py_cloudpickle.py_cloudpickle(pickled_f)), x=1, y=2
         ),
@@ -40,7 +39,7 @@ class PyCloudpickleTest(absltest.TestCase):
     def f_with_kd(x):
       return x + kd.slice([1, 2])
 
-    testing.assert_equal(
+    kd.testing.assert_equal(
         kd.call(
             kd.py_fn(py_cloudpickle.py_cloudpickle(f_with_kd)), x=ds([3, 4])
         ),
@@ -50,7 +49,7 @@ class PyCloudpickleTest(absltest.TestCase):
   def test_apply_py(self):
     x = ds([1, 2, 3])
     y = ds([4, 5, 6])
-    testing.assert_equal(
+    kd.testing.assert_equal(
         kd.apply_py(py_cloudpickle.py_cloudpickle(lambda x, y: x + y), x, y),
         ds([5, 7, 9]),
     )
@@ -61,7 +60,7 @@ class PyCloudpickleTest(absltest.TestCase):
 
     x = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     res = kd.map_py(py_cloudpickle.py_cloudpickle(f), x)
-    testing.assert_equal(
+    kd.testing.assert_equal(
         res.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
 

@@ -20,8 +20,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
 from koladata.ext import npkd
-from koladata.testing import testing
-from koladata.types import schema_constants
 import numpy as np
 
 
@@ -40,7 +38,7 @@ class NpkdTest(parameterized.TestCase):
   def test_numpy_roundtrip(self, ds):
     res_np = npkd.to_array(ds)
     res_ds = npkd.from_array(res_np)
-    testing.assert_equal(res_ds, ds)
+    kd.testing.assert_equal(res_ds, ds)
 
   @parameterized.named_parameters(
       ('list ds', kd.slice([kd.list(), kd.list(), kd.list()])),
@@ -50,9 +48,8 @@ class NpkdTest(parameterized.TestCase):
   def test_numpy_roundtrip_entity(self, ds):
     res_np = npkd.to_array(ds)
     res_ds = npkd.from_array(res_np)
-    testing.assert_equal(
-        res_ds,
-        ds.with_schema(schema_constants.OBJECT).with_bag(res_ds.get_bag()),
+    kd.testing.assert_equal(
+        res_ds, ds.with_schema(kd.OBJECT).with_bag(res_ds.get_bag())
     )
 
   # Cases that need special checks rather than equality match.
@@ -79,10 +76,10 @@ class NpkdTest(parameterized.TestCase):
 
     with self.subTest('sparse ds int'):
       x = kd.slice([1, None, 3])
-      expected_x = kd.slice([1, 0, 3], schema=schema_constants.INT32)
+      expected_x = kd.slice([1, 0, 3], schema=kd.INT32)
       res_np = npkd.to_array(x)
       res_ds = npkd.from_array(res_np)
-      testing.assert_equal(res_ds, expected_x)
+      kd.testing.assert_equal(res_ds, expected_x)
 
     with self.subTest('mixed ds with nan'):
       x = kd.slice([True, False, np.nan])
@@ -100,14 +97,14 @@ class NpkdTest(parameterized.TestCase):
       expected_x = kd.slice([1, 2, 3])
       res_np = npkd.to_array(x)
       res_ds = npkd.from_array(res_np)
-      testing.assert_equal(res_ds, expected_x)
+      kd.testing.assert_equal(res_ds, expected_x)
 
     with self.subTest('int ds object schema'):
       x = kd.slice([1, 2, 3]).with_schema(kd.OBJECT)
       expected_x = kd.slice([1, 2, 3])
       res_np = npkd.to_array(x)
       res_ds = npkd.from_array(res_np)
-      testing.assert_equal(res_ds, expected_x)
+      kd.testing.assert_equal(res_ds, expected_x)
 
   @parameterized.named_parameters(
       ('int ds', [1, 2, 3]),
@@ -144,20 +141,17 @@ class NpkdTest(parameterized.TestCase):
 
     with self.subTest('Python list'):
       res_ds = npkd.ds_from_np(np.array([[1, 2], [3]], dtype=object))
-      testing.assert_equal(
-          res_ds[:].no_bag(),
-          kd.slice([[1, 2], [3]], schema=schema_constants.OBJECT),
+      kd.testing.assert_equal(
+          res_ds[:].no_bag(), kd.slice([[1, 2], [3]], schema=kd.OBJECT)
       )
 
     with self.subTest('Python dict'):
       res_ds = npkd.ds_from_np(np.array([{1: 2}, {3: 4}], dtype=object))
-      testing.assert_equal(
-          res_ds.get_keys().no_bag(),
-          kd.slice([[1], [3]], schema=schema_constants.OBJECT),
+      kd.testing.assert_equal(
+          res_ds.get_keys().no_bag(), kd.slice([[1], [3]], schema=kd.OBJECT)
       )
-      testing.assert_equal(
-          res_ds.get_values().no_bag(),
-          kd.slice([[2], [4]], schema=schema_constants.OBJECT),
+      kd.testing.assert_equal(
+          res_ds.get_values().no_bag(), kd.slice([[2], [4]], schema=kd.OBJECT)
       )
 
     with self.subTest('Python dataclass'):
@@ -170,14 +164,8 @@ class NpkdTest(parameterized.TestCase):
       res_ds = npkd.ds_from_np(
           np.array([PyCls(1, 'a'), PyCls(2, 'b')], dtype=object)
       )
-      testing.assert_equal(
-          res_ds.a.no_bag(),
-          kd.slice([1, 2]),
-      )
-      testing.assert_equal(
-          res_ds.b.no_bag(),
-          kd.slice(['a', 'b']),
-      )
+      kd.testing.assert_equal(res_ds.a.no_bag(), kd.slice([1, 2]))
+      kd.testing.assert_equal(res_ds.b.no_bag(), kd.slice(['a', 'b']))
 
   def test_reshape_based_on_indices(self):
     with self.subTest('1d'):
@@ -270,16 +258,16 @@ class NpkdTest(parameterized.TestCase):
   def test_ds_to_indices_roundtrip(self, ds):
     indices = npkd.get_elements_indices_from_ds(ds)
     converted_back = npkd.reshape_based_on_indices(ds.flatten(), indices)
-    testing.assert_equal(converted_back, ds)
+    kd.testing.assert_equal(converted_back, ds)
 
   # TODO: Remove this.
   def test_deprecated_names(self):
     with mock.patch.object(warnings, 'warn') as mock_warn:
       arr = npkd.ds_to_np(kd.slice([1, 2, 3]))
       mock_warn.assert_called_once()
-    testing.assert_equal(kd.slice([1, 2, 3]), npkd.from_array(arr))
+    kd.testing.assert_equal(kd.slice([1, 2, 3]), npkd.from_array(arr))
     with mock.patch.object(warnings, 'warn') as mock_warn:
-      testing.assert_equal(kd.slice([1, 2, 3]), npkd.ds_from_np(arr))
+      kd.testing.assert_equal(kd.slice([1, 2, 3]), npkd.ds_from_np(arr))
       mock_warn.assert_called_once()
 
 

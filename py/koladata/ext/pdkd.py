@@ -19,7 +19,6 @@ from typing import Optional
 from arolla import arolla
 from koladata import kd
 from koladata.ext import npkd
-from koladata.types import data_slice
 import pandas as pd
 
 kdi = kd.kdi
@@ -27,7 +26,7 @@ kdi = kd.kdi
 
 def from_dataframe(
     df: pd.DataFrame, as_obj: bool = False
-) -> data_slice.DataSlice:
+) -> kd.types.DataSlice:
   """Creates a DataSlice from the given pandas DataFrame.
 
   The DataFrame must have at least one column. It will be converted to a
@@ -67,7 +66,7 @@ _SPECIAL_COLUMN_NAMES = ('__items__', '__keys__', '__values__')
 
 
 def to_dataframe(
-    ds: data_slice.DataSlice,
+    ds: kd.types.DataSlice,
     cols: Optional[list[str | arolla.Expr]] = None,
 ) -> pd.DataFrame:
   """Creates a pandas DataFrame from the given DataSlice.
