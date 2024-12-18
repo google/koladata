@@ -3526,5 +3526,30 @@ class DataSliceListSlicingTest(parameterized.TestCase):
         len(ds('a'*1000)._internal_str_with_depth(2)),  # pylint: disable=protected-access
         500)
 
+  def test_data_slice_docstrings(self):
+    def has_docstring(method):
+      return (hasattr(method, 'getdoc') and method.getdoc()) or method.__doc__
+
+    public_methods = [
+        m for m in dir(data_slice.DataSlice) if not m.startswith('_')
+    ]
+    for method_name in public_methods:
+      method = getattr(data_slice.DataSlice, method_name)
+      self.assertTrue(
+          has_docstring(method),
+          f'DataSlice method {method_name} has no docstring.',
+      )
+
+  def test_docstring_from_non_existent_operator_fails(self):
+    @data_slice.DataSlice._add_method(
+        'test_method', docstring_from='non-existent'
+    )
+    def _test_method(self):
+      return self.internal_as_py()
+
+    with self.assertRaisesRegex(LookupError, 'unknown operator: non-existent'):
+      _ = _test_method.getdoc()
+
+
 if __name__ == '__main__':
   absltest.main()

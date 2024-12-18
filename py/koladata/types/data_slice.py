@@ -33,7 +33,12 @@ DataSlice = _data_slice_py_ext.DataSlice
 _eval_op = _py_expr_eval_py_ext.eval_op
 
 
-def _add_method(cls, method_name: str):
+def _get_docstring(op_name: str) -> str | None:
+  op = arolla.abc.lookup_operator(op_name)
+  return op.getdoc()
+
+
+def _add_method(cls, method_name: str, docstring_from: str | None = None):
   """Returns a callable / decorator to put it as a cls's method.
 
   Adds methods only to the class it was called on (then it is also available in
@@ -48,14 +53,18 @@ def _add_method(cls, method_name: str):
   Args:
     cls: DataSlice or its subclass.
     method_name: wraps the Python function as a method with `method_name`.
+    docstring_from: If not None, the docstring of the operator with this name
+      will be used as the docstring of the method.
   """
 
-  # TODO: Find a way to have a sensible docstring that DataSlice
-  # method should have (e.g. exclude first argument as it is `self`).
+  # TODO: Find a way to adjust the docstring to match the DataSlice
+  # method signature, p.ex. exclude `x` argument or replace it with `self`).
   def wrap(op):
     """Wraps eager `op` into a DataSlice method `method_name`."""
     cls.internal_register_reserved_class_method_name(method_name)
     setattr(cls, method_name, op)
+    if docstring_from is not None:
+      op.getdoc = lambda: _get_docstring(docstring_from)
     return op
 
   return wrap
@@ -142,33 +151,33 @@ def _dir(self) -> list[str]:
   return sorted(methods | attrs)
 
 
-@DataSlice._add_method('maybe')  # pylint: disable=protected-access
+@DataSlice._add_method('maybe', docstring_from='kde.maybe')  # pylint: disable=protected-access
 def _maybe(self, attr_name: str) -> DataSlice:
   # NOTE: Calling `get_attr`, instead of _eval_op, because it is implemented
   # in C Python.
   return self.get_attr(attr_name, None)
 
 
-@DataSlice._add_method('has_attr')  # pylint: disable=protected-access
+@DataSlice._add_method('has_attr', docstring_from='kde.has_attr')  # pylint: disable=protected-access
 def _has_attr(self, attr_name: str) -> DataSlice:
   return _eval_op('kde.has_attr', self, attr_name)
 
 
-@DataSlice._add_method('reshape')  # pylint: disable=protected-access
+@DataSlice._add_method('reshape', docstring_from='kde.reshape')  # pylint: disable=protected-access
 def _reshape(self, shape: jagged_shape.JaggedShape) -> DataSlice:
   if not isinstance(shape, jagged_shape.JaggedShape):
     raise TypeError(f'`shape` must be a JaggedShape, got: {shape}')
   return _eval_op('kde.reshape', self, shape)
 
 
-@DataSlice._add_method('reshape_as')  # pylint: disable=protected-access
+@DataSlice._add_method('reshape_as', docstring_from='kde.reshape_as')  # pylint: disable=protected-access
 def _reshape_as(self, shape_from: DataSlice) -> DataSlice:
   if not isinstance(shape_from, DataSlice):
     raise TypeError(f'`shape_from` must be a DataSlice, got: {shape_from}')
   return _eval_op('kde.reshape_as', self, shape_from)
 
 
-@DataSlice._add_method('flatten')  # pylint: disable=protected-access
+@DataSlice._add_method('flatten', docstring_from='kde.flatten')  # pylint: disable=protected-access
 def _flatten(
     self,
     from_dim: int | DataSlice = DataSlice.from_vals(arolla.int64(0)),
@@ -177,90 +186,90 @@ def _flatten(
   return _eval_op('kde.flatten', self, from_dim, to_dim)
 
 
-@DataSlice._add_method('add_dim')  # pylint: disable=protected-access
+@DataSlice._add_method('add_dim', docstring_from='kde.add_dim')  # pylint: disable=protected-access
 def _add_dim(self, sizes: Any) -> DataSlice:
   return _eval_op('kde.add_dim', self, sizes)
 
 
-@DataSlice._add_method('repeat')  # pylint: disable=protected-access
+@DataSlice._add_method('repeat', docstring_from='kde.repeat')  # pylint: disable=protected-access
 def _repeat(self, sizes: Any) -> DataSlice:
   return _eval_op('kde.repeat', self, sizes)
 
 
-@DataSlice._add_method('select')  # pylint: disable=protected-access
+@DataSlice._add_method('select', docstring_from='kde.select')  # pylint: disable=protected-access
 def _select(
     self, fltr: Any, expand_filter: bool | DataSlice = DataSlice.from_vals(True)
 ) -> DataSlice:
   return _eval_op('kde.select', self, fltr, expand_filter=expand_filter)
 
 
-@DataSlice._add_method('select_present')  # pylint: disable=protected-access
+@DataSlice._add_method('select_present', docstring_from='kde.select_present')  # pylint: disable=protected-access
 def _select_present(self) -> DataSlice:
   return _eval_op('kde.select_present', self)
 
 
-@DataSlice._add_method('select_items')  # pylint: disable=protected-access
+@DataSlice._add_method('select_items', docstring_from='kde.select_items')  # pylint: disable=protected-access
 def _select_items(self, fltr: Any) -> DataSlice:
   return _eval_op('kde.select_items', self, fltr)
 
 
-@DataSlice._add_method('select_keys')  # pylint: disable=protected-access
+@DataSlice._add_method('select_keys', docstring_from='kde.select_keys')  # pylint: disable=protected-access
 def _select_keys(self, fltr: Any) -> DataSlice:
   return _eval_op('kde.select_keys', self, fltr)
 
 
-@DataSlice._add_method('select_values')  # pylint: disable=protected-access
+@DataSlice._add_method('select_values', docstring_from='kde.select_values')  # pylint: disable=protected-access
 def _select_values(self, fltr: Any) -> DataSlice:
   return _eval_op('kde.select_values', self, fltr)
 
 
-@DataSlice._add_method('expand_to')  # pylint: disable=protected-access
+@DataSlice._add_method('expand_to', docstring_from='kde.expand_to')  # pylint: disable=protected-access
 def _expand_to(
     self, target: Any, ndim: Any = arolla.unspecified()
 ) -> DataSlice:
   return _eval_op('kde.expand_to', self, target, ndim)
 
 
-@DataSlice._add_method('list_size')  # pylint: disable=protected-access
+@DataSlice._add_method('list_size', docstring_from='kde.list_size')  # pylint: disable=protected-access
 def _list_size(self) -> DataSlice:
   return _eval_op('kde.list_size', self)
 
 
-@DataSlice._add_method('dict_size')  # pylint: disable=protected-access
+@DataSlice._add_method('dict_size', docstring_from='kde.dict_size')  # pylint: disable=protected-access
 def _dict_size(self) -> DataSlice:
   return _eval_op('kde.dict_size', self)
 
 
-@DataSlice._add_method('dict_update')  # pylint: disable=protected-access
+@DataSlice._add_method('dict_update', docstring_from='kde.dict_update')  # pylint: disable=protected-access
 def _dict_update(
     self, keys: Any, values: Any = arolla.unspecified()
 ) -> DataBag:
   return _eval_op('kde.dict_update', self, keys=keys, values=values)
 
 
-@DataSlice._add_method('with_dict_update')  # pylint: disable=protected-access
+@DataSlice._add_method('with_dict_update', docstring_from='kde.with_dict_update')  # pylint: disable=protected-access
 def _with_dict_update(
     self, keys: Any, values: Any = arolla.unspecified()
 ) -> DataSlice:
   return _eval_op('kde.with_dict_update', self, keys=keys, values=values)
 
 
-@DataSlice._add_method('follow')  # pylint: disable=protected-access
+@DataSlice._add_method('follow', docstring_from='kde.follow')  # pylint: disable=protected-access
 def _follow(self) -> DataSlice:
   return _eval_op('kde.follow', self)
 
 
-@DataSlice._add_method('extract')  # pylint: disable=protected-access
+@DataSlice._add_method('extract', docstring_from='kde.extract')  # pylint: disable=protected-access
 def _extract(self, schema: Any = arolla.unspecified()) -> DataSlice:
   return _eval_op('kde.extract', self, schema)
 
 
-@DataSlice._add_method('extract_bag')  # pylint: disable=protected-access
+@DataSlice._add_method('extract_bag', docstring_from='kde.extract_bag')  # pylint: disable=protected-access
 def _extract_bag(self, schema: Any = arolla.unspecified()) -> DataBag:
   return _eval_op('kde.extract_bag', self, schema)
 
 
-@DataSlice._add_method('clone')  # pylint: disable=protected-access
+@DataSlice._add_method('clone', docstring_from='kde.clone')  # pylint: disable=protected-access
 def _clone(
     self,
     *,
@@ -273,7 +282,7 @@ def _clone(
   )
 
 
-@DataSlice._add_method('shallow_clone')  # pylint: disable=protected-access
+@DataSlice._add_method('shallow_clone', docstring_from='kde.shallow_clone')  # pylint: disable=protected-access
 def _shallow_clone(
     self,
     *,
@@ -286,7 +295,7 @@ def _shallow_clone(
   )
 
 
-@DataSlice._add_method('deep_clone')  # pylint: disable=protected-access
+@DataSlice._add_method('deep_clone', docstring_from='kde.deep_clone')  # pylint: disable=protected-access
 def _deep_clone(
     self, schema: Any = arolla.unspecified(), **overrides: Any
 ) -> DataSlice:
@@ -295,7 +304,7 @@ def _deep_clone(
   )
 
 
-@DataSlice._add_method('deep_uuid')  # pylint: disable=protected-access
+@DataSlice._add_method('deep_uuid', docstring_from='kde.deep_uuid')  # pylint: disable=protected-access
 def _deep_uuid(
     self,
     schema: Any = arolla.unspecified(),
@@ -309,6 +318,7 @@ def _deep_uuid(
 # TODO: Remove this alias.
 @DataSlice._add_method('fork_db')  # pylint: disable=protected-access
 def _fork_bag(self) -> DataSlice:
+  """Returns a copy of the DataSlice with a forked DataBag."""
   if self.get_bag() is None:
     raise ValueError(
         'fork_bag expects the DataSlice to have a DataBag attached'
@@ -316,27 +326,27 @@ def _fork_bag(self) -> DataSlice:
   return self.with_bag(self.get_bag().fork(mutable=True))
 
 
-@DataSlice._add_method('with_merged_bag')  # pylint: disable=protected-access
+@DataSlice._add_method('with_merged_bag', docstring_from='kde.with_merged_bag')  # pylint: disable=protected-access
 def _with_merged_bag(self) -> DataSlice:
   return _eval_op('kde.with_merged_bag', self)
 
 
-@DataSlice._add_method('enriched')  # pylint: disable=protected-access
+@DataSlice._add_method('enriched', docstring_from='kde.enriched')  # pylint: disable=protected-access
 def _enriched(self, *bag: DataBag) -> DataSlice:
   return _eval_op('kde.enriched', self, *bag)
 
 
-@DataSlice._add_method('updated')  # pylint: disable=protected-access
+@DataSlice._add_method('updated', docstring_from='kde.updated')  # pylint: disable=protected-access
 def _updated(self, *bag: DataBag) -> DataSlice:
   return _eval_op('kde.updated', self, *bag)
 
 
-@DataSlice._add_method('__neg__')  # pylint: disable=protected-access
+@DataSlice._add_method('__neg__', docstring_from='kde.math.neg')  # pylint: disable=protected-access
 def _neg(self) -> DataSlice:
   return _eval_op('kde.math.neg', self)
 
 
-@DataSlice._add_method('__pos__')  # pylint: disable=protected-access
+@DataSlice._add_method('__pos__', docstring_from='kde.math.pos')  # pylint: disable=protected-access
 def _pos(self) -> DataSlice:
   return _eval_op('kde.math.pos', self)
 
@@ -344,18 +354,18 @@ def _pos(self) -> DataSlice:
 DataSlice._add_method('with_name')(general_eager_ops.with_name)  # pylint: disable=protected-access
 
 
-@DataSlice._add_method('ref')  # pylint: disable=protected-access
+@DataSlice._add_method('ref', docstring_from='kde.ref')  # pylint: disable=protected-access
 def _ref(self) -> DataSlice:
   return _eval_op('kde.ref', self)
 
 
-@DataSlice._add_method('get_itemid')  # pylint: disable=protected-access
+@DataSlice._add_method('get_itemid', docstring_from='kde.get_itemid')  # pylint: disable=protected-access
 def _get_itemid(self) -> DataSlice:
   return _eval_op('kde.get_itemid', self)
 
 
 # TODO: Remove this alias.
-@DataSlice._add_method('as_itemid')  # pylint: disable=protected-access
+@DataSlice._add_method('as_itemid', docstring_from='kde.get_itemid')  # pylint: disable=protected-access
 def _as_itemid(self) -> DataSlice:
   warnings.warn(
       'as_itemid is deprecated. Use get_itemid instead.',
@@ -364,62 +374,62 @@ def _as_itemid(self) -> DataSlice:
   return self.get_itemid()
 
 
-@DataSlice._add_method('get_dtype')  # pylint: disable=protected-access
+@DataSlice._add_method('get_dtype', docstring_from='kde.get_dtype')  # pylint: disable=protected-access
 def _get_dtype(self) -> DataSlice:
   return _eval_op('kde.get_dtype', self)
 
 
-@DataSlice._add_method('get_obj_schema')  # pylint: disable=protected-access
+@DataSlice._add_method('get_obj_schema', docstring_from='kde.get_obj_schema')  # pylint: disable=protected-access
 def _get_obj_schema(self) -> DataSlice:
   return _eval_op('kde.get_obj_schema', self)
 
 
-@DataSlice._add_method('with_schema_from_obj')  # pylint: disable=protected-access
+@DataSlice._add_method('with_schema_from_obj', docstring_from='kde.with_schema_from_obj')  # pylint: disable=protected-access
 def _with_schema_from_obj(self) -> DataSlice:
   return _eval_op('kde.with_schema_from_obj', self)
 
 
-@DataSlice._add_method('get_ndim')  # pylint: disable=protected-access
+@DataSlice._add_method('get_ndim', docstring_from='kde.get_ndim')  # pylint: disable=protected-access
 def _get_ndim(self) -> DataSlice:
   return _eval_op('kde.get_ndim', self)
 
 
-@DataSlice._add_method('get_present_count')  # pylint: disable=protected-access
+@DataSlice._add_method('get_present_count', docstring_from='kde.count')  # pylint: disable=protected-access
 def _get_present_count(self) -> DataSlice:
   return _eval_op('kde.count', self)
 
 
-@DataSlice._add_method('get_size')  # pylint: disable=protected-access
+@DataSlice._add_method('get_size', docstring_from='kde.size')  # pylint: disable=protected-access
 def _get_size(self) -> DataSlice:
   return _eval_op('kde.size', self)
 
 
-@DataSlice._add_method('is_primitive')  # pylint: disable=protected-access
+@DataSlice._add_method('is_primitive', docstring_from='kde.is_primitive')  # pylint: disable=protected-access
 def _is_primitive(self) -> DataSlice:
   return _eval_op('kde.is_primitive', self)
 
 
-@DataSlice._add_method('get_item_schema')  # pylint: disable=protected-access
+@DataSlice._add_method('get_item_schema', docstring_from='kde.get_item_schema')  # pylint: disable=protected-access
 def _get_item_schema(self) -> DataSlice:
   return _eval_op('kde.get_item_schema', self)
 
 
-@DataSlice._add_method('get_key_schema')  # pylint: disable=protected-access
+@DataSlice._add_method('get_key_schema', docstring_from='kde.get_key_schema')  # pylint: disable=protected-access
 def _get_key_schema(self) -> DataSlice:
   return _eval_op('kde.get_key_schema', self)
 
 
-@DataSlice._add_method('get_value_schema')  # pylint: disable=protected-access
+@DataSlice._add_method('get_value_schema', docstring_from='kde.get_value_schema')  # pylint: disable=protected-access
 def _get_value_schema(self) -> DataSlice:
   return _eval_op('kde.get_value_schema', self)
 
 
-@DataSlice._add_method('stub')  # pylint: disable=protected-access
+@DataSlice._add_method('stub', docstring_from='kde.stub')  # pylint: disable=protected-access
 def _stub(self, attrs: DataSlice = DataSlice.from_vals([])) -> DataSlice:
   return _eval_op('kde.stub', self, attrs=attrs)
 
 
-@DataSlice._add_method('with_attrs')  # pylint: disable=protected-access
+@DataSlice._add_method('with_attrs', docstring_from='kde.with_attrs')  # pylint: disable=protected-access
 def _with_attrs(
     self,
     *,
@@ -429,7 +439,7 @@ def _with_attrs(
   return _eval_op('kde.with_attrs', self, update_schema=update_schema, **attrs)
 
 
-@DataSlice._add_method('with_attr')  # pylint: disable=protected-access
+@DataSlice._add_method('with_attr', docstring_from='kde.with_attr')  # pylint: disable=protected-access
 def _with_attr(
     self,
     attr_name: str | DataSlice,
@@ -439,7 +449,7 @@ def _with_attr(
   return _eval_op('kde.with_attr', self, attr_name, value, update_schema)
 
 
-@DataSlice._add_method('take')  # pylint: disable=protected-access
+@DataSlice._add_method('take', docstring_from='kde.take')  # pylint: disable=protected-access
 def _take(self, indices: Any) -> DataSlice:
   return _eval_op('kde.take', self, indices)
 
