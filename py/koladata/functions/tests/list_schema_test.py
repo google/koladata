@@ -28,6 +28,12 @@ bag = fns.bag
 
 class ListSchemaTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.list_schema(schema_constants.STRING).is_mutable())
+    self.assertTrue(
+        fns.list_schema(schema_constants.STRING, db=bag()).is_mutable()
+    )
+
   def test_simple_schema(self):
     db = bag()
     schema = fns.list_schema(schema_constants.INT32, db)

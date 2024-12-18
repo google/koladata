@@ -28,6 +28,10 @@ kde = kde_operators.kde
 
 class ObjShapedAsTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.obj_shaped_as(ds([1, None])).is_mutable())
+    self.assertTrue(fns.obj_shaped_as(ds([1, None]), db=fns.bag()).is_mutable())
+
   def test_item(self):
     x = fns.obj_shaped_as(
         ds(1),

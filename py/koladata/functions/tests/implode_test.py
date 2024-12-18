@@ -33,6 +33,10 @@ OBJ2 = db.obj()
 
 class ImplodeTest(parameterized.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.implode(ds([1, None])).is_mutable())
+    self.assertTrue(fns.implode(ds([1, None]), db=fns.bag()).is_mutable())
+
   @parameterized.parameters(
       (ds(0), 0, ds(0)),
       (ds(0), -1, ds(0)),
@@ -114,13 +118,10 @@ class ImplodeTest(parameterized.TestCase):
     self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
 
   def test_ndim_error(self):
-    with self.assertRaisesRegex(TypeError, 'an integer is required'):
+    with self.assertRaisesRegex(ValueError, 'expected a present value'):
       fns.implode(ds([]), ds(None))
 
-    with self.assertRaisesRegex(TypeError, 'an integer is required'):
-      fns.implode(ds([]), ds([1]))
-
-    with self.assertRaisesRegex(TypeError, 'an integer is required'):
+    with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
       fns.implode(ds([]), ds([1]))
 
     with self.assertRaisesRegex(

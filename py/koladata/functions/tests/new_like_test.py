@@ -33,6 +33,10 @@ kde = kde_operators.kde
 
 class NewLikeTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.new_like(ds([1, None])).is_mutable())
+    self.assertTrue(fns.new_like(ds([1, None]), db=fns.bag()).is_mutable())
+
   def test_item(self):
     x = fns.new_like(
         ds(1),
@@ -99,7 +103,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
 
   def test_adopt_bag(self):
-    x = fns.new_like(ds(1))
+    x = fns.new_like(ds(1)).fork_db()
     x.set_attr('a', 'abc')
     y = fns.new_like(x, x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.

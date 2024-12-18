@@ -28,8 +28,14 @@ kde = kde_operators.kde
 
 class DictShapedAsTest(parameterized.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.dict_shaped_as(ds([1, 2, 3])).is_mutable())
+    self.assertTrue(
+        fns.dict_shaped_as(ds([1, 2, 3]), db=fns.bag()).is_mutable()
+    )
+
   def test_no_kv(self):
-    x = fns.dict_shaped_as(ds([1, 2, 3]))
+    x = fns.dict_shaped_as(ds([1, 2, 3])).fork_db()
     self.assertIsInstance(x, data_slice.DataSlice)
     x['a'] = ds([1, 2, 3])
     testing.assert_equal(

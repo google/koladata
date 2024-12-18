@@ -29,6 +29,16 @@ bag = fns.bag
 
 class NewSchemaTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(
+        fns.schema.new_schema(a=schema_constants.INT32).is_mutable()
+    )
+    self.assertTrue(
+        fns.schema.new_schema(
+            a=schema_constants.INT32, db=fns.bag()
+        ).is_mutable()
+    )
+
   def test_simple_schema(self):
     db = bag()
     schema = fns.new_schema(

@@ -30,8 +30,12 @@ kde = kde_operators.kde
 
 class ListLikeTest(parameterized.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.list_like(ds([1, None])).is_mutable())
+    self.assertTrue(fns.list_like(ds([1, None]), db=fns.bag()).is_mutable())
+
   def test_item(self):
-    l = fns.list_like(ds(1))
+    l = fns.list_like(ds(1)).fork_db()
     self.assertIsInstance(l, list_item.ListItem)
     testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
     l.append(1)
@@ -40,20 +44,20 @@ class ListLikeTest(parameterized.TestCase):
     )
 
   def test_item_with_items(self):
-    l = fns.list_like(ds(1), [1, 2])
+    l = fns.list_like(ds(1), [1, 2]).fork_db()
     self.assertIsInstance(l, list_item.ListItem)
     testing.assert_equal(l[:], ds([1, 2]).with_bag(l.get_bag()))
     l.append(3)
     testing.assert_equal(l[:], ds([1, 2, 3]).with_bag(l.get_bag()))
 
   def test_empty_item(self):
-    l = fns.list_like(ds(None))
+    l = fns.list_like(ds(None)).fork_db()
     testing.assert_equal(l.no_bag(), ds(None, l.get_schema()))
     l.append(1)
     testing.assert_equal(l[:].no_bag(), ds([]))
 
   def test_slice(self):
-    l = fns.list_like(ds([[1, None], [3]]))
+    l = fns.list_like(ds([[1, None], [3]])).fork_db()
     self.assertIsInstance(l, data_slice.DataSlice)
     testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
     l.append(1)
@@ -63,14 +67,14 @@ class ListLikeTest(parameterized.TestCase):
     )
 
   def test_all_missing_slice(self):
-    l = fns.list_like(ds([[None, None], [None]]))
+    l = fns.list_like(ds([[None, None], [None]])).fork_db()
     self.assertIsInstance(l, data_slice.DataSlice)
     testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
     l.append(1)
     testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
 
   def test_slice_with_scalar_items(self):
-    l = fns.list_like(ds([[1, None], [3]]), 1)
+    l = fns.list_like(ds([[1, None], [3]]), 1).fork_db()
     self.assertIsInstance(l, data_slice.DataSlice)
     testing.assert_equal(l[:], ds([[[1], []], [[1]]]).with_bag(l.get_bag()))
     l.append(2)
@@ -79,7 +83,9 @@ class ListLikeTest(parameterized.TestCase):
     )
 
   def test_slice_with_slice_items(self):
-    l = fns.list_like(ds([[1, None], [3]]), ds([[[1, 2], [3, 4]], [[5, 6]]]))
+    l = fns.list_like(
+        ds([[1, None], [3]]), ds([[[1, 2], [3, 4]], [[5, 6]]])
+    ).fork_db()
     self.assertIsInstance(l, data_slice.DataSlice)
     testing.assert_equal(
         l[:], ds([[[1, 2], []], [[5, 6]]]).with_bag(l.get_bag())

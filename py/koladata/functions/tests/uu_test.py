@@ -24,11 +24,15 @@ ds = data_slice.DataSlice.from_vals
 
 class UuTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.uu('seed').is_mutable())
+    self.assertTrue(fns.uu('seed', db=fns.bag()).is_mutable())
+
   def test_default_bag(self):
     x = fns.uu(
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
-    )
+    ).fork_db()
     testing.assert_equal(
         x.get_schema(),
         x.get_bag().uu_schema(
@@ -81,24 +85,20 @@ class UuTest(absltest.TestCase):
     testing.assert_equal(x, y)
 
   def test_seed_arg(self):
-    db = fns.bag()
     x = fns.uu(
-        db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
-    )
+    ).no_bag()
     y = fns.uu(
-        db=db,
         seed='seed',
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
-    )
+    ).no_bag()
     z = fns.uu(
         'seed',
-        db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
-    )
+    ).no_bag()
     self.assertNotEqual(x.fingerprint, y.fingerprint)
     self.assertEqual(y.fingerprint, z.fingerprint)
 

@@ -31,6 +31,10 @@ kde = kde_operators.kde
 
 class ObjLikeTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.obj_like(ds([1, None])).is_mutable())
+    self.assertTrue(fns.obj_like(ds([1, None]), db=fns.bag()).is_mutable())
+
   def test_item(self):
     x = fns.obj_like(
         ds(1),
@@ -102,7 +106,7 @@ class ObjLikeTest(absltest.TestCase):
     )
 
   def test_adopt_bag(self):
-    x = fns.obj_like(ds(1))
+    x = fns.obj_like(ds(1)).fork_db()
     x.a = 'abc'
     y = fns.obj_like(x, x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.

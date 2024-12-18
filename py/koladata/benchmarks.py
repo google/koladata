@@ -123,7 +123,7 @@ def get_attr_names_10000_obj(state):
 
 @google_benchmark.register
 def set_get_attr_entity_with_merging(state):
-  ds = kd.new()
+  ds = kd.bag().new()
   val = kd.new(a=1)  # Non-empty DataBag.
   ds.get_schema().abc = val.get_schema().no_bag()
   try:
@@ -136,7 +136,7 @@ def set_get_attr_entity_with_merging(state):
 
 @google_benchmark.register
 def set_get_attr_entity(state):
-  ds = kd.new()
+  ds = kd.bag().new()
   ds.get_schema().abc = kd.INT32
   val = kd.slice(12)
   try:
@@ -741,7 +741,7 @@ def to_proto_1k_mixed_primitive_fields(state):
 
 @google_benchmark.register
 def to_proto_100_of_100_deep(state):
-  schema = kd.schema.new_schema(int32_field=kd.INT32)
+  schema = kd.schema.new_schema(int32_field=kd.INT32, db=kd.bag())
   schema.message_field = schema
   bag = kd.bag()
   x = kd.slice([bag.new(schema=schema) for _ in range(100)])
@@ -758,7 +758,7 @@ def to_proto_100_of_100_deep(state):
 
 @google_benchmark.register
 def to_proto_100_of_100_deep_mixed_depth(state):
-  schema = kd.schema.new_schema(int32_field=kd.INT32)
+  schema = kd.schema.new_schema(int32_field=kd.INT32, db=kd.bag())
   schema.message_field = schema
   bag = kd.bag()
   x = kd.slice([bag.new(schema=schema) for _ in range(100)])
@@ -1022,7 +1022,7 @@ def extract_depth_100_object(state):
 @google_benchmark.option.args([1000, True])
 def set_get_multiple_attrs_entity(state):
   """Benchmark for setting and getting multiple attributes."""
-  ds = kd.new()
+  ds = kd.bag().new()
   ds.get_schema().abc = kd.INT32
   val = kd.slice(12)
   try:
@@ -1049,7 +1049,7 @@ def set_get_multiple_attrs_entity(state):
 @google_benchmark.option.args([1000, True])
 def set_get_multiple_attrs_entity_with_merging(state):
   """Benchmark for setting and getting multiple attributes with merging."""
-  ds = kd.new()
+  ds = kd.bag().new()
   val = kd.new(a=1)  # Non-empty DataBag.
   ds.get_schema().abc = val.get_schema().no_bag()
   try:

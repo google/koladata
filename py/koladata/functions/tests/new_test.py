@@ -31,6 +31,10 @@ kde = kde_operators.kde
 
 class NewTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.new().is_mutable())
+    self.assertTrue(fns.new(db=fns.bag()).is_mutable())
+
   def test_item(self):
     x = fns.new(
         a=ds(3.14, schema_constants.FLOAT64),

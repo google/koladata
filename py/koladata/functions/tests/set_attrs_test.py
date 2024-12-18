@@ -29,7 +29,7 @@ ds = data_slice.DataSlice.from_vals
 class SetAttrsTest(absltest.TestCase):
 
   def test_entity(self):
-    x = fns.new(a=ds(1, schema_constants.INT64), b='a')
+    x = fns.new(a=ds(1, schema_constants.INT64), b='a').fork_db()
     fns.set_attrs(x, a=2, b='abc')
     testing.assert_equal(
         x.a, ds(2, schema_constants.INT64).with_bag(x.get_bag())
@@ -37,7 +37,7 @@ class SetAttrsTest(absltest.TestCase):
     testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
 
   def test_incomaptible_schema_entity(self):
-    x = fns.new(a=1, b='a')
+    x = fns.new(a=1, b='a').fork_db()
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(r"""the schema for attribute 'b' is incompatible.
@@ -51,20 +51,20 @@ schema.b = <desired_schema>"""),
       fns.set_attrs(x, a=2, b=b'abc')
 
   def test_update_schema_entity(self):
-    x = fns.new(a=1, b='a')
+    x = fns.new(a=1, b='a').fork_db()
     fns.set_attrs(x, a=2, b=b'abc', update_schema=True)
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds(b'abc').with_bag(x.get_bag()))
 
   def test_object(self):
-    x = fns.obj()
+    x = fns.obj().fork_db()
     fns.set_attrs(x, a=2, b='abc')
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
 
   def test_incomaptible_schema_object(self):
     x_schema = fns.new(a=1, b='a').get_schema()
-    x = fns.obj()
+    x = fns.obj().fork_db()
     x.set_attr('__schema__', x_schema)
     with self.assertRaisesRegex(
         exceptions.KodaError,
@@ -80,7 +80,7 @@ foo.get_obj_schema().b = <desired_schema>"""),
 
   def test_update_schema_object(self):
     x_schema = fns.new(a=1, b='a').get_schema()
-    x = fns.obj()
+    x = fns.obj().fork_db()
     x.set_attr('__schema__', x_schema)
     fns.set_attrs(x, a=2, b=b'abc', update_schema=True)
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))

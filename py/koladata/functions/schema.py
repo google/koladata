@@ -20,6 +20,7 @@ import typing
 from typing import Any
 import warnings
 
+from koladata.expr import py_expr_eval_py_ext
 from koladata.types import data_bag
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
@@ -27,6 +28,7 @@ from koladata.types import schema_constants
 
 
 bag = data_bag.DataBag.empty
+_eval_op = py_expr_eval_py_ext.eval_op
 
 
 def new_schema(
@@ -43,7 +45,7 @@ def new_schema(
     data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
   """
   if db is None:
-    db = bag()
+    return _eval_op('kde.schema.new_schema', **attrs)
   return db.new_schema(**attrs)
 
 
@@ -61,7 +63,7 @@ def list_schema(
     data_slice.DataSlice representing a list schema.
   """
   if db is None:
-    db = bag()
+    return _eval_op('kde.schema.list_schema', item_schema)
   return db.list_schema(item_schema)
 
 
@@ -82,12 +84,12 @@ def dict_schema(
     data_slice.DataSlice representing a dict schema.
   """
   if db is None:
-    db = bag()
+    return _eval_op('kde.schema.dict_schema', key_schema, value_schema)
   return db.dict_schema(key_schema, value_schema)
 
 
 def uu_schema(
-    seed: str | None = None,
+    seed: str = '',
     *,
     db: data_bag.DataBag | None = None,
     **attrs: data_slice.DataSlice
@@ -104,7 +106,7 @@ def uu_schema(
     data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
   """
   if db is None:
-    db = bag()
+    return _eval_op('kde.schema.uu_schema', seed=seed, **attrs)
   return db.uu_schema(seed=seed, **attrs)
 
 
@@ -133,7 +135,7 @@ def named_schema(
     attrs.
   """
   if db is None:
-    db = bag()
+    return _eval_op('kde.schema.named_schema', name, **attrs)
   return db.named_schema(name, **attrs)
 
 

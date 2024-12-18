@@ -28,6 +28,18 @@ bag = fns.bag
 
 class DictSchemaTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(
+        fns.dict_schema(
+            schema_constants.STRING, schema_constants.INT32
+        ).is_mutable()
+    )
+    self.assertTrue(
+        fns.dict_schema(
+            schema_constants.STRING, schema_constants.INT32, db=bag()
+        ).is_mutable()
+    )
+
   def test_simple_schema(self):
     db = bag()
     schema = fns.dict_schema(
@@ -75,14 +87,12 @@ class DictSchemaTest(absltest.TestCase):
 
   def test_non_data_slice_arg(self):
     with self.assertRaisesRegex(
-        TypeError,
-        'expecting key_schema to be a DataSlice, got NoneType',
+        ValueError, 'expected DATA_SLICE, got key_schema: UNSPECIFIED',
     ):
       _ = fns.dict_schema(key_schema=None, value_schema=None)
 
     with self.assertRaisesRegex(
-        TypeError,
-        'expecting value_schema to be a DataSlice, got NoneType',
+        ValueError, 'expected DATA_SLICE, got value_schema: UNSPECIFIED',
     ):
       _ = fns.dict_schema(
           key_schema=schema_constants.FLOAT32, value_schema=None

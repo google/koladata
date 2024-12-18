@@ -29,6 +29,11 @@ ds = data_slice.DataSlice.from_vals
 
 class ContainerTest(absltest.TestCase):
 
+  def test_mutable(self):
+    self.assertTrue(fns.container().is_mutable())
+    self.assertTrue(fns.container(db=fns.bag()).is_mutable())
+    self.assertTrue(fns.container(db=fns.bag(), a=42).is_mutable())
+
   def test_set_get_attr(self):
     c = fns.container()
     c.a = 42
@@ -42,11 +47,6 @@ class ContainerTest(absltest.TestCase):
     testing.assert_equal(c.lst[:].no_bag(), ds([1, 2]))
     c.dct = {'a': 42, 'b': 12}
     testing.assert_dicts_keys_equal(c.dct, ds(['a', 'b']))
-
-  def test_mutable(self):
-    self.assertTrue(fns.container().is_mutable())
-    self.assertTrue(fns.container(db=fns.bag()).is_mutable())
-    self.assertTrue(fns.container(db=fns.bag(), a=42).is_mutable())
 
   def test_db_arg(self):
     db = fns.bag()

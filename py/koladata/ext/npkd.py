@@ -182,7 +182,7 @@ def reshape_based_on_indices(
   # Let's make this more efficient when/if necessary.
   # For now we create a system of nested dicts:
   # {index0 -> {index1 -> {... -> {'value' -> value}}}}
-  lookup = kdi.dict(key_schema=kdi.ANY, value_schema=kdi.ANY)
+  lookup = kdi.bag().dict(key_schema=kdi.ANY, value_schema=kdi.ANY)
   cur_lookup = lookup.repeat(ds.get_size())
 
   for index in indices:

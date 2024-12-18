@@ -28,6 +28,18 @@ bag = fns.bag
 
 class UuSchemaTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(
+        fns.uu_schema(
+            a=schema_constants.STRING, b=schema_constants.INT32
+        ).is_mutable()
+    )
+    self.assertTrue(
+        fns.uu_schema(
+            a=schema_constants.STRING, b=schema_constants.INT32, db=bag()
+        ).is_mutable()
+    )
+
   def test_simple_schema(self):
     schema = fns.uu_schema(a=schema_constants.INT32, b=schema_constants.STRING)
 
@@ -51,7 +63,7 @@ class UuSchemaTest(absltest.TestCase):
   def test_seed_argument(self):
     x = fns.uu_schema(a=schema_constants.INT32, b=schema_constants.STRING)
     y = fns.uu_schema(
-        a=schema_constants.FLOAT32, b=schema_constants.STRING, seed='seed'
+        a=schema_constants.INT32, b=schema_constants.STRING, seed='seed'
     )
     self.assertNotEqual(x.fingerprint, y.with_bag(x.get_bag()).fingerprint)
 

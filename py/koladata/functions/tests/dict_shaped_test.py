@@ -33,9 +33,14 @@ kde = kde_operators.kde
 
 class DictShapedTest(parameterized.TestCase):
 
+  def test_mutability(self):
+    shape = jagged_shape.create_shape([3])
+    self.assertFalse(fns.dict_shaped(shape).is_mutable())
+    self.assertTrue(fns.dict_shaped(shape, db=fns.bag()).is_mutable())
+
   def test_no_kv(self):
     shape = jagged_shape.create_shape([3])
-    x = fns.dict_shaped(shape)
+    x = fns.dict_shaped(shape).fork_db()
     self.assertIsInstance(x, data_slice.DataSlice)
     x['a'] = ds([1, 2, 3])
     testing.assert_equal(
@@ -44,7 +49,7 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_no_kv_scalar(self):
     shape = jagged_shape.create_shape()
-    x = fns.dict_shaped(shape)
+    x = fns.dict_shaped(shape).fork_db()
     self.assertIsInstance(x, dict_item.DictItem)
     x['a'] = 57
     testing.assert_equal(

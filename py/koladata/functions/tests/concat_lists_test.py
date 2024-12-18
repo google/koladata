@@ -32,6 +32,16 @@ OBJ2 = db.obj()
 
 class ImplodeTest(parameterized.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(
+        fns.concat_lists(fns.list([1, 2]), fns.list([3])).is_mutable()
+    )
+    self.assertTrue(
+        fns.concat_lists(
+            fns.list([1, 2]), fns.list([3]), db=fns.bag()
+        ).is_mutable()
+    )
+
   @parameterized.parameters(
       (
           (),

@@ -24,6 +24,10 @@ bag = fns.bag
 
 class UuSchemaTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.named_schema('my_schema').is_mutable())
+    self.assertTrue(fns.named_schema('my_schema', db=fns.bag()).is_mutable())
+
   def test_simple_schema(self):
     schema = fns.named_schema('name')
     self.assertCountEqual(fns.dir(schema), [])
@@ -67,7 +71,7 @@ class UuSchemaTest(absltest.TestCase):
 
   def test_wrong_attr_type(self):
     with self.assertRaisesRegex(
-        ValueError, 'expected DataSlice argument, got float'
+        ValueError, 'only schemas can be assigned as attributes of schemas'
     ):
       fns.named_schema('name', a=1.0)
     with self.assertRaisesRegex(

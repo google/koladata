@@ -32,6 +32,11 @@ kde = kde_operators.kde
 
 class ObjShapedTest(absltest.TestCase):
 
+  def test_mutability(self):
+    shape = jagged_shape.create_shape(2, [2, 1])
+    self.assertFalse(fns.obj_shaped(shape).is_mutable())
+    self.assertTrue(fns.obj_shaped(shape, db=fns.bag()).is_mutable())
+
   def test_item(self):
     x = fns.obj_shaped(
         jagged_shape.create_shape(),
@@ -83,7 +88,7 @@ class ObjShapedTest(absltest.TestCase):
       fns.obj_shaped(jagged_shape.create_shape([2]), a=ds([42]))
 
   def test_adopt_bag(self):
-    x = fns.obj_shaped(jagged_shape.create_shape())
+    x = fns.obj_shaped(jagged_shape.create_shape()).fork_db()
     x.a = 'abc'
     y = fns.obj_shaped(x.get_shape(), x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.

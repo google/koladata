@@ -33,8 +33,12 @@ kde = kde_operators.kde
 # data_bag_test.
 class ListTest(parameterized.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.list().is_mutable())
+    self.assertTrue(fns.list(db=fns.bag()).is_mutable())
+
   def test_empty(self):
-    l = fns.list()
+    l = fns.list().fork_db()
     self.assertIsInstance(l, list_item.ListItem)
     testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
     l.append(1)

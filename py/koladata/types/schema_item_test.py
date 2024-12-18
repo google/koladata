@@ -70,7 +70,7 @@ class SchemaItemTest(absltest.TestCase):
     )
 
   def test_new_schema_self_ref(self):
-    s = fns.schema.new_schema(value=schema_constants.INT32)
+    s = fns.schema.new_schema(value=schema_constants.INT32, db=bag())
     s.child = s
     s.parent = s
     child = s(value=42)

@@ -35,8 +35,12 @@ kde = kde_operators.kde
 # data_bag_test.
 class DictTest(parameterized.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.dict().is_mutable())
+    self.assertTrue(fns.dict(db=fns.bag()).is_mutable())
+
   def test_empty(self):
-    d = fns.dict()
+    d = fns.dict().fork_db()
     self.assertIsInstance(d, dict_item.DictItem)
     testing.assert_dicts_keys_equal(d, ds([], schema_constants.OBJECT))
     d['a'] = 1
@@ -67,7 +71,7 @@ class DictTest(parameterized.TestCase):
       fns.dict(ds([1, 2, 3]))
 
   def test_two_args(self):
-    d = fns.dict('a', 1)
+    d = fns.dict('a', 1).fork_db()
     self.assertIsInstance(d, dict_item.DictItem)
     self.assertEqual(d.get_shape().rank(), 0)
     d['b'] = 1

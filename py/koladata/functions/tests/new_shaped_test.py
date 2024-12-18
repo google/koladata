@@ -34,6 +34,11 @@ kde = kde_operators.kde
 
 class NewShapedTest(absltest.TestCase):
 
+  def test_mutability(self):
+    shape = jagged_shape.create_shape(2, [2, 1])
+    self.assertFalse(fns.new_shaped(shape).is_mutable())
+    self.assertTrue(fns.new_shaped(shape, db=fns.bag()).is_mutable())
+
   def test_item(self):
     x = fns.new_shaped(
         jagged_shape.create_shape(),
@@ -83,7 +88,7 @@ class NewShapedTest(absltest.TestCase):
       fns.new_shaped(jagged_shape.create_shape([2]), a=ds([42]))
 
   def test_adopt_bag(self):
-    x = fns.new_shaped(jagged_shape.create_shape())
+    x = fns.new_shaped(jagged_shape.create_shape()).fork_db()
     x.set_attr('a', 'abc')
     y = fns.new_shaped(x.get_shape(), x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.

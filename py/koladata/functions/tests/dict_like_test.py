@@ -31,8 +31,14 @@ kde = kde_operators.kde
 
 class DictLikeTest(parameterized.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.dict_like(ds([[0, None], [0]])).is_mutable())
+    self.assertTrue(
+        fns.dict_like(ds([[0, None], [0]]), db=fns.bag()).is_mutable()
+    )
+
   def test_no_kv(self):
-    x = fns.dict_like(ds([[0, None], [0]]))
+    x = fns.dict_like(ds([[0, None], [0]])).fork_db()
     x[1] = 2
     x[2] = 3
     testing.assert_equal(

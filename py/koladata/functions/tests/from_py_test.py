@@ -373,7 +373,7 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(item, obj.no_bag())
 
   def test_entity_reference(self):
-    entity = fns.new(x=42)
+    entity = fns.new(x=42).fork_db()
     item = fns.from_py(entity.ref())
     self.assertIsNotNone(item.get_bag())
     testing.assert_equal(

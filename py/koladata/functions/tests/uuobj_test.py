@@ -25,6 +25,10 @@ ds = data_slice.DataSlice.from_vals
 
 class UuObjTest(absltest.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.uuobj('seed').is_mutable())
+    self.assertTrue(fns.uuobj('seed', db=fns.bag()).is_mutable())
+
   def test_default_bag(self):
     x = fns.uuobj(
         a=ds([3.14], schema_constants.FLOAT64),

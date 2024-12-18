@@ -30,6 +30,12 @@ kde = kde_operators.kde
 
 class ListShapedAsTest(parameterized.TestCase):
 
+  def test_mutability(self):
+    self.assertFalse(fns.list_shaped_as(ds([1, None])).is_mutable())
+    self.assertTrue(
+        fns.list_shaped_as(ds([1, None]), db=fns.bag()).is_mutable()
+    )
+
   def test_item(self):
     l = fns.list_shaped_as(ds(1))
     self.assertIsInstance(l, list_item.ListItem)
@@ -41,7 +47,7 @@ class ListShapedAsTest(parameterized.TestCase):
     testing.assert_equal(l[:], ds([1, 2]).with_bag(l.get_bag()))
 
   def test_slice(self):
-    l = fns.list_shaped_as(ds([['a', 'b'], ['c']]))
+    l = fns.list_shaped_as(ds([['a', 'b'], ['c']])).fork_db()
     self.assertIsInstance(l, data_slice.DataSlice)
     testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
     l.append(1)
