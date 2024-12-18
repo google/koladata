@@ -18,19 +18,17 @@ from arolla import arolla
 from koladata.operators import jagged_shape
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import qtypes
 
 
 P = arolla.P
 
 
 @optools.add_to_registry(aliases=['kde.new_itemid_shaped'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.allocation.new_itemid_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
     deterministic=False,
 )
 def new_itemid_shaped(shape):
@@ -46,12 +44,11 @@ def new_itemid():
 
 
 @optools.add_to_registry(aliases=['kde.new_itemid_like'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.allocation.new_itemid_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
     deterministic=False,
 )
 def new_itemid_like(shape_and_mask_from):  # pylint: disable=unused-argument
@@ -67,12 +64,11 @@ def new_itemid_shaped_as(shape_from):
 
 
 @optools.add_to_registry(aliases=['kde.new_listid_shaped'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.allocation.new_listid_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
     deterministic=False,
 )
 def new_listid_shaped(shape):  # pylint: disable=unused-argument
@@ -88,12 +84,11 @@ def new_listid():
 
 
 @optools.add_to_registry(aliases=['kde.new_listid_like'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.allocation.new_listid_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
     deterministic=False,
 )
 def new_listid_like(shape_and_mask_from):  # pylint: disable=unused-argument
@@ -114,12 +109,11 @@ def new_listid_shaped_as(shape_from):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.new_dictid_shaped'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.allocation.new_dictid_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
     deterministic=False,
 )
 def new_dictid_shaped(shape):  # pylint: disable=unused-argument
@@ -135,12 +129,11 @@ def new_dictid():
 
 
 @optools.add_to_registry(aliases=['kde.new_dictid_like'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.allocation.new_dictid_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
     deterministic=False,
 )
 def new_dictid_like(shape_and_mask_from):  # pylint: disable=unused-argument

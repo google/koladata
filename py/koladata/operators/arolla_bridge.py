@@ -17,7 +17,6 @@
 from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import qtypes
 
 M = arolla.M
 P = arolla.P
@@ -35,7 +34,6 @@ to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_jagged_shape(P.shape),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _reshape(x, shape):  # pylint: disable=unused-argument
   """Returns a DataSlice with the provided shape."""
@@ -204,7 +202,6 @@ def to_arolla_dense_array_text(x):  # pylint: disable=unused-argument
             ),
         ),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _to_data_slice(x):  # pylint: disable=unused-argument
   """Converts `x` to a DataSlice."""

@@ -214,7 +214,6 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
-        "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
@@ -227,7 +226,6 @@ py_library(
         ":jagged_shape",
         ":optools",
         ":qtype_utils",
-        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -239,7 +237,6 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
-        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -250,7 +247,6 @@ py_library(
     deps = [
         ":optools",
         ":qtype_utils",
-        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -265,7 +261,6 @@ py_library(
         ":qtype_utils",
         ":schema",
         "//koladata/operators",
-        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -278,7 +273,6 @@ py_library(
         ":qtype_utils",
         ":schema",
         "//koladata/operators",
-        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -292,7 +286,6 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
-        "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
@@ -308,7 +301,6 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
     ],
@@ -323,7 +315,6 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
-        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -399,7 +390,6 @@ py_library(
         "//koladata/operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
-        "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
@@ -416,7 +406,6 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
-        "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
     ],
@@ -556,7 +545,6 @@ py_library(
         ":qtype_utils",
         "//koladata/functor:operators",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )

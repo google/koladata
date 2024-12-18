@@ -21,7 +21,6 @@ from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
-from koladata.types import qtypes
 
 M = arolla.OperatorsContainer(jagged_shape)
 P = arolla.P
@@ -34,7 +33,6 @@ P = arolla.P
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def subtract(x, y):  # pylint: disable=unused-argument
   """Computes pointwise x - y."""
@@ -48,7 +46,6 @@ def subtract(x, y):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def multiply(x, y):  # pylint: disable=unused-argument
   """Computes pointwise x * y."""
@@ -61,7 +58,6 @@ def multiply(x, y):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def log(x):  # pylint: disable=unused-argument
   """Computes pointwise natural logarithm of the input."""
@@ -74,7 +70,6 @@ def log(x):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def log10(x):  # pylint: disable=unused-argument
   """Computes pointwise logarithm in base 10 of the input."""
@@ -89,7 +84,6 @@ def log10(x):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.half),
         qtype_utils.expect_data_slice(P.slope),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def sigmoid(x, half=0.0, slope=1.0):  # pylint: disable=unused-argument
   """Computes sigmoid of the input.
@@ -113,7 +107,6 @@ def sigmoid(x, half=0.0, slope=1.0):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def exp(x):  # pylint: disable=unused-argument
   """Computes pointwise exponential of the input."""
@@ -126,7 +119,6 @@ def exp(x):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def abs(x):  # pylint: disable=unused-argument,redefined-builtin
   """Computes pointwise absolute value of the input."""
@@ -139,7 +131,6 @@ def abs(x):  # pylint: disable=unused-argument,redefined-builtin
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def neg(x):  # pylint: disable=unused-argument,redefined-builtin
   """Computes pointwise negation of the input, i.e. -x."""
@@ -152,7 +143,6 @@ def neg(x):  # pylint: disable=unused-argument,redefined-builtin
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def sign(x):  # pylint: disable=unused-argument
   """Computes the sign of the input.
@@ -172,7 +162,6 @@ def sign(x):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def pos(x):  # pylint: disable=unused-argument,redefined-builtin
   """Computes pointwise positive of the input, i.e. +x."""
@@ -185,7 +174,6 @@ def pos(x):  # pylint: disable=unused-argument,redefined-builtin
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def ceil(x):  # pylint: disable=unused-argument,g-doc-args
   """Computes pointwise ceiling of the input, e.g.
@@ -202,7 +190,6 @@ def ceil(x):  # pylint: disable=unused-argument,g-doc-args
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def floor(x):  # pylint: disable=unused-argument,g-doc-args
   """Computes pointwise floor of the input, e.g.
@@ -219,7 +206,6 @@ def floor(x):  # pylint: disable=unused-argument,g-doc-args
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def round(x):  # pylint: disable=unused-argument,redefined-builtin,g-doc-args
   """Computes pointwise rounding of the input.
@@ -246,7 +232,6 @@ def round(x):  # pylint: disable=unused-argument,redefined-builtin,g-doc-args
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def divide(x, y):  # pylint: disable=unused-argument
   """Computes pointwise x / y."""
@@ -260,7 +245,6 @@ def divide(x, y):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _pow(x, y):  # pylint: disable=unused-argument
   """Computes pointwise x ** y."""
@@ -274,7 +258,6 @@ def _pow(x, y):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def floordiv(x, y):  # pylint: disable=unused-argument
   """Computes pointwise x // y."""
@@ -288,16 +271,13 @@ def floordiv(x, y):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def mod(x, y):  # pylint: disable=unused-argument
   """Computes pointwise x % y."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.math._agg_sum', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._agg_sum')
 def _agg_sum(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -343,9 +323,7 @@ def sum(x):
   return agg_sum(jagged_shape_ops.flatten(x))
 
 
-@optools.as_backend_operator(
-    'kde.math._agg_mean', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._agg_mean')
 def _agg_mean(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -391,9 +369,7 @@ def mean(x):
   return agg_mean(jagged_shape_ops.flatten(x))
 
 
-@optools.as_backend_operator(
-    'kde.math._agg_median', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._agg_median')
 def _agg_median(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -445,9 +421,7 @@ def median(x):
   return agg_median(jagged_shape_ops.flatten(x))
 
 
-@optools.as_backend_operator(
-    'kde.math._agg_std', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._agg_std')
 def _agg_std(x, unbiased=True):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -485,9 +459,7 @@ def agg_std(x, unbiased=True, ndim=arolla.unspecified()):
   )
 
 
-@optools.as_backend_operator(
-    'kde.math._agg_var', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._agg_var')
 def _agg_var(x, unbiased=True):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -532,7 +504,6 @@ def agg_var(x, unbiased=True, ndim=arolla.unspecified()):
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def maximum(x, y):  # pylint: disable=unused-argument
   """Computes pointwise max(x, y)."""
@@ -546,16 +517,13 @@ def maximum(x, y):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def minimum(x, y):  # pylint: disable=unused-argument
   """Computes pointwise min(x, y)."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.math._agg_max', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._agg_max')
 def _agg_max(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -601,9 +569,7 @@ def _max(x):
   return agg_max(jagged_shape_ops.flatten(x))
 
 
-@optools.as_backend_operator(
-    'kde.math._cum_max', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._cum_max')
 def _cum_max(x):  # pylint: disable=unused-argument
   """Returns the cumulative max of items."""
   raise NotImplementedError('implemented in the backend')
@@ -623,9 +589,7 @@ def cum_max(x, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator(
-    'kde.math._agg_min', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._agg_min')
 def _agg_min(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -671,9 +635,7 @@ def _min(x):
   return agg_min(jagged_shape_ops.flatten(x))
 
 
-@optools.as_backend_operator(
-    'kde.math._cum_min', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._cum_min')
 def _cum_min(x):  # pylint: disable=unused-argument
   """Returns the cumulative minimum of items."""
   raise NotImplementedError('implemented in the backend')
@@ -693,9 +655,7 @@ def cum_min(x, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator(
-    'kde.math._cum_sum', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._cum_sum')
 def _cum_sum(x):  # pylint: disable=unused-argument
   """Returns the cumulative sum of items."""
   raise NotImplementedError('implemented in the backend')
@@ -715,9 +675,7 @@ def cum_sum(x, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator(
-    'kde.math._softmax', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._softmax')
 def _softmax(x, weights):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -748,9 +706,7 @@ def softmax(x, beta=1.0, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator(
-    'kde.math._cdf', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._cdf')
 def _cdf(x, weights):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -795,9 +751,7 @@ def cdf(x, weights=arolla.unspecified(), ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator(
-    'kde.math._agg_inverse_cdf', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.math._agg_inverse_cdf')
 def _agg_inverse_cdf(x, cdf_arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 

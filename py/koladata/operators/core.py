@@ -65,7 +65,6 @@ def _add_impl(x, y):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def add(x, y):  # pylint: disable=unused-argument
   """Computes pointwise x + y."""
@@ -73,7 +72,7 @@ def add(x, y):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.bag'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.core.bag',
     qtype_inference_expr=qtypes.DATA_BAG,
     deterministic=False,
@@ -84,17 +83,13 @@ def _bag():
 
 
 @optools.add_to_registry(aliases=['kde.align'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.core.align',
     qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
     ],
-    qtype_inference_expr=arolla.M.qtype.make_tuple_qtype(
-        arolla.M.seq.map(
-            arolla.LambdaOperator('_', qtypes.DATA_SLICE),
-            arolla.M.qtype.get_field_qtypes(P.args),
-        ),
-    ),
+    qtype_inference_expr=P.args,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def align(*args):  # pylint: disable=unused-argument
   """Expands all of the DataSlices in `args` to the same common shape.
@@ -120,7 +115,7 @@ def align(*args):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.core._concat_or_stack', qtype_inference_expr=qtypes.DATA_SLICE
 )
 def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,redefined-outer-name
@@ -321,9 +316,7 @@ def _zip(*args):
   )
 
 
-@optools.as_backend_operator(
-    'kde.core._select', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._select')
 def _select(ds, fltr, expand_filter):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -430,7 +423,6 @@ def remove(ds, fltr):
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def reverse(ds):  # pylint: disable=unused-argument
   """Returns a DataSlice with items reversed on the last dimension.
@@ -464,7 +456,6 @@ def reverse(ds):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def inverse_select(ds, fltr):  # pylint: disable=unused-argument
   """Creates a DataSlice by putting items in ds to present positions in fltr.
@@ -540,17 +531,13 @@ def isin(x, y):
   return masking.any_(x == y)
 
 
-@optools.as_backend_operator(
-    'kde.core._get_attr', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._get_attr')
 def _get_attr(x, attr_name):  # pylint: disable=unused-argument
   """Gets an attribute from a DataSlice."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.core._get_attr_with_default', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._get_attr_with_default')
 def _get_attr_with_default(x, attr_name, default):  # pylint: disable=unused-argument
   """Gets an attribute from a DataSlice replacing missing items from default."""
   raise NotImplementedError('implemented in the backend')
@@ -616,7 +603,6 @@ def maybe(x, attr_name):
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def is_empty(x):  # pylint: disable=unused-argument
   """Returns kd.present if all items in the DataSlice are missing."""
@@ -662,7 +648,6 @@ def has_attr(x, attr_name):
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attrs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused-argument
   """Copies a DataSlice's schema stub to a new DataBag.
@@ -695,7 +680,7 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
 
 
 @optools.add_to_registry(aliases=['kde.attrs'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.core.attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
@@ -726,14 +711,13 @@ def _attr(x, attr_name, value, update_schema=False):
 
 
 @optools.add_to_registry(aliases=['kde.with_attrs'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.core.with_attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def with_attrs(x, /, *, update_schema=False, **attrs):
   """Returns a DataSlice with a new DataBag containing updated attributes."""
@@ -749,16 +733,13 @@ def with_attrs(x, /, *, update_schema=False, **attrs):
         qtype_utils.expect_data_slice(P.value),
         qtype_utils.expect_data_slice(P.update_schema),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def with_attr(x, attr_name, value, update_schema=False):
   """Returns a DataSlice with a new DataBag containing a single updated attribute."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_unified_backend_operator(
-    'kde.core._new', qtype_inference_expr=qtypes.DATA_SLICE, deterministic=False
-)
+@optools.as_backend_operator('kde.core._new', deterministic=False)
 def _new(arg, schema, update_schema, itemid, attrs):
   """Internal implementation of kde.core.new."""
   raise NotImplementedError('implemented in the backend')
@@ -821,11 +802,7 @@ def new(
   )
 
 
-@optools.as_unified_backend_operator(
-    'kde.core._new_shaped',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
+@optools.as_backend_operator('kde.core._new_shaped', deterministic=False)
 def _new_shaped(shape, schema, update_schema, itemid, attrs):
   """Internal implementation of kde.core.new_shaped."""
   raise NotImplementedError('implemented in the backend')
@@ -923,11 +900,7 @@ def new_shaped_as(
   )
 
 
-@optools.as_unified_backend_operator(
-    'kde.core._new_like',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
+@optools.as_backend_operator('kde.core._new_like', deterministic=False)
 def _new_like(shape_and_mask_from, schema, update_schema, itemid, attrs):
   """Internal implementation of kde.core.new_like."""
   raise NotImplementedError('implemented in the backend')
@@ -981,14 +954,13 @@ def new_like(
 
 
 @optools.add_to_registry(aliases=['kde.obj'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.core.obj',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.arg),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
     deterministic=False,
 )
 def _obj(arg=arolla.unspecified(), /, *, itemid=arolla.unspecified(), **attrs):
@@ -1010,14 +982,13 @@ def _obj(arg=arolla.unspecified(), /, *, itemid=arolla.unspecified(), **attrs):
 
 
 @optools.add_to_registry(aliases=['kde.obj_shaped'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.core.obj_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
     deterministic=False,
 )
 def obj_shaped(shape, /, *, itemid=arolla.unspecified(), **attrs):  # pylint: disable=unused-argument
@@ -1069,14 +1040,13 @@ def obj_shaped_as(shape_from, /, *, itemid=arolla.unspecified(), **attrs):
 
 
 @optools.add_to_registry(aliases=['kde.obj_like'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.core.obj_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
     deterministic=False,
 )
 def obj_like(
@@ -1111,7 +1081,6 @@ def obj_like(
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_bag(P.bag),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def with_bag(ds, bag):  # pylint: disable=unused-argument
   """Returns a DataSlice with the given DataBatg attached."""
@@ -1133,7 +1102,6 @@ def _get_item_bag(bag, ds):
         arolla.optools.constraints.expect_scalar_integer(P.start),
         arolla.optools.constraints.expect_scalar_integer(P.stop),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _get_list_item_by_range(ds, start, stop):  # pylint: disable=unused-argument
   """Gets an attribute from a DataSlice."""
@@ -1173,9 +1141,7 @@ def _get_list_item_by_slice(x, s):
   return _get_list_item_by_range(x, start, stop)
 
 
-@optools.as_backend_operator(
-    'kde.core._get_item', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._get_item')
 def _get_item(x, key_or_index):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -1320,7 +1286,6 @@ def count(x):
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.indices),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def take(x, indices):  # pylint: disable=unused-argument
   """Returns a new DataSlice with items at provided indices.
@@ -1359,7 +1324,7 @@ def take(x, indices):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.group_by_indices'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.core.group_by_indices',
     qtype_constraints=[
         (
@@ -1369,6 +1334,7 @@ def take(x, indices):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def group_by_indices(*args):  # pylint: disable=unused-argument
   """Returns a indices DataSlice with injected grouped_by dimension.
@@ -1423,7 +1389,7 @@ def group_by_indices(*args):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.group_by_indices_sorted'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.core.group_by_indices_sorted',
     qtype_constraints=[
         (
@@ -1433,6 +1399,7 @@ def group_by_indices(*args):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def group_by_indices_sorted(*args):  # pylint: disable=unused-argument
   """Similar to `group_by_indices` but groups are sorted by the value.
@@ -1557,7 +1524,6 @@ def group_by(x, *args):
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.sort),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def unique(x, sort=False):  # pylint: disable=redefined-outer-name,unused-argument
   """Returns a DataSlice with unique values within each dimension.
@@ -1788,19 +1754,13 @@ def is_shape_compatible(x, y):
   return is_expandable_to(x, y) | is_expandable_to(y, x)
 
 
-@optools.as_unified_backend_operator(
-    'kde.core._new_ids_like',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
+@optools.as_backend_operator('kde.core._new_ids_like', deterministic=False)
 def _new_ids_like(x):  # pylint: disable=unused-argument
   """Creates a DataSlice with new ItemIds of a similar kind."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.core._extract', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._extract')
 def _extract(ds, schema):  # pylint: disable=unused-argument
   """Creates a DataSlice with a new DataBag containing only reachable attrs."""
   raise NotImplementedError('implemented in the backend')
@@ -1880,9 +1840,7 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
   )
 
 
-@optools.as_backend_operator(
-    'kde.core._shallow_clone', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._shallow_clone')
 def _shallow_clone(x, itemid, schema, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with shallow clones of immediate attributes."""
   raise NotImplementedError('implemented in the backend')
@@ -1947,9 +1905,7 @@ def shallow_clone(
   )(x, itemid, schema, overrides, optools.unified_non_deterministic_arg())
 
 
-@optools.as_backend_operator(
-    'kde.core._clone', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._clone')
 def _clone(x, itemid, schema, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with clones of provided entities in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
@@ -2014,9 +1970,7 @@ def clone(
   )(x, itemid, schema, overrides, optools.unified_non_deterministic_arg())
 
 
-@optools.as_backend_operator(
-    'kde.core._deep_clone', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._deep_clone')
 def _deep_clone(x, schema, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with a deep copy of `x`."""
   raise NotImplementedError('implemented in the backend')
@@ -2075,13 +2029,14 @@ def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
 @optools.add_to_registry(
     aliases=['kde.subslice'], repr_fn=op_repr.subslice_repr
 )
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.core.subslice',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         _expect_data_slices_or_slices_or_ellipsis(P.slices),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def subslice(x, *slices):  # pylint: disable=unused-argument
   """Slices `x` across all of its dimensions based on the provided `slices`.
@@ -2195,7 +2150,6 @@ optools.add_to_registry(
 @optools.as_backend_operator(
     'kde.core.nofollow',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def nofollow(x):  # pylint: disable=unused-argument
   """Returns a nofollow DataSlice targeting the given slice.
@@ -2216,7 +2170,6 @@ def nofollow(x):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.core.no_bag',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def no_bag(ds):  # pylint: disable=unused-argument
   """Returns DataSlice without any DataBag attached."""
@@ -2227,7 +2180,6 @@ def no_bag(ds):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.core.ref',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def ref(ds):  # pylint: disable=unused-argument
   """Returns `ds` with the DataBag removed.
@@ -2249,7 +2201,6 @@ def ref(ds):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.core.follow',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def follow(x):  # pylint: disable=unused-argument
   """Returns the original DataSlice from a NoFollow DataSlice.
@@ -2274,9 +2225,7 @@ def _freeze_bag(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.core._freeze_slice', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._freeze_slice')
 def _freeze_slice(x):  # pylint: disable=unused-argument
   """Helper operator that freezes a DataSlice."""
   raise NotImplementedError('implemented in the backend')
@@ -2344,7 +2293,6 @@ def reify(ds, source):
 @optools.as_backend_operator(
     'kde.core.with_merged_bag',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def with_merged_bag(ds):  # pylint: disable=unused-argument
   """Returns a DataSlice with the DataBag of `ds` merged with its fallbacks.
@@ -2366,13 +2314,14 @@ def with_merged_bag(ds):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.enriched'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.core.enriched',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_bag_args(P.bag),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def enriched(ds, *bag):  # pylint: disable=unused-argument
   """Returns a copy of a DataSlice with a additional fallback DataBag(s).
@@ -2397,13 +2346,14 @@ def enriched(ds, *bag):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.updated'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.core.updated',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_bag_args(P.bag),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def updated(ds, *bag):  # pylint: disable=unused-argument
   """Returns a copy of a DataSlice with DataBag(s) of updates applied.
@@ -2428,12 +2378,13 @@ def updated(ds, *bag):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.enriched_bag'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.core.enriched_bag',
     qtype_constraints=[
         qtype_utils.expect_data_bag_args(P.bags),
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def enriched_bag(*bags):  # pylint: disable=unused-argument
   """Creates a new immutable DataBag enriched by `bags`.
@@ -2456,12 +2407,13 @@ def enriched_bag(*bags):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.updated_bag'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.core.updated_bag',
     qtype_constraints=[
         qtype_utils.expect_data_bag_args(P.bags),
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def updated_bag(*bags):  # pylint: disable=unused-argument
   """Creates a new immutable DataBag updated by `bags`.
@@ -2617,9 +2569,7 @@ def dense_rank(x, descending=False, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator(
-    'kde.core._inverse_mapping', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._inverse_mapping')
 def _inverse_mapping(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -3083,7 +3033,6 @@ def _range(start, end=arolla.unspecified()):
         qtype_utils.expect_data_slice(P.keys_from),
         qtype_utils.expect_data_slice(P.values_from),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def translate(keys_to, keys_from, values_from):  # pylint: disable=unused-argument
   """Translates `keys_to` based on `keys_from`->`values_from` mapping.

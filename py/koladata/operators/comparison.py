@@ -19,7 +19,6 @@ from koladata.operators import masking
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import qtypes
 
 P = arolla.P
 
@@ -31,7 +30,6 @@ P = arolla.P
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def equal(x, y):  # pylint: disable=unused-argument
   """Returns present iff `x` and `y` are equal.
@@ -104,7 +102,6 @@ def not_equal(x, y):
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def greater(x, y):  # pylint: disable=unused-argument
   """Returns present iff `x` is greater than `y`.
@@ -127,7 +124,6 @@ def greater(x, y):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def less(x, y):  # pylint: disable=unused-argument
   """Returns present iff `x` is less than `y`.
@@ -152,7 +148,6 @@ def less(x, y):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def greater_equal(x, y):  # pylint: disable=unused-argument
   """Returns present iff `x` is greater than or equal to `y`.
@@ -177,7 +172,6 @@ def greater_equal(x, y):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def less_equal(x, y):  # pylint: disable=unused-argument
   """Returns present iff `x` is less than or equal to `y`.

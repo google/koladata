@@ -19,7 +19,6 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -83,12 +82,11 @@ def _collapse(x, ndim=arolla.unspecified()):
 
 
 @optools.add_to_registry()
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.schema.new_schema',
     qtype_constraints=[
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
     deterministic=False,
 )
 def new_schema(**kwargs):  # pylint: disable=unused-argument
@@ -105,13 +103,12 @@ def new_schema(**kwargs):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.uu_schema'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.schema.uu_schema',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uu_schema(seed='', **kwargs):  # pylint: disable=unused-argument
   """Creates a UUSchema, i.e. a schema keyed by a uuid.
@@ -139,13 +136,12 @@ def uu_schema(seed='', **kwargs):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.named_schema'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.schema.named_schema',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.name),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def named_schema(name, **kwargs):
   """Creates a named entity schema.
@@ -167,10 +163,7 @@ def named_schema(name, **kwargs):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.schema._internal_maybe_named_schema',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
+@optools.as_backend_operator('kde.schema._internal_maybe_named_schema')
 def _internal_maybe_named_schema(name_or_schema):
   """Internal implementation of kde.schema.internal_maybe_named_schema."""
   raise NotImplementedError('implemented in the backend')
@@ -214,7 +207,6 @@ def internal_maybe_named_schema(name_or_schema):
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def cast_to_implicit(x, schema):  # pylint: disable=unused-argument
   """Returns `x` casted to the provided `schema` using implicit casting rules.
@@ -236,7 +228,6 @@ def cast_to_implicit(x, schema):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def cast_to(x, schema):  # pylint: disable=unused-argument
   """Returns `x` casted to the provided `schema` using explicit casting rules.
@@ -258,7 +249,6 @@ def cast_to(x, schema):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def cast_to_narrow(x, schema):  # pylint: disable=unused-argument
   """Returns `x` casted to the provided `schema`.
@@ -274,29 +264,29 @@ def cast_to_narrow(x, schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kde.list_schema'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.schema.list_schema',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.item_schema),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def list_schema(item_schema):  # pylint: disable=unused-argument
   """Returns a List schema with the provided `item_schema`."""
   raise NotImplementedError('implemented in the backend')
 
 
+# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kde.dict_schema'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.schema.dict_schema',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.key_schema),
         qtype_utils.expect_data_slice(P.value_schema),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def dict_schema(key_schema, value_schema):  # pylint: disable=unused-argument
   """Returns a Dict schema with the provided `key_schema` and `value_schema`."""
@@ -439,7 +429,6 @@ def to_none(x):
 @optools.as_backend_operator(
     'kde.schema.get_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def get_schema(x):  # pylint: disable=unused-argument
   """Returns the schema of `x`."""
@@ -456,7 +445,6 @@ def get_schema(x):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.schema.get_primitive_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def get_primitive_schema(ds):  # pylint: disable=unused-argument
   """Returns a primitive schema representing the underlying items' dtype.
@@ -486,13 +474,12 @@ def get_primitive_schema(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kde.get_obj_schema'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.schema.get_obj_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    # Use Arolla boxing to avoid boxing literals into DataSlices.
-    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def get_obj_schema(x):  # pylint: disable=unused-argument
   """Returns a DataSlice of schemas for Objects and primitives in `x`.
@@ -515,39 +502,36 @@ def get_obj_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kde.get_item_schema'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.schema.get_item_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.list_schema)],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    # Use Arolla boxing to avoid boxing literals into DataSlices.
-    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def get_item_schema(list_schema):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns the item schema of a List schema`."""
   raise NotImplementedError('implemented in the backend')
 
 
+# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kde.get_key_schema'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.schema.get_key_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_schema)],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    # Use Arolla boxing to avoid boxing literals into DataSlices.
-    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def get_key_schema(dict_schema):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns the key schema of a Dict schema`."""
   raise NotImplementedError('implemented in the backend')
 
 
+# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kde.get_value_schema'])
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.schema.get_value_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_schema)],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    # Use Arolla boxing to avoid boxing literals into DataSlices.
-    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
 )
 def get_value_schema(dict_schema):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns the value schema of a Dict schema`."""
@@ -558,7 +542,6 @@ def get_value_schema(dict_schema):  # pylint: disable=unused-argument,redefined-
 @optools.as_backend_operator(
     'kde.schema.is_dict_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def is_dict_schema(x):  # pylint: disable=unused-argument
   """Returns true iff `x` is a Dict schema DataItem."""
@@ -569,7 +552,6 @@ def is_dict_schema(x):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.schema.is_entity_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def is_entity_schema(x):  # pylint: disable=unused-argument
   """Returns true iff `x` is an Entity schema DataItem."""
@@ -580,7 +562,6 @@ def is_entity_schema(x):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.schema.is_list_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def is_list_schema(x):  # pylint: disable=unused-argument
   """Returns true iff `x` is a List schema DataItem."""
@@ -591,16 +572,13 @@ def is_list_schema(x):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.schema.is_primitive_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def is_primitive_schema(x):  # pylint: disable=unused-argument
   """Returns true iff `x` is a primitive schema DataItem."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.schema._agg_common_schema', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.schema._agg_common_schema')
 def _agg_common_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -653,11 +631,7 @@ def common_schema(x):
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
-    'kde.schema._unsafe_cast_to',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-)
+@optools.as_backend_operator('kde.schema._unsafe_cast_to')
 def _unsafe_cast_to(x, schema):  # pylint: disable=unused-argument
   """Casts x to schema using explicit casting rules, allowing entity casts."""
   raise NotImplementedError('implemented in the backend')
@@ -695,7 +669,6 @@ def with_schema_from_obj(x):
 @optools.as_backend_operator(
     'kde.schema.nofollow_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.schema)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def nofollow_schema(schema):  # pylint: disable=unused-argument
   """Returns a NoFollow schema of the provided schema.
@@ -715,7 +688,6 @@ def nofollow_schema(schema):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'kde.schema.get_nofollowed_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.schema)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def get_nofollowed_schema(schema):  # pylint: disable=unused-argument
   """Returns the original schema from nofollow schema.

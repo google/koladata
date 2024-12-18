@@ -24,7 +24,6 @@ from koladata.operators import qtype_utils
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
@@ -34,11 +33,7 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-@optools.as_unified_backend_operator(
-    'kde.lists._make',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
+@optools.as_backend_operator('kde.lists._make', deterministic=False)
 def _make(items, item_schema, schema, itemid):  # pylint: disable=unused-argument
   """Implementation of `kde.lists.create`."""
   raise NotImplementedError('implemented in the backend')
@@ -88,11 +83,7 @@ def make(
   return _make(items, item_schema, schema, itemid)
 
 
-@optools.as_unified_backend_operator(
-    'kde.lists._like',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
+@optools.as_backend_operator('kde.lists._like', deterministic=False)
 def _like(
     shape_and_mask_from, items, item_schema, schema, itemid  # pylint: disable=unused-argument
 ):
@@ -145,11 +136,7 @@ def like(
   return _like(shape_and_mask_from, items, item_schema, schema, itemid)
 
 
-@optools.as_unified_backend_operator(
-    'kde.lists._shaped',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
+@optools.as_backend_operator('kde.lists._shaped', deterministic=False)
 def _shaped(shape, items, item_schema, schema, itemid):  # pylint: disable=unused-argument
   """Implementation of `kde.lists.shaped`."""
   raise NotImplementedError('implemented in the backend')
@@ -243,9 +230,7 @@ def shaped_as(
   )
 
 
-@optools.as_backend_operator(
-    'kde.lists._explode', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.lists._explode')
 def _explode(x, ndim):  # pylint: disable=unused-argument
   """Implementation of kde.lists.explode."""
   raise NotImplementedError('implemented in the backend')
@@ -285,11 +270,7 @@ def explode(x, ndim=1):
   return _explode(x, arolla_bridge.to_arolla_int64(ndim))
 
 
-@optools.as_unified_backend_operator(
-    'kde.lists._implode',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
+@optools.as_backend_operator('kde.lists._implode', deterministic=False)
 def _implode(x, ndim):  # pylint: disable=unused-argument
   """Implementation of kde.lists.implode."""
   raise NotImplementedError('implemented in the backend')
@@ -332,7 +313,6 @@ def implode(x, ndim=1):
 @optools.as_backend_operator(
     'kde.lists.size',
     qtype_constraints=[qtype_utils.expect_data_slice(P.list_slice)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def size(list_slice):  # pylint: disable=unused-argument
   """Returns size of a List."""
@@ -345,7 +325,6 @@ def size(list_slice):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def has_list(x):  # pylint: disable=unused-argument
   """Returns present for each item in `x` that is List.
@@ -372,9 +351,7 @@ def has_list(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(aliases=['kde.is_list'])
 @optools.as_backend_operator(
-    'kde.lists.is_list',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.lists.is_list', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def is_list(x):  # pylint: disable=unused-argument
   """Returns whether x is a List DataSlice.

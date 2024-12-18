@@ -20,7 +20,6 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema as schema_ops
-from koladata.types import qtypes
 
 
 M = arolla.M
@@ -31,13 +30,12 @@ _AGG_UUID_MISSING_VALUE_REPLACEMENT = '__empty_input_to_uuid__'
 
 
 @optools.add_to_registry(aliases=['kde.uuid'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.ids.uuid',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uuid(seed='', **kwargs):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
@@ -55,13 +53,12 @@ def uuid(seed='', **kwargs):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.uuid_for_list', 'lists.uuid_for_list'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.ids.uuid_for_list',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uuid_for_list(seed='', **kwargs):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
@@ -85,13 +82,12 @@ def uuid_for_list(seed='', **kwargs):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.uuid_for_dict', 'dicts.uuid_for_dict'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.ids.uuid_for_dict',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uuid_for_dict(seed='', **kwargs):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are Fingerprints identifying arguments.
@@ -115,13 +111,12 @@ def uuid_for_dict(seed='', **kwargs):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.uuids_with_allocation_size'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.ids.uuids_with_allocation_size',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice(P.size),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uuids_with_allocation_size(seed='', *, size):  # pylint: disable=unused-argument
   """Creates a DataSlice whose items are uuids.
@@ -141,9 +136,7 @@ def uuids_with_allocation_size(seed='', *, size):  # pylint: disable=unused-argu
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.ids._agg_uuid', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.ids._agg_uuid')
 def _agg_uuid(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -173,9 +166,7 @@ def agg_uuid(x, ndim=arolla.unspecified()):
   return _agg_uuid(x)
 
 
-@optools.as_backend_operator(
-    'kde.ids._deep_uuid', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.ids._deep_uuid')
 def _deep_uuid(x, schema, seed):  # pylint: disable=unused-argument
   """Creates a slice with a (deep) uuid of the given slice."""
   raise NotImplementedError('implemented in the backend')
@@ -212,7 +203,6 @@ def deep_uuid(x, /, schema=arolla.unspecified(), *, seed=''):
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def encode_itemid(ds):  # pylint: disable=unused-argument
   """Returns the base62 encoded ItemIds in `ds` as strings."""
@@ -225,7 +215,6 @@ def encode_itemid(ds):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def decode_itemid(ds):  # pylint: disable=unused-argument
   """Returns ItemIds decoded from the base62 strings."""

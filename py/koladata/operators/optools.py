@@ -190,27 +190,6 @@ def _build_operator_signature_from_fn(
   return arolla.abc.Signature((signature.parameters, aux_policy))
 
 
-def as_backend_operator(
-    name: str,
-    *,
-    qtype_inference_expr: arolla.Expr | arolla.QType,
-    qtype_constraints: arolla.types.QTypeConstraints = (),
-    aux_policy: str = py_boxing.DEFAULT_BOXING_POLICY,
-) -> Callable[[types.FunctionType], arolla.types.BackendOperator]:
-  """A decorator for defining Koladata-specific backend operators."""
-
-  def impl(fn):
-    return arolla.types.BackendOperator(
-        name,
-        _build_operator_signature_from_fn(fn, aux_policy),
-        doc=inspect.getdoc(fn) or '',
-        qtype_inference_expr=qtype_inference_expr,
-        qtype_constraints=qtype_constraints,
-    )
-
-  return impl
-
-
 UNIFIED_NON_DETERMINISTIC_PARAM_NAME = (
     unified_binding_policy.NON_DETERMINISTIC_PARAM_NAME
 )
@@ -230,10 +209,10 @@ def unified_non_deterministic_kwarg():
   return {UNIFIED_NON_DETERMINISTIC_PARAM_NAME: unified_non_deterministic_arg()}
 
 
-def as_unified_backend_operator(
+def as_backend_operator(
     name: str,
     *,
-    qtype_inference_expr: arolla.Expr | arolla.QType,
+    qtype_inference_expr: arolla.Expr | arolla.QType = qtypes.DATA_SLICE,
     qtype_constraints: arolla.types.QTypeConstraints = (),
     deterministic: bool = True,
 ) -> Callable[[types.FunctionType], arolla.types.BackendOperator]:

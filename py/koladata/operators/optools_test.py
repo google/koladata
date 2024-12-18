@@ -501,7 +501,7 @@ class OptoolsTest(parameterized.TestCase):
     self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
 
   def test_as_unified_backend_operator_properties(self):
-    @optools.as_unified_backend_operator(
+    @optools.as_backend_operator(
         'my_op_name',
         qtype_inference_expr=arolla.P.a,
         qtype_constraints=[(arolla.P.a != arolla.UNIT, 'my_qtype_constraint')],
@@ -520,7 +520,7 @@ class OptoolsTest(parameterized.TestCase):
       arolla.abc.infer_attr(op, (arolla.UNIT, None, None))
 
   def test_as_unified_backend_operator_deterministic(self):
-    @optools.as_unified_backend_operator('op', qtype_inference_expr=arolla.UNIT)
+    @optools.as_backend_operator('op', qtype_inference_expr=arolla.UNIT)
     def op(x):
       del x
 
@@ -531,7 +531,7 @@ class OptoolsTest(parameterized.TestCase):
       arolla.abc.infer_attr(op, (None, arolla.UNIT))
 
   def test_as_unified_backend_operator_non_deterministic(self):
-    @optools.as_unified_backend_operator(
+    @optools.as_backend_operator(
         'op', qtype_inference_expr=arolla.UNIT, deterministic=False
     )
     def op(x):
@@ -601,7 +601,7 @@ class OptoolsTest(parameterized.TestCase):
       arolla.abc.infer_attr(op, (None, arolla.UNIT))
 
   def test_as_lambda_operator_detect_deterministic_auto(self):
-    @optools.as_unified_backend_operator(
+    @optools.as_backend_operator(
         'deterministic_backend_op',
         deterministic=True,
         qtype_inference_expr=qtypes.DATA_SLICE,
@@ -609,7 +609,7 @@ class OptoolsTest(parameterized.TestCase):
     def deterministic_backend_op():
       raise NotImplementedError('implemented in the backend')
 
-    @optools.as_unified_backend_operator(
+    @optools.as_backend_operator(
         'non_deterministic_backend_op',
         deterministic=False,
         qtype_inference_expr=qtypes.DATA_SLICE,
@@ -632,7 +632,7 @@ class OptoolsTest(parameterized.TestCase):
       self,
   ):
 
-    @optools.as_unified_backend_operator(
+    @optools.as_backend_operator(
         'op1', qtype_inference_expr=qtypes.DATA_SLICE, deterministic=False
     )
     def op1():

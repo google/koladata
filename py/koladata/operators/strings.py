@@ -31,9 +31,7 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.as_backend_operator(
-    'kde.strings._agg_join', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.strings._agg_join')
 def _agg_join(x, sep):  # pylint: disable=unused-argument
   """Returns a DataSlice of strings joined on last dimension."""
   raise NotImplementedError('implemented in the backend')
@@ -73,7 +71,6 @@ def agg_join(x, sep=None, ndim=arolla.unspecified()):
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.substr),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def contains(s, substr):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns present iff `s` contains `substr`.
@@ -103,7 +100,6 @@ def contains(s, substr):  # pylint: disable=unused-argument,redefined-outer-name
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.substr),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def count(s, substr):  # pylint: disable=unused-argument,redefined-outer-name
   """Counts the number of occurrences of `substr` in `s`.
@@ -135,15 +131,13 @@ def count(s, substr):  # pylint: disable=unused-argument,redefined-outer-name
         qtype_utils.expect_data_slice(P.start),
         qtype_utils.expect_data_slice(P.end),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
-# pylint: disable=unused-argument,redefined-outer-name
 def find(
     s,
     substr,
     start=data_slice.DataSlice.from_vals(0, schema_constants.INT64),
     end=data_slice.DataSlice.from_vals(None, schema_constants.INT64),
-):  # pylint: enable=unused-argument,redefined-outer-name
+):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns the offset of the first occurrence of `substr` in `s`.
 
   The units of `start`, `end`, and the return value are all byte offsets if `s`
@@ -164,13 +158,14 @@ def find(
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.strings.printf',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def printf(fmt, *args):  # pylint: disable=unused-argument
   """Formats strings according to printf-style (C++) format strings.
@@ -193,13 +188,12 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.format'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.strings.format',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def format_(fmt, /, **kwargs):  # pylint: disable=unused-argument
   """Formats strings according to python str.format style.
@@ -295,7 +289,7 @@ def fstr(fmt):
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.strings._test_only_format_wrapper',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
@@ -303,6 +297,7 @@ def fstr(fmt):
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-argument
   """Test only wrapper for format with Arolla signature."""
@@ -310,7 +305,7 @@ def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.strings.join',
     qtype_constraints=[
         (
@@ -320,6 +315,7 @@ def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
 def join(*args):  # pylint: disable=unused-argument
   """Concatenates the given strings.
@@ -341,9 +337,7 @@ def join(*args):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.length',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.strings.length', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def length(x):  # pylint: disable=unused-argument
   """Returns a DataSlice of lengths in bytes for Byte or codepoints for String.
@@ -367,9 +361,7 @@ def length(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.lower',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.strings.lower', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def lower(x):  # pylint: disable=unused-argument
   """Returns a DataSlice with the lowercase version of each string in the input.
@@ -396,7 +388,6 @@ def lower(x):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.chars),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def lstrip(s, chars=None):
   r"""Strips whitespaces or the specified characters from the left side of `s`.
@@ -432,7 +423,6 @@ def lstrip(s, chars=None):
         qtype_utils.expect_data_slice(P.text),
         qtype_utils.expect_data_slice(P.regex),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def regex_extract(text, regex):  # pylint: disable=unused-argument
   """Extracts a substring from `text` with the capturing group of `regex`.
@@ -476,7 +466,6 @@ def regex_extract(text, regex):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.text),
         qtype_utils.expect_data_slice(P.regex),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def regex_match(text, regex):  # pylint: disable=unused-argument
   """Returns `present` if `text` matches the regular expression `regex`.
@@ -517,7 +506,6 @@ def regex_match(text, regex):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.new),
         qtype_utils.expect_data_slice(P.max_subs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 # pylint: disable=unused-argument
 def replace(
@@ -557,7 +545,6 @@ def replace(
         qtype_utils.expect_data_slice(P.start),
         qtype_utils.expect_data_slice(P.end),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 # pylint: disable=unused-argument,redefined-outer-name
 def rfind(
@@ -592,7 +579,6 @@ def rfind(
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.chars),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def rstrip(s, chars=None):
   r"""Strips whitespaces or the specified characters from the right side of `s`.
@@ -628,7 +614,6 @@ def rstrip(s, chars=None):
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.sep),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def split(x, sep=None):
   """Returns x split by the provided separator.
@@ -652,7 +637,6 @@ def split(x, sep=None):
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.chars),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def strip(s, chars=None):
   r"""Strips whitespaces or the specified characters from both sides of `s`.
@@ -689,7 +673,6 @@ def strip(s, chars=None):
         qtype_utils.expect_data_slice(P.start),
         qtype_utils.expect_data_slice(P.end),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 # pylint: disable=unused-argument
 def substr(
@@ -738,9 +721,7 @@ def substr(
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.upper',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.strings.upper', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def upper(x):  # pylint: disable=unused-argument
   """Returns a DataSlice with the uppercase version of each string in the input.
@@ -762,9 +743,7 @@ def upper(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.decode',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.strings.decode', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def decode(x):  # pylint: disable=unused-argument
   """Decodes `x` as STRING using UTF-8 decoding."""
@@ -773,9 +752,7 @@ def decode(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.encode',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.strings.encode', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def encode(x):  # pylint: disable=unused-argument
   """Encodes `x` as BYTES using UTF-8 encoding."""
@@ -783,9 +760,7 @@ def encode(x):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
-    'kde.strings._decode_base64', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.strings._decode_base64')
 def _decode_base64(x, missing_if_invalid):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -831,7 +806,6 @@ def decode_base64(x, /, *, on_invalid=arolla.unspecified()):
 @optools.as_backend_operator(
     'kde.strings.encode_base64',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def encode_base64(x):  # pylint: disable=unused-argument
   """Encodes BYTES `x` using base64 encoding (RFC 4648 section 4), with padding.

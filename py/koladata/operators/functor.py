@@ -18,7 +18,6 @@ from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
-from koladata.types import qtypes
 
 M = arolla.M
 P = arolla.P
@@ -26,7 +25,7 @@ constraints = arolla.optools.constraints
 
 
 @optools.add_to_registry(aliases=['kde.call'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.functor.call',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fn),
@@ -72,13 +71,12 @@ def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):
 
 
 @optools.add_to_registry()
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.functor._maybe_call',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.maybe_fn),
         qtype_utils.expect_data_slice(P.arg),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _maybe_call(maybe_fn, arg):  # pylint: disable=unused-argument
   """Returns `maybe_fn(arg)` if `maybe_fn` is a functor or `maybe_fn`."""

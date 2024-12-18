@@ -18,7 +18,6 @@ from arolla import arolla
 from koladata.operators import arolla_bridge
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import py_boxing
 from koladata.types import qtypes
 
 
@@ -69,7 +68,7 @@ def with_assertion(x, condition, message):
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(  # Default Arolla boxing
     'kde.assertion.assert_ds_has_primitives_of',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
@@ -77,7 +76,6 @@ def with_assertion(x, condition, message):
         constraints.expect_scalar_text(P.message),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,  # Default Arolla boxing
 )
 def assert_ds_has_primitives_of(ds, primitive_schema, message):  # pylint: disable=unused-argument
   """Returns `ds` if it matches `primitive_schema`, or raises an exception.

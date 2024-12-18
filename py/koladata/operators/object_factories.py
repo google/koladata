@@ -18,7 +18,6 @@ from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema as schema_ops
-from koladata.types import qtypes
 
 M = arolla.M
 P = arolla.P
@@ -26,13 +25,12 @@ constraints = arolla.optools.constraints
 
 
 @optools.add_to_registry(aliases=['kde.uuobj'])
-@optools.as_unified_backend_operator(
+@optools.as_backend_operator(
     'kde.core.uuobj',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def uuobj(seed='', **kwargs):  # pylint: disable=unused-argument
   """Creates Object(s) whose ids are uuid(s) with the provided attributes.
@@ -61,9 +59,7 @@ def uuobj(seed='', **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.core._uu', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.core._uu')
 def _uu(seed, schema, update_schema, kwargs):
   """Internal implementation of kde.uu."""
   raise NotImplementedError('implemented in the backend')

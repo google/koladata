@@ -49,11 +49,11 @@ def _expect_slices_or_edges(value):
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.shapes.create',
     qtype_constraints=[_expect_slices_or_edges(P.dimensions)],
     qtype_inference_expr=qtypes.JAGGED_SHAPE,
-    aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
+    experimental_aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
 )
 def create_shape(*dimensions):  # pylint: disable=unused-argument
   """Returns a JaggedShape from the provided dimensions.
@@ -89,14 +89,14 @@ def create_shape(*dimensions):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator(
+@arolla.optools.as_backend_operator(
     'kde.shapes._create_with_size',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.result_size),
         _expect_slices_or_edges(P.dimensions),
     ],
     qtype_inference_expr=qtypes.JAGGED_SHAPE,
-    aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
+    experimental_aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
 )
 def _create_shape_with_size(result_size, *dimensions):  # pylint: disable=unused-argument
   """Returns a JaggedShape from the provided dimensions and size.
@@ -327,9 +327,7 @@ def remove_last_ndim(x, ndim):
   return remove_last_ndim_if_specified(x, ndim)
 
 
-@optools.as_backend_operator(
-    'kde.shapes._expand_to_shape', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.shapes._expand_to_shape')
 def _expand_to_shape(x, shape, ndim):  # pylint: disable=unused-argument
   """Broadcasts a DataSlice to the provided shape."""
   raise NotImplementedError('implemented in the backend')

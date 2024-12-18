@@ -33,11 +33,7 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-@optools.as_unified_backend_operator(
-    'kde.dicts._shaped',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
+@optools.as_backend_operator('kde.dicts._shaped', deterministic=False)
 def _shaped(
     shape, keys, values, key_schema, value_schema, schema, itemid
 ):  # pylint: disable=unused-argument
@@ -242,11 +238,7 @@ def shaped_as(
   )
 
 
-@optools.as_unified_backend_operator(
-    'kde.dicts._like',
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    deterministic=False,
-)
+@optools.as_backend_operator('kde.dicts._like', deterministic=False)
 def _like(
     shape_and_mask_from, keys, values, key_schema, value_schema, schema, itemid
 ):  # pylint: disable=unused-argument
@@ -326,7 +318,6 @@ def like(
 @optools.as_backend_operator(
     'kde.dicts.size',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_slice)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def size(dict_slice):  # pylint: disable=unused-argument
   """Returns size of a Dict."""
@@ -339,7 +330,6 @@ def size(dict_slice):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def has_dict(x):  # pylint: disable=unused-argument
   """Returns present for each item in `x` that is Dict.
@@ -366,9 +356,7 @@ def has_dict(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(aliases=['kde.is_dict'])
 @optools.as_backend_operator(
-    'kde.dicts.is_dict',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.dicts.is_dict', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def is_dict(x):  # pylint: disable=unused-argument
   """Returns whether x is a Dict DataSlice.
@@ -401,7 +389,6 @@ def is_dict(x):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.dict_ds),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def get_keys(dict_ds):  # pylint: disable=unused-argument
   """Returns keys of all Dicts in `dict_ds`.
@@ -419,16 +406,12 @@ def get_keys(dict_ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.dicts._get_values', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.dicts._get_values')
 def _get_values(dict_ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.dicts._get_values_by_keys', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.dicts._get_values_by_keys')
 def _get_values_by_keys(dict_ds, key_ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 

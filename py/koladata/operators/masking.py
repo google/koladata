@@ -20,7 +20,6 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 M = arolla.M
@@ -29,9 +28,7 @@ P = arolla.P
 
 @optools.add_to_registry(aliases=['kde.has'])
 @optools.as_backend_operator(
-    'kde.masking.has',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    'kde.masking.has', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def has(x):  # pylint: disable=unused-argument
   """Returns presence of `x`.
@@ -57,7 +54,6 @@ def has(x):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _with_schema(x, schema):  # pylint: disable=unused-argument
   """Returns a copy of `x` with the provided `schema`.
@@ -110,7 +106,6 @@ def _with_schema(x, schema):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def apply_mask(x, y):  # pylint: disable=unused-argument
   """Filters `x` to items where `y` is present.
@@ -137,7 +132,6 @@ def apply_mask(x, y):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def coalesce(x, y):  # pylint: disable=unused-argument
   """Fills in missing values of `x` with values of `y`.
@@ -156,9 +150,7 @@ def coalesce(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kde.masking._has_not', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.masking._has_not')
 def _has_not(x):  # pylint: disable=unused-argument
   """Returns present iff `x` is missing element-wise."""
   raise NotImplementedError('implemented in the backend')
@@ -363,9 +355,7 @@ def mask_not_equal(x, y):
   return ~mask_equal(x, y)
 
 
-@optools.as_backend_operator(
-    'kde.masking._agg_any', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.masking._agg_any')
 def _agg_any(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -427,9 +417,7 @@ def agg_has(x, ndim=arolla.unspecified()):
   return agg_any(has(x), ndim=ndim)
 
 
-@optools.as_backend_operator(
-    'kde.masking._agg_all', qtype_inference_expr=qtypes.DATA_SLICE
-)
+@optools.as_backend_operator('kde.masking._agg_all')
 def _agg_all(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 

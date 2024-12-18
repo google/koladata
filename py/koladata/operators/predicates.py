@@ -17,7 +17,6 @@
 from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import qtypes
 
 M = arolla.M
 P = arolla.P
@@ -30,7 +29,6 @@ constraints = arolla.optools.constraints
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def has_primitive(x):  # pylint: disable=unused-argument
   """Returns present for each item in `x` that is primitive.
@@ -61,7 +59,6 @@ def has_primitive(x):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def is_primitive(x):  # pylint: disable=unused-argument
   """Returns whether x is a primitive DataSlice.
