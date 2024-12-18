@@ -243,7 +243,6 @@ def sample_n(
         qtype_utils.expect_data_slice_or_unspecified(P.high),
         qtype_utils.expect_data_slice_or_unspecified(P.seed),
     ],
-    deterministic=False,
 )
 def randint_shaped(
     shape,
@@ -308,7 +307,6 @@ def randint_shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.high),
         qtype_utils.expect_data_slice_or_unspecified(P.seed),
     ],
-    deterministic=False,
 )
 def randint_shaped_as(
     x,
@@ -345,7 +343,6 @@ def randint_shaped_as(
         qtype_utils.expect_data_slice_or_unspecified(P.high),
         qtype_utils.expect_data_slice_or_unspecified(P.seed),
     ],
-    deterministic=False,
 )
 def randint_like(
     x,

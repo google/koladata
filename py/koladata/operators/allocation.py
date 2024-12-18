@@ -39,9 +39,7 @@ def new_itemid_shaped(shape):
 
 
 @optools.add_to_registry(aliases=['kde.new_itemid'])
-@optools.as_lambda_operator(
-    'kde.allocation.new_itemid', deterministic=False
-)
+@optools.as_lambda_operator('kde.allocation.new_itemid')
 def new_itemid():
   """Allocates new ItemId."""
   return new_itemid_shaped(jagged_shape.create_shape())
@@ -62,9 +60,7 @@ def new_itemid_like(shape_and_mask_from):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.new_itemid_shaped_as'])
-@optools.as_lambda_operator(
-    'kde.allocation.new_itemid_shaped_as', deterministic=False
-)
+@optools.as_lambda_operator('kde.allocation.new_itemid_shaped_as')
 def new_itemid_shaped_as(shape_from):
   """Allocates new ItemIds with the shape of shape_from."""
   return new_itemid_shaped(jagged_shape.get_shape(shape_from))
@@ -85,9 +81,7 @@ def new_listid_shaped(shape):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.new_listid'])
-@optools.as_lambda_operator(
-    'kde.allocation.new_listid', deterministic=False
-)
+@optools.as_lambda_operator('kde.allocation.new_listid')
 def new_listid():
   """Allocates new List ItemId."""
   return new_listid_shaped(jagged_shape.create_shape())
@@ -113,7 +107,6 @@ def new_listid_like(shape_and_mask_from):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
     ],
-    deterministic=False,
 )
 def new_listid_shaped_as(shape_from):  # pylint: disable=unused-argument
   """Allocates new List ItemIds with the shape of shape_from."""
@@ -135,9 +128,7 @@ def new_dictid_shaped(shape):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kde.new_dictid'])
-@optools.as_lambda_operator(
-    'kde.allocation.new_dictid', deterministic=False
-)
+@optools.as_lambda_operator('kde.allocation.new_dictid')
 def new_dictid():
   """Allocates new Dict ItemId."""
   return new_dictid_shaped(jagged_shape.create_shape())
@@ -163,7 +154,6 @@ def new_dictid_like(shape_and_mask_from):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
     ],
-    deterministic=False,
 )
 def new_dictid_shaped_as(shape_from):  # pylint: disable=unused-argument
   """Allocates new Dict ItemIds with the shape of shape_from."""

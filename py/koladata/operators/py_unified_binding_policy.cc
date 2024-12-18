@@ -119,7 +119,7 @@ static PyObject kSentinelDefaultValue;
 static PyObject kSentinelVarArgs;
 // A sentinel entity indicating to use `py_result_var_kwargs`.
 static PyObject kSentinelVarKwargs;
-// A sentinel entity indicating to use a non-deterministc expression.
+// A sentinel entity indicating to use a non-deterministic expression.
 static PyObject kSentinelNonDeterministic;
 
 // A lower-level binding-arguments function without boxing python values.

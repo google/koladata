@@ -578,12 +578,11 @@ def get_attr(x, attr_name, default=arolla.unspecified()):
   Args:
     x: DataSlice to get attribute from.
     attr_name: name of the attribute to access.
-    default: default value to use when `x` does not have such attribute. In
-      case default is specified, this will not warn/raise if the attribute does
-      not exist in the schema, so one can use `default=None` to suppress the
-      missing attribute warning/error. When `default=None` and the attribute is
-      missing on all entities, this will return an empty slices with NONE
-      schema.
+    default: default value to use when `x` does not have such attribute. In case
+      default is specified, this will not warn/raise if the attribute does not
+      exist in the schema, so one can use `default=None` to suppress the missing
+      attribute warning/error. When `default=None` and the attribute is missing
+      on all entities, this will return an empty slices with NONE schema.
 
   Returns:
     DataSlice
@@ -780,7 +779,6 @@ def _new(arg, schema, update_schema, itemid, attrs):
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    deterministic=False,
 )
 def new(
     arg=arolla.unspecified(),
@@ -843,7 +841,6 @@ def _new_shaped(shape, schema, update_schema, itemid, attrs):
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    deterministic=False,
 )
 def new_shaped(
     shape,
@@ -890,7 +887,6 @@ def new_shaped(
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    deterministic=False,
 )
 def new_shaped_as(
     shape_from,
@@ -947,7 +943,6 @@ def _new_like(shape_and_mask_from, schema, update_schema, itemid, attrs):
         qtype_utils.expect_data_slice(P.update_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    deterministic=False,
 )
 def new_like(
     shape_and_mask_from,
@@ -1049,7 +1044,6 @@ def obj_shaped(shape, /, *, itemid=arolla.unspecified(), **attrs):  # pylint: di
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    deterministic=False,
 )
 def obj_shaped_as(shape_from, /, *, itemid=arolla.unspecified(), **attrs):
   """Creates Objects with the shape of the given DataSlice.
@@ -1903,7 +1897,6 @@ def _shallow_clone(x, itemid, schema, non_deterministic):  # pylint: disable=unu
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
     ],
-    deterministic=False,
 )
 def shallow_clone(
     x,
@@ -1971,7 +1964,6 @@ def _clone(x, itemid, schema, non_deterministic):  # pylint: disable=unused-argu
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
     ],
-    deterministic=False,
 )
 def clone(
     x,
@@ -2038,7 +2030,6 @@ def _deep_clone(x, schema, non_deterministic):  # pylint: disable=unused-argumen
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_kwargs(P.overrides),
     ],
-    deterministic=False,
 )
 def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
   """Creates a slice with a (deep) copy of the given slice.
@@ -2297,8 +2288,10 @@ def _freeze_slice(x):  # pylint: disable=unused-argument
     qtype_constraints=[
         (
             (P.x == qtypes.DATA_SLICE) | (P.x == qtypes.DATA_BAG),
-            'expected DATA_BAG or DATA_SLICE, got '
-            f'{constraints.name_type_msg(P.x)}',
+            (
+                'expected DATA_BAG or DATA_SLICE, got '
+                f'{constraints.name_type_msg(P.x)}'
+            ),
         ),
     ],
 )
@@ -2547,8 +2540,8 @@ def ordinal_rank(
       positions in the DataSlice.
     descending: If true, items are compared in descending order. Does not affect
       the order of tie breaker and position in tie-breaking compairson.
-    ndim: The number of dimensions to rank over.
-      Requires 0 <= ndim <= get_ndim(x).
+    ndim: The number of dimensions to rank over. Requires 0 <= ndim <=
+      get_ndim(x).
 
   Returns:
     A DataSlice of ordinal ranks.
@@ -2610,8 +2603,8 @@ def dense_rank(x, descending=False, ndim=arolla.unspecified()):
   Args:
     x: DataSlice to rank.
     descending: If true, items are compared in descending order.
-    ndim: The number of dimensions to rank over.
-      Requires 0 <= ndim <= get_ndim(x).
+    ndim: The number of dimensions to rank over. Requires 0 <= ndim <=
+      get_ndim(x).
 
   Returns:
     A DataSlice of dense ranks.

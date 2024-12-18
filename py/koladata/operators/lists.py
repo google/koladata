@@ -53,7 +53,6 @@ def _make(items, item_schema, schema, itemid):  # pylint: disable=unused-argumen
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
-    deterministic=False,
 )
 def make(
     items=arolla.unspecified(),
@@ -111,7 +110,6 @@ def _like(
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
-    deterministic=False,
 )
 def like(
     shape_and_mask_from,
@@ -167,7 +165,6 @@ def _shaped(shape, items, item_schema, schema, itemid):  # pylint: disable=unuse
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
-    deterministic=False,
 )
 def shaped(
     shape,
@@ -212,7 +209,6 @@ def shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
-    deterministic=False,
 )
 def shaped_as(
     shape_from,
@@ -306,7 +302,6 @@ def _implode(x, ndim):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.ndim),
     ],
-    deterministic=False,
 )
 def implode(x, ndim=1):
   """Implodes a Dataslice `x` a specified number of times.

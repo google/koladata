@@ -596,10 +596,37 @@ class OptoolsTest(parameterized.TestCase):
         expr_eval.eval(core.add(op(I.x), op(I.x)), x=0), ds(1 + 2)
     )
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('expected NON_DETERMINISTIC_TOKEN')
+        ValueError, re.escape('expected NON_DETERMINISTIC_TOKEN')
     ):
       arolla.abc.infer_attr(op, (None, arolla.UNIT))
+
+  def test_as_lambda_operator_detect_deterministic_auto(self):
+    @optools.as_unified_backend_operator(
+        'deterministic_backend_op',
+        deterministic=True,
+        qtype_inference_expr=qtypes.DATA_SLICE,
+    )
+    def deterministic_backend_op():
+      raise NotImplementedError('implemented in the backend')
+
+    @optools.as_unified_backend_operator(
+        'non_deterministic_backend_op',
+        deterministic=False,
+        qtype_inference_expr=qtypes.DATA_SLICE,
+    )
+    def non_deterministic_backend_op():
+      raise NotImplementedError('implemented in the backend')
+
+    @optools.as_lambda_operator('deterministic_lambda_op')
+    def deterministic_lambda_op():
+      return deterministic_backend_op()
+
+    @optools.as_lambda_operator('non_deterministic_lambda_op')
+    def non_deterministic_lambda_op():
+      return non_deterministic_backend_op()
+
+    self.assertEmpty(arolla.abc.get_leaf_keys(deterministic_lambda_op()))
+    self.assertNotEmpty(arolla.abc.get_leaf_keys(non_deterministic_lambda_op()))
 
   def test_as_lambda_operator_error_deterministic_calls_non_deterministic(
       self,

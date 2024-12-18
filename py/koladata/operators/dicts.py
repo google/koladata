@@ -56,7 +56,6 @@ def _shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
-    deterministic=False,
 )
 def create(
     keys=arolla.unspecified(),
@@ -129,7 +128,6 @@ def create(
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
-    deterministic=False,
 )
 def shaped(
     shape,
@@ -197,7 +195,6 @@ def shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
-    deterministic=False,
 )
 def shaped_as(
     shape_from,
@@ -269,7 +266,6 @@ def _like(
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
-    deterministic=False,
 )
 def like(
     shape_and_mask_from,

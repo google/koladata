@@ -302,7 +302,7 @@ def as_lambda_operator(
     name: str,
     *,
     qtype_constraints: arolla.types.QTypeConstraints = (),
-    deterministic: bool = True,
+    deterministic: bool | None = None,
 ) -> Callable[
     [types.FunctionType],
     arolla.types.LambdaOperator | arolla.types.RestrictedLambdaOperator,
@@ -317,22 +317,31 @@ def as_lambda_operator(
       corresponding `error_message` is used. Placeholders, like `{arg_name}`,
       get replaced with the actual type names during the error message
       formatting.
-    deterministic: If set to False, a hidden parameter (with the name
-      `optools.UNIFIED_NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the
-      signature. This parameter receives special handling by the binding policy
-      implementation.
+    deterministic: If True, the resulting operator will be deterministic and may
+      only use deterministic operators. If False, the operator will be declared
+      non-deterministic. By default, the decorator attempts to detect the
+      operator's determinism.
 
   Returns:
     A decorator that constructs a lambda operator by tracing a Python function.
   """
 
   def impl(fn):
-    qtype_constraints_copy = list(qtype_constraints)
-    op_sig = unified_binding_policy.make_unified_signature(
-        inspect.signature(fn), deterministic=deterministic
-    )
     op_expr = _build_lambda_body_from_fn(fn)
-    if deterministic:
+
+    deterministic_copy = deterministic
+    if deterministic_copy is None:
+      deterministic_copy = (
+          py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.leaf_key
+          not in arolla.abc.get_leaf_keys(op_expr)
+      )
+
+    op_sig = unified_binding_policy.make_unified_signature(
+        inspect.signature(fn), deterministic=deterministic_copy
+    )
+
+    qtype_constraints_copy = list(qtype_constraints)
+    if deterministic_copy:
       if (
           py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.leaf_key
           in arolla.abc.get_leaf_keys(op_expr)
