@@ -863,8 +863,8 @@ Example:
 Args:
   x: DataSlice to rank.
   descending: If true, items are compared in descending order.
-  ndim: The number of dimensions to rank over.
-    Requires 0 <= ndim <= get_ndim(x).
+  ndim: The number of dimensions to rank over. Requires 0 <= ndim <=
+    get_ndim(x).
 
 Returns:
   A DataSlice of dense ranks.
@@ -1095,12 +1095,11 @@ DataSlice(primitive values)
 Args:
   x: DataSlice to get attribute from.
   attr_name: name of the attribute to access.
-  default: default value to use when `x` does not have such attribute. In
-    case default is specified, this will not warn/raise if the attribute does
-    not exist in the schema, so one can use `default=None` to suppress the
-    missing attribute warning/error. When `default=None` and the attribute is
-    missing on all entities, this will return an empty slices with NONE
-    schema.
+  default: default value to use when `x` does not have such attribute. In case
+    default is specified, this will not warn/raise if the attribute does not
+    exist in the schema, so one can use `default=None` to suppress the missing
+    attribute warning/error. When `default=None` and the attribute is missing
+    on all entities, this will return an empty slices with NONE schema.
 
 Returns:
   DataSlice
@@ -1840,8 +1839,8 @@ Args:
     positions in the DataSlice.
   descending: If true, items are compared in descending order. Does not affect
     the order of tie breaker and position in tie-breaking compairson.
-  ndim: The number of dimensions to rank over.
-    Requires 0 <= ndim <= get_ndim(x).
+  ndim: The number of dimensions to rank over. Requires 0 <= ndim <=
+    get_ndim(x).
 
 Returns:
   A DataSlice of ordinal ranks.
@@ -5673,7 +5672,7 @@ Casts `x` to STRING using explicit (permissive) casting rules.
 
 Alias for [kd.schema.to_str](#kd.schema.to_str) operator.
 
-### `kd.schema.uu_schema(seed=None, *, db=None, **attrs)` {#kd.schema.uu_schema}
+### `kd.schema.uu_schema(seed='', *, db=None, **attrs)` {#kd.schema.uu_schema}
 Aliases:
 
 - [kd.uu_schema](#kd.uu_schema)
@@ -7923,7 +7922,7 @@ Alias for [kd.core.updated_bag](#kd.core.updated_bag) operator.
 
 Alias for [kd.core.uu](#kd.core.uu) operator.
 
-### `kd.uu_schema(seed=None, *, db=None, **attrs)` {#kd.uu_schema}
+### `kd.uu_schema(seed='', *, db=None, **attrs)` {#kd.uu_schema}
 
 Alias for [kd.schema.uu_schema](#kd.schema.uu_schema) operator.
 
