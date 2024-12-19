@@ -22,6 +22,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
@@ -281,6 +282,49 @@ TEST(DataItemTest, Hash) {
             hasher(DataItem(schema::kFloat32)));
   EXPECT_NE(hasher(DataItem(schema::kInt32)),
             hasher(DataItem(schema::DType())));
+}
+
+TEST(DataItemTest, AbslContainerHash) {
+  auto absl_hasher = DataItem::absl_container_hash();
+  auto hasher = DataItem::Hash();
+  EXPECT_EQ(hasher(DataItem()), absl_hasher(DataItem()));
+  EXPECT_NE(hasher(DataItem()), absl_hasher(DataItem(0)));
+  EXPECT_EQ(hasher(DataItem(0.0f)), absl_hasher(DataItem(0.0f)));
+  EXPECT_EQ(hasher(DataItem(0.0f)), absl_hasher(0.0f));
+  EXPECT_NE(hasher(DataItem(0.0f)), absl_hasher(DataItem(1.0f)));
+  EXPECT_NE(hasher(DataItem(0.0f)), absl_hasher(1.0f));
+  EXPECT_NE(hasher(DataItem(0.0f)), absl_hasher(DataItem(0)));
+  EXPECT_NE(hasher(DataItem(0.0f)), absl_hasher(0));
+  EXPECT_EQ(hasher(DataItem(0)), absl_hasher(DataItem(int64_t{0})));
+  EXPECT_EQ(hasher(DataItem(0)), absl_hasher(int64_t{0}));
+  EXPECT_EQ(hasher(DataItem(0.f)), absl_hasher(DataItem(0.)));
+  EXPECT_EQ(hasher(DataItem(0.f)), absl_hasher(0.));
+  EXPECT_NE(hasher(DataItem(1.)), absl_hasher(DataItem(2.f)));
+  EXPECT_NE(hasher(DataItem(1.)), absl_hasher(2.f));
+  EXPECT_NE(hasher(DataItem()), absl_hasher(DataItem(schema::DType())));
+  EXPECT_EQ(hasher(DataItem(schema::DType())),
+            absl_hasher(DataItem(schema::DType())));
+  EXPECT_EQ(hasher(DataItem(schema::kInt32)),
+            absl_hasher(DataItem(schema::kInt32)));
+  EXPECT_EQ(hasher(DataItem(schema::kInt32)), absl_hasher(schema::kInt32));
+  EXPECT_NE(hasher(DataItem(schema::kInt32)), absl_hasher(schema::kFloat32));
+  EXPECT_NE(hasher(DataItem(schema::kInt32)), absl_hasher(0));
+  EXPECT_NE(hasher(DataItem(schema::kInt32)),
+            absl_hasher(DataItem(schema::kFloat32)));
+  EXPECT_NE(hasher(DataItem(schema::kInt32)),
+            absl_hasher(DataItem(schema::DType())));
+}
+
+TEST(DataItemTest, UsabeleInAbslHashSet) {
+  absl::flat_hash_set<DataItem> set;
+  set.insert(DataItem(0));
+  set.insert(DataItem(0.f));
+  set.insert(DataItem(1));
+  set.insert(DataItem(1));
+  EXPECT_EQ(set.size(), 3);
+  EXPECT_TRUE(set.contains(DataItem(0)));
+  EXPECT_TRUE(set.contains(0.f));
+  EXPECT_FALSE(set.contains(1.f));
 }
 
 TEST(DataItemTest, IsEquivalentTo) {

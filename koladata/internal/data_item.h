@@ -305,6 +305,8 @@ class DataItem {
     }
   };
 
+  using absl_container_hash = Hash;
+
   friend std::ostream& operator<<(std::ostream& os, const DataItem& data_item) {
     return os << data_item.DebugString();
   }

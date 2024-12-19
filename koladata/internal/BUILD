@@ -862,6 +862,7 @@ cc_test(
         ":object_id",
         ":schema_utils",
         ":uuid_object",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/strings",
