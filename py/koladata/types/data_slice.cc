@@ -823,8 +823,7 @@ absl::Nullable<PyObject*> PyDataSlice_is_mutable(PyObject* self, PyObject*) {
 absl::Nullable<PyObject*> PyDataSlice_freeze(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  ASSIGN_OR_RETURN(auto frozen_ds, ds.Freeze(),
-                   arolla::python::SetPyErrFromStatus(_));
+  auto frozen_ds = ds.Freeze();
   return WrapPyDataSlice(std::move(frozen_ds));
 }
 

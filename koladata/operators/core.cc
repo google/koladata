@@ -1354,12 +1354,12 @@ absl::StatusOr<DataSlice> Follow(const DataSlice& ds) {
 }
 
 template <>
-absl::StatusOr<DataBagPtr> Freeze<DataBagPtr>(const DataBagPtr& x) {
+DataBagPtr Freeze<DataBagPtr>(const DataBagPtr& x) {
   return x->Freeze();
 }
 
 template <>
-absl::StatusOr<DataSlice> Freeze<DataSlice>(const DataSlice& x) {
+DataSlice Freeze<DataSlice>(const DataSlice& x) {
   return x.Freeze();
 }
 

@@ -239,7 +239,7 @@ class DataSlice {
   // DataBags, the copy of a DataSlice is returned.
   //
   // Mutations are NOT allowed on the returned value.
-  absl::StatusOr<DataSlice> Freeze() const;
+  DataSlice Freeze() const;
 
   // Returns true iff `other` represents the same DataSlice with same data
   // contents as well as members (db, schema, shape).

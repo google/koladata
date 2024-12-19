@@ -181,15 +181,15 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort);
 absl::StatusOr<DataSlice> Follow(const DataSlice& ds);
 
 template <typename T>
-absl::StatusOr<T> Freeze(const T& x);
+T Freeze(const T& x);
 
 // kde.core._freeze_bag.
 template <>
-absl::StatusOr<DataBagPtr> Freeze<DataBagPtr>(const DataBagPtr& x);
+DataBagPtr Freeze<DataBagPtr>(const DataBagPtr& x);
 
 // kde.core._freeze_slice.
 template <>
-absl::StatusOr<DataSlice> Freeze<DataSlice>(const DataSlice& x);
+DataSlice Freeze<DataSlice>(const DataSlice& x);
 
 // kde.core.reverse.
 absl::StatusOr<DataSlice> Reverse(const DataSlice& obj);

@@ -792,6 +792,18 @@ class DataSliceTest(parameterized.TestCase):
     self.assertIsNot(x1.get_bag(), x1.get_bag())
     self.assertFalse(x1.get_bag().is_mutable())
 
+  def test_freeze_on_db_with_fallbacks(self):
+    fallback = bag()
+    x = ds([1, 2, 3]).enriched(fallback)
+    frozen_x = x.freeze()
+
+    self.assertTrue(fallback.is_mutable())
+    self.assertFalse(x.get_bag().is_mutable())
+    self.assertFalse(frozen_x.get_bag().is_mutable())
+    # frozen_x should have a forked databag, because while x's bag was
+    # immutable, the fallback was not.
+    self.assertNotEqual(x.fingerprint, frozen_x.fingerprint)
+
   def test_with_merged_bag(self):
     db1 = bag()
     x = db1.new(a=1)

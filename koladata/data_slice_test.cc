@@ -433,7 +433,7 @@ TEST(DataSliceTest, IsWhole) {
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kWhole);
-    auto ds2 = *ds.Freeze();
+    auto ds2 = ds.Freeze();
     EXPECT_TRUE(ds2.IsWhole());
   }
 }
@@ -469,7 +469,7 @@ TEST(DataSliceTest, Freeze) {
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
   ASSERT_TRUE(ds.GetBag()->IsMutable());
 
-  ASSERT_OK_AND_ASSIGN(auto frozen_ds, ds.Freeze());
+  auto frozen_ds = ds.Freeze();
   EXPECT_THAT(frozen_ds.SetAttr("a", ds_a),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("DataBag is immutable")));
@@ -483,7 +483,7 @@ TEST(DataSliceTest, FreezeImmutable) {
   ds = ds.WithBag(immutable_db);
   ASSERT_FALSE(ds.GetBag()->IsMutable());
 
-  ASSERT_OK_AND_ASSIGN(auto frozen_ds, ds.Freeze());
+  auto frozen_ds = ds.Freeze();
   // Same ref, no forks.
   EXPECT_THAT(ds.GetBag()->fingerprint(), Eq(immutable_db->fingerprint()));
   EXPECT_THAT(frozen_ds.SetAttr("a", ds_a),
@@ -500,9 +500,6 @@ TEST(DataSliceTest, ForkErrors) {
   EXPECT_THAT(ds.ForkDb(),
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("forking with fallbacks is not supported")));
-  EXPECT_THAT(ds.Freeze(),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("freezing with fallbacks is not supported")));
 }
 
 TEST(DataSliceTest, IsEquivalentTo) {
@@ -4363,7 +4360,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_AnySchema) {
           {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"}, keys_shape,
           schema::kObject)));
 
-  ASSERT_OK_AND_ASSIGN(auto immutable_dicts, dicts.Freeze());
+  auto immutable_dicts = dicts.Freeze();
 
   ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
   EXPECT_THAT(keys.slice(), ElementsAre(DataItemWith<int>(1), 2, 3));
@@ -4415,7 +4412,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
           {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"}, keys_shape,
           schema::kObject)));
 
-  ASSERT_OK_AND_ASSIGN(auto immutable_dicts, dicts.Freeze());
+  auto immutable_dicts =  dicts.Freeze();
 
   ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
   EXPECT_THAT(keys.slice(),
@@ -4492,7 +4489,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
           {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"}, keys_shape,
           schema::kObject)));
 
-  ASSERT_OK_AND_ASSIGN(auto immutable_dicts, dicts.Freeze());
+  auto immutable_dicts = dicts.Freeze();
 
   ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
   EXPECT_THAT(keys.slice(), ElementsAre(DataItemWith<int>(1), 2, 3));
@@ -4683,7 +4680,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
       test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
       test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kObject)));
 
-  ASSERT_OK_AND_ASSIGN(auto immutable_dicts, dicts.Freeze());
+  auto immutable_dicts = dicts.Freeze();
   ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
   EXPECT_THAT(keys.slice(),
               // Keys are casted to int64.
@@ -4706,7 +4703,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
       test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
       test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kInt32)));
 
-  ASSERT_OK_AND_ASSIGN(immutable_dicts, dicts.Freeze());
+  immutable_dicts = dicts.Freeze();
   ASSERT_OK_AND_ASSIGN(keys, immutable_dicts.GetDictKeys());
   EXPECT_THAT(keys.slice(),
               // Keys are casted to int64.
