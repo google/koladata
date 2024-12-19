@@ -112,7 +112,7 @@ class _TracingDescriptor:
       res = self._tracing
       if res is None:
         raise AttributeError(
-            f"Attribute '{self._name}' is not available in tracing mode on"
+            f"attribute '{self._name}' is not available in tracing mode on"
             f" '{objtype.__name__}'"
         )
       else:

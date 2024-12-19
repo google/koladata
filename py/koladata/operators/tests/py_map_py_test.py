@@ -348,7 +348,7 @@ class PyMapPyTest(parameterized.TestCase):
 
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
 
-    with self.assertRaisesRegex(ValueError, 'unsupported type: "set"'):
+    with self.assertRaisesRegex(ValueError, 'unsupported type: set'):
       expr_eval.eval(kde.py.map_py(as_set, val))
 
   def test_map_py_incompatible_inputs(self):

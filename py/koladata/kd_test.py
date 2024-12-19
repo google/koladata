@@ -277,7 +277,7 @@ class KdTest(absltest.TestCase):
     with tracing_mode.enable_tracing():
       with self.assertRaisesRegex(
           AttributeError,
-          "Attribute 'eval' is not available in tracing mode on 'koladata.kd'",
+          "attribute 'eval' is not available in tracing mode on 'koladata.kd'",
       ):
         _ = kd.eval
 
@@ -293,7 +293,7 @@ class KdTest(absltest.TestCase):
     with tracing_mode.enable_tracing():
       with self.assertRaisesRegex(
           AttributeError,
-          "Attribute 'container' is not available in tracing mode on"
+          "attribute 'container' is not available in tracing mode on"
           " 'koladata.kd'",
       ):
         _ = kd.container
@@ -306,6 +306,17 @@ class KdTest(absltest.TestCase):
     with tracing_mode.enable_tracing():
       with_name_expr = kd.annotation.with_name(1, 'foo')
     kd.testing.assert_equal(with_name_expr, kde.annotation.with_name(1, 'foo'))
+
+  def test_tracing_for_slice_and_item(self):
+    with tracing_mode.enable_tracing():
+      ds = kd.slice([1, 2, 3], schema=kd.INT64).with_name('ds')
+      item = kd.item(3, schema=kd.OBJECT).with_name('item')
+    self.assertIsInstance(ds, arolla.abc.Expr)
+    self.assertIsInstance(item, arolla.abc.Expr)
+    kd.testing.assert_equal(ds.qvalue, kd.slice([1, 2, 3], schema=kd.INT64))
+    kd.testing.assert_equal(item.qvalue, kd.item(3, schema=kd.OBJECT))
+    self.assertEqual(kd.expr.get_name(ds), 'ds')
+    self.assertEqual(kd.expr.get_name(item), 'item')
 
   def test_tracing_for_constants(self):
     with tracing_mode.enable_tracing():

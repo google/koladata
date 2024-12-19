@@ -102,6 +102,7 @@ py_test(
         ":tracing_mode",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
     ],
 )
 

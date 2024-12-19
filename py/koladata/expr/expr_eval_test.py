@@ -168,7 +168,7 @@ class ExprEval(absltest.TestCase):
     # Should never be possible to eval.
     obj = object()
     with self.assertRaisesRegex(
-        ValueError, 'object with unsupported type: "object"'
+        ValueError, 'object with unsupported type: object'
     ):
       expr_eval.eval(I.x, x=obj)
 

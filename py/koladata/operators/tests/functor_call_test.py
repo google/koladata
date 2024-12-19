@@ -213,8 +213,7 @@ class FunctorCallTest(absltest.TestCase):
     )
     self.assertIsInstance(outer_ex.__cause__, ValueError)
     self.assertRegex(
-        str(outer_ex.__cause__),
-        re.escape('object with unsupported type: "type" in nested list'),
+        str(outer_ex.__cause__), 'object with unsupported type: type',
     )
 
   def test_call_with_functor_as_input(self):

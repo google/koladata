@@ -1534,7 +1534,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
 
   def test_setattr_assignment_rhs_dict_error(self):
     x = bag().obj()
-    with self.assertRaisesRegex(ValueError, 'unsupported type: "Obj"'):
+    with self.assertRaisesRegex(ValueError, 'unsupported type: Obj'):
 
       class Obj:
         pass

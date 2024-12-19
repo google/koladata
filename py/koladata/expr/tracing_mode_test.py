@@ -137,7 +137,7 @@ class TracingModeTest(absltest.TestCase):
       self.assertIs(res.b, mod.b)
       with self.assertRaisesRegex(
           AttributeError,
-          "Attribute 'c' is not available in tracing mode on 'mod'",
+          "attribute 'c' is not available in tracing mode on 'mod'",
       ):
         _ = res.c
 

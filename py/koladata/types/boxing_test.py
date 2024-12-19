@@ -449,13 +449,27 @@ class BoxingTest(parameterized.TestCase):
       pass
 
     with self.assertRaisesRegex(
-        ValueError, 'object with unsupported type: "Klass" in nested list'
+        ValueError, 'object with unsupported type: Klass'
     ):
       ds(Klass())
     with self.assertRaisesRegex(
-        ValueError, 'object with unsupported type: "Klass" in nested list'
+        ValueError, 'object with unsupported type: Klass'
     ):
       ds([[Klass(), Klass()], [Klass()]])
+    with self.assertRaisesRegex(
+        ValueError,
+        r'object with unsupported type: arolla.abc.expr.Expr;\n\n' +
+        r'this can happen when passing inputs to kd.slice / kd.item, e.g.\n\n' +
+        r'kd.slice\(x\)\n\n' +
+        r'or when trying to concatenate objects during tracing, e.g.\n\n' +
+        r'kd.slice\(\[kd.obj\(x=1\), kd.obj\(x=2\)\]\)\n\n' +
+        r'please use kd.stack\(kd.obj\(x=1\), ...\), instead'
+    ):
+      ds(arolla.P.x)
+    with self.assertRaisesRegex(
+        ValueError, r'object with unsupported type: arolla.abc.expr.Expr;\n\n'
+    ):
+      ds([arolla.P.x, arolla.P.y + 1])
     with self.assertRaisesRegex(
         ValueError, r'got DataSlice with shape JaggedShape\(2\)'
     ):
