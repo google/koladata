@@ -289,7 +289,7 @@ class KdTest(absltest.TestCase):
       math_abs_op = kd.math.abs
     kd.testing.assert_equal(math_abs_op, kde.math.abs)
 
-  def test_tracing_for_functions(self):
+  def test_tracing_for_functions_error(self):
     with tracing_mode.enable_tracing():
       with self.assertRaisesRegex(
           AttributeError,
@@ -297,6 +297,12 @@ class KdTest(absltest.TestCase):
           " 'koladata.kd'",
       ):
         _ = kd.container
+      with self.assertRaisesRegex(
+          AttributeError,
+          "attribute 'to_py' is not available in tracing mode on"
+          " 'koladata.kd'",
+      ):
+        _ = kd.to_py
 
   def test_tracing_for_with_name(self):
     with tracing_mode.enable_tracing():
@@ -317,6 +323,30 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(item.qvalue, kd.item(3, schema=kd.OBJECT))
     self.assertEqual(kd.expr.get_name(ds), 'ds')
     self.assertEqual(kd.expr.get_name(item), 'item')
+
+  def test_tracing_for_dedicated_py_conversions(self):
+    expr = kd.expr.pack_expr(kd.I.x)
+    with tracing_mode.enable_tracing():
+      int32 = kd.int32([1, 2])
+      int64 = kd.int64(1)
+      float32 = kd.float32(3.14)
+      float64 = kd.float64(3)
+      str_item = kd.str('abc')
+      bytes_slice = kd.bytes([b'x', b'y'])
+      bool_item = kd.bool(True)
+      mask = kd.mask([kd.present, kd.missing])
+      expr_quote = kd.expr_quote(expr)
+    kd.testing.assert_equal(int32.qvalue, kd.slice([1, 2], schema=kd.INT32))
+    kd.testing.assert_equal(int64.qvalue, kd.slice(1, schema=kd.INT64))
+    kd.testing.assert_equal(float32.qvalue, kd.slice(3.14))
+    kd.testing.assert_equal(float64.qvalue, kd.slice(3, schema=kd.FLOAT64))
+    kd.testing.assert_equal(str_item.qvalue, kd.slice('abc'))
+    kd.testing.assert_equal(bytes_slice.qvalue, kd.slice([b'x', b'y']))
+    kd.testing.assert_equal(bool_item.qvalue, kd.slice(True))
+    kd.testing.assert_equal(mask.qvalue, kd.slice([kd.present, kd.missing]))
+    kd.testing.assert_equal(
+        expr_quote.qvalue, kd.slice(kd.expr.pack_expr(kd.I.x))
+    )
 
   def test_tracing_for_constants(self):
     with tracing_mode.enable_tracing():

@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import re
+from unittest import mock
+import warnings
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.functions import functions as fns
@@ -39,6 +42,15 @@ class StrTest(parameterized.TestCase):
   def test_str_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
       fns.str(x)
+
+  def test_deprecated_text(self):
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      _ = fns.str('abc')
+      mock_warn.assert_not_called()
+      text = fns.text('abc')
+      mock_warn.assert_called_once()
+
+    testing.assert_equal(text, fns.str('abc'))
 
 
 if __name__ == '__main__':

@@ -158,6 +158,21 @@ item = _same_when_tracing_with_literal_output(_data_item.DataItem.from_vals)
 slice = _same_when_tracing_with_literal_output(_data_slice.DataSlice.from_vals)  # pylint: disable=redefined-builtin
 
 
+# TODO: Find a more principled way to mark them the same in tracing
+# during definition.
+_TRACING_ENABLED_FNS = frozenset([
+    'int32',
+    'int64',
+    'float32',
+    'float64',
+    'str',
+    'bytes',
+    'bool',
+    'mask',
+    'expr_quote',
+])
+
+
 # Impure functions (kd.bag, kd.list, kd.new, kd.set_attr, ...).
 def _LoadImpureFunctions(*modules: _py_types.ModuleType):
   """Injects the functions from functions.py into kd.py."""
@@ -184,6 +199,8 @@ def _LoadImpureFunctions(*modules: _py_types.ModuleType):
               eager=fn_val,
               tracing=getattr(_kde_operators.kde, fn_name),
           )
+        elif fn_name in _TRACING_ENABLED_FNS:
+          globals()[fn_name] = _same_when_tracing_with_literal_output(fn_val)
         else:
           globals()[fn_name] = _eager_only(fn_val)
 
