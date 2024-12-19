@@ -489,6 +489,12 @@ class DataBagImpl : public arolla::RefcountedBase {
   absl::StatusOr<std::vector<DataItem>> GetSchemaAttrsAsVector(
       const DataItem& schema_item, FallbackSpan fallbacks = {}) const;
 
+  // Returns a superset of attribute names for schemas in the given allocation.
+  // Returned attributes can be missed for several (or even all) objects in the
+  // allocation.
+  std::vector<DataItem> GetSchemaAttrsForBigAllocationAsVector(
+      const AllocationId& alloc_id, FallbackSpan fallbacks = {}) const;
+
   // Returns a DataItem that represents schema of an attribute `attr` in the
   // given `schema_item`. In case the attribute is missing appropriate error is
   // returned. In case `schema_item` does not contain a schema object, error is

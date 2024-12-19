@@ -345,6 +345,37 @@ TEST(DataBagTest, GetSchemaAttrsAsVector) {
   }
 }
 
+TEST(DataBagTest, GetSchemaAttrsForBigAllocationAsVector) {
+  {
+    // Big allocation.
+    size_t size = kSmallAllocMaxCapacity + 1;
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto alloc = AllocateExplicitSchemas(size);
+    auto schema_ds = DataSliceImpl::ObjectsFromAllocation(alloc, size);
+    ASSERT_OK(db->SetSchemaAttr(schema_ds, "self", schema_ds));
+    for (size_t i = 0; i < size; ++i) {
+      if (i % 2 == 0) {
+        ASSERT_OK(db->SetSchemaAttr(schema_ds[i], "a_mixed",
+                                    DataItem(schema::kInt32)));
+        ASSERT_OK(
+            db->SetSchemaAttr(schema_ds[i], "b_int", DataItem(schema::kInt32)));
+      } else {
+        ASSERT_OK(db->SetSchemaAttr(schema_ds[i], "a_mixed",
+                                    DataItem(schema::kFloat32)));
+        ASSERT_OK(db->SetSchemaAttr(schema_ds[i], "c_float",
+                                    DataItem(schema::kFloat32)));
+      }
+    }
+    std::vector<DataItem> schema_attrs =
+        db->GetSchemaAttrsForBigAllocationAsVector(alloc);
+    EXPECT_THAT(schema_attrs,
+                UnorderedElementsAre(DataItem::View<arolla::Text>("self"),
+                                     DataItem::View<arolla::Text>("a_mixed"),
+                                     DataItem::View<arolla::Text>("b_int"),
+                                     DataItem::View<arolla::Text>("c_float")));
+  }
+}
+
 TEST(DataBagTest, GetAttrPrimitivesErrors) {
   {
     // DataSliceImpl - only primitives.

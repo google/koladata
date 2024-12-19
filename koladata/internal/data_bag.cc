@@ -2287,6 +2287,13 @@ absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVector(
   return result;
 }
 
+std::vector<DataItem> DataBagImpl::GetSchemaAttrsForBigAllocationAsVector(
+    const AllocationId& alloc_id, FallbackSpan fallbacks) const {
+  DCHECK(!alloc_id.IsSmall());
+  return GetDictKeysOrValuesAsVector</*kReturnValues=*/false>(
+      alloc_id.ObjectByOffset(0), fallbacks);
+}
+
 absl::StatusOr<DataItem> DataBagImpl::GetSchemaAttr(
     const DataItem& schema_item, absl::string_view attr,
     FallbackSpan fallbacks) const {
