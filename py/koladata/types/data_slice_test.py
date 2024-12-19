@@ -380,6 +380,77 @@ class DataSliceTest(parameterized.TestCase):
   def test_debug_repr(self, x, expected_repr):
     self.assertEqual(x._debug_repr(), expected_repr)
 
+  def test_debug_large_repr(self):
+    db = bag()
+    x = db.new(x=ds([[x for x in range(5)] for y in range(4)]))
+    self.assertRegex(
+        x._debug_repr(),
+        r'''DataSlice\(\[
+  \[
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+  \],
+  \[
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+  \],
+  \[
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+  \],
+  \[
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+    Entity:\$[0-9a-zA-Z]{22},
+  \],
+\], schema: SCHEMA\(x=INT32\), shape: JaggedShape\(4, 5\), bag_id: \$[0-9a-f]{4}\)''',
+    )
+    o = db.obj(x=ds([[x for x in range(5)] for y in range(4)]))
+    self.assertRegex(
+        o._debug_repr(),
+        r'''DataSlice\(\[
+  \[
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+  \],
+  \[
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+  \],
+  \[
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+  \],
+  \[
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+    Obj:\$[0-9a-zA-Z]{22},
+  \],
+\], schema: OBJECT, shape: JaggedShape\(4, 5\), bag_id: \$[0-9a-f]{4}\)''',
+    )
+
   def test_debug_repr_with_bag(self):
     db = bag()
     x = ds([1, 2]).with_bag(db)
