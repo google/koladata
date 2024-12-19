@@ -1,10 +1,7 @@
 <!--* css: "//koladata/g3doc/cheatsheet.css" *-->
 <!-- For the best formatting, please limit the line_max_char to 50. -->
 
-# Koda Cheatsheet (go/koda-cheatsheet)
-
-This cheatsheet covers basic concepts and recipes for Koda. For more details
-about general information and tutorials for Koda, see: go/koda.
+# Koda Cheatsheet
 
 ## Koda Setup
 
@@ -137,6 +134,9 @@ kd.reverse(ds) # [[2, 1], [5, None, 3]]
 # DataItem is 0-dim DataSlice
 i = kd.slice(1) # same as kd.item(1)
 i.get_ndim() # 0
+
+# Visualize a DataSlice
+ds.display()
 ```
 
 </section>
@@ -156,7 +156,7 @@ e.get_schema()
 assert e.get_schema() == es.get_schema()
 
 # Use an existing schema
-s = kd.new_schema(x=kd.INT32, y=kd.INT32)
+s = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
 e = kd.new(x=1, y=2, schema=s)
 
 # When `schema=` is not provided, a new
@@ -390,7 +390,7 @@ Sub-slicing slices **all** dimensions of a DataSlice or the last dimension when
 only one dimension is specified. The API is called "subslice" because it slices
 a DataSlice to create a sub-DataSlice.
 
-See kd.subslice(go/koda-v1-apis#kd.core.subslice) APIs for more
+See [kd.subslice](koda_v1_api_reference.md#kd.core.subslice) APIs for more
 details.
 
 ```py
@@ -539,19 +539,19 @@ ds2.repeat_present(2) # [[1, 1], [], [3, 3]]
 ### Broadcasting and Aligning
 
 ```py
-# Expands x based on the shape of target.
+# Expands x based on the shape of target
 kd.slice([100, 200]).expand_to(
     kd.slice([[1,2],[3,4,5]]))
 # Implodes last ndim dimensions into lists,
-# expands the slice of lists, explodes the result.
+# expands the slice of lists, explodes the result
 kd.slice([100, 200]).expand_to(
     kd.slice([[1,2],[3,4,5]]), ndim=1)
 
 kd.is_expandable_to(x, target, ndim)
-# Whether any of args is expandable to the other.
+# Whether any of args is expandable to the other
 kd.is_shape_compatible(x, y)
 
-# Expands DataSlices to the same common shape.
+# Expands DataSlices to the same common shape
 kd.align(kd.slice([[1, 2, 3], [4, 5]]),
          kd.slice('a'), kd.slice([1, 2]))
 ```
@@ -560,33 +560,64 @@ kd.align(kd.slice([[1, 2, 3], [4, 5]]),
 
 <section>
 
-### IDs and UUIDs
+### ItemIds and UUIDs
 
 ```py
-# Dtype for ItemId.
-kd.ITEMID
+# A new ItemId is allocated when a new
+# object/entity/list/dict/schema is created
+o1 = kd.obj(x=1, y=2)
+o2 = kd.obj(x=1, y=2)
+assert o1.get_itemid() != o2.get_itemid()
 
-# Get unique id.
-kd.obj(x=1, y=2).get_itemid()
+# Get ItemId from object/entity/list/dict
+itemid = o1.get_itemid()
+
+# ItemId is a 128 integer
+# Print out the ItemId in the base-62 format
+str(itemid) # With Entity:$ prefix
+str(kd.list().get_itemid()) # With List:$ prefix
+str(kd.dict().get_itemid()) # With Dict:$ prefix
+str(kd.schema.new_schema().get_itemid())
+# With Schema:$ prefix
 
 # Encode to/from base-62 number (as string).
-kd.encode_itemid(kd.obj(x=1, y=2))
-kd.decode_itemid(str_id)
-# int64 hash values.
-kd.hash_itemid(kd.uuid(a=1, b=2))
+str_id = kd.encode_itemid(itemid)
+assert kd.decode_itemid(str_id) == itemid
 
-# Compute deterministic id from attr values.
-kd.uuid(x=1, y=2)
-# Traverse attrs instead of using their UUIDs.
+# int64 hash values
+kd.hash_itemid(itemid)
+
+# ItemIds can be allocated directly
+kd.new_itemid()
+kd.new_listid()
+kd.new_dictid()
+
+# UUIDs are unique determined
+
+# A new UUID is allocated when a new uu
+# object/entity/schema is created
+o3 = kd.uuobj(x=1, y=2)
+o4 = kd.uuobj(x=1, y=2)
+assert o3.get_itemid() == o4.get_itemid()
+
+kd.uu(x=1, y=2) # UU Entity
+kd.uuobj(x=1, y=2) # UU Object
+kd.uu_schema(x=kd.INT32, y=kd.INT64) # UU Schema
+
+# UUID has a # prefix compared to $ for ItemId
+str(o3.get_itemid()) # With Entity:# prefix
+
+# Compute UUID from attr values
+i1 = kd.uuid(x=1, y=2)
+i2 = kd.uuid(x=1, y=2)
+assert i1 == i2
+
+# Traverse attrs instead of using their UUIDs
 kd.deep_uuid(obj)
 
-# Compute uuid for multiple items.
-kd.agg_uuid(kd.slice([[1,2,3], [4,5,6]]))
-
-# Create entity with UUID.
-kd.uu(x=1, y=2)
-# Create object with UUID.
-kd.uuobj(x=1, y=2)
+# Compute UUIDs by aggregating items
+# over the last dimension
+kd.agg_uuid(kd.slice([[1, 2, 3], [4, 5, 6]]))
 ```
 
 </section>
@@ -594,7 +625,7 @@ kd.uuobj(x=1, y=2)
 ## DataSlice Operators
 
 Koda provides a comprehensive list of operators under `kd` module. Most
-pointwise operators automatically broadcast all input DataSlices to the same
+pointwise operatorƒ automatically broadcast all input DataSlices to the same
 shape.
 
 <section>
@@ -613,12 +644,9 @@ DataSlice `x`.
 x = kd.slice([[1, None], [3, 4]])
 s = x.get_shape()
 
-kd.val_like(x, 1)
-# DataSlice([[1, None], [1, 1]], ...)
-kd.val_shaped_as(x, 1)
-# DataSlice([[1, 1], [1, 1]], ...)
-kd.val_shaped(s, 1)
-# DataSlice([[1, 1], [1, 1]], ...)
+kd.val_like(x, 1) # [[1, None], [1, 1]]
+kd.val_shaped_as(x, 1) # [[1, 1], [1, 1]]
+kd.val_shaped(s, 1) # [[1, 1], [1, 1]]
 
 # Note there is kd.present_like
 kd.present_shaped_as(x)
@@ -981,7 +1009,7 @@ kd.to_bytes(kd.slice([b'1', b'2', b'3']))
 # Dispatches to the relevant kd.to_* operator
 # or casts into specific schema.
 kd.cast_to(kd.slice([1, 2, 3]), kd.INT64)
-kd.cast_to(kd.new(x=1), kd.new_schema(x=kd.INT32))
+kd.cast_to(kd.new(x=1), kd.uu_schema(x=kd.INT32))
 ```
 
 </section>
@@ -1244,7 +1272,7 @@ kd.sample(ds, 0.5, 123, key)
 kd.sample_n(ds, 2, 123)
 # Select one item from the first and
 # two items from the second
-kd.sample_n(ds, kd.slice([1, 2], 123)
+kd.sample_n(ds, kd.slice([1, 2], 123))
 # Use 'key' for stability
 kd.sample_n(ds, 2, 123, key)
 ```
@@ -1289,43 +1317,43 @@ ds = kd.slice([1, 2, 3])
 
 # Pointwise
 kd.map_py(lambda x: x + 1, ds,
-          schema=kd.INT32)
+          schema=kd.INT64)
 
 # Aggregational
 kd.map_py(lambda x: len(x), ds, ndim=1)
 
 # Aggregaional but no dimension change
-kd.map_py(lambda x: sorted(x), ds, ndim=1,
-          schema=kd.INT32)[:]
+kd.map_py(lambda x: sorted(x), ds, ndim=1)[:]
 
 # Expansion
 kd.map_py(lambda x: [x] * 10, ds,
-          schema=kd.INT32)[:]
+          schema=kd.list_schema(kd.INT64))[:]
 
-# Pass ItemIds
+# Pass Objects
 a = kd.obj(x=kd.slice([[1, 2], [3, None, 5]]),
            y=kd.slice([[6, 7], [8, 9, None]]))
 kd.map_py(lambda a: a.x + a.y, a,
           schema=kd.INT32)
 kd.map_py(lambda a: [obj.x - obj.y for obj in a],
-          a, ndim=1, schema=kd.INT32)[:]
+          a, ndim=1)[:]
 
-# Pass ItemIds and primitives
+# Pass Objects and primitives
 b = kd.slice([[1, 2], [3, None, 5]])
-kd.map_py(lambda a, b: a.x + a.y + b, a, b,
-          schema=kd.INT32)
+kd.map_py(lambda a, b: a.x + a.y + b, a, b)
 
-# Return ItemIds
+# Return Objects
 f = lambda x: kd.obj(x=1) if x.y < 3 else kd.obj(y=1)
 res = kd.map_py(f, kd.obj(y=kd.slice([[1, 2], [3]])))
-
-# Multiple return values
-f = lambda x, y: (y, x)
-res1, res2 = kd.map_py(f, a.x, b, schema=kd.INT32)
 
 # With max_thread to speed up the I/O-bound
 # executions (e.g. reading from disk or RPCs)
 kd.map_py(fn, ds, max_thread=20)
+
+# Pass multiple arguments
+f = lambda x, y, z: x + y + z
+kd.map_py(f, 1, 2, 3) # positional
+kd.map_py(f, z=3, y=2, x=1) # keyword
+kd.map_py(f, 1, z=3, y=2) # mix of positional and keyword
 ```
 
 </section>
@@ -1342,12 +1370,10 @@ def f1(a):
 a = kd.slice([1, 2, 3])
 
 # Apply Python python
-c = kd.apply_py_on_selected(f1, a > 1, a)
-# DataSlice([None, 3, 4], ...)
+c = kd.apply_py_on_selected(f1, a > 1, a) # [None, 3, 4]
 
 # Fill the missing items with values from 'a'
-c | a
-# DataSlice([1, 3, 4], ...)
+c | a # [1, 3, 4]
 
 def f2(a, b):
   return a + b
@@ -1357,8 +1383,7 @@ def f3(a, b):
 
 b = kd.slice([4, 5, 6])
 
-kd.apply_py_on_cond(f2, f3, a > 1, a, b)
-# DataSlice([-3, 7, 9], ...)
+kd.apply_py_on_cond(f2, f3, a > 1, a, b) # [-3, 7, 9]
 
 # use kwargs
 kd.apply_py_on_cond(f2, f3, a > 1, b=b, a=a)
@@ -1433,7 +1458,7 @@ py_obj = PyObj(x=1, y=2.0)
 
 kd.from_py(py_obj) # Object
 kd.from_py(py_obj, schema=kd.OBJECT) # Same as above
-s1 = kd.new_schema(x=kd.INT32, y=kd.FLOAT64)
+s1 = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
 kd.from_py(py_obj, schema=s1) # Entity
 
 # dict_as_obj=True
@@ -1499,7 +1524,7 @@ assert py_list == [[1, 2], [3], [4, 5]]
 e = kd.new(x=1, y=2.0)
 e.to_py() # Obj(x=1, y=2.0)
 e.to_py(obj_as_dict=True) # {'x': 1, 'y': 2.0}
-s = kd.new_schema(x=kd.INT32, y=kd.FLOAT32)
+s = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT32)
 e1 = kd.new(x=1, schema=s)
 e1.to_py(obj_as_dict=True) # {'x': 1, 'y': None}
 e1.to_py(obj_as_dict=True,

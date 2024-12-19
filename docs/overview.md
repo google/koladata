@@ -2,11 +2,9 @@
 
 # Koda Overview
 
-go/koda-v1-overview
-
 This guide gives a quick 60-minute overview of **Koda**, geared mainly for new
 users. You can see more detailed introduction in the
-[Koda Fundamentals](Fundamentals.md) guide.
+[Koda Fundamentals](fundamentals.md) guide.
 
 Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
 

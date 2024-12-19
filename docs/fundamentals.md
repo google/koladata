@@ -2,8 +2,6 @@
 
 # Koda Fundamentals
 
-go/koda-v1-fundamentals
-
 This guide goes through fundemantals in Koda. It is highly recommended to read
 through the guide in order for new users to use Koda effectively.
 
