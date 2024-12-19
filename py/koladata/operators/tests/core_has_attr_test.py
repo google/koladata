@@ -117,8 +117,7 @@ class CoreHasAttrTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        r'cannot fetch attributes without a DataBag: a; during evaluation of'
-        r' operator kde.core._get_attr_with_default',
+        'cannot fetch attributes without a DataBag: a',
     ):
       expr_eval.eval(kde.core.has_attr(43, 'a'))
 

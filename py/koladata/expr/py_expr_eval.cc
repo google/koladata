@@ -44,7 +44,6 @@
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator_signature.h"
-#include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -200,7 +199,11 @@ absl::Nullable<PyObject*> PyEvalOp(PyObject* /*self*/, PyObject** py_args,
 
   // Call the implementation.
   ASSIGN_OR_RETURN(auto result,
-                   InvokeOpWithCompilationCache(std::move(op), input_qvalues),
+                   InvokeOpWithCompilationCache(
+                       std::move(op), input_qvalues,
+                       // TODO: b/375621456 - Provide stack trace information in
+                       // a structured way instead of disabling it.
+                       {.verbose_runtime_errors = false}),
                    SetPyErrFromStatus(_));
   return WrapAsPyQValue(std::move(result));
 }
