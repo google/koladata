@@ -14,9 +14,6 @@
 
 """Initializes Koda operators."""
 
-import sys
-
-from arolla import arolla
 from koladata.operators import allocation as _
 from koladata.operators import annotation as _
 from koladata.operators import assertion as _
@@ -31,6 +28,7 @@ from koladata.operators import lists as _
 from koladata.operators import masking as _
 from koladata.operators import math as _
 from koladata.operators import object_factories as _
+from koladata.operators import optools
 from koladata.operators import predicates as _
 from koladata.operators import py as _
 from koladata.operators import random as _
@@ -64,4 +62,4 @@ def get_namespaces() -> list[str]:
   ]
 
 
-kde = arolla.OperatorsContainer(sys.modules[__name__]).kde
+kde = optools.make_operators_container(*get_namespaces()).kde

@@ -486,6 +486,7 @@ py_library(
         ":masking",
         ":math",
         ":object_factories",
+        ":optools",
         ":predicates",
         ":py",
         ":random",

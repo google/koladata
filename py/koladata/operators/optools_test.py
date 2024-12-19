@@ -792,6 +792,19 @@ class OptoolsTest(parameterized.TestCase):
 
     testing.assert_equal(arolla.eval(op()), arolla.unit())
 
+  def test_make_operators_container(self):
+    @optools.add_to_registry()
+    @optools.as_lambda_operator('foo.bar.baz')
+    def op(x):
+      return x
+
+    container = optools.make_operators_container('foo', 'foo.bar', 'foo.baz')
+    self.assertIn('foo', dir(container))  # Top level, so contains more.
+    self.assertEqual(dir(container.foo), ['bar', 'baz'])
+    self.assertEqual(dir(container.foo.bar), ['baz'])
+    testing.assert_equal(container.foo.bar.baz, op)
+    self.assertEqual(dir(container.foo.baz), [])
+
 
 if __name__ == '__main__':
   absltest.main()

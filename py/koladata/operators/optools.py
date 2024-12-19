@@ -539,3 +539,22 @@ def reload_operator_view(view: type[arolla.abc.ExprView]) -> None:
       arolla.abc.set_expr_view_for_registered_operator(
           registered_op.op.display_name, view
       )
+
+
+def make_operators_container(*namespaces: str) -> arolla.OperatorsContainer:
+  """Returns an OperatorsContainer for the given namespaces.
+
+  Note that the returned container accesses the global namespace. A common
+  pattern is therefore:
+    foo = make_operators_container('foo', 'foo.bar', 'foo.baz').foo
+
+  Args:
+    *namespaces: Namespaces to make available in the returned container.
+  """
+
+  class NamespaceProvider:
+
+    def get_namespaces(self):
+      return namespaces
+
+  return arolla.OperatorsContainer(NamespaceProvider())
