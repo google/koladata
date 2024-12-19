@@ -31,8 +31,7 @@ kde = kde_operators.kde
 class ObjTest(absltest.TestCase):
 
   def test_mutability(self):
-    # TODO: Uncomment when `kd.obj` returns immutable result.
-    # self.assertFalse(fns.obj().is_mutable())
+    self.assertFalse(fns.obj().is_mutable())
     self.assertTrue(fns.obj(db=fns.bag()).is_mutable())
 
   def test_item(self):

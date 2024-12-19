@@ -80,7 +80,7 @@ class PyMapPyTest(parameterized.TestCase):
       res = expr_eval.eval(kde.py.map_py(my_lambda, x.S[0, 0]))
       testing.assert_equal(res.x.no_bag(), ds(1))
       testing.assert_equal(res.y.no_bag(), ds(2))
-      self.assertTrue(res.is_mutable())
+      self.assertFalse(res.is_mutable())
 
   def test_map_py_return_none(self):
     def return_none(x):

@@ -417,9 +417,9 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(expr.eval(), kd.slice(30))
 
   def test_eager_op_overrides_expr_op(self):
-    x = kd.obj(a=1)
+    x = kd.obj(a=1, db=kd.bag())
     self.assertTrue(x.db.is_mutable())
-    x = kd.core.obj(a=1)
+    x = kd.core.obj(a=1, db=kd.bag())
     self.assertTrue(x.db.is_mutable())
 
     x = kd.eval(kde.obj(a=1))

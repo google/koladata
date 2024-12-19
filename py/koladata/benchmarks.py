@@ -178,7 +178,7 @@ def set_get_attr_10000_entity(state):
 
 @google_benchmark.register
 def set_get_attr_object(state):
-  ds = kd.obj()
+  ds = kd.bag().obj()
   val = kd.slice(12)
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.

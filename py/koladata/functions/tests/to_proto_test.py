@@ -100,7 +100,7 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(messages, expected_messages)
 
   def test_extension_field(self):
-    x = fns.obj()
+    x = fns.bag().obj()
     x.set_attr(
         '(koladata.functions.testing.MessageAExtension.message_a_extension)',
         fns.obj(extra=123),

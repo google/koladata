@@ -28,7 +28,7 @@ ds = data_slice.DataSlice.from_vals
 class ToPyTest(absltest.TestCase):
 
   def test_list(self):
-    root = fns.obj()
+    root = fns.container()
     root.list_value = []
     root.list_value.append(1)
     root.list_value.append(2)
@@ -45,7 +45,7 @@ class ToPyTest(absltest.TestCase):
     self.assertEqual(expected, py_obj)
 
   def test_dict(self):
-    root = fns.obj()
+    root = fns.container()
     root.dict_value = {}
     root.dict_value['key_1'] = 'value_1'
     root.dict_value['key_2'] = 'value_2'
@@ -59,7 +59,7 @@ class ToPyTest(absltest.TestCase):
     self.assertEqual(expected, py_obj)
 
   def test_dict_with_obj_keys(self):
-    root = fns.obj()
+    root = fns.container()
     root.dict_value = {}
     k = fns.obj(a=1)
     root.dict_value[k] = 1
@@ -80,14 +80,14 @@ class ToPyTest(absltest.TestCase):
     self.assertEqual(fns.to_py(x, obj_as_dict=True), {'x': 1, 'y': 'abc'})
 
   def test_self_reference(self):
-    root = fns.obj()
+    root = fns.container()
     root.x = fns.obj()
     root.x.y = root
     py_obj = fns.to_py(root, max_depth=3)
     self.assertEqual(id(py_obj.x.y), id(py_obj))
 
   def test_multiple_references(self):
-    x = fns.obj()
+    x = fns.container()
     x.foo = [1, 2]
     x.bar = x.foo
     py_obj = dataclasses.asdict(fns.to_py(x))
@@ -101,7 +101,7 @@ class ToPyTest(absltest.TestCase):
     self.assertEqual(expected, py_obj)
 
   def test_does_not_pollute_bag(self):
-    root = fns.obj()
+    root = fns.container()
     root.foo = fns.list(fns.list(ds([[1, 2], [3, 4, 5]])))
     old_data_repr = repr(root.get_bag())
     fns.to_py(root.foo[:][:])

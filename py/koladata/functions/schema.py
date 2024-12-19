@@ -36,6 +36,8 @@ def new_schema(
 ) -> data_slice.DataSlice:
   """Creates new schema in the given DataBag.
 
+  Returned schema is immutable if `db` is not provided.
+
   Args:
     db: optional DataBag where the schema is created. If not provided, a new
       Databag is created.
@@ -53,6 +55,8 @@ def list_schema(
     item_schema: data_slice.DataSlice, db: data_bag.DataBag | None = None
 ) -> data_slice.DataSlice:
   """Creates a list schema in the given DataBag.
+
+  Returned schema is immutable if `db` is not provided.
 
   Args:
     item_schema: schema of the items in the list.
@@ -73,6 +77,8 @@ def dict_schema(
     db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates a dict schema in the given DataBag.
+
+  Returned schema is immutable if `db` is not provided.
 
   Args:
     key_schema: schema of the keys in the list.
@@ -96,6 +102,8 @@ def uu_schema(
 ) -> data_slice.DataSlice:
   """Creates a uu_schema in the given DataBag.
 
+  Returned schema is immutable if `db` is not provided.
+
   Args:
     seed: optional string to seed the uuid computation with.
     db: optional DataBag where the schema is created. If not provided, a new
@@ -117,6 +125,8 @@ def named_schema(
     **attrs: data_slice.DataSlice,
 ) -> data_slice.DataSlice:
   """Creates a named entity schema in the given DataBag.
+
+  Returned schema is immutable if `db` is not provided.
 
   A named schema will have its item id derived only from its name, which means
   that two named schemas with the same name will have the same item id, even in
