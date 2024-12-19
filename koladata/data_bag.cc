@@ -21,6 +21,7 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
@@ -54,15 +55,8 @@ DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
   return res;
 }
 
-absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
-  // TODO: Re-think forking in the context of DataBag with
-  // mutable fallbacks.
-  if (!fallbacks_.empty()) {
-    return absl::FailedPreconditionError(
-        "forking with fallbacks is not supported. Please merge fallbacks "
-        "instead.");
-  }
-
+DataBagPtr DataBag::FallbackFreeFork(bool immutable) {
+  DCHECK(fallbacks_.empty());
   DataBagPtr new_db;
   if (immutable) {
     new_db = DataBagPtr::Make(DataBag::immutable_t());
@@ -82,6 +76,47 @@ absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
     forked_ = true;
   }
   return new_db;
+}
+
+absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
+  // TODO: Re-think forking in the context of DataBag with
+  // mutable fallbacks.
+  if (!fallbacks_.empty()) {
+    return absl::FailedPreconditionError(
+        "forking with fallbacks is not supported. Please merge fallbacks "
+        "instead.");
+  }
+  return FallbackFreeFork(immutable);
+}
+
+DataBagPtr DataBag::FreezeWithFallbacks() {
+  std::vector<DataBagPtr> leaf_fallbacks;
+  leaf_fallbacks.reserve(GetFallbacks().size());
+  VisitFallbacks(*this, [&leaf_fallbacks](const DataBagPtr fallback) {
+    // TODO: DCHECK that non-leaf fallbacks are empty?
+    if (fallback->GetFallbacks().empty()) {
+      leaf_fallbacks.push_back(fallback->FallbackFreeFork(/*immutable=*/true));
+    }
+  });
+  for (auto& fallback : leaf_fallbacks) {
+    if (fallback->IsMutable()) {
+      // Since a leaf fallback has no fallbacks by definition, we can call
+      // FallbackFreeFork on it.
+      fallback = fallback->FallbackFreeFork(/*immutable=*/true);
+    }
+  }
+  return DataBag::ImmutableEmptyWithFallbacks(std::move(leaf_fallbacks));
+}
+
+DataBagPtr DataBag::Freeze() {
+  if (IsMutable() || !GetFallbacks().empty()) {
+    if (GetFallbacks().empty()) {
+      return FallbackFreeFork(/*immutable=*/true);
+    } else {
+      return FreezeWithFallbacks();
+    }
+  }
+  return DataBagPtr::NewRef(this);
 }
 
 DataBagPtr DataBag::CommonDataBag(absl::Span<const DataBagPtr> databags) {
@@ -167,34 +202,23 @@ absl::Status DataBag::MergeInplace(const DataBagPtr& other_db, bool overwrite,
   return db_impl.MergeInplace(*other_db_impl, merge_options);
 }
 
-void FlattenFallbackFinder::CollectFlattenFallbacks(
-    const DataBag& bag, const std::vector<DataBagPtr>& fallbacks) {
+void VisitFallbacks(const DataBag& bag,
+                    absl::FunctionRef<void(const DataBagPtr&)> visit_fn) {
+  std::vector<DataBagPtr> stack(bag.GetFallbacks().rbegin(),
+                                bag.GetFallbacks().rend());
   absl::flat_hash_set<const DataBag*> seen_db;
-  seen_db.reserve(fallbacks.size() + 1);
+  seen_db.reserve(stack.size() + 1);
   seen_db.insert(&bag);
 
-  auto add_fallback = [&](const DataBag* fallback) {
-    if (seen_db.insert(fallback).second) {
-      flattened_fallbacks_.push_back(&fallback->GetImpl());
-      return true;
-    }
-    return false;
-  };
-
-  std::vector<const DataBag*> stack;
-  stack.reserve(fallbacks.size());
-  for (auto it = fallbacks.rbegin(); it != fallbacks.rend(); ++it) {
-    stack.push_back(it->get());
-  }
-
   while (!stack.empty()) {
-    const DataBag* fallback = stack.back();
+    DataBagPtr fallback = stack.back();
     DCHECK(fallback != nullptr);
     stack.pop_back();
-    if (add_fallback(fallback)) {
+    if (seen_db.insert(fallback.get()).second) {
+      visit_fn(fallback);
       const auto cur_fallbacks = fallback->GetFallbacks();
       for (auto it = cur_fallbacks.rbegin(); it != cur_fallbacks.rend(); ++it) {
-        stack.push_back(it->get());
+        stack.push_back(*it);
       }
     }
   }

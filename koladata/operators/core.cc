@@ -1355,10 +1355,7 @@ absl::StatusOr<DataSlice> Follow(const DataSlice& ds) {
 
 template <>
 absl::StatusOr<DataBagPtr> Freeze<DataBagPtr>(const DataBagPtr& x) {
-  if (x->IsMutable() || !x->GetFallbacks().empty()) {
-    return x->Fork(/*immutable=*/true);
-  }
-  return x;
+  return x->Freeze();
 }
 
 template <>

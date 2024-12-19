@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
+#include "absl/functional/function_ref.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -81,6 +82,9 @@ class DataBag : public arolla::RefcountedBase {
   // Changes to either DataBag will not be reflected in the other.
   absl::StatusOr<DataBagPtr> Fork(bool immutable = false);
 
+  // Creates an immutable fork of the DataBag. Supports DataBags with fallbacks.
+  DataBagPtr Freeze();
+
   // Makes the current DataBag immutable.
   //
   // Use this function with caution because if the data bag is shared between
@@ -138,6 +142,14 @@ class DataBag : public arolla::RefcountedBase {
   // Returns a mutable DataBag that wraps provided low-level DataBagImpl.
   static DataBagPtr FromImpl(internal::DataBagImplPtr impl);
 
+  // Returns a newly created mutable DataBag with the same content as this one.
+  // Changes to either DataBag will not be reflected in the other. Assumes
+  // DataBag has no fallbacks.
+  DataBagPtr FallbackFreeFork(bool immutable = false);
+
+  // Freezes a DataBag that may have fallbacks.
+  DataBagPtr FreezeWithFallbacks();
+
   internal::DataBagImplPtr impl_;
   std::vector<DataBagPtr> fallbacks_;
   bool is_mutable_;
@@ -148,6 +160,10 @@ class DataBag : public arolla::RefcountedBase {
   std::atomic<bool> forked_ = false;
 };
 
+// Call visit_fn on all fallbacks in pre-order DFS.
+void VisitFallbacks(const DataBag& bag,
+                    absl::FunctionRef<void(const DataBagPtr&)> visit_fn);
+
 class FlattenFallbackFinder {
  public:
   // Constructs empty fallback list.
@@ -155,11 +171,14 @@ class FlattenFallbackFinder {
 
   // Constructs fallback list from the provided databag.
   explicit FlattenFallbackFinder(const DataBag& bag) {
-    const auto& fallbacks = bag.GetFallbacks();
-    if (fallbacks.empty()) {
+    if (bag.GetFallbacks().empty()) {
       return;
     }
-    CollectFlattenFallbacks(bag, fallbacks);
+
+    flattened_fallbacks_.reserve(bag.GetFallbacks().size());
+    VisitFallbacks(bag, [this](const DataBagPtr& fallback) {
+      this->flattened_fallbacks_.push_back(&fallback->GetImpl());
+    });
   }
 
   // Returns DatBagImpl fallbacks in the decreasing priority order.
@@ -170,10 +189,6 @@ class FlattenFallbackFinder {
   }
 
  private:
-  // Collect fallbacks in pre order using Depth First Search.
-  void CollectFlattenFallbacks(const DataBag& bag,
-                               const std::vector<DataBagPtr>& fallbacks);
-
   absl::InlinedVector<const internal::DataBagImpl*, 2> flattened_fallbacks_;
 };
 
