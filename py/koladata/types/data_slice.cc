@@ -627,45 +627,60 @@ PyObject* PyDataSlice_str(PyObject* self) {
       self, ReprOption{.strip_quotes = true, .show_attributes = true});
 }
 
-PyObject* PyDataSlice_html_str(PyObject* self, PyObject* const* args,
-                               Py_ssize_t nargs) {
+PyObject* PyDataSlice_repr_with_params(
+    PyObject* self, PyObject *const *py_args,
+    Py_ssize_t nargs, PyObject *py_kwnames) {
   arolla::python::DCheckPyGIL();
-  if (nargs != 1) {
-    PyErr_Format(
-        PyExc_ValueError,
-        "DataSlice._internal_html_str accepts exactly 1 argument, got %d",
-        nargs);
+
+  static const absl::NoDestructor parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/false, /*kw_only_arg_names=*/ {
+        "depth", "unbounded_type_max_len", "format_html"
+  }));
+
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
 
-  PyObject* const py_depth = args[0];
-  Py_ssize_t depth = PyLong_AsSsize_t(py_depth);
+  Py_ssize_t depth = 1;
+  PyObject* py_depth = args.kw_only_args["depth"];
+  if (py_depth != nullptr) {
+    if (!PyLong_Check(py_depth)) {
+      PyErr_SetString(PyExc_TypeError, "depth must be an integer");
+      return nullptr;
+    }
+    depth = PyLong_AsSsize_t(py_depth);
+  }
+
+  int32_t unbounded_type_max_len = -1;
+  PyObject* py_unbounded_type_max_len =
+      args.kw_only_args["unbounded_type_max_len"];
+  if (py_unbounded_type_max_len != nullptr) {
+    if (!PyLong_Check(py_unbounded_type_max_len)) {
+      PyErr_SetString(PyExc_TypeError,
+                      "unbounded_type_max_len must be an integer");
+      return nullptr;
+    }
+    unbounded_type_max_len = PyLong_AsLong(py_unbounded_type_max_len);
+  }
+
+  bool format_html = false;
+  PyObject *py_format_html = args.kw_only_args["format_html"];
+  if (py_format_html != nullptr) {
+    if (!PyBool_Check(py_format_html)) {
+      PyErr_SetString(PyExc_TypeError, "format_html must be a boolean");
+      return nullptr;
+    }
+    format_html = PyObject_IsTrue(py_format_html);
+  }
+
   return PyDataSlice_str_with_options(
       self,
       ReprOption{
         .depth = depth,
-        .strip_quotes = true,
-        .format_html = true,
-        .unbounded_type_max_len = 256});
-}
-
-PyObject* PyDataSlice_str_with_depth(PyObject* self, PyObject* const* args,
-                                     Py_ssize_t nargs) {
-  arolla::python::DCheckPyGIL();
-  if (nargs != 1) {
-    PyErr_Format(
-        PyExc_ValueError,
-        "DataSlice._internal_str_with_depth accepts exactly 1 argument, got %d",
-        nargs);
-    return nullptr;
-  }
-
-  PyObject* const py_depth = args[0];
-  Py_ssize_t depth = PyLong_AsSsize_t(py_depth);
-  return PyDataSlice_str_with_options(
-      self, ReprOption{.depth = depth,
-                       .strip_quotes = true,
-                       .unbounded_type_max_len = 256});
+        .strip_quotes = false,
+        .format_html = format_html,
+        .unbounded_type_max_len = unbounded_type_max_len});
 }
 
 absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {
@@ -1202,13 +1217,10 @@ Returns:
      "\n"
      "Args:\n"
      "  method_name: (str)\n"},
-    {"_internal_html_str", (PyCFunction)PyDataSlice_html_str, METH_FASTCALL,
-     "_internal_html_str(depth)\n"
-     "--\n\n"
-     "Used to generate HTML for interactive repr in Colab."},
-    {"_internal_str_with_depth", (PyCFunction)PyDataSlice_str_with_depth,
-     METH_FASTCALL,
-     "_internal_str_with_depth(depth)\n"
+    {"_repr_with_params", (PyCFunction)PyDataSlice_repr_with_params,
+     METH_FASTCALL | METH_KEYWORDS,
+     "_repr_with_params("
+     "*, depth=1, unbounded_type_max_len=-1, format_html=False)\n"
      "--\n\n"
      "Used to generate str representation for interactive repr in Colab."},
     {"internal_is_compliant_attr_name",

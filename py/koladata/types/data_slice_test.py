@@ -3582,32 +3582,37 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     x = x.freeze()
     self.assertFalse(x.is_mutable())
 
-  def test_internal_html_str(self):
+  def test_repr_with_params(self):
     d = fns.obj(a=fns.obj(b=fns.obj(c=fns.obj(d=1))))
-    html_str = d._internal_html_str(1)  # pylint: disable=protected-access
+    html_str = d._repr_with_params(format_html=True, depth=1)  # pylint: disable=protected-access
     self.assertIn('schema-attr="a"', html_str)
     self.assertNotIn('schema-attr="b"', html_str)
 
-    html_str = d._internal_html_str(2)  # pylint: disable=protected-access
+    html_str = d._repr_with_params(format_html=True, depth=2)  # pylint: disable=protected-access
     self.assertIn('schema-attr="a"', html_str)
     self.assertIn('schema-attr="b"', html_str)
     self.assertNotIn('schema-attr="c"', html_str)
 
     self.assertLess(
-        len(ds('a'*1000)._internal_html_str(2)),  # pylint: disable=protected-access
-        500)
+        len(ds('a'*1000)._repr_with_params(unbounded_type_max_len=494, depth=2)),  # pylint: disable=protected-access
+        500)  # Extra characters are necessary for quotes and ellipsis
 
-  def test_internal_str_with_depth(self):
     d = fns.obj(a=fns.obj(b=fns.obj(c=fns.obj(d=1))))
     self.assertRegex(
-        d._internal_str_with_depth(1), r'Obj\(a=\$[0-9a-zA-Z]{22}\)'  # pylint: disable=protected-access
+        d._repr_with_params(depth=1), r'Obj\(a=\$[0-9a-zA-Z]{22}\)'  # pylint: disable=protected-access
     )
     self.assertRegex(
-        d._internal_str_with_depth(2), r'Obj\(a=Obj\(b=\$[0-9a-zA-Z]{22}\)\)'  # pylint: disable=protected-access
+        d._repr_with_params(depth=2), r'Obj\(a=Obj\(b=\$[0-9a-zA-Z]{22}\)\)'  # pylint: disable=protected-access
     )
-    self.assertLess(
-        len(ds('a'*1000)._internal_str_with_depth(2)),  # pylint: disable=protected-access
-        500)
+
+    with self.assertRaisesRegex(TypeError, 'depth must be an integer'):
+      d._repr_with_params(depth={})  # pylint: disable=protected-access
+    with self.assertRaisesRegex(TypeError,
+                                'unbounded_type_max_len must be an integer'):
+      d._repr_with_params(unbounded_type_max_len={})  # pylint: disable=protected-access
+    with self.assertRaisesRegex(TypeError,
+                                'format_html must be a boolean'):
+      d._repr_with_params(format_html=20)  # pylint: disable=protected-access
 
   def test_data_slice_docstrings(self):
     def has_docstring(method):

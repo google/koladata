@@ -73,6 +73,9 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_Primitives) {
 
   DataSlice item3 = test::DataItem(std::nullopt, schema::kMask);
   EXPECT_THAT(DataSliceToStr(item3), IsOkAndHolds("missing"));
+
+  DataSlice item4 = test::DataItem(arolla::Text("foo"));
+  EXPECT_THAT(DataSliceToStr(item4), IsOkAndHolds("'foo'"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
@@ -463,6 +466,10 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_Primitives) {
   DataSlice ds5 = test::DataSlice<int>({1, 2, 3});
   EXPECT_THAT(DataSliceToStr(ds5, {.item_limit = 0}),
               IsOkAndHolds("[...]"));
+
+  DataSlice ds6 = test::DataSlice<arolla::Text>({"ab", "cd", "ef"});
+  EXPECT_THAT(DataSliceToStr(ds6),
+              IsOkAndHolds("['ab', 'cd', 'ef']"));
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_EntitySlices) {
