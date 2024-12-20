@@ -14,8 +14,6 @@
 
 """Annotation Koda operators."""
 
-import inspect
-
 from arolla import arolla
 from koladata.operators import optools
 from koladata.types import py_boxing
@@ -25,31 +23,17 @@ with_name = optools.add_to_registry(
 )(arolla.abc.lookup_operator('koda_internal.with_name'))
 
 
-class _WithNameBindingPolicy(py_boxing.BasicBindingPolicy):
-  """The binding policy for the kde.annotation.with_name operator.
-
-  This binding policy uses the default Koladata boxing for the first argument
-  and Arolla boxing for the second.
-  """
-
-  _SIGNATURE = inspect.signature(lambda expr, /, name: None)
-
-  def make_python_signature(self, _):
-    return self._SIGNATURE
-
-  def bind_arguments(self, _, *args, **kwargs):
-    bound_args = self._SIGNATURE.bind(*args, **kwargs).args
-    result = (
-        py_boxing.as_qvalue_or_expr(bound_args[0]),
-        arolla.types.as_qvalue_or_expr(bound_args[1]),
-    )
-    if result[1].qtype != arolla.TEXT:
-      raise ValueError('Name must be a string')
-    return result
+def _with_name_bind_args(expr, /, name):
+  """The binding policy for the kde.annotation.with_name operator."""
+  result = (
+      py_boxing.as_qvalue_or_expr(expr),
+      arolla.types.as_qvalue_or_expr(name),
+  )
+  if result[1].qtype != arolla.TEXT:
+    raise ValueError('Name must be a string')
+  return result
 
 
-_with_name_aux_policy = arolla.abc.get_operator_signature(with_name).aux_policy
-assert _with_name_aux_policy  # non-empty
-arolla.abc.register_aux_binding_policy(
-    _with_name_aux_policy, _WithNameBindingPolicy()
+arolla.abc.register_adhoc_aux_binding_policy(
+    with_name, _with_name_bind_args, make_literal_fn=py_boxing.literal
 )

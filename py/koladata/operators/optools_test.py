@@ -338,7 +338,7 @@ class OptoolsTest(parameterized.TestCase):
         unsafe_override=True,
         view=None,
         repr_fn=repr_fn,
-        aux_policy=py_boxing.DEFAULT_AROLLA_POLICY,
+        aux_policy='',  # Uses the default Arolla binding policy.
     )
     def op_actual(x, y):  # pylint: disable=unused-variable
       del x, y

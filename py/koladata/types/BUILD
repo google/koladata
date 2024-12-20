@@ -168,7 +168,6 @@ py_library(
         ":ellipsis",
         ":literal_operator",
         "//py/koladata/expr:py_expr_eval_py_ext",
-        "//py/koladata/fstring",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -183,10 +182,8 @@ py_test(
         ":ellipsis",
         ":literal_operator",
         ":py_boxing",
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",

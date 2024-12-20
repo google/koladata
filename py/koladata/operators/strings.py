@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.fstring import fstring as _fstring
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking as masking_ops
 from koladata.operators import optools
@@ -239,7 +240,7 @@ def format_(fmt, /, **kwargs):  # pylint: disable=unused-argument
 @optools.add_to_registry(aliases=['kde.fstr'])
 @arolla.optools.as_lambda_operator(
     'kde.strings.fstr',
-    experimental_aux_policy=py_boxing.FSTR_POLICY,
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.strings.fstr]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
     ],
@@ -286,6 +287,33 @@ def fstr(fmt):
     Expr that formats provided f-string.
   """
   return fmt
+
+
+def _fstr_bind_args(fstr, /):  # pylint: disable=redefined-outer-name
+  """Argument binding policy for Koda fstr operator.
+
+  This policy takes f-string with base64 encoded Expressions and converts
+  to the format expression. This single expression is passed as argument to the
+  identity kde.strings.fstr operator.
+
+  Example (actual expression may be different):
+    kd.fstr(f'Hello {I.x:s}') ->
+    kd.fstr(kd.format('Hello {x:s}', x=I.x))
+
+  Args:
+    fstr: F-string with base64 encoded Expressions.
+
+  Returns:
+    Tuple with the input for fstr operator.
+  """
+  if not isinstance(fstr, str):
+    raise TypeError(f'expected a string, got {fstr}')
+  return (_fstring.fstr_expr(fstr),)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    fstr, _fstr_bind_args, make_literal_fn=py_boxing.literal
+)
 
 
 @optools.add_to_registry()

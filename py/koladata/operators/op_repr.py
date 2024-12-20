@@ -20,83 +20,11 @@ from typing import Callable
 from arolla import arolla
 from koladata.operators import unified_binding_policy
 from koladata.types import data_slice
-from koladata.types import py_boxing
 
 
 OperatorReprFn = Callable[
     [arolla.Expr, arolla.abc.NodeTokenView], arolla.abc.ReprToken
 ]
-
-
-def _full_signature_varargs_repr(
-    node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-) -> str:
-  """Repr for varargs. Assumes node is a tuple (op or qvalue)."""
-  if node.qvalue is None:
-    if arolla.abc.decay_registered_operator(
-        node.op
-    ) != arolla.abc.decay_registered_operator('core.make_tuple'):
-      return tokens[node].text
-    return ', '.join(tokens[dep].text for dep in node.node_deps)
-  else:
-    if not isinstance(node.qvalue, arolla.types.Tuple):
-      return tokens[node].text
-    return ', '.join(repr(v) for v in node.qvalue)
-
-
-def _full_signature_varkwargs_repr(
-    node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-) -> str:
-  """Repr for varkwargs. Assumes node is a namedtuple (op or qvalue)."""
-  # pytype: disable=attribute-error
-  if node.qvalue is None:
-    if arolla.abc.decay_registered_operator(
-        node.op
-    ) != arolla.abc.decay_registered_operator('namedtuple.make'):
-      return tokens[node].text
-    keys = node.node_deps[0].qvalue.py_value().split(',')
-    values = (tokens[dep] for dep in node.node_deps[1:])
-    return ', '.join(f'{k}={v.text}' for k, v in zip(keys, values))
-  else:
-    if not isinstance(node.qvalue, arolla.types.NamedTuple):
-      return tokens[node].text
-    return ', '.join(f'{k}={v!r}' for k, v in node.qvalue.as_dict().items())
-  # pytype: enable=attribute-error
-
-
-# Note: We pass `node_op` and `node_op_signature` directly only to avoid
-# retrieving them again, saving a few cycles.
-def _full_signature_op_repr(
-    node: arolla.Expr,
-    node_op: arolla.abc.Operator,
-    node_op_signature: arolla.abc.Signature,
-    tokens: arolla.abc.NodeTokenView,
-) -> arolla.abc.ReprToken:
-  """Repr function for Koda operators with FULL_SIGNATURE_POLICY aux policy."""
-  node_dep_reprs = []
-  for dep, param in zip(
-      node.node_deps, node_op_signature.parameters, strict=True
-  ):
-    if not isinstance(
-        param.default, arolla.abc.QValue
-    ) or not py_boxing.is_param_marker(param.default):
-      node_dep_reprs.append(tokens[dep].text)
-    elif py_boxing.is_non_deterministic(param.default[1]):
-      continue
-    elif py_boxing.is_var_positional(param.default[1]):
-      if repr_ := _full_signature_varargs_repr(dep, tokens):
-        node_dep_reprs.append(repr_)
-    elif py_boxing.is_var_keyword(param.default[1]):
-      if repr_ := _full_signature_varkwargs_repr(dep, tokens):
-        node_dep_reprs.append(repr_)
-    elif py_boxing.is_keyword_only(param.default[1]):
-      node_dep_reprs.append(f'{param.name}={tokens[dep].text}')
-    else:
-      node_dep_reprs.append(tokens[dep].text)
-  res = arolla.abc.ReprToken()
-  dep_txt = ', '.join(node_dep_reprs)
-  res.text = f'{node_op.display_name}({dep_txt})'
-  return res
 
 
 def default_op_repr(
@@ -106,8 +34,6 @@ def default_op_repr(
   op = node.op
   assert op is not None
   signature = arolla.abc.get_operator_signature(op)
-  if signature.aux_policy == py_boxing.FULL_SIGNATURE_POLICY:
-    return _full_signature_op_repr(node, op, signature, tokens)
   if signature.aux_policy.startswith(
       unified_binding_policy.UNIFIED_POLICY_PREFIX
   ):

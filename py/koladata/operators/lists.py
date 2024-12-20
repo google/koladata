@@ -14,6 +14,8 @@
 
 """Operators that work on lists."""
 
+import types as py_types
+
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
@@ -382,7 +384,9 @@ def is_list(x):  # pylint: disable=unused-argument
 @arolla.optools.as_lambda_operator(
     'kde.lists.select_items',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-    experimental_aux_policy=py_boxing.SELECT_ITEMS_POLICY,
+    experimental_aux_policy=(
+        'koladata_adhoc_binding_policy[kde.lists.select_items]'
+    ),
 )
 def select_items(ds, fltr):
   """Selects List items by filtering out missing items in fltr.
@@ -398,3 +402,15 @@ def select_items(ds, fltr):
     Filtered DataSlice.
   """
   return slice_ops.select(ds=explode(ds), fltr=fltr)
+
+
+def _select_items_bind_args(ds, fltr):
+  """Argument binding policy for the `kde.lists.select_items` operator."""
+  if isinstance(fltr, py_types.FunctionType):
+    fltr = fltr(ds[:])
+  return (py_boxing.as_qvalue_or_expr(ds), py_boxing.as_qvalue_or_expr(fltr))
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    select_items, _select_items_bind_args, make_literal_fn=py_boxing.literal
+)

@@ -331,6 +331,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
+        "//py/koladata/fstring",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
@@ -560,7 +561,6 @@ py_library(
     deps = [
         ":unified_binding_policy",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -645,7 +645,6 @@ py_test(
         ":op_repr",
         "//py/koladata/expr:input_container",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:py_boxing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",

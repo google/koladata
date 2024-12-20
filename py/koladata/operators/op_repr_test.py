@@ -19,7 +19,6 @@ from koladata.expr import input_container
 from koladata.operators import kde_operators
 from koladata.operators import op_repr
 from koladata.types import data_slice
-from koladata.types import py_boxing
 
 M = arolla.M
 L = arolla.L
@@ -52,22 +51,6 @@ def binary_op(x, y):
   return x
 
 
-@arolla.optools.add_to_registry()
-@arolla.optools.as_lambda_operator(
-    'test.full_signature_op',
-    experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
-)
-def full_signature_op(
-    a=py_boxing.positional_only(),
-    x=py_boxing.positional_or_keyword(),
-    args=py_boxing.var_positional(),
-    y=py_boxing.keyword_only(),
-    z=py_boxing.keyword_only(),
-    kwargs=py_boxing.var_keyword(),
-):
-  return a, x, args, y, z, kwargs
-
-
 # NOTE: These tests depend on the existing behavior of corresponding arolla
 # operators in order to not have to test the relationship between operators.
 class OpReprTest(parameterized.TestCase):
@@ -76,7 +59,6 @@ class OpReprTest(parameterized.TestCase):
     super().setUp()
     clear(unary_op)
     clear(binary_op)
-    clear(full_signature_op)
 
   def test_default_op_repr(self):
     self.assertEqual(repr(unary_op(1)), 'M.test.unary_op(1)')
@@ -405,114 +387,6 @@ class OpReprTest(parameterized.TestCase):
   def test_getattr_repr(self, expr, expected_repr):
     register(kde.get_attr, op_repr.getattr_repr)
     self.assertEqual(repr(expr), expected_repr)
-
-  @parameterized.parameters(
-      # Simple.
-      (
-          full_signature_op(I.a, x=I.x, y=I.y, z=I.z),
-          'test.full_signature_op(I.a, I.x, y=I.y, z=I.z)',
-      ),
-      # Varargs.
-      (
-          full_signature_op(I.a, I.x, I.b, y=I.y, z=I.z),
-          'test.full_signature_op(I.a, I.x, I.b, y=I.y, z=I.z)',
-      ),
-      (
-          full_signature_op(I.a, I.x, I.b, I.b, y=I.y, z=I.z),
-          'test.full_signature_op(I.a, I.x, I.b, I.b, y=I.y, z=I.z)',
-      ),
-      (
-          full_signature_op(I.a, I.x, 1, 2, y=I.y, z=I.z),
-          (
-              'test.full_signature_op(I.a, I.x, DataItem(1, schema: INT32),'
-              ' DataItem(2, schema: INT32), y=I.y, z=I.z)'
-          ),
-      ),
-      # Varkwargs.
-      (
-          full_signature_op(I.a, I.x, y=I.y, z=I.z, w=I.w),
-          'test.full_signature_op(I.a, I.x, y=I.y, z=I.z, w=I.w)',
-      ),
-      (
-          full_signature_op(I.a, I.x, y=I.y, z=I.z, w=I.w, v=I.v),
-          'test.full_signature_op(I.a, I.x, y=I.y, z=I.z, w=I.w, v=I.v)',
-      ),
-      (
-          full_signature_op(I.a, I.x, y=I.y, z=I.z, w=1, v=2),
-          (
-              'test.full_signature_op(I.a, I.x, y=I.y, z=I.z, w=DataItem(1,'
-              ' schema: INT32), v=DataItem(2, schema: INT32))'
-          ),
-      ),
-      # Both.
-      (
-          full_signature_op(I.a, I.x, I.b, I.c, y=I.y, z=I.z, w=I.w, v=I.v),
-          (
-              'test.full_signature_op(I.a, I.x, I.b, I.c, y=I.y, z=I.z, w=I.w,'
-              ' v=I.v)'
-          ),
-      ),
-      # Non-namedtuple varargs and varkwargs.
-      (
-          arolla.abc.bind_op(
-              full_signature_op,
-              I.a,
-              I.b,
-              M.core.concat_tuples(
-                  M.core.make_tuple(I.c), M.core.make_tuple(I.d)
-              ),
-              I.y,
-              I.z,
-              arolla.M.namedtuple.union(I.nt1, I.nt2),
-          ),
-          (
-              'test.full_signature_op(I.a, I.b,'
-              ' M.core.concat_tuples(M.core.make_tuple(I.c),'
-              ' M.core.make_tuple(I.d)), y=I.y, z=I.z,'
-              ' M.namedtuple.union(I.nt1, I.nt2))'
-          ),
-      ),
-      (
-          arolla.abc.bind_op(
-              full_signature_op,
-              I.a,
-              I.b,
-              arolla.namedtuple(nt=1),  # wrong, but we don't care here.
-              I.y,
-              I.z,
-              arolla.tuple(1, 2),  # wrong, but we don't care here.
-          ),
-          (
-              'test.full_signature_op(I.a, I.b, namedtuple<nt=INT32>{(1)},'
-              ' y=I.y, z=I.z, (1, 2))'
-          ),
-      ),
-  )
-  def test_full_signature_repr(self, expr, expected_repr):
-    register(full_signature_op, op_repr.default_op_repr)
-    self.assertEqual(repr(expr), expected_repr)
-
-  def test_full_signature_repr_hidden_seed(self):
-    @arolla.optools.add_to_registry()
-    @arolla.optools.as_lambda_operator(
-        'test.full_signature_with_hidden_seed_op',
-        experimental_aux_policy=py_boxing.FULL_SIGNATURE_POLICY,
-    )
-    def full_signature_with_hidden_seed_op(
-        x,
-        args=py_boxing.var_positional(),
-        y=py_boxing.keyword_only(),
-        kwargs=py_boxing.var_keyword(),
-        hidden_seed=py_boxing.hidden_seed(),
-    ):
-      del hidden_seed
-      return x, args, y, kwargs
-
-    register(full_signature_with_hidden_seed_op, op_repr.default_op_repr)
-    self.assertEqual(
-        repr(full_signature_with_hidden_seed_op(I.x, I.a, y=I.y, z=I.z)),
-        'test.full_signature_with_hidden_seed_op(I.x, I.a, y=I.y, z=I.z)',
-    )
 
 
 if __name__ == '__main__':

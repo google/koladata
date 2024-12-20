@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import re
 
 from absl.testing import absltest
@@ -192,6 +193,14 @@ class StringsFstrTest(parameterized.TestCase):
         exceptions.KodaError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.strings.fstr(f'{ds([1, "foo"]):s}'))
+
+  def test_binding_policy(self):
+    self.assertEqual(
+        inspect.signature(kde.strings.fstr),
+        inspect.signature(lambda fstr, /: None),
+    )
+    with self.assertRaisesRegex(TypeError, 'expected a string'):
+      kde.strings.fstr(b'a')
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

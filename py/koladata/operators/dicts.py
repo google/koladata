@@ -14,6 +14,8 @@
 
 """Operators that work on dicts."""
 
+import types as py_types
+
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import core as core_ops
@@ -459,7 +461,9 @@ def get_values(dict_ds, key_ds=arolla.unspecified()):
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
-    experimental_aux_policy=py_boxing.SELECT_KEYS_POLICY,
+    experimental_aux_policy=(
+        'koladata_adhoc_binding_policy[kde.dicts.select_keys]'
+    ),
 )
 def select_keys(ds, fltr):
   """Selects Dict keys by filtering out missing items in `fltr`.
@@ -477,6 +481,18 @@ def select_keys(ds, fltr):
   return slice_ops.select(ds=get_keys(ds), fltr=fltr)
 
 
+def _select_keys_bind_args(ds, fltr):
+  """Argument binding policy for the `kde.dicts.select_keys` operator."""
+  if isinstance(fltr, py_types.FunctionType):
+    fltr = fltr(ds.get_keys())
+  return (py_boxing.as_qvalue_or_expr(ds), py_boxing.as_qvalue_or_expr(fltr))
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    select_keys, _select_keys_bind_args, make_literal_fn=py_boxing.literal
+)
+
+
 @optools.add_to_registry(aliases=['kde.select_values'])
 @arolla.optools.as_lambda_operator(
     'kde.dicts.select_values',
@@ -484,7 +500,9 @@ def select_keys(ds, fltr):
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
-    experimental_aux_policy=py_boxing.SELECT_VALUES_POLICY,
+    experimental_aux_policy=(
+        'koladata_adhoc_binding_policy[kde.dicts.select_values]'
+    ),
 )
 def select_values(ds, fltr):
   """Selects Dict values by filtering out missing items in `fltr`.
@@ -500,6 +518,18 @@ def select_values(ds, fltr):
     Filtered DataSlice.
   """
   return slice_ops.select(ds=get_values(ds), fltr=fltr)
+
+
+def _select_values_bind_args(ds, fltr):
+  """Argument binding policy for the `kde.dicts.select_values` operator."""
+  if isinstance(fltr, py_types.FunctionType):
+    fltr = fltr(ds.get_values())
+  return (py_boxing.as_qvalue_or_expr(ds), py_boxing.as_qvalue_or_expr(fltr))
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    select_values, _select_values_bind_args, make_literal_fn=py_boxing.literal
+)
 
 
 @optools.as_backend_operator(
