@@ -72,6 +72,7 @@ py_library(
         "//py/koladata/functions",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:literal_operator",

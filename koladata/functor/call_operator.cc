@@ -27,6 +27,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/functor.h"
+#include "koladata/operators/utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
@@ -98,8 +99,8 @@ class CallOperator : public arolla::QExprOperator {
 absl::StatusOr<arolla::OperatorPtr> CallOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 4) {
-    return absl::InvalidArgumentError("requires exactly 4 arguments");
+  if (input_types.size() != 5) {
+    return absl::InvalidArgumentError("requires exactly 5 arguments");
   }
   if (input_types[0] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(
@@ -114,6 +115,7 @@ absl::StatusOr<arolla::OperatorPtr> CallOperatorFamily::DoGetOperator(
     return absl::InvalidArgumentError(
         "requires third argument to be NamedTuple");
   }
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[4]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<CallOperator>(input_types, output_type), input_types,
       output_type);

@@ -29,6 +29,7 @@ from koladata.functor import py_functors_py_ext as _py_functors_py_ext
 from koladata.functor import signature_utils
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import literal_operator
@@ -334,7 +335,7 @@ def bind(
     )
     # Note: we bypass the binding policy of functor.call since we already
     # have the args/kwargs as tuple and namedtuple.
-    variables['_aux_fn_variables'] = arolla.abc.bind_op(
+    variables['_aux_fn_variables'] = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
         'kde.functor.call',
         V['_aux_fn_compute_variables'],
         args=I.args,
@@ -342,6 +343,7 @@ def bind(
             **{k: py_boxing.as_qvalue(data_slice.DataSlice) for k in kwargs}
         ),
         kwargs=I.kwargs,
+        **optools.unified_non_deterministic_kwarg(),
     )
     for k in kwargs:
       variables[k] = arolla.M.namedtuple.get_field(V['_aux_fn_variables'], k)
@@ -351,7 +353,7 @@ def bind(
   return expr_fn(
       # Note: we bypass the binding policy of functor.call since we already
       # have the args/kwargs as tuple and namedtuple.
-      arolla.abc.bind_op(
+      arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
           'kde.functor.call',
           V['_aux_fn'],
           args=I.args,
@@ -359,6 +361,7 @@ def bind(
           kwargs=arolla.M.namedtuple.union(
               arolla.M.namedtuple.make(**{k: V[k] for k in kwargs}), I.kwargs
           ),
+          **optools.unified_non_deterministic_kwarg(),
       ),
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
       **variables,

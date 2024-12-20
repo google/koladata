@@ -234,10 +234,10 @@ class KodaViewTest(parameterized.TestCase):
     testing.assert_equal(+C.x, kde.math.pos(C.x))
 
   def test_call(self):
-    testing.assert_equal(
+    testing.assert_non_deterministic_exprs_equal(
         C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z)
     )
-    testing.assert_equal(
+    testing.assert_non_deterministic_exprs_equal(
         C.x(C.y, return_type_as=C.t, foo=C.z),
         kde.call(C.x, C.y, return_type_as=C.t, foo=C.z),
     )

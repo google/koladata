@@ -364,9 +364,15 @@ class KdTest(absltest.TestCase):
       return f(x) + 2
 
     fn = kd.trace_py_fn(g)
-    kd.testing.assert_equal(kd.expr.unpack_expr(fn.returns), V.f_result + 2)
-    kd.testing.assert_equal(kd.expr.unpack_expr(fn.f_result), V.f(I.x))
-    kd.testing.assert_equal(kd.expr.unpack_expr(fn.f.returns), I.x + 1)
+    kd.testing.assert_non_deterministic_exprs_equal(
+        kd.expr.unpack_expr(fn.returns), V.f_result + 2
+    )
+    kd.testing.assert_non_deterministic_exprs_equal(
+        kd.expr.unpack_expr(fn.f_result), V.f(I.x)
+    )
+    kd.testing.assert_non_deterministic_exprs_equal(
+        kd.expr.unpack_expr(fn.f.returns), I.x + 1
+    )
 
   def test_call_with_kd_types_return_type(self):
     fn = kdf.expr_fn(returns=I.x.get_bag())

@@ -199,12 +199,12 @@ _UNIFIED_NON_DETERMINISTIC_PARAM = arolla.abc.placeholder(
 )
 
 
-def unified_non_deterministic_arg():
+def unified_non_deterministic_arg() -> arolla.Expr:
   """Returns a non-deterministic token for use with `bind_op(..., arg)`."""
   return py_boxing.new_non_deterministic_token()
 
 
-def unified_non_deterministic_kwarg():
+def unified_non_deterministic_kwarg() -> dict[str, arolla.Expr]:
   """Returns a non-deterministic token for use with `bind_op(..., **kwarg)`."""
   return {UNIFIED_NON_DETERMINISTIC_PARAM_NAME: unified_non_deterministic_arg()}
 

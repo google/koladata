@@ -27,18 +27,8 @@ constraints = arolla.optools.constraints
 @optools.add_to_registry(aliases=['kde.call'])
 @optools.as_backend_operator(
     'kde.functor.call',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.fn),
-        (
-            M.qtype.is_tuple_qtype(P.args),
-            f'expected tuple, got {constraints.name_type_msg(P.args)}',
-        ),
-        (
-            M.qtype.is_namedtuple_qtype(P.kwargs),
-            f'expected named tuple, got {constraints.name_type_msg(P.kwargs)}',
-        ),
-    ],
     qtype_inference_expr=P.return_type_as,
+    deterministic=False,
 )
 def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):
   """Calls a functor.

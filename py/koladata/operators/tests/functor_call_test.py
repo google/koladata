@@ -234,6 +234,23 @@ class FunctorCallTest(absltest.TestCase):
         ds(5),
     )
 
+  def test_non_determinism(self):
+    fn = functor_factories.fn(kde.new(a=42, schema='new'))
+
+    expr = kde.tuple.make_tuple(kde.call(fn), kde.call(fn))
+    self.assertNotEqual(
+        expr.node_deps[0].fingerprint, expr.node_deps[1].fingerprint
+    )
+    res = expr_eval.eval(expr)
+    self.assertNotEqual(res[0].no_bag(), res[1].no_bag())
+    testing.assert_equal(res[0].a.no_bag(), res[1].a.no_bag())
+
+    expr = kde.call(fn, x=ds(None))
+    res_1 = expr_eval.eval(expr)
+    res_2 = expr_eval.eval(expr)
+    self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
+    testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.call(I.fn)))
 

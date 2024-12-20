@@ -185,11 +185,11 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     fn = functor_factories.trace_py_fn(lambda x: x.updated(f(x)))
     self.assertEqual(fn(x).to_pytree(), {'foo': 1, 'bar': 2})
-    testing.assert_equal(
+    testing.assert_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.returns),
         I.x.updated(V.f_result),
     )
-    testing.assert_equal(
+    testing.assert_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.f_result),
         V.f(I.x, return_type_as=empty_bag),
     )
