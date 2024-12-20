@@ -137,7 +137,7 @@ def _slice_repr(
 def subslice_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView
 ) -> arolla.abc.ReprToken:
-  """Repr for kde.core.subslice."""
+  """Repr for kde.slices.subslice."""
   parts = [
       _slice_repr(dep, tokens, abbreviation=False) for dep in node.node_deps
   ]

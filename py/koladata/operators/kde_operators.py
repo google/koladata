@@ -33,6 +33,7 @@ from koladata.operators import predicates as _
 from koladata.operators import py as _
 from koladata.operators import random as _
 from koladata.operators import schema as _
+from koladata.operators import slices as _
 from koladata.operators import strings as _
 from koladata.operators import tuple as _
 
@@ -56,6 +57,7 @@ def get_namespaces() -> list[str]:
       'kde.random',
       'kde.schema',
       'kde.shapes',
+      'kde.slices',
       'kde.strings',
       'kde.tuple',
       # go/keep-sorted end

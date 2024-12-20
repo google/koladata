@@ -105,7 +105,7 @@ class CoreSelectItemsTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.select(I.x, I.fltr)))
+    self.assertTrue(view.has_koda_view(kde.slices.select(I.x, I.fltr)))
 
   def test_alias(self):
     self.assertTrue(

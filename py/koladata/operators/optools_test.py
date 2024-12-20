@@ -25,6 +25,7 @@ from koladata.operators import comparison as _
 from koladata.operators import core
 from koladata.operators import jagged_shape
 from koladata.operators import koda_internal as _
+from koladata.operators import math as _
 from koladata.operators import optools
 from koladata.operators import optools_test_utils
 from koladata.operators import qtype_utils

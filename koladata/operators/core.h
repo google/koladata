@@ -86,41 +86,12 @@ class UpdatedDbOperatorFamily final : public EnrichedOrUpdatedDbOperatorFamily {
   bool is_enriched_operator() const override { return false; }
 };
 
-// kde.core._inverse_mapping.
-absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x);
-
-// kde.core._ordinal_rank.
-absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
-                                      const DataSlice& tie_breaker,
-                                      const DataSlice& descending);
-
-// kde.core._dense_rank.
-absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,
-                                    const DataSlice& descending);
-
-// kde.core.align.
-class AlignOperatorFamily final : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const override;
-};
-
-// kde.core._collapse.
-absl::StatusOr<DataSlice> Collapse(const DataSlice& ds);
-
-// kde.core._concat_or_stack
-absl::StatusOr<DataSlice> ConcatOrStack(
-    absl::Span<const DataSlice* const> slices);
-
 // kde.core._extract
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds, const DataSlice& schema);
 
 // kde.core._extract_bag
 absl::StatusOr<DataBagPtr> ExtractBag(const DataSlice& ds,
                                       const DataSlice& schema);
-
-// kde.core.is_empty.
-absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj);
 
 // kde.core._get_attr.
 absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
@@ -166,17 +137,6 @@ inline absl::StatusOr<DataSlice> GetItem(const DataSlice& ds,
   return ds.GetItem(key_or_index);
 }
 
-// kde.core.group_by_indices.
-absl::StatusOr<DataSlice> GroupByIndices(
-    absl::Span<const DataSlice* const> slices);
-
-// kde.core.group_by_indices_sorted.
-absl::StatusOr<DataSlice> GroupByIndicesSorted(
-    absl::Span<const DataSlice* const> slices);
-
-// kde.core.unique.
-absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort);
-
 // kde.core.follow.
 absl::StatusOr<DataSlice> Follow(const DataSlice& ds);
 
@@ -190,17 +150,6 @@ DataBagPtr Freeze<DataBagPtr>(const DataBagPtr& x);
 // kde.core._freeze_slice.
 template <>
 DataSlice Freeze<DataSlice>(const DataSlice& x);
-
-// kde.core.reverse.
-absl::StatusOr<DataSlice> Reverse(const DataSlice& obj);
-
-// kde.core.select.
-absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
-                                 bool expand_filter);
-
-// kde.core.inverse_select.
-absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,
-                                        const DataSlice& filter);
 
 // kde.core._clone.
 absl::StatusOr<DataSlice> Clone(
@@ -216,21 +165,6 @@ absl::StatusOr<DataSlice> ShallowClone(
 absl::StatusOr<DataSlice> DeepClone(
     const DataSlice& ds, const DataSlice& schema,
     internal::NonDeterministicToken = {});
-
-// kde.core.subslice operator.
-class SubsliceOperatorFamily : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const final;
-};
-
-// kde.core.take operator.
-absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices);
-
-// kde.core.translate.
-absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
-                                    const DataSlice& keys_from,
-                                    const DataSlice& values_from);
 
 }  // namespace koladata::ops
 

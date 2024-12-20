@@ -44,7 +44,7 @@
 #include "koladata/internal/op_utils/trampoline_executor.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/core.h"
+#include "koladata/operators/slices.h"
 #include "koladata/uuid_utils.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"

@@ -20,6 +20,7 @@ from koladata.operators import core as core_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import slices as slice_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -473,7 +474,7 @@ def select_keys(ds, fltr):
   Returns:
     Filtered DataSlice.
   """
-  return core_ops.select(ds=get_keys(ds), fltr=fltr)
+  return slice_ops.select(ds=get_keys(ds), fltr=fltr)
 
 
 @optools.add_to_registry(aliases=['kde.select_values'])
@@ -498,7 +499,7 @@ def select_values(ds, fltr):
   Returns:
     Filtered DataSlice.
   """
-  return core_ops.select(ds=get_values(ds), fltr=fltr)
+  return slice_ops.select(ds=get_values(ds), fltr=fltr)
 
 
 @optools.as_backend_operator(

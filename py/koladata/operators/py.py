@@ -21,15 +21,16 @@ from typing import Any, Callable, Iterable
 
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
-from koladata.operators import core as _
 from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import slices as _
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
 
 P = arolla.P
 M = arolla.M
@@ -341,7 +342,7 @@ def _basic_map_py(
   Returns:
     The resulting DataSlice.
   """
-  args = eval_op('kde.core.align', *args)
+  args = eval_op('kde.slices.align', *args)
   shape = args[0].get_shape()
   shape_rank = shape.rank()
   if ndim < 0 or ndim > shape_rank:

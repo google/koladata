@@ -19,13 +19,13 @@ from arolla.jagged_shape import jagged_shape
 from koladata.operators import allocation
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
-from koladata.operators import core
 from koladata.operators import ids
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema
+from koladata.operators import slices
 from koladata.types import data_slice
 
 
@@ -140,7 +140,7 @@ def sample(
   key = _assert_key_for_sample(x, key)
   x_shape = assertion.with_assertion(
       jagged_shape_ops.get_shape(x),
-      core.get_ndim(x) > 0,
+      slices.get_ndim(x) > 0,
       'expected rank(x) > 0',
   )
   flat_mask = M.random.sample(
@@ -151,7 +151,7 @@ def sample(
       _to_dense_array_text_or_unspecified(key),
   )
   ds_mask = arolla_bridge.to_data_slice(flat_mask, x_shape)
-  return core.select(x, ds_mask)
+  return slices.select(x, ds_mask)
 
 
 @optools.add_to_registry(aliases=['kde.sample_n'])
@@ -231,7 +231,7 @@ def sample_n(
       M.jagged.edge_at(x_shape, -1),
   )
   ds_mask = arolla_bridge.to_data_slice(flat_mask, x_shape)
-  return core.select(x, ds_mask)
+  return slices.select(x, ds_mask)
 
 
 @optools.add_to_registry(aliases=['kde.randint_shaped'])

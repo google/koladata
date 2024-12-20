@@ -300,40 +300,45 @@ class OpReprTest(parameterized.TestCase):
     self.assertEqual(repr(expr), expected_repr)
 
   @parameterized.parameters(
-      (kde.core._subslice_for_slicing_helper(I.x, I.y), 'I.x.S[I.y]'),
-      (kde.core._subslice_for_slicing_helper(I.x, I.y, I.z), 'I.x.S[I.y, I.z]'),
+      (kde.slices._subslice_for_slicing_helper(I.x, I.y), 'I.x.S[I.y]'),
       (
-          kde.core._subslice_for_slicing_helper(I.x, I.y, slice(1, 2)),
+          kde.slices._subslice_for_slicing_helper(I.x, I.y, I.z),
+          'I.x.S[I.y, I.z]',
+      ),
+      (
+          kde.slices._subslice_for_slicing_helper(I.x, I.y, slice(1, 2)),
           'I.x.S[I.y, 1:2]',
       ),
       (
-          kde.core._subslice_for_slicing_helper(I.x, I.y, slice(2)),
+          kde.slices._subslice_for_slicing_helper(I.x, I.y, slice(2)),
           'I.x.S[I.y, :2]',
       ),
       (
-          kde.core._subslice_for_slicing_helper(I.x, I.y, slice(1, None)),
+          kde.slices._subslice_for_slicing_helper(I.x, I.y, slice(1, None)),
           'I.x.S[I.y, 1:]',
       ),
       (
-          kde.core._subslice_for_slicing_helper(I.x, I.y, slice(None)),
+          kde.slices._subslice_for_slicing_helper(I.x, I.y, slice(None)),
           'I.x.S[I.y, :]',
       ),
       (
-          kde.core._subslice_for_slicing_helper(I.x, I.y, ...),
+          kde.slices._subslice_for_slicing_helper(I.x, I.y, ...),
           'I.x.S[I.y, ...]',
       ),
       (
-          kde.core._subslice_for_slicing_helper(
+          kde.slices._subslice_for_slicing_helper(
               I.x,
               I.y,
               ...,
-              kde.core._subslice_for_slicing_helper(I.z, I.w),
+              kde.slices._subslice_for_slicing_helper(I.z, I.w),
           ),
           'I.x.S[I.y, ..., I.z.S[I.w]]',
       ),
   )
   def test_subslicehelper_repr(self, expr, expected_repr):
-    register(kde.core._subslice_for_slicing_helper, op_repr.subslicehelper_repr)
+    register(
+        kde.slices._subslice_for_slicing_helper, op_repr.subslicehelper_repr
+    )
     self.assertEqual(repr(expr), expected_repr)
 
   @parameterized.parameters(

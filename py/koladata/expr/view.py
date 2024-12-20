@@ -44,7 +44,7 @@ class SlicingHelper:
   def __getitem__(self, s):
     slices = s if isinstance(s, tuple) else [s]
     return arolla.abc.aux_bind_op(
-        'kde.core._subslice_for_slicing_helper', self._ds, *slices
+        'kde.slices._subslice_for_slicing_helper', self._ds, *slices
     )
 
 
@@ -59,7 +59,7 @@ class ListSlicingHelper:
     self._ds = ds
 
   def __getitem__(self, s):
-    return arolla.abc.aux_bind_op('kde.core.subslice', self._ds, s, ...)
+    return arolla.abc.aux_bind_op('kde.slices.subslice', self._ds, s, ...)
 
 
 class KodaView(arolla.abc.ExprView):

@@ -409,12 +409,13 @@ TEST(ArollaEval, SimpleAggIntoEval) {
         {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
     ASSERT_OK_AND_ASSIGN(
         DataSlice x, test::EmptyDataSlice(4, schema::kObject).Reshape(shape));
-    ASSERT_OK_AND_ASSIGN(auto result, SimpleAggIntoEval("core.agg_count", {x}));
+    ASSERT_OK_AND_ASSIGN(auto result,
+                         SimpleAggIntoEval("slices.agg_count", {x}));
     EXPECT_THAT(result, IsEquivalentTo(*test::EmptyDataSlice(3, schema::kObject)
                                             .Reshape(shape.RemoveDims(1))));
     // With output schema set.
     ASSERT_OK_AND_ASSIGN(result,
-                         SimpleAggIntoEval("core.agg_count", {x},
+                         SimpleAggIntoEval("slices.agg_count", {x},
                                            internal::DataItem(schema::kMask)));
     EXPECT_THAT(result, IsEquivalentTo(*test::EmptyDataSlice(3, schema::kMask)
                                             .Reshape(shape.RemoveDims(1))));

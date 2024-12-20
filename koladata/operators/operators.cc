@@ -35,6 +35,7 @@
 #include "koladata/operators/non_deterministic_op.h"
 #include "koladata/operators/predicates.h"
 #include "koladata/operators/schema.h"
+#include "koladata/operators/slices.h"
 #include "koladata/operators/shapes.h"
 #include "koladata/operators/strings.h"
 #include "arolla/qexpr/operator_factory.h"
@@ -65,11 +66,7 @@ OPERATOR("kde.comparison.less", Less);
 OPERATOR("kde.comparison.less_equal", LessEqual);
 //
 OPERATOR("kde.core._clone", Clone);
-OPERATOR("kde.core._collapse", Collapse);
-OPERATOR_FAMILY("kde.core._concat_or_stack",
-                arolla::MakeVariadicInputOperatorFamily(ConcatOrStack));
 OPERATOR("kde.core._deep_clone", DeepClone);
-OPERATOR("kde.core._dense_rank", DenseRank);
 OPERATOR("kde.core._extract", Extract);
 OPERATOR("kde.core._extract_bag", ExtractBag);
 OPERATOR("kde.core._freeze_bag", Freeze<DataBagPtr>);
@@ -78,19 +75,15 @@ OPERATOR("kde.core._get_attr", GetAttr);
 OPERATOR("kde.core._get_attr_with_default", GetAttrWithDefault);
 OPERATOR("kde.core._get_item", GetItem);
 OPERATOR("kde.core._get_list_item_by_range", GetListItemByRange);
-OPERATOR("kde.core._inverse_mapping", InverseMapping);
 OPERATOR_FAMILY("kde.core._new", std::make_unique<NewOperatorFamily>());
 OPERATOR("kde.core._new_ids_like", NewIdsLike);
 OPERATOR_FAMILY("kde.core._new_like",
                 std::make_unique<NewLikeOperatorFamily>());
 OPERATOR_FAMILY("kde.core._new_shaped",
                 std::make_unique<NewShapedOperatorFamily>());
-OPERATOR("kde.core._ordinal_rank", OrdinalRank);
-OPERATOR("kde.core._select", Select);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
 OPERATOR_FAMILY("kde.core._uu", std::make_unique<UuOperatorFamily>());
 OPERATOR("kde.core.add", Add);
-OPERATOR_FAMILY("kde.core.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kde.core.attr", Attr);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR("kde.core.bag", Bag);
@@ -100,13 +93,7 @@ OPERATOR_FAMILY("kde.core.enriched_bag",
                 std::make_unique<EnrichedDbOperatorFamily>());
 OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.get_bag", GetBag);
-OPERATOR_FAMILY("kde.core.group_by_indices",
-                arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
-OPERATOR_FAMILY("kde.core.group_by_indices_sorted",
-                arolla::MakeVariadicInputOperatorFamily(GroupByIndicesSorted));
 OPERATOR("kde.core.has_primitive", HasPrimitive);
-OPERATOR("kde.core.inverse_select", InverseSelect);
-OPERATOR("kde.core.is_empty", IsEmpty);
 OPERATOR("kde.core.is_primitive", IsPrimitive);
 OPERATOR("kde.core.no_bag", NoBag);
 OPERATOR("kde.core.nofollow", NoFollow);
@@ -115,13 +102,7 @@ OPERATOR_FAMILY("kde.core.obj_like", std::make_unique<ObjLikeOperatorFamily>());
 OPERATOR_FAMILY("kde.core.obj_shaped",
                 std::make_unique<ObjShapedOperatorFamily>());
 OPERATOR("kde.core.ref", Ref);
-OPERATOR("kde.core.reverse", Reverse);
 OPERATOR("kde.core.stub", Stub);
-OPERATOR_FAMILY("kde.core.subslice",
-                std::make_unique<SubsliceOperatorFamily>());
-OPERATOR("kde.core.take", Take);
-OPERATOR("kde.core.translate", Translate);
-OPERATOR("kde.core.unique", Unique);
 OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());
 OPERATOR_FAMILY("kde.core.updated_bag",
                 std::make_unique<UpdatedDbOperatorFamily>());
@@ -239,6 +220,27 @@ OPERATOR("kde.shapes._reshape", Reshape);
 OPERATOR_FAMILY("kde.shapes.create",
                 std::make_unique<JaggedShapeCreateOperatorFamily>());
 OPERATOR("kde.shapes.get_shape", GetShape);
+//
+OPERATOR("kde.slices._collapse", Collapse);
+OPERATOR_FAMILY("kde.slices._concat_or_stack",
+                arolla::MakeVariadicInputOperatorFamily(ConcatOrStack));
+OPERATOR("kde.slices._dense_rank", DenseRank);
+OPERATOR("kde.slices._inverse_mapping", InverseMapping);
+OPERATOR("kde.slices._ordinal_rank", OrdinalRank);
+OPERATOR("kde.slices._select", Select);
+OPERATOR_FAMILY("kde.slices.align", std::make_unique<AlignOperatorFamily>());
+OPERATOR_FAMILY("kde.slices.group_by_indices",
+                arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
+OPERATOR_FAMILY("kde.slices.group_by_indices_sorted",
+                arolla::MakeVariadicInputOperatorFamily(GroupByIndicesSorted));
+OPERATOR("kde.slices.inverse_select", InverseSelect);
+OPERATOR("kde.slices.is_empty", IsEmpty);
+OPERATOR("kde.slices.reverse", Reverse);
+OPERATOR_FAMILY("kde.slices.subslice",
+                std::make_unique<SubsliceOperatorFamily>());
+OPERATOR("kde.slices.take", Take);
+OPERATOR("kde.slices.translate", Translate);
+OPERATOR("kde.slices.unique", Unique);
 //
 OPERATOR("kde.strings._agg_join", AggJoin);
 OPERATOR("kde.strings._decode_base64", DecodeBase64);

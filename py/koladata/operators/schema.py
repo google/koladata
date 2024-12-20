@@ -30,57 +30,6 @@ constraints = arolla.optools.constraints
 with_schema = masking._with_schema  # pylint: disable=protected-access
 
 
-@optools.as_backend_operator(
-    'kde.core._collapse', qtype_inference_expr=qtypes.DATA_SLICE
-)
-def _collapse_impl(ds):  # pylint: disable=unused-argument
-  """Creates a new DataSlice by collapsing 'ds' over its last dimension.
-
-  Args:
-    ds: DataSlice to be collapsed
-
-  Returns:
-    Collapsed DataSlice.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
-# NOTE: Implemented here to avoid a dependency cycle between core and schema.
-@optools.add_to_registry(aliases=['kde.collapse'])
-@optools.as_lambda_operator(
-    'kde.core.collapse',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
-    ],
-)
-def _collapse(x, ndim=arolla.unspecified()):
-  """Collapses the same items over the last ndim dimensions.
-
-  Missing items are ignored. For each collapse aggregation, the result is
-  present if and only if there is at least one present item and all present
-  items are the same.
-
-  The resulting slice has `rank = rank - ndim` and shape: `shape =
-  shape[:-ndim]`.
-
-  Example:
-    ds = kd.slice([[1, None, 1], [3, 4, 5], [None, None]])
-    kd.collapse(ds)  # -> kd.slice([1, None, None])
-    kd.collapse(ds, ndim=1)  # -> kd.slice([1, None, None])
-    kd.collapse(ds, ndim=2)  # -> kd.slice(None)
-
-  Args:
-    x: A DataSlice.
-    ndim: The number of dimensions to collapse into. Requires 0 <= ndim <=
-      get_ndim(x).
-
-  Returns:
-    Collapsed DataSlice.
-  """
-  return _collapse_impl(jagged_shape_ops.flatten_last_ndim(x, ndim))
-
-
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kde.schema.new_schema',

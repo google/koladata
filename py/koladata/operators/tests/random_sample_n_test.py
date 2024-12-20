@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for random.sample_n."""
-
 import re
 
 from absl.testing import absltest
@@ -103,9 +101,9 @@ class RandomSampleNTest(parameterized.TestCase):
     # Missing keys result in missing values in the result.
     key_3 = ds([['a', 'b', 'd'], [None, None, None, None]])
     sampled_3 = expr_eval.eval(kde.random.sample_n(x_1, 2, 123, key_3))
-    sampled_3_part_1 = expr_eval.eval(kde.core.subslice(sampled_3, 0, ...))
-    sampled_3_part_2 = expr_eval.eval(kde.core.subslice(sampled_3, 1, ...))
-    sampled_1_part_1 = expr_eval.eval(kde.core.subslice(sampled_1, 0, ...))
+    sampled_3_part_1 = expr_eval.eval(kde.slices.subslice(sampled_3, 0, ...))
+    sampled_3_part_2 = expr_eval.eval(kde.slices.subslice(sampled_3, 1, ...))
+    sampled_1_part_1 = expr_eval.eval(kde.slices.subslice(sampled_1, 0, ...))
     testing.assert_equal(sampled_1_part_1, sampled_3_part_1)
     self.assertEqual(sampled_3_part_2.get_size(), 0)
 

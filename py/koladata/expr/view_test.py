@@ -88,33 +88,33 @@ class KodaViewTest(parameterized.TestCase):
 
   def test_slicing_helper(self):
     testing.assert_equal(
-        C.x.S[C.s1], kde.core._subslice_for_slicing_helper(C.x, C.s1)
+        C.x.S[C.s1], kde.slices._subslice_for_slicing_helper(C.x, C.s1)
     )
     testing.assert_equal(
         C.x.S[C.s1, C.s2],
-        kde.core._subslice_for_slicing_helper(C.x, C.s1, C.s2),
+        kde.slices._subslice_for_slicing_helper(C.x, C.s1, C.s2),
     )
     testing.assert_equal(
         C.x.S[C.s1, 1:2],
-        kde.core._subslice_for_slicing_helper(
+        kde.slices._subslice_for_slicing_helper(
             C.x, C.s1, arolla.types.Slice(1, 2)
         ),
     )
     testing.assert_equal(
         C.x.S[C.s1, ...],
-        kde.core._subslice_for_slicing_helper(C.x, C.s1, ellipsis.ellipsis()),
+        kde.slices._subslice_for_slicing_helper(C.x, C.s1, ellipsis.ellipsis()),
     )
 
   def test_list_slicing_helper(self):
     _ = C.x.L[C.s1]
-    testing.assert_equal(C.x.L[C.s1], kde.core.subslice(C.x, C.s1, ...))
+    testing.assert_equal(C.x.L[C.s1], kde.slices.subslice(C.x, C.s1, ...))
     testing.assert_equal(
         C.x.L[1:2],
-        kde.core.subslice(C.x, arolla.types.Slice(1, 2), ...),
+        kde.slices.subslice(C.x, arolla.types.Slice(1, 2), ...),
     )
     testing.assert_equal(
         C.x.L[1:],
-        kde.core.subslice(C.x, arolla.types.Slice(1, None), ...),
+        kde.slices.subslice(C.x, arolla.types.Slice(1, None), ...),
     )
 
   def test_get_item(self):

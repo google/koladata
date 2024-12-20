@@ -1157,8 +1157,8 @@ py_test(
 )
 
 py_test(
-    name = "core_is_empty_test",
-    srcs = ["core_is_empty_test.py"],
+    name = "slices_is_empty_test",
+    srcs = ["slices_is_empty_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1753,8 +1753,8 @@ py_test(
 )
 
 py_test(
-    name = "core_select_test",
-    srcs = ["core_select_test.py"],
+    name = "slices_select_test",
+    srcs = ["slices_select_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -1775,8 +1775,8 @@ py_test(
 )
 
 py_test(
-    name = "core_select_present_test",
-    srcs = ["core_select_present_test.py"],
+    name = "slices_select_present_test",
+    srcs = ["slices_select_present_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1859,8 +1859,8 @@ py_test(
 )
 
 py_test(
-    name = "core_remove_test",
-    srcs = ["core_remove_test.py"],
+    name = "slices_remove_test",
+    srcs = ["slices_remove_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -1880,8 +1880,8 @@ py_test(
 )
 
 py_test(
-    name = "core_inverse_select_test",
-    srcs = ["core_inverse_select_test.py"],
+    name = "slices_inverse_select_test",
+    srcs = ["slices_inverse_select_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -1901,8 +1901,8 @@ py_test(
 )
 
 py_test(
-    name = "core_reverse_test",
-    srcs = ["core_reverse_test.py"],
+    name = "slices_reverse_test",
+    srcs = ["slices_reverse_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1920,8 +1920,8 @@ py_test(
 )
 
 py_test(
-    name = "core_isin_test",
-    srcs = ["core_isin_test.py"],
+    name = "slices_isin_test",
+    srcs = ["slices_isin_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2691,8 +2691,8 @@ py_test(
 )
 
 py_test(
-    name = "core_agg_count_test",
-    srcs = ["core_agg_count_test.py"],
+    name = "slices_agg_count_test",
+    srcs = ["slices_agg_count_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2711,8 +2711,8 @@ py_test(
 )
 
 py_test(
-    name = "core_cum_count_test",
-    srcs = ["core_cum_count_test.py"],
+    name = "slices_cum_count_test",
+    srcs = ["slices_cum_count_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2731,8 +2731,8 @@ py_test(
 )
 
 py_test(
-    name = "core_count_test",
-    srcs = ["core_count_test.py"],
+    name = "slices_count_test",
+    srcs = ["slices_count_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2751,8 +2751,8 @@ py_test(
 )
 
 py_test(
-    name = "core_agg_size_test",
-    srcs = ["core_agg_size_test.py"],
+    name = "slices_agg_size_test",
+    srcs = ["slices_agg_size_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2771,8 +2771,8 @@ py_test(
 )
 
 py_test(
-    name = "core_size_test",
-    srcs = ["core_size_test.py"],
+    name = "slices_size_test",
+    srcs = ["slices_size_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3021,8 +3021,8 @@ py_test(
 )
 
 py_test(
-    name = "core_collapse_test",
-    srcs = ["core_collapse_test.py"],
+    name = "slices_collapse_test",
+    srcs = ["slices_collapse_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -3042,8 +3042,8 @@ py_test(
 )
 
 py_test(
-    name = "core_concat_test",
-    srcs = ["core_concat_test.py"],
+    name = "slices_concat_test",
+    srcs = ["slices_concat_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3063,8 +3063,8 @@ py_test(
 )
 
 py_test(
-    name = "core_stack_test",
-    srcs = ["core_stack_test.py"],
+    name = "slices_stack_test",
+    srcs = ["slices_stack_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3083,8 +3083,8 @@ py_test(
 )
 
 py_test(
-    name = "core_zip_test",
-    srcs = ["core_zip_test.py"],
+    name = "slices_zip_test",
+    srcs = ["slices_zip_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3103,8 +3103,8 @@ py_test(
 )
 
 py_test(
-    name = "core_take_test",
-    srcs = ["core_take_test.py"],
+    name = "slices_take_test",
+    srcs = ["slices_take_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -3124,8 +3124,8 @@ py_test(
 )
 
 py_test(
-    name = "core_align_test",
-    srcs = ["core_align_test.py"],
+    name = "slices_align_test",
+    srcs = ["slices_align_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3143,8 +3143,8 @@ py_test(
 )
 
 py_test(
-    name = "core_expand_to_test",
-    srcs = ["core_expand_to_test.py"],
+    name = "slices_expand_to_test",
+    srcs = ["slices_expand_to_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3163,8 +3163,8 @@ py_test(
 )
 
 py_test(
-    name = "core_is_expandable_to_test",
-    srcs = ["core_is_expandable_to_test.py"],
+    name = "slices_is_expandable_to_test",
+    srcs = ["slices_is_expandable_to_test.py"],
     deps = [
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
@@ -3183,8 +3183,8 @@ py_test(
 )
 
 py_test(
-    name = "core_is_shape_compatible_test",
-    srcs = ["core_is_shape_compatible_test.py"],
+    name = "slices_is_shape_compatible_test",
+    srcs = ["slices_is_shape_compatible_test.py"],
     deps = [
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
@@ -3246,8 +3246,8 @@ py_test(
 )
 
 py_test(
-    name = "core_subslice_test",
-    srcs = ["core_subslice_test.py"],
+    name = "slices_subslice_test",
+    srcs = ["slices_subslice_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -3306,8 +3306,8 @@ py_test(
 )
 
 py_test(
-    name = "core_index_test",
-    srcs = ["core_index_test.py"],
+    name = "slices_index_test",
+    srcs = ["slices_index_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3326,8 +3326,8 @@ py_test(
 )
 
 py_test(
-    name = "core_range_test",
-    srcs = ["core_range_test.py"],
+    name = "slices_range_test",
+    srcs = ["slices_range_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3509,8 +3509,8 @@ py_test(
 )
 
 py_test(
-    name = "core_repeat_test",
-    srcs = ["core_repeat_test.py"],
+    name = "slices_repeat_test",
+    srcs = ["slices_repeat_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3531,8 +3531,8 @@ py_test(
 )
 
 py_test(
-    name = "core_repeat_present_test",
-    srcs = ["core_repeat_present_test.py"],
+    name = "slices_repeat_present_test",
+    srcs = ["slices_repeat_present_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4046,8 +4046,8 @@ py_test(
 )
 
 py_test(
-    name = "core_group_by_indices_test",
-    srcs = ["core_group_by_indices_test.py"],
+    name = "slices_group_by_indices_test",
+    srcs = ["slices_group_by_indices_test.py"],
     deps = [
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
@@ -4067,51 +4067,8 @@ py_test(
 )
 
 py_test(
-    name = "core_group_by_indices_sorted_test",
-    srcs = ["core_group_by_indices_sorted_test.py"],
-    deps = [
-        "//py/koladata:kd",
-        "//py/koladata/expr:expr_eval",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
-        "//py/koladata/operators/tests/util:qtypes",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_bag",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:qtypes",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "core_group_by_test",
-    srcs = ["core_group_by_test.py"],
-    deps = [
-        "//py/koladata:kd",
-        "//py/koladata/expr:expr_eval",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
-        "//py/koladata/operators/tests/util:qtypes",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:qtypes",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "core_unique_test",
-    srcs = ["core_unique_test.py"],
+    name = "slices_group_by_indices_sorted_test",
+    srcs = ["slices_group_by_indices_sorted_test.py"],
     deps = [
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
@@ -4132,8 +4089,51 @@ py_test(
 )
 
 py_test(
-    name = "core_ordinal_rank_test",
-    srcs = ["core_ordinal_rank_test.py"],
+    name = "slices_group_by_test",
+    srcs = ["slices_group_by_test.py"],
+    deps = [
+        "//py/koladata:kd",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "slices_unique_test",
+    srcs = ["slices_unique_test.py"],
+    deps = [
+        "//py/koladata:kd",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "slices_ordinal_rank_test",
+    srcs = ["slices_ordinal_rank_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -4153,8 +4153,8 @@ py_test(
 )
 
 py_test(
-    name = "core_dense_rank_test",
-    srcs = ["core_dense_rank_test.py"],
+    name = "slices_dense_rank_test",
+    srcs = ["slices_dense_rank_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -4174,8 +4174,8 @@ py_test(
 )
 
 py_test(
-    name = "core_inverse_mapping_test",
-    srcs = ["core_inverse_mapping_test.py"],
+    name = "slices_inverse_mapping_test",
+    srcs = ["slices_inverse_mapping_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -4214,8 +4214,8 @@ py_test(
 )
 
 py_test(
-    name = "core_sort_test",
-    srcs = ["core_sort_test.py"],
+    name = "slices_sort_test",
+    srcs = ["slices_sort_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -4372,8 +4372,8 @@ py_test(
 )
 
 py_test(
-    name = "core_val_shaped_test",
-    srcs = ["core_val_shaped_test.py"],
+    name = "slices_val_shaped_test",
+    srcs = ["slices_val_shaped_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4392,8 +4392,8 @@ py_test(
 )
 
 py_test(
-    name = "core_val_shaped_as_test",
-    srcs = ["core_val_shaped_as_test.py"],
+    name = "slices_val_shaped_as_test",
+    srcs = ["slices_val_shaped_as_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4411,8 +4411,8 @@ py_test(
 )
 
 py_test(
-    name = "core_val_like_test",
-    srcs = ["core_val_like_test.py"],
+    name = "slices_val_like_test",
+    srcs = ["slices_val_like_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4431,8 +4431,8 @@ py_test(
 )
 
 py_test(
-    name = "core_present_shaped_test",
-    srcs = ["core_present_shaped_test.py"],
+    name = "slices_present_shaped_test",
+    srcs = ["slices_present_shaped_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4450,8 +4450,8 @@ py_test(
 )
 
 py_test(
-    name = "core_present_shaped_as_test",
-    srcs = ["core_present_shaped_as_test.py"],
+    name = "slices_present_shaped_as_test",
+    srcs = ["slices_present_shaped_as_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4469,8 +4469,8 @@ py_test(
 )
 
 py_test(
-    name = "core_present_like_test",
-    srcs = ["core_present_like_test.py"],
+    name = "slices_present_like_test",
+    srcs = ["slices_present_like_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4848,8 +4848,8 @@ py_test(
 )
 
 py_test(
-    name = "core_translate_test",
-    srcs = ["core_translate_test.py"],
+    name = "slices_translate_test",
+    srcs = ["slices_translate_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -4870,8 +4870,8 @@ py_test(
 )
 
 py_test(
-    name = "core_translate_group_test",
-    srcs = ["core_translate_group_test.py"],
+    name = "slices_translate_group_test",
+    srcs = ["slices_translate_group_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -5508,8 +5508,8 @@ py_test(
 )
 
 py_test(
-    name = "core_get_ndim_test",
-    srcs = ["core_get_ndim_test.py"],
+    name = "slices_get_ndim_test",
+    srcs = ["slices_get_ndim_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -5843,9 +5843,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_core_unique_covers_array_unique_test",
+    name = "kd_slices_unique_covers_array_unique_test",
     arolla_op = "array.unique",
-    koda_op = "core.unique",
+    koda_op = "slices.unique",
     skip_test_patterns = [
         ".*weak_float.*",
         ".*uint64.*",
@@ -6263,9 +6263,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_core_agg_count_covers_array_count_test",
+    name = "kd_slices_agg_count_covers_array_count_test",
     arolla_op = "array.count",
-    koda_op = "core.agg_count",
+    koda_op = "slices.agg_count",
     skip_test_patterns = [
         "(?i).*WEAK_FLOAT.*",
         ".*uint64.*",
@@ -6273,15 +6273,15 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_core_cum_count_covers_array_cum_count_test",
+    name = "kd_slices_cum_count_covers_array_cum_count_test",
     arolla_op = "array.cum_count",
-    koda_op = "core.cum_count",
+    koda_op = "slices.cum_count",
 )
 
 koda_operator_coverage_test(
-    name = "kd_core_index_covers_array_agg_index_test",
+    name = "kd_slices_index_covers_array_agg_index_test",
     arolla_op = "array.agg_index",
-    koda_op = "core.index",
+    koda_op = "slices.index",
     skip_test_patterns = [
         "(?i).*WEAK_FLOAT.*",
         ".*uint64.*",
@@ -6331,9 +6331,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_core_collapse_covers_array_collapse_test",
+    name = "kd_slices_collapse_covers_array_collapse_test",
     arolla_op = "array.collapse",
-    koda_op = "core.collapse",
+    koda_op = "slices.collapse",
     skip_test_patterns = [
         "(?i).*WEAK_FLOAT.*",
         ".*uint64.*",
@@ -6342,7 +6342,7 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_core_at_covers_covers_array_at_test",
+    name = "kd_slices_at_covers_covers_array_at_test",
     arolla_op = "array.at",
     koda_op = "at",
     skip_test_patterns = [
@@ -6353,13 +6353,13 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_core_ordinal_rank_covers_array_ordinal_rank_test",
+    name = "kd_slices_ordinal_rank_covers_array_ordinal_rank_test",
     args_for_reshape = [
         "x",
         "tie_breaker",
     ],
     arolla_op = "array.ordinal_rank",
-    koda_op = "core.ordinal_rank",
+    koda_op = "slices.ordinal_rank",
     skip_test_patterns = [
         "(?i).*WEAK_FLOAT.*",
         ".*uint64.*",
@@ -6369,9 +6369,9 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_core_dense_rank_covers_array_dense_rank_test",
+    name = "kd_slices_dense_rank_covers_array_dense_rank_test",
     arolla_op = "array.dense_rank",
-    koda_op = "core.dense_rank",
+    koda_op = "slices.dense_rank",
     skip_test_patterns = [
         "(?i).*[WEAK_FLOAT].*",
         ".*uint64.*",
@@ -6381,7 +6381,7 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
-    name = "kd_core_inverse_mapping_covers_covers_array_inverse_mapping_test",
+    name = "kd_slices_inverse_mapping_covers_covers_array_inverse_mapping_test",
     arolla_op = "array.inverse_mapping",
     koda_op = "inverse_mapping",
 )
