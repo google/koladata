@@ -1003,7 +1003,7 @@ kd.to_int64(kd.slice([1, 2, 3]))
 kd.to_float32(kd.slice([1, 2, 3]))
 kd.to_float64(kd.slice([1., 2., 3.]))
 kd.to_bool(kd.slice([0, 1, 2]))
-kd.to_text(kd.slice([1, 2, 3]))
+kd.to_str(kd.slice([1, 2, 3]))
 kd.to_bytes(kd.slice([b'1', b'2', b'3']))
 
 # Dispatches to the relevant kd.to_* operator
@@ -1154,7 +1154,7 @@ state_population = kd.agg_sum(cities_grouped.population)
 
 # We can create the state lists
 states = kd.obj(
-  cities=kd.list(cities_grouped),
+  cities=kd.implode(cities_grouped),
   name=kd.collapse(cities_grouped.state),
   population=state_population
 )
@@ -1212,7 +1212,7 @@ new_docs = kd.translate_group(
 
 # Add docs list since the result of
 # translate_group is aligned with queries
-queries.docs = kd.list(new_docs)
+queries.docs = kd.implode(new_docs)
 
 queries.docs[:].score
 # [[[1], [2, 3]], [[6], [4, 5]]]
@@ -1233,8 +1233,8 @@ query_terms = kd.obj(
 docs_grouped = kd.group_by(docs, docs.qid)
 terms_grouped = kd.group_by(query_terms, docs.qid)
 queries = kd.obj(
-  docs=kd.list(docs_grouped),
-  terms=kd.list(terms_grouped)
+  docs=kd.implode(docs_grouped),
+  terms=kd.implode(terms_grouped)
 )
 ```
 
@@ -1401,32 +1401,193 @@ kd.map_py_on_cond(lambda a, b: a + b,
 
 ## Schema
 
+Koda schema is used to describe the type of contents. There are five types of
+schemas:
+
+-   **Primitive schema (a.k.a. dtype)** (e.g. kd.INT32, kd.FLOAT64, kd.STRING)
+-   **Entity schema** used to describe what attributes the Entity has and what
+    types these attribute are. Note that List schema and Dict schema are special
+    entity schemas
+-   **OBJECT** used to indicate the schema is stored as data
+-   **ITEMID** used to indicate the content should be interpreted as opaque
+    ItemIds rather than the data those ItemIds refer to
+-   **ANY** used to indicate unknown/mixed schema
+
+Schema is used to specify the behaviors for:
+
+-   Attribute lookup (including Dict lookup)
+-   Clone and extract
+-   Attribute setting (including List/Dict content modification)
+
+Schemas can be attached to **DataSlices** or **individual items**. Attaching a
+schema to a DataSlice means declaring that each item has the **same** schema.
+Individual items can store their own schema in a special attribute `__schema__`
+and such item is called Object. It allows storing Objects with **different**
+schemas in one DataSlice. Primitives can be considered as OBJECT schemas as
+dtypes are embedded in their values.
+
+**DataSlice Schema** refers to schemas attached to DataSlices. **Embedded
+Schema** refers schemas embedded inside Koda Objects as `__schema__` attribute
+or dtypes for primitives. DataSlice Schema can be primitive schema, Entity
+schema, OBJECT, ITEMID, or ANY. Embedded Schema cannot be ITEMID or ANY.
+
+Entity schemas can be either **explicit** or **implicit**. Explicit schemas are
+created using `kd.new_schema/list_schema/dict_schema()` while implicit schemas
+are created as a by-product of `kd.obj()`.
+
 <section>
 
-### Schemas
+### Schema Creation
+
+`kd.named_schema/list_schema/dict_schema/uu_schema(...)` creates an explicit
+schema.
 
 ```py
-kd.new_schema(x=kd.INT32)
+# Create a named schema
+Point = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
 
-kd.slice([1, 2, 3]).get_schema()
-kd.slice([1, 2, 3]).get_dtype()
+# Attribute 'end' can be anything
+Line = kd.named_schema('Line', start=Point, end=kd.ANY)
 
-# Schema can be set and created explicitly.
-kd.slice([None, None]).with_schema(kd.INT32)
-kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
+# Get the attribute start's schema
+Line.start
 
-# Universally-unique schema.
-kd.uu_schema(x=kd.INT32)
+# List schema
+ls1 = kd.list_schema(kd.INT64)
 
-# For lists.
-ds.get_item_schema()
-# For dicts.
-ds.get_key_schema()
-ds.get_value_schema()
+# List entity schema is 's1'
+ls2 = kd.list_schema(Point)
 
-# Returns DataSlice of schemas for
-# Objects and primitives in argument.
-kd.obj(x=1, y=2).get_obj_schema()
+# Get the List item schema
+ls2.get_item_schema()
+
+# Dict schema
+# Dict value schema is kd.OBJECT. That is,
+# schemas are stored in entity __schema__
+# attribute
+ds1 = kd.dict_schema(kd.STRING, kd.OBJECT)
+
+# Dict value schema is 's2'
+ds2 = kd.dict_schema(kd.ITEMID, Line)
+
+# Get the Dict key/value schema
+ds2.get_key_schema()
+ds2.get_value_schema()
+
+# UU schema
+uus1 = kd.uu_schema(x=kd.INT32, y=kd.FLOAT64)
+
+# UU schemas with the same contents are the same
+uus2 = kd.uu_schema(x=kd.INT32, y=kd.FLOAT64)
+assert uus1 == uus2
+
+# In fact, named, list and dict schemas are also
+# UU schemas
+Point1 = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
+assert Point1.as_itemid() == Point.as_itemid()
+
+## Create non-uu schema whose ItemId is allocated
+s1 = kd.schema.new_schema(x=kd.INT32, y=kd.FLOAT64)
+s2 = kd.schema.new_schema(x=kd.INT32, y=kd.FLOAT64)
+
+assert s1.as_itemid() != s2.as_itemid()
+```
+
+</section>
+
+<section>
+
+### Item Creation Using Schemas
+
+Schemas can be used to create entities by calling these schema DataItems
+directly as factory methods. Or we can use `kd.new`. That is, `schema(...)` is
+equivalent to `kd.new(..., schema=schema)`.
+
+```py
+Point = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
+Line = kd.named_schema('Line', start=Point, end=kd.ANY)
+
+i1 = Point(x=1, y=2.3)
+# which is equivalent to
+i1 = kd.new(x=1, y=2.3, schema=Point)
+i2 = Line(z=i1, w='4')
+
+s3 = kd.list_schema(kd.INT64)
+s4 = kd.list_schema(Point)
+
+i3 = s3([1, 2, 3, 4])
+i4 = s4([i1, i1])
+
+s5 = kd.dict_schema(kd.TEXT, kd.OBJECT)
+s6 = kd.dict_schema(kd.ITEMID, Line)
+
+i5 = s5({'a': kd.obj()})
+i6 = s6(kd.obj().as_itemid(), i2)
+```
+
+</section>
+
+<section>
+
+### Item Creation without Schema
+
+When no schema is provided to `kd.new`, an schema is automatically derived based
+on provided arguments or keyword arguments. When a string is provided as schema,
+an uu schema is created based on the name.
+
+```py
+# kd.new() creates entities with derived schema
+i1 = kd.new(x=1, y=2.0, z='3')
+
+# The result DataItem has a auto-drived schema
+assert i1.get_schema().x == kd.INT32
+assert i1.get_schema().y == kd.FLOAT32
+assert i1.get_schema().z == kd.TEXT
+
+i2 = kd.new(x=1, y=2.0, schema='Point')
+i3 = kd.new(x=2, y=3.0, schema='Point')
+assert i2.get_schema() == i3.get_schema()
+```
+
+</section>
+
+<section>
+
+### Object Creation With Implicit Schemas
+
+`kd.obj(...)` creates an object with an implicit schema.
+
+```py
+# An implicit schema is created and
+# attached to the Koda object
+o1 = kd.obj(x=1, y=2.0, z='3')
+
+# The schema of the DataItem is kd.OBJECT
+assert o1.get_schema() == kd.OBJECT
+
+# The implicit schema is stored
+# as __schema__ attribute and can be accessed
+# using get_obj_schema()
+o1.get_obj_schema()
+# -> IMPLICIT_SCHEMA(x=INT32, y=FLOAT32, z=STRING)
+
+# A new and different implicit schema is created
+# every time kd.obj() is called
+o2 = kd.obj(x=1, y=2.0, z='3')
+assert o1.get_obj_schema() != o2.get_obj_schema()
+
+# A new implicit schema is created for each
+# newly created objects
+o_ds = kd.obj(x=kd.slice([1, 2]))
+
+# The schema of the DataSlice is kd.OBJECT
+assert o_ds.get_schema() == kd.OBJECT
+
+obj_ss = o_ds.get_obj_schema()
+obj_ss.get_size()# 2
+obj_ss.take(0)
+# -> IMPLICIT_SCHEMA(x=INT32, y=FLOAT32, z=TEXT)
+assert obj_ss.take(0) != obj_ss.take(1)
 ```
 
 </section>
@@ -1583,7 +1744,7 @@ res = ds.to_py()
 #  Obj(x=3, y=None)]
 
 # List DataSlice
-lists = kd.list(kd.slice([[1, 2], [None, 3]]))
+lists = kd.implode(kd.slice([[1, 2], [None, 3]]))
 lists.to_py() # [[1, 2], [None, 3]]
 
 # Dict DataSlice
@@ -1653,46 +1814,185 @@ db = kd.loads(s)
 
 <section>
 
+### DataBag
+
 ```py
-# DataBag creation.
-db = kd.bag()  # Empty.
-db = x.attrs(a=1, b=2)
-# Get DataBag corresponding to entity or object.
-db = x.get_bag()
+# Empty bag creation
+db1 = kd.bag()
 
-# Explore DataBag contents.
-db.get_size()
-db.contents_repr()
-db.data_triples_repr()
-db.schema_triples_repr()
+# Bag created directly is mutable
+assert db1.is_mutable()
 
-# Merge two bags.
-kd.updated_bag(kd.attrs(x, a=1), kd.attrs(x, b=3))
-kd.attrs(x, a=1) << kd.attrs(x, b=3)  # Same.
-# Keeps attributes of the first bag.
-kd.enriched_bag(
-    kd.attrs(x, a=1), kd.attrs(x, a=2, b=3))
+# Get the bag from the DataSlice
+obj = kd.uuobj(x=1, y=2)
+db2 = obj.get_bag()
+
+# Bag created from item creation APIs
+# under kd is immutable
+assert not db2.is_mutable()
+
+# Attach a bag to the DataSlice
+obj1 = obj.with_bag(db1)
+
+# Remove the bag from the DataSlice
+obj2 = obj1.no_bag()
+
+# Approximate number of triples in the bag
+db2.get_approx_size()
+
+# Print quick stats about the bag
+repr(db2)
+
+# Print out data and schema triples
+db2.contents_repr()
+# Print out data triples only
+db2.data_triples_repr()
+# Print out schema triples only
+db2.schema_triples_repr()
+
+# Create a new mutable bag by forking the bag
+db3 = db2.fork()
+assert db3.is_mutable()
+
+# Create a new immutable bag by freezing the bag
+db4 = db3.freeze()
+assert not db4.is_mutable()
 ```
 
 </section>
 
 <section>
 
-### Extract and Clone
+### Merging DataBags
 
 ```py
-# Copy with a bag containing
-# only attrs accessible from x.
-x.extract()
-# Empty copy containing only schema.
-x.stub()
+# Merge two bags by creating a new bag
+# with db1 and db2 as fallbacks
+# db2 overrides db1 in terms of conflicts
+db1 << db2
+kd.updated_bag(db1, db2) # Same as above
 
-# Non-recursive copy in a new bag.
-x.clone()
-# Recursive copy in a new bag.
-x.deep_clone()
-# Top-level attributes are copied by reference.
-x.shallow_clone()
+# Can be chained together
+db1 << db2 << db3
+kd.updated_bag(db1, db2, db3) # Same as above
+
+# Merge two bags by creating a new bag
+# with db2 and db1 as fallbacks
+# db1 overrides db2 in terms of conflicts
+db1 >> db2
+kd.enriched_bag(db1, db2) # Same as above
+
+# Can be chained together
+db1 >> db2 >> db3
+kd.enriched_bag(db1, db2, db3) # Same as above
+
+# Merge db2 into db1 in place
+# db2 overrides db1 in terms of conflicts
+# schema conflicts are not allowed
+db1.merge_inplace(db2)
+# Merge db2 and db3 into db1 in place
+db1.merge_inplace([db2, db3])
+# Do not overwrite
+db1.merge_inplace(db2, overwrite=False)
+# Allow schema conflicts
+db1.merge_inplace(db2, allow_schema_conflicts=True)
+# Disallow data conflicts
+db1.merge_inplace(db2, allow_data_conflicts=False)
+
+# Merge db and its fallbacks into a single bag in place
+# It improves lookup performance (e.g. accessing attrs,
+# list items) but can be expensive to merge all bags
+db3 = db.merge_fallbacks()
+db3 = kd.with_merged_bag(db) # Same as above
+```
+
+</section>
+
+<section>
+
+### Extract/Clone
+
+```py
+s1 = kd.uu_schema(x=kd.INT32, y=kd.INT32)
+s2 = kd.uu_schema(z=s1, w=s1)
+
+i1 = s2(z=s1(x=1, y=2), w=s1(x=3, y=4))
+
+# extract creates a copy of i1 in a new
+# bag with the same ItemIds
+i2 = i1.extract()
+assert i2.get_itemid() == i1.get_itemid()
+assert i2.z.get_itemid() == i1.z.get_itemid()
+
+# Extract a subset of attributes
+s3 = kd.uu_schema(w=s1)
+i3 = i1.extract(schema=s3)
+i3 = i1.set_schema(s3).extract() # same as above
+
+assert not i3.has_attr('z')
+
+# clone creates a copy of i1 in with a new ItemId
+# and keep same ItemIds for attributes
+i4 = i1.clone()
+assert i4.get_itemid() != i1.get_itemid()
+assert i4.z.get_itemid() == i1.z.get_itemid()
+i4.z.get_attr_names(intersection=True) # ['x', 'y']
+
+# shallow_clone creates a copy of i1 in with a new
+# ItemId and keep same ItemIds for top-level attributes
+i5 = i1.shallow_clone()
+assert i5.get_itemid() != i1.get_itemid()
+assert i5.z.get_itemid() == i1.z.get_itemid()
+i5.z.get_attr_names(intersection=True) # []
+
+# deep_clone creates a copy of i1 and its attributes
+# with new ItemIds
+i6 = i1.deep_clone()
+assert i6.get_itemid() != i1.get_itemid()
+assert i6.z.get_itemid() != i1.z.get_itemid()
+i6.z.get_attr_names(intersection=True) # ['x', 'y']
+```
+
+</section>
+
+<section>
+
+### Stub/Ref
+
+A Entity/Object/Dict stub is an empty Entity/Object/Dict with necessary metadata
+needed to describe its schema in a new bag. A List stub is a list with list item
+stubs in a new bag. It can be used to add new data to the *same* item in the
+newly created bag which can merged into the original data.
+
+A Entity/Object/List/Dict ref is a reference to the same Entity/Object/List/Dict
+without a bag attached.
+
+```py
+obj = kd.obj(x=1, y=kd.obj(z=1))
+
+# Create a obj stub without attributes
+obj2 = obj.stub()
+assert obj2.get_itemid() == obj.get_itemid()
+assert not obj2.get_attr_names(intersection=False) # []
+
+# Create a list stub with list item stubs
+l = kd.list([kd.obj(x=1), kd.obj(x=2)])
+l2 = l.stub()
+assert l2.get_itemid() == l.get_itemid()
+# List items are stubbed as well
+assert kd.agg_all(l2[:] == l[:])
+assert not l2[:].get_attr_names(intersection=False) # []
+
+# Create a dict stub without entries
+d = kd.dict({'a': kd.obj(x=1), 'b': kd.obj(x=2)})
+d2 = d.stub()
+assert d2.get_itemid() == d.get_itemid()
+assert assert kd.dict_size(d2) == 0
+
+# Get a ref
+obj_ref = obj.ref()
+assert obj_ref.get_itemid() == obj.get_itemid()
+assert obj_ref.get_bag() is None
 ```
 
 </section>
@@ -1712,6 +2012,16 @@ kd.is_fn(obj)
 
 # Avoid inlining Python function during tracing.
 @kd.trace_as_fn()
+```
+
+</section>
+
+## Advanced: Mutable Workflow
+
+<section>
+
+```py
+# TODO: Add examples
 ```
 
 </section>
