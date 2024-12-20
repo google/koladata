@@ -1587,6 +1587,8 @@ Aliases:
 ``` {.no-copy}
 Creates Entities with given attrs.
 
+  Returns an immutable Entity if `db` is not provided.
+
   Args:
     arg: optional Python object to be converted to an Entity.
     schema: optional DataSlice schema. If not specified, a new explicit schema
@@ -1614,6 +1616,8 @@ Aliases:
 ``` {.no-copy}
 Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
+  Returns immutable Entities if `db` is not provided.
+
   Args:
     shape_and_mask_from: DataSlice, whose shape and sparsity the returned
       DataSlice will have.
@@ -1640,6 +1644,8 @@ Aliases:
 ``` {.no-copy}
 Creates new Entities with the given shape.
 
+  Returns immutable Entities if `db` is not provided.
+
   Args:
     shape: JaggedShape that the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
@@ -1664,6 +1670,8 @@ Aliases:
 
 ``` {.no-copy}
 Creates new Koda entities with shape of the given DataSlice.
+
+  Returns immutable Entities if `db` is not provided.
 
   Args:
     shape_from: DataSlice, whose shape the returned DataSlice will have.
@@ -1724,7 +1732,7 @@ Aliases:
 ``` {.no-copy}
 Creates new Objects with an implicit stored schema.
 
-  Returned DataSlice has OBJECT schema.
+  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
 
   Args:
     arg: optional Python object to be converted to an Object.
@@ -1746,7 +1754,7 @@ Aliases:
 ``` {.no-copy}
 Creates Objects with shape and sparsity from shape_and_mask_from.
 
-  Returned DataSlice has OBJECT schema.
+  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
 
   Args:
     shape_and_mask_from: DataSlice, whose shape and sparsity the returned
@@ -1767,7 +1775,7 @@ Aliases:
 ``` {.no-copy}
 Creates Objects with the given shape.
 
-  Returned DataSlice has OBJECT schema.
+  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
 
   Args:
     shape: JaggedShape that the returned DataSlice will have.
@@ -1787,7 +1795,7 @@ Aliases:
 ``` {.no-copy}
 Creates Objects with the shape of the given DataSlice.
 
-  Returned DataSlice has OBJECT schema.
+  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
 
   Args:
     shape_from: DataSlice, whose shape the returned DataSlice will have.
@@ -2523,6 +2531,8 @@ Aliases:
 ``` {.no-copy}
 Creates UuEntities with given attrs.
 
+  Returns an immutable UU Entity if `db` is not provided.
+
   Args:
     seed: string to seed the uuid computation with.
     schema: optional DataSlice schema. If not specified, a UuSchema
@@ -2545,6 +2555,8 @@ Aliases:
 
 ``` {.no-copy}
 Creates object(s) whose ids are uuid(s) with the provided attributes.
+
+  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
 
   In order to create a different "Type" from the same arguments, use
   `seed` key with the desired value, e.g.
@@ -2737,6 +2749,8 @@ Aliases:
 ``` {.no-copy}
 Creates a Koda dict.
 
+  Returns an immutable dict if `db` is not provided.
+
   Acceptable arguments are:
     1) no argument: a single empty dict
     2) a Python dict whose keys are either primitives or DataItems and values
@@ -2902,6 +2916,8 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 
+  Returns immutable dicts if `db` is not provided.
+
   If items_or_keys and values are not provided, creates empty dicts. Otherwise,
   the function assigns the given keys and values to the newly created dicts. So
   the keys and values must be either broadcastable to shape_and_mask_from
@@ -2973,6 +2989,8 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda dicts with the given shape.
 
+  Returns immutable dicts if `db` is not provided.
+
   If items_or_keys and values are not provided, creates empty dicts. Otherwise,
   the function assigns the given keys and values to the newly created dicts. So
   the keys and values must be either broadcastable to `shape` or one dimension
@@ -3003,6 +3021,8 @@ Aliases:
 
 ``` {.no-copy}
 Creates new Koda dicts with shape of the given DataSlice.
+
+  Returns immutable dicts if `db` is not provided.
 
   If items_or_keys and values are not provided, creates empty dicts. Otherwise,
   the function assigns the given keys and values to the newly created dicts. So
@@ -3646,6 +3666,8 @@ Aliases:
 ``` {.no-copy}
 Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
+  Returned lists are immutable if `db` is not provided.
+
   Each input DataSlice must contain only present List items, and the item
   schemas of each input must be compatible. Input DataSlices are aligned (see
   `kde.align`) automatically before concatenation.
@@ -3671,6 +3693,8 @@ Aliases:
 
 ``` {.no-copy}
 Creates list(s) by collapsing `items`.
+
+  Returns an immutable list if `db` is not provided.
 
   If there is no argument, returns an empty Koda List.
   If the argument is a DataSlice, creates a slice of Koda Lists.
@@ -3761,6 +3785,8 @@ Aliases:
 ``` {.no-copy}
 Implodes a Dataslice `x` a specified number of times.
 
+  Returned lists are immutable if `db` is not provided.
+
   A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
   DataSlice of LIST[T], by folding the items in the last dimension of the
   original DataSlice into newly-created Lists.
@@ -3822,6 +3848,8 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
+  Returns immutable lists if `db` is not provided.
+
   Args:
     shape_and_mask_from: a DataSlice with the shape and sparsity for the
       desired lists.
@@ -3865,6 +3893,8 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda lists with the given shape.
 
+  Returns immutable lists if `db` is not provided.
+
   Args:
     shape: the desired shape.
     items: optional items to assign to the newly created lists. If not
@@ -3887,6 +3917,8 @@ Aliases:
 
 ``` {.no-copy}
 Creates new Koda lists with shape of the given DataSlice.
+
+  Returns immutable lists if `db` is not provided.
 
   Args:
     shape_from: mandatory DataSlice, whose shape the returned DataSlice will
@@ -5256,6 +5288,8 @@ Aliases:
 ``` {.no-copy}
 Creates a dict schema in the given DataBag.
 
+  Returned schema is immutable if `db` is not provided.
+
   Args:
     key_schema: schema of the keys in the list.
     value_schema: schema of the values in the list.
@@ -5442,6 +5476,8 @@ Aliases:
 ``` {.no-copy}
 Creates a list schema in the given DataBag.
 
+  Returned schema is immutable if `db` is not provided.
+
   Args:
     item_schema: schema of the items in the list.
     db: optional DataBag where the schema is created. If not provided, a new
@@ -5458,6 +5494,8 @@ Aliases:
 
 ``` {.no-copy}
 Creates a named entity schema in the given DataBag.
+
+  Returned schema is immutable if `db` is not provided.
 
   A named schema will have its item id derived only from its name, which means
   that two named schemas with the same name will have the same item id, even in
@@ -5480,6 +5518,8 @@ Creates a named entity schema in the given DataBag.
 
 ``` {.no-copy}
 Creates new schema in the given DataBag.
+
+  Returned schema is immutable if `db` is not provided.
 
   Args:
     db: optional DataBag where the schema is created. If not provided, a new
@@ -5679,6 +5719,8 @@ Aliases:
 
 ``` {.no-copy}
 Creates a uu_schema in the given DataBag.
+
+  Returned schema is immutable if `db` is not provided.
 
   Args:
     seed: optional string to seed the uuid computation with.
@@ -6617,6 +6659,20 @@ Returns a tuple constructed from the given arguments.
 <section class="zippy closed">
 
 **Operators**
+
+### `kd.Any(*args, **kwargs)` {#kd.Any}
+
+``` {.no-copy}
+Special type indicating an unconstrained type.
+
+    - Any is compatible with every type.
+    - Any assumed to have all methods.
+    - All values assumed to be instances of Any.
+
+    Note that all the above statements are true from the point of view of
+    static type checkers. At runtime, Any should not be used with instance
+    checks.
+```
 
 ### `kd.add(x, y)` {#kd.add}
 
@@ -7753,9 +7809,6 @@ Alias for [kd.core.sort](#kd.core.sort) operator.
 Alias for [kd.core.stack](#kd.core.stack) operator.
 
 ### `kd.str(x)` {#kd.str}
-Aliases:
-
-- [kd.text](#kd.text)
 
 ``` {.no-copy}
 Returns kd.slice(x, kd.STRING).
@@ -7779,7 +7832,9 @@ Alias for [kd.core.at](#kd.core.at) operator.
 
 ### `kd.text(x)` {#kd.text}
 
-Alias for [kd.str](#kd.str) operator.
+``` {.no-copy}
+Deprecated. Use kd.str instead.
+```
 
 ### `kd.to_any(x)` {#kd.to_any}
 
