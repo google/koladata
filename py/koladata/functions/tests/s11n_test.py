@@ -99,6 +99,18 @@ class DumpsLoadsTest(parameterized.TestCase):
     )
     self.assertLess(len(dumped_bytes_brotli), len(dumped_bytes_uncompressed))
 
+  def test_dumps_extracts(self):
+    bag = kd.bag()
+    nested = bag.new(a=bag.new(b=1))
+    loaded_a = s11n.loads(s11n.dumps(nested.a))
+    testing.assert_equivalent(loaded_a.get_bag(), nested.a.extract().get_bag())
+
+  def test_dumps_any_with_bag(self):
+    bag = kd.bag()
+    e = bag.new(x=1).with_schema(schema_constants.ANY)
+    loaded_e = s11n.loads(s11n.dumps(e))
+    testing.assert_equivalent(e, loaded_e)
+
 
 if __name__ == '__main__':
   absltest.main()

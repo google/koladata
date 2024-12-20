@@ -24,6 +24,10 @@ def dumps(
 ) -> bytes:
   """Serializes a DataSlice or a DataBag.
 
+  In case of a DataSlice, we try to use `x.extract()` to avoid serializing
+  unnecessary DataBag data. If this is undesirable, consider serializing the
+  DataBag directly.
+
   Due to current limitations of the underlying implementation, this can
   only serialize data slices with up to roughly 10**8 items.
 
@@ -38,6 +42,15 @@ def dumps(
   """
   if not isinstance(x, data_slice.DataSlice | data_bag.DataBag):
     raise ValueError(f'expected a DataSlice or a DataBag, got {type(x)}')
+  # NOTE(b/385272947): Consider moving this logic further down to support
+  # extraction for literals inside of expressions. This is more tricky since we
+  # want slices with the same bag to keep the same bag id, and some slices may
+  # not contain the set of attributes used for the entire expression.
+  if isinstance(x, data_slice.DataSlice):
+    try:
+      x = x.extract()
+    except ValueError:
+      pass  # ANY, no Bag, ...
   return arolla.s11n.riegeli_dumps(x, riegeli_options=riegeli_options)
 
 
