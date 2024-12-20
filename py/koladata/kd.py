@@ -133,6 +133,10 @@ optools.constraints.expect_jagged_shape_or_unspecified = (
     _qtype_utils.expect_jagged_shape_or_unspecified
 )
 
+### Tools for eager operators.
+optools.eager = _py_types.ModuleType('optools')
+optools.eager.EagerOperator = _eager_op_utils.EagerOperator
+
 exceptions = _eager_only(_py_types.ModuleType('exceptions'))
 exceptions.KodaError = _exceptions.KodaError
 

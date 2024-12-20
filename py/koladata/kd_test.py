@@ -539,6 +539,10 @@ class KdTest(absltest.TestCase):
 
     kd.testing.assert_equal(get_data_slice(), kd.qtypes.DATA_SLICE)
 
+  def test_eager_operator(self):
+    self.assertIsInstance(kd.add, kd.optools.eager.EagerOperator)
+    kd.testing.assert_equal(kd.add.lazy_op, kde.add)
+
 
 if __name__ == '__main__':
   absltest.main()

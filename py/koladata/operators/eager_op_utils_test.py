@@ -97,6 +97,8 @@ class EagerOpUtilsTest(parameterized.TestCase):
       return a
 
     first = getattr(eager_op_utils.operators_container(namespace), op_name)
+    self.assertIsInstance(first, eager_op_utils.EagerOperator)
+    testing.assert_equal(first.lazy_op, first_op)
     self.assertEqual(first.getdoc(), 'first_op docstring.')
     self.assertEqual(inspect.signature(first), inspect.signature(first_op))
     self.assertEqual(

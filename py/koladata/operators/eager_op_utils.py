@@ -42,21 +42,21 @@ class _EagerOpCallMethod:
     return _eval_op(self._op, *args, **kwargs)
 
 
-class _EagerOp:
+class EagerOperator:
   """An eager-mode adapter for an operator."""
 
-  __slots__ = ('_op', '__call__')
+  __slots__ = ('lazy_op', '__call__')
 
   def __init__(self, op: arolla.abc.Operator):
-    self._op = op
+    self.lazy_op = op
     self.__call__ = _EagerOpCallMethod(op)
 
   def getdoc(self) -> str:
-    return self._op.getdoc()
+    return self.lazy_op.getdoc()
 
   @property
   def __signature__(self) -> inspect.Signature:  # needed for inspect.signature
-    return inspect.signature(self._op)
+    return inspect.signature(self.lazy_op)
 
 
 class _OperatorsContainer:
@@ -97,7 +97,7 @@ class _OperatorsContainer:
       if self._overrides is not None and not op_name.startswith('_'):
         eager_op = getattr(self._overrides, op_name, None)
       if eager_op is None:
-        eager_op = _EagerOp(self._arolla_container[op_name])
+        eager_op = EagerOperator(self._arolla_container[op_name])
       self.__dict__[op_name] = eager_op
     assert callable(eager_op)
     return eager_op
@@ -115,7 +115,7 @@ class _OperatorsContainer:
       if isinstance(rl_op_or_container, arolla.OperatorsContainer):
         ret = _OperatorsContainer(rl_op_or_container)
       else:
-        ret = _EagerOp(rl_op_or_container)
+        ret = EagerOperator(rl_op_or_container)
     self.__dict__[op_or_container_name] = ret
     return ret
 
