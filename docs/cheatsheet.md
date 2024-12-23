@@ -2272,6 +2272,232 @@ kd.trace_py_fn(fn2)
 
 </section>
 
+## Advanced: Expr
+
+<Tip: m>ost Koda users should need Exprs **rarely** and they should use tracing
+to convert eager logic into computation graph. Expr can still be useful for
+advanced users who want to express/manipulate computation logic (e.g.
+ranking/score logic) directly.
+
+A **Koda Expr** is a tree-like structure representing **computation logic**.
+More precisely, it is a **DAG** (Directed Acyclic Graph) consisting of **input**
+nodes, **literal** nodes, and **operator** nodes.
+
+**Input nodes** are terminal nodes representing data (e.g. DataSlices) to be
+provided at Expr **evaluation** time. In Koda, inputs are denoted as
+`I.input_name`. `I.self.input_name` or `S.input_name` for short is a special
+input node to allow using positional argument in `kd.eval`. See the **Evaluating
+Koda Expr** section for details.
+
+**Literal nodes** are terminal nodes representing data (e.g. DataSlices,
+primitives) provided at Expr **creation** time.
+
+**Operator nodes** are internal nodes representing an operation to be performed
+on the values of sub-Exprs. For example, `I.a + I.b` returns an Expr
+representing a `+` operation, with two input nodes as its children. Koda Expr
+provides a comprehensive list of operators for basic operations under `kde`
+module.
+
+Tip: Almost all operators from `kd` module have their corresponding Expr version
+in `kde` module. A few exceptions (e.g. `kd.eval(expr)`,
+`kd.expr.pack_expr(expr)`, etc.) should be self-explanatory based on the
+context.
+
+<section>
+
+### Creating Koda Expr
+
+```py
+# Create an Expr to represent a + b
+expr1 = kde.add(I.a, I.b)
+# which is equivalent to
+expr2 = I.a + I.b
+
+# We can also use literals
+expr3 = I.a + 1
+
+# Build Expr by composing other Exprs
+add_ab = I.a + I.b
+weighted_ab = I.w * add_ab
+score = kde.agg_sum(weighted_ab)
+
+# Print out an Expr
+score
+
+# Use [] for list explosion or dict lookup
+a = kd.slice([1, 2, 3])
+kd.eval(kde.list(I.a)[:], a=a)
+b = kd.dict({1: 2, 3: 4})
+kd.eval(I.b[I.a], a=a, b=b)
+
+# Use . for accessing attributes on objects
+d = kd.obj(x=1, y=2)
+kd.eval(I.d.x + I.d.y, d=d)
+
+# Use () for functor calls
+kd.eval(I.f(a=1, b=2), f=kdf.fn(I.a + I.b))
+```
+
+</section>
+
+<section>
+
+### Evaluating Koda Expr
+
+```py
+expr = kde.add(I.a, I.b)
+kd.eval(expr, a=kd.slice([1, 2, 3]), b=kd.item(2))
+
+# which is equivalent to
+expr.eval(a=kd.slice([1, 2, 3]), b=kd.item(2))
+
+# inputs can be bound to the same DataSlice
+x = kd.slice([1, 2, 3])
+kd.eval(expr, a=x, b=x)
+
+# use positional argument
+(I.self * 2).eval(3)
+(I.self.a * I.self.b).eval(kd.obj(a=1, b=2))
+
+# Use S as shortcut for I.self
+(S.a * S.b).eval(kd.obj(a=1, b=2))
+
+# Mix positional and keyword arguments
+(S.a * S.b * I.c).eval(kd.obj(a=1, b=2), c=3)
+```
+
+</section>
+
+<section>
+
+### Packing/Unpacking Koda Expr to/from DataItem
+
+```py
+add_ab = I.a + I.b
+weighted_ab = I.w * add_ab
+score = kde.agg_sum(weighted_ab)
+
+# Pack Expr into a DataItem
+expr = kd.expr.pack_expr(score)
+# Creates a task object containing
+# both data and expr
+task = kd.obj(expr=expr, a=kd.list([1, 2, 3]),
+              b=kd.list([4, 5, 6]),
+              w=kd.list([0.1, 0.2, 0.3]))
+
+# Unpack Expr
+kd.eval(kd.expr.unpack_expr(task.expr),
+        a=task.a[:], b=task.b[:],
+        w=task.w[:])
+```
+
+</section>
+
+<section>
+
+### Substituting Sub-Exprs
+
+```py
+expr1 = I.a + I.b
+expr2 = I.b + I.c
+expr3 = expr1 * expr2
+
+# Substitute by providing one sub pair
+kd.expr.sub(expr3, I.a, I.d)
+# which is equivalent to
+expr3.sub(I.a, I.d)
+
+# Substitute by providing multiple sub pairs
+kd.expr.sub(expr3, (I.a, I.d), (I.b, I.c))
+
+# Note the substitution is done by traversing
+# expr post-order and comparing fingerprints
+# of sub-Exprs in the original expression and
+# these in sub pairs
+kd.expr.sub(I.x + I.y,
+           (I.x, I.z), (I.x + I.y, I.k))
+# returns I.k
+
+kd.expr.sub(I.x + I.y,
+           (I.x, I.y), (I.y + I.y, I.z))
+# returns I.y + I.y
+```
+
+</section>
+
+<section>
+
+### Substituting Input Nodes
+
+```py
+expr = (I.a + I.b) * I.c
+
+# Substitute by other inputs
+new_expr = kd.expr.sub_inputs(expr, b=I.c, c=I.a)
+# which is equivalent to
+new_expr = expr.sub_inputs(b=I.c, c=I.a)
+
+# Substitute by Exprs
+new_expr = kd.expr.sub_inputs(expr, c=I.a + I.b)
+
+# Substitute by literals
+new_expr = kd.expr.sub_inputs(expr, b=kd.slice([2, 4]))
+```
+
+</section>
+
+### Defining Custom Operators
+
+```py
+# Create a lambda operator 'score'
+# under the existing namespace 'kde.core'
+@kd.optools.add_to_registry()
+@kd.optools.as_lambda_operator('kde.core.score')
+def score(a, b, w):
+  return kde.agg_sum(w * (a + b))
+
+kd.eval(kde.core.score(I.a, I.b, I.w),
+        a=a, b=b, w=w)
+
+# It can be used as eager op too
+kd.core.score(a, b, w)
+
+# We can also add the operator to a
+# different namespace 'E'
+@kd.optools.add_to_registry()
+@kd.optools.as_lambda_operator('E.my_func')
+def my_func(a):
+  return kde.add(a, a)
+
+# Create the operator container 'E'
+E = x = kd.optools.make_operators_container('E').E
+kd.eval(E.my_func(I.a), a=1)
+
+expect_data_slice =
+    kd.optools.constraints.expect_data_slice
+
+# Create an operator based on Py function
+@kd.optools.add_to_registry()
+@kd.optools.as_py_function_operator(
+    'kde.core.fn',
+    qtype_constraints=[
+        expect_data_slice(arolla.P.a),
+        expect_data_slice(arolla.P.pos)
+    ],
+    qtype_inference_expr=kd.qtypes.DATA_SLICE,
+)
+def fn(a, pos):
+  return kd.slice(a.S[pos].to_py() + 1)
+
+kd.eval(kde.core.fn(kd.slice([1, 2, 3]), 1))
+
+# Register operator alias so that
+# kde.add is same as E.add
+kd.optools.add_alias('kde.add', 'E.Add')
+```
+
+</section>
+
 ## Advanced: Mutable Workflow
 
 <section>
