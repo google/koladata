@@ -190,10 +190,15 @@ class FromPyTest(absltest.TestCase):
   def test_primitive(self):
     item = fns.from_py(42)
     testing.assert_equal(item, ds(42))
+    self.assertIsNone(item.get_bag())
+
     item = fns.from_py(42, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(42.))
+    self.assertIsNone(item.get_bag())
+
     item = fns.from_py(42, schema=schema_constants.OBJECT)
     testing.assert_equal(item, ds(42, schema_constants.OBJECT))
+    self.assertIsNone(item.get_bag())
 
   def test_primitive_casting_error(self):
     with self.assertRaisesRegex(
@@ -216,10 +221,27 @@ class FromPyTest(absltest.TestCase):
   def test_primitives_common_schema(self):
     res = fns.from_py([1, 3.14], from_dim=1)
     testing.assert_equal(res, ds([1.0, 3.14]))
+    self.assertIsNone(res.get_bag())
 
   def test_primitives_object(self):
     res = fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.OBJECT)
     testing.assert_equal(res, ds([1, 3.14], schema_constants.OBJECT))
+    self.assertIsNone(res.get_bag())
+
+  def test_empty_object(self):
+    res = fns.from_py(None, schema=schema_constants.OBJECT)
+    testing.assert_equal(res.no_bag(), ds(None, schema_constants.OBJECT))
+    self.assertIsNotNone(res.get_bag())
+
+    res = fns.from_py([], from_dim=1, schema=schema_constants.OBJECT)
+    testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
+    self.assertIsNotNone(res.get_bag())
+
+    res = fns.from_py([None, None], from_dim=1, schema=schema_constants.OBJECT)
+    testing.assert_equal(
+        res.no_bag(), ds([None, None], schema_constants.OBJECT)
+    )
+    self.assertIsNotNone(res.get_bag())
 
   def test_list_from_dim(self):
     input_list = [[1, 2.0], [3, 4]]

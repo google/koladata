@@ -12,11 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.py.map_py_on_selected operator."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
-from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -24,6 +21,7 @@ from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 I = input_container.InputContainer("I")
@@ -57,12 +55,63 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
   def test_smaller_dimension_cond(self):
     fn = lambda x: x + 1 if x is not None else 0
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
-    cond = ds([arolla.present(), None, arolla.present()], schema_constants.MASK)
+    cond = ds([mask_constants.present, None, mask_constants.present])
 
     res = expr_eval.eval(kde.py.map_py_on_selected(fn, cond, val))
     testing.assert_equal(
         res.no_bag(), ds([[2, 3, 0, 5], [None, None], [8, 9, 10]])
     )
+
+  def test_empty_input(self):
+    fn = lambda x: x + 1 if x is not None else 0
+
+    val = ds([])
+    cond = ds([], schema_constants.MASK)
+    res = expr_eval.eval(
+        kde.py.map_py_on_selected(
+            fn, cond, x=val, schema=schema_constants.FLOAT32
+        )
+    )
+    testing.assert_equal(res, ds([], schema_constants.FLOAT32))
+    self.assertIsNone(res.get_bag())
+
+    res = expr_eval.eval(kde.py.map_py_on_selected(fn, cond, x=val))
+    testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
+    self.assertIsNotNone(res.get_bag())
+
+    res = expr_eval.eval(
+        kde.py.map_py_on_selected(
+            fn, cond, x=val, schema=schema_constants.OBJECT
+        )
+    )
+    testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
+    self.assertIsNotNone(res.get_bag())
+
+    val = ds([1, 2, 3])
+    cond = ds(
+        [mask_constants.missing, mask_constants.missing, mask_constants.missing]
+    )
+    res = expr_eval.eval(
+        kde.py.map_py_on_selected(
+            fn, cond, x=val, schema=schema_constants.FLOAT32
+        )
+    )
+    testing.assert_equal(res, ds([None, None, None], schema_constants.FLOAT32))
+    self.assertIsNone(res.get_bag())
+
+    res = expr_eval.eval(kde.py.map_py_on_selected(fn, cond, x=val))
+    testing.assert_equal(res, ds([None, None, None]))
+    self.assertIsNone(res.get_bag())
+
+    res = expr_eval.eval(
+        kde.py.map_py_on_selected(
+            fn, cond, x=val, schema=schema_constants.OBJECT
+        )
+    )
+    testing.assert_equal(
+        res.no_bag(), ds([None, None, None], schema_constants.OBJECT)
+    )
+    self.assertIsNotNone(res.get_bag())
 
   def test_error_non_mask_cond(self):
     fn = lambda _: None

@@ -288,14 +288,43 @@ class PyMapPyTest(parameterized.TestCase):
     self.assertFalse(res.is_mutable())
 
   def test_map_py_empty_input(self):
-    def add_one(x):
-      return x + 1 if x is not None else None
+
+    def my_fn(x):
+      return x
 
     val = ds([[]])
     res = expr_eval.eval(
-        kde.py.map_py(add_one, val, schema=schema_constants.FLOAT32)
+        kde.py.map_py(my_fn, val, schema=schema_constants.FLOAT32)
     )
-    testing.assert_equal(res.no_bag(), ds([[]], schema_constants.FLOAT32))
+    testing.assert_equal(res, ds([[]], schema_constants.FLOAT32))
+    self.assertIsNone(res.get_bag())
+
+    res = expr_eval.eval(kde.py.map_py(my_fn, val))
+    testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
+    self.assertIsNotNone(res.get_bag())
+
+    res = expr_eval.eval(
+        kde.py.map_py(my_fn, val, schema=schema_constants.OBJECT)
+    )
+    testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
+    self.assertIsNotNone(res.get_bag())
+
+    val = ds([[None]])
+    res = expr_eval.eval(
+        kde.py.map_py(my_fn, val, schema=schema_constants.FLOAT32)
+    )
+    testing.assert_equal(res, ds([[None]], schema_constants.FLOAT32))
+    self.assertIsNone(res.get_bag())
+
+    res = expr_eval.eval(kde.py.map_py(my_fn, val))
+    testing.assert_equal(res, ds([[None]]))
+    self.assertIsNone(res.get_bag())
+
+    res = expr_eval.eval(
+        kde.py.map_py(my_fn, val, schema=schema_constants.OBJECT)
+    )
+    testing.assert_equal(res.no_bag(), ds([[None]], schema_constants.OBJECT))
+    self.assertIsNotNone(res.get_bag())
 
   def test_map_py_scalar_input(self):
     def add_one(x):

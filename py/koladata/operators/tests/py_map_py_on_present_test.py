@@ -21,6 +21,7 @@ from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import schema_constants
 
 I = input_container.InputContainer("I")
 ds = data_slice.DataSlice.from_vals
@@ -50,6 +51,45 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     y = ds([3.5, None, 4.5])
     r = expr_eval.eval(kde.py.map_py_on_present(lambda x, y: x + y, x, y))
     testing.assert_equal(r.no_bag(), ds([[4.5, 5.5], [], []]))
+
+  def test_empty_input(self):
+    yes_fn = lambda x: x + 1 if x is not None else 0
+
+    val = ds([])
+    res = expr_eval.eval(
+        kde.py.map_py_on_present(yes_fn, x=val, schema=schema_constants.FLOAT32)
+    )
+    testing.assert_equal(res, ds([], schema_constants.FLOAT32))
+    self.assertIsNone(res.get_bag())
+
+    res = expr_eval.eval(kde.py.map_py_on_present(yes_fn, x=val))
+    testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
+    self.assertIsNotNone(res.get_bag())
+
+    res = expr_eval.eval(
+        kde.py.map_py_on_present(yes_fn, x=val, schema=schema_constants.OBJECT)
+    )
+    testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
+    self.assertIsNotNone(res.get_bag())
+
+    val = ds([None, None, None])
+    res = expr_eval.eval(
+        kde.py.map_py_on_present(yes_fn, x=val, schema=schema_constants.FLOAT32)
+    )
+    testing.assert_equal(res, ds([None, None, None], schema_constants.FLOAT32))
+    self.assertIsNone(res.get_bag())
+
+    res = expr_eval.eval(kde.py.map_py_on_present(yes_fn, x=val))
+    testing.assert_equal(res, ds([None, None, None]))
+    self.assertIsNone(res.get_bag())
+
+    res = expr_eval.eval(
+        kde.py.map_py_on_present(yes_fn, x=val, schema=schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        res.no_bag(), ds([None, None, None], schema_constants.OBJECT)
+    )
+    self.assertIsNotNone(res.get_bag())
 
   def test_view(self):
     self.assertTrue(
