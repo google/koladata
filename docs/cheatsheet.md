@@ -2000,17 +2000,274 @@ assert obj_ref.get_bag() is None
 
 <section>
 
+### Tracing
+
+**Tracing** is a process of transforming computation logic represented by a
+Python function to a computation graph represented by a Koda Functor. Tracing
+provides a smooth transition from eager workflow useful for interactive
+iteration to lazy workflow which can have better performance and path to
+serving.
+
+</section>
+
+<section>
+
+### Trace a Python Function
+
+To trace a Python function, we can use `kd.trace_py_fn(f)`. Variadic arguments
+are not supported for tracing.
+
 ```py
-# Create functor.
-kd.fn(lambda x: x + 1)
-# Functor with no tracing.
-kd.py_fn(lambda x: x + 1)
+a1 = kd.slice([1, 2])
+a2 = kd.slice([2, 3])
+b = kd.item('b')
+c = kd.item('c')
 
-# Check if obj represents a functor.
-kd.is_fn(obj)
+def f1(a, b, c):
+  return kd.cond(kd.all(a > 1), b, c)
 
-# Avoid inlining Python function during tracing.
+f1(a1, b, c) # 'c'
+f1(a2, b, c) # 'b'
+
+f = kd.trace_py_fn(f1)
+
+f(a=a1, b=b, c=c) # 'c'
+f(a=a2, b=b, c=c) # 'b'
+
+def f2(a, b, c):
+  return b if kd.all(a > 1) else c
+
+f2(a1, b, c) # 'c'
+f2(a2, b, c) # 'b'
+
+# Fail because f2 use "if" statement and
+# the tracer I.a Expr cannot be used in "if"
+kd.trace_py_fn(f2)
+
+# Use positional only and keyword only arguments
+def f3(pos_only, /, pos_or_kw, *, kwonly):
+  return kd.cond(kd.all(pos_only > 1), pos_or_kw, kwonly)
+
+f3(a1, b, kwonly=c) # 'c'
+f3(a2, pos_or_kw=b, kwonly=c) # 'b'
+
+f = kd.trace_py_fn(f3)
+f(a1, b, kwonly=c) # 'c'
+f(a2, pos_or_kw=b, kwonly=c) # 'b'
+
+# Variadic arguments are not supported for tracing
+def f4(*args):
+  pass
+
+# Fails to trace
+kd.trace_py_fn(f4)
+
+def f5(**kwargs):
+  pass
+
+# Fails to trace
+kd.trace_py_fn(f5)
+
+# Variadic argument can be added to allow pass
+# unused arguments
+def f6(a2, a2, *unused):
+  return a1 + a2
+
+# 'c' is unused
+kd.trace_py_fn(f6)(a1, a2, c)
+```
+
+</section>
+
+<section>
+
+### How tracing works?
+
+There are three execution modes in Koda:
+
+-   **Eager** (i.e. `kdi`): always execute eagerly
+-   **Auto** (i.e. `kd`): execute eagerly in normal context or lazily in tracing
+    mode
+-   **Lazy** (i.e. `kde`): return Expr as result which can be executed lazily
+
+`kdi` and `kd` are similar to `np` and `jnp` in JAX, correspondingly. There is
+no pure lazy model (i.e. `kde`) in JAX as JAX does not directly expose lazy
+operators.
+
+To simplify the mental model and avoid unexpected surprises, tracing in Koda
+works the same way as the just-in-time
+([**JIT**](https://jax.readthedocs.io/en/latest/jit-compilation.html))
+compilation in JAX. It involves three steps:
+
+-   Functor signature is derived from Python function signature
+-   The Python function is called with tracers (just replace `arg` with `I.arg`)
+    and the result is a Koda Expr
+-   A Functor is created from the Expr and function signature
+
+It is different from TensorFlow 2 which analyzes the Python AST and is able to
+trace Python control logic (e.g. `if`/`for`). Therefore, users should primarily
+use `kd` operators in the Python function and try to avoid Python control logic
+(e.g. `if`/`for`) and `kde/kdf` operators unless understanding what they
+actually do.
+
+In most cases, users only need `kd` for eager and tracing mode and `kde` for if
+they want to use Expr directly. `kdi` is only useful for eager execution in the
+tracing mode.
+
+```py
+def f1(a):
+  b = kd.item(1) + kd.item(2)
+  return kd.add(a, b)
+
+f1(1)  # 4
+# Returns Functor(return=I.a + 1 + 2)
+kd.trace_py_fn(f1)
+kd.trace_py_fn(f1)(a=1)  # 4
+
+def f2(a):
+  b = kdi.item(1) + kdi.item(2)
+  return kd.add(a, b)
+
+f2(1)  # 4
+# Returns Functor(return=I.a + 3)
+kd.trace_py_fn(f2)
+kd.trace_py_fn(f2)(a=1)  # 4
+
+# TODO: Support kde.slice/item
+def f3(a):
+  b = kde.item(1) + kde.item(2)
+  return kd.add(a, b)
+
+# Fails as kd.add does not work
+# for Expr in normal context
+f3(1)
+# Returns Functor(return=I.a + 1 + 2)
+kd.trace_py_fn(f3)
+kd.trace_py_fn(f3)(a=1)  # 4
+```
+
+</section>
+
+</section>
+
+<section>
+
+### Invoke Another Function in a Traced Function
+
+If we want to trace the invoked function, need to add `@trace_as_fn` decorator
+to that function. Otherwise, it is inlined into the traced function.
+
+```py
+def fn1(a, b):
+  x = a + 1
+  y = b + 2
+  z = 3
+  return x + y + z
+
+def fn2(c):
+  return fn1(c, 1)
+
+# The content of fn1 is inlined
+kd.trace_py_fn(fn2)
+# Functor(returns=I.c + 1 + 3 + 3)
+
 @kd.trace_as_fn()
+def fn3(a, b):
+  x = a + 1
+  y = b + 2
+  z = 3
+  return x + y + z
+
+def fn4(c):
+  return fn1(c, 1)
+
+# fn3 is traced into a separate functor
+kd.trace_py_fn(fn4)
+# Functor(returns=V.fn3(I.c, 1),
+#         n3=Functor(returns=I.a + 1 + (I.b + 2) + 3)))
+```
+
+</section>
+
+<section>
+
+### Avoid tracing Some Operations
+
+If some operators should always be executed eagerly, use `kdi` instead of `kd`.
+
+```py
+def f1(a):
+  b = kdi.item(1) + kdi.item(2)
+  return kd.add(a, b)
+
+kd.trace_py_fn(f1)
+# Functor(return=I.a + 3)
+```
+
+</section>
+
+<section>
+
+### Avoid tracing Inside a Python Function
+
+If you want to treat a Python function as a whole and execute statements in the
+function line by line, you can `@kd.trace_as_fn(py_fn=True)` decorator to the
+Python function. It allows you to use any Python codes including `if`, `for` or
+sending RPC which do not work for tracing at the cost of losing all tracing
+benefits.
+
+```py
+a1 = kd.slice([1, 2])
+a2 = kd.slice([2, 3])
+b = kd.item('b')
+c = kd.item('c')
+
+@kd.trace_as_fn(py_fn=True)
+def f1(a, b, c):
+  return b if kd.all(a > 1) else c
+
+f1(a1, b, c) # 'c'
+f1(a2, b, c) # 'b'
+
+traced_f1 = kd.trace_py_fn(f1)
+traced_f1(a1, b, c) # 'c'
+traced_f1(a2, b, c) # 'b'
+
+# You can call f1 in another traced function
+def f2(a1, a2, b, c):
+  return f1(a1, b, c) + f1(a2, b, b)
+
+traced_f2 = kd.trace_py_fn(f2)
+traced_f2(a1, a2, b, c) # 'cb'
+```
+
+</section>
+
+### Improve Structure/Readability of Resulting Functor
+
+By default, names of local variables are lost during tracing. To preserve these
+names, we can use `kd.with_name`. In the eager mode, `kd.with_name` is a no-op.
+In the lazy mode, it is just `kde.with_name` which adds a name annotation to the
+resulting Expr.
+
+```py
+def fn1(a, b):
+  x = a + 1
+  y = b + 2
+  z = 3
+  return x + y + z
+
+kd.trace_py_fn(fn1)
+# Functor(returns=I.a + 1 + (I.b + 2) + 3)
+
+def fn2(a, b):
+  x = kd.with_name(a + 1, 'x')
+  y = kd.with_name(b + 2, 'y')
+  z = 3
+  return x + y + z
+
+kd.trace_py_fn(fn2)
+# Functor(returns=V.x + V.y + 3, x=I.a + 1, y=I.b + 2)
 ```
 
 </section>
