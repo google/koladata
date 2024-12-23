@@ -1359,7 +1359,7 @@ kd.map_py(f, 1, z=3, y=2) # mix of positional and keyword
 
 <section>
 
-### Conditional Apply Operator
+### Conditional Apply Operators
 
 ```py
 # Note that 'a' is passed as a DataSlice
@@ -1996,7 +1996,7 @@ assert obj_ref.get_bag() is None
 
 </section>
 
-## Tracing and Functors
+## Tracing (a.k.a JIT Compilation)
 
 <section>
 
@@ -2274,8 +2274,8 @@ kd.trace_py_fn(fn2)
 
 ## Advanced: Expr
 
-<Tip: m>ost Koda users should need Exprs **rarely** and they should use tracing
-to convert eager logic into computation graph. Expr can still be useful for
+Most Koda users should need Exprs **rarely** and they should use tracing to
+convert eager logic into computation graph. Expr can still be useful for
 advanced users who want to express/manipulate computation logic (e.g.
 ranking/score logic) directly.
 
@@ -2498,12 +2498,215 @@ kd.optools.add_alias('kde.add', 'E.Add')
 
 </section>
 
-## Advanced: Mutable Workflow
+## Advanced: Functor
+
+Most Koda users should need to create Functors **rarely** and they should use
+tracing to convert eager logic into Functors.
+
+A Koda Functor is a special **DataItem** containing a single item representing a
+**callable function**. It can be **called/run** using `kd.call(fn, **inputs)` or
+simply `fn(**inputs)`.
 
 <section>
 
+### Creating Koda Functor
+
+Koda Functors can be **created** from the following objects:
+
+-   **Koda Expr** using `kdf.expr_fn(expr, **vars)`
+-   **Format string** similar to Python f-string `f'text {input:s} text'` using
+    `kdf.fstr_fn(str_fmt, **vars)`
+-   **Python function** using `kdf.py_fn(pfn, **vars)`
+
+`kdf.fn(fn_obj, **vars)` is the **universal adaptor** for `kdf.fn`, and
+`kdf.py_fn` where `fn_obj` can be `expr` or `py_fn`.
+
+**Conceptually**, creating a functor is equivalent to declaring a Python
+function where the function signature consists of a function name and parameters
+and the function body consists of local variable assignments and a return
+statement.
+
+-   Koda functor does not have a functor name, which is similar to a Python
+    lambda function
+-   Koda functor parameters are not explicitly declared but automatically
+    derived from `fn_obj` and `**vars`
+-   Local variables are notated as `V.var_name`, variable assignments are done
+    through `**vars` in `kdf.fn` and a variable can refer to other variables
+-   Return statement is represented as `fn_obj` in `kdf.fn` and can refer to
+    local variables
+
 ```py
-# TODO: Add examples
+kdf = kd.functor
+
+# Create a Functor from Expr
+fn1 = kdf.expr_fn(I.a + I.b)
+
+# Create a Functor with local variables
+fn2 = kdf.expr_fn(V.a + I.b, c=I.d, a=V.c + I.d)
+
+# Create a Functor from format string
+fn3 = kdf.fstr_fn(
+  f'a:{I.a:s} + b:{I.b:s} = {(I.a + I.b):s}')
+
+# Create a Functor with local variables
+fn4 = kdf.fstr_fn(f'{I.s.name:s} ({V.names:s})\n',
+                  names=kde.strings.agg_join(
+                    I.s.cities[:].name, ', '))
+fn5 = kdf.fstr_fn(f'A: {V.fn(s=I.s1):s}'
+                  f'B: {V.fn(s=I.s2):s}', fn=fn4)
+
+# Create a Functor from Py function
+fn6 = kdf.py_fn(
+  lambda a, b: a.get_size() + b.get_size())
+
+# With default value for 'y'
+fn7 = kdf.py_fn(lambda x, y: x + y, y=1)
+
+# Use the universal adapter kdf.fn
+fn8 = kdf.fn(I.a + I.b)
+fn9 = kdf.fn(lambda x, y: x + y)
+fn10 = kdf.fn(fn8)
+
+# Create a functor calling another functor
+fn11 = kdf.fn(kde.call(fn1, a=I.c, b=I.d))
+fn12 = kdf.fstr_fn(
+  f'result {V.f(a=I.c, b=I.d):s}', f=fn1)
+```
+
+</section>
+
+<section>
+
+### Calling Koda Functor
+
+```py
+f = kdf.fn(V.a + I.b, c=I.d, a=V.c + I.d)
+
+# Pass inputs as **kwargs
+# Preferred when input names are static
+f(b=2, d=3)
+kd.call(f, b=2, d=3) # Same as above
+
+# Call a functor from another functor
+f = kdf.fn(I.x + I.y)
+g = kdf.fn(V.nf(x=I.x, y=2), nf=f)
+g(x=1)  # 3
+
+# Alternative
+g = kdf.fn(kde.call(V.nf, x=I.x, y=2), nf=f)
+g(x=1)  # 3
+
+# Functors can also be called using `fstr_fn`
+f = kdf.fn(I.x + I.y)
+g = kdf.fstr_fn(f'result: {I.f(x=I.x, y=V.y):s}',
+                y=1)
+g(f=f, x=1)
+```
+
+</section>
+
+<section>
+
+### Partially Binding Koda Functor Parameters
+
+```py
+fn1 = kdf.fn(I.a + I.b)
+
+# Bind inputs with default values
+fn2 = kdf.bind(fn1, a=1)
+
+fn2(a=3, b=2)  # 5
+fn2(b=2)  # 3
+
+# Exprs and format strings can also be bound to
+# arguments.
+fn3 = kdf.bind(fn1, a=I.b + 1)
+fn3(b=2)  # 5
+
+# Binding DataItem params also works.
+fn4 = kdf.bind(fn1, a=kd.item(1))
+
+# Raise because binding a DataSlice is not supported
+fn5 = kdf.bind(fn1, a=kd.slice([1, 2]))
+# We have to use kd.list instead
+fn5 = kdf.bind(fn1, a=kd.list([1, 2]))
+```
+
+</section>
+
+<section>
+
+### map_py_fn Functor
+
+Also see `kd.map_py()` above.
+
+```py
+# Pointwise
+kdf.map_py_fn(lambda x, y: x + y)
+
+# Aggregation
+kdf.map_py_fn(lambda x: len(x), ndim=1)
+
+# Aggregaional but no dimension change
+kdf.map_py_fn(lambda x: sorted(x), ndim=1)
+
+# Expansion
+kdf.map_py_fn(lambda x: [x] * 10)
+```
+
+</section>
+
+## Advanced: Mutable Workflow
+
+While it is enough for most Koda users to just use immutable workflow, it is
+possible to use mutable workflow by managing DataBags manually in order to
+achieve better performance.
+
+Note code using mutable APIs cannot be traced.
+
+<section>
+
+### Creating Mutable Entities/Objects/Lists/Dicts
+
+Mutable entities/objects/lists/dicts can be created from a DataBag.
+
+```py
+db = kd.bag()
+
+# Create a mutable entity and
+# modify its attributes
+e = db.new(x=1, y=2)
+e.x = 3
+e.z = 'a'
+del e.y
+
+# Create a mutable object and
+# modify its attributes
+o = db.new(x=1, y=2)
+o.x = 'a'
+o.z = 3
+del o.y
+
+# Create a mutable list and
+# modify its items
+l = db.list([1, 2, 3])
+l[1] = 20
+l.append(4)
+l.append(kd.slice([5, 6]))
+del l[:4]
+
+# Create a mutable dict and
+# modify its entries
+d = db.dict({'a': 1, 'b': 2})
+d['a'] = 20
+d['c'] = 30
+del d['b']
+
+# Other APIs works similarly
+db.new_like(...)
+db.new_shaped(...)
+db.new_shaped_as(...)
+db.implode(ds)
 ```
 
 </section>
