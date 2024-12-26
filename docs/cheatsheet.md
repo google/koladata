@@ -17,6 +17,9 @@ kde = kd.kde
 I = kd.I
 V = kd.V
 S = kd.S
+
+# Useful alias for Functor
+kdf = kd.functor
 ```
 
 </section>
@@ -2819,6 +2822,207 @@ db.new_like(...)
 db.new_shaped(...)
 db.new_shaped_as(...)
 db.implode(ds)
+```
+
+</section>
+
+## Unit Testing
+
+<section>
+
+### kd.testing.assert_equal
+
+```py
+# Primitive DataSlices
+ds1 = kd.slice([1, 2, 3])
+ds2 = kd.slice([1, 2, 3])
+kd.testing.assert_equal(ds1, ds2)
+
+# Mixed primitive DataSlices
+ds3 = kd.slice([1, 2., '3'])
+ds4 = kd.slice([1, 2., '3'])
+kd.testing.assert_equal(ds3, ds4)
+
+# It compares schemas too for DataSlices
+ds5 = kd.slice([1, 2, 3])
+ds6 = kd.slice([1, 2, 3], kd.INT64)
+kd.testing.assert_equal(ds5, ds6) # Fail
+kd.testing.assert_equal(ds5, kd.to_int32(ds6))
+
+# It compares DataBags too for DataSlices
+ds7 = kd.uuobj(x=1)
+ds8 = kd.uuobj(x=1)
+kd.testing.assert_equal(ds7, ds8) # Fail
+kd.testing.assert_equal(ds7.no_bag(), ds8.no_bag())
+
+# It works for JaggedShapes
+kd.testing.assert_equal(ds1.get_shape(),
+                        ds2.get_shape())
+kd.testing.assert_equal(ds1.get_shape(),
+                        ds8.get_shape()) # Fail
+
+# It works for DataBags and it checks DataBags
+# are the same instance
+db1 = kd.bag()
+db2 = kd.bag()
+kd.testing.assert_equal(db1, db2) # Fail
+kd.testing.assert_equal(db1, db1)
+```
+
+</section>
+
+<section>
+
+### kd.testing.assert_equivalent
+
+```py
+# Different from assert_equal, it check DataBags
+# are equivalent instead of the same instance
+ds1 = kd.uuobj(x=1)
+ds2 = kd.uuobj(x=1)
+kd.testing.assert_equivalent(ds1, ds2)
+
+ds3 = kd.uuobj(x=kd.slice([1, 2]))
+# Fail as ds3.db has more contents than ds1.db
+kd.testing.assert_equivalent(ds1, ds3.S[0])
+
+# It works for DataBags too
+kd.testing.assert_equivalent(ds1.get_bag(),
+                             ds2.get_bag())
+
+# DataBag comparison is tricky so it is not
+# recommended to compare theirs contents directly
+```
+
+</section>
+
+<section>
+
+### kd.testing.assert_allclose
+
+It works similar to `numpy.testing.assert_allclose`.
+
+```py
+ds1 = kd.slice([2.71, 2.71])
+ds2 = kd.slice([2.7100, 2.710])
+
+kd.testing.assert_allclose(ds1, ds2)
+
+ds3 = kd.float32(3.145678)
+ds4 = kd.float32(3.144)
+
+kd.testing.assert_allclose(ds3, ds4) # Fail
+kd.testing.assert_allclose(ds3, ds4, atol=0.01)
+kd.testing.assert_allclose(ds3, ds4, rtol=0.01)
+
+# Note it compares schemas too
+ds5 = kd.float3264(3.145678)
+kd.testing.assert_allclose(ds3, ds5) # Fail
+```
+
+</section>
+
+<section>
+
+### kd.testing.assert_unordered_equal
+
+```py
+ds1 = kd.slice([1, 2., '3'])
+ds2 = kd.slice(['3', 2., 1])
+
+kd.testing.assert_unordered_equal(ds1, ds2)
+
+# Ignore the order of items in the last dimension
+ds3 = kd.slice([[1, 2], [None, 3]])
+ds4 = kd.slice([[2, 1], [3, None]])
+kd.testing.assert_unordered_equal(ds3, ds4)
+
+ds5 = kd.slice([[1, 3], [None, 2]])
+ds6 = kd.slice([[2, 1], [3, None]])
+kd.testing.assert_unordered_equal(ds5, ds6) # Fail
+```
+
+</section>
+
+<section>
+
+### Comparing Lists
+
+Note: the following APIs only compares the contents of nested lists by
+primitiveis or ItemIds. That is, they do not require these lists to have the
+same ItemIds or check the nested contents of lists' contents.
+
+```py
+l1 = kd.list([1, 2, 3])
+l2 = kd.list([1, 2, 3])
+kd.testing.assert_nested_lists_equal(l1, l2)
+
+l3 = kd.list([kd.uuobj(x=1), kd.uuobj(x=2)])
+l4 = kd.list([kd.uuobj(x=1), kd.uuobj(x=2)])
+kd.testing.assert_nested_lists_equal(l3, l4)
+
+l5 = kd.list([kd.obj(x=1), kd.obj(x=2)])
+l6 = kd.list([kd.obj(x=1), kd.obj(x=3)])
+kd.testing.assert_nested_lists_equal(l5, l6) # Fail
+
+# Nested lists
+l7 = kd.list([[1, 2, 3],
+              [kd.uuobj(x=1), kd.uuobj(x=2)]])
+l8 = kd.list([[1, 2, 3],
+              [kd.uuobj(x=1), kd.uuobj(x=2)]])
+kd.testing.assert_nested_lists_equal(l7, l8)
+```
+
+</section>
+
+<section>
+
+### Comparing Dicts
+
+Note: the following APIs only compares the contents of dicts by primitiveis or
+ItemIds. That is, they do not require these dicts to have the same ItemIds or
+check the nested contents of dicts' contents.
+
+```py
+d1 = kd.dict({'a': 1, 'b': 2})
+d2 = kd.dict({'a': 1, 'b': 2})
+kd.testing.assert_dicts_equal(d1, d2)
+
+d3 = kd.dict({'a': kd.uuobj(x=1)})
+d4 = kd.dict({'a': kd.uuobj(x=1)})
+kd.testing.assert_dicts_equal(d3, d4)
+
+d5 = kd.dict({'a': kd.obj(x=1)})
+d6 = kd.dict({'a': kd.obj(x=2)})
+kd.testing.assert_dicts_equal(d5, d6) # Fail
+
+# Only check keys/values
+kd.testing.assert_dicts_keys_equal(
+  d1, kd.slice(['b', 'a']))
+kd.testing.assert_dicts_values_equal(
+  d1, kd.slice([2, 1]))
+```
+
+</section>
+
+<section>
+
+### Comparing Complex Objects
+
+Right now, Koda does not provide a way to compare complex objects by
+**contents** ignoring ItemIds, DataBags and schemas. The current recommendation
+is to convert to pytrees and use Python comparison assertions.
+
+```py
+i1 = kd.obj(a=kd.obj(b=kd.obj(c=1),
+                    d=kd.list([2, 3]),
+                    e=kd.dict({'f': 4})))
+i2 = kd.obj(a=kd.obj(b=kd.obj(c=1),
+                    d=kd.list([2, 3]),
+                    e=kd.dict({'f': 4})))
+
+assert i1.to_pytree(max_depth=-1)
+  == i2.to_pytree(max_depth=-1)
 ```
 
 </section>
