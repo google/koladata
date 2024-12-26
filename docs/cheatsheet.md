@@ -1721,7 +1721,8 @@ py_obj = PyObj(x=1, y=2.0)
 
 kd.from_py(py_obj) # Object
 kd.from_py(py_obj, schema=kd.OBJECT) # Same as above
-s1 = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
+s1 = kd.named_schema('Point', x=kd.INT32,
+                     y=kd.FLOAT64)
 kd.from_py(py_obj, schema=s1) # Entity
 
 # dict_as_obj=True
@@ -1759,7 +1760,6 @@ kd.from_py(py_list, from_dim=2)
 py_dicts = [{'x': 1, 'y': 2.0}, {'x': 3, 'y': 4.0}]
 # Dicts as Objects
 kd.from_py(py_dicts, from_dim=1)
-# Dicts as Objects
 kd.from_py(py_dicts, from_dim=1, schema=s3)
 ```
 
@@ -1859,13 +1859,68 @@ dicts.to_py() # [{'a': 1}, {'c': 3}]
 
 <section>
 
+### From/To Pytree
+
+`kd.from_pytree` is equivalent to `kd.from_py` and `kd.to_pytree` is equivalent
+to `kd.to_py(obj_as_dict=True)`.
+
+</section>
+
+<section>
+
 ### From/To Numpy Array
 
 ```py
 from koladata.ext import npkd
 
-npkd.to_array(ds)
-npkd.from_array(np.array([1, 2, 0, 3]))
+arr1 = np.int32([1, 2, 0, 3])
+npkd.from_array(arr1) # kd.int32([1, 2, 0, 3])
+
+arr2 = np.int64([1, 2, 0, 3])
+npkd.from_array(arr2) # kd.int64([1, 2, 0, 3])
+
+arr3 = np.float64([1., 2., 0., 3.])
+npkd.from_array(arr3) # kd.int64([1., 2., 0., 3.])
+
+# Numpy does not support sparse array
+# None is converted to nan
+arr4 = np.float64([1., None, 0., 3.])
+npkd.from_array(arr4) # kd.float64([1., nan, 0., 3.])
+
+ds1 = kd.int32([1, 2, 3])
+npkd.to_array(ds1) # np.int32([1, 2, 3])
+
+ds2 = kd.int64([1, 2, 3])
+npkd.to_array(ds2) # np.int64([1, 2, 3])
+
+ds3 = kd.float32([1., 2., 3.])
+npkd.to_array(ds3) # np.float32([1., 2., 3.])
+
+# Numpy does not support sparse array
+# Missing is converted to nan
+ds4 = kd.float64([1., None, 3.])
+npkd.to_array(ds4) # np.float64([1., nan, 3.])
+
+# Numpy does not support multidimensional array
+# Jagged array is flattened
+ds5 = kd.slice([[1, 2], [3, 4]])
+npkd.to_array(ds5) # np.array([1, 2, 3, 4])
+
+# Numpy does not support mixed types
+# All types are converted to strings
+ds6 = kd.slice([1, 2.0, '3'])
+npkd.to_array(ds6) # np.array(['1', '2.0', '3'])
+
+# Entities/objects/lists/dicts are converted to
+# DataItems and stored as objects in Numpy array
+ds7 = kd.obj(x=kd.slice([1, 2, 3]))
+arr = npkd.to_array(ds7)
+# -> np.array([Obj(x=1), Obj(x=2), Obj(x=3)],
+#             dtype=object)
+
+# It does support round-trip conversion
+ds8 = npkd.from_array(arr)
+assert kd.full_equal(ds7, ds8)
 ```
 
 </section>
@@ -1877,10 +1932,51 @@ npkd.from_array(np.array([1, 2, 0, 3]))
 ```py
 from koladata.ext import pdkd
 
-pdkd.to_dataframe(kd.obj(x=ds1, y=ds2),
-                  cols=['x', 'y'])
-pdkd.from_dataframe(
-    pd.DataFrame(dict(x=[1,2,3], y=[10,20,30])))
+# Primitive conversion is almost the same as numpy
+df1 = pd.DataFrame({'x': [1, 2, 3]})
+pdkd.from_dataframe(df1)
+# -> kd.new(x=kd.int64([1, 2, 3]))
+
+# Convert to objects instead of entities
+pdkd.from_dataframe(df1, as_obj=True)
+# -> kd.obj(x=kd.int64([1, 2, 3]))
+
+# Multi-dimension array is supported
+index = pd.MultiIndex.from_arrays(
+  [[0, 0, 1, 3, 3], [0, 1, 0, 0, 1]])
+df2 = pd.DataFrame({'x': [1, 2, 3, 4, 5]}, index=index)
+pdkd.from_dataframe(df2)
+# -> kd.new(x=kd.int64([[1, 2], [3], [], [4, 5]]))
+
+# Primitive DataSlice is converted to a column
+# named 'self_'
+ds1 = kd.slice([1, 2, 3])
+pdkd.to_dataframe(ds1)
+# -> pd.DataFrame({'self_': [1, 2, 3]})
+
+ds2 = kd.slice([[1, 2], [3, 4]])
+pdkd.to_dataframe(ds2) # Multi-dimensional DataFrame
+
+# Entity attributes become columns
+ds3 = kd.new(x=kd.slice([1, 2, 3]))
+pdkd.to_dataframe(ds3)
+# -> pd.DataFrame({'x': [1, 2, 3]})
+
+# Union of object attributes become columns
+ds4 = kd.slice([kd.obj(x=1), kd.obj(y=2),
+                kd.obj(x=3, y=4)])
+pdkd.to_dataframe(ds4)
+# -> pd.DataFrame({'x': ['1', None, '3'],
+#                  'y': [None, '2', '4']})
+
+# Use 'cols' to specify the columns
+# Can use attribute names or Exprs
+ds5 = kd.new(x=kd.slice([1, 2, 3]),
+             y=kd.slice([4, 5, 6]))
+pdkd.to_dataframe(ds5, col=['x', I.y, I.x + I.y])
+# -> pd.DataFrame({'x': [1, 2, 3],
+#                  'S.y': [4, 5, 6],
+#                  'S.x + S.y': [5, 7, 9]})
 ```
 
 </section>
@@ -1889,9 +1985,122 @@ pdkd.from_dataframe(
 
 ### From/To Proto
 
+```proto
+message Query {
+  string query_text = 1;
+  float final_ir = 2;
+  repeated Doc docs = 3;
+  repeated int32 tags = 4;
+  map<string, float> term_weight = 5;
+  proto2.bridge.MessageSet ms_extensions = 6;
+
+  extensions 1000 to max
+}
+
+message QueryExtension {
+  extend Query {
+    QueryExtension query_extension = 1000;
+  }
+
+  extend proto2.bridge.MessageSet {
+    QueryExtension ms_extension = 1000;
+  }
+
+  int32 extra = 1;
+}
+
+message Doc {
+  string url = 1;
+  string title = 2;
+  float score = 3;
+  int32 word_count = 4;
+  bool spam = 5;
+
+  enum Type {
+    UNDEFINED = 0;
+    WEB = 1;
+    IMAGE = 2;
+  }
+
+  Type type = 6;
+}
+```
+
 ```py
-kd.to_proto(obj, proto.db.MyMessage)
-kd.from_proto(protos)
+d1 = Doc(
+    url='url 1',
+    title='title 1',
+    word_count=10,
+    spam=False,
+    type=test_pb2.Doc.Type.WEB,
+),
+d2 = Doc(
+    url='url 2',
+    title='title 2',
+    score=1.0,
+    spam=True,
+    type=test_pb2.Doc.Type.IMAGE,
+)
+
+q = Query(
+    query_text='query 1',
+    final_ir=1.0,
+    tags=[1, 2, 3],
+    term_weight={'a': 1.0, 'b': 2.0},
+    docs=[d1, d2],
+)
+
+q.Extensions[QueryExtension.query_extension].extra = 1
+q.ms_extensions.Extensions[QueryExtension.ms_extension].extra = 2
+```
+
+```py
+# Create an entity from a proto
+# Note only present fields are set
+# and enums are converted to ints
+i1 = kd.from_proto(d1)
+# -> Entity(spam=False, title='title 1', type=1,
+#           url='url 1', word_count=10)
+
+# By default, the resulting schema is an
+# uu schema derived from proto descriptor
+i2 = kd.from_proto(d2)
+assert i1.get_schema() == i2.get_schema()
+
+# Create object instead of entity
+kd.from_proto(d1, schema=kd.OBJECT)
+
+# Use a custom schema
+kd.from_proto(d1, schema=my_own_schema)
+
+# Use provided itemid
+kd.from_proto(d1, itemid=my_itemid)
+
+# Create an entity DataSlice from a list of protos
+is1 = kd.from_proto([d1, None, d2])
+# -> DataSlice([Doc1, None, Doc2])
+
+# Repeated fields are converted to lists
+# Maps are converted to dicts
+# Extensions are ignored by default
+kd.from_proto(q)
+# Entity(docs=List[Doc1, Doc2], final_ir=1.0,
+#        query_text='query 1', tags=List[1, 2, 3],
+#        term_weight=Dict{'a': 1.0, 'b': 2.0})
+
+# Explicitly specify extensions to include
+qi = kd.from_proto(
+  q,
+  extensions=[
+    '(koladata.testing.QueryExtension.message_a_extension)',
+    'ms_extensions.(koladata.testing.QueryExtension.ms_extension)',
+  ],
+)
+
+# Convert to proto
+kd.to_proto(i1, test_pb2.Doc) # d1
+kd.to_proto(is1, test_pb2.Doc) # [d1, None, d2]
+kd.to_proto(q, test_pb2.Query) # q
 ```
 
 </section>
