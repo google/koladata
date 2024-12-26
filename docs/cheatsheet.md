@@ -526,9 +526,14 @@ ds.reshape(ds1.get_shape())
 
 ds2 = kd.slice([1, None, 3])
 # Repeats values
-ds2.repeat(3) # [[1, 1], [None, None], [3, 3]]
+ds2.repeat(2) # [[1, 1], [None, None], [3, 3]]
+ds2.add_dim(2) # same as above
+kd.repeat(ds2, 2) # same as above
+kd.add_dim(ds2, 2) # same as above
+
 # Repeats present values
-ds2.repeat_present(2) # [[1, 1], [], [3, 3]]
+kd.repeat_present(ds2, 2) # [[1, 1], [], [3, 3]]
+kd.add_dim_to_present(ds2, 2) # same as above
 ```
 
 </section>
@@ -730,7 +735,7 @@ kd.dict_like(x, schema=schema)
 
 <section>
 
-### Comparison Operators
+### Pointwise Comparison Operators
 
 ```py
 a = kd.slice([1, 2, 3])
@@ -738,15 +743,40 @@ b = kd.slice([3, 2, 1])
 
 # Use infix operators
 a > b
+a >= b
+a < b
 a <= b
 a == b
 a != b
 
 # Use kd operators
 kd.greater(a, b)
+kd.greater_equal(a, b)
+kd.less(a, b)
 kd.less_equal(a, b)
 kd.equal(a, b)
 kd.not_equal(a, b)
+```
+
+</section>
+
+<section>
+
+### DataSlice Comparison Operator
+
+```py
+a = kd.slice([1, None, 3])
+b = kd.slice([1, None, 3])
+
+kd.full_equal(a, b) # present
+# Note it is different from
+kd.all(a == b) # missing
+
+# Auto-alignment rule applies
+kd.full_equal(kd.item(1), kd.slice([1, 1])) # present
+
+# Type promotion rule applies
+kd.full_equal(kd.item(1), kd.slice([1, 1.0])) # present
 ```
 
 </section>
@@ -757,8 +787,19 @@ kd.not_equal(a, b)
 
 ```py
 a = kd.slice([1, None, 3])
-kd.has(a)
-kd.has_not(a)
+
+kd.has(a) # [present, missing, present]
+kd.has_not(a) # [missing, present, missing]
+
+b = kd.slice([kd.obj(), kd.obj(kd.list()),
+              kd.obj(kd.dict()), None, 1])
+
+kd.has_list(b)
+# -> [missing, present, missing, missing, missing]
+kd.has_dict(b)
+# -> [missing, missing, present, missing, missing]
+kd.has_primitive(b)
+# -> [missing, missing, missing, missing, present]
 ```
 
 </section>
@@ -769,16 +810,26 @@ kd.has_not(a)
 
 ```py
 # Masking
-a = kd.slice([1, 2, 3])
-a & (a > 1)  # Use infix operator
-kd.apply_mask(a, a > 1)  # Use kd operators
+a = kd.slice([1, None, 3])
+b = kd.slice([4, 5, 6])
 
-b = kd.slice([1, None, 3])
-a | b  # Use infix operator
-kd.coalesce(a, b)  # Use kd operators
+# Use infix operator
+a & (a > 1) # [None, None, 3]
+kd.apply_mask(a, a > 1) # Same as above
 
-c = kd.slice(['1', None, '3'])
-c | a
+# Use infix operator
+a | b # [1, 5, 3]
+kd.coalesce(a, b) # Same as above
+
+# Works with a DataSlice with a different schema
+c = kd.slice(['4', '5', '6'])
+a | c # [1, '5', 3]
+
+# Make sure inputs are disjoint
+kd.disjoint_coalesce(a, c) # failed
+
+d = kd.slice([None, '5', None])
+kd.disjoint_coalesce(a, d) # [1, '5', 3]
 ```
 
 </section>
@@ -1136,8 +1187,6 @@ kd.concat(a, b, ndim=3)
 
 ### Group_by Operators
 
-</section>
-
 ```py
 cities = kd.obj(
   name=kd.slice(['sf', 'sj', 'la', 'nyc', 'albany']),
@@ -1181,11 +1230,37 @@ cities_grouped.name
 # [['sf'], ['sj'], ['nyc', 'albany']]
 ```
 
+</section>
+
+<section>
+
+### Unique Operator
+
+```py
+ds1 = kd.slice([[1, 1, 1.], [1, '1', None]])
+
+# Get unique items over the last dimension
+kd.unique(ds1) # [[1, 1.0], [1, '1']]
+
+# Get unique items across all dimensions
+kd.unique(ds1.flatten()) # [1, 1.0, '1']
+
+o1 = kd.obj(a=1)
+o2 = kd.obj(a=2)
+l = kd.obj(kd.list())
+d = kd.obj(kd.dict())
+ds2 = kd.slice([[o1, o1, o2], [l, d, None]])
+
+# For entities/objects/lists/dicts,
+# compare their ItemIds
+kd.unique(ds2) # [[o1, o2], [l, d]]
+```
+
+</section>
+
 <section>
 
 ### Link Operators
-
-</section>
 
 ```py
 # One-to-many mapping
@@ -1236,6 +1311,8 @@ queries = kd.obj(
   terms=kd.implode(terms_grouped)
 )
 ```
+
+</section>
 
 <section>
 
@@ -1303,6 +1380,23 @@ kd.sort(ds1, descending=True)
 # Find the n-th element in the last dimension
 kd.sort(ds1).take(2)
 kd.sort(ds1).take(kd.slice([0, 1]))
+```
+
+</section>
+
+<section>
+
+### Reverse Operator
+
+```py
+ds = kd.slice([[10, 5, 10, 5], [30, 10]])
+
+# Reverse items in the last dimension
+kd.reverse(ds) # [[5, 10, None, 10], [10, 30]]
+
+# Reverse items across all dimensions
+kd.reverse(ds.flatten()).reshape_as(ds)
+# -> [[10, 30, 5, 10], [None, 10]]
 ```
 
 </section>
@@ -1460,6 +1554,9 @@ ls2 = kd.list_schema(Point)
 # Get the List item schema
 ls2.get_item_schema()
 
+# Check if it is a List schema
+assert ls2.is_list_schema()
+
 # Dict schema
 # Dict value schema is kd.OBJECT. That is,
 # schemas are stored in entity __schema__
@@ -1472,6 +1569,9 @@ ds2 = kd.dict_schema(kd.ITEMID, Line)
 # Get the Dict key/value schema
 ds2.get_key_schema()
 ds2.get_value_schema()
+
+# Check if it is a Dict schema
+assert ds2.is_dict_schema()
 
 # UU schema
 uus1 = kd.uu_schema(x=kd.INT32, y=kd.FLOAT64)
@@ -2336,6 +2436,9 @@ kd.eval(I.d.x + I.d.y, d=d)
 
 # Use () for functor calls
 kd.eval(I.f(a=1, b=2), f=kdf.fn(I.a + I.b))
+
+# Check if it is an Expr
+assert kd.is_expr(expr1)
 ```
 
 </section>
@@ -2378,7 +2481,13 @@ weighted_ab = I.w * add_ab
 score = kde.agg_sum(weighted_ab)
 
 # Pack Expr into a DataItem
-expr = kd.expr.pack_expr(score)
+packed_expr = kd.expr.pack_expr(score)
+
+# Packed Expr is a DataItem with schema EXPR
+assert not kd.is_expr(packed_expr)
+assert kd.is_item(packed_expr)
+assert packed_expr.get_schema() == kd.EXPR
+
 # Creates a task object containing
 # both data and expr
 task = kd.obj(expr=expr, a=kd.list([1, 2, 3]),
@@ -2540,6 +2649,9 @@ kdf = kd.functor
 
 # Create a Functor from Expr
 fn1 = kdf.expr_fn(I.a + I.b)
+
+# Check if it is a Functor
+assert kd.is_fn(fn1)
 
 # Create a Functor with local variables
 fn2 = kdf.expr_fn(V.a + I.b, c=I.d, a=V.c + I.d)
