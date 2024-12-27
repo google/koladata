@@ -175,6 +175,8 @@ e4 = kd.new(x=1, y=2, itemid=itemid)
 assert e3.get_itemid() == e4.get_itemid()
 
 # Get available attributes
+kd.dir(e) # ['x', 'y']
+# Or
 # As all entities share the same schema,
 # the intersection of attribute names is the same
 e.get_attr_names(intersection=True) # ['x', 'y']
@@ -239,6 +241,9 @@ assert o1.get_itemid() == o2.get_itemid()
 
 # Get available attributes
 os1 = kd.slice([kd.obj(x=1), kd.obj(x=1.0, y='a')])
+# Attributes present in all objects
+kd.dir(os1) # ['x']
+# Or
 os1.get_attr_names(intersection=True) # ['x']
 os1.get_attr_names(intersection=False) # ['x', 'y']
 
@@ -2107,7 +2112,15 @@ kd.to_proto(q, test_pb2.Query) # q
 
 <section>
 
-### Serialization
+### From/To Json
+
+WIP and will be available soon.
+
+</section>
+
+<section>
+
+### From/To Bytes (a.k.a. Serialization)
 
 ```py
 # Serialize DataSlice into bytes
