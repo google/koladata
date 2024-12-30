@@ -105,7 +105,9 @@ absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
   // Evaluate the expression.
   absl::StatusOr<TypedValue> result_or_error;
   {
-    // We leave the Python world here, so we no longer need the GIL.
+    // We leave the Python world here, so we must release the GIL,
+    // otherwise we can get a deadlock between GIL and the C++ locks
+    // that are used by the Expr compilation cache.
     ReleasePyGIL guard;
     result_or_error =
         koladata::expr::EvalExprWithCompilationCache(expr, input_qvalues, {});

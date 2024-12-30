@@ -23,6 +23,7 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -121,8 +122,16 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
     }
     variables.emplace_back(args.kw_names[i], *variable);
   }
-  ASSIGN_OR_RETURN(auto result,
-                   functor::CreateFunctor(*returns, signature, variables),
+  // Evaluate the expression.
+  absl::StatusOr<DataSlice> result_or_error;
+  {
+    // We leave the Python world here, so we must release the GIL,
+    // otherwise we can get a deadlock between GIL and the C++ locks
+    // that are used by the Expr compilation cache.
+    arolla::python::ReleasePyGIL guard;
+    result_or_error = functor::CreateFunctor(*returns, signature, variables);
+  }
+  ASSIGN_OR_RETURN(auto result, std::move(result_or_error),
                    arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
 }
