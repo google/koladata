@@ -61,18 +61,16 @@ class CoreUpdatedBagTest(absltest.TestCase):
     testing.assert_equal(o4.x.no_bag(), ds(2))
     testing.assert_equal(o4.y.no_bag(), ds(4))
 
-  def test_not_enough_args(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        'requires at least 2 arguments'
-    ):
-      _ = expr_eval.eval(kde.core.updated_bag())
-
-    with self.assertRaisesRegex(
-        ValueError,
-        'requires at least 2 arguments'
-    ):
-      _ = expr_eval.eval(kde.core.updated_bag(I.x), x=bag())
+  def test_few_args(self):
+    db = expr_eval.eval(kde.core.updated_bag())
+    self.assertEqual(db.get_approx_size(), 0)
+    self.assertFalse(db.is_mutable())
+    db1 = bag()
+    o1 = db1.uuobj(x=1)
+    db = expr_eval.eval(kde.core.updated_bag(I.x), x=db1)
+    self.assertGreater(db.get_approx_size(), 0)
+    self.assertFalse(db.is_mutable())
+    testing.assert_equal(o1.with_bag(db).x.no_bag(), ds(1))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

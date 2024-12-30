@@ -339,10 +339,6 @@ absl::StatusOr<arolla::OperatorPtr>
 EnrichedOrUpdatedDbOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() < 2) {
-    return absl::InvalidArgumentError("requires at least 2 arguments");
-  }
-
   for (const auto& db_input_type : input_types) {
     if (db_input_type != arolla::GetQType<DataBagPtr>()) {
       return absl::InvalidArgumentError(absl::StrCat(
