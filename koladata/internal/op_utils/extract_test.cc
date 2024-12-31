@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/op_utils/extract.h"
 
+#include <array>
 #include <cstdint>
 #include <initializer_list>
 #include <optional>
@@ -34,6 +35,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/testing/matchers.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
@@ -100,12 +102,19 @@ TriplesT GenNoiseSchemaTriples() {
   return schema_triples;
 }
 
-enum ExtractTestParam {kMainDb, kFallbackDb};
+enum ExtractDbParam {kMainDb, kFallbackDb};
+enum ExtractAllocParam {kSingleAlloc, kMultipleAllocs};
+
+struct ExtractTestParam {
+  ExtractDbParam db_param;
+  ExtractAllocParam alloc_param;
+};
+
 
 class CopyingOpTest : public ::testing::TestWithParam<ExtractTestParam> {
  public:
   DataBagImplPtr GetMainDb(DataBagImplPtr db) {
-    switch (GetParam()) {
+    switch (GetParam().db_param) {
       case kMainDb:
         return db;
       case kFallbackDb:
@@ -114,7 +123,7 @@ class CopyingOpTest : public ::testing::TestWithParam<ExtractTestParam> {
     DCHECK(false);
   }
   DataBagImplPtr GetFallbackDb(DataBagImplPtr db) {
-    switch (GetParam()) {
+    switch (GetParam().db_param) {
       case kMainDb:
         return DataBagImpl::CreateEmptyDatabag();
       case kFallbackDb:
@@ -122,21 +131,71 @@ class CopyingOpTest : public ::testing::TestWithParam<ExtractTestParam> {
     }
     DCHECK(false);
   }
+  DataSliceImpl AllocateEmptyObjects(int64_t size) {
+    switch (GetParam().alloc_param) {
+      case kSingleAlloc:
+        return DataSliceImpl::AllocateEmptyObjects(size);
+      case kMultipleAllocs:
+        SliceBuilder bldr(size);
+        for (int i = 0; i < size; ++i) {
+          auto alloc_id = DataSliceImpl::AllocateEmptyObjects(size);
+          bldr.InsertIfNotSetAndUpdateAllocIds(i, alloc_id[i]);
+        }
+        return std::move(bldr).Build();
+    }
+    DCHECK(false);
+  }
+  DataSliceImpl AllocateEmptyLists(int64_t size) {
+    switch (GetParam().alloc_param) {
+      case kSingleAlloc:
+        return DataSliceImpl::ObjectsFromAllocation(AllocateLists(size), size);
+      case kMultipleAllocs:
+        SliceBuilder bldr(size);
+        for (int i = 0; i < size; ++i) {
+          auto alloc_id = AllocateLists(size);
+          bldr.InsertIfNotSetAndUpdateAllocIds(
+              i, DataItem(alloc_id.ObjectByOffset(i)));
+        }
+        return std::move(bldr).Build();
+    }
+    DCHECK(false);
+  }
+  DataSliceImpl AllocateEmptyDicts(int64_t size) {
+    switch (GetParam().alloc_param) {
+      case kSingleAlloc:
+        return DataSliceImpl::ObjectsFromAllocation(AllocateDicts(size), size);
+      case kMultipleAllocs:
+        SliceBuilder bldr(size);
+        for (int i = 0; i < size; ++i) {
+          auto alloc_id = AllocateDicts(size);
+          bldr.InsertIfNotSetAndUpdateAllocIds(
+              i, DataItem(alloc_id.ObjectByOffset(i)));
+        }
+        return std::move(bldr).Build();
+    }
+    DCHECK(false);
+  }
 };
+
+std::array<ExtractTestParam, 4> extract_test_param_values(
+    {{kMainDb, kSingleAlloc},
+     {kMainDb, kMultipleAllocs},
+     {kFallbackDb, kSingleAlloc},
+     {kFallbackDb, kMultipleAllocs}});
 
 class ExtractTest : public CopyingOpTest {};
 
 class ShallowCloneTest : public CopyingOpTest {};
 
 INSTANTIATE_TEST_SUITE_P(MainOrFallback, ExtractTest,
-                         ::testing::Values(kMainDb, kFallbackDb));
+                         ::testing::ValuesIn(extract_test_param_values));
 
 INSTANTIATE_TEST_SUITE_P(MainOrFallback, ShallowCloneTest,
-                         ::testing::Values(kMainDb, kFallbackDb));
+                         ::testing::ValuesIn(extract_test_param_values));
 
 TEST_P(ShallowCloneTest, ShallowEntitySlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -179,7 +238,7 @@ TEST_P(ShallowCloneTest, ShallowEntitySlice) {
 
 TEST_P(ShallowCloneTest, DeepEntitySlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(6);
+  auto obj_ids = AllocateEmptyObjects(6);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -202,7 +261,7 @@ TEST_P(ShallowCloneTest, DeepEntitySlice) {
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
-  auto itemid = DataSliceImpl::AllocateEmptyObjects(3);
+  auto itemid = AllocateEmptyObjects(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
@@ -231,7 +290,7 @@ TEST_P(ShallowCloneTest, DeepEntitySlice) {
 
 TEST_P(ShallowCloneTest, ShallowListsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto lists = AllocateEmptyLists(3);
   auto values =
       DataSliceImpl::Create(CreateDenseArray<int32_t>({1, 2, 3, 4, 5, 6, 7}));
   ASSERT_OK_AND_ASSIGN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
@@ -244,7 +303,7 @@ TEST_P(ShallowCloneTest, ShallowListsSlice) {
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
-  auto itemid = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto itemid = AllocateEmptyLists(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
@@ -272,8 +331,8 @@ TEST_P(ShallowCloneTest, ShallowListsSlice) {
 
 TEST_P(ShallowCloneTest, DeepListsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
-  auto values = DataSliceImpl::AllocateEmptyObjects(7);
+  auto lists = AllocateEmptyLists(3);
+  auto values = AllocateEmptyObjects(7);
   ASSERT_OK_AND_ASSIGN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
                                       CreateDenseArray<int64_t>({0, 3, 5, 7})));
   ASSERT_OK(db->ExtendLists(lists, values, edge));
@@ -291,7 +350,7 @@ TEST_P(ShallowCloneTest, DeepListsSlice) {
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
-  auto itemid = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto itemid = AllocateEmptyLists(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
@@ -318,7 +377,7 @@ TEST_P(ShallowCloneTest, DeepListsSlice) {
 
 TEST_P(ShallowCloneTest, ShallowDictsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+  auto dicts = AllocateEmptyDicts(3);
   auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
   auto keys =
@@ -334,7 +393,7 @@ TEST_P(ShallowCloneTest, ShallowDictsSlice) {
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
-  auto itemid = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+  auto itemid = AllocateEmptyDicts(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
@@ -366,9 +425,9 @@ TEST_P(ShallowCloneTest, ShallowDictsSlice) {
 
 TEST_P(ShallowCloneTest, DeepDictsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
-  auto keys = DataSliceImpl::AllocateEmptyObjects(4);
-  auto values = DataSliceImpl::AllocateEmptyObjects(7);
+  auto dicts = AllocateEmptyDicts(3);
+  auto keys = AllocateEmptyObjects(4);
+  auto values = AllocateEmptyObjects(7);
   auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
   auto keys_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
@@ -398,7 +457,7 @@ TEST_P(ShallowCloneTest, DeepDictsSlice) {
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
-  auto itemid = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+  auto itemid = AllocateEmptyDicts(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
@@ -431,15 +490,15 @@ TEST_P(ShallowCloneTest, DeepDictsSlice) {
 
 TEST_P(ShallowCloneTest, ObjectsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto obj_ids = AllocateEmptyObjects(10);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
   auto a3 = obj_ids[3];
   auto a4 = obj_ids[4];
   auto a5 = obj_ids[5];
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(2), 2);
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(2), 2);
+  auto dicts = AllocateEmptyDicts(2);
+  auto lists = AllocateEmptyLists(2);
   ASSERT_OK(db->SetInDict(dicts[0], DataItem("a"), DataItem(1)));
   ASSERT_OK(db->SetInDict(dicts[1], a2, a3));
   ASSERT_OK(db->ExtendList(
@@ -546,7 +605,7 @@ TEST_P(ShallowCloneTest, ObjectsSlice) {
 
 TEST_P(ShallowCloneTest, MixedObjectsAndSchemasSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(5);
+  auto obj_ids = AllocateEmptyObjects(5);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -585,7 +644,7 @@ TEST_P(ShallowCloneTest, MixedObjectsAndSchemasSlice) {
 
 TEST_P(ShallowCloneTest, ObjectsWithImplicitAndExplicitSchemas) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(5);
+  auto obj_ids = AllocateEmptyObjects(5);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -752,7 +811,7 @@ TEST_P(ShallowCloneTest, SchemaUuidSlice) {
 
 TEST_P(ShallowCloneTest, MissingInItemid) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -783,7 +842,7 @@ TEST_P(ShallowCloneTest, MissingInItemid) {
 
 TEST_P(ShallowCloneTest, ExtraInItemid) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -798,7 +857,7 @@ TEST_P(ShallowCloneTest, ExtraInItemid) {
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
-  auto itemid = DataSliceImpl::AllocateEmptyObjects(3);
+  auto itemid = AllocateEmptyObjects(3);
   auto ds = DataSliceImpl::Create(
       CreateDenseArray<DataItem>({a0, DataItem(AllocateSingleDict()), a2}));
 
@@ -813,7 +872,7 @@ TEST_P(ShallowCloneTest, ExtraInItemid) {
 
 TEST_P(ShallowCloneTest, IntersectingItemidWithDsPrimitives) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -851,7 +910,7 @@ TEST_P(ShallowCloneTest, IntersectingItemidWithDsPrimitives) {
 
 TEST_P(ExtractTest, DataSliceEntity) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -882,7 +941,7 @@ TEST_P(ExtractTest, DataSliceEntity) {
 
 TEST_P(ExtractTest, DataSliceObjectIds) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -911,7 +970,7 @@ TEST_P(ExtractTest, DataSliceObjectIds) {
 
 TEST_P(ExtractTest, DataSliceObjectSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -947,7 +1006,7 @@ TEST_P(ExtractTest, DataSliceObjectSchema) {
 
 TEST_P(ExtractTest, DataSliceListsPrimitives) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto lists = AllocateEmptyLists(3);
   auto values =
       DataSliceImpl::Create(CreateDenseArray<int32_t>({1, 2, 3, 4, 5, 6, 7}));
   ASSERT_OK_AND_ASSIGN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
@@ -975,7 +1034,7 @@ TEST_P(ExtractTest, DataSliceListsPrimitives) {
 
 TEST_P(ExtractTest, DataSliceListsObjectIds) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(7);
+  auto obj_ids = AllocateEmptyObjects(7);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -1022,7 +1081,7 @@ TEST_P(ExtractTest, DataSliceListsObjectIds) {
 
 TEST_P(ExtractTest, DataSliceListsObjectIdsObjectSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(7);
+  auto obj_ids = AllocateEmptyObjects(7);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -1030,7 +1089,7 @@ TEST_P(ExtractTest, DataSliceListsObjectIdsObjectSchema) {
   auto a4 = obj_ids[4];
   auto a5 = obj_ids[5];
   auto a6 = obj_ids[6];
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto lists = AllocateEmptyLists(3);
   auto values = DataSliceImpl::Create(
       CreateDenseArray<DataItem>({a0, a1, a2, a3, a4, a5, a6}));
   ASSERT_OK_AND_ASSIGN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
@@ -1073,7 +1132,7 @@ TEST_P(ExtractTest, DataSliceListsObjectIdsObjectSchema) {
 
 TEST_P(ExtractTest, DataSliceDictsPrimitives) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+  auto dicts = AllocateEmptyDicts(3);
   auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
   auto keys =
@@ -1104,8 +1163,8 @@ TEST_P(ExtractTest, DataSliceDictsPrimitives) {
 
 TEST_P(ExtractTest, DataSliceDictsObjectIds) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(7);
+  auto dicts = AllocateEmptyDicts(3);
+  auto obj_ids = AllocateEmptyObjects(7);
   auto k0 = obj_ids[0];
   auto k1 = obj_ids[1];
   auto k2 = obj_ids[2];
@@ -1159,8 +1218,8 @@ TEST_P(ExtractTest, DataSliceDictsObjectIds) {
 
 TEST_P(ExtractTest, DataSliceDictsObjectIdsObjectSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(7);
+  auto dicts = AllocateEmptyDicts(3);
+  auto obj_ids = AllocateEmptyObjects(7);
   auto k0 = obj_ids[0];
   auto k1 = obj_ids[1];
   auto k2 = obj_ids[2];
@@ -1218,8 +1277,8 @@ TEST_P(ExtractTest, DataSliceDictsObjectIdsObjectSchema) {
 
 TEST_P(ExtractTest, DataSliceDicts_LoopSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
-  auto objs = DataSliceImpl::AllocateEmptyObjects(3);
+  auto dicts = AllocateEmptyDicts(3);
+  auto objs = AllocateEmptyObjects(3);
   auto k0 = objs[0];
   auto k1 = objs[1];
   auto k2 = objs[2];
@@ -1286,7 +1345,7 @@ TEST_P(ExtractTest, DataSliceDicts_LoopSchema_NoData) {
 
 TEST_P(ExtractTest, DataSliceLists_LoopSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto lists = AllocateEmptyLists(3);
   auto values = DataSliceImpl::Create(
       CreateDenseArray<DataItem>({lists[1], lists[2], lists[0]}));
   ASSERT_OK(db->AppendToList(lists, values));
@@ -1398,7 +1457,7 @@ TEST_P(ExtractTest, DataSliceDicts_InvalidSchema_UnexpectedAttr) {
 
 TEST_P(ExtractTest, ExtractSchemaForEmptySlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(1);
+  auto obj_ids = AllocateEmptyObjects(1);
   auto a0 = obj_ids[0];
   auto schema1 = AllocateSchema();
   auto schema2 = AllocateSchema();
@@ -1423,7 +1482,7 @@ TEST_P(ExtractTest, ExtractSchemaForEmptySlice) {
 
 TEST_P(ExtractTest, RecursiveSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(4);
+  auto obj_ids = AllocateEmptyObjects(4);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -1452,11 +1511,11 @@ TEST_P(ExtractTest, RecursiveSchema) {
 
 TEST_P(ExtractTest, MixedObjectsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
-  auto hidden_obj_ids = DataSliceImpl::AllocateEmptyObjects(2);
+  auto hidden_obj_ids = AllocateEmptyObjects(2);
   auto a3 = hidden_obj_ids[0];
   auto a4 = hidden_obj_ids[1];
   auto schema = AllocateSchema();
@@ -1488,7 +1547,7 @@ TEST_P(ExtractTest, MixedObjectsSlice) {
 
 TEST_P(ExtractTest, PartialSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(4);
+  auto obj_ids = AllocateEmptyObjects(4);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -1526,7 +1585,7 @@ TEST_P(ExtractTest, PartialSchema) {
 TEST_P(ExtractTest, PartialSchemaWithDifferentDataBag) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto schema_db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(4);
+  auto obj_ids = AllocateEmptyObjects(4);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -1570,10 +1629,61 @@ TEST_P(ExtractTest, PartialSchemaWithDifferentDataBag) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(ExtractTest, ExtendedSchemaWithDifferentDataBag) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema_db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(6);
+  auto oth_obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto a3 = obj_ids[3];
+  auto b0 = oth_obj_ids[0];
+  auto b1 = oth_obj_ids[1];
+  auto object_dtype = DataItem(schema::kObject);
+  auto int_dtype = DataItem(schema::kInt32);
+  auto schemas = AllocateExplicitSchemas(kSmallAllocMaxCapacity + 1);
+  auto schema = DataItem(schemas.ObjectByOffset(0));
+  auto missing_schema = DataItem(schemas.ObjectByOffset(1));
+
+  TriplesT extended_schema_triples = {
+      {schema, {{"next", schema}, {"b", object_dtype}, {"y", int_dtype}}}};
+  TriplesT schema_triples = {
+      {schema, {{"b", object_dtype}, {"y", int_dtype}}},
+      {missing_schema, {{"next", missing_schema}}}};
+  TriplesT data_triples = {
+      {a1, {{"next", a2}, {"b", b1}}},
+      {a2, {{"y", DataItem(5)}, {"b", b0}}},
+      {a3, {{"y", DataItem(6)}}},
+      {b0, {{schema::kSchemaAttr, schema}, {"y", DataItem(0)}}},
+      {b1, {{schema::kSchemaAttr, schema}, {"y", DataItem(1)}}},
+  };
+
+  SetSchemaTriples(*schema_db, extended_schema_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*schema_db, GenNoiseSchemaTriples());
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, extended_schema_triples);
+  SetDataTriples(*expected_db, data_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(
+      obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+      &*GetMainDb(schema_db),
+      DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})));
+
+  EXPECT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 TEST_P(ExtractTest, MergeSchemaFromTwoDatabags) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto schema_db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(4);
+  auto obj_ids = AllocateEmptyObjects(4);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto int_dtype = DataItem(schema::kInt32);
@@ -1617,7 +1727,7 @@ TEST_P(ExtractTest, MergeSchemaFromTwoDatabags) {
 TEST_P(ExtractTest, ConflictingSchemasInTwoDatabags) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto schema_db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(4);
+  auto obj_ids = AllocateEmptyObjects(4);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto text_dtype = DataItem(schema::kString);
@@ -1645,15 +1755,16 @@ TEST_P(ExtractTest, ConflictingSchemasInTwoDatabags) {
           a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
           &*GetMainDb(schema_db),
           DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               ::testing::AllOf(
-                   ::testing::HasSubstr("conflicting values for schema"),
-                   ::testing::HasSubstr("x: INT32 != STRING"))));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          ::testing::AllOf(
+              ::testing::HasSubstr("conflicting values for some of schemas"),
+              ::testing::HasSubstr("x: [INT32] != [STRING]"))));
 }
 
 TEST_P(ExtractTest, NoFollowEntitySchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(4);
+  auto obj_ids = AllocateEmptyObjects(4);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -1697,7 +1808,7 @@ TEST_P(ExtractTest, NoFollowEntitySchema) {
 
 TEST_P(ExtractTest, NoFollowObjectSchema) {
     auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -1742,7 +1853,7 @@ TEST_P(ExtractTest, NoFollowObjectSchema) {
 
 TEST_P(ExtractTest, SchemaAsData) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto schema = AllocateSchema();
@@ -1822,7 +1933,7 @@ TEST_P(ExtractTest, SchemaSlice) {
 
 TEST_P(ExtractTest, ObjectSchemaMissing) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto schema = AllocateSchema();
 
   TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kInt32)}}}};
@@ -1847,7 +1958,7 @@ TEST_P(ExtractTest, ObjectSchemaMissing) {
 
 TEST_P(ExtractTest, ObjectSchemaAllMissing) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
 
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
@@ -1863,7 +1974,7 @@ TEST_P(ExtractTest, ObjectSchemaAllMissing) {
 
 TEST_P(ExtractTest, InvalidSchemaType) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto schema = DataItem(1);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -1875,7 +1986,7 @@ TEST_P(ExtractTest, InvalidSchemaType) {
 
 TEST_P(ExtractTest, AnySchemaType) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto schema = DataItem(schema::kAny);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -1899,7 +2010,7 @@ TEST_P(ExtractTest, AnySchemaTypeEmptySlice) {
 
 TEST_P(ExtractTest, AnySchemaTypeInside) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(2);
+  auto obj_ids = AllocateEmptyObjects(2);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto schema1 = AllocateSchema();

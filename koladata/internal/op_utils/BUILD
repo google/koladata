@@ -77,10 +77,49 @@ cc_test(
 )
 
 cc_library(
+    name = "group_by_utils",
+    hdrs = ["group_by_utils.h"],
+    deps = [
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/ops",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qexpr/operators/aggregation:lib",
+        "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "group_by_utils_test",
+    srcs = ["group_by_utils_test.cc"],
+    deps = [
+        ":group_by_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "extract",
     srcs = ["extract.cc"],
     hdrs = ["extract.h"],
     deps = [
+        ":equal",
+        ":group_by_utils",
+        ":has",
         ":presence_and",
         ":presence_or",
         "//koladata/internal:data_bag",
