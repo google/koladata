@@ -22,14 +22,6 @@ import pandas as pd
 S = kd.S
 
 
-def to_itemid_str(x):
-  return str(x.get_itemid())
-
-
-def map_to_itemid_str(items):
-  return [str(x.get_itemid()) for x in items]
-
-
 class NpkdTest(parameterized.TestCase):
 
   def test_from_dataframe(self):
@@ -37,22 +29,15 @@ class NpkdTest(parameterized.TestCase):
     with self.subTest('primitive df'):
       df = pd.DataFrame({'x': [1, 2, 3]})
       ds = pdkd.from_dataframe(df)
-      kd.testing.assert_equal(
-          ds.x,
-          kd.slice([1, 2, 3], schema=kd.INT64).with_bag(
-              ds.get_bag()
-          ),
-      )
+      kd.testing.assert_equal(ds.x.no_bag(), kd.int64([1, 2, 3]))
 
     with self.subTest('multi-dimensional int df'):
       index = pd.MultiIndex.from_arrays([[0, 0, 1, 3, 3], [0, 1, 0, 0, 1]])
       df = pd.DataFrame({'x': [1, 2, 3, 4, 5]}, index=index)
       ds = pdkd.from_dataframe(df)
       kd.testing.assert_equal(
-          ds.x,
-          kd.slice([[1, 2], [3], [], [4, 5]], schema=kd.INT64).with_bag(
-              ds.get_bag()
-          ),
+          ds.x.no_bag(),
+          kd.int64([[1, 2], [3], [], [4, 5]]),
       )
 
     with self.subTest('non-primitive df'):
@@ -61,13 +46,10 @@ class NpkdTest(parameterized.TestCase):
       self.assertCountEqual(kd.dir(ds), ['self_', 'x'])
       self.assertNotEqual(ds.get_schema(), kd.OBJECT)
       kd.testing.assert_equal(
-          ds.get_attr('self_'),
-          kd.slice(['$1', '$2', '$3']).with_bag(ds.get_bag()),
+          ds.get_attr('self_').no_bag(),
+          kd.slice(['$1', '$2', '$3']),
       )
-      kd.testing.assert_equal(
-          ds.x,
-          kd.slice([1, 2, 3], schema=kd.INT64).with_bag(ds.get_bag()),
-      )
+      kd.testing.assert_equal(ds.x.no_bag(), kd.int64([1, 2, 3]))
 
     with self.subTest('non-primitive df with as_obj set to True'):
       df = pd.DataFrame({'self_': ['$1', '$2', '$3'], 'x': [1, 2, 3]})
@@ -75,13 +57,10 @@ class NpkdTest(parameterized.TestCase):
       self.assertCountEqual(kd.dir(ds), ['self_', 'x'])
       self.assertEqual(ds.get_schema(), kd.OBJECT)
       kd.testing.assert_equal(
-          ds.get_attr('self_'),
-          kd.slice(['$1', '$2', '$3']).with_bag(ds.get_bag()),
+          ds.get_attr('self_').no_bag(),
+          kd.slice(['$1', '$2', '$3']),
       )
-      kd.testing.assert_equal(
-          ds.x,
-          kd.slice([1, 2, 3], schema=kd.INT64).with_bag(ds.get_bag()),
-      )
+      kd.testing.assert_equal(ds.x.no_bag(), kd.int64([1, 2, 3]))
 
     with self.subTest('object df'):
       df = pd.DataFrame({'x': np.array([{1: 2}, {3: 4}], dtype=object)})
@@ -108,13 +87,6 @@ class NpkdTest(parameterized.TestCase):
       self.assertNotIsInstance(df.index, pd.DataFrame)
       self.assertCountEqual(df.columns, ['self_'])
       self.assertCountEqual(df['self_'], [1, 2, 3])
-
-    with self.subTest('mixed ds with primitive and object'):
-      ds = kd.slice([kd.obj(x=1), 'abc'])
-      with self.assertRaisesRegex(
-          ValueError, 'getting attributes of primitives is not allowed'
-      ):
-        _ = pdkd.to_dataframe(ds)
 
     with self.subTest('primitive ds with databag'):
       ds = kd.slice([1, 2, 3]).with_bag(kd.bag())
@@ -158,9 +130,7 @@ class NpkdTest(parameterized.TestCase):
       ds = kd.slice([l1, l2, l3])
       df = pdkd.to_dataframe(ds)
       self.assertCountEqual(df.columns, ['self_'])
-      self.assertEqual(
-          map_to_itemid_str(df['self_']), map_to_itemid_str([l1, l2, l3])
-      )
+      self.assertCountEqual(df['self_'], ds.internal_as_py())
 
     with self.subTest('dict ds'):
       d1 = kd.dict()
@@ -169,16 +139,18 @@ class NpkdTest(parameterized.TestCase):
       ds = kd.slice([d1, d2, d3])
       df = pdkd.to_dataframe(ds)
       self.assertCountEqual(df.columns, ['self_'])
-      self.assertEqual(
-          map_to_itemid_str(df['self_']), map_to_itemid_str([d1, d2, d3])
-      )
+      self.assertCountEqual(df['self_'], ds.internal_as_py())
 
     with self.subTest('entity ds'):
       ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
       df = pdkd.to_dataframe(ds)
-      self.assertCountEqual(df.columns, ['self_', 'x', 'y'])
+      self.assertCountEqual(df.columns, ['x', 'y'])
       self.assertCountEqual(df['x'], [1, 2, 3])
       self.assertCountEqual(df['y'], ['a', 'b', 'c'])
+
+      df = pdkd.to_dataframe(ds, include_self=True)
+      self.assertCountEqual(df.columns, ['self_', 'x', 'y'])
+      self.assertCountEqual(df['self_'], ds.internal_as_py())
 
     with self.subTest('entity ds with attrs'):
       ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
@@ -189,15 +161,19 @@ class NpkdTest(parameterized.TestCase):
     with self.subTest('obj ds'):
       ds = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
       df = pdkd.to_dataframe(ds)
-      self.assertCountEqual(df.columns, ['self_', 'x', 'y'])
+      self.assertCountEqual(df.columns, ['x', 'y'])
       self.assertCountEqual(df['x'], [1, 2, 3])
       self.assertCountEqual(df['y'], ['a', 'b', 'c'])
+
+      df = pdkd.to_dataframe(ds, include_self=True)
+      self.assertCountEqual(df.columns, ['self_', 'x', 'y'])
+      self.assertCountEqual(df['self_'], ds.internal_as_py())
 
     # missing int values are replaced with 0
     with self.subTest('obj ds with different attrs int'):
       ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(y='c')])
       df = pdkd.to_dataframe(ds)
-      self.assertCountEqual(df.columns, ['self_', 'x', 'y'])
+      self.assertCountEqual(df.columns, ['x', 'y'])
       self.assertSameElements(df['x'], [1, 2, 0])
       self.assertCountEqual(df['y'], ['a', None, 'c'])
 
@@ -205,11 +181,19 @@ class NpkdTest(parameterized.TestCase):
     with self.subTest('obj ds with different attrs float'):
       ds = kd.slice([kd.obj(x=1.0, y='a'), kd.obj(x=2.0), kd.obj(y='c')])
       df = pdkd.to_dataframe(ds)
-      self.assertCountEqual(df.columns, ['self_', 'x', 'y'])
+      self.assertCountEqual(df.columns, ['x', 'y'])
       self.assertCountEqual(np.isnan(df['x']), [False, False, True])
       self.assertEqual(df['x'][0], 1)
       self.assertEqual(df['x'][1], 2)
       self.assertCountEqual(df['y'], ['a', None, 'c'])
+
+    with self.subTest('mixed obj ds'):
+      ds = kd.slice(
+          [1, None, kd.obj(x=2), kd.obj(kd.list()), kd.obj(kd.dict())]
+      )
+      df = pdkd.to_dataframe(ds)
+      self.assertCountEqual(df.columns, ['self_'])
+      self.assertCountEqual(df['self_'], ds.internal_as_py())
 
     with self.subTest('obj ds with different attrs and cols'):
       ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(x=3, y='c')])
@@ -298,6 +282,11 @@ class NpkdTest(parameterized.TestCase):
           ValueError, 'All columns must have compatible shapes'
       ):
         _ = pdkd.to_dataframe(ds, cols=[S.x[:].z, S.y[:].z])
+
+    with self.subTest('specify columns with include_self'):
+      ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
+      with self.assertRaisesRegex(ValueError, 'Cannot set `include_self`'):
+        _ = pdkd.to_dataframe(ds, cols=['a'], include_self=True)
 
 
 if __name__ == '__main__':

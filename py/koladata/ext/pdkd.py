@@ -68,6 +68,7 @@ _SPECIAL_COLUMN_NAMES = ('__items__', '__keys__', '__values__')
 def to_dataframe(
     ds: kd.types.DataSlice,
     cols: Optional[list[str | arolla.Expr]] = None,
+    include_self: bool = False,
 ) -> pd.DataFrame:
   """Creates a pandas DataFrame from the given DataSlice.
 
@@ -76,35 +77,45 @@ def to_dataframe(
   one dimension, it will be converted to a MultiIndex DataFrame with index
   columns corresponding to each dimension.
 
-  `cols` can be used to specify which data from the DataSlice should be
-  extracted as DataFrame columns. It can contain either the string names of
-  attributes or Exprs which can be evaluated on the DataSlice. If `None`, all
-  attributes will be extracted. If `ds` does not have attributes (e.g. it has
-  only primitives, Lists, Dicts), its items will be extracted as a column named
-  'self_'. For example,
+  When `cols` is not specified, DataFrame columns are inferred from `ds`.
+    1) If `ds` has primitives, lists, dicts or ITEMID/ANY schema, a single
+       column named 'self_' is used and items themselves are extracted.
+    2) If `ds` has entity schema, all attributes from `ds` are extracted as
+       columns.
+    3) If `ds` has OBJECT schema, the union of attributes from all objects in
+       `ds` are used as columns. Missing values are filled if objects do not
+       have corresponding attributes.
 
-    ds = kd.slice([1, 2, 3]
+  For example,
+
+    ds = kd.slice([1, 2, 3])
     to_dataframe(ds) -> extract 'self_'
 
     ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     to_dataframe(ds) -> extract 'x' and 'y'
-    to_dataframe(ds, ['x']) -> extract 'x'
-    to_dataframe(ds, [I.x, I.x + I.y]) -> extract 'I.x' and 'I.x + I.y'
-
-  If `ds` has OBJECT schema and `cols` is not specified, the union of attributes
-  from all Object items in the `ds` will be extracted and missing values will be
-  filled if Objects do not have corresponding attributes. If `cols` is
-  specified, all attributes must present in all Object items. To ignore items
-  which do not have specific attributes, one can set the attributes on `ds`
-  using `ds.attr = ds.maybe(attr)` or use `I.self.maybe(attr)` in `cols`. For
-  example,
 
     ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(x=3, y='c')])
     to_dataframe(ds) -> extract 'x', 'y'
+
+  `cols` can be used to specify which data from the DataSlice should be
+  extracted as DataFrame columns. It can contain either the string names of
+  attributes or Exprs which can be evaluated on the DataSlice. If `ds` has
+  OBJECT schema, specified attributes must present in all objects in `ds`. To
+  ignore objects which do not have specific attributes, one can use
+  `S.maybe(attr)` in `cols`. For example,
+
+    ds = kd.slice([1, 2, 3])
+    to_dataframe(ds) -> extract 'self_'
+
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     to_dataframe(ds, ['x']) -> extract 'x'
-    to_dataframe(ds, ['y']) -> raise an exception as 'y' does not exist in
+    to_dataframe(ds, [I.x, I.x + I.y]) -> extract 'I.x' and 'I.x + I.y'
+
+    ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(x=3, y='c')])
+    to_dataframe(ds, ['x']) -> extract 'x'
+    to_dataframe(ds, [I.y]) -> raise an exception as 'y' does not exist in
         kd.obj(x=2)
-    to_dataframe(ds, [I.self.maybe('x')]) -> extract 'x' but ignore items which
+    to_dataframe(ds, [S.maybe('y')]) -> extract 'y' but ignore items which
         do not have 'x' attribute.
 
   If extracted column DataSlices have different shapes, they will be aligned to
@@ -127,6 +138,9 @@ def to_dataframe(
     ds: DataSlice to convert.
     cols: list of columns to extract from DataSlice. If None all attributes will
       be extracted.
+    include_self: whether to include the 'self_' column. 'self_' column is
+      always included if `cols` is None and `ds` contains primitives/lists/dicts
+      or it has ITEMID/ANY schema.
 
   Returns:
     DataFrame with columns from DataSlice fields.
@@ -134,17 +148,44 @@ def to_dataframe(
   if ds.get_ndim() == 0:
     ds = ds.repeat(1)
 
-  get_attr_fn = kdi.get_attr
-  if ds.get_bag() is None:
-    if cols is not None:
+  if cols is not None:
+    if ds.get_bag() is None:
       raise ValueError(
           f'Cannot specify columns {cols!r} for a DataSlice without a db.'
       )
-    cols = ['self_']
-  elif cols is None:
-    cols = ['self_']
-    cols.extend(ds.get_attr_names(intersection=False))
-    get_attr_fn = kdi.maybe
+    if include_self:
+      raise ValueError(
+          f'Cannot set `include_self` when specifying columns {cols!r}. Add'
+          " 'self_' to the list of columns instead."
+      )
+
+  get_attr_fn = kdi.get_attr
+  schema = ds.get_schema()
+  if cols is None:
+    if ds.get_bag() is None:
+      cols = ['self_']
+    elif (
+        schema.is_primitive_schema()
+        or schema.is_list_schema()
+        or schema.is_dict_schema()
+        or schema == kd.ITEMID
+        or schema == kd.ANY
+    ):
+      cols = ['self_']
+    elif schema.is_entity_schema():
+      cols = ds.get_attr_names(intersection=True)
+      if include_self:
+        cols.append('self_')
+    elif ds.get_schema() == kd.OBJECT:
+      if kd.any(kd.has_primitive(ds) | kd.has_list(ds) | kd.has_dict(ds)):
+        cols = ['self_']
+      else:
+        cols = ds.get_attr_names(intersection=False)
+        get_attr_fn = kdi.maybe
+        if include_self:
+          cols.append('self_')
+    else:
+      assert False, f'Internal error: unsupported schema {schema!r}'
 
   col_dss = []
   col_names = []
