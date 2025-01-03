@@ -129,6 +129,9 @@ class DataSliceImpl {
   // Returns true iff all present values are dict objects.
   bool ContainsOnlyDicts() const;
 
+  // Returns true iff all present values are plain entity objects.
+  bool ContainsOnlyPlainEntities() const;
+
   // Get values from the data slice.
   // Can be used only if dtype() == GetQType<T>().
   template <class T>

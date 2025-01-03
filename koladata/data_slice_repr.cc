@@ -716,9 +716,9 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
   std::string result;
   absl::StrAppend(&result, ds.is_item() ? "DataItem(" : "DataSlice(");
   const DataItem& schema = ds.GetSchemaImpl();
-  bool only_print_attr_names =
-      (schema.is_entity_schema() || schema.is_object_schema()) &&
-      ds.size() >= option.item_limit && option.show_attributes;
+  bool only_print_attr_names = ds.size() >= option.item_limit &&
+                               option.show_attributes &&
+                               !schema.is_any_schema() && ds.IsPlainEntity();
   // If the data slice is too large, we will not print the
   // whole data slice.
   if (only_print_attr_names) {

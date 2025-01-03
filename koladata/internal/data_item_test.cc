@@ -399,6 +399,14 @@ TEST(DataItemTest, IsDict) {
   EXPECT_FALSE(DataItem().is_dict());
 }
 
+TEST(DataItemTest, IsPlainEntity) {
+  EXPECT_TRUE(DataItem(AllocateSingleObject()).is_plain_entity());
+  EXPECT_FALSE(DataItem(AllocateSingleDict()).is_plain_entity());
+  EXPECT_FALSE(DataItem(0).is_plain_entity());
+  EXPECT_FALSE(DataItem(4.f).is_plain_entity());
+  EXPECT_FALSE(DataItem().is_plain_entity());
+}
+
 TEST(DataItemTest, IsSchema) {
   EXPECT_TRUE(DataItem(AllocateExplicitSchema()).is_schema());
   EXPECT_TRUE(DataItem(schema::kAny).is_schema());
@@ -513,6 +521,14 @@ TEST(DataItemTest, ContainsOnlyDicts) {
   EXPECT_FALSE(DataItem(AllocateSingleObject()).ContainsOnlyDicts());
   EXPECT_FALSE(DataItem(0).ContainsOnlyDicts());
   EXPECT_FALSE(DataItem(4.f).ContainsOnlyDicts());
+}
+
+TEST(DataItemTest, ContainsOnlyPlainEntities) {
+  EXPECT_TRUE(DataItem(AllocateSingleObject()).ContainsOnlyPlainEntities());
+  EXPECT_TRUE(DataItem().ContainsOnlyPlainEntities());
+  EXPECT_FALSE(DataItem(AllocateSingleDict()).ContainsOnlyPlainEntities());
+  EXPECT_FALSE(DataItem(0).ContainsOnlyPlainEntities());
+  EXPECT_FALSE(DataItem(4.f).ContainsOnlyPlainEntities());
 }
 
 TEST(DataItemTest, ItemView) {

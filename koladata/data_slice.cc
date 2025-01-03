@@ -1359,6 +1359,18 @@ bool DataSlice::IsDict() const {
   }
 }
 
+bool DataSlice::IsPlainEntity() const {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny) {
+    return VisitImpl([]<typename T>(const T& impl) -> bool {
+      return impl.ContainsOnlyPlainEntities();
+    });
+  } else {
+    auto schema = GetSchema();
+    return schema.IsEntitySchema() && !schema.IsListSchema() &&
+           !schema.IsDictSchema();
+  }
+}
+
 absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
   if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(

@@ -308,6 +308,13 @@ class DataSlice {
   // this slice is ANY or OBJECT and all present items in this slice are dicts.
   bool IsDict() const;
 
+  // TODO: Figure out if it should be renamed as list/dict are
+  // considered as entities too with the current naming convention.
+  // Returns true iff the schema of this slice is non-list/dict entity schema,
+  // or the schema of this slice is ANY or OBJECT and all present items in this
+  // slice are entities (i.e. no primitives, lists, dicts).
+  bool IsPlainEntity() const;
+
   // Gets a value from each dict in this slice (it must be slice of dicts) using
   // the corresponding keys (the shape of `keys` must be compatible with shape
   // if the dicts slice) and returns them as a DataSlice of the same size.

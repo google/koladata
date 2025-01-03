@@ -94,6 +94,7 @@ class ObjectId {
   bool IsNoFollowSchema() const {
     return (metadata_ & kNoFollowSchemaFlag) == kNoFollowSchemaFlag;
   }
+  bool IsPlainEntity() const { return !IsSchema() && !IsList() && !IsDict(); }
 
   // Returns the `uint128` numeric value representation of the object id.
   absl::uint128 ToRawInt128() const {
@@ -305,6 +306,8 @@ class AllocationId {
 
   // Returns true if the allocation is a dicts allocation.
   bool IsDictsAlloc() const { return allocation_id_.IsDict(); }
+
+  bool IsPlainEntitiesAlloc() const { return allocation_id_.IsPlainEntity(); }
 
   // Returns true if the allocation is a schemas allocation.
   bool IsSchemasAlloc() const { return allocation_id_.IsSchema(); }
