@@ -56,6 +56,18 @@ constexpr absl::string_view DTypeName() {
   }
 }
 
+// Returns OK if the DataSlice values are of the given dtype or NONE.
+absl::Status ExpectNoneOr(schema::DType dtype, absl::string_view arg_name,
+                          const DataSlice& arg) {
+  internal::DataItem narrowed_schema = GetNarrowedSchema(arg);
+  if (narrowed_schema != schema::kNone && narrowed_schema != dtype) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be a slice of %v, got a slice of %s", arg_name,
+        dtype, schema_utils_internal::DescribeSliceSchema(arg)));
+  }
+  return absl::OkStatus();
+}
+
 }  // namespace
 
 internal::DataItem GetNarrowedSchema(const DataSlice& slice) {
@@ -94,33 +106,19 @@ absl::Status ExpectInteger(absl::string_view arg_name, const DataSlice& arg) {
 }
 
 absl::Status ExpectString(absl::string_view arg_name, const DataSlice& arg) {
-  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(arg),
-                                      internal::DataItem(schema::kString))) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "argument `%s` must be a slice of %v, got a slice of %s", arg_name,
-        schema::kString, schema_utils_internal::DescribeSliceSchema(arg)));
-  }
-  return absl::OkStatus();
+  return ExpectNoneOr(schema::kString, arg_name, arg);
 }
 
 absl::Status ExpectBytes(absl::string_view arg_name, const DataSlice& arg) {
-  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(arg),
-                                      internal::DataItem(schema::kBytes))) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "argument `%s` must be a slice of %v, got a slice of %s", arg_name,
-        schema::kBytes, schema_utils_internal::DescribeSliceSchema(arg)));
-  }
-  return absl::OkStatus();
+  return ExpectNoneOr(schema::kBytes, arg_name, arg);
+}
+
+absl::Status ExpectMask(absl::string_view arg_name, const DataSlice& arg) {
+  return ExpectNoneOr(schema::kMask, arg_name, arg);
 }
 
 absl::Status ExpectSchema(absl::string_view arg_name, const DataSlice& arg) {
-  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(arg),
-                                      internal::DataItem(schema::kSchema))) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "argument `%s` must be a slice of %v, got a slice of %s", arg_name,
-        schema::kSchema, schema_utils_internal::DescribeSliceSchema(arg)));
-  }
-  return absl::OkStatus();
+  return ExpectNoneOr(schema::kSchema, arg_name, arg);
 }
 
 absl::Status ExpectPresentScalar(absl::string_view arg_name,

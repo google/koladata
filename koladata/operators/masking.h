@@ -15,12 +15,10 @@
 #ifndef KOLADATA_OPERATORS_MASKING_H_
 #define KOLADATA_OPERATORS_MASKING_H_
 
-#include <memory>
 #include <utility>
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
@@ -35,14 +33,18 @@
 #include "koladata/internal/op_utils/utils.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/repr_utils.h"
-#include "arolla/util/repr.h"
+#include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
+constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
+
 // kde.masking.apply_mask.
 inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
                                            const DataSlice& mask) {
+  RETURN_IF_ERROR(ExpectMask("mask", mask))
+      .With(OpError("kd.masking.apply_mask"));
   return DataSliceOp<internal::PresenceAndOp>()(obj, mask, obj.GetSchemaImpl(),
                                                 obj.GetBag());
 }
@@ -66,32 +68,24 @@ inline absl::StatusOr<DataSlice> Has(const DataSlice& obj) {
 
 // kde.masking._has_not.
 inline absl::StatusOr<DataSlice> HasNot(const DataSlice& x) {
-  // Must be a mask, which is normally guaranteed by `x` being constructed from
-  // kde.masking.has. This ensures that M.core.presence_not is always called.
-  DCHECK_EQ(x.GetSchemaImpl(), internal::DataItem(schema::kMask));
+  RETURN_IF_ERROR(ExpectMask("x", x)).With(OpError("kd.masking.has_not"));
   return SimplePointwiseEval("core.presence_not", {x},
                              internal::DataItem(schema::kMask));
 }
 
 // kde.masking._agg_any.
 inline absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
-  ASSIGN_OR_RETURN(
-      auto typed_x, CastToNarrow(x, internal::DataItem(schema::kMask)),
-      internal::OperatorEvalError(
-          std::move(_), "kd.agg_any",
-          absl::StrCat("`x` must only contain MASK values, but got ",
-                       arolla::Repr(x))));
+  RETURN_IF_ERROR(ExpectMask("x", x)).With(OpError("kd.masking.agg_any"));
+  ASSIGN_OR_RETURN(auto typed_x,
+                   CastToNarrow(x, internal::DataItem(schema::kMask)));
   return SimpleAggIntoEval("core.any", {std::move(typed_x)});
 }
 
 // kde.masking._agg_all.
 inline absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
-  ASSIGN_OR_RETURN(
-      auto typed_x, CastToNarrow(x, internal::DataItem(schema::kMask)),
-      internal::OperatorEvalError(
-          std::move(_), "kd.agg_all",
-          absl::StrCat("`x` must only contain MASK values, but got ",
-                       arolla::Repr(x))));
+  RETURN_IF_ERROR(ExpectMask("x", x)).With(OpError("kd.masking.agg_all"));
+  ASSIGN_OR_RETURN(auto typed_x,
+                   CastToNarrow(x, internal::DataItem(schema::kMask)));
   return SimpleAggIntoEval("core.all", {std::move(typed_x)});
 }
 

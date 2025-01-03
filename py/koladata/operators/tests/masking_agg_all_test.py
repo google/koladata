@@ -124,7 +124,10 @@ class LogicalAggAllTest(parameterized.TestCase):
   def test_non_mask_input_error(self, x):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape('kd.agg_all: `x` must only contain MASK values'),
+        re.escape(
+            'kd.masking.agg_all: argument `x` must be a slice of MASK, got a'
+            ' slice of '
+        ),
     ):
       expr_eval.eval(kde.masking.agg_all(x))
 

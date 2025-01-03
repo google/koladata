@@ -30,7 +30,9 @@
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 
 namespace koladata::schema {
 namespace {
@@ -351,6 +353,25 @@ TEST(SchemaUtilsTest, ExpectSchema) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                "argument `foo` must be a slice of SCHEMA, got a slice "
                "of ANY with items of type STRING"));
+}
+
+TEST(SchemaUtilsTest, ExpectMask) {
+  EXPECT_THAT(ExpectMask("foo", test::DataItem(std::nullopt, schema::kObject)),
+              IsOk());
+  EXPECT_THAT(ExpectMask("foo", test::DataItem(std::nullopt, schema::kMask)),
+              IsOk());
+  EXPECT_THAT(ExpectMask("foo", test::DataSlice<arolla::Unit>(
+                                    {std::nullopt, arolla::kPresent})),
+              IsOk());
+  EXPECT_THAT(
+      ExpectMask("foo", test::DataSlice<arolla::Unit>(
+                            {std::nullopt, arolla::kPresent}, schema::kAny)),
+      IsOk());
+  EXPECT_THAT(ExpectMask("foo", test::DataSlice<arolla::Text>(
+                                    {"a", "b", std::nullopt}, schema::kAny)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of MASK, got a slice "
+                       "of ANY with items of type STRING"));
 }
 
 TEST(SchemaUtilsTest, ExpectPresentScalar) {

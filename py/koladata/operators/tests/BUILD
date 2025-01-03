@@ -1637,6 +1637,7 @@ py_test(
     name = "masking_apply_mask_test",
     srcs = ["masking_apply_mask_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

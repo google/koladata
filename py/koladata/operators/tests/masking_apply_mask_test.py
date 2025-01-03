@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -25,6 +28,7 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -127,6 +131,16 @@ class LogicalApplyMaskTest(parameterized.TestCase):
         ),
         QTYPES,
     )
+
+  def test_error(self):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'kd.masking.apply_mask: argument `mask` must be a slice of MASK,'
+            ' got a slice of INT32'
+        ),
+    ):
+      expr_eval.eval(kde.masking.apply_mask(ds([1, 2, 3]), ds([1, None, 3])))
 
   def test_repr(self):
     self.assertEqual(repr(kde.masking.apply_mask(I.x, I.y)), 'I.x & I.y')

@@ -49,6 +49,9 @@ absl::Status ExpectString(absl::string_view arg_name, const DataSlice& arg);
 // Returns OK if the DataSlice contains bytes.
 absl::Status ExpectBytes(absl::string_view arg_name, const DataSlice& arg);
 
+// Returns OK if the DataSlice contains mask.
+absl::Status ExpectMask(absl::string_view arg_name, const DataSlice& arg);
+
 // Returns OK if the DataSlice contains schemas.
 absl::Status ExpectSchema(absl::string_view arg_name, const DataSlice& arg);
 
