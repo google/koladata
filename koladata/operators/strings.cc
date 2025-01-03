@@ -26,6 +26,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_split.h"
@@ -88,6 +89,8 @@ absl::StatusOr<DataSlice> EvalFormatOp(absl::string_view op_name,
   }
   // From here on, we know that at least one input has known schema and we
   // should eval.
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("fmt", fmt))
+      .With(OpError(absl::StrCat("kd.", op_name)));
   return SimplePointwiseEval(op_name, std::move(slices), fmt.GetSchemaImpl());
 }
 
@@ -267,9 +270,14 @@ absl::StatusOr<DataSlice> TestOnlyFormatWrapper(std::vector<DataSlice> slices) {
 }
 
 absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices) {
-  // TODO: b/375621456 - a variadic version of ExpectConsistentStringOrBytes.
   if (slices.empty()) {
     return absl::InvalidArgumentError("expected at least one input");
+  }
+  for (size_t i = 1; i < slices.size(); ++i) {
+    RETURN_IF_ERROR(ExpectConsistentStringOrBytes(
+                        {"slices[0]", absl::StrCat("slices[", i, "]")},
+                        slices[0], slices[i]))
+        .With(OpError("kd.strings.join"));
   }
   return SimplePointwiseEval("strings.join", std::move(slices));
 }

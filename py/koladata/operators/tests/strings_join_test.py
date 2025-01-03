@@ -101,10 +101,9 @@ class StringsJoinTest(parameterized.TestCase):
   def test_incompatible_types_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
         re.escape(
-            'expected all arguments to have compatible string types, got arg0:'
-            ' TEXT, *args: (BYTES)'
+            'kd.strings.join: mixing STRING and BYTES arguments is not allowed,'
+            ' but `slices[0]` contains STRING and `slices[1]` contains BYTES'
         ),
     ):
       expr_eval.eval(kde.strings.join(ds('foo'), ds(b' bytes')))
@@ -112,17 +111,21 @@ class StringsJoinTest(parameterized.TestCase):
   def test_another_incompatible_types_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
         re.escape(
-            'expected texts/byteses or corresponding array, got arg0:'
-            ' DENSE_ARRAY_INT32'
+            'kd.strings.join: argument `slices[1]` must be a slice of either'
+            ' STRING or BYTES, got a slice of INT32'
         ),
     ):
       expr_eval.eval(kde.strings.join(ds([None]), ds(123)))
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError,
+        re.escape(
+            'kd.strings.join: argument `slices[1]` must be a slice of either'
+            ' STRING or BYTES, got a slice of OBJECT with items of types INT32,'
+            ' STRING'
+        ),
     ):
       expr_eval.eval(kde.strings.join(ds('foo '), ds([1, 'bar'])))
 

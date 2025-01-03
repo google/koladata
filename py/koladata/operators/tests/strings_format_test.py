@@ -227,8 +227,8 @@ class StringsFormatTest(parameterized.TestCase):
   def test_wrong_schema_empty_format_input_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'unsupported argument types.*INT64',
+        'kd.strings.format: argument `fmt` must be a slice of either STRING or'
+        ' BYTES, got a slice of INT64',
     ):
       expr_eval.eval(kde.strings.format(ds(None, schema_constants.INT64)))
 
