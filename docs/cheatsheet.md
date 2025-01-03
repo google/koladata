@@ -143,6 +143,10 @@ ds.display()
 
 ### Entities
 
+Entities can be thought as instances of protos or C++ structs. That is, they
+don't directly store their own schema. Instead, their schema is stored at
+DataSlice level and all entities in a DataSlice share the same schema.
+
 ```py
 # Entity creation with named schema
 e = kd.new(x=1, y=2, schema='Point')
@@ -220,6 +224,10 @@ nested = nested.updated(kd.attrs(nested.a.c, e=4),
 
 ### Objects
 
+Objects can be thought as Python objects. They directly store their own schema
+as **schema** attribute similar to how Python objects store **class** attribute.
+This allows objects in a DataSlice to have different schemas.
+
 ```py
 o = kd.obj(x=1, y=2)
 os = kd.obj(x=kd.slice([1, 2, None]),
@@ -258,6 +266,7 @@ os.get_attr('x', default=0) # [1, 0, 'a']
 
 # Objects are immutable by default, modification is done
 # by creating a new object with updated attributes
+o = kd.obj(x=1, y=2)
 
 # Update a single attribute
 o1 = o.with_attr('x', 3)
@@ -277,6 +286,12 @@ o3 = o.updated(upd)
 
 # Allows mixing multiple updates
 o4 = o.updated(kd.attrs(o, z=4), kd.attrs(o, y=10))
+
+# Update nested attributes
+nested = kd.obj(a=kd.obj(c=kd.obj(e=1), d=2), b=3)
+nested = nested.updated(kd.attrs(nested.a.c, e=4),
+                        kd.attrs(nested.a, d=5),
+                        kd.attrs(nested, b=6))
 ```
 
 </section>
