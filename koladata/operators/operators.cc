@@ -29,6 +29,7 @@
 #include "koladata/operators/core_new.h"
 #include "koladata/operators/core_obj.h"
 #include "koladata/operators/ids.h"
+#include "koladata/operators/json.h"
 #include "koladata/operators/lists.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/math.h"
@@ -132,6 +133,8 @@ OPERATOR_FAMILY("kde.ids.uuid_for_dict",
 OPERATOR_FAMILY("kde.ids.uuid_for_list",
                 std::make_unique<UuidForListOperatorFamily>());
 OPERATOR("kde.ids.uuids_with_allocation_size", UuidsWithAllocationSize);
+//
+OPERATOR("kde.json.to_json", ToJson);
 //
 OPERATOR("kde.lists._explode", Explode);
 OPERATOR("kde.lists._implode", Implode);

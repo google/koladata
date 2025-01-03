@@ -508,6 +508,7 @@ py_library(
         ":functor",
         ":ids",
         ":jagged_shape",
+        ":json",
         ":koda_internal",
         ":lists",
         ":masking",
@@ -620,6 +621,18 @@ py_library(
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
+    ],
+)
+
+py_library(
+    name = "json",
+    srcs = ["json.py"],
+    deps = [
+        ":optools",
+        ":qtype_utils",
+        ":view_overloads",
+        "//py/koladata/types:qtypes",
+        "@com_google_arolla//py/arolla",
     ],
 )
 
