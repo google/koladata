@@ -12,14 +12,9 @@
 ```py
 from koladata import kd
 
-# Useful aliases for Expr
-kde = kd.kde
-I = kd.I
-V = kd.V
-S = kd.S
-
-# Useful alias for Functor
-kdf = kd.functor
+# Additional extension libraries if needed
+# E.g. Numpy/Pandas conversions
+from koladata import kd_ext
 ```
 
 </section>
@@ -851,6 +846,14 @@ a = kd.slice([1, 2, 3])
 kd.select(a, a > 1)
 a.select(a > 1)
 kd.select(a, lambda x: x > 1) # same as above
+
+# Use expand_filter=False to avoid expanding
+# the filter to the shape of the DataSlice
+# so that empty dimensions are removed too
+b = kd.slice([[1, None], [None, 4]])
+fltr = kd.slice([kd.present, kd.missing])
+kd.select(b, fltr) # [[1, None], []]
+kd.select(b, fltr, expand_filter=False) # [[1, None]]
 
 # Put items in present positions in filter.
 kd.inverse_select(
@@ -1876,7 +1879,9 @@ to `kd.to_py(obj_as_dict=True)`.
 ### From/To Numpy Array
 
 ```py
-from koladata.ext import npkd
+from koladata import kd_ext
+
+npkd = kd_ext.npkd
 
 arr1 = np.int32([1, 2, 0, 3])
 npkd.from_array(arr1) # kd.int32([1, 2, 0, 3])
@@ -1935,7 +1940,9 @@ assert kd.full_equal(ds7, ds8)
 ### From/To Panda DataFrame
 
 ```py
-from koladata.ext import pdkd
+from koladata import kd_ext
+
+pdkd = kd_ext.pdkd
 
 # Primitive conversion is almost the same as numpy
 df1 = pd.DataFrame({'x': [1, 2, 3]})
@@ -2175,7 +2182,7 @@ db2.data_triples_repr()
 db2.schema_triples_repr()
 
 # Create a new mutable bag by forking the bag
-db3 = db2.fork()
+db3 = db2.fork_bag()
 assert db3.is_mutable()
 
 # Create a new immutable bag by freezing the bag
@@ -2630,6 +2637,19 @@ context.
 
 <section>
 
+### Useful Aliases
+
+```py
+kde = kd.kde
+I = kd.I
+V = kd.V
+S = kd.S
+```
+
+</section>
+
+<section>
+
 ### Creating Koda Expr
 
 ```py
@@ -2660,7 +2680,7 @@ d = kd.obj(x=1, y=2)
 kd.eval(I.d.x + I.d.y, d=d)
 
 # Use () for functor calls
-kd.eval(I.f(a=1, b=2), f=kdf.fn(I.a + I.b))
+kd.eval(I.f(a=1, b=2), f=kd.fn(I.a + I.b))
 
 # Check if it is an Expr
 assert kd.is_expr(expr1)
@@ -2847,13 +2867,13 @@ simply `fn(**inputs)`.
 
 Koda Functors can be **created** from the following objects:
 
--   **Koda Expr** using `kdf.expr_fn(expr, **vars)`
+-   **Koda Expr** using `kd.functor.expr_fn(expr, **vars)`
 -   **Format string** similar to Python f-string `f'text {input:s} text'` using
-    `kdf.fstr_fn(str_fmt, **vars)`
--   **Python function** using `kdf.py_fn(pfn, **vars)`
+    `kd.functor.fstr_fn(str_fmt, **vars)`
+-   **Python function** using `kd.functor.py_fn(pfn, **vars)`
 
-`kdf.fn(fn_obj, **vars)` is the **universal adaptor** for `kdf.fn`, and
-`kdf.py_fn` where `fn_obj` can be `expr` or `py_fn`.
+`kd.fn(fn_obj, **vars)` is the **universal adaptor** for `kd.functor.expr_fn`,
+and `kd.functor.py_fn` where `fn_obj` can be `expr` or `py_fn`.
 
 **Conceptually**, creating a functor is equivalent to declaring a Python
 function where the function signature consists of a function name and parameters
@@ -2865,48 +2885,47 @@ statement.
 -   Koda functor parameters are not explicitly declared but automatically
     derived from `fn_obj` and `**vars`
 -   Local variables are notated as `V.var_name`, variable assignments are done
-    through `**vars` in `kdf.fn` and a variable can refer to other variables
--   Return statement is represented as `fn_obj` in `kdf.fn` and can refer to
+    through `**vars` in `kd.fn` and a variable can refer to other variables
+-   Return statement is represented as `fn_obj` in `kd.fn` and can refer to
     local variables
 
 ```py
-kdf = kd.functor
-
 # Create a Functor from Expr
-fn1 = kdf.expr_fn(I.a + I.b)
+fn1 = kd.functor.expr_fn(I.a + I.b)
 
 # Check if it is a Functor
 assert kd.is_fn(fn1)
 
 # Create a Functor with local variables
-fn2 = kdf.expr_fn(V.a + I.b, c=I.d, a=V.c + I.d)
+fn2 = kd.functor.expr_fn(V.a + I.b, c=I.d, a=V.c + I.d)
 
 # Create a Functor from format string
-fn3 = kdf.fstr_fn(
+fn3 = kd.functor.fstr_fn(
   f'a:{I.a:s} + b:{I.b:s} = {(I.a + I.b):s}')
 
 # Create a Functor with local variables
-fn4 = kdf.fstr_fn(f'{I.s.name:s} ({V.names:s})\n',
-                  names=kde.strings.agg_join(
-                    I.s.cities[:].name, ', '))
-fn5 = kdf.fstr_fn(f'A: {V.fn(s=I.s1):s}'
-                  f'B: {V.fn(s=I.s2):s}', fn=fn4)
+fn4 = kd.functor.fstr_fn(
+  f'{I.s.name:s} ({V.names:s})\n',
+  names=kde.strings.agg_join(I.s.cities[:].name, ', '))
+fn5 = kd.functor.fstr_fn(f'A: {V.fn(s=I.s1):s}'
+                         f'B: {V.fn(s=I.s2):s}',
+                         fn=fn4)
 
 # Create a Functor from Py function
-fn6 = kdf.py_fn(
+fn6 = kd.functor.py_fn(
   lambda a, b: a.get_size() + b.get_size())
 
 # With default value for 'y'
-fn7 = kdf.py_fn(lambda x, y: x + y, y=1)
+fn7 = kd.functor.py_fn(lambda x, y: x + y, y=1)
 
-# Use the universal adapter kdf.fn
-fn8 = kdf.fn(I.a + I.b)
-fn9 = kdf.fn(lambda x, y: x + y)
-fn10 = kdf.fn(fn8)
+# Use the universal adapter kd.fn
+fn8 = kd.fn(I.a + I.b)
+fn9 = kd.fn(lambda x, y: x + y)
+fn10 = kd.fn(fn8)
 
 # Create a functor calling another functor
-fn11 = kdf.fn(kde.call(fn1, a=I.c, b=I.d))
-fn12 = kdf.fstr_fn(
+fn11 = kd.fn(kde.call(fn1, a=I.c, b=I.d))
+fn12 = kd.functor.fstr_fn(
   f'result {V.f(a=I.c, b=I.d):s}', f=fn1)
 ```
 
@@ -2917,7 +2936,7 @@ fn12 = kdf.fstr_fn(
 ### Calling Koda Functor
 
 ```py
-f = kdf.fn(V.a + I.b, c=I.d, a=V.c + I.d)
+f = kd.fn(V.a + I.b, c=I.d, a=V.c + I.d)
 
 # Pass inputs as **kwargs
 # Preferred when input names are static
@@ -2925,17 +2944,17 @@ f(b=2, d=3)
 kd.call(f, b=2, d=3) # Same as above
 
 # Call a functor from another functor
-f = kdf.fn(I.x + I.y)
-g = kdf.fn(V.nf(x=I.x, y=2), nf=f)
+f = kd.fn(I.x + I.y)
+g = kd.fn(V.nf(x=I.x, y=2), nf=f)
 g(x=1)  # 3
 
 # Alternative
-g = kdf.fn(kde.call(V.nf, x=I.x, y=2), nf=f)
+g = kd.fn(kde.call(V.nf, x=I.x, y=2), nf=f)
 g(x=1)  # 3
 
 # Functors can also be called using `fstr_fn`
-f = kdf.fn(I.x + I.y)
-g = kdf.fstr_fn(f'result: {I.f(x=I.x, y=V.y):s}',
+f = kd.fn(I.x + I.y)
+g = kd.functor.fstr_fn(f'result: {I.f(x=I.x, y=V.y):s}',
                 y=1)
 g(f=f, x=1)
 ```
@@ -2947,26 +2966,26 @@ g(f=f, x=1)
 ### Partially Binding Koda Functor Parameters
 
 ```py
-fn1 = kdf.fn(I.a + I.b)
+fn1 = kd.fn(I.a + I.b)
 
 # Bind inputs with default values
-fn2 = kdf.bind(fn1, a=1)
+fn2 = kd.functor.bind(fn1, a=1)
 
 fn2(a=3, b=2)  # 5
 fn2(b=2)  # 3
 
 # Exprs and format strings can also be bound to
 # arguments.
-fn3 = kdf.bind(fn1, a=I.b + 1)
+fn3 = kd.functor.bind(fn1, a=I.b + 1)
 fn3(b=2)  # 5
 
 # Binding DataItem params also works.
-fn4 = kdf.bind(fn1, a=kd.item(1))
+fn4 = kd.functor.bind(fn1, a=kd.item(1))
 
 # Raise because binding a DataSlice is not supported
-fn5 = kdf.bind(fn1, a=kd.slice([1, 2]))
+fn5 = kd.functor.bind(fn1, a=kd.slice([1, 2]))
 # We have to use kd.list instead
-fn5 = kdf.bind(fn1, a=kd.list([1, 2]))
+fn5 = kd.functor.bind(fn1, a=kd.list([1, 2]))
 ```
 
 </section>
@@ -2979,16 +2998,16 @@ Also see `kd.map_py()` above.
 
 ```py
 # Pointwise
-kdf.map_py_fn(lambda x, y: x + y)
+kd.functor.map_py_fn(lambda x, y: x + y)
 
 # Aggregation
-kdf.map_py_fn(lambda x: len(x), ndim=1)
+kd.functor.map_py_fn(lambda x: len(x), ndim=1)
 
 # Aggregaional but no dimension change
-kdf.map_py_fn(lambda x: sorted(x), ndim=1)
+kd.functor.map_py_fn(lambda x: sorted(x), ndim=1)
 
 # Expansion
-kdf.map_py_fn(lambda x: [x] * 10)
+kd.functor.map_py_fn(lambda x: [x] * 10)
 ```
 
 </section>
@@ -2999,13 +3018,12 @@ While it is enough for most Koda users to just use immutable workflow, it is
 possible to use mutable workflow by managing DataBags manually in order to
 achieve better performance.
 
-Note code using mutable APIs cannot be traced.
+Note code using mutable APIs cannot be traced and has more limited options for
+productionalization.
 
 <section>
 
-### Creating Mutable Entities/Objects/Lists/Dicts
-
-Mutable entities/objects/lists/dicts can be created from a DataBag.
+### Creating Mutable Entities/Objects/Lists/Dicts from a DataBag
 
 ```py
 db = kd.bag()
@@ -3044,6 +3062,74 @@ db.new_like(...)
 db.new_shaped(...)
 db.new_shaped_as(...)
 db.implode(ds)
+```
+
+</section>
+
+<section>
+
+### Forking and Freezing DataBags
+
+An immutable DataBag can be forked to create a mutable DataBag at a cost of
+`O(1)`. Similarly, a mutable DataBag can be frozen to create an immutable
+DataBag at a cost of `O(1)`.
+
+```py
+e = kd.new(x=1, y=2)
+e1 = e.fork_bag()
+e1.x = 3
+e2 = e1.fork_bag()
+e2.x = 4
+e.x # 1
+e1.x # 3
+e2.x # 4
+
+o = db.new(x=1, y=2)
+o1 = o.fork_bag()
+o1.x = 'a'
+o2 = o1.freeze() # o2 is immutable
+
+l = db.list([1, 2, 3])
+l1 = l.fork_bag()
+l1.append(4)
+
+d = db.dict({'a': 1, 'b': 2})
+d1 = d.fork_bag()
+d['a'] = 20
+```
+
+</section>
+
+<section>
+
+### Moving Data from a DataSlice/DataBag to Another DataBag
+
+```py
+db1 = kd.bag()
+db2 = kd.bag()
+
+o1 = db1.new(x=1)
+
+o23 = db2.new(x=kd.slice([2, 3]))
+o4 = db2.new(x=4)
+
+# Move entire db2 to db1
+db1.merge_inplace(db2)
+
+# Move o1 into db1
+o1_in_db1 = db1.adopt(o1)
+# Equivalent to the below
+db1.merge_inplace(o1.extract())
+o1_in_db1 = o1.with_db(db1)
+
+# Adopt avoids multiple extractions
+# The code below has two extractions
+o5 = db1.obj(y=o1)
+o6 = db1.obj(y=o1)
+# The code below has one extraction
+o1_in_db1 = db1.adopt(o1)
+o5 = db1.obj(y=o1_in_db1)
+o6 = db1.obj(y=o1_in_db1)
 ```
 
 </section>
