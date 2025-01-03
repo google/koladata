@@ -44,6 +44,7 @@ class CoreCloneTest(parameterized.TestCase):
     else:
       result = expr_eval.eval(kde.clone(o))
 
+    self.assertFalse(result.get_bag().is_mutable())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.no_bag(), o.no_bag())
     testing.assert_equal(result.b.no_bag(), o.b.no_bag())
@@ -67,6 +68,7 @@ class CoreCloneTest(parameterized.TestCase):
     else:
       result = expr_eval.eval(kde.clone(o))
 
+    self.assertFalse(result.get_bag().is_mutable())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.no_bag(), o.no_bag())
     testing.assert_equal(result[:].b.no_bag(), o[:].b.no_bag())
@@ -92,6 +94,7 @@ class CoreCloneTest(parameterized.TestCase):
     else:
       result = expr_eval.eval(kde.clone(o))
 
+    self.assertFalse(result.get_bag().is_mutable())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.no_bag(), o.no_bag())
     result_values = result[keys]
@@ -116,6 +119,7 @@ class CoreCloneTest(parameterized.TestCase):
     else:
       result = expr_eval.eval(kde.clone(o))
 
+    self.assertFalse(result.get_bag().is_mutable())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.no_bag(), o.no_bag())
     testing.assert_equal(result.b.no_bag(), o.b.no_bag())
@@ -142,6 +146,7 @@ class CoreCloneTest(parameterized.TestCase):
     else:
       result = expr_eval.eval(kde.clone(o))
 
+    self.assertFalse(result.get_bag().is_mutable())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.get_bag(), o.get_bag())
 
@@ -164,6 +169,7 @@ class CoreCloneTest(parameterized.TestCase):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
     res = kde.core.clone(x, z=bag().list([12]), t=bag().obj(b=5))
     res = expr_eval.eval(res)
+    self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equivalent(res.y.extract(), x.y.extract())
     testing.assert_equal(res.z[:].no_bag(), ds([12]))
     testing.assert_equal(res.t.b.no_bag(), ds(5))
@@ -173,6 +179,7 @@ class CoreCloneTest(parameterized.TestCase):
     x = bag().obj(x=42, y='abc')
     res = kde.core.clone(x, schema=s, z=12)
     res = expr_eval.eval(res)
+    self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equal(res.x.no_bag(), ds(42))
     testing.assert_equal(res.z.no_bag(), ds(12))
     with self.assertRaisesRegex(ValueError, 'attribute \'y\' is missing'):
@@ -185,6 +192,7 @@ class CoreCloneTest(parameterized.TestCase):
     ids = expr_eval.eval(kde.clone(x))
     testing.assert_equal(ids.y.no_db(), y.no_db())
     result = expr_eval.eval(kde.clone(x, itemid=ids))
+    self.assertFalse(result.get_bag().is_mutable())
     testing.assert_equal(result.no_db(), ids.no_db())
     testing.assert_equal(result.y.no_db(), y.no_db())
 
@@ -197,6 +205,7 @@ class CoreCloneTest(parameterized.TestCase):
     a = ds([x, y, xlist, d])
     ids = expr_eval.eval(kde.clone(a))
     result = expr_eval.eval(kde.clone(a, itemid=ids))
+    self.assertFalse(result.get_bag().is_mutable())
     testing.assert_equal(result.no_db(), ids.no_db())
 
   def test_itemid_wrong_rank(self):

@@ -357,21 +357,6 @@ absl::StatusOr<DataSlice> Extract(const DataSlice& ds,
   return koladata::extract_utils_internal::ExtractWithSchema(ds, schema);
 }
 
-// TODO: This is implemented here instead of as lambda to be able
-// to call UnsafeMakeImmutable. This can become a lambda when we fix Extract()
-// itself to return an immutable DataBag.
-absl::StatusOr<DataBagPtr> ExtractBag(const DataSlice& ds,
-                                      const DataSlice& schema) {
-  ASSIGN_OR_RETURN(auto res_slice, Extract(ds, schema));
-  auto res = res_slice.GetBag();
-  if (res == nullptr) {
-    return absl::InternalError(
-        "extract() returned a DataSlice with no DataBag");
-  }
-  res->UnsafeMakeImmutable();
-  return res;
-}
-
 absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj) {
   return AsMask(obj.IsEmpty());
 }
@@ -527,6 +512,7 @@ absl::StatusOr<DataSlice> ShallowClone(
                       clone_op(impl, itemid_impl, schema_impl, db->GetImpl(),
                               std::move(fallbacks_span), schema_db_impl,
                               std::move(schema_fallbacks)));
+    result_db->UnsafeMakeImmutable();
     return DataSlice::Create(std::move(result_slice_impl), obj.GetShape(),
                               std::move(result_schema_impl),
                               std::move(result_db));
@@ -556,6 +542,7 @@ absl::StatusOr<DataSlice> DeepClone(
     ASSIGN_OR_RETURN(
         (auto [result_slice_impl, result_schema_impl]),
         deep_clone_op(impl, schema_impl, db->GetImpl(), fallbacks_span));
+    result_db->UnsafeMakeImmutable();
     return DataSlice::Create(std::move(result_slice_impl), ds.GetShape(),
                              std::move(result_schema_impl),
                              std::move(result_db));

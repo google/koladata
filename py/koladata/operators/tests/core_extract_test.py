@@ -75,6 +75,7 @@ class CoreExtractTest(parameterized.TestCase):
     else:
       result = expr_eval.eval(kde.extract(o_fb))
 
+    self.assertFalse(result.get_bag().is_mutable())
     expected_bag = o.enriched(fb).get_bag().merge_fallbacks()
     testing.assert_equivalent(result.get_bag(), expected_bag)
 
@@ -121,13 +122,16 @@ class CoreExtractTest(parameterized.TestCase):
 
     result = expr_eval.eval(kde.extract(o_fb, schema))
 
+    self.assertFalse(result.get_bag().is_mutable())
     expected_bag = schema.enriched(expected_bag).get_bag().merge_fallbacks()
     del (
         o.a.with_bag(expected_bag).get_attr('__schema__').b,
         o.a.with_bag(expected_bag).get_attr('__schema__').c,
     )
     self.assertEqual(result.a.get_attr('__schema__').get_present_count(), 0)
-    result.a.set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
+    o.a.with_bag(expected_bag).set_attr(
+        '__schema__', result.a.get_attr('__schema__').no_bag()
+    )
     testing.assert_equivalent(result.get_bag(), expected_bag)
 
   def test_eval_nofollow(self):
@@ -149,6 +153,7 @@ class CoreExtractTest(parameterized.TestCase):
 
     result = expr_eval.eval(kde.extract(o_fb))
 
+    self.assertFalse(result.get_bag().is_mutable())
     self.assertFalse(result.get_bag()._exactly_equal(db))
     o.a.set_attr('d', fb_d.no_bag())
     o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().no_bag())
@@ -158,6 +163,7 @@ class CoreExtractTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     s = db.new_schema(x=schema_constants.ANY)
     result = expr_eval.eval(kde.extract(s))
+    self.assertFalse(result.get_bag().is_mutable())
     testing.assert_equivalent(result.get_bag(), db)
 
   def test_invalid_object_dtype_schema(self):

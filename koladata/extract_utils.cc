@@ -55,6 +55,7 @@ absl::StatusOr<DataSlice> ExtractWithSchema(const DataSlice& ds,
           /*schema_databag=*/nullptr,
           /*schema_fallbacks=*/internal::DataBagImpl::FallbackSpan()));
     }
+    result_db->UnsafeMakeImmutable();
     return DataSlice::Create(impl, ds.GetShape(), schema_impl, result_db);
   });
 }

@@ -68,7 +68,6 @@ OPERATOR("kde.comparison.less_equal", LessEqual);
 OPERATOR("kde.core._clone", Clone);
 OPERATOR("kde.core._deep_clone", DeepClone);
 OPERATOR("kde.core._extract", Extract);
-OPERATOR("kde.core._extract_bag", ExtractBag);
 OPERATOR("kde.core._freeze_bag", Freeze<DataBagPtr>);
 OPERATOR("kde.core._freeze_slice", Freeze<DataSlice>);
 OPERATOR("kde.core._get_attr", GetAttr);

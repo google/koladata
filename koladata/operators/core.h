@@ -89,10 +89,6 @@ class UpdatedDbOperatorFamily final : public EnrichedOrUpdatedDbOperatorFamily {
 // kde.core._extract
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds, const DataSlice& schema);
 
-// kde.core._extract_bag
-absl::StatusOr<DataBagPtr> ExtractBag(const DataSlice& ds,
-                                      const DataSlice& schema);
-
 // kde.core._get_attr.
 absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
                                   const DataSlice& attr_name);

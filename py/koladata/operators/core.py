@@ -757,40 +757,10 @@ def extract(ds, schema=arolla.unspecified()):
     schema: schema of the extracted DataSlice.
 
   Returns:
-    A DataSlice with a new DataBag attached.
+    A DataSlice with a new immutable DataBag attached.
   """
   schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(ds))
   return _extract(ds, schema)
-
-
-@optools.as_backend_operator(
-    'kde.core._extract_bag', qtype_inference_expr=qtypes.DATA_BAG
-)
-def _extract_bag(ds, schema):  # pylint: disable=unused-argument
-  """A shortcut for extract(ds, schema).get_bag().freeze()."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.extract_bag'])
-@optools.as_lambda_operator(
-    'kde.core.extract_bag',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_slice_or_unspecified(P.schema),
-    ],
-)
-def extract_bag(ds, schema=arolla.unspecified()):
-  """Creates a new DataBag containing only reachable attrs from 'ds'.
-
-  Args:
-    ds: DataSlice to extract.
-    schema: schema of the extracted DataSlice.
-
-  Returns:
-    A new immutable DataBag with only the reachable attrs from 'ds'.
-  """
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(ds))
-  return _extract_bag(ds, schema)
 
 
 @optools.as_backend_operator('kde.core._shallow_clone')
@@ -1106,6 +1076,27 @@ def get_bag(ds):  # pylint: disable=unused-argument
     The attached DataBag.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.extract_bag'])
+@optools.as_lambda_operator(
+    'kde.core.extract_bag',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+    ],
+)
+def extract_bag(ds, schema=arolla.unspecified()):
+  """Creates a new DataBag containing only reachable attrs from 'ds'.
+
+  Args:
+    ds: DataSlice to extract.
+    schema: schema of the extracted DataSlice.
+
+  Returns:
+    A new immutable DataBag with only the reachable attrs from 'ds'.
+  """
+  return get_bag(extract(ds, schema))
 
 
 @optools.add_to_registry(aliases=['kde.reify'])
