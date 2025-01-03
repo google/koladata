@@ -186,6 +186,7 @@ es.get_attr('x', default=0) # [1, 2, 0]
 
 # Entities are immutable by default, modification is done
 # by creating a new entity with updated attributes
+e = kd.new(x=1, y=2, schema='Point')
 
 # Update attributes
 # Update a single attribute
@@ -205,6 +206,12 @@ e3 = e.updated(upd)
 
 # Allows mixing multiple updates
 e4 = e.updated(kd.attrs(e, z=4), kd.attrs(e, y=10))
+
+# Update nested attributes
+nested = kd.new(a=kd.new(c=kd.new(e=1), d=2), b=3)
+nested = nested.updated(kd.attrs(nested.a.c, e=4),
+                        kd.attrs(nested.a, d=5),
+                        kd.attrs(nested, b=6))
 ```
 
 </section>
