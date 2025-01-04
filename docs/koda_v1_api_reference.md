@@ -622,7 +622,7 @@ Args:
   schema: schema of the extracted DataSlice.
 
 Returns:
-  A DataSlice with a new DataBag attached.
+  A DataSlice with a new immutable DataBag attached.
 ```
 
 ### `kd.core.extract_bag(ds, schema=unspecified)` {#kd.core.extract_bag}
@@ -8668,7 +8668,7 @@ Args:
   schema: schema of the extracted DataSlice.
 
 Returns:
-  A DataSlice with a new DataBag attached.
+  A DataSlice with a new immutable DataBag attached.
 ```
 
 ### `DataSlice.extract_bag(self, schema=unspecified)` {#DataSlice.extract_bag}
