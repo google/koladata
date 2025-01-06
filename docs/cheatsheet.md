@@ -2658,7 +2658,7 @@ context.
 ### Useful Aliases
 
 ```py
-kde = kd.kde
+kde = kd.lazy
 I = kd.I
 V = kd.V
 S = kd.S
