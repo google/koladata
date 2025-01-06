@@ -716,6 +716,10 @@ Returns:
 ### `kd.core.get_item(x, key_or_index)` {#kd.core.get_item}
 Aliases:
 
+- [kd.dicts.get_item](#kd.dicts.get_item)
+
+- [kd.lists.get_item](#kd.lists.get_item)
+
 - [kd.get_item](#kd.get_item)
 
 ``` {.no-copy}
@@ -1384,6 +1388,10 @@ Args:
   keys: A DataSlice of keys, or a DataSlice of dicts of updates.
   values: A DataSlice of values, or unspecified if `keys` contains dicts.
 ```
+
+### `kd.dicts.get_item(x, key_or_index)` {#kd.dicts.get_item}
+
+Alias for [kd.core.get_item](#kd.core.get_item) operator.
 
 ### `kd.dicts.get_keys(dict_ds)` {#kd.dicts.get_keys}
 Aliases:
@@ -2430,6 +2438,10 @@ Args:
 Returns:
   DataSlice
 ```
+
+### `kd.lists.get_item(x, key_or_index)` {#kd.lists.get_item}
+
+Alias for [kd.core.get_item](#kd.core.get_item) operator.
 
 ### `kd.lists.has_list(x)` {#kd.lists.has_list}
 Aliases:

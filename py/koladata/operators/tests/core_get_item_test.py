@@ -194,6 +194,8 @@ class CoreGetItemTest(parameterized.TestCase):
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.get_item, kde.get_item))
+    self.assertTrue(optools.equiv_to_op(kde.core.get_item, kde.dicts.get_item))
+    self.assertTrue(optools.equiv_to_op(kde.core.get_item, kde.lists.get_item))
 
 
 if __name__ == '__main__':

@@ -747,7 +747,9 @@ def _get_item(x, key_or_index):  # pylint: disable=unused-argument
     overload_condition_expr=P.x == qtypes.DATA_SLICE,
 )
 @optools.add_to_registry(
-    'kde.core.get_item', aliases=['kde.get_item'], repr_fn=op_repr.get_item_repr
+    'kde.core.get_item',
+    aliases=['kde.get_item', 'kde.lists.get_item', 'kde.dicts.get_item'],
+    repr_fn=op_repr.get_item_repr,
 )
 @optools.as_lambda_operator(
     'kde.core.get_item',
