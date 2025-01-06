@@ -24,8 +24,8 @@ from koladata.functor import signature_utils
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
 
-kde = kd.kde
-kdi = kd.kdi
+kde = kd.lazy
+kdi = kd.eager
 I = kd.I
 V = kd.V
 S = kd.S
@@ -253,12 +253,19 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.expr.sub(expr, I.x, I.z), I.z + I.y)
     kd.testing.assert_equal(kd.expr.sub(expr, (I.x, I.z)), I.z + I.y)
 
-  def test_kdi(self):
+  def test_eager(self):
     self.assertCountEqual(kdi.__all__, dir(kdi))
-    self.assertCountEqual(set(dir(kd)) - set(dir(kdi)), ['kdi'])
+    self.assertCountEqual(set(dir(kd)) - set(dir(kdi)), ['eager', 'kdi'])
     self.assertCountEqual(set(dir(kdi)) - set(dir(kd)), [])
     for name in kdi.__all__:
       self.assertIs(getattr(kdi, name), getattr(kd, name))
+    for bad_name in ['eager', 'kdi']:
+      with self.assertRaises(AttributeError):
+        _ = getattr(kdi, bad_name)
+    self.assertIs(kd.kdi, kd.eager)
+
+  def test_lazy_deprecated_name(self):
+    self.assertIs(kd.kde, kd.lazy)
 
   def test_missing_attribute_error_message(self):
     with self.assertRaisesRegex(
@@ -402,7 +409,7 @@ class KdTest(absltest.TestCase):
 
   def test_clear_eval_cache(self):
     obj = kd.obj(a=42)
-    expr = kd.kde.extract(obj)
+    expr = kd.lazy.extract(obj)
     first_eval = expr.eval()
     cached_eval = expr.eval()  # literal-folded computation.
     kd.testing.assert_equal(first_eval, cached_eval)
@@ -417,7 +424,7 @@ class KdTest(absltest.TestCase):
 
   def test_clear_all_arolla_caches_does_not_break(self):
     obj = kd.obj(a=42)
-    expr = kd.kde.get_attr(obj, 'a') - 12
+    expr = kd.lazy.get_attr(obj, 'a') - 12
     kd.testing.assert_equal(expr.eval(), kd.slice(30))
     arolla.abc.clear_caches()
     kd.testing.assert_equal(expr.eval(), kd.slice(30))

@@ -218,6 +218,8 @@ V = _eager_only(_input_container.InputContainer('V'))
 S = _eager_only(I.self)
 eval = _eager_only(_expr_eval.eval)  # pylint: disable=redefined-builtin
 clear_eval_cache = _eager_only(_py_expr_eval_py_ext.clear_eval_cache)
+lazy = _eager_only(_kde_operators.kde)
+# TODO: Remove this alias once the migration is done.
 kde = _eager_only(_kde_operators.kde)
 
 expr = _eager_only(_py_types.ModuleType('expr'))
@@ -264,7 +266,9 @@ present = _same_when_tracing(_mask_constants.present)
 ### Public submodules.
 
 testing = _eager_only(_testing)
-kdi = _eager_only(_py_types.ModuleType('kdi'))
+eager = _same_when_tracing(_py_types.ModuleType('eager'))
+# TODO: Remove this alias once the migration is done.
+kdi = _same_when_tracing(eager)
 
 __all__ = [api for api in globals().keys() if not api.startswith('_')]
 
@@ -273,16 +277,16 @@ def __dir__():  # pylint: disable=invalid-name
   return __all__
 
 
-# `kdi` has eager versions of everything, available even in tracing mode.
-def _SetUpKdi():
+# `eager` has eager versions of everything, available even in tracing mode.
+def _SetUpEager():
   for name in __all__:
-    if name != 'kdi':
-      setattr(kdi, name, globals()[name])
-  kdi.__all__ = [x for x in __all__ if x != 'kdi']
-  kdi.__dir__ = lambda: kdi.__all__
+    if name != 'eager' and name != 'kdi':
+      setattr(eager, name, globals()[name])
+  eager.__all__ = [x for x in __all__ if x != 'eager' and x != 'kdi']
+  eager.__dir__ = lambda: eager.__all__
 
 
-_SetUpKdi()
+_SetUpEager()
 
 # Set up the tracing mode machinery. This must be the last thing in this file.
 if not _typing.TYPE_CHECKING:
