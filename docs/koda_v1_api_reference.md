@@ -19,6 +19,7 @@ Category  | Subcategory | Description
  | [dicts](#kd.dicts) | Operators working with dictionaries.
  | [functor](#kd.functor) | Operators to create and call functors.
  | [ids](#kd.ids) | Operators that work with ItemIds.
+ | [json](#kd.json) | JSON serialization operators.
  | [lists](#kd.lists) | Operators working with lists.
  | [masking](#kd.masking) | Masking operators.
  | [math](#kd.math) | Arithmetic operators.
@@ -2218,6 +2219,80 @@ Args:
 
 Returns:
   A 1-dimensional DataSlice with `size` distinct uuids.
+```
+
+</section>
+
+### kd.json {#kd.json}
+
+JSON serialization operators.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.json.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=DataItem(True, schema: BOOLEAN))` {#kd.json.to_json}
+Aliases:
+
+- [kd.to_json](#kd.to_json)
+
+``` {.no-copy}
+Converts `x` to a DataSlice of JSON strings.
+
+Data with STRING, numeric, MASK, BOOLEAN, LIST, STRING-key DICT, and entity
+schemas are allowed, along with OBJECT schemas that resolve to those schemas.
+Itemid cycles are not allowed.
+
+Missing DataSlice items in the input are missing in the result. Missing values
+inside of lists/entities/etc. are encoded as JSON `null`, except for
+`kd.missing`, which is encoded as `false`.
+
+For example:
+
+  kd.to_json(None) -> kd.str(None)
+  kd.to_json(kd.missing) -> kd.str(None)
+  kd.to_json(kd.present) -> 'true'
+  kd.to_json(True) -> 'true'
+  kd.to_json(kd.slice([1, None, 3])) -> ['1', None, '3']
+  kd.to_json(kd.list([1, None, 3])) -> '[1, null, 3]'
+  kd.to_json(kd.dict({'a': 1, 'b':'2'}) -> '{"a": 1, "b": "2"}'
+  kd.to_json(kd.new(a=1, b='2')) -> '{"a": 1, "b": "2"}'
+  kd.to_json(kd.new(x=None)) -> '{"x": null}'
+  kd.to_json(kd.new(x=kd.missing)) -> '{"x": false}'
+
+Integers are always stored exactly in decimal. Finite floating point values
+are formatted similar to python format string `%.17g`, except that a decimal
+point and at least one decimal digit are always present if the format doesn't
+use scientific notation. This appears to match the behavior of python json.
+
+Non-finite floating point values are stored as the strings "inf", "-inf" and
+"nan". This differs from python json, which emits non-standard JSON tokens
+`Infinity` and `NaN`. This also differs from javascript, which stores these
+values as `null`, which would be ambiguous with Koda missing values. There is
+unfortunately no standard way to express these values in JSON.
+
+The `indent` and `ensure_ascii` arguments control JSON formatting:
+- If `indent` is negative, then the JSON is formatted without any whitespace.
+- If `indent` is None (the default), the JSON is formatted with a single
+  padding space only after ',' and ':' and no other whitespace.
+- If `indent` is zero or positive, the JSON is pretty-printed, with that
+  number of spaces used for indenting each level.
+- If `ensure_ascii` is True (the default) then all non-ASCII code points in
+  strings will be escaped, and the result strings will be ASCII-only.
+  Otherwise, they will be left as-is.
+
+For example:
+
+  kd.to_json(kd.list([1, 2, 3]), indent=-1) -> '[1,2,3]'
+  kd.to_json(kd.list([1, 2, 3]), indent=2) -> '[\n  1,\n  2,\n  3\n]'
+
+  kd.to_json('✨', ensure_ascii=True) -> '"\\u2728"'
+  kd.to_json('✨', ensure_ascii=False) -> '"✨"'
+
+Args:
+  x: The DataSlice to convert.
+  indent: An INT32 DataItem that describes how the result should be indented.
+  ensure_ascii: A BOOLEAN DataItem that controls non-ASCII escaping.
 ```
 
 </section>
@@ -7888,6 +7963,10 @@ Alias for [kd.schema.to_int64](#kd.schema.to_int64) operator.
 ### `kd.to_itemid(x)` {#kd.to_itemid}
 
 Alias for [kd.schema.get_itemid](#kd.schema.get_itemid) operator.
+
+### `kd.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=DataItem(True, schema: BOOLEAN))` {#kd.to_json}
+
+Alias for [kd.json.to_json](#kd.json.to_json) operator.
 
 ### `kd.to_mask(x)` {#kd.to_mask}
 
