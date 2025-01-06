@@ -474,13 +474,7 @@ DataBag.freeze = _freeze
 DataBag.merge_inplace = _merge_inplace
 DataBag.with_name = _general_eager_ops.with_name
 DataBag.__lshift__ = _updated_bag
-DataBag.__ilshift__ = lambda self, other: _merge_inplace(
-    self, other, overwrite=True
-)
 DataBag.__rshift__ = _enriched_bag
-DataBag.__irshift__ = lambda self, other: _merge_inplace(
-    self, other, overwrite=False
-)
 DataBag.contents_repr = _contents_repr
 DataBag.data_triples_repr = _data_triples_repr
 DataBag.schema_triples_repr = _schema_triples_repr

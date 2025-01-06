@@ -1724,8 +1724,9 @@ Assigned schema for Dict key: INT32""",
     o2.x = 2
     o2.y = 3
     db1 <<= db2
-    self.assertEqual(o1.x.no_bag(), ds(2))
-    self.assertEqual(o1.y.no_bag(), ds(3))
+    self.assertEqual(o1.x.no_bag(), ds(1))
+    self.assertEqual(o1.with_bag(db1).x.no_bag(), ds(2))
+    self.assertEqual(o1.with_bag(db1).y.no_bag(), ds(3))
 
   def test_irshift(self):
     db1 = bag()
@@ -1736,7 +1737,8 @@ Assigned schema for Dict key: INT32""",
     o2.y = 3
     db1 >>= db2
     self.assertEqual(o1.x.no_bag(), ds(1))
-    self.assertEqual(o1.y.no_bag(), ds(3))
+    self.assertEqual(o1.with_bag(db1).x.no_bag(), ds(1))
+    self.assertEqual(o1.with_bag(db1).y.no_bag(), ds(3))
 
   def test_merge_fallbacks(self):
     db1 = bag()
