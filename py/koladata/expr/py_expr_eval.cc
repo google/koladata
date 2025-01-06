@@ -203,7 +203,7 @@ absl::Nullable<PyObject*> PyEvalOp(PyObject* /*self*/, PyObject** py_args,
   ASSIGN_OR_RETURN(auto result,
                    InvokeOpWithCompilationCache(
                        std::move(op), input_qvalues,
-                       // TODO: b/375621456 - Provide stack trace information in
+                       // TODO: b/374841918 - Provide stack trace information in
                        // a structured way instead of disabling it.
                        {.verbose_runtime_errors = false}),
                    SetPyErrFromStatus(_));

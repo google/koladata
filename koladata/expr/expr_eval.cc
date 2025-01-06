@@ -268,7 +268,7 @@ absl::StatusOr<CompiledExpr> Compile(
             // In such cases the always clone thread safety policy is faster.
             .SetAlwaysCloneThreadSafetyPolicy()
             .SetInputLoader(arolla::CreateTypedRefsInputLoader(args))
-            // TODO: b/375621456 - Provide stack trace information in a
+            // TODO: b/374841918 - Provide stack trace information in a
             // structured way instead of disabling it.
             .VerboseRuntimeErrors(false)
             .Compile(expr));

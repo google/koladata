@@ -56,6 +56,14 @@ absl::StatusOr<DataItem> DecodeDataItem(
 // has been augmented by adding `msg` to the end of the original error message.
 absl::Status Annotate(absl::Status status, absl::string_view msg);
 
+// Creates KodaError with an error message from the status. If the status
+// already is a KodaError, returns the status as is.
+absl::Status AsKodaError(absl::Status status);
+
+// Creates KodaError with `msg` from the status and sets the cause to `cause`.
+// The result's status code and .message() are the same as `cause`.
+absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause);
+
 }  // namespace koladata::internal
 
 #endif  // KOLADATA_INTERNAL_ERROR_UTILS_H_

@@ -36,7 +36,7 @@ class PointwiseArollaOpErrorTest(absltest.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """math.subtract: cannot align all inputs to a common shape
+            """cannot align inputs to a common shape
 
 The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1])"""
         ),
@@ -46,7 +46,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """math.subtract: cannot align all inputs to a common shape
+            """cannot align inputs to a common shape
 
 The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1])"""
         ),

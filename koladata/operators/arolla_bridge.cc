@@ -40,6 +40,7 @@
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error_utils.h"
 #include "koladata/internal/op_utils/utils.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/schema_utils.h"
@@ -54,7 +55,6 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serving/expr_compiler.h"
 #include "arolla/util/lru_cache.h"
-#include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -105,6 +105,9 @@ class EvalCompiler {
                 // instruction sequences and don't contain many literals. In
                 // such cases the always clone thread safety policy is faster.
                 .SetAlwaysCloneThreadSafetyPolicy()
+                // TODO: b/374841918 - Provide stack trace information in a
+                // structured way instead of disabling it.
+                .VerboseRuntimeErrors(false)
                 .CompileOperator(expr_op, input_types));
     absl::MutexLock lock(&mutex_);
     return *cache_->Put(
@@ -302,19 +305,18 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     internal::DataItem output_schema,
     const std::optional<absl::Span<const int>>& primary_operand_indices) {
   DCHECK_GE(inputs.size(), 1);
-  ASSIGN_OR_RETURN(
-      auto primary_operand_schema_info,
-      GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices),
-      internal::OperatorEvalError(std::move(_), op_name, "invalid inputs"));
+  ASSIGN_OR_RETURN(auto primary_operand_schema_info,
+                   GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices),
+                   internal::AsKodaError(std::move(_)));
   // All primary inputs are empty-and-unknown. We then skip evaluation and just
   // broadcast the first input to the common shape and common schema. It is the
   // caller's responsibility to make sure that the non-primary inputs have
   // acceptable schemas.
   if (!primary_operand_schema_info.first_primitive_schema.has_value()) {
-    ASSIGN_OR_RETURN(auto common_shape, shape::GetCommonShape(inputs),
-                     internal::OperatorEvalError(
-                         std::move(_), op_name,
-                         "cannot align all inputs to a common shape"));
+    ASSIGN_OR_RETURN(
+        auto common_shape, shape::GetCommonShape(inputs),
+        internal::KodaErrorFromCause("cannot align inputs to a common shape",
+                                     std::move(_)));
     if (!output_schema.has_value()) {
       output_schema = std::move(primary_operand_schema_info.common_schema);
     }
@@ -324,11 +326,10 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
   }
   // From here on, we know that at least one primary input has known schema and
   // we should eval.
-  ASSIGN_OR_RETURN(
-      (auto [aligned_ds, aligned_shape]),
-      shape::AlignNonScalars(std::move(inputs)),
-      internal::OperatorEvalError(std::move(_), op_name,
-                                  "cannot align all inputs to a common shape"));
+  ASSIGN_OR_RETURN((auto [aligned_ds, aligned_shape]),
+                   shape::AlignNonScalars(std::move(inputs)),
+                   internal::KodaErrorFromCause(
+                       "cannot align inputs to a common shape", std::move(_)));
   std::vector<arolla::TypedValue> typed_value_holder;
   std::vector<arolla::TypedRef> typed_refs;
   typed_value_holder.reserve(aligned_ds.size());
@@ -343,12 +344,8 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
                          primary_operand_schema_info.first_primitive_schema));
     typed_refs.push_back(std::move(ref));
   }
-  ASSIGN_OR_RETURN(
-      auto result, EvalExpr(op_name, typed_refs),
-      internal::OperatorEvalError(
-          std::move(_), op_name,
-          "successfully converted input DataSlice(s) to DenseArray(s) but "
-          "failed to evaluate the Arolla operator"));
+  ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs),
+                   internal::AsKodaError(std::move(_)));
   if (!output_schema.has_value()) {
     // Get the common schema from the primary inputs and output.
     ASSIGN_OR_RETURN(auto result_schema, GetResultSchema(result));

@@ -120,6 +120,7 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal:ellipsis",
         "//koladata/internal:error_cc_proto",
+        "//koladata/internal:error_utils",
         "//koladata/internal:non_deterministic_token",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",

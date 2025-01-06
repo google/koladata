@@ -36,6 +36,7 @@
 namespace koladata::internal {
 namespace {
 
+using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::testing::EqualsProto;
@@ -45,6 +46,7 @@ using ::koladata::schema::GetDType;
 using ::koladata::schema::ItemIdDType;
 using ::koladata::schema::ObjectDType;
 using ::koladata::schema::SchemaDType;
+using ::testing::Eq;
 using ::testing::HasSubstr;
 using ::testing::Optional;
 
@@ -116,5 +118,34 @@ TEST(ErrorUtilsTest, Annotate) {
   EXPECT_THAT(annotated_status, StatusIs(absl::StatusCode::kUnimplemented,
                                          HasSubstr("Extra error message")));
 }
+
+TEST(ErrorUtilsTest, AsKodaError) {
+  absl::Status status = absl::UnimplementedError("test error");
+  absl::Status koda_status = AsKodaError(status);
+
+  EXPECT_THAT(koda_status.message(), Eq(status.message()));
+  EXPECT_THAT(GetErrorPayload(koda_status),
+              Optional(EqualsProto(R"pb(error_message: "test error")pb")));
+}
+
+TEST(ErrorUtilsTest, AsKodaError_OkStatus) {
+  EXPECT_THAT(AsKodaError(absl::OkStatus()), IsOk());
+}
+
+TEST(ErrorUtilsTest, KodaErrorFromCause) {
+  absl::Status status = absl::UnimplementedError("test error");
+  absl::Status koda_status = KodaErrorFromCause("got an error", status);
+
+  EXPECT_THAT(koda_status.message(), Eq(status.message()));
+  EXPECT_THAT(
+      GetErrorPayload(koda_status),
+      Optional(EqualsProto(R"pb(error_message: "got an error"
+                                cause { error_message: "test error" })pb")));
+}
+
+TEST(ErrorUtilsTest, KodaErrorFromCause_OkStatus) {
+  EXPECT_THAT(KodaErrorFromCause("got an error", absl::OkStatus()), IsOk());
+}
+
 }  // namespace
 }  // namespace koladata::internal

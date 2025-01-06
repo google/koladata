@@ -100,4 +100,29 @@ absl::Status Annotate(absl::Status status, absl::string_view msg) {
   return status;
 }
 
+absl::Status AsKodaError(absl::Status status) {
+  if (status.ok()) {
+    return status;
+  }
+  if (GetErrorPayload(status).has_value()) {
+    return status;
+  }
+  internal::Error error;
+  error.set_error_message(status.message());
+  return internal::WithErrorPayload(std::move(status), error);
+}
+
+absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause) {
+  if (cause.ok()) {
+    return cause;
+  }
+  cause = AsKodaError(std::move(cause));
+  internal::Error error;
+  error.set_error_message(msg);
+  std::optional<internal::Error> cause_error = internal::GetErrorPayload(cause);
+  DCHECK(cause_error.has_value());  // Guaranteed by AsKodaError.
+  *error.mutable_cause() = *std::move(cause_error);
+  return internal::WithErrorPayload(std::move(cause), error);
+}
+
 }  // namespace koladata::internal
