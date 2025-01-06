@@ -360,7 +360,7 @@ kd.is_item(kd.slice([1, 2, 3, 4]))  # false
 kd.item(1).get_ndim()  # 0
 kd.item(1).get_shape()  # empty shape
 
-# .flatten() - universal convertor into 1-dim slices
+# flatten() - universal convertor into 1-dim DataSlices
 kd.item(1).flatten()  # [1]
 
 kd.stack(kd.item(1), kd.item(2), kd.item(3))  # [1, 2, 3]
@@ -412,8 +412,8 @@ IMPORTANT: slicing operators over lists (e.g. a[1:]) do not return lists, but
 DataSlices with plus-one dimension (explosion operation which is discussed in
 the [DataSlice of Structured Data](#structured_data) section later).
 
-Lists can be also looked up with python lists or slices. Use kd.implode to
-convert slices (their last dimension) back into lists.
+Lists can be also looked up with python lists or DataSlices. Use `kd.implode` to
+convert DataSlices (their last dimension) back into lists.
 
 ```py
 a = kd.list([1, 2, 3, 4])
@@ -692,7 +692,7 @@ d[kd.uu(x=5, y=6)]  # None
 ### Containers
 
 As a convenience option, it is possible to create mutable containers that hold
-items and slices.
+items and DataSlices.
 
 Containers can be converted into objects and back.
 
@@ -1510,7 +1510,7 @@ missing, and to avoid working with 3-boolean logic.
 ```py
 bool(kd.item(5) > 3)  # python True
 bool(kd.all(kd.slice([1, 2, 3]) >= 2))  # python False, converted from kd.missing
-# bool(kd.slice([1,2,3]) >= 2) # fails, as only mask items (0-dim slices) can be converted
+# bool(kd.slice([1,2,3]) >= 2) # fails, as only mask items (0-dim DataSlices) can be converted
 
 x = kd.slice([1, 2, 3, 4])
 # mask => boolean (present=>True, missing=>False)
@@ -2036,49 +2036,69 @@ res[:][:].flatten(0, 2)
 ## Data as Collections of Attributes
 
 Koda internal data structures allow working with data as collections of
-attributes (**entity-attribute=>value** mapping triples), which **don't** have
-to be stored or merged together. That is, the data can be split into separate
-collections: **bags**.
+attributes (**(itemid,attribute)=>value** mapping triples), which **don't** have
+to be stored or merged together. That is, the data can be split into multiple
+(and potentially overlapping) collections of attributes: **bags**.
 
-This approach enables:
+This enables:
 
-*   Interactive immutable workflows, where we can have slightly different
+*   Interactive immutable workflows, when we can have slightly different
     versions of the same data (e.g. two versions of large datasets, which would
-    be different only by few values stored in a different small bag)
+    be different by few values only stored in a different small bag)
     *   This is especially useful for what-if experiments involving large data
         and small updates
 *   Creating various "views" on the data (focusing on a subset of examples),
-    while having access to all of the data (e.g. example attributes) without
-    need of copying the data.
+    while having access to all the data (e.g. example attributes) without need
+    of copying the data.
 *   Parallelizing various small data updates (e.g. proto updates), and then
     merging them together.
     *   On-demand and lazy loading only the data required for the moment (e.g.
         only certain attributes or more complex chunks of data)
 *   Serializing only data updates instead of the whole data
 *   Changing not only data itself, but the schemas; adding meta annotations,
-    tracking/controlling data changes and updates
+    tracking/controlling data changes and updates.
 
 This can be compared to working with tables (e.g. computing new tables or rows;
 handle splits, joins, filters, data views), but can be also applied to the data
 with more complex structure (e.g. nested protos and graphs).
 
+To summarize the benefits of this data model:
+
+*   **Flexibility and Expressiveness**
+    *   Adaptable Structure: Mapping triples easily represent complex,
+        schema-less data relationships, ideal for unstructured data, or it is
+        possible to change schemas on-the-fly.
+*   **Immutable Data Handling**
+    *   Predictable and Safe: Immutability avoids unintended side effects,
+        easing debugging and testing.
+    *   Concurrency-Friendly: Enables safe, lock-free data access in
+        multi-threaded environments.
+*   **Efficient Data Updates**
+    *   Overlay System: Updates apply as overlays, saving resources by avoiding
+        full data copying.
+    *   Data Snapshots: Supports multiple views of data without duplicating the
+        full dataset.
+*   **Modularity and Reusability**
+    *   Composable Overlays: Facilitates modular updates for different aspects
+        of the data.
+    *   Reusable Updates: Overlays can be reused across contexts, promoting
+        efficiency.
+
 ### Bags of Attributes
 
-In Koda, all the data is represented as collections of
-**entity-attribute=>value** mapping triples: **bags**, where each entity has a
-**globally unique 128-bit id**, and each entity-attribute pair is **unique**
-(meaning, there can be one value for each entity-attribute pair).
+In Koda, all the data is represented as collections of **(itemid, attribute) ->
+value** mapping triples: **bags**, where itemid is **globally unique 128-bit
+id**. Note, there can be **one value** for each itemid-attribute pair.
 
-Every entity or object can be represented as a bag of attributes, which can be
-obtained through x.get_bag().
+Every entity, object, list or dict have associated itemid, and can be
+represented as a bag of attributes, which can be obtained through `x.get_bag()`.
 
-Schemas are also stored as triples, where triple values are schemas.
+Schemas also stored as mapping triples, just values are schemas.
 
-In addition, each 'object' has an extra triple which associates the object with
-its schema (this is the main difference between `kd.new` and `kd.obj`).
+In addition, each 'object' has an extra mapping triple which associate the
+object with its schema (the main difference between `kd.new` and `kd.obj`).
 
 ```python
-# TODO: Make it consistent with Quick Overview.
 x = kd.new(a=1, b=kd.new(c=2, d='hello'))   # auto-allocated schemas
 db = x.get_bag()  # bag of attributes containing all the triples of x
 
@@ -2087,19 +2107,19 @@ db = x.get_bag()  # bag of attributes containing all the triples of x
 # entity0.b => entity1
 # entity1.c => 2
 # entity1.d => 'hello'
-# db.data_triples_repr()  # 4 triples above
+db.data_triples_repr()  # 4 triples above
 
 # Or schema triples:
 # entity0.a => INT32
 # entity0.b => schema1
 # schema1.c => INT32
 # schema1.d => STRING
-# db.schema_triples_repr()  # 4 schema triples
+db.schema_triples_repr()  # 4 schema triples
 
-# Quickly check the size of the bag in triples.
+# Quickly check the size of the bag in triples
 db.get_approx_size()  # 8 (normal and schema triples)
 
-# Objects also have additional attributes, which link them to their schemas.
+# Objects also have additional attributes, which link them to their schemas
 x = kd.obj(a=1, b=kd.obj(c=2))
 db = x.get_bag()
 
@@ -2108,12 +2128,12 @@ db = x.get_bag()
 # obj0.__schema__ => obj0_schema
 # obj1.c => 2
 # obj1.__schema__ => obj1_schema
-# db.data_triples_repr()  # 4 triples above
+db.data_triples_repr()  # 5 triples above
 
 # obj0_schema.a => INT32
 # obj0_schema.b => obj1_schema
 # obj1_schema.c => INT32
-# db.schema_triples_repr()  # 4 schema triples
+db.schema_triples_repr()  # 3 schema triples
 ```
 
 `kd.bag` and `kd.attrs` or `x.attrs` are used to create bags.
@@ -2129,15 +2149,15 @@ kd.attr(x, '@!&alb', 4)  # triple with non-python identifier
 
 Multiple bags can be **virtually merged for O(1)** by using **update** or
 **enrich** operations. **Update** returns a new bag where values for the same
-entity-attribute pair are overwritten by the values from the other bag, while
+itemid-attribute pair are overwritten by the values from the other bag, while
 **enrich** keeps the values of the original bag. Because everything is triples,
-`kd.updated_bag(a, b)` == `kd.enriched_bag(b, a)`.
+`kd.updated_bag(a, b)` == `kd.enriched_bag(b, a)`. `<<` and `>>` are shortcuts
+for `updated_bag` and `enriched_bag`.
 
-`<<` and `>>` are shortcuts for `updated_bag` and `enriched_bag`.
-
-Note: internally, instead of creating a new merged bag, individual bags are
+Note: Internally, instead of creating a new merged bag, individual bags are
 still tracked separately by having bags with **fallbacks**. That is, when
-looking up attribute values we first check the main bag, and then its fallbacks.
+looking up attribute values, we first check the main bag, and then its
+fallbacks.
 
 When necessary (e.g. too many fallbacks accumulated), it's possible to merge
 everything into one bag without fallbacks.
@@ -2173,15 +2193,59 @@ attr_bag <<= kd.attrs(a, y=2)
 attr_bag <<= kd.attrs(a, x=10, z=3)  # 4 attributes
 
 # Merge everything into one single bag (if needed for performance).
-attr_bag.merge_fallbacks()
+attr_bag = attr_bag.merge_fallbacks()
 ```
 
-As all the attributes of entities and objects (or slices of entities and
-objects) are stored inside bags, the attributes of entities and objects can be
-also updated with `.updated` and `.enriched` for **O(1)**.
+<section class='zippy'>
+
+Optional: Understand how updates are achieved via fallback bags internally and
+how too many fallback bags affect performance.
+
+`kd.updated_bag(db1, db2)` creates a new empty bag with `db1` and `db2` as
+fallbacks.
+
+```python
+a = kd.new()
+attr_bag1 = kd.bag()
+upd1 = kd.attrs(a, x=1)
+attr_bag2 = attr_bag1 << upd1
+
+assert attr_bag2.get_fallbacks()[0].fingerprint == upd1.fingerprint
+assert attr_bag2.get_fallbacks()[1].fingerprint == attr_bag1.fingerprint
+
+upd2 = kd.attrs(a, y=2)
+attr_bag3 = attr_bag2 << upd2
+upd3 = kd.attrs(a, x=10, z=3)
+attr_bag4 = attr_bag3 << upd3
+
+# The fallback chain is:
+# attr_bag4
+#   upd3
+#   attr_bag3
+#     upd2
+#     attr_bag2
+#       upd1
+#       attr_bag1
+
+# When looking up 'x', it goes through the chain and finds it in upd1.
+a.updated(attr_bag4).x
+
+# Merge all fallbacks into a single bag.
+attr_bag5 = attr_bag4.merge_fallbacks()
+assert not attr_bag5.get_fallbacks()
+
+# Find the value at attr_bag5.
+a.updated(attr_bag5).x
+```
+
+</section>
+
+As attributes of entities and objects (or DataSlices of entities and objects)
+are stored inside bags, the attributes of entities and objects can be also
+updated with `.updated` and `.enriched` for the cost of **O(1)**.
 
 Again, `updated` overwrites the values, while `enriched` keeps the values for
-the same entity-attribute pairs.
+the same itemid-attribute pairs.
 
 Note: `with_attrs` is implemented through `updated`.
 
@@ -2190,7 +2254,7 @@ x = kd.obj(a=1)
 upd = kd.attrs(x, a=10, b=20)
 x.updated(upd)  # Obj(a=10, b=20)
 x.updated(upd).get_bag()  # the same as x.get_bag() << upd
-x.enriched(upd)  # Obj(a=1, b=20) - don't change `a`
+x.enriched(upd)  # Obj(a=1, b=20) - don't change 'a'
 x.enriched(upd).get_bag()  # the same as x.get_bag() >> upd
 
 # All below are equivallent
@@ -2199,10 +2263,28 @@ x.updated(kd.attrs(x, a=10, b=20))
 x.updated(kd.attrs(x, a=10)).updated(kd.attrs(x, b=20))
 x.updated(kd.attrs(x, a=10), kd.attrs(x, b=20))
 x.updated(kd.attrs(x, a=10) >> kd.attrs(x, b=20))
+
+# Don't forget about update_schema when making explicit schema changes
+x = kd.obj(a=1)
+upd = kd.attrs(x, a='hello', b='world')  # works - x is object
+x = kd.new(a=1)
+# upd = kd.attrs(x, a='hello', b='world')  # fails - x is entity
+upd = kd.attrs(x, a='hello', b='world', update_schema=True)
 ```
 
-Lists and dicts are used when entity-attribute pair can have multiple values.
+It's also possible to directly change the bag of attributes associated with a
+DataSlice.
 
+```py
+x = kd.obj(a=1)
+upd = kd.attrs(x, a=3, b=4)
+x.updated(upd)  # Obj(a=3, b=4)
+x.with_bag(x.get_bag() << upd)  # The same as above
+x.enriched(upd)  # Obj(a=1, b=4)
+x.with_bag(x.get_bag() >> upd)  # The same as above
+```
+
+Lists and dicts are used when itemid-attribute pair can have multiple values.
 Individual list values cannot be changed, while individual dict values can be
 updated. That is, dicts can be updated or enriched, but lists can be only
 changed as whole.
@@ -2258,13 +2340,44 @@ a.x.z.extract().get_bag()  # 1 attribute triple, 1 schema triple
 a.x.z.extract().get_bag().get_approx_size()  # 2
 ```
 
+To avoid following certain attributes during extraction, use `kd.nofollow` to
+mark them.
+
+```python
+a = kd.new(x=kd.implode(kd.new(v=kd.slice([[1, 2], [3, 4]]))),
+           y=kd.slice([5, 6]))
+a.x[:].v  # [[1, 2], [3, 4]]
+a.y  # [5, 6]
+a.extract_bag().get_approx_size()  # 16
+a.x[:].extract_bag().get_approx_size()  # 5  - only 'v' attributes
+
+# Add 'recursion' by adding a parent.
+a1 = a.updated(kd.attrs(a.x[:], parent=a))
+a1.x[:].parent.y  # [[5, 5], [6, 6]]
+a1.x[:].parent.x[:].v  # [[[1, 2], [1, 2]], [[3, 4], [3, 4]]]
+a1.extract_bag().get_approx_size()  # 21
+a1.x[:].extract_bag().get_approx_size()  # 21 - the same as above
+a1.x[:].extract().parent.y  # [[5, 5], [6, 6]] - works
+
+# Stop recursion during extraction.
+a2 = a.updated(kd.attrs(a.x[:], parent=kd.nofollow(a)))
+a2.x[:].parent.y  # [[5, 5], [6, 6]] - works
+a2.x[:].extract_bag().get_approx_size()  # 10 - don't follow
+a2.x[:].extract().parent  # works, as the reference is still assigned
+# a2.x[:].extract().parent.y  # doesn't work, as we don't follow
+
+# Enrich with original data to get access to the original attributes.
+a2.x[:].extract().parent.enriched(a.get_bag()).y
+
+# Need to use get_nofollowed_schema to access the actual schema.
+a2.x[:].get_schema().parent.get_nofollowed_schema() == a2.get_schema()  # yes
+```
+
 `x.stub()` returns a copy of an item (entity, object or dict) with the same
 itemid, but with a bag that doesn't contain attributes (or dict values).
 
 That is, `stub` helps to create a minimum-size copy that can be updated with
 attributes and later merged with original data.
-
-To work with min-version of cloned item, use `shallow_clone` instead of `stub`.
 
 ```python
 a = kd.new(x=kd.new(y=1, z=kd.new(u=2)), v=3)
@@ -2278,13 +2391,13 @@ a1.with_attrs(c=2).get_bag()  # 1 attr
 # kd.attrs creates the same bag whether we use a or a1.
 kd.attrs(a1, c=2)  # the same kd.attrs(a, c=2)
 
-# Can enrich with the attributes from the original.
+# Enrich with the attributes from the original.
 a1.enriched(a.get_bag())  # equivallent to just a
 a1.enriched(a.get_bag()).v  # 3 - the same as a.v
 a1.with_attrs(c=2).enriched(a.get_bag())  # the same as a.with_attrs(c=2)
 
-# Can create multiple versions of the same objects/entities that have
-# different attributes, which can be later merged together.
+# It makes possible to create multiple versions of the same objects/entities
+# that have different attributes, which can be merged later together.
 a = kd.new(z=4)
 a1 = a.stub().with_attrs(x=1)
 a2 = a.stub().with_attrs(y=2)
@@ -2293,9 +2406,13 @@ a3 = a.stub().with_attrs(x=3)
 # a3.x will overwrite a1.x
 a.updated(a1.get_bag(), a2.get_bag(), a3.get_bag())  # Entity(x=3, y=2, z=4)
 a.updated(a1.get_bag() << a2.get_bag() << a3.get_bag())  # the same as above
-# Can switch the priority of merges.
+# Switch the priority of merges.
 a.updated(a1.get_bag() >> a2.get_bag() >> a3.get_bag())
+```
 
+To work with min-version of cloned item, use `shallow_clone` instead of `stub`.
+
+```python
 # Shallow clone allocates new itemid, but keeps attributes
 # (but only immediate attributes).
 a = kd.new(u=kd.new(v=1), x=kd.new(y=2))
@@ -2342,36 +2459,60 @@ b.get_bag()  # 3 attributes
 b.enriched(a.get_bag()).x.z.u  # 2
 ```
 
+To quickly check if two DataSlices use the same bag of attributes, one can use bags'
+fingerprint.
+
+```python
+t = kd.obj(x=kd.obj(a=1, b=2), y=kd.obj(c=3, d=4))
+t.x.get_bag().fingerprint == t.y.get_bag().fingerprint  # True
+
+x1 = t.x.with_attrs(z=5)
+y1 = t.x.with_attrs(z=6)
+x1.get_bag().fingerprint == y1.get_bag().fingerprint  # False
+
+db = x1.get_bag() << y1.get_bag()
+x2 = x1.with_bag(db)
+y2 = y1.with_bag(db)
+x2.get_bag().fingerprint == y2.get_bag().fingerprint  # True
+```
+
 ### Immutable Workflows
 
 By default, Koda data structures are immutable, but its APIs make it easy to
 work with mutable data as well, with comparable performance characteristics.
 
+There are mutliple ways to edit objects and their attributes (or deep attributes).
+
 ```python
-# TODO: Make it consistent with Quick Overview.
-# Mutliple ways to edit objects and its attributes (or deep attributes).
-t = kd.obj(x=1)
+t = kd.new(x=1, schema='MySchema')
 t = t.with_attrs(y=2)
+t = t.with_attrs(x='hello', update_schema=True)  # Change the schema
 t = t.updated(kd.attrs(t, z=3)) # alternative to the above
 t = t.updated(kd.attrs(x, y=20), kd.attrs(t, z=30)) # multiple updates
 t = t.with_attrs(a=kd.obj(u=5))
 t = t.updated(kd.attrs(t.a, v=7)) # editing deep attributes
 t = t.updated(kd.attrs(t.a, w=70), kd.attrs(x, x=10)) # mixing
-t = t.with_attrs(u=kd.list([1,2,3]))
-t = t.with_attrs(v=kd.list([4,5,6]))
+t = t.with_attrs(u=kd.list([1, 2, 3]))
+t = t.with_attrs(v=kd.list([4, 5, 6]))
 t = t.with_attrs(u=kd.concat_lists(t.u, t.v))  # t.u[:] => [1,2,3,4,5,6]
 t = t.with_attrs(d=kd.dict({'a': 1, 'b': 2}))  # add dict attribute
 t = t.updated(t.d.dict_update('c', 3))  # update the dict with c=>3
 # update the dict with c=>4, d=>5
 t = t.updated(kd.dict_update(t.d, kd.dict({'c': 4, 'd': 5})))
+```
 
-# Can work with dicts separately, as if they were objects/entities.
+Dicts can be updated in the same way as objects/entities.
+
+```python
 t = kd.dict({'a': 1, 'b': 2})
 t = t.updated(kd.dict_update(t, 'c', 3))
 t = t.with_dict_update('d', 4)
-t = t.updated(d.dict_update('e', 5))
+t = t.updated(kd.dict_update(t, 'e', 5))
+```
 
-# Alternatively can accumulate updates (which can be stored separately).
+Alternatively we can accumulate updates which can be stored separately.
+
+```python
 t = kd.obj(x=1)
 upd = kd.bag()
 upd <<= kd.attrs(t, y=2)
@@ -2383,11 +2524,14 @@ upd <<= kd.attrs(t, a=kd.obj(u=5))
 # t.updated(upd) does have the needed attribute
 upd <<= kd.attrs(t.updated(upd).a, v=7)
 upd <<= kd.attrs(t.updated(upd).a, w=70) << kd.attrs(x, x=10)
-upd <<= kd.attrs(t, u=kd.list([1,2,3]))
+upd <<= kd.attrs(t, u=kd.list([1, 2, 3]))
 t.updated(upd)  # fully updated version
+```
 
-# Remember that foo.updated(bar) is O(1), which allows tracking the updates
-# separately while also having both original and updated versions.
+Remember that `foo.updated(bar)` is O(1), which allows tracking the updates
+separately while also having both original and updated versions.
+
+```python
 def foo1(x): return kd.attrs(x, c=x.a+x.b)
 def foo2(x): return kd.attrs(x, d=x.c*x.a)
 def foo3(x): return kd.attrs(x, d=x.d+x.b)
@@ -2404,18 +2548,15 @@ upd = foo(t)
 t.updated(upd)  # Obj(a=3, b=4, c=7, d=25)
 ```
 
-The same APIs work for slices of objects/entities.
+The same APIs work for DataSlices of objects/entities.
 
 ```python
-# TODO: Expand this section
+a = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+a.with_attrs(z=kd.slice([7, 8, 9]))  # add z attribute to 3 entities
+a.updated(kd.attrs(a, x=kd.slice([10, 11, 12])))  # update attribute
 
-# All of the above works with slices.
-a = kd.new(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
-a.with_attrs(z=kd.slice([7,8,9]))  # add z attribute to 3 entities
-a.updated(kd.attrs(a, x=kd.slice([10,11,12])))  # update attribute
-
-# Can set only to a subset of entities utilizing sparsity.
-a.updated(kd.attrs(a & (a.y >=5), z=kd.slice([7,8,9]))).z  # [None, 8 ,9]
+# Can set only to a subset of entities utilizing sparsity
+a.updated(kd.attrs(a & (a.y >= 5), z=kd.slice([7, 8, 9]))).z  # [None, 8 ,9]
 ```
 
 It's possible to have multiple versions of the same object, which would have
@@ -2468,9 +2609,9 @@ z.x1a.c  # 6
 z.x1b.c  # 7
 ```
 
-Note: the data is not eagerly merged, which means that it's possible to have
-multiple versions of the same expensive data simultaneously without duplicating
-it in memory.
+Remember that data updates are not eagerly merged, which means that it's possible to
+have multiple versions of the same expensive data simultaneously without
+duplicating it in memory.
 
 ```python
 t = kd.obj(x=kd.slice(list(range(1000))))
@@ -2481,8 +2622,8 @@ t3 = t.updated(kd.attrs(t.S[300:399], x=0)) # O(t.S[300:399])
 print(kd.sum(t.x), kd.sum(t1.x), kd.sum(t2.x), kd.sum(t3.x))
 ```
 
-Note: it's possible to make data updates smaller and more efficient by using
-`stub` or `shallow_clone` which would avoid copying all the data.
+It is possible to make data updates smaller and more efficient by using `stub`
+or `shallow_clone` which would avoid copying all the data.
 
 ```python
 x = kd.obj(a=kd.obj(u=3, v=4), b=kd.obj(u=5, v=6))
@@ -2505,12 +2646,86 @@ y.updated(upd1)
 y.updated(upd2).enriched(x.get_bag()) # the same as above, but faster
 ```
 
-### Serialization
+### Mutable Workflows
 
-It's possible to serialize slices and bags into bytes.
+While immutable workflows are recommended for most cases, certain situations
+where the same Koda data structure has to be frequently modified (e.g. cache)
+require mutable data structures. `fork_bag` returns a mutable version of data at
+the cost of **O(1)** (without modifying the original one), while `freeze`
+returns an immutable version (also for O(1)) and *extract* and *clone* can
+extract and return immutable pieces.
+
+Note: mutable workflows are not supported in tracing and have more limited
+options for productionalization.
 
 ```python
-# Serialize slices.
+# Modify the same dict many times
+d_original = kd.dict()  # immutable
+d = d_original.fork_bag()  # mutable
+for i in range(100):
+  # Insert random x=>y mappings (10 at a time)
+  d[kd.random.randint_like(kd.present.repeat(10))] = kd.random.randint_like(kd.present.repeat(10))
+d = d.freeze()  # immutable, has all the values
+d_original  # still empty dict
+
+a_original = kd.obj(x=1, y=2)
+a = a_original.fork_bag()
+a.y = 3
+a.z = 4
+a = a.freeze()
+a_original  # Obj(x=1, y=2)
+a  # Obj(x=1, y=3, z=4)
+
+a = kd.obj(x=kd.obj(u=10, v=20), y=2).fork_bag()
+a.x.u = 30
+a.x  # Obj(u=30, v=20) - mutable
+a.x.freeze()  # immutable, but doesn't extract only a.x data
+a.x.freeze().get_bag().get_approx_size()  # 11 - has reference to all the data
+a.x.extract()  # immutable, but only a.x related data
+a.x.extract().get_bag().get_approx_size()  # 5
+a.x.clone()  # Obj(u=30, v=20), but with different itemid
+
+a.x.extract().get_itemid() == a.x.get_itemid()  # yes
+a.x.clone().get_itemid() != a.x.get_itemid()  # yes
+```
+
+`fork_bag` can be also used to quickly (for O(1)) create a copy of the data and
+work on it.
+
+```python
+d = kd.dict(kd.range(1000), kd.range(1000, 2000))
+d1 = d.fork_bag()  # create mutable version for O(1)
+d1[123] = 79
+d2 = d1.fork_bag()  # fork d1 for O(1)
+d2[123] = 549
+d[123]  # 1123 - hasn't changed
+d1[123]  # 79
+d2[123]  # 549 - another forked version
+```
+
+Note: mutable workflows are not thread-safe, and careful treatment is needed if
+they are used in multi-thread settings.
+
+```python
+import threading
+mylock = threading.RLock()
+my_dict = kd.dict().fork_bag()
+def my_fn(x, y):
+  with mylock:
+    my_dict[x] = kd.obj(x=x, y=y)
+  return y
+
+kd.map_py(my_fn, kd.range(1000), kd.range(1000, 2000), max_threads=1000)
+with mylock: # Needed only if read in multi-threading settings
+  t = my_dict[500].extract()  # immutable Obj(x=500, y=1500)
+```
+
+### Serialization
+
+It's possible to serialize DataSlices and bags into bytes.
+
+```python
+# Serialize DataSlices.
 a = kd.obj(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
 foo = kd.dumps(a) # bytes
 a1 = kd.loads(foo)
