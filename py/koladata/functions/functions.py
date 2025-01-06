@@ -84,14 +84,14 @@ core = _py_types.SimpleNamespace(
 )
 
 dicts = _py_types.SimpleNamespace(
-    create=_object_factories.dict_,
+    new=_object_factories.dict_,
     like=_object_factories.dict_like,
     shaped=_object_factories.dict_shaped,
     shaped_as=_object_factories.dict_shaped_as,
 )
 
 lists = _py_types.SimpleNamespace(
-    create=_object_factories.list_,
+    new=_object_factories.list_,
     like=_object_factories.list_like,
     shaped=_object_factories.list_shaped,
     shaped_as=_object_factories.list_shaped_as,

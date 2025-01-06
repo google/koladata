@@ -69,7 +69,7 @@ class DictTest(parameterized.TestCase):
       ),
   )
   def test_value(self, kwargs):
-    actual = expr_eval.eval(kde.dicts.create(**kwargs))
+    actual = expr_eval.eval(kde.dicts.new(**kwargs))
     expected = bag().dict(**kwargs)
     testing.assert_dicts_equal(actual, expected)
 
@@ -77,7 +77,7 @@ class DictTest(parameterized.TestCase):
     keys = ds(['a', 'b'])
     values = ds([3, 7])
     actual = expr_eval.eval(
-        kde.dicts.create(
+        kde.dicts.new(
             keys,
             values,
         )
@@ -89,12 +89,12 @@ class DictTest(parameterized.TestCase):
     testing.assert_dicts_equal(actual, expected)
 
   def test_db_is_immutable(self):
-    d = expr_eval.eval(kde.dicts.create())
+    d = expr_eval.eval(kde.dicts.new())
     self.assertFalse(d.is_mutable())
 
   def test_adopt_values(self):
-    dct = kde.dicts.create('a', 7).eval()
-    dct2 = kde.dicts.create(ds(['obj']), dct).eval()
+    dct = kde.dicts.new('a', 7).eval()
+    dct2 = kde.dicts.new(ds(['obj']), dct).eval()
 
     testing.assert_equal(
         dct2['obj']['a'],
@@ -105,7 +105,7 @@ class DictTest(parameterized.TestCase):
     dict_schema = kde.schema.dict_schema(
         schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
     ).eval()
-    dct = kde.dicts.create(schema=dict_schema).eval()
+    dct = kde.dicts.new(schema=dict_schema).eval()
 
     testing.assert_equal(
         dct[ds(None)].a.no_bag(), ds(None, schema_constants.INT32)
@@ -116,19 +116,19 @@ class DictTest(parameterized.TestCase):
         ValueError,
         'creating a dict requires both keys and values, got only keys',
     ):
-      expr_eval.eval(kde.dicts.create(keys=ds(['a', 'b'])))
+      expr_eval.eval(kde.dicts.new(keys=ds(['a', 'b'])))
 
   def test_only_values_arg_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'creating a dict requires both keys and values, got only values',
     ):
-      expr_eval.eval(kde.dicts.create(values=ds([3, 7])))
+      expr_eval.eval(kde.dicts.new(values=ds([3, 7])))
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
       expr_eval.eval(
-          kde.dicts.create(
+          kde.dicts.new(
               keys=ds([1, 2, 3]),
               values=ds([4]),
           )
@@ -137,7 +137,7 @@ class DictTest(parameterized.TestCase):
   def test_schema_arg_error(self):
     with self.assertRaisesRegex(ValueError, 'expected Dict schema, got INT64'):
       expr_eval.eval(
-          kde.dicts.create(
+          kde.dicts.new(
               schema=schema_constants.INT64,
           )
       )
@@ -149,7 +149,7 @@ class DictTest(parameterized.TestCase):
         ' schemas, but not both',
     ):
       expr_eval.eval(
-          kde.dicts.create(
+          kde.dicts.new(
               key_schema=schema_constants.INT64,
               schema=fns.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
@@ -164,7 +164,7 @@ class DictTest(parameterized.TestCase):
         ' schemas, but not both',
     ):
       expr_eval.eval(
-          kde.dicts.create(
+          kde.dicts.new(
               value_schema=schema_constants.INT64,
               schema=fns.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
@@ -176,15 +176,15 @@ class DictTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.dicts.create(key_schema=42))
+      expr_eval.eval(kde.dicts.new(key_schema=42))
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.dicts.create(value_schema=42))
+      expr_eval.eval(kde.dicts.new(value_schema=42))
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.dicts.create(schema=42))
+      expr_eval.eval(kde.dicts.new(schema=42))
 
   def test_key_schema_errors(self):
     with self.assertRaisesRegex(
@@ -195,7 +195,7 @@ Expected schema for Dict key: INT32
 Assigned schema for Dict key: STRING""",
     ):
       expr_eval.eval(
-          kde.dicts.create(
+          kde.dicts.new(
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
               key_schema=schema_constants.INT32,
@@ -211,7 +211,7 @@ Expected schema for Dict value: STRING
 Assigned schema for Dict value: INT32""",
     ):
       expr_eval.eval(
-          kde.dicts.create(
+          kde.dicts.new(
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
               value_schema=schema_constants.STRING,
@@ -227,7 +227,7 @@ Expected schema for Dict key: INT64
 Assigned schema for Dict key: STRING""",
     ):
       expr_eval.eval(
-          kde.dicts.create(
+          kde.dicts.new(
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
               schema=fns.dict_schema(
@@ -239,12 +239,12 @@ Assigned schema for Dict key: STRING""",
   def test_non_determinism(self):
     keys = ds([2, 3])
     values = ds([3, 7])
-    res_1 = expr_eval.eval(kde.dicts.create(keys=keys, values=values))
-    res_2 = expr_eval.eval(kde.dicts.create(keys=keys, values=values))
+    res_1 = expr_eval.eval(kde.dicts.new(keys=keys, values=values))
+    res_2 = expr_eval.eval(kde.dicts.new(keys=keys, values=values))
     self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
     testing.assert_dicts_equal(res_1, res_2)
 
-    expr = kde.dicts.create(keys=keys, values=values)
+    expr = kde.dicts.new(keys=keys, values=values)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
@@ -252,22 +252,22 @@ Assigned schema for Dict key: STRING""",
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.dicts.create,
+        kde.dicts.new,
         QTYPE_SIGNATURES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.dicts.create()))
-    self.assertTrue(view.has_koda_view(kde.dicts.create(keys=I.x)))
+    self.assertTrue(view.has_koda_view(kde.dicts.new()))
+    self.assertTrue(view.has_koda_view(kde.dicts.new(keys=I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.dicts.create, kde.dict))
+    self.assertTrue(optools.equiv_to_op(kde.dicts.new, kde.dict))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.dicts.create(keys=I.x)),
-        'kde.dicts.create(I.x, unspecified, key_schema=unspecified,'
+        repr(kde.dicts.new(keys=I.x)),
+        'kde.dicts.new(I.x, unspecified, key_schema=unspecified,'
         ' value_schema=unspecified, schema=unspecified, itemid=unspecified)',
     )
 

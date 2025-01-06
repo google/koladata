@@ -131,7 +131,7 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_adopt_values(self):
     shape = jagged_shape.create_shape([2])
-    lst = kde.lists.create(ds([[1, 2], [3]])).eval()
+    lst = kde.lists.new(ds([[1, 2], [3]])).eval()
     lst2 = kde.lists.shaped(shape, lst).eval()
 
     testing.assert_equal(

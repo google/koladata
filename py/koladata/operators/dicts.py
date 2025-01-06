@@ -46,7 +46,7 @@ def _shaped(
 
 @optools.add_to_registry(aliases=['kde.dict'])
 @optools.as_lambda_operator(
-    'kde.dicts.create',
+    'kde.dicts.new',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.keys),
         qtype_utils.expect_data_slice_or_unspecified(P.values),

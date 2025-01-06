@@ -378,7 +378,7 @@ Assigned schema for Dict value: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}"
       )
 
   def test_alias(self):
-    self.assertIs(fns.dict, fns.dicts.create)
+    self.assertIs(fns.dict, fns.dicts.new)
 
 
 if __name__ == '__main__':

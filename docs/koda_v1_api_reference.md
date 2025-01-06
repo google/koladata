@@ -1516,6 +1516,39 @@ Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
     A DataSlice with the dicts.
 ```
 
+### `kd.dicts.new(keys=unspecified, values=unspecified, *, key_schema=unspecified, value_schema=unspecified, schema=unspecified, itemid=unspecified)` {#kd.dicts.new}
+
+``` {.no-copy}
+Creates a Koda dict.
+
+Acceptable arguments are:
+  1) no argument: a single empty dict
+  2) two DataSlices/DataItems as keys and values: a DataSlice of dicts whose
+     shape is the last N-1 dimensions of keys/values DataSlice
+
+Examples:
+dict() -> returns a single new dict
+dict(kd.slice([1, 2]), kd.slice([3, 4]))
+  -> returns a dict ({1: 3, 2: 4})
+dict(kd.slice([[1], [2]]), kd.slice([3, 4]))
+  -> returns a 1-D DataSlice that holds two dicts ({1: 3} and {2: 4})
+dict('key', 12) -> returns a single dict mapping 'key'->12
+
+Args:
+  keys: a DataSlice with keys.
+  values: a DataSlice with values.
+  key_schema: the schema of the dict keys. If not specified, it will be
+    deduced from keys or defaulted to OBJECT.
+  value_schema: the schema of the dict values. If not specified, it will be
+    deduced from values or defaulted to OBJECT.
+  schema: the schema to use for the newly created Dict. If specified, then
+    key_schema and value_schema must not be specified.
+  itemid: ITEMID DataSlice used as ItemIds of the resulting dicts.
+
+Returns:
+  A DataSlice with the dict.
+```
+
 ### `kd.dicts.select_keys(ds, fltr)` {#kd.dicts.select_keys}
 Aliases:
 
@@ -2511,6 +2544,27 @@ Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
   Returns:
     A DataSlice with the lists.
+```
+
+### `kd.lists.new(items=unspecified, /, *, item_schema=unspecified, schema=unspecified, itemid=unspecified)` {#kd.lists.new}
+
+``` {.no-copy}
+Creates list(s) by collapsing `items`.
+
+If there is no argument, returns an empty Koda List. If the argument is a
+DataSlice, creates a DataSlice of Koda Lists.
+
+Args:
+  items: items of the resulting lists. If not specified, an empty list of
+    OBJECTs will be created.
+  item_schema: optional schema of the list items. If not specified, it will be
+    deduced from `items` or defaulted to OBJECT.
+  schema: optional schema to use for the list. If specified, then item_schema
+    must not be specified.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+
+Returns:
+  The DataSlice with list/lists.
 ```
 
 ### `kd.lists.select_items(ds, fltr)` {#kd.lists.select_items}

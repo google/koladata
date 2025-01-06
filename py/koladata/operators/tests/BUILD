@@ -365,8 +365,8 @@ py_test(
 )
 
 py_test(
-    name = "lists_make_test",
-    srcs = ["lists_make_test.py"],
+    name = "lists_new_test",
+    srcs = ["lists_new_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -1455,8 +1455,8 @@ py_test(
 )
 
 py_test(
-    name = "dicts_create_test",
-    srcs = ["dicts_create_test.py"],
+    name = "dicts_new_test",
+    srcs = ["dicts_new_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",

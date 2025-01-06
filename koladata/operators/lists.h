@@ -42,7 +42,7 @@ absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
 // kde.lists.size.
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 
-// kde.lists.create operator.
+// kde.lists.new operator.
 absl::StatusOr<DataSlice> List(
     const DataSlice& items, const DataSlice& item_schema,
     const DataSlice& schema, const DataSlice& itemid,

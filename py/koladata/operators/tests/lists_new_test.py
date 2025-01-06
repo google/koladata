@@ -79,7 +79,7 @@ class ListLikeTest(parameterized.TestCase):
       ),
   )
   def test_value(self, args, kwargs):
-    actual = expr_eval.eval(kde.lists.create(*args, **kwargs))
+    actual = expr_eval.eval(kde.lists.new(*args, **kwargs))
     expected = bag().list(*args, **kwargs)
     testing.assert_equal(
         actual.get_schema().get_attr('__items__').no_bag(),
@@ -89,19 +89,19 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_itemid(self):
     itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))
-    x = expr_eval.eval(kde.lists.create(ds([['a', 'b'], ['c']]), itemid=itemid))
+    x = expr_eval.eval(kde.lists.new(ds([['a', 'b'], ['c']]), itemid=itemid))
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
     testing.assert_equal(
         x.no_bag().get_itemid(), itemid & expr_eval.eval(kde.has(x))
     )
 
   def test_db_is_immutable(self):
-    lst = expr_eval.eval(kde.lists.create(ds([[1, None], [3]])))
+    lst = expr_eval.eval(kde.lists.new(ds([[1, None], [3]])))
     self.assertFalse(lst.is_mutable())
 
   def test_adopt_values(self):
-    lst = kde.lists.create(ds([[1, 2], [3]])).eval()
-    lst2 = kde.lists.create(lst).eval()
+    lst = kde.lists.new(ds([[1, 2], [3]])).eval()
+    lst2 = kde.lists.new(lst).eval()
 
     testing.assert_equal(
         lst2[:][:],
@@ -112,7 +112,7 @@ class ListLikeTest(parameterized.TestCase):
     list_schema = kde.schema.list_schema(
         fns.uu_schema(a=schema_constants.INT32)
     ).eval()
-    lst = kde.lists.create(schema=list_schema).eval()
+    lst = kde.lists.new(schema=list_schema).eval()
 
     testing.assert_equal(
         lst[:].a.no_bag(), ds([], schema_constants.INT32)
@@ -123,14 +123,14 @@ class ListLikeTest(parameterized.TestCase):
         ValueError,
         'expected DATA_SLICE, got items: DATA_BAG',
     ):
-      expr_eval.eval(kde.lists.create(fns.bag()))
+      expr_eval.eval(kde.lists.new(fns.bag()))
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(
         ValueError,
         'creating a list from values requires at least one dimension',
     ):
-      expr_eval.eval(kde.lists.create(ds(None)))
+      expr_eval.eval(kde.lists.new(ds(None)))
 
   def test_schema_arg_error(self):
     items = ds([[1, None], [3]])
@@ -138,7 +138,7 @@ class ListLikeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'either a list schema or item schema, but not both'
     ):
-      expr_eval.eval(kde.lists.create(
+      expr_eval.eval(kde.lists.new(
           items,
           item_schema=schema_constants.INT64,
           schema=list_schema,
@@ -149,11 +149,11 @@ class ListLikeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.lists.create(items, item_schema=42))
+      expr_eval.eval(kde.lists.new(items, item_schema=42))
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.lists.create(items, schema=42))
+      expr_eval.eval(kde.lists.new(items, schema=42))
 
   def test_schema_errors(self):
     with self.assertRaisesRegex(
@@ -163,19 +163,19 @@ class ListLikeTest(parameterized.TestCase):
 Expected schema for List item: BYTES
 Assigned schema for List item: INT32""",
     ):
-      expr_eval.eval(kde.lists.create(
+      expr_eval.eval(kde.lists.new(
           ds([[1, 2], [3]]),
           item_schema=schema_constants.BYTES,
       ))
 
   def test_non_determinism(self):
     items = ds([[1, 2], [3]])
-    res_1 = expr_eval.eval(kde.lists.create(items))
-    res_2 = expr_eval.eval(kde.lists.create(items))
+    res_1 = expr_eval.eval(kde.lists.new(items))
+    res_2 = expr_eval.eval(kde.lists.new(items))
     self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
     testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
 
-    expr = kde.lists.create(items)
+    expr = kde.lists.new(items)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
@@ -183,21 +183,21 @@ Assigned schema for List item: INT32""",
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.lists.create,
+        kde.lists.new,
         QTYPE_SIGNATURES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.lists.create(I.x)))
+    self.assertTrue(view.has_koda_view(kde.lists.new(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.lists.create, kde.lists.create))
+    self.assertTrue(optools.equiv_to_op(kde.lists.new, kde.lists.new))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.lists.create(I.x, schema=I.y)),
-        'kde.lists.create(I.x, item_schema=unspecified, schema=I.y,'
+        repr(kde.lists.new(I.x, schema=I.y)),
+        'kde.lists.new(I.x, item_schema=unspecified, schema=I.y,'
         ' itemid=unspecified)',
     )
 

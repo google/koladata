@@ -107,7 +107,7 @@ class DictShapedAsTest(parameterized.TestCase):
     self.assertFalse(d.is_mutable())
 
   def test_adopt_values(self):
-    dct = kde.dicts.create('a', 7).eval()
+    dct = kde.dicts.new('a', 7).eval()
     dct2 = kde.dicts.shaped_as(ds([[0, 0], [0]]), 'obj', dct).eval()
 
     testing.assert_equal(

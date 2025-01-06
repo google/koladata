@@ -37,13 +37,13 @@ constraints = arolla.optools.constraints
 
 @optools.as_backend_operator('kde.lists._make', deterministic=False)
 def _make(items, item_schema, schema, itemid):  # pylint: disable=unused-argument
-  """Implementation of `kde.lists.create`."""
+  """Implementation of `kde.lists.new`."""
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kde.list'])
 @optools.as_lambda_operator(
-    'kde.lists.create',
+    'kde.lists.new',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.items),
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),

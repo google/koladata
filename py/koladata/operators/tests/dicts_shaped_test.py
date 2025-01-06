@@ -108,7 +108,7 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_adopt_values(self):
     shape = ds([[0, 0], [0]]).get_shape()
-    dct = kde.dicts.create('a', 7).eval()
+    dct = kde.dicts.new('a', 7).eval()
     dct2 = kde.dicts.shaped(shape, 'obj', dct).eval()
 
     testing.assert_equal(
