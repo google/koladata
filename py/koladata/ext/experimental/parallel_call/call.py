@@ -231,7 +231,7 @@ def _store_end_time(
 
 def _assert_no_inner_calls(var_name: str, expr: kd.types.Expr):
   """Asserts that there are no inner calls in the given expression."""
-  call_op = kd.kde.functor.call
+  call_op = kd.lazy.functor.call
   call_nodes = [
       node
       for node in arolla.abc.post_order(expr)
@@ -284,9 +284,9 @@ def _schedule_expr_execution(
   deps = tuple(_get_variable_task(repo, fn_call, name) for name in var_names)
   _assert_no_inner_calls(var_name, expr)
   if expr.op is not None and kd.optools.equiv_to_op(
-      expr.op, kd.kde.functor.call
+      expr.op, kd.lazy.functor.call
   ):
-    call_deps_expr = kd.kde.make_tuple(*expr.node_deps)
+    call_deps_expr = kd.lazy.make_tuple(*expr.node_deps)
     call_deps_task = repo.add(
         task_repository.Task(
             functools.partial(

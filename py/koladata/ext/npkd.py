@@ -21,7 +21,7 @@ from arolla.experimental import numpy_conversion
 from koladata import kd
 import numpy as np
 
-kdi = kd.kdi
+kdi = kd.eager
 
 _DATA_SLICE_ONE = kd.item(1)
 

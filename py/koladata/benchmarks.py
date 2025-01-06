@@ -25,8 +25,8 @@ from koladata.functions.tests import test_pb2
 I = kd.I
 V = kd.V
 S = kd.S
-kde = kd.kde
-kdi = kd.kdi
+kde = kd.lazy
+kdi = kd.eager
 kdf = kd.functor
 
 

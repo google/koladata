@@ -18,7 +18,7 @@ import google_benchmark
 from koladata import kd
 from koladata.ext import nested_data
 
-kdi = kd.kdi
+kdi = kd.eager
 
 
 def create_test_dataset(entity_mode: bool, sparse: bool) -> kd.types.DataSlice:

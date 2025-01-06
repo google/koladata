@@ -18,7 +18,7 @@ from koladata import kd
 from koladata.expr import tracing
 from koladata.testing import testing
 
-kde = kd.kde
+kde = kd.lazy
 kdf = kd.functor
 I = kd.I
 

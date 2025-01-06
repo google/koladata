@@ -243,7 +243,9 @@ class CoreNewTest(absltest.TestCase):
       kde.core.new(a=1, schema=schema_constants.OBJECT).eval()
 
   def test_converter_not_supported(self):
-    with self.assertRaisesRegex(ValueError, 'please use eager only kd.kdi.new'):
+    with self.assertRaisesRegex(
+        ValueError, 'please use eager only kd.eager.new'
+    ):
       _ = kde.core.new(ds(42)).eval()
 
   def test_non_determinism(self):

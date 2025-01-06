@@ -20,7 +20,7 @@ from koladata import kd
 from koladata.ext import functools
 
 
-kdi = kd.kdi
+kdi = kd.eager
 
 
 def selected_path_update(

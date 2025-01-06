@@ -20,7 +20,7 @@ from koladata import kd
 from koladata.ext import nested_data
 
 kdf = kd.functor
-kdi = kd.kdi
+kdi = kd.eager
 I = kd.I
 S = kd.S
 

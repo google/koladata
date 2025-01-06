@@ -21,7 +21,7 @@ from koladata import kd
 from koladata.ext import npkd
 import pandas as pd
 
-kdi = kd.kdi
+kdi = kd.eager
 
 
 def from_dataframe(

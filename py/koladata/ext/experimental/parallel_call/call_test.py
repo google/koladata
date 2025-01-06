@@ -26,7 +26,7 @@ I = kd.I
 V = kd.V
 S = kd.S
 ds = kd.slice
-kde = kd.kde
+kde = kd.lazy
 signature_utils = kd.functor.signature_utils
 
 

@@ -349,7 +349,7 @@ def _new(arg, schema, update_schema, itemid, attrs):
             (P.arg == arolla.UNSPECIFIED),
             'kde.new does not support converter use-case. For converting'
             ' Python '
-            + 'objects to Entities, please use eager only kd.kdi.new',
+            + 'objects to Entities, please use eager only kd.eager.new',
         ),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice(P.update_schema),
