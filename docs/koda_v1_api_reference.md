@@ -2905,6 +2905,64 @@ Returns:
   DataSlice.
 ```
 
+### `kd.masking.present_like(x)` {#kd.masking.present_like}
+Aliases:
+
+- [kd.present_like](#kd.present_like)
+
+``` {.no-copy}
+Creates a DataSlice of present masks with the shape and sparsity of `x`.
+
+Example:
+  x = kd.slice([0], [0, None])
+  kd.present_like(x) -> kd.slice([[present], [present, None]])
+
+Args:
+  x: DataSlice to match the shape and sparsity of.
+
+Returns:
+  A DataSlice with the same shape and sparsity as `x`.
+```
+
+### `kd.masking.present_shaped(shape)` {#kd.masking.present_shaped}
+Aliases:
+
+- [kd.present_shaped](#kd.present_shaped)
+
+``` {.no-copy}
+Creates a DataSlice of present masks with the given shape.
+
+Example:
+  shape = kd.shapes.create_shape([2], [1, 2])
+  kd.masking.present_shaped(shape) -> kd.slice([[present], [present,
+  present]])
+
+Args:
+  shape: shape to expand to.
+
+Returns:
+  A DataSlice with the same shape as `shape`.
+```
+
+### `kd.masking.present_shaped_as(x)` {#kd.masking.present_shaped_as}
+Aliases:
+
+- [kd.present_shaped_as](#kd.present_shaped_as)
+
+``` {.no-copy}
+Creates a DataSlice of present masks with the shape of `x`.
+
+Example:
+  x = kd.slice([0], [0, 0])
+  kd.masking.present_shaped_as(x) -> kd.slice([[present], [present, present]])
+
+Args:
+  x: DataSlice to match the shape of.
+
+Returns:
+  A DataSlice with the same shape as `x`.
+```
+
 </section>
 
 ### kd.math {#kd.math}
@@ -5524,63 +5582,6 @@ Returns:
   A DataSlice of ordinal ranks.
 ```
 
-### `kd.slices.present_like(x)` {#kd.slices.present_like}
-Aliases:
-
-- [kd.present_like](#kd.present_like)
-
-``` {.no-copy}
-Creates a DataSlice of present masks with the shape and sparsity of `x`.
-
-Example:
-  x = kd.slice([0], [0, None])
-  kd.present_like(x) -> kd.slice([[present], [present, None]])
-
-Args:
-  x: DataSlice to match the shape and sparsity of.
-
-Returns:
-  A DataSlice with the same shape and sparsity as `x`.
-```
-
-### `kd.slices.present_shaped(shape)` {#kd.slices.present_shaped}
-Aliases:
-
-- [kd.present_shaped](#kd.present_shaped)
-
-``` {.no-copy}
-Creates a DataSlice of present masks with the given shape.
-
-Example:
-  shape = kd.shapes.create_shape([2], [1, 2])
-  kd.slices.present_shaped(shape) -> kd.slice([[present], [present, present]])
-
-Args:
-  shape: shape to expand to.
-
-Returns:
-  A DataSlice with the same shape as `shape`.
-```
-
-### `kd.slices.present_shaped_as(x)` {#kd.slices.present_shaped_as}
-Aliases:
-
-- [kd.present_shaped_as](#kd.present_shaped_as)
-
-``` {.no-copy}
-Creates a DataSlice of present masks with the shape of `x`.
-
-Example:
-  x = kd.slice([0], [0, 0])
-  kd.slices.present_shaped_as(x) -> kd.slice([[present], [present, present]])
-
-Args:
-  x: DataSlice to match the shape of.
-
-Returns:
-  A DataSlice with the same shape as `x`.
-```
-
 ### `kd.slices.range(start, end=unspecified)` {#kd.slices.range}
 Aliases:
 
@@ -7681,15 +7682,15 @@ Alias for [kd.slices.ordinal_rank](#kd.slices.ordinal_rank) operator.
 
 ### `kd.present_like(x)` {#kd.present_like}
 
-Alias for [kd.slices.present_like](#kd.slices.present_like) operator.
+Alias for [kd.masking.present_like](#kd.masking.present_like) operator.
 
 ### `kd.present_shaped(shape)` {#kd.present_shaped}
 
-Alias for [kd.slices.present_shaped](#kd.slices.present_shaped) operator.
+Alias for [kd.masking.present_shaped](#kd.masking.present_shaped) operator.
 
 ### `kd.present_shaped_as(x)` {#kd.present_shaped_as}
 
-Alias for [kd.slices.present_shaped_as](#kd.slices.present_shaped_as) operator.
+Alias for [kd.masking.present_shaped_as](#kd.masking.present_shaped_as) operator.
 
 ### `kd.py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults)` {#kd.py_fn}
 

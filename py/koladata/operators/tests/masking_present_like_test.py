@@ -41,7 +41,7 @@ present = arolla.present()
 QTYPES = frozenset([(DATA_SLICE, DATA_SLICE)])
 
 
-class CorePresentLikeTest(parameterized.TestCase):
+class MaskingPresentLikeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds('1'), ds(present)),
@@ -51,20 +51,20 @@ class CorePresentLikeTest(parameterized.TestCase):
       (ds([[obj1], [None, obj2]]), ds([[present], [None, present]])),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.slices.present_like(x))
+    res = expr_eval.eval(kde.masking.present_like(x))
     testing.assert_equal(res, expected)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.present_like,
+            kde.masking.present_like,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.present_like(I.x)))
+    self.assertTrue(view.has_koda_view(kde.masking.present_like(I.x)))
 
 
 if __name__ == '__main__':

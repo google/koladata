@@ -20,6 +20,7 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.types import data_slice
 from koladata.types import schema_constants
 
 M = arolla.M
@@ -488,3 +489,149 @@ def disjoint_coalesce(x, y):
       'kde.masking.disjoint_coalesce: `x` and `y` cannot intersect',
   )
   return coalesce(x, y)
+
+
+# NOTE: Implemented here to avoid a dependency cycle between masking and slices.
+@optools.add_to_registry(aliases=['kde.val_shaped'])
+@optools.as_lambda_operator(
+    'kde.slices.val_shaped',
+    qtype_constraints=[
+        qtype_utils.expect_jagged_shape(P.shape),
+        qtype_utils.expect_data_slice(P.val),
+    ],
+)
+def _val_shaped(shape, val):
+  """Creates a DataSlice with `val` expanded to the given shape.
+
+  Example:
+    shape = kd.shapes.create_shape([2], [1, 2])
+    kd.slices.val_shaped(shape, 1) -> kd.slice([[1], [1, 1]])
+    kd.slices.val_shaped(shape, kd.slice([None, 2])) -> kd.slice([[None], [2,
+    2]])
+
+  Args:
+    shape: shape to expand to.
+    val: value to expand.
+
+  Returns:
+    A DataSlice with the same shape as `shape`.
+  """
+  return jagged_shape_ops.expand_to_shape(val, shape)
+
+
+@optools.add_to_registry(aliases=['kde.val_shaped_as'])
+@optools.as_lambda_operator(
+    'kde.slices.val_shaped_as',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.val),
+    ],
+)
+def _val_shaped_as(x, val):
+  """Creates a DataSlice with `val` expanded to the shape of `x`.
+
+  Example:
+    x = kd.slice([0], [0, 0])
+    kd.slices.val_shaped_as(x, 1) -> kd.slice([[1], [1, 1]])
+    kd.slices.val_shaped_as(x, kd.slice([None, 2])) -> kd.slice([[None], [2,
+    2]])
+
+  Args:
+    x: DataSlice to match the shape of.
+    val: DataSlice to expand.
+
+  Returns:
+    A DataSlice with the same shape as `x`.
+  """
+  return _val_shaped(jagged_shape_ops.get_shape(x), val)
+
+
+@optools.add_to_registry(aliases=['kde.val_like'])
+@optools.as_lambda_operator(
+    'kde.slices.val_like',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.val),
+    ],
+)
+def _val_like(x, val):
+  """Creates a DataSlice with `val` masked and expanded to the shape of `x`.
+
+  Example:
+    x = kd.slice([0], [0, None])
+    kd.slices.val_like(x, 1) -> kd.slice([[1], [1, None]])
+    kd.slices.val_like(x, kd.slice([1, 2])) -> kd.slice([[1], [2, None]])
+    kd.slices.val_like(x, kd.slice([None, 2])) -> kd.slice([[None], [2, None]])
+
+  Args:
+    x: DataSlice to match the shape and sparsity of.
+    val: DataSlice to expand.
+
+  Returns:
+    A DataSlice with the same shape as `x` and masked by `x`.
+  """
+  return _val_shaped_as(x, val) & has(x)
+
+
+@optools.add_to_registry(aliases=['kde.present_shaped'])
+@optools.as_lambda_operator(
+    'kde.masking.present_shaped',
+    qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
+)
+def present_shaped(shape):
+  """Creates a DataSlice of present masks with the given shape.
+
+  Example:
+    shape = kd.shapes.create_shape([2], [1, 2])
+    kd.masking.present_shaped(shape) -> kd.slice([[present], [present,
+    present]])
+
+  Args:
+    shape: shape to expand to.
+
+  Returns:
+    A DataSlice with the same shape as `shape`.
+  """
+  return _val_shaped(shape, data_slice.DataSlice.from_vals(arolla.present()))
+
+
+@optools.add_to_registry(aliases=['kde.present_shaped_as'])
+@optools.as_lambda_operator(
+    'kde.masking.present_shaped_as',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+)
+def present_shaped_as(x):
+  """Creates a DataSlice of present masks with the shape of `x`.
+
+  Example:
+    x = kd.slice([0], [0, 0])
+    kd.masking.present_shaped_as(x) -> kd.slice([[present], [present, present]])
+
+  Args:
+    x: DataSlice to match the shape of.
+
+  Returns:
+    A DataSlice with the same shape as `x`.
+  """
+  return _val_shaped_as(x, data_slice.DataSlice.from_vals(arolla.present()))
+
+
+@optools.add_to_registry(aliases=['kde.present_like'])
+@optools.as_lambda_operator(
+    'kde.masking.present_like',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+)
+def present_like(x):
+  """Creates a DataSlice of present masks with the shape and sparsity of `x`.
+
+  Example:
+    x = kd.slice([0], [0, None])
+    kd.present_like(x) -> kd.slice([[present], [present, None]])
+
+  Args:
+    x: DataSlice to match the shape and sparsity of.
+
+  Returns:
+    A DataSlice with the same shape and sparsity as `x`.
+  """
+  return _val_like(x, data_slice.DataSlice.from_vals(arolla.present()))

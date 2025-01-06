@@ -4411,8 +4411,8 @@ py_test(
 )
 
 py_test(
-    name = "slices_present_shaped_test",
-    srcs = ["slices_present_shaped_test.py"],
+    name = "masking_present_shaped_test",
+    srcs = ["masking_present_shaped_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4430,8 +4430,8 @@ py_test(
 )
 
 py_test(
-    name = "slices_present_shaped_as_test",
-    srcs = ["slices_present_shaped_as_test.py"],
+    name = "masking_present_shaped_as_test",
+    srcs = ["masking_present_shaped_as_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4449,8 +4449,8 @@ py_test(
 )
 
 py_test(
-    name = "slices_present_like_test",
-    srcs = ["slices_present_like_test.py"],
+    name = "masking_present_like_test",
+    srcs = ["masking_present_like_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",

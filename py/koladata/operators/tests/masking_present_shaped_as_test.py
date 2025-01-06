@@ -21,8 +21,8 @@ from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import jagged_shape
 from koladata.types import qtypes
 
 
@@ -30,39 +30,40 @@ I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-JAGGED_SHAPE = qtypes.JAGGED_SHAPE
 
+db = data_bag.DataBag.empty()
+obj1 = db.obj()
+obj2 = db.obj()
 present = arolla.present()
 
 
-QTYPES = frozenset([(JAGGED_SHAPE, DATA_SLICE)])
+QTYPES = frozenset([(DATA_SLICE, DATA_SLICE)])
 
 
-class CorePresentShapedTest(parameterized.TestCase):
+class MaskingPresentShapedAsTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (jagged_shape.create_shape(), ds(present)),
-      (jagged_shape.create_shape([3]), ds([present, present, present])),
-      (
-          jagged_shape.create_shape([2], [1, 2]),
-          ds([[present], [present, present]]),
-      ),
+      (ds('1'), ds(present)),
+      (ds(None), ds(present)),
+      (ds(['1', None, '3']), ds([present, present, present])),
+      (ds([['1'], [None, '3']]), ds([[present], [present, present]])),
+      (ds([[obj1], [None, obj2]]), ds([[present], [present, present]])),
   )
-  def test_eval(self, shape, expected):
-    res = expr_eval.eval(kde.slices.present_shaped(shape))
+  def test_eval(self, x, expected):
+    res = expr_eval.eval(kde.masking.present_shaped_as(x))
     testing.assert_equal(res, expected)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.present_shaped,
+            kde.masking.present_shaped_as,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.present_shaped(I.shape)))
+    self.assertTrue(view.has_koda_view(kde.masking.present_shaped_as(I.x)))
 
 
 if __name__ == '__main__':
