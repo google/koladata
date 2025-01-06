@@ -41,7 +41,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreInverseMappingTest(parameterized.TestCase):
+class SlicesInverseMappingTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # x.ndim = 0

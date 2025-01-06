@@ -43,7 +43,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreGetKeysTest(parameterized.TestCase):
+class DictsGetKeysTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # Dict DataItem

@@ -42,7 +42,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreCumCountTest(parameterized.TestCase):
+class SlicesCumCountTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(0), 0, ds(1, schema=INT64)),

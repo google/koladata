@@ -41,7 +41,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreExpandToTest(parameterized.TestCase):
+class SlicesExpandToTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # ndim=0

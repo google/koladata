@@ -44,7 +44,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreRepeatPresentTest(parameterized.TestCase):
+class SlicesRepeatPresentTest(parameterized.TestCase):
 
   @parameterized.parameters(
       itertools.product(

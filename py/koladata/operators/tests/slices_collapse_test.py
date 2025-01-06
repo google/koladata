@@ -42,7 +42,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreCollapseTest(parameterized.TestCase):
+class SlicesCollapseTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds([None]), ds(None)),

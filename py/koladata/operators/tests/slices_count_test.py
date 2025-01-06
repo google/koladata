@@ -37,7 +37,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreCountTest(parameterized.TestCase):
+class SlicesCountTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds([1, 2, None, 3]), ds(3, schema_constants.INT64)),

@@ -33,7 +33,7 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 
 
-class CoreIsInTest(parameterized.TestCase):
+class SlicesIsInTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # DataItem.

@@ -42,7 +42,7 @@ obj2 = db.obj()
 QTYPES = frozenset([(DATA_SLICE, DATA_SLICE, DATA_SLICE)])
 
 
-class CoreValLikeTest(parameterized.TestCase):
+class SlicesValLikeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds('1'), 1, ds(1)),

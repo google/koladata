@@ -41,7 +41,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreListSizeTest(parameterized.TestCase):
+class ListsSizeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (bag().list(), ds(0, schema_constants.INT64)),

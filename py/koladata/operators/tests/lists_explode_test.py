@@ -49,7 +49,7 @@ ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
 di = lambda *args: data_item.DataItem.from_vals(*args).with_bag(db)
 
 
-class CoreExplodeTest(parameterized.TestCase):
+class ListsExplodeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(0), 0, (ds(0))),

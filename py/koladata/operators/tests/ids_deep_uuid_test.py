@@ -30,7 +30,7 @@ bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 
 
-class CoreDeepUuidTest(parameterized.TestCase):
+class IdsDeepUuidTest(parameterized.TestCase):
 
   @parameterized.product(
       pass_schema=[True, False],

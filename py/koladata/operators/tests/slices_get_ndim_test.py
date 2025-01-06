@@ -37,7 +37,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreRankTest(parameterized.TestCase):
+class SlicesRankTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds([1, 2, None, 3]), ds(1, schema_constants.INT64)),

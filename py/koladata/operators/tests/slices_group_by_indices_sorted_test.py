@@ -35,7 +35,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class CoreGroupByIndicesSortedTest(parameterized.TestCase):
+class SlicesGroupByIndicesSortedTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # 1D DataSlice 'x'

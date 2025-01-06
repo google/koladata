@@ -37,7 +37,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreSizeTest(parameterized.TestCase):
+class SlicesSizeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds([1, 2, None, 3]), ds(4, schema_constants.INT64)),

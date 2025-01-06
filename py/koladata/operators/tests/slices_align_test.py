@@ -49,7 +49,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreAlignTest(parameterized.TestCase):
+class SlicesAlignTest(parameterized.TestCase):
 
   @parameterized.parameters(
       ((), arolla.tuple()),

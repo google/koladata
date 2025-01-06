@@ -32,7 +32,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class CoreUniqueTest(parameterized.TestCase):
+class SlicesUniqueTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # 1D DataSlice 'x'

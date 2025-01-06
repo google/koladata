@@ -41,7 +41,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreSelectTest(parameterized.TestCase):
+class SlicesSelectTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (

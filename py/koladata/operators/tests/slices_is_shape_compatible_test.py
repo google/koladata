@@ -38,7 +38,7 @@ QTYPES = [
 ]
 
 
-class CoreIsShapeCompatibleTest(parameterized.TestCase):
+class SlicesIsShapeCompatibleTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(0), ds(1), kd.present),

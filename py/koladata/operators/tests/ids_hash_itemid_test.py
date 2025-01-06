@@ -35,7 +35,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class CoreHashItemIdTest(parameterized.TestCase):
+class IdsHashItemIdTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (bag().new(a=1),),

@@ -42,7 +42,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreAggUuidTest(parameterized.TestCase):
+class IdsAggUuidTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds([[1, 2], [3, None]]), 1),

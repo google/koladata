@@ -51,7 +51,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreStackTest(parameterized.TestCase):
+class SlicesStackTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # single input

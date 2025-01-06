@@ -46,7 +46,7 @@ QTYPES = frozenset([
 
 # More complete tests are in core_dict_update_test.py, because
 # with_dict_update(x, ...) is equivalent to updated(x, dict_update(x, ...)).
-class CoreWithDictUpdateTest(parameterized.TestCase):
+class DictsWithDictUpdateTest(parameterized.TestCase):
 
   def test_eval_keys_values(self):
     x1 = fns.dict(ds([1, 2, 3]), ds([4, 5, 6]))

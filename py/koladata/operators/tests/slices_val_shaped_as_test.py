@@ -41,7 +41,7 @@ obj2 = db.obj()
 QTYPES = frozenset([(DATA_SLICE, DATA_SLICE, DATA_SLICE)])
 
 
-class CoreValShapedAsTest(parameterized.TestCase):
+class SlicesValShapedAsTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds('1'), 1, ds(1)),

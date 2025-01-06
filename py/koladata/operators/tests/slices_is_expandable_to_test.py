@@ -35,7 +35,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class CoreIsExpandableToTest(parameterized.TestCase):
+class SlicesIsExpandableToTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

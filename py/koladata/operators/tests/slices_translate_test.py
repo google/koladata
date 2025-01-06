@@ -49,7 +49,7 @@ entity3 = db.new(x=3, schema=s)
 entity4 = db.new(x=4, schema=s)
 
 
-class CoreTranslateTest(parameterized.TestCase):
+class SlicesTranslateTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # primitive schema

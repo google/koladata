@@ -51,7 +51,7 @@ entity5 = db.new(x=5, schema=s)
 entity6 = db.new(x=6, schema=s)
 
 
-class CoreTranslateGroupTest(parameterized.TestCase):
+class SlicesTranslateGroupTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # primitive schema

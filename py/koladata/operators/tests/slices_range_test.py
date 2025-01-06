@@ -40,7 +40,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreRangeTest(parameterized.TestCase):
+class SlicesRangeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (3, ds([0, 1, 2], INT64)),

@@ -38,7 +38,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreUuidsWithAllocationSizeTest(parameterized.TestCase):
+class IdsUuidsWithAllocationSizeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (

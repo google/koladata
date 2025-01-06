@@ -44,7 +44,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreZipTest(parameterized.TestCase):
+class SlicesZipTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # single input

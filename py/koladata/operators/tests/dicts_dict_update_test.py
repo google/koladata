@@ -44,7 +44,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreDictUpdateTest(parameterized.TestCase):
+class DictsDictUpdateTest(parameterized.TestCase):
 
   def test_eval_keys_values(self):
     x1 = fns.dict(ds([1, 2, 3]), ds([4, 5, 6]))

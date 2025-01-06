@@ -41,7 +41,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreIsEmptyTest(parameterized.TestCase):
+class SlicesIsEmptyTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(None), present),

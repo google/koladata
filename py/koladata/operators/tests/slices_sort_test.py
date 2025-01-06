@@ -44,7 +44,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreSortTest(parameterized.TestCase):
+class SlicesSortTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # x.ndim = 1

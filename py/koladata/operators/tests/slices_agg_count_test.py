@@ -41,7 +41,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreAggCountTest(parameterized.TestCase):
+class SlicesAggCountTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (

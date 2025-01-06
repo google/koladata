@@ -44,7 +44,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreIsListTest(parameterized.TestCase):
+class ListsIsListTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # List

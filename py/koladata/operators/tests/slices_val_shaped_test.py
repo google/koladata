@@ -43,7 +43,7 @@ obj2 = db.obj()
 QTYPES = frozenset([(JAGGED_SHAPE, DATA_SLICE, DATA_SLICE)])
 
 
-class CoreValShapedTest(parameterized.TestCase):
+class SlicesValShapedTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (jagged_shape.create_shape(), 1, ds(1)),

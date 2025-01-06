@@ -42,7 +42,7 @@ ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
 LIST1 = db.list([[1, 2], [3]])
 
 
-class CoreSelectItemsTest(parameterized.TestCase):
+class ListsSelectItemsTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (

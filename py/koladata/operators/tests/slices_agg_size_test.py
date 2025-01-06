@@ -41,7 +41,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreAggSizeTest(parameterized.TestCase):
+class SlicesAggSizeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (

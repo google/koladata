@@ -38,7 +38,7 @@ DATA_SLICE = qtypes.DATA_SLICE
 QTYPES = frozenset([(DATA_SLICE, DATA_SLICE, DATA_SLICE)])
 
 
-class CoreTakeTest(parameterized.TestCase):
+class SlicesTakeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # 1D DataSlice 'x'

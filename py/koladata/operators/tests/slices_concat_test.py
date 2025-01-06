@@ -63,7 +63,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreConcatImplTest(parameterized.TestCase):
+class SlicesConcatImplTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # single input

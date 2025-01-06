@@ -41,7 +41,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreDictSizeTest(parameterized.TestCase):
+class DictsSizeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (bag().dict(), ds(0, schema_constants.INT64)),

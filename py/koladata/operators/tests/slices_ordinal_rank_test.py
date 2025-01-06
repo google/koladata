@@ -55,7 +55,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreOrdinalRankTest(parameterized.TestCase):
+class SlicesOrdinalRankTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # x.ndim = 0

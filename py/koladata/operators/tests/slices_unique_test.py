@@ -39,7 +39,7 @@ obj2 = db.obj(x=2)
 obj3 = db.obj(x=3)
 
 
-class CoreUniqueTest(parameterized.TestCase):
+class SlicesUniqueTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # 1D DataSlice 'x'

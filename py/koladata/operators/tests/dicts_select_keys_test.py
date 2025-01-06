@@ -42,7 +42,7 @@ QTYPES = frozenset([
 DICT = db.dict({1: 1, 2: 2, 3: 3})
 
 
-class CoreSelectKeysTest(parameterized.TestCase):
+class DictsSelectKeysTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (

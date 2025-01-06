@@ -48,7 +48,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreIndexTest(parameterized.TestCase):
+class SlicesIndexTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds([5, 6, None, 7]), arolla.unspecified(), ds([0, 1, None, 3], INT64)),

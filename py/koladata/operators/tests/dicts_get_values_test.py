@@ -48,7 +48,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreGetValuesTest(parameterized.TestCase):
+class DictsGetValuesTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # Dict DataItem
