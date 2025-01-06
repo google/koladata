@@ -1430,44 +1430,6 @@ def select_present(ds):
   return select(ds=ds, fltr=masking.has(ds))
 
 
-@optools.add_to_registry(aliases=['kde.remove'])
-@optools.as_lambda_operator(
-    'kde.slices.remove',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_slice(P.fltr),
-    ],
-)
-def remove(ds, fltr):
-  """Creates a new DataSlice by filtering out present items in fltr.
-
-  The dimensions of `fltr` needs to be compatible with the dimensions of `ds`.
-  By default, `fltr` is expanded to 'ds' and items in `ds` corresponding
-  present items in `fltr` are removed. The last dimension of the resulting
-  DataSlice is changed while the first N-1 dimensions are the same as those in
-  `ds`.
-
-  Example:
-    val = kd.slice([[1, None, 4], [None], [2, 8]])
-    kd.remove(val, val > 3) -> [[1, None], [None], [2]]
-
-    fltr = kd.slice(
-        [[None, None, kd.present], [kd.present], [kd.present, None]])
-    kd.remove(val, fltr) -> [[1, None], [None], [8]]
-
-  Args:
-    ds: DataSlice to be filtered
-    fltr: filter DataSlice with dtype as kd.MASK.
-
-  Returns:
-    Filtered DataSlice.
-  """
-  fltr = assertion.assert_ds_has_primitives_of(
-      fltr, MASK, 'kde.slices.remove: argument `fltr` must have kd.MASK dtype'
-  )
-  return select(ds=ds, fltr=~fltr)
-
-
 @optools.add_to_registry(aliases=['kde.reverse'])
 @optools.as_backend_operator(
     'kde.slices.reverse',

@@ -883,10 +883,6 @@ kd.inverse_select(
     kd.slice([kd.missing, kd.present, kd.present])
 )
 
-kd.remove(a, a > 1)
-a.remove(a > 1)
-kd.remove(a, lambda x: x > 1) # same as above
-
 kd.select_present(kd.slice([1, None, 3]))
 
 b = kd.slice([3, 2, 1])
