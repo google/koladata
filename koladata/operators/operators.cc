@@ -67,10 +67,9 @@ OPERATOR("kde.comparison.less", Less);
 OPERATOR("kde.comparison.less_equal", LessEqual);
 //
 OPERATOR("kde.core._clone", Clone);
+OPERATOR("kde.core._databag_freeze", Freeze<DataBagPtr>);
 OPERATOR("kde.core._deep_clone", DeepClone);
 OPERATOR("kde.core._extract", Extract);
-OPERATOR("kde.core._freeze_bag", Freeze<DataBagPtr>);
-OPERATOR("kde.core._freeze_slice", Freeze<DataSlice>);
 OPERATOR("kde.core._get_attr", GetAttr);
 OPERATOR("kde.core._get_attr_with_default", GetAttrWithDefault);
 OPERATOR("kde.core._get_item", GetItem);
@@ -92,6 +91,7 @@ OPERATOR_FAMILY("kde.core.enriched",
 OPERATOR_FAMILY("kde.core.enriched_bag",
                 std::make_unique<EnrichedDbOperatorFamily>());
 OPERATOR("kde.core.follow", Follow);
+OPERATOR("kde.core.freeze_bag", Freeze<DataSlice>);
 OPERATOR("kde.core.get_bag", GetBag);
 OPERATOR("kde.core.has_primitive", HasPrimitive);
 OPERATOR("kde.core.is_primitive", IsPrimitive);

@@ -318,7 +318,7 @@ def _deep_uuid(
 # TODO: Remove this alias.
 @DataSlice._add_method('fork_db')  # pylint: disable=protected-access
 def _fork_bag(self) -> DataSlice:
-  """Returns a copy of the DataSlice with a forked DataBag."""
+  """Returns a copy of the DataSlice with a forked mutable DataBag."""
   if self.get_bag() is None:
     raise ValueError(
         'fork_bag expects the DataSlice to have a DataBag attached'

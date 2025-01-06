@@ -1061,13 +1061,13 @@ bool DataSlice::IsWhole() const {
          (!bag->IsMutable() || bag->GetImpl().IsPristine());
 }
 
-absl::StatusOr<DataSlice> DataSlice::ForkDb() const {
+absl::StatusOr<DataSlice> DataSlice::ForkBag() const {
   ASSIGN_OR_RETURN(auto forked_db, GetBag()->Fork());
   return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(),
                    std::move(forked_db), IsWhole());
 }
 
-DataSlice DataSlice::Freeze() const {
+DataSlice DataSlice::FreezeBag() const {
   const DataBagPtr& db = GetBag();
   if (db == nullptr) {
     return *this;

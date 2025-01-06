@@ -462,7 +462,7 @@ DataBagPtr Freeze<DataBagPtr>(const DataBagPtr& x) {
 
 template <>
 DataSlice Freeze<DataSlice>(const DataSlice& x) {
-  return x.Freeze();
+  return x.FreezeBag();
 }
 
 absl::StatusOr<DataSlice> Clone(

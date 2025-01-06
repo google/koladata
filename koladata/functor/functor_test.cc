@@ -202,10 +202,10 @@ TEST(IsFunctorTest, Basic) {
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature, {}));
   EXPECT_THAT(IsFunctor(fn), IsOkAndHolds(true));
-  ASSERT_OK_AND_ASSIGN(auto fn2, fn.ForkDb());
+  ASSERT_OK_AND_ASSIGN(auto fn2, fn.ForkBag());
   ASSERT_OK(fn2.DelAttr(kReturnsAttrName));
   EXPECT_THAT(IsFunctor(fn2), IsOkAndHolds(false));
-  ASSERT_OK_AND_ASSIGN(auto fn3, fn.ForkDb());
+  ASSERT_OK_AND_ASSIGN(auto fn3, fn.ForkBag());
   ASSERT_OK(fn3.DelAttr(kSignatureAttrName));
   EXPECT_THAT(IsFunctor(fn3), IsOkAndHolds(false));
   EXPECT_OK(IsFunctor(fn.WithBag(nullptr)));

@@ -34,7 +34,7 @@ absl::StatusOr<DataSlice> MakeUnspecifiedSelfInput() {
   ASSIGN_OR_RETURN(auto res,
                    CreateUu(DataBag::Empty(), "__self_not_specified__",
                             {"self_not_specified"}, {present}));
-  return res.Freeze();
+  return res.FreezeBag();
 }
 }  // namespace
 

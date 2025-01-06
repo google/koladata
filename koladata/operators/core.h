@@ -139,11 +139,11 @@ absl::StatusOr<DataSlice> Follow(const DataSlice& ds);
 template <typename T>
 T Freeze(const T& x);
 
-// kde.core._freeze_bag.
+// kde.core._databag_freeze.
 template <>
 DataBagPtr Freeze<DataBagPtr>(const DataBagPtr& x);
 
-// kde.core._freeze_slice.
+// kde.core.freeze_bag.
 template <>
 DataSlice Freeze<DataSlice>(const DataSlice& x);
 

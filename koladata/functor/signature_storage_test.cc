@@ -172,7 +172,7 @@ TEST(KodaSignatureToCppSignatureTest, MissingParameterList) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkDb());
+  ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkBag());
   ASSERT_OK_AND_ASSIGN(auto missing,
                        DataSlice::Create(internal::DataItem(arolla::kMissing),
                                          internal::DataItem(schema::kMask)));
@@ -193,7 +193,7 @@ TEST(KodaSignatureToCppSignatureTest, MissingParameter) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkDb());
+  ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkBag());
   ASSERT_OK_AND_ASSIGN(auto missing,
                        DataSlice::Create(internal::DataItem(arolla::kMissing),
                                          internal::DataItem(schema::kMask)));
@@ -212,7 +212,7 @@ TEST(KodaSignatureToCppSignatureTest, NonTextParameterName) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkDb());
+  ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkBag());
   ASSERT_OK_AND_ASSIGN(auto missing,
                        DataSlice::Create(internal::DataItem(arolla::kMissing),
                                          internal::DataItem(schema::kMask)));
@@ -237,7 +237,7 @@ TEST(KodaSignatureToCppSignatureTest, DuplicateParameterName) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1, p2}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkDb());
+  ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkBag());
   ASSERT_OK_AND_ASSIGN(auto missing,
                        DataSlice::Create(internal::DataItem(arolla::kMissing),
                                          internal::DataItem(schema::kMask)));
@@ -258,7 +258,7 @@ TEST(KodaSignatureToCppSignatureTest, InvalidKind) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkDb());
+  ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkBag());
   ASSERT_OK_AND_ASSIGN(auto missing,
                        DataSlice::Create(internal::DataItem(arolla::kMissing),
                                          internal::DataItem(schema::kMask)));

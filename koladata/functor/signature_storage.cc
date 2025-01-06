@@ -49,7 +49,7 @@ absl::StatusOr<DataSlice> MakeParameterKindConstant(absl::string_view name) {
                                      internal::DataItem(schema::kString)));
   ASSIGN_OR_RETURN(auto res, CreateUu(DataBag::Empty(), "__parameter_kind__",
                                       {"kind"}, {name_attr}));
-  return res.Freeze();
+  return res.FreezeBag();
 }
 
 absl::StatusOr<DataSlice> MakeNoDefaultValueMarker() {
@@ -59,7 +59,7 @@ absl::StatusOr<DataSlice> MakeNoDefaultValueMarker() {
   ASSIGN_OR_RETURN(auto res,
                    CreateUu(DataBag::Empty(), "__parameter_no_default_value__",
                             {"no_default_value"}, {present}));
-  return res.Freeze();
+  return res.FreezeBag();
 }
 
 absl::StatusOr<DataSlice> ParameterKindToKoda(Signature::Parameter::Kind kind) {
@@ -144,7 +144,7 @@ absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
       auto koda_signature,
       ObjectCreator::FromAttrs(db, {"parameters"}, {koda_parameter_list}));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
-  return koda_signature.Freeze();
+  return koda_signature.FreezeBag();
 }
 
 absl::StatusOr<Signature> KodaSignatureToCppSignature(

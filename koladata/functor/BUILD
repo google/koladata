@@ -101,7 +101,6 @@ cc_test(
         "//koladata:object_factories",
         "//koladata:test_utils",
         "//koladata/expr:constants",
-        "//koladata/expr:expr_operators",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "//koladata/testing:matchers",

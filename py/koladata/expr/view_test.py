@@ -340,6 +340,9 @@ class KodaViewTest(parameterized.TestCase):
   def test_freeze(self):
     testing.assert_equal(C.x.freeze(), kde.freeze(C.x))
 
+  def test_freeze_bag(self):
+    testing.assert_equal(C.x.freeze_bag(), kde.freeze_bag(C.x))
+
   def test_ref(self):
     testing.assert_equal(C.x.ref(), kde.ref(C.x))
 
