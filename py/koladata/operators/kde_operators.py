@@ -30,7 +30,6 @@ from koladata.operators import masking as _
 from koladata.operators import math as _
 from koladata.operators import object_factories as _
 from koladata.operators import optools
-from koladata.operators import predicates as _
 from koladata.operators import py as _
 from koladata.operators import random as _
 from koladata.operators import schema as _

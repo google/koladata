@@ -108,7 +108,6 @@ arolla_operator_package_snapshot(
         ":masking",
         ":math",
         ":object_factories",
-        ":predicates",
         ":random",
         ":schema",
         ":slices",
@@ -240,16 +239,6 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_library(
-    name = "predicates",
-    srcs = ["predicates.py"],
-    deps = [
-        ":optools",
-        ":qtype_utils",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -515,7 +504,6 @@ py_library(
         ":math",
         ":object_factories",
         ":optools",
-        ":predicates",
         ":py",
         ":random",
         ":schema",
