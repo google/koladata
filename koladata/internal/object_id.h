@@ -94,7 +94,8 @@ class ObjectId {
   bool IsNoFollowSchema() const {
     return (metadata_ & kNoFollowSchemaFlag) == kNoFollowSchemaFlag;
   }
-  bool IsPlainEntity() const { return !IsSchema() && !IsList() && !IsDict(); }
+  // Returns true if the object is an entity (not a list or a dict).
+  bool IsPlainEntity() const { return (metadata_ & ~kUuidFlag) == 0; }
 
   // Returns the `uint128` numeric value representation of the object id.
   absl::uint128 ToRawInt128() const {
