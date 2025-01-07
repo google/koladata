@@ -476,13 +476,11 @@ class KodaViewTest(parameterized.TestCase):
     )
 
   def test_lshift(self):
-    testing.assert_equal(
-        op(C.x) << op(C.y), kde.core.updated_bag(op(C.x), op(C.y))
-    )
+    testing.assert_equal(op(C.x) << op(C.y), kde.bags.updated(op(C.x), op(C.y)))
 
   def test_rshift(self):
     testing.assert_equal(
-        op(C.x) >> op(C.y), kde.core.enriched_bag(op(C.x), op(C.y))
+        op(C.x) >> op(C.y), kde.bags.enriched(op(C.x), op(C.y))
     )
 
   def test_unpacking(self):

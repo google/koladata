@@ -17,6 +17,7 @@
 from koladata.operators import allocation as _
 from koladata.operators import annotation as _
 from koladata.operators import assertion as _
+from koladata.operators import bags as _
 from koladata.operators import comparison as _
 from koladata.operators import core as _
 from koladata.operators import dicts as _
@@ -45,6 +46,7 @@ def get_namespaces() -> list[str]:
       'kde.allocation',
       'kde.annotation',
       'kde.assertion',
+      'kde.bags',
       'kde.comparison',
       'kde.core',
       'kde.dicts',

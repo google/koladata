@@ -57,7 +57,7 @@ class BagTest(absltest.TestCase):
     testing.assert_equivalent(db1, db2)
 
   def test_alias(self):
-    self.assertIs(fns.bag, fns.core.bag)
+    self.assertIs(fns.bag, fns.bags.new)
 
 
 if __name__ == '__main__':

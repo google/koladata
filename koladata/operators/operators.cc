@@ -23,11 +23,12 @@
 #include "koladata/object_factories.h"
 #include "koladata/operators/allocation.h"
 #include "koladata/operators/assertion.h"
+#include "koladata/operators/bags.h"
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/core.h"
-#include "koladata/operators/dicts.h"
 #include "koladata/operators/core_new.h"
 #include "koladata/operators/core_obj.h"
+#include "koladata/operators/dicts.h"
 #include "koladata/operators/ids.h"
 #include "koladata/operators/json.h"
 #include "koladata/operators/lists.h"
@@ -36,8 +37,8 @@
 #include "koladata/operators/non_deterministic_op.h"
 #include "koladata/operators/predicates.h"
 #include "koladata/operators/schema.h"
-#include "koladata/operators/slices.h"
 #include "koladata/operators/shapes.h"
+#include "koladata/operators/slices.h"
 #include "koladata/operators/strings.h"
 #include "arolla/qexpr/operator_factory.h"
 #include "arolla/qexpr/optools.h"
@@ -59,6 +60,12 @@ OPERATOR("kde.allocation.new_listid_like", NewListIdLike);
 OPERATOR("kde.allocation.new_listid_shaped", NewListIdShaped);
 //
 OPERATOR("kde.assertion.assert_ds_has_primitives_of", AssertDsHasPrimitivesOf);
+//
+OPERATOR_FAMILY("kde.bags.enriched",
+                std::make_unique<EnrichedDbOperatorFamily>());
+OPERATOR("kde.bags.new", Bag);
+OPERATOR_FAMILY("kde.bags.updated",
+                std::make_unique<UpdatedDbOperatorFamily>());
 //
 OPERATOR("kde.comparison.equal", Equal);
 OPERATOR("kde.comparison.greater", Greater);
@@ -85,11 +92,8 @@ OPERATOR_FAMILY("kde.core._uu", std::make_unique<UuOperatorFamily>());
 OPERATOR("kde.core.add", Add);
 OPERATOR("kde.core.attr", Attr);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
-OPERATOR("kde.core.bag", Bag);
 OPERATOR_FAMILY("kde.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
-OPERATOR_FAMILY("kde.core.enriched_bag",
-                std::make_unique<EnrichedDbOperatorFamily>());
 OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.freeze_bag", Freeze<DataSlice>);
 OPERATOR("kde.core.get_bag", GetBag);
@@ -104,8 +108,6 @@ OPERATOR_FAMILY("kde.core.obj_shaped",
 OPERATOR("kde.core.ref", Ref);
 OPERATOR("kde.core.stub", Stub);
 OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());
-OPERATOR_FAMILY("kde.core.updated_bag",
-                std::make_unique<UpdatedDbOperatorFamily>());
 OPERATOR_FAMILY("kde.core.uuobj", std::make_unique<UuObjOperatorFamily>());
 OPERATOR("kde.core.with_attr", WithAttr);
 OPERATOR_FAMILY("kde.core.with_attrs",

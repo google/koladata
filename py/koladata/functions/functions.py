@@ -67,7 +67,6 @@ empty_shaped_as = _object_factories.empty_shaped_as
 # NOTE: Explicitly overwrite operators that accept a DataBag as an argument or
 # are mutable in "core" namespace.
 core = _py_types.SimpleNamespace(
-    bag=_object_factories.bag,
     uu=_object_factories.uu,
     uuobj=_object_factories.uuobj,
     new=_object_factories.new,
@@ -81,6 +80,10 @@ core = _py_types.SimpleNamespace(
     container=_object_factories.container,
     empty_shaped=_object_factories.empty_shaped,
     empty_shaped_as=_object_factories.empty_shaped_as,
+)
+
+bags = _py_types.SimpleNamespace(
+    new=_object_factories.bag,
 )
 
 dicts = _py_types.SimpleNamespace(

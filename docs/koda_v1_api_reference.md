@@ -8,31 +8,32 @@ DataSlice, DataBag, etc.).
 
 [TOC]
 
-Category  | Subcategory | Description
---------- | ----------- | ------------
-[kd](#kd_category) | | `kd` and `kde` operators
- | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
- | [annotation](#kd.annotation) | Annotation operators.
- | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
- | [comparison](#kd.comparison) | Operators that compare DataSlices.
- | [core](#kd.core) | Core operators that are not part of other categories.
- | [dicts](#kd.dicts) | Operators working with dictionaries.
- | [functor](#kd.functor) | Operators to create and call functors.
- | [ids](#kd.ids) | Operators that work with ItemIds.
- | [json](#kd.json) | JSON serialization operators.
- | [lists](#kd.lists) | Operators working with lists.
- | [masking](#kd.masking) | Masking operators.
- | [math](#kd.math) | Arithmetic operators.
- | [py](#kd.py) | Operators that call Python functions.
- | [random](#kd.random) | Random and sampling operators.
- | [schema](#kd.schema) | Schema-related operators.
- | [shapes](#kd.shapes) | Operators that work on shapes
- | [slices](#kd.slices) | Operators that perform DataSlice transformations.
- | [strings](#kd.strings) | Operators that work with strings data.
- | [tuple](#kd.tuple) | Operators to create tuples.
-[kd_ext](#kd_ext_category) | | `kd_ext` operators
-[DataSlice](#DataSlice_category) | | `DataSlice` methods
-[DataBag](#DataBag_category) | | `DataBag` methods
+Category                         | Subcategory                  | Description
+-------------------------------- | ---------------------------- | -----------
+[kd](#kd_category)               |                              | `kd` and `kde` operators
+                                 | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
+                                 | [annotation](#kd.annotation) | Annotation operators.
+                                 | [assertion](#kd.assertion)   | Operators that assert properties of DataSlices.
+                                 | [bags](#kd.bags)             | Operators that work on DataBags.
+                                 | [comparison](#kd.comparison) | Operators that compare DataSlices.
+                                 | [core](#kd.core)             | Core operators that are not part of other categories.
+                                 | [dicts](#kd.dicts)           | Operators working with dictionaries.
+                                 | [functor](#kd.functor)       | Operators to create and call functors.
+                                 | [ids](#kd.ids)               | Operators that work with ItemIds.
+                                 | [json](#kd.json)             | JSON serialization operators.
+                                 | [lists](#kd.lists)           | Operators working with lists.
+                                 | [masking](#kd.masking)       | Masking operators.
+                                 | [math](#kd.math)             | Arithmetic operators.
+                                 | [py](#kd.py)                 | Operators that call Python functions.
+                                 | [random](#kd.random)         | Random and sampling operators.
+                                 | [schema](#kd.schema)         | Schema-related operators.
+                                 | [shapes](#kd.shapes)         | Operators that work on shapes
+                                 | [slices](#kd.slices)         | Operators that perform DataSlice transformations.
+                                 | [strings](#kd.strings)       | Operators that work with strings data.
+                                 | [tuple](#kd.tuple)           | Operators to create tuples.
+[kd_ext](#kd_ext_category)       |                              | `kd_ext` operators
+[DataSlice](#DataSlice_category) |                              | `DataSlice` methods
+[DataBag](#DataBag_category)     |                              | `DataBag` methods
 
 ## `kd` and `kde` operators {#kd_category}
 
@@ -259,6 +260,70 @@ Args:
   x: The value to return if `condition` is present.
   condition: A unit scalar, unit optional, or DataItem holding a mask.
   message: The error message to raise if `condition` is not present.
+```
+
+</section>
+
+### kd.bags {#kd.bags}
+
+Operators that work on DataBags.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.bags.enriched_bag(*bags)` {#kd.bags.enriched_bag}
+
+Aliases:
+
+-   [kd.enriched_bag](#kd.enriched_bag)
+
+``` {.no-copy}
+Creates a new immutable DataBag enriched by `bags`.
+
+ It adds `bags` as fallbacks rather than merging the underlying data thus
+ the cost is O(1).
+
+ Databags earlier in the list have higher priority.
+ `enriched_bag(bag1, bag2, bag3)` is equivalent to
+ `enriched_bag(enriched_bag(bag1, bag2), bag3)`, and so on for additional
+ DataBag args.
+
+Args:
+  *bags: DataBag(s) for enriching.
+
+Returns:
+  An immutable DataBag enriched by `bags`.
+```
+
+### `kd.bags.new()` {#kd.bags.new}
+
+``` {.no-copy}
+Returns an empty DataBag.
+```
+
+### `kd.bags.updated_bag(*bags)` {#kd.bags.updated_bag}
+
+Aliases:
+
+-   [kd.updated_bag](#kd.updated_bag)
+
+``` {.no-copy}
+Creates a new immutable DataBag updated by `bags`.
+
+ It adds `bags` as fallbacks rather than merging the underlying data thus
+ the cost is O(1).
+
+ Databags later in the list have higher priority.
+ `updated_bag(bag1, bag2, bag3)` is equivalent to
+ `updated_bag(bag1, updated_bag(bag2, bag3)`, and so on for additional
+ DataBag args.
+
+Args:
+  *bags: DataBag(s) for updating.
+
+Returns:
+  An immutable DataBag updated by `bags`.
 ```
 
 </section>
@@ -585,29 +650,6 @@ Args:
 
 Returns:
   DataSlice with additional fallbacks.
-```
-
-### `kd.core.enriched_bag(*bags)` {#kd.core.enriched_bag}
-Aliases:
-
-- [kd.enriched_bag](#kd.enriched_bag)
-
-``` {.no-copy}
-Creates a new immutable DataBag enriched by `bags`.
-
- It adds `bags` as fallbacks rather than merging the underlying data thus
- the cost is O(1).
-
- Databags earlier in the list have higher priority.
- `enriched_bag(bag1, bag2, bag3)` is equivalent to
- `enriched_bag(enriched_bag(bag1, bag2), bag3)`, and so on for additional
- DataBag args.
-
-Args:
-  *bags: DataBag(s) for enriching.
-
-Returns:
-  An immutable DataBag enriched by `bags`.
 ```
 
 ### `kd.core.extract(ds, schema=unspecified)` {#kd.core.extract}
@@ -1178,29 +1220,6 @@ Args:
 
 Returns:
   DataSlice with additional fallbacks.
-```
-
-### `kd.core.updated_bag(*bags)` {#kd.core.updated_bag}
-Aliases:
-
-- [kd.updated_bag](#kd.updated_bag)
-
-``` {.no-copy}
-Creates a new immutable DataBag updated by `bags`.
-
- It adds `bags` as fallbacks rather than merging the underlying data thus
- the cost is O(1).
-
- Databags later in the list have higher priority.
- `updated_bag(bag1, bag2, bag3)` is equivalent to
- `updated_bag(bag1, updated_bag(bag2, bag3)`, and so on for additional
- DataBag args.
-
-Args:
-  *bags: DataBag(s) for updating.
-
-Returns:
-  An immutable DataBag updated by `bags`.
 ```
 
 ### `kd.core.uu(seed=None, *, schema=None, update_schema=False, db=None, **attrs)` {#kd.core.uu}
@@ -7046,7 +7065,7 @@ Alias for [kd.core.enriched](#kd.core.enriched) operator.
 
 ### `kd.enriched_bag(*bags)` {#kd.enriched_bag}
 
-Alias for [kd.core.enriched_bag](#kd.core.enriched_bag) operator.
+Alias for [kd.bags.enriched_bag](#kd.bags.enriched_bag) operator.
 
 ### `kd.equal(x, y)` {#kd.equal}
 
@@ -8059,7 +8078,7 @@ Alias for [kd.core.updated](#kd.core.updated) operator.
 
 ### `kd.updated_bag(*bags)` {#kd.updated_bag}
 
-Alias for [kd.core.updated_bag](#kd.core.updated_bag) operator.
+Alias for [kd.bags.updated_bag](#kd.bags.updated_bag) operator.
 
 ### `kd.uu(seed=None, *, schema=None, update_schema=False, db=None, **attrs)` {#kd.uu}
 

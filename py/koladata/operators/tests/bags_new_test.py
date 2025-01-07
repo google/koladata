@@ -28,22 +28,22 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 
 
-class CoreBagTest(absltest.TestCase):
+class BagsNewTest(absltest.TestCase):
 
   def test_eval(self):
-    self.assertIsInstance(expr_eval.eval(kde.core.bag()), data_bag.DataBag)
+    self.assertIsInstance(expr_eval.eval(kde.bags.new()), data_bag.DataBag)
     testing.assert_equivalent(
-        expr_eval.eval(kde.core.with_bag(ds(42), kde.core.bag())).get_bag(),
-        data_bag.DataBag.empty()
+        expr_eval.eval(kde.core.with_bag(ds(42), kde.bags.new())).get_bag(),
+        data_bag.DataBag.empty(),
     )
 
   def test_non_determinism(self):
-    res_1 = expr_eval.eval(kde.core.bag())
-    res_2 = expr_eval.eval(kde.core.bag())
+    res_1 = expr_eval.eval(kde.bags.new())
+    res_2 = expr_eval.eval(kde.bags.new())
     self.assertNotEqual(res_1.fingerprint, res_2.fingerprint)
     testing.assert_equivalent(res_1, res_2)
 
-    expr = kde.core.bag()
+    expr = kde.bags.new()
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(res_1.fingerprint, res_2.fingerprint)
@@ -51,19 +51,19 @@ class CoreBagTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.bag,
+        kde.bags.new,
         frozenset([(qtypes.NON_DETERMINISTIC_TOKEN, qtypes.DATA_BAG)]),
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.bag()))
+    self.assertTrue(view.has_koda_view(kde.bags.new()))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.bag, kde.bag))
+    self.assertTrue(optools.equiv_to_op(kde.bags.new, kde.bag))
 
   def test_repr(self):
-    self.assertEqual(repr(kde.core.bag()), 'kde.core.bag()')
+    self.assertEqual(repr(kde.bags.new()), 'kde.bags.new()')
 
 
 if __name__ == '__main__':

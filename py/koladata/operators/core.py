@@ -66,17 +66,6 @@ def add(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.bag'])
-@optools.as_backend_operator(
-    'kde.core.bag',
-    qtype_inference_expr=qtypes.DATA_BAG,
-    deterministic=False,
-)
-def _bag():
-  """Returns an empty DataBag."""
-  raise NotImplementedError('implemented in the backend')
-
-
 @optools.as_backend_operator('kde.core._get_attr')
 def _get_attr(x, attr_name):  # pylint: disable=unused-argument
   """Gets an attribute from a DataSlice."""
@@ -1267,63 +1256,5 @@ def updated(ds, *bag):  # pylint: disable=unused-argument
 
   Returns:
     DataSlice with additional fallbacks.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.enriched_bag'])
-@arolla.optools.as_backend_operator(
-    'kde.core.enriched_bag',
-    qtype_constraints=[
-        qtype_utils.expect_data_bag_args(P.bags),
-    ],
-    qtype_inference_expr=qtypes.DATA_BAG,
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
-)
-def enriched_bag(*bags):  # pylint: disable=unused-argument
-  """Creates a new immutable DataBag enriched by `bags`.
-
-   It adds `bags` as fallbacks rather than merging the underlying data thus
-   the cost is O(1).
-
-   Databags earlier in the list have higher priority.
-   `enriched_bag(bag1, bag2, bag3)` is equivalent to
-   `enriched_bag(enriched_bag(bag1, bag2), bag3)`, and so on for additional
-   DataBag args.
-
-  Args:
-    *bags: DataBag(s) for enriching.
-
-  Returns:
-    An immutable DataBag enriched by `bags`.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.updated_bag'])
-@arolla.optools.as_backend_operator(
-    'kde.core.updated_bag',
-    qtype_constraints=[
-        qtype_utils.expect_data_bag_args(P.bags),
-    ],
-    qtype_inference_expr=qtypes.DATA_BAG,
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
-)
-def updated_bag(*bags):  # pylint: disable=unused-argument
-  """Creates a new immutable DataBag updated by `bags`.
-
-   It adds `bags` as fallbacks rather than merging the underlying data thus
-   the cost is O(1).
-
-   Databags later in the list have higher priority.
-   `updated_bag(bag1, bag2, bag3)` is equivalent to
-   `updated_bag(bag1, updated_bag(bag2, bag3)`, and so on for additional
-   DataBag args.
-
-  Args:
-    *bags: DataBag(s) for updating.
-
-  Returns:
-    An immutable DataBag updated by `bags`.
   """
   raise NotImplementedError('implemented in the backend')

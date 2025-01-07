@@ -278,8 +278,8 @@ py_test(
 )
 
 py_test(
-    name = "core_bag_test",
-    srcs = ["core_bag_test.py"],
+    name = "bags_new_test",
+    srcs = ["bags_new_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
@@ -3429,8 +3429,8 @@ py_test(
 )
 
 py_test(
-    name = "core_enriched_bag_test",
-    srcs = ["core_enriched_bag_test.py"],
+    name = "bags_enriched_test",
+    srcs = ["bags_enriched_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3448,8 +3448,8 @@ py_test(
 )
 
 py_test(
-    name = "core_updated_bag_test",
-    srcs = ["core_updated_bag_test.py"],
+    name = "bags_updated_test",
+    srcs = ["bags_updated_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",

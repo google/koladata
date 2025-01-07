@@ -79,6 +79,7 @@ arolla_operator_package_snapshot(
         "koladata.operators.annotation",
         "koladata.operators.arolla_bridge",
         "koladata.operators.assertion",
+        "koladata.operators.bags",
         "koladata.operators.comparison",
         "koladata.operators.core",
         "koladata.operators.dicts",
@@ -99,6 +100,7 @@ arolla_operator_package_snapshot(
         ":allocation",
         ":annotation",
         ":assertion",
+        ":bags",
         ":comparison",
         ":core",
         ":dicts",
@@ -492,6 +494,7 @@ py_library(
         ":allocation",
         ":annotation",
         ":assertion",
+        ":bags",
         ":comparison",
         ":core",
         ":dicts",
@@ -622,6 +625,29 @@ py_library(
         ":view_overloads",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "bags",
+    srcs = ["bags.py"],
+    deps = [
+        ":arolla_bridge",
+        ":assertion",
+        ":jagged_shape",
+        ":masking",
+        ":op_repr",
+        ":optools",
+        ":qtype_utils",
+        ":schema",
+        ":tuple",
+        ":view_overloads",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )
 

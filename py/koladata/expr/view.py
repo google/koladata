@@ -94,10 +94,10 @@ class KodaView(arolla.abc.ExprView):
     return arolla.abc.aux_bind_op('kde.freeze_bag', self)
 
   def __lshift__(self, other) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.core.updated_bag', self, other)
+    return arolla.abc.aux_bind_op('kde.bags.updated', self, other)
 
   def __rshift__(self, other) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.core.enriched_bag', self, other)
+    return arolla.abc.aux_bind_op('kde.bags.enriched', self, other)
 
   def __getattr__(self, attr_name: str) -> arolla.Expr:
     if (

@@ -1814,8 +1814,8 @@ Assigned schema for Dict key: INT32""",
     db1 = ds1.get_bag()
     db2 = ds2.get_bag()
     db3 = ds3.get_bag()
-    db4 = kde.core.enriched_bag(db1, db2).eval()
-    db5 = kde.core.enriched_bag(db4, db3).eval()
+    db4 = kde.bags.enriched(db1, db2).eval()
+    db5 = kde.bags.enriched(db4, db3).eval()
 
     frozen_db5 = db5.freeze()
     fallbacks = frozen_db5.get_fallbacks()

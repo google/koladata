@@ -42,9 +42,9 @@ QTYPES = frozenset([
 ])
 
 
-class CoreEnrichedBagTest(absltest.TestCase):
+class BagsUpdatedTest(absltest.TestCase):
 
-  def test_enriched_bag(self):
+  def test_updated_bag(self):
     db1 = bag()
     o1 = db1.uuobj(x=1)
     db2 = bag()
@@ -53,40 +53,37 @@ class CoreEnrichedBagTest(absltest.TestCase):
     o2.y = 3
     db3 = bag()
     o3 = db3.uuobj(x=1)
-    o3.x = 1
+    o3.x = 2
     o3.y = 4
-    db3 = expr_eval.eval(
-        kde.core.enriched_bag(I.x, I.y, I.z), x=db1, y=db2, z=db3)
-    o3 = o1.with_bag(db3)
-    testing.assert_equal(o3.x.no_bag(), ds(1))
-    testing.assert_equal(o3.y.no_bag(), ds(3))
+    db3 = expr_eval.eval(kde.bags.updated(I.x, I.y, I.z), x=db1, y=db2, z=db3)
+    o4 = o1.stub().with_bag(db3)
+    testing.assert_equal(o4.x.no_bag(), ds(2))
+    testing.assert_equal(o4.y.no_bag(), ds(4))
 
   def test_few_args(self):
-    db = expr_eval.eval(kde.core.enriched_bag())
+    db = expr_eval.eval(kde.bags.updated())
     self.assertEqual(db.get_approx_size(), 0)
     self.assertFalse(db.is_mutable())
     db1 = bag()
     o1 = db1.uuobj(x=1)
-    db = expr_eval.eval(kde.core.enriched_bag(I.x), x=db1)
+    db = expr_eval.eval(kde.bags.updated(I.x), x=db1)
     self.assertGreater(db.get_approx_size(), 0)
     self.assertFalse(db.is_mutable())
     testing.assert_equal(o1.with_bag(db).x.no_bag(), ds(1))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.enriched_bag,
+        kde.bags.updated,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         max_arity=3,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.enriched_bag(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.bags.updated(I.x, I.y)))
 
   def test_alias(self):
-    self.assertTrue(
-        optools.equiv_to_op(kde.core.enriched_bag, kde.enriched_bag)
-    )
+    self.assertTrue(optools.equiv_to_op(kde.bags.updated, kde.updated_bag))
 
 
 if __name__ == '__main__':
