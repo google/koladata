@@ -16,6 +16,8 @@ import gc
 import inspect
 import re
 import sys
+from unittest import mock
+import warnings
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -1369,7 +1371,9 @@ Assigned schema for Dict key: INT32""",
   )
   def test_list_from_python_list(self, values, depth):
     db = bag()
-    l = db.list(values)
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      l = db.list(values)
+      mock_warn.assert_not_called()
     self.assertEqual(l.get_shape().rank(), 0)
 
     item_schema = l.get_schema()
@@ -1395,7 +1399,9 @@ Assigned schema for Dict key: INT32""",
   def test_list_from_slice(self, values, shape_sizes):
     db = bag()
     values_ds = ds(values)
-    l = db.list(values_ds)
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      l = db.list(values_ds)
+      mock_warn.assert_called_once()
     testing.assert_equal(
         l.get_schema().get_attr('__items__'),
         values_ds.get_schema().with_bag(db),

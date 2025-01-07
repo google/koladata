@@ -52,7 +52,9 @@ class CoreExtractTest(parameterized.TestCase):
   def test_fallback(self, noise_positioned_in_front, pass_schema):
     db = data_bag.DataBag.empty()
     a_slice = db.obj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
-    b_list = db.list(db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]])))
+    b_list = db.implode(
+        db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]]))
+    )
     c_dict = db.dict({'a': 1, 'b': 2})
     o = db.new(
         a=a_slice,
@@ -86,7 +88,9 @@ class CoreExtractTest(parameterized.TestCase):
   def test_eval_with_schema_partial(self, noise_positioned_in_front):
     db = data_bag.DataBag.empty()
     a_slice = db.obj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
-    b_list = db.list(db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]])))
+    b_list = db.implode(
+        db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]]))
+    )
     o = db.new(
         a=a_slice,
         b=b_list,
@@ -137,7 +141,9 @@ class CoreExtractTest(parameterized.TestCase):
   def test_eval_nofollow(self):
     db = data_bag.DataBag.empty()
     a_slice = db.obj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
-    b_list = db.list(db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]])))
+    b_list = db.implode(
+        db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]]))
+    )
     o = db.new(
         a=a_slice,
         b=b_list,

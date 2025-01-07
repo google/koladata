@@ -94,7 +94,6 @@ dicts = _py_types.SimpleNamespace(
 )
 
 lists = _py_types.SimpleNamespace(
-    new=_object_factories.list_,
     like=_object_factories.list_like,
     shaped=_object_factories.list_shaped,
     shaped_as=_object_factories.list_shaped_as,

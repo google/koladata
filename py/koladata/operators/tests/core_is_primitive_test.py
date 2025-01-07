@@ -64,7 +64,7 @@ class KodaIsPrimitiveTest(parameterized.TestCase):
       (bag().dict(ds(['hello', 'world']), ds([1, 2])),),
       (bag().obj(a=1, b=2),),
       (bag().new(a=1, b=2),),
-      (bag().list(ds([[1, 2], [3]])),),
+      (bag().implode(ds([[1, 2], [3]])),),
       (bag().dict(ds([['hello'], ['world']]), ds([[1], [2]])),),
       (bag().obj(a=ds([1, 2]), b=ds([1, 2])),),
       (bag().new(a=ds([1, 2]), b=ds([1, 2])),),

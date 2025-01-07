@@ -77,7 +77,9 @@ def signature(parameters: list[data_slice.DataSlice]) -> data_slice.DataSlice:
   Returns:
     A DataSlice representing the signature.
   """
-  return functions.obj(parameters=functions.list(parameters)).freeze()
+  return functions.obj(parameters=functions.implode(
+      data_slice.DataSlice.from_vals(parameters)
+  ))
 
 
 def _parameter_from_py_parameter(

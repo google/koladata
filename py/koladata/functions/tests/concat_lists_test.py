@@ -65,11 +65,11 @@ class ImplodeTest(parameterized.TestCase):
       ),
       (
           (
-              fns.list(ds([[0], [1]])),
-              fns.list(ds([[2], [3]])),
-              fns.list(ds([[4, 5], [6]])),
+              fns.implode(ds([[0], [1]])),
+              fns.implode(ds([[2], [3]])),
+              fns.implode(ds([[4, 5], [6]])),
           ),
-          fns.list(ds([[0, 2, 4, 5], [1, 3, 6]])),
+          fns.implode(ds([[0, 2, 4, 5], [1, 3, 6]])),
       ),
       (
           # Compatible primitive types follow type promotion.
@@ -82,11 +82,11 @@ class ImplodeTest(parameterized.TestCase):
       ),
       (
           (
-              fns.list(ds([[0], [None]])),
-              fns.list(ds([['a'], [b'b']])),
-              fns.list(ds([[4.5, OBJ1], [OBJ2]])),
+              fns.implode(ds([[0], [None]])),
+              fns.implode(ds([['a'], [b'b']])),
+              fns.implode(ds([[4.5, OBJ1], [OBJ2]])),
           ),
-          fns.list(ds([[0, 'a', 4.5, OBJ1], [None, b'b', OBJ2]])),
+          fns.implode(ds([[0, 'a', 4.5, OBJ1], [None, b'b', OBJ2]])),
       ),
   )
   def test_eval(self, lists, expected):

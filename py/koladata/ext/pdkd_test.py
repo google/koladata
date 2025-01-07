@@ -245,7 +245,7 @@ class NpkdTest(parameterized.TestCase):
     with self.subTest('broadcast to common shape'):
       ds = kd.new(
           x=kd.slice([1, 2, 3]),
-          y=kd.list(kd.new(z=kd.slice([[4, 5], [], [6]]))),
+          y=kd.implode(kd.new(z=kd.slice([[4, 5], [], [6]]))),
       )
       df = pdkd.to_dataframe(ds, cols=[S.x, S.y[:].z])
       self.assertCountEqual(df.columns, ['S.x', 'S.y[:].z'])
@@ -275,8 +275,8 @@ class NpkdTest(parameterized.TestCase):
 
     with self.subTest('broadcast to common shape'):
       ds = kd.new(
-          x=kd.list(kd.new(z=kd.slice([[4], [5], [6]]))),
-          y=kd.list(kd.new(z=kd.slice([[4, 5], [], [6]]))),
+          x=kd.implode(kd.new(z=kd.slice([[4], [5], [6]]))),
+          y=kd.implode(kd.new(z=kd.slice([[4, 5], [], [6]]))),
       )
       with self.assertRaisesRegex(
           ValueError, 'All columns must have compatible shapes'

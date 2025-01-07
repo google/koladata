@@ -35,56 +35,6 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-@optools.as_backend_operator('kde.lists._make', deterministic=False)
-def _make(items, item_schema, schema, itemid):  # pylint: disable=unused-argument
-  """Implementation of `kde.lists.new`."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.list'])
-@optools.as_lambda_operator(
-    'kde.lists.new',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice_or_unspecified(P.items),
-        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.schema),
-        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
-    ],
-)
-def make(
-    items=arolla.unspecified(),
-    /,
-    *,
-    item_schema=arolla.unspecified(),
-    schema=arolla.unspecified(),
-    itemid=arolla.unspecified(),
-):
-  """Creates list(s) by collapsing `items`.
-
-  If there is no argument, returns an empty Koda List. If the argument is a
-  DataSlice, creates a DataSlice of Koda Lists.
-
-  Args:
-    items: items of the resulting lists. If not specified, an empty list of
-      OBJECTs will be created.
-    item_schema: optional schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: optional schema to use for the list. If specified, then item_schema
-      must not be specified.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
-
-  Returns:
-    The DataSlice with list/lists.
-  """
-  items = M.core.default_if_unspecified(items, data_slice.unspecified())
-  item_schema = M.core.default_if_unspecified(
-      item_schema, data_slice.unspecified()
-  )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
-  return _make(items, item_schema, schema, itemid)
-
-
 @optools.as_backend_operator('kde.lists._like', deterministic=False)
 def _like(
     shape_and_mask_from, items, item_schema, schema, itemid  # pylint: disable=unused-argument

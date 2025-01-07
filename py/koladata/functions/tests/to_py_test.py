@@ -33,7 +33,7 @@ class ToPyTest(absltest.TestCase):
     root.list_value.append(1)
     root.list_value.append(2)
     nested_values = ds([[1, 2], [3, 4, 5]])
-    root.nested_list = fns.list(fns.list(nested_values))
+    root.nested_list = fns.implode(fns.implode(nested_values))
     root.empty_list = []
 
     py_obj = dataclasses.asdict(fns.to_py(root, max_depth=4))
@@ -102,7 +102,7 @@ class ToPyTest(absltest.TestCase):
 
   def test_does_not_pollute_bag(self):
     root = fns.container()
-    root.foo = fns.list(fns.list(ds([[1, 2], [3, 4, 5]])))
+    root.foo = fns.implode(fns.implode(ds([[1, 2], [3, 4, 5]])))
     old_data_repr = repr(root.get_bag())
     fns.to_py(root.foo[:][:])
     self.assertEqual(old_data_repr, repr(root.get_bag()))

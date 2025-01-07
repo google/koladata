@@ -497,8 +497,8 @@ class NestedDataTest(parameterized.TestCase):
 
   def test_select_with_py_function(self):
     data = kdi.new(
-        x=kdi.list(
-            kdi.new(y=kdi.new(z=kdi.list(kdi.slice([[1, 2], [3, 4, 5]]))))
+        x=kdi.implode(
+            kdi.new(y=kdi.new(z=kdi.implode(kdi.slice([[1, 2], [3, 4, 5]]))))
         )
     )
     selected_db = nested_data.selected_path_update(
@@ -508,8 +508,8 @@ class NestedDataTest(parameterized.TestCase):
 
   def test_select_with_expr(self):
     data = kdi.new(
-        x=kdi.list(
-            kdi.new(y=kdi.new(z=kdi.list(kdi.slice([[1, 2], [3, 4, 5]]))))
+        x=kdi.implode(
+            kdi.new(y=kdi.new(z=kdi.implode(kdi.slice([[1, 2], [3, 4, 5]]))))
         )
     )
     selected_db = nested_data.selected_path_update(
@@ -519,8 +519,8 @@ class NestedDataTest(parameterized.TestCase):
 
   def test_select_with_functor(self):
     data = kdi.new(
-        x=kdi.list(
-            kdi.new(y=kdi.new(z=kdi.list(kdi.slice([[1, 2], [3, 4, 5]]))))
+        x=kdi.implode(
+            kdi.new(y=kdi.new(z=kdi.implode(kdi.slice([[1, 2], [3, 4, 5]]))))
         )
     )
     selected_db = nested_data.selected_path_update(
@@ -534,8 +534,8 @@ class NestedDataTest(parameterized.TestCase):
     # removed values (i.e. removal isn't made explicit), it will appear as if
     # nothing was filtered.
     root = kdi.new(
-        x=kdi.list(
-            kdi.new(y=kdi.new(z=kdi.list(kdi.slice([[1, 2], [3, 4, 5]]))))
+        x=kdi.implode(
+            kdi.new(y=kdi.new(z=kdi.implode(kdi.slice([[1, 2], [3, 4, 5]]))))
         )
     )
     selected_db = nested_data.selected_path_update(
@@ -547,8 +547,10 @@ class NestedDataTest(parameterized.TestCase):
     # Shows that `mask = kdi.has(root_ds)` is required in the root case.
     root = kdi.slice([
         kdi.new(
-            x=kdi.list(
-                kdi.new(y=kdi.new(z=kdi.list(kdi.slice([[1, 2], [3, 4, 5]]))))
+            x=kdi.implode(
+                kdi.new(
+                    y=kdi.new(z=kdi.implode(kdi.slice([[1, 2], [3, 4, 5]])))
+                )
             )
         )
     ])

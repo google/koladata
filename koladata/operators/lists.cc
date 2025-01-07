@@ -121,31 +121,6 @@ absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
   });
 }
 
-absl::StatusOr<DataSlice> List(
-    const DataSlice& items, const DataSlice& item_schema,
-    const DataSlice& schema, const DataSlice& itemid,
-    internal::NonDeterministicToken) {
-  auto db = DataBag::Empty();
-  std::optional<DataSlice> result;
-  auto schema_or = IsUnspecifiedDataSlice(schema) ? std::nullopt
-                                                  : std::make_optional(schema);
-  auto item_schema_or = IsUnspecifiedDataSlice(item_schema)
-                            ? std::nullopt
-                            : std::make_optional(item_schema);
-  auto itemid_or = IsUnspecifiedDataSlice(itemid) ? std::nullopt
-                                                  : std::make_optional(itemid);
-  if (IsUnspecifiedDataSlice(items)) {
-    ASSIGN_OR_RETURN(result,
-                     CreateEmptyList(db, schema_or, item_schema_or, itemid_or));
-  } else {
-    ASSIGN_OR_RETURN(result,
-                     CreateListsFromLastDimension(db, items, schema_or,
-                                                  item_schema_or, itemid_or));
-  }
-  db->UnsafeMakeImmutable();
-  return *std::move(result);
-}
-
 absl::StatusOr<DataSlice> ListLike(
     const DataSlice& shape_and_mask_from, const DataSlice& items,
     const DataSlice& item_schema, const DataSlice& schema,

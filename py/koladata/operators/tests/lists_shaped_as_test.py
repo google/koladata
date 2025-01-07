@@ -127,7 +127,7 @@ class ListShapedAsTest(parameterized.TestCase):
     self.assertFalse(lst.is_mutable())
 
   def test_adopt_values(self):
-    lst = kde.lists.new(ds([[1, 2], [3]])).eval()
+    lst = kde.lists.implode(ds([[1, 2], [3]])).eval()
     lst2 = kde.lists.shaped_as(ds([0, 0]), lst).eval()
 
     testing.assert_equal(

@@ -62,7 +62,7 @@ class CoreCloneTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     b_slice = db.new(a=ds([1, None, 2]))
     a_slice = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
-    o = db.list(a_slice)
+    o = db.implode(a_slice)
     if pass_schema:
       result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:

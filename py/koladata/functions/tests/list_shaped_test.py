@@ -98,7 +98,7 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
-    itemid = fns.list(ds([[[triple], []], [[]]]))
+    itemid = fns.implode(ds([[[triple], []], [[]]]))
 
     # Successful.
     x = fns.list_shaped(itemid.get_shape(), itemid=itemid.get_itemid())
@@ -110,7 +110,7 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_adopt_values(self):
     shape = jagged_shape.create_shape([2])
-    lst = fns.list(ds([[1, 2], [3]]))
+    lst = fns.implode(ds([[1, 2], [3]]))
     lst2 = fns.list_shaped(shape, lst)
 
     testing.assert_equal(

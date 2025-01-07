@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest import mock
+import warnings
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
@@ -73,14 +76,19 @@ class ListTest(parameterized.TestCase):
     testing.assert_equal(nested_l_1[:], ds([3]).with_bag(l.get_bag()))
 
   def test_slice_with_data_slice_input(self):
-    l = fns.list(data_slice.DataSlice.from_vals([[1, 2], [3]]))
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      _ = fns.list([[1, 2], [3]])
+      mock_warn.assert_not_called()
+      l = fns.list(ds([[1, 2], [3]]))
+      mock_warn.assert_called_once()
+
     self.assertIsInstance(l, data_slice.DataSlice)
     testing.assert_equal(l[:], ds([[1, 2], [3]]).with_bag(l.get_bag()))
 
   def test_itemid(self):
-    itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))
-    x = fns.list(ds([['a', 'b'], ['c']]), itemid=itemid)
-    testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
+    itemid = expr_eval.eval(kde.allocation.new_listid())
+    x = fns.list([['a', 'b'], ['c']], itemid=itemid)
+    testing.assert_equal(x[:][:].no_bag(), ds([['a', 'b'], ['c']]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_itemid_from_different_bag(self):
@@ -108,12 +116,13 @@ class ListTest(parameterized.TestCase):
     self.assertRegex(repr(fns.list([1, 2, 3])), r'DataItem\(.*, schema: .*\)')
 
   def test_adopt_values(self):
-    lst = fns.list(ds([[1, 2], [3]]))
-    lst2 = fns.list(lst)
+    lst_1 = fns.list([1, 2])
+    lst_2 = fns.list([3])
+    lst = fns.list([lst_1, lst_2])
 
     testing.assert_equal(
-        lst2[:][:],
-        ds([[1, 2], [3]], schema_constants.INT32).with_bag(lst2.get_bag()),
+        lst[:][:],
+        ds([[1, 2], [3]], schema_constants.INT32).with_bag(lst.get_bag()),
     )
 
   def test_adopt_schema(self):
@@ -134,12 +143,6 @@ class ListTest(parameterized.TestCase):
       # Deduce schema from list items.
       ([1, 2, 3], None, None, schema_constants.INT32),
       ([1, 'foo'], None, None, schema_constants.OBJECT),
-      (
-          ds([[1, 'foo'], [3]], schema=schema_constants.ANY),
-          None,
-          None,
-          schema_constants.ANY,
-      ),
       (
           [[1, 2], [3]],
           None,
@@ -210,9 +213,6 @@ Assigned schema for List item: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""
       db.list(
           [db.new(x=1)], item_schema=db.new_schema(x=schema_constants.INT32)
       )
-
-  def test_alias(self):
-    self.assertIs(fns.list, fns.lists.new)
 
 
 if __name__ == '__main__':

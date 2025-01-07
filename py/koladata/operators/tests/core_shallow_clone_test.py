@@ -70,7 +70,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
   def test_fallback(self, noise_positioned_in_front, pass_schema):
     db = bag()
     a_slice = db.obj(b=[1, None, 2], c=['foo', 'bar', 'baz'])
-    b_list = db.list(db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]])))
+    b_list = db.implode(
+        db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]]))
+    )
     c_dict = db.dict({'a': 1, 'b': 2})
     o = db.new(
         a=a_slice,

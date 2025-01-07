@@ -141,7 +141,6 @@ OPERATOR("kde.json.to_json", ToJson);
 OPERATOR("kde.lists._explode", Explode);
 OPERATOR("kde.lists._implode", Implode);
 OPERATOR("kde.lists._like", ListLike);
-OPERATOR("kde.lists._make", List);
 OPERATOR("kde.lists._shaped", ListShaped);
 OPERATOR("kde.lists.has_list", HasList);
 OPERATOR("kde.lists.is_list", IsList);

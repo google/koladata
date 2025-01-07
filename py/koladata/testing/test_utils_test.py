@@ -361,18 +361,18 @@ class TestUtilsTest(parameterized.TestCase):
   @parameterized.parameters(
       (kde.new(), kde.new()),
       (kde.new(a=42, b='xyz'), kde.new(a=42, b='xyz')),
-      (kde.list(ds([1, 2, 3])), kde.list(ds([1, 2, 3]))),
+      (kde.implode(ds([1, 2, 3])), kde.implode(ds([1, 2, 3]))),
       (
           kde.dict(ds([1, 2, 3]), ds([4, 5, 6])),
           kde.dict(ds([1, 2, 3]), ds([4, 5, 6]))
       ),
       (
           kde.explode(
-              kde.list(ds([1, 2, 3]))
-          ) + kde.explode(kde.list(ds([4, 5, 6]))),
+              kde.implode(ds([1, 2, 3]))
+          ) + kde.explode(kde.implode(ds([4, 5, 6]))),
           kde.explode(
-              kde.list(ds([1, 2, 3]))
-          ) + kde.explode(kde.list(ds([4, 5, 6]))),
+              kde.implode(ds([1, 2, 3]))
+          ) + kde.explode(kde.implode(ds([4, 5, 6]))),
       ),
   )
   def test_assert_non_deterministic_exprs_equal(
@@ -393,9 +393,11 @@ class TestUtilsTest(parameterized.TestCase):
       )
 
   def test_assert_non_deterministic_exprs_equal_repeated_expr(self):
-    expr = kde.explode(kde.list(ds([1])))
+    expr = kde.explode(kde.implode(ds([1])))
     expr_1 = expr + expr
-    expr_2 = kde.explode(kde.list(ds([1]))) + kde.explode(kde.list(ds([1])))
+    expr_2 = (
+        kde.explode(kde.implode(ds([1]))) + kde.explode(kde.implode(ds([1])))
+    )
     with self.assertRaisesRegex(
         AssertionError, 'Exprs not equal by fingerprint'
     ):

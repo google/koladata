@@ -45,8 +45,8 @@ class CoreExtractBagTest(absltest.TestCase):
 
   def test_basic(self):
     db = data_bag.DataBag.empty()
-    o1 = db.list(db.new(c=ds(['foo', 'bar', 'baz'])))
-    o2 = db.list(o1[0:2])
+    o1 = db.implode(db.new(c=ds(['foo', 'bar', 'baz'])))
+    o2 = db.implode(o1[0:2])
     bag1 = kde.extract_bag(o1).eval()
     bag2 = kde.extract_bag(o2).eval()
     self.assertFalse(bag1.is_mutable())
@@ -66,7 +66,7 @@ class CoreExtractBagTest(absltest.TestCase):
 
   def test_separate_schema(self):
     db = data_bag.DataBag.empty()
-    o1 = db.list(db.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz'])))
+    o1 = db.implode(db.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz'])))
     new_schema = kde.list_schema(
         kde.named_schema('test', b=schema_constants.INT32)
     ).eval()

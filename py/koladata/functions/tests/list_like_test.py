@@ -96,7 +96,7 @@ class ListLikeTest(parameterized.TestCase):
     )
 
   def test_adopt_values(self):
-    lst = fns.list(ds([[1, 2], [3]]))
+    lst = fns.implode(ds([[1, 2], [3]]))
     lst2 = fns.list_like(ds([None, 0]), lst)
 
     testing.assert_equal(
@@ -234,7 +234,7 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
-    itemid = fns.list(ds([[[triple], []], [[]]]))
+    itemid = fns.implode(ds([[[triple], []], [[]]]))
 
     # Successful.
     x = fns.list_like(ds([[1, None], [1]]), itemid=itemid.get_itemid())
