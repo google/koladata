@@ -520,7 +520,7 @@ shape[:-1] # JaggedShape(1, 2, [2, 1])
 shape[:2] # JaggedShape(1, 2)
 
 # Create a new shape directly
-shape1 = kd.shapes.create(2, [2, 1], [2, 1, 2])
+shape1 = kd.shapes.new(2, [2, 1], [2, 1, 2])
 assert shape1 == shape
 ```
 

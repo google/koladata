@@ -40,7 +40,7 @@ def new_itemid_shaped(shape):
 @optools.as_lambda_operator('kde.allocation.new_itemid')
 def new_itemid():
   """Allocates new ItemId."""
-  return new_itemid_shaped(jagged_shape.create_shape())
+  return new_itemid_shaped(jagged_shape.new())
 
 
 @optools.add_to_registry(aliases=['kde.new_itemid_like'])
@@ -80,7 +80,7 @@ def new_listid_shaped(shape):  # pylint: disable=unused-argument
 @optools.as_lambda_operator('kde.allocation.new_listid')
 def new_listid():
   """Allocates new List ItemId."""
-  return new_listid_shaped(jagged_shape.create_shape())
+  return new_listid_shaped(jagged_shape.new())
 
 
 @optools.add_to_registry(aliases=['kde.new_listid_like'])
@@ -125,7 +125,7 @@ def new_dictid_shaped(shape):  # pylint: disable=unused-argument
 @optools.as_lambda_operator('kde.allocation.new_dictid')
 def new_dictid():
   """Allocates new Dict ItemId."""
-  return new_dictid_shaped(jagged_shape.create_shape())
+  return new_dictid_shaped(jagged_shape.new())
 
 
 @optools.add_to_registry(aliases=['kde.new_dictid_like'])

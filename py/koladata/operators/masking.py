@@ -504,7 +504,7 @@ def _val_shaped(shape, val):
   """Creates a DataSlice with `val` expanded to the given shape.
 
   Example:
-    shape = kd.shapes.create_shape([2], [1, 2])
+    shape = kd.shapes.new([2], [1, 2])
     kd.slices.val_shaped(shape, 1) -> kd.slice([[1], [1, 1]])
     kd.slices.val_shaped(shape, kd.slice([None, 2])) -> kd.slice([[None], [2,
     2]])
@@ -582,7 +582,7 @@ def present_shaped(shape):
   """Creates a DataSlice of present masks with the given shape.
 
   Example:
-    shape = kd.shapes.create_shape([2], [1, 2])
+    shape = kd.shapes.new([2], [1, 2])
     kd.masking.present_shaped(shape) -> kd.slice([[present], [present,
     present]])
 

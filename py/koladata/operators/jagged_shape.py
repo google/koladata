@@ -50,20 +50,20 @@ def _expect_slices_or_edges(value):
 
 @optools.add_to_registry()
 @arolla.optools.as_backend_operator(
-    'kde.shapes.create',
+    'kde.shapes.new',
     qtype_constraints=[_expect_slices_or_edges(P.dimensions)],
     qtype_inference_expr=qtypes.JAGGED_SHAPE,
     experimental_aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
 )
-def create_shape(*dimensions):  # pylint: disable=unused-argument
+def new(*dimensions):  # pylint: disable=unused-argument
   """Returns a JaggedShape from the provided dimensions.
 
   Example:
     # Creates a scalar shape (i.e. no dimension).
-    kd.shapes.create()  # -> JaggedShape()
+    kd.shapes.new()  # -> JaggedShape()
 
     # Creates a 3-dimensional shape with all uniform dimensions.
-    kd.shapes.create(2, 3, 1)  # -> JaggedShape(2, 3, 1)
+    kd.shapes.new(2, 3, 1)  # -> JaggedShape(2, 3, 1)
 
     # Creates a 3-dimensional shape with 2 sub-values in the first dimension.
     #
@@ -73,7 +73,7 @@ def create_shape(*dimensions):  # pylint: disable=unused-argument
     # The third dimension is jagged with 3 values. The first value in the third
     # dimension has 1 sub-value, the second has 2 sub-values, and the third has
     # 3 sub-values.
-    kd.shapes.create(2, [2, 1], [1, 2, 3])
+    kd.shapes.new(2, [2, 1], [1, 2, 3])
         # -> JaggedShape(2, [2, 1], [1, 2, 3])
 
   Args:
@@ -90,7 +90,7 @@ def create_shape(*dimensions):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @arolla.optools.as_backend_operator(
-    'kde.shapes._create_with_size',
+    'kde.shapes._new_with_size',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.result_size),
         _expect_slices_or_edges(P.dimensions),
@@ -98,7 +98,7 @@ def create_shape(*dimensions):  # pylint: disable=unused-argument
     qtype_inference_expr=qtypes.JAGGED_SHAPE,
     experimental_aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
 )
-def _create_shape_with_size(result_size, *dimensions):  # pylint: disable=unused-argument
+def _new_with_size(result_size, *dimensions):  # pylint: disable=unused-argument
   """Returns a JaggedShape from the provided dimensions and size.
 
   It supports a single placeholder dimension argument denoted as `-1`, for which
@@ -149,7 +149,7 @@ def reshape(x, shape):
     x = kd.slice([1, 2, 3, 4])
 
     # Using a shape.
-    kd.reshape(x, kd.shapes.create(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
+    kd.reshape(x, kd.shapes.new(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
     # Using a tuple of sizes.
     kd.reshape(x, kd.make_tuple(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
@@ -173,8 +173,7 @@ def reshape(x, shape):
   Args:
     x: a DataSlice.
     shape: a JaggedShape or a tuple of dimensions that forms a shape through
-      `kd.shapes.create`, with additional support for a `-1` placeholder
-      dimension.
+      `kd.shapes.new`, with additional support for a `-1` placeholder dimension.
   """
   to_shape = arolla.types.DispatchOperator(
       'x, value',
@@ -182,7 +181,7 @@ def reshape(x, shape):
           P.value, condition=P.value == qtypes.JAGGED_SHAPE
       ),
       default=M.core.apply_varargs(
-          _create_shape_with_size, size(get_shape(P.x)), P.value
+          _new_with_size, size(get_shape(P.x)), P.value
       ),
   )
   return _reshape(x, to_shape(x, shape))
@@ -514,7 +513,7 @@ def dim_sizes(shape, dim):
   """Returns the row sizes at the provided dimension in the given shape.
 
   Example:
-    shape = kd.shapes.create([2], [2, 1])
+    shape = kd.shapes.new([2], [2, 1])
     kd.shapes.dim_sizes(shape, 0)  # -> kd.slice([2])
     kd.shapes.dim_sizes(shape, 1)  # -> kd.slice([2, 1])
 
@@ -540,7 +539,7 @@ def dim_mapping(shape, dim):
   """Returns the parent-to-child mapping of the dimension in the given shape.
 
   Example:
-    shape = kd.shapes.create([2], [3, 2], [1, 2, 0, 2, 1])
+    shape = kd.shapes.new([2], [3, 2], [1, 2, 0, 2, 1])
     kd.shapes.dim_mapping(shape, 0) # -> kd.slice([0, 0])
     kd.shapes.dim_mapping(shape, 1) # -> kd.slice([0, 0, 0, 1, 1])
     kd.shapes.dim_mapping(shape, 2) # -> kd.slice([0, 1, 1, 3, 3, 4])

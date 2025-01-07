@@ -105,7 +105,7 @@ def create(
   schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
   return _shaped(
-      shape=jagged_shape_ops.create_shape(),
+      shape=jagged_shape_ops.new(),
       keys=keys,
       values=values,
       key_schema=key_schema,

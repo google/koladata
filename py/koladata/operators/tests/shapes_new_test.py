@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.shapes.create."""
-
 import re
 
 from absl.testing import absltest
@@ -42,7 +40,7 @@ def shape_from_sizes(*sizes_seq):
   )
 
 
-class ShapesCreateTest(parameterized.TestCase):
+class ShapesNewTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       ('empty', shape_from_sizes()),
@@ -62,14 +60,14 @@ class ShapesCreateTest(parameterized.TestCase):
   )
   def test_eval(self, *args_and_expected):
     args, expected_value = args_and_expected[:-1], args_and_expected[-1]
-    actual_value = expr_eval.eval(kde.shapes.create(*args))
+    actual_value = expr_eval.eval(kde.shapes.new(*args))
     testing.assert_equal(actual_value, expected_value)
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.shapes.create([1]),
+        kde.shapes.new([1]),
         arolla.abc.bind_op(
-            kde.shapes.create,
+            kde.shapes.new,
             literal_operator.literal(data_slice.DataSlice.from_vals([1])),
         ),
     )
@@ -82,24 +80,24 @@ class ShapesCreateTest(parameterized.TestCase):
             ' (FLOAT32)'
         ),
     ):
-      kde.shapes.create(arolla.float32(1.0))
+      kde.shapes.new(arolla.float32(1.0))
 
   def test_unsupported_rank_error(self):
     with self.assertRaisesRegex(ValueError, 'unsupported DataSlice rank: 2'):
-      expr_eval.eval(kde.shapes.create(ds([[1]])))
+      expr_eval.eval(kde.shapes.new(ds([[1]])))
 
   def test_unsupported_sizes_type_error(self):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      expr_eval.eval(kde.shapes.create(ds(1.0)))
+      expr_eval.eval(kde.shapes.new(ds(1.0)))
 
   def test_incompatible_dimensions_error(self):
     with self.assertRaisesRegex(ValueError, 'incompatible dimensions'):
-      expr_eval.eval(kde.shapes.create(ds(2), ds([1])))
+      expr_eval.eval(kde.shapes.new(ds(2), ds([1])))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shapes.create()))
+    self.assertTrue(view.has_koda_view(kde.shapes.new()))
 
 
 if __name__ == '__main__':

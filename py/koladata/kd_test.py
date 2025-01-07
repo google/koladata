@@ -96,7 +96,7 @@ class KdTest(absltest.TestCase):
         kd.has(kd.slice([1, None])), kd.slice([arolla.present(), None])
     )
     kd.testing.assert_equal(
-        kd.shapes.create(kd.slice([1])), jagged_shape.create_shape([1])
+        kd.shapes.new(kd.slice([1])), jagged_shape.create_shape([1])
     )
     kd.testing.assert_equal(
         kd.strings.agg_join(kd.slice(['ab', 'd'])), kd.item('abd')

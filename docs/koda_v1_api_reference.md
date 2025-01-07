@@ -2973,7 +2973,7 @@ Aliases:
 Creates a DataSlice of present masks with the given shape.
 
 Example:
-  shape = kd.shapes.create_shape([2], [1, 2])
+  shape = kd.shapes.new([2], [1, 2])
   kd.masking.present_shaped(shape) -> kd.slice([[present], [present,
   present]])
 
@@ -4550,17 +4550,17 @@ Operators that work on shapes
 
 **Operators**
 
-### `kd.shapes.create(*dimensions)` {#kd.shapes.create}
+### `kd.shapes.new(*dimensions)` {#kd.shapes.new}
 
 ``` {.no-copy}
 Returns a JaggedShape from the provided dimensions.
 
 Example:
   # Creates a scalar shape (i.e. no dimension).
-  kd.shapes.create()  # -> JaggedShape()
+  kd.shapes.new()  # -> JaggedShape()
 
   # Creates a 3-dimensional shape with all uniform dimensions.
-  kd.shapes.create(2, 3, 1)  # -> JaggedShape(2, 3, 1)
+  kd.shapes.new(2, 3, 1)  # -> JaggedShape(2, 3, 1)
 
   # Creates a 3-dimensional shape with 2 sub-values in the first dimension.
   #
@@ -4570,7 +4570,7 @@ Example:
   # The third dimension is jagged with 3 values. The first value in the third
   # dimension has 1 sub-value, the second has 2 sub-values, and the third has
   # 3 sub-values.
-  kd.shapes.create(2, [2, 1], [1, 2, 3])
+  kd.shapes.new(2, [2, 1], [1, 2, 3])
       # -> JaggedShape(2, [2, 1], [1, 2, 3])
 
 Args:
@@ -4589,7 +4589,7 @@ Args:
 Returns the parent-to-child mapping of the dimension in the given shape.
 
 Example:
-  shape = kd.shapes.create([2], [3, 2], [1, 2, 0, 2, 1])
+  shape = kd.shapes.new([2], [3, 2], [1, 2, 0, 2, 1])
   kd.shapes.dim_mapping(shape, 0) # -> kd.slice([0, 0])
   kd.shapes.dim_mapping(shape, 1) # -> kd.slice([0, 0, 0, 1, 1])
   kd.shapes.dim_mapping(shape, 2) # -> kd.slice([0, 1, 1, 3, 3, 4])
@@ -4605,7 +4605,7 @@ Args:
 Returns the row sizes at the provided dimension in the given shape.
 
 Example:
-  shape = kd.shapes.create([2], [2, 1])
+  shape = kd.shapes.new([2], [2, 1])
   kd.shapes.dim_sizes(shape, 0)  # -> kd.slice([2])
   kd.shapes.dim_sizes(shape, 1)  # -> kd.slice([2, 1])
 
@@ -4764,7 +4764,7 @@ Examples:
   x = kd.slice([1, 2, 3, 4])
 
   # Using a shape.
-  kd.reshape(x, kd.shapes.create(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
+  kd.reshape(x, kd.shapes.new(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
   # Using a tuple of sizes.
   kd.reshape(x, kd.make_tuple(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
@@ -4788,7 +4788,7 @@ Examples:
 Args:
   x: a DataSlice.
   shape: a JaggedShape or a tuple of dimensions that forms a shape through
-    `kd.shapes.create`, with additional support for a `-1` placeholder
+    `kd.shapes.new`, with additional support for a `-1` placeholder
     dimension.
 ```
 
@@ -6096,7 +6096,7 @@ Aliases:
 Creates a DataSlice with `val` expanded to the given shape.
 
 Example:
-  shape = kd.shapes.create_shape([2], [1, 2])
+  shape = kd.shapes.new([2], [1, 2])
   kd.slices.val_shaped(shape, 1) -> kd.slice([[1], [1, 1]])
   kd.slices.val_shaped(shape, kd.slice([None, 2])) -> kd.slice([[None], [2,
   2]])
@@ -9252,7 +9252,7 @@ Examples:
   x = kd.slice([1, 2, 3, 4])
 
   # Using a shape.
-  kd.reshape(x, kd.shapes.create(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
+  kd.reshape(x, kd.shapes.new(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
   # Using a tuple of sizes.
   kd.reshape(x, kd.make_tuple(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
@@ -9276,7 +9276,7 @@ Examples:
 Args:
   x: a DataSlice.
   shape: a JaggedShape or a tuple of dimensions that forms a shape through
-    `kd.shapes.create`, with additional support for a `-1` placeholder
+    `kd.shapes.new`, with additional support for a `-1` placeholder
     dimension.
 ```
 

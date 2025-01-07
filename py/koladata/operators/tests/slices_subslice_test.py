@@ -194,9 +194,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
       (
           ds([[1, 2], [3], [4, 5, 6]]),
           [slice(3, 5), slice(1, 5)],
-          ds([], schema_constants.INT32).reshape(
-              kde.shapes.create(0, []).eval()
-          ),
+          ds([], schema_constants.INT32).reshape(kde.shapes.new(0, []).eval()),
       ),
       # Repeated indices
       (
@@ -223,9 +221,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
       (
           ds([[1, 2], [3], [4, 5, 6]]),
           [slice(5, 1), slice(1, 5)],
-          ds([], schema_constants.INT32).reshape(
-              kde.shapes.create(0, []).eval()
-          ),
+          ds([], schema_constants.INT32).reshape(kde.shapes.new(0, []).eval()),
       ),
   )
   def test_eval(self, x, slices, expected):

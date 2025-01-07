@@ -44,14 +44,14 @@ absl::StatusOr<DataSlice> ExpandToShape(const DataSlice& x,
                                         DataSlice::JaggedShape shape,
                                         int64_t ndim);
 
-// kde.shapes.create operator.
+// kde.shapes.new operator.
 class JaggedShapeCreateOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.shapes._create_with_size operator.
+// kde.shapes._new_with_size operator.
 class JaggedShapeCreateWithSizeOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,

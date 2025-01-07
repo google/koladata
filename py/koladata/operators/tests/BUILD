@@ -3510,8 +3510,8 @@ py_test(
 )
 
 py_test(
-    name = "shapes_create_test",
-    srcs = ["shapes_create_test.py"],
+    name = "shapes_new_test",
+    srcs = ["shapes_new_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -5629,8 +5629,8 @@ py_test(
 )
 
 py_test(
-    name = "shapes_create_with_size_test",
-    srcs = ["shapes_create_with_size_test.py"],
+    name = "shapes_new_with_size_test",
+    srcs = ["shapes_new_with_size_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",

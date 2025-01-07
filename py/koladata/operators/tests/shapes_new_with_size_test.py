@@ -40,7 +40,7 @@ def shape_from_sizes(*sizes_seq):
   )
 
 
-class ShapesCreateWithSizeTest(parameterized.TestCase):
+class ShapesNewWithSizeTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (1, [], shape_from_sizes()),
@@ -78,14 +78,14 @@ class ShapesCreateWithSizeTest(parameterized.TestCase):
       (0, [ds(0), ds(-1), ds(2)], ds([]).repeat(0).repeat(2).get_shape()),
   )
   def test_eval(self, size, args, expected_value):
-    actual_value = expr_eval.eval(kde.shapes._create_with_size(size, *args))
+    actual_value = expr_eval.eval(kde.shapes._new_with_size(size, *args))
     testing.assert_equal(actual_value, expected_value)
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.shapes._create_with_size(1, [1]),
+        kde.shapes._new_with_size(1, [1]),
         arolla.abc.bind_op(
-            kde.shapes._create_with_size,
+            kde.shapes._new_with_size,
             literal_operator.literal(ds(1)),
             literal_operator.literal(ds([1])),
         ),
@@ -99,31 +99,31 @@ class ShapesCreateWithSizeTest(parameterized.TestCase):
             ' (FLOAT32)'
         ),
     ):
-      kde.shapes._create_with_size(ds(1), arolla.float32(1.0))
+      kde.shapes._new_with_size(ds(1), arolla.float32(1.0))
 
   def test_unsupported_dimension_rank_error(self):
     with self.assertRaisesRegex(ValueError, 'unsupported DataSlice rank: 2'):
-      expr_eval.eval(kde.shapes._create_with_size(ds(1), ds([[1]])))
+      expr_eval.eval(kde.shapes._new_with_size(ds(1), ds([[1]])))
 
   def test_unsupported_size_rank_error(self):
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
-      expr_eval.eval(kde.shapes._create_with_size(ds([0])))
+      expr_eval.eval(kde.shapes._new_with_size(ds([0])))
 
   def test_unsupported_dimension_sizes_type_error(self):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      expr_eval.eval(kde.shapes._create_with_size(ds(1), ds(1.0)))
+      expr_eval.eval(kde.shapes._new_with_size(ds(1), ds(1.0)))
 
   def test_unsupported_size_type_error(self):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      expr_eval.eval(kde.shapes._create_with_size(ds(1.0)))
+      expr_eval.eval(kde.shapes._new_with_size(ds(1.0)))
 
   def test_incompatible_dimensions_error(self):
     with self.assertRaisesRegex(ValueError, 'incompatible dimensions'):
-      expr_eval.eval(kde.shapes._create_with_size(ds(2), ds(2), ds([1])))
+      expr_eval.eval(kde.shapes._new_with_size(ds(2), ds(2), ds([1])))
 
   def test_unresolvable_placeholder_dim_exception(self):
     with self.assertRaisesRegex(
@@ -131,13 +131,13 @@ class ShapesCreateWithSizeTest(parameterized.TestCase):
         'parent_size=3 does not divide child_size=2, so the placeholder'
         ' dimension at index 1 cannot be resolved',
     ):
-      expr_eval.eval(kde.shapes._create_with_size(ds(3), ds([2]), ds(-1)))
+      expr_eval.eval(kde.shapes._new_with_size(ds(3), ds([2]), ds(-1)))
 
   def test_multiple_placeholder_dims_exception(self):
     with self.assertRaisesRegex(
         ValueError, 'only one dimension can be a placeholder'
     ):
-      expr_eval.eval(kde.shapes._create_with_size(ds(2), ds(-1), ds(-1)))
+      expr_eval.eval(kde.shapes._new_with_size(ds(2), ds(-1), ds(-1)))
 
   def test_incompatible_dimension_specification_exception(self):
     with self.assertRaisesRegex(
@@ -145,20 +145,20 @@ class ShapesCreateWithSizeTest(parameterized.TestCase):
         'invalid dimension specification - the resulting shape size=3 != the'
         ' expected size=2',
     ):
-      expr_eval.eval(kde.shapes._create_with_size(ds(2), ds(3)))
+      expr_eval.eval(kde.shapes._new_with_size(ds(2), ds(3)))
 
   def test_negative_size_error(self):
     with self.assertRaisesRegex(
         ValueError, 'size must be a non-negative integer, got: -1'
     ):
-      expr_eval.eval(kde.shapes._create_with_size(ds(-1)))
+      expr_eval.eval(kde.shapes._new_with_size(ds(-1)))
 
   def test_zero_group_size_after_placeholder_error(self):
     with self.assertRaisesRegex(ValueError, 'expected a non-zero group size'):
-      expr_eval.eval(kde.shapes._create_with_size(ds(0), ds(2), ds(-1), ds(0)))
+      expr_eval.eval(kde.shapes._new_with_size(ds(0), ds(2), ds(-1), ds(0)))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shapes._create_with_size(ds(1))))
+    self.assertTrue(view.has_koda_view(kde.shapes._new_with_size(ds(1))))
 
 
 if __name__ == '__main__':
