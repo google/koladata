@@ -52,10 +52,6 @@ absl::StatusOr<arolla::serialization_base::ContainerProto> EncodeDataItem(
 absl::StatusOr<DataItem> DecodeDataItem(
     const arolla::serialization_base::ContainerProto& item_proto);
 
-// Returns a Status that is identical to `s` except that the error_message()
-// has been augmented by adding `msg` to the end of the original error message.
-absl::Status Annotate(absl::Status status, absl::string_view msg);
-
 // Creates KodaError with an error message from the status. If the status
 // already is a KodaError, returns the status as is.
 absl::Status AsKodaError(absl::Status status);

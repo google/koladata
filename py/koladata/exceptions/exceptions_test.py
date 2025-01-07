@@ -30,15 +30,6 @@ class ExceptionsTest(absltest.TestCase):
         cm.exception.err, error_pb2.Error(error_message='test error')
     )
 
-  def test_missing_koda_error_message(self):
-    with self.assertRaises(ValueError) as cm:
-      testing_pybind.raise_from_status_with_payload('')
-    self.assertRegex(
-        str(cm.exception),
-        '.*error message is empty. A code path failed to generate user readable'
-        ' error message.*',
-    )
-
   def test_raise_by_arolla(self):
     with self.assertRaises(ValueError) as cm:
       testing_pybind.raise_from_status_without_payload('test error')
@@ -60,6 +51,7 @@ class ExceptionsTest(absltest.TestCase):
     err_proto.cause.error_message = 'cause error'
     with self.assertRaises(exceptions.KodaError) as cm:
       testing_pybind.raise_from_status_with_serialized_payload(
+          'test error',
           err_proto.SerializeToString()
       )
     self.assertRegex(
@@ -70,17 +62,14 @@ The cause is: cause error""",
     )
 
   def test_koda_error_create_fail(self):
-    err_proto = error_pb2.Error(error_message='test error')
+    err_proto = error_pb2.Error(error_message='message from payload')
     err_proto.cause.error_message = ''
     with self.assertRaises(ValueError) as cm:
       testing_pybind.raise_from_status_with_serialized_payload(
+          'message from status',
           err_proto.SerializeToString()
       )
-    self.assertRegex(
-        str(cm.exception),
-        'error message is empty. A code path failed to generate user readable'
-        ' error message',
-    )
+    self.assertRegex(str(cm.exception), 'message from status')
 
 
 if __name__ == '__main__':

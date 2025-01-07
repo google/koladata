@@ -111,14 +111,6 @@ TEST(ErrorUtilsTest, WithErrorPayloadHandleError) {
                HasSubstr("; Error when creating KodaError")));
 }
 
-TEST(ErrorUtilsTest, Annotate) {
-  absl::Status status = absl::UnimplementedError("Test error");
-  absl::Status annotated_status = Annotate(status, "Extra error message");
-
-  EXPECT_THAT(annotated_status, StatusIs(absl::StatusCode::kUnimplemented,
-                                         HasSubstr("Extra error message")));
-}
-
 TEST(ErrorUtilsTest, AsKodaError) {
   absl::Status status = absl::UnimplementedError("test error");
   absl::Status koda_status = AsKodaError(status);

@@ -52,15 +52,12 @@ absl::Nullable<PyObject*> CreateKodaException(const absl::Cord& payload) {
 
 void HandleKodaPyErrStatus(absl::Cord payload, const absl::Status& status) {
   if (exception_factory->get() == nullptr) {
-    PyErr_SetString(PyExc_Exception, "Koda exception factory is not set");
+    PyErr_SetString(PyExc_AssertionError, "Koda exception factory is not set");
     return;
   }
   PyObject* py_exception = CreateKodaException(payload);
   if (Py_IsNone(py_exception)) {
-    arolla::python::DefaultSetPyErrFromStatus(
-        internal::Annotate(status,
-                           "error message is empty. A code path failed to "
-                           "generate user readable error message."));
+    arolla::python::DefaultSetPyErrFromStatus(status);
     return;
   }
   if (py_exception != nullptr) {

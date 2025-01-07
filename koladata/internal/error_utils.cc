@@ -89,17 +89,6 @@ absl::StatusOr<DataItem> DecodeDataItem(const ContainerProto& item_proto) {
   return item;
 }
 
-absl::Status Annotate(absl::Status status, absl::string_view msg) {
-  if (!status.ok()) {
-    absl::Status ret_status = absl::Status(
-        status.code(),
-        absl::StrCat(status.message(),
-                     ";\n\nError happened when creating KodaError: ", msg));
-    return ret_status;
-  }
-  return status;
-}
-
 absl::Status AsKodaError(absl::Status status) {
   if (status.ok()) {
     return status;

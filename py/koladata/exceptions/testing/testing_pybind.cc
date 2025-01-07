@@ -47,11 +47,11 @@ PYBIND11_MODULE(testing_pybind, m) {
   });
 
   m.def("raise_from_status_with_serialized_payload",
-        [](absl::string_view message) {
+        [](absl::string_view message, absl::string_view serialized_payload) {
           Error error;
-          error.ParseFromString(message);
+          error.ParseFromString(serialized_payload);
           SetPyErrFromStatus(
-              WithErrorPayload(absl::InternalError("fail"), error));
+              WithErrorPayload(absl::InternalError(message), error));
           throw pybind11::error_already_set();
         });
 
