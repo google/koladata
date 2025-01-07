@@ -172,7 +172,7 @@ def to_dataframe(
         or schema == kd.ANY
     ):
       cols = ['self_']
-    elif schema.is_entity_schema():
+    elif schema.is_struct_schema():
       cols = ds.get_attr_names(intersection=True)
       if include_self:
         cols.append('self_')

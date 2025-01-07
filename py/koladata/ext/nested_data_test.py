@@ -123,12 +123,12 @@ class TestDatasetTest(parameterized.TestCase):
   )
   def test_create_test_dataset_schema(self, entity_mode, sparse):
     assert_list = lambda x: self.assertTrue(x.get_schema().is_list_schema())
-    assert_entity = lambda x: self.assertTrue(x.get_schema().is_entity_schema())
+    assert_struct = lambda x: self.assertTrue(x.get_schema().is_struct_schema())
     assert_obj = lambda x: self.assertEqual(x.get_schema(), kdi.OBJECT)
 
     if entity_mode:
       ds = create_test_dataset_entity_mode(sparse=sparse)
-      assert_right_kind = assert_entity
+      assert_right_kind = assert_struct
     else:
       ds = create_test_dataset_obj_mode(sparse=sparse)
       assert_right_kind = assert_obj

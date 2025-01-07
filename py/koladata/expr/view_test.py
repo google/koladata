@@ -467,6 +467,11 @@ class KodaViewTest(parameterized.TestCase):
         C.x.is_entity_schema(), kde.schema.is_entity_schema(C.x)
     )
 
+  def test_is_struct_schema(self):
+    testing.assert_equal(
+        C.x.is_struct_schema(), kde.schema.is_struct_schema(C.x)
+    )
+
   def test_is_list_schema(self):
     testing.assert_equal(C.x.is_list_schema(), kde.schema.is_list_schema(C.x))
 

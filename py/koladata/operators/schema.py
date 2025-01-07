@@ -502,6 +502,16 @@ def is_entity_schema(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kde.schema.is_struct_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+)
+def is_struct_schema(x):  # pylint: disable=unused-argument
+  """Returns true iff `x` is a Struct schema DataItem."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kde.schema.is_list_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )

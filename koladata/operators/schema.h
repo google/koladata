@@ -157,6 +157,11 @@ inline DataSlice IsEntitySchema(const DataSlice& schema) {
   return AsMask(schema.IsStructSchema());
 }
 
+// kde.schema.is_struct_schema operator.
+inline DataSlice IsStructSchema(const DataSlice& schema) {
+  return AsMask(schema.IsStructSchema());
+}
+
 // kde.schema.is_itemid_schema operator.
 inline DataSlice IsItemIdSchema(const DataSlice& schema) {
   return AsMask(schema.IsItemIdSchema());
