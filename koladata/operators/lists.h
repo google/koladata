@@ -37,6 +37,7 @@ absl::StatusOr<DataSlice> Explode(const DataSlice& x, int64_t ndim);
 
 // kde.lists._implode
 absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
+                                  const DataSlice& itemid,
                                   internal::NonDeterministicToken);
 
 // kde.lists.size.

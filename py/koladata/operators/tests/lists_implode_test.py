@@ -30,7 +30,7 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 
 
-I = input_container.InputContainer("I")
+I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
@@ -40,10 +40,14 @@ OBJ1 = db.obj()
 OBJ2 = db.obj()
 
 
-QTYPE_SIGNATURES = frozenset([(
-    qtypes.DATA_SLICE, qtypes.DATA_SLICE, qtypes.NON_DETERMINISTIC_TOKEN,
-    qtypes.DATA_SLICE
-)])
+QTYPE_SIGNATURES = frozenset([
+    (
+        qtypes.DATA_SLICE, qtypes.DATA_SLICE, arg,
+        qtypes.NON_DETERMINISTIC_TOKEN,
+        qtypes.DATA_SLICE
+    )
+    for arg in [qtypes.DATA_SLICE, arolla.UNSPECIFIED]
+])
 
 
 class ListLikeTest(parameterized.TestCase):
@@ -117,6 +121,21 @@ class ListLikeTest(parameterized.TestCase):
     testing.assert_nested_lists_equal(result, expected)
     self.assertFalse(result.is_mutable())
 
+  def test_itemid(self):
+    itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))
+    x = expr_eval.eval(
+        kde.lists.implode(ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid)
+    )
+    testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
+    testing.assert_equal(x.no_bag().get_itemid(), itemid)
+
+    itemid = expr_eval.eval(kde.allocation.new_listid())
+    x = expr_eval.eval(
+        kde.lists.implode(ds([['a', 'b'], ['c']]), ndim=2, itemid=itemid)
+    )
+    testing.assert_equal(x[:][:].no_bag(), ds([['a', 'b'], ['c']]))
+    testing.assert_equal(x.no_bag().get_itemid(), itemid)
+
   def test_ndim_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
@@ -160,5 +179,5 @@ class ListLikeTest(parameterized.TestCase):
     self.assertTrue(optools.equiv_to_op(kde.lists.implode, kde.lists.implode))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()

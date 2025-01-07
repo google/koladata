@@ -2078,6 +2078,36 @@ TEST(ObjectFactoriesTest, Implode) {
                  HasSubstr("cannot implode 'x' to fold the last 3 dimension(s) "
                            "because 'x' only has 2 dimensions")));
   }
+  {
+    // itemid, ndim=1
+    auto itemid = *DataSlice::Create(
+        internal::DataSliceImpl::ObjectsFromAllocation(
+            internal::AllocateLists(2), 2),
+        DataSlice::JaggedShape::FlatFromSize(2),
+        internal::DataItem(schema::kItemId));
+    ASSERT_OK_AND_ASSIGN(auto lists, Implode(db, values, /*ndim=*/1, itemid));
+    EXPECT_EQ(lists.GetShape().rank(), 1);
+    EXPECT_THAT(lists.slice(), ElementsAreArray(itemid.slice()));
+    EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
+                IsOkAndHolds(IsEquivalentTo(values.WithBag(db))));
+  }
+  auto itemid = *DataSlice::Create(
+      internal::DataItem(internal::AllocateSingleList()),
+      internal::DataItem(schema::kItemId));
+  {
+    // itemid, ndim=2
+    ASSERT_OK_AND_ASSIGN(auto lists, Implode(db, values, /*ndim=*/2, itemid));
+    EXPECT_EQ(lists.GetShape().rank(), 0);
+    EXPECT_EQ(lists.item(), itemid.item());
+    EXPECT_THAT(
+        lists.ExplodeList(0, std::nullopt)->ExplodeList(0, std::nullopt),
+        IsOkAndHolds(IsEquivalentTo(values.WithBag(db))));
+  }
+    // itemid, ndim=0
+    EXPECT_THAT(
+        Implode(db, values, 0, itemid),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("does not accept 'itemid' argument when ndim==0")));
 }
 
 TEST(ObjectFactoriesTest, ConcatLists_NoInputs) {

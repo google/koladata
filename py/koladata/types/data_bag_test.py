@@ -1443,14 +1443,18 @@ Assigned schema for Dict key: INT32""",
 
     db = bag()
     with self.assertRaisesRegex(
-        ValueError, 'DataBag._implode accepts exactly 2 arguments, got 3'):
-      db._implode(ds([]), 1, 2)
+        ValueError, 'DataBag._implode accepts exactly 3 arguments, got 4'):
+      db._implode(ds([]), 1, 2, 3)
     with self.assertRaisesRegex(
         TypeError, 'expecting x to be a DataSlice, got int'
     ):
-      db._implode(1, 2)
+      db._implode(1, 2, 3)
     with self.assertRaisesRegex(TypeError, 'an integer is required'):
-      db._implode(ds([]), ds([]))
+      db._implode(ds([]), ds([]), ds([]))
+    with self.assertRaisesRegex(
+        TypeError, 'expecting itemid to be a DataSlice, got int'
+    ):
+      db._implode(ds([]), 1, 42)
 
   def test_concat_lists_impl(self):
     # NOTE: more tests for concat_lists in

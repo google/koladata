@@ -1029,13 +1029,16 @@ absl::StatusOr<DataSlice> CreateNestedList(
         res,
         CreateListsFromLastDimension(
             db, res, /*schema=*/std::nullopt, /*item_schema=*/std::nullopt,
+            // TODO: When itemid is provided by the user, a proper
+            // nested / child itemid should be created.
             rank == 1 && itemid ? itemid : std::nullopt));
   }
   return std::move(res);
 }
 
-absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
-                                  int ndim) {
+absl::StatusOr<DataSlice> Implode(
+    const DataBagPtr& db, const DataSlice& values, int ndim,
+    const std::optional<DataSlice>& itemid) {
   constexpr absl::string_view kOperatorName = "kd.implode";
   const size_t rank = values.GetShape().rank();
   if (ndim < 0) {
@@ -1059,13 +1062,23 @@ absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
   });
 
   if (ndim == 0) {
+    if (itemid.has_value()) {
+      return internal::OperatorEvalError(
+          kOperatorName, "does not accept 'itemid' argument when ndim==0");
+    }
     return values.WithBag(db);
   }
-  ASSIGN_OR_RETURN(DataSlice result, CreateListsFromLastDimension(db, values));
+  std::optional<DataSlice> result = values;
   for (int i = 1; i < ndim; ++i) {
-    ASSIGN_OR_RETURN(result, CreateListsFromLastDimension(db, result));
+    // TODO: When itemid is provided by the user, a proper nested /
+    // child itemid should be created.
+    ASSIGN_OR_RETURN(result, CreateListsFromLastDimension(db, *result));
   }
-  return result;
+  ASSIGN_OR_RETURN(
+      result,
+      CreateListsFromLastDimension(db, *result, /*schema=*/std::nullopt,
+                                   /*item_schema=*/std::nullopt, itemid));
+  return *std::move(result);
 }
 
 absl::StatusOr<DataSlice> ConcatLists(const DataBagPtr& db,

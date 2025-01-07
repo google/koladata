@@ -310,6 +310,7 @@ def _implode(
     x: _DataSlice,
     /,
     ndim: int | _DataSlice,
+    itemid: _DataSlice | None = None,
 ) -> _DataSlice:  # pylint: disable=g-doc-args
   """Implodes a Dataslice `x` a specified number of times.
 
@@ -332,6 +333,7 @@ def _implode(
   Args:
     x: the DataSlice to implode
     ndim: the number of implosion operations to perform
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
     db: optional DataBag where Lists are created from
 
   Returns:
@@ -339,7 +341,7 @@ def _implode(
   """
   if isinstance(ndim, _DataSlice):
     ndim = ndim.internal_as_py()
-  return self._implode(x, ndim)  # pylint: disable=protected-access
+  return self._implode(x, ndim, itemid)  # pylint: disable=protected-access
 
 
 def _concat_lists(self: DataBag, /, *lists: _DataSlice) -> _DataSlice:  # pylint: disable=g-doc-args

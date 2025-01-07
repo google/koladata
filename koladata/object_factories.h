@@ -374,8 +374,14 @@ absl::StatusOr<DataSlice> CreateNestedList(
 // Creates a DataSlice of nested lists from the last `ndim` dimensions of
 // `values` if `ndim` >= 0, or from all dimensions of `values` if `ndim` < 0.
 // The contents of `values` are adopted into `db`.
-absl::StatusOr<DataSlice> Implode(const DataBagPtr& db, const DataSlice& values,
-                                  int ndim);
+//
+// `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
+// allocating them. If `itemid` already had lists in `db`, those will be
+// overwritten. itemid's shape must match first values.GetShape().rank() - ndim
+// dimensions.
+absl::StatusOr<DataSlice> Implode(
+    const DataBagPtr& db, const DataSlice& values, int ndim,
+    const std::optional<DataSlice>& itemid = std::nullopt);
 
 // Creates a DataSlice of lists concatenated from the lists in `inputs`, All
 // input DataSlices must contain lists with compatible item schemas, and are

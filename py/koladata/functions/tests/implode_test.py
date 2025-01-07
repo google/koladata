@@ -108,7 +108,7 @@ class ImplodeTest(parameterized.TestCase):
 
     # Check behavior with explicit DataBag.
     db2 = fns.bag()
-    result = fns.implode(x, ndim, db2)
+    result = fns.implode(x, ndim, db=db2)
     testing.assert_nested_lists_equal(result, expected)
     self.assertEqual(result.get_bag().fingerprint, db2.fingerprint)
 
@@ -117,11 +117,29 @@ class ImplodeTest(parameterized.TestCase):
     testing.assert_nested_lists_equal(result, expected)
     self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
 
+  def test_itemid(self):
+    itemid = kde.allocation.new_listid_shaped_as(ds([1, 1])).eval()
+    x = fns.implode(ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid)
+    testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]).no_bag())
+    testing.assert_equal(x.no_bag().get_itemid(), itemid)
+
+  def test_itemid_from_different_bag(self):
+    triple = fns.new(non_existent=42)
+    itemid = fns.implode(ds([[triple], []]))
+
+    # Successful.
+    x = fns.implode(ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid.get_itemid())
+    # ITEMID's triples are stripped in the new DataBag.
+    with self.assertRaisesRegex(
+        ValueError, 'attribute \'non_existent\' is missing'
+    ):
+      _ = triple.with_bag(x.get_bag()).non_existent
+
   def test_ndim_error(self):
-    with self.assertRaisesRegex(ValueError, 'expected a present value'):
+    with self.assertRaisesRegex(TypeError, 'an integer is required'):
       fns.implode(ds([]), ds(None))
 
-    with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
+    with self.assertRaisesRegex(TypeError, 'an integer is required'):
       fns.implode(ds([]), ds([1]))
 
     with self.assertRaisesRegex(

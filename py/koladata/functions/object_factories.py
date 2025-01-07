@@ -17,7 +17,6 @@
 from typing import Any
 
 from arolla import arolla
-from koladata.expr import py_expr_eval_py_ext
 from koladata.types import data_bag
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
@@ -26,7 +25,6 @@ from koladata.types import schema_constants
 
 
 bag = data_bag.DataBag.empty
-_eval_op = py_expr_eval_py_ext.eval_op
 
 
 def list_(
@@ -67,12 +65,12 @@ def list_(
     The slice with list/lists.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('list', ...)` however it has different
-    # boxing rules.
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('list', ...)` however it
+    # has different boxing rules.
     return bag().list(
         items=items, item_schema=item_schema, schema=schema, itemid=itemid,
-    ).freeze()
+    ).freeze_bag()
   return db.list(
       items=items, item_schema=item_schema, schema=schema, itemid=itemid,
   )
@@ -108,13 +106,13 @@ def list_like(
     A DataSlice with the lists.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('list_like', ...)` however it has
-    # different boxing rules.
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('list_like', ...)`
+    # however it has different boxing rules.
     return bag().list_like(
         shape_and_mask_from, items=items, item_schema=item_schema,
         schema=schema, itemid=itemid,
-    ).freeze()
+    ).freeze_bag()
   return db.list_like(
       shape_and_mask_from, items=items, item_schema=item_schema, schema=schema,
       itemid=itemid,
@@ -150,13 +148,13 @@ def list_shaped(
     A DataSlice with the lists.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('list_shaped', ...)` however it has
-    # different boxing rules.
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('list_shaped', ...)`
+    # however it has different boxing rules.
     return bag().list_shaped(
         shape, items=items, item_schema=item_schema, schema=schema,
         itemid=itemid,
-    ).freeze()
+    ).freeze_bag()
   return db.list_shaped(
       shape, items=items, item_schema=item_schema, schema=schema, itemid=itemid,
   )
@@ -253,9 +251,9 @@ def dict_(
     A DataSlice with the dict.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('dict', ...)` however it has different
-    # boxing rules.
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('dict', ...)` however it
+    # has different boxing rules.
     return bag().dict(
         items_or_keys=items_or_keys,
         values=values,
@@ -263,7 +261,7 @@ def dict_(
         value_schema=value_schema,
         schema=schema,
         itemid=itemid,
-    ).freeze()
+    ).freeze_bag()
   return db.dict(
       items_or_keys=items_or_keys,
       values=values,
@@ -315,9 +313,9 @@ def dict_like(
     A DataSlice with the dicts.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('dict_like', ...)` however it has
-    # different boxing rules.
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('dict_like', ...)`
+    # however it has different boxing rules.
     return bag().dict_like(
         shape_and_mask_from,
         items_or_keys=items_or_keys,
@@ -326,7 +324,7 @@ def dict_like(
         value_schema=value_schema,
         schema=schema,
         itemid=itemid,
-    ).freeze()
+    ).freeze_bag()
   return db.dict_like(
       shape_and_mask_from,
       items_or_keys=items_or_keys,
@@ -376,9 +374,9 @@ def dict_shaped(
     A DataSlice with the dicts.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('dict_shaped', ...)` however it has
-    # different boxing rules.
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('dict_shaped', ...)`
+    # however it has different boxing rules.
     return bag().dict_shaped(
         shape,
         items_or_keys=items_or_keys,
@@ -387,7 +385,7 @@ def dict_shaped(
         value_schema=value_schema,
         schema=schema,
         itemid=itemid,
-    ).freeze()
+    ).freeze_bag()
   return db.dict_shaped(
       shape,
       items_or_keys=items_or_keys,
@@ -482,12 +480,12 @@ def new(
     data_slice.DataSlice with the given attrs.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('new', ...)` however it has different
-    # boxing rules.
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('new', ...)` however it
+    # has different boxing rules.
     return bag().new(
         arg, schema=schema, update_schema=update_schema, itemid=itemid, **attrs
-    ).freeze()
+    ).freeze_bag()
   return db.new(
       arg, schema=schema, update_schema=update_schema, itemid=itemid, **attrs
   )
@@ -524,13 +522,13 @@ def new_shaped(
     data_slice.DataSlice with the given attrs.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('new_shaped', ...)` however it has
-    # different boxing rules.
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('new_shaped', ...)`
+    # however it has different boxing rules.
     return bag().new_shaped(
         shape, schema=schema, update_schema=update_schema, itemid=itemid,
         **attrs
-    ).freeze()
+    ).freeze_bag()
   return db.new_shaped(
       shape, schema=schema, update_schema=update_schema, itemid=itemid, **attrs
   )
@@ -608,13 +606,13 @@ def new_like(
     data_slice.DataSlice with the given attrs.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('new_like', ...)` however it has
-    # different boxing rules.
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('new_like', ...)`
+    # however it has different boxing rules.
     return bag().new_like(
         shape_and_mask_from, schema=schema, update_schema=update_schema,
         itemid=itemid, **attrs
-    ).freeze()
+    ).freeze_bag()
   return db.new_like(
       shape_and_mask_from, schema=schema, update_schema=update_schema,
       itemid=itemid, **attrs
@@ -645,7 +643,7 @@ def obj(
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
   """
   if db is None:
-    return bag().obj(arg, itemid=itemid, **attrs).freeze()
+    return bag().obj(arg, itemid=itemid, **attrs).freeze_bag()
   return db.obj(arg, itemid=itemid, **attrs)
 
 
@@ -694,10 +692,10 @@ def obj_shaped(
     data_slice.DataSlice with the given attrs.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('obj_shaped', ...)` however it has
-    # different boxing rules.
-    return bag().obj_shaped(shape, itemid=itemid, **attrs).freeze()
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
+    # however it has different boxing rules.
+    return bag().obj_shaped(shape, itemid=itemid, **attrs).freeze_bag()
   return db.obj_shaped(shape, itemid=itemid, **attrs)
 
 
@@ -748,10 +746,12 @@ def obj_like(
     data_slice.DataSlice with the given attrs.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('obj_shaped', ...)` however it has
-    # different boxing rules.
-    return bag().obj_like(shape_and_mask_from, itemid=itemid, **attrs).freeze()
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
+    # however it has different boxing rules.
+    return bag().obj_like(
+        shape_and_mask_from, itemid=itemid, **attrs
+    ).freeze_bag()
   return db.obj_like(shape_and_mask_from, itemid=itemid, **attrs)
 
 
@@ -782,12 +782,12 @@ def uu(
     data_slice.DataSlice with the given attrs.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('uu', ...)` however it has different
-    # boxing rules.
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('uu', ...)` however it
+    # has different boxing rules.
     return bag().uu(
         seed=seed, schema=schema, update_schema=update_schema, **attrs
-    ).freeze()
+    ).freeze_bag()
   return db.uu(seed=seed, schema=schema, update_schema=update_schema, **attrs)
 
 
@@ -823,10 +823,10 @@ def uuobj(
     data_slice.DataSlice
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('uuobj', ...)` however it has
-    # different boxing rules.
-    return bag().uuobj(seed=seed, **attrs).freeze()
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('uuobj', ...)` however
+    # it has different boxing rules.
+    return bag().uuobj(seed=seed, **attrs).freeze_bag()
   return db.uuobj(seed=seed, **attrs)
 
 
@@ -882,6 +882,7 @@ def implode(
     x: data_slice.DataSlice,
     /,
     ndim: int | data_slice.DataSlice = 1,
+    itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Implodes a Dataslice `x` a specified number of times.
@@ -907,14 +908,15 @@ def implode(
   Args:
     x: the DataSlice to implode
     ndim: the number of implosion operations to perform
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
     db: optional DataBag where Lists are created from
 
   Returns:
     DataSlice of nested Lists
   """
   if db is None:
-    return _eval_op('kde.implode', x, ndim)
-  return db.implode(x, ndim)
+    return bag().implode(x, ndim, itemid).freeze_bag()
+  return db.implode(x, ndim, itemid)
 
 
 def concat_lists(
@@ -943,8 +945,8 @@ def concat_lists(
     DataSlice of concatenated Lists
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling `freeze`.
-    # One alternative is to call `eval_op('concat_lists', ...)` however it has
-    # different boxing rules.
-    return bag().concat_lists(*lists).freeze()
+    # TODO: Find a better way in order to avoid calling
+    # `freeze_bag`. One alternative is to call `eval_op('concat_lists', ...)`
+    # however it has different boxing rules.
+    return bag().concat_lists(*lists).freeze_bag()
   return db.concat_lists(*lists)

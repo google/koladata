@@ -273,7 +273,7 @@ def explode(x, ndim=1):
 
 
 @optools.as_backend_operator('kde.lists._implode', deterministic=False)
-def _implode(x, ndim):  # pylint: disable=unused-argument
+def _implode(x, ndim, itemid):  # pylint: disable=unused-argument
   """Implementation of kde.lists.implode."""
   raise NotImplementedError('implemented in the backend')
 
@@ -284,9 +284,10 @@ def _implode(x, ndim):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.ndim),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
 )
-def implode(x, ndim=1):
+def implode(x, ndim=1, itemid=arolla.unspecified()):
   """Implodes a Dataslice `x` a specified number of times.
 
   A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
@@ -304,11 +305,13 @@ def implode(x, ndim=1):
   Args:
     x: the DataSlice to implode
     ndim: the number of implosion operations to perform
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
 
   Returns:
     DataSlice of nested Lists
   """
-  return _implode(x, arolla_bridge.to_arolla_int64(ndim))
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+  return _implode(x, arolla_bridge.to_arolla_int64(ndim), itemid)
 
 
 @optools.add_to_registry(aliases=['kde.list_size'])

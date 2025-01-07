@@ -1099,15 +1099,16 @@ absl::Nullable<PyObject*> PyDataBag_implode(PyObject* self,
                                             PyObject* const* args,
                                             Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
-  if (nargs != 2) {
+  if (nargs != 3) {
     PyErr_Format(PyExc_ValueError,
-                 "DataBag._implode accepts exactly 2 arguments, got %d", nargs);
+                 "DataBag._implode accepts exactly 3 arguments, got %d", nargs);
     return nullptr;
   }
 
   const auto& self_db = UnsafeDataBagPtr(self);
   PyObject* const py_x = args[0];
   PyObject* const py_ndim = args[1];
+  PyObject* const py_itemid = args[2];
 
   const DataSlice* x_ptr = UnwrapDataSlice(py_x, "x");
   if (x_ptr == nullptr) {
@@ -1117,8 +1118,12 @@ absl::Nullable<PyObject*> PyDataBag_implode(PyObject* self,
   if (ndim == -1 && PyErr_Occurred() != nullptr) {
     return nullptr;
   }
+  std::optional<DataSlice> itemid;
+  if (!UnwrapDataSliceOptionalArg(py_itemid, "itemid", itemid)) {
+    return nullptr;
+  }
 
-  ASSIGN_OR_RETURN(DataSlice result, Implode(self_db, *x_ptr, ndim),
+  ASSIGN_OR_RETURN(DataSlice result, Implode(self_db, *x_ptr, ndim, itemid),
                    arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
 }
