@@ -143,6 +143,10 @@ class DataItem {
            value<schema::DType>().is_primitive();
   }
 
+  bool is_struct_schema() const {
+    return holds_value<ObjectId>() && value<ObjectId>().IsSchema();
+  }
+
   bool is_entity_schema() const {
     return holds_value<ObjectId>() && value<ObjectId>().IsSchema();
   }

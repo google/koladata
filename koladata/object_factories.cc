@@ -466,7 +466,7 @@ absl::StatusOr<DataSlice> CreateEntitiesImpl(
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     schema_item = schema->item();
-    if (!schema_item.is_entity_schema() && schema_item != schema::kAny) {
+    if (!schema_item.is_struct_schema() && schema_item != schema::kAny) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "processing Entity attributes requires Entity schema, got %v",
           schema_item));
@@ -546,7 +546,7 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     schema_item = schema->item();
-    if (!schema_item.is_entity_schema() && schema_item != schema::kAny) {
+    if (!schema_item.is_struct_schema() && schema_item != schema::kAny) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "processing Entity attributes requires Entity schema, got %v",
           schema_item));
@@ -739,7 +739,7 @@ absl::StatusOr<DataSlice> CreateUu(
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     schema_item = schema->item();
-    if (!schema_item.is_entity_schema() && schema_item != schema::kAny) {
+    if (!schema_item.is_struct_schema() && schema_item != schema::kAny) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "processing Entity attributes requires Entity schema, got %v",
           schema_item));

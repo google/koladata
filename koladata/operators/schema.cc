@@ -210,7 +210,7 @@ absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
 absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item() == schema::kObject &&
-      x.GetSchemaImpl().is_entity_schema()) {
+      x.GetSchemaImpl().is_struct_schema()) {
     return absl::InvalidArgumentError(
         "entity to object casting is unsupported - consider using `kd.obj(x)` "
         "instead");

@@ -1248,7 +1248,7 @@ TEST_P(CastingToEntityTest, Casting) {
   const auto& input = GetParam().input;
   const auto& output = GetParam().output;
   const auto& entity_schema = output.GetSchemaImpl();
-  ASSERT_TRUE(entity_schema.is_entity_schema());
+  ASSERT_TRUE(entity_schema.is_struct_schema());
   ASSERT_OK_AND_ASSIGN(auto item_id_slice, ToEntity(input, entity_schema));
   EXPECT_THAT(item_id_slice, IsEquivalentTo(output));
 }

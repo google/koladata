@@ -62,7 +62,7 @@ absl::StatusOr<arolla::TypedValue> DataSliceToArollaValue(
   //
   // NONE, OBJECT, ANY need to get a primitive schema.
   auto schema_item = ds.GetSchemaImpl();
-  if (!schema_item.is_entity_schema() && !schema_item.is_primitive_schema()) {
+  if (!schema_item.is_struct_schema() && !schema_item.is_primitive_schema()) {
     schema_item = fallback_schema;
   }
   if (!schema_item.is_primitive_schema()) {

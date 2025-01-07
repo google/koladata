@@ -262,7 +262,7 @@ absl::StatusOr<DataSlice> ToSchema(const DataSlice& slice) {
 
 absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
                                    const internal::DataItem& entity_schema) {
-  if (!entity_schema.is_entity_schema()) {
+  if (!entity_schema.is_struct_schema()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("expected an entity schema, got: %v", entity_schema));
   }

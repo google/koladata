@@ -253,7 +253,7 @@ class CoreAddTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with Entity schema is not supported'
+        exceptions.KodaError, 'DataSlice with Struct schema is not supported'
     ):
       expr_eval.eval(kde.core.add(x, x))
 

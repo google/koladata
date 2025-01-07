@@ -133,7 +133,7 @@ TEST(FromProtoTest, EmptyMessage_Proto3_NoProvidedSchema) {
       IsOkAndHolds(IsEquivalentTo(test::DataSlice<arolla::Text>({""}, db))));
 
   // Verify schema.
-  EXPECT_TRUE(result.GetSchemaImpl().is_entity_schema());
+  EXPECT_TRUE(result.GetSchemaImpl().is_struct_schema());
   EXPECT_THAT(result.GetSchema().GetAttrNames(),
               IsOkAndHolds(UnorderedElementsAreArray({
                   "int32_field",
@@ -158,7 +158,7 @@ TEST(FromProtoTest, EmptyMessage_NoProvidedSchema) {
   EXPECT_EQ(result.size(), 1);
 
   EXPECT_THAT(result.GetAttrNames(), IsOkAndHolds(UnorderedElementsAre()));
-  EXPECT_TRUE(result.GetSchemaImpl().is_entity_schema());
+  EXPECT_TRUE(result.GetSchemaImpl().is_struct_schema());
   EXPECT_THAT(result.GetSchema().GetAttrNames(),
               IsOkAndHolds(UnorderedElementsAre()));
 }

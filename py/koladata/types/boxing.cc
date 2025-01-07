@@ -275,7 +275,7 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
       adoption_queue.Add(ds);
       schema_agg.Add(ds.GetSchemaImpl());
       // If casting to e.g. ANY, it does not need to be embedded.
-      if (ds.GetSchemaImpl().is_entity_schema() &&
+      if (ds.GetSchemaImpl().is_struct_schema() &&
           explicit_schema == schema::kObject) {
         RETURN_IF_ERROR(embedding_db.EmbedSchema(ds));
       }
@@ -583,7 +583,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(
       if (schema && res.GetSchemaImpl() != schema->item()) {
         DataBagPtr db = nullptr;
         // We need to embed the schema.
-        if (res.GetSchemaImpl().is_entity_schema() &&
+        if (res.GetSchemaImpl().is_struct_schema() &&
             schema->item() == schema::kObject) {
           db = DataBag::Empty();
           adoption_queue.Add(db);
@@ -1028,7 +1028,7 @@ class UniversalConverter {
     std::optional<DataSlice> value_schema;
     if (dict_schema) {
       DCHECK_NE(dict_schema->item(), schema::kObject);
-      if (dict_schema->item().is_entity_schema()) {
+      if (dict_schema->item().is_struct_schema()) {
         RETURN_IF_ERROR(dict_schema->VerifyIsDictSchema());
         ASSIGN_OR_RETURN(key_schema,
                          dict_schema->GetAttr(schema::kDictKeysSchemaAttr));
@@ -1153,7 +1153,7 @@ class UniversalConverter {
     std::optional<DataSlice> item_schema;
     if (list_schema) {
       DCHECK_NE(list_schema->item(), schema::kObject);
-      if (list_schema->item().is_entity_schema()) {
+      if (list_schema->item().is_struct_schema()) {
         RETURN_IF_ERROR(list_schema->VerifyIsListSchema());
         ASSIGN_OR_RETURN(item_schema,
                          list_schema->GetAttr(schema::kListItemsSchemaAttr));
@@ -1252,7 +1252,7 @@ class UniversalConverter {
     // Only Entities are converted using Factory, while primitives are kept as
     // is, because building an OBJECT slice in ComputeDataSlice is not possible
     // if Entities are not already converted.
-    if (schema_item.is_entity_schema()) {
+    if (schema_item.is_struct_schema()) {
       if constexpr (std::is_same_v<Factory, ObjectCreator>) {
         MaybeCreateEmptyBag();
         ASSIGN_OR_RETURN(res, Factory::ConvertWithoutAdopt(db_, res));

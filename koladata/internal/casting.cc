@@ -174,7 +174,7 @@ absl::StatusOr<internal::DataSliceImpl> ToSchema::operator()(
 absl::StatusOr<ToObject> ToObject::Make(
     internal::DataItem schema, bool validate_schema,
     absl::Nullable<internal::DataBagImpl*> db_impl) {
-  if (schema.is_entity_schema()) {
+  if (schema.is_struct_schema()) {
     if (schema.value<internal::ObjectId>().IsNoFollowSchema()) {
       return absl::InvalidArgumentError("schema must not be a NoFollow schema");
     }

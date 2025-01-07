@@ -465,7 +465,7 @@ class CopyingProcessor {
 
   // Process slice of objects with entity schema.
   absl::Status ProcessEntitySlice(const QueuedSlice& ds) {
-    if (!ds.schema.is_entity_schema()) {
+    if (!ds.schema.is_struct_schema()) {
       return absl::InvalidArgumentError("schema object is expected");
     }
     if (ds.schema.value<ObjectId>().IsNoFollowSchema()) {

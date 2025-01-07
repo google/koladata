@@ -285,8 +285,8 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
   if (schema.is_primitive_schema()) {
     return schema;
   }
-  if (schema.is_entity_schema()) {
-    return create_error("DataSlice with Entity schema is not supported");
+  if (schema.is_struct_schema()) {
+    return create_error("DataSlice with Struct schema is not supported");
   }
   if (x.impl_empty_and_unknown()) {
     return internal::DataItem();

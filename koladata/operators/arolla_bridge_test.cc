@@ -181,11 +181,11 @@ TEST(ArollaEval, SimplePointwiseEval) {
     EXPECT_THAT(
         status,
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("DataSlice with Entity schema is not supported")));
+                 HasSubstr("DataSlice with Struct schema is not supported")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     EXPECT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
-                HasSubstr("DataSlice with Entity schema is not supported"));
+                HasSubstr("DataSlice with Struct schema is not supported"));
   }
   {
     // invalid input: mixed types.
@@ -765,7 +765,7 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataItem) {
         GetPrimitiveArollaSchema(
             test::DataItem(std::nullopt, internal::AllocateExplicitSchema())),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("DataSlice with Entity schema is not supported")));
+                 HasSubstr("DataSlice with Struct schema is not supported")));
   }
   {
     // Unsupported internal data.
@@ -823,7 +823,7 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataSlice) {
         GetPrimitiveArollaSchema(
             test::EmptyDataSlice(3, internal::AllocateExplicitSchema())),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("DataSlice with Entity schema is not supported")));
+                 HasSubstr("DataSlice with Struct schema is not supported")));
   }
   {
     // Unsupported internal data.

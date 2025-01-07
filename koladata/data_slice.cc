@@ -633,7 +633,7 @@ class RhsHandler {
     }
     // NOTE: primitives -> OBJECT casting is handled by generic code at a later
     // stage.
-    if (cast_to == schema::kObject && value_schema.is_entity_schema()) {
+    if (cast_to == schema::kObject && value_schema.is_struct_schema()) {
       if constexpr (!is_readonly) {
         // Need to embed the schema, so we attach it to the DataBag.
         ASSIGN_OR_RETURN(auto to_object,
@@ -904,7 +904,7 @@ absl::StatusOr<DataSlice> DataSlice::GetObjSchema() const {
 
 bool DataSlice::IsEntitySchema() const {
   return GetSchemaImpl() == schema::kSchema && is_item() &&
-         item().is_entity_schema();
+         item().is_struct_schema();
 }
 
 bool DataSlice::IsListSchema() const {
@@ -957,7 +957,7 @@ bool DataSlice::IsItemIdSchema() const {
 absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   DataBagPtr schema_bag = nullptr;
-  if (schema.item().is_entity_schema() && schema.GetBag() != nullptr &&
+  if (schema.item().is_struct_schema() && schema.GetBag() != nullptr &&
       schema.GetBag() != GetBag()) {
     schema_bag = DataBag::Empty();
     AdoptionQueue adoption_queue;
@@ -979,7 +979,7 @@ absl::StatusOr<DataSlice> DataSlice::WithSchema(
 
 absl::StatusOr<DataSlice> DataSlice::SetSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  if (schema.item().is_entity_schema() && schema.GetBag() != nullptr) {
+  if (schema.item().is_struct_schema() && schema.GetBag() != nullptr) {
     if (GetBag() == nullptr) {
       return absl::InvalidArgumentError(
           "cannot set an Entity schema on a DataSlice without a DataBag.");
@@ -1310,7 +1310,7 @@ absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
 
 absl::StatusOr<DataSlice> DataSlice::EmbedSchema(bool overwrite) const {
   if (!GetSchemaImpl().is_primitive_schema() &&
-      !GetSchemaImpl().is_entity_schema() && GetSchemaImpl() != schema::kNone) {
+      !GetSchemaImpl().is_struct_schema() && GetSchemaImpl() != schema::kNone) {
     return absl::InvalidArgumentError(
         absl::StrFormat("schema embedding is only supported for primitive and "
                         "entity schemas, got %v",
