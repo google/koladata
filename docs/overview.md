@@ -168,7 +168,7 @@ primitive types.
 kd.int32(1) # INT32 DataItem
 kd.int64([2, 3]) # 1-dim INT64 DataSlice
 kd.float32([[1., 2.], [3.]]) # 2-dim FLOAT32 DataSlice
-kd.text('text')
+kd.str('string')
 kd.bytes(b'bytes')
 kd.bool(True)
 

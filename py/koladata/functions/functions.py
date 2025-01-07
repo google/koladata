@@ -15,7 +15,6 @@
 """A front-end module for Koda functions."""
 
 import types as _py_types
-from typing import Any
 import warnings as _warnings
 
 from koladata.fstring import fstring as _fstring
@@ -173,13 +172,6 @@ bytes = _py_conversions.bytes_  # pylint: disable=redefined-builtin
 bool = _py_conversions.bool_  # pylint: disable=redefined-builtin
 mask = _py_conversions.mask
 expr_quote = _py_conversions.expr_quote
-
-
-# TODO: Remove this alias once the migration is done.
-def text(x: Any) -> _data_slice.DataSlice:
-  """Deprecated. Use kd.str instead."""
-  _warnings.warn('kd.text is deprecated. Use kd.str instead.', RuntimeWarning)
-  return _py_conversions.str_(x)
 
 
 from_proto = _proto_conversions.from_proto
