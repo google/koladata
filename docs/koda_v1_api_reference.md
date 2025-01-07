@@ -669,6 +669,15 @@ Aliases:
 Returns a frozen version of `x`.
 ```
 
+### `kd.core.freeze_bag(x)` {#kd.core.freeze_bag}
+Aliases:
+
+- [kd.freeze_bag](#kd.freeze_bag)
+
+``` {.no-copy}
+Returns a DataSlice with an immutable DataBag with the same data.
+```
+
 ### `kd.core.get_attr(x, attr_name, default=unspecified)` {#kd.core.get_attr}
 Aliases:
 
@@ -1318,55 +1327,6 @@ Operators working with dictionaries.
 
 **Operators**
 
-### `kd.dicts.create(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.create}
-Aliases:
-
-- [kd.dict](#kd.dict)
-
-``` {.no-copy}
-Creates a Koda dict.
-
-  Returns an immutable dict if `db` is not provided.
-
-  Acceptable arguments are:
-    1) no argument: a single empty dict
-    2) a Python dict whose keys are either primitives or DataItems and values
-       are primitives, DataItems, Python list/dict which can be converted to a
-       List/Dict DataItem, or a DataSlice which can folded into a List DataItem:
-       a single dict
-    3) two DataSlices/DataItems as keys and values: a DataSlice of dicts whose
-       shape is the last N-1 dimensions of keys/values DataSlice
-
-  Examples:
-  dict() -> returns a single new dict
-  dict({1: 2, 3: 4}) -> returns a single new dict
-  dict({1: [1, 2]}) -> returns a single dict, mapping 1->List[1, 2]
-  dict({1: kd.slice([1, 2])}) -> returns a single dict, mapping 1->List[1, 2]
-  dict({db.uuobj(x=1, y=2): 3}) -> returns a single dict, mapping uuid->3
-  dict(kd.slice([1, 2]), kd.slice([3, 4]))
-    -> returns a dict ({1: 3, 2: 4})
-  dict(kd.slice([[1], [2]]), kd.slice([3, 4]))
-    -> returns a 1-D DataSlice that holds two dicts ({1: 3} and {2: 4})
-  dict('key', 12) -> returns a single dict mapping 'key'->12
-
-  Args:
-    items_or_keys: a Python dict in case of items and a DataSlice in case of
-      keys.
-    values: a DataSlice. If provided, `items_or_keys` must be a DataSlice as
-      keys.
-    key_schema: the schema of the dict keys. If not specified, it will be
-      deduced from keys or defaulted to OBJECT.
-    value_schema: the schema of the dict values. If not specified, it will be
-      deduced from values or defaulted to OBJECT.
-    schema: The schema to use for the newly created Dict. If specified, then
-        key_schema and value_schema must not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where dict(s) are created.
-
-  Returns:
-    A DataSlice with the dict.
-```
-
 ### `kd.dicts.dict_update(x, keys, values=unspecified)` {#kd.dicts.dict_update}
 Aliases:
 
@@ -1524,37 +1484,53 @@ Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
     A DataSlice with the dicts.
 ```
 
-### `kd.dicts.new(keys=unspecified, values=unspecified, *, key_schema=unspecified, value_schema=unspecified, schema=unspecified, itemid=unspecified)` {#kd.dicts.new}
+### `kd.dicts.new(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.new}
+Aliases:
+
+- [kd.dict](#kd.dict)
 
 ``` {.no-copy}
 Creates a Koda dict.
 
-Acceptable arguments are:
-  1) no argument: a single empty dict
-  2) two DataSlices/DataItems as keys and values: a DataSlice of dicts whose
-     shape is the last N-1 dimensions of keys/values DataSlice
+  Returns an immutable dict if `db` is not provided.
 
-Examples:
-dict() -> returns a single new dict
-dict(kd.slice([1, 2]), kd.slice([3, 4]))
-  -> returns a dict ({1: 3, 2: 4})
-dict(kd.slice([[1], [2]]), kd.slice([3, 4]))
-  -> returns a 1-D DataSlice that holds two dicts ({1: 3} and {2: 4})
-dict('key', 12) -> returns a single dict mapping 'key'->12
+  Acceptable arguments are:
+    1) no argument: a single empty dict
+    2) a Python dict whose keys are either primitives or DataItems and values
+       are primitives, DataItems, Python list/dict which can be converted to a
+       List/Dict DataItem, or a DataSlice which can folded into a List DataItem:
+       a single dict
+    3) two DataSlices/DataItems as keys and values: a DataSlice of dicts whose
+       shape is the last N-1 dimensions of keys/values DataSlice
 
-Args:
-  keys: a DataSlice with keys.
-  values: a DataSlice with values.
-  key_schema: the schema of the dict keys. If not specified, it will be
-    deduced from keys or defaulted to OBJECT.
-  value_schema: the schema of the dict values. If not specified, it will be
-    deduced from values or defaulted to OBJECT.
-  schema: the schema to use for the newly created Dict. If specified, then
-    key_schema and value_schema must not be specified.
-  itemid: ITEMID DataSlice used as ItemIds of the resulting dicts.
+  Examples:
+  dict() -> returns a single new dict
+  dict({1: 2, 3: 4}) -> returns a single new dict
+  dict({1: [1, 2]}) -> returns a single dict, mapping 1->List[1, 2]
+  dict({1: kd.slice([1, 2])}) -> returns a single dict, mapping 1->List[1, 2]
+  dict({db.uuobj(x=1, y=2): 3}) -> returns a single dict, mapping uuid->3
+  dict(kd.slice([1, 2]), kd.slice([3, 4]))
+    -> returns a dict ({1: 3, 2: 4})
+  dict(kd.slice([[1], [2]]), kd.slice([3, 4]))
+    -> returns a 1-D DataSlice that holds two dicts ({1: 3} and {2: 4})
+  dict('key', 12) -> returns a single dict mapping 'key'->12
 
-Returns:
-  A DataSlice with the dict.
+  Args:
+    items_or_keys: a Python dict in case of items and a DataSlice in case of
+      keys.
+    values: a DataSlice. If provided, `items_or_keys` must be a DataSlice as
+      keys.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: The schema to use for the newly created Dict. If specified, then
+        key_schema and value_schema must not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where dict(s) are created.
+
+  Returns:
+    A DataSlice with the dict.
 ```
 
 ### `kd.dicts.select_keys(ds, fltr)` {#kd.dicts.select_keys}
@@ -2374,42 +2350,6 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
     DataSlice of concatenated Lists
 ```
 
-### `kd.lists.create(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.create}
-Aliases:
-
-- [kd.list](#kd.list)
-
-``` {.no-copy}
-Creates list(s) by collapsing `items`.
-
-  Returns an immutable list if `db` is not provided.
-
-  If there is no argument, returns an empty Koda List.
-  If the argument is a DataSlice, creates a slice of Koda Lists.
-  If the argument is a Python list, creates a nested Koda List.
-
-  Examples:
-  list() -> a single empty Koda List
-  list([1, 2, 3]) -> Koda List with items 1, 2, 3
-  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
-  list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
-  list(kd.slice([[1, 2, 3], [4, 5]]))
-    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
-
-  Args:
-    items: The items to use. If not specified, an empty list of OBJECTs will be
-      created.
-    item_schema: the schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: The schema to use for the list. If specified, then item_schema must
-      not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where list(s) are created.
-
-  Returns:
-    The slice with list/lists.
-```
-
 ### `kd.lists.explode(x, ndim=DataItem(1, schema: INT32))` {#kd.lists.explode}
 Aliases:
 
@@ -2558,25 +2498,40 @@ Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
     A DataSlice with the lists.
 ```
 
-### `kd.lists.new(items=unspecified, /, *, item_schema=unspecified, schema=unspecified, itemid=unspecified)` {#kd.lists.new}
+### `kd.lists.new(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.new}
+Aliases:
+
+- [kd.list](#kd.list)
 
 ``` {.no-copy}
 Creates list(s) by collapsing `items`.
 
-If there is no argument, returns an empty Koda List. If the argument is a
-DataSlice, creates a DataSlice of Koda Lists.
+  Returns an immutable list if `db` is not provided.
 
-Args:
-  items: items of the resulting lists. If not specified, an empty list of
-    OBJECTs will be created.
-  item_schema: optional schema of the list items. If not specified, it will be
-    deduced from `items` or defaulted to OBJECT.
-  schema: optional schema to use for the list. If specified, then item_schema
-    must not be specified.
-  itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+  If there is no argument, returns an empty Koda List.
+  If the argument is a DataSlice, creates a slice of Koda Lists.
+  If the argument is a Python list, creates a nested Koda List.
 
-Returns:
-  The DataSlice with list/lists.
+  Examples:
+  list() -> a single empty Koda List
+  list([1, 2, 3]) -> Koda List with items 1, 2, 3
+  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
+  list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
+  list(kd.slice([[1, 2, 3], [4, 5]]))
+    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
+
+  Args:
+    items: The items to use. If not specified, an empty list of OBJECTs will be
+      created.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where list(s) are created.
+
+  Returns:
+    The slice with list/lists.
 ```
 
 ### `kd.lists.select_items(ds, fltr)` {#kd.lists.select_items}
@@ -5677,36 +5632,6 @@ Returns:
   A DataSlice of INT64s with range [start, end).
 ```
 
-### `kd.slices.remove(ds, fltr)` {#kd.slices.remove}
-Aliases:
-
-- [kd.remove](#kd.remove)
-
-``` {.no-copy}
-Creates a new DataSlice by filtering out present items in fltr.
-
-The dimensions of `fltr` needs to be compatible with the dimensions of `ds`.
-By default, `fltr` is expanded to 'ds' and items in `ds` corresponding
-present items in `fltr` are removed. The last dimension of the resulting
-DataSlice is changed while the first N-1 dimensions are the same as those in
-`ds`.
-
-Example:
-  val = kd.slice([[1, None, 4], [None], [2, 8]])
-  kd.remove(val, val > 3) -> [[1, None], [None], [2]]
-
-  fltr = kd.slice(
-      [[None, None, kd.present], [kd.present], [kd.present, None]])
-  kd.remove(val, fltr) -> [[1, None], [None], [8]]
-
-Args:
-  ds: DataSlice to be filtered
-  fltr: filter DataSlice with dtype as kd.MASK.
-
-Returns:
-  Filtered DataSlice.
-```
-
 ### `kd.slices.repeat(x, sizes)` {#kd.slices.repeat}
 
 Alias for [kd.slices.add_dim](#kd.slices.add_dim) operator.
@@ -7019,7 +6944,7 @@ Alias for [kd.slices.dense_rank](#kd.slices.dense_rank) operator.
 
 ### `kd.dict(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dict}
 
-Alias for [kd.dicts.create](#kd.dicts.create) operator.
+Alias for [kd.dicts.new](#kd.dicts.new) operator.
 
 ### `kd.dict_like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dict_like}
 
@@ -7201,6 +7126,10 @@ Alias for [kd.strings.format](#kd.strings.format) operator.
 ### `kd.freeze(x)` {#kd.freeze}
 
 Alias for [kd.core.freeze](#kd.core.freeze) operator.
+
+### `kd.freeze_bag(x)` {#kd.freeze_bag}
+
+Alias for [kd.core.freeze_bag](#kd.core.freeze_bag) operator.
 
 ### `kd.from_proto(messages, /, *, extensions=None, itemid=None, schema=None, db=None)` {#kd.from_proto}
 
@@ -7542,7 +7471,7 @@ Alias for [kd.comparison.less_equal](#kd.comparison.less_equal) operator.
 
 ### `kd.list(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list}
 
-Alias for [kd.lists.create](#kd.lists.create) operator.
+Alias for [kd.lists.new](#kd.lists.new) operator.
 
 ### `kd.list_like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list_like}
 
@@ -7804,10 +7733,6 @@ Alias for [kd.core.ref](#kd.core.ref) operator.
 ### `kd.reify(ds, source)` {#kd.reify}
 
 Alias for [kd.core.reify](#kd.core.reify) operator.
-
-### `kd.remove(ds, fltr)` {#kd.remove}
-
-Alias for [kd.slices.remove](#kd.slices.remove) operator.
 
 ### `kd.repeat(x, sizes)` {#kd.repeat}
 
@@ -8898,7 +8823,7 @@ Aliases:
 - [DataSlice.fork_db](#DataSlice.fork_db)
 
 ``` {.no-copy}
-Returns a copy of the DataSlice with a forked DataBag.
+Returns a copy of the DataSlice with a forked mutable DataBag.
 ```
 
 ### `DataSlice.fork_db(self)` {#DataSlice.fork_db}
@@ -8906,6 +8831,12 @@ Returns a copy of the DataSlice with a forked DataBag.
 Alias for [DataSlice.fork_bag](#DataSlice.fork_bag) operator.
 
 ### `DataSlice.freeze()` {#DataSlice.freeze}
+
+``` {.no-copy}
+Deprecated, please use `freeze_bag` instead.
+```
+
+### `DataSlice.freeze_bag()` {#DataSlice.freeze_bag}
 
 ``` {.no-copy}
 Returns a frozen DataSlice equivalent to `self`.
