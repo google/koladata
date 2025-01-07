@@ -1646,7 +1646,7 @@ s4 = kd.list_schema(Point)
 i3 = s3([1, 2, 3, 4])
 i4 = s4([i1, i1])
 
-s5 = kd.dict_schema(kd.TEXT, kd.OBJECT)
+s5 = kd.dict_schema(kd.STRING, kd.OBJECT)
 s6 = kd.dict_schema(kd.ITEMID, Line)
 
 i5 = s5({'a': kd.obj()})
@@ -1670,7 +1670,7 @@ i1 = kd.new(x=1, y=2.0, z='3')
 # The result DataItem has a auto-drived schema
 assert i1.get_schema().x == kd.INT32
 assert i1.get_schema().y == kd.FLOAT32
-assert i1.get_schema().z == kd.TEXT
+assert i1.get_schema().z == kd.STRING
 
 i2 = kd.new(x=1, y=2.0, schema='Point')
 i3 = kd.new(x=2, y=3.0, schema='Point')
@@ -1714,7 +1714,7 @@ assert o_ds.get_schema() == kd.OBJECT
 obj_ss = o_ds.get_obj_schema()
 obj_ss.get_size()# 2
 obj_ss.take(0)
-# -> IMPLICIT_SCHEMA(x=INT32, y=FLOAT32, z=TEXT)
+# -> IMPLICIT_SCHEMA(x=INT32, y=FLOAT32, z=STRING)
 assert obj_ss.take(0) != obj_ss.take(1)
 ```
 

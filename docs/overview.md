@@ -161,7 +161,7 @@ kd.group_by(ds.flatten(), kd.index(ds, dim=1).flatten())  # [[1, 4, 7], [2, 5, 8
 
 ## Primitives
 
-Koda supports INT32, INT64, FLOAT32, FLOAT64, TEXT, BYTES, BOOLEAN, MASK as
+Koda supports INT32, INT64, FLOAT32, FLOAT64, STRING, BYTES, BOOLEAN, MASK as
 primitive types.
 
 ```py
