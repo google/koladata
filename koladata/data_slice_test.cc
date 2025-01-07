@@ -595,6 +595,21 @@ TEST(DataSliceTest, IsEntitySchema) {
   EXPECT_FALSE(test::DataItem(42).IsEntitySchema());
 }
 
+TEST(DataSliceTest, IsStructSchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+  EXPECT_TRUE(entity_schema.IsStructSchema());
+  auto list_schema = *CreateListSchema(db, int_s);
+  EXPECT_TRUE(list_schema.IsStructSchema());
+  auto dict_schema = *CreateDictSchema(db, int_s, int_s);
+  EXPECT_TRUE(dict_schema.IsStructSchema());
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kAny, schema::kInt32})
+                   .IsStructSchema());
+  EXPECT_FALSE(test::Schema(schema::kAny).IsStructSchema());
+  EXPECT_FALSE(test::DataItem(42).IsStructSchema());
+}
+
 TEST(DataSliceTest, IsListSchema) {
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);

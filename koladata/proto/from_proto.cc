@@ -886,7 +886,7 @@ absl::Status FromProtoMessage(
   vars->itemid = itemid;
   vars->schema = schema;
 
-  if (schema.has_value() && schema->IsEntitySchema()) {
+  if (schema.has_value() && schema->IsStructSchema()) {
     // For explicit entity schemas, use the schema attr names as the list of
     // fields and extensions to convert.
     ASSIGN_OR_RETURN(vars->schema_attr_names, schema->GetAttrNames());

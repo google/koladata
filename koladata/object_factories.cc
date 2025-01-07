@@ -1243,7 +1243,7 @@ absl::StatusOr<DataSlice> CreateEmptyShaped(const DataSlice::JaggedShape& shape,
                                             const DataSlice& schema,
                                             absl::Nullable<DataBagPtr> db) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  if (db == nullptr && schema.IsEntitySchema()) {
+  if (db == nullptr && schema.IsStructSchema()) {
     db = DataBag::Empty();
   }
   ASSIGN_OR_RETURN(

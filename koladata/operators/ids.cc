@@ -152,7 +152,7 @@ absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
                                    const DataSlice& seed) {
   absl::Nullable<DataBagPtr> db = ds.GetBag();
   if (db == nullptr) {
-    if (schema.IsEntitySchema()) {
+    if (schema.IsStructSchema()) {
       return absl::InvalidArgumentError(
           "cannot compute deep_uuid of entity slice without a DataBag");
     }

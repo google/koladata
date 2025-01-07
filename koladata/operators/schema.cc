@@ -133,7 +133,7 @@ class NamedSchemaOperator : public arolla::QExprOperator {
 absl::StatusOr<DataSlice> WithAdoptedSchema(const DataSlice& x,
                                             const DataSlice& schema) {
   DataBagPtr schema_bag = nullptr;
-  if (schema.IsEntitySchema() && schema.GetBag() != nullptr &&
+  if (schema.IsStructSchema() && schema.GetBag() != nullptr &&
       schema.GetBag() != x.GetBag()) {
     schema_bag = DataBag::Empty();
     AdoptionQueue adoption_queue;
@@ -235,7 +235,7 @@ absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
 
 absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,
                                        const DataSlice& schema) {
-  if (schema.IsEntitySchema()) {
+  if (schema.IsStructSchema()) {
     return x.WithSchema(schema);
   } else {
     return CastTo(x, schema);

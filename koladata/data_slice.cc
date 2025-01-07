@@ -907,8 +907,13 @@ bool DataSlice::IsEntitySchema() const {
          item().is_struct_schema();
 }
 
+bool DataSlice::IsStructSchema() const {
+  return GetSchemaImpl() == schema::kSchema && is_item() &&
+         item().is_struct_schema();
+}
+
 bool DataSlice::IsListSchema() const {
-  if (!IsEntitySchema() || GetBag() == nullptr) {
+  if (!IsStructSchema() || GetBag() == nullptr) {
     return false;
   }
   const auto& db_impl = GetBag()->GetImpl();
@@ -923,7 +928,7 @@ bool DataSlice::IsListSchema() const {
 }
 
 bool DataSlice::IsDictSchema() const {
-  if (!IsEntitySchema() || GetBag() == nullptr) {
+  if (!IsStructSchema() || GetBag() == nullptr) {
     return false;
   }
   const auto& db_impl = GetBag()->GetImpl();
@@ -1366,7 +1371,7 @@ bool DataSlice::IsPlainEntity() const {
     });
   } else {
     auto schema = GetSchema();
-    return schema.IsEntitySchema() && !schema.IsListSchema() &&
+    return schema.IsStructSchema() && !schema.IsListSchema() &&
            !schema.IsDictSchema();
   }
 }

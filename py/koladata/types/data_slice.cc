@@ -779,7 +779,7 @@ absl::Nullable<PyObject*> PyDataSlice_is_entity_schema(PyObject* self,
                                                        PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  return WrapPyDataSlice(AsMask(ds.IsEntitySchema()));
+  return WrapPyDataSlice(AsMask(ds.IsStructSchema()));
 }
 
 absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self,

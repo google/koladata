@@ -154,13 +154,19 @@ class DataSlice {
   // Returns a DataItem holding a schema.
   const internal::DataItem& GetSchemaImpl() const { return internal_->schema; }
 
+  // TODO: Change the behavior to only return true for plain entity
+  // schemas.
+  // DO NOT USE.
   // Returns true, if this DataSlice represents an Entity schema.
   bool IsEntitySchema() const;
 
-  // Returns true, if this DataSlice represents an List schema.
+  // Returns true, if this DataSlice represents a Struct schema.
+  bool IsStructSchema() const;
+
+  // Returns true, if this DataSlice represents a List schema.
   bool IsListSchema() const;
 
-  // Returns true, if this DataSlice represents an Dict schema.
+  // Returns true, if this DataSlice represents a Dict schema.
   bool IsDictSchema() const;
 
   // Returns true, if this DataSlice represents a primitive schema.
