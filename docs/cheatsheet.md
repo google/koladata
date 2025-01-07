@@ -552,13 +552,10 @@ ds.reshape(ds1.get_shape())
 ds2 = kd.slice([1, None, 3])
 # Repeats values
 ds2.repeat(2) # [[1, 1], [None, None], [3, 3]]
-ds2.add_dim(2) # same as above
 kd.repeat(ds2, 2) # same as above
-kd.add_dim(ds2, 2) # same as above
 
 # Repeats present values
 kd.repeat_present(ds2, 2) # [[1, 1], [], [3, 3]]
-kd.add_dim_to_present(ds2, 2) # same as above
 ```
 
 </section>
@@ -611,7 +608,12 @@ str(kd.schema.new_schema().get_itemid())
 
 # Encode to/from base-62 number (as string).
 str_id = kd.encode_itemid(itemid)
-assert kd.decode_itemid(str_id) == itemid
+itemid1 = kd.decode_itemid(str_id)
+assert itemid1 == itemid
+
+# Convert ItemId back to the original
+# object/entity/list/dict
+kd.reify(itemid1, o1)
 
 # int64 hash values
 kd.hash_itemid(itemid)

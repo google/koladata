@@ -47,22 +47,20 @@ Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
 
 ## DataSlices and Items
 
-TODO: decide if we should use slice or DataSlice.
-
 Koda enables **vectorization** by utilizing *DataSlices*. DataSlices are arrays
 with **partition trees**. They are stored and manipulated as **jagged arrays**
 (irregular multi-dimensional arrays). Such partition trees are called
 **JaggedShape**.
 
 For example, the following DataSlice has 2 dimensions and 5 items. The first
-dimension has 2 items and the second dimension has 5 items partitioned as `[2,
-3]`.
+dimension has 2 items and the second dimension has 5 items partitioned as `[3,
+2]`.
 
 ```py
-ds = kd.slice([["one", "two"], ["three", "four", "five"]])
+ds = kd.slice([["one", "two", "three"], ["four", "five"]])
 
 ds.get_ndim() # 2
-ds.get_shape() # JaggedShape(2, [2, 3])
+ds.get_shape() # JaggedShape(2, [3, 2])
 ```
 
 Conceptually, it can be thought as partition tree + flattened array as shown in
@@ -74,7 +72,7 @@ digraph {
   Root -> "dim_1:1"
   "dim_1:0" -> "dim_2:0"
   "dim_1:0" -> "dim_2:1"
-  "dim_1:1" -> "dim_2:2"
+  "dim_1:0" -> "dim_2:2"
   "dim_1:1" -> "dim_2:3"
   "dim_1:1" -> "dim_2:4"
   "dim_2:0" -> one
@@ -107,8 +105,8 @@ kd.dict({1: 'a', 2: 'b'})[2]  # 'b'
 kd.from_py([{'a': [1, 2, 3], 'b': [4, 5, 6]}, {'a': 3, 'b': 4}])
 kd.to_py(kd.dict({'a': [1, 2, 3], 'b': [4, 5, 6]})) # {'a': [1, 2, 3], 'b': [4, 5, 6]}
 
-kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])  # slice of lists
-kd.slice([kd.dict({'a':1, 'b':2}), kd.dict({'c':3})])  # slice of dicts
+kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])  # DataSlice of lists
+kd.slice([kd.dict({'a':1, 'b':2}), kd.dict({'c':3})])  # DataSlice of dicts
 ```
 
 NOTE: A **DataSlice of lists** is different from a DataSlice with list elements.
@@ -230,8 +228,7 @@ x = kd.new(a=1, b=kd.new(c=3))
 kd.new(x=1).get_schema() != kd.new(x=1).get_schema()  # yes
 
 # Auto-allocated schemas can be cast to have the same schema
-x, y = kd.new(a=1), kd.new(b=2)
-kd.slice([x, kd.cast_to(y, x.get_schema())])
+x, y = kd.new(a=1), kd.new(b=2)  # two entites with different schemas
 kd.slice([x, y.with_schema(x.get_schema())])  # the same as above
 
 # Universally unique entities can be used similarly to named tuples
@@ -313,8 +310,8 @@ schemas is recommended.
 
 ## DataSlices of Structured Data, Explosion/Implosion and Attribute Access
 
-When working with slices of structured data (entities/objects, lists and dicts),
-the operation is applied to **all the items** in the DataSlice
+When working with DataSlices of structured data (entities/objects, lists and
+dicts), the operation is applied to **all the items** in the DataSlice
 **simultaneously**.
 
 ```py
@@ -384,8 +381,8 @@ a = kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])
 # Access 1st item in each list
 a[1]  # [2, 5] == [list0[1], list1[1]]
 
-# "Explosion": add another dimension to the slice
-# That is, 1-dim slice of lists becomess 2-dim slice
+# "Explosion": add another dimension to the DataSlice
+# That is, 1-dim DataSlice of lists becomess 2-dim DataSlice
 a[:]  # [[1, 2, 3],[4, 5]]
 
 # "Explosion", but access only the first two items in each list
@@ -395,7 +392,7 @@ a[:].get_ndim() == a.get_ndim() + 1  # explosion adds dimenstions
 
 An opposite operation is **implosion**, when we return a DataSlice of lists with
 one less dimensions, where each list contains the values of the innermost
-dimension of the original slices.
+dimension of the original DataSlices.
 
 ```py
 # Implode replaces the last dimensions with lists
@@ -471,7 +468,7 @@ a = kd.obj(x=kd.slice([1,2,3]))
 a.x >= 2  # [missing, present, present]
 a &= a.x >= 2  # [None, kd.obj(x=2), kd.obj(x=3)]
 
-# Can use 'select' to filter slices
+# Can use 'select' to filter DataSlices
 a = kd.slice([kd.obj(x=1), kd.obj(x=2), kd.obj(x=3)])
 a1 = a.select(a.x >= 2)  # [Obj(x=2), Obj(x=3)]
 a1 = a.select(lambda u: u.x >= 2)  # the same as above
@@ -482,7 +479,7 @@ a.updated(kd.attrs(a1, y=a1.x*2))  # [Obj(x=1), Obj(x=2, y=4), Obj(x=3, y=6)]
 ```
 
 **DataSlices** with compatible shapes can **coalesced** (i.e., missing items are
-replaced by corresponding items of the other slice).
+replaced by corresponding items of the other DataSlice).
 
 ```py
 kd.str(None)  # "None" string
@@ -816,13 +813,14 @@ accessible).
 a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1, 2, 3]))
 ay1 = a.y.with_attrs(z=4, zz=5)  # Modify ay1 on its own
 a.updated(ay1.extract().get_bag())  # Apply the attributes from ay1 to a
+a.updated(ay1.extract_bag())  # The same as above
 a.enriched(ay1.get_bag())  # instead, can join the data without overwriting
 
 # Can create "stubs" (without attributes), and then join later
 a_stub = a.stub()
 # a0.x would fail, as it is only a "stub"
 a_stub1 = a_stub.with_attrs(x=4, u=5)
-a.updated(a_stub1.extract().get_bag())  # apply data from the stub, and overwriting
+a.updated(a_stub1.extract_bag())  # apply data from the stub, and overwriting
 a.enriched(a_stub1.get_bag())  # the same, but enrich
 
 # Can enrich with unrelated data, and later remove it
@@ -868,11 +866,11 @@ can be used for evaluation or could be stored together with data.
 Same as JAX, in order for tracing works correctly, the Python function can only
 contain Koda operators and Python control flow (i.e. `if`, `for` and `while`)
 cannot be traced and is called only once during tracing. To trace a Python
-function, we wrap it with `Fn(py_fn)`.
+function, we wrap it with `kd.fn(py_fn)`.
 
 ```py
 # Convert python functions into functors
-fn = Fn(lambda x, y: x+y, y=1)
+fn = kd.fn(lambda x, y: x+y, y=1)
 fn(kd.slice([1, 2, 3]), y=10)  # [11, 12, 13]
 
 # Functors can be used as normal Koda objects (assigned and stored)
@@ -883,13 +881,13 @@ fns.fn2(kd.slice([1, 2, 3]))  # [6, 7, 8]
 kd.dumps(fn)
 ```
 
-**PyFn** can be used in interactive workflows to wrap python functions without
-tracing, which can make debugging in certain situations easier.
+**kd.py_fn** can be used in interactive workflows to wrap python functions
+without tracing, which can make debugging in certain situations easier.
 
 ```py
-# Fn uses tracing, and PyFn wraps pythong functions "as-is", which is useful
-# as not everything can be traced
-fn = PyFn(lambda x, y: x if kd.sum(x) > kd.sum(y) else y)
+# kd.fn uses tracing, and kd.py_fn wraps pythong functions "as-is", which is
+# useful as not everything can be traced
+fn = kd.py_fn(lambda x, y: x if kd.sum(x) > kd.sum(y) else y)
 fn(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5]))  # [4, 5]
 
 # Can create functors that contain other functors with @kd.trace_as_fn,
@@ -902,12 +900,12 @@ def my_op(x, y):
 @kd.trace_as_fn()
 def final(x, y, z): return my_op(my_op(x, y), z)
 
-fn = Fn(final)
+fn = kd.fn(final)
 fn(2, 3, 4)  # 9 = (2 + 3) + 4
 fn.final(2, 3, 4)  # the same as above
 fn.final.my_op(2, 3)  # 5 - access of the deeper functor
 # "replace" functor with another one
-fn.updated(kd.attrs(fn.final, my_op=Fn(lambda x, y: x * y)))(2, 3, 4)  # 24 = (2 * 3) * 4
+fn.updated(kd.attrs(fn.final, my_op=kd.fn(lambda x, y: x * y)))(2, 3, 4)  # 24 = (2 * 3) * 4
 ```
 
 ## Convenience Features
@@ -989,6 +987,33 @@ db = kd.loads(serialized_bytes)
 def call_slow_fn(prompt):
   return slow_fn(prompt)
 kd.map_py_on_present(call_slow_fn, kd.slice(['hello', None, 'world']), max_threads=16)
+```
+
+## Mutable Workflows
+
+While immutable workflows are recommended for most cases, certain situations
+where the same Koda data structure has to be frequently modified (e.g. cache)
+require mutable data structures. `fork_bag` returns a mutable version of data at
+the cost of **O(1)** (without modifying the original one), while `freeze_bag`
+returns an immutable version (also for O(1)) and *extract* and *clone* can
+extract and return immutable pieces. Note, mutable workflows are not supported
+in tracing and have more limited options for productionalization.
+
+```py
+# Modify the same dict many times
+d = kd.dict()  # immutable
+d = d.fork_bag()  # mutable
+for i in range(100):
+  # Insert random x=>y mappings (10 at a time)
+  k = kd.random.randint_shaped(kd.shapes.create(10))
+  v = kd.random.randint_shaped(kd.shapes.create(10))
+  d[k] = v
+d = d.freeze_bag()  # immutable
+
+a = kd.obj(x=1, y=2).fork_bag()
+a.y = 3
+a.z = 4
+a = a.freeze_bag()
 ```
 
 ## Interoperability

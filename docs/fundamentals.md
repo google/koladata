@@ -42,11 +42,11 @@ All the leaves (items) have the same depth, which is the same as the number of
 dimensions of the jagged array.
 
 For example, the following DataSlice has 2 dimensions and 5 items. The first
-dimension has 2 items and the second dimension has 5 items partitioned as `[2,
-3]`.
+dimension has 2 items and the second dimension has 5 items partitioned as `[3,
+2]`.
 
 ```py
-kd.slice([["one", "two"], ["three", "four", "five"]]) # 2-dims
+kd.slice([["one", "two", "three"], ["four", "five"]]) # 2-dims
 # kd.slice([1, [2, 3]]) would fail, as all the leaves must have the same depth
 ```
 
@@ -59,7 +59,7 @@ digraph {
   Root -> "dim_1:1"
   "dim_1:0" -> "dim_2:0"
   "dim_1:0" -> "dim_2:1"
-  "dim_1:1" -> "dim_2:2"
+  "dim_1:0" -> "dim_2:2"
   "dim_1:1" -> "dim_2:3"
   "dim_1:1" -> "dim_2:4"
   "dim_2:0" -> one
@@ -238,7 +238,7 @@ Some operations ignore the partition tree altogether.
 ```py
 kd.min(ds)  # 1
 kd.min(ds.flatten()) # the same as above
-kd.agg_min(ds.flatten()) # the same as above, as flatten guarantees 1 dim slice
+kd.agg_min(ds.flatten()) # the same as above, as flatten guarantees 1-dim DataSlice
 ```
 
 Some operations can actually add dimensions.
@@ -289,7 +289,6 @@ kd.group_by(ds1, ds2) # [[1, 3, 7], [2], [4, 5, 9], [6, 8]]
 values using key=>value mapping.
 
 ```py
-# TODO: more examples for kd.translate
 a = kd.slice([[1, 2, 2, 1], [2, 3]])
 b = kd.slice([1, 2, 3])
 c = kd.slice([4, 5, 6])
@@ -299,7 +298,21 @@ kd.dict(b, c)[a]  # the same as above
 kd.translate(kd.slice([1, 2, 2, 1]), kd.slice([1, 3]), 1)  # [1, None, None, 1],
 kd.dict(kd.slice([1, 3]), 1)[kd.slice([1, 2, 2, 1])]  # the same as above
 
-# TODO: examples for translate_group
+# kd.translate can be used to translate values into objects/entities
+# and can be used to "join" tables
+a1 = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([10, 20, 30]))
+a2 = kd.obj(x=kd.slice([1, 2, 1, 1, 3, 3, 3]), z=kd.slice([1, 2, 3, 4, 5, 6, 7]))
+a2 = a2.with_attrs(a1=kd.translate(a2.x, a1.x, a1))  # a1 is a 'column' in a2
+a2.a1.y # [10, 20, 10, 10, 30, 30, 30]
+
+# when keys in keys_from can be repeated, use translate_group which would pre-group
+# and adds a dimension (without involving implode/explode)
+a = kd.slice(['a', 'c', None, 'a'])
+b = kd.slice(['a', 'c', 'b', 'c', 'a', 'e'])
+c = kd.slice([1, 2, 3, 4, 5, 6])
+kd.translate_group(a, b, c)  # [[1, 5], [2, 4], [], [1, 5]]
+# the same as above, but slower and more verbose
+kd.translate(a, kd.unique(b), kd.implode(kd.group_by(c, b)))[:]
 ```
 
 ### Items
@@ -368,7 +381,7 @@ kd.item(1).repeat(2).repeat(3)  # [[1, 1, 1], [1, 1, 1]]
 kd.item(1).reshape_as(kd.slice([[[8]]]))  # [[[1]]]
 ```
 
-Lists, similar to python, represent "lists" (not slices!) of items:
+Lists, similar to python, represent "lists" (not DataSlices!) of items:
 
 ```py
 # Create lists
@@ -419,7 +432,6 @@ convert DataSlices (their last dimension) back into lists.
 a = kd.list([1, 2, 3, 4])
 a[:]  # 1-dim slice: kd.slice([1, 2, 3, 4])
 a[1:]  # 1-dim slice: kd.slice([2, 3, 4])
-a[[1, 3]]  # 1-dim slice: kd.slice([2, 4])
 a[kd.slice([1, 3])]  # the same as above
 a[kd.range(2)]  # the same as a[:2]
 a.select_items(lambda x: x>=2)  # kd.slice([2, 3, 4])
@@ -481,8 +493,7 @@ d = kd.dict({'a':1, 'b':2, 'c':4})
 kd.dict_size(d)  # 3
 d['b']  # 2
 kd.get_item(d, 'b')  # the same as above
-d[['a', 'c']]  # 1-dim slice kd.slice([1,4])
-d[kd.slice(['a' , 'c'])]  # the same as above
+d[kd.slice(['a' , 'c'])]  # [1, 4]
 # get_keys() can be used to get the keys, but the order is non-deterministic
 d.get_keys()  # 1-dim slice kd.slice(['a', 'c', 'b']) or other permutation
 kd.sort(d.get_keys())  # kd.slice(['a', 'b', 'c'])
@@ -499,7 +510,7 @@ kd.zip(keys:=kd.sort(d.get_keys()), d[keys]) # the same as above
 # Check if item is a dict
 d.is_dict()
 
-# Iterate in python (need to convert get_keys slice into list)
+# Iterate in python (need to convert get_keys DataSlice into list)
 [int(d[key]) for key in kd.implode(d.get_keys())]
 # The same
 [int(d[key]) for key in d.get_keys().L]
@@ -534,8 +545,6 @@ a, b = kd.new(x=1, y=2), kd.new(x=2, y=3)
 # kd.slice([a, b]) # fails, as entities have different scheams
 kd.slice([a.with_schema(my_schema), b.with_schema(my_schema)])  # works
 kd.slice([a, b.with_schema(a.get_schema())])  # works
-kd.slice([kd.cast_to(a, my_schema), kd.cast_to(b, my_schema)])  # works
-kd.slice([a, kd.cast_to(b, a.get_schema())])  # works
 ```
 
 Entities are immutable, and have special APIs to modify attributes (including
@@ -564,6 +573,15 @@ r.with_attrs(z=r.z.with_attrs(a=30, c=50))  # the same as above, but less effici
 # In case your attribute names are arbitrary strings and not nice Python identifiers, you
 # can use kd.attr/kd.with_attr instead.
 r.with_attr('@!^', 7).get_attr('@!^')  # == 7
+
+# Note, if some values already exist, newly assigned values must have the same
+# schema.
+# Use update_schema if need to override schema
+r = kd.new(x=1, y=2)
+# r.with_attrs(y='hello') - fails
+r.with_attrs(y='hello', update_schema=True)  # works
+# r.updated(kd.attrs(r, y='hello')) - fails
+r.updated(kd.attrs(r, y='hello', update_schema=True))  # works
 ```
 
 You need to clone or deep-clone entities in order to create copies with
@@ -658,12 +676,28 @@ x.to_py(max_depth=-1) #  the same as above
 x = kd.from_py([{'d': [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]},
  {'d': [{'a': 5, 'b': 6}]}], dict_as_obj=True)
 x.to_py(obj_as_dict=True, max_depth=-1)  # convert koda objs to python dicts
-x.to_pytree(max_depth=-1) # the same as above
-x.to_py(max_depth=-1) # python dicts got converted into python Objs
+x.to_pytree(max_depth=-1) # the same as above (shortcut)
+x.to_py(max_depth=-1) # python dicts got converted into pure python objects
 r = x.to_py(max_depth=-1)
 r[0].d[0].a # 1 - r is pure python
 
-# TODO: clarify better from/to py and pytree
+# from_py/to_py are more general versions of to/from py conversions,
+# while from_pytree/to_pytree specialize to work with nested dicts/lists
+kd.obj(x=1,y=2).to_py()  # Obj(x=1, y=2), where Obj is "dummy" pure python class
+kd.obj(x=1,y=2).to_py().x  # 1 - pure python
+kd.obj(x=1,y=2).to_pytree()  # {'x': 1, 'y': 2}
+kd.obj(x=1,y=2).to_pytree()['x']  # pure python
+kd.obj(x=1,y=2).to_py(obj_as_dict=True)  # the same as to_pytree()
+```
+
+Objects can be edited similar to entities, but restrictions are relaxed as with
+python objects.
+
+```py
+a = kd.obj(x=1, y=kd.obj(u=2, v=3))
+a = a.with_attrs(z=4)
+a = a.updated(kd.attrs(a.y, v=6, w=5))
+a = a.with_attrs(x='hello')  # No need for update_schema=True
 ```
 
 Creation of entities, objects, dicts and lists allocates new **128-bit ids**
@@ -765,6 +799,7 @@ a1 = kd.new(x=1, y=2, schema='Pair')
 a2 = kd.new(x=3, y=4, schema='Pair')
 a1.get_schema() == a2.get_schema()  # yes
 
+# The same as above
 a1 = kd.new(x=1, y=2, schema=kd.named_schema('Pair'))
 a2 = kd.new(x=3, y=4, schema=kd.named_schema('Pair'))
 a1.get_schema() == a2.get_schema()  # yes
@@ -860,10 +895,41 @@ dict_s.get_key_schema() # STRING
 dict_s.get_value_schema() # INT32
 ```
 
+`with_schema` allows *reintepreting* entities and objects through different
+schemas.
+
+```py
+a = kd.new(x=1, y=2)
+b = kd.new(x=3, y=4)
+# kd.slice([a, b]) - fails, as a and b have different schemas
+kd.slice([a, b.with_schema(a.get_schema())])  # works
+
+s = kd.named_schema('Pair', x=kd.INT32, y=kd.INT32)
+kd.slice([a.with_schema(s), b.with_schema(s)])  # works
+
+# Can recast to a schema with different attributes set
+s = kd.named_schema('NotPair', x=kd.INT32, z=kd.STRING)
+t = kd.slice([a.with_schema(s), b.with_schema(s)])
+t.x  # [1, 3]
+# t.y would fail, as 'y' is missing in s schema
+t.z  # [None, None] - works, but a and b don't have that attribute
+
+# with_schema can be used to convert objects to schemas
+s = kd.new_schema(x=kd.INT32)
+a = kd.obj(x=kd.slice([1, 2, 3, 4])).with_schema(s)  # Entity now
+
+a = kd.obj(x=1, y=2)
+b = kd.obj(x=3, z='hello')
+s = kd.named_schema('NotPair', x=kd.INT32, z=kd.STRING)
+t = kd.slice([a.with_schema(s), b.with_schema(s)])
+t.x  # [1, 3]
+t.z  # [None, 'hello']
+```
+
 ### DataSlices of Structured Data {#structured_data}
 
-Each item of a DataSlice can be complex structured data: entities, objects,
-dicts and lists.
+Each item of a DataSlice can be complex structured data: entities, dicts, lists
+or objects.
 
 ```py
 # Root
@@ -909,14 +975,14 @@ by `item.x` or `item[foo]`.
 ds = kd.slice([[kd.obj(x=1, y=20), kd.obj(x=2, y=30)],
                [kd.obj(x=3, y=40), kd.obj(x=4, y=50), kd.obj(x=5, y=60)]])
 # replace every item in the DataSlice with item.y
-ds.y  # kd.slice([[20,30], [40,50,60]])
+ds.y  # kd.slice([[20, 30], [40, 50, 60]])
 ds.get_attr('y')  # the same as above
 
 ds = kd.slice([[kd.obj(x=1,y=2), kd.obj(y=4)], [kd.obj(x=5)]])
 ds.get_attr('x', None)  # [[1, None], [5]]
 ds.maybe('x')  # the same as above
 
-ds = kd.slice([[kd.list([10,20,30]), kd.list([40])], [kd.list([50,60,70,80])]])
+ds = kd.slice([[kd.list([10, 20, 30]), kd.list([40])], [kd.list([50, 60, 70, 80])]])
 # replace every slice item with item[index]
 ds[1]  # [[20, None], [60]]
 
@@ -1009,7 +1075,7 @@ Similarly, we can access multiple entries of dictionaries.
 ds = kd.slice([
     [kd.dict({'a':1,'b':2}), kd.dict({'b':3,'c':4})],
     [kd.dict({'a':5,'b':6,'c':7})]])
-# replace every slice item with item['a']
+# replace every DataSlice item with item['a']
 ds['a']  # [[1, None], [5]]
 
 # Lookup every dictionary with different keys,
@@ -1057,7 +1123,7 @@ We can also create DataSlices of entities or objects by converting Python lists
 or directly in fully vectorized ways using DataSlices of attributes.
 
 ```py
-# slice of entities from list of entities with *the same* schema
+# DataSlice of entities from list of entities with *the same* schema
 s = kd.new_schema(a=kd.INT32, b=kd.INT32)
 ds = kd.slice([kd.new(a=1, b=6, schema=s), kd.new(a=2, b=7, schema=s),
                kd.new(a=3, b=8, schema=s), kd.new(a=4, b=9, schema=s)])
@@ -1478,6 +1544,19 @@ kd.select(ds, ds >= 3)  # [3, 4]
 ds.select(ds >= 3)  # the same as above
 (ds & (ds >= 3)).select_present()  # the same as above
 ds.select(lambda x: x >= 3)  # the same as above
+
+# By default select auto-broadcasts the filter, meaning items can be
+# filtered out and leave some inner dimensions empty
+ds = kd.slice([[1, 2, 3], [4, 5], [6, 7, 8, 9]])
+ds.select(kd.agg_sum(ds) != 9)  # [[1, 2, 3], [], [6, 7, 8, 9]]
+# To stop auto-expanding and filter out on outer dimensions level,
+# use expand_filter=False
+ds.select(kd.agg_sum(ds) != 9, expand_filter=False)  # [[1, 2, 3], [6, 7, 8, 9]]
+
+# expand_filter=False is useful to filter out empty dimensions
+ds = kd.slice([[1, 2, 3], [4, 5], [6, 7, 8, 9]])
+ds = ds.select(lambda x: (x <= 2) | (x >= 8))  # [[1, 2], [], [8, 9]]
+ds = ds.select(lambda x: kd.agg_has(x), expand_filter=False)  # [[1, 2], [8, 9]]
 ```
 
 `inverse_select` can be used to put the items into the same positions before
@@ -1556,12 +1635,12 @@ kd.val_like(kd.agg_has(x), 10)  # the same as above
 kd.val_like(kd.agg_all(kd.has(x)), 10)  # [[10, None], [10, None]]
 ```
 
-`add_dim_to_present` add a dimension, but skips missing items.
+`repeat_present` add a dimension, but skips missing items.
 
 ```py
 x = kd.slice([kd.obj(a=1), None, kd.obj(a=2)])
-kd.add_dim(x, 1).a  # [[1], [None], [2]]
-kd.add_dim_to_present(x, 1).a  # [[1], [], [2]]
+kd.repeat(x, 1).a  # [[1], [None], [2]]
+kd.repeat_present(x, 1).a  # [[1], [], [2]]
 ```
 
 Use `empty_shaped_as` to create an empty DataSlice of masks, objects or other
@@ -1620,17 +1699,18 @@ a.updated(kd.attrs(a & (a.y >=5), z=kd.slice([7,8,9]))).z  # [None, 8 ,9]
 Each non-primitive item has an uniquely allocated 128-bit ItemId associated with
 them. For efficiency, ItemIds of DataSlices can are consecutively allocated.
 It's possible to directly allocate ItemIds and set them to entities or objects
-(during creation or while cloning).
+(during creation or while cloning). ItemIds can be converted into base-62
+numbers (as strings) and back.
 
 ```py
 x = kd.obj(x=1, y=2)
 x.get_itemid()  # itemid
-kd.encode_itemid(x)  # itemid converted into base-62 number (as string)
+kd.encode_itemid(x)  # itemid converted into base-62 number (as kd.STRING)
 'id:' + kd.encode_itemid(x)  # encode_itemid returns a string
 kd.decode_itemid(kd.encode_itemid(x)) == x.get_itemid()  # yes
 
 # Each item in a DataSlice gets allocated a consecutive id
-x = kd.obj_like(kd.slice([1,2,3,4]))
+x = kd.obj_like(kd.slice([1, 2, 3, 4]))
 kd.encode_itemid(x)  # consecutive base-62 numbers (as strings)
 
 # New itemids can be explicitly allocated
@@ -1653,12 +1733,12 @@ kd.uuid(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))  # 3 uuid's
 kd.uuid(seed='my_seed', x=1, y=2) == kd.uuid(seed='my_seed', x=1, y=2)  # yes
 kd.uuid(seed='my_seed1', x=1, y=2) == kd.uuid(seed='my_seed2', x=1, y=2)  # no
 
-id = kd.uuid(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
+id = kd.uuid(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 # use uuid's to create entities or objects
-kd.obj_like(s, itemid=id).with_attrs(z=kd.slice([7,8,9]))
+kd.obj_like(s, itemid=id).with_attrs(z=kd.slice([7, 8, 9]))
 
 # Aggregational operations can be used to compute uuids of multiple items
-kd.agg_uuid(kd.slice([[1,2,3], [4,5,6]]))  # slice of 2 uuid's
+kd.agg_uuid(kd.slice([[1, 2, 3], [4, 5, 6]]))  # DataSlice of 2 uuid's
 ```
 
 As shortcut, `uu` and `uuobj` creates entities and objects with
@@ -1706,12 +1786,37 @@ kd.deep_uuid(kd.obj(a=1, b=kd.obj(y=2))) == kd.deep_uuid(kd.obj(a=1, b=kd.obj(y=
 kd.deep_uuid(kd.from_py({'h': 'hello', 'u': {'a': 'world', 'b': 'hello'}}, dict_as_obj=True))
 ```
 
-ItemId's can be used for fingerprinting / hashing.
+To convert ItemIds to integers (i.e. INT64), we can use `kd.hash_itemid`.
 
 ```py
-kd.hash_itemid(kd.uuid(a=1, b=2))
+kd.hash_itemid(kd.uuid(a=1, b=2))  # 1904240190261917870
+# kd.uuid(a=1, b=2) % 98190831 - fails, as itemid's are not integers
+kd.to_int32(kd.hash_itemid(kd.uuid(a=1, b=2)) % 98190831)  # 59785733
 kd.hash_itemid(kd.deep_uuid(kd.obj(a=1, b=2, seed='my_seed')))
-kd.hash_itemid(kd.new_itemid())
+kd.hash_itemid(kd.new_itemid()) % 31  # Can be used as pseudo-random
+```
+
+ItemIds don't have attributes. To convert them back to entities/objects, we can
+create entities/objects with those ids and later join them with the original
+data (i.e. 'enrich' them). Alternatively, `kd.reify` is a shortcut if there are
+original entities/objects around.
+
+```py
+a = kd.obj(x=kd.slice([1, 2, 3, 4]), y=kd.slice([5, 6, 7, 8]))
+aid = a.get_itemid()  # ITEMID's
+aid1 = aid.select(a.x >= 3)  # select the last 2 itemid's
+# aid1.x - would fail
+kd.obj(itemid=aid1)  # Empty version of the object with those ids
+# kd.obj(itemid=aid1).x - would also fail, as the object doesn't have attributes
+# Can enrich by with the original data ("join")
+kd.obj(itemid=aid1).enriched(a.get_bag()).x  # [3, 4]
+kd.reify(aid1, a).x  # shortcut for the same as above
+
+# The same can work with entities and after converting ids to strings
+a = kd.new(x=kd.slice([1, 2, 3, 4]), y=kd.slice([5, 6, 7, 8]))
+s = kd.encode_itemid(a)
+s = s.S[1:3]
+kd.reify(kd.decode_itemid(s), a).x  # [2, 3]
 ```
 
 ### Strings & Bytes
@@ -1731,7 +1836,7 @@ kd.fstr(f'{kd.index(ds):d}-{ds:s}')  # [['0-aa', '1-bb'], ['0-cc', '1-dd']]
 kd.strings.printf("%d-%s", kd.index(ds), ds)  # [['0-aa', '1-bb'], ['0-cc', '1-dd']]
 kd.strings.format("{index}-{val}", index=kd.index(ds), val=ds)  # the same as above
 
-# split would create +1 dim slice:
+# split would create +1 dim DataSlice:
 kd.strings.split(kd.slice(["a b", "c d e"]))  # [['a', 'b'], ['c', 'd', 'e']]
 kd.strings.split(kd.slice(["a,b", "c,d,e"]), ',')  # [['a', 'b'], ['c', 'd', 'e']]
 
@@ -1919,7 +2024,7 @@ Alternatively, can use `map_py` and its variants to use python functions that
 would be applied to individual items (or lists of items).
 
 ```py
-ds = kd.slice([[[1,2],[3,4,5]],[[6],[],[7,8,9,10]]])
+ds = kd.slice([[[1, 2], [3, 4, 5]], [[6], [], [7, 8, 9, 10]]])
 
 # can change number of dimensions to be passed into map_py
 # min over the last two dimensions
@@ -1928,6 +2033,15 @@ kd.map_py(lambda x: min([b for a in x for b in a], default=None) if x else None,
 
 # map_py can be used simply for debugging:
 kd.map_py(lambda x: print(x) if x else None, ds, ndim=2)
+
+# map_py_on_present can be used to
+kd.map_py_on_present(lambda x, y: x + y,
+                     kd.slice([1 ,None, 2]),
+                    kd.slice([3, 4, None]))  # [4, None, None]
+
+# map_py_on_cond can be used to apply different functions on the condition
+ds = kd.slice([1, 2, 3, 4, 5, 6])
+kd.map_py_on_cond(lambda x: x + 1, lambda x: x - 1, ds >= 3, ds) # [0, 1, 4, 5, 6, 7]
 ```
 
 ### Serialization, protos
@@ -1935,24 +2049,10 @@ kd.map_py(lambda x: print(x) if x else None, ds, ndim=2)
 It's possible to serialize DataSlices into bytes.
 
 ```py
-a = kd.obj(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
+a = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 foo = kd.dumps(a) # bytes - can be stored on disk or anywhere
 a1 = kd.loads(foo)
 a1.x  # [1, 2, 3]
-```
-
-Note that we serialize the bag of attributes together with the DataSlice, and
-create a new bag from the data after deserialization. In case you have very
-large bags of data, this might require some care to avoid loading the data
-twice. The concept of bag will be covered in the
-[Bags of Attributes](#bags_of_attributes) section later.
-
-```py
-a = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
-a.x.get_bag().fingerprint == a.y.get_bag().fingerprint  # True
-x1 = kd.loads(kd.dumps(a.x))
-y1 = kd.loads(kd.dumps(a.y))
-x1.get_bag().fingerprint == y1.get_bag().fingerprint  # False
 ```
 
 The serialized format is complex but readable by standard Google tools if you
@@ -1961,7 +2061,7 @@ need to debug outside of Koda:
 ```py
 import tempfile
 import subprocess
-a = kd.obj(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
+a = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 with tempfile.NamedTemporaryFile() as f:
   f.write(kd.dumps(a))
   f.flush()
@@ -2011,7 +2111,7 @@ def expensive_fn(x):
   time.sleep(0.1)
   print('Done', x)
   return x + 1
-kd.map_py_on_present(expensive_fn, kd.slice([1,None,3]), schema=kd.INT32, max_threads=16)
+kd.map_py_on_present(expensive_fn, kd.range(16), schema=kd.INT32, max_threads=16)
 ```
 
 Processing batches in parallel.
@@ -2481,7 +2581,8 @@ x2.get_bag().fingerprint == y2.get_bag().fingerprint  # True
 By default, Koda data structures are immutable, but its APIs make it easy to
 work with mutable data as well, with comparable performance characteristics.
 
-There are mutliple ways to edit objects and their attributes (or deep attributes).
+There are multiple ways to edit objects and their attributes (or deep
+attributes).
 
 ```python
 t = kd.new(x=1, schema='MySchema')
@@ -2494,7 +2595,7 @@ t = t.updated(kd.attrs(t.a, v=7)) # editing deep attributes
 t = t.updated(kd.attrs(t.a, w=70), kd.attrs(x, x=10)) # mixing
 t = t.with_attrs(u=kd.list([1, 2, 3]))
 t = t.with_attrs(v=kd.list([4, 5, 6]))
-t = t.with_attrs(u=kd.concat_lists(t.u, t.v))  # t.u[:] => [1,2,3,4,5,6]
+t = t.with_attrs(u=kd.concat_lists(t.u, t.v))  # t.u[:] => [1, 2, 3, 4, 5, 6]
 t = t.with_attrs(d=kd.dict({'a': 1, 'b': 2}))  # add dict attribute
 t = t.updated(t.d.dict_update('c', 3))  # update the dict with c=>3
 # update the dict with c=>4, d=>5
@@ -2651,7 +2752,7 @@ y.updated(upd2).enriched(x.get_bag()) # the same as above, but faster
 While immutable workflows are recommended for most cases, certain situations
 where the same Koda data structure has to be frequently modified (e.g. cache)
 require mutable data structures. `fork_bag` returns a mutable version of data at
-the cost of **O(1)** (without modifying the original one), while `freeze`
+the cost of **O(1)** (without modifying the original one), while `freeze_bag`
 returns an immutable version (also for O(1)) and *extract* and *clone* can
 extract and return immutable pieces.
 
@@ -2726,17 +2827,17 @@ It's possible to serialize DataSlices and bags into bytes.
 
 ```python
 # Serialize DataSlices.
-a = kd.obj(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
+a = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 foo = kd.dumps(a) # bytes
 a1 = kd.loads(foo)
 a1.x  # [1, 2, 3]
 
 # Store separately original data, just the ids and extra data.
-a = kd.obj(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
+a = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 foo1 = kd.dumps(a.get_bag())  # dump original bag
-foo2 = kd.dumps(a.stub())  # dump slice as stub
+foo2 = kd.dumps(a.stub())  # dump DataSlice as stub
 # dump a new attribute separately
-foo3 = kd.dumps(kd.attrs(a, z=kd.slice([7,8,9])))
+foo3 = kd.dumps(kd.attrs(a, z=kd.slice([7, 8, 9])))
 a1 = kd.loads(foo2).enriched(kd.loads(foo1)).updated(kd.loads(foo3))
 a1.x  # [1, 2, 3]
 a1.y  # [4, 5, 6]
@@ -2747,73 +2848,73 @@ a1.z  # [7, 8, 9]
 
 ### Tracing and Functors
 
-`Fn` and `PyFn` can be used to convert python functions into Koda objects that
-can be used for evaluation or can be stored together with data.
+`kd.fn` and `kd.py_fn` can be used to convert python functions into Koda objects
+that can be used for evaluation or can be stored together with data.
 
-`Fn` applies tracing: generates a computational graph, which can be separately
-manipulated or served in production.
+`kd.fn` applies tracing: generates a computational graph, which can be
+separately manipulated or served in production.
 
-`PyFn` just wraps python function as-is (meaning, it can be used only in the
+`kd.py_fn` just wraps python function as-is (meaning, it can be used only in the
 interactive environment, and cannot be edited).
 
 ```python
 # Functors: Koda objects that can be executed.
-Fn(lambda x: x + 1)  # "functor" with tracing
-Fn(lambda x: x + 1, use_tracing=False)  # no tracing
-PyFn(lambda x: x + 1)  # the same as above
+kd.fn(lambda x: x + 1)  # "functor" with tracing
+kd.fn(lambda x: x + 1, use_tracing=False)  # no tracing
+kd.py_fn(lambda x: x + 1)  # the same as above
 
 # Functors can be executed.
-fn = Fn(lambda x: x + 1)  # "functor"
+fn = kd.fn(lambda x: x + 1)  # "functor"
 fn(x=2)  # 3
 fn(2) # the same as above
 
 # Functors are also "items".
-kd.is_fn(Fn(lambda x: x + 1))  # yes
+kd.is_fn(kd.fn(lambda x: x + 1))  # yes
 kd.is_fn(kd.obj(x=2))  # no
 
 # Can use functors as attributes (stored with data).
-a = kd.obj(fn1=Fn(lambda x: x + 1), fn2=Fn(lambda x: x + 2))
-b = kd.slice([1,2,3])
+a = kd.obj(fn1=kd.fn(lambda x: x + 1), fn2=kd.fn(lambda x: x + 2))
+b = kd.slice([1, 2, 3])
 a.fn1(b) + a.fn2(b)  # [5, 7, 9]
 
 # It's possible to store some argument values as part of the functor.
-fn = Fn(lambda x, y: x + y, y=2)
+fn = kd.fn(lambda x, y: x + y, y=2)
 fn(x=3)  # 5 - y value is stored
 fn(x=3, y=10)  # 13 can overwrite the value during evaluation
 fn.y  # the value itself stored in the functor
-fn1 = fn.with_attrs(y=10)  # can edit as normal Koda objects
+fn1 = fn.bind(y=10)  # can bind to a new value
 fn1(x=3)  # 13
 
-# Fn can also take functors as input, which is convenient
+# kd.fn can also take functors as input, which is convenient
 # to convert python functions or keep functors.
 py_fn = lambda x, y: x + y
-fn = Fn(py_fn)
-Fn(fn)  # == fn - no-op
+fn = kd.fn(py_fn)
+kd.fn(fn)  # == fn - no-op
 ```
 
-By default, `Fn` uses tracing.
+By default, `kd.fn` uses tracing.
 
 However, not everything can be traced. E.g., control ops (if/while) or utilities
 like `print()` cannot be natively traced (they will be simply executed).
 
-Use `use_tracing=False` or `PyFn` in those cases, especially when there is no
-need for serving.
+Use `use_tracing=False` or `kd.py_fn` in those cases, especially when there is
+no need for serving.
 
 ```python
 # Normally, tracing is enough.
-fn = Fn(lambda x: x - kd.agg_min(x))
-a = kd.slice([[1,2,3], [4,5,6]])
+fn = kd.fn(lambda x: x - kd.agg_min(x))
+a = kd.slice([[1, 2, 3], [4, 5, 6]])
 fn(a)  # [[0, 1, 2], [0, 1, 2]]
 
 # Turn off tracing for debugging, when serving or if performance is less critical.
-Fn(lambda x: (print(x), x)[1])(x=3)  # print would happen once, during tracing
-PyFn(lambda x: (print(x), x+1)[1])(x=3)  # print would happen every time we call the functor
-Fn(lambda x: (print(x), x+1)[1], use_tracing=False)(x=3)  # the same as above
+kd.fn(lambda x: (print(x), x)[1])(x=3)  # print would happen once, during tracing
+kd.py_fn(lambda x: (print(x), x + 1)[1])(x=3)  # print would happen every time we call the functor
+kd.fn(lambda x: (print(x), x + 1)[1], use_tracing=False)(x=3)  # the same as above
 
 # Control ops cannot be traced properly if they rely on the actual values.
-# # Fn(lambda x: x if x > 0 else -x)(x=4)  # cannot be traced
-PyFn(lambda x: x if x > 0 else -x)(x=4)  # workss correctly, but cannot be served
-Fn(lambda x: x & (x > 0) | -x)(x=4)  # servable version
+# # kd.fn(lambda x: x if x > 0 else -x)(x=4)  # cannot be traced
+kd.py_fn(lambda x: x if x > 0 else -x)(x=4)  # workss correctly, but cannot be served
+kd.fn(lambda x: x & (x > 0) | -x)(x=4)  # servable version
 ```
 
 During tracing, recursive python calls are inlined.
@@ -2842,7 +2943,7 @@ def full_xy(x, y):
   return sum_xy(mult_xy(x, y), x)
 
 full_xy(4, 5)  # 24
-fn = Fn(full_xy)  # functor version
+fn = kd.fn(full_xy)  # functor version
 fn(4, 5)  # 24 - fully executed
 fn.mult_xy(6, 8)  # can access internal functors
 
@@ -2851,9 +2952,39 @@ fn1 = fn.with_attrs(mult_xy=fn.sum_xy)
 fn1(4, 5)  # 13 = (4 + 5) + 4
 ```
 
+Tracing generates computation graphs (ASTs), which can be edited and manipulated
+with their own set of tools.
+
 ```python
-# TODO: add section about with_name, tracing and variables
-# TODO: containers and auto-naming
+def fn1(a, b):
+  x = a + 1
+  y = b + 2
+  z = 3
+  return x + y + z
+
+fn1_fn = kd.fn(fn1) # Koda object, after tracing python function
+# returns attribute contains the final expression
+fn1_fn.returns  # (I.a + 1) + (I.b + 2) + 3
+fn1_fn(a=4, b=6)  # (4+1) + (6+2) + 3 = 16
+
+# Use with_name to name sub-expression to have access to them later
+def fn2(a, b):
+  x = kd.with_name(a + 1, 'x')
+  y = (b + 2).with_name('y')  # alternative syntax to above
+  z = 3
+  return x + y + z
+fn2_fn = kd.fn(fn2)
+
+fn2_fn.returns  # V.x + V.y + 3 - V.x, V.y - "variables"
+fn2_fn.x  # I.a + 1
+fn2_fn.y  # I.b + 2
+fn2_fn(4, 6)  # 16 = (4+1) + (6+2) + 3
+# Can replace those variables
+fn2_fn.with_attrs(x=100)(4, 6)  # 111 = 100 + (6+2) + 3
+# Can even edit and replace with new expressions with internal APIs
+fn2_fn.with_attrs(x=kd.expr.pack_expr(kd.I.a * kd.I.b))(4, 6)  # 35 = (4*6) + (6+2) + 3
+# The same as above
+fn2_fn.with_attrs(x=kd.fn(lambda a, b: a * b).returns)(4, 6)  # 35 = (4*6) + (6+2) + 3
 ```
 
 This allows mixing eager and lazy modes:
@@ -2871,7 +3002,7 @@ def my_score(x):
 # Use eagerly.
 my_score(x) # [0.4333333, 0.48333326]
 # Use with functors (which can be stored with data)
-fn = PyFn(my_score)
+fn = kd.py_fn(my_score)
 fn(x)
 
 # When ready, convert into traceable/servable version.
@@ -2879,12 +3010,12 @@ def my_score(x):
   # print(x.q) comment out debug messages
   a = (x.q - kd.agg_min(x.q)) / (kd.agg_max(x.q) - kd.agg_min(x.q)) | 1.
   return kd.math.agg_mean(a * x.t)
-fn = Fn(my_score)
+fn = kd.fn(my_score)
 fn(x)  # [0.4333333, 0.48333326]
 
 # Use functors as part of data.
-score_fns = kd.obj(fn1=Fn(my_score),
-                   fn2=Fn(lambda x: my_score(kd.obj(q=x.q*0.5, t=x.t*0.3))))
+score_fns = kd.obj(fn1=kd.fn(my_score),
+                   fn2=kd.fn(lambda x: my_score(kd.obj(q=x.q*0.5, t=x.t*0.3))))
 score_fns.fn1(x), score_fns.fn2(x)
 ```
 
@@ -2906,8 +3037,8 @@ def my_fn(x):
   for i in range(10000): x = x + kd.agg_max(x)
   return x
 
-fn_fn = Fn(my_fn)
-py_fn = PyFn(my_fn)
+fn_fn = kd.fn(my_fn)
+py_fn = kd.py_fn(my_fn)
 ds_a = kd.slice(a)
 
 # Just a Python function.
@@ -2927,19 +3058,14 @@ def _kd_map(fn, obj):
   return kd.map_py_on_present(lambda fn, obj: fn(obj), fn, obj)
 kd.map = _kd_map
 
-fn1 = Fn(lambda x: x+1)
-fn2 = Fn(lambda x: x-1)
-x = kd.slice([1,2,3,4])
+fn1 = kd.fn(lambda x: x+1)
+fn2 = kd.fn(lambda x: x-1)
+x = kd.slice([1, 2, 3, 4])
 kd.map(fn1 & (x >= 3) | fn2, x)  # [0, 1, 4, 5]
 
-factorial_rec = Fn(lambda c: kd.map(c.factorial_rec & (c.n > 0),
+factorial_rec = kd.fn(lambda c: kd.map(c.factorial_rec & (c.n > 0),
                    c.with_attrs(n=c.n-1)) * c.n | 1)
-factorial = Fn(lambda n: kd.map(factorial_rec,
+factorial = kd.fn(lambda n: kd.map(factorial_rec,
                                 kd.obj(n=n, factorial_rec=factorial_rec)))
 factorial(kd.slice([5,3,4]))  # [120, 6, 24]
-```
-
-```python
-# TODO: cover with_name and functor editing (functors of functors or edit variables)
-# TODO: add kd.bind() and remove with_attrs examples
 ```
