@@ -23,8 +23,6 @@ from koladata.types import qtypes
 P = arolla.P
 
 
-# TODO: Add utility ops to set `__koladata_json_object_keys__`
-# and `__koladata_json_object_values__`.
 @optools.add_to_registry(aliases=['kde.to_json'])
 @optools.as_backend_operator(
     'kde.json.to_json',
@@ -32,6 +30,8 @@ P = arolla.P
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.indent),
         qtype_utils.expect_data_slice(P.ensure_ascii),
+        qtype_utils.expect_data_slice(P.keys_attr),
+        qtype_utils.expect_data_slice(P.values_attr),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
@@ -41,6 +41,8 @@ def to_json(
     *,
     indent=None,  # pylint: disable=unused-argument
     ensure_ascii=True,  # pylint: disable=unused-argument
+    keys_attr='json_object_keys',  # pylint: disable=unused-argument
+    values_attr='json_object_values',  # pylint: disable=unused-argument
 ):
   r"""Converts `x` to a DataSlice of JSON strings.
 
@@ -76,6 +78,33 @@ def to_json(
   values as `null`, which would be ambiguous with Koda missing values. There is
   unfortunately no standard way to express these values in JSON.
 
+  By default, JSON objects are written with keys in sorted order. However, it is
+  also possible to control the key order of JSON objects using the `keys_attr`
+  argument. If an entity has the attribute specified by `keys_attr`, then that
+  attribute must have schema LIST[STRING], and the JSON object will have exactly
+  the key order specified in that list, including duplicate keys.
+
+  To write duplicate JSON object keys with different values, use `values_attr`
+  to designate an attribute to hold a parallel list of values to write.
+
+  For example:
+
+    kd.to_json(kd.new(x=1, y=2)) -> '{"x": 2, "y": 1}'
+    kd.to_json(kd.new(x=1, y=2, json_object_keys=kd.list(['y', 'x'])))
+      -> '{"y": 2, "x": 1}'
+    kd.to_json(kd.new(x=1, y=2, foo=kd.list(['y', 'x'])), keys_attr='foo')
+      -> '{"y": 2, "x": 1}'
+    kd.to_json(kd.new(x=1, y=2, z=3, json_object_keys=kd.list(['x', 'z', 'x'])))
+      -> '{"x": 1, "z": 3, "x": 1}'
+
+    kd.to_json(kd.new(json_object_keys=kd.list(['x', 'z', 'x']),
+                      json_object_values=kd.list([1, 2, 3])))
+      -> '{"x": 1, "z": 2, "x": 3}'
+    kd.to_json(kd.new(a=kd.list(['x', 'z', 'x']), b=kd.list([1, 2, 3])),
+               keys_attr='a', values_attr='b')
+      -> '{"x": 1, "z": 2, "x": 3}'
+
+
   The `indent` and `ensure_ascii` arguments control JSON formatting:
   - If `indent` is negative, then the JSON is formatted without any whitespace.
   - If `indent` is None (the default), the JSON is formatted with a single
@@ -98,5 +127,10 @@ def to_json(
     x: The DataSlice to convert.
     indent: An INT32 DataItem that describes how the result should be indented.
     ensure_ascii: A BOOLEAN DataItem that controls non-ASCII escaping.
+    keys_attr: A STRING DataItem that controls which entity attribute controls
+      json object key order, or None to always use sorted order. Defaults to
+      `json_object_keys`.
+    values_attr: A STRING DataItem that can be used with `keys_attr` to give
+      full control over json object contents. Defaults to `json_object_values`.
   """
   raise NotImplementedError('implemented in the backend')

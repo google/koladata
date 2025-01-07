@@ -68,9 +68,6 @@ absl::Status ForEachDataItem(const DataSlice& slice, Fn fn) {
   return absl::OkStatus();
 }
 
-constexpr absl::string_view kKeyListAttr = "__koladata_json_object_keys__";
-constexpr absl::string_view kValueListAttr = "__koladata_json_object_values__";
-
 // Map-like class that preserves insertion order *and* duplicate keys. This is
 // used to give us more complete control over the JSON serializer.
 //
@@ -168,11 +165,15 @@ absl::StatusOr<SerializableJson> PrimitiveDataItemToSerializableJson(
 // could be done in a similar way to ToProto/FromProto.
 absl::StatusOr<SerializableJson> DataItemToSerializableJson(
     const DataSlice& item,
-    absl::flat_hash_set<internal::ObjectId>& path_object_ids);
+    absl::flat_hash_set<internal::ObjectId>& path_object_ids,
+    const std::optional<absl::string_view>& keys_attr,
+    const std::optional<absl::string_view>& values_attr);
 
 absl::StatusOr<SerializableJson> ListDataItemToSerializableJson(
     const DataSlice& item,
-    absl::flat_hash_set<internal::ObjectId>& path_object_ids) {
+    absl::flat_hash_set<internal::ObjectId>& path_object_ids,
+    const std::optional<absl::string_view>& keys_attr,
+    const std::optional<absl::string_view>& values_attr) {
   DCHECK(item.is_item());
 
   ASSIGN_OR_RETURN(auto list_items, item.ExplodeList(0, std::nullopt));
@@ -180,9 +181,9 @@ absl::StatusOr<SerializableJson> ListDataItemToSerializableJson(
   json_array.reserve(list_items.size());
   RETURN_IF_ERROR(ForEachDataItem(
       list_items, [&](auto, const DataSlice& list_item) -> absl::Status {
-        ASSIGN_OR_RETURN(
-            json_array.emplace_back(),
-            DataItemToSerializableJson(list_item, path_object_ids));
+        ASSIGN_OR_RETURN(json_array.emplace_back(),
+                         DataItemToSerializableJson(list_item, path_object_ids,
+                                                    keys_attr, values_attr));
         return absl::OkStatus();
       }));
   return SerializableJson(std::move(json_array));
@@ -190,7 +191,9 @@ absl::StatusOr<SerializableJson> ListDataItemToSerializableJson(
 
 absl::StatusOr<SerializableJson> DictDataItemToSerializableJson(
     const DataSlice& item,
-    absl::flat_hash_set<internal::ObjectId>& path_object_ids) {
+    absl::flat_hash_set<internal::ObjectId>& path_object_ids,
+    const std::optional<absl::string_view>& keys_attr,
+    const std::optional<absl::string_view>& values_attr) {
   DCHECK(item.is_item());
 
   ASSIGN_OR_RETURN(auto keys, item.GetDictKeys());
@@ -234,8 +237,9 @@ absl::StatusOr<SerializableJson> DictDataItemToSerializableJson(
 
   std::vector<std::pair<const std::string, SerializableJson>> object_items;
   for (int64_t i : keys_order) {
-    ASSIGN_OR_RETURN(auto value, DataItemToSerializableJson(
-                                     values_array[i], path_object_ids));
+    ASSIGN_OR_RETURN(
+        auto value, DataItemToSerializableJson(values_array[i], path_object_ids,
+                                               keys_attr, values_attr));
     object_items.emplace_back(keys_array[i], std::move(value));
   }
   return SerializableJson(SerializableJsonObject(std::move(object_items)));
@@ -243,14 +247,17 @@ absl::StatusOr<SerializableJson> DictDataItemToSerializableJson(
 
 absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
     const DataSlice& item,
-    absl::flat_hash_set<internal::ObjectId>& path_object_ids) {
+    absl::flat_hash_set<internal::ObjectId>& path_object_ids,
+    const std::optional<absl::string_view>& keys_attr,
+    const std::optional<absl::string_view>& values_attr) {
   DCHECK(item.is_item());
 
   ASSIGN_OR_RETURN(auto attr_names, item.GetAttrNames());
 
   std::vector<std::pair<const std::string, SerializableJson>> object_items;
-  if (attr_names.contains(kKeyListAttr)) {
-    ASSIGN_OR_RETURN(auto key_list, item.GetAttr(kKeyListAttr));
+  if (keys_attr.has_value() && attr_names.contains(*keys_attr)) {
+    // Object keys and order are specified by `keys_attr`.
+    ASSIGN_OR_RETURN(auto key_list, item.GetAttr(*keys_attr));
     RETURN_IF_ERROR(key_list.GetSchema().VerifyIsListSchema());
     ASSIGN_OR_RETURN(auto key_list_items,
                      key_list.ExplodeList(0, std::nullopt));
@@ -270,11 +277,10 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
       const auto& key_list_values =
           key_list_items.slice().values<arolla::Text>().values;
 
-      // Object keys and order are specified by kKeyListAttr.
-      if (attr_names.contains(kValueListAttr)) {
-        // Object values are specified by kValueListAttr (supports duplicate
+      if (values_attr.has_value() && attr_names.contains(*values_attr)) {
+        // Object values are specified by `values_attr` (supports duplicate
         // keys with differing values).
-        ASSIGN_OR_RETURN(auto value_list, item.GetAttr(kValueListAttr));
+        ASSIGN_OR_RETURN(auto value_list, item.GetAttr(*values_attr));
         RETURN_IF_ERROR(value_list.GetSchema().VerifyIsListSchema());
         ASSIGN_OR_RETURN(auto value_list_items,
                          value_list.ExplodeList(0, std::nullopt));
@@ -290,7 +296,8 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
             [&](int64_t i, const DataSlice& value) -> absl::Status {
               const auto& key = key_list_values[i];
               ASSIGN_OR_RETURN(auto json_value, DataItemToSerializableJson(
-                                                    value, path_object_ids));
+                                                    value, path_object_ids,
+                                                    keys_attr, values_attr));
               object_items.emplace_back(key, std::move(json_value));
               return absl::OkStatus();
             }));
@@ -300,7 +307,8 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
           ASSIGN_OR_RETURN(auto attr_value, item.GetAttr(key));
           ASSIGN_OR_RETURN(
               auto json_attr_value,
-              DataItemToSerializableJson(attr_value, path_object_ids));
+              DataItemToSerializableJson(attr_value, path_object_ids, keys_attr,
+                                         values_attr));
           object_items.emplace_back(key, std::move(json_attr_value));
         }
       }
@@ -309,10 +317,15 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
     // Object keys are attr names in lexicographic order, and their values are
     // the attr values.
     for (const auto& attr_name : attr_names) {
+      if (attr_name == values_attr) {
+        // If `values_attr` attribute is set without `keys_attr` attribute,
+        // don't include the `values_attr` data, to avoid confusion.
+        continue;
+      }
       ASSIGN_OR_RETURN(auto attr_value, item.GetAttr(attr_name));
-      ASSIGN_OR_RETURN(
-          auto json_attr_value,
-          DataItemToSerializableJson(attr_value, path_object_ids));
+      ASSIGN_OR_RETURN(auto json_attr_value,
+                       DataItemToSerializableJson(attr_value, path_object_ids,
+                                                  keys_attr, values_attr));
       object_items.emplace_back(attr_name, std::move(json_attr_value));
     }
   }
@@ -321,7 +334,9 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
 
 absl::StatusOr<SerializableJson> DataItemToSerializableJson(
     const DataSlice& item,
-    absl::flat_hash_set<internal::ObjectId>& path_object_ids) {
+    absl::flat_hash_set<internal::ObjectId>& path_object_ids,
+    const std::optional<absl::string_view>& keys_attr,
+    const std::optional<absl::string_view>& values_attr) {
   DCHECK(item.is_item());
 
   if (item.GetSchemaImpl() == schema::kSchema ||
@@ -349,14 +364,17 @@ absl::StatusOr<SerializableJson> DataItemToSerializableJson(
       return absl::InvalidArgumentError(
           "unsupported schema ITEMID for json serialization");
     } else if (item_object_id->IsList()) {
-      ASSIGN_OR_RETURN(json,
-                       ListDataItemToSerializableJson(item, path_object_ids));
+      ASSIGN_OR_RETURN(
+          json, ListDataItemToSerializableJson(item, path_object_ids, keys_attr,
+                                               values_attr));
     } else if (item_object_id->IsDict()) {
-      ASSIGN_OR_RETURN(json,
-                       DictDataItemToSerializableJson(item, path_object_ids));
+      ASSIGN_OR_RETURN(
+          json, DictDataItemToSerializableJson(item, path_object_ids, keys_attr,
+                                               values_attr));
     } else {
-      ASSIGN_OR_RETURN(json,
-                       EntityDataItemToSerializableJson(item, path_object_ids));
+      ASSIGN_OR_RETURN(
+          json, EntityDataItemToSerializableJson(item, path_object_ids,
+                                                 keys_attr, values_attr));
     }
   } else {
     ASSIGN_OR_RETURN(json, PrimitiveDataItemToSerializableJson(item));
@@ -372,7 +390,8 @@ absl::StatusOr<SerializableJson> DataItemToSerializableJson(
 }  // namespace
 
 absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
-                                 DataSlice ensure_ascii) {
+                                 DataSlice ensure_ascii, DataSlice keys_attr,
+                                 DataSlice values_attr) {
   int indent_value = 0;
   bool indent_is_none = true;
   if (!indent.IsEmpty()) {
@@ -382,6 +401,19 @@ absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
   }
   ASSIGN_OR_RETURN(bool ensure_ascii_value,
                    GetBoolArgument(ensure_ascii, "ensure_ascii"));
+
+  std::optional<absl::string_view> keys_attr_value;
+  std::optional<absl::string_view> values_attr_value;
+  if (!keys_attr.IsEmpty()) {
+    RETURN_IF_ERROR(
+        ExpectPresentScalar("keys_attr", keys_attr, schema::kString));
+    keys_attr_value = keys_attr.item().value<arolla::Text>().view();
+    if (!values_attr.IsEmpty()) {
+      RETURN_IF_ERROR(
+          ExpectPresentScalar("values_attr", values_attr, schema::kString));
+      values_attr_value = values_attr.item().value<arolla::Text>().view();
+    }
+  }
 
   ASSIGN_OR_RETURN(auto flat_x, x.Reshape(x.GetShape().FlatFromSize(x.size())));
 
@@ -393,8 +425,9 @@ absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
         }
 
         absl::flat_hash_set<internal::ObjectId> path_object_ids;
-        ASSIGN_OR_RETURN(auto json,
-                         DataItemToSerializableJson(item, path_object_ids));
+        ASSIGN_OR_RETURN(auto json, DataItemToSerializableJson(
+                                        item, path_object_ids, keys_attr_value,
+                                        values_attr_value));
         std::string result =
             json.dump(indent_value, ' ', ensure_ascii_value,
                       nlohmann::detail::error_handler_t::ignore);
