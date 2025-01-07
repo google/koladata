@@ -64,7 +64,7 @@ class IdsDeepUuidTest(parameterized.TestCase):
     x = bag().obj(x=1, y=2).no_bag()
     with self.assertRaisesRegex(
         ValueError,
-        'expected to have an entity schema in __schema__ attribute',
+        'expected to have a schema in __schema__ attribute',
     ):
       expr_eval.eval(kde.ids.deep_uuid(x))
 

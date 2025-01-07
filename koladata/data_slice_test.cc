@@ -584,17 +584,6 @@ TEST(DataSliceTest, ImplOwnsValue) {
   EXPECT_FALSE(ds.impl_owns_value());
 }
 
-TEST(DataSliceTest, IsEntitySchema) {
-  auto db = DataBag::Empty();
-  auto int_s = test::Schema(schema::kInt32);
-  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
-  EXPECT_TRUE(entity_schema.IsEntitySchema());
-  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kAny, schema::kInt32})
-                   .IsEntitySchema());
-  EXPECT_FALSE(test::Schema(schema::kAny).IsEntitySchema());
-  EXPECT_FALSE(test::DataItem(42).IsEntitySchema());
-}
-
 TEST(DataSliceTest, IsStructSchema) {
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);
@@ -608,6 +597,21 @@ TEST(DataSliceTest, IsStructSchema) {
                    .IsStructSchema());
   EXPECT_FALSE(test::Schema(schema::kAny).IsStructSchema());
   EXPECT_FALSE(test::DataItem(42).IsStructSchema());
+}
+
+TEST(DataSliceTest, IsEntitySchema) {
+  auto db = DataBag::Empty();
+  auto int_s = test::Schema(schema::kInt32);
+  auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+  EXPECT_TRUE(entity_schema.IsEntitySchema());
+  auto list_schema = *CreateListSchema(db, int_s);
+  EXPECT_FALSE(list_schema.IsEntitySchema());
+  auto dict_schema = *CreateDictSchema(db, int_s, int_s);
+  EXPECT_FALSE(dict_schema.IsEntitySchema());
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kAny, schema::kInt32})
+                   .IsEntitySchema());
+  EXPECT_FALSE(test::Schema(schema::kAny).IsEntitySchema());
+  EXPECT_FALSE(test::DataItem(42).IsEntitySchema());
 }
 
 TEST(DataSliceTest, IsListSchema) {

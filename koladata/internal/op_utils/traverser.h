@@ -297,9 +297,9 @@ class Traverser {
     ASSIGN_OR_RETURN(
         auto schema,
         databag_.GetAttr(item.item, schema::kSchemaAttr, fallbacks_));
-    if (!schema.is_entity_schema()) {
+    if (!schema.is_struct_schema()) {
       return absl::InvalidArgumentError(
-          absl::StrFormat("object %v is expected to have an entity schema in "
+          absl::StrFormat("object %v is expected to have a schema in "
                           "%s attribute, got %v",
                           item.item, schema::kSchemaAttr, schema));
     }

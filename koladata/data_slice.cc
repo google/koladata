@@ -787,6 +787,15 @@ absl::StatusOr<ImplT> AlignDataWithSchema(
                                         : impl;
 }
 
+bool HasSchemaAttr(const internal::DataItem& schema_item,
+                   absl::string_view attr, const internal::DataBagImpl& db_impl,
+                   const FlattenFallbackFinder& fb_finder) {
+  auto fallbacks = fb_finder.GetFlattenFallbacks();
+  auto item_schema_or =
+      db_impl.GetSchemaAttrAllowMissing(schema_item, attr, fallbacks);
+  return item_schema_or.ok() && item_schema_or->has_value();
+}
+
 }  // namespace
 
 absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
@@ -902,14 +911,25 @@ absl::StatusOr<DataSlice> DataSlice::GetObjSchema() const {
   });
 }
 
-bool DataSlice::IsEntitySchema() const {
+bool DataSlice::IsStructSchema() const {
   return GetSchemaImpl() == schema::kSchema && is_item() &&
          item().is_struct_schema();
 }
 
-bool DataSlice::IsStructSchema() const {
-  return GetSchemaImpl() == schema::kSchema && is_item() &&
-         item().is_struct_schema();
+bool DataSlice::IsEntitySchema() const {
+  if (!IsStructSchema() || GetBag() == nullptr) {
+    return false;
+  }
+  const auto& db_impl = GetBag()->GetImpl();
+  FlattenFallbackFinder fb_finder(*GetBag());
+  bool has_list_attr =
+      HasSchemaAttr(item(), schema::kListItemsSchemaAttr, db_impl, fb_finder);
+  bool has_dict_key_attr =
+      HasSchemaAttr(item(), schema::kDictKeysSchemaAttr, db_impl, fb_finder);
+  bool has_dict_value_attr =
+      HasSchemaAttr(item(), schema::kDictValuesSchemaAttr, db_impl, fb_finder);
+
+  return !has_list_attr && !has_dict_key_attr && !has_dict_value_attr;
 }
 
 bool DataSlice::IsListSchema() const {
@@ -918,13 +938,8 @@ bool DataSlice::IsListSchema() const {
   }
   const auto& db_impl = GetBag()->GetImpl();
   FlattenFallbackFinder fb_finder(*GetBag());
-  auto fallbacks = fb_finder.GetFlattenFallbacks();
-  auto item_schema_or = db_impl.GetSchemaAttrAllowMissing(
-      item(), schema::kListItemsSchemaAttr, fallbacks);
-  if (!item_schema_or.ok()) {
-    return false;
-  }
-  return item_schema_or->has_value();
+  return HasSchemaAttr(item(), schema::kListItemsSchemaAttr, db_impl,
+                       fb_finder);
 }
 
 bool DataSlice::IsDictSchema() const {
@@ -933,15 +948,11 @@ bool DataSlice::IsDictSchema() const {
   }
   const auto& db_impl = GetBag()->GetImpl();
   FlattenFallbackFinder fb_finder(*GetBag());
-  auto fallbacks = fb_finder.GetFlattenFallbacks();
-  auto key_schema_or = db_impl.GetSchemaAttrAllowMissing(
-      item(), schema::kDictKeysSchemaAttr, fallbacks);
-  auto value_schema_or = db_impl.GetSchemaAttrAllowMissing(
-      item(), schema::kDictValuesSchemaAttr, fallbacks);
-  if (!key_schema_or.ok() || !value_schema_or.ok()) {
-    return false;
-  }
-  return key_schema_or->has_value() && value_schema_or->has_value();
+  bool has_dict_key_attr =
+      HasSchemaAttr(item(), schema::kDictKeysSchemaAttr, db_impl, fb_finder);
+  bool has_dict_value_attr =
+      HasSchemaAttr(item(), schema::kDictValuesSchemaAttr, db_impl, fb_finder);
+  return has_dict_key_attr && has_dict_value_attr;
 }
 
 bool DataSlice::IsPrimitiveSchema() const {

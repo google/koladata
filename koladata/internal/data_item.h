@@ -147,10 +147,6 @@ class DataItem {
     return holds_value<ObjectId>() && value<ObjectId>().IsSchema();
   }
 
-  bool is_entity_schema() const {
-    return holds_value<ObjectId>() && value<ObjectId>().IsSchema();
-  }
-
   bool is_implicit_schema() const {
     return holds_value<ObjectId>() && value<ObjectId>().IsImplicitSchema();
   }

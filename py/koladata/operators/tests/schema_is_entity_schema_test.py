@@ -41,9 +41,21 @@ class SchemaIsEntitySchemaTest(parameterized.TestCase):
       (bag.new_schema(x=schema_constants.INT32), mask_constants.present),
       (
           bag.dict_schema(schema_constants.INT32, schema_constants.STRING),
+          mask_constants.missing,
+      ),
+      (bag.list_schema(schema_constants.INT32), mask_constants.missing),
+      # Remove the bag.
+      (
+          bag.list_schema(schema_constants.INT32).no_bag(),
+          mask_constants.missing,
+      ),
+      # Attach an empty bag.
+      (
+          bag.list_schema(schema_constants.INT32).with_bag(
+              data_bag.DataBag.empty()
+          ),
           mask_constants.present,
       ),
-      (bag.list_schema(schema_constants.INT32), mask_constants.present),
       (schema_constants.ANY, mask_constants.missing),
       (schema_constants.OBJECT, mask_constants.missing),
       (
