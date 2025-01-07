@@ -591,35 +591,35 @@ TEST(DataSliceImpl, ContainsOnlyDictsBigAlloc) {
                .ContainsOnlyDicts());
 }
 
-TEST(DataSliceImpl, ContainsOnlyPlainEntities) {
-  EXPECT_TRUE(DataSliceImpl().ContainsOnlyPlainEntities());
+TEST(DataSliceImpl, ContainsOnlyEntities) {
+  EXPECT_TRUE(DataSliceImpl().ContainsOnlyEntities());
   EXPECT_TRUE(
       DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({std::nullopt}))
-          .ContainsOnlyPlainEntities());
+          .ContainsOnlyEntities());
   EXPECT_TRUE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
                                         std::nullopt,
                                         AllocateSingleObject(),
                                         AllocateSingleObject(),
                                     }))
-                  .ContainsOnlyPlainEntities());
+                  .ContainsOnlyEntities());
   EXPECT_FALSE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
                                          std::nullopt,
                                          AllocateSingleDict(),
                                          AllocateSingleObject(),
                                      }))
-                   .ContainsOnlyPlainEntities());
+                   .ContainsOnlyEntities());
   EXPECT_FALSE(DataSliceImpl::Create(arolla::CreateDenseArray<int>({42}))
-                   .ContainsOnlyPlainEntities());
+                   .ContainsOnlyEntities());
   EXPECT_TRUE(
       DataSliceImpl::Create(arolla::CreateDenseArray<int>({std::nullopt}))
-          .ContainsOnlyPlainEntities());
+          .ContainsOnlyEntities());
   EXPECT_TRUE(DataSliceImpl::Create(
                   arolla::CreateDenseArray<int>({std::nullopt}),
                   arolla::CreateDenseArray<ObjectId>({AllocateSingleObject()}))
-                  .ContainsOnlyPlainEntities());
+                  .ContainsOnlyEntities());
 }
 
-TEST(DataSliceImpl, ContainsOnlyPlainEntitiesBigAlloc) {
+TEST(DataSliceImpl, ContainsOnlyEntitiesBigAlloc) {
   AllocationId entities_alloc = Allocate(kSmallAllocMaxCapacity + 10);
   EXPECT_TRUE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
                                         std::nullopt,
@@ -628,7 +628,7 @@ TEST(DataSliceImpl, ContainsOnlyPlainEntitiesBigAlloc) {
                                         entities_alloc.ObjectByOffset(2),
                                         entities_alloc.ObjectByOffset(7),
                                     }))
-                  .ContainsOnlyPlainEntities());
+                  .ContainsOnlyEntities());
 
   AllocationId dicts_alloc = AllocateDicts(kSmallAllocMaxCapacity + 10);
   EXPECT_FALSE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
@@ -641,7 +641,7 @@ TEST(DataSliceImpl, ContainsOnlyPlainEntitiesBigAlloc) {
                                          dicts_alloc.ObjectByOffset(0),
                                          dicts_alloc.ObjectByOffset(9),
                                      }))
-                   .ContainsOnlyPlainEntities());
+                   .ContainsOnlyEntities());
 }
 
 TEST(DataSliceImpl, IsEquivalentTo) {

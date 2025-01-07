@@ -78,6 +78,8 @@ class ObjectId {
   bool IsAllocated() const { return !IsUuid(); }
   // Returns true if object was constructed from Fingerprint.
   bool IsUuid() const { return (metadata_ & kUuidFlag) != 0; }
+  // Returns true if the object is an entity (not a list or a dict).
+  bool IsEntity() const { return (metadata_ & ~kUuidFlag) == 0; }
   // Returns true if the object is a list.
   bool IsList() const { return (metadata_ & ~kUuidFlag) == kListFlag; }
   // Returns true if the object is a dict.
@@ -94,8 +96,6 @@ class ObjectId {
   bool IsNoFollowSchema() const {
     return (metadata_ & kNoFollowSchemaFlag) == kNoFollowSchemaFlag;
   }
-  // Returns true if the object is an entity (not a list or a dict).
-  bool IsPlainEntity() const { return (metadata_ & ~kUuidFlag) == 0; }
 
   // Returns the `uint128` numeric value representation of the object id.
   absl::uint128 ToRawInt128() const {
@@ -308,7 +308,8 @@ class AllocationId {
   // Returns true if the allocation is a dicts allocation.
   bool IsDictsAlloc() const { return allocation_id_.IsDict(); }
 
-  bool IsPlainEntitiesAlloc() const { return allocation_id_.IsPlainEntity(); }
+  // Returns true if the allocation is an entities allocation.
+  bool IsEntitiesAlloc() const { return allocation_id_.IsEntity(); }
 
   // Returns true if the allocation is a schemas allocation.
   bool IsSchemasAlloc() const { return allocation_id_.IsSchema(); }

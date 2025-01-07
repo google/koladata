@@ -129,8 +129,8 @@ class DataItem {
     return holds_value<ObjectId>() && value<ObjectId>().IsDict();
   }
 
-  bool is_plain_entity() const {
-    return holds_value<ObjectId>() && value<ObjectId>().IsPlainEntity();
+  bool is_entity() const {
+    return holds_value<ObjectId>() && value<ObjectId>().IsEntity();
   }
 
   bool is_schema() const {
@@ -167,10 +167,8 @@ class DataItem {
   // Returns true iff all present values are dicts.
   bool ContainsOnlyDicts() const { return !has_value() || is_dict(); }
 
-  // Returns true iff all present values are plain entities.
-  bool ContainsOnlyPlainEntities() const {
-    return !has_value() || is_plain_entity();
-  }
+  // Returns true iff all present values are entities.
+  bool ContainsOnlyEntities() const { return !has_value() || is_entity(); }
 
   bool IsEquivalentTo(const DataItem& other) const {
     return data_ == other.data_;

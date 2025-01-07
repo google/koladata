@@ -70,7 +70,7 @@ TEST(ObjectIdTest, AllocationIdSmallSize) {
     AllocationId alloc_id = Allocate(size);
     EXPECT_EQ(alloc_id.IsSmall(), size <= kSmallAllocMaxCapacity);
     ASSERT_EQ(alloc_id.Capacity(), expected_capacity) << size;
-    ASSERT_TRUE(alloc_id.IsPlainEntitiesAlloc());
+    ASSERT_TRUE(alloc_id.IsEntitiesAlloc());
     for (int64_t i = 0; i != 100; ++i) {
       AllocationId alloc_id_new = Allocate(size);
       EXPECT_LT(alloc_id, alloc_id_new) << size << " " << i;
@@ -82,7 +82,7 @@ TEST(ObjectIdTest, AllocationIdSmallSize) {
     for (int64_t i = 0; i < size; ++i) {
       ObjectId obj_id = alloc_id.ObjectByOffset(i);
       ASSERT_TRUE(obj_id.IsAllocated());
-      ASSERT_TRUE(obj_id.IsPlainEntity());
+      ASSERT_TRUE(obj_id.IsEntity());
       ASSERT_FALSE(obj_id.IsUuid());
       ASSERT_EQ(alloc_id, AllocationId(obj_id)) << size << " " << i;
       ASSERT_EQ(obj_id.Offset(), i) << size << " " << i;
@@ -134,7 +134,7 @@ TEST(ObjectIdTest, UuidAndAllocatedFlagsAreExclusive) {
       AllocateExplicitSchema(),
   };
   std::vector checks{
-      &ObjectId::IsPlainEntity,
+      &ObjectId::IsEntity,
       &ObjectId::IsList,
       &ObjectId::IsDict,
       &ObjectId::IsSchema,
@@ -174,14 +174,14 @@ TEST(ObjectIdTest, NewAllocationIdLike) {
     AllocationId base_alloc_id = Allocate(size);
     AllocationId alloc_id = NewAllocationIdLike(base_alloc_id);
     EXPECT_EQ(alloc_id.IsSmall(), size <= kSmallAllocMaxCapacity);
-    ASSERT_TRUE(alloc_id.IsPlainEntitiesAlloc());
+    ASSERT_TRUE(alloc_id.IsEntitiesAlloc());
     std::vector<AllocationId> other_allocs = {
         NewAllocationIdLike(base_alloc_id), NewAllocationIdLike(Allocate(size)),
         NewAllocationIdLike(Allocate(size * 2)), NewAllocationIdLike(alloc_id)};
     for (int64_t i = 0; i < size; ++i) {
       ObjectId obj_id = alloc_id.ObjectByOffset(i);
       ASSERT_TRUE(obj_id.IsAllocated());
-      ASSERT_TRUE(obj_id.IsPlainEntity());
+      ASSERT_TRUE(obj_id.IsEntity());
       ASSERT_FALSE(obj_id.IsUuid());
       ASSERT_EQ(alloc_id, AllocationId(obj_id)) << size << " " << i;
       ASSERT_EQ(obj_id.Offset(), i) << size << " " << i;
@@ -232,7 +232,7 @@ TEST(ObjectIdTest, ListUuid) {
   EXPECT_TRUE(list_id.IsList());
   EXPECT_TRUE(list_id.IsUuid());
   EXPECT_FALSE(list_id.IsAllocated());
-  EXPECT_FALSE(list_id.IsPlainEntity());
+  EXPECT_FALSE(list_id.IsEntity());
   EXPECT_FALSE(list_id.IsDict());
   EXPECT_FALSE(list_id.IsSchema());
 }
@@ -245,7 +245,7 @@ TEST(ObjectIdTest, DictUuid) {
   EXPECT_TRUE(dict_id.IsDict());
   EXPECT_TRUE(dict_id.IsUuid());
   EXPECT_FALSE(dict_id.IsAllocated());
-  EXPECT_FALSE(dict_id.IsPlainEntity());
+  EXPECT_FALSE(dict_id.IsEntity());
   EXPECT_FALSE(dict_id.IsList());
   EXPECT_FALSE(dict_id.IsSchema());
 }

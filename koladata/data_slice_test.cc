@@ -1764,34 +1764,34 @@ TEST(DataSliceTest, IsDict_NonEmpty) {
                    ->IsDict());
 }
 
-TEST(DataSliceTest, IsPlainEntity_Empty) {
+TEST(DataSliceTest, IsEntity_Empty) {
   // schema INT64
-  EXPECT_FALSE(test::DataSlice<int64_t>({}).IsPlainEntity());
-  EXPECT_FALSE(test::DataSlice<int64_t>({std::nullopt}).IsPlainEntity());
+  EXPECT_FALSE(test::DataSlice<int64_t>({}).IsEntity());
+  EXPECT_FALSE(test::DataSlice<int64_t>({std::nullopt}).IsEntity());
 
   // schema ANY (type-erased INT64)
   EXPECT_TRUE(test::DataSlice<int64_t>({})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .IsPlainEntity());
+                  .IsEntity());
   EXPECT_TRUE(test::DataSlice<int64_t>({std::nullopt})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .IsPlainEntity());
+                  .IsEntity());
 
   // schema ANY (type-erased ObjectId)
   EXPECT_TRUE(test::DataSlice<ObjectId>({})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .IsPlainEntity());
+                  .IsEntity());
   EXPECT_TRUE(test::DataSlice<ObjectId>({})
                   .WithSchema(test::DataItem(schema::kAny))
                   .value()
-                  .IsPlainEntity());
+                  .IsEntity());
 
   // schema OBJECT
-  EXPECT_TRUE(test::DataSlice<ObjectId>({}).IsPlainEntity());
-  EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}).IsPlainEntity());
+  EXPECT_TRUE(test::DataSlice<ObjectId>({}).IsEntity());
+  EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}).IsEntity());
 
   // schema SCHMEMA(a=INT32)
   auto db = DataBag::Empty();
@@ -1802,11 +1802,11 @@ TEST(DataSliceTest, IsPlainEntity_Empty) {
   EXPECT_TRUE(test::DataSlice<ObjectId>({}, db)
                   .WithSchema(entity_schema)
                   .value()
-                  .IsPlainEntity());
+                  .IsEntity());
   EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}, db)
                   .WithSchema(entity_schema)
                   .value()
-                  .IsPlainEntity());
+                  .IsEntity());
 
   // schema DICT{INT32, INT32}
   auto dict_schema = *CreateDictSchema(db, test::Schema(schema::kInt32),
@@ -1815,14 +1815,14 @@ TEST(DataSliceTest, IsPlainEntity_Empty) {
   EXPECT_FALSE(test::DataSlice<ObjectId>({}, db)
                    .WithSchema(dict_schema)
                    .value()
-                   .IsPlainEntity());
+                   .IsEntity());
   EXPECT_FALSE(test::DataSlice<ObjectId>({std::nullopt}, db)
                    .WithSchema(dict_schema)
                    .value()
-                   .IsPlainEntity());
+                   .IsEntity());
 }
 
-TEST(DataSliceTest, IsPlainEntity_NonEmpty) {
+TEST(DataSliceTest, IsEntity_NonEmpty) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto entity_schema,
@@ -1831,47 +1831,47 @@ TEST(DataSliceTest, IsPlainEntity_NonEmpty) {
   EXPECT_TRUE(test::DataSlice<ObjectId>(
                   {internal::AllocateSingleObject(), std::nullopt}, db)
                   .WithSchema(entity_schema)
-                  ->IsPlainEntity());
+                  ->IsEntity());
   EXPECT_TRUE(test::DataSlice<ObjectId>(
                   {internal::AllocateSingleObject(), std::nullopt}, db)
                   .WithSchema(test::DataItem(schema::kAny))
-                  ->IsPlainEntity());
+                  ->IsEntity());
   EXPECT_TRUE(test::DataSlice<ObjectId>(
                   {internal::AllocateSingleObject(), std::nullopt}, db)
                   .WithSchema(test::DataItem(schema::kObject))
-                  ->IsPlainEntity());
+                  ->IsEntity());
 
   // Note: behavior if entity_schema is used with non-entity values is
   // unspecified.
   // Do not rely on the following line's implications in other code.
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                   .WithSchema(entity_schema)
-                  ->IsPlainEntity());
+                  ->IsEntity());
 
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                    .WithSchema(test::DataItem(schema::kAny))
-                   ->IsPlainEntity());
+                   ->IsEntity());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                    .WithSchema(test::DataItem(schema::kObject))
-                   ->IsPlainEntity());
+                   ->IsEntity());
 
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kItemId))
-                   ->IsPlainEntity());
+                   ->IsEntity());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                    .WithSchema(test::DataItem(schema::kItemId))
-                   ->IsPlainEntity());
+                   ->IsEntity());
 
   // Mixed OBJECT DataSlice
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject(),
                                           internal::AllocateSingleDict()},
                                          db)
                    .WithSchema(test::DataItem(schema::kObject))
-                   ->IsPlainEntity());
+                   ->IsEntity());
   auto mixed_ds = test::MixedDataSlice<int, ObjectId>(
       {42, std::nullopt}, {std::nullopt, internal::AllocateSingleObject()},
       schema::kObject, db);
-  EXPECT_FALSE(mixed_ds.IsPlainEntity());
+  EXPECT_FALSE(mixed_ds.IsEntity());
 }
 
 TEST(DataSliceTest, SetGetPrimitiveAttributes_EntityCreator) {

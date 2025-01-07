@@ -238,7 +238,7 @@ bool DataSliceImpl::ContainsOnlyDicts() const {
   return result;
 }
 
-bool DataSliceImpl::ContainsOnlyPlainEntities() const {
+bool DataSliceImpl::ContainsOnlyEntities() const {
   bool result = true;
   VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
     if constexpr (!std::is_same<T, ObjectId>()) {
@@ -249,7 +249,7 @@ bool DataSliceImpl::ContainsOnlyPlainEntities() const {
       if (allocation_ids().contains_small_allocation_id()) {
         array.ForEachPresent(
             [&result](int64_t id, arolla::view_type_t<ObjectId> value) {
-              if (!value.IsPlainEntity()) {
+              if (!value.IsEntity()) {
                 result = false;
               }
             });
@@ -257,7 +257,7 @@ bool DataSliceImpl::ContainsOnlyPlainEntities() const {
         // NOTE: It is sufficient (and much cheaper) to check AllocationId(s),
         // instead of checking all ObjectId(s).
         for (AllocationId alloc_id : allocation_ids()) {
-          if (!alloc_id.IsPlainEntitiesAlloc()) {
+          if (!alloc_id.IsEntitiesAlloc()) {
             result = false;
             break;
           }
