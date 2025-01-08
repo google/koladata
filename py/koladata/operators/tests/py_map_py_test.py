@@ -484,7 +484,7 @@ class PyMapPyTest(parameterized.TestCase):
       res = expr_eval.eval(kde.py.map_py(ranges, val))
       self.assertEqual(res.get_ndim(), 2)
       self.assertEqual(
-          res[:].to_py(),  # TODO: Change to res.to_py().
+          res.to_py(),
           [[[0], [0, 1], []], [[0, 1, 2, 3], [0, 1, 2, 3, 4]]],
       )
 
@@ -496,7 +496,7 @@ class PyMapPyTest(parameterized.TestCase):
       res = expr_eval.eval(kde.py.map_py(expnd, val))
       self.assertEqual(res.get_ndim(), 2)
       self.assertEqual(
-          res[:][:].to_py(),  # TODO: Change to res.to_py().
+          res.to_py(),
           [[[[1, -1]], [[2, -1]], [[None, -1]]], [[[4, -1]], [[5, -1]]]],
       )
 
@@ -507,10 +507,7 @@ class PyMapPyTest(parameterized.TestCase):
 
       res = expr_eval.eval(kde.py.map_py(agg_and_expand, val, ndim=1))
       self.assertEqual(res.get_ndim(), 1)
-      self.assertEqual(
-          res[:].to_py(),  # TODO: Change to res.to_py().
-          [[3, -1], [9, -1]],
-      )
+      self.assertEqual(res.to_py(), [[3, -1], [9, -1]])
 
     with self.subTest('expand_sparse'):
 
@@ -519,9 +516,7 @@ class PyMapPyTest(parameterized.TestCase):
 
       res = expr_eval.eval(kde.py.map_py(expand_sparse, val))
       self.assertEqual(res.get_ndim(), 2)
-      # TODO: Change to
-      #     self.assertEqual(res.to_py(), [[[1], [2], None], [[4], [5]]])
-      self.assertEqual(res[:].to_py(), [[[1], [2], []], [[4], [5]]])
+      self.assertEqual(res.to_py(), [[[1], [2], None], [[4], [5]]])
 
   def test_map_py_mixed_scalars_and_slices(self):
     res = expr_eval.eval(
