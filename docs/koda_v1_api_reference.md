@@ -8,32 +8,32 @@ DataSlice, DataBag, etc.).
 
 [TOC]
 
-Category                         | Subcategory                  | Description
--------------------------------- | ---------------------------- | -----------
-[kd](#kd_category)               |                              | `kd` and `kde` operators
-                                 | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
-                                 | [annotation](#kd.annotation) | Annotation operators.
-                                 | [assertion](#kd.assertion)   | Operators that assert properties of DataSlices.
-                                 | [bags](#kd.bags)             | Operators that work on DataBags.
-                                 | [comparison](#kd.comparison) | Operators that compare DataSlices.
-                                 | [core](#kd.core)             | Core operators that are not part of other categories.
-                                 | [dicts](#kd.dicts)           | Operators working with dictionaries.
-                                 | [functor](#kd.functor)       | Operators to create and call functors.
-                                 | [ids](#kd.ids)               | Operators that work with ItemIds.
-                                 | [json](#kd.json)             | JSON serialization operators.
-                                 | [lists](#kd.lists)           | Operators working with lists.
-                                 | [masking](#kd.masking)       | Masking operators.
-                                 | [math](#kd.math)             | Arithmetic operators.
-                                 | [py](#kd.py)                 | Operators that call Python functions.
-                                 | [random](#kd.random)         | Random and sampling operators.
-                                 | [schema](#kd.schema)         | Schema-related operators.
-                                 | [shapes](#kd.shapes)         | Operators that work on shapes
-                                 | [slices](#kd.slices)         | Operators that perform DataSlice transformations.
-                                 | [strings](#kd.strings)       | Operators that work with strings data.
-                                 | [tuple](#kd.tuple)           | Operators to create tuples.
-[kd_ext](#kd_ext_category)       |                              | `kd_ext` operators
-[DataSlice](#DataSlice_category) |                              | `DataSlice` methods
-[DataBag](#DataBag_category)     |                              | `DataBag` methods
+Category  | Subcategory | Description
+--------- | ----------- | ------------
+[kd](#kd_category) | | `kd` and `kde` operators
+ | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
+ | [annotation](#kd.annotation) | Annotation operators.
+ | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
+ | [bags](#kd.bags) | Operators that work on DataBags.
+ | [comparison](#kd.comparison) | Operators that compare DataSlices.
+ | [core](#kd.core) | Core operators that are not part of other categories.
+ | [dicts](#kd.dicts) | Operators working with dictionaries.
+ | [functor](#kd.functor) | Operators to create and call functors.
+ | [ids](#kd.ids) | Operators that work with ItemIds.
+ | [json](#kd.json) | JSON serialization operators.
+ | [lists](#kd.lists) | Operators working with lists.
+ | [masking](#kd.masking) | Masking operators.
+ | [math](#kd.math) | Arithmetic operators.
+ | [py](#kd.py) | Operators that call Python functions.
+ | [random](#kd.random) | Random and sampling operators.
+ | [schema](#kd.schema) | Schema-related operators.
+ | [shapes](#kd.shapes) | Operators that work on shapes
+ | [slices](#kd.slices) | Operators that perform DataSlice transformations.
+ | [strings](#kd.strings) | Operators that work with strings data.
+ | [tuple](#kd.tuple) | Operators to create tuples.
+[kd_ext](#kd_ext_category) | | `kd_ext` operators
+[DataSlice](#DataSlice_category) | | `DataSlice` methods
+[DataBag](#DataBag_category) | | `DataBag` methods
 
 ## `kd` and `kde` operators {#kd_category}
 
@@ -272,11 +272,10 @@ Operators that work on DataBags.
 
 **Operators**
 
-### `kd.bags.enriched_bag(*bags)` {#kd.bags.enriched_bag}
-
+### `kd.bags.enriched(*bags)` {#kd.bags.enriched}
 Aliases:
 
--   [kd.enriched_bag](#kd.enriched_bag)
+- [kd.enriched_bag](#kd.enriched_bag)
 
 ``` {.no-copy}
 Creates a new immutable DataBag enriched by `bags`.
@@ -296,17 +295,21 @@ Returns:
   An immutable DataBag enriched by `bags`.
 ```
 
-### `kd.bags.new()` {#kd.bags.new}
+### `kd.bags.new` {#kd.bags.new}
+Aliases:
+
+- [kd.bag](#kd.bag)
+
+- [DataBag.empty](#DataBag.empty)
 
 ``` {.no-copy}
 Returns an empty DataBag.
 ```
 
-### `kd.bags.updated_bag(*bags)` {#kd.bags.updated_bag}
-
+### `kd.bags.updated(*bags)` {#kd.bags.updated}
 Aliases:
 
--   [kd.updated_bag](#kd.updated_bag)
+- [kd.updated_bag](#kd.updated_bag)
 
 ``` {.no-copy}
 Creates a new immutable DataBag updated by `bags`.
@@ -494,17 +497,6 @@ Aliases:
 
 ``` {.no-copy}
 Returns a new DataBag containing attribute updates for `x`.
-```
-
-### `kd.core.bag` {#kd.core.bag}
-Aliases:
-
-- [kd.bag](#kd.bag)
-
-- [DataBag.empty](#DataBag.empty)
-
-``` {.no-copy}
-Returns an empty DataBag.
 ```
 
 ### `kd.core.clone(x, /, *, itemid=unspecified, schema=unspecified, **overrides)` {#kd.core.clone}
@@ -2267,7 +2259,7 @@ JSON serialization operators.
 
 **Operators**
 
-### `kd.json.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=DataItem(True, schema: BOOLEAN))` {#kd.json.to_json}
+### `kd.json.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=DataItem(True, schema: BOOLEAN), keys_attr=DataItem('json_object_keys', schema: STRING), values_attr=DataItem('json_object_values', schema: STRING))` {#kd.json.to_json}
 Aliases:
 
 - [kd.to_json](#kd.to_json)
@@ -2307,6 +2299,33 @@ Non-finite floating point values are stored as the strings "inf", "-inf" and
 values as `null`, which would be ambiguous with Koda missing values. There is
 unfortunately no standard way to express these values in JSON.
 
+By default, JSON objects are written with keys in sorted order. However, it is
+also possible to control the key order of JSON objects using the `keys_attr`
+argument. If an entity has the attribute specified by `keys_attr`, then that
+attribute must have schema LIST[STRING], and the JSON object will have exactly
+the key order specified in that list, including duplicate keys.
+
+To write duplicate JSON object keys with different values, use `values_attr`
+to designate an attribute to hold a parallel list of values to write.
+
+For example:
+
+  kd.to_json(kd.new(x=1, y=2)) -> '{"x": 2, "y": 1}'
+  kd.to_json(kd.new(x=1, y=2, json_object_keys=kd.list(['y', 'x'])))
+    -> '{"y": 2, "x": 1}'
+  kd.to_json(kd.new(x=1, y=2, foo=kd.list(['y', 'x'])), keys_attr='foo')
+    -> '{"y": 2, "x": 1}'
+  kd.to_json(kd.new(x=1, y=2, z=3, json_object_keys=kd.list(['x', 'z', 'x'])))
+    -> '{"x": 1, "z": 3, "x": 1}'
+
+  kd.to_json(kd.new(json_object_keys=kd.list(['x', 'z', 'x']),
+                    json_object_values=kd.list([1, 2, 3])))
+    -> '{"x": 1, "z": 2, "x": 3}'
+  kd.to_json(kd.new(a=kd.list(['x', 'z', 'x']), b=kd.list([1, 2, 3])),
+             keys_attr='a', values_attr='b')
+    -> '{"x": 1, "z": 2, "x": 3}'
+
+
 The `indent` and `ensure_ascii` arguments control JSON formatting:
 - If `indent` is negative, then the JSON is formatted without any whitespace.
 - If `indent` is None (the default), the JSON is formatted with a single
@@ -2329,6 +2348,11 @@ Args:
   x: The DataSlice to convert.
   indent: An INT32 DataItem that describes how the result should be indented.
   ensure_ascii: A BOOLEAN DataItem that controls non-ASCII escaping.
+  keys_attr: A STRING DataItem that controls which entity attribute controls
+    json object key order, or None to always use sorted order. Defaults to
+    `json_object_keys`.
+  values_attr: A STRING DataItem that can be used with `keys_attr` to give
+    full control over json object contents. Defaults to `json_object_values`.
 ```
 
 </section>
@@ -2428,7 +2452,7 @@ Returns:
   A MASK DataSlice with the same shape as `x`.
 ```
 
-### `kd.lists.implode(x, /, ndim=1, db=None)` {#kd.lists.implode}
+### `kd.lists.implode(x, /, ndim=1, itemid=None, db=None)` {#kd.lists.implode}
 Aliases:
 
 - [kd.implode](#kd.implode)
@@ -2457,6 +2481,7 @@ Implodes a Dataslice `x` a specified number of times.
   Args:
     x: the DataSlice to implode
     ndim: the number of implosion operations to perform
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
     db: optional DataBag where Lists are created from
 
   Returns:
@@ -2515,42 +2540,6 @@ Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
   Returns:
     A DataSlice with the lists.
-```
-
-### `kd.lists.new(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.new}
-Aliases:
-
-- [kd.list](#kd.list)
-
-``` {.no-copy}
-Creates list(s) by collapsing `items`.
-
-  Returns an immutable list if `db` is not provided.
-
-  If there is no argument, returns an empty Koda List.
-  If the argument is a DataSlice, creates a slice of Koda Lists.
-  If the argument is a Python list, creates a nested Koda List.
-
-  Examples:
-  list() -> a single empty Koda List
-  list([1, 2, 3]) -> Koda List with items 1, 2, 3
-  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
-  list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
-  list(kd.slice([[1, 2, 3], [4, 5]]))
-    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
-
-  Args:
-    items: The items to use. If not specified, an empty list of OBJECTs will be
-      created.
-    item_schema: the schema of the list items. If not specified, it will be
-      deduced from `items` or defaulted to OBJECT.
-    schema: The schema to use for the list. If specified, then item_schema must
-      not be specified.
-    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where list(s) are created.
-
-  Returns:
-    The slice with list/lists.
 ```
 
 ### `kd.lists.select_items(ds, fltr)` {#kd.lists.select_items}
@@ -4213,6 +4202,12 @@ Returns true iff `x` is a List schema DataItem.
 Returns true iff `x` is a primitive schema DataItem.
 ```
 
+### `kd.schema.is_struct_schema(x)` {#kd.schema.is_struct_schema}
+
+``` {.no-copy}
+Returns true iff `x` is a Struct schema DataItem.
+```
+
 ### `kd.schema.list_schema(item_schema, db=None)` {#kd.schema.list_schema}
 Aliases:
 
@@ -4443,19 +4438,11 @@ Casts `x` to SCHEMA using explicit (permissive) casting rules.
 ### `kd.schema.to_str(x)` {#kd.schema.to_str}
 Aliases:
 
-- [kd.schema.to_text](#kd.schema.to_text)
-
 - [kd.to_str](#kd.to_str)
-
-- [kd.to_text](#kd.to_text)
 
 ``` {.no-copy}
 Casts `x` to STRING using explicit (permissive) casting rules.
 ```
-
-### `kd.schema.to_text(x)` {#kd.schema.to_text}
-
-Alias for [kd.schema.to_str](#kd.schema.to_str) operator.
 
 ### `kd.schema.uu_schema(seed='', *, db=None, **attrs)` {#kd.schema.uu_schema}
 Aliases:
@@ -4549,39 +4536,6 @@ Operators that work on shapes
 <section class="zippy closed">
 
 **Operators**
-
-### `kd.shapes.new(*dimensions)` {#kd.shapes.new}
-
-``` {.no-copy}
-Returns a JaggedShape from the provided dimensions.
-
-Example:
-  # Creates a scalar shape (i.e. no dimension).
-  kd.shapes.new()  # -> JaggedShape()
-
-  # Creates a 3-dimensional shape with all uniform dimensions.
-  kd.shapes.new(2, 3, 1)  # -> JaggedShape(2, 3, 1)
-
-  # Creates a 3-dimensional shape with 2 sub-values in the first dimension.
-  #
-  # The second dimension is jagged with 2 values. The first value in the
-  # second dimension has 2 sub-values, and the second value has 1 sub-value.
-  #
-  # The third dimension is jagged with 3 values. The first value in the third
-  # dimension has 1 sub-value, the second has 2 sub-values, and the third has
-  # 3 sub-values.
-  kd.shapes.new(2, [2, 1], [1, 2, 3])
-      # -> JaggedShape(2, [2, 1], [1, 2, 3])
-
-Args:
-  *dimensions: A combination of Edges and DataSlices representing the
-    dimensions of the JaggedShape. Edges are used as is, while DataSlices are
-    treated as sizes. DataItems (of ints) are interpreted as uniform
-    dimensions which have the same child size for all parent elements.
-    DataSlices (of ints) are interpreted as a list of sizes, where `ds[i]` is
-    the child size of parent `i`. Only rank-0 or rank-1 int DataSlices are
-    supported.
-```
 
 ### `kd.shapes.dim_mapping(shape, dim)` {#kd.shapes.dim_mapping}
 
@@ -4748,6 +4702,39 @@ Aliases:
 Returns the rank of the jagged shape.
 ```
 
+### `kd.shapes.new(*dimensions)` {#kd.shapes.new}
+
+``` {.no-copy}
+Returns a JaggedShape from the provided dimensions.
+
+Example:
+  # Creates a scalar shape (i.e. no dimension).
+  kd.shapes.new()  # -> JaggedShape()
+
+  # Creates a 3-dimensional shape with all uniform dimensions.
+  kd.shapes.new(2, 3, 1)  # -> JaggedShape(2, 3, 1)
+
+  # Creates a 3-dimensional shape with 2 sub-values in the first dimension.
+  #
+  # The second dimension is jagged with 2 values. The first value in the
+  # second dimension has 2 sub-values, and the second value has 1 sub-value.
+  #
+  # The third dimension is jagged with 3 values. The first value in the third
+  # dimension has 1 sub-value, the second has 2 sub-values, and the third has
+  # 3 sub-values.
+  kd.shapes.new(2, [2, 1], [1, 2, 3])
+      # -> JaggedShape(2, [2, 1], [1, 2, 3])
+
+Args:
+  *dimensions: A combination of Edges and DataSlices representing the
+    dimensions of the JaggedShape. Edges are used as is, while DataSlices are
+    treated as sizes. DataItems (of ints) are interpreted as uniform
+    dimensions which have the same child size for all parent elements.
+    DataSlices (of ints) are interpreted as a list of sizes, where `ds[i]` is
+    the child size of parent `i`. Only rank-0 or rank-1 int DataSlices are
+    supported.
+```
+
 ### `kd.shapes.rank(shape)` {#kd.shapes.rank}
 
 Alias for [kd.shapes.ndim](#kd.shapes.ndim) operator.
@@ -4788,8 +4775,7 @@ Examples:
 Args:
   x: a DataSlice.
   shape: a JaggedShape or a tuple of dimensions that forms a shape through
-    `kd.shapes.new`, with additional support for a `-1` placeholder
-    dimension.
+    `kd.shapes.new`, with additional support for a `-1` placeholder dimension.
 ```
 
 ### `kd.shapes.reshape_as(x, shape_from)` {#kd.shapes.reshape_as}
@@ -6759,20 +6745,6 @@ Returns a tuple constructed from the given arguments.
 
 **Operators**
 
-### `kd.Any(*args, **kwargs)` {#kd.Any}
-
-``` {.no-copy}
-Special type indicating an unconstrained type.
-
-    - Any is compatible with every type.
-    - Any assumed to have all methods.
-    - All values assumed to be instances of Any.
-
-    Note that all the above statements are true from the point of view of
-    static type checkers. At runtime, Any should not be used with instance
-    checks.
-```
-
 ### `kd.add(x, y)` {#kd.add}
 
 Alias for [kd.core.add](#kd.core.add) operator.
@@ -6871,7 +6843,7 @@ Alias for [kd.core.attrs](#kd.core.attrs) operator.
 
 ### `kd.bag` {#kd.bag}
 
-Alias for [kd.core.bag](#kd.core.bag) operator.
+Alias for [kd.bags.new](#kd.bags.new) operator.
 
 ### `kd.bind(fn_def, /, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs)` {#kd.bind}
 
@@ -7065,7 +7037,7 @@ Alias for [kd.core.enriched](#kd.core.enriched) operator.
 
 ### `kd.enriched_bag(*bags)` {#kd.enriched_bag}
 
-Alias for [kd.bags.enriched_bag](#kd.bags.enriched_bag) operator.
+Alias for [kd.bags.enriched](#kd.bags.enriched) operator.
 
 ### `kd.equal(x, y)` {#kd.equal}
 
@@ -7388,7 +7360,7 @@ Alias for [kd.core.has_primitive](#kd.core.has_primitive) operator.
 
 Alias for [kd.ids.hash_itemid](#kd.ids.hash_itemid) operator.
 
-### `kd.implode(x, /, ndim=1, db=None)` {#kd.implode}
+### `kd.implode(x, /, ndim=1, itemid=None, db=None)` {#kd.implode}
 
 Alias for [kd.lists.implode](#kd.lists.implode) operator.
 
@@ -7490,7 +7462,36 @@ Alias for [kd.comparison.less_equal](#kd.comparison.less_equal) operator.
 
 ### `kd.list(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list}
 
-Alias for [kd.lists.new](#kd.lists.new) operator.
+``` {.no-copy}
+Creates list(s) by collapsing `items`.
+
+  Returns an immutable list if `db` is not provided.
+
+  If there is no argument, returns an empty Koda List.
+  If the argument is a DataSlice, creates a slice of Koda Lists.
+  If the argument is a Python list, creates a nested Koda List.
+
+  Examples:
+  list() -> a single empty Koda List
+  list([1, 2, 3]) -> Koda List with items 1, 2, 3
+  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
+  list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
+  list(kd.slice([[1, 2, 3], [4, 5]]))
+    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
+
+  Args:
+    items: The items to use. If not specified, an empty list of OBJECTs will be
+      created.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+    db: optional DataBag where list(s) are created.
+
+  Returns:
+    The slice with list/lists.
+```
 
 ### `kd.list_like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list_like}
 
@@ -7933,12 +7934,6 @@ Alias for [kd.math.sum](#kd.math.sum) operator.
 
 Alias for [kd.slices.at](#kd.slices.at) operator.
 
-### `kd.text(x)` {#kd.text}
-
-``` {.no-copy}
-Deprecated. Use kd.str instead.
-```
-
 ### `kd.to_any(x)` {#kd.to_any}
 
 Alias for [kd.schema.as_any](#kd.schema.as_any) operator.
@@ -7975,7 +7970,7 @@ Alias for [kd.schema.to_int64](#kd.schema.to_int64) operator.
 
 Alias for [kd.schema.get_itemid](#kd.schema.get_itemid) operator.
 
-### `kd.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=DataItem(True, schema: BOOLEAN))` {#kd.to_json}
+### `kd.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=DataItem(True, schema: BOOLEAN), keys_attr=DataItem('json_object_keys', schema: STRING), values_attr=DataItem('json_object_values', schema: STRING))` {#kd.to_json}
 
 Alias for [kd.json.to_json](#kd.json.to_json) operator.
 
@@ -8042,10 +8037,6 @@ Alias for [kd.schema.to_schema](#kd.schema.to_schema) operator.
 
 Alias for [kd.schema.to_str](#kd.schema.to_str) operator.
 
-### `kd.to_text(x)` {#kd.to_text}
-
-Alias for [kd.schema.to_str](#kd.schema.to_str) operator.
-
 ### `kd.trace_as_fn(*, name=None, py_fn=False, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, wrapper=None)` {#kd.trace_as_fn}
 
 Alias for [kd.functor.trace_as_fn](#kd.functor.trace_as_fn) operator.
@@ -8078,7 +8069,7 @@ Alias for [kd.core.updated](#kd.core.updated) operator.
 
 ### `kd.updated_bag(*bags)` {#kd.updated_bag}
 
-Alias for [kd.bags.updated_bag](#kd.bags.updated_bag) operator.
+Alias for [kd.bags.updated](#kd.bags.updated) operator.
 
 ### `kd.uu(seed=None, *, schema=None, update_schema=False, db=None, **attrs)` {#kd.uu}
 
@@ -9170,6 +9161,17 @@ Returns:
 Returns present iff this DataSlice is a primitive (scalar) Schema.
 ```
 
+### `DataSlice.is_struct_schema()` {#DataSlice.is_struct_schema}
+
+``` {.no-copy}
+Returns present iff this DataSlice represents a Struct Schema.
+
+Note that the Entity schema includes Entity, List and Dict schemas.
+
+Returns:
+  Present iff this DataSlice represents a Struct Schema.
+```
+
 ### `DataSlice.list_size(self)` {#DataSlice.list_size}
 
 ``` {.no-copy}
@@ -9276,8 +9278,7 @@ Examples:
 Args:
   x: a DataSlice.
   shape: a JaggedShape or a tuple of dimensions that forms a shape through
-    `kd.shapes.new`, with additional support for a `-1` placeholder
-    dimension.
+    `kd.shapes.new`, with additional support for a `-1` placeholder dimension.
 ```
 
 ### `DataSlice.reshape_as(self, shape_from)` {#DataSlice.reshape_as}
@@ -9819,7 +9820,7 @@ Creates new Koda dicts with the given shape.
 
 ### `DataBag.empty` {#DataBag.empty}
 
-Alias for [kd.core.bag](#kd.core.bag) operator.
+Alias for [kd.bags.new](#kd.bags.new) operator.
 
 ### `DataBag.fingerprint` {#DataBag.fingerprint}
 
@@ -9861,7 +9862,7 @@ Returns the list of fallback DataBags in this DataBag.
 The list will be empty if the DataBag does not have fallbacks.
 ```
 
-### `DataBag.implode(self, x, /, ndim)` {#DataBag.implode}
+### `DataBag.implode(self, x, /, ndim=1, itemid=None)` {#DataBag.implode}
 
 ``` {.no-copy}
 Implodes a Dataslice `x` a specified number of times.
@@ -9885,6 +9886,7 @@ Implodes a Dataslice `x` a specified number of times.
   Args:
     x: the DataSlice to implode
     ndim: the number of implosion operations to perform
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
     db: optional DataBag where Lists are created from
 
   Returns:
