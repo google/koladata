@@ -143,7 +143,7 @@ ds.display()
 
 ### Entities
 
-Entities can be thought as instances of protos or C++ structs. That is, they
+Entities can be thought of as instances of protos or C++ structs. That is, they
 don't directly store their own schema. Instead, their schema is stored at
 DataSlice level and all entities in a DataSlice share the same schema.
 
@@ -156,6 +156,8 @@ es = kd.new(x=kd.slice([1, 2, None]),
 
 e.get_schema()
 assert e.get_schema() == es.get_schema()
+
+assert e.is_entity()
 
 # Use an existing schema
 s = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
@@ -213,82 +215,6 @@ e4 = e.updated(kd.attrs(e, z=4), kd.attrs(e, y=10))
 
 # Update nested attributes
 nested = kd.new(a=kd.new(c=kd.new(e=1), d=2), b=3)
-nested = nested.updated(kd.attrs(nested.a.c, e=4),
-                        kd.attrs(nested.a, d=5),
-                        kd.attrs(nested, b=6))
-```
-
-</section>
-
-<section>
-
-### Objects
-
-Objects can be thought as Python objects. They directly store their own schema
-as **schema** attribute similar to how Python objects store **class** attribute.
-This allows objects in a DataSlice to have different schemas.
-
-```py
-o = kd.obj(x=1, y=2)
-os = kd.obj(x=kd.slice([1, 2, None]),
-            y=kd.slice([4, None, 6]))
-
-os = kd.slice([kd.obj(x=1),
-               kd.obj(y=2.0),
-               kd.obj(x=1.0, y='a')])
-
-os.get_schema() # kd.OBJECT
-os.get_obj_schema()
-# [IMPLICIT_SCHEMA(x=INT32),
-#  IMPLICIT_SCHEMA(y=FLOAT32),
-#  IMPLICIT_SCHEMA(x=INT32, y=STRING)]
-
-# Use provided itemids
-itemid = kd.new_itemid()
-o1 = kd.obj(x=1, y=2, itemid=itemid)
-o2 = kd.obj(x=1, y=2, itemid=itemid)
-assert o1.get_itemid() == o2.get_itemid()
-
-# Get available attributes
-os1 = kd.slice([kd.obj(x=1), kd.obj(x=1.0, y='a')])
-# Attributes present in all objects
-kd.dir(os1) # ['x']
-# Or
-os1.get_attr_names(intersection=True) # ['x']
-os1.get_attr_names(intersection=False) # ['x', 'y']
-
-# Access attribute
-o.x # 1
-o.get_attr('y') # 2
-o.maybe('z') # None
-o.get_attr('z', default=0) # 0
-os.get_attr('x', default=0) # [1, 0, 'a']
-
-# Objects are immutable by default, modification is done
-# by creating a new object with updated attributes
-o = kd.obj(x=1, y=2)
-
-# Update a single attribute
-o1 = o.with_attr('x', 3)
-o1 = o.with_attr('z', 4)
-# Also override schema
-# no update_schema=True is needed
-o1 = o.with_attr('y', 'a')
-
-# Update multiple attributes
-o2 = o.with_attrs(z=4, x=3)
-# Also override schema for 'y'
-o2 = o.with_attrs(z=4, y='a')
-
-# Create an update and apply it separately
-upd = kd.attrs(o, z=4, y=10)
-o3 = o.updated(upd)
-
-# Allows mixing multiple updates
-o4 = o.updated(kd.attrs(o, z=4), kd.attrs(o, y=10))
-
-# Update nested attributes
-nested = kd.obj(a=kd.obj(c=kd.obj(e=1), d=2), b=3)
 nested = nested.updated(kd.attrs(nested.a.c, e=4),
                         kd.attrs(nested.a, d=5),
                         kd.attrs(nested, b=6))
@@ -402,6 +328,111 @@ d6 = d1.updated(upd)
 # Allows mixing multiple updates
 d7 = d1.updated(d1.dict_update('c', 5),
                 d1.dict_update(another_dict))
+```
+
+</section>
+
+<section>
+
+### Objects
+
+Objects can be thought of as Python objects. They directly store their own schema
+as **schema** attribute similar to how Python objects store **class** attribute.
+This allows objects in a DataSlice to have different schemas. Entities, Lists,
+Dicts and primitives can be objects. Entities, Lists and Dicts store their own
+schema as an internal `__schema__` attribute while primitives' schema is
+determined by the type of their value.
+
+```py
+# Entity objects
+o = kd.obj(x=1, y=2)
+os = kd.obj(x=kd.slice([1, 2, None]),
+            y=kd.slice([4, None, 6]))
+
+os = kd.slice([kd.obj(x=1),
+               kd.obj(y=2.0),
+               kd.obj(x=1.0, y='a')])
+
+os.get_schema() # kd.OBJECT
+os.get_obj_schema()
+# [IMPLICIT_SCHEMA(x=INT32),
+#  IMPLICIT_SCHEMA(y=FLOAT32),
+#  IMPLICIT_SCHEMA(x=INT32, y=STRING)]
+
+# Use provided itemids
+itemid = kd.new_itemid()
+o1 = kd.obj(x=1, y=2, itemid=itemid)
+o2 = kd.obj(x=1, y=2, itemid=itemid)
+assert o1.get_itemid() == o2.get_itemid()
+
+# Get available attributes
+os1 = kd.slice([kd.obj(x=1), kd.obj(x=1.0, y='a')])
+# Attributes present in all objects
+kd.dir(os1) # ['x']
+# Or
+os1.get_attr_names(intersection=True) # ['x']
+os1.get_attr_names(intersection=False) # ['x', 'y']
+
+# Access attribute
+o.x # 1
+o.get_attr('y') # 2
+o.maybe('z') # None
+o.get_attr('z', default=0) # 0
+os.get_attr('x', default=0) # [1, 0, 'a']
+
+# Objects are immutable by default, modification is done
+# by creating a new object with updated attributes
+o = kd.obj(x=1, y=2)
+
+# Update a single attribute
+o1 = o.with_attr('x', 3)
+o1 = o.with_attr('z', 4)
+# Also override schema
+# no update_schema=True is needed
+o1 = o.with_attr('y', 'a')
+
+# Update multiple attributes
+o2 = o.with_attrs(z=4, x=3)
+# Also override schema for 'y'
+o2 = o.with_attrs(z=4, y='a')
+
+# Create an update and apply it separately
+upd = kd.attrs(o, z=4, y=10)
+o3 = o.updated(upd)
+
+# Allows mixing multiple updates
+o4 = o.updated(kd.attrs(o, z=4), kd.attrs(o, y=10))
+
+# Update nested attributes
+nested = kd.obj(a=kd.obj(c=kd.obj(e=1), d=2), b=3)
+nested = nested.updated(kd.attrs(nested.a.c, e=4),
+                        kd.attrs(nested.a, d=5),
+                        kd.attrs(nested, b=6))
+
+# List and dict can be objects too
+# To convert a list/dict to an object,
+# use kd.obj()
+l = kd.list([1, 2, 3])
+l_obj = kd.obj(l)
+l_obj[:] # [1, 2, 3]
+
+d = kd.dict({'a': 1, 'b': 2})
+d_obj = kd.obj(d)
+d_obj.get_keys() # ['a', 'b']
+d_obj['a'] # 1
+
+# Convert an entity to an object
+e = kd.new(x=1, y=2)
+e_obj = kd.obj(e)
+
+# Actually, we can pass primitive to kd.obj()
+p_obj = kd.obj(1)
+p_obj = kd.obj('a')
+
+# An OBJECT Dataslice with entity, list,
+# dict and primitive items
+kd.slice([kd.obj(a=1), 1, kd.obj(kd.list([1, 2])),
+          kd.obj(kd.dict({'a': 1}))])
 ```
 
 </section>
@@ -821,6 +852,8 @@ kd.has_not(a) # [missing, present, missing]
 b = kd.slice([kd.obj(), kd.obj(kd.list()),
               kd.obj(kd.dict()), None, 1])
 
+kd.has_entity(b)
+# -> [present, missing, missing, missing, missing]
 kd.has_list(b)
 # -> [missing, present, missing, missing, missing]
 kd.has_dict(b)
@@ -1576,6 +1609,10 @@ Line = kd.named_schema('Line', start=Point, end=kd.ANY)
 # Get the attribute start's schema
 Line.start
 
+# Check if it is an Entity schema
+assert Point.is_entity_schema()
+assert Line.is_entity_schema()
+
 # List schema
 ls1 = kd.list_schema(kd.INT64)
 
@@ -1610,6 +1647,9 @@ uus1 = kd.uu_schema(x=kd.INT32, y=kd.FLOAT64)
 # UU schemas with the same contents are the same
 uus2 = kd.uu_schema(x=kd.INT32, y=kd.FLOAT64)
 assert uus1 == uus2
+
+# It is also an Entity schema
+assert uus1.is_entity_schema()
 
 # In fact, named, list and dict schemas are also
 # UU schemas

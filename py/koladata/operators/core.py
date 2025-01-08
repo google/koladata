@@ -226,6 +226,68 @@ def is_primitive(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kde.has_entity'])
+@optools.as_backend_operator(
+    'kde.core.has_entity',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def has_entity(x):  # pylint: disable=unused-argument
+  """Returns present for each item in `x` that is an Entity.
+
+  Note that this is a pointwise operation.
+
+  Also see `kd.is_entity` for checking if `x` is an Entity DataSlice. But
+  note that `kd.all(kd.has_entity(x))` is not always equivalent to
+  `kd.is_entity(x)`. For example,
+
+    kd.is_entity(kd.item(None, kd.OBJECT)) -> kd.present
+    kd.all(kd.has_entity(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.is_entity(kd.item([None], kd.OBJECT)) -> kd.present
+    kd.all(kd.has_entity(kd.item([None], kd.OBJECT))) -> kd.missing
+
+  Args:
+    x: DataSlice to check.
+
+  Returns:
+    A MASK DataSlice with the same shape as `x`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.is_entity'])
+@optools.as_backend_operator(
+    'kde.core.is_entity',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def is_entity(x):  # pylint: disable=unused-argument
+  """Returns whether x is an Entity DataSlice.
+
+  `x` is an Entity DataSlice if it meets one of the following conditions:
+    1) it has an Entity schema
+    2) it has OBJECT/ANY schema and only has Entity items
+
+  Also see `kd.has_entity` for a pointwise version. But note that
+  `kd.all(kd.has_entity(x))` is not always equivalent to
+  `kd.is_entity(x)`. For example,
+
+    kd.is_entity(kd.item(None, kd.OBJECT)) -> kd.present
+    kd.all(kd.has_entity(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.is_entity(kd.item([None], kd.OBJECT)) -> kd.present
+    kd.all(kd.has_entity(kd.item([None], kd.OBJECT))) -> kd.missing
+
+  Args:
+    x: DataSlice to check.
+
+  Returns:
+    A MASK DataItem.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kde.stub'])
 @optools.as_backend_operator(
     'kde.core.stub',

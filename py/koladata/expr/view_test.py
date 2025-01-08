@@ -459,6 +459,15 @@ class KodaViewTest(parameterized.TestCase):
   def test_get_present_count(self):
     testing.assert_equal(C.x.get_present_count(), kde.count(C.x))
 
+  def test_is_entity(self):
+    testing.assert_equal(C.x.is_entity(), kde.is_entity(C.x))
+
+  def test_is_list(self):
+    testing.assert_equal(C.x.is_list(), kde.is_list(C.x))
+
+  def test_is_dict(self):
+    testing.assert_equal(C.x.is_dict(), kde.is_dict(C.x))
+
   def test_is_dict_schema(self):
     testing.assert_equal(C.x.is_dict_schema(), kde.schema.is_dict_schema(C.x))
 

@@ -161,6 +161,7 @@ cc_library(
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/ops",
         "@com_google_arolla//arolla/dense_array/qtype",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",

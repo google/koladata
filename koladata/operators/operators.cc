@@ -97,7 +97,9 @@ OPERATOR_FAMILY("kde.core.enriched",
 OPERATOR("kde.core.follow", Follow);
 OPERATOR("kde.core.freeze_bag", Freeze<DataSlice>);
 OPERATOR("kde.core.get_bag", GetBag);
+OPERATOR("kde.core.has_entity", HasEntity);
 OPERATOR("kde.core.has_primitive", HasPrimitive);
+OPERATOR("kde.core.is_entity", IsEntity);
 OPERATOR("kde.core.is_primitive", IsPrimitive);
 OPERATOR("kde.core.no_bag", NoBag);
 OPERATOR("kde.core.nofollow", NoFollow);

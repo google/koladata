@@ -27,6 +27,8 @@
 #include "koladata/operators/masking.h"
 #include "koladata/operators/utils.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/ops/dense_ops.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
@@ -60,6 +62,30 @@ absl::StatusOr<internal::DataSliceImpl> HasPrimitiveImpl(
   return std::move(builder).Build();
 }
 
+absl::StatusOr<internal::DataItem> HasEntityImpl(
+    const internal::DataItem& item) {
+  if (item.is_entity()) {
+    return internal::DataItem(arolla::Unit());
+  } else {
+    return internal::DataItem();
+  }
+}
+
+absl::StatusOr<internal::DataSliceImpl> HasEntityImpl(
+    const internal::DataSliceImpl& slice) {
+  auto result = arolla::CreateEmptyDenseArray<arolla::Unit>(slice.size());
+  slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
+    if constexpr (std::is_same_v<T, internal::ObjectId>) {
+      result = arolla::CreateDenseOp(
+          [](arolla::view_type_t<internal::ObjectId> value)
+              -> arolla::OptionalValue<arolla::Unit> {
+            return arolla::OptionalUnit(value.IsEntity());
+          })(values);
+    }
+  });
+  return internal::DataSliceImpl::Create(std::move(result));
+}
+
 absl::StatusOr<internal::DataItem> HasListImpl(const internal::DataItem& item) {
   if (item.is_list()) {
     return internal::DataItem(arolla::Unit());
@@ -70,19 +96,17 @@ absl::StatusOr<internal::DataItem> HasListImpl(const internal::DataItem& item) {
 
 absl::StatusOr<internal::DataSliceImpl> HasListImpl(
     const internal::DataSliceImpl& slice) {
-  internal::SliceBuilder builder(slice.size());
-  auto typed_builder = builder.typed<arolla::Unit>();
+  auto result = arolla::CreateEmptyDenseArray<arolla::Unit>(slice.size());
   slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
     if constexpr (std::is_same_v<T, internal::ObjectId>) {
-      values.ForEachPresent(
-          [&](int64_t id, arolla::view_type_t<internal::ObjectId> value) {
-            if (value.IsList()) {
-              typed_builder.InsertIfNotSet(id, arolla::Unit());
-            }
-          });
+      result = arolla::CreateDenseOp(
+          [](arolla::view_type_t<internal::ObjectId> value)
+              -> arolla::OptionalValue<arolla::Unit> {
+            return arolla::OptionalUnit(value.IsList());
+          })(values);
     }
   });
-  return std::move(builder).Build();
+  return internal::DataSliceImpl::Create(std::move(result));
 }
 
 absl::StatusOr<internal::DataItem> HasDictImpl(const internal::DataItem& item) {
@@ -95,19 +119,17 @@ absl::StatusOr<internal::DataItem> HasDictImpl(const internal::DataItem& item) {
 
 absl::StatusOr<internal::DataSliceImpl> HasDictImpl(
     const internal::DataSliceImpl& slice) {
-  internal::SliceBuilder builder(slice.size());
-  auto typed_builder = builder.typed<arolla::Unit>();
+  auto result = arolla::CreateEmptyDenseArray<arolla::Unit>(slice.size());
   slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
     if constexpr (std::is_same_v<T, internal::ObjectId>) {
-      values.ForEachPresent(
-          [&](int64_t id, arolla::view_type_t<internal::ObjectId> value) {
-            if (value.IsDict()) {
-              typed_builder.InsertIfNotSet(id, arolla::Unit());
-            }
-          });
+      result = arolla::CreateDenseOp(
+          [](arolla::view_type_t<internal::ObjectId> value)
+              -> arolla::OptionalValue<arolla::Unit> {
+            return arolla::OptionalUnit(value.IsDict());
+          })(values);
     }
   });
-  return std::move(builder).Build();
+  return internal::DataSliceImpl::Create(std::move(result));
 }
 
 }  // namespace
@@ -125,6 +147,25 @@ absl::StatusOr<DataSlice> HasPrimitive(const DataSlice& x) {
       schema.is_schema_schema()) {
     return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
       ASSIGN_OR_RETURN(auto res, HasPrimitiveImpl(impl));
+      return DataSlice::Create(std::move(res), x.GetShape(),
+                               internal::DataItem(schema::kMask), nullptr);
+    });
+  }
+  return DataSlice::Create(
+      internal::DataSliceImpl::CreateEmptyAndUnknownType(x.size()),
+      x.GetShape(), internal::DataItem(schema::kMask), nullptr);
+}
+
+absl::StatusOr<DataSlice> HasEntity(const DataSlice& x) {
+  auto schema = x.GetSchemaImpl();
+  // Trust the schema if it is a Entity schema.
+  if (x.GetSchema().IsEntitySchema()) {
+    return Has(x);
+  }
+  // Derive from the data for OBJECT and ANY schemas.
+  if (schema.is_any_schema() || schema.is_object_schema()) {
+    return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+      ASSIGN_OR_RETURN(auto res, HasEntityImpl(impl));
       return DataSlice::Create(std::move(res), x.GetShape(),
                                internal::DataItem(schema::kMask), nullptr);
     });
@@ -200,6 +241,10 @@ absl::StatusOr<DataSlice> IsPrimitive(const DataSlice& x) {
         return res;
       }));
   return AsMask(contains_only_primitives);
+}
+
+absl::StatusOr<DataSlice> IsEntity(const DataSlice& x) {
+  return AsMask(x.IsEntity());
 }
 
 absl::StatusOr<DataSlice> IsList(const DataSlice& x) {

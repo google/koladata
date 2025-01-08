@@ -406,6 +406,9 @@ class KodaView(arolla.abc.ExprView):
   def is_empty(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.is_empty', self)
 
+  def is_entity(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.is_entity', self)
+
   def is_list(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.is_list', self)
 

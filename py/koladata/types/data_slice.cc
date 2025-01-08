@@ -808,6 +808,12 @@ absl::Nullable<PyObject*> PyDataSlice_is_list(PyObject* self, PyObject*) {
   return WrapPyDataSlice(AsMask(ds.IsList()));
 }
 
+absl::Nullable<PyObject*> PyDataSlice_is_entity(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  return WrapPyDataSlice(AsMask(ds.IsEntity()));
+}
+
 absl::Nullable<PyObject*> PyDataSlice_is_primitive_schema(PyObject* self,
                                                           PyObject*) {
   arolla::python::DCheckPyGIL();
@@ -1085,11 +1091,18 @@ Returns:
     {"is_dict", PyDataSlice_is_dict, METH_NOARGS,
      "is_dict()\n"
      "--\n\n"
-     "Returns present iff this DataSlice contains only dicts."},
+     "Returns present iff this DataSlice has Dict schema or contains only "
+     "dicts."},
     {"is_list", PyDataSlice_is_list, METH_NOARGS,
      "is_list()\n"
      "--\n\n"
-     "Returns present iff this DataSlice contains only lists."},
+     "Returns present iff this DataSlice has List schema or contains only "
+     "lists."},
+    {"is_entity", PyDataSlice_is_entity, METH_NOARGS,
+     "is_entity()\n"
+     "--\n\n"
+     "Returns present iff this DataSlice has Entity schema or contains only "
+     "entities."},
     {"is_dict_schema", PyDataSlice_is_dict_schema, METH_NOARGS,
      "is_dict_schema()\n"
      "--\n\n"
