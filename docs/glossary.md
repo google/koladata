@@ -1,12 +1,5 @@
 # koda Glossaries
 
-go/koda-glossary
-
-<!--*
-# Document freshness: For more information, see go/fresh-source.
-freshness: { owner: 'dilumich' reviewed: '2024-12-27' }
-*-->
-
 [TOC]
 
 ## Basics

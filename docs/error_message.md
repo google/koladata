@@ -1,10 +1,5 @@
 # Add user friendly error messages
 
-<!--*
-# Document freshness: For more information, see go/fresh-source.
-freshness: { owner: 'wangzhan' reviewed: '2024-08-13' }
-*-->
-
 [TOC]
 
 When Koda developers find a case where the error message is not readable,
