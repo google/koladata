@@ -35,7 +35,7 @@ ints/strings/floats). Note, in future we also plan to support DataSlices of
 tensors, and tensors will be treated as primitives (i.e. similar to strings).
 
 There can be also **DataSlices of lists**, **DataSlices of dicts** and
-**DataSlices of objects** which will be discussed in the
+**DataSlices of entities with attributes** which will be discussed in the
 [DataSlice of Structured Data](#structured_data) section later.
 
 All the leaves (items) have the same depth, which is the same as the number of
@@ -50,8 +50,8 @@ kd.slice([["one", "two", "three"], ["four", "five"]]) # 2-dims
 # kd.slice([1, [2, 3]]) would fail, as all the leaves must have the same depth
 ```
 
-Conceptually, it can be thought as partition tree + flattened array as shown in
-the graph below.
+Conceptually, it can be thought of as a partition tree + a flattened array as
+shown in the graph below.
 
 ```dot
 digraph {
@@ -171,7 +171,7 @@ kd.slice(ds.to_py())  # == ds
 ds.to_py()[0][1][2]  # 5 - the same as ds.L[0].L[1].L[2].to_py()
 ```
 
-### Vectorized Ops
+### Vectorized Operators
 
 One can manipulate DataSlice's jagged shape (i.e. partition tree) without
 touching the actual array values.
@@ -188,7 +188,7 @@ ds1 = kd.slice([[10, 20, 30], [40, 50, 60], [70, 80, 90, 100]])
 ds.reshape(ds1.get_shape())  # [[1, 2, 3], [4, 5, 6], [7, 8, 9, 10]]
 ds.reshape_as(ds1)  # the same as above
 
-# # Flatten and restore shape
+# Flatten and restore shape
 ds1 = ds.flatten()
 ds1.reshape_as(ds) # == ds
 ```
@@ -199,14 +199,15 @@ shape.
 ```py
 ds = kd.slice([[[1, 2], [3, 4, 5]], [[6], [], [7, 8, 9, 10]]])
 ds * 2
-kd.val_like(ds, 5)  # [[[5,5], [5,5,5]], [[5]], [], [5,5,5,5]]]
+kd.val_like(ds, 5)  # [[[5, 5], [5, 5, 5]], [[5]], [], [5, 5, 5, 5]]]
 kd.math.log10(ds)
 kd.map_py(lambda x: x * 3, ds)
 kd.sort(ds, descending=True)
-kd.reverse(ds)
+kd.reverse(ds)  # [[[2, 1], [5, 4, 3]], [[6], [], [10, 9, 8, 7]]]
 ```
 
-Aggregational operations reduce the number of dimensions in the partition tree.
+**Aggregational operations** reduce the number of dimensions in the partition
+tree.
 
 ```py
 ds = kd.slice([[[1, 2], [3, 4, 5]], [[6], [], [7, 8, 9, 10]]])
@@ -268,8 +269,9 @@ ds2 = kd.slice([[4, 5, 6], [7, 8]])
 kd.concat(ds1, ds2)  # [[1, 2, 4, 5, 6], [3, 7, 8]]
 ```
 
-`kd.group_by` adds dimension after grouping items and unique keeps only unique
-items. Both don't change the order, meaning unique == group_by + collapse
+`kd.group_by` creates a new dimension containing the grouped items and
+`kd.unique` keeps only unique items. Both don't change the order, meaning
+`kd.unique` is the same as `kd.group_by` + `kd.collapse`.
 
 ```py
 ds = kd.slice([4, 3, 4, 2, 2, 1, 4, 1, 2])
@@ -318,9 +320,9 @@ kd.translate(a, kd.unique(b), kd.implode(kd.group_by(c, b)))[:]
 ### Items
 
 Elements of a DataSlice are **items**, where each item can be a primitive, an
-entity/object with attributes, a list or a dict. To support vectorization, Koda
-has native versions of primitives/entity/object/list/dict, which are made as
-close to Python as possible.
+entity with attributes, a list or a dict. To support vectorization, Koda has
+native versions of primitives/entity/list/dict, which are made as close to
+Python as possible.
 
 Moreover, items can be seen as a special case of DataSlices (0-dim DataSlices),
 and everything that accepts DataSlices works with items too.
@@ -328,8 +330,8 @@ and everything that accepts DataSlices works with items too.
 NOTE: more types of data structures will be supported soon (tensors and sets in
 particular).
 
-Items are immutable (primitives, entities, objects, lists and dicts), but it's
-possible to make them mutable for advanced workflows.
+Items are immutable (primitives, entities, lists and dicts), but it's possible
+to make them mutable for advanced workflows.
 
 Primitive types include `kd.INT32`, `kd.INT64`, `kd.FLOAT32`, `kd.FLOAT64`,
 `kd.STRING`, `kd.BYTES`, `kd.BOOLEAN` and `kd.MASK`. `kd.MASK` is a special type
@@ -381,7 +383,7 @@ kd.item(1).repeat(2).repeat(3)  # [[1, 1, 1], [1, 1, 1]]
 kd.item(1).reshape_as(kd.slice([[[8]]]))  # [[[1]]]
 ```
 
-Lists, similar to python, represent "lists" (not DataSlices!) of items:
+**Lists**, similar to python, represent "lists" (not DataSlices!) of items:
 
 ```py
 # Create lists
@@ -459,7 +461,8 @@ x = x.with_attrs(b=kd.concat_lists(x.y, kd.list([x.u])))  # append one value
 # x = x.with_attrs(b=kd.appended_list(x.a, x.u))  # the same as above
 ```
 
-Dicts can be created in a way similar to lists, and are immutable by default.
+**Dicts** can be created in a way similar to lists, and are immutable by
+default.
 
 ```py
 # Multiple ways to achieve the same
@@ -619,8 +622,14 @@ r = r.updated(kd.attrs(r, x=kd.list([4,5])))
 r = r.updated(kd.dict_update(r.y, 'c', 4))
 ```
 
-**Objects**, similar to python objects, make it possible to mix items of
-different types and/or entities with different schemas.
+**Objects**, similar to python objects, make it possible to mix primitives of
+different types and/or entities/lists/dicts with different schemas. Objects are
+special items which store their own schema as data. Primitives are considered as
+objects as their schemas can be inferred from the data. Entities/lists/dicts
+store their schemas as a special `__schema__` attribute.
+
+Note: As the most commonly used object type is entity, "objects" often refer to
+"entities with embedded schemas" if no other context is provided.
 
 ```py
 # Create structured objects directly
@@ -700,9 +709,25 @@ a = a.updated(kd.attrs(a.y, v=6, w=5))
 a = a.with_attrs(x='hello')  # No need for update_schema=True
 ```
 
-Creation of entities, objects, dicts and lists allocates new **128-bit ids**
+Similar to entities, lists and dicts can be objects too.
+
+```py
+l1 = kd.list([1, 2])
+l2 = kd.list(['3', '4'])
+# kd.slice([l1, l2]) # fails, as l1 and l2 have different schemas
+l_objs = kd.slice([kd.obj(l1), kd.obj(l2)])
+l_objs[:]  # [[1, 2], ['3', '4']]
+
+d1 = kd.dict({'a': 1})
+d2 = kd.dict({2: True})
+# kd.slice([d1, d2]) # fails, as d1 and d2 have different schemas
+d_objs = kd.slice([kd.obj(d1), kd.obj(d2)])
+d_objs[:]  # [{'a': 1}, {2: True}]
+```
+
+Creation of entities, dicts, lists and objects allocates new **128-bit ids**
 called **ItemIds** (similar to pointers in C++). It's possible also to create
-**"universally unique"** entities, objects, dicts and list by using their `uu`
+**universally unique** entities, dicts, list and objects by using their `uu`
 versions.
 
 ```py
@@ -818,9 +843,6 @@ To enable mixing different primitives or entities with different schemas in the
 same DataSlices or as keys/values of dicts, Koda uses **objects**, which stores
 their own schema **similarly to python objects** which stores their classes as
 `__class__` attribute.
-
-NOTE: primitives are considered to be objects although they cannot have
-attributes because their schemas are embedded in the data.
 
 A DataSlice with object items has `kd.OBJECT` schema. To get per-item schemas,
 we can use `get_obj_schema()`.
@@ -1160,14 +1182,14 @@ r.S[1].get_obj_schema().maybe('z')  # None
 r.S[0].get_obj_schema() != r.S[1].get_obj_schema()  # yes - individual
 ```
 
-IMPORTANT: There is additional performance cost of using objects during
-vectorized operations. As each object can have its own schema in this case, and
-different objects might have different sets of attributes. Thus instead of
-looking up a single shared schema for entities, we need to check all object
-schemas. For large data, using entities with explicit schemas is recommended.
+NOTE: There is additional performance cost of using objects during vectorized
+operations. As each object can have its own schema in this case, and different
+objects might have different sets of attributes. Thus instead of looking up a
+single shared schema for entities, we need to check all object schemas. For
+large data, using entities with explicit schemas is recommended.
 
-It's possible to convert entities into objects, but converted objects will have
-shared underlying obj_schema's.
+It's possible to convert entities/lists/dicts into objects, but converted
+objects will have shared underlying obj_schema's.
 
 ```py
 # Can convert entities into objects with shared schemas
@@ -1312,8 +1334,8 @@ x = kd.slice([[5, 6], [1, 2], [3, 4, 7]])
 kd.list_like(kd.agg_sum(x) > 3, x)[:]  # [[5, 6], [], [3, 4, 7]]
 ```
 
-We can also use expand_to to push lists/objects/dicts, which enables cross-joins
-or other similar operations:
+We can also use expand_to to push lists/entities/dicts/objects, which enables
+cross-joins or other similar operations:
 
 ```py
 x = kd.list([[1, 7], [4, 6, 9]])
@@ -1346,7 +1368,7 @@ a = kd.slice([[kd.obj(x=1), kd.obj(x=2)],
               [kd.obj(x=3), kd.obj(x=4), kd.obj(x=5)]])
 a1 = a
 a2 = a.expand_to(a, ndim=1) # or a2 = kd.implode(a).expand_to(a)[:]
-# 3-dim slice objects, where we have crosses of objects in the last dimension
+# 3-dim DataSlice of objects, where we have crosses of objects in the last dimension
 aa = kd.obj(a1=a1, a2=a2)
 # cross-join
 aa.a1.x  # [[[1, 1], [2, 2]], [[3, 3, 3], [4, 4, 4], [5, 5, 5]]]
@@ -1687,20 +1709,20 @@ kd.map_py_on_present(lambda x: x.upper(), ds, schema=kd.STRING, max_threads=4)  
 kd.str(kd.map_py_on_present(lambda x: x.upper(), ds, max_threads=4))  # The same as above
 ```
 
-Sparsity can be also used to manipulate subsets of objects/entities.
+Sparsity can be also used to manipulate subsets of entities.
 
 ```py
-a = kd.new(x=kd.slice([1,2,3]), y=kd.slice([4,5,6]))
-a.updated(kd.attrs(a & (a.y >=5), z=kd.slice([7,8,9]))).z  # [None, 8 ,9]
+a = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+a.updated(kd.attrs(a & (a.y >=5), z=kd.slice([7, 8, 9]))).z  # [None, 8 ,9]
 ```
 
 ### ItemIds, UUIDs and Hashes
 
-Each non-primitive item has an uniquely allocated 128-bit ItemId associated with
-them. For efficiency, ItemIds of DataSlices can are consecutively allocated.
-It's possible to directly allocate ItemIds and set them to entities or objects
-(during creation or while cloning). ItemIds can be converted into base-62
-numbers (as strings) and back.
+Each non-primitive item (i.e. entity, list, dict and object) has an uniquely
+allocated 128-bit ItemId associated with them. For efficiency, ItemIds of
+DataSlices can are consecutively allocated. It's possible to directly allocate
+ItemIds and use them to create non-primitive items (during creation or while
+cloning). ItemIds can be converted into base-62 numbers (as strings) and back.
 
 ```py
 x = kd.obj(x=1, y=2)
@@ -2581,7 +2603,7 @@ x2.get_bag().fingerprint == y2.get_bag().fingerprint  # True
 By default, Koda data structures are immutable, but its APIs make it easy to
 work with mutable data as well, with comparable performance characteristics.
 
-There are multiple ways to edit objects and their attributes (or deep
+There are multiple ways to edit entities/objects and their attributes (or deep
 attributes).
 
 ```python
@@ -2602,7 +2624,7 @@ t = t.updated(t.d.dict_update('c', 3))  # update the dict with c=>3
 t = t.updated(kd.dict_update(t.d, kd.dict({'c': 4, 'd': 5})))
 ```
 
-Dicts can be updated in the same way as objects/entities.
+Dicts can be updated in the same way as entities.
 
 ```python
 t = kd.dict({'a': 1, 'b': 2})

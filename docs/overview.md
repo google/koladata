@@ -94,7 +94,7 @@ digraph {
 ```
 
 **Items** are the elements of a DataSlice, and can be primitives (e.g. integers
-or strings), or more complex data structures (e.g. lists, dicts and objects).
+or strings), or more complex data structures (e.g. lists, dicts and entities).
 DataSlices without dimension are called DataItem which always has one item.
 
 ```py
@@ -245,73 +245,10 @@ kd.encode_itemid(kd.new(x=1, y=2))  # always different, as ids are allocated
 kd.encode_itemid(kd.uu(x=1, y=2)) == '07aXeaqDy6UJNv8EUfA0jz'  # always the same
 ```
 
-## Objects
-
-To make possible mixing different primitives or entities with different schemas
-in the same DataSlices or as keys/values of dicts, Koda uses **objects**, which
-store their own schema **similar to python objects** which store their classes
-as `__class__` attribute.
-
-NOTE: primitives are considered as objects though they cannot have attributes
-because their schemas are embedded in the data.
-
-```py
-kd.obj(x=2, y=kd.obj(z=3))
-
-x = kd.uuobj(x=2, y=kd.uuobj(z=3))  # universally unique (always the same id)
-kd.encode_itemid(x) == '07ZWVFWxz9lNirDW8RXBlw'  # always the same id
-
-x = kd.from_py([{'a': 1, 'b': 2}, {'c': 3, 'd': 4}], dict_as_obj=True)
-x[0]  # Obj(a=1, b=2)
-x[:].maybe('a')  # [1, None]
-
-# Mix objects with different schemas
-kd.slice([kd.obj(1), kd.obj("hello"), kd.obj(kd.list([1,2,3]))])
-kd.slice([kd.obj(x=1,y=2), kd.obj(x="hello", y="world"), kd.obj(1)])
-
-kd.obj(x=1).get_schema() # kd.OBJECT
-kd.obj(x=1).get_schema() == kd.obj(1).get_schema()  # yes
-
-# Get per-item schemas stored in each objects
-kd.obj(x=1).get_obj_schema() # IMPLICIT_SCHEMA(x=INT32)
-kd.obj(x=1).get_obj_schema() != kd.obj(1).get_obj_schema()  # yes, different actual schemas
-kd.slice([kd.obj(x=1,y=2), kd.obj(x="hello", y="world"), kd.obj(1)]).get_obj_schema()
-# [IMPLICIT_SCHEMA(x=INT32, y=INT32), IMPLICIT_SCHEMA(x=STRING, y=STRING), INT32]
-```
-
-Similar to entities, objects can be modified with a cost of O(1), cloned or deep
-cloned.
-
-```py
-x = kd.obj(x=2, y=kd.obj(z=3))
-x = x.with_attrs(a=4)  # add attribute
-x = x.updated(kd.attrs(x.y, z=5))  # update nested attribute
-
-x1 = x.clone(z=4)
-x2 = x.deep_clone(z=5)
-```
-
-Entities and objects can be converted to each other.
-
-```py
-x, y = kd.new(a=1), kd.new(b=2)
-kd.slice([kd.obj(x), kd.obj(y)])  # convert both entities to objects
-
-# Objects can be converted to entities
-my_schema = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
-kd.obj(x=1, y=2).with_schema(my_schema)
-kd.from_py({'x': 1, 'y': 2}, dict_as_obj=True).with_schema(my_schema)  # the same as above
-```
-
-Note, there is additional **performance cost** during vectorized operations, as
-each item can have its own schema in this case, and different objects might have
-different sets of attributes. For large data, using entities with explicit
-schemas is recommended.
-
 ## DataSlices of Structured Data, Explosion/Implosion and Attribute Access
 
-When working with DataSlices of structured data (entities/objects, lists and
-dicts), the operation is applied to **all the items** in the DataSlice
+When working with DataSlices of structured data (entities, lists, and dicts),
+the operation is applied to **all the items** in the DataSlice
 **simultaneously**.
 
 ```py
@@ -342,9 +279,9 @@ kd.slice([[kd.dict({'a':1,'b':2}), kd.dict({'b':3,'c':4})],
  [kd.dict({'a':5,'b':6,'c':7})]])
 ```
 
-As a result of **attribute access** of a **DataSlice of entities or objects**, a
-new DataSlice is returned, which contains attributes of every corresponding
-entity or object in the original DataSlice.
+As a result of **attribute access** of a **DataSlice of entities**, a new
+DataSlice is returned, which contains attributes of every corresponding entity
+or object in the original DataSlice.
 
 ```py
 a = kd.slice([kd.new(x=1, schema='Foo'),
@@ -428,6 +365,101 @@ a[:].x + b[:]['y']  # [3, 7]
 kd.zip(kd.agg_sum(a[:].x), kd.agg_sum(b[:]['y']))  # [4, 6]
 ```
 
+## Objects
+
+To make possible mixing different primitives or entities/lists/dicts with
+different schemas in the same DataSlices, Koda uses **objects**, which store
+their own schema **similar to python objects** which store their classes as
+`__class__` attribute.
+
+NOTE: primitives are considered as objects though they cannot have attributes
+because their schemas are embedded in the data.
+
+```py
+kd.obj(x=2, y=kd.obj(z=3))
+
+x = kd.uuobj(x=2, y=kd.uuobj(z=3))  # universally unique (always the same id)
+kd.encode_itemid(x) == '07ZWVFWxz9lNirDW8RXBlw'  # always the same id
+
+x = kd.from_py([{'a': 1, 'b': 2}, {'c': 3, 'd': 4}], dict_as_obj=True)
+x[0]  # Obj(a=1, b=2)
+x[:].maybe('a')  # [1, None]
+
+# Mix objects with different schemas
+kd.slice([kd.obj(1), kd.obj("hello"), kd.obj(kd.list([1,2,3]))])
+kd.slice([kd.obj(x=1,y=2), kd.obj(x="hello", y="world"), kd.obj(1)])
+
+kd.obj(x=1).get_schema() # kd.OBJECT
+kd.obj(x=1).get_schema() == kd.obj(1).get_schema()  # yes
+
+# Get per-item schemas stored in each objects
+kd.obj(x=1).get_obj_schema() # IMPLICIT_SCHEMA(x=INT32)
+kd.obj(x=1).get_obj_schema() != kd.obj(1).get_obj_schema()  # yes, different actual schemas
+kd.slice([kd.obj(x=1,y=2), kd.obj(x="hello", y="world"), kd.obj(1)]).get_obj_schema()
+# [IMPLICIT_SCHEMA(x=INT32, y=INT32), IMPLICIT_SCHEMA(x=STRING, y=STRING), INT32]
+```
+
+Similar to entities, objects can be modified with a cost of O(1), cloned or deep
+cloned.
+
+```py
+x = kd.obj(x=2, y=kd.obj(z=3))
+x = x.with_attrs(a=4)  # add attribute
+x = x.updated(kd.attrs(x.y, z=5))  # update nested attribute
+
+x1 = x.clone(z=4)
+x2 = x.deep_clone(z=5)
+```
+
+Entities and objects can be converted to each other.
+
+```py
+x, y = kd.new(a=1), kd.new(b=2)
+kd.slice([kd.obj(x), kd.obj(y)])  # convert both entities to objects
+
+# Objects can be converted to entities
+my_schema = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
+kd.obj(x=1, y=2).with_schema(my_schema)
+kd.from_py({'x': 1, 'y': 2}, dict_as_obj=True).with_schema(my_schema)  # the same as above
+```
+
+Note: There is additional **performance cost** during vectorized operations, as
+each item can have its own schema in this case, and different objects might have
+different sets of attributes. For large data, using entities with explicit
+schemas is recommended.
+
+Similar to entities, lists and dicts can be objects too.
+
+```py
+l1 = kd.list([1, 2])
+l2 = kd.list(['3', '4'])
+l_objs = kd.slice([kd.obj(l1), kd.obj(l2)])
+l_objs[:]  # [[1, 2], ['3', '4']]
+assert l_objs.get_schema() == kd.OBJECT
+l_objs.get_obj_schema()  # [LIST[INT32], LIST[STRING]]
+
+d1 = kd.dict({'a': 1})
+d2 = kd.dict({2: True})
+d_objs = kd.slice([kd.obj(d1), kd.obj(d2)])
+d_objs[:]  # [{'a': 1}, {2: True}]
+assert d_objs.get_schema() == kd.OBJECT
+d_objs.get_obj_schema()  # [DICT{STRING, INT32}, DICT{INT32, BOOLEAN}]
+```
+
+Primitives can be treated as objects too as their schemas can be inferred from
+the values.
+
+```py
+kd.obj(1)  # INT32
+kd.obj(kd.int64(1))
+kd.obj('hello')  # STRING
+
+# Dict values are objects
+# No need to wrap them using kd.obj
+d = kd.dict({'a': 1, 'b': '2'})
+d.get_schema()  # DICT{STRING, OBJECT}
+```
+
 ## Sparsity and Masks
 
 **Sparsity** is a first-class citizen in Koda. Every item in a DataSlice can be
@@ -489,7 +521,7 @@ kd.coalesce(kd.slice([1, None, 3]), kd.slice([4,5,6]))  # [1,5,3]
 kd.slice([1, None, 3]) | kd.slice([4,5,6])  # the same as above
 ```
 
-## Immutable Workflows and Bags (Collections of Attributes):
+## Immutable Workflows and Bags (Collections of Attributes)
 
 ### Immutability
 
@@ -530,16 +562,16 @@ c # List[1, 2, 3]
 
 To support modifications and joins in an immutable environment, Koda utilizes
 **bags**. Bags are collections of attributes. Each attribute within a bag is a
-mapping: `(itemid, attribute) -> value`. All data structures (including objects,
-dicts, and lists) are represented in this manner, and associated bags are
-accessible via the `get_bag()` method. These mappings are stored using a
+mapping: `(itemid, attribute) -> value`. All data structures (including
+entities, dicts, and lists) are represented in this manner, and associated bags
+are accessible via the `get_bag()` method. These mappings are stored using a
 combination of hash maps and arrays. This hybrid approach enables fast,
 vectorized performance for table-like data while supporting data with irregular
 structures. Bags are merged for O(1) by utilizing a concept of **fallbacks**
 (when we don't find a mapping in one bag, we look it up in the other ones),
 which can be completely merged, when higher lookup performance is required.
 
-NOTE: Almost all data (e.g. entities, objects, dicts, lists, schemas) are stored
+NOTE: Almost all data (e.g. entities, dicts, lists, objects, schemas) are stored
 as triples in bags.
 
 ```py
@@ -561,7 +593,7 @@ db.get_approx_size()
 
 <section class='zippy'>
 
-Optional: Understand how objects/entities are represented as triples.
+Optional: Understand how entities are represented as triples.
 
 ```
 a = kd.obj(x=2, y=kd.obj(z=3))
@@ -656,7 +688,7 @@ c.get_bag().contents_repr()
 Instead of creating a modified object/dict/list directly, we can create an
 **update** representing modifications in a **bag**. Updates can be propagated in
 O(1) time by explicitly joining data. This merges attributes and values for
-entities, objects, and dicts with matching ItemIds. Updates overwrite existing
+entities, dicts and objects with matching ItemIds. Updates overwrite existing
 attributes or add new ones. Applying updates is an O(1) operation.
 
 ```py
