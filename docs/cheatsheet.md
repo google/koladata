@@ -2242,7 +2242,7 @@ db2.data_triples_repr()
 db2.schema_triples_repr()
 
 # Create a new mutable bag by forking the bag
-db3 = db2.fork_bag()
+db3 = db2.fork()
 assert db3.is_mutable()
 
 # Create a new immutable bag by freezing the bag
@@ -3147,7 +3147,7 @@ e2.x # 4
 o = db.new(x=1, y=2)
 o1 = o.fork_bag()
 o1.x = 'a'
-o2 = o1.freeze() # o2 is immutable
+o2 = o1.freeze_bag() # o2 is immutable
 
 l = db.list([1, 2, 3])
 l1 = l.fork_bag()
