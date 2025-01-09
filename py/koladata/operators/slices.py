@@ -811,7 +811,8 @@ def index(x, dim=-1):
 
   Args:
     x: A DataSlice.
-    dim: The dimension to compute indices over. Requires abs(dim) < get_ndim(x).
+    dim: The dimension to compute indices over.
+      Requires -get_ndim(x) <= dim < get_ndim(x).
       If dim < 0 then dim = get_ndim(x) + dim.
   """
   x = assertion.with_assertion(
@@ -825,7 +826,7 @@ def index(x, dim=-1):
   ndim = assertion.with_assertion(
       ndim,
       (ndim < get_ndim(x)) & (ndim >= 0),
-      'kde.slices.index: expected 0 <= dim < rank',
+      'kde.slices.index: expected -get_ndim(x) <= dim < get_ndim(x)',
   )
 
   aggregated = masking.agg_has(x, ndim)
