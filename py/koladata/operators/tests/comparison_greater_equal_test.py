@@ -118,9 +118,26 @@ class ComparisonGreaterEqualTest(parameterized.TestCase):
     y = ds(['a', 'b', 'c'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'incompatible types',
+        'kd.comparison.greater_equal: arguments `x` and `y` must contain values'
+        ' castable to a common primitive type, got INT32 and STRING',
     ):
       expr_eval.eval(kde.comparison.greater_equal(I.x, I.y), x=x, y=y)
+
+  def test_unordered_types(self):
+    empty = ds([None, None])
+    schemas = ds([None, schema_constants.BOOLEAN])
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'kd.comparison.greater_equal: argument `x` must be a slice of numerics,'
+        ' booleans, bytes or strings, got SCHEMA',
+    ):
+      expr_eval.eval(kde.comparison.greater_equal(I.x, I.y), x=schemas, y=empty)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'kd.comparison.greater_equal: argument `y` must be a slice of numerics,'
+        ' booleans, bytes or strings, got SCHEMA',
+    ):
+      expr_eval.eval(kde.comparison.greater_equal(I.x, I.y), x=empty, y=schemas)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

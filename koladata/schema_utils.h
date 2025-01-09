@@ -90,6 +90,13 @@ inline absl::Status ExpectConsistentStringOrBytes(absl::string_view arg_name,
                                                                   {&arg});
 }
 
+// Returns OK if the DataSlices contain values castable to a common primitive
+// type.
+// NOTE: arg_names must have exactly 2 elements.
+absl::Status ExpectHaveCommonPrimitiveSchema(
+    absl::Span<const absl::string_view> arg_names, const DataSlice& lhs,
+    const DataSlice& rhs);
+
 }  // namespace koladata
 
 #endif  // KOLADATA_SCHEMA_UTILS_H_

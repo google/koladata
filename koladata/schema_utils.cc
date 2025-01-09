@@ -23,6 +23,7 @@
 
 #include "absl/base/nullability.h"
 #include "absl/functional/overload.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -218,4 +219,27 @@ absl::Status ExpectConsistentStringOrBytesImpl(
 }
 
 }  // namespace schema_utils_internal
+
+absl::Status ExpectHaveCommonPrimitiveSchema(
+    absl::Span<const absl::string_view> arg_names, const DataSlice& lhs,
+    const DataSlice& rhs) {
+  if (arg_names.size() != 2) {
+    return absl::InternalError("arg_names must have exactly 2 elements");
+  }
+
+  auto lhs_narrowed = GetNarrowedSchema(lhs);
+  auto rhs_narrowed = GetNarrowedSchema(rhs);
+  if (auto common_schema = schema::CommonSchema(lhs_narrowed, rhs_narrowed);
+      common_schema.ok() && *common_schema != schema::kObject &&
+      *common_schema != schema::kAny) {
+    return absl::OkStatus();
+  }
+  return absl::InvalidArgumentError(
+      absl::StrFormat("arguments `%s` and `%s` must contain values castable to "
+                      "a common primitive type, got %s and %s",
+                      arg_names[0], arg_names[1],
+                      schema_utils_internal::DescribeSliceSchema(lhs),
+                      schema_utils_internal::DescribeSliceSchema(rhs)));
+}
+
 }  // namespace koladata

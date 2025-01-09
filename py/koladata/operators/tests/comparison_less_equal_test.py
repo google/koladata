@@ -23,12 +23,15 @@ from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
+
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -118,9 +121,26 @@ class ComparisonLessEqualTest(parameterized.TestCase):
     y = ds(['a', 'b', 'c'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'incompatible types',
+        'kd.comparison.less_equal: arguments `x` and `y` must contain values'
+        ' castable to a common primitive type, got INT32 and STRING',
     ):
       expr_eval.eval(kde.comparison.less_equal(I.x, I.y), x=x, y=y)
+
+  def test_unordered_types(self):
+    empty = ds([None, None])
+    schemas = ds([None, schema_constants.BOOLEAN])
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'kd.comparison.less_equal: argument `x` must be a slice of numerics,'
+        ' booleans, bytes or strings, got SCHEMA',
+    ):
+      expr_eval.eval(kde.comparison.less_equal(I.x, I.y), x=schemas, y=empty)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'kd.comparison.less_equal: argument `y` must be a slice of numerics,'
+        ' booleans, bytes or strings, got SCHEMA',
+    ):
+      expr_eval.eval(kde.comparison.less_equal(I.x, I.y), x=empty, y=schemas)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

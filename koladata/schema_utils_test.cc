@@ -481,5 +481,37 @@ TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
           "slice of OBJECT with items of types BYTES, STRING"));
 }
 
+TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
+  auto empty_and_unknown = test::DataItem(std::nullopt, schema::kObject);
+  auto integer = test::DataSlice<int>({1, 2, std::nullopt});
+  auto floating = test::DataSlice<float>({1, 2, std::nullopt});
+  auto bytes = test::DataSlice<std::string>({"a", "b", std::nullopt});
+  auto bytes_any =
+      test::DataSlice<std::string>({"a", "b", std::nullopt}, schema::kAny);
+
+  EXPECT_THAT(ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, empty_and_unknown,
+                                              empty_and_unknown),
+              IsOk());
+  EXPECT_THAT(
+      ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, bytes, empty_and_unknown),
+      IsOk());
+  EXPECT_THAT(ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, bytes, bytes_any),
+              IsOk());
+  EXPECT_THAT(
+      ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, integer, floating),
+      IsOk());
+
+  EXPECT_THAT(ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, integer, bytes),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "arguments `foo` and `bar` must contain values castable "
+                       "to a common primitive type, got INT32 and BYTES"));
+  EXPECT_THAT(
+      ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, integer, bytes_any),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "arguments `foo` and `bar` must contain values castable to a common "
+          "primitive type, got INT32 and ANY with items of type BYTES"));
+}
+
 }  // namespace
 }  // namespace koladata::schema
