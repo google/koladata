@@ -16,7 +16,7 @@ Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
 
 *   **Vectorization for complex data**: supports vectorized operations with C++
     grade performance not only for tables and arrays of primitives, but also for
-    nested dicts, protos, structs, and graphs
+    nested dicts, protos, structs, and graphs.
 *   **Immutability**: enables modifications and keeping multiple, slightly
     varied versions of data without duplicating memory.
 *   **Modular data**: data can be efficiently (usually for O(1)) split and
@@ -30,7 +30,7 @@ Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
 ### Why to Use Koda
 
 *   **Interactivity in Colab**: transform interactively training data, design
-    decision making logic and evaluation flows (scoring, ranking, metrics etc.),
+    decision-making logic and evaluation flows (scoring, ranking, metrics etc.),
     work with models and more, where your data is tables, protos, structs,
     graphs etc.
 *   **What-if experiments**: change input data, change evaluation
@@ -41,9 +41,9 @@ Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
 *   **Performance**: computation is vectorized and performed in highly optimized
     C++.
 *   **Evaluate in distributed environment or serve in production**: convert
-    evaluation logic into **computational graphs** (ASTs) that
-    can be introspected, optimized then evaluated in distributed environment or
-    served in production.
+    evaluation logic into **computational graphs**
+    (ASTs) that can be introspected, optimized then evaluated in distributed
+    environment or served in production.
 
 ## DataSlices and Items
 

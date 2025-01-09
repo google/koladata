@@ -3091,3 +3091,9 @@ factorial = kd.fn(lambda n: kd.map(factorial_rec,
                                 kd.obj(n=n, factorial_rec=factorial_rec)))
 factorial(kd.slice([5,3,4]))  # [120, 6, 24]
 ```
+
+## Interoperability (a.k.a. Koda I/O)
+
+Koda can easily load data from and convert to Python objects, Pandas DataFrames,
+Numpy Arrays, protos, and json data. For details, refer to the Interoperability section
+of the [Koda Cheatsheet](cheatsheet.md).

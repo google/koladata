@@ -1792,25 +1792,32 @@ kd.from_py(py_obj, schema=kd.OBJECT) # Same as above
 s1 = kd.named_schema('Point', x=kd.INT32,
                      y=kd.FLOAT64)
 kd.from_py(py_obj, schema=s1) # Entity
+# Infer the schema from the Python type
+s2 = kd.schema.schema_from_py(PyObj)
+kd.from_py(py_obj, schema=s2) # Entity
 
 # dict_as_obj=True
 py_dict = {'x': 1, 'y': 2.0}
 kd.from_py(py_dict, dict_as_obj=True) # Object
 kd.from_py(py_dict, schema=kd.OBJECT) # Same as above
 kd.from_py(py_dict, dict_as_obj=True,
-           schema=s) # Entity
+           schema=s1) # Entity
 
 # List
 py_list = [[1, 2], [3], [4, 5]]
 kd.from_py(py_list)
-s2 = kd.list_schema(kd.list_schema(kd.INT64))
-kd.from_py(py_list, schema=s2)
+s3 = kd.list_schema(kd.list_schema(kd.INT64))
+kd.from_py(py_list, schema=s3)
+# Infer the schema from Python type
+s4 = kd.schema.schema_from_py(list[list[int]])
 
 # Dict
 py_dict = {'x': 1, 'y': 2.0}
 kd.from_py(py_dict)
 s3 = kd.dict_schema(kd.STRING, kd.FLOAT64)
 kd.from_py(py_dict, schema=s3)
+# We cannot infer the schema from Python type
+# because dict values have mixed types
 
 # Use provided itemids
 id1 = kd.new_itemid()
