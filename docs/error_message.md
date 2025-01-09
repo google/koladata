@@ -39,13 +39,14 @@ When error happens,
     `AssembleErrorMessage` when the additional context is available.
 
 2.  In the topmost CPython layer, the
-    `SetKodaPyErrFromStatus` C++
+    [`SetKodaPyErrFromStatus`](https://github.com/google/koladata/blob/main//py/koladata/exceptions/py_exception_utils.h)
+    C++
     function checks if the `Status` contains the specific error proto. If so, it
     passes the serialized proto to python side. The python counter part
     deserializes the proto, creates the `KodaError` python exception instance,
     stores the proto in the exception and returns the instance to C++. Finally
     the `SetKodaPyErrFromStatus` raises the
-    `KodaError` exception in Python then
+    [`KodaError`](https://github.com/google/koladata/blob/main//py/koladata/exceptions/exceptions.py)
     finishes the process.
 
 ## Implementation Steps
@@ -53,11 +54,11 @@ When error happens,
 ### Check existing error categories
 
 There's already a list of error categories in
-`//koladata/internal/error.proto`
+[error.proto](https://github.com/google/koladata/blob/main//koladata/internal/error.proto).
 
 Check if the case to improve is already covered. If so, create the error proto
 instance when error is happening and attaches to the `Status`.
-example in `//koladata/data_slice.cc`
+See [example](https://github.com/google/koladata/blob/main//koladata/data_slice.cc).
 
 ### Define the specific error proto type
 
@@ -67,11 +68,11 @@ necessary fields to the proto, create an error proto instance and attach it to
 
 ### Modify `AssembleErrorMessage`
 
-Then
-change `AssembleErrorMessag`, in `//koladata/repr_utils.cc`,
+Then in
+[AssembleErrorMessage](https://github.com/google/koladata/blob/main//koladata/repr_utils.cc),
 create a new branch to handle the category. In the `Status` propagation path,
 call `AssmebleErrorMessage` to update the error message. The
-`SupplementalData`
+[`SupplementalData`](https://github.com/google/koladata/blob/main//koladata/repr_utils.h)
 structure can be used to carry the additional context for assembling the
 message.
 
@@ -99,7 +100,7 @@ When updating the error message during the
 `Status` propagation path, creates a new `KodaError` proto and moves the
 original error proto to the `cause` field. The final `KodaError` python
 exception instance will have the corresponding cause. See
-`CreateItemCreationError` in `//koladata/repr_utils.cc`
+[CreateItemCreationError](https://github.com/google/koladata/blob/main//koladata/repr_utils.h)
 and its call site.
 
 ## Current limitations and future improvement
