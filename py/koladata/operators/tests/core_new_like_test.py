@@ -185,6 +185,12 @@ class CoreNewlikeTest(absltest.TestCase):
           ds([id1, id2, id3]).with_schema(x.get_schema()).with_bag(x.get_bag()),
       )
 
+    with self.subTest('empty DataSlice and empty itemid'):
+      x = expr_eval.eval(
+          kde.core.new_like(ds([]), itemid=ds([], schema_constants.ITEMID))
+      )
+      testing.assert_equal(x.no_bag(), ds([], x.get_schema()))
+
     with self.subTest('full DataSlice and sparse itemid'):
       with self.assertRaisesRegex(
           ValueError,
