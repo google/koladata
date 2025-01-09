@@ -44,14 +44,12 @@ INT64 = schema_constants.INT64
 QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
 ])
 
 
 class SlicesIndexTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds([5, 6, None, 7]), arolla.unspecified(), ds([0, 1, None, 3], INT64)),
       (
           ds([[5, None, 5], [6, 7], [None, None]]),
           ds(0),
@@ -60,6 +58,11 @@ class SlicesIndexTest(parameterized.TestCase):
       (
           ds([[5, None, 5], [6, 7], [None, None]]),
           ds(1),
+          ds([[0, None, 2], [0, 1], [None, None]], INT64),
+      ),
+      (
+          ds([[5, None, 5], [6, 7], [None, None]]),
+          ds(-1),
           ds([[0, None, 2], [0, 1], [None, None]], INT64),
       ),
       (
@@ -74,7 +77,17 @@ class SlicesIndexTest(parameterized.TestCase):
       ),
       (
           ds([[['a', 'b', 'c'], ['d', 'e']], [['f', 'g'], ['h', 'i', 'j']]]),
+          ds(-2),
+          ds([[[0, 0, 0], [1, 1]], [[0, 0], [1, 1, 1]]], INT64),
+      ),
+      (
+          ds([[['a', 'b', 'c'], ['d', 'e']], [['f', 'g'], ['h', 'i', 'j']]]),
           ds(2),
+          ds([[[0, 1, 2], [0, 1]], [[0, 1], [0, 1, 2]]], INT64),
+      ),
+      (
+          ds([[['a', 'b', 'c'], ['d', 'e']], [['f', 'g'], ['h', 'i', 'j']]]),
+          ds(-1),
           ds([[[0, 1, 2], [0, 1]], [[0, 1], [0, 1, 2]]], INT64),
       ),
   )
@@ -114,7 +127,7 @@ class SlicesIndexTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.slices.index(x))
 
-  @parameterized.parameters(-1, 2)
+  @parameterized.parameters(2, -2)
   def test_out_of_bounds_ndim_error(self, ndim):
     x = data_slice.DataSlice.from_vals([1, 2, 3])
     with self.assertRaisesRegex(

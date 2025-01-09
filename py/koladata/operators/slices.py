@@ -20,6 +20,7 @@ from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
+from koladata.operators import comparison
 from koladata.operators import functor
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking
@@ -762,15 +763,28 @@ def group_by(x, *args):
   return dispatch_op(x, args)
 
 
+@optools.as_lambda_operator(
+    'kde.slices._normalize_dim',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.dim),
+    ],
+)
+def normalize_dim(x, dim):
+  """Returns dim if dim >= 0, otherwise get_ndim(x) + dim."""
+  # TODO: masking.cond can be slow, optimize
+  return masking.cond(comparison.less(dim, 0), get_ndim(x) + dim, dim)
+
+
 @optools.add_to_registry(aliases=['kde.index'])
 @optools.as_lambda_operator(
     'kde.slices.index',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice_or_unspecified(P.dim),
+        qtype_utils.expect_data_slice(P.dim),
     ],
 )
-def index(x, dim=arolla.unspecified()):
+def index(x, dim=-1):
   """Returns the indices of the elements computed over the last dim dimensions.
 
   The resulting slice has the same shape as the input.
@@ -790,15 +804,15 @@ def index(x, dim=arolla.unspecified()):
       # -> kd.slice([[[0, None, 0], [0, 0]], [[None, 1], [1, 1, 1]]])
     kd.index(ds, dim=1)
       # -> kd.slice([[[0, None, 0], [1, 1]], [[None, 0], [1, 1, 1]]])
-    kd.index(ds, dim=2)
+    kd.index(ds, dim=2)  # (same as kd.index(ds, -1) or kd.index(ds))
       # -> kd.slice([[[0, None, 2], [0, 1]], [[None, 1], [0, 1, 2]]])
 
     kd.index(ds) -> kd.index(ds, dim=ds.get_ndim() - 1)
 
   Args:
     x: A DataSlice.
-    dim: The dimension to compute indices over. Requires 0 <= dim < get_ndim(x).
-      If unspecified, it is set to the last dimension of x.
+    dim: The dimension to compute indices over. Requires abs(dim) < get_ndim(x).
+      If dim < 0 then dim = get_ndim(x) + dim.
   """
   x = assertion.with_assertion(
       x,
@@ -806,8 +820,7 @@ def index(x, dim=arolla.unspecified()):
       'kde.slices.index: argument `x` must have non-zero rank',
   )
 
-  dim = M.core.default_if_unspecified(dim, get_ndim(x) - 1)
-
+  dim = normalize_dim(x, dim)
   ndim = get_ndim(x) - dim - 1
   ndim = assertion.with_assertion(
       ndim,

@@ -470,6 +470,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":assertion",
+        ":comparison",
         ":functor",
         ":jagged_shape",
         ":masking",
