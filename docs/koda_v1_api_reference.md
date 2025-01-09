@@ -8645,7 +8645,7 @@ Args:
   values: A DataSlice of values, or unspecified if `keys` contains dicts.
 ```
 
-### `DataSlice.display(self, num_items=64, detail_width=None, detail_height=300)` {#DataSlice.display}
+### `DataSlice.display(self, num_items=48, detail_width=None, detail_height=300)` {#DataSlice.display}
 
 ``` {.no-copy}
 Visualizes a DataSlice as a html widget.
