@@ -16,7 +16,6 @@
 
 import typing
 from typing import Any
-import warnings
 
 from arolla import arolla
 from koladata.expr import expr_eval
@@ -322,14 +321,6 @@ class KodaView(arolla.abc.ExprView):
 
   def get_itemid(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.get_itemid', self)
-
-  # TODO: Remove this alias.
-  def as_itemid(self) -> arolla.Expr:
-    warnings.warn(
-        'as_itemid is deprecated. Use get_itemid instead.',
-        RuntimeWarning,
-    )
-    return self.get_itemid()
 
   def as_any(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.as_any', self)

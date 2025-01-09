@@ -346,9 +346,6 @@ class KodaViewTest(parameterized.TestCase):
   def test_ref(self):
     testing.assert_equal(C.x.ref(), kde.ref(C.x))
 
-  def test_as_itemid(self):
-    testing.assert_equal(C.x.as_itemid(), kde.get_itemid(C.x))
-
   def test_get_itemid(self):
     testing.assert_equal(C.x.get_itemid(), kde.get_itemid(C.x))
 

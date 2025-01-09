@@ -325,22 +325,6 @@ def to_itemid(x):
   return cast_to(x, schema_constants.ITEMID)
 
 
-# TODO: Remove this alias.
-# pylint: disable=g-doc-args,g-doc-return-or-yield
-@optools.add_to_registry(
-    aliases=[
-        'kde.as_itemid',
-    ]
-)
-@optools.as_lambda_operator('kde.schema.as_itemid')
-def as_itemid(x):
-  """Casts `x` to ITEMID using explicit (permissive) casting rules.
-
-  Deprecated, use `get_itemid` instead.
-  """
-  return to_itemid(x)
-
-
 # pylint: enable=g-doc-args,g-doc-return-or-yield
 
 

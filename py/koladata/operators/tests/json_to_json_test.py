@@ -270,7 +270,7 @@ class JsonToJsonTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported schema ITEMID for json serialization'
     ):
-      _ = expr_eval.eval(kde.json.to_json(fns.new().as_itemid()))
+      _ = expr_eval.eval(kde.json.to_json(fns.new().get_itemid()))
 
     with self.assertRaisesRegex(
         ValueError, 'unsupported schema EXPR for json serialization'

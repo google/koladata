@@ -1654,13 +1654,13 @@ assert uus1.is_entity_schema()
 # In fact, named, list and dict schemas are also
 # UU schemas
 Point1 = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
-assert Point1.as_itemid() == Point.as_itemid()
+assert Point1.get_itemid() == Point.get_itemid()
 
 ## Create non-uu schema whose ItemId is allocated
 s1 = kd.schema.new_schema(x=kd.INT32, y=kd.FLOAT64)
 s2 = kd.schema.new_schema(x=kd.INT32, y=kd.FLOAT64)
 
-assert s1.as_itemid() != s2.as_itemid()
+assert s1.get_itemid() != s2.get_itemid()
 ```
 
 </section>
@@ -1692,7 +1692,7 @@ s5 = kd.dict_schema(kd.STRING, kd.OBJECT)
 s6 = kd.dict_schema(kd.ITEMID, Line)
 
 i5 = s5({'a': kd.obj()})
-i6 = s6(kd.obj().as_itemid(), i2)
+i6 = s6(kd.obj().get_itemid(), i2)
 ```
 
 </section>

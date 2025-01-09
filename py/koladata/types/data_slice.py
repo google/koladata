@@ -364,16 +364,6 @@ def _get_itemid(self) -> DataSlice:
   return _eval_op('kde.get_itemid', self)
 
 
-# TODO: Remove this alias.
-@DataSlice._add_method('as_itemid', docstring_from='kde.get_itemid')  # pylint: disable=protected-access
-def _as_itemid(self) -> DataSlice:
-  warnings.warn(
-      'as_itemid is deprecated. Use get_itemid instead.',
-      RuntimeWarning,
-  )
-  return self.get_itemid()
-
-
 @DataSlice._add_method('get_dtype', docstring_from='kde.get_dtype')  # pylint: disable=protected-access
 def _get_dtype(self) -> DataSlice:
   return _eval_op('kde.get_dtype', self)
