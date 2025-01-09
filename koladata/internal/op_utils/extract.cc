@@ -349,27 +349,102 @@ class CopyingProcessor {
     ASSIGN_OR_RETURN(
         DataSliceImpl copied_schemas,
         new_databag_->GetSchemaAttrAllowMissing(new_schemas, attr_name));
-    if (!copied_schemas.is_empty_and_unknown()) {
-      ASSIGN_OR_RETURN(auto eq_schemas,
-                       EqualOp()(copied_schemas, attr_schemas));
-      if (eq_schemas.present_count() < copied_schemas.present_count()) {
-        ASSIGN_OR_RETURN(auto attr_schemas_mask, HasOp()(attr_schemas));
-        ASSIGN_OR_RETURN(auto schemas_overwritten,
-                         PresenceAndOp()(copied_schemas, attr_schemas_mask));
-        if (eq_schemas.present_count() != schemas_overwritten.present_count()) {
-          return absl::InvalidArgumentError(absl::StrFormat(
-              "conflicting values for some of schemas %v attribute %s: %v != "
-              "%v",
-              old_schemas, attr_name, copied_schemas, attr_schemas));
-        }
-      }
-      if (eq_schemas.present_count() == attr_schemas.present_count()) {
-        return std::make_pair(std::move(attr_schemas), false);
-      }
+    if (copied_schemas.is_empty_and_unknown()) {
+      RETURN_IF_ERROR(
+          new_databag_->SetSchemaAttr(new_schemas, attr_name, attr_schemas));
+      return std::make_pair(std::move(attr_schemas), true);
     }
-    RETURN_IF_ERROR(
-        new_databag_->SetSchemaAttr(new_schemas, attr_name, attr_schemas));
+    ASSIGN_OR_RETURN(auto eq_schemas, EqualOp()(copied_schemas, attr_schemas));
+    if (eq_schemas.present_count() == attr_schemas.present_count()) {
+      return std::make_pair(std::move(attr_schemas), false);
+    }
+    if (eq_schemas.present_count() == copied_schemas.present_count()) {
+      RETURN_IF_ERROR(
+          new_databag_->SetSchemaAttr(new_schemas, attr_name, attr_schemas));
+      return std::make_pair(std::move(attr_schemas), true);
+    }
+    ASSIGN_OR_RETURN(auto attr_schemas_mask, HasOp()(attr_schemas));
+    ASSIGN_OR_RETURN(auto schemas_overwritten,
+                      PresenceAndOp()(copied_schemas, attr_schemas_mask));
+    if (eq_schemas.present_count() != schemas_overwritten.present_count()) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "conflicting values for some of schemas %v attribute %s: %v != "
+          "%v",
+          old_schemas, attr_name, copied_schemas, attr_schemas));
+    }
+    // If there are previously set attributes, that are missing in
+    // attr_schemas, we shouldn't overwrite them.
+    ASSIGN_OR_RETURN(auto new_schemas_overwrite,
+                      PresenceAndOp()(new_schemas, attr_schemas_mask));
+    RETURN_IF_ERROR(new_databag_->SetSchemaAttr(new_schemas_overwrite,
+                                                attr_name, attr_schemas));
     return std::make_pair(std::move(attr_schemas), true);
+  }
+
+  // Copy the __schema_name__ attribute if it exists.
+  absl::Status CopySchemasDataIfNeeded(const DataSliceImpl& new_schemas,
+                                       const DataSliceImpl& old_schemas) {
+    ASSIGN_OR_RETURN(
+        DataSliceImpl schema_names,
+        databag_.GetAttr(old_schemas, schema::kSchemaNameAttr, fallbacks_));
+    if (schema_names.is_empty_and_unknown()) {
+      return absl::OkStatus();
+    }
+    ASSIGN_OR_RETURN(
+        auto copied_names,
+        new_databag_->GetAttr(new_schemas, schema::kSchemaNameAttr));
+    if (copied_names.is_empty_and_unknown()) {
+      return new_databag_->SetAttr(new_schemas, schema::kSchemaNameAttr,
+                                   schema_names);
+    }
+    ASSIGN_OR_RETURN(auto eq_names, EqualOp()(copied_names, schema_names));
+    auto eq_names_count = eq_names.present_count();
+    if (eq_names_count == schema_names.present_count()) {
+      return absl::OkStatus();
+    }
+    if (eq_names_count == copied_names.present_count()) {
+      return new_databag_->SetAttr(new_schemas, schema::kSchemaNameAttr,
+                                   schema_names);
+    }
+    ASSIGN_OR_RETURN(auto schema_names_mask, HasOp()(schema_names));
+    ASSIGN_OR_RETURN(auto names_overwritten,
+                     PresenceAndOp()(copied_names, schema_names_mask));
+    if (eq_names.present_count() != names_overwritten.present_count()) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "conflicting values for some of schemas %v name: %v != %v",
+          old_schemas, copied_names, schema_names));
+    }
+    // If there are previously set schema names, that are missing in
+    // schema_names, we shouldn't overwrite them.
+    ASSIGN_OR_RETURN(auto new_schemas_overwrite,
+                     PresenceAndOp()(new_schemas, schema_names_mask));
+    return new_databag_->SetAttr(new_schemas_overwrite, schema::kSchemaNameAttr,
+                                 schema_names);
+  }
+
+  // Copy the __schema_name__ attribute if it exists.
+  absl::Status CopySchemaDataIfNeeded(
+      const DataItem& schema_item, const DataItem& old_schema_item,
+      const DataBagImpl& db, const DataBagImpl::FallbackSpan fallbacks) {
+    ASSIGN_OR_RETURN(
+        DataItem schema_name,
+        db.GetAttr(old_schema_item, schema::kSchemaNameAttr, fallbacks));
+    if (!schema_name.has_value()) {
+      return absl::OkStatus();
+    }
+    ASSIGN_OR_RETURN(
+        auto copied_name,
+        new_databag_->GetAttr(schema_item, schema::kSchemaNameAttr));
+    if (copied_name.has_value()) {
+      if (copied_name != schema_name) {
+        return absl::InvalidArgumentError(
+            absl::StrFormat("conflicting values for schema %v name: %v != %v",
+                            schema_item, copied_name, schema_name));
+      }
+      return absl::OkStatus();
+    }
+    return new_databag_->SetAttr(schema_item, schema::kSchemaNameAttr,
+                                 std::move(schema_name));
   }
 
   // Process slice of dicts with entity schema.
@@ -411,13 +486,11 @@ class CopyingProcessor {
     if (is_shallow_clone_ && ds.schema.holds_value<ObjectId>()) {
       ASSIGN_OR_RETURN(old_schema,
                        objects_tracker_->GetAttr(ds.schema, kMappingAttrName));
-      if (!old_schema.has_value()) {
-        // In case of Object slice we will have schemaId from the old databag.
-        old_schema = ds.schema;
-      }
     } else {
       old_schema = ds.schema;
     }
+    RETURN_IF_ERROR(
+        CopySchemaDataIfNeeded(ds.schema, old_schema, db, fallbacks));
     ASSIGN_OR_RETURN(auto attr_names,
                      db.GetSchemaAttrsAsVector(old_schema, fallbacks));
     if (attr_names.empty()) {
@@ -486,6 +559,15 @@ class CopyingProcessor {
     if (ds.schema != schema::kSchema) {
       return absl::InvalidArgumentError("slice of schemas is expected");
     }
+    DCHECK(ds.schema_source == SchemaSource::kDataDatabag);
+    std::optional<DataSliceImpl> old_schemas;
+    if (is_shallow_clone_) {
+      ASSIGN_OR_RETURN(old_schemas,
+                       objects_tracker_->GetAttr(ds.slice, kMappingAttrName));
+    } else {
+      old_schemas = ds.slice;
+    }
+    RETURN_IF_ERROR(CopySchemasDataIfNeeded(ds.slice, *old_schemas));
     for (size_t idx = 0; idx < ds.slice.size(); ++idx) {
       const DataItem& item = ds.slice[idx];
       if (!item.has_value() || !item.holds_value<ObjectId>()) {
@@ -665,6 +747,7 @@ class CopyingProcessor {
       const DataSliceImpl& new_ds,
       const DataSliceImpl& new_schemas,
       const DataSliceImpl& old_schemas) {
+    RETURN_IF_ERROR(CopySchemasDataIfNeeded(new_schemas, old_schemas));
     std::vector<DataItem> attr_names;
     if (schemas_allocation_id.IsSmallAlloc()) {
       ASSIGN_OR_RETURN(attr_names,

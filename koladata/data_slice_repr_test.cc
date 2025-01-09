@@ -400,8 +400,7 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_SchemaName) {
                        CreateNamedSchema(bag, "foo", {"a", "b"},
                                          {test::DataItem(schema::kInt64),
                                           test::DataItem(schema::kString)}));
-  EXPECT_THAT(DataSliceToStr(schema),
-              IsOkAndHolds("SCHEMA(foo:a=INT64, b=STRING)"));
+  EXPECT_THAT(DataSliceToStr(schema), IsOkAndHolds("foo(a=INT64, b=STRING)"));
 }
 
 TEST(DataSliceReprTest, TestItemStringRepresentation_NoBag) {
@@ -1494,6 +1493,23 @@ TEST(DataSliceReprTest, DataSliceRepr_DoNotShowAttrNamesOnLargeDataSlice) {
             R"regex(Entity\(\):\$[0-9a-zA-Z]{22}, ...\], schema: ANY, )regex"
             R"regex(ndims: 1, size: 10\))regex"));
   }
+}
+
+TEST(DataSliceReprTest, DataSliceRepr_WithNamedSchema) {
+  auto db = DataBag::Empty();
+
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice schema,
+      CreateNamedSchema(db, "foo", {"a"}, {test::DataItem(schema::kInt64)}));
+  auto value_1 = test::DataSlice<int>({1, 2});
+  ASSERT_OK_AND_ASSIGN(DataSlice entity,
+                       EntityCreator::FromAttrs(db, {"a"}, {value_1}, schema));
+
+  EXPECT_THAT(DataSliceRepr(entity, {.show_attributes = true,
+                                     .show_databag_id = false,
+                                     .show_shape = false}),
+              Eq("DataSlice([Entity(a=1), Entity(a=2)], schema: foo(a=INT64), "
+                 "ndims: 1, size: 2)"));
 }
 
 }  // namespace

@@ -767,6 +767,47 @@ TEST_P(ShallowCloneTest, SchemaSlice) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(ShallowCloneTest, NamedSchemaSlice) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto s1 = AllocateSchema();
+  auto s2 = AllocateSchema();
+  TriplesT schema_triples = {
+      {s1, {{"x", DataItem(schema::kInt32)}}},
+      {s2, {{"a", DataItem(schema::kString)}}},
+  };
+  TriplesT data_triples = {{s1, {{schema::kSchemaNameAttr, DataItem("s1")}}},
+                           {s2, {{schema::kSchemaNameAttr, DataItem("s2")}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, data_triples);
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2}));
+  auto itemid = DataSliceImpl::Create(
+      CreateDenseArray<DataItem>({AllocateSchema(), AllocateSchema()}));
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      (auto [result_slice, result_schema]),
+      ShallowCloneOp(result_db.get())(ds, itemid, DataItem(schema::kSchema),
+                                      *GetMainDb(db), {GetFallbackDb(db).get()},
+                                      nullptr, {}));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_NE(result_db.get(), db.get());
+  EXPECT_NE(result_slice[0], s1);
+  EXPECT_NE(result_slice[1], s2);
+  TriplesT expected_schema_triples = {
+      {result_slice[0], {{"x", DataItem(schema::kInt32)}}},
+      {result_slice[1], {{"a", DataItem(schema::kString)}}},
+  };
+  TriplesT expected_data_triples = {
+      {result_slice[0], {{schema::kSchemaNameAttr, DataItem("s1")}}},
+      {result_slice[1], {{schema::kSchemaNameAttr, DataItem("s2")}}}};
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  SetDataTriples(*expected_db, expected_data_triples);
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 TEST_P(ShallowCloneTest, SchemaUuidSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto s1 = DataItem(CreateUuidExplicitSchema(
@@ -1630,7 +1671,7 @@ TEST_P(ExtractTest, PartialSchemaWithDifferentDataBag) {
 }
 
 TEST_P(ExtractTest, ExtendedSchemaWithDifferentDataBag) {
-    auto db = DataBagImpl::CreateEmptyDatabag();
+  auto db = DataBagImpl::CreateEmptyDatabag();
   auto schema_db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(6);
   auto oth_obj_ids = AllocateEmptyObjects(2);
@@ -1679,6 +1720,61 @@ TEST_P(ExtractTest, ExtendedSchemaWithDifferentDataBag) {
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
+
+TEST_P(ExtractTest, NonReducingSchemaWithDifferentDataBag) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema_db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(6);
+  auto oth_obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto a3 = obj_ids[3];
+  auto b0 = oth_obj_ids[0];
+  auto b1 = oth_obj_ids[1];
+  auto object_dtype = DataItem(schema::kObject);
+  auto int_dtype = DataItem(schema::kInt32);
+  auto schemas = AllocateExplicitSchemas(kSmallAllocMaxCapacity + 1);
+  auto schema = DataItem(schemas.ObjectByOffset(0));
+  auto schema2 = DataItem(schemas.ObjectByOffset(1));
+  auto missing_schema = DataItem(schemas.ObjectByOffset(1));
+
+  TriplesT extended_schema_triples = {
+      {schema, {{"next", schema}, {"b", object_dtype}, {"y", int_dtype}}},
+      {schema2, {{"next", schema2}, {"b", object_dtype}, {"y", int_dtype}}}};
+  TriplesT schema_triples = {
+      {schema, {{"b", object_dtype}, {"y", int_dtype}}},
+      {schema2, {{"next", schema2}, {"b", object_dtype}, {"y", int_dtype}}},
+      {missing_schema, {{"next", missing_schema}}}};
+  TriplesT data_triples = {
+      {a1, {{"next", a2}, {"b", b1}}},
+      {a2, {{"y", DataItem(5)}, {"b", b0}}},
+      {a3, {{"y", DataItem(6)}}},
+      {b0, {{schema::kSchemaAttr, schema}, {"y", DataItem(0)}}},
+      {b1, {{schema::kSchemaAttr, schema2}, {"y", DataItem(1)}}},
+  };
+
+  SetSchemaTriples(*schema_db, extended_schema_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*schema_db, GenNoiseSchemaTriples());
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, extended_schema_triples);
+  SetDataTriples(*expected_db, data_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(
+      obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+      &*GetMainDb(schema_db),
+      DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})));
+
+  EXPECT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 
 TEST_P(ExtractTest, MergeSchemaFromTwoDatabags) {
   auto db = DataBagImpl::CreateEmptyDatabag();
@@ -1762,6 +1858,49 @@ TEST_P(ExtractTest, ConflictingSchemasInTwoDatabags) {
               ::testing::HasSubstr("x: [INT32] != [STRING]"))));
 }
 
+TEST_P(ExtractTest, ConflictingSchemaNamesInTwoDatabags) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema_db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(4);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto text_dtype = DataItem(schema::kString);
+  auto int_dtype = DataItem(schema::kInt32);
+  auto object_dtype = DataItem(schema::kObject);
+  auto schema = AllocateSchema();
+  auto unreachable_schema = AllocateSchema();
+
+  TriplesT data_triples = {
+    {a0, {{"next", a1}}},
+    {a1, {{schema::kSchemaAttr, DataItem(schema)}}},
+    {schema, {{schema::kSchemaNameAttr, DataItem("schema")}}},
+  };
+  TriplesT schema_db_data_triples = {
+    {schema, {{schema::kSchemaNameAttr, DataItem("foo")}}},
+  };
+  TriplesT schema_triples = {
+      {schema, {{"next", object_dtype}, {"x", text_dtype}}}};
+  TriplesT schema_db_triples = {
+      {schema, {{"next", object_dtype}, {"x", text_dtype}}}};
+
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*schema_db, schema_db_data_triples);
+  SetSchemaTriples(*schema_db, schema_db_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(
+          a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+          &*GetMainDb(schema_db),
+          DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          ::testing::AllOf(
+              ::testing::HasSubstr("conflicting values for some of schemas"),
+              ::testing::HasSubstr("name: [b'foo'] != [b'schema']"))));
+}
+
 TEST_P(ExtractTest, NoFollowEntitySchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(4);
@@ -1807,7 +1946,7 @@ TEST_P(ExtractTest, NoFollowEntitySchema) {
 }
 
 TEST_P(ExtractTest, NoFollowObjectSchema) {
-    auto db = DataBagImpl::CreateEmptyDatabag();
+  auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
@@ -1930,6 +2069,107 @@ TEST_P(ExtractTest, SchemaSlice) {
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
+
+TEST_P(ExtractTest, NamedSchemaSlice) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto s1 = AllocateSchema();
+  auto s2 = AllocateSchema();
+  auto s3 = AllocateSchema();
+  TriplesT schema_triples = {
+      {s1, {{"x", DataItem(schema::kInt32)}}},
+      {s2, {{"a", DataItem(schema::kString)}}},
+      {s3, {{"a", DataItem(schema::kString)}}},
+  };
+  TriplesT data_triples = {{s1, {{schema::kSchemaNameAttr, DataItem("s1")}}},
+                           {s2, {{schema::kSchemaNameAttr, DataItem("s2")}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, data_triples);
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, schema_triples);
+  SetDataTriples(*expected_db, data_triples);
+
+  auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2, s3}));
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
+
+  ASSERT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(ExtractTest, NamedSchemaWithDatabag) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema_db = DataBagImpl::CreateEmptyDatabag();
+  auto s1 = AllocateSchema();
+  auto s2 = AllocateSchema();
+  TriplesT schema_triples = {
+      {s1, {{"x", s2}}},
+      {s2, {{"a", DataItem(schema::kString)}}}
+  };
+  TriplesT schema_data_triples = {
+      {s1, {{schema::kSchemaNameAttr, DataItem("s1")}}},
+      {s2, {{schema::kSchemaNameAttr, DataItem("s2")}}}};
+  SetSchemaTriples(*schema_db, schema_triples);
+  SetSchemaTriples(*schema_db, GenNoiseSchemaTriples());
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*schema_db, schema_data_triples);
+  SetDataTriples(*schema_db, GenNoiseDataTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, schema_triples);
+  SetDataTriples(*expected_db, schema_data_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(
+      DataItem(), s1, *GetMainDb(db), {GetFallbackDb(db).get()},
+      &*GetMainDb(schema_db), {GetFallbackDb(schema_db).get()}));
+
+  ASSERT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(ExtractTest, NamedSchemaObjects) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto s1 = AllocateSchema();
+  auto s2 = AllocateSchema();
+  auto obj_ids = AllocateEmptyObjects(3);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  TriplesT schema_triples = {
+      {s1, {{"x", DataItem(schema::kObject)}}},
+      {s2, {{"a", DataItem(schema::kString)}}}
+  };
+  TriplesT data_triples = {
+      {a1, {{schema::kSchemaAttr, s1}, {"x", a2}}},
+      {a2, {{schema::kSchemaAttr, s1}, {"x", a0}}},
+      {a0, {{schema::kSchemaAttr, s2}, {"a", DataItem("foo")}}},
+      {s1, {{schema::kSchemaNameAttr, DataItem("s1")}}},
+      {s2, {{schema::kSchemaNameAttr, DataItem("s2")}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, schema_triples);
+  SetDataTriples(*expected_db, data_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(
+      a1, DataItem(schema::kObject), *GetMainDb(db), {GetFallbackDb(db).get()},
+      nullptr, {}));
+
+  ASSERT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 
 TEST_P(ExtractTest, ObjectSchemaMissing) {
   auto db = DataBagImpl::CreateEmptyDatabag();

@@ -623,14 +623,13 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
       return DictSchemaStr(ds, next_option, wrapping);
     }
     std::string prefix = "";
-    if (obj.IsExplicitSchema()) {
+    std::string schema_name = GetSchemaNameOrEmpty(ds.GetBag(), data_item);
+    if (!schema_name.empty()) {
+      absl::StrAppend(&prefix, schema_name, "(");
+    } else if (obj.IsExplicitSchema()) {
       absl::StrAppend(&prefix, "SCHEMA(");
     } else if (obj.IsImplicitSchema()) {
       absl::StrAppend(&prefix, "IMPLICIT_SCHEMA(");
-    }
-    std::string schema_name = GetSchemaNameOrEmpty(ds.GetBag(), data_item);
-    if (!schema_name.empty()) {
-      absl::StrAppend(&prefix, schema_name, ":");
     }
     size_t initial_html_char_count = wrapping.html_char_count;
     ASSIGN_OR_RETURN(std::vector<std::string> schema_parts,

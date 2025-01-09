@@ -651,14 +651,28 @@ class DataSliceTest(parameterized.TestCase):
         str(x),
         '[Entity(x=1), Entity(x=2), Entity(x=3)]',
     )
-    y = db.obj(x=ds([1, 2, 3]))
+
+    y = db.new(x=ds([1, 2, 3]), schema='foo')
     self.assertEqual(
         repr(y),
+        (
+            'DataSlice([Entity(x=1), Entity(x=2), Entity(x=3)], schema:'
+            ' foo(x=INT32), ndims: 1, size: 3)'
+        ),
+    )
+    self.assertEqual(
+        str(y),
+        '[Entity(x=1), Entity(x=2), Entity(x=3)]',
+    )
+
+    z = db.obj(x=ds([1, 2, 3]))
+    self.assertEqual(
+        repr(z),
         'DataSlice([Obj(x=1), Obj(x=2), Obj(x=3)], schema: OBJECT, ndims: 1,'
         ' size: 3)',
     )
     self.assertEqual(
-        str(y),
+        str(z),
         '[Obj(x=1), Obj(x=2), Obj(x=3)]',
     )
 
