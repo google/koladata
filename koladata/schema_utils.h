@@ -90,6 +90,11 @@ inline absl::Status ExpectConsistentStringOrBytes(absl::string_view arg_name,
                                                                   {&arg});
 }
 
+// Returns OK if the DataSlices contain values castable to a common type.
+absl::Status ExpectHaveCommonSchema(
+    absl::Span<const absl::string_view> arg_names, const DataSlice& lhs,
+    const DataSlice& rhs);
+
 // Returns OK if the DataSlices contain values castable to a common primitive
 // type.
 // NOTE: arg_names must have exactly 2 elements.

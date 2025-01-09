@@ -103,13 +103,8 @@ absl::StatusOr<DataSlice> GreaterEqual(const DataSlice& x, const DataSlice& y) {
 absl::StatusOr<DataSlice> Equal(const DataSlice& x, const DataSlice& y) {
   // NOTE: Casting is handled internally by EqualOp. The schema compatibility is
   // still verified to ensure that e.g. ITEMID and OBJECT are not compared.
-  RETURN_IF_ERROR(
-      schema::CommonSchema(x.GetSchemaImpl(), y.GetSchemaImpl()).status())
-      .With([&](const absl::Status& status) {
-        return AssembleErrorMessage(status,
-                                    {.db = DataBag::ImmutableEmptyWithFallbacks(
-                                         {x.GetBag(), y.GetBag()})});
-      });
+  RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y))
+      .With(OpError("kd.comparison.equal"));
   return DataSliceOp<internal::EqualOp>()(
       x, y, internal::DataItem(schema::kMask), nullptr);
 }

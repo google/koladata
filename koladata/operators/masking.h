@@ -32,7 +32,6 @@
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/op_utils/utils.h"
 #include "koladata/operators/arolla_bridge.h"
-#include "koladata/repr_utils.h"
 #include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -52,9 +51,10 @@ inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
 // kde.masking.coalesce.
 inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
                                           const DataSlice& y) {
+  RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y))
+      .With(OpError("kd.masking.coalesce"));
   auto res_db = DataBag::CommonDataBag({x.GetBag(), y.GetBag()});
-  ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}),
-                   AssembleErrorMessage(_, {.db = res_db}));
+  ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}));
   return DataSliceOp<internal::PresenceOrOp>()(
       aligned_slices.slices[0], aligned_slices.slices[1],
       aligned_slices.common_schema, std::move(res_db));

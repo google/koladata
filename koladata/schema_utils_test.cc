@@ -481,6 +481,25 @@ TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
           "slice of OBJECT with items of types BYTES, STRING"));
 }
 
+TEST(SchemaUtilsTest, ExpectHaveCommonSchema) {
+  auto empty_and_unknown = test::DataItem(std::nullopt, schema::kObject);
+  auto integer = test::DataSlice<int>({1, 2, std::nullopt});
+  auto floating = test::DataSlice<float>({1, 2, std::nullopt});
+  auto bytes = test::DataSlice<std::string>({"a", "b", std::nullopt});
+  auto bytes_any =
+      test::DataSlice<std::string>({"a", "b", std::nullopt}, schema::kAny);
+  auto schema = test::DataItem(std::nullopt, schema::kSchema);
+
+  EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, bytes, empty_and_unknown),
+              IsOk());
+  EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, bytes, bytes_any), IsOk());
+  EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, integer, bytes), IsOk());
+  EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, integer, schema),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "arguments `foo` and `bar` must contain values castable "
+                       "to a common type, got INT32 and SCHEMA"));
+}
+
 TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
   auto empty_and_unknown = test::DataItem(std::nullopt, schema::kObject);
   auto integer = test::DataSlice<int>({1, 2, std::nullopt});

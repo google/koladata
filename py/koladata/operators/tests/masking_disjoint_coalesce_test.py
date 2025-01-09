@@ -151,10 +151,10 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
     y = data_bag.DataBag.empty().new() & ds(arolla.missing())
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""cannot find a common schema for provided schemas
-
- the common schema\(s\) INT32: INT32
- the first conflicting schema [0-9a-f]{32}:0: SCHEMA\(\)""",
+        re.escape(
+            'kd.masking.coalesce: arguments `x` and `y` must contain values'
+            ' castable to a common type, got INT32 and SCHEMA()'
+        ),
     ):
       expr_eval.eval(kde.masking.disjoint_coalesce(x, y))
 

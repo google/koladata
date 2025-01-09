@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -184,7 +186,11 @@ class LogicalCondTest(parameterized.TestCase):
     x = ds([1, None])
     y = data_bag.DataBag.empty().new()
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'cannot find a common schema for provided schemas'
+        exceptions.KodaError,
+        re.escape(
+            'kd.masking.coalesce: arguments `x` and `y` must contain values'
+            ' castable to a common type, got INT32 and SCHEMA()'
+        ),
     ):
       expr_eval.eval(kde.masking.cond(ds(arolla.present()), x, y))
 

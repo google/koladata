@@ -220,6 +220,23 @@ absl::Status ExpectConsistentStringOrBytesImpl(
 
 }  // namespace schema_utils_internal
 
+absl::Status ExpectHaveCommonSchema(
+    absl::Span<const absl::string_view> arg_names, const DataSlice& lhs,
+    const DataSlice& rhs) {
+  if (arg_names.size() != 2) {
+    return absl::InternalError("arg_names must have exactly 2 elements");
+  }
+  if (schema::CommonSchema(lhs.GetSchemaImpl(), rhs.GetSchemaImpl()).ok()) {
+    return absl::OkStatus();
+  }
+  return absl::InvalidArgumentError(
+      absl::StrFormat("arguments `%s` and `%s` must contain values castable to "
+                      "a common type, got %s and %s",
+                      arg_names[0], arg_names[1],
+                      schema_utils_internal::DescribeSliceSchema(lhs),
+                      schema_utils_internal::DescribeSliceSchema(rhs)));
+}
+
 absl::Status ExpectHaveCommonPrimitiveSchema(
     absl::Span<const absl::string_view> arg_names, const DataSlice& lhs,
     const DataSlice& rhs) {

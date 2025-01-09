@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.comparison.equal."""
+import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -115,32 +115,39 @@ class ComparisonEqualTest(parameterized.TestCase):
   def test_raises_on_incompatible_schemas(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""cannot find a common schema for provided schemas
-
- the common schema\(s\) INT32: INT32
- the first conflicting schema [0-9a-f]{32}:0: SCHEMA\(\)""",
+        re.escape(
+            'kd.comparison.equal: arguments `x` and `y` must contain values'
+            ' castable to a common type, got SCHEMA() and INT32'
+        ),
     ):
       expr_eval.eval(kde.comparison.equal(ENTITY_1, ds(1)))
 
     db = data_bag.DataBag.empty()
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""cannot find a common schema for provided schemas
-
- the common schema\(s\) [0-9a-f]{32}:0: SCHEMA\(x=INT32\)
- the first conflicting schema [0-9a-f]{32}:0: SCHEMA\(\)""",
+        re.escape(
+            'kd.comparison.equal: arguments `x` and `y` must contain values'
+            ' castable to a common type, got SCHEMA(x=INT32) and SCHEMA()'
+        ),
     ):
       expr_eval.eval(kde.comparison.equal(db.new(x=1), db.new()))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'cannot find a common schema for provided schemas',
+        re.escape(
+            'kd.comparison.equal: arguments `x` and `y` must contain values'
+            ' castable to a common type, got SCHEMA(x=INT32) and OBJECT with an'
+            ' item of type ITEMID'
+        ),
     ):
       expr_eval.eval(kde.comparison.equal(db.new(x=1), db.obj()))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'cannot find a common schema for provided schemas',
+        re.escape(
+            'kd.comparison.equal: arguments `x` and `y` must contain values'
+            ' castable to a common type, got SCHEMA(x=INT32) and ITEMID'
+        ),
     ):
       expr_eval.eval(
           kde.comparison.equal(
