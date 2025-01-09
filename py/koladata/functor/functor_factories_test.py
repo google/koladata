@@ -783,6 +783,17 @@ class FunctorFactoriesTest(absltest.TestCase):
         3,
     )
 
+  def test_map_py_fn_with_missing_items(self):
+    def fn(x):
+      return -1 if x is None else x
+
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(fn), x=kdi.slice([1, None, None])
+        ).to_py(),
+        [1, -1, -1],
+    )
+
   def test_map_py_default_arguments(self):
     self.assertEqual(
         kd.call(

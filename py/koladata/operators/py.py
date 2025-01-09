@@ -24,6 +24,7 @@ from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import schema as _
 from koladata.operators import slices as _
 from koladata.types import data_item
 from koladata.types import data_slice
@@ -41,7 +42,18 @@ eval_op = py_expr_eval_py_ext.eval_op
 def _expect_py_callable(
     param: constraints.Placeholder,
 ) -> constraints.QTypeConstraint:
-  """Returns a constraint that the argument is a python callable."""
+  """Returns a constraint that the argument is a python callable.
+
+  Important: The constraint `_expect_py_callable(P.fn)` is intended to be used
+  in pair with `_unwrap_py_callable(fn, param_name='fn')`, which performs
+  the necessary runtime checks and returns a python object.
+
+  Args:
+      param: A placeholder with the parameter name.
+
+  Returns:
+      A qtype constraint.
+  """
   return (
       param == arolla.abc.PY_OBJECT,
       f'expected a python callable, got {constraints.name_type_msg(param)}',
@@ -51,22 +63,18 @@ def _expect_py_callable(
 def _expect_optional_py_callable(
     param: constraints.Placeholder,
 ) -> constraints.QTypeConstraint:
-  """Returns a constraint that the argument is a python callable or None.
+  """Returns a constraint that the argument is an python callable or None.
 
-  Important: The constraint `_expect_optional_py_callable(P.fn)` should be
-  complemented with runtime checks:
-
-    isinstance(fn, arolla.abc.PyObject)  # `fn` is a PY_OBJECT, presumably
-                                         # holding a Python callable.
-
-    (isinstance(fn, data_item.DataItem) and
-     fn.get_schema() == schema_constants.NONE)  # `fn` is None.
+  Important: The constraint `_expect_optional_py_callable(P.fn)` is intended to
+  be used in pair with `_unwrap_optional_py_callable(fn, param_name='fn')`,
+  which performs the necessary runtime checks and returns a python object or
+  `None`.
 
   Args:
-    param: A placeholder expr-node with the parameter name.
+      param: A placeholder with the parameter name.
 
-  Returns;
-    A qtype constraint.
+  Returns:
+      A qtype constraint.
   """
   return (
       (param == arolla.abc.PY_OBJECT) | (param == qtypes.DATA_SLICE),
@@ -77,10 +85,42 @@ def _expect_optional_py_callable(
 def _expect_optional_schema(
     param: constraints.Placeholder,
 ) -> constraints.QTypeConstraint:
-  """Returns a constraint that the argument is a schema or None."""
+  """Returns a constraint that the argument is a schema or None.
+
+  Important: The constraint `_expect_optional_py_callable(P.schema)` is intended
+  to be used with `_unwrap_optional_schema(schema, param_name='schema')`,
+  which performs the necessary runtime checks and returns a schema or `None`.
+
+  Args:
+      param: A placeholder with the parameter name.
+
+  Returns:
+      A qtype constraint.
+  """
   return (
       param == qtypes.DATA_SLICE,
       f'expected a schema, got {constraints.name_type_msg(param)}',
+  )
+
+
+def _expect_scalar_integer(
+    param: constraints.Placeholder,
+) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is an integer scalar.
+
+  Important: The constraint `_expect_scalar_integer(P.schema)` is intended
+  to be used in pair with `_unwrap_scalar_integer(schema, param_name='schema')`,
+  which performs the necessary runtime checks and returns a python `int`.
+
+  Args:
+      param: A placeholder with the parameter name.
+
+  Returns:
+      A qtype constraint.
+  """
+  return (
+      param == qtypes.DATA_SLICE,
+      f'expected a scalar integer, got {constraints.name_type_msg(param)}',
   )
 
 
@@ -119,11 +159,27 @@ def _unwrap_optional_schema(
 ) -> data_item.DataItem | None:
   """Returns a schema or none stored in the parameter."""
   if isinstance(value, data_item.DataItem):
-    if value.get_schema() == schema_constants.SCHEMA:
+    value_schema = value.get_schema()
+    if value_schema == schema_constants.SCHEMA:
       return value
-    if value.get_schema() == schema_constants.NONE:
+    if value_schema == schema_constants.NONE:
       return None
   raise ValueError(f'expected a schema, got {param_name}={value}')
+
+
+# Note: Intended to be used in pair with _expect_scalar_integer().
+def _unwrap_scalar_integer(
+    value: data_slice.DataSlice, *, param_name: str
+) -> int:
+  """Returns a python scalar integer stored in the parameter."""
+  if isinstance(value, data_item.DataItem):
+    try:
+      return int(
+          eval_op('kde.schema.cast_to_narrow', value, schema_constants.INT64)
+      )
+    except ValueError:
+      pass
+  raise ValueError(f'expected a scalar integer, got {param_name}={value}')
 
 
 #
@@ -316,6 +372,7 @@ def _parallel_map(
 
 def _basic_map_py(
     fn: Callable[..., Any],
+    arg0: data_slice.DataSlice,
     *args: data_slice.DataSlice,
     schema: data_slice.DataSlice | None,
     ndim: int,
@@ -329,7 +386,8 @@ def _basic_map_py(
 
   Args:
     fn: A python callable that implements the computation.
-    *args: Input DataSlices.
+    arg0: The first input DataSlice.
+    *args: The remaining input DataSlices; all input DataSlices must be aligned.
     schema: The schema for the resulting DataSlice.
     ndim: Dimensionality of items to pass to `fn`.
     max_threads: Maximum number of threads to use.
@@ -342,13 +400,13 @@ def _basic_map_py(
   Returns:
     The resulting DataSlice.
   """
-  args = eval_op('kde.slices.align', *args)
-  shape = args[0].get_shape()
+  shape = arg0.get_shape()
   shape_rank = shape.rank()
   if ndim < 0 or ndim > shape_rank:
     raise ValueError(f'ndim should be between 0 and {shape_rank}, got {ndim=}')
   result = _parallel_map(
       fn,
+      arg0.flatten(0, shape_rank - ndim).internal_as_py(),
       *(arg.flatten(0, shape_rank - ndim).internal_as_py() for arg in args),
       max_threads=max_threads,
       item_completed_callback=item_completed_callback,
@@ -373,6 +431,8 @@ def _basic_map_py(
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_args(P.args),
         _expect_optional_schema(P.schema),
+        _expect_scalar_integer(P.max_threads),
+        _expect_scalar_integer(P.ndim),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
 )
@@ -460,17 +520,19 @@ def map_py(
     Result DataSlice.
   """
   fn = _unwrap_py_callable(fn, param_name='fn')
-  args = [*args, *kwargs.values()]
-  if not args:
+  max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
+  ndim = _unwrap_scalar_integer(ndim, param_name='ndim')
+  if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
-  vcall = arolla.abc.vectorcall
+  args = eval_op('kde.slices.align', *args, *kwargs.values())
   kwnames = tuple(kwargs.keys())
+  vcall = arolla.abc.vectorcall
   return _basic_map_py(
       lambda *task_args: vcall(fn, *task_args, kwnames),
       *args,
       schema=_unwrap_optional_schema(schema, param_name='schema'),
-      ndim=int(ndim),
-      max_threads=int(max_threads),
+      ndim=ndim,
+      max_threads=max_threads,
       item_completed_callback=_unwrap_optional_py_callable(
           item_completed_callback, param_name='item_completed_callback'
       ),
@@ -486,6 +548,7 @@ def map_py(
         qtype_utils.expect_data_slice(P.cond),
         qtype_utils.expect_data_slice_args(P.args),
         _expect_optional_schema(P.schema),
+        _expect_scalar_integer(P.max_threads),
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
@@ -530,24 +593,23 @@ def map_py_on_cond(
   """
   true_fn = _unwrap_py_callable(true_fn, param_name='true_fn')
   false_fn = _unwrap_optional_py_callable(false_fn, param_name='false_fn')
-  args = [*args, *kwargs.values()]
-  if not args:
+  max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
+  if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
   if cond.get_schema() != schema_constants.MASK:
     raise ValueError(f'expected a mask, got cond: {cond.get_schema()}')
+  args = (*args, *kwargs.values())
   if cond.get_ndim() > max(arg.get_ndim() for arg in args):
     raise ValueError(
         "'cond' must have the same or smaller dimension than args + kwargs"
     )
-  vcall = arolla.abc.vectorcall
+  cond, *args = eval_op('kde.slices.align', cond, *args)
   kwnames = tuple(kwargs.keys())
+  vcall = arolla.abc.vectorcall
   if false_fn is None:
     # Apply the cond mask to the arguments so that masked values don't need
     # unboxing.
-    args = map(
-        lambda x: eval_op('kde.masking.apply_mask', x, cond),
-        args,
-    )
+    args = map(lambda x: eval_op('kde.masking.apply_mask', x, cond), args)
     task_fn = (
         lambda task_cond, *task_args: None
         if task_cond is None
@@ -563,7 +625,7 @@ def map_py_on_cond(
       *args,
       schema=_unwrap_optional_schema(schema, param_name='schema'),
       ndim=0,
-      max_threads=int(max_threads),
+      max_threads=max_threads,
       item_completed_callback=_unwrap_optional_py_callable(
           item_completed_callback, param_name='item_completed_callback'
       ),

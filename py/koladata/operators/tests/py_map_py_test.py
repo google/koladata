@@ -471,6 +471,11 @@ class PyMapPyTest(parameterized.TestCase):
       ):
         expr_eval.eval(kde.py.map_py(agg_count, val, ndim=4))
 
+      with self.assertRaisesWithLiteralMatch(
+          ValueError, 'expected a scalar integer, got ndim=None'
+      ):
+        expr_eval.eval(kde.py.map_py(agg_count, val, ndim=None))
+
   def test_map_py_expanded_results(self):
     val = ds(
         [[1, 2, None], [4, 5]],

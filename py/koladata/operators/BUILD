@@ -452,6 +452,7 @@ py_library(
         ":masking",
         ":optools",
         ":qtype_utils",
+        ":schema",
         ":slices",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/types:data_item",
