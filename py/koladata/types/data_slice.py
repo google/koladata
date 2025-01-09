@@ -454,6 +454,17 @@ def _take(self, indices: Any) -> DataSlice:
   return _eval_op('kde.take', self, indices)
 
 
+# TODO: Remove this method once the migration is complete.
+@DataSlice._add_method('freeze')  # pylint: disable=protected-access
+def _freeze(self) -> DataSlice:
+  """Deprecated. Use freeze_bag() instead."""
+  warnings.warn(
+      'ds.freeze() is deprecated. Use ds.freeze_bag() instead.',
+      RuntimeWarning,
+  )
+  return self.freeze_bag()
+
+
 @DataSlice._add_method('to_py')  # pylint: disable=protected-access
 def to_py(
     ds: DataSlice,

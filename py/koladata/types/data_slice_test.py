@@ -16,6 +16,8 @@ import gc
 import inspect
 import re
 import sys
+from unittest import mock
+import warnings
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -796,11 +798,13 @@ class DataSliceTest(parameterized.TestCase):
 
   def test_freeze(self):
     x = ds([1, 2, 3])
-    testing.assert_equal(x, x.freeze_bag())
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      testing.assert_equal(x, x.freeze())
+      mock_warn.assert_called_once()
 
     db = bag()
     x = x.with_bag(db)
-    x1 = x.freeze_bag()
+    x1 = x.freeze()
     self.assertIsNot(x, x1)
     self.assertIsNot(x1.get_bag(), x.get_bag())
     self.assertIsNot(x1.get_bag(), x1.get_bag())

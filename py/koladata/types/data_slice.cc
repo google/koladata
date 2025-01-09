@@ -854,11 +854,6 @@ absl::Nullable<PyObject*> PyDataSlice_freeze_bag(PyObject* self, PyObject*) {
   return WrapPyDataSlice(ds.FreezeBag());
 }
 
-// TODO: Remove this method once the migration is complete.
-absl::Nullable<PyObject*> PyDataSlice_freeze(PyObject* self, PyObject*) {
-  return PyDataSlice_freeze_bag(self, nullptr);
-}
-
 absl::Nullable<PyObject*> PyDataSlice_with_schema(PyObject* self,
                                                   PyObject* schema) {
   arolla::python::DCheckPyGIL();
@@ -1132,12 +1127,6 @@ Returns:
      "freeze_bag()\n"
      "--\n\n"
      "Returns a frozen DataSlice equivalent to `self`."},
-    // Not sure if it's OK to have exactly the same method pointer here as in
-    // freeze_bag(), so using a wrapper method for safety.
-    {"freeze", PyDataSlice_freeze, METH_NOARGS,
-     "freeze()\n"
-     "--\n\n"
-     "Deprecated, please use `freeze_bag` instead."},
     {"with_schema", PyDataSlice_with_schema, METH_O,
      "with_schema(schema, /)\n"
      "--\n\n"
