@@ -120,7 +120,7 @@ class FromPyTest(absltest.TestCase):
 
   def test_can_use_frozen_input_bag(self):
     db = fns.bag()
-    e = db.new(a=12, schema='S').freeze()
+    e = db.new(a=12, schema='S').freeze_bag()
     lst = [e]
     res = fns.from_py(lst)
     testing.assert_equal(res[:].a.no_bag(), ds([12], schema_constants.INT32))

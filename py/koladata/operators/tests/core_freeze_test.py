@@ -41,7 +41,7 @@ class CoreFreezeTest(parameterized.TestCase):
       (bag().fork(mutable=False),),
       (bag().new(x=1, y='abc').get_bag(),),
       (bag().new(a=ds([1, 2, 3])),),
-      (bag().new(a=ds([1, 2, 3])).freeze(),),
+      (bag().new(a=ds([1, 2, 3])).freeze_bag(),),
   )
   def test_eval(self, s):
     res = expr_eval.eval(kde.core.freeze(s))

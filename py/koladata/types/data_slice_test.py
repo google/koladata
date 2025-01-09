@@ -782,11 +782,11 @@ class DataSliceTest(parameterized.TestCase):
 
   def test_freeze(self):
     x = ds([1, 2, 3])
-    testing.assert_equal(x, x.freeze())
+    testing.assert_equal(x, x.freeze_bag())
 
     db = bag()
     x = x.with_bag(db)
-    x1 = x.freeze()
+    x1 = x.freeze_bag()
     self.assertIsNot(x, x1)
     self.assertIsNot(x1.get_bag(), x.get_bag())
     self.assertIsNot(x1.get_bag(), x1.get_bag())
@@ -807,7 +807,7 @@ class DataSliceTest(parameterized.TestCase):
   def test_freeze_on_db_with_fallbacks(self):
     fallback = bag()
     x = ds([1, 2, 3]).enriched(fallback)
-    frozen_x = x.freeze()
+    frozen_x = x.freeze_bag()
 
     self.assertTrue(fallback.is_mutable())
     self.assertFalse(x.get_bag().is_mutable())
@@ -3611,7 +3611,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     self.assertFalse(x.is_mutable())
     x = x.with_bag(bag())
     self.assertTrue(x.is_mutable())
-    x = x.freeze()
+    x = x.freeze_bag()
     self.assertFalse(x.is_mutable())
 
   def test_repr_with_params(self):

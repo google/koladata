@@ -1247,7 +1247,7 @@ def with_merged_bag(ds):  # pylint: disable=unused-argument
   DataBag.
 
   If `ds` has no attached DataBag, it raises an exception. If the DataBag of
-  `ds` does not have fallback DataBags, it is equivalent to `ds.freeze()`.
+  `ds` does not have fallback DataBags, it is equivalent to `ds.freeze_bag()`.
 
   Args:
     ds: DataSlice to merge fallback DataBags of.

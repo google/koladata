@@ -442,7 +442,7 @@ def call_multithreaded_with_debug(
   task_repository.execute(repo, final_result_task, max_threads=max_threads)
   res = final_result_task.get_result()
   assert res is not None
-  return res, root_debug.children[0].freeze()
+  return res, root_debug.children[0].freeze_bag()
 
 
 def call_multithreaded(

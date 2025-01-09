@@ -137,7 +137,7 @@ class DictsGetValuesTest(parameterized.TestCase):
     result = expr_eval.eval(kde.get_values(d1))
     testing.assert_unordered_equal(result, ds([2, 4]).with_bag(d1.get_bag()))
 
-    d2 = d1.freeze()
+    d2 = d1.freeze_bag()
     result = expr_eval.eval(kde.get_values(d2))
     testing.assert_unordered_equal(result, ds([2, 4]).with_bag(d2.get_bag()))
 
