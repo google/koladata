@@ -124,6 +124,28 @@ def _expect_scalar_integer(
   )
 
 
+def _expect_optional_boolean(
+    param: constraints.Placeholder,
+) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is a scalar boolean or None.
+
+  Important: The constraint `_expect_optional_boolean(P.flag)` is
+  intended to be used with `_unwrap_optional_boolean(flag, param_name='flag')`,
+  which performs the necessary runtime checks and returns a python `bool` or
+  `None`.
+
+  Args:
+      param: A placeholder with the parameter name.
+
+  Returns:
+      A qtype constraint.
+  """
+  return (
+      (param == qtypes.DATA_SLICE) | (param == arolla.UNSPECIFIED),
+      f'expected a scalar boolean, got {constraints.name_type_msg(param)}',
+  )
+
+
 # Note: Intended to be used in pair with _expect_py_callable().
 def _unwrap_py_callable(
     value: arolla.abc.PyObject, *, param_name: str
@@ -180,6 +202,21 @@ def _unwrap_scalar_integer(
     except ValueError:
       pass
   raise ValueError(f'expected a scalar integer, got {param_name}={value}')
+
+
+# Note: Intended to be used in pair with _expect_optional_boolean().
+def _unwrap_optional_boolean(
+    value: data_slice.DataSlice, *, param_name: str
+) -> bool:
+  """Returns a boolean none stored in the parameter."""
+  if isinstance(value, data_item.DataItem):
+    try:
+      return eval_op(
+          'kde.schema.cast_to_narrow', value, schema_constants.BOOLEAN
+      ).to_py()
+    except ValueError:
+      pass
+  raise ValueError(f'expected a scalar boolean, got {param_name}={value}')
 
 
 #
@@ -324,6 +361,16 @@ def apply_py_on_selected(fn, cond, *args, **kwargs):
 #
 
 
+def _from_py(py_obj, *, schema, from_dim):
+  return data_slice.DataSlice._from_py_impl(  # pylint: disable=protected-access
+      py_obj,
+      False,  # dict_as_obj=
+      None,  # itemid=
+      schema,
+      from_dim,
+  )
+
+
 def _parallel_map(
     fn: Callable[..., Any],
     *iterables: Iterable[Any],
@@ -411,13 +458,7 @@ def _basic_map_py(
       max_threads=max_threads,
       item_completed_callback=item_completed_callback,
   )
-  result = data_slice.DataSlice._from_py_impl(  # pylint: disable=protected-access
-      result,
-      False,  # dict_as_obj=
-      None,  # itemid=
-      schema,  # schema=
-      1,  # from_dim=,
-  )
+  result = _from_py(result, schema=schema, from_dim=1)
   return result.reshape(shape[: shape_rank - ndim])
 
 
@@ -433,6 +474,7 @@ def _basic_map_py(
         _expect_optional_schema(P.schema),
         _expect_scalar_integer(P.max_threads),
         _expect_scalar_integer(P.ndim),
+        _expect_optional_boolean(P.include_missing),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
 )
@@ -442,6 +484,7 @@ def map_py(
     schema=None,
     max_threads=1,
     ndim=0,
+    include_missing=None,
     item_completed_callback=None,
     **kwargs,
 ):
@@ -509,6 +552,9 @@ def map_py(
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
     ndim: Dimensionality of items to pass to `fn`.
+    include_missing: Specifies whether `fn` should be computed to the missing
+      items. By default, the function is applied to all items including the
+      missing. `include_missing=False` can only be used with `ndim=0`.
     item_completed_callback: A callback that will be called after each item is
       processed. It will be called in the original thread that called `map_py`
       in case `max_threads` is greater than 1, as we rely on this property for
@@ -521,22 +567,67 @@ def map_py(
   """
   fn = _unwrap_py_callable(fn, param_name='fn')
   max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
+  schema = _unwrap_optional_schema(schema, param_name='schema')
   ndim = _unwrap_scalar_integer(ndim, param_name='ndim')
+  include_missing = _unwrap_optional_boolean(
+      include_missing, param_name='include_missing'
+  )
+  if include_missing is None:
+    include_missing = True
+  if not include_missing and ndim != 0:
+    raise ValueError('`include_missing=False` can only be used with `ndim=0`')
   if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
   args = eval_op('kde.slices.align', *args, *kwargs.values())
+  presence_mask = None
+  if not include_missing:
+    presence_mask = functools.reduce(
+        functools.partial(eval_op, 'kde.masking.mask_and'),
+        map(
+            functools.partial(eval_op, 'kde.masking.has'),
+            itertools.chain(args, kwargs.values()),
+        ),
+    )
+    if eval_op('kde.masking.all', presence_mask):
+      presence_mask = None
+  if presence_mask is not None:
+    if not eval_op('kde.masking.any', presence_mask):
+      # Note: We explicitly handle the case where there are no overlapping
+      # present items in the inputs, however the inputs are non-empty.
+      #
+      # This is necessary because `_basic_map_py(...)` internally uses
+      # `from_py(...)`, which assigns different schemas in the following cases:
+      #
+      #   from_py([None], from_dim=1, schema=None).get_schema() -> NONE
+      #
+      # and
+      #
+      #   from_py([], from_dim=1, schema=None).get_schema() -> OBJECT
+      #
+      # Importantly, the case with empty inputs involves no masking and is
+      # handled by the common path.
+      return _from_py(None, schema=schema, from_dim=0).expand_to(presence_mask)
+    # Apply the presence_mask to the arguments so that masked values don't need
+    # unboxing.
+    args = map(
+        lambda x: eval_op('kde.slices.select', x, presence_mask),
+        args,
+    )
   kwnames = tuple(kwargs.keys())
   vcall = arolla.abc.vectorcall
-  return _basic_map_py(
+  result = _basic_map_py(
       lambda *task_args: vcall(fn, *task_args, kwnames),
       *args,
-      schema=_unwrap_optional_schema(schema, param_name='schema'),
+      schema=schema,
       ndim=ndim,
       max_threads=max_threads,
       item_completed_callback=_unwrap_optional_py_callable(
           item_completed_callback, param_name='item_completed_callback'
       ),
   )
+  if presence_mask is not None:
+    result = eval_op('kde.slices.inverse_select', result, presence_mask)
+  return result
 
 
 @optools.add_to_registry(aliases=['kde.map_py_on_cond'])

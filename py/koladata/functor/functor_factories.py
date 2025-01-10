@@ -472,6 +472,7 @@ def map_py_fn(
           schema=py_boxing.as_qvalue(schema),
           max_threads=py_boxing.as_qvalue(max_threads),
           ndim=py_boxing.as_qvalue(ndim),
+          include_missing=py_boxing.as_qvalue(True),
           item_completed_callback=py_boxing.as_qvalue(None),
           kwargs=I.kwargs,
       ),

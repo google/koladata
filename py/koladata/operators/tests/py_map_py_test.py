@@ -20,6 +20,7 @@ import threading
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
@@ -287,44 +288,83 @@ class PyMapPyTest(parameterized.TestCase):
     )
     self.assertFalse(res.is_mutable())
 
-  def test_map_py_empty_input(self):
-
+  @parameterized.parameters(False, True)
+  def test_map_py_empty_input(self, include_missing):
     def my_fn(x):
       return x
 
     val = ds([[]])
-    res = expr_eval.eval(
-        kde.py.map_py(my_fn, val, schema=schema_constants.FLOAT32)
-    )
-    testing.assert_equal(res, ds([[]], schema_constants.FLOAT32))
-    self.assertIsNone(res.get_bag())
 
-    res = expr_eval.eval(kde.py.map_py(my_fn, val))
-    testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
-    self.assertIsNotNone(res.get_bag())
+    with self.subTest('no_schema'):
+      res = expr_eval.eval(
+          kde.py.map_py(my_fn, val, include_missing=include_missing)
+      )
+      testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
+      self.assertIsNotNone(res.get_bag())
 
-    res = expr_eval.eval(
-        kde.py.map_py(my_fn, val, schema=schema_constants.OBJECT)
-    )
-    testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
-    self.assertIsNotNone(res.get_bag())
+    with self.subTest('schema=FLOAT32'):
+      res = expr_eval.eval(
+          kde.py.map_py(
+              my_fn,
+              val,
+              schema=schema_constants.FLOAT32,
+              include_missing=include_missing,
+          )
+      )
+      testing.assert_equal(res, ds([[]], schema_constants.FLOAT32))
+      self.assertIsNone(res.get_bag())
+
+    with self.subTest('schema=OBJECT'):
+      res = expr_eval.eval(
+          kde.py.map_py(
+              my_fn,
+              val,
+              schema=schema_constants.OBJECT,
+              include_missing=include_missing,
+          )
+      )
+      testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
+      self.assertIsNotNone(res.get_bag())
+
+  @parameterized.parameters(False, True)
+  def test_map_py_all_missing_input(self, include_missing):
+    def my_fn(x):
+      return x
 
     val = ds([[None]])
-    res = expr_eval.eval(
-        kde.py.map_py(my_fn, val, schema=schema_constants.FLOAT32)
-    )
-    testing.assert_equal(res, ds([[None]], schema_constants.FLOAT32))
-    self.assertIsNone(res.get_bag())
 
-    res = expr_eval.eval(kde.py.map_py(my_fn, val))
-    testing.assert_equal(res, ds([[None]]))
-    self.assertIsNone(res.get_bag())
+    with self.subTest('no_schema'):
+      res = expr_eval.eval(
+          kde.py.map_py(my_fn, val, include_missing=include_missing)
+      )
+      testing.assert_equal(
+          res.no_bag(), ds([[None]], schema=schema_constants.NONE)
+      )
+      self.assertIsNone(res.get_bag())
 
-    res = expr_eval.eval(
-        kde.py.map_py(my_fn, val, schema=schema_constants.OBJECT)
-    )
-    testing.assert_equal(res.no_bag(), ds([[None]], schema_constants.OBJECT))
-    self.assertIsNotNone(res.get_bag())
+    with self.subTest('schema=FLOAT32'):
+      res = expr_eval.eval(
+          kde.py.map_py(
+              my_fn,
+              val,
+              schema=schema_constants.FLOAT32,
+              include_missing=include_missing,
+          )
+      )
+      testing.assert_equal(res, ds([[None]], schema_constants.FLOAT32))
+      self.assertIsNone(res.get_bag())
+
+    with self.subTest('schema=OBJECT'):
+      res = expr_eval.eval(
+          kde.py.map_py(
+              my_fn,
+              val,
+              schema=schema_constants.OBJECT,
+              include_missing=include_missing,
+          )
+      )
+      testing.assert_equal(res.no_bag(), ds([[None]], schema_constants.OBJECT))
+      self.assertIsNotNone(res.get_bag())
 
   def test_map_py_scalar_input(self):
     def add_one(x):
@@ -422,7 +462,14 @@ class PyMapPyTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.py.map_py(lambda: None))
 
-  def test_map_py_item_completed_callback(self):
+  def test_map_py_item_invalid_fn(self):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'expected a python callable, got fn=PyObject{1}',
+    ):
+      expr_eval.eval(kde.py.map_py(arolla.abc.PyObject(1), ds(list(range(10)))))
+
+  def test_map_py_invalid_item_completed_callback(self):
     with self.assertRaisesWithLiteralMatch(
         ValueError,
         'expected a python callable, got item_completed_callback=DataItem(1,'
@@ -529,6 +576,71 @@ class PyMapPyTest(parameterized.TestCase):
     )
     testing.assert_equal(res.no_bag(), ds([1, 2, 3, 4]))
 
+  def test_map_py_include_missing_false(self):
+    with self.subTest('rank2'):
+      x = ds([[1, 2], [3], []])
+      y = ds([3.5, None, 4.5])
+      res = expr_eval.eval(
+          kde.py.map_py(lambda x, y: x + y, x, y, include_missing=False)
+      )
+      testing.assert_equal(res.no_bag(), ds([[4.5, 5.5], [None], []]))
+    with self.subTest('all_present'):
+      res = expr_eval.eval(
+          kde.py.map_py(lambda x: x or -1, ds([0, 0, 2]), include_missing=False)
+      )
+      testing.assert_equal(res.no_bag(), ds([-1, -1, 2]))
+    with self.subTest('return_missing'):
+      res = expr_eval.eval(
+          kde.py.map_py(
+              lambda x: x or None, ds([0, None, 2, None]), include_missing=False
+          )
+      )
+      testing.assert_equal(res.no_bag(), ds([None, None, 2, None]))
+
+  def test_map_py_include_missing_true(self):
+    with self.subTest('sparse'):
+      x = ds([[1, 2], [3], []])
+      y = ds([3.5, None, 4.5])
+      res = expr_eval.eval(
+          kde.py.map_py(
+              lambda x, y: -1 if x is None or y is None else x + y,
+              x,
+              y,
+              include_missing=True,
+          ),
+      )
+      testing.assert_equal(res.no_bag(), ds([[4.5, 5.5], [-1], []]))
+      res = expr_eval.eval(
+          kde.py.map_py(
+              lambda x: x or -1, ds([0, None, 2, None]), include_missing=True
+          )
+      )
+      testing.assert_equal(res.no_bag(), ds([-1, -1, 2, -1]))
+    with self.subTest('all_present'):
+      res = expr_eval.eval(
+          kde.py.map_py(lambda x: x or -1, ds([0, 0, 2]), include_missing=True)
+      )
+      testing.assert_equal(res.no_bag(), ds([-1, -1, 2]))
+    with self.subTest('return_missing'):
+      res = expr_eval.eval(
+          kde.py.map_py(
+              lambda x: x or None, ds([0, None, 2, None]), include_missing=True
+          )
+      )
+      testing.assert_equal(res.no_bag(), ds([None, None, 2, None]))
+
+  def test_map_py_invalid_include_missing(self):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'expected a scalar boolean, got include_missing=1'
+    ):
+      _ = expr_eval.eval(kde.py.map_py(lambda x: x, ds([0]), include_missing=1))
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, '`include_missing=False` can only be used with `ndim=0`'
+    ):
+      _ = expr_eval.eval(
+          kde.py.map_py(lambda x: x, ds([0]), ndim=1, include_missing=False)
+      )
+
   @parameterized.parameters(1, 10)
   def test_map_py_with_item_completed_callback(self, max_threads):
     size = 100
@@ -567,9 +679,14 @@ class PyMapPyTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.py.map_py(I.fn, I.x, a=I.a)),
-        'kde.py.map_py(I.fn, I.x, schema=DataItem(None, schema: NONE),'
-        ' max_threads=DataItem(1, schema: INT32), ndim=DataItem(0, schema:'
-        ' INT32), item_completed_callback=DataItem(None, schema: NONE), a=I.a)',
+        'kde.py.map_py(I.fn, I.x,'
+        ' schema=DataItem(None, schema: NONE),'
+        ' max_threads=DataItem(1, schema: INT32),'
+        ' ndim=DataItem(0, schema: INT32),'
+        ' include_missing=DataItem(None, schema: NONE),'
+        ' item_completed_callback=DataItem(None, schema: NONE),'
+        ' a=I.a'
+        ')',
     )
 
 
