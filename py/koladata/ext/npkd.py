@@ -14,8 +14,6 @@
 
 """Tools to move from DataSlice to the numpy world and back."""
 
-import warnings
-
 from arolla import arolla
 from arolla.experimental import numpy_conversion
 from koladata import kd
@@ -34,16 +32,6 @@ def to_array(ds: kd.types.DataSlice) -> np.ndarray:
   return np.array(ds.internal_as_py())
 
 
-# TODO: Remove this.
-def ds_to_np(ds: kd.types.DataSlice) -> np.ndarray:
-  """Deprecated alias for to_array."""
-  warnings.warn(
-      'ds_to_np is deprecated. Use to_array instead.',
-      RuntimeWarning,
-  )
-  return to_array(ds)
-
-
 def from_array(arr: np.ndarray) -> kd.types.DataSlice:
   """Converts a numpy array to a DataSlice."""
 
@@ -57,19 +45,6 @@ def from_array(arr: np.ndarray) -> kd.types.DataSlice:
 
   else:
     return kd.slice(arolla.dense_array(arr))
-
-
-# TODO: Remove this.
-def ds_from_np(arr: np.ndarray) -> kd.types.DataSlice:
-  """Deprecated alias for from_array."""
-  warnings.warn(
-      'ds_from_np is deprecated. Use from_array instead.',
-      RuntimeWarning,
-  )
-  return from_array(arr)
-
-
-_TO_INT64_EXPR = arolla.M.core.to_int64(arolla.L.x)
 
 
 # Two following functions get_indices_from_ds and reshape_based_on_indices

@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import dataclasses
-from unittest import mock
-import warnings
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -140,13 +138,13 @@ class NpkdTest(parameterized.TestCase):
       self.assertEqual(res_np[1], False)
 
     with self.subTest('Python list'):
-      res_ds = npkd.ds_from_np(np.array([[1, 2], [3]], dtype=object))
+      res_ds = npkd.from_array(np.array([[1, 2], [3]], dtype=object))
       kd.testing.assert_equal(
           res_ds[:].no_bag(), kd.slice([[1, 2], [3]], schema=kd.OBJECT)
       )
 
     with self.subTest('Python dict'):
-      res_ds = npkd.ds_from_np(np.array([{1: 2}, {3: 4}], dtype=object))
+      res_ds = npkd.from_array(np.array([{1: 2}, {3: 4}], dtype=object))
       kd.testing.assert_equal(
           res_ds.get_keys().no_bag(), kd.slice([[1], [3]], schema=kd.OBJECT)
       )
@@ -161,7 +159,7 @@ class NpkdTest(parameterized.TestCase):
         a: int
         b: str
 
-      res_ds = npkd.ds_from_np(
+      res_ds = npkd.from_array(
           np.array([PyCls(1, 'a'), PyCls(2, 'b')], dtype=object)
       )
       kd.testing.assert_equal(res_ds.a.no_bag(), kd.slice([1, 2]))
@@ -259,16 +257,6 @@ class NpkdTest(parameterized.TestCase):
     indices = npkd.get_elements_indices_from_ds(ds)
     converted_back = npkd.reshape_based_on_indices(ds.flatten(), indices)
     kd.testing.assert_equal(converted_back, ds)
-
-  # TODO: Remove this.
-  def test_deprecated_names(self):
-    with mock.patch.object(warnings, 'warn') as mock_warn:
-      arr = npkd.ds_to_np(kd.slice([1, 2, 3]))
-      mock_warn.assert_called_once()
-    kd.testing.assert_equal(kd.slice([1, 2, 3]), npkd.from_array(arr))
-    with mock.patch.object(warnings, 'warn') as mock_warn:
-      kd.testing.assert_equal(kd.slice([1, 2, 3]), npkd.ds_from_np(arr))
-      mock_warn.assert_called_once()
 
 
 if __name__ == '__main__':
