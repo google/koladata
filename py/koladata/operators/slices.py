@@ -1079,9 +1079,7 @@ def ordinal_rank(
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.add_to_registry(
-    aliases=['kde.add_dim', 'kde.slices.add_dim', 'kde.repeat']
-)
+@optools.add_to_registry(aliases=['kde.repeat'])
 @optools.as_lambda_operator(
     'kde.slices.repeat',
     qtype_constraints=[
@@ -1121,13 +1119,7 @@ def repeat(x, sizes):
   return jagged_shape_ops.expand_to_shape(x, target_shape)
 
 
-@optools.add_to_registry(
-    aliases=[
-        'kde.add_dim_to_present',
-        'kde.slices.add_dim_to_present',
-        'kde.repeat_present',
-    ]
-)
+@optools.add_to_registry(aliases=['kde.repeat_present'])
 @optools.as_lambda_operator(
     'kde.slices.repeat_present',
     qtype_constraints=[

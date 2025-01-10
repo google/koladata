@@ -58,12 +58,12 @@ def gen_testcases():
       ds_res = ds(res)
       yield x, ds_res
       yield x, arolla.unspecified(), ds_res
-      yield x, ds_res.add_dim(1).get_shape(), ds_res.add_dim(1)
+      yield x, ds_res.repeat(1).get_shape(), ds_res.repeat(1)
     else:
       ds_res = ds(res)
       yield x, ds_res
       yield x, arolla.unspecified(), ds_res
-      yield x, jagged_shape.create_shape(1, 1), ds_res.add_dim(1).add_dim(1)
+      yield x, jagged_shape.create_shape(1, 1), ds_res.repeat(1).repeat(1)
   # We also test fully missing values explicitly.
   yield arolla.array_int32([None]), ds(arolla.array_int32([None]))
   yield arolla.dense_array_int32([None]), ds(arolla.dense_array_int32([None]))

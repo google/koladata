@@ -222,9 +222,6 @@ class KodaView(arolla.abc.ExprView):
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.flatten', self, from_dim, to_dim)
 
-  def add_dim(self, sizes: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.add_dim', self, sizes)
-
   def repeat(self, sizes: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.repeat', self, sizes)
 

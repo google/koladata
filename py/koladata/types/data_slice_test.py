@@ -1769,8 +1769,8 @@ foo.get_obj_schema().x = <desired_schema>"""),
       (ds([[1, 2], [3]]), ds([2, 3]), ds([[[1, 1], [2, 2]], [[3, 3, 3]]])),
       (ds([[1, 2], [3]]), ds([[0, 1], [2]]), ds([[[], [2]], [[3, 3]]])),
   )
-  def test_add_dim_and_repeat(self, x, sizes, expected):
-    testing.assert_equal(x.add_dim(sizes), expected)
+  def test_repeat(self, x, sizes, expected):
+    testing.assert_equal(x.repeat(sizes), expected)
 
   @parameterized.parameters(
       (

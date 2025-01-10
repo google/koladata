@@ -142,9 +142,8 @@ class SlicesRepeatTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.slices.repeat(I.x, I.sizes)))
 
-  @parameterized.parameters(kde.repeat, kde.slices.add_dim, kde.add_dim)
-  def test_alias(self, alias):
-    self.assertTrue(optools.equiv_to_op(kde.slices.repeat, alias))
+  def test_alias(self):
+    self.assertTrue(optools.equiv_to_op(kde.slices.repeat, kde.repeat))
 
 
 if __name__ == '__main__':

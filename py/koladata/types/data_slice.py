@@ -186,11 +186,6 @@ def _flatten(
   return _eval_op('kde.flatten', self, from_dim, to_dim)
 
 
-@DataSlice._add_method('add_dim', docstring_from='kde.add_dim')  # pylint: disable=protected-access
-def _add_dim(self, sizes: Any) -> DataSlice:
-  return _eval_op('kde.add_dim', self, sizes)
-
-
 @DataSlice._add_method('repeat', docstring_from='kde.repeat')  # pylint: disable=protected-access
 def _repeat(self, sizes: Any) -> DataSlice:
   return _eval_op('kde.repeat', self, sizes)
