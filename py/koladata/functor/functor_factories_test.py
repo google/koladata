@@ -478,7 +478,7 @@ class FunctorFactoriesTest(absltest.TestCase):
             functor_factories.fstr_fn(f'{kde.select(I.x, kdi.present):s}'),
             x=ds([1, None]),
         ),
-        ds(['1', None])
+        ds(['1', None]),
     )
 
   def test_fstr_fn_variable(self):
@@ -773,13 +773,27 @@ class FunctorFactoriesTest(absltest.TestCase):
 
   def test_map_py_fn_with_missing_items(self):
     def fn(x):
-      return -1 if x is None else x
+      return -1 if x is None else x + 1
 
     self.assertEqual(
         kd.call(
             functor_factories.map_py_fn(fn), x=kdi.slice([1, None, None])
         ).to_py(),
-        [1, -1, -1],
+        [2, -1, -1],
+    )
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(fn, include_missing=True),
+            x=kdi.slice([1, None, None]),
+        ).to_py(),
+        [2, -1, -1],
+    )
+    self.assertEqual(
+        kd.call(
+            functor_factories.map_py_fn(fn, include_missing=False),
+            x=kdi.slice([1, None, None]),
+        ).to_py(),
+        [2, None, None],
     )
 
   def test_map_py_default_arguments(self):

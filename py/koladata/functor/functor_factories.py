@@ -435,6 +435,7 @@ def map_py_fn(
     schema: Any = None,
     max_threads: Any = 1,
     ndim: Any = 0,
+    include_missing: Any = None,
     **defaults: Any,
 ) -> data_slice.DataSlice:
   """Returns a Koda functor wrapping a python function for kd.map_py.
@@ -447,6 +448,9 @@ def map_py_fn(
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
     ndim: Dimensionality of items to pass to `f`.
+    include_missing: Specifies whether `f` should be applied to the missing
+      items. By default, the function is applied to all items including the
+      missing. `include_missing=False` can only be used with `ndim=0`.
     **defaults: Keyword defaults to pass to the function. The values in this map
       may be kde expressions, format strings, or 0-dim DataSlices. See the
       docstring for py_fn for more details.
@@ -459,7 +463,7 @@ def map_py_fn(
           schema=py_boxing.as_qvalue(schema),
           max_threads=py_boxing.as_qvalue(max_threads),
           ndim=py_boxing.as_qvalue(ndim),
-          include_missing=py_boxing.as_qvalue(True),
+          include_missing=py_boxing.as_qvalue(include_missing),
           item_completed_callback=py_boxing.as_qvalue(None),
           kwargs=I.kwargs,
       ),
