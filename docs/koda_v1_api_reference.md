@@ -807,6 +807,32 @@ Returns:
   attribute exists for the corresponding item.
 ```
 
+### `kd.core.has_entity(x)` {#kd.core.has_entity}
+Aliases:
+
+- [kd.has_entity](#kd.has_entity)
+
+``` {.no-copy}
+Returns present for each item in `x` that is an Entity.
+
+Note that this is a pointwise operation.
+
+Also see `kd.is_entity` for checking if `x` is an Entity DataSlice. But
+note that `kd.all(kd.has_entity(x))` is not always equivalent to
+`kd.is_entity(x)`. For example,
+
+  kd.is_entity(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.has_entity(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_entity(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.has_entity(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataSlice with the same shape as `x`.
+```
+
 ### `kd.core.has_primitive(x)` {#kd.core.has_primitive}
 Aliases:
 
@@ -831,6 +857,34 @@ Args:
 
 Returns:
   A MASK DataSlice with the same shape as `x`.
+```
+
+### `kd.core.is_entity(x)` {#kd.core.is_entity}
+Aliases:
+
+- [kd.is_entity](#kd.is_entity)
+
+``` {.no-copy}
+Returns whether x is an Entity DataSlice.
+
+`x` is an Entity DataSlice if it meets one of the following conditions:
+  1) it has an Entity schema
+  2) it has OBJECT/ANY schema and only has Entity items
+
+Also see `kd.has_entity` for a pointwise version. But note that
+`kd.all(kd.has_entity(x))` is not always equivalent to
+`kd.is_entity(x)`. For example,
+
+  kd.is_entity(kd.item(None, kd.OBJECT)) -> kd.present
+  kd.all(kd.has_entity(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+  kd.is_entity(kd.item([None], kd.OBJECT)) -> kd.present
+  kd.all(kd.has_entity(kd.item([None], kd.OBJECT))) -> kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataItem.
 ```
 
 ### `kd.core.is_primitive(x)` {#kd.core.is_primitive}
@@ -1319,7 +1373,7 @@ have fallbacks as well. This operator merges all of them into a new immutable
 DataBag.
 
 If `ds` has no attached DataBag, it raises an exception. If the DataBag of
-`ds` does not have fallback DataBags, it is equivalent to `ds.freeze()`.
+`ds` does not have fallback DataBags, it is equivalent to `ds.freeze_bag()`.
 
 Args:
   ds: DataSlice to merge fallback DataBags of.
@@ -5382,7 +5436,7 @@ Returns:
   INT64 DataSlice with indices and injected grouped_by dimension.
 ```
 
-### `kd.slices.index(x, dim=unspecified)` {#kd.slices.index}
+### `kd.slices.index(x, dim=DataItem(-1, schema: INT32))` {#kd.slices.index}
 Aliases:
 
 - [kd.index](#kd.index)
@@ -5407,15 +5461,15 @@ Example:
     # -> kd.slice([[[0, None, 0], [0, 0]], [[None, 1], [1, 1, 1]]])
   kd.index(ds, dim=1)
     # -> kd.slice([[[0, None, 0], [1, 1]], [[None, 0], [1, 1, 1]]])
-  kd.index(ds, dim=2)
+  kd.index(ds, dim=2)  # (same as kd.index(ds, -1) or kd.index(ds))
     # -> kd.slice([[[0, None, 2], [0, 1]], [[None, 1], [0, 1, 2]]])
 
   kd.index(ds) -> kd.index(ds, dim=ds.get_ndim() - 1)
 
 Args:
   x: A DataSlice.
-  dim: The dimension to compute indices over. Requires 0 <= dim < get_ndim(x).
-    If unspecified, it is set to the last dimension of x.
+  dim: The dimension to compute indices over. Requires abs(dim) < get_ndim(x).
+    If dim < 0 then dim = get_ndim(x) + dim.
 ```
 
 ### `kd.slices.inverse_mapping(x, ndim=unspecified)` {#kd.slices.inverse_mapping}
@@ -7344,6 +7398,10 @@ Alias for [kd.core.has_attr](#kd.core.has_attr) operator.
 
 Alias for [kd.dicts.has_dict](#kd.dicts.has_dict) operator.
 
+### `kd.has_entity(x)` {#kd.has_entity}
+
+Alias for [kd.core.has_entity](#kd.core.has_entity) operator.
+
 ### `kd.has_list(x)` {#kd.has_list}
 
 Alias for [kd.lists.has_list](#kd.lists.has_list) operator.
@@ -7364,7 +7422,7 @@ Alias for [kd.ids.hash_itemid](#kd.ids.hash_itemid) operator.
 
 Alias for [kd.lists.implode](#kd.lists.implode) operator.
 
-### `kd.index(x, dim=unspecified)` {#kd.index}
+### `kd.index(x, dim=DataItem(-1, schema: INT32))` {#kd.index}
 
 Alias for [kd.slices.index](#kd.slices.index) operator.
 
@@ -7395,6 +7453,10 @@ Alias for [kd.dicts.is_dict](#kd.dicts.is_dict) operator.
 ### `kd.is_empty(x)` {#kd.is_empty}
 
 Alias for [kd.slices.is_empty](#kd.slices.is_empty) operator.
+
+### `kd.is_entity(x)` {#kd.is_entity}
+
+Alias for [kd.core.is_entity](#kd.core.is_entity) operator.
 
 ### `kd.is_expandable_to(x, target, ndim=unspecified)` {#kd.is_expandable_to}
 
@@ -8840,10 +8902,10 @@ Returns a copy of the DataSlice with a forked mutable DataBag.
 
 Alias for [DataSlice.fork_bag](#DataSlice.fork_bag) operator.
 
-### `DataSlice.freeze()` {#DataSlice.freeze}
+### `DataSlice.freeze(self)` {#DataSlice.freeze}
 
 ``` {.no-copy}
-Deprecated, please use `freeze_bag` instead.
+Deprecated. Use freeze_bag() instead.
 ```
 
 ### `DataSlice.freeze_bag()` {#DataSlice.freeze_bag}
@@ -9086,7 +9148,7 @@ Args:
 ### `DataSlice.is_dict()` {#DataSlice.is_dict}
 
 ``` {.no-copy}
-Returns present iff this DataSlice contains only dicts.
+Returns present iff this DataSlice has Dict schema or contains only dicts.
 ```
 
 ### `DataSlice.is_dict_schema()` {#DataSlice.is_dict_schema}
@@ -9099,6 +9161,12 @@ Returns present iff this DataSlice is a Dict Schema.
 
 ``` {.no-copy}
 Returns present iff this DataSlice is empty.
+```
+
+### `DataSlice.is_entity()` {#DataSlice.is_entity}
+
+``` {.no-copy}
+Returns present iff this DataSlice has Entity schema or contains only entities.
 ```
 
 ### `DataSlice.is_entity_schema()` {#DataSlice.is_entity_schema}
@@ -9115,7 +9183,7 @@ Returns:
 ### `DataSlice.is_list()` {#DataSlice.is_list}
 
 ``` {.no-copy}
-Returns present iff this DataSlice contains only lists.
+Returns present iff this DataSlice has List schema or contains only lists.
 ```
 
 ### `DataSlice.is_list_schema()` {#DataSlice.is_list_schema}
@@ -9610,7 +9678,7 @@ have fallbacks as well. This operator merges all of them into a new immutable
 DataBag.
 
 If `ds` has no attached DataBag, it raises an exception. If the DataBag of
-`ds` does not have fallback DataBags, it is equivalent to `ds.freeze()`.
+`ds` does not have fallback DataBags, it is equivalent to `ds.freeze_bag()`.
 
 Args:
   ds: DataSlice to merge fallback DataBags of.
