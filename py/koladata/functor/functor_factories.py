@@ -18,7 +18,6 @@ import inspect
 import types as py_types
 import typing
 from typing import Any, Callable
-import warnings
 
 from arolla import arolla
 from koladata.expr import input_container
@@ -428,18 +427,6 @@ def fn(
       raise ValueError('passed kwargs when calling fn on an existing functor')
     return f
   raise TypeError(f'cannot convert {f} into a functor')
-
-
-# TODO: Remove this after some time.
-def as_fn(
-    f: Any, *, use_tracing: bool = True, **kwargs: Any
-) -> data_slice.DataSlice:
-  """A deprecated alias for kd.fn."""
-  warnings.warn(
-      'as_fn is deprecated. Use fn instead.',
-      RuntimeWarning,
-  )
-  return fn(f, use_tracing=use_tracing, **kwargs)
 
 
 def map_py_fn(

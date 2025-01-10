@@ -31,7 +31,6 @@ functor = _py_types.SimpleNamespace(
     trace_py_fn=_functor_factories.trace_py_fn,
     py_fn=_functor_factories.py_fn,
     bind=_functor_factories.bind,
-    as_fn=_functor_factories.as_fn,
     is_fn=_functor_factories.is_fn,
     fstr_fn=_functor_factories.fstr_fn,
     map_py_fn=_functor_factories.map_py_fn,

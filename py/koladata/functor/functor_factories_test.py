@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import re
-from unittest import mock
-import warnings
 
 from absl.testing import absltest
 from arolla import arolla
@@ -712,16 +710,6 @@ class FunctorFactoriesTest(absltest.TestCase):
         TypeError, 'cannot convert 57 into a functor'
     ):
       functor_factories.fn(57)
-
-  def test_as_fn(self):
-    with mock.patch.object(warnings, 'warn') as mock_warn:
-      fn = functor_factories.as_fn(lambda x, y: x + y)
-      mock_warn.assert_called_once()
-    testing.assert_equal(fn(1, 2), ds(3))
-    with mock.patch.object(warnings, 'warn') as mock_warn:
-      fn = functor_factories.as_fn(I.x + I.y)
-      mock_warn.assert_called_once()
-    testing.assert_equal(fn(x=1, y=2), ds(3))
 
   def test_map_py_fn_by_reference(self):
     def f(x, y):
