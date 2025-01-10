@@ -151,7 +151,7 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
       return schema.WithBag(db).SetAttr(attr_name, values);
     };
 
-    if (slice.IsList() && !schema.IsDictSchema()) {
+    if (slice.IsList()) {
       RETURN_IF_ERROR(copy_schema_attr(schema::kListItemsSchemaAttr));
       ASSIGN_OR_RETURN(slice, slice.ExplodeList(0, std::nullopt));
       RETURN_IF_ERROR(result_slice.ReplaceInList(0, std::nullopt, slice));
