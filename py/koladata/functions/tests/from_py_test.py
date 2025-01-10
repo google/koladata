@@ -197,8 +197,9 @@ class FromPyTest(absltest.TestCase):
     self.assertIsNone(item.get_bag())
 
     item = fns.from_py(42, schema=schema_constants.OBJECT)
-    testing.assert_equal(item, ds(42, schema_constants.OBJECT))
-    self.assertIsNone(item.get_bag())
+    testing.assert_equal(item.no_bag(), ds(42, schema_constants.OBJECT))
+    self.assertIsNotNone(item.get_bag())
+    self.assertFalse(item.get_bag().is_mutable())
 
   def test_primitive_casting_error(self):
     with self.assertRaisesRegex(
@@ -225,23 +226,27 @@ class FromPyTest(absltest.TestCase):
 
   def test_primitives_object(self):
     res = fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.OBJECT)
-    testing.assert_equal(res, ds([1, 3.14], schema_constants.OBJECT))
-    self.assertIsNone(res.get_bag())
+    testing.assert_equal(res.no_bag(), ds([1, 3.14], schema_constants.OBJECT))
+    self.assertIsNotNone(res.get_bag())
+    self.assertFalse(res.get_bag().is_mutable())
 
   def test_empty_object(self):
     res = fns.from_py(None, schema=schema_constants.OBJECT)
     testing.assert_equal(res.no_bag(), ds(None, schema_constants.OBJECT))
     self.assertIsNotNone(res.get_bag())
+    self.assertFalse(res.get_bag().is_mutable())
 
     res = fns.from_py([], from_dim=1, schema=schema_constants.OBJECT)
     testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
     self.assertIsNotNone(res.get_bag())
+    self.assertFalse(res.get_bag().is_mutable())
 
     res = fns.from_py([None, None], from_dim=1, schema=schema_constants.OBJECT)
     testing.assert_equal(
         res.no_bag(), ds([None, None], schema_constants.OBJECT)
     )
     self.assertIsNotNone(res.get_bag())
+    self.assertFalse(res.get_bag().is_mutable())
 
   def test_list_from_dim(self):
     input_list = [[1, 2.0], [3, 4]]
@@ -306,7 +311,9 @@ class FromPyTest(absltest.TestCase):
 
     l3 = fns.from_py(input_list, schema=schema_constants.OBJECT, from_dim=2)
     self.assertEqual(l3.get_ndim(), 2)
-    testing.assert_equal(l3, ds([[1, 2.0], [3, 4]], schema_constants.OBJECT))
+    testing.assert_equal(
+        l3.no_bag(), ds([[1, 2.0], [3, 4]], schema_constants.OBJECT)
+    )
 
   def test_dict_from_dim(self):
     input_dict = [{ds('a'): [1, 2], 'b': [42]}, {ds('c'): [3, 4], 'd': [34]}]

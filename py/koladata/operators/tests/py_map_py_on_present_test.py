@@ -53,7 +53,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     testing.assert_equal(r.no_bag(), ds([[4.5, 5.5], [], []]))
 
   def test_empty_input(self):
-    yes_fn = lambda x: x + 1 if x is not None else 0
+    yes_fn = lambda x: x + 1
 
     val = ds([])
     res = expr_eval.eval(
@@ -64,7 +64,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
 
     res = expr_eval.eval(kde.py.map_py_on_present(yes_fn, x=val))
     testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
-    self.assertIsNotNone(res.get_bag())
+    self.assertIsNone(res.get_bag())
 
     res = expr_eval.eval(
         kde.py.map_py_on_present(yes_fn, x=val, schema=schema_constants.OBJECT)

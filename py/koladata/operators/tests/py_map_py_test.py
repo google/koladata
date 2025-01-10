@@ -300,7 +300,7 @@ class PyMapPyTest(parameterized.TestCase):
           kde.py.map_py(my_fn, val, include_missing=include_missing)
       )
       testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
-      self.assertIsNotNone(res.get_bag())
+      self.assertIsNone(res.get_bag())
 
     with self.subTest('schema=FLOAT32'):
       res = expr_eval.eval(
@@ -324,7 +324,7 @@ class PyMapPyTest(parameterized.TestCase):
           )
       )
       testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
-      self.assertIsNotNone(res.get_bag())
+      self.assertFalse(res.get_bag().is_mutable())
 
   @parameterized.parameters(False, True)
   def test_map_py_all_missing_input(self, include_missing):
@@ -364,7 +364,7 @@ class PyMapPyTest(parameterized.TestCase):
           )
       )
       testing.assert_equal(res.no_bag(), ds([[None]], schema_constants.OBJECT))
-      self.assertIsNotNone(res.get_bag())
+      self.assertFalse(res.get_bag().is_mutable())
 
   def test_map_py_scalar_input(self):
     def add_one(x):

@@ -1530,10 +1530,11 @@ absl::StatusOr<DataSlice> GenericFromPyObject(
   DCHECK(res_db == nullptr || res_db->IsMutable());
   if (res_slice.GetBag() == nullptr) {
     ASSIGN_OR_RETURN(res_db, adoption_queue.GetCommonOrMergedDb());
-    // Attach an empty DataBag if the result is empty and has OBJECT schema.
-    if (res_db == nullptr && res_slice.present_count() == 0 &&
-        res_slice.GetSchemaImpl() == schema::kObject) {
+    // If the result has no associated DataBag but an OBJECT schema was
+    // requested, attach an empty DataBag.
+    if (res_db == nullptr && schema && schema->item() == schema::kObject) {
       res_db = DataBag::Empty();
+      res_db->UnsafeMakeImmutable();
     }
     return res_slice.WithBag(std::move(res_db));
   }
