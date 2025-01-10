@@ -407,6 +407,14 @@ class KodaViewTest(parameterized.TestCase):
   def test_take(self):
     testing.assert_equal(C.x.take(C.indices), kde.take(C.x, C.indices))
 
+  def test_implode(self):
+    testing.assert_non_deterministic_exprs_equal(
+        C.x.implode(1), kde.implode(C.x, 1)
+    )
+
+  def test_explode(self):
+    testing.assert_equal(C.x.explode(1), kde.explode(C.x, 1))
+
   def test_with_db(self):
     testing.assert_equal(
         C.x.with_db(C.y.get_bag()), kde.with_bag(C.x, C.y.get_bag())
@@ -660,7 +668,6 @@ class KodaViewTest(parameterized.TestCase):
         'fork',
         'get_approx_size',
         'get_fallbacks',
-        'implode',
         'is_mutable',
         'list',
         'list_like',

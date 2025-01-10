@@ -196,7 +196,7 @@ def _explode(x, ndim):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.ndim),
     ],
 )
-def explode(x, ndim=1):
+def explode(x, ndim=data_slice.DataSlice.from_vals(1, schema_constants.INT64)):
   """Explodes a List DataSlice `x` a specified number of times.
 
   A single list "explosion" converts a rank-K DataSlice of LIST[T] to a
@@ -237,7 +237,11 @@ def _implode(x, ndim, itemid):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
     ],
 )
-def implode(x, ndim=1, itemid=arolla.unspecified()):
+def implode(
+    x,
+    ndim=data_slice.DataSlice.from_vals(1, schema_constants.INT64),
+    itemid=arolla.unspecified()
+):
   """Implodes a Dataslice `x` a specified number of times.
 
   A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K

@@ -455,6 +455,23 @@ def _freeze(self) -> DataSlice:
   return self.freeze_bag()
 
 
+@DataSlice._add_method('implode', docstring_from='kde.implode')  # pylint: disable=protected-access
+def _implode(
+    self,
+    ndim: int | DataSlice = DataSlice.from_vals(arolla.int64(1)),
+    itemid: Any = arolla.unspecified(),
+) -> DataSlice:
+  return _eval_op('kde.implode', self, ndim, itemid)
+
+
+@DataSlice._add_method('explode', docstring_from='kde.explode')  # pylint: disable=protected-access
+def _explode(
+    self,
+    ndim: int | DataSlice = DataSlice.from_vals(arolla.int64(1)),
+) -> DataSlice:
+  return _eval_op('kde.explode', self, ndim)
+
+
 @DataSlice._add_method('to_py')  # pylint: disable=protected-access
 def to_py(
     ds: DataSlice,

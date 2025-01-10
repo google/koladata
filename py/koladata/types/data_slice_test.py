@@ -133,6 +133,7 @@ class DataSliceMethodsTest(parameterized.TestCase):
           skip_methods={
               'S',  # Has different meanings between method and function.
               'get_values',  # TODO: fix this.
+              'implode',  # method lacks db= argument for consistency with view
           },
           skip_params=[
               ('with_bag', 0),  # bag is positional-only in C++
@@ -3579,6 +3580,26 @@ class DataSliceFallbackTest(parameterized.TestCase):
   )
   def test_take(self, x, indices, expected):
     testing.assert_equal(x.take(indices), expected)
+
+  @parameterized.parameters(
+      (ds([1, 2, 3]), 1),
+      (ds([[1, 2], [3]]), 1),
+      (ds([[1, 2], [3]]), 2),
+      (ds([[[1], [2]], [[3]]]), 1),
+      (ds([[[1], [2]], [[3]]]), 2),
+      (ds([[[1], [2]], [[3]]]), 3),
+  )
+  def test_implode_explode(self, x, ndim):
+    imploded = x.implode(ndim=ndim)
+    self.assertEqual(imploded.get_ndim(), x.get_ndim() - ndim)
+    testing.assert_equal(imploded.explode(ndim).no_bag(), x)
+
+  def test_implode_itemid(self):
+    itemid = kde.allocation.new_listid_shaped_as(ds([1, 2])).eval()
+    x = ds([[1, 2], [3]])
+    imploded = x.implode(1, itemid=itemid)
+    testing.assert_equal(imploded.get_itemid().no_bag(), itemid)
+    testing.assert_equal(imploded[:].no_bag(), x)
 
   def test_is_empty(self):
     self.assertTrue(ds(None).is_empty())

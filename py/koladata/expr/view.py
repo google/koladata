@@ -391,6 +391,19 @@ class KodaView(arolla.abc.ExprView):
   def take(self, indices: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.take', self, indices)
 
+  def implode(
+      self,
+      ndim: Any = data_slice.DataSlice.from_vals(1, schema_constants.INT64),
+      itemid: Any = arolla.unspecified()
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.implode', self, ndim, itemid)
+
+  def explode(
+      self,
+      ndim: Any = data_slice.DataSlice.from_vals(1, schema_constants.INT64),
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kde.explode', self, ndim)
+
   def maybe(self, attr_name: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.maybe', self, attr_name)
 
