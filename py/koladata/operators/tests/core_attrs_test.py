@@ -116,6 +116,26 @@ class CoreAttrsTest(absltest.TestCase):
     db2 = kde.core.attrs(o, x='2', update_schema=True).eval()
     testing.assert_equal(o.updated(db2).x.no_bag(), ds(['2', '2']))
 
+  def test_empty_slice(self):
+    entity = kde.new_like(ds([])).eval()
+    db = kde.core.attrs(entity, x=ds([])).eval()
+    expected_db = bag()
+    expected_db[entity.get_schema()].x = schema_constants.OBJECT
+    testing.assert_equivalent(db, expected_db)
+
+    db = kde.core.attrs(kde.obj_like(ds([])), x=ds([])).eval()
+    testing.assert_equivalent(db, bag())
+
+  def test_empty_item(self):
+    entity = kde.new_like(ds(None)).eval()
+    db = kde.core.attrs(entity, x=42).eval()
+    expected_db = bag()
+    expected_db[entity.get_schema()].x = schema_constants.INT32
+    testing.assert_equivalent(db, expected_db)
+
+    db = kde.core.attrs(kde.obj_like(ds(None)), x=42).eval()
+    testing.assert_equivalent(db, bag())
+
   def test_non_bool_update_schema(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(

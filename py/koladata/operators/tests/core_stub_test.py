@@ -24,6 +24,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
+from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -180,6 +181,74 @@ class CoreStubTest(parameterized.TestCase):
         x_stub.no_bag(),
         x,
     )
+
+  def test_empty_slice(self):
+    entity = kde.new_like(ds([])).eval()
+    entity_stub = kde.core.stub(entity).eval()
+    testing.assert_equivalent(entity_stub, entity)
+
+    lst = kde.list_like(ds([])).eval()
+    lst_stub = kde.core.stub(lst).eval()
+    testing.assert_equivalent(lst_stub, lst)
+
+    nested_lst_schema = bag().list_schema(
+        bag().list_schema(schema_constants.INT32)
+    )
+    nested_lst = kde.list_like(ds([]), schema=nested_lst_schema).eval()
+    nested_lst_stub = kde.core.stub(nested_lst).eval()
+    testing.assert_equivalent(nested_lst_stub, nested_lst)
+
+    dct = kde.dict_like(ds([])).eval()
+    dct_stub = kde.core.stub(dct).eval()
+    testing.assert_equivalent(dct_stub, dct)
+
+    obj = kde.obj_like(ds([])).eval()
+    obj_stub = kde.core.stub(obj).eval()
+    testing.assert_equivalent(obj_stub, obj)
+
+  def test_empty_item(self):
+    entity = kde.new_like(ds(None)).eval()
+    entity_stub = kde.core.stub(entity).eval()
+    testing.assert_equivalent(entity_stub, entity)
+
+    lst = kde.list_like(ds(None)).eval()
+    lst_stub = kde.core.stub(lst).eval()
+    testing.assert_equivalent(lst_stub, lst)
+
+    nested_lst_schema = bag().list_schema(
+        bag().list_schema(schema_constants.INT32)
+    )
+    nested_lst = kde.list_like(ds(None), schema=nested_lst_schema).eval()
+    nested_lst_stub = kde.core.stub(nested_lst).eval()
+    testing.assert_equivalent(nested_lst_stub, nested_lst)
+
+    dct = kde.dict_like(ds(None)).eval()
+    dct_stub = kde.core.stub(dct).eval()
+    testing.assert_equivalent(dct_stub, dct)
+
+    obj = kde.obj_like(ds(None)).eval()
+    obj_stub = kde.core.stub(obj).eval()
+    testing.assert_equivalent(obj_stub, obj)
+
+  def test_object_wrapping_empty_list_of_lists(self):
+    lst = kde.implode(
+        kde.list_shaped_as(ds([]), item_schema=schema_constants.INT32)
+    ).eval()
+    obj = kde.obj(lst).eval()
+    obj_stub = kde.core.stub(obj).eval()
+    testing.assert_equivalent(obj_stub, obj)
+
+  def test_object_wrapping_empty_list_of_dicts(self):
+    lst = kde.implode(
+        kde.dict_shaped_as(
+            ds([]),
+            key_schema=schema_constants.INT32,
+            value_schema=schema_constants.INT32
+        )
+    ).eval()
+    obj = kde.obj(lst).eval()
+    obj_stub = kde.core.stub(obj).eval()
+    testing.assert_equivalent(obj_stub, obj)
 
   def test_attrs_not_implemented(self):
     with self.assertRaisesRegex(ValueError, 'stub attrs not yet implemented'):

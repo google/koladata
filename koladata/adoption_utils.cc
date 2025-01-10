@@ -134,6 +134,13 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
     DataSlice result_slice = slice.WithBag(db);
     DataSlice schema = slice.GetSchema();
 
+    if (slice.IsEmpty() && (schema.item() == schema::kObject ||
+                            schema.item() == schema::kAny)) {
+      // Nothing to do here, but the code below would run infinitely since it
+      // looks like a list.
+      break;
+    }
+
     if (schema.item() == schema::kObject) {
       ASSIGN_OR_RETURN(schema, slice.GetObjSchema());
       RETURN_IF_ERROR(result_slice.SetAttr(schema::kSchemaAttr, schema));
@@ -144,7 +151,7 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
       return schema.WithBag(db).SetAttr(attr_name, values);
     };
 
-    if (slice.IsList()) {
+    if (slice.IsList() && !schema.IsDictSchema()) {
       RETURN_IF_ERROR(copy_schema_attr(schema::kListItemsSchemaAttr));
       ASSIGN_OR_RETURN(slice, slice.ExplodeList(0, std::nullopt));
       RETURN_IF_ERROR(result_slice.ReplaceInList(0, std::nullopt, slice));
