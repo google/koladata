@@ -2447,7 +2447,7 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
     DataSlice of concatenated Lists
 ```
 
-### `kd.lists.explode(x, ndim=DataItem(1, schema: INT32))` {#kd.lists.explode}
+### `kd.lists.explode(x, ndim=DataItem(1, schema: INT64))` {#kd.lists.explode}
 Aliases:
 
 - [kd.explode](#kd.explode)
@@ -3603,7 +3603,7 @@ Returns:
   Result of fn applied on filtered args.
 ```
 
-### `kd.py.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), ndim=DataItem(0, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py}
+### `kd.py.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), ndim=DataItem(0, schema: INT32), include_missing=DataItem(None, schema: NONE), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py}
 Aliases:
 
 - [kd.map_py](#kd.map_py)
@@ -3673,6 +3673,9 @@ Args:
   schema: The schema to use for resulting DataSlice.
   max_threads: maximum number of threads to use.
   ndim: Dimensionality of items to pass to `fn`.
+  include_missing: Specifies whether `fn` should be computed to the missing
+    items. By default, the function is applied to all items including the
+    missing. `include_missing=False` can only be used with `ndim=0`.
   item_completed_callback: A callback that will be called after each item is
     processed. It will be called in the original thread that called `map_py`
     in case `max_threads` is greater than 1, as we rely on this property for
@@ -4001,17 +4004,6 @@ Aliases:
 
 ``` {.no-copy}
 Casts `x` to ANY using explicit (permissive) casting rules.
-```
-
-### `kd.schema.as_itemid(x)` {#kd.schema.as_itemid}
-Aliases:
-
-- [kd.as_itemid](#kd.as_itemid)
-
-``` {.no-copy}
-Casts `x` to ITEMID using explicit (permissive) casting rules.
-
-Deprecated, use `get_itemid` instead.
 ```
 
 ### `kd.schema.cast_to(x, schema)` {#kd.schema.cast_to}
@@ -4857,72 +4849,6 @@ Operators that perform DataSlice transformations.
 
 **Operators**
 
-### `kd.slices.add_dim(x, sizes)` {#kd.slices.add_dim}
-Aliases:
-
-- [kd.slices.repeat](#kd.slices.repeat)
-
-- [kd.add_dim](#kd.add_dim)
-
-- [kd.repeat](#kd.repeat)
-
-``` {.no-copy}
-Returns `x` with values repeated according to `sizes`.
-
-The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
-broadcasted to `x`, and each value is repeated the given number of times.
-
-Example:
-  ds = kd.slice([[1, None], [3]])
-  sizes = kd.slice([[1, 2], [3]])
-  kd.repeat(ds, sizes)  # -> kd.slice([[[1], [None, None]], [[3, 3, 3]]])
-
-  ds = kd.slice([[1, None], [3]])
-  sizes = kd.slice([2, 3])
-  kd.repeat(ds, sizes)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3, 3]]])
-
-  ds = kd.slice([[1, None], [3]])
-  size = kd.item(2)
-  kd.repeat(ds, size)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3]]])
-
-Args:
-  x: A DataSlice of data.
-  sizes: A DataSlice of sizes that each value in `x` should be repeated for.
-```
-
-### `kd.slices.add_dim_to_present(x, sizes)` {#kd.slices.add_dim_to_present}
-Aliases:
-
-- [kd.slices.repeat_present](#kd.slices.repeat_present)
-
-- [kd.add_dim_to_present](#kd.add_dim_to_present)
-
-- [kd.repeat_present](#kd.repeat_present)
-
-``` {.no-copy}
-Returns `x` with present values repeated according to `sizes`.
-
-The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
-broadcasted to `x`, and each value is repeated the given number of times.
-
-Example:
-  ds = kd.slice([[1, None], [3]])
-  sizes = kd.slice([[1, 2], [3]])
-  kd.repeat_present(ds, sizes)  # -> kd.slice([[[1], []], [[3, 3, 3]]])
-
-  ds = kd.slice([[1, None], [3]])
-  sizes = kd.slice([2, 3])
-  kd.repeat_present(ds, sizes)  # -> kd.slice([[[1, 1], []], [[3, 3, 3]]])
-
-  ds = kd.slice([[1, None], [3]])
-  size = kd.item(2)
-  kd.repeat_present(ds, size)  # -> kd.slice([[[1, 1], []], [[3, 3]]])
-
-Args:
-  x: A DataSlice of data.
-  sizes: A DataSlice of sizes that each value in `x` should be repeated for.
-```
-
 ### `kd.slices.agg_count(x, ndim=unspecified)` {#kd.slices.agg_count}
 Aliases:
 
@@ -5468,7 +5394,8 @@ Example:
 
 Args:
   x: A DataSlice.
-  dim: The dimension to compute indices over. Requires abs(dim) < get_ndim(x).
+  dim: The dimension to compute indices over.
+    Requires -get_ndim(x) <= dim < get_ndim(x).
     If dim < 0 then dim = get_ndim(x) + dim.
 ```
 
@@ -5692,12 +5619,62 @@ Returns:
 ```
 
 ### `kd.slices.repeat(x, sizes)` {#kd.slices.repeat}
+Aliases:
 
-Alias for [kd.slices.add_dim](#kd.slices.add_dim) operator.
+- [kd.repeat](#kd.repeat)
+
+``` {.no-copy}
+Returns `x` with values repeated according to `sizes`.
+
+The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
+broadcasted to `x`, and each value is repeated the given number of times.
+
+Example:
+  ds = kd.slice([[1, None], [3]])
+  sizes = kd.slice([[1, 2], [3]])
+  kd.repeat(ds, sizes)  # -> kd.slice([[[1], [None, None]], [[3, 3, 3]]])
+
+  ds = kd.slice([[1, None], [3]])
+  sizes = kd.slice([2, 3])
+  kd.repeat(ds, sizes)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3, 3]]])
+
+  ds = kd.slice([[1, None], [3]])
+  size = kd.item(2)
+  kd.repeat(ds, size)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3]]])
+
+Args:
+  x: A DataSlice of data.
+  sizes: A DataSlice of sizes that each value in `x` should be repeated for.
+```
 
 ### `kd.slices.repeat_present(x, sizes)` {#kd.slices.repeat_present}
+Aliases:
 
-Alias for [kd.slices.add_dim_to_present](#kd.slices.add_dim_to_present) operator.
+- [kd.repeat_present](#kd.repeat_present)
+
+``` {.no-copy}
+Returns `x` with present values repeated according to `sizes`.
+
+The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
+broadcasted to `x`, and each value is repeated the given number of times.
+
+Example:
+  ds = kd.slice([[1, None], [3]])
+  sizes = kd.slice([[1, 2], [3]])
+  kd.repeat_present(ds, sizes)  # -> kd.slice([[[1], []], [[3, 3, 3]]])
+
+  ds = kd.slice([[1, None], [3]])
+  sizes = kd.slice([2, 3])
+  kd.repeat_present(ds, sizes)  # -> kd.slice([[[1, 1], []], [[3, 3, 3]]])
+
+  ds = kd.slice([[1, None], [3]])
+  size = kd.item(2)
+  kd.repeat_present(ds, size)  # -> kd.slice([[[1, 1], []], [[3, 3]]])
+
+Args:
+  x: A DataSlice of data.
+  sizes: A DataSlice of sizes that each value in `x` should be repeated for.
+```
 
 ### `kd.slices.reverse(ds)` {#kd.slices.reverse}
 Aliases:
@@ -6803,14 +6780,6 @@ Returns a tuple constructed from the given arguments.
 
 Alias for [kd.core.add](#kd.core.add) operator.
 
-### `kd.add_dim(x, sizes)` {#kd.add_dim}
-
-Alias for [kd.slices.add_dim](#kd.slices.add_dim) operator.
-
-### `kd.add_dim_to_present(x, sizes)` {#kd.add_dim_to_present}
-
-Alias for [kd.slices.add_dim_to_present](#kd.slices.add_dim_to_present) operator.
-
 ### `kd.agg_all(x, ndim=unspecified)` {#kd.agg_all}
 
 Alias for [kd.masking.agg_all](#kd.masking.agg_all) operator.
@@ -6878,10 +6847,6 @@ Alias for [kd.py.apply_py_on_selected](#kd.py.apply_py_on_selected) operator.
 ### `kd.as_any(x)` {#kd.as_any}
 
 Alias for [kd.schema.as_any](#kd.schema.as_any) operator.
-
-### `kd.as_itemid(x)` {#kd.as_itemid}
-
-Alias for [kd.schema.as_itemid](#kd.schema.as_itemid) operator.
 
 ### `kd.at(x, indices)` {#kd.at}
 
@@ -7122,7 +7087,7 @@ Alias for [kd.slices.expand_to](#kd.slices.expand_to) operator.
 
 Alias for [kd.shapes.expand_to_shape](#kd.shapes.expand_to_shape) operator.
 
-### `kd.explode(x, ndim=DataItem(1, schema: INT32))` {#kd.explode}
+### `kd.explode(x, ndim=DataItem(1, schema: INT64))` {#kd.explode}
 
 Alias for [kd.lists.explode](#kd.lists.explode) operator.
 
@@ -7589,7 +7554,7 @@ Alias for [kd.tuple.make_tuple](#kd.tuple.make_tuple) operator.
 
 Alias for [kd.functor.map](#kd.functor.map) operator.
 
-### `kd.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), ndim=DataItem(0, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py}
+### `kd.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), ndim=DataItem(0, schema: INT32), include_missing=DataItem(None, schema: NONE), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py}
 
 Alias for [kd.py.map_py](#kd.py.map_py) operator.
 
@@ -7818,11 +7783,11 @@ Alias for [kd.core.reify](#kd.core.reify) operator.
 
 ### `kd.repeat(x, sizes)` {#kd.repeat}
 
-Alias for [kd.slices.add_dim](#kd.slices.add_dim) operator.
+Alias for [kd.slices.repeat](#kd.slices.repeat) operator.
 
 ### `kd.repeat_present(x, sizes)` {#kd.repeat_present}
 
-Alias for [kd.slices.add_dim_to_present](#kd.slices.add_dim_to_present) operator.
+Alias for [kd.slices.repeat_present](#kd.slices.repeat_present) operator.
 
 ### `kd.reshape(x, shape)` {#kd.reshape}
 
@@ -8557,32 +8522,6 @@ Slicing helper for DataSlice.
   Please see kd.subslice for more detailed explanations and examples.
 ```
 
-### `DataSlice.add_dim(self, sizes)` {#DataSlice.add_dim}
-
-``` {.no-copy}
-Returns `x` with values repeated according to `sizes`.
-
-The resulting DataSlice has `rank = rank + 1`. The input `sizes` are
-broadcasted to `x`, and each value is repeated the given number of times.
-
-Example:
-  ds = kd.slice([[1, None], [3]])
-  sizes = kd.slice([[1, 2], [3]])
-  kd.repeat(ds, sizes)  # -> kd.slice([[[1], [None, None]], [[3, 3, 3]]])
-
-  ds = kd.slice([[1, None], [3]])
-  sizes = kd.slice([2, 3])
-  kd.repeat(ds, sizes)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3, 3]]])
-
-  ds = kd.slice([[1, None], [3]])
-  size = kd.item(2)
-  kd.repeat(ds, size)  # -> kd.slice([[[1, 1], [None, None]], [[3, 3]]])
-
-Args:
-  x: A DataSlice of data.
-  sizes: A DataSlice of sizes that each value in `x` should be repeated for.
-```
-
 ### `DataSlice.append(value, /)` {#DataSlice.append}
 
 ``` {.no-copy}
@@ -8593,12 +8532,6 @@ Append a value to each list in this DataSlice
 
 ``` {.no-copy}
 Returns a DataSlice with ANY schema.
-```
-
-### `DataSlice.as_itemid(self)` {#DataSlice.as_itemid}
-
-``` {.no-copy}
-Casts `x` to ITEMID using explicit (permissive) casting rules.
 ```
 
 ### `DataSlice.clear()` {#DataSlice.clear}
@@ -8799,6 +8732,32 @@ Args:
 
 Returns:
   Expanded DataSlice
+```
+
+### `DataSlice.explode(self, ndim=DataItem(1, schema: INT64))` {#DataSlice.explode}
+
+``` {.no-copy}
+Explodes a List DataSlice `x` a specified number of times.
+
+A single list "explosion" converts a rank-K DataSlice of LIST[T] to a
+rank-(K+1) DataSlice of T, by unpacking the items in the Lists in the original
+DataSlice as a new DataSlice dimension in the result. Missing values in the
+original DataSlice are treated as empty lists.
+
+A single list explosion can also be done with `x[:]`.
+
+If `ndim` is set to a non-negative integer, explodes recursively `ndim` times.
+An `ndim` of zero is a no-op.
+
+If `ndim` is set to a negative integer, explodes as many times as possible,
+until at least one of the items of the resulting DataSlice is not a List.
+
+Args:
+  x: DataSlice of Lists to explode
+  ndim: the number of explosion operations to perform, defaults to 1
+
+Returns:
+  DataSlice
 ```
 
 ### `DataSlice.extract(self, schema=unspecified)` {#DataSlice.extract}
@@ -9093,6 +9052,32 @@ Args:
 Returns:
   A MASK DataSlice with the same shape as `x` that contains present if the
   attribute exists for the corresponding item.
+```
+
+### `DataSlice.implode(self, ndim=DataItem(1, schema: INT64), itemid=unspecified)` {#DataSlice.implode}
+
+``` {.no-copy}
+Implodes a Dataslice `x` a specified number of times.
+
+A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
+DataSlice of LIST[T], by folding the items in the last dimension of the
+original DataSlice into newly-created Lists.
+
+A single list implosion is equivalent to `kd.list(x, db)`.
+
+If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
+
+If `ndim` is set to a negative integer, implodes as many times as possible,
+until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
+nested List.
+
+Args:
+  x: the DataSlice to implode
+  ndim: the number of implosion operations to perform
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting lists.
+
+Returns:
+  DataSlice of nested Lists
 ```
 
 ### `DataSlice.internal_as_arolla_value()` {#DataSlice.internal_as_arolla_value}
