@@ -93,9 +93,6 @@ absl::Nullable<PyObject*> PyDataItem_int(PyObject* self) {
   if (py_obj == nullptr) {
     return nullptr;
   }
-  if (PyLong_Check(py_obj.get())) {
-    return py_obj.release();
-  }
   return PyNumber_Long(py_obj.get());
 }
 
@@ -112,9 +109,6 @@ absl::Nullable<PyObject*> PyDataItem_float(PyObject* self) {
   auto py_obj = arolla::python::PyObjectPtr::Own(DataSliceToPyValue(ds));
   if (py_obj == nullptr) {
     return nullptr;
-  }
-  if (PyFloat_Check(py_obj.get())) {
-    return py_obj.release();
   }
   return PyNumber_Float(py_obj.get());
 }
