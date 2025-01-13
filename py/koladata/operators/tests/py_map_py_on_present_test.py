@@ -28,11 +28,15 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-class PyMapPyOnSelectedTest(parameterized.TestCase):
+class PyMapPyOnPresentTest(parameterized.TestCase):
 
   # Note: This operator is assembled from the same building blocks as
   # the operator `kde.py.map_py`, and these are tested together with that
   # operator.
+
+  def test_deprecated(self):
+    with self.assertWarns(DeprecationWarning):
+      _ = expr_eval.eval(kde.py.map_py_on_present(lambda x: x, ds([])))
 
   def test_args_kwargs(self):
     x = ds([1, 2, None])

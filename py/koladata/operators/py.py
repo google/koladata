@@ -18,6 +18,7 @@ import concurrent.futures
 import functools
 import itertools
 from typing import Any, Callable, Iterable
+import warnings
 
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
@@ -822,6 +823,11 @@ def map_py_on_present(
   Returns:
     Result DataSlice.
   """
+  warnings.warn(
+      '`kd.map_py_on_present` is deprecated and will be removed, please use'
+      ' `kd.map_py` instead',
+      DeprecationWarning,
+  )
   if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
   cond = functools.reduce(
