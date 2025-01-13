@@ -143,14 +143,15 @@ class SlicesSortTest(parameterized.TestCase):
   def test_data_item(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: b/375621456 - Must start with 'kde.slices.sort: '.
+        # TODO: b/374841918 - For lambdas we only report underlying operator
+        # names.
         re.escape('array.ordinal_rank: expected rank(x) > 0'),
     ):
       expr_eval.eval(kde.slices.sort(ds(0)))
 
   def test_different_shape(self):
     with self.assertRaisesRegex(
-        # TODO: b/375621456 - Raise KodaError.
+        # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape(
             'kde.slices.sort: arguments `x` and `sort_by` must have the same'
@@ -160,7 +161,7 @@ class SlicesSortTest(parameterized.TestCase):
       expr_eval.eval(kde.slices.sort(ds([0, 3, 6]), ds([0, 3, 6, 1])))
 
     with self.assertRaisesRegex(
-        # TODO: b/375621456 - Raise KodaError.
+        # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape(
             'kde.slices.sort: arguments `x` and `sort_by` must have the same'

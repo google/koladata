@@ -131,7 +131,7 @@ class SlicesIndexTest(parameterized.TestCase):
   def test_out_of_bounds_ndim_error(self, ndim):
     x = data_slice.DataSlice.from_vals([1, 2, 3])
     with self.assertRaisesRegex(
-        # TODO: b/375621456 - Raise KodaError.
+        # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape(
             'kde.slices.index: expected -get_ndim(x) <= dim < get_ndim(x)'

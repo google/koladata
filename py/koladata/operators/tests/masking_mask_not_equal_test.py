@@ -75,7 +75,7 @@ class LogicalMaskNotEqualTest(parameterized.TestCase):
   def test_invalid_input(self):
 
     with self.assertRaisesRegex(
-        # TODO: b/375621456 - Raise KodaError.
+        # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape(
             'kde.masking.mask_equal: argument `x` must have kd.MASK dtype'
@@ -84,7 +84,7 @@ class LogicalMaskNotEqualTest(parameterized.TestCase):
       _ = expr_eval.eval(kde.masking.mask_not_equal(ds(1), ds(present)))
 
     with self.assertRaisesRegex(
-        # TODO: b/375621456 - Raise KodaError.
+        # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape(
             'kde.masking.mask_equal: argument `y` must have kd.MASK dtype'
