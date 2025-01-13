@@ -31,6 +31,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
+#include "koladata/internal/types_buffer.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/optional_value.h"
@@ -148,6 +149,27 @@ TEST(DataSliceImpl, Create) {
   EXPECT_FALSE(ds.is_empty_and_unknown());
   EXPECT_THAT(ds.allocation_ids(), IsEmpty());
   EXPECT_THAT(ds.values<int64_t>(), ElementsAre(57, 75, 19));
+}
+
+TEST(DataSliceImpl, CreateWithTypesBuffer) {
+  constexpr int64_t kSize = 3;
+  auto array =
+      arolla::CreateDenseArray<int64_t>({std::nullopt, 75, std::nullopt});
+  TypesBuffer types_buffer;
+  types_buffer.InitAllUnset(3);
+  types_buffer.id_to_typeidx[1] =
+      types_buffer.get_or_add_typeidx(ScalarTypeId<int64_t>());
+  types_buffer.id_to_typeidx[2] = TypesBuffer::kRemoved;
+  DataSliceImpl ds = DataSliceImpl::CreateWithTypesBuffer(
+      std::move(types_buffer), AllocationIdSet(), array);
+  EXPECT_EQ(ds.size(), kSize);
+  EXPECT_EQ(ds.dtype(), arolla::GetQType<int64_t>());
+  EXPECT_FALSE(ds.is_empty_and_unknown());
+  EXPECT_THAT(ds.allocation_ids(), IsEmpty());
+  EXPECT_THAT(ds, ElementsAre(DataItem(), 75, DataItem()));
+  EXPECT_EQ(ds.types_buffer().id_to_typeidx[0], TypesBuffer::kUnset);
+  EXPECT_EQ(ds.types_buffer().id_to_typeidx[1], 0);
+  EXPECT_EQ(ds.types_buffer().id_to_typeidx[2], TypesBuffer::kRemoved);
 }
 
 TEST(DataSliceImpl, CreateFromDataItemSpan) {

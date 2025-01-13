@@ -86,6 +86,14 @@ class DataSliceImpl {
                                           arolla::DenseArray<T> main_values,
                                           arolla::DenseArray<Ts>... values);
 
+  // Creates a single-type DataSliceImpl with provided TypesBuffer. TypesBuffer
+  // in single-type slice is optional, used in DenseSource to distinguish
+  // missing and removed values.
+  template <class T>
+  static DataSliceImpl CreateWithTypesBuffer(TypesBuffer types_buffer,
+                                             AllocationIdSet allocation_ids,
+                                             arolla::DenseArray<T> values);
+
   static DataSliceImpl Create(const arolla::DenseArray<DataItem>& items);
 
   // Returns 0 dimension DataSliceImpl with specified values. In case of
@@ -397,6 +405,21 @@ DataSliceImpl DataSliceImpl::CreateWithAllocIds(
   }
   return res;
 }
+
+template <class T>
+DataSliceImpl DataSliceImpl::CreateWithTypesBuffer(TypesBuffer types_buffer,
+    AllocationIdSet allocation_ids, arolla::DenseArray<T> values) {
+  DataSliceImpl res;
+  CreateImpl(res, std::move(values));
+  res.internal_->types_buffer = std::move(types_buffer);
+  if constexpr (std::is_same_v<T, ObjectId>) {
+    res.internal_->allocation_ids = std::move(allocation_ids);
+  } else {
+    (void)allocation_ids;
+  }
+  return res;
+}
+
 
 using DataSlicePtr = std::unique_ptr<DataSliceImpl>;
 

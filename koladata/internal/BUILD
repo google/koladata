@@ -419,6 +419,7 @@ cc_test(
         ":dtype",
         ":object_id",
         ":types",
+        ":types_buffer",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/strings",
