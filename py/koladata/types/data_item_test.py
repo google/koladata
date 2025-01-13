@@ -187,37 +187,61 @@ class DataItemTest(parameterized.TestCase):
     self.assertFalse(ds(None, schema_constants.OBJECT))
 
     with self.assertRaisesRegex(
-        ValueError, 'Cannot cast a non-MASK DataItem to bool'
+        ValueError, 'cannot cast a non-MASK DataItem to bool'
     ):
       bool(ds(None, schema_constants.INT32))
 
     with self.assertRaisesRegex(
-        ValueError, 'Cannot cast a non-MASK DataItem to bool'
+        ValueError, 'cannot cast a non-MASK DataItem to bool'
     ):
       bool(ds(True))
 
     with self.assertRaisesRegex(
-        ValueError, 'Cannot cast a non-MASK DataItem to bool'
+        ValueError, 'cannot cast a non-MASK DataItem to bool'
     ):
       bool(ds(5))
-
-  def test_int(self):
-    self.assertEqual(int(ds(42)), 42)
-    self.assertEqual(int(ds(42, schema_constants.INT64)), 42)
-    with self.assertRaisesRegex(ValueError, 'Only INT32/INT64 DataItem'):
-      int(ds('42'))
 
   def test_index(self):
     self.assertEqual(ds(42).__index__(), 42)
     self.assertEqual(ds(42, schema_constants.INT64).__index__(), 42)
-    with self.assertRaisesRegex(ValueError, 'Only INT32/INT64 DataItem'):
+    with self.assertRaisesRegex(ValueError, 'only INT32/INT64 DataItem'):
       ds('42').__index__()
+
+  def test_int(self):
+    self.assertEqual(int(ds(42)), 42)
+    self.assertEqual(int(ds(42, schema_constants.INT64)), 42)
+    self.assertAlmostEqual(int(ds(3.14)), 3)
+    self.assertAlmostEqual(int(ds('42')), 42)
+    self.assertAlmostEqual(int(ds(b'42')), 42)
+    with self.assertRaisesRegex(ValueError, 'invalid literal for int'):
+      int(ds('xyz'))
+    with self.assertRaisesRegex(
+        TypeError, r'must be a .*, not \'NoneType\''
+    ):
+      int(ds(None))
+    with self.assertRaisesRegex(
+        ValueError, 'cannot be a DataItem that holds an ItemId'
+    ):
+      int(fns.new())
 
   def test_float(self):
     self.assertAlmostEqual(float(ds(2.71)), 2.71)
     self.assertAlmostEqual(float(ds(2.71, schema_constants.FLOAT64)), 2.71)
-    with self.assertRaisesRegex(ValueError, 'Only FLOAT32/FLOAT64 DataItem'):
-      float(ds(42))
+    self.assertAlmostEqual(float(ds(3)), 3.0)
+    self.assertAlmostEqual(float(ds('3.14')), 3.14)
+    self.assertAlmostEqual(float(ds(b'3.14')), 3.14)
+    with self.assertRaisesRegex(
+        ValueError, 'could not convert string to float'
+    ):
+      float(ds(b'xyz'))
+    with self.assertRaisesRegex(
+        TypeError, 'must be a string or a real number, not \'NoneType\''
+    ):
+      float(ds(None))
+    with self.assertRaisesRegex(
+        ValueError, 'cannot be a DataItem that holds an ItemId'
+    ):
+      float(fns.new())
 
   @parameterized.named_parameters(
       ('int32', ds(12), 'DataItem(12, schema: INT32)'),

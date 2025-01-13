@@ -196,9 +196,9 @@ def _unwrap_scalar_integer(
   """Returns a python scalar integer stored in the parameter."""
   if isinstance(value, data_item.DataItem):
     try:
-      return int(
-          eval_op('kde.schema.cast_to_narrow', value, schema_constants.INT64)
-      )
+      return eval_op(
+          'kde.schema.cast_to_narrow', value, schema_constants.INT64
+      ).__index__()
     except ValueError:
       pass
   raise ValueError(f'expected a scalar integer, got {param_name}={value}')

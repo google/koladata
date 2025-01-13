@@ -20,14 +20,19 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
+#include "absl/log/check.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/data_slice.h"
 #include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/wrap_utils.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -39,7 +44,7 @@ int PyDataItem_bool(PyObject* self) {
   arolla::python::DCheckPyGIL();
   auto error = []() {
     PyErr_SetString(PyExc_ValueError,
-                    "Cannot cast a non-MASK DataItem to bool. For BOOLEAN, "
+                    "cannot cast a non-MASK DataItem to bool. For BOOLEAN, "
                     "explicit conversion to MASK (e.g. ds == True) is needed. "
                     "See go/koda-basics#mask_vs_bool.");
     return -1;
@@ -68,24 +73,50 @@ absl::Nullable<PyObject*> PyDataItem_index(PyObject* self) {
   if (ds.item().holds_value<int64_t>()) {
     return PyLong_FromLongLong(ds.item().value<int64_t>());
   }
-  PyErr_SetString(PyExc_ValueError,
-                  "Only INT32/INT64 DataItem can be passed to built-in int");
-  return nullptr;
+  return PyErr_Format(
+      PyExc_ValueError,
+      "only INT32/INT64 DataItem can be used for indexing Python objects, "
+      "got %s", arolla::Repr(ds).c_str());
+}
+
+absl::Nullable<PyObject*> PyDataItem_int(PyObject* self) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  DCHECK_EQ(ds.GetShape().rank(), 0);
+  if (ds.dtype() == arolla::GetQType<internal::ObjectId>()) {
+    return PyErr_Format(
+        PyExc_ValueError,
+        "int() argument cannot be a DataItem that holds an ItemId, got %s",
+        arolla::Repr(ds).c_str());
+  }
+  auto py_obj = arolla::python::PyObjectPtr::Own(DataSliceToPyValue(ds));
+  if (py_obj == nullptr) {
+    return nullptr;
+  }
+  if (PyLong_Check(py_obj.get())) {
+    return py_obj.release();
+  }
+  return PyNumber_Long(py_obj.get());
 }
 
 absl::Nullable<PyObject*> PyDataItem_float(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  if (ds.item().holds_value<float>()) {
-    return PyFloat_FromDouble(ds.item().value<float>());
+  DCHECK_EQ(ds.GetShape().rank(), 0);
+  if (ds.dtype() == arolla::GetQType<internal::ObjectId>()) {
+    return PyErr_Format(
+        PyExc_ValueError,
+        "float() argument cannot be a DataItem that holds an ItemId, got %s",
+        arolla::Repr(ds).c_str());
   }
-  if (ds.item().holds_value<double>()) {
-    return PyFloat_FromDouble(ds.item().value<double>());
+  auto py_obj = arolla::python::PyObjectPtr::Own(DataSliceToPyValue(ds));
+  if (py_obj == nullptr) {
+    return nullptr;
   }
-  PyErr_SetString(
-      PyExc_ValueError,
-      "Only FLOAT32/FLOAT64 DataItem can be passed to built-in float");
-  return nullptr;
+  if (PyFloat_Check(py_obj.get())) {
+    return py_obj.release();
+  }
+  return PyNumber_Float(py_obj.get());
 }
 
 // classmethod
@@ -147,6 +178,7 @@ PyTypeObject* InitPyDataItemType() {
       {Py_tp_methods, kPyDataItem_methods},
       {Py_nb_bool, (void*)PyDataItem_bool},
       {Py_nb_index, (void*)PyDataItem_index},
+      {Py_nb_int, (void*)PyDataItem_int},
       {Py_nb_float, (void*)PyDataItem_float},
       // NOTE: It inherits all the methods DataSlice has.
       {0, nullptr},
