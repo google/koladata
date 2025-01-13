@@ -95,7 +95,8 @@ digraph {
 
 **Items** are the elements of a DataSlice, and can be primitives (e.g. integers
 or strings), or more complex data structures (e.g. lists, dicts and entities).
-DataSlices without dimension are called DataItem which always has one item.
+
+A zero-dimensional DataSlice is a scalar item. It is called a DataItem.
 
 ```py
 kd.item(1, schema=kd.FLOAT32)  # 1.
@@ -109,9 +110,9 @@ kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])  # DataSlice of lists
 kd.slice([kd.dict({'a':1, 'b':2}), kd.dict({'c':3})])  # DataSlice of dicts
 ```
 
-NOTE: A **DataSlice of lists** is different from a DataSlice with list elements.
-However, they can be converted from each other as we will show in the later
-section.
+The DataSlice `kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])` is different
+from the DataSlice `kd.slice([[1, 2, 3], [4, 5]])`, as the following example
+shows. However, they can be converted from/to each other as we will see later.
 
 ```py
 l1 = kd.list([1, 2, 3])
@@ -152,7 +153,7 @@ kd.group_by(ds)  # [[4, 4, 4], [3], [2, 2, 2], [1, 1]]
 kd.group_by(ds).take(0)  # [4, 3, 2, 1]
 kd.unique(ds)  # the same as above
 
-# Group by can be used to swap dimensions
+# Group_by can be used to swap dimensions, which can be used to transpose a matrix
 ds = kd.slice([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 kd.group_by(ds.flatten(), kd.index(ds, dim=1).flatten())  # [[1, 4, 7], [2, 5, 8], [3, 6, 9]]
 ```
@@ -224,12 +225,11 @@ Both entities and schemas can be dynamically **allocated** or be
 x = kd.new(a=1, b=kd.new(c=3))
 
 # Entities with auto-allocated schemas cannot be mixed together in vectorized ops
-# kd.new(x=1, schema='s1').get_schema() == kd.new(x=1, schema='s2').get_schema()
 kd.new(x=1).get_schema() != kd.new(x=1).get_schema()  # yes
 
 # Auto-allocated schemas can be cast to have the same schema
 x, y = kd.new(a=1), kd.new(b=2)  # two entites with different schemas
-kd.slice([x, y.with_schema(x.get_schema())])  # the same as above
+kd.slice([x, y.with_schema(x.get_schema())])
 
 # Universally unique entities can be used similarly to named tuples
 kd.uu(x=1, y=kd.uu(z=3))
@@ -240,7 +240,7 @@ kd.new(x=1, y=2).get_itemid() != kd.new(x=1, y=2).get_itemid()  # yes
 # Universally-uniquely allocated entities have always the same ids
 kd.uu(x=1, y=2).get_itemid() == kd.uu(x=1, y=2).get_itemid()  # yes
 
-# Can encode itemid's intro strings
+# Can encode itemid's into strings
 kd.encode_itemid(kd.new(x=1, y=2))  # always different, as ids are allocated
 kd.encode_itemid(kd.uu(x=1, y=2)) == '07aXeaqDy6UJNv8EUfA0jz'  # always the same
 ```
@@ -293,12 +293,13 @@ a.x  # [1, 2, 3]
 a = kd.new(x=kd.slice([1, 2, 3]), schema='Foo')  # The same as above, but more compact
 
 a = kd.slice([kd.obj(x=1), kd.obj(y=2), kd.obj(z=3)])
-a.maybe('x')  # [1, None, None] - only the first one has 'x' attr
+
+a.maybe('x')  # [1, None, None] - only the first one has an attribute 'x'
 ```
 
 When accessing a **single element** of a **DataSlice of lists** or a **key** of
-a **DataSlice of dicts**, a new DataSlice is returned with corresponding values
-in original lists and dicts.
+a **DataSlice of dicts**, a new DataSlice is returned with the corresponding
+values in the original lists and dicts.
 
 ```py
 a = kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])
@@ -322,25 +323,24 @@ a[1]  # [2, 5] == [list0[1], list1[1]]
 # That is, 1-dim DataSlice of lists becomess 2-dim DataSlice
 a[:]  # [[1, 2, 3],[4, 5]]
 
-# "Explosion", but access only the first two items in each list
+# "Explosion" of the first two items in each list
 a[:2]  # [[1, 2], [4, 5]]
-a[:].get_ndim() == a.get_ndim() + 1  # explosion adds dimenstions
+a[:].get_ndim() == a.get_ndim() + 1  # explosion adds one dimension
 ```
 
 An opposite operation is **implosion**, when we return a DataSlice of lists with
-one less dimensions, where each list contains the values of the innermost
-dimension of the original DataSlices.
+one fewer dimension, where each list contains the values of the innermost
+dimension of the original DataSlice.
 
 ```py
-# Implode replaces the last dimensions with lists
+# Implode replaces the last dimension with lists
 a = kd.slice([[1, 2, 3], [4, 5]])
 kd.implode(a)  # kd.slice([kd.list([1,2,3]), kd.list([4,5])])
 kd.implode(a)[:]  # == a
 ```
 
-**Keys** and **values** of **dicts** are also **exploded lists**. That is,
-getting all keys or values of a DataSlice of dicts, returns a DataSlice with one
-more dimension.
+Getting all keys or values of a DataSlice of dicts will return a DataSlice with
+one more dimension.
 
 ```py
 a = kd.slice([kd.dict({'a': 1, 'b': 2}), kd.dict({'b': 3, 'c': 4})])
@@ -350,12 +350,12 @@ a.get_values() # [[1, 2], [3, 4]]
 # shortcut for get_value
 a[:] # [[1, 2], [3, 4]]
 
-# note, get_keys() doesn't guarantee to preserve the order, but we can sort
+# note, get_keys() doesn't guarantee to preserve the order, but we can sort before lookup
 a[kd.sort(a.get_keys())]  # [[1, 2], [3, 4]]
-a.get_keys().get_ndim() == a.get_ndim() + 1  # keys are exploded lists
+a.get_keys().get_ndim() == a.get_ndim() + 1  # the keys DataSlice has one more dimension
 ```
 
-Below is an example of putting everything together.
+Here is an example that puts everything together.
 
 ```py
 a = kd.from_py([{'x': 1}, {'x': 3}], dict_as_obj=True)
@@ -368,12 +368,15 @@ kd.zip(kd.agg_sum(a[:].x), kd.agg_sum(b[:]['y']))  # [4, 6]
 ## Objects
 
 To make possible mixing different primitives or entities/lists/dicts with
-different schemas in the same DataSlices, Koda uses **objects**, which store
-their own schema **similar to python objects** which store their classes as
-`__class__` attribute.
+different schemas in a single DataSlice, Koda uses **objects**, which store
+their schema in their data.
 
-NOTE: primitives are considered as objects though they cannot have attributes
-because their schemas are embedded in the data.
+There are two main kinds of objects in Koda:
+
+*   Primitives, such as integers and strings.
+*   Objects that can have attributes and that use a special attribute to store
+    their schemas. They are **similar to Python objects** that store their
+    classes in the `__class__` attribute.
 
 ```py
 kd.obj(x=2, y=kd.obj(z=3))
@@ -392,7 +395,7 @@ kd.slice([kd.obj(x=1,y=2), kd.obj(x="hello", y="world"), kd.obj(1)])
 kd.obj(x=1).get_schema() # kd.OBJECT
 kd.obj(x=1).get_schema() == kd.obj(1).get_schema()  # yes
 
-# Get per-item schemas stored in each objects
+# Get per-item schemas stored in every object
 kd.obj(x=1).get_obj_schema() # IMPLICIT_SCHEMA(x=INT32)
 kd.obj(x=1).get_obj_schema() != kd.obj(1).get_obj_schema()  # yes, different actual schemas
 kd.slice([kd.obj(x=1,y=2), kd.obj(x="hello", y="world"), kd.obj(1)]).get_obj_schema()
@@ -423,10 +426,11 @@ kd.obj(x=1, y=2).with_schema(my_schema)
 kd.from_py({'x': 1, 'y': 2}, dict_as_obj=True).with_schema(my_schema)  # the same as above
 ```
 
-Note: There is additional **performance cost** during vectorized operations, as
-each item can have its own schema in this case, and different objects might have
-different sets of attributes. For large data, using entities with explicit
-schemas is recommended.
+Note: Compared to entities, objects have a higher **performance overhead**
+during vectorized operations, as each object in a DataSlice has its own schema,
+and different objects in the same DataSlice might have different sets of
+attributes. For large data, the use of entities with explicit schemas is
+recommended for faster execution.
 
 Similar to entities, lists and dicts can be objects too.
 
@@ -446,13 +450,15 @@ assert d_objs.get_schema() == kd.OBJECT
 d_objs.get_obj_schema()  # [DICT{STRING, INT32}, DICT{INT32, BOOLEAN}]
 ```
 
-Primitives can be treated as objects too as their schemas can be inferred from
-the values.
+Primitives are also objects. Their schemas are inferred from their values.
 
 ```py
-kd.obj(1)  # INT32
+kd.obj(1)
 kd.obj(kd.int64(1))
-kd.obj('hello')  # STRING
+kd.obj('hello')
+
+assert kd.obj(1).get_schema() == kd.OBJECT
+assert kd.obj(1).get_obj_schema() == kd.INT32
 
 # Dict values are objects
 # No need to wrap them using kd.obj
@@ -462,8 +468,8 @@ d.get_schema()  # DICT{STRING, OBJECT}
 
 ## Sparsity and Masks
 
-**Sparsity** is a first-class citizen in Koda. Every item in a DataSlice can be
-present or missing and all operators support sparse DataSlice.
+**Sparsity** is a first-class concept in Koda. Every item in a DataSlice can be
+present or missing and all operators support missing values.
 
 ```py
 a = kd.slice([[1, None], [4]])
@@ -473,8 +479,8 @@ kd.agg_any(a) # [present, present]
 kd.agg_all(a) # [missing, present]
 ```
 
-**Masks** are used to represent present/missing state, as well as used **instead
-of booleans** for comparison and logical ops.
+**Masks** are used to represent present/missing state. They are also used in
+comparison and logical operations.
 
 ```py
 # Get the sparsity of a DataSlice
@@ -482,6 +488,11 @@ kd.has(kd.slice([[1, None], [4]])) # [[present, missing], [present]]
 kd.slice([1, None, 3, 4]) != 3  # [present, missing, missing, present]
 kd.slice([1, 2, 3, 4]) > 2  # [missing, missing, present, present]
 ```
+
+Using masks instead of Booleans in comparison and logical operations is useful
+because masks have a 2-valued logic. In the presence of missing values, the
+Booleans have a 3-valued logic (over True, False, missing), which is more
+complex and confusing.
 
 Masks can be used to **filter** or **select** items in a DataSlice. The
 difference is that filtering does not change the shape of the DataSlice and
