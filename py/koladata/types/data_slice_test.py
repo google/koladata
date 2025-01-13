@@ -2584,6 +2584,26 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
     self.assertFalse(x.as_any().is_entity())
     self.assertFalse(db.obj(x).is_entity())
 
+  def test_is_schema(self):
+    db = bag()
+    entity_schema = db.new_schema(a=schema_constants.INT32)
+    list_schema = db.list_schema(schema_constants.INT32)
+    dict_schema = db.dict_schema(
+        schema_constants.STRING, schema_constants.INT32
+    )
+
+    self.assertTrue(entity_schema.is_entity_schema())
+    self.assertFalse(list_schema.is_entity_schema())
+    self.assertFalse(dict_schema.is_entity_schema())
+
+    self.assertFalse(entity_schema.is_list_schema())
+    self.assertTrue(list_schema.is_list_schema())
+    self.assertFalse(dict_schema.is_list_schema())
+
+    self.assertFalse(entity_schema.is_dict_schema())
+    self.assertFalse(list_schema.is_dict_schema())
+    self.assertTrue(dict_schema.is_dict_schema())
+
   def test_empty_subscript_method_slice(self):
     db = bag()
     testing.assert_equal(
