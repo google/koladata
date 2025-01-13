@@ -60,6 +60,15 @@ absl::Status ExpectPresentScalar(absl::string_view arg_name,
                                  const DataSlice& arg,
                                  schema::DType expected_dtype);
 
+// Returns OK if the DataSlice contains values of the types that can be added
+// using the + operator (numerics, bytes or string).
+absl::Status ExpectCanBeAdded(absl::string_view arg_name, const DataSlice& arg);
+
+// Returns OK if the DataSlice contains values of the types that can be ordered
+// (numerics, boolean, mask, bytes or string).
+absl::Status ExpectCanBeOrdered(absl::string_view arg_name,
+                                const DataSlice& arg);
+
 namespace schema_utils_internal {
 
 // (internal) Implementation of ExpectConsistentStringOrBytes.

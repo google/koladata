@@ -294,6 +294,62 @@ TEST(SchemaUtilsTest, ExpectInteger) {
                "of OBJECT with items of types BYTES, STRING"));
 }
 
+TEST(SchemaUtilsTest, ExpectCanBeAdded) {
+  EXPECT_THAT(
+      ExpectCanBeAdded("foo", test::DataItem(std::nullopt, schema::kObject)),
+      IsOk());
+  EXPECT_THAT(
+      ExpectCanBeAdded("foo", test::DataSlice<int>({1, 2, std::nullopt})),
+      IsOk());
+  EXPECT_THAT(ExpectCanBeAdded("foo", test::DataSlice<arolla::Text>(
+                                          {"a", "b", std::nullopt})),
+              IsOk());
+  EXPECT_THAT(ExpectCanBeAdded("foo", test::DataSlice<std::string>(
+                                          {"a", "b", std::nullopt})),
+              IsOk());
+  EXPECT_THAT(ExpectCanBeAdded(
+                  "foo", test::DataSlice<bool>({true, false, std::nullopt})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "argument `foo` must be a slice of consistent numeric, "
+                       "bytes or string values, got a slice of BOOLEAN"));
+  EXPECT_THAT(
+      ExpectCanBeAdded("foo", test::MixedDataSlice<arolla::Text, std::string>(
+                                  {"foo", std::nullopt, std::nullopt},
+                                  {std::nullopt, "bar", std::nullopt})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of consistent numeric, bytes or "
+               "string values, got a slice of OBJECT with items of types "
+               "BYTES, STRING"));
+}
+
+TEST(SchemaUtilsTest, ExpectCanBeOrdered) {
+  EXPECT_THAT(
+      ExpectCanBeOrdered("foo", test::DataItem(std::nullopt, schema::kObject)),
+      IsOk());
+  EXPECT_THAT(
+      ExpectCanBeOrdered("foo", test::DataSlice<int>({1, 2, std::nullopt})),
+      IsOk());
+  EXPECT_THAT(ExpectCanBeOrdered("foo", test::DataSlice<arolla::Text>(
+                                            {"a", "b", std::nullopt})),
+              IsOk());
+  EXPECT_THAT(ExpectCanBeOrdered("foo", test::DataSlice<std::string>(
+                                            {"a", "b", std::nullopt})),
+              IsOk());
+  EXPECT_THAT(ExpectCanBeOrdered(
+                  "foo", test::DataSlice<bool>({true, false, std::nullopt})),
+              IsOk());
+  EXPECT_THAT(ExpectCanBeOrdered("foo", test::DataSlice<arolla::Unit>(
+                                            {arolla::kPresent, std::nullopt})),
+              IsOk());
+  EXPECT_THAT(
+      ExpectCanBeOrdered("foo", test::MixedDataSlice<arolla::Text, std::string>(
+                                    {"foo", std::nullopt, std::nullopt},
+                                    {std::nullopt, "bar", std::nullopt})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of orderable values, got a "
+               "slice of OBJECT with items of types BYTES, STRING"));
+}
+
 TEST(SchemaUtilsTest, ExpectString) {
   EXPECT_THAT(
       ExpectString("foo", test::DataItem(std::nullopt, schema::kObject)),

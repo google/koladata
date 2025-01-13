@@ -233,7 +233,11 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with Struct schema is not supported'
+        exceptions.KodaError,
+        re.escape(
+            'kd.slices.dense_rank: argument `x` must be a slice of orderable'
+            ' values, got a slice of SCHEMA(x=INT32)'
+        ),
     ):
       expr_eval.eval(kde.slices.dense_rank(x))
 

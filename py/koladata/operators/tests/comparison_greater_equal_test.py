@@ -128,14 +128,14 @@ class ComparisonGreaterEqualTest(parameterized.TestCase):
     schemas = ds([None, schema_constants.BOOLEAN])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.comparison.greater_equal: argument `x` must be a slice of numerics,'
-        ' booleans, bytes or strings, got SCHEMA',
+        'kd.comparison.greater_equal: argument `x` must be a slice of orderable'
+        ' values, got a slice of SCHEMA',
     ):
       expr_eval.eval(kde.comparison.greater_equal(I.x, I.y), x=schemas, y=empty)
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.comparison.greater_equal: argument `y` must be a slice of numerics,'
-        ' booleans, bytes or strings, got SCHEMA',
+        'kd.comparison.greater_equal: argument `y` must be a slice of orderable'
+        ' values, got a slice of SCHEMA',
     ):
       expr_eval.eval(kde.comparison.greater_equal(I.x, I.y), x=empty, y=schemas)
 

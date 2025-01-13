@@ -106,6 +106,42 @@ absl::Status ExpectInteger(absl::string_view arg_name, const DataSlice& arg) {
   return absl::OkStatus();
 }
 
+absl::Status ExpectCanBeAdded(absl::string_view arg_name,
+                              const DataSlice& arg) {
+  auto narrowed_schema = GetNarrowedSchema(arg);
+  bool can_be_added =
+      schema::IsImplicitlyCastableTo(narrowed_schema,
+                                     internal::DataItem(schema::kFloat64)) ||
+      // NOTE: for performance reasons we are not using IsImplicitlyCastableTo
+      // below, but kNone is already allowed via IsImplicitlyCastableTo above.
+      narrowed_schema == schema::kBytes || narrowed_schema == schema::kString;
+  if (!can_be_added) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be a slice of consistent numeric, bytes or "
+        "string values, got a slice of %s",
+        arg_name, schema_utils_internal::DescribeSliceSchema(arg)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status ExpectCanBeOrdered(absl::string_view arg_name,
+                                const DataSlice& arg) {
+  auto narrowed_schema = GetNarrowedSchema(arg);
+  bool can_be_ordered =
+      schema::IsImplicitlyCastableTo(narrowed_schema,
+                                     internal::DataItem(schema::kFloat64)) ||
+      // NOTE: for performance reasons we are not using IsImplicitlyCastableTo
+      // below, but kNone is already allowed via IsImplicitlyCastableTo above.
+      narrowed_schema == schema::kBytes || narrowed_schema == schema::kString ||
+      narrowed_schema == schema::kBool || narrowed_schema == schema::kMask;
+  if (!can_be_ordered) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be a slice of orderable values, got a slice of %s",
+        arg_name, schema_utils_internal::DescribeSliceSchema(arg)));
+  }
+  return absl::OkStatus();
+}
+
 absl::Status ExpectString(absl::string_view arg_name, const DataSlice& arg) {
   return ExpectNoneOr(schema::kString, arg_name, arg);
 }

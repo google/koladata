@@ -712,13 +712,14 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
                                       const DataSlice& tie_breaker,
                                       const DataSlice& descending) {
   constexpr absl::string_view kOperatorName = "kd.slices.ordinal_rank";
-  RETURN_IF_ERROR(ExpectPresentScalar("descending", descending, schema::kBool))
-      .With(OpError(kOperatorName));
+  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x)).With(OpError(kOperatorName));
   ASSIGN_OR_RETURN(
       auto tie_breaker_int64,
       CastToNarrow(tie_breaker, internal::DataItem(schema::kInt64)),
       internal::OperatorEvalError(std::move(_), kOperatorName,
                                   "tie_breaker must be integers"));
+  RETURN_IF_ERROR(ExpectPresentScalar("descending", descending, schema::kBool))
+      .With(OpError(kOperatorName));
   return SimpleAggOverEval(
       "array.ordinal_rank", {x, std::move(tie_breaker_int64), descending},
       /*output_schema=*/internal::DataItem(schema::kInt64), /*edge_index=*/2);
@@ -727,6 +728,7 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
 absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,
                                     const DataSlice& descending) {
   constexpr absl::string_view kOperatorName = "kd.slices.dense_rank";
+  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x)).With(OpError(kOperatorName));
   RETURN_IF_ERROR(ExpectPresentScalar("descending", descending, schema::kBool))
       .With(OpError(kOperatorName));
   return SimpleAggOverEval(

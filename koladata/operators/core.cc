@@ -45,6 +45,7 @@
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
 #include "koladata/repr_utils.h"
+#include "koladata/schema_utils.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
@@ -60,6 +61,8 @@
 
 namespace koladata::ops {
 namespace {
+
+constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
 
 absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool update_schema,
                                  absl::Span<const absl::string_view> attr_names,
@@ -192,6 +195,10 @@ class WithAttrsOperator : public arolla::QExprOperator {
 };
 
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y))
+      .With(OpError("kd.core.add"));
+  RETURN_IF_ERROR(ExpectCanBeAdded("x", x)).With(OpError("kd.core.add"));
+  RETURN_IF_ERROR(ExpectCanBeAdded("y", y)).With(OpError("kd.core.add"));
   return SimplePointwiseEval("kde.core._add_impl", {x, y});
 }
 

@@ -18,6 +18,8 @@ Note that there are more extensive tests that reuse the existing Arolla tests
 for the M.math.add and M.strings.join operators.
 """
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -204,8 +206,8 @@ class CoreAddTest(parameterized.TestCase):
     y = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'expected numerics, got y: DENSE_ARRAY_TEXT',
+        'kd.core.add: arguments `x` and `y` must contain values castable to a'
+        ' common primitive type, got INT32 and STRING',
     ):
       expr_eval.eval(kde.core.add(I.x, I.y), x=x, y=y)
 
@@ -219,7 +221,9 @@ class CoreAddTest(parameterized.TestCase):
     z = ds([[1, '2'], [3]])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'DataSlice with mixed types is not supported',
+        'kd.core.add: arguments `x` and `y` must contain values castable to a'
+        ' common primitive type, got INT32 and OBJECT with items of types'
+        ' INT32, STRING',
     ):
       expr_eval.eval(kde.core.add(I.x, I.z), x=x, z=z)
 
@@ -253,7 +257,11 @@ class CoreAddTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with Struct schema is not supported'
+        exceptions.KodaError,
+        re.escape(
+            'kd.core.add: argument `x` must be a slice of consistent numeric,'
+            ' bytes or string values, got a slice of SCHEMA(x=INT32)'
+        ),
     ):
       expr_eval.eval(kde.core.add(x, x))
 
