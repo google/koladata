@@ -1379,5 +1379,38 @@ def databag_repr_fallbacks(state):
     _ = repr(e.db)
 
 
+@google_benchmark.register
+@google_benchmark.option.arg_names(['sorted_indices'])
+@google_benchmark.option.args([False])
+@google_benchmark.option.args([True])
+def subslice(state):
+  """Benchmark ds.S."""
+  sorted_indices = state.range(0)
+  num_dims = 5
+  min_size = 10
+  max_size = 20
+  ds = kd.present
+  # Create random ragged data.
+  for step in range(num_dims):
+    ds = ds.repeat(kd.randint_like(ds, min_size, max_size + 1, seed=step))
+  # Replace repeated values with random values.
+  ds = kd.randint_like(ds, 1, 100, seed=57)
+  # Choose random indices to take.
+  indices = []
+  chosen = kd.implode(ds, -1)
+  for step in range(num_dims):
+    available = kd.range(kd.list_size(chosen))
+    take = kd.select(
+        available, kd.randint_like(available, 0, 2, seed=100 + step) == 0
+    )
+    if not sorted_indices:
+      # Shuffle.
+      take = kd.sort(take, kd.randint_like(take, 1, 1000, seed=200 + step))
+    indices.append(take)
+    chosen = chosen[take]
+  while state:
+    _ = ds.S[*indices]
+
+
 if __name__ == '__main__':
   google_benchmark.main()
